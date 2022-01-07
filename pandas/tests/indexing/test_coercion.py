@@ -598,9 +598,6 @@ class TestWhereCoercion(CoercionBase):
     )
     def test_where_int64(self, index_or_series, fill_val, exp_dtype, request):
         klass = index_or_series
-        if klass is pd.Index and exp_dtype is np.complex128:
-            mark = pytest.mark.xfail(reason="Complex Index not supported")
-            request.node.add_marker(mark)
 
         obj = klass([1, 2, 3, 4])
         assert obj.dtype == np.int64
@@ -622,9 +619,6 @@ class TestWhereCoercion(CoercionBase):
     )
     def test_where_float64(self, index_or_series, fill_val, exp_dtype, request):
         klass = index_or_series
-        if klass is pd.Index and exp_dtype is np.complex128:
-            mark = pytest.mark.xfail(reason="Complex Index not supported")
-            request.node.add_marker(mark)
 
         obj = klass([1.1, 2.2, 3.3, 4.4])
         assert obj.dtype == np.float64
@@ -649,8 +643,9 @@ class TestWhereCoercion(CoercionBase):
             (True, object),
         ],
     )
-    def test_where_series_complex128(self, fill_val, exp_dtype):
-        klass = pd.Series
+    def test_where_series_complex128(self, index_or_series, fill_val, exp_dtype):
+        klass = index_or_series
+
         obj = klass([1 + 1j, 2 + 2j, 3 + 3j, 4 + 4j])
         assert obj.dtype == np.complex128
         cond = klass([True, False, True, False])
@@ -905,11 +900,6 @@ class TestFillnaSeriesCoercion(CoercionBase):
         assert obj.dtype == np.float64
 
         exp = klass([1.1, fill_val, 3.3, 4.4])
-        # float + complex -> we don't support a complex Index
-        # complex for Series,
-        # object for Index
-        if fill_dtype == np.complex128 and klass == pd.Index:
-            fill_dtype = object
         self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
 
     @pytest.mark.parametrize(
