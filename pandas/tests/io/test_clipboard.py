@@ -17,7 +17,7 @@ from pandas.io.clipboard import (
 )
 
 pytestmark = pytest.mark.skipif(
-    determine_clipboard()[0].__name__ == "ClipboardUnavailable",
+    all(not bool(clip) for clip in determine_clipboard()),
     reason="Clipboard not available.",
 )
 
