@@ -494,6 +494,7 @@ class Styler(StylerRenderer):
         position: str | None = None,
         position_float: str | None = None,
         hrules: bool | None = None,
+        clines: str | None = None,
         label: str | None = None,
         caption: str | tuple | None = None,
         sparse_index: bool | None = None,
@@ -542,6 +543,22 @@ class Styler(StylerRenderer):
             Defaults to ``pandas.options.styler.latex.hrules``, which is `False`.
 
             .. versionchanged:: 1.4.0
+        clines : str, optional
+            Use to control adding \\cline commands for the index labels separation.
+            Possible values are:
+
+              - `None`: no cline commands are added (default).
+              - `"all;data"`: a cline is added for every index value extending the
+                width of the table, including data entries.
+              - `"all;index"`: as above with lines extending only the width of the
+                index entries.
+              - `"skip-last;data"`: a cline is added for each index value except the
+                last level (which is never sparsified), extending the widtn of the
+                table.
+              - `"skip-last;index"`: as above with lines extending only the width of the
+                index entries.
+
+            .. versionadded:: 1.4.0
         label : str, optional
             The LaTeX label included as: \\label{<label>}.
             This is used with \\ref{<label>} in the main .tex file.
@@ -911,6 +928,7 @@ class Styler(StylerRenderer):
             environment=environment,
             convert_css=convert_css,
             siunitx=siunitx,
+            clines=clines,
         )
 
         encoding = encoding or get_option("styler.render.encoding")
