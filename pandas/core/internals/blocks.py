@@ -1498,9 +1498,13 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             if not com.is_null_slice(col) and col != 0:
                 raise IndexError(f"{self} only contains one item")
             elif isinstance(col, slice):
-                if col != slice(None):
-                    raise NotImplementedError(col)
-                return self.values[[loc]]
+                # the is_null_slice check above assures that col is slice(None)
+                #  so what we want is a view on all our columns and row loc
+                if loc < 0:
+                    loc += len(self.values)
+                # Note: loc:loc+1 vs [[loc]] makes a difference when called
+                #  from fast_xs because we want to get a view back.
+                return self.values[loc : loc + 1]
             return self.values[loc]
         else:
             if col != 0:
