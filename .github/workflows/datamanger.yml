@@ -28,7 +28,7 @@ jobs:
           - 5000:5000
     strategy:
       matrix:
-        pattern: ["not slow and not network and not clipboard", "slow"]
+        pattern: ["not slow and not network", "slow"]
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-data_manager-${{ matrix.pattern }}

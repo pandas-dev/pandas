@@ -13,6 +13,12 @@ import pandas._testing as tm
 from pandas.io.clipboard import (
     clipboard_get,
     clipboard_set,
+    determine_clipboard,
+)
+
+pytestmark = pytest.mark.skipif(
+    determine_clipboard()[0].__name__ == "ClipboardUnavailable",
+    reason="Clipboard not available.",
 )
 
 
