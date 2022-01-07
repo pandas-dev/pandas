@@ -767,7 +767,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         We assume that all impacted cases are 1D-only.
         """
         mask = np.atleast_2d(np.asarray(self.isna()))
-        npvalues = np.atleast_2d(np.asarray(self))
+        # Need type annotation for "npvalues"  [var-annotated]
+        npvalues = np.atleast_2d(np.asarray(self))  # type: ignore[var-annotated]
 
         res = quantile_with_mask(
             npvalues,
@@ -943,7 +944,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         nv.validate_any((), kwargs)
 
         values = self._data.copy()
-        np.putmask(values, self._mask, self._falsey_value)
+        # Argument 3 to "putmask" has incompatible type "object"; expected
+        # "Union[_SupportsArray[dtype[Any]], _NestedSequence[
+        # _SupportsArray[dtype[Any]]], bool, int, float, complex, str, bytes, _Nested
+        # Sequence[Union[bool, int, float, complex, str, bytes]]]"  [arg-type]
+        np.putmask(values, self._mask, self._falsey_value)  # type: ignore[arg-type]
         result = values.any()
         if skipna:
             return result
@@ -1019,7 +1024,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         nv.validate_all((), kwargs)
 
         values = self._data.copy()
-        np.putmask(values, self._mask, self._truthy_value)
+        # Argument 3 to "putmask" has incompatible type "object"; expected
+        # "Union[_SupportsArray[dtype[Any]], _NestedSequence[
+        # _SupportsArray[dtype[Any]]], bool, int, float, complex, str, bytes, _Neste
+        # dSequence[Union[bool, int, float, complex, str, bytes]]]"  [arg-type]
+        np.putmask(values, self._mask, self._truthy_value)  # type: ignore[arg-type]
         result = values.all()
 
         if skipna:
