@@ -130,7 +130,7 @@ class TestConstructors(BaseSparseTests, base.BaseConstructorsTests):
 
 
 class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
-    def test_concat_mixed_dtypes(self, data):
+    def test_concat_mixed_dtypes(self, data, using_array_manager):
         # https://github.com/pandas-dev/pandas/issues/20762
         # This should be the same, aside from concat([sparse, float])
         df1 = pd.DataFrame({"A": data[:3]})
@@ -140,7 +140,8 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
 
         # dataframes
         msg = "passing a SparseArray to pd.Index"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        warn = None if using_array_manager else FutureWarning
+        with tm.assert_produces_warning(warn, match=msg):
             result = pd.concat(dfs)
         expected = pd.concat(
             [x.apply(lambda s: np.asarray(s).astype(object)) for x in dfs]
