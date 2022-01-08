@@ -352,9 +352,7 @@ class Block(PandasObject):
 
         return type(self)(new_values, new_mgr_locs, self.ndim)
 
-    # NB: this cannot be made cache_readonly because in libreduction we pin
-    #  new .values that can have different shape GH#42631
-    @property
+    @cache_readonly
     def shape(self) -> Shape:
         return self.values.shape
 
