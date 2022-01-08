@@ -526,7 +526,7 @@ class TestIndex(Base):
             lambda values, index: Series(values, index),
         ],
     )
-    def test_map_dictlike(self, index, mapper):
+    def test_map_dictlike(self, index, mapper, request):
         # GH 12756
         if isinstance(index, CategoricalIndex):
             # Tested in test_categorical
@@ -534,6 +534,11 @@ class TestIndex(Base):
         elif not index.is_unique:
             # Cannot map duplicated index
             return
+        if index.dtype == np.complex64 and not isinstance(mapper(index, index), Series):
+            mark = pytest.mark.xfail(
+                reason="maybe_downcast_to_dtype doesn't handle complex"
+            )
+            request.node.add_marker(mark)
 
         rng = np.arange(len(index), 0, -1)
 
@@ -655,7 +660,8 @@ class TestIndex(Base):
         # 2845
         vals = list(vals)  # Copy for each iteration
         vals.append(nulls_fixture)
-        index = Index(vals)
+        index = Index(vals, dtype=object)
+        # TODO: case with complex dtype?
 
         formatted = index.format()
         expected = [str(index[0]), str(index[1]), str(index[2]), "NaN"]

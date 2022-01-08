@@ -539,6 +539,8 @@ indices_dict = {
     "uint": tm.makeUIntIndex(100),
     "range": tm.makeRangeIndex(100),
     "float": tm.makeFloatIndex(100),
+    "complex64": tm.makeFloatIndex(100).astype("complex64"),
+    "complex128": tm.makeFloatIndex(100).astype("complex128"),
     "num_int64": tm.makeNumericIndex(100, dtype="int64"),
     "num_int32": tm.makeNumericIndex(100, dtype="int32"),
     "num_int16": tm.makeNumericIndex(100, dtype="int16"),

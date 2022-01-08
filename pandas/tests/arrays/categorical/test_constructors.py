@@ -676,7 +676,6 @@ class TestCategoricalConstructors:
         cat = Categorical([0, 1, 2], ordered=ordered)
         assert cat.ordered == bool(ordered)
 
-    @pytest.mark.xfail(reason="Imaginary values not supported in Categorical")
     def test_constructor_imaginary(self):
         values = [1, 2, 3 + 1j]
         c1 = Categorical(values)
