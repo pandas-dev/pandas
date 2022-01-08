@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 import pytest
 
@@ -46,3 +48,18 @@ def test_huge_nanoseconds_overflow():
     # GH 32402
     assert delta_to_nanoseconds(Timedelta(1e10)) == 1e10
     assert delta_to_nanoseconds(Timedelta(nanoseconds=1e10)) == 1e10
+
+
+@pytest.mark.parametrize(
+    "kwargs", [{"Seconds": 1}, {"seconds": 1, "Nanoseconds": 1}, {"Foo": 2}]
+)
+def test_kwarg_assertion(kwargs):
+    err_message = (
+        "cannot construct a Timedelta from the passed arguments, "
+        "allowed keywords are "
+        "[weeks, days, hours, minutes, seconds, "
+        "milliseconds, microseconds, nanoseconds]"
+    )
+
+    with pytest.raises(ValueError, match=re.escape(err_message)):
+        Timedelta(**kwargs)
