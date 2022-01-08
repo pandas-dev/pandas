@@ -124,7 +124,6 @@ Datetimelike
 Timedelta
 ^^^^^^^^^
 -
--
 
 Timezones
 ^^^^^^^^^

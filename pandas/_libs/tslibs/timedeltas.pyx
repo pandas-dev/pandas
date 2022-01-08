@@ -1289,7 +1289,10 @@ class Timedelta(_Timedelta):
                                  "(days,seconds....)")
 
             kwargs = {key: _to_py_int_float(kwargs[key]) for key in kwargs}
-            if not cls._req_any_kwargs_new.intersection(kwargs):
+
+            unsupported_kwargs = set(kwargs)
+            unsupported_kwargs.difference_update(cls._req_any_kwargs_new)
+            if unsupported_kwargs or not cls._req_any_kwargs_new.intersection(kwargs):
                 raise ValueError(
                     "cannot construct a Timedelta from the passed arguments, "
                     "allowed keywords are "
