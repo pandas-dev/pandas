@@ -506,7 +506,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
     def map(self, mapper):
         """
-        Map values using input correspondence (a dict, Series, or function).
+        Map values using input an input mapping or function.
 
         Maps the values (their categories, not the codes) of the index to new
         categories. If the mapping correspondence is one-to-one the result is a

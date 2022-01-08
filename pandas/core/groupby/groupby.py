@@ -375,8 +375,8 @@ See Also
     the results together.
 %(klass)s.groupby.aggregate : Aggregate using one or more
     operations over the specified axis.
-%(klass)s.transform : Call ``func`` on self producing a %(klass)s with
-    transformed values.
+%(klass)s.transform : Call ``func`` on self producing a %(klass)s with the
+    same axis shape as self.
 
 Notes
 -----

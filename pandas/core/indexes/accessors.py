@@ -193,7 +193,7 @@ class DatetimeProperties(Properties):
 
     def to_pydatetime(self) -> np.ndarray:
         """
-        Return the data as an array of native Python datetime objects.
+        Return the data as an array of :class:`datetime.datetime` objects.
 
         Timezone information is retained if present.
 
@@ -333,7 +333,7 @@ class TimedeltaProperties(Properties):
 
     def to_pytimedelta(self) -> np.ndarray:
         """
-        Return an array of native `datetime.timedelta` objects.
+        Return an array of native :class:`datetime.timedelta` objects.
 
         Python's standard `datetime` library uses a different representation
         timedelta's. This method converts a Series of pandas Timedeltas

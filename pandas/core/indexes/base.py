@@ -6029,7 +6029,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def map(self, mapper, na_action=None):
         """
-        Map values using input correspondence (a dict, Series, or function).
+        Map values using an input mapping or function.
 
         Parameters
         ----------

@@ -298,7 +298,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             repeats of the scalar value instead.
 
     fill_value : scalar, optional
-        Elements in `data` that are `fill_value` are not stored in the
+        Elements in data that are ``fill_value`` are not stored in the
         SparseArray. For memory savings, this should be the most common value
         in `data`. By default, `fill_value` depends on the dtype of `data`:
 
@@ -1265,7 +1265,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
     def map(self: SparseArrayT, mapper) -> SparseArrayT:
         """
-        Map categories using input correspondence (dict, Series, or function).
+        Map categories using an input mapping or function.
 
         Parameters
         ----------
