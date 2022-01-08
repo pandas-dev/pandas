@@ -138,7 +138,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
--
+- Bug in :meth:`DataFrame.astype` not preserving subclasses (:issue:`40810`)
 -
 
 Strings
