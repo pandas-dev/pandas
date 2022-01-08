@@ -374,6 +374,8 @@ def _get_mgr_concatenation_plan(mgr: BlockManager):
 
         if not unit_no_ax0_reindexing:
             # create block from subset of columns
+            # Note: Blocks with only 1 column will always have unit_no_ax0_reindexing,
+            #  so we will never get here with ExtensionBlock.
             blk = blk.getitem_block(ax0_blk_indexer)
 
         # Assertions disabled for performance
