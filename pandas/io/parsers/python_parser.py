@@ -990,7 +990,11 @@ class PythonParser(ParserBase):
                 actual_len = len(l)
 
                 if actual_len > col_len:
-                    if (
+                    if callable(self.on_bad_lines):
+                        new_l = self.on_bad_lines(l)
+                        if new_l is not None:
+                            content.append(new_l)
+                    elif (
                         self.on_bad_lines == self.BadLineHandleMethod.ERROR
                         or self.on_bad_lines == self.BadLineHandleMethod.WARN
                     ):
