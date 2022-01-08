@@ -2239,10 +2239,25 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                     casted = element.astype(dtype)
                     comp = casted == element
                     if comp.all():
-                        return element
+                        # Return the casted values bc they can be passed to
+                        #  np.putmask, whereas the raw values cannot.
+                        #  see TestSetitemFloatNDarrayIntoIntegerSeries
+                        return casted
                     raise ValueError
 
                 # Anything other than integer we cannot hold
+                raise ValueError
+            elif (
+                dtype.kind == "u"
+                and isinstance(element, np.ndarray)
+                and element.dtype.kind == "i"
+            ):
+                # see test_where_uint64
+                casted = element.astype(dtype)
+                if (casted == element).all():
+                    # TODO: faster to check (element >=0).all()?  potential
+                    #  itemsize issues there?
+                    return casted
                 raise ValueError
             elif dtype.itemsize < tipo.itemsize:
                 if is_integer(element):
