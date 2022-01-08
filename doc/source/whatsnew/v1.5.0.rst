@@ -121,7 +121,6 @@ Datetimelike
 
 Timedelta
 ^^^^^^^^^
-- Now raising on missing or invalid kwargs (:issue:`43764`)
 -
 
 Timezones
