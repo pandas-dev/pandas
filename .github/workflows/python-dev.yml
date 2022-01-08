@@ -1,5 +1,5 @@
 # This file is purposely frozen(does not run). DO NOT DELETE IT
-# Unfreeze(by commentingthe if: false() condition) once the 
+# Unfreeze(by commentingthe if: false() condition) once the
 # next Python Dev version has released beta 1 and both Cython and numpy support it
 # After that Python has released, migrate the workflows to the
 # posix GHA workflows/Azure pipelines and "freeze" this file by
@@ -21,11 +21,11 @@ on:
       - "doc/**"
 
 env:
-   PYTEST_WORKERS: "auto"
-   PANDAS_CI: 1
-   PATTERN: "not slow and not network and not clipboard"
-   COVERAGE: true
-   PYTEST_TARGET: pandas
+  PYTEST_WORKERS: "auto"
+  PANDAS_CI: 1
+  PATTERN: "not slow and not network and not clipboard"
+  COVERAGE: true
+  PYTEST_TARGET: pandas
 
 jobs:
   build:
