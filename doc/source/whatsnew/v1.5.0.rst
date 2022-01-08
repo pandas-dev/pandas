@@ -196,7 +196,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
--
+- Bug in :meth:`IntegerArray.searchsorted` and :meth:`FloatingArray.searchsorted` returning inconsistent results when acting on ``np.nan`` (:issue:`45255`)
 -
 
 Styler
