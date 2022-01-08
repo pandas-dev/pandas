@@ -195,7 +195,7 @@ _index_shared_docs: dict[str, str] = {}
 str_t = str
 
 
-_o_dtype = np.dtype("object")
+_dtype_obj = np.dtype("object")
 
 
 def _maybe_return_indexers(meth: F) -> F:
@@ -453,6 +453,9 @@ class Index(IndexOpsMixin, PandasObject):
                 if dtype is not None:
                     return result.astype(dtype, copy=False)
                 return result
+            elif dtype is not None:
+                # GH#45206
+                data = data.astype(dtype, copy=False)
 
             disallow_kwargs(kwargs)
             data = extract_array(data, extract_numpy=True)
@@ -484,7 +487,7 @@ class Index(IndexOpsMixin, PandasObject):
                 # maybe coerce to a sub-class
                 arr = data
             else:
-                arr = com.asarray_tuplesafe(data, dtype=np.dtype("object"))
+                arr = com.asarray_tuplesafe(data, dtype=_dtype_obj)
 
                 if dtype is None:
                     arr = _maybe_cast_data_without_dtype(
@@ -521,7 +524,7 @@ class Index(IndexOpsMixin, PandasObject):
                     )
             # other iterable of some kind
 
-            subarr = com.asarray_tuplesafe(data, dtype=np.dtype("object"))
+            subarr = com.asarray_tuplesafe(data, dtype=_dtype_obj)
             if dtype is None:
                 # with e.g. a list [1, 2, 3] casting to numeric is _not_ deprecated
                 # error: Incompatible types in assignment (expression has type
@@ -606,9 +609,7 @@ class Index(IndexOpsMixin, PandasObject):
 
             return Int64Index
 
-        # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-        # operand type: "Type[object]")
-        elif dtype == object:  # type: ignore[comparison-overlap]
+        elif dtype == _dtype_obj:
             # NB: assuming away MultiIndex
             return Index
 
@@ -677,7 +678,7 @@ class Index(IndexOpsMixin, PandasObject):
             warnings.filterwarnings("ignore", ".*the Index constructor", FutureWarning)
             result = cls(*args, **kwargs)
 
-        if result.dtype == object and not result._is_multi:
+        if result.dtype == _dtype_obj and not result._is_multi:
             # error: Argument 1 to "maybe_convert_objects" has incompatible type
             # "Union[ExtensionArray, ndarray[Any, Any]]"; expected
             # "ndarray[Any, Any]"
@@ -3245,7 +3246,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             result = self._shallow_copy(result, name=name)
 
-        if type(self) is Index and self.dtype != object:
+        if type(self) is Index and self.dtype != _dtype_obj:
             # i.e. ExtensionArray-backed
             # TODO(ExtensionIndex): revert this astype; it is a kludge to make
             #  it possible to split ExtensionEngine from ExtensionIndex PR.
@@ -5957,7 +5958,7 @@ class Index(IndexOpsMixin, PandasObject):
             if is_signed_integer_dtype(self.dtype) or is_signed_integer_dtype(
                 target_dtype
             ):
-                return np.dtype("object")
+                return _dtype_obj
 
         dtype = find_common_type([self.dtype, target_dtype])
 
@@ -5972,7 +5973,7 @@ class Index(IndexOpsMixin, PandasObject):
                 # FIXME: some cases where float64 cast can be lossy?
                 dtype = np.dtype(np.float64)
         if dtype.kind == "c":
-            dtype = np.dtype(object)
+            dtype = _dtype_obj
         return dtype
 
     @final

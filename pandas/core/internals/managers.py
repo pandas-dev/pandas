@@ -1805,7 +1805,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         """compat with BlockManager"""
         return None
 
-    def getitem_mgr(self, indexer) -> SingleBlockManager:
+    def getitem_mgr(self, indexer: slice | npt.NDArray[np.bool_]) -> SingleBlockManager:
         # similar to get_slice, but not restricted to slice indexer
         blk = self._block
         array = blk._slice(indexer)

@@ -1024,10 +1024,13 @@ class Series(base.IndexOpsMixin, NDFrame):
         # handle the dup indexing case GH#4246
         return self.loc[key]
 
-    def _get_values_tuple(self, key):
+    def _get_values_tuple(self, key: tuple):
         # mpl hackaround
         if com.any_none(*key):
-            result = self._get_values(key)
+            # mpl compat if we look up e.g. ser[:, np.newaxis];
+            #  see tests.series.timeseries.test_mpl_compat_hack
+            # the asarray is needed to avoid returning a 2D DatetimeArray
+            result = np.asarray(self._values[key])
             deprecate_ndim_indexing(result, stacklevel=find_stack_level())
             return result
 
@@ -1040,15 +1043,9 @@ class Series(base.IndexOpsMixin, NDFrame):
             self
         )
 
-    def _get_values(self, indexer):
-        try:
-            new_mgr = self._mgr.getitem_mgr(indexer)
-            return self._constructor(new_mgr).__finalize__(self)
-        except ValueError:
-            # mpl compat if we look up e.g. ser[:, np.newaxis];
-            #  see tests.series.timeseries.test_mpl_compat_hack
-            # the asarray is needed to avoid returning a 2D DatetimeArray
-            return np.asarray(self._values[indexer])
+    def _get_values(self, indexer: slice | npt.NDArray[np.bool_]) -> Series:
+        new_mgr = self._mgr.getitem_mgr(indexer)
+        return self._constructor(new_mgr).__finalize__(self)
 
     def _get_value(self, label, takeable: bool = False):
         """
@@ -1098,8 +1095,9 @@ class Series(base.IndexOpsMixin, NDFrame):
                         FutureWarning,
                         stacklevel=find_stack_level(),
                     )
-                # this is equivalent to self._values[key] = value
-                self._mgr.setitem_inplace(key, value)
+                # can't use _mgr.setitem_inplace yet bc could have *both*
+                #  KeyError and then ValueError, xref GH#45070
+                self._set_values(key, value)
             else:
                 # GH#12862 adding a new key to the Series
                 self.loc[key] = value
@@ -1145,8 +1143,12 @@ class Series(base.IndexOpsMixin, NDFrame):
 
     def _set_with_engine(self, key, value) -> None:
         loc = self.index.get_loc(key)
-        if not can_hold_element(self._values, value):
-            raise ValueError
+        dtype = self.dtype
+        if isinstance(dtype, np.dtype) and dtype.kind not in ["m", "M"]:
+            # otherwise we have EA values, and this check will be done
+            #  via setitem_inplace
+            if not can_hold_element(self._values, value):
+                raise ValueError
 
         # this is equivalent to self._values[key] = value
         self._mgr.setitem_inplace(loc, value)
