@@ -14,10 +14,12 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_150.enhancements.enhancement1:
+.. _whatsnew_150.enhancements.styler:
 
-enhancement1
-^^^^^^^^^^^^
+Styler
+^^^^^^
+
+  - New method :meth:`.Styler.to_string` for alternative customisable output methods (:issue:`44502`)
 
 .. _whatsnew_150.enhancements.enhancement2:
 
@@ -151,7 +153,7 @@ Interval
 
 Indexing
 ^^^^^^^^
--
+- Bug in :meth:`Series.__setitem__` with a non-integer :class:`Index` when using an integer key to set a value that cannot be set inplace where a ``ValueError`` was raised insead of casting to a common dtype (:issue:`45070`)
 -
 
 Missing
