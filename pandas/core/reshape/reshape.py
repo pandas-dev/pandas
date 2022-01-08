@@ -1025,7 +1025,7 @@ def _get_dummies_1d(
         if isinstance(data, Series):
             index = data.index
         else:
-            index = np.arange(len(data))
+            index = Index(range(len(data)))
         return DataFrame(index=index)
 
     # if all NaN
@@ -1035,7 +1035,7 @@ def _get_dummies_1d(
     codes = codes.copy()
     if dummy_na:
         codes[codes == -1] = len(levels)
-        levels = np.append(levels, np.nan)
+        levels = levels.insert(len(levels), np.nan)
 
     # if dummy_na, we just fake a nan level. drop_first will drop it again
     if drop_first and len(levels) == 1:

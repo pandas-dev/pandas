@@ -1203,7 +1203,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         """Return an empty ArrayManager with index/array of length 0"""
         if axes is None:
             axes = [Index([], dtype=object)]
-        array = np.array([], dtype=self.dtype)
+        array: np.ndarray = np.array([], dtype=self.dtype)
         return type(self)([array], axes)
 
     @classmethod
