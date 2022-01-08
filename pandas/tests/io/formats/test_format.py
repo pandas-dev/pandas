@@ -2874,6 +2874,25 @@ class TestFloatArrayFormatter:
             expected_output = "0     840\n1    4200\ndtype: float64"
             assert str(s) == expected_output
 
+    @pytest.mark.parametrize(
+        "value,expected",
+        [
+            ([9.4444], "   0\n0  9"),
+            ([0.49], "       0\n0  5e-01"),
+            ([10.9999], "    0\n0  11"),
+            ([9.5444, 9.6], "    0\n0  10\n1  10"),
+            ([0.46, 0.78, -9.9999], "       0\n0  5e-01\n1  8e-01\n2 -1e+01"),
+        ],
+    )
+    def test_set_option_precision(self, value, expected):
+        # Issue #30122
+        # Precision was incorrectly shown
+
+        with option_context("display.precision", 0):
+
+            df_value = DataFrame(value)
+            assert str(df_value) == expected
+
     def test_output_significant_digits(self):
         # Issue #9764
 
