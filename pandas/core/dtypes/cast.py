@@ -2121,11 +2121,11 @@ def convert_scalar_for_putitemlike(scalar: Scalar, dtype: np.dtype) -> Scalar:
         scalar = maybe_box_datetimelike(scalar, dtype)
         return maybe_unbox_datetimelike(scalar, dtype)
     else:
-        validate_numeric_casting(dtype, scalar)
+        _validate_numeric_casting(dtype, scalar)
     return scalar
 
 
-def validate_numeric_casting(dtype: np.dtype, value: Scalar) -> None:
+def _validate_numeric_casting(dtype: np.dtype, value: Scalar) -> None:
     """
     Check that we can losslessly insert the given value into an array
     with the given dtype.
