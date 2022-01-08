@@ -487,6 +487,8 @@ class Index(IndexOpsMixin, PandasObject):
             if data.dtype.kind in ["i", "u", "f"]:
                 # maybe coerce to a sub-class
                 arr = data
+            elif data.dtype.kind in ["c"]:
+                arr = np.asarray(data)
             else:
                 arr = com.asarray_tuplesafe(data, dtype=_dtype_obj)
 
@@ -614,7 +616,9 @@ class Index(IndexOpsMixin, PandasObject):
             # NB: assuming away MultiIndex
             return Index
 
-        elif issubclass(dtype.type, (str, bool, np.bool_)):
+        elif issubclass(
+            dtype.type, (str, bool, np.bool_, complex, np.complex64, np.complex128)
+        ):
             return Index
 
         raise NotImplementedError(dtype)
@@ -857,6 +861,11 @@ class Index(IndexOpsMixin, PandasObject):
         ):
             # TODO(ExtensionIndex): use libindex.ExtensionEngine(self._values)
             return libindex.ObjectEngine(self._get_engine_target())
+
+        elif self.values.dtype == np.complex64:
+            return libindex.Complex64Engine(self._get_engine_target())
+        elif self.values.dtype == np.complex128:
+            return libindex.Complex128Engine(self._get_engine_target())
 
         # to avoid a reference cycle, bind `target_values` to a local variable, so
         # `self` is not passed into the lambda.
@@ -5980,8 +5989,6 @@ class Index(IndexOpsMixin, PandasObject):
                 # FIXME: find_common_type incorrect with Categorical GH#38240
                 # FIXME: some cases where float64 cast can be lossy?
                 dtype = np.dtype(np.float64)
-        if dtype.kind == "c":
-            dtype = _dtype_obj
         return dtype
 
     @final
@@ -7120,7 +7127,7 @@ def _maybe_cast_data_without_dtype(
             FutureWarning,
             stacklevel=3,
         )
-    if result.dtype.kind in ["b", "c"]:
+    if result.dtype.kind in ["b"]:
         return subarr
     result = ensure_wrapped_if_datetimelike(result)
     return result
