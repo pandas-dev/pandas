@@ -295,7 +295,7 @@ Null-values are no longer coerced to NaN-value in value_counts and mode
 .. ipython:: python
 
     s = pd.Series([True, None, pd.NaT, None, pd.NaT, None])
-    res = s.value_counts(dropna=False)
+    res = s.value_counts(dropna=False).keys()
 
 Previously, all null-values were replaced by a NaN-value.
 
@@ -304,10 +304,7 @@ Previously, all null-values were replaced by a NaN-value.
 .. code-block:: ipython
 
     In [3]: res
-    Out[3]:
-    NaN     5
-    True    1
-    dtype: int64
+    Out[3]: Index([nan, True], dtype='object')
 
 Now null-values are no longer mangled.
 
