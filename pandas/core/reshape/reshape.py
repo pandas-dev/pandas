@@ -19,7 +19,6 @@ from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_1d_only_ea_dtype,
-    is_bool_dtype,
     is_extension_array_dtype,
     is_integer,
     is_integer_dtype,
@@ -279,9 +278,6 @@ class _Unstacker:
         if needs_i8_conversion(values.dtype):
             sorted_values = sorted_values.view("i8")
             new_values = new_values.view("i8")
-        elif is_bool_dtype(values.dtype):
-            sorted_values = sorted_values.astype("object")
-            new_values = new_values.astype("object")
         else:
             sorted_values = sorted_values.astype(name, copy=False)
 
