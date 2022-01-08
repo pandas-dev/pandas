@@ -355,8 +355,14 @@ class Block(PandasObject):
     def dtype(self) -> DtypeObj:
         return self.values.dtype
 
-    def iget(self, i):
-        return self.values[i]
+    def iget(self, i: int | tuple[int, int] | tuple[slice, int]):
+        # In the case where we have a tuple[slice, int], the slice will always
+        #  be slice(None)
+        # Note: only reached with self.ndim == 2
+        # Invalid index type "Union[int, Tuple[int, int], Tuple[slice, int]]"
+        # for "Union[ndarray[Any, Any], ExtensionArray]"; expected type
+        # "Union[int, integer[Any]]"
+        return self.values[i]  # type: ignore[index]
 
     def set_inplace(self, locs, values) -> None:
         """
@@ -1166,6 +1172,9 @@ class Block(PandasObject):
             values = values.T
 
         icond, noop = validate_putmask(values, ~cond)
+        if noop:
+            # GH-39595: Always return a copy; short-circuit up/downcasting
+            return self.copy()
 
         if other is lib.no_default:
             other = self.fill_value
@@ -1173,12 +1182,7 @@ class Block(PandasObject):
         if is_valid_na_for_dtype(other, self.dtype) and self.dtype != _dtype_obj:
             other = self.fill_value
 
-        if noop:
-            # TODO: avoid the downcasting at the end in this case?
-            # GH-39595: Always return a copy
-            result = values.copy()
-
-        elif not self._can_hold_element(other):
+        if not self._can_hold_element(other):
             # we cannot coerce, return a compat dtype
             block = self.coerce_to_target_dtype(other)
             blocks = block.where(orig_other, cond)
@@ -1350,11 +1354,7 @@ class EABackedBlock(Block):
         try:
             res_values = arr._where(cond, other).T
         except (ValueError, TypeError) as err:
-            if isinstance(err, ValueError):
-                # TODO(2.0): once DTA._validate_setitem_value deprecation
-                #  is enforced, stop catching ValueError here altogether
-                if "Timezones don't match" not in str(err):
-                    raise
+            _catch_deprecated_value_error(err)
 
             if is_interval_dtype(self.dtype):
                 # TestSetitemFloatIntervalWithIntIntervalValues
@@ -1397,10 +1397,7 @@ class EABackedBlock(Block):
             # Caller is responsible for ensuring matching lengths
             values._putmask(mask, new)
         except (TypeError, ValueError) as err:
-            if isinstance(err, ValueError) and "Timezones don't match" not in str(err):
-                # TODO(2.0): remove catching ValueError at all since
-                #  DTA raising here is deprecated
-                raise
+            _catch_deprecated_value_error(err)
 
             if is_interval_dtype(self.dtype):
                 # Discussion about what we want to support in the general
@@ -1490,11 +1487,18 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             return (len(self.values),)
         return len(self._mgr_locs), len(self.values)
 
-    def iget(self, col):
+    def iget(self, i: int | tuple[int, int] | tuple[slice, int]):
+        # In the case where we have a tuple[slice, int], the slice will always
+        #  be slice(None)
+        # We _could_ make the annotation more specific, but mypy would
+        #  complain about override mismatch:
+        #  Literal[0] | tuple[Literal[0], int] | tuple[slice, int]
 
-        if self.ndim == 2 and isinstance(col, tuple):
+        # Note: only reached with self.ndim == 2
+
+        if isinstance(i, tuple):
             # TODO(EA2D): unnecessary with 2D EAs
-            col, loc = col
+            col, loc = i
             if not com.is_null_slice(col) and col != 0:
                 raise IndexError(f"{self} only contains one item")
             elif isinstance(col, slice):
@@ -1503,7 +1507,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
                 return self.values[[loc]]
             return self.values[loc]
         else:
-            if col != 0:
+            if i != 0:
                 raise IndexError(f"{self} only contains one item")
             return self.values
 
@@ -1827,6 +1831,18 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
 
         new_values = self.values.fillna(value=value, limit=limit)
         return [self.make_block_same_class(values=new_values)]
+
+
+def _catch_deprecated_value_error(err: Exception) -> None:
+    """
+    We catch ValueError for now, but only a specific one raised by DatetimeArray
+    which will no longer be raised in version.2.0.
+    """
+    if isinstance(err, ValueError):
+        # TODO(2.0): once DTA._validate_setitem_value deprecation
+        #  is enforced, stop catching ValueError here altogether
+        if "Timezones don't match" not in str(err):
+            raise
 
 
 class DatetimeLikeBlock(NDArrayBackedExtensionBlock):

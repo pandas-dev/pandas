@@ -1145,8 +1145,12 @@ class Series(base.IndexOpsMixin, NDFrame):
 
     def _set_with_engine(self, key, value) -> None:
         loc = self.index.get_loc(key)
-        if not can_hold_element(self._values, value):
-            raise ValueError
+        dtype = self.dtype
+        if isinstance(dtype, np.dtype) and dtype.kind not in ["m", "M"]:
+            # otherwise we have EA values, and this check will be done
+            #  via setitem_inplace
+            if not can_hold_element(self._values, value):
+                raise ValueError
 
         # this is equivalent to self._values[key] = value
         self._mgr.setitem_inplace(loc, value)
