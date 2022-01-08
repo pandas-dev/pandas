@@ -498,7 +498,7 @@ class TestTimestampUnaryOps:
         """Calling ts.timestamp() depcrecated in favour of ts.unixtime"""
         ts = fixed_now_ts
         ts.timestamp() == ts.unixtime
-        
+
     @td.skip_if_windows
     def test_unixtime(self, fixed_now_ts):
         # GH#17329
