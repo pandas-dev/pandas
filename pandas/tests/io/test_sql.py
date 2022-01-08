@@ -31,6 +31,8 @@ import sqlite3
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetime64tz_dtype,
@@ -1423,16 +1425,10 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         tm.assert_frame_equal(test_frame1, test_frame3)
         tm.assert_frame_equal(test_frame1, test_frame4)
 
-        # using driver that will not be installed on Travis to trigger error
+    @td.skip_if_installed("pg8000")
+    def test_pg8000_sqlalchemy_passthrough_error(self):
+        # using driver that will not be installed on CI to trigger error
         # in sqlalchemy.create_engine -> test passing of this error to user
-        try:
-            # the rest of this test depends on pg8000's being absent
-            import pg8000  # noqa:F401
-
-            pytest.skip("pg8000 is installed")
-        except ImportError:
-            pass
-
         db_uri = "postgresql+pg8000://user:pass@host/dbname"
         with pytest.raises(ImportError, match="pg8000"):
             sql.read_sql("select * from table", db_uri)

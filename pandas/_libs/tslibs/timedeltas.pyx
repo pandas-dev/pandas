@@ -886,7 +886,7 @@ cdef class _Timedelta(timedelta):
 
     cpdef timedelta to_pytimedelta(_Timedelta self):
         """
-        Convert a pandas Timedelta object into a python timedelta object.
+        Convert a pandas Timedelta object into a python ``datetime.timedelta`` object.
 
         Timedelta objects are internally saved as numpy datetime64[ns] dtype.
         Use to_pytimedelta() to convert to object dtype.
@@ -1251,10 +1251,29 @@ class Timedelta(_Timedelta):
 
     Notes
     -----
+    The constructor may take in either both values of value and unit or
+    kwargs as above. Either one of them must be used during initialization
+
     The ``.value`` attribute is always in ns.
 
     If the precision is higher than nanoseconds, the precision of the duration is
     truncated to nanoseconds.
+
+    Examples
+    --------
+    Here we initialize Timedelta object with both value and unit
+
+    >>> td = pd.Timedelta(1, "d")
+    >>> td
+    Timedelta('1 days 00:00:00')
+
+    Here we initialize the Timedelta object with kwargs
+
+    >>> td2 = pd.Timedelta(days=1)
+    >>> td2
+    Timedelta('1 days 00:00:00')
+
+    We see that either way we get the same result
     """
 
     _req_any_kwargs_new = {"weeks", "days", "hours", "minutes", "seconds",
