@@ -180,12 +180,11 @@ def test_object_NA_raises_with_skipna_false(bool_agg_func):
         ser.groupby([1]).agg(bool_agg_func, skipna=False)
 
 
-@pytest.mark.parametrize("box", [DataFrame, Series])
 @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
-def test_empty(box, bool_agg_func):
+def test_empty(frame_or_series, bool_agg_func):
     # GH 45231
-    kwargs = {"columns": ["a"]} if box is DataFrame else {"name": "a"}
-    obj = box(**kwargs, dtype=object)
+    kwargs = {"columns": ["a"]} if frame_or_series is DataFrame else {"name": "a"}
+    obj = frame_or_series(**kwargs, dtype=object)
     result = getattr(obj.groupby(obj.index), bool_agg_func)()
-    expected = box(**kwargs, dtype=bool)
+    expected = frame_or_series(**kwargs, dtype=bool)
     tm.assert_equal(result, expected)
