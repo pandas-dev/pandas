@@ -714,7 +714,7 @@ cpdef ndarray[object] ensure_string_array(
             return out
 
         arr = arr.to_numpy()
-    elif not isinstance(arr, np.ndarray):
+    elif not util.is_array(arr):
         arr = np.array(arr, dtype="object")
 
     result = np.asarray(arr, dtype="object")
@@ -729,7 +729,7 @@ cpdef ndarray[object] ensure_string_array(
             continue
 
         if not checknull(val):
-            if not isinstance(val, np.floating):
+            if not util.is_float_object(val):
                 # f"{val}" is faster than str(val)
                 result[i] = f"{val}"
             else:

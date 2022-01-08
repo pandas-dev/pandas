@@ -4,6 +4,7 @@ from contextlib import suppress
 from typing import (
     TYPE_CHECKING,
     Hashable,
+    Sequence,
 )
 import warnings
 
@@ -2016,6 +2017,7 @@ class _iLocIndexer(_LocationIndexer):
         """
         Ensure that our column indexer is something that can be iterated over.
         """
+        ilocs: Sequence[int]
         if is_integer(column_indexer):
             ilocs = [column_indexer]
         elif isinstance(column_indexer, slice):

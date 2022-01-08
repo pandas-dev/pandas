@@ -269,6 +269,11 @@ def test_alignment_deprecation_many_inputs(request):
         )
         request.node.add_marker(mark)
 
+        mark = pytest.mark.filterwarnings(
+            "ignore:`np.MachAr` is deprecated.*:DeprecationWarning"
+        )
+        request.node.add_marker(mark)
+
     @vectorize([float64(float64, float64, float64)])
     def my_ufunc(x, y, z):
         return x + y + z

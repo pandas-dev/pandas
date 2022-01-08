@@ -72,6 +72,14 @@ def safe_import(mod_name: str, min_version: str | None = None):
             message=".*decorator is deprecated since Python 3.8.*",
         )
 
+        # fastparquet import accesses pd.Int64Index
+        warnings.filterwarnings(
+            "ignore",
+            category=FutureWarning,
+            module="fastparquet",
+            message=".*Int64Index.*",
+        )
+
         try:
             mod = __import__(mod_name)
         except ImportError:

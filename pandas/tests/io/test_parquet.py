@@ -43,6 +43,9 @@ try:
     with catch_warnings():
         # `np.bool` is a deprecated alias...
         filterwarnings("ignore", "`np.bool`", category=DeprecationWarning)
+        # accessing pd.Int64Index in pd namespace
+        filterwarnings("ignore", ".*Int64Index.*", category=FutureWarning)
+
         import fastparquet
 
     _HAVE_FASTPARQUET = True
