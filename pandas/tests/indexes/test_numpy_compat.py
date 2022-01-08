@@ -54,8 +54,10 @@ def test_numpy_ufuncs_basic(index, func):
         with tm.external_error_raised((TypeError, AttributeError)):
             with np.errstate(all="ignore"):
                 func(index)
-    elif isinstance(index, NumericIndex) or (
-        not isinstance(index.dtype, np.dtype) and index.dtype._is_numeric
+    elif (
+        isinstance(index, NumericIndex)
+        or (not isinstance(index.dtype, np.dtype) and index.dtype._is_numeric)
+        or (index.dtype.kind == "c" and func not in [np.deg2rad, np.rad2deg])
     ):
         # coerces to float (e.g. np.sin)
         with np.errstate(all="ignore"):
@@ -99,8 +101,10 @@ def test_numpy_ufuncs_other(index, func, request):
         with tm.external_error_raised(TypeError):
             func(index)
 
-    elif isinstance(index, NumericIndex) or (
-        not isinstance(index.dtype, np.dtype) and index.dtype._is_numeric
+    elif (
+        isinstance(index, NumericIndex)
+        or (not isinstance(index.dtype, np.dtype) and index.dtype._is_numeric)
+        or (index.dtype.kind == "c" and func is not np.signbit)
     ):
         # Results in bool array
         result = func(index)
