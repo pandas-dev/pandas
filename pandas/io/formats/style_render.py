@@ -74,6 +74,7 @@ class StylerRenderer:
     template_html_table = _gl01_adjust(env.get_template("html_table.tpl"))
     template_html_style = _gl01_adjust(env.get_template("html_style.tpl"))
     template_latex = _gl01_adjust(env.get_template("latex.tpl"))
+    template_string = _gl01_adjust(env.get_template("string.tpl"))
 
     def __init__(
         self,
@@ -182,6 +183,24 @@ class StylerRenderer:
 
         d.update(kwargs)
         return self.template_latex.render(**d)
+
+    def _render_string(
+        self,
+        sparse_index: bool,
+        sparse_columns: bool,
+        max_rows: int | None = None,
+        max_cols: int | None = None,
+        **kwargs,
+    ) -> str:
+        """
+        Render a Styler in string format
+        """
+        self._compute()
+
+        d = self._translate(sparse_index, sparse_columns, max_rows, max_cols, blank="")
+
+        d.update(kwargs)
+        return self.template_string.render(**d)
 
     def _compute(self):
         """
