@@ -41,7 +41,7 @@ from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_inclusive
 
-from pandas.core.dtypes.cast import astype_dt64_to_dt64tz
+from pandas.core.dtypes.astype import astype_dt64_to_dt64tz
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     INT64_DTYPE,

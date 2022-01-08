@@ -44,8 +44,8 @@ from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_insert_loc
 
+from pandas.core.dtypes.astype import astype_nansafe
 from pandas.core.dtypes.cast import (
-    astype_nansafe,
     construct_1d_arraylike_from_scalar,
     find_common_type,
     maybe_box_datetimelike,
