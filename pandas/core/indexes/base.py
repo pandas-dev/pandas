@@ -69,6 +69,7 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from,
     maybe_cast_pointwise_result,
+    np_can_hold_element,
 )
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -4915,6 +4916,13 @@ class Index(IndexOpsMixin, PandasObject):
         TypeError
             If the value cannot be inserted into an array of this dtype.
         """
+        dtype = self.dtype
+        if isinstance(dtype, np.dtype) and dtype.kind not in ["m", "M"]:
+            try:
+                return np_can_hold_element(dtype, value)
+            except ValueError as err:
+                # re-raise as TypeError for consistency
+                raise TypeError from err
         if not can_hold_element(self._values, value):
             raise TypeError
         return value
