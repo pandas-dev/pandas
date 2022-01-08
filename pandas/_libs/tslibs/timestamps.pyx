@@ -886,12 +886,6 @@ cdef class _Timestamp(ABCTimestamp):
         """
         # GH 17329
         # Note: Naive timestamps will not match datetime.stdlib
-        warnings.warn(
-                    "The timestamp() method is deprecated and will be removed in a future "
-                    "version. Use unixtime property instead",
-                    DeprecationWarning,
-                    stacklevel=1,
-                )     
         return self.unixtime
 
     cpdef datetime to_pydatetime(_Timestamp self, bint warn=True):

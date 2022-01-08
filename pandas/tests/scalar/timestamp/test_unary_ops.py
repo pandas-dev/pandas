@@ -497,9 +497,8 @@ class TestTimestampUnaryOps:
     def test_timestamp(self, fixed_now_ts):
         """Calling ts.timestamp() depcrecated in favour of ts.unixtime"""
         ts = fixed_now_ts
-        with pytest.deprecated_call():
-            ts.timestamp()
-
+        ts.timestamp() == ts.unixtime
+        
     @td.skip_if_windows
     def test_unixtime(self, fixed_now_ts):
         # GH#17329
