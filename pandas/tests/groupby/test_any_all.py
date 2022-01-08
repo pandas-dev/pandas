@@ -178,3 +178,14 @@ def test_object_NA_raises_with_skipna_false(bool_agg_func):
     ser = Series([pd.NA], dtype=object)
     with pytest.raises(TypeError, match="boolean value of NA is ambiguous"):
         ser.groupby([1]).agg(bool_agg_func, skipna=False)
+
+
+@pytest.mark.parametrize("box", [DataFrame, Series])
+@pytest.mark.parametrize("bool_agg_func", ["any", "all"])
+def test_empty(box, bool_agg_func):
+    # GH 45231
+    kwargs = {"columns": ["a"]} if box is DataFrame else {"name": "a"}
+    obj = box(**kwargs, dtype=object)
+    result = getattr(obj.groupby(obj.index), bool_agg_func)()
+    expected = box(**kwargs, dtype=bool)
+    tm.assert_equal(result, expected)
