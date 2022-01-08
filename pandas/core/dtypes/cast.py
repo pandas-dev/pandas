@@ -459,7 +459,7 @@ def ensure_dtype_can_hold_na(dtype: DtypeObj) -> DtypeObj:
         # TODO: ExtensionDtype.can_hold_na?
         return dtype
     elif dtype.kind == "b":
-        return np.dtype(object)
+        return _dtype_obj
     elif dtype.kind in ["i", "u"]:
         return np.dtype(np.float64)
     return dtype
@@ -522,7 +522,7 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
             # with object dtype there is nothing to promote, and the user can
             #  pass pretty much any weird fill_value they like
             raise ValueError("fill_value must be a scalar")
-        dtype = np.dtype(object)
+        dtype = _dtype_obj
         return dtype, fill_value
 
     kinds = ["i", "u", "f", "c", "m", "M"]
@@ -532,7 +532,7 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
         return dtype, fv
 
     elif isna(fill_value):
-        dtype = np.dtype(object)
+        dtype = _dtype_obj
         if fill_value is None:
             # but we retain e.g. pd.NA
             fill_value = np.nan
@@ -551,7 +551,7 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
         #      fv = dta._validate_setitem_value(fill_value)
         #      return dta.dtype, fv
         #  except (ValueError, TypeError):
-        #      return np.dtype(object), fill_value
+        #      return _dtype_obj, fill_value
         if isinstance(fill_value, date) and not isinstance(fill_value, datetime):
             # deprecate casting of date object to match infer_dtype_from_scalar
             #  and DatetimeArray._validate_setitem_value
@@ -699,7 +699,7 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
         If False, scalar belongs to pandas extension types is inferred as
         object
     """
-    dtype: DtypeObj = np.dtype(object)
+    dtype: DtypeObj = _dtype_obj
 
     # a 1-element ndarray
     if isinstance(val, np.ndarray):
@@ -718,13 +718,13 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
         # instead of np.empty (but then you still don't want things
         # coming out as np.str_!
 
-        dtype = np.dtype(object)
+        dtype = _dtype_obj
 
     elif isinstance(val, (np.datetime64, datetime)):
         try:
             val = Timestamp(val)
         except OutOfBoundsDatetime:
-            return np.dtype(object), val
+            return _dtype_obj, val
 
         # error: Non-overlapping identity check (left operand type: "Timestamp",
         # right operand type: "NaTType")
@@ -736,13 +736,13 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
                 dtype = DatetimeTZDtype(unit="ns", tz=val.tz)
             else:
                 # return datetimetz as object
-                return np.dtype(object), val
+                return _dtype_obj, val
 
     elif isinstance(val, (np.timedelta64, timedelta)):
         try:
             val = Timedelta(val)
         except (OutOfBoundsTimedelta, OverflowError):
-            dtype = np.dtype(object)
+            dtype = _dtype_obj
         else:
             dtype = np.dtype("m8[ns]")
             val = np.timedelta64(val.value, "ns")
@@ -1911,7 +1911,7 @@ def construct_1d_arraylike_from_scalar(
         try:
             dtype, value = infer_dtype_from_scalar(value, pandas_dtype=True)
         except OutOfBoundsDatetime:
-            dtype = np.dtype(object)
+            dtype = _dtype_obj
 
     if isinstance(dtype, ExtensionDtype):
         cls = dtype.construct_array_type()
