@@ -61,7 +61,7 @@ class TestEngine:
         expected = getattr(roll, method)(engine="cython", **kwargs)
 
         # Check the cache
-        if method not in ("mean", "sum", "var", "std"):
+        if method not in ("mean", "sum", "var", "std", "max", "min"):
             assert (
                 getattr(np, f"nan{method}"),
                 "Rolling_apply_single",
@@ -88,7 +88,7 @@ class TestEngine:
         expected = getattr(expand, method)(engine="cython", **kwargs)
 
         # Check the cache
-        if method not in ("mean", "sum", "var", "std"):
+        if method not in ("mean", "sum", "var", "std", "max", "min"):
             assert (
                 getattr(np, f"nan{method}"),
                 "Expanding_apply_single",
@@ -150,15 +150,16 @@ class TestEngine:
         def add(values, x):
             return np.sum(values) + x
 
+        engine_kwargs = {"nopython": nopython, "nogil": nogil, "parallel": parallel}
         df = DataFrame({"value": [0, 0, 0]})
-        result = getattr(df, window)(**window_kwargs).apply(
-            add, raw=True, engine="numba", args=(1,)
+        result = getattr(df, window)(method=method, **window_kwargs).apply(
+            add, raw=True, engine="numba", engine_kwargs=engine_kwargs, args=(1,)
         )
         expected = DataFrame({"value": [1.0, 1.0, 1.0]})
         tm.assert_frame_equal(result, expected)
 
-        result = getattr(df, window)(**window_kwargs).apply(
-            add, raw=True, engine="numba", args=(2,)
+        result = getattr(df, window)(method=method, **window_kwargs).apply(
+            add, raw=True, engine="numba", engine_kwargs=engine_kwargs, args=(2,)
         )
         expected = DataFrame({"value": [2.0, 2.0, 2.0]})
         tm.assert_frame_equal(result, expected)

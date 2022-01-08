@@ -689,8 +689,8 @@ class SetitemCastingEquivalents:
         self._check_inplace(is_inplace, orig, arr, obj)
 
     def test_index_where(self, obj, key, expected, val, request):
-        if Index(obj).dtype != obj.dtype:
-            # TODO(ExtensionIndex): Should become unreachable
+        if obj.dtype == bool:
+            # TODO(GH#45061): Should become unreachable
             pytest.skip("test not applicable for this dtype")
 
         mask = np.zeros(obj.shape, dtype=bool)
@@ -700,8 +700,8 @@ class SetitemCastingEquivalents:
         tm.assert_index_equal(res, Index(expected))
 
     def test_index_putmask(self, obj, key, expected, val):
-        if Index(obj).dtype != obj.dtype:
-            # TODO(ExtensionIndex): Should become unreachable
+        if obj.dtype == bool:
+            # TODO(GH#45061): Should become unreachable
             pytest.skip("test not applicable for this dtype")
 
         mask = np.zeros(obj.shape, dtype=bool)
@@ -1084,6 +1084,374 @@ class TestSetitemFloatNDarrayIntoIntegerSeries(SetitemCastingEquivalents):
         res_values = np.array(range(5), dtype=dtype)
         res_values[:2] = val
         return Series(res_values)
+
+
+@pytest.mark.parametrize("val", [512, np.int16(512)])
+class TestSetitemIntoIntegerSeriesNeedsUpcast(SetitemCastingEquivalents):
+    @pytest.fixture
+    def obj(self):
+        return Series([1, 2, 3], dtype=np.int8)
+
+    @pytest.fixture
+    def key(self):
+        return 1
+
+    @pytest.fixture
+    def inplace(self):
+        return False
+
+    @pytest.fixture
+    def expected(self):
+        return Series([1, 512, 3], dtype=np.int16)
+
+    def test_int_key(self, obj, key, expected, val, indexer_sli, is_inplace, request):
+        if not isinstance(val, np.int16):
+            mark = pytest.mark.xfail
+            request.node.add_marker(mark)
+        super().test_int_key(obj, key, expected, val, indexer_sli, is_inplace)
+
+    def test_mask_key(self, obj, key, expected, val, indexer_sli, request):
+        if not isinstance(val, np.int16):
+            mark = pytest.mark.xfail
+            request.node.add_marker(mark)
+        super().test_mask_key(obj, key, expected, val, indexer_sli)
+
+
+@pytest.mark.parametrize("val", [2 ** 33 + 1.0, 2 ** 33 + 1.1, 2 ** 62])
+class TestSmallIntegerSetitemUpcast(SetitemCastingEquivalents):
+    # https://github.com/pandas-dev/pandas/issues/39584#issuecomment-941212124
+    @pytest.fixture
+    def obj(self):
+        return Series([1, 2, 3], dtype="i4")
+
+    @pytest.fixture
+    def key(self):
+        return 0
+
+    @pytest.fixture
+    def inplace(self):
+        return False
+
+    @pytest.fixture
+    def expected(self, val):
+        if val == 2 ** 62:
+            return Series([val, 2, 3], dtype="i8")
+        elif val == 2 ** 33 + 1.1:
+            return Series([val, 2, 3], dtype="f8")
+        else:
+            return Series([val, 2, 3], dtype="i8")
+
+    def test_series_where(self, obj, key, expected, val, is_inplace, request):
+        if isinstance(val, float) and val % 1 == 0:
+            mark = pytest.mark.xfail
+            request.node.add_marker(mark)
+        super().test_series_where(obj, key, expected, val, is_inplace)
+
+    def test_int_key(self, obj, key, expected, val, indexer_sli, is_inplace, request):
+        if val % 1 == 0:
+            mark = pytest.mark.xfail
+            request.node.add_marker(mark)
+        super().test_int_key(obj, key, expected, val, indexer_sli, is_inplace)
+
+    def test_mask_key(self, obj, key, expected, val, indexer_sli, request):
+        if val % 1 == 0:
+            mark = pytest.mark.xfail
+            request.node.add_marker(mark)
+        super().test_mask_key(obj, key, expected, val, indexer_sli)
+
+
+def test_20643():
+    # closed by GH#45121
+    orig = Series([0, 1, 2], index=["a", "b", "c"])
+
+    expected = Series([0, 2.7, 2], index=["a", "b", "c"])
+
+    ser = orig.copy()
+    ser.at["b"] = 2.7
+    tm.assert_series_equal(ser, expected)
+
+    ser = orig.copy()
+    ser.loc["b"] = 2.7
+    tm.assert_series_equal(ser, expected)
+
+    ser = orig.copy()
+    ser["b"] = 2.7
+    tm.assert_series_equal(ser, expected)
+
+    ser = orig.copy()
+    ser.iat[1] = 2.7
+    tm.assert_series_equal(ser, expected)
+
+    ser = orig.copy()
+    ser.iloc[1] = 2.7
+    tm.assert_series_equal(ser, expected)
+
+    orig_df = orig.to_frame("A")
+    expected_df = expected.to_frame("A")
+
+    df = orig_df.copy()
+    df.at["b", "A"] = 2.7
+    tm.assert_frame_equal(df, expected_df)
+
+    df = orig_df.copy()
+    df.loc["b", "A"] = 2.7
+    tm.assert_frame_equal(df, expected_df)
+
+    df = orig_df.copy()
+    df.iloc[1, 0] = 2.7
+    tm.assert_frame_equal(df, expected_df)
+
+    df = orig_df.copy()
+    df.iat[1, 0] = 2.7
+    tm.assert_frame_equal(df, expected_df)
+
+
+def test_20643_comment():
+    # https://github.com/pandas-dev/pandas/issues/20643#issuecomment-431244590
+    # fixed sometime prior to GH#45121
+    orig = Series([0, 1, 2], index=["a", "b", "c"])
+    expected = Series([np.nan, 1, 2], index=["a", "b", "c"])
+
+    ser = orig.copy()
+    ser.iat[0] = None
+    tm.assert_series_equal(ser, expected)
+
+    ser = orig.copy()
+    ser.iloc[0] = None
+    tm.assert_series_equal(ser, expected)
+
+
+def test_15413():
+    # fixed by GH#45121
+    ser = Series([1, 2, 3])
+
+    ser[ser == 2] += 0.5
+    expected = Series([1, 2.5, 3])
+    tm.assert_series_equal(ser, expected)
+
+    ser = Series([1, 2, 3])
+    ser[1] += 0.5
+    tm.assert_series_equal(ser, expected)
+
+    ser = Series([1, 2, 3])
+    ser.loc[1] += 0.5
+    tm.assert_series_equal(ser, expected)
+
+    ser = Series([1, 2, 3])
+    ser.iloc[1] += 0.5
+    tm.assert_series_equal(ser, expected)
+
+    ser = Series([1, 2, 3])
+    ser.iat[1] += 0.5
+    tm.assert_series_equal(ser, expected)
+
+    ser = Series([1, 2, 3])
+    ser.at[1] += 0.5
+    tm.assert_series_equal(ser, expected)
+
+
+def test_37477():
+    # fixed by GH#45121
+    orig = DataFrame({"A": [1, 2, 3], "B": [3, 4, 5]})
+    expected = DataFrame({"A": [1, 2, 3], "B": [3, 1.2, 5]})
+
+    df = orig.copy()
+    df.at[1, "B"] = 1.2
+    tm.assert_frame_equal(df, expected)
+
+    df = orig.copy()
+    df.loc[1, "B"] = 1.2
+    tm.assert_frame_equal(df, expected)
+
+    df = orig.copy()
+    df.iat[1, 1] = 1.2
+    tm.assert_frame_equal(df, expected)
+
+    df = orig.copy()
+    df.iloc[1, 1] = 1.2
+    tm.assert_frame_equal(df, expected)
+
+
+def test_32878_int_itemsize():
+    # Fixed by GH#45121
+    arr = np.arange(5).astype("i4")
+    ser = Series(arr)
+    val = np.int64(np.iinfo(np.int64).max)
+    ser[0] = val
+    expected = Series([val, 1, 2, 3, 4], dtype=np.int64)
+    tm.assert_series_equal(ser, expected)
+
+
+def test_26395(indexer_al):
+    # .at case fixed by GH#45121 (best guess)
+    df = DataFrame(index=["A", "B", "C"])
+    df["D"] = 0
+
+    indexer_al(df)["C", "D"] = 2
+    expected = DataFrame({"D": [0, 0, 2]}, index=["A", "B", "C"], dtype=np.int64)
+    tm.assert_frame_equal(df, expected)
+
+    indexer_al(df)["C", "D"] = 44.5
+    expected = DataFrame({"D": [0, 0, 44.5]}, index=["A", "B", "C"], dtype=np.float64)
+    tm.assert_frame_equal(df, expected)
+
+    indexer_al(df)["C", "D"] = "hello"
+    expected = DataFrame({"D": [0, 0, "hello"]}, index=["A", "B", "C"], dtype=object)
+    tm.assert_frame_equal(df, expected)
+
+
+def test_37692(indexer_al):
+    # GH#37692
+    ser = Series([1, 2, 3], index=["a", "b", "c"])
+    indexer_al(ser)["b"] = "test"
+    expected = Series([1, "test", 3], index=["a", "b", "c"], dtype=object)
+    tm.assert_series_equal(ser, expected)
+
+
+def test_setitem_bool_int_float_consistency(indexer_sli):
+    # GH#21513
+    # bool-with-int and bool-with-float both upcast to object
+    #  int-with-float and float-with-int are both non-casting so long
+    #  as the setitem can be done losslessly
+    for dtype in [np.float64, np.int64]:
+        ser = Series(0, index=range(3), dtype=dtype)
+        indexer_sli(ser)[0] = True
+        assert ser.dtype == object
+
+        ser = Series(0, index=range(3), dtype=bool)
+        ser[0] = dtype(1)
+        assert ser.dtype == object
+
+    # 1.0 can be held losslessly, so no casting
+    ser = Series(0, index=range(3), dtype=np.int64)
+    indexer_sli(ser)[0] = np.float64(1.0)
+    assert ser.dtype == np.int64
+
+    # 1 can be held losslessly, so no casting
+    ser = Series(0, index=range(3), dtype=np.float64)
+    indexer_sli(ser)[0] = np.int64(1)
+
+
+def test_6942(indexer_al):
+    # check that the .at __setitem__ after setting "Live" actually sets the data
+    start = Timestamp("2014-04-01")
+    t1 = Timestamp("2014-04-23 12:42:38.883082")
+    t2 = Timestamp("2014-04-24 01:33:30.040039")
+
+    dti = date_range(start, periods=1)
+    orig = DataFrame(index=dti, columns=["timenow", "Live"])
+
+    df = orig.copy()
+    indexer_al(df)[start, "timenow"] = t1
+
+    df["Live"] = True
+
+    df.at[start, "timenow"] = t2
+    assert df.iloc[0, 0] == t2
+
+
+@pytest.mark.xfail(reason="Doesn't catch when numpy raises.")
+def test_45070():
+    ser = Series([1, 2, 3], index=["a", "b", "c"])
+
+    ser[0] = "X"
+    expected = Series(["X", 2, 3], index=["a", "b", "c"], dtype=object)
+    tm.assert_series_equal(ser, expected)
+
+
+@pytest.mark.xfail(reason="unwanted upcast")
+def test_15231():
+    df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
+    df.loc[2] = Series({"a": 5, "b": 6})
+    assert (df.dtypes == np.int64).all()
+
+    df.loc[3] = Series({"a": 7})
+
+    # df["a"] doesn't have any NaNs, should not have been cast
+    exp_dtypes = Series([np.int64, np.float64], dtype=object, index=["a", "b"])
+    tm.assert_series_equal(df.dtypes, exp_dtypes)
+
+
+@pytest.mark.xfail(reason="Fails to upcast")
+def test_32878_complex_itemsize():
+    # TODO: when fixed, put adjacent to test_32878_int_itemsize
+    arr = np.arange(5).astype("c8")
+    ser = Series(arr)
+    val = np.finfo(np.float64).max
+    val = val.astype("c16")
+
+    # GH#32878 used to coerce val to inf+0.000000e+00j
+    ser[0] = val
+    assert ser[0] == val
+    expected = Series([val, 1, 2, 3, 4], dtype="c16")
+    tm.assert_series_equal(ser, expected)
+
+
+@pytest.mark.xfail(reason="Unnecessarily upcasts to float64")
+def test_iloc_setitem_unnecesssary_float_upcasting():
+    # GH#12255
+    df = DataFrame(
+        {
+            0: np.array([1, 3], dtype=np.float32),
+            1: np.array([2, 4], dtype=np.float32),
+            2: ["a", "b"],
+        }
+    )
+    orig = df.copy()
+
+    values = df[0].values.reshape(2, 1)
+    df.iloc[:, 0:1] = values
+
+    tm.assert_frame_equal(df, orig)
+
+
+@pytest.mark.xfail(reason="unwanted casting to dt64")
+def test_12499():
+    # TODO: OP in GH#12499 used np.datetim64("NaT") instead of pd.NaT,
+    #  which has consequences for the expected df["two"] (though i think at
+    #  the time it might not have because of a separate bug). See if it makes
+    #  a difference which one we use here.
+    ts = Timestamp("2016-03-01 03:13:22.98986", tz="UTC")
+
+    data = [{"one": 0, "two": ts}]
+    orig = DataFrame(data)
+    df = orig.copy()
+    df.loc[1] = [np.nan, NaT]
+
+    expected = DataFrame(
+        {"one": [0, np.nan], "two": Series([ts, NaT], dtype="datetime64[ns, UTC]")}
+    )
+    tm.assert_frame_equal(df, expected)
+
+    data = [{"one": 0, "two": ts}]
+    df = orig.copy()
+    df.loc[1, :] = [np.nan, NaT]
+    tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.xfail(reason="Too many columns cast to float64")
+def test_20476():
+    mi = MultiIndex.from_product([["A", "B"], ["a", "b", "c"]])
+    df = DataFrame(-1, index=range(3), columns=mi)
+    filler = DataFrame([[1, 2, 3.0]] * 3, index=range(3), columns=["a", "b", "c"])
+    df["A"] = filler
+
+    expected = DataFrame(
+        {
+            0: [1, 1, 1],
+            1: [2, 2, 2],
+            2: [3.0, 3.0, 3.0],
+            3: [-1, -1, -1],
+            4: [-1, -1, -1],
+            5: [-1, -1, -1],
+        }
+    )
+    expected.columns = mi
+    exp_dtypes = Series(
+        [np.dtype(np.int64)] * 2 + [np.dtype(np.float64)] + [np.dtype(np.int64)] * 3,
+        index=mi,
+    )
+    tm.assert_series_equal(df.dtypes, exp_dtypes)
 
 
 def test_setitem_int_as_positional_fallback_deprecation():
