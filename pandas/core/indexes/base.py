@@ -453,6 +453,9 @@ class Index(IndexOpsMixin, PandasObject):
                 if dtype is not None:
                     return result.astype(dtype, copy=False)
                 return result
+            elif dtype is not None:
+                # GH#45206
+                data = data.astype(dtype, copy=False)
 
             disallow_kwargs(kwargs)
             data = extract_array(data, extract_numpy=True)
