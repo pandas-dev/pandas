@@ -1704,13 +1704,14 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             op_name = op.__name__.strip("_")
             return _sparse_array_op(self, other, op, op_name)
         else:
+            # scalar
             with np.errstate(all="ignore"):
                 fill_value = op(self.fill_value, other)
-                result = op(self.sp_values, other)
+                result = np.full(len(self), fill_value, dtype=np.bool_)
+                result[self.sp_index.indices] = op(self.sp_values, other)
 
             return type(self)(
                 result,
-                sparse_index=self.sp_index,
                 fill_value=fill_value,
                 dtype=np.bool_,
             )

@@ -100,6 +100,11 @@ def data_for_grouping(request):
     return SparseArray([1, 1, np.nan, np.nan, 2, 2, 1, 3], fill_value=request.param)
 
 
+@pytest.fixture(params=[0, np.nan])
+def data_for_compare(request):
+    return SparseArray([0, 0, np.nan, -2, -1, 4, 2, 3, 0, 0], fill_value=request.param)
+
+
 class BaseSparseTests:
     def _check_unsupported(self, data):
         if data.dtype == SparseDtype(int, 0):
@@ -461,32 +466,45 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
         super()._check_divmod_op(ser, op, other, exc=None)
 
 
-class TestComparisonOps(BaseSparseTests, base.BaseComparisonOpsTests):
-    def _compare_other(self, s, data, comparison_op, other):
+class TestComparisonOps(BaseSparseTests):
+    def _compare_other(self, data_for_compare: SparseArray, comparison_op, other):
         op = comparison_op
 
-        # array
-        result = pd.Series(op(data, other))
-        # hard to test the fill value, since we don't know what expected
-        # is in general.
-        # Rely on tests in `tests/sparse` to validate that.
-        assert isinstance(result.dtype, SparseDtype)
-        assert result.dtype.subtype == np.dtype("bool")
+        result = op(data_for_compare, other)
+        assert isinstance(result, SparseArray)
+        assert result.dtype.subtype == np.bool_
 
-        with np.errstate(all="ignore"):
-            expected = pd.Series(
-                SparseArray(
-                    op(np.asarray(data), np.asarray(other)),
-                    fill_value=result.values.fill_value,
-                )
+        if isinstance(other, SparseArray):
+            fill_value = op(data_for_compare.fill_value, other.fill_value)
+        else:
+            fill_value = np.all(
+                op(np.asarray(data_for_compare.fill_value), np.asarray(other))
             )
 
-        tm.assert_series_equal(result, expected)
+            expected = SparseArray(
+                op(data_for_compare.to_dense(), np.asarray(other)),
+                fill_value=fill_value,
+                dtype=np.bool_,
+            )
+        tm.assert_sp_array_equal(result, expected)
 
-        # series
-        ser = pd.Series(data)
-        result = op(ser, other)
-        tm.assert_series_equal(result, expected)
+    def test_scalar(self, data_for_compare: SparseArray, comparison_op):
+        self._compare_other(data_for_compare, comparison_op, 0)
+        self._compare_other(data_for_compare, comparison_op, 1)
+        self._compare_other(data_for_compare, comparison_op, -1)
+        self._compare_other(data_for_compare, comparison_op, np.nan)
+
+    @pytest.mark.xfail(reason="Wrong indices")
+    def test_array(self, data_for_compare: SparseArray, comparison_op):
+        arr = np.linspace(-4, 5, 10)
+        self._compare_other(data_for_compare, comparison_op, arr)
+
+    @pytest.mark.xfail(reason="Wrong indices")
+    def test_sparse_array(self, data_for_compare: SparseArray, comparison_op):
+        arr = data_for_compare + 1
+        self._compare_other(data_for_compare, comparison_op, arr)
+        arr = data_for_compare * 2
+        self._compare_other(data_for_compare, comparison_op, arr)
 
 
 class TestPrinting(BaseSparseTests, base.BasePrintingTests):
