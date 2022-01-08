@@ -1098,8 +1098,9 @@ class Series(base.IndexOpsMixin, NDFrame):
                         FutureWarning,
                         stacklevel=find_stack_level(),
                     )
-                # this is equivalent to self._values[key] = value
-                self._mgr.setitem_inplace(key, value)
+                # can't use _mgr.setitem_inplace yet bc could have *both*
+                #  KeyError and then ValueError, xref GH#45070
+                self._set_values(key, value)
             else:
                 # GH#12862 adding a new key to the Series
                 self.loc[key] = value

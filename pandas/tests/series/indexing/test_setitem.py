@@ -1350,12 +1350,22 @@ def test_6942(indexer_al):
     assert df.iloc[0, 0] == t2
 
 
-@pytest.mark.xfail(reason="Doesn't catch when numpy raises.")
-def test_45070():
+def test_setitem_positional_with_casting():
+    # GH#45070 case where in __setitem__ we get a KeyError, then when
+    #  we fallback we *also* get a ValueError if we try to set inplace.
     ser = Series([1, 2, 3], index=["a", "b", "c"])
 
     ser[0] = "X"
     expected = Series(["X", 2, 3], index=["a", "b", "c"], dtype=object)
+    tm.assert_series_equal(ser, expected)
+
+
+def test_setitem_positional_float_into_int_coerces():
+    # Case where we hit a KeyError and then trying to set in-place incorrectly
+    #  casts a float to an int
+    ser = Series([1, 2, 3], index=["a", "b", "c"])
+    ser[0] = 1.5
+    expected = Series([1.5, 2, 3], index=["a", "b", "c"])
     tm.assert_series_equal(ser, expected)
 
 
