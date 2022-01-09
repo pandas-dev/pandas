@@ -1060,6 +1060,8 @@ class StylerRenderer:
             headers.
         level : int, str, list
             The level(s) over which to apply the generic ``formatter``, or ``aliases``.
+            In the case of ``aliases`` defaults to the last level of a MultiIndex,
+            for the reason that the last level is never sparsified.
         na_rep : str, optional
             Representation for missing values.
             If ``na_rep`` is None, no special formatting is applied.
@@ -1081,14 +1083,15 @@ class StylerRenderer:
             Convert string patterns containing https://, http://, ftp:// or www. to
             HTML <a> tags as clickable URL hyperlinks if "html", or LaTeX \href
             commands if "latex".
-        aliases : list of strings
-            This list will replace the existing index or column headers. It will also
-            collapse a MultiIndex to a single level displaying the alias,
-            which is specified by the ``level`` argument.
+        aliases : list of str, list of list of str
+            Values to replace the existing index or column headers. If specifying
+            more than one ``level`` then this should be a list containing sub-lists for
+            each identified level, in the respective order.
             Cannot be used simultaneously with ``formatter`` and the associated
             arguments; ``thousands``, ``decimal``, ``escape``, ``hyperlinks``,
             ``na_rep`` and ``precision``.
-            Must be of length equal to the number of visible columns, see examples.
+            This list (or each sub-list) must be of length equal to the number of
+            visible columns, see examples.
 
         Returns
         -------
@@ -1176,16 +1179,31 @@ class StylerRenderer:
 
         Using ``aliases`` to overwrite column names.
         >>> df = pd.DataFrame([[1, 2, 3]], columns=[1, 2, 3])
-        >>> df.style.format_index(axis=1, aliases=["A", "B", "C"])
+        >>> df.style.format_index(axis=1, aliases=["A", "B", "C"])  # doctest: +SKIP
+                A      B       C
+        0       1      2       3
 
+        Using ``aliases`` to overwrite column names of remaining **visible** items.
+        >>> df = pd.DataFrame([[1, 2, 3]],
+        ...                   columns=pd.MultiIndex.from_product([[1, 2, 3], ["X"]]))
+        >>> styler = df.style
+                1      2       3
+                X      X       X
+        0       1      2       3
+
+        >>> styler.hide([2], axis=1)      # hides a column as a `subset` hide
+        ...       .hide(level=1, axis=1)  # hides the entire axis level
+        ...       .format_index(axis=1, aliases=["A", "C"], level=0)  # doctest: +SKIP
+                A      C
+        0       1      3
         """
         axis = self.data._get_axis_number(axis)
         if axis == 0:
             display_funcs_, obj = self._display_funcs_index, self.index
-            hidden_lvls, hidden_labels = self.hide_index_, self.hidden_rows
+            hidden_labels = self.hidden_rows
         else:
             display_funcs_, obj = self._display_funcs_columns, self.columns
-            hidden_lvls, hidden_labels = self.hide_columns_, self.hidden_columns
+            hidden_labels = self.hidden_columns
         levels_ = refactor_levels(level, obj)
 
         formatting_args_unset = all(
@@ -1214,33 +1232,36 @@ class StylerRenderer:
                     "``escape``, or ``hyperlinks``."
                 )
             else:
+                visible_len = len(obj) - len(set(hidden_labels))
                 if level is None:
-                    level = obj.nlevels - 1  # default to last level
+                    levels_ = [obj.nlevels - 1]  # default to last level
+                elif len(levels_) > 1 and len(aliases) != len(levels_):
+                    raise ValueError(
+                        f"``level`` specifies {len(levels_)} levels but the length of "
+                        f"``aliases``, {len(aliases)}, does not match."
+                    )
 
-                if not isinstance(level, (str, int)):
-                    raise ValueError("``level`` must identify only a single level")
-                else:
-                    if len(aliases) != len(obj) - len(set(hidden_labels)):
+                def alias(x, value):
+                    return value
+
+                for i, lvl in enumerate(levels_):
+                    level_aliases = aliases[i] if len(levels_) > 1 else aliases
+                    if len(level_aliases) != visible_len:
                         raise ValueError(
-                            "``aliases`` must have length equal to the "
-                            "number of visible labels along ``axis``"
+                            "``aliases`` must be of length equal to the number of "
+                            "visible labels along ``axis``. If ``level`` is given and "
+                            "contains more than one level ``aliases`` should be a "
+                            "list of lists with each sub-list having length equal to"
+                            "the number of visible labels along ``axis``."
                         )
-
-                    def alias(x, value):
-                        return value
-
-                    level = obj._get_level_number(level)
-                    for lvl in range(obj.nlevels):
-                        if lvl != level:  # hide unidentified levels using
-                            hidden_lvls[lvl] = True  # alias: works on Index and MultiI
                     for ai, idx in enumerate(
                         [
-                            (i, level) if axis == 0 else (level, i)
+                            (i, lvl) if axis == 0 else (lvl, i)
                             for i in range(len(obj))
                             if i not in hidden_labels
                         ]
                     ):
-                        display_funcs_[idx] = partial(alias, value=aliases[ai])
+                        display_funcs_[idx] = partial(alias, value=level_aliases[ai])
 
         else:  # then apply a formatting function from arg: formatter
             if not isinstance(formatter, dict):

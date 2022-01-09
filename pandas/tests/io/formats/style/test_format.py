@@ -456,15 +456,61 @@ def test_basic_alias_hidden_column(styler):
 
 
 @pytest.mark.parametrize("level", [None, 0, 1])
-def test_alias_collapse_levels(df, level):
+def test_alias_single_levels(df, level):
     df.columns = MultiIndex.from_tuples([("X", "A"), ("Y", "B")])
     styler = Styler(df, cell_ids=False, uuid_len=0)
     styler.format_index(axis=1, level=level, aliases=["alias1", "alias2"])
     ctx = styler._translate(True, True)
     print(ctx["head"])
-    assert len(ctx["head"]) == 1  # MultiIndex collapsed to one level
+    assert len(ctx["head"]) == 2  # MultiIndex levels
 
     level = 1 if level is None else level  # defaults to last
-    assert f"level{level}" in ctx["head"][0][1]["class"]
-    assert ctx["head"][0][1]["display_value"] == "alias1"
-    assert ctx["head"][0][2]["display_value"] == "alias2"
+    assert f"level{level}" in ctx["head"][level][1]["class"]
+    assert ctx["head"][level][1]["display_value"] == "alias1"
+    assert ctx["head"][level][2]["display_value"] == "alias2"
+
+
+@pytest.mark.parametrize("level", [[0, 1], [1, 0]])
+def test_alias_multi_levels_order(df, level):
+    df.columns = MultiIndex.from_tuples([("X", "A"), ("Y", "B")])
+    styler = Styler(df, cell_ids=False, uuid_len=0)
+    styler.format_index(axis=1, level=level, aliases=[["a1", "a2"], ["b1", "b2"]])
+    ctx = styler._translate(True, True)
+
+    assert ctx["head"][1 - level[1]][1]["display_value"] == "a1"
+    assert ctx["head"][1 - level[1]][2]["display_value"] == "a2"
+    assert ctx["head"][1 - level[0]][1]["display_value"] == "b1"
+    assert ctx["head"][1 - level[0]][2]["display_value"] == "b2"
+
+
+@pytest.mark.parametrize(
+    "level, aliases",
+    [
+        ([0, 1], ["alias1", "alias2"]),  # no sublists
+        ([0], ["alias1"]),  # too short
+        (None, ["alias1", "alias2", "alias3"]),  # too long
+        ([0, 1], [["alias1", "alias2"], ["alias1"]]),  # sublist too short
+        ([0, 1], [["a1", "a2"], ["a1", "a2", "a3"]]),  # sublist too long
+    ],
+)
+def test_alias_warning(df, level, aliases):
+    df.columns = MultiIndex.from_tuples([("X", "A"), ("Y", "B")])
+    styler = Styler(df, cell_ids=False, uuid_len=0)
+    msg = "``aliases`` must be of length equal to"
+    with pytest.raises(ValueError, match=msg):
+        styler.format_index(axis=1, level=level, aliases=aliases)
+
+
+@pytest.mark.parametrize(
+    "level, aliases",
+    [
+        ([0, 1], [["a1", "a2"]]),  # too few sublists
+        ([0, 1], [["a1", "a2"], ["a1", "a2"], ["a1", "a2"]]),  # too many sublists
+    ],
+)
+def test_alias_warning2(df, level, aliases):
+    df.columns = MultiIndex.from_tuples([("X", "A"), ("Y", "B")])
+    styler = Styler(df, cell_ids=False, uuid_len=0)
+    msg = "``level`` specifies 2 levels but the length of"
+    with pytest.raises(ValueError, match=msg):
+        styler.format_index(axis=1, level=level, aliases=aliases)
