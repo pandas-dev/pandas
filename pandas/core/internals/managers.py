@@ -671,9 +671,6 @@ class BaseBlockManager(DataManager):
             result.axes[axis] = new_axis
             return result
 
-        if consolidate:
-            self._consolidate_inplace()
-
         # some axes don't allow reindexing with dups
         if not allow_dups:
             self.axes[axis]._validate_can_reindex(indexer)
@@ -1681,6 +1678,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         self._known_consolidated = True
 
     def _consolidate_inplace(self) -> None:
+        # In general, _consolidate_inplace should only be called via
+        #  DataFrame._consolidate_inplace, otherwise we will fail to invalidate
+        #  the DataFrame's _item_cache. The exception is for newly-created
+        #  BlockManager objects not yet attached to a DataFrame.
         if not self.is_consolidated():
             self.blocks = tuple(_consolidate(self.blocks))
             self._is_consolidated = True
