@@ -1044,7 +1044,7 @@ class StylerRenderer:
         thousands: str | None = None,
         escape: str | None = None,
         hyperlinks: str | None = None,
-        aliases: list[str] | None = None,
+        aliases: list[str] | list[list[str]] | None = None,
     ) -> StylerRenderer:
         r"""
         Format the text display value of index labels or column headers.
@@ -1224,13 +1224,11 @@ class StylerRenderer:
             )
         )
 
-        aliases_unset = aliases is None
-
-        if formatting_args_unset and level is None and aliases_unset:
+        if formatting_args_unset and level is None and aliases is None:
             # clear the formatter / revert to default and avoid looping
             display_funcs_.clear()
 
-        elif not aliases_unset:  # then apply a formatting function from arg: aliases
+        elif aliases is not None:  # then apply a formatting function from arg: aliases
             if not formatting_args_unset:
                 raise ValueError(
                     "``aliases`` cannot be supplied together with any of "
