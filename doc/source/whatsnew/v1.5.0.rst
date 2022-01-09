@@ -19,6 +19,7 @@ Enhancements
 Styler
 ^^^^^^
 
+  - New method :meth:`.Styler.to_string` for alternative customisable output methods (:issue:`44502`)
   - Added a new method :meth:`.Styler.set_descriptors` which allows adding customised header rows to explore and make calculations on the data, e.g. totals and counts etc. (:issue:`43875`)
 
 .. _whatsnew_150.enhancements.enhancement2:
@@ -124,7 +125,6 @@ Datetimelike
 Timedelta
 ^^^^^^^^^
 -
--
 
 Timezones
 ^^^^^^^^^
@@ -153,7 +153,7 @@ Interval
 
 Indexing
 ^^^^^^^^
--
+- Bug in :meth:`Series.__setitem__` with a non-integer :class:`Index` when using an integer key to set a value that cannot be set inplace where a ``ValueError`` was raised insead of casting to a common dtype (:issue:`45070`)
 -
 
 Missing

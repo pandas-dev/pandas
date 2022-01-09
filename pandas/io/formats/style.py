@@ -835,6 +835,124 @@ class Styler(StylerRenderer):
         {} & {0} \\
         0 & {\bfseries}{\Huge{1}} \\
         \end{tabular}
+
+        Examples
+        --------
+        Below we give a complete step by step example adding some advanced features
+        and noting some common gotchas.
+
+        First we create the DataFrame and Styler as usual, including MultiIndex rows
+        and columns, which allow for more advanced formatting options:
+
+        >>> cidx = pd.MultiIndex.from_arrays([
+        ...     ["Equity", "Equity", "Equity", "Equity",
+        ...      "Stats", "Stats", "Stats", "Stats", "Rating"],
+        ...     ["Energy", "Energy", "Consumer", "Consumer", "", "", "", "", ""],
+        ...     ["BP", "Shell", "H&M", "Unilever",
+        ...      "Std Dev", "Variance", "52w High", "52w Low", ""]
+        ... ])
+        >>> iidx = pd.MultiIndex.from_arrays([
+        ...     ["Equity", "Equity", "Equity", "Equity"],
+        ...     ["Energy", "Energy", "Consumer", "Consumer"],
+        ...     ["BP", "Shell", "H&M", "Unilever"]
+        ... ])
+        >>> styler = pd.DataFrame([
+        ...     [1, 0.8, 0.66, 0.72, 32.1678, 32.1678**2, 335.12, 240.89, "Buy"],
+        ...     [0.8, 1.0, 0.69, 0.79, 1.876, 1.876**2, 14.12, 19.78, "Hold"],
+        ...     [0.66, 0.69, 1.0, 0.86, 7, 7**2, 210.9, 140.6, "Buy"],
+        ...     [0.72, 0.79, 0.86, 1.0, 213.76, 213.76**2, 2807, 3678, "Sell"],
+        ... ], columns=cidx, index=iidx).style
+
+        Second we will format the display and, since our table is quite wide, will
+        hide the repeated level-0 of the index:
+
+        >>> styler.format(subset="Equity", precision=2)
+        ...       .format(subset="Stats", precision=1, thousands=",")
+        ...       .format(subset="Rating", formatter=str.upper)
+        ...       .format_index(escape="latex", axis=1)
+        ...       .format_index(escape="latex", axis=0)
+        ...       .hide(level=0, axis=0)  # doctest: +SKIP
+
+        Note that one of the string entries of the index and column headers is "H&M".
+        Without applying the `escape="latex"` option to the `format_index` method the
+        resultant LaTeX will fail to render, and the error returned is quite
+        difficult to debug. Using the appropriate escape the "&" is converted to "\\&".
+
+        Thirdly we will apply some (CSS-HTML) styles to our object. We will use a
+        builtin method and also define our own method to highlight the stock
+        recommendation:
+
+        >>> def rating_color(v):
+        ...     if v == "Buy": color = "#33ff85"
+        ...     elif v == "Sell": color = "#ff5933"
+        ...     else: color = "#ffdd33"
+        ...     return f"color: {color}; font-weight: bold;"
+        >>> styler.background_gradient(cmap="inferno", subset="Equity", vmin=0, vmax=1)
+        ...       .applymap(rating_color, subset="Rating")  # doctest: +SKIP
+
+        All the above styles will work with HTML (see below) and LaTeX upon conversion:
+
+        .. figure:: ../../_static/style/latex_stocks_html.png
+
+        However, we finally want to add one LaTeX only style
+        (from the {graphicx} package), that is not easy to convert from CSS and
+        pandas does not support it. Notice the `--latex` flag used here,
+        as well as `--rwrap` to ensure this is formatted correctly and
+        not ignored upon conversion.
+
+        >>> styler.applymap_index(
+        ...     lambda v: "rotatebox:{45}--rwrap--latex;", level=2, axis=1
+        ... )  # doctest: +SKIP
+
+        Finally we render our LaTeX adding in other options as required:
+
+        >>> styler.to_latex(
+        ...     caption="Selected stock correlation and simple statistics.",
+        ...     clines="skip-last;data",
+        ...     convert_css=True,
+        ...     position_float="centering",
+        ...     multicol_align="|c|",
+        ...     hrules=True,
+        ... )  # doctest: +SKIP
+        \begin{table}
+        \centering
+        \caption{Selected stock correlation and simple statistics.}
+        \begin{tabular}{llrrrrrrrrl}
+        \toprule
+         &  & \multicolumn{4}{|c|}{Equity} & \multicolumn{4}{|c|}{Stats} & Rating \\
+         &  & \multicolumn{2}{|c|}{Energy} & \multicolumn{2}{|c|}{Consumer} &
+        \multicolumn{4}{|c|}{} &  \\
+         &  & \rotatebox{45}{BP} & \rotatebox{45}{Shell} & \rotatebox{45}{H\&M} &
+        \rotatebox{45}{Unilever} & \rotatebox{45}{Std Dev} & \rotatebox{45}{Variance} &
+        \rotatebox{45}{52w High} & \rotatebox{45}{52w Low} & \rotatebox{45}{} \\
+        \midrule
+        \multirow[c]{2}{*}{Energy} & BP & {\cellcolor[HTML]{FCFFA4}}
+        \color[HTML]{000000} 1.00 & {\cellcolor[HTML]{FCA50A}} \color[HTML]{000000}
+        0.80 & {\cellcolor[HTML]{EB6628}} \color[HTML]{F1F1F1} 0.66 &
+        {\cellcolor[HTML]{F68013}} \color[HTML]{F1F1F1} 0.72 & 32.2 & 1,034.8 & 335.1
+        & 240.9 & \color[HTML]{33FF85} \bfseries BUY \\
+         & Shell & {\cellcolor[HTML]{FCA50A}} \color[HTML]{000000} 0.80 &
+        {\cellcolor[HTML]{FCFFA4}} \color[HTML]{000000} 1.00 &
+        {\cellcolor[HTML]{F1731D}} \color[HTML]{F1F1F1} 0.69 &
+        {\cellcolor[HTML]{FCA108}} \color[HTML]{000000} 0.79 & 1.9 & 3.5 & 14.1 &
+        19.8 & \color[HTML]{FFDD33} \bfseries HOLD \\
+        \cline{1-11}
+        \multirow[c]{2}{*}{Consumer} & H\&M & {\cellcolor[HTML]{EB6628}}
+        \color[HTML]{F1F1F1} 0.66 & {\cellcolor[HTML]{F1731D}} \color[HTML]{F1F1F1}
+        0.69 & {\cellcolor[HTML]{FCFFA4}} \color[HTML]{000000} 1.00 &
+        {\cellcolor[HTML]{FAC42A}} \color[HTML]{000000} 0.86 & 7.0 & 49.0 & 210.9 &
+        140.6 & \color[HTML]{33FF85} \bfseries BUY \\
+         & Unilever & {\cellcolor[HTML]{F68013}} \color[HTML]{F1F1F1} 0.72 &
+        {\cellcolor[HTML]{FCA108}} \color[HTML]{000000} 0.79 &
+        {\cellcolor[HTML]{FAC42A}} \color[HTML]{000000} 0.86 &
+        {\cellcolor[HTML]{FCFFA4}} \color[HTML]{000000} 1.00 & 213.8 & 45,693.3 &
+        2,807.0 & 3,678.0 & \color[HTML]{FF5933} \bfseries SELL \\
+        \cline{1-11}
+        \bottomrule
+        \end{tabular}
+        \end{table}
+
+        .. figure:: ../../_static/style/latex_stocks.png
         """
         obj = self._copy(deepcopy=True)  # manipulate table_styles on obj, not self
 
@@ -1070,6 +1188,73 @@ class Styler(StylerRenderer):
 
         return save_to_buffer(
             html, buf=buf, encoding=(encoding if buf is not None else None)
+        )
+
+    def to_string(
+        self,
+        buf=None,
+        *,
+        encoding=None,
+        sparse_index: bool | None = None,
+        sparse_columns: bool | None = None,
+        max_rows: int | None = None,
+        max_columns: int | None = None,
+        delimiter: str = " ",
+    ):
+        """
+        Write Styler to a file, buffer or string in text format.
+
+        .. versionadded:: 1.5.0
+
+        Parameters
+        ----------
+        buf : str, Path, or StringIO-like, optional, default None
+            Buffer to write to. If ``None``, the output is returned as a string.
+        encoding : str, optional
+            Character encoding setting for file output.
+            Defaults to ``pandas.options.styler.render.encoding`` value of "utf-8".
+        sparse_index : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each row.
+            Defaults to ``pandas.options.styler.sparse.index`` value.
+        sparse_columns : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each
+            column. Defaults to ``pandas.options.styler.sparse.columns`` value.
+        max_rows : int, optional
+            The maximum number of rows that will be rendered. Defaults to
+            ``pandas.options.styler.render.max_rows``, which is None.
+        max_columns : int, optional
+            The maximum number of columns that will be rendered. Defaults to
+            ``pandas.options.styler.render.max_columns``, which is None.
+
+            Rows and columns may be reduced if the number of total elements is
+            large. This value is set to ``pandas.options.styler.render.max_elements``,
+            which is 262144 (18 bit browser rendering).
+        delimiter : str, default single space
+            The separator between data elements.
+
+        Returns
+        -------
+        str or None
+            If `buf` is None, returns the result as a string. Otherwise returns `None`.
+        """
+        obj = self._copy(deepcopy=True)
+
+        if sparse_index is None:
+            sparse_index = get_option("styler.sparse.index")
+        if sparse_columns is None:
+            sparse_columns = get_option("styler.sparse.columns")
+
+        text = obj._render_string(
+            sparse_columns=sparse_columns,
+            sparse_index=sparse_index,
+            max_rows=max_rows,
+            max_cols=max_columns,
+            delimiter=delimiter,
+        )
+        return save_to_buffer(
+            text, buf=buf, encoding=(encoding if buf is not None else None)
         )
 
     def set_td_classes(self, classes: DataFrame) -> Styler:
