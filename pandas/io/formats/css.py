@@ -26,6 +26,35 @@ def _side_expander(prop_fmt: str):
 
     return expand
 
+def _border_expander(side: str = ""):
+    if (side != ""):
+        side = f"-{side}"
+    def expand(self, prop, value:str):
+        tokens = value.split()
+        if (len(tokens) == 0 or len(tokens) > 3):
+            raise ValueError("Too many tokens provided to border (expected 1-3)")
+        
+        # TODO: Can we use current color as initial value to comply with CSS standards?
+        border_declarations = {f"border{side}-color": "black", f"border{side}-style": "none", f"border{side}-width": "medium"}
+        for token in tokens:
+            token_key = "color"
+            if token in self.BORDER_STYLES:
+                token_key = "style"
+
+            for ratio in self.BORDER_WIDTH_RATIOS:
+                if ratio in token:
+                    token_key = "width"
+                    break
+
+            # TODO: Warn user if item entered more than once (e.g. "border: red green")
+            border_declarations[f"border{side}-{token_key}"] = token
+
+        # Per CSS, "border" will reset previous "border-*" definitions
+        yield from self.atomize(border_declarations.items())
+        
+    return expand
+
+            
 
 class CSSResolver:
     """
@@ -75,6 +104,8 @@ class CSSResolver:
             # Default: medium only if solid
         }
     )
+
+    BORDER_STYLES = ["none", "hidden", "dotted", "dashed", "solid", "double", "groove", "ridge", "inset", "outset"]
 
     SIDE_SHORTHANDS = {
         1: [0, 0, 0, 0],
@@ -255,6 +286,12 @@ class CSSResolver:
                 for prop, value in expand(prop, value):
                     yield prop, value
 
+    expand_border = _border_expander()
+    expand_border_top = _border_expander("top")
+    expand_border_right = _border_expander("right")
+    expand_border_bottom = _border_expander("bottom")
+    expand_border_left = _border_expander("left")
+    
     expand_border_color = _side_expander("border-{:s}-color")
     expand_border_style = _side_expander("border-{:s}-style")
     expand_border_width = _side_expander("border-{:s}-width")
