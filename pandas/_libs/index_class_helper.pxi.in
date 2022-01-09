@@ -21,8 +21,6 @@ dtypes = [('Float64', 'float64'),
           ('UInt32', 'uint32'),
           ('UInt16', 'uint16'),
           ('UInt8', 'uint8'),
-          ('Complex64', 'complex64'),
-          ('Complex128', 'complex128'),
           ]
 }}
 
@@ -35,7 +33,7 @@ cdef class {{name}}Engine(IndexEngine):
         return _hash.{{name}}HashTable(n)
 
     cdef _check_type(self, object val):
-    {{if name not in {'Float64', 'Float32', 'Complex64', 'Complex128'} }}
+    {{if name not in {'Float64', 'Float32'} }}
         if not util.is_integer_object(val):
             raise KeyError(val)
         {{if name.startswith("U")}}
@@ -43,15 +41,8 @@ cdef class {{name}}Engine(IndexEngine):
             # cannot have negative values with unsigned int dtype
             raise KeyError(val)
         {{endif}}
-    {{elif name not in {'Complex64', 'Complex128'} }}
-        if not util.is_integer_object(val) and not util.is_float_object(val):
-            # in particular catch bool and avoid casting True -> 1.0
-            raise KeyError(val)
     {{else}}
-        if (not util.is_integer_object(val)
-            and not util.is_float_object(val)
-            and not util.is_complex_object(val)
-        ):
+        if not util.is_integer_object(val) and not util.is_float_object(val):
             # in particular catch bool and avoid casting True -> 1.0
             raise KeyError(val)
     {{endif}}

@@ -1054,14 +1054,15 @@ def test_groupby_complex_numbers():
     )
     expected = DataFrame(
         np.array([1, 1, 1], dtype=np.int64),
-        index=Index([(1 + 1j), (1 + 2j), (1 + 0j)], name="b"),
+        index=Index([(1 + 1j), (1 + 2j), (1 + 0j)], dtype="object", name="b"),
         columns=Index(["a"], dtype="object"),
     )
     result = df.groupby("b", sort=False).count()
     tm.assert_frame_equal(result, expected)
 
     # Sorted by the magnitude of the complex numbers
-    expected.index = Index([(1 + 0j), (1 + 1j), (1 + 2j)], name="b")
+    # Complex Index dtype is cast to object
+    expected.index = Index([(1 + 0j), (1 + 1j), (1 + 2j)], dtype="object", name="b")
     result = df.groupby("b", sort=True).count()
     tm.assert_frame_equal(result, expected)
 
