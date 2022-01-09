@@ -1296,7 +1296,7 @@ dates1 = [
 ]
 
 dates2 = dates1[:2] + [pd.NaT] + dates1[2:4] + [pd.NaT] + dates1[4:]
-dates3 = [pd.NaT] + dates1 + [pd.NaT]
+dates3 = [pd.NaT] + dates1 + [pd.NaT]  # type: ignore[operator]
 
 
 @pytest.mark.parametrize("dates", [dates1, dates2, dates3])
