@@ -9,6 +9,7 @@ import sys
 from textwrap import fill
 from typing import (
     Any,
+    Callable,
     NamedTuple,
 )
 import warnings
@@ -354,7 +355,7 @@ warn_bad_lines : bool, optional, default ``None``
     .. deprecated:: 1.3.0
        The ``on_bad_lines`` parameter should be used instead to specify behavior upon
        encountering a bad line instead.
-on_bad_lines : {{'error', 'warn', 'skip'}}, default 'error'
+on_bad_lines : {{'error', 'warn', 'skip'}} or callable, default 'error'
     Specifies what to do upon encountering a bad line (a line with too many fields).
     Allowed values are :
 
@@ -363,6 +364,16 @@ on_bad_lines : {{'error', 'warn', 'skip'}}, default 'error'
         - 'skip', skip bad lines without raising or warning when they are encountered.
 
     .. versionadded:: 1.3.0
+
+        - callable, function with signature
+          ``(bad_line: list[str]) -> list[str] | None`` that will process a single
+          bad line. ``bad_line`` is a list of strings split by the ``sep``.
+          If the function returns ``None`, the bad line will be ignored.
+          If the function returns a new list of strings with more elements than
+          expected, a ``ParserWarning`` will be emitted while dropping extra elements.
+          Only supported when ``engine="python"``
+
+    .. versionadded:: 1.4.0
 
 delim_whitespace : bool, default False
     Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
@@ -1367,7 +1378,7 @@ def _refine_defaults_read(
     sep: str | object,
     error_bad_lines: bool | None,
     warn_bad_lines: bool | None,
-    on_bad_lines: str | None,
+    on_bad_lines: str | Callable | None,
     names: ArrayLike | None | object,
     prefix: str | None | object,
     defaults: dict[str, Any],
@@ -1399,7 +1410,7 @@ def _refine_defaults_read(
         Whether to error on a bad line or not.
     warn_bad_lines : str or None
         Whether to warn on a bad line or not.
-    on_bad_lines : str or None
+    on_bad_lines : str, callable or None
         An option for handling bad lines or a sentinel value(None).
     names : array-like, optional
         List of column names to use. If the file contains a header row,
@@ -1503,6 +1514,12 @@ def _refine_defaults_read(
             kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.WARN
         elif on_bad_lines == "skip":
             kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.SKIP
+        elif callable(on_bad_lines):
+            if engine != "python":
+                raise ValueError(
+                    "on_bad_line can only be a callable function if engine='python'"
+                )
+            kwds["on_bad_lines"] = on_bad_lines
         else:
             raise ValueError(f"Argument {on_bad_lines} is invalid for on_bad_lines")
     else:
