@@ -8,6 +8,9 @@ PKG = os.path.dirname(os.path.dirname(__file__))
 
 
 def test(extra_args=None):
+    """
+    Run the pandas test suite using pytest.
+    """
     try:
         import pytest
     except ImportError as err:

@@ -739,9 +739,7 @@ class MultiIndex(Index):
         from pandas import Series
 
         names = com.fill_missing_names([level.name for level in self.levels])
-        return Series(
-            {names[idx]: level.dtype for idx, level in enumerate(self.levels)}
-        )
+        return Series([level.dtype for level in self.levels], index=names)
 
     def __len__(self) -> int:
         return len(self.codes[0])
@@ -1660,6 +1658,12 @@ class MultiIndex(Index):
             Values is a level of this MultiIndex converted to
             a single :class:`Index` (or subclass thereof).
 
+        Notes
+        -----
+        If the level contains missing values, the result may be casted to
+        ``float`` with missing values specified as ``NaN``. This is because
+        the level is converted to a regular ``Index``.
+
         Examples
         --------
         Create a MultiIndex:
@@ -1673,6 +1677,16 @@ class MultiIndex(Index):
         Index(['a', 'b', 'c'], dtype='object', name='level_1')
         >>> mi.get_level_values('level_2')
         Index(['d', 'e', 'f'], dtype='object', name='level_2')
+
+        If a level contains missing values, the return type of the level
+        maybe casted to ``float``.
+
+        >>> pd.MultiIndex.from_arrays([[1, None, 2], [3, 4, 5]]).dtypes
+        level_0    int64
+        level_1    int64
+        dtype: object
+        >>> pd.MultiIndex.from_arrays([[1, None, 2], [3, 4, 5]]).get_level_values(0)
+        Float64Index([1.0, nan, 2.0], dtype='float64')
         """
         level = self._get_level_number(level)
         values = self._get_level_values(level)
@@ -2817,7 +2831,7 @@ class MultiIndex(Index):
                 "currently supported for MultiIndex"
             )
 
-        hash(key)
+        self._check_indexing_error(key)
 
         def _maybe_to_slice(loc):
             """convert integer indexer to boolean mask or slice if possible"""
