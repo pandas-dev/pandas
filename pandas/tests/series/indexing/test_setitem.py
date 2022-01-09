@@ -1392,6 +1392,19 @@ def test_32878_int_itemsize():
     tm.assert_series_equal(ser, expected)
 
 
+def test_32878_complex_itemsize():
+    arr = np.arange(5).astype("c8")
+    ser = Series(arr)
+    val = np.finfo(np.float64).max
+    val = val.astype("c16")
+
+    # GH#32878 used to coerce val to inf+0.000000e+00j
+    ser[0] = val
+    assert ser[0] == val
+    expected = Series([val, 1, 2, 3, 4], dtype="c16")
+    tm.assert_series_equal(ser, expected)
+
+
 def test_26395(indexer_al):
     # .at case fixed by GH#45121 (best guess)
     df = DataFrame(index=["A", "B", "C"])
@@ -1490,21 +1503,6 @@ def test_15231():
     # df["a"] doesn't have any NaNs, should not have been cast
     exp_dtypes = Series([np.int64, np.float64], dtype=object, index=["a", "b"])
     tm.assert_series_equal(df.dtypes, exp_dtypes)
-
-
-@pytest.mark.xfail(reason="Fails to upcast")
-def test_32878_complex_itemsize():
-    # TODO: when fixed, put adjacent to test_32878_int_itemsize
-    arr = np.arange(5).astype("c8")
-    ser = Series(arr)
-    val = np.finfo(np.float64).max
-    val = val.astype("c16")
-
-    # GH#32878 used to coerce val to inf+0.000000e+00j
-    ser[0] = val
-    assert ser[0] == val
-    expected = Series([val, 1, 2, 3, 4], dtype="c16")
-    tm.assert_series_equal(ser, expected)
 
 
 @pytest.mark.xfail(reason="Unnecessarily upcasts to float64")
