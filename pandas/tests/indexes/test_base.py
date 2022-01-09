@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import IS64
+from pandas.errors import InvalidIndexError
 from pandas.util._test_decorators import async_mark
 
 import pandas as pd
@@ -16,7 +17,6 @@ from pandas import (
     DataFrame,
     DatetimeIndex,
     IntervalIndex,
-    NumericIndex,
     PeriodIndex,
     RangeIndex,
     Series,
@@ -28,6 +28,7 @@ import pandas._testing as tm
 from pandas.core.api import (
     Float64Index,
     Int64Index,
+    NumericIndex,
     UInt64Index,
 )
 from pandas.core.indexes.api import (
@@ -398,11 +399,15 @@ class TestIndex(Base):
         left = Index([1, 2, 3])
         right = Index([True, False])
 
-        msg = "'<' not supported between instances"
+        msg = "Cannot compare dtypes int64 and object"
         with pytest.raises(TypeError, match=msg):
+            left.asof(right[0])
+        # TODO: should right.asof(left[0]) also raise?
+
+        with pytest.raises(InvalidIndexError, match=re.escape(str(right))):
             left.asof(right)
 
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(InvalidIndexError, match=re.escape(str(left))):
             right.asof(left)
 
     @pytest.mark.parametrize("index", ["string"], indirect=True)

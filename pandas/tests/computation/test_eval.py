@@ -875,7 +875,8 @@ class TestAlignment:
     def test_basic_frame_series_alignment(
         self, engine, parser, index_name, r_idx_type, c_idx_type
     ):
-        def testit(r_idx_type, c_idx_type, index_name):
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always", RuntimeWarning)
             df = tm.makeCustomDataframe(
                 10, 10, data_gen_f=f, r_idx_type=r_idx_type, c_idx_type=c_idx_type
             )
@@ -894,48 +895,31 @@ class TestAlignment:
                 expected = df + s
             tm.assert_frame_equal(res, expected)
 
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("always", RuntimeWarning)
-
-            testit(r_idx_type, c_idx_type, index_name)
-
     @pytest.mark.parametrize("index_name", ["index", "columns"])
-    def test_basic_series_frame_alignment(self, engine, parser, index_name):
-        def testit(r_idx_type, c_idx_type, index_name):
-            df = tm.makeCustomDataframe(
-                10, 7, data_gen_f=f, r_idx_type=r_idx_type, c_idx_type=c_idx_type
-            )
-            index = getattr(df, index_name)
-            s = Series(np.random.randn(5), index[:5])
-            if should_warn(s.index, df.index):
-                with tm.assert_produces_warning(RuntimeWarning):
-                    res = pd.eval("s + df", engine=engine, parser=parser)
-            else:
+    @pytest.mark.parametrize(
+        "r_idx_type, c_idx_type",
+        list(product(["i", "u", "s"], ["i", "u", "s"])) + [("dt", "dt")],
+    )
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
+    def test_basic_series_frame_alignment(
+        self, engine, parser, index_name, r_idx_type, c_idx_type
+    ):
+        df = tm.makeCustomDataframe(
+            10, 7, data_gen_f=f, r_idx_type=r_idx_type, c_idx_type=c_idx_type
+        )
+        index = getattr(df, index_name)
+        s = Series(np.random.randn(5), index[:5])
+        if should_warn(s.index, df.index):
+            with tm.assert_produces_warning(RuntimeWarning):
                 res = pd.eval("s + df", engine=engine, parser=parser)
+        else:
+            res = pd.eval("s + df", engine=engine, parser=parser)
 
-            if r_idx_type == "dt" or c_idx_type == "dt":
-                expected = df.add(s) if engine == "numexpr" else s + df
-            else:
-                expected = s + df
-            tm.assert_frame_equal(res, expected)
-
-        # only test dt with dt, otherwise weird joins result
-        args = product(["i", "u", "s"], ["i", "u", "s"])
-        with warnings.catch_warnings(record=True):
-            # avoid warning about comparing strings and ints
-            warnings.simplefilter("ignore", RuntimeWarning)
-
-            for r_idx_type, c_idx_type in args:
-                testit(r_idx_type, c_idx_type, index_name)
-
-        # dt with dt
-        args = product(["dt"], ["dt"])
-        with warnings.catch_warnings(record=True):
-            # avoid warning about comparing strings and ints
-            warnings.simplefilter("ignore", RuntimeWarning)
-
-            for r_idx_type, c_idx_type in args:
-                testit(r_idx_type, c_idx_type, index_name)
+        if r_idx_type == "dt" or c_idx_type == "dt":
+            expected = df.add(s) if engine == "numexpr" else s + df
+        else:
+            expected = s + df
+        tm.assert_frame_equal(res, expected)
 
     @pytest.mark.parametrize("c_idx_type", index_types)
     @pytest.mark.parametrize("r_idx_type", lhs_index_types)
