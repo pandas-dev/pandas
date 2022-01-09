@@ -15,10 +15,8 @@ from pandas._typing import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.cast import (
-    astype_array,
-    find_common_type,
-)
+from pandas.core.dtypes.astype import astype_array
+from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_dtype_equal,
