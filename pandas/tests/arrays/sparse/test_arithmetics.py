@@ -32,6 +32,7 @@ class TestSparseArrayArithmetics:
     _klass = SparseArray
 
     def _assert(self, a, b):
+        # We have to use tm.assert_sp_array_equal. See GH #45126
         tm.assert_numpy_array_equal(a, b)
 
     def _check_numeric_ops(self, a, b, a_dense, b_dense, mix: bool, op):
