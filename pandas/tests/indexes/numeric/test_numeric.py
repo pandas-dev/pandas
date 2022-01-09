@@ -6,13 +6,13 @@ from pandas._libs.tslibs import Timestamp
 import pandas as pd
 from pandas import (
     Index,
-    NumericIndex,
     Series,
 )
 import pandas._testing as tm
 from pandas.core.indexes.api import (
     Float64Index,
     Int64Index,
+    NumericIndex,
     UInt64Index,
 )
 from pandas.tests.indexes.common import NumericBase

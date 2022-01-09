@@ -2102,18 +2102,13 @@ The ``period`` dtype can be used in ``.astype(...)``. It allows one to change th
    # change monthly freq to daily freq
    pi.astype("period[D]")
 
+   # convert to DatetimeIndex
+   pi.astype("datetime64[ns]")
+
    # convert to PeriodIndex
    dti = pd.date_range("2011-01-01", freq="M", periods=3)
    dti
    dti.astype("period[M]")
-
-.. deprecated:: 1.4.0
-    Converting PeriodIndex to DatetimeIndex with ``.astype(...)`` is deprecated and will raise in a future version. Use ``obj.to_timestamp(how).tz_localize(dtype.tz)`` instead.
-
-.. ipython:: python
-
-    # convert to DatetimeIndex
-    pi.to_timestamp(how="start")
 
 PeriodIndex partial string indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

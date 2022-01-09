@@ -41,7 +41,7 @@ from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_inclusive
 
-from pandas.core.dtypes.cast import astype_dt64_to_dt64tz
+from pandas.core.dtypes.astype import astype_dt64_to_dt64tz
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     INT64_DTYPE,
@@ -570,7 +570,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     @property
     def tz(self) -> tzinfo | None:
         """
-        Return timezone, if any.
+        Return the timezone.
 
         Returns
         -------
@@ -728,12 +728,11 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             assert is_datetime64_dtype(other)
             other = type(self)(other)
 
-        if not self._has_same_tz(other):
-            # require tz compat
-            raise TypeError(
-                f"{type(self).__name__} subtraction must have the same "
-                "timezones or no timezones"
-            )
+        try:
+            self._assert_tzawareness_compat(other)
+        except TypeError as error:
+            new_message = str(error).replace("compare", "subtract")
+            raise type(error)(new_message) from error
 
         self_i8 = self.asi8
         other_i8 = other.asi8
@@ -779,11 +778,11 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         if other is NaT:  # type: ignore[comparison-overlap]
             return self - NaT
 
-        if not self._has_same_tz(other):
-            # require tz compat
-            raise TypeError(
-                "Timestamp subtraction must have the same timezones or no timezones"
-            )
+        try:
+            self._assert_tzawareness_compat(other)
+        except TypeError as error:
+            new_message = str(error).replace("compare", "subtract")
+            raise type(error)(new_message) from error
 
         i8 = self.asi8
         result = checked_add_with_arr(i8, -other.value, arr_mask=self._isnan)
@@ -1279,7 +1278,9 @@ default 'raise'
     @property
     def time(self) -> npt.NDArray[np.object_]:
         """
-        Returns numpy array of datetime.time. The time part of the Timestamps.
+        Returns numpy array of :class:`datetime.time` objects.
+
+        The time part of the Timestamps.
         """
         # If the Timestamps have a timezone that is not UTC,
         # convert them into their i8 representation while
@@ -1291,16 +1292,20 @@ default 'raise'
     @property
     def timetz(self) -> npt.NDArray[np.object_]:
         """
-        Returns numpy array of datetime.time also containing timezone
-        information. The time part of the Timestamps.
+        Returns numpy array of :class:`datetime.time` objects with timezone
+        information.
+
+        The time part of the Timestamps.
         """
         return ints_to_pydatetime(self.asi8, self.tz, box="time")
 
     @property
     def date(self) -> npt.NDArray[np.object_]:
         """
-        Returns numpy array of python datetime.date objects (namely, the date
-        part of Timestamps without timezone information).
+        Returns numpy array of python :class:`datetime.date` objects.
+
+        Namely, the date part of Timestamps without time and
+        timezone information.
         """
         # If the Timestamps have a timezone that is not UTC,
         # convert them into their i8 representation while

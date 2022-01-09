@@ -285,16 +285,11 @@ class TestDataFrameAnalytics:
         assert_stat_op_api("sem", float_frame, float_string_frame)
         assert_stat_op_api("median", float_frame, float_string_frame)
 
-        try:
-            from scipy.stats import (  # noqa:F401
-                kurtosis,
-                skew,
-            )
-
-            assert_stat_op_api("skew", float_frame, float_string_frame)
-            assert_stat_op_api("kurt", float_frame, float_string_frame)
-        except ImportError:
-            pass
+    @pytest.mark.filterwarnings("ignore:Dropping of nuisance:FutureWarning")
+    @td.skip_if_no_scipy
+    def test_stat_op_api_skew_kurt(self, float_frame, float_string_frame):
+        assert_stat_op_api("skew", float_frame, float_string_frame)
+        assert_stat_op_api("kurt", float_frame, float_string_frame)
 
     def test_stat_op_calc(self, float_frame_with_na, mixed_float_frame):
         def count(s):
@@ -314,20 +309,6 @@ class TestDataFrameAnalytics:
 
         def sem(x):
             return np.std(x, ddof=1) / np.sqrt(len(x))
-
-        def skewness(x):
-            from scipy.stats import skew  # noqa:F811
-
-            if len(x) < 3:
-                return np.nan
-            return skew(x, bias=False)
-
-        def kurt(x):
-            from scipy.stats import kurtosis  # noqa:F811
-
-            if len(x) < 4:
-                return np.nan
-            return kurtosis(x, bias=False)
 
         assert_stat_op_calc(
             "nunique",
@@ -371,16 +352,24 @@ class TestDataFrameAnalytics:
             check_dates=True,
         )
 
-        try:
-            from scipy import (  # noqa:F401
-                kurtosis,
-                skew,
-            )
+    @td.skip_if_no_scipy
+    def test_stat_op_calc_skew_kurtosis(self, float_frame_with_na):
+        def skewness(x):
+            from scipy.stats import skew
 
-            assert_stat_op_calc("skew", skewness, float_frame_with_na)
-            assert_stat_op_calc("kurt", kurt, float_frame_with_na)
-        except ImportError:
-            pass
+            if len(x) < 3:
+                return np.nan
+            return skew(x, bias=False)
+
+        def kurt(x):
+            from scipy.stats import kurtosis
+
+            if len(x) < 4:
+                return np.nan
+            return kurtosis(x, bias=False)
+
+        assert_stat_op_calc("skew", skewness, float_frame_with_na)
+        assert_stat_op_calc("kurt", kurt, float_frame_with_na)
 
     # TODO: Ensure warning isn't emitted in the first place
     # ignore mean of empty slice and all-NaN
@@ -1069,7 +1058,7 @@ class TestDataFrameAnalytics:
         result = getattr(df, op)()
         expected = DataFrame(
             {"value": expected_value},
-            index=Index([100, 200], name="ID"),
+            index=Index([100, 200], name="ID", dtype="Int64"),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -1765,3 +1754,20 @@ def test_prod_sum_min_count_mixed_object():
     msg = re.escape("unsupported operand type(s) for +: 'int' and 'str'")
     with pytest.raises(TypeError, match=msg):
         df.sum(axis=0, min_count=1, numeric_only=False)
+
+
+@pytest.mark.parametrize("method", ["min", "max", "mean", "median", "skew", "kurt"])
+def test_reduction_axis_none_deprecation(method):
+    # GH#21597 deprecate axis=None defaulting to axis=0 so that we can change it
+    #  to reducing over all axes.
+
+    df = DataFrame(np.random.randn(4, 4))
+    meth = getattr(df, method)
+
+    msg = f"scalar {method} over the entire DataFrame"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        res = meth(axis=None)
+    with tm.assert_produces_warning(None):
+        expected = meth()
+    tm.assert_series_equal(res, expected)
+    tm.assert_series_equal(res, meth(axis=0))

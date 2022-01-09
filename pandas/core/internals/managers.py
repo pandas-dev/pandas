@@ -388,12 +388,13 @@ class BaseBlockManager(DataManager):
             # GH#35488 we need to watch out for multi-block cases
             # We only get here with fill_value not-lib.no_default
             ncols = self.shape[0]
+            nper = abs(periods)
+            nper = min(nper, ncols)
             if periods > 0:
                 indexer = np.array(
-                    [-1] * periods + list(range(ncols - periods)), dtype=np.intp
+                    [-1] * nper + list(range(ncols - periods)), dtype=np.intp
                 )
             else:
-                nper = abs(periods)
                 indexer = np.array(
                     list(range(nper, ncols)) + [-1] * nper, dtype=np.intp
                 )
@@ -1089,14 +1090,12 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             #  containing (self._blknos[loc], BlockPlacement(slice(0, 1, 1)))
 
             # Check if we can use _iset_single fastpath
+            loc = cast(int, loc)
             blkno = self.blknos[loc]
             blk = self.blocks[blkno]
             if len(blk._mgr_locs) == 1:  # TODO: fastest way to check this?
                 return self._iset_single(
-                    # error: Argument 1 to "_iset_single" of "BlockManager" has
-                    # incompatible type "Union[int, slice, ndarray[Any, Any]]";
-                    # expected "int"
-                    loc,  # type:ignore[arg-type]
+                    loc,
                     value,
                     inplace=inplace,
                     blkno=blkno,
@@ -1804,7 +1803,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         """compat with BlockManager"""
         return None
 
-    def getitem_mgr(self, indexer) -> SingleBlockManager:
+    def getitem_mgr(self, indexer: slice | npt.NDArray[np.bool_]) -> SingleBlockManager:
         # similar to get_slice, but not restricted to slice indexer
         blk = self._block
         array = blk._slice(indexer)
