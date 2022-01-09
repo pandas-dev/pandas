@@ -26,10 +26,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import (
-    lib,
-    reduction as libreduction,
-)
+from pandas._libs import reduction as libreduction
 from pandas._typing import (
     ArrayLike,
     Manager,
@@ -1762,21 +1759,16 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             else:
                 # Convert to frame
                 name = "proportion" if normalize else "count"
-                columns = result.index.names
+                index = result.index
+                columns = com.fill_missing_names(index.names)
                 if name in columns:
                     raise ValueError(
                         f"Column label '{name}' is duplicate of result column"
                     )
-                columns = com.fill_missing_names(columns)
-                result_frame = DataFrame()
-                for i, column in enumerate(columns):
-                    level_values = result.index.get_level_values(i)._values
-                    if level_values.dtype == np.object_:
-                        level_values = lib.maybe_convert_objects(
-                            cast(np.ndarray, level_values)
-                        )
-                    result_frame.insert(i, column, level_values, allow_duplicates=True)
-                result_frame.insert(len(columns), name, result._values)
+                result.name = name
+                result.index = index.set_names(range(len(columns)))
+                result_frame = result.reset_index()
+                result_frame = result_frame.set_axis(columns + [name], axis=1)
                 return result_frame.__finalize__(self.obj, method="value_counts")
 
 
