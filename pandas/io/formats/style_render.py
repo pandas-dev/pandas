@@ -1093,6 +1093,8 @@ class StylerRenderer:
             This list (or each sub-list) must be of length equal to the number of
             visible columns, see examples.
 
+            .. versionadded:: 1.5.0
+
         Returns
         -------
         self : Styler
@@ -1122,6 +1124,10 @@ class StylerRenderer:
 
         When using a ``formatter`` string the dtypes must be compatible, otherwise a
         `ValueError` will be raised.
+
+        Since it is not possible to apply a generic function which will return an
+        arbitrary set of column aliases, the argument ``aliases`` provides the
+        ability to automate this, across individual index levels if necessary.
 
         Examples
         --------
