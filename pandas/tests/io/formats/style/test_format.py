@@ -434,3 +434,37 @@ def test_1level_multiindex():
     assert ctx["body"][0][0]["is_visible"] is True
     assert ctx["body"][1][0]["display_value"] == "2"
     assert ctx["body"][1][0]["is_visible"] is True
+
+
+def test_basic_alias(styler):
+    styler.format_index(axis=1, aliases=["alias1", "alias2"])
+    ctx = styler._translate(True, True)
+    assert ctx["head"][0][1]["value"] == "A"
+    assert ctx["head"][0][1]["display_value"] == "alias1"  # alias
+    assert ctx["head"][0][2]["value"] == "B"
+    assert ctx["head"][0][2]["display_value"] == "alias2"  # alias
+
+
+def test_basic_alias_hidden_column(styler):
+    styler.hide(subset="A", axis=1)
+    styler.format_index(axis=1, aliases=["alias2"])
+    ctx = styler._translate(True, True)
+    assert ctx["head"][0][1]["value"] == "A"
+    assert ctx["head"][0][1]["display_value"] == "A"  # no alias for hidden
+    assert ctx["head"][0][2]["value"] == "B"
+    assert ctx["head"][0][2]["display_value"] == "alias2"  # alias
+
+
+@pytest.mark.parametrize("level", [None, 0, 1])
+def test_alias_collapse_levels(df, level):
+    df.columns = MultiIndex.from_tuples([("X", "A"), ("Y", "B")])
+    styler = Styler(df, cell_ids=False, uuid_len=0)
+    styler.format_index(axis=1, level=level, aliases=["alias1", "alias2"])
+    ctx = styler._translate(True, True)
+    print(ctx["head"])
+    assert len(ctx["head"]) == 1  # MultiIndex collapsed to one level
+
+    level = 1 if level is None else level  # defaults to last
+    assert f"level{level}" in ctx["head"][0][1]["class"]
+    assert ctx["head"][0][1]["display_value"] == "alias1"
+    assert ctx["head"][0][2]["display_value"] == "alias2"
