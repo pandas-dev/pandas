@@ -525,17 +525,11 @@ def test_union_nan_got_duplicated():
     tm.assert_index_equal(result, mi2)
 
 
-def test_union_duplicates(index, request):
+def test_union_duplicates(index):
     # GH#38977
     if index.empty or isinstance(index, (IntervalIndex, CategoricalIndex)):
         # No duplicates in empty indexes
         return
-    if index.dtype.kind == "c":
-        mark = pytest.mark.xfail(
-            reason="sort_values() call raises bc complex objects are not comparable"
-        )
-        request.node.add_marker(mark)
-
     values = index.unique().values.tolist()
     mi1 = MultiIndex.from_arrays([values, [1] * len(values)])
     mi2 = MultiIndex.from_arrays([[values[0]] + values, [1] * (len(values) + 1)])
