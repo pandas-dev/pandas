@@ -1360,7 +1360,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     def map(self, mapper):
         """
-        Map categories using input correspondence (dict, Series, or function).
+        Map categories using an input mapping or function.
 
         Maps the categories to new categories. If the mapping correspondence is
         one-to-one the result is a :class:`~pandas.Categorical` which has the
@@ -1994,7 +1994,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         # Defer to CategoricalFormatter's formatter.
         return None
 
-    def _tidy_repr(self, max_vals=10, footer=True) -> str:
+    def _tidy_repr(self, max_vals: int = 10, footer: bool = True) -> str:
         """
         a short repr displaying only max_vals and an optional (but default
         footer)
@@ -2009,7 +2009,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         return str(result)
 
-    def _repr_categories(self):
+    def _repr_categories(self) -> list[str]:
         """
         return the base repr for the categories
         """
