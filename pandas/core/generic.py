@@ -3418,7 +3418,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             }
 
             return self._to_latex_via_styler(
-                buf, hide=hide, format=format, render_kwargs=render_kwargs
+                buf,
+                hide=hide,
+                format=format,
+                format_index=[{"axis": 0, **format_}, {"axis": 1, **format_}],
+                render_kwargs=render_kwargs,
             )
 
     def _to_latex_via_styler(

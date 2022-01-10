@@ -487,7 +487,6 @@ class TestToLatexCaptionLabel:
         expected = _dedent(
             r"""
             \begin{table}
-            \centering
             \label{tab:table_tabular}
             \begin{tabular}{lrl}
             \toprule
@@ -1352,14 +1351,14 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{llr}
             \toprule
-                &   &  c \\
-            a & b &    \\
+             &  & c \\
+            a & b &  \\
             \midrule
-            NaN & 2 &  4 \\
+            NaN & 2 & 4 \\
             """
         )
         if not one_row:
-            expected += r"""1.0 & 3 &  5 \\
+            expected += r"""1.000000 & 3 & 5 \\
 """
         expected += r"""\bottomrule
 \end{tabular}
