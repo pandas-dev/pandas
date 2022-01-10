@@ -1750,7 +1750,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             if is_object_dtype(vals.dtype):
                 # GH#37501: don't raise on pd.NA when skipna=True
                 if skipna:
-                    func = np.vectorize(lambda x: bool(x) if not isna(x) else True)
+                    func = np.vectorize(
+                        lambda x: bool(x) if not isna(x) else True, otypes=[bool]
+                    )
                     vals = func(vals)
                 else:
                     vals = vals.astype(bool, copy=False)

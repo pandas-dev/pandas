@@ -386,7 +386,13 @@ class Block(PandasObject):
         """
         Delete given loc(-s) from block in-place.
         """
-        self.values = np.delete(self.values, loc, 0)
+        # Argument 1 to "delete" has incompatible type "Union[ndarray[Any, Any],
+        # ExtensionArray]"; expected "Union[_SupportsArray[dtype[Any]],
+        # Sequence[_SupportsArray[dtype[Any]]], Sequence[Sequence
+        # [_SupportsArray[dtype[Any]]]], Sequence[Sequence[Sequence[
+        # _SupportsArray[dtype[Any]]]]], Sequence[Sequence[Sequence[Sequence[
+        # _SupportsArray[dtype[Any]]]]]]]"  [arg-type]
+        self.values = np.delete(self.values, loc, 0)  # type: ignore[arg-type]
         self.mgr_locs = self._mgr_locs.delete(loc)
         try:
             self._cache.clear()
@@ -1509,9 +1515,13 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             if not com.is_null_slice(col) and col != 0:
                 raise IndexError(f"{self} only contains one item")
             elif isinstance(col, slice):
-                if col != slice(None):
-                    raise NotImplementedError(col)
-                return self.values[[loc]]
+                # the is_null_slice check above assures that col is slice(None)
+                #  so what we want is a view on all our columns and row loc
+                if loc < 0:
+                    loc += len(self.values)
+                # Note: loc:loc+1 vs [[loc]] makes a difference when called
+                #  from fast_xs because we want to get a view back.
+                return self.values[loc : loc + 1]
             return self.values[loc]
         else:
             if i != 0:
