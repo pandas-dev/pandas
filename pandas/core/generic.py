@@ -3161,25 +3161,30 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         buf=None,
         columns=None,
         col_space=None,
-        header=True,
-        index=True,
-        na_rep="NaN",
-        formatters=None,
-        float_format=None,
-        sparsify=None,
-        index_names=True,
-        bold_rows=False,
-        column_format=None,
-        longtable=None,
-        escape=None,
-        encoding=None,
-        decimal=".",
-        multicolumn=None,
-        multicolumn_format=None,
-        multirow=None,
-        caption=None,
-        label=None,
-        position=None,
+        header=None,
+        index=None,
+        na_rep=None,  # merge to format: use Styler
+        formatters=None,  # fully deprecated: fallback
+        float_format=None,  # fully deprecated: fallback
+        sparsify=None,  # merge to render_kwargs: use Styler
+        index_names=None,
+        bold_rows=None,
+        column_format=None,  # merge to render_kwargs: use Styler
+        longtable=None,  # merge to render_kwargs: use Styler
+        escape=None,  # merge to render_kwargs: use Styler
+        encoding=None,  # merge to render_kwargs: use Styler
+        decimal=".",  # merge to format: use Styler
+        multicolumn=None,  # merge to render_kwargs: use Styler
+        multicolumn_format=None,  # merge to render_kwargs: use Styler
+        multirow=None,  # merge to render_kwargs: use Styler
+        caption=None,  # merge to render_kwargs: use Styler
+        label=None,  # merge to render_kwargs: use Styler
+        position=None,  # merge to render_kwargs: use Styler
+        *,
+        hide: dict | list[dict] = None,
+        format: dict | list[dict] = None,
+        format_index: dict | list[dict] = None,
+        render_kwargs: dict | None = None,
     ):
         r"""
         Render object to a LaTeX tabular, longtable, or nested table.
@@ -3298,14 +3303,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         \bottomrule
         \end{{tabular}}
         """
-        msg = (
-            "In future versions `DataFrame.to_latex` is expected to utilise the base "
-            "implementation of `Styler.to_latex` for formatting and rendering. "
-            "The arguments signature may therefore change. It is recommended instead "
-            "to use `DataFrame.style.to_latex` which also contains additional "
-            "functionality."
+        fallback_arg_used = any(
+            [formatters is not None, float_format is not None, col_space is not None]
         )
-        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+
+        # reset defaults
+        index = True if index is None else index
+        na_rep = "NaN" if na_rep is None else na_rep
+        header = True if header is None else header
+        bold_rows = True if bold_rows is None else bold_rows
+        index_names = True if index_names is None else index_names
 
         # Get defaults from the pandas config
         if self.ndim == 1:
@@ -3322,33 +3329,278 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             multirow = config.get_option("display.latex.multirow")
 
         self = cast("DataFrame", self)
-        formatter = DataFrameFormatter(
+        if fallback_arg_used:
+            msg = "USING A DEPRECATED FALLBACK ARG"
+            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+            # use original DataFrame Latex Renderer
+            formatter = DataFrameFormatter(
+                self,
+                columns=columns,
+                col_space=col_space,
+                na_rep=na_rep,
+                header=header,
+                index=index,
+                formatters=formatters,
+                float_format=float_format,
+                bold_rows=bold_rows,
+                sparsify=sparsify,
+                index_names=index_names,
+                escape=escape,
+                decimal=decimal,
+            )
+            return DataFrameRenderer(formatter).to_latex(
+                buf=buf,
+                column_format=column_format,
+                longtable=longtable,
+                encoding=encoding,
+                multicolumn=multicolumn,
+                multicolumn_format=multicolumn_format,
+                multirow=multirow,
+                caption=caption,
+                label=label,
+                position=position,
+            )
+        else:
+            # use styler implementation refactoring original kwargs
+            if hide is None:
+                hide = []
+            elif isinstance(hide, dict):
+                hide = [hide]
+
+            if columns:
+                hide.append(
+                    {
+                        "subset": [c for c in self.columns if c not in columns],
+                        "axis": "columns",
+                    }
+                )
+            if header is False:
+                hide.append({"names": False, "axis": "columns"})
+            if index is False:
+                hide.append({"names": False, "axis": "index"})
+
+            format_ = {
+                "na_rep": na_rep,
+                "escape": "latex" if escape else None,
+                "decimal": decimal,
+            }
+            if format is None:
+                format = [format_]
+            elif isinstance(format, dict):
+                format = [format_, format]
+            else:
+                format = [format_].extend(format)
+
+            render_kwargs = {
+                "hrules": True,
+                "sparse_index": sparsify,
+                "sparse_columns": sparsify,
+                "environment": "longtable" if longtable else None,
+                "column_format": column_format,
+                "multicol_align": multicolumn_format
+                if multicolumn
+                else f"naive-{multicolumn_format}",
+                "multirow_align": "t" if multirow else "naive",
+                "encoding": encoding,
+                "caption": caption,
+                "label": label,
+                "position": position,
+                "column_format": column_format,
+            }
+
+            return self._to_latex_via_styler2(
+                buf, hide=hide, format=format, render_kwargs=render_kwargs
+            )
+
+    def _to_latex_via_styler2(
+        self,
+        buf=None,
+        *,
+        hide: dict | list[dict] = None,
+        format: dict | list[dict] = None,
+        format_index: dict | list[dict] = None,
+        render_kwargs: dict | None = None,
+    ):
+        from pandas.io.formats.style import Styler
+
+        styler = Styler(
             self,
-            columns=columns,
-            col_space=col_space,
-            na_rep=na_rep,
-            header=header,
-            index=index,
-            formatters=formatters,
-            float_format=float_format,
-            bold_rows=bold_rows,
-            sparsify=sparsify,
-            index_names=index_names,
-            escape=escape,
-            decimal=decimal,
+            uuid="",
         )
-        return DataFrameRenderer(formatter).to_latex(
-            buf=buf,
-            column_format=column_format,
-            longtable=longtable,
-            encoding=encoding,
-            multicolumn=multicolumn,
-            multicolumn_format=multicolumn_format,
-            multirow=multirow,
-            caption=caption,
-            label=label,
-            position=position,
-        )
+
+        for kw_name in ["hide", "format", "format_index"]:
+            kw = vars()[kw_name]
+            if isinstance(kw, dict):
+                getattr(styler, kw_name)(**kw)
+            elif isinstance(kw, list):
+                for sub_kw in kw:
+                    getattr(styler, kw_name)(**sub_kw)
+
+        return styler.to_latex(**{"buf": buf, **render_kwargs})
+
+    def _to_latex_via_styler(
+        self,
+        buf=None,
+        *,
+        hrules=True,
+        columns=None,
+        column_format=None,
+        position=None,
+        position_float=None,
+        caption=None,
+        label=None,
+        index=True,
+        header=True,
+        index_names="all",
+        sparse_index=None,
+        sparse_columns=None,
+        multirow_align=None,
+        multicol_align=None,
+        siunitx=False,
+        environment=None,
+        formatter=None,
+        precision=None,
+        na_rep=None,
+        decimal=None,
+        thousands=None,
+        escape=None,
+        bold_header="none",
+        encoding=None,
+    ):
+        r"""
+        Render object to a LaTeX tabular, longtable, or nested table/tabular.
+
+        Parameters
+        ----------
+        buf : str, Path or StringIO-like, optional
+            Buffer to write to. If `None`, the output is returned as a string.
+        hrules : bool
+            Set to `False` to exclude `\\toprule`, `\\midrule` and `\\bottomrule`
+            from the `booktabs` LaTeX package.
+        columns : list of label, optional
+            The subset of columns to write. Writes all columns by default.
+        column_format : str, optional
+            The LaTeX column specification placed in location:
+            `\\begin{{tabular}}{{<column_format>}}`
+            Defaults to 'l' for index and
+            non-numeric data columns, and, for numeric data columns,
+            to 'r' by default, or 'S' if ``siunitx`` is `True`.
+        position : str, optional
+            The LaTeX positional argument (e.g. 'h!') for tables, placed in location:
+            `\\begin{{table}}[<position>]`.
+        position_float : {{"centering", "raggedleft", "raggedright"}}, optional
+            The LaTeX float command placed in location:
+            `\\begin{{table}}[<position>]`
+            `\\<position_float>`
+            Cannot be used if ``environment`` is "longtable".
+        caption : str, tuple, optional
+            If string, then table caption included as: `\\caption{{<caption>}}`.
+            If tuple, i.e ("full caption", "short caption"), the caption included
+            as:
+            `\\caption[<caption[1]>]{{<caption[0]>}}`.
+        label : str, optional
+            The LaTeX label included as: `\\label{{<label>}}`.
+            This is used with `\\ref{{<label>}}` in the main .tex file.
+        index : bool
+            Whether to print index labels.
+        header : bool or list of str
+            Whether to print column headers. If a list of strings is given is assumed
+            to be aliases for the column names.
+        index_names : {{"all", "index", "columns", "none"}}, bool
+            Whether to print the names of the indexes before rendering.
+        sparse_index : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each row.
+            Defaults to ``pandas.options.styler.sparse.index``, which is `True`.
+        sparse_columns : bool, optional
+            Equivalent to ``sparse_index`` applied to column headers.
+            Defaults to ``pandas.options.styler.sparse.columns``, which is `True`.
+        multirow_align : {{"c", "t", "b", "naive"}}
+            If sparsifying hierarchical MultiIndexes, whether to align text centrally,
+            at the top or bottom. If "naive" is given will not use `multirow` package.
+            Defaults to ``pandas.options.styler.latex.multirow_align``, which is "c".
+        multicol_align : {{"r", "c", "l", "naive-l", "naive-r"}}
+            If sparsifying hierarchical MultiIndex columns, whether to align text at
+            the left, centrally, or at the right. If a "naive" entry is given will not
+            use `multicolumn` package.
+            Defaults to ``pandas.options.styler.latex.multicol_align``, which is "r".
+        siunitx : bool, default False
+            Set to `True` to structure LaTeX compatible with the `siunitx` package.
+        environment : str, optional
+            If given, the environment that will replace "table" in `\\begin{{table}}`.
+            If "longtable" is specified then a more suitable template is
+            rendered.
+            Defaults to ``pandas.options.styler.latex.environment``, which is `None`.
+        formatter : str, callable, dict, optional
+            Object to define how values are displayed. See notes for ``Styler.format``.
+            Defaults to ``pandas.options.styler.format.formatter``, which is `None`.
+        precision : int, optional
+            Floating point precision to use for display purposes, if not determined by
+            the specified ``formatter``. Defaults to
+            ``pandas.options.styler.format.precision``, which is 6.
+        na_rep : str, optional
+            Representation for missing values.
+            Defaults to ``pandas.options.styler.format.na_rep``, which is `None`.
+        decimal : str, default "."
+            Character used as decimal separator for floats, complex and integers.
+            Defaults to ``pandas.options.styler.format.decimal``, which is ".".
+        thousands : str, optional, default None
+            Character used as thousands separator for floats, complex and integers.
+            Defaults to ``pandas.options.styler.format.thousands``, which is `None`.
+        escape : bool,
+            Replace the characters ``&``, ``%``, ``$``, ``#``, ``_``,
+            ``{{``, ``}}``, ``~``, ``^``, and ``\`` in the cell display string with
+            LaTeX-safe sequences.
+            Escaping is done before ``formatter``.
+            Defaults to (``pandas.options.styler.format.escape`` `=="latex"`), which
+            is `False`.
+        bold_header : {{"none", "index", "columns", "both"}}
+            Make the row labels and/or column headers bold in the output, using
+            command `\\textbf{{<value>}}`.
+        encoding : str, optional
+            Character encoding setting for file output, defaults to
+            ``pandas.options.styler.render.encoding``, which is "utf-8", if None.
+
+        Returns
+        -------
+
+        See Also
+        --------
+        Styler.to_latex : Render a Styler to LaTeX.
+        DataFrame.to_string : Render a DataFrame to a console-friendly
+            tabular output.
+        DataFrame.to_html : Render a DataFrame as an HTML table.
+
+        Notes
+        -----
+        .. note::
+           As of version 1.5.0 this method was changed to use the implementation of
+           `Styler.to_latex()` via jinja2 templating, and no longer uses the pandas
+           internal `LatexFormatter` class. This is the reason for many of the
+           altered arguments in the method signature.
+           The Styler implementation has extended functionality and performance and
+           further information is available in its own documentation relevant for this
+           method.
+
+        """
+        pass
+        # is_latex_escape = (
+        #     escape is None and get_option("styler.format.escape") == "latex"
+        # ) or escape is True
+        # escape = "latex" if is_latex_escape else None
+        #
+        # styler = Styler(
+        #     self,  # type: ignore[arg-type]
+        #     uuid="",
+        #     formatter=formatter,
+        #     na_rep=na_rep,
+        #     precision=precision,
+        #     decimal=decimal,
+        #     thousands=thousands,
+        #     escape=escape,
+        # )
+        # if escape is not None:
+        #     styler.format_index(escape=escape).format_index(escape=escape, axis=1)
 
     @final
     @doc(

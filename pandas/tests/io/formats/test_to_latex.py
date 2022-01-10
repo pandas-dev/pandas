@@ -19,7 +19,7 @@ from pandas.io.formats.latex import (
     RowStringConverter,
 )
 
-pytestmark = pytest.mark.filterwarnings("ignore::FutureWarning")
+# pytestmark = pytest.mark.filterwarnings("ignore::FutureWarning")
 
 
 def _dedent(string):
@@ -68,10 +68,10 @@ class TestToLatex:
             r"""
             \begin{tabular}{lrl}
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             """
@@ -85,10 +85,10 @@ class TestToLatex:
             r"""
             \begin{tabular}{rl}
             \toprule
-             a &  b \\
+            a & b \\
             \midrule
-             1 & b1 \\
-             2 & b2 \\
+            1 & b1 \\
+            2 & b2 \\
             \bottomrule
             \end{tabular}
             """
@@ -101,7 +101,7 @@ class TestToLatex:
     )
     def test_to_latex_bad_column_format(self, bad_column_format):
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
-        msg = r"column_format must be str or unicode"
+        msg = r"`column_format` must be str or unicode"
         with pytest.raises(ValueError, match=msg):
             df.to_latex(column_format=bad_column_format)
 
@@ -116,10 +116,10 @@ class TestToLatex:
             r"""
             \begin{tabular}{lcr}
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             """
@@ -167,11 +167,11 @@ class TestToLatex:
             r"""
             \begin{tabular}{ll}
             \toprule
-            {} &  0 \\
+             & 0 \\
             \midrule
-            0 &  a \\
-            1 &  b \\
-            2 &  c \\
+            0 & a \\
+            1 & b \\
+            2 & c \\
             \bottomrule
             \end{tabular}
             """
@@ -187,10 +187,10 @@ class TestToLatex:
             r"""
             \begin{tabular}{lr}
             \toprule
-            {} &  a \\
+             & a \\
             \midrule
-            0 &  1 \\
-            1 &  2 \\
+            0 & 1 \\
+            1 & 2 \\
             \bottomrule
             \end{tabular}
             """
@@ -221,12 +221,12 @@ class TestToLatexLongtable:
             r"""
             \begin{longtable}{lrl}
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
             \endfirsthead
 
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
             \endhead
             \midrule
@@ -236,8 +236,8 @@ class TestToLatexLongtable:
 
             \bottomrule
             \endlastfoot
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \end{longtable}
             """
         )
@@ -250,12 +250,12 @@ class TestToLatexLongtable:
             r"""
             \begin{longtable}{rl}
             \toprule
-             a &  b \\
+            a & b \\
             \midrule
             \endfirsthead
 
             \toprule
-             a &  b \\
+            a & b \\
             \midrule
             \endhead
             \midrule
@@ -265,8 +265,8 @@ class TestToLatexLongtable:
 
             \bottomrule
             \endlastfoot
-             1 & b1 \\
-             2 & b2 \\
+            1 & b1 \\
+            2 & b2 \\
             \end{longtable}
             """
         )
@@ -294,8 +294,8 @@ class TestToLatexHeader:
             r"""
             \begin{tabular}{lrl}
             \toprule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             """
@@ -326,10 +326,10 @@ class TestToLatexHeader:
             r"""
             \begin{tabular}{lrl}
             \toprule
-            {} & AA &  BB \\
+             & AA & BB \\
             \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             """
@@ -346,8 +346,8 @@ class TestToLatexHeader:
             \toprule
             AA & BB \\
             \midrule
-             1 & b1 \\
-             2 & b2 \\
+            1 & b1 \\
+            2 & b2 \\
             \bottomrule
             \end{tabular}
             """
@@ -382,10 +382,10 @@ class TestToLatexHeader:
             r"""
             \begin{tabular}{lrl}
             \toprule
-            {} &    a &   b \\
+             & a & b \\
             \midrule
-            0 &  1,0 &  b1 \\
-            1 &  2,1 &  b2 \\
+            0 & 1,0 & b1 \\
+            1 & 2,1 & b2 \\
             \bottomrule
             \end{tabular}
             """
@@ -402,10 +402,10 @@ class TestToLatexBold:
             r"""
             \begin{tabular}{lrl}
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
-            \textbf{0} &  1 &  b1 \\
-            \textbf{1} &  2 &  b2 \\
+            \textbf{0} & 1 & b1 \\
+            \textbf{1} & 2 & b2 \\
             \bottomrule
             \end{tabular}
             """
@@ -420,10 +420,10 @@ class TestToLatexBold:
             r"""
             \begin{tabular}{lrl}
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             """
@@ -467,10 +467,10 @@ class TestToLatexCaptionLabel:
             \caption{a table in a \texttt{table/tabular} environment}
             \begin{tabular}{lrl}
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             \end{table}
@@ -488,10 +488,10 @@ class TestToLatexCaptionLabel:
             \label{tab:table_tabular}
             \begin{tabular}{lrl}
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             \end{table}
