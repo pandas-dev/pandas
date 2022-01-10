@@ -1852,16 +1852,23 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
     tipo = maybe_infer_dtype_type(element)
 
     if dtype.kind in ["i", "u"]:
+        info = np.iinfo(dtype)
+
         if isinstance(element, range):
             if _dtype_can_hold_range(element, dtype):
                 return element
             raise ValueError
 
+        elif is_integer(element) or (is_float(element) and element.is_integer()):
+            # e.g. test_setitem_series_int8 if we have a python int 1
+            #  tipo may be np.int32, despite the fact that it will fit
+            #  in smaller int dtypes.
+            if info.min <= element <= info.max:
+                return element
+            raise ValueError
+
         if tipo is not None:
             if tipo.kind not in ["i", "u"]:
-                if is_float(element) and element.is_integer():
-                    return element
-
                 if isinstance(element, np.ndarray) and element.dtype.kind == "f":
                     # If all can be losslessly cast to integers, then we can hold them
                     #  We do something similar in putmask_smart
@@ -1889,14 +1896,6 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                     return casted
                 raise ValueError
             elif dtype.itemsize < tipo.itemsize:
-                if is_integer(element):
-                    # e.g. test_setitem_series_int8 if we have a python int 1
-                    #  tipo may be np.int32, despite the fact that it will fit
-                    #  in smaller int dtypes.
-                    info = np.iinfo(dtype)
-                    if info.min <= element <= info.max:
-                        return element
-                    raise ValueError
                 raise ValueError
             elif not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype; we can put this into an ndarray
@@ -1909,10 +1908,6 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
 
             return element
 
-        # We have not inferred an integer from the dtype
-        # check if we have a builtin int or a float equal to an int
-        if is_integer(element) or (is_float(element) and element.is_integer()):
-            return element
         raise ValueError
 
     elif dtype.kind == "f":
