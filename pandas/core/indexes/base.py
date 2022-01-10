@@ -487,8 +487,6 @@ class Index(IndexOpsMixin, PandasObject):
             if data.dtype.kind in ["i", "u", "f"]:
                 # maybe coerce to a sub-class
                 arr = data
-            elif data.dtype.kind in ["c"]:
-                arr = np.asarray(data)
             else:
                 arr = com.asarray_tuplesafe(data, dtype=_dtype_obj)
 
@@ -616,9 +614,7 @@ class Index(IndexOpsMixin, PandasObject):
             # NB: assuming away MultiIndex
             return Index
 
-        elif issubclass(
-            dtype.type, (str, bool, np.bool_, complex, np.complex64, np.complex128)
-        ):
+        elif issubclass(dtype.type, (str, bool, np.bool_)):
             return Index
 
         raise NotImplementedError(dtype)
@@ -861,11 +857,6 @@ class Index(IndexOpsMixin, PandasObject):
         ):
             # TODO(ExtensionIndex): use libindex.ExtensionEngine(self._values)
             return libindex.ObjectEngine(self._get_engine_target())
-
-        elif self.values.dtype == np.complex64:
-            return libindex.Complex64Engine(self._get_engine_target())
-        elif self.values.dtype == np.complex128:
-            return libindex.Complex128Engine(self._get_engine_target())
 
         # to avoid a reference cycle, bind `target_values` to a local variable, so
         # `self` is not passed into the lambda.
@@ -4544,7 +4535,12 @@ class Index(IndexOpsMixin, PandasObject):
         right = other._values.take(right_idx)
 
         if isinstance(join_array, np.ndarray):
-            np.putmask(join_array, mask, right)
+            # Argument 3 to "putmask" has incompatible type "Union[ExtensionArray,
+            # ndarray[Any, Any]]"; expected "Union[_SupportsArray[dtype[Any]],
+            # _NestedSequence[_SupportsArray[dtype[Any]]], bool, int, f
+            # loat, complex, str, bytes, _NestedSequence[Union[bool, int, float,
+            # complex, str, bytes]]]"  [arg-type]
+            np.putmask(join_array, mask, right)  # type: ignore[arg-type]
         else:
             join_array._putmask(mask, right)
 
@@ -5051,9 +5047,11 @@ class Index(IndexOpsMixin, PandasObject):
         if result.ndim > 1:
             deprecate_ndim_indexing(result)
             if hasattr(result, "_ndarray"):
+                # error: Item "ndarray[Any, Any]" of "Union[ExtensionArray,
+                # ndarray[Any, Any]]" has no attribute "_ndarray"  [union-attr]
                 # i.e. NDArrayBackedExtensionArray
                 # Unpack to ndarray for MPL compat
-                return result._ndarray
+                return result._ndarray  # type: ignore[union-attr]
             return result
 
         # NB: Using _constructor._simple_new would break if MultiIndex
@@ -5989,6 +5987,8 @@ class Index(IndexOpsMixin, PandasObject):
                 # FIXME: find_common_type incorrect with Categorical GH#38240
                 # FIXME: some cases where float64 cast can be lossy?
                 dtype = np.dtype(np.float64)
+        if dtype.kind == "c":
+            dtype = _dtype_obj
         return dtype
 
     @final
@@ -6538,6 +6538,7 @@ class Index(IndexOpsMixin, PandasObject):
         Index(['b'], dtype='object')
         """
         values = self._values
+        res_values: ArrayLike
         if isinstance(values, np.ndarray):
             # TODO(__array_function__): special casing will be unnecessary
             res_values = np.delete(values, loc)
@@ -6591,7 +6592,9 @@ class Index(IndexOpsMixin, PandasObject):
             new_values = np.insert(arr, loc, casted)
 
         else:
-            new_values = np.insert(arr, loc, None)
+            # No overload variant of "insert" matches argument types
+            # "ndarray[Any, Any]", "int", "None"  [call-overload]
+            new_values = np.insert(arr, loc, None)  # type: ignore[call-overload]
             loc = loc if loc >= 0 else loc - 1
             new_values[loc] = item
 
@@ -7127,7 +7130,7 @@ def _maybe_cast_data_without_dtype(
             FutureWarning,
             stacklevel=3,
         )
-    if result.dtype.kind in ["b"]:
+    if result.dtype.kind in ["b", "c"]:
         return subarr
     result = ensure_wrapped_if_datetimelike(result)
     return result
