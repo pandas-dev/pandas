@@ -16,7 +16,7 @@ from pandas._typing import (
 )
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.cast import astype_nansafe
+from pandas.core.dtypes.astype import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_dtype,
