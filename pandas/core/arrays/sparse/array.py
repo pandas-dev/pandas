@@ -44,8 +44,8 @@ from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_insert_loc
 
+from pandas.core.dtypes.astype import astype_nansafe
 from pandas.core.dtypes.cast import (
-    astype_nansafe,
     construct_1d_arraylike_from_scalar,
     find_common_type,
     maybe_box_datetimelike,
@@ -298,7 +298,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             repeats of the scalar value instead.
 
     fill_value : scalar, optional
-        Elements in `data` that are `fill_value` are not stored in the
+        Elements in data that are ``fill_value`` are not stored in the
         SparseArray. For memory savings, this should be the most common value
         in `data`. By default, `fill_value` depends on the dtype of `data`:
 
@@ -1276,7 +1276,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
     def map(self: SparseArrayT, mapper) -> SparseArrayT:
         """
-        Map categories using input correspondence (dict, Series, or function).
+        Map categories using an input mapping or function.
 
         Parameters
         ----------
@@ -1716,13 +1716,14 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             op_name = op.__name__.strip("_")
             return _sparse_array_op(self, other, op, op_name)
         else:
+            # scalar
             with np.errstate(all="ignore"):
                 fill_value = op(self.fill_value, other)
-                result = op(self.sp_values, other)
+                result = np.full(len(self), fill_value, dtype=np.bool_)
+                result[self.sp_index.indices] = op(self.sp_values, other)
 
             return type(self)(
                 result,
-                sparse_index=self.sp_index,
                 fill_value=fill_value,
                 dtype=np.bool_,
             )

@@ -767,8 +767,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         We assume that all impacted cases are 1D-only.
         """
         mask = np.atleast_2d(np.asarray(self.isna()))
-        # Need type annotation for "npvalues"  [var-annotated]
-        npvalues = np.atleast_2d(np.asarray(self))  # type: ignore[var-annotated]
+        npvalues: np.ndarray = np.atleast_2d(np.asarray(self))
 
         res = quantile_with_mask(
             npvalues,
