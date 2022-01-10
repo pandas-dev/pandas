@@ -12,11 +12,11 @@ on:
   push:
     branches:
       - master
-      - 1.3.x
+      - 1.4.x
   pull_request:
     branches:
       - master
-      - 1.3.x
+      - 1.4.x
     paths-ignore:
       - "doc/**"
 
@@ -36,7 +36,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macOS-latest, windows-latest]
 
-    name: actions-310-dev
+    name: actions-311-dev
     timeout-minutes: 80
 
     concurrency:
