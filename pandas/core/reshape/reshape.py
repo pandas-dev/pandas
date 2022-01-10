@@ -1201,7 +1201,7 @@ def from_dummies(
     if data.isna().any().any():  # type: ignore[union-attr]
         # error: Item "bool" of "Union[Series, bool]" has no attribute "idxmax"
         raise ValueError(
-            f"Dummy DataFrame contains NA value in column: "  # type: ignore[union-attr]
+            "Dummy DataFrame contains NA value in column: "  # type: ignore[union-attr]
             f"'{data.isna().any().idxmax()}'"
         )
 
@@ -1223,7 +1223,7 @@ def from_dummies(
             variables_slice[prefix].append(col)
     else:
         raise TypeError(
-            f"Expected 'sep' to be of type 'str' or 'None'; "
+            "Expected 'sep' to be of type 'str' or 'None'; "
             f"Received 'sep' of type: {type(sep).__name__}"
         )
 
@@ -1246,9 +1246,9 @@ def from_dummies(
             )
         else:
             raise TypeError(
-                f"Expected 'base_category' to be of type "
-                f"'None', 'Hashable', or 'dict'; "
-                f"Received 'base_category' of type: "
+                "Expected 'base_category' to be of type "
+                "'None', 'Hashable', or 'dict'; "
+                "Received 'base_category' of type: "
                 f"{type(base_category).__name__}"
             )
 
@@ -1261,7 +1261,7 @@ def from_dummies(
         assigned = data_to_decode[prefix_slice].sum(axis=1)
         if any(assigned > 1):
             raise ValueError(
-                f"Dummy DataFrame contains multi-assignment(s); "
+                "Dummy DataFrame contains multi-assignment(s); "
                 f"First instance in row: {assigned.idxmax()}"
             )
         elif any(assigned == 0):
@@ -1269,7 +1269,7 @@ def from_dummies(
                 cats.append(base_category[prefix])
             else:
                 raise ValueError(
-                    f"Dummy DataFrame contains unassigned value(s); "
+                    "Dummy DataFrame contains unassigned value(s); "
                     f"First instance in row: {assigned.idxmin()}"
                 )
             data_slice = concat((data_to_decode[prefix_slice], assigned == 0), axis=1)
