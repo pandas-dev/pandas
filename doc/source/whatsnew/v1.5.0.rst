@@ -179,7 +179,7 @@ Period
 
 Plotting
 ^^^^^^^^
--
+- Bug in :meth:`DataFrame.plot.barh` that prevented labeling the x-axis and ``xlabel`` updating the y-axis label (:issue:`45144`)
 -
 
 Groupby/resample/rolling

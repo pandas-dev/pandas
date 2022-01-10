@@ -886,7 +886,6 @@ Period
 Plotting
 ^^^^^^^^
 - When given non-numeric data, :meth:`DataFrame.boxplot` now raises a ``ValueError`` rather than a cryptic ``KeyError`` or ``ZeroDivisionError``, in line with other plotting functions like :meth:`DataFrame.hist`. (:issue:`43480`)
-- Bug in :meth:`DataFrame.plot.barh` that prevented labeling the x-axis and ``xlabel`` updating the y-axis label (:issue:`45144`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^

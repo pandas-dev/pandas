@@ -767,10 +767,20 @@ class MPLPlot:
                 name = pprint_thing(name)
 
         # GH 9093, override the default xlabel if xlabel is provided.
-        if self.xlabel is not None and self.orientation == "vertical":
-            name = pprint_thing(self.xlabel)
-        if self.ylabel is not None and self.orientation == "horizontal":
-            name = pprint_thing(self.ylabel)
+        if self.xlabel is not None:
+            if self.orientation == "vertical":
+                name = pprint_thing(self.xlabel)
+            else:
+                warnings.warn(
+                    "'xlabel' was provided, but 'orientation' is not vertical. Ignoring 'xlabel'"
+                )
+        if self.ylabel is not None:
+            if self.orientation == "horizontal":
+                name = pprint_thing(self.ylabel)
+            else:
+                warnings.warn(
+                    "'ylabel' was provided, but 'orientation' is not horizontal. Ignoring 'ylabel'"
+                )
 
         return name
 
