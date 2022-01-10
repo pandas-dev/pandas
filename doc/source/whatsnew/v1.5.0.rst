@@ -113,7 +113,7 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
--
+- Bug in :meth:`Categorical.view` not accepting integer dtypes (:issue:`25464`)
 -
 
 Datetimelike
