@@ -1,5 +1,12 @@
+import locale
+
 import numpy as np
 import pytest
+
+from pandas.compat import (
+    is_platform_windows,
+    np_version_under1p20,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -40,7 +47,7 @@ def test_floating_array_constructor():
         FloatingArray(values)
 
 
-def test_floating_array_disallows_float16():
+def test_floating_array_disallows_float16(request):
     # GH#44715
     arr = np.array([1, 2], dtype=np.float16)
     mask = np.array([False, False])
@@ -48,6 +55,15 @@ def test_floating_array_disallows_float16():
     msg = "FloatingArray does not support np.float16 dtype"
     with pytest.raises(TypeError, match=msg):
         FloatingArray(arr, mask)
+
+    if np_version_under1p20 or (
+        locale.getlocale()[0] != "en_US" and not is_platform_windows()
+    ):
+        # the locale condition may need to be refined; this fails on
+        #  the CI in the ZH_CN build
+        # https://github.com/numpy/numpy/issues/20512
+        mark = pytest.mark.xfail(reason="numpy does not raise on np.dtype('Float16')")
+        request.node.add_marker(mark)
 
     with pytest.raises(TypeError, match="data type 'Float16' not understood"):
         pd.array([1.0, 2.0], dtype="Float16")
