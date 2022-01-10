@@ -1852,8 +1852,6 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
     tipo = _maybe_infer_dtype_type(element)
 
     if dtype.kind in ["i", "u"]:
-        info = np.iinfo(dtype)
-
         if isinstance(element, range):
             if _dtype_can_hold_range(element, dtype):
                 return element
@@ -1863,6 +1861,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             # e.g. test_setitem_series_int8 if we have a python int 1
             #  tipo may be np.int32, despite the fact that it will fit
             #  in smaller int dtypes.
+            info = np.iinfo(dtype)
             if info.min <= element <= info.max:
                 return element
             raise ValueError
