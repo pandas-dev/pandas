@@ -47,37 +47,26 @@ def test_styler_to_excel_unstyled(engine):
 
 
 shared_style_params = [
-    # (
-    #     "background-color: #111222",
-    #     ["fill", "fgColor", "rgb"],
-    #     {"xlsxwriter": "FF111222", "openpyxl": "00111222"},
-    # ),
-    # (
-    #     "color: #111222",
-    #     ["font", "color", "value"],
-    #     {"xlsxwriter": "FF111222", "openpyxl": "00111222"},
-    # ),
-    # ("font-family: Arial;", ["font", "name"], "arial"),
-    # ("font-weight: bold;", ["font", "b"], True),
-    # ("font-style: italic;", ["font", "i"], True),
-    # ("text-decoration: underline;", ["font", "u"], "single"),
-    # ("number-format: $??,???.00;", ["number_format"], "$??,???.00"),
-    # ("text-align: left;", ["alignment", "horizontal"], "left"),
-    # (
-    #     "vertical-align: bottom;",
-    #     ["alignment", "vertical"],
-    #     {"xlsxwriter": None, "openpyxl": "bottom"},  # xswrtr cannot be read by opyxl
-    # ),
-    # ("border-bottom-style: solid;", ["border", "bottom", "style"], {"medium"}),
     (
-        "border-bottom-color: red;",
-        ["border", "bottom", "color", "value"],
-        {"xlsxwriter": None, "openpyxl": "00FF0000"},  # xswrtr cannot be read by opyxl
+        "background-color: #111222",
+        ["fill", "fgColor", "rgb"],
+        {"xlsxwriter": "FF111222", "openpyxl": "00111222"},
     ),
     (
-        "border-bottom-width: 2px;",
-        ["border"],
-        {"xlsxwriter": None, "openpyxl": "bottom"},
+        "color: #111222",
+        ["font", "color", "value"],
+        {"xlsxwriter": "FF111222", "openpyxl": "00111222"},
+    ),
+    ("font-family: Arial;", ["font", "name"], "arial"),
+    ("font-weight: bold;", ["font", "b"], True),
+    ("font-style: italic;", ["font", "i"], True),
+    ("text-decoration: underline;", ["font", "u"], "single"),
+    ("number-format: $??,???.00;", ["number_format"], "$??,???.00"),
+    ("text-align: left;", ["alignment", "horizontal"], "left"),
+    (
+        "vertical-align: bottom;",
+        ["alignment", "vertical"],
+        {"xlsxwriter": None, "openpyxl": "bottom"},  # xlsxwriter Fails
     ),
 ]
 
@@ -104,7 +93,7 @@ def test_styler_to_excel_basic(engine, css, attrs, expected):
         # test styled cell has expected styles
         u_cell, s_cell = wb["dataframe"].cell(2, 2), wb["styled"].cell(2, 2)
         for attr in attrs:
-            u_cell, s_cell = getattr(u_cell, attr, None), getattr(s_cell, attr, None)
+            u_cell, s_cell = getattr(u_cell, attr), getattr(s_cell, attr)
 
         if isinstance(expected, dict):
             assert u_cell is None or u_cell != expected[engine]
