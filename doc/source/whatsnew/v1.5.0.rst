@@ -118,7 +118,7 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
--
+- Bug in :meth:`DataFrame.quantile` with datetime-like dtypes and no rows incorrectly returning ``float64`` dtype instead of retaining datetime-like dtype (:issue:`41544`)
 -
 
 Timedelta
