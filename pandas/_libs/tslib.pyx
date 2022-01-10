@@ -506,6 +506,9 @@ cpdef array_to_datetime(
                 elif isinstance(val, str):
                     # string
                     seen_string = True
+                    if type(val) is not str:
+                        # GH#32264 np.str_ object
+                        val = str(val)
 
                     if len(val) == 0 or val in nat_strings:
                         iresult[i] = NPY_NAT
@@ -735,6 +738,10 @@ cdef _array_to_datetime_object(
             # GH 25978. No need to parse NaT-like or datetime-like vals
             oresult[i] = val
         elif isinstance(val, str):
+            if type(val) is not str:
+                # GH#32264 np.str_ objects
+                val = str(val)
+
             if len(val) == 0 or val in nat_strings:
                 oresult[i] = 'NaT'
                 continue
