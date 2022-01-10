@@ -1211,7 +1211,7 @@ class StylerRenderer:
         Using ``aliases`` to overwrite column names of remaining **visible** items.
         >>> df = pd.DataFrame([[1, 2, 3]],
         ...                   columns=pd.MultiIndex.from_product([[1, 2, 3], ["X"]]))
-        >>> styler = df.style
+        >>> styler = df.style  # doctest: +SKIP
                 1      2       3
                 X      X       X
         0       1      2       3
