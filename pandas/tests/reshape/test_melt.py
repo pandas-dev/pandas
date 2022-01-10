@@ -75,7 +75,8 @@ class TestMelt:
         )
         tm.assert_frame_equal(result4, expected4)
 
-    def test_value_vars_types(self):
+    @pytest.mark.parametrize("type_", (tuple, list, np.array))
+    def test_value_vars_types(self, type_):
         # GH 15348
         expected = DataFrame(
             {
@@ -86,10 +87,8 @@ class TestMelt:
             },
             columns=["id1", "id2", "variable", "value"],
         )
-
-        for type_ in (tuple, list, np.array):
-            result = self.df.melt(id_vars=["id1", "id2"], value_vars=type_(("A", "B")))
-            tm.assert_frame_equal(result, expected)
+        result = self.df.melt(id_vars=["id1", "id2"], value_vars=type_(("A", "B")))
+        tm.assert_frame_equal(result, expected)
 
     def test_vars_work_with_multiindex(self):
         expected = DataFrame(
@@ -140,23 +139,21 @@ class TestMelt:
         result = self.df1.melt(id_vars, value_vars, col_level=col_level)
         tm.assert_frame_equal(result, expected)
 
-    def test_tuple_vars_fail_with_multiindex(self):
+    @pytest.mark.parametrize(
+        "id_vars, value_vars",
+        [
+            [("A", "a"), [("B", "b")]],
+            [[("A", "a")], ("B", "b")],
+            [("A", "a"), ("B", "b")],
+        ],
+    )
+    def test_tuple_vars_fail_with_multiindex(self, id_vars, value_vars):
         # melt should fail with an informative error message if
         # the columns have a MultiIndex and a tuple is passed
         # for id_vars or value_vars.
-        tuple_a = ("A", "a")
-        list_a = [tuple_a]
-        tuple_b = ("B", "b")
-        list_b = [tuple_b]
-
         msg = r"(id|value)_vars must be a list of tuples when columns are a MultiIndex"
-        for id_vars, value_vars in (
-            (tuple_a, list_b),
-            (list_a, tuple_b),
-            (tuple_a, tuple_b),
-        ):
-            with pytest.raises(ValueError, match=msg):
-                self.df1.melt(id_vars=id_vars, value_vars=value_vars)
+        with pytest.raises(ValueError, match=msg):
+            self.df1.melt(id_vars=id_vars, value_vars=value_vars)
 
     def test_custom_var_name(self):
         result5 = self.df.melt(var_name=self.var_name)
@@ -261,11 +258,10 @@ class TestMelt:
         result20 = df20.melt()
         assert result20.columns.tolist() == ["foo", "value"]
 
-    def test_col_level(self):
-        res1 = self.df1.melt(col_level=0)
-        res2 = self.df1.melt(col_level="CAP")
-        assert res1.columns.tolist() == ["CAP", "value"]
-        assert res2.columns.tolist() == ["CAP", "value"]
+    @pytest.mark.parametrize("col_level", [0, "CAP"])
+    def test_col_level(self, col_level):
+        res = self.df1.melt(col_level=col_level)
+        assert res.columns.tolist() == ["CAP", "value"]
 
     def test_multiindex(self):
         res = self.df1.melt()
@@ -633,7 +629,7 @@ class TestLreshape:
         tm.assert_frame_equal(result, exp)
 
         with tm.assert_produces_warning(FutureWarning):
-            result = lreshape(df, spec, dropna=False, label="foo")
+            lreshape(df, spec, dropna=False, label="foo")
 
         spec = {
             "visitdt": [f"visitdt{i:d}" for i in range(1, 3)],
