@@ -1197,6 +1197,12 @@ def from_dummies(
     """
     from pandas.core.reshape.concat import concat
 
+    if not isinstance(data, DataFrame):
+        raise TypeError(
+            "Expected 'data' to be a 'DataFrame'; "
+            f"Received 'data' of type: {type(data).__name__}"
+        )
+
     # error: Item "bool" of "Union[Series, bool]" has no attribute "any"
     if data.isna().any().any():  # type: ignore[union-attr]
         # error: Item "bool" of "Union[Series, bool]" has no attribute "idxmax"

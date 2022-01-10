@@ -32,6 +32,15 @@ def dummies_with_unassigned():
     )
 
 
+def test_from_dummies_wrong_data_type():
+    dummies = [0, 1, 0]
+    with pytest.raises(
+        TypeError,
+        match=r"Expected 'data' to be a 'DataFrame'; Received 'data' of type: list",
+    ):
+        from_dummies(dummies)
+
+
 def test_from_dummies_no_prefix_string_cats_basic():
     dummies = DataFrame({"a": [1, 0, 0, 1], "b": [0, 1, 0, 0], "c": [0, 0, 1, 0]})
     expected = DataFrame({"": ["a", "b", "c", "a"]})
