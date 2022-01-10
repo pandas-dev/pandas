@@ -3,7 +3,7 @@ channels:
   - conda-forge
 dependencies:
   # required
-  - numpy>=1.18.5, <1.22.0
+  - numpy>=1.18.5
   - python=3.8
   - python-dateutil>=2.8.1
   - pytz
@@ -120,9 +120,6 @@ dependencies:
   - tabulate>=0.8.3  # DataFrame.to_markdown
   - natsort  # DataFrame.sort_values
   - pip:
-      #issue with building environment in conda on windows. Issue: https://github.com/pandas-dev/pandas/issues/45123
-      #issue with pydata-sphix-theme on windows. Issue: https://github.com/pydata/pydata-sphinx-theme/issues/523
-      #using previous stable version as workaround
-    - git+https://github.com/pydata/pydata-sphinx-theme.git@41764f5
+    - git+https://github.com/pydata/pydata-sphinx-theme.git@master
     - pandas-dev-flaker==0.2.0
     - pytest-cython

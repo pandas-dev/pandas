@@ -133,7 +133,9 @@ def melt(
         if is_extension_array_dtype(id_data):
             id_data = concat([id_data] * K, ignore_index=True)
         else:
-            id_data = np.tile(id_data._values, K)
+            # Incompatible types in assignment (expression has type
+            # "ndarray[Any, dtype[Any]]", variable has type "Series")  [assignment]
+            id_data = np.tile(id_data._values, K)  # type: ignore[assignment]
         mdata[col] = id_data
 
     mcolumns = id_vars + var_name + [value_name]
@@ -257,7 +259,9 @@ def wide_to_long(
     df: DataFrame, stubnames, i, j, sep: str = "", suffix: str = r"\d+"
 ) -> DataFrame:
     r"""
-    Wide panel to long format. Less flexible but more user-friendly than melt.
+    Unpivot a DataFrame from wide to long format.
+
+    Less flexible but more user-friendly than melt.
 
     With stubnames ['A', 'B'], this function expects to find one or more
     group of columns with format

@@ -2428,7 +2428,9 @@ class DataFrame(NDFrame, OpsMixin):
             if dtype_mapping is None:
                 formats.append(v.dtype)
             elif isinstance(dtype_mapping, (type, np.dtype, str)):
-                formats.append(dtype_mapping)
+                # Argument 1 to "append" of "list" has incompatible type
+                # "Union[type, dtype[Any], str]"; expected "dtype[_SCT]"  [arg-type]
+                formats.append(dtype_mapping)  # type: ignore[arg-type]
             else:
                 element = "row" if i < index_len else "column"
                 msg = f"Invalid dtype {dtype_mapping} specified for {element} {name}"
@@ -3867,9 +3869,13 @@ class DataFrame(NDFrame, OpsMixin):
 
             series = self._get_item_cache(col)
             loc = self.index.get_loc(index)
-            if not can_hold_element(series._values, value):
-                # We'll go through loc and end up casting.
-                raise TypeError
+            dtype = series.dtype
+            if isinstance(dtype, np.dtype) and dtype.kind not in ["m", "M"]:
+                # otherwise we have EA values, and this check will be done
+                #  via setitem_inplace
+                if not can_hold_element(series._values, value):
+                    # We'll go through loc and end up casting.
+                    raise TypeError
 
             series._mgr.setitem_inplace(loc, value)
             # Note: trying to use series._set_value breaks tests in

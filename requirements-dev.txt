@@ -1,7 +1,7 @@
 # This file is auto-generated from environment.yml, do not modify.
 # See that file for comments about the need/usage of each dependency.
 
-numpy>=1.18.5, <1.22.0
+numpy>=1.18.5
 python-dateutil>=2.8.1
 pytz
 asv
@@ -83,7 +83,7 @@ cftime
 pyreadstat
 tabulate>=0.8.3
 natsort
-git+https://github.com/pydata/pydata-sphinx-theme.git@41764f5
+git+https://github.com/pydata/pydata-sphinx-theme.git@master
 pandas-dev-flaker==0.2.0
 pytest-cython
 setuptools>=51.0.0
