@@ -296,6 +296,7 @@ class TestToLatexHeader:
             r"""
             \begin{tabular}{lrl}
             \toprule
+            \midrule
             0 & 1 & b1 \\
             1 & 2 & b2 \\
             \bottomrule
@@ -312,6 +313,7 @@ class TestToLatexHeader:
             r"""
             \begin{tabular}{rl}
             \toprule
+            \midrule
             1 & b1 \\
             2 & b2 \\
             \bottomrule
@@ -386,8 +388,8 @@ class TestToLatexHeader:
             \toprule
              & a & b \\
             \midrule
-            0 & 1,0 & b1 \\
-            1 & 2,1 & b2 \\
+            0 & 1,000000 & b1 \\
+            1 & 2,100000 & b2 \\
             \bottomrule
             \end{tabular}
             """
@@ -465,7 +467,6 @@ class TestToLatexCaptionLabel:
         expected = _dedent(
             r"""
             \begin{table}
-            \centering
             \caption{a table in a \texttt{table/tabular} environment}
             \begin{tabular}{lrl}
             \toprule
@@ -507,7 +508,6 @@ class TestToLatexCaptionLabel:
         expected = _dedent(
             r"""
             \begin{table}
-            \centering
             \caption{a table in a \texttt{table/tabular} environment}
             \label{tab:table_tabular}
             \begin{tabular}{lrl}
@@ -533,11 +533,10 @@ class TestToLatexCaptionLabel:
         expected = _dedent(
             r"""
             \begin{table}
-            \centering
             \caption[a table]{a table in a \texttt{table/tabular} environment}
             \begin{tabular}{lrl}
             \toprule
-            {} & a & b \\
+             & a & b \\
             \midrule
             0 & 1 & b1 \\
             1 & 2 & b2 \\
@@ -569,7 +568,6 @@ class TestToLatexCaptionLabel:
         expected = _dedent(
             r"""
             \begin{table}
-            \centering
             \caption[a table]{a table in a \texttt{table/tabular} environment}
             \label{tab:table_tabular}
             \begin{tabular}{lrl}

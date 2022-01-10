@@ -3330,7 +3330,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         self = cast("DataFrame", self)
         if fallback_arg_used:
-            msg = "USING A DEPRECATED FALLBACK ARG"
+            msg = (
+                "Use of `formatters`, `float_format` or `col_space` is deprecated. "
+                "Review the documentation for advice on how to restructure "
+                "arguments to suit the new Styler implementation. Due to the use "
+                "of deprecated arguments this LaTeX is rendered with the older "
+                "DataFrameFormatter implementation, which will be removed in a "
+                "future version"
+            )
             warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
             # use original DataFrame Latex Renderer
             formatter = DataFrameFormatter(
@@ -3410,11 +3417,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "column_format": column_format,
             }
 
-            return self._to_latex_via_styler2(
+            return self._to_latex_via_styler(
                 buf, hide=hide, format=format, render_kwargs=render_kwargs
             )
 
-    def _to_latex_via_styler2(
+    def _to_latex_via_styler(
         self,
         buf=None,
         *,
@@ -3423,6 +3430,51 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         format_index: dict | list[dict] = None,
         render_kwargs: dict | None = None,
     ):
+        """
+        Render object to a LaTeX tabular, longtable, or nested table.
+
+        Uses the ``Styler`` implementation with the following, ordered, method chaining:
+
+        .. code-block: python
+
+           styler = Styler(DataFrame)
+           styler.hide(**hide)
+           styler.format(**format)
+           styler.format_index(**format_index)
+           styler.to_latex(buf=buf, **render_kwargs)
+
+        Parameters
+        ----------
+        buf : str, Path or StringIO-like, optional, default None
+            Buffer to write to. If None, the output is returned as a string.
+        hide : dict, list of dict
+            Keyword args to pass to the method call of ``Styler.hide``. If a list will
+            call the method numerous times.
+        format : dict, list of dict
+            Keyword args to pass to the method call of ``Styler.format``. If a list will
+            call the method numerous times.
+        format_index : dict, list of dict
+            Keyword args to pass to the method call of ``Styler.format_index``. If a
+            list will call the method numerous times.
+        render_kwargs : dict
+            Keyword args to pass to the method call of ``Styler.to_latex``.
+
+        Returns
+        -------
+        str or None
+            If buf is None, returns the result as a string. Otherwise returns None.
+
+        See Also
+        --------
+        Styler.to_latex : Render a DataFrame to LaTeX with conditional formatting.
+        DataFrame.to_string : Render a DataFrame to a console-friendly
+            tabular output.
+        DataFrame.to_html : Render a DataFrame as an HTML table.
+
+        Notes
+        -----
+        xxx
+        """
         from pandas.io.formats.style import Styler
 
         styler = Styler(
@@ -3438,9 +3490,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 for sub_kw in kw:
                     getattr(styler, kw_name)(**sub_kw)
 
-        return styler.to_latex(**{"buf": buf, **render_kwargs})
+        return styler.to_latex(buf=buf, **render_kwargs)
 
-    def _to_latex_via_styler(
+    def _to_latex_via_styler2(
         self,
         buf=None,
         *,
