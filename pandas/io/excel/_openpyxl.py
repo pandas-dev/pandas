@@ -4,6 +4,8 @@ import mmap
 from typing import (
     TYPE_CHECKING,
     Any,
+    Tuple,
+    cast,
 )
 
 import numpy as np
@@ -13,6 +15,7 @@ from pandas._typing import (
     ReadBuffer,
     Scalar,
     StorageOptions,
+    WriteExcelBuffer,
 )
 from pandas.compat._optional import import_optional_dependency
 
@@ -35,10 +38,10 @@ class OpenpyxlWriter(ExcelWriter):
 
     def __init__(
         self,
-        path,
-        engine=None,
-        date_format=None,
-        datetime_format=None,
+        path: FilePath | WriteExcelBuffer | ExcelWriter,
+        engine: str | None = None,
+        date_format: str | None = None,
+        datetime_format: str | None = None,
         mode: str = "w",
         storage_options: StorageOptions = None,
         if_sheet_exists: str | None = None,
@@ -74,7 +77,7 @@ class OpenpyxlWriter(ExcelWriter):
             if self.book.worksheets:
                 self.book.remove(self.book.worksheets[0])
 
-    def save(self):
+    def save(self) -> None:
         """
         Save workbook to disk.
         """
@@ -217,7 +220,7 @@ class OpenpyxlWriter(ExcelWriter):
         return map(cls._convert_to_color, stop_seq)
 
     @classmethod
-    def _convert_to_fill(cls, fill_dict):
+    def _convert_to_fill(cls, fill_dict: dict[str, Any]):
         """
         Convert ``fill_dict`` to an openpyxl v2 Fill object.
 
@@ -418,8 +421,13 @@ class OpenpyxlWriter(ExcelWriter):
         return Protection(**protection_dict)
 
     def write_cells(
-        self, cells, sheet_name=None, startrow=0, startcol=0, freeze_panes=None
-    ):
+        self,
+        cells,
+        sheet_name: str | None = None,
+        startrow: int = 0,
+        startcol: int = 0,
+        freeze_panes: tuple[int, int] | None = None,
+    ) -> None:
         # Write the frame cells using openpyxl.
         sheet_name = self._get_sheet_name(sheet_name)
 
@@ -453,6 +461,7 @@ class OpenpyxlWriter(ExcelWriter):
             self.sheets[sheet_name] = wks
 
         if validate_freeze_panes(freeze_panes):
+            freeze_panes = cast(Tuple[int, int], freeze_panes)
             wks.freeze_panes = wks.cell(
                 row=freeze_panes[0] + 1, column=freeze_panes[1] + 1
             )

@@ -533,7 +533,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
     def load_workbook(self, filepath_or_buffer):
         pass
 
-    def close(self):
+    def close(self) -> None:
         if hasattr(self, "book") and hasattr(self.book, "close"):
             # pyxlsb: opens a TemporaryFile
             # openpyxl: https://stackoverflow.com/questions/31416842/
@@ -1083,7 +1083,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         mode: str = "w",
         storage_options: StorageOptions = None,
         if_sheet_exists: str | None = None,
-        engine_kwargs: dict | None = None,
+        engine_kwargs: dict[str, Any] | None = None,
         **kwargs,
     ):
         # validate that this engine can handle the extension

@@ -3,7 +3,11 @@ from __future__ import annotations
 from typing import Any
 
 import pandas._libs.json as json
-from pandas._typing import StorageOptions
+from pandas._typing import (
+    FilePath,
+    StorageOptions,
+    WriteExcelBuffer,
+)
 
 from pandas.io.excel._base import ExcelWriter
 from pandas.io.excel._util import (
@@ -170,10 +174,10 @@ class XlsxWriter(ExcelWriter):
 
     def __init__(
         self,
-        path,
-        engine=None,
-        date_format=None,
-        datetime_format=None,
+        path: FilePath | WriteExcelBuffer | ExcelWriter,
+        engine: str | None = None,
+        date_format: str | None = None,
+        datetime_format: str | None = None,
         mode: str = "w",
         storage_options: StorageOptions = None,
         if_sheet_exists: str | None = None,
@@ -201,15 +205,20 @@ class XlsxWriter(ExcelWriter):
 
         self.book = Workbook(self.handles.handle, **engine_kwargs)
 
-    def save(self):
+    def save(self) -> None:
         """
         Save workbook to disk.
         """
-        return self.book.close()
+        self.book.close()
 
     def write_cells(
-        self, cells, sheet_name=None, startrow=0, startcol=0, freeze_panes=None
-    ):
+        self,
+        cells,
+        sheet_name: str | None = None,
+        startrow: int = 0,
+        startcol: int = 0,
+        freeze_panes: tuple[int, int] | None = None,
+    ) -> None:
         # Write the frame cells using xlsxwriter.
         sheet_name = self._get_sheet_name(sheet_name)
 
