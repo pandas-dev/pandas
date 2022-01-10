@@ -286,6 +286,13 @@ def hash_array(
     if is_categorical_dtype(dtype):
         vals = cast("Categorical", vals)
         return _hash_categorical(vals, encoding, hash_key)
+
+    elif isinstance(vals, ABCIndex):
+        # GH#42003
+        raise TypeError(
+            "hash_array requires np.ndarray or ExtensionArray, not "
+            f"{type(vals).__name__}. Use hash_pandas_object instead."
+        )
     elif not isinstance(vals, np.ndarray):
         # i.e. ExtensionArray
         vals, _ = vals._values_for_factorize()
