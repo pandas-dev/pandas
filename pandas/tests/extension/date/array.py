@@ -109,7 +109,10 @@ class DateArray(ExtensionArray):
             self._month = np.zeros(ldates, dtype=np.uint8)  # 255 (1, 31)
             self._day = np.zeros(ldates, dtype=np.uint8)  # 255 (1, 12)
 
-            for (i,), (y, m, d) in np.ndenumerate(np.char.split(dates, sep="-")):
+            # "object_" object is not iterable  [misc]
+            for (i,), (y, m, d) in np.ndenumerate(  # type: ignore[misc]
+                np.char.split(dates, sep="-")
+            ):
                 self._year[i] = int(y)
                 self._month[i] = int(m)
                 self._day[i] = int(d)

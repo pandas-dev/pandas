@@ -1018,6 +1018,7 @@ def _get_dummies_1d(
         raise ValueError("dtype=object is not a valid dtype for get_dummies")
 
     def get_empty_frame(data) -> DataFrame:
+        index: Index | np.ndarray
         if isinstance(data, Series):
             index = data.index
         else:

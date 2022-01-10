@@ -380,9 +380,7 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
                 numpy_dtypes,  # type: ignore[arg-type]
                 [],
             )
-            # error: Non-overlapping equality check (left operand type: "dtype[Any]",
-            # right operand type: "Type[object]")
-            if common_type == object:  # type: ignore[comparison-overlap]
+            if common_type == object:
                 warning_columns.append(str(name))
 
         dtype = dtypes.pop()
@@ -399,7 +397,14 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
                     arrs  # type: ignore[arg-type]
                 )
             else:
-                result[name] = np.concatenate(arrs)
+                # Argument 1 to "concatenate" has incompatible type
+                # "List[Union[ExtensionArray, ndarray[Any, Any]]]"; expected
+                # "Union[_SupportsArray[dtype[Any]],
+                # Sequence[_SupportsArray[dtype[Any]]],
+                # Sequence[Sequence[_SupportsArray[dtype[Any]]]],
+                # Sequence[Sequence[Sequence[_SupportsArray[dtype[Any]]]]],
+                # Sequence[Sequence[Sequence[Sequence[_SupportsArray[dtype[Any]]]]]]]"
+                result[name] = np.concatenate(arrs)  # type: ignore[arg-type]
 
     if warning_columns:
         warning_names = ",".join(warning_columns)
