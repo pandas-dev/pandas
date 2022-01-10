@@ -123,108 +123,94 @@ def test_css_side_shorthands(shorthand, expansions):
         assert_resolves(f"{shorthand}: 1pt 1pt 1pt 1pt 1pt", {})
 
 @pytest.mark.parametrize(
-    "shorthand,expansions",
+    "shorthand,sides",
     [
         (
             "border-top",
-            [[
-                "border-top-color",
-                "border-top-style",
-                "border-top-width"
-            ]],
+            ["top"]
         ),
         (
             "border-right",
-            [[
-                "border-right-color",
-                "border-right-style",
-                "border-right-width"
-            ]],
+            ["right"]
         ),
         (
             "border-bottom",
-            [[
-                "border-bottom-color",
-                "border-bottom-style",
-                "border-bottom-width"
-            ]],
+            ["bottom"],
         ),
         (
             "border-left",
-            [[
-                "border-left-color",
-                "border-left-style",
-                "border-left-width"
-            ]],
+            ["left"]
         ),
         (  
             "border",
-            [
-                [
-                    "border-top-color",
-                    "border-top-style",
-                    "border-top-width"
-                ],
-                [
-                    "border-right-color",
-                    "border-right-style",
-                    "border-right-width"
-                ],
-                [
-                    "border-bottom-color",
-                    "border-bottom-style",
-                    "border-bottom-width"
-                ],
-                [
-                    "border-left-color",
-                    "border-left-style",
-                    "border-left-width"
-                ],
-            ]
+            ["top", "right", "bottom", "left"]
         ),
     ]
 )
-def test_css_border_shorthands(shorthand, expansions):
-    for side_expansions in expansions:
-        color, style, width = side_expansions
+def test_css_border_shorthands(shorthand, sides):
+    def create_border_dict(sides, color=None, style=None, width=None):
+        resolved = {}
+        for side in sides:
+            if (color):
+                resolved[f"border-{side}-color"] = color
+            if (style):
+                resolved[f"border-{side}-style"] = style
+            if (width):
+                resolved[f"border-{side}-width"] = width
+        return resolved
 
-        assert_resolves(
-            f"{shorthand}: 1pt red solid",
-            {color: "red", style: "solid", width: "1pt"}
-        )
+    assert_resolves(
+        f"{shorthand}: 1pt red solid",
+        create_border_dict(sides, "red", "solid", "1pt")
+    )
 
-        assert_resolves(
-            f"{shorthand}: red solid",
-            {color: "red", style: "solid", width: "1.500000pt"}
-        )
+    assert_resolves(
+        f"{shorthand}: red 1pt solid",
+        create_border_dict(sides, "red", "solid", "1pt")
+    )
 
-        # Do not test color=black because it's not CSS conforming
-        assert_resolves(
-            f"{shorthand}: 1pt solid",
-            {style: "solid", width: "1pt"}
-        )
+    assert_resolves(
+        f"{shorthand}: red solid 1pt",
+        create_border_dict(sides, "red", "solid", "1pt")
+    )
 
-        assert_resolves(
-            f"{shorthand}: 1pt red",
-            {color: "red", style: "none", width: "1pt"}
-        )
+    assert_resolves(
+        f"{shorthand}: solid 1pt red",
+        create_border_dict(sides, "red", "solid", "1pt")
+    )
 
-        assert_resolves(
-            f"{shorthand}: red",
-            {color: "red", style: "none", width: "1.500000pt"}
-        )
+    assert_resolves(
+        f"{shorthand}: red solid",
+        create_border_dict(sides, "red", "solid", "1.500000pt")
+    )
 
-        # Do not test color=black because it's not CSS conforming
-        assert_resolves(
-            f"{shorthand}: 1pt",
-            {style: "none", width: "1pt"}
-        )
+    # Note: color=black is not CSS conforming (See https://drafts.csswg.org/css-backgrounds/#border-shorthands)
+    assert_resolves(
+        f"{shorthand}: 1pt solid",
+        create_border_dict(sides, "black", "solid", "1pt")
+    )
 
-        # Do not test color=black because it's not CSS conforming
-        assert_resolves(
-            f"{shorthand}: solid",
-            {style: "solid", width: "1.500000pt"}
-        )
+    assert_resolves(
+        f"{shorthand}: 1pt red",
+        create_border_dict(sides, "red", "none", "1pt")
+    )
+
+    assert_resolves(
+        f"{shorthand}: red",
+        create_border_dict(sides, "red", "none", "1.500000pt")
+    )
+
+    # Note: color=black is not CSS conforming
+    assert_resolves(
+        f"{shorthand}: 1pt",
+        create_border_dict(sides, "black", "none", "1pt")
+    )
+
+    # Note: color=black is not CSS conforming
+    assert_resolves(
+        f"{shorthand}: solid",
+        create_border_dict(sides, "black", "solid", "1.500000pt")
+    )
 
 
 @pytest.mark.parametrize(

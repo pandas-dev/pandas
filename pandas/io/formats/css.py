@@ -62,6 +62,7 @@ class CSSResolver:
     """
 
     UNIT_RATIOS = {
+        "pt": ("pt", 1),
         "rem": ("pt", 12),
         "ex": ("em", 0.5),
         # 'ch':
