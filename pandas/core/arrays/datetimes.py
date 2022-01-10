@@ -442,53 +442,53 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                     end = end.tz_localize(None)
 
             if isinstance(freq, Tick):
-                values = generate_regular_range(start, end, periods, freq)
+                i8values = generate_regular_range(start, end, periods, freq)
             else:
                 xdr = generate_range(start=start, end=end, periods=periods, offset=freq)
-                values = np.array([x.value for x in xdr], dtype=np.int64)
+                i8values = np.array([x.value for x in xdr], dtype=np.int64)
 
-            _tz = start.tz if start is not None else end.tz
-            values = values.view("M8[ns]")
-            index = cls._simple_new(values, freq=freq, dtype=tz_to_dtype(_tz))
+            endpoint_tz = start.tz if start is not None else end.tz
 
-            if tz is not None and index.tz is None:
-                arr = tzconversion.tz_localize_to_utc(
-                    index.asi8, tz, ambiguous=ambiguous, nonexistent=nonexistent
+            if tz is not None and endpoint_tz is None:
+                i8values = tzconversion.tz_localize_to_utc(
+                    i8values, tz, ambiguous=ambiguous, nonexistent=nonexistent
                 )
 
-                index = cls(arr)
-
-                # index is localized datetime64 array -> have to convert
+                # i8values is localized datetime64 array -> have to convert
                 # start/end as well to compare
                 if start is not None:
-                    start = start.tz_localize(tz, ambiguous, nonexistent).asm8
+                    start = start.tz_localize(tz, ambiguous, nonexistent)
                 if end is not None:
-                    end = end.tz_localize(tz, ambiguous, nonexistent).asm8
+                    end = end.tz_localize(tz, ambiguous, nonexistent)
         else:
             # Create a linearly spaced date_range in local time
             # Nanosecond-granularity timestamps aren't always correctly
             # representable with doubles, so we limit the range that we
             # pass to np.linspace as much as possible
-            arr = (
+            i8values = (
                 np.linspace(0, end.value - start.value, periods, dtype="int64")
                 + start.value
             )
-            dtype = tz_to_dtype(tz)
-            arr = arr.astype("M8[ns]", copy=False)
-            index = cls._simple_new(arr, freq=None, dtype=dtype)
+            if i8values.dtype != "i8":
+                # 2022-01-09 I (brock) am not sure if it is possible for this
+                #  to overflow and cast to e.g. f8, but if it does we need to cast
+                i8values = i8values.astype("i8")
 
         if start == end:
             if not left_inclusive and not right_inclusive:
-                index = index[1:-1]
+                i8values = i8values[1:-1]
         else:
+            start_i8 = Timestamp(start).value
+            end_i8 = Timestamp(end).value
             if not left_inclusive or not right_inclusive:
-                if not left_inclusive and len(index) and index[0] == start:
-                    index = index[1:]
-                if not right_inclusive and len(index) and index[-1] == end:
-                    index = index[:-1]
+                if not left_inclusive and len(i8values) and i8values[0] == start_i8:
+                    i8values = i8values[1:]
+                if not right_inclusive and len(i8values) and i8values[-1] == end_i8:
+                    i8values = i8values[:-1]
 
+        dt64_values = i8values.view("datetime64[ns]")
         dtype = tz_to_dtype(tz)
-        return cls._simple_new(index._ndarray, freq=freq, dtype=dtype)
+        return cls._simple_new(dt64_values, freq=freq, dtype=dtype)
 
     # -----------------------------------------------------------------
     # DatetimeLike Interface
