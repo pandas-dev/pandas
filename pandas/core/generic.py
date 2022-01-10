@@ -3375,9 +3375,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     }
                 )
             if header is False:
-                hide.append({"names": False, "axis": "columns"})
+                hide.append({"axis": "columns"})
             if index is False:
-                hide.append({"names": False, "axis": "index"})
+                hide.append({"axis": "index"})
+            if index_names is False:
+                hide.append({"names": True, "axis": "index"})
 
             format_ = {
                 "na_rep": na_rep,

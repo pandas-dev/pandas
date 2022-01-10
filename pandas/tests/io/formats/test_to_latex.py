@@ -151,9 +151,7 @@ class TestToLatex:
             r"""
             \begin{tabular}{l}
             \toprule
-            Empty DataFrame
-            Columns: Index([], dtype='object')
-            Index: Index([], dtype='object') \\
+            \midrule
             \bottomrule
             \end{tabular}
             """
@@ -206,9 +204,17 @@ class TestToLatexLongtable:
             r"""
             \begin{longtable}{l}
             \toprule
-            Empty DataFrame
-            Columns: Index([], dtype='object')
-            Index: Index([], dtype='object') \\
+            \midrule
+            \endfirsthead
+            \toprule
+            \midrule
+            \endhead
+            \midrule
+            \multicolumn{1}{r}{Continued on next page} \\
+            \midrule
+            \endfoot
+            \bottomrule
+            \endlastfoot
             \end{longtable}
             """
         )
@@ -224,16 +230,14 @@ class TestToLatexLongtable:
              & a & b \\
             \midrule
             \endfirsthead
-
             \toprule
              & a & b \\
             \midrule
             \endhead
             \midrule
-            \multicolumn{3}{r}{{Continued on next page}} \\
+            \multicolumn{3}{r}{Continued on next page} \\
             \midrule
             \endfoot
-
             \bottomrule
             \endlastfoot
             0 & 1 & b1 \\
@@ -253,16 +257,14 @@ class TestToLatexLongtable:
             a & b \\
             \midrule
             \endfirsthead
-
             \toprule
             a & b \\
             \midrule
             \endhead
             \midrule
-            \multicolumn{2}{r}{{Continued on next page}} \\
+            \multicolumn{2}{r}{Continued on next page} \\
             \midrule
             \endfoot
-
             \bottomrule
             \endlastfoot
             1 & b1 \\
@@ -510,10 +512,10 @@ class TestToLatexCaptionLabel:
             \label{tab:table_tabular}
             \begin{tabular}{lrl}
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             \end{table}
@@ -535,10 +537,10 @@ class TestToLatexCaptionLabel:
             \caption[a table]{a table in a \texttt{table/tabular} environment}
             \begin{tabular}{lrl}
             \toprule
-            {} &  a &   b \\
+            {} & a & b \\
             \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             \end{table}
@@ -572,10 +574,10 @@ class TestToLatexCaptionLabel:
             \label{tab:table_tabular}
             \begin{tabular}{lrl}
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             \end{table}
@@ -611,10 +613,10 @@ class TestToLatexCaptionLabel:
             \caption{xy}
             \begin{tabular}{lrl}
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             \end{table}
@@ -632,12 +634,12 @@ class TestToLatexCaptionLabel:
             \begin{longtable}{lrl}
             \caption{a table in a \texttt{longtable} environment}\\
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
             \endfirsthead
             \caption[]{a table in a \texttt{longtable} environment} \\
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
             \endhead
             \midrule
@@ -647,8 +649,8 @@ class TestToLatexCaptionLabel:
 
             \bottomrule
             \endlastfoot
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \end{longtable}
             """
         )
@@ -662,12 +664,12 @@ class TestToLatexCaptionLabel:
             \begin{longtable}{lrl}
             \label{tab:longtable}\\
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
             \endfirsthead
 
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
             \endhead
             \midrule
@@ -677,8 +679,8 @@ class TestToLatexCaptionLabel:
 
             \bottomrule
             \endlastfoot
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \end{longtable}
             """
         )
@@ -702,12 +704,12 @@ class TestToLatexCaptionLabel:
             \caption{a table in a \texttt{longtable} environment}
             \label{tab:longtable}\\
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
             \endfirsthead
             \caption[]{a table in a \texttt{longtable} environment} \\
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
             \endhead
             \midrule
@@ -717,8 +719,8 @@ class TestToLatexCaptionLabel:
 
             \bottomrule
             \endlastfoot
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \end{longtable}
             """
         )
@@ -743,12 +745,12 @@ class TestToLatexCaptionLabel:
             \caption[a table]{a table in a \texttt{longtable} environment}
             \label{tab:longtable}\\
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
             \endfirsthead
             \caption[]{a table in a \texttt{longtable} environment} \\
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
             \endhead
             \midrule
@@ -758,8 +760,8 @@ class TestToLatexCaptionLabel:
 
             \bottomrule
             \endlastfoot
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \end{longtable}
             """
         )
@@ -880,10 +882,10 @@ class TestToLatexPosition:
             \centering
             \begin{tabular}{lrl}
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             \end{table}
@@ -899,12 +901,12 @@ class TestToLatexPosition:
             r"""
             \begin{longtable}[t]{lrl}
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
             \endfirsthead
 
             \toprule
-            {} &  a &   b \\
+             & a & b \\
             \midrule
             \endhead
             \midrule
@@ -914,8 +916,8 @@ class TestToLatexPosition:
 
             \bottomrule
             \endlastfoot
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \end{longtable}
             """
         )
