@@ -63,7 +63,7 @@ def test_agg_ser_multi_key(df):
 
 
 def test_agg_different_partials():
-    # for issue 28570
+    # GH 28570
 
     quant50 = partial(np.percentile, q=50)
     quant50.__name__ = "quant50"
