@@ -7191,7 +7191,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         missing = locs == -1
         data = self.take(locs)
         data.index = where
-        data.loc[missing] = np.nan
+        if missing.any():
+            # GH#16063 only do this setting when necessary, otherwise
+            #  we'd cast e.g. bools to floats
+            data.loc[missing] = np.nan
         return data if is_list else data.iloc[-1]
 
     # ----------------------------------------------------------------------
