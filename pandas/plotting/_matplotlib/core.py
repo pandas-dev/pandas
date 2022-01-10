@@ -754,6 +754,10 @@ class MPLPlot:
             args = (x, y, style) if style is not None else (x, y)
             return ax.plot(*args, **kwds)
 
+    def _get_custom_index_name(self) -> str | None:
+        """Specify whether xlabel/ylabel should be used to override index name"""
+        return self.xlabel
+
     def _get_index_name(self) -> str | None:
         if isinstance(self.data.index, ABCMultiIndex):
             name = self.data.index.names
@@ -766,11 +770,10 @@ class MPLPlot:
             if name is not None:
                 name = pprint_thing(name)
 
-        # GH 9093, override the default xlabel if xlabel is provided.
-        if self.xlabel is not None and self.orientation == "vertical":
-            name = pprint_thing(self.xlabel)
-        if self.ylabel is not None and self.orientation == "horizontal":
-            name = pprint_thing(self.ylabel)
+        # GH 45145, override the default axis if one is provided.
+        index_name = self._get_custom_index_name()
+        if index_name:
+            name = pprint_thing(index_name)
 
         return name
 
@@ -1611,6 +1614,9 @@ class BarhPlot(BarPlot):
         cls, ax: Axes, x, y, w, start=0, log=False, **kwds
     ):
         return ax.barh(x, y, w, left=start, log=log, **kwds)
+
+    def _get_custom_index_name(self) -> str | None:
+        return self.ylabel
 
     def _get_bar_index_name(self):
         return self.ylabel or self._get_index_name()
