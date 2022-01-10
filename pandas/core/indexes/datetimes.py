@@ -1022,22 +1022,23 @@ def date_range(
                    '2018-01-05 00:00:00+09:00'],
                   dtype='datetime64[ns, Asia/Tokyo]', freq='D')
 
-    `closed` controls whether to include `start` and `end` that are on the
-    boundary. The default includes boundary points on either end.
+    `inclusive` controls whether to include `start` and `end` that are on the
+    boundary. The default, "both", includes boundary points on either end.
 
-    >>> pd.date_range(start='2017-01-01', end='2017-01-04', closed=None)
+    >>> pd.date_range(start='2017-01-01', end='2017-01-04', inclusive="both")
     DatetimeIndex(['2017-01-01', '2017-01-02', '2017-01-03', '2017-01-04'],
                   dtype='datetime64[ns]', freq='D')
 
-    Use ``closed='left'`` to exclude `end` if it falls on the boundary.
+    Use ``inclusive='left'`` to exclude `end` if it falls on the boundary.
 
-    >>> pd.date_range(start='2017-01-01', end='2017-01-04', closed='left')
+    >>> pd.date_range(start='2017-01-01', end='2017-01-04', inclusive='left')
     DatetimeIndex(['2017-01-01', '2017-01-02', '2017-01-03'],
                   dtype='datetime64[ns]', freq='D')
 
-    Use ``closed='right'`` to exclude `start` if it falls on the boundary.
+    Use ``inclusive='right'`` to exclude `start` if it falls on the boundary, and
+    similarly ``inclusive='neither'`` will exclude both `start` and `end`.
 
-    >>> pd.date_range(start='2017-01-01', end='2017-01-04', closed='right')
+    >>> pd.date_range(start='2017-01-01', end='2017-01-04', inclusive='right')
     DatetimeIndex(['2017-01-02', '2017-01-03', '2017-01-04'],
                   dtype='datetime64[ns]', freq='D')
     """
