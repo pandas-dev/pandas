@@ -1317,24 +1317,23 @@ class TestToLatexMultiindex:
         for idx in axes:
             df.axes[idx].names = names
 
-        idx_names = tuple(n or "{}" for n in names)
+        idx_names = tuple(n or "" for n in names)
         idx_names_row = (
-            f"{idx_names[0]} & {idx_names[1]} &    &    &    &    \\\\\n"
+            f"{idx_names[0]} & {idx_names[1]} &  &  &  &  \\\\\n"
             if (0 in axes and any(names))
             else ""
         )
-        placeholder = "{}" if any(names) and 1 in axes else " "
-        col_names = [n if (bool(n) and 1 in axes) else placeholder for n in names]
+        col_names = [n if (bool(n) and 1 in axes) else "" for n in names]
         observed = df.to_latex()
         expected = r"""\begin{tabular}{llrrrr}
 \toprule
-  & %s & \multicolumn{2}{l}{1} & \multicolumn{2}{l}{2} \\
-  & %s &  3 &  4 &  3 &  4 \\
+ & %s & \multicolumn{2}{l}{1} & \multicolumn{2}{l}{2} \\
+ & %s & 3 & 4 & 3 & 4 \\
 %s\midrule
 1 & 3 & -1 & -1 & -1 & -1 \\
-  & 4 & -1 & -1 & -1 & -1 \\
+ & 4 & -1 & -1 & -1 & -1 \\
 2 & 3 & -1 & -1 & -1 & -1 \\
-  & 4 & -1 & -1 & -1 & -1 \\
+ & 4 & -1 & -1 & -1 & -1 \\
 \bottomrule
 \end{tabular}
 """ % tuple(
