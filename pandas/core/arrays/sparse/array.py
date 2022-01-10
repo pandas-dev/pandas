@@ -772,7 +772,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         elif method is not None:
             msg = "fillna with 'method' requires high memory usage."
             warnings.warn(msg, PerformanceWarning)
-            new_values = np.asarray(self)
+            # Need type annotation for "new_values"  [var-annotated]
+            new_values = np.asarray(self)  # type: ignore[var-annotated]
             # interpolate_2d modifies new_values inplace
             interpolate_2d(new_values, method=method, limit=limit)
             return type(self)(new_values, fill_value=self.fill_value)
@@ -924,7 +925,15 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if is_integer(key):
             return self._get_val_at(key)
         elif isinstance(key, tuple):
-            data_slice = self.to_dense()[key]
+            # Invalid index type "Tuple[Union[int, ellipsis], ...]" for
+            # "ndarray[Any, Any]"; expected type "Union[SupportsIndex,
+            # _SupportsArray[dtype[Union[bool_, integer[Any]]]], _NestedSequence[_Su
+            # pportsArray[dtype[Union[bool_, integer[Any]]]]],
+            # _NestedSequence[Union[bool, int]], Tuple[Union[SupportsIndex,
+            # _SupportsArray[dtype[Union[bool_, integer[Any]]]],
+            # _NestedSequence[_SupportsArray[dtype[Union[bool_, integer[Any]]]]], _N
+            # estedSequence[Union[bool, int]]], ...]]"  [index]
+            data_slice = self.to_dense()[key]  # type: ignore[index]
         elif isinstance(key, slice):
 
             # Avoid densifying when handling contiguous slices
@@ -1164,7 +1173,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
             data = np.concatenate(values)
             indices_arr = np.concatenate(indices)
-            sp_index = IntIndex(length, indices_arr)
+            # Argument 2 to "IntIndex" has incompatible type "ndarray[Any,
+            # dtype[signedinteger[_32Bit]]]"; expected "Sequence[int]"
+            sp_index = IntIndex(length, indices_arr)  # type: ignore[arg-type]
 
         else:
             # when concatenating block indices, we don't claim that you'll
@@ -1342,7 +1353,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if isinstance(state, tuple):
             # Compat for pandas < 0.24.0
             nd_state, (fill_value, sp_index) = state
-            sparse_values = np.array([])
+            # Need type annotation for "sparse_values"  [var-annotated]
+            sparse_values = np.array([])  # type: ignore[var-annotated]
             sparse_values.__setstate__(nd_state)
 
             self._sparse_values = sparse_values
