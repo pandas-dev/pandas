@@ -740,10 +740,7 @@ class TestReaders:
         bad_file = f"foo{read_ext}"
         # CI tests with other languages, translates to "No such file or directory"
         match = r"(No such file or directory|没有那个文件或目录|File o directory non esistente)"
-        with pytest.raises(
-            FileNotFoundError,
-            match=match,
-        ):
+        with pytest.raises(FileNotFoundError, match=match):
             pd.read_excel(bad_file)
 
     def test_corrupt_bytes_raises(self, read_ext, engine):
