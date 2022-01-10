@@ -4,6 +4,8 @@ import mmap
 from typing import (
     TYPE_CHECKING,
     Any,
+    Tuple,
+    cast,
 )
 
 import numpy as np
@@ -459,8 +461,7 @@ class OpenpyxlWriter(ExcelWriter):
             self.sheets[sheet_name] = wks
 
         if validate_freeze_panes(freeze_panes):
-            # for mypy
-            assert freeze_panes is not None
+            freeze_panes = cast(Tuple[int, int], freeze_panes)
             wks.freeze_panes = wks.cell(
                 row=freeze_panes[0] + 1, column=freeze_panes[1] + 1
             )

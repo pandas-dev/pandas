@@ -3,7 +3,11 @@ from __future__ import annotations
 from typing import Any
 
 import pandas._libs.json as json
-from pandas._typing import StorageOptions, FilePath, WriteExcelBuffer
+from pandas._typing import (
+    FilePath,
+    StorageOptions,
+    WriteExcelBuffer,
+)
 
 from pandas.io.excel._base import ExcelWriter
 from pandas.io.excel._util import (

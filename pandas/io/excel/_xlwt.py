@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
+    Tuple,
+    cast,
 )
 
 import pandas._libs.json as json
@@ -87,8 +89,7 @@ class XlwtWriter(ExcelWriter):
             self.sheets[sheet_name] = wks
 
         if validate_freeze_panes(freeze_panes):
-            # for mypy
-            assert freeze_panes is not None
+            freeze_panes = cast(Tuple[int, int], freeze_panes)
             wks.set_panes_frozen(True)
             wks.set_horz_split_pos(freeze_panes[0])
             wks.set_vert_split_pos(freeze_panes[1])

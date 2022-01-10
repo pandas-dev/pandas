@@ -5,10 +5,16 @@ import datetime
 from typing import (
     Any,
     DefaultDict,
+    Tuple,
+    cast,
 )
 
 import pandas._libs.json as json
-from pandas._typing import StorageOptions, FilePath, WriteExcelBuffer
+from pandas._typing import (
+    FilePath,
+    StorageOptions,
+    WriteExcelBuffer,
+)
 
 from pandas.io.excel._base import ExcelWriter
 from pandas.io.excel._util import (
@@ -88,7 +94,7 @@ class ODSWriter(ExcelWriter):
             self.sheets[sheet_name] = wks
 
         if validate_freeze_panes(freeze_panes):
-            assert freeze_panes is not None
+            freeze_panes = cast(Tuple[int, int], freeze_panes)
             self._create_freeze_panes(sheet_name, freeze_panes)
 
         for _ in range(startrow):
