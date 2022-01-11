@@ -1251,10 +1251,29 @@ class Timedelta(_Timedelta):
 
     Notes
     -----
+    The constructor may take in either both values of value and unit or
+    kwargs as above. Either one of them must be used during initialization
+
     The ``.value`` attribute is always in ns.
 
     If the precision is higher than nanoseconds, the precision of the duration is
     truncated to nanoseconds.
+
+    Examples
+    --------
+    Here we initialize Timedelta object with both value and unit
+
+    >>> td = pd.Timedelta(1, "d")
+    >>> td
+    Timedelta('1 days 00:00:00')
+
+    Here we initialize the Timedelta object with kwargs
+
+    >>> td2 = pd.Timedelta(days=1)
+    >>> td2
+    Timedelta('1 days 00:00:00')
+
+    We see that either way we get the same result
     """
 
     _req_any_kwargs_new = {"weeks", "days", "hours", "minutes", "seconds",
@@ -1270,7 +1289,10 @@ class Timedelta(_Timedelta):
                                  "(days,seconds....)")
 
             kwargs = {key: _to_py_int_float(kwargs[key]) for key in kwargs}
-            if not cls._req_any_kwargs_new.intersection(kwargs):
+
+            unsupported_kwargs = set(kwargs)
+            unsupported_kwargs.difference_update(cls._req_any_kwargs_new)
+            if unsupported_kwargs or not cls._req_any_kwargs_new.intersection(kwargs):
                 raise ValueError(
                     "cannot construct a Timedelta from the passed arguments, "
                     "allowed keywords are "

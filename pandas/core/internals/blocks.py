@@ -35,8 +35,8 @@ from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
+from pandas.core.dtypes.astype import astype_array_safe
 from pandas.core.dtypes.cast import (
-    astype_array_safe,
     can_hold_element,
     find_common_type,
     infer_dtype_from,
@@ -307,7 +307,9 @@ class Block(PandasObject):
     def __len__(self) -> int:
         return len(self.values)
 
-    def _slice(self, slicer) -> ArrayLike:
+    def _slice(
+        self, slicer: slice | npt.NDArray[np.bool_] | npt.NDArray[np.intp]
+    ) -> ArrayLike:
         """return a slice of my values"""
 
         return self.values[slicer]
@@ -319,8 +321,13 @@ class Block(PandasObject):
 
         Only supports slices that preserve dimensionality.
         """
-        axis0_slicer = slicer[0] if isinstance(slicer, tuple) else slicer
-        new_mgr_locs = self._mgr_locs[axis0_slicer]
+        # Note: the only place where we are called with ndarray[intp]
+        #  is from internals.concat, and we can verify that never happens
+        #  with 1-column blocks, i.e. never for ExtensionBlock.
+
+        # Invalid index type "Union[slice, ndarray[Any, dtype[signedinteger[Any]]]]"
+        # for "BlockPlacement"; expected type "Union[slice, Sequence[int]]"
+        new_mgr_locs = self._mgr_locs[slicer]  # type: ignore[index]
 
         new_values = self._slice(slicer)
 
@@ -345,7 +352,7 @@ class Block(PandasObject):
 
         return type(self)(new_values, new_mgr_locs, self.ndim)
 
-    # NB: this cannot be made cache_readonly because in libreduction we pin
+    # NB: this cannot be made cache_readonly because in mgr.set_values we pin
     #  new .values that can have different shape GH#42631
     @property
     def shape(self) -> Shape:
@@ -355,8 +362,14 @@ class Block(PandasObject):
     def dtype(self) -> DtypeObj:
         return self.values.dtype
 
-    def iget(self, i):
-        return self.values[i]
+    def iget(self, i: int | tuple[int, int] | tuple[slice, int]):
+        # In the case where we have a tuple[slice, int], the slice will always
+        #  be slice(None)
+        # Note: only reached with self.ndim == 2
+        # Invalid index type "Union[int, Tuple[int, int], Tuple[slice, int]]"
+        # for "Union[ndarray[Any, Any], ExtensionArray]"; expected type
+        # "Union[int, integer[Any]]"
+        return self.values[i]  # type: ignore[index]
 
     def set_inplace(self, locs, values) -> None:
         """
@@ -373,7 +386,13 @@ class Block(PandasObject):
         """
         Delete given loc(-s) from block in-place.
         """
-        self.values = np.delete(self.values, loc, 0)
+        # Argument 1 to "delete" has incompatible type "Union[ndarray[Any, Any],
+        # ExtensionArray]"; expected "Union[_SupportsArray[dtype[Any]],
+        # Sequence[_SupportsArray[dtype[Any]]], Sequence[Sequence
+        # [_SupportsArray[dtype[Any]]]], Sequence[Sequence[Sequence[
+        # _SupportsArray[dtype[Any]]]]], Sequence[Sequence[Sequence[Sequence[
+        # _SupportsArray[dtype[Any]]]]]]]"  [arg-type]
+        self.values = np.delete(self.values, loc, 0)  # type: ignore[arg-type]
         self.mgr_locs = self._mgr_locs.delete(loc)
         try:
             self._cache.clear()
@@ -1166,6 +1185,9 @@ class Block(PandasObject):
             values = values.T
 
         icond, noop = validate_putmask(values, ~cond)
+        if noop:
+            # GH-39595: Always return a copy; short-circuit up/downcasting
+            return self.copy()
 
         if other is lib.no_default:
             other = self.fill_value
@@ -1173,12 +1195,7 @@ class Block(PandasObject):
         if is_valid_na_for_dtype(other, self.dtype) and self.dtype != _dtype_obj:
             other = self.fill_value
 
-        if noop:
-            # TODO: avoid the downcasting at the end in this case?
-            # GH-39595: Always return a copy
-            result = values.copy()
-
-        elif not self._can_hold_element(other):
+        if not self._can_hold_element(other):
             # we cannot coerce, return a compat dtype
             block = self.coerce_to_target_dtype(other)
             blocks = block.where(orig_other, cond)
@@ -1350,11 +1367,7 @@ class EABackedBlock(Block):
         try:
             res_values = arr._where(cond, other).T
         except (ValueError, TypeError) as err:
-            if isinstance(err, ValueError):
-                # TODO(2.0): once DTA._validate_setitem_value deprecation
-                #  is enforced, stop catching ValueError here altogether
-                if "Timezones don't match" not in str(err):
-                    raise
+            _catch_deprecated_value_error(err)
 
             if is_interval_dtype(self.dtype):
                 # TestSetitemFloatIntervalWithIntIntervalValues
@@ -1397,10 +1410,7 @@ class EABackedBlock(Block):
             # Caller is responsible for ensuring matching lengths
             values._putmask(mask, new)
         except (TypeError, ValueError) as err:
-            if isinstance(err, ValueError) and "Timezones don't match" not in str(err):
-                # TODO(2.0): remove catching ValueError at all since
-                #  DTA raising here is deprecated
-                raise
+            _catch_deprecated_value_error(err)
 
             if is_interval_dtype(self.dtype):
                 # Discussion about what we want to support in the general
@@ -1490,20 +1500,31 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             return (len(self.values),)
         return len(self._mgr_locs), len(self.values)
 
-    def iget(self, col):
+    def iget(self, i: int | tuple[int, int] | tuple[slice, int]):
+        # In the case where we have a tuple[slice, int], the slice will always
+        #  be slice(None)
+        # We _could_ make the annotation more specific, but mypy would
+        #  complain about override mismatch:
+        #  Literal[0] | tuple[Literal[0], int] | tuple[slice, int]
 
-        if self.ndim == 2 and isinstance(col, tuple):
+        # Note: only reached with self.ndim == 2
+
+        if isinstance(i, tuple):
             # TODO(EA2D): unnecessary with 2D EAs
-            col, loc = col
+            col, loc = i
             if not com.is_null_slice(col) and col != 0:
                 raise IndexError(f"{self} only contains one item")
             elif isinstance(col, slice):
-                if col != slice(None):
-                    raise NotImplementedError(col)
-                return self.values[[loc]]
+                # the is_null_slice check above assures that col is slice(None)
+                #  so what we want is a view on all our columns and row loc
+                if loc < 0:
+                    loc += len(self.values)
+                # Note: loc:loc+1 vs [[loc]] makes a difference when called
+                #  from fast_xs because we want to get a view back.
+                return self.values[loc : loc + 1]
             return self.values[loc]
         else:
-            if col != 0:
+            if i != 0:
                 raise IndexError(f"{self} only contains one item")
             return self.values
 
@@ -1622,43 +1643,43 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
 
         return self.make_block_same_class(new_values, new_mgr_locs)
 
-    def _slice(self, slicer) -> ExtensionArray:
+    def _slice(
+        self, slicer: slice | npt.NDArray[np.bool_] | npt.NDArray[np.intp]
+    ) -> ExtensionArray:
         """
         Return a slice of my values.
 
         Parameters
         ----------
-        slicer : slice, ndarray[int], or a tuple of these
+        slicer : slice, ndarray[int], or ndarray[bool]
             Valid (non-reducing) indexer for self.values.
 
         Returns
         -------
         ExtensionArray
         """
+        # Notes: ndarray[bool] is only reachable when via getitem_mgr, which
+        #  is only for Series, i.e. self.ndim == 1.
+
         # return same dims as we currently have
-        if not isinstance(slicer, tuple) and self.ndim == 2:
+        if self.ndim == 2:
             # reached via getitem_block via _slice_take_blocks_ax0
             # TODO(EA2D): won't be necessary with 2D EAs
-            slicer = (slicer, slice(None))
 
-        if isinstance(slicer, tuple) and len(slicer) == 2:
-            first = slicer[0]
-            if not isinstance(first, slice):
+            if not isinstance(slicer, slice):
                 raise AssertionError(
-                    "invalid slicing for a 1-ndim ExtensionArray", first
+                    "invalid slicing for a 1-ndim ExtensionArray", slicer
                 )
             # GH#32959 only full-slicers along fake-dim0 are valid
             # TODO(EA2D): won't be necessary with 2D EAs
             # range(1) instead of self._mgr_locs to avoid exception on [::-1]
             #  see test_iloc_getitem_slice_negative_step_ea_block
-            new_locs = range(1)[first]
-            if len(new_locs):
-                # effectively slice(None)
-                slicer = slicer[1]
-            else:
+            new_locs = range(1)[slicer]
+            if not len(new_locs):
                 raise AssertionError(
                     "invalid slicing for a 1-ndim ExtensionArray", slicer
                 )
+            slicer = slice(None)
 
         return self.values[slicer]
 
@@ -1827,6 +1848,18 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
 
         new_values = self.values.fillna(value=value, limit=limit)
         return [self.make_block_same_class(values=new_values)]
+
+
+def _catch_deprecated_value_error(err: Exception) -> None:
+    """
+    We catch ValueError for now, but only a specific one raised by DatetimeArray
+    which will no longer be raised in version.2.0.
+    """
+    if isinstance(err, ValueError):
+        # TODO(2.0): once DTA._validate_setitem_value deprecation
+        #  is enforced, stop catching ValueError here altogether
+        if "Timezones don't match" not in str(err):
+            raise
 
 
 class DatetimeLikeBlock(NDArrayBackedExtensionBlock):

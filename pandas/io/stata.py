@@ -599,7 +599,8 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
         dtype = data[col].dtype
         for c_data in conversion_data:
             if dtype == c_data[0]:
-                if data[col].max() <= np.iinfo(c_data[1]).max:
+                # Value of type variable "_IntType" of "iinfo" cannot be "object"
+                if data[col].max() <= np.iinfo(c_data[1]).max:  # type: ignore[type-var]
                     dtype = c_data[1]
                 else:
                     dtype = c_data[2]
@@ -2605,6 +2606,9 @@ supported types."""
                     self.data[col] = encoded
 
     def write_file(self) -> None:
+        """
+        Export DataFrame object to Stata dta format.
+        """
         with get_handle(
             self._fname,
             "wb",

@@ -105,6 +105,7 @@ There are also some LaTeX specific enhancements:
 
   - :meth:`.Styler.to_latex` introduces keyword argument ``environment``, which also allows a specific "longtable" entry through a separate jinja2 template (:issue:`41866`).
   - Naive sparsification is now possible for LaTeX without the necessity of including the multirow package (:issue:`43369`)
+  - *cline* support has been added for MultiIndex row sparsification through a keyword argument (:issue:`45138`)
 
 .. _whatsnew_140.enhancements.pyarrow_csv_engine:
 
@@ -207,6 +208,7 @@ Other enhancements
 - :meth:`Series.str.split` now supports a ``regex`` argument that explicitly specifies whether the pattern is a regular expression. Default is ``None`` (:issue:`43563`, :issue:`32835`, :issue:`25549`)
 - :meth:`DataFrame.dropna` now accepts a single label as ``subset`` along with array-like (:issue:`41021`)
 - Added :meth:`DataFrameGroupBy.value_counts` (:issue:`43564`)
+- :func:`read_csv` now accepts a ``callable`` function in ``on_bad_lines`` when ``engine="python"`` for custom handling of bad lines (:issue:`5686`)
 - :class:`ExcelWriter` argument ``if_sheet_exists="overlay"`` option added (:issue:`40231`)
 - :meth:`read_excel` now accepts a ``decimal`` argument that allow the user to specify the decimal point when parsing string columns to numeric (:issue:`14403`)
 - :meth:`.GroupBy.mean`, :meth:`.GroupBy.std`, :meth:`.GroupBy.var`, :meth:`.GroupBy.sum` now supports `Numba <http://numba.pydata.org/>`_ execution with the ``engine`` keyword (:issue:`43731`, :issue:`44862`, :issue:`44939`)
@@ -659,7 +661,7 @@ Performance improvements
 - Performance improvement in indexing with a :class:`Float64Index` (:issue:`43705`)
 - Performance improvement in indexing with a non-unique Index (:issue:`43792`)
 - Performance improvement in indexing with a listlike indexer on a :class:`MultiIndex` (:issue:`43370`)
-- Performance improvement in indexing with a :class:`MultiIndex` indexer on another :class:`MultiIndex` (:issue:43370`)
+- Performance improvement in indexing with a :class:`MultiIndex` indexer on another :class:`MultiIndex` (:issue:`43370`)
 - Performance improvement in :meth:`GroupBy.quantile` (:issue:`43469`, :issue:`43725`)
 - Performance improvement in :meth:`GroupBy.count` (:issue:`43730`, :issue:`43694`)
 - Performance improvement in :meth:`GroupBy.any` and :meth:`GroupBy.all` (:issue:`43675`, :issue:`42841`)
@@ -732,7 +734,7 @@ Timedelta
 ^^^^^^^^^
 - Bug in division of all-``NaT`` :class:`TimeDeltaIndex`, :class:`Series` or :class:`DataFrame` column with object-dtype arraylike of numbers failing to infer the result as timedelta64-dtype (:issue:`39750`)
 - Bug in floor division of ``timedelta64[ns]`` data with a scalar returning garbage values (:issue:`44466`)
-- Bug in :class:`Timedelta` now properly taking into account any nanoseconds contribution of any kwarg (:issue:`43764`)
+- Bug in :class:`Timedelta` now properly taking into account any nanoseconds contribution of any kwarg (:issue:`43764`, :issue:`45227`)
 
 Timezones
 ^^^^^^^^^
@@ -814,7 +816,7 @@ Indexing
 
 Missing
 ^^^^^^^
-- Bug in :meth:`DataFrame.fillna` with limit and no method ignores axis='columns' or ``axis = 1`` (:issue:`40989`)
+- Bug in :meth:`DataFrame.fillna` with limit and no method ignores axis='columns' or ``axis = 1`` (:issue:`40989`, :issue:`17399`)
 - Bug in :meth:`DataFrame.fillna` not replacing missing values when using a dict-like ``value`` and duplicate column names (:issue:`43476`)
 - Bug in constructing a :class:`DataFrame` with a dictionary ``np.datetime64`` as a value and ``dtype='timedelta64[ns]'``, or vice-versa, incorrectly casting instead of raising (:issue:`44428`)
 - Bug in :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` with ``inplace=True`` not writing to the underlying array(s) in-place (:issue:`44749`)
