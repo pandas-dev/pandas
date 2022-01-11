@@ -1572,9 +1572,6 @@ class BarPlot(MPLPlot):
                 )
             self._append_legend_handles_labels(rect, label)
 
-    def _get_bar_index_name(self):
-        return self.xlabel or self._get_index_name()
-
     def _post_plot_logic(self, ax: Axes, data):
         if self.use_index:
             str_index = [pprint_thing(key) for key in data.index]
@@ -1584,7 +1581,7 @@ class BarPlot(MPLPlot):
         s_edge = self.ax_pos[0] - 0.25 + self.lim_offset
         e_edge = self.ax_pos[-1] + 0.25 + self.bar_width + self.lim_offset
 
-        self._decorate_ticks(ax, self._get_bar_index_name(), str_index, s_edge, e_edge)
+        self._decorate_ticks(ax, self._get_index_name(), str_index, s_edge, e_edge)
 
     def _decorate_ticks(self, ax: Axes, name, ticklabels, start_edge, end_edge):
         ax.set_xlim((start_edge, end_edge))
@@ -1617,9 +1614,6 @@ class BarhPlot(BarPlot):
 
     def _get_custom_index_name(self) -> str | None:
         return self.ylabel
-
-    def _get_bar_index_name(self):
-        return self.ylabel or self._get_index_name()
 
     def _decorate_ticks(self, ax: Axes, name, ticklabels, start_edge, end_edge):
         # horizontal bars
