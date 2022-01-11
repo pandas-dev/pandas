@@ -1442,6 +1442,8 @@ def find_result_type(left: ArrayLike, right: Any) -> DtypeObj:
     find_common_type
     numpy.result_type
     """
+    new_dtype: DtypeObj
+
     if left.dtype.kind in ["i", "u", "c"] and (
         lib.is_integer(right) or lib.is_float(right)
     ):
@@ -1450,7 +1452,15 @@ def find_result_type(left: ArrayLike, right: Any) -> DtypeObj:
         #  which will make us upcast too far.
         if lib.is_float(right) and right.is_integer() and left.dtype.kind != "f":
             right = int(right)
-        new_dtype = np.result_type(left, right)
+
+        # Argument 1 to "result_type" has incompatible type "Union[ExtensionArray,
+        # ndarray[Any, Any]]"; expected "Union[Union[_SupportsArray[dtype[Any]],
+        # _NestedSequence[_SupportsArray[dtype[Any]]], bool, int, float, complex,
+        # str, bytes, _NestedSequence[Union[bool, int, float, complex, str, bytes]]],
+        # Union[dtype[Any], None, Type[Any], _SupportsDType[dtype[Any]], str,
+        # Union[Tuple[Any, int], Tuple[Any, Union[SupportsIndex,
+        # Sequence[SupportsIndex]]], List[Any], _DTypeDict, Tuple[Any, Any]]]]"
+        new_dtype = np.result_type(left, right)  # type:ignore[arg-type]
 
     else:
         dtype, _ = infer_dtype_from(right, pandas_dtype=True)
