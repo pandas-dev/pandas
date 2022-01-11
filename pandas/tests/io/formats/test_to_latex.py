@@ -1158,13 +1158,13 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{llr}
             \toprule
-              &   &  c \\
-            a & b &    \\
+             &  & c \\
+            a & b &  \\
             \midrule
-            0 & a &  1 \\
-              & b &  2 \\
-            1 & a &  3 \\
-              & b &  4 \\
+            0 & a & 1 \\
+             & b & 2 \\
+            1 & a & 3 \\
+             & b & 4 \\
             \bottomrule
             \end{tabular}
             """
@@ -1174,17 +1174,17 @@ class TestToLatexMultiindex:
     def test_to_latex_groupby_tabular(self):
         # GH 10660
         df = DataFrame({"a": [0, 0, 1, 1], "b": list("abab"), "c": [1, 2, 3, 4]})
-        result = df.groupby("a").describe().to_latex()
+        result = df.groupby("a").describe().to_latex(format={"precision": 1})
         expected = _dedent(
             r"""
             \begin{tabular}{lrrrrrrrr}
             \toprule
-            {} & \multicolumn{8}{l}{c} \\
-            {} & count & mean &       std &  min &   25\% &  50\% &   75\% &  max \\
-            a &       &      &           &      &       &      &       &      \\
+             & \multicolumn{8}{l}{c} \\
+             & count & mean & std & min & 25\% & 50\% & 75\% & max \\
+            a &  &  &  &  &  &  &  &  \\
             \midrule
-            0 &   2.0 &  1.5 &  0.707107 &  1.0 &  1.25 &  1.5 &  1.75 &  2.0 \\
-            1 &   2.0 &  3.5 &  0.707107 &  3.0 &  3.25 &  3.5 &  3.75 &  4.0 \\
+            0 & 2.0 & 1.5 & 0.7 & 1.0 & 1.2 & 1.5 & 1.8 & 2.0 \\
+            1 & 2.0 & 3.5 & 0.7 & 3.0 & 3.2 & 3.5 & 3.8 & 4.0 \\
             \bottomrule
             \end{tabular}
             """
@@ -1207,10 +1207,10 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{lll}
             \toprule
-              &   &  col \\
+             &  & col \\
             \midrule
-            A & c &  NaN \\
-            B & c &  NaN \\
+            A & c & NaN \\
+            B & c & NaN \\
             \bottomrule
             \end{tabular}
             """
