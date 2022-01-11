@@ -494,14 +494,19 @@ def all_timeseries_index_generator(k: int = 10) -> Iterable[Index]:
 
 
 # make series
-def makeFloatSeries(name=None):
+def make_rand_series(name=None, dtype=np.float64):
     index = makeStringIndex(_N)
-    return Series(np.random.randn(_N), index=index, name=name)
+    data = np.random.randn(_N)
+    data = data.astype(dtype, copy=False)
+    return Series(data, index=index, name=name)
+
+
+def makeFloatSeries(name=None):
+    return make_rand_series(name=name)
 
 
 def makeStringSeries(name=None):
-    index = makeStringIndex(_N)
-    return Series(np.random.randn(_N), index=index, name=name)
+    return make_rand_series(name=name)
 
 
 def makeObjectSeries(name=None):

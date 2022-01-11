@@ -39,6 +39,7 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat.numpy import function as nv
+from pandas.errors import IntCastingNaNError
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
@@ -906,7 +907,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 #  np.nan entries to int subtypes
                 new_left = Index(self._left, copy=False).astype(dtype.subtype)
                 new_right = Index(self._right, copy=False).astype(dtype.subtype)
-            except TypeError as err:
+            except IntCastingNaNError:
+                # e.g test_subtype_integer
+                raise
+            except (TypeError, ValueError) as err:
+                # e.g. test_subtype_integer_errors f8->u8 can be lossy
+                #  and raises ValueError
                 msg = (
                     f"Cannot convert {self.dtype} to {dtype}; subtypes are incompatible"
                 )
