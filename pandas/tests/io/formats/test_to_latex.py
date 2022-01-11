@@ -1506,14 +1506,23 @@ class TestRowStringConverter:
 
         assert row_string_converter.get_strrow(row_num=row_num) == expected
 
-    def test_future_warning(self):
+    @pytest.mark.parametrize(
+        "deprecated_arg, value",
+        [
+            ("formatters", ["{:.1f}".format]),
+            ("float_format", "{:0.2f}".format),
+            ("col_space", 10),
+        ],
+    )
+    def test_future_warning(self, deprecated_arg, value):
         df = DataFrame([[1]])
         msg = (
-            "In future versions `DataFrame.to_latex` is expected to utilise the base "
-            "implementation of `Styler.to_latex` for formatting and rendering. "
-            "The arguments signature may therefore change. It is recommended instead "
-            "to use `DataFrame.style.to_latex` which also contains additional "
-            "functionality."
+            "Use of `formatters`, `float_format` or `col_space` is deprecated. "
+            "Review the documentation for advice on how to restructure "
+            "arguments to suit the new Styler implementation. Due to the use "
+            "of deprecated arguments this LaTeX is rendered with the older "
+            "DataFrameFormatter implementation, which will be removed in a "
+            "future version"
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.to_latex()
+            df.to_latex(**{deprecated_arg: value})
