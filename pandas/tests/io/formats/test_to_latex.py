@@ -19,7 +19,9 @@ from pandas.io.formats.latex import (
     RowStringConverter,
 )
 
-# pytestmark = pytest.mark.filterwarnings("ignore::FutureWarning")
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Use of `formatters`, `float_format` or `col_space`:FutureWarning"
+)
 
 
 def _dedent(string):
@@ -595,7 +597,7 @@ class TestToLatexCaptionLabel:
     def test_to_latex_bad_caption_raises(self, bad_caption):
         # test that wrong number of params is raised
         df = DataFrame({"a": [1]})
-        msg = "caption must be either a string or a tuple of two strings"
+        msg = "`caption` must be either a string or 2-tuple of strings"
         with pytest.raises(ValueError, match=msg):
             df.to_latex(caption=bad_caption)
 
@@ -805,11 +807,11 @@ class TestToLatexEscape:
             r"""
             \begin{tabular}{ll}
             \toprule
-            {} &       0 \\
+             & 0 \\
             \midrule
-            0 &   a\textbackslash b\textbackslash c \\
-            1 &  \textasciicircum a\textasciicircum b\textasciicircum c \\
-            2 &  \textasciitilde a\textasciitilde b\textasciitilde c \\
+            0 & a\textbackslash b\textbackslash c \\
+            1 & \textasciicircum a\textasciicircum b\textasciicircum c \\
+            2 & \textasciitilde a\textasciitilde b\textasciitilde c \\
             \bottomrule
             \end{tabular}
             """
@@ -824,18 +826,18 @@ class TestToLatexEscape:
             r"""
             \begin{tabular}{ll}
             \toprule
-            {} &  0 \\
+             & 0 \\
             \midrule
-            0 &  \& \\
-            1 &  \% \\
-            2 &  \$ \\
-            3 &  \# \\
-            4 &  \_ \\
-            5 &  \{ \\
-            6 &  \} \\
-            7 &  \textasciitilde  \\
-            8 &  \textasciicircum  \\
-            9 &  \textbackslash  \\
+            0 & \& \\
+            1 & \% \\
+            2 & \$ \\
+            3 & \# \\
+            4 & \_ \\
+            5 & \{ \\
+            6 & \} \\
+            7 & \textasciitilde  \\
+            8 & \textasciicircum  \\
+            9 & \textbackslash  \\
             \bottomrule
             \end{tabular}
             """

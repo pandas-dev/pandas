@@ -3311,7 +3311,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index = True if index is None else index
         na_rep = "NaN" if na_rep is None else na_rep
         header = True if header is None else header
-        bold_rows = True if bold_rows is None else bold_rows
+        bold_rows = False if bold_rows is None else bold_rows
         index_names = True if index_names is None else index_names
 
         # Get defaults from the pandas config
