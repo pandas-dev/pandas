@@ -91,63 +91,56 @@ class TestTimestampProperties:
         assert control.is_month_end
         assert control.is_quarter_end
 
-    def test_fields(self):
-        def check(value, equal):
-            # that we are int like
-            assert isinstance(value, int)
-            assert value == equal
-
+    @pytest.mark.parametrize(
+        "attr, expected",
+        [
+            ["year", 2014],
+            ["month", 12],
+            ["day", 31],
+            ["hour", 23],
+            ["minute", 59],
+            ["second", 0],
+            ["microsecond", 0],
+            ["nanosecond", 0],
+            ["dayofweek", 2],
+            ["day_of_week", 2],
+            ["quarter", 4],
+            ["dayofyear", 365],
+            ["day_of_year", 365],
+            ["week", 1],
+            ["daysinmonth", 31],
+        ],
+    )
+    @pytest.mark.parametrize("tz", [None, "US/Eastern"])
+    def test_fields(self, attr, expected, tz):
         # GH 10050
-        ts = Timestamp("2015-05-10 09:06:03.000100001")
-        check(ts.year, 2015)
-        check(ts.month, 5)
-        check(ts.day, 10)
-        check(ts.hour, 9)
-        check(ts.minute, 6)
-        check(ts.second, 3)
-        msg = "'Timestamp' object has no attribute 'millisecond'"
-        with pytest.raises(AttributeError, match=msg):
-            ts.millisecond
-        check(ts.microsecond, 100)
-        check(ts.nanosecond, 1)
-        check(ts.dayofweek, 6)
-        check(ts.day_of_week, 6)
-        check(ts.quarter, 2)
-        check(ts.dayofyear, 130)
-        check(ts.day_of_year, 130)
-        check(ts.week, 19)
-        check(ts.daysinmonth, 31)
-        check(ts.daysinmonth, 31)
-
         # GH 13303
-        ts = Timestamp("2014-12-31 23:59:00-05:00", tz="US/Eastern")
-        check(ts.year, 2014)
-        check(ts.month, 12)
-        check(ts.day, 31)
-        check(ts.hour, 23)
-        check(ts.minute, 59)
-        check(ts.second, 0)
+        ts = Timestamp("2014-12-31 23:59:00", tz=tz)
+        result = getattr(ts, attr)
+        # that we are int like
+        assert isinstance(result, int)
+        assert result == expected
+
+    @pytest.mark.parametrize("tz", [None, "US/Eastern"])
+    def test_millisecond_raises(self, tz):
+        ts = Timestamp("2014-12-31 23:59:00", tz=tz)
         msg = "'Timestamp' object has no attribute 'millisecond'"
         with pytest.raises(AttributeError, match=msg):
             ts.millisecond
-        check(ts.microsecond, 0)
-        check(ts.nanosecond, 0)
-        check(ts.dayofweek, 2)
-        check(ts.day_of_week, 2)
-        check(ts.quarter, 4)
-        check(ts.dayofyear, 365)
-        check(ts.day_of_year, 365)
-        check(ts.week, 1)
-        check(ts.daysinmonth, 31)
 
-        ts = Timestamp("2014-01-01 00:00:00+01:00")
-        starts = ["is_month_start", "is_quarter_start", "is_year_start"]
-        for start in starts:
-            assert getattr(ts, start)
-        ts = Timestamp("2014-12-31 23:59:59+01:00")
-        ends = ["is_month_end", "is_year_end", "is_quarter_end"]
-        for end in ends:
-            assert getattr(ts, end)
+    @pytest.mark.parametrize(
+        "start", ["is_month_start", "is_quarter_start", "is_year_start"]
+    )
+    @pytest.mark.parametrize("tz", [None, "US/Eastern"])
+    def test_is_start(self, start, tz):
+        ts = Timestamp("2014-01-01 00:00:00", tz=tz)
+        assert getattr(ts, start)
+
+    @pytest.mark.parametrize("end", ["is_month_end", "is_year_end", "is_quarter_end"])
+    @pytest.mark.parametrize("tz", [None, "US/Eastern"])
+    def test_is_end(self, end, tz):
+        ts = Timestamp("2014-12-31 23:59:59", tz=tz)
+        assert getattr(ts, end)
 
     # GH 12806
     @pytest.mark.parametrize(
@@ -292,12 +285,26 @@ class TestTimestamp:
         compare(Timestamp.utcnow(), datetime.utcnow())
         compare(Timestamp.today(), datetime.today())
         current_time = calendar.timegm(datetime.now().utctimetuple())
+        msg = "timezone-aware Timestamp with UTC"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # GH#22451
+            ts_utc = Timestamp.utcfromtimestamp(current_time)
         compare(
-            Timestamp.utcfromtimestamp(current_time),
+            ts_utc,
             datetime.utcfromtimestamp(current_time),
         )
         compare(
             Timestamp.fromtimestamp(current_time), datetime.fromtimestamp(current_time)
+        )
+        compare(
+            # Support tz kwarg in Timestamp.fromtimestamp
+            Timestamp.fromtimestamp(current_time, "UTC"),
+            datetime.fromtimestamp(current_time, utc),
+        )
+        compare(
+            # Support tz kwarg in Timestamp.fromtimestamp
+            Timestamp.fromtimestamp(current_time, tz="UTC"),
+            datetime.fromtimestamp(current_time, utc),
         )
 
         date_component = datetime.utcnow()
@@ -322,8 +329,14 @@ class TestTimestamp:
         compare(Timestamp.utcnow(), datetime.utcnow())
         compare(Timestamp.today(), datetime.today())
         current_time = calendar.timegm(datetime.now().utctimetuple())
+
+        msg = "timezone-aware Timestamp with UTC"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # GH#22451
+            ts_utc = Timestamp.utcfromtimestamp(current_time)
+
         compare(
-            Timestamp.utcfromtimestamp(current_time),
+            ts_utc,
             datetime.utcfromtimestamp(current_time),
         )
         compare(
@@ -431,6 +444,33 @@ class TestTimestamp:
         d = {datetime(2011, 1, 1): 5}
         stamp = Timestamp(datetime(2011, 1, 1))
         assert d[stamp] == 5
+
+    @pytest.mark.parametrize(
+        "timezone, year, month, day, hour",
+        [["America/Chicago", 2013, 11, 3, 1], ["America/Santiago", 2021, 4, 3, 23]],
+    )
+    def test_hash_timestamp_with_fold(self, timezone, year, month, day, hour):
+        # see gh-33931
+        test_timezone = gettz(timezone)
+        transition_1 = Timestamp(
+            year=year,
+            month=month,
+            day=day,
+            hour=hour,
+            minute=0,
+            fold=0,
+            tzinfo=test_timezone,
+        )
+        transition_2 = Timestamp(
+            year=year,
+            month=month,
+            day=day,
+            hour=hour,
+            minute=0,
+            fold=1,
+            tzinfo=test_timezone,
+        )
+        assert hash(transition_1) == hash(transition_2)
 
     def test_tz_conversion_freq(self, tz_naive_fixture):
         # GH25241

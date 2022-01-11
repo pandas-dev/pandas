@@ -455,6 +455,25 @@ class TestTimeConversionFormats:
 
 
 class TestToDatetime:
+    def test_to_datetime_np_str(self):
+        # GH#32264
+        value = np.str_("2019-02-04 10:18:46.297000+0000")
+
+        ser = Series([value])
+
+        exp = Timestamp("2019-02-04 10:18:46.297000", tz="UTC")
+
+        assert to_datetime(value) == exp
+        assert to_datetime(ser.iloc[0]) == exp
+
+        res = to_datetime([value])
+        expected = Index([exp])
+        tm.assert_index_equal(res, expected)
+
+        res = to_datetime(ser)
+        expected = Series(expected)
+        tm.assert_series_equal(res, expected)
+
     @pytest.mark.parametrize(
         "s, _format, dt",
         [
@@ -591,9 +610,15 @@ class TestToDatetime:
     def test_to_datetime_now(self):
         # See GH#18666
         with tm.set_timezone("US/Eastern"):
-            npnow = np.datetime64("now").astype("datetime64[ns]")
-            pdnow = to_datetime("now")
-            pdnow2 = to_datetime(["now"])[0]
+            msg = "The parsing of 'now' in pd.to_datetime"
+            with tm.assert_produces_warning(
+                FutureWarning, match=msg, check_stacklevel=False
+            ):
+                # checking stacklevel is tricky because we go through cython code
+                # GH#18705
+                npnow = np.datetime64("now").astype("datetime64[ns]")
+                pdnow = to_datetime("now")
+                pdnow2 = to_datetime(["now"])[0]
 
             # These should all be equal with infinite perf; this gives
             # a generous margin of 10 seconds
@@ -632,7 +657,12 @@ class TestToDatetime:
 
     @pytest.mark.parametrize("arg", ["now", "today"])
     def test_to_datetime_today_now_unicode_bytes(self, arg):
-        to_datetime([arg])
+        warn = FutureWarning if arg == "now" else None
+        msg = "The parsing of 'now' in pd.to_datetime"
+        with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
+            # checking stacklevel is tricky because we go through cython code
+            # GH#18705
+            to_datetime([arg])
 
     @pytest.mark.parametrize(
         "dt", [np.datetime64("2000-01-01"), np.datetime64("2000-01-02")]

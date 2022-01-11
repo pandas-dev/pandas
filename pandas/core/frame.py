@@ -63,6 +63,7 @@ from pandas._typing import (
     IndexLabel,
     Level,
     PythonFuncType,
+    ReadBuffer,
     Renamer,
     Scalar,
     StorageOptions,
@@ -92,6 +93,7 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.cast import (
+    can_hold_element,
     construct_1d_arraylike_from_scalar,
     construct_2d_arraylike_from_scalar,
     find_common_type,
@@ -99,7 +101,6 @@ from pandas.core.dtypes.cast import (
     invalidate_string_dtypes,
     maybe_box_native,
     maybe_downcast_to_dtype,
-    validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -170,6 +171,7 @@ from pandas.core.indexes.multi import (
 )
 from pandas.core.indexing import (
     check_bool_indexer,
+    check_deprecated_indexers,
     convert_to_index_sliceable,
 )
 from pandas.core.internals import (
@@ -2426,7 +2428,9 @@ class DataFrame(NDFrame, OpsMixin):
             if dtype_mapping is None:
                 formats.append(v.dtype)
             elif isinstance(dtype_mapping, (type, np.dtype, str)):
-                formats.append(dtype_mapping)
+                # Argument 1 to "append" of "list" has incompatible type
+                # "Union[type, dtype[Any], str]"; expected "dtype[_SCT]"  [arg-type]
+                formats.append(dtype_mapping)  # type: ignore[arg-type]
             else:
                 element = "row" if i < index_len else "column"
                 msg = f"Invalid dtype {dtype_mapping} specified for {element} {name}"
@@ -2947,15 +2951,15 @@ class DataFrame(NDFrame, OpsMixin):
         root_name: str | None = "data",
         row_name: str | None = "row",
         na_rep: str | None = None,
-        attr_cols: str | list[str] | None = None,
-        elem_cols: str | list[str] | None = None,
+        attr_cols: list[str] | None = None,
+        elem_cols: list[str] | None = None,
         namespaces: dict[str | None, str] | None = None,
         prefix: str | None = None,
         encoding: str = "utf-8",
         xml_declaration: bool | None = True,
         pretty_print: bool | None = True,
         parser: str | None = "lxml",
-        stylesheet: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
+        stylesheet: FilePath | ReadBuffer[str] | ReadBuffer[bytes] | None = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
     ) -> str | None:
@@ -3458,10 +3462,12 @@ class DataFrame(NDFrame, OpsMixin):
             yield self._get_column_array(i)
 
     def __getitem__(self, key):
+        check_deprecated_indexers(key)
         key = lib.item_from_zerodim(key)
         key = com.apply_if_callable(key, self)
 
-        if is_hashable(key):
+        if is_hashable(key) and not is_iterator(key):
+            # is_iterator to exclude generator e.g. test_getitem_listlike
             # shortcut if the key is in columns
             if self.columns.is_unique and key in self.columns:
                 if isinstance(self.columns, MultiIndex):
@@ -3863,9 +3869,15 @@ class DataFrame(NDFrame, OpsMixin):
 
             series = self._get_item_cache(col)
             loc = self.index.get_loc(index)
-            validate_numeric_casting(series.dtype, value)
+            dtype = series.dtype
+            if isinstance(dtype, np.dtype) and dtype.kind not in ["m", "M"]:
+                # otherwise we have EA values, and this check will be done
+                #  via setitem_inplace
+                if not can_hold_element(series._values, value):
+                    # We'll go through loc and end up casting.
+                    raise TypeError
 
-            series._values[loc] = value
+            series._mgr.setitem_inplace(loc, value)
             # Note: trying to use series._set_value breaks tests in
             #  tests.frame.indexing.test_indexing and tests.indexing.test_partial
         except (KeyError, TypeError):
@@ -3908,7 +3920,7 @@ class DataFrame(NDFrame, OpsMixin):
         name = self.columns[loc]
         klass = self._constructor_sliced
         # We get index=self.index bc values is a SingleDataManager
-        return klass(values, name=name, fastpath=True)
+        return klass(values, name=name, fastpath=True).__finalize__(self)
 
     # ----------------------------------------------------------------------
     # Lookup Caching
@@ -3925,11 +3937,9 @@ class DataFrame(NDFrame, OpsMixin):
             #  pending resolution of GH#33047
 
             loc = self.columns.get_loc(item)
-            col_mgr = self._mgr.iget(loc)
-            res = self._box_col_values(col_mgr, loc).__finalize__(self)
+            res = self._ixs(loc, axis=1)
 
             cache[item] = res
-            res._set_as_cached(item, self)
 
             # for a chain
             res._is_copy = self._is_copy
@@ -4221,15 +4231,13 @@ class DataFrame(NDFrame, OpsMixin):
         from pandas.core.computation.eval import eval as _eval
 
         inplace = validate_bool_kwarg(inplace, "inplace")
-        resolvers = kwargs.pop("resolvers", None)
         kwargs["level"] = kwargs.pop("level", 0) + 1
-        if resolvers is None:
-            index_resolvers = self._get_index_resolvers()
-            column_resolvers = self._get_cleaned_column_resolvers()
-            resolvers = column_resolvers, index_resolvers
+        index_resolvers = self._get_index_resolvers()
+        column_resolvers = self._get_cleaned_column_resolvers()
+        resolvers = column_resolvers, index_resolvers
         if "target" not in kwargs:
             kwargs["target"] = self
-        kwargs["resolvers"] = kwargs.get("resolvers", ()) + tuple(resolvers)
+        kwargs["resolvers"] = tuple(kwargs.get("resolvers", ())) + resolvers
 
         return _eval(expr, inplace=inplace, **kwargs)
 
@@ -5267,11 +5275,11 @@ class DataFrame(NDFrame, OpsMixin):
     def replace(
         self,
         to_replace=None,
-        value=None,
+        value=lib.no_default,
         inplace: bool = False,
         limit=None,
         regex: bool = False,
-        method: str = "pad",
+        method: str | lib.NoDefault = lib.no_default,
     ):
         return super().replace(
             to_replace=to_replace,
@@ -7997,13 +8005,13 @@ NaN 12.3   33.0
         ...                     aggfunc={'D': np.mean,
         ...                              'E': [min, max, np.mean]})
         >>> table
-                        D    E
-                    mean  max      mean  min
+                          D   E
+                       mean max      mean  min
         A   C
-        bar large  5.500000  9.0  7.500000  6.0
-            small  5.500000  9.0  8.500000  8.0
-        foo large  2.000000  5.0  4.500000  4.0
-            small  2.333333  6.0  4.333333  2.0
+        bar large  5.500000   9  7.500000    6
+            small  5.500000   9  8.500000    8
+        foo large  2.000000   5  4.500000    4
+            small  2.333333   6  4.333333    2
         """
 
     @Substitution("")

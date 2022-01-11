@@ -20,12 +20,12 @@ from pandas import (
     CategoricalIndex,
     DatetimeIndex,
     MultiIndex,
-    NumericIndex,
     PeriodIndex,
     RangeIndex,
     TimedeltaIndex,
 )
 import pandas._testing as tm
+from pandas.core.api import NumericIndex
 
 
 class TestCommon:
@@ -465,7 +465,9 @@ def test_sort_values_with_missing(index_with_missing, na_position):
         sorted_values = np.concatenate([[None] * missing_count, sorted_values])
     else:
         sorted_values = np.concatenate([sorted_values, [None] * missing_count])
-    expected = type(index_with_missing)(sorted_values)
+
+    # Explicitly pass dtype needed for Index backed by EA e.g. IntegerArray
+    expected = type(index_with_missing)(sorted_values, dtype=index_with_missing.dtype)
 
     result = index_with_missing.sort_values(na_position=na_position)
     tm.assert_index_equal(result, expected)

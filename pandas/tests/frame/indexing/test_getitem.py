@@ -134,7 +134,11 @@ class TestGetitemListLike:
         idx = idx_type(keys)
         idx_check = list(idx_type(keys))
 
-        result = frame[idx]
+        if isinstance(idx, (set, dict)):
+            with tm.assert_produces_warning(FutureWarning):
+                result = frame[idx]
+        else:
+            result = frame[idx]
 
         expected = frame.loc[:, idx_check]
         expected.columns.names = frame.columns.names
@@ -143,7 +147,8 @@ class TestGetitemListLike:
 
         idx = idx_type(keys + [missing])
         with pytest.raises(KeyError, match="not in index"):
-            frame[idx]
+            with tm.assert_produces_warning(FutureWarning):
+                frame[idx]
 
     def test_getitem_iloc_generator(self):
         # GH#39614
@@ -388,3 +393,14 @@ class TestGetitemSlice:
             ),
         )
         tm.assert_frame_equal(result, expected)
+
+
+class TestGetitemDeprecatedIndexers:
+    @pytest.mark.parametrize("key", [{"a", "b"}, {"a": "a"}])
+    def test_getitem_dict_and_set_deprecated(self, key):
+        # GH#42825
+        df = DataFrame(
+            [[1, 2], [3, 4]], columns=MultiIndex.from_tuples([("a", 1), ("b", 2)])
+        )
+        with tm.assert_produces_warning(FutureWarning):
+            df[key]

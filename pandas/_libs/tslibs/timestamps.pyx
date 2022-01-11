@@ -180,6 +180,8 @@ cdef class _Timestamp(ABCTimestamp):
     def __hash__(_Timestamp self):
         if self.nanosecond:
             return hash(self.value)
+        if self.fold:
+            return datetime.__hash__(self.replace(fold=0))
         return datetime.__hash__(self)
 
     def __richcmp__(_Timestamp self, object other, int op):
@@ -342,10 +344,10 @@ cdef class _Timestamp(ABCTimestamp):
             else:
                 self = type(other)(self)
 
-            # validate tz's
-            if not tz_compare(self.tzinfo, other.tzinfo):
-                raise TypeError("Timestamp subtraction must have the "
-                                "same timezones or no timezones")
+            if (self.tzinfo is None) ^ (other.tzinfo is None):
+                raise TypeError(
+                    "Cannot subtract tz-naive and tz-aware datetime-like objects."
+                )
 
             # scalar Timestamp/datetime - Timestamp/datetime -> yields a
             # Timedelta
@@ -738,7 +740,7 @@ cdef class _Timestamp(ABCTimestamp):
 
     def isoformat(self, sep: str = "T", timespec: str = "auto") -> str:
         """
-        Return the time formatted according to ISO.
+        Return the time formatted according to ISO 8610.
 
         The full format looks like 'YYYY-MM-DD HH:MM:SS.mmmmmmnnn'.
         By default, the fractional part is omitted if self.microsecond == 0
@@ -1164,10 +1166,20 @@ class Timestamp(_Timestamp):
         >>> pd.Timestamp.utcfromtimestamp(1584199972)
         Timestamp('2020-03-14 15:32:52')
         """
+        # GH#22451
+        warnings.warn(
+            "The behavior of Timestamp.utcfromtimestamp is deprecated, in a "
+            "future version will return a timezone-aware Timestamp with UTC "
+            "timezone. To keep the old behavior, use "
+            "Timestamp.utcfromtimestamp(ts).tz_localize(None). "
+            "To get the future behavior, use Timestamp.fromtimestamp(ts, 'UTC')",
+            FutureWarning,
+            stacklevel=1,
+        )
         return cls(datetime.utcfromtimestamp(ts))
 
     @classmethod
-    def fromtimestamp(cls, ts):
+    def fromtimestamp(cls, ts, tz=None):
         """
         Timestamp.fromtimestamp(ts)
 
@@ -1180,7 +1192,8 @@ class Timestamp(_Timestamp):
 
         Note that the output may change depending on your local time.
         """
-        return cls(datetime.fromtimestamp(ts))
+        tz = maybe_get_tz(tz)
+        return cls(datetime.fromtimestamp(ts, tz))
 
     def strftime(self, format):
         """
@@ -1736,7 +1749,7 @@ timedelta}, default 'raise'
     def tz_localize(self, tz, ambiguous='raise', nonexistent='raise'):
         """
         Convert naive Timestamp to local time zone, or remove
-        timezone from tz-aware Timestamp.
+        timezone from timezone-aware Timestamp.
 
         Parameters
         ----------
@@ -1839,7 +1852,7 @@ default 'raise'
 
     def tz_convert(self, tz):
         """
-        Convert tz-aware Timestamp to another time zone.
+        Convert timezone-aware Timestamp to another time zone.
 
         Parameters
         ----------

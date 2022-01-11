@@ -714,7 +714,7 @@ cpdef ndarray[object] ensure_string_array(
             return out
 
         arr = arr.to_numpy()
-    elif not isinstance(arr, np.ndarray):
+    elif not util.is_array(arr):
         arr = np.array(arr, dtype="object")
 
     result = np.asarray(arr, dtype="object")
@@ -729,7 +729,7 @@ cpdef ndarray[object] ensure_string_array(
             continue
 
         if not checknull(val):
-            if not isinstance(val, np.floating):
+            if not util.is_float_object(val):
                 # f"{val}" is faster than str(val)
                 result[i] = f"{val}"
             else:
@@ -3048,6 +3048,27 @@ def is_bool_list(obj: list) -> bool:
 
     # Note: we return True for empty list
     return True
+
+
+cpdef ndarray eq_NA_compat(ndarray[object] arr, object key):
+    """
+    Check for `arr == key`, treating all values as not-equal to pd.NA.
+
+    key is assumed to have `not isna(key)`
+    """
+    cdef:
+        ndarray[uint8_t, cast=True] result = np.empty(len(arr), dtype=bool)
+        Py_ssize_t i
+        object item
+
+    for i in range(len(arr)):
+        item = arr[i]
+        if item is C_NA:
+            result[i] = False
+        else:
+            result[i] = item == key
+
+    return result
 
 
 def dtypes_all_equal(list types not None) -> bool:

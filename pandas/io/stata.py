@@ -599,7 +599,8 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
         dtype = data[col].dtype
         for c_data in conversion_data:
             if dtype == c_data[0]:
-                if data[col].max() <= np.iinfo(c_data[1]).max:
+                # Value of type variable "_IntType" of "iinfo" cannot be "object"
+                if data[col].max() <= np.iinfo(c_data[1]).max:  # type: ignore[type-var]
                     dtype = c_data[1]
                 else:
                     dtype = c_data[2]
@@ -682,9 +683,9 @@ class StataValueLabel:
         self.txt: list[bytes] = []
         self.n = 0
         # Offsets (length of categories), converted to int32
-        self.off = np.array([])
+        self.off = np.array([], dtype=np.int32)
         # Values, converted to int32
-        self.val = np.array([])
+        self.val = np.array([], dtype=np.int32)
         self.len = 0
 
         # Compute lengths and setup lists of offsets and labels
@@ -1679,7 +1680,7 @@ the string values returned are correct."""
         offset = self._lines_read * dtype.itemsize
         self.path_or_buf.seek(self.data_location + offset)
         read_lines = min(nrows, self.nobs - self._lines_read)
-        data = np.frombuffer(
+        raw_data = np.frombuffer(
             self.path_or_buf.read(read_len), dtype=dtype, count=read_lines
         )
 
@@ -1689,22 +1690,22 @@ the string values returned are correct."""
             self._data_read = True
         # if necessary, swap the byte order to native here
         if self.byteorder != self._native_byteorder:
-            data = data.byteswap().newbyteorder()
+            raw_data = raw_data.byteswap().newbyteorder()
 
         if convert_categoricals:
             self._read_value_labels()
 
-        if len(data) == 0:
+        if len(raw_data) == 0:
             data = DataFrame(columns=self.varlist)
         else:
-            data = DataFrame.from_records(data)
-            data.columns = self.varlist
+            data = DataFrame.from_records(raw_data)
+            data.columns = Index(self.varlist)
 
         # If index is not specified, use actual row number rather than
         # restarting at 0 for each chunk.
         if index_col is None:
-            ix = np.arange(self._lines_read - read_lines, self._lines_read)
-            data.index = ix  # set attr instead of set_index to avoid copy
+            rng = np.arange(self._lines_read - read_lines, self._lines_read)
+            data.index = Index(rng)  # set attr instead of set_index to avoid copy
 
         if columns is not None:
             try:
@@ -2605,6 +2606,9 @@ supported types."""
                     self.data[col] = encoded
 
     def write_file(self) -> None:
+        """
+        Export DataFrame object to Stata dta format.
+        """
         with get_handle(
             self._fname,
             "wb",

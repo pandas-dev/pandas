@@ -711,6 +711,36 @@ class TestDataFrameIndexingWhere:
         res = ser.where(ser.notna())
         tm.assert_series_equal(res, ser)
 
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "timedelta64[ns]",
+            "datetime64[ns]",
+            "datetime64[ns, Asia/Tokyo]",
+            "Period[D]",
+        ],
+    )
+    def test_where_datetimelike_noop(self, dtype):
+        # GH#45135, analogue to GH#44181 for Period don't raise on no-op
+        # For td64/dt64/dt64tz we already don't raise, but also are
+        #  checking that we don't unnecessarily upcast to object.
+        ser = Series(np.arange(3) * 10 ** 9, dtype=np.int64).view(dtype)
+        df = ser.to_frame()
+        mask = np.array([False, False, False])
+
+        res = ser.where(~mask, "foo")
+        tm.assert_series_equal(res, ser)
+
+        mask2 = mask.reshape(-1, 1)
+        res2 = df.where(~mask2, "foo")
+        tm.assert_frame_equal(res2, df)
+
+        res3 = ser.mask(mask, "foo")
+        tm.assert_series_equal(res3, ser)
+
+        res4 = df.mask(mask2, "foo")
+        tm.assert_frame_equal(res4, df)
+
 
 def test_where_try_cast_deprecated(frame_or_series):
     obj = DataFrame(np.random.randn(4, 3))
@@ -723,6 +753,11 @@ def test_where_try_cast_deprecated(frame_or_series):
         obj.where(mask, -1, try_cast=False)
 
 
+@pytest.mark.xfail(
+    reason="After fixing a bug in can_hold_element, we don't go through "
+    "the deprecated path, and also up-cast to int64 instead of int32 "
+    "(for now)."
+)
 def test_where_int_downcasting_deprecated(using_array_manager):
     # GH#44597
     arr = np.arange(6).astype(np.int16).reshape(3, 2)

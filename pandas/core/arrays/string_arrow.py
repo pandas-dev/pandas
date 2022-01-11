@@ -313,6 +313,13 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
         elif isinstance(item, tuple):
             item = unpack_tuple_and_ellipses(item)
 
+        # error: Non-overlapping identity check (left operand type:
+        # "Union[Union[int, integer[Any]], Union[slice, List[int],
+        # ndarray[Any, Any]]]", right operand type: "ellipsis")
+        if item is Ellipsis:  # type: ignore[comparison-overlap]
+            # TODO: should be handled by pyarrow?
+            item = slice(None)
+
         if is_scalar(item) and not is_integer(item):
             # e.g. "foo" or 2.5
             # exception message copied from numpy
@@ -615,12 +622,11 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
         # No missing values so we can adhere to the interface and return a numpy array.
         counts = np.array(counts)
 
-        # Index cannot hold ExtensionArrays yet
-        index = Index(type(self)(values)).astype(object)
+        index = Index(type(self)(values))
 
         return Series(counts, index=index).astype("Int64")
 
-    def astype(self, dtype, copy=True):
+    def astype(self, dtype, copy: bool = True):
         dtype = pandas_dtype(dtype)
 
         if is_dtype_equal(dtype, self.dtype):

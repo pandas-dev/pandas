@@ -24,6 +24,7 @@ from pandas import (
     array,
     concat,
     date_range,
+    interval_range,
     isna,
 )
 import pandas._testing as tm
@@ -443,6 +444,18 @@ class TestiLocBaseIndependent:
         s.iloc[1:2] += 1
         expected = Series([0, 1, 0], index=[4, 5, 6])
         tm.assert_series_equal(s, expected)
+
+    def test_iloc_setitem_axis_argument(self):
+        # GH45032
+        df = DataFrame([[6, "c", 10], [7, "d", 11], [8, "e", 12]])
+        expected = DataFrame([[6, "c", 10], [7, "d", 11], [5, 5, 5]])
+        df.iloc(axis=0)[2] = 5
+        tm.assert_frame_equal(df, expected)
+
+        df = DataFrame([[6, "c", 10], [7, "d", 11], [8, "e", 12]])
+        expected = DataFrame([[6, "c", 5], [7, "d", 5], [8, "e", 5]])
+        df.iloc(axis=1)[2] = 5
+        tm.assert_frame_equal(df, expected)
 
     def test_iloc_setitem_list(self):
 
@@ -1164,6 +1177,21 @@ class TestiLocBaseIndependent:
 
         expected = DataFrame({"status": ["a", "a", "c"]}, dtype=df["status"].dtype)
         tm.assert_frame_equal(df, expected)
+
+    @td.skip_array_manager_not_yet_implemented
+    def test_iloc_getitem_int_single_ea_block_view(self):
+        # GH#45241
+        # TODO: make an extension interface test for this?
+        arr = interval_range(1, 10.0)._values
+        df = DataFrame(arr)
+
+        # ser should be a *view* on the the DataFrame data
+        ser = df.iloc[2]
+
+        # if we have a view, then changing arr[2] should also change ser[0]
+        assert arr[2] != arr[-1]  # otherwise the rest isn't meaningful
+        arr[2] = arr[-1]
+        assert ser[0] == arr[-1]
 
 
 class TestILocErrors:

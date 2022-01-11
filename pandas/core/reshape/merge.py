@@ -195,7 +195,7 @@ def merge_ordered(
     how: str = "outer",
 ) -> DataFrame:
     """
-    Perform merge with optional filling/interpolation.
+    Perform a merge for ordered data with optional filling/interpolation.
 
     Designed for ordered data like time series data. Optionally
     perform group-wise merge (see examples).
@@ -340,7 +340,7 @@ def merge_asof(
     direction: str = "backward",
 ) -> DataFrame:
     """
-    Perform an asof merge.
+    Perform a merge by key distance.
 
     This is similar to a left-join except that we match on nearest
     key rather than equal keys. Both DataFrames must be sorted by the key.
@@ -820,6 +820,7 @@ class _MergeOperation:
             if (
                 self.orig_left._is_level_reference(left_key)
                 and self.orig_right._is_level_reference(right_key)
+                and left_key == right_key
                 and name not in result.index.names
             ):
 
@@ -1648,16 +1649,13 @@ class _OrderedMerge(_MergeOperation):
         right_join_indexer: np.ndarray | None
 
         if self.fill_method == "ffill":
-            # error: Argument 1 to "ffill_indexer" has incompatible type
-            # "Optional[ndarray]"; expected "ndarray"
-            left_join_indexer = libjoin.ffill_indexer(
-                left_indexer  # type: ignore[arg-type]
+            if left_indexer is None:
+                raise TypeError("left_indexer cannot be None")
+            left_indexer, right_indexer = cast(np.ndarray, left_indexer), cast(
+                np.ndarray, right_indexer
             )
-            # error: Argument 1 to "ffill_indexer" has incompatible type
-            # "Optional[ndarray]"; expected "ndarray"
-            right_join_indexer = libjoin.ffill_indexer(
-                right_indexer  # type: ignore[arg-type]
-            )
+            left_join_indexer = libjoin.ffill_indexer(left_indexer)
+            right_join_indexer = libjoin.ffill_indexer(right_indexer)
         else:
             left_join_indexer = left_indexer
             right_join_indexer = right_indexer
