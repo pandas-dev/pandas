@@ -7118,9 +7118,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df.asof(pd.DatetimeIndex(['2018-02-27 09:03:30',
         ...                           '2018-02-27 09:04:30']),
         ...         subset=['a'])
-                                 a   b
-        2018-02-27 09:03:30   30.0 NaN
-        2018-02-27 09:04:30   40.0 NaN
+                              a   b
+        2018-02-27 09:03:30  30 NaN
+        2018-02-27 09:04:30  40 NaN
         """
         if isinstance(where, str):
             where = Timestamp(where)
