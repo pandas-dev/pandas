@@ -1710,7 +1710,12 @@ class MultiIndex(Index):
             level = self._get_level_number(level)
             return self._get_level_values(level=level, unique=True)
 
-    def to_frame(self, index: bool = True, name=lib.no_default) -> DataFrame:
+    def to_frame(
+        self,
+        index: bool = True,
+        name=lib.no_default,
+        allow_duplicates: bool = False,
+    ) -> DataFrame:
         """
         Create a DataFrame with the levels of the MultiIndex as columns.
 
@@ -1724,6 +1729,11 @@ class MultiIndex(Index):
 
         name : list / sequence of str, optional
             The passed names should substitute index level names.
+
+        allow_duplicates : bool, optional default False
+            Allow duplicate column labels to be created.
+
+            .. versionadded:: 1.4.0
 
         Returns
         -------
@@ -1774,14 +1784,20 @@ class MultiIndex(Index):
         else:
             idx_names = self.names
 
+        idx_names = [
+            level if name is None else name for level, name in enumerate(idx_names)
+        ]
+
+        if not allow_duplicates and len(set(idx_names)) != len(idx_names):
+            raise ValueError(
+                "Cannot create duplicate column labels if allow_duplicates is False"
+            )
+
         # Guarantee resulting column order - PY36+ dict maintains insertion order
         result = DataFrame(
-            {
-                (level if lvlname is None else lvlname): self._get_level_values(level)
-                for lvlname, level in zip(idx_names, range(len(self.levels)))
-            },
+            {level: self._get_level_values(level) for level in range(len(self.levels))},
             copy=False,
-        )
+        ).set_axis(idx_names, axis=1)
 
         if index:
             result.index = self
