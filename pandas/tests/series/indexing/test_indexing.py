@@ -321,7 +321,7 @@ def test_frozenset_index():
     assert s[idx1] == 3
 
 
-class TestDepreactedIndexers:
+class TestDeprecatedIndexers:
     @pytest.mark.parametrize("key", [{1}, {1: 1}])
     def test_getitem_dict_and_set_deprecated(self, key):
         # GH#42825
