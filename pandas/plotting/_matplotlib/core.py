@@ -772,7 +772,7 @@ class MPLPlot:
 
         # GH 45145, override the default axis label if one is provided.
         index_name = self._get_custom_index_name()
-        if index_name:
+        if index_name is not None:
             name = pprint_thing(index_name)
 
         return name
