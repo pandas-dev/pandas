@@ -624,8 +624,12 @@ class TestFillnaSeriesCoercion(CoercionBase):
             (True, object),
         ],
     )
-    def test_fillna_complex128(self, index_or_series, fill_val, fill_dtype):
+    def test_fillna_complex128(self, index_or_series, fill_val, fill_dtype, request):
         klass = index_or_series
+        if klass is pd.Index:
+            mark = pytest.mark.xfail(reason="No Index[complex]")
+            request.node.add_marker(mark)
+
         obj = klass([1 + 1j, np.nan, 3 + 3j, 4 + 4j], dtype=np.complex128)
         assert obj.dtype == np.complex128
 
