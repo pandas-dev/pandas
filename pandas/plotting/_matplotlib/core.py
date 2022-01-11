@@ -754,7 +754,7 @@ class MPLPlot:
             args = (x, y, style) if style is not None else (x, y)
             return ax.plot(*args, **kwds)
 
-    def _get_custom_index_name(self) -> str | None:
+    def _get_custom_index_name(self):
         """Specify whether xlabel/ylabel should be used to override index name"""
         return self.xlabel
 
@@ -1612,7 +1612,7 @@ class BarhPlot(BarPlot):
     ):
         return ax.barh(x, y, w, left=start, log=log, **kwds)
 
-    def _get_custom_index_name(self) -> str | None:
+    def _get_custom_index_name(self):
         return self.ylabel
 
     def _decorate_ticks(self, ax: Axes, name, ticklabels, start_edge, end_edge):
