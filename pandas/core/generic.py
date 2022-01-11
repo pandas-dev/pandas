@@ -3415,6 +3415,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "label": label,
                 "position": position,
                 "column_format": column_format,
+                "clines": "skip-last;data" if multirow else None,
             }
 
             return self._to_latex_via_styler(

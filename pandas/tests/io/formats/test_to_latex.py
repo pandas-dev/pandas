@@ -1263,15 +1263,16 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{llrrrrr}
             \toprule
-               &   &  0 &  1 &  2 &  3 &  4 \\
+             &  & 0 & 1 & 2 & 3 & 4 \\
             \midrule
-            \multirow{2}{*}{c1} & 0 &  0 &  1 &  2 &  3 &  4 \\
-               & 1 &  5 &  6 &  7 &  8 &  9 \\
+            \multirow[t]{2}{*}{c1} & 0 & 0 & 1 & 2 & 3 & 4 \\
+             & 1 & 5 & 6 & 7 & 8 & 9 \\
             \cline{1-7}
-            \multirow{2}{*}{c2} & 0 &  0 &  1 &  2 &  3 &  4 \\
-               & 1 &  5 &  6 &  7 &  8 &  9 \\
+            \multirow[t]{2}{*}{c2} & 0 & 0 & 1 & 2 & 3 & 4 \\
+             & 1 & 5 & 6 & 7 & 8 & 9 \\
             \cline{1-7}
-            c3 & 0 &  0 &  1 &  2 &  3 &  4 \\
+            c3 & 0 & 0 & 1 & 2 & 3 & 4 \\
+            \cline{1-7}
             \bottomrule
             \end{tabular}
             """
@@ -1289,16 +1290,17 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{llrrrrr}
             \toprule
-               &   & \multicolumn{2}{c}{c1} & \multicolumn{2}{c}{c2} & c3 \\
-               &   &  0 &  1 &  0 &  1 &  0 \\
+             &  & \multicolumn{2}{c}{c1} & \multicolumn{2}{c}{c2} & c3 \\
+             &  & 0 & 1 & 0 & 1 & 0 \\
             \midrule
-            \multirow{2}{*}{c1} & 0 &  0 &  1 &  2 &  3 &  4 \\
-               & 1 &  5 &  6 &  7 &  8 &  9 \\
+            \multirow[t]{2}{*}{c1} & 0 & 0 & 1 & 2 & 3 & 4 \\
+             & 1 & 5 & 6 & 7 & 8 & 9 \\
             \cline{1-7}
-            \multirow{2}{*}{c2} & 0 &  0 &  1 &  2 &  3 &  4 \\
-               & 1 &  5 &  6 &  7 &  8 &  9 \\
+            \multirow[t]{2}{*}{c2} & 0 & 0 & 1 & 2 & 3 & 4 \\
+             & 1 & 5 & 6 & 7 & 8 & 9 \\
             \cline{1-7}
-            c3 & 0 &  0 &  1 &  2 &  3 &  4 \\
+            c3 & 0 & 0 & 1 & 2 & 3 & 4 \\
+            \cline{1-7}
             \bottomrule
             \end{tabular}
             """
@@ -1373,11 +1375,11 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{llr}
             \toprule
-              &   &  2 \\
-            0 & 1 &    \\
+             &  & 2 \\
+            0 & 1 &  \\
             \midrule
-            1 & 2 &  3 \\
-              & 2 &  3 \\
+            1 & 2 & 3 \\
+             & 2 & 3 \\
             \bottomrule
             \end{tabular}
             """
@@ -1395,27 +1397,26 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{lll}
             \toprule
-                &     &   \\
             i & val0 & val1 \\
             \midrule
-            \multirow{6}{*}{0.0} & \multirow{2}{*}{3.0} & 0 \\
-                &     & 1 \\
+            \multirow[t]{6}{*}{0.000000} & \multirow[t]{2}{*}{3.000000} & 0 \\
+             &  & 1 \\
             \cline{2-3}
-                & \multirow{2}{*}{2.0} & 0 \\
-                &     & 1 \\
+             & \multirow[t]{2}{*}{2.000000} & 0 \\
+             &  & 1 \\
             \cline{2-3}
-                & \multirow{2}{*}{1.0} & 0 \\
-                &     & 1 \\
-            \cline{1-3}
+             & \multirow[t]{2}{*}{1.000000} & 0 \\
+             &  & 1 \\
+            \cline{1-3} \cline{2-3}
+            \multirow[t]{6}{*}{1.000000} & \multirow[t]{2}{*}{3.000000} & 0 \\
+             &  & 1 \\
             \cline{2-3}
-            \multirow{6}{*}{1.0} & \multirow{2}{*}{3.0} & 0 \\
-                &     & 1 \\
+             & \multirow[t]{2}{*}{2.000000} & 0 \\
+             &  & 1 \\
             \cline{2-3}
-                & \multirow{2}{*}{2.0} & 0 \\
-                &     & 1 \\
-            \cline{2-3}
-                & \multirow{2}{*}{1.0} & 0 \\
-                &     & 1 \\
+             & \multirow[t]{2}{*}{1.000000} & 0 \\
+             &  & 1 \\
+            \cline{1-3} \cline{2-3}
             \bottomrule
             \end{tabular}
             """
