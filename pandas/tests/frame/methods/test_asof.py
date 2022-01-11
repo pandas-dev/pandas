@@ -68,8 +68,8 @@ class TestFrameAsof:
         result = df.asof(dates, subset="B")
         expected = df.resample("25s", closed="right").ffill().reindex(dates)
         expected.iloc[20:] = 9
-        # no "missing", so "B" can retain int dtype
-        expected["B"] = expected["B"].astype(np.int64)
+        # no "missing", so "B" can retain int dtype (df["A"].dtype platform-dependent)
+        expected["B"] = expected["B"].astype(df["B"].dtype)
 
         tm.assert_frame_equal(result, expected)
 
