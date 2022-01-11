@@ -626,10 +626,10 @@ class TestFillnaSeriesCoercion(CoercionBase):
     )
     def test_fillna_complex128(self, index_or_series, fill_val, fill_dtype):
         klass = index_or_series
-        obj = klass([1 + 1j, np.nan, 3 + 3j, 4 + 4j])
+        obj = klass([1 + 1j, np.nan, 3 + 3j, 4 + 4j], dtype=np.complex128)
         assert obj.dtype == np.complex128
 
-        exp = klass([1 + 1j, fill_val, 3 + 3j, 4 + 4j])
+        exp = klass([1 + 1j, fill_val, 3 + 3j, 4 + 4j], dtype=fill_dtype)
         self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
 
     @pytest.mark.parametrize(
