@@ -13,7 +13,6 @@ This is meant to be run as a pre-commit hook - to run it manually, you can do:
 """
 from __future__ import annotations
 
-import ast
 import pathlib
 import sys
 
@@ -22,22 +21,24 @@ CI_PATH = next(
     pathlib.Path("ci/deps").absolute().glob("actions-*-minimum_versions.yaml")
 )
 CODE_PATH = pathlib.Path("pandas/compat/_optional.py").resolve()
+# pandas package is not available
+# in pre-commit environment
+sys.path.append("pandas/compat")
+sys.path.append("pandas/util")
+import version
+
+sys.modules["pandas.util.version"] = version
+import _optional
 
 
-def get_versions_from_code(content: str) -> dict[str, str]:
-    num_dicts = 0
-    for node in ast.walk(ast.parse(content)):
-        if isinstance(node, ast.Dict):
-            if num_dicts == 0:
-                version_dict_ast = node
-                num_dicts += 1
-            elif num_dicts == 1:
-                install_map = {k.value: v.value for k, v in zip(node.keys, node.values)}
-                return {
-                    install_map.get(k.value, k.value).casefold(): v.value
-                    for k, v in zip(version_dict_ast.keys, version_dict_ast.values)
-                    if k.value != "pytest"
-                }
+def get_versions_from_code() -> dict[str, str]:
+    install_map = _optional.INSTALL_MAPPING
+    versions = _optional.VERSIONS
+    return {
+        install_map.get(k, k).casefold(): v
+        for k, v in versions.items()
+        if k != "pytest"
+    }
 
 
 def get_versions_from_ci(content: list[str]) -> tuple[dict[str, str], dict[str, str]]:
@@ -64,8 +65,7 @@ def get_versions_from_ci(content: list[str]) -> tuple[dict[str, str], dict[str, 
 def main():
     with open(CI_PATH) as f:
         _, ci_optional = get_versions_from_ci(f.readlines())
-    with open(CODE_PATH) as f:
-        code_optional = get_versions_from_code(f.read())
+    code_optional = get_versions_from_code()
     diff = set(ci_optional.items()).symmetric_difference(code_optional.items())
     if diff:
         sys.stdout.write(
