@@ -608,7 +608,6 @@ class TestToLatexCaptionLabel:
         expected = _dedent(
             r"""
             \begin{table}
-            \centering
             \caption{xy}
             \begin{tabular}{lrl}
             \toprule
@@ -790,10 +789,10 @@ class TestToLatexEscape:
             r"""
             \begin{tabular}{lll}
             \toprule
-            {} & co\$e\textasciicircum x\$ & co\textasciicircum l1 \\
+             & co\$e\textasciicircum x\$ & co\textasciicircum l1 \\
             \midrule
-            a &       a &     a \\
-            b &       b &     b \\
+            a & a & a \\
+            b & b & b \\
             \bottomrule
             \end{tabular}
             """
@@ -871,7 +870,6 @@ class TestToLatexPosition:
         expected = _dedent(
             r"""
             \begin{table}[h]
-            \centering
             \begin{tabular}{lrl}
             \toprule
              & a & b \\
