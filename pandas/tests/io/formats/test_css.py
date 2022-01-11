@@ -122,6 +122,7 @@ def test_css_side_shorthands(shorthand, expansions):
     with tm.assert_produces_warning(CSSWarning):
         assert_resolves(f"{shorthand}: 1pt 1pt 1pt 1pt 1pt", {})
 
+
 @pytest.mark.parametrize(
     "shorthand,sides",
     [
@@ -141,7 +142,7 @@ def test_css_side_shorthands(shorthand, expansions):
             "border-left",
             ["left"]
         ),
-        (  
+        (
             "border",
             ["top", "right", "bottom", "left"]
         ),
@@ -184,7 +185,8 @@ def test_css_border_shorthands(shorthand, sides):
         create_border_dict(sides, "red", "solid", "1.500000pt")
     )
 
-    # Note: color=black is not CSS conforming (See https://drafts.csswg.org/css-backgrounds/#border-shorthands)
+    # Note: color=black is not CSS conforming 
+    # (See https://drafts.csswg.org/css-backgrounds/#border-shorthands)
     assert_resolves(
         f"{shorthand}: 1pt solid",
         create_border_dict(sides, "black", "solid", "1pt")

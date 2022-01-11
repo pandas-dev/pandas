@@ -26,16 +26,22 @@ def _side_expander(prop_fmt: str):
 
     return expand
 
+
 def _border_expander(side: str = ""):
     if (side != ""):
         side = f"-{side}"
-    def expand(self, prop, value:str):
+
+    def expand(self, prop, value: str):
         tokens = value.split()
         if (len(tokens) == 0 or len(tokens) > 3):
-            raise ValueError("Too many tokens provided to border (expected 1-3)")
-        
+            raise ValueError(f'Too many tokens provided to "{prop}" (expected 1-3)')
+
         # TODO: Can we use current color as initial value to comply with CSS standards?
-        border_declarations = {f"border{side}-color": "black", f"border{side}-style": "none", f"border{side}-width": "medium"}
+        border_declarations = {
+            f"border{side}-color": "black", 
+            f"border{side}-style": "none", 
+            f"border{side}-width": "medium"
+        }
         for token in tokens:
             token_key = "color"
             if token in self.BORDER_STYLES:
@@ -51,10 +57,9 @@ def _border_expander(side: str = ""):
 
         # Per CSS, "border" will reset previous "border-*" definitions
         yield from self.atomize(border_declarations.items())
-        
+
     return expand
 
-            
 
 class CSSResolver:
     """
@@ -106,7 +111,10 @@ class CSSResolver:
         }
     )
 
-    BORDER_STYLES = ["none", "hidden", "dotted", "dashed", "solid", "double", "groove", "ridge", "inset", "outset"]
+    BORDER_STYLES = [
+        "none", "hidden", "dotted", "dashed", "solid", 
+        "double", "groove", "ridge", "inset", "outset"
+    ]
 
     SIDE_SHORTHANDS = {
         1: [0, 0, 0, 0],
