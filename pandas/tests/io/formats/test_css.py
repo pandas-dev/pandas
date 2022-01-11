@@ -185,7 +185,7 @@ def test_css_border_shorthands(shorthand, sides):
         create_border_dict(sides, "red", "solid", "1.500000pt")
     )
 
-    # Note: color=black is not CSS conforming 
+    # Note: color=black is not CSS conforming
     # (See https://drafts.csswg.org/css-backgrounds/#border-shorthands)
     assert_resolves(
         f"{shorthand}: 1pt solid",

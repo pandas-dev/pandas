@@ -38,8 +38,8 @@ def _border_expander(side: str = ""):
 
         # TODO: Can we use current color as initial value to comply with CSS standards?
         border_declarations = {
-            f"border{side}-color": "black", 
-            f"border{side}-style": "none", 
+            f"border{side}-color": "black",
+            f"border{side}-style": "none",
             f"border{side}-width": "medium"
         }
         for token in tokens:
@@ -112,7 +112,7 @@ class CSSResolver:
     )
 
     BORDER_STYLES = [
-        "none", "hidden", "dotted", "dashed", "solid", 
+        "none", "hidden", "dotted", "dashed", "solid",
         "double", "groove", "ridge", "inset", "outset"
     ]
 
@@ -300,7 +300,7 @@ class CSSResolver:
     expand_border_right = _border_expander("right")
     expand_border_bottom = _border_expander("bottom")
     expand_border_left = _border_expander("left")
-    
+
     expand_border_color = _side_expander("border-{:s}-color")
     expand_border_style = _side_expander("border-{:s}-style")
     expand_border_width = _side_expander("border-{:s}-width")
