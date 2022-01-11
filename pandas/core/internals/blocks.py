@@ -38,7 +38,7 @@ from pandas.util._validators import validate_bool_kwarg
 from pandas.core.dtypes.astype import astype_array_safe
 from pandas.core.dtypes.cast import (
     can_hold_element,
-    find_common_type,
+    find_result_type,
     infer_dtype_from,
     maybe_downcast_numeric,
     maybe_downcast_to_dtype,
@@ -1031,10 +1031,7 @@ class Block(PandasObject):
         we can also safely try to coerce to the same dtype
         and will receive the same block
         """
-        # if we cannot then coerce to object
-        dtype, _ = infer_dtype_from(other, pandas_dtype=True)
-
-        new_dtype = find_common_type([self.dtype, dtype])
+        new_dtype = find_result_type(self.values, other)
 
         return self.astype(new_dtype, copy=False)
 
