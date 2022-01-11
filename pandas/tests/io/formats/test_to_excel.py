@@ -292,7 +292,7 @@ def test_css_to_excel_good_colors(input_color, output_color):
     expected["font"] = {"color": output_color}
 
     expected["border"] = {
-        k: {"color": output_color} for k in ("top", "right", "bottom", "left")
+        k: {"color": output_color, "style": "none"} for k in ("top", "right", "bottom", "left")
     }
 
     with tm.assert_produces_warning(None):

@@ -126,92 +126,71 @@ def test_css_side_shorthands(shorthand, expansions):
 @pytest.mark.parametrize(
     "shorthand,sides",
     [
-        (
-            "border-top",
-            ["top"]
-        ),
-        (
-            "border-right",
-            ["right"]
-        ),
+        ("border-top", ["top"]),
+        ("border-right", ["right"]),
         (
             "border-bottom",
             ["bottom"],
         ),
-        (
-            "border-left",
-            ["left"]
-        ),
-        (
-            "border",
-            ["top", "right", "bottom", "left"]
-        ),
-    ]
+        ("border-left", ["left"]),
+        ("border", ["top", "right", "bottom", "left"]),
+    ],
 )
 def test_css_border_shorthands(shorthand, sides):
     def create_border_dict(sides, color=None, style=None, width=None):
         resolved = {}
         for side in sides:
-            if (color):
+            if color:
                 resolved[f"border-{side}-color"] = color
-            if (style):
+            if style:
                 resolved[f"border-{side}-style"] = style
-            if (width):
+            if width:
                 resolved[f"border-{side}-width"] = width
         return resolved
 
     assert_resolves(
-        f"{shorthand}: 1pt red solid",
-        create_border_dict(sides, "red", "solid", "1pt")
+        f"{shorthand}: 1pt red solid", create_border_dict(sides, "red", "solid", "1pt")
     )
 
     assert_resolves(
-        f"{shorthand}: red 1pt solid",
-        create_border_dict(sides, "red", "solid", "1pt")
+        f"{shorthand}: red 1pt solid", create_border_dict(sides, "red", "solid", "1pt")
     )
 
     assert_resolves(
-        f"{shorthand}: red solid 1pt",
-        create_border_dict(sides, "red", "solid", "1pt")
+        f"{shorthand}: red solid 1pt", create_border_dict(sides, "red", "solid", "1pt")
     )
 
     assert_resolves(
-        f"{shorthand}: solid 1pt red",
-        create_border_dict(sides, "red", "solid", "1pt")
+        f"{shorthand}: solid 1pt red", create_border_dict(sides, "red", "solid", "1pt")
     )
 
     assert_resolves(
         f"{shorthand}: red solid",
-        create_border_dict(sides, "red", "solid", "1.500000pt")
+        create_border_dict(sides, "red", "solid", "1.500000pt"),
     )
 
     # Note: color=black is not CSS conforming
     # (See https://drafts.csswg.org/css-backgrounds/#border-shorthands)
     assert_resolves(
-        f"{shorthand}: 1pt solid",
-        create_border_dict(sides, "black", "solid", "1pt")
+        f"{shorthand}: 1pt solid", create_border_dict(sides, "black", "solid", "1pt")
     )
 
     assert_resolves(
-        f"{shorthand}: 1pt red",
-        create_border_dict(sides, "red", "none", "1pt")
+        f"{shorthand}: 1pt red", create_border_dict(sides, "red", "none", "1pt")
     )
 
     assert_resolves(
-        f"{shorthand}: red",
-        create_border_dict(sides, "red", "none", "1.500000pt")
+        f"{shorthand}: red", create_border_dict(sides, "red", "none", "1.500000pt")
     )
 
     # Note: color=black is not CSS conforming
     assert_resolves(
-        f"{shorthand}: 1pt",
-        create_border_dict(sides, "black", "none", "1pt")
+        f"{shorthand}: 1pt", create_border_dict(sides, "black", "none", "1pt")
     )
 
     # Note: color=black is not CSS conforming
     assert_resolves(
-        f"{shorthand}: solid",
-        create_border_dict(sides, "black", "solid", "1.500000pt")
+        f"{shorthand}: solid", create_border_dict(sides, "black", "solid", "1.500000pt")
     )
 
 
