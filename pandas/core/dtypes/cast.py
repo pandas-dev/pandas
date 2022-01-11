@@ -200,7 +200,7 @@ def maybe_box_native(value: Scalar) -> Scalar:
     return value
 
 
-def maybe_unbox_datetimelike(value: Scalar, dtype: DtypeObj) -> Scalar:
+def _maybe_unbox_datetimelike(value: Scalar, dtype: DtypeObj) -> Scalar:
     """
     Convert a Timedelta or Timestamp to timedelta64 or datetime64 for setting
     into a numpy array.  Failing to unbox would risk dropping nanoseconds.
@@ -851,7 +851,7 @@ def infer_dtype_from_array(
     return arr.dtype, arr
 
 
-def maybe_infer_dtype_type(element):
+def _maybe_infer_dtype_type(element):
     """
     Try to infer an object's dtype, for use in arithmetic ops.
 
@@ -873,7 +873,7 @@ def maybe_infer_dtype_type(element):
     --------
     >>> from collections import namedtuple
     >>> Foo = namedtuple("Foo", "dtype")
-    >>> maybe_infer_dtype_type(Foo(np.dtype("i8")))
+    >>> _maybe_infer_dtype_type(Foo(np.dtype("i8")))
     dtype('int64')
     """
     tipo = None
@@ -1495,7 +1495,7 @@ def construct_2d_arraylike_from_scalar(
     shape = (length, width)
 
     if dtype.kind in ["m", "M"]:
-        value = maybe_unbox_datetimelike_tz_deprecation(value, dtype)
+        value = _maybe_unbox_datetimelike_tz_deprecation(value, dtype)
     elif dtype == _dtype_obj:
         if isinstance(value, (np.timedelta64, np.datetime64)):
             # calling np.array below would cast to pytimedelta/pydatetime
@@ -1558,7 +1558,7 @@ def construct_1d_arraylike_from_scalar(
             if not isna(value):
                 value = ensure_str(value)
         elif dtype.kind in ["M", "m"]:
-            value = maybe_unbox_datetimelike_tz_deprecation(value, dtype)
+            value = _maybe_unbox_datetimelike_tz_deprecation(value, dtype)
 
         subarr = np.empty(length, dtype=dtype)
         subarr.fill(value)
@@ -1566,9 +1566,9 @@ def construct_1d_arraylike_from_scalar(
     return subarr
 
 
-def maybe_unbox_datetimelike_tz_deprecation(value: Scalar, dtype: DtypeObj):
+def _maybe_unbox_datetimelike_tz_deprecation(value: Scalar, dtype: DtypeObj):
     """
-    Wrap maybe_unbox_datetimelike with a check for a timezone-aware Timestamp
+    Wrap _maybe_unbox_datetimelike with a check for a timezone-aware Timestamp
     along with a timezone-naive datetime64 dtype, which is deprecated.
     """
     # Caller is responsible for checking dtype.kind in ["m", "M"]
@@ -1578,7 +1578,7 @@ def maybe_unbox_datetimelike_tz_deprecation(value: Scalar, dtype: DtypeObj):
         value = maybe_box_datetimelike(value, dtype)
 
     try:
-        value = maybe_unbox_datetimelike(value, dtype)
+        value = _maybe_unbox_datetimelike(value, dtype)
     except TypeError:
         if (
             isinstance(value, Timestamp)
@@ -1598,7 +1598,7 @@ def maybe_unbox_datetimelike_tz_deprecation(value: Scalar, dtype: DtypeObj):
                 stacklevel=find_stack_level(),
             )
             new_value = value.tz_localize(None)
-            return maybe_unbox_datetimelike(new_value, dtype)
+            return _maybe_unbox_datetimelike(new_value, dtype)
         else:
             raise
     return value
@@ -1666,7 +1666,7 @@ def maybe_cast_to_integer_array(
 
     Also, if you try to coerce float values to integers, it raises:
 
-    >>> pd.Series([1, 2, 3.5], dtype="int64")
+    >>> maybe_cast_to_integer_array([1, 2, 3.5], dtype=np.dtype("int64"))
     Traceback (most recent call last):
         ...
     ValueError: Trying to coerce float values to integers
@@ -1748,7 +1748,7 @@ def convert_scalar_for_putitemlike(scalar: Scalar, dtype: np.dtype) -> Scalar:
     """
     if dtype.kind in ["m", "M"]:
         scalar = maybe_box_datetimelike(scalar, dtype)
-        return maybe_unbox_datetimelike(scalar, dtype)
+        return _maybe_unbox_datetimelike(scalar, dtype)
     else:
         _validate_numeric_casting(dtype, scalar)
     return scalar
@@ -1849,7 +1849,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
     if dtype == _dtype_obj:
         return element
 
-    tipo = maybe_infer_dtype_type(element)
+    tipo = _maybe_infer_dtype_type(element)
 
     if dtype.kind in ["i", "u"]:
         if isinstance(element, range):
@@ -1857,11 +1857,17 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                 return element
             raise ValueError
 
+        elif is_integer(element) or (is_float(element) and element.is_integer()):
+            # e.g. test_setitem_series_int8 if we have a python int 1
+            #  tipo may be np.int32, despite the fact that it will fit
+            #  in smaller int dtypes.
+            info = np.iinfo(dtype)
+            if info.min <= element <= info.max:
+                return element
+            raise ValueError
+
         if tipo is not None:
             if tipo.kind not in ["i", "u"]:
-                if is_float(element) and element.is_integer():
-                    return element
-
                 if isinstance(element, np.ndarray) and element.dtype.kind == "f":
                     # If all can be losslessly cast to integers, then we can hold them
                     #  We do something similar in putmask_smart
@@ -1889,14 +1895,6 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                     return casted
                 raise ValueError
             elif dtype.itemsize < tipo.itemsize:
-                if is_integer(element):
-                    # e.g. test_setitem_series_int8 if we have a python int 1
-                    #  tipo may be np.int32, despite the fact that it will fit
-                    #  in smaller int dtypes.
-                    info = np.iinfo(dtype)
-                    if info.min <= element <= info.max:
-                        return element
-                    raise ValueError
                 raise ValueError
             elif not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype; we can put this into an ndarray
@@ -1909,10 +1907,6 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
 
             return element
 
-        # We have not inferred an integer from the dtype
-        # check if we have a builtin int or a float equal to an int
-        if is_integer(element) or (is_float(element) and element.is_integer()):
-            return element
         raise ValueError
 
     elif dtype.kind == "f":
@@ -1969,7 +1963,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
 
 def _dtype_can_hold_range(rng: range, dtype: np.dtype) -> bool:
     """
-    maybe_infer_dtype_type infers to int64 (and float64 for very large endpoints),
+    _maybe_infer_dtype_type infers to int64 (and float64 for very large endpoints),
     but in many cases a range can be held by a smaller integer dtype.
     Check if this is one of those cases.
     """

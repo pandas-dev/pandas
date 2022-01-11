@@ -588,7 +588,23 @@ def sanitize_array(
             data = list(data)
 
         if dtype is not None or len(data) == 0:
-            subarr = _try_cast(data, dtype, copy, raise_cast_failure)
+            try:
+                subarr = _try_cast(data, dtype, copy, raise_cast_failure)
+            except ValueError:
+                casted = np.array(data, copy=False)
+                if casted.dtype.kind == "f" and is_integer_dtype(dtype):
+                    # GH#40110 match the behavior we have if we passed
+                    #  a ndarray[float] to begin with
+                    return sanitize_array(
+                        casted,
+                        index,
+                        dtype,
+                        copy=False,
+                        raise_cast_failure=raise_cast_failure,
+                        allow_2d=allow_2d,
+                    )
+                else:
+                    raise
         else:
             subarr = maybe_convert_platform(data)
             if subarr.dtype == object:
