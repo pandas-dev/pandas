@@ -1223,14 +1223,14 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{lrrrrr}
             \toprule
-            {} & \multicolumn{2}{l}{c1} & \multicolumn{2}{l}{c2} & c3 \\
-            {} &  0 &  1 &  0 &  1 &  0 \\
+             & \multicolumn{2}{l}{c1} & \multicolumn{2}{l}{c2} & c3 \\
+             & 0 & 1 & 0 & 1 & 0 \\
             \midrule
-            0 &  0 &  5 &  0 &  5 &  0 \\
-            1 &  1 &  6 &  1 &  6 &  1 \\
-            2 &  2 &  7 &  2 &  7 &  2 \\
-            3 &  3 &  8 &  3 &  8 &  3 \\
-            4 &  4 &  9 &  4 &  9 &  4 \\
+            0 & 0 & 5 & 0 & 5 & 0 \\
+            1 & 1 & 6 & 1 & 6 & 1 \\
+            2 & 2 & 7 & 2 & 7 & 2 \\
+            3 & 3 & 8 & 3 & 8 & 3 \\
+            4 & 4 & 9 & 4 & 9 & 4 \\
             \bottomrule
             \end{tabular}
             """
