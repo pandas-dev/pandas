@@ -354,9 +354,7 @@ class BaseWindow(SelectionMixin):
         if inf.any():
             values = np.where(inf, np.nan, values)
 
-        # error: Incompatible return value type (got "Optional[ndarray]",
-        # expected "ndarray")
-        return values  # type: ignore[return-value]
+        return values
 
     def _insert_on_column(self, result: DataFrame, obj: DataFrame) -> None:
         # if we have an 'on' column we want to put it back into
