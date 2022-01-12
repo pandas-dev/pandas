@@ -689,7 +689,7 @@ def convert_nans_to_NA(ndarr_object arr) -> ndarray:
         ndarr_object result
     result = np.asarray(arr, dtype="object")
     if arr.ndim == 2:
-        m,n = arr.shape[0], arr.shape[1]
+        m, n = arr.shape[0], arr.shape[1]
         for i in range(m):
             for j in range(n):
                 val = arr[i, j]
