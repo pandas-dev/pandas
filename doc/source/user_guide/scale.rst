@@ -276,6 +276,7 @@ Rather than executing immediately, doing operations build up a **task graph**.
 
 .. ipython:: python
    :okwarning:
+
    ddf
    ddf["name"]
    ddf["name"].value_counts()
@@ -333,6 +334,7 @@ known automatically. In this case, since we created the parquet files manually,
 we need to supply the divisions manually.
 
 .. ipython:: python
+   :okwarning:
 
    N = 12
    starts = [f"20{i:>02d}-01-01" for i in range(N)]
