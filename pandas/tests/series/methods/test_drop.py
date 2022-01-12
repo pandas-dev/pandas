@@ -21,8 +21,8 @@ def test_drop_unique_and_non_unique_index(
     data, index, axis, drop_labels, expected_data, expected_index
 ):
 
-    s = Series(data=data, index=index)
-    result = s.drop(drop_labels, axis=axis)
+    ser = Series(data=data, index=index)
+    result = ser.drop(drop_labels, axis=axis)
     expected = Series(data=expected_data, index=expected_index)
     tm.assert_series_equal(result, expected)
 
@@ -45,17 +45,17 @@ def test_drop_exception_raised(data, index, drop_labels, axis, error_type, error
 
 def test_drop_with_ignore_errors():
     # errors='ignore'
-    s = Series(range(3), index=list("abc"))
-    result = s.drop("bc", errors="ignore")
-    tm.assert_series_equal(result, s)
-    result = s.drop(["a", "d"], errors="ignore")
-    expected = s.iloc[1:]
+    ser = Series(range(3), index=list("abc"))
+    result = ser.drop("bc", errors="ignore")
+    tm.assert_series_equal(result, ser)
+    result = ser.drop(["a", "d"], errors="ignore")
+    expected = ser.iloc[1:]
     tm.assert_series_equal(result, expected)
 
     # GH 8522
-    s = Series([2, 3], index=[True, False])
-    assert s.index.is_object()
-    result = s.drop(True)
+    ser = Series([2, 3], index=[True, False])
+    assert ser.index.is_object()
+    result = ser.drop(True)
     expected = Series([3], index=[False])
     tm.assert_series_equal(result, expected)
 
