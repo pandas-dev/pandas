@@ -1534,7 +1534,7 @@ class TestTypeInference:
         assert not lib.is_integer_array(np.array([1, 2.0]))
 
     def test_is_string_array(self):
-        # We should only be accepting pd.NA, np.nan, 
+        # We should only be accepting pd.NA, np.nan,
         # other floating point nans e.g. float('nan')]
         # when skipna is True.
         assert lib.is_string_array(np.array(["foo", "bar"]))
