@@ -156,7 +156,6 @@ from pandas.core.window import (
     Window,
 )
 
-from pandas.io.formats import format as fmt
 from pandas.io.formats.format import (
     DataFrameFormatter,
     DataFrameRenderer,
@@ -3155,7 +3154,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return xarray.Dataset.from_dataframe(self)
 
     @final
-    @doc(returns=fmt.return_docstring)
     def to_latex(
         self,
         buf=None,
@@ -3205,61 +3203,97 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Buffer to write to. If None, the output is returned as a string.
         columns : list of label, optional
             The subset of columns to write. Writes all columns by default.
+
+            .. deprecated:: 1.5.0
         col_space : int, optional
             The minimum width of each column.
+
+            .. deprecated:: 1.5.0
         header : bool or list of str, default True
             Write out the column names. If a list of strings is given,
             it is assumed to be aliases for the column names.
+
+            .. deprecated:: 1.5.0
         index : bool, default True
             Write row names (index).
+
+            .. deprecated:: 1.5.0
         na_rep : str, default 'NaN'
             Missing data representation.
+
+            .. deprecated:: 1.5.0
         formatters : list of functions or dict of {{str: function}}, optional
             Formatter functions to apply to columns' elements by position or
             name. The result of each function must be a unicode string.
             List must be of length equal to the number of columns.
+
+            .. deprecated:: 1.5.0
         float_format : one-parameter function or str, optional, default None
             Formatter for floating point numbers. For example
             ``float_format="%.2f"`` and ``float_format="{{:0.2f}}".format`` will
             both result in 0.1234 being formatted as 0.12.
+
+            .. deprecated:: 1.5.0
         sparsify : bool, optional
             Set to False for a DataFrame with a hierarchical index to print
             every multiindex key at each row. By default, the value will be
             read from the config module.
+
+            .. deprecated:: 1.5.0
         index_names : bool, default True
             Prints the names of the indexes.
+
+            .. deprecated:: 1.5.0
         bold_rows : bool, default False
             Make the row labels bold in the output.
+
+            .. deprecated:: 1.5.0
         column_format : str, optional
             The columns format as specified in `LaTeX table format
             <https://en.wikibooks.org/wiki/LaTeX/Tables>`__ e.g. 'rcl' for 3
             columns. By default, 'l' will be used for all columns except
             columns of numbers, which default to 'r'.
+
+            .. deprecated:: 1.5.0
         longtable : bool, optional
             By default, the value will be read from the pandas config
             module. Use a longtable environment instead of tabular. Requires
             adding a \usepackage{{longtable}} to your LaTeX preamble.
+
+            .. deprecated:: 1.5.0
         escape : bool, optional
             By default, the value will be read from the pandas config
             module. When set to False prevents from escaping latex special
             characters in column names.
+
+            .. deprecated:: 1.5.0
         encoding : str, optional
             A string representing the encoding to use in the output file,
             defaults to 'utf-8'.
+
+            .. deprecated:: 1.5.0
         decimal : str, default '.'
             Character recognized as decimal separator, e.g. ',' in Europe.
+
+            .. deprecated:: 1.5.0
         multicolumn : bool, default True
             Use \multicolumn to enhance MultiIndex columns.
             The default will be read from the config module.
+
+            .. deprecated:: 1.5.0
         multicolumn_format : str, default 'l'
             The alignment for multicolumns, similar to `column_format`
             The default will be read from the config module.
+
+            .. deprecated:: 1.5.0
         multirow : bool, default False
             Use \multirow to enhance MultiIndex rows. Requires adding a
             \usepackage{{multirow}} to your LaTeX preamble. Will print
             centered labels (instead of top-aligned) across the contained
             rows, separating groups via clines. The default will be read
             from the pandas config module.
+
+            .. deprecated:: 1.5.0
         caption : str or tuple, optional
             Tuple (full_caption, short_caption),
             which results in ``\caption[short_caption]{{full_caption}}``;
@@ -3270,23 +3304,62 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             .. versionchanged:: 1.2.0
                Optionally allow caption to be a tuple ``(full_caption, short_caption)``.
 
+            .. deprecated:: 1.5.0
         label : str, optional
             The LaTeX label to be placed inside ``\label{{}}`` in the output.
             This is used with ``\ref{{}}`` in the main ``.tex`` file.
 
             .. versionadded:: 1.0.0
+
+            .. deprecated:: 1.5.0
         position : str, optional
             The LaTeX positional argument for tables, to be placed after
             ``\begin{{}}`` in the output.
 
             .. versionadded:: 1.2.0
-        {returns}
+
+            .. deprecated:: 1.5.0
+
+        Returns
+        -------
+        str or None
+            If buf is None, returns the result as a string. Otherwise returns None.
+
         See Also
         --------
         Styler.to_latex : Render a DataFrame to LaTeX with conditional formatting.
         DataFrame.to_string : Render a DataFrame to a console-friendly
             tabular output.
         DataFrame.to_html : Render a DataFrame as an HTML table.
+
+        Notes
+        -----
+        In futures versions this method will exclusively use the `Styler`
+        implementation, which is more flexible and contains more features. The
+        signature:
+
+        .. code-block:: python
+
+           df.to_latex(buf, hide=hide, format=format, format_index=format_index,
+                       render_kwargs=render_kwargs)
+
+        will be refactored internally into the following:
+
+        .. code-block:: python
+
+           styler = df.style
+           styler.hide(**hide)
+           styler.format(**format)
+           styler.format_index(**format_index)
+           styler.to_latex(buf, **render_kwargs)
+
+        The respective `Styler` methods :meth:`.Styler.hide`, :meth:`.Styler.format`,
+        :meth:`.Styler.format_index`, and :meth:`.Styler.to_latex` each give
+        extensive documentation on the arguments that can be passed.
+
+        Below we give examples of how to refactor each deprecated argument to the
+        new signature, or indeed, utilise the underlying `Styler` implementation,
+        which is effectively the same.
 
         Examples
         --------
@@ -3302,9 +3375,73 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Donatello & purple & bo staff \\
         \bottomrule
         \end{{tabular}}
+
+        Specifying a set of ``columns`` to display, e.g. ``["a", "b"]``.
+        >>> df.to_latex(hide={"axis": "columns",
+        ...                   "subset": [c for c in df.columns if c not in ["a", "b"]]}
+        ... )  # doctest: +SKIP
+
+        Setting the ``index`` to ``False``.
+        >>> df.to_latex(hide={"axis": "index"})  # doctest: +SKIP
+
+        Not displaying any column headers.
+        >>> df.to_latex(hide={"axis": "columns"})  # doctest: +SKIP
+
+        Setting ``index_names`` to ``False`` across both axes.
+        >>> df.to_latex(hide=[{"axis": "index", "names": True},
+        ...                   {"axis": "columns", "names": True}])   # doctest: +SKIP
+
+        Adding render options, such as ``longtable``, ``column_format``, ``position``,
+        ``caption``, ``label``, ``multirow``, ``multicolumn``, ``multicolumn_format``,
+        as well as ``sparsify`` and other new options.
+        >>> df.to_latex(render_kwargs={"environment": "longtable",
+        ...                            "column_format": "rcl",
+        ...                            "position": "h!",
+        ...                            "position_float": "centering",
+        ...                            "hrules": True,
+        ...                            "label": "my-label",
+        ...                            "caption": ("full caption", "short caption"),
+        ...                            "sparse_index": True,
+        ...                            "sparse_columns": True,
+        ...                            "multirow_align": "t",
+        ...                            "multicol_align": "r",
+        ...                            "clines": "skip-last;data"}
+        ... )  # doctest: +SKIP
+
+        Adding specific ``formatters`` by column and setting the effective
+        ``float_format``, ``decimal`` and ``na_rep`` for data values.
+        >>> df.to_latex(format={"formatter": {"a": str.upper},
+        ...                     "precision": 2,
+        ...                     "decimal": ",",
+        ...                     "thousands": ".",
+        ...                     "na_rep": "missing"}
+        ... )  # doctest: +SKIP
+
         """
         fallback_arg_used = any(
             [formatters is not None, float_format is not None, col_space is not None]
+        )
+        deprecated_arg_used = any(
+            [
+                columns is not None,
+                header is not None,
+                index is not None,
+                na_rep is not None,
+                sparsify is not None,
+                index_names is not None,
+                bold_rows is not None,
+                column_format is not None,
+                longtable is not None,
+                escape is not None,
+                encoding is not None,
+                decimal != ".",
+                multicolumn is not None,
+                multicolumn_format is not None,
+                multirow is not None,
+                caption is not None,
+                label is not None,
+                position is not None,
+            ]
         )
 
         # reset defaults
@@ -3368,6 +3505,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 position=position,
             )
         else:  # use styler implementation refactoring original kwargs
+            if deprecated_arg_used:
+                msg = (
+                    "Deprecated arguments supplied to `DataFrame.to_latex`. "
+                    "Review the documentation for "
+                    "advice on how to restructure arguments to suit the new Styler "
+                    "implementation, which may be exclusively used in future "
+                    "versions."
+                )
+                warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+
             if hide is None:
                 hide = []
             elif isinstance(hide, dict):
@@ -3440,7 +3587,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Uses the ``Styler`` implementation with the following, ordered, method chaining:
 
-        .. code-block: python
+        .. code-block:: python
 
            styler = Styler(DataFrame)
            styler.hide(**hide)
@@ -3475,6 +3622,26 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         DataFrame.to_string : Render a DataFrame to a console-friendly
             tabular output.
         DataFrame.to_html : Render a DataFrame as an HTML table.
+
+        Examples
+        --------
+        Convert a general DataFrame to LaTeX with formatting:
+        >>> df = pd.DataFrame(dict(name=['Raphael', 'Donatello'],
+        ...                        age=[26, 45],
+        ...                        height=[181.23, 177.65]))
+        >>> print(df.to_latex(hide={"axis": "index"},
+        ...                   format={"formatter": {"name": str.upper},
+        ...                           "precision": 1},
+        ...                   render_kwargs={"hrules": True}
+        ... )  # doctest: SKIP
+        \begin{{tabular}}{{lrr}}
+        \toprule
+        name & age & height \\
+        \\midrule
+        RAPHAEL & 26 & 181.2 \\
+        DONATELLO & 45 & 177.7 \\
+        \bottomrule
+        \\end{{tabular}}
         """
         from pandas.io.formats.style import Styler
 
