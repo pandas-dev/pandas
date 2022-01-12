@@ -4,6 +4,7 @@ from contextlib import suppress
 from typing import (
     TYPE_CHECKING,
     Hashable,
+    Sequence,
 )
 import warnings
 
@@ -2016,10 +2017,13 @@ class _iLocIndexer(_LocationIndexer):
         """
         Ensure that our column indexer is something that can be iterated over.
         """
+        ilocs: Sequence[int]
         if is_integer(column_indexer):
             ilocs = [column_indexer]
         elif isinstance(column_indexer, slice):
-            ilocs = np.arange(len(self.obj.columns))[column_indexer]
+            ilocs = np.arange(len(self.obj.columns))[  # type: ignore[assignment]
+                column_indexer
+            ]
         elif isinstance(column_indexer, np.ndarray) and is_bool_dtype(
             column_indexer.dtype
         ):
@@ -2081,7 +2085,11 @@ class _iLocIndexer(_LocationIndexer):
                 # single indexer
                 if len(indexer) > 1 and not multiindex_indexer:
                     len_indexer = len(indexer[1])
-                    ser = np.tile(ser, len_indexer).reshape(len_indexer, -1).T
+                    ser = (
+                        np.tile(ser, len_indexer)  # type: ignore[assignment]
+                        .reshape(len_indexer, -1)
+                        .T
+                    )
 
                 return ser
 

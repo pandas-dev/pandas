@@ -25,6 +25,7 @@ from pandas import (
     Series,
     TimedeltaIndex,
     Timestamp,
+    array,
     date_range,
     period_range,
     timedelta_range,
@@ -158,6 +159,13 @@ class TestIndexConstructorInference:
 
 class TestDtypeEnforced:
     # check we don't silently ignore the dtype keyword
+
+    def test_constructor_object_dtype_with_ea_data(self, any_numeric_ea_dtype):
+        # GH#45206
+        arr = array([0], dtype=any_numeric_ea_dtype)
+
+        idx = Index(arr, dtype=object)
+        assert idx.dtype == object
 
     @pytest.mark.parametrize("dtype", [object, "float64", "uint64", "category"])
     def test_constructor_range_values_mismatched_dtype(self, dtype):

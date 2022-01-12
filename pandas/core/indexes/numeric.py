@@ -23,7 +23,7 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.cast import astype_nansafe
+from pandas.core.dtypes.astype import astype_nansafe
 from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_extension_array_dtype,
@@ -418,18 +418,6 @@ class IntegerIndex(NumericIndex):
         )
         return self._values.view(self._default_dtype)
 
-    def _validate_fill_value(self, value):
-        # e.g. np.array([1.0]) we want np.array([1], dtype=self.dtype)
-        #  see TestSetitemFloatNDarrayIntoIntegerSeries
-        super()._validate_fill_value(value)
-        if hasattr(value, "dtype") and is_float_dtype(value.dtype):
-            converted = value.astype(self.dtype)
-            if (converted == value).all():
-                # See also: can_hold_element
-                return converted
-            raise TypeError
-        return value
-
 
 class Int64Index(IntegerIndex):
     _index_descr_args = {
@@ -459,16 +447,6 @@ class UInt64Index(IntegerIndex):
     _engine_type = libindex.UInt64Engine
     _default_dtype = np.dtype(np.uint64)
     _dtype_validation_metadata = (is_unsigned_integer_dtype, "unsigned integer")
-
-    def _validate_fill_value(self, value):
-        # e.g. np.array([1]) we want np.array([1], dtype=np.uint64)
-        #  see test_where_uin64
-        super()._validate_fill_value(value)
-        if hasattr(value, "dtype") and is_signed_integer_dtype(value.dtype):
-            if (value >= 0).all():
-                return value.astype(self.dtype)
-            raise TypeError
-        return value
 
 
 class Float64Index(NumericIndex):
