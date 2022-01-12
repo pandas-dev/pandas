@@ -34,7 +34,9 @@ def _border_expander(side: str = ""):
     def expand(self, prop, value: str):
         tokens = value.split()
         if len(tokens) == 0 or len(tokens) > 3:
-            warnings.warn(f'Too many tokens provided to "{prop}" (expected 1-3)', CSSWarning)
+            warnings.warn(
+                f'Too many tokens provided to "{prop}" (expected 1-3)', CSSWarning
+            )
 
         # TODO: Can we use current color as initial value to comply with CSS standards?
         border_declarations = {

@@ -80,31 +80,31 @@ shared_style_params = [
     (
         "border-left: 2pt solid #111222",
         ["border", "left", "color", "rgb"],
-        {"xlsxwriter": "FF111222", "openpyxl": "00111222"}
+        {"xlsxwriter": "FF111222", "openpyxl": "00111222"},
     ),
     ("border: 1pt solid red", ["border", "top", "style"], "thin"),
     (
         "border: 1pt solid #111222",
         ["border", "top", "color", "rgb"],
-        {"xlsxwriter": "FF111222", "openpyxl": "00111222"}
+        {"xlsxwriter": "FF111222", "openpyxl": "00111222"},
     ),
     ("border: 1pt solid red", ["border", "right", "style"], "thin"),
     (
         "border: 1pt solid #111222",
         ["border", "right", "color", "rgb"],
-        {"xlsxwriter": "FF111222", "openpyxl": "00111222"}
+        {"xlsxwriter": "FF111222", "openpyxl": "00111222"},
     ),
     ("border: 1pt solid red", ["border", "bottom", "style"], "thin"),
     (
         "border: 1pt solid #111222",
         ["border", "bottom", "color", "rgb"],
-        {"xlsxwriter": "FF111222", "openpyxl": "00111222"}
+        {"xlsxwriter": "FF111222", "openpyxl": "00111222"},
     ),
     ("border: 1pt solid red", ["border", "left", "style"], "thin"),
     (
         "border: 1pt solid #111222",
         ["border", "left", "color", "rgb"],
-        {"xlsxwriter": "FF111222", "openpyxl": "00111222"}
+        {"xlsxwriter": "FF111222", "openpyxl": "00111222"},
     ),
 ]
 
