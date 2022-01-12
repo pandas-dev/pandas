@@ -275,7 +275,7 @@ column names and dtypes. That's because Dask hasn't actually read the data yet.
 Rather than executing immediately, doing operations build up a **task graph**.
 
 .. ipython:: python
-
+   :okwarning:
    ddf
    ddf["name"]
    ddf["name"].value_counts()
