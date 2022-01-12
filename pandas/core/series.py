@@ -1708,7 +1708,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         warnings.warn(
             "iteritems is deprecated and will be removed in a future version. "
             "Use .items instead.",
-            DeprecationWarning,
+            FutureWarning,
             stacklevel=find_stack_level(),
         )
         return self.items()
@@ -1728,7 +1728,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         warnings.warn(
             "keys is deprecated and will be removed in a future version. "
             "Use .index instead.",
-            DeprecationWarning,
+            FutureWarning,
             stacklevel=find_stack_level(),
         )
         return self.index

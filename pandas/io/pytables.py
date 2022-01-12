@@ -699,7 +699,7 @@ class HDFStore:
         warnings.warn(
             "iteritems is deprecated and will be removed in a future version. "
             "Use .items instead.",
-            DeprecationWarning,
+            FutureWarning,
             stacklevel=find_stack_level(),
         )
         yield from self.items()
