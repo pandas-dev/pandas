@@ -1077,27 +1077,6 @@ class TestSetitemIntoIntegerSeriesNeedsUpcast(SetitemCastingEquivalents):
     def expected(self):
         return Series([1, 512, 3], dtype=np.int16)
 
-    def test_int_key(self, obj, key, expected, val, indexer_sli, is_inplace, request):
-        if not isinstance(val, np.int16):
-            # with python int we end up with int64
-            mark = pytest.mark.xfail
-            request.node.add_marker(mark)
-        super().test_int_key(obj, key, expected, val, indexer_sli, is_inplace)
-
-    def test_mask_key(self, obj, key, expected, val, indexer_sli, request):
-        if not isinstance(val, np.int16):
-            # with python int we end up with int64
-            mark = pytest.mark.xfail
-            request.node.add_marker(mark)
-        super().test_mask_key(obj, key, expected, val, indexer_sli)
-
-    def test_series_where(self, obj, key, expected, val, is_inplace, request):
-        if not isinstance(val, np.int16):
-            # with python int we end up with int64
-            mark = pytest.mark.xfail
-            request.node.add_marker(mark)
-        super().test_series_where(obj, key, expected, val, is_inplace)
-
 
 @pytest.mark.parametrize("val", [2 ** 33 + 1.0, 2 ** 33 + 1.1, 2 ** 62])
 class TestSmallIntegerSetitemUpcast(SetitemCastingEquivalents):
@@ -1117,18 +1096,6 @@ class TestSmallIntegerSetitemUpcast(SetitemCastingEquivalents):
         else:
             dtype = "i8"
         return Series([val, 2, 3], dtype=dtype)
-
-    def test_int_key(self, obj, key, expected, val, indexer_sli, is_inplace, request):
-        if val % 1 == 0 and isinstance(val, float):
-            mark = pytest.mark.xfail
-            request.node.add_marker(mark)
-        super().test_int_key(obj, key, expected, val, indexer_sli, is_inplace)
-
-    def test_mask_key(self, obj, key, expected, val, indexer_sli, request):
-        if val % 1 == 0 and isinstance(val, float):
-            mark = pytest.mark.xfail
-            request.node.add_marker(mark)
-        super().test_mask_key(obj, key, expected, val, indexer_sli)
 
 
 class CoercionTest(SetitemCastingEquivalents):

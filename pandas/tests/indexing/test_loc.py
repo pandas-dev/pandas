@@ -2734,14 +2734,14 @@ def test_loc_getitem_nullable_index_with_duplicates():
     tm.assert_series_equal(res, expected)
 
 
-def test_loc_setitem_uint8_upcast():
+@pytest.mark.parametrize("value", [300, np.uint16(300), np.int16(300)])
+def test_loc_setitem_uint8_upcast(value):
     # GH#26049
 
     df = DataFrame([1, 2, 3, 4], columns=["col1"], dtype="uint8")
-    df.loc[2, "col1"] = 300  # value that can't be held in uint8
+    df.loc[2, "col1"] = value  # value that can't be held in uint8
 
-    # TODO: would be better to get uint16?
-    expected = DataFrame([1, 2, 300, 4], columns=["col1"], dtype="int64")
+    expected = DataFrame([1, 2, 300, 4], columns=["col1"], dtype="uint16")
     tm.assert_frame_equal(df, expected)
 
 
