@@ -258,7 +258,6 @@ class StringArray(BaseStringArray, PandasArray):
            ``values`` parameter in its constructor
            in addition to strings and :attr:`pandas.NA`
 
-
     copy : bool, default False
         Whether to copy the array of data.
 
