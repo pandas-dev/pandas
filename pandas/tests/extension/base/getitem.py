@@ -338,7 +338,7 @@ class BaseGetitemTests(BaseExtensionTests):
         # GH 21257
         s = pd.Series(data)
         with tm.assert_produces_warning(None):
-            # GH#??? make sure we aren't giving a spurious FutureWarning
+            # GH#45324 make sure we aren't giving a spurious FutureWarning
             s2 = s[::2]
         assert s2.get(1) is None
 

@@ -1387,7 +1387,7 @@ class TestILocSeries:
 
         # test slice is a view
         with tm.assert_produces_warning(None):
-            # GH#??? make sure we aren't giving a spurious FutureWarning
+            # GH#45324 make sure we aren't giving a spurious FutureWarning
             result[:] = 0
         assert (ser.iloc[1:3] == 0).all()
 
