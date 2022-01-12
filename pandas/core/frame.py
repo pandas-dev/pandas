@@ -3212,6 +3212,11 @@ class DataFrame(NDFrame, OpsMixin):
             many repeated values.
         DataFrame.info : Concise summary of a DataFrame.
 
+        Notes
+        -----
+        See the :ref:`Frequently Asked Questions <df-memory-usage>` for more
+        details.
+
         Examples
         --------
         >>> dtypes = ['int64', 'float64', 'complex128', 'object', 'bool']

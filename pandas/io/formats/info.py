@@ -280,7 +280,9 @@ INFO_DOCSTRING = dedent(
         made based in column dtype and number of rows assuming values
         consume the same memory amount for corresponding dtypes. With deep
         memory introspection, a real memory usage calculation is performed
-        at the cost of computational resources.
+        at the cost of computational resources. See the
+        :ref:`Frequently Asked Questions <df-memory-usage>` for more
+        details.
     {show_counts_sub}{null_counts_sub}
 
     Returns
