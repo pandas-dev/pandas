@@ -76,7 +76,6 @@ class TestAtAndiAT:
         xp = s.values[5]
         assert result == xp
 
-    @pytest.mark.parametrize("idx", [lambda ser: ser.iat[1], lambda ser: ser.iloc[1]])
     @pytest.mark.parametrize(
         "ser, expected",
         [
@@ -90,10 +89,10 @@ class TestAtAndiAT:
             ],
         ],
     )
-    def test_iloc_iat_coercion_datelike(self, idx, ser, expected):
+    def test_iloc_iat_coercion_datelike(self, indexer_ial, ser, expected):
         # GH 7729
         # make sure we are boxing the returns
-        result = idx(ser)
+        result = indexer_ial(ser)[1]
         assert result == expected
 
     def test_imethods_with_dups(self):
