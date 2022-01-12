@@ -371,10 +371,13 @@ class BaseSetitemTests(BaseExtensionTests):
         # Avoiding using_array_manager fixture
         #  https://github.com/pandas-dev/pandas/pull/44514#discussion_r754002410
         using_array_manager = isinstance(df._mgr, pd.core.internals.ArrayManager)
+
+        # These dtypes have non-broken implementations of _can_hold_element
+        has_can_hold_element = isinstance(
+            data.dtype, (PandasDtype, PeriodDtype, IntervalDtype, DatetimeTZDtype)
+        )
         if using_array_manager:
-            if not isinstance(
-                data.dtype, (PandasDtype, PeriodDtype, IntervalDtype, DatetimeTZDtype)
-            ):
+            if not has_can_hold_element:
                 # These dtypes have non-broken implementations of _can_hold_element
                 mark = pytest.mark.xfail(reason="Goes through split path, loses dtype")
                 request.node.add_marker(mark)
@@ -382,13 +385,26 @@ class BaseSetitemTests(BaseExtensionTests):
         df = pd.DataFrame({"A": data})
         orig = df.copy()
 
-        df.iloc[:] = df
+        msg = "will attempt to set the values inplace instead"
+        warn = None
+        if has_can_hold_element and not isinstance(data.dtype, PandasDtype):
+            # PandasDtype excluded because it isn't *really* supported.
+            warn = FutureWarning
+        if using_array_manager:
+            warn = FutureWarning
+
+        with tm.assert_produces_warning(warn, match=msg):
+            df.iloc[:] = df
         self.assert_frame_equal(df, orig)
 
         df.iloc[:-1] = df.iloc[:-1]
         self.assert_frame_equal(df, orig)
 
-        df.iloc[:] = df.values
+        if isinstance(data.dtype, DatetimeTZDtype) and not using_array_manager:
+            # no warning bc df.values casts to object dtype
+            warn = None
+        with tm.assert_produces_warning(warn, match=msg):
+            df.iloc[:] = df.values
         self.assert_frame_equal(df, orig)
 
         df.iloc[:-1] = df.values[:-1]

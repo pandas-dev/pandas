@@ -309,7 +309,9 @@ class TestPartialSetting:
         expected = DataFrame(dict({"A": [0, 2, 4], "B": Series([0, 2, 4])}))
         df = df_orig.copy()
         df["B"] = df["B"].astype(np.float64)
-        df.loc[:, "B"] = df.loc[:, "A"]
+        msg = "will attempt to set the values inplace instead"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.loc[:, "B"] = df.loc[:, "A"]
         tm.assert_frame_equal(df, expected)
 
         # single dtype frame, partial setting
