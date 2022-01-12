@@ -898,7 +898,7 @@ cdef class _Timestamp(ABCTimestamp):
 
         return datetime(self.year, self.month, self.day,
                         self.hour, self.minute, self.second,
-                        self.microsecond, self.tzinfo)
+                        self.microsecond, self.tzinfo, fold=self.fold)
 
     cpdef to_datetime64(self):
         """
