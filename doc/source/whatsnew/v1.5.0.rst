@@ -94,8 +94,8 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
--
--
+- Deprecated :meth:`DataFrame.iteritems`, :meth:`Series.iteritems`, :meth:`HDFStore.iteritems` in favor of :meth:`DataFrame.items`, :meth:`Series.items`, :meth:`HDFStore.items`  (:issue:``)
+- Deprecated :meth:`Series.keys` in favor of :meth:`Series.index` (:issue:``)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.performance:
