@@ -94,8 +94,10 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
+- Deprecated the keyword ``line_terminator`` in :meth:`DataFrame.to_csv` and :meth:`Series.to_csv`, use ``lineterminator`` instead; this is for consistency with :func:`read_csv` and the standard library 'csv' module (:issue:`9568`)
 - Deprecated :meth:`DataFrame.iteritems`, :meth:`Series.iteritems`, :meth:`HDFStore.iteritems` in favor of :meth:`DataFrame.items`, :meth:`Series.items`, :meth:`HDFStore.items`  (:issue:`45321`)
 - Deprecated :meth:`Series.keys` in favor of :meth:`Series.index` (:issue:`45321`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.performance:
@@ -119,6 +121,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :func:`to_datetime` with sequences of ``np.str_`` objects incorrectly raising (:issue:`32264`)
+- Bug in :class:`Timestamp` construction when passing datetime components as positional arguments and ``tzinfo`` as a keyword argument incorrectly raising (:issue:`31929`)
 -
 
 Timedelta
