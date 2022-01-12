@@ -1851,7 +1851,7 @@ function takes a number of arguments. Only the first is required.
 * ``mode`` : Python write mode, default 'w'
 * ``encoding``: a string representing the encoding to use if the contents are
   non-ASCII, for Python versions prior to 3
-* ``line_terminator``: Character sequence denoting line end (default ``os.linesep``)
+* ``lineterminator``: Character sequence denoting line end (default ``os.linesep``)
 * ``quoting``: Set quoting rules as in csv module (default csv.QUOTE_MINIMAL). Note that if you have set a ``float_format`` then floats are converted to strings and csv.QUOTE_NONNUMERIC will treat them as non-numeric
 * ``quotechar``: Character used to quote fields (default '"')
 * ``doublequote``: Control quoting of ``quotechar`` in fields (default True)

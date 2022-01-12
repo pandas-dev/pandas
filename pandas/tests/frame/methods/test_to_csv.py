@@ -866,13 +866,13 @@ class TestDataFrameToCSV:
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert buf.getvalue() == expected
 
-    def test_to_csv_line_terminators(self):
+    def test_to_csv_lineterminators(self):
         # see gh-20353
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, index=["one", "two", "three"])
 
         with tm.ensure_clean() as path:
             # case 1: CRLF as line terminator
-            df.to_csv(path, line_terminator="\r\n")
+            df.to_csv(path, lineterminator="\r\n")
             expected = b",A,B\r\none,1,4\r\ntwo,2,5\r\nthree,3,6\r\n"
 
             with open(path, mode="rb") as f:
@@ -880,7 +880,7 @@ class TestDataFrameToCSV:
 
         with tm.ensure_clean() as path:
             # case 2: LF as line terminator
-            df.to_csv(path, line_terminator="\n")
+            df.to_csv(path, lineterminator="\n")
             expected = b",A,B\none,1,4\ntwo,2,5\nthree,3,6\n"
 
             with open(path, mode="rb") as f:
@@ -1251,7 +1251,7 @@ class TestDataFrameToCSV:
         df = DataFrame([[1, 2, 3]], columns=index)
         df = df.reindex(columns=[(1,), (3,)])
         expected = ",1,3\n0,1,3\n"
-        result = df.to_csv(line_terminator="\n")
+        result = df.to_csv(lineterminator="\n")
         tm.assert_almost_equal(result, expected)
 
     def test_gz_lineend(self):
