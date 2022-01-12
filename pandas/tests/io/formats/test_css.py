@@ -57,6 +57,8 @@ def test_css_parse_normalisation(name, norm, abnorm):
         ("font-size: 1unknownunit", "font-size: 1em"),
         ("font-size: 10", "font-size: 1em"),
         ("font-size: 10 pt", "font-size: 1em"),
+        # Too many args
+        ("border-top: 1pt solid red green", "border-top: 1pt solid green"),
     ],
 )
 def test_css_parse_invalid(invalid_css, remainder):
@@ -128,15 +130,33 @@ def test_css_side_shorthands(shorthand, expansions):
     [
         ("border-top", ["top"]),
         ("border-right", ["right"]),
-        (
-            "border-bottom",
-            ["bottom"],
-        ),
+        ("border-bottom", ["bottom"]),
         ("border-left", ["left"]),
         ("border", ["top", "right", "bottom", "left"]),
     ],
 )
-def test_css_border_shorthands(shorthand, sides):
+@pytest.mark.parametrize(
+    "prop, expected",
+    [
+        ("1pt red solid", ("red", "solid", "1pt")),
+        ("red 1pt solid", ("red", "solid", "1pt")),
+        ("red solid 1pt", ("red", "solid", "1pt")),
+        ("solid 1pt red", ("red", "solid", "1pt")),
+        ("red solid", ("red", "solid", "1.500000pt")),
+        # Note: color=black is not CSS conforming
+        # (See https://drafts.csswg.org/css-backgrounds/#border-shorthands)
+        ("1pt solid", ("black", "solid", "1pt")),
+        ("1pt red", ("red", "none", "1pt")),
+        ("red", ("red", "none", "1.500000pt")),
+        ("1pt", ("black", "none", "1pt")),
+        ("solid", ("black", "solid", "1.500000pt")),
+        # Sizes
+        ("1em", ("black", "none", "12pt")),
+    ],
+)
+def test_css_border_shorthands(shorthand, sides, prop, expected):
+    color, style, width = expected
+
     def create_border_dict(sides, color=None, style=None, width=None):
         resolved = {}
         for side in sides:
@@ -149,48 +169,7 @@ def test_css_border_shorthands(shorthand, sides):
         return resolved
 
     assert_resolves(
-        f"{shorthand}: 1pt red solid", create_border_dict(sides, "red", "solid", "1pt")
-    )
-
-    assert_resolves(
-        f"{shorthand}: red 1pt solid", create_border_dict(sides, "red", "solid", "1pt")
-    )
-
-    assert_resolves(
-        f"{shorthand}: red solid 1pt", create_border_dict(sides, "red", "solid", "1pt")
-    )
-
-    assert_resolves(
-        f"{shorthand}: solid 1pt red", create_border_dict(sides, "red", "solid", "1pt")
-    )
-
-    assert_resolves(
-        f"{shorthand}: red solid",
-        create_border_dict(sides, "red", "solid", "1.500000pt"),
-    )
-
-    # Note: color=black is not CSS conforming
-    # (See https://drafts.csswg.org/css-backgrounds/#border-shorthands)
-    assert_resolves(
-        f"{shorthand}: 1pt solid", create_border_dict(sides, "black", "solid", "1pt")
-    )
-
-    assert_resolves(
-        f"{shorthand}: 1pt red", create_border_dict(sides, "red", "none", "1pt")
-    )
-
-    assert_resolves(
-        f"{shorthand}: red", create_border_dict(sides, "red", "none", "1.500000pt")
-    )
-
-    # Note: color=black is not CSS conforming
-    assert_resolves(
-        f"{shorthand}: 1pt", create_border_dict(sides, "black", "none", "1pt")
-    )
-
-    # Note: color=black is not CSS conforming
-    assert_resolves(
-        f"{shorthand}: solid", create_border_dict(sides, "black", "solid", "1.500000pt")
+        f"{shorthand}: {prop}", create_border_dict(sides, color, style, width)
     )
 
 

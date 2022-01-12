@@ -34,7 +34,7 @@ def _border_expander(side: str = ""):
     def expand(self, prop, value: str):
         tokens = value.split()
         if len(tokens) == 0 or len(tokens) > 3:
-            raise ValueError(f'Too many tokens provided to "{prop}" (expected 1-3)')
+            warnings.warn(f'Too many tokens provided to "{prop}" (expected 1-3)', CSSWarning)
 
         # TODO: Can we use current color as initial value to comply with CSS standards?
         border_declarations = {
@@ -46,11 +46,10 @@ def _border_expander(side: str = ""):
             token_key = "color"
             if token in self.BORDER_STYLES:
                 token_key = "style"
-
-            for ratio in self.BORDER_WIDTH_RATIOS:
-                if ratio in token:
-                    token_key = "width"
-                    break
+            elif any([ratio in token for ratio in self.BORDER_WIDTH_RATIOS]):
+                token_key = "width"
+            else:
+                token_key = "color"
 
             # TODO: Warn user if item entered more than once (e.g. "border: red green")
             border_declarations[f"border{side}-{token_key}"] = token
@@ -68,6 +67,7 @@ class CSSResolver:
 
     UNIT_RATIOS = {
         "pt": ("pt", 1),
+        "em": ("em", 1),
         "rem": ("pt", 12),
         "ex": ("em", 0.5),
         # 'ch':
