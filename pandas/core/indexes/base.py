@@ -67,6 +67,7 @@ from pandas.util._exceptions import (
 from pandas.core.dtypes.cast import (
     can_hold_element,
     common_dtype_categorical_compat,
+    ensure_dtype_can_hold_na,
     find_common_type,
     infer_dtype_from,
     maybe_cast_pointwise_result,
@@ -175,7 +176,6 @@ if TYPE_CHECKING:
     from pandas import (
         CategoricalIndex,
         DataFrame,
-        IntervalIndex,
         MultiIndex,
         Series,
     )
@@ -6024,10 +6024,15 @@ class Index(IndexOpsMixin, PandasObject):
         Implementation of find_common_type that adjusts for Index-specific
         special cases.
         """
-        if is_interval_dtype(self.dtype) and is_valid_na_for_dtype(target, self.dtype):
+        if is_valid_na_for_dtype(target, self.dtype):
             # e.g. setting NA value into IntervalArray[int64]
-            self = cast("IntervalIndex", self)
-            return IntervalDtype(np.float64, closed=self.closed)
+            dtype = ensure_dtype_can_hold_na(self.dtype)
+            if is_dtype_equal(self.dtype, dtype):
+                raise NotImplementedError(
+                    "This should not be reached. Please report a bug at "
+                    "github.com/pandas-dev/pandas"
+                )
+            return dtype
 
         target_dtype, _ = infer_dtype_from(target, pandas_dtype=True)
 

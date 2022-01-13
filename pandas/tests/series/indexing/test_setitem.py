@@ -22,6 +22,7 @@ from pandas import (
     Timestamp,
     concat,
     date_range,
+    interval_range,
     period_range,
     timedelta_range,
 )
@@ -726,6 +727,17 @@ class SetitemCastingEquivalents:
     "obj,expected,key",
     [
         pytest.param(
+            # GH#??? setting a valid NA value into IntervalDtype[int] should
+            #  cast to IntervalDtype[float]
+            Series(interval_range(1, 5)),
+            Series(
+                [Interval(1, 2), np.nan, Interval(3, 4), Interval(4, 5)],
+                dtype="interval[float64]",
+            ),
+            1,
+            id="interval_int_na_value",
+        ),
+        pytest.param(
             # these induce dtype changes
             Series([2, 3, 4, 5, 6, 7, 8, 9, 10]),
             Series([np.nan, 3, np.nan, 5, np.nan, 7, np.nan, 9, np.nan]),
@@ -770,7 +782,8 @@ class SetitemCastingEquivalents:
     ],
 )
 class TestSetitemCastingEquivalents(SetitemCastingEquivalents):
-    @pytest.fixture(params=[np.nan, np.float64("NaN")])
+    # TODO: including pd.NA here breaks some tests
+    @pytest.fixture(params=[np.nan, np.float64("NaN"), None])
     def val(self, request):
         """
         One python float NaN, one np.float64.  Only np.float64 has a `dtype`
