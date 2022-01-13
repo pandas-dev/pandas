@@ -1381,7 +1381,10 @@ class EABackedBlock(Block):
         indexer = self._unwrap_setitem_indexer(indexer)
         value = self._maybe_squeeze_arg(value)
 
-        values = self.values.T
+        values = self.values
+        if values.ndim == 2:
+            # TODO: string[pyarrow] tests break if we transpose unconditionally
+            values = values.T
         check_setitem_lengths(indexer, value, values)
         values[indexer] = value
         return self
