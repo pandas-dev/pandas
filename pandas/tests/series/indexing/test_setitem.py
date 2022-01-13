@@ -721,7 +721,7 @@ class SetitemCastingEquivalents:
     "obj,expected,key",
     [
         pytest.param(
-            # GH#??? setting a valid NA value into IntervalDtype[int] should
+            # GH#45356 setting a valid NA value into IntervalDtype[int] should
             #  cast to IntervalDtype[float]
             Series(interval_range(1, 5)),
             Series(
