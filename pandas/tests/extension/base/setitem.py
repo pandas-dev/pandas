@@ -380,6 +380,7 @@ class BaseSetitemTests(BaseExtensionTests):
                 request.node.add_marker(mark)
 
         df = pd.DataFrame({"A": data})
+        blk_data = df._mgr.arrays[0]
         orig = df.copy()
 
         df.iloc[:] = df
@@ -390,6 +391,8 @@ class BaseSetitemTests(BaseExtensionTests):
 
         df.iloc[:] = df.values
         self.assert_frame_equal(df, orig)
+        # GH#33457 Check that this setting occurred in-place
+        assert df._mgr.arrays[0] is blk_data
 
         df.iloc[:-1] = df.values[:-1]
         self.assert_frame_equal(df, orig)
