@@ -1160,7 +1160,7 @@ def test_style_to_csv():
     </xsl:template>
 </xsl:stylesheet>"""
 
-    out_csv = geom_df.to_csv(line_terminator="\n")
+    out_csv = geom_df.to_csv(lineterminator="\n")
 
     if out_csv is not None:
         out_csv = out_csv.strip()
