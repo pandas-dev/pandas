@@ -68,7 +68,7 @@ explained in this document:
 
 * `numpydoc docstring guide <https://numpydoc.readthedocs.io/en/latest/format.html>`_
   (which is based in the original `Guide to NumPy/SciPy documentation
-  <https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt>`_)
+  <https://github.com/numpy/numpy/blob/main/doc/HOWTO_DOCUMENT.rst.txt>`_)
 
 numpydoc is a Sphinx extension to support the NumPy docstring convention.
 
