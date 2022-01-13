@@ -85,18 +85,17 @@ def _mpl(func: Callable):
 ####
 # Shared Doc Strings
 
-subset = """
-        subset : label, array-like, IndexSlice, optional
+subset = """subset : label, array-like, IndexSlice, optional
             A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
-            prioritised, to limit ``data`` to *before* applying the function.
-"""
+            prioritised, to limit ``data`` to *before* applying the function."""
 
-props = """
-        props : str, default None
-            CSS properties to use for highlighting. If ``props`` is given, ``color``
-            is not used.
-"""
+props = """props : str, default None
+           CSS properties to use for highlighting. If ``props`` is given, ``color``
+           is not used."""
+
+color = """color : str, default 'yellow'
+           Background color to use for highlighting."""
 
 #
 ###
@@ -3167,8 +3166,11 @@ class Styler(StylerRenderer):
         ----------
         null_color : str, default 'red'
         %(subset)s
+
             .. versionadded:: 1.1.0
+
         %(props)s
+
             .. versionadded:: 1.3.0
 
         Returns
@@ -3190,7 +3192,7 @@ class Styler(StylerRenderer):
             props = f"background-color: {null_color};"
         return self.apply(f, axis=None, subset=subset, props=props)
 
-    @Substitution(subset=subset, props=props)
+    @Substitution(subset=subset, color=color, props=props)
     def highlight_max(
         self,
         subset: Subset | None = None,
@@ -3204,13 +3206,13 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         %(subset)s
-        color : str, default 'yellow'
-            Background color to use for highlighting.
+        %(color)s
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
         %(props)s
+
             .. versionadded:: 1.3.0
 
         Returns
@@ -3234,7 +3236,7 @@ class Styler(StylerRenderer):
             props=props,
         )
 
-    @Substitution(subset=subset, props=props)
+    @Substitution(subset=subset, color=color, props=props)
     def highlight_min(
         self,
         subset: Subset | None = None,
@@ -3248,13 +3250,13 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         %(subset)s
-        color : str, default 'yellow'
-            Background color to use for highlighting.
+        %(color)s
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
         %(props)s
+
             .. versionadded:: 1.3.0
 
         Returns
@@ -3278,7 +3280,7 @@ class Styler(StylerRenderer):
             props=props,
         )
 
-    @Substitution(subset=subset, props=props)
+    @Substitution(subset=subset, color=color, props=props)
     def highlight_between(
         self,
         subset: Subset | None = None,
@@ -3297,8 +3299,7 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         %(subset)s
-        color : str, default 'yellow'
-            Background color to use for highlighting.
+        %(color)s
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             If ``left`` or ``right`` given as sequence, axis along which to apply those
             boundaries. See examples.
@@ -3309,6 +3310,7 @@ class Styler(StylerRenderer):
         inclusive : {'both', 'neither', 'left', 'right'}
             Identify whether bounds are closed or open.
         %(props)s
+
         Returns
         -------
         self : Styler
@@ -3382,7 +3384,7 @@ class Styler(StylerRenderer):
             inclusive=inclusive,
         )
 
-    @Substitution(subset=subset, props=props)
+    @Substitution(subset=subset, color=color, props=props)
     def highlight_quantile(
         self,
         subset: Subset | None = None,
@@ -3402,8 +3404,7 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         %(subset)s
-        color : str, default 'yellow'
-            Background color to use for highlighting.
+        %(color)s
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Axis along which to determine and highlight quantiles. If ``None`` quantiles
             are measured over the entire DataFrame. See examples.
@@ -3417,6 +3418,7 @@ class Styler(StylerRenderer):
         inclusive : {'both', 'neither', 'left', 'right'}
             Identify whether quantile bounds are closed or open.
         %(props)s
+
         Returns
         -------
         self : Styler

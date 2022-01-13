@@ -382,6 +382,7 @@ class BaseMethodsTests(BaseExtensionTests):
         self.assert_extension_array_equal(result, expected)
 
     def test_shift_zero_copies(self, data):
+        # GH#31502
         result = data.shift(0)
         assert result is not data
 
