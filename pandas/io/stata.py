@@ -3157,7 +3157,6 @@ class StataWriter117(StataWriter):
 
     Examples
     --------
-    >>> from pandas.io.stata import StataWriter117
     >>> data = pd.DataFrame([[1.0, 1, 'a']], columns=['a', 'b', 'c'])
     >>> writer = pd.io.stata.StataWriter117('./data_file.dta', data)
     >>> writer.write_file()
