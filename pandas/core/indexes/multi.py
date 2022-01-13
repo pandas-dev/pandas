@@ -365,7 +365,9 @@ class MultiIndex(Index):
         """
         null_mask = isna(level)
         if np.any(null_mask):
-            code = np.where(null_mask[code], -1, code)
+            # Incompatible types in assignment (expression has type
+            # "ndarray[Any, dtype[Any]]", variable has type "List[Any]")
+            code = np.where(null_mask[code], -1, code)  # type: ignore[assignment]
         return code
 
     def _verify_integrity(self, codes: list | None = None, levels: list | None = None):
@@ -1086,7 +1088,9 @@ class MultiIndex(Index):
         # equivalent to sorting lexicographically the codes themselves. Notice
         # that each level needs to be shifted by the number of bits needed to
         # represent the _previous_ ones:
-        offsets = np.concatenate([lev_bits[1:], [0]]).astype("uint64")
+        offsets = np.concatenate([lev_bits[1:], [0]]).astype(  # type: ignore[arg-type]
+            "uint64"
+        )
 
         # Check the total number of bits needed for our representation:
         if lev_bits[0] > 64:
@@ -1564,7 +1568,12 @@ class MultiIndex(Index):
             self._get_level_values(i)._values for i in reversed(range(len(self.levels)))
         ]
         try:
-            sort_order = np.lexsort(values)
+            # Argument 1 to "lexsort" has incompatible type "List[Union[ExtensionArray,
+            # ndarray[Any, Any]]]"; expected "Union[_SupportsArray[dtype[Any]],
+            # _NestedSequence[_SupportsArray[dtype[Any]]], bool,
+            #  int, float, complex, str, bytes, _NestedSequence[Union[bool, int, float,
+            #  complex, str, bytes]]]"  [arg-type]
+            sort_order = np.lexsort(values)  # type: ignore[arg-type]
             return Index(sort_order).is_monotonic
         except TypeError:
 
