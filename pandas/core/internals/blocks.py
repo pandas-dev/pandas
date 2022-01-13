@@ -886,6 +886,12 @@ class Block(PandasObject):
         """
         return arg
 
+    def _unwrap_setitem_indexer(self, indexer):
+        """
+        For compatibility with 1D-only ExtensionArrays.
+        """
+        return indexer
+
     def setitem(self, indexer, value):
         """
         Attempt self.values[indexer] = value, possibly creating a new array.
@@ -1344,6 +1350,42 @@ class EABackedBlock(Block):
 
     values: ExtensionArray
 
+    def setitem(self, indexer, value):
+        """
+        Attempt self.values[indexer] = value, possibly creating a new array.
+
+        This differs from Block.setitem by not allowing setitem to change
+        the dtype of the Block.
+
+        Parameters
+        ----------
+        indexer : tuple, list-like, array-like, slice, int
+            The subset of self.values to set
+        value : object
+            The value being set
+
+        Returns
+        -------
+        Block
+
+        Notes
+        -----
+        `indexer` is a direct slice/positional indexer. `value` must
+        be a compatible shape.
+        """
+        if not self._can_hold_element(value):
+            # see TestSetitemFloatIntervalWithIntIntervalValues
+            nb = self.coerce_to_target_dtype(value)
+            return nb.setitem(indexer, value)
+
+        indexer = self._unwrap_setitem_indexer(indexer)
+        value = self._maybe_squeeze_arg(value)
+
+        values = self.values.T
+        check_setitem_lengths(indexer, value, values)
+        values[indexer] = value
+        return self
+
     def where(self, other, cond) -> list[Block]:
         arr = self.values.T
 
@@ -1558,41 +1600,13 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
 
         return arg
 
-    @property
-    def is_view(self) -> bool:
-        """Extension arrays are never treated as views."""
-        return False
-
-    @cache_readonly
-    def is_numeric(self):
-        return self.values.dtype._is_numeric
-
-    def setitem(self, indexer, value):
+    def _unwrap_setitem_indexer(self, indexer):
         """
-        Attempt self.values[indexer] = value, possibly creating a new array.
+        Adapt a 2D-indexer to our 1D values.
 
-        This differs from Block.setitem by not allowing setitem to change
-        the dtype of the Block.
-
-        Parameters
-        ----------
-        indexer : tuple, list-like, array-like, slice, int
-            The subset of self.values to set
-        value : object
-            The value being set
-
-        Returns
-        -------
-        Block
-
-        Notes
-        -----
-        `indexer` is a direct slice/positional indexer. `value` must
-        be a compatible shape.
+        This is intended for 'setitem', not 'iget' or '_slice'.
         """
-        if not self._can_hold_element(value):
-            # see TestSetitemFloatIntervalWithIntIntervalValues
-            return self.coerce_to_target_dtype(value).setitem(indexer, value)
+        # TODO: ATM this doesn't work for iget/_slice, can we change that?
 
         if isinstance(indexer, tuple):
             # TODO(EA2D): not needed with 2D EAs
@@ -1621,13 +1635,16 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
                         "This should not be reached. Please report a bug at "
                         "github.com/pandas-dev/pandas/"
                     )
+        return indexer
 
-        value = self._maybe_squeeze_arg(value)
+    @property
+    def is_view(self) -> bool:
+        """Extension arrays are never treated as views."""
+        return False
 
-        # TODO: check_setitem_lengths inside the EA's __setitem__?
-        check_setitem_lengths(indexer, value, self.values)
-        self.values[indexer] = value
-        return self
+    @cache_readonly
+    def is_numeric(self):
+        return self.values.dtype._is_numeric
 
     def take_nd(
         self,
@@ -1804,18 +1821,6 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
         """return a boolean if I am possibly a view"""
         # check the ndarray values of the DatetimeIndex values
         return self.values._ndarray.base is not None
-
-    def setitem(self, indexer, value):
-        if not self._can_hold_element(value):
-            return self.coerce_to_target_dtype(value).setitem(indexer, value)
-
-        values = self.values
-        if self.ndim > 1:
-            # Dont transpose with ndim=1 bc we would fail to invalidate
-            #  arr.freq
-            values = values.T
-        values[indexer] = value
-        return self
 
     def diff(self, n: int, axis: int = 0) -> list[Block]:
         """
