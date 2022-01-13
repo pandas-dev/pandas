@@ -191,7 +191,7 @@ class TestFeather:
     def test_http_path(self, feather_file):
         # GH 29055
         url = (
-            "https://raw.githubusercontent.com/pandas-dev/pandas/master/"
+            "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
             "pandas/tests/io/data/feather/feather-0_3_1.feather"
         )
         expected = read_feather(feather_file)

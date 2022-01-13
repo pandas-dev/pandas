@@ -27,6 +27,6 @@ consists of the following data columns:
 .. raw:: html
 
             </p>
-            <a href="https://github.com/pandas-dev/pandas/tree/master/doc/data/titanic.csv" class="btn btn-dark btn-sm">To raw data</a>
+            <a href="https://github.com/pandas-dev/pandas/tree/main/doc/data/titanic.csv" class="btn btn-dark btn-sm">To raw data</a>
         </div>
     </div>

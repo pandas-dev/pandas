@@ -2,7 +2,7 @@
 trigger:
   branches:
     include:
-    - master
+    - main
     - 1.4.x
   paths:
     exclude:
@@ -12,7 +12,7 @@ pr:
   autoCancel: true
   branches:
     include:
-    - master
+    - main
     - 1.4.x
 
 variables:

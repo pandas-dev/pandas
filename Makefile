@@ -12,7 +12,7 @@ build: clean_pyc
 	python setup.py build_ext
 
 lint-diff:
-	git diff upstream/master --name-only -- "*.py" | xargs flake8
+	git diff upstream/main --name-only -- "*.py" | xargs flake8
 
 black:
 	black .

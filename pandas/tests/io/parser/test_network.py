@@ -34,7 +34,7 @@ def check_compressed_urls(salaries_table, compression, extension, mode, engine):
     # test reading compressed urls with various engines and
     # extension inference
     base_url = (
-        "https://github.com/pandas-dev/pandas/raw/master/"
+        "https://github.com/pandas-dev/pandas/raw/main/"
         "pandas/tests/io/parser/data/salaries.csv"
     )
 
@@ -55,7 +55,7 @@ def test_url_encoding_csv():
     GH 10424
     """
     path = (
-        "https://raw.githubusercontent.com/pandas-dev/pandas/master/"
+        "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
         + "pandas/tests/io/parser/data/unicode_series.csv"
     )
     df = read_csv(path, encoding="latin-1", header=None)

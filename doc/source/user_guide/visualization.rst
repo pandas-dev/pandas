@@ -956,7 +956,7 @@ for more information. By coloring these curves differently for each class
 it is possible to visualize data clustering. Curves belonging to samples
 of the same class will usually be closer together and form larger structures.
 
-**Note**: The "Iris" dataset is available `here <https://raw.github.com/pandas-dev/pandas/master/pandas/tests/io/data/csv/iris.csv>`__.
+**Note**: The "Iris" dataset is available `here <https://raw.github.com/pandas-dev/pandas/main/pandas/tests/io/data/csv/iris.csv>`__.
 
 .. ipython:: python
 
@@ -1116,7 +1116,7 @@ be colored differently.
 See the R package `Radviz <https://cran.r-project.org/package=Radviz/>`__
 for more information.
 
-**Note**: The "Iris" dataset is available `here <https://raw.github.com/pandas-dev/pandas/master/pandas/tests/io/data/csv/iris.csv>`__.
+**Note**: The "Iris" dataset is available `here <https://raw.github.com/pandas-dev/pandas/main/pandas/tests/io/data/csv/iris.csv>`__.
 
 .. ipython:: python
 
