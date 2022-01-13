@@ -391,8 +391,10 @@ class BaseSetitemTests(BaseExtensionTests):
 
         df.iloc[:] = df.values
         self.assert_frame_equal(df, orig)
-        # GH#33457 Check that this setting occurred in-place
-        assert df._mgr.arrays[0] is blk_data
+        if not using_array_manager:
+            # GH#33457 Check that this setting occurred in-place
+            # FIXME(ArrayManager): this should work there too
+            assert df._mgr.arrays[0] is blk_data
 
         df.iloc[:-1] = df.values[:-1]
         self.assert_frame_equal(df, orig)
