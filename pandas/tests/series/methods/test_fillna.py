@@ -151,18 +151,15 @@ class TestSeriesFillNA:
         )
         tm.assert_series_equal(result, expected)
 
-        msg = "The 'errors' keyword in "
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            # where (we ignore the errors=)
-            result = ser.where(
-                [True, False], Timestamp("20130101", tz="US/Eastern"), errors="ignore"
-            )
+        # where (we ignore the errors=)
+        result = ser.where(
+            [True, False], Timestamp("20130101", tz="US/Eastern"), errors="ignore"
+        )
         tm.assert_series_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = ser.where(
-                [True, False], Timestamp("20130101", tz="US/Eastern"), errors="ignore"
-            )
+        result = ser.where(
+            [True, False], Timestamp("20130101", tz="US/Eastern"), errors="ignore"
+        )
         tm.assert_series_equal(result, expected)
 
         # with a non-datetime
