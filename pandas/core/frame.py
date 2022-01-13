@@ -10483,7 +10483,7 @@ NaN 12.3   33.0
 
         if not is_list_like(q):
             # BlockManager.quantile expects listlike, so we wrap and unwrap here
-            res = self.quantile(
+            res_df = self.quantile(
                 [q],
                 axis=axis,
                 numeric_only=numeric_only,
