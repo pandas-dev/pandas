@@ -32,7 +32,7 @@ jobs:
         python-version: '3.9.7'
 
     - name: Run pre-commit
-      uses: pre-commit/action@v2.0.3
+      uses: pre-commit/action@v2
 
   typing_and_docstring_validation:
     name: Docstring and typing validation
@@ -151,7 +151,7 @@ jobs:
       if: ${{ steps.build.outcome == 'success' }}
 
     - name: Publish benchmarks artifact
-      uses: actions/upload-artifact@master
+      uses: actions/upload-artifact@v2
       with:
         name: Benchmarks log
         path: asv_bench/benchmarks.log
