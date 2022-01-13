@@ -30,7 +30,7 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
--
+- Improved the rendering of ``categories`` in :class:`CategoricalIndex` (:issue:`45218`)
 -
 
 .. ---------------------------------------------------------------------------

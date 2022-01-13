@@ -8,8 +8,6 @@ import warnings
 
 import numpy as np
 
-from pandas._config import get_option
-
 from pandas._libs import index as libindex
 from pandas._typing import (
     Dtype,
@@ -347,16 +345,12 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         """
         Return a list of tuples of the (attr,formatted_value)
         """
-        max_categories = (
-            10
-            if get_option("display.max_categories") == 0
-            else get_option("display.max_categories")
-        )
         attrs: list[tuple[str, str | int | bool | None]]
+
         attrs = [
             (
                 "categories",
-                ibase.default_pprint(self.categories, max_seq_items=max_categories),
+                "[" + ", ".join(self._data._repr_categories()) + "]",
             ),
             ("ordered", self.ordered),
         ]
