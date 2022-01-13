@@ -95,6 +95,7 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 - Deprecated the keyword ``line_terminator`` in :meth:`DataFrame.to_csv` and :meth:`Series.to_csv`, use ``lineterminator`` instead; this is for consistency with :func:`read_csv` and the standard library 'csv' module (:issue:`9568`)
+- Deprecated behavior of :meth:`SparseArray.astype`, :meth:`Series.astype`, and :meth:`DataFrame.astype` with :class:`SparseDtype` when passing a non-sparse ``dtype``. In a future version, this will cast to that non-sparse dtype instead of wrapping it in a :class:`SparseDtype` (:issue:`34457`)
 -
 
 .. ---------------------------------------------------------------------------
