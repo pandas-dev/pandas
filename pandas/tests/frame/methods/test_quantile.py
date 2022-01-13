@@ -604,11 +604,11 @@ class TestDataFrameMultiQuantile:
                         1: Series(pd.arrays.SparseArray([4, 5, 6])),
                     }
                 ),
-                Series([2, 5], name=0.5),
+                Series([2, 5], dtype="Sparse[int]", name=0.5),
             ],
             [
                 DataFrame(Series([0.0, None, 1.0, 2.0], dtype="Sparse[float]")),
-                Series([2.0], name=0.5),
+                Series([2.0], dtype="Sparse[float]", name=0.5),
             ],
         ],
     )
