@@ -1725,12 +1725,6 @@ class Series(base.IndexOpsMixin, NDFrame):
         Index
             Index of the Series.
         """
-        warnings.warn(
-            "keys is deprecated and will be removed in a future version. "
-            "Use .index instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
         return self.index
 
     def to_dict(self, into=dict):

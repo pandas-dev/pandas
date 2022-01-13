@@ -204,11 +204,6 @@ class TestSeriesMisc:
         with pytest.raises(AttributeError, match=msg):
             ser.weekday
 
-    def test_series_keys_deprecated(self):
-        ser = Series([1])
-        with tm.assert_produces_warning(FutureWarning):
-            ser.keys()
-
     def test_series_iteritems_deprecated(self):
         ser = Series([1])
         with tm.assert_produces_warning(FutureWarning):
