@@ -1591,7 +1591,9 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         ):
             # TODO(EA2D): unnecessary with 2D EAs
             assert arg.shape[1] == 1
-            arg = arg[:, 0]
+            # error: No overload variant of "__getitem__" of "ExtensionArray"
+            # matches argument type "Tuple[slice, int]"
+            arg = arg[:, 0]  # type:ignore[call-overload]
         elif isinstance(arg, ABCDataFrame):
             # 2022-01-06 only reached for setitem
             # TODO: should we avoid getting here with DataFrame?
