@@ -4,6 +4,8 @@ import string
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.common import is_dtype_equal
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.arrays import SparseArray
@@ -85,7 +87,10 @@ def test_binary_ufunc_with_index(flip, sparse, ufunc, arrays_for_binary_ufunc):
 
     name = "name"  # op(pd.Series, array) preserves the name.
     series = pd.Series(a1, name=name)
-    other = pd.Index(a2, name=name).astype("int64")
+
+    warn = None if not sparse else FutureWarning
+    with tm.assert_produces_warning(warn):
+        other = pd.Index(a2, name=name).astype("int64")
 
     array_args = (a1, a2)
     series_args = (series, other)  # ufunc(series, array)
@@ -167,16 +172,16 @@ def test_binary_ufunc_scalar(ufunc, sparse, flip, arrays_for_binary_ufunc):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("ufunc", [np.divmod])  # TODO: any others?
+@pytest.mark.parametrize("ufunc", [np.divmod])  # TODO: np.modf, np.frexp
 @pytest.mark.parametrize("sparse", SPARSE, ids=SPARSE_IDS)
 @pytest.mark.parametrize("shuffle", SHUFFLE)
 @pytest.mark.filterwarnings("ignore:divide by zero:RuntimeWarning")
-def test_multiple_output_binary_ufuncs(ufunc, sparse, shuffle, arrays_for_binary_ufunc):
+def test_multiple_output_binary_ufuncs(
+    ufunc, sparse, shuffle, arrays_for_binary_ufunc, request
+):
     # Test that
     #  the same conditions from binary_ufunc_scalar apply to
     #  ufuncs with multiple outputs.
-    if sparse and ufunc is np.divmod:
-        pytest.skip("sparse divmod not implemented.")
 
     a1, a2 = arrays_for_binary_ufunc
     # work around https://github.com/pandas-dev/pandas/issues/26987
@@ -249,19 +254,155 @@ def test_object_series_ok():
     tm.assert_series_equal(np.add(ser, Dummy(1)), pd.Series(np.add(ser, Dummy(1))))
 
 
-@pytest.mark.parametrize(
-    "values",
-    [
-        pd.array([1, 3, 2], dtype="int64"),
-        pd.array([1, 10, 0], dtype="Sparse[int]"),
+@pytest.fixture(
+    params=[
+        pd.array([1, 3, 2], dtype=np.int64),
+        pd.array([1, 3, 2], dtype="Int64"),
+        pd.array([1, 3, 2], dtype="Float32"),
+        pd.array([1, 10, 2], dtype="Sparse[int]"),
         pd.to_datetime(["2000", "2010", "2001"]),
         pd.to_datetime(["2000", "2010", "2001"]).tz_localize("CET"),
         pd.to_datetime(["2000", "2010", "2001"]).to_period(freq="D"),
+        pd.to_timedelta(["1 Day", "3 Days", "2 Days"]),
+        pd.IntervalIndex([pd.Interval(0, 1), pd.Interval(2, 3), pd.Interval(1, 2)]),
     ],
+    ids=lambda x: str(x.dtype),
 )
-def test_reduce(values):
-    a = pd.Series(values)
-    assert np.maximum.reduce(a) == values[1]
+def values_for_np_reduce(request):
+    # min/max tests assume that these are monotonic increasing
+    return request.param
+
+
+class TestNumpyReductions:
+    # TODO: cases with NAs, axis kwarg for DataFrame
+
+    def test_multiply(self, values_for_np_reduce, box_with_array, request):
+        box = box_with_array
+        values = values_for_np_reduce
+
+        warn = None
+        if is_dtype_equal(values.dtype, "Sparse[int]") and box is pd.Index:
+            warn = FutureWarning
+        msg = "passing a SparseArray to pd.Index"
+        with tm.assert_produces_warning(warn, match=msg):
+            obj = box(values)
+
+        if isinstance(values, pd.core.arrays.SparseArray) and box is not pd.Index:
+            mark = pytest.mark.xfail(reason="SparseArray has no 'mul'")
+            request.node.add_marker(mark)
+
+        if values.dtype.kind in "iuf":
+            result = np.multiply.reduce(obj)
+            if box is pd.DataFrame:
+                expected = obj.prod(numeric_only=False)
+                tm.assert_series_equal(result, expected)
+            elif box is pd.Index:
+                # Int64Index, Index has no 'prod'
+                expected = obj._values.prod()
+                assert result == expected
+            else:
+
+                expected = obj.prod()
+                assert result == expected
+        else:
+            msg = "|".join(
+                [
+                    "does not support reduction",
+                    "unsupported operand type",
+                    "ufunc 'multiply' cannot use operands",
+                ]
+            )
+            with pytest.raises(TypeError, match=msg):
+                np.multiply.reduce(obj)
+
+    def test_add(self, values_for_np_reduce, box_with_array):
+        box = box_with_array
+        values = values_for_np_reduce
+
+        warn = None
+        if is_dtype_equal(values.dtype, "Sparse[int]") and box is pd.Index:
+            warn = FutureWarning
+        msg = "passing a SparseArray to pd.Index"
+        with tm.assert_produces_warning(warn, match=msg):
+            obj = box(values)
+
+        if values.dtype.kind in "miuf":
+            result = np.add.reduce(obj)
+            if box is pd.DataFrame:
+                expected = obj.sum(numeric_only=False)
+                tm.assert_series_equal(result, expected)
+            elif box is pd.Index:
+                # Int64Index, Index has no 'sum'
+                expected = obj._values.sum()
+                assert result == expected
+            else:
+                expected = obj.sum()
+                assert result == expected
+        else:
+            msg = "|".join(
+                [
+                    "does not support reduction",
+                    "unsupported operand type",
+                    "ufunc 'add' cannot use operands",
+                ]
+            )
+            with pytest.raises(TypeError, match=msg):
+                np.add.reduce(obj)
+
+    def test_max(self, values_for_np_reduce, box_with_array):
+        box = box_with_array
+        values = values_for_np_reduce
+
+        same_type = True
+        if box is pd.Index and values.dtype.kind in ["i", "f"]:
+            # ATM Index casts to object, so we get python ints/floats
+            same_type = False
+
+        warn = None
+        if is_dtype_equal(values.dtype, "Sparse[int]") and box is pd.Index:
+            warn = FutureWarning
+        msg = "passing a SparseArray to pd.Index"
+        with tm.assert_produces_warning(warn, match=msg):
+            obj = box(values)
+
+        result = np.maximum.reduce(obj)
+        if box is pd.DataFrame:
+            # TODO: cases with axis kwarg
+            expected = obj.max(numeric_only=False)
+            tm.assert_series_equal(result, expected)
+        else:
+            expected = values[1]
+            assert result == expected
+            if same_type:
+                # check we have e.g. Timestamp instead of dt64
+                assert type(result) == type(expected)
+
+    def test_min(self, values_for_np_reduce, box_with_array):
+        box = box_with_array
+        values = values_for_np_reduce
+
+        same_type = True
+        if box is pd.Index and values.dtype.kind in ["i", "f"]:
+            # ATM Index casts to object, so we get python ints/floats
+            same_type = False
+
+        warn = None
+        if is_dtype_equal(values.dtype, "Sparse[int]") and box is pd.Index:
+            warn = FutureWarning
+        msg = "passing a SparseArray to pd.Index"
+        with tm.assert_produces_warning(warn, match=msg):
+            obj = box(values)
+
+        result = np.minimum.reduce(obj)
+        if box is pd.DataFrame:
+            expected = obj.min(numeric_only=False)
+            tm.assert_series_equal(result, expected)
+        else:
+            expected = values[0]
+            assert result == expected
+            if same_type:
+                # check we have e.g. Timestamp instead of dt64
+                assert type(result) == type(expected)
 
 
 @pytest.mark.parametrize("type_", [list, deque, tuple])

@@ -94,10 +94,12 @@ by : mapping, function, label, or list of labels
     If ``by`` is a function, it's called on each value of the object's
     index. If a dict or Series is passed, the Series or dict VALUES
     will be used to determine the groups (the Series' values are first
-    aligned; see ``.align()`` method). If an ndarray is passed, the
-    values are used as-is to determine the groups. A label or list of
-    labels may be passed to group by the columns in ``self``. Notice
-    that a tuple is interpreted as a (single) key.
+    aligned; see ``.align()`` method). If a list or ndarray of length
+    equal to the selected axis is passed (see the `groupby user guide
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#splitting-an-object-into-groups>`_),
+    the values are used as-is to determine the groups. A label or list
+    of labels may be passed to group by the columns in ``self``.
+    Notice that a tuple is interpreted as a (single) key.
 axis : {0 or 'index', 1 or 'columns'}, default 0
     Split along rows (0) or columns (1).
 level : int, level name, or sequence of such, default None
@@ -126,7 +128,7 @@ observed : bool, default False
 dropna : bool, default True
     If True, and if group keys contain NA values, NA values together
     with row/column will be dropped.
-    If False, NA values will also be treated as the key in groups
+    If False, NA values will also be treated as the key in groups.
 
     .. versionadded:: 1.1.0
 
@@ -143,7 +145,9 @@ resample : Convenience method for frequency conversion and resampling
 Notes
 -----
 See the `user guide
-<https://pandas.pydata.org/pandas-docs/stable/groupby.html>`__ for more.
+<https://pandas.pydata.org/pandas-docs/stable/groupby.html>`__ for more
+detailed usage and examples, including splitting an object into groups,
+iterating through groups, selecting a group, aggregation, and more.
 """
 
 _shared_docs[
@@ -263,9 +267,7 @@ If you have multi-index columns:
 _shared_docs[
     "transform"
 ] = """
-Call ``func`` on self producing a {klass} with transformed values.
-
-Produced {klass} will have same axis length as self.
+Call ``func`` on self producing a {klass} with the same axis shape as self.
 
 Parameters
 ----------
@@ -397,6 +399,35 @@ _shared_docs[
     are forwarded to ``urllib`` as header options. For other URLs (e.g.
     starting with "s3://", and "gcs://") the key-value pairs are forwarded to
     ``fsspec``. Please see ``fsspec`` and ``urllib`` for more details."""
+
+_shared_docs[
+    "compression_options"
+] = """compression : str or dict, default 'infer'
+    For on-the-fly compression of the output data. If 'infer' and '%s'
+    path-like, then detect compression from the following extensions: '.gz',
+    '.bz2', '.zip', '.xz', or '.zst' (otherwise no compression). Set to
+    ``None`` for no compression. Can also be a dict with key ``'method'`` set
+    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``} and other
+    key-value pairs are forwarded to ``zipfile.ZipFile``, ``gzip.GzipFile``,
+    ``bz2.BZ2File``, or ``zstandard.ZstdDecompressor``, respectively. As an
+    example, the following could be passed for faster compression and to create
+    a reproducible gzip archive:
+    ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``."""
+
+_shared_docs[
+    "decompression_options"
+] = """compression : str or dict, default 'infer'
+    For on-the-fly decompression of on-disk data. If 'infer' and '%s' is
+    path-like, then detect compression from the following extensions: '.gz',
+    '.bz2', '.zip', '.xz', or '.zst' (otherwise no compression). If using
+    'zip', the ZIP file must contain only one data file to be read in. Set to
+    ``None`` for no decompression. Can also be a dict with key ``'method'`` set
+    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``} and other
+    key-value pairs are forwarded to ``zipfile.ZipFile``, ``gzip.GzipFile``,
+    ``bz2.BZ2File``, or ``zstandard.ZstdDecompressor``, respectively. As an
+    example, the following could be passed for Zstandard decompression using a
+    custom compression dictionary:
+    ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``."""
 
 _shared_docs[
     "replace"
@@ -660,18 +691,30 @@ _shared_docs[
     4    None
     dtype: object
 
-    When ``value=None`` and `to_replace` is a scalar, list or
-    tuple, `replace` uses the method parameter (default 'pad') to do the
+    When ``value`` is not explicitly passed and `to_replace` is a scalar, list
+    or tuple, `replace` uses the method parameter (default 'pad') to do the
     replacement. So this is why the 'a' values are being replaced by 10
     in rows 1 and 2 and 'b' in row 4 in this case.
-    The command ``s.replace('a', None)`` is actually equivalent to
-    ``s.replace(to_replace='a', value=None, method='pad')``:
 
-    >>> s.replace('a', None)
+    >>> s.replace('a')
     0    10
     1    10
     2    10
     3     b
     4     b
     dtype: object
+
+    On the other hand, if ``None`` is explicitly passed for ``value``, it will
+    be respected:
+
+    >>> s.replace('a', None)
+    0      10
+    1    None
+    2    None
+    3       b
+    4    None
+    dtype: object
+
+        .. versionchanged:: 1.4.0
+            Previously the explicit ``None`` was silently ignored.
 """

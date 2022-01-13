@@ -94,64 +94,92 @@ class TestFrameComparisons:
         with pytest.raises(ValueError, match=msg):
             df in [None]
 
-    def test_comparison_invalid(self):
-        def check(df, df2):
-
-            for (x, y) in [(df, df2), (df2, df)]:
-                # we expect the result to match Series comparisons for
-                # == and !=, inequalities should raise
-                result = x == y
-                expected = DataFrame(
-                    {col: x[col] == y[col] for col in x.columns},
-                    index=x.index,
-                    columns=x.columns,
-                )
-                tm.assert_frame_equal(result, expected)
-
-                result = x != y
-                expected = DataFrame(
-                    {col: x[col] != y[col] for col in x.columns},
-                    index=x.index,
-                    columns=x.columns,
-                )
-                tm.assert_frame_equal(result, expected)
-
-                msgs = [
-                    r"Invalid comparison between dtype=datetime64\[ns\] and ndarray",
-                    "invalid type promotion",
-                    (
-                        # npdev 1.20.0
-                        r"The DTypes <class 'numpy.dtype\[.*\]'> and "
-                        r"<class 'numpy.dtype\[.*\]'> do not have a common DType."
-                    ),
-                ]
-                msg = "|".join(msgs)
-                with pytest.raises(TypeError, match=msg):
-                    x >= y
-                with pytest.raises(TypeError, match=msg):
-                    x > y
-                with pytest.raises(TypeError, match=msg):
-                    x < y
-                with pytest.raises(TypeError, match=msg):
-                    x <= y
-
+    @pytest.mark.parametrize(
+        "arg, arg2",
+        [
+            [
+                {
+                    "a": np.random.randint(10, size=10),
+                    "b": pd.date_range("20010101", periods=10),
+                },
+                {
+                    "a": np.random.randint(10, size=10),
+                    "b": np.random.randint(10, size=10),
+                },
+            ],
+            [
+                {
+                    "a": np.random.randint(10, size=10),
+                    "b": np.random.randint(10, size=10),
+                },
+                {
+                    "a": np.random.randint(10, size=10),
+                    "b": pd.date_range("20010101", periods=10),
+                },
+            ],
+            [
+                {
+                    "a": pd.date_range("20010101", periods=10),
+                    "b": pd.date_range("20010101", periods=10),
+                },
+                {
+                    "a": np.random.randint(10, size=10),
+                    "b": np.random.randint(10, size=10),
+                },
+            ],
+            [
+                {
+                    "a": np.random.randint(10, size=10),
+                    "b": pd.date_range("20010101", periods=10),
+                },
+                {
+                    "a": pd.date_range("20010101", periods=10),
+                    "b": pd.date_range("20010101", periods=10),
+                },
+            ],
+        ],
+    )
+    def test_comparison_invalid(self, arg, arg2):
         # GH4968
         # invalid date/int comparisons
-        df = DataFrame(np.random.randint(10, size=(10, 1)), columns=["a"])
-        df["dates"] = pd.date_range("20010101", periods=len(df))
-
-        df2 = df.copy()
-        df2["dates"] = df["a"]
-        check(df, df2)
-
-        df = DataFrame(np.random.randint(10, size=(10, 2)), columns=["a", "b"])
-        df2 = DataFrame(
-            {
-                "a": pd.date_range("20010101", periods=len(df)),
-                "b": pd.date_range("20100101", periods=len(df)),
-            }
+        x = DataFrame(arg)
+        y = DataFrame(arg2)
+        # we expect the result to match Series comparisons for
+        # == and !=, inequalities should raise
+        result = x == y
+        expected = DataFrame(
+            {col: x[col] == y[col] for col in x.columns},
+            index=x.index,
+            columns=x.columns,
         )
-        check(df, df2)
+        tm.assert_frame_equal(result, expected)
+
+        result = x != y
+        expected = DataFrame(
+            {col: x[col] != y[col] for col in x.columns},
+            index=x.index,
+            columns=x.columns,
+        )
+        tm.assert_frame_equal(result, expected)
+
+        msgs = [
+            r"Invalid comparison between dtype=datetime64\[ns\] and ndarray",
+            "invalid type promotion",
+            (
+                # npdev 1.20.0
+                r"The DTypes <class 'numpy.dtype\[.*\]'> and "
+                r"<class 'numpy.dtype\[.*\]'> do not have a common DType."
+            ),
+        ]
+        msg = "|".join(msgs)
+        with pytest.raises(TypeError, match=msg):
+            x >= y
+        with pytest.raises(TypeError, match=msg):
+            x > y
+        with pytest.raises(TypeError, match=msg):
+            x < y
+        with pytest.raises(TypeError, match=msg):
+            x <= y
 
     def test_timestamp_compare(self):
         # make sure we can compare Timestamps on the right AND left hand side
@@ -668,6 +696,21 @@ class TestFrameFlexArithmetic:
         str(result)
         result.dtypes
 
+    @pytest.mark.parametrize("level", [0, None])
+    def test_broadcast_multiindex(self, level):
+        # GH34388
+        df1 = DataFrame({"A": [0, 1, 2], "B": [1, 2, 3]})
+        df1.columns = df1.columns.set_names("L1")
+
+        df2 = DataFrame({("A", "C"): [0, 0, 0], ("A", "D"): [0, 0, 0]})
+        df2.columns = df2.columns.set_names(["L1", "L2"])
+
+        result = df1.add(df2, level=level)
+        expected = DataFrame({("A", "C"): [0, 1, 2], ("A", "D"): [0, 1, 2]})
+        expected.columns = expected.columns.set_names(["L1", "L2"])
+
+        tm.assert_frame_equal(result, expected)
+
 
 class TestFrameArithmetic:
     def test_td64_op_nat_casting(self):
@@ -722,10 +765,15 @@ class TestFrameArithmetic:
         result = collike + df
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) decide on dtypes
-    def test_df_arith_2d_array_rowlike_broadcasts(self, all_arithmetic_operators):
+    def test_df_arith_2d_array_rowlike_broadcasts(
+        self, request, all_arithmetic_operators, using_array_manager
+    ):
         # GH#23000
         opname = all_arithmetic_operators
+
+        if using_array_manager and opname in ("__rmod__", "__rfloordiv__"):
+            # TODO(ArrayManager) decide on dtypes
+            td.mark_array_manager_not_yet_implemented(request)
 
         arr = np.arange(6).reshape(3, 2)
         df = DataFrame(arr, columns=[True, False], index=["A", "B", "C"])
@@ -744,10 +792,15 @@ class TestFrameArithmetic:
         result = getattr(df, opname)(rowlike)
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) decide on dtypes
-    def test_df_arith_2d_array_collike_broadcasts(self, all_arithmetic_operators):
+    def test_df_arith_2d_array_collike_broadcasts(
+        self, request, all_arithmetic_operators, using_array_manager
+    ):
         # GH#23000
         opname = all_arithmetic_operators
+
+        if using_array_manager and opname in ("__rmod__", "__rfloordiv__"):
+            # TODO(ArrayManager) decide on dtypes
+            td.mark_array_manager_not_yet_implemented(request)
 
         arr = np.arange(6).reshape(3, 2)
         df = DataFrame(arr, columns=[True, False], index=["A", "B", "C"])

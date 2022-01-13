@@ -7,7 +7,11 @@ from collections import abc
 import csv
 import sys
 from textwrap import fill
-from typing import Any
+from typing import (
+    Any,
+    Callable,
+    NamedTuple,
+)
 import warnings
 
 import numpy as np
@@ -16,6 +20,7 @@ import pandas._libs.lib as lib
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._typing import (
     ArrayLike,
+    CompressionOptions,
     DtypeArg,
     FilePath,
     ReadCsvBuffer,
@@ -39,9 +44,9 @@ from pandas.core.dtypes.common import (
     is_list_like,
 )
 
-from pandas.core import generic
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import RangeIndex
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import validate_header_arg
 from pandas.io.parsers.arrow_parser_wrapper import ArrowParserWrapper
@@ -140,6 +145,9 @@ squeeze : bool, default False
         the data.
 prefix : str, optional
     Prefix to add to column numbers when no header, e.g. 'X' for X0, X1, ...
+
+    .. deprecated:: 1.4.0
+       Use a list comprehension on the DataFrame's columns after calling ``read_csv``.
 mangle_dupe_cols : bool, default True
     Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
     'X'...'X'. Passing in False will cause data to be overwritten if there
@@ -273,12 +281,10 @@ chunksize : int, optional
     .. versionchanged:: 1.2
 
        ``TextFileReader`` is a context manager.
-compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
-    For on-the-fly decompression of on-disk data. If 'infer' and
-    `filepath_or_buffer` is path-like, then detect compression from the
-    following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
-    decompression). If using 'zip', the ZIP file must contain only one data
-    file to be read in. Set to None for no decompression.
+{decompression_options}
+
+    .. versionchanged:: 1.4.0 Zstandard support.
+
 thousands : str, optional
     Thousands separator.
 decimal : str, default '.'
@@ -349,7 +355,7 @@ warn_bad_lines : bool, optional, default ``None``
     .. deprecated:: 1.3.0
        The ``on_bad_lines`` parameter should be used instead to specify behavior upon
        encountering a bad line instead.
-on_bad_lines : {{'error', 'warn', 'skip'}}, default 'error'
+on_bad_lines : {{'error', 'warn', 'skip'}} or callable, default 'error'
     Specifies what to do upon encountering a bad line (a line with too many fields).
     Allowed values are :
 
@@ -358,6 +364,16 @@ on_bad_lines : {{'error', 'warn', 'skip'}}, default 'error'
         - 'skip', skip bad lines without raising or warning when they are encountered.
 
     .. versionadded:: 1.3.0
+
+        - callable, function with signature
+          ``(bad_line: list[str]) -> list[str] | None`` that will process a single
+          bad line. ``bad_line`` is a list of strings split by the ``sep``.
+          If the function returns ``None`, the bad line will be ignored.
+          If the function returns a new list of strings with more elements than
+          expected, a ``ParserWarning`` will be emitted while dropping extra elements.
+          Only supported when ``engine="python"``
+
+    .. versionadded:: 1.4.0
 
 delim_whitespace : bool, default False
     Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
@@ -429,10 +445,7 @@ _pyarrow_unsupported = {
     "dialect",
     "warn_bad_lines",
     "error_bad_lines",
-    # TODO(1.4)
-    # This doesn't error properly ATM, fix for release
-    # but not blocker for initial PR
-    # "on_bad_lines",
+    "on_bad_lines",
     "delim_whitespace",
     "quoting",
     "lineterminator",
@@ -446,10 +459,21 @@ _pyarrow_unsupported = {
     "low_memory",
 }
 
-_deprecated_defaults: dict[str, Any] = {
-    "error_bad_lines": None,
-    "warn_bad_lines": None,
-    "squeeze": None,
+
+class _DeprecationConfig(NamedTuple):
+    default_value: Any
+    msg: str | None
+
+
+_deprecated_defaults: dict[str, _DeprecationConfig] = {
+    "error_bad_lines": _DeprecationConfig(None, "Use on_bad_lines in the future."),
+    "warn_bad_lines": _DeprecationConfig(None, "Use on_bad_lines in the future."),
+    "squeeze": _DeprecationConfig(
+        None, 'Append .squeeze("columns") to the call to squeeze.'
+    ),
+    "prefix": _DeprecationConfig(
+        None, "Use a list comprehension on the column names in the future."
+    ),
 }
 
 
@@ -510,9 +534,15 @@ def _read(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str], kwds
 ):
     """Generic reader of line files."""
-    if kwds.get("date_parser", None) is not None:
-        if isinstance(kwds["parse_dates"], bool):
-            kwds["parse_dates"] = True
+    # if we pass a date_parser and parse_dates=False, we should not parse the
+    # dates GH#44366
+    if (
+        kwds.get("date_parser", None) is not None
+        and kwds.get("parse_dates", None) is None
+    ):
+        kwds["parse_dates"] = True
+    elif kwds.get("parse_dates", None) is None:
+        kwds["parse_dates"] = False
 
     # Extract some of the arguments (pass chunksize on).
     iterator = kwds.get("iterator", False)
@@ -553,7 +583,8 @@ def _read(
         func_name="read_csv",
         summary="Read a comma-separated values (csv) file into DataFrame.",
         _default_sep="','",
-        storage_options=generic._shared_docs["storage_options"],
+        storage_options=_shared_docs["storage_options"],
+        decompression_options=_shared_docs["decompression_options"],
     )
 )
 def read_csv(
@@ -585,7 +616,7 @@ def read_csv(
     verbose=False,
     skip_blank_lines=True,
     # Datetime Handling
-    parse_dates=False,
+    parse_dates=None,
     infer_datetime_format=False,
     keep_date_col=False,
     date_parser=None,
@@ -595,7 +626,7 @@ def read_csv(
     iterator=False,
     chunksize=None,
     # Quoting, Compression, and File Format
-    compression="infer",
+    compression: CompressionOptions = "infer",
     thousands=None,
     decimal: str = ".",
     lineterminator=None,
@@ -651,7 +682,8 @@ def read_csv(
         func_name="read_table",
         summary="Read general delimited file into DataFrame.",
         _default_sep=r"'\\t' (tab-stop)",
-        storage_options=generic._shared_docs["storage_options"],
+        storage_options=_shared_docs["storage_options"],
+        decompression_options=_shared_docs["decompression_options"],
     )
 )
 def read_table(
@@ -693,7 +725,7 @@ def read_table(
     iterator=False,
     chunksize=None,
     # Quoting, Compression, and File Format
-    compression="infer",
+    compression: CompressionOptions = "infer",
     thousands=None,
     decimal: str = ".",
     lineterminator=None,
@@ -741,13 +773,16 @@ def read_table(
     return _read(filepath_or_buffer, kwds)
 
 
+@deprecate_nonkeyword_arguments(
+    version=None, allowed_args=["filepath_or_buffer"], stacklevel=2
+)
 def read_fwf(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
-    colspecs="infer",
-    widths=None,
-    infer_nrows=100,
+    colspecs: list[tuple[int, int]] | str | None = "infer",
+    widths: list[int] | None = None,
+    infer_nrows: int = 100,
     **kwds,
-):
+) -> DataFrame | TextFileReader:
     r"""
     Read a table of fixed-width formatted lines into DataFrame.
 
@@ -782,7 +817,7 @@ def read_fwf(
 
     Returns
     -------
-    DataFrame or TextParser
+    DataFrame or TextFileReader
         A comma-separated values (csv) file is returned as two-dimensional
         data structure with labeled axes.
 
@@ -807,6 +842,9 @@ def read_fwf(
         for w in widths:
             colspecs.append((col, col + w))
             col += w
+
+    # for mypy
+    assert colspecs is not None
 
     # GH#40830
     # Ensure length of `colspecs` matches length of `names`
@@ -902,7 +940,18 @@ class TextFileReader(abc.Iterator):
                 engine == "pyarrow"
                 and argname in _pyarrow_unsupported
                 and value != default
+                and value != getattr(value, "value", default)
             ):
+                if (
+                    argname == "on_bad_lines"
+                    and kwds.get("error_bad_lines") is not None
+                ):
+                    argname = "error_bad_lines"
+                elif (
+                    argname == "on_bad_lines" and kwds.get("warn_bad_lines") is not None
+                ):
+                    argname = "warn_bad_lines"
+
                 raise ValueError(
                     f"The {repr(argname)} option is not supported with the "
                     f"'pyarrow' engine"
@@ -920,7 +969,12 @@ class TextFileReader(abc.Iterator):
                 if engine != "c" and value != default:
                     if "python" in engine and argname not in _python_unsupported:
                         pass
-                    elif value == _deprecated_defaults.get(argname, default):
+                    elif (
+                        value
+                        == _deprecated_defaults.get(
+                            argname, _DeprecationConfig(default, None)
+                        ).default_value
+                    ):
                         pass
                     else:
                         raise ValueError(
@@ -928,7 +982,9 @@ class TextFileReader(abc.Iterator):
                             f"{repr(engine)} engine"
                         )
             else:
-                value = _deprecated_defaults.get(argname, default)
+                value = _deprecated_defaults.get(
+                    argname, _DeprecationConfig(default, None)
+                ).default_value
             options[argname] = value
 
         if engine == "python-fwf":
@@ -1053,10 +1109,10 @@ class TextFileReader(abc.Iterator):
         for arg in _deprecated_defaults.keys():
             parser_default = _c_parser_defaults.get(arg, parser_defaults[arg])
             depr_default = _deprecated_defaults[arg]
-            if result.get(arg, depr_default) != depr_default:
+            if result.get(arg, depr_default) != depr_default.default_value:
                 msg = (
                     f"The {arg} argument has been deprecated and will be "
-                    "removed in a future version.\n\n"
+                    f"removed in a future version. {depr_default.msg}\n\n"
                 )
                 warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
             else:
@@ -1133,8 +1189,7 @@ class TextFileReader(abc.Iterator):
             raise ValueError(
                 f"Unknown engine: {engine} (valid options are {mapping.keys()})"
             )
-        # error: Too many arguments for "ParserBase"
-        return mapping[engine](self.f, **self.options)  # type: ignore[call-arg]
+        return mapping[engine](self.f, **self.options)
 
     def _failover_to_python(self):
         raise AbstractMethodError(self)
@@ -1323,7 +1378,7 @@ def _refine_defaults_read(
     sep: str | object,
     error_bad_lines: bool | None,
     warn_bad_lines: bool | None,
-    on_bad_lines: str | None,
+    on_bad_lines: str | Callable | None,
     names: ArrayLike | None | object,
     prefix: str | None | object,
     defaults: dict[str, Any],
@@ -1355,7 +1410,7 @@ def _refine_defaults_read(
         Whether to error on a bad line or not.
     warn_bad_lines : str or None
         Whether to warn on a bad line or not.
-    on_bad_lines : str or None
+    on_bad_lines : str, callable or None
         An option for handling bad lines or a sentinel value(None).
     names : array-like, optional
         List of column names to use. If the file contains a header row,
@@ -1423,6 +1478,13 @@ def _refine_defaults_read(
             "delim_whitespace=True; you can only specify one."
         )
 
+    if delimiter == "\n":
+        raise ValueError(
+            r"Specified \n as separator or delimiter. This forces the python engine "
+            "which does not accept a line terminator. Hence it is not allowed to use "
+            "the line terminator as separator.",
+        )
+
     if delimiter is lib.no_default:
         # assign default separator value
         kwds["delimiter"] = delim_default
@@ -1452,6 +1514,12 @@ def _refine_defaults_read(
             kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.WARN
         elif on_bad_lines == "skip":
             kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.SKIP
+        elif callable(on_bad_lines):
+            if engine != "python":
+                raise ValueError(
+                    "on_bad_line can only be a callable function if engine='python'"
+                )
+            kwds["on_bad_lines"] = on_bad_lines
         else:
             raise ValueError(f"Argument {on_bad_lines} is invalid for on_bad_lines")
     else:

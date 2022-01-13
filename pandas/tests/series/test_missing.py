@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 import numpy as np
+import pytest
 
 from pandas._libs import iNaT
 
@@ -35,17 +36,19 @@ class TestSeriesMissingData:
         tm.assert_series_equal(r, e)
         tm.assert_series_equal(dr, de)
 
-    def test_isnull_for_inf_deprecated(self):
+    @pytest.mark.parametrize(
+        "method, expected",
+        [
+            ["isna", Series([False, True, True, False])],
+            ["dropna", Series(["a", 1.0], index=[0, 3])],
+        ],
+    )
+    def test_isnull_for_inf_deprecated(self, method, expected):
         # gh-17115
         s = Series(["a", np.inf, np.nan, 1.0])
         with pd.option_context("mode.use_inf_as_null", True):
-            r = s.isna()
-            dr = s.dropna()
-
-        e = Series([False, True, True, False])
-        de = Series(["a", 1.0], index=[0, 3])
-        tm.assert_series_equal(r, e)
-        tm.assert_series_equal(dr, de)
+            result = getattr(s, method)()
+        tm.assert_series_equal(result, expected)
 
     def test_timedelta64_nan(self):
 
@@ -73,20 +76,23 @@ class TestSeriesMissingData:
         td1[2] = td[2]
         assert not isna(td1[2])
 
-        # FIXME: don't leave commented-out
         # boolean setting
-        # this doesn't work, not sure numpy even supports it
-        # result = td[(td>np.timedelta64(timedelta(days=3))) &
-        # td<np.timedelta64(timedelta(days=7)))] = np.nan
-        # assert isna(result).sum() == 7
+        # GH#2899 boolean setting
+        td3 = np.timedelta64(timedelta(days=3))
+        td7 = np.timedelta64(timedelta(days=7))
+        td[(td > td3) & (td < td7)] = np.nan
+        assert isna(td).sum() == 3
 
+    @pytest.mark.xfail(
+        reason="Chained inequality raises when trying to define 'selector'"
+    )
+    def test_logical_range_select(self, datetime_series):
         # NumPy limitation =(
-
-        # def test_logical_range_select(self):
-        #     np.random.seed(12345)
-        #     selector = -0.5 <= datetime_series <= 0.5
-        #     expected = (datetime_series >= -0.5) & (datetime_series <= 0.5)
-        #     tm.assert_series_equal(selector, expected)
+        # https://github.com/pandas-dev/pandas/commit/9030dc021f07c76809848925cb34828f6c8484f3
+        np.random.seed(12345)
+        selector = -0.5 <= datetime_series <= 0.5
+        expected = (datetime_series >= -0.5) & (datetime_series <= 0.5)
+        tm.assert_series_equal(selector, expected)
 
     def test_valid(self, datetime_series):
         ts = datetime_series.copy()

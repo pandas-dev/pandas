@@ -44,8 +44,7 @@ class TestDataFrameReprInfoEtc:
         index = MultiIndex.from_tuples([(0, 0), (1, 1)], names=["\u0394", "i1"])
 
         obj = DataFrame(np.random.randn(2, 4), index=index)
-        if frame_or_series is Series:
-            obj = obj[0]
+        obj = tm.get_obj(obj, frame_or_series)
         repr(obj)
 
     def test_assign_index_sequences(self):
@@ -265,6 +264,7 @@ class TestDataFrameReprInfoEtc:
         with option_context("display.max_columns", 20):
             assert "StringCol" in repr(df)
 
+    @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_latex_repr(self):
         result = r"""\begin{tabular}{llll}
 \toprule

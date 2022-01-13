@@ -33,7 +33,9 @@ from pandas._libs import (
     hashtable as _hash,
 )
 
+from pandas._libs.lib cimport eq_NA_compat
 from pandas._libs.missing cimport (
+    C_NA as NA,
     checknull,
     is_matching_na,
 )
@@ -62,7 +64,7 @@ cdef ndarray _get_bool_indexer(ndarray values, object val):
     if values.descr.type_num == cnp.NPY_OBJECT:
         # i.e. values.dtype == object
         if not checknull(val):
-            indexer = values == val
+            indexer = eq_NA_compat(values, val)
 
         else:
             # We need to check for _matching_ NA values
@@ -338,7 +340,12 @@ cdef class IndexEngine:
         missing = np.empty(n_t, dtype=np.intp)
 
         # map each starget to its position in the index
-        if stargets and len(stargets) < 5 and self.is_monotonic_increasing:
+        if (
+                stargets and
+                len(stargets) < 5 and
+                not any([checknull(t) for t in stargets]) and
+                self.is_monotonic_increasing
+        ):
             # if there are few enough stargets and the index is monotonically
             # increasing, then use binary search for each starget
             remaining_stargets = set()
@@ -649,7 +656,7 @@ cdef class BaseMultiIndexCodesEngine:
             Integers representing one combination each
         """
         zt = [target._get_level_values(i) for i in range(target.nlevels)]
-        level_codes = [lev.get_indexer(codes) + 1 for lev, codes
+        level_codes = [lev.get_indexer_for(codes) + 1 for lev, codes
                        in zip(self.levels, zt)]
         return self._codes_to_ints(np.array(level_codes, dtype='uint64').T)
 

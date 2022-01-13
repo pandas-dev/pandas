@@ -180,13 +180,19 @@ _all_methods = [
             pd.DataFrame,
             frame_data,
             operator.methodcaller("append", pd.DataFrame({"A": [1]})),
-        )
+        ),
+        marks=pytest.mark.filterwarnings(
+            "ignore:.*append method is deprecated.*:FutureWarning"
+        ),
     ),
     pytest.param(
         (
             pd.DataFrame,
             frame_data,
             operator.methodcaller("append", pd.DataFrame({"B": [1]})),
+        ),
+        marks=pytest.mark.filterwarnings(
+            "ignore:.*append method is deprecated.*:FutureWarning"
         ),
     ),
     pytest.param(
@@ -758,7 +764,6 @@ def test_groupby_finalize(obj, method):
     "method",
     [
         lambda x: x.agg(["sum", "count"]),
-        lambda x: x.transform(lambda y: y),
         lambda x: x.apply(lambda y: y),
         lambda x: x.agg("std"),
         lambda x: x.agg("var"),

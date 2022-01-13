@@ -47,7 +47,7 @@ Enable Docker support and use the Services tool window to build and manage image
 run and interact with containers.
 See https://www.jetbrains.com/help/pycharm/docker.html for details.
 
-Note that you might need to rebuild the C extensions if/when you merge with upstream/master using::
+Note that you might need to rebuild the C extensions if/when you merge with upstream/main using::
 
     python setup.py build_ext -j 4
 
@@ -165,7 +165,7 @@ We'll now kick off a three-step process:
 
 At this point you should be able to import pandas from your locally built version::
 
-   $ python  # start an interpreter
+   $ python
    >>> import pandas
    >>> print(pandas.__version__)
    0.22.0.dev0+29.g4ad6d4d74

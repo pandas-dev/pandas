@@ -72,6 +72,14 @@ def safe_import(mod_name: str, min_version: str | None = None):
             message=".*decorator is deprecated since Python 3.8.*",
         )
 
+        # fastparquet import accesses pd.Int64Index
+        warnings.filterwarnings(
+            "ignore",
+            category=FutureWarning,
+            module="fastparquet",
+            message=".*Int64Index.*",
+        )
+
         try:
             mod = __import__(mod_name)
         except ImportError:
@@ -184,9 +192,6 @@ skip_if_no_mpl = pytest.mark.skipif(
 skip_if_mpl = pytest.mark.skipif(not _skip_if_no_mpl(), reason="matplotlib is present")
 skip_if_32bit = pytest.mark.skipif(not IS64, reason="skipping for 32 bit")
 skip_if_windows = pytest.mark.skipif(is_platform_windows(), reason="Running on Windows")
-skip_if_windows_python_3 = pytest.mark.skipif(
-    is_platform_windows(), reason="not used on win32"
-)
 skip_if_has_locale = pytest.mark.skipif(
     _skip_if_has_locale(), reason=f"Specific locale is set {locale.getlocale()[0]}"
 )
@@ -262,17 +267,18 @@ def file_leak_context():
         flist = proc.open_files()
         conns = proc.connections()
 
-        yield
+        try:
+            yield
+        finally:
+            flist2 = proc.open_files()
+            # on some builds open_files includes file position, which we _dont_
+            #  expect to remain unchanged, so we need to compare excluding that
+            flist_ex = [(x.path, x.fd) for x in flist]
+            flist2_ex = [(x.path, x.fd) for x in flist2]
+            assert flist2_ex == flist_ex, (flist2, flist)
 
-        flist2 = proc.open_files()
-        # on some builds open_files includes file position, which we _dont_
-        #  expect to remain unchanged, so we need to compare excluding that
-        flist_ex = [(x.path, x.fd) for x in flist]
-        flist2_ex = [(x.path, x.fd) for x in flist2]
-        assert flist2_ex == flist_ex, (flist2, flist)
-
-        conns2 = proc.connections()
-        assert conns2 == conns, (conns2, conns)
+            conns2 = proc.connections()
+            assert conns2 == conns, (conns2, conns)
 
 
 def async_mark():
@@ -285,7 +291,12 @@ def async_mark():
     return async_mark
 
 
-skip_array_manager_not_yet_implemented = pytest.mark.skipif(
+def mark_array_manager_not_yet_implemented(request):
+    mark = pytest.mark.xfail(reason="Not yet implemented for ArrayManager")
+    request.node.add_marker(mark)
+
+
+skip_array_manager_not_yet_implemented = pytest.mark.xfail(
     get_option("mode.data_manager") == "array",
     reason="Not yet implemented for ArrayManager",
 )

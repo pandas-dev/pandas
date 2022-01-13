@@ -19,14 +19,14 @@ VERSIONS = {
     "matplotlib": "3.3.2",
     "numexpr": "2.7.1",
     "odfpy": "1.4.1",
-    "openpyxl": "3.0.2",
+    "openpyxl": "3.0.3",
     "pandas_gbq": "0.14.0",
     "pyarrow": "1.0.1",
     "pytest": "6.0",
     "pyxlsb": "1.0.6",
     "s3fs": "0.4.0",
     "scipy": "1.4.1",
-    "sqlalchemy": "1.3.11",
+    "sqlalchemy": "1.4.0",
     "tables": "3.6.1",
     "tabulate": "0.8.7",
     "xarray": "0.15.1",
@@ -34,6 +34,7 @@ VERSIONS = {
     "xlwt": "1.3.0",
     "xlsxwriter": "1.2.2",
     "numba": "0.50.1",
+    "zstandard": "0.15.2",
 }
 
 # A mapping from import name to package name (on PyPI) for packages where

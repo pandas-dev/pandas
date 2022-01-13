@@ -180,6 +180,8 @@ cdef class _Timestamp(ABCTimestamp):
     def __hash__(_Timestamp self):
         if self.nanosecond:
             return hash(self.value)
+        if self.fold:
+            return datetime.__hash__(self.replace(fold=0))
         return datetime.__hash__(self)
 
     def __richcmp__(_Timestamp self, object other, int op):
@@ -307,7 +309,6 @@ cdef class _Timestamp(ABCTimestamp):
         elif not isinstance(self, _Timestamp):
             # cython semantics, args have been switched and this is __radd__
             return other.__add__(self)
-
         return NotImplemented
 
     def __sub__(self, other):
@@ -343,10 +344,10 @@ cdef class _Timestamp(ABCTimestamp):
             else:
                 self = type(other)(self)
 
-            # validate tz's
-            if not tz_compare(self.tzinfo, other.tzinfo):
-                raise TypeError("Timestamp subtraction must have the "
-                                "same timezones or no timezones")
+            if (self.tzinfo is None) ^ (other.tzinfo is None):
+                raise TypeError(
+                    "Cannot subtract tz-naive and tz-aware datetime-like objects."
+                )
 
             # scalar Timestamp/datetime - Timestamp/datetime -> yields a
             # Timedelta
@@ -739,7 +740,7 @@ cdef class _Timestamp(ABCTimestamp):
 
     def isoformat(self, sep: str = "T", timespec: str = "auto") -> str:
         """
-        Return the time formatted according to ISO.
+        Return the time formatted according to ISO 8610.
 
         The full format looks like 'YYYY-MM-DD HH:MM:SS.mmmmmmnnn'.
         By default, the fractional part is omitted if self.microsecond == 0
@@ -897,7 +898,7 @@ cdef class _Timestamp(ABCTimestamp):
 
         return datetime(self.year, self.month, self.day,
                         self.hour, self.minute, self.second,
-                        self.microsecond, self.tzinfo)
+                        self.microsecond, self.tzinfo, fold=self.fold)
 
     cpdef to_datetime64(self):
         """
@@ -1019,7 +1020,7 @@ class Timestamp(_Timestamp):
         Due to daylight saving time, one wall clock time can occur twice
         when shifting from summer to winter time; fold describes whether the
         datetime-like corresponds  to the first (0) or the second time (1)
-        the wall clock hits the ambiguous time
+        the wall clock hits the ambiguous time.
 
         .. versionadded:: 1.1.0
 
@@ -1162,13 +1163,23 @@ class Timestamp(_Timestamp):
 
         Examples
         --------
-        >>> pd.Timestamp.fromtimestamp(1584199972)
+        >>> pd.Timestamp.utcfromtimestamp(1584199972)
         Timestamp('2020-03-14 15:32:52')
         """
+        # GH#22451
+        warnings.warn(
+            "The behavior of Timestamp.utcfromtimestamp is deprecated, in a "
+            "future version will return a timezone-aware Timestamp with UTC "
+            "timezone. To keep the old behavior, use "
+            "Timestamp.utcfromtimestamp(ts).tz_localize(None). "
+            "To get the future behavior, use Timestamp.fromtimestamp(ts, 'UTC')",
+            FutureWarning,
+            stacklevel=1,
+        )
         return cls(datetime.utcfromtimestamp(ts))
 
     @classmethod
-    def fromtimestamp(cls, ts):
+    def fromtimestamp(cls, ts, tz=None):
         """
         Timestamp.fromtimestamp(ts)
 
@@ -1176,12 +1187,13 @@ class Timestamp(_Timestamp):
 
         Examples
         --------
-        >>> pd.Timestamp.utcfromtimestamp(1584199972)
+        >>> pd.Timestamp.fromtimestamp(1584199972)
         Timestamp('2020-03-14 15:32:52')
 
         Note that the output may change depending on your local time.
         """
-        return cls(datetime.fromtimestamp(ts))
+        tz = maybe_get_tz(tz)
+        return cls(datetime.fromtimestamp(ts, tz))
 
     def strftime(self, format):
         """
@@ -1283,6 +1295,27 @@ class Timestamp(_Timestamp):
             # GH#17690 tzinfo must be a datetime.tzinfo object, ensured
             #  by the cython annotation.
             if tz is not None:
+                if (is_integer_object(tz)
+                    and is_integer_object(ts_input)
+                    and is_integer_object(freq)
+                ):
+                    # GH#31929 e.g. Timestamp(2019, 3, 4, 5, 6, tzinfo=foo)
+                    # TODO(GH#45307): this will still be fragile to
+                    #  mixed-and-matched positional/keyword arguments
+                    ts_input = datetime(
+                        ts_input,
+                        freq,
+                        tz,
+                        unit or 0,
+                        year or 0,
+                        month or 0,
+                        day or 0,
+                        fold=fold or 0,
+                    )
+                    nanosecond = hour
+                    tz = tzinfo
+                    return cls(ts_input, nanosecond=nanosecond, tz=tz)
+
                 raise ValueError('Can provide at most one of tz, tzinfo')
 
             # User passed tzinfo instead of tz; avoid silently ignoring
@@ -1737,7 +1770,7 @@ timedelta}, default 'raise'
     def tz_localize(self, tz, ambiguous='raise', nonexistent='raise'):
         """
         Convert naive Timestamp to local time zone, or remove
-        timezone from tz-aware Timestamp.
+        timezone from timezone-aware Timestamp.
 
         Parameters
         ----------
@@ -1840,7 +1873,7 @@ default 'raise'
 
     def tz_convert(self, tz):
         """
-        Convert tz-aware Timestamp to another time zone.
+        Convert timezone-aware Timestamp to another time zone.
 
         Parameters
         ----------

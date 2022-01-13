@@ -53,6 +53,7 @@ from pandas.util._decorators import (
 from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
     ensure_object,
+    is_datetime64_any_dtype,
     is_datetime64_dtype,
     is_dtype_equal,
     is_float_dtype,
@@ -632,7 +633,7 @@ class PeriodArray(dtl.DatelikeOps):
 
     @dtl.ravel_compat
     def _format_native_types(
-        self, na_rep="NaT", date_format=None, **kwargs
+        self, *, na_rep="NaT", date_format=None, **kwargs
     ) -> np.ndarray:
         """
         actually format my specific types
@@ -666,6 +667,12 @@ class PeriodArray(dtl.DatelikeOps):
                 return self.copy()
         if is_period_dtype(dtype):
             return self.asfreq(dtype.freq)
+
+        if is_datetime64_any_dtype(dtype):
+            # GH#45038 match PeriodIndex behavior.
+            tz = getattr(dtype, "tz", None)
+            return self.to_timestamp().tz_localize(tz)
+
         return super().astype(dtype, copy=copy)
 
     def searchsorted(

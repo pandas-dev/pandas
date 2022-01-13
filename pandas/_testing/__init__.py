@@ -28,13 +28,9 @@ from pandas._config.localization import (  # noqa:F401
 from pandas._typing import Dtype
 
 from pandas.core.dtypes.common import (
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
     is_float_dtype,
     is_integer_dtype,
-    is_period_dtype,
     is_sequence,
-    is_timedelta64_dtype,
     is_unsigned_integer_dtype,
     pandas_dtype,
 )
@@ -48,7 +44,6 @@ from pandas import (
     Index,
     IntervalIndex,
     MultiIndex,
-    NumericIndex,
     RangeIndex,
     Series,
     bdate_range,
@@ -86,6 +81,7 @@ from pandas._testing.asserters import (  # noqa:F401
     assert_interval_array_equal,
     assert_is_sorted,
     assert_is_valid_plot_return_object,
+    assert_metadata_equivalent,
     assert_numpy_array_equal,
     assert_period_array_equal,
     assert_series_equal,
@@ -93,7 +89,10 @@ from pandas._testing.asserters import (  # noqa:F401
     assert_timedelta_array_equal,
     raise_assert_detail,
 )
-from pandas._testing.compat import get_dtype  # noqa:F401
+from pandas._testing.compat import (  # noqa:F401
+    get_dtype,
+    get_obj,
+)
 from pandas._testing.contexts import (  # noqa:F401
     RNGContext,
     decompress_file,
@@ -107,15 +106,16 @@ from pandas._testing.contexts import (  # noqa:F401
 from pandas.core.api import (
     Float64Index,
     Int64Index,
+    NumericIndex,
     UInt64Index,
 )
 from pandas.core.arrays import (
-    DatetimeArray,
+    BaseMaskedArray,
+    ExtensionArray,
     PandasArray,
-    PeriodArray,
-    TimedeltaArray,
-    period_array,
 )
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
     from pandas import (
@@ -156,6 +156,17 @@ ALL_NUMPY_DTYPES = (
     + OBJECT_DTYPES
     + BYTES_DTYPES
 )
+
+NARROW_NP_DTYPES = [
+    np.float16,
+    np.float32,
+    np.int8,
+    np.int16,
+    np.int32,
+    np.uint8,
+    np.uint16,
+    np.uint32,
+]
 
 NULL_OBJECTS = [None, np.nan, pd.NaT, float("nan"), pd.NA, Decimal("NaN")]
 NP_NAT_OBJECTS = [
@@ -253,13 +264,6 @@ def box_expected(expected, box_cls, transpose=True):
             #  single-row special cases in datetime arithmetic
             expected = expected.T
             expected = pd.concat([expected] * 2, ignore_index=True)
-    elif box_cls is PeriodArray:
-        # the PeriodArray constructor is not as flexible as period_array
-        expected = period_array(expected)
-    elif box_cls is DatetimeArray:
-        expected = DatetimeArray(expected)
-    elif box_cls is TimedeltaArray:
-        expected = TimedeltaArray(expected)
     elif box_cls is np.ndarray or box_cls is np.array:
         expected = np.array(expected)
     elif box_cls is to_array:
@@ -270,17 +274,16 @@ def box_expected(expected, box_cls, transpose=True):
 
 
 def to_array(obj):
+    """
+    Similar to pd.array, but does not cast numpy dtypes to nullable dtypes.
+    """
     # temporary implementation until we get pd.array in place
     dtype = getattr(obj, "dtype", None)
 
-    if is_period_dtype(dtype):
-        return period_array(obj)
-    elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
-        return DatetimeArray._from_sequence(obj)
-    elif is_timedelta64_dtype(dtype):
-        return TimedeltaArray._from_sequence(obj)
-    else:
-        return np.array(obj)
+    if dtype is None:
+        return np.asarray(obj)
+
+    return extract_array(obj, extract_numpy=True)
 
 
 # -----------------------------------------------------------------------------
@@ -375,7 +378,11 @@ def makePeriodIndex(k: int = 10, name=None, **kwargs) -> PeriodIndex:
 
 
 def makeMultiIndex(k=10, names=None, **kwargs):
-    return MultiIndex.from_product((("foo", "bar"), (1, 2)), names=names, **kwargs)
+    N = (k // 2) + 1
+    rng = range(N)
+    mi = MultiIndex.from_product([("foo", "bar"), rng], names=names, **kwargs)
+    assert len(mi) >= k  # GH#38795
+    return mi[:k]
 
 
 _names = [
@@ -429,7 +436,7 @@ def _make_timeseries(start="2000-01-01", end="2000-12-31", freq="1D", seed=None)
 
     Examples
     --------
-    >>> _make_timeseries()
+    >>> _make_timeseries()  # doctest: +SKIP
                   id    name         x         y
     timestamp
     2000-01-01   982   Frank  0.031261  0.986727
@@ -1050,3 +1057,55 @@ def at(x):
 
 def iat(x):
     return x.iat
+
+
+# -----------------------------------------------------------------------------
+
+
+def shares_memory(left, right) -> bool:
+    """
+    Pandas-compat for np.shares_memory.
+    """
+    if isinstance(left, np.ndarray) and isinstance(right, np.ndarray):
+        return np.shares_memory(left, right)
+    elif isinstance(left, np.ndarray):
+        # Call with reversed args to get to unpacking logic below.
+        return shares_memory(right, left)
+
+    if isinstance(left, RangeIndex):
+        return False
+    if isinstance(left, MultiIndex):
+        return shares_memory(left._codes, right)
+    if isinstance(left, (Index, Series)):
+        return shares_memory(left._values, right)
+
+    if isinstance(left, NDArrayBackedExtensionArray):
+        return shares_memory(left._ndarray, right)
+    if isinstance(left, pd.core.arrays.SparseArray):
+        return shares_memory(left.sp_values, right)
+    if isinstance(left, pd.core.arrays.IntervalArray):
+        return shares_memory(left._left, right) or shares_memory(left._right, right)
+
+    if isinstance(left, ExtensionArray) and left.dtype == "string[pyarrow]":
+        # https://github.com/pandas-dev/pandas/pull/43930#discussion_r736862669
+        if isinstance(right, ExtensionArray) and right.dtype == "string[pyarrow]":
+            # error: "ExtensionArray" has no attribute "_data"
+            left_pa_data = left._data  # type: ignore[attr-defined]
+            # error: "ExtensionArray" has no attribute "_data"
+            right_pa_data = right._data  # type: ignore[attr-defined]
+            left_buf1 = left_pa_data.chunk(0).buffers()[1]
+            right_buf1 = right_pa_data.chunk(0).buffers()[1]
+            return left_buf1 == right_buf1
+
+    if isinstance(left, BaseMaskedArray) and isinstance(right, BaseMaskedArray):
+        # By convention, we'll say these share memory if they share *either*
+        #  the _data or the _mask
+        return np.shares_memory(left._data, right._data) or np.shares_memory(
+            left._mask, right._mask
+        )
+
+    if isinstance(left, DataFrame) and len(left._mgr.arrays) == 1:
+        arr = left._mgr.arrays[0]
+        return shares_memory(arr, right)
+
+    raise NotImplementedError(type(left), type(right))

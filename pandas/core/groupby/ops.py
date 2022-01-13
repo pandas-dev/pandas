@@ -158,9 +158,7 @@ class WrappedCythonOp:
         f = getattr(libgroupby, ftype)
         if is_numeric:
             return f
-        # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-        # operand type: "Literal['object']")
-        elif dtype == object:  # type: ignore[comparison-overlap]
+        elif dtype == object:
             if "object" not in f.__signatures__:
                 # raise NotImplementedError here rather than TypeError later
                 raise NotImplementedError(
@@ -500,9 +498,10 @@ class WrappedCythonOp:
         elif is_bool_dtype(dtype):
             values = values.astype("int64")
         elif is_integer_dtype(dtype):
-            # e.g. uint8 -> uint64, int16 -> int64
-            dtype_str = dtype.kind + "8"
-            values = values.astype(dtype_str, copy=False)
+            # GH#43329 If the dtype is explicitly of type uint64 the type is not
+            # changed to prevent overflow.
+            if dtype != np.uint64:
+                values = values.astype(np.int64, copy=False)
         elif is_numeric:
             if not is_complex_dtype(dtype):
                 values = ensure_float64(values)
@@ -530,6 +529,16 @@ class WrappedCythonOp:
                     mask=mask,
                     result_mask=result_mask,
                     is_datetimelike=is_datetimelike,
+                )
+            elif self.how in ["add"]:
+                # We support datetimelike
+                func(
+                    result,
+                    counts,
+                    values,
+                    comp_ids,
+                    min_count,
+                    datetimelike=is_datetimelike,
                 )
             else:
                 func(result, counts, values, comp_ids, min_count)
@@ -796,6 +805,7 @@ class BaseGrouper:
         Compute group sizes.
         """
         ids, _, ngroups = self.group_info
+        out: np.ndarray | list
         if ngroups:
             out = np.bincount(ids[ids != -1], minlength=ngroups)
         else:

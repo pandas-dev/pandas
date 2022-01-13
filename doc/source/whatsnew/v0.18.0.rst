@@ -669,9 +669,9 @@ New signature
 
 .. ipython:: python
 
-   pd.Series([0,1]).rank(axis=0, method='average', numeric_only=None,
+   pd.Series([0,1]).rank(axis=0, method='average', numeric_only=False,
                          na_option='keep', ascending=True, pct=False)
-   pd.DataFrame([0,1]).rank(axis=0, method='average', numeric_only=None,
+   pd.DataFrame([0,1]).rank(axis=0, method='average', numeric_only=False,
                             na_option='keep', ascending=True, pct=False)
 
 

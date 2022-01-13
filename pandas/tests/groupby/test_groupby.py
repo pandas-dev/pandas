@@ -29,6 +29,7 @@ from pandas.core.arrays import (
 )
 from pandas.core.base import SpecificationError
 import pandas.core.common as com
+from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
 
 
 def test_repr():
@@ -869,7 +870,7 @@ def test_omit_nuisance(df):
 
     # won't work with axis = 1
     grouped = df.groupby({"A": 0, "C": 0, "D": 1, "E": 1}, axis=1)
-    msg = "'DatetimeArray' does not implement reduction 'sum'"
+    msg = "does not support reduction 'sum'"
     with pytest.raises(TypeError, match=msg):
         grouped.agg(lambda x: x.sum(0, numeric_only=False))
 
@@ -1931,7 +1932,7 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
                 # GH#41291
                 # datetime64 -> prod and sum are invalid
                 if op == "skew":
-                    msg = "'DatetimeArray' does not implement reduction 'skew'"
+                    msg = "does not support reduction 'skew'"
                 else:
                     msg = "datetime64 type does not support"
                 with pytest.raises(TypeError, match=msg):
@@ -1943,9 +1944,9 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
                 # GH#41291
                 if op == "mad":
                     # mad calls mean, which Categorical doesn't implement
-                    msg = "'Categorical' does not implement reduction 'mean'"
+                    msg = "does not support reduction 'mean'"
                 elif op == "skew":
-                    msg = f"'Categorical' does not implement reduction '{op}'"
+                    msg = f"does not support reduction '{op}'"
                 else:
                     msg = "category type does not support"
                 with pytest.raises(TypeError, match=msg):
@@ -2269,7 +2270,8 @@ def test_groupby_duplicate_index():
 def test_dup_labels_output_shape(groupby_func, idx):
     if groupby_func in {"size", "ngroup", "cumcount"}:
         pytest.skip("Not applicable")
-
+    # TODO(2.0) Remove after pad/backfill deprecation enforced
+    groupby_func = maybe_normalize_deprecated_kernels(groupby_func)
     df = DataFrame([[1, 1]], columns=idx)
     grp_by = df.groupby([0])
 
@@ -2614,3 +2616,12 @@ def test_rolling_wrong_param_min_period():
     result_error_msg = r"__init__\(\) got an unexpected keyword argument 'min_period'"
     with pytest.raises(TypeError, match=result_error_msg):
         test_df.groupby("name")["val"].rolling(window=2, min_period=1).sum()
+
+
+def test_pad_backfill_deprecation():
+    # GH 33396
+    s = Series([1, 2, 3])
+    with tm.assert_produces_warning(FutureWarning, match="backfill"):
+        s.groupby(level=0).backfill()
+    with tm.assert_produces_warning(FutureWarning, match="pad"):
+        s.groupby(level=0).pad()

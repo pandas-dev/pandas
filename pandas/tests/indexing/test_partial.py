@@ -7,8 +7,6 @@ TODO: these should be split among the indexer tests
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -355,10 +353,6 @@ class TestPartialSetting:
         df.at[dates[-1] + dates.freq, 0] = 7
         tm.assert_frame_equal(df, expected)
 
-    # TODO(ArrayManager)
-    # df.loc[0] = Series(1, index=range(4)) case creates float columns
-    # instead of object dtype
-    @td.skip_array_manager_not_yet_implemented
     def test_partial_setting_mixed_dtype(self):
 
         # in a mixed dtype environment, try to preserve dtypes
@@ -367,7 +361,7 @@ class TestPartialSetting:
 
         s = df.loc[1].copy()
         s.name = 2
-        expected = df.append(s)
+        expected = pd.concat([df, DataFrame(s).T.infer_objects()])
 
         df.loc[2] = df.loc[1]
         tm.assert_frame_equal(df, expected)
@@ -544,7 +538,8 @@ class TestPartialSetting:
         # allow object conversion here
         df = orig.copy()
         df.loc["a", :] = df.iloc[0]
-        exp = orig.append(Series(df.iloc[0], name="a"))
+        ser = Series(df.iloc[0], name="a")
+        exp = pd.concat([orig, DataFrame(ser).T.infer_objects()])
         tm.assert_frame_equal(df, exp)
         tm.assert_index_equal(df.index, Index(orig.index.tolist() + ["a"]))
         assert df.index.dtype == "object"

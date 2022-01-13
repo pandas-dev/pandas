@@ -1,5 +1,6 @@
 from io import BytesIO
 import os
+import zipfile
 
 import numpy as np
 import pytest
@@ -14,6 +15,8 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.util import _test_decorators as td
+
+import pandas.io.common as icom
 
 
 @pytest.fixture
@@ -88,16 +91,23 @@ def test_to_read_gcs(gcs_buffer, format):
     tm.assert_frame_equal(df1, df2)
 
 
-def assert_equal_zip_safe(result: bytes, expected: bytes):
+def assert_equal_zip_safe(result: bytes, expected: bytes, compression: str):
     """
-    We would like to assert these are equal, but the 10th and 11th bytes are a
-    last-modified timestamp, which in some builds is off-by-one, so we check around
-    that.
+    For zip compression, only compare the CRC-32 checksum of the file contents
+    to avoid checking the time-dependent last-modified timestamp which
+    in some CI builds is off-by-one
 
     See https://en.wikipedia.org/wiki/ZIP_(file_format)#File_headers
     """
-    assert result[:9] == expected[:9]
-    assert result[11:] == expected[11:]
+    if compression == "zip":
+        # Only compare the CRC checksum of the file contents
+        with zipfile.ZipFile(BytesIO(result)) as exp, zipfile.ZipFile(
+            BytesIO(expected)
+        ) as res:
+            for res_info, exp_info in zip(res.infolist(), exp.infolist()):
+                assert res_info.CRC == exp_info.CRC
+    else:
+        assert result == expected
 
 
 @td.skip_if_no("gcsfs")
@@ -126,7 +136,7 @@ def test_to_csv_compression_encoding_gcs(gcs_buffer, compression_only, encoding)
     df.to_csv(path_gcs, compression=compression, encoding=encoding)
     res = gcs_buffer.getvalue()
     expected = buffer.getvalue()
-    assert_equal_zip_safe(res, expected)
+    assert_equal_zip_safe(res, expected, compression_only)
 
     read_df = read_csv(
         path_gcs, index_col=0, compression=compression_only, encoding=encoding
@@ -134,15 +144,14 @@ def test_to_csv_compression_encoding_gcs(gcs_buffer, compression_only, encoding)
     tm.assert_frame_equal(df, read_df)
 
     # write compressed file with implicit compression
-    if compression_only == "gzip":
-        compression_only = "gz"
+    file_ext = icom._compression_to_extension[compression_only]
     compression["method"] = "infer"
-    path_gcs += f".{compression_only}"
+    path_gcs += f".{file_ext}"
     df.to_csv(path_gcs, compression=compression, encoding=encoding)
 
     res = gcs_buffer.getvalue()
     expected = buffer.getvalue()
-    assert_equal_zip_safe(res, expected)
+    assert_equal_zip_safe(res, expected, compression_only)
 
     read_df = read_csv(path_gcs, index_col=0, compression="infer", encoding=encoding)
     tm.assert_frame_equal(df, read_df)
