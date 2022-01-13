@@ -1543,10 +1543,19 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         If necessary, squeeze a (N, 1) ndarray to (N,)
         """
         # e.g. if we are passed a 2D mask for putmask
-        if isinstance(arg, np.ndarray) and arg.ndim == self.values.ndim + 1:
+        if (
+            isinstance(arg, (np.ndarray, ExtensionArray))
+            and arg.ndim == self.values.ndim + 1
+        ):
             # TODO(EA2D): unnecessary with 2D EAs
             assert arg.shape[1] == 1
             arg = arg[:, 0]
+        elif isinstance(arg, ABCDataFrame):
+            # 2022-01-06 only reached for setitem
+            # TODO: should we avoid getting here with DataFrame?
+            assert arg.shape[1] == 1
+            arg = arg._ixs(0, axis=1)._values
+
         return arg
 
     @property
@@ -1587,28 +1596,35 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
 
         if isinstance(indexer, tuple):
             # TODO(EA2D): not needed with 2D EAs
-            # we are always 1-D
-            indexer = indexer[0]
-            if isinstance(indexer, np.ndarray) and indexer.ndim == 2:
-                # GH#44703
-                if indexer.shape[1] != 1:
+            #  Should never have length > 2.  Caller is responsible for checking.
+            #  Length 1 is reached vis setitem_single_block and setitem_single_column
+            #  each of which pass indexer=(pi,)
+            if len(indexer) == 2:
+
+                if all(isinstance(x, np.ndarray) and x.ndim == 2 for x in indexer):
+                    # GH#44703 went through indexing.maybe_convert_ix
+                    first, second = indexer
+                    if not (
+                        second.size == 1 and (second == 0).all() and first.shape[1] == 1
+                    ):
+                        raise NotImplementedError(
+                            "This should not be reached. Please report a bug at "
+                            "github.com/pandas-dev/pandas/"
+                        )
+                    indexer = first[:, 0]
+
+                elif lib.is_integer(indexer[1]) and indexer[1] == 0:
+                    # reached via setitem_single_block passing the whole indexer
+                    indexer = indexer[0]
+                else:
                     raise NotImplementedError(
                         "This should not be reached. Please report a bug at "
                         "github.com/pandas-dev/pandas/"
                     )
-                indexer = indexer[:, 0]
 
-        # TODO(EA2D): not needed with 2D EAS
-        if isinstance(value, (np.ndarray, ExtensionArray)) and value.ndim == 2:
-            assert value.shape[1] == 1
-            # error: No overload variant of "__getitem__" of "ExtensionArray"
-            # matches argument type "Tuple[slice, int]"
-            value = value[:, 0]  # type: ignore[call-overload]
-        elif isinstance(value, ABCDataFrame):
-            # TODO: should we avoid getting here with DataFrame?
-            assert value.shape[1] == 1
-            value = value._ixs(0, axis=1)._values
+        value = self._maybe_squeeze_arg(value)
 
+        # TODO: check_setitem_lengths inside the EA's __setitem__?
         check_setitem_lengths(indexer, value, self.values)
         self.values[indexer] = value
         return self
