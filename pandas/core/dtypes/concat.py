@@ -200,7 +200,7 @@ def union_categoricals(
 
     Examples
     --------
-    >>> import pandas as pd 
+    >>> import pandas as pd
 
     If you want to combine categoricals that do not necessarily have
     the same categories, `union_categoricals` will combine a list-like
