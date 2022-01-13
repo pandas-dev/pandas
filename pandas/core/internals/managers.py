@@ -334,6 +334,9 @@ class BaseBlockManager(DataManager):
 
         For SingleBlockManager, this backs s[indexer] = value
         """
+        if isinstance(indexer, np.ndarray) and indexer.ndim > self.ndim:
+            raise ValueError(f"Cannot set values with ndim > {self.ndim}")
+
         return self.apply("setitem", indexer=indexer, value=value)
 
     def putmask(self, mask, new, align: bool = True):
