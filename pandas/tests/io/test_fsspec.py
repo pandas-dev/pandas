@@ -3,6 +3,7 @@ import io
 import numpy as np
 import pytest
 
+from pandas.compat import is_platform_windows
 from pandas.compat._optional import VERSIONS
 
 from pandas import (
@@ -161,7 +162,7 @@ def test_to_parquet_new_file(monkeypatch, cleared_fs):
 
 
 @td.skip_if_no("pyarrow")
-@pytest.mark.xfail(td.is_platform_windows(), reason="GH 45344")
+@pytest.mark.xfail(is_platform_windows(), reason="GH 45344")
 def test_arrowparquet_options(fsspectest):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
     df = DataFrame({"a": [0]})
