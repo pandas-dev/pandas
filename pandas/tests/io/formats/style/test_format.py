@@ -434,3 +434,17 @@ def test_1level_multiindex():
     assert ctx["body"][0][0]["is_visible"] is True
     assert ctx["body"][1][0]["display_value"] == "2"
     assert ctx["body"][1][0]["is_visible"] is True
+
+
+def test_format_descriptors(styler):
+    with option_context(
+        "styler.format.precision",
+        5,
+        "styler.format.decimal",
+        "*",
+        "styler.format.thousands",
+        "_",
+    ):
+        styler.set_descriptors([lambda s: s.sum() + 1000])
+        ctx = styler._translate(True, True)
+    assert ctx is False

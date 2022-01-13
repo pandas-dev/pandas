@@ -525,8 +525,25 @@ class StylerRenderer:
 
         precision = get_option("styler.format.precision")
         thousands = get_option("styler.format.thousands")
-        display_func: Callable = lambda x: _default_formatter(
-            func(x), precision=precision, thousands=thousands
+        decimal = get_option("styler.format.decimal")
+        na_rep = get_option("styler.format.na_rep")
+        escape = get_option("styler.format.escape")
+        # display_func: Callable = _maybe_wrap_formatter(
+        #     lambda x: _default_formatter(
+        #         func(x), precision=precision, thousands=thousands is not None
+        #     ),
+        #     decimal=decimal,
+        #     thousands=thousands
+        # )
+        display_func: Callable = _maybe_wrap_formatter(
+            lambda x: _default_formatter(
+                func(x), precision=precision, thousands=thousands is not None
+            ),
+            na_rep=na_rep,
+            escape=escape,
+            decimal=decimal,
+            thousands=thousands,
+            precision=precision,
         )
 
         base_css = f"{self.css['descriptor_name']} {self.css['descriptor']}{r}"
@@ -1528,7 +1545,7 @@ def _default_formatter(x: Any, precision: int, thousands: bool = False) -> Any:
     """
     if isinstance(x, (float, complex)):
         return f"{x:,.{precision}f}" if thousands else f"{x:.{precision}f}"
-    elif isinstance(x, int):
+    elif isinstance(x, (int, np.int64)):
         return f"{x:,.0f}" if thousands else f"{x:.0f}"
     return x
 
@@ -1543,7 +1560,7 @@ def _wrap_decimal_thousands(
     """
 
     def wrapper(x):
-        if isinstance(x, (float, complex, int)):
+        if isinstance(x, (float, complex, int, np.int64)):
             if decimal != "." and thousands is not None and thousands != ",":
                 return (
                     formatter(x)
