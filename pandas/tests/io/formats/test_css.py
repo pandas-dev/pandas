@@ -135,6 +135,23 @@ def test_css_side_shorthands(shorthand, expansions):
         ("border", ["top", "right", "bottom", "left"]),
     ],
 )
+def test_css_border_shorthands(shorthand, sides):
+
+    def create_border_dict(sides, color=None, style=None, width=None):
+        resolved = {}
+        for side in sides:
+            if color:
+                resolved[f"border-{side}-color"] = color
+            if style:
+                resolved[f"border-{side}-style"] = style
+            if width:
+                resolved[f"border-{side}-width"] = width
+        return resolved
+
+    assert_resolves(
+        f"{shorthand}: 1pt red solid", create_border_dict(sides, "red", "solid", "1pt")
+    )
+
 @pytest.mark.parametrize(
     "prop, expected",
     [
@@ -154,22 +171,16 @@ def test_css_side_shorthands(shorthand, expansions):
         ("1em", ("black", "none", "12pt")),
     ],
 )
-def test_css_border_shorthands(shorthand, sides, prop, expected):
+def test_css_border_shorthands(prop, expected):
     color, style, width = expected
 
-    def create_border_dict(sides, color=None, style=None, width=None):
-        resolved = {}
-        for side in sides:
-            if color:
-                resolved[f"border-{side}-color"] = color
-            if style:
-                resolved[f"border-{side}-style"] = style
-            if width:
-                resolved[f"border-{side}-width"] = width
-        return resolved
-
     assert_resolves(
-        f"{shorthand}: {prop}", create_border_dict(sides, color, style, width)
+        f"border-left: {prop}", 
+        {
+            "border-left-color": color, 
+            "border-left-style": style,
+            "border-left-width": width,
+        }
     )
 
 
