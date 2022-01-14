@@ -32,7 +32,7 @@ jobs:
         python-version: '3.9.7'
 
     - name: Run pre-commit
-      uses: pre-commit/action@v2
+      uses: pre-commit/action@v2.0.3
 
   typing_and_docstring_validation:
     name: Docstring and typing validation
