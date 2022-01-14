@@ -3052,7 +3052,7 @@ class Index(IndexOpsMixin, PandasObject):
             and self.tz is not None
             and other.tz is not None
         ):
-            # GH#39328
+            # GH#39328, GH#45357
             warnings.warn(
                 f"In a future version, the {setop} of DatetimeIndex objects "
                 "with mismatched timezones will cast both to UTC instead of "
