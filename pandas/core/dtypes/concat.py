@@ -30,6 +30,7 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
+    from pandas import Categorical
     from pandas.core.arrays.sparse import SparseArray
 
 
@@ -43,7 +44,7 @@ def cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
 
     if isinstance(dtype, np.dtype) and dtype.kind in ["i", "u"]:
 
-        if is_categorical_dtype(arr.dtype) and arr._hasnans:
+        if is_categorical_dtype(arr.dtype) and cast("Categorical", arr)._hasnans:
             # problem case: categorical of int -> gives int as result dtype,
             # but categorical can contain NAs -> float64 instead
             # GH#45359
