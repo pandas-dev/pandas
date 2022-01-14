@@ -45,16 +45,13 @@ def _border_expander(side: str = ""):
             f"border{side}-width": "medium",
         }
         for token in tokens:
-            token_key = "color"
             if token in self.BORDER_STYLES:
-                token_key = "style"
+                border_declarations[f"border{side}-style"] = token
             elif any([ratio in token for ratio in self.BORDER_WIDTH_RATIOS]):
-                token_key = "width"
+                border_declarations[f"border{side}-width"] = token
             else:
-                token_key = "color"
-
+                border_declarations[f"border{side}-color"] = token
             # TODO: Warn user if item entered more than once (e.g. "border: red green")
-            border_declarations[f"border{side}-{token_key}"] = token
 
         # Per CSS, "border" will reset previous "border-*" definitions
         yield from self.atomize(border_declarations.items())
