@@ -1751,6 +1751,14 @@ def indexer_al(request):
     return request.param
 
 
+@pytest.fixture(params=[tm.iat, tm.iloc])
+def indexer_ial(request):
+    """
+    Parametrize over iat.__setitem__, iloc.__setitem__
+    """
+    return request.param
+
+
 @pytest.fixture
 def using_array_manager(request):
     """
