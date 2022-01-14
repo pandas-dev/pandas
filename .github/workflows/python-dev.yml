@@ -3,11 +3,11 @@ name: Python Dev
 on:
   push:
     branches:
-      - master
+      - main
       - 1.4.x
   pull_request:
     branches:
-      - master
+      - main
       - 1.4.x
     paths-ignore:
       - "doc/**"
@@ -70,7 +70,7 @@ jobs:
         ci/run_tests.sh
 
     - name: Publish test results
-      uses: actions/upload-artifact@master
+      uses: actions/upload-artifact@v2
       with:
         name: Test results
         path: test-data.xml
