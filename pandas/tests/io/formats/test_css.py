@@ -136,7 +136,6 @@ def test_css_side_shorthands(shorthand, expansions):
     ],
 )
 def test_css_border_shorthands(shorthand, sides):
-
     def create_border_dict(sides, color=None, style=None, width=None):
         resolved = {}
         for side in sides:
@@ -151,6 +150,7 @@ def test_css_border_shorthands(shorthand, sides):
     assert_resolves(
         f"{shorthand}: 1pt red solid", create_border_dict(sides, "red", "solid", "1pt")
     )
+
 
 @pytest.mark.parametrize(
     "prop, expected",
@@ -175,12 +175,12 @@ def test_css_border_shorthands(prop, expected):
     color, style, width = expected
 
     assert_resolves(
-        f"border-left: {prop}", 
+        f"border-left: {prop}",
         {
-            "border-left-color": color, 
+            "border-left-color": color,
             "border-left-style": style,
             "border-left-width": width,
-        }
+        },
     )
 
 
