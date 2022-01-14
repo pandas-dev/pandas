@@ -107,11 +107,7 @@ def putmask_smart(values: np.ndarray, mask: npt.NDArray[np.bool_], new) -> np.nd
         return values
 
     dtype = find_common_type([values.dtype, new.dtype])
-    # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has incompatible type
-    # "Union[dtype[Any], ExtensionDtype]"; expected "Union[dtype[Any], None, type,
-    # _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]],
-    # List[Any], _DTypeDict, Tuple[Any, Any]]]"
-    values = values.astype(dtype)  # type: ignore[arg-type]
+    values = values.astype(dtype)
 
     np.putmask(values, mask, new)
     return values

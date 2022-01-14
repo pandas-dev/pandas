@@ -262,11 +262,23 @@ class MergeCategoricals:
             Z=self.right_object["Z"].astype("category")
         )
 
+        self.left_cat_col = self.left_object.astype({"X": "category"})
+        self.right_cat_col = self.right_object.astype({"X": "category"})
+
+        self.left_cat_idx = self.left_cat_col.set_index("X")
+        self.right_cat_idx = self.right_cat_col.set_index("X")
+
     def time_merge_object(self):
         merge(self.left_object, self.right_object, on="X")
 
     def time_merge_cat(self):
         merge(self.left_cat, self.right_cat, on="X")
+
+    def time_merge_on_cat_col(self):
+        merge(self.left_cat_col, self.right_cat_col, on="X")
+
+    def time_merge_on_cat_idx(self):
+        merge(self.left_cat_idx, self.right_cat_idx, on="X")
 
 
 class MergeOrdered:

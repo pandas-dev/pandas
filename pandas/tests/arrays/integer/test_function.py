@@ -79,10 +79,11 @@ def test_ufunc_binary_output():
 
 @pytest.mark.parametrize("values", [[0, 1], [0, None]])
 def test_ufunc_reduce_raises(values):
-    a = pd.array(values)
-    msg = r"The 'reduce' method is not supported."
-    with pytest.raises(NotImplementedError, match=msg):
-        np.add.reduce(a)
+    arr = pd.array(values)
+
+    res = np.add.reduce(arr)
+    expected = arr.sum(skipna=False)
+    tm.assert_almost_equal(res, expected)
 
 
 @pytest.mark.parametrize(
@@ -108,11 +109,14 @@ def test_stat_method(pandasmethname, kwargs):
 def test_value_counts_na():
     arr = pd.array([1, 2, 1, pd.NA], dtype="Int64")
     result = arr.value_counts(dropna=False)
-    expected = pd.Series([2, 1, 1], index=[1, 2, pd.NA], dtype="Int64")
+    ex_index = pd.Index([1, 2, pd.NA], dtype="Int64")
+    assert ex_index.dtype == "Int64"
+    expected = pd.Series([2, 1, 1], index=ex_index, dtype="Int64")
     tm.assert_series_equal(result, expected)
 
     result = arr.value_counts(dropna=True)
-    expected = pd.Series([2, 1], index=[1, 2], dtype="Int64")
+    expected = pd.Series([2, 1], index=arr[:2], dtype="Int64")
+    assert expected.index.dtype == arr.dtype
     tm.assert_series_equal(result, expected)
 
 
@@ -120,9 +124,8 @@ def test_value_counts_empty():
     # https://github.com/pandas-dev/pandas/issues/33317
     ser = pd.Series([], dtype="Int64")
     result = ser.value_counts()
-    # TODO(ExtensionIndex): The dtype of the index seems wrong
-    #  (it's int64 for non-empty)
-    idx = pd.Index([], dtype="object")
+    idx = pd.Index([], dtype=ser.dtype)
+    assert idx.dtype == ser.dtype
     expected = pd.Series([], index=idx, dtype="Int64")
     tm.assert_series_equal(result, expected)
 
@@ -131,7 +134,8 @@ def test_value_counts_with_normalize():
     # GH 33172
     ser = pd.Series([1, 2, 1, pd.NA], dtype="Int64")
     result = ser.value_counts(normalize=True)
-    expected = pd.Series([2, 1], index=[1, 2], dtype="Float64") / 3
+    expected = pd.Series([2, 1], index=ser[:2], dtype="Float64") / 3
+    assert expected.index.dtype == ser.dtype
     tm.assert_series_equal(result, expected)
 
 

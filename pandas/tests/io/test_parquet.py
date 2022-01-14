@@ -43,6 +43,9 @@ try:
     with catch_warnings():
         # `np.bool` is a deprecated alias...
         filterwarnings("ignore", "`np.bool`", category=DeprecationWarning)
+        # accessing pd.Int64Index in pd namespace
+        filterwarnings("ignore", ".*Int64Index.*", category=FutureWarning)
+
         import fastparquet
 
     _HAVE_FASTPARQUET = True
@@ -382,7 +385,7 @@ class Base:
             pytest.importorskip(engine)
         url = (
             "https://raw.githubusercontent.com/pandas-dev/pandas/"
-            "master/pandas/tests/io/data/parquet/simple.parquet"
+            "main/pandas/tests/io/data/parquet/simple.parquet"
         )
         df = read_parquet(url)
         tm.assert_frame_equal(df, df_compat)

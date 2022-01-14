@@ -23,13 +23,15 @@ from pandas.compat import is_numpy_dev as _is_numpy_dev
 
 try:
     from pandas._libs import hashtable as _hashtable, lib as _lib, tslib as _tslib
-except ImportError as e:  # pragma: no cover
-    module = e.name
+except ImportError as err:  # pragma: no cover
+    module = err.name
     raise ImportError(
         f"C extension: {module} not built. If you want to import "
         "pandas from the source directory, you may need to run "
         "'python setup.py build_ext --force' to build the C extensions first."
-    ) from e
+    ) from err
+else:
+    del _tslib, _lib, _hashtable
 
 from pandas._config import (
     get_option,
@@ -71,7 +73,6 @@ from pandas.core.api import (
     Index,
     CategoricalIndex,
     RangeIndex,
-    NumericIndex,
     MultiIndex,
     IntervalIndex,
     TimedeltaIndex,
@@ -197,7 +198,7 @@ def __getattr__(name):
         warnings.warn(
             f"pandas.{name} is deprecated "
             "and will be removed from pandas in a future version. "
-            "Use pandas.NumericIndex with the appropriate dtype instead.",
+            "Use pandas.Index with the appropriate dtype instead.",
             FutureWarning,
             stacklevel=2,
         )
@@ -333,7 +334,6 @@ __all__ = [
     "NA",
     "NaT",
     "NamedAgg",
-    "NumericIndex",
     "Period",
     "PeriodDtype",
     "PeriodIndex",

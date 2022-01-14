@@ -270,8 +270,8 @@ class PythonParser(ParserBase):
                 self.index_names,
                 self.dtype,
             )
-            columns = self._maybe_make_multi_index_columns(columns, self.col_names)
-            return index, columns, col_dict
+            conv_columns = self._maybe_make_multi_index_columns(columns, self.col_names)
+            return index, conv_columns, col_dict
 
         # handle new style for names in index
         count_empty_content_vals = count_empty_vals(content[0])
@@ -560,6 +560,7 @@ class PythonParser(ParserBase):
 
         usecols_key is used if there are string usecols.
         """
+        col_indices: set[int] | list[int]
         if self.usecols is not None:
             if callable(self.usecols):
                 col_indices = self._evaluate_usecols(self.usecols, usecols_key)
@@ -989,7 +990,11 @@ class PythonParser(ParserBase):
                 actual_len = len(l)
 
                 if actual_len > col_len:
-                    if (
+                    if callable(self.on_bad_lines):
+                        new_l = self.on_bad_lines(l)
+                        if new_l is not None:
+                            content.append(new_l)
+                    elif (
                         self.on_bad_lines == self.BadLineHandleMethod.ERROR
                         or self.on_bad_lines == self.BadLineHandleMethod.WARN
                     ):

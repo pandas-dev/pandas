@@ -16,7 +16,7 @@ from pandas._typing import (
 )
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.cast import astype_nansafe
+from pandas.core.dtypes.astype import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_dtype,
@@ -127,7 +127,7 @@ def coerce_to_array(
         return values, mask
 
     values = np.array(values, copy=copy)
-    if is_object_dtype(values):
+    if is_object_dtype(values.dtype):
         inferred_type = lib.infer_dtype(values, skipna=True)
         if inferred_type == "empty":
             pass

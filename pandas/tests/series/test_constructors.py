@@ -652,8 +652,10 @@ class TestSeriesConstructors:
         s = Series(np.array([1.0, 1.0, 8.0]), dtype="i8")
         assert s.dtype == np.dtype("i8")
 
-        s = Series(np.array([1.0, 1.0, np.nan]), copy=True, dtype="i8")
-        assert s.dtype == np.dtype("f8")
+        msg = "float-dtype values containing NaN and an integer dtype"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser = Series(np.array([1.0, 1.0, np.nan]), copy=True, dtype="i8")
+        assert ser.dtype == np.dtype("f8")
 
     def test_constructor_copy(self):
         # GH15125
@@ -752,23 +754,67 @@ class TestSeriesConstructors:
         with pytest.raises(OverflowError, match=msg):
             Series([-1], dtype=any_unsigned_int_numpy_dtype)
 
+    @td.skip_if_no("dask")
+    def test_construct_dask_float_array_int_dtype_match_ndarray(self):
+        # GH#40110 make sure we treat a float-dtype dask array with the same
+        #  rules we would for an ndarray
+        import dask.dataframe as dd
+
+        arr = np.array([1, 2.5, 3])
+        darr = dd.from_array(arr)
+
+        res = Series(darr)
+        expected = Series(arr)
+        tm.assert_series_equal(res, expected)
+
+        res = Series(darr, dtype="i8")
+        expected = Series(arr, dtype="i8")
+        tm.assert_series_equal(res, expected)
+
+        msg = "In a future version, passing float-dtype values containing NaN"
+        arr[2] = np.nan
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = Series(darr, dtype="i8")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = Series(arr, dtype="i8")
+        tm.assert_series_equal(res, expected)
+
     def test_constructor_coerce_float_fail(self, any_int_numpy_dtype):
         # see gh-15832
-        msg = "Trying to coerce float values to integers"
-        with pytest.raises(ValueError, match=msg):
-            Series([1, 2, 3.5], dtype=any_int_numpy_dtype)
+        # Updated: make sure we treat this list the same as we would treat
+        #  the equivalent ndarray
+        vals = [1, 2, 3.5]
+
+        res = Series(vals, dtype=any_int_numpy_dtype)
+        expected = Series(np.array(vals), dtype=any_int_numpy_dtype)
+        tm.assert_series_equal(res, expected)
+        alt = Series(np.array(vals))  # i.e. we ignore the dtype kwd
+        tm.assert_series_equal(alt, expected)
 
     def test_constructor_coerce_float_valid(self, float_numpy_dtype):
         s = Series([1, 2, 3.5], dtype=float_numpy_dtype)
         expected = Series([1, 2, 3.5]).astype(float_numpy_dtype)
         tm.assert_series_equal(s, expected)
 
-    def test_constructor_invalid_coerce_ints_with_float_nan(self, any_int_numpy_dtype):
+    def test_constructor_invalid_coerce_ints_with_float_nan(
+        self, any_int_numpy_dtype, request
+    ):
         # GH 22585
+        # Updated: make sure we treat this list the same as we would treat the
+        #  equivalent ndarray
+        if np_version_under1p19 and np.dtype(any_int_numpy_dtype).kind == "u":
+            mark = pytest.mark.xfail(reason="Produces an extra RuntimeWarning")
+            request.node.add_marker(mark)
 
-        msg = "cannot convert float NaN to integer"
-        with pytest.raises(ValueError, match=msg):
-            Series([1, 2, np.nan], dtype=any_int_numpy_dtype)
+        vals = [1, 2, np.nan]
+
+        msg = "In a future version, passing float-dtype values containing NaN"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = Series(vals, dtype=any_int_numpy_dtype)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = Series(np.array(vals), dtype=any_int_numpy_dtype)
+        tm.assert_series_equal(res, expected)
+        assert np.isnan(expected.iloc[-1])
 
     def test_constructor_dtype_no_cast(self):
         # see gh-1572

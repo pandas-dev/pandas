@@ -20,11 +20,11 @@ dependencies:
   # code checks
   - black=21.5b2
   - cpplint
-  - flake8=3.9.2
+  - flake8=4.0.1
   - flake8-bugbear=21.3.2  # used by flake8, find likely bugs
-  - flake8-comprehensions=3.1.0  # used by flake8, linting of unnecessary comprehensions
+  - flake8-comprehensions=3.7.0  # used by flake8, linting of unnecessary comprehensions
   - isort>=5.2.1  # check that imports are in the right order
-  - mypy=0.910
+  - mypy=0.930
   - pre-commit>=2.9.2
   - pycodestyle  # used by flake8
   - pyupgrade
@@ -34,6 +34,11 @@ dependencies:
   - gitdb
   - sphinx
   - sphinx-panels
+  - numpydoc < 1.2  # 2021-02-09 1.2dev breaking CI
+  - types-python-dateutil
+  - types-PyMySQL
+  - types-pytz
+  - types-setuptools
 
   # documentation (jupyter notebooks)
   - nbconvert>=5.4.1
@@ -100,12 +105,12 @@ dependencies:
   - odfpy
 
   - fastparquet>=0.4.0  # pandas.read_parquet, DataFrame.to_parquet
-  - pyarrow>=1.0.1  # pandas.read_parquet, DataFrame.to_parquet, pandas.read_feather, DataFrame.to_feather
+  - pyarrow>2.0.1  # pandas.read_parquet, DataFrame.to_parquet, pandas.read_feather, DataFrame.to_feather
   - python-snappy  # required by pyarrow
 
   - pytables>=3.6.1  # pandas.read_hdf, DataFrame.to_hdf
   - s3fs>=0.4.0  # file IO when using 's3://...' path
-  - aiobotocore<2.0.0
+  - aiobotocore<2.0.0  # GH#44311 pinned to fix docbuild
   - fsspec>=0.7.4  # for generic remote file operations
   - gcsfs>=0.6.0  # file IO when using 'gcs://...' path
   - sqlalchemy  # pandas.read_sql, DataFrame.to_sql
@@ -116,10 +121,5 @@ dependencies:
   - natsort  # DataFrame.sort_values
   - pip:
     - git+https://github.com/pydata/pydata-sphinx-theme.git@master
-    - numpydoc < 1.2  # 2021-02-09 1.2dev breaking CI
     - pandas-dev-flaker==0.2.0
-    - types-python-dateutil
-    - types-PyMySQL
-    - types-pytz
-    - types-setuptools
     - pytest-cython

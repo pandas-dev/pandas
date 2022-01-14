@@ -23,8 +23,8 @@ from pandas._typing import (
 )
 from pandas.util._validators import validate_bool_kwarg
 
+from pandas.core.dtypes.astype import astype_array_safe
 from pandas.core.dtypes.cast import (
-    astype_array_safe,
     ensure_dtype_can_hold_na,
     infer_dtype_from_scalar,
     soft_convert_objects,
@@ -413,11 +413,17 @@ class BaseArrayManager(DataManager):
 
         return self.apply(_convert)
 
-    def replace(self: T, value, **kwargs) -> T:
+    def replace_regex(self: T, **kwargs) -> T:
+        return self.apply_with_block("_replace_regex", **kwargs)
+
+    def replace(self: T, to_replace, value, inplace: bool) -> T:
+        inplace = validate_bool_kwarg(inplace, "inplace")
         assert np.ndim(value) == 0, value
         # TODO "replace" is right now implemented on the blocks, we should move
         # it to general array algos so it can be reused here
-        return self.apply_with_block("replace", value=value, **kwargs)
+        return self.apply_with_block(
+            "replace", value=value, to_replace=to_replace, inplace=inplace
+        )
 
     def replace_list(
         self: T,
@@ -430,7 +436,7 @@ class BaseArrayManager(DataManager):
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         return self.apply_with_block(
-            "_replace_list",
+            "replace_list",
             src_list=src_list,
             dest_list=dest_list,
             inplace=inplace,
@@ -788,7 +794,8 @@ class ArrayManager(BaseArrayManager):
         """
         Used in the JSON C code to access column arrays.
         """
-        return self.arrays
+
+        return [np.asarray(arr) for arr in self.arrays]
 
     def iset(
         self, loc: int | slice | np.ndarray, value: ArrayLike, inplace: bool = False
@@ -1196,7 +1203,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         """Return an empty ArrayManager with index/array of length 0"""
         if axes is None:
             axes = [Index([], dtype=object)]
-        array = np.array([], dtype=self.dtype)
+        array: np.ndarray = np.array([], dtype=self.dtype)
         return type(self)([array], axes)
 
     @classmethod
