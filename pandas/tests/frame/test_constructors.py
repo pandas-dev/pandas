@@ -2157,8 +2157,6 @@ class TestDataFrameConstructors:
             arr[0, 0] = 1000
             assert df.iloc[0, 0] == 1000
 
-    # TODO(ArrayManager) keep view on Series?
-    @td.skip_array_manager_not_yet_implemented
     def test_constructor_series_copy(self, float_frame):
         series = float_frame._series
 
@@ -2507,13 +2505,10 @@ class TestDataFrameConstructors:
     def test_dict_nocopy(
         self, request, copy, any_numeric_ea_dtype, any_numpy_dtype, using_array_manager
     ):
-        if using_array_manager and not (
-            (any_numpy_dtype in (tm.STRING_DTYPES + tm.BYTES_DTYPES))
-            or (
-                any_numpy_dtype
-                in (tm.DATETIME64_DTYPES + tm.TIMEDELTA64_DTYPES + tm.BOOL_DTYPES)
-                and copy
-            )
+        if (
+            using_array_manager
+            and not copy
+            and not (any_numpy_dtype in (tm.STRING_DTYPES + tm.BYTES_DTYPES))
         ):
             # TODO(ArrayManager) properly honor copy keyword for dict input
             td.mark_array_manager_not_yet_implemented(request)
