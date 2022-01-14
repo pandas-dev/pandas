@@ -1151,6 +1151,7 @@ def from_dummies(
         * When `base_category=None` and a value in `data` has no category assigned
           to it.
     TypeError
+        * When the input `data` is not of type `DataFrame`.
         * When the input `DataFrame` `data` contains non-dummy data.
         * When the passed `sep` is of a wrong data type.
         * When the passed `base_category` is of a wrong data type.
