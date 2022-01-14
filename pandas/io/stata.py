@@ -625,12 +625,11 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
                 if data[col].max() >= 2 ** 53 or data[col].min() <= -(2 ** 53):
                     ws = precision_loss_doc.format("int64", "float64")
         elif dtype in (np.float32, np.float64):
-            value = np.abs(data[col]).max()
-            if np.isinf(value):
+            value = data[col].max()
+            if np.isinf(data[col]).any():
                 raise ValueError(
-                    f"Column {col} has a maximum value of infinity "
-                    "or a minimum value of -infinity which is outside "
-                    "the range supported by Stata."
+                    f"Column {col} contains infinity or -infinity"
+                    "which is outside the range supported by Stata."
                 )
             if dtype == np.float32 and value > float32_max:
                 data[col] = data[col].astype(np.float64)

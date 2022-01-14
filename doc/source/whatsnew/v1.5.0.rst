@@ -171,7 +171,7 @@ MultiIndex
 
 I/O
 ^^^
--
+- Bug in :meth:`DataFrame.to_stata` where no error is raised if the :class:`DataFrame` contains ``-np.inf`` (:issue:`45350`)
 -
 
 Period
