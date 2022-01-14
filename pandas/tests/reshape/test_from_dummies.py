@@ -1,9 +1,15 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
-from pandas.core.reshape.reshape import from_dummies
+from pandas.core.reshape.reshape import (
+    from_dummies,
+    get_dummies,
+)
 
 
 @pytest.fixture
@@ -30,6 +36,30 @@ def dummies_with_unassigned():
             "col2_c": [0, 0, 1],
         },
     )
+
+
+def test_roundtrip_series_to_dataframe():
+    categories = Series(["a", "b", "c", "a"])
+    dummies = get_dummies(categories)
+    result = from_dummies(dummies)
+    expected = DataFrame({"": ["a", "b", "c", "a"]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_roundtrip_single_column_dataframe():
+    categories = DataFrame({"": ["a", "b", "c", "a"]})
+    dummies = get_dummies(categories)
+    result = from_dummies(dummies, sep="_")
+    expected = categories
+    tm.assert_frame_equal(result, expected)
+
+
+def test_roundtrip_with_prefixes():
+    categories = DataFrame({"col1": ["a", "b", "a"], "col2": ["b", "a", "c"]})
+    dummies = get_dummies(categories)
+    result = from_dummies(dummies, sep="_")
+    expected = categories
+    tm.assert_frame_equal(result, expected)
 
 
 def test_from_dummies_wrong_data_type():
