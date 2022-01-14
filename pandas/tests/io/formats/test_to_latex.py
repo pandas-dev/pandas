@@ -19,7 +19,9 @@ from pandas.io.formats.latex import (
     RowStringConverter,
 )
 
-pytestmark = pytest.mark.filterwarnings("ignore:`col_space`:FutureWarning")
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Deprecated arguments supplied:FutureWarning"
+)
 
 
 def _dedent(string):
