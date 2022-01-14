@@ -96,6 +96,7 @@ if TYPE_CHECKING:
 
     from pandas import Index
     from pandas.core.arrays import (
+        Categorical,
         DatetimeArray,
         ExtensionArray,
         IntervalArray,
@@ -1501,7 +1502,7 @@ def common_dtype_categorical_compat(
                     hasnas = obj.hasnans
                 else:
                     # Categorical
-                    hasnas = obj._hasnans
+                    hasnas = cast("Categorical", obj)._hasnans
 
                 if hasnas:
                     # see test_union_int_categorical_with_nan
