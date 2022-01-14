@@ -92,7 +92,7 @@ formats.
 CSV
 '''
 
-Let's load and display the `tips <https://github.com/pandas-dev/pandas/blob/master/pandas/tests/io/data/csv/tips.csv>`_
+Let's load and display the `tips <https://github.com/pandas-dev/pandas/blob/main/pandas/tests/io/data/csv/tips.csv>`_
 dataset from the pandas tests, which is a CSV file. In Excel, you would download and then
 `open the CSV <https://support.microsoft.com/en-us/office/import-or-export-text-txt-or-csv-files-5250ac4c-663c-47ce-937b-339e391393ba>`_.
 In pandas, you pass the URL or local path of the CSV file to :func:`~pandas.read_csv`:
@@ -101,7 +101,7 @@ In pandas, you pass the URL or local path of the CSV file to :func:`~pandas.read
 
    url = (
        "https://raw.github.com/pandas-dev"
-       "/pandas/master/pandas/tests/io/data/csv/tips.csv"
+       "/pandas/main/pandas/tests/io/data/csv/tips.csv"
    )
    tips = pd.read_csv(url)
    tips
