@@ -421,10 +421,6 @@ class TestDataFrameSetItem:
             # TODO(ArrayManager) .loc still overwrites
             expected["B"] = expected["B"].astype("int64")
 
-            mark = pytest.mark.xfail(
-                reason="Both 'A' columns get set with 3 instead of 0 and 3"
-            )
-            request.node.add_marker(mark)
         else:
             # set these with unique columns to be extra-unambiguous
             expected[2] = expected[2].astype(np.int64)

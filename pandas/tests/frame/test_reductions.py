@@ -773,11 +773,7 @@ class TestDataFrameAnalytics:
     def test_std_timedelta64_skipna_false(self):
         # GH#37392
         tdi = pd.timedelta_range("1 Day", periods=10)
-        df = DataFrame({"A": tdi, "B": tdi})
-        # Copy is needed for ArrayManager case, otherwise setting df.iloc
-        #  below edits tdi, alterting both df['A'] and df['B']
-        #  FIXME: passing copy=True to constructor does not fix this
-        df = df.copy()
+        df = DataFrame({"A": tdi, "B": tdi}, copy=True)
         df.iloc[-2, -1] = pd.NaT
 
         result = df.std(skipna=False)
@@ -1064,11 +1060,7 @@ class TestDataFrameAnalytics:
 
     def test_idxmax_dt64_multicolumn_axis1(self):
         dti = date_range("2016-01-01", periods=3)
-        df = DataFrame({3: dti, 4: dti[::-1]})
-        # FIXME: copy needed for ArrayManager, otherwise setting with iloc
-        #  below also sets df.iloc[-1, 1]; passing copy=True to DataFrame
-        #  does not solve this.
-        df = df.copy()
+        df = DataFrame({3: dti, 4: dti[::-1]}, copy=True)
         df.iloc[0, 0] = pd.NaT
 
         df._consolidate_inplace()
