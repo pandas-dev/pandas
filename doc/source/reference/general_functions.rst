@@ -38,15 +38,15 @@ Top-level missing data
    notna
    notnull
 
-Top-level conversions
-~~~~~~~~~~~~~~~~~~~~~
+Top-level dealing with numeric data
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: api/
 
    to_numeric
 
-Top-level dealing with datetimelike
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Top-level dealing with datetimelike data
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: api/
 
@@ -58,8 +58,8 @@ Top-level dealing with datetimelike
    timedelta_range
    infer_freq
 
-Top-level dealing with intervals
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Top-level dealing with Interval data
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: api/
 
