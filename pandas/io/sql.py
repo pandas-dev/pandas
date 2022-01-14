@@ -1766,8 +1766,7 @@ class SQLDatabase(PandasSQL):
         )
 
         schema = schema or self.meta.schema
-        table_name = ".".join([schema, table_name]) if schema else table_name
-        tbl = Table(table_name, self.meta, autoload_with=self.connectable)
+        tbl = Table(table_name, self.meta, autoload_with=self.connectable, schema=schema)
         for column in tbl.columns:
             if isinstance(column.type, Numeric):
                 column.type.asdecimal = False
