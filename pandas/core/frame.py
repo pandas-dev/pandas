@@ -10490,9 +10490,9 @@ NaN 12.3   33.0
                 interpolation=interpolation,
                 method=method,
             )
-            try:
+            if method == "single":
                 res = res_df.iloc[0]
-            except NotImplementedError:
+            else:
                 # cannot directly iloc over sparse arrays
                 res = res_df.T.iloc[:, 0]
             if axis == 1 and len(self) == 0:
