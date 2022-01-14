@@ -46,6 +46,7 @@ def cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
         if is_categorical_dtype(arr.dtype) and arr._hasnans:
             # problem case: categorical of int -> gives int as result dtype,
             # but categorical can contain NAs -> float64 instead
+            # GH#45359
             dtype = np.dtype(np.float64)
 
     if is_sparse(arr) and not is_sparse(dtype):
