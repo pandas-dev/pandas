@@ -66,6 +66,7 @@ from pandas.util._exceptions import (
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
+    common_dtype_categorical_compat,
     find_common_type,
     infer_dtype_from,
     maybe_cast_pointwise_result,
@@ -5976,17 +5977,8 @@ class Index(IndexOpsMixin, PandasObject):
                 return _dtype_obj
 
         dtype = find_common_type([self.dtype, target_dtype])
+        dtype = common_dtype_categorical_compat([self, target], dtype)
 
-        if dtype.kind in ["i", "u"]:
-            # TODO: what about reversed with self being categorical?
-            if (
-                isinstance(target, Index)
-                and is_categorical_dtype(target.dtype)
-                and target.hasnans
-            ):
-                # FIXME: find_common_type incorrect with Categorical GH#38240
-                # FIXME: some cases where float64 cast can be lossy?
-                dtype = np.dtype(np.float64)
         if dtype.kind == "c":
             dtype = _dtype_obj
         return dtype
