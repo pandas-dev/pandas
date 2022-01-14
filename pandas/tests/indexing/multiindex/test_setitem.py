@@ -196,16 +196,35 @@ class TestMultiIndexSetItem:
         df.loc[4, "d"] = arr
         tm.assert_series_equal(df.loc[4, "d"], Series(arr, index=[8, 10], name="d"))
 
+    def test_multiindex_assignment_single_dtype(self, using_array_manager):
+        # GH3777 part 2b
         # single dtype
+        arr = np.array([0.0, 1.0])
+
         df = DataFrame(
             np.random.randint(5, 10, size=9).reshape(3, 3),
             columns=list("abc"),
             index=[[4, 4, 8], [8, 10, 12]],
+            dtype=np.int64,
         )
+        view = df["c"].iloc[:2].values
 
+        # arr can be losslessly cast to int, so this setitem is inplace
         df.loc[4, "c"] = arr
-        exp = Series(arr, index=[8, 10], name="c", dtype="float64")
-        tm.assert_series_equal(df.loc[4, "c"], exp)
+        exp = Series(arr, index=[8, 10], name="c", dtype="int64")
+        result = df.loc[4, "c"]
+        tm.assert_series_equal(result, exp)
+        if not using_array_manager:
+            # FIXME(ArrayManager): this correctly preserves dtype,
+            #  but incorrectly is not inplace.
+            # extra check for inplace-ness
+            tm.assert_numpy_array_equal(view, exp.values)
+
+        # arr + 0.5 cannot be cast losslessly to int, so we upcast
+        df.loc[4, "c"] = arr + 0.5
+        result = df.loc[4, "c"]
+        exp = exp + 0.5
+        tm.assert_series_equal(result, exp)
 
         # scalar ok
         df.loc[4, "c"] = 10
@@ -349,8 +368,7 @@ class TestMultiIndexSetItem:
         assert sliced_a2.name == ("A", "2")
         assert sliced_b1.name == ("B", "1")
 
-    # TODO: no setitem here?
-    def test_getitem_setitem_tuple_plus_columns(
+    def test_loc_getitem_tuple_plus_columns(
         self, multiindex_year_month_day_dataframe_random_data
     ):
         # GH #1013
@@ -369,8 +387,7 @@ class TestMultiIndexSetItem:
         obj = DataFrame(
             np.random.randn(len(index), 4), index=index, columns=["a", "b", "c", "d"]
         )
-        if frame_or_series is not DataFrame:
-            obj = obj["a"]
+        obj = tm.get_obj(obj, frame_or_series)
 
         res = obj.loc[1:2]
         exp = obj.reindex(obj.index[2:])

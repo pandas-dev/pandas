@@ -5,7 +5,7 @@ dependencies:
   - python=3.8
 
   # tools
-  - cython>=0.29.21
+  - cython>=0.29.24
   - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.31
@@ -14,14 +14,12 @@ dependencies:
 
   # pandas dependencies
   - beautifulsoup4
-  - flask
   - html5lib
   - ipython
   - jinja2
   - jedi
   - lxml
-  - matplotlib<3.3.0
-  - moto
+  - matplotlib
   - nomkl
   - numexpr
   - numpy<1.20  # GH#39541 compat with pyarrow<3
@@ -34,8 +32,5 @@ dependencies:
   - xlrd
   - xlsxwriter
   - xlwt
-  - moto
-  - pyarrow=1.0.0
-  - pip
-  - pip:
-    - pyxlsb
+  - pyarrow=1.0.1
+  - pyxlsb

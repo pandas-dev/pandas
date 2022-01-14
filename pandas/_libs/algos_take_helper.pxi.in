@@ -103,7 +103,7 @@ def take_2d_axis0_{{name}}_{{dest}}(const {{c_type_in}}[:, :] values,
 {{else}}
 def take_2d_axis0_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
 {{endif}}
-                                    ndarray[intp_t] indexer,
+                                    ndarray[intp_t, ndim=1] indexer,
                                     {{c_type_out}}[:, :] out,
                                     fill_value=np.nan):
     cdef:
@@ -158,7 +158,7 @@ def take_2d_axis1_{{name}}_{{dest}}(const {{c_type_in}}[:, :] values,
 {{else}}
 def take_2d_axis1_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
 {{endif}}
-                                    ndarray[intp_t] indexer,
+                                    ndarray[intp_t, ndim=1] indexer,
                                     {{c_type_out}}[:, :] out,
                                     fill_value=np.nan):
 
@@ -195,8 +195,8 @@ def take_2d_multi_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
                                     fill_value=np.nan):
     cdef:
         Py_ssize_t i, j, k, n, idx
-        ndarray[intp_t] idx0 = indexer[0]
-        ndarray[intp_t] idx1 = indexer[1]
+        ndarray[intp_t, ndim=1] idx0 = indexer[0]
+        ndarray[intp_t, ndim=1] idx1 = indexer[1]
         {{c_type_out}} fv
 
     n = len(idx0)

@@ -55,6 +55,7 @@ from pandas.core.dtypes.missing import (
 
 from pandas.core import (
     algorithms,
+    nanops,
     ops,
 )
 from pandas.core.accessor import DirNamesMixin
@@ -70,7 +71,6 @@ from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
-import pandas.core.nanops as nanops
 
 if TYPE_CHECKING:
 
@@ -235,7 +235,7 @@ class SelectionMixin(Generic[NDFrameT]):
             raise IndexError(f"Column(s) {self._selection} already selected")
 
         if isinstance(key, (list, tuple, ABCSeries, ABCIndex, np.ndarray)):
-            if len(self.obj.columns.intersection(key)) != len(key):
+            if len(self.obj.columns.intersection(key)) != len(set(key)):
                 bad_keys = list(set(key).difference(self.obj.columns))
                 raise KeyError(f"Columns not found: {str(bad_keys)[1:-1]}")
             return self._gotitem(list(key), ndim=2)
@@ -527,10 +527,7 @@ class IndexOpsMixin(OpsMixin):
               dtype='datetime64[ns]')
         """
         if is_extension_array_dtype(self.dtype):
-            # error: Too many arguments for "to_numpy" of "ExtensionArray"
-            return self.array.to_numpy(  # type: ignore[call-arg]
-                dtype, copy=copy, na_value=na_value, **kwargs
-            )
+            return self.array.to_numpy(dtype, copy=copy, na_value=na_value, **kwargs)
         elif kwargs:
             bad_keys = list(kwargs.keys())[0]
             raise TypeError(
@@ -740,9 +737,6 @@ class IndexOpsMixin(OpsMixin):
         numpy.ndarray.tolist : Return the array as an a.ndim-levels deep
             nested list of Python scalars.
         """
-        if not isinstance(self._values, np.ndarray):
-            # check for ndarray instead of dtype to catch DTA/TDA
-            return list(self._values)
         return self._values.tolist()
 
     to_list = tolist
@@ -769,7 +763,9 @@ class IndexOpsMixin(OpsMixin):
     @cache_readonly
     def hasnans(self) -> bool:
         """
-        Return if I have any nans; enables various perf speedups.
+        Return True if there are any NaNs.
+
+        Enables various performance speedups.
         """
         return bool(isna(self).any())
 
@@ -1242,8 +1238,8 @@ class IndexOpsMixin(OpsMixin):
     def searchsorted(  # type: ignore[misc]
         self,
         value: npt._ScalarLike_co,
-        side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
+        side: Literal["left", "right"] = ...,
+        sorter: NumpySorter = ...,
     ) -> np.intp:
         ...
 
@@ -1251,8 +1247,8 @@ class IndexOpsMixin(OpsMixin):
     def searchsorted(
         self,
         value: npt.ArrayLike | ExtensionArray,
-        side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
+        side: Literal["left", "right"] = ...,
+        sorter: NumpySorter = ...,
     ) -> npt.NDArray[np.intp]:
         ...
 

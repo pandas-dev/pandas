@@ -17,6 +17,7 @@ from typing import (
     Iterable,
     Mapping,
     NamedTuple,
+    Sequence,
     TypeVar,
     Union,
     cast,
@@ -37,6 +38,7 @@ from pandas.util._decorators import (
     Substitution,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -75,6 +77,7 @@ from pandas.core.groupby.groupby import (
     _transform_template,
     warn_dropping_nuisance_columns_deprecated,
 )
+from pandas.core.groupby.grouper import get_grouper
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
@@ -287,7 +290,8 @@ class SeriesGroupBy(GroupBy[Series]):
                 #  see test_groupby.test_basic
                 result = self._aggregate_named(func, *args, **kwargs)
 
-                index = Index(sorted(result), name=self.grouper.names[0])
+                # result is a dict whose keys are the elements of result_index
+                index = self.grouper.result_index
                 return create_series_with_explicit_dtype(
                     result, index=index, dtype_if_empty=object
                 )
@@ -674,7 +678,11 @@ class SeriesGroupBy(GroupBy[Series]):
         # multi-index components
         codes = self.grouper.reconstructed_codes
         codes = [rep(level_codes) for level_codes in codes] + [llab(lab, inc)]
-        levels = [ping.group_index for ping in self.grouper.groupings] + [lev]
+        # error: List item 0 has incompatible type "Union[ndarray[Any, Any], Index]";
+        # expected "Index"
+        levels = [ping.group_index for ping in self.grouper.groupings] + [
+            lev  # type: ignore[list-item]
+        ]
         names = self.grouper.names + [self.obj.name]
 
         if dropna:
@@ -986,7 +994,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             result = self.obj._constructor(
                 index=self.grouper.result_index, columns=data.columns
             )
-            result = result.astype(data.dtypes.to_dict(), copy=False)
+            result = result.astype(data.dtypes, copy=False)
             return result
 
         # GH12824
@@ -1033,7 +1041,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         key_index,
     ) -> DataFrame | Series:
         # this is to silence a DeprecationWarning
-        # TODO: Remove when default dtype of empty Series is object
+        # TODO(2.0): Remove when default dtype of empty Series is object
         kwargs = first_not_none._construct_axes_dict()
         backup = create_series_with_explicit_dtype(dtype_if_empty=object, **kwargs)
         values = [x if (x is not None) else backup for x in values]
@@ -1325,7 +1333,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 "Indexing with multiple keys (implicitly converted to a tuple "
                 "of keys) will be deprecated, use a list instead.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
         return super().__getitem__(key)
 
@@ -1441,6 +1449,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 selection=colname,
                 grouper=self.grouper,
                 exclusions=self.exclusions,
+                observed=self.observed,
             )
 
     def _apply_to_column_groupbys(self, func, obj: DataFrame | Series) -> DataFrame:
@@ -1536,6 +1545,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             result = [index[i] if i >= 0 else np.nan for i in indices]
             return df._constructor_sliced(result, index=res.index)
 
+        func.__name__ = "idxmax"
         return self._python_apply_general(func, self._obj_with_exclusions)
 
     @Appender(DataFrame.idxmin.__doc__)
@@ -1557,9 +1567,197 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             result = [index[i] if i >= 0 else np.nan for i in indices]
             return df._constructor_sliced(result, index=res.index)
 
+        func.__name__ = "idxmin"
         return self._python_apply_general(func, self._obj_with_exclusions)
 
     boxplot = boxplot_frame_groupby
+
+    def value_counts(
+        self,
+        subset: Sequence[Hashable] | None = None,
+        normalize: bool = False,
+        sort: bool = True,
+        ascending: bool = False,
+        dropna: bool = True,
+    ) -> DataFrame | Series:
+        """
+        Return a Series or DataFrame containing counts of unique rows.
+
+        .. versionadded:: 1.4.0
+
+        Parameters
+        ----------
+        subset : list-like, optional
+            Columns to use when counting unique combinations.
+        normalize : bool, default False
+            Return proportions rather than frequencies.
+        sort : bool, default True
+            Sort by frequencies.
+        ascending : bool, default False
+            Sort in ascending order.
+        dropna : bool, default True
+            Don’t include counts of rows that contain NA values.
+
+        Returns
+        -------
+        Series or DataFrame
+            Series if the groupby as_index is True, otherwise DataFrame.
+
+        See Also
+        --------
+        Series.value_counts: Equivalent method on Series.
+        DataFrame.value_counts: Equivalent method on DataFrame.
+        SeriesGroupBy.value_counts: Equivalent method on SeriesGroupBy.
+
+        Notes
+        -----
+        - If the groupby as_index is True then the returned Series will have a
+          MultiIndex with one level per input column.
+        - If the groupby as_index is False then the returned DataFrame will have an
+          additional column with the value_counts. The column is labelled 'count' or
+          'proportion', depending on the ``normalize`` parameter.
+
+        By default, rows that contain any NA values are omitted from
+        the result.
+
+        By default, the result will be in descending order so that the
+        first element of each group is the most frequently-occurring row.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({
+        ...    'gender': ['male', 'male', 'female', 'male', 'female', 'male'],
+        ...    'education': ['low', 'medium', 'high', 'low', 'high', 'low'],
+        ...    'country': ['US', 'FR', 'US', 'FR', 'FR', 'FR']
+        ... })
+
+        >>> df
+            gender 	education 	country
+        0 	male 	low 	    US
+        1 	male 	medium 	    FR
+        2 	female 	high 	    US
+        3 	male 	low 	    FR
+        4 	female 	high 	    FR
+        5 	male 	low 	    FR
+
+        >>> df.groupby('gender').value_counts()
+        gender  education  country
+        female  high       FR         1
+                           US         1
+        male    low        FR         2
+                           US         1
+                medium     FR         1
+        dtype: int64
+
+        >>> df.groupby('gender').value_counts(ascending=True)
+        gender  education  country
+        female  high       FR         1
+                           US         1
+        male    low        US         1
+                medium     FR         1
+                low        FR         2
+        dtype: int64
+
+        >>> df.groupby('gender').value_counts(normalize=True)
+        gender  education  country
+        female  high       FR         0.50
+                           US         0.50
+        male    low        FR         0.50
+                           US         0.25
+                medium     FR         0.25
+        dtype: float64
+
+        >>> df.groupby('gender', as_index=False).value_counts()
+           gender education country  count
+        0  female      high      FR      1
+        1  female      high      US      1
+        2    male       low      FR      2
+        3    male       low      US      1
+        4    male    medium      FR      1
+
+        >>> df.groupby('gender', as_index=False).value_counts(normalize=True)
+           gender education country  proportion
+        0  female      high      FR        0.50
+        1  female      high      US        0.50
+        2    male       low      FR        0.50
+        3    male       low      US        0.25
+        4    male    medium      FR        0.25
+        """
+        if self.axis == 1:
+            raise NotImplementedError(
+                "DataFrameGroupBy.value_counts only handles axis=0"
+            )
+
+        with self._group_selection_context():
+            df = self.obj
+
+            in_axis_names = {
+                grouping.name for grouping in self.grouper.groupings if grouping.in_axis
+            }
+            if isinstance(self._selected_obj, Series):
+                name = self._selected_obj.name
+                keys = [] if name in in_axis_names else [self._selected_obj]
+            else:
+                keys = [
+                    # Can't use .values because the column label needs to be preserved
+                    self._selected_obj.iloc[:, idx]
+                    for idx, name in enumerate(self._selected_obj.columns)
+                    if name not in in_axis_names
+                ]
+
+            if subset is not None:
+                clashing = set(subset) & set(in_axis_names)
+                if clashing:
+                    raise ValueError(
+                        f"Keys {clashing} in subset cannot be in "
+                        "the groupby column keys"
+                    )
+
+            groupings = list(self.grouper.groupings)
+            for key in keys:
+                grouper, _, _ = get_grouper(
+                    df,
+                    key=key,
+                    axis=self.axis,
+                    sort=self.sort,
+                    dropna=dropna,
+                )
+                groupings += list(grouper.groupings)
+
+            # Take the size of the overall columns
+            gb = df.groupby(
+                groupings,
+                sort=self.sort,
+                observed=self.observed,
+                dropna=self.dropna,
+            )
+            result = cast(Series, gb.size())
+
+            if normalize:
+                # Normalize the results by dividing by the original group sizes.
+                # We are guaranteed to have the first N levels be the
+                # user-requested grouping.
+                levels = list(range(len(self.grouper.groupings), result.index.nlevels))
+                indexed_group_size = result.groupby(
+                    result.index.droplevel(levels),
+                    sort=self.sort,
+                    observed=self.observed,
+                    dropna=self.dropna,
+                ).transform("sum")
+
+                result /= indexed_group_size
+
+            if sort:
+                # Sort the values and then resort by the main grouping
+                index_level = range(len(self.grouper.groupings))
+                result = result.sort_values(ascending=ascending).sort_index(
+                    level=index_level, sort_remaining=False
+                )
+
+            if not self.as_index:
+                # Convert to frame
+                result = result.reset_index(name="proportion" if normalize else "count")
+            return result.__finalize__(self.obj, method="value_counts")
 
 
 def _wrap_transform_general_frame(

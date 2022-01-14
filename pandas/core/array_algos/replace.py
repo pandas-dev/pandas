@@ -80,7 +80,8 @@ def compare_or_regex_search(
                 f"Cannot compare types {repr(type_names[0])} and {repr(type_names[1])}"
             )
 
-    if not regex:
+    if not regex or not should_use_regex(regex, b):
+        # TODO: should use missing.mask_missing?
         op = lambda x: operator.eq(x, b)
     else:
         op = np.vectorize(
@@ -108,7 +109,7 @@ def compare_or_regex_search(
         # The shape of the mask can differ to that of the result
         # since we may compare only a subset of a's or b's elements
         tmp = np.zeros(mask.shape, dtype=np.bool_)
-        tmp[mask] = result
+        np.place(tmp, mask, result)
         result = tmp
 
     _check_comparison_types(result, a, b)

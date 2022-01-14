@@ -460,7 +460,11 @@ class MPLPlot:
             label = self.label
             if label is None and data.name is None:
                 label = "None"
-            data = data.to_frame(name=label)
+            if label is None:
+                # We'll end up with columns of [0] instead of [None]
+                data = data.to_frame()
+            else:
+                data = data.to_frame(name=label)
         elif self._kind in ("hist", "box"):
             cols = self.columns if self.by is None else self.columns + self.by
             data = data.loc[:, cols]
@@ -644,7 +648,7 @@ class MPLPlot:
         self.legend_handles.append(handle)
         self.legend_labels.append(label)
 
-    def _make_legend(self):
+    def _make_legend(self) -> None:
         ax, leg = self._get_ax_legend(self.axes[0])
 
         handles = []
@@ -660,20 +664,11 @@ class MPLPlot:
 
             if self.legend:
                 if self.legend == "reverse":
-                    # error: Incompatible types in assignment (expression has type
-                    # "Iterator[Any]", variable has type "List[Any]")
-                    self.legend_handles = reversed(  # type: ignore[assignment]
-                        self.legend_handles
-                    )
-                    # error: Incompatible types in assignment (expression has type
-                    # "Iterator[Hashable]", variable has type
-                    # "List[Hashable]")
-                    self.legend_labels = reversed(  # type: ignore[assignment]
-                        self.legend_labels
-                    )
-
-                handles += self.legend_handles
-                labels += self.legend_labels
+                    handles += reversed(self.legend_handles)
+                    labels += reversed(self.legend_labels)
+                else:
+                    handles += self.legend_handles
+                    labels += self.legend_labels
 
                 if self.legend_title is not None:
                     title = self.legend_title
@@ -1667,9 +1662,7 @@ class PiePlot(MPLPlot):
             if labels is not None:
                 blabels = [blank_labeler(left, value) for left, value in zip(labels, y)]
             else:
-                # error: Incompatible types in assignment (expression has type "None",
-                # variable has type "List[Any]")
-                blabels = None  # type: ignore[assignment]
+                blabels = None
             results = ax.pie(y, labels=blabels, **kwds)
 
             if kwds.get("autopct", None) is not None:

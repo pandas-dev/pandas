@@ -19,7 +19,7 @@ from pandas._typing import (
     Scalar,
     type_t,
 )
-from pandas.compat import pa_version_under1p0
+from pandas.compat import pa_version_under1p01
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.base import (
@@ -104,11 +104,10 @@ class StringDtype(ExtensionDtype):
             raise ValueError(
                 f"Storage must be 'python' or 'pyarrow'. Got {storage} instead."
             )
-        if storage == "pyarrow" and pa_version_under1p0:
+        if storage == "pyarrow" and pa_version_under1p01:
             raise ImportError(
                 "pyarrow>=1.0.0 is required for PyArrow backed StringArray."
             )
-
         self.storage = storage
 
     @property
@@ -414,7 +413,7 @@ class StringArray(BaseStringArray, PandasArray):
 
         super().__setitem__(key, value)
 
-    def astype(self, dtype, copy=True):
+    def astype(self, dtype, copy: bool = True):
         dtype = pandas_dtype(dtype)
 
         if is_dtype_equal(dtype, self.dtype):
@@ -435,8 +434,7 @@ class StringArray(BaseStringArray, PandasArray):
             values = arr.astype(dtype.numpy_dtype)
             return FloatingArray(values, mask, copy=False)
         elif isinstance(dtype, ExtensionDtype):
-            cls = dtype.construct_array_type()
-            return cls._from_sequence(self, dtype=dtype, copy=copy)
+            return super().astype(dtype, copy=copy)
         elif np.issubdtype(dtype, np.floating):
             arr = self._ndarray.copy()
             mask = self.isna()
@@ -447,9 +445,11 @@ class StringArray(BaseStringArray, PandasArray):
 
         return super().astype(dtype, copy)
 
-    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
+    def _reduce(
+        self, name: str, *, skipna: bool = True, axis: int | None = 0, **kwargs
+    ):
         if name in ["min", "max"]:
-            return getattr(self, name)(skipna=skipna)
+            return getattr(self, name)(skipna=skipna, axis=axis)
 
         raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
 
@@ -470,7 +470,9 @@ class StringArray(BaseStringArray, PandasArray):
     def value_counts(self, dropna: bool = True):
         from pandas import value_counts
 
-        return value_counts(self._ndarray, dropna=dropna).astype("Int64")
+        result = value_counts(self._ndarray, dropna=dropna).astype("Int64")
+        result.index = result.index.astype(self.dtype)
+        return result
 
     def memory_usage(self, deep: bool = False) -> int:
         result = self._ndarray.nbytes
@@ -512,7 +514,9 @@ class StringArray(BaseStringArray, PandasArray):
 
     # ------------------------------------------------------------------------
     # String methods interface
-    _str_na_value = StringDtype.na_value
+    # error: Incompatible types in assignment (expression has type "NAType",
+    # base class "PandasArray" defined the type as "float")
+    _str_na_value = StringDtype.na_value  # type: ignore[assignment]
 
     def _str_map(
         self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
@@ -543,12 +547,10 @@ class StringArray(BaseStringArray, PandasArray):
                 mask.view("uint8"),
                 convert=False,
                 na_value=na_value,
-                # error: Value of type variable "_DTypeScalar" of "dtype" cannot be
-                # "object"
                 # error: Argument 1 to "dtype" has incompatible type
                 # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected
                 # "Type[object]"
-                dtype=np.dtype(dtype),  # type: ignore[type-var,arg-type]
+                dtype=np.dtype(dtype),  # type: ignore[arg-type]
             )
 
             if not na_value_is_na:

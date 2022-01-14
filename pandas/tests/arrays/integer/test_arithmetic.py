@@ -55,7 +55,7 @@ def test_div(dtype):
 
 @pytest.mark.parametrize("zero, negative", [(0, False), (0.0, False), (-0.0, True)])
 def test_divide_by_zero(zero, negative):
-    # https://github.com/pandas-dev/pandas/issues/27398
+    # https://github.com/pandas-dev/pandas/issues/27398, GH#22793
     a = pd.array([0, 1, -1, None], dtype="Int64")
     result = a / zero
     expected = FloatingArray(
@@ -179,17 +179,16 @@ def test_error_invalid_values(data, all_arithmetic_operators):
     with pytest.raises(TypeError, match=msg):
         ops(pd.Series("foo", index=s.index))
 
-    if op != "__rpow__":
-        # TODO(extension)
-        # rpow with a datetimelike coerces the integer array incorrectly
-        msg = (
-            "can only perform ops with numeric values|"
-            "cannot perform .* with this index type: DatetimeArray|"
+    msg = "|".join(
+        [
+            "can only perform ops with numeric values",
+            "cannot perform .* with this index type: DatetimeArray",
             "Addition/subtraction of integers and integer-arrays "
-            "with DatetimeArray is no longer supported. *"
-        )
-        with pytest.raises(TypeError, match=msg):
-            ops(pd.Series(pd.date_range("20180101", periods=len(s))))
+            "with DatetimeArray is no longer supported. *",
+        ]
+    )
+    with pytest.raises(TypeError, match=msg):
+        ops(pd.Series(pd.date_range("20180101", periods=len(s))))
 
 
 # Various
@@ -300,4 +299,5 @@ def test_unary_int_operators(any_signed_int_ea_dtype, source, neg_target, abs_ta
 
     tm.assert_extension_array_equal(neg_result, neg_target)
     tm.assert_extension_array_equal(pos_result, arr)
+    assert not tm.shares_memory(pos_result, arr)
     tm.assert_extension_array_equal(abs_result, abs_target)

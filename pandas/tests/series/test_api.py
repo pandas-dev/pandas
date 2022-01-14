@@ -25,12 +25,14 @@ class TestSeriesMisc:
         assert "dt" not in dir(s)
         assert "cat" not in dir(s)
 
+    def test_tab_completion_dt(self):
         # similarly for .dt
         s = Series(date_range("1/1/2015", periods=5))
         assert "dt" in dir(s)
         assert "str" not in dir(s)
         assert "cat" not in dir(s)
 
+    def test_tab_completion_cat(self):
         # Similarly for .cat, but with the twist that str and dt should be
         # there if the categories are of that type first cat and str.
         s = Series(list("abbcd"), dtype="category")
@@ -38,6 +40,7 @@ class TestSeriesMisc:
         assert "str" in dir(s)  # as it is a string categorical
         assert "dt" not in dir(s)
 
+    def test_tab_completion_cat_str(self):
         # similar to cat and str
         s = Series(date_range("1/1/2015", periods=5)).astype("category")
         assert "cat" in dir(s)
@@ -60,12 +63,8 @@ class TestSeriesMisc:
             "as_unordered",
         ]
 
-        def get_dir(s):
-            results = [r for r in s.cat.__dir__() if not r.startswith("_")]
-            return sorted(set(results))
-
         s = Series(list("aabbcde")).astype("category")
-        results = get_dir(s)
+        results = sorted({r for r in s.cat.__dir__() if not r.startswith("_")})
         tm.assert_almost_equal(results, sorted(set(ok_for_cat)))
 
     @pytest.mark.parametrize(
@@ -98,23 +97,14 @@ class TestSeriesMisc:
             else:
                 assert x not in dir_s
 
-    def test_not_hashable(self):
-        s_empty = Series(dtype=object)
-        s = Series([1])
+    @pytest.mark.parametrize("ser", [Series(dtype=object), Series([1])])
+    def test_not_hashable(self, ser):
         msg = "unhashable type: 'Series'"
         with pytest.raises(TypeError, match=msg):
-            hash(s_empty)
-        with pytest.raises(TypeError, match=msg):
-            hash(s)
+            hash(ser)
 
     def test_contains(self, datetime_series):
         tm.assert_contains_all(datetime_series.index, datetime_series)
-
-    def test_raise_on_info(self):
-        s = Series(np.random.randn(10))
-        msg = "'Series' object has no attribute 'info'"
-        with pytest.raises(AttributeError, match=msg):
-            s.info()
 
     def test_axis_alias(self):
         s = Series([1, 2, np.nan])
@@ -144,12 +134,14 @@ class TestSeriesMisc:
         expected = tsdf.max()
         tm.assert_series_equal(result, expected)
 
+    def test_ndarray_compat_like_func(self):
         # using an ndarray like function
         s = Series(np.random.randn(10))
         result = Series(np.ones_like(s))
         expected = Series(1, index=range(10), dtype="float64")
         tm.assert_series_equal(result, expected)
 
+    def test_ndarray_compat_ravel(self):
         # ravel
         s = Series(np.random.randn(10))
         tm.assert_almost_equal(s.ravel(order="F"), s.values.ravel(order="F"))
@@ -158,15 +150,15 @@ class TestSeriesMisc:
         s_empty = Series(dtype=object)
         assert s_empty.empty
 
-        s2 = Series(index=[1], dtype=object)
-        for full_series in [Series([1]), s2]:
-            assert not full_series.empty
+    @pytest.mark.parametrize("dtype", ["int64", object])
+    def test_empty_method_full_series(self, dtype):
+        full_series = Series(index=[1], dtype=dtype)
+        assert not full_series.empty
 
-    def test_integer_series_size(self):
+    @pytest.mark.parametrize("dtype", [None, "Int64"])
+    def test_integer_series_size(self, dtype):
         # GH 25580
-        s = Series(range(9))
-        assert s.size == 9
-        s = Series(range(9), dtype="Int64")
+        s = Series(range(9), dtype=dtype)
         assert s.size == 9
 
     def test_attrs(self):
@@ -182,3 +174,32 @@ class TestSeriesMisc:
         ser = Series(dtype=object)
         with tm.assert_produces_warning(None):
             inspect.getmembers(ser)
+
+    def test_unknown_attribute(self):
+        # GH#9680
+        tdi = pd.timedelta_range(start=0, periods=10, freq="1s")
+        ser = Series(np.random.normal(size=10), index=tdi)
+        assert "foo" not in ser.__dict__.keys()
+        msg = "'Series' object has no attribute 'foo'"
+        with pytest.raises(AttributeError, match=msg):
+            ser.foo
+
+    @pytest.mark.parametrize("op", ["year", "day", "second", "weekday"])
+    def test_datetime_series_no_datelike_attrs(self, op, datetime_series):
+        # GH#7206
+        msg = f"'Series' object has no attribute '{op}'"
+        with pytest.raises(AttributeError, match=msg):
+            getattr(datetime_series, op)
+
+    def test_series_datetimelike_attribute_access(self):
+        # attribute access should still work!
+        ser = Series({"year": 2000, "month": 1, "day": 10})
+        assert ser.year == 2000
+        assert ser.month == 1
+        assert ser.day == 10
+
+    def test_series_datetimelike_attribute_access_invalid(self):
+        ser = Series({"year": 2000, "month": 1, "day": 10})
+        msg = "'Series' object has no attribute 'weekday'"
+        with pytest.raises(AttributeError, match=msg):
+            ser.weekday

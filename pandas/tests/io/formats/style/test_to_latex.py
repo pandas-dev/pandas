@@ -1,5 +1,6 @@
 from textwrap import dedent
 
+import numpy as np
 import pytest
 
 from pandas import (
@@ -360,7 +361,7 @@ def test_multiindex_columns_hidden():
     s = df.style
     assert "{tabular}{lrrrr}" in s.to_latex()
     s.set_table_styles([])  # reset the position command
-    s.hide_columns([("A", 2)])
+    s.hide([("A", 2)], axis="columns")
     assert "{tabular}{lrrr}" in s.to_latex()
 
 
@@ -386,7 +387,7 @@ def test_sparse_options(df_ext, option, value):
 
 
 def test_hidden_index(styler):
-    styler.hide_index()
+    styler.hide(axis="index")
     expected = dedent(
         """\
         \\begin{tabular}{rrl}
@@ -752,7 +753,7 @@ def test_apply_map_header_render_mi(df_ext, index, columns, siunitx):
     expected_index = dedent(
         """\
     \\multirow[c]{2}{*}{\\bfseries{A}} & a & 0 & -0.610000 & ab \\\\
-     & b & 1 & -1.220000 & cd \\\\
+    \\bfseries{} & b & 1 & -1.220000 & cd \\\\
     B & \\bfseries{c} & 2 & -2.220000 & de \\\\
     """
     )
@@ -779,6 +780,15 @@ def test_repr_option(styler):
         assert styler._repr_html_() is None
 
 
+@pytest.mark.parametrize("option", ["hrules"])
+def test_bool_options(styler, option):
+    with option_context(f"styler.latex.{option}", False):
+        latex_false = styler.to_latex()
+    with option_context(f"styler.latex.{option}", True):
+        latex_true = styler.to_latex()
+    assert latex_false != latex_true  # options are reactive under to_latex(*no_args)
+
+
 def test_siunitx_basic_headers(styler):
     assert "{} & {A} & {B} & {C} \\\\" in styler.to_latex(siunitx=True)
     assert " & A & B & C \\\\" in styler.to_latex()  # default siunitx=False
@@ -789,3 +799,194 @@ def test_css_convert_apply_index(styler, axis):
     styler.applymap_index(lambda x: "font-weight: bold;", axis=axis)
     for label in getattr(styler, axis):
         assert f"\\bfseries {label}" in styler.to_latex(convert_css=True)
+
+
+def test_hide_index_latex(styler):
+    # GH 43637
+    styler.hide([0], axis=0)
+    result = styler.to_latex()
+    expected = dedent(
+        """\
+    \\begin{tabular}{lrrl}
+     & A & B & C \\\\
+    1 & 1 & -1.22 & cd \\\\
+    \\end{tabular}
+    """
+    )
+    assert expected == result
+
+
+def test_latex_hiding_index_columns_multiindex_alignment():
+    # gh 43644
+    midx = MultiIndex.from_product(
+        [["i0", "j0"], ["i1"], ["i2", "j2"]], names=["i-0", "i-1", "i-2"]
+    )
+    cidx = MultiIndex.from_product(
+        [["c0"], ["c1", "d1"], ["c2", "d2"]], names=["c-0", "c-1", "c-2"]
+    )
+    df = DataFrame(np.arange(16).reshape(4, 4), index=midx, columns=cidx)
+    styler = Styler(df, uuid_len=0)
+    styler.hide(level=1, axis=0).hide(level=0, axis=1)
+    styler.hide([("i0", "i1", "i2")], axis=0)
+    styler.hide([("c0", "c1", "c2")], axis=1)
+    styler.applymap(lambda x: "color:{red};" if x == 5 else "")
+    styler.applymap_index(lambda x: "color:{blue};" if "j" in x else "")
+    result = styler.to_latex()
+    expected = dedent(
+        """\
+        \\begin{tabular}{llrrr}
+         & c-1 & c1 & \\multicolumn{2}{r}{d1} \\\\
+         & c-2 & d2 & c2 & d2 \\\\
+        i-0 & i-2 &  &  &  \\\\
+        i0 & \\color{blue} j2 & \\color{red} 5 & 6 & 7 \\\\
+        \\multirow[c]{2}{*}{\\color{blue} j0} & i2 & 9 & 10 & 11 \\\\
+        \\color{blue}  & \\color{blue} j2 & 13 & 14 & 15 \\\\
+        \\end{tabular}
+        """
+    )
+    assert result == expected
+
+
+def test_rendered_links():
+    # note the majority of testing is done in test_html.py: test_rendered_links
+    # these test only the alternative latex format is functional
+    df = DataFrame(["text www.domain.com text"])
+    result = df.style.format(hyperlinks="latex").to_latex()
+    assert r"text \href{www.domain.com}{www.domain.com} text" in result
+
+
+def test_apply_index_hidden_levels():
+    # gh 45156
+    styler = DataFrame(
+        [[1]],
+        index=MultiIndex.from_tuples([(0, 1)], names=["l0", "l1"]),
+        columns=MultiIndex.from_tuples([(0, 1)], names=["c0", "c1"]),
+    ).style
+    styler.hide(level=1)
+    styler.applymap_index(lambda v: "color: red;", level=0, axis=1)
+    result = styler.to_latex(convert_css=True)
+    expected = dedent(
+        """\
+        \\begin{tabular}{lr}
+        c0 & \\color{red} 0 \\\\
+        c1 & 1 \\\\
+        l0 &  \\\\
+        0 & 1 \\\\
+        \\end{tabular}
+        """
+    )
+    assert result == expected
+
+
+@pytest.mark.parametrize("clines", ["bad", "index", "skip-last", "all", "data"])
+def test_clines_validation(clines, styler):
+    msg = f"`clines` value of {clines} is invalid."
+    with pytest.raises(ValueError, match=msg):
+        styler.to_latex(clines=clines)
+
+
+@pytest.mark.parametrize(
+    "clines, exp",
+    [
+        ("all;index", "\n\\cline{1-1}"),
+        ("all;data", "\n\\cline{1-2}"),
+        ("skip-last;index", ""),
+        ("skip-last;data", ""),
+        (None, ""),
+    ],
+)
+@pytest.mark.parametrize("env", ["table", "longtable"])
+def test_clines_index(clines, exp, env):
+    df = DataFrame([[1], [2], [3], [4]])
+    result = df.style.to_latex(clines=clines, environment=env)
+    expected = f"""\
+0 & 1 \\\\{exp}
+1 & 2 \\\\{exp}
+2 & 3 \\\\{exp}
+3 & 4 \\\\{exp}
+"""
+    assert expected in result
+
+
+@pytest.mark.parametrize(
+    "clines, expected",
+    [
+        (
+            None,
+            dedent(
+                """\
+            \\multirow[c]{2}{*}{A} & X & 1 \\\\
+             & Y & 2 \\\\
+            \\multirow[c]{2}{*}{B} & X & 3 \\\\
+             & Y & 4 \\\\
+            """
+            ),
+        ),
+        (
+            "skip-last;index",
+            dedent(
+                """\
+            \\multirow[c]{2}{*}{A} & X & 1 \\\\
+             & Y & 2 \\\\
+            \\cline{1-2}
+            \\multirow[c]{2}{*}{B} & X & 3 \\\\
+             & Y & 4 \\\\
+            \\cline{1-2}
+            """
+            ),
+        ),
+        (
+            "skip-last;data",
+            dedent(
+                """\
+            \\multirow[c]{2}{*}{A} & X & 1 \\\\
+             & Y & 2 \\\\
+            \\cline{1-3}
+            \\multirow[c]{2}{*}{B} & X & 3 \\\\
+             & Y & 4 \\\\
+            \\cline{1-3}
+            """
+            ),
+        ),
+        (
+            "all;index",
+            dedent(
+                """\
+            \\multirow[c]{2}{*}{A} & X & 1 \\\\
+            \\cline{2-2}
+             & Y & 2 \\\\
+            \\cline{1-2} \\cline{2-2}
+            \\multirow[c]{2}{*}{B} & X & 3 \\\\
+            \\cline{2-2}
+             & Y & 4 \\\\
+            \\cline{1-2} \\cline{2-2}
+            """
+            ),
+        ),
+        (
+            "all;data",
+            dedent(
+                """\
+            \\multirow[c]{2}{*}{A} & X & 1 \\\\
+            \\cline{2-3}
+             & Y & 2 \\\\
+            \\cline{1-3} \\cline{2-3}
+            \\multirow[c]{2}{*}{B} & X & 3 \\\\
+            \\cline{2-3}
+             & Y & 4 \\\\
+            \\cline{1-3} \\cline{2-3}
+            """
+            ),
+        ),
+    ],
+)
+@pytest.mark.parametrize("env", ["table"])
+def test_clines_multiindex(clines, expected, env):
+    # also tests simultaneously with hidden rows and a hidden multiindex level
+    midx = MultiIndex.from_product([["A", "-", "B"], [0], ["X", "Y"]])
+    df = DataFrame([[1], [2], [99], [99], [3], [4]], index=midx)
+    styler = df.style
+    styler.hide([("-", 0, "X"), ("-", 0, "Y")])
+    styler.hide(level=1)
+    result = styler.to_latex(clines=clines, environment=env)
+    assert expected in result

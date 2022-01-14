@@ -7,7 +7,7 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.cast import astype_nansafe
+from pandas.core.dtypes.astype import astype_nansafe
 import pandas.core.dtypes.common as com
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -20,6 +20,7 @@ from pandas.core.dtypes.missing import isna
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.api.types import pandas_dtype
 from pandas.arrays import SparseArray
 
 
@@ -115,6 +116,7 @@ dtypes = {
     "float": np.dtype(np.float64),
     "object": np.dtype(object),
     "category": com.pandas_dtype("category"),
+    "string": pd.StringDtype(),
 }
 
 
@@ -126,6 +128,12 @@ def test_dtype_equal(name1, dtype1, name2, dtype2):
     assert com.is_dtype_equal(dtype1, dtype1)
     if name1 != name2:
         assert not com.is_dtype_equal(dtype1, dtype2)
+
+
+@pytest.mark.parametrize("name,dtype", list(dtypes.items()), ids=lambda x: str(x))
+def test_pyarrow_string_import_error(name, dtype):
+    # GH-44276
+    assert not com.is_dtype_equal(dtype, "string[pyarrow]")
 
 
 @pytest.mark.parametrize(
@@ -154,6 +162,7 @@ def get_is_dtype_funcs():
 
     """
     fnames = [f for f in dir(com) if (f.startswith("is_") and f.endswith("dtype"))]
+    fnames.remove("is_string_or_object_np_dtype")  # fastpath requires np.dtype obj
     return [getattr(com, fname) for fname in fnames]
 
 
@@ -397,6 +406,23 @@ def test_is_not_unsigned_integer_dtype(dtype):
 )
 def test_is_int64_dtype(dtype):
     assert com.is_int64_dtype(dtype)
+
+
+def test_type_comparison_with_numeric_ea_dtype(any_numeric_ea_dtype):
+    # GH#43038
+    assert pandas_dtype(any_numeric_ea_dtype) == any_numeric_ea_dtype
+
+
+def test_type_comparison_with_real_numpy_dtype(any_real_numpy_dtype):
+    # GH#43038
+    assert pandas_dtype(any_real_numpy_dtype) == any_real_numpy_dtype
+
+
+def test_type_comparison_with_signed_int_ea_dtype_and_signed_int_numpy_dtype(
+    any_signed_int_ea_dtype, any_signed_int_numpy_dtype
+):
+    # GH#43038
+    assert not pandas_dtype(any_signed_int_ea_dtype) == any_signed_int_numpy_dtype
 
 
 @pytest.mark.parametrize(

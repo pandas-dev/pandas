@@ -18,7 +18,10 @@ import pytest
 
 from pandas.core.dtypes.dtypes import IntervalDtype
 
-from pandas import Interval
+from pandas import (
+    Interval,
+    Series,
+)
 from pandas.core.arrays import IntervalArray
 from pandas.tests.extension import base
 
@@ -90,19 +93,31 @@ class TestGetitem(BaseInterval, base.BaseGetitemTests):
     pass
 
 
+class TestIndex(base.BaseIndexTests):
+    pass
+
+
 class TestGrouping(BaseInterval, base.BaseGroupbyTests):
     pass
 
 
 class TestInterface(BaseInterval, base.BaseInterfaceTests):
-    def test_view(self, data):
-        # __setitem__ incorrectly makes a copy (GH#27147), so we only
-        #  have a smoke-test
-        data.view()
+    pass
 
 
 class TestReduce(base.BaseNoReduceTests):
-    pass
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
+        op_name = all_numeric_reductions
+        ser = Series(data)
+
+        if op_name in ["min", "max"]:
+            # IntervalArray *does* implement these
+            assert getattr(ser, op_name)(skipna=skipna) in data
+            assert getattr(data, op_name)(skipna=skipna) in data
+            return
+
+        super().test_reduce_series_numeric(data, all_numeric_reductions, skipna)
 
 
 class TestMethods(BaseInterval, base.BaseMethodsTests):
@@ -110,9 +125,12 @@ class TestMethods(BaseInterval, base.BaseMethodsTests):
     def test_combine_add(self, data_repeated):
         pass
 
-    @pytest.mark.skip(reason="Not Applicable")
+    @pytest.mark.xfail(
+        reason="Raises with incorrect message bc it disallows *all* listlikes "
+        "instead of just wrong-length listlikes"
+    )
     def test_fillna_length_mismatch(self, data_missing):
-        pass
+        super().test_fillna_length_mismatch(data_missing)
 
 
 class TestMissing(BaseInterval, base.BaseMissingTests):

@@ -3,8 +3,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -83,7 +81,7 @@ def test_apply_use_categorical_name(df):
     assert result.index.names[0] == "C"
 
 
-def test_basic():
+def test_basic():  # TODO: split this test
 
     cats = Categorical(
         ["a", "a", "a", "b", "b", "b", "c", "c", "c"],
@@ -144,9 +142,24 @@ def test_basic():
         df.a.groupby(c, observed=False).transform(lambda xs: np.sum(xs)), df["a"]
     )
     tm.assert_frame_equal(df.groupby(c, observed=False).transform(sum), df[["a"]])
-    tm.assert_frame_equal(
-        df.groupby(c, observed=False).transform(lambda xs: np.max(xs)), df[["a"]]
-    )
+
+    gbc = df.groupby(c, observed=False)
+    with tm.assert_produces_warning(
+        FutureWarning, match="scalar max", check_stacklevel=False
+    ):
+        # stacklevel is thrown off (i think) bc the stack goes through numpy C code
+        result = gbc.transform(lambda xs: np.max(xs))
+    tm.assert_frame_equal(result, df[["a"]])
+
+    with tm.assert_produces_warning(None):
+        result2 = gbc.transform(lambda xs: np.max(xs, axis=0))
+        result3 = gbc.transform(max)
+        result4 = gbc.transform(np.maximum.reduce)
+        result5 = gbc.transform(lambda xs: np.maximum.reduce(xs))
+    tm.assert_frame_equal(result2, df[["a"]], check_dtype=False)
+    tm.assert_frame_equal(result3, df[["a"]], check_dtype=False)
+    tm.assert_frame_equal(result4, df[["a"]])
+    tm.assert_frame_equal(result5, df[["a"]])
 
     # Filter
     tm.assert_series_equal(df.a.groupby(c, observed=False).filter(np.all), df["a"])
@@ -301,9 +314,7 @@ def test_apply(ordered):
     tm.assert_series_equal(result, expected)
 
 
-# TODO(ArrayManager) incorrect dtype for mean()
-@td.skip_array_manager_not_yet_implemented
-def test_observed(observed, using_array_manager):
+def test_observed(observed):
     # multiple groupers, don't re-expand the output space
     # of the grouper
     # gh-14942 (implement)
@@ -668,9 +679,30 @@ def test_bins_unequal_len():
     bins = pd.cut(series.dropna().values, 4)
 
     # len(bins) != len(series) here
-    msg = r"Length of grouper \(8\) and axis \(10\) must be same length"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(ValueError, match="Grouper and axis must be same length"):
         series.groupby(bins).mean()
+
+
+@pytest.mark.parametrize(
+    ["series", "data"],
+    [
+        # Group a series with length and index equal to those of the grouper.
+        (Series(range(4)), {"A": [0, 3], "B": [1, 2]}),
+        # Group a series with length equal to that of the grouper and index unequal to
+        # that of the grouper.
+        (Series(range(4)).rename(lambda idx: idx + 1), {"A": [2], "B": [0, 1]}),
+        # GH44179: Group a series with length unequal to that of the grouper.
+        (Series(range(7)), {"A": [0, 3], "B": [1, 2]}),
+    ],
+)
+def test_categorical_series(series, data):
+    # Group the given series by a series with categorical data type such that group A
+    # takes indices 0 and 3 and group B indices 1 and 2, obtaining the values mapped in
+    # the given data.
+    groupby = series.groupby(Series(list("ABBA"), dtype="category"))
+    result = groupby.aggregate(list)
+    expected = Series(data, index=CategoricalIndex(data.keys()))
+    tm.assert_series_equal(result, expected)
 
 
 def test_as_index():
@@ -1747,3 +1779,18 @@ def test_groupby_last_first_preserve_categoricaldtype(func):
         Categorical([1, 2, 3]), name="b", index=Index([1, 2, 3], name="a")
     )
     tm.assert_series_equal(expected, result)
+
+
+def test_groupby_categorical_observed_nunique():
+    # GH#45128
+    df = DataFrame({"a": [1, 2], "b": [1, 2], "c": [10, 11]})
+    df = df.astype(dtype={"a": "category", "b": "category"})
+    result = df.groupby(["a", "b"], observed=True).nunique()["c"]
+    expected = Series(
+        [1, 1],
+        index=MultiIndex.from_arrays(
+            [CategoricalIndex([1, 2], name="a"), CategoricalIndex([1, 2], name="b")]
+        ),
+        name="c",
+    )
+    tm.assert_series_equal(result, expected)

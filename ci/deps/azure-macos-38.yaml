@@ -22,16 +22,17 @@ dependencies:
   - numexpr
   - numpy=1.18.5
   - openpyxl
-  - pyarrow=0.17
+  - pyarrow=1.0.1
+  - pyreadstat
   - pytables
   - python-dateutil==2.8.1
   - pytz
+  - pyxlsb
   - xarray
   - xlrd
   - xlsxwriter
   - xlwt
+  - zstandard
   - pip
   - pip:
-    - cython>=0.29.21
-    - pyreadstat
-    - pyxlsb
+    - cython>=0.29.24

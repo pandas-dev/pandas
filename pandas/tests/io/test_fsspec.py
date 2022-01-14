@@ -1,7 +1,11 @@
 import io
+import sys
 
 import numpy as np
 import pytest
+
+from pandas.compat import is_platform_windows
+from pandas.compat._optional import VERSIONS
 
 from pandas import (
     DataFrame,
@@ -159,6 +163,9 @@ def test_to_parquet_new_file(monkeypatch, cleared_fs):
 
 
 @td.skip_if_no("pyarrow")
+@pytest.mark.xfail(
+    is_platform_windows() and sys.version_info[:2] == (3, 8), reason="GH 45344"
+)
 def test_arrowparquet_options(fsspectest):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
     df = DataFrame({"a": [0]})
@@ -289,7 +296,21 @@ def test_stata_options(fsspectest):
 
 
 @td.skip_if_no("tabulate")
-def test_markdown_options(fsspectest):
+def test_markdown_options(request, fsspectest):
+    import fsspec
+
+    # error: Library stubs not installed for "tabulate"
+    # (or incompatible with Python 3.8)
+    import tabulate  # type: ignore[import]
+
+    request.node.add_marker(
+        pytest.mark.xfail(
+            fsspec.__version__ == VERSIONS["fsspec"]
+            and tabulate.__version__ == VERSIONS["tabulate"],
+            reason="Fails on the min version build",
+            raises=FileNotFoundError,
+        )
+    )
     df = DataFrame({"a": [0]})
     df.to_markdown("testmem://afile", storage_options={"test": "md_write"})
     assert fsspectest.test[0] == "md_write"

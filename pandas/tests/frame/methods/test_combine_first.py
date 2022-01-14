@@ -209,15 +209,15 @@ class TestDataFrameCombineFirst:
         )
         tm.assert_frame_equal(res, exp)
         assert res["a"].dtype == "datetime64[ns]"
-        # ToDo: this must be int64
+        # TODO: this must be int64
         assert res["b"].dtype == "int64"
 
         res = dfa.iloc[:0].combine_first(dfb)
         exp = DataFrame({"a": [np.nan, np.nan], "b": [4, 5]}, columns=["a", "b"])
         tm.assert_frame_equal(res, exp)
-        # ToDo: this must be datetime64
+        # TODO: this must be datetime64
         assert res["a"].dtype == "float64"
-        # ToDo: this must be int64
+        # TODO: this must be int64
         assert res["b"].dtype == "int64"
 
     def test_combine_first_timezone(self):
@@ -517,3 +517,12 @@ def test_combine_first_duplicates_rows_for_nan_index_values():
     )
     combined = df1.combine_first(df2)
     tm.assert_frame_equal(combined, expected)
+
+
+def test_combine_first_int64_not_cast_to_float64():
+    # GH 28613
+    df_1 = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+    df_2 = DataFrame({"A": [1, 20, 30], "B": [40, 50, 60], "C": [12, 34, 65]})
+    result = df_1.combine_first(df_2)
+    expected = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [12, 34, 65]})
+    tm.assert_frame_equal(result, expected)

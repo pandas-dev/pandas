@@ -78,8 +78,7 @@ def test_astype_copy():
     # copy=True -> ensure both data and mask are actual copies
     result = arr.astype("Float64", copy=True)
     assert result is not arr
-    assert not np.shares_memory(result._data, arr._data)
-    assert not np.shares_memory(result._mask, arr._mask)
+    assert not tm.shares_memory(result, arr)
     result[0] = 10
     tm.assert_extension_array_equal(arr, orig)
     result[0] = pd.NA
@@ -101,8 +100,7 @@ def test_astype_copy():
     orig = pd.array([0.1, 0.2, None], dtype="Float64")
 
     result = arr.astype("Float32", copy=False)
-    assert not np.shares_memory(result._data, arr._data)
-    assert not np.shares_memory(result._mask, arr._mask)
+    assert not tm.shares_memory(result, arr)
     result[0] = 10
     tm.assert_extension_array_equal(arr, orig)
     result[0] = pd.NA

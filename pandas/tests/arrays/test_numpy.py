@@ -128,7 +128,7 @@ def test_constructor_copy():
     arr = np.array([0, 1])
     result = PandasArray(arr, copy=True)
 
-    assert np.shares_memory(result._ndarray, arr) is False
+    assert not tm.shares_memory(result, arr)
 
 
 def test_constructor_with_data(any_numpy_array):
@@ -194,15 +194,52 @@ def test_validate_reduction_keyword_args():
         arr.all(keepdims=True)
 
 
+def test_np_max_nested_tuples():
+    # case where checking in ufunc.nout works while checking for tuples
+    #  does not
+    vals = [
+        (("j", "k"), ("l", "m")),
+        (("l", "m"), ("o", "p")),
+        (("o", "p"), ("j", "k")),
+    ]
+    ser = pd.Series(vals)
+    arr = ser.array
+
+    assert arr.max() is arr[2]
+    assert ser.max() is arr[2]
+
+    result = np.maximum.reduce(arr)
+    assert result == arr[2]
+
+    result = np.maximum.reduce(ser)
+    assert result == arr[2]
+
+
+def test_np_reduce_2d():
+    raw = np.arange(12).reshape(4, 3)
+    arr = PandasArray(raw)
+
+    res = np.maximum.reduce(arr, axis=0)
+    tm.assert_extension_array_equal(res, arr[-1])
+
+    alt = arr.max(axis=0)
+    tm.assert_extension_array_equal(alt, arr[-1])
+
+
 # ----------------------------------------------------------------------------
 # Ops
 
 
+@pytest.mark.parametrize("ufunc", [np.abs, np.negative, np.positive])
+def test_ufunc_unary(ufunc):
+    arr = PandasArray(np.array([-1.0, 0.0, 1.0]))
+    result = ufunc(arr)
+    expected = PandasArray(ufunc(arr._ndarray))
+    tm.assert_extension_array_equal(result, expected)
+
+
 def test_ufunc():
     arr = PandasArray(np.array([-1.0, 0.0, 1.0]))
-    result = np.abs(arr)
-    expected = PandasArray(np.abs(arr._ndarray))
-    tm.assert_extension_array_equal(result, expected)
 
     r1, r2 = np.divmod(arr, np.add(arr, 2))
     e1, e2 = np.divmod(arr._ndarray, np.add(arr._ndarray, 2))

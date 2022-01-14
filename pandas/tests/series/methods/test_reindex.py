@@ -171,10 +171,6 @@ def test_reindex_nearest():
     tm.assert_series_equal(expected, result)
 
 
-def test_reindex_backfill():
-    pass
-
-
 def test_reindex_int(datetime_series):
     ts = datetime_series[::2]
     int_ts = Series(np.zeros(len(ts), dtype=int), index=ts.index)
@@ -348,6 +344,31 @@ def test_reindex_periodindex_with_object(p_values, o_values, values, expected_va
     tm.assert_series_equal(result, expected)
 
 
+def test_reindex_too_many_args():
+    # GH 40980
+    ser = Series([1, 2])
+    with pytest.raises(
+        TypeError, match=r"Only one positional argument \('index'\) is allowed"
+    ):
+        ser.reindex([2, 3], False)
+
+
+def test_reindex_double_index():
+    # GH 40980
+    ser = Series([1, 2])
+    msg = r"'index' passed as both positional and keyword argument"
+    with pytest.raises(TypeError, match=msg):
+        ser.reindex([2, 3], index=[3, 4])
+
+
+def test_reindex_no_posargs():
+    # GH 40980
+    ser = Series([1, 2])
+    result = ser.reindex(index=[1, 0])
+    expected = Series([2, 1], index=[1, 0])
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("values", [[["a"], ["x"]], [[], []]])
 def test_reindex_empty_with_level(values):
     # GH41170
@@ -359,3 +380,11 @@ def test_reindex_empty_with_level(values):
         index=MultiIndex(levels=[["b"], values[1]], codes=[[], []]), dtype="object"
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_reindex_missing_category():
+    # GH#18185
+    ser = Series([1, 2, 3, 1], dtype="category")
+    msg = r"Cannot setitem on a Categorical with a new category \(-1\)"
+    with pytest.raises(TypeError, match=msg):
+        ser.reindex([1, 2, 3, 4, 5], fill_value=-1)

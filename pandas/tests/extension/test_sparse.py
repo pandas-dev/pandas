@@ -17,6 +17,7 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
+from pandas.compat import np_version_under1p20
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import is_object_dtype
@@ -99,6 +100,11 @@ def data_for_grouping(request):
     return SparseArray([1, 1, np.nan, np.nan, 2, 2, 1, 3], fill_value=request.param)
 
 
+@pytest.fixture(params=[0, np.nan])
+def data_for_compare(request):
+    return SparseArray([0, 0, np.nan, -2, -1, 4, 2, 3, 0, 0], fill_value=request.param)
+
+
 class BaseSparseTests:
     def _check_unsupported(self, data):
         if data.dtype == SparseDtype(int, 0):
@@ -115,9 +121,6 @@ class TestDtype(BaseSparseTests, base.BaseDtypeTests):
 
 
 class TestInterface(BaseSparseTests, base.BaseInterfaceTests):
-    def test_no_values_attribute(self, data):
-        pytest.skip("We have values")
-
     def test_copy(self, data):
         # __setitem__ does not work, so we only have a smoke-test
         data.copy()
@@ -178,12 +181,12 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
 
 class TestGetitem(BaseSparseTests, base.BaseGetitemTests):
     def test_get(self, data):
-        s = pd.Series(data, index=[2 * i for i in range(len(data))])
-        if np.isnan(s.values.fill_value):
-            assert np.isnan(s.get(4)) and np.isnan(s.iloc[2])
+        ser = pd.Series(data, index=[2 * i for i in range(len(data))])
+        if np.isnan(ser.values.fill_value):
+            assert np.isnan(ser.get(4)) and np.isnan(ser.iloc[2])
         else:
-            assert s.get(4) == s.iloc[2]
-        assert s.get(2) == s.iloc[1]
+            assert ser.get(4) == ser.iloc[2]
+        assert ser.get(2) == ser.iloc[1]
 
     def test_reindex(self, data, na_value):
         self._check_unsupported(data)
@@ -193,22 +196,40 @@ class TestGetitem(BaseSparseTests, base.BaseGetitemTests):
 # Skipping TestSetitem, since we don't implement it.
 
 
+class TestIndex(base.BaseIndexTests):
+    def test_index_from_array(self, data):
+        msg = "will store that array directly"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            idx = pd.Index(data)
+
+        if data.dtype.subtype == "f":
+            assert idx.dtype == np.float64
+        elif data.dtype.subtype == "i":
+            assert idx.dtype == np.int64
+        else:
+            assert idx.dtype == data.dtype.subtype
+
+    # TODO(2.0): should pass once SparseArray is stored directly in Index.
+    @pytest.mark.xfail(reason="Index cannot yet store sparse dtype")
+    def test_index_from_listlike_with_dtype(self, data):
+        msg = "passing a SparseArray to pd.Index"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            super().test_index_from_listlike_with_dtype(data)
+
+
 class TestMissing(BaseSparseTests, base.BaseMissingTests):
     def test_isna(self, data_missing):
+        sarr = SparseArray(data_missing)
         expected_dtype = SparseDtype(bool, pd.isna(data_missing.dtype.fill_value))
         expected = SparseArray([True, False], dtype=expected_dtype)
+        result = sarr.isna()
+        tm.assert_sp_array_equal(result, expected)
 
-        result = pd.isna(data_missing)
-        self.assert_equal(result, expected)
-
-        result = pd.Series(data_missing).isna()
-        expected = pd.Series(expected)
-        self.assert_series_equal(result, expected)
-
-        # GH 21189
-        result = pd.Series(data_missing).drop([0, 1]).isna()
-        expected = pd.Series([], dtype=expected_dtype)
-        self.assert_series_equal(result, expected)
+        # test isna for arr without na
+        sarr = sarr.fillna(0)
+        expected_dtype = SparseDtype(bool, pd.isna(data_missing.dtype.fill_value))
+        expected = SparseArray([False, False], fill_value=False, dtype=expected_dtype)
+        self.assert_equal(sarr.isna(), expected)
 
     def test_fillna_limit_pad(self, data_missing):
         with tm.assert_produces_warning(PerformanceWarning):
@@ -257,6 +278,14 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
 
 
 class TestMethods(BaseSparseTests, base.BaseMethodsTests):
+    @pytest.mark.parametrize("ascending", [True, False])
+    def test_sort_values_frame(self, data_for_sorting, ascending):
+        msg = "will store that array directly"
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            super().test_sort_values_frame(data_for_sorting, ascending)
+
     def test_combine_le(self, data_repeated):
         # We return a Series[SparseArray].__le__ returns a
         # Series[Sparse[bool]]
@@ -327,11 +356,14 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         expected = pd.Series(cls._from_sequence([a, b, b, b], dtype=data.dtype))
         self.assert_series_equal(result, expected)
 
-    def test_combine_first(self, data):
+    def test_combine_first(self, data, request):
         if data.dtype.subtype == "int":
             # Right now this is upcasted to float, just like combine_first
             # for Series[int]
-            pytest.skip("TODO(SparseArray.__setitem__ will preserve dtype.")
+            mark = pytest.mark.xfail(
+                reason="TODO(SparseArray.__setitem__) will preserve dtype."
+            )
+            request.node.add_marker(mark)
         super().test_combine_first(data)
 
     def test_searchsorted(self, data_for_sorting, as_series):
@@ -374,10 +406,12 @@ class TestCasting(BaseSparseTests, base.BaseCastingTests):
         result = df.astype(object)
         assert is_object_dtype(result._mgr.arrays[0].dtype)
 
-        # FIXME: these currently fail; dont leave commented-out
-        # check that we can compare the dtypes
-        # comp = result.dtypes.equals(df.dtypes)
-        # assert not comp.any()
+        # earlier numpy raises TypeError on e.g. np.dtype(np.int64) == "Int64"
+        #  instead of returning False
+        if not np_version_under1p20:
+            # check that we can compare the dtypes
+            comp = result.dtypes == df.dtypes
+            assert not comp.any()
 
     def test_astype_str(self, data):
         result = pd.Series(data[:5]).astype(str)
@@ -427,33 +461,50 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
             request.node.add_marker(mark)
         super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
+    def _check_divmod_op(self, ser, op, other, exc=NotImplementedError):
+        # We implement divmod
+        super()._check_divmod_op(ser, op, other, exc=None)
 
-class TestComparisonOps(BaseSparseTests, base.BaseComparisonOpsTests):
-    def _compare_other(self, s, data, op_name, other):
-        op = self.get_op_from_name(op_name)
 
-        # array
-        result = pd.Series(op(data, other))
-        # hard to test the fill value, since we don't know what expected
-        # is in general.
-        # Rely on tests in `tests/sparse` to validate that.
-        assert isinstance(result.dtype, SparseDtype)
-        assert result.dtype.subtype == np.dtype("bool")
+class TestComparisonOps(BaseSparseTests):
+    def _compare_other(self, data_for_compare: SparseArray, comparison_op, other):
+        op = comparison_op
 
-        with np.errstate(all="ignore"):
-            expected = pd.Series(
-                SparseArray(
-                    op(np.asarray(data), np.asarray(other)),
-                    fill_value=result.values.fill_value,
-                )
+        result = op(data_for_compare, other)
+        assert isinstance(result, SparseArray)
+        assert result.dtype.subtype == np.bool_
+
+        if isinstance(other, SparseArray):
+            fill_value = op(data_for_compare.fill_value, other.fill_value)
+        else:
+            fill_value = np.all(
+                op(np.asarray(data_for_compare.fill_value), np.asarray(other))
             )
 
-        tm.assert_series_equal(result, expected)
+            expected = SparseArray(
+                op(data_for_compare.to_dense(), np.asarray(other)),
+                fill_value=fill_value,
+                dtype=np.bool_,
+            )
+        tm.assert_sp_array_equal(result, expected)
 
-        # series
-        s = pd.Series(data)
-        result = op(s, other)
-        tm.assert_series_equal(result, expected)
+    def test_scalar(self, data_for_compare: SparseArray, comparison_op):
+        self._compare_other(data_for_compare, comparison_op, 0)
+        self._compare_other(data_for_compare, comparison_op, 1)
+        self._compare_other(data_for_compare, comparison_op, -1)
+        self._compare_other(data_for_compare, comparison_op, np.nan)
+
+    @pytest.mark.xfail(reason="Wrong indices")
+    def test_array(self, data_for_compare: SparseArray, comparison_op):
+        arr = np.linspace(-4, 5, 10)
+        self._compare_other(data_for_compare, comparison_op, arr)
+
+    @pytest.mark.xfail(reason="Wrong indices")
+    def test_sparse_array(self, data_for_compare: SparseArray, comparison_op):
+        arr = data_for_compare + 1
+        self._compare_other(data_for_compare, comparison_op, arr)
+        arr = data_for_compare * 2
+        self._compare_other(data_for_compare, comparison_op, arr)
 
 
 class TestPrinting(BaseSparseTests, base.BasePrintingTests):

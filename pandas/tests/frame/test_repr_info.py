@@ -26,16 +26,14 @@ import pandas.io.formats.format as fmt
 
 
 class TestDataFrameReprInfoEtc:
-    def test_repr_bytes_61_lines(self, using_array_manager):
+    def test_repr_bytes_61_lines(self):
         # GH#12857
         lets = list("ACDEFGHIJKLMNOP")
         slen = 50
         nseqs = 1000
         words = [[np.random.choice(lets) for x in range(slen)] for _ in range(nseqs)]
         df = DataFrame(words).astype("U1")
-        # TODO(Arraymanager) astype("U1") actually gives this dtype instead of object
-        if not using_array_manager:
-            assert (df.dtypes == object).all()
+        assert (df.dtypes == object).all()
 
         # smoke tests; at one point this raised with 61 but not 60
         repr(df)
@@ -46,8 +44,7 @@ class TestDataFrameReprInfoEtc:
         index = MultiIndex.from_tuples([(0, 0), (1, 1)], names=["\u0394", "i1"])
 
         obj = DataFrame(np.random.randn(2, 4), index=index)
-        if frame_or_series is Series:
-            obj = obj[0]
+        obj = tm.get_obj(obj, frame_or_series)
         repr(obj)
 
     def test_assign_index_sequences(self):
@@ -267,6 +264,7 @@ class TestDataFrameReprInfoEtc:
         with option_context("display.max_columns", 20):
             assert "StringCol" in repr(df)
 
+    @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_latex_repr(self):
         result = r"""\begin{tabular}{llll}
 \toprule

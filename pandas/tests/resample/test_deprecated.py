@@ -63,12 +63,12 @@ def test_deprecating_on_loffset_and_base():
     # not checking the stacklevel for .groupby().resample() because it's complicated to
     # reconcile it with the stacklevel for Series.resample() and DataFrame.resample();
     # see GH #37603
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning):
         df.groupby("a").resample("3T", base=0).sum()
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning):
         df.groupby("a").resample("3T", loffset="0s").sum()
     msg = "'offset' and 'base' cannot be present at the same time"
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning):
         with pytest.raises(ValueError, match=msg):
             df.groupby("a").resample("3T", base=0, offset=0).sum()
 
@@ -305,3 +305,12 @@ def test_interpolate_posargs_deprecation():
 
     expected.index._data.freq = "3s"
     tm.assert_series_equal(result, expected)
+
+
+def test_pad_backfill_deprecation():
+    # GH 33396
+    s = Series([1, 2, 3], index=date_range("20180101", periods=3, freq="h"))
+    with tm.assert_produces_warning(FutureWarning, match="backfill"):
+        s.resample("30min").backfill()
+    with tm.assert_produces_warning(FutureWarning, match="pad"):
+        s.resample("30min").pad()

@@ -21,8 +21,9 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.cast import astype_nansafe
+from pandas.core.dtypes.astype import astype_nansafe
 from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_extension_array_dtype,
@@ -81,13 +82,6 @@ class NumericIndex(Index):
     An NumericIndex instance can **only** contain numpy int64/32/16/8, uint64/32/16/8 or
     float64/32/16 dtype. In particular, ``NumericIndex`` *can not* hold Pandas numeric
     dtypes (:class:`Int64Dtype`, :class:`Int32Dtype` etc.).
-
-    Examples
-    --------
-    >>> pd.NumericIndex([1, 2, 3], dtype="int8")
-    NumericIndex([1, 2, 3], dtype='int8')
-    >>> pd.NumericIndex([1, 2, 3], dtype="float32")
-    NumericIndex([1.0, 2.0, 3.0], dtype='float32')
     """
 
     _typ = "numericindex"
@@ -101,8 +95,9 @@ class NumericIndex(Index):
     _can_hold_strings = False
     _is_backward_compat_public_numeric_index: bool = True
 
+    # error: Signature of "_can_hold_na" incompatible with supertype "Index"
     @cache_readonly
-    def _can_hold_na(self) -> bool:
+    def _can_hold_na(self) -> bool:  # type: ignore[override]
         if is_float_dtype(self.dtype):
             return True
         else:
@@ -123,7 +118,9 @@ class NumericIndex(Index):
 
     @property
     def _engine_type(self):
-        return self._engine_types[self.dtype]
+        # error: Invalid index type "Union[dtype[Any], ExtensionDtype]" for
+        # "Dict[dtype[Any], Type[IndexEngine]]"; expected type "dtype[Any]"
+        return self._engine_types[self.dtype]  # type: ignore[index]
 
     @cache_readonly
     def inferred_type(self) -> str:
@@ -236,7 +233,7 @@ class NumericIndex(Index):
             return False
 
     @doc(Index.astype)
-    def astype(self, dtype, copy=True):
+    def astype(self, dtype, copy: bool = True):
         dtype = pandas_dtype(dtype)
         if is_float_dtype(self.dtype):
             if needs_i8_conversion(dtype):
@@ -245,7 +242,7 @@ class NumericIndex(Index):
                     "values are required for conversion"
                 )
             elif is_integer_dtype(dtype) and not is_extension_array_dtype(dtype):
-                # TODO(jreback); this can change once we have an EA Index type
+                # TODO(ExtensionIndex); this can change once we have an EA Index type
                 # GH 13149
                 arr = astype_nansafe(self._values, dtype=dtype)
                 if isinstance(self, Float64Index):
@@ -264,7 +261,8 @@ class NumericIndex(Index):
     # ----------------------------------------------------------------
     # Indexing Methods
 
-    @cache_readonly
+    # error: Decorated property not supported
+    @cache_readonly  # type: ignore[misc]
     @doc(Index._should_fallback_to_positional)
     def _should_fallback_to_positional(self) -> bool:
         return False
@@ -338,7 +336,7 @@ class NumericIndex(Index):
         return False
 
     def _format_native_types(
-        self, na_rep="", float_format=None, decimal=".", quoting=None, **kwargs
+        self, *, na_rep="", float_format=None, decimal=".", quoting=None, **kwargs
     ):
         from pandas.io.formats.format import FloatArrayFormatter
 
@@ -417,7 +415,7 @@ class IntegerIndex(NumericIndex):
         warnings.warn(
             "Index.asi8 is deprecated and will be removed in a future version.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self._values.view(self._default_dtype)
 
@@ -450,16 +448,6 @@ class UInt64Index(IntegerIndex):
     _engine_type = libindex.UInt64Engine
     _default_dtype = np.dtype(np.uint64)
     _dtype_validation_metadata = (is_unsigned_integer_dtype, "unsigned integer")
-
-    def _validate_fill_value(self, value):
-        # e.g. np.array([1]) we want np.array([1], dtype=np.uint64)
-        #  see test_where_uin64
-        super()._validate_fill_value(value)
-        if hasattr(value, "dtype") and is_signed_integer_dtype(value.dtype):
-            if (value >= 0).all():
-                return value.astype(self.dtype)
-            raise TypeError
-        return value
 
 
 class Float64Index(NumericIndex):

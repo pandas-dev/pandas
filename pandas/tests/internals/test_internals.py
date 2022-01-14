@@ -149,8 +149,10 @@ def create_block(typestr, placement, item_shape=None, num_offset=0, maker=new_bl
     elif typestr in ("category2",):
         values = Categorical(["a", "a", "a", "a", "b", "b", "c", "c", "c", "d"])
     elif typestr in ("sparse", "sparse_na"):
-        # FIXME: doesn't support num_rows != 10
-        assert shape[-1] == 10
+        if shape[-1] != 10:
+            # We also are implicitly assuming this in the category cases above
+            raise NotImplementedError
+
         assert all(s == 1 for s in shape[:-1])
         if typestr.endswith("_na"):
             fill_value = np.nan
@@ -252,14 +254,18 @@ class TestBlock:
         int32block = create_block("i4", [0])
         assert int32block.dtype == np.int32
 
-    def test_pickle(self):
-        def _check(blk):
-            assert_block_equal(tm.round_trip_pickle(blk), blk)
-
-        _check(self.fblock)
-        _check(self.cblock)
-        _check(self.oblock)
-        _check(self.bool_block)
+    @pytest.mark.parametrize(
+        "typ, data",
+        [
+            ["float", [0, 2, 4]],
+            ["complex", [7]],
+            ["object", [1, 3]],
+            ["bool", [5]],
+        ],
+    )
+    def test_pickle(self, typ, data):
+        blk = create_block(typ, data)
+        assert_block_equal(tm.round_trip_pickle(blk), blk)
 
     def test_mgr_locs(self):
         assert isinstance(self.fblock.mgr_locs, BlockPlacement)
@@ -492,15 +498,12 @@ class TestBlockManager:
 
     def test_sparse(self):
         mgr = create_mgr("a: sparse-1; b: sparse-2")
-        # what to test here?
         assert mgr.as_array().dtype == np.float64
 
     def test_sparse_mixed(self):
         mgr = create_mgr("a: sparse-1; b: sparse-2; c: f8")
         assert len(mgr.blocks) == 3
         assert isinstance(mgr, BlockManager)
-
-        # TODO: what to test here?
 
     @pytest.mark.parametrize(
         "mgr_string, dtype",
@@ -750,7 +753,11 @@ class TestBlockManager:
         )
 
         # Check sharing
-        numeric.iset(numeric.items.get_loc("float"), np.array([100.0, 200.0, 300.0]))
+        numeric.iset(
+            numeric.items.get_loc("float"),
+            np.array([100.0, 200.0, 300.0]),
+            inplace=True,
+        )
         tm.assert_almost_equal(
             mgr.iget(mgr.items.get_loc("float")).internal_values(),
             np.array([100.0, 200.0, 300.0]),
@@ -759,7 +766,9 @@ class TestBlockManager:
         numeric2 = mgr.get_numeric_data(copy=True)
         tm.assert_index_equal(numeric.items, Index(["int", "float", "complex", "bool"]))
         numeric2.iset(
-            numeric2.items.get_loc("float"), np.array([1000.0, 2000.0, 3000.0])
+            numeric2.items.get_loc("float"),
+            np.array([1000.0, 2000.0, 3000.0]),
+            inplace=True,
         )
         tm.assert_almost_equal(
             mgr.iget(mgr.items.get_loc("float")).internal_values(),
@@ -781,7 +790,7 @@ class TestBlockManager:
             bools.iget(bools.items.get_loc("bool")).internal_values(),
         )
 
-        bools.iset(0, np.array([True, False, True]))
+        bools.iset(0, np.array([True, False, True]), inplace=True)
         tm.assert_numpy_array_equal(
             mgr.iget(mgr.items.get_loc("bool")).internal_values(),
             np.array([True, False, True]),
@@ -845,7 +854,7 @@ class TestBlockManager:
 def _as_array(mgr):
     if mgr.ndim == 1:
         return mgr.external_values()
-    return mgr.as_array()
+    return mgr.as_array().T
 
 
 class TestIndexing:
@@ -1269,7 +1278,7 @@ class TestCanHoldElement:
 
     def test_period_can_hold_element_emptylist(self):
         pi = period_range("2016", periods=3, freq="A")
-        blk = new_block(pi._data, [1], ndim=2)
+        blk = new_block(pi._data.reshape(1, 3), [1], ndim=2)
 
         assert blk._can_hold_element([])
 

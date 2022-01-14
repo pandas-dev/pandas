@@ -104,22 +104,25 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
             with pytest.raises(ValueError, match=msg):
                 read_csv(StringIO(data), engine=python_engine, **kwargs)
 
-    def test_python_engine_file_no_next(self, python_engine):
+    def test_python_engine_file_no_iter(self, python_engine):
         # see gh-16530
         class NoNextBuffer:
             def __init__(self, csv_data):
                 self.data = csv_data
 
-            def __iter__(self):
-                return self
+            def __next__(self):
+                return self.data.__next__()
 
             def read(self):
                 return self.data
 
-        data = "a\n1"
-        msg = "The 'python' engine cannot iterate"
+            def readline(self):
+                return self.data
 
-        with pytest.raises(ValueError, match=msg):
+        data = "a\n1"
+        msg = "'NoNextBuffer' object is not iterable|argument 1 must be an iterator"
+
+        with pytest.raises(TypeError, match=msg):
             read_csv(NoNextBuffer(data), engine=python_engine)
 
     def test_pyarrow_engine(self):
@@ -137,10 +140,24 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
                 f"supported with the 'pyarrow' engine"
             )
             kwargs = {default: object()}
-            default_needs_bool = {"on_bad_lines", "error_bad_lines"}
+            default_needs_bool = {"warn_bad_lines", "error_bad_lines"}
             if default == "dialect":
                 kwargs[default] = "excel"  # test a random dialect
             elif default in default_needs_bool:
                 kwargs[default] = True
+            elif default == "on_bad_lines":
+                kwargs[default] = "warn"
             with pytest.raises(ValueError, match=msg):
                 read_csv(StringIO(data), engine="pyarrow", **kwargs)
+
+    def test_on_bad_lines_callable_python_only(self, all_parsers):
+        # GH 5686
+        sio = StringIO("a,b\n1,2")
+        bad_lines_func = lambda x: x
+        parser = all_parsers
+        if all_parsers.engine != "python":
+            msg = "on_bad_line can only be a callable function if engine='python'"
+            with pytest.raises(ValueError, match=msg):
+                parser.read_csv(sio, on_bad_lines=bad_lines_func)
+        else:
+            parser.read_csv(sio, on_bad_lines=bad_lines_func)

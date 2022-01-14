@@ -20,14 +20,12 @@ msg = "A value is trying to be set on a copy of a slice from a DataFrame"
 
 
 def random_text(nobs=100):
-    df = []
-    for i in range(nobs):
-        idx = np.random.randint(len(letters), size=2)
-        idx.sort()
+    # Construct a DataFrame where each row is a random slice from 'letters'
+    idxs = np.random.randint(len(letters), size=(nobs, 2))
+    idxs.sort(axis=1)
+    strings = [letters[x[0] : x[1]] for x in idxs]
 
-        df.append([letters[idx[0] : idx[1]]])
-
-    return DataFrame(df, columns=["letters"])
+    return DataFrame(strings, columns=["letters"])
 
 
 class TestCaching:
@@ -504,8 +502,8 @@ class TestChaining:
 
             df["bb"].iloc[0] = 0.13
 
-            # TODO: unused
-            df_tmp = df.iloc[ck]  # noqa
+            # GH#3970 this lookup used to break the chained setting to 0.15
+            df.iloc[ck]
 
             df["bb"].iloc[0] = 0.15
             assert df["bb"].iloc[0] == 0.15

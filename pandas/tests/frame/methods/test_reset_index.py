@@ -15,11 +15,13 @@ from pandas import (
     CategoricalIndex,
     DataFrame,
     Index,
+    Interval,
     IntervalIndex,
     MultiIndex,
     RangeIndex,
     Series,
     Timestamp,
+    cut,
     date_range,
 )
 import pandas._testing as tm
@@ -144,32 +146,31 @@ class TestResetIndex:
         df = float_frame.reset_index().set_index(["index", "A", "B"])
         rs = df.reset_index(["A", "B"])
 
-        # TODO should reset_index check_names ?
-        tm.assert_frame_equal(rs, float_frame, check_names=False)
+        tm.assert_frame_equal(rs, float_frame)
 
         rs = df.reset_index(["index", "A", "B"])
-        tm.assert_frame_equal(rs, float_frame.reset_index(), check_names=False)
+        tm.assert_frame_equal(rs, float_frame.reset_index())
 
         rs = df.reset_index(["index", "A", "B"])
-        tm.assert_frame_equal(rs, float_frame.reset_index(), check_names=False)
+        tm.assert_frame_equal(rs, float_frame.reset_index())
 
         rs = df.reset_index("A")
         xp = float_frame.reset_index().set_index(["index", "B"])
-        tm.assert_frame_equal(rs, xp, check_names=False)
+        tm.assert_frame_equal(rs, xp)
 
         # test resetting in place
         df = float_frame.copy()
         reset = float_frame.reset_index()
         return_value = df.reset_index(inplace=True)
         assert return_value is None
-        tm.assert_frame_equal(df, reset, check_names=False)
+        tm.assert_frame_equal(df, reset)
 
         df = float_frame.reset_index().set_index(["index", "A", "B"])
         rs = df.reset_index("A", drop=True)
         xp = float_frame.copy()
         del xp["A"]
         xp = xp.set_index(["B"], append=True)
-        tm.assert_frame_equal(rs, xp, check_names=False)
+        tm.assert_frame_equal(rs, xp)
 
     def test_reset_index_name(self):
         df = DataFrame(
@@ -682,4 +683,17 @@ def test_drop_pos_args_deprecation():
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = df.reset_index("a", False)
     expected = DataFrame({"a": [1, 2, 3]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_reset_index_interval_columns_object_cast():
+    # GH 19136
+    df = DataFrame(
+        np.eye(2), index=Index([1, 2], name="Year"), columns=cut([1, 2], [0, 1, 2])
+    )
+    result = df.reset_index()
+    expected = DataFrame(
+        [[1, 1.0, 0.0], [2, 0.0, 1.0]],
+        columns=Index(["Year", Interval(0, 1), Interval(1, 2)]),
+    )
     tm.assert_frame_equal(result, expected)
