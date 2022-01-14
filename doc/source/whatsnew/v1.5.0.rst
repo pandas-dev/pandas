@@ -30,7 +30,7 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
--
+- Improved the rendering of ``categories`` in :class:`CategoricalIndex` (:issue:`45218`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -118,6 +118,7 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
+- Bug in :meth:`DataFrame.quantile` with datetime-like dtypes and no rows incorrectly returning ``float64`` dtype instead of retaining datetime-like dtype (:issue:`41544`)
 - Bug in :func:`to_datetime` with sequences of ``np.str_`` objects incorrectly raising (:issue:`32264`)
 - Bug in :class:`Timestamp` construction when passing datetime components as positional arguments and ``tzinfo`` as a keyword argument incorrectly raising (:issue:`31929`)
 -
