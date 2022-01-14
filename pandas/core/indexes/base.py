@@ -3039,7 +3039,7 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
     @final
-    def _deprecate_dti_setop(self, other: Index, setop: str):
+    def _deprecate_dti_setop(self, other: Index, setop: str_t):
         """
         Deprecate setop behavior between timezone-aware DatetimeIndexes with
         mismatched timezones.
