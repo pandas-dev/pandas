@@ -523,27 +523,13 @@ class StylerRenderer:
         else:
             name, func = None, descriptor
 
-        precision = get_option("styler.format.precision")
-        thousands = get_option("styler.format.thousands")
-        decimal = get_option("styler.format.decimal")
-        na_rep = get_option("styler.format.na_rep")
-        escape = get_option("styler.format.escape")
-        # display_func: Callable = _maybe_wrap_formatter(
-        #     lambda x: _default_formatter(
-        #         func(x), precision=precision, thousands=thousands is not None
-        #     ),
-        #     decimal=decimal,
-        #     thousands=thousands
-        # )
         display_func: Callable = _maybe_wrap_formatter(
-            lambda x: _default_formatter(
-                func(x), precision=precision, thousands=thousands is not None
-            ),
-            na_rep=na_rep,
-            escape=escape,
-            decimal=decimal,
-            thousands=thousands,
-            precision=precision,
+            formatter=None,  # use _default_formatter
+            decimal=get_option("styler.format.decimal"),
+            thousands=get_option("styler.format.thousands"),
+            precision=get_option("styler.format.precision"),
+            na_rep=get_option("styler.format.na_rep"),
+            escape=get_option("styler.format.escape"),
         )
 
         base_css = f"{self.css['descriptor_name']} {self.css['descriptor']}{r}"
@@ -566,7 +552,7 @@ class StylerRenderer:
                 header_element_visible = True
                 visible_col_count += 1
                 try:
-                    header_element_value = display_func(self.data[col])
+                    header_element_value = func(self.data[col])
                 except Exception:
                     header_element_value = self.css["blank_value"]
             else:
@@ -598,6 +584,7 @@ class StylerRenderer:
                 ),
                 header_element_value,
                 header_element_visible,
+                display_value=display_func(header_element_value),
                 attributes="",
             )
             descriptor_values.append(header_element)

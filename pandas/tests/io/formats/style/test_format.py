@@ -447,4 +447,8 @@ def test_format_descriptors(styler):
     ):
         styler.set_descriptors([lambda s: s.sum() + 1000])
         ctx = styler._translate(True, True)
-    assert ctx is False
+
+    exp_col_1 = {"value": 1001, "display_value": "1_001"}
+    assert exp_col_1.items() <= ctx["head"][1][1].items()
+    exp_col_2 = {"value": 998.163, "display_value": "998*16300"}
+    assert exp_col_2.items() <= ctx["head"][1][2].items()
