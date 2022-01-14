@@ -95,7 +95,9 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 - Deprecated the keyword ``line_terminator`` in :meth:`DataFrame.to_csv` and :meth:`Series.to_csv`, use ``lineterminator`` instead; this is for consistency with :func:`read_csv` and the standard library 'csv' module (:issue:`9568`)
+- Deprecated behavior of :meth:`DatetimeIndex.intersection` and :meth:`DatetimeIndex.symmetric_difference` (``union`` behavior was already deprecated in version 1.3.0) with mixed timezones; in a future version both will be cast to UTC instead of object dtype (:issue:`39328`)
 -
+
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.performance:
