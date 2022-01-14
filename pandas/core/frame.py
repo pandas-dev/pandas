@@ -10490,7 +10490,11 @@ NaN 12.3   33.0
                 interpolation=interpolation,
                 method=method,
             )
-            res = res_df.T.iloc[:, 0]
+            try:
+                res = res_df.iloc[0]
+            except NotImplementedError:
+                # cannot directly iloc over sparse arrays
+                res = res_df.T.iloc[:, 0]
             if axis == 1 and len(self) == 0:
                 # GH#41544 try to get an appropriate dtype
                 dtype = find_common_type(list(self.dtypes))
