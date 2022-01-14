@@ -378,7 +378,11 @@ def makePeriodIndex(k: int = 10, name=None, **kwargs) -> PeriodIndex:
 
 
 def makeMultiIndex(k=10, names=None, **kwargs):
-    return MultiIndex.from_product((("foo", "bar"), (1, 2)), names=names, **kwargs)
+    N = (k // 2) + 1
+    rng = range(N)
+    mi = MultiIndex.from_product([("foo", "bar"), rng], names=names, **kwargs)
+    assert len(mi) >= k  # GH#38795
+    return mi[:k]
 
 
 _names = [
