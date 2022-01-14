@@ -19,9 +19,7 @@ from pandas.io.formats.latex import (
     RowStringConverter,
 )
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Use of `formatters`, `float_format` or `col_space`:FutureWarning"
-)
+pytestmark = pytest.mark.filterwarnings("ignore:`col_space`:FutureWarning")
 
 
 def _dedent(string):
@@ -136,10 +134,10 @@ class TestToLatex:
             r"""
             \begin{tabular}{ll}
             \toprule
-            {} &     0 \\
+             & 0 \\
             \midrule
             0 & 1,000 \\
-            1 &  test \\
+            1 & test \\
             \bottomrule
             \end{tabular}
             """
@@ -773,10 +771,10 @@ class TestToLatexEscape:
             r"""
             \begin{tabular}{lll}
             \toprule
-            {} & co$e^x$ & co^l1 \\
+             & co$e^x$ & co^l1 \\
             \midrule
-            a &       a &     a \\
-            b &       b &     b \\
+            a & a & a \\
+            b & b & b \\
             \bottomrule
             \end{tabular}
             """
@@ -940,11 +938,11 @@ class TestToLatexFormatters:
             r"""
             \begin{tabular}{llrrl}
             \toprule
-            {} & datetime64 &  float & int &    object \\
+             & datetime64 & float & int & object \\
             \midrule
-            index: 0 &    2016-01 & [ 1.0] & 0x1 &  -(1, 2)- \\
-            index: 1 &    2016-02 & [ 2.0] & 0x2 &    -True- \\
-            index: 2 &    2016-03 & [ 3.0] & 0x3 &   -False- \\
+            index: 0 & 2016-01 & [ 1.0] & 0x1 & -(1, 2)- \\
+            index: 1 & 2016-02 & [ 2.0] & 0x2 & -True- \\
+            index: 2 & 2016-03 & [ 3.0] & 0x3 & -False- \\
             \bottomrule
             \end{tabular}
             """
@@ -959,7 +957,7 @@ class TestToLatexFormatters:
             r"""
             \begin{tabular}{lr}
             \toprule
-            {} &     x \\
+             & x \\
             \midrule
             0 & 0.200 \\
             \bottomrule
@@ -976,7 +974,7 @@ class TestToLatexFormatters:
             r"""
             \begin{tabular}{lr}
             \toprule
-            {} &   x \\
+             & x \\
             \midrule
             0 & 100 \\
             \bottomrule
@@ -999,10 +997,10 @@ class TestToLatexFormatters:
             fr"""
             \begin{{tabular}}{{llr}}
             \toprule
-            {{}} & Group &  Data \\
+             & Group & Data \\
             \midrule
-            0 &     A &  1.22 \\
-            1 &     A &   {na_rep} \\
+            0 & A & 1.22 \\
+            1 & A & {na_rep} \\
             \bottomrule
             \end{{tabular}}
             """
@@ -1510,20 +1508,14 @@ class TestRowStringConverter:
     @pytest.mark.parametrize(
         "deprecated_arg, value",
         [
-            ("formatters", ["{:.1f}".format]),
-            ("float_format", "{:0.2f}".format),
             ("col_space", 10),
         ],
     )
     def test_future_warning(self, deprecated_arg, value):
         df = DataFrame([[1]])
         msg = (
-            "Use of `formatters`, `float_format` or `col_space` is deprecated. "
-            "Review the documentation for advice on how to restructure "
-            "arguments to suit the new Styler implementation. Due to the use "
-            "of deprecated arguments this LaTeX is rendered with the older "
-            "DataFrameFormatter implementation, which will be removed in a "
-            "future version"
+            "`col_space` is deprecated. Whitespace in LaTeX does not impact "
+            "the rendered version, and this argument is ignored."
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
             df.to_latex(**{deprecated_arg: value})

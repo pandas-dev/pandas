@@ -3321,6 +3321,26 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             .. deprecated:: 1.5.0
 
+        hide : dict, list of dict
+            Keyword args to pass to the method call of ``Styler.hide``. If a list will
+            call the method numerous times.
+
+            .. versionadded:: 1.5.0
+        format : dict, list of dict
+            Keyword args to pass to the method call of ``Styler.format``. If a list will
+            call the method numerous times.
+
+            .. versionadded:: 1.5.0
+        format_index : dict, list of dict
+            Keyword args to pass to the method call of ``Styler.format_index``. If a
+            list will call the method numerous times.
+
+            .. versionadded:: 1.5.0
+        render_kwargs : dict
+            Keyword args to pass to the method call of ``Styler.to_latex``.
+
+            .. versionadded:: 1.5.0
+
         Returns
         -------
         str or None
@@ -3364,37 +3384,48 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
+        Convert a general DataFrame to LaTeX with formatting:
+
         >>> df = pd.DataFrame(dict(name=['Raphael', 'Donatello'],
-        ...                   mask=['red', 'purple'],
-        ...                   weapon=['sai', 'bo staff']))
-        >>> print(df.to_latex(index=False))  # doctest: +SKIP
-        \begin{{tabular}}{{lll}}
+        ...                        age=[26, 45],
+        ...                        height=[181.23, 177.65]))
+        >>> print(df.to_latex(hide={"axis": "index"},
+        ...                   format={"formatter": {"name": str.upper},
+        ...                           "precision": 1},
+        ...                   render_kwargs={"hrules": True}
+        ... )  # doctest: SKIP
+        \begin{{tabular}}{{lrr}}
         \toprule
-        name & mask & weapon \\
-        \midrule
-        Raphael & red & sai \\
-        Donatello & purple & bo staff \\
+        name & age & height \\
+        \\midrule
+        RAPHAEL & 26 & 181.2 \\
+        DONATELLO & 45 & 177.7 \\
         \bottomrule
-        \end{{tabular}}
+        \\end{{tabular}}
 
         Specifying a set of ``columns`` to display, e.g. ``["a", "b"]``.
+
         >>> df.to_latex(hide={"axis": "columns",
         ...                   "subset": [c for c in df.columns if c not in ["a", "b"]]}
         ... )  # doctest: +SKIP
 
         Setting the ``index`` to ``False``.
+
         >>> df.to_latex(hide={"axis": "index"})  # doctest: +SKIP
 
         Not displaying any column headers.
+
         >>> df.to_latex(hide={"axis": "columns"})  # doctest: +SKIP
 
         Setting ``index_names`` to ``False`` across both axes.
+
         >>> df.to_latex(hide=[{"axis": "index", "names": True},
         ...                   {"axis": "columns", "names": True}])   # doctest: +SKIP
 
         Adding render options, such as ``longtable``, ``column_format``, ``position``,
         ``caption``, ``label``, ``multirow``, ``multicolumn``, ``multicolumn_format``,
         as well as ``sparsify`` and other new options.
+
         >>> df.to_latex(render_kwargs={"environment": "longtable",
         ...                            "column_format": "rcl",
         ...                            "position": "h!",
@@ -3411,6 +3442,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Adding specific ``formatters`` by column and setting the effective
         ``float_format``, ``decimal`` and ``na_rep`` for data values.
+
         >>> df.to_latex(format={"formatter": {"a": str.upper},
         ...                     "precision": 2,
         ...                     "decimal": ",",
@@ -3419,11 +3451,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ... )  # doctest: +SKIP
 
         """
-        fallback_arg_used = any(
-            [formatters is not None, float_format is not None, col_space is not None]
+        msg = (
+            "`col_space` is deprecated. Whitespace in LaTeX does not impact "
+            "the rendered version, and this argument is ignored."
         )
+        if col_space is not None:
+            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+
         deprecated_arg_used = any(
             [
+                formatters is not None,
+                float_format is not None,
                 columns is not None,
                 header is not None,
                 index is not None,
@@ -3467,112 +3505,113 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             multirow = config.get_option("display.latex.multirow")
 
         self = cast("DataFrame", self)
-        if fallback_arg_used:  # use original DataFrame Latex Renderer
+
+        # Use styler implementation refactoring original kwargs
+        if deprecated_arg_used:
             msg = (
-                "Use of `formatters`, `float_format` or `col_space` is deprecated. "
-                "Review the documentation for advice on how to restructure "
-                "arguments to suit the new Styler implementation. Due to the use "
-                "of deprecated arguments this LaTeX is rendered with the older "
-                "DataFrameFormatter implementation, which will be removed in a "
-                "future version"
+                "Deprecated arguments supplied to `DataFrame.to_latex`. "
+                "Review the documentation for "
+                "advice on how to restructure arguments to suit the new Styler "
+                "implementation, which may be exclusively used in future "
+                "versions."
             )
             warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
 
-            formatter = DataFrameFormatter(
-                self,
-                columns=columns,
-                col_space=col_space,
-                na_rep=na_rep,
-                header=header,
-                index=index,
-                formatters=formatters,
-                float_format=float_format,
-                bold_rows=bold_rows,
-                sparsify=sparsify,
-                index_names=index_names,
-                escape=escape,
-                decimal=decimal,
-            )
-            return DataFrameRenderer(formatter).to_latex(
-                buf=buf,
-                column_format=column_format,
-                longtable=longtable,
-                encoding=encoding,
-                multicolumn=multicolumn,
-                multicolumn_format=multicolumn_format,
-                multirow=multirow,
-                caption=caption,
-                label=label,
-                position=position,
-            )
-        else:  # use styler implementation refactoring original kwargs
-            if deprecated_arg_used:
-                msg = (
-                    "Deprecated arguments supplied to `DataFrame.to_latex`. "
-                    "Review the documentation for "
-                    "advice on how to restructure arguments to suit the new Styler "
-                    "implementation, which may be exclusively used in future "
-                    "versions."
-                )
-                warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+        base_format_ = {
+            "na_rep": na_rep,
+            "escape": "latex" if escape else None,
+            "decimal": decimal,
+        }
+        index_format_ = {"axis": 0, **base_format_}
+        column_format_ = {"axis": 1, **base_format_}
 
-            if hide is None:
-                hide = []
-            elif isinstance(hide, dict):
-                hide = [hide]
+        # refactor formatters to Styler structure
+        if isinstance(float_format, str):
+            float_format_ = lambda x: float_format % x
+        else:
+            float_format_ = float_format
 
-            if columns:
-                hide.append(
-                    {
-                        "subset": [c for c in self.columns if c not in columns],
-                        "axis": "columns",
-                    }
-                )
-            if header is False:
-                hide.append({"axis": "columns"})
-            if index is False:
-                hide.append({"axis": "index"})
-            if index_names is False:
-                hide.append({"names": True, "axis": "index"})
-
-            format_ = {
-                "na_rep": na_rep,
-                "escape": "latex" if escape else None,
-                "decimal": decimal,
-            }
-            if format is None:
-                format = [format_]
-            elif isinstance(format, dict):
-                format = [format_, format]
+        def _wrap(x, alt_format_):
+            if isinstance(x, (float, complex)) and float_format_ is not None:
+                return float_format_(x)
             else:
-                format = [format_].extend(format)
+                return alt_format_(x)
 
-            render_kwargs = {
-                "hrules": True,
-                "sparse_index": sparsify,
-                "sparse_columns": sparsify,
-                "environment": "longtable" if longtable else None,
-                "column_format": column_format,
-                "multicol_align": multicolumn_format
-                if multicolumn
-                else f"naive-{multicolumn_format}",
-                "multirow_align": "t" if multirow else "naive",
-                "encoding": encoding,
-                "caption": caption,
-                "label": label,
-                "position": position,
-                "column_format": column_format,
-                "clines": "skip-last;data" if multirow else None,
-                "bold_rows": bold_rows,
+        if isinstance(formatters, list):
+            formatters = {
+                c: functools.partial(_wrap, alt_format_=formatters[i])
+                for i, c in enumerate(self.columns)
             }
+        elif isinstance(formatters, dict):
+            index_formatter = formatters.pop("__index__", None)
+            column_formatter = formatters.pop("__columns__", None)
+            if index_formatter is not None:
+                index_format_.update({"formatter": index_formatter})
+            if column_formatter is not None:
+                column_format_.update({"formatter": column_formatter})
 
-            return self._to_latex_via_styler(
-                buf,
-                hide=hide,
-                format=format,
-                format_index=[{"axis": 0, **format_}, {"axis": 1, **format_}],
-                render_kwargs=render_kwargs,
+            formatters = {
+                k: functools.partial(_wrap, alt_format_=v)
+                for k, v in formatters.items()
+            }
+        elif formatters is None and float_format is not None:
+            formatters = functools.partial(_wrap, alt_format_=lambda v: v)
+        else:
+            formatters = None
+
+        if hide is None:
+            hide = []
+        elif isinstance(hide, dict):
+            hide = [hide]
+
+        if columns:
+            hide.append(
+                {
+                    "subset": [c for c in self.columns if c not in columns],
+                    "axis": "columns",
+                }
             )
+        if header is False:
+            hide.append({"axis": "columns"})
+        if index is False:
+            hide.append({"axis": "index"})
+        if index_names is False:
+            hide.append({"names": True, "axis": "index"})
+
+        format_ = {"formatter": formatters, **base_format_}
+        if format is None:
+            data_format_ = [format_]
+        elif isinstance(format, dict):
+            data_format_ = [format_, format]
+        else:
+            data_format_ = [format_].extend(format)
+
+        render_kwargs = {
+            "hrules": True,
+            "sparse_index": sparsify,
+            "sparse_columns": sparsify,
+            "environment": "longtable" if longtable else None,
+            "column_format": column_format,
+            "multicol_align": multicolumn_format
+            if multicolumn
+            else f"naive-{multicolumn_format}",
+            "multirow_align": "t" if multirow else "naive",
+            "encoding": encoding,
+            "caption": caption,
+            "label": label,
+            "position": position,
+            "column_format": column_format,
+            "clines": "skip-last;data" if multirow else None,
+            "bold_rows": bold_rows,
+        }
+
+        return self._to_latex_via_styler(
+            buf,
+            hide=hide,
+            format=data_format_,
+            format_index=[index_format_, column_format_],
+            render_kwargs=render_kwargs,
+        )
 
     def _to_latex_via_styler(
         self,
