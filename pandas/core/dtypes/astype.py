@@ -111,9 +111,7 @@ def astype_nansafe(
         return lib.ensure_string_array(arr, skipna=skipna, convert_na_value=False)
 
     elif is_datetime64_dtype(arr.dtype):
-        # Non-overlapping equality check (left operand type: "dtype[Any]", right
-        # operand type: "Type[signedinteger[Any]]")
-        if dtype == np.int64:  # type: ignore[comparison-overlap]
+        if dtype == np.int64:
             warnings.warn(
                 f"casting {arr.dtype} values to int64 with .astype(...) "
                 "is deprecated and will raise in a future version. "
@@ -132,9 +130,7 @@ def astype_nansafe(
         raise TypeError(f"cannot astype a datetimelike from [{arr.dtype}] to [{dtype}]")
 
     elif is_timedelta64_dtype(arr.dtype):
-        # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-        # operand type: "Type[signedinteger[Any]]")
-        if dtype == np.int64:  # type: ignore[comparison-overlap]
+        if dtype == np.int64:
             warnings.warn(
                 f"casting {arr.dtype} values to int64 with .astype(...) "
                 "is deprecated and will raise in a future version. "
