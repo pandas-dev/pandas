@@ -3677,7 +3677,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...                   format={"formatter": {"name": str.upper},
         ...                           "precision": 1},
         ...                   render_kwargs={"hrules": True}
-        ... )  # doctest: SKIP
+        ... )  # doctest: +SKIP
         \begin{{tabular}}{{lrr}}
         \toprule
         name & age & height \\
