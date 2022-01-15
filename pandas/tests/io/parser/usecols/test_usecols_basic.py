@@ -7,6 +7,8 @@ from io import StringIO
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import (
     DataFrame,
     Index,
@@ -416,3 +418,19 @@ a,b
     if names is None and parser.engine == "python":
         expected = DataFrame({"a": [1]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_usecols_error_doesnt_leak_files(all_parsers, datapath):
+    # GH#45384
+    test2csv = datapath("io", "parser", "data", "test2.csv")
+    psutil = td.safe_import("psutil")
+    if not psutil:
+        return
+
+    proc = psutil.Process()
+    files_before = [(f.path, f.fd) for f in proc.open_files()]
+    try:
+        all_parsers.read_csv(test2csv, usecols=["F"])  # "F" not in file
+    except ValueError:
+        files_after = [(f.path, f.fd) for f in proc.open_files()]
+        assert files_before == files_after, (files_before, files_after)

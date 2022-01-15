@@ -22,6 +22,7 @@ import pytz
 from pandas._libs.tslibs import parsing
 from pandas._libs.tslibs.parsing import parse_datetime_string
 from pandas.compat.pyarrow import pa_version_under6p0
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -1985,3 +1986,20 @@ def test_parse_dates_and_string_dtype(all_parsers):
     expected = DataFrame({"a": ["1"], "b": [Timestamp("2019-12-31")]})
     expected["a"] = expected["a"].astype("string")
     tm.assert_frame_equal(result, expected)
+
+
+def test_parse_dates_error_doesnt_leak_files(all_parsers, datapath):
+    # GH#45384
+    parser = all_parsers
+    test2csv = datapath("io", "parser", "data", "test2.csv")
+    psutil = td.safe_import("psutil")
+    if not psutil:
+        return
+
+    proc = psutil.Process()
+    files_before = [(f.path, f.fd) for f in proc.open_files()]
+    try:
+        parser.read_csv(test2csv, parse_dates=["F"])  # "F" not in file
+    except ValueError:
+        files_after = [(f.path, f.fd) for f in proc.open_files()]
+        assert files_before == files_after, (files_before, files_after)

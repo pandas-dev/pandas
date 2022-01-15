@@ -113,72 +113,72 @@ class PythonParser(ParserBase):
                 self.close()
                 raise
 
-        # Get columns in two steps: infer from data, then
-        # infer column indices from self.usecols if it is specified.
-        self._col_indices: list[int] | None = None
-        columns: list[list[Scalar | None]]
         try:
+            # Get columns in two steps: infer from data, then
+            # infer column indices from self.usecols if it is specified.
+            self._col_indices: list[int] | None = None
+            columns: list[list[Scalar | None]]
             (
                 columns,
                 self.num_original_columns,
                 self.unnamed_cols,
             ) = self._infer_columns()
-        except (TypeError, ValueError):
+
+            # Now self.columns has the set of columns that we will process.
+            # The original set is stored in self.original_columns.
+            # error: Cannot determine type of 'index_names'
+            self.columns: list[Hashable]
+            (
+                self.columns,
+                self.index_names,
+                self.col_names,
+                _,
+            ) = self._extract_multi_indexer_columns(
+                columns,
+                self.index_names,  # type: ignore[has-type]
+            )
+
+            # get popped off for index
+            self.orig_names: list[Hashable] = list(self.columns)
+
+            # needs to be cleaned/refactored
+            # multiple date column thing turning into a real spaghetti factory
+
+            if not self._has_complex_date_col:
+                (index_names, self.orig_names, self.columns) = self._get_index_name(
+                    self.columns
+                )
+                self._name_processed = True
+                if self.index_names is None:
+                    self.index_names = index_names
+
+            if self._col_indices is None:
+                self._col_indices = list(range(len(self.columns)))
+
+            self._parse_date_cols = self._validate_parse_dates_presence(self.columns)
+            no_thousands_columns: set[int] | None = None
+            if self.parse_dates:
+                no_thousands_columns = self._set_noconvert_dtype_columns(
+                    self._col_indices, self.columns
+                )
+            self._no_thousands_columns = no_thousands_columns
+
+            if len(self.decimal) != 1:
+                raise ValueError("Only length-1 decimal markers supported")
+
+            decimal = re.escape(self.decimal)
+            if self.thousands is None:
+                regex = fr"^[\-\+]?[0-9]*({decimal}[0-9]*)?([0-9]?(E|e)\-?[0-9]+)?$"
+            else:
+                thousands = re.escape(self.thousands)
+                regex = (
+                    fr"^[\-\+]?([0-9]+{thousands}|[0-9])*({decimal}[0-9]*)?"
+                    fr"([0-9]?(E|e)\-?[0-9]+)?$"
+                )
+            self.num = re.compile(regex)
+        except Exception:
             self.close()
             raise
-
-        # Now self.columns has the set of columns that we will process.
-        # The original set is stored in self.original_columns.
-        # error: Cannot determine type of 'index_names'
-        self.columns: list[Hashable]
-        (
-            self.columns,
-            self.index_names,
-            self.col_names,
-            _,
-        ) = self._extract_multi_indexer_columns(
-            columns,
-            self.index_names,  # type: ignore[has-type]
-        )
-
-        # get popped off for index
-        self.orig_names: list[Hashable] = list(self.columns)
-
-        # needs to be cleaned/refactored
-        # multiple date column thing turning into a real spaghetti factory
-
-        if not self._has_complex_date_col:
-            (index_names, self.orig_names, self.columns) = self._get_index_name(
-                self.columns
-            )
-            self._name_processed = True
-            if self.index_names is None:
-                self.index_names = index_names
-
-        if self._col_indices is None:
-            self._col_indices = list(range(len(self.columns)))
-
-        self._parse_date_cols = self._validate_parse_dates_presence(self.columns)
-        no_thousands_columns: set[int] | None = None
-        if self.parse_dates:
-            no_thousands_columns = self._set_noconvert_dtype_columns(
-                self._col_indices, self.columns
-            )
-        self._no_thousands_columns = no_thousands_columns
-
-        if len(self.decimal) != 1:
-            raise ValueError("Only length-1 decimal markers supported")
-
-        decimal = re.escape(self.decimal)
-        if self.thousands is None:
-            regex = fr"^[\-\+]?[0-9]*({decimal}[0-9]*)?([0-9]?(E|e)\-?[0-9]+)?$"
-        else:
-            thousands = re.escape(self.thousands)
-            regex = (
-                fr"^[\-\+]?([0-9]+{thousands}|[0-9])*({decimal}[0-9]*)?"
-                fr"([0-9]?(E|e)\-?[0-9]+)?$"
-            )
-        self.num = re.compile(regex)
 
     def _make_reader(self, f) -> None:
         sep = self.delimiter

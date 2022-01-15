@@ -874,6 +874,7 @@ I/O
 - Bug in :func:`read_csv` when passing a ``tempfile.SpooledTemporaryFile`` opened in binary mode (:issue:`44748`)
 - Bug in :func:`read_json` raising ``ValueError`` when attempting to parse json strings containing "://" (:issue:`36271`)
 - Bug in :func:`read_csv` when ``engine="c"`` and ``encoding_errors=None`` which caused a segfault (:issue:`45180`)
+- Bug in :func:`read_csv` allowing file handles to be leaked if an Exception is raised during parser initialisation (e.g. if the file does not pass ``usecols`` validation) (:issue:`45384`)
 
 Period
 ^^^^^^
