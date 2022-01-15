@@ -3453,7 +3453,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...                     "thousands": ".",
         ...                     "na_rep": "missing"}
         ... )  # doctest: +SKIP
-
         """
         msg = (
             "`col_space` is deprecated. Whitespace in LaTeX does not impact "
