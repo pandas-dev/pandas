@@ -254,7 +254,7 @@ class StringArray(BaseStringArray, PandasArray):
 
         .. versionchanged:: 1.5.0
 
-           StringArray now accepts array-likes containing 
+           StringArray now accepts array-likes containing
            nan-likes(``None``, ``np.nan``) for the ``values`` parameter
            in addition to strings and :attr:`pandas.NA`
 
