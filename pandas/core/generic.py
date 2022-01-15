@@ -3180,9 +3180,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         label=None,
         position=None,
         *,
-        hide: dict | list[dict] = None,
-        format: dict | list[dict] = None,
-        format_index: dict | list[dict] = None,
+        hide: dict | list[dict] | None = None,
+        format: dict | list[dict] | None = None,
+        format_index: dict | list[dict] | None = None,
         render_kwargs: dict | None = None,
     ):
         r"""
@@ -3583,12 +3583,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             hide.append({"names": True, "axis": "index"})
 
         format_ = {"formatter": formatters, **base_format_}
-        if format is None:
-            data_format_ = [format_]
-        elif isinstance(format, dict):
-            data_format_ = [format_, format]
-        else:
-            data_format_ = [format_].extend(format)
+        data_format_ = [format_]
+        if isinstance(format, dict):
+            data_format_.append(format)
+        elif isinstance(format, list):
+            data_format_.extend(format)
 
         render_kwargs = {
             "hrules": True,
@@ -3621,10 +3620,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         buf=None,
         *,
-        hide: dict | list[dict] = None,
-        format: dict | list[dict] = None,
-        format_index: dict | list[dict] = None,
-        render_kwargs: dict | None = None,
+        hide: dict | list[dict] | None = None,
+        format: dict | list[dict] | None = None,
+        format_index: dict | list[dict] | None = None,
+        render_kwargs: dict = {},
     ):
         """
         Render object to a LaTeX tabular, longtable, or nested table.
@@ -3689,6 +3688,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         from pandas.io.formats.style import Styler
 
+        self = cast("DataFrame", self)
         styler = Styler(
             self,
             uuid="",
