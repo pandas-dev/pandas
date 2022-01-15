@@ -3198,6 +3198,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         .. versionchanged:: 1.2.0
            Added position argument, changed meaning of caption argument.
 
+        .. versionchanged:: 1.5.0
+           Use the `Styler` implementation and has had an arguments' signature
+           overhaul. See notes.
+
         Parameters
         ----------
         buf : str, Path or StringIO-like, optional, default None
@@ -3515,7 +3519,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "implementation, which may be exclusively used in future "
                 "versions."
             )
-            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+            warnings.warn(msg, DeprecationWarning, stacklevel=find_stack_level())
 
         base_format_ = {
             "na_rep": na_rep,

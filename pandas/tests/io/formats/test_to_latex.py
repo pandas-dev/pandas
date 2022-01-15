@@ -1513,11 +1513,11 @@ class TestRowStringConverter:
             ("col_space", 10),
         ],
     )
-    def test_future_warning(self, deprecated_arg, value):
+    def test_deprecation_warning(self, deprecated_arg, value):
         df = DataFrame([[1]])
         msg = (
             "`col_space` is deprecated. Whitespace in LaTeX does not impact "
             "the rendered version, and this argument is ignored."
         )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             df.to_latex(**{deprecated_arg: value})
