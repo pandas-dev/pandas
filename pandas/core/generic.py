@@ -3199,7 +3199,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
            Added position argument, changed meaning of caption argument.
 
         .. versionchanged:: 1.5.0
-           Use the `Styler` implementation and has had an arguments' signature
+           Uses the `Styler` implementation and has had an arguments' signature
            overhaul. See notes.
 
         Parameters
