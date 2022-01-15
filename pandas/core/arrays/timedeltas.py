@@ -38,7 +38,7 @@ from pandas._typing import (
 from pandas.compat.numpy import function as nv
 from pandas.util._validators import validate_endpoints
 
-from pandas.core.dtypes.cast import astype_td64_unit_conversion
+from pandas.core.dtypes.astype import astype_td64_unit_conversion
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     TD64NS_DTYPE,
@@ -748,12 +748,8 @@ class TimedeltaArray(dtl.TimelikeOps):
             return result
 
         elif is_object_dtype(other.dtype):
-            # error: Incompatible types in assignment (expression has type
-            # "List[Any]", variable has type "ndarray")
-            result = [  # type: ignore[assignment]
-                other[n] // self[n] for n in range(len(self))
-            ]
-            result = np.array(result)
+            result_list = [other[n] // self[n] for n in range(len(self))]
+            result = np.array(result_list)
             return result
 
         else:

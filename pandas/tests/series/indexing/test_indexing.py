@@ -8,9 +8,11 @@ import pytest
 from pandas import (
     DataFrame,
     IndexSlice,
+    MultiIndex,
     Series,
     Timedelta,
     Timestamp,
+    concat,
     date_range,
     period_range,
     timedelta_range,
@@ -79,6 +81,7 @@ def test_getitem_setitem_ellipsis():
     assert (result == 5).all()
 
 
+@pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
 @pytest.mark.parametrize(
     "result_1, duplicate_item, expected_1",
     [
@@ -158,7 +161,7 @@ def test_setitem_ambiguous_keyerror(indexer_sl):
     # equivalent of an append
     s2 = s.copy()
     indexer_sl(s2)[1] = 5
-    expected = s.append(Series([5], index=[1]))
+    expected = concat([s, Series([5], index=[1])])
     tm.assert_series_equal(s2, expected)
 
 
@@ -316,3 +319,33 @@ def test_frozenset_index():
     assert s[idx1] == 2
     s[idx1] = 3
     assert s[idx1] == 3
+
+
+class TestDeprecatedIndexers:
+    @pytest.mark.parametrize("key", [{1}, {1: 1}])
+    def test_getitem_dict_and_set_deprecated(self, key):
+        # GH#42825
+        ser = Series([1, 2])
+        with tm.assert_produces_warning(FutureWarning):
+            ser.loc[key]
+
+    @pytest.mark.parametrize("key", [{1}, {1: 1}, ({1}, 2), ({1: 1}, 2)])
+    def test_getitem_dict_and_set_deprecated_multiindex(self, key):
+        # GH#42825
+        ser = Series([1, 2], index=MultiIndex.from_tuples([(1, 2), (3, 4)]))
+        with tm.assert_produces_warning(FutureWarning):
+            ser.loc[key]
+
+    @pytest.mark.parametrize("key", [{1}, {1: 1}])
+    def test_setitem_dict_and_set_deprecated(self, key):
+        # GH#42825
+        ser = Series([1, 2])
+        with tm.assert_produces_warning(FutureWarning):
+            ser.loc[key] = 1
+
+    @pytest.mark.parametrize("key", [{1}, {1: 1}, ({1}, 2), ({1: 1}, 2)])
+    def test_setitem_dict_and_set_deprecated_multiindex(self, key):
+        # GH#42825
+        ser = Series([1, 2], index=MultiIndex.from_tuples([(1, 2), (3, 4)]))
+        with tm.assert_produces_warning(FutureWarning):
+            ser.loc[key] = 1

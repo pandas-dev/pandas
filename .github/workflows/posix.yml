@@ -3,12 +3,12 @@ name: Posix
 on:
   push:
     branches:
-      - master
-      - 1.3.x
+      - main
+      - 1.4.x
   pull_request:
     branches:
-      - master
-      - 1.3.x
+      - main
+      - 1.4.x
     paths-ignore:
       - "doc/**"
 
@@ -25,6 +25,8 @@ jobs:
     strategy:
       matrix:
         settings: [
+          [actions-38-downstream_compat.yaml, "not slow and not network and not clipboard", "", "", "", "", ""],
+          [actions-38-minimum_versions.yaml, "slow", "", "", "", "", ""],
           [actions-38-minimum_versions.yaml, "not slow and not network and not clipboard", "", "", "", "", ""],
           [actions-38-locale_slow.yaml, "slow", "language-pack-it xsel", "it_IT.utf8", "it_IT.utf8", "", ""],
           [actions-38.yaml, "not slow and not clipboard", "", "", "", "", ""],
@@ -50,9 +52,37 @@ jobs:
       COVERAGE: ${{ !contains(matrix.settings[0], 'pypy') }}
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.settings[0] }}
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.settings[0] }}-${{ matrix.settings[1] }}
       cancel-in-progress: true
+
     services:
+      mysql:
+        image: mysql
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: pandas
+        options: >-
+          --health-cmd "mysqladmin ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 3306:3306
+
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: pandas
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
       moto:
         image: motoserver/moto
         env:
@@ -81,6 +111,8 @@ jobs:
 
     - uses: conda-incubator/setup-miniconda@v2
       with:
+        mamba-version: "*"
+        channels: conda-forge
         activate-environment: pandas-dev
         channel-priority: flexible
         environment-file: ${{ env.ENV_FILE }}
@@ -88,7 +120,7 @@ jobs:
       if: ${{ env.IS_PYPY == 'false' }} # No pypy3.8 support
 
     - name: Setup PyPy
-      uses: actions/setup-python@v2.3.1
+      uses: actions/setup-python@v2
       with:
         python-version: "pypy-3.8"
       if: ${{ env.IS_PYPY == 'true' }}
@@ -114,7 +146,7 @@ jobs:
       run: pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
 
     - name: Publish test results
-      uses: actions/upload-artifact@master
+      uses: actions/upload-artifact@v2
       with:
         name: Test results
         path: test-data.xml

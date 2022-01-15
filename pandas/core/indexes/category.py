@@ -8,15 +8,16 @@ import warnings
 
 import numpy as np
 
-from pandas._config import get_option
-
 from pandas._libs import index as libindex
 from pandas._typing import (
     Dtype,
     DtypeObj,
     npt,
 )
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    cache_readonly,
+    doc,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -180,6 +181,10 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     def _can_hold_strings(self):
         return self.categories._can_hold_strings
 
+    @cache_readonly
+    def _should_fallback_to_positional(self) -> bool:
+        return self.categories._should_fallback_to_positional
+
     codes: np.ndarray
     categories: Index
     ordered: bool | None
@@ -284,7 +289,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
     @doc(Index.astype)
     def astype(self, dtype: Dtype, copy: bool = True) -> Index:
-        from pandas import NumericIndex
+        from pandas.core.api import NumericIndex
 
         dtype = pandas_dtype(dtype)
 
@@ -340,16 +345,12 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         """
         Return a list of tuples of the (attr,formatted_value)
         """
-        max_categories = (
-            10
-            if get_option("display.max_categories") == 0
-            else get_option("display.max_categories")
-        )
         attrs: list[tuple[str, str | int | bool | None]]
+
         attrs = [
             (
                 "categories",
-                ibase.default_pprint(self.categories, max_seq_items=max_categories),
+                "[" + ", ".join(self._data._repr_categories()) + "]",
             ),
             ("ordered", self.ordered),
         ]
@@ -450,7 +451,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         else:
             # e.g. test_reindex_with_categoricalindex, test_reindex_duplicate_target
             new_target = np.asarray(new_target)
-            new_target = Index(new_target, name=self.name)
+            new_target = Index._with_infer(new_target, name=self.name)
 
         return new_target, indexer
 
@@ -499,7 +500,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
     def map(self, mapper):
         """
-        Map values using input correspondence (a dict, Series, or function).
+        Map values using input an input mapping or function.
 
         Maps the values (their categories, not the codes) of the index to new
         categories. If the mapping correspondence is one-to-one the result is a

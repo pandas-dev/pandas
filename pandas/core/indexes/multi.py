@@ -327,7 +327,9 @@ class MultiIndex(Index):
         result._set_levels(levels, copy=copy, validate=False)
         result._set_codes(codes, copy=copy, validate=False)
 
-        result._names = [None] * len(levels)
+        # Incompatible types in assignment (expression has type "List[None]",
+        # variable has type "FrozenList")  [assignment]
+        result._names = [None] * len(levels)  # type: ignore[assignment]
         if names is not None:
             # handles name validation
             result._set_names(names)
@@ -363,7 +365,9 @@ class MultiIndex(Index):
         """
         null_mask = isna(level)
         if np.any(null_mask):
-            code = np.where(null_mask[code], -1, code)
+            # Incompatible types in assignment (expression has type
+            # "ndarray[Any, dtype[Any]]", variable has type "List[Any]")
+            code = np.where(null_mask[code], -1, code)  # type: ignore[assignment]
         return code
 
     def _verify_integrity(self, codes: list | None = None, levels: list | None = None):
@@ -737,9 +741,7 @@ class MultiIndex(Index):
         from pandas import Series
 
         names = com.fill_missing_names([level.name for level in self.levels])
-        return Series(
-            {names[idx]: level.dtype for idx, level in enumerate(self.levels)}
-        )
+        return Series([level.dtype for level in self.levels], index=names)
 
     def __len__(self) -> int:
         return len(self.codes[0])
@@ -1086,7 +1088,9 @@ class MultiIndex(Index):
         # equivalent to sorting lexicographically the codes themselves. Notice
         # that each level needs to be shifted by the number of bits needed to
         # represent the _previous_ ones:
-        offsets = np.concatenate([lev_bits[1:], [0]]).astype("uint64")
+        offsets = np.concatenate([lev_bits[1:], [0]]).astype(  # type: ignore[arg-type]
+            "uint64"
+        )
 
         # Check the total number of bits needed for our representation:
         if lev_bits[0] > 64:
@@ -1564,7 +1568,12 @@ class MultiIndex(Index):
             self._get_level_values(i)._values for i in reversed(range(len(self.levels)))
         ]
         try:
-            sort_order = np.lexsort(values)
+            # Argument 1 to "lexsort" has incompatible type "List[Union[ExtensionArray,
+            # ndarray[Any, Any]]]"; expected "Union[_SupportsArray[dtype[Any]],
+            # _NestedSequence[_SupportsArray[dtype[Any]]], bool,
+            #  int, float, complex, str, bytes, _NestedSequence[Union[bool, int, float,
+            #  complex, str, bytes]]]"  [arg-type]
+            sort_order = np.lexsort(values)  # type: ignore[arg-type]
             return Index(sort_order).is_monotonic
         except TypeError:
 
@@ -1658,6 +1667,12 @@ class MultiIndex(Index):
             Values is a level of this MultiIndex converted to
             a single :class:`Index` (or subclass thereof).
 
+        Notes
+        -----
+        If the level contains missing values, the result may be casted to
+        ``float`` with missing values specified as ``NaN``. This is because
+        the level is converted to a regular ``Index``.
+
         Examples
         --------
         Create a MultiIndex:
@@ -1671,6 +1686,16 @@ class MultiIndex(Index):
         Index(['a', 'b', 'c'], dtype='object', name='level_1')
         >>> mi.get_level_values('level_2')
         Index(['d', 'e', 'f'], dtype='object', name='level_2')
+
+        If a level contains missing values, the return type of the level
+        maybe casted to ``float``.
+
+        >>> pd.MultiIndex.from_arrays([[1, None, 2], [3, 4, 5]]).dtypes
+        level_0    int64
+        level_1    int64
+        dtype: object
+        >>> pd.MultiIndex.from_arrays([[1, None, 2], [3, 4, 5]]).get_level_values(0)
+        Float64Index([1.0, nan, 2.0], dtype='float64')
         """
         level = self._get_level_number(level)
         values = self._get_level_values(level)
@@ -2815,7 +2840,7 @@ class MultiIndex(Index):
                 "currently supported for MultiIndex"
             )
 
-        hash(key)
+        self._check_indexing_error(key)
 
         def _maybe_to_slice(loc):
             """convert integer indexer to boolean mask or slice if possible"""
@@ -3802,7 +3827,7 @@ class MultiIndex(Index):
     __neg__ = make_invalid_op("__neg__")
     __pos__ = make_invalid_op("__pos__")
     __abs__ = make_invalid_op("__abs__")
-    __inv__ = make_invalid_op("__inv__")
+    __invert__ = make_invalid_op("__invert__")
 
 
 def _lexsort_depth(codes: list[np.ndarray], nlevels: int) -> int:

@@ -166,9 +166,9 @@ class TestTimestampTZOperations:
         assert result_pytz.value == 1382835600000000000
 
         # fixed ambiguous behavior
-        # see gh-14621
+        # see gh-14621, GH#45087
         assert result_pytz.to_pydatetime().tzname() == "GMT"
-        assert result_dateutil.to_pydatetime().tzname() == "BST"
+        assert result_dateutil.to_pydatetime().tzname() == "GMT"
         assert str(result_pytz) == str(result_dateutil)
 
         # 1 hour difference

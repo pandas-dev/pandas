@@ -316,14 +316,14 @@ chunksize : int, default ``None``
 Quoting, compression, and file format
 +++++++++++++++++++++++++++++++++++++
 
-compression : {``'infer'``, ``'gzip'``, ``'bz2'``, ``'zip'``, ``'xz'``, ``None``, ``dict``}, default ``'infer'``
+compression : {``'infer'``, ``'gzip'``, ``'bz2'``, ``'zip'``, ``'xz'``, ``'zstd'``, ``None``, ``dict``}, default ``'infer'``
   For on-the-fly decompression of on-disk data. If 'infer', then use gzip,
-  bz2, zip, or xz if ``filepath_or_buffer`` is path-like ending in '.gz', '.bz2',
-  '.zip', or '.xz', respectively, and no decompression otherwise. If using 'zip',
+  bz2, zip, xz, or zstandard if ``filepath_or_buffer`` is path-like ending in '.gz', '.bz2',
+  '.zip', '.xz', '.zst', respectively, and no decompression otherwise. If using 'zip',
   the ZIP file must contain only one data file to be read in.
   Set to ``None`` for no decompression. Can also be a dict with key ``'method'``
-  set to one of {``'zip'``, ``'gzip'``, ``'bz2'``} and other key-value pairs are
-  forwarded to ``zipfile.ZipFile``, ``gzip.GzipFile``, or ``bz2.BZ2File``.
+  set to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``} and other key-value pairs are
+  forwarded to ``zipfile.ZipFile``, ``gzip.GzipFile``, ``bz2.BZ2File``, or ``zstandard.ZstdDecompressor``.
   As an example, the following could be passed for faster compression and to
   create a reproducible gzip archive:
   ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
@@ -1305,14 +1305,38 @@ You can elect to skip bad lines:
     0  1  2   3
     1  8  9  10
 
+Or pass a callable function to handle the bad line if ``engine="python"``.
+The bad line will be a list of strings that was split by the ``sep``:
+
+.. code-block:: ipython
+
+    In [29]: external_list = []
+
+    In [30]: def bad_lines_func(line):
+        ...:     external_list.append(line)
+        ...:     return line[-3:]
+
+    In [31]: pd.read_csv(StringIO(data), on_bad_lines=bad_lines_func, engine="python")
+    Out[31]:
+       a  b   c
+    0  1  2   3
+    1  5  6   7
+    2  8  9  10
+
+    In [32]: external_list
+    Out[32]: [4, 5, 6, 7]
+
+    .. versionadded:: 1.4.0
+
+
 You can also use the ``usecols`` parameter to eliminate extraneous column
 data that appear in some lines but not others:
 
 .. code-block:: ipython
 
-   In [30]: pd.read_csv(StringIO(data), usecols=[0, 1, 2])
+   In [33]: pd.read_csv(StringIO(data), usecols=[0, 1, 2])
 
-    Out[30]:
+    Out[33]:
        a  b   c
     0  1  2   3
     1  4  5   6
@@ -1324,9 +1348,9 @@ fields are filled with ``NaN``.
 
 .. code-block:: ipython
 
-   In [31]: pd.read_csv(StringIO(data), names=['a', 'b', 'c', 'd'])
+   In [34]: pd.read_csv(StringIO(data), names=['a', 'b', 'c', 'd'])
 
-   Out[31]:
+   Out[34]:
        a  b   c  d
     0  1  2   3  NaN
     1  4  5   6  7
@@ -1827,7 +1851,7 @@ function takes a number of arguments. Only the first is required.
 * ``mode`` : Python write mode, default 'w'
 * ``encoding``: a string representing the encoding to use if the contents are
   non-ASCII, for Python versions prior to 3
-* ``line_terminator``: Character sequence denoting line end (default ``os.linesep``)
+* ``lineterminator``: Character sequence denoting line end (default ``os.linesep``)
 * ``quoting``: Set quoting rules as in csv module (default csv.QUOTE_MINIMAL). Note that if you have set a ``float_format`` then floats are converted to strings and csv.QUOTE_NONNUMERIC will treat them as non-numeric
 * ``quotechar``: Character used to quote fields (default '"')
 * ``doublequote``: Control quoting of ``quotechar`` in fields (default True)
@@ -4032,18 +4056,18 @@ Compressed pickle files
 '''''''''''''''''''''''
 
 :func:`read_pickle`, :meth:`DataFrame.to_pickle` and :meth:`Series.to_pickle` can read
-and write compressed pickle files. The compression types of ``gzip``, ``bz2``, ``xz`` are supported for reading and writing.
+and write compressed pickle files. The compression types of ``gzip``, ``bz2``, ``xz``, ``zstd`` are supported for reading and writing.
 The ``zip`` file format only supports reading and must contain only one data file
 to be read.
 
 The compression type can be an explicit parameter or be inferred from the file extension.
-If 'infer', then use ``gzip``, ``bz2``, ``zip``, or ``xz`` if filename ends in ``'.gz'``, ``'.bz2'``, ``'.zip'``, or
-``'.xz'``, respectively.
+If 'infer', then use ``gzip``, ``bz2``, ``zip``, ``xz``, ``zstd`` if filename ends in ``'.gz'``, ``'.bz2'``, ``'.zip'``,
+``'.xz'``, or ``'.zst'``, respectively.
 
 The compression parameter can also be a ``dict`` in order to pass options to the
 compression protocol. It must have a ``'method'`` key set to the name
 of the compression protocol, which must be one of
-{``'zip'``, ``'gzip'``, ``'bz2'``}. All other key-value pairs are passed to
+{``'zip'``, ``'gzip'``, ``'bz2'``, ``'xz'``, ``'zstd'``}. All other key-value pairs are passed to
 the underlying compression library.
 
 .. ipython:: python

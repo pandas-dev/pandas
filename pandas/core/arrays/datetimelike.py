@@ -14,6 +14,7 @@ from typing import (
     TypeVar,
     Union,
     cast,
+    final,
     overload,
 )
 import warnings
@@ -99,6 +100,7 @@ from pandas.core import (
 from pandas.core.algorithms import (
     checked_add_with_arr,
     isin,
+    mode,
     unique1d,
 )
 from pandas.core.arraylike import OpsMixin
@@ -507,8 +509,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         new_obj._freq = new_freq
         return new_obj
 
-    def copy(self: DatetimeLikeArrayT) -> DatetimeLikeArrayT:
-        new_obj = super().copy()
+    def copy(self: DatetimeLikeArrayT, order="C") -> DatetimeLikeArrayT:
+        # error: Unexpected keyword argument "order" for "copy"
+        new_obj = super().copy(order=order)  # type: ignore[call-arg]
         new_obj._freq = self.freq
         return new_obj
 
@@ -1136,6 +1139,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         return type(self)(new_values, dtype=self.dtype)
 
+    @final
     def _add_nat(self):
         """
         Add pd.NaT to self
@@ -1151,6 +1155,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         result.fill(iNaT)
         return type(self)(result, dtype=self.dtype, freq=None)
 
+    @final
     def _sub_nat(self):
         """
         Subtract pd.NaT from self
@@ -1530,6 +1535,17 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         result = nanops.nanmedian(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
 
+    def _mode(self, dropna: bool = True):
+        values = self
+        if dropna:
+            mask = values.isna()
+            values = values[~mask]
+
+        i8modes = mode(values.view("i8"))
+        npmodes = i8modes.view(self._ndarray.dtype)
+        npmodes = cast(np.ndarray, npmodes)
+        return self._from_backing_data(npmodes)
+
 
 class DatelikeOps(DatetimeLikeArrayMixin):
     """
@@ -1576,7 +1592,7 @@ class DatelikeOps(DatetimeLikeArrayMixin):
               dtype='object')
         """
         result = self._format_native_types(date_format=date_format, na_rep=np.nan)
-        return result.astype(object)
+        return result.astype(object, copy=False)
 
 
 _round_doc = """

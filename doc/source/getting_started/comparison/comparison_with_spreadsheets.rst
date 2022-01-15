@@ -92,7 +92,7 @@ formats.
 CSV
 '''
 
-Let's load and display the `tips <https://github.com/pandas-dev/pandas/blob/master/pandas/tests/io/data/csv/tips.csv>`_
+Let's load and display the `tips <https://github.com/pandas-dev/pandas/blob/main/pandas/tests/io/data/csv/tips.csv>`_
 dataset from the pandas tests, which is a CSV file. In Excel, you would download and then
 `open the CSV <https://support.microsoft.com/en-us/office/import-or-export-text-txt-or-csv-files-5250ac4c-663c-47ce-937b-339e391393ba>`_.
 In pandas, you pass the URL or local path of the CSV file to :func:`~pandas.read_csv`:
@@ -101,7 +101,7 @@ In pandas, you pass the URL or local path of the CSV file to :func:`~pandas.read
 
    url = (
        "https://raw.github.com/pandas-dev"
-       "/pandas/master/pandas/tests/io/data/csv/tips.csv"
+       "/pandas/main/pandas/tests/io/data/csv/tips.csv"
    )
    tips = pd.read_csv(url)
    tips
@@ -435,13 +435,14 @@ The equivalent in pandas:
 Adding a row
 ~~~~~~~~~~~~
 
-Assuming we are using a :class:`~pandas.RangeIndex` (numbered ``0``, ``1``, etc.), we can use :meth:`DataFrame.append` to add a row to the bottom of a ``DataFrame``.
+Assuming we are using a :class:`~pandas.RangeIndex` (numbered ``0``, ``1``, etc.), we can use :func:`concat` to add a row to the bottom of a ``DataFrame``.
 
 .. ipython:: python
 
     df
-    new_row = {"class": "E", "student_count": 51, "all_pass": True}
-    df.append(new_row, ignore_index=True)
+    new_row = pd.DataFrame([["E", 51, True]],
+                           columns=["class", "student_count", "all_pass"])
+    pd.concat([df, new_row])
 
 
 Find and Replace

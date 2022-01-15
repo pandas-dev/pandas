@@ -5,6 +5,8 @@ import itertools
 import numpy as np
 import pytest
 
+from pandas.errors import PerformanceWarning
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -16,6 +18,7 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
+from pandas.core.reshape import reshape as reshape_lib
 
 
 class TestDataFrameReshape:
@@ -748,20 +751,13 @@ class TestDataFrameReshape:
         expected = df.unstack(["i3"]).unstack(["i2"])
         tm.assert_frame_equal(result, expected)
 
-    def test_unstack_nan_index1(self):
+    @pytest.mark.parametrize("idx", [("jim", "joe"), ("joe", "jim")])
+    @pytest.mark.parametrize("lev", list(range(2)))
+    def test_unstack_nan_index1(self, idx, lev):
         # GH7466
         def cast(val):
             val_str = "" if val != val else val
             return f"{val_str:1}"
-
-        def verify(df):
-            mk_list = lambda a: list(a) if isinstance(a, tuple) else [a]
-            rows, cols = df.notna().values.nonzero()
-            for i, j in zip(rows, cols):
-                left = sorted(df.iloc[i, j].split("."))
-                right = mk_list(df.index[i]) + mk_list(df.columns[j])
-                right = sorted(map(cast, right))
-                assert left == right
 
         df = DataFrame(
             {
@@ -775,12 +771,24 @@ class TestDataFrameReshape:
         right = df.set_index(["joe", "jim"]).unstack()["jolie"].T
         tm.assert_frame_equal(left, right)
 
-        for idx in itertools.permutations(df.columns[:2]):
-            mi = df.set_index(list(idx))
-            for lev in range(2):
-                udf = mi.unstack(level=lev)
-                assert udf.notna().values.sum() == len(df)
-                verify(udf["jolie"])
+        mi = df.set_index(list(idx))
+        udf = mi.unstack(level=lev)
+        assert udf.notna().values.sum() == len(df)
+        mk_list = lambda a: list(a) if isinstance(a, tuple) else [a]
+        rows, cols = udf["jolie"].notna().values.nonzero()
+        for i, j in zip(rows, cols):
+            left = sorted(udf["jolie"].iloc[i, j].split("."))
+            right = mk_list(udf["jolie"].index[i]) + mk_list(udf["jolie"].columns[j])
+            right = sorted(map(cast, right))
+            assert left == right
+
+    @pytest.mark.parametrize("idx", itertools.permutations(["1st", "2nd", "3rd"]))
+    @pytest.mark.parametrize("lev", list(range(3)))
+    @pytest.mark.parametrize("col", ["4th", "5th"])
+    def test_unstack_nan_index_repeats(self, idx, lev, col):
+        def cast(val):
+            val_str = "" if val != val else val
+            return f"{val_str:1}"
 
         df = DataFrame(
             {
@@ -827,13 +835,16 @@ class TestDataFrameReshape:
             df.apply(lambda r: ".".join(map(cast, r.iloc[::-1])), axis=1),
         )
 
-        for idx in itertools.permutations(["1st", "2nd", "3rd"]):
-            mi = df.set_index(list(idx))
-            for lev in range(3):
-                udf = mi.unstack(level=lev)
-                assert udf.notna().values.sum() == 2 * len(df)
-                for col in ["4th", "5th"]:
-                    verify(udf[col])
+        mi = df.set_index(list(idx))
+        udf = mi.unstack(level=lev)
+        assert udf.notna().values.sum() == 2 * len(df)
+        mk_list = lambda a: list(a) if isinstance(a, tuple) else [a]
+        rows, cols = udf[col].notna().values.nonzero()
+        for i, j in zip(rows, cols):
+            left = sorted(udf[col].iloc[i, j].split("."))
+            right = mk_list(udf[col].index[i]) + mk_list(udf[col].columns[j])
+            right = sorted(map(cast, right))
+            assert left == right
 
     def test_unstack_nan_index2(self):
         # GH7403
@@ -1043,8 +1054,8 @@ class TestDataFrameReshape:
                 names=[None, "Lower"],
             ),
             columns=Index(["B", "C"], name="Upper"),
-            dtype=df.dtypes[0],
         )
+        expected["B"] = expected["B"].astype(df.dtypes[0])
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("ordered", [False, True])
@@ -1419,50 +1430,57 @@ class TestStackUnstackMultiLevel:
         # stack with negative number
         result = ymd.unstack(0).stack(-2)
         expected = ymd.unstack(0).stack(0)
+        tm.assert_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "idx, columns, exp_idx",
+        [
+            [
+                list("abab"),
+                ["1st", "2nd", "3rd"],
+                MultiIndex(
+                    levels=[["a", "b"], ["1st", "2nd", "3rd"]],
+                    codes=[
+                        np.tile(np.arange(2).repeat(3), 2),
+                        np.tile(np.arange(3), 4),
+                    ],
+                ),
+            ],
+            [
+                list("abab"),
+                ["1st", "2nd", "1st"],
+                MultiIndex(
+                    levels=[["a", "b"], ["1st", "2nd"]],
+                    codes=[np.tile(np.arange(2).repeat(3), 2), np.tile([0, 1, 0], 4)],
+                ),
+            ],
+            [
+                MultiIndex.from_tuples((("a", 2), ("b", 1), ("a", 1), ("b", 2))),
+                ["1st", "2nd", "1st"],
+                MultiIndex(
+                    levels=[["a", "b"], [1, 2], ["1st", "2nd"]],
+                    codes=[
+                        np.tile(np.arange(2).repeat(3), 2),
+                        np.repeat([1, 0, 1], [3, 6, 3]),
+                        np.tile([0, 1, 0], 4),
+                    ],
+                ),
+            ],
+        ],
+    )
+    def test_stack_duplicate_index(self, idx, columns, exp_idx):
         # GH10417
-        def check(left, right):
-            tm.assert_series_equal(left, right)
-            assert left.index.is_unique is False
-            li, ri = left.index, right.index
-            tm.assert_index_equal(li, ri)
-
         df = DataFrame(
             np.arange(12).reshape(4, 3),
-            index=list("abab"),
-            columns=["1st", "2nd", "3rd"],
+            index=idx,
+            columns=columns,
         )
-
-        mi = MultiIndex(
-            levels=[["a", "b"], ["1st", "2nd", "3rd"]],
-            codes=[np.tile(np.arange(2).repeat(3), 2), np.tile(np.arange(3), 4)],
-        )
-
-        left, right = df.stack(), Series(np.arange(12), index=mi)
-        check(left, right)
-
-        df.columns = ["1st", "2nd", "1st"]
-        mi = MultiIndex(
-            levels=[["a", "b"], ["1st", "2nd"]],
-            codes=[np.tile(np.arange(2).repeat(3), 2), np.tile([0, 1, 0], 4)],
-        )
-
-        left, right = df.stack(), Series(np.arange(12), index=mi)
-        check(left, right)
-
-        tpls = ("a", 2), ("b", 1), ("a", 1), ("b", 2)
-        df.index = MultiIndex.from_tuples(tpls)
-        mi = MultiIndex(
-            levels=[["a", "b"], [1, 2], ["1st", "2nd"]],
-            codes=[
-                np.tile(np.arange(2).repeat(3), 2),
-                np.repeat([1, 0, 1], [3, 6, 3]),
-                np.tile([0, 1, 0], 4),
-            ],
-        )
-
-        left, right = df.stack(), Series(np.arange(12), index=mi)
-        check(left, right)
+        result = df.stack()
+        expected = Series(np.arange(12), index=exp_idx)
+        tm.assert_series_equal(result, expected)
+        assert result.index.is_unique is False
+        li, ri = result.index, expected.index
+        tm.assert_index_equal(li, ri)
 
     def test_unstack_odd_failure(self):
         data = """day,time,smoker,sum,len
@@ -1817,13 +1835,26 @@ Thu,Lunch,Yes,51.51,17"""
         tm.assert_frame_equal(recons, df)
 
     @pytest.mark.slow
-    def test_unstack_number_of_levels_larger_than_int32(self):
+    def test_unstack_number_of_levels_larger_than_int32(self, monkeypatch):
         # GH#20601
-        df = DataFrame(
-            np.random.randn(2 ** 16, 2), index=[np.arange(2 ** 16), np.arange(2 ** 16)]
-        )
-        with pytest.raises(ValueError, match="int32 overflow"):
-            df.unstack()
+        # GH 26314: Change ValueError to PerformanceWarning
+
+        class MockUnstacker(reshape_lib._Unstacker):
+            def __init__(self, *args, **kwargs):
+                # __init__ will raise the warning
+                super().__init__(*args, **kwargs)
+                raise Exception("Don't compute final result.")
+
+        with monkeypatch.context() as m:
+            m.setattr(reshape_lib, "_Unstacker", MockUnstacker)
+            df = DataFrame(
+                np.random.randn(2 ** 16, 2),
+                index=[np.arange(2 ** 16), np.arange(2 ** 16)],
+            )
+            msg = "The following operation may generate"
+            with tm.assert_produces_warning(PerformanceWarning, match=msg):
+                with pytest.raises(Exception, match="Don't compute final result."):
+                    df.unstack()
 
     def test_stack_order_with_unsorted_levels(self):
         # GH#16323

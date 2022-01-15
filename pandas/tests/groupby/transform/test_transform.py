@@ -20,6 +20,7 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
+from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
 from pandas.core.groupby.generic import (
     DataFrameGroupBy,
     SeriesGroupBy,
@@ -171,6 +172,9 @@ def test_transform_axis_1(request, transformation_func, using_array_manager):
         request.node.add_marker(
             pytest.mark.xfail(reason="ArrayManager: shift axis=1 not yet implemented")
         )
+    # TODO(2.0) Remove after pad/backfill deprecation enforced
+    transformation_func = maybe_normalize_deprecated_kernels(transformation_func)
+
     warn = None
     if transformation_func == "tshift":
         warn = FutureWarning
@@ -357,7 +361,8 @@ def test_transform_transformation_func(request, transformation_func):
         },
         index=date_range("2020-01-01", "2020-01-07"),
     )
-
+    # TODO(2.0) Remove after pad/backfill deprecation enforced
+    transformation_func = maybe_normalize_deprecated_kernels(transformation_func)
     if transformation_func == "cumcount":
         test_op = lambda x: x.transform("cumcount")
         mock_op = lambda x: Series(range(len(x)), x.index)
@@ -483,8 +488,15 @@ def test_transform_coercion():
     g = df.groupby("A")
 
     expected = g.transform(np.mean)
-    result = g.transform(lambda x: np.mean(x))
+
+    msg = "will return a scalar mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
+        result = g.transform(lambda x: np.mean(x))
     tm.assert_frame_equal(result, expected)
+
+    with tm.assert_produces_warning(None):
+        result2 = g.transform(lambda x: np.mean(x, axis=0))
+    tm.assert_frame_equal(result2, expected)
 
 
 def test_groupby_transform_with_int():

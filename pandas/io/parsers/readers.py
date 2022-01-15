@@ -9,6 +9,7 @@ import sys
 from textwrap import fill
 from typing import (
     Any,
+    Callable,
     NamedTuple,
 )
 import warnings
@@ -43,9 +44,9 @@ from pandas.core.dtypes.common import (
     is_list_like,
 )
 
-from pandas.core import generic
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import RangeIndex
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import validate_header_arg
 from pandas.io.parsers.arrow_parser_wrapper import ArrowParserWrapper
@@ -280,12 +281,10 @@ chunksize : int, optional
     .. versionchanged:: 1.2
 
        ``TextFileReader`` is a context manager.
-compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
-    For on-the-fly decompression of on-disk data. If 'infer' and
-    `filepath_or_buffer` is path-like, then detect compression from the
-    following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
-    decompression). If using 'zip', the ZIP file must contain only one data
-    file to be read in. Set to None for no decompression.
+{decompression_options}
+
+    .. versionchanged:: 1.4.0 Zstandard support.
+
 thousands : str, optional
     Thousands separator.
 decimal : str, default '.'
@@ -356,7 +355,7 @@ warn_bad_lines : bool, optional, default ``None``
     .. deprecated:: 1.3.0
        The ``on_bad_lines`` parameter should be used instead to specify behavior upon
        encountering a bad line instead.
-on_bad_lines : {{'error', 'warn', 'skip'}}, default 'error'
+on_bad_lines : {{'error', 'warn', 'skip'}} or callable, default 'error'
     Specifies what to do upon encountering a bad line (a line with too many fields).
     Allowed values are :
 
@@ -365,6 +364,16 @@ on_bad_lines : {{'error', 'warn', 'skip'}}, default 'error'
         - 'skip', skip bad lines without raising or warning when they are encountered.
 
     .. versionadded:: 1.3.0
+
+        - callable, function with signature
+          ``(bad_line: list[str]) -> list[str] | None`` that will process a single
+          bad line. ``bad_line`` is a list of strings split by the ``sep``.
+          If the function returns ``None`, the bad line will be ignored.
+          If the function returns a new list of strings with more elements than
+          expected, a ``ParserWarning`` will be emitted while dropping extra elements.
+          Only supported when ``engine="python"``
+
+    .. versionadded:: 1.4.0
 
 delim_whitespace : bool, default False
     Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
@@ -436,10 +445,7 @@ _pyarrow_unsupported = {
     "dialect",
     "warn_bad_lines",
     "error_bad_lines",
-    # TODO(1.4)
-    # This doesn't error properly ATM, fix for release
-    # but not blocker for initial PR
-    # "on_bad_lines",
+    "on_bad_lines",
     "delim_whitespace",
     "quoting",
     "lineterminator",
@@ -577,7 +583,8 @@ def _read(
         func_name="read_csv",
         summary="Read a comma-separated values (csv) file into DataFrame.",
         _default_sep="','",
-        storage_options=generic._shared_docs["storage_options"],
+        storage_options=_shared_docs["storage_options"],
+        decompression_options=_shared_docs["decompression_options"],
     )
 )
 def read_csv(
@@ -675,7 +682,8 @@ def read_csv(
         func_name="read_table",
         summary="Read general delimited file into DataFrame.",
         _default_sep=r"'\\t' (tab-stop)",
-        storage_options=generic._shared_docs["storage_options"],
+        storage_options=_shared_docs["storage_options"],
+        decompression_options=_shared_docs["decompression_options"],
     )
 )
 def read_table(
@@ -932,7 +940,18 @@ class TextFileReader(abc.Iterator):
                 engine == "pyarrow"
                 and argname in _pyarrow_unsupported
                 and value != default
+                and value != getattr(value, "value", default)
             ):
+                if (
+                    argname == "on_bad_lines"
+                    and kwds.get("error_bad_lines") is not None
+                ):
+                    argname = "error_bad_lines"
+                elif (
+                    argname == "on_bad_lines" and kwds.get("warn_bad_lines") is not None
+                ):
+                    argname = "warn_bad_lines"
+
                 raise ValueError(
                     f"The {repr(argname)} option is not supported with the "
                     f"'pyarrow' engine"
@@ -1170,8 +1189,7 @@ class TextFileReader(abc.Iterator):
             raise ValueError(
                 f"Unknown engine: {engine} (valid options are {mapping.keys()})"
             )
-        # error: Too many arguments for "ParserBase"
-        return mapping[engine](self.f, **self.options)  # type: ignore[call-arg]
+        return mapping[engine](self.f, **self.options)
 
     def _failover_to_python(self):
         raise AbstractMethodError(self)
@@ -1360,7 +1378,7 @@ def _refine_defaults_read(
     sep: str | object,
     error_bad_lines: bool | None,
     warn_bad_lines: bool | None,
-    on_bad_lines: str | None,
+    on_bad_lines: str | Callable | None,
     names: ArrayLike | None | object,
     prefix: str | None | object,
     defaults: dict[str, Any],
@@ -1392,7 +1410,7 @@ def _refine_defaults_read(
         Whether to error on a bad line or not.
     warn_bad_lines : str or None
         Whether to warn on a bad line or not.
-    on_bad_lines : str or None
+    on_bad_lines : str, callable or None
         An option for handling bad lines or a sentinel value(None).
     names : array-like, optional
         List of column names to use. If the file contains a header row,
@@ -1496,6 +1514,12 @@ def _refine_defaults_read(
             kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.WARN
         elif on_bad_lines == "skip":
             kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.SKIP
+        elif callable(on_bad_lines):
+            if engine != "python":
+                raise ValueError(
+                    "on_bad_line can only be a callable function if engine='python'"
+                )
+            kwds["on_bad_lines"] = on_bad_lines
         else:
             raise ValueError(f"Argument {on_bad_lines} is invalid for on_bad_lines")
     else:
