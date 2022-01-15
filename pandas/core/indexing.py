@@ -675,7 +675,9 @@ class _LocationIndexer(NDFrameIndexerBase):
         If we have an axis, adapt the given key to be axis-independent.
         """
         new_key = [slice(None)] * self.ndim
-        new_key[self.axis] = key
+        # error: Invalid index type "Optional[Any]" for "List[slice]"; expected
+        # type "SupportsIndex"
+        new_key[self.axis] = key  # type:ignore[index]
         return tuple(new_key)
 
     @final
