@@ -20,6 +20,7 @@ from pandas._libs import (
 from pandas._typing import (
     ArrayLike,
     AstypeArg,
+    DtypeObj,
     NpDtype,
     PositionalIndexer,
     Scalar,
@@ -160,6 +161,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         self._data = values
         self._mask = mask
 
+    @classmethod
+    def _from_sequence(
+        cls: type[BaseMaskedArrayT], scalars, *, dtype=None, copy: bool = False
+    ) -> BaseMaskedArrayT:
+        values, mask = cls._coerce_to_array(scalars, dtype=dtype, copy=copy)
+        return cls(values, mask)
+
     @property
     def dtype(self) -> BaseMaskedDtype:
         raise AbstractMethodError(self)
@@ -219,14 +227,17 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             new_values = self.copy()
         return new_values
 
-    def _coerce_to_array(self, values) -> tuple[np.ndarray, np.ndarray]:
-        raise AbstractMethodError(self)
+    @classmethod
+    def _coerce_to_array(
+        cls, values, *, dtype: DtypeObj, copy: bool = False
+    ) -> tuple[np.ndarray, np.ndarray]:
+        raise AbstractMethodError(cls)
 
     def __setitem__(self, key, value) -> None:
         _is_scalar = is_scalar(value)
         if _is_scalar:
             value = [value]
-        value, mask = self._coerce_to_array(value)
+        value, mask = self._coerce_to_array(value, dtype=self.dtype)
 
         if _is_scalar:
             value = value[0]
