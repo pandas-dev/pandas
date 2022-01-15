@@ -1775,6 +1775,12 @@ def pandas_dtype(dtype) -> DtypeObj:
     # raise a consistent TypeError if failed
     try:
         npdtype = np.dtype(dtype)
+        
+        # if type of dtype is string than raise SyntaxError
+        if type(dtype)==str and dtype!="M8" and dtype!="m8" and dtype!="O":
+            raise SyntaxError
+            
+            
     except SyntaxError as err:
         # np.dtype uses `eval` which can raise SyntaxError
         raise TypeError(f"data type '{dtype}' not understood") from err
