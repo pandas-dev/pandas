@@ -30,7 +30,8 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
-- :class:`StringArray` now accepts nan-likes (``None``, ``np.nan``) for the ``values`` parameter in its constructor in addition to strings and :attr:`pandas.NA`. (:issue:`40839`)
+- :class:`StringArray` now accepts array-likes containing nan-likes (``None``, ``np.nan``) for the ``values`` parameter in its constructor in addition to strings and :attr:`pandas.NA`. (:issue:`40839`)
+- Improved the rendering of ``categories`` in :class:`CategoricalIndex` (:issue:`45218`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -94,7 +95,7 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
--
+- Deprecated the keyword ``line_terminator`` in :meth:`DataFrame.to_csv` and :meth:`Series.to_csv`, use ``lineterminator`` instead; this is for consistency with :func:`read_csv` and the standard library 'csv' module (:issue:`9568`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -118,12 +119,13 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
--
+- Bug in :meth:`DataFrame.quantile` with datetime-like dtypes and no rows incorrectly returning ``float64`` dtype instead of retaining datetime-like dtype (:issue:`41544`)
+- Bug in :func:`to_datetime` with sequences of ``np.str_`` objects incorrectly raising (:issue:`32264`)
+- Bug in :class:`Timestamp` construction when passing datetime components as positional arguments and ``tzinfo`` as a keyword argument incorrectly raising (:issue:`31929`)
 -
 
 Timedelta
 ^^^^^^^^^
--
 -
 
 Timezones
@@ -138,7 +140,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
--
+- Bug in constructing a :class:`Series` from a float-containing list or a floating-dtype ndarray-like (e.g. ``dask.Array``) and an integer dtype raising instead of casting like we would with an ``np.ndarray`` (:issue:`40110`)
 -
 
 Strings
@@ -153,7 +155,9 @@ Interval
 
 Indexing
 ^^^^^^^^
+- Bug in :meth:`DataFrame.iloc` where indexing a single row on a :class:`DataFrame` with a single ExtensionDtype column gave a copy instead of a view on the underlying data (:issue:`45241`)
 - Bug in :meth:`Series.__setitem__` with a non-integer :class:`Index` when using an integer key to set a value that cannot be set inplace where a ``ValueError`` was raised insead of casting to a common dtype (:issue:`45070`)
+- Bug when setting an integer too large for a :class:`Series` dtype failing to coerce to a common type (:issue:`26049`)
 -
 
 Missing
@@ -198,7 +202,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
--
+- Bug in :meth:`IntegerArray.searchsorted` and :meth:`FloatingArray.searchsorted` returning inconsistent results when acting on ``np.nan`` (:issue:`45255`)
 -
 
 Styler
