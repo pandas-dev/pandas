@@ -222,11 +222,9 @@ class XlsxWriter(ExcelWriter):
         # Write the frame cells using xlsxwriter.
         sheet_name = self._get_sheet_name(sheet_name)
 
-        if sheet_name in self.sheets:
-            wks = self.sheets[sheet_name]
-        else:
+        wks = self.book.get_worksheet_by_name(sheet_name)
+        if wks is None:
             wks = self.book.add_worksheet(sheet_name)
-            self.sheets[sheet_name] = wks
 
         style_dict = {"null": None}
 

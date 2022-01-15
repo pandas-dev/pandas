@@ -1112,7 +1112,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             self.handles = get_handle(
                 path, mode, storage_options=storage_options, is_text=False
             )
-        self.sheets: dict[str, Any] = {}
         self.cur_sheet = None
 
         if date_format is None:
