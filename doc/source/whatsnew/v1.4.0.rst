@@ -973,6 +973,7 @@ Styler
 - Bug when combining non-sparse rendering and :meth:`.Styler.hide_columns` or :meth:`.Styler.hide_index` (:issue:`43464`)
 - Bug setting a table style when using multiple selectors in :class:`.Styler` (:issue:`44011`)
 - Bugs where row trimming and column trimming failed to reflect hidden rows (:issue:`43703`, :issue:`44247`)
+- Minor bug when attempting to apply styling functions to an empty DataFrame subset (:issue:`45313`)
 
 Other
 ^^^^^
