@@ -817,7 +817,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         except TypeError:
             # GH#42626: not able to safely cast Int64
             # for floating point output
-            out = np.asarray(res, dtype=np.float64)
+            # error: Incompatible types in assignment (expression has type
+            # "ndarray[Any, dtype[floating[_64Bit]]]", variable has type
+            # "BaseMaskedArrayT")
+            out = np.asarray(res, dtype=np.float64)  # type: ignore[assignment]
         return out
 
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
