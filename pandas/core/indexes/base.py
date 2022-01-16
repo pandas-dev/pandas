@@ -2080,8 +2080,14 @@ class Index(IndexOpsMixin, PandasObject):
 
             if len(lev) == 0:
                 # If lev is empty, lev.take will fail GH#42055
-                res_values = algos.take(lev._values, new_codes[0], allow_fill=True)
-                result = type(lev)._simple_new(res_values, name=new_names[0])
+                if len(new_codes[0]) == 0:
+                    # GH#45230 preserve RangeIndex here
+                    #  see test_reset_index_empty_rangeindex
+                    result = lev[:0]
+                else:
+                    res_values = algos.take(lev._values, new_codes[0], allow_fill=True)
+                    # _constructor instead of type(lev) for RangeIndex compat GH#35230
+                    result = lev._constructor._simple_new(res_values, name=new_names[0])
             else:
                 # set nan if needed
                 mask = new_codes[0] == -1
