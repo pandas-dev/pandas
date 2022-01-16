@@ -292,3 +292,6 @@ else:
 
 # Windowing rank methods
 WindowingRankType = Literal["average", "min", "max"]
+
+# read_csv engines
+CSVEngine = Literal["c", "python", "pyarrow", "python-fwf"]
