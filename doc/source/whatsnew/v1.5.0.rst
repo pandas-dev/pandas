@@ -258,6 +258,8 @@ Styler
 
 Other
 ^^^^^
+- Bug in :meth:`Series.asof` and :meth:`DataFrame.asof` incorrectly casting bool-dtype results to ``float64`` dtype (:issue:`16063`)
+-
 
 .. ***DO NOT USE THIS SECTION***
 
