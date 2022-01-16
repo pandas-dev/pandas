@@ -1346,6 +1346,19 @@ def test_32878_int_itemsize():
     tm.assert_series_equal(ser, expected)
 
 
+def test_32878_complex_itemsize():
+    arr = np.arange(5).astype("c8")
+    ser = Series(arr)
+    val = np.finfo(np.float64).max
+    val = val.astype("c16")
+
+    # GH#32878 used to coerce val to inf+0.000000e+00j
+    ser[0] = val
+    assert ser[0] == val
+    expected = Series([val, 1, 2, 3, 4], dtype="c16")
+    tm.assert_series_equal(ser, expected)
+
+
 def test_37692(indexer_al):
     # GH#37692
     ser = Series([1, 2, 3], index=["a", "b", "c"])
@@ -1394,21 +1407,6 @@ def test_setitem_positional_float_into_int_coerces():
     ser = Series([1, 2, 3], index=["a", "b", "c"])
     ser[0] = 1.5
     expected = Series([1.5, 2, 3], index=["a", "b", "c"])
-    tm.assert_series_equal(ser, expected)
-
-
-@pytest.mark.xfail(reason="Fails to upcast")
-def test_32878_complex_itemsize():
-    # TODO: when fixed, put adjacent to test_32878_int_itemsize
-    arr = np.arange(5).astype("c8")
-    ser = Series(arr)
-    val = np.finfo(np.float64).max
-    val = val.astype("c16")
-
-    # GH#32878 used to coerce val to inf+0.000000e+00j
-    ser[0] = val
-    assert ser[0] == val
-    expected = Series([val, 1, 2, 3, 4], dtype="c16")
     tm.assert_series_equal(ser, expected)
 
 

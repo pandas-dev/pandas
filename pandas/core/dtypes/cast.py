@@ -2023,12 +2023,21 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
         raise ValueError
 
     elif dtype.kind == "c":
+        if lib.is_integer(element) or lib.is_complex(element) or lib.is_float(element):
+            if np.isnan(element):
+                # see test_where_complex GH#6345
+                return dtype.type(element)
+
+            casted = dtype.type(element)
+            if casted == element:
+                return casted
+            # otherwise e.g. overflow see test_32878_complex_itemsize
+            raise ValueError
+
         if tipo is not None:
             if tipo.kind in ["c", "f", "i", "u"]:
                 return element
             raise ValueError
-        if lib.is_integer(element) or lib.is_complex(element) or lib.is_float(element):
-            return element
         raise ValueError
 
     elif dtype.kind == "b":
