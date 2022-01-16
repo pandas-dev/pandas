@@ -32,7 +32,7 @@ def test_url(all_parsers, csv_dir_path):
     kwargs = {"sep": "\t"}
 
     url = (
-        "https://raw.github.com/pandas-dev/pandas/master/"
+        "https://raw.github.com/pandas-dev/pandas/main/"
         "pandas/tests/io/parser/data/salaries.csv"
     )
     url_result = parser.read_csv(url, **kwargs)

@@ -692,7 +692,17 @@ class HDFStore:
         for g in self.groups():
             yield g._v_pathname, g
 
-    iteritems = items
+    def iteritems(self):
+        """
+        iterate on key->group
+        """
+        warnings.warn(
+            "iteritems is deprecated and will be removed in a future version. "
+            "Use .items instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        yield from self.items()
 
     def open(self, mode: str = "a", **kwargs):
         """

@@ -8,8 +8,6 @@ import warnings
 
 import numpy as np
 
-from pandas._config import get_option
-
 from pandas._libs import index as libindex
 from pandas._typing import (
     Dtype,
@@ -347,16 +345,12 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         """
         Return a list of tuples of the (attr,formatted_value)
         """
-        max_categories = (
-            10
-            if get_option("display.max_categories") == 0
-            else get_option("display.max_categories")
-        )
         attrs: list[tuple[str, str | int | bool | None]]
+
         attrs = [
             (
                 "categories",
-                ibase.default_pprint(self.categories, max_seq_items=max_categories),
+                "[" + ", ".join(self._data._repr_categories()) + "]",
             ),
             ("ordered", self.ordered),
         ]
@@ -582,7 +576,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             # not all to_concat elements are among our categories (or NA)
             from pandas.core.dtypes.concat import concat_compat
 
-            res = concat_compat(to_concat)
+            res = concat_compat([x._values for x in to_concat])
             return Index(res, name=name)
         else:
             cat = self._data._from_backing_data(codes)

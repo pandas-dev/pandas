@@ -2348,7 +2348,7 @@ def convert_to_index_sliceable(obj: DataFrame, key):
     """
     idx = obj.index
     if isinstance(key, slice):
-        return idx._convert_slice_indexer(key, kind="getitem")
+        return idx._convert_slice_indexer(key, kind="getitem", is_frame=True)
 
     elif isinstance(key, str):
 
