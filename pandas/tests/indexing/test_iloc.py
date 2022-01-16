@@ -1386,8 +1386,10 @@ class TestILocSeries:
         tm.assert_series_equal(result, expected)
 
         # test slice is a view
-        result[:] = 0
-        assert (ser[1:3] == 0).all()
+        with tm.assert_produces_warning(None):
+            # GH#45324 make sure we aren't giving a spurious FutureWarning
+            result[:] = 0
+        assert (ser.iloc[1:3] == 0).all()
 
         # list of integers
         result = ser.iloc[[0, 2, 3, 4, 5]]

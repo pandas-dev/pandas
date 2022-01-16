@@ -657,7 +657,7 @@ def test_uint_index_does_not_convert_to_float64(box):
     )
     tm.assert_index_equal(result.index, expected)
 
-    tm.assert_equal(result, series[:3])
+    tm.assert_equal(result, series.iloc[:3])
 
 
 def test_float64_index_equals():

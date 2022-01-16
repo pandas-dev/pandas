@@ -247,9 +247,13 @@ def test_center(roll_func, kwargs, minp):
     result = getattr(obj.rolling(20, min_periods=minp, center=True), roll_func)(
         **kwargs
     )
-    expected = getattr(
-        concat([obj, Series([np.NaN] * 9)]).rolling(20, min_periods=minp), roll_func
-    )(**kwargs)[9:].reset_index(drop=True)
+    expected = (
+        getattr(
+            concat([obj, Series([np.NaN] * 9)]).rolling(20, min_periods=minp), roll_func
+        )(**kwargs)
+        .iloc[9:]
+        .reset_index(drop=True)
+    )
     tm.assert_series_equal(result, expected)
 
 
