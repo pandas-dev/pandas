@@ -898,7 +898,7 @@ cdef class _Timestamp(ABCTimestamp):
 
         return datetime(self.year, self.month, self.day,
                         self.hour, self.minute, self.second,
-                        self.microsecond, self.tzinfo)
+                        self.microsecond, self.tzinfo, fold=self.fold)
 
     cpdef to_datetime64(self):
         """
@@ -1295,6 +1295,27 @@ class Timestamp(_Timestamp):
             # GH#17690 tzinfo must be a datetime.tzinfo object, ensured
             #  by the cython annotation.
             if tz is not None:
+                if (is_integer_object(tz)
+                    and is_integer_object(ts_input)
+                    and is_integer_object(freq)
+                ):
+                    # GH#31929 e.g. Timestamp(2019, 3, 4, 5, 6, tzinfo=foo)
+                    # TODO(GH#45307): this will still be fragile to
+                    #  mixed-and-matched positional/keyword arguments
+                    ts_input = datetime(
+                        ts_input,
+                        freq,
+                        tz,
+                        unit or 0,
+                        year or 0,
+                        month or 0,
+                        day or 0,
+                        fold=fold or 0,
+                    )
+                    nanosecond = hour
+                    tz = tzinfo
+                    return cls(ts_input, nanosecond=nanosecond, tz=tz)
+
                 raise ValueError('Can provide at most one of tz, tzinfo')
 
             # User passed tzinfo instead of tz; avoid silently ignoring

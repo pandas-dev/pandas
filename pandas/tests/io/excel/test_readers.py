@@ -738,10 +738,9 @@ class TestReaders:
 
     def test_missing_file_raises(self, read_ext):
         bad_file = f"foo{read_ext}"
-        # CI tests with zh_CN.utf8, translates to "No such file or directory"
-        with pytest.raises(
-            FileNotFoundError, match=r"(No such file or directory|没有那个文件或目录)"
-        ):
+        # CI tests with other languages, translates to "No such file or directory"
+        match = r"(No such file or directory|没有那个文件或目录|File o directory non esistente)"
+        with pytest.raises(FileNotFoundError, match=match):
             pd.read_excel(bad_file)
 
     def test_corrupt_bytes_raises(self, read_ext, engine):
@@ -769,7 +768,7 @@ class TestReaders:
     @tm.network
     def test_read_from_http_url(self, read_ext):
         url = (
-            "https://raw.githubusercontent.com/pandas-dev/pandas/master/"
+            "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
             "pandas/tests/io/data/excel/test1" + read_ext
         )
         url_table = pd.read_excel(url)

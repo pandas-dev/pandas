@@ -728,7 +728,7 @@ def series_with_multilevel_index():
 
 
 _narrow_series = {
-    f"{dtype.__name__}-series": tm.makeFloatSeries(name="a").astype(dtype)
+    f"{dtype.__name__}-series": tm.make_rand_series(name="a", dtype=dtype)
     for dtype in tm.NARROW_NP_DTYPES
 }
 
@@ -1747,6 +1747,14 @@ def indexer_sl(request):
 def indexer_al(request):
     """
     Parametrize over at.__setitem__, loc.__setitem__
+    """
+    return request.param
+
+
+@pytest.fixture(params=[tm.iat, tm.iloc])
+def indexer_ial(request):
+    """
+    Parametrize over iat.__setitem__, iloc.__setitem__
     """
     return request.param
 
