@@ -379,6 +379,65 @@ instead (:issue:`26314`).
 
 .. ---------------------------------------------------------------------------
 
+.. _whatsnew_140.notable_bug_fixes.groupby_apply_mutation:
+
+groupby.apply consistent transform detection
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`.GroupBy.apply` is designed to be flexible, allowing users to perform
+aggregations, transformations, filters, and use it with user-defined functions
+that might not fall into any of these categories. As part of this, apply
+will attempt to detect when an operation is a transform, and in such a
+case, the result will have the same index as the input. In order to
+determine if the operation is a transform, pandas compares the
+input's index to the result's and determines if it has been mutated.
+Previously in pandas 1.3, different code paths used different definitions
+of "mutated": some would use Python's ``is`` whereas others would test
+only up to equality.
+
+This inconsistency has been removed, pandas now tests up to equality.
+
+.. ipython:: python
+
+    def func(x):
+        return x.copy()
+
+    df = pd.DataFrame({'a': [1, 2], 'b': [3, 4], 'c': [5, 6]})
+    df
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [3]: df.groupby(['a']).apply(func)
+    Out[3]:
+         a  b  c
+    a
+    1 0  1  3  5
+    2 1  2  4  6
+
+    In [4]: df.set_index(['a', 'b']).groupby(['a']).apply(func)
+    Out[4]:
+         c
+    a b
+    1 3  5
+    2 4  6
+
+In the examples above, the first uses a code path where pandas uses
+``is`` and determines that ``func`` is not a transform whereas the second
+tests up to equality and determines that ``func`` is a transform. In the
+first case, the result's index is not the same as the input's.
+
+*New behavior*:
+
+.. ipython:: python
+
+    df.groupby(['a']).apply(func)
+    df.set_index(['a', 'b']).groupby(['a']).apply(func)
+
+Now in both cases it is determined that ``func`` is a transform. In each case, the
+result has the same index as the input.
+
 .. _whatsnew_140.api_breaking:
 
 Backwards incompatible API changes
