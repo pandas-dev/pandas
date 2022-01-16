@@ -20,6 +20,7 @@ Styler
 ^^^^^^
 
   - New method :meth:`.Styler.to_string` for alternative customisable output methods (:issue:`44502`)
+  - Various bug fixes, see below.
 
 .. _whatsnew_150.enhancements.enhancement2:
 
@@ -206,7 +207,7 @@ ExtensionArray
 
 Styler
 ^^^^^^
--
+- Minor bug when attempting to apply styling functions to an empty DataFrame subset (:issue:`45313`)
 -
 
 Other
