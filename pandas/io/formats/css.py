@@ -4,6 +4,7 @@ Utilities for interpreting CSS from Stylers for formatting non-HTML outputs.
 from __future__ import annotations
 
 import re
+from typing import Callable
 import warnings
 
 
@@ -13,8 +14,36 @@ class CSSWarning(UserWarning):
     """
 
 
-def _side_expander(prop_fmt: str):
+def _side_expander(prop_fmt: str) -> Callable:
+    """
+    Wrapper to expand shorthand property into top, right, bottom, left properties
+
+    Parameters
+    ----------
+    side : str
+        The border side to expand into properties
+
+    Returns
+    -------
+        function: Return to call when a 'border(-{side}): {value}' string is encountered
+
+    Notes
+    -----
+        Description of [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Shorthand_properties) syntax
+    """
     def expand(self, prop, value: str):
+        """
+        Expand shorthand property into side-specific property (top, right, bottom, left)
+
+        Parameters
+        ----------
+            prop (str): CSS property name
+            value (str): String token for property
+
+        Yields
+        ------
+            Tuple (str, str): Expanded property, value
+        """
         tokens = value.split()
         try:
             mapping = self.SIDE_SHORTHANDS[len(tokens)]
@@ -27,11 +56,37 @@ def _side_expander(prop_fmt: str):
     return expand
 
 
-def _border_expander(side: str = ""):
+def _border_expander(side: str = "") -> Callable:
+    """
+    Wrapper to expand 'border' property into border color, style, and width properties
+
+    Parameters
+    ----------
+    side : str
+        The border side to expand into properties
+
+    Returns
+    -------
+        function: Return to call when a 'border(-{side}): {value}' string is encountered
+    """
     if side != "":
         side = f"-{side}"
 
-    def expand(self, prop, value: str):
+    def expand(self, prop, value: str) -> tuple[str, str]:
+        """
+        Expand border into color, style, and width tuples
+
+        Parameters
+        ----------
+            prop : str
+                CSS property name passed to styler
+            value : str
+                Value passed to styler for property
+
+        Yields
+        ------
+            Tuple (str, str): Expanded property, value
+        """
         tokens = value.split()
         if len(tokens) == 0 or len(tokens) > 3:
             warnings.warn(

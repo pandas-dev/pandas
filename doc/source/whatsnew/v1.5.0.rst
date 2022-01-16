@@ -20,6 +20,7 @@ Styler
 ^^^^^^
 
   - New method :meth:`.Styler.to_string` for alternative customisable output methods (:issue:`44502`)
+  - Added the ability to render `border` and `border-{side}` CSS properties in Excel (:issue:`42276`)
 
 .. _whatsnew_150.enhancements.enhancement2:
 
@@ -43,8 +44,10 @@ These are bug fixes that might have notable behavior changes.
 
 .. _whatsnew_150.notable_bug_fixes.notable_bug_fix1:
 
-notable_bug_fix1
-^^^^^^^^^^^^^^^^
+Styler
+^^^^^^
+
+- Fixed bug in :class:`CSSToExcelConverter` leading to ``TypeError`` when border color provided without border style for ``xlsxwriter`` engine (:issue:`42276`)
 
 .. _whatsnew_150.notable_bug_fixes.notable_bug_fix2:
 
