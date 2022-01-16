@@ -1,5 +1,7 @@
 import pytest
 
+from pandas.compat import pa_version_under3p0
+
 from pandas.core.dtypes.dtypes import PeriodDtype
 
 import pandas as pd
@@ -69,6 +71,9 @@ def test_arrow_array_missing():
     assert result.storage.equals(expected)
 
 
+@pytest.mark.xfail(
+    pa_version_under3p0, reason="pyarrow incorrectly uses pandas internals API"
+)
 def test_arrow_table_roundtrip():
     from pandas.core.arrays._arrow_utils import ArrowPeriodType
 
@@ -88,6 +93,9 @@ def test_arrow_table_roundtrip():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(
+    pa_version_under3p0, reason="pyarrow incorrectly uses pandas internals API"
+)
 def test_arrow_load_from_zero_chunks():
     # GH-41040
 
@@ -106,6 +114,9 @@ def test_arrow_load_from_zero_chunks():
     tm.assert_frame_equal(result, df)
 
 
+@pytest.mark.xfail(
+    pa_version_under3p0, reason="pyarrow incorrectly uses pandas internals API"
+)
 def test_arrow_table_roundtrip_without_metadata():
     arr = PeriodArray([1, 2, 3], freq="H")
     arr[1] = pd.NaT

@@ -82,7 +82,8 @@ def test_no_header_prefix(all_parsers):
 6,7,8,9,10
 11,12,13,14,15
 """
-    result = parser.read_csv(StringIO(data), prefix="Field", header=None)
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        result = parser.read_csv(StringIO(data), prefix="Field", header=None)
     expected = DataFrame(
         [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10], [11, 12, 13, 14, 15]],
         columns=["Field0", "Field1", "Field2", "Field3", "Field4"],
@@ -457,7 +458,11 @@ def test_no_header(all_parsers, kwargs, names):
     expected = DataFrame(
         [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10], [11, 12, 13, 14, 15]], columns=names
     )
-    result = parser.read_csv(StringIO(data), header=None, **kwargs)
+    if "prefix" in kwargs.keys():
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = parser.read_csv(StringIO(data), header=None, **kwargs)
+    else:
+        result = parser.read_csv(StringIO(data), header=None, **kwargs)
     tm.assert_frame_equal(result, expected)
 
 
@@ -552,26 +557,21 @@ def test_multi_index_unnamed(all_parsers, index_col, columns):
     else:
         data = ",".join([""] + (columns or ["", ""])) + "\n,0,1\n0,2,3\n1,4,5\n"
 
+    result = parser.read_csv(StringIO(data), header=header, index_col=index_col)
+    exp_columns = []
+
     if columns is None:
-        msg = (
-            r"Passed header=\[0,1\] are too "
-            r"many rows for this multi_index of columns"
-        )
-        with pytest.raises(ParserError, match=msg):
-            parser.read_csv(StringIO(data), header=header, index_col=index_col)
-    else:
-        result = parser.read_csv(StringIO(data), header=header, index_col=index_col)
-        exp_columns = []
+        columns = ["", "", ""]
 
-        for i, col in enumerate(columns):
-            if not col:  # Unnamed.
-                col = f"Unnamed: {i if index_col is None else i + 1}_level_0"
+    for i, col in enumerate(columns):
+        if not col:  # Unnamed.
+            col = f"Unnamed: {i if index_col is None else i + 1}_level_0"
 
-            exp_columns.append(col)
+        exp_columns.append(col)
 
-        columns = MultiIndex.from_tuples(zip(exp_columns, ["0", "1"]))
-        expected = DataFrame([[2, 3], [4, 5]], columns=columns)
-        tm.assert_frame_equal(result, expected)
+    columns = MultiIndex.from_tuples(zip(exp_columns, ["0", "1"]))
+    expected = DataFrame([[2, 3], [4, 5]], columns=columns)
+    tm.assert_frame_equal(result, expected)
 
 
 @skip_pyarrow

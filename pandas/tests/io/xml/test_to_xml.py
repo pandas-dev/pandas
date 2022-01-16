@@ -12,11 +12,13 @@ import pytest
 import pandas.util._test_decorators as td
 
 from pandas import (
+    NA,
     DataFrame,
     Index,
 )
 import pandas._testing as tm
 
+import pandas.io.common as icom
 from pandas.io.common import get_handle
 from pandas.io.xml import read_xml
 
@@ -1158,7 +1160,7 @@ def test_style_to_csv():
     </xsl:template>
 </xsl:stylesheet>"""
 
-    out_csv = geom_df.to_csv(line_terminator="\n")
+    out_csv = geom_df.to_csv(lineterminator="\n")
 
     if out_csv is not None:
         out_csv = out_csv.strip()
@@ -1273,15 +1275,14 @@ geom_xml = """\
 </data>"""
 
 
-@pytest.mark.parametrize("comp", ["bz2", "gzip", "xz", "zip"])
-def test_compression_output(parser, comp):
+def test_compression_output(parser, compression_only):
     with tm.ensure_clean() as path:
-        geom_df.to_xml(path, parser=parser, compression=comp)
+        geom_df.to_xml(path, parser=parser, compression=compression_only)
 
         with get_handle(
             path,
             "r",
-            compression=comp,
+            compression=compression_only,
         ) as handle_obj:
             output = handle_obj.handle.read()
 
@@ -1290,22 +1291,35 @@ def test_compression_output(parser, comp):
     assert geom_xml == output.strip()
 
 
-@pytest.mark.parametrize("comp", ["bz2", "gzip", "xz", "zip"])
-@pytest.mark.parametrize("compfile", ["xml.bz2", "xml.gz", "xml.xz", "xml.zip"])
-def test_filename_and_suffix_comp(parser, comp, compfile):
+def test_filename_and_suffix_comp(parser, compression_only):
+    compfile = "xml." + icom._compression_to_extension[compression_only]
     with tm.ensure_clean(filename=compfile) as path:
-        geom_df.to_xml(path, parser=parser, compression=comp)
+        geom_df.to_xml(path, parser=parser, compression=compression_only)
 
         with get_handle(
             path,
             "r",
-            compression=comp,
+            compression=compression_only,
         ) as handle_obj:
             output = handle_obj.handle.read()
 
     output = equalize_decl(output)
 
     assert geom_xml == output.strip()
+
+
+def test_ea_dtypes(any_numeric_ea_dtype, parser):
+    # GH#43903
+    expected = """<?xml version='1.0' encoding='utf-8'?>
+<data>
+  <row>
+    <index>0</index>
+    <a/>
+  </row>
+</data>"""
+    df = DataFrame({"a": [NA]}).astype(any_numeric_ea_dtype)
+    result = df.to_xml(parser=parser)
+    assert equalize_decl(result).strip() == expected
 
 
 def test_unsuported_compression(datapath, parser):

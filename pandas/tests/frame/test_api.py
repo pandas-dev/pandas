@@ -366,3 +366,8 @@ class TestDataFrameMisc:
         df = DataFrame()
         with tm.assert_produces_warning(None):
             inspect.getmembers(df)
+
+    def test_dataframe_iteritems_deprecated(self):
+        df = DataFrame([1])
+        with tm.assert_produces_warning(FutureWarning):
+            next(df.iteritems())

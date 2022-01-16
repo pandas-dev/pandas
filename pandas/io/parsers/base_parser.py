@@ -7,13 +7,14 @@ import datetime
 from enum import Enum
 import itertools
 from typing import (
-    Any,
     Callable,
     DefaultDict,
     Hashable,
     Iterable,
+    List,
     Mapping,
     Sequence,
+    Tuple,
     cast,
     final,
     overload,
@@ -30,8 +31,6 @@ from pandas._libs.tslibs import parsing
 from pandas._typing import (
     ArrayLike,
     DtypeArg,
-    FilePath,
-    ReadCsvBuffer,
 )
 from pandas.errors import (
     ParserError,
@@ -39,10 +38,9 @@ from pandas.errors import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.cast import astype_nansafe
+from pandas.core.dtypes.astype import astype_nansafe
 from pandas.core.dtypes.common import (
     ensure_object,
-    ensure_str,
     is_bool_dtype,
     is_categorical_dtype,
     is_dict_like,
@@ -70,57 +68,7 @@ from pandas.core.indexes.api import (
 from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
 
-from pandas.io.common import (
-    IOHandles,
-    get_handle,
-)
 from pandas.io.date_converters import generic_parser
-
-parser_defaults = {
-    "delimiter": None,
-    "escapechar": None,
-    "quotechar": '"',
-    "quoting": csv.QUOTE_MINIMAL,
-    "doublequote": True,
-    "skipinitialspace": False,
-    "lineterminator": None,
-    "header": "infer",
-    "index_col": None,
-    "names": None,
-    "prefix": None,
-    "skiprows": None,
-    "skipfooter": 0,
-    "nrows": None,
-    "na_values": None,
-    "keep_default_na": True,
-    "true_values": None,
-    "false_values": None,
-    "converters": None,
-    "dtype": None,
-    "cache_dates": True,
-    "thousands": None,
-    "comment": None,
-    "decimal": ".",
-    # 'engine': 'c',
-    "parse_dates": False,
-    "keep_date_col": False,
-    "dayfirst": False,
-    "date_parser": None,
-    "usecols": None,
-    # 'iterator': False,
-    "chunksize": None,
-    "verbose": False,
-    "encoding": None,
-    "squeeze": None,
-    "compression": None,
-    "mangle_dupe_cols": True,
-    "infer_datetime_format": False,
-    "skip_blank_lines": True,
-    "encoding_errors": "strict",
-    "on_bad_lines": "error",
-    "error_bad_lines": None,
-    "warn_bad_lines": None,
-}
 
 
 class ParserBase:
@@ -221,29 +169,9 @@ class ParserBase:
 
         self.usecols, self.usecols_dtype = self._validate_usecols_arg(kwds["usecols"])
 
-        self.handles: IOHandles[str] | None = None
-
         # Fallback to error to pass a sketchy test(test_override_set_noconvert_columns)
         # Normally, this arg would get pre-processed earlier on
         self.on_bad_lines = kwds.get("on_bad_lines", self.BadLineHandleMethod.ERROR)
-
-    def _open_handles(
-        self,
-        src: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
-        kwds: dict[str, Any],
-    ) -> None:
-        """
-        Let the readers open IOHandles after they are done with their potential raises.
-        """
-        self.handles = get_handle(
-            src,
-            "r",
-            encoding=kwds.get("encoding", None),
-            compression=kwds.get("compression", None),
-            memory_map=kwds.get("memory_map", False),
-            storage_options=kwds.get("storage_options", None),
-            errors=kwds.get("encoding_errors", "strict"),
-        )
 
     def _validate_parse_dates_presence(self, columns: Sequence[Hashable]) -> Iterable:
         """
@@ -307,8 +235,7 @@ class ParserBase:
         ]
 
     def close(self):
-        if self.handles is not None:
-            self.handles.close()
+        pass
 
     @final
     @property
@@ -391,22 +318,16 @@ class ParserBase:
             return tuple(r[i] for i in range(field_count) if i not in sic)
 
         columns = list(zip(*(extract(r) for r in header)))
-        names = ic + columns
-
-        # If we find unnamed columns all in a single
-        # level, then our header was too long.
-        for n in range(len(columns[0])):
-            if all(ensure_str(col[n]) in self.unnamed_cols for col in columns):
-                header = ",".join([str(x) for x in self.header])
-                raise ParserError(
-                    f"Passed header=[{header}] are too many rows "
-                    "for this multi_index of columns"
-                )
+        names = columns.copy()
+        for single_ic in sorted(ic):
+            names.insert(single_ic, single_ic)
 
         # Clean the column names (if we have an index_col).
         if len(ic):
             col_names = [
-                r[0] if ((r[0] is not None) and r[0] not in self.unnamed_cols) else None
+                r[ic[0]]
+                if ((r[ic[0]] is not None) and r[ic[0]] not in self.unnamed_cols)
+                else None
                 for r in header
             ]
         else:
@@ -448,10 +369,15 @@ class ParserBase:
         return names
 
     @final
-    def _maybe_make_multi_index_columns(self, columns, col_names=None):
+    def _maybe_make_multi_index_columns(
+        self,
+        columns: Sequence[Hashable],
+        col_names: Sequence[Hashable] | None = None,
+    ) -> Sequence[Hashable] | MultiIndex:
         # possibly create a column mi here
         if _is_potential_multi_index(columns):
-            columns = MultiIndex.from_tuples(columns, names=col_names)
+            list_columns = cast(List[Tuple], columns)
+            return MultiIndex.from_tuples(list_columns, names=col_names)
         return columns
 
     @final
@@ -930,7 +856,25 @@ class ParserBase:
                 stacklevel=find_stack_level(),
             )
 
-    def _evaluate_usecols(self, usecols, names):
+    @overload
+    def _evaluate_usecols(
+        self,
+        usecols: set[int] | Callable[[Hashable], object],
+        names: Sequence[Hashable],
+    ) -> set[int]:
+        ...
+
+    @overload
+    def _evaluate_usecols(
+        self, usecols: set[str], names: Sequence[Hashable]
+    ) -> set[str]:
+        ...
+
+    def _evaluate_usecols(
+        self,
+        usecols: Callable[[Hashable], object] | set[str] | set[int],
+        names: Sequence[Hashable],
+    ) -> set[str] | set[int]:
         """
         Check whether or not the 'usecols' parameter
         is a callable.  If so, enumerates the 'names'
@@ -1160,6 +1104,53 @@ def _make_date_converter(
     return converter
 
 
+parser_defaults = {
+    "delimiter": None,
+    "escapechar": None,
+    "quotechar": '"',
+    "quoting": csv.QUOTE_MINIMAL,
+    "doublequote": True,
+    "skipinitialspace": False,
+    "lineterminator": None,
+    "header": "infer",
+    "index_col": None,
+    "names": None,
+    "prefix": None,
+    "skiprows": None,
+    "skipfooter": 0,
+    "nrows": None,
+    "na_values": None,
+    "keep_default_na": True,
+    "true_values": None,
+    "false_values": None,
+    "converters": None,
+    "dtype": None,
+    "cache_dates": True,
+    "thousands": None,
+    "comment": None,
+    "decimal": ".",
+    # 'engine': 'c',
+    "parse_dates": False,
+    "keep_date_col": False,
+    "dayfirst": False,
+    "date_parser": None,
+    "usecols": None,
+    # 'iterator': False,
+    "chunksize": None,
+    "verbose": False,
+    "encoding": None,
+    "squeeze": None,
+    "compression": None,
+    "mangle_dupe_cols": True,
+    "infer_datetime_format": False,
+    "skip_blank_lines": True,
+    "encoding_errors": "strict",
+    "on_bad_lines": ParserBase.BadLineHandleMethod.ERROR,
+    "error_bad_lines": None,
+    "warn_bad_lines": None,
+}
+
+
 def _process_date_conversion(
     data_dict,
     converter: Callable,
@@ -1296,7 +1287,8 @@ def _get_na_values(col, na_values, na_fvalues, keep_default_na):
 
 
 def _is_potential_multi_index(
-    columns, index_col: bool | Sequence[int] | None = None
+    columns: Sequence[Hashable] | MultiIndex,
+    index_col: bool | Sequence[int] | None = None,
 ) -> bool:
     """
     Check whether or not the `columns` parameter

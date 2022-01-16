@@ -28,7 +28,7 @@ RUN mkdir "$pandas_home" \
     && git clone "https://github.com/$gh_username/pandas.git" "$pandas_home" \
     && cd "$pandas_home" \
     && git remote add upstream "https://github.com/pandas-dev/pandas.git" \
-    && git pull upstream master
+    && git pull upstream main
 
 # Because it is surprisingly difficult to activate a conda environment inside a DockerFile
 # (from personal experience and per https://github.com/ContinuumIO/docker-images/issues/89),

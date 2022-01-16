@@ -188,12 +188,12 @@ def test_select_dtypes(setup_path):
         _maybe_remove(store, "df")
         store.append("df", df, data_columns=True)
 
-        expected = df[df.boolv == True].reindex(columns=["A", "boolv"])  # noqa
+        expected = df[df.boolv == True].reindex(columns=["A", "boolv"])  # noqa:E712
         for v in [True, "true", 1]:
             result = store.select("df", f"boolv == {v}", columns=["A", "boolv"])
             tm.assert_frame_equal(expected, result)
 
-        expected = df[df.boolv == False].reindex(columns=["A", "boolv"])  # noqa
+        expected = df[df.boolv == False].reindex(columns=["A", "boolv"])  # noqa:E712
         for v in [False, "false", 0]:
             result = store.select("df", f"boolv == {v}", columns=["A", "boolv"])
             tm.assert_frame_equal(expected, result)

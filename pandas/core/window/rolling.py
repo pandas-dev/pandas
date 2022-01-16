@@ -354,9 +354,7 @@ class BaseWindow(SelectionMixin):
         if inf.any():
             values = np.where(inf, np.nan, values)
 
-        # error: Incompatible return value type (got "Optional[ndarray]",
-        # expected "ndarray")
-        return values  # type: ignore[return-value]
+        return values
 
     def _insert_on_column(self, result: DataFrame, obj: DataFrame) -> None:
         # if we have an 'on' column we want to put it back into
@@ -747,8 +745,11 @@ class BaseWindowGroupby(BaseWindow):
         target = self._create_data(target)
         result = super()._apply_pairwise(target, other, pairwise, func)
         # 1) Determine the levels + codes of the groupby levels
-        if other is not None:
-            # When we have other, we must reindex (expand) the result
+        if other is not None and not all(
+            len(group) == len(other) for group in self._grouper.indices.values()
+        ):
+            # GH 42915
+            # len(other) != len(any group), so must reindex (expand) the result
             # from flex_binary_moment to a "transform"-like result
             # per groupby combination
             old_result_len = len(result)
@@ -770,10 +771,9 @@ class BaseWindowGroupby(BaseWindow):
                 codes, levels = factorize(labels)
                 groupby_codes.append(codes)
                 groupby_levels.append(levels)
-
         else:
-            # When we evaluate the pairwise=True result, repeat the groupby
-            # labels by the number of columns in the original object
+            # pairwise=True or len(other) == len(each group), so repeat
+            # the groupby labels by the number of columns in the original object
             groupby_codes = self._grouper.codes
             # error: Incompatible types in assignment (expression has type
             # "List[Index]", variable has type "List[Union[ndarray, Index]]")
@@ -1125,7 +1125,10 @@ class Window(BaseWindow):
         -------
         y : type of input
         """
-        window = self._scipy_weight_generator(self.window, **kwargs)
+        # "None" not callable  [misc]
+        window = self._scipy_weight_generator(  # type: ignore[misc]
+            self.window, **kwargs
+        )
         offset = (len(window) - 1) // 2 if self.center else 0
 
         def homogeneous_func(values: np.ndarray):
@@ -1380,15 +1383,18 @@ class RollingAndExpandingMixin(BaseWindow):
         if maybe_use_numba(engine):
             if self.method == "table":
                 func = generate_manual_numpy_nan_agg_with_axis(np.nanmax)
+                return self.apply(
+                    func,
+                    raw=True,
+                    engine=engine,
+                    engine_kwargs=engine_kwargs,
+                )
             else:
-                func = np.nanmax
+                from pandas.core._numba.kernels import sliding_min_max
 
-            return self.apply(
-                func,
-                raw=True,
-                engine=engine,
-                engine_kwargs=engine_kwargs,
-            )
+                return self._numba_apply(
+                    sliding_min_max, "rolling_max", engine_kwargs, True
+                )
         window_func = window_aggregations.roll_max
         return self._apply(window_func, name="max", **kwargs)
 
@@ -1403,15 +1409,18 @@ class RollingAndExpandingMixin(BaseWindow):
         if maybe_use_numba(engine):
             if self.method == "table":
                 func = generate_manual_numpy_nan_agg_with_axis(np.nanmin)
+                return self.apply(
+                    func,
+                    raw=True,
+                    engine=engine,
+                    engine_kwargs=engine_kwargs,
+                )
             else:
-                func = np.nanmin
+                from pandas.core._numba.kernels import sliding_min_max
 
-            return self.apply(
-                func,
-                raw=True,
-                engine=engine,
-                engine_kwargs=engine_kwargs,
-            )
+                return self._numba_apply(
+                    sliding_min_max, "rolling_min", engine_kwargs, False
+                )
         window_func = window_aggregations.roll_min
         return self._apply(window_func, name="min", **kwargs)
 
@@ -2624,8 +2633,9 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
     def _validate_monotonic(self):
         """
         Validate that on is monotonic;
-        in this case we have to check only for nans, because
-        monotonicity was already validated at a higher level.
         """
-        if self._on.hasnans:
+        if (
+            not (self._on.is_monotonic_increasing or self._on.is_monotonic_decreasing)
+            or self._on.hasnans
+        ):
             self._raise_monotonic_error()

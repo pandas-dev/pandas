@@ -175,29 +175,32 @@ class TestDataFrameFormatting:
         repr(df)
         tm.reset_display_options()
 
-    def test_show_null_counts(self):
+    @pytest.mark.parametrize(
+        "row, columns, show_counts, result",
+        [
+            [20, 20, None, True],
+            [20, 20, True, True],
+            [20, 20, False, False],
+            [5, 5, None, False],
+            [5, 5, True, False],
+            [5, 5, False, False],
+        ],
+    )
+    def test_show_counts(self, row, columns, show_counts, result):
 
         df = DataFrame(1, columns=range(10), index=range(10))
         df.iloc[1, 1] = np.nan
 
-        def check(show_counts, result):
-            buf = StringIO()
-            df.info(buf=buf, show_counts=show_counts)
-            assert ("non-null" in buf.getvalue()) is result
-
         with option_context(
-            "display.max_info_rows", 20, "display.max_info_columns", 20
+            "display.max_info_rows", row, "display.max_info_columns", columns
         ):
-            check(None, True)
-            check(True, True)
-            check(False, False)
+            with StringIO() as buf:
+                df.info(buf=buf, show_counts=show_counts)
+                assert ("non-null" in buf.getvalue()) is result
 
-        with option_context("display.max_info_rows", 5, "display.max_info_columns", 5):
-            check(None, False)
-            check(True, False)
-            check(False, False)
-
+    def test_show_null_counts_deprecation(self):
         # GH37999
+        df = DataFrame(1, columns=range(10), index=range(10))
         with tm.assert_produces_warning(
             FutureWarning, match="null_counts is deprecated.+"
         ):
@@ -2427,7 +2430,7 @@ class TestSeriesFormatting:
 
         # nat in index
         s2 = Series(2, index=[Timestamp("20130111"), NaT])
-        s = s2.append(s)
+        s = pd.concat([s2, s])
         result = s.to_string()
         assert "NaT" in result
 
@@ -2870,6 +2873,25 @@ class TestFloatArrayFormatter:
             s = Series([840.0, 4200.0])
             expected_output = "0     840\n1    4200\ndtype: float64"
             assert str(s) == expected_output
+
+    @pytest.mark.parametrize(
+        "value,expected",
+        [
+            ([9.4444], "   0\n0  9"),
+            ([0.49], "       0\n0  5e-01"),
+            ([10.9999], "    0\n0  11"),
+            ([9.5444, 9.6], "    0\n0  10\n1  10"),
+            ([0.46, 0.78, -9.9999], "       0\n0  5e-01\n1  8e-01\n2 -1e+01"),
+        ],
+    )
+    def test_set_option_precision(self, value, expected):
+        # Issue #30122
+        # Precision was incorrectly shown
+
+        with option_context("display.precision", 0):
+
+            df_value = DataFrame(value)
+            assert str(df_value) == expected
 
     def test_output_significant_digits(self):
         # Issue #9764

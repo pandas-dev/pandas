@@ -5,6 +5,7 @@ from typing import (
     TYPE_CHECKING,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -12,11 +13,10 @@ from pandas._typing import (
     ArrayLike,
     DtypeObj,
 )
+from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.cast import (
-    astype_array,
-    find_common_type,
-)
+from pandas.core.dtypes.astype import astype_array
+from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_dtype_equal,
@@ -30,6 +30,7 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
+    from pandas import Categorical
     from pandas.core.arrays.sparse import SparseArray
 
 
@@ -40,17 +41,14 @@ def cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
     """
     if is_dtype_equal(arr.dtype, dtype):
         return arr
-    if (
-        is_categorical_dtype(arr.dtype)
-        and isinstance(dtype, np.dtype)
-        and np.issubdtype(dtype, np.integer)
-    ):
-        # problem case: categorical of int -> gives int as result dtype,
-        # but categorical can contain NAs -> fall back to object dtype
-        try:
-            return arr.astype(dtype, copy=False)
-        except ValueError:
-            return arr.astype(object, copy=False)
+
+    if isinstance(dtype, np.dtype) and dtype.kind in ["i", "u"]:
+
+        if is_categorical_dtype(arr.dtype) and cast("Categorical", arr)._hasnans:
+            # problem case: categorical of int -> gives int as result dtype,
+            # but categorical can contain NAs -> float64 instead
+            # GH#45359
+            dtype = np.dtype(np.float64)
 
     if is_sparse(arr) and not is_sparse(dtype):
         # problem case: SparseArray.astype(dtype) doesn't follow the specified
@@ -144,8 +142,20 @@ def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):
             else:
                 # coerce to object
                 to_concat = [x.astype("object") for x in to_concat]
+                kinds = {"o"}
 
-    return np.concatenate(to_concat, axis=axis)
+    result = np.concatenate(to_concat, axis=axis)
+    if "b" in kinds and result.dtype.kind in ["i", "u", "f"]:
+        # GH#39817
+        warnings.warn(
+            "Behavior when concatenating bool-dtype and numeric-dtype arrays is "
+            "deprecated; in a future version these will cast to object dtype "
+            "(instead of coercing bools to numeric values). To retain the old "
+            "behavior, explicitly cast bool-dtype arrays to numeric dtype.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+    return result
 
 
 def union_categoricals(

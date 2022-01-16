@@ -353,7 +353,12 @@ def array(
         elif inferred_dtype == "integer":
             return IntegerArray._from_sequence(data, copy=copy)
 
-        elif inferred_dtype in ("floating", "mixed-integer-float"):
+        elif (
+            inferred_dtype in ("floating", "mixed-integer-float")
+            and getattr(data, "dtype", None) != np.float16
+        ):
+            # GH#44715 Exclude np.float16 bc FloatingArray does not support it;
+            #  we will fall back to PandasArray.
             return FloatingArray._from_sequence(data, copy=copy)
 
         elif inferred_dtype == "boolean":
@@ -383,10 +388,9 @@ def extract_array(
     ----------
     obj : object
         For Series / Index, the underlying ExtensionArray is unboxed.
-        For Numpy-backed ExtensionArrays, the ndarray is extracted.
 
     extract_numpy : bool, default False
-        Whether to extract the ndarray from a PandasArray
+        Whether to extract the ndarray from a PandasArray.
 
     extract_range : bool, default False
         If we have a RangeIndex, return range._values if True
@@ -523,12 +527,23 @@ def sanitize_array(
 
     # GH#846
     if isinstance(data, np.ndarray):
+        if isinstance(data, np.matrix):
+            data = data.A
 
         if dtype is not None and is_float_dtype(data.dtype) and is_integer_dtype(dtype):
             # possibility of nan -> garbage
             try:
                 subarr = _try_cast(data, dtype, copy, True)
             except IntCastingNaNError:
+                warnings.warn(
+                    "In a future version, passing float-dtype values containing NaN "
+                    "and an integer dtype will raise IntCastingNaNError "
+                    "(subclass of ValueError) instead of silently ignoring the "
+                    "passed dtype. To retain the old behavior, call Series(arr) or "
+                    "DataFrame(arr) without passing a dtype.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
                 subarr = np.array(data, copy=copy)
             except ValueError:
                 if not raise_cast_failure:
@@ -573,7 +588,23 @@ def sanitize_array(
             data = list(data)
 
         if dtype is not None or len(data) == 0:
-            subarr = _try_cast(data, dtype, copy, raise_cast_failure)
+            try:
+                subarr = _try_cast(data, dtype, copy, raise_cast_failure)
+            except ValueError:
+                casted = np.array(data, copy=False)
+                if casted.dtype.kind == "f" and is_integer_dtype(dtype):
+                    # GH#40110 match the behavior we have if we passed
+                    #  a ndarray[float] to begin with
+                    return sanitize_array(
+                        casted,
+                        index,
+                        dtype,
+                        copy=False,
+                        raise_cast_failure=raise_cast_failure,
+                        allow_2d=allow_2d,
+                    )
+                else:
+                    raise
         else:
             subarr = maybe_convert_platform(data)
             if subarr.dtype == object:

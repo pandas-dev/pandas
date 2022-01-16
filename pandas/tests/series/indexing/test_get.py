@@ -158,8 +158,7 @@ def test_get_with_default():
     "arr",
     [np.random.randn(10), tm.makeDateIndex(10, name="a").tz_localize(tz="US/Eastern")],
 )
-def test_get2(arr):
-    # TODO: better name, possibly split
+def test_get_with_ea(arr):
     # GH#21260
     ser = Series(arr, index=[2 * i for i in range(len(arr))])
     assert ser.get(4) == ser.iloc[2]
@@ -168,7 +167,8 @@ def test_get2(arr):
     expected = ser.iloc[[2, 3]]
     tm.assert_series_equal(result, expected)
 
-    result = ser.get(slice(2))
+    with tm.assert_produces_warning(FutureWarning, match="label-based"):
+        result = ser.get(slice(2))
     expected = ser.iloc[[0, 1]]
     tm.assert_series_equal(result, expected)
 

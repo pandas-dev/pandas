@@ -39,13 +39,13 @@ from pandas import (
     IndexSlice,
     RangeIndex,
 )
-from pandas.core import generic
 import pandas.core.common as com
 from pandas.core.frame import (
     DataFrame,
     Series,
 )
 from pandas.core.generic import NDFrame
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.formats.format import save_to_buffer
 
@@ -85,18 +85,17 @@ def _mpl(func: Callable):
 ####
 # Shared Doc Strings
 
-subset = """
-        subset : label, array-like, IndexSlice, optional
+subset = """subset : label, array-like, IndexSlice, optional
             A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
-            prioritised, to limit ``data`` to *before* applying the function.
-"""
+            prioritised, to limit ``data`` to *before* applying the function."""
 
-props = """
-        props : str, default None
-            CSS properties to use for highlighting. If ``props`` is given, ``color``
-            is not used.
-"""
+props = """props : str, default None
+           CSS properties to use for highlighting. If ``props`` is given, ``color``
+           is not used."""
+
+color = """color : str, default 'yellow'
+           Background color to use for highlighting."""
 
 #
 ###
@@ -442,7 +441,7 @@ class Styler(StylerRenderer):
     @doc(
         NDFrame.to_excel,
         klass="Styler",
-        storage_options=generic._shared_docs["storage_options"],
+        storage_options=_shared_docs["storage_options"],
     )
     def to_excel(
         self,
@@ -494,6 +493,7 @@ class Styler(StylerRenderer):
         position: str | None = None,
         position_float: str | None = None,
         hrules: bool | None = None,
+        clines: str | None = None,
         label: str | None = None,
         caption: str | tuple | None = None,
         sparse_index: bool | None = None,
@@ -542,6 +542,22 @@ class Styler(StylerRenderer):
             Defaults to ``pandas.options.styler.latex.hrules``, which is `False`.
 
             .. versionchanged:: 1.4.0
+        clines : str, optional
+            Use to control adding \\cline commands for the index labels separation.
+            Possible values are:
+
+              - `None`: no cline commands are added (default).
+              - `"all;data"`: a cline is added for every index value extending the
+                width of the table, including data entries.
+              - `"all;index"`: as above with lines extending only the width of the
+                index entries.
+              - `"skip-last;data"`: a cline is added for each index value except the
+                last level (which is never sparsified), extending the widtn of the
+                table.
+              - `"skip-last;index"`: as above with lines extending only the width of the
+                index entries.
+
+            .. versionadded:: 1.4.0
         label : str, optional
             The LaTeX label included as: \\label{<label>}.
             This is used with \\ref{<label>} in the main .tex file.
@@ -623,6 +639,7 @@ class Styler(StylerRenderer):
                               | \\sisetup{detect-all = true}  *(within {document})*
         environment           \\usepackage{longtable} if arg is "longtable"
                               | or any other relevant environment package
+        hyperlinks            \\usepackage{hyperref}
         ===================== ==========================================================
 
         **Cell Styles**
@@ -753,8 +770,8 @@ class Styler(StylerRenderer):
         **Formatting**
 
         To format values :meth:`Styler.format` should be used prior to calling
-        `Styler.to_latex`, as well as other methods such as :meth:`Styler.hide_index`
-        or :meth:`Styler.hide_columns`, for example:
+        `Styler.to_latex`, as well as other methods such as :meth:`Styler.hide`
+        for example:
 
         >>> s.clear()
         >>> s.table_styles = []
@@ -817,6 +834,124 @@ class Styler(StylerRenderer):
         {} & {0} \\
         0 & {\bfseries}{\Huge{1}} \\
         \end{tabular}
+
+        Examples
+        --------
+        Below we give a complete step by step example adding some advanced features
+        and noting some common gotchas.
+
+        First we create the DataFrame and Styler as usual, including MultiIndex rows
+        and columns, which allow for more advanced formatting options:
+
+        >>> cidx = pd.MultiIndex.from_arrays([
+        ...     ["Equity", "Equity", "Equity", "Equity",
+        ...      "Stats", "Stats", "Stats", "Stats", "Rating"],
+        ...     ["Energy", "Energy", "Consumer", "Consumer", "", "", "", "", ""],
+        ...     ["BP", "Shell", "H&M", "Unilever",
+        ...      "Std Dev", "Variance", "52w High", "52w Low", ""]
+        ... ])
+        >>> iidx = pd.MultiIndex.from_arrays([
+        ...     ["Equity", "Equity", "Equity", "Equity"],
+        ...     ["Energy", "Energy", "Consumer", "Consumer"],
+        ...     ["BP", "Shell", "H&M", "Unilever"]
+        ... ])
+        >>> styler = pd.DataFrame([
+        ...     [1, 0.8, 0.66, 0.72, 32.1678, 32.1678**2, 335.12, 240.89, "Buy"],
+        ...     [0.8, 1.0, 0.69, 0.79, 1.876, 1.876**2, 14.12, 19.78, "Hold"],
+        ...     [0.66, 0.69, 1.0, 0.86, 7, 7**2, 210.9, 140.6, "Buy"],
+        ...     [0.72, 0.79, 0.86, 1.0, 213.76, 213.76**2, 2807, 3678, "Sell"],
+        ... ], columns=cidx, index=iidx).style
+
+        Second we will format the display and, since our table is quite wide, will
+        hide the repeated level-0 of the index:
+
+        >>> styler.format(subset="Equity", precision=2)
+        ...       .format(subset="Stats", precision=1, thousands=",")
+        ...       .format(subset="Rating", formatter=str.upper)
+        ...       .format_index(escape="latex", axis=1)
+        ...       .format_index(escape="latex", axis=0)
+        ...       .hide(level=0, axis=0)  # doctest: +SKIP
+
+        Note that one of the string entries of the index and column headers is "H&M".
+        Without applying the `escape="latex"` option to the `format_index` method the
+        resultant LaTeX will fail to render, and the error returned is quite
+        difficult to debug. Using the appropriate escape the "&" is converted to "\\&".
+
+        Thirdly we will apply some (CSS-HTML) styles to our object. We will use a
+        builtin method and also define our own method to highlight the stock
+        recommendation:
+
+        >>> def rating_color(v):
+        ...     if v == "Buy": color = "#33ff85"
+        ...     elif v == "Sell": color = "#ff5933"
+        ...     else: color = "#ffdd33"
+        ...     return f"color: {color}; font-weight: bold;"
+        >>> styler.background_gradient(cmap="inferno", subset="Equity", vmin=0, vmax=1)
+        ...       .applymap(rating_color, subset="Rating")  # doctest: +SKIP
+
+        All the above styles will work with HTML (see below) and LaTeX upon conversion:
+
+        .. figure:: ../../_static/style/latex_stocks_html.png
+
+        However, we finally want to add one LaTeX only style
+        (from the {graphicx} package), that is not easy to convert from CSS and
+        pandas does not support it. Notice the `--latex` flag used here,
+        as well as `--rwrap` to ensure this is formatted correctly and
+        not ignored upon conversion.
+
+        >>> styler.applymap_index(
+        ...     lambda v: "rotatebox:{45}--rwrap--latex;", level=2, axis=1
+        ... )  # doctest: +SKIP
+
+        Finally we render our LaTeX adding in other options as required:
+
+        >>> styler.to_latex(
+        ...     caption="Selected stock correlation and simple statistics.",
+        ...     clines="skip-last;data",
+        ...     convert_css=True,
+        ...     position_float="centering",
+        ...     multicol_align="|c|",
+        ...     hrules=True,
+        ... )  # doctest: +SKIP
+        \begin{table}
+        \centering
+        \caption{Selected stock correlation and simple statistics.}
+        \begin{tabular}{llrrrrrrrrl}
+        \toprule
+         &  & \multicolumn{4}{|c|}{Equity} & \multicolumn{4}{|c|}{Stats} & Rating \\
+         &  & \multicolumn{2}{|c|}{Energy} & \multicolumn{2}{|c|}{Consumer} &
+        \multicolumn{4}{|c|}{} &  \\
+         &  & \rotatebox{45}{BP} & \rotatebox{45}{Shell} & \rotatebox{45}{H\&M} &
+        \rotatebox{45}{Unilever} & \rotatebox{45}{Std Dev} & \rotatebox{45}{Variance} &
+        \rotatebox{45}{52w High} & \rotatebox{45}{52w Low} & \rotatebox{45}{} \\
+        \midrule
+        \multirow[c]{2}{*}{Energy} & BP & {\cellcolor[HTML]{FCFFA4}}
+        \color[HTML]{000000} 1.00 & {\cellcolor[HTML]{FCA50A}} \color[HTML]{000000}
+        0.80 & {\cellcolor[HTML]{EB6628}} \color[HTML]{F1F1F1} 0.66 &
+        {\cellcolor[HTML]{F68013}} \color[HTML]{F1F1F1} 0.72 & 32.2 & 1,034.8 & 335.1
+        & 240.9 & \color[HTML]{33FF85} \bfseries BUY \\
+         & Shell & {\cellcolor[HTML]{FCA50A}} \color[HTML]{000000} 0.80 &
+        {\cellcolor[HTML]{FCFFA4}} \color[HTML]{000000} 1.00 &
+        {\cellcolor[HTML]{F1731D}} \color[HTML]{F1F1F1} 0.69 &
+        {\cellcolor[HTML]{FCA108}} \color[HTML]{000000} 0.79 & 1.9 & 3.5 & 14.1 &
+        19.8 & \color[HTML]{FFDD33} \bfseries HOLD \\
+        \cline{1-11}
+        \multirow[c]{2}{*}{Consumer} & H\&M & {\cellcolor[HTML]{EB6628}}
+        \color[HTML]{F1F1F1} 0.66 & {\cellcolor[HTML]{F1731D}} \color[HTML]{F1F1F1}
+        0.69 & {\cellcolor[HTML]{FCFFA4}} \color[HTML]{000000} 1.00 &
+        {\cellcolor[HTML]{FAC42A}} \color[HTML]{000000} 0.86 & 7.0 & 49.0 & 210.9 &
+        140.6 & \color[HTML]{33FF85} \bfseries BUY \\
+         & Unilever & {\cellcolor[HTML]{F68013}} \color[HTML]{F1F1F1} 0.72 &
+        {\cellcolor[HTML]{FCA108}} \color[HTML]{000000} 0.79 &
+        {\cellcolor[HTML]{FAC42A}} \color[HTML]{000000} 0.86 &
+        {\cellcolor[HTML]{FCFFA4}} \color[HTML]{000000} 1.00 & 213.8 & 45,693.3 &
+        2,807.0 & 3,678.0 & \color[HTML]{FF5933} \bfseries SELL \\
+        \cline{1-11}
+        \bottomrule
+        \end{tabular}
+        \end{table}
+
+        .. figure:: ../../_static/style/latex_stocks.png
         """
         obj = self._copy(deepcopy=True)  # manipulate table_styles on obj, not self
 
@@ -910,6 +1045,7 @@ class Styler(StylerRenderer):
             environment=environment,
             convert_css=convert_css,
             siunitx=siunitx,
+            clines=clines,
         )
 
         encoding = encoding or get_option("styler.render.encoding")
@@ -1053,6 +1189,73 @@ class Styler(StylerRenderer):
             html, buf=buf, encoding=(encoding if buf is not None else None)
         )
 
+    def to_string(
+        self,
+        buf=None,
+        *,
+        encoding=None,
+        sparse_index: bool | None = None,
+        sparse_columns: bool | None = None,
+        max_rows: int | None = None,
+        max_columns: int | None = None,
+        delimiter: str = " ",
+    ):
+        """
+        Write Styler to a file, buffer or string in text format.
+
+        .. versionadded:: 1.5.0
+
+        Parameters
+        ----------
+        buf : str, Path, or StringIO-like, optional, default None
+            Buffer to write to. If ``None``, the output is returned as a string.
+        encoding : str, optional
+            Character encoding setting for file output.
+            Defaults to ``pandas.options.styler.render.encoding`` value of "utf-8".
+        sparse_index : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each row.
+            Defaults to ``pandas.options.styler.sparse.index`` value.
+        sparse_columns : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each
+            column. Defaults to ``pandas.options.styler.sparse.columns`` value.
+        max_rows : int, optional
+            The maximum number of rows that will be rendered. Defaults to
+            ``pandas.options.styler.render.max_rows``, which is None.
+        max_columns : int, optional
+            The maximum number of columns that will be rendered. Defaults to
+            ``pandas.options.styler.render.max_columns``, which is None.
+
+            Rows and columns may be reduced if the number of total elements is
+            large. This value is set to ``pandas.options.styler.render.max_elements``,
+            which is 262144 (18 bit browser rendering).
+        delimiter : str, default single space
+            The separator between data elements.
+
+        Returns
+        -------
+        str or None
+            If `buf` is None, returns the result as a string. Otherwise returns `None`.
+        """
+        obj = self._copy(deepcopy=True)
+
+        if sparse_index is None:
+            sparse_index = get_option("styler.sparse.index")
+        if sparse_columns is None:
+            sparse_columns = get_option("styler.sparse.columns")
+
+        text = obj._render_string(
+            sparse_columns=sparse_columns,
+            sparse_index=sparse_index,
+            max_rows=max_rows,
+            max_cols=max_columns,
+            delimiter=delimiter,
+        )
+        return save_to_buffer(
+            text, buf=buf, encoding=(encoding if buf is not None else None)
+        )
+
     def set_td_classes(self, classes: DataFrame) -> Styler:
         """
         Set the DataFrame of strings added to the ``class`` attribute of ``<td>``
@@ -1105,7 +1308,7 @@ class Styler(StylerRenderer):
         >>> df = pd.DataFrame([[1]])
         >>> css = pd.DataFrame([["other-class"]])
         >>> s = Styler(df, uuid="_", cell_ids=False).set_td_classes(css)
-        >>> s.hide_index().to_html()  # doctest: +SKIP
+        >>> s.hide(axis=0).to_html()  # doctest: +SKIP
         '<style type="text/css"></style>'
         '<table id="T__">'
         '  <thead>'
@@ -1808,7 +2011,7 @@ class Styler(StylerRenderer):
 
         >>> styler = DataFrame([[1, 2], [3, 4]]).style
         >>> styler2 = DataFrame([[9, 9, 9]]).style
-        >>> styler.hide_index().highlight_max(axis=1)  # doctest: +SKIP
+        >>> styler.hide(axis=0).highlight_max(axis=1)  # doctest: +SKIP
         >>> export = styler.export()
         >>> styler2.use(export)  # doctest: +SKIP
         """
@@ -1860,7 +2063,7 @@ class Styler(StylerRenderer):
 
         >>> styler = DataFrame([[1, 2], [3, 4]]).style
         >>> styler2 = DataFrame([[9, 9, 9]]).style
-        >>> styler.hide_index().highlight_max(axis=1)  # doctest: +SKIP
+        >>> styler.hide(axis=0).highlight_max(axis=1)  # doctest: +SKIP
         >>> export = styler.export()
         >>> styler2.use(export)  # doctest: +SKIP
         """
@@ -1969,8 +2172,8 @@ class Styler(StylerRenderer):
         This method uses the CSS 'position: sticky;' property to display. It is
         designed to work with visible axes, therefore both:
 
-          - `styler.set_sticky(axis="index").hide_index()`
-          - `styler.set_sticky(axis="columns").hide_columns()`
+          - `styler.set_sticky(axis="index").hide(axis="index")`
+          - `styler.set_sticky(axis="columns").hide(axis="columns")`
 
         may produce strange behaviour due to CSS controls with missing elements.
         """
@@ -2264,7 +2467,7 @@ class Styler(StylerRenderer):
         .. versionchanged:: 1.3.0
 
         .. deprecated:: 1.4.0
-           This method should be replaced by ``hide(axis="columns", **kwargs)``
+           This method should be replaced by ``hide(axis="index", **kwargs)``
 
         Parameters
         ----------
@@ -2907,8 +3110,11 @@ class Styler(StylerRenderer):
         ----------
         null_color : str, default 'red'
         %(subset)s
+
             .. versionadded:: 1.1.0
+
         %(props)s
+
             .. versionadded:: 1.3.0
 
         Returns
@@ -2930,7 +3136,7 @@ class Styler(StylerRenderer):
             props = f"background-color: {null_color};"
         return self.apply(f, axis=None, subset=subset, props=props)
 
-    @Substitution(subset=subset, props=props)
+    @Substitution(subset=subset, color=color, props=props)
     def highlight_max(
         self,
         subset: Subset | None = None,
@@ -2944,13 +3150,13 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         %(subset)s
-        color : str, default 'yellow'
-            Background color to use for highlighting.
+        %(color)s
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
         %(props)s
+
             .. versionadded:: 1.3.0
 
         Returns
@@ -2974,7 +3180,7 @@ class Styler(StylerRenderer):
             props=props,
         )
 
-    @Substitution(subset=subset, props=props)
+    @Substitution(subset=subset, color=color, props=props)
     def highlight_min(
         self,
         subset: Subset | None = None,
@@ -2988,13 +3194,13 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         %(subset)s
-        color : str, default 'yellow'
-            Background color to use for highlighting.
+        %(color)s
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
         %(props)s
+
             .. versionadded:: 1.3.0
 
         Returns
@@ -3018,7 +3224,7 @@ class Styler(StylerRenderer):
             props=props,
         )
 
-    @Substitution(subset=subset, props=props)
+    @Substitution(subset=subset, color=color, props=props)
     def highlight_between(
         self,
         subset: Subset | None = None,
@@ -3037,8 +3243,7 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         %(subset)s
-        color : str, default 'yellow'
-            Background color to use for highlighting.
+        %(color)s
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             If ``left`` or ``right`` given as sequence, axis along which to apply those
             boundaries. See examples.
@@ -3049,6 +3254,7 @@ class Styler(StylerRenderer):
         inclusive : {'both', 'neither', 'left', 'right'}
             Identify whether bounds are closed or open.
         %(props)s
+
         Returns
         -------
         self : Styler
@@ -3122,7 +3328,7 @@ class Styler(StylerRenderer):
             inclusive=inclusive,
         )
 
-    @Substitution(subset=subset, props=props)
+    @Substitution(subset=subset, color=color, props=props)
     def highlight_quantile(
         self,
         subset: Subset | None = None,
@@ -3142,8 +3348,7 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         %(subset)s
-        color : str, default 'yellow'
-            Background color to use for highlighting.
+        %(color)s
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Axis along which to determine and highlight quantiles. If ``None`` quantiles
             are measured over the entire DataFrame. See examples.
@@ -3157,6 +3362,7 @@ class Styler(StylerRenderer):
         inclusive : {'both', 'neither', 'left', 'right'}
             Identify whether quantile bounds are closed or open.
         %(props)s
+
         Returns
         -------
         self : Styler
