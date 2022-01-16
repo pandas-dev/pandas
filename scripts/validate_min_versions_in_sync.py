@@ -63,7 +63,7 @@ def get_versions_from_ci(content: list[str]) -> tuple[dict[str, str], dict[str, 
 
 
 def main():
-    with open(CI_PATH) as f:
+    with open(CI_PATH, encoding="utf-8") as f:
         _, ci_optional = get_versions_from_ci(f.readlines())
     code_optional = get_versions_from_code()
     diff = set(ci_optional.items()).symmetric_difference(code_optional.items())
@@ -71,7 +71,7 @@ def main():
         sys.stdout.write(
             f"The follow minimum version differences were found between  "
             f"{CI_PATH} and {CODE_PATH}. Please ensure these are aligned: "
-            f"{diff}"
+            f"{diff}\n"
         )
         sys.exit(1)
     sys.exit(0)

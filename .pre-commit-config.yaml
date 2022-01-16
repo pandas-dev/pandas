@@ -192,4 +192,4 @@ repos:
         name: Check minimum version of dependencies are aligned
         entry: python scripts/validate_min_versions_in_sync.py
         language: python
-        files: ^(ci/deps/actions-*-minimum_versions\.yaml|pandas/compat/_optional\.py)$
+        files: ^(ci/deps/actions-.*-minimum_versions\.yaml|pandas/compat/_optional\.py)$
