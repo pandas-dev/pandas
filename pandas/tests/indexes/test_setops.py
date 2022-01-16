@@ -592,6 +592,20 @@ def test_union_with_duplicate_index_not_subset_and_non_monotonic(cls):
     tm.assert_index_equal(result, expected)
 
 
+def test_union_int_categorical_with_nan():
+    ci = CategoricalIndex([1, 2, np.nan])
+    assert ci.categories.dtype.kind == "i"
+
+    idx = Index([1, 2])
+
+    result = idx.union(ci)
+    expected = Index([1, 2, np.nan], dtype=np.float64)
+    tm.assert_index_equal(result, expected)
+
+    result = ci.union(idx)
+    tm.assert_index_equal(result, expected)
+
+
 class TestSetOpsUnsorted:
     # These may eventually belong in a dtype-specific test_setops, or
     #  parametrized over a more general fixture
