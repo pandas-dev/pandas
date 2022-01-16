@@ -843,7 +843,7 @@ def test_apply_series_return_dataframe_groups():
     )
 
     def most_common_values(df):
-        return Series({c: s.value_counts().index[0] for c, s in df.iteritems()})
+        return Series({c: s.value_counts().index[0] for c, s in df.items()})
 
     result = tdf.groupby("day").apply(most_common_values)["userId"]
     expected = Series(
