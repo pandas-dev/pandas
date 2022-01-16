@@ -636,6 +636,14 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         other : scalar or array-like
         op_name : str
         """
+        if op_name == "divmod":
+            # divmod returns a tuple
+            div, mod = result
+            return (
+                self._maybe_mask_result(div, mask, other, "floordiv"),
+                self._maybe_mask_result(mod, mask, other, "mod"),
+            )
+
         # if we have a float operand we are by-definition
         # a float result
         # or our op is a divide

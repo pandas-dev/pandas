@@ -105,9 +105,6 @@ class NumericArray(BaseMaskedArray):
         op_name = op.__name__
         omask = None
 
-        if getattr(other, "ndim", 0) > 1:
-            raise NotImplementedError("can only perform ops with 1-d structures")
-
         if isinstance(other, NumericArray):
             other, omask = other._data, other._mask
 
@@ -162,14 +159,6 @@ class NumericArray(BaseMaskedArray):
         else:
             with np.errstate(all="ignore"):
                 result = op(self._data, other)
-
-        # divmod returns a tuple
-        if op_name == "divmod":
-            div, mod = result
-            return (
-                self._maybe_mask_result(div, mask, other, "floordiv"),
-                self._maybe_mask_result(mod, mask, other, "mod"),
-            )
 
         return self._maybe_mask_result(result, mask, other, op_name)
 
