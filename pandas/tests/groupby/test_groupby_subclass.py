@@ -5,6 +5,7 @@ import pytest
 
 from pandas import (
     DataFrame,
+    Index,
     Series,
 )
 import pandas._testing as tm
@@ -63,6 +64,28 @@ def test_groupby_preserves_metadata():
     custom_df.testattr = "hello"
     for _, group_df in custom_df.groupby("c"):
         assert group_df.testattr == "hello"
+
+    # GH-45314
+    def func(group):
+        assert isinstance(group, tm.SubclassedDataFrame)
+        assert hasattr(group, "testattr")
+        return group.testattr
+
+    result = custom_df.groupby("c").apply(func)
+    expected = tm.SubclassedSeries(["hello"] * 3, index=Index([7, 8, 9], name="c"))
+    tm.assert_series_equal(result, expected)
+
+    def func2(group):
+        assert isinstance(group, tm.SubclassedSeries)
+        assert hasattr(group, "testattr")
+        return group.testattr
+
+    custom_series = tm.SubclassedSeries([1, 2, 3])
+    custom_series.testattr = "hello"
+    result = custom_series.groupby(custom_df["c"]).apply(func2)
+    tm.assert_series_equal(result, expected)
+    result = custom_series.groupby(custom_df["c"]).agg(func2)
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("obj", [DataFrame, tm.SubclassedDataFrame])
