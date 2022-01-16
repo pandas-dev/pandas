@@ -5939,6 +5939,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         immutable, the underlying data can be safely shared and a copy
         is not needed.
 
+        Since pandas is not thread safe, see the
+        :ref:`gotchas <gotchas.thread-safety>` when copying in a threading
+        environment.
+
         Examples
         --------
         >>> s = pd.Series([1, 2], index=["a", "b"])
