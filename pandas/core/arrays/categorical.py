@@ -1517,6 +1517,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if result is not NotImplemented:
             return result
 
+        if "out" in kwargs:
+            # e.g. test_numpy_ufuncs_out
+            return arraylike.dispatch_ufunc_with_out(
+                self, ufunc, method, *inputs, **kwargs
+            )
+
         if method == "reduce":
             # e.g. TestCategoricalAnalytics::test_min_max_ordered
             result = arraylike.dispatch_reduction_ufunc(
