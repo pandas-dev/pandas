@@ -3183,7 +3183,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         hide: dict | list[dict] | None = None,
         format: dict | list[dict] | None = None,
         format_index: dict | list[dict] | None = None,
-        render_kwargs: dict | None = None,
+        render_kwargs: dict = {},
     ):
         r"""
         Render object to a LaTeX tabular, longtable, or nested table.
@@ -3605,6 +3605,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             "column_format": column_format,
             "clines": "skip-last;data" if multirow else None,
             "bold_rows": bold_rows,
+            **render_kwargs,
         }
 
         return self._to_latex_via_styler(
