@@ -754,6 +754,10 @@ class MPLPlot:
             args = (x, y, style) if style is not None else (x, y)
             return ax.plot(*args, **kwds)
 
+    def _get_custom_index_name(self):
+        """Specify whether xlabel/ylabel should be used to override index name"""
+        return self.xlabel
+
     def _get_index_name(self) -> str | None:
         if isinstance(self.data.index, ABCMultiIndex):
             name = self.data.index.names
@@ -766,9 +770,10 @@ class MPLPlot:
             if name is not None:
                 name = pprint_thing(name)
 
-        # GH 9093, override the default xlabel if xlabel is provided.
-        if self.xlabel is not None:
-            name = pprint_thing(self.xlabel)
+        # GH 45145, override the default axis label if one is provided.
+        index_name = self._get_custom_index_name()
+        if index_name is not None:
+            name = pprint_thing(index_name)
 
         return name
 
@@ -1572,12 +1577,11 @@ class BarPlot(MPLPlot):
             str_index = [pprint_thing(key) for key in data.index]
         else:
             str_index = [pprint_thing(key) for key in range(data.shape[0])]
-        name = self._get_index_name()
 
         s_edge = self.ax_pos[0] - 0.25 + self.lim_offset
         e_edge = self.ax_pos[-1] + 0.25 + self.bar_width + self.lim_offset
 
-        self._decorate_ticks(ax, name, str_index, s_edge, e_edge)
+        self._decorate_ticks(ax, self._get_index_name(), str_index, s_edge, e_edge)
 
     def _decorate_ticks(self, ax: Axes, name, ticklabels, start_edge, end_edge):
         ax.set_xlim((start_edge, end_edge))
@@ -1608,6 +1612,9 @@ class BarhPlot(BarPlot):
     ):
         return ax.barh(x, y, w, left=start, log=log, **kwds)
 
+    def _get_custom_index_name(self):
+        return self.ylabel
+
     def _decorate_ticks(self, ax: Axes, name, ticklabels, start_edge, end_edge):
         # horizontal bars
         ax.set_ylim((start_edge, end_edge))
@@ -1615,6 +1622,7 @@ class BarhPlot(BarPlot):
         ax.set_yticklabels(ticklabels)
         if name is not None and self.use_index:
             ax.set_ylabel(name)
+        ax.set_xlabel(self.xlabel)
 
 
 class PiePlot(MPLPlot):
