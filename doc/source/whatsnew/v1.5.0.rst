@@ -102,7 +102,7 @@ Deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
--
+- Performance improvement in :meth:`.GroupBy.transform` for some user-defined DataFrame -> Series functions (:issue:`45387`)
 -
 
 .. ---------------------------------------------------------------------------
