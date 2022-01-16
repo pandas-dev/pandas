@@ -81,6 +81,7 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
+    ABCIndex,
     ABCSeries,
 )
 from pandas.core.dtypes.inference import is_list_like
@@ -93,7 +94,9 @@ from pandas.core.dtypes.missing import (
 
 if TYPE_CHECKING:
 
+    from pandas import Index
     from pandas.core.arrays import (
+        Categorical,
         DatetimeArray,
         ExtensionArray,
         IntervalArray,
@@ -1418,6 +1421,96 @@ def ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
     return dtype
 
 
+# TODO: other value-dependent functions to standardize here include
+#  dtypes.concat.cast_to_common_type and Index._find_common_type_compat
+def find_result_type(left: ArrayLike, right: Any) -> DtypeObj:
+    """
+    Find the type/dtype for a the result of an operation between these objects.
+
+    This is similar to find_common_type, but looks at the objects instead
+    of just their dtypes. This can be useful in particular when one of the
+    objects does not have a `dtype`.
+
+    Parameters
+    ----------
+    left : np.ndarray or ExtensionArray
+    right : Any
+
+    Returns
+    -------
+    np.dtype or ExtensionDtype
+
+    See also
+    --------
+    find_common_type
+    numpy.result_type
+    """
+    new_dtype: DtypeObj
+
+    if left.dtype.kind in ["i", "u", "c"] and (
+        lib.is_integer(right) or lib.is_float(right)
+    ):
+        # e.g. with int8 dtype and right=512, we want to end up with
+        # np.int16, whereas infer_dtype_from(512) gives np.int64,
+        #  which will make us upcast too far.
+        if lib.is_float(right) and right.is_integer() and left.dtype.kind != "f":
+            right = int(right)
+
+        # Argument 1 to "result_type" has incompatible type "Union[ExtensionArray,
+        # ndarray[Any, Any]]"; expected "Union[Union[_SupportsArray[dtype[Any]],
+        # _NestedSequence[_SupportsArray[dtype[Any]]], bool, int, float, complex,
+        # str, bytes, _NestedSequence[Union[bool, int, float, complex, str, bytes]]],
+        # Union[dtype[Any], None, Type[Any], _SupportsDType[dtype[Any]], str,
+        # Union[Tuple[Any, int], Tuple[Any, Union[SupportsIndex,
+        # Sequence[SupportsIndex]]], List[Any], _DTypeDict, Tuple[Any, Any]]]]"
+        new_dtype = np.result_type(left, right)  # type:ignore[arg-type]
+
+    else:
+        dtype, _ = infer_dtype_from(right, pandas_dtype=True)
+
+        new_dtype = find_common_type([left.dtype, dtype])
+
+    return new_dtype
+
+
+def common_dtype_categorical_compat(
+    objs: list[Index | ArrayLike], dtype: DtypeObj
+) -> DtypeObj:
+    """
+    Update the result of find_common_type to account for NAs in a Categorical.
+
+    Parameters
+    ----------
+    objs : list[np.ndarray | ExtensionArray | Index]
+    dtype : np.dtype or ExtensionDtype
+
+    Returns
+    -------
+    np.dtype or ExtensionDtype
+    """
+    # GH#38240
+
+    # TODO: more generally, could do `not can_hold_na(dtype)`
+    if isinstance(dtype, np.dtype) and dtype.kind in ["i", "u"]:
+
+        for obj in objs:
+            # We don't want to accientally allow e.g. "categorical" str here
+            obj_dtype = getattr(obj, "dtype", None)
+            if isinstance(obj_dtype, CategoricalDtype):
+                if isinstance(obj, ABCIndex):
+                    # This check may already be cached
+                    hasnas = obj.hasnans
+                else:
+                    # Categorical
+                    hasnas = cast("Categorical", obj)._hasnans
+
+                if hasnas:
+                    # see test_union_int_categorical_with_nan
+                    dtype = np.dtype(np.float64)
+                    break
+    return dtype
+
+
 @overload
 def find_common_type(types: list[np.dtype]) -> np.dtype:
     ...
@@ -1930,12 +2023,21 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
         raise ValueError
 
     elif dtype.kind == "c":
+        if lib.is_integer(element) or lib.is_complex(element) or lib.is_float(element):
+            if np.isnan(element):
+                # see test_where_complex GH#6345
+                return dtype.type(element)
+
+            casted = dtype.type(element)
+            if casted == element:
+                return casted
+            # otherwise e.g. overflow see test_32878_complex_itemsize
+            raise ValueError
+
         if tipo is not None:
             if tipo.kind in ["c", "f", "i", "u"]:
                 return element
             raise ValueError
-        if lib.is_integer(element) or lib.is_complex(element) or lib.is_float(element):
-            return element
         raise ValueError
 
     elif dtype.kind == "b":
