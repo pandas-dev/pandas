@@ -42,7 +42,6 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from,
     maybe_downcast_numeric,
     maybe_downcast_to_dtype,
-    maybe_upcast,
     soft_convert_objects,
 )
 from pandas.core.dtypes.common import (
@@ -1149,11 +1148,25 @@ class Block(PandasObject):
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also
 
+        # Note: periods is never 0 here, as that is handled at the top of
+        #  NDFrame.shift.  If that ever changes, we can do a check for periods=0
+        #  and possibly avoid coercing.
+
+        if not lib.is_scalar(fill_value) and self.dtype != _dtype_obj:
+            # with object dtype there is nothing to promote, and the user can
+            #  pass pretty much any weird fill_value they like
+            # see test_shift_object_non_scalar_fill
+            raise ValueError("fill_value must be a scalar")
+
+        if is_valid_na_for_dtype(fill_value, self.dtype) and self.dtype != _dtype_obj:
+            fill_value = self.fill_value
+
+        if not self._can_hold_element(fill_value):
+            nb = self.coerce_to_target_dtype(fill_value)
+            return nb.shift(periods, axis=axis, fill_value=fill_value)
+
         values = cast(np.ndarray, self.values)
-
-        new_values, fill_value = maybe_upcast(values, fill_value)
-
-        new_values = shift(new_values, periods, axis, fill_value)
+        new_values = shift(values, periods, axis, fill_value)
 
         return [self.make_block(new_values)]
 
