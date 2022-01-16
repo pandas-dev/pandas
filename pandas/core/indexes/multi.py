@@ -1733,7 +1733,7 @@ class MultiIndex(Index):
         allow_duplicates : bool, optional default False
             Allow duplicate column labels to be created.
 
-            .. versionadded:: 1.4.0
+            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -1797,7 +1797,8 @@ class MultiIndex(Index):
         result = DataFrame(
             {level: self._get_level_values(level) for level in range(len(self.levels))},
             copy=False,
-        ).set_axis(idx_names, axis=1)
+        )
+        result.columns = idx_names
 
         if index:
             result.index = self
