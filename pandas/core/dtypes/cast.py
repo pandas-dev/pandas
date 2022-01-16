@@ -575,7 +575,7 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
             except (ValueError, TypeError):
                 pass
             else:
-                if fv.tz is None:
+                if isna(fv) or fv.tz is None:
                     return dtype, fv.asm8
 
         return np.dtype("object"), fill_value
