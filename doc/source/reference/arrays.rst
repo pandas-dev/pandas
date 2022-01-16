@@ -464,7 +464,7 @@ be stored efficiently as a :class:`arrays.SparseArray`.
 
 The ``Series.sparse`` accessor may be used to access sparse-specific attributes
 and methods if the :class:`Series` contains sparse values. See
-:ref:`api.series.sparse` for more.
+:ref:`api.series.sparse` and :ref:`the user guide <sparse>` for more.
 
 
 .. _api.arrays.string:
