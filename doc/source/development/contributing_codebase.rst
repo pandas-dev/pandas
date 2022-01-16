@@ -204,7 +204,7 @@ Import formatting
 pandas uses `isort <https://pypi.org/project/isort/>`__ to standardise import
 formatting across the codebase.
 
-A guide to import layout as per pep8 can be found `here <https://www.python.org/dev/peps/pep-0008/#imports/>`__.
+A guide to import layout as per pep8 can be found `here <https://www.python.org/dev/peps/pep-0008/#imports>`__.
 
 A summary of our current import sections ( in order ):
 

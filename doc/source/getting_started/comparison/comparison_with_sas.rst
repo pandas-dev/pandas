@@ -335,7 +335,7 @@ Extracting substring by position
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 SAS extracts a substring from a string based on its position with the
-`SUBSTR <https://www2.sas.com/proceedings/sugi25/25/cc/25p088.pdf>`__ function.
+`SUBSTR <https://support.sas.com/documentation/cdl/en/imlug/66845/HTML/default/viewer.htm#imlug_langref_sect455.htm>`__ function.
 
 .. code-block:: sas
 

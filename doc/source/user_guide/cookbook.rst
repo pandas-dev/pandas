@@ -259,7 +259,7 @@ New columns
    df
 
 `Keep other columns when using min() with groupby
-<https://stackoverflow.com/questions/23394476/keep-other-columns-when-using-min-with-groupby>`__
+<https://stackoverflow.com/q/23394476>`__
 
 .. ipython:: python
 
@@ -556,7 +556,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
    ts
 
 `Create a value counts column and reassign back to the DataFrame
-<https://stackoverflow.com/questions/17709270/i-want-to-create-a-column-of-value-counts-in-my-pandas-dataframe>`__
+<https://stackoverflow.com/q/17709270>`__
 
 .. ipython:: python
 
@@ -870,7 +870,7 @@ Timeseries
 <https://stackoverflow.com/questions/17559885/pandas-dataframe-mask-based-on-index>`__
 
 `Constructing a datetime range that excludes weekends and includes only certain times
-<https://stackoverflow.com/questions/24010830/pandas-generate-sequential-timestamp-with-jump/24014440#24014440?>`__
+<https://stackoverflow.com/a/24014440>`__
 
 `Vectorized Lookup
 <https://stackoverflow.com/questions/13893227/vectorized-look-up-of-values-in-pandas-dataframe>`__
@@ -1038,7 +1038,7 @@ Data in/out
 -----------
 
 `Performance comparison of SQL vs HDF5
-<https://stackoverflow.com/questions/16628329/hdf5-and-sqlite-concurrency-compression-i-o-performance>`__
+<https://stackoverflow.com/q/16628329>`__
 
 .. _cookbook.csv:
 

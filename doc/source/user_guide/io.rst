@@ -5001,10 +5001,10 @@ control compression: ``complevel`` and ``complib``.
     - `blosc:blosclz <https://www.blosc.org/>`_ This is the
       default compressor for ``blosc``
     - `blosc:lz4
-      <https://fastcompression.blogspot.dk/p/lz4.html>`_:
+      <https://fastcompression.blogspot.com/p/lz4.html>`_:
       A compact, very popular and fast compressor.
     - `blosc:lz4hc
-      <https://fastcompression.blogspot.dk/p/lz4.html>`_:
+      <https://fastcompression.blogspot.com/p/lz4.html>`_:
       A tweaked version of LZ4, produces better
       compression ratios at the expense of speed.
     - `blosc:snappy <https://google.github.io/snappy/>`_:
@@ -6254,7 +6254,7 @@ Obtain an iterator and read an XPORT file 100,000 lines at a time:
 The specification_ for the xport file format is available from the SAS
 web site.
 
-.. _specification: https://support.sas.com/techsup/technote/ts140.pdf
+.. _specification: https://support.sas.com/content/dam/SAS/support/en/technical-papers/record-layout-of-a-sas-version-5-or-6-data-set-in-sas-transport-xport-format.pdf
 
 No official documentation is available for the SAS7BDAT format.
 
