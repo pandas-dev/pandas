@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
+    Literal,
     Sequence,
     TypeVar,
     overload,
@@ -19,6 +20,7 @@ from pandas._libs import (
 from pandas._typing import (
     ArrayLike,
     AstypeArg,
+    DtypeObj,
     NpDtype,
     PositionalIndexer,
     Scalar,
@@ -78,6 +80,10 @@ from pandas.core.ops import invalid_comparison
 if TYPE_CHECKING:
     from pandas import Series
     from pandas.core.arrays import BooleanArray
+    from pandas._typing import (
+        NumpySorter,
+        NumpyValueArrayLike,
+    )
 
 from pandas.compat.numpy import function as nv
 
@@ -155,6 +161,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         self._data = values
         self._mask = mask
 
+    @classmethod
+    def _from_sequence(
+        cls: type[BaseMaskedArrayT], scalars, *, dtype=None, copy: bool = False
+    ) -> BaseMaskedArrayT:
+        values, mask = cls._coerce_to_array(scalars, dtype=dtype, copy=copy)
+        return cls(values, mask)
+
     @property
     def dtype(self) -> BaseMaskedDtype:
         raise AbstractMethodError(self)
@@ -214,14 +227,17 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             new_values = self.copy()
         return new_values
 
-    def _coerce_to_array(self, values) -> tuple[np.ndarray, np.ndarray]:
-        raise AbstractMethodError(self)
+    @classmethod
+    def _coerce_to_array(
+        cls, values, *, dtype: DtypeObj, copy: bool = False
+    ) -> tuple[np.ndarray, np.ndarray]:
+        raise AbstractMethodError(cls)
 
     def __setitem__(self, key, value) -> None:
         _is_scalar = is_scalar(value)
         if _is_scalar:
             value = [value]
-        value, mask = self._coerce_to_array(value)
+        value, mask = self._coerce_to_array(value, dtype=self.dtype)
 
         if _is_scalar:
             value = value[0]
@@ -681,6 +697,23 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         mask = mask.copy()
         return type(self)(data, mask, copy=False)
 
+    @doc(ExtensionArray.searchsorted)
+    def searchsorted(
+        self,
+        value: NumpyValueArrayLike | ExtensionArray,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter = None,
+    ) -> npt.NDArray[np.intp] | np.intp:
+        if self._hasna:
+            raise ValueError(
+                "searchsorted requires array to be sorted, which is impossible "
+                "with NAs present."
+            )
+        if isinstance(value, ExtensionArray):
+            value = value.astype(object)
+        # Base class searchsorted would cast to object, which is *much* slower.
+        return self._data.searchsorted(value, side=side, sorter=sorter)
+
     @doc(ExtensionArray.factorize)
     def factorize(self, na_sentinel: int = -1) -> tuple[np.ndarray, ExtensionArray]:
         arr = self._data
@@ -784,7 +817,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         except TypeError:
             # GH#42626: not able to safely cast Int64
             # for floating point output
-            out = np.asarray(res, dtype=np.float64)
+            # error: Incompatible types in assignment (expression has type
+            # "ndarray[Any, dtype[floating[_64Bit]]]", variable has type
+            # "BaseMaskedArrayT")
+            out = np.asarray(res, dtype=np.float64)  # type: ignore[assignment]
         return out
 
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
@@ -943,7 +979,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         nv.validate_any((), kwargs)
 
         values = self._data.copy()
-        np.putmask(values, self._mask, self._falsey_value)
+        # Argument 3 to "putmask" has incompatible type "object"; expected
+        # "Union[_SupportsArray[dtype[Any]], _NestedSequence[
+        # _SupportsArray[dtype[Any]]], bool, int, float, complex, str, bytes, _Nested
+        # Sequence[Union[bool, int, float, complex, str, bytes]]]"  [arg-type]
+        np.putmask(values, self._mask, self._falsey_value)  # type: ignore[arg-type]
         result = values.any()
         if skipna:
             return result
@@ -1019,7 +1059,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         nv.validate_all((), kwargs)
 
         values = self._data.copy()
-        np.putmask(values, self._mask, self._truthy_value)
+        # Argument 3 to "putmask" has incompatible type "object"; expected
+        # "Union[_SupportsArray[dtype[Any]], _NestedSequence[
+        # _SupportsArray[dtype[Any]]], bool, int, float, complex, str, bytes, _Neste
+        # dSequence[Union[bool, int, float, complex, str, bytes]]]"  [arg-type]
+        np.putmask(values, self._mask, self._truthy_value)  # type: ignore[arg-type]
         result = values.all()
 
         if skipna:
