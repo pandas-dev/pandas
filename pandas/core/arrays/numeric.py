@@ -5,17 +5,27 @@ import numbers
 from typing import (
     TYPE_CHECKING,
     TypeVar,
+    overload,
 )
 
 import numpy as np
 
 from pandas._libs import (
     Timedelta,
+    lib,
     missing as libmissing,
+)
+from pandas._typing import (
+    ArrayLike,
+    AstypeArg,
+    Dtype,
+    npt,
 )
 from pandas.compat.numpy import function as nv
 
+from pandas.core.dtypes.astype import astype_nansafe
 from pandas.core.dtypes.common import (
+    is_datetime64_dtype,
     is_float,
     is_float_dtype,
     is_integer,
@@ -23,6 +33,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
@@ -31,6 +42,8 @@ from pandas.core.arrays.masked import (
 
 if TYPE_CHECKING:
     import pyarrow
+
+    from pandas.core.arrays import ExtensionArray
 
 T = TypeVar("T", bound="NumericArray")
 
@@ -89,6 +102,75 @@ class NumericArray(BaseMaskedArray):
     """
     Base class for IntegerArray and FloatingArray.
     """
+
+    @classmethod
+    def _from_sequence_of_strings(
+        cls: type[T], strings, *, dtype: Dtype | None = None, copy: bool = False
+    ) -> T:
+        from pandas.core.tools.numeric import to_numeric
+
+        scalars = to_numeric(strings, errors="raise")
+        return cls._from_sequence(scalars, dtype=dtype, copy=copy)
+
+    @overload
+    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
+        ...
+
+    @overload
+    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray:
+        ...
+
+    @overload
+    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike:
+        ...
+
+    def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
+        """
+        Cast to a NumPy array or ExtensionArray with 'dtype'.
+
+        Parameters
+        ----------
+        dtype : str or dtype
+            Typecode or data-type to which the array is cast.
+        copy : bool, default True
+            Whether to copy the data, even if not necessary. If False,
+            a copy is made only if the old dtype does not match the
+            new dtype.
+
+        Returns
+        -------
+        ndarray or ExtensionArray
+            NumPy ndarray, or BooleanArray, IntegerArray or FloatingArray with
+            'dtype' for its dtype.
+
+        Raises
+        ------
+        TypeError
+            if incompatible type with our dtype, equivalent of same_kind
+            casting
+        """
+        dtype = pandas_dtype(dtype)
+
+        if isinstance(dtype, ExtensionDtype):
+            return super().astype(dtype, copy=copy)
+
+        na_value: float | np.datetime64 | lib.NoDefault
+
+        # coerce
+        if is_float_dtype(dtype):
+            # In astype, we consider dtype=float to also mean na_value=np.nan
+            na_value = np.nan
+        elif is_datetime64_dtype(dtype):
+            na_value = np.datetime64("NaT")
+        else:
+            na_value = lib.no_default
+
+        data = self.to_numpy(dtype=dtype, na_value=na_value, copy=copy)
+        if self.dtype.kind == "f":
+            # TODO: make this consistent between IntegerArray/FloatingArray,
+            #  see test_astype_str
+            return astype_nansafe(data, dtype, copy=False)
+        return data
 
     def _arith_method(self, other, op):
         op_name = op.__name__

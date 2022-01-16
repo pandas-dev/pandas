@@ -1989,10 +1989,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         for h in self._info_axis:
             yield h, self[h]
 
-    @doc(items)
-    def iteritems(self):
-        return self.items()
-
     def __len__(self) -> int:
         """Returns length of info axis"""
         return len(self._info_axis)
@@ -5855,7 +5851,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 new_type = dtype[self.name]
                 return self.astype(new_type, copy, errors)
 
-            for col_name in dtype.keys():
+            # GH#44417 cast to Series so we can use .iat below, which will be
+            #  robust in case we
+            from pandas import Series
+
+            dtype_ser = Series(dtype, dtype=object)
+
+            for col_name in dtype_ser.index:
                 if col_name not in self:
                     raise KeyError(
                         "Only a column name can be used for the "
@@ -5863,11 +5865,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         f"'{col_name}' not found in columns."
                     )
 
-            # GH#44417 cast to Series so we can use .iat below, which will be
-            #  robust in case we
-            from pandas import Series
-
-            dtype_ser = Series(dtype, dtype=object)
             dtype_ser = dtype_ser.reindex(self.columns, fill_value=None, copy=False)
 
             results = []
@@ -5899,6 +5896,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # GH 19920: retain column metadata after concat
         result = concat(results, axis=1, copy=False)
+        # GH#40810 retain subclass
+        # Incompatible types in assignment (expression has type "NDFrameT",
+        # variable has type "DataFrame")
+        # Argument 1 to "NDFrame" has incompatible type "DataFrame"; expected
+        # "Union[ArrayManager, SingleArrayManager, BlockManager, SingleBlockManager]"
+        result = self._constructor(result)  # type: ignore[arg-type,assignment]
         result.columns = self.columns
         result = result.__finalize__(self, method="astype")
         # https://github.com/python/mypy/issues/8354
@@ -5941,6 +5944,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         numpy array is not copied for performance reasons. Since ``Index`` is
         immutable, the underlying data can be safely shared and a copy
         is not needed.
+
+        Since pandas is not thread safe, see the
+        :ref:`gotchas <gotchas.thread-safety>` when copying in a threading
+        environment.
 
         Examples
         --------
@@ -7126,9 +7133,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df.asof(pd.DatetimeIndex(['2018-02-27 09:03:30',
         ...                           '2018-02-27 09:04:30']),
         ...         subset=['a'])
-                                 a   b
-        2018-02-27 09:03:30   30.0 NaN
-        2018-02-27 09:04:30   40.0 NaN
+                              a   b
+        2018-02-27 09:03:30  30 NaN
+        2018-02-27 09:04:30  40 NaN
         """
         if isinstance(where, str):
             where = Timestamp(where)
@@ -7198,7 +7205,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         missing = locs == -1
         data = self.take(locs)
         data.index = where
-        data.loc[missing] = np.nan
+        if missing.any():
+            # GH#16063 only do this setting when necessary, otherwise
+            #  we'd cast e.g. bools to floats
+            data.loc[missing] = np.nan
         return data if is_list else data.iloc[-1]
 
     # ----------------------------------------------------------------------
