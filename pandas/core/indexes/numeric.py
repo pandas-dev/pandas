@@ -246,7 +246,10 @@ class NumericIndex(Index):
                 # GH 13149
                 arr = astype_nansafe(self._values, dtype=dtype)
                 if isinstance(self, Float64Index):
-                    return Int64Index(arr, name=self.name)
+                    if dtype.kind == "i":
+                        return Int64Index(arr, name=self.name)
+                    else:
+                        return UInt64Index(arr, name=self.name)
                 else:
                     return NumericIndex(arr, name=self.name, dtype=dtype)
         elif self._is_backward_compat_public_numeric_index:
