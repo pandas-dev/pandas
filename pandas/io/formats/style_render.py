@@ -1203,12 +1203,14 @@ class StylerRenderer:
         \end{tabular}
 
         Using ``aliases`` to overwrite column names.
+
         >>> df = pd.DataFrame([[1, 2, 3]], columns=[1, 2, 3])
         >>> df.style.format_index(axis=1, aliases=["A", "B", "C"])  # doctest: +SKIP
                 A      B       C
         0       1      2       3
 
         Using ``aliases`` to overwrite column names of remaining **visible** items.
+
         >>> df = pd.DataFrame([[1, 2, 3]],
         ...                   columns=pd.MultiIndex.from_product([[1, 2, 3], ["X"]]))
         >>> styler = df.style  # doctest: +SKIP
