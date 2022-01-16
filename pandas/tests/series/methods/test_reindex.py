@@ -9,6 +9,8 @@ from pandas import (
     Period,
     PeriodIndex,
     Series,
+    Timedelta,
+    Timestamp,
     date_range,
     isna,
 )
@@ -293,6 +295,24 @@ def test_reindex_fill_value():
 
     result = bools.reindex([1, 2, 3], fill_value=False)
     expected = Series([False, True, False], index=[1, 2, 3])
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["datetime64[ns]", "timedelta64[ns]"])
+@pytest.mark.parametrize("fill_value", ["string", 0, Timedelta(0)])
+def test_reindex_fill_value_datetimelike_upcast(dtype, fill_value, using_array_manager):
+    # https://github.com/pandas-dev/pandas/issues/42921
+    if using_array_manager:
+        pytest.skip("Array manager does not promote dtype, hence we fail")
+
+    if dtype == "timedelta64[ns]" and fill_value == Timedelta(0):
+        # use the scalar that is not compatible with the dtype for this test
+        fill_value = Timestamp(0)
+
+    ser = Series([NaT], dtype=dtype)
+
+    result = ser.reindex([0, 1], fill_value=fill_value)
+    expected = Series([None, fill_value], index=[0, 1], dtype=object)
     tm.assert_series_equal(result, expected)
 
 
