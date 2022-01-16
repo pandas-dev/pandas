@@ -196,6 +196,10 @@ def _astype_float_to_int_nansafe(
         raise IntCastingNaNError(
             "Cannot convert non-finite values (NA or inf) to integer"
         )
+    if dtype.kind == "u":
+        # GH#45151
+        if not (values >= 0).all():
+            raise ValueError(f"Cannot losslessly cast from {values.dtype} to {dtype}")
     return values.astype(dtype, copy=copy)
 
 
