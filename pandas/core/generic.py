@@ -1989,10 +1989,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         for h in self._info_axis:
             yield h, self[h]
 
-    @doc(items)
-    def iteritems(self):
-        return self.items()
-
     def __len__(self) -> int:
         """Returns length of info axis"""
         return len(self._info_axis)
@@ -5855,7 +5851,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 new_type = dtype[self.name]
                 return self.astype(new_type, copy, errors)
 
-            for col_name in dtype.keys():
+            # GH#44417 cast to Series so we can use .iat below, which will be
+            #  robust in case we
+            from pandas import Series
+
+            dtype_ser = Series(dtype, dtype=object)
+
+            for col_name in dtype_ser.index:
                 if col_name not in self:
                     raise KeyError(
                         "Only a column name can be used for the "
@@ -5863,11 +5865,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         f"'{col_name}' not found in columns."
                     )
 
-            # GH#44417 cast to Series so we can use .iat below, which will be
-            #  robust in case we
-            from pandas import Series
-
-            dtype_ser = Series(dtype, dtype=object)
             dtype_ser = dtype_ser.reindex(self.columns, fill_value=None, copy=False)
 
             results = []
@@ -5941,6 +5938,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         numpy array is not copied for performance reasons. Since ``Index`` is
         immutable, the underlying data can be safely shared and a copy
         is not needed.
+
+        Since pandas is not thread safe, see the
+        :ref:`gotchas <gotchas.thread-safety>` when copying in a threading
+        environment.
 
         Examples
         --------
