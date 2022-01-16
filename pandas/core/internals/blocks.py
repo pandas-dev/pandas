@@ -879,14 +879,6 @@ class Block(PandasObject):
 
     # ---------------------------------------------------------------------
 
-    def _standardize_na_fill_value(self, value: Any) -> Any:
-        """
-        If we are passed a scalar None, convert it here.
-        """
-        if is_valid_na_for_dtype(value, self.dtype) and self.dtype != _dtype_obj:
-            value = self.fill_value
-        return value
-
     def _maybe_squeeze_arg(self, arg: np.ndarray) -> np.ndarray:
         """
         For compatibility with 1D-only ExtensionArrays.
@@ -924,7 +916,10 @@ class Block(PandasObject):
         if isinstance(indexer, np.ndarray) and indexer.ndim > self.ndim:
             raise ValueError(f"Cannot set values with ndim > {self.ndim}")
 
-        value = self._standardize_na_fill_value(value)
+        # coerce None values, if appropriate
+        if value is None:
+            if self.is_numeric:
+                value = np.nan
 
         # coerce if block dtype can store value
         values = cast(np.ndarray, self.values)
@@ -985,7 +980,9 @@ class Block(PandasObject):
         if new is lib.no_default:
             new = self.fill_value
 
-        new = self._standardize_na_fill_value(new)
+        # if we are passed a scalar None, convert it here
+        if not self.is_object and is_valid_na_for_dtype(new, self.dtype):
+            new = self.fill_value
 
         if self._can_hold_element(new):
             putmask_without_repeat(values.T, mask, new)
@@ -1211,7 +1208,8 @@ class Block(PandasObject):
         if other is lib.no_default:
             other = self.fill_value
 
-        other = self._standardize_na_fill_value(other)
+        if is_valid_na_for_dtype(other, self.dtype) and self.dtype != _dtype_obj:
+            other = self.fill_value
 
         if not self._can_hold_element(other):
             # we cannot coerce, return a compat dtype
