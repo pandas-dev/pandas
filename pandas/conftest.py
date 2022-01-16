@@ -728,7 +728,7 @@ def series_with_multilevel_index():
 
 
 _narrow_series = {
-    f"{dtype.__name__}-series": tm.makeFloatSeries(name="a").astype(dtype)
+    f"{dtype.__name__}-series": tm.make_rand_series(name="a", dtype=dtype)
     for dtype in tm.NARROW_NP_DTYPES
 }
 
