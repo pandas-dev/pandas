@@ -28,13 +28,13 @@ jobs:
           [actions-38-downstream_compat.yaml, "not slow and not network and not clipboard", "", "", "", "", ""],
           [actions-38-minimum_versions.yaml, "slow", "", "", "", "", ""],
           [actions-38-minimum_versions.yaml, "not slow and not network and not clipboard", "", "", "", "", ""],
-          [actions-38-locale_slow.yaml, "slow", "language-pack-it xsel", "it_IT.utf8", "it_IT.utf8", "", ""],
+          [actions-38.yaml, "not slow and not network", "language-pack-it xsel", "it_IT.utf8", "it_IT.utf8", "", ""],
+          [actions-38.yaml, "not slow and not network", "language-pack-zh-hans xsel", "zh_CN.utf8", "zh_CN.utf8", "", ""],
           [actions-38.yaml, "not slow and not clipboard", "", "", "", "", ""],
-          [actions-38-slow.yaml, "slow", "", "", "", "", ""],
-          [actions-38-locale.yaml, "not slow and not network", "language-pack-zh-hans xsel", "zh_CN.utf8", "zh_CN.utf8", "", ""],
-          [actions-39-slow.yaml, "slow", "", "", "", "", ""],
+          [actions-38.yaml, "slow", "", "", "", "", ""],
           [actions-pypy-38.yaml, "not slow and not clipboard", "", "", "", "", "--max-worker-restart 0"],
           [actions-39-numpydev.yaml, "not slow and not network", "xsel", "", "", "deprecate", "-W error"],
+          [actions-39.yaml, "slow", "", "", "", "", ""],
           [actions-39.yaml, "not slow and not clipboard", "", "", "", "", ""]
         ]
       fail-fast: false
