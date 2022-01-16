@@ -54,42 +54,45 @@ class TestLoc(Base):
         # label
         self.check_result("loc", "c", typs=["empty"], fails=KeyError)
 
-    def test_loc_getitem_label_out_of_range(self):
+    @pytest.mark.parametrize(
+        "key, typs, axes",
+        [
+            ["f", ["ints", "uints", "labels", "mixed", "ts"], None],
+            ["f", ["floats"], None],
+            [20, ["ints", "uints", "mixed"], None],
+            [20, ["labels"], None],
+            [20, ["ts"], 0],
+            [20, ["floats"], 0],
+        ],
+    )
+    def test_loc_getitem_label_out_of_range(self, key, typs, axes):
 
         # out of range label
-        self.check_result(
-            "loc", "f", typs=["ints", "uints", "labels", "mixed", "ts"], fails=KeyError
-        )
-        self.check_result("loc", "f", typs=["floats"], fails=KeyError)
-        self.check_result("loc", "f", typs=["floats"], fails=KeyError)
-        self.check_result("loc", 20, typs=["ints", "uints", "mixed"], fails=KeyError)
-        self.check_result("loc", 20, typs=["labels"], fails=KeyError)
-        self.check_result("loc", 20, typs=["ts"], axes=0, fails=KeyError)
-        self.check_result("loc", 20, typs=["floats"], axes=0, fails=KeyError)
+        self.check_result("loc", key, typs=typs, axes=axes, fails=KeyError)
 
-    def test_loc_getitem_label_list(self):
+    @pytest.mark.parametrize(
+        "key, typs",
+        [
+            [[0, 1, 2], ["ints", "uints", "floats"]],
+            [[1, 3.0, "A"], ["ints", "uints", "floats"]],
+        ],
+    )
+    def test_loc_getitem_label_list(self, key, typs):
         # list of labels
-        self.check_result(
-            "loc", [0, 1, 2], typs=["ints", "uints", "floats"], fails=KeyError
-        )
-        self.check_result(
-            "loc", [1, 3.0, "A"], typs=["ints", "uints", "floats"], fails=KeyError
-        )
+        self.check_result("loc", key, typs=typs, fails=KeyError)
 
-    def test_loc_getitem_label_list_with_missing(self):
-        self.check_result("loc", [0, 1, 2], typs=["empty"], fails=KeyError)
-        self.check_result(
-            "loc", [0, 2, 10], typs=["ints", "uints", "floats"], axes=0, fails=KeyError
-        )
-
-        self.check_result(
-            "loc", [3, 6, 7], typs=["ints", "uints", "floats"], axes=1, fails=KeyError
-        )
-
-        # GH 17758 - MultiIndex and missing keys
-        self.check_result(
-            "loc", [(1, 3), (1, 4), (2, 5)], typs=["multi"], axes=0, fails=KeyError
-        )
+    @pytest.mark.parametrize(
+        "key, typs, axes",
+        [
+            [[0, 1, 2], ["empty"], None],
+            [[0, 2, 10], ["ints", "uints", "floats"], 0],
+            [[3, 6, 7], ["ints", "uints", "floats"], 1],
+            # GH 17758 - MultiIndex and missing keys
+            [[(1, 3), (1, 4), (2, 5)], ["multi"], 0],
+        ],
+    )
+    def test_loc_getitem_label_list_with_missing(self, key, typs, axes):
+        self.check_result("loc", key, typs=typs, axes=axes, fails=KeyError)
 
     def test_loc_getitem_label_list_fails(self):
         # fails
@@ -108,7 +111,22 @@ class TestLoc(Base):
 
         self.check_result("loc", b, typs=["empty"], fails=IndexError)
 
-    def test_loc_getitem_label_slice(self):
+    @pytest.mark.parametrize(
+        "slc, typs, axes, fails",
+        [
+            [
+                slice(1, 3),
+                ["labels", "mixed", "empty", "ts", "floats"],
+                None,
+                TypeError,
+            ],
+            [slice("20130102", "20130104"), ["ts"], 1, TypeError],
+            [slice(2, 8), ["mixed"], 0, TypeError],
+            [slice(2, 8), ["mixed"], 1, KeyError],
+            [slice(2, 4, 2), ["mixed"], 0, TypeError],
+        ],
+    )
+    def test_loc_getitem_label_slice(self, slc, typs, axes, fails):
 
         # label slices (with ints)
 
@@ -118,20 +136,10 @@ class TestLoc(Base):
 
         self.check_result(
             "loc",
-            slice(1, 3),
-            typs=["labels", "mixed", "empty", "ts", "floats"],
-            fails=TypeError,
-        )
-
-        self.check_result(
-            "loc", slice("20130102", "20130104"), typs=["ts"], axes=1, fails=TypeError
-        )
-
-        self.check_result("loc", slice(2, 8), typs=["mixed"], axes=0, fails=TypeError)
-        self.check_result("loc", slice(2, 8), typs=["mixed"], axes=1, fails=KeyError)
-
-        self.check_result(
-            "loc", slice(2, 4, 2), typs=["mixed"], axes=0, fails=TypeError
+            slc,
+            typs=typs,
+            axes=axes,
+            fails=fails,
         )
 
     def test_setitem_from_duplicate_axis(self):
@@ -956,55 +964,40 @@ class TestLocBaseIndependent:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.arm_slow
-    def test_loc_non_unique_memory_error(self):
+    @pytest.mark.parametrize("length, l2", [[900, 100], [900000, 100000]])
+    def test_loc_non_unique_memory_error(self, length, l2):
 
         # GH 4280
         # non_unique index with a large selection triggers a memory error
 
         columns = list("ABCDEFG")
 
-        def gen_test(length, l2):
-            return pd.concat(
-                [
-                    DataFrame(
-                        np.random.randn(length, len(columns)),
-                        index=np.arange(length),
-                        columns=columns,
-                    ),
-                    DataFrame(
-                        np.ones((l2, len(columns))), index=[0] * l2, columns=columns
-                    ),
-                ]
-            )
+        df = pd.concat(
+            [
+                DataFrame(
+                    np.random.randn(length, len(columns)),
+                    index=np.arange(length),
+                    columns=columns,
+                ),
+                DataFrame(np.ones((l2, len(columns))), index=[0] * l2, columns=columns),
+            ]
+        )
 
-        def gen_expected(df, mask):
-            len_mask = len(mask)
-            return pd.concat(
-                [
-                    df.take([0]),
-                    DataFrame(
-                        np.ones((len_mask, len(columns))),
-                        index=[0] * len_mask,
-                        columns=columns,
-                    ),
-                    df.take(mask[1:]),
-                ]
-            )
-
-        df = gen_test(900, 100)
         assert df.index.is_unique is False
 
-        mask = np.arange(100)
+        mask = np.arange(l2)
         result = df.loc[mask]
-        expected = gen_expected(df, mask)
-        tm.assert_frame_equal(result, expected)
-
-        df = gen_test(900000, 100000)
-        assert df.index.is_unique is False
-
-        mask = np.arange(100000)
-        result = df.loc[mask]
-        expected = gen_expected(df, mask)
+        expected = pd.concat(
+            [
+                df.take([0]),
+                DataFrame(
+                    np.ones((len(mask), len(columns))),
+                    index=[0] * len(mask),
+                    columns=columns,
+                ),
+                df.take(mask[1:]),
+            ]
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_loc_name(self):
@@ -1840,12 +1833,20 @@ class TestLocSetitemWithExpansion:
         ser.loc[3] = 3
         tm.assert_series_equal(ser, Series([1, 3], index=[1, 3]))
 
+    def test_loc_setitem_empty_series_float(self):
+        # GH#5226
+
+        # partially set with an empty object series
         ser = Series(dtype=object)
         ser.loc[1] = 1.0
         tm.assert_series_equal(ser, Series([1.0], index=[1]))
         ser.loc[3] = 3.0
         tm.assert_series_equal(ser, Series([1.0, 3.0], index=[1, 3]))
 
+    def test_loc_setitem_empty_series_str_idx(self):
+        # GH#5226
+
+        # partially set with an empty object series
         ser = Series(dtype=object)
         ser.loc["foo"] = 1
         tm.assert_series_equal(ser, Series([1], index=["foo"]))
@@ -1864,24 +1865,26 @@ class TestLocSetitemWithExpansion:
         expected = Series(1, index=idxs)
         tm.assert_series_equal(result, expected)
 
-    def test_loc_setitem_datetime_keys_cast(self):
-        # GH#9516
-        dt1 = Timestamp("20130101 09:00:00")
-        dt2 = Timestamp("20130101 10:00:00")
-
-        for conv in [
+    @pytest.mark.parametrize(
+        "conv",
+        [
             lambda x: x,
             lambda x: x.to_datetime64(),
             lambda x: x.to_pydatetime(),
             lambda x: np.datetime64(x),
-        ]:
+        ],
+        ids=["self", "to_datetime64", "to_pydatetime", "np.datetime64"],
+    )
+    def test_loc_setitem_datetime_keys_cast(self, conv):
+        # GH#9516
+        dt1 = Timestamp("20130101 09:00:00")
+        dt2 = Timestamp("20130101 10:00:00")
+        df = DataFrame()
+        df.loc[conv(dt1), "one"] = 100
+        df.loc[conv(dt2), "one"] = 200
 
-            df = DataFrame()
-            df.loc[conv(dt1), "one"] = 100
-            df.loc[conv(dt2), "one"] = 200
-
-            expected = DataFrame({"one": [100.0, 200.0]}, index=[dt1, dt2])
-            tm.assert_frame_equal(df, expected)
+        expected = DataFrame({"one": [100.0, 200.0]}, index=[dt1, dt2])
+        tm.assert_frame_equal(df, expected)
 
     def test_loc_setitem_categorical_column_retains_dtype(self, ordered):
         # GH16360
@@ -2732,6 +2735,17 @@ def test_loc_getitem_nullable_index_with_duplicates():
     df2.index = df2.index.astype(object)
     res = df2.loc[1]
     tm.assert_series_equal(res, expected)
+
+
+@pytest.mark.parametrize("value", [300, np.uint16(300), np.int16(300)])
+def test_loc_setitem_uint8_upcast(value):
+    # GH#26049
+
+    df = DataFrame([1, 2, 3, 4], columns=["col1"], dtype="uint8")
+    df.loc[2, "col1"] = value  # value that can't be held in uint8
+
+    expected = DataFrame([1, 2, 300, 4], columns=["col1"], dtype="uint16")
+    tm.assert_frame_equal(df, expected)
 
 
 class TestLocSeries:

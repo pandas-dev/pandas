@@ -158,9 +158,7 @@ class WrappedCythonOp:
         f = getattr(libgroupby, ftype)
         if is_numeric:
             return f
-        # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-        # operand type: "Literal['object']")
-        elif dtype == object:  # type: ignore[comparison-overlap]
+        elif dtype == object:
             if "object" not in f.__signatures__:
                 # raise NotImplementedError here rather than TypeError later
                 raise NotImplementedError(
@@ -755,6 +753,7 @@ class BaseGrouper:
         zipped = zip(group_keys, splitter)
 
         for key, group in zipped:
+            group = group.__finalize__(data, method="groupby")
             object.__setattr__(group, "name", key)
 
             # group might be modified
@@ -807,6 +806,7 @@ class BaseGrouper:
         Compute group sizes.
         """
         ids, _, ngroups = self.group_info
+        out: np.ndarray | list
         if ngroups:
             out = np.bincount(ids[ids != -1], minlength=ngroups)
         else:
@@ -1001,6 +1001,7 @@ class BaseGrouper:
         splitter = get_splitter(obj, ids, ngroups, axis=0)
 
         for i, group in enumerate(splitter):
+            group = group.__finalize__(obj, method="groupby")
             res = func(group)
             res = libreduction.extract_result(res)
 
@@ -1244,13 +1245,7 @@ class SeriesSplitter(DataSplitter):
         # fastpath equivalent to `sdata.iloc[slice_obj]`
         mgr = sdata._mgr.get_slice(slice_obj)
         # __finalize__ not called here, must be applied by caller if applicable
-
-        # fastpath equivalent to:
-        # `return sdata._constructor(mgr, name=sdata.name, fastpath=True)`
-        obj = type(sdata)._from_mgr(mgr)
-        object.__setattr__(obj, "_flags", sdata._flags)
-        object.__setattr__(obj, "_name", sdata._name)
-        return obj
+        return sdata._constructor(mgr, name=sdata.name, fastpath=True)
 
 
 class FrameSplitter(DataSplitter):
@@ -1262,11 +1257,7 @@ class FrameSplitter(DataSplitter):
         #     return sdata.iloc[:, slice_obj]
         mgr = sdata._mgr.get_slice(slice_obj, axis=1 - self.axis)
         # __finalize__ not called here, must be applied by caller if applicable
-
-        # fastpath equivalent to `return sdata._constructor(mgr)`
-        obj = type(sdata)._from_mgr(mgr)
-        object.__setattr__(obj, "_flags", sdata._flags)
-        return obj
+        return sdata._constructor(mgr)
 
 
 def get_splitter(
