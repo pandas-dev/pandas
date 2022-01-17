@@ -50,6 +50,7 @@ from pandas.tests.extension.base.dim2 import (  # noqa
 from pandas.tests.extension.base.dtype import BaseDtypeTests  # noqa
 from pandas.tests.extension.base.getitem import BaseGetitemTests  # noqa
 from pandas.tests.extension.base.groupby import BaseGroupbyTests  # noqa
+from pandas.tests.extension.base.index import BaseIndexTests  # noqa
 from pandas.tests.extension.base.interface import BaseInterfaceTests  # noqa
 from pandas.tests.extension.base.io import BaseParsingTests  # noqa
 from pandas.tests.extension.base.methods import BaseMethodsTests  # noqa

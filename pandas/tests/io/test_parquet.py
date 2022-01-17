@@ -15,6 +15,7 @@ from pandas._config import get_option
 
 from pandas.compat.pyarrow import (
     pa_version_under2p0,
+    pa_version_under3p0,
     pa_version_under5p0,
     pa_version_under6p0,
 )
@@ -43,6 +44,9 @@ try:
     with catch_warnings():
         # `np.bool` is a deprecated alias...
         filterwarnings("ignore", "`np.bool`", category=DeprecationWarning)
+        # accessing pd.Int64Index in pd namespace
+        filterwarnings("ignore", ".*Int64Index.*", category=FutureWarning)
+
         import fastparquet
 
     _HAVE_FASTPARQUET = True
@@ -382,7 +386,7 @@ class Base:
             pytest.importorskip(engine)
         url = (
             "https://raw.githubusercontent.com/pandas-dev/pandas/"
-            "master/pandas/tests/io/data/parquet/simple.parquet"
+            "main/pandas/tests/io/data/parquet/simple.parquet"
         )
         df = read_parquet(url)
         tm.assert_frame_equal(df, df_compat)
@@ -651,9 +655,9 @@ class TestBasic(Base):
             pytest.param(
                 "period[D]",
                 # Note: I don't know exactly what version the cutoff is;
-                #  On the CI it fails with 1.0.1
+                #  On the CI it fails with 1.0.1 & 2.0.0
                 marks=pytest.mark.xfail(
-                    pa_version_under2p0,
+                    pa_version_under3p0,
                     reason="pyarrow uses pandas internal API incorrectly",
                 ),
             ),
@@ -896,7 +900,7 @@ class TestParquetPyArrow(Base):
 
     @td.skip_if_no("pyarrow")
     @pytest.mark.xfail(
-        pa_version_under2p0, reason="pyarrow uses pandas internal API incorrectly"
+        pa_version_under3p0, reason="pyarrow uses pandas internal API incorrectly"
     )
     def test_additional_extension_types(self, pa):
         # test additional ExtensionArrays that are supported through the

@@ -204,13 +204,16 @@ class TestConcatAppendCommon:
             #  instead of a list; we have separate dedicated tests for categorical
             return
 
+        warn = None
         # specify expected dtype
         if typ1 == "bool" and typ2 in ("int64", "float64"):
             # series coerces to numeric based on numpy rule
             # index doesn't because bool is object dtype
             exp_series_dtype = typ2
+            warn = FutureWarning
         elif typ2 == "bool" and typ1 in ("int64", "float64"):
             exp_series_dtype = typ1
+            warn = FutureWarning
         elif (
             typ1 == "datetime64[ns, US/Eastern]"
             or typ2 == "datetime64[ns, US/Eastern]"
@@ -238,23 +241,33 @@ class TestConcatAppendCommon:
         # ----- Series ----- #
 
         # series._append
-        res = Series(vals1)._append(Series(vals2), ignore_index=True)
+        with tm.assert_produces_warning(warn, match="concatenating bool-dtype"):
+            # GH#39817
+            res = Series(vals1)._append(Series(vals2), ignore_index=True)
         exp = Series(exp_data, dtype=exp_series_dtype)
         tm.assert_series_equal(res, exp, check_index_type=True)
 
         # concat
-        res = pd.concat([Series(vals1), Series(vals2)], ignore_index=True)
+        with tm.assert_produces_warning(warn, match="concatenating bool-dtype"):
+            # GH#39817
+            res = pd.concat([Series(vals1), Series(vals2)], ignore_index=True)
         tm.assert_series_equal(res, exp, check_index_type=True)
 
         # 3 elements
-        res = Series(vals1)._append([Series(vals2), Series(vals3)], ignore_index=True)
+        with tm.assert_produces_warning(warn, match="concatenating bool-dtype"):
+            # GH#39817
+            res = Series(vals1)._append(
+                [Series(vals2), Series(vals3)], ignore_index=True
+            )
         exp = Series(exp_data3, dtype=exp_series_dtype)
         tm.assert_series_equal(res, exp)
 
-        res = pd.concat(
-            [Series(vals1), Series(vals2), Series(vals3)],
-            ignore_index=True,
-        )
+        with tm.assert_produces_warning(warn, match="concatenating bool-dtype"):
+            # GH#39817
+            res = pd.concat(
+                [Series(vals1), Series(vals2), Series(vals3)],
+                ignore_index=True,
+            )
         tm.assert_series_equal(res, exp)
 
     def test_concatlike_common_coerce_to_pandas_object(self):
@@ -495,7 +508,7 @@ class TestConcatAppendCommon:
         s1 = Series([10, 11, np.nan], dtype="category")
         s2 = Series([np.nan, 1, 3, 2], dtype="category")
 
-        exp = Series([10, 11, np.nan, np.nan, 1, 3, 2], dtype="object")
+        exp = Series([10, 11, np.nan, np.nan, 1, 3, 2], dtype=np.float64)
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s1._append(s2, ignore_index=True), exp)
 
@@ -516,12 +529,12 @@ class TestConcatAppendCommon:
         s1 = Series([1, 2, np.nan], dtype="category")
         s2 = Series([2, 1, 2])
 
-        exp = Series([1, 2, np.nan, 2, 1, 2], dtype="object")
+        exp = Series([1, 2, np.nan, 2, 1, 2], dtype=np.float64)
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s1._append(s2, ignore_index=True), exp)
 
         # result shouldn't be affected by 1st elem dtype
-        exp = Series([2, 1, 2, 1, 2, np.nan], dtype="object")
+        exp = Series([2, 1, 2, 1, 2, np.nan], dtype=np.float64)
         tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), exp)
         tm.assert_series_equal(s2._append(s1, ignore_index=True), exp)
 
@@ -541,11 +554,11 @@ class TestConcatAppendCommon:
         s1 = Series([10, 11, np.nan], dtype="category")
         s2 = Series([1, 3, 2])
 
-        exp = Series([10, 11, np.nan, 1, 3, 2], dtype="object")
+        exp = Series([10, 11, np.nan, 1, 3, 2], dtype=np.float64)
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s1._append(s2, ignore_index=True), exp)
 
-        exp = Series([1, 3, 2, 10, 11, np.nan], dtype="object")
+        exp = Series([1, 3, 2, 10, 11, np.nan], dtype=np.float64)
         tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), exp)
         tm.assert_series_equal(s2._append(s1, ignore_index=True), exp)
 

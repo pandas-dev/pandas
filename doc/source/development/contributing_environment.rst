@@ -47,7 +47,7 @@ Enable Docker support and use the Services tool window to build and manage image
 run and interact with containers.
 See https://www.jetbrains.com/help/pycharm/docker.html for details.
 
-Note that you might need to rebuild the C extensions if/when you merge with upstream/master using::
+Note that you might need to rebuild the C extensions if/when you merge with upstream/main using::
 
     python setup.py build_ext -j 4
 

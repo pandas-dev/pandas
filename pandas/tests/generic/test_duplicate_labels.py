@@ -316,9 +316,7 @@ class TestRaises:
             pytest.param(
                 operator.itemgetter((0, [0, 0])), "iloc", marks=not_implemented
             ),
-            pytest.param(
-                operator.itemgetter(([0, 0], 0)), "iloc", marks=not_implemented
-            ),
+            pytest.param(operator.itemgetter(([0, 0], 0)), "iloc"),
         ],
     )
     def test_getitem_raises(self, getter, target):

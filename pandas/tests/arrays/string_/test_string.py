@@ -287,6 +287,14 @@ def test_constructor_raises(cls):
         cls(np.array(["a", np.timedelta64("NaT", "ns")], dtype=object))
 
 
+@pytest.mark.parametrize("na", [np.nan, np.float64("nan"), float("nan"), None, pd.NA])
+def test_constructor_nan_like(na):
+    expected = pd.arrays.StringArray(np.array(["a", pd.NA]))
+    tm.assert_extension_array_equal(
+        pd.arrays.StringArray(np.array(["a", na], dtype="object")), expected
+    )
+
+
 @pytest.mark.parametrize("copy", [True, False])
 def test_from_sequence_no_mutate(copy, cls, request):
     if cls is ArrowStringArray and copy is False:
@@ -473,18 +481,18 @@ def test_arrow_load_from_zero_chunks(dtype, string_storage2):
 def test_value_counts_na(dtype):
     arr = pd.array(["a", "b", "a", pd.NA], dtype=dtype)
     result = arr.value_counts(dropna=False)
-    expected = pd.Series([2, 1, 1], index=["a", "b", pd.NA], dtype="Int64")
+    expected = pd.Series([2, 1, 1], index=arr[[0, 1, 3]], dtype="Int64")
     tm.assert_series_equal(result, expected)
 
     result = arr.value_counts(dropna=True)
-    expected = pd.Series([2, 1], index=["a", "b"], dtype="Int64")
+    expected = pd.Series([2, 1], index=arr[:2], dtype="Int64")
     tm.assert_series_equal(result, expected)
 
 
 def test_value_counts_with_normalize(dtype):
     ser = pd.Series(["a", "b", "a", pd.NA], dtype=dtype)
     result = ser.value_counts(normalize=True)
-    expected = pd.Series([2, 1], index=["a", "b"], dtype="Float64") / 3
+    expected = pd.Series([2, 1], index=ser[:2], dtype="Float64") / 3
     tm.assert_series_equal(result, expected)
 
 

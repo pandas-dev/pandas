@@ -19,7 +19,6 @@ from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_1d_only_ea_dtype,
-    is_bool_dtype,
     is_extension_array_dtype,
     is_integer,
     is_integer_dtype,
@@ -39,6 +38,7 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
 )
+from pandas.core.indexes.frozen import FrozenList
 from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index,
@@ -278,9 +278,6 @@ class _Unstacker:
         if needs_i8_conversion(values.dtype):
             sorted_values = sorted_values.view("i8")
             new_values = new_values.view("i8")
-        elif is_bool_dtype(values.dtype):
-            sorted_values = sorted_values.astype("object")
-            new_values = new_values.astype("object")
         else:
             sorted_values = sorted_values.astype(name, copy=False)
 
@@ -316,15 +313,16 @@ class _Unstacker:
         stride = len(self.removed_level) + self.lift
         width = len(value_columns)
         propagator = np.repeat(np.arange(width), stride)
+
+        new_levels: FrozenList | list[Index]
+
         if isinstance(value_columns, MultiIndex):
             new_levels = value_columns.levels + (self.removed_level_full,)
             new_names = value_columns.names + (self.removed_name,)
 
             new_codes = [lab.take(propagator) for lab in value_columns.codes]
         else:
-            # error: Incompatible types in assignment (expression has type "List[Any]",
-            # variable has type "FrozenList")
-            new_levels = [  # type: ignore[assignment]
+            new_levels = [
                 value_columns,
                 self.removed_level_full,
             ]
@@ -1020,10 +1018,11 @@ def _get_dummies_1d(
         raise ValueError("dtype=object is not a valid dtype for get_dummies")
 
     def get_empty_frame(data) -> DataFrame:
+        index: Index | np.ndarray
         if isinstance(data, Series):
             index = data.index
         else:
-            index = np.arange(len(data))
+            index = Index(range(len(data)))
         return DataFrame(index=index)
 
     # if all NaN
@@ -1033,7 +1032,7 @@ def _get_dummies_1d(
     codes = codes.copy()
     if dummy_na:
         codes[codes == -1] = len(levels)
-        levels = np.append(levels, np.nan)
+        levels = levels.insert(len(levels), np.nan)
 
     # if dummy_na, we just fake a nan level. drop_first will drop it again
     if drop_first and len(levels) == 1:

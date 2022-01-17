@@ -1,0 +1,57 @@
+name: Data Manager
+
+on:
+  push:
+    branches:
+      - main
+      - 1.4.x
+  pull_request:
+    branches:
+      - main
+      - 1.4.x
+
+env:
+  ENV_FILE: environment.yml
+  PANDAS_CI: 1
+
+jobs:
+  data_manager:
+    name: Test experimental data manager
+    runs-on: ubuntu-latest
+    services:
+      moto:
+        image: motoserver/moto
+        env:
+          AWS_ACCESS_KEY_ID: foobar_key
+          AWS_SECRET_ACCESS_KEY: foobar_secret
+        ports:
+          - 5000:5000
+    strategy:
+      matrix:
+        pattern: ["not slow and not network and not clipboard", "slow"]
+    concurrency:
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-data_manager-${{ matrix.pattern }}
+      cancel-in-progress: true
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Set up pandas
+      uses: ./.github/actions/setup
+
+    - name: Run tests
+      env:
+        PANDAS_DATA_MANAGER: array
+        PATTERN: ${{ matrix.pattern }}
+        PYTEST_WORKERS: "auto"
+        PYTEST_TARGET: pandas
+      run: |
+        source activate pandas-dev
+        ci/run_tests.sh
+
+    - name: Print skipped tests
+      run: python ci/print_skipped.py
