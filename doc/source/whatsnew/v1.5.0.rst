@@ -145,7 +145,7 @@ Other Deprecations
 - Deprecated behavior of :meth:`SparseArray.astype`, :meth:`Series.astype`, and :meth:`DataFrame.astype` with :class:`SparseDtype` when passing a non-sparse ``dtype``. In a future version, this will cast to that non-sparse dtype instead of wrapping it in a :class:`SparseDtype` (:issue:`34457`)
 - Deprecated behavior of :meth:`DatetimeIndex.intersection` and :meth:`DatetimeIndex.symmetric_difference` (``union`` behavior was already deprecated in version 1.3.0) with mixed timezones; in a future version both will be cast to UTC instead of object dtype (:issue:`39328`, :issue:`45357`)
 - Deprecated :meth:`DataFrame.iteritems`, :meth:`Series.iteritems`, :meth:`HDFStore.iteritems` in favor of :meth:`DataFrame.items`, :meth:`Series.items`, :meth:`HDFStore.items`  (:issue:`45321`)
--
+- Deprecated :meth:`Index.is_monotonic` in favor of :meth:`Index.is_monotonic_increasing` (:issue:``)
 
 
 .. ---------------------------------------------------------------------------
