@@ -95,6 +95,10 @@ class TestSetitem(base.BaseSetitemTests):
     pass
 
 
+class TestIndex(base.BaseIndexTests):
+    pass
+
+
 class TestMissing(base.BaseMissingTests):
     pass
 
@@ -149,17 +153,6 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
     def check_opname(self, s, op_name, other, exc=None):
         # overwriting to indicate ops don't raise an error
         super().check_opname(s, op_name, other, exc=None)
-
-    def _compare_other(self, s, data, op_name, other):
-        self.check_opname(s, op_name, other)
-
-    @pytest.mark.skip(reason="Tested in tests/arrays/test_boolean.py")
-    def test_compare_scalar(self, data, all_compare_operators):
-        pass
-
-    @pytest.mark.skip(reason="Tested in tests/arrays/test_boolean.py")
-    def test_compare_array(self, data, all_compare_operators):
-        pass
 
 
 class TestReshaping(base.BaseReshapingTests):
@@ -219,13 +212,13 @@ class TestMethods(base.BaseMethodsTests):
         sorter = np.array([1, 0])
         assert data_for_sorting.searchsorted(a, sorter=sorter) == 0
 
-    @pytest.mark.skip(reason="uses nullable integer")
+    @pytest.mark.xfail(reason="uses nullable integer")
     def test_value_counts(self, all_data, dropna):
         return super().test_value_counts(all_data, dropna)
 
-    @pytest.mark.skip(reason="uses nullable integer")
+    @pytest.mark.xfail(reason="uses nullable integer")
     def test_value_counts_with_normalize(self, data):
-        pass
+        super().test_value_counts_with_normalize(data)
 
     def test_argmin_argmax(self, data_for_sorting, data_missing_for_sorting):
         # override because there are only 2 unique values
@@ -381,7 +374,6 @@ class TestNumericReduce(base.BaseNumericReduceTests):
         tm.assert_almost_equal(result, expected)
 
 
-@pytest.mark.skip(reason="Tested in tests/reductions/test_reductions.py")
 class TestBooleanReduce(base.BaseBooleanReduceTests):
     pass
 
@@ -395,4 +387,8 @@ class TestUnaryOps(base.BaseUnaryOpsTests):
 
 
 class TestParsing(base.BaseParsingTests):
+    pass
+
+
+class Test2DCompat(base.Dim2CompatTests):
     pass

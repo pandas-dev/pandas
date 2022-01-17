@@ -18,108 +18,95 @@ import pandas._testing as tm
 # Generic types test cases
 
 
-class Generic:
-    @property
-    def _ndim(self):
-        return self._typ._AXIS_LEN
+def construct(box, shape, value=None, dtype=None, **kwargs):
+    """
+    construct an object for the given shape
+    if value is specified use that if its a scalar
+    if value is an array, repeat it as needed
+    """
+    if isinstance(shape, int):
+        shape = tuple([shape] * box._AXIS_LEN)
+    if value is not None:
+        if is_scalar(value):
+            if value == "empty":
+                arr = None
+                dtype = np.float64
 
-    def _axes(self):
-        """return the axes for my object typ"""
-        return self._typ._AXIS_ORDERS
-
-    def _construct(self, shape, value=None, dtype=None, **kwargs):
-        """
-        construct an object for the given shape
-        if value is specified use that if its a scalar
-        if value is an array, repeat it as needed
-        """
-        if isinstance(shape, int):
-            shape = tuple([shape] * self._ndim)
-        if value is not None:
-            if is_scalar(value):
-                if value == "empty":
-                    arr = None
-                    dtype = np.float64
-
-                    # remove the info axis
-                    kwargs.pop(self._typ._info_axis_name, None)
-                else:
-                    arr = np.empty(shape, dtype=dtype)
-                    arr.fill(value)
+                # remove the info axis
+                kwargs.pop(box._info_axis_name, None)
             else:
-                fshape = np.prod(shape)
-                arr = value.ravel()
-                new_shape = fshape / arr.shape[0]
-                if fshape % arr.shape[0] != 0:
-                    raise Exception("invalid value passed in _construct")
-
-                arr = np.repeat(arr, new_shape).reshape(shape)
+                arr = np.empty(shape, dtype=dtype)
+                arr.fill(value)
         else:
-            arr = np.random.randn(*shape)
-        return self._typ(arr, dtype=dtype, **kwargs)
+            fshape = np.prod(shape)
+            arr = value.ravel()
+            new_shape = fshape / arr.shape[0]
+            if fshape % arr.shape[0] != 0:
+                raise Exception("invalid value passed in construct")
 
-    def _compare(self, result, expected):
-        self._comparator(result, expected)
+            arr = np.repeat(arr, new_shape).reshape(shape)
+    else:
+        arr = np.random.randn(*shape)
+    return box(arr, dtype=dtype, **kwargs)
 
-    def test_rename(self):
+
+class Generic:
+    @pytest.mark.parametrize(
+        "func",
+        [
+            str.lower,
+            {x: x.lower() for x in list("ABCD")},
+            Series({x: x.lower() for x in list("ABCD")}),
+        ],
+    )
+    def test_rename(self, frame_or_series, func):
 
         # single axis
         idx = list("ABCD")
-        # relabeling values passed into self.rename
-        args = [
-            str.lower,
-            {x: x.lower() for x in idx},
-            Series({x: x.lower() for x in idx}),
-        ]
 
-        for axis in self._axes():
+        for axis in frame_or_series._AXIS_ORDERS:
             kwargs = {axis: idx}
-            obj = self._construct(4, **kwargs)
+            obj = construct(4, **kwargs)
 
-            for arg in args:
-                # rename a single axis
-                result = obj.rename(**{axis: arg})
-                expected = obj.copy()
-                setattr(expected, axis, list("abcd"))
-                self._compare(result, expected)
+            # rename a single axis
+            result = obj.rename(**{axis: func})
+            expected = obj.copy()
+            setattr(expected, axis, list("abcd"))
+            tm.assert_equal(result, expected)
 
-        # multiple axes at once
-
-    def test_get_numeric_data(self):
+    def test_get_numeric_data(self, frame_or_series):
 
         n = 4
         kwargs = {
-            self._typ._get_axis_name(i): list(range(n)) for i in range(self._ndim)
+            frame_or_series._get_axis_name(i): list(range(n))
+            for i in range(frame_or_series._AXIS_LEN)
         }
 
         # get the numeric data
-        o = self._construct(n, **kwargs)
+        o = construct(n, **kwargs)
         result = o._get_numeric_data()
-        self._compare(result, o)
+        tm.assert_equal(result, o)
 
         # non-inclusion
         result = o._get_bool_data()
-        expected = self._construct(n, value="empty", **kwargs)
+        expected = construct(n, value="empty", **kwargs)
         if isinstance(o, DataFrame):
             # preserve columns dtype
             expected.columns = o.columns[:0]
-        self._compare(result, expected)
+        tm.assert_equal(result, expected)
 
         # get the bool data
         arr = np.array([True, True, False, True])
-        o = self._construct(n, value=arr, **kwargs)
+        o = construct(n, value=arr, **kwargs)
         result = o._get_numeric_data()
-        self._compare(result, o)
+        tm.assert_equal(result, o)
 
-        # _get_numeric_data is includes _get_bool_data, so can't test for
-        # non-inclusion
-
-    def test_nonzero(self):
+    def test_nonzero(self, frame_or_series):
 
         # GH 4633
         # look at the boolean/nonzero behavior for objects
-        obj = self._construct(shape=4)
-        msg = f"The truth value of a {self._typ.__name__} is ambiguous"
+        obj = construct(frame_or_series, shape=4)
+        msg = f"The truth value of a {frame_or_series.__name__} is ambiguous"
         with pytest.raises(ValueError, match=msg):
             bool(obj == 0)
         with pytest.raises(ValueError, match=msg):
@@ -127,7 +114,7 @@ class Generic:
         with pytest.raises(ValueError, match=msg):
             bool(obj)
 
-        obj = self._construct(shape=4, value=1)
+        obj = construct(frame_or_series, shape=4, value=1)
         with pytest.raises(ValueError, match=msg):
             bool(obj == 0)
         with pytest.raises(ValueError, match=msg):
@@ -135,7 +122,7 @@ class Generic:
         with pytest.raises(ValueError, match=msg):
             bool(obj)
 
-        obj = self._construct(shape=4, value=np.nan)
+        obj = construct(frame_or_series, shape=4, value=np.nan)
         with pytest.raises(ValueError, match=msg):
             bool(obj == 0)
         with pytest.raises(ValueError, match=msg):
@@ -144,14 +131,14 @@ class Generic:
             bool(obj)
 
         # empty
-        obj = self._construct(shape=0)
+        obj = construct(frame_or_series, shape=0)
         with pytest.raises(ValueError, match=msg):
             bool(obj)
 
         # invalid behaviors
 
-        obj1 = self._construct(shape=4, value=1)
-        obj2 = self._construct(shape=4, value=1)
+        obj1 = construct(frame_or_series, shape=4, value=1)
+        obj2 = construct(frame_or_series, shape=4, value=1)
 
         with pytest.raises(ValueError, match=msg):
             if obj1:
@@ -164,29 +151,16 @@ class Generic:
         with pytest.raises(ValueError, match=msg):
             not obj1
 
-    def test_downcast(self):
-        # test close downcasting
-
-        o = self._construct(shape=4, value=9, dtype=np.int64)
-        result = o.copy()
-        result._mgr = o._mgr.downcast()
-        self._compare(result, o)
-
-        o = self._construct(shape=4, value=9.5)
-        result = o.copy()
-        result._mgr = o._mgr.downcast()
-        self._compare(result, o)
-
-    def test_constructor_compound_dtypes(self):
+    def test_frame_or_series_compound_dtypes(self, frame_or_series):
         # see gh-5191
         # Compound dtypes should raise NotImplementedError.
 
         def f(dtype):
-            return self._construct(shape=3, value=1, dtype=dtype)
+            return construct(frame_or_series, shape=3, value=1, dtype=dtype)
 
         msg = (
             "compound dtypes are not implemented "
-            f"in the {self._typ.__name__} constructor"
+            f"in the {frame_or_series.__name__} frame_or_series"
         )
 
         with pytest.raises(NotImplementedError, match=msg):
@@ -197,20 +171,12 @@ class Generic:
         f("float64")
         f("M8[ns]")
 
-    def check_metadata(self, x, y=None):
-        for m in x._metadata:
-            v = getattr(x, m, None)
-            if y is None:
-                assert v is None
-            else:
-                assert v == getattr(y, m, None)
-
-    def test_metadata_propagation(self):
+    def test_metadata_propagation(self, frame_or_series):
         # check that the metadata matches up on the resulting ops
 
-        o = self._construct(shape=3)
+        o = construct(frame_or_series, shape=3)
         o.name = "foo"
-        o2 = self._construct(shape=3)
+        o2 = construct(frame_or_series, shape=3)
         o2.name = "bar"
 
         # ----------
@@ -220,23 +186,23 @@ class Generic:
         # simple ops with scalars
         for op in ["__add__", "__sub__", "__truediv__", "__mul__"]:
             result = getattr(o, op)(1)
-            self.check_metadata(o, result)
+            tm.assert_metadata_equivalent(o, result)
 
         # ops with like
         for op in ["__add__", "__sub__", "__truediv__", "__mul__"]:
             result = getattr(o, op)(o)
-            self.check_metadata(o, result)
+            tm.assert_metadata_equivalent(o, result)
 
         # simple boolean
         for op in ["__eq__", "__le__", "__ge__"]:
             v1 = getattr(o, op)(o)
-            self.check_metadata(o, v1)
-            self.check_metadata(o, v1 & v1)
-            self.check_metadata(o, v1 | v1)
+            tm.assert_metadata_equivalent(o, v1)
+            tm.assert_metadata_equivalent(o, v1 & v1)
+            tm.assert_metadata_equivalent(o, v1 | v1)
 
         # combine_first
         result = o.combine_first(o2)
-        self.check_metadata(o, result)
+        tm.assert_metadata_equivalent(o, result)
 
         # ---------------------------
         # non-preserving (by default)
@@ -244,7 +210,7 @@ class Generic:
 
         # add non-like
         result = o + o2
-        self.check_metadata(result)
+        tm.assert_metadata_equivalent(result)
 
         # simple boolean
         for op in ["__eq__", "__le__", "__ge__"]:
@@ -252,27 +218,27 @@ class Generic:
             # this is a name matching op
             v1 = getattr(o, op)(o)
             v2 = getattr(o, op)(o2)
-            self.check_metadata(v2)
-            self.check_metadata(v1 & v2)
-            self.check_metadata(v1 | v2)
+            tm.assert_metadata_equivalent(v2)
+            tm.assert_metadata_equivalent(v1 & v2)
+            tm.assert_metadata_equivalent(v1 | v2)
 
-    def test_size_compat(self):
+    def test_size_compat(self, frame_or_series):
         # GH8846
         # size property should be defined
 
-        o = self._construct(shape=10)
+        o = construct(frame_or_series, shape=10)
         assert o.size == np.prod(o.shape)
         assert o.size == 10 ** len(o.axes)
 
-    def test_split_compat(self):
+    def test_split_compat(self, frame_or_series):
         # xref GH8846
-        o = self._construct(shape=10)
+        o = construct(frame_or_series, shape=10)
         assert len(np.array_split(o, 5)) == 5
         assert len(np.array_split(o, 2)) == 2
 
     # See gh-12301
-    def test_stat_unexpected_keyword(self):
-        obj = self._construct(5)
+    def test_stat_unexpected_keyword(self, frame_or_series):
+        obj = construct(frame_or_series, 5)
         starwars = "Star Wars"
         errmsg = "unexpected keyword"
 
@@ -286,18 +252,18 @@ class Generic:
             obj.any(epic=starwars)  # logical_function
 
     @pytest.mark.parametrize("func", ["sum", "cumsum", "any", "var"])
-    def test_api_compat(self, func):
+    def test_api_compat(self, func, frame_or_series):
 
         # GH 12021
         # compat for __name__, __qualname__
 
-        obj = self._construct(5)
+        obj = (frame_or_series, 5)
         f = getattr(obj, func)
         assert f.__name__ == func
         assert f.__qualname__.endswith(func)
 
-    def test_stat_non_defaults_args(self):
-        obj = self._construct(5)
+    def test_stat_non_defaults_args(self, frame_or_series):
+        obj = construct(frame_or_series, 5)
         out = np.array([0])
         errmsg = "the 'out' parameter is not supported"
 
@@ -310,34 +276,34 @@ class Generic:
         with pytest.raises(ValueError, match=errmsg):
             obj.any(out=out)  # logical_function
 
-    def test_truncate_out_of_bounds(self):
+    def test_truncate_out_of_bounds(self, frame_or_series):
         # GH11382
 
         # small
-        shape = [2000] + ([1] * (self._ndim - 1))
-        small = self._construct(shape, dtype="int8", value=1)
-        self._compare(small.truncate(), small)
-        self._compare(small.truncate(before=0, after=3e3), small)
-        self._compare(small.truncate(before=-1, after=2e3), small)
+        shape = [2000] + ([1] * (frame_or_series._AXIS_LEN - 1))
+        small = construct(frame_or_series, shape, dtype="int8", value=1)
+        tm.assert_equal(small.truncate(), small)
+        tm.assert_equal(small.truncate(before=0, after=3e3), small)
+        tm.assert_equal(small.truncate(before=-1, after=2e3), small)
 
         # big
-        shape = [2_000_000] + ([1] * (self._ndim - 1))
-        big = self._construct(shape, dtype="int8", value=1)
-        self._compare(big.truncate(), big)
-        self._compare(big.truncate(before=0, after=3e6), big)
-        self._compare(big.truncate(before=-1, after=2e6), big)
+        shape = [2_000_000] + ([1] * (frame_or_series._AXIS_LEN - 1))
+        big = construct(frame_or_series, shape, dtype="int8", value=1)
+        tm.assert_equal(big.truncate(), big)
+        tm.assert_equal(big.truncate(before=0, after=3e6), big)
+        tm.assert_equal(big.truncate(before=-1, after=2e6), big)
 
     @pytest.mark.parametrize(
         "func",
         [copy, deepcopy, lambda x: x.copy(deep=False), lambda x: x.copy(deep=True)],
     )
     @pytest.mark.parametrize("shape", [0, 1, 2])
-    def test_copy_and_deepcopy(self, shape, func):
+    def test_copy_and_deepcopy(self, frame_or_series, shape, func):
         # GH 15444
-        obj = self._construct(shape)
+        obj = construct(frame_or_series, shape)
         obj_copy = func(obj)
         assert obj_copy is not obj
-        self._compare(obj_copy, obj)
+        tm.assert_equal(obj_copy, obj)
 
 
 class TestNDFrame:
@@ -395,8 +361,7 @@ class TestNDFrame:
     def test_numpy_transpose(self, frame_or_series):
 
         obj = tm.makeTimeDataFrame()
-        if frame_or_series is Series:
-            obj = obj["A"]
+        obj = tm.get_obj(obj, frame_or_series)
 
         if frame_or_series is Series:
             # 1D -> np.transpose is no-op
@@ -430,8 +395,7 @@ class TestNDFrame:
         indices = [-3, 2, 0, 1]
 
         obj = tm.makeTimeDataFrame()
-        if frame_or_series is Series:
-            obj = obj["A"]
+        obj = tm.get_obj(obj, frame_or_series)
 
         msg = r"take\(\) got an unexpected keyword argument 'foo'"
         with pytest.raises(TypeError, match=msg):
@@ -449,8 +413,7 @@ class TestNDFrame:
     def test_depr_take_kwarg_is_copy(self, is_copy, frame_or_series):
         # GH 27357
         obj = DataFrame({"A": [1, 2, 3]})
-        if frame_or_series is Series:
-            obj = obj["A"]
+        obj = tm.get_obj(obj, frame_or_series)
 
         msg = (
             "is_copy is deprecated and will be removed in a future version. "
@@ -498,8 +461,7 @@ class TestNDFrame:
     def test_slice_shift_deprecated(self, frame_or_series):
         # GH 37601
         obj = DataFrame({"A": [1, 2, 3, 4]})
-        if frame_or_series is DataFrame:
-            obj = obj["A"]
+        obj = tm.get_obj(obj, frame_or_series)
 
         with tm.assert_produces_warning(FutureWarning):
             obj.slice_shift()

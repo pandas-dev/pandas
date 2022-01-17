@@ -277,6 +277,16 @@ class ToDatetimeCache:
         to_datetime(self.dup_string_with_tz, cache=cache)
 
 
+# GH 43901
+class ToDatetimeInferDatetimeFormat:
+    def setup(self):
+        rng = date_range(start="1/1/2000", periods=100000, freq="H")
+        self.strings = rng.strftime("%Y-%m-%d %H:%M:%S").tolist()
+
+    def time_infer_datetime_format(self):
+        to_datetime(self.strings, infer_datetime_format=True)
+
+
 class ToTimedelta:
     def setup(self):
         self.ints = np.random.randint(0, 60, size=10000)

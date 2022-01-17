@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from io import StringIO
 import re
 
 import numpy as np
@@ -484,8 +483,7 @@ class TestDataFrameReplace:
         # GH 21977
         ser = Series([["a", "b"], [], np.nan, [1]])
         obj = DataFrame({"col": ser})
-        if frame_or_series is Series:
-            obj = ser
+        obj = tm.get_obj(obj, frame_or_series)
         expected = obj
         result = obj.replace([], np.nan)
         tm.assert_equal(result, expected)
@@ -623,6 +621,23 @@ class TestDataFrameReplace:
         m = df.mean()
         expected.iloc[0, 0] = m[0]
         expected.iloc[1, 1] = m[1]
+        tm.assert_frame_equal(result, expected)
+
+    def test_replace_nullable_int_with_string_doesnt_cast(self):
+        # GH#25438 don't cast df['a'] to float64
+        df = DataFrame({"a": [1, 2, 3, np.nan], "b": ["some", "strings", "here", "he"]})
+        df["a"] = df["a"].astype("Int64")
+
+        res = df.replace("", np.nan)
+        tm.assert_series_equal(res["a"], df["a"])
+
+    @pytest.mark.parametrize("dtype", ["boolean", "Int64", "Float64"])
+    def test_replace_with_nullable_column(self, dtype):
+        # GH-44499
+        nullable_ser = Series([1, 0, 1], dtype=dtype)
+        df = DataFrame({"A": ["A", "B", "x"], "B": nullable_ser})
+        result = df.replace("x", "X")
+        expected = DataFrame({"A": ["A", "B", "X"], "B": nullable_ser})
         tm.assert_frame_equal(result, expected)
 
     def test_replace_simple_nested_dict(self):
@@ -912,12 +927,14 @@ class TestDataFrameReplace:
         tm.assert_frame_equal(res3, expected)
 
     def test_replace_doesnt_replace_without_regex(self):
-        raw = """fol T_opp T_Dir T_Enh
-        0    1     0     0    vo
-        1    2    vr     0     0
-        2    2     0     0     0
-        3    3     0    bt     0"""
-        df = pd.read_csv(StringIO(raw), sep=r"\s+")
+        df = DataFrame(
+            {
+                "fol": [1, 2, 2, 3],
+                "T_opp": ["0", "vr", "0", "0"],
+                "T_Dir": ["0", "0", "0", "bt"],
+                "T_Enh": ["vo", "0", "0", "0"],
+            }
+        )
         res = df.replace({r"\D": 1})
         tm.assert_frame_equal(df, res)
 
@@ -1109,12 +1126,17 @@ class TestDataFrameReplace:
         # coerce to object
         result = df.copy()
         result.iloc[1, 0] = np.nan
-        result = result.replace({"A": pd.NaT}, Timestamp("20130104", tz="US/Pacific"))
+        with tm.assert_produces_warning(FutureWarning, match="mismatched timezone"):
+            result = result.replace(
+                {"A": pd.NaT}, Timestamp("20130104", tz="US/Pacific")
+            )
         expected = DataFrame(
             {
                 "A": [
                     Timestamp("20130101", tz="US/Eastern"),
                     Timestamp("20130104", tz="US/Pacific"),
+                    # once deprecation is enforced
+                    # Timestamp("20130104", tz="US/Pacific").tz_convert("US/Eastern"),
                     Timestamp("20130103", tz="US/Eastern"),
                 ],
                 "B": [0, np.nan, 2],
@@ -1309,8 +1331,7 @@ class TestDataFrameReplace:
     def test_replace_ea_ignore_float(self, frame_or_series, value):
         # GH#34871
         obj = DataFrame({"Per": [value] * 3})
-        if frame_or_series is not DataFrame:
-            obj = obj["Per"]
+        obj = tm.get_obj(obj, frame_or_series)
 
         expected = obj.copy()
         result = obj.replace(1.0, 0.0)
@@ -1367,14 +1388,12 @@ class TestDataFrameReplace:
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(
-        reason="category dtype gets changed to object type after replace, see #35268",
-    )
-    def test_replace_dict_category_type(self, input_category_df, expected_category_df):
+    def test_replace_dict_category_type(self):
         """
         Test to ensure category dtypes are maintained
         after replace with dict values
         """
+        # GH#35268, GH#44940
 
         # create input dataframe
         input_dict = {"col1": ["a"], "col2": ["obj1"], "col3": ["cat1"]}
@@ -1487,3 +1506,16 @@ class TestDataFrameReplaceRegex:
 
         expected.loc[expected["a"] == ".", "a"] = expected_replace_val
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("regex", [False, True])
+    def test_replace_regex_dtype_frame(self, regex):
+        # GH-48644
+        df1 = DataFrame({"A": ["0"], "B": ["0"]})
+        expected_df1 = DataFrame({"A": [1], "B": [1]})
+        result_df1 = df1.replace(to_replace="0", value=1, regex=regex)
+        tm.assert_frame_equal(result_df1, expected_df1)
+
+        df2 = DataFrame({"A": ["0"], "B": ["1"]})
+        expected_df2 = DataFrame({"A": [1], "B": ["1"]})
+        result_df2 = df2.replace(to_replace="0", value=1, regex=regex)
+        tm.assert_frame_equal(result_df2, expected_df2)

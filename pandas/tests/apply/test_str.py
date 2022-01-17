@@ -12,6 +12,7 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
+from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
 from pandas.tests.apply.common import (
     frame_transform_kernels,
     series_transform_kernels,
@@ -26,7 +27,7 @@ from pandas.tests.apply.common import (
         pytest.param([1], {}, id="axis_from_args"),
         pytest.param([], {"axis": 1}, id="axis_from_kwds"),
         pytest.param([], {"numeric_only": True}, id="optional_kwds"),
-        pytest.param([1, None], {"numeric_only": True}, id="args_and_kwds"),
+        pytest.param([1, True], {"numeric_only": True}, id="args_and_kwds"),
     ],
 )
 @pytest.mark.parametrize("how", ["agg", "apply"])
@@ -245,7 +246,8 @@ def test_agg_cython_table_transform_frame(df, func, expected, axis):
 @pytest.mark.parametrize("op", series_transform_kernels)
 def test_transform_groupby_kernel_series(string_series, op):
     # GH 35964
-
+    # TODO(2.0) Remove after pad/backfill deprecation enforced
+    op = maybe_normalize_deprecated_kernels(op)
     args = [0.0] if op == "fillna" else []
     ones = np.ones(string_series.shape[0])
     expected = string_series.groupby(ones).transform(op, *args)
@@ -257,6 +259,8 @@ def test_transform_groupby_kernel_series(string_series, op):
 def test_transform_groupby_kernel_frame(
     axis, float_frame, op, using_array_manager, request
 ):
+    # TODO(2.0) Remove after pad/backfill deprecation enforced
+    op = maybe_normalize_deprecated_kernels(op)
     # GH 35964
     if using_array_manager and op == "pct_change" and axis in (1, "columns"):
         # TODO(ArrayManager) shift with axis=1

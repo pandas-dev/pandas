@@ -207,14 +207,18 @@ class TestRoundTrip:
     @pytest.mark.parametrize("c_idx_levels", [1, 3])
     @pytest.mark.parametrize("r_idx_levels", [1, 3])
     def test_excel_multindex_roundtrip(
-        self, ext, c_idx_names, r_idx_names, c_idx_levels, r_idx_levels
+        self, ext, c_idx_names, r_idx_names, c_idx_levels, r_idx_levels, request
     ):
         # see gh-4679
         with tm.ensure_clean(ext) as pth:
-            if c_idx_levels == 1 and c_idx_names:
-                pytest.skip(
-                    "Column index name cannot be serialized unless it's a MultiIndex"
+            if (c_idx_levels == 1 and c_idx_names) and not (
+                r_idx_levels == 3 and not r_idx_names
+            ):
+                mark = pytest.mark.xfail(
+                    reason="Column index name cannot be serialized unless "
+                    "it's a MultiIndex"
                 )
+                request.node.add_marker(mark)
 
             # Empty name case current read in as
             # unnamed levels, not Nones.
@@ -891,107 +895,6 @@ class TestExcelWriter:
         )
         tm.assert_frame_equal(result, expected)
 
-    # FIXME: dont leave commented-out
-    # def test_to_excel_header_styling_xls(self, engine, ext):
-
-    #     import StringIO
-    #     s = StringIO(
-    #     """Date,ticker,type,value
-    #     2001-01-01,x,close,12.2
-    #     2001-01-01,x,open ,12.1
-    #     2001-01-01,y,close,12.2
-    #     2001-01-01,y,open ,12.1
-    #     2001-02-01,x,close,12.2
-    #     2001-02-01,x,open ,12.1
-    #     2001-02-01,y,close,12.2
-    #     2001-02-01,y,open ,12.1
-    #     2001-03-01,x,close,12.2
-    #     2001-03-01,x,open ,12.1
-    #     2001-03-01,y,close,12.2
-    #     2001-03-01,y,open ,12.1""")
-    #     df = read_csv(s, parse_dates=["Date"])
-    #     pdf = df.pivot_table(values="value", rows=["ticker"],
-    #                                          cols=["Date", "type"])
-
-    #     try:
-    #         import xlwt
-    #         import xlrd
-    #     except ImportError:
-    #         pytest.skip
-
-    #     filename = '__tmp_to_excel_header_styling_xls__.xls'
-    #     pdf.to_excel(filename, 'test1')
-
-    #     wbk = xlrd.open_workbook(filename,
-    #                              formatting_info=True)
-    #     assert ["test1"] == wbk.sheet_names()
-    #     ws = wbk.sheet_by_name('test1')
-    #     assert [(0, 1, 5, 7), (0, 1, 3, 5), (0, 1, 1, 3)] == ws.merged_cells
-    #     for i in range(0, 2):
-    #         for j in range(0, 7):
-    #             xfx = ws.cell_xf_index(0, 0)
-    #             cell_xf = wbk.xf_list[xfx]
-    #             font = wbk.font_list
-    #             assert 1 == font[cell_xf.font_index].bold
-    #             assert 1 == cell_xf.border.top_line_style
-    #             assert 1 == cell_xf.border.right_line_style
-    #             assert 1 == cell_xf.border.bottom_line_style
-    #             assert 1 == cell_xf.border.left_line_style
-    #             assert 2 == cell_xf.alignment.hor_align
-    #     os.remove(filename)
-    # def test_to_excel_header_styling_xlsx(self, engine, ext):
-    #     import StringIO
-    #     s = StringIO(
-    #     """Date,ticker,type,value
-    #     2001-01-01,x,close,12.2
-    #     2001-01-01,x,open ,12.1
-    #     2001-01-01,y,close,12.2
-    #     2001-01-01,y,open ,12.1
-    #     2001-02-01,x,close,12.2
-    #     2001-02-01,x,open ,12.1
-    #     2001-02-01,y,close,12.2
-    #     2001-02-01,y,open ,12.1
-    #     2001-03-01,x,close,12.2
-    #     2001-03-01,x,open ,12.1
-    #     2001-03-01,y,close,12.2
-    #     2001-03-01,y,open ,12.1""")
-    #     df = read_csv(s, parse_dates=["Date"])
-    #     pdf = df.pivot_table(values="value", rows=["ticker"],
-    #                                          cols=["Date", "type"])
-    #     try:
-    #         import openpyxl
-    #         from openpyxl.cell import get_column_letter
-    #     except ImportError:
-    #         pytest.skip
-    #     if openpyxl.__version__ < '1.6.1':
-    #         pytest.skip
-    #     # test xlsx_styling
-    #     filename = '__tmp_to_excel_header_styling_xlsx__.xlsx'
-    #     pdf.to_excel(filename, 'test1')
-    #     wbk = openpyxl.load_workbook(filename)
-    #     assert ["test1"] == wbk.get_sheet_names()
-    #     ws = wbk.get_sheet_by_name('test1')
-    #     xlsaddrs = ["%s2" % chr(i) for i in range(ord('A'), ord('H'))]
-    #     xlsaddrs += ["A%s" % i for i in range(1, 6)]
-    #     xlsaddrs += ["B1", "D1", "F1"]
-    #     for xlsaddr in xlsaddrs:
-    #         cell = ws.cell(xlsaddr)
-    #         assert cell.style.font.bold
-    #         assert (openpyxl.style.Border.BORDER_THIN ==
-    #                 cell.style.borders.top.border_style)
-    #         assert (openpyxl.style.Border.BORDER_THIN ==
-    #                 cell.style.borders.right.border_style)
-    #         assert (openpyxl.style.Border.BORDER_THIN ==
-    #                 cell.style.borders.bottom.border_style)
-    #         assert (openpyxl.style.Border.BORDER_THIN ==
-    #                 cell.style.borders.left.border_style)
-    #         assert (openpyxl.style.Alignment.HORIZONTAL_CENTER ==
-    #                 cell.style.alignment.horizontal)
-    #     mergedcells_addrs = ["C1", "E1", "G1"]
-    #     for maddr in mergedcells_addrs:
-    #         assert ws.cell(maddr).merged
-    #     os.remove(filename)
-
     @pytest.mark.parametrize("use_headers", [True, False])
     @pytest.mark.parametrize("r_idx_nlevels", [1, 2, 3])
     @pytest.mark.parametrize("c_idx_nlevels", [1, 2, 3])
@@ -1207,7 +1110,10 @@ class TestExcelWriter:
         write_frame = DataFrame({"A": datetimes})
         write_frame.to_excel(path, "Sheet1")
         if path.endswith("xlsx") or path.endswith("xlsm"):
-            pytest.skip("Defaults to openpyxl and fails - GH #38644")
+            pytest.skip(
+                "Defaults to openpyxl and fails with floating point error on "
+                "datetimes; may be fixed on newer versions of openpyxl - GH #38644"
+            )
         read_frame = pd.read_excel(path, sheet_name="Sheet1", header=0)
 
         tm.assert_series_equal(write_frame["A"], read_frame["A"])

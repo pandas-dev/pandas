@@ -20,7 +20,7 @@ from pandas.core.resample import _asfreq_compat
 # a fixture value can be overridden by the test parameter value. Note that the
 # value of the fixture can be overridden this way even if the test doesn't use
 # it directly (doesn't mention it in the function prototype).
-# see https://docs.pytest.org/en/latest/fixture.html#override-a-fixture-with-direct-test-parametrization  # noqa
+# see https://docs.pytest.org/en/latest/fixture.html#override-a-fixture-with-direct-test-parametrization  # noqa:E501
 # in this module we override the fixture values defined in conftest.py
 # tuples of '_index_factory,_series_name,_index_start,_index_end'
 DATE_RANGE = (date_range, "dti", datetime(2005, 1, 1), datetime(2005, 1, 10))
@@ -223,14 +223,14 @@ def test_resample_empty_dtypes(index, dtype, resample_method):
 
 
 @all_ts
-def test_apply_to_empty_series(empty_series_dti):
+@pytest.mark.parametrize("freq", ["M", "D", "H"])
+def test_apply_to_empty_series(empty_series_dti, freq):
     # GH 14313
     s = empty_series_dti
-    for freq in ["M", "D", "H"]:
-        result = s.resample(freq).apply(lambda x: 1)
-        expected = s.resample(freq).apply(np.sum)
+    result = s.resample(freq).apply(lambda x: 1)
+    expected = s.resample(freq).apply(np.sum)
 
-        tm.assert_series_equal(result, expected, check_dtype=False)
+    tm.assert_series_equal(result, expected, check_dtype=False)
 
 
 @all_ts

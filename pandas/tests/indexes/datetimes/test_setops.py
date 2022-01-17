@@ -26,6 +26,13 @@ from pandas.tseries.offsets import (
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 
+def test_union_many_deprecated():
+    dti = date_range("2016-01-01", periods=3)
+
+    with tm.assert_produces_warning(FutureWarning):
+        dti.union_many([dti, dti])
+
+
 class TestDatetimeIndexSetOps:
     tz = [
         None,
@@ -515,7 +522,7 @@ class TestBusinessDatetimeIndex:
 
         early_dr.union(late_dr, sort=sort)
 
-    @td.skip_if_windows_python_3
+    @td.skip_if_windows
     def test_month_range_union_tz_dateutil(self, sort):
         from pandas._libs.tslibs.timezones import dateutil_gettz
 

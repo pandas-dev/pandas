@@ -28,22 +28,36 @@ import pandas.tseries.frequencies as frequencies
 import pandas.tseries.offsets as offsets
 
 
-def _check_generated_range(start, periods, freq):
-    """
-    Check the range generated from a given start, frequency, and period count.
+@pytest.fixture(
+    params=[
+        (timedelta(1), "D"),
+        (timedelta(hours=1), "H"),
+        (timedelta(minutes=1), "T"),
+        (timedelta(seconds=1), "S"),
+        (np.timedelta64(1, "ns"), "N"),
+        (timedelta(microseconds=1), "U"),
+        (timedelta(microseconds=1000), "L"),
+    ]
+)
+def base_delta_code_pair(request):
+    return request.param
 
-    Parameters
-    ----------
-    start : str
-        The start date.
-    periods : int
-        The number of periods.
-    freq : str
-        The frequency of the range.
-    """
+
+freqs = (
+    [f"Q-{month}" for month in MONTHS]
+    + [f"{annual}-{month}" for annual in ["A", "BA"] for month in MONTHS]
+    + ["M", "BM", "BMS"]
+    + [f"WOM-{count}{day}" for count in range(1, 5) for day in DAYS]
+    + [f"W-{day}" for day in DAYS]
+)
+
+
+@pytest.mark.parametrize("freq", freqs)
+@pytest.mark.parametrize("periods", [5, 7])
+def test_infer_freq_range(periods, freq):
     freq = freq.upper()
 
-    gen = date_range(start, periods=periods, freq=freq)
+    gen = date_range("1/1/2000", periods=periods, freq=freq)
     index = DatetimeIndex(gen.values)
 
     if not freq.startswith("Q-"):
@@ -70,41 +84,6 @@ def _check_generated_range(start, periods, freq):
             "Q-JAN",
         )
         assert is_dec_range or is_nov_range or is_oct_range
-
-
-@pytest.fixture(
-    params=[
-        (timedelta(1), "D"),
-        (timedelta(hours=1), "H"),
-        (timedelta(minutes=1), "T"),
-        (timedelta(seconds=1), "S"),
-        (np.timedelta64(1, "ns"), "N"),
-        (timedelta(microseconds=1), "U"),
-        (timedelta(microseconds=1000), "L"),
-    ]
-)
-def base_delta_code_pair(request):
-    return request.param
-
-
-@pytest.fixture(params=[1, 2, 3, 4])
-def count(request):
-    return request.param
-
-
-@pytest.fixture(params=DAYS)
-def day(request):
-    return request.param
-
-
-@pytest.fixture(params=MONTHS)
-def month(request):
-    return request.param
-
-
-@pytest.fixture(params=[5, 7])
-def periods(request):
-    return request.param
 
 
 def test_raise_if_period_index():
@@ -184,6 +163,7 @@ def test_annual_ambiguous():
     assert rng.inferred_freq == "A-JAN"
 
 
+@pytest.mark.parametrize("count", range(1, 5))
 def test_infer_freq_delta(base_delta_code_pair, count):
     b = Timestamp(datetime.now())
     base_delta, code = base_delta_code_pair
@@ -212,28 +192,6 @@ def test_infer_freq_custom(base_delta_code_pair, constructor):
 
     index = constructor(b, base_delta)
     assert frequencies.infer_freq(index) is None
-
-
-def test_weekly_infer(periods, day):
-    _check_generated_range("1/1/2000", periods, f"W-{day}")
-
-
-def test_week_of_month_infer(periods, day, count):
-    _check_generated_range("1/1/2000", periods, f"WOM-{count}{day}")
-
-
-@pytest.mark.parametrize("freq", ["M", "BM", "BMS"])
-def test_monthly_infer(periods, freq):
-    _check_generated_range("1/1/2000", periods, "M")
-
-
-def test_quarterly_infer(month, periods):
-    _check_generated_range("1/1/2000", periods, f"Q-{month}")
-
-
-@pytest.mark.parametrize("annual", ["A", "BA"])
-def test_annually_infer(month, periods, annual):
-    _check_generated_range("1/1/2000", periods, f"{annual}-{month}")
 
 
 @pytest.mark.parametrize(
@@ -399,9 +357,11 @@ def test_non_datetime_index2():
     "idx", [tm.makeIntIndex(10), tm.makeFloatIndex(10), tm.makePeriodIndex(10)]
 )
 def test_invalid_index_types(idx):
-    msg = (
-        "(cannot infer freq from a non-convertible)|"
-        "(Check the `freq` attribute instead of using infer_freq)"
+    msg = "|".join(
+        [
+            "cannot infer freq from a non-convertible",
+            "Check the `freq` attribute instead of using infer_freq",
+        ]
     )
 
     with pytest.raises(TypeError, match=msg):

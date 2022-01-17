@@ -15,24 +15,35 @@ from pandas.io.excel._base import inspect_excel_format
 xlrd = pytest.importorskip("xlrd")
 xlwt = pytest.importorskip("xlwt")
 
-
-@pytest.fixture(autouse=True)
-def skip_ods_and_xlsb_files(read_ext):
-    if read_ext == ".ods":
-        pytest.skip("Not valid for xlrd")
-    if read_ext == ".xlsb":
-        pytest.skip("Not valid for xlrd")
-    if read_ext in (".xlsx", ".xlsm") and xlrd_version >= Version("2"):
-        pytest.skip("Not valid for xlrd >= 2.0")
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:As the xlwt package is no longer maintained:FutureWarning"
+)
 
 
-def test_read_xlrd_book(read_ext, frame):
+# error: Unsupported operand types for <= ("Version" and "None")
+if xlrd_version >= Version("2"):  # type: ignore[operator]
+    exts = [".xls"]
+else:
+    exts = [".xls", ".xlsx", ".xlsm"]
+
+
+@pytest.fixture(params=exts)
+def read_ext_xlrd(request):
+    """
+    Valid extensions for reading Excel files with xlrd.
+
+    Similar to read_ext, but excludes .ods, .xlsb, and for xlrd>2 .xlsx, .xlsm
+    """
+    return request.param
+
+
+def test_read_xlrd_book(read_ext_xlrd, frame):
     df = frame
 
     engine = "xlrd"
     sheet_name = "SheetA"
 
-    with tm.ensure_clean(read_ext) as pth:
+    with tm.ensure_clean(read_ext_xlrd) as pth:
         df.to_excel(pth, sheet_name)
         book = xlrd.open_workbook(pth)
 

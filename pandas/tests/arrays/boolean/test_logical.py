@@ -6,6 +6,11 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 from pandas.arrays import BooleanArray
+from pandas.core.ops.mask_ops import (
+    kleene_and,
+    kleene_or,
+    kleene_xor,
+)
 from pandas.tests.extension.base import BaseOpsUtil
 
 
@@ -38,10 +43,22 @@ class TestLogicalOps(BaseOpsUtil):
         result = getattr(a, op_name)(False)
         tm.assert_extension_array_equal(a, result)
 
-        # FIXME: dont leave commented-out
-        # TODO: pd.NA
-        # result = getattr(a, op_name)(pd.NA)
-        # tm.assert_extension_array_equal(a, result)
+        result = getattr(a, op_name)(pd.NA)
+        tm.assert_extension_array_equal(a, result)
+
+    @pytest.mark.parametrize(
+        "other", ["a", pd.Timestamp(2017, 1, 1, 12), np.timedelta64(4)]
+    )
+    def test_eq_mismatched_type(self, other):
+        # GH-44499
+        arr = pd.array([True, False])
+        result = arr == other
+        expected = pd.array([False, False])
+        tm.assert_extension_array_equal(result, expected)
+
+        result = arr != other
+        expected = pd.array([True, True])
+        tm.assert_extension_array_equal(result, expected)
 
     def test_logical_length_mismatch_raises(self, all_logical_operators):
         op_name = all_logical_operators
@@ -227,3 +244,11 @@ class TestLogicalOps(BaseOpsUtil):
             result = getattr(a, all_logical_operators)(other)
             expected = getattr(b, all_logical_operators)(other)
             tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("operation", [kleene_or, kleene_xor, kleene_and])
+def test_error_both_scalar(operation):
+    msg = r"Either `left` or `right` need to be a np\.ndarray."
+    with pytest.raises(TypeError, match=msg):
+        # masks need to be non-None, otherwise it ends up in an infinite recursion
+        operation(True, True, np.zeros(1), np.zeros(1))

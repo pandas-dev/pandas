@@ -32,14 +32,18 @@ import numpy as np
 from pandas._typing import type_t
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
-from pandas.core.dtypes.common import pandas_dtype
+from pandas.core.dtypes.common import (
+    is_bool_dtype,
+    is_list_like,
+    pandas_dtype,
+)
 
 import pandas as pd
 from pandas.api.extensions import (
     ExtensionArray,
     ExtensionDtype,
 )
-from pandas.api.types import is_bool_dtype
+from pandas.core.indexers import unpack_tuple_and_ellipses
 
 
 class JSONDtype(ExtensionDtype):
@@ -86,14 +90,7 @@ class JSONArray(ExtensionArray):
 
     def __getitem__(self, item):
         if isinstance(item, tuple):
-            if len(item) > 1:
-                if item[0] is Ellipsis:
-                    item = item[1:]
-                elif item[-1] is Ellipsis:
-                    item = item[:-1]
-            if len(item) > 1:
-                raise IndexError("too many indices for array.")
-            item = item[0]
+            item = unpack_tuple_and_ellipses(item)
 
         if isinstance(item, numbers.Integral):
             return self.data[item]
@@ -103,6 +100,13 @@ class JSONArray(ExtensionArray):
         elif isinstance(item, slice):
             # slice
             return type(self)(self.data[item])
+        elif not is_list_like(item):
+            # e.g. "foo" or 2.5
+            # exception message copied from numpy
+            raise IndexError(
+                r"only integers, slices (`:`), ellipsis (`...`), numpy.newaxis "
+                r"(`None`) and integer or boolean arrays are valid indices"
+            )
         else:
             item = pd.api.indexers.check_array_indexer(self, item)
             if is_bool_dtype(item.dtype):

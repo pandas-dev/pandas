@@ -22,7 +22,6 @@ from pandas import (
     DatetimeIndex,
     Series,
     Timestamp,
-    compat,
     read_json,
 )
 import pandas._testing as tm
@@ -245,7 +244,8 @@ class TestPandasContainer:
 
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_empty(self, orient, convert_axes, numpy, empty_frame):
+    def test_roundtrip_empty(self, orient, convert_axes, numpy):
+        empty_frame = DataFrame()
         data = empty_frame.to_json(orient=orient)
         result = read_json(data, orient=orient, convert_axes=convert_axes, numpy=numpy)
         expected = empty_frame.copy()
@@ -674,7 +674,8 @@ class TestPandasContainer:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_series_roundtrip_empty(self, orient, numpy, empty_series):
+    def test_series_roundtrip_empty(self, orient, numpy):
+        empty_series = Series([], index=[], dtype=np.float64)
         data = empty_series.to_json(orient=orient)
         result = read_json(data, typ="series", orient=orient, numpy=numpy)
 
@@ -1275,11 +1276,9 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         expected = '{"0":{"articleId":' + str(bigNum) + "}}"
         assert json == expected
 
-    @pytest.mark.parametrize("bigNum", [sys.maxsize + 1, -(sys.maxsize + 2)])
-    @pytest.mark.skipif(not compat.IS64, reason="GH-35279")
+    @pytest.mark.parametrize("bigNum", [-(2 ** 63) - 1, 2 ** 64])
     def test_read_json_large_numbers(self, bigNum):
-        # GH20599
-
+        # GH20599, 26068
         json = StringIO('{"articleId":' + str(bigNum) + "}")
         msg = r"Value is too small|Value is too big"
         with pytest.raises(ValueError, match=msg):
@@ -1324,10 +1323,9 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         tm.assert_frame_equal(read_json(result, lines=True), df)
 
     # TODO: there is a near-identical test for pytables; can we share?
+    @pytest.mark.xfail(reason="GH#13774 encoding kwarg not supported", raises=TypeError)
     def test_latin_encoding(self):
         # GH 13774
-        pytest.skip("encoding not implemented in .to_json(), xref #13774")
-
         values = [
             [b"E\xc9, 17", b"", b"a", b"b", b"c"],
             [b"E\xc9, 17", b"a", b"b", b"c"],
@@ -1385,6 +1383,36 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         expected = DataFrame({"a": [1, 2], "b": [3.0, 4.0], "c": ["5", "6"]})
         dfjson = expected.to_json(orient="table")
         result = read_json(dfjson, orient="table")
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("orient", ["split", "records", "index", "columns"])
+    def test_to_json_from_json_columns_dtypes(self, orient):
+        # GH21892 GH33205
+        expected = DataFrame.from_dict(
+            {
+                "Integer": Series([1, 2, 3], dtype="int64"),
+                "Float": Series([None, 2.0, 3.0], dtype="float64"),
+                "Object": Series([None, "", "c"], dtype="object"),
+                "Bool": Series([True, False, True], dtype="bool"),
+                "Category": Series(["a", "b", None], dtype="category"),
+                "Datetime": Series(
+                    ["2020-01-01", None, "2020-01-03"], dtype="datetime64[ns]"
+                ),
+            }
+        )
+        dfjson = expected.to_json(orient=orient)
+        result = read_json(
+            dfjson,
+            orient=orient,
+            dtype={
+                "Integer": "int64",
+                "Float": "float64",
+                "Object": "object",
+                "Bool": "bool",
+                "Category": "category",
+                "Datetime": "datetime64[ns]",
+            },
+        )
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", [True, {"b": int, "c": int}])
@@ -1498,6 +1526,21 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         )
         expected = Series([88], index=DatetimeIndex(["2019-01-01 11:00:00"], tz="UTC"))
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "s3://example-fsspec/",
+            "gcs://another-fsspec/file.json",
+            "https://example-site.com/data",
+            "some-protocol://data.txt",
+        ],
+    )
+    def test_read_json_with_url_value(self, url):
+        # GH 36271
+        result = read_json(f'{{"url":{{"0":"{url}"}}}}')
+        expected = DataFrame({"url": [url]})
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "date_format,key", [("epoch", 86400000), ("iso", "P1DT0H0M0S")]
@@ -1645,7 +1688,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         "primaryKey":[
             "index"
         ],
-        "pandas_version":"0.20.0"
+        "pandas_version":"1.4.0"
     },
     "data":[
         {
@@ -1711,11 +1754,6 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         result = series.to_json(orient="index")
         assert result == expected
 
-    @pytest.mark.xfail(
-        is_platform_windows(),
-        reason="localhost connection rejected",
-        strict=False,
-    )
     def test_to_s3(self, s3_resource, s3so):
         import time
 

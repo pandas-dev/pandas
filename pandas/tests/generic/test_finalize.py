@@ -180,13 +180,19 @@ _all_methods = [
             pd.DataFrame,
             frame_data,
             operator.methodcaller("append", pd.DataFrame({"A": [1]})),
-        )
+        ),
+        marks=pytest.mark.filterwarnings(
+            "ignore:.*append method is deprecated.*:FutureWarning"
+        ),
     ),
     pytest.param(
         (
             pd.DataFrame,
             frame_data,
             operator.methodcaller("append", pd.DataFrame({"B": [1]})),
+        ),
+        marks=pytest.mark.filterwarnings(
+            "ignore:.*append method is deprecated.*:FutureWarning"
         ),
     ),
     pytest.param(
@@ -233,7 +239,6 @@ _all_methods = [
     ),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("nunique")),
-        marks=not_implemented_mark,
     ),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("idxmin")),
@@ -245,6 +250,9 @@ _all_methods = [
     ),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("mode")),
+    ),
+    pytest.param(
+        (pd.Series, [0], operator.methodcaller("mode")),
         marks=not_implemented_mark,
     ),
     pytest.param(
@@ -345,10 +353,7 @@ _all_methods = [
         operator.methodcaller("infer_objects"),
     ),
     (pd.Series, ([1, 2],), operator.methodcaller("convert_dtypes")),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("convert_dtypes")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("convert_dtypes")),
     (pd.Series, ([1, None, 3],), operator.methodcaller("interpolate")),
     (pd.DataFrame, ({"A": [1, None, 3]},), operator.methodcaller("interpolate")),
     (pd.Series, ([1, 2],), operator.methodcaller("clip", lower=1)),
@@ -467,12 +472,10 @@ _all_methods = [
             frame_mi_data,
             operator.methodcaller("transform", lambda x: x - x.min()),
         ),
-        marks=not_implemented_mark,
     ),
     (pd.Series, ([1],), operator.methodcaller("apply", lambda x: x)),
     pytest.param(
         (pd.DataFrame, frame_mi_data, operator.methodcaller("apply", lambda x: x)),
-        marks=not_implemented_mark,
     ),
     # Cumulative reductions
     (pd.Series, ([1],), operator.methodcaller("cumsum")),
@@ -743,6 +746,7 @@ def test_categorical_accessor(method):
     "method",
     [
         operator.methodcaller("sum"),
+        lambda x: x.apply(lambda y: y),
         lambda x: x.agg("sum"),
         lambda x: x.agg("mean"),
         lambda x: x.agg("median"),
@@ -761,8 +765,6 @@ def test_groupby_finalize(obj, method):
     "method",
     [
         lambda x: x.agg(["sum", "count"]),
-        lambda x: x.transform(lambda y: y),
-        lambda x: x.apply(lambda y: y),
         lambda x: x.agg("std"),
         lambda x: x.agg("var"),
         lambda x: x.agg("sem"),

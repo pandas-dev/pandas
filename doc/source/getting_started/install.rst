@@ -291,7 +291,7 @@ Dependency                Minimum Version    Notes
 xlrd                      2.0.1              Reading Excel
 xlwt                      1.3.0              Writing Excel
 xlsxwriter                1.2.2              Writing Excel
-openpyxl                  3.0.2              Reading / writing for xlsx files
+openpyxl                  3.0.3              Reading / writing for xlsx files
 pyxlsb                    1.0.6              Reading for xlsb files
 ========================= ================== =============================================================
 
@@ -345,7 +345,7 @@ SQL databases
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-SQLAlchemy                1.3.11              SQL support for databases other than sqlite
+SQLAlchemy                1.4.0               SQL support for databases other than sqlite
 psycopg2                  2.8.4               PostgreSQL engine for sqlalchemy
 pymysql                   0.10.1              MySQL engine for sqlalchemy
 ========================= ================== =============================================================
@@ -360,7 +360,7 @@ PyTables                  3.6.1              HDF5-based reading / writing
 blosc                     1.20.1             Compression for HDF5
 zlib                                         Compression for HDF5
 fastparquet               0.4.0              Parquet reading / writing
-pyarrow                   0.17.0             Parquet, ORC, and feather reading / writing
+pyarrow                   1.0.1              Parquet, ORC, and feather reading / writing
 pyreadstat                                   SPSS files (.sav) reading
 ========================= ================== =============================================================
 
@@ -401,4 +401,14 @@ PyQt4/PyQt5                                  Clipboard I/O
 qtpy                                         Clipboard I/O
 xclip                                        Clipboard I/O on linux
 xsel                                         Clipboard I/O on linux
+========================= ================== =============================================================
+
+
+Compression
+^^^^^^^^^^^
+
+========================= ================== =============================================================
+Dependency                Minimum Version    Notes
+========================= ================== =============================================================
+Zstandard                                    Zstandard compression
 ========================= ================== =============================================================

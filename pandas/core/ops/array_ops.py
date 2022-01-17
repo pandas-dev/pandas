@@ -91,11 +91,7 @@ def _masked_arith_op(x: np.ndarray, y, op):
     assert isinstance(x, np.ndarray), type(x)
     if isinstance(y, np.ndarray):
         dtype = find_common_type([x.dtype, y.dtype])
-        # error: Argument "dtype" to "empty" has incompatible type
-        # "Union[dtype, ExtensionDtype]"; expected "Union[dtype, None, type,
-        # _SupportsDtype, str, Tuple[Any, int], Tuple[Any, Union[int,
-        # Sequence[int]]], List[Any], _DtypeDict, Tuple[Any, Any]]"
-        result = np.empty(x.size, dtype=dtype)  # type: ignore[arg-type]
+        result = np.empty(x.size, dtype=dtype)
 
         if len(x) != len(y):
             raise ValueError(x.shape, y.shape)
@@ -135,7 +131,7 @@ def _masked_arith_op(x: np.ndarray, y, op):
     return result
 
 
-def _na_arithmetic_op(left, right, op, is_cmp: bool = False):
+def _na_arithmetic_op(left: np.ndarray, right, op, is_cmp: bool = False):
     """
     Return the result of evaluating op on the passed in values.
 
@@ -145,6 +141,7 @@ def _na_arithmetic_op(left, right, op, is_cmp: bool = False):
     ----------
     left : np.ndarray
     right : np.ndarray or scalar
+        Excludes DataFrame, Series, Index, ExtensionArray.
     is_cmp : bool, default False
         If this a comparison operation.
 
@@ -165,7 +162,7 @@ def _na_arithmetic_op(left, right, op, is_cmp: bool = False):
     try:
         result = func(left, right)
     except TypeError:
-        if is_object_dtype(left) or is_object_dtype(right) and not is_cmp:
+        if not is_cmp and (is_object_dtype(left.dtype) or is_object_dtype(right)):
             # For object dtype, fallback to a masked operation (only operating
             #  on the non-missing values)
             # Don't do this for comparisons, as that will handle complex numbers
@@ -177,6 +174,7 @@ def _na_arithmetic_op(left, right, op, is_cmp: bool = False):
     if is_cmp and (is_scalar(result) or result is NotImplemented):
         # numpy returned a scalar instead of operating element-wise
         # e.g. numeric array vs str
+        # TODO: can remove this after dropping some future numpy version?
         return invalid_comparison(left, right, op)
 
     return missing.dispatch_fill_zeros(op, left, right, result)
@@ -250,7 +248,8 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
 
     rvalues = lib.item_from_zerodim(rvalues)
     if isinstance(rvalues, list):
-        # TODO: same for tuples?
+        # We don't catch tuple here bc we may be comparing e.g. MultiIndex
+        #  to a tuple that represents a single entry, see test_compare_tuple_strs
         rvalues = np.asarray(rvalues)
 
     if isinstance(rvalues, (np.ndarray, ABCExtensionArray)):
@@ -269,7 +268,7 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         # Call the method on lvalues
         res_values = op(lvalues, rvalues)
 
-    elif is_scalar(rvalues) and isna(rvalues):
+    elif is_scalar(rvalues) and isna(rvalues):  # TODO: but not pd.NA?
         # numpy does not like comparisons vs None
         if op is operator.ne:
             res_values = np.ones(lvalues.shape, dtype=bool)
@@ -411,12 +410,13 @@ def get_array_op(op):
     """
     if isinstance(op, partial):
         # We get here via dispatch_to_series in DataFrame case
-        # TODO: avoid getting here
+        # e.g. test_rolling_consistency_var_debiasing_factors
         return op
 
     op_name = op.__name__.strip("_").lstrip("r")
     if op_name == "arith_op":
-        # Reached via DataFrame._combine_frame
+        # Reached via DataFrame._combine_frame i.e. flex methods
+        # e.g. test_df_add_flex_filled_mixed_dtypes
         return op
 
     if op_name in {"eq", "ne", "lt", "le", "gt", "ge"}:

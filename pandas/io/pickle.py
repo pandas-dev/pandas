@@ -1,29 +1,36 @@
 """ pickle compat """
+from __future__ import annotations
+
 import pickle
 from typing import Any
 import warnings
 
 from pandas._typing import (
     CompressionOptions,
-    FilePathOrBuffer,
+    FilePath,
+    ReadPickleBuffer,
     StorageOptions,
+    WriteBuffer,
 )
 from pandas.compat import pickle_compat as pc
 from pandas.util._decorators import doc
 
-from pandas.core import generic
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import get_handle
 
 
-@doc(storage_options=generic._shared_docs["storage_options"])
+@doc(
+    storage_options=_shared_docs["storage_options"],
+    compression_options=_shared_docs["compression_options"] % "filepath_or_buffer",
+)
 def to_pickle(
     obj: Any,
-    filepath_or_buffer: FilePathOrBuffer,
+    filepath_or_buffer: FilePath | WriteBuffer[bytes],
     compression: CompressionOptions = "infer",
     protocol: int = pickle.HIGHEST_PROTOCOL,
     storage_options: StorageOptions = None,
-):
+) -> None:
     """
     Pickle (serialize) object to file.
 
@@ -31,17 +38,16 @@ def to_pickle(
     ----------
     obj : any object
         Any python object.
-    filepath_or_buffer : str, path object or file-like object
-        File path, URL, or buffer where the pickled object will be stored.
+    filepath_or_buffer : str, path object, or file-like object
+        String, path object (implementing ``os.PathLike[str]``), or file-like
+        object implementing a binary ``write()`` function.
 
         .. versionchanged:: 1.0.0
            Accept URL. URL has to be of S3 or GCS.
+    {compression_options}
 
-    compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
-        If 'infer' and 'path_or_url' is path-like, then detect compression from
-        the following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
-        compression) If 'infer' and 'path_or_url' is not path-like, then use
-        None (= no decompression).
+        .. versionchanged:: 1.4.0 Zstandard support.
+
     protocol : int
         Int which indicates which protocol should be used by the pickler,
         default HIGHEST_PROTOCOL (see [1], paragraph 12.1.2). The possible
@@ -66,28 +72,25 @@ def to_pickle(
 
     Examples
     --------
-    >>> original_df = pd.DataFrame({{"foo": range(5), "bar": range(5, 10)}})
-    >>> original_df
+    >>> original_df = pd.DataFrame({{"foo": range(5), "bar": range(5, 10)}})  # doctest: +SKIP
+    >>> original_df  # doctest: +SKIP
        foo  bar
     0    0    5
     1    1    6
     2    2    7
     3    3    8
     4    4    9
-    >>> pd.to_pickle(original_df, "./dummy.pkl")
+    >>> pd.to_pickle(original_df, "./dummy.pkl")  # doctest: +SKIP
 
-    >>> unpickled_df = pd.read_pickle("./dummy.pkl")
-    >>> unpickled_df
+    >>> unpickled_df = pd.read_pickle("./dummy.pkl")  # doctest: +SKIP
+    >>> unpickled_df  # doctest: +SKIP
        foo  bar
     0    0    5
     1    1    6
     2    2    7
     3    3    8
     4    4    9
-
-    >>> import os
-    >>> os.remove("./dummy.pkl")
-    """
+    """  # noqa: E501
     if protocol < 0:
         protocol = pickle.HIGHEST_PROTOCOL
 
@@ -103,26 +106,18 @@ def to_pickle(
             # pickle create the entire object and then write it to the buffer.
             # "zip" would also be here if pandas.io.common._BytesZipFile
             # wouldn't buffer write calls
-            handles.handle.write(
-                # error: Argument 1 to "write" of "TextIOBase" has incompatible type
-                # "bytes"; expected "str"
-                pickle.dumps(obj, protocol=protocol)  # type: ignore[arg-type]
-            )
+            handles.handle.write(pickle.dumps(obj, protocol=protocol))
         else:
             # letting pickle write directly to the buffer is more memory-efficient
-            pickle.dump(
-                # error: Argument 2 to "dump" has incompatible type "Union[IO[Any],
-                # RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap]"; expected
-                # "IO[bytes]"
-                obj,
-                handles.handle,  # type: ignore[arg-type]
-                protocol=protocol,
-            )
+            pickle.dump(obj, handles.handle, protocol=protocol)
 
 
-@doc(storage_options=generic._shared_docs["storage_options"])
+@doc(
+    storage_options=_shared_docs["storage_options"],
+    decompression_options=_shared_docs["decompression_options"] % "filepath_or_buffer",
+)
 def read_pickle(
-    filepath_or_buffer: FilePathOrBuffer,
+    filepath_or_buffer: FilePath | ReadPickleBuffer,
     compression: CompressionOptions = "infer",
     storage_options: StorageOptions = None,
 ):
@@ -136,17 +131,16 @@ def read_pickle(
 
     Parameters
     ----------
-    filepath_or_buffer : str, path object or file-like object
-        File path, URL, or buffer where the pickled object will be loaded from.
+    filepath_or_buffer : str, path object, or file-like object
+        String, path object (implementing ``os.PathLike[str]``), or file-like
+        object implementing a binary ``readlines()`` function.
 
         .. versionchanged:: 1.0.0
            Accept URL. URL is not limited to S3 and GCS.
 
-    compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
-        If 'infer' and 'path_or_url' is path-like, then detect compression from
-        the following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
-        compression) If 'infer' and 'path_or_url' is not path-like, then use
-        None (= no decompression).
+    {decompression_options}
+
+        .. versionchanged:: 1.4.0 Zstandard support.
 
     {storage_options}
 
@@ -170,28 +164,25 @@ def read_pickle(
 
     Examples
     --------
-    >>> original_df = pd.DataFrame({{"foo": range(5), "bar": range(5, 10)}})
-    >>> original_df
+    >>> original_df = pd.DataFrame({{"foo": range(5), "bar": range(5, 10)}})  # doctest: +SKIP
+    >>> original_df  # doctest: +SKIP
        foo  bar
     0    0    5
     1    1    6
     2    2    7
     3    3    8
     4    4    9
-    >>> pd.to_pickle(original_df, "./dummy.pkl")
+    >>> pd.to_pickle(original_df, "./dummy.pkl")  # doctest: +SKIP
 
-    >>> unpickled_df = pd.read_pickle("./dummy.pkl")
-    >>> unpickled_df
+    >>> unpickled_df = pd.read_pickle("./dummy.pkl")  # doctest: +SKIP
+    >>> unpickled_df  # doctest: +SKIP
        foo  bar
     0    0    5
     1    1    6
     2    2    7
     3    3    8
     4    4    9
-
-    >>> import os
-    >>> os.remove("./dummy.pkl")
-    """
+    """  # noqa: E501
     excs_to_catch = (AttributeError, ImportError, ModuleNotFoundError, TypeError)
     with get_handle(
         filepath_or_buffer,
@@ -211,10 +202,7 @@ def read_pickle(
                 with warnings.catch_warnings(record=True):
                     # We want to silence any warnings about, e.g. moved modules.
                     warnings.simplefilter("ignore", Warning)
-                    # error: Argument 1 to "load" has incompatible type "Union[IO[Any],
-                    # RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap]";
-                    # expected "IO[bytes]"
-                    return pickle.load(handles.handle)  # type: ignore[arg-type]
+                    return pickle.load(handles.handle)
             except excs_to_catch:
                 # e.g.
                 #  "No module named 'pandas.core.sparse.series'"

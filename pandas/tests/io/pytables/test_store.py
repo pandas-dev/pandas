@@ -533,7 +533,9 @@ def test_same_name_scoping(setup_path):
         result = store.select("df", "index>datetime.datetime(2013,1,5)")
         tm.assert_frame_equal(result, expected)
 
-        from datetime import datetime  # noqa
+        # changes what 'datetime' points to in the namespace where
+        #  'select' does the lookup
+        from datetime import datetime  # noqa:F401
 
         # technically an error, but allow it
         result = store.select("df", "index>datetime.datetime(2013,1,5)")
@@ -970,7 +972,8 @@ def test_columns_multiindex_modified(setup_path):
         )
         cols2load = list("BCD")
         cols2load_original = list(cols2load)
-        df_loaded = read_hdf(path, "df", columns=cols2load)  # noqa
+        # GH#10055 make sure read_hdf call does not alter cols2load inplace
+        read_hdf(path, "df", columns=cols2load)
         assert cols2load_original == cols2load
 
 
@@ -1008,3 +1011,12 @@ def test_to_hdf_with_object_column_names(setup_path):
                 df.to_hdf(path, "df", format="table", data_columns=True)
                 result = read_hdf(path, "df", where=f"index = [{df.index[0]}]")
                 assert len(result)
+
+
+def test_hdfstore_iteritems_deprecated(setup_path):
+    with ensure_clean_path(setup_path) as path:
+        df = DataFrame({"a": [1]})
+        with HDFStore(path, mode="w") as hdf:
+            hdf.put("table", df)
+            with tm.assert_produces_warning(FutureWarning):
+                next(hdf.iteritems())

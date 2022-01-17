@@ -74,7 +74,6 @@ class DataManager(PandasObject):
         fill_value=None,
         allow_dups: bool = False,
         copy: bool = True,
-        consolidate: bool = True,
         only_slice: bool = False,
     ) -> T:
         raise AbstractMethodError(self)
@@ -85,7 +84,6 @@ class DataManager(PandasObject):
         new_index: Index,
         axis: int,
         fill_value=None,
-        consolidate: bool = True,
         only_slice: bool = False,
     ) -> T:
         """
@@ -99,7 +97,6 @@ class DataManager(PandasObject):
             axis=axis,
             fill_value=fill_value,
             copy=False,
-            consolidate=consolidate,
             only_slice=only_slice,
         )
 
@@ -157,10 +154,11 @@ class SingleDataManager(DataManager):
 
     @final
     @property
-    def array(self):
+    def array(self) -> ArrayLike:
         """
         Quick access to the backing array of the Block or SingleArrayManager.
         """
+        # error: "SingleDataManager" has no attribute "arrays"; maybe "array"
         return self.arrays[0]  # type: ignore[attr-defined]
 
     def setitem_inplace(self, indexer, value) -> None:

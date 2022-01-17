@@ -69,9 +69,9 @@ to run its checks with::
 
 without needing to have done ``pre-commit install`` beforehand.
 
-If you want to run checks on all recently committed files on upstream/master you can use::
+If you want to run checks on all recently committed files on upstream/main you can use::
 
-    pre-commit run --from-ref=upstream/master --to-ref=HEAD --all-files
+    pre-commit run --from-ref=upstream/main --to-ref=HEAD --all-files
 
 without needing to have done ``pre-commit install`` beforehand.
 
@@ -163,7 +163,7 @@ report any stylistic errors in your code. Therefore, it is helpful before
 submitting code to run the check yourself::
 
    black pandas
-   git diff upstream/master -u -- "*.py" | flake8 --diff
+   git diff upstream/main -u -- "*.py" | flake8 --diff
 
 to auto-format your code. Additionally, many editors have plugins that will
 apply ``black`` as you edit files.
@@ -171,7 +171,7 @@ apply ``black`` as you edit files.
 You should use a ``black`` version 21.5b2 as previous versions are not compatible
 with the pandas codebase.
 
-One caveat about ``git diff upstream/master -u -- "*.py" | flake8 --diff``: this
+One caveat about ``git diff upstream/main -u -- "*.py" | flake8 --diff``: this
 command will catch any stylistic errors in your changes specifically, but
 be beware it may not catch all of them. For example, if you delete the only
 usage of an imported function, it is stylistically incorrect to import an
@@ -179,18 +179,18 @@ unused function. However, style-checking the diff will not catch this because
 the actual import is not part of the diff. Thus, for completeness, you should
 run this command, though it may take longer::
 
-   git diff upstream/master --name-only -- "*.py" | xargs -r flake8
+   git diff upstream/main --name-only -- "*.py" | xargs -r flake8
 
 Note that on macOS, the ``-r`` flag is not available, so you have to omit it and
 run this slightly modified command::
 
-   git diff upstream/master --name-only -- "*.py" | xargs flake8
+   git diff upstream/main --name-only -- "*.py" | xargs flake8
 
 Windows does not support the ``xargs`` command (unless installed for example
 via the `MinGW <http://www.mingw.org/>`__ toolchain), but one can imitate the
 behaviour as follows::
 
-    for /f %i in ('git diff upstream/master --name-only -- "*.py"') do flake8 %i
+    for /f %i in ('git diff upstream/main --name-only -- "*.py"') do flake8 %i
 
 This will get all the files being changed by the PR (and ending with ``.py``),
 and run ``flake8`` on them, one after the other.
@@ -242,7 +242,7 @@ to automatically format imports correctly. This will modify your local copy of t
 
 Alternatively, you can run a command similar to what was suggested for ``black`` and ``flake8`` :ref:`right above <contributing.code-formatting>`::
 
-    git diff upstream/master --name-only -- "*.py" | xargs -r isort
+    git diff upstream/main --name-only -- "*.py" | xargs -r isort
 
 Where similar caveats apply if you are on macOS or Windows.
 
@@ -303,7 +303,7 @@ pandas strongly encourages the use of :pep:`484` style type hints. New developme
 Style guidelines
 ~~~~~~~~~~~~~~~~
 
-Types imports should follow the ``from typing import ...`` convention. So rather than
+Type imports should follow the ``from typing import ...`` convention. Some types do not need to be imported since :pep:`585` some builtin constructs, such as ``list`` and ``tuple``, can directly be used for type annotations. So rather than
 
 .. code-block:: python
 
@@ -315,21 +315,31 @@ You should write
 
 .. code-block:: python
 
-   from typing import List, Optional, Union
+   primes: list[int] = []
 
-   primes: List[int] = []
-
-``Optional`` should be used where applicable, so instead of
+``Optional`` should be  avoided in favor of the shorter ``| None``, so instead of
 
 .. code-block:: python
 
-   maybe_primes: List[Union[int, None]] = []
+   from typing import Union
+
+   maybe_primes: list[Union[int, None]] = []
+
+or
+
+.. code-block:: python
+
+   from typing import Optional
+
+   maybe_primes: list[Optional[int]] = []
 
 You should write
 
 .. code-block:: python
 
-   maybe_primes: List[Optional[int]] = []
+   from __future__ import annotations  # noqa: F404
+
+   maybe_primes: list[int | None] = []
 
 In some cases in the code base classes may define class variables that shadow builtins. This causes an issue as described in `Mypy 1775 <https://github.com/python/mypy/issues/1775#issuecomment-310969854>`_. The defensive solution here is to create an unambiguous alias of the builtin and use that without your annotation. For example, if you come across a definition like
 
@@ -379,7 +389,7 @@ With custom types and inference this is not always possible so exceptions are ma
 pandas-specific types
 ~~~~~~~~~~~~~~~~~~~~~
 
-Commonly used types specific to pandas will appear in `pandas._typing <https://github.com/pandas-dev/pandas/blob/master/pandas/_typing.py>`_ and you should use these where applicable. This module is private for now but ultimately this should be exposed to third party libraries who want to implement type checking against pandas.
+Commonly used types specific to pandas will appear in `pandas._typing <https://github.com/pandas-dev/pandas/blob/main/pandas/_typing.py>`_ and you should use these where applicable. This module is private for now but ultimately this should be exposed to third party libraries who want to implement type checking against pandas.
 
 For example, quite a few functions in pandas accept a ``dtype`` argument. This can be expressed as a string like ``"object"``, a ``numpy.dtype`` like ``np.int64`` or even a pandas ``ExtensionDtype`` like ``pd.CategoricalDtype``. Rather than burden the user with having to constantly annotate all of those options, this can simply be imported and reused from the pandas._typing module
 
@@ -399,7 +409,7 @@ pandas uses `mypy <http://mypy-lang.org>`_ and `pyright <https://github.com/micr
 
 .. code-block:: shell
 
-   mypy pandas
+   mypy
 
    # let pre-commit setup and run pyright
    pre-commit run --hook-stage manual --all-files pyright
@@ -409,6 +419,26 @@ pandas uses `mypy <http://mypy-lang.org>`_ and `pyright <https://github.com/micr
 A recent version of ``numpy`` (>=1.21.0) is required for type validation.
 
 .. _contributing.ci:
+
+Testing type hints in code using pandas
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. warning::
+
+    * Pandas is not yet a py.typed library (:pep:`561`)!
+      The primary purpose of locally declaring pandas as a py.typed library is to test and
+      improve the pandas-builtin type annotations.
+
+Until pandas becomes a py.typed library, it is possible to easily experiment with the type
+annotations shipped with pandas by creating an empty file named "py.typed" in the pandas
+installation folder:
+
+.. code-block:: none
+
+   python -c "import pandas; import pathlib; (pathlib.Path(pandas.__path__[0]) / 'py.typed').touch()"
+
+The existence of the py.typed file signals to type checkers that pandas is already a py.typed
+library. This makes type checkers aware of the type annotations shipped with pandas.
 
 Testing with continuous integration
 -----------------------------------
@@ -762,14 +792,14 @@ To install asv::
 
 If you need to run a benchmark, change your directory to ``asv_bench/`` and run::
 
-    asv continuous -f 1.1 upstream/master HEAD
+    asv continuous -f 1.1 upstream/main HEAD
 
 You can replace ``HEAD`` with the name of the branch you are working on,
 and report benchmarks that changed by more than 10%.
 The command uses ``conda`` by default for creating the benchmark
 environments. If you want to use virtualenv instead, write::
 
-    asv continuous -f 1.1 -E virtualenv upstream/master HEAD
+    asv continuous -f 1.1 -E virtualenv upstream/main HEAD
 
 The ``-E virtualenv`` option should be added to all ``asv`` commands
 that run benchmarks. The default value is defined in ``asv.conf.json``.
@@ -781,12 +811,12 @@ do not cause unexpected performance regressions.  You can run specific benchmark
 using the ``-b`` flag, which takes a regular expression. For example, this will
 only run benchmarks from a ``pandas/asv_bench/benchmarks/groupby.py`` file::
 
-    asv continuous -f 1.1 upstream/master HEAD -b ^groupby
+    asv continuous -f 1.1 upstream/main HEAD -b ^groupby
 
 If you want to only run a specific group of benchmarks from a file, you can do it
 using ``.`` as a separator. For example::
 
-    asv continuous -f 1.1 upstream/master HEAD -b groupby.GroupByMethods
+    asv continuous -f 1.1 upstream/main HEAD -b groupby.GroupByMethods
 
 will only run the ``GroupByMethods`` benchmark defined in ``groupby.py``.
 

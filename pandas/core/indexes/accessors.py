@@ -8,6 +8,8 @@ import warnings
 
 import numpy as np
 
+from pandas.util._exceptions import find_stack_level
+
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64_dtype,
@@ -191,7 +193,7 @@ class DatetimeProperties(Properties):
 
     def to_pydatetime(self) -> np.ndarray:
         """
-        Return the data as an array of native Python datetime objects.
+        Return the data as an array of :class:`datetime.datetime` objects.
 
         Timezone information is retained if present.
 
@@ -286,7 +288,7 @@ class DatetimeProperties(Properties):
             "Series.dt.weekofyear and Series.dt.week have been deprecated. "
             "Please use Series.dt.isocalendar().week instead.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         week_series = self.isocalendar().week
         week_series.name = self.name
@@ -331,7 +333,7 @@ class TimedeltaProperties(Properties):
 
     def to_pytimedelta(self) -> np.ndarray:
         """
-        Return an array of native `datetime.timedelta` objects.
+        Return an array of native :class:`datetime.timedelta` objects.
 
         Python's standard `datetime` library uses a different representation
         timedelta's. This method converts a Series of pandas Timedeltas
