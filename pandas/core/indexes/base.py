@@ -1354,6 +1354,16 @@ class Index(IndexOpsMixin, PandasObject):
         return attrs
 
     @final
+    def _make_labels(self) -> Hashable | Sequence[Hashable]:
+        """
+        Return a name or list of names with None replaced by the level number.
+        """
+        if self._is_multi:
+            return[level if name is None else name for level, name in enumerate(self.names)]
+        else:
+            return 0 if self.name is None else self.name
+
+    @final
     def _mpl_repr(self) -> np.ndarray:
         # how to represent ourselves to matplotlib
         if isinstance(self.dtype, np.dtype) and self.dtype.kind != "M":
@@ -1628,7 +1638,7 @@ class Index(IndexOpsMixin, PandasObject):
         from pandas import DataFrame
 
         if name is lib.no_default:
-            name = self.name or 0
+            name = self._make_labels()
         result = DataFrame({name: self._values.copy()})
 
         if index:

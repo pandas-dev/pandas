@@ -1782,11 +1782,7 @@ class MultiIndex(Index):
                 )
             idx_names = name
         else:
-            idx_names = self.names
-
-        idx_names = [
-            level if name is None else name for level, name in enumerate(idx_names)
-        ]
+            idx_names = self._make_labels()
 
         if not allow_duplicates and len(set(idx_names)) != len(idx_names):
             raise ValueError(
