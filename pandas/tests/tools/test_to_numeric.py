@@ -572,6 +572,14 @@ def test_downcast_limits(dtype, downcast, min_max):
     assert series.dtype == dtype
 
 
+def test_downcast_float64_to_float32():
+    # GH-43693: Check float64 preservation when >= 16,777,217
+    series = Series([16777217.0, np.finfo(np.float64).max, np.nan], dtype=np.float64)
+    result = to_numeric(series, downcast="float")
+
+    assert series.dtype == result.dtype
+
+
 @pytest.mark.parametrize(
     "ser,expected",
     [
@@ -762,6 +770,8 @@ def test_to_numeric_from_nullable_string(values, nullable_string_dtype, expected
         ([-1, -1], "Int32", "unsigned", "Int32"),
         ([1, 1], "Float64", "float", "Float32"),
         ([1, 1.1], "Float64", "float", "Float32"),
+        ([1, 1], "Float32", "float", "Float32"),
+        ([1, 1.1], "Float32", "float", "Float32"),
     ),
 )
 def test_downcast_nullable_numeric(data, input_dtype, downcast, expected_dtype):
