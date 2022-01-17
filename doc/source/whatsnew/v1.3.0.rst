@@ -259,7 +259,6 @@ Other enhancements
 - :meth:`DataFrame.applymap` can now accept kwargs to pass on to the user-provided ``func`` (:issue:`39987`)
 - Passing a :class:`DataFrame` indexer to ``iloc`` is now disallowed for :meth:`Series.__getitem__` and :meth:`DataFrame.__getitem__` (:issue:`39004`)
 - :meth:`Series.apply` can now accept list-like or dictionary-like arguments that aren't lists or dictionaries, e.g. ``ser.apply(np.array(["sum", "mean"]))``, which was already the case for :meth:`DataFrame.apply` (:issue:`39140`)
-- :meth:`DataFrame.plot` will now allow the ``subplots`` parameter to be a list of iterables specifying column groups, so that columns may be grouped together in the same subplot (:issue:`29688`).
 - :meth:`DataFrame.plot.scatter` can now accept a categorical column for the argument ``c`` (:issue:`12380`, :issue:`31357`)
 - :meth:`Series.loc` now raises a helpful error message when the Series has a :class:`MultiIndex` and the indexer has too many dimensions (:issue:`35349`)
 - :func:`read_stata` now supports reading data from compressed files (:issue:`26599`)
