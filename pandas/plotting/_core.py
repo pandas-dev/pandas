@@ -1127,6 +1127,13 @@ class PlotAccessor(PandasObject):
         axis of the plot shows the specific categories being compared, and the
         other axis represents a measured value.
         """
+        c = kwargs.pop('c', None)
+        color = kwargs.pop('color', None)
+        if c is not None and color is not None:
+            raise TypeError("Specify exactly one of `c` and `color`")
+        if c is not None or color is not None:
+            kwargs.setdefault('c', color or c)
+
         return self(kind="bar", x=x, y=y, **kwargs)
 
     @Appender(
@@ -1213,6 +1220,13 @@ class PlotAccessor(PandasObject):
         axis of the plot shows the specific categories being compared, and the
         other axis represents a measured value.
         """
+        c = kwargs.pop('c', None)
+        color = kwargs.pop('color', None)
+        if c is not None and color is not None:
+            raise TypeError("Specify exactly one of `c` and `color`")
+        if c is not None or color is not None:
+            kwargs.setdefault('c', color or c)
+
         return self(kind="barh", x=x, y=y, **kwargs)
 
     def box(self, by=None, **kwargs):
@@ -1582,7 +1596,7 @@ class PlotAccessor(PandasObject):
             raise ValueError("pie requires either y column or 'subplots=True'")
         return self(kind="pie", **kwargs)
 
-    def scatter(self, x, y, size=None, s=None, color=None, c=None, **kwargs):
+    def scatter(self, x, y, **kwargs):
         """
         Create a scatter plot with varying marker point size and color.
 
@@ -1601,7 +1615,7 @@ class PlotAccessor(PandasObject):
         y : int or str
             The column name or column position to be used as vertical
             coordinates for each point.
-        size : str, scalar or array-like, optional
+        s : str, scalar or array-like, optional
             The size of each point. Possible values are:
 
             - A string with the name of the column to be used for marker's size.
@@ -1614,7 +1628,7 @@ class PlotAccessor(PandasObject):
 
               .. versionchanged:: 1.1.0
 
-        color : str, int or array-like, optional
+        c : str, int or array-like, optional
             The color of each point. Possible values are:
 
             - A single color string referred to by name, RGB or RGBA code,
@@ -1653,7 +1667,7 @@ class PlotAccessor(PandasObject):
             ...                   columns=['length', 'width', 'species'])
             >>> ax1 = df.plot.scatter(x='length',
             ...                       y='width',
-            ...                       color='DarkBlue')
+            ...                       c='DarkBlue')
 
         And now with the color determined by a column as well.
 
@@ -1662,10 +1676,25 @@ class PlotAccessor(PandasObject):
 
             >>> ax2 = df.plot.scatter(x='length',
             ...                       y='width',
-            ...                       color='species',
+            ...                       c='species',
             ...                       colormap='viridis')
         """
-        return self(kind="scatter", x=x, y=y, s=size or s, c=color or c, **kwargs)
+        
+        s = kwargs.pop('s', None)
+        size = kwargs.pop('size', None)
+        if s is not None and size is not None:
+            raise TypeError("Specify exactly one of `s` and `size`")
+        if s is not None or size is not None:
+            kwargs.setdefault('s', s or size)
+
+        c = kwargs.pop('c', None)
+        color = kwargs.pop('color', None)
+        if c is not None and color is not None:
+            raise TypeError("Specify exactly one of `c` and `color`")
+        if c is not None or color is not None:
+            kwargs.setdefault('c', c or color)
+
+        return self(kind="scatter", x=x, y=y, **kwargs)
 
     def hexbin(self, x, y, C=None, reduce_C_function=None, gridsize=None, **kwargs):
         """
