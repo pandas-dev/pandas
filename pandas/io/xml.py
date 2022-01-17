@@ -75,18 +75,18 @@ class _XMLFrameParser:
         Data type for data or columns. E.g. {{'a': np.float64,
         'b': np.int32, 'c': 'Int64'}}
 
-        .. versionadded:: 1.4.0
+        .. versionadded:: 1.5.0
 
     converters : dict, optional
         Dict of functions for converting values in certain columns. Keys can
         either be integers or column labels.
 
-        .. versionadded:: 1.4.0
+        .. versionadded:: 1.5.0
 
     parse_dates : bool or list of int or names or list of lists or dict
         Converts either index or select columns to datetimes
 
-        .. versionadded:: 1.4.0
+        .. versionadded:: 1.5.0
 
     encoding : str
         Encoding of xml object or document.
@@ -864,16 +864,16 @@ def read_xml(
         If converters are specified, they will be applied INSTEAD
         of dtype conversion.
 
-        .. versionadded:: 1.4.0
+        .. versionadded:: 1.5.0
 
     converters : dict, optional
         Dict of functions for converting values in certain columns. Keys can either
         be integers or column labels.
 
-        .. versionadded:: 1.4.0
+        .. versionadded:: 1.5.0
 
     parse_dates : bool or list of int or names or list of lists or dict, default False
-        The behavior is as follows:
+        Identifiers to parse index or columns to datetime. The behavior is as follows:
 
         * boolean. If True -> try parsing the index.
         * list of int or names. e.g. If [1, 2, 3] -> try parsing columns 1, 2, 3
@@ -883,7 +883,7 @@ def read_xml(
         * dict, e.g. {{'foo' : [1, 3]}} -> parse columns 1, 3 as date and call
           result 'foo'
 
-        .. versionadded:: 1.4.0
+        .. versionadded:: 1.5.0
 
     encoding : str, optional, default 'utf-8'
         Encoding of XML document.

@@ -184,47 +184,6 @@ representation of :class:`DataFrame` objects (:issue:`4889`).
     df
     df.to_dict(orient='tight')
 
-.. _whatsnew_140.read_xml_dtypes:
-
-read_xml now supports ``dtype``, ``converters``, and ``parse_dates``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Similar to other IO methods, :func:`pandas.read_xml` now supports assigning specific dtypes to columns,
-apply converter methods, and parse dates.
-
-.. ipython:: python
-
-    xml_dates = """<?xml version='1.0' encoding='utf-8'?>
-    <data>
-      <row>
-        <shape>square</shape>
-        <degrees>00360</degrees>
-        <sides>4.0</sides>
-        <date>2020-01-01</date>
-       </row>
-      <row>
-        <shape>circle</shape>
-        <degrees>00360</degrees>
-        <sides/>
-        <date>2021-01-01</date>
-      </row>
-      <row>
-        <shape>triangle</shape>
-        <degrees>00180</degrees>
-        <sides>3.0</sides>
-        <date>2022-01-01</date>
-      </row>
-    </data>"""
-
-    df = pd.read_xml(
-        xml_dates,
-        dtype={'sides': 'Int64'},
-        converters={'degrees': str},
-        parse_dates=['date']
-    )
-    df
-    df.dtypes
-
 .. _whatsnew_140.enhancements.other:
 
 Other enhancements
