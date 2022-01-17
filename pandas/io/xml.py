@@ -5,10 +5,14 @@
 from __future__ import annotations
 
 import io
-from typing import Sequence
+from typing import (
+    Callable,
+    Sequence,
+)
 
 from pandas._typing import (
     CompressionOptions,
+    DtypeArg,
     FilePath,
     ReadBuffer,
     StorageOptions,
@@ -67,6 +71,23 @@ class _XMLFrameParser:
     names : list
         Column names for Data Frame of parsed XML data.
 
+    dtype : dict
+        Data type for data or columns. E.g. {{'a': np.float64,
+        'b': np.int32, 'c': 'Int64'}}
+
+        .. versionadded:: 1.4.0
+
+    converters : dict, optional
+        Dict of functions for converting values in certain columns. Keys can
+        either be integers or column labels.
+
+        .. versionadded:: 1.4.0
+
+    parse_dates : bool or list of int or names or list of lists or dict
+        Converts either index or select columns to datetimes
+
+        .. versionadded:: 1.4.0
+
     encoding : str
         Encoding of xml object or document.
 
@@ -109,6 +130,13 @@ class _XMLFrameParser:
         elems_only: bool,
         attrs_only: bool,
         names: Sequence[str] | None,
+        dtype: DtypeArg | None,
+        converters: dict[str, Callable] | None,
+        parse_dates: bool
+        | list[int | str]
+        | list[list[int | str]]
+        | dict[str, list[int | str]]
+        | None,
         encoding: str | None,
         stylesheet: FilePath | ReadBuffer[bytes] | ReadBuffer[str] | None,
         compression: CompressionOptions,
@@ -120,6 +148,9 @@ class _XMLFrameParser:
         self.elems_only = elems_only
         self.attrs_only = attrs_only
         self.names = names
+        self.dtype = dtype
+        self.converters = converters
+        self.parse_dates = parse_dates
         self.encoding = encoding
         self.stylesheet = stylesheet
         self.is_style = None
@@ -671,6 +702,13 @@ def _parse(
     elems_only: bool,
     attrs_only: bool,
     names: Sequence[str] | None,
+    dtype: DtypeArg | None,
+    converters: dict[str, Callable] | None,
+    parse_dates: bool
+    | list[int | str]
+    | list[list[int | str]]
+    | dict[str, list[int | str]]
+    | None,
     encoding: str | None,
     parser: XMLParsers,
     stylesheet: FilePath | ReadBuffer[bytes] | ReadBuffer[str] | None,
@@ -706,6 +744,9 @@ def _parse(
                 elems_only,
                 attrs_only,
                 names,
+                dtype,
+                converters,
+                parse_dates,
                 encoding,
                 stylesheet,
                 compression,
@@ -722,6 +763,9 @@ def _parse(
             elems_only,
             attrs_only,
             names,
+            dtype,
+            converters,
+            parse_dates,
             encoding,
             stylesheet,
             compression,
@@ -732,7 +776,13 @@ def _parse(
 
     data_dicts = p.parse_data()
 
-    return _data_to_frame(data=data_dicts, **kwargs)
+    return _data_to_frame(
+        data=data_dicts,
+        dtype=dtype,
+        converters=converters,
+        parse_dates=parse_dates,
+        **kwargs,
+    )
 
 
 @deprecate_nonkeyword_arguments(
@@ -749,6 +799,13 @@ def read_xml(
     elems_only: bool = False,
     attrs_only: bool = False,
     names: Sequence[str] | None = None,
+    dtype: DtypeArg | None = None,
+    converters: dict[str, Callable] | None = None,
+    parse_dates: bool
+    | list[int | str]
+    | list[list[int | str]]
+    | dict[str, list[int | str]]
+    | None = None,
     # encoding can not be None for lxml and StringIO input
     encoding: str | None = "utf-8",
     parser: XMLParsers = "lxml",
@@ -798,6 +855,35 @@ def read_xml(
     names :  list-like, optional
         Column names for DataFrame of parsed XML data. Use this parameter to
         rename original element names and distinguish same named elements.
+
+    dtype : Type name or dict of column -> type, optional
+        Data type for data or columns. E.g. {{'a': np.float64, 'b': np.int32,
+        'c': 'Int64'}}
+        Use `str` or `object` together with suitable `na_values` settings
+        to preserve and not interpret dtype.
+        If converters are specified, they will be applied INSTEAD
+        of dtype conversion.
+
+        .. versionadded:: 1.4.0
+
+    converters : dict, optional
+        Dict of functions for converting values in certain columns. Keys can either
+        be integers or column labels.
+
+        .. versionadded:: 1.4.0
+
+    parse_dates : bool or list of int or names or list of lists or dict, default False
+        The behavior is as follows:
+
+        * boolean. If True -> try parsing the index.
+        * list of int or names. e.g. If [1, 2, 3] -> try parsing columns 1, 2, 3
+          each as a separate date column.
+        * list of lists. e.g.  If [[1, 3]] -> combine columns 1 and 3 and parse as
+          a single date column.
+        * dict, e.g. {{'foo' : [1, 3]}} -> parse columns 1, 3 as date and call
+          result 'foo'
+
+        .. versionadded:: 1.4.0
 
     encoding : str, optional, default 'utf-8'
         Encoding of XML document.
@@ -942,6 +1028,9 @@ def read_xml(
         elems_only=elems_only,
         attrs_only=attrs_only,
         names=names,
+        dtype=dtype,
+        converters=converters,
+        parse_dates=parse_dates,
         encoding=encoding,
         parser=parser,
         stylesheet=stylesheet,
