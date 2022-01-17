@@ -1679,7 +1679,6 @@ class PlotAccessor(PandasObject):
             ...                       c='species',
             ...                       colormap='viridis')
         """
-        
         s = kwargs.pop('s', None)
         size = kwargs.pop('size', None)
         if s is not None and size is not None:
