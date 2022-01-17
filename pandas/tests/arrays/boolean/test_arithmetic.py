@@ -84,6 +84,7 @@ def test_op_int8(left_array, right_array, opname):
 
 
 def test_boolean_array_add_pdna():
+    # GH#45421
     data = pd.array([True, False])
 
     res = data + pd.NA

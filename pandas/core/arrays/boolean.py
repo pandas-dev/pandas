@@ -494,7 +494,7 @@ class BooleanArray(BaseMaskedArray):
         if mask is None:
             mask = self._mask
             if other is libmissing.NA:
-                # test_boolean_array_add_pdna don't alter inplace
+                # GH#45421 don't alter inplace
                 mask = mask | True
         else:
             mask = self._mask | mask
