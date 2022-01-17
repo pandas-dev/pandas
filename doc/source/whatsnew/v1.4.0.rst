@@ -227,7 +227,6 @@ Other enhancements
 - Add support for `Zstandard <http://facebook.github.io/zstd/>`_ compression to :meth:`DataFrame.to_pickle`/:meth:`read_pickle` and friends (:issue:`43925`)
 - :meth:`DataFrame.to_sql` now returns an ``int`` of the number of written rows (:issue:`23998`)
 
-
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_140.notable_bug_fixes:
