@@ -879,6 +879,12 @@ class Block(PandasObject):
 
     # ---------------------------------------------------------------------
 
+    def _standardize_fill_value(self, value):
+        # if we are passed a scalar None, convert it here
+        if self.dtype != _dtype_obj and is_valid_na_for_dtype(value, self.dtype):
+            value = self.fill_value
+        return value
+
     def _maybe_squeeze_arg(self, arg: np.ndarray) -> np.ndarray:
         """
         For compatibility with 1D-only ExtensionArrays.
@@ -916,10 +922,7 @@ class Block(PandasObject):
         if isinstance(indexer, np.ndarray) and indexer.ndim > self.ndim:
             raise ValueError(f"Cannot set values with ndim > {self.ndim}")
 
-        # coerce None values, if appropriate
-        if value is None:
-            if self.is_numeric:
-                value = np.nan
+        value = self._standardize_fill_value(value)
 
         # coerce if block dtype can store value
         values = cast(np.ndarray, self.values)
@@ -980,9 +983,7 @@ class Block(PandasObject):
         if new is lib.no_default:
             new = self.fill_value
 
-        # if we are passed a scalar None, convert it here
-        if not self.is_object and is_valid_na_for_dtype(new, self.dtype):
-            new = self.fill_value
+        new = self._standardize_fill_value(new)
 
         if self._can_hold_element(new):
             putmask_without_repeat(values.T, mask, new)
@@ -1164,8 +1165,7 @@ class Block(PandasObject):
             # see test_shift_object_non_scalar_fill
             raise ValueError("fill_value must be a scalar")
 
-        if is_valid_na_for_dtype(fill_value, self.dtype) and self.dtype != _dtype_obj:
-            fill_value = self.fill_value
+        fill_value = self._standardize_fill_value(fill_value)
 
         if not self._can_hold_element(fill_value):
             nb = self.coerce_to_target_dtype(fill_value)
@@ -1208,8 +1208,7 @@ class Block(PandasObject):
         if other is lib.no_default:
             other = self.fill_value
 
-        if is_valid_na_for_dtype(other, self.dtype) and self.dtype != _dtype_obj:
-            other = self.fill_value
+        other = self._standardize_fill_value(other)
 
         if not self._can_hold_element(other):
             # we cannot coerce, return a compat dtype
