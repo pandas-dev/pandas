@@ -11,17 +11,24 @@ from pandas.util.version import Version
 
 VERSIONS = {
     "bs4": "4.8.2",
+    "blosc": "1.20.1",
     "bottleneck": "1.3.1",
-    "fsspec": "0.7.4",
     "fastparquet": "0.4.0",
+    "fsspec": "0.7.4",
+    "html5lib": "1.1",
     "gcsfs": "0.6.0",
+    "jinja2": "2.11",
     "lxml.etree": "4.5.0",
     "matplotlib": "3.3.2",
+    "numba": "0.50.1",
     "numexpr": "2.7.1",
     "odfpy": "1.4.1",
     "openpyxl": "3.0.3",
     "pandas_gbq": "0.14.0",
+    "psycopg2": "2.8.4",  # (dt dec pq3 ext lo64)
+    "pymysql": "0.10.1",
     "pyarrow": "1.0.1",
+    "pyreadstat": "1.1.0",
     "pytest": "6.0",
     "pyxlsb": "1.0.6",
     "s3fs": "0.4.0",
@@ -33,7 +40,6 @@ VERSIONS = {
     "xlrd": "2.0.1",
     "xlwt": "1.3.0",
     "xlsxwriter": "1.2.2",
-    "numba": "0.50.1",
     "zstandard": "0.15.2",
 }
 
@@ -46,6 +52,7 @@ INSTALL_MAPPING = {
     "lxml.etree": "lxml",
     "odf": "odfpy",
     "pandas_gbq": "pandas-gbq",
+    "tables": "pytables",
     "sqlalchemy": "SQLAlchemy",
     "jinja2": "Jinja2",
 }
@@ -59,6 +66,9 @@ def get_version(module: types.ModuleType) -> str:
 
     if version is None:
         raise ImportError(f"Can't determine version for {module.__name__}")
+    if module.__name__ == "psycopg2":
+        # psycopg2 appends " (dt dec pq3 ext lo64)" to it's version
+        version = version.split()[0]
     return version
 
 
