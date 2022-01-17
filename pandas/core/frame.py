@@ -5689,7 +5689,7 @@ class DataFrame(NDFrame, OpsMixin):
         allow_duplicates : bool, optional, default lib.no_default
             Allow duplicate column labels to be created.
 
-            .. versionadded:: 1.4.0
+            .. versionadded:: 1.5.0
 
         Returns
         -------
