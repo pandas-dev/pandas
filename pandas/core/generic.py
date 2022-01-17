@@ -4259,7 +4259,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis,
         level=None,
         errors: str = "raise",
-        consolidate: bool_t = True,
         only_slice: bool_t = False,
     ) -> NDFrameT:
         """
@@ -4274,8 +4273,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             For MultiIndex
         errors : {'ignore', 'raise'}, default 'raise'
             If 'ignore', suppress error and existing labels are dropped.
-        consolidate : bool, default True
-            Whether to call consolidate_inplace in the reindex_indexer call.
         only_slice : bool, default False
             Whether indexing along columns should be view-only.
 
@@ -4329,7 +4326,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             indexer,
             axis=bm_axis,
             allow_dups=True,
-            consolidate=consolidate,
             only_slice=only_slice,
         )
         result = self._constructor(new_mgr)
