@@ -257,7 +257,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 return value
             # TODO: unsigned checks
 
-        raise TypeError(f"Invalid value '{value}' for dtype {self.dtype}")
+        # Note: without the "str" here, the f-string rendering raises in
+        #  py38 builds.
+        raise TypeError(f"Invalid value '{str(value)}' for dtype {self.dtype}")
 
     def __setitem__(self, key, value) -> None:
         key = check_array_indexer(self, key)
