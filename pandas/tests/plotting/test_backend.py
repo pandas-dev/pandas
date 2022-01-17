@@ -18,9 +18,8 @@ pytestmark = pytest.mark.slow
 @pytest.fixture
 def restore_backend():
     """Restore the plotting backend to matplotlib"""
-    pandas.set_option("plotting.backend", "matplotlib")
-    yield
-    pandas.set_option("plotting.backend", "matplotlib")
+    with pandas.option_context("plotting.backend", "matplotlib"):
+        yield
 
 
 def test_backend_is_not_module():

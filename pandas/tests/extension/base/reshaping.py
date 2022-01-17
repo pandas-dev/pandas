@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.api.extensions import ExtensionArray
 from pandas.core.internals.blocks import EABackedBlock
 from pandas.tests.extension.base.base import BaseExtensionTests
@@ -318,15 +319,22 @@ class BaseReshapingTests(BaseExtensionTests):
                 alt = df.unstack(level=level).droplevel(0, axis=1)
                 self.assert_frame_equal(result, alt)
 
-            expected = ser.astype(object).unstack(
-                level=level, fill_value=data.dtype.na_value
-            )
-            if obj == "series" and not isinstance(ser.dtype, pd.SparseDtype):
+            if obj == "series":
+                is_sparse = isinstance(ser.dtype, pd.SparseDtype)
+            else:
+                is_sparse = isinstance(ser.dtypes.iat[0], pd.SparseDtype)
+            warn = None if not is_sparse else FutureWarning
+            with tm.assert_produces_warning(warn, match="astype from Sparse"):
+                obj_ser = ser.astype(object)
+
+            expected = obj_ser.unstack(level=level, fill_value=data.dtype.na_value)
+            if obj == "series" and not is_sparse:
                 # GH#34457 SparseArray.astype(object) gives Sparse[object]
                 #  instead of np.dtype(object)
                 assert (expected.dtypes == object).all()
 
-            result = result.astype(object)
+            with tm.assert_produces_warning(warn, match="astype from Sparse"):
+                result = result.astype(object)
 
             self.assert_frame_equal(result, expected)
 

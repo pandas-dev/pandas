@@ -545,7 +545,6 @@ class BaseArrayManager(DataManager):
         allow_dups: bool = False,
         copy: bool = True,
         # ignored keywords
-        consolidate: bool = True,
         only_slice: bool = False,
         # ArrayManager specific keywords
         use_na_proxy: bool = False,
