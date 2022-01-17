@@ -246,7 +246,10 @@ class NumericIndex(Index):
                 # GH 13149
                 arr = astype_nansafe(self._values, dtype=dtype)
                 if isinstance(self, Float64Index):
-                    return Int64Index(arr, name=self.name)
+                    if dtype.kind == "i":
+                        return Int64Index(arr, name=self.name)
+                    else:
+                        return UInt64Index(arr, name=self.name)
                 else:
                     return NumericIndex(arr, name=self.name, dtype=dtype)
         elif self._is_backward_compat_public_numeric_index:
@@ -268,7 +271,7 @@ class NumericIndex(Index):
         return False
 
     @doc(Index._convert_slice_indexer)
-    def _convert_slice_indexer(self, key: slice, kind: str):
+    def _convert_slice_indexer(self, key: slice, kind: str, is_frame: bool = False):
         if is_float_dtype(self.dtype):
             assert kind in ["loc", "getitem"]
 
@@ -276,7 +279,7 @@ class NumericIndex(Index):
             # translate to locations
             return self.slice_indexer(key.start, key.stop, key.step)
 
-        return super()._convert_slice_indexer(key, kind=kind)
+        return super()._convert_slice_indexer(key, kind=kind, is_frame=is_frame)
 
     @doc(Index._maybe_cast_slice_bound)
     def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
