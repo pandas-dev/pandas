@@ -83,6 +83,17 @@ def test_op_int8(left_array, right_array, opname):
     tm.assert_extension_array_equal(result, expected)
 
 
+def test_boolean_array_add_pdna():
+    data = pd.array([True, False])
+
+    res = data + pd.NA
+    assert res.isna().all()
+
+    # check we didn't alter data._mask inplace
+    expected = pd.array([True, False])
+    tm.assert_extension_array_equal(data, expected)
+
+
 # Test generic characteristics / errors
 # -----------------------------------------------------------------------------
 
