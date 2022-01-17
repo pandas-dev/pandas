@@ -3047,6 +3047,30 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
     @final
+    def _deprecate_dti_setop(self, other: Index, setop: str_t):
+        """
+        Deprecate setop behavior between timezone-aware DatetimeIndexes with
+        mismatched timezones.
+        """
+        # Caller is responsibelf or checking
+        #  `not is_dtype_equal(self.dtype, other.dtype)`
+        if (
+            isinstance(self, ABCDatetimeIndex)
+            and isinstance(other, ABCDatetimeIndex)
+            and self.tz is not None
+            and other.tz is not None
+        ):
+            # GH#39328, GH#45357
+            warnings.warn(
+                f"In a future version, the {setop} of DatetimeIndex objects "
+                "with mismatched timezones will cast both to UTC instead of "
+                "object dtype. To retain the old behavior, "
+                f"use `index.astype(object).{setop}(other)`",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
+    @final
     def union(self, other, sort=None):
         """
         Form the union of two Index objects.
@@ -3144,21 +3168,7 @@ class Index(IndexOpsMixin, PandasObject):
                     "Can only union MultiIndex with MultiIndex or Index of tuples, "
                     "try mi.to_flat_index().union(other) instead."
                 )
-            if (
-                isinstance(self, ABCDatetimeIndex)
-                and isinstance(other, ABCDatetimeIndex)
-                and self.tz is not None
-                and other.tz is not None
-            ):
-                # GH#39328
-                warnings.warn(
-                    "In a future version, the union of DatetimeIndex objects "
-                    "with mismatched timezones will cast both to UTC instead of "
-                    "object dtype. To retain the old behavior, "
-                    "use `index.astype(object).union(other)`",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
+            self._deprecate_dti_setop(other, "union")
 
             dtype = self._find_common_type_compat(other)
             left = self.astype(dtype, copy=False)
@@ -3294,6 +3304,9 @@ class Index(IndexOpsMixin, PandasObject):
         self._assert_can_do_setop(other)
         other, result_name = self._convert_can_do_setop(other)
 
+        if not is_dtype_equal(self.dtype, other.dtype):
+            self._deprecate_dti_setop(other, "intersection")
+
         if self.equals(other):
             if self.has_duplicates:
                 return self.unique()._get_reconciled_name_object(other)
@@ -3424,6 +3437,10 @@ class Index(IndexOpsMixin, PandasObject):
         self._assert_can_do_setop(other)
         other, result_name = self._convert_can_do_setop(other)
 
+        # Note: we do NOT call _deprecate_dti_setop here, as there
+        #  is no requirement that .difference be commutative, so it does
+        #  not cast to object.
+
         if self.equals(other):
             # Note: we do not (yet) sort even if sort=None GH#24959
             return self[:0].rename(result_name)
@@ -3497,6 +3514,9 @@ class Index(IndexOpsMixin, PandasObject):
         other, result_name_update = self._convert_can_do_setop(other)
         if result_name is None:
             result_name = result_name_update
+
+        if not is_dtype_equal(self.dtype, other.dtype):
+            self._deprecate_dti_setop(other, "symmetric_difference")
 
         if not self._should_compare(other):
             return self.union(other, sort=sort).rename(result_name)
