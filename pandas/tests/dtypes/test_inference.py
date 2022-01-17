@@ -1534,7 +1534,9 @@ class TestTypeInference:
         assert not lib.is_integer_array(np.array([1, 2.0]))
 
     def test_is_string_array(self):
-
+        # We should only be accepting pd.NA, np.nan,
+        # other floating point nans e.g. float('nan')]
+        # when skipna is True.
         assert lib.is_string_array(np.array(["foo", "bar"]))
         assert not lib.is_string_array(
             np.array(["foo", "bar", pd.NA], dtype=object), skipna=False
@@ -1542,11 +1544,21 @@ class TestTypeInference:
         assert lib.is_string_array(
             np.array(["foo", "bar", pd.NA], dtype=object), skipna=True
         )
-        # NaN is not valid for string array, just NA
-        assert not lib.is_string_array(
+        assert lib.is_string_array(
+            np.array(["foo", "bar", None], dtype=object), skipna=True
+        )
+        assert lib.is_string_array(
             np.array(["foo", "bar", np.nan], dtype=object), skipna=True
         )
-
+        assert not lib.is_string_array(
+            np.array(["foo", "bar", pd.NaT], dtype=object), skipna=True
+        )
+        assert not lib.is_string_array(
+            np.array(["foo", "bar", None], dtype=object), skipna=False
+        )
+        assert not lib.is_string_array(
+            np.array(["foo", "bar", np.nan], dtype=object), skipna=False
+        )
         assert not lib.is_string_array(np.array([1, 2]))
 
     def test_to_object_array_tuples(self):
