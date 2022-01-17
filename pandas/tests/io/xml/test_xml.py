@@ -752,7 +752,7 @@ def test_dtype_single_str(parser):
 
 
 def test_dtypes_all_str(parser):
-    df_result = read_xml(xml_dates, dtype="string")
+    df_result = read_xml(xml_dates, dtype="string", parser=parser)
 
     df_expected = DataFrame(
         {
@@ -845,7 +845,9 @@ def test_converters_str(parser):
 
 def test_converters_date(parser):
     convert_to_datetime = lambda x: to_datetime(x)
-    df_result = read_xml(xml_dates, converters={"date": convert_to_datetime})
+    df_result = read_xml(
+        xml_dates, converters={"date": convert_to_datetime}, parser=parser
+    )
 
     df_expected = DataFrame(
         {
