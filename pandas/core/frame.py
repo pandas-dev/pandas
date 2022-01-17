@@ -5696,11 +5696,6 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame or None
             DataFrame with the new index or None if ``inplace=True``.
 
-        Raises
-        ------
-        ValueError
-            If allow_duplicates and not self.flags.allows_duplicate_labels.
-
         See Also
         --------
         DataFrame.set_index : Opposite of reset_index.
