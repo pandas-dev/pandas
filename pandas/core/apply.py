@@ -996,7 +996,7 @@ class FrameColumnApply(FrameApply):
                 # GH#35462 re-pin mgr in case setitem changed it
                 ser._mgr = mgr
                 mgr.set_values(arr)
-                ser.name = name
+                object.__setattr__(ser, "_name", name)
                 yield ser
 
     @property

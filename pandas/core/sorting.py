@@ -354,7 +354,7 @@ def nargsort(
     ascending: bool = True,
     na_position: str = "last",
     key: Callable | None = None,
-    mask: np.ndarray | None = None,
+    mask: npt.NDArray[np.bool_] | None = None,
 ) -> npt.NDArray[np.intp]:
     """
     Intended to be a drop-in replacement for np.argsort which handles NaNs.
@@ -369,7 +369,7 @@ def nargsort(
     ascending : bool, default True
     na_position : {'first', 'last'}, default 'last'
     key : Optional[Callable], default None
-    mask : Optional[np.ndarray], default None
+    mask : Optional[np.ndarray[bool]], default None
         Passed when called by ExtensionArray.argsort.
 
     Returns

@@ -754,6 +754,53 @@ class TestSeriesConstructors:
         with pytest.raises(OverflowError, match=msg):
             Series([-1], dtype=any_unsigned_int_numpy_dtype)
 
+    def test_constructor_floating_data_int_dtype(self, frame_or_series):
+        # GH#40110
+        arr = np.random.randn(2)
+
+        if frame_or_series is Series:
+            # Long-standing behavior has been to ignore the dtype on these;
+            #  not clear if this is what we want long-term
+            expected = frame_or_series(arr)
+
+            res = frame_or_series(arr, dtype="i8")
+            tm.assert_equal(res, expected)
+
+            res = frame_or_series(list(arr), dtype="i8")
+            tm.assert_equal(res, expected)
+
+        else:
+            msg = "passing float-dtype values and an integer dtype"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                # DataFrame will behave like Series
+                frame_or_series(arr, dtype="i8")
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                # DataFrame will behave like Series
+                frame_or_series(list(arr), dtype="i8")
+
+        # When we have NaNs, we silently ignore the integer dtype
+        arr[0] = np.nan
+        expected = frame_or_series(arr)
+        msg = "passing float-dtype values containing NaN and an integer dtype"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            obj = frame_or_series(arr, dtype="i8")
+        tm.assert_equal(obj, expected)
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # same behavior if we pass list instead of the ndarray
+            obj = frame_or_series(list(arr), dtype="i8")
+        tm.assert_equal(obj, expected)
+
+        # float array that can be losslessly cast to integers
+        arr = np.array([1.0, 2.0], dtype="float64")
+        expected = frame_or_series(arr.astype("i8"))
+
+        obj = frame_or_series(arr, dtype="i8")
+        tm.assert_equal(obj, expected)
+
+        obj = frame_or_series(list(arr), dtype="i8")
+        tm.assert_equal(obj, expected)
+
     @td.skip_if_no("dask")
     def test_construct_dask_float_array_int_dtype_match_ndarray(self):
         # GH#40110 make sure we treat a float-dtype dask array with the same

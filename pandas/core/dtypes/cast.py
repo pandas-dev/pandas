@@ -1447,8 +1447,10 @@ def find_result_type(left: ArrayLike, right: Any) -> DtypeObj:
     """
     new_dtype: DtypeObj
 
-    if left.dtype.kind in ["i", "u", "c"] and (
-        lib.is_integer(right) or lib.is_float(right)
+    if (
+        isinstance(left, np.ndarray)
+        and left.dtype.kind in ["i", "u", "c"]
+        and (lib.is_integer(right) or lib.is_float(right))
     ):
         # e.g. with int8 dtype and right=512, we want to end up with
         # np.int16, whereas infer_dtype_from(512) gives np.int64,
@@ -1456,14 +1458,7 @@ def find_result_type(left: ArrayLike, right: Any) -> DtypeObj:
         if lib.is_float(right) and right.is_integer() and left.dtype.kind != "f":
             right = int(right)
 
-        # Argument 1 to "result_type" has incompatible type "Union[ExtensionArray,
-        # ndarray[Any, Any]]"; expected "Union[Union[_SupportsArray[dtype[Any]],
-        # _NestedSequence[_SupportsArray[dtype[Any]]], bool, int, float, complex,
-        # str, bytes, _NestedSequence[Union[bool, int, float, complex, str, bytes]]],
-        # Union[dtype[Any], None, Type[Any], _SupportsDType[dtype[Any]], str,
-        # Union[Tuple[Any, int], Tuple[Any, Union[SupportsIndex,
-        # Sequence[SupportsIndex]]], List[Any], _DTypeDict, Tuple[Any, Any]]]]"
-        new_dtype = np.result_type(left, right)  # type:ignore[arg-type]
+        new_dtype = np.result_type(left, right)
 
     else:
         dtype, _ = infer_dtype_from(right, pandas_dtype=True)
