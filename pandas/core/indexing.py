@@ -5,6 +5,7 @@ from typing import (
     TYPE_CHECKING,
     Hashable,
     Sequence,
+    final,
 )
 import warnings
 
@@ -627,6 +628,7 @@ class _LocationIndexer(NDFrameIndexerBase):
     _valid_types: str
     axis = None
 
+    @final
     def __call__(self, axis=None):
         # we need to return a copy of ourselves
         new_self = type(self)(self.name, self.obj)
@@ -641,6 +643,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         Convert a potentially-label-based key into a positional indexer.
         """
         if self.name == "loc":
+            # always holds here bc iloc overrides _get_setitem_indexer
             self._ensure_listlike_indexer(key)
 
         if isinstance(key, tuple):
@@ -648,7 +651,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                 check_deprecated_indexers(x)
 
         if self.axis is not None:
-            return self._convert_tuple(key)
+            key = self._tupleize_axis_indexer(key)
 
         ax = self.obj._get_axis(0)
 
@@ -659,6 +662,7 @@ class _LocationIndexer(NDFrameIndexerBase):
 
         if isinstance(key, tuple):
             with suppress(IndexingError):
+                # suppress "Too many indexers"
                 return self._convert_tuple(key)
 
         if isinstance(key, range):
@@ -666,6 +670,18 @@ class _LocationIndexer(NDFrameIndexerBase):
 
         return self._convert_to_indexer(key, axis=0)
 
+    @final
+    def _tupleize_axis_indexer(self, key) -> tuple:
+        """
+        If we have an axis, adapt the given key to be axis-independent.
+        """
+        new_key = [slice(None)] * self.ndim
+        # error: Invalid index type "Optional[Any]" for "List[slice]"; expected
+        # type "SupportsIndex"
+        new_key[self.axis] = key  # type:ignore[index]
+        return tuple(new_key)
+
+    @final
     def _ensure_listlike_indexer(self, key, axis=None, value=None):
         """
         Ensure that a list-like of column labels are all present by adding them if
@@ -699,10 +715,9 @@ class _LocationIndexer(NDFrameIndexerBase):
             # GH#38148
             keys = self.obj.columns.union(key, sort=False)
 
-            self.obj._mgr = self.obj._mgr.reindex_axis(
-                keys, axis=0, consolidate=False, only_slice=True
-            )
+            self.obj._mgr = self.obj._mgr.reindex_axis(keys, axis=0, only_slice=True)
 
+    @final
     def __setitem__(self, key, value):
         check_deprecated_indexers(key)
         if isinstance(key, tuple):
@@ -738,6 +753,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         """
         raise AbstractMethodError(self)
 
+    @final
     def _expand_ellipsis(self, tup: tuple) -> tuple:
         """
         If a tuple key includes an Ellipsis, replace it with an appropriate
@@ -759,6 +775,7 @@ class _LocationIndexer(NDFrameIndexerBase):
             #  by _validate_key_length
         return tup
 
+    @final
     def _validate_tuple_indexer(self, key: tuple) -> tuple:
         """
         Check the key for valid keys across my indexer.
@@ -775,6 +792,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                 ) from err
         return key
 
+    @final
     def _is_nested_tuple_indexer(self, tup: tuple) -> bool:
         """
         Returns
@@ -785,23 +803,18 @@ class _LocationIndexer(NDFrameIndexerBase):
             return any(is_nested_tuple(tup, ax) for ax in self.obj.axes)
         return False
 
-    def _convert_tuple(self, key):
+    @final
+    def _convert_tuple(self, key: tuple) -> tuple:
+        # Note: we assume _tupleize_axis_indexer has been called, if necessary.
         keyidx = []
-        if self.axis is not None:
-            axis = self.obj._get_axis_number(self.axis)
-            for i in range(self.ndim):
-                if i == axis:
-                    keyidx.append(self._convert_to_indexer(key, axis=axis))
-                else:
-                    keyidx.append(slice(None))
-        else:
-            self._validate_key_length(key)
-            for i, k in enumerate(key):
-                idx = self._convert_to_indexer(k, axis=i)
-                keyidx.append(idx)
+        self._validate_key_length(key)
+        for i, k in enumerate(key):
+            idx = self._convert_to_indexer(k, axis=i)
+            keyidx.append(idx)
 
         return tuple(keyidx)
 
+    @final
     def _validate_key_length(self, key: tuple) -> tuple:
         if len(key) > self.ndim:
             if key[0] is Ellipsis:
@@ -813,6 +826,7 @@ class _LocationIndexer(NDFrameIndexerBase):
             raise IndexingError("Too many indexers")
         return key
 
+    @final
     def _getitem_tuple_same_dim(self, tup: tuple):
         """
         Index with indexers that should return an object of the same dimension
@@ -832,6 +846,7 @@ class _LocationIndexer(NDFrameIndexerBase):
 
         return retval
 
+    @final
     def _getitem_lowerdim(self, tup: tuple):
 
         # we can directly get the axis result since the axis is specified
@@ -893,6 +908,7 @@ class _LocationIndexer(NDFrameIndexerBase):
 
         raise IndexingError("not applicable")
 
+    @final
     def _getitem_nested_tuple(self, tup: tuple):
         # we have a nested tuple so have at least 1 multi-index level
         # we should be able to match up the dimensionality here
@@ -952,6 +968,7 @@ class _LocationIndexer(NDFrameIndexerBase):
     def _convert_to_indexer(self, key, axis: int):
         raise AbstractMethodError(self)
 
+    @final
     def __getitem__(self, key):
         check_deprecated_indexers(key)
         if type(key) is tuple:
@@ -979,6 +996,7 @@ class _LocationIndexer(NDFrameIndexerBase):
     def _has_valid_setitem_indexer(self, indexer) -> bool:
         raise AbstractMethodError(self)
 
+    @final
     def _getbool_axis(self, key, axis: int):
         # caller is responsible for ensuring non-None axis
         labels = self.obj._get_axis(axis)
@@ -1545,7 +1563,7 @@ class _iLocIndexer(_LocationIndexer):
             key = list(key)
 
         if self.axis is not None:
-            return self._convert_tuple(key)
+            key = self._tupleize_axis_indexer(key)
 
         return key
 
