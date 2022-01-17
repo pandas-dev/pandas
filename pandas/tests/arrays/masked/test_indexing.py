@@ -8,7 +8,7 @@ import pandas as pd
 
 class TestSetitemValidation:
     def _check_setitem_invalid(self, arr, invalid):
-        msg = f"Invalid value '{invalid}' for dtype {arr.dtype}"
+        msg = f"Invalid value '{str(invalid)}' for dtype {arr.dtype}"
         msg = re.escape(msg)
         with pytest.raises(TypeError, match=msg):
             arr[0] = invalid
@@ -43,18 +43,18 @@ class TestSetitemValidation:
     ]
 
     @pytest.mark.parametrize(
-        "invalid", [1, 1.0, np.int64(1), np.float64(1)] + _invalid_scalars
+        "invalid", _invalid_scalars + [1, 1.0, np.int64(1), np.float64(1)]
     )
     def test_setitem_validation_scalar_bool(self, invalid):
         arr = pd.array([True, False, None], dtype="boolean")
         self._check_setitem_invalid(arr, invalid)
 
-    @pytest.mark.parametrize("invalid", [True, 1.5, np.float64(1.5)] + _invalid_scalars)
+    @pytest.mark.parametrize("invalid", _invalid_scalars + [True, 1.5, np.float64(1.5)])
     def test_setitem_validation_scalar_int(self, invalid, any_int_ea_dtype):
         arr = pd.array([1, 2, None], dtype=any_int_ea_dtype)
         self._check_setitem_invalid(arr, invalid)
 
-    @pytest.mark.parametrize("invalid", [True] + _invalid_scalars)
+    @pytest.mark.parametrize("invalid", _invalid_scalars + [True])
     def test_setitem_validation_scalar_float(self, invalid, float_ea_dtype):
         arr = pd.array([1, 2, None], dtype=float_ea_dtype)
         self._check_setitem_invalid(arr, invalid)
