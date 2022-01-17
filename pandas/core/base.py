@@ -1072,7 +1072,7 @@ class IndexOpsMixin(OpsMixin):
         """
         from pandas import Index
 
-        return Index(self).is_monotonic
+        return Index(self).is_monotonic_increasing
 
     @property
     def is_monotonic_decreasing(self) -> bool:
