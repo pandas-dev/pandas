@@ -161,6 +161,9 @@ def astype_intsafe(
     arr: npt.NDArray[np.object_],
     new_dtype: np.dtype,
 ) -> np.ndarray: ...
+def convert_nans_to_NA(
+    arr: npt.NDArray[np.object_],
+) -> npt.NDArray[np.object_]: ...
 def fast_zip(ndarrays: list) -> npt.NDArray[np.object_]: ...
 
 # TODO: can we be more specific about rows?
