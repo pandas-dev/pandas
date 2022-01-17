@@ -784,6 +784,7 @@ Datetimelike
 - Bug in :meth:`Index.insert` for inserting ``np.datetime64``, ``np.timedelta64`` or ``tuple`` into :class:`Index` with ``dtype='object'`` with negative loc adding ``None`` and replacing existing value (:issue:`44509`)
 - Bug in :meth:`Timestamp.to_pydatetime` failing to retain the ``fold`` attribute (:issue:`45087`)
 - Bug in :meth:`Series.mode` with ``DatetimeTZDtype`` incorrectly returning timezone-naive and ``PeriodDtype`` incorrectly raising (:issue:`41927`)
+- Fixed regression in :meth:`~Series.reindex` raising an error when using an incompatible fill value with a datetime-like dtype (or not raising a deprecation warning for using a ``datetime.date`` as fill value) (:issue:`42921`)
 - Bug in :class:`DateOffset`` addition with :class:`Timestamp` where ``offset.nanoseconds`` would not be included in the result (:issue:`43968`, :issue:`36589`)
 - Bug in :meth:`Timestamp.fromtimestamp` not supporting the ``tz`` argument (:issue:`45083`)
 - Bug in :class:`DataFrame` construction from dict of :class:`Series` with mismatched index dtypes sometimes raising depending on the ordering of the passed dict (:issue:`44091`)
@@ -971,7 +972,7 @@ Groupby/resample/rolling
 - Bug in :meth:`Series.rolling` and :meth:`DataFrame.rolling` when using a :class:`pandas.api.indexers.BaseIndexer` subclass that returned unequal start and end arrays would segfault instead of raising a ``ValueError`` (:issue:`44470`)
 - Bug in :meth:`Groupby.nunique` not respecting ``observed=True`` for Categorical grouping columns (:issue:`45128`)
 - Bug in :meth:`GroupBy.head` and :meth:`GroupBy.tail` not dropping groups with ``NaN`` when ``dropna=True`` (:issue:`45089`)
-- Fixed bug in :meth:`GroupBy.__iter__` after selecting a subset of columns in a :class:`GroupBy` object, which returned all columns instead of the chosen subset (:issue:`#44821`)
+- Fixed bug in :meth:`GroupBy.__iter__` after selecting a subset of columns in a :class:`GroupBy` object, which returned all columns instead of the chosen subset (:issue:`44821`)
 - Bug in :meth:`Groupby.rolling` when non-monotonic data passed, fails to correctly raise ``ValueError`` (:issue:`43909`)
 - Fixed bug where grouping by a :class:`Series` that has a categorical data type and length unequal to the axis of grouping raised ``ValueError`` (:issue:`44179`)
 

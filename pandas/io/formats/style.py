@@ -1486,7 +1486,9 @@ class Styler(StylerRenderer):
         subset = slice(None) if subset is None else subset
         subset = non_reducing_slice(subset)
         data = self.data.loc[subset]
-        if axis is None:
+        if data.empty:
+            result = DataFrame()
+        elif axis is None:
             result = func(data, **kwargs)
             if not isinstance(result, DataFrame):
                 if not isinstance(result, np.ndarray):

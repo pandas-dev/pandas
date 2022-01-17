@@ -240,6 +240,8 @@ class NumericIndex(Index):
 
     @doc(Index._convert_slice_indexer)
     def _convert_slice_indexer(self, key: slice, kind: str, is_frame: bool = False):
+        # TODO(2.0): once #45324 deprecation is enforced we should be able
+        #  to simplify this.
         if is_float_dtype(self.dtype):
             assert kind in ["loc", "getitem"]
 
