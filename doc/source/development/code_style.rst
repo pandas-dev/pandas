@@ -28,7 +28,7 @@ Testing
 Failing tests
 --------------
 
-See https://docs.pytest.org/en/latest/skipping.html for background.
+See https://docs.pytest.org/en/latest/how-to/skipping.html for background.
 
 Do not use ``pytest.xfail``
 ---------------------------

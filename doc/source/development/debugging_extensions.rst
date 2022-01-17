@@ -80,7 +80,7 @@ Once the process launches, simply type ``run`` and the test suite will begin, st
 Checking memory leaks with valgrind
 ===================================
 
-You can use `Valgrind <https://www.valgrind.org>`_ to check for and log memory leaks in extensions. For instance, to check for a memory leak in a test from the suite you can run:
+You can use `Valgrind <https://valgrind.org/>`_ to check for and log memory leaks in extensions. For instance, to check for a memory leak in a test from the suite you can run:
 
 .. code-block:: sh
 

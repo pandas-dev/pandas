@@ -11,7 +11,7 @@ of how various spreadsheet operations would be performed using pandas. This page
 terminology and link to documentation for Excel, but much will be the same/similar in
 `Google Sheets <https://support.google.com/a/users/answer/9282959>`_,
 `LibreOffice Calc <https://help.libreoffice.org/latest/en-US/text/scalc/main0000.html?DbPAR=CALC>`_,
-`Apple Numbers <https://www.apple.com/mac/numbers/compatibility/functions.html>`_, and other
+`Apple Numbers <https://www.apple.com/numbers/compatibility/>`_, and other
 Excel-compatible spreadsheet software.
 
 .. include:: includes/introduction.rst
@@ -85,7 +85,7 @@ In a spreadsheet, `values can be typed directly into cells <https://support.micr
 Reading external data
 ~~~~~~~~~~~~~~~~~~~~~
 
-Both `Excel <https://support.microsoft.com/en-us/office/import-data-from-external-data-sources-power-query-be4330b3-5356-486c-a168-b68e9e616f5a>`__
+Both `Excel <https://support.microsoft.com/en-us/office/import-data-from-data-sources-power-query-be4330b3-5356-486c-a168-b68e9e616f5a>`__
 and :ref:`pandas <10min_tut_02_read_write>` can import data from various sources in various
 formats.
 
