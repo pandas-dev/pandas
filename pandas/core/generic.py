@@ -2143,7 +2143,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Returns a LaTeX representation for a particular object.
         Mainly for use with nbconvert (jupyter notebook conversion to pdf).
         """
-        if config.get_option("display.latex.repr"):
+        if config.get_option("styler.render.repr") == "latex":
             return self.to_latex()
         else:
             return None
@@ -3459,7 +3459,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             "the rendered version, and this argument is ignored."
         )
         if col_space is not None:
-            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+            warnings.warn(msg, DeprecationWarning, stacklevel=find_stack_level())
 
         deprecated_arg_used = any(
             [
@@ -3518,7 +3518,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "implementation, which may be exclusively used in future "
                 "versions."
             )
-            warnings.warn(msg, DeprecationWarning, stacklevel=find_stack_level())
+            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
 
         base_format_ = {
             "na_rep": na_rep,

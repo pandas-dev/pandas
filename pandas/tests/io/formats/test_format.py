@@ -3320,7 +3320,7 @@ def test_repr_html_ipython_config(ip):
     assert not result.error_in_exec
 
 
-@pytest.mark.filterwarnings("ignore:In future versions `DataFrame.to_latex`")
+@pytest.mark.filterwarnings("ignore:Deprecated arguments supplied:FutureWarning")
 @pytest.mark.parametrize("method", ["to_string", "to_html", "to_latex"])
 @pytest.mark.parametrize(
     "encoding, data",

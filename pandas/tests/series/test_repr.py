@@ -210,15 +210,17 @@ class TestSeriesRepr:
     def test_latex_repr(self):
         result = r"""\begin{tabular}{ll}
 \toprule
-{} &         0 \\
+ & 0 \\
 \midrule
-0 &  $\alpha$ \\
-1 &         b \\
-2 &         c \\
+0 & $\alpha$ \\
+1 & b \\
+2 & c \\
 \bottomrule
 \end{tabular}
 """
-        with option_context("display.latex.escape", False, "display.latex.repr", True):
+        with option_context(
+            "display.latex.escape", False, "styler.render.repr", "latex"
+        ):
             s = Series([r"$\alpha$", "b", "c"])
             assert result == s._repr_latex_()
 

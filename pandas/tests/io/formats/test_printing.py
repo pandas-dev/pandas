@@ -138,7 +138,7 @@ class TestTableSchemaRepr:
                 formatted = ipython.display_formatter.format(obj)
             assert set(formatted[0].keys()) == expected
 
-        with_latex = pd.option_context("display.latex.repr", True)
+        with_latex = pd.option_context("styler.render.repr", "latex")
 
         with opt, with_latex:
             formatted = ipython.display_formatter.format(obj)

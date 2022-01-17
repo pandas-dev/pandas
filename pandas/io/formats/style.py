@@ -1050,10 +1050,12 @@ class Styler(StylerRenderer):
             clines=clines,
         )
 
-        encoding = encoding or get_option("styler.render.encoding")
-        return save_to_buffer(
-            latex, buf=buf, encoding=None if buf is None else encoding
+        encoding = (
+            (encoding or get_option("styler.render.encoding"))
+            if isinstance(buf, str)  # i.e. a filepath
+            else encoding
         )
+        return save_to_buffer(latex, buf=buf, encoding=encoding)
 
     def to_html(
         self,
