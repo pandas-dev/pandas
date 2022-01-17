@@ -135,7 +135,7 @@ def test_css_side_shorthands(shorthand, expansions):
         ("border", ["top", "right", "bottom", "left"]),
     ],
 )
-def test_css_border_shorthands(shorthand, sides):
+def test_css_border_shorthand_sides(shorthand, sides):
     def create_border_dict(sides, color=None, style=None, width=None):
         resolved = {}
         for side in sides:
