@@ -1140,7 +1140,9 @@ class TestDatetimeIndexTimezones:
         tm.assert_numpy_array_equal(converted.asi8, ex_vals)
         assert converted.tz is pytz.utc
 
-    def test_dti_union_aware(self):
+    # Note: not difference, as there is no symmetry requirement there
+    @pytest.mark.parametrize("setop", ["union", "intersection", "symmetric_difference"])
+    def test_dti_setop_aware(self, setop):
         # non-overlapping
         rng = date_range("2012-11-15 00:00:00", periods=6, freq="H", tz="US/Central")
 
@@ -1148,12 +1150,13 @@ class TestDatetimeIndexTimezones:
 
         with tm.assert_produces_warning(FutureWarning):
             # # GH#39328 will cast both to UTC
-            result = rng.union(rng2)
+            result = getattr(rng, setop)(rng2)
 
-        expected = rng.astype("O").union(rng2.astype("O"))
+        expected = getattr(rng.astype("O"), setop)(rng2.astype("O"))
         tm.assert_index_equal(result, expected)
-        assert result[0].tz.zone == "US/Central"
-        assert result[-1].tz.zone == "US/Eastern"
+        if len(result):
+            assert result[0].tz.zone == "US/Central"
+            assert result[-1].tz.zone == "US/Eastern"
 
     def test_dti_union_mixed(self):
         # GH 21671
