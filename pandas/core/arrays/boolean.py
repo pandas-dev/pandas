@@ -23,7 +23,6 @@ from pandas._typing import (
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
-    is_float,
     is_float_dtype,
     is_integer_dtype,
     is_list_like,
@@ -326,15 +325,6 @@ class BooleanArray(BaseMaskedArray):
         return self._dtype
 
     @classmethod
-    def _from_sequence(
-        cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
-    ) -> BooleanArray:
-        if dtype:
-            assert dtype == "boolean"
-        values, mask = coerce_to_array(scalars, copy=copy)
-        return BooleanArray(values, mask)
-
-    @classmethod
     def _from_sequence_of_strings(
         cls,
         strings: list[str],
@@ -362,8 +352,13 @@ class BooleanArray(BaseMaskedArray):
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number, bool, np.bool_)
 
-    def _coerce_to_array(self, value) -> tuple[np.ndarray, np.ndarray]:
-        return coerce_to_array(value)
+    @classmethod
+    def _coerce_to_array(
+        cls, value, *, dtype: DtypeObj, copy: bool = False
+    ) -> tuple[np.ndarray, np.ndarray]:
+        if dtype:
+            assert dtype == "boolean"
+        return coerce_to_array(value, copy=copy)
 
     @overload
     def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
@@ -508,6 +503,8 @@ class BooleanArray(BaseMaskedArray):
             # actual op, so we need to choose the resulting dtype manually
             if op_name in {"floordiv", "rfloordiv", "mod", "rmod", "pow", "rpow"}:
                 dtype = "int8"
+            elif op_name in {"truediv", "rtruediv"}:
+                dtype = "float64"
             else:
                 dtype = "bool"
             result = np.zeros(len(self._data), dtype=dtype)
@@ -529,36 +526,6 @@ class BooleanArray(BaseMaskedArray):
             )
 
         return self._maybe_mask_result(result, mask, other, op_name)
-
-    def _maybe_mask_result(self, result, mask, other, op_name: str):
-        """
-        Parameters
-        ----------
-        result : array-like
-        mask : array-like bool
-        other : scalar or array-like
-        op_name : str
-        """
-        # if we have a float operand we are by-definition
-        # a float result
-        # or our op is a divide
-        if (is_float_dtype(other) or is_float(other)) or (
-            op_name in ["rtruediv", "truediv"]
-        ):
-            from pandas.core.arrays import FloatingArray
-
-            return FloatingArray(result, mask, copy=False)
-
-        elif is_bool_dtype(result):
-            return BooleanArray(result, mask, copy=False)
-
-        elif is_integer_dtype(result):
-            from pandas.core.arrays import IntegerArray
-
-            return IntegerArray(result, mask, copy=False)
-        else:
-            result[mask] = np.nan
-            return result
 
     def __abs__(self):
         return self.copy()

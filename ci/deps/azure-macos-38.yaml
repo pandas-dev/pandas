@@ -6,6 +6,7 @@ dependencies:
   - python=3.8
 
   # tools
+  - cython>=0.29.24
   - pytest>=6.0
   - pytest-xdist>=1.31
   - hypothesis>=5.5.3
@@ -23,15 +24,13 @@ dependencies:
   - numpy=1.18.5
   - openpyxl
   - pyarrow=1.0.1
+  - pyreadstat
   - pytables
   - python-dateutil==2.8.1
   - pytz
+  - pyxlsb
   - xarray
   - xlrd
   - xlsxwriter
   - xlwt
-  - pip
-  - pip:
-    - cython>=0.29.24
-    - pyreadstat
-    - pyxlsb
+  - zstandard

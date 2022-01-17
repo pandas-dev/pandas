@@ -141,8 +141,7 @@ def test_transform_bad_dtype(op, frame_or_series, request):
         )
 
     obj = DataFrame({"A": 3 * [object]})  # DataFrame that will fail on most transforms
-    if frame_or_series is not DataFrame:
-        obj = obj["A"]
+    obj = tm.get_obj(obj, frame_or_series)
 
     # tshift is deprecated
     warn = None if op != "tshift" else FutureWarning
@@ -160,8 +159,6 @@ def test_transform_bad_dtype(op, frame_or_series, request):
 @pytest.mark.parametrize("op", frame_kernels_raise)
 def test_transform_partial_failure_typeerror(op):
     # GH 35964
-    if op == "rank":
-        pytest.skip("GH 40418: rank does not raise a TypeError")
 
     # Using object makes most transform kernels fail
     df = DataFrame({"A": 3 * [object], "B": [1, 2, 3]})

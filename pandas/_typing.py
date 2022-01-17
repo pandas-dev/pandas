@@ -84,6 +84,7 @@ PythonScalar = Union[str, int, float, bool]
 DatetimeLikeScalar = Union["Period", "Timestamp", "Timedelta"]
 PandasScalar = Union["Period", "Timestamp", "Timedelta", "Interval"]
 Scalar = Union[PythonScalar, PandasScalar]
+IntStrT = TypeVar("IntStrT", int, str)
 
 
 # timestamp and timedelta convertible types
@@ -242,7 +243,10 @@ StorageOptions = Optional[Dict[str, Any]]
 
 # compression keywords and compression
 CompressionDict = Dict[str, Any]
-CompressionOptions = Optional[Union[str, CompressionDict]]
+CompressionOptions = Optional[
+    Union[Literal["infer", "gzip", "bz2", "zip", "xz", "zstd"], CompressionDict]
+]
+XMLParsers = Literal["lxml", "etree"]
 
 
 # types in DataFrameFormatter
@@ -272,7 +276,7 @@ Manager2D = Union["ArrayManager", "BlockManager"]
 # SequenceIndexer is for list like or slices (but not tuples)
 # PositionalIndexerTuple is extends the PositionalIndexer for 2D arrays
 # These are used in various __getitem__ overloads
-# TODO: add Ellipsis, see
+# TODO(typing#684): add Ellipsis, see
 # https://github.com/python/typing/issues/684#issuecomment-548203158
 # https://bugs.python.org/issue41810
 # Using List[int] here rather than Sequence[int] to disallow tuples.
@@ -288,3 +292,6 @@ else:
 
 # Windowing rank methods
 WindowingRankType = Literal["average", "min", "max"]
+
+# read_csv engines
+CSVEngine = Literal["c", "python", "pyarrow", "python-fwf"]

@@ -10,13 +10,13 @@ Frequently Asked Questions (FAQ)
 
 DataFrame memory usage
 ----------------------
-The memory usage of a ``DataFrame`` (including the index) is shown when calling
+The memory usage of a :class:`DataFrame` (including the index) is shown when calling
 the :meth:`~DataFrame.info`. A configuration option, ``display.memory_usage``
 (see :ref:`the list of options <options.available>`), specifies if the
-``DataFrame``'s memory usage will be displayed when invoking the ``df.info()``
+:class:`DataFrame` memory usage will be displayed when invoking the ``df.info()``
 method.
 
-For example, the memory usage of the ``DataFrame`` below is shown
+For example, the memory usage of the :class:`DataFrame` below is shown
 when calling :meth:`~DataFrame.info`:
 
 .. ipython:: python
@@ -53,9 +53,9 @@ By default the display option is set to ``True`` but can be explicitly
 overridden by passing the ``memory_usage`` argument when invoking ``df.info()``.
 
 The memory usage of each column can be found by calling the
-:meth:`~DataFrame.memory_usage` method. This returns a ``Series`` with an index
+:meth:`~DataFrame.memory_usage` method. This returns a :class:`Series` with an index
 represented by column names and memory usage of each column shown in bytes. For
-the ``DataFrame`` above, the memory usage of each column and the total memory
+the :class:`DataFrame` above, the memory usage of each column and the total memory
 usage can be found with the ``memory_usage`` method:
 
 .. ipython:: python
@@ -65,8 +65,8 @@ usage can be found with the ``memory_usage`` method:
     # total memory usage of dataframe
     df.memory_usage().sum()
 
-By default the memory usage of the ``DataFrame``'s index is shown in the
-returned ``Series``, the memory usage of the index can be suppressed by passing
+By default the memory usage of the :class:`DataFrame` index is shown in the
+returned :class:`Series`, the memory usage of the index can be suppressed by passing
 the ``index=False`` argument:
 
 .. ipython:: python
@@ -75,7 +75,7 @@ the ``index=False`` argument:
 
 The memory usage displayed by the :meth:`~DataFrame.info` method utilizes the
 :meth:`~DataFrame.memory_usage` method to determine the memory usage of a
-``DataFrame`` while also formatting the output in human-readable units (base-2
+:class:`DataFrame` while also formatting the output in human-readable units (base-2
 representation; i.e. 1KB = 1024 bytes).
 
 See also :ref:`Categorical Memory Usage <categorical.memory>`.
@@ -98,32 +98,28 @@ of the following code should be:
 Should it be ``True`` because it's not zero-length, or ``False`` because there
 are ``False`` values? It is unclear, so instead, pandas raises a ``ValueError``:
 
-.. code-block:: python
+.. ipython:: python
+    :okexcept:
 
-    >>> if pd.Series([False, True, False]):
-    ...     print("I was true")
-    Traceback
-        ...
-    ValueError: The truth value of an array is ambiguous. Use a.empty, a.any() or a.all().
+    if pd.Series([False, True, False]):
+        print("I was true")
 
-You need to explicitly choose what you want to do with the ``DataFrame``, e.g.
+You need to explicitly choose what you want to do with the :class:`DataFrame`, e.g.
 use :meth:`~DataFrame.any`, :meth:`~DataFrame.all` or :meth:`~DataFrame.empty`.
 Alternatively, you might want to compare if the pandas object is ``None``:
 
-.. code-block:: python
+.. ipython:: python
 
-    >>> if pd.Series([False, True, False]) is not None:
-    ...     print("I was not None")
-    I was not None
+    if pd.Series([False, True, False]) is not None:
+        print("I was not None")
 
 
 Below is how to check if any of the values are ``True``:
 
-.. code-block:: python
+.. ipython:: python
 
-    >>> if pd.Series([False, True, False]).any():
-    ...     print("I am any")
-    I am any
+    if pd.Series([False, True, False]).any():
+        print("I am any")
 
 To evaluate single-element pandas objects in a boolean context, use the method
 :meth:`~DataFrame.bool`:
@@ -138,27 +134,21 @@ To evaluate single-element pandas objects in a boolean context, use the method
 Bitwise boolean
 ~~~~~~~~~~~~~~~
 
-Bitwise boolean operators like ``==`` and ``!=`` return a boolean ``Series``,
-which is almost always what you want anyways.
+Bitwise boolean operators like ``==`` and ``!=`` return a boolean :class:`Series`
+which performs an element-wise comparison when compared to a scalar.
 
-.. code-block:: python
+.. ipython:: python
 
-   >>> s = pd.Series(range(5))
-   >>> s == 4
-   0    False
-   1    False
-   2    False
-   3    False
-   4     True
-   dtype: bool
+   s = pd.Series(range(5))
+   s == 4
 
 See :ref:`boolean comparisons<basics.compare>` for more examples.
 
 Using the ``in`` operator
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Using the Python ``in`` operator on a ``Series`` tests for membership in the
-index, not membership among the values.
+Using the Python ``in`` operator on a :class:`Series` tests for membership in the
+**index**, not membership among the values.
 
 .. ipython:: python
 
@@ -167,7 +157,7 @@ index, not membership among the values.
     'b' in s
 
 If this behavior is surprising, keep in mind that using ``in`` on a Python
-dictionary tests keys, not values, and ``Series`` are dict-like.
+dictionary tests keys, not values, and :class:`Series` are dict-like.
 To test for membership in the values, use the method :meth:`~pandas.Series.isin`:
 
 .. ipython:: python
@@ -175,7 +165,7 @@ To test for membership in the values, use the method :meth:`~pandas.Series.isin`
     s.isin([2])
     s.isin([2]).any()
 
-For ``DataFrames``, likewise, ``in`` applies to the column axis,
+For :class:`DataFrame`, likewise, ``in`` applies to the column axis,
 testing for membership in the list of column names.
 
 .. _gotchas.udf-mutation:
@@ -206,8 +196,8 @@ causing unexpected behavior. Consider the example:
 One probably would have expected that the result would be ``[1, 3, 5]``.
 When using a pandas method that takes a UDF, internally pandas is often
 iterating over the
-``DataFrame`` or other pandas object. Therefore, if the UDF mutates (changes)
-the ``DataFrame``, unexpected behavior can arise.
+:class:`DataFrame` or other pandas object. Therefore, if the UDF mutates (changes)
+the :class:`DataFrame`, unexpected behavior can arise.
 
 Here is a similar example with :meth:`DataFrame.apply`:
 
@@ -267,7 +257,7 @@ For many reasons we chose the latter. After years of production use it has
 proven, at least in my opinion, to be the best decision given the state of
 affairs in NumPy and Python in general. The special value ``NaN``
 (Not-A-Number) is used everywhere as the ``NA`` value, and there are API
-functions ``isna`` and ``notna`` which can be used across the dtypes to
+functions :meth:`DataFrame.isna` and :meth:`DataFrame.notna` which can be used across the dtypes to
 detect NA values.
 
 However, it comes with it a couple of trade-offs which I most certainly have
@@ -293,7 +283,7 @@ arrays. For example:
    s2.dtype
 
 This trade-off is made largely for memory and performance reasons, and also so
-that the resulting ``Series`` continues to be "numeric".
+that the resulting :class:`Series` continues to be "numeric".
 
 If you need to represent integers with possibly missing values, use one of
 the nullable-integer extension dtypes provided by pandas
@@ -318,7 +308,7 @@ See :ref:`integer_na` for more.
 ``NA`` type promotions
 ~~~~~~~~~~~~~~~~~~~~~~
 
-When introducing NAs into an existing ``Series`` or ``DataFrame`` via
+When introducing NAs into an existing :class:`Series` or :class:`DataFrame` via
 :meth:`~Series.reindex` or some other means, boolean and integer types will be
 promoted to a different dtype in order to store the NAs. The promotions are
 summarized in this table:
@@ -341,7 +331,7 @@ Why not make NumPy like R?
 
 Many people have suggested that NumPy should simply emulate the ``NA`` support
 present in the more domain-specific statistical programming language `R
-<https://r-project.org>`__. Part of the reason is the NumPy type hierarchy:
+<https://www.r-project.org/>`__. Part of the reason is the NumPy type hierarchy:
 
 .. csv-table::
    :header: "Typeclass","Dtypes"
@@ -376,18 +366,19 @@ integer arrays to floating when NAs must be introduced.
 
 Differences with NumPy
 ----------------------
-For ``Series`` and ``DataFrame`` objects, :meth:`~DataFrame.var` normalizes by
+For :class:`Series` and :class:`DataFrame` objects, :meth:`~DataFrame.var` normalizes by
 ``N-1`` to produce unbiased estimates of the sample variance, while NumPy's
-``var`` normalizes by N, which measures the variance of the sample. Note that
+:meth:`numpy.var` normalizes by N, which measures the variance of the sample. Note that
 :meth:`~DataFrame.cov` normalizes by ``N-1`` in both pandas and NumPy.
 
+.. _gotchas.thread-safety:
 
 Thread-safety
 -------------
 
-As of pandas 0.11, pandas is not 100% thread safe. The known issues relate to
+pandas is not 100% thread safe. The known issues relate to
 the :meth:`~DataFrame.copy` method. If you are doing a lot of copying of
-``DataFrame`` objects shared among threads, we recommend holding locks inside
+:class:`DataFrame` objects shared among threads, we recommend holding locks inside
 the threads where the data copying occurs.
 
 See `this link <https://stackoverflow.com/questions/13592618/python-pandas-dataframe-thread-safe>`__
@@ -406,7 +397,7 @@ symptom of this issue is an error like::
 
 To deal
 with this issue you should convert the underlying NumPy array to the native
-system byte order *before* passing it to ``Series`` or ``DataFrame``
+system byte order *before* passing it to :class:`Series` or :class:`DataFrame`
 constructors using something similar to the following:
 
 .. ipython:: python

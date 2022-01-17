@@ -68,7 +68,8 @@ class TestFancy:
 
         msg = "Must have equal len keys and value when setting with an iterable"
         with pytest.raises(ValueError, match=msg):
-            df[2:5] = np.arange(1, 4) * 1j
+            with tm.assert_produces_warning(FutureWarning, match="label-based"):
+                df[2:5] = np.arange(1, 4) * 1j
 
     def test_getitem_ndarray_3d(
         self, index, frame_or_series, indexer_sli, using_array_manager
@@ -99,6 +100,13 @@ class TestFancy:
             msgs.append("Data must be 1-dimensional")
         if len(index) == 0 or isinstance(index, pd.MultiIndex):
             msgs.append("positional indexers are out-of-bounds")
+        if type(index) is Index and not isinstance(index._values, np.ndarray):
+            # e.g. Int64
+            msgs.append("values must be a 1D array")
+
+            # string[pyarrow]
+            msgs.append("only handle 1-dimensional arrays")
+
         msg = "|".join(msgs)
 
         potential_errors = (IndexError, ValueError, NotImplementedError)
@@ -232,11 +240,11 @@ class TestFancy:
         df.head()
         str(df)
         result = DataFrame([[1, 2, 1.0, 2.0, 3.0, "foo", "bar"]])
-        result.columns = list("aaaaaaa")
+        result.columns = list("aaaaaaa")  # GH#3468
 
-        # TODO(wesm): unused?
-        df_v = df.iloc[:, 4]  # noqa
-        res_v = result.iloc[:, 4]  # noqa
+        # GH#3509 smoke tests for indexing with duplicate columns
+        df.iloc[:, 4]
+        result.iloc[:, 4]
 
         tm.assert_frame_equal(df, result)
 
@@ -276,8 +284,6 @@ class TestFancy:
             ),
         ):
             dfnu.loc[["E"]]
-
-        # TODO: check_index_type can be True after GH 11497
 
     @pytest.mark.parametrize("vals", [[0, 1, 2], list("abc")])
     def test_dups_fancy_indexing_missing_label(self, vals):
@@ -699,23 +705,23 @@ class TestMisc:
         right_iloc["jolie"] = ["@2", -26.0, -18.0, -10.0, "@18"]
         run_tests(df, rhs, right_loc, right_iloc)
 
-    def test_str_label_slicing_with_negative_step(self):
+    @pytest.mark.parametrize(
+        "idx", [_mklbl("A", 20), np.arange(20) + 100, np.linspace(100, 150, 20)]
+    )
+    def test_str_label_slicing_with_negative_step(self, idx):
         SLC = pd.IndexSlice
 
-        for idx in [_mklbl("A", 20), np.arange(20) + 100, np.linspace(100, 150, 20)]:
-            idx = Index(idx)
-            ser = Series(np.arange(20), index=idx)
-            tm.assert_indexing_slices_equivalent(ser, SLC[idx[9] :: -1], SLC[9::-1])
-            tm.assert_indexing_slices_equivalent(ser, SLC[: idx[9] : -1], SLC[:8:-1])
-            tm.assert_indexing_slices_equivalent(
-                ser, SLC[idx[13] : idx[9] : -1], SLC[13:8:-1]
-            )
-            tm.assert_indexing_slices_equivalent(
-                ser, SLC[idx[9] : idx[13] : -1], SLC[:0]
-            )
+        idx = Index(idx)
+        ser = Series(np.arange(20), index=idx)
+        tm.assert_indexing_slices_equivalent(ser, SLC[idx[9] :: -1], SLC[9::-1])
+        tm.assert_indexing_slices_equivalent(ser, SLC[: idx[9] : -1], SLC[:8:-1])
+        tm.assert_indexing_slices_equivalent(
+            ser, SLC[idx[13] : idx[9] : -1], SLC[13:8:-1]
+        )
+        tm.assert_indexing_slices_equivalent(ser, SLC[idx[9] : idx[13] : -1], SLC[:0])
 
-    def test_slice_with_zero_step_raises(self, indexer_sl, frame_or_series):
-        obj = frame_or_series(np.arange(20), index=_mklbl("A", 20))
+    def test_slice_with_zero_step_raises(self, index, indexer_sl, frame_or_series):
+        obj = frame_or_series(np.arange(len(index)), index=index)
         with pytest.raises(ValueError, match="slice step cannot be zero"):
             indexer_sl(obj)[::0]
 

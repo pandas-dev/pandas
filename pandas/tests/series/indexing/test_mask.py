@@ -37,15 +37,19 @@ def test_mask():
     with pytest.raises(ValueError, match=msg):
         s.mask(cond[:3].values, -s)
 
+
+def test_mask_casts():
     # dtype changes
-    s = Series([1, 2, 3, 4])
-    result = s.mask(s > 2, np.nan)
+    ser = Series([1, 2, 3, 4])
+    result = ser.mask(ser > 2, np.nan)
     expected = Series([1, 2, np.nan, np.nan])
     tm.assert_series_equal(result, expected)
 
+
+def test_mask_casts2():
     # see gh-21891
-    s = Series([1, 2])
-    res = s.mask([True, False])
+    ser = Series([1, 2])
+    res = ser.mask([True, False])
 
     exp = Series([np.nan, 2])
     tm.assert_series_equal(res, exp)

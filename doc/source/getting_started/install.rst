@@ -12,7 +12,7 @@ cross platform distribution for data analysis and scientific computing.
 This is the recommended installation method for most users.
 
 Instructions for installing from source,
-`PyPI <https://pypi.org/project/pandas>`__, `ActivePython <https://www.activestate.com/products/python/downloads/>`__, various Linux distributions, or a
+`PyPI <https://pypi.org/project/pandas>`__, `ActivePython <https://www.activestate.com/products/python/>`__, various Linux distributions, or a
 `development version <https://github.com/pandas-dev/pandas>`__ are also provided.
 
 .. _install.version:
@@ -70,18 +70,18 @@ and involves downloading the installer which is a few hundred megabytes in size.
 
 If you want to have more control on which packages, or have a limited internet
 bandwidth, then installing pandas with
-`Miniconda <https://conda.pydata.org/miniconda.html>`__ may be a better solution.
+`Miniconda <https://docs.conda.io/en/latest/miniconda.html>`__ may be a better solution.
 
-`Conda <https://conda.pydata.org/docs/>`__ is the package manager that the
+`Conda <https://conda.io/en/latest/>`__ is the package manager that the
 `Anaconda <https://docs.continuum.io/anaconda/>`__ distribution is built upon.
 It is a package manager that is both cross-platform and language agnostic
 (it can play a similar role to a pip and virtualenv combination).
 
 `Miniconda <https://conda.pydata.org/miniconda.html>`__ allows you to create a
 minimal self contained Python installation, and then use the
-`Conda <https://conda.pydata.org/docs/>`__ command to install additional packages.
+`Conda <https://conda.io/en/latest/>`__ command to install additional packages.
 
-First you will need `Conda <https://conda.pydata.org/docs/>`__ to be installed and
+First you will need `Conda <https://conda.io/en/latest/>`__ to be installed and
 downloading and running the `Miniconda
 <https://conda.pydata.org/miniconda.html>`__
 will do this for you. The installer
@@ -143,8 +143,8 @@ Installing with ActivePython
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Installation instructions for
-`ActivePython <https://www.activestate.com/activepython>`__ can be found
-`here <https://www.activestate.com/activepython/downloads>`__. Versions
+`ActivePython <https://www.activestate.com/products/python/>`__ can be found
+`here <https://www.activestate.com/products/python/>`__. Versions
 2.7, 3.5 and 3.6 include pandas.
 
 Installing using your Linux distribution's package manager.
@@ -158,10 +158,10 @@ The commands in this table will install pandas for Python 3 from your distributi
 
 
     Debian, stable, `official Debian repository <https://packages.debian.org/search?keywords=pandas&searchon=names&suite=all&section=all>`__ , ``sudo apt-get install python3-pandas``
-    Debian & Ubuntu, unstable (latest packages), `NeuroDebian <http://neuro.debian.net/index.html#how-to-use-this-repository>`__ , ``sudo apt-get install python3-pandas``
+    Debian & Ubuntu, unstable (latest packages), `NeuroDebian <https://neuro.debian.net/index.html#how-to-use-this-repository>`__ , ``sudo apt-get install python3-pandas``
     Ubuntu, stable, `official Ubuntu repository <https://packages.ubuntu.com/search?keywords=pandas&searchon=names&suite=all&section=all>`__ , ``sudo apt-get install python3-pandas``
     OpenSuse, stable, `OpenSuse Repository  <https://software.opensuse.org/package/python-pandas?search_term=pandas>`__ , ``zypper in python3-pandas``
-    Fedora, stable, `official Fedora repository  <https://admin.fedoraproject.org/pkgdb/package/rpms/python-pandas/>`__ , ``dnf install python3-pandas``
+    Fedora, stable, `official Fedora repository  <https://src.fedoraproject.org/rpms/python-pandas>`__ , ``dnf install python3-pandas``
     Centos/RHEL, stable, `EPEL repository <https://admin.fedoraproject.org/pkgdb/package/rpms/python-pandas/>`__ , ``yum install python3-pandas``
 
 **However**, the packages in the linux package managers are often a few versions behind, so
@@ -199,7 +199,7 @@ the code base as of this writing. To run it on your machine to verify that
 everything is working (and that you have all of the dependencies, soft and hard,
 installed), make sure you have `pytest
 <https://docs.pytest.org/en/latest/>`__ >= 6.0 and `Hypothesis
-<https://hypothesis.readthedocs.io/>`__ >= 3.58, then run:
+<https://hypothesis.readthedocs.io/en/latest/>`__ >= 3.58, then run:
 
 ::
 
@@ -291,7 +291,7 @@ Dependency                Minimum Version    Notes
 xlrd                      2.0.1              Reading Excel
 xlwt                      1.3.0              Writing Excel
 xlsxwriter                1.2.2              Writing Excel
-openpyxl                  3.0.2              Reading / writing for xlsx files
+openpyxl                  3.0.3              Reading / writing for xlsx files
 pyxlsb                    1.0.6              Reading for xlsb files
 ========================= ================== =============================================================
 
@@ -345,7 +345,7 @@ SQL databases
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-SQLAlchemy                1.3.11              SQL support for databases other than sqlite
+SQLAlchemy                1.4.0               SQL support for databases other than sqlite
 psycopg2                  2.8.4               PostgreSQL engine for sqlalchemy
 pymysql                   0.10.1              MySQL engine for sqlalchemy
 ========================= ================== =============================================================
@@ -401,4 +401,14 @@ PyQt4/PyQt5                                  Clipboard I/O
 qtpy                                         Clipboard I/O
 xclip                                        Clipboard I/O on linux
 xsel                                         Clipboard I/O on linux
+========================= ================== =============================================================
+
+
+Compression
+^^^^^^^^^^^
+
+========================= ================== =============================================================
+Dependency                Minimum Version    Notes
+========================= ================== =============================================================
+Zstandard                                    Zstandard compression
 ========================= ================== =============================================================

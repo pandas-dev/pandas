@@ -26,6 +26,7 @@ from pandas._typing import (
     StorageOptions,
     WriteBuffer,
 )
+from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
@@ -58,7 +59,7 @@ class CSVFormatter:
         errors: str = "strict",
         compression: CompressionOptions = "infer",
         quoting: int | None = None,
-        line_terminator: str | None = "\n",
+        lineterminator: str | None = "\n",
         chunksize: int | None = None,
         quotechar: str | None = '"',
         date_format: str | None = None,
@@ -83,7 +84,7 @@ class CSVFormatter:
         self.quotechar = self._initialize_quotechar(quotechar)
         self.doublequote = doublequote
         self.escapechar = escapechar
-        self.line_terminator = line_terminator or os.linesep
+        self.lineterminator = lineterminator or os.linesep
         self.date_format = date_format
         self.cols = self._initialize_columns(cols)
         self.chunksize = self._initialize_chunksize(chunksize)
@@ -175,7 +176,7 @@ class CSVFormatter:
             "decimal": self.decimal,
         }
 
-    @property
+    @cache_readonly
     def data_index(self) -> Index:
         data_index = self.obj.index
         if (
@@ -185,6 +186,8 @@ class CSVFormatter:
             data_index = Index(
                 [x.strftime(self.date_format) if notna(x) else "" for x in data_index]
             )
+        elif isinstance(data_index, ABCMultiIndex):
+            data_index = data_index.remove_unused_levels()
         return data_index
 
     @property
@@ -247,7 +250,7 @@ class CSVFormatter:
             # Note: self.encoding is irrelevant here
             self.writer = csvlib.writer(
                 handles.handle,
-                lineterminator=self.line_terminator,
+                lineterminator=self.lineterminator,
                 delimiter=self.sep,
                 quoting=self.quoting,
                 doublequote=self.doublequote,
