@@ -246,6 +246,7 @@ CompressionDict = Dict[str, Any]
 CompressionOptions = Optional[
     Union[Literal["infer", "gzip", "bz2", "zip", "xz", "zstd"], CompressionDict]
 ]
+XMLParsers = Literal["lxml", "etree"]
 
 
 # types in DataFrameFormatter
@@ -291,3 +292,6 @@ else:
 
 # Windowing rank methods
 WindowingRankType = Literal["average", "min", "max"]
+
+# read_csv engines
+CSVEngine = Literal["c", "python", "pyarrow", "python-fwf"]

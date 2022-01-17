@@ -19,7 +19,6 @@ from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_1d_only_ea_dtype,
-    is_bool_dtype,
     is_extension_array_dtype,
     is_integer,
     is_integer_dtype,
@@ -279,9 +278,6 @@ class _Unstacker:
         if needs_i8_conversion(values.dtype):
             sorted_values = sorted_values.view("i8")
             new_values = new_values.view("i8")
-        elif is_bool_dtype(values.dtype):
-            sorted_values = sorted_values.astype("object")
-            new_values = new_values.astype("object")
         else:
             sorted_values = sorted_values.astype(name, copy=False)
 
@@ -1022,10 +1018,11 @@ def _get_dummies_1d(
         raise ValueError("dtype=object is not a valid dtype for get_dummies")
 
     def get_empty_frame(data) -> DataFrame:
+        index: Index | np.ndarray
         if isinstance(data, Series):
             index = data.index
         else:
-            index = np.arange(len(data))
+            index = Index(range(len(data)))
         return DataFrame(index=index)
 
     # if all NaN
@@ -1035,7 +1032,7 @@ def _get_dummies_1d(
     codes = codes.copy()
     if dummy_na:
         codes[codes == -1] = len(levels)
-        levels = np.append(levels, np.nan)
+        levels = levels.insert(len(levels), np.nan)
 
     # if dummy_na, we just fake a nan level. drop_first will drop it again
     if drop_first and len(levels) == 1:

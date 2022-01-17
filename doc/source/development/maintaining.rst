@@ -237,4 +237,4 @@ a milestone before tagging, you can request the bot to backport it with:
 
 
 .. _governance documents: https://github.com/pandas-dev/pandas-governance
-.. _list of permissions: https://help.github.com/en/github/setting-up-and-managing-organizations-and-teams/repository-permission-levels-for-an-organization
+.. _list of permissions: https://docs.github.com/en/organizations/managing-access-to-your-organizations-repositories/repository-roles-for-an-organization
