@@ -1,0 +1,51 @@
+name: pandas-dev
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9
+
+  # test dependencies
+  - cython=0.29.24
+  - pytest>=6.0
+  - pytest-cov
+  - pytest-xdist>=1.31
+  - hypothesis>=5.5.3
+  - psutil
+
+  # required dependencies
+  - python-dateutil
+  - numpy
+  - pytz
+
+  # optional dependencies
+  - beautifulsoup4
+  - blosc
+  - bottleneck
+  - fastparquet
+  - fsspec
+  - html5lib
+  - gcsfs
+  - jinja2
+  - lxml
+  - matplotlib
+  # TODO: uncomment after numba supports py310
+  #- numba
+  - numexpr
+  - openpyxl
+  - odfpy
+  - pandas-gbq
+  - psycopg2
+  - pymysql
+  - pytables
+  - pyarrow
+  - pyreadstat
+  - pyxlsb
+  - s3fs
+  - scipy
+  - sqlalchemy
+  - tabulate
+  - xarray
+  - xlrd
+  - xlsxwriter
+  - xlwt
+  - zstandard

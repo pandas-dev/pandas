@@ -3,7 +3,7 @@ channels:
   - defaults
   - conda-forge
 dependencies:
-  - python=3.8
+  - python=3.9
 
   # tools
   - cython>=0.29.24
@@ -21,7 +21,7 @@ dependencies:
   - matplotlib=3.3.2
   - nomkl
   - numexpr
-  - numpy=1.18.5
+  - numpy=1.21.3
   - openpyxl
   - pyarrow=1.0.1
   - pyreadstat
