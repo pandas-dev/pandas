@@ -339,7 +339,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
             dtype = dtype.subtype
 
         cols, rows, data = [], [], []
-        for col, (_, ser) in enumerate(self._parent.iteritems()):
+        for col, (_, ser) in enumerate(self._parent.items()):
             sp_arr = ser.array
             if sp_arr.fill_value != 0:
                 raise ValueError("fill value must be 0 when converting to COO matrix")

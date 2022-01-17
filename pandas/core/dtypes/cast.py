@@ -81,6 +81,7 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
+    ABCIndex,
     ABCSeries,
 )
 from pandas.core.dtypes.inference import is_list_like
@@ -93,7 +94,9 @@ from pandas.core.dtypes.missing import (
 
 if TYPE_CHECKING:
 
+    from pandas import Index
     from pandas.core.arrays import (
+        Categorical,
         DatetimeArray,
         ExtensionArray,
         IntervalArray,
@@ -575,7 +578,7 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
             except (ValueError, TypeError):
                 pass
             else:
-                if fv.tz is None:
+                if isna(fv) or fv.tz is None:
                     return dtype, fv.asm8
 
         return np.dtype("object"), fill_value
@@ -1470,6 +1473,44 @@ def find_result_type(left: ArrayLike, right: Any) -> DtypeObj:
     return new_dtype
 
 
+def common_dtype_categorical_compat(
+    objs: list[Index | ArrayLike], dtype: DtypeObj
+) -> DtypeObj:
+    """
+    Update the result of find_common_type to account for NAs in a Categorical.
+
+    Parameters
+    ----------
+    objs : list[np.ndarray | ExtensionArray | Index]
+    dtype : np.dtype or ExtensionDtype
+
+    Returns
+    -------
+    np.dtype or ExtensionDtype
+    """
+    # GH#38240
+
+    # TODO: more generally, could do `not can_hold_na(dtype)`
+    if isinstance(dtype, np.dtype) and dtype.kind in ["i", "u"]:
+
+        for obj in objs:
+            # We don't want to accientally allow e.g. "categorical" str here
+            obj_dtype = getattr(obj, "dtype", None)
+            if isinstance(obj_dtype, CategoricalDtype):
+                if isinstance(obj, ABCIndex):
+                    # This check may already be cached
+                    hasnas = obj.hasnans
+                else:
+                    # Categorical
+                    hasnas = cast("Categorical", obj)._hasnans
+
+                if hasnas:
+                    # see test_union_int_categorical_with_nan
+                    dtype = np.dtype(np.float64)
+                    break
+    return dtype
+
+
 @overload
 def find_common_type(types: list[np.dtype]) -> np.dtype:
     ...
@@ -1982,12 +2023,21 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
         raise ValueError
 
     elif dtype.kind == "c":
+        if lib.is_integer(element) or lib.is_complex(element) or lib.is_float(element):
+            if np.isnan(element):
+                # see test_where_complex GH#6345
+                return dtype.type(element)
+
+            casted = dtype.type(element)
+            if casted == element:
+                return casted
+            # otherwise e.g. overflow see test_32878_complex_itemsize
+            raise ValueError
+
         if tipo is not None:
             if tipo.kind in ["c", "f", "i", "u"]:
                 return element
             raise ValueError
-        if lib.is_integer(element) or lib.is_complex(element) or lib.is_float(element):
-            return element
         raise ValueError
 
     elif dtype.kind == "b":

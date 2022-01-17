@@ -379,6 +379,65 @@ instead (:issue:`26314`).
 
 .. ---------------------------------------------------------------------------
 
+.. _whatsnew_140.notable_bug_fixes.groupby_apply_mutation:
+
+groupby.apply consistent transform detection
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`.GroupBy.apply` is designed to be flexible, allowing users to perform
+aggregations, transformations, filters, and use it with user-defined functions
+that might not fall into any of these categories. As part of this, apply
+will attempt to detect when an operation is a transform, and in such a
+case, the result will have the same index as the input. In order to
+determine if the operation is a transform, pandas compares the
+input's index to the result's and determines if it has been mutated.
+Previously in pandas 1.3, different code paths used different definitions
+of "mutated": some would use Python's ``is`` whereas others would test
+only up to equality.
+
+This inconsistency has been removed, pandas now tests up to equality.
+
+.. ipython:: python
+
+    def func(x):
+        return x.copy()
+
+    df = pd.DataFrame({'a': [1, 2], 'b': [3, 4], 'c': [5, 6]})
+    df
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [3]: df.groupby(['a']).apply(func)
+    Out[3]:
+         a  b  c
+    a
+    1 0  1  3  5
+    2 1  2  4  6
+
+    In [4]: df.set_index(['a', 'b']).groupby(['a']).apply(func)
+    Out[4]:
+         c
+    a b
+    1 3  5
+    2 4  6
+
+In the examples above, the first uses a code path where pandas uses
+``is`` and determines that ``func`` is not a transform whereas the second
+tests up to equality and determines that ``func`` is a transform. In the
+first case, the result's index is not the same as the input's.
+
+*New behavior*:
+
+.. ipython:: python
+
+    df.groupby(['a']).apply(func)
+    df.set_index(['a', 'b']).groupby(['a']).apply(func)
+
+Now in both cases it is determined that ``func`` is a transform. In each case, the
+result has the same index as the input.
+
 .. _whatsnew_140.api_breaking:
 
 Backwards incompatible API changes
@@ -725,6 +784,7 @@ Datetimelike
 - Bug in :meth:`Index.insert` for inserting ``np.datetime64``, ``np.timedelta64`` or ``tuple`` into :class:`Index` with ``dtype='object'`` with negative loc adding ``None`` and replacing existing value (:issue:`44509`)
 - Bug in :meth:`Timestamp.to_pydatetime` failing to retain the ``fold`` attribute (:issue:`45087`)
 - Bug in :meth:`Series.mode` with ``DatetimeTZDtype`` incorrectly returning timezone-naive and ``PeriodDtype`` incorrectly raising (:issue:`41927`)
+- Fixed regression in :meth:`~Series.reindex` raising an error when using an incompatible fill value with a datetime-like dtype (or not raising a deprecation warning for using a ``datetime.date`` as fill value) (:issue:`42921`)
 - Bug in :class:`DateOffset`` addition with :class:`Timestamp` where ``offset.nanoseconds`` would not be included in the result (:issue:`43968`, :issue:`36589`)
 - Bug in :meth:`Timestamp.fromtimestamp` not supporting the ``tz`` argument (:issue:`45083`)
 - Bug in :class:`DataFrame` construction from dict of :class:`Series` with mismatched index dtypes sometimes raising depending on the ordering of the passed dict (:issue:`44091`)
@@ -874,6 +934,7 @@ I/O
 - Bug in :func:`read_csv` when passing a ``tempfile.SpooledTemporaryFile`` opened in binary mode (:issue:`44748`)
 - Bug in :func:`read_json` raising ``ValueError`` when attempting to parse json strings containing "://" (:issue:`36271`)
 - Bug in :func:`read_csv` when ``engine="c"`` and ``encoding_errors=None`` which caused a segfault (:issue:`45180`)
+- Bug in :func:`read_csv` an invalid value of ``usecols`` leading to an un-closed file handle (:issue:`45384`)
 
 Period
 ^^^^^^
