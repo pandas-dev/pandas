@@ -31,6 +31,7 @@ enhancement2
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - :meth:`MultiIndex.to_frame` now supports the argument ``allow_duplicates`` and raises on duplicate labels if it is missing or False (:issue:`45245`)
+- :class:`StringArray` now accepts array-likes containing nan-likes (``None``, ``np.nan``) for the ``values`` parameter in its constructor in addition to strings and :attr:`pandas.NA`. (:issue:`40839`)
 - Improved the rendering of ``categories`` in :class:`CategoricalIndex` (:issue:`45218`)
 -
 
@@ -140,8 +141,10 @@ Slicing on a :class:`DataFrame` will not be affected.
 Other Deprecations
 ^^^^^^^^^^^^^^^^^^
 - Deprecated the keyword ``line_terminator`` in :meth:`DataFrame.to_csv` and :meth:`Series.to_csv`, use ``lineterminator`` instead; this is for consistency with :func:`read_csv` and the standard library 'csv' module (:issue:`9568`)
+- Deprecated behavior of :meth:`DatetimeIndex.intersection` and :meth:`DatetimeIndex.symmetric_difference` (``union`` behavior was already deprecated in version 1.3.0) with mixed timezones; in a future version both will be cast to UTC instead of object dtype (:issue:`39328`, :issue:`45357`)
 - Deprecated :meth:`DataFrame.iteritems`, :meth:`Series.iteritems`, :meth:`HDFStore.iteritems` in favor of :meth:`DataFrame.items`, :meth:`Series.items`, :meth:`HDFStore.items`  (:issue:`45321`)
 -
+
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.performance:
