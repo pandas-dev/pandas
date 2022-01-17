@@ -93,7 +93,7 @@ BaseMaskedArrayT = TypeVar("BaseMaskedArrayT", bound="BaseMaskedArray")
 
 class BaseMaskedDtype(ExtensionDtype):
     """
-    Base class for dtypes for BasedMaskedArray subclasses.
+    Base class for dtypes for BaseMaskedArray subclasses.
     """
 
     name: str
