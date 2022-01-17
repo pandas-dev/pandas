@@ -31,7 +31,7 @@ Quick reference
 
 We'll start off with a quick reference guide pairing some common R
 operations using `dplyr
-<https://cran.r-project.org/package=dplyr>`__ with
+<https://cran.r-project.org/web/packages/dplyr/index.html>`__ with
 pandas equivalents.
 
 
@@ -576,21 +576,6 @@ For more details and examples see :ref:`categorical introduction <categorical>` 
 
 .. |subset| replace:: ``subset``
 .. _subset: https://stat.ethz.ch/R-manual/R-patched/library/base/html/subset.html
-
-.. |ddply| replace:: ``ddply``
-.. _ddply: https://cran.r-project.org/web/packages/plyr/plyr.pdf#Rfn.ddply.1
-
-.. |meltarray| replace:: ``melt.array``
-.. _meltarray: https://cran.r-project.org/web/packages/reshape2/reshape2.pdf#Rfn.melt.array.1
-
-.. |meltlist| replace:: ``melt.list``
-.. meltlist: https://cran.r-project.org/web/packages/reshape2/reshape2.pdf#Rfn.melt.list.1
-
-.. |meltdf| replace:: ``melt.data.frame``
-.. meltdf: https://cran.r-project.org/web/packages/reshape2/reshape2.pdf#Rfn.melt.data.frame.1
-
-.. |cast| replace:: ``cast``
-.. cast: https://cran.r-project.org/web/packages/reshape2/reshape2.pdf#Rfn.cast.1
 
 .. |factor| replace:: ``factor``
 .. _factor: https://stat.ethz.ch/R-manual/R-devel/library/base/html/factor.html

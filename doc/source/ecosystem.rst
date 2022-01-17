@@ -31,7 +31,7 @@ Data cleaning and validation
 ----------------------------
 
 `Pyjanitor <https://github.com/pyjanitor-devs/pyjanitor>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Pyjanitor provides a clean API for cleaning data, using method chaining.
 
@@ -72,18 +72,18 @@ econometrics, analysis and modeling functionality that is out of pandas' scope.
 Statsmodels leverages pandas objects as the underlying data container for computation.
 
 `sklearn-pandas <https://github.com/scikit-learn-contrib/sklearn-pandas>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Use pandas DataFrames in your `scikit-learn <https://scikit-learn.org/>`__
 ML pipeline.
 
 `Featuretools <https://github.com/alteryx/featuretools/>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Featuretools is a Python library for automated feature engineering built on top of pandas. It excels at transforming temporal and relational datasets into feature matrices for machine learning using reusable feature engineering "primitives". Users can contribute their own primitives in Python and share them with the rest of the community.
 
 `Compose <https://github.com/alteryx/compose>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Compose is a machine learning tool for labeling data and prediction engineering. It allows you to structure the labeling process by parameterizing prediction problems and transforming time-driven relational data into target values with cutoff times that can be used for supervised learning.
 
@@ -147,7 +147,7 @@ estimation while plotting, aggregating across observations and visualizing the
 fit of statistical models to emphasize patterns in a dataset.
 
 `plotnine <https://github.com/has2k1/plotnine/>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Hadley Wickham's `ggplot2 <https://ggplot2.tidyverse.org/>`__ is a foundational exploratory visualization package for the R language.
 Based on `"The Grammar of Graphics" <https://www.cs.uic.edu/~wilkinson/TheGrammarOfGraphics/GOG.html>`__ it
@@ -162,7 +162,7 @@ A good implementation for Python users is `has2k1/plotnine <https://github.com/h
 <https://github.com/vega/vega>`__ to create plots within Jupyter Notebook.
 
 `Plotly <https://poltly.com/python>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 `Plotly’s <https://poltly.com/>`__ `Python API <https://poltly.com/python/>`__ enables interactive figures and web shareability. Maps, 2D, 3D, and live-streaming graphs are rendered with WebGL and `D3.js <https://d3js.org/>`__. The library supports plotting directly from a pandas DataFrame and cloud-based collaboration. Users of `matplotlib, ggplot for Python, and Seaborn <https://poltly.com/python/matplotlib-to-plotly-tutorial/>`__ can convert figures into interactive web-based plots. Plots can be drawn in `IPython Notebooks <https://plotly.com/ipython-notebooks/>`__ , edited with R or MATLAB, modified in a GUI, or embedded in apps and dashboards. Plotly is free for unlimited sharing, and has `offline <https://poltly.com/python/offline/>`__, or `on-premise <https://poltly.com/product/enterprise/>`__ accounts for private use.
 
@@ -219,7 +219,7 @@ It can be loaded as a native pandas plotting backend via
 .. _ecosystem.ide:
 
 IDE
-------
+---
 
 `IPython <https://ipython.org/documentation.html>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -312,7 +312,7 @@ The following data feeds are available:
  * MOEX Data
 
 `Quandl/Python <https://github.com/quandl/quandl-python>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Quandl API for Python wraps the Quandl REST API to return
 pandas DataFrames with timeseries indexes.
 
@@ -324,7 +324,7 @@ REST API to return indexed pandas DataFrames with financial data.
 This package requires valid credentials for this API (non free).
 
 `pandaSDMX <https://pandasdmx.readthedocs.io/en/v1.0/>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 pandaSDMX is a library to retrieve and acquire statistical data
 and metadata disseminated in
 `SDMX <https://www.sdmx.org>`_ 2.1, an ISO-standard
@@ -357,7 +357,7 @@ Domain specific
 ---------------
 
 `Geopandas <https://github.com/geopandas/geopandas>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Geopandas extends pandas data objects to include geographic information which support
 geometric operations. If your work entails maps and geographical coordinates, and
@@ -397,7 +397,7 @@ any Delta table into Pandas dataframe.
 .. _ecosystem.out-of-core:
 
 Out-of-core
--------------
+-----------
 
 `Blaze <https://blaze.pydata.org/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -436,7 +436,7 @@ can selectively scale parts of their pandas DataFrame applications.
     print(df3)
 
 `Dask <https://docs.dask.org/en/latest/>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Dask is a flexible parallel computing library for analytics. Dask
 provides a familiar ``DataFrame`` interface for out-of-core, parallel and distributed computing.
@@ -475,7 +475,7 @@ time-consuming tasks like ingesting data (``read_csv``, ``read_excel``,
     df = pd.read_csv("big.csv")  # use all your cores!
 
 `Odo <http://odo.pydata.org/en/latest/>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Odo provides a uniform API for moving data between different formats. It uses
 pandas own ``read_csv`` for CSV IO and leverages many existing packages such as
@@ -500,7 +500,7 @@ If also displays progress bars.
 
 
 `Vaex <https://vaex.io/docs/index.html>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Increasingly, packages are being built on top of pandas to address specific needs in data preparation, analysis and visualization. Vaex is a Python library for Out-of-Core DataFrames (similar to pandas), to visualize and explore big tabular datasets. It can calculate statistics such as mean, sum, count, standard deviation etc, on an N-dimensional grid up to a billion (10\ :sup:`9`) objects/rows per second. Visualization is done using histograms, density plots and 3d volume rendering, allowing interactive exploration of big data. Vaex uses memory mapping, zero memory copy policy and lazy computations for best performance (no memory wasted).
 
@@ -578,7 +578,7 @@ Library            Accessor     Classes                              Description
 .. _woodwork: https://github.com/alteryx/woodwork
 
 Development tools
-----------------------------
+-----------------
 
 `pandas-stubs <https://github.com/VirtusLab/pandas-stubs>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

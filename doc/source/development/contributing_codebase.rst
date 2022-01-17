@@ -155,7 +155,7 @@ Python (PEP8 / black)
 
 pandas follows the `PEP8 <https://www.python.org/dev/peps/pep-0008/>`_ standard
 and uses `Black <https://black.readthedocs.io/en/stable/>`_ and
-`Flake8 <http://flake8.pycqa.org/en/latest/>`_ to ensure a consistent code
+`Flake8 <https://flake8.pycqa.org/en/latest/>`_ to ensure a consistent code
 format throughout the project. We encourage you to use :ref:`pre-commit <contributing.pre-commit>`.
 
 :ref:`Continuous Integration <contributing.ci>` will run those tools and
@@ -449,7 +449,7 @@ continuous integration services, once your pull request is submitted.
 However, if you wish to run the test suite on a branch prior to submitting the pull request,
 then the continuous integration services need to be hooked to your GitHub repository. Instructions are here
 for `GitHub Actions <https://docs.github.com/en/actions/>`__ and
-`Azure Pipelines <https://docs.microsoft.com/en-us/azure/devops/pipelines/>`__.
+`Azure Pipelines <https://docs.microsoft.com/en-us/azure/devops/pipelines/?view=azure-devops>`__.
 
 A pull-request will be considered for merging when you have an all 'green' build. If any tests are failing,
 then you will get a red 'X', where you can click through to see the individual failed tests.
@@ -777,10 +777,10 @@ Running the performance test suite
 
 Performance matters and it is worth considering whether your code has introduced
 performance regressions. pandas is in the process of migrating to
-`asv benchmarks <https://github.com/spacetelescope/asv>`__
+`asv benchmarks <https://github.com/airspeed-velocity/asv>`__
 to enable easy monitoring of the performance of critical pandas operations.
 These benchmarks are all found in the ``pandas/asv_bench`` directory, and the
-test results can be found `here <https://pandas.pydata.org/speed/pandas/#/>`__.
+test results can be found `here <https://pandas.pydata.org/speed/pandas/>`__.
 
 To use all features of asv, you will need either ``conda`` or
 ``virtualenv``. For more details please check the `asv installation
@@ -788,7 +788,7 @@ webpage <https://asv.readthedocs.io/en/latest/installing.html>`_.
 
 To install asv::
 
-    pip install git+https://github.com/spacetelescope/asv
+    pip install git+https://github.com/airspeed-velocity/asv
 
 If you need to run a benchmark, change your directory to ``asv_bench/`` and run::
 

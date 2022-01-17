@@ -82,7 +82,7 @@ You will need `Build Tools for Visual Studio 2019
 	In the installer, select the "C++ build tools" workload.
 
 You can install the necessary components on the commandline using
-`vs_buildtools.exe <https://aka.ms/vs/16/release/vs_buildtools.exe>`_:
+`vs_buildtools.exe <https://download.visualstudio.microsoft.com/download/pr/9a26f37e-6001-429b-a5db-c5455b93953c/460d80ab276046de2455a4115cc4e2f1e6529c9e6cb99501844ecafd16c619c4/vs_BuildTools.exe>`_:
 
 .. code::
 
@@ -138,8 +138,8 @@ Creating a Python environment
 
 Now create an isolated pandas development environment:
 
-* Install either `Anaconda <https://www.anaconda.com/download/>`_, `miniconda
-  <https://conda.io/miniconda.html>`_, or `miniforge <https://github.com/conda-forge/miniforge>`_
+* Install either `Anaconda <https://www.anaconda.com/products/individual>`_, `miniconda
+  <https://docs.conda.io/en/latest/miniconda.html>`_, or `miniforge <https://github.com/conda-forge/miniforge>`_
 * Make sure your conda is up to date (``conda update conda``)
 * Make sure that you have :any:`cloned the repository <contributing.forking>`
 * ``cd`` to the pandas source directory
@@ -181,7 +181,7 @@ To return to your root environment::
 
       conda deactivate
 
-See the full conda docs `here <https://conda.pydata.org/docs>`__.
+See the full conda docs `here <https://conda.io/projects/conda/en/latest/>`__.
 
 
 Creating a Python environment (pip)

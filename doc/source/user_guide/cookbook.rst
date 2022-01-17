@@ -229,7 +229,7 @@ Ambiguity arises when an index consists of integers with a non-zero start or non
    df2.loc[1:3]  # Label-oriented
 
 `Using inverse operator (~) to take the complement of a mask
-<https://stackoverflow.com/questions/14986510/picking-out-elements-based-on-complement-of-indices-in-python-pandas>`__
+<https://stackoverflow.com/q/14986510>`__
 
 .. ipython:: python
 
@@ -389,7 +389,7 @@ Sorting
 *******
 
 `Sort by specific column or an ordered list of columns, with a MultiIndex
-<https://stackoverflow.com/questions/14733871/mutli-index-sorting-in-pandas>`__
+<https://stackoverflow.com/q/14733871>`__
 
 .. ipython:: python
 
@@ -405,7 +405,7 @@ Levels
 <https://stackoverflow.com/questions/14744068/prepend-a-level-to-a-pandas-multiindex>`__
 
 `Flatten Hierarchical columns
-<https://stackoverflow.com/questions/14507794/python-pandas-how-to-flatten-a-hierarchical-index-in-columns>`__
+<https://stackoverflow.com/q/14507794>`__
 
 .. _cookbook.missing_data:
 
@@ -663,7 +663,7 @@ Pivot
 The :ref:`Pivot <reshaping.pivot>` docs.
 
 `Partial sums and subtotals
-<https://stackoverflow.com/questions/15570099/pandas-pivot-tables-row-subtotals/15574875#15574875>`__
+<https://stackoverflow.com/a/15574875>`__
 
 .. ipython:: python
 
@@ -1073,12 +1073,6 @@ using that handle to read.
 `Dealing with bad lines
 <https://github.com/pandas-dev/pandas/issues/2886>`__
 
-`Dealing with bad lines II
-<http://nipunbatra.github.io/2013/06/reading-unclean-data-csv-using-pandas/>`__
-
-`Reading CSV with Unix timestamps and converting to local timezone
-<http://nipunbatra.github.io/2013/06/pandas-reading-csv-with-unix-timestamps-and-converting-to-local-timezone/>`__
-
 `Write a multi-row index CSV without writing duplicates
 <https://stackoverflow.com/questions/17349574/pandas-write-multiindex-rows-with-to-csv>`__
 
@@ -1253,7 +1247,7 @@ csv file and creating a store by chunks, with date parsing as well.
 <https://stackoverflow.com/questions/16997048/how-does-one-append-large-amounts-of-data-to-a-pandas-hdfstore-and-get-a-natural/16999397#16999397>`__
 
 `Large Data work flows
-<https://stackoverflow.com/questions/14262433/large-data-work-flows-using-pandas>`__
+<https://stackoverflow.com/q/14262433>`__
 
 `Reading in a sequence of files, then providing a global unique index to a store while appending
 <https://stackoverflow.com/questions/16997048/how-does-one-append-large-amounts-of-data-to-a-pandas-hdfstore-and-get-a-natural>`__
@@ -1384,7 +1378,7 @@ Computation
 -----------
 
 `Numerical integration (sample-based) of a time series
-<https://nbviewer.ipython.org/5720498>`__
+<https://nbviewer.ipython.org/gist/metakermit/5720498>`__
 
 Correlation
 ***********
