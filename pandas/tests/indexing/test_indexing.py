@@ -68,7 +68,8 @@ class TestFancy:
 
         msg = "Must have equal len keys and value when setting with an iterable"
         with pytest.raises(ValueError, match=msg):
-            df[2:5] = np.arange(1, 4) * 1j
+            with tm.assert_produces_warning(FutureWarning, match="label-based"):
+                df[2:5] = np.arange(1, 4) * 1j
 
     def test_getitem_ndarray_3d(
         self, index, frame_or_series, indexer_sli, using_array_manager
@@ -704,20 +705,20 @@ class TestMisc:
         right_iloc["jolie"] = ["@2", -26.0, -18.0, -10.0, "@18"]
         run_tests(df, rhs, right_loc, right_iloc)
 
-    def test_str_label_slicing_with_negative_step(self):
+    @pytest.mark.parametrize(
+        "idx", [_mklbl("A", 20), np.arange(20) + 100, np.linspace(100, 150, 20)]
+    )
+    def test_str_label_slicing_with_negative_step(self, idx):
         SLC = pd.IndexSlice
 
-        for idx in [_mklbl("A", 20), np.arange(20) + 100, np.linspace(100, 150, 20)]:
-            idx = Index(idx)
-            ser = Series(np.arange(20), index=idx)
-            tm.assert_indexing_slices_equivalent(ser, SLC[idx[9] :: -1], SLC[9::-1])
-            tm.assert_indexing_slices_equivalent(ser, SLC[: idx[9] : -1], SLC[:8:-1])
-            tm.assert_indexing_slices_equivalent(
-                ser, SLC[idx[13] : idx[9] : -1], SLC[13:8:-1]
-            )
-            tm.assert_indexing_slices_equivalent(
-                ser, SLC[idx[9] : idx[13] : -1], SLC[:0]
-            )
+        idx = Index(idx)
+        ser = Series(np.arange(20), index=idx)
+        tm.assert_indexing_slices_equivalent(ser, SLC[idx[9] :: -1], SLC[9::-1])
+        tm.assert_indexing_slices_equivalent(ser, SLC[: idx[9] : -1], SLC[:8:-1])
+        tm.assert_indexing_slices_equivalent(
+            ser, SLC[idx[13] : idx[9] : -1], SLC[13:8:-1]
+        )
+        tm.assert_indexing_slices_equivalent(ser, SLC[idx[9] : idx[13] : -1], SLC[:0])
 
     def test_slice_with_zero_step_raises(self, index, indexer_sl, frame_or_series):
         obj = frame_or_series(np.arange(len(index)), index=index)

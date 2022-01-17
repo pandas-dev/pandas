@@ -105,6 +105,7 @@ There are also some LaTeX specific enhancements:
 
   - :meth:`.Styler.to_latex` introduces keyword argument ``environment``, which also allows a specific "longtable" entry through a separate jinja2 template (:issue:`41866`).
   - Naive sparsification is now possible for LaTeX without the necessity of including the multirow package (:issue:`43369`)
+  - *cline* support has been added for MultiIndex row sparsification through a keyword argument (:issue:`45138`)
 
 .. _whatsnew_140.enhancements.pyarrow_csv_engine:
 
@@ -207,6 +208,7 @@ Other enhancements
 - :meth:`Series.str.split` now supports a ``regex`` argument that explicitly specifies whether the pattern is a regular expression. Default is ``None`` (:issue:`43563`, :issue:`32835`, :issue:`25549`)
 - :meth:`DataFrame.dropna` now accepts a single label as ``subset`` along with array-like (:issue:`41021`)
 - Added :meth:`DataFrameGroupBy.value_counts` (:issue:`43564`)
+- :func:`read_csv` now accepts a ``callable`` function in ``on_bad_lines`` when ``engine="python"`` for custom handling of bad lines (:issue:`5686`)
 - :class:`ExcelWriter` argument ``if_sheet_exists="overlay"`` option added (:issue:`40231`)
 - :meth:`read_excel` now accepts a ``decimal`` argument that allow the user to specify the decimal point when parsing string columns to numeric (:issue:`14403`)
 - :meth:`.GroupBy.mean`, :meth:`.GroupBy.std`, :meth:`.GroupBy.var`, :meth:`.GroupBy.sum` now supports `Numba <http://numba.pydata.org/>`_ execution with the ``engine`` keyword (:issue:`43731`, :issue:`44862`, :issue:`44939`)
@@ -376,6 +378,65 @@ instead (:issue:`26314`).
     PerformanceWarning: The following operation may generate 4294967296 cells in the resulting pandas object.
 
 .. ---------------------------------------------------------------------------
+
+.. _whatsnew_140.notable_bug_fixes.groupby_apply_mutation:
+
+groupby.apply consistent transform detection
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`.GroupBy.apply` is designed to be flexible, allowing users to perform
+aggregations, transformations, filters, and use it with user-defined functions
+that might not fall into any of these categories. As part of this, apply
+will attempt to detect when an operation is a transform, and in such a
+case, the result will have the same index as the input. In order to
+determine if the operation is a transform, pandas compares the
+input's index to the result's and determines if it has been mutated.
+Previously in pandas 1.3, different code paths used different definitions
+of "mutated": some would use Python's ``is`` whereas others would test
+only up to equality.
+
+This inconsistency has been removed, pandas now tests up to equality.
+
+.. ipython:: python
+
+    def func(x):
+        return x.copy()
+
+    df = pd.DataFrame({'a': [1, 2], 'b': [3, 4], 'c': [5, 6]})
+    df
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [3]: df.groupby(['a']).apply(func)
+    Out[3]:
+         a  b  c
+    a
+    1 0  1  3  5
+    2 1  2  4  6
+
+    In [4]: df.set_index(['a', 'b']).groupby(['a']).apply(func)
+    Out[4]:
+         c
+    a b
+    1 3  5
+    2 4  6
+
+In the examples above, the first uses a code path where pandas uses
+``is`` and determines that ``func`` is not a transform whereas the second
+tests up to equality and determines that ``func`` is a transform. In the
+first case, the result's index is not the same as the input's.
+
+*New behavior*:
+
+.. ipython:: python
+
+    df.groupby(['a']).apply(func)
+    df.set_index(['a', 'b']).groupby(['a']).apply(func)
+
+Now in both cases it is determined that ``func`` is a transform. In each case, the
+result has the same index as the input.
 
 .. _whatsnew_140.api_breaking:
 
@@ -612,7 +673,6 @@ Other Deprecations
 - Deprecated silent dropping of columns that raised a ``TypeError``, ``DataError``, and some cases of ``ValueError`` in :meth:`Series.aggregate`, :meth:`DataFrame.aggregate`, :meth:`Series.groupby.aggregate`, and :meth:`DataFrame.groupby.aggregate` when used with a list (:issue:`43740`)
 - Deprecated casting behavior when setting timezone-aware value(s) into a timezone-aware :class:`Series` or :class:`DataFrame` column when the timezones do not match. Previously this cast to object dtype. In a future version, the values being inserted will be converted to the series or column's existing timezone (:issue:`37605`)
 - Deprecated casting behavior when passing an item with mismatched-timezone to :meth:`DatetimeIndex.insert`, :meth:`DatetimeIndex.putmask`, :meth:`DatetimeIndex.where` :meth:`DatetimeIndex.fillna`, :meth:`Series.mask`, :meth:`Series.where`, :meth:`Series.fillna`, :meth:`Series.shift`, :meth:`Series.replace`, :meth:`Series.reindex` (and :class:`DataFrame` column analogues). In the past this has cast to object dtype. In a future version, these will cast the passed item to the index or series's timezone (:issue:`37605`,:issue:`44940`)
-- Deprecated the 'errors' keyword argument in :meth:`Series.where`, :meth:`DataFrame.where`, :meth:`Series.mask`, and :meth:`DataFrame.mask`; in a future version the argument will be removed (:issue:`44294`)
 - Deprecated the ``prefix`` keyword argument in :func:`read_csv` and :func:`read_table`, in a future version the argument will be removed (:issue:`43396`)
 - Deprecated passing non boolean argument to sort in :func:`concat` (:issue:`41518`)
 - Deprecated passing arguments as positional for :func:`read_fwf` other than ``filepath_or_buffer`` (:issue:`41485`):
@@ -659,7 +719,7 @@ Performance improvements
 - Performance improvement in indexing with a :class:`Float64Index` (:issue:`43705`)
 - Performance improvement in indexing with a non-unique Index (:issue:`43792`)
 - Performance improvement in indexing with a listlike indexer on a :class:`MultiIndex` (:issue:`43370`)
-- Performance improvement in indexing with a :class:`MultiIndex` indexer on another :class:`MultiIndex` (:issue:43370`)
+- Performance improvement in indexing with a :class:`MultiIndex` indexer on another :class:`MultiIndex` (:issue:`43370`)
 - Performance improvement in :meth:`GroupBy.quantile` (:issue:`43469`, :issue:`43725`)
 - Performance improvement in :meth:`GroupBy.count` (:issue:`43730`, :issue:`43694`)
 - Performance improvement in :meth:`GroupBy.any` and :meth:`GroupBy.all` (:issue:`43675`, :issue:`42841`)
@@ -722,7 +782,9 @@ Datetimelike
 - ``np.maximum.reduce`` and ``np.minimum.reduce`` now correctly return :class:`Timestamp` and :class:`Timedelta` objects when operating on :class:`Series`, :class:`DataFrame`, or :class:`Index` with ``datetime64[ns]`` or ``timedelta64[ns]`` dtype (:issue:`43923`)
 - Bug in adding a ``np.timedelta64`` object to a :class:`BusinessDay` or :class:`CustomBusinessDay` object incorrectly raising (:issue:`44532`)
 - Bug in :meth:`Index.insert` for inserting ``np.datetime64``, ``np.timedelta64`` or ``tuple`` into :class:`Index` with ``dtype='object'`` with negative loc adding ``None`` and replacing existing value (:issue:`44509`)
+- Bug in :meth:`Timestamp.to_pydatetime` failing to retain the ``fold`` attribute (:issue:`45087`)
 - Bug in :meth:`Series.mode` with ``DatetimeTZDtype`` incorrectly returning timezone-naive and ``PeriodDtype`` incorrectly raising (:issue:`41927`)
+- Fixed regression in :meth:`~Series.reindex` raising an error when using an incompatible fill value with a datetime-like dtype (or not raising a deprecation warning for using a ``datetime.date`` as fill value) (:issue:`42921`)
 - Bug in :class:`DateOffset`` addition with :class:`Timestamp` where ``offset.nanoseconds`` would not be included in the result (:issue:`43968`, :issue:`36589`)
 - Bug in :meth:`Timestamp.fromtimestamp` not supporting the ``tz`` argument (:issue:`45083`)
 - Bug in :class:`DataFrame` construction from dict of :class:`Series` with mismatched index dtypes sometimes raising depending on the ordering of the passed dict (:issue:`44091`)
@@ -732,7 +794,7 @@ Timedelta
 ^^^^^^^^^
 - Bug in division of all-``NaT`` :class:`TimeDeltaIndex`, :class:`Series` or :class:`DataFrame` column with object-dtype arraylike of numbers failing to infer the result as timedelta64-dtype (:issue:`39750`)
 - Bug in floor division of ``timedelta64[ns]`` data with a scalar returning garbage values (:issue:`44466`)
-- Bug in :class:`Timedelta` now properly taking into account any nanoseconds contribution of any kwarg (:issue:`43764`)
+- Bug in :class:`Timedelta` now properly taking into account any nanoseconds contribution of any kwarg (:issue:`43764`, :issue:`45227`)
 
 Timezones
 ^^^^^^^^^
@@ -814,7 +876,7 @@ Indexing
 
 Missing
 ^^^^^^^
-- Bug in :meth:`DataFrame.fillna` with limit and no method ignores axis='columns' or ``axis = 1`` (:issue:`40989`)
+- Bug in :meth:`DataFrame.fillna` with limit and no method ignores axis='columns' or ``axis = 1`` (:issue:`40989`, :issue:`17399`)
 - Bug in :meth:`DataFrame.fillna` not replacing missing values when using a dict-like ``value`` and duplicate column names (:issue:`43476`)
 - Bug in constructing a :class:`DataFrame` with a dictionary ``np.datetime64`` as a value and ``dtype='timedelta64[ns]'``, or vice-versa, incorrectly casting instead of raising (:issue:`44428`)
 - Bug in :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` with ``inplace=True`` not writing to the underlying array(s) in-place (:issue:`44749`)
@@ -872,6 +934,7 @@ I/O
 - Bug in :func:`read_csv` when passing a ``tempfile.SpooledTemporaryFile`` opened in binary mode (:issue:`44748`)
 - Bug in :func:`read_json` raising ``ValueError`` when attempting to parse json strings containing "://" (:issue:`36271`)
 - Bug in :func:`read_csv` when ``engine="c"`` and ``encoding_errors=None`` which caused a segfault (:issue:`45180`)
+- Bug in :func:`read_csv` an invalid value of ``usecols`` leading to an un-closed file handle (:issue:`45384`)
 
 Period
 ^^^^^^
@@ -909,7 +972,7 @@ Groupby/resample/rolling
 - Bug in :meth:`Series.rolling` and :meth:`DataFrame.rolling` when using a :class:`pandas.api.indexers.BaseIndexer` subclass that returned unequal start and end arrays would segfault instead of raising a ``ValueError`` (:issue:`44470`)
 - Bug in :meth:`Groupby.nunique` not respecting ``observed=True`` for Categorical grouping columns (:issue:`45128`)
 - Bug in :meth:`GroupBy.head` and :meth:`GroupBy.tail` not dropping groups with ``NaN`` when ``dropna=True`` (:issue:`45089`)
-- Fixed bug in :meth:`GroupBy.__iter__` after selecting a subset of columns in a :class:`GroupBy` object, which returned all columns instead of the chosen subset (:issue:`#44821`)
+- Fixed bug in :meth:`GroupBy.__iter__` after selecting a subset of columns in a :class:`GroupBy` object, which returned all columns instead of the chosen subset (:issue:`44821`)
 - Bug in :meth:`Groupby.rolling` when non-monotonic data passed, fails to correctly raise ``ValueError`` (:issue:`43909`)
 - Fixed bug where grouping by a :class:`Series` that has a categorical data type and length unequal to the axis of grouping raised ``ValueError`` (:issue:`44179`)
 

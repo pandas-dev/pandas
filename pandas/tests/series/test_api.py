@@ -203,3 +203,8 @@ class TestSeriesMisc:
         msg = "'Series' object has no attribute 'weekday'"
         with pytest.raises(AttributeError, match=msg):
             ser.weekday
+
+    def test_series_iteritems_deprecated(self):
+        ser = Series([1])
+        with tm.assert_produces_warning(FutureWarning):
+            next(ser.iteritems())

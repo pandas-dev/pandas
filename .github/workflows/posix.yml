@@ -3,11 +3,11 @@ name: Posix
 on:
   push:
     branches:
-      - master
+      - main
       - 1.4.x
   pull_request:
     branches:
-      - master
+      - main
       - 1.4.x
     paths-ignore:
       - "doc/**"
@@ -28,14 +28,16 @@ jobs:
           [actions-38-downstream_compat.yaml, "not slow and not network and not clipboard", "", "", "", "", ""],
           [actions-38-minimum_versions.yaml, "slow", "", "", "", "", ""],
           [actions-38-minimum_versions.yaml, "not slow and not network and not clipboard", "", "", "", "", ""],
-          [actions-38-locale_slow.yaml, "slow", "language-pack-it xsel", "it_IT.utf8", "it_IT.utf8", "", ""],
+          [actions-38.yaml, "not slow and not network", "language-pack-it xsel", "it_IT.utf8", "it_IT.utf8", "", ""],
+          [actions-38.yaml, "not slow and not network", "language-pack-zh-hans xsel", "zh_CN.utf8", "zh_CN.utf8", "", ""],
           [actions-38.yaml, "not slow and not clipboard", "", "", "", "", ""],
-          [actions-38-slow.yaml, "slow", "", "", "", "", ""],
-          [actions-38-locale.yaml, "not slow and not network", "language-pack-zh-hans xsel", "zh_CN.utf8", "zh_CN.utf8", "", ""],
-          [actions-39-slow.yaml, "slow", "", "", "", "", ""],
+          [actions-38.yaml, "slow", "", "", "", "", ""],
           [actions-pypy-38.yaml, "not slow and not clipboard", "", "", "", "", "--max-worker-restart 0"],
-          [actions-39-numpydev.yaml, "not slow and not network", "xsel", "", "", "deprecate", "-W error"],
-          [actions-39.yaml, "not slow and not clipboard", "", "", "", "", ""]
+          [actions-39.yaml, "slow", "", "", "", "", ""],
+          [actions-39.yaml, "not slow and not clipboard", "", "", "", "", ""],
+          [actions-310-numpydev.yaml, "not slow and not network", "xclip", "", "", "deprecate", "-W error"],
+          [actions-310.yaml, "not slow and not clipboard", "", "", "", "", ""],
+          [actions-310.yaml, "slow", "", "", "", "", ""],
         ]
       fail-fast: false
     env:
@@ -52,7 +54,7 @@ jobs:
       COVERAGE: ${{ !contains(matrix.settings[0], 'pypy') }}
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.settings[0] }}
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.settings[0] }}-${{ matrix.settings[1] }}
       cancel-in-progress: true
 
     services:
@@ -120,7 +122,7 @@ jobs:
       if: ${{ env.IS_PYPY == 'false' }} # No pypy3.8 support
 
     - name: Setup PyPy
-      uses: actions/setup-python@v2.3.1
+      uses: actions/setup-python@v2
       with:
         python-version: "pypy-3.8"
       if: ${{ env.IS_PYPY == 'true' }}
@@ -146,7 +148,7 @@ jobs:
       run: pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
 
     - name: Publish test results
-      uses: actions/upload-artifact@master
+      uses: actions/upload-artifact@v2
       with:
         name: Test results
         path: test-data.xml

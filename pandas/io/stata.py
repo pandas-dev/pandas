@@ -593,13 +593,15 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
             missing_loc = data[col].isna()
             if missing_loc.any():
                 # Replace with always safe value
-                data.loc[missing_loc, col] = 0
+                fv = 0 if isinstance(data[col].dtype, _IntegerDtype) else False
+                data.loc[missing_loc, col] = fv
             # Replace with NumPy-compatible column
             data[col] = data[col].astype(data[col].dtype.numpy_dtype)
         dtype = data[col].dtype
         for c_data in conversion_data:
             if dtype == c_data[0]:
-                if data[col].max() <= np.iinfo(c_data[1]).max:
+                # Value of type variable "_IntType" of "iinfo" cannot be "object"
+                if data[col].max() <= np.iinfo(c_data[1]).max:  # type: ignore[type-var]
                     dtype = c_data[1]
                 else:
                     dtype = c_data[2]
@@ -624,12 +626,12 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
                 if data[col].max() >= 2 ** 53 or data[col].min() <= -(2 ** 53):
                     ws = precision_loss_doc.format("int64", "float64")
         elif dtype in (np.float32, np.float64):
-            value = data[col].max()
-            if np.isinf(value):
+            if np.isinf(data[col]).any():
                 raise ValueError(
-                    f"Column {col} has a maximum value of infinity which is outside "
-                    "the range supported by Stata."
+                    f"Column {col} contains infinity or -infinity"
+                    "which is outside the range supported by Stata."
                 )
+            value = data[col].max()
             if dtype == np.float32 and value > float32_max:
                 data[col] = data[col].astype(np.float64)
             elif dtype == np.float64:
@@ -2605,6 +2607,9 @@ supported types."""
                     self.data[col] = encoded
 
     def write_file(self) -> None:
+        """
+        Export DataFrame object to Stata dta format.
+        """
         with get_handle(
             self._fname,
             "wb",

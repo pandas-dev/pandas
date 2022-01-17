@@ -14,6 +14,11 @@ import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
 
+# geopandas, xarray, fsspec, fastparquet all produce these
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:distutils Version classes are deprecated.*:DeprecationWarning"
+)
+
 
 def import_module(name):
     # we *only* want to skip if the module is truly not available
@@ -102,6 +107,10 @@ def test_oo_optimized_datetime_index_unpickle():
 @pytest.mark.filterwarnings(
     # patsy needs to update their imports
     "ignore:Using or importing the ABCs from 'collections:DeprecationWarning"
+)
+@pytest.mark.filterwarnings(
+    # numpy 1.22
+    "ignore:`np.MachAr` is deprecated.*:DeprecationWarning"
 )
 def test_statsmodels():
 

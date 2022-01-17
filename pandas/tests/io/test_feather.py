@@ -2,7 +2,7 @@
 import numpy as np
 import pytest
 
-from pandas.compat.pyarrow import pa_version_under2p0
+from pandas.compat.pyarrow import pa_version_under3p0
 
 import pandas as pd
 import pandas._testing as tm
@@ -87,7 +87,7 @@ class TestFeather:
                 ),
             }
         )
-        if not pa_version_under2p0:
+        if not pa_version_under3p0:
             # older pyarrow incorrectly uses pandas internal API, so
             #  constructs invalid Block
             df["periods"] = pd.period_range("2013", freq="M", periods=3)
@@ -191,7 +191,7 @@ class TestFeather:
     def test_http_path(self, feather_file):
         # GH 29055
         url = (
-            "https://raw.githubusercontent.com/pandas-dev/pandas/master/"
+            "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
             "pandas/tests/io/data/feather/feather-0_3_1.feather"
         )
         expected = read_feather(feather_file)
