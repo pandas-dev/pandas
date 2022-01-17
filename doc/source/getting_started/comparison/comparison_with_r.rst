@@ -326,8 +326,8 @@ table below shows how these data structures could be mapped in Python.
 | data.frame | dataframe                     |
 +------------+-------------------------------+
 
-|ddply|_
-~~~~~~~~
+ddply
+~~~~~
 
 An expression using a data.frame called ``df`` in R where you want to
 summarize ``x`` by ``month``:
@@ -372,8 +372,8 @@ For more details and examples see :ref:`the groupby documentation
 reshape / reshape2
 ------------------
 
-|meltarray|_
-~~~~~~~~~~~~~
+meltarray
+~~~~~~~~~
 
 An expression using a 3 dimensional array called ``a`` in R where you want to
 melt it into a data.frame:
@@ -390,8 +390,8 @@ In Python, since ``a`` is a list, you can simply use list comprehension.
    a = np.array(list(range(1, 24)) + [np.NAN]).reshape(2, 3, 4)
    pd.DataFrame([tuple(list(x) + [val]) for x, val in np.ndenumerate(a)])
 
-|meltlist|_
-~~~~~~~~~~~~
+meltlist
+~~~~~~~~
 
 An expression using a list called ``a`` in R where you want to melt it
 into a data.frame:
@@ -412,8 +412,8 @@ In Python, this list would be a list of tuples, so
 For more details and examples see :ref:`the Into to Data Structures
 documentation <dsintro>`.
 
-|meltdf|_
-~~~~~~~~~~~~~~~~
+meltdf
+~~~~~~
 
 An expression using a data.frame called ``cheese`` in R where you want to
 reshape the data.frame:
@@ -447,8 +447,8 @@ In Python, the :meth:`~pandas.melt` method is the R equivalent:
 For more details and examples see :ref:`the reshaping documentation
 <reshaping.melt>`.
 
-|cast|_
-~~~~~~~
+cast
+~~~~
 
 In R ``acast`` is an expression using a data.frame called ``df`` in R to cast
 into a higher dimensional array:

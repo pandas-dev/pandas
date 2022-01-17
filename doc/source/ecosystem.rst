@@ -116,7 +116,7 @@ minimal amount of code. Altair works with pandas DataFrames.
 
 
 `Bokeh <https://docs.bokeh.org/en/latest/>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Bokeh is a Python interactive visualization library for large datasets that natively uses
 the latest web technologies. Its goal is to provide elegant, concise construction of novel
