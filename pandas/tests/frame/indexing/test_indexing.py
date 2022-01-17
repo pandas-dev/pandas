@@ -1009,7 +1009,7 @@ class TestDataFrameIndexing:
         exp_col = original[2].copy()
         # TODO(ArrayManager) verify it is expected that the original didn't change
         if not using_array_manager:
-            exp_col[4:8] = 0.0
+            exp_col._values[4:8] = 0.0
         tm.assert_series_equal(df[2], exp_col)
 
     def test_iloc_col(self):
@@ -1240,12 +1240,10 @@ class TestDataFrameIndexing:
 
         msg = "|".join(
             [
-                r"int\(\) argument must be a string, a bytes-like object or a "
-                "(real )?number, not 'NaTType'",
                 r"timedelta64\[ns\] cannot be converted to an? (Floating|Integer)Dtype",
                 r"datetime64\[ns\] cannot be converted to an? (Floating|Integer)Dtype",
-                "object cannot be converted to a FloatingDtype",
                 "'values' contains non-numeric NA",
+                r"Invalid value '.*' for dtype (U?Int|Float)\d{1,2}",
             ]
         )
         with pytest.raises(TypeError, match=msg):

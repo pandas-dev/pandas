@@ -26,7 +26,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     text;`XML <https://www.w3.org/standards/xml/core>`__;:ref:`read_xml<io.read_xml>`;:ref:`to_xml<io.xml>`
     text; Local clipboard;:ref:`read_clipboard<io.clipboard>`;:ref:`to_clipboard<io.clipboard>`
     binary;`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__;:ref:`read_excel<io.excel_reader>`;:ref:`to_excel<io.excel_writer>`
-    binary;`OpenDocument <http://www.opendocumentformat.org>`__;:ref:`read_excel<io.ods>`;
+    binary;`OpenDocument <http://opendocumentformat.org>`__;:ref:`read_excel<io.ods>`;
     binary;`HDF5 Format <https://support.hdfgroup.org/HDF5/whatishdf5.html>`__;:ref:`read_hdf<io.hdf5>`;:ref:`to_hdf<io.hdf5>`
     binary;`Feather Format <https://github.com/wesm/feather>`__;:ref:`read_feather<io.feather>`;:ref:`to_feather<io.feather>`
     binary;`Parquet Format <https://parquet.apache.org/>`__;:ref:`read_parquet<io.parquet>`;:ref:`to_parquet<io.parquet>`
@@ -2622,7 +2622,7 @@ You can even pass in an instance of ``StringIO`` if you so desire:
    that having so many network-accessing functions slows down the documentation
    build. If you spot an error or an example that doesn't run, please do not
    hesitate to report it over on `pandas GitHub issues page
-   <https://www.github.com/pandas-dev/pandas/issues>`__.
+   <https://github.com/pandas-dev/pandas/issues>`__.
 
 
 Read a URL and match a table that contains specific text:
@@ -4992,7 +4992,7 @@ control compression: ``complevel`` and ``complib``.
     rates but is somewhat slow.
   - `lzo <https://www.oberhumer.com/opensource/lzo/>`_: Fast
     compression and decompression.
-  - `bzip2 <http://bzip.org/>`_: Good compression rates.
+  - `bzip2 <https://sourceware.org/bzip2/>`_: Good compression rates.
   - `blosc <https://www.blosc.org/>`_: Fast compression and
     decompression.
 
@@ -5001,10 +5001,10 @@ control compression: ``complevel`` and ``complib``.
     - `blosc:blosclz <https://www.blosc.org/>`_ This is the
       default compressor for ``blosc``
     - `blosc:lz4
-      <https://fastcompression.blogspot.dk/p/lz4.html>`_:
+      <https://fastcompression.blogspot.com/p/lz4.html>`_:
       A compact, very popular and fast compressor.
     - `blosc:lz4hc
-      <https://fastcompression.blogspot.dk/p/lz4.html>`_:
+      <https://fastcompression.blogspot.com/p/lz4.html>`_:
       A tweaked version of LZ4, produces better
       compression ratios at the expense of speed.
     - `blosc:snappy <https://google.github.io/snappy/>`_:
@@ -5588,7 +5588,7 @@ SQL queries
 The :mod:`pandas.io.sql` module provides a collection of query wrappers to both
 facilitate data retrieval and to reduce dependency on DB-specific API. Database abstraction
 is provided by SQLAlchemy if installed. In addition you will need a driver library for
-your database. Examples of such drivers are `psycopg2 <http://initd.org/psycopg/>`__
+your database. Examples of such drivers are `psycopg2 <https://www.psycopg.org/>`__
 for PostgreSQL or `pymysql <https://github.com/PyMySQL/PyMySQL>`__ for MySQL.
 For `SQLite <https://docs.python.org/3/library/sqlite3.html>`__ this is
 included in Python's standard library by default.
@@ -5620,7 +5620,7 @@ The key functions are:
     the provided input (database table name or sql query).
     Table names do not need to be quoted if they have special characters.
 
-In the following example, we use the `SQlite <https://www.sqlite.org/>`__ SQL database
+In the following example, we use the `SQlite <https://www.sqlite.org/index.html>`__ SQL database
 engine. You can use a temporary SQLite database where data are stored in
 "memory".
 
@@ -5784,7 +5784,7 @@ Possible values are:
   specific backend dialect features.
 
 Example of a callable using PostgreSQL `COPY clause
-<https://www.postgresql.org/docs/current/static/sql-copy.html>`__::
+<https://www.postgresql.org/docs/current/sql-copy.html>`__::
 
   # Alternative to_sql() *method* for DBs that support COPY FROM
   import csv
@@ -6046,7 +6046,7 @@ pandas integrates with this external package. if ``pandas-gbq`` is installed, yo
 use the pandas methods ``pd.read_gbq`` and ``DataFrame.to_gbq``, which will call the
 respective functions from ``pandas-gbq``.
 
-Full documentation can be found `here <https://pandas-gbq.readthedocs.io/>`__.
+Full documentation can be found `here <https://pandas-gbq.readthedocs.io/en/latest/>`__.
 
 .. _io.stata:
 
@@ -6254,7 +6254,7 @@ Obtain an iterator and read an XPORT file 100,000 lines at a time:
 The specification_ for the xport file format is available from the SAS
 web site.
 
-.. _specification: https://support.sas.com/techsup/technote/ts140.pdf
+.. _specification: https://support.sas.com/content/dam/SAS/support/en/technical-papers/record-layout-of-a-sas-version-5-or-6-data-set-in-sas-transport-xport-format.pdf
 
 No official documentation is available for the SAS7BDAT format.
 
@@ -6296,7 +6296,7 @@ avoid converting categorical columns into ``pd.Categorical``:
 
 More information about the SAV and ZSAV file formats is available here_.
 
-.. _here: https://www.ibm.com/support/knowledgecenter/en/SSLVMB_22.0.0/com.ibm.spss.statistics.help/spss/base/savedatatypes.htm
+.. _here: https://www.ibm.com/docs/en/spss-statistics/22.0.0
 
 .. _io.other:
 
@@ -6314,7 +6314,7 @@ xarray_ provides data structures inspired by the pandas ``DataFrame`` for workin
 with multi-dimensional datasets, with a focus on the netCDF file format and
 easy conversion to and from pandas.
 
-.. _xarray: https://xarray.pydata.org/
+.. _xarray: https://xarray.pydata.org/en/stable/
 
 .. _io.perf:
 

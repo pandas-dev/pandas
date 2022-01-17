@@ -205,4 +205,4 @@ We improved the pandas documentation
 * :ref:`getting_started` contains a number of resources intended for new
   pandas users coming from a variety of backgrounds (:issue:`26831`).
 
-.. _pydata-sphinx-theme: https://github.com/pandas-dev/pydata-sphinx-theme
+.. _pydata-sphinx-theme: https://github.com/pydata/pydata-sphinx-theme

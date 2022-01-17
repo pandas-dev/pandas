@@ -18,6 +18,20 @@ from pandas.core.arrays import BooleanArray
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
 
+def test_numpy_ufuncs_out(index):
+    result = index == index
+
+    out = np.empty(index.shape, dtype=bool)
+    np.equal(index, index, out=out)
+    tm.assert_numpy_array_equal(out, result)
+
+    if not index._is_multi:
+        # same thing on the ExtensionArray
+        out = np.empty(index.shape, dtype=bool)
+        np.equal(index.array, index.array, out=out)
+        tm.assert_numpy_array_equal(out, result)
+
+
 @pytest.mark.parametrize(
     "func",
     [
@@ -91,6 +105,10 @@ def test_numpy_ufuncs_other(index, func, request):
             # numpy 1.18 changed isinf and isnan to not raise on dt64/td64
             result = func(index)
             assert isinstance(result, np.ndarray)
+
+            out = np.empty(index.shape, dtype=bool)
+            func(index, out=out)
+            tm.assert_numpy_array_equal(out, result)
         else:
             with tm.external_error_raised(TypeError):
                 func(index)
@@ -109,7 +127,15 @@ def test_numpy_ufuncs_other(index, func, request):
             assert isinstance(result, BooleanArray)
         else:
             assert isinstance(result, np.ndarray)
-        assert not isinstance(result, Index)
+
+        out = np.empty(index.shape, dtype=bool)
+        func(index, out=out)
+
+        if not isinstance(index.dtype, np.dtype):
+            tm.assert_numpy_array_equal(out, result._data)
+        else:
+            tm.assert_numpy_array_equal(out, result)
+
     else:
         if len(index) == 0:
             pass
