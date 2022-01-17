@@ -36,6 +36,20 @@ jobs:
         PYTEST_WORKERS: 2  # GH-42236
         PYTEST_TARGET: "pandas/tests/[i-z]*"
 
+      py310_1:
+        ENV_FILE: ci/deps/azure-windows-310.yaml
+        CONDA_PY: "310"
+        PATTERN: "not slow and not high_memory"
+        PYTEST_WORKERS: 2  # GH-42236
+        PYTEST_TARGET: "pandas/tests/[a-h]*"
+
+      py310_2:
+        ENV_FILE: ci/deps/azure-windows-310.yaml
+        CONDA_PY: "310"
+        PATTERN: "not slow and not high_memory"
+        PYTEST_WORKERS: 2  # GH-42236
+        PYTEST_TARGET: "pandas/tests/[i-z]*"
+
   steps:
     - powershell: |
         Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
