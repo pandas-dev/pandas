@@ -357,7 +357,17 @@ def maybe_downcast_numeric(
         and not is_bool_dtype(result.dtype)
         and not is_string_dtype(result.dtype)
     ):
-        return result.astype(dtype)
+        new_result = result.astype(dtype)
+
+        # Adjust tolerances based on floating point size
+        size_tols = {4: 5e-4, 8: 5e-8, 16: 5e-16}
+
+        atol = size_tols.get(new_result.dtype.itemsize, 0.0)
+
+        # Check downcast float values are still equal within 7 digits when
+        # converting from float64 to float32
+        if np.allclose(new_result, result, equal_nan=True, rtol=0.0, atol=atol):
+            return new_result
 
     return result
 
