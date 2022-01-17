@@ -625,6 +625,14 @@ class ExtensionArray:
             The transformed values should maintain the ordering between values
             within the array.
 
+        Notes
+        -----
+        The caller is responsible for *not* modifying these values in-place, so
+        it is safe for implementors to give views on `self`.
+
+        Functions that use this (e.g. ExtensionArray.argsort) should ignore
+        entries in locations `i` with `self.isna()[i]`.
+
         See Also
         --------
         ExtensionArray.argsort : Return the indices that would sort this array.
