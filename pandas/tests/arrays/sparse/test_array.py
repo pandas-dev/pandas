@@ -529,7 +529,8 @@ class TestSparseArray:
 
     def test_astype_bool(self):
         a = SparseArray([1, 0, 0, 1], dtype=SparseDtype(int, 0))
-        result = a.astype(bool)
+        with tm.assert_produces_warning(FutureWarning, match="astype from Sparse"):
+            result = a.astype(bool)
         expected = SparseArray(
             [True, False, False, True], dtype=SparseDtype(bool, False)
         )
@@ -546,7 +547,8 @@ class TestSparseArray:
         vals = np.array([1, 2, 3])
         arr = SparseArray(vals, fill_value=1)
         typ = np.dtype(any_real_numpy_dtype)
-        res = arr.astype(typ)
+        with tm.assert_produces_warning(FutureWarning, match="astype from Sparse"):
+            res = arr.astype(typ)
         assert res.dtype == SparseDtype(typ, 1)
         assert res.sp_values.dtype == typ
 
@@ -589,19 +591,30 @@ class TestSparseArray:
         ],
     )
     def test_astype_more(self, arr, dtype, expected):
-        result = arr.astype(dtype)
+
+        if isinstance(dtype, SparseDtype):
+            warn = None
+        else:
+            warn = FutureWarning
+
+        with tm.assert_produces_warning(warn, match="astype from SparseDtype"):
+            result = arr.astype(dtype)
         tm.assert_sp_array_equal(result, expected)
 
     def test_astype_nan_raises(self):
         arr = SparseArray([1.0, np.nan])
         with pytest.raises(ValueError, match="Cannot convert non-finite"):
-            arr.astype(int)
+            msg = "astype from SparseDtype"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                arr.astype(int)
 
     def test_astype_copy_false(self):
         # GH#34456 bug caused by using .view instead of .astype in astype_nansafe
         arr = SparseArray([1, 2, 3])
 
-        result = arr.astype(float, copy=False)
+        dtype = SparseDtype(float, 0)
+
+        result = arr.astype(dtype, copy=False)
         expected = SparseArray([1.0, 2.0, 3.0], fill_value=0.0)
         tm.assert_sp_array_equal(result, expected)
 
