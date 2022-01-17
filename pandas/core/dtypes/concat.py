@@ -16,9 +16,11 @@ from pandas._typing import (
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.astype import astype_array
-from pandas.core.dtypes.cast import find_common_type
+from pandas.core.dtypes.cast import (
+    common_dtype_categorical_compat,
+    find_common_type,
+)
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
     is_dtype_equal,
     is_sparse,
 )
@@ -30,7 +32,6 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
-    from pandas import Categorical
     from pandas.core.arrays.sparse import SparseArray
 
 
@@ -41,14 +42,6 @@ def cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
     """
     if is_dtype_equal(arr.dtype, dtype):
         return arr
-
-    if isinstance(dtype, np.dtype) and dtype.kind in ["i", "u"]:
-
-        if is_categorical_dtype(arr.dtype) and cast("Categorical", arr)._hasnans:
-            # problem case: categorical of int -> gives int as result dtype,
-            # but categorical can contain NAs -> float64 instead
-            # GH#45359
-            dtype = np.dtype(np.float64)
 
     if is_sparse(arr) and not is_sparse(dtype):
         # problem case: SparseArray.astype(dtype) doesn't follow the specified
@@ -121,6 +114,7 @@ def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):
         # for axis=0
         if not single_dtype:
             target_dtype = find_common_type([x.dtype for x in to_concat])
+            target_dtype = common_dtype_categorical_compat(to_concat, target_dtype)
             to_concat = [cast_to_common_type(arr, target_dtype) for arr in to_concat]
 
         if isinstance(to_concat[0], ABCExtensionArray):

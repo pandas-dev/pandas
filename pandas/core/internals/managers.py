@@ -404,7 +404,6 @@ class BaseBlockManager(DataManager):
                 axis=0,
                 fill_value=fill_value,
                 allow_dups=True,
-                consolidate=False,
             )
             return result
 
@@ -639,7 +638,6 @@ class BaseBlockManager(DataManager):
         fill_value=None,
         allow_dups: bool = False,
         copy: bool = True,
-        consolidate: bool = True,
         only_slice: bool = False,
         *,
         use_na_proxy: bool = False,
@@ -653,8 +651,6 @@ class BaseBlockManager(DataManager):
         fill_value : object, default None
         allow_dups : bool, default False
         copy : bool, default True
-        consolidate: bool, default True
-            Whether to consolidate inplace before reindexing.
         only_slice : bool, default False
             Whether to take views, not copies, along columns.
         use_na_proxy : bool, default False
@@ -899,7 +895,6 @@ class BaseBlockManager(DataManager):
             indexer=indexer,
             axis=axis,
             allow_dups=True,
-            consolidate=False,
         )
 
 
