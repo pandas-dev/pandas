@@ -97,7 +97,6 @@ from pandas._libs.missing cimport (
     is_matching_na,
     is_null_datetime64,
     is_null_timedelta64,
-    isnaobj,
 )
 from pandas._libs.tslibs.conversion cimport convert_to_tsobject
 from pandas._libs.tslibs.nattype cimport (
@@ -1454,6 +1453,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         ndarray values
         bint seen_pdnat = False
         bint seen_val = False
+        flatiter it
 
     if util.is_array(value):
         values = value
@@ -1491,24 +1491,22 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         # This should not be reached
         values = values.astype(object)
 
-    # for f-contiguous array 1000 x 1000, passing order="K" gives 5000x speedup
-    values = values.ravel(order="K")
-
-    if skipna:
-        values = values[~isnaobj(values)]
-
     n = cnp.PyArray_SIZE(values)
     if n == 0:
         return "empty"
 
     # Iterate until we find our first valid value. We will use this
     #  value to decide which of the is_foo_array functions to call.
+    it = PyArray_IterNew(values)
     for i in range(n):
-        val = values[i]
+        # The PyArray_GETITEM and PyArray_ITER_NEXT are faster
+        #  equivalents to `val = values[i]`
+        val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
+        PyArray_ITER_NEXT(it)
 
         # do not use checknull to keep
         # np.datetime64('nat') and np.timedelta64('nat')
-        if val is None or util.is_nan(val):
+        if val is None or util.is_nan(val) or val is C_NA:
             pass
         elif val is NaT:
             seen_pdnat = True
@@ -1520,23 +1518,25 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     if seen_val is False and seen_pdnat is True:
         return "datetime"
         # float/object nan is handled in latter logic
+    if seen_val is False and skipna:
+        return "empty"
 
     if util.is_datetime64_object(val):
-        if is_datetime64_array(values):
+        if is_datetime64_array(values, skipna=skipna):
             return "datetime64"
 
     elif is_timedelta(val):
-        if is_timedelta_or_timedelta64_array(values):
+        if is_timedelta_or_timedelta64_array(values, skipna=skipna):
             return "timedelta"
 
     elif util.is_integer_object(val):
         # ordering matters here; this check must come after the is_timedelta
         #  check otherwise numpy timedelta64 objects would come through here
 
-        if is_integer_array(values):
+        if is_integer_array(values, skipna=skipna):
             return "integer"
-        elif is_integer_float_array(values):
-            if is_integer_na_array(values):
+        elif is_integer_float_array(values, skipna=skipna):
+            if is_integer_na_array(values, skipna=skipna):
                 return "integer-na"
             else:
                 return "mixed-integer-float"
@@ -1557,7 +1557,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
             return "time"
 
     elif is_decimal(val):
-        if is_decimal_array(values):
+        if is_decimal_array(values, skipna=skipna):
             return "decimal"
 
     elif util.is_complex_object(val):
@@ -1567,8 +1567,8 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     elif util.is_float_object(val):
         if is_float_array(values):
             return "floating"
-        elif is_integer_float_array(values):
-            if is_integer_na_array(values):
+        elif is_integer_float_array(values, skipna=skipna):
+            if is_integer_na_array(values, skipna=skipna):
                 return "integer-na"
             else:
                 return "mixed-integer-float"
@@ -1586,15 +1586,18 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
             return "bytes"
 
     elif is_period_object(val):
-        if is_period_array(values):
+        if is_period_array(values, skipna=skipna):
             return "period"
 
     elif is_interval(val):
         if is_interval_array(values):
             return "interval"
 
+    cnp.PyArray_ITER_RESET(it)
     for i in range(n):
-        val = values[i]
+        val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
+        PyArray_ITER_NEXT(it)
+
         if util.is_integer_object(val):
             return "mixed-integer"
 
@@ -1823,10 +1826,11 @@ cdef class IntegerValidator(Validator):
 
 
 # Note: only python-exposed for tests
-cpdef bint is_integer_array(ndarray values):
+cpdef bint is_integer_array(ndarray values, bint skipna=True):
     cdef:
         IntegerValidator validator = IntegerValidator(len(values),
-                                                      values.dtype)
+                                                      values.dtype,
+                                                      skipna=skipna)
     return validator.validate(values)
 
 
@@ -1837,10 +1841,10 @@ cdef class IntegerNaValidator(Validator):
                 or (util.is_nan(value) and util.is_float_object(value)))
 
 
-cdef bint is_integer_na_array(ndarray values):
+cdef bint is_integer_na_array(ndarray values, bint skipna=True):
     cdef:
         IntegerNaValidator validator = IntegerNaValidator(len(values),
-                                                          values.dtype)
+                                                          values.dtype, skipna=skipna)
     return validator.validate(values)
 
 
@@ -1853,10 +1857,11 @@ cdef class IntegerFloatValidator(Validator):
         return issubclass(self.dtype.type, np.integer)
 
 
-cdef bint is_integer_float_array(ndarray values):
+cdef bint is_integer_float_array(ndarray values, bint skipna=True):
     cdef:
         IntegerFloatValidator validator = IntegerFloatValidator(len(values),
-                                                                values.dtype)
+                                                                values.dtype,
+                                                                skipna=skipna)
     return validator.validate(values)
 
 
@@ -1900,9 +1905,11 @@ cdef class DecimalValidator(Validator):
         return is_decimal(value)
 
 
-cdef bint is_decimal_array(ndarray values):
+cdef bint is_decimal_array(ndarray values, bint skipna=False):
     cdef:
-        DecimalValidator validator = DecimalValidator(len(values), values.dtype)
+        DecimalValidator validator = DecimalValidator(
+            len(values), values.dtype, skipna=skipna
+        )
     return validator.validate(values)
 
 
@@ -1997,10 +2004,10 @@ cdef class Datetime64Validator(DatetimeValidator):
 
 
 # Note: only python-exposed for tests
-cpdef bint is_datetime64_array(ndarray values):
+cpdef bint is_datetime64_array(ndarray values, bint skipna=True):
     cdef:
         Datetime64Validator validator = Datetime64Validator(len(values),
-                                                            skipna=True)
+                                                            skipna=skipna)
     return validator.validate(values)
 
 
@@ -2012,10 +2019,10 @@ cdef class AnyDatetimeValidator(DatetimeValidator):
         )
 
 
-cdef bint is_datetime_or_datetime64_array(ndarray values):
+cdef bint is_datetime_or_datetime64_array(ndarray values, bint skipna=True):
     cdef:
         AnyDatetimeValidator validator = AnyDatetimeValidator(len(values),
-                                                              skipna=True)
+                                                              skipna=skipna)
     return validator.validate(values)
 
 
@@ -2069,13 +2076,13 @@ cdef class AnyTimedeltaValidator(TimedeltaValidator):
 
 
 # Note: only python-exposed for tests
-cpdef bint is_timedelta_or_timedelta64_array(ndarray values):
+cpdef bint is_timedelta_or_timedelta64_array(ndarray values, bint skipna=True):
     """
     Infer with timedeltas and/or nat/none.
     """
     cdef:
         AnyTimedeltaValidator validator = AnyTimedeltaValidator(len(values),
-                                                                skipna=True)
+                                                                skipna=skipna)
     return validator.validate(values)
 
 
@@ -2105,20 +2112,28 @@ cpdef bint is_time_array(ndarray values, bint skipna=False):
     return validator.validate(values)
 
 
-cdef bint is_period_array(ndarray[object] values):
+# FIXME: actually use skipna
+cdef bint is_period_array(ndarray values, bint skipna=True):
     """
     Is this an ndarray of Period objects (or NaT) with a single `freq`?
     """
+    # values should be object-dtype, but ndarray[object] assumes 1D, while
+    #  this _may_ be 2D.
     cdef:
-        Py_ssize_t i, n = len(values)
+        Py_ssize_t i, N = values.size
         int dtype_code = -10000  # i.e. c_FreqGroup.FR_UND
         object val
+        flatiter it
 
-    if len(values) == 0:
+    if N == 0:
         return False
 
-    for i in range(n):
-        val = values[i]
+    it = PyArray_IterNew(values)
+    for i in range(N):
+        # The PyArray_GETITEM and PyArray_ITER_NEXT are faster
+        #  equivalents to `val = values[i]`
+        val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
+        PyArray_ITER_NEXT(it)
 
         if is_period_object(val):
             if dtype_code == -10000:

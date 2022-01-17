@@ -131,6 +131,7 @@ def test_to_array_error(values):
             "cannot be converted to a FloatingDtype",
             "values must be a 1D list-like",
             "Cannot pass scalar",
+            r"float\(\) argument must be a string or a (real )?number, not 'dict'",
         ]
     )
     with pytest.raises((TypeError, ValueError), match=msg):
