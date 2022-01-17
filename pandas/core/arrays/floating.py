@@ -2,25 +2,15 @@ from __future__ import annotations
 
 import numpy as np
 
-from pandas._libs import (
-    lib,
-    missing as libmissing,
-)
 from pandas._typing import DtypeObj
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.common import (
-    is_bool_dtype,
-    is_float_dtype,
-    is_integer_dtype,
-    is_object_dtype,
-    is_string_dtype,
-)
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
 from pandas.core.arrays.numeric import (
     NumericArray,
     NumericDtype,
+    coerce_to_data_and_mask,
 )
 
 
@@ -66,6 +56,20 @@ class FloatingDtype(NumericDtype):
             return FLOAT_STR_TO_DTYPE[str(np_dtype)]
         return None
 
+    @classmethod
+    def _standardize_dtype(cls, dtype) -> FloatingDtype:
+        if isinstance(dtype, str) and dtype.startswith("Float"):
+            # Avoid DeprecationWarning from NumPy about np.dtype("Float64")
+            # https://github.com/numpy/numpy/pull/7476
+            dtype = dtype.lower()
+
+        if not issubclass(type(dtype), FloatingDtype):
+            try:
+                dtype = FLOAT_STR_TO_DTYPE[str(np.dtype(dtype))]
+            except KeyError as err:
+                raise ValueError(f"invalid dtype specified {dtype}") from err
+        return dtype
+
 
 def coerce_to_array(
     values, dtype=None, mask=None, copy: bool = False
@@ -85,64 +89,18 @@ def coerce_to_array(
     -------
     tuple of (values, mask)
     """
+    dtype_cls = FloatingDtype
+    default_dtype = np.dtype(np.float64)
+
+    cls = dtype_cls.construct_array_type()
+    orig = values
+
     # if values is floating numpy array, preserve its dtype
-    if dtype is None and hasattr(values, "dtype"):
-        if is_float_dtype(values.dtype):
-            dtype = values.dtype
-
-    if dtype is not None:
-        if isinstance(dtype, str) and dtype.startswith("Float"):
-            # Avoid DeprecationWarning from NumPy about np.dtype("Float64")
-            # https://github.com/numpy/numpy/pull/7476
-            dtype = dtype.lower()
-
-        if not issubclass(type(dtype), FloatingDtype):
-            try:
-                dtype = FLOAT_STR_TO_DTYPE[str(np.dtype(dtype))]
-            except KeyError as err:
-                raise ValueError(f"invalid dtype specified {dtype}") from err
-
-    if isinstance(values, FloatingArray):
-        values, mask = values._data, values._mask
-        if dtype is not None:
-            values = values.astype(dtype.numpy_dtype, copy=False)
-
-        if copy:
-            values = values.copy()
-            mask = mask.copy()
+    values, mask, dtype, inferred_type = coerce_to_data_and_mask(
+        values, mask, dtype, copy, dtype_cls, default_dtype
+    )
+    if isinstance(orig, cls):
         return values, mask
-
-    values = np.array(values, copy=copy)
-    if is_object_dtype(values.dtype) or is_string_dtype(values.dtype):
-        inferred_type = lib.infer_dtype(values, skipna=True)
-        if inferred_type == "empty":
-            pass
-        elif inferred_type == "boolean":
-            raise TypeError(f"{values.dtype} cannot be converted to a FloatingDtype")
-
-    elif is_bool_dtype(values) and is_float_dtype(dtype):
-        values = np.array(values, dtype=float, copy=copy)
-
-    elif not (is_integer_dtype(values) or is_float_dtype(values)):
-        raise TypeError(f"{values.dtype} cannot be converted to a FloatingDtype")
-
-    if values.ndim != 1:
-        raise TypeError("values must be a 1D list-like")
-
-    if mask is None:
-        mask = libmissing.is_numeric_na(values)
-
-    else:
-        assert len(mask) == len(values)
-
-    if not mask.ndim == 1:
-        raise TypeError("mask must be a 1D list-like")
-
-    # infer dtype if needed
-    if dtype is None:
-        dtype = np.dtype("float64")
-    else:
-        dtype = dtype.type
 
     # if we are float, let's make sure that we can
     # safely cast

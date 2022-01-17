@@ -1240,8 +1240,8 @@ class TestDataFrameIndexing:
 
         msg = "|".join(
             [
-                r"timedelta64\[ns\] cannot be converted to an? (Floating|Integer)Dtype",
-                r"datetime64\[ns\] cannot be converted to an? (Floating|Integer)Dtype",
+                r"timedelta64\[ns\] cannot be converted to (Floating|Integer)Dtype",
+                r"datetime64\[ns\] cannot be converted to (Floating|Integer)Dtype",
                 "'values' contains non-numeric NA",
                 r"Invalid value '.*' for dtype (U?Int|Float)\d{1,2}",
             ]

@@ -10,6 +10,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs import (
+    lib,
     Timedelta,
     missing as libmissing,
 )
@@ -17,11 +18,14 @@ from pandas._typing import Dtype
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.common import (
+    is_bool_dtype,
     is_float,
     is_float_dtype,
     is_integer,
     is_integer_dtype,
     is_list_like,
+    is_object_dtype,
+    is_string_dtype,
     pandas_dtype,
 )
 
@@ -85,6 +89,69 @@ class NumericDtype(BaseMaskedDtype):
             return results[0]
         else:
             return array_class._concat_same_type(results)
+
+
+def coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype):
+    if default_dtype.kind == "f":
+        checker = is_float_dtype
+    else:
+        checker = is_integer_dtype
+
+    inferred_type = None
+
+    if dtype is None and hasattr(values, "dtype"):
+        if checker(values.dtype):
+            dtype = values.dtype
+
+    if dtype is not None:
+        dtype = dtype_cls._standardize_dtype(dtype)
+
+    cls = dtype_cls.construct_array_type()
+    if isinstance(values, cls):
+        values, mask = values._data, values._mask
+        if dtype is not None:
+            values = values.astype(dtype.numpy_dtype, copy=False)
+
+        if copy:
+            values = values.copy()
+            mask = mask.copy()
+        return values, mask, dtype, inferred_type
+
+    values = np.array(values, copy=copy)
+    inferred_type = None
+    if is_object_dtype(values.dtype) or is_string_dtype(values.dtype):
+        inferred_type = lib.infer_dtype(values, skipna=True)
+        if inferred_type == "empty":
+            pass
+        elif inferred_type == "boolean":
+            name = dtype_cls.__name__.strip("_")
+            raise TypeError(f"{values.dtype} cannot be converted to {name}")
+
+    elif is_bool_dtype(values) and checker(dtype):
+        values = np.array(values, dtype=default_dtype, copy=copy)
+
+    elif not (is_integer_dtype(values) or is_float_dtype(values)):
+        name = dtype_cls.__name__.strip("_")
+        raise TypeError(f"{values.dtype} cannot be converted to {name}")
+
+    if values.ndim != 1:
+        raise TypeError("values must be a 1D list-like")
+
+    if mask is None:
+        mask = libmissing.is_numeric_na(values)
+    else:
+        assert len(mask) == len(values)
+
+    if mask.ndim != 1:
+        raise TypeError("mask must be a 1D list-like")
+
+    # infer dtype if needed
+    if dtype is None:
+        dtype = default_dtype
+    else:
+        dtype = dtype.type
+
+    return values, mask, dtype, inferred_type
 
 
 class NumericArray(BaseMaskedArray):
