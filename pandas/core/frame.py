@@ -492,7 +492,7 @@ class DataFrame(NDFrame, OpsMixin):
         For dict data, the default of None behaves like ``copy=True``.  For DataFrame
         or 2d ndarray input, the default of None behaves like ``copy=False``.
         If data is a dict containing one or more Series (possibly of different dtypes),
-        ``copy=False`` will ensure that it does not copy these inputs.
+        ``copy=False`` will ensure that these inputs are not copied.
 
         .. versionchanged:: 1.3.0
 
