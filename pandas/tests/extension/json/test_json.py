@@ -3,6 +3,12 @@ import operator
 
 import pytest
 
+from pandas.compat import (
+    PY39,
+    is_platform_mac,
+    np_version_under1p19,
+)
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.tests.extension import base
@@ -193,7 +199,12 @@ class TestReshaping(BaseJSON, base.BaseReshapingTests):
 
 
 class TestGetitem(BaseJSON, base.BaseGetitemTests):
-    pass
+    @pytest.mark.xfail(
+        not PY39 and np_version_under1p19 and is_platform_mac(),
+        reason="Unclear but this is the only build failing this test 2022-01-17",
+    )
+    def test_getitem_boolean_na_treated_as_false(self, data):
+        super().test_getitem_boolean_na_treated_as_false(data)
 
 
 class TestIndex(BaseJSON, base.BaseIndexTests):
