@@ -2642,6 +2642,23 @@ class TestDataFrameConstructors:
         with pytest.raises(ValueError, match=msg):
             DataFrame({"a": col_a, "b": col_b})
 
+    def test_from_dict_with_missing_copy_false(self):
+        # GH#45369 filled columns should not be views of one another
+        df = DataFrame(index=[1, 2, 3], columns=["a", "b", "c"], copy=False)
+        assert not np.shares_memory(df["a"]._values, df["b"]._values)
+
+        df.iloc[0, 0] = 0
+        expected = DataFrame(
+            {
+                "a": [0, np.nan, np.nan],
+                "b": [np.nan, np.nan, np.nan],
+                "c": [np.nan, np.nan, np.nan],
+            },
+            index=[1, 2, 3],
+            dtype=object,
+        )
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameConstructorIndexInference:
     def test_frame_from_dict_of_series_overlapping_monthly_period_indexes(self):
