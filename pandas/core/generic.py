@@ -2090,6 +2090,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -----
         Series implements __array_ufunc_ so this not called for ufunc on Series.
         """
+        # Note: at time of dask 2022.01.0, this is still used by dask
         res = lib.item_from_zerodim(result)
         if is_scalar(res):
             # e.g. we get here with np.ptp(series)
