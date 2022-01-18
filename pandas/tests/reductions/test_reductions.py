@@ -83,13 +83,10 @@ class TestReductions:
         # GH#7261
         klass = index_or_series
 
-        if dtype in ["Int64", "boolean"] and klass == Index:
-            pytest.skip("EAs can't yet be stored in an index")
-
         def check_missing(res):
             if dtype == "datetime64[ns]":
                 return res is NaT
-            elif dtype == "Int64":
+            elif dtype in ["Int64", "boolean"]:
                 return res is pd.NA
             else:
                 return isna(res)
@@ -355,7 +352,7 @@ class TestIndexReductions:
             [
                 f"reduction operation '{opname}' not allowed for this dtype",
                 rf"cannot perform {opname} with type timedelta64\[ns\]",
-                f"'TimedeltaArray' does not implement reduction '{opname}'",
+                f"does not support reduction '{opname}'",
             ]
         )
 
@@ -490,19 +487,13 @@ class TestIndexReductions:
         assert idx1.argmax() == 3
         assert idx2.argmax() == 2
 
-        for op in ["min", "max"]:
-            # Return NaT
-            obj = PeriodIndex([], freq="M")
-            result = getattr(obj, op)()
-            assert result is NaT
-
-            obj = PeriodIndex([NaT], freq="M")
-            result = getattr(obj, op)()
-            assert result is NaT
-
-            obj = PeriodIndex([NaT, NaT, NaT], freq="M")
-            result = getattr(obj, op)()
-            assert result is NaT
+    @pytest.mark.parametrize("op", ["min", "max"])
+    @pytest.mark.parametrize("data", [[], [NaT], [NaT, NaT, NaT]])
+    def test_minmax_period_empty_nat(self, op, data):
+        # Return NaT
+        obj = PeriodIndex(data, freq="M")
+        result = getattr(obj, op)()
+        assert result is NaT
 
     def test_numpy_minmax_period(self):
         pr = pd.period_range(start="2016-01-15", end="2016-01-20")
@@ -569,7 +560,9 @@ class TestSeriesReductions:
         res = nanops.nansum(arr, axis=1)
         assert np.isinf(res).all()
 
-    @pytest.mark.parametrize("dtype", ["float64", "Int64", "boolean", "object"])
+    @pytest.mark.parametrize(
+        "dtype", ["float64", "Float32", "Int64", "boolean", "object"]
+    )
     @pytest.mark.parametrize("use_bottleneck", [True, False])
     @pytest.mark.parametrize("method, unit", [("sum", 0.0), ("prod", 1.0)])
     def test_empty(self, method, unit, use_bottleneck, dtype):
@@ -726,7 +719,7 @@ class TestSeriesReductions:
                 [
                     "operation 'var' not allowed",
                     r"cannot perform var with type timedelta64\[ns\]",
-                    "'TimedeltaArray' does not implement reduction 'var'",
+                    "does not support reduction 'var'",
                 ]
             )
             with pytest.raises(TypeError, match=msg):
@@ -741,40 +734,42 @@ class TestSeriesReductions:
         tm.assert_almost_equal(result, 1)
 
     @pytest.mark.parametrize("use_bottleneck", [True, False])
-    def test_sum_overflow(self, use_bottleneck):
+    @pytest.mark.parametrize("dtype", ["int32", "int64"])
+    def test_sum_overflow_int(self, use_bottleneck, dtype):
 
         with pd.option_context("use_bottleneck", use_bottleneck):
             # GH#6915
             # overflowing on the smaller int dtypes
-            for dtype in ["int32", "int64"]:
-                v = np.arange(5000000, dtype=dtype)
-                s = Series(v)
+            v = np.arange(5000000, dtype=dtype)
+            s = Series(v)
 
-                result = s.sum(skipna=False)
-                assert int(result) == v.sum(dtype="int64")
-                result = s.min(skipna=False)
-                assert int(result) == 0
-                result = s.max(skipna=False)
-                assert int(result) == v[-1]
+            result = s.sum(skipna=False)
+            assert int(result) == v.sum(dtype="int64")
+            result = s.min(skipna=False)
+            assert int(result) == 0
+            result = s.max(skipna=False)
+            assert int(result) == v[-1]
 
-            for dtype in ["float32", "float64"]:
-                v = np.arange(5000000, dtype=dtype)
-                s = Series(v)
+    @pytest.mark.parametrize("use_bottleneck", [True, False])
+    @pytest.mark.parametrize("dtype", ["float32", "float64"])
+    def test_sum_overflow_float(self, use_bottleneck, dtype):
+        with pd.option_context("use_bottleneck", use_bottleneck):
+            v = np.arange(5000000, dtype=dtype)
+            s = Series(v)
 
-                result = s.sum(skipna=False)
-                assert result == v.sum(dtype=dtype)
-                result = s.min(skipna=False)
-                assert np.allclose(float(result), 0.0)
-                result = s.max(skipna=False)
-                assert np.allclose(float(result), v[-1])
+            result = s.sum(skipna=False)
+            assert result == v.sum(dtype=dtype)
+            result = s.min(skipna=False)
+            assert np.allclose(float(result), 0.0)
+            result = s.max(skipna=False)
+            assert np.allclose(float(result), v[-1])
 
-    def test_empty_timeseries_reductions_return_nat(self):
+    @pytest.mark.parametrize("dtype", ("m8[ns]", "m8[ns]", "M8[ns]", "M8[ns, UTC]"))
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_empty_timeseries_reductions_return_nat(self, dtype, skipna):
         # covers GH#11245
-        for dtype in ("m8[ns]", "m8[ns]", "M8[ns]", "M8[ns, UTC]"):
-            assert Series([], dtype=dtype).min() is NaT
-            assert Series([], dtype=dtype).max() is NaT
-            assert Series([], dtype=dtype).min(skipna=False) is NaT
-            assert Series([], dtype=dtype).max(skipna=False) is NaT
+        assert Series([], dtype=dtype).min(skipna=skipna) is NaT
+        assert Series([], dtype=dtype).max(skipna=skipna) is NaT
 
     def test_numpy_argmin(self):
         # See GH#16830

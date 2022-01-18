@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import np_percentile_argname
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -153,7 +155,10 @@ class TestDataFrameQuantile:
 
         # cross-check interpolation=nearest results in original dtype
         exp = np.percentile(
-            np.array([[1, 2, 3], [2, 3, 4]]), 0.5, axis=0, interpolation="nearest"
+            np.array([[1, 2, 3], [2, 3, 4]]),
+            0.5,
+            axis=0,
+            **{np_percentile_argname: "nearest"},
         )
         expected = Series(exp, index=[1, 2, 3], name=0.5, dtype="int64")
         tm.assert_series_equal(result, expected)
@@ -167,7 +172,7 @@ class TestDataFrameQuantile:
             np.array([[1.0, 2.0, 3.0], [2.0, 3.0, 4.0]]),
             0.5,
             axis=0,
-            interpolation="nearest",
+            **{np_percentile_argname: "nearest"},
         )
         expected = Series(exp, index=[1, 2, 3], name=0.5, dtype="float64")
         tm.assert_series_equal(result, expected)
@@ -287,6 +292,28 @@ class TestDataFrameQuantile:
         result = df[["a", "c"]].quantile([0.5])
         expected = DataFrame(index=[0.5])
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "datetime64[ns]",
+            "datetime64[ns, US/Pacific]",
+            "timedelta64[ns]",
+            "Period[D]",
+        ],
+    )
+    def test_quantile_dt64_empty(self, dtype):
+        # GH#41544
+        df = DataFrame(columns=["a", "b"], dtype=dtype)
+
+        res = df.quantile(0.5, axis=1, numeric_only=False)
+        expected = Series([], index=[], name=0.5, dtype=dtype)
+        tm.assert_series_equal(res, expected)
+
+        # no columns in result, so no dtype preservation
+        res = df.quantile([0.5], axis=1, numeric_only=False)
+        expected = DataFrame(index=[0.5])
+        tm.assert_frame_equal(res, expected)
 
     def test_quantile_invalid(self, datetime_frame):
         msg = "percentiles should all be in the interval \\[0, 1\\]"
@@ -566,7 +593,7 @@ class TestDataFrameQuantile:
 
 class TestQuantileExtensionDtype:
     # TODO: tests for axis=1?
-    # TODO: empty case?  might as well do dt64 and td64 here too
+    # TODO: empty case?
 
     @pytest.fixture(
         params=[
@@ -576,6 +603,7 @@ class TestQuantileExtensionDtype:
             ),
             pd.period_range("2016-01-01", periods=9, freq="D"),
             pd.date_range("2016-01-01", periods=9, tz="US/Pacific"),
+            pd.timedelta_range("1 Day", periods=9),
             pd.array(np.arange(9), dtype="Int64"),
             pd.array(np.arange(9), dtype="Float64"),
         ],
@@ -645,7 +673,18 @@ class TestQuantileExtensionDtype:
 
     # TODO(GH#39763): filtering can be removed after GH#39763 is fixed
     @pytest.mark.filterwarnings("ignore:Using .astype to convert:FutureWarning")
-    def test_quantile_ea_all_na(self, obj, index, frame_or_series):
+    def test_quantile_ea_all_na(
+        self, obj, index, frame_or_series, using_array_manager, request
+    ):
+        if (
+            using_array_manager
+            and frame_or_series is DataFrame
+            and index.dtype == "m8[ns]"
+        ):
+            mark = pytest.mark.xfail(
+                reason="obj.astype fails bc obj is incorrectly dt64 at this point"
+            )
+            request.node.add_marker(mark)
 
         obj.iloc[:] = index._na_value
 
@@ -705,14 +744,7 @@ class TestQuantileExtensionDtype:
     @pytest.mark.parametrize(
         "dtype, expected_data, expected_index, axis, expected_dtype",
         [
-            pytest.param(
-                "datetime64[ns]",
-                [],
-                [],
-                1,
-                "datetime64[ns]",
-                marks=pytest.mark.xfail(reason="#GH 41544"),
-            ),
+            ["datetime64[ns]", [], [], 1, "datetime64[ns]"],
             ["datetime64[ns]", [pd.NaT, pd.NaT], ["a", "b"], 0, "datetime64[ns]"],
         ],
     )

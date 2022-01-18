@@ -421,10 +421,6 @@ class TestDataFrameSetItem:
             # TODO(ArrayManager) .loc still overwrites
             expected["B"] = expected["B"].astype("int64")
 
-            mark = pytest.mark.xfail(
-                reason="Both 'A' columns get set with 3 instead of 0 and 3"
-            )
-            request.node.add_marker(mark)
         else:
             # set these with unique columns to be extra-unambiguous
             expected[2] = expected[2].astype(np.int64)
@@ -680,6 +676,25 @@ class TestDataFrameSetItem:
         )
         tm.assert_frame_equal(result, expected)
 
+    # TODO(ArrayManager) set column with 2d column array, see #44788
+    @td.skip_array_manager_not_yet_implemented
+    def test_setitem_npmatrix_2d(self):
+        # GH#42376
+        # for use-case df["x"] = sparse.random(10, 10).mean(axis=1)
+        expected = DataFrame(
+            {"np-array": np.ones(10), "np-matrix": np.ones(10)}, index=np.arange(10)
+        )
+
+        a = np.ones((10, 1))
+        df = DataFrame(index=np.arange(10))
+        df["np-array"] = a
+
+        # Instantiation of `np.matrix` gives PendingDeprecationWarning
+        with tm.assert_produces_warning(PendingDeprecationWarning):
+            df["np-matrix"] = np.matrix(a)
+
+        tm.assert_frame_equal(df, expected)
+
 
 class TestSetitemTZAwareValues:
     @pytest.fixture
@@ -728,8 +743,6 @@ class TestSetitemTZAwareValues:
 
 
 class TestDataFrameSetItemWithExpansion:
-    # TODO(ArrayManager) update parent (_maybe_update_cacher)
-    @td.skip_array_manager_not_yet_implemented
     def test_setitem_listlike_views(self):
         # GH#38148
         df = DataFrame({"a": [1, 2, 3], "b": [4, 4, 6]})
@@ -924,6 +937,33 @@ class TestDataFrameSetItemBooleanMask:
         expected.values[np.array(mask)] = np.nan
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(reason="Currently empty indexers are treated as all False")
+    @pytest.mark.parametrize("box", [list, np.array, Series])
+    def test_setitem_loc_empty_indexer_raises_with_non_empty_value(self, box):
+        # GH#37672
+        df = DataFrame({"a": ["a"], "b": [1], "c": [1]})
+        if box == Series:
+            indexer = box([], dtype="object")
+        else:
+            indexer = box([])
+        msg = "Must have equal len keys and value when setting with an iterable"
+        with pytest.raises(ValueError, match=msg):
+            df.loc[indexer, ["b"]] = [1]
+
+    @pytest.mark.parametrize("box", [list, np.array, Series])
+    def test_setitem_loc_only_false_indexer_dtype_changed(self, box):
+        # GH#37550
+        # Dtype is only changed when value to set is a Series and indexer is
+        # empty/bool all False
+        df = DataFrame({"a": ["a"], "b": [1], "c": [1]})
+        indexer = box([False])
+        df.loc[indexer, ["b"]] = 10 - df["c"]
+        expected = DataFrame({"a": ["a"], "b": [1], "c": [1]})
+        tm.assert_frame_equal(df, expected)
+
+        df.loc[indexer, ["b"]] = 9
+        tm.assert_frame_equal(df, expected)
+
     @pytest.mark.parametrize("indexer", [tm.setitem, tm.loc])
     def test_setitem_boolean_mask_aligning(self, indexer):
         # GH#39931
@@ -949,7 +989,7 @@ class TestDataFrameSetItemBooleanMask:
         df = DataFrame({"cats": catsf, "values": valuesf}, index=idxf)
 
         exp_fancy = exp_multi_row.copy()
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             # issue #37643 inplace kwarg deprecated
             return_value = exp_fancy["cats"].cat.set_categories(
                 ["a", "b", "c"], inplace=True

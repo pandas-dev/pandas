@@ -525,8 +525,8 @@ class TestDataFramePlots(TestPlotBase):
         df.plot(ax=ax1, kind="area")
         df.plot(ax=ax2, kind="area")
 
-        assert ax1._shared_y_axes.joined(ax1, ax2)
-        assert ax2._shared_y_axes.joined(ax1, ax2)
+        assert self.get_y_axis(ax1).joined(ax1, ax2)
+        assert self.get_y_axis(ax2).joined(ax1, ax2)
 
     def test_bar_linewidth(self):
         df = DataFrame(np.random.randn(5, 5))
@@ -682,7 +682,7 @@ class TestDataFramePlots(TestPlotBase):
         # GH 8113, datetime.time type is not supported by matplotlib in scatter
         df = DataFrame(np.random.randn(10), columns=["a"])
         df["dtime"] = date_range(start="2014-01-01", freq="h", periods=10).time
-        msg = "must be a string or a number, not 'datetime.time'"
+        msg = "must be a string or a (real )?number, not 'datetime.time'"
 
         with pytest.raises(TypeError, match=msg):
             df.plot(kind="scatter", x="dtime", y="a")

@@ -28,12 +28,11 @@ pytestmark = pytest.mark.usefixtures("pyarrow_skip")
 
 @tm.network
 def test_url(all_parsers, csv_dir_path):
-    # TODO: FTP testing
     parser = all_parsers
     kwargs = {"sep": "\t"}
 
     url = (
-        "https://raw.github.com/pandas-dev/pandas/master/"
+        "https://raw.github.com/pandas-dev/pandas/main/"
         "pandas/tests/io/parser/data/salaries.csv"
     )
     url_result = parser.read_csv(url, **kwargs)
@@ -347,25 +346,6 @@ def test_read_csv_file_handle(all_parsers, io_class, encoding):
     assert not handle.closed
 
 
-def test_memory_map_file_handle_silent_fallback(all_parsers, compression):
-    """
-    Do not fail for buffers with memory_map=True (cannot memory map BytesIO).
-
-    GH 37621
-    """
-    parser = all_parsers
-    expected = DataFrame({"a": [1], "b": [2]})
-
-    handle = BytesIO()
-    expected.to_csv(handle, index=False, compression=compression, mode="wb")
-    handle.seek(0)
-
-    tm.assert_frame_equal(
-        parser.read_csv(handle, memory_map=True, compression=compression),
-        expected,
-    )
-
-
 def test_memory_map_compression(all_parsers, compression):
     """
     Support memory map for compressed files.
@@ -391,13 +371,13 @@ def test_context_manager(all_parsers, datapath):
     path = datapath("io", "data", "csv", "iris.csv")
 
     reader = parser.read_csv(path, chunksize=1)
-    assert not reader._engine.handles.handle.closed
+    assert not reader.handles.handle.closed
     try:
         with reader:
             next(reader)
             assert False
     except AssertionError:
-        assert reader._engine.handles.handle.closed
+        assert reader.handles.handle.closed
 
 
 def test_context_manageri_user_provided(all_parsers, datapath):
@@ -407,13 +387,13 @@ def test_context_manageri_user_provided(all_parsers, datapath):
     with open(datapath("io", "data", "csv", "iris.csv")) as path:
 
         reader = parser.read_csv(path, chunksize=1)
-        assert not reader._engine.handles.handle.closed
+        assert not reader.handles.handle.closed
         try:
             with reader:
                 next(reader)
                 assert False
         except AssertionError:
-            assert not reader._engine.handles.handle.closed
+            assert not reader.handles.handle.closed
 
 
 def test_file_descriptor_leak(all_parsers):

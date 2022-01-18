@@ -12,7 +12,6 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import (
     DataFrame,
-    MultiIndex,
     Series,
     _testing as tm,
     concat,
@@ -215,66 +214,66 @@ def test_append_all_nans(setup_path):
         tm.assert_frame_equal(store["df2"], df)
 
         # tests the option io.hdf.dropna_table
-        pd.set_option("io.hdf.dropna_table", False)
-        _maybe_remove(store, "df3")
-        store.append("df3", df[:10])
-        store.append("df3", df[10:])
-        tm.assert_frame_equal(store["df3"], df)
+        with pd.option_context("io.hdf.dropna_table", False):
+            _maybe_remove(store, "df3")
+            store.append("df3", df[:10])
+            store.append("df3", df[10:])
+            tm.assert_frame_equal(store["df3"], df)
 
-        pd.set_option("io.hdf.dropna_table", True)
-        _maybe_remove(store, "df4")
-        store.append("df4", df[:10])
-        store.append("df4", df[10:])
-        tm.assert_frame_equal(store["df4"], df[-4:])
+        with pd.option_context("io.hdf.dropna_table", True):
+            _maybe_remove(store, "df4")
+            store.append("df4", df[:10])
+            store.append("df4", df[10:])
+            tm.assert_frame_equal(store["df4"], df[-4:])
 
-        # nan some entire rows (string are still written!)
-        df = DataFrame(
-            {
-                "A1": np.random.randn(20),
-                "A2": np.random.randn(20),
-                "B": "foo",
-                "C": "bar",
-            },
-            index=np.arange(20),
-        )
+            # nan some entire rows (string are still written!)
+            df = DataFrame(
+                {
+                    "A1": np.random.randn(20),
+                    "A2": np.random.randn(20),
+                    "B": "foo",
+                    "C": "bar",
+                },
+                index=np.arange(20),
+            )
 
-        df.loc[0:15, :] = np.nan
+            df.loc[0:15, :] = np.nan
 
-        _maybe_remove(store, "df")
-        store.append("df", df[:10], dropna=True)
-        store.append("df", df[10:], dropna=True)
-        tm.assert_frame_equal(store["df"], df)
+            _maybe_remove(store, "df")
+            store.append("df", df[:10], dropna=True)
+            store.append("df", df[10:], dropna=True)
+            tm.assert_frame_equal(store["df"], df)
 
-        _maybe_remove(store, "df2")
-        store.append("df2", df[:10], dropna=False)
-        store.append("df2", df[10:], dropna=False)
-        tm.assert_frame_equal(store["df2"], df)
+            _maybe_remove(store, "df2")
+            store.append("df2", df[:10], dropna=False)
+            store.append("df2", df[10:], dropna=False)
+            tm.assert_frame_equal(store["df2"], df)
 
-        # nan some entire rows (but since we have dates they are still
-        # written!)
-        df = DataFrame(
-            {
-                "A1": np.random.randn(20),
-                "A2": np.random.randn(20),
-                "B": "foo",
-                "C": "bar",
-                "D": Timestamp("20010101"),
-                "E": datetime.datetime(2001, 1, 2, 0, 0),
-            },
-            index=np.arange(20),
-        )
+            # nan some entire rows (but since we have dates they are still
+            # written!)
+            df = DataFrame(
+                {
+                    "A1": np.random.randn(20),
+                    "A2": np.random.randn(20),
+                    "B": "foo",
+                    "C": "bar",
+                    "D": Timestamp("20010101"),
+                    "E": datetime.datetime(2001, 1, 2, 0, 0),
+                },
+                index=np.arange(20),
+            )
 
-        df.loc[0:15, :] = np.nan
+            df.loc[0:15, :] = np.nan
 
-        _maybe_remove(store, "df")
-        store.append("df", df[:10], dropna=True)
-        store.append("df", df[10:], dropna=True)
-        tm.assert_frame_equal(store["df"], df)
+            _maybe_remove(store, "df")
+            store.append("df", df[:10], dropna=True)
+            store.append("df", df[10:], dropna=True)
+            tm.assert_frame_equal(store["df"], df)
 
-        _maybe_remove(store, "df2")
-        store.append("df2", df[:10], dropna=False)
-        store.append("df2", df[10:], dropna=False)
-        tm.assert_frame_equal(store["df2"], df)
+            _maybe_remove(store, "df2")
+            store.append("df2", df[:10], dropna=False)
+            store.append("df2", df[10:], dropna=False)
+            tm.assert_frame_equal(store["df2"], df)
 
 
 def test_append_frame_column_oriented(setup_path):
@@ -638,13 +637,9 @@ def test_append_with_data_columns(setup_path):
         tm.assert_frame_equal(result, expected)
 
 
-def test_append_hierarchical(setup_path):
-    index = MultiIndex(
-        levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
-        codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-        names=["foo", "bar"],
-    )
-    df = DataFrame(np.random.randn(10, 3), index=index, columns=["A", "B", "C"])
+def test_append_hierarchical(setup_path, multiindex_dataframe_random_data):
+    df = multiindex_dataframe_random_data
+    df.columns.name = None
 
     with ensure_clean_store(setup_path) as store:
         store.append("mi", df)
@@ -675,14 +670,10 @@ def test_append_misc(setup_path):
         result = store.select("df1")
         tm.assert_frame_equal(result, df)
 
-    # more chunksize in append tests
-    def check(obj, comparator):
-        for c in [10, 200, 1000]:
-            with ensure_clean_store(setup_path, mode="w") as store:
-                store.append("obj", obj, chunksize=c)
-                result = store.select("obj")
-                comparator(result, obj)
 
+@pytest.mark.parametrize("chunksize", [10, 200, 1000])
+def test_append_misc_chunksize(setup_path, chunksize):
+    # more chunksize in append tests
     df = tm.makeDataFrame()
     df["string"] = "foo"
     df["float322"] = 1.0
@@ -690,8 +681,13 @@ def test_append_misc(setup_path):
     df["bool"] = df["float322"] > 0
     df["time1"] = Timestamp("20130101")
     df["time2"] = Timestamp("20130102")
-    check(df, tm.assert_frame_equal)
+    with ensure_clean_store(setup_path, mode="w") as store:
+        store.append("obj", df, chunksize=chunksize)
+        result = store.select("obj")
+        tm.assert_frame_equal(result, df)
 
+
+def test_append_misc_empty_frame(setup_path):
     # empty frame, GH4273
     with ensure_clean_store(setup_path) as store:
 
@@ -896,24 +892,21 @@ def test_append_to_multiple_dropna(setup_path):
         tm.assert_index_equal(store.select("df1").index, store.select("df2").index)
 
 
-@pytest.mark.xfail(
-    run=False, reason="append_to_multiple_dropna_false is not raising as failed"
-)
 def test_append_to_multiple_dropna_false(setup_path):
     df1 = tm.makeTimeDataFrame()
     df2 = tm.makeTimeDataFrame().rename(columns="{}_2".format)
     df1.iloc[1, df1.columns.get_indexer(["A", "B"])] = np.nan
     df = concat([df1, df2], axis=1)
 
-    with ensure_clean_store(setup_path) as store:
-
+    with ensure_clean_store(setup_path) as store, pd.option_context(
+        "io.hdf.dropna_table", True
+    ):
         # dropna=False shouldn't synchronize row indexes
         store.append_to_multiple(
             {"df1a": ["A", "B"], "df2a": None}, df, selector="df1a", dropna=False
         )
 
-        # TODO Update error message to desired message for this case
-        msg = "Cannot select as multiple after appending with dropna=False"
+        msg = "all tables must have exactly the same nrows!"
         with pytest.raises(ValueError, match=msg):
             store.select_as_multiple(["df1a", "df2a"])
 

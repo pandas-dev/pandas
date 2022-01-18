@@ -16,6 +16,8 @@ import numpy as np
 from pandas._libs import lib
 from pandas._libs.arrays import NDArrayBacked
 from pandas._typing import (
+    ArrayLike,
+    Dtype,
     F,
     PositionalIndexer2D,
     PositionalIndexerTuple,
@@ -34,8 +36,15 @@ from pandas.util._validators import (
     validate_insert_loc,
 )
 
-from pandas.core.dtypes.common import is_dtype_equal
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.common import (
+    is_dtype_equal,
+    pandas_dtype,
+)
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    ExtensionDtype,
+    PeriodDtype,
+)
 from pandas.core.dtypes.missing import array_equivalent
 
 from pandas.core import missing
@@ -44,6 +53,7 @@ from pandas.core.algorithms import (
     unique,
     value_counts,
 )
+from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.construction import extract_array
@@ -100,6 +110,39 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         raise AbstractMethodError(self)
 
     # ------------------------------------------------------------------------
+
+    def view(self, dtype: Dtype | None = None) -> ArrayLike:
+        # We handle datetime64, datetime64tz, timedelta64, and period
+        #  dtypes here. Everything else we pass through to the underlying
+        #  ndarray.
+        if dtype is None or dtype is self.dtype:
+            return self._from_backing_data(self._ndarray)
+
+        if isinstance(dtype, type):
+            # we sometimes pass non-dtype objects, e.g np.ndarray;
+            #  pass those through to the underlying ndarray
+            return self._ndarray.view(dtype)
+
+        dtype = pandas_dtype(dtype)
+        arr = self._ndarray
+
+        if isinstance(dtype, (PeriodDtype, DatetimeTZDtype)):
+            cls = dtype.construct_array_type()
+            return cls(arr.view("i8"), dtype=dtype)
+        elif dtype == "M8[ns]":
+            from pandas.core.arrays import DatetimeArray
+
+            return DatetimeArray(arr.view("i8"), dtype=dtype)
+        elif dtype == "m8[ns]":
+            from pandas.core.arrays import TimedeltaArray
+
+            return TimedeltaArray(arr.view("i8"), dtype=dtype)
+
+        # error: Argument "dtype" to "view" of "_ArrayOrScalarCommon" has incompatible
+        # type "Union[ExtensionDtype, dtype[Any]]"; expected "Union[dtype[Any], None,
+        # type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
+        # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
+        return arr.view(dtype=dtype)  # type: ignore[arg-type]
 
     def take(
         self: NDArrayBackedExtensionArrayT,
@@ -231,13 +274,9 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
                 return self._box_func(result)
             return self._from_backing_data(result)
 
-        # error: Value of type variable "AnyArrayLike" of "extract_array" cannot be
-        # "Union[int, slice, ndarray]"
         # error: Incompatible types in assignment (expression has type "ExtensionArray",
         # variable has type "Union[int, slice, ndarray]")
-        key = extract_array(  # type: ignore[type-var,assignment]
-            key, extract_numpy=True
-        )
+        key = extract_array(key, extract_numpy=True)  # type: ignore[assignment]
         key = check_array_indexer(self, key)
         result = self._ndarray[key]
         if lib.is_scalar(result):
@@ -293,14 +332,6 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
     # ------------------------------------------------------------------------
     # Reductions
-
-    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
-        meth = getattr(self, name, None)
-        if meth:
-            return meth(skipna=skipna, **kwargs)
-        else:
-            msg = f"'{type(self).__name__}' does not implement reduction '{name}'"
-            raise TypeError(msg)
 
     def _wrap_reduction_result(self, axis: int | None, result):
         if axis is None or self.ndim == 1:
@@ -418,6 +449,30 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         index_arr = self._from_backing_data(np.asarray(result.index._data))
         index = Index(index_arr, name=result.index.name)
         return Series(result._values, index=index, name=result.name)
+
+    def _quantile(
+        self: NDArrayBackedExtensionArrayT,
+        qs: npt.NDArray[np.float64],
+        interpolation: str,
+    ) -> NDArrayBackedExtensionArrayT:
+        # TODO: disable for Categorical if not ordered?
+
+        # asarray needed for Sparse, see GH#24600
+        mask = np.asarray(self.isna())
+        mask = np.atleast_2d(mask)
+
+        arr = np.atleast_2d(self._ndarray)
+        # TODO: something NDArrayBacked-specific instead of _values_for_factorize[1]?
+        fill_value = self._values_for_factorize()[1]
+
+        res_values = quantile_with_mask(arr, mask, fill_value, qs, interpolation)
+
+        result = type(self)._from_factorized(res_values, self)
+        if self.ndim == 1:
+            assert result.shape == (1, len(qs)), result.shape
+            result = result[0]
+
+        return result
 
     # ------------------------------------------------------------------------
     # numpy-like methods

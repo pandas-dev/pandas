@@ -227,6 +227,20 @@ class BaseWindow(SelectionMixin):
         if self.method not in ["table", "single"]:
             raise ValueError("method must be 'table' or 'single")
 
+    def _check_window_bounds(
+        self, start: np.ndarray, end: np.ndarray, num_vals: int
+    ) -> None:
+        if len(start) != len(end):
+            raise ValueError(
+                f"start ({len(start)}) and end ({len(end)}) bounds must be the "
+                f"same length"
+            )
+        elif len(start) != num_vals:
+            raise ValueError(
+                f"start and end bounds ({len(start)}) must be the same length "
+                f"as the object ({num_vals})"
+            )
+
     def _create_data(self, obj: NDFrameT) -> NDFrameT:
         """
         Split data into blocks & return conformed data.
@@ -311,10 +325,7 @@ class BaseWindow(SelectionMixin):
             center=self.center,
             closed=self.closed,
         )
-
-        assert len(start) == len(
-            end
-        ), "these should be equal in length from get_window_bounds"
+        self._check_window_bounds(start, end, len(obj))
 
         for s, e in zip(start, end):
             result = obj.iloc[slice(s, e)]
@@ -343,9 +354,7 @@ class BaseWindow(SelectionMixin):
         if inf.any():
             values = np.where(inf, np.nan, values)
 
-        # error: Incompatible return value type (got "Optional[ndarray]",
-        # expected "ndarray")
-        return values  # type: ignore[return-value]
+        return values
 
     def _insert_on_column(self, result: DataFrame, obj: DataFrame) -> None:
         # if we have an 'on' column we want to put it back into
@@ -565,9 +574,7 @@ class BaseWindow(SelectionMixin):
                     center=self.center,
                     closed=self.closed,
                 )
-                assert len(start) == len(
-                    end
-                ), "these should be equal in length from get_window_bounds"
+                self._check_window_bounds(start, end, len(x))
 
                 return func(x, start, end, min_periods, *numba_args)
 
@@ -589,6 +596,7 @@ class BaseWindow(SelectionMixin):
         func: Callable[..., Any],
         numba_cache_key_str: str,
         engine_kwargs: dict[str, bool] | None = None,
+        *func_args,
     ):
         window_indexer = self._get_window_indexer()
         min_periods = (
@@ -608,10 +616,11 @@ class BaseWindow(SelectionMixin):
             center=self.center,
             closed=self.closed,
         )
+        self._check_window_bounds(start, end, len(values))
         aggregator = executor.generate_shared_aggregator(
             func, engine_kwargs, numba_cache_key_str
         )
-        result = aggregator(values, start, end, min_periods)
+        result = aggregator(values, start, end, min_periods, *func_args)
         NUMBA_FUNC_CACHE[(func, numba_cache_key_str)] = aggregator
         result = result.T if self.axis == 1 else result
         if obj.ndim == 1:
@@ -736,8 +745,11 @@ class BaseWindowGroupby(BaseWindow):
         target = self._create_data(target)
         result = super()._apply_pairwise(target, other, pairwise, func)
         # 1) Determine the levels + codes of the groupby levels
-        if other is not None:
-            # When we have other, we must reindex (expand) the result
+        if other is not None and not all(
+            len(group) == len(other) for group in self._grouper.indices.values()
+        ):
+            # GH 42915
+            # len(other) != len(any group), so must reindex (expand) the result
             # from flex_binary_moment to a "transform"-like result
             # per groupby combination
             old_result_len = len(result)
@@ -759,10 +771,9 @@ class BaseWindowGroupby(BaseWindow):
                 codes, levels = factorize(labels)
                 groupby_codes.append(codes)
                 groupby_levels.append(levels)
-
         else:
-            # When we evaluate the pairwise=True result, repeat the groupby
-            # labels by the number of columns in the original object
+            # pairwise=True or len(other) == len(each group), so repeat
+            # the groupby labels by the number of columns in the original object
             groupby_codes = self._grouper.codes
             # error: Incompatible types in assignment (expression has type
             # "List[Index]", variable has type "List[Union[ndarray, Index]]")
@@ -902,7 +913,7 @@ class Window(BaseWindow):
         If ``'neither'``, the first and last points in the window are excluded
         from calculations.
 
-        Default ``None`` (``'right'``)
+        Default ``None`` (``'right'``).
 
         .. versionchanged:: 1.2.0
 
@@ -1114,7 +1125,10 @@ class Window(BaseWindow):
         -------
         y : type of input
         """
-        window = self._scipy_weight_generator(self.window, **kwargs)
+        # "None" not callable  [misc]
+        window = self._scipy_weight_generator(  # type: ignore[misc]
+            self.window, **kwargs
+        )
         offset = (len(window) - 1) // 2 if self.center else 0
 
         def homogeneous_func(values: np.ndarray):
@@ -1369,15 +1383,18 @@ class RollingAndExpandingMixin(BaseWindow):
         if maybe_use_numba(engine):
             if self.method == "table":
                 func = generate_manual_numpy_nan_agg_with_axis(np.nanmax)
+                return self.apply(
+                    func,
+                    raw=True,
+                    engine=engine,
+                    engine_kwargs=engine_kwargs,
+                )
             else:
-                func = np.nanmax
+                from pandas.core._numba.kernels import sliding_min_max
 
-            return self.apply(
-                func,
-                raw=True,
-                engine=engine,
-                engine_kwargs=engine_kwargs,
-            )
+                return self._numba_apply(
+                    sliding_min_max, "rolling_max", engine_kwargs, True
+                )
         window_func = window_aggregations.roll_max
         return self._apply(window_func, name="max", **kwargs)
 
@@ -1392,15 +1409,18 @@ class RollingAndExpandingMixin(BaseWindow):
         if maybe_use_numba(engine):
             if self.method == "table":
                 func = generate_manual_numpy_nan_agg_with_axis(np.nanmin)
+                return self.apply(
+                    func,
+                    raw=True,
+                    engine=engine,
+                    engine_kwargs=engine_kwargs,
+                )
             else:
-                func = np.nanmin
+                from pandas.core._numba.kernels import sliding_min_max
 
-            return self.apply(
-                func,
-                raw=True,
-                engine=engine,
-                engine_kwargs=engine_kwargs,
-            )
+                return self._numba_apply(
+                    sliding_min_max, "rolling_min", engine_kwargs, False
+                )
         window_func = window_aggregations.roll_min
         return self._apply(window_func, name="min", **kwargs)
 
@@ -1449,8 +1469,24 @@ class RollingAndExpandingMixin(BaseWindow):
         window_func = window_aggregations.roll_median_c
         return self._apply(window_func, name="median", **kwargs)
 
-    def std(self, ddof: int = 1, *args, **kwargs):
+    def std(
+        self,
+        ddof: int = 1,
+        *args,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+        **kwargs,
+    ):
         nv.validate_window_func("std", args, kwargs)
+        if maybe_use_numba(engine):
+            if self.method == "table":
+                raise NotImplementedError("std not supported with method='table'")
+            else:
+                from pandas.core._numba.kernels import sliding_var
+
+                return zsqrt(
+                    self._numba_apply(sliding_var, "rolling_std", engine_kwargs, ddof)
+                )
         window_func = window_aggregations.roll_var
 
         def zsqrt_func(values, begin, end, min_periods):
@@ -1462,8 +1498,24 @@ class RollingAndExpandingMixin(BaseWindow):
             **kwargs,
         )
 
-    def var(self, ddof: int = 1, *args, **kwargs):
+    def var(
+        self,
+        ddof: int = 1,
+        *args,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+        **kwargs,
+    ):
         nv.validate_window_func("var", args, kwargs)
+        if maybe_use_numba(engine):
+            if self.method == "table":
+                raise NotImplementedError("var not supported with method='table'")
+            else:
+                from pandas.core._numba.kernels import sliding_var
+
+                return self._numba_apply(
+                    sliding_var, "rolling_var", engine_kwargs, ddof
+                )
         window_func = partial(window_aggregations.roll_var, ddof=ddof)
         return self._apply(
             window_func,
@@ -1544,10 +1596,7 @@ class RollingAndExpandingMixin(BaseWindow):
                 center=self.center,
                 closed=self.closed,
             )
-
-            assert len(start) == len(
-                end
-            ), "these should be equal in length from get_window_bounds"
+            self._check_window_bounds(start, end, len(x_array))
 
             with np.errstate(all="ignore"):
                 mean_x_y = window_aggregations.roll_mean(
@@ -1588,10 +1637,7 @@ class RollingAndExpandingMixin(BaseWindow):
                 center=self.center,
                 closed=self.closed,
             )
-
-            assert len(start) == len(
-                end
-            ), "these should be equal in length from get_window_bounds"
+            self._check_window_bounds(start, end, len(x_array))
 
             with np.errstate(all="ignore"):
                 mean_x_y = window_aggregations.roll_mean(
@@ -1806,7 +1852,7 @@ class Rolling(RollingAndExpandingMixin):
         template_header,
         create_section_header("Parameters"),
         args_compat,
-        window_agg_numba_parameters,
+        window_agg_numba_parameters(),
         kwargs_compat,
         create_section_header("Returns"),
         template_returns,
@@ -1880,7 +1926,7 @@ class Rolling(RollingAndExpandingMixin):
         template_header,
         create_section_header("Parameters"),
         args_compat,
-        window_agg_numba_parameters,
+        window_agg_numba_parameters(),
         kwargs_compat,
         create_section_header("Returns"),
         template_returns,
@@ -1906,7 +1952,7 @@ class Rolling(RollingAndExpandingMixin):
         template_header,
         create_section_header("Parameters"),
         args_compat,
-        window_agg_numba_parameters,
+        window_agg_numba_parameters(),
         kwargs_compat,
         create_section_header("Returns"),
         template_returns,
@@ -1947,7 +1993,7 @@ class Rolling(RollingAndExpandingMixin):
         template_header,
         create_section_header("Parameters"),
         args_compat,
-        window_agg_numba_parameters,
+        window_agg_numba_parameters(),
         kwargs_compat,
         create_section_header("Returns"),
         template_returns,
@@ -1994,7 +2040,7 @@ class Rolling(RollingAndExpandingMixin):
     @doc(
         template_header,
         create_section_header("Parameters"),
-        window_agg_numba_parameters,
+        window_agg_numba_parameters(),
         kwargs_compat,
         create_section_header("Returns"),
         template_returns,
@@ -2040,6 +2086,7 @@ class Rolling(RollingAndExpandingMixin):
         """
         ).replace("\n", "", 1),
         args_compat,
+        window_agg_numba_parameters("1.4"),
         kwargs_compat,
         create_section_header("Returns"),
         template_returns,
@@ -2077,9 +2124,18 @@ class Rolling(RollingAndExpandingMixin):
         aggregation_description="standard deviation",
         agg_method="std",
     )
-    def std(self, ddof: int = 1, *args, **kwargs):
+    def std(
+        self,
+        ddof: int = 1,
+        *args,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+        **kwargs,
+    ):
         nv.validate_rolling_func("std", args, kwargs)
-        return super().std(ddof=ddof, **kwargs)
+        return super().std(
+            ddof=ddof, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+        )
 
     @doc(
         template_header,
@@ -2092,6 +2148,7 @@ class Rolling(RollingAndExpandingMixin):
         """
         ).replace("\n", "", 1),
         args_compat,
+        window_agg_numba_parameters("1.4"),
         kwargs_compat,
         create_section_header("Returns"),
         template_returns,
@@ -2129,9 +2186,18 @@ class Rolling(RollingAndExpandingMixin):
         aggregation_description="variance",
         agg_method="var",
     )
-    def var(self, ddof: int = 1, *args, **kwargs):
+    def var(
+        self,
+        ddof: int = 1,
+        *args,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+        **kwargs,
+    ):
         nv.validate_rolling_func("var", args, kwargs)
-        return super().var(ddof=ddof, **kwargs)
+        return super().var(
+            ddof=ddof, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+        )
 
     @doc(
         template_header,
@@ -2567,8 +2633,9 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
     def _validate_monotonic(self):
         """
         Validate that on is monotonic;
-        in this case we have to check only for nans, because
-        monotonicity was already validated at a higher level.
         """
-        if self._on.hasnans:
+        if (
+            not (self._on.is_monotonic_increasing or self._on.is_monotonic_decreasing)
+            or self._on.hasnans
+        ):
             self._raise_monotonic_error()

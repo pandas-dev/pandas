@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import itertools
 from typing import TYPE_CHECKING
+import warnings
 
 import numpy as np
 
@@ -11,13 +12,13 @@ from pandas._typing import (
     Dtype,
     npt,
 )
+from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_1d_only_ea_dtype,
-    is_bool_dtype,
     is_extension_array_dtype,
     is_integer,
     is_integer_dtype,
@@ -37,6 +38,7 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
 )
+from pandas.core.indexes.frozen import FrozenList
 from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index,
@@ -125,10 +127,15 @@ class _Unstacker:
         num_columns = self.removed_level.size
 
         # GH20601: This forces an overflow if the number of cells is too high.
-        num_cells = np.multiply(num_rows, num_columns, dtype=np.int32)
+        num_cells = num_rows * num_columns
 
-        if num_rows > 0 and num_columns > 0 and num_cells <= 0:
-            raise ValueError("Unstacked DataFrame is too big, causing int32 overflow")
+        # GH 26314: Previous ValueError raised was too restrictive for many users.
+        if num_cells > np.iinfo(np.int32).max:
+            warnings.warn(
+                f"The following operation may generate {num_cells} cells "
+                f"in the resulting pandas object.",
+                PerformanceWarning,
+            )
 
         self._make_selectors()
 
@@ -213,7 +220,9 @@ class _Unstacker:
         columns = self.get_new_columns(value_columns)
         index = self.new_index
 
-        return self.constructor(values, index=index, columns=columns)
+        return self.constructor(
+            values, index=index, columns=columns, dtype=values.dtype
+        )
 
     def get_new_values(self, values, fill_value=None):
 
@@ -243,24 +252,24 @@ class _Unstacker:
             new_mask = np.ones(result_shape, dtype=bool)
             return new_values, new_mask
 
+        dtype = values.dtype
+
         # if our mask is all True, then we can use our existing dtype
         if mask_all:
             dtype = values.dtype
             new_values = np.empty(result_shape, dtype=dtype)
-            name = np.dtype(dtype).name
         else:
-            dtype, fill_value = maybe_promote(values.dtype, fill_value)
             if isinstance(dtype, ExtensionDtype):
                 # GH#41875
                 cls = dtype.construct_array_type()
                 new_values = cls._empty(result_shape, dtype=dtype)
                 new_values[:] = fill_value
-                name = dtype.name
             else:
+                dtype, fill_value = maybe_promote(dtype, fill_value)
                 new_values = np.empty(result_shape, dtype=dtype)
                 new_values.fill(fill_value)
-                name = np.dtype(dtype).name
 
+        name = dtype.name
         new_mask = np.zeros(result_shape, dtype=bool)
 
         # we need to convert to a basic dtype
@@ -269,9 +278,6 @@ class _Unstacker:
         if needs_i8_conversion(values.dtype):
             sorted_values = sorted_values.view("i8")
             new_values = new_values.view("i8")
-        elif is_bool_dtype(values.dtype):
-            sorted_values = sorted_values.astype("object")
-            new_values = new_values.astype("object")
         else:
             sorted_values = sorted_values.astype(name, copy=False)
 
@@ -307,15 +313,16 @@ class _Unstacker:
         stride = len(self.removed_level) + self.lift
         width = len(value_columns)
         propagator = np.repeat(np.arange(width), stride)
+
+        new_levels: FrozenList | list[Index]
+
         if isinstance(value_columns, MultiIndex):
             new_levels = value_columns.levels + (self.removed_level_full,)
             new_names = value_columns.names + (self.removed_name,)
 
             new_codes = [lab.take(propagator) for lab in value_columns.codes]
         else:
-            # error: Incompatible types in assignment (expression has type "List[Any]",
-            # variable has type "FrozenList")
-            new_levels = [  # type: ignore[assignment]
+            new_levels = [
                 value_columns,
                 self.removed_level_full,
             ]
@@ -677,7 +684,7 @@ def _stack_multi_column_index(columns: MultiIndex) -> MultiIndex:
 
 
 def _stack_multi_columns(frame, level_num=-1, dropna=True):
-    def _convert_level_number(level_num, columns):
+    def _convert_level_number(level_num: int, columns):
         """
         Logic for converting the level number to something we can safely pass
         to swaplevel.
@@ -1011,10 +1018,11 @@ def _get_dummies_1d(
         raise ValueError("dtype=object is not a valid dtype for get_dummies")
 
     def get_empty_frame(data) -> DataFrame:
+        index: Index | np.ndarray
         if isinstance(data, Series):
             index = data.index
         else:
-            index = np.arange(len(data))
+            index = Index(range(len(data)))
         return DataFrame(index=index)
 
     # if all NaN
@@ -1024,7 +1032,7 @@ def _get_dummies_1d(
     codes = codes.copy()
     if dummy_na:
         codes[codes == -1] = len(levels)
-        levels = np.append(levels, np.nan)
+        levels = levels.insert(len(levels), np.nan)
 
     # if dummy_na, we just fake a nan level. drop_first will drop it again
     if drop_first and len(levels) == 1:

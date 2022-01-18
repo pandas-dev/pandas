@@ -5,19 +5,21 @@ Based on code from Jack Cushman (github.com/jcushman/xport).
 
 The file format is defined here:
 
-https://support.sas.com/techsup/technote/ts140.pdf
+https://support.sas.com/content/dam/SAS/support/en/technical-papers/record-layout-of-a-sas-version-5-or-6-data-set-in-sas-transport-xport-format.pdf
 """
+from __future__ import annotations
+
 from collections import abc
 from datetime import datetime
 import struct
-from typing import (
-    IO,
-    cast,
-)
 import warnings
 
 import numpy as np
 
+from pandas._typing import (
+    FilePath,
+    ReadBuffer,
+)
 from pandas.util._decorators import Appender
 
 import pandas as pd
@@ -248,7 +250,11 @@ class XportReader(ReaderBase, abc.Iterator):
     __doc__ = _xport_reader_doc
 
     def __init__(
-        self, filepath_or_buffer, index=None, encoding="ISO-8859-1", chunksize=None
+        self,
+        filepath_or_buffer: FilePath | ReadBuffer[bytes],
+        index=None,
+        encoding: str | None = "ISO-8859-1",
+        chunksize=None,
     ):
 
         self._encoding = encoding
@@ -259,7 +265,7 @@ class XportReader(ReaderBase, abc.Iterator):
         self.handles = get_handle(
             filepath_or_buffer, "rb", encoding=encoding, is_text=False
         )
-        self.filepath_or_buffer = cast(IO[bytes], self.handles.handle)
+        self.filepath_or_buffer = self.handles.handle
 
         try:
             self._read_header()

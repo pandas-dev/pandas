@@ -13,10 +13,11 @@ import pytest
 
 from pandas._config import get_option
 
-from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
     pa_version_under2p0,
+    pa_version_under3p0,
     pa_version_under5p0,
+    pa_version_under6p0,
 )
 import pandas.util._test_decorators as td
 
@@ -43,6 +44,9 @@ try:
     with catch_warnings():
         # `np.bool` is a deprecated alias...
         filterwarnings("ignore", "`np.bool`", category=DeprecationWarning)
+        # accessing pd.Int64Index in pd namespace
+        filterwarnings("ignore", ".*Int64Index.*", category=FutureWarning)
+
         import fastparquet
 
     _HAVE_FASTPARQUET = True
@@ -382,7 +386,7 @@ class Base:
             pytest.importorskip(engine)
         url = (
             "https://raw.githubusercontent.com/pandas-dev/pandas/"
-            "master/pandas/tests/io/data/parquet/simple.parquet"
+            "main/pandas/tests/io/data/parquet/simple.parquet"
         )
         df = read_parquet(url)
         tm.assert_frame_equal(df, df_compat)
@@ -595,13 +599,16 @@ class TestBasic(Base):
         msg = r"parquet must have string column names"
         self.check_error_on_write(df, engine, ValueError, msg)
 
-    def test_use_nullable_dtypes(self, engine):
+    def test_use_nullable_dtypes(self, engine, request):
         import pyarrow.parquet as pq
 
         if engine == "fastparquet":
             # We are manually disabling fastparquet's
             # nullable dtype support pending discussion
-            pytest.skip("Fastparquet nullable dtype support is disabled")
+            mark = pytest.mark.xfail(
+                reason="Fastparquet nullable dtype support is disabled"
+            )
+            request.node.add_marker(mark)
 
         table = pyarrow.table(
             {
@@ -645,7 +652,15 @@ class TestBasic(Base):
             "object",
             "datetime64[ns, UTC]",
             "float",
-            "period[D]",
+            pytest.param(
+                "period[D]",
+                # Note: I don't know exactly what version the cutoff is;
+                #  On the CI it fails with 1.0.1 & 2.0.0
+                marks=pytest.mark.xfail(
+                    pa_version_under3p0,
+                    reason="pyarrow uses pandas internal API incorrectly",
+                ),
+            ),
             "Float64",
             "string",
         ],
@@ -734,11 +749,6 @@ class TestParquetPyArrow(Base):
 
         check_round_trip(df, pa)
 
-    @pytest.mark.xfail(
-        is_platform_windows(),
-        reason="localhost connection rejected",
-        strict=False,
-    )
     def test_s3_roundtrip_explicit_fs(self, df_compat, s3_resource, pa, s3so):
         s3fs = pytest.importorskip("s3fs")
         s3 = s3fs.S3FileSystem(**s3so)
@@ -889,6 +899,9 @@ class TestParquetPyArrow(Base):
             check_round_trip(df, pa, expected=df.astype(f"string[{string_storage}]"))
 
     @td.skip_if_no("pyarrow")
+    @pytest.mark.xfail(
+        pa_version_under3p0, reason="pyarrow uses pandas internal API incorrectly"
+    )
     def test_additional_extension_types(self, pa):
         # test additional ExtensionArrays that are supported through the
         # __arrow_array__ protocol + by defining a custom ExtensionType
@@ -902,10 +915,15 @@ class TestParquetPyArrow(Base):
         check_round_trip(df, pa)
 
     def test_timestamp_nanoseconds(self, pa):
-        # with version 2.0, pyarrow defaults to writing the nanoseconds, so
+        # with version 2.6, pyarrow defaults to writing the nanoseconds, so
         # this should work without error
+        # Note in previous pyarrows(<6.0.0), only the pseudo-version 2.0 was available
+        if not pa_version_under6p0:
+            ver = "2.6"
+        else:
+            ver = "2.0"
         df = pd.DataFrame({"a": pd.date_range("2017-01-01", freq="1n", periods=10)})
-        check_round_trip(df, pa, write_kwargs={"version": "2.0"})
+        check_round_trip(df, pa, write_kwargs={"version": ver})
 
     def test_timezone_aware_index(self, pa, timezone_aware_date_list):
         if not pa_version_under2p0:

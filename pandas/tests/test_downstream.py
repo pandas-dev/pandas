@@ -5,13 +5,19 @@ import importlib
 import subprocess
 import sys
 
-import numpy as np  # noqa
+import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
 
+import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
+
+# geopandas, xarray, fsspec, fastparquet all produce these
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:distutils Version classes are deprecated.*:DeprecationWarning"
+)
 
 
 def import_module(name):
@@ -29,25 +35,29 @@ def df():
     return DataFrame({"A": [1, 2, 3]})
 
 
-# TODO(ArrayManager) dask is still accessing the blocks
-# https://github.com/dask/dask/pull/7318
-@td.skip_array_manager_not_yet_implemented
 @pytest.mark.filterwarnings("ignore:.*64Index is deprecated:FutureWarning")
 def test_dask(df):
 
-    toolz = import_module("toolz")  # noqa
-    dask = import_module("dask")  # noqa
+    # dask sets "compute.use_numexpr" to False, so catch the current value
+    # and ensure to reset it afterwards to avoid impacting other tests
+    olduse = pd.get_option("compute.use_numexpr")
 
-    import dask.dataframe as dd
+    try:
+        toolz = import_module("toolz")  # noqa:F841
+        dask = import_module("dask")  # noqa:F841
 
-    ddf = dd.from_pandas(df, npartitions=3)
-    assert ddf.A is not None
-    assert ddf.compute() is not None
+        import dask.dataframe as dd
+
+        ddf = dd.from_pandas(df, npartitions=3)
+        assert ddf.A is not None
+        assert ddf.compute() is not None
+    finally:
+        pd.set_option("compute.use_numexpr", olduse)
 
 
 def test_xarray(df):
 
-    xarray = import_module("xarray")  # noqa
+    xarray = import_module("xarray")  # noqa:F841
 
     assert df.to_xarray() is not None
 
@@ -98,9 +108,13 @@ def test_oo_optimized_datetime_index_unpickle():
     # patsy needs to update their imports
     "ignore:Using or importing the ABCs from 'collections:DeprecationWarning"
 )
+@pytest.mark.filterwarnings(
+    # numpy 1.22
+    "ignore:`np.MachAr` is deprecated.*:DeprecationWarning"
+)
 def test_statsmodels():
 
-    statsmodels = import_module("statsmodels")  # noqa
+    statsmodels = import_module("statsmodels")  # noqa:F841
     import statsmodels.api as sm
     import statsmodels.formula.api as smf
 
@@ -112,7 +126,7 @@ def test_statsmodels():
 @pytest.mark.filterwarnings("ignore:can't:ImportWarning")
 def test_scikit_learn(df):
 
-    sklearn = import_module("sklearn")  # noqa
+    sklearn = import_module("sklearn")  # noqa:F841
     from sklearn import (
         datasets,
         svm,
@@ -136,10 +150,14 @@ def test_seaborn():
 
 def test_pandas_gbq(df):
 
-    pandas_gbq = import_module("pandas_gbq")  # noqa
+    pandas_gbq = import_module("pandas_gbq")  # noqa:F841
 
 
-@pytest.mark.xfail(reason="0.8.1 tries to import urlencode from pd.io.common")
+@pytest.mark.xfail(
+    raises=ValueError,
+    reason="The Quandl API key must be provided either through the api_key "
+    "variable or through the environmental variable QUANDL_API_KEY",
+)
 @tm.network
 def test_pandas_datareader():
 
@@ -165,6 +183,20 @@ def test_pyarrow(df):
     table = pyarrow.Table.from_pandas(df)
     result = table.to_pandas()
     tm.assert_frame_equal(result, df)
+
+
+def test_torch_frame_construction(using_array_manager):
+    # GH#44616
+    torch = import_module("torch")
+    val_tensor = torch.randn(700, 64)
+
+    df = DataFrame(val_tensor)
+
+    if not using_array_manager:
+        assert np.shares_memory(df, val_tensor)
+
+    ser = pd.Series(val_tensor[0])
+    assert np.shares_memory(ser, val_tensor)
 
 
 def test_yaml_dump(df):

@@ -55,11 +55,11 @@ class TestTimedeltaArray:
             np.int64(1),
             1.0,
             np.datetime64("NaT"),
-            pd.Timestamp.now(),
+            pd.Timestamp("2021-01-01"),
             "invalid",
             np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9,
             (np.arange(10) * 24 * 3600 * 10 ** 9).view("datetime64[ns]"),
-            pd.Timestamp.now().to_period("D"),
+            pd.Timestamp("2021-01-01").to_period("D"),
         ],
     )
     @pytest.mark.parametrize("index", [True, False])
@@ -99,9 +99,11 @@ class TestUnaryOps:
 
         result = +arr
         tm.assert_timedelta_array_equal(result, arr)
+        assert not tm.shares_memory(result, arr)
 
         result2 = np.positive(arr)
         tm.assert_timedelta_array_equal(result2, arr)
+        assert not tm.shares_memory(result2, arr)
 
     def test_neg(self):
         vals = np.array([-3600 * 10 ** 9, "NaT", 7200 * 10 ** 9], dtype="m8[ns]")

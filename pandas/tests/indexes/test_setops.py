@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from pandas.core.dtypes.cast import find_common_type
+from pandas.core.dtypes.common import is_dtype_equal
 
 from pandas import (
     CategoricalIndex,
@@ -46,11 +47,23 @@ def test_union_same_types(index):
     assert idx1.union(idx2).dtype == idx1.dtype
 
 
-def test_union_different_types(index_flat, index_flat2):
+def test_union_different_types(index_flat, index_flat2, request):
     # This test only considers combinations of indices
     # GH 23525
     idx1 = index_flat
     idx2 = index_flat2
+
+    if (
+        not idx1.is_unique
+        and idx1.dtype.kind == "i"
+        and is_dtype_equal(idx2.dtype, "boolean")
+    ) or (
+        not idx2.is_unique
+        and idx2.dtype.kind == "i"
+        and is_dtype_equal(idx1.dtype, "boolean")
+    ):
+        mark = pytest.mark.xfail(reason="GH#44000 True==1", raises=ValueError)
+        request.node.add_marker(mark)
 
     common_dtype = find_common_type([idx1.dtype, idx2.dtype])
 
@@ -195,6 +208,7 @@ class TestSetOps:
         first = index[3:]
         second = index[:5]
         everything = index
+
         union = first.union(second)
         assert tm.equalContents(union, everything)
 
@@ -272,13 +286,11 @@ class TestSetOps:
             (None, None, None),
         ],
     )
-    def test_corner_union(self, index_flat, fname, sname, expected_name):
+    def test_corner_union(self, index_flat_unique, fname, sname, expected_name):
         # GH#9943, GH#9862
         # Test unions with various name combinations
         # Do not test MultiIndex or repeats
-        index = index_flat
-        if not index.is_unique:
-            pytest.skip("Not for MultiIndex or repeated indices")
+        index = index_flat_unique
 
         # Test copy.union(copy)
         first = index.copy().set_names(fname)
@@ -318,10 +330,8 @@ class TestSetOps:
             (None, None, None),
         ],
     )
-    def test_union_unequal(self, index_flat, fname, sname, expected_name):
-        index = index_flat
-        if not index.is_unique:
-            pytest.skip("Not for MultiIndex or repeated indices")
+    def test_union_unequal(self, index_flat_unique, fname, sname, expected_name):
+        index = index_flat_unique
 
         # test copy.union(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)
@@ -340,12 +350,10 @@ class TestSetOps:
             (None, None, None),
         ],
     )
-    def test_corner_intersect(self, index_flat, fname, sname, expected_name):
+    def test_corner_intersect(self, index_flat_unique, fname, sname, expected_name):
         # GH#35847
         # Test intersections with various name combinations
-        index = index_flat
-        if not index.is_unique:
-            pytest.skip("Not for MultiIndex or repeated indices")
+        index = index_flat_unique
 
         # Test copy.intersection(copy)
         first = index.copy().set_names(fname)
@@ -385,10 +393,8 @@ class TestSetOps:
             (None, None, None),
         ],
     )
-    def test_intersect_unequal(self, index_flat, fname, sname, expected_name):
-        index = index_flat
-        if not index.is_unique:
-            pytest.skip("Not for MultiIndex or repeated indices")
+    def test_intersect_unequal(self, index_flat_unique, fname, sname, expected_name):
+        index = index_flat_unique
 
         # test copy.intersection(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)
@@ -453,10 +459,9 @@ class TestSetOps:
 @pytest.mark.parametrize(
     "method", ["intersection", "union", "difference", "symmetric_difference"]
 )
-def test_setop_with_categorical(index, sort, method):
-    if isinstance(index, MultiIndex):  # TODO: flat_index?
-        # tested separately in tests.indexes.multi.test_setops
-        return
+def test_setop_with_categorical(index_flat, sort, method):
+    # MultiIndex tested separately in tests.indexes.multi.test_setops
+    index = index_flat
 
     other = index.astype("category")
     exact = "equiv" if isinstance(index, RangeIndex) else True
@@ -584,6 +589,20 @@ def test_union_with_duplicate_index_not_subset_and_non_monotonic(cls):
     tm.assert_index_equal(result, expected)
 
     result = b.union(a)
+    tm.assert_index_equal(result, expected)
+
+
+def test_union_int_categorical_with_nan():
+    ci = CategoricalIndex([1, 2, np.nan])
+    assert ci.categories.dtype.kind == "i"
+
+    idx = Index([1, 2])
+
+    result = idx.union(ci)
+    expected = Index([1, 2, np.nan], dtype=np.float64)
+    tm.assert_index_equal(result, expected)
+
+    result = ci.union(idx)
     tm.assert_index_equal(result, expected)
 
 

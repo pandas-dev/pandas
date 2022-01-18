@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-import numbers
-
 import numpy as np
-from numpy.lib.mixins import NDArrayOperatorsMixin
 
 from pandas._libs import lib
 from pandas._typing import (
@@ -19,6 +16,7 @@ from pandas.core.dtypes.dtypes import PandasDtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import (
+    arraylike,
     nanops,
     ops,
 )
@@ -31,7 +29,6 @@ from pandas.core.strings.object_array import ObjectStringArrayMixin
 class PandasArray(
     OpsMixin,
     NDArrayBackedExtensionArray,
-    NDArrayOperatorsMixin,
     ObjectStringArrayMixin,
 ):
     """
@@ -131,30 +128,31 @@ class PandasArray(
     def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
         return np.asarray(self._ndarray, dtype=dtype)
 
-    _HANDLED_TYPES = (np.ndarray, numbers.Number)
-
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # Lightly modified version of
         # https://numpy.org/doc/stable/reference/generated/numpy.lib.mixins.NDArrayOperatorsMixin.html
         # The primary modification is not boxing scalar return values
         # in PandasArray, since pandas' ExtensionArrays are 1-d.
         out = kwargs.get("out", ())
-        for x in inputs + out:
-            # Only support operations with instances of _HANDLED_TYPES.
-            # Use PandasArray instead of type(self) for isinstance to
-            # allow subclasses that don't override __array_ufunc__ to
-            # handle PandasArray objects.
-            if not isinstance(x, self._HANDLED_TYPES + (PandasArray,)):
-                return NotImplemented
 
-        if ufunc not in [np.logical_or, np.bitwise_or, np.bitwise_xor]:
-            # For binary ops, use our custom dunder methods
-            # We haven't implemented logical dunder funcs, so exclude these
-            #  to avoid RecursionError
-            result = ops.maybe_dispatch_ufunc_to_dunder_op(
+        result = ops.maybe_dispatch_ufunc_to_dunder_op(
+            self, ufunc, method, *inputs, **kwargs
+        )
+        if result is not NotImplemented:
+            return result
+
+        if "out" in kwargs:
+            # e.g. test_ufunc_unary
+            return arraylike.dispatch_ufunc_with_out(
+                self, ufunc, method, *inputs, **kwargs
+            )
+
+        if method == "reduce":
+            result = arraylike.dispatch_reduction_ufunc(
                 self, ufunc, method, *inputs, **kwargs
             )
             if result is not NotImplemented:
+                # e.g. tests.series.test_ufunc.TestNumpyReductions
                 return result
 
         # Defer to the implementation of the ufunc on unwrapped values.
@@ -165,23 +163,22 @@ class PandasArray(
             )
         result = getattr(ufunc, method)(*inputs, **kwargs)
 
-        if type(result) is tuple and len(result):
-            # multiple return values
-            if not lib.is_scalar(result[0]):
-                # re-box array-like results
-                return tuple(type(self)(x) for x in result)
-            else:
-                # but not scalar reductions
-                return result
+        if ufunc.nout > 1:
+            # multiple return values; re-box array-like results
+            return tuple(type(self)(x) for x in result)
         elif method == "at":
             # no return value
             return None
-        else:
-            # one return value
-            if not lib.is_scalar(result):
-                # re-box array-like results, but not scalar reductions
-                result = type(self)(result)
+        elif method == "reduce":
+            if isinstance(result, np.ndarray):
+                # e.g. test_np_reduce_2d
+                return type(self)(result)
+
+            # e.g. test_np_max_nested_tuples
             return result
+        else:
+            # one return value; re-box array-like results
+            return type(self)(result)
 
     # ------------------------------------------------------------------------
     # Pandas ExtensionArray Interface

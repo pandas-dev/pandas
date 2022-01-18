@@ -57,17 +57,24 @@ CSSStyles = List[CSSDict]
 Subset = Union[slice, Sequence, Index]
 
 
+def _gl01_adjust(obj: Any) -> Any:
+    """Adjust docstrings for Numpydoc GLO1."""
+    obj.__doc__ = "\n" + obj.__doc__
+    return obj
+
+
 class StylerRenderer:
     """
     Base class to process rendering a Styler with a specified jinja2 template.
     """
 
-    loader = jinja2.PackageLoader("pandas", "io/formats/templates")
-    env = jinja2.Environment(loader=loader, trim_blocks=True)
-    template_html = env.get_template("html.tpl")
-    template_html_table = env.get_template("html_table.tpl")
-    template_html_style = env.get_template("html_style.tpl")
-    template_latex = env.get_template("latex.tpl")
+    loader = _gl01_adjust(jinja2.PackageLoader("pandas", "io/formats/templates"))
+    env = _gl01_adjust(jinja2.Environment(loader=loader, trim_blocks=True))
+    template_html = _gl01_adjust(env.get_template("html.tpl"))
+    template_html_table = _gl01_adjust(env.get_template("html_table.tpl"))
+    template_html_style = _gl01_adjust(env.get_template("html_style.tpl"))
+    template_latex = _gl01_adjust(env.get_template("latex.tpl"))
+    template_string = _gl01_adjust(env.get_template("string.tpl"))
 
     def __init__(
         self,
@@ -158,14 +165,16 @@ class StylerRenderer:
             html_style_tpl=self.template_html_style,
         )
 
-    def _render_latex(self, sparse_index: bool, sparse_columns: bool, **kwargs) -> str:
+    def _render_latex(
+        self, sparse_index: bool, sparse_columns: bool, clines: str | None, **kwargs
+    ) -> str:
         """
         Render a Styler in latex format
         """
         self._compute()
 
         d = self._translate(sparse_index, sparse_columns, blank="")
-        self._translate_latex(d)
+        self._translate_latex(d, clines=clines)
 
         self.template_latex.globals["parse_wrap"] = _parse_latex_table_wrapping
         self.template_latex.globals["parse_table"] = _parse_latex_table_styles
@@ -174,6 +183,24 @@ class StylerRenderer:
 
         d.update(kwargs)
         return self.template_latex.render(**d)
+
+    def _render_string(
+        self,
+        sparse_index: bool,
+        sparse_columns: bool,
+        max_rows: int | None = None,
+        max_cols: int | None = None,
+        **kwargs,
+    ) -> str:
+        """
+        Render a Styler in string format
+        """
+        self._compute()
+
+        d = self._translate(sparse_index, sparse_columns, max_rows, max_cols, blank="")
+
+        d.update(kwargs)
+        return self.template_string.render(**d)
 
     def _compute(self):
         """
@@ -251,13 +278,19 @@ class StylerRenderer:
         head = self._translate_header(sparse_cols, max_cols)
         d.update({"head": head})
 
+        # for sparsifying a MultiIndex and for use with latex clines
+        idx_lengths = _get_level_lengths(
+            self.index, sparse_index, max_rows, self.hidden_rows
+        )
+        d.update({"index_lengths": idx_lengths})
+
         self.cellstyle_map: DefaultDict[tuple[CSSPair, ...], list[str]] = defaultdict(
             list
         )
         self.cellstyle_map_index: DefaultDict[
             tuple[CSSPair, ...], list[str]
         ] = defaultdict(list)
-        body = self._translate_body(sparse_index, max_rows, max_cols)
+        body = self._translate_body(idx_lengths, max_rows, max_cols)
         d.update({"body": body})
 
         ctx_maps = {
@@ -509,7 +542,7 @@ class StylerRenderer:
 
         return index_names + column_blanks
 
-    def _translate_body(self, sparsify_index: bool, max_rows: int, max_cols: int):
+    def _translate_body(self, idx_lengths: dict, max_rows: int, max_cols: int):
         """
         Build each <tr> within table <body> as a list
 
@@ -531,11 +564,6 @@ class StylerRenderer:
         body : list
             The associated HTML elements needed for template rendering.
         """
-        # for sparsifying a MultiIndex
-        idx_lengths = _get_level_lengths(
-            self.index, sparsify_index, max_rows, self.hidden_rows
-        )
-
         rlabels = self.data.index.tolist()
         if not isinstance(self.data.index, MultiIndex):
             rlabels = [[x] for x in rlabels]
@@ -732,7 +760,7 @@ class StylerRenderer:
 
         return index_headers + data
 
-    def _translate_latex(self, d: dict) -> None:
+    def _translate_latex(self, d: dict, clines: str | None) -> None:
         r"""
         Post-process the default render dict for the LaTeX template format.
 
@@ -742,16 +770,17 @@ class StylerRenderer:
           - Remove hidden indexes or reinsert missing th elements if part of multiindex
             or multirow sparsification (so that \multirow and \multicol work correctly).
         """
+        index_levels = self.index.nlevels
+        visible_index_level_n = index_levels - sum(self.hide_index_)
         d["head"] = [
             [
-                {**col, "cellstyle": self.ctx_columns[r, c - self.index.nlevels]}
+                {**col, "cellstyle": self.ctx_columns[r, c - visible_index_level_n]}
                 for c, col in enumerate(row)
                 if col["is_visible"]
             ]
             for r, row in enumerate(d["head"])
         ]
         body = []
-        index_levels = self.data.index.nlevels
         for r, row in zip(
             [r for r in range(len(self.data.index)) if r not in self.hidden_rows],
             d["body"],
@@ -783,6 +812,39 @@ class StylerRenderer:
             body.append(row_body_headers + row_body_cells)
         d["body"] = body
 
+        # clines are determined from info on index_lengths and hidden_rows and input
+        # to a dict defining which row clines should be added in the template.
+        if clines not in [
+            None,
+            "all;data",
+            "all;index",
+            "skip-last;data",
+            "skip-last;index",
+        ]:
+            raise ValueError(
+                f"`clines` value of {clines} is invalid. Should either be None or one "
+                f"of 'all;data', 'all;index', 'skip-last;data', 'skip-last;index'."
+            )
+        elif clines is not None:
+            data_len = len(row_body_cells) if "data" in clines else 0
+
+            d["clines"] = defaultdict(list)
+            visible_row_indexes: list[int] = [
+                r for r in range(len(self.data.index)) if r not in self.hidden_rows
+            ]
+            visible_index_levels: list[int] = [
+                i for i in range(index_levels) if not self.hide_index_[i]
+            ]
+            for rn, r in enumerate(visible_row_indexes):
+                for lvln, lvl in enumerate(visible_index_levels):
+                    if lvl == index_levels - 1 and "skip-last" in clines:
+                        continue
+                    idx_len = d["index_lengths"].get((lvl, r), None)
+                    if idx_len is not None:  # i.e. not a sparsified entry
+                        d["clines"][rn + idx_len].append(
+                            f"\\cline{{{lvln+1}-{len(visible_index_levels)+data_len}}}"
+                        )
+
     def format(
         self,
         formatter: ExtFormatter | None = None,
@@ -792,6 +854,7 @@ class StylerRenderer:
         decimal: str = ".",
         thousands: str | None = None,
         escape: str | None = None,
+        hyperlinks: str | None = None,
     ) -> StylerRenderer:
         r"""
         Format the text display value of cells.
@@ -817,12 +880,12 @@ class StylerRenderer:
             .. versionadded:: 1.3.0
 
         decimal : str, default "."
-            Character used as decimal separator for floats, complex and integers
+            Character used as decimal separator for floats, complex and integers.
 
             .. versionadded:: 1.3.0
 
         thousands : str, optional, default None
-            Character used as thousands separator for floats, complex and integers
+            Character used as thousands separator for floats, complex and integers.
 
             .. versionadded:: 1.3.0
 
@@ -835,6 +898,13 @@ class StylerRenderer:
             Escaping is done before ``formatter``.
 
             .. versionadded:: 1.3.0
+
+        hyperlinks : {"html", "latex"}, optional
+            Convert string patterns containing https://, http://, ftp:// or www. to
+            HTML <a> tags as clickable URL hyperlinks if "html", or LaTeX \href
+            commands if "latex".
+
+            .. versionadded:: 1.4.0
 
         Returns
         -------
@@ -952,6 +1022,7 @@ class StylerRenderer:
                 thousands is None,
                 na_rep is None,
                 escape is None,
+                hyperlinks is None,
             )
         ):
             self._display_funcs.clear()
@@ -974,6 +1045,7 @@ class StylerRenderer:
                 decimal=decimal,
                 thousands=thousands,
                 escape=escape,
+                hyperlinks=hyperlinks,
             )
             for ri in ris:
                 self._display_funcs[(ri, ci)] = format_func
@@ -990,6 +1062,7 @@ class StylerRenderer:
         decimal: str = ".",
         thousands: str | None = None,
         escape: str | None = None,
+        hyperlinks: str | None = None,
     ) -> StylerRenderer:
         r"""
         Format the text display value of index labels or column headers.
@@ -1011,9 +1084,9 @@ class StylerRenderer:
             Floating point precision to use for display purposes, if not determined by
             the specified ``formatter``.
         decimal : str, default "."
-            Character used as decimal separator for floats, complex and integers
+            Character used as decimal separator for floats, complex and integers.
         thousands : str, optional, default None
-            Character used as thousands separator for floats, complex and integers
+            Character used as thousands separator for floats, complex and integers.
         escape : str, optional
             Use 'html' to replace the characters ``&``, ``<``, ``>``, ``'``, and ``"``
             in cell display string with HTML-safe sequences.
@@ -1021,6 +1094,10 @@ class StylerRenderer:
             ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
             LaTeX-safe sequences.
             Escaping is done before ``formatter``.
+        hyperlinks : {"html", "latex"}, optional
+            Convert string patterns containing https://, http://, ftp:// or www. to
+            HTML <a> tags as clickable URL hyperlinks if "html", or LaTeX \href
+            commands if "latex".
 
         Returns
         -------
@@ -1056,7 +1133,7 @@ class StylerRenderer:
         --------
         Using ``na_rep`` and ``precision`` with the default ``formatter``
 
-        >>> df = pd.DataFrame([[1, 2, 3]], columns=[2.0, np.nan, 4.0]])
+        >>> df = pd.DataFrame([[1, 2, 3]], columns=[2.0, np.nan, 4.0])
         >>> df.style.format_index(axis=1, na_rep='MISS', precision=3)  # doctest: +SKIP
             2.000    MISS   4.000
         0       1       2       3
@@ -1090,6 +1167,7 @@ class StylerRenderer:
 
         >>> df = pd.DataFrame([[1, 2, 3]], columns=['"A"', 'A&B', None])
         >>> s = df.style.format_index('$ {0}', axis=1, escape="html", na_rep="NA")
+        ...  # doctest: +SKIP
         <th .. >$ &#34;A&#34;</th>
         <th .. >$ A&amp;B</th>
         <th .. >NA</td>
@@ -1121,6 +1199,7 @@ class StylerRenderer:
                 thousands is None,
                 na_rep is None,
                 escape is None,
+                hyperlinks is None,
             )
         ):
             display_funcs_.clear()
@@ -1142,6 +1221,7 @@ class StylerRenderer:
                 decimal=decimal,
                 thousands=thousands,
                 escape=escape,
+                hyperlinks=hyperlinks,
             )
 
             for idx in [(i, lvl) if axis == 0 else (lvl, i) for i in range(len(obj))]:
@@ -1384,6 +1464,20 @@ def _str_escape(x, escape):
     return x
 
 
+def _render_href(x, format):
+    """uses regex to detect a common URL pattern and converts to href tag in format."""
+    if isinstance(x, str):
+        if format == "html":
+            href = '<a href="{0}" target="_blank">{0}</a>'
+        elif format == "latex":
+            href = r"\href{{{0}}}{{{0}}}"
+        else:
+            raise ValueError("``hyperlinks`` format can only be 'html' or 'latex'")
+        pat = r"(https?:\/\/|ftp:\/\/|www.)[\w/\-?=%.]+\.[\w/\-&?=%.]+"
+        return re.sub(pat, lambda m: href.format(m.group(0)), x)
+    return x
+
+
 def _maybe_wrap_formatter(
     formatter: BaseFormatter | None = None,
     na_rep: str | None = None,
@@ -1391,6 +1485,7 @@ def _maybe_wrap_formatter(
     decimal: str = ".",
     thousands: str | None = None,
     escape: str | None = None,
+    hyperlinks: str | None = None,
 ) -> Callable:
     """
     Allows formatters to be expressed as str, callable or None, where None returns
@@ -1424,11 +1519,17 @@ def _maybe_wrap_formatter(
     else:
         func_2 = func_1
 
+    # Render links
+    if hyperlinks is not None:
+        func_3 = lambda x: func_2(_render_href(x, format=hyperlinks))
+    else:
+        func_3 = func_2
+
     # Replace missing values if na_rep
     if na_rep is None:
-        return func_2
+        return func_3
     else:
-        return lambda x: na_rep if isna(x) else func_2(x)
+        return lambda x: na_rep if isna(x) else func_3(x)
 
 
 def non_reducing_slice(slice_: Subset):
@@ -1805,7 +1906,7 @@ def _parse_latex_header_span(
 
     Examples
     --------
-    >>> cell = {'display_value':'text', 'attributes': 'colspan="3"'}
+    >>> cell = {'cellstyle': '', 'display_value':'text', 'attributes': 'colspan="3"'}
     >>> _parse_latex_header_span(cell, 't', 'c')
     '\\multicolumn{3}{c}{text}'
     """

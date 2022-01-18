@@ -2,6 +2,7 @@
 Tests shared by MaskedArray subclasses.
 """
 import numpy as np
+import pytest
 
 import pandas as pd
 import pandas._testing as tm
@@ -54,9 +55,17 @@ class ComparisonOps(BaseOpsUtil):
 class NumericOps:
     # Shared by IntegerArray and FloatingArray, not BooleanArray
 
+    def test_searchsorted_nan(self, dtype):
+        # The base class casts to object dtype, for which searchsorted returns
+        #  0 from the left and 10 from the right.
+        arr = pd.array(range(10), dtype=dtype)
+
+        assert arr.searchsorted(np.nan, side="left") == 10
+        assert arr.searchsorted(np.nan, side="right") == 10
+
     def test_no_shared_mask(self, data):
         result = data + 1
-        assert np.shares_memory(result._mask, data._mask) is False
+        assert not tm.shares_memory(result, data)
 
     def test_array(self, comparison_op, dtype):
         op = comparison_op
@@ -103,3 +112,35 @@ class NumericOps:
         expected = pd.Series([False, pd.NA], dtype="boolean")
 
         self.assert_series_equal(result, expected)
+
+    def test_ufunc_with_out(self, dtype):
+        arr = pd.array([1, 2, 3], dtype=dtype)
+        arr2 = pd.array([1, 2, pd.NA], dtype=dtype)
+
+        mask = arr == arr
+        mask2 = arr2 == arr2
+
+        result = np.zeros(3, dtype=bool)
+        result |= mask
+        # If MaskedArray.__array_ufunc__ handled "out" appropriately,
+        #  `result` should still be an ndarray.
+        assert isinstance(result, np.ndarray)
+        assert result.all()
+
+        # result |= mask worked because mask could be cast lossslessly to
+        #  boolean ndarray. mask2 can't, so this raises
+        result = np.zeros(3, dtype=bool)
+        msg = "Specify an appropriate 'na_value' for this dtype"
+        with pytest.raises(ValueError, match=msg):
+            result |= mask2
+
+        # addition
+        res = np.add(arr, arr2)
+        expected = pd.array([2, 4, pd.NA], dtype=dtype)
+        tm.assert_extension_array_equal(res, expected)
+
+        # when passing out=arr, we will modify 'arr' inplace.
+        res = np.add(arr, arr2, out=arr)
+        assert res is arr
+        tm.assert_extension_array_equal(res, expected)
+        tm.assert_extension_array_equal(arr, expected)

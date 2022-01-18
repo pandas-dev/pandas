@@ -93,11 +93,9 @@ def assert_stat_op_calc(
         tm.assert_series_equal(
             result0, frame.apply(wrapper), check_dtype=check_dtype, rtol=rtol, atol=atol
         )
-        # FIXME: HACK: win32
         tm.assert_series_equal(
             result1,
             frame.apply(wrapper, axis=1),
-            check_dtype=False,
             rtol=rtol,
             atol=atol,
         )
@@ -200,9 +198,7 @@ def assert_bool_op_calc(opname, alternative, frame, has_skipna=True):
         result1 = f(axis=1, skipna=False)
 
         tm.assert_series_equal(result0, frame.apply(wrapper))
-        tm.assert_series_equal(
-            result1, frame.apply(wrapper, axis=1), check_dtype=False
-        )  # FIXME: HACK: win32
+        tm.assert_series_equal(result1, frame.apply(wrapper, axis=1))
     else:
         skipna_wrapper = alternative
         wrapper = alternative
@@ -289,16 +285,11 @@ class TestDataFrameAnalytics:
         assert_stat_op_api("sem", float_frame, float_string_frame)
         assert_stat_op_api("median", float_frame, float_string_frame)
 
-        try:
-            from scipy.stats import (  # noqa:F401
-                kurtosis,
-                skew,
-            )
-
-            assert_stat_op_api("skew", float_frame, float_string_frame)
-            assert_stat_op_api("kurt", float_frame, float_string_frame)
-        except ImportError:
-            pass
+    @pytest.mark.filterwarnings("ignore:Dropping of nuisance:FutureWarning")
+    @td.skip_if_no_scipy
+    def test_stat_op_api_skew_kurt(self, float_frame, float_string_frame):
+        assert_stat_op_api("skew", float_frame, float_string_frame)
+        assert_stat_op_api("kurt", float_frame, float_string_frame)
 
     def test_stat_op_calc(self, float_frame_with_na, mixed_float_frame):
         def count(s):
@@ -318,20 +309,6 @@ class TestDataFrameAnalytics:
 
         def sem(x):
             return np.std(x, ddof=1) / np.sqrt(len(x))
-
-        def skewness(x):
-            from scipy.stats import skew  # noqa:F811
-
-            if len(x) < 3:
-                return np.nan
-            return skew(x, bias=False)
-
-        def kurt(x):
-            from scipy.stats import kurtosis  # noqa:F811
-
-            if len(x) < 4:
-                return np.nan
-            return kurtosis(x, bias=False)
 
         assert_stat_op_calc(
             "nunique",
@@ -375,16 +352,24 @@ class TestDataFrameAnalytics:
             check_dates=True,
         )
 
-        try:
-            from scipy import (  # noqa:F401
-                kurtosis,
-                skew,
-            )
+    @td.skip_if_no_scipy
+    def test_stat_op_calc_skew_kurtosis(self, float_frame_with_na):
+        def skewness(x):
+            from scipy.stats import skew
 
-            assert_stat_op_calc("skew", skewness, float_frame_with_na)
-            assert_stat_op_calc("kurt", kurt, float_frame_with_na)
-        except ImportError:
-            pass
+            if len(x) < 3:
+                return np.nan
+            return skew(x, bias=False)
+
+        def kurt(x):
+            from scipy.stats import kurtosis
+
+            if len(x) < 4:
+                return np.nan
+            return kurtosis(x, bias=False)
+
+        assert_stat_op_calc("skew", skewness, float_frame_with_na)
+        assert_stat_op_calc("kurt", kurt, float_frame_with_na)
 
     # TODO: Ensure warning isn't emitted in the first place
     # ignore mean of empty slice and all-NaN
@@ -788,11 +773,7 @@ class TestDataFrameAnalytics:
     def test_std_timedelta64_skipna_false(self):
         # GH#37392
         tdi = pd.timedelta_range("1 Day", periods=10)
-        df = DataFrame({"A": tdi, "B": tdi})
-        # Copy is needed for ArrayManager case, otherwise setting df.iloc
-        #  below edits tdi, alterting both df['A'] and df['B']
-        #  FIXME: passing copy=True to constructor does not fix this
-        df = df.copy()
+        df = DataFrame({"A": tdi, "B": tdi}, copy=True)
         df.iloc[-2, -1] = pd.NaT
 
         result = df.std(skipna=False)
@@ -1073,17 +1054,13 @@ class TestDataFrameAnalytics:
         result = getattr(df, op)()
         expected = DataFrame(
             {"value": expected_value},
-            index=Index([100, 200], name="ID"),
+            index=Index([100, 200], name="ID", dtype="Int64"),
         )
         tm.assert_frame_equal(result, expected)
 
     def test_idxmax_dt64_multicolumn_axis1(self):
         dti = date_range("2016-01-01", periods=3)
-        df = DataFrame({3: dti, 4: dti[::-1]})
-        # FIXME: copy needed for ArrayManager, otherwise setting with iloc
-        #  below also sets df.iloc[-1, 1]; passing copy=True to DataFrame
-        #  does not solve this.
-        df = df.copy()
+        df = DataFrame({3: dti, 4: dti[::-1]}, copy=True)
         df.iloc[0, 0] = pd.NaT
 
         df._consolidate_inplace()
@@ -1478,33 +1455,29 @@ class TestDataFrameReductions:
         expected = Series(data=[False, True])
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "func",
-        [
-            "any",
-            "all",
-            "count",
-            "sum",
-            "prod",
-            "max",
-            "min",
-            "mean",
-            "median",
-            "skew",
-            "kurt",
-            "sem",
-            "var",
-            "std",
-            "mad",
-        ],
-    )
-    def test_reductions_deprecation_level_argument(self, frame_or_series, func):
+    def test_reductions_deprecation_skipna_none(self, frame_or_series):
+        # GH#44580
+        obj = frame_or_series([1, 2, 3])
+        with tm.assert_produces_warning(FutureWarning, match="skipna"):
+            obj.mad(skipna=None)
+
+    def test_reductions_deprecation_level_argument(
+        self, frame_or_series, reduction_functions
+    ):
         # GH#39983
         obj = frame_or_series(
             [1, 2, 3], index=MultiIndex.from_arrays([[1, 2, 3], [4, 5, 6]])
         )
         with tm.assert_produces_warning(FutureWarning, match="level"):
-            getattr(obj, func)(level=0)
+            getattr(obj, reduction_functions)(level=0)
+
+    def test_reductions_skipna_none_raises(self, frame_or_series, reduction_functions):
+        if reduction_functions in ["count", "mad"]:
+            pytest.skip("Count does not accept skipna. Mad needs a deprecation cycle.")
+        obj = frame_or_series([1, 2, 3])
+        msg = 'For argument "skipna" expected type bool, received type NoneType.'
+        with pytest.raises(ValueError, match=msg):
+            getattr(obj, reduction_functions)(skipna=None)
 
 
 class TestNuisanceColumns:
@@ -1515,13 +1488,13 @@ class TestNuisanceColumns:
         df = ser.to_frame()
 
         # Double-check the Series behavior is to raise
-        with pytest.raises(TypeError, match="does not implement reduction"):
+        with pytest.raises(TypeError, match="does not support reduction"):
             getattr(ser, method)()
 
-        with pytest.raises(TypeError, match="does not implement reduction"):
+        with pytest.raises(TypeError, match="does not support reduction"):
             getattr(np, method)(ser)
 
-        with pytest.raises(TypeError, match="does not implement reduction"):
+        with pytest.raises(TypeError, match="does not support reduction"):
             getattr(df, method)(bool_only=False)
 
         # With bool_only=None, operating on this column raises and is ignored,
@@ -1545,10 +1518,10 @@ class TestNuisanceColumns:
         ser = df["A"]
 
         # Double-check the Series behavior is to raise
-        with pytest.raises(TypeError, match="does not implement reduction"):
+        with pytest.raises(TypeError, match="does not support reduction"):
             ser.median()
 
-        with pytest.raises(TypeError, match="does not implement reduction"):
+        with pytest.raises(TypeError, match="does not support reduction"):
             df.median(numeric_only=False)
 
         with tm.assert_produces_warning(
@@ -1561,7 +1534,7 @@ class TestNuisanceColumns:
         # same thing, but with an additional non-categorical column
         df["B"] = df["A"].astype(int)
 
-        with pytest.raises(TypeError, match="does not implement reduction"):
+        with pytest.raises(TypeError, match="does not support reduction"):
             df.median(numeric_only=False)
 
         with tm.assert_produces_warning(
@@ -1773,3 +1746,20 @@ def test_prod_sum_min_count_mixed_object():
     msg = re.escape("unsupported operand type(s) for +: 'int' and 'str'")
     with pytest.raises(TypeError, match=msg):
         df.sum(axis=0, min_count=1, numeric_only=False)
+
+
+@pytest.mark.parametrize("method", ["min", "max", "mean", "median", "skew", "kurt"])
+def test_reduction_axis_none_deprecation(method):
+    # GH#21597 deprecate axis=None defaulting to axis=0 so that we can change it
+    #  to reducing over all axes.
+
+    df = DataFrame(np.random.randn(4, 4))
+    meth = getattr(df, method)
+
+    msg = f"scalar {method} over the entire DataFrame"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        res = meth(axis=None)
+    with tm.assert_produces_warning(None):
+        expected = meth()
+    tm.assert_series_equal(res, expected)
+    tm.assert_series_equal(res, meth(axis=0))

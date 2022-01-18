@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import iNaT
+from pandas.errors import InvalidIndexError
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer
@@ -800,19 +801,13 @@ class TestDataFrameIndexing:
         assert df["timestamp"].dtype == np.object_
         assert df.loc["b", "timestamp"] == iNaT
 
-        # allow this syntax
+        # allow this syntax (as of GH#3216)
         df.loc["c", "timestamp"] = np.nan
         assert isna(df.loc["c", "timestamp"])
 
         # allow this syntax
         df.loc["d", :] = np.nan
         assert not isna(df.loc["c", :]).all()
-
-        # FIXME: don't leave commented-out
-        # as of GH 3216 this will now work!
-        # try to set with a list like item
-        # pytest.raises(
-        #    Exception, df.loc.__setitem__, ('d', 'timestamp'), [np.nan])
 
     def test_setitem_mixed_datetime(self):
         # GH 9336
@@ -1014,7 +1009,7 @@ class TestDataFrameIndexing:
         exp_col = original[2].copy()
         # TODO(ArrayManager) verify it is expected that the original didn't change
         if not using_array_manager:
-            exp_col[4:8] = 0.0
+            exp_col._values[4:8] = 0.0
         tm.assert_series_equal(df[2], exp_col)
 
     def test_iloc_col(self):
@@ -1177,7 +1172,7 @@ class TestDataFrameIndexing:
         dg = DataFrame(
             [[1, 1, 2, 2], [3, 3, 4, 4]], columns=mi, index=Index([0, 1], name="i")
         )
-        with pytest.raises(TypeError, match="unhashable type"):
+        with pytest.raises(InvalidIndexError, match="slice"):
             dg[:, 0]
 
         index = Index(range(2), name="i")
@@ -1216,6 +1211,73 @@ class TestDataFrameIndexing:
         df.loc[0] = {"a": np.zeros((2,)), "b": np.zeros((2, 2))}
         expected = DataFrame({"a": [np.zeros((2,))], "b": [np.zeros((2, 2))]})
         tm.assert_frame_equal(df, expected)
+
+    # with AM goes through split-path, loses dtype
+    @td.skip_array_manager_not_yet_implemented
+    def test_iloc_setitem_nullable_2d_values(self):
+        df = DataFrame({"A": [1, 2, 3]}, dtype="Int64")
+        orig = df.copy()
+
+        df.loc[:] = df.values[:, ::-1]
+        tm.assert_frame_equal(df, orig)
+
+        df.loc[:] = pd.core.arrays.PandasArray(df.values[:, ::-1])
+        tm.assert_frame_equal(df, orig)
+
+        df.iloc[:] = df.iloc[:, :]
+        tm.assert_frame_equal(df, orig)
+
+    @pytest.mark.parametrize(
+        "null", [pd.NaT, pd.NaT.to_numpy("M8[ns]"), pd.NaT.to_numpy("m8[ns]")]
+    )
+    def test_setting_mismatched_na_into_nullable_fails(
+        self, null, any_numeric_ea_dtype
+    ):
+        # GH#44514 don't cast mismatched nulls to pd.NA
+        df = DataFrame({"A": [1, 2, 3]}, dtype=any_numeric_ea_dtype)
+        ser = df["A"]
+        arr = ser._values
+
+        msg = "|".join(
+            [
+                r"timedelta64\[ns\] cannot be converted to an? (Floating|Integer)Dtype",
+                r"datetime64\[ns\] cannot be converted to an? (Floating|Integer)Dtype",
+                "'values' contains non-numeric NA",
+                r"Invalid value '.*' for dtype (U?Int|Float)\d{1,2}",
+            ]
+        )
+        with pytest.raises(TypeError, match=msg):
+            arr[0] = null
+
+        with pytest.raises(TypeError, match=msg):
+            arr[:2] = [null, null]
+
+        with pytest.raises(TypeError, match=msg):
+            ser[0] = null
+
+        with pytest.raises(TypeError, match=msg):
+            ser[:2] = [null, null]
+
+        with pytest.raises(TypeError, match=msg):
+            ser.iloc[0] = null
+
+        with pytest.raises(TypeError, match=msg):
+            ser.iloc[:2] = [null, null]
+
+        with pytest.raises(TypeError, match=msg):
+            df.iloc[0, 0] = null
+
+        with pytest.raises(TypeError, match=msg):
+            df.iloc[:2, 0] = [null, null]
+
+        # Multi-Block
+        df2 = df.copy()
+        df2["B"] = ser.copy()
+        with pytest.raises(TypeError, match=msg):
+            df2.iloc[0, 0] = null
+
+        with pytest.raises(TypeError, match=msg):
+            df2.iloc[:2, 0] = [null, null]
 
 
 class TestDataFrameIndexingUInt64:
@@ -1463,3 +1525,65 @@ class TestLocILocDataFrameCategorical:
         # "c" not part of the categories
         with pytest.raises(TypeError, match=msg1):
             indexer(df)[key] = ["c", "c"]
+
+
+class TestDepreactedIndexers:
+    @pytest.mark.parametrize(
+        "key", [{1}, {1: 1}, ({1}, "a"), ({1: 1}, "a"), (1, {"a"}), (1, {"a": "a"})]
+    )
+    def test_getitem_dict_and_set_deprecated(self, key):
+        # GH#42825
+        df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
+        with tm.assert_produces_warning(FutureWarning):
+            df.loc[key]
+
+    @pytest.mark.parametrize(
+        "key",
+        [
+            {1},
+            {1: 1},
+            (({1}, 2), "a"),
+            (({1: 1}, 2), "a"),
+            ((1, 2), {"a"}),
+            ((1, 2), {"a": "a"}),
+        ],
+    )
+    def test_getitem_dict_and_set_deprecated_multiindex(self, key):
+        # GH#42825
+        df = DataFrame(
+            [[1, 2], [3, 4]],
+            columns=["a", "b"],
+            index=MultiIndex.from_tuples([(1, 2), (3, 4)]),
+        )
+        with tm.assert_produces_warning(FutureWarning):
+            df.loc[key]
+
+    @pytest.mark.parametrize(
+        "key", [{1}, {1: 1}, ({1}, "a"), ({1: 1}, "a"), (1, {"a"}), (1, {"a": "a"})]
+    )
+    def test_setitem_dict_and_set_deprecated(self, key):
+        # GH#42825
+        df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
+        with tm.assert_produces_warning(FutureWarning):
+            df.loc[key] = 1
+
+    @pytest.mark.parametrize(
+        "key",
+        [
+            {1},
+            {1: 1},
+            (({1}, 2), "a"),
+            (({1: 1}, 2), "a"),
+            ((1, 2), {"a"}),
+            ((1, 2), {"a": "a"}),
+        ],
+    )
+    def test_setitem_dict_and_set_deprecated_multiindex(self, key):
+        # GH#42825
+        df = DataFrame(
+            [[1, 2], [3, 4]],
+            columns=["a", "b"],
+            index=MultiIndex.from_tuples([(1, 2), (3, 4)]),
+        )
+        with tm.assert_produces_warning(FutureWarning):
+            df.loc[key] = 1

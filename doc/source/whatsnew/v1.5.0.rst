@@ -1,0 +1,281 @@
+.. _whatsnew_150:
+
+What's new in 1.5.0 (??)
+------------------------
+
+These are the changes in pandas 1.5.0. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_150.enhancements:
+
+Enhancements
+~~~~~~~~~~~~
+
+.. _whatsnew_150.enhancements.styler:
+
+Styler
+^^^^^^
+
+  - New method :meth:`.Styler.to_string` for alternative customisable output methods (:issue:`44502`)
+  - Various bug fixes, see below.
+
+.. _whatsnew_150.enhancements.enhancement2:
+
+enhancement2
+^^^^^^^^^^^^
+
+.. _whatsnew_150.enhancements.other:
+
+Other enhancements
+^^^^^^^^^^^^^^^^^^
+- :class:`StringArray` now accepts array-likes containing nan-likes (``None``, ``np.nan``) for the ``values`` parameter in its constructor in addition to strings and :attr:`pandas.NA`. (:issue:`40839`)
+- Improved the rendering of ``categories`` in :class:`CategoricalIndex` (:issue:`45218`)
+- :meth:`to_numeric` now preserves float64 arrays when downcasting would generate values not representable in float32 (:issue:`43693`)
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_150.notable_bug_fixes:
+
+Notable bug fixes
+~~~~~~~~~~~~~~~~~
+
+These are bug fixes that might have notable behavior changes.
+
+.. _whatsnew_150.notable_bug_fixes.notable_bug_fix1:
+
+notable_bug_fix1
+^^^^^^^^^^^^^^^^
+
+.. _whatsnew_150.notable_bug_fixes.notable_bug_fix2:
+
+notable_bug_fix2
+^^^^^^^^^^^^^^^^
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_150.api_breaking:
+
+Backwards incompatible API changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _whatsnew_150.api_breaking.deps:
+
+Increased minimum versions for dependencies
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Some minimum supported versions of dependencies were updated.
+If installed, we now require:
+
++-----------------+-----------------+----------+---------+
+| Package         | Minimum Version | Required | Changed |
++=================+=================+==========+=========+
+|                 |                 |    X     |    X    |
++-----------------+-----------------+----------+---------+
+
+For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
+The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
+Optional libraries below the lowest tested version may still work, but are not considered supported.
+
++-----------------+-----------------+---------+
+| Package         | Minimum Version | Changed |
++=================+=================+=========+
+|                 |                 |    X    |
++-----------------+-----------------+---------+
+
+See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
+
+.. _whatsnew_150.api_breaking.other:
+
+Other API changes
+^^^^^^^^^^^^^^^^^
+-
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_150.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
+
+.. _whatsnew_150.deprecations.int_slicing_series:
+
+In a future version, integer slicing on a :class:`Series` with a :class:`Int64Index` or :class:`RangeIndex` will be treated as *label-based*, not positional. This will make the behavior consistent with other :meth:`Series.__getitem__` and :meth:`Series.__setitem__` behaviors (:issue:`45162`).
+
+For example:
+
+.. ipython:: python
+
+   ser = pd.Series([1, 2, 3, 4, 5], index=[2, 3, 5, 7, 11])
+
+In the old behavior, ``ser[2:4]`` treats the slice as positional:
+
+*Old behavior*:
+
+.. code-block:: ipython
+
+    In [3]: ser[2:4]
+    Out[3]:
+    5    3
+    7    4
+    dtype: int64
+
+In a future version, this will be treated as label-based:
+
+*Future behavior*:
+
+.. code-block:: ipython
+
+    In [4]: ser.loc[2:4]
+    Out[4]:
+    2    1
+    3    2
+    dtype: int64
+
+To retain the old behavior, use ``series.iloc[i:j]``. To get the future behavior,
+use ``series.loc[i:j]``.
+
+Slicing on a :class:`DataFrame` will not be affected.
+
+.. _whatsnew_150.deprecations.other:
+
+Other Deprecations
+^^^^^^^^^^^^^^^^^^
+- Deprecated the keyword ``line_terminator`` in :meth:`DataFrame.to_csv` and :meth:`Series.to_csv`, use ``lineterminator`` instead; this is for consistency with :func:`read_csv` and the standard library 'csv' module (:issue:`9568`)
+- Deprecated behavior of :meth:`SparseArray.astype`, :meth:`Series.astype`, and :meth:`DataFrame.astype` with :class:`SparseDtype` when passing a non-sparse ``dtype``. In a future version, this will cast to that non-sparse dtype instead of wrapping it in a :class:`SparseDtype` (:issue:`34457`)
+- Deprecated behavior of :meth:`DatetimeIndex.intersection` and :meth:`DatetimeIndex.symmetric_difference` (``union`` behavior was already deprecated in version 1.3.0) with mixed timezones; in a future version both will be cast to UTC instead of object dtype (:issue:`39328`, :issue:`45357`)
+- Deprecated :meth:`DataFrame.iteritems`, :meth:`Series.iteritems`, :meth:`HDFStore.iteritems` in favor of :meth:`DataFrame.items`, :meth:`Series.items`, :meth:`HDFStore.items`  (:issue:`45321`)
+-
+
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_150.performance:
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_150.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+Categorical
+^^^^^^^^^^^
+- Bug in :meth:`CategoricalIndex.union` when the index's categories are integer-dtype and the index contains ``NaN`` values incorrectly raising instead of casting to ``float64`` (:issue:`45362`)
+-
+
+Datetimelike
+^^^^^^^^^^^^
+- Bug in :meth:`DataFrame.quantile` with datetime-like dtypes and no rows incorrectly returning ``float64`` dtype instead of retaining datetime-like dtype (:issue:`41544`)
+- Bug in :func:`to_datetime` with sequences of ``np.str_`` objects incorrectly raising (:issue:`32264`)
+- Bug in :class:`Timestamp` construction when passing datetime components as positional arguments and ``tzinfo`` as a keyword argument incorrectly raising (:issue:`31929`)
+-
+
+Timedelta
+^^^^^^^^^
+-
+
+Timezones
+^^^^^^^^^
+-
+-
+
+Numeric
+^^^^^^^
+-
+-
+
+Conversion
+^^^^^^^^^^
+- Bug in :meth:`DataFrame.astype` not preserving subclasses (:issue:`40810`)
+- Bug in constructing a :class:`Series` from a float-containing list or a floating-dtype ndarray-like (e.g. ``dask.Array``) and an integer dtype raising instead of casting like we would with an ``np.ndarray`` (:issue:`40110`)
+- Bug in :meth:`Float64Index.astype` to unsigned integer dtype incorrectly casting to ``np.int64`` dtype (:issue:`45309`)
+- Bug in :meth:`Series.astype` and :meth:`DataFrame.astype` from floating dtype to unsigned integer dtype failing to raise in the presence of negative values (:issue:`45151`)
+-
+
+Strings
+^^^^^^^
+-
+-
+
+Interval
+^^^^^^^^
+-
+-
+
+Indexing
+^^^^^^^^
+- Bug in :meth:`loc.__getitem__` with a list of keys causing an internal inconsistency that could lead to a disconnect between ``frame.at[x, y]`` vs ``frame[y].loc[x]`` (:issue:`22372`)
+- Bug in :meth:`DataFrame.iloc` where indexing a single row on a :class:`DataFrame` with a single ExtensionDtype column gave a copy instead of a view on the underlying data (:issue:`45241`)
+- Bug in :meth:`Series.__setitem__` with a non-integer :class:`Index` when using an integer key to set a value that cannot be set inplace where a ``ValueError`` was raised insead of casting to a common dtype (:issue:`45070`)
+- Bug when setting a value too large for a :class:`Series` dtype failing to coerce to a common type (:issue:`26049`, :issue:`32878`)
+-
+
+Missing
+^^^^^^^
+-
+-
+
+MultiIndex
+^^^^^^^^^^
+-
+-
+
+I/O
+^^^
+- Bug in :meth:`DataFrame.to_stata` where no error is raised if the :class:`DataFrame` contains ``-np.inf`` (:issue:`45350`)
+-
+
+Period
+^^^^^^
+-
+-
+
+Plotting
+^^^^^^^^
+- Bug in :meth:`DataFrame.plot.barh` that prevented labeling the x-axis and ``xlabel`` updating the y-axis label (:issue:`45144`)
+-
+
+Groupby/resample/rolling
+^^^^^^^^^^^^^^^^^^^^^^^^
+-
+-
+
+Reshaping
+^^^^^^^^^
+- Bug in :func:`concat` between a :class:`Series` with integer dtype and another with :class:`CategoricalDtype` with integer categories and containing ``NaN`` values casting to object dtype instead of ``float64`` (:issue:`45359`)
+-
+
+Sparse
+^^^^^^
+-
+-
+
+ExtensionArray
+^^^^^^^^^^^^^^
+- Bug in :meth:`IntegerArray.searchsorted` and :meth:`FloatingArray.searchsorted` returning inconsistent results when acting on ``np.nan`` (:issue:`45255`)
+-
+
+Styler
+^^^^^^
+- Minor bug when attempting to apply styling functions to an empty DataFrame subset (:issue:`45313`)
+-
+
+Other
+^^^^^
+- Bug in :meth:`Series.asof` and :meth:`DataFrame.asof` incorrectly casting bool-dtype results to ``float64`` dtype (:issue:`16063`)
+-
+
+.. ***DO NOT USE THIS SECTION***
+
+-
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_150.contributors:
+
+Contributors
+~~~~~~~~~~~~

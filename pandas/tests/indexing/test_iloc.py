@@ -24,6 +24,7 @@ from pandas import (
     array,
     concat,
     date_range,
+    interval_range,
     isna,
 )
 import pandas._testing as tm
@@ -106,8 +107,6 @@ class TestiLocBaseIndependent:
         expected = DataFrame({0: cat, 1: range(3)})
         tm.assert_frame_equal(df, expected)
 
-    # TODO(ArrayManager) does not yet update parent
-    @td.skip_array_manager_not_yet_implemented
     @pytest.mark.parametrize("box", [array, Series])
     def test_iloc_setitem_ea_inplace(self, frame_or_series, box, using_array_manager):
         # GH#38952 Case with not setting a full column
@@ -271,8 +270,7 @@ class TestiLocBaseIndependent:
         # GH 21982
 
         obj = DataFrame(np.arange(100).reshape(10, 10))
-        if frame_or_series is Series:
-            obj = obj[0]
+        obj = tm.get_obj(obj, frame_or_series)
 
         with pytest.raises(TypeError, match="Cannot index by location index"):
             obj.iloc["a"]
@@ -446,6 +444,18 @@ class TestiLocBaseIndependent:
         s.iloc[1:2] += 1
         expected = Series([0, 1, 0], index=[4, 5, 6])
         tm.assert_series_equal(s, expected)
+
+    def test_iloc_setitem_axis_argument(self):
+        # GH45032
+        df = DataFrame([[6, "c", 10], [7, "d", 11], [8, "e", 12]])
+        expected = DataFrame([[6, "c", 10], [7, "d", 11], [5, 5, 5]])
+        df.iloc(axis=0)[2] = 5
+        tm.assert_frame_equal(df, expected)
+
+        df = DataFrame([[6, "c", 10], [7, "d", 11], [8, "e", 12]])
+        expected = DataFrame([[6, "c", 5], [7, "d", 5], [8, "e", 5]])
+        df.iloc(axis=1)[2] = 5
+        tm.assert_frame_equal(df, expected)
 
     def test_iloc_setitem_list(self):
 
@@ -1148,6 +1158,41 @@ class TestiLocBaseIndependent:
         expected = DataFrame({"a": [5, 1, 10]})
         tm.assert_frame_equal(df, expected)
 
+    def test_iloc_getitem_slice_negative_step_ea_block(self):
+        # GH#44551
+        df = DataFrame({"A": [1, 2, 3]}, dtype="Int64")
+
+        res = df.iloc[:, ::-1]
+        tm.assert_frame_equal(res, df)
+
+        df["B"] = "foo"
+        res = df.iloc[:, ::-1]
+        expected = DataFrame({"B": df["B"], "A": df["A"]})
+        tm.assert_frame_equal(res, expected)
+
+    def test_iloc_setitem_2d_ndarray_into_ea_block(self):
+        # GH#44703
+        df = DataFrame({"status": ["a", "b", "c"]}, dtype="category")
+        df.iloc[np.array([0, 1]), np.array([0])] = np.array([["a"], ["a"]])
+
+        expected = DataFrame({"status": ["a", "a", "c"]}, dtype=df["status"].dtype)
+        tm.assert_frame_equal(df, expected)
+
+    @td.skip_array_manager_not_yet_implemented
+    def test_iloc_getitem_int_single_ea_block_view(self):
+        # GH#45241
+        # TODO: make an extension interface test for this?
+        arr = interval_range(1, 10.0)._values
+        df = DataFrame(arr)
+
+        # ser should be a *view* on the the DataFrame data
+        ser = df.iloc[2]
+
+        # if we have a view, then changing arr[2] should also change ser[0]
+        assert arr[2] != arr[-1]  # otherwise the rest isn't meaningful
+        arr[2] = arr[-1]
+        assert ser[0] == arr[-1]
+
 
 class TestILocErrors:
     # NB: this test should work for _any_ Series we can pass as
@@ -1341,8 +1386,10 @@ class TestILocSeries:
         tm.assert_series_equal(result, expected)
 
         # test slice is a view
-        result[:] = 0
-        assert (ser[1:3] == 0).all()
+        with tm.assert_produces_warning(None):
+            # GH#45324 make sure we aren't giving a spurious FutureWarning
+            result[:] = 0
+        assert (ser.iloc[1:3] == 0).all()
 
         # list of integers
         result = ser.iloc[[0, 2, 3, 4, 5]]

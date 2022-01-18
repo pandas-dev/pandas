@@ -5,19 +5,24 @@
 from __future__ import annotations
 
 import io
+from typing import Sequence
 
 from pandas._typing import (
-    Buffer,
     CompressionOptions,
-    FilePathOrBuffer,
+    FilePath,
+    ReadBuffer,
     StorageOptions,
+    XMLParsers,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     AbstractMethodError,
     ParserError,
 )
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    deprecate_nonkeyword_arguments,
+    doc,
+)
 
 from pandas.core.dtypes.common import is_list_like
 
@@ -34,6 +39,7 @@ from pandas.io.common import (
 from pandas.io.parsers import TextParser
 
 
+@doc(decompression_options=_shared_docs["decompression_options"] % "path_or_buffer")
 class _XMLFrameParser:
     """
     Internal subclass to parse XML into DataFrames.
@@ -68,9 +74,9 @@ class _XMLFrameParser:
         URL, file, file-like object, or a raw string containing XSLT,
         `etree` does not support XSLT but retained for consistency.
 
-    compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
-        Compression type for on-the-fly decompression of on-disk data.
-        If 'infer', then use extension for gzip, bz2, zip or xz.
+    {decompression_options}
+
+        .. versionchanged:: 1.4.0 Zstandard support.
 
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection,
@@ -97,17 +103,17 @@ class _XMLFrameParser:
 
     def __init__(
         self,
-        path_or_buffer,
-        xpath,
-        namespaces,
-        elems_only,
-        attrs_only,
-        names,
-        encoding,
-        stylesheet,
-        compression,
-        storage_options,
-    ) -> None:
+        path_or_buffer: FilePath | ReadBuffer[bytes] | ReadBuffer[str],
+        xpath: str,
+        namespaces: dict[str, str] | None,
+        elems_only: bool,
+        attrs_only: bool,
+        names: Sequence[str] | None,
+        encoding: str | None,
+        stylesheet: FilePath | ReadBuffer[bytes] | ReadBuffer[str] | None,
+        compression: CompressionOptions,
+        storage_options: StorageOptions,
+    ):
         self.path_or_buffer = path_or_buffer
         self.xpath = xpath
         self.namespaces = namespaces
@@ -198,9 +204,6 @@ class _EtreeFrameParser(_XMLFrameParser):
     Internal class to parse XML into DataFrames with the Python
     standard library XML module: `xml.etree.ElementTree`.
     """
-
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
 
     def parse_data(self) -> list[dict[str, str | None]]:
         from xml.etree.ElementTree import XML
@@ -373,9 +376,6 @@ class _LxmlFrameParser(_XMLFrameParser):
     XPath 1.0 and XSLT 1.0.
     """
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-
     def parse_data(self) -> list[dict[str, str | None]]:
         """
         Parse xml data.
@@ -546,6 +546,11 @@ class _LxmlFrameParser(_XMLFrameParser):
             curr_parser = XMLParser(encoding=self.encoding)
 
             if isinstance(xml_data, io.StringIO):
+                if self.encoding is None:
+                    raise TypeError(
+                        "Can not pass encoding None when input is StringIO."
+                    )
+
                 doc = fromstring(
                     xml_data.getvalue().encode(self.encoding), parser=curr_parser
                 )
@@ -571,11 +576,11 @@ class _LxmlFrameParser(_XMLFrameParser):
 
 
 def get_data_from_filepath(
-    filepath_or_buffer,
-    encoding,
-    compression,
-    storage_options,
-) -> str | bytes | Buffer:
+    filepath_or_buffer: FilePath | bytes | ReadBuffer[bytes] | ReadBuffer[str],
+    encoding: str | None,
+    compression: CompressionOptions,
+    storage_options: StorageOptions,
+) -> str | bytes | ReadBuffer[bytes] | ReadBuffer[str]:
     """
     Extract raw XML data.
 
@@ -587,7 +592,8 @@ def get_data_from_filepath(
     This method turns (1) into (2) to simplify the rest of the processing.
     It returns input types (2) and (3) unchanged.
     """
-    filepath_or_buffer = stringify_path(filepath_or_buffer)
+    if not isinstance(filepath_or_buffer, bytes):
+        filepath_or_buffer = stringify_path(filepath_or_buffer)
 
     if (
         isinstance(filepath_or_buffer, str)
@@ -606,7 +612,10 @@ def get_data_from_filepath(
             storage_options=storage_options,
         ) as handle_obj:
             filepath_or_buffer = (
-                handle_obj.handle.read()
+                # error: Incompatible types in assignment (expression has type
+                # "Union[str, IO[str]]", variable has type "Union[Union[str,
+                # PathLike[str]], bytes, ReadBuffer[bytes], ReadBuffer[str]]")
+                handle_obj.handle.read()  # type: ignore[assignment]
                 if hasattr(handle_obj.handle, "read")
                 else handle_obj.handle
             )
@@ -656,17 +665,17 @@ def _data_to_frame(data, **kwargs) -> DataFrame:
 
 
 def _parse(
-    path_or_buffer,
-    xpath,
-    namespaces,
-    elems_only,
-    attrs_only,
-    names,
-    encoding,
-    parser,
-    stylesheet,
-    compression,
-    storage_options,
+    path_or_buffer: FilePath | ReadBuffer[bytes] | ReadBuffer[str],
+    xpath: str,
+    namespaces: dict[str, str] | None,
+    elems_only: bool,
+    attrs_only: bool,
+    names: Sequence[str] | None,
+    encoding: str | None,
+    parser: XMLParsers,
+    stylesheet: FilePath | ReadBuffer[bytes] | ReadBuffer[str] | None,
+    compression: CompressionOptions,
+    storage_options: StorageOptions,
     **kwargs,
 ) -> DataFrame:
     """
@@ -684,11 +693,11 @@ def _parse(
         * If parser is not lxml or etree.
     """
 
-    lxml = import_optional_dependency("lxml.etree", errors="ignore")
-
     p: _EtreeFrameParser | _LxmlFrameParser
 
     if parser == "lxml":
+        lxml = import_optional_dependency("lxml.etree", errors="ignore")
+
         if lxml is not None:
             p = _LxmlFrameParser(
                 path_or_buffer,
@@ -726,17 +735,24 @@ def _parse(
     return _data_to_frame(data=data_dicts, **kwargs)
 
 
-@doc(storage_options=_shared_docs["storage_options"])
+@deprecate_nonkeyword_arguments(
+    version=None, allowed_args=["path_or_buffer"], stacklevel=2
+)
+@doc(
+    storage_options=_shared_docs["storage_options"],
+    decompression_options=_shared_docs["decompression_options"] % "path_or_buffer",
+)
 def read_xml(
-    path_or_buffer: FilePathOrBuffer,
-    xpath: str | None = "./*",
-    namespaces: dict | list[dict] | None = None,
-    elems_only: bool | None = False,
-    attrs_only: bool | None = False,
-    names: list[str] | None = None,
+    path_or_buffer: FilePath | ReadBuffer[bytes] | ReadBuffer[str],
+    xpath: str = "./*",
+    namespaces: dict[str, str] | None = None,
+    elems_only: bool = False,
+    attrs_only: bool = False,
+    names: Sequence[str] | None = None,
+    # encoding can not be None for lxml and StringIO input
     encoding: str | None = "utf-8",
-    parser: str | None = "lxml",
-    stylesheet: FilePathOrBuffer | None = None,
+    parser: XMLParsers = "lxml",
+    stylesheet: FilePath | ReadBuffer[bytes] | ReadBuffer[str] | None = None,
     compression: CompressionOptions = "infer",
     storage_options: StorageOptions = None,
 ) -> DataFrame:
@@ -748,8 +764,10 @@ def read_xml(
     Parameters
     ----------
     path_or_buffer : str, path object, or file-like object
-        Any valid XML string or path is acceptable. The string could be a URL.
-        Valid URL schemes include http, ftp, s3, and file.
+        String, path object (implementing ``os.PathLike[str]``), or file-like
+        object implementing a ``read()`` function. The string can be any valid XML
+        string or a path. The string can further be a URL. Valid URL schemes
+        include http, ftp, s3, and file.
 
     xpath : str, optional, default './\*'
         The XPath to parse required set of nodes for migration to DataFrame.
@@ -798,12 +816,9 @@ def read_xml(
         transformation and not the original XML document. Only XSLT 1.0
         scripts and not later versions is currently supported.
 
-    compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
-        For on-the-fly decompression of on-disk data. If 'infer', then use
-        gzip, bz2, zip or xz if path_or_buffer is a string ending in
-        '.gz', '.bz2', '.zip', or 'xz', respectively, and no decompression
-        otherwise. If using 'zip', the ZIP file must contain only one data
-        file to be read in. Set to None for no decompression.
+    {decompression_options}
+
+        .. versionchanged:: 1.4.0 Zstandard support.
 
     {storage_options}
 
