@@ -228,7 +228,7 @@ html_theme = "pydata_sphinx_theme"
 
 switcher_version = version
 if ".dev" in version:
-    switcher_version = version.split(".0.dev")[0] + " (dev)"
+    switcher_version = "dev"
 elif "rc" in version:
     switcher_version = version.split("rc")[0] + " (rc)"
 
