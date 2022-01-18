@@ -23,7 +23,7 @@ dependencies:
   - numpy=1.18
   - openpyxl
   - jinja2
-  - pyarrow=1.0.1
+  - pyarrow=2
   - pytables
   - python-dateutil
   - pytz
