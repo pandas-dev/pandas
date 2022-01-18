@@ -491,8 +491,8 @@ class DataFrame(NDFrame, OpsMixin):
         Copy data from inputs.
         For dict data, the default of None behaves like ``copy=True``.  For DataFrame
         or 2d ndarray input, the default of None behaves like ``copy=False``.
-        If data is a dict containing a Series, ``copy=False`` will ensure that
-        BlockManager does not copy from inputs.
+        If data is a dict containing one or more Series (possibly of different dtypes),
+        ``copy=False`` will ensure that it does not copy these inputs.
 
         .. versionchanged:: 1.3.0
 
