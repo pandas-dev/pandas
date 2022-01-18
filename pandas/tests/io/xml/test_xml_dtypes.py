@@ -152,10 +152,6 @@ def test_wrong_dtype(parser):
 
 
 def test_both_dtype_converters(parser):
-    df_result = read_xml(
-        xml_types, dtype={"degrees": "str"}, converters={"degrees": str}, parser=parser
-    )
-
     df_expected = DataFrame(
         {
             "shape": ["square", "circle", "triangle"],
@@ -164,15 +160,15 @@ def test_both_dtype_converters(parser):
         }
     )
 
-    tm.assert_frame_equal(df_result, df_expected)
-
     with tm.assert_produces_warning(ParserWarning, match="Both a converter and dtype"):
-        read_xml(
+        df_result = read_xml(
             xml_types,
             dtype={"degrees": "str"},
             converters={"degrees": str},
             parser=parser,
         )
+
+        tm.assert_frame_equal(df_result, df_expected)
 
 
 # CONVERTERS
@@ -342,8 +338,6 @@ def test_day_first_parse_dates(parser):
   </row>
 </data>"""
 
-    df_result = read_xml(xml, parse_dates=["date"], parser=parser)
-
     df_expected = DataFrame(
         {
             "shape": ["square", "circle", "triangle"],
@@ -353,12 +347,11 @@ def test_day_first_parse_dates(parser):
         }
     )
 
-    tm.assert_frame_equal(df_result, df_expected)
-
     with tm.assert_produces_warning(
         UserWarning, match="Parsing '31/12/2020' in DD/MM/YYYY format"
     ):
-        read_xml(xml, parse_dates=["date"], parser=parser)
+        df_result = read_xml(xml, parse_dates=["date"], parser=parser)
+        tm.assert_frame_equal(df_result, df_expected)
 
 
 def test_wrong_parse_dates_type(parser):
