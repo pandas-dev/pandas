@@ -464,7 +464,13 @@ def dict_to_mgr(
                 # GH#1783
                 nan_dtype = np.dtype("object")
                 val = construct_1d_arraylike_from_scalar(np.nan, len(index), nan_dtype)
-                arrays.loc[missing] = [val] * missing.sum()
+                nmissing = missing.sum()
+                if copy:
+                    rhs = [val] * nmissing
+                else:
+                    # GH#45369
+                    rhs = [val.copy() for _ in range(nmissing)]
+                arrays.loc[missing] = rhs
 
         arrays = list(arrays)
         columns = ensure_index(columns)
