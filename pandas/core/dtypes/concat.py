@@ -44,6 +44,8 @@ def cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
         return arr
 
     if is_sparse(arr) and not is_sparse(dtype):
+        # TODO(2.0): remove special case once SparseArray.astype deprecation
+        #  is enforced.
         # problem case: SparseArray.astype(dtype) doesn't follow the specified
         # dtype exactly, but converts this to Sparse[dtype] -> first manually
         # convert to dense array

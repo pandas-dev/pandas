@@ -319,8 +319,6 @@ class StringArray(BaseStringArray, PandasArray):
         super().__init__(values, copy=copy)
         if not isinstance(values, type(self)):
             self._validate()
-        # error: Incompatible types in assignment (expression has type "StringDtype",
-        # variable has type "PandasDtype")
         NDArrayBacked.__init__(self, self._ndarray, StringDtype(storage="python"))
 
     def _validate(self):

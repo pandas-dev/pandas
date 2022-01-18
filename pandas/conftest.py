@@ -1549,6 +1549,7 @@ def any_numpy_dtype(request):
 _any_skipna_inferred_dtype = [
     ("string", ["a", np.nan, "c"]),
     ("string", ["a", pd.NA, "c"]),
+    ("mixed", ["a", pd.NaT, "c"]),  # pd.NaT not considered valid by is_string_array
     ("bytes", [b"a", np.nan, b"c"]),
     ("empty", [np.nan, np.nan, np.nan]),
     ("empty", []),
