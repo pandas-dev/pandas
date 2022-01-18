@@ -148,6 +148,7 @@ from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
+    PeriodArray,
     TimedeltaArray,
 )
 from pandas.core.arrays.sparse import SparseFrameAccessor
@@ -900,7 +901,7 @@ class DataFrame(NDFrame, OpsMixin):
     @property
     def _values(  # type: ignore[override]
         self,
-    ) -> np.ndarray | DatetimeArray | TimedeltaArray:
+    ) -> np.ndarray | DatetimeArray | TimedeltaArray | PeriodArray:
         """
         Analogue to ._values that may return a 2D ExtensionArray.
         """
@@ -925,7 +926,7 @@ class DataFrame(NDFrame, OpsMixin):
             return self.values
 
         # more generally, whatever we allow in NDArrayBackedExtensionBlock
-        arr = cast("np.ndarray | DatetimeArray | TimedeltaArray", arr)
+        arr = cast("np.ndarray | DatetimeArray | TimedeltaArray | PeriodArray", arr)
         return arr.T
 
     # ----------------------------------------------------------------------
@@ -1276,6 +1277,12 @@ class DataFrame(NDFrame, OpsMixin):
 
     @Appender(_shared_docs["items"])
     def iteritems(self) -> Iterable[tuple[Hashable, Series]]:
+        warnings.warn(
+            "iteritems is deprecated and will be removed in a future version. "
+            "Use .items instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         yield from self.items()
 
     def iterrows(self) -> Iterable[tuple[Hashable, Series]]:
@@ -3212,6 +3219,11 @@ class DataFrame(NDFrame, OpsMixin):
         Categorical : Memory-efficient array for string values with
             many repeated values.
         DataFrame.info : Concise summary of a DataFrame.
+
+        Notes
+        -----
+        See the :ref:`Frequently Asked Questions <df-memory-usage>` for more
+        details.
 
         Examples
         --------

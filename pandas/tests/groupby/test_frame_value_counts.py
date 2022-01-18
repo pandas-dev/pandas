@@ -406,33 +406,52 @@ def test_mixed_groupings(normalize, expected_label, expected_values):
 
 
 @pytest.mark.parametrize(
-    "test, expected_names",
+    "test, columns, expected_names",
     [
-        ("repeat", ["a", None, "d", "b", "b", "e"]),
-        ("level", ["a", None, "d", "b", "c", "level_1"]),
+        ("repeat", list("abbde"), ["a", None, "d", "b", "b", "e"]),
+        ("level", list("abcd") + ["level_1"], ["a", None, "d", "b", "c", "level_1"]),
     ],
 )
 @pytest.mark.parametrize("as_index", [False, True])
-def test_column_name_clashes(test, expected_names, as_index):
-    df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6], "d": [7, 8], "e": [9, 10]})
-    if test == "repeat":
-        df.columns = list("abbde")
-    else:
-        df.columns = list("abcd") + ["level_1"]
-
+def test_column_label_duplicates(test, columns, expected_names, as_index):
+    # GH 44992
+    # Test for duplicate input column labels and generated duplicate labels
+    df = DataFrame([[1, 3, 5, 7, 9], [2, 4, 6, 8, 10]], columns=columns)
+    expected_data = [(1, 0, 7, 3, 5, 9), (2, 1, 8, 4, 6, 10)]
+    result = df.groupby(["a", [0, 1], "d"], as_index=as_index).value_counts()
     if as_index:
-        result = df.groupby(["a", [0, 1], "d"], as_index=as_index).value_counts()
         expected = Series(
             data=(1, 1),
             index=MultiIndex.from_tuples(
-                [(1, 0, 7, 3, 5, 9), (2, 1, 8, 4, 6, 10)],
+                expected_data,
                 names=expected_names,
             ),
         )
         tm.assert_series_equal(result, expected)
     else:
-        with pytest.raises(ValueError, match="cannot insert"):
-            df.groupby(["a", [0, 1], "d"], as_index=as_index).value_counts()
+        expected_data = [list(row) + [1] for row in expected_data]
+        expected_columns = list(expected_names)
+        expected_columns[1] = "level_1"
+        expected_columns.append("count")
+        expected = DataFrame(expected_data, columns=expected_columns)
+        tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "normalize, expected_label",
+    [
+        (False, "count"),
+        (True, "proportion"),
+    ],
+)
+def test_result_label_duplicates(normalize, expected_label):
+    # Test for result column label duplicating an input column label
+    gb = DataFrame([[1, 2, 3]], columns=["a", "b", expected_label]).groupby(
+        "a", as_index=False
+    )
+    msg = f"Column label '{expected_label}' is duplicate of result column"
+    with pytest.raises(ValueError, match=msg):
+        gb.value_counts(normalize=normalize)
 
 
 def test_ambiguous_grouping():
