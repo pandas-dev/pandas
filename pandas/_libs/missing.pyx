@@ -269,7 +269,7 @@ def is_float_nan(values: ndarray) -> ndarray:
     for i in range(N):
         val = values[i]
         if util.is_nan(val):
-                result[i] = True
+            result[i] = True
     return result.view(bool)
 
 
