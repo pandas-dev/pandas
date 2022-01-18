@@ -58,7 +58,7 @@ jobs:
       condition: eq(variables.CONDA_CACHE_RESTORED, 'false')
 
     - script: |
-        conda env update -q -y -n pandas-dev --file $ENV_FILE
+        conda env update -q -n pandas-dev --file $ENV_FILE
       displayName: 'Update packages in pandas-dev'
 
     - script: |
