@@ -193,8 +193,7 @@ The :ref:`indexing <indexing>` docs.
 
    df[(df.AAA <= 6) & (df.index.isin([0, 2, 4]))]
 
-`Use loc for label-oriented slicing and iloc positional slicing
-<https://github.com/pandas-dev/pandas/issues/2904>`__
+Use loc for label-oriented slicing and iloc positional slicing :issue:`2904`
 
 .. ipython:: python
 
@@ -395,8 +394,7 @@ Sorting
 
    df.sort_values(by=("Labs", "II"), ascending=False)
 
-`Partial selection, the need for sortedness;
-<https://github.com/pandas-dev/pandas/issues/2995>`__
+Partial selection, the need for sortedness :issue:`2995`
 
 Levels
 ******
@@ -910,8 +908,7 @@ Valid frequency arguments to Grouper :ref:`Timeseries <timeseries.offset_aliases
 `Grouping using a MultiIndex
 <https://stackoverflow.com/questions/41483763/pandas-timegrouper-on-multiindex>`__
 
-`Using TimeGrouper and another grouping to create subgroups, then apply a custom function
-<https://github.com/pandas-dev/pandas/issues/3791>`__
+Using TimeGrouper and another grouping to create subgroups, then apply a custom function :issue:`3791`
 
 `Resampling with custom periods
 <https://stackoverflow.com/questions/15408156/resampling-with-custom-periods>`__
@@ -947,8 +944,7 @@ Depending on df construction, ``ignore_index`` may be needed
    df = pd.concat([df1, df2], ignore_index=True)
    df
 
-`Self Join of a DataFrame
-<https://github.com/pandas-dev/pandas/issues/2996>`__
+Self Join of a DataFrame :issue:`2996`
 
 .. ipython:: python
 
@@ -1070,8 +1066,7 @@ using that handle to read.
 `Inferring dtypes from a file
 <https://stackoverflow.com/questions/15555005/get-inferred-dataframe-types-iteratively-using-chunksize>`__
 
-`Dealing with bad lines
-<https://github.com/pandas-dev/pandas/issues/2886>`__
+Dealing with bad lines :issue:`2886`
 
 `Dealing with bad lines II
 <http://nipunbatra.github.io/2013/06/reading-unclean-data-csv-using-pandas/>`__
@@ -1211,8 +1206,7 @@ The :ref:`Excel <io.excel>` docs
 `Modifying formatting in XlsxWriter output
 <https://pbpython.com/improve-pandas-excel-output.html>`__
 
-`Loading only visible sheets
-<https://github.com/pandas-dev/pandas/issues/19842#issuecomment-892150745>`__
+Loading only visible sheets :issue:`19842#issuecomment-892150745`
 
 .. _cookbook.html:
 
@@ -1232,8 +1226,7 @@ The :ref:`HDFStores <io.hdf5>` docs
 `Simple queries with a Timestamp Index
 <https://stackoverflow.com/questions/13926089/selecting-columns-from-pandas-hdfstore-table>`__
 
-`Managing heterogeneous data using a linked multiple table hierarchy
-<https://github.com/pandas-dev/pandas/issues/3032>`__
+Managing heterogeneous data using a linked multiple table hierarchy :issue:`3032`
 
 `Merging on-disk tables with millions of rows
 <https://stackoverflow.com/questions/14614512/merging-two-tables-with-millions-of-rows-in-python/14617925#14617925>`__
