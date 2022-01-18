@@ -1,0 +1,128 @@
+name: Posix
+
+on:
+  push:
+    branches:
+      - main
+      - 1.4.x
+  pull_request:
+    branches:
+      - main
+      - 1.4.x
+    paths-ignore:
+      - "doc/**"
+
+env:
+  PYTEST_WORKERS: "auto"
+  PANDAS_CI: 1
+
+jobs:
+  pytest:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+    strategy:
+      matrix:
+        settings: [
+          [actions-38.yaml, "not slow"],
+          [actions-39.yaml, "not slow"],
+          [actions-310.yaml, "not slow"],
+        ]
+      fail-fast: false
+    env:
+      ENV_FILE: ci/deps/${{ matrix.settings[0] }}
+      PATTERN: ${{ matrix.settings[1] }}
+      PYTEST_TARGET: pandas
+      COVERAGE: true
+    concurrency:
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.settings[0] }}-${{ matrix.settings[1] }}-windows
+      cancel-in-progress: true
+
+    services:
+      mysql:
+        image: mysql
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: pandas
+        options: >-
+          --health-cmd "mysqladmin ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 3306:3306
+
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: pandas
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      moto:
+        image: motoserver/moto
+        env:
+          AWS_ACCESS_KEY_ID: foobar_key
+          AWS_SECRET_ACCESS_KEY: foobar_secret
+        ports:
+          - 5000:5000
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Cache conda
+      uses: actions/cache@v2
+      env:
+        CACHE_NUMBER: 0
+      with:
+        path: ~/conda_pkgs_dir
+        key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{
+          hashFiles('${{ env.ENV_FILE }}') }}
+
+    - uses: conda-incubator/setup-miniconda@v2
+      with:
+        mamba-version: "*"
+        channels: conda-forge
+        activate-environment: pandas-dev
+        channel-priority: flexible
+        environment-file: ${{ env.ENV_FILE }}
+        use-only-tar-bz2: true
+
+    - name: Build Pandas
+      uses: ./.github/actions/build_pandas
+
+    - name: Test
+      run: ci/run_tests.sh
+      if: always()
+
+    - name: Build Version
+      run: python -c "import pandas; pandas.show_versions();"
+
+    - name: Publish test results
+      uses: actions/upload-artifact@v2
+      with:
+        name: Test results
+        path: test-data.xml
+      if: failure()
+
+    - name: Print skipped tests
+      run: python ci/print_skipped.py
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v2
+      with:
+        flags: unittests
+        name: codecov-pandas
+        fail_ci_if_error: false
