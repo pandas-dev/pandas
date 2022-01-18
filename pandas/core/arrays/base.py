@@ -625,6 +625,10 @@ class ExtensionArray:
             The transformed values should maintain the ordering between values
             within the array.
 
+        See Also
+        --------
+        ExtensionArray.argsort : Return the indices that would sort this array.
+
         Notes
         -----
         The caller is responsible for *not* modifying these values in-place, so
@@ -632,10 +636,6 @@ class ExtensionArray:
 
         Functions that use this (e.g. ExtensionArray.argsort) should ignore
         entries in locations `i` with `self.isna()[i]`.
-
-        See Also
-        --------
-        ExtensionArray.argsort : Return the indices that would sort this array.
         """
         # Note: this is used in `ExtensionArray.argsort`.
         return np.array(self)
