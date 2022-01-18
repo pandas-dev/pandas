@@ -19,6 +19,7 @@ from pandas.io.formats.latex import (
     RowStringConverter,
 )
 
+pytest.importorskip("jinja2")
 pytestmark = pytest.mark.filterwarnings(
     "ignore:Deprecated arguments supplied:FutureWarning"
 )
