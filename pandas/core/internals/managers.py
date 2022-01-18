@@ -404,7 +404,6 @@ class BaseBlockManager(DataManager):
                 axis=0,
                 fill_value=fill_value,
                 allow_dups=True,
-                consolidate=False,
             )
             return result
 
@@ -639,7 +638,6 @@ class BaseBlockManager(DataManager):
         fill_value=None,
         allow_dups: bool = False,
         copy: bool = True,
-        consolidate: bool = True,
         only_slice: bool = False,
         *,
         use_na_proxy: bool = False,
@@ -653,8 +651,6 @@ class BaseBlockManager(DataManager):
         fill_value : object, default None
         allow_dups : bool, default False
         copy : bool, default True
-        consolidate: bool, default True
-            Whether to consolidate inplace before reindexing.
         only_slice : bool, default False
             Whether to take views, not copies, along columns.
         use_na_proxy : bool, default False
@@ -670,9 +666,6 @@ class BaseBlockManager(DataManager):
             result.axes = list(self.axes)
             result.axes[axis] = new_axis
             return result
-
-        if consolidate:
-            self._consolidate_inplace()
 
         # some axes don't allow reindexing with dups
         if not allow_dups:
@@ -902,7 +895,6 @@ class BaseBlockManager(DataManager):
             indexer=indexer,
             axis=axis,
             allow_dups=True,
-            consolidate=False,
         )
 
 
@@ -1125,8 +1117,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         unfit_mgr_locs = []
         unfit_val_locs = []
         removed_blknos = []
-        for blkno, val_locs in libinternals.get_blkno_placements(blknos, group=True):
-            blk = self.blocks[blkno]
+        for blkno_l, val_locs in libinternals.get_blkno_placements(blknos, group=True):
+            blk = self.blocks[blkno_l]
             blk_locs = blklocs[val_locs.indexer]
             if inplace and blk.should_store(value):
                 blk.set_inplace(blk_locs, value_getitem(val_locs))
@@ -1136,7 +1128,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
                 # If all block items are unfit, schedule the block for removal.
                 if len(val_locs) == len(blk.mgr_locs):
-                    removed_blknos.append(blkno)
+                    removed_blknos.append(blkno_l)
                 else:
                     blk.delete(blk_locs)
                     self._blklocs[blk.mgr_locs.indexer] = np.arange(len(blk))
@@ -1681,6 +1673,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         self._known_consolidated = True
 
     def _consolidate_inplace(self) -> None:
+        # In general, _consolidate_inplace should only be called via
+        #  DataFrame._consolidate_inplace, otherwise we will fail to invalidate
+        #  the DataFrame's _item_cache. The exception is for newly-created
+        #  BlockManager objects not yet attached to a DataFrame.
         if not self.is_consolidated():
             self.blocks = tuple(_consolidate(self.blocks))
             self._is_consolidated = True

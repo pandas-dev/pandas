@@ -1162,12 +1162,11 @@ class Series(base.IndexOpsMixin, NDFrame):
         self._mgr.setitem_inplace(loc, value)
 
     def _set_with(self, key, value):
-        # other: fancy integer or otherwise
+        # We got here via exception-handling off of InvalidIndexError, so
+        #  key should always be listlike at this point.
         assert not isinstance(key, tuple)
 
-        if is_scalar(key):
-            key = [key]
-        elif is_iterator(key):
+        if is_iterator(key):
             # Without this, the call to infer_dtype will consume the generator
             key = list(key)
 
@@ -1705,6 +1704,12 @@ class Series(base.IndexOpsMixin, NDFrame):
 
     @Appender(items.__doc__)
     def iteritems(self) -> Iterable[tuple[Hashable, Any]]:
+        warnings.warn(
+            "iteritems is deprecated and will be removed in a future version. "
+            "Use .items instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.items()
 
     # ----------------------------------------------------------------------
@@ -1994,7 +1999,9 @@ Name: Max Speed, dtype: float64
             lev = lev.insert(cnt, lev._na_value)
 
         obs = level_codes[notna(self._values)]
-        out = np.bincount(obs, minlength=len(lev) or None)
+        # Argument "minlength" to "bincount" has incompatible type "Optional[int]";
+        # expected "SupportsIndex"  [arg-type]
+        out = np.bincount(obs, minlength=len(lev) or None)  # type: ignore[arg-type]
         return self._constructor(out, index=lev, dtype="int64").__finalize__(
             self, method="count"
         )

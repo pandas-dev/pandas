@@ -125,9 +125,7 @@ def _get_same_shape_values(
         # argument type "Tuple[Union[ndarray, slice], slice]"
         lvals = lvals[rblk.mgr_locs.indexer, :]  # type: ignore[call-overload]
         assert lvals.shape[0] == 1, lvals.shape
-        # error: No overload variant of "__getitem__" of "ExtensionArray" matches
-        # argument type "Tuple[int, slice]"
-        lvals = lvals[0, :]  # type: ignore[call-overload]
+        lvals = lvals[0, :]
     else:
         # lvals are 1D, rvals are 2D
         assert rvals.shape[0] == 1, rvals.shape

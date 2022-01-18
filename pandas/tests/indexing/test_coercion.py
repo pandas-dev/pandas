@@ -489,36 +489,20 @@ class TestWhereCoercion(CoercionBase):
         ],
         ids=["datetime64", "datetime64tz"],
     )
-    def test_where_series_datetime64(self, fill_val, exp_dtype):
-        klass = pd.Series
+    def test_where_datetime64(self, index_or_series, fill_val, exp_dtype):
+        klass = index_or_series
 
         obj = klass(pd.date_range("2011-01-01", periods=4, freq="D")._with_freq(None))
         assert obj.dtype == "datetime64[ns]"
-        self._run_test(obj, fill_val, klass, exp_dtype)
 
-    @pytest.mark.parametrize(
-        "fill_val",
-        [
-            pd.Timestamp("2012-01-01"),
-            pd.Timestamp("2012-01-01").to_datetime64(),
-            pd.Timestamp("2012-01-01").to_pydatetime(),
-        ],
-    )
-    def test_where_index_datetime(self, fill_val):
-        exp_dtype = "datetime64[ns]"
-        klass = pd.Index
-        obj = klass(pd.date_range("2011-01-01", periods=4, freq="D")._with_freq(None))
-        assert obj.dtype == "datetime64[ns]"
-        self._run_test(obj, fill_val, klass, exp_dtype)
-
-    def test_where_index_datetime64tz(self):
-        klass = pd.Index
-
-        fill_val = pd.Timestamp("2012-01-01", tz="US/Eastern")
-        exp_dtype = object
-        obj = klass(pd.date_range("2011-01-01", periods=4, freq="D")._with_freq(None))
-        assert obj.dtype == "datetime64[ns]"
-        self._run_test(obj, fill_val, klass, exp_dtype)
+        fv = fill_val
+        # do the check with each of the available datetime scalars
+        if exp_dtype == "datetime64[ns]":
+            for scalar in [fv, fv.to_pydatetime(), fv.to_datetime64()]:
+                self._run_test(obj, scalar, klass, exp_dtype)
+        else:
+            for scalar in [fv, fv.to_pydatetime()]:
+                self._run_test(obj, fill_val, klass, exp_dtype)
 
     @pytest.mark.xfail(reason="Test not implemented")
     def test_where_index_complex128(self):
@@ -640,11 +624,16 @@ class TestFillnaSeriesCoercion(CoercionBase):
             (True, object),
         ],
     )
-    def test_fillna_series_complex128(self, fill_val, fill_dtype):
-        obj = pd.Series([1 + 1j, np.nan, 3 + 3j, 4 + 4j])
+    def test_fillna_complex128(self, index_or_series, fill_val, fill_dtype, request):
+        klass = index_or_series
+        if klass is pd.Index:
+            mark = pytest.mark.xfail(reason="No Index[complex]")
+            request.node.add_marker(mark)
+
+        obj = klass([1 + 1j, np.nan, 3 + 3j, 4 + 4j], dtype=np.complex128)
         assert obj.dtype == np.complex128
 
-        exp = pd.Series([1 + 1j, fill_val, 3 + 3j, 4 + 4j])
+        exp = klass([1 + 1j, fill_val, 3 + 3j, 4 + 4j], dtype=fill_dtype)
         self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
 
     @pytest.mark.parametrize(
