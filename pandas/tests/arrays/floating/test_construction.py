@@ -1,12 +1,7 @@
-import locale
-
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    is_platform_windows,
-    np_version_under1p20,
-)
+from pandas.compat import np_version_under1p20
 
 import pandas as pd
 import pandas._testing as tm
@@ -47,7 +42,7 @@ def test_floating_array_constructor():
         FloatingArray(values)
 
 
-def test_floating_array_disallows_float16(request):
+def test_floating_array_disallows_float16():
     # GH#44715
     arr = np.array([1, 2], dtype=np.float16)
     mask = np.array([False, False])
@@ -56,11 +51,10 @@ def test_floating_array_disallows_float16(request):
     with pytest.raises(TypeError, match=msg):
         FloatingArray(arr, mask)
 
-    if np_version_under1p20 or (
-        locale.getlocale()[0] != "en_US" and not is_platform_windows()
-    ):
-        # the locale condition may need to be refined; this fails on
-        #  the CI in the ZH_CN build
+
+def test_floating_array_disallows_Float16_dtype(request):
+    # GH#44715
+    if np_version_under1p20:
         # https://github.com/numpy/numpy/issues/20512
         mark = pytest.mark.xfail(reason="numpy does not raise on np.dtype('Float16')")
         request.node.add_marker(mark)
@@ -137,6 +131,7 @@ def test_to_array_error(values):
             "cannot be converted to a FloatingDtype",
             "values must be a 1D list-like",
             "Cannot pass scalar",
+            r"float\(\) argument must be a string or a (real )?number, not 'dict'",
         ]
     )
     with pytest.raises((TypeError, ValueError), match=msg):

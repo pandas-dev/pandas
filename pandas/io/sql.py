@@ -1378,7 +1378,6 @@ class SQLDatabase(PandasSQL):
 
         self.connectable = engine
         self.meta = MetaData(schema=schema)
-        self.meta.reflect(bind=engine)
 
     @contextmanager
     def run_transaction(self):
@@ -1761,19 +1760,18 @@ class SQLDatabase(PandasSQL):
             )
 
     def get_table(self, table_name: str, schema: str | None = None):
+        from sqlalchemy import (
+            Numeric,
+            Table,
+        )
+
         schema = schema or self.meta.schema
-        if schema:
-            tbl = self.meta.tables.get(".".join([schema, table_name]))
-        else:
-            tbl = self.meta.tables.get(table_name)
-
-        # Avoid casting double-precision floats into decimals
-        from sqlalchemy import Numeric
-
+        tbl = Table(
+            table_name, self.meta, autoload_with=self.connectable, schema=schema
+        )
         for column in tbl.columns:
             if isinstance(column.type, Numeric):
                 column.type.asdecimal = False
-
         return tbl
 
     def drop_table(self, table_name: str, schema: str | None = None):
