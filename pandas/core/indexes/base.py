@@ -33,6 +33,7 @@ from pandas._libs.lib import (
     is_datetime_array,
     no_default,
 )
+from pandas._libs.missing import is_float_nan
 from pandas._libs.tslibs import (
     IncompatibleFrequency,
     OutOfBoundsDatetime,
@@ -1391,7 +1392,7 @@ class Index(IndexOpsMixin, PandasObject):
             result = [pprint_thing(x, escape_chars=("\t", "\r", "\n")) for x in values]
 
             # could have nans
-            mask = isna(values)
+            mask = is_float_nan(values)
             if mask.any():
                 result_arr = np.array(result)
                 result_arr[mask] = na_rep
