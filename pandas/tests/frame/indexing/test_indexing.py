@@ -691,7 +691,7 @@ class TestDataFrameIndexing:
         expected.loc[[0, 2], [1]] = 5
         tm.assert_frame_equal(df, expected)
 
-    def test_getitem_setitem_float_labels(self):
+    def test_getitem_setitem_float_labels(self, using_array_manager):
         index = Index([1.5, 2, 3, 4, 5])
         df = DataFrame(np.random.randn(5, 5), index=index)
 
@@ -774,7 +774,10 @@ class TestDataFrameIndexing:
         assert len(result) == 5
 
         cp = df.copy()
-        cp.loc[1.0:5.0] = 0
+        warn = FutureWarning if using_array_manager else None
+        msg = "will attempt to set the values inplace"
+        with tm.assert_produces_warning(warn, match=msg):
+            cp.loc[1.0:5.0] = 0
         result = cp.loc[1.0:5.0]
         assert (result == 0).values.all()
 
@@ -1085,7 +1088,7 @@ class TestDataFrameIndexing:
         df.loc[trange[bool_idx], "A"] += 6
         tm.assert_frame_equal(df, expected)
 
-    def test_setitem_with_unaligned_tz_aware_datetime_column(self):
+    def test_setitem_with_unaligned_tz_aware_datetime_column(self, using_array_manager):
         # GH 12981
         # Assignment of unaligned offset-aware datetime series.
         # Make sure timezone isn't lost
@@ -1094,8 +1097,11 @@ class TestDataFrameIndexing:
         df["dates"] = column[[1, 0, 2]]
         tm.assert_series_equal(df["dates"], column)
 
+        warn = FutureWarning if using_array_manager else None
+        msg = "will attempt to set the values inplace"
         df = DataFrame({"dates": column})
-        df.loc[[0, 1, 2], "dates"] = column[[1, 0, 2]]
+        with tm.assert_produces_warning(warn, match=msg):
+            df.loc[[0, 1, 2], "dates"] = column[[1, 0, 2]]
         tm.assert_series_equal(df["dates"], column)
 
     def test_loc_setitem_datetimelike_with_inference(self):

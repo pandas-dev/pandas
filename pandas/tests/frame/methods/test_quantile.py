@@ -686,7 +686,13 @@ class TestQuantileExtensionDtype:
             )
             request.node.add_marker(mark)
 
-        obj.iloc[:] = index._na_value
+        warn = None
+        if using_array_manager and frame_or_series is DataFrame:
+            warn = FutureWarning
+
+        msg = "will attempt to set the values inplace"
+        with tm.assert_produces_warning(warn, match=msg):
+            obj.iloc[:] = index._na_value
 
         # TODO(ArrayManager): this casting should be unnecessary after GH#39763 is fixed
         obj = obj.astype(index.dtype)
