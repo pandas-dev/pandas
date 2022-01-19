@@ -38,6 +38,11 @@ def test_read_zipped_json(datapath):
 
 
 @td.skip_if_not_us_locale
+@pytest.mark.xfail(
+    reason="CI race condition GH 45433, GH 44584",
+    raises=FileNotFoundError,
+    strict=False,
+)
 def test_with_s3_url(compression, s3_resource, s3so):
     # Bucket "pandas-test" created in tests/io/conftest.py
 
