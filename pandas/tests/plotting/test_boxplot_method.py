@@ -256,51 +256,45 @@ class TestDataFramePlots(TestPlotBase):
 
         assert result[expected][0].get_color() == "C1"
 
-    def test_xlabel_ylabel(self):
+    @pytest.mark.parametrize("vert", [True, False])
+    def test_plot_xlabel_ylabel(self, vert):
         df = DataFrame({
             "a": np.random.randn(100), "b": np.random.randn(100),
             "group": np.random.choice(["group1", "group2"], 100)
         })
         xlabel, ylabel = "x", "y"
-        ax = df.plot(kind="box", xlabel=xlabel, ylabel=ylabel)
+        ax = df.plot(kind="box", vert=vert, xlabel=xlabel, ylabel=ylabel)
         assert ax.get_xlabel() == xlabel
         assert ax.get_ylabel() == ylabel
-        self.plt.close()
 
-        ax = df.plot(kind="box", vert=False, xlabel=xlabel, ylabel=ylabel)
+    @pytest.mark.parametrize("vert", [True, False])
+    def test_boxplot_xlabel_ylabel(self, vert):
+        df = DataFrame({
+            "a": np.random.randn(100), "b": np.random.randn(100),
+            "group": np.random.choice(["group1", "group2"], 100)
+        })
+        xlabel, ylabel = "x", "y"
+        ax = df.boxplot(vert=vert, xlabel=xlabel, ylabel=ylabel)
         assert ax.get_xlabel() == xlabel
         assert ax.get_ylabel() == ylabel
-        self.plt.close()
 
-        ax = df.boxplot(xlabel=xlabel, ylabel=ylabel)
-        assert ax.get_xlabel() == xlabel
-        assert ax.get_ylabel() == ylabel
-        self.plt.close()
-
-        ax = df.boxplot(vert=False, xlabel=xlabel, ylabel=ylabel)
-        assert ax.get_xlabel() == xlabel
-        assert ax.get_ylabel() == ylabel
-        self.plt.close()
-
-        ax = df.boxplot(by="group", xlabel=xlabel, ylabel=ylabel)
+    @pytest.mark.parametrize("vert", [True, False])
+    def test_boxplot_group_xlabel_ylabel(self, vert):
+        df = DataFrame({
+            "a": np.random.randn(100), "b": np.random.randn(100),
+            "group": np.random.choice(["group1", "group2"], 100)
+        })
+        xlabel, ylabel = "x", "y"
+        ax = df.boxplot(by="group", vert=vert, xlabel=xlabel, ylabel=ylabel)
         for subplot in ax:
             assert subplot.get_xlabel() == xlabel
             assert subplot.get_ylabel() == ylabel
-
-        ax = df.boxplot(by="group", vert=False, xlabel=xlabel, ylabel=ylabel)
-        for subplot in ax:
-            assert subplot.get_xlabel() == xlabel
-            assert subplot.get_ylabel() == ylabel
         self.plt.close()
 
-        ax = df.boxplot(by="group")
+        ax = df.boxplot(by="group", vert=vert)
         for subplot in ax:
-            assert subplot.get_xlabel() == pprint_thing(["group"])
-        self.plt.close()
-
-        ax = df.boxplot(by="group", vert=False)
-        for subplot in ax:
-            assert subplot.get_ylabel() == pprint_thing(["group"])
+            target_label = subplot.get_xlabel() if vert else subplot.get_ylabel()
+            assert target_label == pprint_thing(["group"])
         self.plt.close()
 
 
