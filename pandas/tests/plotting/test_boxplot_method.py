@@ -3,6 +3,8 @@
 import itertools
 import string
 
+from pandas.io.formats.printing import pprint_thing
+
 import numpy as np
 import pytest
 
@@ -253,6 +255,53 @@ class TestDataFramePlots(TestPlotBase):
         result = df.boxplot(return_type="dict", **kwd)
 
         assert result[expected][0].get_color() == "C1"
+
+    def test_xlabel_ylabel(self):
+        df = DataFrame({
+            "a": np.random.randn(100), "b": np.random.randn(100),
+            "group": np.random.choice(["group1", "group2"], 100)
+        })
+        xlabel, ylabel = "x", "y"
+        ax = df.plot(kind="box", xlabel=xlabel, ylabel=ylabel)
+        assert ax.get_xlabel() == xlabel
+        assert ax.get_ylabel() == ylabel
+        self.plt.close()
+
+        ax = df.plot(kind="box", vert=False, xlabel=xlabel, ylabel=ylabel)
+        assert ax.get_xlabel() == xlabel
+        assert ax.get_ylabel() == ylabel
+        self.plt.close()
+
+        ax = df.boxplot(xlabel=xlabel, ylabel=ylabel)
+        assert ax.get_xlabel() == xlabel
+        assert ax.get_ylabel() == ylabel
+        self.plt.close()
+
+        ax = df.boxplot(vert=False, xlabel=xlabel, ylabel=ylabel)
+        assert ax.get_xlabel() == xlabel
+        assert ax.get_ylabel() == ylabel
+        self.plt.close()
+
+        ax = df.boxplot(by="group", xlabel=xlabel, ylabel=ylabel)
+        for subplot in ax:
+            assert subplot.get_xlabel() == xlabel
+            assert subplot.get_ylabel() == ylabel
+
+        ax = df.boxplot(by="group", vert=False, xlabel=xlabel, ylabel=ylabel)
+        for subplot in ax:
+            assert subplot.get_xlabel() == xlabel
+            assert subplot.get_ylabel() == ylabel
+        self.plt.close()
+
+        ax = df.boxplot(by="group")
+        for subplot in ax:
+            assert subplot.get_xlabel() == pprint_thing(["group"])
+        self.plt.close()
+
+        ax = df.boxplot(by="group", vert=False)
+        for subplot in ax:
+            assert subplot.get_ylabel() == pprint_thing(["group"])
+        self.plt.close()
 
 
 @td.skip_if_no_mpl
