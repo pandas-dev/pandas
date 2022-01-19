@@ -200,6 +200,7 @@ class BoxPlot(LinePlot):
         pass
 
     def _post_plot_logic(self, ax, data):
+        # GH 45465: make sure that the boxplot doesn't ignore xlabel/ylabel
         if self.xlabel:
             ax.set_xlabel(pprint_thing(self.xlabel))
         if self.ylabel:
@@ -246,6 +247,7 @@ def _grouped_plot_by_column(
 
     _axes = flatten_axes(axes)
 
+    # GH 45465: move the "by" label based on "vert"
     xlabel, ylabel = kwargs.pop("xlabel", None), kwargs.pop("ylabel", None)
     if kwargs.get("vert", 1):
         xlabel = xlabel or by
@@ -342,7 +344,7 @@ def boxplot(
             setp(bp["caps"], color=colors[3], alpha=1)
 
     def plot_group(keys, values, ax: Axes, **kwds):
-        # xlabel/ylabel need to be popped out before plotting happens
+        # GH 45465: xlabel/ylabel need to be popped out before plotting happens
         xlabel, ylabel = kwds.pop('xlabel', None), kwds.pop('ylabel', None)
         if xlabel:
             ax.set_xlabel(pprint_thing(xlabel))
@@ -354,6 +356,8 @@ def boxplot(
         bp = ax.boxplot(values, **kwds)
         if fontsize is not None:
             ax.tick_params(axis="both", labelsize=fontsize)
+
+        # GH 45465: x/y are flipped when "vert" changes
         is_vertical = kwds.get("vert", 1)
         ticks = ax.get_xticks() if is_vertical else ax.get_yticks()
         if len(ticks) != len(keys):
