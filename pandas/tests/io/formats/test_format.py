@@ -3335,6 +3335,8 @@ def test_filepath_or_buffer_arg(
     filepath_or_buffer_id,
 ):
     df = DataFrame([data])
+    if method in ["to_latex"]:  # uses styler implementation
+        pytest.importorskip("jinja2")
 
     if filepath_or_buffer_id not in ["string", "pathlike"] and encoding is not None:
         with pytest.raises(
