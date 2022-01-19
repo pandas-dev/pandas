@@ -123,6 +123,11 @@ class TestDataFrameColor(TestPlotBase):
         self._check_colors(ax.patches[::5], facecolors=custom_colors)
         tm.close()
 
+        custom_colors = "rgcby"
+        ax = df.plot.bar(c=custom_colors)
+        self._check_colors(ax.patches[::5], facecolors=custom_colors)
+        tm.close()
+
         from matplotlib import cm
 
         # Test str -> colormap functionality
@@ -141,6 +146,10 @@ class TestDataFrameColor(TestPlotBase):
         self._check_colors([ax.patches[0]], facecolors=["DodgerBlue"])
         tm.close()
 
+        ax = df.loc[:, [0]].plot.bar(c="DodgerBlue")
+        self._check_colors([ax.patches[0]], facecolors=["DodgerBlue"])
+        tm.close()
+
         ax = df.plot(kind="bar", color="green")
         self._check_colors(ax.patches[::5], facecolors=["green"] * 5)
         tm.close()
@@ -151,15 +160,20 @@ class TestDataFrameColor(TestPlotBase):
         )
         # This should *only* work when `y` is specified, else
         # we use one color per column
-        ax = df.plot.bar(y="A", color=df["color"])
-        result = [p.get_facecolor() for p in ax.patches]
         expected = [
             (1.0, 0.0, 0.0, 1.0),
             (0.0, 0.0, 1.0, 1.0),
             (0.0, 0.0, 1.0, 1.0),
             (1.0, 0.0, 0.0, 1.0),
         ]
+
+        ax = df.plot.bar(y="A", color=df["color"])
+        result = [p.get_facecolor() for p in ax.patches]
         assert result == expected
+        
+        ax = df.plot.bar(y="A", c=df["color"])
+        result = [p.get_facecolor() for p in ax.patches]
+        assert result == expected        
 
     def test_if_scatterplot_colorbar_affects_xaxis_visibility(self):
         # addressing issue #10611, to ensure colobar does not
@@ -221,6 +235,9 @@ class TestDataFrameColor(TestPlotBase):
         )
         df["species"] = ["r", "r", "g", "g", "b"]
         ax = df.plot.scatter(x=0, y=1, c="species", cmap=cmap)
+        assert ax.collections[0].colorbar is None
+
+        ax = df.plot.scatter(x=0, y=1, color="species", cmap=cmap)
         assert ax.collections[0].colorbar is None
 
     def test_scatter_colors(self):

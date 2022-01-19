@@ -674,6 +674,14 @@ class TestDataFramePlots(TestPlotBase):
         with pytest.raises(TypeError, match=msg):
             df.plot.scatter(y="y")
 
+        with pytest.raises(TypeError, match="Specify exactly one of `s` and `size`"):
+            df.plot.scatter(x="x", y="y", s=2, size=2)
+        with pytest.raises(TypeError, match="Specify exactly one of `c` and `color`"):
+            df.plot.scatter(x="a", y="b", c="red", color="green")
+
+        default_colors = self._unpack_cycler(self.plt.rcParams)
+        default_colors = self._unpack_cycler(self.plt.rcParams)
+
         # GH 6951
         axes = df.plot(x="x", y="y", kind="scatter", subplots=True)
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
@@ -827,6 +835,10 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.plot.bar)
 
         df = DataFrame({"a": [0, 1], "b": [1, 0]})
+
+        with pytest.raises(TypeError, match="Specify exactly one of `c` and `color`"):
+            df.plot.bar(x="a", y="b", c="red", color="green")
+
         ax = _check_plot_works(df.plot.bar)
         self._check_ticks_props(ax, xrot=90)
 

@@ -1132,7 +1132,10 @@ class PlotAccessor(PandasObject):
         if c is not None and color is not None:
             raise TypeError("Specify exactly one of `c` and `color`")
         if c is not None or color is not None:
-            kwargs.setdefault('c', color or c)
+            if color is not None:
+                kwargs.setdefault('color', color)
+            else:
+                kwargs.setdefault('color', c)
 
         return self(kind="bar", x=x, y=y, **kwargs)
 
@@ -1225,7 +1228,10 @@ class PlotAccessor(PandasObject):
         if c is not None and color is not None:
             raise TypeError("Specify exactly one of `c` and `color`")
         if c is not None or color is not None:
-            kwargs.setdefault('c', color or c)
+            if color is not None:
+                kwargs.setdefault('color', color)
+            else:
+                kwargs.setdefault('color', c)
 
         return self(kind="barh", x=x, y=y, **kwargs)
 
@@ -1684,14 +1690,20 @@ class PlotAccessor(PandasObject):
         if s is not None and size is not None:
             raise TypeError("Specify exactly one of `s` and `size`")
         if s is not None or size is not None:
-            kwargs.setdefault('s', s or size)
+            if s is not None:
+                kwargs.setdefault('s', s)
+            else:
+                kwargs.setdefault('s', size)
 
         c = kwargs.pop('c', None)
         color = kwargs.pop('color', None)
         if c is not None and color is not None:
             raise TypeError("Specify exactly one of `c` and `color`")
         if c is not None or color is not None:
-            kwargs.setdefault('c', c or color)
+            if c is not None:
+                kwargs.setdefault('c', c)
+            else:
+                kwargs.setdefault('c', color)
 
         return self(kind="scatter", x=x, y=y, **kwargs)
 
