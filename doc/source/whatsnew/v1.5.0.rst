@@ -186,7 +186,7 @@ Timezones
 
 Numeric
 ^^^^^^^
--
+- Bug in operations with array-likes with ``dtype="boolean"`` and :attr:`NA` incorrectly altering the array in-place (:issue:`45421`)
 -
 
 Conversion
