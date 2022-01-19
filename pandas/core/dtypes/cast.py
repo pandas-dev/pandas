@@ -20,6 +20,7 @@ from typing import (
 )
 import warnings
 
+from dateutil.parser import ParserError
 import numpy as np
 
 from pandas._libs import lib
@@ -357,7 +358,17 @@ def maybe_downcast_numeric(
         and not is_bool_dtype(result.dtype)
         and not is_string_dtype(result.dtype)
     ):
-        return result.astype(dtype)
+        new_result = result.astype(dtype)
+
+        # Adjust tolerances based on floating point size
+        size_tols = {4: 5e-4, 8: 5e-8, 16: 5e-16}
+
+        atol = size_tols.get(new_result.dtype.itemsize, 0.0)
+
+        # Check downcast float values are still equal within 7 digits when
+        # converting from float64 to float32
+        if np.allclose(new_result, result, equal_nan=True, rtol=0.0, atol=atol):
+            return new_result
 
     return result
 
@@ -1326,9 +1337,8 @@ def maybe_cast_to_datetime(
                             value = dta.tz_localize("UTC").tz_convert(dtype.tz)
                 except OutOfBoundsDatetime:
                     raise
-                except ValueError:
-                    # TODO(GH#40048): only catch dateutil's ParserError
-                    #  once we can reliably import it in all supported versions
+                except ParserError:
+                    # Note: this is dateutil's ParserError, not ours.
                     pass
 
         elif getattr(vdtype, "kind", None) in ["m", "M"]:
@@ -1447,8 +1457,10 @@ def find_result_type(left: ArrayLike, right: Any) -> DtypeObj:
     """
     new_dtype: DtypeObj
 
-    if left.dtype.kind in ["i", "u", "c"] and (
-        lib.is_integer(right) or lib.is_float(right)
+    if (
+        isinstance(left, np.ndarray)
+        and left.dtype.kind in ["i", "u", "c"]
+        and (lib.is_integer(right) or lib.is_float(right))
     ):
         # e.g. with int8 dtype and right=512, we want to end up with
         # np.int16, whereas infer_dtype_from(512) gives np.int64,
@@ -1456,14 +1468,7 @@ def find_result_type(left: ArrayLike, right: Any) -> DtypeObj:
         if lib.is_float(right) and right.is_integer() and left.dtype.kind != "f":
             right = int(right)
 
-        # Argument 1 to "result_type" has incompatible type "Union[ExtensionArray,
-        # ndarray[Any, Any]]"; expected "Union[Union[_SupportsArray[dtype[Any]],
-        # _NestedSequence[_SupportsArray[dtype[Any]]], bool, int, float, complex,
-        # str, bytes, _NestedSequence[Union[bool, int, float, complex, str, bytes]]],
-        # Union[dtype[Any], None, Type[Any], _SupportsDType[dtype[Any]], str,
-        # Union[Tuple[Any, int], Tuple[Any, Union[SupportsIndex,
-        # Sequence[SupportsIndex]]], List[Any], _DTypeDict, Tuple[Any, Any]]]]"
-        new_dtype = np.result_type(left, right)  # type:ignore[arg-type]
+        new_dtype = np.result_type(left, right)
 
     else:
         dtype, _ = infer_dtype_from(right, pandas_dtype=True)

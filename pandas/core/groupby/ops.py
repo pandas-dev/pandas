@@ -705,8 +705,7 @@ class BaseGrouper:
         """
         splitter = self._get_splitter(data, axis=axis)
         keys = self.group_keys_seq
-        for key, group in zip(keys, splitter):
-            yield key, group.__finalize__(data, method="groupby")
+        yield from zip(keys, splitter)
 
     @final
     def _get_splitter(self, data: NDFrame, axis: int = 0) -> DataSplitter:
@@ -714,8 +713,6 @@ class BaseGrouper:
         Returns
         -------
         Generator yielding subsetted objects
-
-        __finalize__ has not been called for the subsetted objects returned.
         """
         ids, _, ngroups = self.group_info
         return get_splitter(data, ids, ngroups, axis=axis)
@@ -753,7 +750,6 @@ class BaseGrouper:
         zipped = zip(group_keys, splitter)
 
         for key, group in zipped:
-            group = group.__finalize__(data, method="groupby")
             object.__setattr__(group, "name", key)
 
             # group might be modified
@@ -1001,7 +997,6 @@ class BaseGrouper:
         splitter = get_splitter(obj, ids, ngroups, axis=0)
 
         for i, group in enumerate(splitter):
-            group = group.__finalize__(obj, method="groupby")
             res = func(group)
             res = libreduction.extract_result(res)
 
@@ -1244,8 +1239,8 @@ class SeriesSplitter(DataSplitter):
     def _chop(self, sdata: Series, slice_obj: slice) -> Series:
         # fastpath equivalent to `sdata.iloc[slice_obj]`
         mgr = sdata._mgr.get_slice(slice_obj)
-        # __finalize__ not called here, must be applied by caller if applicable
-        return sdata._constructor(mgr, name=sdata.name, fastpath=True)
+        ser = sdata._constructor(mgr, name=sdata.name, fastpath=True)
+        return ser.__finalize__(sdata, method="groupby")
 
 
 class FrameSplitter(DataSplitter):
@@ -1256,8 +1251,8 @@ class FrameSplitter(DataSplitter):
         # else:
         #     return sdata.iloc[:, slice_obj]
         mgr = sdata._mgr.get_slice(slice_obj, axis=1 - self.axis)
-        # __finalize__ not called here, must be applied by caller if applicable
-        return sdata._constructor(mgr)
+        df = sdata._constructor(mgr)
+        return df.__finalize__(sdata, method="groupby")
 
 
 def get_splitter(

@@ -93,7 +93,6 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.cast import (
-    can_hold_element,
     construct_1d_arraylike_from_scalar,
     construct_2d_arraylike_from_scalar,
     find_common_type,
@@ -148,6 +147,7 @@ from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
+    PeriodArray,
     TimedeltaArray,
 )
 from pandas.core.arrays.sparse import SparseFrameAccessor
@@ -900,7 +900,7 @@ class DataFrame(NDFrame, OpsMixin):
     @property
     def _values(  # type: ignore[override]
         self,
-    ) -> np.ndarray | DatetimeArray | TimedeltaArray:
+    ) -> np.ndarray | DatetimeArray | TimedeltaArray | PeriodArray:
         """
         Analogue to ._values that may return a 2D ExtensionArray.
         """
@@ -925,7 +925,7 @@ class DataFrame(NDFrame, OpsMixin):
             return self.values
 
         # more generally, whatever we allow in NDArrayBackedExtensionBlock
-        arr = cast("np.ndarray | DatetimeArray | TimedeltaArray", arr)
+        arr = cast("np.ndarray | DatetimeArray | TimedeltaArray | PeriodArray", arr)
         return arr.T
 
     # ----------------------------------------------------------------------
@@ -3881,18 +3881,11 @@ class DataFrame(NDFrame, OpsMixin):
 
             series = self._get_item_cache(col)
             loc = self.index.get_loc(index)
-            dtype = series.dtype
-            if isinstance(dtype, np.dtype) and dtype.kind not in ["m", "M"]:
-                # otherwise we have EA values, and this check will be done
-                #  via setitem_inplace
-                if not can_hold_element(series._values, value):
-                    # We'll go through loc and end up casting.
-                    raise TypeError
 
-            series._mgr.setitem_inplace(loc, value)
-            # Note: trying to use series._set_value breaks tests in
-            #  tests.frame.indexing.test_indexing and tests.indexing.test_partial
-        except (KeyError, TypeError):
+            # series._set_value will do validation that may raise TypeError
+            #  or ValueError
+            series._set_value(loc, value, takeable=True)
+        except (KeyError, TypeError, ValueError):
             # set using a non-recursive method & reset the cache
             if takeable:
                 self.iloc[index, col] = value
