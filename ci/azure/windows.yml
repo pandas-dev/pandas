@@ -30,7 +30,7 @@ jobs:
       displayName: 'Update conda'
 
     - bash: |
-        conda env create -q --file ci\\deps\\azure-windows-$(CONDA_PY).yaml
+        conda env create -q --file ci\\deps\\actions-$(CONDA_PY).yaml
       displayName: 'Create anaconda environment'
     - bash: |
         source activate pandas-dev
