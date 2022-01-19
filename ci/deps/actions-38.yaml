@@ -36,7 +36,7 @@ dependencies:
   - psycopg2
   - pymysql
   - pytables
-  - pyarrow
+  - pyarrow=3
   - pyreadstat
   - pyxlsb
   - s3fs
