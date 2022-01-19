@@ -208,6 +208,7 @@ class TestSeriesRepr:
 
     @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_latex_repr(self):
+        pytest.importorskip("jinja2")  # uses Styler implementation
         result = r"""\begin{tabular}{ll}
 \toprule
  & 0 \\
