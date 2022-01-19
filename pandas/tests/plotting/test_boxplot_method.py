@@ -261,7 +261,7 @@ class TestDataFramePlots(TestPlotBase):
             {
                 "a": np.random.randn(100),
                 "b": np.random.randn(100),
-                "group": np.random.choice(["group1", "group2"], 100)
+                "group": np.random.choice(["group1", "group2"], 100),
             }
         )
         xlabel, ylabel = "x", "y"
@@ -275,7 +275,7 @@ class TestDataFramePlots(TestPlotBase):
             {
                 "a": np.random.randn(100),
                 "b": np.random.randn(100),
-                "group": np.random.choice(["group1", "group2"], 100)
+                "group": np.random.choice(["group1", "group2"], 100),
             }
         )
         xlabel, ylabel = "x", "y"
@@ -289,7 +289,7 @@ class TestDataFramePlots(TestPlotBase):
             {
                 "a": np.random.randn(100),
                 "b": np.random.randn(100),
-                "group": np.random.choice(["group1", "group2"], 100)
+                "group": np.random.choice(["group1", "group2"], 100),
             }
         )
         xlabel, ylabel = "x", "y"
