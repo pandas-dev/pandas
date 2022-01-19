@@ -574,6 +574,7 @@ class TestSetitemCasting:
         tm.assert_series_equal(ser, expected)
 
     def test_setitem_boolean_array_into_npbool(self):
+        # GH#45462
         ser = Series([True, False, True])
         values = ser._values
         arr = array([True, False, None])
