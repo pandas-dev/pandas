@@ -58,7 +58,6 @@ from pandas.io.sql import (
     SQLAlchemyEngine,
     SQLDatabase,
     SQLiteDatabase,
-    _gt14,
     get_engine,
     pandasSQL_builder,
     read_sql_query,
@@ -385,10 +384,10 @@ def mysql_pymysql_engine(iris_path, types_data):
         "mysql+pymysql://root@localhost:3306/pandas",
         connect_args={"client_flag": pymysql.constants.CLIENT.MULTI_STATEMENTS},
     )
-    check_target = sqlalchemy.inspect(engine) if _gt14() else engine
-    if not check_target.has_table("iris"):
+    insp = sqlalchemy.inspect(engine)
+    if not insp.has_table("iris"):
         create_and_load_iris(engine, iris_path, "mysql")
-    if not check_target.has_table("types"):
+    if not insp.has_table("types"):
         for entry in types_data:
             entry.pop("DateColWithTz")
         create_and_load_types(engine, types_data, "mysql")
@@ -412,10 +411,10 @@ def postgresql_psycopg2_engine(iris_path, types_data):
     engine = sqlalchemy.create_engine(
         "postgresql+psycopg2://postgres:postgres@localhost:5432/pandas"
     )
-    check_target = sqlalchemy.inspect(engine) if _gt14() else engine
-    if not check_target.has_table("iris"):
+    insp = sqlalchemy.inspect(engine)
+    if not insp.has_table("iris"):
         create_and_load_iris(engine, iris_path, "postgresql")
-    if not check_target.has_table("types"):
+    if not insp.has_table("types"):
         create_and_load_types(engine, types_data, "postgresql")
     yield engine
     with engine.connect() as conn:
@@ -1450,8 +1449,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         )
 
         iris = iris_table_metadata(self.flavor)
-        iris_select = iris if _gt14() else [iris]
-        name_select = select(iris_select).where(iris.c.Name == bindparam("name"))
+        name_select = select(iris).where(iris.c.Name == bindparam("name"))
         iris_df = sql.read_sql(name_select, self.conn, params={"name": "Iris-setosa"})
         all_names = set(iris_df["Name"])
         assert all_names == {"Iris-setosa"}
@@ -1624,46 +1622,33 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         self._to_sql_empty(test_frame1)
 
     def test_create_table(self):
+        from sqlalchemy import inspect
+
         temp_conn = self.connect()
         temp_frame = DataFrame(
             {"one": [1.0, 2.0, 3.0, 4.0], "two": [4.0, 3.0, 2.0, 1.0]}
         )
-
         pandasSQL = sql.SQLDatabase(temp_conn)
         assert pandasSQL.to_sql(temp_frame, "temp_frame") == 4
 
-        if _gt14():
-            from sqlalchemy import inspect
-
-            insp = inspect(temp_conn)
-            assert insp.has_table("temp_frame")
-        else:
-            assert temp_conn.has_table("temp_frame")
+        insp = inspect(temp_conn)
+        assert insp.has_table("temp_frame")
 
     def test_drop_table(self):
-        temp_conn = self.connect()
+        from sqlalchemy import inspect
 
+        temp_conn = self.connect()
         temp_frame = DataFrame(
             {"one": [1.0, 2.0, 3.0, 4.0], "two": [4.0, 3.0, 2.0, 1.0]}
         )
-
         pandasSQL = sql.SQLDatabase(temp_conn)
         assert pandasSQL.to_sql(temp_frame, "temp_frame") == 4
 
-        if _gt14():
-            from sqlalchemy import inspect
-
-            insp = inspect(temp_conn)
-            assert insp.has_table("temp_frame")
-        else:
-            assert temp_conn.has_table("temp_frame")
+        insp = inspect(temp_conn)
+        assert insp.has_table("temp_frame")
 
         pandasSQL.drop_table("temp_frame")
-
-        if _gt14():
-            assert not insp.has_table("temp_frame")
-        else:
-            assert not temp_conn.has_table("temp_frame")
+        assert not insp.has_table("temp_frame")
 
     def test_roundtrip(self, test_frame1):
         self._roundtrip(test_frame1)
@@ -2156,14 +2141,10 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             data.to_sql(name="test_foo_data", con=connection, if_exists="append")
 
         def baz(conn):
-            if _gt14():
-                # https://github.com/sqlalchemy/sqlalchemy/commit/
-                #  00b5c10846e800304caa86549ab9da373b42fa5d#r48323973
-                foo_data = foo(conn)
-                bar(conn, foo_data)
-            else:
-                foo_data = conn.run_callable(foo)
-                conn.run_callable(bar, foo_data)
+            # https://github.com/sqlalchemy/sqlalchemy/commit/
+            # 00b5c10846e800304caa86549ab9da373b42fa5d#r48323973
+            foo_data = foo(conn)
+            bar(conn, foo_data)
 
         def main(connectable):
             if isinstance(connectable, Engine):
@@ -2216,13 +2197,8 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         )
         from sqlalchemy.orm import (
             Session,
-            sessionmaker,
+            declarative_base,
         )
-
-        if _gt14():
-            from sqlalchemy.orm import declarative_base
-        else:
-            from sqlalchemy.ext.declarative import declarative_base
 
         test_data = "Hello, World!"
         expected = DataFrame({"spam": [test_data]})
@@ -2234,24 +2210,13 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             id = Column(Integer, primary_key=True)
             spam = Column(Unicode(30), nullable=False)
 
-        if _gt14():
-            with Session(self.conn) as session:
-                with session.begin():
-                    conn = session.connection()
-                    Temporary.__table__.create(conn)
-                    session.add(Temporary(spam=test_data))
-                    session.flush()
-                    df = sql.read_sql_query(sql=select(Temporary.spam), con=conn)
-        else:
-            Session = sessionmaker()
-            session = Session(bind=self.conn)
-            with session.transaction:
+        with Session(self.conn) as session:
+            with session.begin():
                 conn = session.connection()
                 Temporary.__table__.create(conn)
                 session.add(Temporary(spam=test_data))
                 session.flush()
-                df = sql.read_sql_query(sql=select([Temporary.spam]), con=conn)
-
+                df = sql.read_sql_query(sql=select(Temporary.spam), con=conn)
         tm.assert_frame_equal(df, expected)
 
     # -- SQL Engine tests (in the base class for now)
@@ -2349,12 +2314,10 @@ class _TestSQLiteAlchemy:
             Integer,
             String,
         )
-        from sqlalchemy.orm import sessionmaker
-
-        if _gt14():
-            from sqlalchemy.orm import declarative_base
-        else:
-            from sqlalchemy.ext.declarative import declarative_base
+        from sqlalchemy.orm import (
+            declarative_base,
+            sessionmaker,
+        )
 
         BaseModel = declarative_base()
 
