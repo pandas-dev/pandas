@@ -8882,9 +8882,9 @@ NaN 12.3   33.0
         >>> df_copy = df.copy()
         >>> df_copy.iloc[0, 0] = pd.NA
         >>> df_copy.applymap(lambda x: len(str(x)), na_action='ignore')
-              0  1
-        0  <NA>  4
-        1     5  5
+             0  1
+        0  NaN  4
+        1  5.0  5
 
         Note that a vectorized version of `func` often exists, which will
         be much faster. You could square each number elementwise.
