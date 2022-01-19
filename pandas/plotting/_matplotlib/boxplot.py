@@ -249,7 +249,7 @@ def _grouped_plot_by_column(
 
     # GH 45465: move the "by" label based on "vert"
     xlabel, ylabel = kwargs.pop("xlabel", None), kwargs.pop("ylabel", None)
-    if kwargs.get("vert", 1):
+    if kwargs.get("vert", True):
         xlabel = xlabel or by
     else:
         ylabel = ylabel or by
@@ -358,7 +358,7 @@ def boxplot(
             ax.tick_params(axis="both", labelsize=fontsize)
 
         # GH 45465: x/y are flipped when "vert" changes
-        is_vertical = kwds.get("vert", 1)
+        is_vertical = kwds.get("vert", True)
         ticks = ax.get_xticks() if is_vertical else ax.get_yticks()
         if len(ticks) != len(keys):
             i, remainder = divmod(len(ticks), len(keys))
