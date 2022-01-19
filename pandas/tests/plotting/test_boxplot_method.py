@@ -3,8 +3,6 @@
 import itertools
 import string
 
-from pandas.io.formats.printing import pprint_thing
-
 import numpy as np
 import pytest
 
@@ -17,6 +15,7 @@ from pandas import (
     date_range,
     timedelta_range,
 )
+from pandas.io.formats.printing import pprint_thing
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
     TestPlotBase,
