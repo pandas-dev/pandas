@@ -266,6 +266,7 @@ class TestDataFrameReprInfoEtc:
 
     @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_latex_repr(self):
+        pytest.importorskip("jinja2")
         expected = r"""\begin{tabular}{llll}
 \toprule
  & 0 & 1 & 2 \\
