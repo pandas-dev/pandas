@@ -239,6 +239,9 @@ cdef inline bint does_string_look_like_time(str parse_string):
 
 
 def parse_datetime_string(
+    # NB: This will break with np.str_ (GH#32264) even though
+    #  isinstance(npstrobj, str) evaluates to True, so caller must ensure
+    #  the argument is *exactly* 'str'
     str date_string,
     bint dayfirst=False,
     bint yearfirst=False,
@@ -254,7 +257,7 @@ def parse_datetime_string(
     """
 
     cdef:
-        object dt
+        datetime dt
 
     if not _does_string_look_like_datetime(date_string):
         raise ValueError('Given date string not likely a datetime.')
