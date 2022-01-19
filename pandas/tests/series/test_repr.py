@@ -258,6 +258,13 @@ class TestSeriesRepr:
         expected = "0    1.0\ndtype: object"
         assert repr(ser) == expected
 
+    def test_different_null_objects(self):
+        # GH#45263
+        ser = Series([1, 2, 3, 4], [True, None, np.nan, pd.NaT])
+        result = repr(ser)
+        expected = "True    1\nNone    2\nNaN     3\nNaT     4\ndtype: int64"
+        assert result == expected
+
 
 class TestCategoricalRepr:
     def test_categorical_repr_unicode(self):

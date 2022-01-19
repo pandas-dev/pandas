@@ -68,6 +68,27 @@ class TestDataFrameReprInfoEtc:
         expected = "              X\nNaT        a  1\n2013-01-01 b  2"
         assert result == expected
 
+    def test_repr_with_different_nulls(self):
+        # GH45263
+        df = DataFrame([1, 2, 3, 4], [True, None, np.nan, NaT])
+        result = repr(df)
+        expected = """      0
+True  1
+None  2
+NaN   3
+NaT   4"""
+        assert result == expected
+
+    def test_repr_with_different_nulls_cols(self):
+        # GH45263
+        d = {np.nan: [1, 2], None: [3, 4], NaT: [6, 7], True: [8, 9]}
+        df = DataFrame(data=d)
+        result = repr(df)
+        expected = """   NaN  None  NaT  True
+0    1     3    6     8
+1    2     4    7     9"""
+        assert result == expected
+
     def test_multiindex_na_repr(self):
         # only an issue with long columns
         df3 = DataFrame(
