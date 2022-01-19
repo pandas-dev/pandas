@@ -187,7 +187,7 @@ class SingleDataManager(DataManager):
             #  dt64/td64, which do their own validation.
             value = np_can_hold_element(arr.dtype, value)
 
-        self.array[indexer] = value
+        arr[indexer] = value
 
     def grouped_reduce(self, func, ignore_failures: bool = False):
         """
