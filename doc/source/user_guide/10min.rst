@@ -555,10 +555,8 @@ Stack
 
    tuples = list(
        zip(
-           *[
-               ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
-               ["one", "two", "one", "two", "one", "two", "one", "two"],
-           ]
+           ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
+           ["one", "two", "one", "two", "one", "two", "one", "two"],
        )
    )
    index = pd.MultiIndex.from_tuples(tuples, names=["first", "second"])
