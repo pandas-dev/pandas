@@ -20,16 +20,15 @@ variables:
   PYTEST_TARGET:  pandas
 
 jobs:
-# Mac and Linux use the same template
 - template: ci/azure/posix.yml
   parameters:
     name: macOS
-    vmImage: macOS-10.15
+    vmImage: macOS-latest
 
 - template: ci/azure/windows.yml
   parameters:
     name: Windows
-    vmImage: windows-2019
+    vmImage: windows-latest
 
 - job: py38_32bit
   pool:
