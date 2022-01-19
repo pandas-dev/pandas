@@ -74,8 +74,7 @@ types. This includes consistent behavior in all operations (indexing, arithmetic
 operations, comparisons, etc.). There has been discussion of eventually making
 the new semantics the default.
 
-This has been discussed at
-`github #28095 <https://github.com/pandas-dev/pandas/issues/28095>`__ (and
+This has been discussed at :issue:`28095` (and
 linked issues), and described in more detail in this
 `design doc <https://hackmd.io/@jorisvandenbossche/Sk0wMeAmB>`__.
 
@@ -129,8 +128,7 @@ We propose that it should only work with positional indexing, and the translatio
 to positions should be entirely done at a higher level.
 
 Indexing is a complicated API with many subtleties. This refactor will require care
-and attention. More details are discussed at
-https://github.com/pandas-dev/pandas/wiki/(Tentative)-rules-for-restructuring-indexing-code
+and attention. More details are discussed at :wiki:`(Tentative)-rules-for-restructuring-indexing-code`
 
 Numba-accelerated operations
 ----------------------------
@@ -205,4 +203,4 @@ We improved the pandas documentation
 * :ref:`getting_started` contains a number of resources intended for new
   pandas users coming from a variety of backgrounds (:issue:`26831`).
 
-.. _pydata-sphinx-theme: https://github.com/pandas-dev/pydata-sphinx-theme
+.. _pydata-sphinx-theme: https://github.com/pydata/pydata-sphinx-theme

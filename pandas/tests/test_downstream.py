@@ -14,6 +14,11 @@ import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
 
+# geopandas, xarray, fsspec, fastparquet all produce these
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:distutils Version classes are deprecated.*:DeprecationWarning"
+)
+
 
 def import_module(name):
     # we *only* want to skip if the module is truly not available

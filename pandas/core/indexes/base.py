@@ -66,6 +66,7 @@ from pandas.util._exceptions import (
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
+    common_dtype_categorical_compat,
     find_common_type,
     infer_dtype_from,
     maybe_cast_pointwise_result,
@@ -110,6 +111,7 @@ from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
     ABCMultiIndex,
     ABCPeriodIndex,
+    ABCRangeIndex,
     ABCSeries,
     ABCTimedeltaIndex,
 )
@@ -2081,8 +2083,14 @@ class Index(IndexOpsMixin, PandasObject):
 
             if len(lev) == 0:
                 # If lev is empty, lev.take will fail GH#42055
-                res_values = algos.take(lev._values, new_codes[0], allow_fill=True)
-                result = type(lev)._simple_new(res_values, name=new_names[0])
+                if len(new_codes[0]) == 0:
+                    # GH#45230 preserve RangeIndex here
+                    #  see test_reset_index_empty_rangeindex
+                    result = lev[:0]
+                else:
+                    res_values = algos.take(lev._values, new_codes[0], allow_fill=True)
+                    # _constructor instead of type(lev) for RangeIndex compat GH#35230
+                    result = lev._constructor._simple_new(res_values, name=new_names[0])
             else:
                 # set nan if needed
                 mask = new_codes[0] == -1
@@ -3039,6 +3047,30 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
     @final
+    def _deprecate_dti_setop(self, other: Index, setop: str_t):
+        """
+        Deprecate setop behavior between timezone-aware DatetimeIndexes with
+        mismatched timezones.
+        """
+        # Caller is responsibelf or checking
+        #  `not is_dtype_equal(self.dtype, other.dtype)`
+        if (
+            isinstance(self, ABCDatetimeIndex)
+            and isinstance(other, ABCDatetimeIndex)
+            and self.tz is not None
+            and other.tz is not None
+        ):
+            # GH#39328, GH#45357
+            warnings.warn(
+                f"In a future version, the {setop} of DatetimeIndex objects "
+                "with mismatched timezones will cast both to UTC instead of "
+                "object dtype. To retain the old behavior, "
+                f"use `index.astype(object).{setop}(other)`",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
+    @final
     def union(self, other, sort=None):
         """
         Form the union of two Index objects.
@@ -3136,21 +3168,7 @@ class Index(IndexOpsMixin, PandasObject):
                     "Can only union MultiIndex with MultiIndex or Index of tuples, "
                     "try mi.to_flat_index().union(other) instead."
                 )
-            if (
-                isinstance(self, ABCDatetimeIndex)
-                and isinstance(other, ABCDatetimeIndex)
-                and self.tz is not None
-                and other.tz is not None
-            ):
-                # GH#39328
-                warnings.warn(
-                    "In a future version, the union of DatetimeIndex objects "
-                    "with mismatched timezones will cast both to UTC instead of "
-                    "object dtype. To retain the old behavior, "
-                    "use `index.astype(object).union(other)`",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
+            self._deprecate_dti_setop(other, "union")
 
             dtype = self._find_common_type_compat(other)
             left = self.astype(dtype, copy=False)
@@ -3286,6 +3304,9 @@ class Index(IndexOpsMixin, PandasObject):
         self._assert_can_do_setop(other)
         other, result_name = self._convert_can_do_setop(other)
 
+        if not is_dtype_equal(self.dtype, other.dtype):
+            self._deprecate_dti_setop(other, "intersection")
+
         if self.equals(other):
             if self.has_duplicates:
                 return self.unique()._get_reconciled_name_object(other)
@@ -3416,6 +3437,10 @@ class Index(IndexOpsMixin, PandasObject):
         self._assert_can_do_setop(other)
         other, result_name = self._convert_can_do_setop(other)
 
+        # Note: we do NOT call _deprecate_dti_setop here, as there
+        #  is no requirement that .difference be commutative, so it does
+        #  not cast to object.
+
         if self.equals(other):
             # Note: we do not (yet) sort even if sort=None GH#24959
             return self[:0].rename(result_name)
@@ -3489,6 +3514,9 @@ class Index(IndexOpsMixin, PandasObject):
         other, result_name_update = self._convert_can_do_setop(other)
         if result_name is None:
             result_name = result_name_update
+
+        if not is_dtype_equal(self.dtype, other.dtype):
+            self._deprecate_dti_setop(other, "symmetric_difference")
 
         if not self._should_compare(other):
             return self.union(other, sort=sort).rename(result_name)
@@ -3989,7 +4017,7 @@ class Index(IndexOpsMixin, PandasObject):
         self._validate_indexer("positional", key.stop, "iloc")
         self._validate_indexer("positional", key.step, "iloc")
 
-    def _convert_slice_indexer(self, key: slice, kind: str_t):
+    def _convert_slice_indexer(self, key: slice, kind: str_t, is_frame: bool = False):
         """
         Convert a slice indexer.
 
@@ -4000,6 +4028,9 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         key : label of the slice bound
         kind : {'loc', 'getitem'}
+        is_frame : bool, default False
+            Whether this is a slice called on DataFrame.__getitem__
+            as opposed to Series.__getitem__
         """
         assert kind in ["loc", "getitem"], kind
 
@@ -4020,7 +4051,44 @@ class Index(IndexOpsMixin, PandasObject):
             called from the getitem slicers, validate that we are in fact
             integers
             """
+            if self.is_integer():
+                if is_frame:
+                    # unambiguously positional, no deprecation
+                    pass
+                elif start is None and stop is None:
+                    # label-based vs positional is irrelevant
+                    pass
+                elif isinstance(self, ABCRangeIndex) and self._range == range(
+                    len(self)
+                ):
+                    # In this case there is no difference between label-based
+                    #  and positional, so nothing will change.
+                    pass
+                elif (
+                    self.dtype.kind in ["i", "u"]
+                    and self._is_strictly_monotonic_increasing
+                    and len(self) > 0
+                    and self[0] == 0
+                    and self[-1] == len(self) - 1
+                ):
+                    # We are range-like, e.g. created with Index(np.arange(N))
+                    pass
+                elif not is_index_slice:
+                    # we're going to raise, so don't bother warning, e.g.
+                    #  test_integer_positional_indexing
+                    pass
+                else:
+                    warnings.warn(
+                        "The behavior of `series[i:j]` with an integer-dtype index "
+                        "is deprecated. In a future version, this will be treated "
+                        "as *label-based* indexing, consistent with e.g. `series[i]` "
+                        "lookups. To retain the old behavior, use `series.iloc[i:j]`. "
+                        "To get the future behavior, use `series.loc[i:j]`.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
             if self.is_integer() or is_index_slice:
+                # Note: these checks are redundant if we know is_index_slice
                 self._validate_indexer("slice", key.start, "getitem")
                 self._validate_indexer("slice", key.stop, "getitem")
                 self._validate_indexer("slice", key.step, "getitem")
@@ -5976,17 +6044,8 @@ class Index(IndexOpsMixin, PandasObject):
                 return _dtype_obj
 
         dtype = find_common_type([self.dtype, target_dtype])
+        dtype = common_dtype_categorical_compat([self, target], dtype)
 
-        if dtype.kind in ["i", "u"]:
-            # TODO: what about reversed with self being categorical?
-            if (
-                isinstance(target, Index)
-                and is_categorical_dtype(target.dtype)
-                and target.hasnans
-            ):
-                # FIXME: find_common_type incorrect with Categorical GH#38240
-                # FIXME: some cases where float64 cast can be lossy?
-                dtype = np.dtype(np.float64)
         if dtype.kind == "c":
             dtype = _dtype_obj
         return dtype

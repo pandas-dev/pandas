@@ -35,7 +35,6 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
-    is_datetime64tz_dtype,
     is_datetime_or_timedelta_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -44,7 +43,6 @@ from pandas.core.dtypes.common import (
     is_named_tuple,
     is_object_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -466,7 +464,13 @@ def dict_to_mgr(
                 # GH#1783
                 nan_dtype = np.dtype("object")
                 val = construct_1d_arraylike_from_scalar(np.nan, len(index), nan_dtype)
-                arrays.loc[missing] = [val] * missing.sum()
+                nmissing = missing.sum()
+                if copy:
+                    rhs = [val] * nmissing
+                else:
+                    # GH#45369
+                    rhs = [val.copy() for _ in range(nmissing)]
+                arrays.loc[missing] = rhs
 
         arrays = list(arrays)
         columns = ensure_index(columns)
@@ -475,23 +479,16 @@ def dict_to_mgr(
         keys = list(data.keys())
         columns = Index(keys)
         arrays = [com.maybe_iterable_to_list(data[k]) for k in keys]
-        # GH#24096 need copy to be deep for datetime64tz case
-        # TODO: See if we can avoid these copies
         arrays = [arr if not isinstance(arr, Index) else arr._data for arr in arrays]
-        arrays = [
-            arr if not is_datetime64tz_dtype(arr) else arr.copy() for arr in arrays
-        ]
 
     if copy:
-        # arrays_to_mgr (via form_blocks) won't make copies for EAs
-        # dtype attr check to exclude EADtype-castable strs
-        arrays = [
-            x
-            if not hasattr(x, "dtype") or not isinstance(x.dtype, ExtensionDtype)
-            else x.copy()
-            for x in arrays
-        ]
-        # TODO: can we get rid of the dt64tz special case above?
+        if typ == "block":
+            # We only need to copy arrays that will not get consolidated, i.e.
+            #  only EA arrays
+            arrays = [x.copy() if isinstance(x, ExtensionArray) else x for x in arrays]
+        else:
+            # dtype check to exclude e.g. range objects, scalars
+            arrays = [x.copy() if hasattr(x, "dtype") else x for x in arrays]
 
     return arrays_to_mgr(arrays, columns, index, dtype=dtype, typ=typ, consolidate=copy)
 

@@ -65,7 +65,7 @@ jobs:
           echo 'EOF' >> $GITHUB_ENV
           echo "REGEX=$REGEX" >> $GITHUB_ENV
 
-      - uses: actions/github-script@v4
+      - uses: actions/github-script@v5
         env:
           BENCH_OUTPUT: ${{env.BENCH_OUTPUT}}
           REGEX: ${{env.REGEX}}
@@ -73,7 +73,7 @@ jobs:
           script: |
             const ENV_VARS = process.env
             const run_url = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
-            github.issues.createComment({
+            github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,

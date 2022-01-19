@@ -1036,13 +1036,11 @@ def test_use_bottleneck():
 
     if nanops._BOTTLENECK_INSTALLED:
 
-        pd.set_option("use_bottleneck", True)
-        assert pd.get_option("use_bottleneck")
+        with pd.option_context("use_bottleneck", True):
+            assert pd.get_option("use_bottleneck")
 
-        pd.set_option("use_bottleneck", False)
-        assert not pd.get_option("use_bottleneck")
-
-        pd.set_option("use_bottleneck", use_bn)
+        with pd.option_context("use_bottleneck", False):
+            assert not pd.get_option("use_bottleneck")
 
 
 @pytest.mark.parametrize(

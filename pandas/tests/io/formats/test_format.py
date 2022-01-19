@@ -1146,19 +1146,17 @@ class TestDataFrameFormatting:
         ):
             max_cols = get_option("display.max_columns")
             df = DataFrame(tm.rands_array(25, size=(10, max_cols - 1)))
-            set_option("display.expand_frame_repr", False)
-            rep_str = repr(df)
+            with option_context("display.expand_frame_repr", False):
+                rep_str = repr(df)
 
             assert f"10 rows x {max_cols - 1} columns" in rep_str
-            set_option("display.expand_frame_repr", True)
-            wide_repr = repr(df)
+            with option_context("display.expand_frame_repr", True):
+                wide_repr = repr(df)
             assert rep_str != wide_repr
 
             with option_context("display.width", 120):
                 wider_repr = repr(df)
                 assert len(wider_repr) < len(wide_repr)
-
-        reset_option("display.expand_frame_repr")
 
     def test_wide_repr_wide_columns(self):
         with option_context("mode.sim_interactive", True, "display.max_columns", 20):
@@ -1174,11 +1172,10 @@ class TestDataFrameFormatting:
             max_cols = get_option("display.max_columns")
             df = DataFrame(tm.rands_array(25, size=(10, max_cols - 1)))
             df.index.name = "DataFrame Index"
-            set_option("display.expand_frame_repr", False)
-
-            rep_str = repr(df)
-            set_option("display.expand_frame_repr", True)
-            wide_repr = repr(df)
+            with option_context("display.expand_frame_repr", False):
+                rep_str = repr(df)
+            with option_context("display.expand_frame_repr", True):
+                wide_repr = repr(df)
             assert rep_str != wide_repr
 
             with option_context("display.width", 150):
@@ -1188,18 +1185,16 @@ class TestDataFrameFormatting:
             for line in wide_repr.splitlines()[1::13]:
                 assert "DataFrame Index" in line
 
-        reset_option("display.expand_frame_repr")
-
     def test_wide_repr_multiindex(self):
         with option_context("mode.sim_interactive", True, "display.max_columns", 20):
             midx = MultiIndex.from_arrays(tm.rands_array(5, size=(2, 10)))
             max_cols = get_option("display.max_columns")
             df = DataFrame(tm.rands_array(25, size=(10, max_cols - 1)), index=midx)
             df.index.names = ["Level 0", "Level 1"]
-            set_option("display.expand_frame_repr", False)
-            rep_str = repr(df)
-            set_option("display.expand_frame_repr", True)
-            wide_repr = repr(df)
+            with option_context("display.expand_frame_repr", False):
+                rep_str = repr(df)
+            with option_context("display.expand_frame_repr", True):
+                wide_repr = repr(df)
             assert rep_str != wide_repr
 
             with option_context("display.width", 150):
@@ -1208,8 +1203,6 @@ class TestDataFrameFormatting:
 
             for line in wide_repr.splitlines()[1::13]:
                 assert "Level 0 Level 1" in line
-
-        reset_option("display.expand_frame_repr")
 
     def test_wide_repr_multiindex_cols(self):
         with option_context("mode.sim_interactive", True, "display.max_columns", 20):
@@ -1220,33 +1213,29 @@ class TestDataFrameFormatting:
                 tm.rands_array(25, (10, max_cols - 1)), index=midx, columns=mcols
             )
             df.index.names = ["Level 0", "Level 1"]
-            set_option("display.expand_frame_repr", False)
-            rep_str = repr(df)
-            set_option("display.expand_frame_repr", True)
-            wide_repr = repr(df)
+            with option_context("display.expand_frame_repr", False):
+                rep_str = repr(df)
+            with option_context("display.expand_frame_repr", True):
+                wide_repr = repr(df)
             assert rep_str != wide_repr
 
         with option_context("display.width", 150, "display.max_columns", 20):
             wider_repr = repr(df)
             assert len(wider_repr) < len(wide_repr)
 
-        reset_option("display.expand_frame_repr")
-
     def test_wide_repr_unicode(self):
         with option_context("mode.sim_interactive", True, "display.max_columns", 20):
             max_cols = 20
             df = DataFrame(tm.rands_array(25, size=(10, max_cols - 1)))
-            set_option("display.expand_frame_repr", False)
-            rep_str = repr(df)
-            set_option("display.expand_frame_repr", True)
-            wide_repr = repr(df)
+            with option_context("display.expand_frame_repr", False):
+                rep_str = repr(df)
+            with option_context("display.expand_frame_repr", True):
+                wide_repr = repr(df)
             assert rep_str != wide_repr
 
             with option_context("display.width", 150):
                 wider_repr = repr(df)
                 assert len(wider_repr) < len(wide_repr)
-
-        reset_option("display.expand_frame_repr")
 
     def test_wide_repr_wide_long_columns(self):
         with option_context("mode.sim_interactive", True):
