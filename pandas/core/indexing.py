@@ -665,7 +665,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                 return self._convert_tuple(key)
 
         if isinstance(key, range):
-            # test_loc_setitem_range_key
+            # GH#45479 test_loc_setitem_range_key
             key = list(key)
 
         return self._convert_to_indexer(key, axis=0)

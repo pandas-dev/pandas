@@ -1556,7 +1556,7 @@ class TestLocBaseIndependent:
         assert df.dtypes.one == np.dtype(np.int8)
 
     def test_loc_setitem_range_key(self, frame_or_series):
-        # don't treat range key as positional
+        # GH#45479 don't treat range key as positional
         obj = frame_or_series(range(5), index=[3, 4, 1, 0, 2])
 
         values = [9, 10, 11]
