@@ -16,6 +16,7 @@ env:
 
 jobs:
   pre_commit:
+    if: false
     name: pre-commit
     runs-on: ubuntu-latest
     concurrency:
