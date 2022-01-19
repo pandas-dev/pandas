@@ -635,7 +635,9 @@ class ExtensionArray:
         it is safe for implementors to give views on `self`.
 
         Functions that use this (e.g. ExtensionArray.argsort) should ignore
-        entries in locations `i` with `self.isna()[i]`.
+        entries with missing values in the original array (according to `self.isna()`).
+        This means that the corresponding entries in the returned array don't need to
+        be modified to sort correctly.
         """
         # Note: this is used in `ExtensionArray.argsort`.
         return np.array(self)
