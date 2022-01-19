@@ -241,8 +241,12 @@ def _grouped_plot_by_column(
         columns = data._get_numeric_data().columns.difference(by)
     naxes = len(columns)
     fig, axes = create_subplots(
-        naxes=naxes, sharex=kwargs.pop("sharex", True),
-        sharey=kwargs.pop("sharey", True), figsize=figsize, ax=ax, layout=layout
+        naxes=naxes,
+        sharex=kwargs.pop("sharex", True),
+        sharey=kwargs.pop("sharey", True),
+        figsize=figsize,
+        ax=ax,
+        layout=layout,
     )
 
     _axes = flatten_axes(axes)
@@ -345,7 +349,7 @@ def boxplot(
 
     def plot_group(keys, values, ax: Axes, **kwds):
         # GH 45465: xlabel/ylabel need to be popped out before plotting happens
-        xlabel, ylabel = kwds.pop('xlabel', None), kwds.pop('ylabel', None)
+        xlabel, ylabel = kwds.pop("xlabel", None), kwds.pop("ylabel", None)
         if xlabel:
             ax.set_xlabel(pprint_thing(xlabel))
         if ylabel:
@@ -400,7 +404,7 @@ def boxplot(
             ax=ax,
             layout=layout,
             return_type=return_type,
-            **kwds
+            **kwds,
         )
     else:
         if return_type is None:

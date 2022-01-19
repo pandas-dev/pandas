@@ -15,13 +15,13 @@ from pandas import (
     date_range,
     timedelta_range,
 )
-from pandas.io.formats.printing import pprint_thing
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
     TestPlotBase,
     _check_plot_works,
 )
 
+from pandas.io.formats.printing import pprint_thing
 import pandas.plotting as plotting
 
 pytestmark = pytest.mark.slow
@@ -257,10 +257,13 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.parametrize("vert", [True, False])
     def test_plot_xlabel_ylabel(self, vert):
-        df = DataFrame({
-            "a": np.random.randn(100), "b": np.random.randn(100),
-            "group": np.random.choice(["group1", "group2"], 100)
-        })
+        df = DataFrame(
+            {
+                "a": np.random.randn(100),
+                "b": np.random.randn(100),
+                "group": np.random.choice(["group1", "group2"], 100)
+            }
+        )
         xlabel, ylabel = "x", "y"
         ax = df.plot(kind="box", vert=vert, xlabel=xlabel, ylabel=ylabel)
         assert ax.get_xlabel() == xlabel
@@ -268,10 +271,13 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.parametrize("vert", [True, False])
     def test_boxplot_xlabel_ylabel(self, vert):
-        df = DataFrame({
-            "a": np.random.randn(100), "b": np.random.randn(100),
-            "group": np.random.choice(["group1", "group2"], 100)
-        })
+        df = DataFrame(
+            {
+                "a": np.random.randn(100),
+                "b": np.random.randn(100),
+                "group": np.random.choice(["group1", "group2"], 100)
+            }
+        )
         xlabel, ylabel = "x", "y"
         ax = df.boxplot(vert=vert, xlabel=xlabel, ylabel=ylabel)
         assert ax.get_xlabel() == xlabel
@@ -279,10 +285,13 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.parametrize("vert", [True, False])
     def test_boxplot_group_xlabel_ylabel(self, vert):
-        df = DataFrame({
-            "a": np.random.randn(100), "b": np.random.randn(100),
-            "group": np.random.choice(["group1", "group2"], 100)
-        })
+        df = DataFrame(
+            {
+                "a": np.random.randn(100),
+                "b": np.random.randn(100),
+                "group": np.random.choice(["group1", "group2"], 100)
+            }
+        )
         xlabel, ylabel = "x", "y"
         ax = df.boxplot(by="group", vert=vert, xlabel=xlabel, ylabel=ylabel)
         for subplot in ax:
