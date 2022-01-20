@@ -3540,8 +3540,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             "escape": "latex" if escape else None,
             "decimal": decimal,
         }
-        index_format_ = {"axis": 0, **base_format_}
-        column_format_ = {"axis": 1, **base_format_}
+        index_format_: dict[str, Any] = {"axis": 0, **base_format_}
+        column_format_: dict[str, Any] = {"axis": 1, **base_format_}
 
         # refactor formatters to Styler structure
         if isinstance(float_format, str):
