@@ -285,22 +285,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 mgr = mgr.astype(dtype=dtype)
         return mgr
 
-    @classmethod
-    def _from_mgr(cls, mgr: Manager):
-        """
-        Fastpath to create a new DataFrame/Series from just a BlockManager/ArrayManager.
-
-        Notes
-        -----
-        Skips setting `_flags` attribute; caller is responsible for doing so.
-        """
-        obj = cls.__new__(cls)
-        object.__setattr__(obj, "_is_copy", None)
-        object.__setattr__(obj, "_mgr", mgr)
-        object.__setattr__(obj, "_item_cache", {})
-        object.__setattr__(obj, "_attrs", {})
-        return obj
-
     def _as_manager(self: NDFrameT, typ: str, copy: bool_t = True) -> NDFrameT:
         """
         Private helper function to create a DataFrame with specific manager.
@@ -1989,10 +1973,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         for h in self._info_axis:
             yield h, self[h]
 
-    @doc(items)
-    def iteritems(self):
-        return self.items()
-
     def __len__(self) -> int:
         """Returns length of info axis"""
         return len(self._info_axis)
@@ -2071,6 +2051,41 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def __array__(self, dtype: npt.DTypeLike | None = None) -> np.ndarray:
         return np.asarray(self._values, dtype=dtype)
+
+    def __array_wrap__(
+        self,
+        result: np.ndarray,
+        context: tuple[Callable, tuple[Any, ...], int] | None = None,
+    ):
+        """
+        Gets called after a ufunc and other functions.
+
+        Parameters
+        ----------
+        result: np.ndarray
+            The result of the ufunc or other function called on the NumPy array
+            returned by __array__
+        context: tuple of (func, tuple, int)
+            This parameter is returned by ufuncs as a 3-element tuple: (name of the
+            ufunc, arguments of the ufunc, domain of the ufunc), but is not set by
+            other numpy functions.q
+
+        Notes
+        -----
+        Series implements __array_ufunc_ so this not called for ufunc on Series.
+        """
+        # Note: at time of dask 2022.01.0, this is still used by dask
+        res = lib.item_from_zerodim(result)
+        if is_scalar(res):
+            # e.g. we get here with np.ptp(series)
+            # ptp also requires the item_from_zerodim
+            return res
+        d = self._construct_axes_dict(self._AXIS_ORDERS, copy=False)
+        # error: Argument 1 to "NDFrame" has incompatible type "ndarray";
+        # expected "BlockManager"
+        return self._constructor(res, **d).__finalize__(  # type: ignore[arg-type]
+            self, method="__array_wrap__"
+        )
 
     @final
     def __array_ufunc__(
@@ -4263,7 +4278,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis,
         level=None,
         errors: str = "raise",
-        consolidate: bool_t = True,
         only_slice: bool_t = False,
     ) -> NDFrameT:
         """
@@ -4278,8 +4292,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             For MultiIndex
         errors : {'ignore', 'raise'}, default 'raise'
             If 'ignore', suppress error and existing labels are dropped.
-        consolidate : bool, default True
-            Whether to call consolidate_inplace in the reindex_indexer call.
         only_slice : bool, default False
             Whether indexing along columns should be view-only.
 
@@ -4333,7 +4345,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             indexer,
             axis=bm_axis,
             allow_dups=True,
-            consolidate=consolidate,
             only_slice=only_slice,
         )
         result = self._constructor(new_mgr)
@@ -5855,7 +5866,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 new_type = dtype[self.name]
                 return self.astype(new_type, copy, errors)
 
-            for col_name in dtype.keys():
+            # GH#44417 cast to Series so we can use .iat below, which will be
+            #  robust in case we
+            from pandas import Series
+
+            dtype_ser = Series(dtype, dtype=object)
+
+            for col_name in dtype_ser.index:
                 if col_name not in self:
                     raise KeyError(
                         "Only a column name can be used for the "
@@ -5863,11 +5880,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         f"'{col_name}' not found in columns."
                     )
 
-            # GH#44417 cast to Series so we can use .iat below, which will be
-            #  robust in case we
-            from pandas import Series
-
-            dtype_ser = Series(dtype, dtype=object)
             dtype_ser = dtype_ser.reindex(self.columns, fill_value=None, copy=False)
 
             results = []
@@ -5899,6 +5911,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # GH 19920: retain column metadata after concat
         result = concat(results, axis=1, copy=False)
+        # GH#40810 retain subclass
+        # Incompatible types in assignment (expression has type "NDFrameT",
+        # variable has type "DataFrame")
+        # Argument 1 to "NDFrame" has incompatible type "DataFrame"; expected
+        # "Union[ArrayManager, SingleArrayManager, BlockManager, SingleBlockManager]"
+        result = self._constructor(result)  # type: ignore[arg-type,assignment]
         result.columns = self.columns
         result = result.__finalize__(self, method="astype")
         # https://github.com/python/mypy/issues/8354
@@ -5941,6 +5959,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         numpy array is not copied for performance reasons. Since ``Index`` is
         immutable, the underlying data can be safely shared and a copy
         is not needed.
+
+        Since pandas is not thread safe, see the
+        :ref:`gotchas <gotchas.thread-safety>` when copying in a threading
+        environment.
 
         Examples
         --------
@@ -7126,9 +7148,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df.asof(pd.DatetimeIndex(['2018-02-27 09:03:30',
         ...                           '2018-02-27 09:04:30']),
         ...         subset=['a'])
-                                 a   b
-        2018-02-27 09:03:30   30.0 NaN
-        2018-02-27 09:04:30   40.0 NaN
+                              a   b
+        2018-02-27 09:03:30  30 NaN
+        2018-02-27 09:04:30  40 NaN
         """
         if isinstance(where, str):
             where = Timestamp(where)
@@ -7198,7 +7220,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         missing = locs == -1
         data = self.take(locs)
         data.index = where
-        data.loc[missing] = np.nan
+        if missing.any():
+            # GH#16063 only do this setting when necessary, otherwise
+            #  we'd cast e.g. bools to floats
+            data.loc[missing] = np.nan
         return data if is_list else data.iloc[-1]
 
     # ----------------------------------------------------------------------

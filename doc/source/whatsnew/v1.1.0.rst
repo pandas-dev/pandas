@@ -265,7 +265,7 @@ SSH, FTP, dropbox and github. For docs and capabilities, see the `fsspec docs`_.
 The existing capability to interface with S3 and GCS will be unaffected by this
 change, as ``fsspec`` will still bring in the same packages as before.
 
-.. _Azure Datalake and Blob: https://github.com/dask/adlfs
+.. _Azure Datalake and Blob: https://github.com/fsspec/adlfs
 
 .. _fsspec docs: https://filesystem-spec.readthedocs.io/en/latest/
 
