@@ -68,13 +68,16 @@ from pandas.core.dtypes.missing import isna
 from pandas.core import (
     arraylike,
     missing,
-    ops,
+    roperator,
 )
 from pandas.core.algorithms import (
     factorize_array,
     isin,
+    mode,
+    rank,
     unique,
 )
+from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.sorting import (
     nargminmax,
     nargsort,
@@ -424,7 +427,7 @@ class ExtensionArray:
             if not self._can_hold_na:
                 return False
             elif item is self.dtype.na_value or isinstance(item, self.dtype.type):
-                return self.isna().any()
+                return self._hasnans
             else:
                 return False
         else:
@@ -602,6 +605,16 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
+    @property
+    def _hasnans(self) -> bool:
+        # GH#22680
+        """
+        Equivalent to `self.isna().any()`.
+
+        Some ExtensionArray subclasses may be able to optimize this check.
+        """
+        return bool(self.isna().any())
+
     def _values_for_argsort(self) -> np.ndarray:
         """
         Return values for sorting.
@@ -685,7 +698,7 @@ class ExtensionArray:
         ExtensionArray.argmax
         """
         validate_bool_kwarg(skipna, "skipna")
-        if not skipna and self.isna().any():
+        if not skipna and self._hasnans:
             raise NotImplementedError
         return nargminmax(self, "argmin")
 
@@ -709,7 +722,7 @@ class ExtensionArray:
         ExtensionArray.argmin
         """
         validate_bool_kwarg(skipna, "skipna")
-        if not skipna and self.isna().any():
+        if not skipna and self._hasnans:
             raise NotImplementedError
         return nargminmax(self, "argmax")
 
@@ -1351,7 +1364,13 @@ class ExtensionArray:
         ------
         TypeError : subclass does not define reductions
         """
-        raise TypeError(f"cannot perform {name} with type {self.dtype}")
+        meth = getattr(self, name, None)
+        if meth is None:
+            raise TypeError(
+                f"'{type(self).__name__}' with dtype {self.dtype} "
+                f"does not support reduction '{name}'"
+            )
+        return meth(skipna=skipna, **kwargs)
 
     # https://github.com/python/typeshed/issues/2148#issuecomment-520783318
     # Incompatible types in assignment (expression has type "None", base class
@@ -1479,10 +1498,41 @@ class ExtensionArray:
         self[mask] = new_values[mask]
         return
 
+    def _rank(
+        self,
+        *,
+        axis: int = 0,
+        method: str = "average",
+        na_option: str = "keep",
+        ascending: bool = True,
+        pct: bool = False,
+    ):
+        """
+        See Series.rank.__doc__.
+        """
+        if axis != 0:
+            raise NotImplementedError
+
+        # TODO: we only have tests that get here with dt64 and td64
+        # TODO: all tests that get here use the defaults for all the kwds
+        return rank(
+            self,
+            axis=axis,
+            method=method,
+            na_option=na_option,
+            ascending=ascending,
+            pct=pct,
+        )
+
     @classmethod
     def _empty(cls, shape: Shape, dtype: ExtensionDtype):
         """
         Create an ExtensionArray with the given shape and dtype.
+
+        See also
+        --------
+        ExtensionDtype.empty
+            ExtensionDtype.empty is the 'official' public version of this API.
         """
         obj = cls._from_sequence([], dtype=dtype)
 
@@ -1493,6 +1543,61 @@ class ExtensionArray:
                 f"Default 'empty' implementation is invalid for dtype='{dtype}'"
             )
         return result
+
+    def _quantile(
+        self: ExtensionArrayT, qs: npt.NDArray[np.float64], interpolation: str
+    ) -> ExtensionArrayT:
+        """
+        Compute the quantiles of self for each quantile in `qs`.
+
+        Parameters
+        ----------
+        qs : np.ndarray[float64]
+        interpolation: str
+
+        Returns
+        -------
+        same type as self
+        """
+        # asarray needed for Sparse, see GH#24600
+        mask = np.asarray(self.isna())
+        mask = np.atleast_2d(mask)
+
+        arr = np.atleast_2d(np.asarray(self))
+        fill_value = np.nan
+
+        res_values = quantile_with_mask(arr, mask, fill_value, qs, interpolation)
+
+        if self.ndim == 2:
+            # i.e. DatetimeArray
+            result = type(self)._from_sequence(res_values)
+
+        else:
+            # shape[0] should be 1 as long as EAs are 1D
+            assert res_values.shape == (1, len(qs)), res_values.shape
+            result = type(self)._from_sequence(res_values[0])
+
+        return result
+
+    def _mode(self: ExtensionArrayT, dropna: bool = True) -> ExtensionArrayT:
+        """
+        Returns the mode(s) of the ExtensionArray.
+
+        Always returns `ExtensionArray` even if only one value.
+
+        Parameters
+        ----------
+        dropna : bool, default True
+            Don't consider counts of NA values.
+
+        Returns
+        -------
+        same type as self
+            Sorted, if possible.
+        """
+        # error: Incompatible return value type (got "Union[ExtensionArray,
+        # ndarray[Any, Any]]", expected "ExtensionArrayT")
+        return mode(self, dropna=dropna)  # type: ignore[return-value]
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         if any(
@@ -1510,6 +1615,13 @@ class ExtensionArray:
             return arraylike.dispatch_ufunc_with_out(
                 self, ufunc, method, *inputs, **kwargs
             )
+
+        if method == "reduce":
+            result = arraylike.dispatch_reduction_ufunc(
+                self, ufunc, method, *inputs, **kwargs
+            )
+            if result is not NotImplemented:
+                return result
 
         return arraylike.default_array_ufunc(self, ufunc, method, *inputs, **kwargs)
 
@@ -1532,21 +1644,23 @@ class ExtensionOpsMixin:
     @classmethod
     def _add_arithmetic_ops(cls):
         setattr(cls, "__add__", cls._create_arithmetic_method(operator.add))
-        setattr(cls, "__radd__", cls._create_arithmetic_method(ops.radd))
+        setattr(cls, "__radd__", cls._create_arithmetic_method(roperator.radd))
         setattr(cls, "__sub__", cls._create_arithmetic_method(operator.sub))
-        setattr(cls, "__rsub__", cls._create_arithmetic_method(ops.rsub))
+        setattr(cls, "__rsub__", cls._create_arithmetic_method(roperator.rsub))
         setattr(cls, "__mul__", cls._create_arithmetic_method(operator.mul))
-        setattr(cls, "__rmul__", cls._create_arithmetic_method(ops.rmul))
+        setattr(cls, "__rmul__", cls._create_arithmetic_method(roperator.rmul))
         setattr(cls, "__pow__", cls._create_arithmetic_method(operator.pow))
-        setattr(cls, "__rpow__", cls._create_arithmetic_method(ops.rpow))
+        setattr(cls, "__rpow__", cls._create_arithmetic_method(roperator.rpow))
         setattr(cls, "__mod__", cls._create_arithmetic_method(operator.mod))
-        setattr(cls, "__rmod__", cls._create_arithmetic_method(ops.rmod))
+        setattr(cls, "__rmod__", cls._create_arithmetic_method(roperator.rmod))
         setattr(cls, "__floordiv__", cls._create_arithmetic_method(operator.floordiv))
-        setattr(cls, "__rfloordiv__", cls._create_arithmetic_method(ops.rfloordiv))
+        setattr(
+            cls, "__rfloordiv__", cls._create_arithmetic_method(roperator.rfloordiv)
+        )
         setattr(cls, "__truediv__", cls._create_arithmetic_method(operator.truediv))
-        setattr(cls, "__rtruediv__", cls._create_arithmetic_method(ops.rtruediv))
+        setattr(cls, "__rtruediv__", cls._create_arithmetic_method(roperator.rtruediv))
         setattr(cls, "__divmod__", cls._create_arithmetic_method(divmod))
-        setattr(cls, "__rdivmod__", cls._create_arithmetic_method(ops.rdivmod))
+        setattr(cls, "__rdivmod__", cls._create_arithmetic_method(roperator.rdivmod))
 
     @classmethod
     def _create_comparison_method(cls, op):
@@ -1568,16 +1682,16 @@ class ExtensionOpsMixin:
     @classmethod
     def _add_logical_ops(cls):
         setattr(cls, "__and__", cls._create_logical_method(operator.and_))
-        setattr(cls, "__rand__", cls._create_logical_method(ops.rand_))
+        setattr(cls, "__rand__", cls._create_logical_method(roperator.rand_))
         setattr(cls, "__or__", cls._create_logical_method(operator.or_))
-        setattr(cls, "__ror__", cls._create_logical_method(ops.ror_))
+        setattr(cls, "__ror__", cls._create_logical_method(roperator.ror_))
         setattr(cls, "__xor__", cls._create_logical_method(operator.xor))
-        setattr(cls, "__rxor__", cls._create_logical_method(ops.rxor))
+        setattr(cls, "__rxor__", cls._create_logical_method(roperator.rxor))
 
 
 class ExtensionScalarOpsMixin(ExtensionOpsMixin):
     """
-    A mixin for defining  ops on an ExtensionArray.
+    A mixin for defining ops on an ExtensionArray.
 
     It is assumed that the underlying scalar objects have the operators
     already defined.

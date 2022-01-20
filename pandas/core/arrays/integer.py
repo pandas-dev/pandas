@@ -1,46 +1,28 @@
 from __future__ import annotations
 
-from typing import overload
-
 import numpy as np
 
 from pandas._libs import (
-    iNaT,
     lib,
+    missing as libmissing,
 )
-from pandas._typing import (
-    ArrayLike,
-    AstypeArg,
-    Dtype,
-    DtypeObj,
-    npt,
-)
-from pandas.compat.numpy import function as nv
+from pandas._typing import DtypeObj
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.base import (
-    ExtensionDtype,
-    register_extension_dtype,
-)
+from pandas.core.dtypes.base import register_extension_dtype
 from pandas.core.dtypes.common import (
     is_bool_dtype,
-    is_datetime64_dtype,
-    is_float,
     is_float_dtype,
     is_integer_dtype,
     is_object_dtype,
     is_string_dtype,
-    pandas_dtype,
 )
-from pandas.core.dtypes.missing import isna
 
-from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.masked import BaseMaskedDtype
 from pandas.core.arrays.numeric import (
     NumericArray,
     NumericDtype,
 )
-from pandas.core.tools.numeric import to_numeric
 
 
 class _IntegerDtype(NumericDtype):
@@ -180,21 +162,12 @@ def coerce_to_array(
 
     values = np.array(values, copy=copy)
     inferred_type = None
-    if is_object_dtype(values) or is_string_dtype(values):
+    if is_object_dtype(values.dtype) or is_string_dtype(values.dtype):
         inferred_type = lib.infer_dtype(values, skipna=True)
         if inferred_type == "empty":
-            values = np.empty(len(values))
-            values.fill(np.nan)
-        elif inferred_type not in [
-            "floating",
-            "integer",
-            "mixed-integer",
-            "integer-na",
-            "mixed-integer-float",
-            "string",
-            "unicode",
-        ]:
-            raise TypeError(f"{values.dtype} cannot be converted to an IntegerDtype")
+            pass
+        elif inferred_type == "boolean":
+            raise TypeError(f"{values.dtype} cannot be converted to a FloatingDtype")
 
     elif is_bool_dtype(values) and is_integer_dtype(dtype):
         values = np.array(values, dtype=int, copy=copy)
@@ -202,13 +175,14 @@ def coerce_to_array(
     elif not (is_integer_dtype(values) or is_float_dtype(values)):
         raise TypeError(f"{values.dtype} cannot be converted to an IntegerDtype")
 
+    if values.ndim != 1:
+        raise TypeError("values must be a 1D list-like")
+
     if mask is None:
-        mask = isna(values)
+        mask = libmissing.is_numeric_na(values)
     else:
         assert len(mask) == len(values)
 
-    if values.ndim != 1:
-        raise TypeError("values must be a 1D list-like")
     if mask.ndim != 1:
         raise TypeError("mask must be a 1D list-like")
 
@@ -322,75 +296,10 @@ class IntegerArray(NumericArray):
         super().__init__(values, mask, copy=copy)
 
     @classmethod
-    def _from_sequence(
-        cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
-    ) -> IntegerArray:
-        values, mask = coerce_to_array(scalars, dtype=dtype, copy=copy)
-        return IntegerArray(values, mask)
-
-    @classmethod
-    def _from_sequence_of_strings(
-        cls, strings, *, dtype: Dtype | None = None, copy: bool = False
-    ) -> IntegerArray:
-        scalars = to_numeric(strings, errors="raise")
-        return cls._from_sequence(scalars, dtype=dtype, copy=copy)
-
-    def _coerce_to_array(self, value) -> tuple[np.ndarray, np.ndarray]:
-        return coerce_to_array(value, dtype=self.dtype)
-
-    @overload
-    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
-        ...
-
-    @overload
-    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray:
-        ...
-
-    @overload
-    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike:
-        ...
-
-    def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
-        """
-        Cast to a NumPy array or ExtensionArray with 'dtype'.
-
-        Parameters
-        ----------
-        dtype : str or dtype
-            Typecode or data-type to which the array is cast.
-        copy : bool, default True
-            Whether to copy the data, even if not necessary. If False,
-            a copy is made only if the old dtype does not match the
-            new dtype.
-
-        Returns
-        -------
-        ndarray or ExtensionArray
-            NumPy ndarray, BooleanArray or IntegerArray with 'dtype' for its dtype.
-
-        Raises
-        ------
-        TypeError
-            if incompatible type with an IntegerDtype, equivalent of same_kind
-            casting
-        """
-        dtype = pandas_dtype(dtype)
-
-        if isinstance(dtype, ExtensionDtype):
-            return super().astype(dtype, copy=copy)
-
-        na_value: float | np.datetime64 | lib.NoDefault
-
-        # coerce
-        if is_float_dtype(dtype):
-            # In astype, we consider dtype=float to also mean na_value=np.nan
-            na_value = np.nan
-        elif is_datetime64_dtype(dtype):
-            na_value = np.datetime64("NaT")
-        else:
-            na_value = lib.no_default
-
-        return self.to_numpy(dtype=dtype, na_value=na_value, copy=False)
+    def _coerce_to_array(
+        cls, value, *, dtype: DtypeObj, copy: bool = False
+    ) -> tuple[np.ndarray, np.ndarray]:
+        return coerce_to_array(value, dtype=dtype, copy=copy)
 
     def _values_for_argsort(self) -> np.ndarray:
         """
@@ -410,49 +319,6 @@ class IntegerArray(NumericArray):
         if self._mask.any():
             data[self._mask] = data.min() - 1
         return data
-
-    def sum(self, *, skipna=True, min_count=0, axis: int | None = 0, **kwargs):
-        nv.validate_sum((), kwargs)
-        return super()._reduce("sum", skipna=skipna, min_count=min_count, axis=axis)
-
-    def prod(self, *, skipna=True, min_count=0, axis: int | None = 0, **kwargs):
-        nv.validate_prod((), kwargs)
-        return super()._reduce("prod", skipna=skipna, min_count=min_count, axis=axis)
-
-    def min(self, *, skipna=True, axis: int | None = 0, **kwargs):
-        nv.validate_min((), kwargs)
-        return super()._reduce("min", skipna=skipna, axis=axis)
-
-    def max(self, *, skipna=True, axis: int | None = 0, **kwargs):
-        nv.validate_max((), kwargs)
-        return super()._reduce("max", skipna=skipna, axis=axis)
-
-    def _maybe_mask_result(self, result, mask, other, op_name: str):
-        """
-        Parameters
-        ----------
-        result : array-like
-        mask : array-like bool
-        other : scalar or array-like
-        op_name : str
-        """
-        # if we have a float operand we are by-definition
-        # a float result
-        # or our op is a divide
-        if (is_float_dtype(other) or is_float(other)) or (
-            op_name in ["rtruediv", "truediv"]
-        ):
-            from pandas.core.arrays import FloatingArray
-
-            return FloatingArray(result, mask, copy=False)
-
-        if result.dtype == "timedelta64[ns]":
-            from pandas.core.arrays import TimedeltaArray
-
-            result[mask] = iNaT
-            return TimedeltaArray._simple_new(result)
-
-        return type(self)(result, mask, copy=False)
 
 
 _dtype_docstring = """

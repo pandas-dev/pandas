@@ -61,7 +61,12 @@ class TestSeriesFillNA:
         tm.assert_frame_equal(filled, expected)
         tm.assert_frame_equal(filled2, expected)
 
-    def test_fillna(self, datetime_series):
+    def test_fillna_value_or_method(self, datetime_series):
+        msg = "Cannot specify both 'value' and 'method'"
+        with pytest.raises(ValueError, match=msg):
+            datetime_series.fillna(value=0, method="ffill")
+
+    def test_fillna(self):
         ts = Series([0.0, 1.0, 2.0, 3.0, 4.0], index=tm.makeDateIndex(5))
 
         tm.assert_series_equal(ts, ts.fillna(method="ffill"))
@@ -81,10 +86,7 @@ class TestSeriesFillNA:
         with pytest.raises(ValueError, match=msg):
             ts.fillna()
 
-        msg = "Cannot specify both 'value' and 'method'"
-        with pytest.raises(ValueError, match=msg):
-            datetime_series.fillna(value=0, method="ffill")
-
+    def test_fillna_nonscalar(self):
         # GH#5703
         s1 = Series([np.nan])
         s2 = Series([1])
@@ -108,13 +110,14 @@ class TestSeriesFillNA:
         result = s1.fillna(Series({0: 1, 1: 1}, index=[4, 5]))
         tm.assert_series_equal(result, s1)
 
+    def test_fillna_aligns(self):
         s1 = Series([0, 1, 2], list("abc"))
         s2 = Series([0, np.nan, 2], list("bac"))
         result = s2.fillna(s1)
         expected = Series([0, 0, 2.0], list("bac"))
         tm.assert_series_equal(result, expected)
 
-        # limit
+    def test_fillna_limit(self):
         ser = Series(np.nan, index=[0, 1, 2])
         result = ser.fillna(999, limit=1)
         expected = Series([999, np.nan, np.nan], index=[0, 1, 2])
@@ -124,6 +127,7 @@ class TestSeriesFillNA:
         expected = Series([999, 999, np.nan], index=[0, 1, 2])
         tm.assert_series_equal(result, expected)
 
+    def test_fillna_dont_cast_strings(self):
         # GH#9043
         # make sure a string representation of int/float values can be filled
         # correctly without raising errors or being converted
@@ -147,18 +151,15 @@ class TestSeriesFillNA:
         )
         tm.assert_series_equal(result, expected)
 
-        msg = "The 'errors' keyword in "
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            # where (we ignore the errors=)
-            result = ser.where(
-                [True, False], Timestamp("20130101", tz="US/Eastern"), errors="ignore"
-            )
+        # where (we ignore the errors=)
+        result = ser.where(
+            [True, False], Timestamp("20130101", tz="US/Eastern"), errors="ignore"
+        )
         tm.assert_series_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = ser.where(
-                [True, False], Timestamp("20130101", tz="US/Eastern"), errors="ignore"
-            )
+        result = ser.where(
+            [True, False], Timestamp("20130101", tz="US/Eastern"), errors="ignore"
+        )
         tm.assert_series_equal(result, expected)
 
         # with a non-datetime
@@ -184,6 +185,42 @@ class TestSeriesFillNA:
         result = ser.fillna({1: 0}, downcast="infer")
         expected = Series([1, 0])
         tm.assert_series_equal(result, expected)
+
+    def test_fillna_downcast_infer_objects_to_numeric(self):
+        # GH#44241 if we have object-dtype, 'downcast="infer"' should
+        #  _actually_ infer
+
+        arr = np.arange(5).astype(object)
+        arr[3] = np.nan
+
+        ser = Series(arr)
+
+        res = ser.fillna(3, downcast="infer")
+        expected = Series(np.arange(5), dtype=np.int64)
+        tm.assert_series_equal(res, expected)
+
+        res = ser.ffill(downcast="infer")
+        expected = Series([0, 1, 2, 2, 4], dtype=np.int64)
+        tm.assert_series_equal(res, expected)
+
+        res = ser.bfill(downcast="infer")
+        expected = Series([0, 1, 2, 4, 4], dtype=np.int64)
+        tm.assert_series_equal(res, expected)
+
+        # with a non-round float present, we will downcast to float64
+        ser[2] = 2.5
+
+        expected = Series([0, 1, 2.5, 3, 4], dtype=np.float64)
+        res = ser.fillna(3, downcast="infer")
+        tm.assert_series_equal(res, expected)
+
+        res = ser.ffill(downcast="infer")
+        expected = Series([0, 1, 2.5, 2.5, 4], dtype=np.float64)
+        tm.assert_series_equal(res, expected)
+
+        res = ser.bfill(downcast="infer")
+        expected = Series([0, 1, 2.5, 4, 4], dtype=np.float64)
+        tm.assert_series_equal(res, expected)
 
     def test_timedelta_fillna(self, frame_or_series):
         # GH#3371
@@ -320,6 +357,7 @@ class TestSeriesFillNA:
         )
         tm.assert_series_equal(result, expected)
 
+    def test_datetime64_fillna_backfill(self):
         # GH#6587
         # make sure that we are treating as integer when filling
         msg = "containing strings is deprecated"
@@ -774,7 +812,7 @@ class TestSeriesFillNA:
         with tm.assert_produces_warning(FutureWarning, match="mismatched timezone"):
             result = ser2.fillna(ts)
         expected = Series([ser[0], ts, ser[2]], dtype=object)
-        # once deprecation is enforced
+        # TODO(2.0): once deprecation is enforced
         # expected = Series(
         #    [ser2[0], ts.tz_convert(ser2.dtype.tz), ser2[2]],
         #    dtype=ser2.dtype,

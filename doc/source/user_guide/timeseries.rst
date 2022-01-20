@@ -1270,6 +1270,36 @@ frequencies. We will refer to these aliases as *offset aliases*.
     "U, us", "microseconds"
     "N", "nanoseconds"
 
+.. note::
+
+    When using the offset aliases above, it should be noted that functions
+    such as :func:`date_range`, :func:`bdate_range`, will only return
+    timestamps that are in the interval defined by ``start_date`` and
+    ``end_date``. If the ``start_date`` does not correspond to the frequency,
+    the returned timestamps will start at the next valid timestamp, same for
+    ``end_date``, the returned timestamps will stop at the previous valid
+    timestamp.
+
+   For example, for the offset ``MS``, if the ``start_date`` is not the first
+   of the month, the returned timestamps will start with the first day of the
+   next month. If ``end_date`` is not the first day of a month, the last
+   returned timestamp will be the first day of the corresponding month.
+
+   .. ipython:: python
+
+       dates_lst_1 = pd.date_range("2020-01-06", "2020-04-03", freq="MS")
+       dates_lst_1
+
+       dates_lst_2 = pd.date_range("2020-01-01", "2020-04-01", freq="MS")
+       dates_lst_2
+
+   We can see in the above example :func:`date_range` and
+   :func:`bdate_range` will only return the valid timestamps between the
+   ``start_date`` and ``end_date``. If these are not valid timestamps for the
+   given frequency it will roll to the next value for ``start_date``
+   (respectively previous for the ``end_date``)
+
+
 Combining aliases
 ~~~~~~~~~~~~~~~~~
 
@@ -2072,18 +2102,13 @@ The ``period`` dtype can be used in ``.astype(...)``. It allows one to change th
    # change monthly freq to daily freq
    pi.astype("period[D]")
 
+   # convert to DatetimeIndex
+   pi.astype("datetime64[ns]")
+
    # convert to PeriodIndex
    dti = pd.date_range("2011-01-01", freq="M", periods=3)
    dti
    dti.astype("period[M]")
-
-.. deprecated:: 1.4.0
-    Converting PeriodIndex to DatetimeIndex with ``.astype(...)`` is deprecated and will raise in a future version. Use ``obj.to_timestamp(how).tz_localize(dtype.tz)`` instead.
-
-.. ipython:: python
-
-    # convert to DatetimeIndex
-    pi.to_timestamp(how="start")
 
 PeriodIndex partial string indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -2394,7 +2419,7 @@ you can use the ``tz_convert`` method.
 
     For ``pytz`` time zones, it is incorrect to pass a time zone object directly into
     the ``datetime.datetime`` constructor
-    (e.g., ``datetime.datetime(2011, 1, 1, tz=pytz.timezone('US/Eastern'))``.
+    (e.g., ``datetime.datetime(2011, 1, 1, tzinfo=pytz.timezone('US/Eastern'))``.
     Instead, the datetime needs to be localized using the ``localize`` method
     on the ``pytz`` time zone object.
 

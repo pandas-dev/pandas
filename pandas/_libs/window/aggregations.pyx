@@ -960,7 +960,7 @@ cdef _roll_min_max(ndarray[numeric_t] values,
     with nogil:
 
         # This is using a modified version of the C++ code in this
-        # SO post: http://bit.ly/2nOoHlY
+        # SO post: https://stackoverflow.com/a/12239580
         # The original impl didn't deal with variable window sizes
         # So the code was optimized for that
 
@@ -1271,7 +1271,7 @@ def roll_apply(object obj,
         Py_ssize_t i, s, e, N = len(start), n = len(obj)
 
     if n == 0:
-        return obj
+        return np.array([], dtype=np.float64)
 
     arr = np.asarray(obj)
 

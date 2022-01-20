@@ -10,8 +10,6 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
-from pandas.compat import np_datetime64_compat
-
 from pandas.core.dtypes.common import is_unsigned_integer_dtype
 
 from pandas import (
@@ -27,6 +25,7 @@ from pandas import (
     Series,
     TimedeltaIndex,
     Timestamp,
+    array,
     date_range,
     period_range,
     timedelta_range,
@@ -161,6 +160,13 @@ class TestIndexConstructorInference:
 class TestDtypeEnforced:
     # check we don't silently ignore the dtype keyword
 
+    def test_constructor_object_dtype_with_ea_data(self, any_numeric_ea_dtype):
+        # GH#45206
+        arr = array([0], dtype=any_numeric_ea_dtype)
+
+        idx = Index(arr, dtype=object)
+        assert idx.dtype == object
+
     @pytest.mark.parametrize("dtype", [object, "float64", "uint64", "category"])
     def test_constructor_range_values_mismatched_dtype(self, dtype):
         rng = Index(range(5))
@@ -273,9 +279,7 @@ class TestDtypeEnforced:
         [
             [1, 2, 3],
             np.array([1, 2, 3], dtype=int),
-            np.array(
-                [np_datetime64_compat("2011-01-01"), np_datetime64_compat("2011-01-02")]
-            ),
+            np.array(["2011-01-01", "2011-01-02"], dtype="datetime64[ns]"),
             [datetime(2011, 1, 1), datetime(2011, 1, 2)],
         ],
     )
@@ -287,14 +291,7 @@ class TestDtypeEnforced:
     @pytest.mark.parametrize(
         "vals",
         [
-            Index(
-                np.array(
-                    [
-                        np_datetime64_compat("2011-01-01"),
-                        np_datetime64_compat("2011-01-02"),
-                    ]
-                )
-            ),
+            Index(np.array([np.datetime64("2011-01-01"), np.datetime64("2011-01-02")])),
             Index([datetime(2011, 1, 1), datetime(2011, 1, 2)]),
         ],
     )

@@ -1,6 +1,7 @@
 from datetime import (
     datetime,
     timedelta,
+    timezone,
 )
 
 import numpy as np
@@ -99,7 +100,7 @@ class TestTimestampArithmetic:
         if tz_naive_fixture is None:
             assert other.to_datetime64() - ts == td
         else:
-            msg = "subtraction must have"
+            msg = "Cannot subtract tz-naive and tz-aware datetime-like objects"
             with pytest.raises(TypeError, match=msg):
                 other.to_datetime64() - ts
 
@@ -108,6 +109,47 @@ class TestTimestampArithmetic:
         ts = Timestamp(datetime(2013, 10, 13))
         assert (ts - dt).days == 1
         assert (dt - ts).days == -1
+
+    def test_subtract_tzaware_datetime(self):
+        t1 = Timestamp("2020-10-22T22:00:00+00:00")
+        t2 = datetime(2020, 10, 22, 22, tzinfo=timezone.utc)
+
+        result = t1 - t2
+
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta("0 days")
+
+    def test_subtract_timestamp_from_different_timezone(self):
+        t1 = Timestamp("20130101").tz_localize("US/Eastern")
+        t2 = Timestamp("20130101").tz_localize("CET")
+
+        result = t1 - t2
+
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta("0 days 06:00:00")
+
+    def test_subtracting_involving_datetime_with_different_tz(self):
+        t1 = datetime(2013, 1, 1, tzinfo=timezone(timedelta(hours=-5)))
+        t2 = Timestamp("20130101").tz_localize("CET")
+
+        result = t1 - t2
+
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta("0 days 06:00:00")
+
+        result = t2 - t1
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta("-1 days +18:00:00")
+
+    def test_subtracting_different_timezones(self, tz_aware_fixture):
+        t_raw = Timestamp("20130101")
+        t_UTC = t_raw.tz_localize("UTC")
+        t_diff = t_UTC.tz_convert(tz_aware_fixture) + Timedelta("0 days 05:00:00")
+
+        result = t_diff - t_UTC
+
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta("0 days 05:00:00")
 
     def test_addition_subtraction_types(self):
         # Assert on the types resulting from Timestamp +/- various date/time
@@ -268,3 +310,12 @@ class TestTimestampArithmetic:
         msg = r"unsupported operand type\(s\) for -: 'numpy.ndarray' and 'Timestamp'"
         with pytest.raises(TypeError, match=msg):
             other - ts
+
+    def test_subtract_different_utc_objects(self, utc_fixture, utc_fixture2):
+        # GH 32619
+        dt = datetime(2021, 1, 1)
+        ts1 = Timestamp(dt, tz=utc_fixture)
+        ts2 = Timestamp(dt, tz=utc_fixture2)
+        result = ts1 - ts2
+        expected = Timedelta(0)
+        assert result == expected

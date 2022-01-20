@@ -44,15 +44,13 @@ class TestDataFrameClip:
             assert (clipped_df.values[mask] == df.values[mask]).all()
 
     def test_clip_mixed_numeric(self):
-        # TODO(jreback)
         # clip on mixed integer or floats
-        # with integer clippers coerces to float
+        # GH#24162, clipping now preserves numeric types per column
         df = DataFrame({"A": [1, 2, 3], "B": [1.0, np.nan, 3.0]})
         result = df.clip(1, 2)
         expected = DataFrame({"A": [1, 2, 2], "B": [1.0, np.nan, 2.0]})
-        tm.assert_frame_equal(result, expected, check_like=True)
+        tm.assert_frame_equal(result, expected)
 
-        # GH#24162, clipping now preserves numeric types per column
         df = DataFrame([[1, 2, 3.4], [3, 4, 5.6]], columns=["foo", "bar", "baz"])
         expected = df.dtypes
         result = df.clip(upper=3).dtypes
@@ -138,7 +136,7 @@ class TestDataFrameClip:
         tm.assert_frame_equal(result_lower, expected_lower)
         tm.assert_frame_equal(result_lower_upper, expected_lower_upper)
 
-    def test_clip_with_na_args(self, float_frame):
+    def test_clip_with_na_args(self, float_frame, using_array_manager):
         """Should process np.nan argument as None"""
         # GH#17276
         tm.assert_frame_equal(float_frame.clip(np.nan), float_frame)
@@ -153,7 +151,9 @@ class TestDataFrameClip:
         )
         tm.assert_frame_equal(result, expected)
 
-        result = df.clip(lower=[4, 5, np.nan], axis=1)
+        warn = FutureWarning if using_array_manager else None
+        with tm.assert_produces_warning(warn, match="Downcasting integer-dtype"):
+            result = df.clip(lower=[4, 5, np.nan], axis=1)
         expected = DataFrame(
             {"col_0": [4, 4, 4], "col_1": [5, 5, 6], "col_2": [7, 8, 9]}
         )

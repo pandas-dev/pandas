@@ -3,7 +3,6 @@ import datetime as dt
 from datetime import datetime
 import gzip
 import io
-import lzma
 import os
 import struct
 import warnings
@@ -22,6 +21,7 @@ from pandas.core.frame import (
 )
 from pandas.core.indexes.api import ensure_index
 
+import pandas.io.common as icom
 from pandas.io.parsers import read_csv
 from pandas.io.stata import (
     CategoricalConversionWarning,
@@ -1473,15 +1473,6 @@ The repeated labels are:\n-+\nwolof
             with tm.ensure_clean() as path:
                 df.to_stata(path)
 
-        df.loc[2, "ColumnTooBig"] = np.inf
-        msg = (
-            "Column ColumnTooBig has a maximum value of infinity which is outside "
-            "the range supported by Stata"
-        )
-        with pytest.raises(ValueError, match=msg):
-            with tm.ensure_clean() as path:
-                df.to_stata(path)
-
     def test_out_of_range_float(self):
         original = DataFrame(
             {
@@ -1507,14 +1498,17 @@ The repeated labels are:\n-+\nwolof
             original["ColumnTooBig"] = original["ColumnTooBig"].astype(np.float64)
             tm.assert_frame_equal(original, reread.set_index("index"))
 
-        original.loc[2, "ColumnTooBig"] = np.inf
+    @pytest.mark.parametrize("infval", [np.inf, -np.inf])
+    def test_inf(self, infval):
+        # GH 45350
+        df = DataFrame({"WithoutInf": [0.0, 1.0], "WithInf": [2.0, infval]})
         msg = (
-            "Column ColumnTooBig has a maximum value of infinity which "
-            "is outside the range supported by Stata"
+            "Column WithInf contains infinity or -infinity"
+            "which is outside the range supported by Stata."
         )
         with pytest.raises(ValueError, match=msg):
             with tm.ensure_clean() as path:
-                original.to_stata(path)
+                df.to_stata(path)
 
     def test_path_pathlib(self):
         df = tm.makeDataFrame()
@@ -1882,7 +1876,10 @@ def test_backward_compat(version, datapath):
 def test_compression(compression, version, use_dict, infer):
     file_name = "dta_inferred_compression.dta"
     if compression:
-        file_ext = "gz" if compression == "gzip" and not use_dict else compression
+        if use_dict:
+            file_ext = compression
+        else:
+            file_ext = icom._compression_to_extension[compression]
         file_name += f".{file_ext}"
     compression_arg = compression
     if infer:
@@ -1903,7 +1900,12 @@ def test_compression(compression, version, use_dict, infer):
         elif compression == "bz2":
             with bz2.open(path, "rb") as comp:
                 fp = io.BytesIO(comp.read())
+        elif compression == "zstd":
+            zstd = pytest.importorskip("zstandard")
+            with zstd.open(path, "rb") as comp:
+                fp = io.BytesIO(comp.read())
         elif compression == "xz":
+            lzma = pytest.importorskip("lzma")
             with lzma.open(path, "rb") as comp:
                 fp = io.BytesIO(comp.read())
         elif compression is None:
@@ -2032,7 +2034,7 @@ def test_compression_roundtrip(compression):
 def test_stata_compression(compression_only, read_infer, to_infer):
     compression = compression_only
 
-    ext = "gz" if compression == "gzip" else compression
+    ext = icom._compression_to_extension[compression]
     filename = f"test.{ext}"
 
     df = DataFrame(

@@ -55,7 +55,7 @@ def test_div(dtype):
 
 @pytest.mark.parametrize("zero, negative", [(0, False), (0.0, False), (-0.0, True)])
 def test_divide_by_zero(zero, negative):
-    # https://github.com/pandas-dev/pandas/issues/27398
+    # https://github.com/pandas-dev/pandas/issues/27398, GH#22793
     a = pd.array([0, 1, -1, None], dtype="Int64")
     result = a / zero
     expected = FloatingArray(
@@ -299,6 +299,5 @@ def test_unary_int_operators(any_signed_int_ea_dtype, source, neg_target, abs_ta
 
     tm.assert_extension_array_equal(neg_result, neg_target)
     tm.assert_extension_array_equal(pos_result, arr)
-    assert not np.shares_memory(pos_result._data, arr._data)
-    assert not np.shares_memory(pos_result._mask, arr._mask)
+    assert not tm.shares_memory(pos_result, arr)
     tm.assert_extension_array_equal(abs_result, abs_target)

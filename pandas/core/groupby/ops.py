@@ -158,9 +158,7 @@ class WrappedCythonOp:
         f = getattr(libgroupby, ftype)
         if is_numeric:
             return f
-        # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-        # operand type: "Literal['object']")
-        elif dtype == object:  # type: ignore[comparison-overlap]
+        elif dtype == object:
             if "object" not in f.__signatures__:
                 # raise NotImplementedError here rather than TypeError later
                 raise NotImplementedError(
@@ -500,9 +498,10 @@ class WrappedCythonOp:
         elif is_bool_dtype(dtype):
             values = values.astype("int64")
         elif is_integer_dtype(dtype):
-            # e.g. uint8 -> uint64, int16 -> int64
-            dtype_str = dtype.kind + "8"
-            values = values.astype(dtype_str, copy=False)
+            # GH#43329 If the dtype is explicitly of type uint64 the type is not
+            # changed to prevent overflow.
+            if dtype != np.uint64:
+                values = values.astype(np.int64, copy=False)
         elif is_numeric:
             if not is_complex_dtype(dtype):
                 values = ensure_float64(values)
@@ -530,6 +529,16 @@ class WrappedCythonOp:
                     mask=mask,
                     result_mask=result_mask,
                     is_datetimelike=is_datetimelike,
+                )
+            elif self.how in ["add"]:
+                # We support datetimelike
+                func(
+                    result,
+                    counts,
+                    values,
+                    comp_ids,
+                    min_count,
+                    datetimelike=is_datetimelike,
                 )
             else:
                 func(result, counts, values, comp_ids, min_count)
@@ -696,8 +705,7 @@ class BaseGrouper:
         """
         splitter = self._get_splitter(data, axis=axis)
         keys = self.group_keys_seq
-        for key, group in zip(keys, splitter):
-            yield key, group.__finalize__(data, method="groupby")
+        yield from zip(keys, splitter)
 
     @final
     def _get_splitter(self, data: NDFrame, axis: int = 0) -> DataSplitter:
@@ -705,8 +713,6 @@ class BaseGrouper:
         Returns
         -------
         Generator yielding subsetted objects
-
-        __finalize__ has not been called for the subsetted objects returned.
         """
         ids, _, ngroups = self.group_info
         return get_splitter(data, ids, ngroups, axis=axis)
@@ -796,6 +802,7 @@ class BaseGrouper:
         Compute group sizes.
         """
         ids, _, ngroups = self.group_info
+        out: np.ndarray | list
         if ngroups:
             out = np.bincount(ids[ids != -1], minlength=ngroups)
         else:
@@ -1232,14 +1239,8 @@ class SeriesSplitter(DataSplitter):
     def _chop(self, sdata: Series, slice_obj: slice) -> Series:
         # fastpath equivalent to `sdata.iloc[slice_obj]`
         mgr = sdata._mgr.get_slice(slice_obj)
-        # __finalize__ not called here, must be applied by caller if applicable
-
-        # fastpath equivalent to:
-        # `return sdata._constructor(mgr, name=sdata.name, fastpath=True)`
-        obj = type(sdata)._from_mgr(mgr)
-        object.__setattr__(obj, "_flags", sdata._flags)
-        object.__setattr__(obj, "_name", sdata._name)
-        return obj
+        ser = sdata._constructor(mgr, name=sdata.name, fastpath=True)
+        return ser.__finalize__(sdata, method="groupby")
 
 
 class FrameSplitter(DataSplitter):
@@ -1250,12 +1251,8 @@ class FrameSplitter(DataSplitter):
         # else:
         #     return sdata.iloc[:, slice_obj]
         mgr = sdata._mgr.get_slice(slice_obj, axis=1 - self.axis)
-        # __finalize__ not called here, must be applied by caller if applicable
-
-        # fastpath equivalent to `return sdata._constructor(mgr)`
-        obj = type(sdata)._from_mgr(mgr)
-        object.__setattr__(obj, "_flags", sdata._flags)
-        return obj
+        df = sdata._constructor(mgr)
+        return df.__finalize__(sdata, method="groupby")
 
 
 def get_splitter(

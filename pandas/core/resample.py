@@ -11,6 +11,7 @@ from typing import (
     final,
     no_type_check,
 )
+import warnings
 
 import numpy as np
 
@@ -40,6 +41,7 @@ from pandas.util._decorators import (
     deprecate_nonkeyword_arguments,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -509,7 +511,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
         return result
 
-    def pad(self, limit=None):
+    def ffill(self, limit=None):
         """
         Forward fill the values.
 
@@ -527,9 +529,18 @@ class Resampler(BaseGroupBy, PandasObject):
         Series.fillna: Fill NA/NaN values using the specified method.
         DataFrame.fillna: Fill NA/NaN values using the specified method.
         """
-        return self._upsample("pad", limit=limit)
+        return self._upsample("ffill", limit=limit)
 
-    ffill = pad
+    def pad(self, limit=None):
+        warnings.warn(
+            "pad is deprecated and will be removed in a future version. "
+            "Use ffill instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self.ffill(limit=limit)
+
+    pad.__doc__ = ffill.__doc__
 
     def nearest(self, limit=None):
         """
@@ -591,7 +602,7 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         return self._upsample("nearest", limit=limit)
 
-    def backfill(self, limit=None):
+    def bfill(self, limit=None):
         """
         Backward fill the new missing values in the resampled data.
 
@@ -618,7 +629,7 @@ class Resampler(BaseGroupBy, PandasObject):
         fillna : Fill NaN values using the specified method, which can be
             'backfill'.
         nearest : Fill NaN values with nearest neighbor starting from center.
-        pad : Forward fill NaN values.
+        ffill : Forward fill NaN values.
         Series.fillna : Fill NaN values in the Series using the
             specified method, which can be 'backfill'.
         DataFrame.fillna : Fill NaN values in the DataFrame using the
@@ -640,7 +651,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 02:00:00    3
         Freq: H, dtype: int64
 
-        >>> s.resample('30min').backfill()
+        >>> s.resample('30min').bfill()
         2018-01-01 00:00:00    1
         2018-01-01 00:30:00    2
         2018-01-01 01:00:00    2
@@ -648,7 +659,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 02:00:00    3
         Freq: 30T, dtype: int64
 
-        >>> s.resample('15min').backfill(limit=2)
+        >>> s.resample('15min').bfill(limit=2)
         2018-01-01 00:00:00    1.0
         2018-01-01 00:15:00    NaN
         2018-01-01 00:30:00    2.0
@@ -671,7 +682,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 01:00:00  NaN  3
         2018-01-01 02:00:00  6.0  5
 
-        >>> df.resample('30min').backfill()
+        >>> df.resample('30min').bfill()
                                a  b
         2018-01-01 00:00:00  2.0  1
         2018-01-01 00:30:00  NaN  3
@@ -679,7 +690,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 01:30:00  6.0  5
         2018-01-01 02:00:00  6.0  5
 
-        >>> df.resample('15min').backfill(limit=2)
+        >>> df.resample('15min').bfill(limit=2)
                                a    b
         2018-01-01 00:00:00  2.0  1.0
         2018-01-01 00:15:00  NaN  NaN
@@ -691,9 +702,18 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 01:45:00  6.0  5.0
         2018-01-01 02:00:00  6.0  5.0
         """
-        return self._upsample("backfill", limit=limit)
+        return self._upsample("bfill", limit=limit)
 
-    bfill = backfill
+    def backfill(self, limit=None):
+        warnings.warn(
+            "backfill is deprecated and will be removed in a future version. "
+            "Use bfill instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self.bfill(limit=limit)
+
+    backfill.__doc__ = bfill.__doc__
 
     def fillna(self, method, limit=None):
         """
@@ -727,8 +747,8 @@ class Resampler(BaseGroupBy, PandasObject):
 
         See Also
         --------
-        backfill : Backward fill NaN values in the resampled data.
-        pad : Forward fill NaN values in the resampled data.
+        bfill : Backward fill NaN values in the resampled data.
+        ffill : Forward fill NaN values in the resampled data.
         nearest : Fill NaN values in the resampled data
             with nearest neighbor starting from center.
         interpolate : Fill NaN values using interpolation.
@@ -2012,30 +2032,30 @@ def _adjust_dates_anchored(
     if closed == "right":
         if foffset > 0:
             # roll back
-            fresult = first.value - foffset
+            fresult_int = first.value - foffset
         else:
-            fresult = first.value - freq.nanos
+            fresult_int = first.value - freq.nanos
 
         if loffset > 0:
             # roll forward
-            lresult = last.value + (freq.nanos - loffset)
+            lresult_int = last.value + (freq.nanos - loffset)
         else:
             # already the end of the road
-            lresult = last.value
+            lresult_int = last.value
     else:  # closed == 'left'
         if foffset > 0:
-            fresult = first.value - foffset
+            fresult_int = first.value - foffset
         else:
             # start of the road
-            fresult = first.value
+            fresult_int = first.value
 
         if loffset > 0:
             # roll forward
-            lresult = last.value + (freq.nanos - loffset)
+            lresult_int = last.value + (freq.nanos - loffset)
         else:
-            lresult = last.value + freq.nanos
-    fresult = Timestamp(fresult)
-    lresult = Timestamp(lresult)
+            lresult_int = last.value + freq.nanos
+    fresult = Timestamp(fresult_int)
+    lresult = Timestamp(lresult_int)
     if first_tzinfo is not None:
         fresult = fresult.tz_localize("UTC").tz_convert(first_tzinfo)
     if last_tzinfo is not None:

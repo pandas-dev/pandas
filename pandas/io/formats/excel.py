@@ -38,8 +38,8 @@ from pandas import (
     MultiIndex,
     PeriodIndex,
 )
-from pandas.core import generic
 import pandas.core.common as com
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.formats._color_data import CSS4_COLORS
 from pandas.io.formats.css import (
@@ -325,12 +325,6 @@ class CSSToExcelConverter:
             "color": self.color_to_excel(props.get("color")),
             # shadow if nonzero digit before shadow color
             "shadow": self._get_shadow(props),
-            # FIXME: dont leave commented-out
-            # 'vertAlign':,
-            # 'charset': ,
-            # 'scheme': ,
-            # 'outline': ,
-            # 'condense': ,
         }
 
     def _get_is_bold(self, props: Mapping[str, str]) -> bool | None:
@@ -655,20 +649,21 @@ class ExcelFormatter:
                 )
 
     def _format_header(self) -> Iterable[ExcelCell]:
+        gen: Iterable[ExcelCell]
+
         if isinstance(self.columns, MultiIndex):
             gen = self._format_header_mi()
         else:
             gen = self._format_header_regular()
 
-        gen2 = ()
+        gen2: Iterable[ExcelCell] = ()
+
         if self.df.index.names:
             row = [x if x is not None else "" for x in self.df.index.names] + [
                 ""
             ] * len(self.columns)
             if reduce(lambda x, y: x and y, map(lambda x: x != "", row)):
-                # error: Incompatible types in assignment (expression has type
-                # "Generator[ExcelCell, None, None]", variable has type "Tuple[]")
-                gen2 = (  # type: ignore[assignment]
+                gen2 = (
                     ExcelCell(self.rowcounter, colindex, val, self.header_style)
                     for colindex, val in enumerate(row)
                 )
@@ -834,7 +829,7 @@ class ExcelFormatter:
             cell.val = self._format_value(cell.val)
             yield cell
 
-    @doc(storage_options=generic._shared_docs["storage_options"])
+    @doc(storage_options=_shared_docs["storage_options"])
     def write(
         self,
         writer,

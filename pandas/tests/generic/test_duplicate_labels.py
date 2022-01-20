@@ -294,14 +294,12 @@ class TestRaises:
 
         assert data.flags.allows_duplicate_labels is True
 
-    @pytest.mark.parametrize(
-        "func", [operator.methodcaller("append", pd.Series(0, index=["a", "b"]))]
-    )
-    def test_series_raises(self, func):
-        s = pd.Series([0, 1], index=["a", "b"]).set_flags(allows_duplicate_labels=False)
+    def test_series_raises(self):
+        a = pd.Series(0, index=["a", "b"])
+        b = pd.Series([0, 1], index=["a", "b"]).set_flags(allows_duplicate_labels=False)
         msg = "Index has duplicates."
         with pytest.raises(pd.errors.DuplicateLabelError, match=msg):
-            func(s)
+            pd.concat([a, b])
 
     @pytest.mark.parametrize(
         "getter, target",
@@ -318,9 +316,7 @@ class TestRaises:
             pytest.param(
                 operator.itemgetter((0, [0, 0])), "iloc", marks=not_implemented
             ),
-            pytest.param(
-                operator.itemgetter(([0, 0], 0)), "iloc", marks=not_implemented
-            ),
+            pytest.param(operator.itemgetter(([0, 0], 0)), "iloc"),
         ],
     )
     def test_getitem_raises(self, getter, target):

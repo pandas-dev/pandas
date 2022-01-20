@@ -1088,6 +1088,7 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
     """
     cdef:
         Py_ssize_t n = len(arr)
+        Py_ssize_t increment = arr.strides[0] // 8
         ndarray[int64_t] result = np.empty(n, dtype=np.int64)
 
     _period_asfreq(
@@ -1097,6 +1098,7 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
         freq1,
         freq2,
         end,
+        increment,
     )
     return result
 
@@ -1110,6 +1112,7 @@ cdef void _period_asfreq(
     int freq1,
     int freq2,
     bint end,
+    Py_ssize_t increment=1,
 ):
     """See period_asfreq.__doc__"""
     cdef:
@@ -1127,7 +1130,7 @@ cdef void _period_asfreq(
     get_asfreq_info(freq1, freq2, end, &af_info)
 
     for i in range(length):
-        val = ordinals[i]
+        val = ordinals[i * increment]
         if val != NPY_NAT:
             val = func(val, &af_info)
         out[i] = val
@@ -1568,6 +1571,20 @@ cdef class PeriodMixin:
 
     @property
     def end_time(self) -> Timestamp:
+        """
+        Get the Timestamp for the end of the period.
+
+        Returns
+        -------
+        Timestamp
+
+        See Also
+        --------
+        Period.start_time : Return the start Timestamp.
+        Period.dayofyear : Return the day of year.
+        Period.daysinmonth : Return the days in that month.
+        Period.dayofweek : Return the day of the week.
+        """
         return self.to_timestamp(how="end")
 
     def _require_matching_freq(self, other, base=False):
@@ -1832,11 +1849,17 @@ cdef class _Period(PeriodMixin):
 
     @property
     def year(self) -> int:
+        """
+        Return the year this Period falls on.
+        """
         base = self._dtype._dtype_code
         return pyear(self.ordinal, base)
 
     @property
     def month(self) -> int:
+        """
+        Return the month this Period falls on.
+        """
         base = self._dtype._dtype_code
         return pmonth(self.ordinal, base)
 
@@ -1943,6 +1966,32 @@ cdef class _Period(PeriodMixin):
 
     @property
     def weekofyear(self) -> int:
+        """
+        Get the week of the year on the given Period.
+
+        Returns
+        -------
+        int
+
+        See Also
+        --------
+        Period.dayofweek : Get the day component of the Period.
+        Period.weekday : Get the day component of the Period.
+
+        Examples
+        --------
+        >>> p = pd.Period("2018-03-11", "H")
+        >>> p.weekofyear
+        10
+
+        >>> p = pd.Period("2018-02-01", "D")
+        >>> p.weekofyear
+        5
+
+        >>> p = pd.Period("2018-01-06", "D")
+        >>> p.weekofyear
+        1
+        """
         base = self._dtype._dtype_code
         return pweek(self.ordinal, base)
 
@@ -2117,6 +2166,9 @@ cdef class _Period(PeriodMixin):
 
     @property
     def quarter(self) -> int:
+        """
+        Return the quarter this Period falls on.
+        """
         base = self._dtype._dtype_code
         return pquarter(self.ordinal, base)
 
@@ -2222,14 +2274,23 @@ cdef class _Period(PeriodMixin):
 
     @property
     def is_leap_year(self) -> bool:
+        """
+        Return True if the period's year is in a leap year.
+        """
         return bool(is_leapyear(self.year))
 
     @classmethod
     def now(cls, freq=None):
+        """
+        Return the period of now's date.
+        """
         return Period(datetime.now(), freq=freq)
 
     @property
     def freqstr(self) -> str:
+        """
+        Return a string representation of the frequency.
+        """
         return self.freq.freqstr
 
     def __repr__(self) -> str:

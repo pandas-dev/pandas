@@ -580,10 +580,11 @@ class StringMethods(NoNewAttributesMixin):
             data = ensure_object(data)  # type: ignore[assignment]
             na_mask = isna(data)
             if na_rep is None and na_mask.any():
-                data = data[~na_mask]
+                return sep.join(data[~na_mask])
             elif na_rep is not None and na_mask.any():
-                data = np.where(na_mask, na_rep, data)
-            return sep.join(data)
+                return sep.join(np.where(na_mask, na_rep, data))
+            else:
+                return sep.join(data)
 
         try:
             # turn anything in "others" into lists of Series
@@ -1212,8 +1213,8 @@ class StringMethods(NoNewAttributesMixin):
         """
         if regex and re.compile(pat).groups:
             warnings.warn(
-                "This pattern has match groups. To actually get the "
-                "groups, use str.extract.",
+                "This pattern is interpreted as a regular expression, and has "
+                "match groups. To actually get the groups, use str.extract.",
                 UserWarning,
                 stacklevel=find_stack_level(),
             )
@@ -1977,7 +1978,7 @@ class StringMethods(NoNewAttributesMixin):
     Parameters
     ----------
     %(side)s : str
-        %(side)s to remove.
+        Remove the %(side)s of the string.
 
     Returns
     -------

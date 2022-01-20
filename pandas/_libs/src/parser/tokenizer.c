@@ -446,7 +446,7 @@ static int end_line(parser_t *self) {
     }
 
     if (!(self->lines <= self->header_end + 1) &&
-        (self->expected_fields < 0 && fields > ex_fields) && !(self->usecols)) {
+        (fields > ex_fields) && !(self->usecols)) {
         // increment file line count
         self->file_lines++;
 
@@ -649,7 +649,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
 #define END_LINE() END_LINE_STATE(START_RECORD)
 
 #define IS_TERMINATOR(c)                            \
-    (c == line_terminator)
+    (c == lineterminator)
 
 #define IS_QUOTE(c) ((c == self->quotechar && self->quoting != QUOTE_NONE))
 
@@ -718,7 +718,7 @@ int tokenize_bytes(parser_t *self,
     char *stream;
     char *buf = self->data + self->datapos;
 
-    const char line_terminator = (self->lineterminator == '\0') ?
+    const char lineterminator = (self->lineterminator == '\0') ?
             '\n' : self->lineterminator;
 
     // 1000 is something that couldn't fit in "char"

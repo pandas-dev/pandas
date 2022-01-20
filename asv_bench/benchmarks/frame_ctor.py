@@ -19,7 +19,10 @@ try:
     )
 except ImportError:
     # For compatibility with older versions
-    from pandas.core.datetools import *  # noqa
+    from pandas.core.datetools import (
+        Hour,
+        Nano,
+    )
 
 
 class FromDicts:
@@ -177,6 +180,23 @@ class FromArrays:
             columns=self.columns,
             verify_integrity=False,
         )
+
+
+class From3rdParty:
+    # GH#44616
+
+    def setup(self):
+        try:
+            import torch
+        except ImportError:
+            raise NotImplementedError
+
+        row = 700000
+        col = 64
+        self.val_tensor = torch.randn(row, col)
+
+    def time_from_torch(self):
+        DataFrame(self.val_tensor)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

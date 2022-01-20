@@ -20,11 +20,9 @@ from pandas._typing import (
     npt,
     type_t,
 )
-from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
-    is_float,
     is_float_dtype,
     is_integer_dtype,
     is_list_like,
@@ -327,15 +325,6 @@ class BooleanArray(BaseMaskedArray):
         return self._dtype
 
     @classmethod
-    def _from_sequence(
-        cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
-    ) -> BooleanArray:
-        if dtype:
-            assert dtype == "boolean"
-        values, mask = coerce_to_array(scalars, copy=copy)
-        return BooleanArray(values, mask)
-
-    @classmethod
     def _from_sequence_of_strings(
         cls,
         strings: list[str],
@@ -363,8 +352,13 @@ class BooleanArray(BaseMaskedArray):
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number, bool, np.bool_)
 
-    def _coerce_to_array(self, value) -> tuple[np.ndarray, np.ndarray]:
-        return coerce_to_array(value)
+    @classmethod
+    def _coerce_to_array(
+        cls, value, *, dtype: DtypeObj, copy: bool = False
+    ) -> tuple[np.ndarray, np.ndarray]:
+        if dtype:
+            assert dtype == "boolean"
+        return coerce_to_array(value, copy=copy)
 
     @overload
     def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
@@ -445,144 +439,6 @@ class BooleanArray(BaseMaskedArray):
         data[self._mask] = -1
         return data
 
-    def any(self, *, skipna: bool = True, axis: int | None = 0, **kwargs):
-        """
-        Return whether any element is True.
-
-        Returns False unless there is at least one element that is True.
-        By default, NAs are skipped. If ``skipna=False`` is specified and
-        missing values are present, similar :ref:`Kleene logic <boolean.kleene>`
-        is used as for logical operations.
-
-        Parameters
-        ----------
-        skipna : bool, default True
-            Exclude NA values. If the entire array is NA and `skipna` is
-            True, then the result will be False, as for an empty array.
-            If `skipna` is False, the result will still be True if there is
-            at least one element that is True, otherwise NA will be returned
-            if there are NA's present.
-        axis : int or None, default 0
-        **kwargs : any, default None
-            Additional keywords have no effect but might be accepted for
-            compatibility with NumPy.
-
-        Returns
-        -------
-        bool or :attr:`pandas.NA`
-
-        See Also
-        --------
-        numpy.any : Numpy version of this method.
-        BooleanArray.all : Return whether all elements are True.
-
-        Examples
-        --------
-        The result indicates whether any element is True (and by default
-        skips NAs):
-
-        >>> pd.array([True, False, True]).any()
-        True
-        >>> pd.array([True, False, pd.NA]).any()
-        True
-        >>> pd.array([False, False, pd.NA]).any()
-        False
-        >>> pd.array([], dtype="boolean").any()
-        False
-        >>> pd.array([pd.NA], dtype="boolean").any()
-        False
-
-        With ``skipna=False``, the result can be NA if this is logically
-        required (whether ``pd.NA`` is True or False influences the result):
-
-        >>> pd.array([True, False, pd.NA]).any(skipna=False)
-        True
-        >>> pd.array([False, False, pd.NA]).any(skipna=False)
-        <NA>
-        """
-        kwargs.pop("axis", None)
-        nv.validate_any((), kwargs)
-
-        values = self._data.copy()
-        np.putmask(values, self._mask, False)
-        result = values.any(axis=axis)
-
-        if skipna:
-            return result
-        else:
-            if result or self.size == 0 or not self._mask.any():
-                return result
-            else:
-                return self.dtype.na_value
-
-    def all(self, *, skipna: bool = True, axis: int | None = 0, **kwargs):
-        """
-        Return whether all elements are True.
-
-        Returns True unless there is at least one element that is False.
-        By default, NAs are skipped. If ``skipna=False`` is specified and
-        missing values are present, similar :ref:`Kleene logic <boolean.kleene>`
-        is used as for logical operations.
-
-        Parameters
-        ----------
-        skipna : bool, default True
-            Exclude NA values. If the entire array is NA and `skipna` is
-            True, then the result will be True, as for an empty array.
-            If `skipna` is False, the result will still be False if there is
-            at least one element that is False, otherwise NA will be returned
-            if there are NA's present.
-        axis : int or None, default 0
-        **kwargs : any, default None
-            Additional keywords have no effect but might be accepted for
-            compatibility with NumPy.
-
-        Returns
-        -------
-        bool or :attr:`pandas.NA`
-
-        See Also
-        --------
-        numpy.all : Numpy version of this method.
-        BooleanArray.any : Return whether any element is True.
-
-        Examples
-        --------
-        The result indicates whether any element is True (and by default
-        skips NAs):
-
-        >>> pd.array([True, True, pd.NA]).all()
-        True
-        >>> pd.array([True, False, pd.NA]).all()
-        False
-        >>> pd.array([], dtype="boolean").all()
-        True
-        >>> pd.array([pd.NA], dtype="boolean").all()
-        True
-
-        With ``skipna=False``, the result can be NA if this is logically
-        required (whether ``pd.NA`` is True or False influences the result):
-
-        >>> pd.array([True, True, pd.NA]).all(skipna=False)
-        <NA>
-        >>> pd.array([True, False, pd.NA]).all(skipna=False)
-        False
-        """
-        kwargs.pop("axis", None)
-        nv.validate_all((), kwargs)
-
-        values = self._data.copy()
-        np.putmask(values, self._mask, True)
-        result = values.all(axis=axis)
-
-        if skipna:
-            return result
-        else:
-            if not result or self.size == 0 or not self._mask.any():
-                return result
-            else:
-                return self.dtype.na_value
-
     def _logical_method(self, other, op):
 
         assert op.__name__ in {"or_", "ror_", "and_", "rand_", "xor", "rxor"}
@@ -638,7 +494,8 @@ class BooleanArray(BaseMaskedArray):
         if mask is None:
             mask = self._mask
             if other is libmissing.NA:
-                mask |= True
+                # GH#45421 don't alter inplace
+                mask = mask | True
         else:
             mask = self._mask | mask
 
@@ -647,6 +504,8 @@ class BooleanArray(BaseMaskedArray):
             # actual op, so we need to choose the resulting dtype manually
             if op_name in {"floordiv", "rfloordiv", "mod", "rmod", "pow", "rpow"}:
                 dtype = "int8"
+            elif op_name in {"truediv", "rtruediv"}:
+                dtype = "float64"
             else:
                 dtype = "bool"
             result = np.zeros(len(self._data), dtype=dtype)
@@ -668,36 +527,6 @@ class BooleanArray(BaseMaskedArray):
             )
 
         return self._maybe_mask_result(result, mask, other, op_name)
-
-    def _maybe_mask_result(self, result, mask, other, op_name: str):
-        """
-        Parameters
-        ----------
-        result : array-like
-        mask : array-like bool
-        other : scalar or array-like
-        op_name : str
-        """
-        # if we have a float operand we are by-definition
-        # a float result
-        # or our op is a divide
-        if (is_float_dtype(other) or is_float(other)) or (
-            op_name in ["rtruediv", "truediv"]
-        ):
-            from pandas.core.arrays import FloatingArray
-
-            return FloatingArray(result, mask, copy=False)
-
-        elif is_bool_dtype(result):
-            return BooleanArray(result, mask, copy=False)
-
-        elif is_integer_dtype(result):
-            from pandas.core.arrays import IntegerArray
-
-            return IntegerArray(result, mask, copy=False)
-        else:
-            result[mask] = np.nan
-            return result
 
     def __abs__(self):
         return self.copy()

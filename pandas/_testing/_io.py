@@ -14,10 +14,8 @@ from pandas._typing import (
     FilePath,
     ReadPickleBuffer,
 )
-from pandas.compat import (
-    get_lzma_file,
-    import_lzma,
-)
+from pandas.compat import get_lzma_file
+from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
 from pandas._testing._random import rands
@@ -32,8 +30,6 @@ if TYPE_CHECKING:
     )
 
 _RAISE_NETWORK_ERROR_DEFAULT = False
-
-lzma = import_lzma()
 
 # skip tests on exceptions with these messages
 _network_error_messages = (
@@ -172,7 +168,7 @@ def network(
       ... def test_network():
       ...     with pd.io.common.urlopen("rabbit://bonanza.com"):
       ...         pass
-      >>> test_network()
+      >>> test_network()  # doctest: +SKIP
       Traceback
          ...
       URLError: <urlopen error unknown url type: rabbit>
@@ -194,7 +190,7 @@ def network(
         ... def test_something():
         ...     print("I ran!")
         ...     raise ValueError("Failure")
-        >>> test_something()
+        >>> test_something()  # doctest: +SKIP
         Traceback (most recent call last):
             ...
 
@@ -369,7 +365,7 @@ def write_to_compressed(compression, path, data, dest="test"):
 
     Parameters
     ----------
-    compression : {'gzip', 'bz2', 'zip', 'xz'}
+    compression : {'gzip', 'bz2', 'zip', 'xz', 'zstd'}
         The compression type to use.
     path : str
         The file path to write the data.
@@ -396,8 +392,10 @@ def write_to_compressed(compression, path, data, dest="test"):
         compress_method = gzip.GzipFile
     elif compression == "bz2":
         compress_method = bz2.BZ2File
+    elif compression == "zstd":
+        compress_method = import_optional_dependency("zstandard").open
     elif compression == "xz":
-        compress_method = get_lzma_file(lzma)
+        compress_method = get_lzma_file()
     else:
         raise ValueError(f"Unrecognized compression type: {compression}")
 
