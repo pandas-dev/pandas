@@ -53,6 +53,7 @@ from pandas.core.indexers import (
     is_empty_indexer,
     is_exact_shape_match,
     is_list_like_indexer,
+    is_scalar_indexer,
     length_of_indexer,
 )
 from pandas.core.indexes.api import (
@@ -670,6 +671,56 @@ class _LocationIndexer(NDFrameIndexerBase):
         return self._convert_to_indexer(key, axis=0)
 
     @final
+    def _maybe_mask_setitem_value(self, indexer, value):
+        """
+        If we have obj.iloc[mask] = arraylike and arraylike has the same
+        length as obj, we treat this as obj.iloc[mask] = arraylike[mask],
+        similar to Series.__setitem__.
+        """
+        # TODO: why do we only do this for loc, not iloc?
+        # ser = pd.Series(range(5))
+        # mask = np.array([True, False, True, False, True])
+        # ser[mask] = ser * 2  # <- works
+        # ser.loc[mask] = ser * 2  # <- works
+        # ser.iloc[mask] = ser * 2  # <- raises
+
+        if isinstance(indexer, tuple) and len(indexer) == 2:
+            pi, icols = indexer
+            ndim = getattr(value, "ndim", 0)
+            if ndim == 0:
+                pass
+            elif com.is_bool_indexer(pi) and len(value) == len(pi):
+                newkey = pi.nonzero()[0]
+
+                if is_scalar_indexer(icols, self.ndim - 1) and ndim == 1:
+                    # e.g. test_loc_setitem_boolean_mask_allfalse
+                    value = value[pi]
+                    indexer = (newkey, icols)
+
+                elif (
+                    isinstance(icols, np.ndarray)
+                    and icols.dtype.kind == "i"
+                    and len(icols) == 1
+                ):
+                    if ndim == 1:
+                        value = value[pi]
+                        indexer = (newkey, icols)
+                        # TODO: is it sketchy that icols is an ndarray and value
+                        #  is 1D?  i.e. should we require value to be 2D with
+                        #  value.shape[1] == 1?
+
+                    elif ndim == 2 and value.shape[1] == 1:
+                        if isinstance(value, ABCDataFrame):
+                            value = value.iloc[newkey]
+                        else:
+                            value = value[pi]
+                        indexer = (newkey, icols)
+        elif com.is_bool_indexer(indexer):
+            indexer = indexer.nonzero()[0]
+
+        return indexer, value
+
+    @final
     def _tupleize_axis_indexer(self, key) -> tuple:
         """
         If we have an axis, adapt the given key to be axis-independent.
@@ -726,6 +777,10 @@ class _LocationIndexer(NDFrameIndexerBase):
             key = com.apply_if_callable(key, self.obj)
         indexer = self._get_setitem_indexer(key)
         self._has_valid_setitem_indexer(key)
+
+        if self.name == "loc":
+            # TODO: should we do this for iloc too?
+            indexer, value = self._maybe_mask_setitem_value(indexer, value)
 
         iloc = self if self.name == "iloc" else self.obj.iloc
         iloc._setitem_with_indexer(indexer, value, self.name)
@@ -1299,8 +1354,7 @@ class _LocIndexer(_LocationIndexer):
 
             if com.is_bool_indexer(key):
                 key = check_bool_indexer(labels, key)
-                (inds,) = key.nonzero()
-                return inds
+                return key
             else:
                 return self._get_listlike_indexer(key, axis)[1]
         else:
