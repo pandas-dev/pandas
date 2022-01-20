@@ -180,7 +180,7 @@ class PyArrowImpl(BaseImpl):
             mode="wb",
             is_dir=partition_cols is not None,
         )
-        if isinstance(path_or_handle, WriteBuffer):
+        if isinstance(path_or_handle, io.BufferedWriter):
             path_or_handle = path_or_handle.raw.name
 
         try:
