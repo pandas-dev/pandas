@@ -1782,7 +1782,7 @@ class MultiIndex(Index):
                 )
             idx_names = name
         else:
-            idx_names = self._make_labels()
+            idx_names = self._get_level_names()
 
         if not allow_duplicates and len(set(idx_names)) != len(idx_names):
             raise ValueError(

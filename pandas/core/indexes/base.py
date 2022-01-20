@@ -1354,7 +1354,7 @@ class Index(IndexOpsMixin, PandasObject):
         return attrs
 
     @final
-    def _make_labels(self) -> Hashable | Sequence[Hashable]:
+    def _get_level_names(self) -> Hashable | Sequence[Hashable]:
         """
         Return a name or list of names with None replaced by the level number.
         """
@@ -1640,7 +1640,7 @@ class Index(IndexOpsMixin, PandasObject):
         from pandas import DataFrame
 
         if name is lib.no_default:
-            name = self._make_labels()
+            name = self._get_level_names()
         result = DataFrame({name: self._values.copy()})
 
         if index:
