@@ -41,7 +41,6 @@ def is_constant(x):
         for obj in itertools.chain(create_series(), create_dataframes())
         if is_constant(obj)
     ),
-    scope="module",
 )
 def consistent_data(request):
     return request.param
