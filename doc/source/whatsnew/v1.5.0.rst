@@ -20,6 +20,7 @@ Styler
 ^^^^^^
 
   - New method :meth:`.Styler.to_string` for alternative customisable output methods (:issue:`44502`)
+  - New keyword argument ``aliases`` added to :meth:`.Styler.format_index` to allow simple label string replacement (:issue:`45288`)
   - Various bug fixes, see below.
 
 .. _whatsnew_150.enhancements.enhancement2:

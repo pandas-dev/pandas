@@ -1063,6 +1063,7 @@ class StylerRenderer:
         thousands: str | None = None,
         escape: str | None = None,
         hyperlinks: str | None = None,
+        aliases: list[str] | list[list[str]] | None = None,
     ) -> StylerRenderer:
         r"""
         Format the text display value of index labels or column headers.
@@ -1074,9 +1075,12 @@ class StylerRenderer:
         formatter : str, callable, dict or None
             Object to define how values are displayed. See notes.
         axis : {0, "index", 1, "columns"}
-            Whether to apply the formatter to the index or column headers.
+            Whether to apply the ``formatter`` or ``aliases`` to the index or column
+            headers.
         level : int, str, list
-            The level(s) over which to apply the generic formatter.
+            The level(s) over which to apply the generic ``formatter``, or ``aliases``.
+            In the case of ``aliases`` defaults to the last level of a MultiIndex,
+            for the reason that the last level is never sparsified.
         na_rep : str, optional
             Representation for missing values.
             If ``na_rep`` is None, no special formatting is applied.
@@ -1098,6 +1102,17 @@ class StylerRenderer:
             Convert string patterns containing https://, http://, ftp:// or www. to
             HTML <a> tags as clickable URL hyperlinks if "html", or LaTeX \href
             commands if "latex".
+        aliases : list of str, list of list of str
+            Values to replace the existing index or column headers. If specifying
+            more than one ``level`` then this should be a list containing sub-lists for
+            each identified level, in the respective order.
+            Cannot be used simultaneously with ``formatter`` and the associated
+            arguments; ``thousands``, ``decimal``, ``escape``, ``hyperlinks``,
+            ``na_rep`` and ``precision``.
+            This list (or each sub-list) must be of length equal to the number of
+            visible columns, see examples.
+
+            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -1128,6 +1143,10 @@ class StylerRenderer:
 
         When using a ``formatter`` string the dtypes must be compatible, otherwise a
         `ValueError` will be raised.
+
+        Since it is not possible to apply a generic function which will return an
+        arbitrary set of column aliases, the argument ``aliases`` provides the
+        ability to automate this, across individual index levels if necessary.
 
         Examples
         --------
@@ -1182,18 +1201,41 @@ class StylerRenderer:
         {} & {\textbf{123}} & {\textbf{\textasciitilde }} & {\textbf{\$\%\#}} \\
         0 & 1 & 2 & 3 \\
         \end{tabular}
+
+        Using ``aliases`` to overwrite column names.
+
+        >>> df = pd.DataFrame([[1, 2, 3]], columns=[1, 2, 3])
+        >>> df.style.format_index(axis=1, aliases=["A", "B", "C"])  # doctest: +SKIP
+                A      B       C
+        0       1      2       3
+
+        Using ``aliases`` to overwrite column names of remaining **visible** items.
+
+        >>> df = pd.DataFrame([[1, 2, 3]],
+        ...                   columns=pd.MultiIndex.from_product([[1, 2, 3], ["X"]]))
+        >>> styler = df.style  # doctest: +SKIP
+                1      2       3
+                X      X       X
+        0       1      2       3
+
+        >>> styler.hide([2], axis=1)      # hides a column as a `subset` hide
+        ...       .hide(level=1, axis=1)  # hides the entire axis level
+        ...       .format_index(axis=1, aliases=["A", "C"], level=0)  # doctest: +SKIP
+                A      C
+        0       1      3
         """
         axis = self.data._get_axis_number(axis)
         if axis == 0:
             display_funcs_, obj = self._display_funcs_index, self.index
+            hidden_labels = self.hidden_rows
         else:
             display_funcs_, obj = self._display_funcs_columns, self.columns
+            hidden_labels = self.hidden_columns
         levels_ = refactor_levels(level, obj)
 
-        if all(
+        formatting_args_unset = all(
             (
                 formatter is None,
-                level is None,
                 precision is None,
                 decimal == ".",
                 thousands is None,
@@ -1201,31 +1243,75 @@ class StylerRenderer:
                 escape is None,
                 hyperlinks is None,
             )
-        ):
+        )
+
+        if formatting_args_unset and level is None and aliases is None:
+            # clear the formatter / revert to default and avoid looping
             display_funcs_.clear()
-            return self  # clear the formatter / revert to default and avoid looping
 
-        if not isinstance(formatter, dict):
-            formatter = {level: formatter for level in levels_}
-        else:
-            formatter = {
-                obj._get_level_number(level): formatter_
-                for level, formatter_ in formatter.items()
-            }
+        elif aliases is not None:  # then apply a formatting function from arg: aliases
+            if not formatting_args_unset:
+                raise ValueError(
+                    "``aliases`` cannot be supplied together with any of "
+                    "``formatter``, ``precision``, ``decimal``, ``na_rep``, "
+                    "``escape``, or ``hyperlinks``."
+                )
+            else:
+                visible_len = len(obj) - len(set(hidden_labels))
+                if level is None:
+                    levels_ = [obj.nlevels - 1]  # default to last level
+                elif len(levels_) > 1 and len(aliases) != len(levels_):
+                    raise ValueError(
+                        f"``level`` specifies {len(levels_)} levels but the length of "
+                        f"``aliases``, {len(aliases)}, does not match."
+                    )
 
-        for lvl in levels_:
-            format_func = _maybe_wrap_formatter(
-                formatter.get(lvl),
-                na_rep=na_rep,
-                precision=precision,
-                decimal=decimal,
-                thousands=thousands,
-                escape=escape,
-                hyperlinks=hyperlinks,
-            )
+                def alias(x, value):
+                    return value
 
-            for idx in [(i, lvl) if axis == 0 else (lvl, i) for i in range(len(obj))]:
-                display_funcs_[idx] = format_func
+                for i, lvl in enumerate(levels_):
+                    level_aliases = aliases[i] if len(levels_) > 1 else aliases
+                    if len(level_aliases) != visible_len:
+                        raise ValueError(
+                            "``aliases`` must be of length equal to the number of "
+                            "visible labels along ``axis``. If ``level`` is given and "
+                            "contains more than one level ``aliases`` should be a "
+                            "list of lists with each sub-list having length equal to"
+                            "the number of visible labels along ``axis``."
+                        )
+                    for ai, idx in enumerate(
+                        [
+                            (i, lvl) if axis == 0 else (lvl, i)
+                            for i in range(len(obj))
+                            if i not in hidden_labels
+                        ]
+                    ):
+                        display_funcs_[idx] = partial(alias, value=level_aliases[ai])
+
+        else:  # then apply a formatting function from arg: formatter
+            if not isinstance(formatter, dict):
+                formatter = {level: formatter for level in levels_}
+            else:
+                formatter = {
+                    obj._get_level_number(level): formatter_
+                    for level, formatter_ in formatter.items()
+                }
+
+            for lvl in levels_:
+                format_func = _maybe_wrap_formatter(
+                    formatter.get(lvl),
+                    na_rep=na_rep,
+                    precision=precision,
+                    decimal=decimal,
+                    thousands=thousands,
+                    escape=escape,
+                    hyperlinks=hyperlinks,
+                )
+
+                for idx in [
+                    (i, lvl) if axis == 0 else (lvl, i) for i in range(len(obj))
+                ]:
+                    display_funcs_[idx] = format_func
 
         return self
 
