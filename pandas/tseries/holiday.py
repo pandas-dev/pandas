@@ -204,7 +204,10 @@ class Holiday:
             month=1, day=1, observance=<function nearest_workday at 0x66545e9bc440>
         )
 
-        >>> July3rd = pd.tseries.holiday.Holiday("July 3rd", month=7, day=3, days_of_week=(0, 1, 2, 3))
+        >>> July3rd = pd.tseries.holiday.Holiday(
+        ...     "July 3rd", month=7, day=3, 
+        ...     days_of_week=(0, 1, 2, 3)
+        ... )
         >>> July3rd
         Holiday: July 3rd (month=7, day=3, )
         """
