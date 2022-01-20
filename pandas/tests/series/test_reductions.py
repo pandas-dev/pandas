@@ -9,6 +9,13 @@ from pandas import (
 import pandas._testing as tm
 
 
+def test_reductions_series_strings():
+    # GH#31746
+    ser = Series(["a", "b"], dtype="string")
+    assert ser.max() == "b"
+    assert ser.min() == "a"
+
+
 @pytest.mark.parametrize("as_period", [True, False])
 def test_mode_extension_dtype(as_period):
     # GH#41927 preserve dt64tz dtype
