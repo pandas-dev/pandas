@@ -3591,6 +3591,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
         if header is False:
             hide.append({"axis": "columns"})
+        elif isinstance(header, (list, tuple)):
+            column_format_ = {"axis": "columns", "aliases": header}
+
         if index is False:
             hide.append({"axis": "index"})
         if index_names is False:
