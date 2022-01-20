@@ -1140,7 +1140,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             return self._validate_listlike(value)
 
         if needs_float_conversion:
-            raise ValueError("Cannot set float NaN to integer-backed IntervalArray")
+            raise TypeError("Cannot set float NaN to integer-backed IntervalArray")
         return value_left, value_right
 
     def value_counts(self, dropna: bool = True):
