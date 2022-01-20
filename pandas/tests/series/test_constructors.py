@@ -877,9 +877,7 @@ class TestSeriesConstructors:
         dts = Series(dates, dtype="datetime64[ns]")
 
         # valid astype
-        with tm.assert_produces_warning(FutureWarning):
-            # astype(np.int64) deprecated
-            dts.astype("int64")
+        dts.astype("int64")
 
         # invalid casting
         msg = r"cannot astype a datetimelike from \[datetime64\[ns\]\] to \[int32\]"
@@ -889,10 +887,8 @@ class TestSeriesConstructors:
         # ints are ok
         # we test with np.int64 to get similar results on
         # windows / 32-bit platforms
-        with tm.assert_produces_warning(FutureWarning):
-            # astype(np.int64) deprecated
-            result = Series(dts, dtype=np.int64)
-            expected = Series(dts.astype(np.int64))
+        result = Series(dts, dtype=np.int64)
+        expected = Series(dts.astype(np.int64))
         tm.assert_series_equal(result, expected)
 
     def test_constructor_dtype_datetime64_9(self):
@@ -1403,9 +1399,7 @@ class TestSeriesConstructors:
         assert td.dtype == "timedelta64[ns]"
 
         # valid astype
-        with tm.assert_produces_warning(FutureWarning):
-            # astype(int64) deprecated
-            td.astype("int64")
+        td.astype("int64")
 
         # invalid casting
         msg = r"cannot astype a datetimelike from \[timedelta64\[ns\]\] to \[int32\]"
@@ -1531,10 +1525,8 @@ class TestSeriesConstructors:
         # ints are ok
         # we test with np.int64 to get similar results on
         # windows / 32-bit platforms
-        with tm.assert_produces_warning(FutureWarning):
-            # asype(np.int64) deprecated, use .view(np.int64) instead
-            result = Series(index, dtype=np.int64)
-            expected = Series(index.astype(np.int64))
+        result = Series(index, dtype=np.int64)
+        expected = Series(index.astype(np.int64))
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
