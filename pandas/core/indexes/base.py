@@ -142,7 +142,6 @@ from pandas.core.arrays.datetimes import (
     tz_to_dtype,
     validate_tz_from_dtype,
 )
-from pandas.core.arrays.masked import BaseMaskedArray
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.base import (
     IndexOpsMixin,
@@ -851,15 +850,11 @@ class Index(IndexOpsMixin, PandasObject):
     ) -> libindex.IndexEngine:
         # For base class (object dtype) we get ObjectEngine
 
-        if isinstance(self._values, BaseMaskedArray):
-            # TODO(ExtensionIndex): use libindex.NullableEngine(self._values)
-            return libindex.ObjectEngine(self._get_engine_target())
-        elif (
+        if (
             isinstance(self._values, ExtensionArray)
             and self._engine_type is libindex.ObjectEngine
         ):
-            # TODO(ExtensionIndex): use libindex.ExtensionEngine(self._values)
-            return libindex.ObjectEngine(self._get_engine_target())
+            return libindex.ExtensionEngine(self._values)
 
         # to avoid a reference cycle, bind `target_values` to a local variable, so
         # `self` is not passed into the lambda.
@@ -3265,12 +3260,6 @@ class Index(IndexOpsMixin, PandasObject):
                 result = result.rename(name)
         else:
             result = self._shallow_copy(result, name=name)
-
-        if type(self) is Index and self.dtype != _dtype_obj:
-            # i.e. ExtensionArray-backed
-            # TODO(ExtensionIndex): revert this astype; it is a kludge to make
-            #  it possible to split ExtensionEngine from ExtensionIndex PR.
-            return result.astype(self.dtype, copy=False)
         return result
 
     @final
@@ -4828,8 +4817,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Whether we can use the fastpaths implement in _libs.join
         """
-        # Note: this will need to be updated when e.g. Nullable dtypes
-        #  are supported in Indexes.
+        if type(self) is Index:
+            # excludes EAs
+            return isinstance(self.dtype, np.dtype)
         return not is_interval_dtype(self.dtype)
 
     # --------------------------------------------------------------------
@@ -4895,16 +4885,12 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self._data
 
-    def _get_engine_target(self) -> np.ndarray:
+    def _get_engine_target(self) -> ArrayLike:
         """
-        Get the ndarray that we can pass to the IndexEngine constructor.
+        Get the ndarray or ExtensionArray that we can pass to the IndexEngine
+        constructor.
         """
-        # error: Incompatible return value type (got "Union[ExtensionArray,
-        # ndarray]", expected "ndarray")
-        if type(self) is Index and isinstance(self._values, ExtensionArray):
-            # TODO(ExtensionIndex): remove special-case, just use self._values
-            return self._values.astype(object)
-        return self._values  # type: ignore[return-value]
+        return self._values
 
     def _from_join_target(self, result: np.ndarray) -> ArrayLike:
         """
