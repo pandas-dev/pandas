@@ -1140,6 +1140,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             return self._validate_listlike(value)
 
         if needs_float_conversion:
+            # GH#45484 TypeError, not ValueError, matches what we get with
+            #  non-NA un-holdable value.
             raise TypeError("Cannot set float NaN to integer-backed IntervalArray")
         return value_left, value_right
 
