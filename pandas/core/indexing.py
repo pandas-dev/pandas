@@ -1883,7 +1883,7 @@ class _iLocIndexer(_LocationIndexer):
         elif (
             is_array_like(value)
             and is_exact_shape_match(ser, value)
-            and not is_empty_indexer(pi, value)
+            and not is_empty_indexer(pi)
         ):
             if is_list_like(pi):
                 ser = value[np.argsort(pi)]
@@ -2092,7 +2092,7 @@ class _iLocIndexer(_LocationIndexer):
             # we have a frame, with multiple indexers on both axes; and a
             # series, so need to broadcast (see GH5206)
             if sum_aligners == self.ndim and all(is_sequence(_) for _ in indexer):
-                if is_empty_indexer(indexer[0], ser._values):
+                if is_empty_indexer(indexer[0]):
                     return ser._values.copy()
                 ser = ser.reindex(obj.axes[0][indexer[0]], copy=True)._values
 
