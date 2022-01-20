@@ -490,3 +490,16 @@ def test_info_int_columns():
         """
     )
     assert result == expected
+
+
+def test_empty_df_newline():
+    # GH#45494
+    df = DataFrame()
+    buf = StringIO()
+    df.info(buf=buf)
+    out = buf.getvalue()
+
+    assert (
+        out
+        == "<class 'pandas.core.frame.DataFrame'>\nIndex: 0 entries\nEmpty DataFrame\n"
+    )
