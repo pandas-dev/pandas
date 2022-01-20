@@ -35,7 +35,7 @@ by trying to remove for-loops and making use of NumPy vectorization. It's always
 optimising in Python first.
 
 This tutorial walks through a "typical" process of cythonizing a slow computation.
-We use an `example from the Cython documentation <http://docs.cython.org/src/quickstart/cythonize.html>`__
+We use an `example from the Cython documentation <https://docs.cython.org/en/latest/src/quickstart/cythonize.html>`__
 but in the context of pandas. Our final cythonized solution is around 100 times
 faster than the pure Python solution.
 
