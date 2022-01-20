@@ -104,14 +104,13 @@ def is_scalar_indexer(indexer, ndim: int) -> bool:
     return False
 
 
-def is_empty_indexer(indexer, arr_value: ArrayLike) -> bool:
+def is_empty_indexer(indexer) -> bool:
     """
     Check if we have an empty indexer.
 
     Parameters
     ----------
     indexer : object
-    arr_value : np.ndarray or ExtensionArray
 
     Returns
     -------
@@ -119,11 +118,9 @@ def is_empty_indexer(indexer, arr_value: ArrayLike) -> bool:
     """
     if is_list_like(indexer) and not len(indexer):
         return True
-    if arr_value.ndim == 1:
-        if not isinstance(indexer, tuple):
-            indexer = (indexer,)
-        return any(isinstance(idx, np.ndarray) and len(idx) == 0 for idx in indexer)
-    return False
+    if not isinstance(indexer, tuple):
+        indexer = (indexer,)
+    return any(isinstance(idx, np.ndarray) and len(idx) == 0 for idx in indexer)
 
 
 # -----------------------------------------------------------
