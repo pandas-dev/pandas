@@ -205,7 +205,7 @@ class Holiday:
         )
 
         >>> July3rd = pd.tseries.holiday.Holiday(
-        ...     "July 3rd", month=7, day=3, 
+        ...     "July 3rd", month=7, day=3,
         ...     days_of_week=(0, 1, 2, 3)
         ... )
         >>> July3rd
