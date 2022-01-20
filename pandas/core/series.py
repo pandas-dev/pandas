@@ -499,7 +499,6 @@ class Series(base.IndexOpsMixin, NDFrame):
             dtype_ = pandas_dtype(dtype)
             values = na_value_for_dtype(dtype_, compat=False)
             if values is None:
-                # bugfix for GH#44602
                 values = construct_1d_arraylike_from_scalar(values, len(index), dtype_)
             keys = index
         else:

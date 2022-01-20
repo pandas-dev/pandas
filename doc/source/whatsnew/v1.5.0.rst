@@ -257,6 +257,7 @@ Sparse
 ExtensionArray
 ^^^^^^^^^^^^^^
 - Bug in :meth:`IntegerArray.searchsorted` and :meth:`FloatingArray.searchsorted` returning inconsistent results when acting on ``np.nan`` (:issue:`45255`)
+- Bug in :class:`Series` construction with index and empty data when :class:`ExtensionDtype` has ``na_value`` of None (:issue:`44602`)
 -
 
 Styler
