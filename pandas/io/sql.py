@@ -742,6 +742,7 @@ def pandasSQL_builder(con, schema: str | None = None):
     provided parameters.
     """
     import sqlite3
+    import warnings
 
     if isinstance(con, sqlite3.Connection) or con is None:
         return SQLiteDatabase(con)
@@ -754,10 +755,13 @@ def pandasSQL_builder(con, schema: str | None = None):
     if isinstance(con, sqlalchemy.engine.Connectable):
         return SQLDatabase(con, schema=schema)
 
-    raise ValueError(
+    warnings.warn(
         "pandas only support SQLAlchemy connectable(engine/connection) or"
         "database string URI or sqlite3 DBAPI2 connection"
+        "other DBAPI2 objects are not tested, please consider using SQLAlchemy",
+        UserWarning,
     )
+    return SQLiteDatabase(con)
 
 
 class SQLTable(PandasObject):
