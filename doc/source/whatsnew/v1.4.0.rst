@@ -1050,6 +1050,7 @@ Other
 - Bug in :meth:`Series.replace` raising ``ValueError`` when using ``regex=True`` with a :class:`Series` containing ``np.nan`` values (:issue:`43344`)
 - Bug in :meth:`DataFrame.to_records` where an incorrect ``n`` was used when missing names were replaced by ``level_n`` (:issue:`44818`)
 - Bug in :meth:`DataFrame.eval` where ``resolvers`` argument was overriding the default resolvers (:issue:`34966`)
+- :meth:`Series.__repr__` and :meth:`DataFrame.__repr__` no longer replace all null-values in indexes with "NaN" but use their real string-representations. "NaN" is used only for ``float("nan")`` (:issue:`45263`)
 
 .. ---------------------------------------------------------------------------
 
