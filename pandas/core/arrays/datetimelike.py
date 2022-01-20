@@ -430,14 +430,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         elif is_integer_dtype(dtype):
             # we deliberately ignore int32 vs. int64 here.
             # See https://github.com/pandas-dev/pandas/issues/24381 for more.
-            warnings.warn(
-                f"casting {self.dtype} values to int64 with .astype(...) is "
-                "deprecated and will raise in a future version. "
-                "Use .view(...) instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
             values = self.asi8
 
             if is_unsigned_integer_dtype(dtype):
