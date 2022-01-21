@@ -33,6 +33,7 @@ from pandas._libs.lib import (
     is_datetime_array,
     no_default,
 )
+from pandas._libs.missing import is_float_nan
 from pandas._libs.tslibs import (
     IncompatibleFrequency,
     OutOfBoundsDatetime,
@@ -1394,7 +1395,7 @@ class Index(IndexOpsMixin, PandasObject):
             result = [pprint_thing(x, escape_chars=("\t", "\r", "\n")) for x in values]
 
             # could have nans
-            mask = isna(values)
+            mask = is_float_nan(values)
             if mask.any():
                 result_arr = np.array(result)
                 result_arr[mask] = na_rep
@@ -1626,6 +1627,17 @@ class Index(IndexOpsMixin, PandasObject):
         2   Cow
         """
         from pandas import DataFrame
+
+        if name is None:
+            warnings.warn(
+                "Explicitly passing `name=None` currently preserves the Index's name "
+                "or uses a default name of 0. This behaviour is deprecated, and in "
+                "the future `None` will be used as the name of the resulting "
+                "DataFrame column.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            name = lib.no_default
 
         if name is lib.no_default:
             name = self.name or 0
