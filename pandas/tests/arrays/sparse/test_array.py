@@ -248,6 +248,31 @@ class TestSparseArray:
         assert arr.dtype == dtype
         assert exp.dtype == dtype
 
+    def test_getitem_bool_sparse_array(self):
+        # GH 23122
+        spar_bool = SparseArray([False, True] * 5, dtype=np.bool8, fill_value=True)
+        exp = SparseArray([np.nan, 2, np.nan, 5, 6])
+        tm.assert_sp_array_equal(self.arr[spar_bool], exp)
+
+        spar_bool = ~spar_bool
+        res = self.arr[spar_bool]
+        exp = SparseArray([np.nan, 1, 3, 4, np.nan])
+        tm.assert_sp_array_equal(res, exp)
+
+        spar_bool = SparseArray(
+            [False, True, np.nan] * 3, dtype=np.bool8, fill_value=np.nan
+        )
+        res = self.arr[spar_bool]
+        exp = SparseArray([np.nan, 3, 5])
+        tm.assert_sp_array_equal(res, exp)
+
+    def test_getitem_bool_sparse_array_as_comparison(self):
+        # GH 45110
+        arr = SparseArray([1, 2, 3, 4, np.nan, np.nan], fill_value=np.nan)
+        res = arr[arr > 2]
+        exp = SparseArray([3.0, 4.0], fill_value=np.nan)
+        tm.assert_sp_array_equal(res, exp)
+
     def test_get_item(self):
 
         assert np.isnan(self.arr[1])
@@ -504,8 +529,11 @@ class TestSparseArray:
 
     def test_astype_bool(self):
         a = SparseArray([1, 0, 0, 1], dtype=SparseDtype(int, 0))
-        result = a.astype(bool)
-        expected = SparseArray([True, 0, 0, True], dtype=SparseDtype(bool, 0))
+        with tm.assert_produces_warning(FutureWarning, match="astype from Sparse"):
+            result = a.astype(bool)
+        expected = SparseArray(
+            [True, False, False, True], dtype=SparseDtype(bool, False)
+        )
         tm.assert_sp_array_equal(result, expected)
 
         # update fill value
@@ -519,7 +547,8 @@ class TestSparseArray:
         vals = np.array([1, 2, 3])
         arr = SparseArray(vals, fill_value=1)
         typ = np.dtype(any_real_numpy_dtype)
-        res = arr.astype(typ)
+        with tm.assert_produces_warning(FutureWarning, match="astype from Sparse"):
+            res = arr.astype(typ)
         assert res.dtype == SparseDtype(typ, 1)
         assert res.sp_values.dtype == typ
 
@@ -562,19 +591,30 @@ class TestSparseArray:
         ],
     )
     def test_astype_more(self, arr, dtype, expected):
-        result = arr.astype(dtype)
+
+        if isinstance(dtype, SparseDtype):
+            warn = None
+        else:
+            warn = FutureWarning
+
+        with tm.assert_produces_warning(warn, match="astype from SparseDtype"):
+            result = arr.astype(dtype)
         tm.assert_sp_array_equal(result, expected)
 
     def test_astype_nan_raises(self):
         arr = SparseArray([1.0, np.nan])
         with pytest.raises(ValueError, match="Cannot convert non-finite"):
-            arr.astype(int)
+            msg = "astype from SparseDtype"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                arr.astype(int)
 
     def test_astype_copy_false(self):
         # GH#34456 bug caused by using .view instead of .astype in astype_nansafe
         arr = SparseArray([1, 2, 3])
 
-        result = arr.astype(float, copy=False)
+        dtype = SparseDtype(float, 0)
+
+        result = arr.astype(dtype, copy=False)
         expected = SparseArray([1.0, 2.0, 3.0], fill_value=0.0)
         tm.assert_sp_array_equal(result, expected)
 
@@ -605,10 +645,11 @@ class TestSparseArray:
         assert arr.fill_value
 
         # coerces to bool
-        # msg = "unable to set fill_value 0 to bool dtype"
+        # XXX: we can construct an sparse array of bool
+        #      type and use as fill_value any value
+        # msg = "fill_value must be True, False or nan"
         # with pytest.raises(ValueError, match=msg):
-        arr.fill_value = 0
-        assert arr.fill_value == 0
+        #    arr.fill_value = 0
 
         # msg = "unable to set fill_value nan to bool dtype"
         # with pytest.raises(ValueError, match=msg):
@@ -736,6 +777,41 @@ class TestSparseArray:
         arr = SparseArray([0, 1, 2])
         res = arr[[False, False, False]]
         assert res.dtype == arr.dtype
+
+    def test_neg_operator(self):
+        arr = SparseArray([-1, -2, np.nan, 3], fill_value=np.nan, dtype=np.int8)
+        res = -arr
+        exp = SparseArray([1, 2, np.nan, -3], fill_value=np.nan, dtype=np.int8)
+        tm.assert_sp_array_equal(exp, res)
+
+        arr = SparseArray([-1, -2, 1, 3], fill_value=-1, dtype=np.int8)
+        res = -arr
+        exp = SparseArray([1, 2, -1, -3], fill_value=1, dtype=np.int8)
+        tm.assert_sp_array_equal(exp, res)
+
+    def test_abs_operator(self):
+        arr = SparseArray([-1, -2, np.nan, 3], fill_value=np.nan, dtype=np.int8)
+        res = abs(arr)
+        exp = SparseArray([1, 2, np.nan, 3], fill_value=np.nan, dtype=np.int8)
+        tm.assert_sp_array_equal(exp, res)
+
+        arr = SparseArray([-1, -2, 1, 3], fill_value=-1, dtype=np.int8)
+        res = abs(arr)
+        exp = SparseArray([1, 2, 1, 3], fill_value=1, dtype=np.int8)
+        tm.assert_sp_array_equal(exp, res)
+
+    def test_invert_operator(self):
+        arr = SparseArray([False, True, False, True], fill_value=False, dtype=np.bool8)
+        res = ~arr
+        exp = SparseArray(
+            np.invert([False, True, False, True]), fill_value=True, dtype=np.bool8
+        )
+        res = ~arr
+        tm.assert_sp_array_equal(exp, res)
+
+        arr = SparseArray([0, 1, 0, 2, 3, 0], fill_value=0, dtype=np.int32)
+        res = ~arr
+        exp = SparseArray([-1, -2, -1, -3, -4, -1], fill_value=-1, dtype=np.int32)
 
     @pytest.mark.parametrize("op", ["add", "sub", "mul", "truediv", "floordiv", "pow"])
     def test_binary_operators(self, op):
@@ -1005,13 +1081,9 @@ class TestSparseArrayAnalytics:
 
     @pytest.mark.parametrize(
         "arr",
-        [
-            np.array([0, 1, np.nan, 1]),
-            np.array([0, 1, 1]),
-            np.array([True, True, False]),
-        ],
+        [np.array([0, 1, np.nan, 1]), np.array([0, 1, 1])],
     )
-    @pytest.mark.parametrize("fill_value", [0, 1, np.nan, True, False])
+    @pytest.mark.parametrize("fill_value", [0, 1, np.nan])
     @pytest.mark.parametrize("min_count, expected", [(3, 2), (4, np.nan)])
     def test_sum_min_count(self, arr, fill_value, min_count, expected):
         # https://github.com/pandas-dev/pandas/issues/25777
@@ -1021,6 +1093,15 @@ class TestSparseArrayAnalytics:
             assert np.isnan(result)
         else:
             assert result == expected
+
+    def test_bool_sum_min_count(self):
+        spar_bool = pd.arrays.SparseArray(
+            [False, True] * 5, dtype=np.bool8, fill_value=True
+        )
+        res = spar_bool.sum(min_count=1)
+        assert res == 5
+        res = spar_bool.sum(min_count=11)
+        assert isna(res)
 
     def test_numpy_sum(self):
         data = np.arange(10).astype(float)
@@ -1121,9 +1202,9 @@ class TestSparseArrayAnalytics:
         tm.assert_sp_array_equal(np.abs(sparse), result)
 
         sparse = SparseArray([1, -1, 2, -2], fill_value=-1)
-        result = SparseArray([1, 2, 2], sparse_index=sparse.sp_index, fill_value=1)
-        tm.assert_sp_array_equal(abs(sparse), result)
-        tm.assert_sp_array_equal(np.abs(sparse), result)
+        exp = SparseArray([1, 1, 2, 2], fill_value=1)
+        tm.assert_sp_array_equal(abs(sparse), exp)
+        tm.assert_sp_array_equal(np.abs(sparse), exp)
 
         sparse = SparseArray([1, np.nan, 2, np.nan, -2])
         result = SparseArray(np.sin([1, np.nan, 2, np.nan, -2]))

@@ -44,6 +44,7 @@ import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
 from pandas.core.tools import datetimes as tools
 from pandas.core.tools.datetimes import start_caching_at
+from pandas.util.version import Version
 
 
 @pytest.fixture(params=[True, False])
@@ -287,8 +288,8 @@ class TestTimeConversionFormats:
                 "%m/%d/%Y %I:%M %p",
                 Timestamp("2010-01-10 20:14"),
                 marks=pytest.mark.xfail(
-                    locale.getlocale()[0] == "zh_CN",
-                    reason="fail on a CI build with LC_ALL=zh_CN.utf8",
+                    locale.getlocale()[0] in ("zh_CN", "it_IT"),
+                    reason="fail on a CI build with LC_ALL=zh_CN.utf8/it_IT.utf8",
                 ),
             ),
             pytest.param(
@@ -296,8 +297,8 @@ class TestTimeConversionFormats:
                 "%m/%d/%Y %I:%M %p",
                 Timestamp("2010-01-10 07:40"),
                 marks=pytest.mark.xfail(
-                    locale.getlocale()[0] == "zh_CN",
-                    reason="fail on a CI build with LC_ALL=zh_CN.utf8",
+                    locale.getlocale()[0] in ("zh_CN", "it_IT"),
+                    reason="fail on a CI build with LC_ALL=zh_CN.utf8/it_IT.utf8",
                 ),
             ),
             pytest.param(
@@ -305,8 +306,8 @@ class TestTimeConversionFormats:
                 "%m/%d/%Y %I:%M:%S %p",
                 Timestamp("2010-01-10 09:12:56"),
                 marks=pytest.mark.xfail(
-                    locale.getlocale()[0] == "zh_CN",
-                    reason="fail on a CI build with LC_ALL=zh_CN.utf8",
+                    locale.getlocale()[0] in ("zh_CN", "it_IT"),
+                    reason="fail on a CI build with LC_ALL=zh_CN.utf8/it_IT.utf8",
                 ),
             ),
         ],
@@ -454,6 +455,25 @@ class TestTimeConversionFormats:
 
 
 class TestToDatetime:
+    def test_to_datetime_np_str(self):
+        # GH#32264
+        value = np.str_("2019-02-04 10:18:46.297000+0000")
+
+        ser = Series([value])
+
+        exp = Timestamp("2019-02-04 10:18:46.297000", tz="UTC")
+
+        assert to_datetime(value) == exp
+        assert to_datetime(ser.iloc[0]) == exp
+
+        res = to_datetime([value])
+        expected = Index([exp])
+        tm.assert_index_equal(res, expected)
+
+        res = to_datetime(ser)
+        expected = Series(expected)
+        tm.assert_series_equal(res, expected)
+
     @pytest.mark.parametrize(
         "s, _format, dt",
         [
@@ -590,9 +610,15 @@ class TestToDatetime:
     def test_to_datetime_now(self):
         # See GH#18666
         with tm.set_timezone("US/Eastern"):
-            npnow = np.datetime64("now").astype("datetime64[ns]")
-            pdnow = to_datetime("now")
-            pdnow2 = to_datetime(["now"])[0]
+            msg = "The parsing of 'now' in pd.to_datetime"
+            with tm.assert_produces_warning(
+                FutureWarning, match=msg, check_stacklevel=False
+            ):
+                # checking stacklevel is tricky because we go through cython code
+                # GH#18705
+                npnow = np.datetime64("now").astype("datetime64[ns]")
+                pdnow = to_datetime("now")
+                pdnow2 = to_datetime(["now"])[0]
 
             # These should all be equal with infinite perf; this gives
             # a generous margin of 10 seconds
@@ -631,7 +657,12 @@ class TestToDatetime:
 
     @pytest.mark.parametrize("arg", ["now", "today"])
     def test_to_datetime_today_now_unicode_bytes(self, arg):
-        to_datetime([arg])
+        warn = FutureWarning if arg == "now" else None
+        msg = "The parsing of 'now' in pd.to_datetime"
+        with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
+            # checking stacklevel is tricky because we go through cython code
+            # GH#18705
+            to_datetime([arg])
 
     @pytest.mark.parametrize(
         "dt", [np.datetime64("2000-01-01"), np.datetime64("2000-01-02")]
@@ -810,10 +841,19 @@ class TestToDatetime:
         tm.assert_series_equal(result, expected)
 
     @td.skip_if_no("psycopg2")
-    def test_to_datetime_tz_psycopg2(self, cache):
+    def test_to_datetime_tz_psycopg2(self, request, cache):
 
         # xref 8260
         import psycopg2
+
+        # https://www.psycopg.org/docs/news.html#what-s-new-in-psycopg-2-9
+        request.node.add_marker(
+            pytest.mark.xfail(
+                Version(psycopg2.__version__.split()[0]) > Version("2.8.7"),
+                raises=AttributeError,
+                reason="psycopg2.tz is deprecated (and appears dropped) in 2.9",
+            )
+        )
 
         # misc cases
         tz1 = psycopg2.tz.FixedOffsetTimezone(offset=-300, name=None)
@@ -1649,7 +1689,8 @@ class TestToDatetimeMisc:
         with pytest.raises(ValueError, match=msg):
             # if dayfirst is respected, then this would parse as month=13, which
             #  would raise
-            to_datetime("01-13-2012", dayfirst=True, cache=cache)
+            with tm.assert_produces_warning(UserWarning, match="Provide format"):
+                to_datetime("01-13-2012", dayfirst=True, cache=cache)
 
     def test_to_datetime_on_datetime64_series(self, cache):
         # #2699

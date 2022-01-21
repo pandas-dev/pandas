@@ -1,6 +1,8 @@
 """
 missing types & inference
 """
+from __future__ import annotations
+
 from decimal import Decimal
 from functools import partial
 
@@ -17,6 +19,7 @@ from pandas._libs.tslibs import (
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
+    npt,
 )
 
 from pandas.core.dtypes.common import (
@@ -56,6 +59,8 @@ isneginf_scalar = libmissing.isneginf_scalar
 
 nan_checker = np.isnan
 INF_AS_NA = False
+_dtype_object = np.dtype("object")
+_dtype_str = np.dtype(str)
 
 
 def isna(obj):
@@ -259,18 +264,22 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
     return result
 
 
-def _isna_string_dtype(values: np.ndarray, inf_as_na: bool) -> np.ndarray:
+def _isna_string_dtype(values: np.ndarray, inf_as_na: bool) -> npt.NDArray[np.bool_]:
     # Working around NumPy ticket 1542
     dtype = values.dtype
-    shape = values.shape
 
     if dtype.kind in ("S", "U"):
         result = np.zeros(values.shape, dtype=bool)
     else:
-        result = np.empty(shape, dtype=bool)
-        vec = libmissing.isnaobj(values.ravel(), inf_as_na=inf_as_na)
 
-        result[...] = vec.reshape(shape)
+        if values.ndim == 1:
+            result = libmissing.isnaobj(values, inf_as_na=inf_as_na)
+        elif values.ndim == 2:
+            result = libmissing.isnaobj2d(values, inf_as_na=inf_as_na)
+        else:
+            # 0-D, reached via e.g. mask_missing
+            result = libmissing.isnaobj(values.ravel(), inf_as_na=inf_as_na)
+            result = result.reshape(values.shape)
 
     return result
 
@@ -639,8 +648,15 @@ def is_valid_na_for_dtype(obj, dtype: DtypeObj) -> bool:
     elif dtype.kind in ["i", "u", "f", "c"]:
         # Numeric
         return obj is not NaT and not isinstance(obj, (np.datetime64, np.timedelta64))
+    elif dtype.kind == "b":
+        # We allow pd.NA, None, np.nan in BooleanArray (same as IntervalDtype)
+        return lib.is_float(obj) or obj is None or obj is libmissing.NA
 
-    elif dtype == np.dtype("object"):
+    elif dtype == _dtype_str:
+        # numpy string dtypes to avoid float np.nan
+        return not isinstance(obj, (np.datetime64, np.timedelta64, Decimal, float))
+
+    elif dtype == _dtype_object:
         # This is needed for Categorical, but is kind of weird
         return True
 

@@ -3,10 +3,12 @@ from datetime import (
     timedelta,
 )
 import inspect
-from itertools import permutations
 
 import numpy as np
 import pytest
+
+from pandas._libs.tslibs.timezones import dateutil_gettz as gettz
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -78,6 +80,41 @@ class TestReindexSetIndex:
         result = df2.reset_index()
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "timezone, year, month, day, hour",
+        [["America/Chicago", 2013, 11, 3, 1], ["America/Santiago", 2021, 4, 3, 23]],
+    )
+    def test_reindex_timestamp_with_fold(self, timezone, year, month, day, hour):
+        # see gh-40817
+        test_timezone = gettz(timezone)
+        transition_1 = pd.Timestamp(
+            year=year,
+            month=month,
+            day=day,
+            hour=hour,
+            minute=0,
+            fold=0,
+            tzinfo=test_timezone,
+        )
+        transition_2 = pd.Timestamp(
+            year=year,
+            month=month,
+            day=day,
+            hour=hour,
+            minute=0,
+            fold=1,
+            tzinfo=test_timezone,
+        )
+        df = (
+            DataFrame({"index": [transition_1, transition_2], "vals": ["a", "b"]})
+            .set_index("index")
+            .reindex(["1", "2"])
+        )
+        tm.assert_frame_equal(
+            df,
+            DataFrame({"index": ["1", "2"], "vals": [None, None]}).set_index("index"),
+        )
+
 
 class TestDataFrameSelectReindex:
     # These are specific reindex-based tests; other indexing tests should go in
@@ -97,6 +134,7 @@ class TestDataFrameSelectReindex:
         result2 = df.reindex(columns=cols, index=df.index, copy=True)
         assert not np.shares_memory(result2[0]._values, df[0]._values)
 
+    @td.skip_array_manager_not_yet_implemented
     def test_reindex_date_fill_value(self):
         # passing date to dt64 is deprecated
         arr = date_range("2016-01-01", periods=6).values.reshape(3, 2)
@@ -112,6 +150,11 @@ class TestDataFrameSelectReindex:
             {"A": df["A"].tolist() + [ts], "B": df["B"].tolist() + [ts], "C": [ts] * 4}
         )
         tm.assert_frame_equal(res, expected)
+
+        # only reindexing rows
+        with tm.assert_produces_warning(FutureWarning):
+            res = df.reindex(index=range(4), fill_value=fv)
+        tm.assert_frame_equal(res, expected[["A", "B"]])
 
         # same with a datetime-castable str
         res = df.reindex(
@@ -302,23 +345,24 @@ class TestDataFrameSelectReindex:
         expected = DataFrame(exp_data)
         tm.assert_frame_equal(result, expected)
 
-    def test_reindex_level(self):
-        icol = ["jim", "joe", "jolie"]
-
-        def verify_first_level(df, level, idx, check_index_type=True):
-            def f(val):
-                return np.nonzero((df[level] == val).to_numpy())[0]
-
-            i = np.concatenate(list(map(f, idx)))
-            left = df.set_index(icol).reindex(idx, level=level)
-            right = df.iloc[i].set_index(icol)
-            tm.assert_frame_equal(left, right, check_index_type=check_index_type)
-
-        def verify(df, level, idx, indexer, check_index_type=True):
-            left = df.set_index(icol).reindex(idx, level=level)
-            right = df.iloc[indexer].set_index(icol)
-            tm.assert_frame_equal(left, right, check_index_type=check_index_type)
-
+    @pytest.mark.parametrize(
+        "idx, check_index_type",
+        [
+            [["C", "B", "A"], True],
+            [["F", "C", "A", "D"], True],
+            [["A"], True],
+            [["A", "B", "C"], True],
+            [["C", "A", "B"], True],
+            [["C", "B"], True],
+            [["C", "A"], True],
+            [["A", "B"], True],
+            [["B", "A", "C"], True],
+            # reindex by these causes different MultiIndex levels
+            [["D", "F"], False],
+            [["A", "C", "B"], False],
+        ],
+    )
+    def test_reindex_level_verify_first_level(self, idx, check_index_type):
         df = DataFrame(
             {
                 "jim": list("B" * 4 + "A" * 2 + "C" * 3),
@@ -327,35 +371,40 @@ class TestDataFrameSelectReindex:
                 "joline": np.random.randint(0, 1000, 9),
             }
         )
+        icol = ["jim", "joe", "jolie"]
 
-        target = [
-            ["C", "B", "A"],
-            ["F", "C", "A", "D"],
-            ["A"],
-            ["A", "B", "C"],
-            ["C", "A", "B"],
-            ["C", "B"],
-            ["C", "A"],
-            ["A", "B"],
-            ["B", "A", "C"],
-        ]
+        def f(val):
+            return np.nonzero((df["jim"] == val).to_numpy())[0]
 
-        for idx in target:
-            verify_first_level(df, "jim", idx)
+        i = np.concatenate(list(map(f, idx)))
+        left = df.set_index(icol).reindex(idx, level="jim")
+        right = df.iloc[i].set_index(icol)
+        tm.assert_frame_equal(left, right, check_index_type=check_index_type)
 
-        # reindex by these causes different MultiIndex levels
-        for idx in [["D", "F"], ["A", "C", "B"]]:
-            verify_first_level(df, "jim", idx, check_index_type=False)
-
-        verify(df, "joe", list("abcde"), [3, 2, 1, 0, 5, 4, 8, 7, 6])
-        verify(df, "joe", list("abcd"), [3, 2, 1, 0, 5, 8, 7, 6])
-        verify(df, "joe", list("abc"), [3, 2, 1, 8, 7, 6])
-        verify(df, "joe", list("eca"), [1, 3, 4, 6, 8])
-        verify(df, "joe", list("edc"), [0, 1, 4, 5, 6])
-        verify(df, "joe", list("eadbc"), [3, 0, 2, 1, 4, 5, 8, 7, 6])
-        verify(df, "joe", list("edwq"), [0, 4, 5])
-        verify(df, "joe", list("wq"), [], check_index_type=False)
-
+    @pytest.mark.parametrize(
+        "idx",
+        [
+            ("mid",),
+            ("mid", "btm"),
+            ("mid", "btm", "top"),
+            ("mid",),
+            ("mid", "top"),
+            ("mid", "top", "btm"),
+            ("btm",),
+            ("btm", "mid"),
+            ("btm", "mid", "top"),
+            ("btm",),
+            ("btm", "top"),
+            ("btm", "top", "mid"),
+            ("top",),
+            ("top", "mid"),
+            ("top", "mid", "btm"),
+            ("top",),
+            ("top", "btm"),
+            ("top", "btm", "mid"),
+        ],
+    )
+    def test_reindex_level_verify_first_level_repeats(self, idx):
         df = DataFrame(
             {
                 "jim": ["mid"] * 5 + ["btm"] * 8 + ["top"] * 7,
@@ -379,22 +428,86 @@ class TestDataFrameSelectReindex:
                 "joline": np.random.randn(20).round(3) * 10,
             }
         )
+        icol = ["jim", "joe", "jolie"]
 
-        for idx in permutations(df["jim"].unique()):
-            for i in range(3):
-                verify_first_level(df, "jim", idx[: i + 1])
+        def f(val):
+            return np.nonzero((df["jim"] == val).to_numpy())[0]
 
-        i = [2, 3, 4, 0, 1, 8, 9, 5, 6, 7, 10, 11, 12, 13, 14, 18, 19, 15, 16, 17]
-        verify(df, "joe", ["1st", "2nd", "3rd"], i)
+        i = np.concatenate(list(map(f, idx)))
+        left = df.set_index(icol).reindex(idx, level="jim")
+        right = df.iloc[i].set_index(icol)
+        tm.assert_frame_equal(left, right)
 
-        i = [0, 1, 2, 3, 4, 10, 11, 12, 5, 6, 7, 8, 9, 15, 16, 17, 18, 19, 13, 14]
-        verify(df, "joe", ["3rd", "2nd", "1st"], i)
+    @pytest.mark.parametrize(
+        "idx, indexer",
+        [
+            [
+                ["1st", "2nd", "3rd"],
+                [2, 3, 4, 0, 1, 8, 9, 5, 6, 7, 10, 11, 12, 13, 14, 18, 19, 15, 16, 17],
+            ],
+            [
+                ["3rd", "2nd", "1st"],
+                [0, 1, 2, 3, 4, 10, 11, 12, 5, 6, 7, 8, 9, 15, 16, 17, 18, 19, 13, 14],
+            ],
+            [["2nd", "3rd"], [0, 1, 5, 6, 7, 10, 11, 12, 18, 19, 15, 16, 17]],
+            [["3rd", "1st"], [0, 1, 2, 3, 4, 10, 11, 12, 8, 9, 15, 16, 17, 13, 14]],
+        ],
+    )
+    def test_reindex_level_verify_repeats(self, idx, indexer):
+        df = DataFrame(
+            {
+                "jim": ["mid"] * 5 + ["btm"] * 8 + ["top"] * 7,
+                "joe": ["3rd"] * 2
+                + ["1st"] * 3
+                + ["2nd"] * 3
+                + ["1st"] * 2
+                + ["3rd"] * 3
+                + ["1st"] * 2
+                + ["3rd"] * 3
+                + ["2nd"] * 2,
+                # this needs to be jointly unique with jim and joe or
+                # reindexing will fail ~1.5% of the time, this works
+                # out to needing unique groups of same size as joe
+                "jolie": np.concatenate(
+                    [
+                        np.random.choice(1000, x, replace=False)
+                        for x in [2, 3, 3, 2, 3, 2, 3, 2]
+                    ]
+                ),
+                "joline": np.random.randn(20).round(3) * 10,
+            }
+        )
+        icol = ["jim", "joe", "jolie"]
+        left = df.set_index(icol).reindex(idx, level="joe")
+        right = df.iloc[indexer].set_index(icol)
+        tm.assert_frame_equal(left, right)
 
-        i = [0, 1, 5, 6, 7, 10, 11, 12, 18, 19, 15, 16, 17]
-        verify(df, "joe", ["2nd", "3rd"], i)
-
-        i = [0, 1, 2, 3, 4, 10, 11, 12, 8, 9, 15, 16, 17, 13, 14]
-        verify(df, "joe", ["3rd", "1st"], i)
+    @pytest.mark.parametrize(
+        "idx, indexer, check_index_type",
+        [
+            [list("abcde"), [3, 2, 1, 0, 5, 4, 8, 7, 6], True],
+            [list("abcd"), [3, 2, 1, 0, 5, 8, 7, 6], True],
+            [list("abc"), [3, 2, 1, 8, 7, 6], True],
+            [list("eca"), [1, 3, 4, 6, 8], True],
+            [list("edc"), [0, 1, 4, 5, 6], True],
+            [list("eadbc"), [3, 0, 2, 1, 4, 5, 8, 7, 6], True],
+            [list("edwq"), [0, 4, 5], True],
+            [list("wq"), [], False],
+        ],
+    )
+    def test_reindex_level_verify(self, idx, indexer, check_index_type):
+        df = DataFrame(
+            {
+                "jim": list("B" * 4 + "A" * 2 + "C" * 3),
+                "joe": list("abcdeabcd")[::-1],
+                "jolie": [10, 20, 30] * 3,
+                "joline": np.random.randint(0, 1000, 9),
+            }
+        )
+        icol = ["jim", "joe", "jolie"]
+        left = df.set_index(icol).reindex(idx, level="joe")
+        right = df.iloc[indexer].set_index(icol)
+        tm.assert_frame_equal(left, right, check_index_type=check_index_type)
 
     def test_non_monotonic_reindex_methods(self):
         dr = date_range("2013-08-01", periods=6, freq="B")

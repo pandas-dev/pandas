@@ -241,7 +241,7 @@ class TestConcatenate:
             columns=columns,
         )
 
-        appended = df1.append(df2, ignore_index=True)
+        appended = concat([df1, df2], ignore_index=True)
         expected = DataFrame(
             np.concatenate([df1.values, df2.values], axis=0), columns=columns
         )
@@ -541,11 +541,10 @@ def test_concat_sparse():
 
 def test_concat_dense_sparse():
     # GH 30668
-    a = Series(pd.arrays.SparseArray([1, None]), dtype=float)
+    dtype = pd.SparseDtype(np.float64, None)
+    a = Series(pd.arrays.SparseArray([1, None]), dtype=dtype)
     b = Series([1], dtype=float)
-    expected = Series(data=[1, None, 1], index=[0, 1, 0]).astype(
-        pd.SparseDtype(np.float64, None)
-    )
+    expected = Series(data=[1, None, 1], index=[0, 1, 0]).astype(dtype)
     result = concat([a, b], axis=0)
     tm.assert_series_equal(result, expected)
 

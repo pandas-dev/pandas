@@ -84,6 +84,7 @@ PythonScalar = Union[str, int, float, bool]
 DatetimeLikeScalar = Union["Period", "Timestamp", "Timedelta"]
 PandasScalar = Union["Period", "Timestamp", "Timedelta", "Interval"]
 Scalar = Union[PythonScalar, PandasScalar]
+IntStrT = TypeVar("IntStrT", int, str)
 
 
 # timestamp and timedelta convertible types
@@ -243,8 +244,9 @@ StorageOptions = Optional[Dict[str, Any]]
 # compression keywords and compression
 CompressionDict = Dict[str, Any]
 CompressionOptions = Optional[
-    Union[Literal["infer", "gzip", "bz2", "zip", "xz"], CompressionDict]
+    Union[Literal["infer", "gzip", "bz2", "zip", "xz", "zstd"], CompressionDict]
 ]
+XMLParsers = Literal["lxml", "etree"]
 
 
 # types in DataFrameFormatter
@@ -290,3 +292,6 @@ else:
 
 # Windowing rank methods
 WindowingRankType = Literal["average", "min", "max"]
+
+# read_csv engines
+CSVEngine = Literal["c", "python", "pyarrow", "python-fwf"]

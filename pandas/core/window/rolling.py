@@ -354,9 +354,7 @@ class BaseWindow(SelectionMixin):
         if inf.any():
             values = np.where(inf, np.nan, values)
 
-        # error: Incompatible return value type (got "Optional[ndarray]",
-        # expected "ndarray")
-        return values  # type: ignore[return-value]
+        return values
 
     def _insert_on_column(self, result: DataFrame, obj: DataFrame) -> None:
         # if we have an 'on' column we want to put it back into
@@ -1127,7 +1125,10 @@ class Window(BaseWindow):
         -------
         y : type of input
         """
-        window = self._scipy_weight_generator(self.window, **kwargs)
+        # "None" not callable  [misc]
+        window = self._scipy_weight_generator(  # type: ignore[misc]
+            self.window, **kwargs
+        )
         offset = (len(window) - 1) // 2 if self.center else 0
 
         def homogeneous_func(values: np.ndarray):
@@ -1382,15 +1383,18 @@ class RollingAndExpandingMixin(BaseWindow):
         if maybe_use_numba(engine):
             if self.method == "table":
                 func = generate_manual_numpy_nan_agg_with_axis(np.nanmax)
+                return self.apply(
+                    func,
+                    raw=True,
+                    engine=engine,
+                    engine_kwargs=engine_kwargs,
+                )
             else:
-                func = np.nanmax
+                from pandas.core._numba.kernels import sliding_min_max
 
-            return self.apply(
-                func,
-                raw=True,
-                engine=engine,
-                engine_kwargs=engine_kwargs,
-            )
+                return self._numba_apply(
+                    sliding_min_max, "rolling_max", engine_kwargs, True
+                )
         window_func = window_aggregations.roll_max
         return self._apply(window_func, name="max", **kwargs)
 
@@ -1405,15 +1409,18 @@ class RollingAndExpandingMixin(BaseWindow):
         if maybe_use_numba(engine):
             if self.method == "table":
                 func = generate_manual_numpy_nan_agg_with_axis(np.nanmin)
+                return self.apply(
+                    func,
+                    raw=True,
+                    engine=engine,
+                    engine_kwargs=engine_kwargs,
+                )
             else:
-                func = np.nanmin
+                from pandas.core._numba.kernels import sliding_min_max
 
-            return self.apply(
-                func,
-                raw=True,
-                engine=engine,
-                engine_kwargs=engine_kwargs,
-            )
+                return self._numba_apply(
+                    sliding_min_max, "rolling_min", engine_kwargs, False
+                )
         window_func = window_aggregations.roll_min
         return self._apply(window_func, name="min", **kwargs)
 
@@ -2626,8 +2633,9 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
     def _validate_monotonic(self):
         """
         Validate that on is monotonic;
-        in this case we have to check only for nans, because
-        monotonicity was already validated at a higher level.
         """
-        if self._on.hasnans:
+        if (
+            not (self._on.is_monotonic_increasing or self._on.is_monotonic_decreasing)
+            or self._on.hasnans
+        ):
             self._raise_monotonic_error()

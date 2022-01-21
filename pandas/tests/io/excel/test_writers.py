@@ -18,8 +18,7 @@ from pandas import (
     DataFrame,
     Index,
     MultiIndex,
-    get_option,
-    set_option,
+    option_context,
 )
 import pandas._testing as tm
 
@@ -53,10 +52,8 @@ def set_engine(engine, ext):
     the test it rolls back said change to the global option.
     """
     option_name = f"io.excel.{ext.strip('.')}.writer"
-    prev_engine = get_option(option_name)
-    set_option(option_name, engine)
-    yield
-    set_option(option_name, prev_engine)  # Roll back option change
+    with option_context(option_name, engine):
+        yield
 
 
 @pytest.mark.parametrize(
@@ -207,14 +204,18 @@ class TestRoundTrip:
     @pytest.mark.parametrize("c_idx_levels", [1, 3])
     @pytest.mark.parametrize("r_idx_levels", [1, 3])
     def test_excel_multindex_roundtrip(
-        self, ext, c_idx_names, r_idx_names, c_idx_levels, r_idx_levels
+        self, ext, c_idx_names, r_idx_names, c_idx_levels, r_idx_levels, request
     ):
         # see gh-4679
         with tm.ensure_clean(ext) as pth:
-            if c_idx_levels == 1 and c_idx_names:
-                pytest.skip(
-                    "Column index name cannot be serialized unless it's a MultiIndex"
+            if (c_idx_levels == 1 and c_idx_names) and not (
+                r_idx_levels == 3 and not r_idx_names
+            ):
+                mark = pytest.mark.xfail(
+                    reason="Column index name cannot be serialized unless "
+                    "it's a MultiIndex"
                 )
+                request.node.add_marker(mark)
 
             # Empty name case current read in as
             # unnamed levels, not Nones.
@@ -1290,7 +1291,7 @@ class TestExcelWriterEngineTests:
             del called_save[:]
             del called_write_cells[:]
 
-        with pd.option_context("io.excel.xlsx.writer", "dummy"):
+        with option_context("io.excel.xlsx.writer", "dummy"):
             path = "something.xlsx"
             with tm.ensure_clean(path) as filepath:
                 register_writer(DummyClass)

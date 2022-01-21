@@ -437,7 +437,7 @@ def test_rolling_groupby_with_fixed_forward_many(group_keys, window_size):
     result = df.groupby("a")["b"].rolling(window=indexer, min_periods=1).sum()
     result.index.names = ["a", "c"]
 
-    groups = df.groupby("a")[["a", "b"]]
+    groups = df.groupby("a")[["a", "b", "c"]]
     manual = concat(
         [
             g.assign(

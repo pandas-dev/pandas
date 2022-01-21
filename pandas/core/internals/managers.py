@@ -334,6 +334,9 @@ class BaseBlockManager(DataManager):
 
         For SingleBlockManager, this backs s[indexer] = value
         """
+        if isinstance(indexer, np.ndarray) and indexer.ndim > self.ndim:
+            raise ValueError(f"Cannot set values with ndim > {self.ndim}")
+
         return self.apply("setitem", indexer=indexer, value=value)
 
     def putmask(self, mask, new, align: bool = True):
@@ -388,12 +391,13 @@ class BaseBlockManager(DataManager):
             # GH#35488 we need to watch out for multi-block cases
             # We only get here with fill_value not-lib.no_default
             ncols = self.shape[0]
+            nper = abs(periods)
+            nper = min(nper, ncols)
             if periods > 0:
                 indexer = np.array(
-                    [-1] * periods + list(range(ncols - periods)), dtype=np.intp
+                    [-1] * nper + list(range(ncols - periods)), dtype=np.intp
                 )
             else:
-                nper = abs(periods)
                 indexer = np.array(
                     list(range(nper, ncols)) + [-1] * nper, dtype=np.intp
                 )
@@ -403,7 +407,6 @@ class BaseBlockManager(DataManager):
                 axis=0,
                 fill_value=fill_value,
                 allow_dups=True,
-                consolidate=False,
             )
             return result
 
@@ -432,11 +435,17 @@ class BaseBlockManager(DataManager):
             timedelta=timedelta,
         )
 
-    def replace(self: T, to_replace, value, inplace: bool, regex: bool) -> T:
-        assert np.ndim(value) == 0, value
+    def replace(self: T, to_replace, value, inplace: bool) -> T:
+        inplace = validate_bool_kwarg(inplace, "inplace")
+        # NDFrame.replace ensures the not-is_list_likes here
+        assert not is_list_like(to_replace)
+        assert not is_list_like(value)
         return self.apply(
-            "replace", to_replace=to_replace, value=value, inplace=inplace, regex=regex
+            "replace", to_replace=to_replace, value=value, inplace=inplace
         )
+
+    def replace_regex(self, **kwargs):
+        return self.apply("_replace_regex", **kwargs)
 
     def replace_list(
         self: T,
@@ -449,7 +458,7 @@ class BaseBlockManager(DataManager):
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         bm = self.apply(
-            "_replace_list",
+            "replace_list",
             src_list=src_list,
             dest_list=dest_list,
             inplace=inplace,
@@ -632,7 +641,6 @@ class BaseBlockManager(DataManager):
         fill_value=None,
         allow_dups: bool = False,
         copy: bool = True,
-        consolidate: bool = True,
         only_slice: bool = False,
         *,
         use_na_proxy: bool = False,
@@ -646,8 +654,6 @@ class BaseBlockManager(DataManager):
         fill_value : object, default None
         allow_dups : bool, default False
         copy : bool, default True
-        consolidate: bool, default True
-            Whether to consolidate inplace before reindexing.
         only_slice : bool, default False
             Whether to take views, not copies, along columns.
         use_na_proxy : bool, default False
@@ -663,9 +669,6 @@ class BaseBlockManager(DataManager):
             result.axes = list(self.axes)
             result.axes[axis] = new_axis
             return result
-
-        if consolidate:
-            self._consolidate_inplace()
 
         # some axes don't allow reindexing with dups
         if not allow_dups:
@@ -895,7 +898,6 @@ class BaseBlockManager(DataManager):
             indexer=indexer,
             axis=axis,
             allow_dups=True,
-            consolidate=False,
         )
 
 
@@ -1083,14 +1085,12 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             #  containing (self._blknos[loc], BlockPlacement(slice(0, 1, 1)))
 
             # Check if we can use _iset_single fastpath
+            loc = cast(int, loc)
             blkno = self.blknos[loc]
             blk = self.blocks[blkno]
             if len(blk._mgr_locs) == 1:  # TODO: fastest way to check this?
                 return self._iset_single(
-                    # error: Argument 1 to "_iset_single" of "BlockManager" has
-                    # incompatible type "Union[int, slice, ndarray[Any, Any]]";
-                    # expected "int"
-                    loc,  # type:ignore[arg-type]
+                    loc,
                     value,
                     inplace=inplace,
                     blkno=blkno,
@@ -1120,8 +1120,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         unfit_mgr_locs = []
         unfit_val_locs = []
         removed_blknos = []
-        for blkno, val_locs in libinternals.get_blkno_placements(blknos, group=True):
-            blk = self.blocks[blkno]
+        for blkno_l, val_locs in libinternals.get_blkno_placements(blknos, group=True):
+            blk = self.blocks[blkno_l]
             blk_locs = blklocs[val_locs.indexer]
             if inplace and blk.should_store(value):
                 blk.set_inplace(blk_locs, value_getitem(val_locs))
@@ -1131,7 +1131,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
                 # If all block items are unfit, schedule the block for removal.
                 if len(val_locs) == len(blk.mgr_locs):
-                    removed_blknos.append(blkno)
+                    removed_blknos.append(blkno_l)
                 else:
                     blk.delete(blk_locs)
                     self._blklocs[blk.mgr_locs.indexer] = np.arange(len(blk))
@@ -1676,6 +1676,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         self._known_consolidated = True
 
     def _consolidate_inplace(self) -> None:
+        # In general, _consolidate_inplace should only be called via
+        #  DataFrame._consolidate_inplace, otherwise we will fail to invalidate
+        #  the DataFrame's _item_cache. The exception is for newly-created
+        #  BlockManager objects not yet attached to a DataFrame.
         if not self.is_consolidated():
             self.blocks = tuple(_consolidate(self.blocks))
             self._is_consolidated = True
@@ -1798,7 +1802,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         """compat with BlockManager"""
         return None
 
-    def getitem_mgr(self, indexer) -> SingleBlockManager:
+    def getitem_mgr(self, indexer: slice | npt.NDArray[np.bool_]) -> SingleBlockManager:
         # similar to get_slice, but not restricted to slice indexer
         blk = self._block
         array = blk._slice(indexer)

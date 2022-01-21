@@ -11,6 +11,7 @@ body:
         usage questions, we ask that all usage questions are first asked on StackOverflow.
   - type: checkboxes
     attributes:
+      label: Research
       options:
         - label: >
             I have searched the [[pandas] tag](https://stackoverflow.com/questions/tagged/pandas)

@@ -1391,7 +1391,7 @@ def test_rolling_corr_timedelta_index(index, window):
     # GH: 31286
     x = Series([1, 2, 3, 4, 5], index=index)
     y = x.copy()
-    x[0:2] = 0.0
+    x.iloc[0:2] = 0.0
     result = x.rolling(window).corr(y)
     expected = Series([np.nan, np.nan, 1, 1, 1], index=index)
     tm.assert_almost_equal(result, expected)
@@ -1417,6 +1417,18 @@ def test_groupby_rolling_nan_included():
         ),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_rolling_non_monotonic():
+    # GH 43909
+
+    shuffled = [3, 0, 1, 2]
+    sec = 1_000
+    df = DataFrame(
+        [{"t": Timestamp(2 * x * sec), "x": x + 1, "c": 42} for x in shuffled]
+    )
+    with pytest.raises(ValueError, match=r".* must be monotonic"):
+        df.groupby("c").rolling(on="t", window="3s")
 
 
 @pytest.mark.parametrize("method", ["skew", "kurt"])
