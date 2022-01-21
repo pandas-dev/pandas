@@ -427,7 +427,7 @@ class ExtensionArray:
             if not self._can_hold_na:
                 return False
             elif item is self.dtype.na_value or isinstance(item, self.dtype.type):
-                return self._hasnans
+                return self._hasna
             else:
                 return False
         else:
@@ -606,7 +606,7 @@ class ExtensionArray:
         raise AbstractMethodError(self)
 
     @property
-    def _hasnans(self) -> bool:
+    def _hasna(self) -> bool:
         # GH#22680
         """
         Equivalent to `self.isna().any()`.
@@ -698,7 +698,7 @@ class ExtensionArray:
         ExtensionArray.argmax
         """
         validate_bool_kwarg(skipna, "skipna")
-        if not skipna and self._hasnans:
+        if not skipna and self._hasna:
             raise NotImplementedError
         return nargminmax(self, "argmin")
 
@@ -722,7 +722,7 @@ class ExtensionArray:
         ExtensionArray.argmin
         """
         validate_bool_kwarg(skipna, "skipna")
-        if not skipna and self._hasnans:
+        if not skipna and self._hasna:
             raise NotImplementedError
         return nargminmax(self, "argmax")
 
@@ -1534,6 +1534,9 @@ class ExtensionArray:
         ExtensionDtype.empty
             ExtensionDtype.empty is the 'official' public version of this API.
         """
+        # Implementer note: while ExtensionDtype.empty is the public way to
+        # call this method, it is still required to implement this `_empty`
+        # method as well (it is called internally in pandas)
         obj = cls._from_sequence([], dtype=dtype)
 
         taker = np.broadcast_to(np.intp(-1), shape)
