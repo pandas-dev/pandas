@@ -1762,6 +1762,17 @@ class MultiIndex(Index):
         """
         from pandas import DataFrame
 
+        if name is None:
+            warnings.warn(
+                "Explicitly passing `name=None` currently preserves the Index's name "
+                "or uses a default name of 0. This behaviour is deprecated, and in "
+                "the future `None` will be used as the name of the resulting "
+                "DataFrame column.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            name = lib.no_default
+
         if name is not lib.no_default:
             if not is_list_like(name):
                 raise TypeError("'name' must be a list / sequence of column names.")

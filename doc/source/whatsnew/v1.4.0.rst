@@ -696,6 +696,7 @@ Other Deprecations
 - Deprecated the behavior of :meth:`Timestamp.utcfromtimestamp`, in the future it will return a timezone-aware UTC :class:`Timestamp` (:issue:`22451`)
 - Deprecated :meth:`NaT.freq` (:issue:`45071`)
 - Deprecated behavior of :class:`Series` and :class:`DataFrame` construction when passed float-dtype data containing ``NaN`` and an integer dtype ignoring the dtype argument; in a future version this will raise (:issue:`40110`)
+- Deprecated the behaviour of :meth:`Series.to_frame` and :meth:`Index.to_frame` to ignore the ``name`` argument when ``name=None``. Currently, this means to preserve the existing name, but in the future explicitly passing ``name=None`` will set ``None`` as the name of the column in the resulting DataFrame (:issue:`44212`)
 
 .. ---------------------------------------------------------------------------
 
@@ -1041,7 +1042,6 @@ Other
 - Bug in :meth:`CustomBusinessMonthBegin.__add__` (:meth:`CustomBusinessMonthEnd.__add__`) not applying the extra ``offset`` parameter when beginning (end) of the target month is already a business day (:issue:`41356`)
 - Bug in :meth:`RangeIndex.union` with another ``RangeIndex`` with matching (even) ``step`` and starts differing by strictly less than ``step / 2`` (:issue:`44019`)
 - Bug in :meth:`RangeIndex.difference` with ``sort=None`` and ``step<0`` failing to sort (:issue:`44085`)
-- Bug in :meth:`Series.to_frame` and :meth:`Index.to_frame` ignoring the ``name`` argument when ``name=None`` is explicitly passed (:issue:`44212`)
 - Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` with ``value=None`` and ExtensionDtypes (:issue:`44270`, :issue:`37899`)
 - Bug in :meth:`FloatingArray.equals` failing to consider two arrays equal if they contain ``np.nan`` values (:issue:`44382`)
 - Bug in :meth:`DataFrame.shift` with ``axis=1`` and ``ExtensionDtype`` columns incorrectly raising when an incompatible ``fill_value`` is passed (:issue:`44564`)
