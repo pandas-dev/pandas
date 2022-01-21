@@ -19,6 +19,7 @@ from pandas.core.arrays import (
     ExtensionArray,
     ExtensionScalarOpsMixin,
 )
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 
 __all__ = [
     "no_default",
@@ -30,4 +31,5 @@ __all__ = [
     "take",
     "ExtensionArray",
     "ExtensionScalarOpsMixin",
+    "NDArrayBackedExtensionArray",
 ]
