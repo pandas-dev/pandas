@@ -56,6 +56,7 @@ def test_dask(df):
 
 
 @pytest.mark.filterwarnings("ignore:.*64Index is deprecated:FutureWarning")
+@pytest.mark.filterwarnings("ignore:The __array_wrap__:DeprecationWarning")
 def test_dask_ufunc():
     # At the time of dask 2022.01.0, dask is still directly using __array_wrap__
     # for some ufuncs (https://github.com/dask/dask/issues/8580).
