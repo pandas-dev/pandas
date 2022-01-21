@@ -282,6 +282,16 @@ class TestSeriesPlots(TestPlotBase):
         result = [p.get_facecolor() for p in ax.patches]
         assert result == expected
 
+    def test_bar_user_colors_c(self):
+        s = Series([1, 2, 3, 4])
+
+        expected = [
+            (1.0, 0.0, 0.0, 1.0),
+            (0.0, 0.0, 1.0, 1.0),
+            (0.0, 0.0, 1.0, 1.0),
+            (1.0, 0.0, 0.0, 1.0),
+        ]
+
         ax = s.plot.bar(c=["red", "blue", "blue", "red"])
         result = [p.get_facecolor() for p in ax.patches]
         assert result == expected
