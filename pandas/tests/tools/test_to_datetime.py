@@ -1071,13 +1071,13 @@ class TestToDatetime:
         ("input", "expected"),
         (
             (
-                Series([NaT] * 200 + [None] * 200, dtype="object"),
-                Series([NaT] * 400, dtype="datetime64[ns]"),
+                Series([NaT] * 20 + [None] * 20, dtype="object"),
+                Series([NaT] * 40, dtype="datetime64[ns]"),
             ),
-            (Series([None] * 200), Series([NaT] * 200, dtype="datetime64[ns]")),
-            (Series([""] * 200), Series([NaT] * 200, dtype="datetime64[ns]")),
-            (Series([pd.NA] * 200), Series([NaT] * 200, dtype="datetime64[ns]")),
-            (Series([np.NaN] * 200), Series([NaT] * 200, dtype="datetime64[ns]")),
+            (Series([None] * 20), Series([NaT] * 20, dtype="datetime64[ns]")),
+            (Series([""] * 20), Series([NaT] * 20, dtype="datetime64[ns]")),
+            (Series([pd.NA] * 20), Series([NaT] * 20, dtype="datetime64[ns]")),
+            (Series([np.NaN] * 20), Series([NaT] * 20, dtype="datetime64[ns]")),
         ),
     )
     def test_to_datetime_converts_null_like_to_nat(self, cache, input, expected):
