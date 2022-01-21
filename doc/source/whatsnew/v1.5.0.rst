@@ -34,7 +34,7 @@ Other enhancements
 - :class:`StringArray` now accepts array-likes containing nan-likes (``None``, ``np.nan``) for the ``values`` parameter in its constructor in addition to strings and :attr:`pandas.NA`. (:issue:`40839`)
 - Improved the rendering of ``categories`` in :class:`CategoricalIndex` (:issue:`45218`)
 - :meth:`to_numeric` now preserves float64 arrays when downcasting would generate values not representable in float32 (:issue:`43693`)
--
+- :class:`NDArrayBackedExtensionArray` now exposed in the public API. (:issue:`45544`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.notable_bug_fixes:
