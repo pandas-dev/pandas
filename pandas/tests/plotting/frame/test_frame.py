@@ -1,4 +1,3 @@
-""" Test cases for DataFrame.plot """
 from datetime import (
     date,
     datetime,
@@ -678,9 +677,6 @@ class TestDataFramePlots(TestPlotBase):
             df.plot.scatter(x="x", y="y", s=2, size=2)
         with pytest.raises(TypeError, match="Specify exactly one of `c` and `color`"):
             df.plot.scatter(x="a", y="b", c="red", color="green")
-
-        default_colors = self._unpack_cycler(self.plt.rcParams)
-        default_colors = self._unpack_cycler(self.plt.rcParams)
 
         # GH 6951
         axes = df.plot(x="x", y="y", kind="scatter", subplots=True)
