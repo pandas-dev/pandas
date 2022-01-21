@@ -3700,8 +3700,8 @@ class Index(IndexOpsMixin, PandasObject):
         # belong to some category are changed to NaNs
         # Mask to track actual NaN values compared to inserted NaN values
         try:
-            target_nans = np.isnan(target)
-        except TypeError as e:
+            target_nans = isna(target)
+        except NotImplementedError:
             target_nans = False
         target = self._maybe_cast_listlike_indexer(target)
 
