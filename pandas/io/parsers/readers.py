@@ -856,7 +856,7 @@ def read_fwf(
     # Ensure length of `colspecs` matches length of `names`
     names = kwds.get("names")
     if names is not None:
-        if len(names) != len(colspecs):
+        if len(names) != len(colspecs) and colspecs != "infer":
             # need to check len(index_col) as it might contain
             # unnamed indices, in which case it's name is not required
             len_index = 0
