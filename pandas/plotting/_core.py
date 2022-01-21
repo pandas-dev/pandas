@@ -1127,15 +1127,15 @@ class PlotAccessor(PandasObject):
         axis of the plot shows the specific categories being compared, and the
         other axis represents a measured value.
         """
-        c = kwargs.pop('c', None)
-        color = kwargs.pop('color', None)
+        c = kwargs.pop("c", None)
+        color = kwargs.pop("color", None)
         if c is not None and color is not None:
             raise TypeError("Specify exactly one of `c` and `color`")
         if c is not None or color is not None:
             if color is not None:
-                kwargs.setdefault('color', color)
+                kwargs.setdefault("color", color)
             else:
-                kwargs.setdefault('color', c)
+                kwargs.setdefault("color", c)
 
         return self(kind="bar", x=x, y=y, **kwargs)
 
@@ -1223,15 +1223,15 @@ class PlotAccessor(PandasObject):
         axis of the plot shows the specific categories being compared, and the
         other axis represents a measured value.
         """
-        c = kwargs.pop('c', None)
-        color = kwargs.pop('color', None)
+        c = kwargs.pop("c", None)
+        color = kwargs.pop("color", None)
         if c is not None and color is not None:
             raise TypeError("Specify exactly one of `c` and `color`")
         if c is not None or color is not None:
             if color is not None:
-                kwargs.setdefault('color', color)
+                kwargs.setdefault("color", color)
             else:
-                kwargs.setdefault('color', c)
+                kwargs.setdefault("color", c)
 
         return self(kind="barh", x=x, y=y, **kwargs)
 
@@ -1685,25 +1685,25 @@ class PlotAccessor(PandasObject):
             ...                       c='species',
             ...                       colormap='viridis')
         """
-        s = kwargs.pop('s', None)
-        size = kwargs.pop('size', None)
+        s = kwargs.pop("s", None)
+        size = kwargs.pop("size", None)
         if s is not None and size is not None:
             raise TypeError("Specify exactly one of `s` and `size`")
         if s is not None or size is not None:
             if s is not None:
-                kwargs.setdefault('s', s)
+                kwargs.setdefault("s", s)
             else:
-                kwargs.setdefault('s', size)
+                kwargs.setdefault("s", size)
 
-        c = kwargs.pop('c', None)
-        color = kwargs.pop('color', None)
+        c = kwargs.pop("c", None)
+        color = kwargs.pop("color", None)
         if c is not None and color is not None:
             raise TypeError("Specify exactly one of `c` and `color`")
         if c is not None or color is not None:
             if c is not None:
-                kwargs.setdefault('c', c)
+                kwargs.setdefault("c", c)
             else:
-                kwargs.setdefault('c', color)
+                kwargs.setdefault("c", color)
 
         return self(kind="scatter", x=x, y=y, **kwargs)
 

@@ -170,10 +170,10 @@ class TestDataFrameColor(TestPlotBase):
         ax = df.plot.bar(y="A", color=df["color"])
         result = [p.get_facecolor() for p in ax.patches]
         assert result == expected
-        
+
         ax = df.plot.bar(y="A", c=df["color"])
         result = [p.get_facecolor() for p in ax.patches]
-        assert result == expected        
+        assert result == expected
 
     def test_if_scatterplot_colorbar_affects_xaxis_visibility(self):
         # addressing issue #10611, to ensure colobar does not
