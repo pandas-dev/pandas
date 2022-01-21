@@ -6258,6 +6258,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         if len(subset) == 1 and self.columns.is_unique:
             result = self[subset[0]].duplicated(keep)
+            result.name = None
         else:
             vals = (col.values for name, col in self.items() if name in subset)
             labels, shape = map(list, zip(*map(f, vals)))
