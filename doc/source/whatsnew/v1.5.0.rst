@@ -241,7 +241,7 @@ Plotting
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
-- Bug in :meth:`DataFrame.resample` ignoring ``closed="right"` on :class:`TimedeltaIndex` (:issue:`45414`)
+- Bug in :meth:`DataFrame.resample` ignoring ``closed="right"`` on :class:`TimedeltaIndex` (:issue:`45414`)
 -
 
 Reshaping
