@@ -1507,7 +1507,7 @@ def common_dtype_categorical_compat(
                     hasnas = obj.hasnans
                 else:
                     # Categorical
-                    hasnas = cast("Categorical", obj)._hasnans
+                    hasnas = cast("Categorical", obj)._hasna
 
                 if hasnas:
                     # see test_union_int_categorical_with_nan

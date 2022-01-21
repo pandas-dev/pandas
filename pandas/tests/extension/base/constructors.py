@@ -135,3 +135,8 @@ class BaseConstructorsTests(BaseExtensionTests):
         assert isinstance(result2, cls)
         assert result2.dtype == dtype
         assert result2.shape == (4,)
+
+        result2 = dtype.empty(4)
+        assert isinstance(result2, cls)
+        assert result2.dtype == dtype
+        assert result2.shape == (4,)

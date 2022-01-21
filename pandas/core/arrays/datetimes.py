@@ -738,7 +738,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         other_i8 = other.asi8
         arr_mask = self._isnan | other._isnan
         new_values = checked_add_with_arr(self_i8, -other_i8, arr_mask=arr_mask)
-        if self._hasnans or other._hasnans:
+        if self._hasna or other._hasna:
             np.putmask(new_values, arr_mask, iNaT)
         return new_values.view("timedelta64[ns]")
 
@@ -1356,7 +1356,7 @@ default 'raise'
         iso_calendar_df = DataFrame(
             sarray, columns=["year", "week", "day"], dtype="UInt32"
         )
-        if self._hasnans:
+        if self._hasna:
             iso_calendar_df.iloc[self._isnan] = None
         return iso_calendar_df
 
