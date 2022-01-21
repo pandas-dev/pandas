@@ -756,8 +756,8 @@ class TestDataFrameReplace:
             # GH 36782
             (
                 DataFrame({"dt": [datetime(2920, 10, 1)]}),
-                datetime(2920, 10, 1),  # out of range date
-                datetime(2020, 10, 1),  # in range date
+                datetime(2920, 10, 1),
+                datetime(2020, 10, 1),
                 DataFrame({"dt": [datetime(2020, 10, 1)]}),
             ),
             (
