@@ -6257,6 +6257,7 @@ class DataFrame(NDFrame, OpsMixin):
             raise KeyError(Index(diff))
 
         if len(subset) == 1 and self.columns.is_unique:
+            # GH#45236 This is faster than get_group_index below
             result = self[subset[0]].duplicated(keep)
             result.name = None
         else:
