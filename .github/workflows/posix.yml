@@ -122,7 +122,7 @@ jobs:
       if: ${{ env.IS_PYPY == 'false' }} # No pypy3.8 support
 
     - name: Setup PyPy
-      uses: actions/setup-python@v2.3.1
+      uses: actions/setup-python@v2
       with:
         python-version: "pypy-3.8"
       if: ${{ env.IS_PYPY == 'true' }}
@@ -148,7 +148,7 @@ jobs:
       run: pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
 
     - name: Publish test results
-      uses: actions/upload-artifact@master
+      uses: actions/upload-artifact@v2
       with:
         name: Test results
         path: test-data.xml
