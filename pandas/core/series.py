@@ -1752,7 +1752,7 @@ class Series(base.IndexOpsMixin, NDFrame):
 
         Parameters
         ----------
-        name : object, default None
+        name : object, optional
             The passed name should substitute for the series name (if it has
             one).
 
@@ -1771,6 +1771,17 @@ class Series(base.IndexOpsMixin, NDFrame):
         1    b
         2    c
         """
+        if name is None:
+            warnings.warn(
+                "Explicitly passing `name=None` currently preserves the Series' name "
+                "or uses a default name of 0. This behaviour is deprecated, and in "
+                "the future `None` will be used as the name of the resulting "
+                "DataFrame column.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            name = lib.no_default
+
         columns: Index
         if name is lib.no_default:
             name = self.name

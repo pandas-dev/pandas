@@ -1625,6 +1625,17 @@ class Index(IndexOpsMixin, PandasObject):
         """
         from pandas import DataFrame
 
+        if name is None:
+            warnings.warn(
+                "Explicitly passing `name=None` currently preserves the Index's name "
+                "or uses a default name of 0. This behaviour is deprecated, and in "
+                "the future `None` will be used as the name of the resulting "
+                "DataFrame column.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            name = lib.no_default
+
         if name is lib.no_default:
             name = self.name or 0
         result = DataFrame({name: self._values.copy()})
