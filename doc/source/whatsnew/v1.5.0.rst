@@ -154,7 +154,7 @@ Other Deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
--
+- Performance improvement in :meth:`DataFrame.duplicated` when subset consists of only one column (:issue:`45236`)
 -
 
 .. ---------------------------------------------------------------------------
