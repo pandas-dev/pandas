@@ -172,7 +172,7 @@ class ExtensionArray:
     * _formatter : Print scalars inside a Series or DataFrame.
 
     Some methods require casting the ExtensionArray to an ndarray of Python
-    objects with ``self.astype(object)``, which may be expensive. When
+    objects with ``self.to_numpy(object)``, which may be expensive. When
     performance is a concern, we highly recommend overriding the following
     methods:
 
@@ -770,7 +770,7 @@ class ExtensionArray:
         if mask.any():
             if method is not None:
                 func = missing.get_fill_func(method)
-                new_values, _ = func(self.astype(object), limit=limit, mask=mask)
+                new_values, _ = func(self.to_numpy(object), limit=limit, mask=mask)
                 new_values = self._from_sequence(new_values, dtype=self.dtype)
             else:
                 # fill with value
@@ -849,7 +849,7 @@ class ExtensionArray:
         -------
         uniques : ExtensionArray
         """
-        uniques = unique(self.astype(object))
+        uniques = unique(self.to_numpy(object))
         return self._from_sequence(uniques, dtype=self.dtype)
 
     def searchsorted(
@@ -901,7 +901,7 @@ class ExtensionArray:
         # 1. Values outside the range of the `data_for_sorting` fixture
         # 2. Values between the values in the `data_for_sorting` fixture
         # 3. Missing values.
-        arr = self.astype(object)
+        arr = self.to_numpy(object)
         if isinstance(value, ExtensionArray):
             value = value.astype(object)
         return arr.searchsorted(value, side=side, sorter=sorter)
@@ -978,7 +978,7 @@ class ExtensionArray:
         The values returned by this method are also used in
         :func:`pandas.util.hash_pandas_object`.
         """
-        return self.astype(object), np.nan
+        return self.to_numpy(object), np.nan
 
     def factorize(self, na_sentinel: int = -1) -> tuple[np.ndarray, ExtensionArray]:
         """
@@ -1156,7 +1156,7 @@ class ExtensionArray:
 
                # If the ExtensionArray is backed by an ndarray, then
                # just pass that here instead of coercing to object.
-               data = self.astype(object)
+               data = self.to_numpy(object)
 
                if allow_fill and fill_value is None:
                    fill_value = self.dtype.na_value
@@ -1493,7 +1493,7 @@ class ExtensionArray:
         func = missing.get_fill_func(method)
         # NB: if we don't copy mask here, it may be altered inplace, which
         #  would mess up the `self[mask] = ...` below.
-        new_values, _ = func(self.astype(object), limit=limit, mask=mask.copy())
+        new_values, _ = func(self.to_numpy(object), limit=limit, mask=mask.copy())
         new_values = self._from_sequence(new_values, dtype=self.dtype)
         self[mask] = new_values[mask]
         return

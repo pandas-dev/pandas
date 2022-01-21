@@ -1659,7 +1659,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 # not comparable -> no overlap
                 return np.zeros(self.shape, dtype=bool)
 
-        return isin(self.astype(object), values.astype(object))
+        return isin(self.to_numpy(object), values.astype(object))
 
     @property
     def _combined(self) -> ArrayLike:

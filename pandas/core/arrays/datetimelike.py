@@ -810,14 +810,14 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                         pass
 
                     elif "mixed" in inferred:
-                        return isin(self.astype(object), values)
+                        return isin(self.to_numpy(object), values)
                     else:
                         return np.zeros(self.shape, dtype=bool)
 
             try:
                 values = type(self)._from_sequence(values)
             except ValueError:
-                return isin(self.astype(object), values)
+                return isin(self.to_numpy(object), values)
 
         try:
             self._check_compatible_with(values)
@@ -1016,7 +1016,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             #  comparing tz-aware and tz-naive
             with np.errstate(all="ignore"):
                 result = ops.comp_method_OBJECT_ARRAY(
-                    op, np.asarray(self.astype(object)), other
+                    op, np.asarray(self.to_numpy(object)), other
                 )
             return result
 
