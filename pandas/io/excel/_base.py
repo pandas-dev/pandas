@@ -119,12 +119,13 @@ index_col : int, list of int, default None
     those columns will be combined into a ``MultiIndex``.  If a
     subset of data is selected with ``usecols``, index_col
     is based on the subset.
-usecols : int, str, list-like, or callable default None
+usecols : str, list-like, or callable, default None
     * If None, then parse all columns.
     * If str, then indicates comma separated list of Excel column letters
       and column ranges (e.g. "A:E" or "A,C,E:F"). Ranges are inclusive of
       both sides.
-    * If list of int, then indicates list of column numbers to be parsed.
+    * If list of int, then indicates list of column numbers to be parsed
+      (0-indexed).
     * If list of string, then indicates list of column names to be parsed.
     * If callable, then evaluate each column name against it and parse the
       column if the callable returns ``True``.
