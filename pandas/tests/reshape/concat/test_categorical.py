@@ -1,4 +1,7 @@
+from datetime import datetime
+
 import numpy as np
+import pytest
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -202,6 +205,33 @@ class TestCategoricalConcat:
 
         dfa = df1._append(df2)
         tm.assert_index_equal(df["grade"].cat.categories, dfa["grade"].cat.categories)
+
+    @pytest.mark.parametrize(
+        ("input_1", "input_2", "expected"),
+        (  # both Catergorical dtypes with datetimes
+            (
+                DataFrame(
+                    {"x": Series(datetime(2021, 1, 1), index=[0], dtype="category")}
+                ),
+                DataFrame(
+                    {"x": Series(datetime(2021, 1, 2), index=[1], dtype="category")}
+                ),
+                DataFrame({"x": Series([datetime(2021, 1, 1), datetime(2021, 1, 2)])}),
+            ),
+            # both Catergorical dtypes, one datetime, one string
+            (
+                DataFrame(
+                    {"x": Series(datetime(2021, 1, 1), index=[0], dtype="category")}
+                ),
+                DataFrame({"x": Series("test string", index=[1], dtype="category")}),
+                DataFrame({"x": Series([datetime(2021, 1, 1), "test string"])}),
+            ),
+        ),
+    )
+    def test_categorical_datetime_concat(self, input_1, input_2, expected):
+        # GH 39443
+        result = pd.concat([input_1, input_2])
+        tm.assert_equal(result, expected)
 
     def test_categorical_index_upcast(self):
         # GH 17629
