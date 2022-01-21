@@ -18,6 +18,8 @@ from pandas.tests.plotting.common import (
 pytestmark = pytest.mark.slow
 
 
+
+
 @td.skip_if_no_mpl
 class TestDataFrameColor(TestPlotBase):
     def setup_method(self, method):
