@@ -205,7 +205,7 @@ class TestSeriesConvertDtypes:
         copy = series.copy(deep=True)
         if is_interval_dtype(result.dtype) and result.dtype.subtype.kind in ["i", "u"]:
             msg = "Cannot set float NaN to integer-backed IntervalArray"
-            with pytest.raises(ValueError, match=msg):
+            with pytest.raises(TypeError, match=msg):
                 result[result.notna()] = np.nan
         else:
             result[result.notna()] = np.nan
