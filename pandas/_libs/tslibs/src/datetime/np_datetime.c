@@ -378,7 +378,7 @@ int convert_pydatetime_to_datetimestruct(PyObject *dtobj,
             if (tmp == NULL) {
                 return -1;
             }
-            seconds_offset = PyInt_AsLong(tmp);
+            seconds_offset = PyInt_AsLong(PyNumber_Long(tmp));
             if (seconds_offset == -1 && PyErr_Occurred()) {
                 Py_DECREF(tmp);
                 return -1;
