@@ -325,15 +325,6 @@ class BooleanArray(BaseMaskedArray):
         return self._dtype
 
     @classmethod
-    def _from_sequence(
-        cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
-    ) -> BooleanArray:
-        if dtype:
-            assert dtype == "boolean"
-        values, mask = coerce_to_array(scalars, copy=copy)
-        return BooleanArray(values, mask)
-
-    @classmethod
     def _from_sequence_of_strings(
         cls,
         strings: list[str],
@@ -361,8 +352,13 @@ class BooleanArray(BaseMaskedArray):
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number, bool, np.bool_)
 
-    def _coerce_to_array(self, value) -> tuple[np.ndarray, np.ndarray]:
-        return coerce_to_array(value)
+    @classmethod
+    def _coerce_to_array(
+        cls, value, *, dtype: DtypeObj, copy: bool = False
+    ) -> tuple[np.ndarray, np.ndarray]:
+        if dtype:
+            assert dtype == "boolean"
+        return coerce_to_array(value, copy=copy)
 
     @overload
     def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
@@ -425,24 +421,6 @@ class BooleanArray(BaseMaskedArray):
         # coerce
         return self.to_numpy(dtype=dtype, na_value=na_value, copy=False)
 
-    def _values_for_argsort(self) -> np.ndarray:
-        """
-        Return values for sorting.
-
-        Returns
-        -------
-        ndarray
-            The transformed values should maintain the ordering between values
-            within the array.
-
-        See Also
-        --------
-        ExtensionArray.argsort : Return the indices that would sort this array.
-        """
-        data = self._data.copy()
-        data[self._mask] = -1
-        return data
-
     def _logical_method(self, other, op):
 
         assert op.__name__ in {"or_", "ror_", "and_", "rand_", "xor", "rxor"}
@@ -498,7 +476,8 @@ class BooleanArray(BaseMaskedArray):
         if mask is None:
             mask = self._mask
             if other is libmissing.NA:
-                mask |= True
+                # GH#45421 don't alter inplace
+                mask = mask | True
         else:
             mask = self._mask | mask
 

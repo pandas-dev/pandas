@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.timezones import dateutil_gettz as gettz
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -133,6 +134,7 @@ class TestDataFrameSelectReindex:
         result2 = df.reindex(columns=cols, index=df.index, copy=True)
         assert not np.shares_memory(result2[0]._values, df[0]._values)
 
+    @td.skip_array_manager_not_yet_implemented
     def test_reindex_date_fill_value(self):
         # passing date to dt64 is deprecated
         arr = date_range("2016-01-01", periods=6).values.reshape(3, 2)
@@ -148,6 +150,11 @@ class TestDataFrameSelectReindex:
             {"A": df["A"].tolist() + [ts], "B": df["B"].tolist() + [ts], "C": [ts] * 4}
         )
         tm.assert_frame_equal(res, expected)
+
+        # only reindexing rows
+        with tm.assert_produces_warning(FutureWarning):
+            res = df.reindex(index=range(4), fill_value=fv)
+        tm.assert_frame_equal(res, expected[["A", "B"]])
 
         # same with a datetime-castable str
         res = df.reindex(
