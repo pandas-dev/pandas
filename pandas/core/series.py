@@ -62,7 +62,6 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.cast import (
-    can_hold_element,
     convert_dtypes,
     maybe_box_native,
     maybe_cast_pointwise_result,
@@ -1151,12 +1150,6 @@ class Series(base.IndexOpsMixin, NDFrame):
 
     def _set_with_engine(self, key, value) -> None:
         loc = self.index.get_loc(key)
-        dtype = self.dtype
-        if isinstance(dtype, np.dtype) and dtype.kind not in ["m", "M"]:
-            # otherwise we have EA values, and this check will be done
-            #  via setitem_inplace
-            if not can_hold_element(self._values, value):
-                raise ValueError
 
         # this is equivalent to self._values[key] = value
         self._mgr.setitem_inplace(loc, value)
@@ -1765,7 +1758,7 @@ class Series(base.IndexOpsMixin, NDFrame):
 
         Parameters
         ----------
-        name : object, default None
+        name : object, optional
             The passed name should substitute for the series name (if it has
             one).
 
@@ -1784,6 +1777,17 @@ class Series(base.IndexOpsMixin, NDFrame):
         1    b
         2    c
         """
+        if name is None:
+            warnings.warn(
+                "Explicitly passing `name=None` currently preserves the Series' name "
+                "or uses a default name of 0. This behaviour is deprecated, and in "
+                "the future `None` will be used as the name of the resulting "
+                "DataFrame column.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            name = lib.no_default
+
         columns: Index
         if name is lib.no_default:
             name = self.name
