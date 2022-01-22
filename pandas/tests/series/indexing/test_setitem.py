@@ -9,6 +9,7 @@ import pytest
 from pandas.core.dtypes.common import is_list_like
 
 from pandas import (
+    NA,
     Categorical,
     DataFrame,
     DatetimeIndex,
@@ -770,11 +771,13 @@ class SetitemCastingEquivalents:
     ],
 )
 class TestSetitemCastingEquivalents(SetitemCastingEquivalents):
-    @pytest.fixture(params=[np.nan, np.float64("NaN")])
+    @pytest.fixture(params=[np.nan, np.float64("NaN"), None, NA])
     def val(self, request):
         """
-        One python float NaN, one np.float64.  Only np.float64 has a `dtype`
-        attribute.
+        NA values that should generally be valid_na for *all* dtypes.
+
+        Include both python float NaN and np.float64; only np.float64 has a
+        `dtype` attribute.
         """
         return request.param
 
