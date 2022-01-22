@@ -24,7 +24,7 @@ if [[ $(uname) == "Linux" && -z $DISPLAY ]]; then
     XVFB="xvfb-run "
 fi
 
-PYTEST_CMD="${XVFB}pytest -v -m \"$PATTERN\" -n $PYTEST_WORKERS --dist=loadfile $TEST_ARGS $COVERAGE $PYTEST_TARGET"
+PYTEST_CMD="${XVFB}pytest -v -m \"$PATTERN\" --setup-show $TEST_ARGS $COVERAGE $PYTEST_TARGET"
 
 if [[ $(uname) != "Linux"  && $(uname) != "Darwin" ]]; then
     PYTEST_CMD="$PYTEST_CMD --ignore=pandas/tests/plotting/"
