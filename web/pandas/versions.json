@@ -4,12 +4,8 @@
         "version": "docs/dev"
     },
     {
-        "name": "1.4 (rc)",
+        "name": "1.4 (stable)",
         "version": "pandas-docs/version/1.4"
-    },
-    {
-        "name": "1.3 (stable)",
-        "version": "docs"
     },
     {
         "name": "1.3",
