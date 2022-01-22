@@ -9,15 +9,12 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.mark.parametrize("operation", ["min", "max"])
-def test_reductions_series_strings(operation):
+@pytest.mark.parametrize("operation, expected", [("min", "a"), ("max", "b")])
+def test_reductions_series_strings(operation, expected):
     # GH#31746
-    list_str = ["a", "b"]
-    ser = Series(list_str, dtype="string")
+    ser = Series(["a", "b"], dtype="string")
     res_operation_serie = getattr(ser, operation)()
-    func_builtin_python = __builtins__[operation]
-    res_builtin_python = func_builtin_python(list_str)
-    assert res_operation_serie == res_builtin_python
+    assert res_operation_serie == expected
 
 
 @pytest.mark.parametrize("as_period", [True, False])
