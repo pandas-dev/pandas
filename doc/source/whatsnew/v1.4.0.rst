@@ -967,7 +967,6 @@ I/O
 - Bug in :func:`read_json` raising ``ValueError`` when attempting to parse json strings containing "://" (:issue:`36271`)
 - Bug in :func:`read_csv` when ``engine="c"`` and ``encoding_errors=None`` which caused a segfault (:issue:`45180`)
 - Bug in :func:`read_csv` an invalid value of ``usecols`` leading to an unclosed file handle (:issue:`45384`)
-- Bug in :func:`read_parquet` when ``engine="pyarrow"`` which caused partial write to disk when column of unsupported datatype was passed (:issue:`44914`)
 
 Period
 ^^^^^^
