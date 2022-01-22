@@ -1266,11 +1266,12 @@ def inspect_excel_format(
         elif not peek.startswith(ZIP_SIGNATURE):
             return None
 
-        zf = zipfile.ZipFile(stream)
-
-        # Workaround for some third party files that use forward slashes and
-        # lower case names.
-        component_names = [name.replace("\\", "/").lower() for name in zf.namelist()]
+        with zipfile.ZipFile(stream) as zf:
+            # Workaround for some third party files that use forward slashes and
+            # lower case names.
+            component_names = [
+                name.replace("\\", "/").lower() for name in zf.namelist()
+            ]
 
         if "xl/workbook.xml" in component_names:
             return "xlsx"
