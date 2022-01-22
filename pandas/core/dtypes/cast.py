@@ -20,6 +20,7 @@ from typing import (
 )
 import warnings
 
+from dateutil.parser import ParserError
 import numpy as np
 
 from pandas._libs import lib
@@ -1336,9 +1337,8 @@ def maybe_cast_to_datetime(
                             value = dta.tz_localize("UTC").tz_convert(dtype.tz)
                 except OutOfBoundsDatetime:
                     raise
-                except ValueError:
-                    # TODO(GH#40048): only catch dateutil's ParserError
-                    #  once we can reliably import it in all supported versions
+                except ParserError:
+                    # Note: this is dateutil's ParserError, not ours.
                     pass
 
         elif getattr(vdtype, "kind", None) in ["m", "M"]:
@@ -1507,7 +1507,7 @@ def common_dtype_categorical_compat(
                     hasnas = obj.hasnans
                 else:
                     # Categorical
-                    hasnas = cast("Categorical", obj)._hasnans
+                    hasnas = cast("Categorical", obj)._hasna
 
                 if hasnas:
                     # see test_union_int_categorical_with_nan

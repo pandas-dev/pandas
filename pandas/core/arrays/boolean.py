@@ -421,24 +421,6 @@ class BooleanArray(BaseMaskedArray):
         # coerce
         return self.to_numpy(dtype=dtype, na_value=na_value, copy=False)
 
-    def _values_for_argsort(self) -> np.ndarray:
-        """
-        Return values for sorting.
-
-        Returns
-        -------
-        ndarray
-            The transformed values should maintain the ordering between values
-            within the array.
-
-        See Also
-        --------
-        ExtensionArray.argsort : Return the indices that would sort this array.
-        """
-        data = self._data.copy()
-        data[self._mask] = -1
-        return data
-
     def _logical_method(self, other, op):
 
         assert op.__name__ in {"or_", "ror_", "and_", "rand_", "xor", "rxor"}
@@ -494,7 +476,8 @@ class BooleanArray(BaseMaskedArray):
         if mask is None:
             mask = self._mask
             if other is libmissing.NA:
-                mask |= True
+                # GH#45421 don't alter inplace
+                mask = mask | True
         else:
             mask = self._mask | mask
 
