@@ -966,6 +966,7 @@ I/O
 - Bug in :func:`read_json` raising ``ValueError`` when attempting to parse json strings containing "://" (:issue:`36271`)
 - Bug in :func:`read_csv` when ``engine="c"`` and ``encoding_errors=None`` which caused a segfault (:issue:`45180`)
 - Bug in :func:`read_csv` an invalid value of ``usecols`` leading to an unclosed file handle (:issue:`45384`)
+- Bug in :meth:`DataFrame.to_json` fix memory leak (:issue:`43877`)
 
 Period
 ^^^^^^
@@ -1089,4 +1090,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v1.3.5..v1.4.0|HEAD
+.. contributors:: v1.3.5..v1.4.0
