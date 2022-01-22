@@ -126,6 +126,8 @@ def putmask_without_repeat(
     mask : np.ndarray[bool]
     new : Any
     """
+    new = setitem_datetimelike_compat(values, mask.sum(), new)
+
     if getattr(new, "ndim", 0) >= 1:
         new = new.astype(values.dtype, copy=False)
 
