@@ -228,6 +228,7 @@ static PyObject *get_values(PyObject *obj) {
             PyErr_Clear();
         } else if (PyObject_HasAttrString(values, "__array__")) {
             // We may have gotten a Categorical or Sparse array so call np.array
+            Py_DECREF(values);
             values = PyObject_CallMethod(values, "__array__", NULL);
         } else if (!PyArray_CheckExact(values)) {
             // Didn't get a numpy array, so keep trying
