@@ -197,57 +197,6 @@ library to produce a tight representation of :class:`DataFrame` objects
     df
     df.to_dict(orient='tight')
 
-.. _whatsnew_140.resample_group_keys:
-
-Control of index with ``group_keys`` in :meth:`DataFrame.resample`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The argument ``group_keys`` has been added to the method :meth:`DataFrame.resample`.
-As with :meth:`DataFrame.groupby`, this argument controls the whether each group is added
-to the index in the resample when :meth:`.Resampler.apply` is used.
-
-.. warning::
-   Not specifying the ``group_keys`` argument will retain the
-   previous behavior and emit a warning if the result will change
-   by specifying ``group_keys=False``. In a future version
-   of pandas, not specifying ``group_keys`` will default to
-   the same behavior as ``group_keys=False``.
-
-.. ipython:: python
-
-    df = pd.DataFrame(
-        {'a': range(6)},
-        index=pd.date_range("2021-01-01", periods=6, freq="8H")
-    )
-    df.resample("D", group_keys=True).apply(lambda x: x)
-    df.resample("D", group_keys=False).apply(lambda x: x)
-
-Previously, the resulting index would depend upon the values returned by ``apply``,
-as seen in the following example.
-
-.. code-block:: ipython
-
-    In [1]: # pandas 1.3
-    In [2]: df.resample("D").apply(lambda x: x)
-    Out[2]:
-                         a
-    2021-01-01 00:00:00  0
-    2021-01-01 08:00:00  1
-    2021-01-01 16:00:00  2
-    2021-01-02 00:00:00  3
-    2021-01-02 08:00:00  4
-    2021-01-02 16:00:00  5
-
-    In [3]: df.resample("D").apply(lambda x: x.reset_index())
-    Out[3]:
-                               index  a
-    2021-01-01 0 2021-01-01 00:00:00  0
-               1 2021-01-01 08:00:00  1
-               2 2021-01-01 16:00:00  2
-    2021-01-02 0 2021-01-02 00:00:00  3
-               1 2021-01-02 08:00:00  4
-               2 2021-01-02 16:00:00  5
-
 .. _whatsnew_140.enhancements.other:
 
 Other enhancements

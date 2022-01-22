@@ -1056,8 +1056,9 @@ for both ``aggregate`` and ``transform`` in many standard use cases. However,
 
 .. note::
 
-   ``apply`` can act as a reducer, transformer, *or* filter function, depending on exactly what is passed to it.
-   So depending on the path taken, and exactly what you are grouping. Thus the grouped column(s) may be included in
+   ``apply`` can act as a reducer, transformer, *or* filter function, depending
+   on exactly what is passed to it. It can depend on the passed function and
+   exactly what you are grouping. Thus the grouped column(s) may be included in
    the output as well as set the indices.
 
 .. ipython:: python
@@ -1105,7 +1106,7 @@ Control grouped column(s) placement with ``group_keys``
    not be added for like-indexed outputs. In the future this behavior
    will change to always respect ``group_keys``, which defaults to ``True``.
 
-   .. versionchanged:: 1.4.0
+   .. versionchanged:: 1.5.0
 
 To control whether the grouped column(s) are included in the indices, you can use
 the argument ``group_keys``. Compare
