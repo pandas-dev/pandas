@@ -494,7 +494,6 @@ class Styler(StylerRenderer):
             engine=engine,
         )
 
-    @Substitution(buf=buf, encoding=encoding)
     def to_latex(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
@@ -522,7 +521,10 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        %(buf)s
+        buf : str, path object, file-like object, or None, default None
+            String, path object (implementing ``os.PathLike[str]``), or file-like
+            object implementing a string ``write()`` function. If None, the result is
+            returned as a string.
         column_format : str, optional
             The LaTeX column specification placed in location:
 
@@ -607,7 +609,9 @@ class Styler(StylerRenderer):
             ``pandas.options.styler.latex.environment``, which is `None`.
 
             .. versionadded:: 1.4.0
-        %(encoding)s
+        encoding : str, optional
+            Character encoding setting. Defaults
+            to ``pandas.options.styler.render.encoding``, which is "utf-8".
         convert_css : bool, default False
             Convert simple cell-styles from CSS to LaTeX format. Any CSS not found in
             conversion table is dropped. A style can be forced by adding option
