@@ -74,7 +74,7 @@ jobs:
 
     - name: Install pyright
       # note: keep version in sync with .pre-commit-config.yaml
-      run: npm install -g pyright@1.1.202
+      run: npm install -g pyright@1.1.212
 
     - name: Build Pandas
       id: build
