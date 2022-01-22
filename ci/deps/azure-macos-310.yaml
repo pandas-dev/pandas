@@ -1,36 +1,36 @@
 name: pandas-dev
 channels:
+  - defaults
   - conda-forge
 dependencies:
-  - python=3.8
+  - python=3.10
 
   # tools
   - cython>=0.29.24
   - pytest>=6.0
-  - pytest-cov
   - pytest-xdist>=1.31
-  - pytest-asyncio>=0.12.0
   - hypothesis>=5.5.3
+  - pytest-azurepipelines
 
   # pandas dependencies
   - beautifulsoup4
+  - bottleneck
   - html5lib
-  - ipython
   - jinja2
-  - jedi
   - lxml
-  - matplotlib<3.3.0
+  - matplotlib
   - nomkl
   - numexpr
-  - numpy<1.20  # GH#39541 compat with pyarrow<3
+  - numpy
   - openpyxl
+  - pyarrow
+  - pyreadstat
   - pytables
-  - python-dateutil
+  - python-dateutil==2.8.1
   - pytz
-  - scipy
+  - pyxlsb
   - xarray
   - xlrd
   - xlsxwriter
   - xlwt
-  - pyarrow=1.0.1
-  - pyxlsb
+  - zstandard

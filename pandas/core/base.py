@@ -224,9 +224,9 @@ class SelectionMixin(Generic[NDFrameT]):
         if len(self.exclusions) > 0:
             # equivalent to `self.obj.drop(self.exclusions, axis=1)
             #  but this avoids consolidating and making a copy
-            return self.obj._drop_axis(
-                self.exclusions, axis=1, consolidate=False, only_slice=True
-            )
+            # TODO: following GH#45287 can we now use .drop directly without
+            #  making a copy?
+            return self.obj._drop_axis(self.exclusions, axis=1, only_slice=True)
         else:
             return self.obj
 
@@ -763,7 +763,9 @@ class IndexOpsMixin(OpsMixin):
     @cache_readonly
     def hasnans(self) -> bool:
         """
-        Return if I have any nans; enables various perf speedups.
+        Return True if there are any NaNs.
+
+        Enables various performance speedups.
         """
         return bool(isna(self).any())
 

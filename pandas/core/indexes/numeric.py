@@ -23,10 +23,8 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_dtype_equal,
-    is_extension_array_dtype,
     is_float,
     is_float_dtype,
     is_integer_dtype,
@@ -34,7 +32,6 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_signed_integer_dtype,
     is_unsigned_integer_dtype,
-    needs_i8_conversion,
     pandas_dtype,
 )
 from pandas.core.dtypes.generic import ABCSeries
@@ -232,32 +229,6 @@ class NumericIndex(Index):
         except (OverflowError, TypeError, ValueError):
             return False
 
-    @doc(Index.astype)
-    def astype(self, dtype, copy: bool = True):
-        dtype = pandas_dtype(dtype)
-        if is_float_dtype(self.dtype):
-            if needs_i8_conversion(dtype):
-                raise TypeError(
-                    f"Cannot convert Float64Index to dtype {dtype}; integer "
-                    "values are required for conversion"
-                )
-            elif is_integer_dtype(dtype) and not is_extension_array_dtype(dtype):
-                # TODO(ExtensionIndex); this can change once we have an EA Index type
-                # GH 13149
-                arr = astype_nansafe(self._values, dtype=dtype)
-                if isinstance(self, Float64Index):
-                    return Int64Index(arr, name=self.name)
-                else:
-                    return NumericIndex(arr, name=self.name, dtype=dtype)
-        elif self._is_backward_compat_public_numeric_index:
-            # this block is needed so e.g. NumericIndex[int8].astype("int32") returns
-            # NumericIndex[int32] and not Int64Index with dtype int64.
-            # When Int64Index etc. are removed from the code base, removed this also.
-            if not is_extension_array_dtype(dtype) and is_numeric_dtype(dtype):
-                return self._constructor(self, dtype=dtype, copy=copy)
-
-        return super().astype(dtype, copy=copy)
-
     # ----------------------------------------------------------------
     # Indexing Methods
 
@@ -268,7 +239,9 @@ class NumericIndex(Index):
         return False
 
     @doc(Index._convert_slice_indexer)
-    def _convert_slice_indexer(self, key: slice, kind: str):
+    def _convert_slice_indexer(self, key: slice, kind: str, is_frame: bool = False):
+        # TODO(2.0): once #45324 deprecation is enforced we should be able
+        #  to simplify this.
         if is_float_dtype(self.dtype):
             assert kind in ["loc", "getitem"]
 
@@ -276,7 +249,7 @@ class NumericIndex(Index):
             # translate to locations
             return self.slice_indexer(key.start, key.stop, key.step)
 
-        return super()._convert_slice_indexer(key, kind=kind)
+        return super()._convert_slice_indexer(key, kind=kind, is_frame=is_frame)
 
     @doc(Index._maybe_cast_slice_bound)
     def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
@@ -419,18 +392,6 @@ class IntegerIndex(NumericIndex):
         )
         return self._values.view(self._default_dtype)
 
-    def _validate_fill_value(self, value):
-        # e.g. np.array([1.0]) we want np.array([1], dtype=self.dtype)
-        #  see TestSetitemFloatNDarrayIntoIntegerSeries
-        super()._validate_fill_value(value)
-        if hasattr(value, "dtype") and is_float_dtype(value.dtype):
-            converted = value.astype(self.dtype)
-            if (converted == value).all():
-                # See also: can_hold_element
-                return converted
-            raise TypeError
-        return value
-
 
 class Int64Index(IntegerIndex):
     _index_descr_args = {
@@ -460,16 +421,6 @@ class UInt64Index(IntegerIndex):
     _engine_type = libindex.UInt64Engine
     _default_dtype = np.dtype(np.uint64)
     _dtype_validation_metadata = (is_unsigned_integer_dtype, "unsigned integer")
-
-    def _validate_fill_value(self, value):
-        # e.g. np.array([1]) we want np.array([1], dtype=np.uint64)
-        #  see test_where_uin64
-        super()._validate_fill_value(value)
-        if hasattr(value, "dtype") and is_signed_integer_dtype(value.dtype):
-            if (value >= 0).all():
-                return value.astype(self.dtype)
-            raise TypeError
-        return value
 
 
 class Float64Index(NumericIndex):

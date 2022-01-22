@@ -119,12 +119,13 @@ index_col : int, list of int, default None
     those columns will be combined into a ``MultiIndex``.  If a
     subset of data is selected with ``usecols``, index_col
     is based on the subset.
-usecols : int, str, list-like, or callable default None
+usecols : str, list-like, or callable, default None
     * If None, then parse all columns.
     * If str, then indicates comma separated list of Excel column letters
       and column ranges (e.g. "A:E" or "A,C,E:F"). Ranges are inclusive of
       both sides.
-    * If list of int, then indicates list of column numbers to be parsed.
+    * If list of int, then indicates list of column numbers to be parsed
+      (0-indexed).
     * If list of string, then indicates list of column names to be parsed.
     * If callable, then evaluate each column name against it and parse the
       column if the callable returns ``True``.
@@ -533,7 +534,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
     def load_workbook(self, filepath_or_buffer):
         pass
 
-    def close(self):
+    def close(self) -> None:
         if hasattr(self, "book") and hasattr(self.book, "close"):
             # pyxlsb: opens a TemporaryFile
             # openpyxl: https://stackoverflow.com/questions/31416842/
@@ -1083,7 +1084,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         mode: str = "w",
         storage_options: StorageOptions = None,
         if_sheet_exists: str | None = None,
-        engine_kwargs: dict | None = None,
+        engine_kwargs: dict[str, Any] | None = None,
         **kwargs,
     ):
         # validate that this engine can handle the extension

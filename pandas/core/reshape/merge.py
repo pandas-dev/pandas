@@ -195,7 +195,7 @@ def merge_ordered(
     how: str = "outer",
 ) -> DataFrame:
     """
-    Perform merge with optional filling/interpolation.
+    Perform a merge for ordered data with optional filling/interpolation.
 
     Designed for ordered data like time series data. Optionally
     perform group-wise merge (see examples).
@@ -340,7 +340,7 @@ def merge_asof(
     direction: str = "backward",
 ) -> DataFrame:
     """
-    Perform an asof merge.
+    Perform a merge by key distance.
 
     This is similar to a left-join except that we match on nearest
     key rather than equal keys. Both DataFrames must be sorted by the key.
@@ -2148,8 +2148,6 @@ def _factorize_keys(
         rk = ensure_int64(rk.codes)
 
     elif isinstance(lk, ExtensionArray) and is_dtype_equal(lk.dtype, rk.dtype):
-        # error: Incompatible types in assignment (expression has type "ndarray",
-        # variable has type "ExtensionArray")
         lk, _ = lk._values_for_factorize()
 
         # error: Item "ndarray" of "Union[Any, ndarray]" has no attribute

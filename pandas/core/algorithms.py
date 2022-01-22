@@ -335,8 +335,9 @@ def _check_object_for_strings(values: np.ndarray) -> str:
 
 def unique(values):
     """
-    Hash table-based unique. Uniques are returned in order
-    of appearance. This does NOT sort.
+    Return unique values based on a hash table.
+
+    Uniques are returned in order of appearance. This does NOT sort.
 
     Significantly faster than numpy.unique for long enough sequences.
     Includes NA values.
@@ -769,7 +770,12 @@ def factorize(
         # na_value is set based on the dtype of uniques, and compat set to False is
         # because we do not want na_value to be 0 for integers
         na_value = na_value_for_dtype(uniques.dtype, compat=False)
-        uniques = np.append(uniques, [na_value])
+        # Argument 2 to "append" has incompatible type "List[Union[str, float, Period,
+        # Timestamp, Timedelta, Any]]"; expected "Union[_SupportsArray[dtype[Any]],
+        # _NestedSequence[_SupportsArray[dtype[Any]]]
+        # , bool, int, float, complex, str, bytes, _NestedSequence[Union[bool, int,
+        # float, complex, str, bytes]]]"  [arg-type]
+        uniques = np.append(uniques, [na_value])  # type: ignore[arg-type]
         codes = np.where(code_is_na, len(uniques) - 1, codes)
 
     uniques = _reconstruct_data(uniques, dtype, original)
@@ -1068,7 +1074,12 @@ def checked_add_with_arr(
     elif arr_mask is not None:
         not_nan = np.logical_not(arr_mask)
     elif b_mask is not None:
-        not_nan = np.logical_not(b2_mask)
+        # Argument 1 to "__call__" of "_UFunc_Nin1_Nout1" has incompatible type
+        # "Optional[ndarray[Any, dtype[bool_]]]"; expected
+        # "Union[_SupportsArray[dtype[Any]], _NestedSequence[_SupportsArray[dtype[An
+        # y]]], bool, int, float, complex, str, bytes, _NestedSequence[Union[bool,
+        # int, float, complex, str, bytes]]]"  [arg-type]
+        not_nan = np.logical_not(b2_mask)  # type: ignore[arg-type]
     else:
         not_nan = np.empty(arr.shape, dtype=bool)
         not_nan.fill(True)

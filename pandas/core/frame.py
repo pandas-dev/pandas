@@ -93,7 +93,6 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.cast import (
-    can_hold_element,
     construct_1d_arraylike_from_scalar,
     construct_2d_arraylike_from_scalar,
     find_common_type,
@@ -123,6 +122,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_sequence,
+    needs_i8_conversion,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
@@ -147,6 +147,7 @@ from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
+    PeriodArray,
     TimedeltaArray,
 )
 from pandas.core.arrays.sparse import SparseFrameAccessor
@@ -899,7 +900,7 @@ class DataFrame(NDFrame, OpsMixin):
     @property
     def _values(  # type: ignore[override]
         self,
-    ) -> np.ndarray | DatetimeArray | TimedeltaArray:
+    ) -> np.ndarray | DatetimeArray | TimedeltaArray | PeriodArray:
         """
         Analogue to ._values that may return a 2D ExtensionArray.
         """
@@ -924,7 +925,7 @@ class DataFrame(NDFrame, OpsMixin):
             return self.values
 
         # more generally, whatever we allow in NDArrayBackedExtensionBlock
-        arr = cast("np.ndarray | DatetimeArray | TimedeltaArray", arr)
+        arr = cast("np.ndarray | DatetimeArray | TimedeltaArray | PeriodArray", arr)
         return arr.T
 
     # ----------------------------------------------------------------------
@@ -1275,6 +1276,12 @@ class DataFrame(NDFrame, OpsMixin):
 
     @Appender(_shared_docs["items"])
     def iteritems(self) -> Iterable[tuple[Hashable, Series]]:
+        warnings.warn(
+            "iteritems is deprecated and will be removed in a future version. "
+            "Use .items instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         yield from self.items()
 
     def iterrows(self) -> Iterable[tuple[Hashable, Series]]:
@@ -2428,7 +2435,9 @@ class DataFrame(NDFrame, OpsMixin):
             if dtype_mapping is None:
                 formats.append(v.dtype)
             elif isinstance(dtype_mapping, (type, np.dtype, str)):
-                formats.append(dtype_mapping)
+                # Argument 1 to "append" of "list" has incompatible type
+                # "Union[type, dtype[Any], str]"; expected "dtype[_SCT]"  [arg-type]
+                formats.append(dtype_mapping)  # type: ignore[arg-type]
             else:
                 element = "row" if i < index_len else "column"
                 msg = f"Invalid dtype {dtype_mapping} specified for {element} {name}"
@@ -3210,6 +3219,11 @@ class DataFrame(NDFrame, OpsMixin):
             many repeated values.
         DataFrame.info : Concise summary of a DataFrame.
 
+        Notes
+        -----
+        See the :ref:`Frequently Asked Questions <df-memory-usage>` for more
+        details.
+
         Examples
         --------
         >>> dtypes = ['int64', 'float64', 'complex128', 'object', 'bool']
@@ -3464,7 +3478,8 @@ class DataFrame(NDFrame, OpsMixin):
         key = lib.item_from_zerodim(key)
         key = com.apply_if_callable(key, self)
 
-        if is_hashable(key):
+        if is_hashable(key) and not is_iterator(key):
+            # is_iterator to exclude generator e.g. test_getitem_listlike
             # shortcut if the key is in columns
             if self.columns.is_unique and key in self.columns:
                 if isinstance(self.columns, MultiIndex):
@@ -3866,14 +3881,11 @@ class DataFrame(NDFrame, OpsMixin):
 
             series = self._get_item_cache(col)
             loc = self.index.get_loc(index)
-            if not can_hold_element(series._values, value):
-                # We'll go through loc and end up casting.
-                raise TypeError
 
-            series._mgr.setitem_inplace(loc, value)
-            # Note: trying to use series._set_value breaks tests in
-            #  tests.frame.indexing.test_indexing and tests.indexing.test_partial
-        except (KeyError, TypeError):
+            # series._set_value will do validation that may raise TypeError
+            #  or ValueError
+            series._set_value(loc, value, takeable=True)
+        except (KeyError, TypeError, ValueError):
             # set using a non-recursive method & reset the cache
             if takeable:
                 self.iloc[index, col] = value
@@ -4224,15 +4236,13 @@ class DataFrame(NDFrame, OpsMixin):
         from pandas.core.computation.eval import eval as _eval
 
         inplace = validate_bool_kwarg(inplace, "inplace")
-        resolvers = kwargs.pop("resolvers", None)
         kwargs["level"] = kwargs.pop("level", 0) + 1
-        if resolvers is None:
-            index_resolvers = self._get_index_resolvers()
-            column_resolvers = self._get_cleaned_column_resolvers()
-            resolvers = column_resolvers, index_resolvers
+        index_resolvers = self._get_index_resolvers()
+        column_resolvers = self._get_cleaned_column_resolvers()
+        resolvers = column_resolvers, index_resolvers
         if "target" not in kwargs:
             kwargs["target"] = self
-        kwargs["resolvers"] = kwargs.get("resolvers", ()) + tuple(resolvers)
+        kwargs["resolvers"] = tuple(kwargs.get("resolvers", ())) + resolvers
 
         return _eval(expr, inplace=inplace, **kwargs)
 
@@ -6242,22 +6252,27 @@ class DataFrame(NDFrame, OpsMixin):
         # Verify all columns in subset exist in the queried dataframe
         # Otherwise, raise a KeyError, same as if you try to __getitem__ with a
         # key that doesn't exist.
-        diff = Index(subset).difference(self.columns)
-        if not diff.empty:
-            raise KeyError(diff)
+        diff = set(subset) - set(self.columns)
+        if diff:
+            raise KeyError(Index(diff))
 
-        vals = (col.values for name, col in self.items() if name in subset)
-        labels, shape = map(list, zip(*map(f, vals)))
+        if len(subset) == 1 and self.columns.is_unique:
+            # GH#45236 This is faster than get_group_index below
+            result = self[subset[0]].duplicated(keep)
+            result.name = None
+        else:
+            vals = (col.values for name, col in self.items() if name in subset)
+            labels, shape = map(list, zip(*map(f, vals)))
 
-        ids = get_group_index(
-            labels,
-            # error: Argument 1 to "tuple" has incompatible type "List[_T]";
-            # expected "Iterable[int]"
-            tuple(shape),  # type: ignore[arg-type]
-            sort=False,
-            xnull=False,
-        )
-        result = self._constructor_sliced(duplicated(ids, keep), index=self.index)
+            ids = get_group_index(
+                labels,
+                # error: Argument 1 to "tuple" has incompatible type "List[_T]";
+                # expected "Iterable[int]"
+                tuple(shape),  # type: ignore[arg-type]
+                sort=False,
+                xnull=False,
+            )
+            result = self._constructor_sliced(duplicated(ids, keep), index=self.index)
         return result.__finalize__(self, method="duplicated")
 
     # ----------------------------------------------------------------------
@@ -8893,9 +8908,9 @@ Parrot 2  Parrot       24.0
         >>> df_copy = df.copy()
         >>> df_copy.iloc[0, 0] = pd.NA
         >>> df_copy.applymap(lambda x: len(str(x)), na_action='ignore')
-              0  1
-        0  <NA>  4
-        1     5  5
+             0  1
+        0  NaN  4
+        1  5.0  5
 
         Note that a vectorized version of `func` often exists, which will
         be much faster. You could square each number elementwise.
@@ -10478,17 +10493,23 @@ Parrot 2  Parrot       24.0
         Name: 0.5, dtype: object
         """
         validate_percentile(q)
+        axis = self._get_axis_number(axis)
 
         if not is_list_like(q):
             # BlockManager.quantile expects listlike, so we wrap and unwrap here
-            res = self.quantile(
+            res_df = self.quantile(
                 [q], axis=axis, numeric_only=numeric_only, interpolation=interpolation
             )
-            return res.iloc[0]
+            res = res_df.iloc[0]
+            if axis == 1 and len(self) == 0:
+                # GH#41544 try to get an appropriate dtype
+                dtype = find_common_type(list(self.dtypes))
+                if needs_i8_conversion(dtype):
+                    return res.astype(dtype)
+            return res
 
         q = Index(q, dtype=np.float64)
         data = self._get_numeric_data() if numeric_only else self
-        axis = self._get_axis_number(axis)
 
         if axis == 1:
             data = data.T
@@ -10496,9 +10517,17 @@ Parrot 2  Parrot       24.0
         if len(data.columns) == 0:
             # GH#23925 _get_numeric_data may have dropped all columns
             cols = Index([], name=self.columns.name)
+
+            dtype = np.float64
+            if axis == 1:
+                # GH#41544 try to get an appropriate dtype
+                cdtype = find_common_type(list(self.dtypes))
+                if needs_i8_conversion(cdtype):
+                    dtype = cdtype
+
             if is_list_like(q):
-                return self._constructor([], index=q, columns=cols)
-            return self._constructor_sliced([], index=cols, name=q, dtype=np.float64)
+                return self._constructor([], index=q, columns=cols, dtype=dtype)
+            return self._constructor_sliced([], index=cols, name=q, dtype=dtype)
 
         res = data._mgr.quantile(qs=q, axis=1, interpolation=interpolation)
 
@@ -10951,7 +10980,7 @@ Parrot 2  Parrot       24.0
         inplace=False,
         axis=None,
         level=None,
-        errors=lib.no_default,
+        errors="raise",
         try_cast=lib.no_default,
     ):
         return super().where(cond, other, inplace, axis, level, errors, try_cast)
@@ -10966,7 +10995,7 @@ Parrot 2  Parrot       24.0
         inplace=False,
         axis=None,
         level=None,
-        errors=lib.no_default,
+        errors="raise",
         try_cast=lib.no_default,
     ):
         return super().mask(cond, other, inplace, axis, level, errors, try_cast)

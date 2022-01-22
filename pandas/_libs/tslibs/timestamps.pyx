@@ -180,6 +180,8 @@ cdef class _Timestamp(ABCTimestamp):
     def __hash__(_Timestamp self):
         if self.nanosecond:
             return hash(self.value)
+        if self.fold:
+            return datetime.__hash__(self.replace(fold=0))
         return datetime.__hash__(self)
 
     def __richcmp__(_Timestamp self, object other, int op):
@@ -738,7 +740,7 @@ cdef class _Timestamp(ABCTimestamp):
 
     def isoformat(self, sep: str = "T", timespec: str = "auto") -> str:
         """
-        Return the time formatted according to ISO.
+        Return the time formatted according to ISO 8610.
 
         The full format looks like 'YYYY-MM-DD HH:MM:SS.mmmmmmnnn'.
         By default, the fractional part is omitted if self.microsecond == 0
@@ -896,7 +898,7 @@ cdef class _Timestamp(ABCTimestamp):
 
         return datetime(self.year, self.month, self.day,
                         self.hour, self.minute, self.second,
-                        self.microsecond, self.tzinfo)
+                        self.microsecond, self.tzinfo, fold=self.fold)
 
     cpdef to_datetime64(self):
         """
@@ -1293,6 +1295,27 @@ class Timestamp(_Timestamp):
             # GH#17690 tzinfo must be a datetime.tzinfo object, ensured
             #  by the cython annotation.
             if tz is not None:
+                if (is_integer_object(tz)
+                    and is_integer_object(ts_input)
+                    and is_integer_object(freq)
+                ):
+                    # GH#31929 e.g. Timestamp(2019, 3, 4, 5, 6, tzinfo=foo)
+                    # TODO(GH#45307): this will still be fragile to
+                    #  mixed-and-matched positional/keyword arguments
+                    ts_input = datetime(
+                        ts_input,
+                        freq,
+                        tz,
+                        unit or 0,
+                        year or 0,
+                        month or 0,
+                        day or 0,
+                        fold=fold or 0,
+                    )
+                    nanosecond = hour
+                    tz = tzinfo
+                    return cls(ts_input, nanosecond=nanosecond, tz=tz)
+
                 raise ValueError('Can provide at most one of tz, tzinfo')
 
             # User passed tzinfo instead of tz; avoid silently ignoring
@@ -1747,7 +1770,7 @@ timedelta}, default 'raise'
     def tz_localize(self, tz, ambiguous='raise', nonexistent='raise'):
         """
         Convert naive Timestamp to local time zone, or remove
-        timezone from tz-aware Timestamp.
+        timezone from timezone-aware Timestamp.
 
         Parameters
         ----------
@@ -1850,7 +1873,7 @@ default 'raise'
 
     def tz_convert(self, tz):
         """
-        Convert tz-aware Timestamp to another time zone.
+        Convert timezone-aware Timestamp to another time zone.
 
         Parameters
         ----------

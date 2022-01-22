@@ -225,11 +225,24 @@ html_theme = "pydata_sphinx_theme"
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
+
+switcher_version = version
+if ".dev" in version:
+    switcher_version = "dev"
+elif "rc" in version:
+    switcher_version = version.split("rc")[0] + " (rc)"
+
 html_theme_options = {
     "external_links": [],
     "github_url": "https://github.com/pandas-dev/pandas",
     "twitter_url": "https://twitter.com/pandas_dev",
     "google_analytics_id": "UA-27880019-2",
+    "navbar_end": ["version-switcher", "navbar-icon-links"],
+    "switcher": {
+        "json_url": "https://pandas.pydata.org/versions.json",
+        "url_template": "https://pandas.pydata.org/{version}/",
+        "version_match": switcher_version,
+    },
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -651,7 +664,7 @@ def linkcode_resolve(domain, info):
     fn = os.path.relpath(fn, start=os.path.dirname(pandas.__file__))
 
     if "+" in pandas.__version__:
-        return f"https://github.com/pandas-dev/pandas/blob/master/pandas/{fn}{linespec}"
+        return f"https://github.com/pandas-dev/pandas/blob/main/pandas/{fn}{linespec}"
     else:
         return (
             f"https://github.com/pandas-dev/pandas/blob/"
