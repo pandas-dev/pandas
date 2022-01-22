@@ -782,6 +782,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         uniques_ea = type(self)(uniques, np.zeros(len(uniques), dtype=bool))
         return codes, uniques_ea
 
+    @doc(ExtensionArray._values_for_argsort)
+    def _values_for_argsort(self) -> np.ndarray:
+        return self._data
+
     def value_counts(self, dropna: bool = True) -> Series:
         """
         Returns a Series containing counts of each unique value.
