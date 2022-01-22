@@ -57,6 +57,7 @@ markers = [
   "arm_slow: mark a test as slow for arm64 architecture",
   "arraymanager: mark a test to run with ArrayManager enabled",
 ]
+norecursedirs = ["pandas/tests/typing/invalid"]
 
 [tool.mypy]
 # Import discovery
@@ -117,6 +118,10 @@ module = [
 check_untyped_defs = false
 
 [[tool.mypy.overrides]]
+module = ["pandas.tests.typing"]
+check_untyped_defs = true
+
+[[tool.mypy.overrides]]
 module = [
   "pandas.tests.apply.test_series_apply",
   "pandas.tests.arithmetic.conftest",
@@ -150,8 +155,30 @@ skip = "pandas/__init__.py"
 [tool.pyright]
 pythonVersion = "3.8"
 typeCheckingMode = "basic"
-include = ["pandas", "typings"]
-exclude = ["pandas/tests", "pandas/io/clipboard", "pandas/util/version"]
+include = ["pandas", "typings", "pandas/tests/typing/valid"]
+exclude = [
+  "pandas/io/clipboard",
+  "pandas/util/version",
+  #  ignore everything in /pandas/tests except typing
+  "pandas/tests/*.py",
+  "pandas/tests/a*",
+  "pandas/tests/b*",
+  "pandas/tests/c*",
+  "pandas/tests/d*",
+  "pandas/tests/e*",
+  "pandas/tests/f*",
+  "pandas/tests/g*",
+  "pandas/tests/i*",
+  "pandas/tests/l*",
+  "pandas/tests/p*",
+  "pandas/tests/r*",
+  "pandas/tests/s*",
+  "pandas/tests/to*",
+  "pandas/tests/ts*",
+  "pandas/tests/s*",
+  "pandas/tests/u*",
+  "pandas/tests/w*",
+]
 reportGeneralTypeIssues = false
 reportConstantRedefinition = false
 reportFunctionMemberAccess = false

@@ -1,4 +1,6 @@
 # flake8: noqa: F841
+# TODO: many functions need return types annotations for pyright
+# to run with reportGeneralTypeIssues = true
 
 import datetime as dt
 
@@ -21,17 +23,37 @@ def test_types_init() -> None:
 
 
 def test_types_arithmetic() -> None:
-    ts: pd.Timestamp = pd.to_datetime("2021-03-01")
-    ts2: pd.Timestamp = pd.to_datetime("2021-01-01")
+    # error: Incompatible types in assignment (expression has type "datetime", variable
+    # has type "Timestamp")
+    # error: Argument 1 to "to_datetime" has incompatible type "str"; expected
+    # "datetime"
+    ts: pd.Timestamp = pd.to_datetime("2021-03-01")  # type:ignore[assignment,arg-type]
+    # error: Incompatible types in assignment (expression has type "datetime", variable
+    # has type "Timestamp")
+    # error: Argument 1 to "to_datetime" has incompatible type "str"; expected
+    # "datetime"
+    ts2: pd.Timestamp = pd.to_datetime("2021-01-01")  # type:ignore[assignment,arg-type]
     delta: pd.Timedelta = pd.to_timedelta("1 day")
 
-    tsr: pd.Timedelta = ts - ts2
+    # error: Incompatible types in assignment (expression has type "timedelta", variable
+    # has type "Timedelta")
+    tsr: pd.Timedelta = ts - ts2  # type: ignore[assignment]
     tsr2: pd.Timestamp = ts + delta
 
 
 def test_types_comparison() -> None:
-    ts: pd.Timestamp = pd.to_datetime("2021-03-01")
-    ts2: pd.Timestamp = pd.to_datetime("2021-01-01")
+    # Incompatible types in assignment (expression has type "datetime", variable has
+    # type "Timestamp")
+    # error: Argument 1 to "to_datetime" has incompatible type "str"; expected
+    # "datetime"
+    ts: pd.Timestamp = pd.to_datetime("2021-03-01")  # type: ignore[assignment,arg-type]
+    # Incompatible types in assignment (expression has type "datetime", variable has
+    # type "Timestamp")
+    # error: Argument 1 to "to_datetime" has incompatible type "str"; expected
+    # "datetime"
+    ts2: pd.Timestamp = pd.to_datetime(  # type: ignore[assignment]
+        "2021-01-01"  # type: ignore[arg-type]
+    )
 
     tsr: bool = ts < ts2
     tsr2: bool = ts > ts2

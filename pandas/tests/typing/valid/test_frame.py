@@ -1,4 +1,6 @@
 # flake8: noqa: F841
+# TODO: many functions need return types annotations for pyright
+# to run with reportGeneralTypeIssues = true
 import io
 from pathlib import Path
 import tempfile
@@ -13,6 +15,7 @@ from typing import (
 import numpy as np
 
 import pandas as pd
+from pandas.util import _test_decorators as td
 
 
 def test_types_init() -> None:
@@ -29,7 +32,9 @@ def test_types_init() -> None:
 
 def test_types_to_csv() -> None:
     df = pd.DataFrame(data={"col1": [1, 2], "col2": [3, 4]})
-    csv_df: str = df.to_csv()
+    # error: Incompatible types in assignment (expression has type "Optional[str]",
+    # variable has type "str")
+    csv_df: str = df.to_csv()  # type: ignore[assignment]
 
     with tempfile.NamedTemporaryFile() as file:
         df.to_csv(file.name)
@@ -39,12 +44,14 @@ def test_types_to_csv() -> None:
         df.to_csv(Path(file.name))
         df3: pd.DataFrame = pd.read_csv(Path(file.name))
 
-    # This keyword was added in 1.1.0 https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
+    # This keyword was added in 1.1.0
+    # https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
     with tempfile.NamedTemporaryFile() as file:
         df.to_csv(file.name, errors="replace")
         df4: pd.DataFrame = pd.read_csv(file.name)
 
-    # Testing support for binary file handles, added in 1.2.0 https://pandas.pydata.org/docs/whatsnew/v1.2.0.html
+    # Testing support for binary file handles, added in 1.2.0
+    # https://pandas.pydata.org/docs/whatsnew/v1.2.0.html
     df.to_csv(io.BytesIO(), encoding="utf-8", compression="gzip")
 
 
@@ -81,7 +88,9 @@ def test_types_getitem() -> None:
 
 
 def test_slice_setitem() -> None:
-    # Due to the bug in pandas 1.2.3(https://github.com/pandas-dev/pandas/issues/40440), this is in separate test case
+    # Due to the bug in pandas 1.2.3
+    # (https://github.com/pandas-dev/pandas/issues/40440),
+    # this is in separate test case
     df = pd.DataFrame(data={"col1": [1, 2], "col2": [3, 4], 5: [6, 7]})
     df[1:] = ["a", "b", "c"]
 
@@ -161,9 +170,9 @@ def test_types_drop() -> None:
     df = pd.DataFrame(data={"col1": [1, 2], "col2": [3, 4]})
     res: pd.DataFrame = df.drop("col1", axis=1)
     res2: pd.DataFrame = df.drop(columns=["col1"])
-    res3: pd.DataFrame = df.drop(set([0]))
-    res4: pd.DataFrame = df.drop(index=set([0]))
-    res5: pd.DataFrame = df.drop(columns=set(["col1"]))
+    res3: pd.DataFrame = df.drop({0})
+    res4: pd.DataFrame = df.drop(index={0})
+    res5: pd.DataFrame = df.drop(columns={"col1"})
     res6: pd.DataFrame = df.drop(index=1)
     res7: pd.DataFrame = df.drop(labels=0)
     res8: None = df.drop([0, 0], inplace=True)
@@ -189,7 +198,9 @@ def test_types_sort_index() -> None:
     level1 = (1, 2)
     res2: pd.DataFrame = df.sort_index(ascending=False, level=level1)
     level2: List[str] = ["a", "b", "c"]
-    res3: pd.DataFrame = df2.sort_index(level=level2)
+    # error: Argument "level" to "sort_index" of "DataFrame" has incompatible type
+    # "List[str]"; expected "Optional[Union[Hashable, int]]"
+    res3: pd.DataFrame = df2.sort_index(level=level2)  # type: ignore[arg-type]
     res4: pd.DataFrame = df.sort_index(ascending=False, level=3)
     res5: None = df.sort_index(kind="mergesort", inplace=True)
 
@@ -254,22 +265,51 @@ def test_types_rank() -> None:
 
 def test_types_mean() -> None:
     df = pd.DataFrame(data={"col1": [2, 1], "col2": [3, 4]})
-    s1: pd.Series = df.mean()
-    s2: pd.Series = df.mean(axis=0)
-    df2: pd.DataFrame = df.mean(level=0)
-    df3: pd.DataFrame = df.mean(axis=1, level=0)
-    df4: pd.DataFrame = df.mean(1, True, level=0)
-    s3: pd.Series = df.mean(axis=1, skipna=True, numeric_only=False)
+    # error: Incompatible types in assignment (expression has type "Union[Series,
+    # float]", variable has type "Series")
+    s1: pd.Series = df.mean()  # type: ignore[assignment]
+    # error: Incompatible types in assignment (expression has type "Union[Series,
+    # float]", variable has type "Series")
+    s2: pd.Series = df.mean(axis=0)  # type: ignore[assignment]
+    # error: Incompatible types in assignment (expression has type "Union[Series,
+    # float]", variable has type "DataFrame")
+    df2: pd.DataFrame = df.mean(level=0)  # type: ignore[assignment]
+    # error: Incompatible types in assignment (expression has type "Union[Series,
+    # float]", variable has type "DataFrame")
+    df3: pd.DataFrame = df.mean(axis=1, level=0)  # type: ignore[assignment]
+    # error: Incompatible types in assignment (expression has type "Union[Series,
+    # float]", variable has type "DataFrame")
+    df4: pd.DataFrame = df.mean(1, True, level=0)  # type: ignore[assignment]
+    # error: Incompatible types in assignment (expression has type "Union[Series,
+    # float]", variable has type "Series")# error: Incompatible types in assignment
+    # (expression has type "Union[Series, float]", variable has type "Series")
+    s3: pd.Series = df.mean(  # type: ignore[assignment]
+        axis=1, skipna=True, numeric_only=False
+    )
 
 
 def test_types_median() -> None:
     df = pd.DataFrame(data={"col1": [2, 1], "col2": [3, 4]})
-    s1: pd.Series = df.median()
-    s2: pd.Series = df.median(axis=0)
-    df2: pd.DataFrame = df.median(level=0)
-    df3: pd.DataFrame = df.median(axis=1, level=0)
-    df4: pd.DataFrame = df.median(1, True, level=0)
-    s3: pd.Series = df.median(axis=1, skipna=True, numeric_only=False)
+    # error: Incompatible types in assignment (expression has type "Union[Series,
+    # float]", variable has type "Series")
+    s1: pd.Series = df.median()  # type: ignore[assignment]
+    # error: Incompatible types in assignment (expression has type "Union[Series,
+    # float]", variable has type "Series")
+    s2: pd.Series = df.median(axis=0)  # type: ignore[assignment]
+    # error: Incompatible types in assignment (expression has type "Union[Series,
+    # float]", variable has type "DataFrame")
+    df2: pd.DataFrame = df.median(level=0)  # type: ignore[assignment]
+    # error: Incompatible types in assignment (expression has type "Union[Series,
+    # float]", variable has type "DataFrame")
+    df3: pd.DataFrame = df.median(axis=1, level=0)  # type: ignore[assignment]
+    # error: Incompatible types in assignment (expression has type "Union[Series,
+    # float]", variable has type "DataFrame")
+    df4: pd.DataFrame = df.median(1, True, level=0)  # type: ignore[assignment]
+    # error: Incompatible types in assignment (expression has type "Union[Series,
+    # float]", variable has type "Series")
+    s3: pd.Series = df.median(  # type: ignore[assignment]
+        axis=1, skipna=True, numeric_only=False
+    )
 
 
 def test_types_itertuples() -> None:
@@ -370,7 +410,8 @@ def test_types_applymap() -> None:
     df.applymap(lambda x: x ** 2)
     df.applymap(np.exp)
     df.applymap(str)
-    # na_action parameter was added in 1.2.0 https://pandas.pydata.org/docs/whatsnew/v1.2.0.html
+    # na_action parameter was added in 1.2.0
+    # https://pandas.pydata.org/docs/whatsnew/v1.2.0.html
     df.applymap(np.exp, na_action="ignore")
     df.applymap(str, na_action=None)
 
@@ -397,7 +438,8 @@ def test_types_element_wise_arithmetic() -> None:
     df % df2
     df.mod(df2, fill_value=0)
 
-    # divmod operation was added in 1.2.0 https://pandas.pydata.org/docs/whatsnew/v1.2.0.html
+    # divmod operation was added in 1.2.0
+    # https://pandas.pydata.org/docs/whatsnew/v1.2.0.html
     # noinspection PyTypeChecker
     divmod(df, df2)
     df.__divmod__(df2)
@@ -453,7 +495,11 @@ def test_types_groupby() -> None:
     df3: pd.DataFrame = df.groupby(by="col1", sort=False, as_index=True).transform(
         lambda x: x.max()
     )
-    df4: pd.DataFrame = df.groupby(by=["col1", "col2"]).count()
+    # error: Incompatible types in assignment (expression has type "Union[Series,
+    # DataFrame]", variable has type "DataFrame")
+    df4: pd.DataFrame = df.groupby(  # type: ignore[assignment]
+        by=["col1", "col2"]
+    ).count()
     df5: pd.DataFrame = df.groupby(by=["col1", "col2"]).filter(lambda x: x["col1"] > 0)
     df6: pd.DataFrame = df.groupby(by=["col1", "col2"]).nunique()
 
@@ -499,7 +545,8 @@ def test_types_cov() -> None:
     df = pd.DataFrame(data={"col1": [1, 1, 2], "col2": [3, 4, 5]})
     df.cov()
     df.cov(min_periods=1)
-    # ddof param was added in 1.1.0 https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
+    # ddof param was added in 1.1.0
+    # https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
     df.cov(ddof=2)
 
 
@@ -507,23 +554,35 @@ def test_types_to_numpy() -> None:
     df = pd.DataFrame(data={"col1": [1, 1, 2], "col2": [3, 4, 5]})
     df.to_numpy()
     df.to_numpy(dtype="str", copy=True)
-    # na_value param was added in 1.1.0 https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
+    # na_value param was added in 1.1.0
+    # https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
     df.to_numpy(na_value=0)
 
 
+# error: Untyped decorator makes function "test_types_to_feather" untyped
+@td.skip_if_no("tabulate")  # type: ignore[misc]
 def test_to_markdown() -> None:
     df = pd.DataFrame(data={"col1": [1, 1, 2], "col2": [3, 4, 5]})
     df.to_markdown()
     df.to_markdown(buf=None, mode="wt")
-    # index param was added in 1.1.0 https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
+    # index param was added in 1.1.0
+    # https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
     df.to_markdown(index=False)
 
 
+# error: Untyped decorator makes function "test_types_to_feather" untyped
+@td.skip_if_no("pyarrow")  # type: ignore[misc]
 def test_types_to_feather() -> None:
     df = pd.DataFrame(data={"col1": [1, 1, 2], "col2": [3, 4, 5]})
     df.to_feather("dummy_path")
-    # kwargs for pyarrow.feather.write_feather added in 1.1.0 https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
-    df.to_feather("dummy_path", compression="zstd", compression_level=3, chunksize=2)
+    # kwargs for pyarrow.feather.write_feather added in 1.1.0
+    # https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
+    df.to_feather(
+        "dummy_path",
+        compression="zstd",
+        compression_level=3,
+        chunksize=2,
+    )
 
     # to_feather has been able to accept a buffer since pandas 1.0.0
     # See https://pandas.pydata.org/docs/whatsnew/v1.0.0.html
@@ -533,7 +592,8 @@ def test_types_to_feather() -> None:
         df.to_feather(f)
 
 
-# compare() method added in 1.1.0 https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
+# compare() method added in 1.1.0
+# https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
 def test_types_compare() -> None:
     df1 = pd.DataFrame(
         data={"col1": [1, 1, 2, 1], "col2": [2, None, 1, 2], "col3": [3, 4, 3, 2]}
@@ -566,7 +626,8 @@ def test_types_describe() -> None:
     df.describe()
     df.describe(percentiles=[0.5], include="all")
     df.describe(exclude=np.number)
-    # datetime_is_numeric param added in 1.1.0 https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
+    # datetime_is_numeric param added in 1.1.0
+    # https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
     df.describe(datetime_is_numeric=True)
 
 
@@ -593,7 +654,8 @@ def test_types_to_string() -> None:
         show_dimensions=True,
         line_width=3,
     )
-    # col_space accepting list or dict added in 1.1.0 https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
+    # col_space accepting list or dict added in 1.1.0
+    # https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
     df.to_string(col_space=[1, 2])
     df.to_string(col_space={"col1": 1, "col2": 3})
 
@@ -619,7 +681,8 @@ def test_types_to_html() -> None:
         max_cols=2,
         show_dimensions=True,
     )
-    # col_space accepting list or dict added in 1.1.0 https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
+    # col_space accepting list or dict added in 1.1.0
+    # https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
     df.to_html(col_space=[1, 2])
     df.to_html(col_space={"col1": 1, "col2": 3})
 
@@ -628,7 +691,8 @@ def test_types_resample() -> None:
     df = pd.DataFrame({"values": [2, 11, 3, 13, 14, 18, 17, 19]})
     df["date"] = pd.date_range("01/01/2018", periods=8, freq="W")
     df.resample("M", on="date")
-    # origin and offset params added in 1.1.0 https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
+    # origin and offset params added in 1.1.0
+    # https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
     df.resample("20min", origin="epoch", offset=pd.Timedelta(2, "minutes"), on="date")
 
 
@@ -666,7 +730,8 @@ def test_pipe() -> None:
     df4: pd.DataFrame = pd.DataFrame({"a": [1], "b": [1]}).style.pipe(foo)
 
 
-# set_flags() method added in 1.2.0 https://pandas.pydata.org/docs/whatsnew/v1.2.0.html
+# set_flags() method added in 1.2.0
+# https://pandas.pydata.org/docs/whatsnew/v1.2.0.html
 def test_types_set_flags() -> None:
     pd.DataFrame([[1, 2], [8, 9]], columns=["A", "B"]).set_flags(
         allows_duplicate_labels=False
@@ -677,14 +742,19 @@ def test_types_set_flags() -> None:
     pd.DataFrame([[1, 2], [8, 9]], columns=["A", "A"])
 
 
+# error: Untyped decorator makes function "test_types_to_parquet" untyped
+@td.skip_if_no("pyarrow")  # type: ignore[misc]
 def test_types_to_parquet() -> None:
     df = pd.DataFrame([[1, 2], [8, 9]], columns=["A", "B"]).set_flags(
         allows_duplicate_labels=False
     )
     with tempfile.NamedTemporaryFile() as file:
         df.to_parquet(Path(file.name))
-    # to_parquet() returns bytes when no path given since 1.2.0 https://pandas.pydata.org/docs/whatsnew/v1.2.0.html
-    b: bytes = df.to_parquet()
+    # to_parquet() returns bytes when no path given since 1.2.0
+    # https://pandas.pydata.org/docs/whatsnew/v1.2.0.html
+    # error: Incompatible types in assignment (expression has type "Optional[bytes]",
+    # variable has type "bytes")
+    b: bytes = df.to_parquet()  # type: ignore[assignment]
 
 
 def test_types_to_latex() -> None:
@@ -693,9 +763,11 @@ def test_types_to_latex() -> None:
         columns=["A"], label="some_label", caption="some_caption", multirow=True
     )
     df.to_latex(escape=False, decimal=",", column_format="r")
-    # position param was added in 1.2.0 https://pandas.pydata.org/docs/whatsnew/v1.2.0.html
+    # position param was added in 1.2.0
+    # https://pandas.pydata.org/docs/whatsnew/v1.2.0.html
     df.to_latex(position="some")
-    # caption param was extended to accept tuple in 1.2.0 https://pandas.pydata.org/docs/whatsnew/v1.2.0.html
+    # caption param was extended to accept tuple in 1.2.0
+    # https://pandas.pydata.org/docs/whatsnew/v1.2.0.html
     df.to_latex(caption=("cap1", "cap2"))
 
 
@@ -709,12 +781,15 @@ def test_types_explode() -> None:
 def test_types_rename() -> None:
     df = pd.DataFrame(columns=["a"])
     col_map = {"a": "b"}
-    df.rename(columns=col_map)
+    # error: Argument "columns" to "rename" of "DataFrame" has incompatible type
+    # "Dict[str, str]"; expected "Optional[Union[Mapping[Hashable, Any],
+    # Callable[[Hashable], Hashable]]]"
+    df.rename(columns=col_map)  # type: ignore[arg-type]
     df.rename(columns={"a": "b"})
     df.rename(columns={1: "b"})
     # Apparently all of these calls are accepted by pandas
     df.rename(columns={None: "b"})
-    df.rename(columns={type("AnyObject")(): "b"})
+    df.rename(columns={"": "b"})
     df.rename(columns={(2, 1): "b"})
 
 
@@ -735,9 +810,13 @@ def test_types_dot() -> None:
     df2 = pd.DataFrame([[0, 1], [1, 2], [-1, -1], [2, 0]])
     s1 = pd.Series([1, 1, 2, 1])
     np_array = np.array([[0, 1], [1, 2], [-1, -1], [2, 0]])
-    df3: pd.DataFrame = df1 @ df2
+    # error: Incompatible types in assignment (expression has type "Union[DataFrame,
+    # Series]", variable has type "DataFrame")
+    df3: pd.DataFrame = df1 @ df2  # type: ignore[assignment]
     df4: pd.DataFrame = df1.dot(df2)
-    df5: pd.DataFrame = df1 @ np_array
+    # error: Incompatible types in assignment (expression has type "Union[DataFrame,
+    # Series]", variable has type "DataFrame")
+    df5: pd.DataFrame = df1 @ np_array  # type: ignore[assignment]
     df6: pd.DataFrame = df1.dot(np_array)
     df7: pd.Series = df1 @ s1
     df8: pd.Series = df1.dot(s1)

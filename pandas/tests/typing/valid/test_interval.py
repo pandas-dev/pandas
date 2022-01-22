@@ -1,4 +1,5 @@
 # flake8: noqa: F841
+# pyright: reportGeneralTypeIssues = true
 
 import pandas as pd
 

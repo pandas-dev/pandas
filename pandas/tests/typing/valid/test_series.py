@@ -1,4 +1,6 @@
 # flake8: noqa: F841
+# TODO: many functions need return types annotations for pyright
+# to run with reportGeneralTypeIssues = true
 
 from pathlib import Path
 import tempfile
@@ -10,6 +12,7 @@ from pandas._typing import Scalar
 
 import pandas as pd
 from pandas.core.window import ExponentialMovingWindow
+from pandas.util import _test_decorators as td
 
 
 def test_types_init() -> None:
@@ -23,20 +26,38 @@ def test_types_init() -> None:
 
 
 def test_types_any() -> None:
-    res1: bool = pd.Series([False, False]).any()
-    res2: bool = pd.Series([False, False]).any(bool_only=False)
-    res3: bool = pd.Series([np.nan]).any(skipna=False)
+    # error: Incompatible types in assignment (expression has type "Union[Series,
+    # bool]", variable has type "bool")
+    res1: bool = pd.Series([False, False]).any()  # type: ignore[assignment]
+    # error: Incompatible types in assignment (expression has type "Union[Series,
+    # bool]", variable has type "bool")
+    res2: bool = pd.Series([False, False]).any(  # type: ignore[assignment]
+        bool_only=False
+    )
+    # error: Incompatible types in assignment (expression has type "Union[Series,
+    # bool]", variable has type "bool")
+    res3: bool = pd.Series([np.nan]).any(skipna=False)  # type: ignore[assignment]
 
 
 def test_types_all() -> None:
-    res1: bool = pd.Series([False, False]).all()
-    res2: bool = pd.Series([False, False]).all(bool_only=False)
-    res3: bool = pd.Series([np.nan]).all(skipna=False)
+    # error: Incompatible types in assignment (expression has type "Union[Series,
+    # bool]", variable has type "bool")
+    res1: bool = pd.Series([False, False]).all()  # type: ignore[assignment]
+    # error: Incompatible types in assignment (expression has type "Union[Series,
+    # bool]", variable has type "bool")
+    res2: bool = pd.Series([False, False]).all(  # type: ignore[assignment]
+        bool_only=False
+    )
+    # error: Incompatible types in assignment (expression has type "Union[Series,
+    # bool]", variable has type "bool")
+    res3: bool = pd.Series([np.nan]).all(skipna=False)  # type: ignore[assignment]
 
 
 def test_types_csv() -> None:
     s = pd.Series(data=[1, 2, 3])
-    csv_df: str = s.to_csv()
+    # error: Incompatible types in assignment (expression has type "Optional[str]",
+    # variable has type "str")
+    csv_df: str = s.to_csv()  # type: ignore[assignment]
 
     with tempfile.NamedTemporaryFile() as file:
         s.to_csv(file.name)
@@ -46,7 +67,8 @@ def test_types_csv() -> None:
         s.to_csv(Path(file.name))
         s3: pd.DataFrame = pd.read_csv(Path(file.name))
 
-    # This keyword was added in 1.1.0 https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
+    # This keyword was added in 1.1.0
+    # https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
     with tempfile.NamedTemporaryFile() as file:
         s.to_csv(file.name, errors="replace")
         s4: pd.DataFrame = pd.read_csv(file.name)
@@ -126,8 +148,16 @@ def test_types_drop() -> None:
     res: pd.Series = s.drop(0)
     res2: pd.Series = s.drop([0, 1])
     res3: pd.Series = s.drop(0, axis=0)
-    res4: None = s.drop([0, 1], inplace=True, errors="raise")
-    res5: None = s.drop([0, 1], inplace=True, errors="ignore")
+    # error: Incompatible types in assignment (expression has type "Series", variable
+    # has type "None")
+    res4: None = s.drop(  # type: ignore[assignment]
+        [0, 1], inplace=True, errors="raise"
+    )
+    # error: Incompatible types in assignment (expression has type "Series", variable
+    # has type "None")
+    res5: None = s.drop(  # type: ignore[assignment]
+        [0, 1], inplace=True, errors="ignore"
+    )
 
 
 def test_types_drop_multilevel() -> None:
@@ -191,7 +221,7 @@ def test_types_shift() -> None:
 
 
 def test_types_rank() -> None:
-    s = pd.Series([1, 1, 2, 5, 6, np.nan, "milion"])
+    s = pd.Series([1, 1, 2, 5, 6, np.nan, "million"])
     s.rank()
     s.rank(axis=0, na_option="bottom")
     s.rank(method="min", pct=True)
@@ -201,18 +231,34 @@ def test_types_rank() -> None:
 
 def test_types_mean() -> None:
     s = pd.Series([1, 2, 3, np.nan])
-    f1: float = s.mean()
-    s1: pd.Series = s.mean(axis=0, level=0)
-    f2: float = s.mean(skipna=False)
-    f3: float = s.mean(numeric_only=False)
+    # error: Incompatible types in assignment (expression has type "Union[Series,
+    # float]", variable has type "float")
+    f1: float = s.mean()  # type: ignore[assignment]
+    # error: Incompatible types in assignment (expression has type "Union[Series,
+    # float]", variable has type "Series")
+    s1: pd.Series = s.mean(axis=0, level=0)  # type: ignore[assignment]
+    # error: Incompatible types in assignment (expression has type "Union[Series,
+    # float]", variable has type "float")
+    f2: float = s.mean(skipna=False)  # type: ignore[assignment]
+    # error: Incompatible types in assignment (expression has type "Union[Series,
+    # float]", variable has type "float")
+    f3: float = s.mean(numeric_only=False)  # type: ignore[assignment]
 
 
 def test_types_median() -> None:
     s = pd.Series([1, 2, 3, np.nan])
-    f1: float = s.median()
-    s1: pd.Series = s.median(axis=0, level=0)
-    f2: float = s.median(skipna=False)
-    f3: float = s.median(numeric_only=False)
+    # error: Incompatible types in assignment (expression has type "Union[Series,
+    # float]", variable has type "float")
+    f1: float = s.median()  # type: ignore[assignment]
+    # error: Incompatible types in assignment (expression has type "Union[Series,
+    # float]", variable has type "Series")
+    s1: pd.Series = s.median(axis=0, level=0)  # type: ignore[assignment]
+    # error: Incompatible types in assignment (expression has type "Union[Series,
+    # float]", variable has type "float")
+    f2: float = s.median(skipna=False)  # type: ignore[assignment]
+    # error: Incompatible types in assignment (expression has type "Union[Series,
+    # float]", variable has type "float")
+    f3: float = s.median(numeric_only=False)  # type: ignore[assignment]
 
 
 def test_types_sum() -> None:
@@ -323,7 +369,8 @@ def test_types_element_wise_arithmetic() -> None:
     s.mul(s2, fill_value=0)
 
     s / s2
-    s.div(s2, fill_value=0)
+    # error: Unexpected keyword argument "fill_value"
+    s.div(s2, fill_value=0)  # type: ignore[call-arg]
 
     s // s2
     s.floordiv(s2, fill_value=0)
@@ -373,12 +420,16 @@ def test_types_cov() -> None:
 def test_update() -> None:
     s1 = pd.Series([0, 1, 1, 0, 5, 1, -10])
     s1.update(pd.Series([0, 2, 12]))
-    # Series.update() accepting objects that can be coerced to a Series was added in 1.1.0 https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
+    # Series.update() accepting objects that can be coerced to a
+    # Series was added in 1.1.0
+    # https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
     s1.update([1, 2, -4, 3])
     s1.update([1, "b", "c", "d"])
     s1.update({1: 9, 3: 4})
 
 
+# error: Untyped decorator makes function "test_to_markdown" untyped
+@td.skip_if_no("tabulate")  # type: ignore[misc]
 def test_to_markdown() -> None:
     s = pd.Series([0, 1, 1, 0, 5, 1, -10])
     s.to_markdown()
@@ -407,14 +458,16 @@ def test_types_describe() -> None:
     s.describe()
     s.describe(percentiles=[0.5], include="all")
     s.describe(exclude=np.number)
-    # datetime_is_numeric param added in 1.1.0 https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
+    # datetime_is_numeric param added in 1.1.0
+    # https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
     s.describe(datetime_is_numeric=True)
 
 
 def test_types_resample() -> None:
     s = pd.Series(range(9), index=pd.date_range("1/1/2000", periods=9, freq="T"))
     s.resample("3T").sum()
-    # origin and offset params added in 1.1.0 https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
+    # origin and offset params added in 1.1.0
+    # https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
     s.resample("20min", origin="epoch", offset=pd.Timedelta(value=2, unit="minutes"))
 
 
@@ -470,7 +523,11 @@ def test_types_rename() -> None:
     # Dictionary
     s5 = pd.Series([1, 2, 3]).rename({1: 10})
     # inplace
-    s6: None = pd.Series([1, 2, 3]).rename("A", inplace=True)
+    # error: Incompatible types in assignment (expression has type "Optional[Series]",
+    # variable has type "None")
+    s6: None = pd.Series([1, 2, 3]).rename(  # type: ignore[assignment]
+        "A", inplace=True
+    )
 
 
 def test_types_ne() -> None:
@@ -481,8 +538,12 @@ def test_types_ne() -> None:
 
 def test_types_bfill() -> None:
     s1 = pd.Series([1, 2, 3])
-    s2: pd.Series = s1.bfill(inplace=False)
-    s3: None = s1.bfill(inplace=True)
+    # error: Incompatible types in assignment (expression has type "Optional[Series]",
+    # variable has type "Series")
+    s2: pd.Series = s1.bfill(inplace=False)  # type: ignore[assignment]
+    # error: Incompatible types in assignment (expression has type "Optional[Series]",
+    # variable has type "None")
+    s3: None = s1.bfill(inplace=True)  # type: ignore[assignment]
 
 
 def test_types_ewm() -> None:
@@ -497,8 +558,12 @@ def test_types_ewm() -> None:
 
 def test_types_ffill() -> None:
     s1 = pd.Series([1, 2, 3])
-    s2: pd.Series = s1.ffill(inplace=False)
-    s3: None = s1.ffill(inplace=True)
+    # error: Incompatible types in assignment (expression has type "Optional[Series]",
+    # variable has type "Series")
+    s2: pd.Series = s1.ffill(inplace=False)  # type: ignore[assignment]
+    # error: Incompatible types in assignment (expression has type "Optional[Series]",
+    # variable has type "None")
+    s3: None = s1.ffill(inplace=True)  # type: ignore[assignment]
 
 
 def test_types_as_type() -> None:
