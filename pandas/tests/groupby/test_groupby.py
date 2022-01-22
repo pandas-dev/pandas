@@ -1920,7 +1920,7 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
 
     df = df.iloc[:0]
 
-    gb = df.groupby(keys)[columns]
+    gb = df.groupby(keys, group_keys=False)[columns]
 
     def get_result():
         if method == "attr":
@@ -2041,7 +2041,7 @@ def test_empty_groupby_apply_nonunique_columns():
     df = DataFrame(np.random.randn(0, 4))
     df[3] = df[3].astype(np.int64)
     df.columns = [0, 1, 2, 0]
-    gb = df.groupby(df[1])
+    gb = df.groupby(df[1], group_keys=False)
     res = gb.apply(lambda x: x)
     assert (res.dtypes == df.dtypes).all()
 

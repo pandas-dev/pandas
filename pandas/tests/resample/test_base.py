@@ -228,7 +228,7 @@ def test_resample_empty_dtypes(index, dtype, resample_method):
 def test_apply_to_empty_series(empty_series_dti, freq):
     # GH 14313
     ser = empty_series_dti
-    result = ser.resample(freq).apply(lambda x: 1)
+    result = ser.resample(freq, group_keys=False).apply(lambda x: 1)
     expected = ser.resample(freq).apply(np.sum)
 
     tm.assert_series_equal(result, expected, check_dtype=False)

@@ -575,7 +575,7 @@ def test_apply_corner_cases():
         }
     )
 
-    grouped = df.groupby("key")
+    grouped = df.groupby("key", group_keys=False)
 
     def f(g):
         g["value3"] = g["value1"] * 2
@@ -1189,9 +1189,9 @@ def test_positional_slice_groups_datetimelike():
             "let": list("abcde"),
         }
     )
-    result = expected.groupby([expected.let, expected.date.dt.date]).apply(
-        lambda x: x.iloc[0:]
-    )
+    result = expected.groupby(
+        [expected.let, expected.date.dt.date], group_keys=False
+    ).apply(lambda x: x.iloc[0:])
     tm.assert_frame_equal(result, expected)
 
 
@@ -1306,5 +1306,5 @@ def test_apply_index_key_error_bug(index_values):
 def test_apply_nonmonotonic_float_index(arg, idx):
     # GH 34455
     expected = DataFrame({"col": arg}, index=idx)
-    result = expected.groupby("col").apply(lambda x: x)
+    result = expected.groupby("col", group_keys=False).apply(lambda x: x)
     tm.assert_frame_equal(result, expected)

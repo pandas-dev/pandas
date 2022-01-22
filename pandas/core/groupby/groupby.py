@@ -1448,7 +1448,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         data: DataFrame | Series,
         not_indexed_same: bool | None = None,
         is_transform: bool = False,
-        is_empty_agg: bool = False,
+        is_agg: bool = False,
     ) -> DataFrame | Series:
         """
         Apply function f in python space
@@ -1468,9 +1468,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             and should not have group keys prepended. This is used
             in _make_wrapper which generates both transforms (e.g. diff)
             and non-transforms (e.g. corr)
-        is_empty_agg : bool, default False
-            Indicator for whether the function is actually an aggregation
-            on an empty result. We don't want to warn for this case.
+        is_agg : bool, default False
+            Indicator for whether the function is an aggregation. When the
+            result is empty, we don't want to warn for this case.
             See _GroupBy._python_agg_general.
 
         Returns
@@ -1483,6 +1483,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             not_indexed_same = mutated or self.mutated
         override_group_keys = False
 
+        is_empty_agg = is_agg and len(values) == 0
         if (not not_indexed_same and self.group_keys is lib.no_default) and not (
             is_transform or is_empty_agg
         ):
@@ -1523,7 +1524,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         if self.ngroups == 0:
             # agg_series below assumes ngroups > 0
-            return self._python_apply_general(f, self._selected_obj)
+            return self._python_apply_general(f, self._selected_obj, is_agg=True)
 
         for idx, obj in enumerate(self._iterate_slices()):
             name = obj.name
@@ -3270,7 +3271,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if axis != 0:
             # DataFrame uses different keyword name
             kwargs["method"] = kwargs.pop("ties_method")
-            return self.apply(lambda x: x.rank(axis=axis, numeric_only=False, **kwargs))
+            f = lambda x: x.rank(axis=axis, numeric_only=False, **kwargs)
+            result = self._python_apply_general(
+                f, self._selected_obj, is_transform=True
+            )
+            return result
 
         return self._cython_transform(
             "rank",

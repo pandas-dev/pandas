@@ -78,7 +78,7 @@ class TestRolling:
         ],
     )
     def test_rolling(self, f):
-        g = self.frame.groupby("A")
+        g = self.frame.groupby("A", group_keys=False)
         r = g.rolling(window=4)
 
         result = getattr(r, f)()
@@ -92,7 +92,7 @@ class TestRolling:
 
     @pytest.mark.parametrize("f", ["std", "var"])
     def test_rolling_ddof(self, f):
-        g = self.frame.groupby("A")
+        g = self.frame.groupby("A", group_keys=False)
         r = g.rolling(window=4)
 
         result = getattr(r, f)(ddof=1)
@@ -108,7 +108,7 @@ class TestRolling:
         "interpolation", ["linear", "lower", "higher", "midpoint", "nearest"]
     )
     def test_rolling_quantile(self, interpolation):
-        g = self.frame.groupby("A")
+        g = self.frame.groupby("A", group_keys=False)
         r = g.rolling(window=4)
 
         result = r.quantile(0.4, interpolation=interpolation)
@@ -213,7 +213,7 @@ class TestRolling:
         tm.assert_frame_equal(result, expected)
 
     def test_rolling_apply(self, raw):
-        g = self.frame.groupby("A")
+        g = self.frame.groupby("A", group_keys=False)
         r = g.rolling(window=4)
 
         # reduction
@@ -755,7 +755,7 @@ class TestRolling:
 
     def test_groupby_rolling_object_doesnt_affect_groupby_apply(self):
         # GH 39732
-        g = self.frame.groupby("A")
+        g = self.frame.groupby("A", group_keys=False)
         expected = g.apply(lambda x: x.rolling(4).sum()).index
         _ = g.rolling(window=4)
         result = g.apply(lambda x: x.rolling(4).sum()).index
@@ -904,7 +904,7 @@ class TestExpanding:
         "f", ["sum", "mean", "min", "max", "count", "kurt", "skew"]
     )
     def test_expanding(self, f):
-        g = self.frame.groupby("A")
+        g = self.frame.groupby("A", group_keys=False)
         r = g.expanding()
 
         result = getattr(r, f)()
@@ -918,7 +918,7 @@ class TestExpanding:
 
     @pytest.mark.parametrize("f", ["std", "var"])
     def test_expanding_ddof(self, f):
-        g = self.frame.groupby("A")
+        g = self.frame.groupby("A", group_keys=False)
         r = g.expanding()
 
         result = getattr(r, f)(ddof=0)
@@ -934,7 +934,7 @@ class TestExpanding:
         "interpolation", ["linear", "lower", "higher", "midpoint", "nearest"]
     )
     def test_expanding_quantile(self, interpolation):
-        g = self.frame.groupby("A")
+        g = self.frame.groupby("A", group_keys=False)
         r = g.expanding()
 
         result = r.quantile(0.4, interpolation=interpolation)
@@ -977,7 +977,7 @@ class TestExpanding:
         tm.assert_series_equal(result, expected)
 
     def test_expanding_apply(self, raw):
-        g = self.frame.groupby("A")
+        g = self.frame.groupby("A", group_keys=False)
         r = g.expanding()
 
         # reduction
