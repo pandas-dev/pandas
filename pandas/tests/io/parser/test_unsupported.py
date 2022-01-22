@@ -173,6 +173,7 @@ def test_close_file_handle_on_invalide_usecols(all_parsers):
     if parser.engine == "pyarrow":
         pyarrow = pytest.importorskip("pyarrow")
         error = pyarrow.lib.ArrowKeyError
+        return  # GH#45547 looks to be causing timeouts
 
     with tm.ensure_clean("test.csv") as fname:
         Path(fname).write_text("col1,col2\na,b\n1,2")
