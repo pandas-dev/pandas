@@ -245,9 +245,6 @@ class FloatingArray(NumericArray):
     ) -> tuple[np.ndarray, np.ndarray]:
         return coerce_to_array(value, dtype=dtype, copy=copy)
 
-    def _values_for_argsort(self) -> np.ndarray:
-        return self._data
-
 
 _dtype_docstring = """
 An ExtensionDtype for {dtype} data.

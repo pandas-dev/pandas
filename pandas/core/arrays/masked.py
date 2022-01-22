@@ -257,7 +257,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 return value
             # TODO: unsigned checks
 
-        raise TypeError(f"Invalid value '{value}' for dtype {self.dtype}")
+        # Note: without the "str" here, the f-string rendering raises in
+        #  py38 builds.
+        raise TypeError(f"Invalid value '{str(value)}' for dtype {self.dtype}")
 
     def __setitem__(self, key, value) -> None:
         key = check_array_indexer(self, key)
@@ -754,6 +756,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         uniques = uniques.astype(self.dtype.numpy_dtype, copy=False)
         uniques_ea = type(self)(uniques, np.zeros(len(uniques), dtype=bool))
         return codes, uniques_ea
+
+    @doc(ExtensionArray._values_for_argsort)
+    def _values_for_argsort(self) -> np.ndarray:
+        return self._data
 
     def value_counts(self, dropna: bool = True) -> Series:
         """

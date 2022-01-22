@@ -15,7 +15,6 @@ from pandas._config import get_option
 
 from pandas.compat.pyarrow import (
     pa_version_under2p0,
-    pa_version_under3p0,
     pa_version_under5p0,
     pa_version_under6p0,
 )
@@ -652,15 +651,7 @@ class TestBasic(Base):
             "object",
             "datetime64[ns, UTC]",
             "float",
-            pytest.param(
-                "period[D]",
-                # Note: I don't know exactly what version the cutoff is;
-                #  On the CI it fails with 1.0.1 & 2.0.0
-                marks=pytest.mark.xfail(
-                    pa_version_under3p0,
-                    reason="pyarrow uses pandas internal API incorrectly",
-                ),
-            ),
+            "period[D]",
             "Float64",
             "string",
         ],
@@ -899,9 +890,6 @@ class TestParquetPyArrow(Base):
             check_round_trip(df, pa, expected=df.astype(f"string[{string_storage}]"))
 
     @td.skip_if_no("pyarrow")
-    @pytest.mark.xfail(
-        pa_version_under3p0, reason="pyarrow uses pandas internal API incorrectly"
-    )
     def test_additional_extension_types(self, pa):
         # test additional ExtensionArrays that are supported through the
         # __arrow_array__ protocol + by defining a custom ExtensionType
