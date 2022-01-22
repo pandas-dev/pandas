@@ -171,7 +171,7 @@ class TestReadHtml:
     @tm.network
     def test_spam_url(self):
         url = (
-            "https://raw.githubusercontent.com/pandas-dev/pandas/master/"
+            "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
             "pandas/tests/io/data/html/spam.html"
         )
         df1 = self.read_html(url, match=".*Water.*")
