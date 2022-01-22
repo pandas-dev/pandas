@@ -1090,4 +1090,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v1.3.5..v1.4.0|HEAD
+.. contributors:: v1.3.5..v1.4.0
