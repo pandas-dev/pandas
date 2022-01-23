@@ -1344,7 +1344,7 @@ def assert_frame_equal(
                 rtol=rtol,
                 atol=atol,
                 check_index=False,
-                check_flags=check_flags,
+                check_flags=False,
             )
 
 
