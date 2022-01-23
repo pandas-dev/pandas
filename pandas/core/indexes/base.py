@@ -2195,6 +2195,12 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Alias for is_monotonic_increasing.
         """
+        warnings.warn(
+            "is_monotonic is deprecated and will be removed in a future version. "
+            "Use is_monotonic_increasing instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.is_monotonic_increasing
 
     @property
@@ -3258,8 +3264,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         if (
             sort is None
-            and self.is_monotonic
-            and other.is_monotonic
+            and self.is_monotonic_increasing
+            and other.is_monotonic_increasing
             and not (self.has_duplicates and other.has_duplicates)
             and self._can_use_libjoin
         ):
@@ -3297,7 +3303,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             result = lvals
 
-        if not self.is_monotonic or not other.is_monotonic:
+        if not self.is_monotonic_increasing or not other.is_monotonic_increasing:
             # if both are monotonic then result should already be sorted
             result = _maybe_try_sort(result, sort)
 
@@ -3396,7 +3402,11 @@ class Index(IndexOpsMixin, PandasObject):
         """
         intersection specialized to the case with matching dtypes.
         """
-        if self.is_monotonic and other.is_monotonic and self._can_use_libjoin:
+        if (
+            self.is_monotonic_increasing
+            and other.is_monotonic_increasing
+            and self._can_use_libjoin
+        ):
             try:
                 result = self._inner_indexer(other)[0]
             except TypeError:
@@ -4492,15 +4502,15 @@ class Index(IndexOpsMixin, PandasObject):
         if not self.is_unique and not other.is_unique:
             return self._join_non_unique(other, how=how)
         elif not self.is_unique or not other.is_unique:
-            if self.is_monotonic and other.is_monotonic:
+            if self.is_monotonic_increasing and other.is_monotonic_increasing:
                 if self._can_use_libjoin:
                     # otherwise we will fall through to _join_via_get_indexer
                     return self._join_monotonic(other, how=how)
             else:
                 return self._join_non_unique(other, how=how)
         elif (
-            self.is_monotonic
-            and other.is_monotonic
+            self.is_monotonic_increasing
+            and other.is_monotonic_increasing
             and self._can_use_libjoin
             and (
                 not isinstance(self, ABCMultiIndex)
