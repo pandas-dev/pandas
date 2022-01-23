@@ -381,7 +381,12 @@ class TestAstype:
     )
     def test_astype_ea_to_datetimetzdtype(self, dtype):
         # GH37553
-        result = Series([4, 0, 9], dtype=dtype).astype(DatetimeTZDtype(tz="US/Pacific"))
+        ser = Series([4, 0, 9], dtype=dtype)
+        warn = FutureWarning if ser.dtype.kind == "f" else None
+        msg = "with a timezone-aware dtype and floating-dtype data"
+        with tm.assert_produces_warning(warn, match=msg):
+            result = ser.astype(DatetimeTZDtype(tz="US/Pacific"))
+
         expected = Series(
             {
                 0: Timestamp("1969-12-31 16:00:00.000000004-08:00", tz="US/Pacific"),

@@ -364,7 +364,7 @@ def _convert_listlike_datetimes(
     # NB: this must come after unit transformation
     orig_arg = arg
     try:
-        arg, _ = maybe_convert_dtype(arg, copy=False)
+        arg, _ = maybe_convert_dtype(arg, copy=False, tz=tz)
     except TypeError:
         if errors == "coerce":
             npvalues = np.array(["NaT"], dtype="datetime64[ns]").repeat(len(arg))
