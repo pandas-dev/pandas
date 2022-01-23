@@ -384,7 +384,7 @@ def test_multiple_functions_tuples_and_non_tuples(df):
     expected = df.groupby("A")["C"].agg(ex_funcs)
     tm.assert_frame_equal(result, expected)
 
-    klass = None if get_option("use_hom_api") else FutureWarning
+    klass = None if get_option("api.use_hom") else FutureWarning
     with tm.assert_produces_warning(
         klass, match=r"\['B'\] did not aggregate successfully"
     ):
@@ -551,7 +551,7 @@ def test_order_aggregate_multiple_funcs():
     # GH 25692
     df = DataFrame({"A": [1, 1, 2, 2], "B": [1, 2, 3, 4]})
 
-    if get_option("use_hom_api"):
+    if get_option("api.use_hom"):
         # TODO (GH 35725): This will not raise when agg-must-agg is implemented
         msg = "Cannot concat indices that do not have the same number of levels"
         with pytest.raises(AssertionError, match=msg):
@@ -1275,7 +1275,7 @@ def test_nonagg_agg():
     g = df.groupby("a")
 
     result = g.agg(["cumsum"])
-    if get_option("use_hom_api"):
+    if get_option("api.use_hom"):
         result.columns = result.columns.droplevel(0)
     else:
         result.columns = result.columns.droplevel(-1)

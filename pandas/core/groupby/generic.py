@@ -878,7 +878,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             result.columns = columns
 
         if result is None:
-            if get_option("use_hom_api"):
+            if get_option("api.use_hom"):
                 return self._hom_agg(func, args, kwargs)
 
             # grouper specific aggregations

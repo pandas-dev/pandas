@@ -1149,7 +1149,7 @@ def test_apply_to_nullable_integer_returns_float(values, function):
     tm.assert_frame_equal(result, expected)
 
     result = groups.agg([function])
-    if get_option("use_hom_api"):
+    if get_option("api.use_hom"):
         expected.columns = MultiIndex.from_tuples([(function, "b")])
     else:
         expected.columns = MultiIndex.from_tuples([("b", function)])

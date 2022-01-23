@@ -10,6 +10,8 @@ import pytest
 
 from pandas._config import get_option
 
+from pandas.errors import PerformanceWarning
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -1912,7 +1914,7 @@ class TestPivotTable:
         )
         index = Index([1, 2, 3, greek], dtype="object", name="foo")
 
-        if get_option("use_hom_api"):
+        if get_option("api.use_hom"):
             expected = Series([1, 1, 1, 3], index=index)
             expected.index.name = None
             tm.assert_series_equal(table, expected)

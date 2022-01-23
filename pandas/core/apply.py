@@ -171,7 +171,7 @@ class Apply(metaclass=abc.ABCMeta):
             return self.agg_dict_like()
         elif is_list_like(arg):
             # we require a list, but not a 'str'
-            if get_option("use_hom_api"):
+            if get_option("api.use_hom"):
                 return self.hom_list_like("agg")
             else:
                 return self.agg_list_like()
