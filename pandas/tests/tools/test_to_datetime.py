@@ -1071,7 +1071,7 @@ class TestToDatetime:
         ("input", "expected"),
         (
             (
-                Series([NaT] * 20 + [None] * 20, dtype="object"),
+                Series([NaT] * 20 + [None] * 20, dtype="object"),  # type: ignore[list-item] # noqa: E501
                 Series([NaT] * 40, dtype="datetime64[ns]"),
             ),
             (Series([None] * 20), Series([NaT] * 20, dtype="datetime64[ns]")),
