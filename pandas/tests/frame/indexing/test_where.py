@@ -899,6 +899,9 @@ def test_where_period_invalid_na(frame_or_series, as_cat, request):
     with pytest.raises(TypeError, match=msg):
         obj.mask(mask, tdnat)
 
+    with pytest.raises(TypeError, match=msg):
+        obj.mask(mask, tdnat, inplace=True)
+
 
 def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):
     # GH#44697
