@@ -1436,6 +1436,7 @@ class EABackedBlock(Block):
 
         values = self.values
 
+        new = self._maybe_squeeze_arg(new)
         mask = self._maybe_squeeze_arg(mask)
 
         try:
