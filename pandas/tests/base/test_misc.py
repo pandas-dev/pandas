@@ -89,7 +89,8 @@ def test_array_wrap_compat():
     # (https://github.com/dask/dask/issues/8580).
     # This test is a small dummy ensuring coverage
     orig = Series([1, 2, 3], dtype="int64", index=["a", "b", "c"])
-    result = orig.__array_wrap__(np.array([2, 4, 6], dtype="int64"))
+    with tm.assert_produces_warning(DeprecationWarning):
+        result = orig.__array_wrap__(np.array([2, 4, 6], dtype="int64"))
     expected = orig * 2
     tm.assert_series_equal(result, expected)
 

@@ -841,7 +841,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return self.asi8 == iNaT
 
     @property  # NB: override with cache_readonly in immutable subclasses
-    def _hasnans(self) -> bool:
+    def _hasna(self) -> bool:
         """
         return if I have any nans; enables various perf speedups
         """
@@ -866,7 +866,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         This is an internal routine.
         """
-        if self._hasnans:
+        if self._hasna:
             if convert:
                 result = result.astype(convert)
             if fill_value is None:
@@ -1125,7 +1125,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         new_values = checked_add_with_arr(
             self_i8, other_i8, arr_mask=self._isnan, b_mask=other._isnan
         )
-        if self._hasnans or other._hasnans:
+        if self._hasna or other._hasna:
             mask = self._isnan | other._isnan
             np.putmask(new_values, mask, iNaT)
 

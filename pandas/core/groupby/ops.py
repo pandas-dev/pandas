@@ -823,7 +823,7 @@ class BaseGrouper:
     @cache_readonly
     def is_monotonic(self) -> bool:
         # return if my group orderings are monotonic
-        return Index(self.group_info[0]).is_monotonic
+        return Index(self.group_info[0]).is_monotonic_increasing
 
     @cache_readonly
     def group_info(self) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
