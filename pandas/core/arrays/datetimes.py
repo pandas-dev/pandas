@@ -2274,7 +2274,7 @@ def maybe_convert_dtype(data, copy: bool, tz: tzinfo | None = None):
             and len(data) > 0
             and not timezones.is_utc(timezones.maybe_get_tz(tz))
         ):
-            # GH#23675 deprecate to treat symmetrically with integer dtypes
+            # GH#23675, GH#45573 deprecate to treat symmetrically with integer dtypes
             warnings.warn(
                 "The behavior of DatetimeArray._from_sequence with a timezone-aware "
                 "dtype and floating-dtype data is deprecated. In a future version, "

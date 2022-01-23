@@ -150,7 +150,7 @@ Other Deprecations
 - Deprecated :meth:`DataFrame.iteritems`, :meth:`Series.iteritems`, :meth:`HDFStore.iteritems` in favor of :meth:`DataFrame.items`, :meth:`Series.items`, :meth:`HDFStore.items`  (:issue:`45321`)
 - Deprecated :meth:`Series.is_monotonic` and :meth:`Index.is_monotonic` in favor of :meth:`Series.is_monotonic_increasing` and :meth:`Index.is_monotonic_increasing` (:issue:`45422`, :issue:`21335`)
 - Deprecated the ``__array_wrap__`` method of DataFrame and Series, rely on standard numpy ufuncs instead (:issue:`45451`)
-- Deprecated treating float-dtype data as wall-times when passed with a timezone to :class:`Series` or :class:`DatetimeIndex` (:issue:`??`)
+- Deprecated treating float-dtype data as wall-times when passed with a timezone to :class:`Series` or :class:`DatetimeIndex` (:issue:`45573`)
 -
 
 
