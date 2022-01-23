@@ -3482,7 +3482,11 @@ class DataFrame(NDFrame, OpsMixin):
             # is_iterator to exclude generator e.g. test_getitem_listlike
             # shortcut if the key is in columns
             is_mi = isinstance(self.columns, MultiIndex)
-            if not is_mi and key in self.columns.drop_duplicates(keep=False):
+            # GH#45316 Return view if key is not duplicated
+            if not is_mi and (
+                self.columns.is_unique
+                or key in self.columns.drop_duplicates(keep=False)
+            ):
                 return self._get_item_cache(key)
 
             elif is_mi and self.columns.is_unique and key in self.columns:
