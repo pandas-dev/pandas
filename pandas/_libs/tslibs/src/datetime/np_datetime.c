@@ -360,6 +360,7 @@ int convert_pydatetime_to_datetimestruct(PyObject *dtobj,
             Py_DECREF(tmp);
         } else {
             PyObject *offset;
+            PyObject *tmp_int;
             int seconds_offset, minutes_offset;
 
             /* The utcoffset function should return a timedelta */
@@ -378,11 +379,14 @@ int convert_pydatetime_to_datetimestruct(PyObject *dtobj,
             if (tmp == NULL) {
                 return -1;
             }
-            seconds_offset = PyInt_AsLong(PyNumber_Long(tmp));
+            tmp_int = PyNumber_Long(tmp);
+            seconds_offset = PyInt_AsLong(tmp_int);
             if (seconds_offset == -1 && PyErr_Occurred()) {
+                Py_DECREF(tmp_int);
                 Py_DECREF(tmp);
                 return -1;
             }
+            Py_DECREF(tmp_int);
             Py_DECREF(tmp);
 
             /* Convert to a minutes offset and apply it */
