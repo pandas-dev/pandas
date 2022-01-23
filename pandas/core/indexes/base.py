@@ -52,6 +52,7 @@ from pandas._typing import (
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     DuplicateLabelError,
+    IntCastingNaNError,
     InvalidIndexError,
 )
 from pandas.util._decorators import (
@@ -65,6 +66,7 @@ from pandas.util._exceptions import (
     rewrite_exception,
 )
 
+from pandas.core.dtypes.astype import astype_nansafe
 from pandas.core.dtypes.cast import (
     can_hold_element,
     common_dtype_categorical_compat,
@@ -1051,6 +1053,14 @@ class Index(IndexOpsMixin, PandasObject):
             with rewrite_exception(type(values).__name__, type(self).__name__):
                 new_values = values.astype(dtype, copy=copy)
 
+        elif is_float_dtype(self.dtype) and needs_i8_conversion(dtype):
+            # NB: this must come before the ExtensionDtype check below
+            # TODO: this differs from Series behavior; can/should we align them?
+            raise TypeError(
+                f"Cannot convert Float64Index to dtype {dtype}; integer "
+                "values are required for conversion"
+            )
+
         elif isinstance(dtype, ExtensionDtype):
             cls = dtype.construct_array_type()
             # Note: for RangeIndex and CategoricalDtype self vs self._values
@@ -1059,13 +1069,31 @@ class Index(IndexOpsMixin, PandasObject):
 
         else:
             try:
-                new_values = values.astype(dtype, copy=copy)
+                if dtype == str:
+                    # GH#38607
+                    new_values = values.astype(dtype, copy=copy)
+                else:
+                    # GH#13149 specifically use astype_nansafe instead of astype
+                    new_values = astype_nansafe(values, dtype=dtype, copy=copy)
+            except IntCastingNaNError:
+                raise
             except (TypeError, ValueError) as err:
+                if dtype.kind == "u" and "losslessly" in str(err):
+                    # keep the message from _astype_float_to_int_nansafe
+                    raise
                 raise TypeError(
                     f"Cannot cast {type(self).__name__} to dtype {dtype}"
                 ) from err
 
         # pass copy=False because any copying will be done in the astype above
+        if self._is_backward_compat_public_numeric_index:
+            # this block is needed so e.g. NumericIndex[int8].astype("int32") returns
+            # NumericIndex[int32] and not Int64Index with dtype int64.
+            # When Int64Index etc. are removed from the code base, removed this also.
+            if isinstance(dtype, np.dtype) and is_numeric_dtype(dtype):
+                return self._constructor(
+                    new_values, name=self.name, dtype=dtype, copy=False
+                )
         return Index(new_values, name=self.name, dtype=new_values.dtype, copy=False)
 
     _index_shared_docs[
@@ -1355,6 +1383,18 @@ class Index(IndexOpsMixin, PandasObject):
         return attrs
 
     @final
+    def _get_level_names(self) -> Hashable | Sequence[Hashable]:
+        """
+        Return a name or list of names with None replaced by the level number.
+        """
+        if self._is_multi:
+            return [
+                level if name is None else name for level, name in enumerate(self.names)
+            ]
+        else:
+            return 0 if self.name is None else self.name
+
+    @final
     def _mpl_repr(self) -> np.ndarray:
         # how to represent ourselves to matplotlib
         if isinstance(self.dtype, np.dtype) and self.dtype.kind != "M":
@@ -1628,8 +1668,19 @@ class Index(IndexOpsMixin, PandasObject):
         """
         from pandas import DataFrame
 
+        if name is None:
+            warnings.warn(
+                "Explicitly passing `name=None` currently preserves the Index's name "
+                "or uses a default name of 0. This behaviour is deprecated, and in "
+                "the future `None` will be used as the name of the resulting "
+                "DataFrame column.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            name = lib.no_default
+
         if name is lib.no_default:
-            name = self.name or 0
+            name = self._get_level_names()
         result = DataFrame({name: self._values.copy()})
 
         if index:
@@ -2149,6 +2200,12 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Alias for is_monotonic_increasing.
         """
+        warnings.warn(
+            "is_monotonic is deprecated and will be removed in a future version. "
+            "Use is_monotonic_increasing instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.is_monotonic_increasing
 
     @property
@@ -3212,8 +3269,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         if (
             sort is None
-            and self.is_monotonic
-            and other.is_monotonic
+            and self.is_monotonic_increasing
+            and other.is_monotonic_increasing
             and not (self.has_duplicates and other.has_duplicates)
             and self._can_use_libjoin
         ):
@@ -3251,7 +3308,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             result = lvals
 
-        if not self.is_monotonic or not other.is_monotonic:
+        if not self.is_monotonic_increasing or not other.is_monotonic_increasing:
             # if both are monotonic then result should already be sorted
             result = _maybe_try_sort(result, sort)
 
@@ -3356,7 +3413,11 @@ class Index(IndexOpsMixin, PandasObject):
         """
         intersection specialized to the case with matching dtypes.
         """
-        if self.is_monotonic and other.is_monotonic and self._can_use_libjoin:
+        if (
+            self.is_monotonic_increasing
+            and other.is_monotonic_increasing
+            and self._can_use_libjoin
+        ):
             try:
                 result = self._inner_indexer(other)[0]
             except TypeError:
@@ -4452,15 +4513,15 @@ class Index(IndexOpsMixin, PandasObject):
         if not self.is_unique and not other.is_unique:
             return self._join_non_unique(other, how=how)
         elif not self.is_unique or not other.is_unique:
-            if self.is_monotonic and other.is_monotonic:
+            if self.is_monotonic_increasing and other.is_monotonic_increasing:
                 if self._can_use_libjoin:
                     # otherwise we will fall through to _join_via_get_indexer
                     return self._join_monotonic(other, how=how)
             else:
                 return self._join_non_unique(other, how=how)
         elif (
-            self.is_monotonic
-            and other.is_monotonic
+            self.is_monotonic_increasing
+            and other.is_monotonic_increasing
             and self._can_use_libjoin
             and (
                 not isinstance(self, ABCMultiIndex)
@@ -5210,7 +5271,8 @@ class Index(IndexOpsMixin, PandasObject):
         if noop:
             return self.copy()
 
-        if value is None and (self._is_numeric_dtype or self.dtype == object):
+        if self.dtype != object and is_valid_na_for_dtype(value, self.dtype):
+            # e.g. None -> np.nan, see also Block._standardize_fill_value
             value = self._na_value
         try:
             converted = self._validate_fill_value(value)
