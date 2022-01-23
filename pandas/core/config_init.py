@@ -526,20 +526,20 @@ with cf.config_prefix("mode"):
         validator=is_one_of_factory(["block", "array"]),
     )
 
-use_hom_api = """
+use_hom_doc = """
 : boolean
     Whether to use the Higher Order Methods implementations. Currently experimental.
     Defaults to False.
 """
 
 
-with cf.config_prefix("mode"):
+with cf.config_prefix("api"):
     cf.register_option(
-        "use_hom_api",
+        "use_hom",
         # Get the default from an environment variable, if set, otherwise defaults
         # to False. This environment variable can be set for testing.
-        os.environ.get("PANDAS_USE_HOM_API", "false").lower() == "true",
-        use_hom_api,
+        os.environ.get("PANDAS_USE_HOM", "false").lower() == "true",
+        use_hom_doc,
         validator=is_bool,
     )
 

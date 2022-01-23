@@ -349,14 +349,14 @@ def test_agg():
     b_std = r["B"].std()
     b_sum = r["B"].sum()
 
-    if get_option("use_hom_api"):
+    if get_option("api.use_hom"):
         expected = pd.concat([a_mean, b_mean, a_std, b_std], axis=1)
         expected.columns = pd.MultiIndex.from_product([["mean", "std"], ["A", "B"]])
     else:
         expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
         expected.columns = pd.MultiIndex.from_product([["A", "B"], ["mean", "std"]])
     for t in cases:
-        if t in cases[1:3] and not get_option("use_hom_api"):
+        if t in cases[1:3] and not get_option("api.use_hom"):
             warn = FutureWarning
         else:
             warn = None
@@ -638,7 +638,7 @@ def test_agg_with_datetime_index_list_agg_func(col_name):
         columns=[col_name],
     )
     result = df.resample("1d").aggregate(["mean"])
-    if get_option("use_hom_api"):
+    if get_option("api.use_hom"):
         expected = DataFrame(
             [47.5, 143.5, 195.5],
             index=date_range(

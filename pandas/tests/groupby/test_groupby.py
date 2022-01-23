@@ -588,12 +588,12 @@ def test_frame_multi_key_function_list():
 
     grouped = data.groupby(["A", "B"])
     funcs = [np.mean, np.std]
-    klass = None if get_option("use_hom_api") else FutureWarning
+    klass = None if get_option("api.use_hom") else FutureWarning
     with tm.assert_produces_warning(
         klass, match=r"\['C'\] did not aggregate successfully"
     ):
         agged = grouped.agg(funcs)
-    if get_option("use_hom_api"):
+    if get_option("api.use_hom"):
         expected = pd.concat(
             [grouped.agg(funcs[0]), grouped.agg(funcs[1])],
             keys=["mean", "std"],
@@ -2100,7 +2100,7 @@ def test_groupby_agg_ohlc_non_first():
         index=date_range("2018-01-01", periods=2, freq="D", name="dti"),
     )
 
-    if get_option("use_hom_api"):
+    if get_option("api.use_hom"):
         # TODO (GH 35725): This will not raise when agg-must-agg is implemented
         msg = "Cannot concat indices that do not have the same number of levels"
         with pytest.raises(AssertionError, match=msg):
