@@ -15,7 +15,6 @@ import pytz
 import pandas._libs.json as ujson
 from pandas.compat import (
     IS64,
-    PY310,
     is_platform_windows,
 )
 
@@ -253,14 +252,8 @@ class TestUltraJSONTests:
         [
             20,
             -1,
-            pytest.param(
-                "9",
-                marks=pytest.mark.xfail(PY310, reason="Failing on Python 3.10 GH41940"),
-            ),
-            pytest.param(
-                None,
-                marks=pytest.mark.xfail(PY310, reason="Failing on Python 3.10 GH41940"),
-            ),
+            "9",
+            None,
         ],
     )
     def test_invalid_double_precision(self, invalid_val):
@@ -268,7 +261,8 @@ class TestUltraJSONTests:
         expected_exception = ValueError if isinstance(invalid_val, int) else TypeError
         msg = (
             r"Invalid value '.*' for option 'double_precision', max is '15'|"
-            r"an integer is required \(got type "
+            r"an integer is required \(got type |"
+            r"object cannot be interpreted as an integer"
         )
         with pytest.raises(expected_exception, match=msg):
             ujson.encode(double_input, double_precision=invalid_val)
