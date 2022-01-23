@@ -58,7 +58,11 @@ class TestPeriodIndexAsType:
         arr = period_range("2000", periods=2, name="idx")
         expected = UInt64Index(np.array([10957, 10958], dtype="uint64"), name="idx")
         tm.assert_index_equal(arr.astype("uint64"), expected)
-        tm.assert_index_equal(arr.astype("uint32"), expected)
+
+        msg = "will return exactly the specified dtype instead of uint64"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = arr.astype("uint32")
+        tm.assert_index_equal(res, expected)
 
     def test_astype_object(self):
         idx = PeriodIndex([], freq="M")
