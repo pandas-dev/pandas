@@ -729,7 +729,7 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame(data=data, columns=["fp16"])
         self.check_external_error_on_write(df, pa, pyarrow.ArrowException)
 
-    @pytest.mark.skipif(
+    @pytest.mark.xfail(
         is_platform_windows(),
         reason=(
             "PyArrow does not cleanup of partial files dumps when unsupported "
