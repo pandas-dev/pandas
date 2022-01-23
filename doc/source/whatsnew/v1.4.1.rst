@@ -1,0 +1,45 @@
+.. _whatsnew_141:
+
+What's new in 1.4.1 (February ??, 2022)
+---------------------------------------
+
+These are the changes in pandas 1.4.1. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_141.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Regression in :meth:`Series.mask` with ``inplace=True`` and ``PeriodDtype`` and an incompatible ``other`` coercing to a common dtype instead of raising (:issue:`45546`)
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_141.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_141.other:
+
+Other
+~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_141.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.4.0..v1.4.1|HEAD
