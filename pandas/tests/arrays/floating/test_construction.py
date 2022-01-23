@@ -112,7 +112,6 @@ def test_to_array_mixed_integer_float():
     "values",
     [
         ["foo", "bar"],
-        ["1", "2"],
         "foo",
         1,
         1.0,
@@ -132,10 +131,23 @@ def test_to_array_error(values):
             "values must be a 1D list-like",
             "Cannot pass scalar",
             r"float\(\) argument must be a string or a (real )?number, not 'dict'",
+            "could not convert string to float: 'foo'",
         ]
     )
     with pytest.raises((TypeError, ValueError), match=msg):
         pd.array(values, dtype="Float64")
+
+
+@pytest.mark.parametrize("values", [["1", "2", None], ["1.5", "2", None]])
+def test_construct_from_float_strings(values):
+    # see also test_to_integer_array_str
+    expected = pd.array([float(values[0]), 2, None], dtype="Float64")
+
+    res = pd.array(values, dtype="Float64")
+    tm.assert_extension_array_equal(res, expected)
+
+    res = FloatingArray._from_sequence(values)
+    tm.assert_extension_array_equal(res, expected)
 
 
 def test_to_array_inferred_dtype():
