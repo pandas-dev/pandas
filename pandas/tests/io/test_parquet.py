@@ -729,6 +729,13 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame(data=data, columns=["fp16"])
         self.check_external_error_on_write(df, pa, pyarrow.ArrowException)
 
+    @pytest.mark.skipif(
+        is_platform_windows(),
+        reason=(
+            "PyArrow does not cleanup of partial files dumps when unsupported "
+            "dtypes are passed to_parquet function in windows"
+        ),
+    )
     @pytest.mark.parametrize("path_type", [str, pathlib.Path])
     def test_unsupported_float16_cleanup(self, pa, path_type):
         # #44847, #44914
@@ -736,10 +743,6 @@ class TestParquetPyArrow(Base):
         # Tests cleanup by pyarrow in case of an error
         data = np.arange(2, 10, dtype=np.float16)
         df = pd.DataFrame(data=data, columns=["fp16"])
-
-        # Cleanup fails in windows
-        if is_platform_windows():
-            pytest.skip()
 
         with tm.ensure_clean() as path_str:
             path = path_type(path_str)
