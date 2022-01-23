@@ -5,15 +5,14 @@
 from __future__ import annotations
 
 import io
-from typing import (
-    Callable,
-    Sequence,
-)
+from typing import Sequence
 
 from pandas._typing import (
     CompressionOptions,
+    ConvertersArg,
     DtypeArg,
     FilePath,
+    ParseDatesArg,
     ReadBuffer,
     StorageOptions,
     XMLParsers,
@@ -131,12 +130,8 @@ class _XMLFrameParser:
         attrs_only: bool,
         names: Sequence[str] | None,
         dtype: DtypeArg | None,
-        converters: dict[str, Callable] | None,
-        parse_dates: bool
-        | list[int | str]
-        | list[list[int | str]]
-        | dict[str, list[int | str]]
-        | None,
+        converters: ConvertersArg | None,
+        parse_dates: ParseDatesArg | None,
         encoding: str | None,
         stylesheet: FilePath | ReadBuffer[bytes] | ReadBuffer[str] | None,
         compression: CompressionOptions,
@@ -703,12 +698,8 @@ def _parse(
     attrs_only: bool,
     names: Sequence[str] | None,
     dtype: DtypeArg | None,
-    converters: dict[str, Callable] | None,
-    parse_dates: bool
-    | list[int | str]
-    | list[list[int | str]]
-    | dict[str, list[int | str]]
-    | None,
+    converters: ConvertersArg | None,
+    parse_dates: ParseDatesArg | None,
     encoding: str | None,
     parser: XMLParsers,
     stylesheet: FilePath | ReadBuffer[bytes] | ReadBuffer[str] | None,
@@ -800,12 +791,8 @@ def read_xml(
     attrs_only: bool = False,
     names: Sequence[str] | None = None,
     dtype: DtypeArg | None = None,
-    converters: dict[str, Callable] | None = None,
-    parse_dates: bool
-    | list[int | str]
-    | list[list[int | str]]
-    | dict[str, list[int | str]]
-    | None = None,
+    converters: ConvertersArg | None = None,
+    parse_dates: ParseDatesArg | None = None,
     # encoding can not be None for lxml and StringIO input
     encoding: str | None = "utf-8",
     parser: XMLParsers = "lxml",

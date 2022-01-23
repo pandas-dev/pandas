@@ -86,13 +86,13 @@ Optional libraries below the lowest tested version may still work, but are not c
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
 
-.. _whatsnew_140.read_xml_dtypes:
+.. _whatsnew_150.read_xml_dtypes:
 
 read_xml now supports ``dtype``, ``converters``, and ``parse_dates``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Similar to other IO methods, :func:`pandas.read_xml` now supports assigning specific dtypes to columns,
-apply converter methods, and parse dates.
+apply converter methods, and parse dates (:issue:`43567`).
 
 .. ipython:: python
 
