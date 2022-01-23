@@ -1022,7 +1022,7 @@ cdef class ExtensionEngine(SharedEngine):
             bint is_unique
 
         values = self.values
-        if values._hasnans:
+        if values._hasna:
             self.monotonic_inc = 0
             self.monotonic_dec = 0
 
