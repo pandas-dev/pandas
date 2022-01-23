@@ -37,6 +37,7 @@ from pandas._libs.tslibs import (
     delta_to_nanoseconds,
     iNaT,
     ints_to_pydatetime,
+    ints_to_pytimedelta,
     to_offset,
 )
 from pandas._libs.tslibs.fields import (
@@ -419,6 +420,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                     freq=self.freq,
                     box="timestamp",
                 )
+                return converted.reshape(self.shape)
+
+            elif self.dtype.kind == "m":
+                i8data = self.asi8.ravel()
+                converted = ints_to_pytimedelta(i8data, box=True)
                 return converted.reshape(self.shape)
 
             return self._box_values(self.asi8.ravel()).reshape(self.shape)
