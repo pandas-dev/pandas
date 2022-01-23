@@ -2,7 +2,6 @@
 import datetime
 from io import BytesIO
 import os
-import sys
 import pathlib
 from warnings import (
     catch_warnings,
@@ -14,6 +13,7 @@ import pytest
 
 from pandas._config import get_option
 
+from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
     pa_version_under2p0,
     pa_version_under5p0,
@@ -729,9 +729,6 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame(data=data, columns=["fp16"])
         self.check_external_error_on_write(df, pa, pyarrow.ArrowException)
 
-    @pytest.mark.skipif(
-        sys.platform == "win32", reason="Cleanup is not working with Windows"
-    )
     @pytest.mark.parametrize("path_type", [str, pathlib.Path])
     def test_unsupported_float16_cleanup(self, pa, path_type):
         # #44847, #44914
@@ -739,6 +736,10 @@ class TestParquetPyArrow(Base):
         # Tests cleanup by pyarrow in case of an error
         data = np.arange(2, 10, dtype=np.float16)
         df = pd.DataFrame(data=data, columns=["fp16"])
+
+        # Cleanup fails in windows
+        if is_platform_windows():
+            pytest.skip()
 
         with tm.ensure_clean() as path_str:
             path = path_type(path_str)
