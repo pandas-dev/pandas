@@ -298,6 +298,13 @@ class TestGetIndexer:
         expected = np.array([1, 1], dtype="intp")
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_get_indexer_nans_in_index_and_target(self):
+        # GH 45361
+        ci = CategoricalIndex([1, 2, np.nan, 3])
+        other = [2, 3, 4, np.nan]
+        res = ci.get_indexer(other)
+        expected = np.array([1, 3, -1, 2], dtype=np.intp)
+        tm.assert_numpy_array_equal(res, expected)    
 
 class TestWhere:
     def test_where(self, listlike_box):
