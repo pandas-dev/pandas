@@ -417,6 +417,7 @@ class GroupByMethods:
             "cumprod",
             "cumsum",
             "describe",
+            "diff",
             "ffill",
             "first",
             "head",
