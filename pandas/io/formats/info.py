@@ -812,7 +812,7 @@ class DataFrameTableBuilder(TableBuilderAbstract):
         """Add lines to the info table, pertaining to empty dataframe."""
         self.add_object_type_line()
         self.add_index_range_line()
-        self._lines.append(f"Empty {type(self.data).__name__}")
+        self._lines.append(f"Empty {type(self.data).__name__}\n")
 
     @abstractmethod
     def _fill_non_empty_info(self) -> None:
