@@ -1943,14 +1943,14 @@ class _AsOfMerge(_OrderedMerge):
         tolerance = self.tolerance
 
         # we require sortedness and non-null values in the join keys
-        if not Index(left_values).is_monotonic:
+        if not Index(left_values).is_monotonic_increasing:
             side = "left"
             if isna(left_values).any():
                 raise ValueError(f"Merge keys contain null values on {side} side")
             else:
                 raise ValueError(f"{side} keys must be sorted")
 
-        if not Index(right_values).is_monotonic:
+        if not Index(right_values).is_monotonic_increasing:
             side = "right"
             if isna(right_values).any():
                 raise ValueError(f"Merge keys contain null values on {side} side")
