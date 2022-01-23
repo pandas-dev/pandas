@@ -304,7 +304,8 @@ class TestGetIndexer:
         other = [2, 3, 4, np.nan]
         res = ci.get_indexer(other)
         expected = np.array([1, 3, -1, 2], dtype=np.intp)
-        tm.assert_numpy_array_equal(res, expected)    
+        tm.assert_numpy_array_equal(res, expected)
+
 
 class TestWhere:
     def test_where(self, listlike_box):
