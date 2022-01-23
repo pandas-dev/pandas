@@ -1887,10 +1887,7 @@ def _catch_deprecated_value_error(err: Exception) -> None:
     if isinstance(err, ValueError):
         # TODO(2.0): once DTA._validate_setitem_value deprecation
         #  is enforced, stop catching ValueError here altogether
-        if "Cannot set float NaN to integer-backed IntervalArray" in str(err):
-            # TODO: change the exception raised by IntervalArray to TypeError?
-            pass
-        elif "Timezones don't match" not in str(err):
+        if "Timezones don't match" not in str(err):
             raise
 
 
