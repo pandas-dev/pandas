@@ -182,7 +182,7 @@ class PyArrowImpl(BaseImpl):
         )
         if (
             isinstance(path_or_handle, io.BufferedWriter)
-            and isinstance(path_or_handle.raw, io.FileIO)
+            and hasattr(path_or_handle, "name")
             and isinstance(path_or_handle.name, (str, bytes))
         ):
             path_or_handle = path_or_handle.name
