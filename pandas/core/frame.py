@@ -3485,6 +3485,7 @@ class DataFrame(NDFrame, OpsMixin):
             # GH#45316 Return view if key is not duplicated
             if not is_mi and (
                 self.columns.is_unique
+                and key in self.columns
                 or key in self.columns.drop_duplicates(keep=False)
             ):
                 return self._get_item_cache(key)
