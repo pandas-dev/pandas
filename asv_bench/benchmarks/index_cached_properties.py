@@ -56,9 +56,6 @@ class IndexCache:
     def time_shape(self, index_type):
         self.idx.shape
 
-    def time_is_monotonic(self, index_type):
-        self.idx.is_monotonic
-
     def time_is_monotonic_decreasing(self, index_type):
         self.idx.is_monotonic_decreasing
 

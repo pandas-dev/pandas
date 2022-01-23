@@ -243,11 +243,11 @@ class TestIndexReductions:
 
         # monotonic
         idx1 = TimedeltaIndex(["1 days", "2 days", "3 days"])
-        assert idx1.is_monotonic
+        assert idx1.is_monotonic_increasing
 
         # non-monotonic
         idx2 = TimedeltaIndex(["1 days", np.nan, "3 days", "NaT"])
-        assert not idx2.is_monotonic
+        assert not idx2.is_monotonic_increasing
 
         for idx in [idx1, idx2]:
             assert idx.min() == Timedelta("1 days")
@@ -366,13 +366,13 @@ class TestIndexReductions:
         tz = tz_naive_fixture
         # monotonic
         idx1 = DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"], tz=tz)
-        assert idx1.is_monotonic
+        assert idx1.is_monotonic_increasing
 
         # non-monotonic
         idx2 = DatetimeIndex(
             ["2011-01-01", NaT, "2011-01-03", "2011-01-02", NaT], tz=tz
         )
-        assert not idx2.is_monotonic
+        assert not idx2.is_monotonic_increasing
 
         for idx in [idx1, idx2]:
             assert idx.min() == Timestamp("2011-01-01", tz=tz)
@@ -470,14 +470,14 @@ class TestIndexReductions:
 
         # monotonic
         idx1 = PeriodIndex([NaT, "2011-01-01", "2011-01-02", "2011-01-03"], freq="D")
-        assert not idx1.is_monotonic
-        assert idx1[1:].is_monotonic
+        assert not idx1.is_monotonic_increasing
+        assert idx1[1:].is_monotonic_increasing
 
         # non-monotonic
         idx2 = PeriodIndex(
             ["2011-01-01", NaT, "2011-01-03", "2011-01-02", NaT], freq="D"
         )
-        assert not idx2.is_monotonic
+        assert not idx2.is_monotonic_increasing
 
         for idx in [idx1, idx2]:
             assert idx.min() == Period("2011-01-01", freq="D")

@@ -161,7 +161,7 @@ def clean_interp_method(method: str, index: Index, **kwargs) -> str:
         raise ValueError(f"method must be one of {valid}. Got '{method}' instead.")
 
     if method in ("krogh", "piecewise_polynomial", "pchip"):
-        if not index.is_monotonic:
+        if not index.is_monotonic_increasing:
             raise ValueError(
                 f"{method} interpolation requires that the index be monotonic."
             )

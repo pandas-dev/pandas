@@ -172,7 +172,7 @@ class TestSeriesAsof:
         )
 
         # non-monotonic
-        assert not s.index.is_monotonic
+        assert not s.index.is_monotonic_increasing
         with pytest.raises(ValueError, match="requires a sorted index"):
             s.asof(s.index[0])
 

@@ -406,10 +406,10 @@ class TestSorted:
         )
 
         df = DataFrame({"col": range(len(idx))}, index=idx, dtype="int64")
-        assert df.index.is_monotonic is False
+        assert df.index.is_monotonic_increasing is False
 
         sorted = df.sort_index()
-        assert sorted.index.is_monotonic is True
+        assert sorted.index.is_monotonic_increasing is True
 
         expected = DataFrame(
             {"col": [1, 4, 5, 2]},
