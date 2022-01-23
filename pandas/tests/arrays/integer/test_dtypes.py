@@ -54,7 +54,7 @@ def test_preserve_dtypes(op):
 def test_astype_nansafe():
     # see gh-22343
     arr = pd.array([np.nan, 1, 2], dtype="Int8")
-    msg = "cannot convert to 'uint32'-dtype NumPy array with missing values."
+    msg = "cannot convert NA to integer"
 
     with pytest.raises(ValueError, match=msg):
         arr.astype("uint32")
@@ -136,7 +136,7 @@ def test_astype(all_data):
 
     # coerce to same numpy_dtype - mixed
     s = pd.Series(mixed)
-    msg = r"cannot convert to .*-dtype NumPy array with missing values.*"
+    msg = "cannot convert NA to integer"
     with pytest.raises(ValueError, match=msg):
         s.astype(all_data.dtype.numpy_dtype)
 

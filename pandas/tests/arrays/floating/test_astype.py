@@ -9,10 +9,10 @@ def test_astype():
     # with missing values
     arr = pd.array([0.1, 0.2, None], dtype="Float64")
 
-    with pytest.raises(ValueError, match="cannot convert to 'int64'-dtype NumPy"):
+    with pytest.raises(ValueError, match="cannot convert NA to integer"):
         arr.astype("int64")
 
-    with pytest.raises(ValueError, match="cannot convert to 'bool'-dtype NumPy"):
+    with pytest.raises(ValueError, match="cannot convert float NaN to bool"):
         arr.astype("bool")
 
     result = arr.astype("float64")
