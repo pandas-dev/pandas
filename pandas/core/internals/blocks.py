@@ -1376,8 +1376,6 @@ class EABackedBlock(Block):
                 #  isinstance(values, NDArrayBackedExtensionArray)
                 if isinstance(self.dtype, PeriodDtype):
                     # TODO: don't special-case
-                    # Note: this is the main place where the fallback logic
-                    #  is different from EABackedBlock.putmask.
                     raise
                 blk = self.coerce_to_target_dtype(other)
                 nbs = blk.where(other, cond)
@@ -1418,6 +1416,9 @@ class EABackedBlock(Block):
             elif isinstance(self, NDArrayBackedExtensionBlock):
                 # NB: not (yet) the same as
                 #  isinstance(values, NDArrayBackedExtensionArray)
+                if isinstance(self.dtype, PeriodDtype):
+                    # TODO: don't special-case
+                    raise
                 blk = self.coerce_to_target_dtype(new)
                 return blk.putmask(mask, new)
 
