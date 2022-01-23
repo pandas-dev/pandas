@@ -735,6 +735,12 @@ class Transform:
         data = DataFrame(arr, index=index, columns=["col1", "col20", "col3"])
         self.df = data
 
+        n = 1000
+        self.df_wide = DataFrame(
+            np.random.randn(n, n),
+            index=np.random.choice(range(10), n),
+        )
+
         n = 20000
         self.df1 = DataFrame(
             np.random.randint(1, n, (n, 3)), columns=["jim", "joe", "jolie"]
@@ -753,6 +759,9 @@ class Transform:
 
     def time_transform_ufunc_max(self):
         self.df.groupby(level="lev1").transform(np.max)
+
+    def time_transform_lambda_max_wide(self):
+        self.df_wide.groupby(level=0).transform(lambda x: np.max(x, axis=0))
 
     def time_transform_multi_key1(self):
         self.df1.groupby(["jim", "joe"])["jolie"].transform("max")
