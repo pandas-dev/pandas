@@ -793,10 +793,6 @@ class _LocationIndexer(NDFrameIndexerBase):
         indexer = self._get_setitem_indexer(key)
         self._has_valid_setitem_indexer(key)
 
-        if self.name == "loc":
-            # TODO: should we do this for iloc too?
-            indexer, value = self._maybe_mask_setitem_value(indexer, value)
-
         iloc = self if self.name == "iloc" else self.obj.iloc
         iloc._setitem_with_indexer(indexer, value, self.name)
 
@@ -1764,6 +1760,10 @@ class _iLocIndexer(_LocationIndexer):
             if missing:
                 self._setitem_with_indexer_missing(indexer, value)
                 return
+
+        if name == "loc":
+            # must come after setting of missing
+            indexer, value = self._maybe_mask_setitem_value(indexer, value)
 
         # align and set the values
         if take_split_path:
