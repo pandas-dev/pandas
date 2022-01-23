@@ -729,7 +729,9 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame(data=data, columns=["fp16"])
         self.check_external_error_on_write(df, pa, pyarrow.ArrowException)
 
-    @pytest.mark.skipif(sys.platform == "win32", reason="Cleanup is not working with Windows")
+    @pytest.mark.skipif(
+        sys.platform == "win32", reason="Cleanup is not working with Windows"
+    )
     @pytest.mark.parametrize("path_type", [str, pathlib.Path])
     def test_unsupported_float16_cleanup(self, pa, path_type):
         # #44847, #44914
