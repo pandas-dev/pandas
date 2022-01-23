@@ -6,7 +6,7 @@ trigger:
     - 1.4.x
   paths:
     exclude:
-    - 'doc/*'
+    - 'doc/**'
 
 pr:
   autoCancel: true
