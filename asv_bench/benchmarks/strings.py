@@ -3,10 +3,12 @@ import warnings
 import numpy as np
 
 from pandas import (
+    NA,
     Categorical,
     DataFrame,
     Series,
 )
+from pandas.arrays import StringArray
 
 from .pandas_vb_common import tm
 
@@ -285,3 +287,18 @@ class Iter(Dtypes):
     def time_iter(self, dtype):
         for i in self.s:
             pass
+
+
+class StringArrayConstruction:
+    def setup(self):
+        self.series_arr = tm.rands_array(nchars=10, size=10 ** 5)
+        self.series_arr_nan = np.concatenate([self.series_arr, np.array([NA] * 1000)])
+
+    def time_string_array_construction(self):
+        StringArray(self.series_arr)
+
+    def time_string_array_with_nan_construction(self):
+        StringArray(self.series_arr_nan)
+
+    def peakmem_stringarray_construction(self):
+        StringArray(self.series_arr)

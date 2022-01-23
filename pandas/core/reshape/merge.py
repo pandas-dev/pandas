@@ -1929,14 +1929,14 @@ class _AsOfMerge(_OrderedMerge):
         tolerance = self.tolerance
 
         # we require sortedness and non-null values in the join keys
-        if not Index(left_values).is_monotonic:
+        if not Index(left_values).is_monotonic_increasing:
             side = "left"
             if isna(left_values).any():
                 raise ValueError(f"Merge keys contain null values on {side} side")
             else:
                 raise ValueError(f"{side} keys must be sorted")
 
-        if not Index(right_values).is_monotonic:
+        if not Index(right_values).is_monotonic_increasing:
             side = "right"
             if isna(right_values).any():
                 raise ValueError(f"Merge keys contain null values on {side} side")
@@ -2148,8 +2148,6 @@ def _factorize_keys(
         rk = ensure_int64(rk.codes)
 
     elif isinstance(lk, ExtensionArray) and is_dtype_equal(lk.dtype, rk.dtype):
-        # error: Incompatible types in assignment (expression has type "ndarray",
-        # variable has type "ExtensionArray")
         lk, _ = lk._values_for_factorize()
 
         # error: Item "ndarray" of "Union[Any, ndarray]" has no attribute

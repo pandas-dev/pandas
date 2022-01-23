@@ -47,7 +47,7 @@ def test_array_scalar_like_equivalence(data, all_arithmetic_operators):
         tm.assert_extension_array_equal(result, expected)
 
 
-def test_array_NA(data, all_arithmetic_operators, request):
+def test_array_NA(data, all_arithmetic_operators):
     data, _ = data
     op = tm.get_op_from_name(all_arithmetic_operators)
     check_skip(data, all_arithmetic_operators)
@@ -55,8 +55,14 @@ def test_array_NA(data, all_arithmetic_operators, request):
     scalar = pd.NA
     scalar_array = pd.array([pd.NA] * len(data), dtype=data.dtype)
 
+    mask = data._mask.copy()
     result = op(data, scalar)
+    # GH#45421 check op doesn't alter data._mask inplace
+    tm.assert_numpy_array_equal(mask, data._mask)
+
     expected = op(data, scalar_array)
+    tm.assert_numpy_array_equal(mask, data._mask)
+
     tm.assert_extension_array_equal(result, expected)
 
 

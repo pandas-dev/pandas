@@ -3,28 +3,34 @@ channels:
   - defaults
   - conda-forge
 dependencies:
-  - python=3.8
+  - python=3.10
 
   # tools
   - cython>=0.29.24
   - pytest>=6.0
-  - pytest-cov
   - pytest-xdist>=1.31
   - hypothesis>=5.5.3
+  - pytest-azurepipelines
 
   # pandas dependencies
   - beautifulsoup4
   - bottleneck
+  - html5lib
+  - jinja2
   - lxml
   - matplotlib
+  - nomkl
+  - numexpr
   - numpy
   - openpyxl
-  - python-dateutil
-  - python-blosc
-  - pytz=2020.1
-  - scipy
-  - sqlalchemy
+  - pyarrow
+  - pyreadstat
+  - pytables
+  - python-dateutil==2.8.1
+  - pytz
+  - pyxlsb
+  - xarray
   - xlrd
   - xlsxwriter
   - xlwt
-  - html5lib
+  - zstandard
