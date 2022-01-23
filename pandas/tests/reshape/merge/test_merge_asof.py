@@ -1237,7 +1237,6 @@ class TestAsOfMerge:
         # set value s.t. (at least for integer dtypes) arr._values_for_argsort
         #  is not an injection
         arr[2] = max_val
-        # arr = np.array([np.nan, 0, 1])
 
         left = pd.DataFrame(
             {

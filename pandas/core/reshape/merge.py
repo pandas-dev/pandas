@@ -1908,7 +1908,7 @@ class _AsOfMerge(_OrderedMerge):
         def flip(xs) -> np.ndarray:
             """unlike np.transpose, this returns an array of tuples"""
 
-            def biject(obj):
+            def injection(obj):
                 if not is_extension_array_dtype(obj):
                     # ndarray
                     return obj
@@ -1927,7 +1927,7 @@ class _AsOfMerge(_OrderedMerge):
                 #  shouldn't it?
                 return np.asarray(obj)
 
-            xs = [biject(x) for x in xs]
+            xs = [injection(x) for x in xs]
             labels = list(string.ascii_lowercase[: len(xs)])
             dtypes = [x.dtype for x in xs]
             labeled_dtypes = list(zip(labels, dtypes))
