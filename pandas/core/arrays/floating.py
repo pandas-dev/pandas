@@ -1,41 +1,26 @@
 from __future__ import annotations
 
-from typing import overload
-
 import numpy as np
 
 from pandas._libs import (
     lib,
     missing as libmissing,
 )
-from pandas._typing import (
-    ArrayLike,
-    AstypeArg,
-    DtypeObj,
-    npt,
-)
+from pandas._typing import DtypeObj
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool_dtype,
-    is_datetime64_dtype,
     is_float_dtype,
     is_integer_dtype,
     is_object_dtype,
-    pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import (
-    ExtensionDtype,
-    register_extension_dtype,
-)
+from pandas.core.dtypes.dtypes import register_extension_dtype
 
-from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.numeric import (
     NumericArray,
     NumericDtype,
 )
-from pandas.core.tools.numeric import to_numeric
 
 
 class FloatingDtype(NumericDtype):
@@ -131,13 +116,7 @@ def coerce_to_array(
         inferred_type = lib.infer_dtype(values, skipna=True)
         if inferred_type == "empty":
             pass
-        elif inferred_type not in [
-            "floating",
-            "integer",
-            "mixed-integer",
-            "integer-na",
-            "mixed-integer-float",
-        ]:
+        elif inferred_type == "boolean":
             raise TypeError(f"{values.dtype} cannot be converted to a FloatingDtype")
 
     elif is_bool_dtype(values) and is_float_dtype(dtype):
@@ -260,82 +239,10 @@ class FloatingArray(NumericArray):
         super().__init__(values, mask, copy=copy)
 
     @classmethod
-    def _from_sequence(
-        cls, scalars, *, dtype=None, copy: bool = False
-    ) -> FloatingArray:
-        values, mask = coerce_to_array(scalars, dtype=dtype, copy=copy)
-        return FloatingArray(values, mask)
-
-    @classmethod
-    def _from_sequence_of_strings(
-        cls, strings, *, dtype=None, copy: bool = False
-    ) -> FloatingArray:
-        scalars = to_numeric(strings, errors="raise")
-        return cls._from_sequence(scalars, dtype=dtype, copy=copy)
-
-    def _coerce_to_array(self, value) -> tuple[np.ndarray, np.ndarray]:
-        return coerce_to_array(value, dtype=self.dtype)
-
-    @overload
-    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
-        ...
-
-    @overload
-    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray:
-        ...
-
-    @overload
-    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike:
-        ...
-
-    def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
-        """
-        Cast to a NumPy array or ExtensionArray with 'dtype'.
-
-        Parameters
-        ----------
-        dtype : str or dtype
-            Typecode or data-type to which the array is cast.
-        copy : bool, default True
-            Whether to copy the data, even if not necessary. If False,
-            a copy is made only if the old dtype does not match the
-            new dtype.
-
-        Returns
-        -------
-        ndarray or ExtensionArray
-            NumPy ndarray, or BooleanArray, IntegerArray or FloatingArray with
-            'dtype' for its dtype.
-
-        Raises
-        ------
-        TypeError
-            if incompatible type with an FloatingDtype, equivalent of same_kind
-            casting
-        """
-        dtype = pandas_dtype(dtype)
-
-        if isinstance(dtype, ExtensionDtype):
-            return super().astype(dtype, copy=copy)
-
-        # coerce
-        if is_float_dtype(dtype):
-            # In astype, we consider dtype=float to also mean na_value=np.nan
-            kwargs = {"na_value": np.nan}
-        elif is_datetime64_dtype(dtype):
-            # error: Dict entry 0 has incompatible type "str": "datetime64"; expected
-            # "str": "float"
-            kwargs = {"na_value": np.datetime64("NaT")}  # type: ignore[dict-item]
-        else:
-            kwargs = {}
-
-        # error: Argument 2 to "to_numpy" of "BaseMaskedArray" has incompatible
-        # type "**Dict[str, float]"; expected "bool"
-        data = self.to_numpy(dtype=dtype, **kwargs)  # type: ignore[arg-type]
-        return astype_nansafe(data, dtype, copy=False)
-
-    def _values_for_argsort(self) -> np.ndarray:
-        return self._data
+    def _coerce_to_array(
+        cls, value, *, dtype: DtypeObj, copy: bool = False
+    ) -> tuple[np.ndarray, np.ndarray]:
+        return coerce_to_array(value, dtype=dtype, copy=copy)
 
 
 _dtype_docstring = """

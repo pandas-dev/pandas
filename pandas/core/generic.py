@@ -67,6 +67,7 @@ from pandas.errors import (
     InvalidIndexError,
 )
 from pandas.util._decorators import (
+    deprecate_kwarg,
     doc,
     rewrite_axis_style_signature,
 )
@@ -283,22 +284,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             else:
                 mgr = mgr.astype(dtype=dtype)
         return mgr
-
-    @classmethod
-    def _from_mgr(cls, mgr: Manager):
-        """
-        Fastpath to create a new DataFrame/Series from just a BlockManager/ArrayManager.
-
-        Notes
-        -----
-        Skips setting `_flags` attribute; caller is responsible for doing so.
-        """
-        obj = cls.__new__(cls)
-        object.__setattr__(obj, "_is_copy", None)
-        object.__setattr__(obj, "_mgr", mgr)
-        object.__setattr__(obj, "_item_cache", {})
-        object.__setattr__(obj, "_attrs", {})
-        return obj
 
     def _as_manager(self: NDFrameT, typ: str, copy: bool_t = True) -> NDFrameT:
         """
@@ -1988,10 +1973,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         for h in self._info_axis:
             yield h, self[h]
 
-    @doc(items)
-    def iteritems(self):
-        return self.items()
-
     def __len__(self) -> int:
         """Returns length of info axis"""
         return len(self._info_axis)
@@ -2070,6 +2051,47 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def __array__(self, dtype: npt.DTypeLike | None = None) -> np.ndarray:
         return np.asarray(self._values, dtype=dtype)
+
+    def __array_wrap__(
+        self,
+        result: np.ndarray,
+        context: tuple[Callable, tuple[Any, ...], int] | None = None,
+    ):
+        """
+        Gets called after a ufunc and other functions.
+
+        Parameters
+        ----------
+        result: np.ndarray
+            The result of the ufunc or other function called on the NumPy array
+            returned by __array__
+        context: tuple of (func, tuple, int)
+            This parameter is returned by ufuncs as a 3-element tuple: (name of the
+            ufunc, arguments of the ufunc, domain of the ufunc), but is not set by
+            other numpy functions.q
+
+        Notes
+        -----
+        Series implements __array_ufunc_ so this not called for ufunc on Series.
+        """
+        # Note: at time of dask 2022.01.0, this is still used by dask
+        warnings.warn(
+            "The __array_wrap__ method of DataFrame and Series will be removed in "
+            "a future version",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        res = lib.item_from_zerodim(result)
+        if is_scalar(res):
+            # e.g. we get here with np.ptp(series)
+            # ptp also requires the item_from_zerodim
+            return res
+        d = self._construct_axes_dict(self._AXIS_ORDERS, copy=False)
+        # error: Argument 1 to "NDFrame" has incompatible type "ndarray";
+        # expected "BlockManager"
+        return self._constructor(res, **d).__finalize__(  # type: ignore[arg-type]
+            self, method="__array_wrap__"
+        )
 
     @final
     def __array_ufunc__(
@@ -3182,7 +3204,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         position=None,
     ):
         r"""
-        Render object to a LaTeX tabular, longtable, or nested table/tabular.
+        Render object to a LaTeX tabular, longtable, or nested table.
 
         Requires ``\usepackage{{booktabs}}``.  The output can be copy/pasted
         into a main LaTeX document or read from an external file
@@ -3355,6 +3377,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         storage_options=_shared_docs["storage_options"],
         compression_options=_shared_docs["compression_options"],
     )
+    @deprecate_kwarg(old_arg_name="line_terminator", new_arg_name="lineterminator")
     def to_csv(
         self,
         path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
@@ -3370,7 +3393,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         compression: CompressionOptions = "infer",
         quoting: int | None = None,
         quotechar: str = '"',
-        line_terminator: str | None = None,
+        lineterminator: str | None = None,
         chunksize: int | None = None,
         date_format: str | None = None,
         doublequote: bool_t = True,
@@ -3449,10 +3472,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             will treat them as non-numeric.
         quotechar : str, default '\"'
             String of length 1. Character used to quote fields.
-        line_terminator : str, optional
+        lineterminator : str, optional
             The newline character or character sequence to use in the output
             file. Defaults to `os.linesep`, which depends on the OS in which
             this method is called ('\\n' for linux, '\\r\\n' for Windows, i.e.).
+
+            .. versionchanged:: 1.5.0
+
+                Previously was line_terminator, changed for consistency with
+                read_csv and the standard library 'csv' module.
+
         chunksize : int or None
             Rows to write at a time.
         date_format : str, default None
@@ -3527,7 +3556,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         return DataFrameRenderer(formatter).to_csv(
             path_or_buf,
-            line_terminator=line_terminator,
+            lineterminator=lineterminator,
             sep=sep,
             encoding=encoding,
             errors=errors,
@@ -4255,7 +4284,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis,
         level=None,
         errors: str = "raise",
-        consolidate: bool_t = True,
         only_slice: bool_t = False,
     ) -> NDFrameT:
         """
@@ -4270,8 +4298,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             For MultiIndex
         errors : {'ignore', 'raise'}, default 'raise'
             If 'ignore', suppress error and existing labels are dropped.
-        consolidate : bool, default True
-            Whether to call consolidate_inplace in the reindex_indexer call.
         only_slice : bool, default False
             Whether indexing along columns should be view-only.
 
@@ -4325,7 +4351,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             indexer,
             axis=bm_axis,
             allow_dups=True,
-            consolidate=consolidate,
             only_slice=only_slice,
         )
         result = self._constructor(new_mgr)
@@ -5433,7 +5458,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         **kwargs,
     ) -> T:
         r"""
-        Apply func(self, \*args, \*\*kwargs).
+        Apply chainable functions that expect Series or DataFrames.
 
         Parameters
         ----------
@@ -5847,7 +5872,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 new_type = dtype[self.name]
                 return self.astype(new_type, copy, errors)
 
-            for col_name in dtype.keys():
+            # GH#44417 cast to Series so we can use .iat below, which will be
+            #  robust in case we
+            from pandas import Series
+
+            dtype_ser = Series(dtype, dtype=object)
+
+            for col_name in dtype_ser.index:
                 if col_name not in self:
                     raise KeyError(
                         "Only a column name can be used for the "
@@ -5855,11 +5886,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         f"'{col_name}' not found in columns."
                     )
 
-            # GH#44417 cast to Series so we can use .iat below, which will be
-            #  robust in case we
-            from pandas import Series
-
-            dtype_ser = Series(dtype, dtype=object)
             dtype_ser = dtype_ser.reindex(self.columns, fill_value=None, copy=False)
 
             results = []
@@ -5891,6 +5917,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # GH 19920: retain column metadata after concat
         result = concat(results, axis=1, copy=False)
+        # GH#40810 retain subclass
+        # Incompatible types in assignment (expression has type "NDFrameT",
+        # variable has type "DataFrame")
+        # Argument 1 to "NDFrame" has incompatible type "DataFrame"; expected
+        # "Union[ArrayManager, SingleArrayManager, BlockManager, SingleBlockManager]"
+        result = self._constructor(result)  # type: ignore[arg-type,assignment]
         result.columns = self.columns
         result = result.__finalize__(self, method="astype")
         # https://github.com/python/mypy/issues/8354
@@ -5933,6 +5965,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         numpy array is not copied for performance reasons. Since ``Index`` is
         immutable, the underlying data can be safely shared and a copy
         is not needed.
+
+        Since pandas is not thread safe, see the
+        :ref:`gotchas <gotchas.thread-safety>` when copying in a threading
+        environment.
 
         Examples
         --------
@@ -6979,8 +7015,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # create/use the index
         if method == "linear":
             # prior default
-            index = np.arange(len(obj.index))
-            index = Index(index)
+            index = Index(np.arange(len(obj.index)))
         else:
             index = obj.index
             methods = {"index", "values", "nearest", "time"}
@@ -7119,9 +7154,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df.asof(pd.DatetimeIndex(['2018-02-27 09:03:30',
         ...                           '2018-02-27 09:04:30']),
         ...         subset=['a'])
-                                 a   b
-        2018-02-27 09:03:30   30.0 NaN
-        2018-02-27 09:04:30   40.0 NaN
+                              a   b
+        2018-02-27 09:03:30  30 NaN
+        2018-02-27 09:04:30  40 NaN
         """
         if isinstance(where, str):
             where = Timestamp(where)
@@ -7191,7 +7226,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         missing = locs == -1
         data = self.take(locs)
         data.index = where
-        data.loc[missing] = np.nan
+        if missing.any():
+            # GH#16063 only do this setting when necessary, otherwise
+            #  we'd cast e.g. bools to floats
+            data.loc[missing] = np.nan
         return data if is_list else data.iloc[-1]
 
     # ----------------------------------------------------------------------
@@ -9002,21 +9040,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace=False,
         axis=None,
         level=None,
-        errors=lib.no_default,
+        errors="raise",
     ):
         """
         Equivalent to public method `where`, except that `other` is not
         applied as a function even if callable. Used in __setitem__.
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
-
-        if errors is not lib.no_default:
-            warnings.warn(
-                f"The 'errors' keyword in {type(self).__name__}.where and mask is "
-                "deprecated and will be removed in a future version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
 
         if axis is not None:
             axis = self._get_axis_number(axis)
@@ -9153,7 +9183,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace=False,
         axis=None,
         level=None,
-        errors=lib.no_default,
+        errors="raise",
         try_cast=lib.no_default,
     ):
         """
@@ -9185,9 +9215,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             - 'raise' : allow exceptions to be raised.
             - 'ignore' : suppress exceptions. On error return original object.
-
-            .. deprecated:: 1.4.0
-                Previously was silently ignored.
 
         try_cast : bool, default None
             Try to cast the result back to the input type (if possible).
@@ -9309,7 +9336,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace=False,
         axis=None,
         level=None,
-        errors=lib.no_default,
+        errors="raise",
         try_cast=lib.no_default,
     ):
 

@@ -34,7 +34,7 @@ def check_compressed_urls(salaries_table, compression, extension, mode, engine):
     # test reading compressed urls with various engines and
     # extension inference
     base_url = (
-        "https://github.com/pandas-dev/pandas/raw/master/"
+        "https://github.com/pandas-dev/pandas/raw/main/"
         "pandas/tests/io/parser/data/salaries.csv"
     )
 
@@ -55,7 +55,7 @@ def test_url_encoding_csv():
     GH 10424
     """
     path = (
-        "https://raw.githubusercontent.com/pandas-dev/pandas/master/"
+        "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
         + "pandas/tests/io/parser/data/unicode_series.csv"
     )
     df = read_csv(path, encoding="latin-1", header=None)
@@ -72,6 +72,11 @@ def tips_df(datapath):
 @td.skip_if_not_us_locale()
 class TestS3:
     @td.skip_if_no("s3fs")
+    @pytest.mark.xfail(
+        reason="CI race condition GH 45433, GH 44584",
+        raises=FileNotFoundError,
+        strict=False,
+    )
     def test_parse_public_s3_bucket(self, tips_df, s3so):
 
         # more of an integration test due to the not-public contents portion

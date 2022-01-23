@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import iNaT
+from pandas.errors import InvalidIndexError
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer
@@ -1008,7 +1009,7 @@ class TestDataFrameIndexing:
         exp_col = original[2].copy()
         # TODO(ArrayManager) verify it is expected that the original didn't change
         if not using_array_manager:
-            exp_col[4:8] = 0.0
+            exp_col._values[4:8] = 0.0
         tm.assert_series_equal(df[2], exp_col)
 
     def test_iloc_col(self):
@@ -1171,7 +1172,7 @@ class TestDataFrameIndexing:
         dg = DataFrame(
             [[1, 1, 2, 2], [3, 3, 4, 4]], columns=mi, index=Index([0, 1], name="i")
         )
-        with pytest.raises(TypeError, match="unhashable type"):
+        with pytest.raises(InvalidIndexError, match="slice"):
             dg[:, 0]
 
         index = Index(range(2), name="i")
@@ -1239,12 +1240,10 @@ class TestDataFrameIndexing:
 
         msg = "|".join(
             [
-                r"int\(\) argument must be a string, a bytes-like object or a "
-                "(real )?number, not 'NaTType'",
                 r"timedelta64\[ns\] cannot be converted to an? (Floating|Integer)Dtype",
                 r"datetime64\[ns\] cannot be converted to an? (Floating|Integer)Dtype",
-                "object cannot be converted to a FloatingDtype",
                 "'values' contains non-numeric NA",
+                r"Invalid value '.*' for dtype (U?Int|Float)\d{1,2}",
             ]
         )
         with pytest.raises(TypeError, match=msg):

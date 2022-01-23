@@ -1,3 +1,4 @@
+# Non-dependencies that pandas utilizes or has compatibility with pandas objects
 name: pandas-dev
 channels:
   - conda-forge
@@ -5,28 +6,30 @@ dependencies:
   - python=3.8
   - pip
 
-  # tools
+  # test dependencies
   - cython>=0.29.24
   - pytest>=6.0
   - pytest-xdist>=1.31
   - hypothesis>=5.5.3
   - pytest-cov>=2.10.1  # this is only needed in the coverage build, ref: GH 35737
+  - nomkl
 
-  # pandas dependencies
-  - aiobotocore<2.0.0  # GH#44311 pinned to fix docbuild
+  # required dependencies
+  - numpy
+  - python-dateutil
+  - pytz
+
+  # optional dependencies
   - beautifulsoup4
-  - boto3
-  - botocore>=1.11
-  - dask
+  - blosc
   - fastparquet>=0.4.0
   - fsspec>=0.7.4
-  - gcsfs>=0.6.0
-  - geopandas
+  - gcsfs
   - html5lib
+  - jinja2
+  - lxml
   - matplotlib
-  - nomkl
   - numexpr
-  - numpy=1.18
   - odfpy
   - openpyxl
   - pandas-gbq
@@ -34,21 +37,30 @@ dependencies:
   - pyarrow>=1.0.1
   - pymysql
   - pytables
-  - python-snappy
-  - python-dateutil
-  - pytz
+  - pyxlsb
   - s3fs>=0.4.0
-  - scikit-learn
   - scipy
   - sqlalchemy
-  - statsmodels
   - xarray
   - xlrd
   - xlsxwriter
   - xlwt
+
+  # downstream packages
+  - aiobotocore<2.0.0  # GH#44311 pinned to fix docbuild
+  - boto3
+  - botocore>=1.11
+  - dask
+  - ipython
+  - geopandas
+  - python-snappy
+  - seaborn
+  - scikit-learn
+  - statsmodels
   - brotlipy
   - coverage
   - pandas-datareader
-  - pyxlsb
+  - pyyaml
+  - py
   - pip:
     - torch

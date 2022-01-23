@@ -378,88 +378,11 @@ def makePeriodIndex(k: int = 10, name=None, **kwargs) -> PeriodIndex:
 
 
 def makeMultiIndex(k=10, names=None, **kwargs):
-    return MultiIndex.from_product((("foo", "bar"), (1, 2)), names=names, **kwargs)
-
-
-_names = [
-    "Alice",
-    "Bob",
-    "Charlie",
-    "Dan",
-    "Edith",
-    "Frank",
-    "George",
-    "Hannah",
-    "Ingrid",
-    "Jerry",
-    "Kevin",
-    "Laura",
-    "Michael",
-    "Norbert",
-    "Oliver",
-    "Patricia",
-    "Quinn",
-    "Ray",
-    "Sarah",
-    "Tim",
-    "Ursula",
-    "Victor",
-    "Wendy",
-    "Xavier",
-    "Yvonne",
-    "Zelda",
-]
-
-
-def _make_timeseries(start="2000-01-01", end="2000-12-31", freq="1D", seed=None):
-    """
-    Make a DataFrame with a DatetimeIndex
-
-    Parameters
-    ----------
-    start : str or Timestamp, default "2000-01-01"
-        The start of the index. Passed to date_range with `freq`.
-    end : str or Timestamp, default "2000-12-31"
-        The end of the index. Passed to date_range with `freq`.
-    freq : str or Freq
-        The frequency to use for the DatetimeIndex
-    seed : int, optional
-        The random state seed.
-
-        * name : object dtype with string names
-        * id : int dtype with
-        * x, y : float dtype
-
-    Examples
-    --------
-    >>> _make_timeseries()  # doctest: +SKIP
-                  id    name         x         y
-    timestamp
-    2000-01-01   982   Frank  0.031261  0.986727
-    2000-01-02  1025   Edith -0.086358 -0.032920
-    2000-01-03   982   Edith  0.473177  0.298654
-    2000-01-04  1009   Sarah  0.534344 -0.750377
-    2000-01-05   963   Zelda -0.271573  0.054424
-    ...          ...     ...       ...       ...
-    2000-12-27   980  Ingrid -0.132333 -0.422195
-    2000-12-28   972   Frank -0.376007 -0.298687
-    2000-12-29  1009  Ursula -0.865047 -0.503133
-    2000-12-30  1000  Hannah -0.063757 -0.507336
-    2000-12-31   972     Tim -0.869120  0.531685
-    """
-    index = pd.date_range(start=start, end=end, freq=freq, name="timestamp")
-    n = len(index)
-    state = np.random.RandomState(seed)
-    columns = {
-        "name": state.choice(_names, size=n),
-        "id": state.poisson(1000, size=n),
-        "x": state.rand(n) * 2 - 1,
-        "y": state.rand(n) * 2 - 1,
-    }
-    df = DataFrame(columns, index=index, columns=sorted(columns))
-    if df.index[-1] == end:
-        df = df.iloc[:-1]
-    return df
+    N = (k // 2) + 1
+    rng = range(N)
+    mi = MultiIndex.from_product([("foo", "bar"), rng], names=names, **kwargs)
+    assert len(mi) >= k  # GH#38795
+    return mi[:k]
 
 
 def index_subclass_makers_generator():
@@ -494,14 +417,19 @@ def all_timeseries_index_generator(k: int = 10) -> Iterable[Index]:
 
 
 # make series
-def makeFloatSeries(name=None):
+def make_rand_series(name=None, dtype=np.float64):
     index = makeStringIndex(_N)
-    return Series(np.random.randn(_N), index=index, name=name)
+    data = np.random.randn(_N)
+    data = data.astype(dtype, copy=False)
+    return Series(data, index=index, name=name)
+
+
+def makeFloatSeries(name=None):
+    return make_rand_series(name=name)
 
 
 def makeStringSeries(name=None):
-    index = makeStringIndex(_N)
-    return Series(np.random.randn(_N), index=index, name=name)
+    return make_rand_series(name=name)
 
 
 def makeObjectSeries(name=None):

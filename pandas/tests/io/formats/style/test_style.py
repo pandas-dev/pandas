@@ -5,10 +5,13 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas import (
+    Categorical,
     DataFrame,
+    IndexSlice,
     MultiIndex,
+    Series,
+    option_context,
 )
 import pandas._testing as tm
 
@@ -137,16 +140,16 @@ def test_mi_styler_sparsify_index(mi_styler, sparse_index, exp_rows):
 
 
 def test_mi_styler_sparsify_options(mi_styler):
-    with pd.option_context("styler.sparse.index", False):
+    with option_context("styler.sparse.index", False):
         html1 = mi_styler.to_html()
-    with pd.option_context("styler.sparse.index", True):
+    with option_context("styler.sparse.index", True):
         html2 = mi_styler.to_html()
 
     assert html1 != html2
 
-    with pd.option_context("styler.sparse.columns", False):
+    with option_context("styler.sparse.columns", False):
         html1 = mi_styler.to_html()
-    with pd.option_context("styler.sparse.columns", True):
+    with option_context("styler.sparse.columns", True):
         html2 = mi_styler.to_html()
 
     assert html1 != html2
@@ -180,7 +183,7 @@ def test_trimming_maximum(rn, cn, max_els, max_rows, max_cols, exp_rn, exp_cn):
 def test_render_trimming_rows(option, val):
     # test auto and specific trimming of rows
     df = DataFrame(np.arange(120).reshape(60, 2))
-    with pd.option_context(option, val):
+    with option_context(option, val):
         ctx = df.style._translate(True, True)
     assert len(ctx["head"][0]) == 3  # index + 2 data cols
     assert len(ctx["body"]) == 4  # 3 data rows + trimming row
@@ -197,7 +200,7 @@ def test_render_trimming_rows(option, val):
 def test_render_trimming_cols(option, val):
     # test auto and specific trimming of cols
     df = DataFrame(np.arange(30).reshape(3, 10))
-    with pd.option_context(option, val):
+    with option_context(option, val):
         ctx = df.style._translate(True, True)
     assert len(ctx["head"][0]) == 4  # index + 2 data cols + trimming col
     assert len(ctx["body"]) == 3  # 3 data rows
@@ -207,7 +210,7 @@ def test_render_trimming_cols(option, val):
 def test_render_trimming_mi():
     midx = MultiIndex.from_product([[1, 2], [1, 2, 3]])
     df = DataFrame(np.arange(36).reshape(6, 6), columns=midx, index=midx)
-    with pd.option_context("styler.render.max_elements", 4):
+    with option_context("styler.render.max_elements", 4):
         ctx = df.style._translate(True, True)
 
     assert len(ctx["body"][0]) == 5  # 2 indexes + 2 data cols + trimming row
@@ -446,16 +449,14 @@ class TestStyler:
         self.g = lambda x: x
 
         def h(x, foo="bar"):
-            return pd.Series(f"color: {foo}", index=x.index, name=x.name)
+            return Series(f"color: {foo}", index=x.index, name=x.name)
 
         self.h = h
         self.styler = Styler(self.df)
         self.attrs = DataFrame({"A": ["color: red", "color: blue"]})
         self.dataframes = [
             self.df,
-            DataFrame(
-                {"f": [1.0, 2.0], "o": ["a", "b"], "c": pd.Categorical(["a", "b"])}
-            ),
+            DataFrame({"f": [1.0, 2.0], "o": ["a", "b"], "c": Categorical(["a", "b"])}),
         ]
         self.blank_value = "&nbsp;"
 
@@ -465,7 +466,7 @@ class TestStyler:
             Styler([1, 2, 3])
 
     def test_init_series(self):
-        result = Styler(pd.Series([1, 2]))
+        result = Styler(Series([1, 2]))
         assert result.data.ndim == 2
 
     def test_repr_html_ok(self):
@@ -475,7 +476,7 @@ class TestStyler:
         # gh-19824 / 41395
         assert "tex2jax_ignore" not in self.styler._repr_html_()
 
-        with pd.option_context("styler.html.mathjax", False):
+        with option_context("styler.html.mathjax", False):
             assert "tex2jax_ignore" in self.styler._repr_html_()
 
     def test_update_ctx(self):
@@ -494,7 +495,7 @@ class TestStyler:
 
     def test_render(self):
         df = DataFrame({"A": [0, 1]})
-        style = lambda x: pd.Series(["color: red", "color: blue"], name=x.name)
+        style = lambda x: Series(["color: red", "color: blue"], name=x.name)
         s = Styler(df, uuid="AB").apply(style)
         s.to_html()
         # it worked?
@@ -520,7 +521,7 @@ class TestStyler:
 
     def test_render_double(self):
         df = DataFrame({"A": [0, 1]})
-        style = lambda x: pd.Series(
+        style = lambda x: Series(
             ["color: red; border: 1px", "color: blue; border: 2px"], name=x.name
         )
         s = Styler(df, uuid="AB").apply(style)
@@ -540,7 +541,7 @@ class TestStyler:
     def test_set_properties_subset(self):
         df = DataFrame({"A": [0, 1]})
         result = (
-            df.style.set_properties(subset=pd.IndexSlice[0, "A"], color="white")
+            df.style.set_properties(subset=IndexSlice[0, "A"], color="white")
             ._compute()
             .ctx
         )
@@ -614,13 +615,13 @@ class TestStyler:
         df = DataFrame([[1, 2], [3, 4]], index=["X", "Y"], columns=["X", "Y"])
 
         # test Series return where len(Series) < df.index or df.columns but labels OK
-        func = lambda s: pd.Series(["color: red;"], index=["Y"])
+        func = lambda s: Series(["color: red;"], index=["Y"])
         result = df.style.apply(func, axis=axis)._compute().ctx
         assert result[(1, 1)] == [("color", "red")]
         assert result[(1 - axis, axis)] == [("color", "red")]
 
         # test Series return where labels align but different order
-        func = lambda s: pd.Series(["color: red;", "color: blue;"], index=["Y", "X"])
+        func = lambda s: Series(["color: red;", "color: blue;"], index=["Y", "X"])
         result = df.style.apply(func, axis=axis)._compute().ctx
         assert result[(0, 0)] == [("color", "blue")]
         assert result[(1, 1)] == [("color", "red")]
@@ -645,11 +646,11 @@ class TestStyler:
     @pytest.mark.parametrize(
         "slice_",
         [
-            pd.IndexSlice[:],
-            pd.IndexSlice[:, ["A"]],
-            pd.IndexSlice[[1], :],
-            pd.IndexSlice[[1], ["A"]],
-            pd.IndexSlice[:2, ["A", "B"]],
+            IndexSlice[:],
+            IndexSlice[:, ["A"]],
+            IndexSlice[[1], :],
+            IndexSlice[[1], ["A"]],
+            IndexSlice[:2, ["A", "B"]],
         ],
     )
     @pytest.mark.parametrize("axis", [0, 1])
@@ -670,11 +671,11 @@ class TestStyler:
     @pytest.mark.parametrize(
         "slice_",
         [
-            pd.IndexSlice[:],
-            pd.IndexSlice[:, ["A"]],
-            pd.IndexSlice[[1], :],
-            pd.IndexSlice[[1], ["A"]],
-            pd.IndexSlice[:2, ["A", "B"]],
+            IndexSlice[:],
+            IndexSlice[:, ["A"]],
+            IndexSlice[[1], :],
+            IndexSlice[[1], ["A"]],
+            IndexSlice[:2, ["A", "B"]],
         ],
     )
     def test_applymap_subset(self, slice_):
@@ -692,14 +693,14 @@ class TestStyler:
     @pytest.mark.parametrize(
         "slice_",
         [
-            pd.IndexSlice[:, pd.IndexSlice["x", "A"]],
-            pd.IndexSlice[:, pd.IndexSlice[:, "A"]],
-            pd.IndexSlice[:, pd.IndexSlice[:, ["A", "C"]]],  # missing col element
-            pd.IndexSlice[pd.IndexSlice["a", 1], :],
-            pd.IndexSlice[pd.IndexSlice[:, 1], :],
-            pd.IndexSlice[pd.IndexSlice[:, [1, 3]], :],  # missing row element
-            pd.IndexSlice[:, ("x", "A")],
-            pd.IndexSlice[("a", 1), :],
+            IndexSlice[:, IndexSlice["x", "A"]],
+            IndexSlice[:, IndexSlice[:, "A"]],
+            IndexSlice[:, IndexSlice[:, ["A", "C"]]],  # missing col element
+            IndexSlice[IndexSlice["a", 1], :],
+            IndexSlice[IndexSlice[:, 1], :],
+            IndexSlice[IndexSlice[:, [1, 3]], :],  # missing row element
+            IndexSlice[:, ("x", "A")],
+            IndexSlice[("a", 1), :],
         ],
     )
     def test_applymap_subset_multiindex(self, slice_):
@@ -737,7 +738,7 @@ class TestStyler:
         df = DataFrame(
             [[1, -1, 1, 1], [-1, 1, 1, 1]], index=["hello", "world"], columns=columns
         )
-        pct_subset = pd.IndexSlice[:, pd.IndexSlice[:, "%":"%"]]
+        pct_subset = IndexSlice[:, IndexSlice[:, "%":"%"]]
 
         def color_negative_red(val):
             color = "red" if val < 0 else "black"
@@ -913,13 +914,13 @@ class TestStyler:
             df.style._apply(lambda x: ["", "", "", ""])
 
         with pytest.raises(ValueError, match=msg.format("index")):
-            df.style._apply(lambda x: pd.Series(["a:v;", ""], index=["A", "C"]), axis=0)
+            df.style._apply(lambda x: Series(["a:v;", ""], index=["A", "C"]), axis=0)
 
         with pytest.raises(ValueError, match=msg.format("columns")):
             df.style._apply(lambda x: ["", "", ""], axis=1)
 
         with pytest.raises(ValueError, match=msg.format("columns")):
-            df.style._apply(lambda x: pd.Series(["a:v;", ""], index=["X", "Z"]), axis=1)
+            df.style._apply(lambda x: Series(["a:v;", ""], index=["X", "Z"]), axis=1)
 
         msg = "returned ndarray with wrong shape"
         with pytest.raises(ValueError, match=msg):
@@ -1315,18 +1316,18 @@ class TestStyler:
     @pytest.mark.parametrize(
         "slc",
         [
-            pd.IndexSlice[:, :],
-            pd.IndexSlice[:, 1],
-            pd.IndexSlice[1, :],
-            pd.IndexSlice[[1], [1]],
-            pd.IndexSlice[1, [1]],
-            pd.IndexSlice[[1], 1],
-            pd.IndexSlice[1],
-            pd.IndexSlice[1, 1],
+            IndexSlice[:, :],
+            IndexSlice[:, 1],
+            IndexSlice[1, :],
+            IndexSlice[[1], [1]],
+            IndexSlice[1, [1]],
+            IndexSlice[[1], 1],
+            IndexSlice[1],
+            IndexSlice[1, 1],
             slice(None, None, None),
             [0, 1],
             np.array([0, 1]),
-            pd.Series([0, 1]),
+            Series([0, 1]),
         ],
     )
     def test_non_reducing_slice(self, slc):
@@ -1335,13 +1336,13 @@ class TestStyler:
         tslice_ = non_reducing_slice(slc)
         assert isinstance(df.loc[tslice_], DataFrame)
 
-    @pytest.mark.parametrize("box", [list, pd.Series, np.array])
+    @pytest.mark.parametrize("box", [list, Series, np.array])
     def test_list_slice(self, box):
         # like dataframe getitem
         subset = box(["A"])
 
         df = DataFrame({"A": [1, 2], "B": [3, 4]}, index=["A", "B"])
-        expected = pd.IndexSlice[:, ["A"]]
+        expected = IndexSlice[:, ["A"]]
 
         result = non_reducing_slice(subset)
         tm.assert_frame_equal(df.loc[result], df.loc[expected])
@@ -1355,7 +1356,7 @@ class TestStyler:
             ("b", "d"): [4, 1],
         }
         df = DataFrame(dic, index=[0, 1])
-        idx = pd.IndexSlice
+        idx = IndexSlice
         slice_ = idx[:, idx["b", "d"]]
         tslice_ = non_reducing_slice(slice_)
 
@@ -1366,27 +1367,27 @@ class TestStyler:
     @pytest.mark.parametrize(
         "slice_",
         [
-            pd.IndexSlice[:, :],
+            IndexSlice[:, :],
             # check cols
-            pd.IndexSlice[:, pd.IndexSlice[["a"]]],  # inferred deeper need list
-            pd.IndexSlice[:, pd.IndexSlice[["a"], ["c"]]],  # inferred deeper need list
-            pd.IndexSlice[:, pd.IndexSlice["a", "c", :]],
-            pd.IndexSlice[:, pd.IndexSlice["a", :, "e"]],
-            pd.IndexSlice[:, pd.IndexSlice[:, "c", "e"]],
-            pd.IndexSlice[:, pd.IndexSlice["a", ["c", "d"], :]],  # check list
-            pd.IndexSlice[:, pd.IndexSlice["a", ["c", "d", "-"], :]],  # allow missing
-            pd.IndexSlice[:, pd.IndexSlice["a", ["c", "d", "-"], "e"]],  # no slice
+            IndexSlice[:, IndexSlice[["a"]]],  # inferred deeper need list
+            IndexSlice[:, IndexSlice[["a"], ["c"]]],  # inferred deeper need list
+            IndexSlice[:, IndexSlice["a", "c", :]],
+            IndexSlice[:, IndexSlice["a", :, "e"]],
+            IndexSlice[:, IndexSlice[:, "c", "e"]],
+            IndexSlice[:, IndexSlice["a", ["c", "d"], :]],  # check list
+            IndexSlice[:, IndexSlice["a", ["c", "d", "-"], :]],  # allow missing
+            IndexSlice[:, IndexSlice["a", ["c", "d", "-"], "e"]],  # no slice
             # check rows
-            pd.IndexSlice[pd.IndexSlice[["U"]], :],  # inferred deeper need list
-            pd.IndexSlice[pd.IndexSlice[["U"], ["W"]], :],  # inferred deeper need list
-            pd.IndexSlice[pd.IndexSlice["U", "W", :], :],
-            pd.IndexSlice[pd.IndexSlice["U", :, "Y"], :],
-            pd.IndexSlice[pd.IndexSlice[:, "W", "Y"], :],
-            pd.IndexSlice[pd.IndexSlice[:, "W", ["Y", "Z"]], :],  # check list
-            pd.IndexSlice[pd.IndexSlice[:, "W", ["Y", "Z", "-"]], :],  # allow missing
-            pd.IndexSlice[pd.IndexSlice["U", "W", ["Y", "Z", "-"]], :],  # no slice
+            IndexSlice[IndexSlice[["U"]], :],  # inferred deeper need list
+            IndexSlice[IndexSlice[["U"], ["W"]], :],  # inferred deeper need list
+            IndexSlice[IndexSlice["U", "W", :], :],
+            IndexSlice[IndexSlice["U", :, "Y"], :],
+            IndexSlice[IndexSlice[:, "W", "Y"], :],
+            IndexSlice[IndexSlice[:, "W", ["Y", "Z"]], :],  # check list
+            IndexSlice[IndexSlice[:, "W", ["Y", "Z", "-"]], :],  # allow missing
+            IndexSlice[IndexSlice["U", "W", ["Y", "Z", "-"]], :],  # no slice
             # check simultaneous
-            pd.IndexSlice[pd.IndexSlice[:, "W", "Y"], pd.IndexSlice["a", "c", :]],
+            IndexSlice[IndexSlice[:, "W", "Y"], IndexSlice["a", "c", :]],
         ],
     )
     def test_non_reducing_multi_slice_on_multiindex(self, slice_):
@@ -1505,7 +1506,7 @@ def test_get_level_lengths_mi_hidden():
 def test_row_trimming_hide_index():
     # gh 43703
     df = DataFrame([[1], [2], [3], [4], [5]])
-    with pd.option_context("styler.render.max_rows", 2):
+    with option_context("styler.render.max_rows", 2):
         ctx = df.style.hide([0, 1], axis="index")._translate(True, True)
     assert len(ctx["body"]) == 3
     for r, val in enumerate(["3", "4", "..."]):
@@ -1516,7 +1517,7 @@ def test_row_trimming_hide_index_mi():
     # gh 44247
     df = DataFrame([[1], [2], [3], [4], [5]])
     df.index = MultiIndex.from_product([[0], [0, 1, 2, 3, 4]])
-    with pd.option_context("styler.render.max_rows", 2):
+    with option_context("styler.render.max_rows", 2):
         ctx = df.style.hide([(0, 0), (0, 1)], axis="index")._translate(True, True)
     assert len(ctx["body"]) == 3
 
@@ -1538,7 +1539,7 @@ def test_row_trimming_hide_index_mi():
 def test_col_trimming_hide_columns():
     # gh 44272
     df = DataFrame([[1, 2, 3, 4, 5]])
-    with pd.option_context("styler.render.max_columns", 2):
+    with option_context("styler.render.max_columns", 2):
         ctx = df.style.hide([0, 1], axis="columns")._translate(True, True)
 
     assert len(ctx["head"][0]) == 6  # blank, [0, 1 (hidden)], [2 ,3 (visible)], + trim
@@ -1547,3 +1548,9 @@ def test_col_trimming_hide_columns():
         assert ctx["head"][0][c + 2]["is_visible"] == vals[1]
 
     assert len(ctx["body"][0]) == 6  # index + 2 hidden + 2 visible + trimming col
+
+
+def test_no_empty_apply(mi_styler):
+    # 45313
+    mi_styler.apply(lambda s: ["a:v;"] * 2, subset=[False, False])
+    mi_styler._compute()

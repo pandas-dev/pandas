@@ -1,5 +1,5 @@
 codecov:
-  branch: master
+  branch: main
   notify:
     after_n_builds: 10
 comment: false

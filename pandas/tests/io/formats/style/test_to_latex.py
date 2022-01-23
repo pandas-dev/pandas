@@ -876,3 +876,117 @@ def test_apply_index_hidden_levels():
         """
     )
     assert result == expected
+
+
+@pytest.mark.parametrize("clines", ["bad", "index", "skip-last", "all", "data"])
+def test_clines_validation(clines, styler):
+    msg = f"`clines` value of {clines} is invalid."
+    with pytest.raises(ValueError, match=msg):
+        styler.to_latex(clines=clines)
+
+
+@pytest.mark.parametrize(
+    "clines, exp",
+    [
+        ("all;index", "\n\\cline{1-1}"),
+        ("all;data", "\n\\cline{1-2}"),
+        ("skip-last;index", ""),
+        ("skip-last;data", ""),
+        (None, ""),
+    ],
+)
+@pytest.mark.parametrize("env", ["table", "longtable"])
+def test_clines_index(clines, exp, env):
+    df = DataFrame([[1], [2], [3], [4]])
+    result = df.style.to_latex(clines=clines, environment=env)
+    expected = f"""\
+0 & 1 \\\\{exp}
+1 & 2 \\\\{exp}
+2 & 3 \\\\{exp}
+3 & 4 \\\\{exp}
+"""
+    assert expected in result
+
+
+@pytest.mark.parametrize(
+    "clines, expected",
+    [
+        (
+            None,
+            dedent(
+                """\
+            \\multirow[c]{2}{*}{A} & X & 1 \\\\
+             & Y & 2 \\\\
+            \\multirow[c]{2}{*}{B} & X & 3 \\\\
+             & Y & 4 \\\\
+            """
+            ),
+        ),
+        (
+            "skip-last;index",
+            dedent(
+                """\
+            \\multirow[c]{2}{*}{A} & X & 1 \\\\
+             & Y & 2 \\\\
+            \\cline{1-2}
+            \\multirow[c]{2}{*}{B} & X & 3 \\\\
+             & Y & 4 \\\\
+            \\cline{1-2}
+            """
+            ),
+        ),
+        (
+            "skip-last;data",
+            dedent(
+                """\
+            \\multirow[c]{2}{*}{A} & X & 1 \\\\
+             & Y & 2 \\\\
+            \\cline{1-3}
+            \\multirow[c]{2}{*}{B} & X & 3 \\\\
+             & Y & 4 \\\\
+            \\cline{1-3}
+            """
+            ),
+        ),
+        (
+            "all;index",
+            dedent(
+                """\
+            \\multirow[c]{2}{*}{A} & X & 1 \\\\
+            \\cline{2-2}
+             & Y & 2 \\\\
+            \\cline{1-2} \\cline{2-2}
+            \\multirow[c]{2}{*}{B} & X & 3 \\\\
+            \\cline{2-2}
+             & Y & 4 \\\\
+            \\cline{1-2} \\cline{2-2}
+            """
+            ),
+        ),
+        (
+            "all;data",
+            dedent(
+                """\
+            \\multirow[c]{2}{*}{A} & X & 1 \\\\
+            \\cline{2-3}
+             & Y & 2 \\\\
+            \\cline{1-3} \\cline{2-3}
+            \\multirow[c]{2}{*}{B} & X & 3 \\\\
+            \\cline{2-3}
+             & Y & 4 \\\\
+            \\cline{1-3} \\cline{2-3}
+            """
+            ),
+        ),
+    ],
+)
+@pytest.mark.parametrize("env", ["table"])
+def test_clines_multiindex(clines, expected, env):
+    # also tests simultaneously with hidden rows and a hidden multiindex level
+    midx = MultiIndex.from_product([["A", "-", "B"], [0], ["X", "Y"]])
+    df = DataFrame([[1], [2], [99], [99], [3], [4]], index=midx)
+    styler = df.style
+    styler.hide([("-", 0, "X"), ("-", 0, "Y")])
+    styler.hide(level=1)
+    result = styler.to_latex(clines=clines, environment=env)
+    assert expected in result

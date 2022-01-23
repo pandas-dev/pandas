@@ -82,7 +82,7 @@ class TestMethods:
             ser.where([True, False, True], other=other)
 
     def test_shift(self):
-        # https://github.com/pandas-dev/pandas/issues/31495
+        # https://github.com/pandas-dev/pandas/issues/31495, GH#22428, GH#31502
         a = IntervalArray.from_breaks([1, 2, 3])
         result = a.shift()
         # int -> float
@@ -90,6 +90,7 @@ class TestMethods:
         tm.assert_interval_array_equal(result, expected)
 
     def test_shift_datetime(self):
+        # GH#31502, GH#31504
         a = IntervalArray.from_breaks(date_range("2000", periods=4))
         result = a.shift(2)
         expected = a.take([-1, -1, 0], allow_fill=True)
@@ -113,7 +114,9 @@ class TestSetitem:
                 result[0] = pd.NaT
         if result.dtype.subtype.kind in ["i", "u"]:
             msg = "Cannot set float NaN to integer-backed IntervalArray"
-            with pytest.raises(ValueError, match=msg):
+            # GH#45484 TypeError, not ValueError, matches what we get with
+            # non-NA un-holdable value.
+            with pytest.raises(TypeError, match=msg):
                 result[0] = np.NaN
             return
 

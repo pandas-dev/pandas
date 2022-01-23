@@ -100,6 +100,11 @@ def data_for_grouping(request):
     return SparseArray([1, 1, np.nan, np.nan, 2, 2, 1, 3], fill_value=request.param)
 
 
+@pytest.fixture(params=[0, np.nan])
+def data_for_compare(request):
+    return SparseArray([0, 0, np.nan, -2, -1, 4, 2, 3, 0, 0], fill_value=request.param)
+
+
 class BaseSparseTests:
     def _check_unsupported(self, data):
         if data.dtype == SparseDtype(int, 0):
@@ -144,6 +149,21 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
             [x.apply(lambda s: np.asarray(s).astype(object)) for x in dfs]
         )
         self.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "columns",
+        [
+            ["A", "B"],
+            pd.MultiIndex.from_tuples(
+                [("A", "a"), ("A", "b")], names=["outer", "inner"]
+            ),
+        ],
+    )
+    def test_stack(self, data, columns):
+        with tm.assert_produces_warning(
+            FutureWarning, check_stacklevel=False, match="astype from Sparse"
+        ):
+            super().test_stack(data, columns)
 
     def test_concat_columns(self, data, na_value):
         self._check_unsupported(data)
@@ -389,7 +409,8 @@ class TestCasting(BaseSparseTests, base.BaseCastingTests):
         # Unlike the base class, we do not expect the resulting Block
         #  to be ObjectBlock / resulting array to be np.dtype("object")
         ser = pd.Series(all_data, name="A")
-        result = ser.astype(object)
+        with tm.assert_produces_warning(FutureWarning, match="astype from Sparse"):
+            result = ser.astype(object)
         assert is_object_dtype(result.dtype)
         assert is_object_dtype(result._mgr.array.dtype)
 
@@ -398,7 +419,8 @@ class TestCasting(BaseSparseTests, base.BaseCastingTests):
         #  to be ObjectBlock / resulting array to be np.dtype("object")
         df = pd.DataFrame({"A": all_data})
 
-        result = df.astype(object)
+        with tm.assert_produces_warning(FutureWarning, match="astype from Sparse"):
+            result = df.astype(object)
         assert is_object_dtype(result._mgr.arrays[0].dtype)
 
         # earlier numpy raises TypeError on e.g. np.dtype(np.int64) == "Int64"
@@ -409,7 +431,8 @@ class TestCasting(BaseSparseTests, base.BaseCastingTests):
             assert not comp.any()
 
     def test_astype_str(self, data):
-        result = pd.Series(data[:5]).astype(str)
+        with tm.assert_produces_warning(FutureWarning, match="astype from Sparse"):
+            result = pd.Series(data[:5]).astype(str)
         expected_dtype = SparseDtype(str, str(data.fill_value))
         expected = pd.Series([str(x) for x in data[:5]], dtype=expected_dtype)
         self.assert_series_equal(result, expected)
@@ -461,32 +484,45 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
         super()._check_divmod_op(ser, op, other, exc=None)
 
 
-class TestComparisonOps(BaseSparseTests, base.BaseComparisonOpsTests):
-    def _compare_other(self, s, data, comparison_op, other):
+class TestComparisonOps(BaseSparseTests):
+    def _compare_other(self, data_for_compare: SparseArray, comparison_op, other):
         op = comparison_op
 
-        # array
-        result = pd.Series(op(data, other))
-        # hard to test the fill value, since we don't know what expected
-        # is in general.
-        # Rely on tests in `tests/sparse` to validate that.
-        assert isinstance(result.dtype, SparseDtype)
-        assert result.dtype.subtype == np.dtype("bool")
+        result = op(data_for_compare, other)
+        assert isinstance(result, SparseArray)
+        assert result.dtype.subtype == np.bool_
 
-        with np.errstate(all="ignore"):
-            expected = pd.Series(
-                SparseArray(
-                    op(np.asarray(data), np.asarray(other)),
-                    fill_value=result.values.fill_value,
-                )
+        if isinstance(other, SparseArray):
+            fill_value = op(data_for_compare.fill_value, other.fill_value)
+        else:
+            fill_value = np.all(
+                op(np.asarray(data_for_compare.fill_value), np.asarray(other))
             )
 
-        tm.assert_series_equal(result, expected)
+            expected = SparseArray(
+                op(data_for_compare.to_dense(), np.asarray(other)),
+                fill_value=fill_value,
+                dtype=np.bool_,
+            )
+        tm.assert_sp_array_equal(result, expected)
 
-        # series
-        ser = pd.Series(data)
-        result = op(ser, other)
-        tm.assert_series_equal(result, expected)
+    def test_scalar(self, data_for_compare: SparseArray, comparison_op):
+        self._compare_other(data_for_compare, comparison_op, 0)
+        self._compare_other(data_for_compare, comparison_op, 1)
+        self._compare_other(data_for_compare, comparison_op, -1)
+        self._compare_other(data_for_compare, comparison_op, np.nan)
+
+    @pytest.mark.xfail(reason="Wrong indices")
+    def test_array(self, data_for_compare: SparseArray, comparison_op):
+        arr = np.linspace(-4, 5, 10)
+        self._compare_other(data_for_compare, comparison_op, arr)
+
+    @pytest.mark.xfail(reason="Wrong indices")
+    def test_sparse_array(self, data_for_compare: SparseArray, comparison_op):
+        arr = data_for_compare + 1
+        self._compare_other(data_for_compare, comparison_op, arr)
+        arr = data_for_compare * 2
+        self._compare_other(data_for_compare, comparison_op, arr)
 
 
 class TestPrinting(BaseSparseTests, base.BasePrintingTests):
@@ -500,4 +536,5 @@ class TestParsing(BaseSparseTests, base.BaseParsingTests):
     def test_EA_types(self, engine, data):
         expected_msg = r".*must implement _from_sequence_of_strings.*"
         with pytest.raises(NotImplementedError, match=expected_msg):
-            super().test_EA_types(engine, data)
+            with tm.assert_produces_warning(FutureWarning, match="astype from"):
+                super().test_EA_types(engine, data)

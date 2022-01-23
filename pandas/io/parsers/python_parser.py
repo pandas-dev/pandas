@@ -25,7 +25,6 @@ import numpy as np
 import pandas._libs.lib as lib
 from pandas._typing import (
     ArrayLike,
-    FilePath,
     ReadCsvBuffer,
     Scalar,
 )
@@ -51,13 +50,11 @@ _BOM = "\ufeff"
 
 
 class PythonParser(ParserBase):
-    def __init__(
-        self, f: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str] | list, **kwds
-    ):
+    def __init__(self, f: ReadCsvBuffer[str] | list, **kwds):
         """
         Workhorse function for processing nested list into DataFrame
         """
-        ParserBase.__init__(self, kwds)
+        super().__init__(kwds)
 
         self.data: Iterator[str] | None = None
         self.buf: list = []
@@ -104,28 +101,18 @@ class PythonParser(ParserBase):
             # read_excel: f is a list
             self.data = cast(Iterator[str], f)
         else:
-            self._open_handles(f, kwds)
-            assert self.handles is not None
-            assert hasattr(self.handles.handle, "readline")
-            try:
-                self._make_reader(self.handles.handle)
-            except (csv.Error, UnicodeDecodeError):
-                self.close()
-                raise
+            assert hasattr(f, "readline")
+            self._make_reader(f)
 
         # Get columns in two steps: infer from data, then
         # infer column indices from self.usecols if it is specified.
         self._col_indices: list[int] | None = None
         columns: list[list[Scalar | None]]
-        try:
-            (
-                columns,
-                self.num_original_columns,
-                self.unnamed_cols,
-            ) = self._infer_columns()
-        except (TypeError, ValueError):
-            self.close()
-            raise
+        (
+            columns,
+            self.num_original_columns,
+            self.unnamed_cols,
+        ) = self._infer_columns()
 
         # Now self.columns has the set of columns that we will process.
         # The original set is stored in self.original_columns.
@@ -990,7 +977,11 @@ class PythonParser(ParserBase):
                 actual_len = len(l)
 
                 if actual_len > col_len:
-                    if (
+                    if callable(self.on_bad_lines):
+                        new_l = self.on_bad_lines(l)
+                        if new_l is not None:
+                            content.append(new_l)
+                    elif (
                         self.on_bad_lines == self.BadLineHandleMethod.ERROR
                         or self.on_bad_lines == self.BadLineHandleMethod.WARN
                     ):
@@ -1255,9 +1246,7 @@ class FixedWidthFieldParser(PythonParser):
     See PythonParser for details.
     """
 
-    def __init__(
-        self, f: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str], **kwds
-    ) -> None:
+    def __init__(self, f: ReadCsvBuffer[str], **kwds) -> None:
         # Support iterators, convert to a list.
         self.colspecs = kwds.pop("colspecs")
         self.infer_nrows = kwds.pop("infer_nrows")

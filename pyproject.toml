@@ -34,7 +34,7 @@ exclude = '''
 [tool.pytest.ini_options]
 # sync minversion with pyproject.toml & install.rst
 minversion =  "6.0"
-addopts = "--strict-data-files --strict-markers --capture=no --durations=30 --junitxml=test-data.xml"
+addopts = "--strict-data-files --strict-markers --strict-config --capture=no --durations=30 --junitxml=test-data.xml"
 xfail_strict = true
 testpaths = "pandas"
 doctest_optionflags = [
@@ -149,7 +149,7 @@ skip = "pandas/__init__.py"
 
 [tool.pyright]
 pythonVersion = "3.8"
-typeCheckingMode = "strict"
+typeCheckingMode = "basic"
 include = ["pandas", "typings"]
 exclude = ["pandas/tests", "pandas/io/clipboard", "pandas/util/version"]
 reportGeneralTypeIssues = false
