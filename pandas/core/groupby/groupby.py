@@ -3519,9 +3519,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             if obj.dtype in dtypes_to_f32:
                 shifted = shifted.astype("float32")
         else:
-            mask = obj.dtypes.astype(str).isin(dtypes_to_f32).values
-            if mask.any():
-                shifted.loc[:, mask] = shifted.loc[:, mask].astype("float32")
+            to_coerce = [c for c, dtype in obj.dtypes.items() if dtype in dtypes_to_f32]
+            if len(to_coerce):
+                shifted = shifted.astype({c: "float32" for c in to_coerce})
 
         return obj - shifted
 
