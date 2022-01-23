@@ -112,7 +112,7 @@ class Integer:
         self.mi_int.get_indexer(self.other_mi_many_mismatches, method="pad")
 
     def time_is_monotonic(self):
-        self.mi_int.is_monotonic
+        self.mi_int.is_monotonic_increasing
 
 
 class Duplicated:
