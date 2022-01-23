@@ -17,7 +17,7 @@ differences between the old and new behaviors, as well as providing some context
 each change that is being made.
 
 There are a great number of changes that are planned. In order to transition in a
-reasonable manner for users, all changes are behind an experimental "use_hom_api"
+reasonable manner for users, all changes are behind an experimental "api.use_hom"
 option. When enabled, pandas HOMs are subject to breaking changes without notice.
 Users can opt into the new behavior and provide feedback. Once the improvements have
 been made, this option will be declared no longer experimental. At this point, any
@@ -46,11 +46,11 @@ This transpose no longer occurs, making the result more consistent.
 
 .. ipython:: python
 
-   with pd.option_context("use_hom_api", True):
+   with pd.option_context("api.use_hom", True):
        result = df.agg(["sum"])
    result
 
-   with pd.option_context("use_hom_api", True):
+   with pd.option_context("api.use_hom", True):
        result = df.agg(["sum", "mean"])
    result
 
@@ -71,6 +71,6 @@ Now the levels are swapped, so that the columns for each aggregation are togethe
 
 .. ipython:: python
 
-   with pd.option_context("use_hom_api", True):
+   with pd.option_context("api.use_hom", True):
        result = df.groupby("a").agg(["sum", "min"])
    result
