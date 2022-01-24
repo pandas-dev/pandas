@@ -194,7 +194,7 @@ Conversion
 - Bug in constructing a :class:`Series` from a float-containing list or a floating-dtype ndarray-like (e.g. ``dask.Array``) and an integer dtype raising instead of casting like we would with an ``np.ndarray`` (:issue:`40110`)
 - Bug in :meth:`Float64Index.astype` to unsigned integer dtype incorrectly casting to ``np.int64`` dtype (:issue:`45309`)
 - Bug in :meth:`Series.astype` and :meth:`DataFrame.astype` from floating dtype to unsigned integer dtype failing to raise in the presence of negative values (:issue:`45151`)
-- Bug in :meth:`python_parser._next_line` causing an infinite loop with certain `skiprows` callables (:issue:`45585`)
+- Bug in :meth:`read_excel` results in an infinite loop with certain `skiprows` callables (:issue:`45585`)
 -
 
 Strings
