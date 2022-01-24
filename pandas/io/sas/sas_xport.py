@@ -5,7 +5,7 @@ Based on code from Jack Cushman (github.com/jcushman/xport).
 
 The file format is defined here:
 
-https://support.sas.com/techsup/technote/ts140.pdf
+https://support.sas.com/content/dam/SAS/support/en/technical-papers/record-layout-of-a-sas-version-5-or-6-data-set-in-sas-transport-xport-format.pdf
 """
 from __future__ import annotations
 

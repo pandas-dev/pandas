@@ -13,6 +13,7 @@ from pandas._libs import (
     Timedelta,
     missing as libmissing,
 )
+from pandas._typing import Dtype
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.common import (
@@ -31,6 +32,7 @@ from pandas.core.arrays.masked import (
 
 if TYPE_CHECKING:
     import pyarrow
+
 
 T = TypeVar("T", bound="NumericArray")
 
@@ -89,6 +91,15 @@ class NumericArray(BaseMaskedArray):
     """
     Base class for IntegerArray and FloatingArray.
     """
+
+    @classmethod
+    def _from_sequence_of_strings(
+        cls: type[T], strings, *, dtype: Dtype | None = None, copy: bool = False
+    ) -> T:
+        from pandas.core.tools.numeric import to_numeric
+
+        scalars = to_numeric(strings, errors="raise")
+        return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
     def _arith_method(self, other, op):
         op_name = op.__name__

@@ -1473,15 +1473,6 @@ The repeated labels are:\n-+\nwolof
             with tm.ensure_clean() as path:
                 df.to_stata(path)
 
-        df.loc[2, "ColumnTooBig"] = np.inf
-        msg = (
-            "Column ColumnTooBig has a maximum value of infinity which is outside "
-            "the range supported by Stata"
-        )
-        with pytest.raises(ValueError, match=msg):
-            with tm.ensure_clean() as path:
-                df.to_stata(path)
-
     def test_out_of_range_float(self):
         original = DataFrame(
             {
@@ -1507,14 +1498,17 @@ The repeated labels are:\n-+\nwolof
             original["ColumnTooBig"] = original["ColumnTooBig"].astype(np.float64)
             tm.assert_frame_equal(original, reread.set_index("index"))
 
-        original.loc[2, "ColumnTooBig"] = np.inf
+    @pytest.mark.parametrize("infval", [np.inf, -np.inf])
+    def test_inf(self, infval):
+        # GH 45350
+        df = DataFrame({"WithoutInf": [0.0, 1.0], "WithInf": [2.0, infval]})
         msg = (
-            "Column ColumnTooBig has a maximum value of infinity which "
-            "is outside the range supported by Stata"
+            "Column WithInf contains infinity or -infinity"
+            "which is outside the range supported by Stata."
         )
         with pytest.raises(ValueError, match=msg):
             with tm.ensure_clean() as path:
-                original.to_stata(path)
+                df.to_stata(path)
 
     def test_path_pathlib(self):
         df = tm.makeDataFrame()

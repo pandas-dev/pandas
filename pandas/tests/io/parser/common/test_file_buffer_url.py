@@ -371,13 +371,13 @@ def test_context_manager(all_parsers, datapath):
     path = datapath("io", "data", "csv", "iris.csv")
 
     reader = parser.read_csv(path, chunksize=1)
-    assert not reader._engine.handles.handle.closed
+    assert not reader.handles.handle.closed
     try:
         with reader:
             next(reader)
             assert False
     except AssertionError:
-        assert reader._engine.handles.handle.closed
+        assert reader.handles.handle.closed
 
 
 def test_context_manageri_user_provided(all_parsers, datapath):
@@ -387,13 +387,13 @@ def test_context_manageri_user_provided(all_parsers, datapath):
     with open(datapath("io", "data", "csv", "iris.csv")) as path:
 
         reader = parser.read_csv(path, chunksize=1)
-        assert not reader._engine.handles.handle.closed
+        assert not reader.handles.handle.closed
         try:
             with reader:
                 next(reader)
                 assert False
         except AssertionError:
-            assert not reader._engine.handles.handle.closed
+            assert not reader.handles.handle.closed
 
 
 def test_file_descriptor_leak(all_parsers):

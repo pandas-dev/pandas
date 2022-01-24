@@ -1,3 +1,11 @@
+# This file is purposely frozen(does not run). DO NOT DELETE IT
+# Unfreeze(by commentingthe if: false() condition) once the
+# next Python Dev version has released beta 1 and both Cython and numpy support it
+# After that Python has released, migrate the workflows to the
+# posix GHA workflows/Azure pipelines and "freeze" this file by
+# uncommenting the if: false() condition
+# Feel free to modify this comment as necessary.
+
 name: Python Dev
 
 on:
@@ -21,13 +29,14 @@ env:
 
 jobs:
   build:
+    if: false # Comment this line out to "unfreeze"
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macOS-latest, windows-latest]
 
-    name: actions-310-dev
+    name: actions-311-dev
     timeout-minutes: 80
 
     concurrency:
@@ -43,7 +52,7 @@ jobs:
     - name: Set up Python Dev Version
       uses: actions/setup-python@v2
       with:
-        python-version: '3.10-dev'
+        python-version: '3.11-dev'
 
     # TODO: GH#44980 https://github.com/pypa/setuptools/issues/2941
     - name: Install dependencies
