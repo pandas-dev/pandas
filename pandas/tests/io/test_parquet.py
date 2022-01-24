@@ -13,6 +13,7 @@ import pytest
 
 from pandas._config import get_option
 
+from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
     pa_version_under2p0,
     pa_version_under5p0,
@@ -720,6 +721,34 @@ class TestParquetPyArrow(Base):
         # pyarrow 0.11 raises ArrowTypeError
         # older pyarrows raise ArrowInvalid
         self.check_external_error_on_write(df, pa, pyarrow.ArrowException)
+
+    def test_unsupported_float16(self, pa):
+        # #44847, #44914
+        # Not able to write float 16 column using pyarrow.
+        data = np.arange(2, 10, dtype=np.float16)
+        df = pd.DataFrame(data=data, columns=["fp16"])
+        self.check_external_error_on_write(df, pa, pyarrow.ArrowException)
+
+    @pytest.mark.xfail(
+        is_platform_windows(),
+        reason=(
+            "PyArrow does not cleanup of partial files dumps when unsupported "
+            "dtypes are passed to_parquet function in windows"
+        ),
+    )
+    @pytest.mark.parametrize("path_type", [str, pathlib.Path])
+    def test_unsupported_float16_cleanup(self, pa, path_type):
+        # #44847, #44914
+        # Not able to write float 16 column using pyarrow.
+        # Tests cleanup by pyarrow in case of an error
+        data = np.arange(2, 10, dtype=np.float16)
+        df = pd.DataFrame(data=data, columns=["fp16"])
+
+        with tm.ensure_clean() as path_str:
+            path = path_type(path_str)
+            with tm.external_error_raised(pyarrow.ArrowException):
+                df.to_parquet(path=path, engine=pa)
+            assert not os.path.isfile(path)
 
     def test_categorical(self, pa):
 
