@@ -415,8 +415,8 @@ class TestMMapWrapper:
         with pytest.raises(err, match=msg):
             icom._MMapWrapper(non_file)
 
-        target = open(mmap_file)
-        target.close()
+        with open(mmap_file) as target:
+            pass
 
         msg = "I/O operation on closed file"
         with pytest.raises(ValueError, match=msg):

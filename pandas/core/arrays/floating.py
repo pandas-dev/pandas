@@ -14,6 +14,7 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
     is_object_dtype,
+    is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
@@ -112,7 +113,7 @@ def coerce_to_array(
         return values, mask
 
     values = np.array(values, copy=copy)
-    if is_object_dtype(values.dtype):
+    if is_object_dtype(values.dtype) or is_string_dtype(values.dtype):
         inferred_type = lib.infer_dtype(values, skipna=True)
         if inferred_type == "empty":
             pass
