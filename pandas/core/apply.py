@@ -451,19 +451,14 @@ class Apply(metaclass=abc.ABCMeta):
     def hom_list_single_arg(
         self, method: str, a: AggFuncTypeBase, result_dim: int | None
     ) -> tuple[int | None, AggFuncTypeBase | None, DataFrame | Series | None]:
-        name = None
         result = None
+        if isinstance(a, (tuple, list)):
+            # Handle (name, value) pairs
+            name, a = a
+        else:
+            name = com.get_callable_name(a) or a
         try:
-            if isinstance(a, (tuple, list)):
-                # Handle (name, value) pairs
-                name, a = a
-            else:
-                name = com.get_callable_name(a) or a
             result = getattr(self.obj, method)(a)
-            if result_dim is None:
-                result_dim = getattr(result, "ndim", 0)
-            elif getattr(result, "ndim", 0) != result_dim:
-                raise ValueError("cannot combine transform and aggregation operations")
         except (TypeError, DataError):
             warnings.warn(
                 f"{name} did not aggregate successfully. If any error is "
@@ -472,6 +467,10 @@ class Apply(metaclass=abc.ABCMeta):
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
+        if result_dim is None:
+            result_dim = getattr(result, "ndim", 0)
+        elif getattr(result, "ndim", 0) != result_dim:
+            raise ValueError("cannot combine transform and aggregation operations")
 
         return result_dim, name, result
 

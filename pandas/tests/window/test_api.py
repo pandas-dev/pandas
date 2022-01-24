@@ -10,7 +10,6 @@ from pandas import (
     Timestamp,
     concat,
     date_range,
-    get_option,
     timedelta_range,
 )
 import pandas._testing as tm
@@ -80,7 +79,7 @@ def test_skip_sum_object_raises():
     tm.assert_frame_equal(result, expected)
 
 
-def test_agg():
+def test_agg(using_hom_api):
     df = DataFrame({"A": range(5), "B": range(0, 10, 2)})
 
     r = df.rolling(window=3)
@@ -91,7 +90,7 @@ def test_agg():
     b_std = r["B"].std()
 
     result = r.aggregate([np.mean, np.std])
-    if get_option("api.use_hom"):
+    if using_hom_api:
         expected = concat([a_mean, b_mean, a_std, b_std], axis=1)
         expected.columns = MultiIndex.from_product([["mean", "std"], ["A", "B"]])
     else:
@@ -146,13 +145,13 @@ def test_agg_apply(raw):
     tm.assert_frame_equal(result, expected, check_like=True)
 
 
-def test_agg_consistency():
+def test_agg_consistency(using_hom_api):
 
     df = DataFrame({"A": range(5), "B": range(0, 10, 2)})
     r = df.rolling(window=3)
 
     result = r.agg([np.sum, np.mean]).columns
-    if get_option("api.use_hom"):
+    if using_hom_api:
         expected = MultiIndex.from_product([["sum", "mean"], list("AB")])
     else:
         expected = MultiIndex.from_product([list("AB"), ["sum", "mean"]])

@@ -13,7 +13,6 @@ from pandas import (
     Series,
     Timestamp,
     date_range,
-    get_option,
 )
 import pandas._testing as tm
 from pandas.tests.frame.common import zip_frames
@@ -679,11 +678,11 @@ def test_apply_non_numpy_dtype_category():
     tm.assert_frame_equal(result, df)
 
 
-def test_apply_dup_names_multi_agg():
+def test_apply_dup_names_multi_agg(using_hom_api):
     # GH 21063
     df = DataFrame([[0, 1], [2, 3]], columns=["a", "a"])
     expected = DataFrame([[0, 1]], columns=["a", "a"], index=["min"])
-    if get_option("api.use_hom"):
+    if using_hom_api:
         expected = expected.T
     result = df.agg(["min"])
 
@@ -1067,7 +1066,7 @@ def test_consistency_for_boxed(box, int_frame_const_col):
     tm.assert_frame_equal(result, expected)
 
 
-def test_agg_transform(axis, float_frame):
+def test_agg_transform(axis, float_frame, using_hom_api):
     other_axis = 1 if axis in {0, "index"} else 0
 
     with np.errstate(all="ignore"):
@@ -1083,7 +1082,7 @@ def test_agg_transform(axis, float_frame):
         # list-like
         result = float_frame.apply([np.sqrt], axis=axis)
         expected = f_sqrt.copy()
-        if get_option("api.use_hom"):
+        if using_hom_api:
             if axis in {0, "index"}:
                 expected.columns = MultiIndex.from_product(
                     [["sqrt"], float_frame.columns]
@@ -1103,7 +1102,7 @@ def test_agg_transform(axis, float_frame):
         # these are in the order as if we are applying both
         # functions per series and then concatting
         result = float_frame.apply([np.abs, np.sqrt], axis=axis)
-        if get_option("api.use_hom"):
+        if using_hom_api:
             expected = pd.concat([f_abs, f_sqrt], axis=other_axis)
             if axis in {0, "index"}:
                 expected.columns = MultiIndex.from_product(
@@ -1126,7 +1125,7 @@ def test_agg_transform(axis, float_frame):
         tm.assert_frame_equal(result, expected)
 
 
-def test_demo():
+def test_demo(using_hom_api):
     # demonstration tests
     df = DataFrame({"A": range(5), "B": 5})
 
@@ -1134,7 +1133,7 @@ def test_demo():
     expected = DataFrame(
         {"A": [0, 4], "B": [5, 5]}, columns=["A", "B"], index=["min", "max"]
     )
-    if get_option("api.use_hom"):
+    if using_hom_api:
         expected = expected.T
     tm.assert_frame_equal(result, expected)
 
@@ -1167,7 +1166,7 @@ def test_agg_with_name_as_column_name():
     tm.assert_series_equal(result, expected)
 
 
-def test_agg_multiple_mixed_no_warning():
+def test_agg_multiple_mixed_no_warning(using_hom_api):
     # GH 20909
     mdf = DataFrame(
         {
@@ -1186,7 +1185,7 @@ def test_agg_multiple_mixed_no_warning():
         },
         index=["min", "sum"],
     )
-    if get_option("api.use_hom"):
+    if using_hom_api:
         expected = expected.T
         match = "Dropping of nuisance columns"
     else:
@@ -1197,7 +1196,7 @@ def test_agg_multiple_mixed_no_warning():
 
     tm.assert_frame_equal(result, expected)
 
-    if get_option("api.use_hom"):
+    if using_hom_api:
         match = "Dropping of nuisance columns"
     else:
         match = "did not aggregate successfully"
@@ -1207,14 +1206,14 @@ def test_agg_multiple_mixed_no_warning():
 
     # GH40420: the result of .agg should have an index that is sorted
     # according to the arguments provided to agg.
-    if get_option("api.use_hom"):
+    if using_hom_api:
         expected = expected.loc[["D", "C", "B", "A"], ["sum", "min"]]
     else:
         expected = expected[["D", "C", "B", "A"]].reindex(["sum", "min"])
     tm.assert_frame_equal(result, expected)
 
 
-def test_agg_reduce(axis, float_frame):
+def test_agg_reduce(axis, float_frame, using_hom_api):
     other_axis = 1 if axis in {0, "index"} else 0
     name1, name2 = float_frame.axes[other_axis].unique()[:2].sort_values()
 
@@ -1229,7 +1228,7 @@ def test_agg_reduce(axis, float_frame):
     )
     expected.columns = ["mean", "max", "sum"]
     expected = expected.T if axis in {0, "index"} else expected
-    if get_option("api.use_hom"):
+    if using_hom_api:
         expected = expected.T
 
     result = float_frame.agg(["mean", "max", "sum"], axis=axis)
@@ -1285,7 +1284,7 @@ def test_agg_reduce(axis, float_frame):
     tm.assert_frame_equal(result, expected)
 
 
-def test_nuiscance_columns():
+def test_nuiscance_columns(using_hom_api):
 
     # GH 15015
     df = DataFrame(
@@ -1307,7 +1306,7 @@ def test_nuiscance_columns():
         index=["min"],
         columns=df.columns,
     )
-    if get_option("api.use_hom"):
+    if using_hom_api:
         expected = expected.T
     tm.assert_frame_equal(result, expected)
 
@@ -1316,7 +1315,7 @@ def test_nuiscance_columns():
     expected = Series([6, 6.0, "foobarbaz"], index=["A", "B", "C"])
     tm.assert_series_equal(result, expected)
 
-    if get_option("api.use_hom"):
+    if using_hom_api:
         match = "Select only valid"
     else:
         match = "did not aggregate successfully"
@@ -1325,13 +1324,13 @@ def test_nuiscance_columns():
     expected = DataFrame(
         [[6, 6.0, "foobarbaz"]], index=["sum"], columns=["A", "B", "C"]
     )
-    if get_option("api.use_hom"):
+    if using_hom_api:
         expected = expected.T
     tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("how", ["agg", "apply"])
-def test_non_callable_aggregates(how):
+def test_non_callable_aggregates(how, using_hom_api):
 
     # GH 16405
     # 'size' is a property of frame/series
@@ -1366,7 +1365,7 @@ def test_non_callable_aggregates(how):
         }
     )
 
-    if get_option("api.use_hom"):
+    if using_hom_api:
         tm.assert_frame_equal(result2, expected)
         tm.assert_frame_equal(result1, expected.T)
     else:
@@ -1396,7 +1395,7 @@ def test_size_as_str(how, axis):
     tm.assert_series_equal(result, expected)
 
 
-def test_agg_listlike_result():
+def test_agg_listlike_result(using_hom_api):
     # GH-29587 user defined function returning list-likes
     df = DataFrame({"A": [2, 2, 3], "B": [1.5, np.nan, 1.5], "C": ["foo", None, "bar"]})
 
@@ -1409,7 +1408,7 @@ def test_agg_listlike_result():
 
     result = df.agg([func])
     expected = expected.to_frame("func")
-    if not get_option("api.use_hom"):
+    if not using_hom_api:
         expected = expected.T
     tm.assert_frame_equal(result, expected)
 
@@ -1523,11 +1522,11 @@ def test_apply_empty_list_reduce():
     tm.assert_series_equal(result, expected)
 
 
-def test_apply_no_suffix_index(request):
+def test_apply_no_suffix_index(request, using_hom_api):
     # GH36189
     pdf = DataFrame([[4, 9]] * 3, columns=["A", "B"])
     result = pdf.apply([np.square, lambda x: x, lambda x: x])
-    if get_option("api.use_hom"):
+    if using_hom_api:
         columns = MultiIndex.from_product(
             [["square", "<lambda>", "<lambda>"], ["A", "B"]]
         )
@@ -1548,7 +1547,7 @@ def test_apply_raw_returns_string():
     tm.assert_series_equal(result, expected)
 
 
-def test_aggregation_func_column_order():
+def test_aggregation_func_column_order(using_hom_api):
     # GH40420: the result of .agg should have an index that is sorted
     # according to the arguments provided to agg.
     df = DataFrame(
@@ -1571,7 +1570,7 @@ def test_aggregation_func_column_order():
         FutureWarning, match="did not aggregate successfully"
     ):
         result = df.agg(aggs)
-    if get_option("api.use_hom"):
+    if using_hom_api:
         expected = DataFrame(
             {
                 "sum": ["123456", 21, 18, 17],

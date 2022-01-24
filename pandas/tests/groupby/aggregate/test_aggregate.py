@@ -18,7 +18,6 @@ from pandas import (
     MultiIndex,
     Series,
     concat,
-    get_option,
     to_datetime,
 )
 import pandas._testing as tm
@@ -375,7 +374,7 @@ def test_agg_multiple_functions_same_name_with_ohlc_present():
     tm.assert_frame_equal(result, expected)
 
 
-def test_multiple_functions_tuples_and_non_tuples(df):
+def test_multiple_functions_tuples_and_non_tuples(df, using_hom_api):
     # #1359
     funcs = [("foo", "mean"), "std"]
     ex_funcs = [("foo", "mean"), ("std", "std")]
@@ -384,7 +383,7 @@ def test_multiple_functions_tuples_and_non_tuples(df):
     expected = df.groupby("A")["C"].agg(ex_funcs)
     tm.assert_frame_equal(result, expected)
 
-    klass = None if get_option("api.use_hom") else FutureWarning
+    klass = None if using_hom_api else FutureWarning
     with tm.assert_produces_warning(
         klass, match=r"\['B'\] did not aggregate successfully"
     ):
@@ -547,11 +546,11 @@ def test_callable_result_dtype_series(keys, agg_index, input, dtype, method):
     tm.assert_series_equal(result, expected)
 
 
-def test_order_aggregate_multiple_funcs():
+def test_order_aggregate_multiple_funcs(using_hom_api):
     # GH 25692
     df = DataFrame({"A": [1, 1, 2, 2], "B": [1, 2, 3, 4]})
 
-    if get_option("api.use_hom"):
+    if using_hom_api:
         # TODO (GH 35725): This will not raise when agg-must-agg is implemented
         msg = "Cannot concat indices that do not have the same number of levels"
         with pytest.raises(AssertionError, match=msg):
@@ -1268,14 +1267,14 @@ def test_groupby_combined_aggs_cat_cols(grp_col_dict, exp_data):
     tm.assert_frame_equal(result_df, expected_df)
 
 
-def test_nonagg_agg():
+def test_nonagg_agg(using_hom_api):
     # GH 35490 - Single/Multiple agg of non-agg function give same results
     # TODO: agg should raise for functions that don't aggregate
     df = DataFrame({"a": [1, 1, 2, 2], "b": [1, 2, 2, 1]})
     g = df.groupby("a")
 
     result = g.agg(["cumsum"])
-    if get_option("api.use_hom"):
+    if using_hom_api:
         result.columns = result.columns.droplevel(0)
     else:
         result.columns = result.columns.droplevel(-1)

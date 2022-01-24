@@ -8,7 +8,6 @@ from pandas import (
     DataFrame,
     NamedAgg,
     Series,
-    get_option,
 )
 import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
@@ -322,7 +321,7 @@ def test_agg_consistency_int_str_column_mix():
 # `Base` test class
 
 
-def test_agg():
+def test_agg(using_hom_api):
     # test with all three Resampler apis and TimeGrouper
 
     np.random.seed(1234)
@@ -349,14 +348,14 @@ def test_agg():
     b_std = r["B"].std()
     b_sum = r["B"].sum()
 
-    if get_option("api.use_hom"):
+    if using_hom_api:
         expected = pd.concat([a_mean, b_mean, a_std, b_std], axis=1)
         expected.columns = pd.MultiIndex.from_product([["mean", "std"], ["A", "B"]])
     else:
         expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
         expected.columns = pd.MultiIndex.from_product([["A", "B"], ["mean", "std"]])
     for t in cases:
-        if t in cases[1:3] and not get_option("api.use_hom"):
+        if t in cases[1:3] and not using_hom_api:
             warn = FutureWarning
         else:
             warn = None
@@ -624,7 +623,7 @@ def test_selection_api_validation():
 @pytest.mark.parametrize(
     "col_name", ["t2", "t2x", "t2q", "T_2M", "t2p", "t2m", "t2m1", "T2M"]
 )
-def test_agg_with_datetime_index_list_agg_func(col_name):
+def test_agg_with_datetime_index_list_agg_func(col_name, using_hom_api):
     # GH 22660
     # The parametrized column names would get converted to dates by our
     # date parser. Some would result in OutOfBoundsError (ValueError) while
@@ -638,7 +637,7 @@ def test_agg_with_datetime_index_list_agg_func(col_name):
         columns=[col_name],
     )
     result = df.resample("1d").aggregate(["mean"])
-    if get_option("api.use_hom"):
+    if using_hom_api:
         expected = DataFrame(
             [47.5, 143.5, 195.5],
             index=date_range(

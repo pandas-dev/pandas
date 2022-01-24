@@ -8,8 +8,6 @@ from functools import partial
 import numpy as np
 import pytest
 
-from pandas._config import get_option
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -26,7 +24,7 @@ from pandas.core.base import SpecificationError
 from pandas.io.formats.printing import pprint_thing
 
 
-def test_agg_api():
+def test_agg_api(using_hom_api):
     # GH 6337
     # https://stackoverflow.com/questions/21706030/pandas-groupby-agg-function-column-dtype-error
     # different api for agg when passed custom function with mixed frame
@@ -44,7 +42,7 @@ def test_agg_api():
     def peak_to_peak(arr):
         return arr.max() - arr.min()
 
-    if get_option("api.use_hom"):
+    if using_hom_api:
         msg = "Dropping invalid columns"
     else:
         msg = r"\['key2'\] did not aggregate successfully"
@@ -183,7 +181,7 @@ def test_aggregate_float64_no_int64():
     tm.assert_frame_equal(result, expected)
 
 
-def test_aggregate_api_consistency():
+def test_aggregate_api_consistency(using_hom_api):
     # GH 9052
     # make sure that the aggregates via dict
     # are consistent
@@ -208,7 +206,7 @@ def test_aggregate_api_consistency():
     tm.assert_frame_equal(result, expected, check_like=True)
 
     result = grouped.agg([np.sum, np.mean])
-    if get_option("api.use_hom"):
+    if using_hom_api:
         expected = pd.concat([c_sum, d_sum, c_mean, d_mean], axis=1)
         expected.columns = MultiIndex.from_product([["sum", "mean"], ["C", "D"]])
     else:
@@ -217,7 +215,7 @@ def test_aggregate_api_consistency():
     tm.assert_frame_equal(result, expected, check_like=True)
 
     result = grouped[["D", "C"]].agg([np.sum, np.mean])
-    if get_option("api.use_hom"):
+    if using_hom_api:
         expected = pd.concat([d_sum, c_sum, d_mean, c_mean], axis=1)
         expected.columns = MultiIndex.from_product([["sum", "mean"], ["D", "C"]])
     else:
@@ -386,7 +384,7 @@ def test_series_agg_multi_pure_python():
     tm.assert_frame_equal(result, expected)
 
 
-def test_agg_consistency():
+def test_agg_consistency(using_hom_api):
     # agg with ([]) and () not consistent
     # GH 6715
     def P1(a):
@@ -408,7 +406,7 @@ def test_agg_consistency():
     g = df.groupby("date")
 
     expected = g.agg([P1])
-    if get_option("api.use_hom"):
+    if using_hom_api:
         expected.columns = expected.columns.levels[1]
     else:
         expected.columns = expected.columns.levels[0]

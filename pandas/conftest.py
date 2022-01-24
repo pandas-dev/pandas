@@ -1766,3 +1766,11 @@ def using_array_manager(request):
     Fixture to check if the array manager is being used.
     """
     return pd.options.mode.data_manager == "array"
+
+
+@pytest.fixture
+def using_hom_api(request):
+    """
+    Fixture to check if the Higher Order Methods API is being used.
+    """
+    return pd.options.api.use_hom

@@ -19,7 +19,6 @@ from pandas import (
     Timedelta,
     Timestamp,
     date_range,
-    get_option,
     to_datetime,
 )
 import pandas._testing as tm
@@ -552,7 +551,7 @@ def test_multi_key_multiple_functions(df):
     tm.assert_frame_equal(agged, expected)
 
 
-def test_frame_multi_key_function_list():
+def test_frame_multi_key_function_list(using_hom_api):
     data = DataFrame(
         {
             "A": [
@@ -602,12 +601,12 @@ def test_frame_multi_key_function_list():
 
     grouped = data.groupby(["A", "B"])
     funcs = [np.mean, np.std]
-    klass = None if get_option("api.use_hom") else FutureWarning
+    klass = None if using_hom_api else FutureWarning
     with tm.assert_produces_warning(
         klass, match=r"\['C'\] did not aggregate successfully"
     ):
         agged = grouped.agg(funcs)
-    if get_option("api.use_hom"):
+    if using_hom_api:
         expected = pd.concat(
             [grouped.agg(funcs[0]), grouped.agg(funcs[1])],
             keys=["mean", "std"],
@@ -2091,7 +2090,7 @@ def test_tuple_correct_keyerror():
         df.groupby((7, 8)).mean()
 
 
-def test_groupby_agg_ohlc_non_first():
+def test_groupby_agg_ohlc_non_first(using_hom_api):
     # GH 21716
     df = DataFrame(
         [[1], [1]],
@@ -2114,7 +2113,7 @@ def test_groupby_agg_ohlc_non_first():
         index=date_range("2018-01-01", periods=2, freq="D", name="dti"),
     )
 
-    if get_option("api.use_hom"):
+    if using_hom_api:
         # TODO (GH 35725): This will not raise when agg-must-agg is implemented
         msg = "Cannot concat indices that do not have the same number of levels"
         with pytest.raises(AssertionError, match=msg):

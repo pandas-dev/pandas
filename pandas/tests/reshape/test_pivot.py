@@ -8,8 +8,6 @@ from itertools import product
 import numpy as np
 import pytest
 
-from pandas._config import get_option
-
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -1905,7 +1903,7 @@ class TestPivotTable:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_pivot_margins_name_unicode(self):
+    def test_pivot_margins_name_unicode(self, using_hom_api):
         # issue #13292
         greek = "\u0394\u03bf\u03ba\u03b9\u03bc\u03ae"
         frame = DataFrame({"foo": [1, 2, 3]})
@@ -1914,7 +1912,7 @@ class TestPivotTable:
         )
         index = Index([1, 2, 3, greek], dtype="object", name="foo")
 
-        if get_option("api.use_hom"):
+        if using_hom_api:
             expected = Series([1, 1, 1, 3], index=index)
             expected.index.name = None
             tm.assert_series_equal(table, expected)

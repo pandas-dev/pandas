@@ -14,7 +14,6 @@ from pandas import (
     Series,
     Timestamp,
     date_range,
-    get_option,
 )
 import pandas._testing as tm
 import pandas.core.nanops as nanops
@@ -1133,7 +1132,7 @@ def test_groupby_mean_no_overflow():
     ],
 )
 @pytest.mark.parametrize("function", ["mean", "median", "var"])
-def test_apply_to_nullable_integer_returns_float(values, function):
+def test_apply_to_nullable_integer_returns_float(values, function, using_hom_api):
     # https://github.com/pandas-dev/pandas/issues/32219
     output = 0.5 if function == "var" else 1.5
     arr = np.array([output] * 3, dtype=float)
@@ -1149,7 +1148,7 @@ def test_apply_to_nullable_integer_returns_float(values, function):
     tm.assert_frame_equal(result, expected)
 
     result = groups.agg([function])
-    if get_option("api.use_hom"):
+    if using_hom_api:
         expected.columns = MultiIndex.from_tuples([(function, "b")])
     else:
         expected.columns = MultiIndex.from_tuples([("b", function)])

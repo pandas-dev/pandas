@@ -10,7 +10,6 @@ import pandas as pd
 from pandas import (
     DataFrame,
     Series,
-    get_option,
 )
 import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
@@ -81,7 +80,7 @@ def test_deprecating_on_loffset_and_base():
 
 @all_ts
 @pytest.mark.parametrize("arg", ["mean", {"value": "mean"}, ["mean"]])
-def test_resample_loffset_arg_type(frame, create_index, arg):
+def test_resample_loffset_arg_type(frame, create_index, arg, using_hom_api):
     # GH 13218, 15002
     df = frame
     expected_means = [df.values[i : i + 2].mean() for i in range(0, len(df.values), 2)]
@@ -98,7 +97,7 @@ def test_resample_loffset_arg_type(frame, create_index, arg):
         result_agg = df.resample("2D", loffset="2H").agg(arg)
 
     if isinstance(arg, list):
-        if get_option("api.use_hom"):
+        if using_hom_api:
             expected.columns = pd.MultiIndex.from_tuples([("mean", "value")])
         else:
             expected.columns = pd.MultiIndex.from_tuples([("value", "mean")])
@@ -205,7 +204,7 @@ def test_resample_float_base():
 
 @pytest.mark.parametrize("kind", ["period", None, "timestamp"])
 @pytest.mark.parametrize("agg_arg", ["mean", {"value": "mean"}, ["mean"]])
-def test_loffset_returns_datetimeindex(frame, kind, agg_arg):
+def test_loffset_returns_datetimeindex(frame, kind, agg_arg, using_hom_api):
     # make sure passing loffset returns DatetimeIndex in all cases
     # basic method taken from Base.test_resample_loffset_arg_type()
     df = frame
@@ -220,7 +219,7 @@ def test_loffset_returns_datetimeindex(frame, kind, agg_arg):
     with tm.assert_produces_warning(FutureWarning):
         result_agg = df.resample("2D", loffset="2H", kind=kind).agg(agg_arg)
     if isinstance(agg_arg, list):
-        if get_option("api.use_hom"):
+        if using_hom_api:
             expected.columns = pd.MultiIndex.from_tuples([("mean", "value")])
         else:
             expected.columns = pd.MultiIndex.from_tuples([("value", "mean")])
