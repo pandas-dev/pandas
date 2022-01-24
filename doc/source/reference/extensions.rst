@@ -24,6 +24,7 @@ objects.
    :template: autosummary/class_without_autosummary.rst
 
    api.extensions.ExtensionArray
+   api.extensions.NDArrayBackedExtensionArray
    arrays.PandasArray
 
 .. We need this autosummary so that methods and attributes are generated.

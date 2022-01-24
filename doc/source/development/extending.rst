@@ -134,6 +134,14 @@ by some other storage type, like Python lists.
 See the `extension array source`_ for the interface definition. The docstrings
 and comments contain guidance for properly implementing the interface.
 
+:class:`~pandas.api.extensions.NDArrayBackedExtensionArray`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For ExtensionArrays backed by a single NumPy array, the
+:class:`~pandas.api.extensions.NDArrayBackedExtensionArray` class can save you
+some effort. It contains a private property ``_ndarray`` with the backing NumPy
+array and implements the extension array interface.
+
 .. _extending.extension.operator:
 
 :class:`~pandas.api.extensions.ExtensionArray` operator support
