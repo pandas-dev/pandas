@@ -18,8 +18,8 @@ from pandas.core.algorithms import take
 from pandas.core.arrays import (
     ExtensionArray,
     ExtensionScalarOpsMixin,
+    NDArrayBackedExtensionArray,
 )
-from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 
 __all__ = [
     "no_default",

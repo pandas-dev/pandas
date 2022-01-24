@@ -1,3 +1,4 @@
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.base import (
     ExtensionArray,
     ExtensionOpsMixin,
@@ -32,6 +33,7 @@ __all__ = [
     "FloatingArray",
     "IntegerArray",
     "IntervalArray",
+    "NDArrayBackedExtensionArray",
     "PandasArray",
     "PeriodArray",
     "period_array",
