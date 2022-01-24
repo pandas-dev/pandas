@@ -88,6 +88,48 @@ Optional libraries below the lowest tested version may still work, but are not c
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
+
+.. _whatsnew_150.read_xml_dtypes:
+
+read_xml now supports ``dtype``, ``converters``, and ``parse_dates``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Similar to other IO methods, :func:`pandas.read_xml` now supports assigning specific dtypes to columns,
+apply converter methods, and parse dates (:issue:`43567`).
+
+.. ipython:: python
+
+    xml_dates = """<?xml version='1.0' encoding='utf-8'?>
+    <data>
+      <row>
+        <shape>square</shape>
+        <degrees>00360</degrees>
+        <sides>4.0</sides>
+        <date>2020-01-01</date>
+       </row>
+      <row>
+        <shape>circle</shape>
+        <degrees>00360</degrees>
+        <sides/>
+        <date>2021-01-01</date>
+      </row>
+      <row>
+        <shape>triangle</shape>
+        <degrees>00180</degrees>
+        <sides>3.0</sides>
+        <date>2022-01-01</date>
+      </row>
+    </data>"""
+
+    df = pd.read_xml(
+        xml_dates,
+        dtype={'sides': 'Int64'},
+        converters={'degrees': str},
+        parse_dates=['date']
+    )
+    df
+    df.dtypes
+
 .. _whatsnew_150.api_breaking.other:
 
 Other API changes
@@ -200,6 +242,7 @@ Conversion
 - Bug in constructing a :class:`Series` from a float-containing list or a floating-dtype ndarray-like (e.g. ``dask.Array``) and an integer dtype raising instead of casting like we would with an ``np.ndarray`` (:issue:`40110`)
 - Bug in :meth:`Float64Index.astype` to unsigned integer dtype incorrectly casting to ``np.int64`` dtype (:issue:`45309`)
 - Bug in :meth:`Series.astype` and :meth:`DataFrame.astype` from floating dtype to unsigned integer dtype failing to raise in the presence of negative values (:issue:`45151`)
+- Bug in :func:`array` with ``FloatingDtype`` and values containing float-castable strings incorrectly raising (:issue:`45424`)
 -
 
 Strings
@@ -218,8 +261,10 @@ Indexing
 - Bug in :meth:`DataFrame.iloc` where indexing a single row on a :class:`DataFrame` with a single ExtensionDtype column gave a copy instead of a view on the underlying data (:issue:`45241`)
 - Bug in :meth:`Series.__setitem__` with a non-integer :class:`Index` when using an integer key to set a value that cannot be set inplace where a ``ValueError`` was raised insead of casting to a common dtype (:issue:`45070`)
 - Bug when setting a value too large for a :class:`Series` dtype failing to coerce to a common type (:issue:`26049`, :issue:`32878`)
+- Bug in :meth:`Series.__setitem__` when setting ``boolean`` dtype values containing ``NA`` incorrectly raising instead of casting to ``boolean`` dtype (:issue:`45462`)
 - Bug in :meth:`Series.__setitem__` where setting :attr:`NA` into a numeric-dtpye :class:`Series` would incorrectly upcast to object-dtype rather than treating the value as ``np.nan`` (:issue:`44199`)
 - Bug in :meth:`DataFrame.mask` with ``inplace=True`` and ``ExtensionDtype`` columns incorrectly raising (:issue:`45577`)
+- Bug in getting a column from a DataFrame with an object-dtype row index with datetime-like values: the resulting Series now preserves the exact object-dtype Index from the parent DataFrame (:issue:`42950`)
 -
 
 Missing
@@ -247,6 +292,9 @@ Period
 Plotting
 ^^^^^^^^
 - Bug in :meth:`DataFrame.plot.barh` that prevented labeling the x-axis and ``xlabel`` updating the y-axis label (:issue:`45144`)
+- Bug in :meth:`DataFrame.plot.box` that prevented labeling the x-axis (:issue:`45463`)
+- Bug in :meth:`DataFrame.boxplot` that prevented passing in ``xlabel`` and ``ylabel`` (:issue:`45463`)
+- Bug in :meth:`DataFrame.boxplot` that prevented specifying ``vert=False`` (:issue:`36918`)
 -
 
 Groupby/resample/rolling
