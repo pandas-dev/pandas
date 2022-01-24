@@ -21,6 +21,7 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
+    array,
     concat,
     date_range,
     interval_range,
@@ -572,6 +573,19 @@ class TestSetitemCasting:
         expected = Series([True, val], dtype=object, index=ser.index)
         if not unique and indexer_sli is not tm.iloc:
             expected = Series([val, val], dtype=object, index=[1, 1])
+        tm.assert_series_equal(ser, expected)
+
+    def test_setitem_boolean_array_into_npbool(self):
+        # GH#45462
+        ser = Series([True, False, True])
+        values = ser._values
+        arr = array([True, False, None])
+
+        ser[:2] = arr[:2]  # no NAs -> can set inplace
+        assert ser._values is values
+
+        ser[1:] = arr[1:]  # has an NA -> cast to boolean dtype
+        expected = Series(arr)
         tm.assert_series_equal(ser, expected)
 
 
