@@ -4563,7 +4563,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         .. deprecated:: 1.2.0
             DataFrame.lookup is deprecated,
-            use DataFrame.melt and DataFrame.loc instead.
+            use pandas.factorize and NumPy indexing instead.
             For further details see
             :ref:`Looking up values by index/column labels <indexing.lookup>`.
 
