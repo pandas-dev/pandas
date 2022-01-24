@@ -839,7 +839,7 @@ The simplest case is to just pass in ``parse_dates=True``:
 .. ipython:: python
    :suppress:
 
-   with open("foo.csv", "w") as f:
+   with open("foo.csv", mode="w") as f:
        f.write("date,A,B,C\n20090101,a,1,2\n20090102,b,3,4\n20090103,c,4,5")
 
 .. ipython:: python
