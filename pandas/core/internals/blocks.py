@@ -1194,7 +1194,7 @@ class Block(PandasObject):
             # try/except here is equivalent to a self._can_hold_element check,
             #  but this gets us back 'casted' which we will re-use below;
             #  without using 'casted', expressions.where may do unwanted upcasts.
-            casted = np_can_hold_element(self.dtype, other)
+            casted = np_can_hold_element(values.dtype, other)
         except (ValueError, TypeError):
             # we cannot coerce, return a compat dtype
             block = self.coerce_to_target_dtype(other)
