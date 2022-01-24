@@ -521,9 +521,13 @@ class TestBasic(Base):
                 df, engine, read_kwargs={"columns": ["A", "B"]}, expected=df[["A", "B"]]
             )
 
-    def test_write_ignoring_index(self, engine):
+    def test_write_ignoring_index(self, engine, request):
         # ENH 20768
         # Ensure index=False omits the index from the written Parquet file.
+        if PY310 and engine == "fastparquet":
+            request.node.add_marker(
+                pytest.mark.xfail(reason="fastparquet failing on 3.10")
+            )
         df = pd.DataFrame({"a": [1, 2, 3], "b": ["q", "r", "s"]})
 
         write_kwargs = {"compression": None, "index": False}
