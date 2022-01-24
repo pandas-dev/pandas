@@ -548,7 +548,7 @@ class PeriodArray(dtl.DatelikeOps):
                 f"{type(self).__name__}._time_shift"
             )
         values = self.asi8 + periods * self.freq.n
-        if self._hasnans:
+        if self._hasna:
             values[self._isnan] = iNaT
         return type(self)(values, freq=self.freq)
 
@@ -618,7 +618,7 @@ class PeriodArray(dtl.DatelikeOps):
 
         new_data = period_asfreq_arr(ordinal, base1, base2, end)
 
-        if self._hasnans:
+        if self._hasna:
             new_data[self._isnan] = iNaT
 
         return type(self)(new_data, freq=freq)
@@ -645,7 +645,7 @@ class PeriodArray(dtl.DatelikeOps):
         else:
             formatter = lambda dt: str(dt)
 
-        if self._hasnans:
+        if self._hasna:
             mask = self._isnan
             values[mask] = na_rep
             imask = ~mask
@@ -712,7 +712,7 @@ class PeriodArray(dtl.DatelikeOps):
         new_data = asi8 - other.ordinal
         new_data = np.array([self.freq * x for x in new_data])
 
-        if self._hasnans:
+        if self._hasna:
             new_data[self._isnan] = NaT
 
         return new_data
@@ -739,7 +739,7 @@ class PeriodArray(dtl.DatelikeOps):
         )
 
         new_values = np.array([self.freq.base * x for x in new_values])
-        if self._hasnans or other._hasnans:
+        if self._hasna or other._hasna:
             mask = self._isnan | other._isnan
             new_values[mask] = NaT
         return new_values
