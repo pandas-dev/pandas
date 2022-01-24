@@ -5,6 +5,10 @@
     },
     {
         "name": "1.4 (stable)",
+        "version": "docs"
+    },
+    {
+        "name": "1.4",
         "version": "pandas-docs/version/1.4"
     },
     {
