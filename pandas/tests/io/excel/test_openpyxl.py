@@ -1,3 +1,4 @@
+import contextlib
 from pathlib import Path
 import re
 
@@ -159,12 +160,12 @@ def test_write_append_mode(ext, mode, expected):
         with ExcelWriter(f, engine="openpyxl", mode=mode) as writer:
             df.to_excel(writer, sheet_name="baz", index=False)
 
-        wb2 = openpyxl.load_workbook(f)
-        result = [sheet.title for sheet in wb2.worksheets]
-        assert result == expected
+        with contextlib.closing(openpyxl.load_workbook(f)) as wb2:
+            result = [sheet.title for sheet in wb2.worksheets]
+            assert result == expected
 
-        for index, cell_value in enumerate(expected):
-            assert wb2.worksheets[index]["A1"].value == cell_value
+            for index, cell_value in enumerate(expected):
+                assert wb2.worksheets[index]["A1"].value == cell_value
 
 
 @pytest.mark.parametrize(
@@ -187,15 +188,14 @@ def test_if_sheet_exists_append_modes(ext, if_sheet_exists, num_sheets, expected
         ) as writer:
             df2.to_excel(writer, sheet_name="foo", index=False)
 
-        wb = openpyxl.load_workbook(f)
-        assert len(wb.sheetnames) == num_sheets
-        assert wb.sheetnames[0] == "foo"
-        result = pd.read_excel(wb, "foo", engine="openpyxl")
-        assert list(result["fruit"]) == expected
-        if len(wb.sheetnames) == 2:
-            result = pd.read_excel(wb, wb.sheetnames[1], engine="openpyxl")
-            tm.assert_frame_equal(result, df2)
-        wb.close()
+        with contextlib.closing(openpyxl.load_workbook(f)) as wb:
+            assert len(wb.sheetnames) == num_sheets
+            assert wb.sheetnames[0] == "foo"
+            result = pd.read_excel(wb, "foo", engine="openpyxl")
+            assert list(result["fruit"]) == expected
+            if len(wb.sheetnames) == 2:
+                result = pd.read_excel(wb, wb.sheetnames[1], engine="openpyxl")
+                tm.assert_frame_equal(result, df2)
 
 
 @pytest.mark.parametrize(
@@ -279,9 +279,10 @@ def test_to_excel_with_openpyxl_engine(ext):
 def test_read_workbook(datapath, ext, read_only):
     # GH 39528
     filename = datapath("io", "data", "excel", "test1" + ext)
-    wb = openpyxl.load_workbook(filename, read_only=read_only)
-    result = pd.read_excel(wb, engine="openpyxl")
-    wb.close()
+    with contextlib.closing(
+        openpyxl.load_workbook(filename, read_only=read_only)
+    ) as wb:
+        result = pd.read_excel(wb, engine="openpyxl")
     expected = pd.read_excel(filename)
     tm.assert_frame_equal(result, expected)
 
@@ -313,9 +314,10 @@ def test_read_with_bad_dimension(
     if read_only is None:
         result = pd.read_excel(path, header=header)
     else:
-        wb = openpyxl.load_workbook(path, read_only=read_only)
-        result = pd.read_excel(wb, engine="openpyxl", header=header)
-        wb.close()
+        with contextlib.closing(
+            openpyxl.load_workbook(path, read_only=read_only)
+        ) as wb:
+            result = pd.read_excel(wb, engine="openpyxl", header=header)
     expected = DataFrame(expected_data)
     tm.assert_frame_equal(result, expected)
 
@@ -349,9 +351,10 @@ def test_read_with_empty_trailing_rows(datapath, ext, read_only, request):
     if read_only is None:
         result = pd.read_excel(path)
     else:
-        wb = openpyxl.load_workbook(path, read_only=read_only)
-        result = pd.read_excel(wb, engine="openpyxl")
-        wb.close()
+        with contextlib.closing(
+            openpyxl.load_workbook(path, read_only=read_only)
+        ) as wb:
+            result = pd.read_excel(wb, engine="openpyxl")
     expected = DataFrame(
         {
             "Title": [np.nan, "A", 1, 2, 3],
@@ -370,8 +373,9 @@ def test_read_empty_with_blank_row(datapath, ext, read_only):
     if read_only is None:
         result = pd.read_excel(path)
     else:
-        wb = openpyxl.load_workbook(path, read_only=read_only)
-        result = pd.read_excel(wb, engine="openpyxl")
-        wb.close()
+        with contextlib.closing(
+            openpyxl.load_workbook(path, read_only=read_only)
+        ) as wb:
+            result = pd.read_excel(wb, engine="openpyxl")
     expected = DataFrame()
     tm.assert_frame_equal(result, expected)
