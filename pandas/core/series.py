@@ -1392,7 +1392,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         allow_duplicates : bool, default False
             Allow duplicate column labels to be created.
 
-            .. versionadded:: 1.4.0
+            .. versionadded:: 1.5.0
 
         Returns
         -------
