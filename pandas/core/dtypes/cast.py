@@ -1961,7 +1961,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             #  in smaller int dtypes.
             info = np.iinfo(dtype)
             if info.min <= element <= info.max:
-                return element
+                return dtype.type(element)
             raise ValueError
 
         if tipo is not None:
@@ -2017,6 +2017,14 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                 if element._hasna:
                     raise ValueError
                 return element
+            elif tipo.itemsize > dtype.itemsize:
+                if isinstance(element, np.ndarray):
+                    # e.g. TestDataFrameIndexingWhere::test_where_alignment
+                    casted = element.astype(dtype)
+                    if np.array_equal(casted, element, equal_nan=True):
+                        return casted
+                    raise ValueError
+
             return element
 
         if lib.is_integer(element) or lib.is_float(element):

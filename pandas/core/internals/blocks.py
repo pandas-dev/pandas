@@ -38,8 +38,8 @@ from pandas.core.dtypes.astype import astype_array_safe
 from pandas.core.dtypes.cast import (
     can_hold_element,
     find_result_type,
-    maybe_downcast_numeric,
     maybe_downcast_to_dtype,
+    np_can_hold_element,
     soft_convert_objects,
 )
 from pandas.core.dtypes.common import (
@@ -1190,13 +1190,19 @@ class Block(PandasObject):
 
         other = self._standardize_fill_value(other)
 
-        if not self._can_hold_element(other):
+        try:
+            # try/except here is equivalent to a self._can_hold_element check,
+            #  but this gets us back 'casted' which we will re-use below;
+            #  without using 'casted', expressions.where may do unwanted upcasts.
+            casted = np_can_hold_element(self.dtype, other)
+        except (ValueError, TypeError):
             # we cannot coerce, return a compat dtype
             block = self.coerce_to_target_dtype(other)
             blocks = block.where(orig_other, cond)
             return self._maybe_downcast(blocks, "infer")
 
         else:
+            other = casted
             alt = setitem_datetimelike_compat(values, icond.sum(), other)
             if alt is not other:
                 if is_list_like(other) and len(other) < len(values):
@@ -1226,38 +1232,13 @@ class Block(PandasObject):
 
                 # Note: expressions.where may upcast.
                 result = expressions.where(~icond, values, other)
+                # The np_can_hold_element check _should_ ensure that we always
+                #  have result.dtype == self.dtype here.
 
-        if self._can_hold_na or self.ndim == 1:
+        if transpose:
+            result = result.T
 
-            if transpose:
-                result = result.T
-
-            return [self.make_block(result)]
-
-        # might need to separate out blocks
-        cond = ~icond
-        axis = cond.ndim - 1
-        cond = cond.swapaxes(axis, 0)
-        mask = cond.all(axis=1)
-
-        result_blocks: list[Block] = []
-        for m in [mask, ~mask]:
-            if m.any():
-                taken = result.take(m.nonzero()[0], axis=axis)
-                r = maybe_downcast_numeric(taken, self.dtype)
-                if r.dtype != taken.dtype:
-                    warnings.warn(
-                        "Downcasting integer-dtype results in .where is "
-                        "deprecated and will change in a future version. "
-                        "To retain the old behavior, explicitly cast the results "
-                        "to the desired dtype.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
-                nb = self.make_block(r.T, placement=self._mgr_locs[m])
-                result_blocks.append(nb)
-
-        return result_blocks
+        return [self.make_block(result)]
 
     def _unstack(
         self,
