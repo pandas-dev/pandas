@@ -64,11 +64,6 @@ objects.
       api.extensions.ExtensionArray.shape
       api.extensions.ExtensionArray.tolist
       api.extensions.NDArrayBackedExtensionArray.dtype
-      api.extensions.NDArrayBackedExtensionArray.T
-      api.extensions.NDArrayBackedExtensionArray.nbytes
-      api.extensions.NDArrayBackedExtensionArray.ndim
-      api.extensions.NDArrayBackedExtensionArray.shape
-      api.extensions.NDArrayBackedExtensionArray.size
       api.extensions.NDArrayBackedExtensionArray.argmax
       api.extensions.NDArrayBackedExtensionArray.argmin
       api.extensions.NDArrayBackedExtensionArray.argsort
@@ -88,13 +83,6 @@ objects.
       api.extensions.NDArrayBackedExtensionArray.unique
       api.extensions.NDArrayBackedExtensionArray.value_counts
       api.extensions.NDArrayBackedExtensionArray.view
-      api.extensions.NDArrayBackedExtensionArray.copy
-      api.extensions.NDArrayBackedExtensionArray.delete
-      api.extensions.NDArrayBackedExtensionArray.ravel
-      api.extensions.NDArrayBackedExtensionArray.repeat
-      api.extensions.NDArrayBackedExtensionArray.reshape
-      api.extensions.NDArrayBackedExtensionArray.swapaxes
-      api.extensions.NDArrayBackedExtensionArray.transpose
 
 Additionally, we have some utility methods for ensuring your object
 behaves correctly.

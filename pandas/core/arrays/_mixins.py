@@ -112,6 +112,13 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     # ------------------------------------------------------------------------
 
     def view(self, dtype: Dtype | None = None) -> ArrayLike:
+        """
+        Return a view on the array.
+
+        See also
+        --------
+        pandas.api.extensions.ExtensionArray.view
+        """
         # We handle datetime64, datetime64tz, timedelta64, and period
         #  dtypes here. Everything else we pass through to the underlying
         #  ndarray.
@@ -152,6 +159,14 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         fill_value: Any = None,
         axis: int = 0,
     ) -> NDArrayBackedExtensionArrayT:
+        """
+        Take elements from an array.
+
+        See also
+        --------
+        pandas.api.extensions.ExtensionArray.take
+        """
+
         if allow_fill:
             fill_value = self._validate_scalar(fill_value)
 
