@@ -380,6 +380,10 @@ int convert_pydatetime_to_datetimestruct(PyObject *dtobj,
                 return -1;
             }
             tmp_int = PyNumber_Long(tmp);
+            if (tmp_int == NULL) {
+                Py_DECREF(tmp);
+                return -1;
+            }
             seconds_offset = PyInt_AsLong(tmp_int);
             if (seconds_offset == -1 && PyErr_Occurred()) {
                 Py_DECREF(tmp_int);
