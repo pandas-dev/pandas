@@ -63,6 +63,38 @@ objects.
       api.extensions.ExtensionArray.ndim
       api.extensions.ExtensionArray.shape
       api.extensions.ExtensionArray.tolist
+      api.extensions.NDArrayBackedExtensionArray.dtype
+      api.extensions.NDArrayBackedExtensionArray.T
+      api.extensions.NDArrayBackedExtensionArray.nbytes
+      api.extensions.NDArrayBackedExtensionArray.ndim
+      api.extensions.NDArrayBackedExtensionArray.shape
+      api.extensions.NDArrayBackedExtensionArray.size
+      api.extensions.NDArrayBackedExtensionArray.argmax
+      api.extensions.NDArrayBackedExtensionArray.argmin
+      api.extensions.NDArrayBackedExtensionArray.argsort
+      api.extensions.NDArrayBackedExtensionArray.astype
+      api.extensions.NDArrayBackedExtensionArray.dropna
+      api.extensions.NDArrayBackedExtensionArray.equals
+      api.extensions.NDArrayBackedExtensionArray.factorize
+      api.extensions.NDArrayBackedExtensionArray.fillna
+      api.extensions.NDArrayBackedExtensionArray.insert
+      api.extensions.NDArrayBackedExtensionArray.isin
+      api.extensions.NDArrayBackedExtensionArray.isna
+      api.extensions.NDArrayBackedExtensionArray.searchsorted
+      api.extensions.NDArrayBackedExtensionArray.shift
+      api.extensions.NDArrayBackedExtensionArray.take
+      api.extensions.NDArrayBackedExtensionArray.to_numpy
+      api.extensions.NDArrayBackedExtensionArray.tolist
+      api.extensions.NDArrayBackedExtensionArray.unique
+      api.extensions.NDArrayBackedExtensionArray.value_counts
+      api.extensions.NDArrayBackedExtensionArray.view
+      api.extensions.NDArrayBackedExtensionArray.copy
+      api.extensions.NDArrayBackedExtensionArray.delete
+      api.extensions.NDArrayBackedExtensionArray.ravel
+      api.extensions.NDArrayBackedExtensionArray.repeat
+      api.extensions.NDArrayBackedExtensionArray.reshape
+      api.extensions.NDArrayBackedExtensionArray.swapaxes
+      api.extensions.NDArrayBackedExtensionArray.transpose
 
 Additionally, we have some utility methods for ensuring your object
 behaves correctly.
