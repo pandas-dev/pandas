@@ -8936,6 +8936,10 @@ NaN 12.3   33.0
 
         Columns in `other` that are not in the caller are added as new columns.
 
+        .. deprecated:: 1.4.0
+            append is deprecated,
+            use DataFrame/Series.concat instead.
+
         Parameters
         ----------
         other : DataFrame or Series/dict-like object, or list of these
