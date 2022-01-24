@@ -10,7 +10,6 @@ from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.arrays.numeric import (
     NumericArray,
     NumericDtype,
-    coerce_to_data_and_mask,
 )
 
 
@@ -82,34 +81,6 @@ class FloatingDtype(NumericDtype):
         # This is really only here for compatibility with IntegerDtype
         # Here for compat with IntegerDtype
         return values.astype(dtype, copy=copy)
-
-
-def coerce_to_array(
-    values, dtype=None, mask=None, copy: bool = False
-) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Coerce the input values array to numpy arrays with a mask.
-
-    Parameters
-    ----------
-    values : 1D list-like
-    dtype : float dtype
-    mask : bool 1D array, optional
-    copy : bool, default False
-        if True, copy the input
-
-    Returns
-    -------
-    tuple of (values, mask)
-    """
-    dtype_cls = FloatingDtype
-    default_dtype = np.dtype(np.float64)
-
-    # if values is floating numpy array, preserve its dtype
-    values, mask, _, _ = coerce_to_data_and_mask(
-        values, mask, dtype, copy, dtype_cls, default_dtype
-    )
-    return values, mask
 
 
 class FloatingArray(NumericArray):

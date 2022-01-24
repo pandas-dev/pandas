@@ -113,7 +113,7 @@ class NumericDtype(BaseMaskedDtype):
         raise AbstractMethodError(cls)
 
 
-def coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype):
+def _coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype):
     if default_dtype.kind == "f":
         checker = is_float_dtype
     else:
@@ -201,7 +201,7 @@ class NumericArray(BaseMaskedArray):
         dtype_cls = cls._dtype_cls
         default_dtype = dtype_cls._default_np_dtype
         mask = None
-        values, mask, _, _ = coerce_to_data_and_mask(
+        values, mask, _, _ = _coerce_to_data_and_mask(
             value, mask, dtype, copy, dtype_cls, default_dtype
         )
         return values, mask

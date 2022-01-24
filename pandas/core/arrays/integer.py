@@ -11,7 +11,6 @@ from pandas.core.arrays.masked import BaseMaskedDtype
 from pandas.core.arrays.numeric import (
     NumericArray,
     NumericDtype,
-    coerce_to_data_and_mask,
 )
 
 
@@ -120,34 +119,6 @@ class _IntegerDtype(NumericDtype):
             raise TypeError(
                 f"cannot safely cast non-equivalent {values.dtype} to {np.dtype(dtype)}"
             ) from err
-
-
-def coerce_to_array(
-    values, dtype, mask=None, copy: bool = False
-) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Coerce the input values array to numpy arrays with a mask.
-
-    Parameters
-    ----------
-    values : 1D list-like
-    dtype : integer dtype
-    mask : bool 1D array, optional
-    copy : bool, default False
-        if True, copy the input
-
-    Returns
-    -------
-    tuple of (values, mask)
-    """
-    dtype_cls = _IntegerDtype
-    default_dtype = np.dtype(np.int64)
-
-    # if values is integer numpy array, preserve its dtype
-    values, mask, _, _ = coerce_to_data_and_mask(
-        values, mask, dtype, copy, dtype_cls, default_dtype
-    )
-    return values, mask
 
 
 class IntegerArray(NumericArray):
