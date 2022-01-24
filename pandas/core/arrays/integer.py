@@ -25,6 +25,8 @@ class _IntegerDtype(NumericDtype):
     The attributes name & type are set when these subclasses are created.
     """
 
+    _default_np_dtype = np.dtype(np.int64)
+
     def __repr__(self) -> str:
         sign = "U" if self.is_unsigned_integer else ""
         return f"{sign}Int{8 * self.itemsize}Dtype()"
@@ -100,23 +102,24 @@ class _IntegerDtype(NumericDtype):
                 raise ValueError(f"invalid dtype specified {dtype}") from err
         return dtype
 
+    @classmethod
+    def _safe_cast(cls, values: np.ndarray, dtype: np.dtype, copy: bool) -> np.ndarray:
+        """
+        Safely cast the values to the given dtype.
 
-def safe_cast(values, dtype, copy: bool):
-    """
-    Safely cast the values to the dtype if they
-    are equivalent, meaning floats must be equivalent to the
-    ints.
-    """
-    try:
-        return values.astype(dtype, casting="safe", copy=copy)
-    except TypeError as err:
-        casted = values.astype(dtype, copy=copy)
-        if (casted == values).all():
-            return casted
+        "safe" in this context means the casting is lossless. e.g. if 'values'
+        has a floating dtype, each value must be an integer.
+        """
+        try:
+            return values.astype(dtype, casting="safe", copy=copy)
+        except TypeError as err:
+            casted = values.astype(dtype, copy=copy)
+            if (casted == values).all():
+                return casted
 
-        raise TypeError(
-            f"cannot safely cast non-equivalent {values.dtype} to {np.dtype(dtype)}"
-        ) from err
+            raise TypeError(
+                f"cannot safely cast non-equivalent {values.dtype} to {np.dtype(dtype)}"
+            ) from err
 
 
 def coerce_to_array(
@@ -140,30 +143,10 @@ def coerce_to_array(
     dtype_cls = _IntegerDtype
     default_dtype = np.dtype(np.int64)
 
-    cls = dtype_cls.construct_array_type()
-    orig = values
-
     # if values is integer numpy array, preserve its dtype
-    values, mask, dtype, inferred_type = coerce_to_data_and_mask(
+    values, mask, _, _ = coerce_to_data_and_mask(
         values, mask, dtype, copy, dtype_cls, default_dtype
     )
-    if isinstance(orig, cls):
-        return values, mask
-
-    # if we are float, let's make sure that we can
-    # safely cast
-
-    # we copy as need to coerce here
-    if mask.any():
-        values = values.copy()
-        values[mask] = 1
-    if inferred_type in ("string", "unicode"):
-        # casts from str are always safe since they raise
-        # a ValueError if the str cannot be parsed into an int
-        values = values.astype(dtype, copy=copy)
-    else:
-        values = safe_cast(values, dtype, copy=False)
-
     return values, mask
 
 
@@ -235,6 +218,8 @@ class IntegerArray(NumericArray):
     Length: 3, dtype: UInt16
     """
 
+    _dtype_cls = _IntegerDtype
+
     # The value used to fill '_data' to avoid upcasting
     _internal_fill_value = 1
     # Fill values used for any/all
@@ -252,12 +237,6 @@ class IntegerArray(NumericArray):
                 "the 'pd.array' function instead"
             )
         super().__init__(values, mask, copy=copy)
-
-    @classmethod
-    def _coerce_to_array(
-        cls, value, *, dtype: DtypeObj, copy: bool = False
-    ) -> tuple[np.ndarray, np.ndarray]:
-        return coerce_to_array(value, dtype=dtype, copy=copy)
 
 
 _dtype_docstring = """

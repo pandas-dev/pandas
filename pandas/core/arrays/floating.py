@@ -24,6 +24,8 @@ class FloatingDtype(NumericDtype):
     The attributes name & type are set when these subclasses are created.
     """
 
+    _default_np_dtype = np.dtype(np.float64)
+
     def __repr__(self) -> str:
         return f"{self.name}Dtype()"
 
@@ -70,6 +72,17 @@ class FloatingDtype(NumericDtype):
                 raise ValueError(f"invalid dtype specified {dtype}") from err
         return dtype
 
+    @classmethod
+    def _safe_cast(cls, values: np.ndarray, dtype: np.dtype, copy: bool) -> np.ndarray:
+        """
+        Safely cast the values to the given dtype.
+
+        "safe" in this context means the casting is lossless.
+        """
+        # This is really only here for compatibility with IntegerDtype
+        # Here for compat with IntegerDtype
+        return values.astype(dtype, copy=copy)
+
 
 def coerce_to_array(
     values, dtype=None, mask=None, copy: bool = False
@@ -92,26 +105,10 @@ def coerce_to_array(
     dtype_cls = FloatingDtype
     default_dtype = np.dtype(np.float64)
 
-    cls = dtype_cls.construct_array_type()
-    orig = values
-
     # if values is floating numpy array, preserve its dtype
-    values, mask, dtype, inferred_type = coerce_to_data_and_mask(
+    values, mask, _, _ = coerce_to_data_and_mask(
         values, mask, dtype, copy, dtype_cls, default_dtype
     )
-    if isinstance(orig, cls):
-        return values, mask
-
-    # if we are float, let's make sure that we can
-    # safely cast
-
-    # we copy as need to coerce here
-    # TODO should this be a safe cast?
-    if mask.any():
-        values = values.copy()
-        values[mask] = np.nan
-    values = values.astype(dtype, copy=False)  # , casting="safe")
-
     return values, mask
 
 
@@ -175,8 +172,10 @@ class FloatingArray(NumericArray):
     Length: 3, dtype: Float32
     """
 
+    _dtype_cls = FloatingDtype
+
     # The value used to fill '_data' to avoid upcasting
-    _internal_fill_value = 0.0
+    _internal_fill_value = np.nan
     # Fill values used for any/all
     _truthy_value = 1.0
     _falsey_value = 0.0
@@ -196,12 +195,6 @@ class FloatingArray(NumericArray):
             raise TypeError("FloatingArray does not support np.float16 dtype.")
 
         super().__init__(values, mask, copy=copy)
-
-    @classmethod
-    def _coerce_to_array(
-        cls, value, *, dtype: DtypeObj, copy: bool = False
-    ) -> tuple[np.ndarray, np.ndarray]:
-        return coerce_to_array(value, dtype=dtype, copy=copy)
 
 
 _dtype_docstring = """

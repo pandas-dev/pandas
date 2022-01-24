@@ -10,12 +10,16 @@ from typing import (
 import numpy as np
 
 from pandas._libs import (
-    lib,
     Timedelta,
+    lib,
     missing as libmissing,
 )
-from pandas._typing import Dtype
+from pandas._typing import (
+    Dtype,
+    DtypeObj,
+)
 from pandas.compat.numpy import function as nv
+from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -42,6 +46,8 @@ T = TypeVar("T", bound="NumericArray")
 
 
 class NumericDtype(BaseMaskedDtype):
+    _default_np_dtype: np.dtype
+
     def __from_arrow__(
         self, array: pyarrow.Array | pyarrow.ChunkedArray
     ) -> BaseMaskedArray:
@@ -89,6 +95,22 @@ class NumericDtype(BaseMaskedDtype):
             return results[0]
         else:
             return array_class._concat_same_type(results)
+
+    @classmethod
+    def _standardize_dtype(cls, dtype) -> NumericDtype:
+        """
+        Convert a string representation or a numpy dtype to NumericDtype.
+        """
+        raise AbstractMethodError(cls)
+
+    @classmethod
+    def _safe_cast(cls, values: np.ndarray, dtype: np.dtype, copy: bool) -> np.ndarray:
+        """
+        Safely cast the values to the given dtype.
+
+        "safe" in this context means the casting is lossless.
+        """
+        raise AbstractMethodError(cls)
 
 
 def coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype):
@@ -151,6 +173,17 @@ def coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype)
     else:
         dtype = dtype.type
 
+    # we copy as need to coerce here
+    if mask.any():
+        values = values.copy()
+        values[mask] = cls._internal_fill_value
+    if inferred_type in ("string", "unicode"):
+        # casts from str are always safe since they raise
+        # a ValueError if the str cannot be parsed into a float
+        values = values.astype(dtype, copy=copy)
+    else:
+        values = dtype_cls._safe_cast(values, dtype, copy=False)
+
     return values, mask, dtype, inferred_type
 
 
@@ -158,6 +191,20 @@ class NumericArray(BaseMaskedArray):
     """
     Base class for IntegerArray and FloatingArray.
     """
+
+    _dtype_cls: type[NumericDtype]
+
+    @classmethod
+    def _coerce_to_array(
+        cls, value, *, dtype: DtypeObj, copy: bool = False
+    ) -> tuple[np.ndarray, np.ndarray]:
+        dtype_cls = cls._dtype_cls
+        default_dtype = dtype_cls._default_np_dtype
+        mask = None
+        values, mask, _, _ = coerce_to_data_and_mask(
+            value, mask, dtype, copy, dtype_cls, default_dtype
+        )
+        return values, mask
 
     @classmethod
     def _from_sequence_of_strings(
