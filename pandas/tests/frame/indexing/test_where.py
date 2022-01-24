@@ -485,7 +485,7 @@ class TestDataFrameIndexingWhere:
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
-    def test_where_axis_with_upcast(self, using_array_manager):
+    def test_where_axis_with_upcast(self):
         # Upcast needed
         df = DataFrame([[1, 2], [3, 4]], dtype="int64")
         mask = DataFrame([[False, False], [False, False]])
@@ -500,10 +500,8 @@ class TestDataFrameIndexingWhere:
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
-        warn = FutureWarning if using_array_manager else None
         expected = DataFrame([[0, np.nan], [0, np.nan]])
-        with tm.assert_produces_warning(warn, match="Downcasting integer-dtype"):
-            result = df.where(mask, ser, axis="columns")
+        result = df.where(mask, ser, axis="columns")
         tm.assert_frame_equal(result, expected)
 
         expected = DataFrame(
