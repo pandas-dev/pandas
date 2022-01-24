@@ -1,3 +1,4 @@
+import contextlib
 import re
 import warnings
 
@@ -34,12 +35,12 @@ def test_column_format(ext):
             col_format = write_workbook.add_format({"num_format": num_format})
             write_worksheet.set_column("B:B", None, col_format)
 
-        read_workbook = openpyxl.load_workbook(path)
-        try:
-            read_worksheet = read_workbook["Sheet1"]
-        except TypeError:
-            # compat
-            read_worksheet = read_workbook.get_sheet_by_name(name="Sheet1")
+        with contextlib.closing(openpyxl.load_workbook(path)) as read_workbook:
+            try:
+                read_worksheet = read_workbook["Sheet1"]
+            except TypeError:
+                # compat
+                read_worksheet = read_workbook.get_sheet_by_name(name="Sheet1")
 
         # Get the number format from the cell.
         try:
