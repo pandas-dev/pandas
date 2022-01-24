@@ -45,13 +45,14 @@ def test_read_xlrd_book(read_ext_xlrd, frame):
 
     with tm.ensure_clean(read_ext_xlrd) as pth:
         df.to_excel(pth, sheet_name)
-        book = xlrd.open_workbook(pth)
+        with xlrd.open_workbook(pth) as book:
+            with ExcelFile(book, engine=engine) as xl:
+                result = pd.read_excel(xl, sheet_name=sheet_name, index_col=0)
+                tm.assert_frame_equal(df, result)
 
-        with ExcelFile(book, engine=engine) as xl:
-            result = pd.read_excel(xl, sheet_name=sheet_name, index_col=0)
-            tm.assert_frame_equal(df, result)
-
-        result = pd.read_excel(book, sheet_name=sheet_name, engine=engine, index_col=0)
+            result = pd.read_excel(
+                book, sheet_name=sheet_name, engine=engine, index_col=0
+            )
         tm.assert_frame_equal(df, result)
 
 

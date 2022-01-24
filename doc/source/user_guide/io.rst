@@ -839,9 +839,8 @@ The simplest case is to just pass in ``parse_dates=True``:
 .. ipython:: python
    :suppress:
 
-   f = open("foo.csv", "w")
-   f.write("date,A,B,C\n20090101,a,1,2\n20090102,b,3,4\n20090103,c,4,5")
-   f.close()
+   with open("foo.csv", mode="w") as f:
+       f.write("date,A,B,C\n20090101,a,1,2\n20090102,b,3,4\n20090103,c,4,5")
 
 .. ipython:: python
 
@@ -1452,7 +1451,6 @@ a different usage of the ``delimiter`` parameter:
 .. ipython:: python
    :suppress:
 
-   f = open("bar.csv", "w")
    data1 = (
        "id8141    360.242940   149.910199   11950.7\n"
        "id1594    444.953632   166.985655   11788.4\n"
@@ -1460,8 +1458,8 @@ a different usage of the ``delimiter`` parameter:
        "id1230    413.836124   184.375703   11916.8\n"
        "id1948    502.953953   173.237159   12468.3"
    )
-   f.write(data1)
-   f.close()
+   with open("bar.csv", "w") as f:
+       f.write(data1)
 
 Consider a typical fixed-width data file:
 
@@ -1604,9 +1602,8 @@ of multi-columns indices.
    :suppress:
 
    data = ",a,a,a,b,c,c\n,q,r,s,t,u,v\none,1,2,3,4,5,6\ntwo,7,8,9,10,11,12"
-   fh = open("mi2.csv", "w")
-   fh.write(data)
-   fh.close()
+   with open("mi2.csv", "w") as fh:
+       fh.write(data)
 
 .. ipython:: python
 
