@@ -37,7 +37,8 @@ To select out everything for variable ``A`` we could do:
 
 .. ipython:: python
 
-   df[df["variable"] == "A"]
+   filtered = df[df["variable"] == "A"]
+   filtered
 
 But suppose we wish to do time series operations with the variables. A better
 representation would be where the ``columns`` are the unique variables and an
