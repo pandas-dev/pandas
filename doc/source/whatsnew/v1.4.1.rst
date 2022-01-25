@@ -24,7 +24,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Fixed segfault in :meth:``DataFrame.to_json`` when dumping tz-aware datetimes in Python 3.10 (:issue:`42130`)
--
+- Bug in :meth:`common.is_bool_dtype` was raising an AttributeError when evaluating a categorical Series (:issue:`45615`)
 
 .. ---------------------------------------------------------------------------
 
