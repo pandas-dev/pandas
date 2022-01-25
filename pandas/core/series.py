@@ -74,7 +74,6 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_scalar,
-    pandas_dtype,
     validate_all_hashable,
 )
 from pandas.core.dtypes.generic import ABCDataFrame
@@ -496,10 +495,9 @@ class Series(base.IndexOpsMixin, NDFrame):
         elif index is not None:
             # fastpath for Series(data=None). Just use broadcasting a scalar
             # instead of reindexing.
-            dtype_ = pandas_dtype(dtype)
-            values = na_value_for_dtype(dtype_, compat=False)
+            values = na_value_for_dtype(dtype, compat=False)
             if values is None:
-                values = construct_1d_arraylike_from_scalar(values, len(index), dtype_)
+                values = construct_1d_arraylike_from_scalar(values, len(index), dtype)
             keys = index
         else:
             keys, values = (), []
