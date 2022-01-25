@@ -658,7 +658,8 @@ class TestIndex(Base):
         index = Index(vals)
 
         formatted = index.format()
-        expected = [str(index[0]), str(index[1]), str(index[2]), "NaN"]
+        null_repr = "NaN" if isinstance(nulls_fixture, float) else str(nulls_fixture)
+        expected = [str(index[0]), str(index[1]), str(index[2]), null_repr]
 
         assert formatted == expected
         assert index[3] is nulls_fixture

@@ -1217,12 +1217,16 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             #  raised; see test_transform.test_transform_fastpath_raises
             return path, res
 
-        # verify fast path does not change columns (and names), otherwise
-        # its results cannot be joined with those of the slow path
-        if not isinstance(res_fast, DataFrame):
-            return path, res
-
-        if not res_fast.columns.equals(group.columns):
+        # verify fast path returns either:
+        # a DataFrame with columns equal to group.columns
+        # OR a Series with index equal to group.columns
+        if isinstance(res_fast, DataFrame):
+            if not res_fast.columns.equals(group.columns):
+                return path, res
+        elif isinstance(res_fast, Series):
+            if not res_fast.index.equals(group.columns):
+                return path, res
+        else:
             return path, res
 
         if res_fast.equals(res):
@@ -1731,32 +1735,48 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 observed=self.observed,
                 dropna=self.dropna,
             )
-            result = cast(Series, gb.size())
+            result_series = cast(Series, gb.size())
 
             if normalize:
                 # Normalize the results by dividing by the original group sizes.
                 # We are guaranteed to have the first N levels be the
                 # user-requested grouping.
-                levels = list(range(len(self.grouper.groupings), result.index.nlevels))
-                indexed_group_size = result.groupby(
-                    result.index.droplevel(levels),
+                levels = list(
+                    range(len(self.grouper.groupings), result_series.index.nlevels)
+                )
+                indexed_group_size = result_series.groupby(
+                    result_series.index.droplevel(levels),
                     sort=self.sort,
                     observed=self.observed,
                     dropna=self.dropna,
                 ).transform("sum")
 
-                result /= indexed_group_size
+                result_series /= indexed_group_size
 
             if sort:
                 # Sort the values and then resort by the main grouping
                 index_level = range(len(self.grouper.groupings))
-                result = result.sort_values(ascending=ascending).sort_index(
-                    level=index_level, sort_remaining=False
-                )
+                result_series = result_series.sort_values(
+                    ascending=ascending
+                ).sort_index(level=index_level, sort_remaining=False)
 
-            if not self.as_index:
+            result: Series | DataFrame
+            if self.as_index:
+                result = result_series
+            else:
                 # Convert to frame
-                result = result.reset_index(name="proportion" if normalize else "count")
+                name = "proportion" if normalize else "count"
+                index = result_series.index
+                columns = com.fill_missing_names(index.names)
+                if name in columns:
+                    raise ValueError(
+                        f"Column label '{name}' is duplicate of result column"
+                    )
+                result_series.name = name
+                result_series.index = index.set_names(range(len(columns)))
+                result_frame = result_series.reset_index()
+                result_frame.columns = columns + [name]
+                result = result_frame
             return result.__finalize__(self.obj, method="value_counts")
 
 
