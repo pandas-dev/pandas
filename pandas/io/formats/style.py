@@ -99,7 +99,7 @@ color = """color : str, default 'yellow'
 
 buf = """buf : str, path object, file-like object, optional
          String, path object (implementing ``os.PathLike[str]``), or file-like
-         object implementing a string ``write()`` function. If `None`, the result is
+         object implementing a string ``write()`` function. If ``None``, the result is
          returned as a string."""
 
 encoding = """encoding : str, optional
