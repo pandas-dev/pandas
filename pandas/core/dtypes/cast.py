@@ -39,6 +39,7 @@ from pandas._typing import (
     DtypeObj,
     Scalar,
 )
+from pandas.compat import np_version_under1p20
 from pandas.errors import IntCastingNaNError
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
