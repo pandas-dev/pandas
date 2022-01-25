@@ -1608,9 +1608,9 @@ def diff(arr, n: int, axis: int = 0):
         # int8, int16 are incompatible with float64,
         # see https://github.com/cython/cython/issues/2646
         if arr.dtype.name in ["int8", "int16"]:
-            dtype = np.float32
-        else:
-            dtype = np.float64
+            arr = arr.astype("int32")
+
+        dtype = np.float64
 
     orig_ndim = arr.ndim
     if orig_ndim == 1:
