@@ -166,12 +166,7 @@ class TestDataFrameColor(TestPlotBase):
             (0.0, 0.0, 1.0, 1.0),
             (1.0, 0.0, 0.0, 1.0),
         ]
-
-        ax = df.plot.bar(y="A", color=df["color"])
-        result = [p.get_facecolor() for p in ax.patches]
-        assert result == expected
-
-        ax = df.plot.bar(y="A", c=df["color"])
+        ax = df.plot.bar(y="A", **{kw: df["color"]})
         result = [p.get_facecolor() for p in ax.patches]
         assert result == expected
 
