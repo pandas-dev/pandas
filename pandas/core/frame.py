@@ -8938,7 +8938,7 @@ NaN 12.3   33.0
 
         .. deprecated:: 1.4.0
             append is deprecated,
-            use DataFrame/Series.concat instead.
+            use pandas.concat instead.
 
         Parameters
         ----------

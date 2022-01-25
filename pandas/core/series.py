@@ -2865,6 +2865,10 @@ Name: Max Speed, dtype: float64
         """
         Concatenate two or more Series.
 
+        .. deprecated:: 1.4.0
+            append is deprecated,
+            use pandas.concat instead.
+
         Parameters
         ----------
         to_append : Series or list/tuple of Series
