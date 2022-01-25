@@ -19,6 +19,7 @@ variables:
   PYTEST_WORKERS: auto
   PYTEST_TARGET:  pandas
   PATTERN: "not slow and not high_memory and not db"
+  PANDAS_CI: 1
 
 jobs:
 - template: ci/azure/posix.yml
