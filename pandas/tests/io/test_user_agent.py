@@ -11,6 +11,7 @@ import urllib.error
 
 import pytest
 
+from pandas.compat import PY310
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -241,7 +242,10 @@ def responder(request):
             pd.read_parquet,
             "fastparquet",
             # TODO(ArrayManager) fastparquet
-            marks=td.skip_array_manager_not_yet_implemented,
+            marks=[
+                td.skip_array_manager_not_yet_implemented,
+                pytest.mark.xfail(PY310, reason="fastparquet failing on 3.10"),
+            ],
         ),
         (PickleUserAgentResponder, pd.read_pickle, None),
         (StataUserAgentResponder, pd.read_stata, None),
@@ -276,7 +280,10 @@ def test_server_and_default_headers(responder, read_method, parquet_engine):
             pd.read_parquet,
             "fastparquet",
             # TODO(ArrayManager) fastparquet
-            marks=td.skip_array_manager_not_yet_implemented,
+            marks=[
+                td.skip_array_manager_not_yet_implemented,
+                pytest.mark.xfail(PY310, reason="fastparquet failing on 3.10"),
+            ],
         ),
         (PickleUserAgentResponder, pd.read_pickle, None),
         (StataUserAgentResponder, pd.read_stata, None),
