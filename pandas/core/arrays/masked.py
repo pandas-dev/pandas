@@ -37,10 +37,12 @@ from pandas.util._decorators import (
 )
 from pandas.util._validators import validate_fillna_kwargs
 
+from pandas.core.dtypes.astype import astype_nansafe
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     is_bool,
     is_bool_dtype,
+    is_datetime64_dtype,
     is_dtype_equal,
     is_float,
     is_float_dtype,
@@ -450,7 +452,30 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             eacls = dtype.construct_array_type()
             return eacls._from_sequence(self, dtype=dtype, copy=copy)
 
-        raise NotImplementedError("subclass must implement astype to np.dtype")
+        na_value: float | np.datetime64 | lib.NoDefault
+
+        # coerce
+        if is_float_dtype(dtype):
+            # In astype, we consider dtype=float to also mean na_value=np.nan
+            na_value = np.nan
+        elif is_datetime64_dtype(dtype):
+            na_value = np.datetime64("NaT")
+        else:
+            na_value = lib.no_default
+
+        # to_numpy will also raise, but we get somewhat nicer exception messages here
+        if is_integer_dtype(dtype) and self._hasna:
+            raise ValueError("cannot convert NA to integer")
+        if is_bool_dtype(dtype) and self._hasna:
+            # careful: astype_nansafe converts np.nan to True
+            raise ValueError("cannot convert float NaN to bool")
+
+        data = self.to_numpy(dtype=dtype, na_value=na_value, copy=copy)
+        if self.dtype.kind == "f":
+            # TODO: make this consistent between IntegerArray/FloatingArray,
+            #  see test_astype_str
+            return astype_nansafe(data, dtype, copy=False)
+        return data
 
     __array_priority__ = 1000  # higher than ndarray so ops dispatch to us
 
