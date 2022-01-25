@@ -39,6 +39,7 @@ from pandas._typing import (
     DtypeObj,
     Scalar,
 )
+from pandas.compat import np_version_under1p20
 from pandas.errors import IntCastingNaNError
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
@@ -87,6 +88,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.inference import is_list_like
 from pandas.core.dtypes.missing import (
+    array_equivalent,
     is_valid_na_for_dtype,
     isna,
     na_value_for_dtype,
@@ -2021,8 +2023,12 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                 if isinstance(element, np.ndarray):
                     # e.g. TestDataFrameIndexingWhere::test_where_alignment
                     casted = element.astype(dtype)
-                    if np.array_equal(casted, element, equal_nan=True):
-                        return casted
+                    if np_version_under1p20:
+                        if array_equivalent(casted, element):
+                            return casted
+                    else:
+                        if np.array_equal(casted, element, equal_nan=True):
+                            return casted
                     raise ValueError
 
             return element
