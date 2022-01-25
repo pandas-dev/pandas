@@ -490,6 +490,8 @@ class DataFrame(NDFrame, OpsMixin):
         Copy data from inputs.
         For dict data, the default of None behaves like ``copy=True``.  For DataFrame
         or 2d ndarray input, the default of None behaves like ``copy=False``.
+        If data is a dict containing one or more Series (possibly of different dtypes),
+        ``copy=False`` will ensure that these inputs are not copied.
 
         .. versionchanged:: 1.3.0
 
@@ -4561,7 +4563,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         .. deprecated:: 1.2.0
             DataFrame.lookup is deprecated,
-            use DataFrame.melt and DataFrame.loc instead.
+            use pandas.factorize and NumPy indexing instead.
             For further details see
             :ref:`Looking up values by index/column labels <indexing.lookup>`.
 
