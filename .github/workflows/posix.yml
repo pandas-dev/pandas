@@ -36,7 +36,7 @@ jobs:
           [actions-pypy-38.yaml, "not slow and not clipboard", "", "", "", "", "--max-worker-restart 0"],
           [actions-39.yaml, "slow", "", "", "", "", ""],
           [actions-39.yaml, "not slow and not clipboard", "", "", "", "", ""],
-          [actions-310-numpydev.yaml, "not slow and not network", "xclip", "", "", "deprecate", "-W error"],
+          [actions-310-numpydev.yaml, "not slow and not network", "xsel", "", "", "deprecate", "-W error"],
           [actions-310.yaml, "not slow and not clipboard", "", "", "", "", ""],
           [actions-310.yaml, "slow", "", "", "", "", ""],
         ]
