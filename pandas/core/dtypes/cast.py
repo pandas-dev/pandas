@@ -1507,7 +1507,7 @@ def common_dtype_categorical_compat(
                     hasnas = obj.hasnans
                 else:
                     # Categorical
-                    hasnas = cast("Categorical", obj)._hasnans
+                    hasnas = cast("Categorical", obj)._hasna
 
                 if hasnas:
                     # see test_union_int_categorical_with_nan
@@ -1997,9 +1997,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             elif not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype; we can put this into an ndarray
                 #  losslessly iff it has no NAs
-                hasnas = element._mask.any()
-                # TODO: don't rely on implementation detail
-                if hasnas:
+                if element._hasna:
                     raise ValueError
                 return element
 
@@ -2016,9 +2014,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             elif not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype or FloatingDtype;
                 #  we can put this into an ndarray losslessly iff it has no NAs
-                hasnas = element._mask.any()
-                # TODO: don't rely on implementation detail
-                if hasnas:
+                if element._hasna:
                     raise ValueError
                 return element
             return element
@@ -2047,7 +2043,12 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
 
     elif dtype.kind == "b":
         if tipo is not None:
-            if tipo.kind == "b":  # FIXME: wrong with BooleanArray?
+            if tipo.kind == "b":
+                if not isinstance(tipo, np.dtype):
+                    # i.e. we have a BooleanArray
+                    if element._hasna:
+                        # i.e. there are pd.NA elements
+                        raise ValueError
                 return element
             raise ValueError
         if lib.is_bool(element):

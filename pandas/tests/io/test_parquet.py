@@ -13,9 +13,12 @@ import pytest
 
 from pandas._config import get_option
 
+from pandas.compat import (
+    PY310,
+    is_platform_windows,
+)
 from pandas.compat.pyarrow import (
     pa_version_under2p0,
-    pa_version_under4p0,
     pa_version_under5p0,
     pa_version_under6p0,
 )
@@ -262,6 +265,7 @@ def test_options_py(df_compat, pa):
         check_round_trip(df_compat)
 
 
+@pytest.mark.xfail(PY310, reason="fastparquet failing on 3.10")
 def test_options_fp(df_compat, fp):
     # use the set option
 
@@ -339,6 +343,7 @@ def test_get_engine_auto_error_message():
                 get_engine("auto")
 
 
+@pytest.mark.xfail(PY310, reason="fastparquet failing on 3.10")
 def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
     # cross-compat with differing reading/writing engines
 
@@ -404,7 +409,11 @@ class TestBasic(Base):
             msg = "to_parquet only supports IO with DataFrames"
             self.check_error_on_write(obj, engine, ValueError, msg)
 
-    def test_columns_dtypes(self, engine):
+    def test_columns_dtypes(self, request, engine):
+        if PY310 and engine == "fastparquet":
+            request.node.add_marker(
+                pytest.mark.xfail(reason="fastparquet failing on 3.10")
+            )
         df = pd.DataFrame({"string": list("abc"), "int": list(range(1, 4))})
 
         # unicode
@@ -431,7 +440,7 @@ class TestBasic(Base):
         self.check_error_on_write(df, engine, ValueError, msg)
 
     @pytest.mark.parametrize("compression", [None, "gzip", "snappy", "brotli"])
-    def test_compression(self, engine, compression):
+    def test_compression(self, engine, compression, request):
 
         if compression == "snappy":
             pytest.importorskip("snappy")
@@ -439,11 +448,19 @@ class TestBasic(Base):
         elif compression == "brotli":
             pytest.importorskip("brotli")
 
+        if PY310 and engine == "fastparquet":
+            request.node.add_marker(
+                pytest.mark.xfail(reason="fastparquet failing on 3.10")
+            )
         df = pd.DataFrame({"A": [1, 2, 3]})
         check_round_trip(df, engine, write_kwargs={"compression": compression})
 
-    def test_read_columns(self, engine):
+    def test_read_columns(self, engine, request):
         # GH18154
+        if PY310 and engine == "fastparquet":
+            request.node.add_marker(
+                pytest.mark.xfail(reason="fastparquet failing on 3.10")
+            )
         df = pd.DataFrame({"string": list("abc"), "int": list(range(1, 4))})
 
         expected = pd.DataFrame({"string": list("abc")})
@@ -451,7 +468,11 @@ class TestBasic(Base):
             df, engine, expected=expected, read_kwargs={"columns": ["string"]}
         )
 
-    def test_write_index(self, engine):
+    def test_write_index(self, engine, request):
+        if PY310 and engine == "fastparquet":
+            request.node.add_marker(
+                pytest.mark.xfail(reason="fastparquet failing on 3.10")
+            )
         check_names = engine != "fastparquet"
 
         df = pd.DataFrame({"A": [1, 2, 3]})
@@ -500,9 +521,13 @@ class TestBasic(Base):
                 df, engine, read_kwargs={"columns": ["A", "B"]}, expected=df[["A", "B"]]
             )
 
-    def test_write_ignoring_index(self, engine):
+    def test_write_ignoring_index(self, engine, request):
         # ENH 20768
         # Ensure index=False omits the index from the written Parquet file.
+        if PY310 and engine == "fastparquet":
+            request.node.add_marker(
+                pytest.mark.xfail(reason="fastparquet failing on 3.10")
+            )
         df = pd.DataFrame({"a": [1, 2, 3], "b": ["q", "r", "s"]})
 
         write_kwargs = {"compression": None, "index": False}
@@ -652,13 +677,7 @@ class TestBasic(Base):
             "object",
             "datetime64[ns, UTC]",
             "float",
-            pytest.param(
-                "period[D]",
-                marks=pytest.mark.xfail(
-                    pa_version_under4p0,
-                    reason="pyarrow uses pandas internal API incorrectly",
-                ),
-            ),
+            "period[D]",
             "Float64",
             "string",
         ],
@@ -727,6 +746,34 @@ class TestParquetPyArrow(Base):
         # pyarrow 0.11 raises ArrowTypeError
         # older pyarrows raise ArrowInvalid
         self.check_external_error_on_write(df, pa, pyarrow.ArrowException)
+
+    def test_unsupported_float16(self, pa):
+        # #44847, #44914
+        # Not able to write float 16 column using pyarrow.
+        data = np.arange(2, 10, dtype=np.float16)
+        df = pd.DataFrame(data=data, columns=["fp16"])
+        self.check_external_error_on_write(df, pa, pyarrow.ArrowException)
+
+    @pytest.mark.xfail(
+        is_platform_windows(),
+        reason=(
+            "PyArrow does not cleanup of partial files dumps when unsupported "
+            "dtypes are passed to_parquet function in windows"
+        ),
+    )
+    @pytest.mark.parametrize("path_type", [str, pathlib.Path])
+    def test_unsupported_float16_cleanup(self, pa, path_type):
+        # #44847, #44914
+        # Not able to write float 16 column using pyarrow.
+        # Tests cleanup by pyarrow in case of an error
+        data = np.arange(2, 10, dtype=np.float16)
+        df = pd.DataFrame(data=data, columns=["fp16"])
+
+        with tm.ensure_clean() as path_str:
+            path = path_type(path_str)
+            with tm.external_error_raised(pyarrow.ArrowException):
+                df.to_parquet(path=path, engine=pa)
+            assert not os.path.isfile(path)
 
     def test_categorical(self, pa):
 
@@ -897,9 +944,6 @@ class TestParquetPyArrow(Base):
             check_round_trip(df, pa, expected=df.astype(f"string[{string_storage}]"))
 
     @td.skip_if_no("pyarrow")
-    @pytest.mark.xfail(
-        pa_version_under4p0, reason="pyarrow uses pandas internal API incorrectly"
-    )
     def test_additional_extension_types(self, pa):
         # test additional ExtensionArrays that are supported through the
         # __arrow_array__ protocol + by defining a custom ExtensionType
@@ -967,6 +1011,7 @@ class TestParquetPyArrow(Base):
 
 
 class TestParquetFastParquet(Base):
+    @pytest.mark.xfail(PY310, reason="fastparquet failing on 3.10")
     def test_basic(self, fp, df_full):
         df = df_full
 
@@ -984,6 +1029,7 @@ class TestParquetFastParquet(Base):
         msg = "Cannot create parquet dataset with duplicate column names"
         self.check_error_on_write(df, fp, ValueError, msg)
 
+    @pytest.mark.xfail(PY310, reason="fastparquet failing on 3.10")
     def test_bool_with_none(self, fp):
         df = pd.DataFrame({"a": [True, None, False]})
         expected = pd.DataFrame({"a": [1.0, np.nan, 0.0]}, dtype="float16")
@@ -1003,10 +1049,12 @@ class TestParquetFastParquet(Base):
         msg = "Can't infer object conversion type"
         self.check_error_on_write(df, fp, ValueError, msg)
 
+    @pytest.mark.xfail(PY310, reason="fastparquet failing on 3.10")
     def test_categorical(self, fp):
         df = pd.DataFrame({"a": pd.Categorical(list("abc"))})
         check_round_trip(df, fp)
 
+    @pytest.mark.xfail(PY310, reason="fastparquet failing on 3.10")
     def test_filter_row_groups(self, fp):
         d = {"a": list(range(0, 3))}
         df = pd.DataFrame(d)
@@ -1025,6 +1073,7 @@ class TestParquetFastParquet(Base):
             write_kwargs={"compression": None, "storage_options": s3so},
         )
 
+    @pytest.mark.xfail(PY310, reason="fastparquet failing on 3.10")
     def test_partition_cols_supported(self, fp, df_full):
         # GH #23283
         partition_cols = ["bool", "int"]
@@ -1042,6 +1091,7 @@ class TestParquetFastParquet(Base):
             actual_partition_cols = fastparquet.ParquetFile(path, False).cats
             assert len(actual_partition_cols) == 2
 
+    @pytest.mark.xfail(PY310, reason="fastparquet failing on 3.10")
     def test_partition_cols_string(self, fp, df_full):
         # GH #27117
         partition_cols = "bool"
@@ -1059,6 +1109,7 @@ class TestParquetFastParquet(Base):
             actual_partition_cols = fastparquet.ParquetFile(path, False).cats
             assert len(actual_partition_cols) == 1
 
+    @pytest.mark.xfail(PY310, reason="fastparquet failing on 3.10")
     def test_partition_on_supported(self, fp, df_full):
         # GH #23283
         partition_cols = ["bool", "int"]
@@ -1094,6 +1145,7 @@ class TestParquetFastParquet(Base):
                     partition_cols=partition_cols,
                 )
 
+    @pytest.mark.xfail(PY310, reason="fastparquet failing on 3.10")
     def test_empty_dataframe(self, fp):
         # GH #27339
         df = pd.DataFrame()
@@ -1101,6 +1153,7 @@ class TestParquetFastParquet(Base):
         expected.index.name = "index"
         check_round_trip(df, fp, expected=expected)
 
+    @pytest.mark.xfail(PY310, reason="fastparquet failing on 3.10")
     def test_timezone_aware_index(self, fp, timezone_aware_date_list):
         idx = 5 * [timezone_aware_date_list]
 

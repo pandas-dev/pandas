@@ -307,6 +307,11 @@ class TestClipboard:
 @pytest.mark.single
 @pytest.mark.clipboard
 @pytest.mark.parametrize("data", ["\U0001f44d...", "Ωœ∑´...", "abcd..."])
+@pytest.mark.xfail(
+    reason="Flaky test in multi-process CI environment: GH 44584",
+    raises=AssertionError,
+    strict=False,
+)
 def test_raw_roundtrip(data):
     # PR #25040 wide unicode wasn't copied correctly on PY3 on windows
     clipboard_set(data)

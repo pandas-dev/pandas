@@ -129,6 +129,14 @@ AstypeArg = Union["ExtensionDtype", "npt.DTypeLike"]
 DtypeArg = Union[Dtype, Dict[Hashable, Dtype]]
 DtypeObj = Union[np.dtype, "ExtensionDtype"]
 
+# converters
+ConvertersArg = Dict[Hashable, Callable[[Dtype], Dtype]]
+
+# parse_dates
+ParseDatesArg = Union[
+    bool, List[Hashable], List[List[Hashable]], Dict[Hashable, List[Hashable]]
+]
+
 # For functions like rename that convert one label to another
 Renamer = Union[Mapping[Hashable, Any], Callable[[Hashable], Hashable]]
 
@@ -246,8 +254,6 @@ CompressionDict = Dict[str, Any]
 CompressionOptions = Optional[
     Union[Literal["infer", "gzip", "bz2", "zip", "xz", "zstd"], CompressionDict]
 ]
-XMLParsers = Literal["lxml", "etree"]
-
 
 # types in DataFrameFormatter
 FormattersType = Union[
@@ -295,3 +301,6 @@ WindowingRankType = Literal["average", "min", "max"]
 
 # read_csv engines
 CSVEngine = Literal["c", "python", "pyarrow", "python-fwf"]
+
+# read_xml parsers
+XMLParsers = Literal["lxml", "etree"]
