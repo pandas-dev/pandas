@@ -726,6 +726,7 @@ handling of NaN:
    `here <https://github.com/numpy/numpy/issues/641>`__.
 
 .. ipython:: python
+   :okexcept:
 
    ser = pd.Series(['A', 'A', np.nan, 'B', 3.14, np.inf])
    pd.factorize(ser, sort=True)
