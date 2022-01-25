@@ -2786,7 +2786,7 @@ class Styler(StylerRenderer):
             Compress the color range at the high end. This is a multiple of the data
             range to extend above the maximum; good values usually in [0, 1],
             defaults to 0.
-        axis : {{0 or 'index', 1 or 'columns', None}}, default 0
+        axis : {{0, 1, "index", "columns", None}}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
