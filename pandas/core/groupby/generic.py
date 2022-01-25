@@ -602,14 +602,18 @@ class SeriesGroupBy(GroupBy[Series]):
         ids, _, _ = self.grouper.group_info
         val = self.obj._values
 
+        names = self.grouper.names + [self.obj.name]
+
         def apply_series_value_counts():
-            return self.apply(
+            s = self.apply(
                 Series.value_counts,
                 normalize=normalize,
                 sort=sort,
                 ascending=ascending,
                 bins=bins,
             )
+            s.index.names = names
+            return s
 
         if bins is not None:
             if not np.iterable(bins):
@@ -683,7 +687,6 @@ class SeriesGroupBy(GroupBy[Series]):
         levels = [ping.group_index for ping in self.grouper.groupings] + [
             lev  # type: ignore[list-item]
         ]
-        names = self.grouper.names + [self.obj.name]
 
         if dropna:
             mask = codes[-1] != -1
