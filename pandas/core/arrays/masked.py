@@ -13,7 +13,6 @@ import warnings
 import numpy as np
 
 from pandas._libs import (
-    iNaT,
     lib,
     missing as libmissing,
 )
@@ -582,6 +581,18 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # error: Incompatible return value type (got "bool_", expected "bool")
         return self._mask.any()  # type: ignore[return-value]
 
+    def _propagate_mask(
+        self, mask: npt.NDArray[np.bool_] | None, other
+    ) -> npt.NDArray[np.bool_]:
+        if mask is None:
+            mask = self._mask.copy()  # TODO: need test for BooleanArray needing a copy
+            if other is libmissing.NA:
+                # GH#45421 don't alter inplace
+                mask = mask | True
+        else:
+            mask = self._mask | mask
+        return mask
+
     def _cmp_method(self, other, op) -> BooleanArray:
         from pandas.core.arrays import BooleanArray
 
@@ -619,12 +630,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 if result is NotImplemented:
                     result = invalid_comparison(self._data, other, op)
 
-        # nans propagate
-        if mask is None:
-            mask = self._mask.copy()
-        else:
-            mask = self._mask | mask
-
+        mask = self._propagate_mask(mask, other)
         return BooleanArray(result, mask, copy=False)
 
     def _maybe_mask_result(self, result, mask, other, op_name: str):
@@ -665,8 +671,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             # e.g. test_numeric_arr_mul_tdscalar_numexpr_path
             from pandas.core.arrays import TimedeltaArray
 
-            result[mask] = iNaT
-            return TimedeltaArray._simple_new(result)
+            if not isinstance(result, TimedeltaArray):
+                result = TimedeltaArray._simple_new(result)
+
+            result[mask] = result.dtype.type("NaT")
+            return result
 
         elif is_integer_dtype(result):
             from pandas.core.arrays import IntegerArray

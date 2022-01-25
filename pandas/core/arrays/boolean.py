@@ -386,7 +386,7 @@ class BooleanArray(BaseMaskedArray):
         mask = None
         op_name = op.__name__
 
-        if isinstance(other, BooleanArray):
+        if isinstance(other, BaseMaskedArray):
             other, mask = other._data, other._mask
 
         elif is_list_like(other):
@@ -396,14 +396,7 @@ class BooleanArray(BaseMaskedArray):
             if len(self) != len(other):
                 raise ValueError("Lengths must match")
 
-        # nans propagate
-        if mask is None:
-            mask = self._mask
-            if other is libmissing.NA:
-                # GH#45421 don't alter inplace
-                mask = mask | True
-        else:
-            mask = self._mask | mask
+        mask = self._propagate_mask(mask, other)
 
         if other is libmissing.NA:
             # if other is NA, the result will be all NA and we can't run the

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import datetime
 import numbers
 from typing import (
     TYPE_CHECKING,
@@ -9,26 +8,22 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import (
-    Timedelta,
-    missing as libmissing,
-)
+from pandas._libs import missing as libmissing
 from pandas._typing import Dtype
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.common import (
-    is_float,
-    is_float_dtype,
-    is_integer,
-    is_integer_dtype,
     is_list_like,
     pandas_dtype,
 )
 
+from pandas.core import ops
+from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
 )
+from pandas.core.construction import ensure_wrapped_if_datetimelike
 
 if TYPE_CHECKING:
     import pyarrow
@@ -105,31 +100,40 @@ class NumericArray(BaseMaskedArray):
         op_name = op.__name__
         omask = None
 
-        if isinstance(other, NumericArray):
+        if isinstance(other, BaseMaskedArray):
             other, omask = other._data, other._mask
 
         elif is_list_like(other):
-            other = np.asarray(other)
+            if not isinstance(other, ExtensionArray):
+                other = np.asarray(other)
             if other.ndim > 1:
                 raise NotImplementedError("can only perform ops with 1-d structures")
-            if len(self) != len(other):
-                raise ValueError("Lengths must match")
-            if not (is_float_dtype(other) or is_integer_dtype(other)):
-                raise TypeError("can only perform ops with numeric values")
 
-        elif isinstance(other, (datetime.timedelta, np.timedelta64)):
-            other = Timedelta(other)
+        # We wrap the non-masked arithmetic logic used for numpy dtypes
+        #  in Series/Index arithmetic ops.
+        other = ops.maybe_prepare_scalar_for_op(other, (len(self),))
+        pd_op = ops.get_array_op(op)
+        other = ensure_wrapped_if_datetimelike(other)
 
+        mask = self._propagate_mask(omask, other)
+
+        if other is libmissing.NA:
+            result = np.ones_like(self._data)
+            if "truediv" in op_name and self.dtype.kind != "f":
+                # The actual data here doesn't matter since the mask
+                #  will be all-True, but since this is division, we want
+                #  to end up with floating dtype.
+                result = result.astype(np.float64)
         else:
-            if not (is_float(other) or is_integer(other) or other is libmissing.NA):
-                raise TypeError("can only perform ops with numeric values")
+            # Make sure we do this before the "pow" mask checks
+            #  to get an expected exception message on shape mismatch.
+            if self.dtype.kind in ["i", "u"] and op_name in ["floordiv", "mod"]:
+                # ATM we don't match the behavior of non-masked types with
+                #  respect to floordiv-by-zero
+                pd_op = op
 
-        if omask is None:
-            mask = self._mask.copy()
-            if other is libmissing.NA:
-                mask |= True
-        else:
-            mask = self._mask | omask
+            with np.errstate(all="ignore"):
+                result = pd_op(self._data, other)
 
         if op_name == "pow":
             # 1 ** x is 1.
@@ -148,17 +152,6 @@ class NumericArray(BaseMaskedArray):
                 mask = np.where(other == 1, False, mask)
             # x ** 0 is 1.
             mask = np.where((self._data == 0) & ~self._mask, False, mask)
-
-        if other is libmissing.NA:
-            result = np.ones_like(self._data)
-            if "truediv" in op_name and self.dtype.kind != "f":
-                # The actual data here doesn't matter since the mask
-                #  will be all-True, but since this is division, we want
-                #  to end up with floating dtype.
-                result = result.astype(np.float64)
-        else:
-            with np.errstate(all="ignore"):
-                result = op(self._data, other)
 
         return self._maybe_mask_result(result, mask, other, op_name)
 

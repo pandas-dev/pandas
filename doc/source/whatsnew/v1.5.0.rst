@@ -234,6 +234,7 @@ Timezones
 Numeric
 ^^^^^^^
 - Bug in operations with array-likes with ``dtype="boolean"`` and :attr:`NA` incorrectly altering the array in-place (:issue:`45421`)
+- Bug in multiplying a :class:`Series` with ``IntegerDtype`` or ``FloatingDtype`` by an arraylike with ``timedelta64[ns]`` dtype incorrectly raising (:issue:`??`)
 -
 
 Conversion
