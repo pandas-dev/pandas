@@ -2752,7 +2752,6 @@ class Styler(StylerRenderer):
         name="background",
         alt="text",
         image_prefix="bg",
-        axis="{0 or 'index', 1 or 'columns', None}",
         text_threshold="",
     )
     @Substitution(subset=subset)
@@ -2787,7 +2786,7 @@ class Styler(StylerRenderer):
             Compress the color range at the high end. This is a multiple of the data
             range to extend above the maximum; good values usually in [0, 1],
             defaults to 0.
-        axis : {axis}, default 0
+        axis : {{0 or 'index', 1 or 'columns', None}}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
@@ -2913,7 +2912,6 @@ class Styler(StylerRenderer):
         name="text",
         alt="background",
         image_prefix="tg",
-        axis="{0 or 'index', 1 or 'columns', None}",
         text_threshold="This argument is ignored (only used in `background_gradient`).",
     )
     def text_gradient(
