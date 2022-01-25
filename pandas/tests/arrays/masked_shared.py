@@ -146,6 +146,7 @@ class NumericOps:
         tm.assert_extension_array_equal(arr, expected)
 
     def test_mul_td64_array(self, dtype):
+        # GH#45622
         arr = pd.array([1, 2, pd.NA], dtype=dtype)
         other = np.arange(3).view("m8[ns]")
 
