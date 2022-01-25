@@ -268,7 +268,8 @@ class TestSeriesPlots(TestPlotBase):
         ax = df.plot.bar(use_index=False, ax=ax)
         self._check_text_labels(ax.get_xticklabels(), ["0", "1", "2", "3"])
 
-    def test_bar_user_colors(self):
+    @pytest.mark.parametrize("kw", ["c", "color"])
+    def test_bar_user_colors(self, kw):
         s = Series([1, 2, 3, 4])
 
         expected = [
@@ -278,21 +279,7 @@ class TestSeriesPlots(TestPlotBase):
             (1.0, 0.0, 0.0, 1.0),
         ]
 
-        ax = s.plot.bar(color=["red", "blue", "blue", "red"])
-        result = [p.get_facecolor() for p in ax.patches]
-        assert result == expected
-
-    def test_bar_user_colors_c(self):
-        s = Series([1, 2, 3, 4])
-
-        expected = [
-            (1.0, 0.0, 0.0, 1.0),
-            (0.0, 0.0, 1.0, 1.0),
-            (0.0, 0.0, 1.0, 1.0),
-            (1.0, 0.0, 0.0, 1.0),
-        ]
-
-        ax = s.plot.bar(c=["red", "blue", "blue", "red"])
+        ax = s.plot.bar(**{kw: ["red", "blue", "blue", "red"]})
         result = [p.get_facecolor() for p in ax.patches]
         assert result == expected
 

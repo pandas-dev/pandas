@@ -1131,11 +1131,8 @@ class PlotAccessor(PandasObject):
         color = kwargs.pop("color", None)
         if c is not None and color is not None:
             raise TypeError("Specify exactly one of `c` and `color`")
-        if c is not None or color is not None:
-            if color is not None:
-                kwargs.setdefault("color", color)
-            else:
-                kwargs.setdefault("color", c)
+        elif c is not None or color is not None:
+            kwargs["color"] = color if color is not None else c
 
         return self(kind="bar", x=x, y=y, **kwargs)
 
@@ -1227,11 +1224,8 @@ class PlotAccessor(PandasObject):
         color = kwargs.pop("color", None)
         if c is not None and color is not None:
             raise TypeError("Specify exactly one of `c` and `color`")
-        if c is not None or color is not None:
-            if color is not None:
-                kwargs.setdefault("color", color)
-            else:
-                kwargs.setdefault("color", c)
+        elif c is not None or color is not None:
+            kwargs["color"] = color if color is not None else c
 
         return self(kind="barh", x=x, y=y, **kwargs)
 
@@ -1602,7 +1596,7 @@ class PlotAccessor(PandasObject):
             raise ValueError("pie requires either y column or 'subplots=True'")
         return self(kind="pie", **kwargs)
 
-    def scatter(self, x, y, **kwargs):
+    def scatter(self, x, y, s=None, c=None, **kwargs):
         """
         Create a scatter plot with varying marker point size and color.
 
@@ -1685,25 +1679,17 @@ class PlotAccessor(PandasObject):
             ...                       c='species',
             ...                       colormap='viridis')
         """
-        s = kwargs.pop("s", None)
         size = kwargs.pop("size", None)
         if s is not None and size is not None:
             raise TypeError("Specify exactly one of `s` and `size`")
-        if s is not None or size is not None:
-            if s is not None:
-                kwargs.setdefault("s", s)
-            else:
-                kwargs.setdefault("s", size)
+        elif s is not None or size is not None:
+            kwargs["s"] = s if s is not None else size
 
-        c = kwargs.pop("c", None)
         color = kwargs.pop("color", None)
         if c is not None and color is not None:
             raise TypeError("Specify exactly one of `c` and `color`")
-        if c is not None or color is not None:
-            if c is not None:
-                kwargs.setdefault("c", c)
-            else:
-                kwargs.setdefault("c", color)
+        elif c is not None or color is not None:
+            kwargs["c"] = c if c is not None else color
 
         return self(kind="scatter", x=x, y=y, **kwargs)
 
