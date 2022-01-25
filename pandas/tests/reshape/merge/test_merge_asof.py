@@ -1228,6 +1228,7 @@ class TestAsOfMerge:
         # Note: this test passes if instead of using pd.array we use
         #  np.array([np.nan, 1]).  Other than that, I (@jbrockmendel)
         #  have NO IDEA what the expected behavior is.
+        # TODO(GH#32306): may be relevant to the expected behavior here.
 
         arr = pd.array([pd.NA, 0, 1], dtype=any_numeric_ea_dtype)
         if arr.dtype.kind in ["i", "u"]:
