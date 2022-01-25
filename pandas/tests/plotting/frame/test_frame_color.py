@@ -119,10 +119,9 @@ class TestDataFrameColor(TestPlotBase):
         tm.close()
 
         custom_colors = "rgcby"
-        for kw in ["c", "color"]:
-            ax = df.plot.bar(**{kw: "rgcby"})
-            self._check_colors(ax.patches[::5], facecolors=custom_colors)
-            tm.close()
+        ax = df.plot.bar(color="rgcby")
+        self._check_colors(ax.patches[::5], facecolors=custom_colors)
+        tm.close()
 
         from matplotlib import cm
 
@@ -138,17 +137,15 @@ class TestDataFrameColor(TestPlotBase):
         self._check_colors(ax.patches[::5], facecolors=rgba_colors)
         tm.close()
 
-        for kw in ["c", "color"]:
-            ax = df.loc[:, [0]].plot.bar(**{kw: "DodgerBlue"})
-            self._check_colors([ax.patches[0]], facecolors=["DodgerBlue"])
-            tm.close()
+        ax = df.loc[:, [0]].plot.bar(color="DodgerBlue")
+        self._check_colors([ax.patches[0]], facecolors=["DodgerBlue"])
+        tm.close()
 
         ax = df.plot(kind="bar", color="green")
         self._check_colors(ax.patches[::5], facecolors=["green"] * 5)
         tm.close()
 
-    @pytest.mark.parametrize("kw", ["c", "color"])
-    def test_bar_user_colors(self, kw):
+    def test_bar_user_colors(self):
         df = DataFrame(
             {"A": range(4), "B": range(1, 5), "color": ["red", "blue", "blue", "red"]}
         )
@@ -160,7 +157,7 @@ class TestDataFrameColor(TestPlotBase):
             (0.0, 0.0, 1.0, 1.0),
             (1.0, 0.0, 0.0, 1.0),
         ]
-        ax = df.plot.bar(y="A", **{kw: df["color"]})
+        ax = df.plot.bar(y="A", color=df["color"])
         result = [p.get_facecolor() for p in ax.patches]
         assert result == expected
 
@@ -216,17 +213,15 @@ class TestDataFrameColor(TestPlotBase):
         assert np.isclose(parent_distance, colorbar_distance, atol=1e-7).all()
 
     @pytest.mark.parametrize("cmap", [None, "Greys"])
-    def test_scatter_with_c_column_name_with_colors(self, cmap):
+    @pytest.mark.parametrize("kw", ["c", "color"])
+    def test_scatter_with_c_column_name_with_colors(self, cmap, kw):
         # https://github.com/pandas-dev/pandas/issues/34316
         df = DataFrame(
             [[5.1, 3.5], [4.9, 3.0], [7.0, 3.2], [6.4, 3.2], [5.9, 3.0]],
             columns=["length", "width"],
         )
         df["species"] = ["r", "r", "g", "g", "b"]
-        ax = df.plot.scatter(x=0, y=1, c="species", cmap=cmap)
-        assert ax.collections[0].colorbar is None
-
-        ax = df.plot.scatter(x=0, y=1, color="species", cmap=cmap)
+        ax = df.plot.scatter(x=0, y=1, cmap=cmap, **{kw: "species"})
         assert ax.collections[0].colorbar is None
 
     def test_scatter_colors(self):

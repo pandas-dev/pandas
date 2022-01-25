@@ -832,9 +832,6 @@ class TestDataFramePlots(TestPlotBase):
 
         df = DataFrame({"a": [0, 1], "b": [1, 0]})
 
-        with pytest.raises(TypeError, match="Specify exactly one of `c` and `color`"):
-            df.plot.bar(x="a", y="b", c="red", color="green")
-
         ax = _check_plot_works(df.plot.bar)
         self._check_ticks_props(ax, xrot=90)
 

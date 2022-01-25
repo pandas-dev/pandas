@@ -1127,13 +1127,6 @@ class PlotAccessor(PandasObject):
         axis of the plot shows the specific categories being compared, and the
         other axis represents a measured value.
         """
-        c = kwargs.pop("c", None)
-        color = kwargs.pop("color", None)
-        if c is not None and color is not None:
-            raise TypeError("Specify exactly one of `c` and `color`")
-        elif c is not None or color is not None:
-            kwargs["color"] = color if color is not None else c
-
         return self(kind="bar", x=x, y=y, **kwargs)
 
     @Appender(
@@ -1220,13 +1213,6 @@ class PlotAccessor(PandasObject):
         axis of the plot shows the specific categories being compared, and the
         other axis represents a measured value.
         """
-        c = kwargs.pop("c", None)
-        color = kwargs.pop("color", None)
-        if c is not None and color is not None:
-            raise TypeError("Specify exactly one of `c` and `color`")
-        elif c is not None or color is not None:
-            kwargs["color"] = color if color is not None else c
-
         return self(kind="barh", x=x, y=y, **kwargs)
 
     def box(self, by=None, **kwargs):
