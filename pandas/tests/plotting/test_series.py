@@ -270,16 +270,14 @@ class TestSeriesPlots(TestPlotBase):
 
     def test_bar_user_colors(self):
         s = Series([1, 2, 3, 4])
-
+        ax = s.plot.bar(color=["red", "blue", "blue", "red"])
+        result = [p.get_facecolor() for p in ax.patches]
         expected = [
             (1.0, 0.0, 0.0, 1.0),
             (0.0, 0.0, 1.0, 1.0),
             (0.0, 0.0, 1.0, 1.0),
             (1.0, 0.0, 0.0, 1.0),
         ]
-
-        ax = s.plot.bar(color=["red", "blue", "blue", "red"])
-        result = [p.get_facecolor() for p in ax.patches]
         assert result == expected
 
     def test_rotation(self):

@@ -831,7 +831,6 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.plot.bar)
 
         df = DataFrame({"a": [0, 1], "b": [1, 0]})
-
         ax = _check_plot_works(df.plot.bar)
         self._check_ticks_props(ax, xrot=90)
 

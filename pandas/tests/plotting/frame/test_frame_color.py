@@ -119,7 +119,7 @@ class TestDataFrameColor(TestPlotBase):
         tm.close()
 
         custom_colors = "rgcby"
-        ax = df.plot.bar(color="rgcby")
+        ax = df.plot.bar(color=custom_colors)
         self._check_colors(ax.patches[::5], facecolors=custom_colors)
         tm.close()
 
@@ -151,14 +151,14 @@ class TestDataFrameColor(TestPlotBase):
         )
         # This should *only* work when `y` is specified, else
         # we use one color per column
+        ax = df.plot.bar(y="A", color=df["color"])
+        result = [p.get_facecolor() for p in ax.patches]
         expected = [
             (1.0, 0.0, 0.0, 1.0),
             (0.0, 0.0, 1.0, 1.0),
             (0.0, 0.0, 1.0, 1.0),
             (1.0, 0.0, 0.0, 1.0),
         ]
-        ax = df.plot.bar(y="A", color=df["color"])
-        result = [p.get_facecolor() for p in ax.patches]
         assert result == expected
 
     def test_if_scatterplot_colorbar_affects_xaxis_visibility(self):
