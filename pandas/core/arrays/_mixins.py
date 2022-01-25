@@ -115,7 +115,12 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         """
         Return a view on the array.
 
-        See also
+        Returns
+        -------
+        ExtensionArray or np.ndarray
+            A view on the :class:`ExtensionArray`'s data.
+
+        See Also
         --------
         pandas.api.extensions.ExtensionArray.view
         """
@@ -162,7 +167,11 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         """
         Take elements from an array.
 
-        See also
+        Returns
+        -------
+        NDArrayBackedExtensionArray
+
+        See Also
         --------
         pandas.api.extensions.ExtensionArray.take
         """
