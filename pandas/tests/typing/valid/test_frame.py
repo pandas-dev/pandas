@@ -35,17 +35,17 @@ def test_types_to_csv() -> None:
     # variable has type "str")
     csv_df: str = df.to_csv()  # type: ignore[assignment]
 
-    with tempfile.NamedTemporaryFile() as file:
+    with tempfile.Namedtempfile.TemporaryFile() as file:
         df.to_csv(file.name)
         df2: pd.DataFrame = pd.read_csv(file.name)
 
-    with tempfile.NamedTemporaryFile() as file:
+    with tempfile.Namedtempfile.TemporaryFile() as file:
         df.to_csv(Path(file.name))
         df3: pd.DataFrame = pd.read_csv(Path(file.name))
 
     # This keyword was added in 1.1.0
     # https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
-    with tempfile.NamedTemporaryFile() as file:
+    with tempfile.Namedtempfile.TemporaryFile() as file:
         df.to_csv(file.name, errors="replace")
         df4: pd.DataFrame = pd.read_csv(file.name)
 
@@ -529,6 +529,7 @@ def test_types_merge() -> None:
     df.merge(df2, on=l)
 
 
+@td.skip_if_no("matplotlib")  # type: ignore[misc]
 def test_types_plot() -> None:
     df = pd.DataFrame(data={"col1": [1, 1, 2], "col2": [3, 4, 5]})
     df.plot.hist()
@@ -710,6 +711,7 @@ def test_types_from_dict() -> None:
     )
 
 
+@td.skip_if_no("jinja")  # type: ignore[misc]
 def test_pipe() -> None:
     def foo(df: pd.DataFrame) -> pd.DataFrame:
         return df
@@ -751,7 +753,7 @@ def test_types_to_parquet() -> None:
     df = pd.DataFrame([[1, 2], [8, 9]], columns=["A", "B"]).set_flags(
         allows_duplicate_labels=False
     )
-    with tempfile.NamedTemporaryFile() as file:
+    with tempfile.Namedtempfile.TemporaryFile() as file:
         df.to_parquet(Path(file.name))
     # to_parquet() returns bytes when no path given since 1.2.0
     # https://pandas.pydata.org/docs/whatsnew/v1.2.0.html
