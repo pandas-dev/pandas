@@ -119,14 +119,10 @@ class TestDataFrameColor(TestPlotBase):
         tm.close()
 
         custom_colors = "rgcby"
-        ax = df.plot.bar(color=custom_colors)
-        self._check_colors(ax.patches[::5], facecolors=custom_colors)
-        tm.close()
-
-        custom_colors = "rgcby"
-        ax = df.plot.bar(c=custom_colors)
-        self._check_colors(ax.patches[::5], facecolors=custom_colors)
-        tm.close()
+        for kw in ["c", "color"]:
+            ax = df.plot.bar(**{kw: "rgcby"})
+            self._check_colors(ax.patches[::5], facecolors=custom_colors)
+            tm.close()
 
         from matplotlib import cm
 
@@ -142,19 +138,17 @@ class TestDataFrameColor(TestPlotBase):
         self._check_colors(ax.patches[::5], facecolors=rgba_colors)
         tm.close()
 
-        ax = df.loc[:, [0]].plot.bar(color="DodgerBlue")
-        self._check_colors([ax.patches[0]], facecolors=["DodgerBlue"])
-        tm.close()
-
-        ax = df.loc[:, [0]].plot.bar(c="DodgerBlue")
-        self._check_colors([ax.patches[0]], facecolors=["DodgerBlue"])
-        tm.close()
+        for kw in ["c", "color"]:
+            ax = df.loc[:, [0]].plot.bar(**{kw: "DodgerBlue"})
+            self._check_colors([ax.patches[0]], facecolors=["DodgerBlue"])
+            tm.close()
 
         ax = df.plot(kind="bar", color="green")
         self._check_colors(ax.patches[::5], facecolors=["green"] * 5)
         tm.close()
 
-    def test_bar_user_colors(self):
+    @pytest.mark.parametrize("kw", ["c", "color"])
+    def test_bar_user_colors(self, kw):
         df = DataFrame(
             {"A": range(4), "B": range(1, 5), "color": ["red", "blue", "blue", "red"]}
         )

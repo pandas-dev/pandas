@@ -1643,6 +1643,14 @@ class PlotAccessor(PandasObject):
               marker points according to a colormap.
 
         **kwargs
+            size : str, int or array-like, optional
+                    The color of each point. Alias for `s`.
+                    `s` and `size` aren't allowed at the same time.
+                    .. versionadded:: 1.4.1
+            color : str, int or array-like, optional
+                    The color of each point. Alias for `c`.
+                    `c` and `color` aren't allowed at the same time.
+                    .. versionadded:: 1.4.1
             Keyword arguments to pass on to :meth:`DataFrame.plot`.
 
         Returns
