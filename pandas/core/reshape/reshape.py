@@ -857,6 +857,10 @@ def get_dummies(
     --------
     Series.str.get_dummies : Convert Series to dummy codes.
 
+    Notes
+    -----
+    Reference :ref:`the user guide <reshaping.dummies>` for more examples.
+
     Examples
     --------
     >>> s = pd.Series(list('abca'))
