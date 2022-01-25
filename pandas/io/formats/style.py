@@ -1659,7 +1659,6 @@ class Styler(StylerRenderer):
         alt="applymap",
         altwise="elementwise",
         func="take a Series and return a string array of the same length",
-        axis='{0, 1, "index", "columns"}',
         input_note="the index as a Series, if an Index, or a level of a MultiIndex",
         output_note="an identically sized array of CSS styles as strings",
         var="s",
@@ -1684,7 +1683,7 @@ class Styler(StylerRenderer):
         ----------
         func : function
             ``func`` should {func}.
-        axis : {axis}
+        axis : {{0, 1, "index", "columns"}}
             The headers over which to apply the function.
         level : int, str, list, optional
             If index is MultiIndex the level(s) over which to apply the function.
@@ -1745,7 +1744,6 @@ class Styler(StylerRenderer):
         alt="apply",
         altwise="level-wise",
         func="take a scalar and return a string",
-        axis='{0, 1, "index", "columns"}',
         input_note="an index value, if an Index, or a level value of a MultiIndex",
         output_note="CSS styles as a string",
         var="v",
