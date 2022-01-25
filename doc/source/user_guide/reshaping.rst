@@ -47,7 +47,8 @@ top level function :func:`~pandas.pivot`):
 
 .. ipython:: python
 
-   df.pivot(index="date", columns="variable", values="value")
+   pivoted = df.pivot(index="date", columns="variable", values="value")
+   pivoted
 
 If the ``values`` argument is omitted, and the input :class:`DataFrame` has more than
 one column of values which are not used as column or index inputs to :meth:`~DataFrame.pivot`,
