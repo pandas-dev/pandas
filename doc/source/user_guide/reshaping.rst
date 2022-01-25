@@ -19,7 +19,6 @@ Data is often stored in so-called "stacked" or "record" format:
 
    import pandas._testing as tm
 
-
    def unpivot(frame):
        N, K = frame.shape
        data = {
@@ -28,7 +27,6 @@ Data is often stored in so-called "stacked" or "record" format:
            "date": np.tile(np.asarray(frame.index), K),
        }
        return pd.DataFrame(data, columns=["date", "variable", "value"])
-
 
    df = unpivot(tm.makeTimeDataFrame(3))
    df
