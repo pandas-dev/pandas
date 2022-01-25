@@ -2018,7 +2018,8 @@ class _iLocIndexer(_LocationIndexer):
                 #  internals.concat logic
                 df = value.to_frame().T
                 df.index = [indexer]
-                df.index.name = self.obj.index.name
+                # error: "List[Any]" has no attribute "name"
+                df.index.name = self.obj.index.name  # type: ignore[attr-defined]
                 if not has_dtype:
                     # i.e. if we already had a Series or ndarray, keep that
                     #  dtype.  But if we had a list or dict, then do inference
