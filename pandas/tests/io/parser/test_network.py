@@ -69,14 +69,14 @@ def tips_df(datapath):
 
 
 @pytest.mark.usefixtures("s3_resource")
+@pytest.mark.xfail(
+    reason="CI race condition GH 45433, GH 44584",
+    raises=FileNotFoundError,
+    strict=False,
+)
 @td.skip_if_not_us_locale()
 class TestS3:
     @td.skip_if_no("s3fs")
-    @pytest.mark.xfail(
-        reason="CI race condition GH 45433, GH 44584",
-        raises=FileNotFoundError,
-        strict=False,
-    )
     def test_parse_public_s3_bucket(self, tips_df, s3so):
 
         # more of an integration test due to the not-public contents portion
