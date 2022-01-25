@@ -88,6 +88,48 @@ Optional libraries below the lowest tested version may still work, but are not c
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
+
+.. _whatsnew_150.read_xml_dtypes:
+
+read_xml now supports ``dtype``, ``converters``, and ``parse_dates``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Similar to other IO methods, :func:`pandas.read_xml` now supports assigning specific dtypes to columns,
+apply converter methods, and parse dates (:issue:`43567`).
+
+.. ipython:: python
+
+    xml_dates = """<?xml version='1.0' encoding='utf-8'?>
+    <data>
+      <row>
+        <shape>square</shape>
+        <degrees>00360</degrees>
+        <sides>4.0</sides>
+        <date>2020-01-01</date>
+       </row>
+      <row>
+        <shape>circle</shape>
+        <degrees>00360</degrees>
+        <sides/>
+        <date>2021-01-01</date>
+      </row>
+      <row>
+        <shape>triangle</shape>
+        <degrees>00180</degrees>
+        <sides>3.0</sides>
+        <date>2022-01-01</date>
+      </row>
+    </data>"""
+
+    df = pd.read_xml(
+        xml_dates,
+        dtype={'sides': 'Int64'},
+        converters={'degrees': str},
+        parse_dates=['date']
+    )
+    df
+    df.dtypes
+
 .. _whatsnew_150.api_breaking.other:
 
 Other API changes
@@ -148,6 +190,7 @@ Other Deprecations
 - Deprecated behavior of :meth:`SparseArray.astype`, :meth:`Series.astype`, and :meth:`DataFrame.astype` with :class:`SparseDtype` when passing a non-sparse ``dtype``. In a future version, this will cast to that non-sparse dtype instead of wrapping it in a :class:`SparseDtype` (:issue:`34457`)
 - Deprecated behavior of :meth:`DatetimeIndex.intersection` and :meth:`DatetimeIndex.symmetric_difference` (``union`` behavior was already deprecated in version 1.3.0) with mixed timezones; in a future version both will be cast to UTC instead of object dtype (:issue:`39328`, :issue:`45357`)
 - Deprecated :meth:`DataFrame.iteritems`, :meth:`Series.iteritems`, :meth:`HDFStore.iteritems` in favor of :meth:`DataFrame.items`, :meth:`Series.items`, :meth:`HDFStore.items`  (:issue:`45321`)
+- Deprecated :meth:`Series.is_monotonic` and :meth:`Index.is_monotonic` in favor of :meth:`Series.is_monotonic_increasing` and :meth:`Index.is_monotonic_increasing` (:issue:`45422`, :issue:`21335`)
 - Deprecated the ``__array_wrap__`` method of DataFrame and Series, rely on standard numpy ufuncs instead (:issue:`45451`)
 -
 
@@ -157,6 +200,7 @@ Other Deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
+- Performance improvement in :meth:`.GroupBy.transform` for some user-defined DataFrame -> Series functions (:issue:`45387`)
 - Performance improvement in :meth:`DataFrame.duplicated` when subset consists of only one column (:issue:`45236`)
 -
 
@@ -198,6 +242,7 @@ Conversion
 - Bug in constructing a :class:`Series` from a float-containing list or a floating-dtype ndarray-like (e.g. ``dask.Array``) and an integer dtype raising instead of casting like we would with an ``np.ndarray`` (:issue:`40110`)
 - Bug in :meth:`Float64Index.astype` to unsigned integer dtype incorrectly casting to ``np.int64`` dtype (:issue:`45309`)
 - Bug in :meth:`Series.astype` and :meth:`DataFrame.astype` from floating dtype to unsigned integer dtype failing to raise in the presence of negative values (:issue:`45151`)
+- Bug in :func:`array` with ``FloatingDtype`` and values containing float-castable strings incorrectly raising (:issue:`45424`)
 -
 
 Strings
@@ -217,7 +262,9 @@ Indexing
 - Bug in :meth:`Series.__setitem__` with a non-integer :class:`Index` when using an integer key to set a value that cannot be set inplace where a ``ValueError`` was raised insead of casting to a common dtype (:issue:`45070`)
 - Bug when setting a value too large for a :class:`Series` dtype failing to coerce to a common type (:issue:`26049`, :issue:`32878`)
 - Bug in :meth:`loc.__setitem__` treating ``range`` keys as positional instead of label-based (:issue:`45479`)
+- Bug in :meth:`Series.__setitem__` when setting ``boolean`` dtype values containing ``NA`` incorrectly raising instead of casting to ``boolean`` dtype (:issue:`45462`)
 - Bug in :meth:`Series.__setitem__` where setting :attr:`NA` into a numeric-dtpye :class:`Series` would incorrectly upcast to object-dtype rather than treating the value as ``np.nan`` (:issue:`44199`)
+- Bug in getting a column from a DataFrame with an object-dtype row index with datetime-like values: the resulting Series now preserves the exact object-dtype Index from the parent DataFrame (:issue:`42950`)
 -
 
 Missing
@@ -234,6 +281,8 @@ I/O
 ^^^
 - Bug in :meth:`DataFrame.to_stata` where no error is raised if the :class:`DataFrame` contains ``-np.inf`` (:issue:`45350`)
 - Bug in :meth:`DataFrame.info` where a new line at the end of the output is omitted when called on an empty :class:`DataFrame` (:issue:`45494`)
+- Bug in :func:`read_parquet` when ``engine="pyarrow"`` which caused partial write to disk when column of unsupported datatype was passed (:issue:`44914`)
+-
 
 Period
 ^^^^^^
@@ -243,6 +292,9 @@ Period
 Plotting
 ^^^^^^^^
 - Bug in :meth:`DataFrame.plot.barh` that prevented labeling the x-axis and ``xlabel`` updating the y-axis label (:issue:`45144`)
+- Bug in :meth:`DataFrame.plot.box` that prevented labeling the x-axis (:issue:`45463`)
+- Bug in :meth:`DataFrame.boxplot` that prevented passing in ``xlabel`` and ``ylabel`` (:issue:`45463`)
+- Bug in :meth:`DataFrame.boxplot` that prevented specifying ``vert=False`` (:issue:`36918`)
 -
 
 Groupby/resample/rolling
