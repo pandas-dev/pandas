@@ -13,7 +13,7 @@ VERSIONS = {
     "bs4": "4.8.2",
     "blosc": "1.20.1",
     "bottleneck": "1.3.1",
-    "duckdb": "0.3.1",
+    "python-duckdb": "0.3.1",
     "fastparquet": "0.4.0",
     "fsspec": "0.7.4",
     "html5lib": "1.1",
