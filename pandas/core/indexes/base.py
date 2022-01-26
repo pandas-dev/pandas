@@ -144,7 +144,6 @@ from pandas.core.arrays.datetimes import (
     tz_to_dtype,
     validate_tz_from_dtype,
 )
-from pandas.core.arrays.masked import BaseMaskedArray
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.base import (
     IndexOpsMixin,
@@ -329,6 +328,9 @@ class Index(IndexOpsMixin, PandasObject):
         # Caller is responsible for ensuring other.dtype == self.dtype
         sv = self._get_engine_target()
         ov = other._get_engine_target()
+        # can_use_libjoin assures sv and ov are ndarrays
+        sv = cast(np.ndarray, sv)
+        ov = cast(np.ndarray, ov)
         return libjoin.left_join_indexer_unique(sv, ov)
 
     @final
@@ -338,6 +340,9 @@ class Index(IndexOpsMixin, PandasObject):
         # Caller is responsible for ensuring other.dtype == self.dtype
         sv = self._get_engine_target()
         ov = other._get_engine_target()
+        # can_use_libjoin assures sv and ov are ndarrays
+        sv = cast(np.ndarray, sv)
+        ov = cast(np.ndarray, ov)
         joined_ndarray, lidx, ridx = libjoin.left_join_indexer(sv, ov)
         joined = self._from_join_target(joined_ndarray)
         return joined, lidx, ridx
@@ -349,6 +354,9 @@ class Index(IndexOpsMixin, PandasObject):
         # Caller is responsible for ensuring other.dtype == self.dtype
         sv = self._get_engine_target()
         ov = other._get_engine_target()
+        # can_use_libjoin assures sv and ov are ndarrays
+        sv = cast(np.ndarray, sv)
+        ov = cast(np.ndarray, ov)
         joined_ndarray, lidx, ridx = libjoin.inner_join_indexer(sv, ov)
         joined = self._from_join_target(joined_ndarray)
         return joined, lidx, ridx
@@ -360,6 +368,9 @@ class Index(IndexOpsMixin, PandasObject):
         # Caller is responsible for ensuring other.dtype == self.dtype
         sv = self._get_engine_target()
         ov = other._get_engine_target()
+        # can_use_libjoin assures sv and ov are ndarrays
+        sv = cast(np.ndarray, sv)
+        ov = cast(np.ndarray, ov)
         joined_ndarray, lidx, ridx = libjoin.outer_join_indexer(sv, ov)
         joined = self._from_join_target(joined_ndarray)
         return joined, lidx, ridx
@@ -387,7 +398,9 @@ class Index(IndexOpsMixin, PandasObject):
     # associated code in pandas 2.0.
     _is_backward_compat_public_numeric_index: bool = False
 
-    _engine_type: type[libindex.IndexEngine] = libindex.ObjectEngine
+    _engine_type: type[libindex.IndexEngine] | type[
+        libindex.ExtensionEngine
+    ] = libindex.ObjectEngine
     # whether we support partial string indexing. Overridden
     # in DatetimeIndex and PeriodIndex
     _supports_partial_string_indexing = False
@@ -850,23 +863,21 @@ class Index(IndexOpsMixin, PandasObject):
     @cache_readonly
     def _engine(
         self,
-    ) -> libindex.IndexEngine:
+    ) -> libindex.IndexEngine | libindex.ExtensionEngine:
         # For base class (object dtype) we get ObjectEngine
-
-        if isinstance(self._values, BaseMaskedArray):
-            # TODO(ExtensionIndex): use libindex.NullableEngine(self._values)
-            return libindex.ObjectEngine(self._get_engine_target())
-        elif (
-            isinstance(self._values, ExtensionArray)
+        target_values = self._get_engine_target()
+        if (
+            isinstance(target_values, ExtensionArray)
             and self._engine_type is libindex.ObjectEngine
         ):
-            # TODO(ExtensionIndex): use libindex.ExtensionEngine(self._values)
-            return libindex.ObjectEngine(self._get_engine_target())
+            return libindex.ExtensionEngine(target_values)
 
         # to avoid a reference cycle, bind `target_values` to a local variable, so
         # `self` is not passed into the lambda.
-        target_values = self._get_engine_target()
-        return self._engine_type(target_values)
+        target_values = cast(np.ndarray, target_values)
+        # error: Argument 1 to "ExtensionEngine" has incompatible type
+        # "ndarray[Any, Any]"; expected "ExtensionArray"
+        return self._engine_type(target_values)  # type:ignore[arg-type]
 
     @final
     @cache_readonly
@@ -2200,6 +2211,12 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Alias for is_monotonic_increasing.
         """
+        warnings.warn(
+            "is_monotonic is deprecated and will be removed in a future version. "
+            "Use is_monotonic_increasing instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.is_monotonic_increasing
 
     @property
@@ -3263,8 +3280,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         if (
             sort is None
-            and self.is_monotonic
-            and other.is_monotonic
+            and self.is_monotonic_increasing
+            and other.is_monotonic_increasing
             and not (self.has_duplicates and other.has_duplicates)
             and self._can_use_libjoin
         ):
@@ -3302,7 +3319,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             result = lvals
 
-        if not self.is_monotonic or not other.is_monotonic:
+        if not self.is_monotonic_increasing or not other.is_monotonic_increasing:
             # if both are monotonic then result should already be sorted
             result = _maybe_try_sort(result, sort)
 
@@ -3316,12 +3333,6 @@ class Index(IndexOpsMixin, PandasObject):
                 result = result.rename(name)
         else:
             result = self._shallow_copy(result, name=name)
-
-        if type(self) is Index and self.dtype != _dtype_obj:
-            # i.e. ExtensionArray-backed
-            # TODO(ExtensionIndex): revert this astype; it is a kludge to make
-            #  it possible to split ExtensionEngine from ExtensionIndex PR.
-            return result.astype(self.dtype, copy=False)
         return result
 
     @final
@@ -3407,7 +3418,11 @@ class Index(IndexOpsMixin, PandasObject):
         """
         intersection specialized to the case with matching dtypes.
         """
-        if self.is_monotonic and other.is_monotonic and self._can_use_libjoin:
+        if (
+            self.is_monotonic_increasing
+            and other.is_monotonic_increasing
+            and self._can_use_libjoin
+        ):
             try:
                 result = self._inner_indexer(other)[0]
             except TypeError:
@@ -3864,12 +3879,16 @@ class Index(IndexOpsMixin, PandasObject):
             tgt_values = target._get_engine_target()
             if target._is_multi and self._is_multi:
                 engine = self._engine
-                # error: "IndexEngine" has no attribute "_extract_level_codes"
-                tgt_values = engine._extract_level_codes(  # type: ignore[attr-defined]
+                # error: Item "IndexEngine" of "Union[IndexEngine, ExtensionEngine]"
+                # has no attribute "_extract_level_codes"
+                tgt_values = engine._extract_level_codes(  # type: ignore[union-attr]
                     target
                 )
 
-            indexer = self._engine.get_indexer(tgt_values)
+            # error: Argument 1 to "get_indexer" of "IndexEngine" has incompatible
+            # type "Union[ExtensionArray, ndarray[Any, Any]]"; expected
+            # "ndarray[Any, Any]"
+            indexer = self._engine.get_indexer(tgt_values)  # type:ignore[arg-type]
 
         return ensure_platform_int(indexer)
 
@@ -3945,13 +3964,18 @@ class Index(IndexOpsMixin, PandasObject):
             # TODO: get_indexer_with_fill docstring says values must be _sorted_
             #  but that doesn't appear to be enforced
             # error: "IndexEngine" has no attribute "get_indexer_with_fill"
-            return self._engine.get_indexer_with_fill(  # type: ignore[attr-defined]
+            engine = self._engine
+            return engine.get_indexer_with_fill(  # type: ignore[union-attr]
                 target=target._values, values=self._values, method=method, limit=limit
             )
 
         if self.is_monotonic_increasing and target.is_monotonic_increasing:
             target_values = target._get_engine_target()
             own_values = self._get_engine_target()
+            if not isinstance(target_values, np.ndarray) or not isinstance(
+                own_values, np.ndarray
+            ):
+                raise NotImplementedError
 
             if method == "pad":
                 indexer = libalgos.pad(own_values, target_values, limit=limit)
@@ -4503,15 +4527,15 @@ class Index(IndexOpsMixin, PandasObject):
         if not self.is_unique and not other.is_unique:
             return self._join_non_unique(other, how=how)
         elif not self.is_unique or not other.is_unique:
-            if self.is_monotonic and other.is_monotonic:
+            if self.is_monotonic_increasing and other.is_monotonic_increasing:
                 if self._can_use_libjoin:
                     # otherwise we will fall through to _join_via_get_indexer
                     return self._join_monotonic(other, how=how)
             else:
                 return self._join_non_unique(other, how=how)
         elif (
-            self.is_monotonic
-            and other.is_monotonic
+            self.is_monotonic_increasing
+            and other.is_monotonic_increasing
             and self._can_use_libjoin
             and (
                 not isinstance(self, ABCMultiIndex)
@@ -4879,8 +4903,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Whether we can use the fastpaths implement in _libs.join
         """
-        # Note: this will need to be updated when e.g. Nullable dtypes
-        #  are supported in Indexes.
+        if type(self) is Index:
+            # excludes EAs
+            return isinstance(self.dtype, np.dtype)
         return not is_interval_dtype(self.dtype)
 
     # --------------------------------------------------------------------
@@ -4946,16 +4971,12 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self._data
 
-    def _get_engine_target(self) -> np.ndarray:
+    def _get_engine_target(self) -> ArrayLike:
         """
-        Get the ndarray that we can pass to the IndexEngine constructor.
+        Get the ndarray or ExtensionArray that we can pass to the IndexEngine
+        constructor.
         """
-        # error: Incompatible return value type (got "Union[ExtensionArray,
-        # ndarray]", expected "ndarray")
-        if type(self) is Index and isinstance(self._values, ExtensionArray):
-            # TODO(ExtensionIndex): remove special-case, just use self._values
-            return self._values.astype(object)
-        return self._values  # type: ignore[return-value]
+        return self._values
 
     def _from_join_target(self, result: np.ndarray) -> ArrayLike:
         """
@@ -5844,10 +5865,9 @@ class Index(IndexOpsMixin, PandasObject):
         tgt_values = target._get_engine_target()
         if self._is_multi and target._is_multi:
             engine = self._engine
-            # error: "IndexEngine" has no attribute "_extract_level_codes"
-            tgt_values = engine._extract_level_codes(  # type: ignore[attr-defined]
-                target
-            )
+            # Item "IndexEngine" of "Union[IndexEngine, ExtensionEngine]" has
+            # no attribute "_extract_level_codes"
+            tgt_values = engine._extract_level_codes(target)  # type: ignore[union-attr]
 
         indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
         return ensure_platform_int(indexer), ensure_platform_int(missing)
