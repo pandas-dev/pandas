@@ -217,6 +217,7 @@ def responder(request):
     )
     server_process.start()
     yield port
+    server_process.join(10)
     server_process.terminate()
     kill_time = 5
     wait_time = 0
