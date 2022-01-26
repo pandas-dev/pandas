@@ -7,6 +7,7 @@ from io import (
     StringIO,
 )
 import logging
+import os
 
 import numpy as np
 import pytest
@@ -264,6 +265,12 @@ class TestS3:
         expected = read_csv(tips_file)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.skipif(
+        os.environ.get("PANDAS_CI", "0") == "1",
+        reason="This test can hang in our CI min_versions build "
+        "and leads to '##[error]The runner has "
+        "received a shutdown signal...' in GHA",
+    )
     def test_read_csv_chunked_download(self, s3_resource, caplog, s3so):
         # 8 MB, S3FS uses 5MB chunks
         import s3fs
