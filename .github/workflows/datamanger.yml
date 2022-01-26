@@ -52,6 +52,3 @@ jobs:
       run: |
         source activate pandas-dev
         ci/run_tests.sh
-
-    - name: Print skipped tests
-      run: python ci/print_skipped.py
