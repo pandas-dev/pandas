@@ -9,7 +9,7 @@ _nlv = Version(_np_version)
 np_version_under1p19 = _nlv < Version("1.19")
 np_version_under1p20 = _nlv < Version("1.20")
 np_version_under1p22 = _nlv < Version("1.22")
-np_version_is1p22 = _nlv == Version("1.22")
+np_version_gte1p22 = _nlv >= Version("1.22")
 is_numpy_dev = _nlv.dev is not None
 _min_numpy_ver = "1.18.5"
 
