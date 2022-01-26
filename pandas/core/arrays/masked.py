@@ -20,6 +20,7 @@ from pandas._libs import (
 from pandas._typing import (
     ArrayLike,
     AstypeArg,
+    DtypeObj,
     NpDtype,
     PositionalIndexer,
     Scalar,
@@ -36,10 +37,12 @@ from pandas.util._decorators import (
 )
 from pandas.util._validators import validate_fillna_kwargs
 
+from pandas.core.dtypes.astype import astype_nansafe
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     is_bool,
     is_bool_dtype,
+    is_datetime64_dtype,
     is_dtype_equal,
     is_float,
     is_float_dtype,
@@ -54,6 +57,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import (
     array_equivalent,
+    is_valid_na_for_dtype,
     isna,
     notna,
 )
@@ -91,7 +95,7 @@ BaseMaskedArrayT = TypeVar("BaseMaskedArrayT", bound="BaseMaskedArray")
 
 class BaseMaskedDtype(ExtensionDtype):
     """
-    Base class for dtypes for BasedMaskedArray subclasses.
+    Base class for dtypes for BaseMaskedArray subclasses.
     """
 
     name: str
@@ -160,6 +164,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         self._data = values
         self._mask = mask
 
+    @classmethod
+    def _from_sequence(
+        cls: type[BaseMaskedArrayT], scalars, *, dtype=None, copy: bool = False
+    ) -> BaseMaskedArrayT:
+        values, mask = cls._coerce_to_array(scalars, dtype=dtype, copy=copy)
+        return cls(values, mask)
+
     @property
     def dtype(self) -> BaseMaskedDtype:
         raise AbstractMethodError(self)
@@ -219,20 +230,53 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             new_values = self.copy()
         return new_values
 
-    def _coerce_to_array(self, values) -> tuple[np.ndarray, np.ndarray]:
-        raise AbstractMethodError(self)
+    @classmethod
+    def _coerce_to_array(
+        cls, values, *, dtype: DtypeObj, copy: bool = False
+    ) -> tuple[np.ndarray, np.ndarray]:
+        raise AbstractMethodError(cls)
+
+    def _validate_setitem_value(self, value):
+        """
+        Check if we have a scalar that we can cast losslessly.
+
+        Raises
+        ------
+        TypeError
+        """
+        kind = self.dtype.kind
+        # TODO: get this all from np_can_hold_element?
+        if kind == "b":
+            if lib.is_bool(value):
+                return value
+
+        elif kind == "f":
+            if lib.is_integer(value) or lib.is_float(value):
+                return value
+
+        else:
+            if lib.is_integer(value) or (lib.is_float(value) and value.is_integer()):
+                return value
+            # TODO: unsigned checks
+
+        # Note: without the "str" here, the f-string rendering raises in
+        #  py38 builds.
+        raise TypeError(f"Invalid value '{str(value)}' for dtype {self.dtype}")
 
     def __setitem__(self, key, value) -> None:
-        _is_scalar = is_scalar(value)
-        if _is_scalar:
-            value = [value]
-        value, mask = self._coerce_to_array(value)
-
-        if _is_scalar:
-            value = value[0]
-            mask = mask[0]
-
         key = check_array_indexer(self, key)
+
+        if is_scalar(value):
+            if is_valid_na_for_dtype(value, self.dtype):
+                self._mask[key] = True
+            else:
+                value = self._validate_setitem_value(value)
+                self._data[key] = value
+                self._mask[key] = False
+            return
+
+        value, mask = self._coerce_to_array(value, dtype=self.dtype)
+
         self._data[key] = value
         self._mask[key] = mask
 
@@ -408,7 +452,30 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             eacls = dtype.construct_array_type()
             return eacls._from_sequence(self, dtype=dtype, copy=copy)
 
-        raise NotImplementedError("subclass must implement astype to np.dtype")
+        na_value: float | np.datetime64 | lib.NoDefault
+
+        # coerce
+        if is_float_dtype(dtype):
+            # In astype, we consider dtype=float to also mean na_value=np.nan
+            na_value = np.nan
+        elif is_datetime64_dtype(dtype):
+            na_value = np.datetime64("NaT")
+        else:
+            na_value = lib.no_default
+
+        # to_numpy will also raise, but we get somewhat nicer exception messages here
+        if is_integer_dtype(dtype) and self._hasna:
+            raise ValueError("cannot convert NA to integer")
+        if is_bool_dtype(dtype) and self._hasna:
+            # careful: astype_nansafe converts np.nan to True
+            raise ValueError("cannot convert float NaN to bool")
+
+        data = self.to_numpy(dtype=dtype, na_value=na_value, copy=copy)
+        if self.dtype.kind == "f":
+            # TODO: make this consistent between IntegerArray/FloatingArray,
+            #  see test_astype_str
+            return astype_nansafe(data, dtype, copy=False)
+        return data
 
     __array_priority__ = 1000  # higher than ndarray so ops dispatch to us
 
@@ -715,6 +782,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         uniques_ea = type(self)(uniques, np.zeros(len(uniques), dtype=bool))
         return codes, uniques_ea
 
+    @doc(ExtensionArray._values_for_argsort)
+    def _values_for_argsort(self) -> np.ndarray:
+        return self._data
+
     def value_counts(self, dropna: bool = True) -> Series:
         """
         Returns a Series containing counts of each unique value.
@@ -806,7 +877,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         except TypeError:
             # GH#42626: not able to safely cast Int64
             # for floating point output
-            out = np.asarray(res, dtype=np.float64)
+            # error: Incompatible types in assignment (expression has type
+            # "ndarray[Any, dtype[floating[_64Bit]]]", variable has type
+            # "BaseMaskedArrayT")
+            out = np.asarray(res, dtype=np.float64)  # type: ignore[assignment]
         return out
 
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):

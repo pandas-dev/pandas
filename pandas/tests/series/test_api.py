@@ -172,7 +172,9 @@ class TestSeriesMisc:
     def test_inspect_getmembers(self):
         # GH38782
         ser = Series(dtype=object)
-        with tm.assert_produces_warning(None):
+        # TODO(2.0): Change to None once is_monotonic deprecation
+        # is enforced
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             inspect.getmembers(ser)
 
     def test_unknown_attribute(self):
@@ -203,3 +205,8 @@ class TestSeriesMisc:
         msg = "'Series' object has no attribute 'weekday'"
         with pytest.raises(AttributeError, match=msg):
             ser.weekday
+
+    def test_series_iteritems_deprecated(self):
+        ser = Series([1])
+        with tm.assert_produces_warning(FutureWarning):
+            next(ser.iteritems())

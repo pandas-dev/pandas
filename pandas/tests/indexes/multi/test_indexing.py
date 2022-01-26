@@ -353,9 +353,9 @@ class TestGetIndexer:
             ]
         )
         # sanity check
-        assert mult_idx_1.is_monotonic
+        assert mult_idx_1.is_monotonic_increasing
         assert mult_idx_1.is_unique
-        assert mult_idx_2.is_monotonic
+        assert mult_idx_2.is_monotonic_increasing
         assert mult_idx_2.is_unique
 
         # show the relationships between the two

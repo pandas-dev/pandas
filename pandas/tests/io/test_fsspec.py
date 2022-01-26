@@ -1,10 +1,9 @@
 import io
-import sys
 
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_windows
+from pandas.compat import PY310
 from pandas.compat._optional import VERSIONS
 
 from pandas import (
@@ -162,10 +161,7 @@ def test_to_parquet_new_file(monkeypatch, cleared_fs):
     )
 
 
-@td.skip_if_no("pyarrow")
-@pytest.mark.xfail(
-    is_platform_windows() and sys.version_info[:2] == (3, 8), reason="GH 45344"
-)
+@td.skip_if_no("pyarrow", min_version="2")
 def test_arrowparquet_options(fsspectest):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
     df = DataFrame({"a": [0]})
@@ -186,6 +182,7 @@ def test_arrowparquet_options(fsspectest):
 
 @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fastparquet
 @td.skip_if_no("fastparquet")
+@pytest.mark.xfail(PY310, reason="fastparquet failing on 3.10")
 def test_fastparquet_options(fsspectest):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
     df = DataFrame({"a": [0]})
