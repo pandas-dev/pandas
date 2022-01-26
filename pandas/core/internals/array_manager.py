@@ -341,7 +341,7 @@ class BaseArrayManager(DataManager):
             cond=cond,
         )
 
-    def setitem(self, indexer, value) -> ArrayManager:
+    def setitem(self: T, indexer, value) -> T:
         return self.apply_with_block("setitem", indexer=indexer, value=value)
 
     def putmask(self, mask, new, align: bool = True):
