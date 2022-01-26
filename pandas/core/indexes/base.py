@@ -2213,7 +2213,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     @cache_readonly
     def _can_hold_na(self) -> bool:
-        if self.dtype == bool:
+        if isinstance(self.dtype, ExtensionDtype):
+            return self.dtype._can_hold_na
+        if self.dtype.kind in ["i", "u", "b"]:
             return False
         return True
 

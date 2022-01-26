@@ -92,13 +92,6 @@ class NumericIndex(Index):
     _can_hold_strings = False
     _is_backward_compat_public_numeric_index: bool = True
 
-    @cache_readonly
-    def _can_hold_na(self) -> bool:
-        if is_float_dtype(self.dtype):
-            return True
-        else:
-            return False
-
     _engine_types: dict[np.dtype, type[libindex.IndexEngine]] = {
         np.dtype(np.int8): libindex.Int8Engine,
         np.dtype(np.int16): libindex.Int16Engine,
