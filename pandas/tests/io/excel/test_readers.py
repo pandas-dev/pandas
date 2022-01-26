@@ -154,6 +154,10 @@ class TestReaders:
             expected = expected_defaults[read_ext[1:]]
         assert result == expected
 
+    @pytest.mark.skipif(
+        os.environ.get("PANDAS_CI", "0") == "1" and is_platform_windows(),
+        reason="Flakily hangs on multi-process CI Windows environment",
+    )
     def test_usecols_int(self, read_ext):
         # usecols as int
         msg = "Passing an integer for `usecols`"
