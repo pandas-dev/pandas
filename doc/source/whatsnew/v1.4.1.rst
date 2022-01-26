@@ -15,6 +15,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Regression in :meth:`Series.mask` with ``inplace=True`` and ``PeriodDtype`` and an incompatible ``other`` coercing to a common dtype instead of raising (:issue:`45546`)
+- Regression in :meth:`Series.fillna` with ``downcast=False`` incorrectly downcasting ``object`` dtype (:issue:`45603`)
 -
 
 .. ---------------------------------------------------------------------------
