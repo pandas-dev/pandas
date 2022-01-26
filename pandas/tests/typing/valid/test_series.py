@@ -1,3 +1,10 @@
+"""
+Copyright (c) Virtus Lab sp. z o.o. (Ltd.)
+
+Distributed under the terms of the MIT license.
+
+The full license is in the STUBS_LICENSE file, distributed with this software.
+"""
 # flake8: noqa: F841
 # TODO: many functions need return types annotations for pyright
 # to run with reportGeneralTypeIssues = true
