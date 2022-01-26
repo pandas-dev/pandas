@@ -30,7 +30,6 @@ from pandas._typing import (
     Shape,
     npt,
 )
-from pandas.compat import np_version_under1p20
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
@@ -39,7 +38,6 @@ from pandas.core.dtypes.astype import astype_array_safe
 from pandas.core.dtypes.cast import (
     can_hold_element,
     find_result_type,
-    infer_dtype_from,
     maybe_downcast_numeric,
     maybe_downcast_to_dtype,
     soft_convert_objects,
@@ -878,6 +876,12 @@ class Block(PandasObject):
 
     # ---------------------------------------------------------------------
 
+    def _standardize_fill_value(self, value):
+        # if we are passed a scalar None, convert it here
+        if self.dtype != _dtype_obj and is_valid_na_for_dtype(value, self.dtype):
+            value = self.fill_value
+        return value
+
     def _maybe_squeeze_arg(self, arg: np.ndarray) -> np.ndarray:
         """
         For compatibility with 1D-only ExtensionArrays.
@@ -911,10 +915,7 @@ class Block(PandasObject):
         be a compatible shape.
         """
 
-        # coerce None values, if appropriate
-        if value is None:
-            if self.is_numeric:
-                value = np.nan
+        value = self._standardize_fill_value(value)
 
         # coerce if block dtype can store value
         if not self._can_hold_element(value):
@@ -968,19 +969,11 @@ class Block(PandasObject):
         if new is lib.no_default:
             new = self.fill_value
 
-        # if we are passed a scalar None, convert it here
-        if not self.is_object and is_valid_na_for_dtype(new, self.dtype):
-            new = self.fill_value
+        new = self._standardize_fill_value(new)
 
         if self._can_hold_element(new):
             putmask_without_repeat(values.T, mask, new)
             return [self]
-
-        elif np_version_under1p20 and infer_dtype_from(new)[0].kind in ["m", "M"]:
-            # using putmask with object dtype will incorrectly cast to object
-            # Having excluded self._can_hold_element, we know we cannot operate
-            #  in-place, so we are safe using `where`
-            return self.where(new, ~mask)
 
         elif noop:
             return [self]
@@ -1152,8 +1145,7 @@ class Block(PandasObject):
             # see test_shift_object_non_scalar_fill
             raise ValueError("fill_value must be a scalar")
 
-        if is_valid_na_for_dtype(fill_value, self.dtype) and self.dtype != _dtype_obj:
-            fill_value = self.fill_value
+        fill_value = self._standardize_fill_value(fill_value)
 
         if not self._can_hold_element(fill_value):
             nb = self.coerce_to_target_dtype(fill_value)
@@ -1196,8 +1188,7 @@ class Block(PandasObject):
         if other is lib.no_default:
             other = self.fill_value
 
-        if is_valid_na_for_dtype(other, self.dtype) and self.dtype != _dtype_obj:
-            other = self.fill_value
+        other = self._standardize_fill_value(other)
 
         if not self._can_hold_element(other):
             # we cannot coerce, return a compat dtype
@@ -1426,8 +1417,6 @@ class EABackedBlock(Block):
                 #  isinstance(values, NDArrayBackedExtensionArray)
                 if isinstance(self.dtype, PeriodDtype):
                     # TODO: don't special-case
-                    # Note: this is the main place where the fallback logic
-                    #  is different from EABackedBlock.putmask.
                     raise
                 blk = self.coerce_to_target_dtype(other)
                 nbs = blk.where(other, cond)
@@ -1468,6 +1457,9 @@ class EABackedBlock(Block):
             elif isinstance(self, NDArrayBackedExtensionBlock):
                 # NB: not (yet) the same as
                 #  isinstance(values, NDArrayBackedExtensionArray)
+                if isinstance(self.dtype, PeriodDtype):
+                    # TODO: don't special-case
+                    raise
                 blk = self.coerce_to_target_dtype(new)
                 return blk.putmask(mask, new)
 
@@ -1475,6 +1467,40 @@ class EABackedBlock(Block):
                 raise
 
         return [self]
+
+    def fillna(
+        self, value, limit=None, inplace: bool = False, downcast=None
+    ) -> list[Block]:
+
+        try:
+            new_values = self.values.fillna(value=value, limit=limit)
+        except (TypeError, ValueError) as err:
+            _catch_deprecated_value_error(err)
+
+            if is_interval_dtype(self.dtype):
+                # Discussion about what we want to support in the general
+                #  case GH#39584
+                blk = self.coerce_to_target_dtype(value)
+                if blk.dtype == _dtype_obj:
+                    # For now at least, only support casting e.g.
+                    #  Interval[int64]->Interval[float64],
+                    raise
+                # Never actually reached, but *could* be possible pending GH#45412
+                return blk.fillna(value, limit, inplace, downcast)
+
+            elif isinstance(self, NDArrayBackedExtensionBlock):
+                # We support filling a DatetimeTZ with a `value` whose timezone
+                #  is different by coercing to object.
+                if self.dtype.kind == "m":
+                    # TODO: don't special-case td64
+                    raise
+                blk = self.coerce_to_target_dtype(value)
+                return blk.fillna(value, limit, inplace, downcast)
+
+            else:
+                raise
+
+        return [self.make_block_same_class(values=new_values)]
 
     def delete(self, loc) -> None:
         """
@@ -1729,12 +1755,6 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         new_values = self.values[slicer]
         return type(self)(new_values, self._mgr_locs, ndim=self.ndim)
 
-    def fillna(
-        self, value, limit=None, inplace: bool = False, downcast=None
-    ) -> list[Block]:
-        values = self.values.fillna(value=value, limit=limit)
-        return [self.make_block_same_class(values=values)]
-
     def diff(self, n: int, axis: int = 1) -> list[Block]:
         if axis == 0 and n != 0:
             # n==0 case will be a no-op so let is fall through
@@ -1857,21 +1877,6 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
         values = self.values
         new_values = values.shift(periods, fill_value=fill_value, axis=axis)
         return [self.make_block_same_class(new_values)]
-
-    def fillna(
-        self, value, limit=None, inplace: bool = False, downcast=None
-    ) -> list[Block]:
-
-        if not self._can_hold_element(value) and self.dtype.kind != "m":
-            # We support filling a DatetimeTZ with a `value` whose timezone
-            #  is different by coercing to object.
-            # TODO: don't special-case td64
-            return self.coerce_to_target_dtype(value).fillna(
-                value, limit, inplace, downcast
-            )
-
-        new_values = self.values.fillna(value=value, limit=limit)
-        return [self.make_block_same_class(values=new_values)]
 
 
 def _catch_deprecated_value_error(err: Exception) -> None:
