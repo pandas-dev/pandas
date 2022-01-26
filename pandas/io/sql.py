@@ -732,6 +732,10 @@ def pandasSQL_builder(con, schema: str | None = None):
     """
     import sqlite3
     import warnings
+    import duckdb
+
+    if isinstance(con, duckdb.DuckDBPyConnection):
+        return DuckDBDatabase(con)
 
     if isinstance(con, sqlite3.Connection) or con is None:
         return SQLiteDatabase(con)
@@ -2192,37 +2196,75 @@ class SQLiteDatabase(PandasSQL):
         return str(table.sql_schema())
 
 
-def get_schema(
-    frame,
-    name: str,
-    keys=None,
-    con=None,
-    dtype: DtypeArg | None = None,
-    schema: str | None = None,
-):
+class DuckDBDatabase(PandasSQL):
     """
-    Get the SQL db table schema for the given frame.
+    Version of SQLDatabase to support DuckDB connections (fallback without
+    SQLAlchemy). This should only be used internally.
 
     Parameters
     ----------
-    frame : DataFrame
-    name : str
-        name of SQL table
-    keys : string or sequence, default: None
-        columns to use a primary key
-    con: an open SQL database connection object or a SQLAlchemy connectable
-        Using SQLAlchemy makes it possible to use any DB supported by that
-        library, default: None
-        If a DBAPI2 object, only sqlite3 is supported.
-    dtype : dict of column name to SQL type, default None
-        Optional specifying the datatype for columns. The SQL type should
-        be a SQLAlchemy type, or a string for sqlite3 fallback connection.
-    schema: str, default: None
-        Optional specifying the schema to be used in creating the table.
+    con : duckdb connection object
 
-        .. versionadded:: 1.2.0
     """
-    pandas_sql = pandasSQL_builder(con=con)
-    return pandas_sql._create_sql_schema(
-        frame, name, keys=keys, dtype=dtype, schema=schema
-    )
+
+    def __init__(self, con):
+        self.con = con
+
+    def to_sql(
+        self,
+        frame,
+        name,
+        if_exists="fail",
+        index=True,
+        index_label=None,
+        schema=None,
+        chunksize=None,
+        dtype: DtypeArg | None = None,
+        method=None,
+        **kwargs,
+    ) -> int | None:
+        """
+        Write records stored in a DataFrame to a SQL database.
+
+        Parameters
+        ----------
+        frame: DataFrame
+        name: string
+            Name of SQL table.
+        if_exists: {'fail', 'replace', 'append'}, default 'fail'
+            fail: If table exists, do nothing.
+            replace: If table exists, drop it, recreate it, and insert data.
+            append: If table exists, insert data. Create if it does not exist.
+        index : bool, default True
+            Ignored parameter included for compatibility with SQLAlchemy
+            and SQLite version of ``to_sql``.
+        index_label : string or sequence, default None
+            Ignored parameter included for compatibility with SQLAlchemy
+            and SQLite version of ``to_sql``.
+        schema : string, default None
+            Ignored parameter included for compatibility with SQLAlchemy
+            version of ``to_sql``.
+        chunksize : int, default None
+            Ignored parameter included for compatibility with SQLAlchemy
+            and SQLite version of ``to_sql``.
+        dtype : Ignored parameter included for compatibility with SQLAlchemy
+            and SQLite version of ``to_sql``.
+        method : {None, 'multi', callable}, default None
+            Ignored parameter included for compatibility with SQLAlchemy
+            and SQLite version of ``to_sql``.
+        """
+        table_exits = len(self.con.execute(f"SELECT name FROM sqlite_master WHERE name='{name}'").fetchall()) > 0
+        if table_exits:
+            if if_exists == "fail":
+                raise ValueError(f"Table '{name}' already exists.")
+            elif if_exists == "replace":
+                self.con.execute(f"DROP TABLE {name}")
+                return self.con.execute(f"CREATE TABLE {name} AS SELECT * FROM frame").fetchone()[0]
+            elif if_exists == "append":
+                return self.con.execute(f"INSERT INTO {name} SELECT * FROM frame").fetchone()[0]
+            else:
+                raise ValueError(f"'{if_exists}' is not valid for if_exists")
+
+        return self.con.execute(f"CREATE TABLE {name} AS SELECT * FROM frame").fetchone()[0]
+
+

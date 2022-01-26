@@ -27,6 +27,7 @@ from datetime import (
 from io import StringIO
 from pathlib import Path
 import sqlite3
+import duckdb
 
 import numpy as np
 import pytest
@@ -2936,3 +2937,41 @@ class TestXSQLite:
             (5, "E"),
         ]
         self.drop_table(table_name)
+
+class TestDuckDB:
+
+    def test_to_sql_duck(self):
+        con = duckdb.connect()
+        df = pd.DataFrame([[None, 10, 1.0], ['nick', None, 1.5], ['juli', 14, None]],
+                          columns=['Name', 'Age', 'Numeric'])
+        df.to_sql('ages', con)
+        result = con.execute('SELECT count(*), sum("Age"), sum("Numeric") FROM ages').fetchone()
+        assert result == (3, 24, 2.5,)
+        con.close()
+
+    def test_to_sql_duck_all_exist_options(self):
+        con = duckdb.connect()
+        con.execute("CREATE TABLE ages (a INTEGER)")
+
+        df = pd.DataFrame([[None, 10, 1.0], ['nick', None, 1.5], ['juli', 14, None]],
+                          columns=['Name', 'Age', 'Numeric'])
+        with pytest.raises(Exception) as e_info:
+            df.to_sql('ages', con)
+
+
+        assert 'already exists' in str(e_info.value)
+
+        df.to_sql('ages', con, if_exists= 'replace')
+        result = con.execute('SELECT count(*), sum("Age"), sum("Numeric") FROM ages').fetchone()
+        assert result == (3, 24, 2.5,)
+
+        df.to_sql('ages', con, if_exists='append')
+        result = con.execute('SELECT count(*), sum("Age"), sum("Numeric") FROM ages').fetchone()
+        assert result == (6, 48, 5,)
+
+        with pytest.raises(Exception) as e_info:
+            df.to_sql('ages', con, if_exists='flark')
+
+
+        assert 'not valid for if_exists' in str(e_info.value)
+        con.close()
