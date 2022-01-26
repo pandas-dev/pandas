@@ -61,8 +61,3 @@ jobs:
         testResultsFiles: 'test-data.xml'
         testRunTitle: ${{ format('{0}-$(CONDA_PY)', parameters.name) }}
       displayName: 'Publish test results'
-
-    - script: |
-        source activate pandas-dev
-        python ci/print_skipped.py
-      displayName: 'Print skipped tests'
