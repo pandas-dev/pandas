@@ -131,8 +131,6 @@ class TestReaders:
         def parser(self, *args, **kwargs):
             return self.engine
 
-        monkeypatch.setattr(pd.ExcelFile, "parse", parser)
-
         expected_defaults = {
             "xlsx": "openpyxl",
             "xlsm": "openpyxl",
@@ -140,9 +138,10 @@ class TestReaders:
             "xls": "xlrd",
             "ods": "odf",
         }
-
-        with open("test1" + read_ext, "rb") as f:
-            result = pd.read_excel(f)
+        with monkeypatch.context() as m:
+            m.setattr(pd.ExcelFile, "parse", parser)
+            with open("test1" + read_ext, "rb") as f:
+                result = pd.read_excel(f)
 
         if engine is not None:
             expected = engine
