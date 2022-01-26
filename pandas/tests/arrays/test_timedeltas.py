@@ -11,18 +11,13 @@ class TestTimedeltaArray:
     @pytest.mark.parametrize("dtype", [int, np.int32, np.int64, "uint32", "uint64"])
     def test_astype_int(self, dtype):
         arr = TimedeltaArray._from_sequence([Timedelta("1H"), Timedelta("2H")])
-        with tm.assert_produces_warning(FutureWarning):
-            # astype(int..) deprecated
-            result = arr.astype(dtype)
+        result = arr.astype(dtype)
 
         if np.dtype(dtype).kind == "u":
             expected_dtype = np.dtype("uint64")
         else:
             expected_dtype = np.dtype("int64")
-
-        with tm.assert_produces_warning(FutureWarning):
-            # astype(int..) deprecated
-            expected = arr.astype(expected_dtype)
+        expected = arr.astype(expected_dtype)
 
         assert result.dtype == expected_dtype
         tm.assert_numpy_array_equal(result, expected)
@@ -99,11 +94,11 @@ class TestUnaryOps:
 
         result = +arr
         tm.assert_timedelta_array_equal(result, arr)
-        assert not np.shares_memory(result._ndarray, arr._ndarray)
+        assert not tm.shares_memory(result, arr)
 
         result2 = np.positive(arr)
         tm.assert_timedelta_array_equal(result2, arr)
-        assert not np.shares_memory(result2._ndarray, arr._ndarray)
+        assert not tm.shares_memory(result2, arr)
 
     def test_neg(self):
         vals = np.array([-3600 * 10 ** 9, "NaT", 7200 * 10 ** 9], dtype="m8[ns]")

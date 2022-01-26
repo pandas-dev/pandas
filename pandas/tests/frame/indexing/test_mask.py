@@ -96,9 +96,8 @@ class TestDataFrameMask:
         # https://github.com/pandas-dev/pandas/issues/41485
         obj = DataFrame({"a": range(5)})
         expected = DataFrame({"a": [-1, 1, -1, 3, -1]})
-        if frame_or_series is Series:
-            obj = obj["a"]
-            expected = expected["a"]
+        obj = tm.get_obj(obj, frame_or_series)
+        expected = tm.get_obj(expected, frame_or_series)
 
         cond = obj % 2 == 0
         msg = (

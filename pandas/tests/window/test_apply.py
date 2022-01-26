@@ -214,7 +214,8 @@ def test_center(raw):
     expected = (
         concat([obj, Series([np.NaN] * 9)])
         .rolling(20, min_periods=15)
-        .apply(f, raw=raw)[9:]
+        .apply(f, raw=raw)
+        .iloc[9:]
         .reset_index(drop=True)
     )
     tm.assert_series_equal(result, expected)

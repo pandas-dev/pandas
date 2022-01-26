@@ -13,8 +13,8 @@ from pandas._libs import (
     Timedelta,
     missing as libmissing,
 )
+from pandas._typing import Dtype
 from pandas.compat.numpy import function as nv
-from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import (
     is_float,
@@ -22,6 +22,7 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_integer_dtype,
     is_list_like,
+    pandas_dtype,
 )
 
 from pandas.core.arrays.masked import (
@@ -31,6 +32,7 @@ from pandas.core.arrays.masked import (
 
 if TYPE_CHECKING:
     import pyarrow
+
 
 T = TypeVar("T", bound="NumericArray")
 
@@ -50,6 +52,16 @@ class NumericDtype(BaseMaskedDtype):
 
         pyarrow_type = pyarrow.from_numpy_dtype(self.type)
         if not array.type.equals(pyarrow_type):
+            # test_from_arrow_type_error raise for string, but allow
+            #  through itemsize conversion GH#31896
+            rt_dtype = pandas_dtype(array.type.to_pandas_dtype())
+            if rt_dtype.kind not in ["i", "u", "f"]:
+                # Could allow "c" or potentially disallow float<->int conversion,
+                #  but at the moment we specifically test that uint<->int works
+                raise TypeError(
+                    f"Expected array of {self} type, got {array.type} instead"
+                )
+
             array = array.cast(pyarrow_type)
 
         if isinstance(array, pyarrow.Array):
@@ -80,8 +92,14 @@ class NumericArray(BaseMaskedArray):
     Base class for IntegerArray and FloatingArray.
     """
 
-    def _maybe_mask_result(self, result, mask, other, op_name: str):
-        raise AbstractMethodError(self)
+    @classmethod
+    def _from_sequence_of_strings(
+        cls: type[T], strings, *, dtype: Dtype | None = None, copy: bool = False
+    ) -> T:
+        from pandas.core.tools.numeric import to_numeric
+
+        scalars = to_numeric(strings, errors="raise")
+        return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
     def _arith_method(self, other, op):
         op_name = op.__name__
@@ -156,18 +174,6 @@ class NumericArray(BaseMaskedArray):
         return self._maybe_mask_result(result, mask, other, op_name)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
-
-    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
-        result = super()._reduce(name, skipna=skipna, **kwargs)
-        if isinstance(result, np.ndarray):
-            axis = kwargs["axis"]
-            if skipna:
-                # we only retain mask for all-NA rows/columns
-                mask = self._mask.all(axis=axis)
-            else:
-                mask = self._mask.any(axis=axis)
-            return type(self)(result, mask=mask)
-        return result
 
     def __neg__(self):
         return type(self)(-self._data, self._mask.copy())

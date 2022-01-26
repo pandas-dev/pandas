@@ -246,7 +246,7 @@ class SharedTests:
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
         arr = self.array_cls(data, freq="D")
 
-        msg = f"'{type(arr).__name__}' does not implement reduction 'not a method'"
+        msg = "does not support reduction 'not a method'"
         with pytest.raises(TypeError, match=msg):
             arr._reduce("not a method")
 
@@ -814,7 +814,7 @@ class TestDatetimeArray(SharedTests):
             expected = arr1d.to_period("D").reshape(1, -1)
         tm.assert_period_array_equal(result, expected)
 
-    @pytest.mark.parametrize("propname", DatetimeIndex._bool_ops)
+    @pytest.mark.parametrize("propname", DatetimeArray._bool_ops)
     def test_bool_properties(self, arr1d, propname):
         # in this case _bool_ops is just `is_leap_year`
         dti = self.index_cls(arr1d)
@@ -826,16 +826,20 @@ class TestDatetimeArray(SharedTests):
 
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.parametrize("propname", DatetimeIndex._field_ops)
+    @pytest.mark.parametrize("propname", DatetimeArray._field_ops)
     def test_int_properties(self, arr1d, propname):
+        warn = None
+        msg = "weekofyear and week have been deprecated, please use"
         if propname in ["week", "weekofyear"]:
             # GH#33595 Deprecate week and weekofyear
-            return
+            warn = FutureWarning
+
         dti = self.index_cls(arr1d)
         arr = arr1d
 
-        result = getattr(arr, propname)
-        expected = np.array(getattr(dti, propname), dtype=result.dtype)
+        with tm.assert_produces_warning(warn, match=msg):
+            result = getattr(arr, propname)
+            expected = np.array(getattr(dti, propname), dtype=result.dtype)
 
         tm.assert_numpy_array_equal(result, expected)
 
@@ -979,7 +983,7 @@ class TestTimedeltaArray(SharedTests):
 
         tm.assert_numpy_array_equal(result, expected.values)
 
-    @pytest.mark.parametrize("propname", TimedeltaIndex._field_ops)
+    @pytest.mark.parametrize("propname", TimedeltaArray._field_ops)
     def test_int_properties(self, timedelta_index, propname):
         tdi = timedelta_index
         arr = TimedeltaArray(tdi)

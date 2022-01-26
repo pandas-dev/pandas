@@ -39,6 +39,7 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat.numpy import function as nv
+from pandas.errors import IntCastingNaNError
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
@@ -685,6 +686,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             other = pd_array(other)
         elif not isinstance(other, Interval):
             # non-interval scalar -> no matches
+            if other is NA:
+                # GH#31882
+                from pandas.core.arrays import BooleanArray
+
+                arr = np.empty(self.shape, dtype=bool)
+                mask = np.ones(self.shape, dtype=bool)
+                return BooleanArray(arr, mask)
             return invalid_comparison(self, other, op)
 
         # determine the dtype of the elements we want to compare
@@ -743,7 +751,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 if obj is NA:
                     # comparison with np.nan returns NA
                     # github.com/pandas-dev/pandas/pull/37124#discussion_r509095092
-                    result[i] = op is operator.ne
+                    result = result.astype(object)
+                    result[i] = NA
                 else:
                     raise
         return result
@@ -789,6 +798,40 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return super().argsort(
             ascending=ascending, kind=kind, na_position=na_position, **kwargs
         )
+
+    def min(self, *, axis: int | None = None, skipna: bool = True):
+        nv.validate_minmax_axis(axis, self.ndim)
+
+        if not len(self):
+            return self._na_value
+
+        mask = self.isna()
+        if mask.any():
+            if not skipna:
+                return self._na_value
+            obj = self[~mask]
+        else:
+            obj = self
+
+        indexer = obj.argsort()[0]
+        return obj[indexer]
+
+    def max(self, *, axis: int | None = None, skipna: bool = True):
+        nv.validate_minmax_axis(axis, self.ndim)
+
+        if not len(self):
+            return self._na_value
+
+        mask = self.isna()
+        if mask.any():
+            if not skipna:
+                return self._na_value
+            obj = self[~mask]
+        else:
+            obj = self
+
+        indexer = obj.argsort()[-1]
+        return obj[indexer]
 
     def fillna(
         self: IntervalArrayT, value=None, method=None, limit=None
@@ -864,7 +907,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 #  np.nan entries to int subtypes
                 new_left = Index(self._left, copy=False).astype(dtype.subtype)
                 new_right = Index(self._right, copy=False).astype(dtype.subtype)
-            except TypeError as err:
+            except IntCastingNaNError:
+                # e.g test_subtype_integer
+                raise
+            except (TypeError, ValueError) as err:
+                # e.g. test_subtype_integer_errors f8->u8 can be lossy
+                #  and raises ValueError
                 msg = (
                     f"Cannot convert {self.dtype} to {dtype}; subtypes are incompatible"
                 )
@@ -1092,7 +1140,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             return self._validate_listlike(value)
 
         if needs_float_conversion:
-            raise ValueError("Cannot set float NaN to integer-backed IntervalArray")
+            # GH#45484 TypeError, not ValueError, matches what we get with
+            #  non-NA un-holdable value.
+            raise TypeError("Cannot set float NaN to integer-backed IntervalArray")
         return value_left, value_right
 
     def value_counts(self, dropna: bool = True):
@@ -1597,7 +1647,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 #  complex128 ndarray is much more performant.
                 left = self._combined.view("complex128")
                 right = values._combined.view("complex128")
-                return np.in1d(left, right)
+                # Argument 1 to "in1d" has incompatible type "Union[ExtensionArray,
+                # ndarray[Any, Any], ndarray[Any, dtype[Any]]]"; expected
+                # "Union[_SupportsArray[dtype[Any]], _NestedSequence[_SupportsArray[
+                # dtype[Any]]], bool, int, float, complex, str, bytes,
+                # _NestedSequence[Union[bool, int, float, complex, str, bytes]]]"
+                # [arg-type]
+                return np.in1d(left, right)  # type: ignore[arg-type]
 
             elif needs_i8_conversion(self.left.dtype) ^ needs_i8_conversion(
                 values.left.dtype

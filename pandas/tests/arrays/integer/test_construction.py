@@ -133,11 +133,14 @@ def test_to_integer_array_none_is_nan(a, b):
 )
 def test_to_integer_array_error(values):
     # error in converting existing arrays to IntegerArrays
-    msg = (
-        r"(:?.* cannot be converted to an IntegerDtype)"
-        r"|(invalid literal for int\(\) with base 10: .*)"
-        r"|(:?values must be a 1D list-like)"
-        r"|(Cannot pass scalar)"
+    msg = "|".join(
+        [
+            r"cannot be converted to an IntegerDtype",
+            r"invalid literal for int\(\) with base 10:",
+            r"values must be a 1D list-like",
+            r"Cannot pass scalar",
+            r"int\(\) argument must be a string",
+        ]
     )
     with pytest.raises((ValueError, TypeError), match=msg):
         pd.array(values, dtype="Int64")

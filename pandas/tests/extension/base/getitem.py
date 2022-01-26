@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.tests.extension.base.base import BaseExtensionTests
 
 
@@ -258,12 +259,22 @@ class BaseGetitemTests(BaseExtensionTests):
         with pytest.raises(ValueError, match=msg):
             data[idx]
 
-        # FIXME: dont leave commented-out
+    @pytest.mark.xfail(
+        reason="Tries label-based and raises KeyError; "
+        "in some cases raises when calling np.asarray"
+    )
+    @pytest.mark.parametrize(
+        "idx",
+        [[0, 1, 2, pd.NA], pd.array([0, 1, 2, pd.NA], dtype="Int64")],
+        ids=["list", "integer-array"],
+    )
+    def test_getitem_series_integer_with_missing_raises(self, data, idx):
+        msg = "Cannot index with an integer indexer containing NA values"
         # TODO: this raises KeyError about labels not found (it tries label-based)
-        # import pandas._testing as tm
-        # ser = pd.Series(data, index=[tm.rands(4) for _ in range(len(data))])
-        # with pytest.raises(ValueError, match=msg):
-        #    ser[idx]
+
+        ser = pd.Series(data, index=[tm.rands(4) for _ in range(len(data))])
+        with pytest.raises(ValueError, match=msg):
+            ser[idx]
 
     def test_getitem_slice(self, data):
         # getitem[slice] should return an array
@@ -302,7 +313,8 @@ class BaseGetitemTests(BaseExtensionTests):
         expected = s.iloc[[2, 3]]
         self.assert_series_equal(result, expected)
 
-        result = s.get(slice(2))
+        with tm.assert_produces_warning(FutureWarning, match="label-based"):
+            result = s.get(slice(2))
         expected = s.iloc[[0, 1]]
         self.assert_series_equal(result, expected)
 
@@ -325,7 +337,9 @@ class BaseGetitemTests(BaseExtensionTests):
 
         # GH 21257
         s = pd.Series(data)
-        s2 = s[::2]
+        with tm.assert_produces_warning(None):
+            # GH#45324 make sure we aren't giving a spurious FutureWarning
+            s2 = s[::2]
         assert s2.get(1) is None
 
     def test_take_sequence(self, data):

@@ -8,35 +8,29 @@ dependencies:
   # tools
   - cython>=0.29.24
   - pytest>=6.0
-  - pytest-cov
   - pytest-xdist>=1.31
   - hypothesis>=5.5.3
+  - pytest-azurepipelines
 
   # pandas dependencies
   - beautifulsoup4
   - bottleneck
-  - boto3
-  - fsspec>=0.8.0
-  - gcsfs
   - html5lib
   - jinja2
   - lxml
-  - matplotlib
-  - numba
+  - matplotlib=3.3.2
+  - nomkl
   - numexpr
-  - numpy
+  - numpy=1.21.3
   - openpyxl
-  - pyarrow
+  - pyarrow=4
+  - pyreadstat
   - pytables
-  - python-dateutil
+  - python-dateutil==2.8.1
   - pytz
-  - s3fs>=0.4.2
-  - scipy
-  - sqlalchemy
+  - pyxlsb
+  - xarray
   - xlrd
   - xlsxwriter
   - xlwt
-  - pyreadstat
-  - pip
-  - pip:
-    - pyxlsb
+  - zstandard

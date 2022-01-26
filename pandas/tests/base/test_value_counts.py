@@ -4,8 +4,6 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas.compat import np_array_datetime64_compat
-
 import pandas as pd
 from pandas import (
     DatetimeIndex,
@@ -31,7 +29,12 @@ def test_value_counts(index_or_series_obj):
     if isinstance(obj, pd.MultiIndex):
         expected.index = Index(expected.index)
 
-    # TODO: Order of entries with the same count is inconsistent on CI (gh-32449)
+    if not isinstance(result.dtype, np.dtype):
+        # i.e IntegerDtype
+        expected = expected.astype("Int64")
+
+    # TODO(GH#32514): Order of entries with the same count is inconsistent
+    #  on CI (gh-32449)
     if obj.duplicated().any():
         result = result.sort_index()
         expected = expected.sort_index()
@@ -65,20 +68,21 @@ def test_value_counts_null(null_obj, index_or_series_obj):
 
     result = obj.value_counts()
     if obj.duplicated().any():
-        # TODO:
+        # TODO(GH#32514):
         #  Order of entries with the same count is inconsistent on CI (gh-32449)
         expected = expected.sort_index()
         result = result.sort_index()
+
+    if not isinstance(result.dtype, np.dtype):
+        # i.e IntegerDtype
+        expected = expected.astype("Int64")
     tm.assert_series_equal(result, expected)
 
-    # can't use expected[null_obj] = 3 as
-    # IntervalIndex doesn't allow assignment
-    new_entry = Series({np.nan: 3}, dtype=np.int64)
-    expected = expected.append(new_entry)
+    expected[null_obj] = 3
 
     result = obj.value_counts(dropna=False)
     if obj.duplicated().any():
-        # TODO:
+        # TODO(GH#32514):
         #  Order of entries with the same count is inconsistent on CI (gh-32449)
         expected = expected.sort_index()
         result = result.sort_index()
@@ -214,7 +218,7 @@ def test_value_counts_datetime64(index_or_series):
     expected_s = Series([3, 2, 1], index=idx)
     tm.assert_series_equal(s.value_counts(), expected_s)
 
-    expected = np_array_datetime64_compat(
+    expected = np.array(
         ["2010-01-01 00:00:00", "2009-01-01 00:00:00", "2008-09-09 00:00:00"],
         dtype="datetime64[ns]",
     )
@@ -277,8 +281,8 @@ def test_value_counts_with_nan(dropna, index_or_series):
     # GH31944
     klass = index_or_series
     values = [True, pd.NA, np.nan]
-    s = klass(values)
-    res = s.value_counts(dropna=dropna)
+    obj = klass(values)
+    res = obj.value_counts(dropna=dropna)
     if dropna is True:
         expected = Series([1], index=[True])
     else:

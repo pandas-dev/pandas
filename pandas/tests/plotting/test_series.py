@@ -720,14 +720,14 @@ class TestSeriesPlots(TestPlotBase):
 
         _check_plot_works(s.plot)
 
-    @pytest.mark.xfail(reason="TODO: reason?")
+    @pytest.mark.xfail(reason="GH#24426")
     def test_plot_accessor_updates_on_inplace(self):
-        s = Series([1, 2, 3, 4])
+        ser = Series([1, 2, 3, 4])
         _, ax = self.plt.subplots()
-        ax = s.plot(ax=ax)
+        ax = ser.plot(ax=ax)
         before = ax.xaxis.get_ticklocs()
 
-        s.drop([0, 1], inplace=True)
+        ser.drop([0, 1], inplace=True)
         _, ax = self.plt.subplots()
         after = ax.xaxis.get_ticklocs()
         tm.assert_numpy_array_equal(before, after)
@@ -787,16 +787,20 @@ class TestSeriesPlots(TestPlotBase):
         "index_name, old_label, new_label",
         [(None, "", "new"), ("old", "old", "new"), (None, "", "")],
     )
-    @pytest.mark.parametrize("kind", ["line", "area", "bar"])
+    @pytest.mark.parametrize("kind", ["line", "area", "bar", "barh"])
     def test_xlabel_ylabel_series(self, kind, index_name, old_label, new_label):
         # GH 9093
         ser = Series([1, 2, 3, 4])
         ser.index.name = index_name
 
-        # default is the ylabel is not shown and xlabel is index name
+        # default is the ylabel is not shown and xlabel is index name (reverse for barh)
         ax = ser.plot(kind=kind)
-        assert ax.get_ylabel() == ""
-        assert ax.get_xlabel() == old_label
+        if kind == "barh":
+            assert ax.get_xlabel() == ""
+            assert ax.get_ylabel() == old_label
+        else:
+            assert ax.get_ylabel() == ""
+            assert ax.get_xlabel() == old_label
 
         # old xlabel will be overridden and assigned ylabel will be used as ylabel
         ax = ser.plot(kind=kind, ylabel=new_label, xlabel=new_label)

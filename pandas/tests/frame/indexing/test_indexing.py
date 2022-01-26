@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import iNaT
+from pandas.errors import InvalidIndexError
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer
@@ -1008,7 +1009,7 @@ class TestDataFrameIndexing:
         exp_col = original[2].copy()
         # TODO(ArrayManager) verify it is expected that the original didn't change
         if not using_array_manager:
-            exp_col[4:8] = 0.0
+            exp_col._values[4:8] = 0.0
         tm.assert_series_equal(df[2], exp_col)
 
     def test_iloc_col(self):
@@ -1171,7 +1172,7 @@ class TestDataFrameIndexing:
         dg = DataFrame(
             [[1, 1, 2, 2], [3, 3, 4, 4]], columns=mi, index=Index([0, 1], name="i")
         )
-        with pytest.raises(TypeError, match="unhashable type"):
+        with pytest.raises(InvalidIndexError, match="slice"):
             dg[:, 0]
 
         index = Index(range(2), name="i")
@@ -1239,12 +1240,10 @@ class TestDataFrameIndexing:
 
         msg = "|".join(
             [
-                r"int\(\) argument must be a string, a bytes-like object or a "
-                "(real )?number, not 'NaTType'",
                 r"timedelta64\[ns\] cannot be converted to an? (Floating|Integer)Dtype",
                 r"datetime64\[ns\] cannot be converted to an? (Floating|Integer)Dtype",
-                "object cannot be converted to a FloatingDtype",
                 "'values' contains non-numeric NA",
+                r"Invalid value '.*' for dtype (U?Int|Float)\d{1,2}",
             ]
         )
         with pytest.raises(TypeError, match=msg):
@@ -1526,3 +1525,80 @@ class TestLocILocDataFrameCategorical:
         # "c" not part of the categories
         with pytest.raises(TypeError, match=msg1):
             indexer(df)[key] = ["c", "c"]
+
+    @pytest.mark.parametrize("indexer", [tm.getitem, tm.loc, tm.iloc])
+    def test_getitem_preserve_object_index_with_dates(self, indexer):
+        # https://github.com/pandas-dev/pandas/pull/42950 - when selecting a column
+        # from dataframe, don't try to infer object dtype index on Series construction
+        idx = date_range("2012", periods=3).astype(object)
+        df = DataFrame({0: [1, 2, 3]}, index=idx)
+        assert df.index.dtype == object
+
+        if indexer is tm.getitem:
+            ser = indexer(df)[0]
+        else:
+            ser = indexer(df)[:, 0]
+
+        assert ser.index.dtype == object
+
+
+class TestDepreactedIndexers:
+    @pytest.mark.parametrize(
+        "key", [{1}, {1: 1}, ({1}, "a"), ({1: 1}, "a"), (1, {"a"}), (1, {"a": "a"})]
+    )
+    def test_getitem_dict_and_set_deprecated(self, key):
+        # GH#42825
+        df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
+        with tm.assert_produces_warning(FutureWarning):
+            df.loc[key]
+
+    @pytest.mark.parametrize(
+        "key",
+        [
+            {1},
+            {1: 1},
+            (({1}, 2), "a"),
+            (({1: 1}, 2), "a"),
+            ((1, 2), {"a"}),
+            ((1, 2), {"a": "a"}),
+        ],
+    )
+    def test_getitem_dict_and_set_deprecated_multiindex(self, key):
+        # GH#42825
+        df = DataFrame(
+            [[1, 2], [3, 4]],
+            columns=["a", "b"],
+            index=MultiIndex.from_tuples([(1, 2), (3, 4)]),
+        )
+        with tm.assert_produces_warning(FutureWarning):
+            df.loc[key]
+
+    @pytest.mark.parametrize(
+        "key", [{1}, {1: 1}, ({1}, "a"), ({1: 1}, "a"), (1, {"a"}), (1, {"a": "a"})]
+    )
+    def test_setitem_dict_and_set_deprecated(self, key):
+        # GH#42825
+        df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
+        with tm.assert_produces_warning(FutureWarning):
+            df.loc[key] = 1
+
+    @pytest.mark.parametrize(
+        "key",
+        [
+            {1},
+            {1: 1},
+            (({1}, 2), "a"),
+            (({1: 1}, 2), "a"),
+            ((1, 2), {"a"}),
+            ((1, 2), {"a": "a"}),
+        ],
+    )
+    def test_setitem_dict_and_set_deprecated_multiindex(self, key):
+        # GH#42825
+        df = DataFrame(
+            [[1, 2], [3, 4]],
+            columns=["a", "b"],
+            index=MultiIndex.from_tuples([(1, 2), (3, 4)]),
+        )
+        with tm.assert_produces_warning(FutureWarning):
+            df.loc[key] = 1

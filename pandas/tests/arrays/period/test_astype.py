@@ -13,18 +13,14 @@ def test_astype(dtype):
     # We choose to ignore the sign and size of integers for
     # Period/Datetime/Timedelta astype
     arr = period_array(["2000", "2001", None], freq="D")
-    with tm.assert_produces_warning(FutureWarning):
-        # astype(int..) deprecated
-        result = arr.astype(dtype)
+    result = arr.astype(dtype)
 
     if np.dtype(dtype).kind == "u":
         expected_dtype = np.dtype("uint64")
     else:
         expected_dtype = np.dtype("int64")
 
-    with tm.assert_produces_warning(FutureWarning):
-        # astype(int..) deprecated
-        expected = arr.astype(expected_dtype)
+    expected = arr.astype(expected_dtype)
 
     assert result.dtype == expected_dtype
     tm.assert_numpy_array_equal(result, expected)
@@ -32,17 +28,13 @@ def test_astype(dtype):
 
 def test_astype_copies():
     arr = period_array(["2000", "2001", None], freq="D")
-    with tm.assert_produces_warning(FutureWarning):
-        # astype(int..) deprecated
-        result = arr.astype(np.int64, copy=False)
+    result = arr.astype(np.int64, copy=False)
 
     # Add the `.base`, since we now use `.asi8` which returns a view.
     # We could maybe override it in PeriodArray to return ._data directly.
     assert result.base is arr._data
 
-    with tm.assert_produces_warning(FutureWarning):
-        # astype(int..) deprecated
-        result = arr.astype(np.int64, copy=True)
+    result = arr.astype(np.int64, copy=True)
     assert result is not arr._data
     tm.assert_numpy_array_equal(result, arr._data.view("i8"))
 
@@ -66,5 +58,12 @@ def test_astype_period():
 def test_astype_datetime(other):
     arr = period_array(["2000", "2001", None], freq="D")
     # slice off the [ns] so that the regex matches.
-    with pytest.raises(TypeError, match=other[:-4]):
-        arr.astype(other)
+    if other == "timedelta64[ns]":
+        with pytest.raises(TypeError, match=other[:-4]):
+            arr.astype(other)
+
+    else:
+        # GH#45038 allow period->dt64 because we allow dt64->period
+        result = arr.astype(other)
+        expected = pd.DatetimeIndex(["2000", "2001", pd.NaT])._data
+        tm.assert_datetime_array_equal(result, expected)
