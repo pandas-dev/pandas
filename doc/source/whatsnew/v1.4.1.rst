@@ -32,7 +32,7 @@ Bug fixes
 
 Other
 ~~~~~
-- Reverted performance speedup of nancorr improvement (:issue:`45640`, :issue:`42761`)
+- Reverted performance speedup of :meth:`DataFrame.corr` for ``method=pearson`` to fix precision regression (:issue:`45640`, :issue:`42761`)
 -
 
 .. ---------------------------------------------------------------------------
