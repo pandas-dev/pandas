@@ -165,13 +165,9 @@ def test_transform_broadcast(tsframe, ts):
             assert_fp_equal(res.xs(idx), agged[idx])
 
 
-def test_transform_axis_1(request, transformation_func, using_array_manager):
+def test_transform_axis_1(request, transformation_func):
     # GH 36308
-    if using_array_manager and transformation_func == "pct_change":
-        # TODO(ArrayManager) column-wise shift
-        request.node.add_marker(
-            pytest.mark.xfail(reason="ArrayManager: shift axis=1 not yet implemented")
-        )
+
     # TODO(2.0) Remove after pad/backfill deprecation enforced
     transformation_func = maybe_normalize_deprecated_kernels(transformation_func)
 
