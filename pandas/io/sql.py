@@ -732,7 +732,8 @@ def pandasSQL_builder(con, schema: str | None = None):
     """
     import sqlite3
     import warnings
-    import duckdb
+
+    duckdb = import_optional_dependency("duckdb")
 
     if isinstance(con, duckdb.DuckDBPyConnection):
         return DuckDBDatabase(con)

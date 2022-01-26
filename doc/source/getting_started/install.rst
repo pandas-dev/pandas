@@ -348,6 +348,7 @@ Dependency                Minimum Version    Notes
 SQLAlchemy                1.4.0               SQL support for databases other than sqlite
 psycopg2                  2.8.4               PostgreSQL engine for sqlalchemy
 pymysql                   0.10.1              MySQL engine for sqlalchemy
+duckdb                    0.3.1               High-performance analytical database system
 ========================= ================== =============================================================
 
 Other data sources

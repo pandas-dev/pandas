@@ -27,7 +27,6 @@ from datetime import (
 from io import StringIO
 from pathlib import Path
 import sqlite3
-import duckdb
 
 import numpy as np
 import pytest
@@ -71,6 +70,13 @@ try:
     SQLALCHEMY_INSTALLED = True
 except ImportError:
     SQLALCHEMY_INSTALLED = False
+
+try:
+    import duckdb
+
+    DUCKDB_INSTALLED = True
+except ImportError:
+    DUCKDB_INSTALLED = False
 
 SQL_STRINGS = {
     "read_parameters": {
@@ -2941,6 +2947,8 @@ class TestXSQLite:
 class TestDuckDB:
 
     def test_to_sql_duck(self):
+        if not DUCKDB_INSTALLED:
+            return
         con = duckdb.connect()
         df = pd.DataFrame([[None, 10, 1.0], ['nick', None, 1.5], ['juli', 14, None]],
                           columns=['Name', 'Age', 'Numeric'])
@@ -2950,6 +2958,8 @@ class TestDuckDB:
         con.close()
 
     def test_to_sql_duck_all_exist_options(self):
+        if not DUCKDB_INSTALLED:
+            return
         con = duckdb.connect()
         con.execute("CREATE TABLE ages (a INTEGER)")
 

@@ -89,6 +89,7 @@ dependencies:
   - numexpr>=2.7.1
   - scipy>=1.4.1
   - numba>=0.50.1
+  - duckdb >=0.3.1
 
   # optional for io
   # ---------------
