@@ -124,3 +124,4 @@ dependencies:
     - pydata-sphinx-theme
     - pandas-dev-flaker==0.2.0
     - pytest-cython
+    - duckdb
