@@ -2749,9 +2749,12 @@ def test_loc_setitem_uint8_upcast(value):
 
 
 @pytest.mark.parametrize(
-    "fill_val,exp_dtype", [
+    "fill_val,exp_dtype",
+    [
         (Timestamp("2022-01-06"), "datetime64[ns]"),
-        (Timestamp("2022-01-07", tz="US/Eastern"), "datetime64[ns, US/Eastern]")])
+        (Timestamp("2022-01-07", tz="US/Eastern"), "datetime64[ns, US/Eastern]"),
+    ],
+)
 def test_loc_setitem_using_datetimelike_str_as_index(fill_val, exp_dtype):
 
     data = ["2022-01-02", "2022-01-03", "2022-01-04", fill_val.date()]
