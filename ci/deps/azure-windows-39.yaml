@@ -32,6 +32,7 @@ dependencies:
   - s3fs>=0.4.2
   - scipy
   - sqlalchemy
+  - duckdb
   - xlrd
   - xlsxwriter
   - xlwt
