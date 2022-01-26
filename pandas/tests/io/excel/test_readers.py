@@ -11,6 +11,7 @@ from zipfile import BadZipFile
 import numpy as np
 import pytest
 
+from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -126,6 +127,10 @@ class TestReaders:
         monkeypatch.chdir(datapath("io", "data", "excel"))
         monkeypatch.setattr(pd, "read_excel", func)
 
+    @pytest.mark.skipif(
+        os.environ.get("PANDAS_CI", "0") == "1" and is_platform_windows(),
+        reason="Flakily hangs on multi-process CI Windows environment",
+    )
     def test_engine_used(self, read_ext, engine, monkeypatch):
         # GH 38884
         def parser(self, *args, **kwargs):
@@ -1308,7 +1313,7 @@ class TestExcelFileRead:
         monkeypatch.chdir(datapath("io", "data", "excel"))
         monkeypatch.setattr(pd, "ExcelFile", func)
 
-    def test_engine_used(self, read_ext, engine, monkeypatch):
+    def test_engine_used(self, read_ext, engine):
         expected_defaults = {
             "xlsx": "openpyxl",
             "xlsm": "openpyxl",
