@@ -140,7 +140,40 @@ and comments contain guidance for properly implementing the interface.
 For ExtensionArrays backed by a single NumPy array, the
 :class:`~pandas.api.extensions.NDArrayBackedExtensionArray` class can save you
 some effort. It contains a private property ``_ndarray`` with the backing NumPy
-array and implements the extension array interface.
+array and implements the extension array interface. Implement the ``_box_func``
+method to convert from array values to the type you wish to expose to users.
+Implement the ``_validate_scalar`` method to convert from an object to a value
+which can be stored in the NumPy array.
+
+.. code-block:: python
+
+    class CustomArray(NDArrayBackedExtensionArray):
+        def __init__(self, values):
+            backing_array_dtype = "int64"
+            super().__init__(values=values, dtype=backing_array_dtype)
+
+        def _box_func(self, value):
+            scalar = CustomObject(value)
+            return scalar
+
+        def _validate_scalar(self, scalar):
+            if not isinstance(scalar, CustomObject):
+                raise TypeError("can't convert scalar of this type")
+            return scalar.convert_to_int64()
+
+Optionally, subclass :class:`pandas.tests.extension.base.NDArrayBacked2DTests`
+in your test suite to validate your implementation.
+
+.. code-block:: python
+
+    @pytest.fixture
+    def data():
+        return CustomArray(numpy.arange(-10, 10, 1)
+
+
+    class Test2DCompat(base.NDArrayBacked2DTests):
+        pass
+
 
 .. _extending.extension.operator:
 
