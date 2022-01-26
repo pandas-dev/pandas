@@ -14,7 +14,6 @@ from pandas._libs import (
 )
 from pandas._typing import (
     Dtype,
-    DtypeObj,
     npt,
 )
 from pandas.util._decorators import (
@@ -276,10 +275,6 @@ class NumericIndex(Index):
                     f"if it is a scalar: {repr(tolerance)}"
                 )
         return tolerance
-
-    def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
-        # If we ever have BoolIndex or ComplexIndex, this may need to be tightened
-        return is_numeric_dtype(dtype)
 
     @classmethod
     def _assert_safe_casting(cls, data: np.ndarray, subarr: np.ndarray) -> None:
