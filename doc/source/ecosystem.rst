@@ -364,7 +364,7 @@ geometric operations. If your work entails maps and geographical coordinates, an
 you love pandas, you should take a close look at Geopandas.
 
 `staircase <https://github.com/staircase-dev/staircase>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 staircase is a data analysis package, built upon pandas and numpy, for modelling and
 manipulation of mathematical step functions. It provides a rich variety of arithmetic
