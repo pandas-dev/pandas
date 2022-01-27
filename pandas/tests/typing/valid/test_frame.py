@@ -9,8 +9,8 @@ The full license is in the STUBS_LICENSE file, distributed with this software.
 # TODO: many functions need return types annotations for pyright
 # to run with reportGeneralTypeIssues = true
 import io
-import tempfile
 from pathlib import Path
+import tempfile
 from typing import (
     Any,
     Iterable,
