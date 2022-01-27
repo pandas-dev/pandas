@@ -736,13 +736,14 @@ def pandasSQL_builder(con, schema: str | None = None):
     if isinstance(con, sqlite3.Connection) or con is None:
         return SQLiteDatabase(con)
 
-    sqlalchemy = import_optional_dependency("sqlalchemy")
+    sqlalchemy = import_optional_dependency("sqlalchemy", errors="ignore")
 
-    if isinstance(con, str):
-        con = sqlalchemy.create_engine(con)
+    if sqlalchemy is not None:
+        if isinstance(con, str):
+            con = sqlalchemy.create_engine(con)
 
-    if isinstance(con, sqlalchemy.engine.Connectable):
-        return SQLDatabase(con, schema=schema)
+        if isinstance(con, sqlalchemy.engine.Connectable):
+            return SQLDatabase(con, schema=schema)
 
     warnings.warn(
         "pandas only support SQLAlchemy connectable(engine/connection) or"
