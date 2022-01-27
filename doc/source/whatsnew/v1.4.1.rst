@@ -16,6 +16,7 @@ Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Regression in :meth:`Series.mask` with ``inplace=True`` and ``PeriodDtype`` and an incompatible ``other`` coercing to a common dtype instead of raising (:issue:`45546`)
 - Regression in :meth:`DataFrame.loc.__setitem__` losing :class:`Index` name if :class:`DataFrame` was empty before (:issue:`45621`)
+- Regression in :func:`join` with overlapping :class:`IntervalIndex` raising an ``InvalidIndexError`` (:issue:`45661`)
 -
 
 .. ---------------------------------------------------------------------------
