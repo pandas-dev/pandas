@@ -2975,7 +2975,7 @@ class TestDuckDB:
             [[None, 10, 1.0], ["nick", None, 1.5], ["juli", 14, None]],
             columns=["Name", "Age", "Numeric"],
         )
-        msg = "Table ages already exists."
+        msg = "Table 'ages' already exists."
         with pytest.raises(ValueError, match=msg):
             df.to_sql("ages", con)
 
@@ -2998,7 +2998,7 @@ class TestDuckDB:
             48,
             5,
         )
-        msg = "flark not valid for if_exists"
+        msg = "'flark' is not valid for if_exists"
         with pytest.raises(ValueError, match=msg):
             df.to_sql("ages", con, if_exists="flark")
 
