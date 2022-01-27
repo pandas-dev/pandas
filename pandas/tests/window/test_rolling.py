@@ -2,6 +2,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+import time
 
 import numpy as np
 import pytest
@@ -1391,7 +1392,7 @@ def test_rolling_corr_timedelta_index(index, window):
     # GH: 31286
     x = Series([1, 2, 3, 4, 5], index=index)
     y = x.copy()
-    x[0:2] = 0.0
+    x.iloc[0:2] = 0.0
     result = x.rolling(window).corr(y)
     expected = Series([np.nan, np.nan, 1, 1, 1], index=index)
     tm.assert_almost_equal(result, expected)
@@ -1734,3 +1735,46 @@ def test_rolling_std_neg_sqrt():
 
     b = a.ewm(span=3).std()
     assert np.isfinite(b[2:]).all()
+
+
+def test_rolling_aggregation_boundary_consistency(rolling_aggregation):
+    minp, step, width, size, selection = 0, 1, 3, 11, [2, 7]
+    s = Series(np.arange(1, 1 + size, dtype=np.float64))
+    end = np.arange(width, size, step, dtype=np.int64)
+    start = end - width
+    selarr = np.array(selection, dtype=np.int32)
+    result = Series(rolling_aggregation(s.values, start[selarr], end[selarr], minp))
+    expected = Series(rolling_aggregation(s.values, start, end, minp)[selarr])
+    tm.assert_equal(expected, result)
+
+
+def test_rolling_aggregation_timing_with_unused_elements(rolling_aggregation):
+    minp, width = 0, 5  # width at least 4 for kurt
+
+    def time_roll_agg(extra_size):
+        t0 = time.time()
+        size = 2 * width + 2 + extra_size
+        s = Series(np.full(size, np.nan, dtype=np.float64))
+        start = np.array([1, size - width - 2], dtype=np.int64)
+        end = np.array([1 + width, size - 2], dtype=np.int64)
+        loc = np.array(
+            [j for i in range(len(start)) for j in range(start[i], end[i])],
+            dtype=np.int32,
+        )
+        for j in loc:
+            s.iloc[j] = 1 + j
+        result = Series(rolling_aggregation(s.values, start, end, minp))
+        compact_s = np.array(s.iloc[loc], dtype=np.float64)
+        compact_start = np.arange(0, len(start) * width, width, dtype=np.int64)
+        compact_end = compact_start + width
+        expected = Series(
+            rolling_aggregation(compact_s, compact_start, compact_end, minp)
+        )
+        assert np.isfinite(expected.values).all(), "Not all expected values are finite"
+        tm.assert_equal(expected, result)
+        t1 = time.time()
+        return t1 - t0
+
+    for i in range(3):  # all but last are warmup
+        t = [time_roll_agg(extra_size) for extra_size in [2, 2000]]
+    assert abs((t[0] - t[1]) / t[0]) < 2, "Unused elements significantly affect timing"
