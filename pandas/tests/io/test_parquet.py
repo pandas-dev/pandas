@@ -404,7 +404,7 @@ class TestBasic(Base):
             msg = "to_parquet only supports IO with DataFrames"
             self.check_error_on_write(obj, engine, ValueError, msg)
 
-    def test_columns_dtypes(self, request, engine):
+    def test_columns_dtypes(self, engine):
         df = pd.DataFrame({"string": list("abc"), "int": list(range(1, 4))})
 
         # unicode
@@ -430,7 +430,8 @@ class TestBasic(Base):
         ]
         self.check_error_on_write(df, engine, ValueError, msg)
 
-    def test_compression(self, engine, compression, request):
+    @pytest.mark.parametrize("compression", [None, "gzip", "snappy", "brotli"])
+    def test_compression(self, engine, compression):
 
         if compression == "snappy":
             pytest.importorskip("snappy")
@@ -441,7 +442,7 @@ class TestBasic(Base):
         df = pd.DataFrame({"A": [1, 2, 3]})
         check_round_trip(df, engine, write_kwargs={"compression": compression})
 
-    def test_read_columns(self, engine, request):
+    def test_read_columns(self, engine):
         # GH18154
         df = pd.DataFrame({"string": list("abc"), "int": list(range(1, 4))})
 
@@ -450,7 +451,7 @@ class TestBasic(Base):
             df, engine, expected=expected, read_kwargs={"columns": ["string"]}
         )
 
-    def test_write_index(self, engine, request):
+    def test_write_index(self, engine):
         check_names = engine != "fastparquet"
 
         df = pd.DataFrame({"A": [1, 2, 3]})
@@ -499,7 +500,7 @@ class TestBasic(Base):
                 df, engine, read_kwargs={"columns": ["A", "B"]}, expected=df[["A", "B"]]
             )
 
-    def test_write_ignoring_index(self, engine, request):
+    def test_write_ignoring_index(self, engine):
         # ENH 20768
         # Ensure index=False omits the index from the written Parquet file.
         df = pd.DataFrame({"a": [1, 2, 3], "b": ["q", "r", "s"]})
