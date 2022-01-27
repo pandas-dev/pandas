@@ -227,7 +227,7 @@ MultiIndex
 I/O
 ^^^
 - Bug in :meth:`DataFrame.to_stata` where no error is raised if the :class:`DataFrame` contains ``-np.inf`` (:issue:`45350`)
-- Bug in :meth:`read_excel` with `engine=python` results in an infinite loop with certain `skiprows` callables (:issue:`45585`)
+- Bug in :meth:`read_excel` results in an infinite loop with certain `skiprows` callables (:issue:`45585`)
 -
 
 Period
