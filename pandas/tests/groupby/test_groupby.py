@@ -717,11 +717,8 @@ def test_ops_not_as_index(reduction_func):
     # GH 10355, 21090
     # Using as_index=False should not modify grouped column
 
-    if reduction_func in ("corrwith",):
-        pytest.skip("Test not applicable")
-
-    if reduction_func in ("nth", "ngroup"):
-        pytest.skip("Skip until behavior is determined (GH #5755)")
+    if reduction_func in ("corrwith", "nth", "ngroup"):
+        pytest.skip(f"Test not applicable for {reduction_func}")
 
     df = DataFrame(np.random.randint(0, 5, size=(100, 2)), columns=["a", "b"])
     expected = getattr(df.groupby("a"), reduction_func)()
@@ -2269,7 +2266,7 @@ def test_groupby_duplicate_index():
 @pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
 def test_dup_labels_output_shape(groupby_func, idx):
     if groupby_func in {"size", "ngroup", "cumcount"}:
-        pytest.skip("Not applicable")
+        pytest.skip(f"Not applicable for {groupby_func}")
     # TODO(2.0) Remove after pad/backfill deprecation enforced
     groupby_func = maybe_normalize_deprecated_kernels(groupby_func)
     df = DataFrame([[1, 1]], columns=idx)

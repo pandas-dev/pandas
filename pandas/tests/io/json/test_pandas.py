@@ -1555,9 +1555,20 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
             ("index", "{\"('a', 'b')\":{\"('c', 'd')\":1}}"),
             ("columns", "{\"('c', 'd')\":{\"('a', 'b')\":1}}"),
             # TODO: the below have separate encoding procedures
-            # They produce JSON but not in a consistent manner
-            pytest.param("split", "", marks=pytest.mark.skip),
-            pytest.param("table", "", marks=pytest.mark.skip),
+            pytest.param(
+                "split",
+                "",
+                marks=pytest.mark.xfail(
+                    reason="Produces JSON but not in a consistent manner"
+                ),
+            ),
+            pytest.param(
+                "table",
+                "",
+                marks=pytest.mark.xfail(
+                    reason="Produces JSON but not in a consistent manner"
+                ),
+            ),
         ],
     )
     def test_tuple_labels(self, orient, expected):

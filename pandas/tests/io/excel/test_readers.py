@@ -1564,7 +1564,7 @@ class TestExcelFileRead:
         # GH41778
         errors = (BadZipFile,)
         if engine is None:
-            pytest.skip()
+            pytest.skip(f"Invalid test for engine={engine}")
         elif engine == "xlrd":
             import xlrd
 

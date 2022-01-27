@@ -453,7 +453,7 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
             # arith ops call on dtype.fill_value so that the sparsity
             # is maintained. Combine can't be called on a dtype in
             # general, so we can't make the expected. This is tested elsewhere
-            raise pytest.skip("Incorrected expected from Series.combine")
+            pytest.skip("Incorrected expected from Series.combine and tested elsewhere")
 
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         self._skip_if_different_combine(data)

@@ -967,11 +967,17 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame({"a": pd.date_range("2017-01-01", freq="1n", periods=10)})
         check_round_trip(df, pa, write_kwargs={"version": ver})
 
-    def test_timezone_aware_index(self, pa, timezone_aware_date_list):
-        if not pa_version_under2p0:
-            # temporary skip this test until it is properly resolved
-            # https://github.com/pandas-dev/pandas/issues/37286
-            pytest.skip()
+    def test_timezone_aware_index(self, request, pa, timezone_aware_date_list):
+        if (
+            not pa_version_under2p0
+            and not timezone_aware_date_list.tzinfo == datetime.timezone.utc
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="temporary skip this test until it is properly resolved: "
+                    "https://github.com/pandas-dev/pandas/issues/37286"
+                )
+            )
         idx = 5 * [timezone_aware_date_list]
         df = pd.DataFrame(index=idx, data={"index_as_col": idx})
 
@@ -1021,7 +1027,6 @@ class TestParquetFastParquet(Base):
         df["timedelta"] = pd.timedelta_range("1 day", periods=3)
         check_round_trip(df, fp)
 
-    @pytest.mark.skip(reason="not supported")
     def test_duplicate_columns(self, fp):
 
         # not currently able to handle duplicate columns
