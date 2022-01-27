@@ -2,7 +2,6 @@ from datetime import (
     datetime,
     timedelta,
 )
-import time
 
 import numpy as np
 import pytest
@@ -1748,33 +1747,25 @@ def test_rolling_aggregation_boundary_consistency(rolling_aggregation):
     tm.assert_equal(expected, result)
 
 
-def test_rolling_aggregation_timing_with_unused_elements(rolling_aggregation):
+def test_rolling_aggregation_with_unused_elements(rolling_aggregation):
+    import sys
+
     minp, width = 0, 5  # width at least 4 for kurt
-
-    def time_roll_agg(extra_size):
-        t0 = time.time()
-        size = 2 * width + 2 + extra_size
-        s = Series(np.full(size, np.nan, dtype=np.float64))
-        start = np.array([1, size - width - 2], dtype=np.int64)
-        end = np.array([1 + width, size - 2], dtype=np.int64)
-        loc = np.array(
-            [j for i in range(len(start)) for j in range(start[i], end[i])],
-            dtype=np.int32,
-        )
-        for j in loc:
-            s.iloc[j] = 1 + j
-        result = Series(rolling_aggregation(s.values, start, end, minp))
-        compact_s = np.array(s.iloc[loc], dtype=np.float64)
-        compact_start = np.arange(0, len(start) * width, width, dtype=np.int64)
-        compact_end = compact_start + width
-        expected = Series(
-            rolling_aggregation(compact_s, compact_start, compact_end, minp)
-        )
-        assert np.isfinite(expected.values).all(), "Not all expected values are finite"
-        tm.assert_equal(expected, result)
-        t1 = time.time()
-        return t1 - t0
-
-    for i in range(3):  # all but last are warmup
-        t = [time_roll_agg(extra_size) for extra_size in [2, 2000]]
-    assert abs((t[0] - t[1]) / t[0]) < 2, "Unused elements significantly affect timing"
+    size = 2 * width + 5
+    s = Series(np.arange(1, size + 1, dtype=np.float64))
+    s[width : width + 2] = sys.float_info.min
+    s[width + 2] = np.nan
+    s[width + 3 : width + 5] = sys.float_info.max
+    start = np.array([0, size - width], dtype=np.int64)
+    end = np.array([width, size], dtype=np.int64)
+    loc = np.array(
+        [j for i in range(len(start)) for j in range(start[i], end[i])],
+        dtype=np.int32,
+    )
+    result = Series(rolling_aggregation(s.values, start, end, minp))
+    compact_s = np.array(s.iloc[loc], dtype=np.float64)
+    compact_start = np.arange(0, len(start) * width, width, dtype=np.int64)
+    compact_end = compact_start + width
+    expected = Series(rolling_aggregation(compact_s, compact_start, compact_end, minp))
+    assert np.isfinite(expected.values).all(), "Not all expected values are finite"
+    tm.assert_equal(expected, result)

@@ -285,20 +285,20 @@ def _named_func(name_and_func):
         + [
             ("roll_skew", window_aggregations.roll_skew),
             ("roll_kurt", window_aggregations.roll_kurt),
-            ("roll_mediac_c", window_aggregations.roll_median_c),
+            ("roll_median_c", window_aggregations.roll_median_c),
             ("roll_max", window_aggregations.roll_max),
             ("roll_min", window_aggregations.roll_min),
         ]
         + [
             (
-                f"roll_quntile({quantile},{interpolation})",
+                f"roll_quantile({quantile},{interpolation})",
                 partial(
                     window_aggregations.roll_quantile,
                     quantile=quantile,
                     interpolation=interpolation,
                 ),
             )
-            for quantile in [0.25, 0.5, 0.75]
+            for quantile in [0.0001, 0.5, 0.9999]
             for interpolation in window_aggregations.interpolation_types
         ]
         + [
