@@ -58,11 +58,13 @@ def check_for_file_leaks():
         yield
 
     else:
+        # Only care about excel files in this conftest
         exts = [".xls", ".xlsx", ".xlsm", ".ods", ".xlsb"]
         proc = psutil.Process()
-        flist = proc.open_files()
+        flist = [
+            f for f in proc.open_files() if any(f.path.endswith(ext) for ext in exts)
+        ]
         yield
-        # Only care about excel files in this conftest
         flist2 = [
             f for f in proc.open_files() if any(f.path.endswith(ext) for ext in exts)
         ]
