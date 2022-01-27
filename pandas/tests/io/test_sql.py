@@ -2950,7 +2950,7 @@ class TestDuckDB:
         if not DUCKDB_INSTALLED:
             return
         con = duckdb.connect()
-        df = pd.DataFrame(
+        df = DataFrame(
             [[None, 10, 1.0], ["nick", None, 1.5], ["juli", 14, None]],
             columns=["Name", "Age", "Numeric"],
         )
@@ -2971,14 +2971,13 @@ class TestDuckDB:
         con = duckdb.connect()
         con.execute("CREATE TABLE ages (a INTEGER)")
 
-        df = pd.DataFrame(
+        df = DataFrame(
             [[None, 10, 1.0], ["nick", None, 1.5], ["juli", 14, None]],
             columns=["Name", "Age", "Numeric"],
         )
-        with pytest.raises(Exception) as e_info:
+        msg = "Table ages already exists."
+        with pytest.raises(ValueError, match=msg):
             df.to_sql("ages", con)
-
-        assert "already exists" in str(e_info.value)
 
         df.to_sql("ages", con, if_exists="replace")
         result = con.execute(
@@ -2999,9 +2998,8 @@ class TestDuckDB:
             48,
             5,
         )
-
-        with pytest.raises(Exception) as e_info:
+        msg = "flark not valid for if_exists"
+        with pytest.raises(ValueError, match=msg):
             df.to_sql("ages", con, if_exists="flark")
 
-        assert "not valid for if_exists" in str(e_info.value)
         con.close()

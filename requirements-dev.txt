@@ -61,6 +61,7 @@ matplotlib>=3.3.2
 numexpr>=2.7.1
 scipy>=1.4.1
 numba>=0.50.1
+python-duckdb>=0.3.1
 beautifulsoup4>=4.8.2
 html5lib
 lxml
@@ -86,4 +87,5 @@ natsort
 pydata-sphinx-theme
 pandas-dev-flaker==0.2.0
 pytest-cython
+duckdb
 setuptools>=51.0.0
