@@ -1240,8 +1240,8 @@ class TestDataFrameIndexing:
 
         msg = "|".join(
             [
-                r"timedelta64\[ns\] cannot be converted to an? (Floating|Integer)Dtype",
-                r"datetime64\[ns\] cannot be converted to an? (Floating|Integer)Dtype",
+                r"timedelta64\[ns\] cannot be converted to (Floating|Integer)Dtype",
+                r"datetime64\[ns\] cannot be converted to (Floating|Integer)Dtype",
                 "'values' contains non-numeric NA",
                 r"Invalid value '.*' for dtype (U?Int|Float)\d{1,2}",
             ]
@@ -1278,6 +1278,13 @@ class TestDataFrameIndexing:
 
         with pytest.raises(TypeError, match=msg):
             df2.iloc[:2, 0] = [null, null]
+
+    def test_loc_expand_empty_frame_keep_index_name(self):
+        # GH#45621
+        df = DataFrame(columns=["b"], index=Index([], name="a"))
+        df.loc[0] = 1
+        expected = DataFrame({"b": [1]}, index=Index([0], name="a"))
+        tm.assert_frame_equal(df, expected)
 
 
 class TestDataFrameIndexingUInt64:
