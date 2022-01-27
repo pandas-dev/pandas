@@ -2196,6 +2196,7 @@ class SQLiteDatabase(PandasSQL):
         )
         return str(table.sql_schema())
 
+
 def get_schema(
     frame,
     name: str,
@@ -2230,6 +2231,7 @@ def get_schema(
     return pandas_sql._create_sql_schema(
         frame, name, keys=keys, dtype=dtype, schema=schema
     )
+
 
 class DuckDBDatabase(PandasSQL):
     """
@@ -2288,18 +2290,29 @@ class DuckDBDatabase(PandasSQL):
             Ignored parameter included for compatibility with SQLAlchemy
             and SQLite version of ``to_sql``.
         """
-        table_exits = len(self.con.execute(f"SELECT name FROM sqlite_master WHERE name='{name}'").fetchall()) > 0
+        table_exits = (
+            len(
+                self.con.execute(
+                    f"SELECT name FROM sqlite_master WHERE name='{name}'"
+                ).fetchall()
+            )
+            > 0
+        )
         if table_exits:
             if if_exists == "fail":
                 raise ValueError(f"Table '{name}' already exists.")
             elif if_exists == "replace":
                 self.con.execute(f"DROP TABLE {name}")
-                return self.con.execute(f"CREATE TABLE {name} AS SELECT * FROM frame").fetchone()[0]
+                return self.con.execute(
+                    f"CREATE TABLE {name} AS SELECT * FROM frame"
+                ).fetchone()[0]
             elif if_exists == "append":
-                return self.con.execute(f"INSERT INTO {name} SELECT * FROM frame").fetchone()[0]
+                return self.con.execute(
+                    f"INSERT INTO {name} SELECT * FROM frame"
+                ).fetchone()[0]
             else:
                 raise ValueError(f"'{if_exists}' is not valid for if_exists")
 
-        return self.con.execute(f"CREATE TABLE {name} AS SELECT * FROM frame").fetchone()[0]
-
-
+        return self.con.execute(
+            f"CREATE TABLE {name} AS SELECT * FROM frame"
+        ).fetchone()[0]

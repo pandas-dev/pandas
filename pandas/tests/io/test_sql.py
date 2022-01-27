@@ -2944,17 +2944,25 @@ class TestXSQLite:
         ]
         self.drop_table(table_name)
 
-class TestDuckDB:
 
+class TestDuckDB:
     def test_to_sql_duck(self):
         if not DUCKDB_INSTALLED:
             return
         con = duckdb.connect()
-        df = pd.DataFrame([[None, 10, 1.0], ['nick', None, 1.5], ['juli', 14, None]],
-                          columns=['Name', 'Age', 'Numeric'])
-        df.to_sql('ages', con)
-        result = con.execute('SELECT count(*), sum("Age"), sum("Numeric") FROM ages').fetchone()
-        assert result == (3, 24, 2.5,)
+        df = pd.DataFrame(
+            [[None, 10, 1.0], ["nick", None, 1.5], ["juli", 14, None]],
+            columns=["Name", "Age", "Numeric"],
+        )
+        df.to_sql("ages", con)
+        result = con.execute(
+            'SELECT count(*), sum("Age"), sum("Numeric") FROM ages'
+        ).fetchone()
+        assert result == (
+            3,
+            24,
+            2.5,
+        )
         con.close()
 
     def test_to_sql_duck_all_exist_options(self):
@@ -2963,25 +2971,37 @@ class TestDuckDB:
         con = duckdb.connect()
         con.execute("CREATE TABLE ages (a INTEGER)")
 
-        df = pd.DataFrame([[None, 10, 1.0], ['nick', None, 1.5], ['juli', 14, None]],
-                          columns=['Name', 'Age', 'Numeric'])
+        df = pd.DataFrame(
+            [[None, 10, 1.0], ["nick", None, 1.5], ["juli", 14, None]],
+            columns=["Name", "Age", "Numeric"],
+        )
         with pytest.raises(Exception) as e_info:
-            df.to_sql('ages', con)
+            df.to_sql("ages", con)
 
+        assert "already exists" in str(e_info.value)
 
-        assert 'already exists' in str(e_info.value)
+        df.to_sql("ages", con, if_exists="replace")
+        result = con.execute(
+            'SELECT count(*), sum("Age"), sum("Numeric") FROM ages'
+        ).fetchone()
+        assert result == (
+            3,
+            24,
+            2.5,
+        )
 
-        df.to_sql('ages', con, if_exists= 'replace')
-        result = con.execute('SELECT count(*), sum("Age"), sum("Numeric") FROM ages').fetchone()
-        assert result == (3, 24, 2.5,)
-
-        df.to_sql('ages', con, if_exists='append')
-        result = con.execute('SELECT count(*), sum("Age"), sum("Numeric") FROM ages').fetchone()
-        assert result == (6, 48, 5,)
+        df.to_sql("ages", con, if_exists="append")
+        result = con.execute(
+            'SELECT count(*), sum("Age"), sum("Numeric") FROM ages'
+        ).fetchone()
+        assert result == (
+            6,
+            48,
+            5,
+        )
 
         with pytest.raises(Exception) as e_info:
-            df.to_sql('ages', con, if_exists='flark')
+            df.to_sql("ages", con, if_exists="flark")
 
-
-        assert 'not valid for if_exists' in str(e_info.value)
+        assert "not valid for if_exists" in str(e_info.value)
         con.close()

@@ -14,6 +14,7 @@ dependencies:
   - python-dateutil
   - pytz
   - pip
+  - python-duckdb
   - pip:
     - cython==0.29.24 # GH#34014
     - "--extra-index-url https://pypi.anaconda.org/scipy-wheels-nightly/simple"
