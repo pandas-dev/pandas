@@ -45,6 +45,7 @@ dependencies:
   - xlrd
   - xlsxwriter
   - xlwt
+  - python-duckdb
 
   # downstream packages
   - aiobotocore<2.0.0  # GH#44311 pinned to fix docbuild

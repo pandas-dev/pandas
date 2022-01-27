@@ -50,3 +50,4 @@ dependencies:
   - xlsxwriter=1.2.2
   - xlwt=1.3.0
   - zstandard=0.15.2
+  - python-duckdb=0.3.1

@@ -42,7 +42,7 @@ dependencies:
   - s3fs
   - scipy
   - sqlalchemy
-  - duckdb
+  - python-duckdb
   - tabulate
   - xarray
   - xlrd
