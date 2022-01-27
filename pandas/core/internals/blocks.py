@@ -528,6 +528,8 @@ class Block(PandasObject):
 
     @final
     def _maybe_downcast(self, blocks: list[Block], downcast=None) -> list[Block]:
+        if downcast is False:
+            return blocks
 
         if self.dtype == _dtype_obj:
             # GH#44241 We downcast regardless of the argument;
@@ -540,10 +542,6 @@ class Block(PandasObject):
             )
 
         if downcast is None:
-            return blocks
-        if downcast is False:
-            # turn if off completely
-            # TODO: not reached, deprecate in favor of downcast=None
             return blocks
 
         return extend_blocks([b._downcast_2d(downcast) for b in blocks])
