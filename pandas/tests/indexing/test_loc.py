@@ -1555,6 +1555,19 @@ class TestLocBaseIndependent:
         df.one = np.int8(7)
         assert df.dtypes.one == np.dtype(np.int8)
 
+    def test_loc_setitem_range_key(self, frame_or_series):
+        # GH#45479 don't treat range key as positional
+        obj = frame_or_series(range(5), index=[3, 4, 1, 0, 2])
+
+        values = [9, 10, 11]
+        if obj.ndim == 2:
+            values = [[9], [10], [11]]
+
+        obj.loc[range(3)] = values
+
+        expected = frame_or_series([0, 1, 10, 9, 11], index=obj.index)
+        tm.assert_equal(obj, expected)
+
 
 class TestLocWithEllipsis:
     @pytest.fixture(params=[tm.loc, tm.iloc])
