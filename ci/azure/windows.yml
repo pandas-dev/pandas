@@ -4,7 +4,7 @@ parameters:
 
 jobs:
 - job: ${{ parameters.name }}
-  timeoutInMinutes: 150
+  timeoutInMinutes: 0
   pool:
     vmImage: ${{ parameters.vmImage }}
   strategy:
