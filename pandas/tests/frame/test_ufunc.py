@@ -3,7 +3,7 @@ from functools import partial
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import np_version_is1p22
+from pandas.compat.numpy import np_version_gte1p22
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -262,7 +262,7 @@ def test_alignment_deprecation_many_inputs(request):
         vectorize,
     )
 
-    if np_version_is1p22:
+    if np_version_gte1p22:
         mark = pytest.mark.xfail(
             reason="ufunc 'my_ufunc' did not contain a loop with signature matching "
             "types",

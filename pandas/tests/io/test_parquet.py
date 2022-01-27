@@ -13,6 +13,7 @@ import pytest
 
 from pandas._config import get_option
 
+from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
     pa_version_under2p0,
     pa_version_under5p0,
@@ -385,7 +386,7 @@ class Base:
             pytest.importorskip(engine)
         url = (
             "https://raw.githubusercontent.com/pandas-dev/pandas/"
-            "master/pandas/tests/io/data/parquet/simple.parquet"
+            "main/pandas/tests/io/data/parquet/simple.parquet"
         )
         df = read_parquet(url)
         tm.assert_frame_equal(df, df_compat)
@@ -651,15 +652,7 @@ class TestBasic(Base):
             "object",
             "datetime64[ns, UTC]",
             "float",
-            pytest.param(
-                "period[D]",
-                # Note: I don't know exactly what version the cutoff is;
-                #  On the CI it fails with 1.0.1
-                marks=pytest.mark.xfail(
-                    pa_version_under2p0,
-                    reason="pyarrow uses pandas internal API incorrectly",
-                ),
-            ),
+            "period[D]",
             "Float64",
             "string",
         ],
@@ -728,6 +721,34 @@ class TestParquetPyArrow(Base):
         # pyarrow 0.11 raises ArrowTypeError
         # older pyarrows raise ArrowInvalid
         self.check_external_error_on_write(df, pa, pyarrow.ArrowException)
+
+    def test_unsupported_float16(self, pa):
+        # #44847, #44914
+        # Not able to write float 16 column using pyarrow.
+        data = np.arange(2, 10, dtype=np.float16)
+        df = pd.DataFrame(data=data, columns=["fp16"])
+        self.check_external_error_on_write(df, pa, pyarrow.ArrowException)
+
+    @pytest.mark.xfail(
+        is_platform_windows(),
+        reason=(
+            "PyArrow does not cleanup of partial files dumps when unsupported "
+            "dtypes are passed to_parquet function in windows"
+        ),
+    )
+    @pytest.mark.parametrize("path_type", [str, pathlib.Path])
+    def test_unsupported_float16_cleanup(self, pa, path_type):
+        # #44847, #44914
+        # Not able to write float 16 column using pyarrow.
+        # Tests cleanup by pyarrow in case of an error
+        data = np.arange(2, 10, dtype=np.float16)
+        df = pd.DataFrame(data=data, columns=["fp16"])
+
+        with tm.ensure_clean() as path_str:
+            path = path_type(path_str)
+            with tm.external_error_raised(pyarrow.ArrowException):
+                df.to_parquet(path=path, engine=pa)
+            assert not os.path.isfile(path)
 
     def test_categorical(self, pa):
 
@@ -898,9 +919,6 @@ class TestParquetPyArrow(Base):
             check_round_trip(df, pa, expected=df.astype(f"string[{string_storage}]"))
 
     @td.skip_if_no("pyarrow")
-    @pytest.mark.xfail(
-        pa_version_under2p0, reason="pyarrow uses pandas internal API incorrectly"
-    )
     def test_additional_extension_types(self, pa):
         # test additional ExtensionArrays that are supported through the
         # __arrow_array__ protocol + by defining a custom ExtensionType

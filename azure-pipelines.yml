@@ -2,17 +2,17 @@
 trigger:
   branches:
     include:
-    - master
+    - main
     - 1.4.x
   paths:
     exclude:
-    - 'doc/*'
+    - 'doc/**'
 
 pr:
   autoCancel: true
   branches:
     include:
-    - master
+    - main
     - 1.4.x
 
 variables:

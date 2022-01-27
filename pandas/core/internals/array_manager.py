@@ -545,7 +545,6 @@ class BaseArrayManager(DataManager):
         allow_dups: bool = False,
         copy: bool = True,
         # ignored keywords
-        consolidate: bool = True,
         only_slice: bool = False,
         # ArrayManager specific keywords
         use_na_proxy: bool = False,
@@ -1281,6 +1280,8 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         See `setitem_inplace` for a version that works inplace and doesn't
         return a new Manager.
         """
+        if isinstance(indexer, np.ndarray) and indexer.ndim > self.ndim:
+            raise ValueError(f"Cannot set values with ndim > {self.ndim}")
         return self.apply_with_block("setitem", indexer=indexer, value=value)
 
     def idelete(self, indexer) -> SingleArrayManager:

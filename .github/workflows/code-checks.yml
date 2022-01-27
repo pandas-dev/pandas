@@ -3,11 +3,11 @@ name: Code Checks
 on:
   push:
     branches:
-      - master
+      - main
       - 1.4.x
   pull_request:
     branches:
-      - master
+      - main
       - 1.4.x
 
 env:
@@ -74,7 +74,7 @@ jobs:
 
     - name: Install pyright
       # note: keep version in sync with .pre-commit-config.yaml
-      run: npm install -g pyright@1.1.202
+      run: npm install -g pyright@1.1.212
 
     - name: Build Pandas
       id: build
@@ -151,7 +151,7 @@ jobs:
       if: ${{ steps.build.outcome == 'success' }}
 
     - name: Publish benchmarks artifact
-      uses: actions/upload-artifact@master
+      uses: actions/upload-artifact@v2
       with:
         name: Benchmarks log
         path: asv_bench/benchmarks.log

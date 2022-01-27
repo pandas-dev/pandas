@@ -85,18 +85,26 @@ def _mpl(func: Callable):
 ####
 # Shared Doc Strings
 
-subset = """
-        subset : label, array-like, IndexSlice, optional
+subset = """subset : label, array-like, IndexSlice, optional
             A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
-            prioritised, to limit ``data`` to *before* applying the function.
-"""
+            prioritised, to limit ``data`` to *before* applying the function."""
 
-props = """
-        props : str, default None
-            CSS properties to use for highlighting. If ``props`` is given, ``color``
-            is not used.
-"""
+props = """props : str, default None
+           CSS properties to use for highlighting. If ``props`` is given, ``color``
+           is not used."""
+
+color = """color : str, default 'yellow'
+           Background color to use for highlighting."""
+
+buf = """buf : str, path object, file-like object, optional
+         String, path object (implementing ``os.PathLike[str]``), or file-like
+         object implementing a string ``write()`` function. If ``None``, the result is
+         returned as a string."""
+
+encoding = """encoding : str, optional
+              Character encoding setting for file output (and meta tags if available).
+              Defaults to ``pandas.options.styler.render.encoding`` value of "utf-8"."""
 
 #
 ###
@@ -1054,6 +1062,7 @@ class Styler(StylerRenderer):
             latex, buf=buf, encoding=None if buf is None else encoding
         )
 
+    @Substitution(buf=buf, encoding=encoding)
     def to_html(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
@@ -1078,10 +1087,7 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        buf : str, path object, file-like object, or None, default None
-            String, path object (implementing ``os.PathLike[str]``), or file-like
-            object implementing a string ``write()`` function. If None, the result is
-            returned as a string.
+        %(buf)s
         table_uuid : str, optional
             Id attribute assigned to the <table> HTML element in the format:
 
@@ -1128,9 +1134,7 @@ class Styler(StylerRenderer):
             which is 262144 (18 bit browser rendering).
 
             .. versionadded:: 1.4.0
-        encoding : str, optional
-            Character encoding setting for file output, and HTML meta tags.
-            Defaults to ``pandas.options.styler.render.encoding`` value of "utf-8".
+        %(encoding)s
         doctype_html : bool, default False
             Whether to output a fully structured HTML file including all
             HTML elements, or just the core ``<style>`` and ``<table>`` elements.
@@ -1190,6 +1194,7 @@ class Styler(StylerRenderer):
             html, buf=buf, encoding=(encoding if buf is not None else None)
         )
 
+    @Substitution(buf=buf, encoding=encoding)
     def to_string(
         self,
         buf=None,
@@ -1208,11 +1213,8 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        buf : str, Path, or StringIO-like, optional, default None
-            Buffer to write to. If ``None``, the output is returned as a string.
-        encoding : str, optional
-            Character encoding setting for file output.
-            Defaults to ``pandas.options.styler.render.encoding`` value of "utf-8".
+        %(buf)s
+        %(encoding)s
         sparse_index : bool, optional
             Whether to sparsify the display of a hierarchical index. Setting to False
             will display each explicit level element in a hierarchical key for each row.
@@ -1487,7 +1489,9 @@ class Styler(StylerRenderer):
         subset = slice(None) if subset is None else subset
         subset = non_reducing_slice(subset)
         data = self.data.loc[subset]
-        if axis is None:
+        if data.empty:
+            result = DataFrame()
+        elif axis is None:
             result = func(data, **kwargs)
             if not isinstance(result, DataFrame):
                 if not isinstance(result, np.ndarray):
@@ -1655,7 +1659,6 @@ class Styler(StylerRenderer):
         alt="applymap",
         altwise="elementwise",
         func="take a Series and return a string array of the same length",
-        axis='{0, 1, "index", "columns"}',
         input_note="the index as a Series, if an Index, or a level of a MultiIndex",
         output_note="an identically sized array of CSS styles as strings",
         var="s",
@@ -1680,7 +1683,7 @@ class Styler(StylerRenderer):
         ----------
         func : function
             ``func`` should {func}.
-        axis : {axis}
+        axis : {{0, 1, "index", "columns"}}
             The headers over which to apply the function.
         level : int, str, list, optional
             If index is MultiIndex the level(s) over which to apply the function.
@@ -1741,7 +1744,6 @@ class Styler(StylerRenderer):
         alt="apply",
         altwise="level-wise",
         func="take a scalar and return a string",
-        axis='{0, 1, "index", "columns"}',
         input_note="an index value, if an Index, or a level value of a MultiIndex",
         output_note="CSS styles as a string",
         var="v",
@@ -2750,7 +2752,6 @@ class Styler(StylerRenderer):
         name="background",
         alt="text",
         image_prefix="bg",
-        axis="{0 or 'index', 1 or 'columns', None}",
         text_threshold="",
     )
     @Substitution(subset=subset)
@@ -2785,7 +2786,7 @@ class Styler(StylerRenderer):
             Compress the color range at the high end. This is a multiple of the data
             range to extend above the maximum; good values usually in [0, 1],
             defaults to 0.
-        axis : {axis}, default 0
+        axis : {{0, 1, "index", "columns", None}}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
@@ -2911,7 +2912,6 @@ class Styler(StylerRenderer):
         name="text",
         alt="background",
         image_prefix="tg",
-        axis="{0 or 'index', 1 or 'columns', None}",
         text_threshold="This argument is ignored (only used in `background_gradient`).",
     )
     def text_gradient(
@@ -3111,8 +3111,11 @@ class Styler(StylerRenderer):
         ----------
         null_color : str, default 'red'
         %(subset)s
+
             .. versionadded:: 1.1.0
+
         %(props)s
+
             .. versionadded:: 1.3.0
 
         Returns
@@ -3134,7 +3137,7 @@ class Styler(StylerRenderer):
             props = f"background-color: {null_color};"
         return self.apply(f, axis=None, subset=subset, props=props)
 
-    @Substitution(subset=subset, props=props)
+    @Substitution(subset=subset, color=color, props=props)
     def highlight_max(
         self,
         subset: Subset | None = None,
@@ -3148,13 +3151,13 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         %(subset)s
-        color : str, default 'yellow'
-            Background color to use for highlighting.
+        %(color)s
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
         %(props)s
+
             .. versionadded:: 1.3.0
 
         Returns
@@ -3178,7 +3181,7 @@ class Styler(StylerRenderer):
             props=props,
         )
 
-    @Substitution(subset=subset, props=props)
+    @Substitution(subset=subset, color=color, props=props)
     def highlight_min(
         self,
         subset: Subset | None = None,
@@ -3192,13 +3195,13 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         %(subset)s
-        color : str, default 'yellow'
-            Background color to use for highlighting.
+        %(color)s
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
         %(props)s
+
             .. versionadded:: 1.3.0
 
         Returns
@@ -3222,7 +3225,7 @@ class Styler(StylerRenderer):
             props=props,
         )
 
-    @Substitution(subset=subset, props=props)
+    @Substitution(subset=subset, color=color, props=props)
     def highlight_between(
         self,
         subset: Subset | None = None,
@@ -3241,8 +3244,7 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         %(subset)s
-        color : str, default 'yellow'
-            Background color to use for highlighting.
+        %(color)s
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             If ``left`` or ``right`` given as sequence, axis along which to apply those
             boundaries. See examples.
@@ -3253,6 +3255,7 @@ class Styler(StylerRenderer):
         inclusive : {'both', 'neither', 'left', 'right'}
             Identify whether bounds are closed or open.
         %(props)s
+
         Returns
         -------
         self : Styler
@@ -3326,7 +3329,7 @@ class Styler(StylerRenderer):
             inclusive=inclusive,
         )
 
-    @Substitution(subset=subset, props=props)
+    @Substitution(subset=subset, color=color, props=props)
     def highlight_quantile(
         self,
         subset: Subset | None = None,
@@ -3346,8 +3349,7 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         %(subset)s
-        color : str, default 'yellow'
-            Background color to use for highlighting.
+        %(color)s
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Axis along which to determine and highlight quantiles. If ``None`` quantiles
             are measured over the entire DataFrame. See examples.
@@ -3361,6 +3363,7 @@ class Styler(StylerRenderer):
         inclusive : {'both', 'neither', 'left', 'right'}
             Identify whether quantile bounds are closed or open.
         %(props)s
+
         Returns
         -------
         self : Styler

@@ -1264,6 +1264,19 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 return self
             else:
                 return self.copy()
+
+        future_dtype = pandas_dtype(dtype)
+        if not isinstance(future_dtype, SparseDtype):
+            # GH#34457
+            warnings.warn(
+                "The behavior of .astype from SparseDtype to a non-sparse dtype "
+                "is deprecated. In a future version, this will return a non-sparse "
+                "array with the requested dtype. To retain the old behavior, use "
+                "`obj.astype(SparseDtype(dtype))`",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
         dtype = self.dtype.update_dtype(dtype)
         subtype = pandas_dtype(dtype._subtype_with_str)
         sp_values = astype_nansafe(self.sp_values, subtype, copy=copy)

@@ -787,16 +787,20 @@ class TestSeriesPlots(TestPlotBase):
         "index_name, old_label, new_label",
         [(None, "", "new"), ("old", "old", "new"), (None, "", "")],
     )
-    @pytest.mark.parametrize("kind", ["line", "area", "bar"])
+    @pytest.mark.parametrize("kind", ["line", "area", "bar", "barh"])
     def test_xlabel_ylabel_series(self, kind, index_name, old_label, new_label):
         # GH 9093
         ser = Series([1, 2, 3, 4])
         ser.index.name = index_name
 
-        # default is the ylabel is not shown and xlabel is index name
+        # default is the ylabel is not shown and xlabel is index name (reverse for barh)
         ax = ser.plot(kind=kind)
-        assert ax.get_ylabel() == ""
-        assert ax.get_xlabel() == old_label
+        if kind == "barh":
+            assert ax.get_xlabel() == ""
+            assert ax.get_ylabel() == old_label
+        else:
+            assert ax.get_ylabel() == ""
+            assert ax.get_xlabel() == old_label
 
         # old xlabel will be overridden and assigned ylabel will be used as ylabel
         ax = ser.plot(kind=kind, ylabel=new_label, xlabel=new_label)

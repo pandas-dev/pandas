@@ -69,9 +69,9 @@ to run its checks with::
 
 without needing to have done ``pre-commit install`` beforehand.
 
-If you want to run checks on all recently committed files on upstream/master you can use::
+If you want to run checks on all recently committed files on upstream/main you can use::
 
-    pre-commit run --from-ref=upstream/master --to-ref=HEAD --all-files
+    pre-commit run --from-ref=upstream/main --to-ref=HEAD --all-files
 
 without needing to have done ``pre-commit install`` beforehand.
 
@@ -155,7 +155,7 @@ Python (PEP8 / black)
 
 pandas follows the `PEP8 <https://www.python.org/dev/peps/pep-0008/>`_ standard
 and uses `Black <https://black.readthedocs.io/en/stable/>`_ and
-`Flake8 <http://flake8.pycqa.org/en/latest/>`_ to ensure a consistent code
+`Flake8 <https://flake8.pycqa.org/en/latest/>`_ to ensure a consistent code
 format throughout the project. We encourage you to use :ref:`pre-commit <contributing.pre-commit>`.
 
 :ref:`Continuous Integration <contributing.ci>` will run those tools and
@@ -163,7 +163,7 @@ report any stylistic errors in your code. Therefore, it is helpful before
 submitting code to run the check yourself::
 
    black pandas
-   git diff upstream/master -u -- "*.py" | flake8 --diff
+   git diff upstream/main -u -- "*.py" | flake8 --diff
 
 to auto-format your code. Additionally, many editors have plugins that will
 apply ``black`` as you edit files.
@@ -171,7 +171,7 @@ apply ``black`` as you edit files.
 You should use a ``black`` version 21.5b2 as previous versions are not compatible
 with the pandas codebase.
 
-One caveat about ``git diff upstream/master -u -- "*.py" | flake8 --diff``: this
+One caveat about ``git diff upstream/main -u -- "*.py" | flake8 --diff``: this
 command will catch any stylistic errors in your changes specifically, but
 be beware it may not catch all of them. For example, if you delete the only
 usage of an imported function, it is stylistically incorrect to import an
@@ -179,18 +179,18 @@ unused function. However, style-checking the diff will not catch this because
 the actual import is not part of the diff. Thus, for completeness, you should
 run this command, though it may take longer::
 
-   git diff upstream/master --name-only -- "*.py" | xargs -r flake8
+   git diff upstream/main --name-only -- "*.py" | xargs -r flake8
 
 Note that on macOS, the ``-r`` flag is not available, so you have to omit it and
 run this slightly modified command::
 
-   git diff upstream/master --name-only -- "*.py" | xargs flake8
+   git diff upstream/main --name-only -- "*.py" | xargs flake8
 
 Windows does not support the ``xargs`` command (unless installed for example
 via the `MinGW <http://www.mingw.org/>`__ toolchain), but one can imitate the
 behaviour as follows::
 
-    for /f %i in ('git diff upstream/master --name-only -- "*.py"') do flake8 %i
+    for /f %i in ('git diff upstream/main --name-only -- "*.py"') do flake8 %i
 
 This will get all the files being changed by the PR (and ending with ``.py``),
 and run ``flake8`` on them, one after the other.
@@ -204,7 +204,7 @@ Import formatting
 pandas uses `isort <https://pypi.org/project/isort/>`__ to standardise import
 formatting across the codebase.
 
-A guide to import layout as per pep8 can be found `here <https://www.python.org/dev/peps/pep-0008/#imports/>`__.
+A guide to import layout as per pep8 can be found `here <https://www.python.org/dev/peps/pep-0008/#imports>`__.
 
 A summary of our current import sections ( in order ):
 
@@ -242,7 +242,7 @@ to automatically format imports correctly. This will modify your local copy of t
 
 Alternatively, you can run a command similar to what was suggested for ``black`` and ``flake8`` :ref:`right above <contributing.code-formatting>`::
 
-    git diff upstream/master --name-only -- "*.py" | xargs -r isort
+    git diff upstream/main --name-only -- "*.py" | xargs -r isort
 
 Where similar caveats apply if you are on macOS or Windows.
 
@@ -389,7 +389,7 @@ With custom types and inference this is not always possible so exceptions are ma
 pandas-specific types
 ~~~~~~~~~~~~~~~~~~~~~
 
-Commonly used types specific to pandas will appear in `pandas._typing <https://github.com/pandas-dev/pandas/blob/master/pandas/_typing.py>`_ and you should use these where applicable. This module is private for now but ultimately this should be exposed to third party libraries who want to implement type checking against pandas.
+Commonly used types specific to pandas will appear in `pandas._typing <https://github.com/pandas-dev/pandas/blob/main/pandas/_typing.py>`_ and you should use these where applicable. This module is private for now but ultimately this should be exposed to third party libraries who want to implement type checking against pandas.
 
 For example, quite a few functions in pandas accept a ``dtype`` argument. This can be expressed as a string like ``"object"``, a ``numpy.dtype`` like ``np.int64`` or even a pandas ``ExtensionDtype`` like ``pd.CategoricalDtype``. Rather than burden the user with having to constantly annotate all of those options, this can simply be imported and reused from the pandas._typing module
 
@@ -449,7 +449,7 @@ continuous integration services, once your pull request is submitted.
 However, if you wish to run the test suite on a branch prior to submitting the pull request,
 then the continuous integration services need to be hooked to your GitHub repository. Instructions are here
 for `GitHub Actions <https://docs.github.com/en/actions/>`__ and
-`Azure Pipelines <https://docs.microsoft.com/en-us/azure/devops/pipelines/>`__.
+`Azure Pipelines <https://docs.microsoft.com/en-us/azure/devops/pipelines/?view=azure-devops>`__.
 
 A pull-request will be considered for merging when you have an all 'green' build. If any tests are failing,
 then you will get a red 'X', where you can click through to see the individual failed tests.
@@ -490,8 +490,7 @@ Writing tests
 All tests should go into the ``tests`` subdirectory of the specific package.
 This folder contains many current examples of tests, and we suggest looking to these for
 inspiration.  If your test requires working with files or
-network connectivity, there is more information on the `testing page
-<https://github.com/pandas-dev/pandas/wiki/Testing>`_ of the wiki.
+network connectivity, there is more information on the :wiki:`Testing` of the wiki.
 
 The ``pandas._testing`` module has many special ``assert`` functions that
 make it easier to make statements about whether Series or DataFrame objects are
@@ -777,10 +776,10 @@ Running the performance test suite
 
 Performance matters and it is worth considering whether your code has introduced
 performance regressions. pandas is in the process of migrating to
-`asv benchmarks <https://github.com/spacetelescope/asv>`__
+`asv benchmarks <https://github.com/airspeed-velocity/asv>`__
 to enable easy monitoring of the performance of critical pandas operations.
 These benchmarks are all found in the ``pandas/asv_bench`` directory, and the
-test results can be found `here <https://pandas.pydata.org/speed/pandas/#/>`__.
+test results can be found `here <https://pandas.pydata.org/speed/pandas/>`__.
 
 To use all features of asv, you will need either ``conda`` or
 ``virtualenv``. For more details please check the `asv installation
@@ -788,18 +787,18 @@ webpage <https://asv.readthedocs.io/en/latest/installing.html>`_.
 
 To install asv::
 
-    pip install git+https://github.com/spacetelescope/asv
+    pip install git+https://github.com/airspeed-velocity/asv
 
 If you need to run a benchmark, change your directory to ``asv_bench/`` and run::
 
-    asv continuous -f 1.1 upstream/master HEAD
+    asv continuous -f 1.1 upstream/main HEAD
 
 You can replace ``HEAD`` with the name of the branch you are working on,
 and report benchmarks that changed by more than 10%.
 The command uses ``conda`` by default for creating the benchmark
 environments. If you want to use virtualenv instead, write::
 
-    asv continuous -f 1.1 -E virtualenv upstream/master HEAD
+    asv continuous -f 1.1 -E virtualenv upstream/main HEAD
 
 The ``-E virtualenv`` option should be added to all ``asv`` commands
 that run benchmarks. The default value is defined in ``asv.conf.json``.
@@ -811,12 +810,12 @@ do not cause unexpected performance regressions.  You can run specific benchmark
 using the ``-b`` flag, which takes a regular expression. For example, this will
 only run benchmarks from a ``pandas/asv_bench/benchmarks/groupby.py`` file::
 
-    asv continuous -f 1.1 upstream/master HEAD -b ^groupby
+    asv continuous -f 1.1 upstream/main HEAD -b ^groupby
 
 If you want to only run a specific group of benchmarks from a file, you can do it
 using ``.`` as a separator. For example::
 
-    asv continuous -f 1.1 upstream/master HEAD -b groupby.GroupByMethods
+    asv continuous -f 1.1 upstream/main HEAD -b groupby.GroupByMethods
 
 will only run the ``GroupByMethods`` benchmark defined in ``groupby.py``.
 

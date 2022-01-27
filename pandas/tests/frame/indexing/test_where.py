@@ -753,13 +753,15 @@ def test_where_try_cast_deprecated(frame_or_series):
         obj.where(mask, -1, try_cast=False)
 
 
-@pytest.mark.xfail(
-    reason="After fixing a bug in can_hold_element, we don't go through "
-    "the deprecated path, and also up-cast to int64 instead of int32 "
-    "(for now)."
-)
 def test_where_int_downcasting_deprecated(using_array_manager, request):
     # GH#44597
+    if not using_array_manager:
+        mark = pytest.mark.xfail(
+            reason="After fixing a bug in can_hold_element, we don't go through "
+            "the deprecated path, and also up-cast both columns to int32 "
+            "instead of just 1."
+        )
+        request.node.add_marker(mark)
     arr = np.arange(6).astype(np.int16).reshape(3, 2)
     df = DataFrame(arr)
 
@@ -897,6 +899,9 @@ def test_where_period_invalid_na(frame_or_series, as_cat, request):
     with pytest.raises(TypeError, match=msg):
         obj.mask(mask, tdnat)
 
+    with pytest.raises(TypeError, match=msg):
+        obj.mask(mask, tdnat, inplace=True)
+
 
 def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):
     # GH#44697
@@ -905,16 +910,7 @@ def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):
 
     mask = np.array([True, True, False], ndmin=obj.ndim).T
 
-    msg = "|".join(
-        [
-            r"datetime64\[.{1,2}\] cannot be converted to an? (Integer|Floating)Dtype",
-            r"timedelta64\[.{1,2}\] cannot be converted to an? (Integer|Floating)Dtype",
-            r"int\(\) argument must be a string, a bytes-like object or a number, "
-            "not 'NaTType'",
-            "object cannot be converted to a FloatingDtype",
-            "'values' contains non-numeric NA",
-        ]
-    )
+    msg = r"Invalid value '.*' for dtype (U?Int|Float)\d{1,2}"
 
     for null in tm.NP_NAT_OBJECTS + [pd.NaT]:
         # NaT is an NA value that we should *not* cast to pd.NA dtype
