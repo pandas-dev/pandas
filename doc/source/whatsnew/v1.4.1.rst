@@ -1,0 +1,56 @@
+.. _whatsnew_141:
+
+What's new in 1.4.1 (February ??, 2022)
+---------------------------------------
+
+These are the changes in pandas 1.4.1. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_141.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Regression in :meth:`Series.mask` with ``inplace=True`` and ``PeriodDtype`` and an incompatible ``other`` coercing to a common dtype instead of raising (:issue:`45546`)
+- Regression in :meth:`DataFrame.loc.__setitem__` losing :class:`Index` name if :class:`DataFrame` was empty before (:issue:`45621`)
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_141.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- Fixed segfault in :meth:``DataFrame.to_json`` when dumping tz-aware datetimes in Python 3.10 (:issue:`42130`)
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_141.plotting:
+
+Plotting
+^^^^^^^^
+- The function :meth:`DataFrame.scatter` now accepts ``color`` as an alias for ``c`` and ``size`` as an alias for ``s`` for consistency to other plotting functions (:issue:`44670`, :issue:`44856`)
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_141.other:
+
+
+Other
+~~~~~
+- Reverted performance speedup of :meth:`DataFrame.corr` for ``method=pearson`` to fix precision regression (:issue:`45640`, :issue:`42761`)
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_141.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.4.0..v1.4.1|HEAD
