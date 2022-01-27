@@ -25,6 +25,12 @@ import pandas._testing as tm
 from pandas.tests.io.excel import xlrd_version
 from pandas.util.version import Version
 
+pytestmark = pytest.mark.skipif(
+    os.environ.get("PANDAS_CI", "0") == "1" and is_platform_windows(),
+    reason="Any test in this file can hang on the multi-process "
+    "CI Windows environment",
+)
+
 read_ext_params = [".xls", ".xlsx", ".xlsm", ".xlsb", ".ods"]
 engine_params = [
     # Add any engines to test here
@@ -127,10 +133,6 @@ class TestReaders:
         monkeypatch.chdir(datapath("io", "data", "excel"))
         monkeypatch.setattr(pd, "read_excel", func)
 
-    @pytest.mark.skipif(
-        os.environ.get("PANDAS_CI", "0") == "1" and is_platform_windows(),
-        reason="Flakily hangs on multi-process CI Windows environment",
-    )
     def test_engine_used(self, read_ext, engine, monkeypatch):
         # GH 38884
         def parser(self, *args, **kwargs):
@@ -154,10 +156,6 @@ class TestReaders:
             expected = expected_defaults[read_ext[1:]]
         assert result == expected
 
-    @pytest.mark.skipif(
-        os.environ.get("PANDAS_CI", "0") == "1" and is_platform_windows(),
-        reason="Flakily hangs on multi-process CI Windows environment",
-    )
     def test_usecols_int(self, read_ext):
         # usecols as int
         msg = "Passing an integer for `usecols`"
