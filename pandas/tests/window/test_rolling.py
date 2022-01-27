@@ -2,6 +2,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+import sys
 
 import numpy as np
 import pytest
@@ -1737,6 +1738,7 @@ def test_rolling_std_neg_sqrt():
 
 
 def test_rolling_aggregation_boundary_consistency(rolling_aggregation):
+    # GH-45647
     minp, step, width, size, selection = 0, 1, 3, 11, [2, 7]
     s = Series(np.arange(1, 1 + size, dtype=np.float64))
     end = np.arange(width, size, step, dtype=np.int64)
@@ -1748,8 +1750,7 @@ def test_rolling_aggregation_boundary_consistency(rolling_aggregation):
 
 
 def test_rolling_aggregation_with_unused_elements(rolling_aggregation):
-    import sys
-
+    # GH-45647
     minp, width = 0, 5  # width at least 4 for kurt
     size = 2 * width + 5
     s = Series(np.arange(1, size + 1, dtype=np.float64))
