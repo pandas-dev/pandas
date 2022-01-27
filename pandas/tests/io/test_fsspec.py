@@ -3,7 +3,6 @@ import io
 import numpy as np
 import pytest
 
-from pandas.compat import PY310
 from pandas.compat._optional import VERSIONS
 
 from pandas import (
@@ -182,7 +181,6 @@ def test_arrowparquet_options(fsspectest):
 
 @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fastparquet
 @td.skip_if_no("fastparquet")
-@pytest.mark.xfail(PY310, reason="fastparquet failing on 3.10")
 def test_fastparquet_options(fsspectest):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
     df = DataFrame({"a": [0]})
