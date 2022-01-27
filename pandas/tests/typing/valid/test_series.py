@@ -400,6 +400,7 @@ def test_types_group_by_with_dropna_keyword() -> None:
     s.groupby(level=0).sum()
 
 
+@td.skip_if_no("matplotlib")  # type: ignore[misc]
 def test_types_plot() -> None:
     s = pd.Series([0, 1, 1, 0, -10])
     s.plot.hist()
