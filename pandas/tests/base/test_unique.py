@@ -106,7 +106,7 @@ def test_nunique_null(null_obj, index_or_series_obj):
 
 @pytest.mark.single
 @pytest.mark.xfail(
-    "Flaky in the CI. Remove once CI has a single build: GH 44584", strict=False
+    reason="Flaky in the CI. Remove once CI has a single build: GH 44584", strict=False
 )
 def test_unique_bad_unicode(index_or_series):
     # regression test for #34550
