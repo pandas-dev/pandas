@@ -5,6 +5,7 @@ import gzip
 import http.server
 from io import BytesIO
 import multiprocessing
+import os
 import socket
 import time
 import urllib.error
@@ -16,6 +17,13 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
+
+pytestmark = pytest.mark.skipif(
+    os.environ.get("PANDAS_CI", "0") == "1",
+    reason="This test can hang in our CI min_versions build "
+    "and leads to '##[error]The runner has "
+    "received a shutdown signal...' in GHA. GH 45651",
+)
 
 
 class BaseUserAgentResponder(http.server.BaseHTTPRequestHandler):

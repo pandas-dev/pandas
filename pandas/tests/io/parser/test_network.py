@@ -269,7 +269,7 @@ class TestS3:
         os.environ.get("PANDAS_CI", "0") == "1",
         reason="This test can hang in our CI min_versions build "
         "and leads to '##[error]The runner has "
-        "received a shutdown signal...' in GHA",
+        "received a shutdown signal...' in GHA. GH: 45651",
     )
     def test_read_csv_chunked_download(self, s3_resource, caplog, s3so):
         # 8 MB, S3FS uses 5MB chunks
