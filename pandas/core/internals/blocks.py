@@ -1605,7 +1605,11 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         #  see GH#33457
         # When an ndarray, we should have locs.tolist() == [0]
         # When a BlockPlacement we should have list(locs) == [0]
-        self.values = values
+
+        # error: Incompatible types in assignment (expression has type
+        # "Union[ExtensionArray, ndarray[Any, Any]]", variable has type
+        # "ExtensionArray")
+        self.values = values  # type: ignore[assignment]
         try:
             # TODO(GH33457) this can be removed
             self._cache.clear()
