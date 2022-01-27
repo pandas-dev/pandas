@@ -11,6 +11,7 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -29,6 +30,12 @@ from pandas.io.excel import (
     _XlsxWriter,
     _XlwtWriter,
     register_writer,
+)
+
+pytestmark = pytest.mark.skipif(
+    os.environ.get("PANDAS_CI", "0") == "1" and is_platform_windows(),
+    reason="Any test in this file can hang on the multi-process "
+    "CI Windows environment",
 )
 
 
