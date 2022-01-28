@@ -139,7 +139,9 @@ class TestIteration:
 
     def test_iterrowdicts(self, float_frame):
         for i, row_dict in enumerate(float_frame.iterrowdicts()):
-            ser = DataFrame._constructor_sliced({ k : v for k, v in row_dict.items() if k != "index"})
+            ser = DataFrame._constructor_sliced(
+                {k: v for k, v in row_dict.items() if k != "index"}
+            )
             ser.name = row_dict["index"]
             expected = float_frame.iloc[i, :].reset_index(drop=True)
             tm.assert_series_equal(ser, expected)
@@ -154,7 +156,11 @@ class TestIteration:
         df = DataFrame(data={"a": [1, 2, 3], "b": [4, 5, 6]})
         dfaa = df[["a", "a"]]
 
-        assert list(dfaa.iterrowdicts()) == [{"index": 0, "a": 1}, {"index": 1, "a": 2}, {"index": 2, "a": 3}]
+        assert list(dfaa.iterrowdicts()) == [
+            {"index": 0, "a": 1},
+            {"index": 1, "a": 2},
+            {"index": 2, "a": 3},
+        ]
 
         # repr with int on 32-bit/windows
         if not (is_platform_windows() or not IS64):
