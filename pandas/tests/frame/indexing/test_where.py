@@ -812,6 +812,12 @@ def test_where_string_dtype(frame_or_series):
     )
     tm.assert_equal(result, expected)
 
+    result = obj.mask(~filter_ser, filtered_obj)
+    tm.assert_equal(result, expected)
+
+    obj.mask(~filter_ser, filtered_obj, inplace=True)
+    tm.assert_equal(result, expected)
+
 
 def test_where_bool_comparison():
     # GH 10336
