@@ -54,6 +54,7 @@ jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires ji
 from pandas.io.formats.style_render import (
     CSSProperties,
     CSSStyles,
+    Descriptor,
     ExtFormatter,
     StylerRenderer,
     Subset,
@@ -2440,7 +2441,7 @@ class Styler(StylerRenderer):
         return self
 
     def set_descriptors(
-        self, descriptors: list[str | Callable | tuple[str, Callable]] | None = None
+        self, descriptors: list[Descriptor | tuple[str, Descriptor]] | None = None
     ) -> Styler:
         """
         Add header-level calculations to the output which describes the data.

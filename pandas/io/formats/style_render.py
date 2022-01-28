@@ -51,6 +51,7 @@ ExtFormatter = Union[BaseFormatter, Dict[Any, Optional[BaseFormatter]]]
 CSSPair = Tuple[str, Union[str, int, float]]
 CSSList = List[CSSPair]
 CSSProperties = Union[str, CSSList]
+Descriptor = Union[str, Callable[[Series], Any]]
 
 
 class CSSDict(TypedDict):
@@ -132,7 +133,7 @@ class StylerRenderer:
         self.hide_columns_: list = [False] * self.columns.nlevels
         self.hidden_rows: Sequence[int] = []  # sequence for specific hidden rows/cols
         self.hidden_columns: Sequence[int] = []
-        self.descriptors: list[str | Callable | tuple[str, Callable]] = []
+        self.descriptors: list[Descriptor | tuple[str, Descriptor]] = []
         self.ctx: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
         self.ctx_index: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
         self.ctx_columns: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
@@ -524,9 +525,14 @@ class StylerRenderer:
             name: str | None = descriptor
             func: Callable = getattr(Series, descriptor)
         elif isinstance(descriptor, tuple):
-            name, func = descriptor[0], descriptor[1]
+            name = descriptor[0]
+            if isinstance(descriptor[1], str):
+                func = getattr(Series, descriptor[1])
+            else:
+                func = descriptor[1]
         else:
-            name, func = None, descriptor
+            name, func = getattr(descriptor, "__name__", None), descriptor
+            name = None if name == "<lambda>" else name  # blank nameless functions
 
         display_func: Callable = _maybe_wrap_formatter(
             decimal=get_option("styler.format.decimal"),

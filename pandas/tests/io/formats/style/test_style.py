@@ -1559,19 +1559,25 @@ def test_no_empty_apply(mi_styler):
 
 
 def test_descriptors(mi_styler):
+    def udf_mean(s):
+        return s.mean()
+
     mi_styler.set_descriptors(
         [
             "mean",
             Series.mean,
+            ("average", "mean"),
             ("my-text", Series.mean),
             ("my-func", lambda s: s.sum() / len(s)),
+            lambda s: s.sum() / len(s),
+            udf_mean,
         ]
     )
     ctx = mi_styler._translate(True, True)
-    assert len(ctx["head"]) == 6  # 2 rows for MultiIndex columns and 4 descriptors
+    assert len(ctx["head"]) == 9  # 2 rows for MultiIndex columns and 7 descriptors
 
-    exp_labels = ["mean", "&nbsp;", "my-text", "my-func"]
-    for r, row in enumerate(ctx["head"][2:6]):  # iterate after col headers
+    exp_labels = ["mean", "mean", "average", "my-text", "my-func", "&nbsp;", "udf_mean"]
+    for r, row in enumerate(ctx["head"][2:9]):  # iterate after col headers
         for c, col in enumerate(row[2:]):  # iterate after row headers
             result = {k: col[k] for k in ["type", "is_visible", "value"]}
             assert (
