@@ -138,12 +138,6 @@ class TestIteration:
         assert hasattr(result_255_columns, "_fields")
 
     def test_iterrowdicts(self, float_frame):
-        for i, row_dict in enumerate(float_frame.iterrowdicts()):
-            ser = DataFrame._constructor_sliced({ k : v for k, v in row_dict.items() if k != "index"})
-            ser.name = row_dict["index"]
-            expected = float_frame.iloc[i, :].reset_index(drop=True)
-            tm.assert_series_equal(ser, expected)
-
         df = DataFrame(
             {"floats": np.random.randn(5), "ints": range(5)}, columns=["floats", "ints"]
         )
