@@ -329,12 +329,8 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
         Py_ssize_t i, j, xi, yi, N, K
         bint minpv
         float64_t[:, ::1] result
-        # Initialize to None since we only use in the no missing value case
-        float64_t[::1] means=None, ssqds=None
         ndarray[uint8_t, ndim=2] mask
-        bint no_nans
         int64_t nobs = 0
-        float64_t mean, ssqd, val
         float64_t vx, vy, dx, dy, meanx, meany, divisor, ssqdmx, ssqdmy, covxy
 
     N, K = (<object>mat).shape
@@ -346,57 +342,25 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
 
     result = np.empty((K, K), dtype=np.float64)
     mask = np.isfinite(mat).view(np.uint8)
-    no_nans = mask.all()
-
-    # Computing the online means and variances is expensive - so if possible we can
-    # precompute these and avoid repeating the computations each time we handle
-    # an (xi, yi) pair
-    if no_nans:
-        means = np.empty(K, dtype=np.float64)
-        ssqds = np.empty(K, dtype=np.float64)
-
-        with nogil:
-            for j in range(K):
-                ssqd = mean = 0
-                for i in range(N):
-                    val = mat[i, j]
-                    dx = val - mean
-                    mean += 1 / (i + 1) * dx
-                    ssqd += (val - mean) * dx
-
-                means[j] = mean
-                ssqds[j] = ssqd
 
     with nogil:
         for xi in range(K):
             for yi in range(xi + 1):
-                covxy = 0
-                if no_nans:
-                    for i in range(N):
+                # Welford's method for the variance-calculation
+                # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+                nobs = ssqdmx = ssqdmy = covxy = meanx = meany = 0
+                for i in range(N):
+                    if mask[i, xi] and mask[i, yi]:
                         vx = mat[i, xi]
                         vy = mat[i, yi]
-                        covxy += (vx - means[xi]) * (vy - means[yi])
-
-                    ssqdmx = ssqds[xi]
-                    ssqdmy = ssqds[yi]
-                    nobs = N
-
-                else:
-                    nobs = ssqdmx = ssqdmy = covxy = meanx = meany = 0
-                    for i in range(N):
-                        # Welford's method for the variance-calculation
-                        # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
-                        if mask[i, xi] and mask[i, yi]:
-                            vx = mat[i, xi]
-                            vy = mat[i, yi]
-                            nobs += 1
-                            dx = vx - meanx
-                            dy = vy - meany
-                            meanx += 1 / nobs * dx
-                            meany += 1 / nobs * dy
-                            ssqdmx += (vx - meanx) * dx
-                            ssqdmy += (vy - meany) * dy
-                            covxy += (vx - meanx) * dy
+                        nobs += 1
+                        dx = vx - meanx
+                        dy = vy - meany
+                        meanx += 1 / nobs * dx
+                        meany += 1 / nobs * dy
+                        ssqdmx += (vx - meanx) * dx
+                        ssqdmy += (vy - meany) * dy
+                        covxy += (vx - meanx) * dy
 
                 if nobs < minpv:
                     result[xi, yi] = result[yi, xi] = NaN

@@ -50,7 +50,7 @@ jobs:
       COVERAGE: ${{ !contains(matrix.settings[0], 'pypy') }}
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.settings[0] }}-${{ matrix.settings[1] }}
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.settings[0] }}-${{ matrix.settings[1] }}-${{ matrix.settings[2] }}
       cancel-in-progress: true
 
     services:
@@ -149,9 +149,6 @@ jobs:
         name: Test results
         path: test-data.xml
       if: failure()
-
-    - name: Print skipped tests
-      run: python ci/print_skipped.py
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v2

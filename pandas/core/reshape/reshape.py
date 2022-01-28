@@ -838,7 +838,7 @@ def get_dummies(
     columns : list-like, default None
         Column names in the DataFrame to be encoded.
         If `columns` is None then all the columns with
-        `object` or `category` dtype will be converted.
+        `object`, `string`, or `category` dtype will be converted.
     sparse : bool, default False
         Whether the dummy-encoded columns should be backed by
         a :class:`SparseArray` (True) or a regular NumPy array (False).
@@ -856,6 +856,10 @@ def get_dummies(
     See Also
     --------
     Series.str.get_dummies : Convert Series to dummy codes.
+
+    Notes
+    -----
+    Reference :ref:`the user guide <reshaping.dummies>` for more examples.
 
     Examples
     --------
@@ -915,7 +919,7 @@ def get_dummies(
     """
     from pandas.core.reshape.concat import concat
 
-    dtypes_to_encode = ["object", "category"]
+    dtypes_to_encode = ["object", "string", "category"]
 
     if isinstance(data, DataFrame):
         # determine columns being encoded
