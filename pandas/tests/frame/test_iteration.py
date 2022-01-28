@@ -137,6 +137,36 @@ class TestIteration:
         assert isinstance(result_255_columns, tuple)
         assert hasattr(result_255_columns, "_fields")
 
+    def test_iterrowdicts(self, float_frame):
+        for i, row_dict in enumerate(float_frame.iterrowdicts()):
+            ser = DataFrame._constructor_sliced({ k : v for k, v in row_dict.items() if k != "index"})
+            ser.name = row_dict["index"]
+            expected = float_frame.iloc[i, :].reset_index(drop=True)
+            tm.assert_series_equal(ser, expected)
+
+        df = DataFrame(
+            {"floats": np.random.randn(5), "ints": range(5)}, columns=["floats", "ints"]
+        )
+
+        for row_dict in df.iterrowdicts(index=False):
+            assert isinstance(row_dict["ints"], int)
+
+        df = DataFrame(data={"a": [1, 2, 3], "b": [4, 5, 6]})
+        dfaa = df[["a", "a"]]
+
+        assert list(dfaa.iterrowdicts()) == [{"index": 0, "a": 1}, {"index": 1, "a": 2}, {"index": 2, "a": 3}]
+
+        # repr with int on 32-bit/windows
+        if not (is_platform_windows() or not IS64):
+            assert (
+                repr(list(df.iterrowdicts()))
+                == "[{'index': 0, 'a': 1, 'b': 4}, {'index': 1, 'a': 2, 'b': 5}, {'index': 2, 'a': 3, 'b': 6}]"
+            )
+
+        df3 = DataFrame({"f" + str(i): [i] for i in range(1024)})
+        row_dict = next(df3.iterrowdicts())
+        assert isinstance(row_dict, dict)
+
     def test_sequence_like_with_categorical(self):
 
         # GH#7839
@@ -157,6 +187,9 @@ class TestIteration:
 
         for row, s in df.iterrows():
             str(s)
+
+        for row in df.iterrowdicts():
+            str(row)
 
         for c, col in df.items():
             str(s)

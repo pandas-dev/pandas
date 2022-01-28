@@ -1236,6 +1236,7 @@ class DataFrame(NDFrame, OpsMixin):
         --------
         DataFrame.iterrows : Iterate over DataFrame rows as
             (index, Series) pairs.
+        DataFrame.iterrowdicts : Iterate over DataFrame rows as dictionaries.
         DataFrame.itertuples : Iterate over DataFrame rows as namedtuples
             of the values.
 
@@ -1299,6 +1300,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         See Also
         --------
+        DataFrame.iterrowdicts : Iterate over DataFrame rows as dictionaries.
         DataFrame.itertuples : Iterate over DataFrame rows as namedtuples of the values.
         DataFrame.items : Iterate over (column name, Series) pairs.
 
@@ -1359,6 +1361,7 @@ class DataFrame(NDFrame, OpsMixin):
         --------
         DataFrame.iterrows : Iterate over DataFrame rows as (index, Series)
             pairs.
+        DataFrame.iterrowdicts : Iterate over DataFrame rows as dictionaries.
         DataFrame.items : Iterate over (column name, Series) pairs.
 
         Notes
@@ -1419,6 +1422,71 @@ class DataFrame(NDFrame, OpsMixin):
 
         # fallback to regular tuples
         return zip(*arrays)
+    
+    def iterrowdicts(self, index: bool = True) -> Iterable[dict[Any, Any]]:
+        """
+        Iterate over DataFrame rows as dictionaries.
+
+        Parameters
+        ----------
+        index : bool, default True
+            If True, include the index under the key "index".
+
+        Returns
+        -------
+        iterator
+            An object to iterate over a dictionary for each row in the
+            DataFrame, possibly including the index, with each column as a key
+            with its associated row value, possibly including the index as a
+            pseudo-column.
+
+        See Also
+        --------
+        DataFrame.iterrows : Iterate over DataFrame rows as (index, Series)
+            pairs.
+        DataFrame.items : Iterate over (column name, Series) pairs.
+        DataFrame.itertuples : Iterate over DataFrame rows as namedtuples of the values.
+
+        Notes
+        -----
+        If there are duplicate column names, precedence is given to columns
+        later in the `columns` structure. If the DataFrame index is included,
+        it is treated as the first "column", so any actual column named
+        "index" in DataFrame.columns will replace it.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'num_legs': [4, 2], 'num_wings': [0, 2]},
+        ...                   index=['dog', 'hawk'])
+        >>> df
+        [{'index': 'dog', 'num_legs': 4, 'num_wings': 0}, {'index': 'hawk', 'num_legs': 2, 'num_wings': 2}]
+        >>> for row in df.iterrowdicts():
+        ...     print(row)
+        ...
+        {'index': 'dog', 'num_legs': 4, 'num_wings': 0}
+        {'index': 'hawk', 'num_legs': 2, 'num_wings': 2}
+
+        By setting the `index` parameter to False we can remove the index
+        as the first element of the tuple:
+
+        >>> for row in df.iterrowdicts(index=False):
+        ...     print(row)
+        ...
+        {'num_legs': 4, 'num_wings': 0}
+        {'num_legs': 2, 'num_wings': 2}
+        """
+        arrays = []
+        columns = []
+        if index:
+            arrays.append(self.index)
+            columns.append("index")
+        arrays.extend(self.iloc[:, k] for k in range(len(self.columns)))
+        columns.extend(self.columns)
+
+        return [
+            { column_name : value for column_name, value in zip(columns, row_data) }
+            for row_data in zip(*arrays)
+        ]
 
     def __len__(self) -> int:
         """
