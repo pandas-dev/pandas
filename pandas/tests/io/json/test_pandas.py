@@ -50,7 +50,7 @@ class TestPandasContainer:
         _cat_frame.index = pd.CategoricalIndex(cat, name="E")
         _cat_frame["E"] = list(reversed(cat))
         _cat_frame["sort"] = np.arange(len(_cat_frame), dtype="int64")
-        return _cat_frame.copy()
+        return _cat_frame
 
     @pytest.fixture
     def datetime_series(self):
