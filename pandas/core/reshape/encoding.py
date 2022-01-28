@@ -218,7 +218,7 @@ def _get_dummies_1d(
     from pandas.core.reshape.concat import concat
 
     # Series avoids inconsistent NaN handling
-    levels: Series | np.ndarray
+    levels: Index | np.ndarray
     codes, levels = factorize_from_iterable(Series(data))
 
     if dtype is None:
@@ -231,7 +231,7 @@ def _get_dummies_1d(
         raise ValueError("dtype=object is not a valid dtype for get_dummies")
 
     def get_empty_frame(data) -> DataFrame:
-        index: Series | np.ndarray
+        index: Index | np.ndarray
         if isinstance(data, Series):
             index = data.index
         else:
