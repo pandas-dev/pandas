@@ -1541,7 +1541,12 @@ pandas objects also have the dict-like :meth:`~DataFrame.items` method to
 iterate over the (key, value) pairs.
 
 To iterate over the rows of a DataFrame, you can use the following methods:
-
+* :meth:`~DataFrame.iterrowdicts`: Iterate over DataFrame rows as dictionaries.
+  This converts the rows to dictionary objects. This is approximately as fast as
+  :meth:`~DataFrame.itertuples`. There is a slight overhead from the necessary
+  hashing of the column identifiers, but it also won't mangle the column
+  identifiers like :meth:`~DataFrame.itertuples` has to if they aren't valid
+  attribute identifiers.
 * :meth:`~DataFrame.iterrows`: Iterate over the rows of a DataFrame as (index, Series) pairs.
   This converts the rows to Series objects, which can change the dtypes and has some
   performance implications.
