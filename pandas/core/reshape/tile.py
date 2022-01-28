@@ -145,6 +145,8 @@ def cut(
     Any NA values will be NA in the result. Out of bounds values will be NA in
     the resulting Series or Categorical object.
 
+    Reference :ref:`the user guide <reshaping.tile.cut>` for more examples.
+
     Examples
     --------
     Discretize into three equal-sized bins.
