@@ -738,12 +738,14 @@ def pandasSQL_builder(con, schema: str | None = None):
 
     sqlalchemy = import_optional_dependency("sqlalchemy", errors="ignore")
 
-    if sqlalchemy is not None:
-        if isinstance(con, str):
+    if isinstance(con, str):
+        if sqlalchemy is None:
+            raise ImportError("Using URI string without sqlalchemy installed.")
+        else:
             con = sqlalchemy.create_engine(con)
 
-        if isinstance(con, sqlalchemy.engine.Connectable):
-            return SQLDatabase(con, schema=schema)
+    if sqlalchemy is not None and isinstance(con, sqlalchemy.engine.Connectable):
+        return SQLDatabase(con, schema=schema)
 
     warnings.warn(
         "pandas only support SQLAlchemy connectable(engine/connection) or"
