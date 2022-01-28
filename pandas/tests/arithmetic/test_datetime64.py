@@ -1097,6 +1097,7 @@ class TestDatetime64Arithmetic:
                 # IntegerArray
                 "can only perform ops with numeric values",
                 "unsupported operand type.*Categorical",
+                r"unsupported operand type\(s\) for -: 'int' and 'Timestamp'",
             ]
         )
         assert_invalid_addsub_type(obj, 1, msg)

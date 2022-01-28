@@ -349,11 +349,10 @@ class BooleanArray(BaseMaskedArray):
     def _logical_method(self, other, op):
 
         assert op.__name__ in {"or_", "ror_", "and_", "rand_", "xor", "rxor"}
-        other_is_booleanarray = isinstance(other, BooleanArray)
         other_is_scalar = lib.is_scalar(other)
         mask = None
 
-        if other_is_booleanarray:
+        if isinstance(other, BooleanArray):
             other, mask = other._data, other._mask
         elif is_list_like(other):
             other = np.asarray(other, dtype="bool")
@@ -370,7 +369,7 @@ class BooleanArray(BaseMaskedArray):
             )
 
         if not other_is_scalar and len(self) != len(other):
-            raise ValueError("Lengths must match to compare")
+            raise ValueError("Lengths must match")
 
         if op.__name__ in {"or_", "ror_"}:
             result, mask = ops.kleene_or(self._data, other, self._mask, mask)
@@ -387,7 +386,7 @@ class BooleanArray(BaseMaskedArray):
         mask = None
         op_name = op.__name__
 
-        if isinstance(other, BooleanArray):
+        if isinstance(other, BaseMaskedArray):
             other, mask = other._data, other._mask
 
         elif is_list_like(other):
@@ -397,14 +396,7 @@ class BooleanArray(BaseMaskedArray):
             if len(self) != len(other):
                 raise ValueError("Lengths must match")
 
-        # nans propagate
-        if mask is None:
-            mask = self._mask
-            if other is libmissing.NA:
-                # GH#45421 don't alter inplace
-                mask = mask | True
-        else:
-            mask = self._mask | mask
+        mask = self._propagate_mask(mask, other)
 
         if other is libmissing.NA:
             # if other is NA, the result will be all NA and we can't run the
@@ -424,14 +416,6 @@ class BooleanArray(BaseMaskedArray):
 
             with np.errstate(all="ignore"):
                 result = op(self._data, other)
-
-        # divmod returns a tuple
-        if op_name == "divmod":
-            div, mod = result
-            return (
-                self._maybe_mask_result(div, mask, other, "floordiv"),
-                self._maybe_mask_result(mod, mask, other, "mod"),
-            )
 
         return self._maybe_mask_result(result, mask, other, op_name)
 

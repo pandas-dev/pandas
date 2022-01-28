@@ -129,9 +129,19 @@ def test_error_invalid_values(data, all_arithmetic_operators):
     ops = getattr(s, op)
 
     # invalid scalars
-    msg = (
-        r"(:?can only perform ops with numeric values)"
-        r"|(:?FloatingArray cannot perform the operation mod)"
+    msg = "|".join(
+        [
+            r"can only perform ops with numeric values",
+            r"FloatingArray cannot perform the operation mod",
+            "unsupported operand type",
+            "not all arguments converted during string formatting",
+            "can't multiply sequence by non-int of type 'float'",
+            "ufunc 'subtract' cannot use operands with types dtype",
+            r"can only concatenate str \(not \"float\"\) to str",
+            "ufunc '.*' not supported for the input types, and the inputs could not",
+            "ufunc '.*' did not contain a loop with signature matching types",
+            "Concatenation operation is not implemented for NumPy arrays",
+        ]
     )
     with pytest.raises(TypeError, match=msg):
         ops("foo")
@@ -148,6 +158,13 @@ def test_error_invalid_values(data, all_arithmetic_operators):
             "cannot perform .* with this index type: DatetimeArray",
             "Addition/subtraction of integers and integer-arrays "
             "with DatetimeArray is no longer supported. *",
+            "unsupported operand type",
+            "not all arguments converted during string formatting",
+            "can't multiply sequence by non-int of type 'float'",
+            "ufunc 'subtract' cannot use operands with types dtype",
+            r"ufunc 'add' cannot use operands with types dtype\('<M8\[ns\]'\)",
+            r"ufunc 'add' cannot use operands with types dtype\('float\d{2}'\)",
+            "cannot subtract DatetimeArray from ndarray",
         ]
     )
     with pytest.raises(TypeError, match=msg):
