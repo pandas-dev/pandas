@@ -15,6 +15,10 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Regression in :meth:`Series.mask` with ``inplace=True`` and ``PeriodDtype`` and an incompatible ``other`` coercing to a common dtype instead of raising (:issue:`45546`)
+- Regression in :func:`.assert_frame_equal` not respecting ``check_flags=False`` (:issue:`45554`)
+- Regression in :meth:`Series.fillna` with ``downcast=False`` incorrectly downcasting ``object`` dtype (:issue:`45603`)
+- Regression in :meth:`DataFrame.loc.__setitem__` losing :class:`Index` name if :class:`DataFrame` was empty before (:issue:`45621`)
+- Regression in :func:`join` with overlapping :class:`IntervalIndex` raising an ``InvalidIndexError`` (:issue:`45661`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -24,6 +28,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Fixed segfault in :meth:``DataFrame.to_json`` when dumping tz-aware datetimes in Python 3.10 (:issue:`42130`)
+- Fixed window aggregations in :meth:`DataFrame.rolling` and :meth:`Series.rolling` to skip over unused elements (:issue:`45647`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -32,7 +37,7 @@ Bug fixes
 
 Other
 ~~~~~
--
+- Reverted performance speedup of :meth:`DataFrame.corr` for ``method=pearson`` to fix precision regression (:issue:`45640`, :issue:`42761`)
 -
 
 .. ---------------------------------------------------------------------------

@@ -85,10 +85,6 @@ jobs:
         path: test-data.xml
       if: failure()
 
-    - name: Print skipped tests
-      run: |
-        python ci/print_skipped.py
-
     - name: Report Coverage
       run: |
         coverage report -m

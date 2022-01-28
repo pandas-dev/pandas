@@ -1102,6 +1102,10 @@ def test_unsuported_compression(datapath, parser):
 @tm.network
 @td.skip_if_no("s3fs")
 @td.skip_if_no("lxml")
+@pytest.mark.skipif(
+    os.environ.get("PANDAS_CI", "0") == "1",
+    reason="2022.1.17: Hanging on the CI min versions build.",
+)
 def test_s3_parser_consistency():
     # Python Software Foundation (2019 IRS-990 RETURN)
     s3 = "s3://irs-form-990/201923199349319487_public.xml"
