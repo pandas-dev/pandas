@@ -706,7 +706,7 @@ def test_first_row_bom(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_first_row_bom_unquoted(all_parsers):
     # see gh-36343
     parser = all_parsers
