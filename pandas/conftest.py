@@ -116,7 +116,7 @@ def pytest_collection_modifyitems(items, config):
 
     for item in items:
         if config.getoption("--doctest-modules") or config.getoption(
-            "--doctest-cython"
+            "--doctest-cython", default=False
         ):
             # autouse=True for the add_doctest_imports can lead to expensive teardowns
             # since doctest_namespace is a session fixture
