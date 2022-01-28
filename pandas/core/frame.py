@@ -1422,7 +1422,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         # fallback to regular tuples
         return zip(*arrays)
-    
+
     def iterrowdicts(self, index: bool = True) -> Iterable[dict[Any, Any]]:
         """
         Iterate over DataFrame rows as dictionaries.
@@ -1484,7 +1484,7 @@ class DataFrame(NDFrame, OpsMixin):
         columns.extend(self.columns)
 
         return [
-            { column_name : value for column_name, value in zip(columns, row_data) }
+            {column_name: value for column_name, value in zip(columns, row_data)}
             for row_data in zip(*arrays)
         ]
 

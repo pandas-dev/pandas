@@ -148,7 +148,11 @@ class TestIteration:
         df = DataFrame(data={"a": [1, 2, 3], "b": [4, 5, 6]})
         dfaa = df[["a", "a"]]
 
-        assert list(dfaa.iterrowdicts()) == [{"index": 0, "a": 1}, {"index": 1, "a": 2}, {"index": 2, "a": 3}]
+        assert list(dfaa.iterrowdicts()) == [
+            {"index": 0, "a": 1},
+            {"index": 1, "a": 2},
+            {"index": 2, "a": 3},
+        ]
 
         # repr with int on 32-bit/windows
         if not (is_platform_windows() or not IS64):
