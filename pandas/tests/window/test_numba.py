@@ -1,6 +1,9 @@
+import os
+
 import numpy as np
 import pytest
 
+from pandas.compat import is_platform_windows
 from pandas.errors import NumbaUtilError
 import pandas.util._test_decorators as td
 
@@ -12,6 +15,12 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
+
+pytestmark = pytest.mark.skipif(
+    os.environ.get("PANDAS_CI", "0") == "1" and is_platform_windows(),
+    reason="Any test in this file can hang on the multi-process "
+    "CI Windows environment",
+)
 
 
 @pytest.fixture(params=["single", "table"])
