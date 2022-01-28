@@ -1166,6 +1166,14 @@ class TestReaders:
         tm.assert_frame_equal(actual, expected)
 
     def test_read_excel_skiprows_callable_not_in(self, request, read_ext):
+        # GH 4903
+        if read_ext == ".xlsb":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="Sheets containing datetimes not supported by pyxlsb"
+                )
+            )
+
         actual = pd.read_excel(
             "testskiprows" + read_ext,
             sheet_name="skiprows_list",
