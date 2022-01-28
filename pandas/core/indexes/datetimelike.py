@@ -96,7 +96,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     hasnans = cast(
         bool,
         cache_readonly(
-            DatetimeLikeArrayMixin._hasnans.fget  # type: ignore[attr-defined]
+            DatetimeLikeArrayMixin._hasna.fget  # type: ignore[attr-defined]
         ),
     )
 
