@@ -76,6 +76,7 @@ from pandas import (
 from pandas.core import groupby
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.frame import _merge_doc
@@ -1906,14 +1907,27 @@ class _AsOfMerge(_OrderedMerge):
 
         def flip(xs) -> np.ndarray:
             """unlike np.transpose, this returns an array of tuples"""
-            # error: Item "ndarray" of "Union[Any, Union[ExtensionArray, ndarray]]" has
-            # no attribute "_values_for_argsort"
-            xs = [
-                x
-                if not is_extension_array_dtype(x)
-                else extract_array(x)._values_for_argsort()  # type: ignore[union-attr]
-                for x in xs
-            ]
+
+            def injection(obj):
+                if not is_extension_array_dtype(obj):
+                    # ndarray
+                    return obj
+                obj = extract_array(obj)
+                if isinstance(obj, NDArrayBackedExtensionArray):
+                    # fastpath for e.g. dt64tz, categorical
+                    return obj._ndarray
+                # FIXME: returning obj._values_for_argsort() here doesn't
+                #  break in any existing test cases, but i (@jbrockmendel)
+                #  am pretty sure it should!
+                #  e.g.
+                #  arr = pd.array([0, pd.NA, 255], dtype="UInt8")
+                #  will have values_for_argsort (before GH#45434)
+                #  np.array([0, 255, 255], dtype=np.uint8)
+                #  and the non-injectivity should make a difference somehow
+                #  shouldn't it?
+                return np.asarray(obj)
+
+            xs = [injection(x) for x in xs]
             labels = list(string.ascii_lowercase[: len(xs)])
             dtypes = [x.dtype for x in xs]
             labeled_dtypes = list(zip(labels, dtypes))
@@ -1929,14 +1943,14 @@ class _AsOfMerge(_OrderedMerge):
         tolerance = self.tolerance
 
         # we require sortedness and non-null values in the join keys
-        if not Index(left_values).is_monotonic:
+        if not Index(left_values).is_monotonic_increasing:
             side = "left"
             if isna(left_values).any():
                 raise ValueError(f"Merge keys contain null values on {side} side")
             else:
                 raise ValueError(f"{side} keys must be sorted")
 
-        if not Index(right_values).is_monotonic:
+        if not Index(right_values).is_monotonic_increasing:
             side = "right"
             if isna(right_values).any():
                 raise ValueError(f"Merge keys contain null values on {side} side")
@@ -1966,6 +1980,8 @@ class _AsOfMerge(_OrderedMerge):
                 left_by_values = left_by_values[0]
                 right_by_values = right_by_values[0]
             else:
+                # We get here with non-ndarrays in test_merge_by_col_tz_aware
+                #  and test_merge_groupby_multiple_column_with_categorical_column
                 left_by_values = flip(left_by_values)
                 right_by_values = flip(right_by_values)
 
