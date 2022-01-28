@@ -540,9 +540,6 @@ class TestBlockManager:
         # coerce all
         mgr = create_mgr("c: f4; d: f2; e: f8")
 
-        warn = FutureWarning if t == "int64" else None
-        # datetimelike.astype(int64) deprecated
-
         t = np.dtype(t)
         tmgr = mgr.astype(t)
         assert tmgr.iget(0).dtype.type == t
@@ -553,8 +550,7 @@ class TestBlockManager:
         mgr = create_mgr("a,b: object; c: bool; d: datetime; e: f4; f: f2; g: f8")
 
         t = np.dtype(t)
-        with tm.assert_produces_warning(warn):
-            tmgr = mgr.astype(t, errors="ignore")
+        tmgr = mgr.astype(t, errors="ignore")
         assert tmgr.iget(2).dtype.type == t
         assert tmgr.iget(4).dtype.type == t
         assert tmgr.iget(5).dtype.type == t
@@ -722,7 +718,10 @@ class TestBlockManager:
         mgr = create_mgr("a: f8; b: i8; c: f8; d: i8; e: f8; f: bool; g: f8-2")
 
         reindexed = mgr.reindex_axis(["g", "c", "a", "d"], axis=0)
-        assert reindexed.nblocks == 2
+        # reindex_axis does not consolidate_inplace, as that risks failing to
+        #  invalidate _item_cache
+        assert not reindexed.is_consolidated()
+
         tm.assert_index_equal(reindexed.items, Index(["g", "c", "a", "d"]))
         tm.assert_almost_equal(
             mgr.iget(6).internal_values(), reindexed.iget(0).internal_values()

@@ -112,13 +112,6 @@ def astype_nansafe(
 
     elif is_datetime64_dtype(arr.dtype):
         if dtype == np.int64:
-            warnings.warn(
-                f"casting {arr.dtype} values to int64 with .astype(...) "
-                "is deprecated and will raise in a future version. "
-                "Use .view(...) instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
             if isna(arr).any():
                 raise ValueError("Cannot convert NaT values to integer")
             return arr.view(dtype)
@@ -131,13 +124,6 @@ def astype_nansafe(
 
     elif is_timedelta64_dtype(arr.dtype):
         if dtype == np.int64:
-            warnings.warn(
-                f"casting {arr.dtype} values to int64 with .astype(...) "
-                "is deprecated and will raise in a future version. "
-                "Use .view(...) instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
             if isna(arr).any():
                 raise ValueError("Cannot convert NaT values to integer")
             return arr.view(dtype)
@@ -196,6 +182,10 @@ def _astype_float_to_int_nansafe(
         raise IntCastingNaNError(
             "Cannot convert non-finite values (NA or inf) to integer"
         )
+    if dtype.kind == "u":
+        # GH#45151
+        if not (values >= 0).all():
+            raise ValueError(f"Cannot losslessly cast from {values.dtype} to {dtype}")
     return values.astype(dtype, copy=copy)
 
 

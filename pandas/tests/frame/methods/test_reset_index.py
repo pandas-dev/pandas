@@ -28,6 +28,17 @@ import pandas._testing as tm
 
 
 class TestResetIndex:
+    def test_reset_index_empty_rangeindex(self):
+        # GH#45230
+        df = DataFrame(
+            columns=["brand"], dtype=np.int64, index=RangeIndex(0, 0, 1, name="foo")
+        )
+
+        df2 = df.set_index([df.index, "brand"])
+
+        result = df2.reset_index([1], drop=True)
+        tm.assert_frame_equal(result, df[[]], check_index_type=True)
+
     def test_set_reset(self):
 
         idx = Index([2 ** 63, 2 ** 63 + 5, 2 ** 63 + 10], name="foo")
