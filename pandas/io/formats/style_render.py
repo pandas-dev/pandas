@@ -525,7 +525,6 @@ class StylerRenderer:
             name, func = None, descriptor
 
         display_func: Callable = _maybe_wrap_formatter(
-            formatter=None,  # use _default_formatter
             decimal=get_option("styler.format.decimal"),
             thousands=get_option("styler.format.thousands"),
             precision=get_option("styler.format.precision"),
@@ -534,18 +533,13 @@ class StylerRenderer:
         )
 
         base_css = f"{self.css['descriptor_name']} {self.css['descriptor']}{r}"
-        descriptor_name = [
-            _element(
-                "th",
-                base_css
-                if (name is not None and not self.hide_column_names)
-                else f"{self.css['blank']} {base_css}",
-                name
-                if (name is not None and not self.hide_column_names)
-                else self.css["blank_value"],
-                not all(self.hide_index_),
-            )
-        ]
+        if name is not None and not self.hide_column_names:
+            name_css = base_css
+            name_val = name
+        else:
+            name_css = f"{self.css['blank']} {base_css}"
+            name_val = self.css["blank_value"]
+        descriptor_name = _element("th", name_css, name_val, not all(self.hide_index_))
 
         descriptor_values, visible_col_count = [], 0
         for c, col in enumerate(self.columns):
@@ -590,7 +584,7 @@ class StylerRenderer:
             )
             descriptor_values.append(header_element)
 
-        return index_blanks + descriptor_name + descriptor_values
+        return index_blanks + [descriptor_name] + descriptor_values
 
     def _generate_index_names_row(self, iter: tuple, max_cols: int, col_lengths: dict):
         """
