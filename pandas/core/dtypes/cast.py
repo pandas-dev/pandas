@@ -39,7 +39,6 @@ from pandas._typing import (
     DtypeObj,
     Scalar,
 )
-from pandas.compat import np_version_under1p20
 from pandas.errors import IntCastingNaNError
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
@@ -2032,12 +2031,9 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                 if isinstance(element, np.ndarray):
                     # e.g. TestDataFrameIndexingWhere::test_where_alignment
                     casted = element.astype(dtype)
-                    if np_version_under1p20:
-                        if array_equivalent(casted, element):
-                            return casted
-                    else:
-                        if np.array_equal(casted, element, equal_nan=True):
-                            return casted
+                    # TODO(np>=1.20): we can just use np.array_equal with equal_nan
+                    if array_equivalent(casted, element):
+                        return casted
                     raise ValueError
 
             return element
