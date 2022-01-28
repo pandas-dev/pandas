@@ -50,7 +50,7 @@ def get_dummies(
     columns : list-like, default None
         Column names in the DataFrame to be encoded.
         If `columns` is None then all the columns with
-        `object` or `category` dtype will be converted.
+        `object`, `string`, or `category` dtype will be converted.
     sparse : bool, default False
         Whether the dummy-encoded columns should be backed by
         a :class:`SparseArray` (True) or a regular NumPy array (False).
@@ -68,6 +68,10 @@ def get_dummies(
     See Also
     --------
     Series.str.get_dummies : Convert Series to dummy codes.
+
+    Notes
+    -----
+    Reference :ref:`the user guide <reshaping.dummies>` for more examples.
 
     Examples
     --------
@@ -127,7 +131,7 @@ def get_dummies(
     """
     from pandas.core.reshape.concat import concat
 
-    dtypes_to_encode = ["object", "category"]
+    dtypes_to_encode = ["object", "string", "category"]
 
     if isinstance(data, DataFrame):
         # determine columns being encoded
@@ -218,7 +222,6 @@ def _get_dummies_1d(
     from pandas.core.reshape.concat import concat
 
     # Series avoids inconsistent NaN handling
-    levels: Index | np.ndarray
     codes, levels = factorize_from_iterable(Series(data))
 
     if dtype is None:
@@ -235,7 +238,7 @@ def _get_dummies_1d(
         if isinstance(data, Series):
             index = data.index
         else:
-            index = np.arange(len(data))
+            index = Index(range(len(data)))
         return DataFrame(index=index)
 
     # if all NaN
@@ -245,7 +248,7 @@ def _get_dummies_1d(
     codes = codes.copy()
     if dummy_na:
         codes[codes == -1] = len(levels)
-        levels = np.append(levels, np.nan)
+        levels = levels.insert(len(levels), np.nan)
 
     # if dummy_na, we just fake a nan level. drop_first will drop it again
     if drop_first and len(levels) == 1:
