@@ -589,6 +589,8 @@ def crosstab(
     In the event that there aren't overlapping indexes an empty DataFrame will
     be returned.
 
+    Reference :ref:`the user guide <reshaping.crosstabulations>` for more examples.
+
     Examples
     --------
     >>> a = np.array(["foo", "foo", "foo", "foo", "bar", "bar",
