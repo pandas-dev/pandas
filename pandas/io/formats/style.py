@@ -2468,11 +2468,16 @@ class Styler(StylerRenderer):
         --------
 
         >>> df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> def udf_func(s):
+        ...     return s.mean()
         >>> styler = df.style.set_descriptors([
         ...     "mean",
         ...     Series.mean,
-        ...     ("my-text", Series.mean),
+        ...     ("my-text", "mean"),
+        ...     ("my-text2", Series.mean),
         ...     ("my-func", lambda s: s.sum()/2),
+        ...     lambda s: s.sum()/2,
+        ...     udf_func,
         ... ])  # doctest: +SKIP
 
         .. figure:: ../../_static/style/des_mean.png
