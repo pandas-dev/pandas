@@ -4453,11 +4453,11 @@ class Index(IndexOpsMixin, PandasObject):
         if join_index is self:
             lindexer = None
         else:
-            lindexer = self.get_indexer(join_index)
+            lindexer = self.get_indexer_for(join_index)
         if join_index is other:
             rindexer = None
         else:
-            rindexer = other.get_indexer(join_index)
+            rindexer = other.get_indexer_for(join_index)
         return join_index, lindexer, rindexer
 
     @final
