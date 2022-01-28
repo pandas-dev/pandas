@@ -54,11 +54,11 @@ jobs:
       run: cp doc/cheatsheet/Pandas_Cheat_Sheet* web/build/
 
     - name: Upload web
-      run: rsync -az --delete --exclude='pandas-docs' --exclude='docs' web/build/ docs@${{ secrets.server_ip }}:/usr/share/nginx/pandas
+      run: rsync -az --delete --inplace --exclude='pandas-docs' --exclude='docs' web/build/ docs@${{ secrets.server_ip }}:/usr/share/nginx/pandas
       if: ${{github.event_name == 'push' && github.ref == 'refs/heads/main'}}
 
     - name: Upload dev docs
-      run: rsync -az --delete doc/build/html/ docs@${{ secrets.server_ip }}:/usr/share/nginx/pandas/pandas-docs/dev
+      run: rsync -az --delete --inplace doc/build/html/ docs@${{ secrets.server_ip }}:/usr/share/nginx/pandas/pandas-docs/dev
       if: ${{github.event_name == 'push' && github.ref == 'refs/heads/main'}}
 
     - name: Move docs into site directory
