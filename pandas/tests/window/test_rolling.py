@@ -132,6 +132,7 @@ def test_numpy_compat(method):
         getattr(r, method)(dtype=np.float64)
 
 
+@pytest.mark.parametrize("closed", ["right", "left", "both", "neither"])
 def test_closed_fixed(closed, arithmetic_win_operators):
     # GH 34315
     func_name = arithmetic_win_operators

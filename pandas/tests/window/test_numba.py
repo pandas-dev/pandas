@@ -23,6 +23,29 @@ pytestmark = pytest.mark.skipif(
 )
 
 
+@pytest.fixture(params=["single", "table"])
+def method(request):
+    """method keyword in rolling/expanding/ewm constructor"""
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        ["sum", {}],
+        ["mean", {}],
+        ["median", {}],
+        ["max", {}],
+        ["min", {}],
+        ["var", {}],
+        ["var", {"ddof": 0}],
+        ["std", {}],
+        ["std", {"ddof": 0}],
+    ]
+)
+def arithmetic_numba_supported_operators(request):
+    return request.param
+
+
 @td.skip_if_no("numba")
 @pytest.mark.filterwarnings("ignore:\n")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
