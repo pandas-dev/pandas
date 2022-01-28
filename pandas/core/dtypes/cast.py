@@ -472,8 +472,13 @@ def ensure_dtype_can_hold_na(dtype: DtypeObj) -> DtypeObj:
     If we have a dtype that cannot hold NA values, find the best match that can.
     """
     if isinstance(dtype, ExtensionDtype):
-        # TODO: ExtensionDtype.can_hold_na?
-        return dtype
+        if dtype._can_hold_na:
+            return dtype
+        elif isinstance(dtype, IntervalDtype):
+            # TODO(GH#45349): don't special-case IntervalDtype, allow
+            #  overriding instead of returning object below.
+            return IntervalDtype(np.float64, closed=dtype.closed)
+        return _dtype_obj
     elif dtype.kind == "b":
         return _dtype_obj
     elif dtype.kind in ["i", "u"]:
@@ -1471,6 +1476,10 @@ def find_result_type(left: ArrayLike, right: Any) -> DtypeObj:
             right = int(right)
 
         new_dtype = np.result_type(left, right)
+
+    elif is_valid_na_for_dtype(right, left.dtype):
+        # e.g. IntervalDtype[int] and None/np.nan
+        new_dtype = ensure_dtype_can_hold_na(left.dtype)
 
     else:
         dtype, _ = infer_dtype_from(right, pandas_dtype=True)
