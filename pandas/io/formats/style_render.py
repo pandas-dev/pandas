@@ -1529,7 +1529,7 @@ def _default_formatter(x: Any, precision: int, thousands: bool = False) -> Any:
     value : Any
         Matches input type, or string if input is float or complex or int with sep.
     """
-    if isinstance(x, (float, complex)):
+    if is_float(x) or is_complex(x):
         return f"{x:,.{precision}f}" if thousands else f"{x:.{precision}f}"
     elif is_integer(x):
         return f"{x:,.0f}" if thousands else f"{x:.0f}"
