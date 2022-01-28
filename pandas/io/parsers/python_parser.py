@@ -173,7 +173,7 @@ class PythonParser(ParserBase):
             )
         self.num = re.compile(regex)
 
-    def _make_reader(self, f: IO[str]) -> None:
+    def _make_reader(self, f: IO[str] | ReadCsvBuffer[str]) -> None:
         sep = self.delimiter
 
         if sep is None or len(sep) == 1:
@@ -198,7 +198,7 @@ class PythonParser(ParserBase):
             else:
                 # attempt to sniff the delimiter from the first valid line,
                 # i.e. no comment line and not in skiprows
-                line: str = f.readline()
+                line = f.readline()
                 lines = self._check_comments([[line]])[0]
                 while self.skipfunc(self.pos) or not lines:
                     self.pos += 1
@@ -1146,7 +1146,7 @@ class FixedWidthReader(abc.Iterator):
 
     def __init__(
         self,
-        f: IO[str],
+        f: IO[str] | ReadCsvBuffer[str],
         colspecs: list[tuple[int, int]] | Literal["infer"],
         delimiter: str | None,
         comment: str | None,
@@ -1243,14 +1243,16 @@ class FixedWidthReader(abc.Iterator):
         return edge_pairs
 
     def __next__(self) -> list[str]:
+        # Argument 1 to "next" has incompatible type "Union[IO[str],
+        # ReadCsvBuffer[str]]"; expected "SupportsNext[str]"
         if self.buffer is not None:
             try:
                 line = next(self.buffer)
             except StopIteration:
                 self.buffer = None
-                line = next(self.f)
+                line = next(self.f)  # type: ignore[arg-type]
         else:
-            line = next(self.f)
+            line = next(self.f)  # type: ignore[arg-type]
         # Note: 'colspecs' is a sequence of half-open intervals.
         return [line[fromm:to].strip(self.delimiter) for (fromm, to) in self.colspecs]
 
@@ -1267,7 +1269,7 @@ class FixedWidthFieldParser(PythonParser):
         self.infer_nrows = kwds.pop("infer_nrows")
         PythonParser.__init__(self, f, **kwds)
 
-    def _make_reader(self, f: IO[str]) -> None:
+    def _make_reader(self, f: IO[str] | ReadCsvBuffer[str]) -> None:
         self.data = FixedWidthReader(
             f,
             self.colspecs,
