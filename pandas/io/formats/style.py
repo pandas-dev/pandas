@@ -2454,11 +2454,10 @@ class Styler(StylerRenderer):
             If a string is given must be a valid Series method, e.g. "mean" invokes
             Series.mean().
 
-            If a callable is given must accept a Series and return a scalar. No name
-            will be displayed for the row.
+            If a callable is given must accept a Series and return a scalar.
 
             If a 2-tuple, must be a string used as the name of the row and a
-            callable as above.
+            callable or string as above.
 
         Returns
         -------
