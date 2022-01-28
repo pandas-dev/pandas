@@ -11,7 +11,6 @@ from zipfile import BadZipFile
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -24,12 +23,6 @@ from pandas import (
 import pandas._testing as tm
 from pandas.tests.io.excel import xlrd_version
 from pandas.util.version import Version
-
-pytestmark = pytest.mark.skipif(
-    os.environ.get("PANDAS_CI", "0") == "1" and is_platform_windows(),
-    reason="Any test in this file can hang on the multi-process "
-    "CI Windows environment",
-)
 
 read_ext_params = [".xls", ".xlsx", ".xlsm", ".xlsb", ".ods"]
 engine_params = [
