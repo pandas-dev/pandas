@@ -3,8 +3,6 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat import np_version_under1p20
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import FloatingArray
@@ -55,7 +53,7 @@ def test_div(dtype):
 
 @pytest.mark.parametrize("zero, negative", [(0, False), (0.0, False), (-0.0, True)])
 def test_divide_by_zero(zero, negative):
-    # https://github.com/pandas-dev/pandas/issues/27398
+    # https://github.com/pandas-dev/pandas/issues/27398, GH#22793
     a = pd.array([0, 1, -1, None], dtype="Int64")
     result = a / zero
     expected = FloatingArray(
@@ -166,9 +164,17 @@ def test_error_invalid_values(data, all_arithmetic_operators):
     ops = getattr(s, op)
 
     # invalid scalars
-    msg = (
-        r"(:?can only perform ops with numeric values)"
-        r"|(:?IntegerArray cannot perform the operation mod)"
+    msg = "|".join(
+        [
+            r"can only perform ops with numeric values",
+            r"IntegerArray cannot perform the operation mod",
+            r"unsupported operand type",
+            r"can only concatenate str \(not \"int\"\) to str",
+            "not all arguments converted during string",
+            "ufunc '.*' not supported for the input types, and the inputs could not",
+            "ufunc '.*' did not contain a loop with signature matching types",
+            "Addition/subtraction of integers and integer-arrays with Timestamp",
+        ]
     )
     with pytest.raises(TypeError, match=msg):
         ops("foo")
@@ -176,8 +182,18 @@ def test_error_invalid_values(data, all_arithmetic_operators):
         ops(pd.Timestamp("20180101"))
 
     # invalid array-likes
-    with pytest.raises(TypeError, match=msg):
-        ops(pd.Series("foo", index=s.index))
+    str_ser = pd.Series("foo", index=s.index)
+    # with pytest.raises(TypeError, match=msg):
+    if all_arithmetic_operators in [
+        "__mul__",
+        "__rmul__",
+    ]:  # (data[~data.isna()] >= 0).all():
+        res = ops(str_ser)
+        expected = pd.Series(["foo" * x for x in data], index=s.index)
+        tm.assert_series_equal(res, expected)
+    else:
+        with pytest.raises(TypeError, match=msg):
+            ops(str_ser)
 
     msg = "|".join(
         [
@@ -185,6 +201,10 @@ def test_error_invalid_values(data, all_arithmetic_operators):
             "cannot perform .* with this index type: DatetimeArray",
             "Addition/subtraction of integers and integer-arrays "
             "with DatetimeArray is no longer supported. *",
+            "unsupported operand type",
+            r"can only concatenate str \(not \"int\"\) to str",
+            "not all arguments converted during string",
+            "cannot subtract DatetimeArray from ndarray",
         ]
     )
     with pytest.raises(TypeError, match=msg):
@@ -206,16 +226,9 @@ def test_arith_coerce_scalar(data, all_arithmetic_operators):
     result = op(s, other)
     expected = op(s.astype(float), other)
     expected = expected.astype("Float64")
-    # rfloordiv results in nan instead of inf
-    if all_arithmetic_operators == "__rfloordiv__" and np_version_under1p20:
-        # for numpy 1.20 https://github.com/numpy/numpy/pull/16161
-        #  updated floordiv, now matches our behavior defined in core.ops
-        mask = (
-            ((expected == np.inf) | (expected == -np.inf)).fillna(False).to_numpy(bool)
-        )
-        expected.array._data[mask] = np.nan
+
     # rmod results in NaN that wasn't NA in original nullable Series -> unmask it
-    elif all_arithmetic_operators == "__rmod__":
+    if all_arithmetic_operators == "__rmod__":
         mask = (s == 0).fillna(False).to_numpy(bool)
         expected.array._mask[mask] = False
 

@@ -63,6 +63,7 @@ from pandas._typing import (
     IndexLabel,
     Level,
     PythonFuncType,
+    ReadBuffer,
     Renamer,
     Scalar,
     StorageOptions,
@@ -99,7 +100,6 @@ from pandas.core.dtypes.cast import (
     invalidate_string_dtypes,
     maybe_box_native,
     maybe_downcast_to_dtype,
-    validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -122,6 +122,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_sequence,
+    needs_i8_conversion,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
@@ -146,6 +147,7 @@ from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
+    PeriodArray,
     TimedeltaArray,
 )
 from pandas.core.arrays.sparse import SparseFrameAccessor
@@ -170,6 +172,7 @@ from pandas.core.indexes.multi import (
 )
 from pandas.core.indexing import (
     check_bool_indexer,
+    check_deprecated_indexers,
     convert_to_index_sliceable,
 )
 from pandas.core.internals import (
@@ -487,6 +490,8 @@ class DataFrame(NDFrame, OpsMixin):
         Copy data from inputs.
         For dict data, the default of None behaves like ``copy=True``.  For DataFrame
         or 2d ndarray input, the default of None behaves like ``copy=False``.
+        If data is a dict containing one or more Series (possibly of different dtypes),
+        ``copy=False`` will ensure that these inputs are not copied.
 
         .. versionchanged:: 1.3.0
 
@@ -897,7 +902,7 @@ class DataFrame(NDFrame, OpsMixin):
     @property
     def _values(  # type: ignore[override]
         self,
-    ) -> np.ndarray | DatetimeArray | TimedeltaArray:
+    ) -> np.ndarray | DatetimeArray | TimedeltaArray | PeriodArray:
         """
         Analogue to ._values that may return a 2D ExtensionArray.
         """
@@ -922,7 +927,7 @@ class DataFrame(NDFrame, OpsMixin):
             return self.values
 
         # more generally, whatever we allow in NDArrayBackedExtensionBlock
-        arr = cast("np.ndarray | DatetimeArray | TimedeltaArray", arr)
+        arr = cast("np.ndarray | DatetimeArray | TimedeltaArray | PeriodArray", arr)
         return arr.T
 
     # ----------------------------------------------------------------------
@@ -1273,6 +1278,12 @@ class DataFrame(NDFrame, OpsMixin):
 
     @Appender(_shared_docs["items"])
     def iteritems(self) -> Iterable[tuple[Hashable, Series]]:
+        warnings.warn(
+            "iteritems is deprecated and will be removed in a future version. "
+            "Use .items instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         yield from self.items()
 
     def iterrows(self) -> Iterable[tuple[Hashable, Series]]:
@@ -2426,7 +2437,9 @@ class DataFrame(NDFrame, OpsMixin):
             if dtype_mapping is None:
                 formats.append(v.dtype)
             elif isinstance(dtype_mapping, (type, np.dtype, str)):
-                formats.append(dtype_mapping)
+                # Argument 1 to "append" of "list" has incompatible type
+                # "Union[type, dtype[Any], str]"; expected "dtype[_SCT]"  [arg-type]
+                formats.append(dtype_mapping)  # type: ignore[arg-type]
             else:
                 element = "row" if i < index_len else "column"
                 msg = f"Invalid dtype {dtype_mapping} specified for {element} {name}"
@@ -2947,15 +2960,15 @@ class DataFrame(NDFrame, OpsMixin):
         root_name: str | None = "data",
         row_name: str | None = "row",
         na_rep: str | None = None,
-        attr_cols: str | list[str] | None = None,
-        elem_cols: str | list[str] | None = None,
+        attr_cols: list[str] | None = None,
+        elem_cols: list[str] | None = None,
         namespaces: dict[str | None, str] | None = None,
         prefix: str | None = None,
         encoding: str = "utf-8",
         xml_declaration: bool | None = True,
         pretty_print: bool | None = True,
         parser: str | None = "lxml",
-        stylesheet: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
+        stylesheet: FilePath | ReadBuffer[str] | ReadBuffer[bytes] | None = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
     ) -> str | None:
@@ -3208,6 +3221,11 @@ class DataFrame(NDFrame, OpsMixin):
             many repeated values.
         DataFrame.info : Concise summary of a DataFrame.
 
+        Notes
+        -----
+        See the :ref:`Frequently Asked Questions <df-memory-usage>` for more
+        details.
+
         Examples
         --------
         >>> dtypes = ['int64', 'float64', 'complex128', 'object', 'bool']
@@ -3458,10 +3476,12 @@ class DataFrame(NDFrame, OpsMixin):
             yield self._get_column_array(i)
 
     def __getitem__(self, key):
+        check_deprecated_indexers(key)
         key = lib.item_from_zerodim(key)
         key = com.apply_if_callable(key, self)
 
-        if is_hashable(key):
+        if is_hashable(key) and not is_iterator(key):
+            # is_iterator to exclude generator e.g. test_getitem_listlike
             # shortcut if the key is in columns
             if self.columns.is_unique and key in self.columns:
                 if isinstance(self.columns, MultiIndex):
@@ -3863,12 +3883,11 @@ class DataFrame(NDFrame, OpsMixin):
 
             series = self._get_item_cache(col)
             loc = self.index.get_loc(index)
-            validate_numeric_casting(series.dtype, value)
 
-            series._values[loc] = value
-            # Note: trying to use series._set_value breaks tests in
-            #  tests.frame.indexing.test_indexing and tests.indexing.test_partial
-        except (KeyError, TypeError):
+            # series._set_value will do validation that may raise TypeError
+            #  or ValueError
+            series._set_value(loc, value, takeable=True)
+        except (KeyError, TypeError, ValueError):
             # set using a non-recursive method & reset the cache
             if takeable:
                 self.iloc[index, col] = value
@@ -3908,7 +3927,7 @@ class DataFrame(NDFrame, OpsMixin):
         name = self.columns[loc]
         klass = self._constructor_sliced
         # We get index=self.index bc values is a SingleDataManager
-        return klass(values, name=name, fastpath=True)
+        return klass(values, name=name, fastpath=True).__finalize__(self)
 
     # ----------------------------------------------------------------------
     # Lookup Caching
@@ -3925,11 +3944,9 @@ class DataFrame(NDFrame, OpsMixin):
             #  pending resolution of GH#33047
 
             loc = self.columns.get_loc(item)
-            col_mgr = self._mgr.iget(loc)
-            res = self._box_col_values(col_mgr, loc).__finalize__(self)
+            res = self._ixs(loc, axis=1)
 
             cache[item] = res
-            res._set_as_cached(item, self)
 
             # for a chain
             res._is_copy = self._is_copy
@@ -4221,15 +4238,13 @@ class DataFrame(NDFrame, OpsMixin):
         from pandas.core.computation.eval import eval as _eval
 
         inplace = validate_bool_kwarg(inplace, "inplace")
-        resolvers = kwargs.pop("resolvers", None)
         kwargs["level"] = kwargs.pop("level", 0) + 1
-        if resolvers is None:
-            index_resolvers = self._get_index_resolvers()
-            column_resolvers = self._get_cleaned_column_resolvers()
-            resolvers = column_resolvers, index_resolvers
+        index_resolvers = self._get_index_resolvers()
+        column_resolvers = self._get_cleaned_column_resolvers()
+        resolvers = column_resolvers, index_resolvers
         if "target" not in kwargs:
             kwargs["target"] = self
-        kwargs["resolvers"] = kwargs.get("resolvers", ()) + tuple(resolvers)
+        kwargs["resolvers"] = tuple(kwargs.get("resolvers", ())) + resolvers
 
         return _eval(expr, inplace=inplace, **kwargs)
 
@@ -4548,7 +4563,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         .. deprecated:: 1.2.0
             DataFrame.lookup is deprecated,
-            use DataFrame.melt and DataFrame.loc instead.
+            use pandas.factorize and NumPy indexing instead.
             For further details see
             :ref:`Looking up values by index/column labels <indexing.lookup>`.
 
@@ -5267,11 +5282,11 @@ class DataFrame(NDFrame, OpsMixin):
     def replace(
         self,
         to_replace=None,
-        value=None,
+        value=lib.no_default,
         inplace: bool = False,
         limit=None,
         regex: bool = False,
-        method: str = "pad",
+        method: str | lib.NoDefault = lib.no_default,
     ):
         return super().replace(
             to_replace=to_replace,
@@ -6239,22 +6254,27 @@ class DataFrame(NDFrame, OpsMixin):
         # Verify all columns in subset exist in the queried dataframe
         # Otherwise, raise a KeyError, same as if you try to __getitem__ with a
         # key that doesn't exist.
-        diff = Index(subset).difference(self.columns)
-        if not diff.empty:
-            raise KeyError(diff)
+        diff = set(subset) - set(self.columns)
+        if diff:
+            raise KeyError(Index(diff))
 
-        vals = (col.values for name, col in self.items() if name in subset)
-        labels, shape = map(list, zip(*map(f, vals)))
+        if len(subset) == 1 and self.columns.is_unique:
+            # GH#45236 This is faster than get_group_index below
+            result = self[subset[0]].duplicated(keep)
+            result.name = None
+        else:
+            vals = (col.values for name, col in self.items() if name in subset)
+            labels, shape = map(list, zip(*map(f, vals)))
 
-        ids = get_group_index(
-            labels,
-            # error: Argument 1 to "tuple" has incompatible type "List[_T]";
-            # expected "Iterable[int]"
-            tuple(shape),  # type: ignore[arg-type]
-            sort=False,
-            xnull=False,
-        )
-        result = self._constructor_sliced(duplicated(ids, keep), index=self.index)
+            ids = get_group_index(
+                labels,
+                # error: Argument 1 to "tuple" has incompatible type "List[_T]";
+                # expected "Iterable[int]"
+                tuple(shape),  # type: ignore[arg-type]
+                sort=False,
+                xnull=False,
+            )
+            result = self._constructor_sliced(duplicated(ids, keep), index=self.index)
         return result.__finalize__(self, method="duplicated")
 
     # ----------------------------------------------------------------------
@@ -7772,6 +7792,8 @@ NaN 12.3   33.0
         For finer-tuned control, see hierarchical indexing documentation along
         with the related stack/unstack methods.
 
+        Reference :ref:`the user guide <reshaping.pivot>` for more examples.
+
         Examples
         --------
         >>> df = pd.DataFrame({'foo': ['one', 'one', 'one', 'two', 'two',
@@ -7930,6 +7952,10 @@ NaN 12.3   33.0
         wide_to_long : Wide panel to long format. Less flexible but more
             user-friendly than melt.
 
+        Notes
+        -----
+        Reference :ref:`the user guide <reshaping.pivot>` for more examples.
+
         Examples
         --------
         >>> df = pd.DataFrame({"A": ["foo", "foo", "foo", "foo", "foo",
@@ -7997,13 +8023,13 @@ NaN 12.3   33.0
         ...                     aggfunc={'D': np.mean,
         ...                              'E': [min, max, np.mean]})
         >>> table
-                        D    E
-                    mean  max      mean  min
+                          D   E
+                       mean max      mean  min
         A   C
-        bar large  5.500000  9.0  7.500000  6.0
-            small  5.500000  9.0  8.500000  8.0
-        foo large  2.000000  5.0  4.500000  4.0
-            small  2.333333  6.0  4.333333  2.0
+        bar large  5.500000   9  7.500000    6
+            small  5.500000   9  8.500000    8
+        foo large  2.000000   5  4.500000    4
+            small  2.333333   6  4.333333    2
         """
 
     @Substitution("")
@@ -8085,6 +8111,8 @@ NaN 12.3   33.0
         position (the columns of the dataframe) to being stacked
         vertically on top of each other (in the index of the
         dataframe).
+
+        Reference :ref:`the user guide <reshaping.stacking>` for more examples.
 
         Examples
         --------
@@ -8265,6 +8293,8 @@ NaN 12.3   33.0
         result in a np.nan for that row. In addition, the ordering of rows in the
         output will be non-deterministic when exploding sets.
 
+        Reference :ref:`the user guide <reshaping.explode>` for more examples.
+
         Examples
         --------
         >>> df = pd.DataFrame({'A': [[0, 1, 2], 'foo', [], [3, 4]],
@@ -8363,6 +8393,10 @@ NaN 12.3   33.0
         DataFrame.pivot : Pivot a table based on column values.
         DataFrame.stack : Pivot a level of the column labels (inverse operation
             from `unstack`).
+
+        Notes
+        -----
+        Reference :ref:`the user guide <reshaping.stacking>` for more examples.
 
         Examples
         --------
@@ -8869,9 +8903,9 @@ NaN 12.3   33.0
         >>> df_copy = df.copy()
         >>> df_copy.iloc[0, 0] = pd.NA
         >>> df_copy.applymap(lambda x: len(str(x)), na_action='ignore')
-              0  1
-        0  <NA>  4
-        1     5  5
+             0  1
+        0  NaN  4
+        1  5.0  5
 
         Note that a vectorized version of `func` often exists, which will
         be much faster. You could square each number elementwise.
@@ -10454,17 +10488,23 @@ NaN 12.3   33.0
         Name: 0.5, dtype: object
         """
         validate_percentile(q)
+        axis = self._get_axis_number(axis)
 
         if not is_list_like(q):
             # BlockManager.quantile expects listlike, so we wrap and unwrap here
-            res = self.quantile(
+            res_df = self.quantile(
                 [q], axis=axis, numeric_only=numeric_only, interpolation=interpolation
             )
-            return res.iloc[0]
+            res = res_df.iloc[0]
+            if axis == 1 and len(self) == 0:
+                # GH#41544 try to get an appropriate dtype
+                dtype = find_common_type(list(self.dtypes))
+                if needs_i8_conversion(dtype):
+                    return res.astype(dtype)
+            return res
 
         q = Index(q, dtype=np.float64)
         data = self._get_numeric_data() if numeric_only else self
-        axis = self._get_axis_number(axis)
 
         if axis == 1:
             data = data.T
@@ -10472,9 +10512,17 @@ NaN 12.3   33.0
         if len(data.columns) == 0:
             # GH#23925 _get_numeric_data may have dropped all columns
             cols = Index([], name=self.columns.name)
+
+            dtype = np.float64
+            if axis == 1:
+                # GH#41544 try to get an appropriate dtype
+                cdtype = find_common_type(list(self.dtypes))
+                if needs_i8_conversion(cdtype):
+                    dtype = cdtype
+
             if is_list_like(q):
-                return self._constructor([], index=q, columns=cols)
-            return self._constructor_sliced([], index=cols, name=q, dtype=np.float64)
+                return self._constructor([], index=q, columns=cols, dtype=dtype)
+            return self._constructor_sliced([], index=cols, name=q, dtype=dtype)
 
         res = data._mgr.quantile(qs=q, axis=1, interpolation=interpolation)
 
@@ -10925,7 +10973,7 @@ NaN 12.3   33.0
         inplace=False,
         axis=None,
         level=None,
-        errors=lib.no_default,
+        errors="raise",
         try_cast=lib.no_default,
     ):
         return super().where(cond, other, inplace, axis, level, errors, try_cast)
@@ -10940,7 +10988,7 @@ NaN 12.3   33.0
         inplace=False,
         axis=None,
         level=None,
-        errors=lib.no_default,
+        errors="raise",
         try_cast=lib.no_default,
     ):
         return super().mask(cond, other, inplace, axis, level, errors, try_cast)

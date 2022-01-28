@@ -82,7 +82,7 @@ return a ``DataFrame``, see the :ref:`subset data tutorial <10min_tut_03_subset>
     </ul>
 
 The aggregating statistic can be calculated for multiple columns at the
-same time. Remember the ``describe`` function from :ref:`first tutorial <10min_tut_01_tableoriented>` tutorial?
+same time. Remember the ``describe`` function from :ref:`first tutorial <10min_tut_01_tableoriented>`?
 
 .. ipython:: python
 

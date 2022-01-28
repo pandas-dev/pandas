@@ -67,6 +67,14 @@ from pandas.core.indexes.api import (
     MultiIndex,
 )
 
+try:
+    import pyarrow as pa
+except ImportError:
+    has_pyarrow = False
+else:
+    del pa
+    has_pyarrow = True
+
 # Until https://github.com/numpy/numpy/issues/19078 is sorted out, just suppress
 suppress_npdev_promotion_warning = pytest.mark.filterwarnings(
     "ignore:Promotion of numbers and bools:FutureWarning"
@@ -404,6 +412,18 @@ def index_or_series_or_array(request):
     return request.param
 
 
+@pytest.fixture(params=[Index, Series, DataFrame, pd.array], ids=lambda x: x.__name__)
+def box_with_array(request):
+    """
+    Fixture to test behavior for Index, Series, DataFrame, and pandas Array
+    classes
+    """
+    return request.param
+
+
+box_with_array2 = box_with_array
+
+
 @pytest.fixture
 def dict_subclass():
     """
@@ -537,7 +557,15 @@ indices_dict = {
     "mi-with-dt64tz-level": _create_mi_with_dt64tz_level(),
     "multi": _create_multiindex(),
     "repeats": Index([0, 0, 1, 1, 2, 2]),
+    "nullable_int": Index(np.arange(100), dtype="Int64"),
+    "nullable_uint": Index(np.arange(100), dtype="UInt16"),
+    "nullable_float": Index(np.arange(100), dtype="Float32"),
+    "nullable_bool": Index(np.arange(100).astype(bool), dtype="boolean"),
+    "string-python": Index(pd.array(tm.makeStringIndex(100), dtype="string[python]")),
 }
+if has_pyarrow:
+    idx = Index(pd.array(tm.makeStringIndex(100), dtype="string[pyarrow]"))
+    indices_dict["string-pyarrow"] = idx
 
 
 @pytest.fixture(params=indices_dict.keys())
@@ -700,7 +728,7 @@ def series_with_multilevel_index():
 
 
 _narrow_series = {
-    f"{dtype.__name__}-series": tm.makeFloatSeries(name="a").astype(dtype)
+    f"{dtype.__name__}-series": tm.make_rand_series(name="a", dtype=dtype)
     for dtype in tm.NARROW_NP_DTYPES
 }
 
@@ -1521,6 +1549,7 @@ def any_numpy_dtype(request):
 _any_skipna_inferred_dtype = [
     ("string", ["a", np.nan, "c"]),
     ("string", ["a", pd.NA, "c"]),
+    ("mixed", ["a", pd.NaT, "c"]),  # pd.NaT not considered valid by is_string_array
     ("bytes", [b"a", np.nan, b"c"]),
     ("empty", [np.nan, np.nan, np.nan]),
     ("empty", []),
@@ -1719,6 +1748,14 @@ def indexer_sl(request):
 def indexer_al(request):
     """
     Parametrize over at.__setitem__, loc.__setitem__
+    """
+    return request.param
+
+
+@pytest.fixture(params=[tm.iat, tm.iloc])
+def indexer_ial(request):
+    """
+    Parametrize over iat.__setitem__, iloc.__setitem__
     """
     return request.param
 

@@ -711,6 +711,36 @@ class TestDataFrameIndexingWhere:
         res = ser.where(ser.notna())
         tm.assert_series_equal(res, ser)
 
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "timedelta64[ns]",
+            "datetime64[ns]",
+            "datetime64[ns, Asia/Tokyo]",
+            "Period[D]",
+        ],
+    )
+    def test_where_datetimelike_noop(self, dtype):
+        # GH#45135, analogue to GH#44181 for Period don't raise on no-op
+        # For td64/dt64/dt64tz we already don't raise, but also are
+        #  checking that we don't unnecessarily upcast to object.
+        ser = Series(np.arange(3) * 10 ** 9, dtype=np.int64).view(dtype)
+        df = ser.to_frame()
+        mask = np.array([False, False, False])
+
+        res = ser.where(~mask, "foo")
+        tm.assert_series_equal(res, ser)
+
+        mask2 = mask.reshape(-1, 1)
+        res2 = df.where(~mask2, "foo")
+        tm.assert_frame_equal(res2, df)
+
+        res3 = ser.mask(mask, "foo")
+        tm.assert_series_equal(res3, ser)
+
+        res4 = df.mask(mask2, "foo")
+        tm.assert_frame_equal(res4, df)
+
 
 def test_where_try_cast_deprecated(frame_or_series):
     obj = DataFrame(np.random.randn(4, 3))
@@ -723,8 +753,15 @@ def test_where_try_cast_deprecated(frame_or_series):
         obj.where(mask, -1, try_cast=False)
 
 
-def test_where_int_downcasting_deprecated(using_array_manager):
+def test_where_int_downcasting_deprecated(using_array_manager, request):
     # GH#44597
+    if not using_array_manager:
+        mark = pytest.mark.xfail(
+            reason="After fixing a bug in can_hold_element, we don't go through "
+            "the deprecated path, and also up-cast both columns to int32 "
+            "instead of just 1."
+        )
+        request.node.add_marker(mark)
     arr = np.arange(6).astype(np.int16).reshape(3, 2)
     df = DataFrame(arr)
 
@@ -773,6 +810,12 @@ def test_where_string_dtype(frame_or_series):
         index=["id1", "id2", "id3", "id4"],
         dtype=StringDtype(),
     )
+    tm.assert_equal(result, expected)
+
+    result = obj.mask(~filter_ser, filtered_obj)
+    tm.assert_equal(result, expected)
+
+    obj.mask(~filter_ser, filtered_obj, inplace=True)
     tm.assert_equal(result, expected)
 
 
@@ -862,6 +905,9 @@ def test_where_period_invalid_na(frame_or_series, as_cat, request):
     with pytest.raises(TypeError, match=msg):
         obj.mask(mask, tdnat)
 
+    with pytest.raises(TypeError, match=msg):
+        obj.mask(mask, tdnat, inplace=True)
+
 
 def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):
     # GH#44697
@@ -870,16 +916,7 @@ def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):
 
     mask = np.array([True, True, False], ndmin=obj.ndim).T
 
-    msg = "|".join(
-        [
-            r"datetime64\[.{1,2}\] cannot be converted to an? (Integer|Floating)Dtype",
-            r"timedelta64\[.{1,2}\] cannot be converted to an? (Integer|Floating)Dtype",
-            r"int\(\) argument must be a string, a bytes-like object or a number, "
-            "not 'NaTType'",
-            "object cannot be converted to a FloatingDtype",
-            "'values' contains non-numeric NA",
-        ]
-    )
+    msg = r"Invalid value '.*' for dtype (U?Int|Float)\d{1,2}"
 
     for null in tm.NP_NAT_OBJECTS + [pd.NaT]:
         # NaT is an NA value that we should *not* cast to pd.NA dtype

@@ -7,6 +7,7 @@ from io import (
     StringIO,
 )
 import logging
+import os
 
 import numpy as np
 import pytest
@@ -34,7 +35,7 @@ def check_compressed_urls(salaries_table, compression, extension, mode, engine):
     # test reading compressed urls with various engines and
     # extension inference
     base_url = (
-        "https://github.com/pandas-dev/pandas/raw/master/"
+        "https://github.com/pandas-dev/pandas/raw/main/"
         "pandas/tests/io/parser/data/salaries.csv"
     )
 
@@ -55,7 +56,7 @@ def test_url_encoding_csv():
     GH 10424
     """
     path = (
-        "https://raw.githubusercontent.com/pandas-dev/pandas/master/"
+        "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
         + "pandas/tests/io/parser/data/unicode_series.csv"
     )
     df = read_csv(path, encoding="latin-1", header=None)
@@ -69,6 +70,11 @@ def tips_df(datapath):
 
 
 @pytest.mark.usefixtures("s3_resource")
+@pytest.mark.xfail(
+    reason="CI race condition GH 45433, GH 44584",
+    raises=FileNotFoundError,
+    strict=False,
+)
 @td.skip_if_not_us_locale()
 class TestS3:
     @td.skip_if_no("s3fs")
@@ -259,6 +265,12 @@ class TestS3:
         expected = read_csv(tips_file)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.skipif(
+        os.environ.get("PANDAS_CI", "0") == "1",
+        reason="This test can hang in our CI min_versions build "
+        "and leads to '##[error]The runner has "
+        "received a shutdown signal...' in GHA. GH: 45651",
+    )
     def test_read_csv_chunked_download(self, s3_resource, caplog, s3so):
         # 8 MB, S3FS uses 5MB chunks
         import s3fs

@@ -14,6 +14,11 @@ import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
 
+# geopandas, xarray, fsspec, fastparquet all produce these
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:distutils Version classes are deprecated.*:DeprecationWarning"
+)
+
 
 def import_module(name):
     # we *only* want to skip if the module is truly not available
@@ -46,6 +51,31 @@ def test_dask(df):
         ddf = dd.from_pandas(df, npartitions=3)
         assert ddf.A is not None
         assert ddf.compute() is not None
+    finally:
+        pd.set_option("compute.use_numexpr", olduse)
+
+
+@pytest.mark.filterwarnings("ignore:.*64Index is deprecated:FutureWarning")
+@pytest.mark.filterwarnings("ignore:The __array_wrap__:DeprecationWarning")
+def test_dask_ufunc():
+    # At the time of dask 2022.01.0, dask is still directly using __array_wrap__
+    # for some ufuncs (https://github.com/dask/dask/issues/8580).
+
+    # dask sets "compute.use_numexpr" to False, so catch the current value
+    # and ensure to reset it afterwards to avoid impacting other tests
+    olduse = pd.get_option("compute.use_numexpr")
+
+    try:
+        dask = import_module("dask")  # noqa:F841
+        import dask.array as da
+        import dask.dataframe as dd
+
+        s = pd.Series([1.5, 2.3, 3.7, 4.0])
+        ds = dd.from_pandas(s, npartitions=2)
+
+        result = da.fix(ds).compute()
+        expected = np.fix(s)
+        tm.assert_series_equal(result, expected)
     finally:
         pd.set_option("compute.use_numexpr", olduse)
 
@@ -102,6 +132,10 @@ def test_oo_optimized_datetime_index_unpickle():
 @pytest.mark.filterwarnings(
     # patsy needs to update their imports
     "ignore:Using or importing the ABCs from 'collections:DeprecationWarning"
+)
+@pytest.mark.filterwarnings(
+    # numpy 1.22
+    "ignore:`np.MachAr` is deprecated.*:DeprecationWarning"
 )
 def test_statsmodels():
 

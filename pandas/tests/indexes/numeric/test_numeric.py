@@ -6,13 +6,13 @@ from pandas._libs.tslibs import Timestamp
 import pandas as pd
 from pandas import (
     Index,
-    NumericIndex,
     Series,
 )
 import pandas._testing as tm
 from pandas.core.indexes.api import (
     Float64Index,
     Int64Index,
+    NumericIndex,
     UInt64Index,
 )
 from pandas.tests.indexes.common import NumericBase
@@ -326,19 +326,19 @@ class NumericInt(NumericBase):
         index_cls = self._index_cls
 
         index = index_cls([1, 2, 3, 4])
-        assert index.is_monotonic is True
+        assert index.is_monotonic_increasing is True
         assert index.is_monotonic_increasing is True
         assert index._is_strictly_monotonic_increasing is True
         assert index.is_monotonic_decreasing is False
         assert index._is_strictly_monotonic_decreasing is False
 
         index = index_cls([4, 3, 2, 1])
-        assert index.is_monotonic is False
+        assert index.is_monotonic_increasing is False
         assert index._is_strictly_monotonic_increasing is False
         assert index._is_strictly_monotonic_decreasing is True
 
         index = index_cls([1])
-        assert index.is_monotonic is True
+        assert index.is_monotonic_increasing is True
         assert index.is_monotonic_increasing is True
         assert index.is_monotonic_decreasing is True
         assert index._is_strictly_monotonic_increasing is True
@@ -657,7 +657,7 @@ def test_uint_index_does_not_convert_to_float64(box):
     )
     tm.assert_index_equal(result.index, expected)
 
-    tm.assert_equal(result, series[:3])
+    tm.assert_equal(result, series.iloc[:3])
 
 
 def test_float64_index_equals():

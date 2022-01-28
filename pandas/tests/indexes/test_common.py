@@ -10,22 +10,19 @@ import pytest
 
 from pandas.compat import IS64
 
-from pandas.core.dtypes.common import (
-    is_integer_dtype,
-    needs_i8_conversion,
-)
+from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
 from pandas import (
     CategoricalIndex,
     DatetimeIndex,
     MultiIndex,
-    NumericIndex,
     PeriodIndex,
     RangeIndex,
     TimedeltaIndex,
 )
 import pandas._testing as tm
+from pandas.core.api import NumericIndex
 
 
 class TestCommon:
@@ -383,10 +380,7 @@ class TestCommon:
             index.name = "idx"
 
         warn = None
-        if dtype in ["int64", "uint64"]:
-            if needs_i8_conversion(index.dtype):
-                warn = FutureWarning
-        elif (
+        if (
             isinstance(index, DatetimeIndex)
             and index.tz is not None
             and dtype == "datetime64[ns]"
@@ -465,7 +459,9 @@ def test_sort_values_with_missing(index_with_missing, na_position):
         sorted_values = np.concatenate([[None] * missing_count, sorted_values])
     else:
         sorted_values = np.concatenate([sorted_values, [None] * missing_count])
-    expected = type(index_with_missing)(sorted_values)
+
+    # Explicitly pass dtype needed for Index backed by EA e.g. IntegerArray
+    expected = type(index_with_missing)(sorted_values, dtype=index_with_missing.dtype)
 
     result = index_with_missing.sort_values(na_position=na_position)
     tm.assert_index_equal(result, expected)

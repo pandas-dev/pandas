@@ -10,6 +10,7 @@ from pandas.compat import (
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
+    is_dtype_equal,
     is_object_dtype,
 )
 
@@ -83,6 +84,17 @@ def test_ndarray_compat_properties(index_or_series_obj):
     assert Series([1]).item() == 1
 
 
+def test_array_wrap_compat():
+    # Note: at time of dask 2022.01.0, this is still used by eg dask
+    # (https://github.com/dask/dask/issues/8580).
+    # This test is a small dummy ensuring coverage
+    orig = Series([1, 2, 3], dtype="int64", index=["a", "b", "c"])
+    with tm.assert_produces_warning(DeprecationWarning):
+        result = orig.__array_wrap__(np.array([2, 4, 6], dtype="int64"))
+    expected = orig * 2
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
 def test_memory_usage(index_or_series_obj):
     obj = index_or_series_obj
@@ -90,11 +102,15 @@ def test_memory_usage(index_or_series_obj):
     res = obj.memory_usage()
     res_deep = obj.memory_usage(deep=True)
 
+    is_ser = isinstance(obj, Series)
     is_object = is_object_dtype(obj) or (
         isinstance(obj, Series) and is_object_dtype(obj.index)
     )
     is_categorical = is_categorical_dtype(obj.dtype) or (
         isinstance(obj, Series) and is_categorical_dtype(obj.index.dtype)
+    )
+    is_object_string = is_dtype_equal(obj, "string[python]") or (
+        is_ser and is_dtype_equal(obj.index.dtype, "string[python]")
     )
 
     if len(obj) == 0:
@@ -103,7 +119,7 @@ def test_memory_usage(index_or_series_obj):
         else:
             expected = 108 if IS64 else 64
         assert res_deep == res == expected
-    elif is_object or is_categorical:
+    elif is_object or is_categorical or is_object_string:
         # only deep will pick them up
         assert res_deep > res
     else:
@@ -125,7 +141,7 @@ def test_memory_usage_components_series(series_with_simple_index):
 
 @pytest.mark.parametrize("dtype", tm.NARROW_NP_DTYPES)
 def test_memory_usage_components_narrow_series(dtype):
-    series = tm.makeFloatSeries(name="a").astype(dtype)
+    series = tm.make_rand_series(name="a", dtype=dtype)
     total_usage = series.memory_usage(index=True)
     non_index_usage = series.memory_usage(index=False)
     index_usage = series.index.memory_usage()
@@ -164,6 +180,8 @@ def test_access_by_position(index_flat):
     assert index[-1] == index[size - 1]
 
     msg = f"index {size} is out of bounds for axis 0 with size {size}"
+    if is_dtype_equal(index.dtype, "string[pyarrow]"):
+        msg = "index out of bounds"
     with pytest.raises(IndexError, match=msg):
         index[size]
     msg = "single positional indexer is out-of-bounds"

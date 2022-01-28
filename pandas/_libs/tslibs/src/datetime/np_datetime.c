@@ -27,10 +27,6 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #include <numpy/ndarraytypes.h>
 #include "np_datetime.h"
 
-#if PY_MAJOR_VERSION >= 3
-#define PyInt_AsLong PyLong_AsLong
-#endif  // PyInt_AsLong
-
 const npy_datetimestruct _NS_MIN_DTS = {
     1677, 9, 21, 0, 12, 43, 145224, 193000, 0};
 const npy_datetimestruct _NS_MAX_DTS = {
@@ -330,9 +326,9 @@ int convert_pydatetime_to_datetimestruct(PyObject *dtobj,
     out->month = 1;
     out->day = 1;
 
-    out->year = PyInt_AsLong(PyObject_GetAttrString(obj, "year"));
-    out->month = PyInt_AsLong(PyObject_GetAttrString(obj, "month"));
-    out->day = PyInt_AsLong(PyObject_GetAttrString(obj, "day"));
+    out->year = PyLong_AsLong(PyObject_GetAttrString(obj, "year"));
+    out->month = PyLong_AsLong(PyObject_GetAttrString(obj, "month"));
+    out->day = PyLong_AsLong(PyObject_GetAttrString(obj, "day"));
 
     // TODO(anyone): If we can get PyDateTime_IMPORT to work, we could use
     // PyDateTime_Check here, and less verbose attribute lookups.
@@ -345,10 +341,10 @@ int convert_pydatetime_to_datetimestruct(PyObject *dtobj,
         return 0;
     }
 
-    out->hour = PyInt_AsLong(PyObject_GetAttrString(obj, "hour"));
-    out->min = PyInt_AsLong(PyObject_GetAttrString(obj, "minute"));
-    out->sec = PyInt_AsLong(PyObject_GetAttrString(obj, "second"));
-    out->us = PyInt_AsLong(PyObject_GetAttrString(obj, "microsecond"));
+    out->hour = PyLong_AsLong(PyObject_GetAttrString(obj, "hour"));
+    out->min = PyLong_AsLong(PyObject_GetAttrString(obj, "minute"));
+    out->sec = PyLong_AsLong(PyObject_GetAttrString(obj, "second"));
+    out->us = PyLong_AsLong(PyObject_GetAttrString(obj, "microsecond"));
 
     /* Apply the time zone offset if datetime obj is tz-aware */
     if (PyObject_HasAttrString((PyObject*)obj, "tzinfo")) {
@@ -360,6 +356,7 @@ int convert_pydatetime_to_datetimestruct(PyObject *dtobj,
             Py_DECREF(tmp);
         } else {
             PyObject *offset;
+            PyObject *tmp_int;
             int seconds_offset, minutes_offset;
 
             /* The utcoffset function should return a timedelta */
@@ -378,11 +375,18 @@ int convert_pydatetime_to_datetimestruct(PyObject *dtobj,
             if (tmp == NULL) {
                 return -1;
             }
-            seconds_offset = PyInt_AsLong(tmp);
-            if (seconds_offset == -1 && PyErr_Occurred()) {
+            tmp_int = PyNumber_Long(tmp);
+            if (tmp_int == NULL) {
                 Py_DECREF(tmp);
                 return -1;
             }
+            seconds_offset = PyLong_AsLong(tmp_int);
+            if (seconds_offset == -1 && PyErr_Occurred()) {
+                Py_DECREF(tmp_int);
+                Py_DECREF(tmp);
+                return -1;
+            }
+            Py_DECREF(tmp_int);
             Py_DECREF(tmp);
 
             /* Convert to a minutes offset and apply it */

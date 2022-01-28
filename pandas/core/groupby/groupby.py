@@ -375,8 +375,8 @@ See Also
     the results together.
 %(klass)s.groupby.aggregate : Aggregate using one or more
     operations over the specified axis.
-%(klass)s.transform : Call ``func`` on self producing a %(klass)s with
-    transformed values.
+%(klass)s.transform : Call ``func`` on self producing a %(klass)s with the
+    same axis shape as self.
 
 Notes
 -----
@@ -1750,7 +1750,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             if is_object_dtype(vals.dtype):
                 # GH#37501: don't raise on pd.NA when skipna=True
                 if skipna:
-                    func = np.vectorize(lambda x: bool(x) if not isna(x) else True)
+                    func = np.vectorize(
+                        lambda x: bool(x) if not isna(x) else True, otypes=[bool]
+                    )
                     vals = func(vals)
                 else:
                     vals = vals.astype(bool, copy=False)
@@ -2206,17 +2208,49 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @doc(_groupby_agg_method_template, fname="min", no=False, mc=-1)
-    def min(self, numeric_only: bool = False, min_count: int = -1):
-        return self._agg_general(
-            numeric_only=numeric_only, min_count=min_count, alias="min", npfunc=np.min
-        )
+    def min(
+        self,
+        numeric_only: bool = False,
+        min_count: int = -1,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+    ):
+        if maybe_use_numba(engine):
+            from pandas.core._numba.kernels import sliding_min_max
+
+            return self._numba_agg_general(
+                sliding_min_max, engine_kwargs, "groupby_min", False
+            )
+        else:
+            return self._agg_general(
+                numeric_only=numeric_only,
+                min_count=min_count,
+                alias="min",
+                npfunc=np.min,
+            )
 
     @final
     @doc(_groupby_agg_method_template, fname="max", no=False, mc=-1)
-    def max(self, numeric_only: bool = False, min_count: int = -1):
-        return self._agg_general(
-            numeric_only=numeric_only, min_count=min_count, alias="max", npfunc=np.max
-        )
+    def max(
+        self,
+        numeric_only: bool = False,
+        min_count: int = -1,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+    ):
+        if maybe_use_numba(engine):
+            from pandas.core._numba.kernels import sliding_min_max
+
+            return self._numba_agg_general(
+                sliding_min_max, engine_kwargs, "groupby_max", True
+            )
+        else:
+            return self._agg_general(
+                numeric_only=numeric_only,
+                min_count=min_count,
+                alias="max",
+                npfunc=np.max,
+            )
 
     @final
     @doc(_groupby_agg_method_template, fname="first", no=False, mc=-1)
@@ -2547,7 +2581,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @Substitution(name="groupby")
-    def pad(self, limit=None):
+    def ffill(self, limit=None):
         """
         Forward fill the values.
 
@@ -2563,18 +2597,27 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        Series.pad: Returns Series with minimum number of char in object.
-        DataFrame.pad: Object with missing values filled or None if inplace=True.
+        Series.ffill: Returns Series with minimum number of char in object.
+        DataFrame.ffill: Object with missing values filled or None if inplace=True.
         Series.fillna: Fill NaN values of a Series.
         DataFrame.fillna: Fill NaN values of a DataFrame.
         """
         return self._fill("ffill", limit=limit)
 
-    ffill = pad
+    def pad(self, limit=None):
+        warnings.warn(
+            "pad is deprecated and will be removed in a future version. "
+            "Use ffill instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self.ffill(limit=limit)
+
+    pad.__doc__ = ffill.__doc__
 
     @final
     @Substitution(name="groupby")
-    def backfill(self, limit=None):
+    def bfill(self, limit=None):
         """
         Backward fill the values.
 
@@ -2590,14 +2633,23 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        Series.backfill :  Backward fill the missing values in the dataset.
-        DataFrame.backfill:  Backward fill the missing values in the dataset.
+        Series.bfill :  Backward fill the missing values in the dataset.
+        DataFrame.bfill:  Backward fill the missing values in the dataset.
         Series.fillna: Fill NaN values of a Series.
         DataFrame.fillna: Fill NaN values of a DataFrame.
         """
         return self._fill("bfill", limit=limit)
 
-    bfill = backfill
+    def backfill(self, limit=None):
+        warnings.warn(
+            "backfill is deprecated and will be removed in a future version. "
+            "Use bfill instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self.bfill(limit=limit)
+
+    backfill.__doc__ = bfill.__doc__
 
     @final
     @Substitution(name="groupby")
@@ -2623,7 +2675,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             A single nth value for the row or a list of nth values or slices.
 
             .. versionchanged:: 1.4.0
-                Added slice and lists containiing slices.
+                Added slice and lists containing slices.
                 Added index notation.
 
         dropna : {'any', 'all', None}, default None
@@ -3435,7 +3487,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def pct_change(self, periods=1, fill_method="pad", limit=None, freq=None, axis=0):
+    def pct_change(self, periods=1, fill_method="ffill", limit=None, freq=None, axis=0):
         """
         Calculate pct_change of each value to previous entry in group.
 
@@ -3457,7 +3509,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 )
             )
         if fill_method is None:  # GH30463
-            fill_method = "pad"
+            fill_method = "ffill"
             limit = 0
         filled = getattr(self, fill_method)(limit=limit)
         fill_grp = filled.groupby(self.grouper.codes, axis=self.axis)
@@ -3562,6 +3614,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             Filtered _selected_obj.
         """
+        ids = self.grouper.group_info[0]
+        mask = mask & (ids != -1)
+
         if self.axis == 0:
             return self._selected_obj[mask]
         else:

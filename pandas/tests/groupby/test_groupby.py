@@ -22,13 +22,10 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
-from pandas.core.arrays import (
-    BooleanArray,
-    FloatingArray,
-    IntegerArray,
-)
+from pandas.core.arrays import BooleanArray
 from pandas.core.base import SpecificationError
 import pandas.core.common as com
+from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
 
 
 def test_repr():
@@ -1820,6 +1817,18 @@ def test_pivot_table_values_key_error():
         pd.array([0], dtype="Float64"),
         pd.array([False], dtype="boolean"),
     ],
+    ids=[
+        "bool",
+        "int",
+        "float",
+        "str",
+        "cat",
+        "dt64",
+        "dt64tz",
+        "Int64",
+        "Float64",
+        "boolean",
+    ],
 )
 @pytest.mark.parametrize("method", ["attr", "agg", "apply"])
 @pytest.mark.parametrize(
@@ -1874,15 +1883,6 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
     ):
         mark = pytest.mark.xfail(
             raises=AssertionError, match="(DataFrame|Series) are different"
-        )
-        request.node.add_marker(mark)
-    elif (
-        isinstance(values, (IntegerArray, FloatingArray))
-        and op == "mad"
-        and isinstance(columns, list)
-    ):
-        mark = pytest.mark.xfail(
-            raises=TypeError, match="can only perform ops with numeric values"
         )
         request.node.add_marker(mark)
 
@@ -2269,7 +2269,8 @@ def test_groupby_duplicate_index():
 def test_dup_labels_output_shape(groupby_func, idx):
     if groupby_func in {"size", "ngroup", "cumcount"}:
         pytest.skip("Not applicable")
-
+    # TODO(2.0) Remove after pad/backfill deprecation enforced
+    groupby_func = maybe_normalize_deprecated_kernels(groupby_func)
     df = DataFrame([[1, 1]], columns=idx)
     grp_by = df.groupby([0])
 
@@ -2614,3 +2615,12 @@ def test_rolling_wrong_param_min_period():
     result_error_msg = r"__init__\(\) got an unexpected keyword argument 'min_period'"
     with pytest.raises(TypeError, match=result_error_msg):
         test_df.groupby("name")["val"].rolling(window=2, min_period=1).sum()
+
+
+def test_pad_backfill_deprecation():
+    # GH 33396
+    s = Series([1, 2, 3])
+    with tm.assert_produces_warning(FutureWarning, match="backfill"):
+        s.groupby(level=0).backfill()
+    with tm.assert_produces_warning(FutureWarning, match="pad"):
+        s.groupby(level=0).pad()

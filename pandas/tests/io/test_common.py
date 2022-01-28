@@ -415,8 +415,8 @@ class TestMMapWrapper:
         with pytest.raises(err, match=msg):
             icom._MMapWrapper(non_file)
 
-        target = open(mmap_file)
-        target.close()
+        with open(mmap_file) as target:
+            pass
 
         msg = "I/O operation on closed file"
         with pytest.raises(ValueError, match=msg):
@@ -555,9 +555,8 @@ def test_encoding_errors(encoding_errors, format):
     bad_encoding = b"\xe4"
 
     if format == "csv":
-        return
-        content = bad_encoding + b"\n" + bad_encoding
-        reader = pd.read_csv
+        content = b"," + bad_encoding + b"\n" + bad_encoding * 2 + b"," + bad_encoding
+        reader = partial(pd.read_csv, index_col=0)
     else:
         content = (
             b'{"'
