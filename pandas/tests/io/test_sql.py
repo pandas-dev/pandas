@@ -1540,7 +1540,8 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
                 return getattr(self.conn, name)
 
         conn = MockSqliteConnection(":memory:")
-        sql.read_sql("SELECT 1", conn)
+        with tm.assert_produces_warning(UserWarning):
+            sql.read_sql("SELECT 1", conn)
 
     def test_read_sql_delegate(self):
         iris_frame1 = sql.read_sql_query("SELECT * FROM iris", self.conn)
