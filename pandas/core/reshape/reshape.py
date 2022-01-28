@@ -799,7 +799,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
 
     return result
 
-
+  
 def _reorder_for_extension_array_stack(
     arr: ExtensionArray, n_rows: int, n_columns: int
 ) -> ExtensionArray:
