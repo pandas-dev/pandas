@@ -1182,7 +1182,6 @@ class TestReaders:
         )
         tm.assert_frame_equal(actual, expected)
 
-
     def test_read_excel_nrows(self, read_ext):
         # GH 16645
         num_rows_to_pull = 5
