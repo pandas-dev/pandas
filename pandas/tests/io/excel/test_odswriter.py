@@ -59,7 +59,7 @@ def test_engine_kwargs(ext, engine_kwargs):
 
 
 def test_book_and_sheets_consistent(ext):
-    # GH#??? - Ensure sheets is updated if user modifies book
+    # GH#45687 - Ensure sheets is updated if user modifies book
     with tm.ensure_clean(ext) as f:
         writer = ExcelWriter(f)
         assert writer.sheets == {}
