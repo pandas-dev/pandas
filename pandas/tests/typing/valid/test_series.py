@@ -9,14 +9,15 @@ The full license is in the STUBS_LICENSE file, distributed with this software.
 # TODO: many functions need return types annotations for pyright
 # to run with reportGeneralTypeIssues = true
 import os
-import tempfile
 from pathlib import Path
+import tempfile
 from typing import List
 
 import numpy as np
 
-import pandas as pd
 from pandas._typing import Scalar
+
+import pandas as pd
 from pandas.core.window import ExponentialMovingWindow
 from pandas.util import _test_decorators as td
 

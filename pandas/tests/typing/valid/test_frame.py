@@ -10,8 +10,8 @@ The full license is in the STUBS_LICENSE file, distributed with this software.
 # to run with reportGeneralTypeIssues = true
 import io
 import os
-import tempfile
 from pathlib import Path
+import tempfile
 from typing import (
     Any,
     Iterable,
