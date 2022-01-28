@@ -3791,6 +3791,7 @@ class Index(IndexOpsMixin, PandasObject):
         tolerance=None,
     ) -> npt.NDArray[np.intp]:
         method = missing.clean_reindex_fill_method(method)
+        orig_target = target
         target = self._maybe_cast_listlike_indexer(target)
 
         self._check_indexing_method(method, limit, tolerance)
@@ -3813,9 +3814,15 @@ class Index(IndexOpsMixin, PandasObject):
 
             indexer = self._engine.get_indexer(target.codes)
             if self.hasnans and target.hasnans:
+                # After _maybe_cast_listlike_indexer, target elements which do not
+                # belong to some category are changed to NaNs
+                # Mask to track actual NaN values compared to inserted NaN values
+                # GH#45361
+                target_nans = isna(orig_target)
                 loc = self.get_loc(np.nan)
                 mask = target.isna()
-                indexer[mask] = loc
+                indexer[target_nans] = loc
+                indexer[mask & ~target_nans] = -1
             return indexer
 
         if is_categorical_dtype(target.dtype):
