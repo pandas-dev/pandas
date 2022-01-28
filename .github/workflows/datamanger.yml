@@ -9,6 +9,8 @@ on:
     branches:
       - main
       - 1.4.x
+    paths-ignore:
+      - "doc/**"
 
 env:
   ENV_FILE: environment.yml
@@ -26,12 +28,9 @@ jobs:
           AWS_SECRET_ACCESS_KEY: foobar_secret
         ports:
           - 5000:5000
-    strategy:
-      matrix:
-        pattern: ["not slow and not network and not clipboard", "slow"]
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-data_manager-${{ matrix.pattern }}
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-data_manager
       cancel-in-progress: true
 
     steps:
@@ -46,12 +45,9 @@ jobs:
     - name: Run tests
       env:
         PANDAS_DATA_MANAGER: array
-        PATTERN: ${{ matrix.pattern }}
+        PATTERN: "not network and not clipboard"
         PYTEST_WORKERS: "auto"
         PYTEST_TARGET: pandas
       run: |
         source activate pandas-dev
         ci/run_tests.sh
-
-    - name: Print skipped tests
-      run: python ci/print_skipped.py

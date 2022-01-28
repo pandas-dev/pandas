@@ -149,7 +149,7 @@ skip = "pandas/__init__.py"
 
 [tool.pyright]
 pythonVersion = "3.8"
-typeCheckingMode = "strict"
+typeCheckingMode = "basic"
 include = ["pandas", "typings"]
 exclude = ["pandas/tests", "pandas/io/clipboard", "pandas/util/version"]
 reportGeneralTypeIssues = false

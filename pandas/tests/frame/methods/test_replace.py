@@ -753,6 +753,13 @@ class TestDataFrameReplace:
                 "bar",
                 DataFrame({"dt": [datetime(3017, 12, 20)], "str": ["bar"]}),
             ),
+            # GH 36782
+            (
+                DataFrame({"dt": [datetime(2920, 10, 1)]}),
+                datetime(2920, 10, 1),
+                datetime(2020, 10, 1),
+                DataFrame({"dt": [datetime(2020, 10, 1)]}),
+            ),
             (
                 DataFrame(
                     {
