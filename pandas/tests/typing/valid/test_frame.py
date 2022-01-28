@@ -9,8 +9,9 @@ The full license is in the STUBS_LICENSE file, distributed with this software.
 # TODO: many functions need return types annotations for pyright
 # to run with reportGeneralTypeIssues = true
 import io
-from pathlib import Path
+import os
 import tempfile
+from pathlib import Path
 from typing import (
     Any,
     Iterable,
@@ -42,19 +43,33 @@ def test_types_to_csv() -> None:
     # variable has type "str")
     csv_df: str = df.to_csv()  # type: ignore[assignment]
 
-    with tempfile.NamedTemporaryFile() as file:
-        df.to_csv(file.name)
-        df2: pd.DataFrame = pd.read_csv(file.name)
+    # NamedTemporaryFile cannot be used with delete=True on Windows
+    # see https://docs.python.org/3/library/tempfile.html#tempfile.NamedTemporaryFile
+    try:
+        with tempfile.NamedTemporaryFile(delete=False) as file:
+            tmp_file = file.name
+            df.to_csv(tmp_file)
+            df2: pd.DataFrame = pd.read_csv(tmp_file)
+    finally:
+        os.unlink(tmp_file)
 
-    with tempfile.NamedTemporaryFile() as file:
-        df.to_csv(Path(file.name))
-        df3: pd.DataFrame = pd.read_csv(Path(file.name))
+    try:
+        with tempfile.NamedTemporaryFile(delete=False) as file:
+            tmp_file = file.name
+            df.to_csv(Path(tmp_file))
+            df3: pd.DataFrame = pd.read_csv(Path(tmp_file))
+    finally:
+        os.unlink(tmp_file)
 
     # This keyword was added in 1.1.0
     # https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
-    with tempfile.NamedTemporaryFile() as file:
-        df.to_csv(file.name, errors="replace")
-        df4: pd.DataFrame = pd.read_csv(file.name)
+    try:
+        with tempfile.NamedTemporaryFile(delete=False) as file:
+            tmp_file = file.name
+            df.to_csv(tmp_file, errors="replace")
+            df4: pd.DataFrame = pd.read_csv(tmp_file)
+    finally:
+        os.unlink(tmp_file)
 
     # Testing support for binary file handles, added in 1.2.0
     # https://pandas.pydata.org/docs/whatsnew/v1.2.0.html
@@ -760,8 +775,12 @@ def test_types_to_parquet() -> None:
     df = pd.DataFrame([[1, 2], [8, 9]], columns=["A", "B"]).set_flags(
         allows_duplicate_labels=False
     )
-    with tempfile.NamedTemporaryFile() as file:
-        df.to_parquet(Path(file.name))
+    try:
+        with tempfile.NamedTemporaryFile(delete=False) as file:
+            tmp_file = file.name
+            df.to_parquet(Path(tmp_file))
+    finally:
+        os.unlink(tmp_file)
     # to_parquet() returns bytes when no path given since 1.2.0
     # https://pandas.pydata.org/docs/whatsnew/v1.2.0.html
     # error: Incompatible types in assignment (expression has type "Optional[bytes]",
