@@ -25,7 +25,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Fixed segfault in :meth:``DataFrame.to_json`` when dumping tz-aware datetimes in Python 3.10 (:issue:`42130`)
-- Fixed window aggregations to skip over unused elements (:issue:`45647`)
+- Fixed window aggregations in :meth:`DataFrame.rolling` and :meth:`Series.rolling` to skip over unused elements (:issue:`45647`)
 -
 
 .. ---------------------------------------------------------------------------

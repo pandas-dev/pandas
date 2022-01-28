@@ -780,7 +780,7 @@ def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
         Py_ssize_t i, j
         bint err = False, is_monotonic_increasing_bounds
         int midpoint, ret = 0
-        int64_t nobs, N = len(start), s, e, win
+        int64_t nobs = 0, N = len(start), s, e, win
         float64_t val, res, prev
         skiplist_t *sl
         ndarray[float64_t] output
@@ -809,9 +809,10 @@ def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
 
             if i == 0 or not is_monotonic_increasing_bounds or s >= end[i - 1]:
 
-                skiplist_destroy(sl)
-                sl = skiplist_init(<int>win)
-                nobs = 0
+                if i != 0:
+                    skiplist_destroy(sl)
+                    sl = skiplist_init(<int>win)
+                    nobs = 0
                 # setup
                 for j in range(s, e):
                     val = values[j]
@@ -1088,7 +1089,7 @@ def roll_quantile(const float64_t[:] values, ndarray[int64_t] start,
             e = end[i]
 
             if i == 0 or not is_monotonic_increasing_bounds or s >= end[i - 1]:
-                if not is_monotonic_increasing_bounds or s >= end[i - 1]:
+                if i != 0:
                     nobs = 0
                     skiplist_destroy(skiplist)
                     skiplist = skiplist_init(<int>win)
@@ -1213,7 +1214,7 @@ def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
             e = end[i]
 
             if i == 0 or not is_monotonic_increasing_bounds or s >= end[i - 1]:
-                if not is_monotonic_increasing_bounds or s >= end[i - 1]:
+                if i != 0:
                     nobs = 0
                     skiplist_destroy(skiplist)
                     skiplist = skiplist_init(<int>win)
