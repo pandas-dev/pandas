@@ -631,6 +631,10 @@ def factorize(
     cut : Discretize continuous-valued array.
     unique : Find the unique value in an array.
 
+    Notes
+    -----
+    Reference :ref:`the user guide <reshaping.factorize>` for more examples.
+
     Examples
     --------
     These examples all show factorize as a top-level method like

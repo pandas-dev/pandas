@@ -665,7 +665,8 @@ class _LocationIndexer(NDFrameIndexerBase):
                 return self._convert_tuple(key)
 
         if isinstance(key, range):
-            return list(key)
+            # GH#45479 test_loc_setitem_range_key
+            key = list(key)
 
         return self._convert_to_indexer(key, axis=0)
 
@@ -2017,7 +2018,7 @@ class _iLocIndexer(_LocationIndexer):
                 # We will ignore the existing dtypes instead of using
                 #  internals.concat logic
                 df = value.to_frame().T
-                df.index = [indexer]
+                df.index = Index([indexer], name=self.obj.index.name)
                 if not has_dtype:
                     # i.e. if we already had a Series or ndarray, keep that
                     #  dtype.  But if we had a list or dict, then do inference

@@ -209,6 +209,13 @@ class TestLoc(Base):
 
 class TestLocBaseIndependent:
     # Tests for loc that do not depend on subclassing Base
+    def test_loc_npstr(self):
+        # GH#45580
+        df = DataFrame(index=date_range("2021", "2022"))
+        result = df.loc[np.array(["2021/6/1"])[0] :]
+        expected = df.iloc[151:]
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize(
         "msg, key",
         [
@@ -1555,6 +1562,19 @@ class TestLocBaseIndependent:
         df.one = np.int8(7)
         assert df.dtypes.one == np.dtype(np.int8)
 
+    def test_loc_setitem_range_key(self, frame_or_series):
+        # GH#45479 don't treat range key as positional
+        obj = frame_or_series(range(5), index=[3, 4, 1, 0, 2])
+
+        values = [9, 10, 11]
+        if obj.ndim == 2:
+            values = [[9], [10], [11]]
+
+        obj.loc[range(3)] = values
+
+        expected = frame_or_series([0, 1, 10, 9, 11], index=obj.index)
+        tm.assert_equal(obj, expected)
+
 
 class TestLocWithEllipsis:
     @pytest.fixture(params=[tm.loc, tm.iloc])
@@ -2746,6 +2766,26 @@ def test_loc_setitem_uint8_upcast(value):
 
     expected = DataFrame([1, 2, 300, 4], columns=["col1"], dtype="uint16")
     tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize(
+    "fill_val,exp_dtype",
+    [
+        (Timestamp("2022-01-06"), "datetime64[ns]"),
+        (Timestamp("2022-01-07", tz="US/Eastern"), "datetime64[ns, US/Eastern]"),
+    ],
+)
+def test_loc_setitem_using_datetimelike_str_as_index(fill_val, exp_dtype):
+
+    data = ["2022-01-02", "2022-01-03", "2022-01-04", fill_val.date()]
+    index = DatetimeIndex(data, tz=fill_val.tz, dtype=exp_dtype)
+    df = DataFrame([10, 11, 12, 14], columns=["a"], index=index)
+    # adding new row using an unexisting datetime-like str index
+    df.loc["2022-01-08", "a"] = 13
+
+    data.append("2022-01-08")
+    expected_index = DatetimeIndex(data, dtype=exp_dtype)
+    tm.assert_index_equal(df.index, expected_index, exact=True)
 
 
 class TestLocSeries:
