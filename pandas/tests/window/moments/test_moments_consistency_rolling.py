@@ -13,6 +13,12 @@ def all_na(x):
     return x.isnull().all().all()
 
 
+@pytest.fixture(params=[(1, 0), (5, 1)])
+def rolling_consistency_cases(request):
+    """window, min_periods"""
+    return request.param
+
+
 @pytest.mark.parametrize("f", [lambda v: Series(v).sum(), np.nansum, np.sum])
 def test_rolling_apply_consistency_sum(
     request, all_data, rolling_consistency_cases, center, f

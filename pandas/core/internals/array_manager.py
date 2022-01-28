@@ -341,9 +341,8 @@ class BaseArrayManager(DataManager):
             cond=cond,
         )
 
-    # TODO what is this used for?
-    # def setitem(self, indexer, value) -> ArrayManager:
-    #     return self.apply_with_block("setitem", indexer=indexer, value=value)
+    def setitem(self: T, indexer, value) -> T:
+        return self.apply_with_block("setitem", indexer=indexer, value=value)
 
     def putmask(self, mask, new, align: bool = True):
         if align:
@@ -467,7 +466,7 @@ class BaseArrayManager(DataManager):
 
     @property
     def is_single_block(self) -> bool:
-        return False
+        return len(self.arrays) == 1
 
     def _get_data_subset(self: T, predicate: Callable) -> T:
         indices = [i for i, arr in enumerate(self.arrays) if predicate(arr)]

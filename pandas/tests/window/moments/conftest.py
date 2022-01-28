@@ -41,7 +41,6 @@ def is_constant(x):
         for obj in itertools.chain(create_series(), create_dataframes())
         if is_constant(obj)
     ),
-    scope="module",
 )
 def consistent_data(request):
     return request.param
@@ -65,12 +64,6 @@ def all_data(request):
         - Monotonically increasing with NaNs
         - Monotonically decreasing with NaNs
     """
-    return request.param
-
-
-@pytest.fixture(params=[(1, 0), (5, 1)])
-def rolling_consistency_cases(request):
-    """window, min_periods"""
     return request.param
 
 
