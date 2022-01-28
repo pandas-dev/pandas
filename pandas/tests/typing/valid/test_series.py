@@ -9,15 +9,14 @@ The full license is in the STUBS_LICENSE file, distributed with this software.
 # TODO: many functions need return types annotations for pyright
 # to run with reportGeneralTypeIssues = true
 import os
-from pathlib import Path
 import tempfile
+from pathlib import Path
 from typing import List
 
 import numpy as np
 
-from pandas._typing import Scalar
-
 import pandas as pd
+from pandas._typing import Scalar
 from pandas.core.window import ExponentialMovingWindow
 from pandas.util import _test_decorators as td
 
@@ -89,8 +88,8 @@ def test_types_csv() -> None:
     try:
         with tempfile.NamedTemporaryFile(delete=False) as file:
             tmp_file = file.name
-            s.to_csv(tmp_file=tmp_file, errors="replace")
-            s4: pd.DataFrame = pd.read_csv(tmp_file=tmp_file)
+            s.to_csv(tmp_file, errors="replace")
+            s4: pd.DataFrame = pd.read_csv(tmp_file)
     finally:
         os.unlink(tmp_file)
 
