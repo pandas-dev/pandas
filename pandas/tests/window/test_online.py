@@ -14,8 +14,8 @@ import pandas._testing as tm
 
 pytestmark = pytest.mark.skipif(
     os.environ.get("PANDAS_CI", "0") == "1" and is_platform_windows(),
-    reason="Any test in this file can hang on the multi-process "
-    "CI Windows environment",
+    reason="In a multi-process Windows CI environment can lead to "
+    "'Windows fatal exception: stack overflow'",
 )
 
 
