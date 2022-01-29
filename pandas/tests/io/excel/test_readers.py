@@ -150,9 +150,7 @@ class TestReaders:
             expected = expected_defaults[read_ext[1:]]
         assert result == expected
 
-    def test_usecols_int(self, read_ext, df_ref):
-        df_ref = df_ref.reindex(columns=["A", "B", "C"])
-
+    def test_usecols_int(self, read_ext):
         # usecols as int
         msg = "Passing an integer for `usecols`"
         with pytest.raises(ValueError, match=msg):
@@ -1311,7 +1309,7 @@ class TestExcelFileRead:
         monkeypatch.chdir(datapath("io", "data", "excel"))
         monkeypatch.setattr(pd, "ExcelFile", func)
 
-    def test_engine_used(self, read_ext, engine, monkeypatch):
+    def test_engine_used(self, read_ext, engine):
         expected_defaults = {
             "xlsx": "openpyxl",
             "xlsm": "openpyxl",
