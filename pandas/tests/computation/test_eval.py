@@ -797,7 +797,7 @@ def _is_datetime(x):
 
 
 def should_warn(*args):
-    not_mono = not any(map(operator.attrgetter("is_monotonic"), args))
+    not_mono = not any(map(operator.attrgetter("is_monotonic_increasing"), args))
     only_one_dt = reduce(operator.xor, map(_is_datetime, args))
     return not_mono and only_one_dt
 
