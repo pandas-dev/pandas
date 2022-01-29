@@ -166,7 +166,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
             parser.read_csv(sio, on_bad_lines=bad_lines_func)
 
 
-def test_close_file_handle_on_invalide_usecols(all_parsers):
+def test_close_file_handle_on_invalid_usecols(all_parsers):
     # GH 45384
     parser = all_parsers
 

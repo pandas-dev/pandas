@@ -2289,7 +2289,6 @@ def maybe_convert_dtype(data, copy: bool):
         copy = False
 
     elif is_extension_array_dtype(data.dtype) and not is_datetime64tz_dtype(data.dtype):
-        # Includes categorical
         # TODO: We have no tests for these
         data = np.array(data, dtype=np.object_)
         copy = False

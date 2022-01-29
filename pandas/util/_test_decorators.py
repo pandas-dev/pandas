@@ -80,6 +80,12 @@ def safe_import(mod_name: str, min_version: str | None = None):
             message=".*Int64Index.*",
         )
 
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message="distutils Version classes are deprecated.*",
+        )
+
         try:
             mod = __import__(mod_name)
         except ImportError:
