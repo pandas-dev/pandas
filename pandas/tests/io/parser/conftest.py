@@ -12,6 +12,9 @@ from pandas import (
 )
 import pandas._testing as tm
 
+from pandas.io.parsers import readers
+from pandas.io.parsers.arrow_parser_wrapper import ArrowParserWrapper
+
 
 class BaseParser:
     engine: str | None = None
@@ -101,20 +104,30 @@ _all_parser_ids = [*_c_parser_ids, *_py_parser_ids, *_pyarrow_parsers_ids]
 
 
 @pytest.fixture(params=_all_parsers, ids=_all_parser_ids)
-def all_parsers(request):
+def all_parsers(request, monkeypatch):
     """
     Fixture all of the CSV parsers.
     """
     parser = request.param()
     if parser.engine == "pyarrow":
         pytest.importorskip("pyarrow", VERSIONS["pyarrow"])
-        # Try setting num cpus to 1 to avoid hangs in CI
-        # TODO: Mark these as pytest.mark.single GH 44584
-        # or better somehow pass use_thread=False into pyarrow
+
         import pyarrow
 
+        # TODO: Probably mark these as pytest.mark.single GH 44584
+        # Disable threads in CI environment to avoid timeouts
         pyarrow.set_cpu_count(1)
-    return parser
+
+        class NoThreadArrowParserWrapper(ArrowParserWrapper):
+            def _get_pyarrow_options(self):
+                super()._get_pyarrow_options()
+                self.read_options["use_threads"] = False
+
+        with monkeypatch.context() as m:
+            m.setattr(readers, "ArrowParserWrapper", NoThreadArrowParserWrapper)
+            yield parser
+    else:
+        yield parser
 
 
 @pytest.fixture(params=_c_parsers_only, ids=_c_parser_ids)
