@@ -317,7 +317,7 @@ Reshaping
 
 Sparse
 ^^^^^^
--
+- Bug in :meth:`Series.where` and :meth:`DataFrame.where` with ``SparseDtype`` failing to retain the array's ``fill_value`` (:issue:`45691`)
 -
 
 ExtensionArray
