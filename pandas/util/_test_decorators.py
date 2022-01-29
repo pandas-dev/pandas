@@ -27,7 +27,6 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 import locale
-import os
 from typing import Callable
 import warnings
 
@@ -261,9 +260,7 @@ def file_leak_context():
     ContextManager analogue to check_file_leaks.
     """
     psutil = safe_import("psutil")
-    if not psutil or (
-        is_platform_windows() and os.environ.get("PANDAS_CI", "0") == "1"
-    ):
+    if not psutil or is_platform_windows():
         # Windows CI environments grab system files we're not interested in
         yield
     else:
