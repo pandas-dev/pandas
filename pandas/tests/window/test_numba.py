@@ -3,7 +3,10 @@ import os
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_windows
+from pandas.compat import (
+    is_platform_mac,
+    is_platform_windows,
+)
 from pandas.errors import NumbaUtilError
 import pandas.util._test_decorators as td
 
@@ -17,9 +20,11 @@ import pandas._testing as tm
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 
 pytestmark = pytest.mark.skipif(
-    os.environ.get("PANDAS_CI", "0") == "1" and is_platform_windows(),
-    reason="In a multi-process Windows CI environment can lead to "
-    "'Windows fatal exception: stack overflow'",
+    os.environ.get("PANDAS_CI", "0") == "1"
+    and (is_platform_windows() or is_platform_mac()),
+    reason="On Azure CI, Windows can fail with "
+    "'Windows fatal exception: stack overflow' "
+    "and MacOS can timeout",
 )
 
 
