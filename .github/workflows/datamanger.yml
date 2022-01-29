@@ -15,6 +15,9 @@ on:
 env:
   ENV_FILE: environment.yml
   PANDAS_CI: 1
+  # Avoid hanging threads in pyarrow
+  OMP_NUM_THREADS: 1
+  OMP_THREAD_LIMIT: 1
 
 jobs:
   data_manager:
