@@ -130,7 +130,7 @@ def test_engine_kwargs(ext, style_compression):
 def test_book_and_sheets_consistent(ext):
     # GH#45687 - Ensure sheets is updated if user modifies book
     with tm.ensure_clean(ext) as f:
-        writer = ExcelWriter(f)
-        assert writer.sheets == {}
-        sheet = writer.book.add_sheet("test_name")
-        assert writer.sheets == {"test_name": sheet}
+        with ExcelWriter(f) as writer:
+            assert writer.sheets == {}
+            sheet = writer.book.add_sheet("test_name")
+            assert writer.sheets == {"test_name": sheet}
