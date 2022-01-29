@@ -470,8 +470,13 @@ def ensure_dtype_can_hold_na(dtype: DtypeObj) -> DtypeObj:
     If we have a dtype that cannot hold NA values, find the best match that can.
     """
     if isinstance(dtype, ExtensionDtype):
-        # TODO: ExtensionDtype.can_hold_na?
-        return dtype
+        if dtype._can_hold_na:
+            return dtype
+        elif isinstance(dtype, IntervalDtype):
+            # TODO(GH#45349): don't special-case IntervalDtype, allow
+            #  overriding instead of returning object below.
+            return IntervalDtype(np.float64, closed=dtype.closed)
+        return _dtype_obj
     elif dtype.kind == "b":
         return _dtype_obj
     elif dtype.kind in ["i", "u"]:
@@ -1470,6 +1475,10 @@ def find_result_type(left: ArrayLike, right: Any) -> DtypeObj:
 
         new_dtype = np.result_type(left, right)
 
+    elif is_valid_na_for_dtype(right, left.dtype):
+        # e.g. IntervalDtype[int] and None/np.nan
+        new_dtype = ensure_dtype_can_hold_na(left.dtype)
+
     else:
         dtype, _ = infer_dtype_from(right, pandas_dtype=True)
 
@@ -1507,7 +1516,7 @@ def common_dtype_categorical_compat(
                     hasnas = obj.hasnans
                 else:
                     # Categorical
-                    hasnas = cast("Categorical", obj)._hasnans
+                    hasnas = cast("Categorical", obj)._hasna
 
                 if hasnas:
                     # see test_union_int_categorical_with_nan
@@ -1997,9 +2006,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             elif not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype; we can put this into an ndarray
                 #  losslessly iff it has no NAs
-                hasnas = element._mask.any()
-                # TODO: don't rely on implementation detail
-                if hasnas:
+                if element._hasna:
                     raise ValueError
                 return element
 
@@ -2016,9 +2023,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             elif not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype or FloatingDtype;
                 #  we can put this into an ndarray losslessly iff it has no NAs
-                hasnas = element._mask.any()
-                # TODO: don't rely on implementation detail
-                if hasnas:
+                if element._hasna:
                     raise ValueError
                 return element
             return element
@@ -2047,7 +2052,12 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
 
     elif dtype.kind == "b":
         if tipo is not None:
-            if tipo.kind == "b":  # FIXME: wrong with BooleanArray?
+            if tipo.kind == "b":
+                if not isinstance(tipo, np.dtype):
+                    # i.e. we have a BooleanArray
+                    if element._hasna:
+                        # i.e. there are pd.NA elements
+                        raise ValueError
                 return element
             raise ValueError
         if lib.is_bool(element):

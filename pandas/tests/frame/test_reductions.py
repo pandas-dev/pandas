@@ -1709,6 +1709,7 @@ def test_mad_nullable_integer_all_na(any_signed_int_ea_dtype):
     result = df2.mad()
     expected = df.mad()
     expected[1] = pd.NA
+    expected = expected.astype("Float64")
     tm.assert_series_equal(result, expected)
 
 

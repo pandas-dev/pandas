@@ -673,22 +673,10 @@ class TestQuantileExtensionDtype:
 
     # TODO(GH#39763): filtering can be removed after GH#39763 is fixed
     @pytest.mark.filterwarnings("ignore:Using .astype to convert:FutureWarning")
-    def test_quantile_ea_all_na(
-        self, obj, index, frame_or_series, using_array_manager, request
-    ):
-        if (
-            using_array_manager
-            and frame_or_series is DataFrame
-            and index.dtype == "m8[ns]"
-        ):
-            mark = pytest.mark.xfail(
-                reason="obj.astype fails bc obj is incorrectly dt64 at this point"
-            )
-            request.node.add_marker(mark)
-
+    def test_quantile_ea_all_na(self, obj, index, frame_or_series, request):
         warn = None
-        if using_array_manager and frame_or_series is DataFrame:
-            warn = FutureWarning
+        # if using_array_manager and frame_or_series is DataFrame:
+        #    warn = FutureWarning
 
         msg = "will attempt to set the values inplace"
         with tm.assert_produces_warning(warn, match=msg):
