@@ -25,16 +25,6 @@ from pandas import (
 )
 import pandas._testing as tm
 
-_seriesd = tm.getSeriesData()
-
-_frame = DataFrame(_seriesd)
-
-_cat_frame = _frame.copy()
-cat = ["bah"] * 5 + ["bar"] * 5 + ["baz"] * 5 + ["foo"] * (len(_cat_frame) - 15)
-_cat_frame.index = pd.CategoricalIndex(cat, name="E")
-_cat_frame["E"] = list(reversed(cat))
-_cat_frame["sort"] = np.arange(len(_cat_frame), dtype="int64")
-
 
 def assert_json_roundtrip_equal(result, expected, orient):
     if orient == "records" or orient == "values":
@@ -49,11 +39,17 @@ def assert_json_roundtrip_equal(result, expected, orient):
 )
 @pytest.mark.filterwarnings("ignore:the 'numpy' keyword is deprecated:FutureWarning")
 class TestPandasContainer:
-    @pytest.fixture(autouse=True)
-    def setup(self):
-        self.categorical = _cat_frame.copy()
+    @pytest.fixture
+    def categorical_frame(self):
+        _seriesd = tm.getSeriesData()
 
-        yield
+        _cat_frame = DataFrame(_seriesd)
+
+        cat = ["bah"] * 5 + ["bar"] * 5 + ["baz"] * 5 + ["foo"] * (len(_cat_frame) - 15)
+        _cat_frame.index = pd.CategoricalIndex(cat, name="E")
+        _cat_frame["E"] = list(reversed(cat))
+        _cat_frame["sort"] = np.arange(len(_cat_frame), dtype="int64")
+        return _cat_frame
 
     @pytest.fixture
     def datetime_series(self):
@@ -215,7 +211,9 @@ class TestPandasContainer:
 
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_categorical(self, request, orient, convert_axes, numpy):
+    def test_roundtrip_categorical(
+        self, request, orient, categorical_frame, convert_axes, numpy
+    ):
         # TODO: create a better frame to test with and improve coverage
         if orient in ("index", "columns"):
             request.node.add_marker(
@@ -224,7 +222,7 @@ class TestPandasContainer:
                 )
             )
 
-        data = self.categorical.to_json(orient=orient)
+        data = categorical_frame.to_json(orient=orient)
         if numpy and orient in ("records", "values"):
             request.node.add_marker(
                 pytest.mark.xfail(reason=f"Orient {orient} is broken with numpy=True")
@@ -232,7 +230,7 @@ class TestPandasContainer:
 
         result = read_json(data, orient=orient, convert_axes=convert_axes, numpy=numpy)
 
-        expected = self.categorical.copy()
+        expected = categorical_frame.copy()
         expected.index = expected.index.astype(str)  # Categorical not preserved
         expected.index.name = None  # index names aren't preserved in JSON
 
