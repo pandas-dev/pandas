@@ -366,7 +366,7 @@ class TestPandasContainer:
         assert np.isnan(result.iloc[0, 2])
 
     @pytest.mark.parametrize("dtype", [True, False])
-    def test_frame_read_json_dtype_missing_value(self, orient, dtype):
+    def test_frame_read_json_dtype_missing_value(self, dtype):
         # GH28501 Parse missing values using read_json with dtype=False
         # to NaN instead of None
         result = read_json("[null]", dtype=dtype)
@@ -376,7 +376,7 @@ class TestPandasContainer:
 
     @pytest.mark.parametrize("inf", [np.inf, np.NINF])
     @pytest.mark.parametrize("dtype", [True, False])
-    def test_frame_infinity(self, orient, inf, dtype):
+    def test_frame_infinity(self, inf, dtype):
         # infinities get mapped to nulls which get mapped to NaNs during
         # deserialisation
         df = DataFrame([[1, 2], [4, 5, 6]])

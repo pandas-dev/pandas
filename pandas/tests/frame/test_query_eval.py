@@ -36,7 +36,7 @@ def skip_if_no_pandas_parser(parser):
 
 
 class TestCompat:
-    def setup_method(self, method):
+    def setup_method(self):
         self.df = DataFrame({"A": [1, 2, 3]})
         self.expected1 = self.df[self.df.A > 0]
         self.expected2 = self.df.A + 1
@@ -1090,10 +1090,10 @@ class TestDataFrameQueryStrings:
 
 
 class TestDataFrameEvalWithFrame:
-    def setup_method(self, method):
+    def setup_method(self):
         self.frame = DataFrame(np.random.randn(10, 3), columns=list("abc"))
 
-    def teardown_method(self, method):
+    def teardown_method(self):
         del self.frame
 
     def test_simple_expr(self, parser, engine):
