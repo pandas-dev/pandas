@@ -185,9 +185,7 @@ class TestAsOfMerge:
     def test_basic_categorical(self, trades, asof, quotes):
 
         expected = asof
-        trades = trades.copy()
         trades.ticker = trades.ticker.astype("category")
-        quotes = quotes.copy()
         quotes.ticker = quotes.ticker.astype("category")
         expected.ticker = expected.ticker.astype("category")
 
