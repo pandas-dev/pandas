@@ -55,7 +55,7 @@ def test_excel_multiindex_index(ext):
         df.to_excel(path, index=False)
 
 
-def test_to_excel_styleconverter():
+def test_to_excel_styleconverter(ext):
     hstyle = {
         "font": {"bold": True},
         "borders": {"top": "thin", "right": "thin", "bottom": "thin", "left": "thin"},
@@ -91,7 +91,7 @@ def test_to_excel_xlwt_warning(ext):
             df.to_excel(path)
 
 
-def test_option_xls_writer_deprecated():
+def test_option_xls_writer_deprecated(ext):
     # GH 26552
     with tm.assert_produces_warning(
         FutureWarning,
