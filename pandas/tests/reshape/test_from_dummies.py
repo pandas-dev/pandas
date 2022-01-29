@@ -4,12 +4,10 @@ import pytest
 from pandas import (
     DataFrame,
     Series,
-)
-import pandas._testing as tm
-from pandas.core.reshape.reshape import (
     from_dummies,
     get_dummies,
 )
+import pandas._testing as tm
 
 
 @pytest.fixture
