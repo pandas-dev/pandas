@@ -108,10 +108,11 @@ def all_parsers(request):
     parser = request.param()
     if parser.engine == "pyarrow":
         pytest.importorskip("pyarrow", VERSIONS["pyarrow"])
-        # Try setting num cpus to 1 to avoid hangs?
+        # Try setting num cpus to 1 to avoid hangs in CI
         import pyarrow
 
         pyarrow.set_cpu_count(1)
+        pyarrow.set_io_thread_count(1)
     return parser
 
 
