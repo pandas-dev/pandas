@@ -153,12 +153,22 @@ def test_error_len_mismatch(data, all_arithmetic_operators):
 
     other = [scalar] * (len(data) - 1)
 
+    msg = "|".join(
+        [
+            r"operands could not be broadcast together with shapes \(3,\) \(4,\)",
+            r"operands could not be broadcast together with shapes \(4,\) \(3,\)",
+        ]
+    )
+
+    if data.dtype.kind == "b":
+        msg = "Lengths must match"
+
     for other in [other, np.array(other)]:
-        with pytest.raises(ValueError, match="Lengths must match"):
+        with pytest.raises(ValueError, match=msg):
             op(data, other)
 
         s = pd.Series(data)
-        with pytest.raises(ValueError, match="Lengths must match"):
+        with pytest.raises(ValueError, match=msg):
             op(s, other)
 
 
