@@ -1134,10 +1134,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     removed_blknos.append(blkno_l)
                 else:
                     nb = blk.delete(blk_locs)
-                    new_blocks = (
+                    blocks_tup = (
                         self.blocks[:blkno_l] + (nb,) + self.blocks[blkno_l + 1 :]
                     )
-                    self.blocks = new_blocks
+                    self.blocks = blocks_tup
                     self._blklocs[nb.mgr_locs.indexer] = np.arange(len(nb))
 
         if len(removed_blknos):
