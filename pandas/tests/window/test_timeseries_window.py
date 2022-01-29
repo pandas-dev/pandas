@@ -20,7 +20,7 @@ class TestRollingTS:
     # rolling time-series friendly
     # xref GH13327
 
-    def setup_method(self, method):
+    def setup_method(self):
 
         self.regular = DataFrame(
             {"A": date_range("20130101", periods=5, freq="s"), "B": range(5)}
