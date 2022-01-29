@@ -880,6 +880,20 @@ class TestSparseArray:
                 pass
             assert len(w) == 0
 
+    def test_where_retain_fill_value(self):
+        # GH#45691 don't lose fill_value on _where
+        arr = SparseArray([np.nan, 1.0], fill_value=0)
+
+        mask = np.array([True, False])
+
+        res = arr._where(~mask, 1)
+        exp = SparseArray([1, 1.0], fill_value=0)
+        tm.assert_sp_array_equal(res, exp)
+
+        ser = pd.Series(arr)
+        res = ser.where(~mask, 1)
+        tm.assert_series_equal(res, pd.Series(exp))
+
     def test_fillna(self):
         s = SparseArray([1, np.nan, np.nan, 3, np.nan])
         res = s.fillna(-1)
