@@ -291,7 +291,7 @@ def parse_datetime_string(
     return dt
 
 
-def parse_time_string(arg: str, freq=None, dayfirst=None, yearfirst=None):
+def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     """
     Try hard to parse datetime string, leveraging dateutil plus some extra
     goodies like quarter recognition.
@@ -312,6 +312,16 @@ def parse_time_string(arg: str, freq=None, dayfirst=None, yearfirst=None):
     str
         Describing resolution of parsed string.
     """
+    if type(arg) is not str:
+        # GH#45580 np.str_ satisfies isinstance(obj, str) but if we annotate
+        #  arg as "str" this raises here
+        if not isinstance(arg, np.str_):
+            raise TypeError(
+                "Argument 'arg' has incorrect type "
+                f"(expected str, got {type(arg).__name__})"
+            )
+        arg = str(arg)
+
     if is_offset_object(freq):
         freq = freq.rule_code
 

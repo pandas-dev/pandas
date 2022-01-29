@@ -7,8 +7,6 @@ import weakref
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
@@ -68,7 +66,8 @@ class TestFancy:
 
         msg = "Must have equal len keys and value when setting with an iterable"
         with pytest.raises(ValueError, match=msg):
-            df[2:5] = np.arange(1, 4) * 1j
+            with tm.assert_produces_warning(FutureWarning, match="label-based"):
+                df[2:5] = np.arange(1, 4) * 1j
 
     def test_getitem_ndarray_3d(
         self, index, frame_or_series, indexer_sli, using_array_manager
@@ -503,9 +502,6 @@ class TestFancy:
         df.loc[df["A"] == 0, ["A", "B"]] = df["D"]
         tm.assert_frame_equal(df, expected)
 
-    # TODO(ArrayManager) setting single item with an iterable doesn't work yet
-    # in the "split" path
-    @td.skip_array_manager_not_yet_implemented
     def test_setitem_list(self):
 
         # GH 6043

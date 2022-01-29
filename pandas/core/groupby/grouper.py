@@ -400,7 +400,7 @@ class Grouper:
                         raise ValueError(f"The level {level} is not valid")
 
         # possibly sort
-        if (self.sort or sort) and not ax.is_monotonic:
+        if (self.sort or sort) and not ax.is_monotonic_increasing:
             # use stable sort to support first, last, nth
             # TODO: why does putting na_position="first" fix datetimelike cases?
             indexer = self.indexer = ax.array.argsort(

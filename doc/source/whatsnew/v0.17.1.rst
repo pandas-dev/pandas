@@ -37,9 +37,7 @@ Conditional HTML formatting
 .. warning::
     This is a new feature and is under active development.
     We'll be adding features an  possibly making breaking changes in future
-    releases. Feedback is welcome_.
-
-.. _welcome: https://github.com/pandas-dev/pandas/issues/11610
+    releases. Feedback is welcome in :issue:`11610`
 
 We've added *experimental* support for conditional HTML formatting:
 the visual styling of a DataFrame based on the data.

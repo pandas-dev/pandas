@@ -367,11 +367,11 @@ def test_apply_frame_not_as_index_column_name(df):
 
 def test_apply_frame_concat_series():
     def trans(group):
-        return group.groupby("B")["C"].sum().sort_values()[:2]
+        return group.groupby("B")["C"].sum().sort_values().iloc[:2]
 
     def trans2(group):
         grouped = group.groupby(df.reindex(group.index)["B"])
-        return grouped.sum().sort_values()[:2]
+        return grouped.sum().sort_values().iloc[:2]
 
     df = DataFrame(
         {
@@ -409,7 +409,7 @@ def test_apply_chunk_view():
     # Low level tinkering could be unsafe, make sure not
     df = DataFrame({"key": [1, 1, 1, 2, 2, 2, 3, 3, 3], "value": range(9)})
 
-    result = df.groupby("key", group_keys=False).apply(lambda x: x[:2])
+    result = df.groupby("key", group_keys=False).apply(lambda x: x.iloc[:2])
     expected = df.take([0, 1, 3, 4, 6, 7])
     tm.assert_frame_equal(result, expected)
 
@@ -843,7 +843,7 @@ def test_apply_series_return_dataframe_groups():
     )
 
     def most_common_values(df):
-        return Series({c: s.value_counts().index[0] for c, s in df.iteritems()})
+        return Series({c: s.value_counts().index[0] for c, s in df.items()})
 
     result = tdf.groupby("day").apply(most_common_values)["userId"]
     expected = Series(

@@ -167,9 +167,8 @@ def test_decompression_regex_sep(python_parser_only, csv1, compression, klass):
     klass = getattr(module, klass)
 
     with tm.ensure_clean() as path:
-        tmp = klass(path, mode="wb")
-        tmp.write(data)
-        tmp.close()
+        with klass(path, mode="wb") as tmp:
+            tmp.write(data)
 
         result = parser.read_csv(path, sep="::", compression=compression)
         tm.assert_frame_equal(result, expected)

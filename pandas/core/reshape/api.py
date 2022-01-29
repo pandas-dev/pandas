@@ -1,6 +1,10 @@
 # flake8: noqa:F401
 
 from pandas.core.reshape.concat import concat
+from pandas.core.reshape.encoding import (
+    from_dummies,
+    get_dummies,
+)
 from pandas.core.reshape.melt import (
     lreshape,
     melt,
@@ -15,10 +19,6 @@ from pandas.core.reshape.pivot import (
     crosstab,
     pivot,
     pivot_table,
-)
-from pandas.core.reshape.reshape import (
-    from_dummies,
-    get_dummies,
 )
 from pandas.core.reshape.tile import (
     cut,

@@ -322,6 +322,17 @@ class TestAstype:
         with pytest.raises(ValueError, match=msg):
             arr.astype(dtype)
 
+    def test_astype_float_to_uint_negatives_raise(
+        self, float_numpy_dtype, any_unsigned_int_numpy_dtype
+    ):
+        # GH#45151
+        # TODO: same for EA float/uint dtypes
+        arr = np.arange(5).astype(float_numpy_dtype) - 3  # includes negatives
+        ser = Series(arr)
+
+        with pytest.raises(ValueError, match="losslessly"):
+            ser.astype(any_unsigned_int_numpy_dtype)
+
     def test_astype_cast_object_int(self):
         arr = Series(["1", "2", "3", "4"], dtype=object)
         result = arr.astype(int)
