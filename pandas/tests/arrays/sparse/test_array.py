@@ -881,7 +881,7 @@ class TestSparseArray:
             assert len(w) == 0
 
     def test_where_retain_fill_value(self):
-        # don't lose fill_value on _where
+        # GH#45691 don't lose fill_value on _where
         arr = SparseArray([np.nan, 1.0], fill_value=0)
 
         mask = np.array([True, False])
