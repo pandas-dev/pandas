@@ -24,7 +24,7 @@ if [[ $(uname) == "Linux" && -z $DISPLAY ]]; then
     XVFB="xvfb-run "
 fi
 
-PYTEST_CMD="${XVFB}pytest -v -r fEs -m \"$PATTERN\" -n $PYTEST_WORKERS --dist=loadfile $TEST_ARGS $COVERAGE $PYTEST_TARGET"
+PYTEST_CMD="${XVFB}pytest -r fEs -m \"$PATTERN\" -n $PYTEST_WORKERS --dist=loadfile $TEST_ARGS $COVERAGE $PYTEST_TARGET"
 
 echo $PYTEST_CMD
 sh -c "$PYTEST_CMD"

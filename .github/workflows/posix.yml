@@ -21,7 +21,6 @@ env:
 
 jobs:
   pytest:
-    if: false
     runs-on: ubuntu-latest
     defaults:
       run:

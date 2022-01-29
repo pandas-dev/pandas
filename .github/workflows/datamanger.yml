@@ -21,7 +21,6 @@ env:
 
 jobs:
   data_manager:
-    if: false
     name: Test experimental data manager
     runs-on: ubuntu-latest
     services:
