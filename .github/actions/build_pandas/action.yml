@@ -10,8 +10,19 @@ runs:
         conda list
       shell: bash -l {0}
 
+    - name: Get Date
+      id: get-date
+      run: echo "::set-output name=today::$(/bin/date -u '+%Y%m%d')"
+      shell: bash
+
+    - name: ccache
+      uses: hendrikmuhs/ccache-action@940a79df1711f4d50b87e19ddf3b0a3c182abe68
+      with:
+        key: ${{ runner.os }}--${{ runner.arch }}--${{ steps.get-date.outputs.today }}
+
     - name: Build Pandas
       run: |
+        export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
         python setup.py build_ext -j 2
         python -m pip install -e . --no-build-isolation --no-use-pep517 --no-index
       shell: bash -l {0}

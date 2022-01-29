@@ -44,7 +44,7 @@ jobs:
       LC_ALL: ${{ matrix.settings[4] }}
       PANDAS_TESTING_MODE: ${{ matrix.settings[5] }}
       TEST_ARGS: ${{ matrix.settings[6] }}
-      PYTEST_TARGET:  pandas
+      PYTEST_TARGET: pandas
       IS_PYPY: ${{ contains(matrix.settings[0], 'pypy') }}
       # TODO: re-enable coverage on pypy, its slow
       COVERAGE: ${{ !contains(matrix.settings[0], 'pypy') }}
@@ -61,9 +61,9 @@ jobs:
           MYSQL_DATABASE: pandas
         options: >-
           --health-cmd "mysqladmin ping"
-          --health-interval 10s
+          --health-interval 5s
           --health-timeout 5s
-          --health-retries 5
+          --health-retries 10
         ports:
           - 3306:3306
 
@@ -75,9 +75,9 @@ jobs:
           POSTGRES_DB: pandas
         options: >-
           --health-cmd pg_isready
-          --health-interval 10s
+          --health-interval 5s
           --health-timeout 5s
-          --health-retries 5
+          --health-retries 10
         ports:
           - 5432:5432
 
@@ -95,41 +95,49 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Cache conda
-      uses: actions/cache@v2
-      env:
-        CACHE_NUMBER: 0
+    - name: Setup Mambaforge
+      uses: conda-incubator/setup-miniconda@v2
       with:
-        path: ~/conda_pkgs_dir
-        key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{
-          hashFiles('${{ env.ENV_FILE }}') }}
+        miniforge-variant: Mambaforge
+        miniforge-version: latest
+        activate-environment: pandas-dev
+        channels: conda-forge
+        use-mamba: true
+      if: ${{ env.IS_PYPY == 'false' }} # No pypy3.8 support
+
+    - name: Get Date
+      id: get-date
+      run: echo "::set-output name=today::$(/bin/date -u '+%Y%m%d')"
+      shell: bash
+
+    - name: Cache Conda
+      id: cache_conda
+      uses: actions/cache@v2
+      with:
+        path: ${{ env.CONDA }}/envs
+        key: conda--${{ runner.os }}--${{ runner.arch }}--${{ steps.get-date.outputs.today }}--${{ env.ENV_FILE }}
+      if: ${{ env.IS_PYPY == 'false' }} # No pypy3.8 support
+
+    - name: Update Conda environment
+      run: mamba env update -n pandas-dev -f ${{ env.ENV_FILE }}
+      if: steps.cache_conda.outputs.cache-hit != 'true' && ${{ env.IS_PYPY == 'false' }} # No pypy3.8 support
 
     - name: Extra installs
       run: sudo apt-get update && sudo apt-get install -y libc6-dev-i386 ${{ env.EXTRA_APT }}
 
-    - uses: conda-incubator/setup-miniconda@v2
-      with:
-        mamba-version: "*"
-        channels: conda-forge
-        activate-environment: pandas-dev
-        channel-priority: flexible
-        environment-file: ${{ env.ENV_FILE }}
-        use-only-tar-bz2: true
-      if: ${{ env.IS_PYPY == 'false' }} # No pypy3.8 support
+    # - name: Setup PyPy
+    #   uses: actions/setup-python@v2
+    #   with:
+    #     python-version: "pypy-3.8"
+    #   if: ${{ env.IS_PYPY == 'true' }}
 
-    - name: Setup PyPy
-      uses: actions/setup-python@v2
-      with:
-        python-version: "pypy-3.8"
-      if: ${{ env.IS_PYPY == 'true' }}
-
-    - name: Setup PyPy dependencies
-      shell: bash
-      run: |
-        # TODO: re-enable cov, its slowing the tests down though
-        # TODO: Unpin Cython, the new Cython 0.29.26 is causing compilation errors
-        pip install Cython==0.29.25 numpy python-dateutil pytz pytest>=6.0 pytest-xdist>=1.31.0 hypothesis>=5.5.3
-      if: ${{ env.IS_PYPY == 'true' }}
+    # - name: Setup PyPy dependencies
+    #   shell: bash
+    #   run: |
+    #     # TODO: re-enable cov, its slowing the tests down though
+    #     # TODO: Unpin Cython, the new Cython 0.29.26 is causing compilation errors
+    #     pip install Cython==0.29.25 numpy python-dateutil pytz pytest>=6.0 pytest-xdist>=1.31.0 hypothesis>=5.5.3
+    #   if: ${{ env.IS_PYPY == 'true' }}
 
     - name: Build Pandas
       uses: ./.github/actions/build_pandas
