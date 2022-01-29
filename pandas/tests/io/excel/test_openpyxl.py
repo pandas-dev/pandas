@@ -19,7 +19,7 @@ openpyxl = pytest.importorskip("openpyxl")
 pytestmark = pytest.mark.parametrize("ext", [".xlsx"])
 
 
-def test_to_excel_styleconverter():
+def test_to_excel_styleconverter(ext):
     from openpyxl import styles
 
     hstyle = {
