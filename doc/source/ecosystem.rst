@@ -363,6 +363,15 @@ Geopandas extends pandas data objects to include geographic information which su
 geometric operations. If your work entails maps and geographical coordinates, and
 you love pandas, you should take a close look at Geopandas.
 
+`staircase <https://github.com/staircase-dev/staircase>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+staircase is a data analysis package, built upon pandas and numpy, for modelling and
+manipulation of mathematical step functions. It provides a rich variety of arithmetic
+operations, relational operations, logical operations, statistical operations and
+aggregations for step functions defined over real numbers, datetime and timedelta domains.
+
+
 `xarray <https://github.com/pydata/xarray>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -564,6 +573,7 @@ Library            Accessor     Classes                              Description
 `composeml`_       ``slice``    ``DataFrame``                        Provides a generator for enhanced data slicing.
 `datatest`_        ``validate`` ``Series``, ``DataFrame``, ``Index`` Provides validation, differences, and acceptance managers.
 `woodwork`_        ``ww``       ``Series``, ``DataFrame``            Provides physical, logical, and semantic data typing information for Series and DataFrames.
+`staircase`_       ``sc``       ``Series``                           Provides methods for querying, aggregating and plotting step functions
 ================== ============ ==================================== ===============================================================================
 
 .. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest
@@ -576,6 +586,7 @@ Library            Accessor     Classes                              Description
 .. _composeml: https://github.com/alteryx/compose
 .. _datatest: https://datatest.readthedocs.io/en/stable/
 .. _woodwork: https://github.com/alteryx/woodwork
+.. _staircase: https://www.staircase.dev/
 
 Development tools
 -----------------

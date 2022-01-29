@@ -70,6 +70,7 @@ from pandas.core.dtypes.astype import astype_nansafe
 from pandas.core.dtypes.cast import (
     can_hold_element,
     common_dtype_categorical_compat,
+    ensure_dtype_can_hold_na,
     find_common_type,
     infer_dtype_from,
     maybe_cast_pointwise_result,
@@ -177,7 +178,6 @@ if TYPE_CHECKING:
     from pandas import (
         CategoricalIndex,
         DataFrame,
-        IntervalIndex,
         MultiIndex,
         Series,
     )
@@ -3807,6 +3807,7 @@ class Index(IndexOpsMixin, PandasObject):
         tolerance=None,
     ) -> npt.NDArray[np.intp]:
         method = missing.clean_reindex_fill_method(method)
+        orig_target = target
         target = self._maybe_cast_listlike_indexer(target)
 
         self._check_indexing_method(method, limit, tolerance)
@@ -3829,9 +3830,15 @@ class Index(IndexOpsMixin, PandasObject):
 
             indexer = self._engine.get_indexer(target.codes)
             if self.hasnans and target.hasnans:
+                # After _maybe_cast_listlike_indexer, target elements which do not
+                # belong to some category are changed to NaNs
+                # Mask to track actual NaN values compared to inserted NaN values
+                # GH#45361
+                target_nans = isna(orig_target)
                 loc = self.get_loc(np.nan)
                 mask = target.isna()
-                indexer[mask] = loc
+                indexer[target_nans] = loc
+                indexer[mask & ~target_nans] = -1
             return indexer
 
         if is_categorical_dtype(target.dtype):
@@ -4596,11 +4603,11 @@ class Index(IndexOpsMixin, PandasObject):
         if join_index is self:
             lindexer = None
         else:
-            lindexer = self.get_indexer(join_index)
+            lindexer = self.get_indexer_for(join_index)
         if join_index is other:
             rindexer = None
         else:
-            rindexer = other.get_indexer(join_index)
+            rindexer = other.get_indexer_for(join_index)
         return join_index, lindexer, rindexer
 
     @final
@@ -6113,10 +6120,15 @@ class Index(IndexOpsMixin, PandasObject):
         Implementation of find_common_type that adjusts for Index-specific
         special cases.
         """
-        if is_interval_dtype(self.dtype) and is_valid_na_for_dtype(target, self.dtype):
+        if is_valid_na_for_dtype(target, self.dtype):
             # e.g. setting NA value into IntervalArray[int64]
-            self = cast("IntervalIndex", self)
-            return IntervalDtype(np.float64, closed=self.closed)
+            dtype = ensure_dtype_can_hold_na(self.dtype)
+            if is_dtype_equal(self.dtype, dtype):
+                raise NotImplementedError(
+                    "This should not be reached. Please report a bug at "
+                    "github.com/pandas-dev/pandas"
+                )
+            return dtype
 
         target_dtype, _ = infer_dtype_from(target, pandas_dtype=True)
 
