@@ -1,6 +1,5 @@
 import pytest
 
-from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
 import pandas._testing as tm
@@ -44,8 +43,7 @@ def read_ext(request):
     return request.param
 
 
-# Checking for file leaks can hang on Windows CI
-@pytest.fixture(autouse=not is_platform_windows())
+@pytest.fixture(autouse=True)
 def check_for_file_leaks():
     """
     Fixture to run around every test to ensure that we are not leaking files.
@@ -60,14 +58,8 @@ def check_for_file_leaks():
         yield
 
     else:
-        # Only care about excel files in this conftest
-        exts = [".xls", ".xlsx", ".xlsm", ".ods", ".xlsb"]
         proc = psutil.Process()
-        flist = [
-            f for f in proc.open_files() if any(f.path.endswith(ext) for ext in exts)
-        ]
+        flist = proc.open_files()
         yield
-        flist2 = [
-            f for f in proc.open_files() if any(f.path.endswith(ext) for ext in exts)
-        ]
+        flist2 = proc.open_files()
         assert flist == flist2

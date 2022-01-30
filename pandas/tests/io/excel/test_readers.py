@@ -131,6 +131,8 @@ class TestReaders:
         def parser(self, *args, **kwargs):
             return self.engine
 
+        monkeypatch.setattr(pd.ExcelFile, "parse", parser)
+
         expected_defaults = {
             "xlsx": "openpyxl",
             "xlsm": "openpyxl",
@@ -138,10 +140,9 @@ class TestReaders:
             "xls": "xlrd",
             "ods": "odf",
         }
-        with monkeypatch.context() as m:
-            m.setattr(pd.ExcelFile, "parse", parser)
-            with open("test1" + read_ext, "rb") as f:
-                result = pd.read_excel(f)
+
+        with open("test1" + read_ext, "rb") as f:
+            result = pd.read_excel(f)
 
         if engine is not None:
             expected = engine
@@ -149,7 +150,9 @@ class TestReaders:
             expected = expected_defaults[read_ext[1:]]
         assert result == expected
 
-    def test_usecols_int(self, read_ext):
+    def test_usecols_int(self, read_ext, df_ref):
+        df_ref = df_ref.reindex(columns=["A", "B", "C"])
+
         # usecols as int
         msg = "Passing an integer for `usecols`"
         with pytest.raises(ValueError, match=msg):
@@ -718,7 +721,7 @@ class TestReaders:
             actual = pd.read_excel(f, sheet_name="Sheet1", index_col=0)
             tm.assert_frame_equal(expected, actual)
 
-    def test_bad_engine_raises(self):
+    def test_bad_engine_raises(self, read_ext):
         bad_engine = "foo"
         with pytest.raises(ValueError, match="Unknown engine: foo"):
             pd.read_excel("", engine=bad_engine)
@@ -740,7 +743,7 @@ class TestReaders:
         with pytest.raises(FileNotFoundError, match=match):
             pd.read_excel(bad_file)
 
-    def test_corrupt_bytes_raises(self, engine):
+    def test_corrupt_bytes_raises(self, read_ext, engine):
         bad_stream = b"foo"
         if engine is None:
             error = ValueError
@@ -1284,7 +1287,7 @@ class TestReaders:
         ):
             pd.read_excel("chartsheet" + read_ext, sheet_name=1)
 
-    def test_euro_decimal_format(self, read_ext):
+    def test_euro_decimal_format(self, request, read_ext):
         # copied from read_csv
         result = pd.read_excel("test_decimal" + read_ext, decimal=",", skiprows=1)
         expected = DataFrame(
@@ -1308,7 +1311,7 @@ class TestExcelFileRead:
         monkeypatch.chdir(datapath("io", "data", "excel"))
         monkeypatch.setattr(pd, "ExcelFile", func)
 
-    def test_engine_used(self, read_ext, engine):
+    def test_engine_used(self, read_ext, engine, monkeypatch):
         expected_defaults = {
             "xlsx": "openpyxl",
             "xlsm": "openpyxl",
