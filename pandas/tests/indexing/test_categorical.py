@@ -21,7 +21,7 @@ from pandas.api.types import CategoricalDtype as CDT
 
 
 class TestCategoricalIndex:
-    def setup_method(self, method):
+    def setup_method(self):
 
         self.df = DataFrame(
             {
