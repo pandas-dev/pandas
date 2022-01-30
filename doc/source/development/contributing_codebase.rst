@@ -47,7 +47,7 @@ Pre-commit
 Additionally, :ref:`Continuous Integration <contributing.ci>` will run code formatting checks
 like ``black``, ``flake8``, ``isort``, and ``cpplint`` and more using `pre-commit hooks <https://pre-commit.com/>`_
 Any warnings from these checks will cause the :ref:`Continuous Integration <contributing.ci>` to fail; therefore,
-it is helpful to run the check yourself before submitting code.This
+it is helpful to run the check yourself before submitting code. This
 can be done by installing ``pre-commit``::
 
     pip install pre-commit
@@ -356,7 +356,7 @@ Preferred idioms
 
 * Functional tests named ``def test_*`` and *only* take arguments that are either fixtures or parameters.
 * Use a bare ``assert`` for testing scalars and truth-testing
-* Use ``tm.assert_series_equal(result, expected)`` and ``tm.assert_frame_equal(result, expected)``) for comparing :class:`Series` and :class:`DataFrame` results respectively.
+* Use ``tm.assert_series_equal(result, expected)`` and ``tm.assert_frame_equal(result, expected)`` for comparing :class:`Series` and :class:`DataFrame` results respectively.
 * Use `@pytest.mark.parameterize <https://docs.pytest.org/en/latest/how-to/parametrize.html>`__ when testing multiple cases.
 * Use `pytest.mark.xfail <https://docs.pytest.org/en/latest/reference/reference.html?#pytest.mark.xfail>`__ when a test case is expected to fail.
 * Use `pytest.mark.skip <https://docs.pytest.org/en/latest/reference/reference.html?#pytest.mark.skip>`__ when a test case is never expected to pass.
