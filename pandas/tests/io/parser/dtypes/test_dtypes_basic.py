@@ -193,7 +193,7 @@ def test_delimiter_with_usecols_and_parse_dates(all_parsers):
 @pytest.mark.parametrize("thousands", ["_", None])
 def test_decimal_and_exponential(python_parser_only, numeric_decimal, thousands):
     # GH#31920
-    decimal_number_check(python_parser_only, numeric_decimal, thousands)
+    decimal_number_check(python_parser_only, numeric_decimal, thousands, None)
 
 
 @pytest.mark.parametrize("thousands", ["_", None])
@@ -203,15 +203,15 @@ def test_1000_sep_decimal_float_precision(
 ):
     # test decimal and thousand sep handling in across 'float_precision'
     # parsers
-    decimal_number_check(c_parser_only, numeric_decimal, thousands)
+    decimal_number_check(c_parser_only, numeric_decimal, thousands, float_precision)
     text, value = numeric_decimal
     text = " " + text + " "
     if isinstance(value, str):  # the negative cases (parse as text)
         value = " " + value + " "
-    decimal_number_check(c_parser_only, (text, value), thousands)
+    decimal_number_check(c_parser_only, (text, value), thousands, float_precision)
 
 
-def decimal_number_check(parser, numeric_decimal, thousands):
+def decimal_number_check(parser, numeric_decimal, thousands, float_precision):
     # GH#31920
     value = numeric_decimal[0]
     if thousands is None and "_" in value:
