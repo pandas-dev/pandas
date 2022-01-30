@@ -2111,7 +2111,7 @@ def gen_series_formatting():
 
 
 class TestSeriesFormatting:
-    def setup_method(self, method):
+    def setup_method(self):
         self.ts = tm.makeTimeSeries()
 
     def test_repr_unicode(self):

@@ -244,7 +244,7 @@ def create_mgr(descr, item_shape=None):
 
 
 class TestBlock:
-    def setup_method(self, method):
+    def setup_method(self):
         self.fblock = create_block("float", [0, 2, 4])
         self.cblock = create_block("complex", [7])
         self.oblock = create_block("object", [1, 3])
