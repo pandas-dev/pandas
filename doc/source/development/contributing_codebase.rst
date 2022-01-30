@@ -322,44 +322,19 @@ use cases and writing corresponding tests.
 Adding tests is one of the most common requests after code is pushed to pandas.  Therefore,
 it is worth getting in the habit of writing tests ahead of time so this is never an issue.
 
-Like many packages, pandas uses `pytest<https://docs.pytest.org/en/latest/>`_.
-
 Writing tests
 ~~~~~~~~~~~~~
 
 All tests should go into the ``tests`` subdirectory of the specific package.
 This folder contains many current examples of tests, and we suggest looking to these for
-inspiration.  If your test requires working with files or
-network connectivity, there is more information on the :wiki:`Testing` of the wiki.
-
-The ``pandas._testing`` module has many special ``assert`` functions that
-make it easier to make statements about whether Series or DataFrame objects are
-equivalent. The easiest way to verify that your code is correct is to
-explicitly construct the result you expect, then compare the actual result to
-the expected correct result::
-
-    def test_pivot(self):
-        # GH <issue number>
-        data = {
-            'index' : ['A', 'B', 'C', 'C', 'B', 'A'],
-            'columns' : ['One', 'One', 'One', 'Two', 'Two', 'Two'],
-            'values' : [1., 2., 3., 3., 2., 1.]
-        }
-
-        frame = DataFrame(data)
-        pivoted = frame.pivot(index='index', columns='columns', values='values')
-
-        expected = DataFrame({
-            'One' : {'A' : 1., 'B' : 2., 'C' : 3.},
-            'Two' : {'A' : 1., 'B' : 2., 'C' : 3.}
-        })
-
-        assert_frame_equal(pivoted, expected)
-
-Please remember to add the Github Issue Number as a comment to a new test.
+inspiration. Please reference our :ref:`testing location guide <test_organization>` if you are unsure
+where to place a new unit test.
 
 Using ``pytest``
 ~~~~~~~~~~~~~~~~
+
+Test structure
+^^^^^^^^^^^^^^
 
 pandas existing test structure is *mostly* class-based, meaning that you will typically find tests wrapped in a class.
 
@@ -376,18 +351,55 @@ framework that will facilitate testing and developing. Thus, instead of writing 
     def test_really_cool_feature():
         pass
 
-Here is an example of a self-contained set of tests that illustrate multiple features that we like to use.
+Preferred idioms
+^^^^^^^^^^^^^^^^
 
 * Functional tests named ``def test_*`` and *only* take arguments that are either fixtures or parameters.
+* Use a bare ``assert`` for testing scalars and truth-testing
+* Use ``tm.assert_series_equal(result, expected)`` and ``tm.assert_frame_equal(result, expected)``) for comparing :class:`Series` and :class:`DataFrame` results respectively.
 * Use `@pytest.mark.parameterize <https://docs.pytest.org/en/latest/how-to/parametrize.html>`__ when testing multiple cases.
 * Use `pytest.mark.xfail <https://docs.pytest.org/en/latest/reference/reference.html?#pytest.mark.xfail>`__ when a test case is expected to fail.
 * Use `pytest.mark.skip <https://docs.pytest.org/en/latest/reference/reference.html?#pytest.mark.skip>`__ when a test case is never expected to pass.
 * Use `pytest.param <https://docs.pytest.org/en/latest/reference/reference.html?#pytest-param>`__ when a test case needs a particular mark.
 * Use `@pytest.fixture <https://docs.pytest.org/en/latest/reference/reference.html?#pytest-fixture>`__ if multiple tests can share a setup object.
-* Use a bare ``assert`` for testing scalars and truth-testing
-* Use ``tm.assert_series_equal(result, expected)`` and ``tm.assert_frame_equal(result, expected)``) for comparing :class:`Series` and :class:`DataFrame` results respectively.
 
-We would name this file ``test_cool_feature.py`` and put in an appropriate place in the ``pandas/tests/`` structure.
+.. warning::
+
+    Do not use ``pytest.xfail`` (which is different than ``pytest.mark.xfail``) since it immediately stops the
+    test and does not check if the test will fail. If this is the behavior you desire, use ``pytest.skip`` instead.
+
+If a test is known to fail but the manner in which it fails
+is not meant to be captured, use ``pytest.mark.xfail`` It is common to use this method for a test that
+exhibits buggy behavior or a non-implemented feature. If
+the failing test has flaky behavior, use the argument ``strict=False``. This
+will make it so pytest does not fail if the test happens to pass.
+
+Prefer the decorator ``@pytest.mark.xfail`` and the argument ``pytest.param``
+over usage within a test so that the test is appropriately marked during the
+collection phase of pytest. For xfailing a test that involves multiple
+parameters, a fixture, or a combination of these, it is only possible to
+xfail during the testing phase. To do so, use the ``request`` fixture:
+
+.. code-block:: python
+
+    def test_xfail(request):
+        mark = pytest.mark.xfail(raises=TypeError, reason="Indicate why here")
+        request.node.add_marker(mark)
+
+xfail is not to be used for tests involving failure due to invalid user arguments.
+For these tests, we need to verify the correct exception type and error message
+is being raised, using ``pytest.raises`` instead.
+
+If your test requires working with files or
+network connectivity, there is more information on the :wiki:`Testing` of the wiki.
+
+
+Example
+^^^^^^^
+
+Here is an example of a self-contained set of tests in a file ``pandas/tests/test_cool_feature.py``
+that illustrate multiple features that we like to use. Please remember to add the Github Issue Number
+as a comment to a new test.
 
 .. code-block:: python
 
@@ -420,6 +432,7 @@ We would name this file ``test_cool_feature.py`` and put in an appropriate place
 
 
    def test_series(series, dtype):
+       # GH <issue_number>
        result = series.astype(dtype)
        assert result.dtype == dtype
 
