@@ -1795,7 +1795,7 @@ def _wrap_transform_general_frame(
             res_frame.index = group.index
         else:
             res_frame = obj._constructor(
-                np.concatenate([res.values] * len(group.index)).reshape(group.shape),
+                np.tile(res.values, (len(group.index), 1)),
                 columns=group.columns,
                 index=group.index,
             )
