@@ -10,10 +10,7 @@ import pytest
 
 from pandas.compat import IS64
 
-from pandas.core.dtypes.common import (
-    is_integer_dtype,
-    needs_i8_conversion,
-)
+from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
 from pandas import (
@@ -383,20 +380,14 @@ class TestCommon:
             index.name = "idx"
 
         warn = None
-        if dtype in ["int64", "uint64"]:
-            if needs_i8_conversion(index.dtype):
-                warn = FutureWarning
-            elif index.dtype.kind == "c":
-                # imaginary components discarded
-                warn = np.ComplexWarning
-        elif (
+        if (
             isinstance(index, DatetimeIndex)
             and index.tz is not None
             and dtype == "datetime64[ns]"
         ):
             # This astype is deprecated in favor of tz_localize
             warn = FutureWarning
-        elif index.dtype.kind == "c" and dtype == "float64":
+        elif index.dtype.kind == "c" and dtype in ["float64", "int64", "uint64"]:
             # imaginary components discarded
             warn = np.ComplexWarning
 

@@ -23,10 +23,8 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.astype import astype_nansafe
 from pandas.core.dtypes.common import (
     is_dtype_equal,
-    is_extension_array_dtype,
     is_float,
     is_float_dtype,
     is_integer_dtype,
@@ -34,7 +32,6 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_signed_integer_dtype,
     is_unsigned_integer_dtype,
-    needs_i8_conversion,
     pandas_dtype,
 )
 from pandas.core.dtypes.generic import ABCSeries
@@ -235,32 +232,6 @@ class NumericIndex(Index):
         except (OverflowError, TypeError, ValueError):
             return False
 
-    @doc(Index.astype)
-    def astype(self, dtype, copy: bool = True):
-        dtype = pandas_dtype(dtype)
-        if is_float_dtype(self.dtype):
-            if needs_i8_conversion(dtype):
-                raise TypeError(
-                    f"Cannot convert Float64Index to dtype {dtype}; integer "
-                    "values are required for conversion"
-                )
-            elif is_integer_dtype(dtype) and not is_extension_array_dtype(dtype):
-                # TODO(ExtensionIndex); this can change once we have an EA Index type
-                # GH 13149
-                arr = astype_nansafe(self._values, dtype=dtype)
-                if isinstance(self, Float64Index):
-                    return Int64Index(arr, name=self.name)
-                else:
-                    return NumericIndex(arr, name=self.name, dtype=dtype)
-        elif self._is_backward_compat_public_numeric_index:
-            # this block is needed so e.g. NumericIndex[int8].astype("int32") returns
-            # NumericIndex[int32] and not Int64Index with dtype int64.
-            # When Int64Index etc. are removed from the code base, removed this also.
-            if not is_extension_array_dtype(dtype) and is_numeric_dtype(dtype):
-                return self._constructor(self, dtype=dtype, copy=copy)
-
-        return super().astype(dtype, copy=copy)
-
     # ----------------------------------------------------------------
     # Indexing Methods
 
@@ -271,7 +242,9 @@ class NumericIndex(Index):
         return False
 
     @doc(Index._convert_slice_indexer)
-    def _convert_slice_indexer(self, key: slice, kind: str):
+    def _convert_slice_indexer(self, key: slice, kind: str, is_frame: bool = False):
+        # TODO(2.0): once #45324 deprecation is enforced we should be able
+        #  to simplify this.
         if is_float_dtype(self.dtype):
             assert kind in ["loc", "getitem"]
 
@@ -279,7 +252,7 @@ class NumericIndex(Index):
             # translate to locations
             return self.slice_indexer(key.start, key.stop, key.step)
 
-        return super()._convert_slice_indexer(key, kind=kind)
+        return super()._convert_slice_indexer(key, kind=kind, is_frame=is_frame)
 
     @doc(Index._maybe_cast_slice_bound)
     def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):

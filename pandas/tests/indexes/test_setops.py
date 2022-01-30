@@ -452,7 +452,7 @@ class TestSetOps:
         expected = index[:0]
         tm.assert_index_equal(result, expected, exact=True)
 
-    def test_difference_name_retention_equals(self, index, sort, names):
+    def test_difference_name_retention_equals(self, index, names):
         if isinstance(index, MultiIndex):
             names = [[x] * index.nlevels for x in names]
         index = index.rename(names[0])
@@ -609,6 +609,20 @@ def test_union_with_duplicate_index_not_subset_and_non_monotonic(cls):
     tm.assert_index_equal(result, expected)
 
     result = b.union(a)
+    tm.assert_index_equal(result, expected)
+
+
+def test_union_int_categorical_with_nan():
+    ci = CategoricalIndex([1, 2, np.nan])
+    assert ci.categories.dtype.kind == "i"
+
+    idx = Index([1, 2])
+
+    result = idx.union(ci)
+    expected = Index([1, 2, np.nan], dtype=np.float64)
+    tm.assert_index_equal(result, expected)
+
+    result = ci.union(idx)
     tm.assert_index_equal(result, expected)
 
 

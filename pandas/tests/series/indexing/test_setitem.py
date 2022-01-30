@@ -9,6 +9,7 @@ import pytest
 from pandas.core.dtypes.common import is_list_like
 
 from pandas import (
+    NA,
     Categorical,
     DataFrame,
     DatetimeIndex,
@@ -20,8 +21,10 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
+    array,
     concat,
     date_range,
+    interval_range,
     period_range,
     timedelta_range,
 )
@@ -215,9 +218,15 @@ class TestSetitemSlices:
     def test_setitem_slice_integers(self):
         ser = Series(np.random.randn(8), index=[2, 4, 6, 8, 10, 12, 14, 16])
 
-        ser[:4] = 0
-        assert (ser[:4] == 0).all()
-        assert not (ser[4:] == 0).any()
+        msg = r"In a future version, this will be treated as \*label-based\* indexing"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser[:4] = 0
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            assert (ser[:4] == 0).all()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert not (ser[4:] == 0).any()
 
     def test_setitem_slicestep(self):
         # caught this bug when writing tests
@@ -566,6 +575,19 @@ class TestSetitemCasting:
             expected = Series([val, val], dtype=object, index=[1, 1])
         tm.assert_series_equal(ser, expected)
 
+    def test_setitem_boolean_array_into_npbool(self):
+        # GH#45462
+        ser = Series([True, False, True])
+        values = ser._values
+        arr = array([True, False, None])
+
+        ser[:2] = arr[:2]  # no NAs -> can set inplace
+        assert ser._values is values
+
+        ser[1:] = arr[1:]  # has an NA -> cast to boolean dtype
+        expected = Series(arr)
+        tm.assert_series_equal(ser, expected)
+
 
 class SetitemCastingEquivalents:
     """
@@ -693,7 +715,7 @@ class SetitemCastingEquivalents:
 
         self._check_inplace(is_inplace, orig, arr, obj)
 
-    def test_index_where(self, obj, key, expected, val, request):
+    def test_index_where(self, obj, key, expected, val):
         if obj.dtype == bool or obj.dtype.kind == "c" or expected.dtype.kind == "c":
             # TODO(GH#45061): Should become unreachable (at least the bool part)
             pytest.skip("test not applicable for this dtype")
@@ -719,6 +741,17 @@ class SetitemCastingEquivalents:
 @pytest.mark.parametrize(
     "obj,expected,key",
     [
+        pytest.param(
+            # GH#45568 setting a valid NA value into IntervalDtype[int] should
+            #  cast to IntervalDtype[float]
+            Series(interval_range(1, 5)),
+            Series(
+                [Interval(1, 2), np.nan, Interval(3, 4), Interval(4, 5)],
+                dtype="interval[float64]",
+            ),
+            1,
+            id="interval_int_na_value",
+        ),
         pytest.param(
             # these induce dtype changes
             Series([2, 3, 4, 5, 6, 7, 8, 9, 10]),
@@ -764,11 +797,13 @@ class SetitemCastingEquivalents:
     ],
 )
 class TestSetitemCastingEquivalents(SetitemCastingEquivalents):
-    @pytest.fixture(params=[np.nan, np.float64("NaN")])
+    @pytest.fixture(params=[np.nan, np.float64("NaN"), None, NA])
     def val(self, request):
         """
-        One python float NaN, one np.float64.  Only np.float64 has a `dtype`
-        attribute.
+        NA values that should generally be valid_na for *all* dtypes.
+
+        Include both python float NaN and np.float64; only np.float64 has a
+        `dtype` attribute.
         """
         return request.param
 
@@ -1340,6 +1375,19 @@ def test_32878_int_itemsize():
     tm.assert_series_equal(ser, expected)
 
 
+def test_32878_complex_itemsize():
+    arr = np.arange(5).astype("c8")
+    ser = Series(arr)
+    val = np.finfo(np.float64).max
+    val = val.astype("c16")
+
+    # GH#32878 used to coerce val to inf+0.000000e+00j
+    ser[0] = val
+    assert ser[0] == val
+    expected = Series([val, 1, 2, 3, 4], dtype="c16")
+    tm.assert_series_equal(ser, expected)
+
+
 def test_37692(indexer_al):
     # GH#37692
     ser = Series([1, 2, 3], index=["a", "b", "c"])
@@ -1388,21 +1436,6 @@ def test_setitem_positional_float_into_int_coerces():
     ser = Series([1, 2, 3], index=["a", "b", "c"])
     ser[0] = 1.5
     expected = Series([1.5, 2, 3], index=["a", "b", "c"])
-    tm.assert_series_equal(ser, expected)
-
-
-@pytest.mark.xfail(reason="Fails to upcast")
-def test_32878_complex_itemsize():
-    # TODO: when fixed, put adjacent to test_32878_int_itemsize
-    arr = np.arange(5).astype("c8")
-    ser = Series(arr)
-    val = np.finfo(np.float64).max
-    val = val.astype("c16")
-
-    # GH#32878 used to coerce val to inf+0.000000e+00j
-    ser[0] = val
-    assert ser[0] == val
-    expected = Series([val, 1, 2, 3, 4], dtype="c16")
     tm.assert_series_equal(ser, expected)
 
 

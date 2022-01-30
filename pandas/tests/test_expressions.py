@@ -5,7 +5,7 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas import set_option
+from pandas import option_context
 import pandas._testing as tm
 from pandas.core.api import (
     DataFrame,
@@ -47,10 +47,10 @@ _array_mixed2 = _mixed2["D"].values.copy()
 
 @pytest.mark.skipif(not expr.USE_NUMEXPR, reason="not using numexpr")
 class TestExpressions:
-    def setup_method(self, method):
+    def setup_method(self):
         self._MIN_ELEMENTS = expr._MIN_ELEMENTS
 
-    def teardown_method(self, method):
+    def teardown_method(self):
         expr._MIN_ELEMENTS = self._MIN_ELEMENTS
 
     @staticmethod
@@ -61,9 +61,8 @@ class TestExpressions:
         else:
             op = getattr(operator, opname)
 
-        set_option("compute.use_numexpr", False)
-        expected = op(df, other)
-        set_option("compute.use_numexpr", True)
+        with option_context("compute.use_numexpr", False):
+            expected = op(df, other)
 
         expr.get_test_result()
 
@@ -122,9 +121,8 @@ class TestExpressions:
         elsewhere.
         """
         arith = comparison_op.__name__
-        set_option("compute.use_numexpr", False)
-        other = df.copy() + 1
-        set_option("compute.use_numexpr", True)
+        with option_context("compute.use_numexpr", False):
+            other = df.copy() + 1
 
         expr._MIN_ELEMENTS = 0
         expr.set_test_mode(True)
@@ -184,9 +182,9 @@ class TestExpressions:
             result = expr._can_use_numexpr(op, op_str, right, right, "evaluate")
             assert not result
 
-        set_option("compute.use_numexpr", False)
-        testit()
-        set_option("compute.use_numexpr", True)
+        with option_context("compute.use_numexpr", False):
+            testit()
+
         expr.set_numexpr_threads(1)
         testit()
         expr.set_numexpr_threads()
@@ -220,9 +218,9 @@ class TestExpressions:
             result = expr._can_use_numexpr(op, op_str, right, f22, "evaluate")
             assert not result
 
-        set_option("compute.use_numexpr", False)
-        testit()
-        set_option("compute.use_numexpr", True)
+        with option_context("compute.use_numexpr", False):
+            testit()
+
         expr.set_numexpr_threads(1)
         testit()
         expr.set_numexpr_threads()
@@ -238,9 +236,9 @@ class TestExpressions:
             expected = np.where(c, df.values, df.values + 1)
             tm.assert_numpy_array_equal(result, expected)
 
-        set_option("compute.use_numexpr", False)
-        testit()
-        set_option("compute.use_numexpr", True)
+        with option_context("compute.use_numexpr", False):
+            testit()
+
         expr.set_numexpr_threads(1)
         testit()
         expr.set_numexpr_threads()
@@ -365,9 +363,8 @@ class TestExpressions:
 
         op_func = getattr(df, arith)
 
-        set_option("compute.use_numexpr", False)
-        expected = op_func(other, axis=axis)
-        set_option("compute.use_numexpr", True)
+        with option_context("compute.use_numexpr", False):
+            expected = op_func(other, axis=axis)
 
         result = op_func(other, axis=axis)
         tm.assert_frame_equal(expected, result)
@@ -392,9 +389,9 @@ class TestExpressions:
         result = method(scalar)
 
         # compare result with numpy
-        set_option("compute.use_numexpr", False)
-        expected = method(scalar)
-        set_option("compute.use_numexpr", True)
+        with option_context("compute.use_numexpr", False):
+            expected = method(scalar)
+
         tm.assert_equal(result, expected)
 
         # compare result element-wise with Python

@@ -265,7 +265,7 @@ class TestInsertIndexCoercion(CoercionBase):
         "insert_value",
         [pd.Timestamp("2012-01-01"), pd.Timestamp("2012-01-01", tz="Asia/Tokyo"), 1],
     )
-    def test_insert_index_datetimes(self, request, fill_val, exp_dtype, insert_value):
+    def test_insert_index_datetimes(self, fill_val, exp_dtype, insert_value):
 
         obj = pd.DatetimeIndex(
             ["2011-01-01", "2011-01-02", "2011-01-03", "2011-01-04"], tz=fill_val.tz

@@ -18,8 +18,7 @@ from pandas import (
     DataFrame,
     Index,
     MultiIndex,
-    get_option,
-    set_option,
+    option_context,
 )
 import pandas._testing as tm
 
@@ -53,10 +52,8 @@ def set_engine(engine, ext):
     the test it rolls back said change to the global option.
     """
     option_name = f"io.excel.{ext.strip('.')}.writer"
-    prev_engine = get_option(option_name)
-    set_option(option_name, engine)
-    yield
-    set_option(option_name, prev_engine)  # Roll back option change
+    with option_context(option_name, engine):
+        yield
 
 
 @pytest.mark.parametrize(
@@ -353,7 +350,7 @@ class TestExcelWriter:
         with pytest.raises(ValueError, match=msg):
             col_df.to_excel(path)
 
-    def test_excel_sheet_by_name_raise(self, path, engine):
+    def test_excel_sheet_by_name_raise(self, path):
         gt = DataFrame(np.random.randn(10, 2))
         gt.to_excel(path)
 
@@ -652,7 +649,7 @@ class TestExcelWriter:
 
         tm.assert_frame_equal(tsframe, recons)
 
-    def test_excel_date_datetime_format(self, engine, ext, path):
+    def test_excel_date_datetime_format(self, ext, path):
         # see gh-4133
         #
         # Excel output format strings
@@ -869,7 +866,7 @@ class TestExcelWriter:
             result = pd.read_excel(filename, sheet_name="TestSheet", index_col=0)
             tm.assert_frame_equal(result, df)
 
-    def test_to_excel_unicode_filename(self, ext, path):
+    def test_to_excel_unicode_filename(self, ext):
         with tm.ensure_clean("\u0192u." + ext) as filename:
             try:
                 f = open(filename, "wb")
@@ -1192,7 +1189,7 @@ class TestExcelWriter:
         result = tm.round_trip_localpath(writer, reader, path=f"foo{ext}")
         tm.assert_frame_equal(result, df)
 
-    def test_merged_cell_custom_objects(self, merge_cells, path):
+    def test_merged_cell_custom_objects(self, path):
         # see GH-27006
         mi = MultiIndex.from_tuples(
             [
@@ -1294,7 +1291,7 @@ class TestExcelWriterEngineTests:
             del called_save[:]
             del called_write_cells[:]
 
-        with pd.option_context("io.excel.xlsx.writer", "dummy"):
+        with option_context("io.excel.xlsx.writer", "dummy"):
             path = "something.xlsx"
             with tm.ensure_clean(path) as filepath:
                 register_writer(DummyClass)

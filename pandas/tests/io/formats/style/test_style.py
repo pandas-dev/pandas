@@ -441,7 +441,7 @@ def test_apply_map_header_raises(mi_styler):
 
 
 class TestStyler:
-    def setup_method(self, method):
+    def setup_method(self):
         np.random.seed(24)
         self.s = DataFrame({"A": np.random.permutation(range(6))})
         self.df = DataFrame({"A": [0, 1], "B": np.random.randn(2)})
@@ -1548,3 +1548,9 @@ def test_col_trimming_hide_columns():
         assert ctx["head"][0][c + 2]["is_visible"] == vals[1]
 
     assert len(ctx["body"][0]) == 6  # index + 2 hidden + 2 visible + trimming col
+
+
+def test_no_empty_apply(mi_styler):
+    # 45313
+    mi_styler.apply(lambda s: ["a:v;"] * 2, subset=[False, False])
+    mi_styler._compute()

@@ -452,7 +452,7 @@ class TestIndex(Base):
         with pytest.raises(IndexError, match=msg):
             index[empty_farr]
 
-    def test_union_dt_as_obj(self, sort, simple_index):
+    def test_union_dt_as_obj(self, simple_index):
         # TODO: Replace with fixturesult
         index = simple_index
         date_index = date_range("2019-01-01", periods=10)
@@ -664,7 +664,8 @@ class TestIndex(Base):
         # TODO: case with complex dtype?
 
         formatted = index.format()
-        expected = [str(index[0]), str(index[1]), str(index[2]), "NaN"]
+        null_repr = "NaN" if isinstance(nulls_fixture, float) else str(nulls_fixture)
+        expected = [str(index[0]), str(index[1]), str(index[2]), null_repr]
 
         assert formatted == expected
         assert index[3] is nulls_fixture
@@ -797,7 +798,7 @@ class TestIndex(Base):
         result = index.isin(values)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_isin_nan_common_object(self, request, nulls_fixture, nulls_fixture2):
+    def test_isin_nan_common_object(self, nulls_fixture, nulls_fixture2):
         # Test cartesian product of null fixtures and ensure that we don't
         # mangle the various types (save a corner case with PyPy)
 
@@ -825,7 +826,7 @@ class TestIndex(Base):
                 np.array([False, False]),
             )
 
-    def test_isin_nan_common_float64(self, request, nulls_fixture):
+    def test_isin_nan_common_float64(self, nulls_fixture):
 
         if nulls_fixture is pd.NaT or nulls_fixture is pd.NA:
             # Check 1) that we cannot construct a Float64Index with this value
