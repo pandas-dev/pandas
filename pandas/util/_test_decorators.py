@@ -260,7 +260,8 @@ def file_leak_context():
     ContextManager analogue to check_file_leaks.
     """
     psutil = safe_import("psutil")
-    if not psutil:
+    if not psutil or is_platform_windows():
+        # Checking for file leaks can hang on Windows CI
         yield
     else:
         proc = psutil.Process()
