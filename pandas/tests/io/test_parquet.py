@@ -945,7 +945,7 @@ class TestParquetPyArrow(Base):
     def test_timezone_aware_index(self, request, pa, timezone_aware_date_list):
         if (
             not pa_version_under2p0
-            and not timezone_aware_date_list.tzinfo == datetime.timezone.utc
+            and timezone_aware_date_list.tzinfo != datetime.timezone.utc
         ):
             request.node.add_marker(
                 pytest.mark.xfail(

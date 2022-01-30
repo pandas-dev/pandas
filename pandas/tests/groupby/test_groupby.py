@@ -714,7 +714,7 @@ def test_ops_not_as_index(reduction_func):
     # Using as_index=False should not modify grouped column
 
     if reduction_func in ("corrwith", "nth", "ngroup"):
-        pytest.skip(f"Test not applicable for {reduction_func}")
+        pytest.skip(f"GH 5755: Test not applicable for {reduction_func}")
 
     df = DataFrame(np.random.randint(0, 5, size=(100, 2)), columns=["a", "b"])
     expected = getattr(df.groupby("a"), reduction_func)()

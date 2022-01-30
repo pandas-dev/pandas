@@ -103,7 +103,9 @@ def test_resample_empty_series(freq, empty_series_dti, resample_method, request)
 
     if resample_method == "ohlc" and isinstance(empty_series_dti.index, PeriodIndex):
         request.node.add_marker(
-            pytest.mark.xfail(reason=f"{resample_method} fails for PeriodIndex")
+            pytest.mark.xfail(
+                reason=f"GH13083: {resample_method} fails for PeriodIndex"
+            )
         )
 
     ser = empty_series_dti
