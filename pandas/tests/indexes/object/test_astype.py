@@ -16,7 +16,7 @@ def test_astype_str_from_bytes():
 
 
 def test_astype_invalid_nas_to_tdt64_raises():
-    # don't cast np.datetime64 NaTs to timedelta64 NaT
+    # GH#45722 don't cast np.datetime64 NaTs to timedelta64 NaT
     idx = Index([NaT.asm8] * 2, dtype=object)
 
     msg = r"Cannot cast Index to dtype timedelta64\[ns\]"
