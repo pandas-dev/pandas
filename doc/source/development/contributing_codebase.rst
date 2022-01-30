@@ -44,9 +44,10 @@ Additional standards are outlined on the :ref:`pandas code style guide <code_sty
 Pre-commit
 ----------
 
-You can run many of these styling checks manually as we have described above. However,
-we encourage you to use `pre-commit hooks <https://pre-commit.com/>`_ instead
-to automatically run ``black``, ``flake8``, ``isort`` when you make a git commit. This
+Additionally, :ref:`Continuous Integration <contributing.ci>` will run code formatting checks
+like ``black``, ``flake8``, ``isort``, and ``cpplint`` and more using `pre-commit hooks <https://pre-commit.com/>`_
+Any warnings from these checks will cause the :ref:`Continuous Integration <contributing.ci>` to fail; therefore,
+it is helpful to run the check yourself before submitting code.This
 can be done by installing ``pre-commit``::
 
     pip install pre-commit
@@ -99,157 +100,8 @@ All optional dependencies should be documented in
 :ref:`install.optional_dependencies` and the minimum required version should be
 set in the ``pandas.compat._optional.VERSIONS`` dict.
 
-C (cpplint)
-~~~~~~~~~~~
-
-pandas uses the `Google <https://google.github.io/styleguide/cppguide.html>`_
-standard. Google provides an open source style checker called ``cpplint``, but we
-use a fork of it that can be found `here <https://github.com/cpplint/cpplint>`__.
-Here are *some* of the more common ``cpplint`` issues:
-
-* we restrict line-length to 80 characters to promote readability
-* every header file must include a header guard to avoid name collisions if re-included
-
-:ref:`Continuous Integration <contributing.ci>` will run the
-`cpplint <https://pypi.org/project/cpplint>`_ tool
-and report any stylistic errors in your code. Therefore, it is helpful before
-submitting code to run the check yourself::
-
-   cpplint --extensions=c,h --headers=h --filter=-readability/casting,-runtime/int,-build/include_subdir modified-c-file
-
-You can also run this command on an entire directory if necessary::
-
-   cpplint --extensions=c,h --headers=h --filter=-readability/casting,-runtime/int,-build/include_subdir --recursive modified-c-directory
-
-To make your commits compliant with this standard, you can install the
-`ClangFormat <https://clang.llvm.org/docs/ClangFormat.html>`_ tool, which can be
-downloaded `here <https://llvm.org/builds/>`__. To configure, in your home directory,
-run the following command::
-
-    clang-format style=google -dump-config  > .clang-format
-
-Then modify the file to ensure that any indentation width parameters are at least four.
-Once configured, you can run the tool as follows::
-
-    clang-format modified-c-file
-
-This will output what your file will look like if the changes are made, and to apply
-them, run the following command::
-
-    clang-format -i modified-c-file
-
-To run the tool on an entire directory, you can run the following analogous commands::
-
-    clang-format modified-c-directory/*.c modified-c-directory/*.h
-    clang-format -i modified-c-directory/*.c modified-c-directory/*.h
-
-Do note that this tool is best-effort, meaning that it will try to correct as
-many errors as possible, but it may not correct *all* of them. Thus, it is
-recommended that you run ``cpplint`` to double check and make any other style
-fixes manually.
-
-.. _contributing.code-formatting:
-
-Python (PEP8 / black)
-~~~~~~~~~~~~~~~~~~~~~
-
-pandas follows the `PEP8 <https://www.python.org/dev/peps/pep-0008/>`_ standard
-and uses `Black <https://black.readthedocs.io/en/stable/>`_ and
-`Flake8 <https://flake8.pycqa.org/en/latest/>`_ to ensure a consistent code
-format throughout the project. We encourage you to use :ref:`pre-commit <contributing.pre-commit>`.
-
-:ref:`Continuous Integration <contributing.ci>` will run those tools and
-report any stylistic errors in your code. Therefore, it is helpful before
-submitting code to run the check yourself::
-
-   black pandas
-   git diff upstream/main -u -- "*.py" | flake8 --diff
-
-to auto-format your code. Additionally, many editors have plugins that will
-apply ``black`` as you edit files.
-
-You should use a ``black`` version 21.5b2 as previous versions are not compatible
-with the pandas codebase.
-
-One caveat about ``git diff upstream/main -u -- "*.py" | flake8 --diff``: this
-command will catch any stylistic errors in your changes specifically, but
-be beware it may not catch all of them. For example, if you delete the only
-usage of an imported function, it is stylistically incorrect to import an
-unused function. However, style-checking the diff will not catch this because
-the actual import is not part of the diff. Thus, for completeness, you should
-run this command, though it may take longer::
-
-   git diff upstream/main --name-only -- "*.py" | xargs -r flake8
-
-Note that on macOS, the ``-r`` flag is not available, so you have to omit it and
-run this slightly modified command::
-
-   git diff upstream/main --name-only -- "*.py" | xargs flake8
-
-Windows does not support the ``xargs`` command (unless installed for example
-via the `MinGW <http://www.mingw.org/>`__ toolchain), but one can imitate the
-behaviour as follows::
-
-    for /f %i in ('git diff upstream/main --name-only -- "*.py"') do flake8 %i
-
-This will get all the files being changed by the PR (and ending with ``.py``),
-and run ``flake8`` on them, one after the other.
-
-Note that these commands can be run analogously with ``black``.
-
-.. _contributing.import-formatting:
-
-Import formatting
-~~~~~~~~~~~~~~~~~
-pandas uses `isort <https://pypi.org/project/isort/>`__ to standardise import
-formatting across the codebase.
-
-A guide to import layout as per pep8 can be found `here <https://www.python.org/dev/peps/pep-0008/#imports>`__.
-
-A summary of our current import sections ( in order ):
-
-* Future
-* Python Standard Library
-* Third Party
-* ``pandas._libs``, ``pandas.compat``, ``pandas.util._*``, ``pandas.errors`` (largely not dependent on ``pandas.core``)
-* ``pandas.core.dtypes`` (largely not dependent on the rest of ``pandas.core``)
-* Rest of ``pandas.core.*``
-* Non-core ``pandas.io``, ``pandas.plotting``, ``pandas.tseries``
-* Local application/library specific imports
-
-Imports are alphabetically sorted within these sections.
-
-As part of :ref:`Continuous Integration <contributing.ci>` checks we run::
-
-    isort --check-only pandas
-
-to check that imports are correctly formatted as per the ``setup.cfg``.
-
-If you see output like the below in :ref:`Continuous Integration <contributing.ci>` checks:
-
-.. code-block:: shell
-
-   Check import format using isort
-   ERROR: /home/travis/build/pandas-dev/pandas/pandas/io/pytables.py Imports are incorrectly sorted
-   Check import format using isort DONE
-   The command "ci/code_checks.sh" exited with 1
-
-You should run::
-
-    isort pandas/io/pytables.py
-
-to automatically format imports correctly. This will modify your local copy of the files.
-
-Alternatively, you can run a command similar to what was suggested for ``black`` and ``flake8`` :ref:`right above <contributing.code-formatting>`::
-
-    git diff upstream/main --name-only -- "*.py" | xargs -r isort
-
-Where similar caveats apply if you are on macOS or Windows.
-
-You can then verify the changes look ok, then git :any:`commit <contributing.commit-code>` and :any:`push <contributing.push-code>`.
-
 Backwards compatibility
-~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------
 
 Please try to maintain backward compatibility. pandas has lots of users with lots of
 existing code, so don't break it if at all possible.  If you think breakage is required,
@@ -409,12 +261,7 @@ pandas uses `mypy <http://mypy-lang.org>`_ and `pyright <https://github.com/micr
 
 .. code-block:: shell
 
-   mypy
-
-   # let pre-commit setup and run pyright
-   pre-commit run --hook-stage manual --all-files pyright
-   # or if pyright is installed (requires node.js)
-   pyright
+   ./ci/code_checks.sh typing
 
 A recent version of ``numpy`` (>=1.21.0) is required for type validation.
 
@@ -475,14 +322,7 @@ use cases and writing corresponding tests.
 Adding tests is one of the most common requests after code is pushed to pandas.  Therefore,
 it is worth getting in the habit of writing tests ahead of time so this is never an issue.
 
-Like many packages, pandas uses `pytest
-<https://docs.pytest.org/en/latest/>`_ and the convenient
-extensions in `numpy.testing
-<https://numpy.org/doc/stable/reference/routines.testing.html>`_.
-
-.. note::
-
-   The earliest supported pytest version is 5.0.1.
+Like many packages, pandas uses `pytest<https://docs.pytest.org/en/latest/>`_.
 
 Writing tests
 ~~~~~~~~~~~~~
@@ -499,6 +339,7 @@ explicitly construct the result you expect, then compare the actual result to
 the expected correct result::
 
     def test_pivot(self):
+        # GH <issue number>
         data = {
             'index' : ['A', 'B', 'C', 'C', 'B', 'A'],
             'columns' : ['One', 'One', 'One', 'Two', 'Two', 'Two'],
@@ -516,10 +357,9 @@ the expected correct result::
         assert_frame_equal(pivoted, expected)
 
 Please remember to add the Github Issue Number as a comment to a new test.
-E.g. "# brief comment, see GH#28907"
 
-Transitioning to ``pytest``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Using ``pytest``
+~~~~~~~~~~~~~~~~
 
 pandas existing test structure is *mostly* class-based, meaning that you will typically find tests wrapped in a class.
 
@@ -536,19 +376,16 @@ framework that will facilitate testing and developing. Thus, instead of writing 
     def test_really_cool_feature():
         pass
 
-Using ``pytest``
-~~~~~~~~~~~~~~~~
-
 Here is an example of a self-contained set of tests that illustrate multiple features that we like to use.
 
-* functional style: tests are like ``test_*`` and *only* take arguments that are either fixtures or parameters
-* ``pytest.mark`` can be used to set metadata on test functions, e.g. ``skip`` or ``xfail``.
-* using ``parametrize``: allow testing of multiple cases
-* to set a mark on a parameter, ``pytest.param(..., marks=...)`` syntax should be used
-* ``fixture``, code for object construction, on a per-test basis
-* using bare ``assert`` for scalars and truth-testing
-* ``tm.assert_series_equal`` (and its counter part ``tm.assert_frame_equal``), for pandas object comparisons.
-* the typical pattern of constructing an ``expected`` and comparing versus the ``result``
+* Functional tests named ``def test_*`` and *only* take arguments that are either fixtures or parameters.
+* Use `@pytest.mark.parameterize <https://docs.pytest.org/en/latest/how-to/parametrize.html>`__ when testing multiple cases.
+* Use `pytest.mark.xfail <https://docs.pytest.org/en/latest/reference/reference.html?#pytest.mark.xfail>`__ when a test case is expected to fail.
+* Use `pytest.mark.skip <https://docs.pytest.org/en/latest/reference/reference.html?#pytest.mark.skip>`__ when a test case is never expected to pass.
+* Use `pytest.param <https://docs.pytest.org/en/latest/reference/reference.html?#pytest-param>`__ when a test case needs a particular mark.
+* Use `@pytest.fixture <https://docs.pytest.org/en/latest/reference/reference.html?#pytest-fixture>`__ if multiple tests can share a setup object.
+* Use a bare ``assert`` for testing scalars and truth-testing
+* Use ``tm.assert_series_equal(result, expected)`` and ``tm.assert_frame_equal(result, expected)``) for comparing :class:`Series` and :class:`DataFrame` results respectively.
 
 We would name this file ``test_cool_feature.py`` and put in an appropriate place in the ``pandas/tests/`` structure.
 
@@ -630,7 +467,7 @@ Tests that we have ``parametrized`` are now accessible via the test name, for ex
 Using ``hypothesis``
 ~~~~~~~~~~~~~~~~~~~~
 
-Hypothesis is a library for property-based testing.  Instead of explicitly
+Hypothesis is a library for property-based testing. Instead of explicitly
 parametrizing a test, you can describe *all* valid inputs and let Hypothesis
 try to find a failing input.  Even better, no matter how many random examples
 it tries, Hypothesis always reports a single minimal counterexample to your
@@ -670,7 +507,7 @@ options or subtle interactions to test (or think of!) all of them.
 Testing warnings
 ~~~~~~~~~~~~~~~~
 
-By default, one of pandas CI workers will fail if any unhandled warnings are emitted.
+By default, the :ref:`Continuous Integration <contributing.ci>` will fail if any unhandled warnings are emitted.
 
 If your change involves checking that a warning is actually emitted, use
 ``tm.assert_produces_warning(ExpectedWarning)``.
@@ -727,8 +564,7 @@ install pandas) by typing::
 
     pytest pandas
 
-The tests suite is exhaustive and takes around 20 minutes to run.  Often it is
-worth running only a subset of tests first around your changes before running the
+Often it is worth running only a subset of tests first around your changes before running the
 entire suite.
 
 The easiest way to do this is with::
