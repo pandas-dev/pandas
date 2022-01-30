@@ -173,7 +173,7 @@ def test_error_len_mismatch(data, all_arithmetic_operators):
 
 
 @pytest.mark.parametrize("op", ["__neg__", "__abs__", "__invert__"])
-def test_unary_op_does_not_propagate_mask(data, op, request):
+def test_unary_op_does_not_propagate_mask(data, op):
     # https://github.com/pandas-dev/pandas/issues/39943
     data, _ = data
     ser = pd.Series(data)
