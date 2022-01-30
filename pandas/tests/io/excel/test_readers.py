@@ -150,9 +150,7 @@ class TestReaders:
             expected = expected_defaults[read_ext[1:]]
         assert result == expected
 
-    def test_usecols_int(self, read_ext, df_ref):
-        df_ref = df_ref.reindex(columns=["A", "B", "C"])
-
+    def test_usecols_int(self, read_ext):
         # usecols as int
         msg = "Passing an integer for `usecols`"
         with pytest.raises(ValueError, match=msg):

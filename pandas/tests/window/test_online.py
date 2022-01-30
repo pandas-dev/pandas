@@ -1,6 +1,12 @@
+import os
+
 import numpy as np
 import pytest
 
+from pandas.compat import (
+    is_platform_mac,
+    is_platform_windows,
+)
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -8,6 +14,15 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
+
+# TODO(GH#44584): Mark these as pytest.mark.single
+pytestmark = pytest.mark.skipif(
+    os.environ.get("PANDAS_CI", "0") == "1"
+    and (is_platform_windows() or is_platform_mac()),
+    reason="On Azure CI, Windows can fail with "
+    "'Windows fatal exception: stack overflow' "
+    "and MacOS can timeout",
+)
 
 
 @td.skip_if_no("numba")
