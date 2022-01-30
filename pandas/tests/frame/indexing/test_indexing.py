@@ -1212,8 +1212,6 @@ class TestDataFrameIndexing:
         expected = DataFrame({"a": [np.zeros((2,))], "b": [np.zeros((2, 2))]})
         tm.assert_frame_equal(df, expected)
 
-    # with AM goes through split-path, loses dtype
-    @td.skip_array_manager_not_yet_implemented
     def test_iloc_setitem_nullable_2d_values(self):
         df = DataFrame({"A": [1, 2, 3]}, dtype="Int64")
         orig = df.copy()
@@ -1240,8 +1238,8 @@ class TestDataFrameIndexing:
 
         msg = "|".join(
             [
-                r"timedelta64\[ns\] cannot be converted to an? (Floating|Integer)Dtype",
-                r"datetime64\[ns\] cannot be converted to an? (Floating|Integer)Dtype",
+                r"timedelta64\[ns\] cannot be converted to (Floating|Integer)Dtype",
+                r"datetime64\[ns\] cannot be converted to (Floating|Integer)Dtype",
                 "'values' contains non-numeric NA",
                 r"Invalid value '.*' for dtype (U?Int|Float)\d{1,2}",
             ]

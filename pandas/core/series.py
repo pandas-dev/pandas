@@ -1359,7 +1359,14 @@ class Series(base.IndexOpsMixin, NDFrame):
         )
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "level"])
-    def reset_index(self, level=None, drop=False, name=lib.no_default, inplace=False):
+    def reset_index(
+        self,
+        level=None,
+        drop=False,
+        name=lib.no_default,
+        inplace=False,
+        allow_duplicates: bool = False,
+    ):
         """
         Generate a new DataFrame or Series with the index reset.
 
@@ -1381,6 +1388,10 @@ class Series(base.IndexOpsMixin, NDFrame):
             when `drop` is True.
         inplace : bool, default False
             Modify the Series in place (do not create a new object).
+        allow_duplicates : bool, default False
+            Allow duplicate column labels to be created.
+
+            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -1497,7 +1508,9 @@ class Series(base.IndexOpsMixin, NDFrame):
                     name = self.name
 
             df = self.to_frame(name)
-            return df.reset_index(level=level, drop=drop)
+            return df.reset_index(
+                level=level, drop=drop, allow_duplicates=allow_duplicates
+            )
 
     # ----------------------------------------------------------------------
     # Rendering Methods
@@ -4083,6 +4096,8 @@ Keep all original rows and also all original values
         result in a np.nan for that row. In addition, the ordering of elements in
         the output will be non-deterministic when exploding sets.
 
+        Reference :ref:`the user guide <reshaping.explode>` for more examples.
+
         Examples
         --------
         >>> s = pd.Series([[1, 2, 3], 'foo', [], [3, 4]])
@@ -4131,6 +4146,10 @@ Keep all original rows and also all original values
         -------
         DataFrame
             Unstacked Series.
+
+        Notes
+        -----
+        Reference :ref:`the user guide <reshaping.stacking>` for more examples.
 
         Examples
         --------

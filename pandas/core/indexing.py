@@ -20,6 +20,7 @@ from pandas.errors import (
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.cast import can_hold_element
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
@@ -665,7 +666,8 @@ class _LocationIndexer(NDFrameIndexerBase):
                 return self._convert_tuple(key)
 
         if isinstance(key, range):
-            return list(key)
+            # GH#45479 test_loc_setitem_range_key
+            key = list(key)
 
         return self._convert_to_indexer(key, axis=0)
 
@@ -1583,15 +1585,13 @@ class _iLocIndexer(_LocationIndexer):
 
         # if there is only one block/type, still have to take split path
         # unless the block is one-dimensional or it can hold the value
-        if (
-            not take_split_path
-            and getattr(self.obj._mgr, "blocks", False)
-            and self.ndim > 1
-        ):
+        if not take_split_path and len(self.obj._mgr.arrays) and self.ndim > 1:
             # in case of dict, keys are indices
             val = list(value.values()) if isinstance(value, dict) else value
-            blk = self.obj._mgr.blocks[0]
-            take_split_path = not blk._can_hold_element(val)
+            arr = self.obj._mgr.arrays[0]
+            take_split_path = not can_hold_element(
+                arr, extract_array(val, extract_numpy=True)
+            )
 
         # if we have any multi-indexes that have non-trivial slices
         # (not null slices) then we must take the split path, xref

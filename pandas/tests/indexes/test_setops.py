@@ -432,7 +432,7 @@ class TestSetOps:
         expected = index[:0]
         tm.assert_index_equal(result, expected, exact=True)
 
-    def test_difference_name_retention_equals(self, index, sort, names):
+    def test_difference_name_retention_equals(self, index, names):
         if isinstance(index, MultiIndex):
             names = [[x] * index.nlevels for x in names]
         index = index.rename(names[0])

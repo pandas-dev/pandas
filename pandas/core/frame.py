@@ -1365,8 +1365,6 @@ class DataFrame(NDFrame, OpsMixin):
         -----
         The column names will be renamed to positional names if they are
         invalid Python identifiers, repeated, or start with an underscore.
-        On python versions < 3.7 regular tuples are returned for DataFrames
-        with a large number of columns (>254).
 
         Examples
         --------
@@ -4392,7 +4390,7 @@ class DataFrame(NDFrame, OpsMixin):
         loc: int,
         column: Hashable,
         value: Scalar | AnyArrayLike,
-        allow_duplicates: bool = False,
+        allow_duplicates: bool | lib.NoDefault = lib.no_default,
     ) -> None:
         """
         Insert column into DataFrame at specified location.
@@ -4407,7 +4405,7 @@ class DataFrame(NDFrame, OpsMixin):
         column : str, number, or hashable object
             Label of the inserted column.
         value : Scalar, Series, or array-like
-        allow_duplicates : bool, optional default False
+        allow_duplicates : bool, optional, default lib.no_default
 
         See Also
         --------
@@ -4439,6 +4437,8 @@ class DataFrame(NDFrame, OpsMixin):
         0   NaN   100     1      99     3
         1   5.0   100     2      99     4
         """
+        if allow_duplicates is lib.no_default:
+            allow_duplicates = False
         if allow_duplicates and not self.flags.allows_duplicate_labels:
             raise ValueError(
                 "Cannot specify 'allow_duplicates=True' when "
@@ -5581,6 +5581,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: Literal[False] = ...,
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
+        allow_duplicates: bool | lib.NoDefault = ...,
     ) -> DataFrame:
         ...
 
@@ -5592,6 +5593,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: Literal[True],
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
+        allow_duplicates: bool | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -5603,6 +5605,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: Literal[True],
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
+        allow_duplicates: bool | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -5614,6 +5617,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: Literal[True],
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
+        allow_duplicates: bool | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -5624,6 +5628,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: Literal[True],
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
+        allow_duplicates: bool | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -5635,6 +5640,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: bool = ...,
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
+        allow_duplicates: bool | lib.NoDefault = ...,
     ) -> DataFrame | None:
         ...
 
@@ -5646,6 +5652,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: bool = False,
         col_level: Hashable = 0,
         col_fill: Hashable = "",
+        allow_duplicates: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame | None:
         """
         Reset the index, or a level of it.
@@ -5671,6 +5678,10 @@ class DataFrame(NDFrame, OpsMixin):
         col_fill : object, default ''
             If the columns have multiple levels, determines how the other
             levels are named. If None then the index name is repeated.
+        allow_duplicates : bool, optional, default lib.no_default
+            Allow duplicate column labels to be created.
+
+            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -5794,6 +5805,8 @@ class DataFrame(NDFrame, OpsMixin):
             new_obj = self
         else:
             new_obj = self.copy()
+        if allow_duplicates is not lib.no_default:
+            allow_duplicates = validate_bool_kwarg(allow_duplicates, "allow_duplicates")
 
         new_index = default_index(len(new_obj))
         if level is not None:
@@ -5845,7 +5858,12 @@ class DataFrame(NDFrame, OpsMixin):
                         level_values, lab, allow_fill=True, fill_value=lev._na_value
                     )
 
-                new_obj.insert(0, name, level_values)
+                new_obj.insert(
+                    0,
+                    name,
+                    level_values,
+                    allow_duplicates=allow_duplicates,
+                )
 
         new_obj.index = new_index
         if not inplace:
@@ -7792,6 +7810,8 @@ NaN 12.3   33.0
         For finer-tuned control, see hierarchical indexing documentation along
         with the related stack/unstack methods.
 
+        Reference :ref:`the user guide <reshaping.pivot>` for more examples.
+
         Examples
         --------
         >>> df = pd.DataFrame({'foo': ['one', 'one', 'one', 'two', 'two',
@@ -7950,6 +7970,10 @@ NaN 12.3   33.0
         wide_to_long : Wide panel to long format. Less flexible but more
             user-friendly than melt.
 
+        Notes
+        -----
+        Reference :ref:`the user guide <reshaping.pivot>` for more examples.
+
         Examples
         --------
         >>> df = pd.DataFrame({"A": ["foo", "foo", "foo", "foo", "foo",
@@ -8105,6 +8129,8 @@ NaN 12.3   33.0
         position (the columns of the dataframe) to being stacked
         vertically on top of each other (in the index of the
         dataframe).
+
+        Reference :ref:`the user guide <reshaping.stacking>` for more examples.
 
         Examples
         --------
@@ -8285,6 +8311,8 @@ NaN 12.3   33.0
         result in a np.nan for that row. In addition, the ordering of rows in the
         output will be non-deterministic when exploding sets.
 
+        Reference :ref:`the user guide <reshaping.explode>` for more examples.
+
         Examples
         --------
         >>> df = pd.DataFrame({'A': [[0, 1, 2], 'foo', [], [3, 4]],
@@ -8383,6 +8411,10 @@ NaN 12.3   33.0
         DataFrame.pivot : Pivot a table based on column values.
         DataFrame.stack : Pivot a level of the column labels (inverse operation
             from `unstack`).
+
+        Notes
+        -----
+        Reference :ref:`the user guide <reshaping.stacking>` for more examples.
 
         Examples
         --------
