@@ -110,9 +110,11 @@ def test_identity(klass, value):
 
 @pytest.mark.parametrize("klass", [Timestamp, Timedelta, Period])
 @pytest.mark.parametrize("value", ["", "nat", "NAT", None, np.nan])
-def test_equality(klass, value):
+def test_equality(klass, value, request):
     if klass is Period and value == "":
-        pytest.skip("Period cannot parse empty string")
+        request.node.add_marker(
+            pytest.mark.xfail(reason="Period cannot parse empty string")
+        )
 
     assert klass(value).value == iNaT
 

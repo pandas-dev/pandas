@@ -997,9 +997,11 @@ class TestPandasJSONTests:
         }
         assert ujson.decode(ujson.encode(nested, **kwargs)) == exp
 
-    def test_dataframe_numpy_labelled(self, orient):
+    def test_dataframe_numpy_labelled(self, orient, request):
         if orient in ("split", "values"):
-            pytest.skip("Incompatible with labelled=True")
+            request.node.add_marker(
+                pytest.mark.xfail(reason=f"{orient} incompatible for labelled=True")
+            )
 
         df = DataFrame(
             [[1, 2, 3], [4, 5, 6]],
