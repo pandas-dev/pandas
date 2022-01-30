@@ -380,9 +380,9 @@ class Block(PandasObject):
         """
         self.values[locs] = values
 
-    def delete(self, loc) -> None:
+    def delete(self, loc) -> Block:
         """
-        Delete given loc(-s) from block in-place.
+        Return a new Block with the given loc(s) deleted.
         """
         # Argument 1 to "delete" has incompatible type "Union[ndarray[Any, Any],
         # ExtensionArray]"; expected "Union[_SupportsArray[dtype[Any]],
@@ -390,13 +390,9 @@ class Block(PandasObject):
         # [_SupportsArray[dtype[Any]]]], Sequence[Sequence[Sequence[
         # _SupportsArray[dtype[Any]]]]], Sequence[Sequence[Sequence[Sequence[
         # _SupportsArray[dtype[Any]]]]]]]"  [arg-type]
-        self.values = np.delete(self.values, loc, 0)  # type: ignore[arg-type]
-        self.mgr_locs = self._mgr_locs.delete(loc)
-        try:
-            self._cache.clear()
-        except AttributeError:
-            # _cache not yet initialized
-            pass
+        values = np.delete(self.values, loc, 0)  # type: ignore[arg-type]
+        mgr_locs = self._mgr_locs.delete(loc)
+        return type(self)(values, placement=mgr_locs, ndim=self.ndim)
 
     @final
     def apply(self, func, **kwargs) -> list[Block]:
@@ -1504,18 +1500,11 @@ class EABackedBlock(Block):
 
         return [self.make_block_same_class(values=new_values)]
 
-    def delete(self, loc) -> None:
-        """
-        Delete given loc(-s) from block in-place.
-        """
+    def delete(self, loc) -> Block:
         # This will be unnecessary if/when __array_function__ is implemented
-        self.values = self.values.delete(loc)
-        self.mgr_locs = self._mgr_locs.delete(loc)
-        try:
-            self._cache.clear()
-        except AttributeError:
-            # _cache not yet initialized
-            pass
+        values = self.values.delete(loc)
+        mgr_locs = self._mgr_locs.delete(loc)
+        return type(self)(values, placement=mgr_locs, ndim=self.ndim)
 
     @cache_readonly
     def array_values(self) -> ExtensionArray:
