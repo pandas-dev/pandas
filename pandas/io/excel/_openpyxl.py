@@ -77,7 +77,8 @@ class OpenpyxlWriter(ExcelWriter):
 
     @property
     def sheets(self) -> dict[str, Any]:
-        return {name: self.book[name] for name in self.book.sheetnames}
+        result = {name: self.book[name] for name in self.book.sheetnames}
+        return result
 
     def save(self) -> None:
         """

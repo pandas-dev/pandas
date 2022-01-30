@@ -205,6 +205,11 @@ class XlsxWriter(ExcelWriter):
 
         self.book = Workbook(self.handles.handle, **engine_kwargs)
 
+    @property
+    def sheets(self) -> dict[str, Any]:
+        result = self.book.sheetnames
+        return result
+
     def save(self) -> None:
         """
         Save workbook to disk.
