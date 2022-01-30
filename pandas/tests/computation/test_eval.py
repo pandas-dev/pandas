@@ -631,14 +631,15 @@ class TestEval:
 
     def test_unary_in_array(self):
         # GH 11235
-        # 2022-01-29: result return list with numexpr 2.7.3 in CI
+        # TODO: 2022-01-29: result return list with numexpr 2.7.3 in CI
         # but cannot reproduce locally
         result = np.array(
             pd.eval(
                 "[-True, True, ~True, +True,"
                 "-False, False, ~False, +False,"
                 "-37, 37, ~37, +37]"
-            )
+            ),
+            dtype=np.object_,
         )
         expected = np.array(
             [
@@ -1300,7 +1301,7 @@ class TestOperations:
         df = DataFrame({"a": [11], "b": [-32]})
         result = df.eval("a in [11, -32]")
         expected = Series([True])
-        # 2022-01-29: Name check failed with numexpr 2.7.3 in CI
+        # TODO: 2022-01-29: Name check failed with numexpr 2.7.3 in CI
         # but cannot reproduce locally
         tm.assert_series_equal(result, expected, check_names=False)
 
