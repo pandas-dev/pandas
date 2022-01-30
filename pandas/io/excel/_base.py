@@ -1048,6 +1048,12 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         """Name of engine."""
         pass
 
+    @property
+    @abc.abstractmethod
+    def sheets(self) -> dict[str, Any]:
+        """Mapping of sheet name to sheet object."""
+        pass
+
     @abc.abstractmethod
     def write_cells(
         self,
