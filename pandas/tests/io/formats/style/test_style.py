@@ -441,7 +441,7 @@ def test_apply_map_header_raises(mi_styler):
 
 
 class TestStyler:
-    def setup_method(self, method):
+    def setup_method(self):
         np.random.seed(24)
         self.s = DataFrame({"A": np.random.permutation(range(6))})
         self.df = DataFrame({"A": [0, 1], "B": np.random.randn(2)})
