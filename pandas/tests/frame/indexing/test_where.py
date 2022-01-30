@@ -812,6 +812,12 @@ def test_where_string_dtype(frame_or_series):
     )
     tm.assert_equal(result, expected)
 
+    result = obj.mask(~filter_ser, filtered_obj)
+    tm.assert_equal(result, expected)
+
+    obj.mask(~filter_ser, filtered_obj, inplace=True)
+    tm.assert_equal(result, expected)
+
 
 def test_where_bool_comparison():
     # GH 10336
@@ -898,6 +904,9 @@ def test_where_period_invalid_na(frame_or_series, as_cat, request):
 
     with pytest.raises(TypeError, match=msg):
         obj.mask(mask, tdnat)
+
+    with pytest.raises(TypeError, match=msg):
+        obj.mask(mask, tdnat, inplace=True)
 
 
 def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):

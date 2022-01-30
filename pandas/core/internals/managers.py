@@ -334,6 +334,9 @@ class BaseBlockManager(DataManager):
 
         For SingleBlockManager, this backs s[indexer] = value
         """
+        if isinstance(indexer, np.ndarray) and indexer.ndim > self.ndim:
+            raise ValueError(f"Cannot set values with ndim > {self.ndim}")
+
         return self.apply("setitem", indexer=indexer, value=value)
 
     def putmask(self, mask, new, align: bool = True):
@@ -1130,8 +1133,12 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 if len(val_locs) == len(blk.mgr_locs):
                     removed_blknos.append(blkno_l)
                 else:
-                    blk.delete(blk_locs)
-                    self._blklocs[blk.mgr_locs.indexer] = np.arange(len(blk))
+                    nb = blk.delete(blk_locs)
+                    blocks_tup = (
+                        self.blocks[:blkno_l] + (nb,) + self.blocks[blkno_l + 1 :]
+                    )
+                    self.blocks = blocks_tup
+                    self._blklocs[nb.mgr_locs.indexer] = np.arange(len(nb))
 
         if len(removed_blknos):
             # Remove blocks & update blknos accordingly
@@ -1866,8 +1873,10 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
 
         Ensures that self.blocks doesn't become empty.
         """
-        self._block.delete(indexer)
+        nb = self._block.delete(indexer)
+        self.blocks = (nb,)
         self.axes[0] = self.axes[0].delete(indexer)
+        self._cache.clear()
         return self
 
     def fast_xs(self, loc):

@@ -250,6 +250,31 @@ cdef bint checknull_with_nat_and_na(object obj):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+def is_float_nan(values: ndarray) -> ndarray:
+    """
+    True for elements which correspond to a float nan
+
+    Returns
+    -------
+    ndarray[bool]
+    """
+    cdef:
+        ndarray[uint8_t] result
+        Py_ssize_t i, N
+        object val
+
+    N = len(values)
+    result = np.zeros(N, dtype=np.uint8)
+
+    for i in range(N):
+        val = values[i]
+        if util.is_nan(val):
+            result[i] = True
+    return result.view(bool)
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def is_numeric_na(values: ndarray) -> ndarray:
     """
     Check for NA values consistent with IntegerArray/FloatingArray.

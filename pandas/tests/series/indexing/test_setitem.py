@@ -9,6 +9,7 @@ import pytest
 from pandas.core.dtypes.common import is_list_like
 
 from pandas import (
+    NA,
     Categorical,
     DataFrame,
     DatetimeIndex,
@@ -20,8 +21,10 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
+    array,
     concat,
     date_range,
+    interval_range,
     period_range,
     timedelta_range,
 )
@@ -572,6 +575,19 @@ class TestSetitemCasting:
             expected = Series([val, val], dtype=object, index=[1, 1])
         tm.assert_series_equal(ser, expected)
 
+    def test_setitem_boolean_array_into_npbool(self):
+        # GH#45462
+        ser = Series([True, False, True])
+        values = ser._values
+        arr = array([True, False, None])
+
+        ser[:2] = arr[:2]  # no NAs -> can set inplace
+        assert ser._values is values
+
+        ser[1:] = arr[1:]  # has an NA -> cast to boolean dtype
+        expected = Series(arr)
+        tm.assert_series_equal(ser, expected)
+
 
 class SetitemCastingEquivalents:
     """
@@ -699,7 +715,7 @@ class SetitemCastingEquivalents:
 
         self._check_inplace(is_inplace, orig, arr, obj)
 
-    def test_index_where(self, obj, key, expected, val, request):
+    def test_index_where(self, obj, key, expected, val):
         if obj.dtype == bool or obj.dtype.kind == "c" or expected.dtype.kind == "c":
             # TODO(GH#45061): Should become unreachable (at least the bool part)
             pytest.skip("test not applicable for this dtype")
@@ -725,6 +741,17 @@ class SetitemCastingEquivalents:
 @pytest.mark.parametrize(
     "obj,expected,key",
     [
+        pytest.param(
+            # GH#45568 setting a valid NA value into IntervalDtype[int] should
+            #  cast to IntervalDtype[float]
+            Series(interval_range(1, 5)),
+            Series(
+                [Interval(1, 2), np.nan, Interval(3, 4), Interval(4, 5)],
+                dtype="interval[float64]",
+            ),
+            1,
+            id="interval_int_na_value",
+        ),
         pytest.param(
             # these induce dtype changes
             Series([2, 3, 4, 5, 6, 7, 8, 9, 10]),
@@ -770,11 +797,13 @@ class SetitemCastingEquivalents:
     ],
 )
 class TestSetitemCastingEquivalents(SetitemCastingEquivalents):
-    @pytest.fixture(params=[np.nan, np.float64("NaN")])
+    @pytest.fixture(params=[np.nan, np.float64("NaN"), None, NA])
     def val(self, request):
         """
-        One python float NaN, one np.float64.  Only np.float64 has a `dtype`
-        attribute.
+        NA values that should generally be valid_na for *all* dtypes.
+
+        Include both python float NaN and np.float64; only np.float64 has a
+        `dtype` attribute.
         """
         return request.param
 

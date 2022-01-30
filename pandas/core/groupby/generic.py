@@ -1217,12 +1217,16 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             #  raised; see test_transform.test_transform_fastpath_raises
             return path, res
 
-        # verify fast path does not change columns (and names), otherwise
-        # its results cannot be joined with those of the slow path
-        if not isinstance(res_fast, DataFrame):
-            return path, res
-
-        if not res_fast.columns.equals(group.columns):
+        # verify fast path returns either:
+        # a DataFrame with columns equal to group.columns
+        # OR a Series with index equal to group.columns
+        if isinstance(res_fast, DataFrame):
+            if not res_fast.columns.equals(group.columns):
+                return path, res
+        elif isinstance(res_fast, Series):
+            if not res_fast.index.equals(group.columns):
+                return path, res
+        else:
             return path, res
 
         if res_fast.equals(res):
@@ -1791,7 +1795,7 @@ def _wrap_transform_general_frame(
             res_frame.index = group.index
         else:
             res_frame = obj._constructor(
-                np.concatenate([res.values] * len(group.index)).reshape(group.shape),
+                np.tile(res.values, (len(group.index), 1)),
                 columns=group.columns,
                 index=group.index,
             )
