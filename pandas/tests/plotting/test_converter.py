@@ -157,7 +157,7 @@ class TestRegistration:
 
 
 class TestDateTimeConverter:
-    def setup_method(self, method):
+    def setup_method(self):
         self.dtc = converter.DatetimeConverter()
         self.tc = converter.TimeFormatter(None)
 
@@ -292,7 +292,7 @@ class TestDateTimeConverter:
 
 
 class TestPeriodConverter:
-    def setup_method(self, method):
+    def setup_method(self):
         self.pc = converter.PeriodConverter()
 
         class Axis:

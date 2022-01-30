@@ -153,9 +153,7 @@ def test_read_csv_utf_aliases(all_parsers, utf_value, encoding_fmt):
         (("io", "parser", "data", "sauron.SHIFT_JIS.csv"), "shiftjis"),
     ],
 )
-def test_binary_mode_file_buffers(
-    all_parsers, csv_dir_path, file_path, encoding, datapath
-):
+def test_binary_mode_file_buffers(all_parsers, file_path, encoding, datapath):
     # gh-23779: Python csv engine shouldn't error on files opened in binary.
     # gh-31575: Python csv engine shouldn't error on files opened in raw binary.
     parser = all_parsers

@@ -96,7 +96,7 @@ def test_numpy_ufuncs_basic(index, func):
 @pytest.mark.parametrize(
     "func", [np.isfinite, np.isinf, np.isnan, np.signbit], ids=lambda x: x.__name__
 )
-def test_numpy_ufuncs_other(index, func, request):
+def test_numpy_ufuncs_other(index, func):
     # test ufuncs of numpy, see:
     # https://numpy.org/doc/stable/reference/ufuncs.html
     if isinstance(index, (DatetimeIndex, TimedeltaIndex)):

@@ -320,7 +320,7 @@ class TestDataFrameInterpolate:
         result = df[["B", "D"]].interpolate(downcast=None)
         tm.assert_frame_equal(result, df[["B", "D"]])
 
-    def test_interp_time_inplace_axis(self, axis):
+    def test_interp_time_inplace_axis(self):
         # GH 9687
         periods = 5
         idx = date_range(start="2014-01-01", periods=periods)

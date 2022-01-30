@@ -348,7 +348,7 @@ def test_maybe_promote_bytes_with_any(bytes_dtype, any_numpy_dtype_reduced):
     _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 
 
-def test_maybe_promote_any_with_bytes(any_numpy_dtype_reduced, bytes_dtype):
+def test_maybe_promote_any_with_bytes(any_numpy_dtype_reduced):
     dtype = np.dtype(any_numpy_dtype_reduced)
 
     # create array of given dtype
@@ -391,9 +391,7 @@ def test_maybe_promote_datetime64_with_any(datetime64_dtype, any_numpy_dtype_red
     ],
     ids=["pd.Timestamp", "np.datetime64", "datetime.datetime", "datetime.date"],
 )
-def test_maybe_promote_any_with_datetime64(
-    any_numpy_dtype_reduced, datetime64_dtype, fill_value
-):
+def test_maybe_promote_any_with_datetime64(any_numpy_dtype_reduced, fill_value):
     dtype = np.dtype(any_numpy_dtype_reduced)
 
     # filling datetime with anything but datetime casts to object
@@ -465,9 +463,7 @@ def test_maybe_promote_timedelta64_with_any(timedelta64_dtype, any_numpy_dtype_r
     [pd.Timedelta(days=1), np.timedelta64(24, "h"), datetime.timedelta(1)],
     ids=["pd.Timedelta", "np.timedelta64", "datetime.timedelta"],
 )
-def test_maybe_promote_any_with_timedelta64(
-    any_numpy_dtype_reduced, timedelta64_dtype, fill_value
-):
+def test_maybe_promote_any_with_timedelta64(any_numpy_dtype_reduced, fill_value):
     dtype = np.dtype(any_numpy_dtype_reduced)
 
     # filling anything but timedelta with timedelta casts to object
@@ -496,7 +492,7 @@ def test_maybe_promote_string_with_any(string_dtype, any_numpy_dtype_reduced):
     _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 
 
-def test_maybe_promote_any_with_string(any_numpy_dtype_reduced, string_dtype):
+def test_maybe_promote_any_with_string(any_numpy_dtype_reduced):
     dtype = np.dtype(any_numpy_dtype_reduced)
 
     # create array of given dtype
@@ -523,7 +519,7 @@ def test_maybe_promote_object_with_any(object_dtype, any_numpy_dtype_reduced):
     _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 
 
-def test_maybe_promote_any_with_object(any_numpy_dtype_reduced, object_dtype):
+def test_maybe_promote_any_with_object(any_numpy_dtype_reduced):
     dtype = np.dtype(any_numpy_dtype_reduced)
 
     # create array of object dtype from a scalar value (i.e. passing

@@ -62,7 +62,7 @@ class TestDataFrameReprInfoEtc:
         df.index = index
         repr(df)
 
-    def test_repr_with_mi_nat(self, float_string_frame):
+    def test_repr_with_mi_nat(self):
         df = DataFrame({"X": [1, 2]}, index=[[NaT, Timestamp("20130101")], ["a", "b"]])
         result = repr(df)
         expected = "              X\nNaT        a  1\n2013-01-01 b  2"

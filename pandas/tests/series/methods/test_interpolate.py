@@ -78,7 +78,7 @@ def interp_methods_ind(request):
 
 
 class TestSeriesInterpolateData:
-    def test_interpolate(self, datetime_series, string_series):
+    def test_interpolate(self, datetime_series):
         ts = Series(np.arange(len(datetime_series), dtype=float), datetime_series.index)
 
         ts_copy = ts.copy()

@@ -307,7 +307,7 @@ def test_read_workbook(datapath, ext, read_only):
 # When read_only is None, use read_excel instead of a workbook
 @pytest.mark.parametrize("read_only", [True, False, None])
 def test_read_with_bad_dimension(
-    datapath, ext, header, expected_data, filename, read_only, request
+    datapath, ext, header, expected_data, filename, read_only
 ):
     # GH 38956, 39001 - no/incorrect dimension information
     path = datapath("io", "data", "excel", f"{filename}{ext}")
@@ -345,7 +345,7 @@ def test_append_mode_file(ext):
 
 # When read_only is None, use read_excel instead of a workbook
 @pytest.mark.parametrize("read_only", [True, False, None])
-def test_read_with_empty_trailing_rows(datapath, ext, read_only, request):
+def test_read_with_empty_trailing_rows(datapath, ext, read_only):
     # GH 39181
     path = datapath("io", "data", "excel", f"empty_trailing_rows{ext}")
     if read_only is None:

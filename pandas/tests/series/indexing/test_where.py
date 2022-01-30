@@ -438,7 +438,7 @@ def test_where_categorical(frame_or_series):
     tm.assert_equal(exp, res)
 
 
-def test_where_datetimelike_categorical(request, tz_naive_fixture):
+def test_where_datetimelike_categorical(tz_naive_fixture):
     # GH#37682
     tz = tz_naive_fixture
 

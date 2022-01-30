@@ -137,7 +137,7 @@ def test_read_column(setup_path):
         tm.assert_series_equal(result, expected)
 
 
-def test_pytables_native_read(datapath, setup_path):
+def test_pytables_native_read(datapath):
     with ensure_clean_store(
         datapath("io", "data", "legacy_hdf/pytables_native.h5"), mode="r"
     ) as store:
@@ -146,7 +146,7 @@ def test_pytables_native_read(datapath, setup_path):
 
 
 @pytest.mark.skipif(is_platform_windows(), reason="native2 read fails oddly on windows")
-def test_pytables_native2_read(datapath, setup_path):
+def test_pytables_native2_read(datapath):
     with ensure_clean_store(
         datapath("io", "data", "legacy_hdf", "pytables_native2.h5"), mode="r"
     ) as store:
@@ -155,7 +155,7 @@ def test_pytables_native2_read(datapath, setup_path):
         assert isinstance(d1, DataFrame)
 
 
-def test_legacy_table_fixed_format_read_py2(datapath, setup_path):
+def test_legacy_table_fixed_format_read_py2(datapath):
     # GH 24510
     # legacy table with fixed format written in Python 2
     with ensure_clean_store(
@@ -170,7 +170,7 @@ def test_legacy_table_fixed_format_read_py2(datapath, setup_path):
         tm.assert_frame_equal(expected, result)
 
 
-def test_legacy_table_fixed_format_read_datetime_py2(datapath, setup_path):
+def test_legacy_table_fixed_format_read_datetime_py2(datapath):
     # GH 31750
     # legacy table with fixed format and datetime64 column written in Python 2
     with ensure_clean_store(
@@ -186,7 +186,7 @@ def test_legacy_table_fixed_format_read_datetime_py2(datapath, setup_path):
         tm.assert_frame_equal(expected, result)
 
 
-def test_legacy_table_read_py2(datapath, setup_path):
+def test_legacy_table_read_py2(datapath):
     # issue: 24925
     # legacy table written in Python 2
     with ensure_clean_store(

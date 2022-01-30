@@ -537,7 +537,7 @@ class TestCommon(Base):
 
 
 class TestDateOffset(Base):
-    def setup_method(self, method):
+    def setup_method(self):
         self.d = Timestamp(datetime(2008, 1, 2))
         _offset_map.clear()
 
@@ -622,7 +622,7 @@ def test_get_offset_legacy():
 
 
 class TestOffsetAliases:
-    def setup_method(self, method):
+    def setup_method(self):
         _offset_map.clear()
 
     def test_alias_equality(self):

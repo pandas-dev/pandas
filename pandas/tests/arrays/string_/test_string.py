@@ -554,7 +554,7 @@ def test_to_numpy_na_value(dtype, nulls_fixture):
     tm.assert_numpy_array_equal(result, expected)
 
 
-def test_isin(dtype, request, fixed_now_ts):
+def test_isin(dtype, fixed_now_ts):
     s = pd.Series(["a", "b", None], dtype=dtype)
 
     result = s.isin(["a", "c"])
