@@ -201,6 +201,11 @@ class IntervalIndex(ExtensionIndex):
     _can_hold_strings = False
     _data_cls = IntervalArray
 
+    # FIXME: this is inaccurate for integer-backed IntervalArray, but
+    #  is the pre-existing behavior before GH#45061 (Index[bool]).
+    #  Without this, other.categories.take raises in IntervalArray._cmp_method
+    _can_hold_na = True
+
     # --------------------------------------------------------------------
     # Constructors
 
