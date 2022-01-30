@@ -3876,15 +3876,15 @@ class DataFrame(NDFrame, OpsMixin):
         try:
             if takeable:
                 series = self._ixs(col, axis=1)
-                series._set_value(index, value, takeable=True)
-                return
+                loc = index
+            else:
+                series = self._get_item_cache(col)
+                loc = self.index.get_loc(index)
 
-            series = self._get_item_cache(col)
-            loc = self.index.get_loc(index)
-
-            # series._set_value will do validation that may raise TypeError
+            # setitem_inplace will do validation that may raise TypeError
             #  or ValueError
-            series._set_value(loc, value, takeable=True)
+            series._mgr.setitem_inplace(loc, value)
+
         except (KeyError, TypeError, ValueError):
             # set using a non-recursive method & reset the cache
             if takeable:
