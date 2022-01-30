@@ -80,6 +80,12 @@ def safe_import(mod_name: str, min_version: str | None = None):
             message=".*Int64Index.*",
         )
 
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message="distutils Version classes are deprecated.*",
+        )
+
         try:
             mod = __import__(mod_name)
         except ImportError:
@@ -261,7 +267,7 @@ def file_leak_context():
     """
     psutil = safe_import("psutil")
     if not psutil or is_platform_windows():
-        # Windows CI environments grab system files we're not interested in
+        # Checking for file leaks can hang on Windows CI
         yield
     else:
         proc = psutil.Process()

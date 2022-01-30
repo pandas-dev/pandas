@@ -718,7 +718,7 @@ class TestReaders:
             actual = pd.read_excel(f, sheet_name="Sheet1", index_col=0)
             tm.assert_frame_equal(expected, actual)
 
-    def test_bad_engine_raises(self, read_ext):
+    def test_bad_engine_raises(self):
         bad_engine = "foo"
         with pytest.raises(ValueError, match="Unknown engine: foo"):
             pd.read_excel("", engine=bad_engine)
@@ -740,7 +740,7 @@ class TestReaders:
         with pytest.raises(FileNotFoundError, match=match):
             pd.read_excel(bad_file)
 
-    def test_corrupt_bytes_raises(self, read_ext, engine):
+    def test_corrupt_bytes_raises(self, engine):
         bad_stream = b"foo"
         if engine is None:
             error = ValueError
@@ -1284,7 +1284,7 @@ class TestReaders:
         ):
             pd.read_excel("chartsheet" + read_ext, sheet_name=1)
 
-    def test_euro_decimal_format(self, request, read_ext):
+    def test_euro_decimal_format(self, read_ext):
         # copied from read_csv
         result = pd.read_excel("test_decimal" + read_ext, decimal=",", skiprows=1)
         expected = DataFrame(

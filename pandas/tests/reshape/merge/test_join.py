@@ -23,7 +23,7 @@ a_ = np.array
 
 
 class TestJoin:
-    def setup_method(self, method):
+    def setup_method(self):
         # aggregate multiple columns
         self.df = DataFrame(
             {

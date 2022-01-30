@@ -367,20 +367,22 @@ class Block(PandasObject):
         # "Union[int, integer[Any]]"
         return self.values[i]  # type: ignore[index]
 
-    def set_inplace(self, locs, values) -> None:
+    def set_inplace(self, locs, values: ArrayLike) -> None:
         """
         Modify block values in-place with new item value.
 
         Notes
         -----
-        `set` never creates a new array or new Block, whereas `setitem` _may_
-        create a new array and always creates a new Block.
+        `set_inplace` never creates a new array or new Block, whereas `setitem`
+        _may_ create a new array and always creates a new Block.
+
+        Caller is responsible for checking values.dtype == self.dtype.
         """
         self.values[locs] = values
 
-    def delete(self, loc) -> None:
+    def delete(self, loc) -> Block:
         """
-        Delete given loc(-s) from block in-place.
+        Return a new Block with the given loc(s) deleted.
         """
         # Argument 1 to "delete" has incompatible type "Union[ndarray[Any, Any],
         # ExtensionArray]"; expected "Union[_SupportsArray[dtype[Any]],
@@ -388,13 +390,9 @@ class Block(PandasObject):
         # [_SupportsArray[dtype[Any]]]], Sequence[Sequence[Sequence[
         # _SupportsArray[dtype[Any]]]]], Sequence[Sequence[Sequence[Sequence[
         # _SupportsArray[dtype[Any]]]]]]]"  [arg-type]
-        self.values = np.delete(self.values, loc, 0)  # type: ignore[arg-type]
-        self.mgr_locs = self._mgr_locs.delete(loc)
-        try:
-            self._cache.clear()
-        except AttributeError:
-            # _cache not yet initialized
-            pass
+        values = np.delete(self.values, loc, 0)  # type: ignore[arg-type]
+        mgr_locs = self._mgr_locs.delete(loc)
+        return type(self)(values, placement=mgr_locs, ndim=self.ndim)
 
     @final
     def apply(self, func, **kwargs) -> list[Block]:
@@ -1181,7 +1179,7 @@ class Block(PandasObject):
         icond, noop = validate_putmask(values, ~cond)
         if noop:
             # GH-39595: Always return a copy; short-circuit up/downcasting
-            return self.copy()
+            return [self.copy()]
 
         if other is lib.no_default:
             other = self.fill_value
@@ -1373,7 +1371,8 @@ class EABackedBlock(Block):
 
         values = self.values
         if values.ndim == 2:
-            # TODO: string[pyarrow] tests break if we transpose unconditionally
+            # TODO(GH#45419): string[pyarrow] tests break if we transpose
+            #  unconditionally
             values = values.T
         check_setitem_lengths(indexer, value, values)
         values[indexer] = value
@@ -1394,7 +1393,7 @@ class EABackedBlock(Block):
         if noop:
             # GH#44181, GH#45135
             # Avoid a) raising for Interval/PeriodDtype and b) unnecessary object upcast
-            return self.copy()
+            return [self.copy()]
 
         try:
             res_values = arr._where(cond, other).T
@@ -1501,18 +1500,11 @@ class EABackedBlock(Block):
 
         return [self.make_block_same_class(values=new_values)]
 
-    def delete(self, loc) -> None:
-        """
-        Delete given loc(-s) from block in-place.
-        """
+    def delete(self, loc) -> Block:
         # This will be unnecessary if/when __array_function__ is implemented
-        self.values = self.values.delete(loc)
-        self.mgr_locs = self._mgr_locs.delete(loc)
-        try:
-            self._cache.clear()
-        except AttributeError:
-            # _cache not yet initialized
-            pass
+        values = self.values.delete(loc)
+        mgr_locs = self._mgr_locs.delete(loc)
+        return type(self)(values, placement=mgr_locs, ndim=self.ndim)
 
     @cache_readonly
     def array_values(self) -> ExtensionArray:
@@ -1596,12 +1588,16 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
                 raise IndexError(f"{self} only contains one item")
             return self.values
 
-    def set_inplace(self, locs, values) -> None:
+    def set_inplace(self, locs, values: ArrayLike) -> None:
         # NB: This is a misnomer, is supposed to be inplace but is not,
         #  see GH#33457
         # When an ndarray, we should have locs.tolist() == [0]
         # When a BlockPlacement we should have list(locs) == [0]
-        self.values = values
+
+        # error: Incompatible types in assignment (expression has type
+        # "Union[ExtensionArray, ndarray[Any, Any]]", variable has type
+        # "ExtensionArray")
+        self.values = values  # type: ignore[assignment]
         try:
             # TODO(GH33457) this can be removed
             self._cache.clear()

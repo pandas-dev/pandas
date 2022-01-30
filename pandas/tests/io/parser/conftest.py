@@ -12,9 +12,6 @@ from pandas import (
 )
 import pandas._testing as tm
 
-from pandas.io.parsers import readers
-from pandas.io.parsers.arrow_parser_wrapper import ArrowParserWrapper
-
 
 class BaseParser:
     engine: str | None = None
@@ -111,23 +108,13 @@ def all_parsers(request, monkeypatch):
     parser = request.param()
     if parser.engine == "pyarrow":
         pytest.importorskip("pyarrow", VERSIONS["pyarrow"])
-
+        # Try setting num cpus to 1 to avoid hangs on Azure MacOS/Windows builds
+        # or better yet find a way to disable threads
+        # TODO(GH#44584) pytest.mark.single these tests
         import pyarrow
 
-        # TODO: Probably mark these as pytest.mark.single GH 44584
-        # Disable threads in CI environment to avoid timeouts
         pyarrow.set_cpu_count(1)
-
-        class NoThreadArrowParserWrapper(ArrowParserWrapper):
-            def _get_pyarrow_options(self):
-                super()._get_pyarrow_options()
-                self.read_options["use_threads"] = False
-
-        with monkeypatch.context() as m:
-            m.setattr(readers, "ArrowParserWrapper", NoThreadArrowParserWrapper)
-            yield parser
-    else:
-        yield parser
+    return parser
 
 
 @pytest.fixture(params=_c_parsers_only, ids=_c_parser_ids)
