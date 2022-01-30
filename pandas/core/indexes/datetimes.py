@@ -881,7 +881,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         1584199972.192548
         """
         unixtime_ns = self._data.view(np.int64)
-        return np.round(unixtime_ns / 1e9, 6)
+        #The 1e-9 is cast as an array to silence mypy static type checking error
+        return np.round(unixtime_ns * np.array(1e-9), 6)  
 
 
 def date_range(
