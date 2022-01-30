@@ -9498,7 +9498,7 @@ NaN 12.3   33.0
         if len(new_cols) > 0:
             return self._constructor(
                 concat(new_cols, axis=1), index=self.index, columns=self.columns
-            )
+            ).__finalize__(self, method="round")
         else:
             return self
 
@@ -9886,7 +9886,8 @@ NaN 12.3   33.0
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
-            return self._count_level(level, axis=axis, numeric_only=numeric_only)
+            res = self._count_level(level, axis=axis, numeric_only=numeric_only)
+            return res.__finalize__(self, method="count")
 
         if numeric_only:
             frame = self._get_numeric_data()
@@ -9909,7 +9910,7 @@ NaN 12.3   33.0
                     counts, index=frame._get_agg_axis(axis)
                 )
 
-        return result.astype("int64")
+        return result.astype("int64").__finalize__(self, method="count")
 
     def _count_level(self, level: Level, axis: int = 0, numeric_only: bool = False):
         if numeric_only:
@@ -10539,13 +10540,14 @@ NaN 12.3   33.0
                     dtype = cdtype
 
             if is_list_like(q):
-                return self._constructor([], index=q, columns=cols, dtype=dtype)
+                res = self._constructor([], index=q, columns=cols, dtype=dtype)
+                return res.__finalize__(self, method="quantile")
             return self._constructor_sliced([], index=cols, name=q, dtype=dtype)
 
         res = data._mgr.quantile(qs=q, axis=1, interpolation=interpolation)
 
         result = self._constructor(res)
-        return result
+        return result.__finalize__(self, method="quantile")
 
     @doc(NDFrame.asfreq, **_shared_doc_kwargs)
     def asfreq(
@@ -10762,7 +10764,7 @@ NaN 12.3   33.0
             from pandas.core.reshape.concat import concat
 
             values = collections.defaultdict(list, values)
-            return concat(
+            result = concat(
                 (
                     self.iloc[:, [i]].isin(values[col])
                     for i, col in enumerate(self.columns)
@@ -10772,11 +10774,11 @@ NaN 12.3   33.0
         elif isinstance(values, Series):
             if not values.index.is_unique:
                 raise ValueError("cannot compute isin with a duplicate axis.")
-            return self.eq(values.reindex_like(self), axis="index")
+            result = self.eq(values.reindex_like(self), axis="index")
         elif isinstance(values, DataFrame):
             if not (values.columns.is_unique and values.index.is_unique):
                 raise ValueError("cannot compute isin with a duplicate axis.")
-            return self.eq(values.reindex_like(self))
+            result = self.eq(values.reindex_like(self))
         else:
             if not is_list_like(values):
                 raise TypeError(
@@ -10784,11 +10786,12 @@ NaN 12.3   33.0
                     "to be passed to DataFrame.isin(), "
                     f"you passed a '{type(values).__name__}'"
                 )
-            return self._constructor(
+            result = self._constructor(
                 algorithms.isin(self.values.ravel(), values).reshape(self.shape),
                 self.index,
                 self.columns,
             )
+        return result.__finalize__(self, method="isin")
 
     # ----------------------------------------------------------------------
     # Add index and columns
