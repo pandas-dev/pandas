@@ -701,7 +701,7 @@ To choose another dtype, use the ``dtype`` argument:
 
     pd.get_dummies(df, dtype=bool).dtypes
 
-.. versionadded:: 1.4.0
+.. versionadded:: 1.5.0
 
 To convert a "dummy" or "indicator" ``DataFrame``, into a categorical ``DataFrame``,
 for example ``k`` columns of a ``DataFrame`` containing 1s and 0s can derive a
