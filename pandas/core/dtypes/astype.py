@@ -139,14 +139,10 @@ def astype_nansafe(
 
     elif is_object_dtype(arr.dtype):
 
-        # work around NumPy brokenness, #1987
-        if dtype.kind in ["i", "u"]:
-            return lib.astype_intsafe(arr, dtype)
-
         # if we have a datetime/timedelta array of objects
         # then coerce to a proper dtype and recall astype_nansafe
 
-        elif is_datetime64_dtype(dtype):
+        if is_datetime64_dtype(dtype):
             from pandas import to_datetime
 
             return astype_nansafe(
