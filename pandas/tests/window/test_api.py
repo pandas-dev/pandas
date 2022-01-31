@@ -16,20 +16,20 @@ import pandas._testing as tm
 from pandas.core.base import SpecificationError
 
 
-def test_getitem():
+def test_getitem(step):
     frame = DataFrame(np.random.randn(5, 5))
-    r = frame.rolling(window=5)
-    tm.assert_index_equal(r._selected_obj.columns, frame.columns)
+    r = frame.rolling(window=5, step=step)
+    tm.assert_index_equal(r._selected_obj.columns, frame[::step].columns)
 
-    r = frame.rolling(window=5)[1]
-    assert r._selected_obj.name == frame.columns[1]
+    r = frame.rolling(window=5, step=step)[1]
+    assert r._selected_obj.name == frame[::step].columns[1]
 
     # technically this is allowed
-    r = frame.rolling(window=5)[1, 3]
-    tm.assert_index_equal(r._selected_obj.columns, frame.columns[[1, 3]])
+    r = frame.rolling(window=5, step=step)[1, 3]
+    tm.assert_index_equal(r._selected_obj.columns, frame[::step].columns[[1, 3]])
 
-    r = frame.rolling(window=5)[[1, 3]]
-    tm.assert_index_equal(r._selected_obj.columns, frame.columns[[1, 3]])
+    r = frame.rolling(window=5, step=step)[[1, 3]]
+    tm.assert_index_equal(r._selected_obj.columns, frame[::step].columns[[1, 3]])
 
 
 def test_select_bad_cols():
@@ -53,21 +53,21 @@ def test_attribute_access():
         r.F
 
 
-def tests_skip_nuisance():
+def tests_skip_nuisance(step):
 
     df = DataFrame({"A": range(5), "B": range(5, 10), "C": "foo"})
-    r = df.rolling(window=3)
+    r = df.rolling(window=3, step=step)
     result = r[["A", "B"]].sum()
     expected = DataFrame(
         {"A": [np.nan, np.nan, 3, 6, 9], "B": [np.nan, np.nan, 18, 21, 24]},
         columns=list("AB"),
-    )
+    )[::step]
     tm.assert_frame_equal(result, expected)
 
 
-def test_skip_sum_object_raises():
+def test_skip_sum_object_raises(step):
     df = DataFrame({"A": range(5), "B": range(5, 10), "C": "foo"})
-    r = df.rolling(window=3)
+    r = df.rolling(window=3, step=step)
     msg = r"nuisance columns.*Dropped columns were Index\(\['C'\], dtype='object'\)"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         # GH#42738
@@ -75,14 +75,14 @@ def test_skip_sum_object_raises():
     expected = DataFrame(
         {"A": [np.nan, np.nan, 3, 6, 9], "B": [np.nan, np.nan, 18, 21, 24]},
         columns=list("AB"),
-    )
+    )[::step]
     tm.assert_frame_equal(result, expected)
 
 
-def test_agg():
+def test_agg(step):
     df = DataFrame({"A": range(5), "B": range(0, 10, 2)})
 
-    r = df.rolling(window=3)
+    r = df.rolling(window=3, step=step)
     a_mean = r["A"].mean()
     a_std = r["A"].std()
     a_sum = r["A"].sum()
@@ -141,10 +141,10 @@ def test_agg_apply(raw):
     tm.assert_frame_equal(result, expected, check_like=True)
 
 
-def test_agg_consistency():
+def test_agg_consistency(step):
 
     df = DataFrame({"A": range(5), "B": range(0, 10, 2)})
-    r = df.rolling(window=3)
+    r = df.rolling(window=3, step=step)
 
     result = r.agg([np.sum, np.mean]).columns
     expected = MultiIndex.from_product([list("AB"), ["sum", "mean"]])
@@ -182,7 +182,7 @@ def test_agg_nested_dicts():
         r.agg({"A": {"ra": ["mean", "std"]}, "B": {"rb": ["mean", "std"]}})
 
 
-def test_count_nonnumeric_types():
+def test_count_nonnumeric_types(step):
     # GH12541
     cols = [
         "int",
@@ -239,13 +239,13 @@ def test_count_nonnumeric_types():
             "periods_nat": [1.0, 2.0, 1.0],
         },
         columns=cols,
-    )
+    )[::step]
 
-    result = df.rolling(window=2, min_periods=0).count()
+    result = df.rolling(window=2, min_periods=0, step=step).count()
     tm.assert_frame_equal(result, expected)
 
-    result = df.rolling(1, min_periods=0).count()
-    expected = df.notna().astype(float)
+    result = df.rolling(1, min_periods=0, step=step).count()
+    expected = df.notna().astype(float)[::step]
     tm.assert_frame_equal(result, expected)
 
 
@@ -339,11 +339,11 @@ def test_validate_deprecated():
 
 @pytest.mark.filterwarnings("ignore:min_periods:FutureWarning")
 def test_dont_modify_attributes_after_methods(
-    arithmetic_win_operators, closed, center, min_periods
+    arithmetic_win_operators, closed, center, min_periods, step
 ):
     # GH 39554
     roll_obj = Series(range(1)).rolling(
-        1, center=center, closed=closed, min_periods=min_periods
+        1, center=center, closed=closed, min_periods=min_periods, step=step
     )
     expected = {attr: getattr(roll_obj, attr) for attr in roll_obj._attributes}
     getattr(roll_obj, arithmetic_win_operators)()
@@ -351,40 +351,49 @@ def test_dont_modify_attributes_after_methods(
     assert result == expected
 
 
-def test_centered_axis_validation():
+def test_centered_axis_validation(step):
 
     # ok
-    Series(np.ones(10)).rolling(window=3, center=True, axis=0).mean()
+    Series(np.ones(10)).rolling(window=3, center=True, axis=0, step=step).mean()
 
     # bad axis
     msg = "No axis named 1 for object type Series"
     with pytest.raises(ValueError, match=msg):
-        Series(np.ones(10)).rolling(window=3, center=True, axis=1).mean()
+        Series(np.ones(10)).rolling(window=3, center=True, axis=1, step=step).mean()
 
     # ok ok
-    DataFrame(np.ones((10, 10))).rolling(window=3, center=True, axis=0).mean()
-    DataFrame(np.ones((10, 10))).rolling(window=3, center=True, axis=1).mean()
+    DataFrame(np.ones((10, 10))).rolling(
+        window=3, center=True, axis=0, step=step
+    ).mean()
+    DataFrame(np.ones((10, 10))).rolling(
+        window=3, center=True, axis=1, step=step
+    ).mean()
 
     # bad axis
     msg = "No axis named 2 for object type DataFrame"
     with pytest.raises(ValueError, match=msg):
-        (DataFrame(np.ones((10, 10))).rolling(window=3, center=True, axis=2).mean())
+        (
+            DataFrame(np.ones((10, 10)))
+            .rolling(window=3, center=True, axis=2, step=step)
+            .mean()
+        )
 
 
-def test_rolling_min_min_periods():
+def test_rolling_min_min_periods(step):
     a = Series([1, 2, 3, 4, 5])
-    result = a.rolling(window=100, min_periods=1).min()
-    expected = Series(np.ones(len(a)))
+    result = a.rolling(window=100, min_periods=1, step=step).min()
+    expected = Series(np.ones(len(a)))[::step]
     tm.assert_series_equal(result, expected)
     msg = "min_periods 5 must be <= window 3"
     with pytest.raises(ValueError, match=msg):
-        Series([1, 2, 3]).rolling(window=3, min_periods=5).min()
+        Series([1, 2, 3]).rolling(window=3, min_periods=5, step=step).min()
 
 
-def test_rolling_max_min_periods():
+def test_rolling_max_min_periods(step):
     a = Series([1, 2, 3, 4, 5], dtype=np.float64)
-    b = a.rolling(window=100, min_periods=1).max()
-    tm.assert_almost_equal(a, b)
+    result = a.rolling(window=100, min_periods=1, step=step).max()
+    expected = a[::step]
+    tm.assert_almost_equal(result, expected)
     msg = "min_periods 5 must be <= window 3"
     with pytest.raises(ValueError, match=msg):
-        Series([1, 2, 3]).rolling(window=3, min_periods=5).max()
+        Series([1, 2, 3]).rolling(window=3, min_periods=5, step=step).max()

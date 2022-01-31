@@ -126,6 +126,7 @@ class BaseWindow(SelectionMixin):
         axis: Axis = 0,
         on: str | Index | None = None,
         closed: str | None = None,
+        step: int | None = None,
         method: str = "single",
         *,
         selection=None,
@@ -133,6 +134,7 @@ class BaseWindow(SelectionMixin):
         self.obj = obj
         self.on = on
         self.closed = closed
+        self.step = step
         self.window = window
         self.min_periods = min_periods
         self.center = center
@@ -228,18 +230,37 @@ class BaseWindow(SelectionMixin):
             raise ValueError("method must be 'table' or 'single")
 
     def _check_window_bounds(
-        self, start: np.ndarray, end: np.ndarray, num_vals: int
+        self, start: np.ndarray, end: np.ndarray, ref: np.ndarray, num_vals: int
     ) -> None:
         if len(start) != len(end):
             raise ValueError(
                 f"start ({len(start)}) and end ({len(end)}) bounds must be the "
                 f"same length"
             )
-        elif len(start) != num_vals:
+        if ref is not None and len(start) != len(ref):
+            raise ValueError(
+                f"start ({len(start)}) and ref ({len(ref)}) arrays must be the "
+                f"same length"
+            )
+        elif not isinstance(self._get_window_indexer(), GroupbyIndexer) and len(
+            start
+        ) != (num_vals + (self.step or 1) - 1) // (self.step or 1):
             raise ValueError(
                 f"start and end bounds ({len(start)}) must be the same length "
-                f"as the object ({num_vals})"
+                f"as the object ({num_vals}) divided by the step ({self.step}) "
+                f"if given and rounded up unless groupby was used"
             )
+
+    def _slice_index(self, index: Index, at: np.ndarray) -> Index:
+        """
+        Slices the index of the object.
+        """
+        if at is None:
+            return index
+        result = index[at]
+        if isinstance(index, DatetimeIndex):
+            result.freq = None if index.freq is None else index.freq * (self.step or 1)
+        return result
 
     def _create_data(self, obj: NDFrameT) -> NDFrameT:
         """
@@ -319,13 +340,14 @@ class BaseWindow(SelectionMixin):
         obj = self._create_data(obj)
         indexer = self._get_window_indexer()
 
-        start, end = indexer.get_window_bounds(
+        start, end, ref = indexer.get_window_bounds(
             num_values=len(obj),
             min_periods=self.min_periods,
             center=self.center,
             closed=self.closed,
+            step=self.step,
         )
-        self._check_window_bounds(start, end, len(obj))
+        self._check_window_bounds(start, end, ref, len(obj))
 
         for s, e in zip(start, end):
             result = obj.iloc[slice(s, e)]
@@ -428,8 +450,11 @@ class BaseWindow(SelectionMixin):
         except (TypeError, NotImplementedError) as err:
             raise DataError("No numeric types to aggregate") from err
 
-        result = homogeneous_func(values)
-        return obj._constructor(result, index=obj.index, name=obj.name)
+        result, ref = homogeneous_func(values), None
+        if type(result) is tuple:
+            result, ref = result
+        index = self._slice_index(obj.index, ref)
+        return obj._constructor(result, index=index, name=obj.name)
 
     def _apply_blockwise(
         self, homogeneous_func: Callable[..., ArrayLike], name: str | None = None
@@ -455,20 +480,30 @@ class BaseWindow(SelectionMixin):
             obj = obj.T
 
         taker = []
-        res_values = []
+        res_values: list[Any] = []
+        ref_value = None
         for i, arr in enumerate(obj._iter_column_arrays()):
             # GH#42736 operate column-wise instead of block-wise
             try:
-                res = hfunc(arr)
+                res, ref = hfunc(arr), None
             except (TypeError, NotImplementedError):
                 pass
             else:
+                if type(res) is tuple:
+                    res, ref = res
+                if len(res_values) == 0:
+                    ref_value = ref
+                elif not (
+                    (ref_value is None and ref is None)
+                    or np.array_equal(ref_value, ref)
+                ):
+                    raise ValueError("hfunc returned inconsistent ref value")
                 res_values.append(res)
                 taker.append(i)
 
         df = type(obj)._from_arrays(
             res_values,
-            index=obj.index,
+            index=self._slice_index(obj.index, ref_value),
             columns=obj.columns.take(taker),
             verify_integrity=False,
         )
@@ -501,9 +536,13 @@ class BaseWindow(SelectionMixin):
         obj = self._create_data(self._selected_obj)
         values = self._prep_values(obj.to_numpy())
         values = values.T if self.axis == 1 else values
-        result = homogeneous_func(values)
+        result, ref = homogeneous_func(values), None
+        if type(result) is tuple:
+            result, ref = result
         result = result.T if self.axis == 1 else result
-        out = obj._constructor(result, index=obj.index, columns=obj.columns)
+        index = obj.index if self.axis == 1 else self._slice_index(obj.index, ref)
+        columns = obj.columns if self.axis != 1 else self._slice_index(obj.columns, ref)
+        out = obj._constructor(result, index=index, columns=columns)
 
         return self._resolve_output(out, obj)
 
@@ -565,18 +604,19 @@ class BaseWindow(SelectionMixin):
             # calculation function
 
             if values.size == 0:
-                return values.copy()
+                return values.copy(), np.array([], dtype=np.int64)
 
             def calc(x):
-                start, end = window_indexer.get_window_bounds(
+                start, end, ref = window_indexer.get_window_bounds(
                     num_values=len(x),
                     min_periods=min_periods,
                     center=self.center,
                     closed=self.closed,
+                    step=self.step,
                 )
-                self._check_window_bounds(start, end, len(x))
+                self._check_window_bounds(start, end, ref, len(x))
 
-                return func(x, start, end, min_periods, *numba_args)
+                return func(x, start, end, min_periods, *numba_args), ref
 
             with np.errstate(all="ignore"):
                 result = calc(values)
@@ -610,25 +650,30 @@ class BaseWindow(SelectionMixin):
         values = self._prep_values(obj.to_numpy())
         if values.ndim == 1:
             values = values.reshape(-1, 1)
-        start, end = window_indexer.get_window_bounds(
+        start, end, ref = window_indexer.get_window_bounds(
             num_values=len(values),
             min_periods=min_periods,
             center=self.center,
             closed=self.closed,
+            step=self.step,
         )
-        self._check_window_bounds(start, end, len(values))
+        self._check_window_bounds(start, end, ref, len(values))
         aggregator = executor.generate_shared_aggregator(
             func, engine_kwargs, numba_cache_key_str
         )
         result = aggregator(values, start, end, min_periods, *func_args)
         NUMBA_FUNC_CACHE[(func, numba_cache_key_str)] = aggregator
         result = result.T if self.axis == 1 else result
+        index = obj.index if self.axis == 1 else self._slice_index(obj.index, ref)
         if obj.ndim == 1:
             result = result.squeeze()
-            out = obj._constructor(result, index=obj.index, name=obj.name)
+            out = obj._constructor(result, index=index, name=obj.name)
             return out
         else:
-            out = obj._constructor(result, index=obj.index, columns=obj.columns)
+            columns = (
+                obj.columns if self.axis != 1 else self._slice_index(obj.columns, ref)
+            )
+            out = obj._constructor(result, index=index, columns=columns)
             return self._resolve_output(out, obj)
 
     def aggregate(self, func, *args, **kwargs):
@@ -707,7 +752,7 @@ class BaseWindowGroupby(BaseWindow):
 
         group_indices = self._grouper.indices.values()
         if group_indices:
-            indexer = np.concatenate(list(group_indices))
+            indexer = np.concatenate([ind[:: self.step] for ind in group_indices])
         else:
             indexer = np.array([], dtype=np.intp)
         codes = [c.take(indexer) for c in codes]
@@ -729,6 +774,14 @@ class BaseWindowGroupby(BaseWindow):
         if not self._as_index:
             result = result.reset_index(level=list(range(len(groupby_keys))))
         return result
+
+    def _adjust_pairwise_result(self, result):
+        return concat(
+            [
+                result.take(gb_indices[:: self.step]).reindex(result.index)
+                for gb_indices in self._grouper.indices.values()
+            ]
+        )
 
     def _apply_pairwise(
         self,
@@ -753,12 +806,7 @@ class BaseWindowGroupby(BaseWindow):
             # from flex_binary_moment to a "transform"-like result
             # per groupby combination
             old_result_len = len(result)
-            result = concat(
-                [
-                    result.take(gb_indices).reindex(result.index)
-                    for gb_indices in self._grouper.indices.values()
-                ]
-            )
+            result = self._adjust_pairwise_result(result)
 
             gb_pairs = (
                 com.maybe_make_list(pair) for pair in self._grouper.indices.keys()
@@ -781,7 +829,7 @@ class BaseWindowGroupby(BaseWindow):
 
             group_indices = self._grouper.indices.values()
             if group_indices:
-                indexer = np.concatenate(list(group_indices))
+                indexer = np.concatenate([ind[:: self.step] for ind in group_indices])
             else:
                 indexer = np.array([], dtype=np.intp)
 
@@ -864,8 +912,8 @@ class Window(BaseWindow):
 
         If a BaseIndexer subclass, the window boundaries
         based on the defined ``get_window_bounds`` method. Additional rolling
-        keyword arguments, namely ``min_periods``, ``center``, and
-        ``closed`` will be passed to ``get_window_bounds``.
+        keyword arguments, namely ``min_periods``, ``center``, ``closed`` and
+        ``step`` will be passed to ``get_window_bounds``.
 
     min_periods : int, default None
         Minimum number of observations in window required to have a value;
@@ -1059,6 +1107,7 @@ class Window(BaseWindow):
         "axis",
         "on",
         "closed",
+        "step",
         "method",
     ]
 
@@ -1151,7 +1200,7 @@ class Window(BaseWindow):
 
             return result
 
-        return self._apply_blockwise(homogeneous_func, name)
+        return self._apply_blockwise(homogeneous_func, name)[:: self.step]
 
     @doc(
         _shared_docs["aggregate"],
@@ -1590,13 +1639,14 @@ class RollingAndExpandingMixin(BaseWindow):
                 if self.min_periods is not None
                 else window_indexer.window_size
             )
-            start, end = window_indexer.get_window_bounds(
+            start, end, ref = window_indexer.get_window_bounds(
                 num_values=len(x_array),
                 min_periods=min_periods,
                 center=self.center,
                 closed=self.closed,
+                step=self.step,
             )
-            self._check_window_bounds(start, end, len(x_array))
+            self._check_window_bounds(start, end, ref, len(x_array))
 
             with np.errstate(all="ignore"):
                 mean_x_y = window_aggregations.roll_mean(
@@ -1608,7 +1658,7 @@ class RollingAndExpandingMixin(BaseWindow):
                     notna(x_array + y_array).astype(np.float64), start, end, 0
                 )
                 result = (mean_x_y - mean_x * mean_y) * (count_x_y / (count_x_y - ddof))
-            return Series(result, index=x.index, name=x.name)
+            return Series(result, index=self._slice_index(x.index, ref), name=x.name)
 
         return self._apply_pairwise(self._selected_obj, other, pairwise, cov_func)
 
@@ -1631,13 +1681,14 @@ class RollingAndExpandingMixin(BaseWindow):
                 if self.min_periods is not None
                 else window_indexer.window_size
             )
-            start, end = window_indexer.get_window_bounds(
+            start, end, ref = window_indexer.get_window_bounds(
                 num_values=len(x_array),
                 min_periods=min_periods,
                 center=self.center,
                 closed=self.closed,
+                step=self.step,
             )
-            self._check_window_bounds(start, end, len(x_array))
+            self._check_window_bounds(start, end, ref, len(x_array))
 
             with np.errstate(all="ignore"):
                 mean_x_y = window_aggregations.roll_mean(
@@ -1659,7 +1710,7 @@ class RollingAndExpandingMixin(BaseWindow):
                 )
                 denominator = (x_var * y_var) ** 0.5
                 result = numerator / denominator
-            return Series(result, index=x.index, name=x.name)
+            return Series(result, index=self._slice_index(x.index, ref), name=x.name)
 
         return self._apply_pairwise(self._selected_obj, other, pairwise, corr_func)
 
@@ -1674,6 +1725,7 @@ class Rolling(RollingAndExpandingMixin):
         "axis",
         "on",
         "closed",
+        "step",
         "method",
     ]
 
@@ -2597,6 +2649,17 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
 
     _attributes = Rolling._attributes + BaseWindowGroupby._attributes
 
+    def _slice_index(self, index: Index, at: np.ndarray) -> Index:
+        """
+        Slices the index of the object.
+        """
+        if at is None:
+            return index
+        result = index[at]
+        if isinstance(index, DatetimeIndex):
+            result.freq = None
+        return result
+
     def _get_window_indexer(self) -> GroupbyIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
@@ -2639,3 +2702,22 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
             or self._on.hasnans
         ):
             self._raise_monotonic_error()
+
+    def _adjust_pairwise_result(self, result):
+        gb_lens = np.array(
+            [
+                len(gb_indices[:: self.step])
+                for gb_indices in self._grouper.indices.values()
+            ],
+            dtype=np.int64,
+        )
+        gb_ends = np.cumsum(gb_lens)
+        gb_starts = np.hstack((0, gb_ends[:-1])) if len(gb_ends) > 0 else gb_ends
+        return concat(
+            [
+                result.take(
+                    np.arange(gb_starts[i], gb_ends[i], dtype=np.int64)
+                ).reindex(result.index)
+                for i in range(len(gb_ends))
+            ]
+        )

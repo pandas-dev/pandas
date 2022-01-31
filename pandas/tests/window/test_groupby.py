@@ -102,53 +102,58 @@ class TestRolling:
             "skew",
         ],
     )
-    def test_rolling(self, f):
+    def test_rolling(self, f, step, step_methods):
         g = self.frame.groupby("A")
-        r = g.rolling(window=4)
+        r = g.rolling(window=4, step=step)
 
         result = getattr(r, f)()
-        expected = g.apply(lambda x: getattr(x.rolling(4), f)())
+        expected = g.apply(lambda x: getattr(x.rolling(4, step=step), f)())
         # groupby.apply doesn't drop the grouped-by column
         expected = expected.drop("A", axis=1)
         # GH 39732
-        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        selected = step_methods.get_selected_indices(step, self.frame["A"])
+        expected_index = MultiIndex.from_arrays([self.frame["A"][selected], selected])
         expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("f", ["std", "var"])
-    def test_rolling_ddof(self, f):
+    def test_rolling_ddof(self, f, step, step_methods):
         g = self.frame.groupby("A")
-        r = g.rolling(window=4)
+        r = g.rolling(window=4, step=step)
 
         result = getattr(r, f)(ddof=1)
-        expected = g.apply(lambda x: getattr(x.rolling(4), f)(ddof=1))
+        expected = g.apply(lambda x: getattr(x.rolling(4, step=step), f)(ddof=1))
         # groupby.apply doesn't drop the grouped-by column
         expected = expected.drop("A", axis=1)
         # GH 39732
-        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        selected = step_methods.get_selected_indices(step, self.frame["A"])
+        expected_index = MultiIndex.from_arrays([self.frame["A"][selected], selected])
         expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "interpolation", ["linear", "lower", "higher", "midpoint", "nearest"]
     )
-    def test_rolling_quantile(self, interpolation):
+    def test_rolling_quantile(self, interpolation, step, step_methods):
         g = self.frame.groupby("A")
-        r = g.rolling(window=4)
+        r = g.rolling(window=4, step=step)
 
         result = r.quantile(0.4, interpolation=interpolation)
         expected = g.apply(
-            lambda x: x.rolling(4).quantile(0.4, interpolation=interpolation)
+            lambda x: x.rolling(4, step=step).quantile(0.4, interpolation=interpolation)
         )
         # groupby.apply doesn't drop the grouped-by column
         expected = expected.drop("A", axis=1)
         # GH 39732
-        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        selected = step_methods.get_selected_indices(step, self.frame["A"])
+        expected_index = MultiIndex.from_arrays([self.frame["A"][selected], selected])
         expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("f, expected_val", [["corr", 1], ["cov", 0.5]])
-    def test_rolling_corr_cov_other_same_size_as_groups(self, f, expected_val):
+    def test_rolling_corr_cov_other_same_size_as_groups(
+        self, f, expected_val, step, step_methods
+    ):
         # GH 42915
         df = DataFrame(
             {"value": range(10), "idx1": [1] * 5 + [2] * 5, "idx2": [1, 2, 3, 4, 5] * 2}
@@ -156,7 +161,8 @@ class TestRolling:
         other = DataFrame({"value": range(5), "idx2": [1, 2, 3, 4, 5]}).set_index(
             "idx2"
         )
-        result = getattr(df.groupby(level=0).rolling(2), f)(other)
+        result = getattr(df.groupby(level=0).rolling(2, step=step), f)(other)
+        selected = step_methods.get_selected_indices(step, df.index.get_level_values(0))
         expected_data = ([np.nan] + [expected_val] * 4) * 2
         expected = DataFrame(
             expected_data,
@@ -169,18 +175,19 @@ class TestRolling:
                 ],
                 names=["idx1", "idx1", "idx2"],
             ),
-        )
+        ).iloc[selected]
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("f", ["corr", "cov"])
-    def test_rolling_corr_cov_other_diff_size_as_groups(self, f):
+    def test_rolling_corr_cov_other_diff_size_as_groups(self, f, step):
         g = self.frame.groupby("A")
-        r = g.rolling(window=4)
+        r = g.rolling(window=4, step=step)
 
         result = getattr(r, f)(self.frame)
 
         def func(x):
-            return getattr(x.rolling(4), f)(self.frame)
+            locs = np.hstack([x1.index[::step] for k1, x1 in g])
+            return getattr(x.rolling(4), f)(self.frame).loc[locs]
 
         expected = g.apply(func)
         # GH 39591: The grouped column should be all np.nan
@@ -189,14 +196,14 @@ class TestRolling:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("f", ["corr", "cov"])
-    def test_rolling_corr_cov_pairwise(self, f):
+    def test_rolling_corr_cov_pairwise(self, f, step):
         g = self.frame.groupby("A")
-        r = g.rolling(window=4)
+        r = g.rolling(window=4, step=step)
 
         result = getattr(r.B, f)(pairwise=True)
 
         def func(x):
-            return getattr(x.B.rolling(4), f)(pairwise=True)
+            return getattr(x.B.rolling(4, step=step), f)(pairwise=True)
 
         expected = g.apply(func)
         tm.assert_series_equal(result, expected)
@@ -205,7 +212,9 @@ class TestRolling:
         "func, expected_values",
         [("cov", [[1.0, 1.0], [1.0, 4.0]]), ("corr", [[1.0, 0.5], [0.5, 1.0]])],
     )
-    def test_rolling_corr_cov_unordered(self, func, expected_values):
+    def test_rolling_corr_cov_unordered(
+        self, func, expected_values, step, step_methods
+    ):
         # GH 43386
         df = DataFrame(
             {
@@ -214,7 +223,7 @@ class TestRolling:
                 "c": [2, 0, 6, 4],
             }
         )
-        rol = df.groupby("a").rolling(3)
+        rol = df.groupby("a").rolling(3, step=step)
         result = getattr(rol, func)()
         expected = DataFrame(
             {
@@ -235,23 +244,32 @@ class TestRolling:
                 names=["a", None, None],
             ),
         )
+        selected = [
+            2 * x + i
+            for x in step_methods.get_selected_indices(step, [1, 1, 1, 2])
+            for i in range(2)
+        ]
+        expected = expected.iloc[selected]
         tm.assert_frame_equal(result, expected)
 
-    def test_rolling_apply(self, raw):
+    def test_rolling_apply(self, raw, step, step_methods):
         g = self.frame.groupby("A")
-        r = g.rolling(window=4)
+        r = g.rolling(window=4, step=step)
 
         # reduction
         result = r.apply(lambda x: x.sum(), raw=raw)
-        expected = g.apply(lambda x: x.rolling(4).apply(lambda y: y.sum(), raw=raw))
+        expected = g.apply(
+            lambda x: x.rolling(4, step=step).apply(lambda y: y.sum(), raw=raw)
+        )
         # groupby.apply doesn't drop the grouped-by column
         expected = expected.drop("A", axis=1)
         # GH 39732
-        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        selected = step_methods.get_selected_indices(step, self.frame["A"])
+        expected_index = MultiIndex.from_arrays([self.frame["A"][selected], selected])
         expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
-    def test_rolling_apply_mutability(self):
+    def test_rolling_apply_mutability(self, step, step_methods):
         # GH 14013
         df = DataFrame({"A": ["foo"] * 3 + ["bar"] * 3, "B": [1] * 6})
         g = df.groupby("A")
@@ -262,38 +280,41 @@ class TestRolling:
 
         mi.names = ["A", None]
         # Grouped column should not be a part of the output
-        expected = DataFrame([np.nan, 2.0, 2.0] * 2, columns=["B"], index=mi)
+        selected = step_methods.get_selected_indices(step, df["A"])
+        expected = DataFrame([np.nan, 2.0, 2.0] * 2, columns=["B"], index=mi).iloc[
+            selected
+        ]
 
-        result = g.rolling(window=2).sum()
+        result = g.rolling(window=2, step=step).sum()
         tm.assert_frame_equal(result, expected)
 
         # Call an arbitrary function on the groupby
         g.sum()
 
         # Make sure nothing has been mutated
-        result = g.rolling(window=2).sum()
+        result = g.rolling(window=2, step=step).sum()
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("expected_value,raw_value", [[1.0, True], [0.0, False]])
-    def test_groupby_rolling(self, expected_value, raw_value):
+    def test_groupby_rolling(self, expected_value, raw_value, step):
         # GH 31754
 
         def foo(x):
             return int(isinstance(x, np.ndarray))
 
         df = DataFrame({"id": [1, 1, 1], "value": [1, 2, 3]})
-        result = df.groupby("id").value.rolling(1).apply(foo, raw=raw_value)
+        result = df.groupby("id").value.rolling(1, step=step).apply(foo, raw=raw_value)
         expected = Series(
             [expected_value] * 3,
             index=MultiIndex.from_tuples(((1, 0), (1, 1), (1, 2)), names=["id", None]),
             name="value",
-        )
+        ).iloc[::step]
         tm.assert_series_equal(result, expected)
 
-    def test_groupby_rolling_center_center(self):
+    def test_groupby_rolling_center_center(self, step, step_methods):
         # GH 35552
         series = Series(range(1, 6))
-        result = series.groupby(series).rolling(center=True, window=3).mean()
+        result = series.groupby(series).rolling(center=True, window=3, step=step).mean()
         expected = Series(
             [np.nan] * 5,
             index=MultiIndex.from_tuples(((1, 0), (2, 1), (3, 2), (4, 3), (5, 4))),
@@ -301,7 +322,7 @@ class TestRolling:
         tm.assert_series_equal(result, expected)
 
         series = Series(range(1, 5))
-        result = series.groupby(series).rolling(center=True, window=3).mean()
+        result = series.groupby(series).rolling(center=True, window=3, step=step).mean()
         expected = Series(
             [np.nan] * 4,
             index=MultiIndex.from_tuples(((1, 0), (2, 1), (3, 2), (4, 3))),
@@ -309,7 +330,8 @@ class TestRolling:
         tm.assert_series_equal(result, expected)
 
         df = DataFrame({"a": ["a"] * 5 + ["b"] * 6, "b": range(11)})
-        result = df.groupby("a").rolling(center=True, window=3).mean()
+        result = df.groupby("a").rolling(center=True, window=3, step=step).mean()
+        selected = step_methods.get_selected_indices(step, df["a"])
         expected = DataFrame(
             [np.nan, 1, 2, 3, np.nan, np.nan, 6, 7, 8, 9, np.nan],
             index=MultiIndex.from_tuples(
@@ -329,11 +351,12 @@ class TestRolling:
                 names=["a", None],
             ),
             columns=["b"],
-        )
+        ).iloc[selected]
         tm.assert_frame_equal(result, expected)
 
         df = DataFrame({"a": ["a"] * 5 + ["b"] * 5, "b": range(10)})
-        result = df.groupby("a").rolling(center=True, window=3).mean()
+        result = df.groupby("a").rolling(center=True, window=3, step=step).mean()
+        selected = step_methods.get_selected_indices(step, df["a"])
         expected = DataFrame(
             [np.nan, 1, 2, 3, np.nan, np.nan, 6, 7, 8, np.nan],
             index=MultiIndex.from_tuples(
@@ -352,10 +375,10 @@ class TestRolling:
                 names=["a", None],
             ),
             columns=["b"],
-        )
+        ).iloc[selected]
         tm.assert_frame_equal(result, expected)
 
-    def test_groupby_rolling_center_on(self):
+    def test_groupby_rolling_center_on(self, step, step_methods):
         # GH 37141
         df = DataFrame(
             data={
@@ -366,9 +389,10 @@ class TestRolling:
         )
         result = (
             df.groupby("gb")
-            .rolling(6, on="Date", center=True, min_periods=1)
+            .rolling(6, on="Date", center=True, min_periods=1, step=step)
             .value.mean()
         )
+        selected = step_methods.get_selected_indices(step, df["gb"])
         expected = Series(
             [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 7.0, 7.5, 7.5, 7.5],
             name="value",
@@ -387,18 +411,18 @@ class TestRolling:
                 ),
                 names=["gb", "Date"],
             ),
-        )
+        ).iloc[selected]
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("min_periods", [5, 4, 3])
-    def test_groupby_rolling_center_min_periods(self, min_periods):
+    def test_groupby_rolling_center_min_periods(self, min_periods, step, step_methods):
         # GH 36040
         df = DataFrame({"group": ["A"] * 10 + ["B"] * 10, "data": range(20)})
 
         window_size = 5
         result = (
             df.groupby("group")
-            .rolling(window_size, center=True, min_periods=min_periods)
+            .rolling(window_size, center=True, min_periods=min_periods, step=step)
             .mean()
         )
         result = result.reset_index()[["group", "data"]]
@@ -411,18 +435,26 @@ class TestRolling:
         grp_A_expected = nans + grp_A_mean[num_nans : 10 - num_nans] + nans
         grp_B_expected = nans + grp_B_mean[num_nans : 10 - num_nans] + nans
 
-        expected = DataFrame(
-            {"group": ["A"] * 10 + ["B"] * 10, "data": grp_A_expected + grp_B_expected}
+        selected = step_methods.get_selected_indices(step, df["group"])
+        expected = (
+            DataFrame(
+                {
+                    "group": ["A"] * 10 + ["B"] * 10,
+                    "data": grp_A_expected + grp_B_expected,
+                }
+            )
+            .iloc[selected]
+            .reset_index(drop=True)
         )
 
         tm.assert_frame_equal(result, expected)
 
-    def test_groupby_subselect_rolling(self):
+    def test_groupby_subselect_rolling(self, step, step_methods):
         # GH 35486
         df = DataFrame(
             {"a": [1, 2, 3, 2], "b": [4.0, 2.0, 3.0, 1.0], "c": [10, 20, 30, 20]}
         )
-        result = df.groupby("a")[["b"]].rolling(2).max()
+        result = df.groupby("a")[["b"]].rolling(2, step=step).max()
         expected = DataFrame(
             [np.nan, np.nan, 2.0, np.nan],
             columns=["b"],
@@ -430,9 +462,13 @@ class TestRolling:
                 ((1, 0), (2, 1), (2, 3), (3, 2)), names=["a", None]
             ),
         )
+        selected = step_methods.get_selected_indices(
+            step, expected.index.get_level_values(0)
+        )
+        expected = expected.iloc[selected]
         tm.assert_frame_equal(result, expected)
 
-        result = df.groupby("a")["b"].rolling(2).max()
+        result = df.groupby("a")["b"].rolling(2, step=step).max()
         expected = Series(
             [np.nan, np.nan, 2.0, np.nan],
             index=MultiIndex.from_tuples(
@@ -440,32 +476,44 @@ class TestRolling:
             ),
             name="b",
         )
+        selected = step_methods.get_selected_indices(
+            step, expected.index.get_level_values(0)
+        )
+        expected = expected.iloc[selected]
         tm.assert_series_equal(result, expected)
 
-    def test_groupby_rolling_custom_indexer(self):
+    def test_groupby_rolling_custom_indexer(self, step):
         # GH 35557
         class SimpleIndexer(BaseIndexer):
             def get_window_bounds(
-                self, num_values=0, min_periods=None, center=None, closed=None
+                self,
+                num_values=0,
+                min_periods=None,
+                center=None,
+                closed=None,
+                step=None,
             ):
                 min_periods = self.window_size if min_periods is None else 0
-                end = np.arange(num_values, dtype=np.int64) + 1
+                end = np.arange(num_values, dtype=np.int64)[::step] + 1
                 start = end.copy() - self.window_size
                 start[start < 0] = min_periods
-                return start, end
+                ref = np.arange(0, num_values, step, dtype=np.int64)
+                return start, end, ref
 
         df = DataFrame(
             {"a": [1.0, 2.0, 3.0, 4.0, 5.0] * 3}, index=[0] * 5 + [1] * 5 + [2] * 5
         )
         result = (
             df.groupby(df.index)
-            .rolling(SimpleIndexer(window_size=3), min_periods=1)
+            .rolling(SimpleIndexer(window_size=3), min_periods=1, step=step)
             .sum()
         )
-        expected = df.groupby(df.index).rolling(window=3, min_periods=1).sum()
+        expected = (
+            df.groupby(df.index).rolling(window=3, min_periods=1, step=step).sum()
+        )
         tm.assert_frame_equal(result, expected)
 
-    def test_groupby_rolling_subset_with_closed(self):
+    def test_groupby_rolling_subset_with_closed(self, step, step_methods):
         # GH 35549
         df = DataFrame(
             {
@@ -476,7 +524,9 @@ class TestRolling:
             }
         )
         result = (
-            df.groupby("group").rolling("1D", on="date", closed="left")["column1"].sum()
+            df.groupby("group")
+            .rolling("1D", on="date", closed="left", step=step)["column1"]
+            .sum()
         )
         expected = Series(
             [np.nan, 0.0, 2.0, np.nan, 1.0, 4.0],
@@ -487,9 +537,13 @@ class TestRolling:
             ),
             name="column1",
         )
+        selected = step_methods.get_selected_indices(
+            step, expected.index.get_level_values(0)
+        )
+        expected = expected.iloc[selected]
         tm.assert_series_equal(result, expected)
 
-    def test_groupby_subset_rolling_subset_with_closed(self):
+    def test_groupby_subset_rolling_subset_with_closed(self, step, step_methods):
         # GH 35549
         df = DataFrame(
             {
@@ -502,7 +556,7 @@ class TestRolling:
 
         result = (
             df.groupby("group")[["column1", "date"]]
-            .rolling("1D", on="date", closed="left")["column1"]
+            .rolling("1D", on="date", closed="left", step=step)["column1"]
             .sum()
         )
         expected = Series(
@@ -514,10 +568,14 @@ class TestRolling:
             ),
             name="column1",
         )
+        selected = step_methods.get_selected_indices(
+            step, expected.index.get_level_values(0)
+        )
+        expected = expected.iloc[selected]
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("func", ["max", "min"])
-    def test_groupby_rolling_index_changed(self, func):
+    def test_groupby_rolling_index_changed(self, func, step, step_methods):
         # GH: #36018 nlevels of MultiIndex changed
         ds = Series(
             [1, 2, 2],
@@ -527,20 +585,21 @@ class TestRolling:
             name="a",
         )
 
-        result = getattr(ds.groupby(ds).rolling(2), func)()
+        result = getattr(ds.groupby(ds).rolling(2, step=step), func)()
+        selected = step_methods.get_selected_indices(step, ds)
         expected = Series(
             [np.nan, np.nan, 2.0],
             index=MultiIndex.from_tuples(
                 [(1, "a", "x"), (2, "a", "y"), (2, "c", "z")], names=["a", "1", "2"]
             ),
             name="a",
-        )
+        ).iloc[selected]
         tm.assert_series_equal(result, expected)
 
-    def test_groupby_rolling_empty_frame(self):
+    def test_groupby_rolling_empty_frame(self, step):
         # GH 36197
         expected = DataFrame({"s1": []})
-        result = expected.groupby("s1").rolling(window=1).sum()
+        result = expected.groupby("s1").rolling(window=1, step=step).sum()
         # GH 32262
         expected = expected.drop(columns="s1")
         # GH-38057 from_tuples gives empty object dtype, we now get float/int levels
@@ -551,7 +610,7 @@ class TestRolling:
         tm.assert_frame_equal(result, expected)
 
         expected = DataFrame({"s1": [], "s2": []})
-        result = expected.groupby(["s1", "s2"]).rolling(window=1).sum()
+        result = expected.groupby(["s1", "s2"]).rolling(window=1, step=step).sum()
         # GH 32262
         expected = expected.drop(columns=["s1", "s2"])
         expected.index = MultiIndex.from_product(
@@ -564,7 +623,7 @@ class TestRolling:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_groupby_rolling_string_index(self):
+    def test_groupby_rolling_string_index(self, step, step_methods):
         # GH: 36727
         df = DataFrame(
             [
@@ -579,7 +638,7 @@ class TestRolling:
 
         groups = df.groupby("group")
         df["count_to_date"] = groups.cumcount()
-        rolling_groups = groups.rolling("10d", on="eventTime")
+        rolling_groups = groups.rolling("10d", on="eventTime", step=step)
         result = rolling_groups.apply(lambda df: df.shape[0])
         expected = DataFrame(
             [
@@ -591,14 +650,18 @@ class TestRolling:
             ],
             columns=["index", "group", "eventTime", "count_to_date"],
         ).set_index(["group", "index"])
+        selected = step_methods.get_selected_indices(
+            step, expected.index.get_level_values(0)
+        )
+        expected = expected.iloc[selected]
         tm.assert_frame_equal(result, expected)
 
-    def test_groupby_rolling_no_sort(self):
+    def test_groupby_rolling_no_sort(self, step, step_methods):
         # GH 36889
         result = (
             DataFrame({"foo": [2, 1], "bar": [2, 1]})
             .groupby("foo", sort=False)
-            .rolling(1)
+            .rolling(1, step=step)
             .min()
         )
         expected = DataFrame(
@@ -608,9 +671,13 @@ class TestRolling:
         )
         # GH 32262
         expected = expected.drop(columns="foo")
+        selected = step_methods.get_selected_indices(
+            step, expected.index.get_level_values(0)
+        )
+        expected = expected.iloc[selected]
         tm.assert_frame_equal(result, expected)
 
-    def test_groupby_rolling_count_closed_on(self):
+    def test_groupby_rolling_count_closed_on(self, step, step_methods):
         # GH 35869
         df = DataFrame(
             {
@@ -622,7 +689,7 @@ class TestRolling:
         )
         result = (
             df.groupby("group")
-            .rolling("3d", on="date", closed="left")["column1"]
+            .rolling("3d", on="date", closed="left", step=step)["column1"]
             .count()
         )
         expected = Series(
@@ -640,13 +707,21 @@ class TestRolling:
                 names=["group", "date"],
             ),
         )
+        selected = step_methods.get_selected_indices(
+            step, expected.index.get_level_values(0)
+        )
+        expected = expected.iloc[selected]
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         ("func", "kwargs"),
-        [("rolling", {"window": 2, "min_periods": 1}), ("expanding", {})],
+        [
+            ("rolling", {"window": 2, "min_periods": 1, "step": step})
+            for step in [None, 1, 2, 5, 10]
+        ]
+        + [("expanding", {})],
     )
-    def test_groupby_rolling_sem(self, func, kwargs):
+    def test_groupby_rolling_sem(self, func, kwargs, step_methods):
         # GH: 26476
         df = DataFrame(
             [["a", 1], ["a", 2], ["b", 1], ["b", 2], ["b", 3]], columns=["a", "b"]
@@ -660,12 +735,18 @@ class TestRolling:
         )
         # GH 32262
         expected = expected.drop(columns="a")
+        if "step" in kwargs:
+            step = kwargs["step"]
+            selected = step_methods.get_selected_indices(
+                step, expected.index.get_level_values(0)
+            )
+            expected = expected.iloc[selected]
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         ("rollings", "key"), [({"on": "a"}, "a"), ({"on": None}, "index")]
     )
-    def test_groupby_rolling_nans_in_index(self, rollings, key):
+    def test_groupby_rolling_nans_in_index(self, rollings, key, step):
         # GH: 34617
         df = DataFrame(
             {
@@ -677,10 +758,10 @@ class TestRolling:
         if key == "index":
             df = df.set_index("a")
         with pytest.raises(ValueError, match=f"{key} must be monotonic"):
-            df.groupby("c").rolling("60min", **rollings)
+            df.groupby("c").rolling("60min", **rollings, step=step)
 
     @pytest.mark.parametrize("group_keys", [True, False])
-    def test_groupby_rolling_group_keys(self, group_keys):
+    def test_groupby_rolling_group_keys(self, group_keys, step, step_methods):
         # GH 37641
         # GH 38523: GH 37641 actually was not a bug.
         # group_keys only applies to groupby.apply directly
@@ -688,7 +769,11 @@ class TestRolling:
         index = MultiIndex.from_arrays(arrays, names=("idx1", "idx2"))
 
         s = Series([1, 2, 3], index=index)
-        result = s.groupby(["idx1", "idx2"], group_keys=group_keys).rolling(1).mean()
+        result = (
+            s.groupby(["idx1", "idx2"], group_keys=group_keys)
+            .rolling(1, step=step)
+            .mean()
+        )
         expected = Series(
             [1.0, 2.0, 3.0],
             index=MultiIndex.from_tuples(
@@ -700,15 +785,19 @@ class TestRolling:
                 names=["idx1", "idx2", "idx1", "idx2"],
             ),
         )
+        selected = step_methods.get_selected_indices(
+            step, expected.index.get_level_values(0)
+        )
+        expected = expected.iloc[selected]
         tm.assert_series_equal(result, expected)
 
-    def test_groupby_rolling_index_level_and_column_label(self):
+    def test_groupby_rolling_index_level_and_column_label(self, step, step_methods):
         # The groupby keys should not appear as a resulting column
         arrays = [["val1", "val1", "val2"], ["val1", "val1", "val2"]]
         index = MultiIndex.from_arrays(arrays, names=("idx1", "idx2"))
 
         df = DataFrame({"A": [1, 1, 2], "B": range(3)}, index=index)
-        result = df.groupby(["idx1", "A"]).rolling(1).mean()
+        result = df.groupby(["idx1", "A"]).rolling(1, step=step).mean()
         expected = DataFrame(
             {"B": [0.0, 1.0, 2.0]},
             index=MultiIndex.from_tuples(
@@ -720,25 +809,33 @@ class TestRolling:
                 names=["idx1", "A", "idx1", "idx2"],
             ),
         )
+        selected = step_methods.get_selected_indices(
+            step, expected.index.get_level_values(0)
+        )
+        expected = expected.iloc[selected]
         tm.assert_frame_equal(result, expected)
 
-    def test_groupby_rolling_resulting_multiindex(self):
+    def test_groupby_rolling_resulting_multiindex(self, step, step_methods):
         # a few different cases checking the created MultiIndex of the result
         # https://github.com/pandas-dev/pandas/pull/38057
 
         # grouping by 1 columns -> 2-level MI as result
         df = DataFrame({"a": np.arange(8.0), "b": [1, 2] * 4})
-        result = df.groupby("b").rolling(3).mean()
+        result = df.groupby("b").rolling(3, step=step).mean()
         expected_index = MultiIndex.from_tuples(
             [(1, 0), (1, 2), (1, 4), (1, 6), (2, 1), (2, 3), (2, 5), (2, 7)],
             names=["b", None],
         )
+        selected = step_methods.get_selected_indices(
+            step, expected_index.get_level_values(0)
+        )
+        expected_index = expected_index[selected]
         tm.assert_index_equal(result.index, expected_index)
 
-    def test_groupby_rolling_resulting_multiindex2(self):
+    def test_groupby_rolling_resulting_multiindex2(self, step, step_methods):
         # grouping by 2 columns -> 3-level MI as result
         df = DataFrame({"a": np.arange(12.0), "b": [1, 2] * 6, "c": [1, 2, 3, 4] * 3})
-        result = df.groupby(["b", "c"]).rolling(2).sum()
+        result = df.groupby(["b", "c"]).rolling(2, step=step).sum()
         expected_index = MultiIndex.from_tuples(
             [
                 (1, 1, 0),
@@ -756,13 +853,17 @@ class TestRolling:
             ],
             names=["b", "c", None],
         )
+        selected = step_methods.get_selected_indices(
+            step, expected_index.droplevel(2).tolist()
+        )
+        expected_index = expected_index[selected]
         tm.assert_index_equal(result.index, expected_index)
 
-    def test_groupby_rolling_resulting_multiindex3(self):
+    def test_groupby_rolling_resulting_multiindex3(self, step, step_methods):
         # grouping with 1 level on dataframe with 2-level MI -> 3-level MI as result
         df = DataFrame({"a": np.arange(8.0), "b": [1, 2] * 4, "c": [1, 2, 3, 4] * 2})
         df = df.set_index("c", append=True)
-        result = df.groupby("b").rolling(3).mean()
+        result = df.groupby("b").rolling(3, step=step).mean()
         expected_index = MultiIndex.from_tuples(
             [
                 (1, 0, 1),
@@ -776,14 +877,18 @@ class TestRolling:
             ],
             names=["b", None, "c"],
         )
+        selected = step_methods.get_selected_indices(
+            step, expected_index.get_level_values(0)
+        )
+        expected_index = expected_index[selected]
         tm.assert_index_equal(result.index, expected_index, exact="equiv")
 
-    def test_groupby_rolling_object_doesnt_affect_groupby_apply(self):
+    def test_groupby_rolling_object_doesnt_affect_groupby_apply(self, step):
         # GH 39732
         g = self.frame.groupby("A")
-        expected = g.apply(lambda x: x.rolling(4).sum()).index
+        expected = g.apply(lambda x: x.rolling(4, step=step).sum()).index
         _ = g.rolling(window=4)
-        result = g.apply(lambda x: x.rolling(4).sum()).index
+        result = g.apply(lambda x: x.rolling(4, step=step).sum()).index
         tm.assert_index_equal(result, expected)
         assert not g.mutated
         assert not g.grouper.mutated
@@ -797,11 +902,13 @@ class TestRolling:
             (4, 4, "right", [None, None, None, 5.0, None, None, None, 5.0]),
         ],
     )
-    def test_groupby_rolling_var(self, window, min_periods, closed, expected):
+    def test_groupby_rolling_var(
+        self, window, min_periods, closed, expected, step, step_methods
+    ):
         df = DataFrame([1, 2, 3, 4, 5, 6, 7, 8])
         result = (
             df.groupby([1, 2, 1, 2, 1, 2, 1, 2])
-            .rolling(window=window, min_periods=min_periods, closed=closed)
+            .rolling(window=window, min_periods=min_periods, closed=closed, step=step)
             .var(0)
         )
         expected_result = DataFrame(
@@ -811,6 +918,10 @@ class TestRolling:
                 codes=[[0, 0, 0, 0, 1, 1, 1, 1], [0, 2, 4, 6, 1, 3, 5, 7]],
             ),
         )
+        selected = step_methods.get_selected_indices(
+            step, expected_result.index.get_level_values(0)
+        )
+        expected_result = expected_result.iloc[selected]
         tm.assert_frame_equal(result, expected_result)
 
     @pytest.mark.parametrize(
@@ -826,7 +937,7 @@ class TestRolling:
         assert "A" not in result.columns
         tm.assert_frame_equal(g.obj, original_obj)
 
-    def test_groupby_level(self):
+    def test_groupby_level(self, step, step_methods):
         # GH 38523, 38787
         arrays = [
             ["Falcon", "Falcon", "Parrot", "Parrot"],
@@ -834,7 +945,7 @@ class TestRolling:
         ]
         index = MultiIndex.from_arrays(arrays, names=("Animal", "Type"))
         df = DataFrame({"Max Speed": [390.0, 350.0, 30.0, 20.0]}, index=index)
-        result = df.groupby(level=0)["Max Speed"].rolling(2).sum()
+        result = df.groupby(level=0)["Max Speed"].rolling(2, step=step).sum()
         expected = Series(
             [np.nan, 740.0, np.nan, 50.0],
             index=MultiIndex.from_tuples(
@@ -848,6 +959,10 @@ class TestRolling:
             ),
             name="Max Speed",
         )
+        selected = step_methods.get_selected_indices(
+            step, expected.index.get_level_values(0)
+        )
+        expected = expected.iloc[selected]
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -868,7 +983,7 @@ class TestRolling:
             ],
         ],
     )
-    def test_as_index_false(self, by, expected_data):
+    def test_as_index_false(self, by, expected_data, step, step_methods):
         # GH 39433
         data = [
             ["A", "2018-01-01", 100.0],
@@ -882,7 +997,9 @@ class TestRolling:
 
         gp_by = [getattr(df, attr) for attr in by]
         result = (
-            df.groupby(gp_by, as_index=False).rolling(window=2, min_periods=1).mean()
+            df.groupby(gp_by, as_index=False)
+            .rolling(window=2, min_periods=1, step=step)
+            .mean()
         )
 
         expected = {"id": ["A", "A", "B", "B"]}
@@ -891,9 +1008,13 @@ class TestRolling:
             expected,
             index=df.index,
         )
+        selected = step_methods.get_selected_indices(
+            step, list(zip(*[expected[x if x != "index" else "date"] for x in by]))
+        )
+        expected = expected.iloc[selected]
         tm.assert_frame_equal(result, expected)
 
-    def test_nan_and_zero_endpoints(self):
+    def test_nan_and_zero_endpoints(self, step, step_methods):
         # https://github.com/twosigma/pandas/issues/53
         size = 1000
         idx = np.repeat(0, size)
@@ -910,7 +1031,11 @@ class TestRolling:
                 "adl2": arr,
             }
         ).set_index("index")
-        result = df.groupby("index")["adl2"].rolling(window=10, min_periods=1).mean()
+        result = (
+            df.groupby("index")["adl2"]
+            .rolling(window=10, min_periods=1, step=step)
+            .mean()
+        )
         expected = Series(
             arr,
             name="adl2",
@@ -918,6 +1043,10 @@ class TestRolling:
                 [[0] * 999 + [1], [0] * 999 + [1]], names=["index", "index"]
             ),
         )
+        selected = step_methods.get_selected_indices(
+            step, expected.index.get_level_values(0)
+        )
+        expected = expected.iloc[selected]
         tm.assert_series_equal(result, expected)
 
 
@@ -1140,7 +1269,7 @@ class TestEWM:
             expected = gb.ewm(halflife=halflife, times=times_frame["C"].values).mean()
         tm.assert_frame_equal(result, expected)
 
-    def test_dont_mutate_obj_after_slicing(self):
+    def test_dont_mutate_obj_after_slicing(self, step, step_methods):
         # GH 43355
         df = DataFrame(
             {
@@ -1149,7 +1278,7 @@ class TestEWM:
                 "y": range(5),
             }
         )
-        grp = df.groupby("id").rolling("1H", on="timestamp")
+        grp = df.groupby("id").rolling("1H", on="timestamp", step=step)
         result = grp.count()
         expected_df = DataFrame(
             {
@@ -1160,6 +1289,10 @@ class TestEWM:
                 [["a", "a", "b", "b", "b"], list(range(5))], names=["id", None]
             ),
         )
+        selected = step_methods.get_selected_indices(
+            step, expected_df.index.get_level_values(0)
+        )
+        expected_df = expected_df.iloc[selected]
         tm.assert_frame_equal(result, expected_df)
 
         result = grp["y"].count()
@@ -1174,6 +1307,10 @@ class TestEWM:
             ),
             name="y",
         )
+        selected = step_methods.get_selected_indices(
+            step, expected_series.index.get_level_values(0)
+        )
+        expected_series = expected_series.iloc[selected]
         tm.assert_series_equal(result, expected_series)
         # This is the key test
         result = grp.count()

@@ -47,20 +47,26 @@ def pairwise_other_frame():
     )
 
 
-def test_rolling_cov(series):
+def test_rolling_cov(series, step):
     A = series
     B = A + np.random.randn(len(A))
 
-    result = A.rolling(window=50, min_periods=25).cov(B)
-    tm.assert_almost_equal(result[-1], np.cov(A[-50:], B[-50:])[0, 1])
+    result = A.rolling(window=50, min_periods=25, step=step).cov(B)
+    end = range(0, len(series), step or 1)[-1] + 1
+    tm.assert_almost_equal(
+        result[-1], np.cov(A[end - 50 : end], B[end - 50 : end])[0, 1]
+    )
 
 
-def test_rolling_corr(series):
+def test_rolling_corr(series, step):
     A = series
     B = A + np.random.randn(len(A))
 
-    result = A.rolling(window=50, min_periods=25).corr(B)
-    tm.assert_almost_equal(result[-1], np.corrcoef(A[-50:], B[-50:])[0, 1])
+    result = A.rolling(window=50, min_periods=25, step=step).corr(B)
+    end = range(0, len(series), step or 1)[-1] + 1
+    tm.assert_almost_equal(
+        result[-1], np.corrcoef(A[end - 50 : end], B[end - 50 : end])[0, 1]
+    )
 
     # test for correct bias correction
     a = tm.makeTimeSeries()
@@ -68,26 +74,31 @@ def test_rolling_corr(series):
     a[:5] = np.nan
     b[:10] = np.nan
 
-    result = a.rolling(window=len(a), min_periods=1).corr(b)
-    tm.assert_almost_equal(result[-1], a.corr(b))
+    result = a.rolling(window=len(a), min_periods=1, step=step).corr(b)
+    end = range(0, len(a), step or 1)[-1] + 1
+    tm.assert_almost_equal(result[-1], a[:end].corr(b))
 
 
 @pytest.mark.parametrize("func", ["cov", "corr"])
-def test_rolling_pairwise_cov_corr(func, frame):
-    result = getattr(frame.rolling(window=10, min_periods=5), func)()
+def test_rolling_pairwise_cov_corr(func, frame, step):
+    result = getattr(frame.rolling(window=10, min_periods=5, step=step), func)()
     result = result.loc[(slice(None), 1), 5]
     result.index = result.index.droplevel(1)
-    expected = getattr(frame[1].rolling(window=10, min_periods=5), func)(frame[5])
+    expected = getattr(frame[1].rolling(window=10, min_periods=5, step=step), func)(
+        frame[5]
+    )
     tm.assert_series_equal(result, expected, check_names=False)
 
 
 @pytest.mark.parametrize("method", ["corr", "cov"])
-def test_flex_binary_frame(method, frame):
+def test_flex_binary_frame(method, frame, step):
     series = frame[1]
 
-    res = getattr(series.rolling(window=10), method)(frame)
-    res2 = getattr(frame.rolling(window=10), method)(series)
-    exp = frame.apply(lambda x: getattr(series.rolling(window=10), method)(x))
+    res = getattr(series.rolling(window=10, step=step), method)(frame)
+    res2 = getattr(frame.rolling(window=10, step=step), method)(series)
+    exp = frame.apply(
+        lambda x: getattr(series.rolling(window=10, step=step), method)(x)
+    )
 
     tm.assert_frame_equal(res, exp)
     tm.assert_frame_equal(res2, exp)
@@ -95,9 +106,12 @@ def test_flex_binary_frame(method, frame):
     frame2 = frame.copy()
     frame2.values[:] = np.random.randn(*frame2.shape)
 
-    res3 = getattr(frame.rolling(window=10), method)(frame2)
+    res3 = getattr(frame.rolling(window=10, step=step), method)(frame2)
     exp = DataFrame(
-        {k: getattr(frame[k].rolling(window=10), method)(frame2[k]) for k in frame}
+        {
+            k: getattr(frame[k].rolling(window=10, step=step), method)(frame2[k])
+            for k in frame
+        }
     )
     tm.assert_frame_equal(res3, exp)
 

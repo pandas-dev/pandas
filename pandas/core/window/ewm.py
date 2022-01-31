@@ -418,7 +418,7 @@ class ExponentialMovingWindow(BaseWindow):
             )
 
     def _check_window_bounds(
-        self, start: np.ndarray, end: np.ndarray, num_vals: int
+        self, start: np.ndarray, end: np.ndarray, ref: np.ndarray, num_vals: int
     ) -> None:
         # emw algorithms are iterative with each point
         # ExponentialMovingWindowIndexer "bounds" are the entire window
@@ -732,11 +732,12 @@ class ExponentialMovingWindow(BaseWindow):
                 if self.min_periods is not None
                 else window_indexer.window_size
             )
-            start, end = window_indexer.get_window_bounds(
+            start, end, ref = window_indexer.get_window_bounds(
                 num_values=len(x_array),
                 min_periods=min_periods,
                 center=self.center,
                 closed=self.closed,
+                step=self.step,
             )
             result = window_aggregations.ewmcov(
                 x_array,
@@ -798,11 +799,12 @@ class ExponentialMovingWindow(BaseWindow):
                 if self.min_periods is not None
                 else window_indexer.window_size
             )
-            start, end = window_indexer.get_window_bounds(
+            start, end, ref = window_indexer.get_window_bounds(
                 num_values=len(x_array),
                 min_periods=min_periods,
                 center=self.center,
                 closed=self.closed,
+                step=self.step,
             )
 
             def _cov(X, Y):
