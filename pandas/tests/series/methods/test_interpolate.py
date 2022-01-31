@@ -12,6 +12,7 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
+from pandas.util.version import Version
 
 
 @pytest.fixture(
@@ -778,6 +779,7 @@ class TestSeriesInterpolateData:
             with pytest.raises(ValueError, match=expected_error):
                 df[0].interpolate(method=method, **kwargs)
 
+    @td.skip_if_no_scipy
     def test_interpolate_timedelta_index(self, request, interp_methods_ind):
         """
         Tests for non numerical index types  - object, period, timedelta
@@ -789,10 +791,11 @@ class TestSeriesInterpolateData:
         df = pd.DataFrame([0, 1, np.nan, 3], index=ind)
 
         method, kwargs = interp_methods_ind
-        if method == "pchip":
-            pytest.importorskip("scipy")
+        import scipy
 
-        if method in {"cubic", "zero"}:
+        if method in {"cubic", "zero"} or (
+            method == "barycentric" and Version(scipy.__version__) < Version("1.5.0")
+        ):
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason=f"{method} interpolation is not supported for TimedeltaIndex"
