@@ -31,19 +31,16 @@ Added new function :func:`~pandas.get_dummies` to convert a dummy coded :class:`
 
 Example::
 
-.. code-block:: python
+.. ipython:: python
 
-    >>> import pandas as pd
+    import pandas as pd
 
-    >>> df = pd.DataFrame({"col1_a": [1, 0, 1], "col1_b": [0, 1, 0],
-    ...                    "col2_a": [0, 1, 0], "col2_b": [1, 0, 0],
-    ...                    "col2_c": [0, 0, 1]})
+    df = pd.DataFrame({"col1_a": [1, 0, 1], "col1_b": [0, 1, 0],
+                       "col2_a": [0, 1, 0], "col2_b": [1, 0, 0],
+                       "col2_c": [0, 0, 1]})
 
-    >>> pd.from_dummies(df, sep="_")
-        col1    col2
-    0    a       b
-    1    b       a
-    2    a       c
+    pd.from_dummies(df, sep="_")
+
 
 .. _whatsnew_150.enhancements.enhancement2:
 
