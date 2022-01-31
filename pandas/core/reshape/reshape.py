@@ -722,6 +722,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
     level_vals_used = np.take(level_vals_nan, level_codes)
     levsize = len(level_codes)
     drop_cols = []
+    frame_header = this.iloc[:0]  # empty slice for efficient dtype branching below
     for key in new_columns:
         try:
             loc = this.columns.get_loc(key)
@@ -743,14 +744,15 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
             chunk.columns = level_vals_nan.take(chunk.columns.codes[-1])
             value_slice = chunk.reindex(columns=level_vals_used).values
         else:
-            if frame._is_homogeneous_type and is_extension_array_dtype(
-                frame.dtypes.iloc[0]
+            # empty slice for efficient dtype branching
+            subset_header = frame_header[this.columns[loc]]
+            if subset_header._is_homogeneous_type and is_extension_array_dtype(
+                subset_header.dtypes.iloc[0]
             ):
                 # TODO(EA2D): won't need special case, can go through .values
                 #  paths below (might change to ._values)
-                dtype = this[this.columns[loc]].dtypes.iloc[0]
                 subset = this[this.columns[loc]]
-
+                dtype = subset.dtypes.iloc[0]
                 value_slice = dtype.construct_array_type()._concat_same_type(
                     [x._values for _, x in subset.items()]
                 )
