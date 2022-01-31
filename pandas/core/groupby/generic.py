@@ -604,7 +604,10 @@ class SeriesGroupBy(GroupBy[Series]):
 
         names = self.grouper.names + [self.obj.name]
 
-        def apply_series_value_counts():
+        if is_categorical_dtype(val.dtype) or (bins and np.iterable(bins)):
+            # scalar bins cannot be done at top level
+            # in a backward compatible way
+            # GH38672
             s = self.apply(
                 Series.value_counts,
                 normalize=normalize,
@@ -614,15 +617,6 @@ class SeriesGroupBy(GroupBy[Series]):
             )
             s.index.names = names
             return s
-
-        if bins is not None:
-            if not np.iterable(bins):
-                # scalar bins cannot be done at top level
-                # in a backward compatible way
-                return apply_series_value_counts()
-        elif is_categorical_dtype(val.dtype):
-            # GH38672
-            return apply_series_value_counts()
 
         # groupby removes null keys from groupings
         mask = ids != -1
