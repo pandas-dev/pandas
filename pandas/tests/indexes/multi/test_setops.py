@@ -368,7 +368,7 @@ def test_union_sort_other_empty(slice_):
 
 
 @pytest.mark.xfail(reason="Not implemented.")
-def test_union_sort_other_empty_sort(slice_):
+def test_union_sort_other_empty_sort():
     # TODO(GH#25151): decide on True behaviour
     # # sort=True
     idx = MultiIndex.from_product([[1, 0], ["a", "b"]])

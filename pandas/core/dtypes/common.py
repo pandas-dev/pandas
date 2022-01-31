@@ -1319,7 +1319,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
         return False
 
     if isinstance(dtype, CategoricalDtype):
-        arr_or_dtype = arr_or_dtype.categories
+        arr_or_dtype = dtype.categories
         # now we use the special definition for Index
 
     if isinstance(arr_or_dtype, ABCIndex):
