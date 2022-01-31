@@ -13,36 +13,11 @@ Reshaping by pivoting DataFrame objects
 
 .. image:: ../_static/reshaping_pivot.png
 
-.. ipython:: python
-   :suppress:
-
-   import pandas._testing as tm
-
-   def unpivot(frame):
-       N, K = frame.shape
-       data = {
-           "value": frame.to_numpy().ravel("F"),
-           "variable": np.asarray(frame.columns).repeat(N),
-           "date": np.tile(np.asarray(frame.index), K),
-       }
-       columns = ["date", "variable", "value"]
-       return pd.DataFrame(data, columns=columns)
-
-   df = unpivot(tm.makeTimeDataFrame(3))
-
 Data is often stored in so-called "stacked" or "record" format:
 
 .. ipython:: python
 
-   df
-
-
-For the curious here is how the above ``DataFrame`` was created:
-
-.. code-block:: python
-
    import pandas._testing as tm
-
 
    def unpivot(frame):
        N, K = frame.shape
@@ -53,14 +28,15 @@ For the curious here is how the above ``DataFrame`` was created:
        }
        return pd.DataFrame(data, columns=["date", "variable", "value"])
 
-
    df = unpivot(tm.makeTimeDataFrame(3))
+   df
 
 To select out everything for variable ``A`` we could do:
 
 .. ipython:: python
 
-   df[df["variable"] == "A"]
+   filtered = df[df["variable"] == "A"]
+   filtered
 
 But suppose we wish to do time series operations with the variables. A better
 representation would be where the ``columns`` are the unique variables and an
@@ -70,11 +46,12 @@ top level function :func:`~pandas.pivot`):
 
 .. ipython:: python
 
-   df.pivot(index="date", columns="variable", values="value")
+   pivoted = df.pivot(index="date", columns="variable", values="value")
+   pivoted
 
-If the ``values`` argument is omitted, and the input ``DataFrame`` has more than
-one column of values which are not used as column or index inputs to ``pivot``,
-then the resulting "pivoted" ``DataFrame`` will have :ref:`hierarchical columns
+If the ``values`` argument is omitted, and the input :class:`DataFrame` has more than
+one column of values which are not used as column or index inputs to :meth:`~DataFrame.pivot`,
+then the resulting "pivoted" :class:`DataFrame` will have :ref:`hierarchical columns
 <advanced.hierarchical>` whose topmost level indicates the respective value
 column:
 
@@ -84,7 +61,7 @@ column:
    pivoted = df.pivot(index="date", columns="variable")
    pivoted
 
-You can then select subsets from the pivoted ``DataFrame``:
+You can then select subsets from the pivoted :class:`DataFrame`:
 
 .. ipython:: python
 
@@ -108,16 +85,16 @@ Reshaping by stacking and unstacking
 
 Closely related to the :meth:`~DataFrame.pivot` method are the related
 :meth:`~DataFrame.stack` and :meth:`~DataFrame.unstack` methods available on
-``Series`` and ``DataFrame``. These methods are designed to work together with
-``MultiIndex`` objects (see the section on :ref:`hierarchical indexing
+:class:`Series` and :class:`DataFrame`. These methods are designed to work together with
+:class:`MultiIndex` objects (see the section on :ref:`hierarchical indexing
 <advanced.hierarchical>`). Here are essentially what these methods do:
 
-* ``stack``: "pivot" a level of the (possibly hierarchical) column labels,
-  returning a ``DataFrame`` with an index with a new inner-most level of row
+* :meth:`~DataFrame.stack`: "pivot" a level of the (possibly hierarchical) column labels,
+  returning a :class:`DataFrame` with an index with a new inner-most level of row
   labels.
-* ``unstack``: (inverse operation of ``stack``) "pivot" a level of the
+* :meth:`~DataFrame.unstack`: (inverse operation of :meth:`~DataFrame.stack`) "pivot" a level of the
   (possibly hierarchical) row index to the column axis, producing a reshaped
-  ``DataFrame`` with a new inner-most level of column labels.
+  :class:`DataFrame` with a new inner-most level of column labels.
 
 .. image:: ../_static/reshaping_unstack.png
 
@@ -139,22 +116,22 @@ from the hierarchical indexing section:
    df2 = df[:4]
    df2
 
-The ``stack`` function "compresses" a level in the ``DataFrame``'s columns to
+The :meth:`~DataFrame.stack` function "compresses" a level in the :class:`DataFrame` columns to
 produce either:
 
-* A ``Series``, in the case of a simple column Index.
-* A ``DataFrame``, in the case of a ``MultiIndex`` in the columns.
+* A :class:`Series`, in the case of a simple column Index.
+* A :class:`DataFrame`, in the case of a :class:`MultiIndex` in the columns.
 
-If the columns have a ``MultiIndex``, you can choose which level to stack. The
-stacked level becomes the new lowest level in a ``MultiIndex`` on the columns:
+If the columns have a :class:`MultiIndex`, you can choose which level to stack. The
+stacked level becomes the new lowest level in a :class:`MultiIndex` on the columns:
 
 .. ipython:: python
 
    stacked = df2.stack()
    stacked
 
-With a "stacked" ``DataFrame`` or ``Series`` (having a ``MultiIndex`` as the
-``index``), the inverse operation of ``stack`` is ``unstack``, which by default
+With a "stacked" :class:`DataFrame` or :class:`Series` (having a :class:`MultiIndex` as the
+``index``), the inverse operation of :meth:`~DataFrame.stack` is :meth:`~DataFrame.unstack`, which by default
 unstacks the **last level**:
 
 .. ipython:: python
@@ -177,9 +154,9 @@ the level numbers:
 
 .. image:: ../_static/reshaping_unstack_0.png
 
-Notice that the ``stack`` and ``unstack`` methods implicitly sort the index
-levels involved. Hence a call to ``stack`` and then ``unstack``, or vice versa,
-will result in a **sorted** copy of the original ``DataFrame`` or ``Series``:
+Notice that the :meth:`~DataFrame.stack` and :meth:`~DataFrame.unstack` methods implicitly sort the index
+levels involved. Hence a call to :meth:`~DataFrame.stack` and then :meth:`~DataFrame.unstack`, or vice versa,
+will result in a **sorted** copy of the original :class:`DataFrame` or :class:`Series`:
 
 .. ipython:: python
 
@@ -188,7 +165,7 @@ will result in a **sorted** copy of the original ``DataFrame`` or ``Series``:
    df
    all(df.unstack().stack() == df.sort_index())
 
-The above code will raise a ``TypeError`` if the call to ``sort_index`` is
+The above code will raise a ``TypeError`` if the call to :meth:`~DataFrame.sort_index` is
 removed.
 
 .. _reshaping.stack_multiple:
@@ -231,7 +208,7 @@ Missing data
 These functions are intelligent about handling missing data and do not expect
 each subgroup within the hierarchical index to have the same set of labels.
 They also can handle the index being unsorted (but you can make it sorted by
-calling ``sort_index``, of course). Here is a more complex example:
+calling :meth:`~DataFrame.sort_index`, of course). Here is a more complex example:
 
 .. ipython:: python
 
@@ -251,7 +228,7 @@ calling ``sort_index``, of course). Here is a more complex example:
    df2 = df.iloc[[0, 1, 2, 4, 5, 7]]
    df2
 
-As mentioned above, ``stack`` can be called with a ``level`` argument to select
+As mentioned above, :meth:`~DataFrame.stack` can be called with a ``level`` argument to select
 which level in the columns to stack:
 
 .. ipython:: python
@@ -281,7 +258,7 @@ the value of missing data.
 With a MultiIndex
 ~~~~~~~~~~~~~~~~~
 
-Unstacking when the columns are a ``MultiIndex`` is also careful about doing
+Unstacking when the columns are a :class:`MultiIndex` is also careful about doing
 the right thing:
 
 .. ipython:: python
@@ -297,7 +274,7 @@ Reshaping by melt
 .. image:: ../_static/reshaping_melt.png
 
 The top-level :func:`~pandas.melt` function and the corresponding :meth:`DataFrame.melt`
-are useful to massage a ``DataFrame`` into a format where one or more columns
+are useful to massage a :class:`DataFrame` into a format where one or more columns
 are *identifier variables*, while all other columns, considered *measured
 variables*, are "unpivoted" to the row axis, leaving just two non-identifier
 columns, "variable" and "value". The names of those columns can be customized
@@ -363,7 +340,7 @@ user-friendly.
 Combining with stats and GroupBy
 --------------------------------
 
-It should be no shock that combining ``pivot`` / ``stack`` / ``unstack`` with
+It should be no shock that combining :meth:`~DataFrame.pivot` / :meth:`~DataFrame.stack` / :meth:`~DataFrame.unstack` with
 GroupBy and the basic Series and DataFrame statistical functions can produce
 some very expressive and fast data manipulations.
 
@@ -384,8 +361,6 @@ Pivot tables
 ------------
 
 .. _reshaping.pivot:
-
-
 
 While :meth:`~DataFrame.pivot` provides general purpose pivoting with various
 data types (strings, numerics, etc.), pandas also provides :func:`~pandas.pivot_table`
@@ -437,7 +412,7 @@ We can produce pivot tables from this data very easily:
        aggfunc=np.sum,
    )
 
-The result object is a ``DataFrame`` having potentially hierarchical indexes on the
+The result object is a :class:`DataFrame` having potentially hierarchical indexes on the
 rows and columns. If the ``values`` column name is not given, the pivot table
 will include all of the data that can be aggregated in an additional level of
 hierarchy in the columns:
@@ -446,21 +421,21 @@ hierarchy in the columns:
 
    pd.pivot_table(df, index=["A", "B"], columns=["C"])
 
-Also, you can use ``Grouper`` for ``index`` and ``columns`` keywords. For detail of ``Grouper``, see :ref:`Grouping with a Grouper specification <groupby.specify>`.
+Also, you can use :class:`Grouper` for ``index`` and ``columns`` keywords. For detail of :class:`Grouper`, see :ref:`Grouping with a Grouper specification <groupby.specify>`.
 
 .. ipython:: python
 
    pd.pivot_table(df, values="D", index=pd.Grouper(freq="M", key="F"), columns="C")
 
 You can render a nice output of the table omitting the missing values by
-calling ``to_string`` if you wish:
+calling :meth:`~DataFrame.to_string` if you wish:
 
 .. ipython:: python
 
    table = pd.pivot_table(df, index=["A", "B"], columns=["C"])
    print(table.to_string(na_rep=""))
 
-Note that ``pivot_table`` is also available as an instance method on DataFrame,
+Note that :meth:`~DataFrame.pivot_table` is also available as an instance method on DataFrame,
  i.e. :meth:`DataFrame.pivot_table`.
 
 .. _reshaping.pivot.margins:
@@ -468,7 +443,7 @@ Note that ``pivot_table`` is also available as an instance method on DataFrame,
 Adding margins
 ~~~~~~~~~~~~~~
 
-If you pass ``margins=True`` to ``pivot_table``, special ``All`` columns and
+If you pass ``margins=True`` to :meth:`~DataFrame.pivot_table`, special ``All`` columns and
 rows will be added with partial group aggregates across the categories on the
 rows and columns:
 
@@ -490,7 +465,7 @@ Cross tabulations
 -----------------
 
 Use :func:`~pandas.crosstab` to compute a cross-tabulation of two (or more)
-factors. By default ``crosstab`` computes a frequency table of the factors
+factors. By default :func:`~pandas.crosstab` computes a frequency table of the factors
 unless an array of values and an aggregation function are passed.
 
 It takes a number of arguments
@@ -509,7 +484,7 @@ It takes a number of arguments
   Normalize by dividing all values by the sum of values.
 
 
-Any ``Series`` passed will have their name attributes used unless row or column
+Any :class:`Series` passed will have their name attributes used unless row or column
 names for the cross-tabulation are specified
 
 For example:
@@ -523,7 +498,7 @@ For example:
     pd.crosstab(a, [b, c], rownames=["a"], colnames=["b", "c"])
 
 
-If ``crosstab`` receives only two Series, it will provide a frequency table.
+If :func:`~pandas.crosstab` receives only two Series, it will provide a frequency table.
 
 .. ipython:: python
 
@@ -534,8 +509,8 @@ If ``crosstab`` receives only two Series, it will provide a frequency table.
 
     pd.crosstab(df["A"], df["B"])
 
-``crosstab`` can also be implemented
-to ``Categorical`` data.
+:func:`~pandas.crosstab` can also be implemented
+to :class:`Categorical` data.
 
 .. ipython:: python
 
@@ -568,9 +543,9 @@ using the ``normalize`` argument:
 
    pd.crosstab(df["A"], df["B"], normalize="columns")
 
-``crosstab`` can also be passed a third ``Series`` and an aggregation function
-(``aggfunc``) that will be applied to the values of the third ``Series`` within
-each group defined by the first two ``Series``:
+:func:`~pandas.crosstab` can also be passed a third :class:`Series` and an aggregation function
+(``aggfunc``) that will be applied to the values of the third :class:`Series` within
+each group defined by the first two :class:`Series`:
 
 .. ipython:: python
 
@@ -611,7 +586,7 @@ Alternatively we can specify custom bin-edges:
    c = pd.cut(ages, bins=[0, 18, 35, 70])
    c
 
-If the ``bins`` keyword is an ``IntervalIndex``, then these will be
+If the ``bins`` keyword is an :class:`IntervalIndex`, then these will be
 used to bin the passed data.::
 
    pd.cut([25, 20, 50], bins=c.categories)
@@ -622,9 +597,9 @@ used to bin the passed data.::
 Computing indicator / dummy variables
 -------------------------------------
 
-To convert a categorical variable into a "dummy" or "indicator" ``DataFrame``,
-for example a column in a ``DataFrame`` (a ``Series``) which has ``k`` distinct
-values, can derive a ``DataFrame`` containing ``k`` columns of 1s and 0s using
+To convert a categorical variable into a "dummy" or "indicator" :class:`DataFrame`,
+for example a column in a :class:`DataFrame` (a :class:`Series`) which has ``k`` distinct
+values, can derive a :class:`DataFrame` containing ``k`` columns of 1s and 0s using
 :func:`~pandas.get_dummies`:
 
 .. ipython:: python
@@ -634,7 +609,7 @@ values, can derive a ``DataFrame`` containing ``k`` columns of 1s and 0s using
    pd.get_dummies(df["key"])
 
 Sometimes it's useful to prefix the column names, for example when merging the result
-with the original ``DataFrame``:
+with the original :class:`DataFrame`:
 
 .. ipython:: python
 
@@ -643,7 +618,7 @@ with the original ``DataFrame``:
 
    df[["data1"]].join(dummies)
 
-This function is often used along with discretization functions like ``cut``:
+This function is often used along with discretization functions like :func:`~pandas.cut`:
 
 .. ipython:: python
 
@@ -656,7 +631,7 @@ This function is often used along with discretization functions like ``cut``:
 
 See also :func:`Series.str.get_dummies <pandas.Series.str.get_dummies>`.
 
-:func:`get_dummies` also accepts a ``DataFrame``. By default all categorical
+:func:`get_dummies` also accepts a :class:`DataFrame`. By default all categorical
 variables (categorical in the statistical sense, those with ``object`` or
 ``categorical`` dtype) are encoded as dummy variables.
 
@@ -677,8 +652,8 @@ Notice that the ``B`` column is still included in the output, it just hasn't
 been encoded. You can drop ``B`` before calling ``get_dummies`` if you don't
 want to include it in the output.
 
-As with the ``Series`` version, you can pass values for the ``prefix`` and
-``prefix_sep``. By default the column name is used as the prefix, and '_' as
+As with the :class:`Series` version, you can pass values for the ``prefix`` and
+``prefix_sep``. By default the column name is used as the prefix, and ``_`` as
 the prefix separator. You can specify ``prefix`` and ``prefix_sep`` in 3 ways:
 
 * string: Use the same value for ``prefix`` or ``prefix_sep`` for each column
@@ -742,7 +717,7 @@ To encode 1-d values as an enumerated type use :func:`~pandas.factorize`:
    labels
    uniques
 
-Note that ``factorize`` is similar to ``numpy.unique``, but differs in its
+Note that :func:`~pandas.factorize` is similar to ``numpy.unique``, but differs in its
 handling of NaN:
 
 .. note::
@@ -750,16 +725,12 @@ handling of NaN:
    because of an ordering bug. See also
    `here <https://github.com/numpy/numpy/issues/641>`__.
 
-.. code-block:: ipython
+.. ipython:: python
+   :okexcept:
 
-    In [1]: x = pd.Series(['A', 'A', np.nan, 'B', 3.14, np.inf])
-    In [2]: pd.factorize(x, sort=True)
-    Out[2]:
-    (array([ 2,  2, -1,  3,  0,  1]),
-     Index([3.14, inf, 'A', 'B'], dtype='object'))
-
-    In [3]: np.unique(x, return_inverse=True)[::-1]
-    Out[3]: (array([3, 3, 0, 4, 1, 2]), array([nan, 3.14, inf, 'A', 'B'], dtype=object))
+   ser = pd.Series(['A', 'A', np.nan, 'B', 3.14, np.inf])
+   pd.factorize(ser, sort=True)
+   np.unique(ser, return_inverse=True)[::-1]
 
 .. note::
     If you just want to handle one column as a categorical variable (like R's factor),
@@ -907,13 +878,13 @@ We can 'explode' the ``values`` column, transforming each list-like to a separat
 
    df["values"].explode()
 
-You can also explode the column in the ``DataFrame``.
+You can also explode the column in the :class:`DataFrame`.
 
 .. ipython:: python
 
    df.explode("values")
 
-:meth:`Series.explode` will replace empty lists with ``np.nan`` and preserve scalar entries. The dtype of the resulting ``Series`` is always ``object``.
+:meth:`Series.explode` will replace empty lists with ``np.nan`` and preserve scalar entries. The dtype of the resulting :class:`Series` is always ``object``.
 
 .. ipython:: python
 

@@ -39,7 +39,7 @@ def interval_values(request, closed):
 
 
 class TestPivotTable:
-    def setup_method(self, method):
+    def setup_method(self):
         self.data = DataFrame(
             {
                 "A": [
@@ -1758,7 +1758,7 @@ class TestPivotTable:
         table = df.pivot_table("x", "y", "z", dropna=observed, margins=True)
         tm.assert_frame_equal(table, expected)
 
-    def test_margins_casted_to_float(self, observed):
+    def test_margins_casted_to_float(self):
         # GH 24893
         df = DataFrame(
             {

@@ -115,6 +115,12 @@ def pytest_collection_modifyitems(items, config):
     ]
 
     for item in items:
+        if config.getoption("--doctest-modules") or config.getoption(
+            "--doctest-cython", default=False
+        ):
+            # autouse=True for the add_doctest_imports can lead to expensive teardowns
+            # since doctest_namespace is a session fixture
+            item.add_marker(pytest.mark.usefixtures("add_doctest_imports"))
         # mark all tests in the pandas/tests/frame directory with "arraymanager"
         if "/frame/" in item.nodeid:
             item.add_marker(pytest.mark.arraymanager)
@@ -187,6 +193,15 @@ for name in "QuarterBegin QuarterEnd BQuarterBegin BQuarterEnd".split():
     )
 
 
+@pytest.fixture
+def add_doctest_imports(doctest_namespace):
+    """
+    Make `np` and `pd` names available for doctests.
+    """
+    doctest_namespace["np"] = np
+    doctest_namespace["pd"] = pd
+
+
 # ----------------------------------------------------------------
 # Autouse fixtures
 # ----------------------------------------------------------------
@@ -196,15 +211,6 @@ def configure_tests():
     Configure settings for all tests and test modules.
     """
     pd.set_option("chained_assignment", "raise")
-
-
-@pytest.fixture(autouse=True)
-def add_imports(doctest_namespace):
-    """
-    Make `np` and `pd` names available for doctests.
-    """
-    doctest_namespace["np"] = np
-    doctest_namespace["pd"] = pd
 
 
 # ----------------------------------------------------------------
@@ -1724,6 +1730,14 @@ def names(request):
 def indexer_sli(request):
     """
     Parametrize over __setitem__, loc.__setitem__, iloc.__setitem__
+    """
+    return request.param
+
+
+@pytest.fixture(params=[tm.loc, tm.iloc])
+def indexer_li(request):
+    """
+    Parametrize over loc.__getitem__, iloc.__getitem__
     """
     return request.param
 

@@ -1,13 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.dtypes import (
-    DatetimeTZDtype,
-    IntervalDtype,
-    PandasDtype,
-    PeriodDtype,
-)
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.tests.extension.base.base import BaseExtensionTests
@@ -364,21 +357,8 @@ class BaseSetitemTests(BaseExtensionTests):
         )
         self.assert_series_equal(result, expected)
 
-    def test_setitem_frame_2d_values(self, data, request):
+    def test_setitem_frame_2d_values(self, data):
         # GH#44514
-        df = pd.DataFrame({"A": data})
-
-        # Avoiding using_array_manager fixture
-        #  https://github.com/pandas-dev/pandas/pull/44514#discussion_r754002410
-        using_array_manager = isinstance(df._mgr, pd.core.internals.ArrayManager)
-        if using_array_manager:
-            if not isinstance(
-                data.dtype, (PandasDtype, PeriodDtype, IntervalDtype, DatetimeTZDtype)
-            ):
-                # These dtypes have non-broken implementations of _can_hold_element
-                mark = pytest.mark.xfail(reason="Goes through split path, loses dtype")
-                request.node.add_marker(mark)
-
         df = pd.DataFrame({"A": data})
         orig = df.copy()
 

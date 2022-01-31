@@ -147,7 +147,7 @@ def test_aggregate_normal(resample_method):
 
 
 @pytest.mark.xfail(reason="if TimeGrouper is used included, 'nth' doesn't work yet")
-def test_aggregate_nth(resample_method):
+def test_aggregate_nth():
     """Check TimeGrouper's aggregation is identical as normal groupby."""
 
     data = np.random.randn(20, 4)
