@@ -93,6 +93,7 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.cast import (
+    can_hold_element,
     construct_1d_arraylike_from_scalar,
     construct_2d_arraylike_from_scalar,
     find_common_type,
@@ -3876,15 +3877,15 @@ class DataFrame(NDFrame, OpsMixin):
         try:
             if takeable:
                 series = self._ixs(col, axis=1)
-                series._set_value(index, value, takeable=True)
-                return
+                loc = index
+            else:
+                series = self._get_item_cache(col)
+                loc = self.index.get_loc(index)
 
-            series = self._get_item_cache(col)
-            loc = self.index.get_loc(index)
-
-            # series._set_value will do validation that may raise TypeError
+            # setitem_inplace will do validation that may raise TypeError
             #  or ValueError
-            series._set_value(loc, value, takeable=True)
+            series._mgr.setitem_inplace(loc, value)
+
         except (KeyError, TypeError, ValueError):
             # set using a non-recursive method & reset the cache
             if takeable:
@@ -5366,6 +5367,48 @@ class DataFrame(NDFrame, OpsMixin):
 
             result.columns = self.columns.copy()
             return result
+        elif (
+            axis == 1
+            and periods != 0
+            and fill_value is not lib.no_default
+            and ncols > 0
+        ):
+            arrays = self._mgr.arrays
+            if len(arrays) > 1 or (
+                # If we only have one block and we know that we can't
+                #  keep the same dtype (i.e. the _can_hold_element check)
+                #  then we can go through the reindex_indexer path
+                #  (and avoid casting logic in the Block method).
+                #  The exception to this (until 2.0) is datetimelike
+                #  dtypes with integers, which cast.
+                not can_hold_element(arrays[0], fill_value)
+                # TODO(2.0): remove special case for integer-with-datetimelike
+                #  once deprecation is enforced
+                and not (
+                    lib.is_integer(fill_value) and needs_i8_conversion(arrays[0].dtype)
+                )
+            ):
+                # GH#35488 we need to watch out for multi-block cases
+                # We only get here with fill_value not-lib.no_default
+                nper = abs(periods)
+                nper = min(nper, ncols)
+                if periods > 0:
+                    indexer = np.array(
+                        [-1] * nper + list(range(ncols - periods)), dtype=np.intp
+                    )
+                else:
+                    indexer = np.array(
+                        list(range(nper, ncols)) + [-1] * nper, dtype=np.intp
+                    )
+                mgr = self._mgr.reindex_indexer(
+                    self.columns,
+                    indexer,
+                    axis=0,
+                    fill_value=fill_value,
+                    allow_dups=True,
+                )
+                res_df = self._constructor(mgr)
+                return res_df.__finalize__(self, method="shift")
 
         return super().shift(
             periods=periods, freq=freq, axis=axis, fill_value=fill_value
@@ -9498,7 +9541,7 @@ NaN 12.3   33.0
         if len(new_cols) > 0:
             return self._constructor(
                 concat(new_cols, axis=1), index=self.index, columns=self.columns
-            )
+            ).__finalize__(self, method="round")
         else:
             return self
 
@@ -9886,7 +9929,8 @@ NaN 12.3   33.0
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
-            return self._count_level(level, axis=axis, numeric_only=numeric_only)
+            res = self._count_level(level, axis=axis, numeric_only=numeric_only)
+            return res.__finalize__(self, method="count")
 
         if numeric_only:
             frame = self._get_numeric_data()
@@ -9909,7 +9953,7 @@ NaN 12.3   33.0
                     counts, index=frame._get_agg_axis(axis)
                 )
 
-        return result.astype("int64")
+        return result.astype("int64").__finalize__(self, method="count")
 
     def _count_level(self, level: Level, axis: int = 0, numeric_only: bool = False):
         if numeric_only:
@@ -10539,13 +10583,14 @@ NaN 12.3   33.0
                     dtype = cdtype
 
             if is_list_like(q):
-                return self._constructor([], index=q, columns=cols, dtype=dtype)
+                res = self._constructor([], index=q, columns=cols, dtype=dtype)
+                return res.__finalize__(self, method="quantile")
             return self._constructor_sliced([], index=cols, name=q, dtype=dtype)
 
         res = data._mgr.quantile(qs=q, axis=1, interpolation=interpolation)
 
         result = self._constructor(res)
-        return result
+        return result.__finalize__(self, method="quantile")
 
     @doc(NDFrame.asfreq, **_shared_doc_kwargs)
     def asfreq(
@@ -10762,7 +10807,7 @@ NaN 12.3   33.0
             from pandas.core.reshape.concat import concat
 
             values = collections.defaultdict(list, values)
-            return concat(
+            result = concat(
                 (
                     self.iloc[:, [i]].isin(values[col])
                     for i, col in enumerate(self.columns)
@@ -10772,11 +10817,11 @@ NaN 12.3   33.0
         elif isinstance(values, Series):
             if not values.index.is_unique:
                 raise ValueError("cannot compute isin with a duplicate axis.")
-            return self.eq(values.reindex_like(self), axis="index")
+            result = self.eq(values.reindex_like(self), axis="index")
         elif isinstance(values, DataFrame):
             if not (values.columns.is_unique and values.index.is_unique):
                 raise ValueError("cannot compute isin with a duplicate axis.")
-            return self.eq(values.reindex_like(self))
+            result = self.eq(values.reindex_like(self))
         else:
             if not is_list_like(values):
                 raise TypeError(
@@ -10784,11 +10829,12 @@ NaN 12.3   33.0
                     "to be passed to DataFrame.isin(), "
                     f"you passed a '{type(values).__name__}'"
                 )
-            return self._constructor(
+            result = self._constructor(
                 algorithms.isin(self.values.ravel(), values).reshape(self.shape),
                 self.index,
                 self.columns,
             )
+        return result.__finalize__(self, method="isin")
 
     # ----------------------------------------------------------------------
     # Add index and columns
