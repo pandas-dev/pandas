@@ -87,6 +87,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.inference import is_list_like
 from pandas.core.dtypes.missing import (
+    array_equivalent,
     is_valid_na_for_dtype,
     isna,
     na_value_for_dtype,
@@ -470,8 +471,13 @@ def ensure_dtype_can_hold_na(dtype: DtypeObj) -> DtypeObj:
     If we have a dtype that cannot hold NA values, find the best match that can.
     """
     if isinstance(dtype, ExtensionDtype):
-        # TODO: ExtensionDtype.can_hold_na?
-        return dtype
+        if dtype._can_hold_na:
+            return dtype
+        elif isinstance(dtype, IntervalDtype):
+            # TODO(GH#45349): don't special-case IntervalDtype, allow
+            #  overriding instead of returning object below.
+            return IntervalDtype(np.float64, closed=dtype.closed)
+        return _dtype_obj
     elif dtype.kind == "b":
         return _dtype_obj
     elif dtype.kind in ["i", "u"]:
@@ -1470,6 +1476,10 @@ def find_result_type(left: ArrayLike, right: Any) -> DtypeObj:
 
         new_dtype = np.result_type(left, right)
 
+    elif is_valid_na_for_dtype(right, left.dtype):
+        # e.g. IntervalDtype[int] and None/np.nan
+        new_dtype = ensure_dtype_can_hold_na(left.dtype)
+
     else:
         dtype, _ = infer_dtype_from(right, pandas_dtype=True)
 
@@ -1961,7 +1971,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             #  in smaller int dtypes.
             info = np.iinfo(dtype)
             if info.min <= element <= info.max:
-                return element
+                return dtype.type(element)
             raise ValueError
 
         if tipo is not None:
@@ -2017,6 +2027,15 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                 if element._hasna:
                     raise ValueError
                 return element
+            elif tipo.itemsize > dtype.itemsize:
+                if isinstance(element, np.ndarray):
+                    # e.g. TestDataFrameIndexingWhere::test_where_alignment
+                    casted = element.astype(dtype)
+                    # TODO(np>=1.20): we can just use np.array_equal with equal_nan
+                    if array_equivalent(casted, element):
+                        return casted
+                    raise ValueError
+
             return element
 
         if lib.is_integer(element) or lib.is_float(element):
