@@ -364,7 +364,7 @@ class TestPandasContainer:
         assert np.isnan(result.iloc[0, 2])
 
     @pytest.mark.parametrize("dtype", [True, False])
-    def test_frame_read_json_dtype_missing_value(self, orient, dtype):
+    def test_frame_read_json_dtype_missing_value(self, dtype):
         # GH28501 Parse missing values using read_json with dtype=False
         # to NaN instead of None
         result = read_json("[null]", dtype=dtype)
@@ -374,7 +374,7 @@ class TestPandasContainer:
 
     @pytest.mark.parametrize("inf", [np.inf, np.NINF])
     @pytest.mark.parametrize("dtype", [True, False])
-    def test_frame_infinity(self, orient, inf, dtype):
+    def test_frame_infinity(self, inf, dtype):
         # infinities get mapped to nulls which get mapped to NaNs during
         # deserialisation
         df = DataFrame([[1, 2], [4, 5, 6]])
@@ -985,18 +985,16 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
-    @tm.network
-    @pytest.mark.single
-    def test_round_trip_exception_(self):
+    def test_round_trip_exception_(self, datapath):
         # GH 3867
-        csv = "https://raw.github.com/hayd/lahman2012/master/csvs/Teams.csv"
-        df = pd.read_csv(csv)
+        path = datapath("io", "json", "data", "teams.csv")
+        df = pd.read_csv(path)
         s = df.to_json()
         result = read_json(s)
         tm.assert_frame_equal(result.reindex(index=df.index, columns=df.columns), df)
 
+    @pytest.mark.network
     @tm.network
-    @pytest.mark.single
     @pytest.mark.parametrize(
         "field,dtype",
         [
@@ -1553,9 +1551,20 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
             ("index", "{\"('a', 'b')\":{\"('c', 'd')\":1}}"),
             ("columns", "{\"('c', 'd')\":{\"('a', 'b')\":1}}"),
             # TODO: the below have separate encoding procedures
-            # They produce JSON but not in a consistent manner
-            pytest.param("split", "", marks=pytest.mark.skip),
-            pytest.param("table", "", marks=pytest.mark.skip),
+            pytest.param(
+                "split",
+                "",
+                marks=pytest.mark.xfail(
+                    reason="Produces JSON but not in a consistent manner"
+                ),
+            ),
+            pytest.param(
+                "table",
+                "",
+                marks=pytest.mark.xfail(
+                    reason="Produces JSON but not in a consistent manner"
+                ),
+            ),
         ],
     )
     def test_tuple_labels(self, orient, expected):

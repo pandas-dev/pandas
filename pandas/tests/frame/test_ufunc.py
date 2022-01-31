@@ -81,7 +81,7 @@ def test_binary_input_dispatch_binop(dtype):
         ),
     ],
 )
-def test_ufunc_passes_args(func, arg, expected, request):
+def test_ufunc_passes_args(func, arg, expected):
     # GH#40662
     arr = np.array([[1, 2], [3, 4]])
     df = pd.DataFrame(arr)

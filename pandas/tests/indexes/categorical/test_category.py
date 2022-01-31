@@ -25,7 +25,7 @@ class TestCategoricalIndex(Base):
         return self._index_cls(list("aabbca"), categories=list("cab"), ordered=False)
 
     @pytest.fixture
-    def index(self, request):
+    def index(self):
         return tm.makeCategoricalIndex(100)
 
     def create_index(self, *, categories=None, ordered=False):
