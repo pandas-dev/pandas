@@ -35,10 +35,9 @@ win_type : str, default None
 Returns
 -------
 A tuple of ndarray[int64]s:
-    start : array of start boundaries
-    end : array of end boundaries
-    ref : array of window reference locations, or None indicating all
-          must be None if step is None or 1
+start : array of start boundaries
+end : array of end boundaries
+ref : array of window reference locations, or None indicating all if step is None or 1
 """
 
 
