@@ -317,7 +317,6 @@ class MultiIndex(Index):
             raise TypeError("Must pass both levels and codes")
         if len(levels) != len(codes):
             raise ValueError("Length of levels and codes must be the same.")
-        # These lines below are inconsistent with behavior elsewhere and can be removed to support 0-level indexes, which should arguably be included
         # if len(levels) == 0:
         #    raise ValueError("Must pass non-zero number of levels/codes")
 
