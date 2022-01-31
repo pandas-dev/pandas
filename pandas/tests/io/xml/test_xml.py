@@ -257,7 +257,7 @@ def test_parser_consistency_file(datapath):
 @tm.network
 @pytest.mark.slow
 @td.skip_if_no("lxml")
-def test_parser_consistency_url(datapath):
+def test_parser_consistency_url():
     url = (
         "https://data.cityofchicago.org/api/views/"
         "8pix-ypme/rows.xml?accessType=DOWNLOAD"
@@ -993,7 +993,7 @@ def test_stylesheet_file_close(datapath, mode):
 
 
 @td.skip_if_no("lxml")
-def test_stylesheet_with_etree(datapath):
+def test_stylesheet_with_etree():
     kml = os.path.join("data", "xml", "cta_rail_lines.kml")
     xsl = os.path.join("data", "xml", "flatten_doc.xsl")
 
@@ -1090,7 +1090,7 @@ def test_wrong_compression(parser, compression, compression_only):
             read_xml(path, parser=parser, compression=attempted_compression)
 
 
-def test_unsuported_compression(datapath, parser):
+def test_unsuported_compression(parser):
     with pytest.raises(ValueError, match="Unrecognized compression type"):
         with tm.ensure_clean() as path:
             read_xml(path, parser=parser, compression="7z")
@@ -1102,6 +1102,10 @@ def test_unsuported_compression(datapath, parser):
 @tm.network
 @td.skip_if_no("s3fs")
 @td.skip_if_no("lxml")
+@pytest.mark.skipif(
+    os.environ.get("PANDAS_CI", "0") == "1",
+    reason="2022.1.17: Hanging on the CI min versions build.",
+)
 def test_s3_parser_consistency():
     # Python Software Foundation (2019 IRS-990 RETURN)
     s3 = "s3://irs-form-990/201923199349319487_public.xml"
