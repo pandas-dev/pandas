@@ -379,6 +379,7 @@ class Base:
             with tm.external_error_raised(exc):
                 to_parquet(df, path, engine, compression=None)
 
+    @pytest.mark.network
     @tm.network
     def test_parquet_read_from_url(self, df_compat, engine):
         if engine != "auto":
