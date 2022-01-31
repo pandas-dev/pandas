@@ -253,6 +253,7 @@ class TestSeriesFillNA:
         wmsg = "In a future version, this will cast to a common dtype"
         with pytest.raises(TypeError, match=msg):
             with tm.assert_produces_warning(FutureWarning, match=wmsg):
+                # GH#45746
                 obj.fillna(1)
 
         result = obj.fillna(Timedelta(seconds=1))

@@ -1471,6 +1471,7 @@ class EABackedBlock(Block):
                 # We support filling a DatetimeTZ with a `value` whose timezone
                 #  is different by coercing to object.
                 if self.dtype.kind == "m":
+                    # GH#45746
                     warnings.warn(
                         "The behavior of fillna with timedelta64[ns] dtype and "
                         "an incompatible value is deprecated. In a future version, "
