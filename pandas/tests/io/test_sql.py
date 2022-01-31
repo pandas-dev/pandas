@@ -498,6 +498,7 @@ all_connectable = sqlalchemy_connectable + ["sqlite_buildin"]
 all_connectable_iris = sqlalchemy_connectable_iris + ["sqlite_buildin_iris"]
 
 
+@pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable)
 @pytest.mark.parametrize("method", [None, "multi"])
 def test_to_sql(conn, method, test_frame1, request):
@@ -508,6 +509,7 @@ def test_to_sql(conn, method, test_frame1, request):
     assert count_rows(conn, "test_frame") == len(test_frame1)
 
 
+@pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable)
 @pytest.mark.parametrize("mode, num_row_coef", [("replace", 1), ("append", 2)])
 def test_to_sql_exist(conn, mode, num_row_coef, test_frame1, request):
@@ -519,6 +521,7 @@ def test_to_sql_exist(conn, mode, num_row_coef, test_frame1, request):
     assert count_rows(conn, "test_frame") == num_row_coef * len(test_frame1)
 
 
+@pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable)
 def test_to_sql_exist_fail(conn, test_frame1, request):
     conn = request.getfixturevalue(conn)
@@ -531,6 +534,7 @@ def test_to_sql_exist_fail(conn, test_frame1, request):
         pandasSQL.to_sql(test_frame1, "test_frame", if_exists="fail")
 
 
+@pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable_iris)
 def test_read_iris(conn, request):
     conn = request.getfixturevalue(conn)
@@ -539,6 +543,7 @@ def test_read_iris(conn, request):
     check_iris_frame(iris_frame)
 
 
+@pytest.mark.db
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
 def test_to_sql_callable(conn, test_frame1, request):
     conn = request.getfixturevalue(conn)
@@ -557,6 +562,7 @@ def test_to_sql_callable(conn, test_frame1, request):
     assert count_rows(conn, "test_frame") == len(test_frame1)
 
 
+@pytest.mark.db
 @pytest.mark.parametrize("conn", mysql_connectable)
 def test_default_type_conversion(conn, request):
     conn = request.getfixturevalue(conn)
@@ -575,6 +581,7 @@ def test_default_type_conversion(conn, request):
     assert issubclass(df.BoolColWithNull.dtype.type, np.floating)
 
 
+@pytest.mark.db
 @pytest.mark.parametrize("conn", mysql_connectable)
 def test_read_procedure(conn, request):
     conn = request.getfixturevalue(conn)
@@ -611,6 +618,7 @@ def test_read_procedure(conn, request):
     tm.assert_frame_equal(df, res2)
 
 
+@pytest.mark.db
 @pytest.mark.parametrize("conn", postgresql_connectable)
 def test_copy_from_callable_insertion_method(conn, request):
     # GH 8953
@@ -1524,8 +1532,24 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
     @pytest.mark.skipif(SQLALCHEMY_INSTALLED, reason="SQLAlchemy is installed")
     def test_con_string_import_error(self):
         conn = "mysql://root@localhost/pandas"
-        with pytest.raises(ImportError, match="SQLAlchemy"):
+        msg = "Using URI string without sqlalchemy installed"
+        with pytest.raises(ImportError, match=msg):
             sql.read_sql("SELECT * FROM iris", conn)
+
+    @pytest.mark.skipif(SQLALCHEMY_INSTALLED, reason="SQLAlchemy is installed")
+    def test_con_unknown_dbapi2_class_does_not_error_without_sql_alchemy_installed(
+        self,
+    ):
+        class MockSqliteConnection:
+            def __init__(self, *args, **kwargs):
+                self.conn = sqlite3.Connection(*args, **kwargs)
+
+            def __getattr__(self, name):
+                return getattr(self.conn, name)
+
+        conn = MockSqliteConnection(":memory:")
+        with tm.assert_produces_warning(UserWarning):
+            sql.read_sql("SELECT 1", conn)
 
     def test_read_sql_delegate(self):
         iris_frame1 = sql.read_sql_query("SELECT * FROM iris", self.conn)

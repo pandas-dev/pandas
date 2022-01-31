@@ -715,7 +715,7 @@ class SetitemCastingEquivalents:
 
         self._check_inplace(is_inplace, orig, arr, obj)
 
-    def test_index_where(self, obj, key, expected, val, request):
+    def test_index_where(self, obj, key, expected, val):
         if obj.dtype == bool or obj.dtype.kind == "c" or expected.dtype.kind == "c":
             # TODO(GH#45061): Should become unreachable (at least the bool part)
             pytest.skip("test not applicable for this dtype")

@@ -14,12 +14,89 @@ from pandas.core.arrays.sparse import (
 
 
 class TestSeriesAccessor:
-    # TODO: collect other Series accessor tests
     def test_to_dense(self):
-        s = pd.Series([0, 1, 0, 10], dtype="Sparse[int64]")
-        result = s.sparse.to_dense()
+        ser = pd.Series([0, 1, 0, 10], dtype="Sparse[int64]")
+        result = ser.sparse.to_dense()
         expected = pd.Series([0, 1, 0, 10])
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("attr", ["npoints", "density", "fill_value", "sp_values"])
+    def test_get_attributes(self, attr):
+        arr = SparseArray([0, 1])
+        ser = pd.Series(arr)
+
+        result = getattr(ser.sparse, attr)
+        expected = getattr(arr, attr)
+        assert result == expected
+
+    @td.skip_if_no_scipy
+    def test_from_coo(self):
+        import scipy.sparse
+
+        row = [0, 3, 1, 0]
+        col = [0, 3, 1, 2]
+        data = [4, 5, 7, 9]
+        # TODO(scipy#13585): Remove dtype when scipy is fixed
+        # https://github.com/scipy/scipy/issues/13585
+        sp_array = scipy.sparse.coo_matrix((data, (row, col)), dtype="int")
+        result = pd.Series.sparse.from_coo(sp_array)
+
+        index = pd.MultiIndex.from_arrays([[0, 0, 1, 3], [0, 2, 1, 3]])
+        expected = pd.Series([4, 9, 7, 5], index=index, dtype="Sparse[int]")
+        tm.assert_series_equal(result, expected)
+
+    @td.skip_if_no_scipy
+    @pytest.mark.parametrize(
+        "sort_labels, expected_rows, expected_cols, expected_values_pos",
+        [
+            (
+                False,
+                [("b", 2), ("a", 2), ("b", 1), ("a", 1)],
+                [("z", 1), ("z", 2), ("x", 2), ("z", 0)],
+                {1: (1, 0), 3: (3, 3)},
+            ),
+            (
+                True,
+                [("a", 1), ("a", 2), ("b", 1), ("b", 2)],
+                [("x", 2), ("z", 0), ("z", 1), ("z", 2)],
+                {1: (1, 2), 3: (0, 1)},
+            ),
+        ],
+    )
+    def test_to_coo(
+        self, sort_labels, expected_rows, expected_cols, expected_values_pos
+    ):
+        import scipy.sparse
+
+        values = SparseArray([0, np.nan, 1, 0, None, 3], fill_value=0)
+        index = pd.MultiIndex.from_tuples(
+            [
+                ("b", 2, "z", 1),
+                ("a", 2, "z", 2),
+                ("a", 2, "z", 1),
+                ("a", 2, "x", 2),
+                ("b", 1, "z", 1),
+                ("a", 1, "z", 0),
+            ]
+        )
+        ss = pd.Series(values, index=index)
+
+        expected_A = np.zeros((4, 4))
+        for value, (row, col) in expected_values_pos.items():
+            expected_A[row, col] = value
+
+        A, rows, cols = ss.sparse.to_coo(
+            row_levels=(0, 1), column_levels=(2, 3), sort_labels=sort_labels
+        )
+        assert isinstance(A, scipy.sparse.coo_matrix)
+        tm.assert_numpy_array_equal(A.toarray(), expected_A)
+        assert rows == expected_rows
+        assert cols == expected_cols
+
+    def test_non_sparse_raises(self):
+        ser = pd.Series([1, 2, 3])
+        with pytest.raises(AttributeError, match=".sparse"):
+            ser.sparse.density
 
 
 class TestFrameAccessor:
