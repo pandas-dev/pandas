@@ -54,7 +54,6 @@ def test_drop_with_ignore_errors():
 
     # GH 8522
     ser = Series([2, 3], index=[True, False])
-    ser = Series([2, 3], index=[True, False])
     assert not ser.index.is_object()
     assert ser.index.dtype == bool
     result = ser.drop(True)
