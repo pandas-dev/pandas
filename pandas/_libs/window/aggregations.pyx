@@ -2,7 +2,11 @@
 
 import cython
 
-from libc.math cimport round
+from libc.math cimport (
+    round,
+    signbit,
+    sqrt,
+)
 from libcpp.deque cimport deque
 
 from pandas._libs.algos cimport TiebreakEnumType
@@ -19,14 +23,8 @@ from numpy cimport (
 
 cnp.import_array()
 
-
-cdef extern from "../src/headers/cmath" namespace "std":
-    bint isnan(float64_t) nogil
-    bint notnan(float64_t) nogil
-    int signbit(float64_t) nogil
-    float64_t sqrt(float64_t x) nogil
-
 from pandas._libs.algos import is_monotonic
+
 from pandas._libs.dtypes cimport numeric_t
 
 
@@ -94,7 +92,7 @@ cdef inline void add_sum(float64_t val, int64_t *nobs, float64_t *sum_x,
         float64_t y, t
 
     # Not NaN
-    if notnan(val):
+    if val == val:
         nobs[0] = nobs[0] + 1
         y = val - compensation[0]
         t = sum_x[0] + y
@@ -110,7 +108,7 @@ cdef inline void remove_sum(float64_t val, int64_t *nobs, float64_t *sum_x,
         float64_t y, t
 
     # Not NaN
-    if notnan(val):
+    if val == val:
         nobs[0] = nobs[0] - 1
         y = - val - compensation[0]
         t = sum_x[0] + y
@@ -199,7 +197,7 @@ cdef inline void add_mean(float64_t val, Py_ssize_t *nobs, float64_t *sum_x,
         float64_t y, t
 
     # Not NaN
-    if notnan(val):
+    if val == val:
         nobs[0] = nobs[0] + 1
         y = val - compensation[0]
         t = sum_x[0] + y
@@ -215,7 +213,7 @@ cdef inline void remove_mean(float64_t val, Py_ssize_t *nobs, float64_t *sum_x,
     cdef:
         float64_t y, t
 
-    if notnan(val):
+    if val == val:
         nobs[0] = nobs[0] - 1
         y = - val - compensation[0]
         t = sum_x[0] + y
@@ -304,8 +302,8 @@ cdef inline void add_var(float64_t val, float64_t *nobs, float64_t *mean_x,
     cdef:
         float64_t delta, prev_mean, y, t
 
-    # `isnan` instead of equality as fix for GH-21813, msvc 2017 bug
-    if isnan(val):
+    # GH#21813, if msvc 2017 bug is resolved, we should be OK with != instead of `isnan`
+    if val != val:
         return
 
     nobs[0] = nobs[0] + 1
@@ -329,7 +327,7 @@ cdef inline void remove_var(float64_t val, float64_t *nobs, float64_t *mean_x,
     """ remove a value from the var calc """
     cdef:
         float64_t delta, prev_mean, y, t
-    if notnan(val):
+    if val == val:
         nobs[0] = nobs[0] - 1
         if nobs[0]:
             # Welford's method for the online variance-calculation
@@ -455,7 +453,7 @@ cdef inline void add_skew(float64_t val, int64_t *nobs,
         float64_t y, t
 
     # Not NaN
-    if notnan(val):
+    if val == val:
         nobs[0] = nobs[0] + 1
 
         y = val - compensation_x[0]
@@ -483,7 +481,7 @@ cdef inline void remove_skew(float64_t val, int64_t *nobs,
         float64_t y, t
 
     # Not NaN
-    if notnan(val):
+    if val == val:
         nobs[0] = nobs[0] - 1
 
         y = - val - compensation_x[0]
@@ -525,7 +523,7 @@ def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
     with nogil:
         for i in range(0, V):
             val = values_copy[i]
-            if notnan(val):
+            if val == val:
                 nobs_mean += 1
                 sum_val += val
         mean_val = sum_val / nobs_mean
@@ -633,7 +631,7 @@ cdef inline void add_kurt(float64_t val, int64_t *nobs,
         float64_t y, t
 
     # Not NaN
-    if notnan(val):
+    if val == val:
         nobs[0] = nobs[0] + 1
 
         y = val - compensation_x[0]
@@ -666,7 +664,7 @@ cdef inline void remove_kurt(float64_t val, int64_t *nobs,
         float64_t y, t
 
     # Not NaN
-    if notnan(val):
+    if val == val:
         nobs[0] = nobs[0] - 1
 
         y = - val - compensation_x[0]
@@ -712,7 +710,7 @@ def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
     with nogil:
         for i in range(0, V):
             val = values_copy[i]
-            if notnan(val):
+            if val == val:
                 nobs_mean += 1
                 sum_val += val
         mean_val = sum_val / nobs_mean
@@ -816,7 +814,7 @@ def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
                 # setup
                 for j in range(s, e):
                     val = values[j]
-                    if notnan(val):
+                    if val == val:
                         nobs += 1
                         err = skiplist_insert(sl, val) == -1
                         if err:
@@ -827,7 +825,7 @@ def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
                 # calculate adds
                 for j in range(end[i - 1], e):
                     val = values[j]
-                    if notnan(val):
+                    if val == val:
                         nobs += 1
                         err = skiplist_insert(sl, val) == -1
                         if err:
@@ -836,7 +834,7 @@ def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
                 # calculate deletes
                 for j in range(start[i - 1], s):
                     val = values[j]
-                    if notnan(val):
+                    if val == val:
                         skiplist_remove(sl, val)
                         nobs -= 1
             if nobs >= minp:
@@ -1097,7 +1095,7 @@ def roll_quantile(const float64_t[:] values, ndarray[int64_t] start,
                 # setup
                 for j in range(s, e):
                     val = values[j]
-                    if notnan(val):
+                    if val == val:
                         nobs += 1
                         skiplist_insert(skiplist, val)
 
@@ -1105,14 +1103,14 @@ def roll_quantile(const float64_t[:] values, ndarray[int64_t] start,
                 # calculate adds
                 for j in range(end[i - 1], e):
                     val = values[j]
-                    if notnan(val):
+                    if val == val:
                         nobs += 1
                         skiplist_insert(skiplist, val)
 
                 # calculate deletes
                 for j in range(start[i - 1], s):
                     val = values[j]
-                    if notnan(val):
+                    if val == val:
                         skiplist_remove(skiplist, val)
                         nobs -= 1
             if nobs >= minp:
@@ -1222,7 +1220,7 @@ def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
                 # setup
                 for j in range(s, e):
                     val = values[j] if ascending else -values[j]
-                    if notnan(val):
+                    if val == val:
                         nobs += 1
                         rank = skiplist_insert(skiplist, val)
                         if rank == -1:
@@ -1249,14 +1247,14 @@ def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
                 # calculate deletes
                 for j in range(start[i - 1], s):
                     val = values[j] if ascending else -values[j]
-                    if notnan(val):
+                    if val == val:
                         skiplist_remove(skiplist, val)
                         nobs -= 1
 
                 # calculate adds
                 for j in range(end[i - 1], e):
                     val = values[j] if ascending else -values[j]
-                    if notnan(val):
+                    if val == val:
                         nobs += 1
                         rank = skiplist_insert(skiplist, val)
                         if rank == -1:
@@ -1492,7 +1490,7 @@ cdef inline void add_weighted_var(float64_t val,
     cdef:
         float64_t temp, q, r
 
-    if isnan(val):
+    if val != val:
         return
 
     nobs[0] = nobs[0] + 1
@@ -1538,7 +1536,7 @@ cdef inline void remove_weighted_var(float64_t val,
     cdef:
         float64_t temp, q, r
 
-    if notnan(val):
+    if val == val:
         nobs[0] = nobs[0] - 1
 
         if nobs[0]:
@@ -1608,7 +1606,7 @@ def roll_weighted_var(const float64_t[:] values, const float64_t[:] weights,
             w = weights[i % win_n]
             pre_w = weights[(i - win_n) % win_n]
 
-            if notnan(val):
+            if val == val:
                 if pre_val == pre_val:
                     remove_weighted_var(pre_val, pre_w, &t,
                                         &sum_w, &mean, &nobs)
