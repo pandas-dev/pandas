@@ -284,8 +284,6 @@ def test_transform_partial_failure(op, request):
                 raises=AssertionError, reason=f"{op} is successful on any dtype"
             )
         )
-    if op in ("rank", "fillna"):
-        pytest.skip(f"{op} doesn't raise TypeError on object")
 
     # Using object makes most transform kernels fail
     ser = Series(3 * [object])
@@ -497,9 +495,13 @@ def test_map(datetime_series):
     tm.assert_series_equal(a.map(c), exp)
 
 
-def test_map_empty(index):
+def test_map_empty(request, index):
     if isinstance(index, MultiIndex):
-        pytest.skip("Initializing a Series from a MultiIndex is not supported")
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="Initializing a Series from a MultiIndex is not supported"
+            )
+        )
 
     s = Series(index)
     result = s.map({})

@@ -87,6 +87,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.inference import is_list_like
 from pandas.core.dtypes.missing import (
+    array_equivalent,
     is_valid_na_for_dtype,
     isna,
     na_value_for_dtype,
@@ -1970,7 +1971,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             #  in smaller int dtypes.
             info = np.iinfo(dtype)
             if info.min <= element <= info.max:
-                return element
+                return dtype.type(element)
             raise ValueError
 
         if tipo is not None:
@@ -2026,6 +2027,15 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                 if element._hasna:
                     raise ValueError
                 return element
+            elif tipo.itemsize > dtype.itemsize:
+                if isinstance(element, np.ndarray):
+                    # e.g. TestDataFrameIndexingWhere::test_where_alignment
+                    casted = element.astype(dtype)
+                    # TODO(np>=1.20): we can just use np.array_equal with equal_nan
+                    if array_equivalent(casted, element):
+                        return casted
+                    raise ValueError
+
             return element
 
         if lib.is_integer(element) or lib.is_float(element):
