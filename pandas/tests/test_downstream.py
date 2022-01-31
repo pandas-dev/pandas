@@ -56,6 +56,7 @@ def test_dask(df):
 
 
 @pytest.mark.filterwarnings("ignore:.*64Index is deprecated:FutureWarning")
+@pytest.mark.filterwarnings("ignore:The __array_wrap__:DeprecationWarning")
 def test_dask_ufunc():
     # At the time of dask 2022.01.0, dask is still directly using __array_wrap__
     # for some ufuncs (https://github.com/dask/dask/issues/8580).
@@ -148,7 +149,7 @@ def test_statsmodels():
 
 # Cython import warning
 @pytest.mark.filterwarnings("ignore:can't:ImportWarning")
-def test_scikit_learn(df):
+def test_scikit_learn():
 
     sklearn = import_module("sklearn")  # noqa:F841
     from sklearn import (
@@ -172,7 +173,7 @@ def test_seaborn():
     seaborn.stripplot(x="day", y="total_bill", data=tips)
 
 
-def test_pandas_gbq(df):
+def test_pandas_gbq():
 
     pandas_gbq = import_module("pandas_gbq")  # noqa:F841
 

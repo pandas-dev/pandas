@@ -12,6 +12,7 @@ from pandas._typing import (
     ArrayLike,
     npt,
 )
+from pandas.compat import np_version_under1p20
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
@@ -126,6 +127,9 @@ def putmask_without_repeat(
     mask : np.ndarray[bool]
     new : Any
     """
+    if np_version_under1p20:
+        new = setitem_datetimelike_compat(values, mask.sum(), new)
+
     if getattr(new, "ndim", 0) >= 1:
         new = new.astype(values.dtype, copy=False)
 

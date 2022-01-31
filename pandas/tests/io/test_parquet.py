@@ -13,6 +13,7 @@ import pytest
 
 from pandas._config import get_option
 
+from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
     pa_version_under2p0,
     pa_version_under5p0,
@@ -721,6 +722,34 @@ class TestParquetPyArrow(Base):
         # older pyarrows raise ArrowInvalid
         self.check_external_error_on_write(df, pa, pyarrow.ArrowException)
 
+    def test_unsupported_float16(self, pa):
+        # #44847, #44914
+        # Not able to write float 16 column using pyarrow.
+        data = np.arange(2, 10, dtype=np.float16)
+        df = pd.DataFrame(data=data, columns=["fp16"])
+        self.check_external_error_on_write(df, pa, pyarrow.ArrowException)
+
+    @pytest.mark.xfail(
+        is_platform_windows(),
+        reason=(
+            "PyArrow does not cleanup of partial files dumps when unsupported "
+            "dtypes are passed to_parquet function in windows"
+        ),
+    )
+    @pytest.mark.parametrize("path_type", [str, pathlib.Path])
+    def test_unsupported_float16_cleanup(self, pa, path_type):
+        # #44847, #44914
+        # Not able to write float 16 column using pyarrow.
+        # Tests cleanup by pyarrow in case of an error
+        data = np.arange(2, 10, dtype=np.float16)
+        df = pd.DataFrame(data=data, columns=["fp16"])
+
+        with tm.ensure_clean() as path_str:
+            path = path_type(path_str)
+            with tm.external_error_raised(pyarrow.ArrowException):
+                df.to_parquet(path=path, engine=pa)
+            assert not os.path.isfile(path)
+
     def test_categorical(self, pa):
 
         # supported in >= 0.7.0
@@ -913,11 +942,17 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame({"a": pd.date_range("2017-01-01", freq="1n", periods=10)})
         check_round_trip(df, pa, write_kwargs={"version": ver})
 
-    def test_timezone_aware_index(self, pa, timezone_aware_date_list):
-        if not pa_version_under2p0:
-            # temporary skip this test until it is properly resolved
-            # https://github.com/pandas-dev/pandas/issues/37286
-            pytest.skip()
+    def test_timezone_aware_index(self, request, pa, timezone_aware_date_list):
+        if (
+            not pa_version_under2p0
+            and timezone_aware_date_list.tzinfo != datetime.timezone.utc
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="temporary skip this test until it is properly resolved: "
+                    "https://github.com/pandas-dev/pandas/issues/37286"
+                )
+            )
         idx = 5 * [timezone_aware_date_list]
         df = pd.DataFrame(index=idx, data={"index_as_col": idx})
 
@@ -966,7 +1001,6 @@ class TestParquetFastParquet(Base):
         df["timedelta"] = pd.timedelta_range("1 day", periods=3)
         check_round_trip(df, fp)
 
-    @pytest.mark.skip(reason="not supported")
     def test_duplicate_columns(self, fp):
 
         # not currently able to handle duplicate columns
