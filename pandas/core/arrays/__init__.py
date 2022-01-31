@@ -20,6 +20,8 @@ from pandas.core.arrays.string_ import StringArray
 from pandas.core.arrays.string_arrow import ArrowStringArray
 from pandas.core.arrays.timedeltas import TimedeltaArray
 
+from pandas.core.arrays.struct import StructArray, StructDtype
+
 __all__ = [
     "ExtensionArray",
     "ExtensionOpsMixin",
@@ -37,5 +39,6 @@ __all__ = [
     "period_array",
     "SparseArray",
     "StringArray",
+    "StructArray",
     "TimedeltaArray",
 ]
