@@ -928,7 +928,7 @@ class Block(PandasObject):
 
         if is_empty_indexer(indexer):
             # GH#8669 empty indexers, test_loc_setitem_boolean_mask_allfalse
-            pass
+            values[indexer] = value
 
         elif is_scalar_indexer(indexer, self.ndim):
             # setting a single element for each dim and with a rhs that could
