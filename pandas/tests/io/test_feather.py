@@ -181,6 +181,7 @@ class TestFeather:
         df = tm.makeDataFrame().reset_index()
         self.check_round_trip(df, write_kwargs={"version": 1})
 
+    @pytest.mark.network
     @tm.network
     def test_http_path(self, feather_file):
         # GH 29055

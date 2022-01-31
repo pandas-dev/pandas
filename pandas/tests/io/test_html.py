@@ -134,6 +134,7 @@ class TestReadHtml:
         res = self.read_html(out, attrs={"class": "dataframe"}, index_col=0)[0]
         tm.assert_frame_equal(res, df)
 
+    @pytest.mark.network
     @tm.network
     def test_banklist_url_positional_match(self):
         url = "http://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/index.html"  # noqa E501
@@ -153,6 +154,7 @@ class TestReadHtml:
 
         assert_framelist_equal(df1, df2)
 
+    @pytest.mark.network
     @tm.network
     def test_banklist_url(self):
         url = "http://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/index.html"  # noqa E501
@@ -169,6 +171,7 @@ class TestReadHtml:
 
         assert_framelist_equal(df1, df2)
 
+    @pytest.mark.network
     @tm.network
     def test_spam_url(self):
         url = (
@@ -313,13 +316,15 @@ class TestReadHtml:
 
         assert_framelist_equal(df1, df2)
 
+    @pytest.mark.network
     @tm.network
     def test_bad_url_protocol(self):
         with pytest.raises(URLError, match="urlopen error unknown url type: git"):
             self.read_html("git://github.com", match=".*Water.*")
 
-    @tm.network
     @pytest.mark.slow
+    @pytest.mark.network
+    @tm.network
     def test_invalid_url(self):
         msg = (
             "Name or service not known|Temporary failure in name resolution|"
@@ -402,12 +407,14 @@ class TestReadHtml:
         with pytest.raises(ValueError, match=msg):
             self.read_html(spam_data, match="Water", skiprows=-1)
 
+    @pytest.mark.network
     @tm.network
     def test_multiple_matches(self):
         url = "https://docs.python.org/2/"
         dfs = self.read_html(url, match="Python")
         assert len(dfs) > 1
 
+    @pytest.mark.network
     @tm.network
     def test_python_docs_table(self):
         url = "https://docs.python.org/2/"
