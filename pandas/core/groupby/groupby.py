@@ -1650,7 +1650,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             with com.temp_setattr(self, "observed", True):
                 result = getattr(self, func)(*args, **kwargs)
 
-            if self._can_use_transform_fast(result):
+            if self._can_use_transform_fast(func, result):
                 return self._wrap_transform_fast_result(result)
 
             # only reached for DataFrameGroupBy
