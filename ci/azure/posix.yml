@@ -30,7 +30,7 @@ jobs:
     - script: |
         ci/setup_env.sh
         conda remove pyarrow --yes
-        conda install -c conda-forge pyarrow
+        conda install -c conda-forge pyarrow=6
       displayName: 'Setup environment and build pandas'
 
     - script: |
