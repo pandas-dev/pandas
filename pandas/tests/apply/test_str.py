@@ -256,19 +256,10 @@ def test_transform_groupby_kernel_series(string_series, op):
 
 
 @pytest.mark.parametrize("op", frame_transform_kernels)
-def test_transform_groupby_kernel_frame(
-    axis, float_frame, op, using_array_manager, request
-):
+def test_transform_groupby_kernel_frame(axis, float_frame, op, request):
     # TODO(2.0) Remove after pad/backfill deprecation enforced
     op = maybe_normalize_deprecated_kernels(op)
     # GH 35964
-    if using_array_manager and op == "pct_change" and axis in (1, "columns"):
-        # TODO(ArrayManager) shift with axis=1
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="shift axis=1 not yet implemented for ArrayManager"
-            )
-        )
 
     args = [0.0] if op == "fillna" else []
     if axis == 0 or axis == "index":

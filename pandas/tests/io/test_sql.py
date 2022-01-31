@@ -1532,8 +1532,24 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
     @pytest.mark.skipif(SQLALCHEMY_INSTALLED, reason="SQLAlchemy is installed")
     def test_con_string_import_error(self):
         conn = "mysql://root@localhost/pandas"
-        with pytest.raises(ImportError, match="SQLAlchemy"):
+        msg = "Using URI string without sqlalchemy installed"
+        with pytest.raises(ImportError, match=msg):
             sql.read_sql("SELECT * FROM iris", conn)
+
+    @pytest.mark.skipif(SQLALCHEMY_INSTALLED, reason="SQLAlchemy is installed")
+    def test_con_unknown_dbapi2_class_does_not_error_without_sql_alchemy_installed(
+        self,
+    ):
+        class MockSqliteConnection:
+            def __init__(self, *args, **kwargs):
+                self.conn = sqlite3.Connection(*args, **kwargs)
+
+            def __getattr__(self, name):
+                return getattr(self.conn, name)
+
+        conn = MockSqliteConnection(":memory:")
+        with tm.assert_produces_warning(UserWarning):
+            sql.read_sql("SELECT 1", conn)
 
     def test_read_sql_delegate(self):
         iris_frame1 = sql.read_sql_query("SELECT * FROM iris", self.conn)

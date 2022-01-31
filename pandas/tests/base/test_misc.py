@@ -148,15 +148,19 @@ def test_memory_usage_components_narrow_series(dtype):
     assert total_usage == non_index_usage + index_usage
 
 
-def test_searchsorted(index_or_series_obj, request):
+def test_searchsorted(request, index_or_series_obj):
     # numpy.searchsorted calls obj.searchsorted under the hood.
     # See gh-12238
     obj = index_or_series_obj
 
     if isinstance(obj, pd.MultiIndex):
         # See gh-14833
-        pytest.skip("np.searchsorted doesn't work on pd.MultiIndex")
-    if obj.dtype.kind == "c" and isinstance(obj, Index):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="np.searchsorted doesn't work on pd.MultiIndex: GH 14833"
+            )
+        )
+    elif obj.dtype.kind == "c" and isinstance(obj, Index):
         # TODO: Should Series cases also raise? Looks like they use numpy
         #  comparison semantics https://github.com/numpy/numpy/issues/15981
         mark = pytest.mark.xfail(reason="complex objects are not comparable")
