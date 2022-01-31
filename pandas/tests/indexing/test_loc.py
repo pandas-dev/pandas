@@ -43,6 +43,15 @@ from pandas.core.indexing import (
 from pandas.tests.indexing.common import Base
 
 
+def test_not_change_nan_loc2():
+    # GH 28403
+    df = DataFrame({"A": [np.nan, np.nan, "b"]})
+    df["A"].loc[[0, 1, 2]] = ["a", np.nan, np.nan]
+    expected = DataFrame({"A": [False, True, True]})
+    tm.assert_frame_equal(df.isna(), expected)
+    tm.assert_frame_equal(df.notna(), ~expected)
+
+
 def test_not_change_nan_loc():
     # GH 28403
     df = DataFrame({"A": [np.nan, "b"]})
