@@ -20,9 +20,6 @@ variables:
   PYTEST_TARGET:  pandas
   PATTERN: "not slow and not high_memory and not db"
   PANDAS_CI: 1
-  # Avoid hanging threads in pyarrow
-  OMP_NUM_THREADS: 1
-  OMP_THREAD_LIMIT: 1
 
 jobs:
 - template: ci/azure/posix.yml
