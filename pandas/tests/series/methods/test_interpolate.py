@@ -778,6 +778,7 @@ class TestSeriesInterpolateData:
             with pytest.raises(ValueError, match=expected_error):
                 df[0].interpolate(method=method, **kwargs)
 
+    @td.skip_if_no_scipy
     def test_interpolate_timedelta_index(self, request, interp_methods_ind):
         """
         Tests for non numerical index types  - object, period, timedelta
@@ -789,8 +790,6 @@ class TestSeriesInterpolateData:
         df = pd.DataFrame([0, 1, np.nan, 3], index=ind)
 
         method, kwargs = interp_methods_ind
-        if method == "pchip":
-            pytest.importorskip("scipy")
 
         if method in {"cubic", "zero"}:
             request.node.add_marker(
