@@ -7,8 +7,6 @@ import weakref
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
@@ -26,6 +24,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.api import Float64Index
+from pandas.core.indexing import IndexingError
 from pandas.tests.indexing.common import _mklbl
 from pandas.tests.indexing.test_floats import gen_obj
 
@@ -504,9 +503,6 @@ class TestFancy:
         df.loc[df["A"] == 0, ["A", "B"]] = df["D"]
         tm.assert_frame_equal(df, expected)
 
-    # TODO(ArrayManager) setting single item with an iterable doesn't work yet
-    # in the "split" path
-    @td.skip_array_manager_not_yet_implemented
     def test_setitem_list(self):
 
         # GH 6043
@@ -986,3 +982,31 @@ def test_extension_array_cross_section_converts():
 
     result = df.iloc[0]
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "ser, keys",
+    [(Series([10]), (0, 0)), (Series([1, 2, 3], index=list("abc")), (0, 1))],
+)
+def test_ser_tup_indexer_exceeds_dimensions(ser, keys, indexer_li):
+    # GH#13831
+    exp_err, exp_msg = IndexingError, "Too many indexers"
+    with pytest.raises(exp_err, match=exp_msg):
+        indexer_li(ser)[keys]
+
+    if indexer_li == tm.iloc:
+        # For iloc.__setitem__ we let numpy handle the error reporting.
+        exp_err, exp_msg = IndexError, "too many indices for array"
+
+    with pytest.raises(exp_err, match=exp_msg):
+        indexer_li(ser)[keys] = 0
+
+
+def test_ser_list_indexer_exceeds_dimensions(indexer_li):
+    # GH#13831
+    # Make sure an exception is raised when a tuple exceeds the dimension of the series,
+    # but not list when a list is used.
+    ser = Series([10])
+    res = indexer_li(ser)[[0, 0]]
+    exp = Series([10, 10], index=Index([0, 0]))
+    tm.assert_series_equal(res, exp)

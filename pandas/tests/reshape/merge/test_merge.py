@@ -118,7 +118,7 @@ def dfs_for_indicator():
 
 
 class TestMerge:
-    def setup_method(self, method):
+    def setup_method(self):
         # aggregate multiple columns
         self.df = DataFrame(
             {
