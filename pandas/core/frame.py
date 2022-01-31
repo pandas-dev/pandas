@@ -8937,8 +8937,11 @@ NaN 12.3   33.0
         Columns in `other` that are not in the caller are added as new columns.
 
         .. deprecated:: 1.4.0
-            append is deprecated,
-            use pandas.concat instead.
+            ``DataFrame.append`` is deprecated,
+            use ``pandas.concat`` instead.
+            For further details see
+            :ref:`Deprecated Frame.append and Series.append
+            <https://pandas.pydata.org/docs/whatsnew/v1.4.0.html#deprecated-frame-append-and-series-append>`.
 
         Parameters
         ----------

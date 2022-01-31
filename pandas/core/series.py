@@ -2866,8 +2866,11 @@ Name: Max Speed, dtype: float64
         Concatenate two or more Series.
 
         .. deprecated:: 1.4.0
-            append is deprecated,
-            use pandas.concat instead.
+            ``Series.append`` is deprecated,
+            use ``pandas.concat`` instead.
+            For further details see
+            :ref:`Deprecated Frame.append and Series.append
+            <https://pandas.pydata.org/docs/whatsnew/v1.4.0.html#deprecated-frame-append-and-series-append>`.
 
         Parameters
         ----------
