@@ -22,6 +22,29 @@ Styler
   - New method :meth:`.Styler.to_string` for alternative customisable output methods (:issue:`44502`)
   - Various bug fixes, see below.
 
+.. _whatsnew_150.enhancements.from_dummies:
+
+from_dummies
+^^^^^^^^^^^^
+
+Added new function :func:`~pandas.get_dummies` to convert a dummy coded :class:`DataFrame` into a categorical :class:`DataFrame`.
+
+Example::
+
+.. code-block:: python
+
+    >>> import pandas as pd
+
+    >>> df = pd.DataFrame({"col1_a": [1, 0, 1], "col1_b": [0, 1, 0],
+    ...                    "col2_a": [0, 1, 0], "col2_b": [1, 0, 0],
+    ...                    "col2_c": [0, 0, 1]})
+
+    >>> pd.from_dummies(df, sep="_")
+        col1    col2
+    0    a       b
+    1    b       a
+    2    a       c
+
 .. _whatsnew_150.enhancements.enhancement2:
 
 enhancement2
