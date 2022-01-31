@@ -25,7 +25,11 @@ jobs:
     - script: echo '##vso[task.prependpath]$(HOME)/miniconda3/bin'
       displayName: 'Set conda path'
 
-    - script: ci/setup_env.sh
+    # Install openssl for pyarrow-parquet error
+    # Library not loaded: @rpath/libssl.1.1.dylib
+    - script: |
+        ci/setup_env.sh
+        conda install -c anaconda openssl
       displayName: 'Setup environment and build pandas'
 
     - script: |
