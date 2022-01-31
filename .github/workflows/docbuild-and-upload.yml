@@ -40,12 +40,7 @@ jobs:
     - name: Build documentation
       run: |
         source activate pandas-dev
-        doc/make.py --warnings-are-errors | tee sphinx.log ; exit ${PIPESTATUS[0]}
-
-    # This can be removed when the ipython directive fails when there are errors,
-    # including the `tee sphinx.log` in te previous step (https://github.com/ipython/ipython/issues/11547)
-    - name: Check ipython directive errors
-      run: "! grep -B10 \"^<<<-------------------------------------------------------------------------$\" sphinx.log"
+        doc/make.py --warnings-are-errors
 
     - name: Install ssh key
       run: |

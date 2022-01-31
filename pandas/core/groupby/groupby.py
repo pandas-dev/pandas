@@ -1650,7 +1650,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             with com.temp_setattr(self, "observed", True):
                 result = getattr(self, func)(*args, **kwargs)
 
-            if self._can_use_transform_fast(result):
+            if self._can_use_transform_fast(func, result):
                 return self._wrap_transform_fast_result(result)
 
             # only reached for DataFrameGroupBy
@@ -2675,7 +2675,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             A single nth value for the row or a list of nth values or slices.
 
             .. versionchanged:: 1.4.0
-                Added slice and lists containiing slices.
+                Added slice and lists containing slices.
                 Added index notation.
 
         dropna : {'any', 'all', None}, default None
