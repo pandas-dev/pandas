@@ -1051,7 +1051,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     @property
     @abc.abstractmethod
     def sheets(self) -> dict[str, Any]:
-        """Mapping of sheet name to sheet object."""
+        """Mapping of sheet names to sheet objects."""
         pass
 
     @abc.abstractmethod

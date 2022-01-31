@@ -60,6 +60,7 @@ class ODSWriter(ExcelWriter):
 
     @property
     def sheets(self) -> dict[str, Any]:
+        """Mapping of sheet names to sheet objects."""
         from odf.table import Table
 
         result = {

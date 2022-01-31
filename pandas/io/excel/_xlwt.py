@@ -65,6 +65,7 @@ class XlwtWriter(ExcelWriter):
 
     @property
     def sheets(self) -> dict[str, Any]:
+        """Mapping of sheet names to sheet objects."""
         result = {sheet.name: sheet for sheet in self.book._Workbook__worksheets}
         return result
 

@@ -77,6 +77,7 @@ class OpenpyxlWriter(ExcelWriter):
 
     @property
     def sheets(self) -> dict[str, Any]:
+        """Mapping of sheet names to sheet objects."""
         result = {name: self.book[name] for name in self.book.sheetnames}
         return result
 
