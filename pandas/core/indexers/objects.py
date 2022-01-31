@@ -295,7 +295,7 @@ class FixedForwardWindowIndexer(BaseIndexer):
         if step is None:
             step = 1
 
-        start = np.arange(num_values, step=step, dtype="int64")
+        start = np.arange(0, num_values, step, dtype="int64")
         end = start + self.window_size
         if self.window_size:
             end = np.clip(end, 0, num_values)
@@ -358,6 +358,7 @@ class GroupbyIndexer(BaseIndexer):
         start_arrays = []
         end_arrays = []
         ref_arrays = []
+        empty = np.array([], dtype=np.int64)
         window_indices_start = 0
         for key, indices in self.groupby_indices.items():
             index_array: np.ndarray | None
@@ -393,7 +394,7 @@ class GroupbyIndexer(BaseIndexer):
             start_arrays.append(window_indices.take(ensure_platform_int(start)))
             end_arrays.append(window_indices.take(ensure_platform_int(end)))
             ref_arrays.append(
-                None if ref is None else window_indices.take(ensure_platform_int(ref))
+                empty if ref is None else window_indices.take(ensure_platform_int(ref))
             )
         start = np.concatenate(start_arrays)
         end = np.concatenate(end_arrays)

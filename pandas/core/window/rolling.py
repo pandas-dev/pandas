@@ -14,6 +14,7 @@ from typing import (
     Any,
     Callable,
     Hashable,
+    cast,
 )
 import warnings
 
@@ -230,7 +231,7 @@ class BaseWindow(SelectionMixin):
             raise ValueError("method must be 'table' or 'single")
 
     def _check_window_bounds(
-        self, start: np.ndarray, end: np.ndarray, ref: np.ndarray, num_vals: int
+        self, start: np.ndarray, end: np.ndarray, ref: np.ndarray | None, num_vals: int
     ) -> None:
         if len(start) != len(end):
             raise ValueError(
@@ -251,7 +252,7 @@ class BaseWindow(SelectionMixin):
                 f"if given and rounded up unless groupby was used"
             )
 
-    def _slice_index(self, index: Index, at: np.ndarray) -> Index:
+    def _slice_index(self, index: Index, at: np.ndarray | None) -> Index:
         """
         Slices the index of the object.
         """
@@ -435,7 +436,11 @@ class BaseWindow(SelectionMixin):
         return FixedWindowIndexer(window_size=self.window)
 
     def _apply_series(
-        self, homogeneous_func: Callable[..., ArrayLike], name: str | None = None
+        self,
+        homogeneous_func: Callable[
+            ..., ArrayLike | tuple[ArrayLike, np.ndarray | None]
+        ],
+        name: str | None = None,
     ) -> Series:
         """
         Series version of _apply_blockwise
@@ -457,7 +462,11 @@ class BaseWindow(SelectionMixin):
         return obj._constructor(result, index=index, name=obj.name)
 
     def _apply_blockwise(
-        self, homogeneous_func: Callable[..., ArrayLike], name: str | None = None
+        self,
+        homogeneous_func: Callable[
+            ..., ArrayLike | tuple[ArrayLike, np.ndarray | None]
+        ],
+        name: str | None = None,
     ) -> DataFrame | Series:
         """
         Apply the given function to the DataFrame broken down into homogeneous
@@ -472,7 +481,7 @@ class BaseWindow(SelectionMixin):
             obj = notna(obj).astype(int)
             obj._mgr = obj._mgr.consolidate()
 
-        def hfunc(values: ArrayLike) -> ArrayLike:
+        def hfunc(values: ArrayLike) -> ArrayLike | tuple[ArrayLike, np.ndarray | None]:
             values = self._prep_values(values)
             return homogeneous_func(values)
 
@@ -480,22 +489,24 @@ class BaseWindow(SelectionMixin):
             obj = obj.T
 
         taker = []
-        res_values: list[Any] = []
+        res_values: list[ArrayLike] = []
         ref_value = None
         for i, arr in enumerate(obj._iter_column_arrays()):
             # GH#42736 operate column-wise instead of block-wise
             try:
-                res, ref = hfunc(arr), None
+                hresult = hfunc(arr)
             except (TypeError, NotImplementedError):
                 pass
             else:
-                if type(res) is tuple:
-                    res, ref = res
+                res, ref = (
+                    hresult
+                    if type(hresult) is tuple
+                    else (cast(ArrayLike, hresult), None)
+                )
                 if len(res_values) == 0:
                     ref_value = ref
-                elif not (
-                    (ref_value is None and ref is None)
-                    or np.array_equal(ref_value, ref)
+                elif ((ref_value is None) != (ref is None)) or not np.array_equal(
+                    cast(np.ndarray, ref_value), cast(np.ndarray, ref)
                 ):
                     raise ValueError("hfunc returned inconsistent ref value")
                 res_values.append(res)
@@ -526,7 +537,11 @@ class BaseWindow(SelectionMixin):
         return self._resolve_output(df, obj)
 
     def _apply_tablewise(
-        self, homogeneous_func: Callable[..., ArrayLike], name: str | None = None
+        self,
+        homogeneous_func: Callable[
+            ..., ArrayLike | tuple[ArrayLike, np.ndarray | None]
+        ],
+        name: str | None = None,
     ) -> DataFrame | Series:
         """
         Apply the given function to the DataFrame across the entire object
@@ -536,9 +551,10 @@ class BaseWindow(SelectionMixin):
         obj = self._create_data(self._selected_obj)
         values = self._prep_values(obj.to_numpy())
         values = values.T if self.axis == 1 else values
-        result, ref = homogeneous_func(values), None
-        if type(result) is tuple:
-            result, ref = result
+        hresult = homogeneous_func(values)
+        result, ref = (
+            hresult if type(hresult) is tuple else (cast(ArrayLike, hresult), None)
+        )
         result = result.T if self.axis == 1 else result
         index = obj.index if self.axis == 1 else self._slice_index(obj.index, ref)
         columns = obj.columns if self.axis != 1 else self._slice_index(obj.columns, ref)
@@ -2649,7 +2665,7 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
 
     _attributes = Rolling._attributes + BaseWindowGroupby._attributes
 
-    def _slice_index(self, index: Index, at: np.ndarray) -> Index:
+    def _slice_index(self, index: Index, at: np.ndarray | None) -> Index:
         """
         Slices the index of the object.
         """
