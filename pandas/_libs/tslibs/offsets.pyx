@@ -333,7 +333,9 @@ cdef _determine_offset(kwds):
             if "millisecond" in kwds_no_nanos:
                 raise NotImplementedError(
                     "Using DateOffset to replace `millisecond` component in "
-                    "datetime object is not supported."
+                    "datetime object is not supported. Use "
+                    "`microsecond=timestamp.microsecond % 1000 + ms * 1000` "
+                    "instead."
                 )
             offset = relativedelta(**kwds_no_nanos)
             use_relativedelta = True
