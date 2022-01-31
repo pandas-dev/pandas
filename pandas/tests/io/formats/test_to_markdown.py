@@ -59,7 +59,7 @@ def test_series():
     )
 
 
-def test_no_buf(capsys):
+def test_no_buf():
     df = pd.DataFrame([1, 2, 3])
     result = df.to_markdown()
     assert (

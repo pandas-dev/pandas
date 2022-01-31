@@ -14,6 +14,39 @@ import pandas._testing as tm
 from pandas.core.algorithms import safe_sort
 
 
+@pytest.fixture(
+    params=[
+        DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=[1, 0]),
+        DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=[1, 1]),
+        DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=["C", "C"]),
+        DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=[1.0, 0]),
+        DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=[0.0, 1]),
+        DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=["C", 1]),
+        DataFrame([[2.0, 4.0], [1.0, 2.0], [5.0, 2.0], [8.0, 1.0]], columns=[1, 0.0]),
+        DataFrame([[2, 4.0], [1, 2.0], [5, 2.0], [8, 1.0]], columns=[0, 1.0]),
+        DataFrame([[2, 4], [1, 2], [5, 2], [8, 1.0]], columns=[1.0, "X"]),
+    ]
+)
+def pairwise_frames(request):
+    """Pairwise frames test_pairwise"""
+    return request.param
+
+
+@pytest.fixture
+def pairwise_target_frame():
+    """Pairwise target frame for test_pairwise"""
+    return DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=[0, 1])
+
+
+@pytest.fixture
+def pairwise_other_frame():
+    """Pairwise other frame for test_pairwise"""
+    return DataFrame(
+        [[None, 1, 1], [None, 1, 2], [None, 3, 2], [None, 8, 1]],
+        columns=["Y", "Z", "X"],
+    )
+
+
 def test_rolling_cov(series):
     A = series
     B = A + np.random.randn(len(A))
