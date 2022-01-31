@@ -124,6 +124,7 @@ def test_oo_optimized_datetime_index_unpickle():
     )
 
 
+@pytest.mark.network
 @tm.network
 # Cython import warning
 @pytest.mark.filterwarnings("ignore:pandas.util.testing is deprecated")
@@ -149,7 +150,7 @@ def test_statsmodels():
 
 # Cython import warning
 @pytest.mark.filterwarnings("ignore:can't:ImportWarning")
-def test_scikit_learn(df):
+def test_scikit_learn():
 
     sklearn = import_module("sklearn")  # noqa:F841
     from sklearn import (
@@ -164,6 +165,7 @@ def test_scikit_learn(df):
 
 
 # Cython import warning and traitlets
+@pytest.mark.network
 @tm.network
 @pytest.mark.filterwarnings("ignore")
 def test_seaborn():
@@ -173,17 +175,18 @@ def test_seaborn():
     seaborn.stripplot(x="day", y="total_bill", data=tips)
 
 
-def test_pandas_gbq(df):
+def test_pandas_gbq():
 
     pandas_gbq = import_module("pandas_gbq")  # noqa:F841
 
 
+@pytest.mark.network
+@tm.network
 @pytest.mark.xfail(
     raises=ValueError,
     reason="The Quandl API key must be provided either through the api_key "
     "variable or through the environmental variable QUANDL_API_KEY",
 )
-@tm.network
 def test_pandas_datareader():
 
     pandas_datareader = import_module("pandas_datareader")
