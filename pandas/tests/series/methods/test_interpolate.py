@@ -12,6 +12,7 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
+from pandas.util.version import Version
 
 
 @pytest.fixture(
@@ -778,7 +779,8 @@ class TestSeriesInterpolateData:
             with pytest.raises(ValueError, match=expected_error):
                 df[0].interpolate(method=method, **kwargs)
 
-    def test_interpolate_timedelta_index(self, interp_methods_ind):
+    @td.skip_if_no_scipy
+    def test_interpolate_timedelta_index(self, request, interp_methods_ind):
         """
         Tests for non numerical index types  - object, period, timedelta
         Note that all methods except time, index, nearest and values
@@ -789,17 +791,19 @@ class TestSeriesInterpolateData:
         df = pd.DataFrame([0, 1, np.nan, 3], index=ind)
 
         method, kwargs = interp_methods_ind
-        if method == "pchip":
-            pytest.importorskip("scipy")
+        import scipy
 
-        if method in {"linear", "pchip"}:
-            result = df[0].interpolate(method=method, **kwargs)
-            expected = Series([0.0, 1.0, 2.0, 3.0], name=0, index=ind)
-            tm.assert_series_equal(result, expected)
-        else:
-            pytest.skip(
-                "This interpolation method is not supported for Timedelta Index yet."
+        if method in {"cubic", "zero"} or (
+            method == "barycentric" and Version(scipy.__version__) < Version("1.5.0")
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"{method} interpolation is not supported for TimedeltaIndex"
+                )
             )
+        result = df[0].interpolate(method=method, **kwargs)
+        expected = Series([0.0, 1.0, 2.0, 3.0], name=0, index=ind)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "ascending, expected_values",

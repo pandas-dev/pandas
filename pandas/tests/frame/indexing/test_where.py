@@ -141,11 +141,7 @@ class TestDataFrameIndexingWhere:
 
         # check other is ndarray
         cond = df > 0
-        warn = None
-        if df is mixed_int_frame:
-            warn = FutureWarning
-        with tm.assert_produces_warning(warn, match="Downcasting integer-dtype"):
-            _check_align(df, cond, (_safe_add(df).values))
+        _check_align(df, cond, (_safe_add(df).values))
 
         # integers are upcast, so don't check the dtypes
         cond = df > 0
@@ -469,44 +465,43 @@ class TestDataFrameIndexingWhere:
         # GH 9736
         df = DataFrame(np.random.randn(2, 2))
         mask = DataFrame([[False, False], [False, False]])
-        s = Series([0, 1])
+        ser = Series([0, 1])
 
         expected = DataFrame([[0, 0], [1, 1]], dtype="float64")
-        result = df.where(mask, s, axis="index")
+        result = df.where(mask, ser, axis="index")
         tm.assert_frame_equal(result, expected)
 
         result = df.copy()
-        return_value = result.where(mask, s, axis="index", inplace=True)
+        return_value = result.where(mask, ser, axis="index", inplace=True)
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
         expected = DataFrame([[0, 1], [0, 1]], dtype="float64")
-        result = df.where(mask, s, axis="columns")
+        result = df.where(mask, ser, axis="columns")
         tm.assert_frame_equal(result, expected)
 
         result = df.copy()
-        return_value = result.where(mask, s, axis="columns", inplace=True)
+        return_value = result.where(mask, ser, axis="columns", inplace=True)
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
+    def test_where_axis_with_upcast(self):
         # Upcast needed
         df = DataFrame([[1, 2], [3, 4]], dtype="int64")
         mask = DataFrame([[False, False], [False, False]])
-        s = Series([0, np.nan])
+        ser = Series([0, np.nan])
 
         expected = DataFrame([[0, 0], [np.nan, np.nan]], dtype="float64")
-        result = df.where(mask, s, axis="index")
+        result = df.where(mask, ser, axis="index")
         tm.assert_frame_equal(result, expected)
 
         result = df.copy()
-        return_value = result.where(mask, s, axis="index", inplace=True)
+        return_value = result.where(mask, ser, axis="index", inplace=True)
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
-        warn = FutureWarning if using_array_manager else None
         expected = DataFrame([[0, np.nan], [0, np.nan]])
-        with tm.assert_produces_warning(warn, match="Downcasting integer-dtype"):
-            result = df.where(mask, s, axis="columns")
+        result = df.where(mask, ser, axis="columns")
         tm.assert_frame_equal(result, expected)
 
         expected = DataFrame(
@@ -516,7 +511,7 @@ class TestDataFrameIndexingWhere:
             }
         )
         result = df.copy()
-        return_value = result.where(mask, s, axis="columns", inplace=True)
+        return_value = result.where(mask, ser, axis="columns", inplace=True)
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
