@@ -23,6 +23,7 @@ from pandas._libs import (
     writers,
 )
 from pandas._libs.internals import BlockPlacement
+from pandas._libs.tslibs import IncompatibleFrequency
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
@@ -105,11 +106,7 @@ from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
-from pandas.core.indexers import (
-    check_setitem_lengths,
-    is_empty_indexer,
-    is_scalar_indexer,
-)
+from pandas.core.indexers import check_setitem_lengths
 import pandas.core.missing as missing
 
 if TYPE_CHECKING:
@@ -913,12 +910,6 @@ class Block(PandasObject):
 
         value = self._standardize_fill_value(value)
 
-        # coerce if block dtype can store value
-        if not self._can_hold_element(value):
-            # current dtype cannot store value, coerce to common dtype
-            return self.coerce_to_target_dtype(value).setitem(indexer, value)
-
-        # value must be storable at this moment
         values = cast(np.ndarray, self.values)
         if self.ndim == 2:
             values = values.T
@@ -926,19 +917,22 @@ class Block(PandasObject):
         # length checking
         check_setitem_lengths(indexer, value, values)
 
-        if is_empty_indexer(indexer):
-            # GH#8669 empty indexers, test_loc_setitem_boolean_mask_allfalse
-            values[indexer] = value
-
-        elif is_scalar_indexer(indexer, self.ndim):
-            # setting a single element for each dim and with a rhs that could
-            #  be e.g. a list; see GH#6043
-            values[indexer] = value
-
+        value = extract_array(value, extract_numpy=True)
+        try:
+            casted = np_can_hold_element(values.dtype, value)
+        except ValueError:
+            # current dtype cannot store value, coerce to common dtype
+            nb = self.coerce_to_target_dtype(value)
+            return nb.setitem(indexer, value)
         else:
-            value = setitem_datetimelike_compat(values, len(values[indexer]), value)
-            values[indexer] = value
-
+            if self.dtype == _dtype_obj:
+                # TODO: avoid having to construct values[indexer]
+                vi = values[indexer]
+                if lib.is_list_like(vi):
+                    # checking lib.is_scalar here fails on
+                    #  test_iloc_setitem_custom_object
+                    casted = setitem_datetimelike_compat(values, len(vi), casted)
+            values[indexer] = casted
         return self
 
     def putmask(self, mask, new) -> list[Block]:
@@ -1342,10 +1336,8 @@ class EABackedBlock(Block):
         `indexer` is a direct slice/positional indexer. `value` must
         be a compatible shape.
         """
-        if not self._can_hold_element(value):
-            # see TestSetitemFloatIntervalWithIntIntervalValues
-            nb = self.coerce_to_target_dtype(value)
-            return nb.setitem(indexer, value)
+        orig_indexer = indexer
+        orig_value = value
 
         indexer = self._unwrap_setitem_indexer(indexer)
         value = self._maybe_squeeze_arg(value)
@@ -1356,8 +1348,26 @@ class EABackedBlock(Block):
             #  unconditionally
             values = values.T
         check_setitem_lengths(indexer, value, values)
-        values[indexer] = value
-        return self
+
+        try:
+            values[indexer] = value
+        except (ValueError, TypeError) as err:
+            _catch_deprecated_value_error(err)
+
+            if is_interval_dtype(self.dtype):
+                # see TestSetitemFloatIntervalWithIntIntervalValues
+                nb = self.coerce_to_target_dtype(orig_value)
+                return nb.setitem(orig_indexer, orig_value)
+
+            elif isinstance(self, NDArrayBackedExtensionBlock):
+                nb = self.coerce_to_target_dtype(orig_value)
+                return nb.setitem(orig_indexer, orig_value)
+
+            else:
+                raise
+
+        else:
+            return self
 
     def where(self, other, cond) -> list[Block]:
         arr = self.values.T
@@ -1863,7 +1873,12 @@ def _catch_deprecated_value_error(err: Exception) -> None:
     if isinstance(err, ValueError):
         # TODO(2.0): once DTA._validate_setitem_value deprecation
         #  is enforced, stop catching ValueError here altogether
-        if "Timezones don't match" not in str(err):
+        if isinstance(err, IncompatibleFrequency):
+            pass
+        elif "'value.closed' is" in str(err):
+            # IntervalDtype mismatched 'closed'
+            pass
+        elif "Timezones don't match" not in str(err):
             raise
 
 
