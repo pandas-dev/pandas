@@ -763,6 +763,7 @@ class TestReaders:
         with pytest.raises(error, match=msg):
             pd.read_excel(bad_stream)
 
+    @pytest.mark.network
     @tm.network
     def test_read_from_http_url(self, read_ext):
         url = (

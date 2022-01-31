@@ -254,9 +254,10 @@ def test_parser_consistency_file(datapath):
     tm.assert_frame_equal(df_file_lxml, df_file_etree)
 
 
-@tm.network
+@pytest.mark.network
 @pytest.mark.slow
 @td.skip_if_no("lxml")
+@tm.network
 def test_parser_consistency_url():
     url = (
         "https://data.cityofchicago.org/api/views/"
@@ -401,6 +402,7 @@ def test_wrong_file_path_etree():
         read_xml(filename, parser="etree")
 
 
+@pytest.mark.network
 @tm.network
 @td.skip_if_no("lxml")
 def test_url():
@@ -421,6 +423,7 @@ def test_url():
     tm.assert_frame_equal(df_url, df_expected)
 
 
+@pytest.mark.network
 @tm.network
 def test_wrong_url(parser):
     with pytest.raises(HTTPError, match=("HTTP Error 404: Not Found")):
@@ -1016,8 +1019,9 @@ def test_empty_stylesheet(val):
         read_xml(kml, stylesheet=val)
 
 
-@tm.network
+@pytest.mark.network
 @td.skip_if_no("lxml")
+@tm.network
 def test_online_stylesheet():
     xml = "https://www.w3schools.com/xml/cdcatalog_with_xsl.xml"
     xsl = "https://www.w3schools.com/xml/cdcatalog.xsl"
@@ -1099,13 +1103,14 @@ def test_unsuported_compression(parser):
 # STORAGE OPTIONS
 
 
-@tm.network
+@pytest.mark.network
 @td.skip_if_no("s3fs")
 @td.skip_if_no("lxml")
 @pytest.mark.skipif(
     os.environ.get("PANDAS_CI", "0") == "1",
     reason="2022.1.17: Hanging on the CI min versions build.",
 )
+@tm.network
 def test_s3_parser_consistency():
     # Python Software Foundation (2019 IRS-990 RETURN)
     s3 = "s3://irs-form-990/201923199349319487_public.xml"

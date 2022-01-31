@@ -114,7 +114,7 @@ def s3_base(worker_id):
                 proc.terminate()
 
 
-@pytest.fixture()
+@pytest.fixture
 def s3_resource(s3_base, tips_file, jsonl_file, feather_file):
     """
     Sets up S3 bucket with contents

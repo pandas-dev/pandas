@@ -26,6 +26,7 @@ import pandas._testing as tm
 pytestmark = pytest.mark.usefixtures("pyarrow_skip")
 
 
+@pytest.mark.network
 @tm.network
 def test_url(all_parsers, csv_dir_path):
     parser = all_parsers
