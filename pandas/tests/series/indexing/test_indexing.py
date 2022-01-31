@@ -165,7 +165,7 @@ def test_setitem_ambiguous_keyerror(indexer_sl):
     tm.assert_series_equal(s2, expected)
 
 
-def test_setitem(datetime_series, string_series):
+def test_setitem(datetime_series):
     datetime_series[datetime_series.index[5]] = np.NaN
     datetime_series[[1, 2, 17]] = np.NaN
     datetime_series[6] = np.NaN

@@ -84,8 +84,8 @@ repos:
         pass_filenames: false
         types: [python]
         stages: [manual]
-        # note: keep version in sync with .github/workflows/ci.yml
-        additional_dependencies: ['pyright@1.1.202']
+        # note: keep version in sync with .github/workflows/code-checks.yml
+        additional_dependencies: ['pyright@1.1.212']
 -   repo: local
     hooks:
     -   id: flake8-rst
@@ -188,3 +188,8 @@ repos:
         entry: 'pg8000'
         files: ^ci/deps
         types: [yaml]
+    -   id: validate-min-versions-in-sync
+        name: Check minimum version of dependencies are aligned
+        entry: python scripts/validate_min_versions_in_sync.py
+        language: python
+        files: ^(ci/deps/actions-.*-minimum_versions\.yaml|pandas/compat/_optional\.py)$

@@ -26,18 +26,14 @@ jobs:
       matrix:
         settings: [
           [actions-38-downstream_compat.yaml, "not slow and not network and not clipboard", "", "", "", "", ""],
-          [actions-38-minimum_versions.yaml, "slow", "", "", "", "", ""],
-          [actions-38-minimum_versions.yaml, "not slow and not network and not clipboard", "", "", "", "", ""],
+          [actions-38-minimum_versions.yaml, "not clipboard", "", "", "", "", ""],
           [actions-38.yaml, "not slow and not network", "language-pack-it xsel", "it_IT.utf8", "it_IT.utf8", "", ""],
           [actions-38.yaml, "not slow and not network", "language-pack-zh-hans xsel", "zh_CN.utf8", "zh_CN.utf8", "", ""],
-          [actions-38.yaml, "not slow and not clipboard", "", "", "", "", ""],
-          [actions-38.yaml, "slow", "", "", "", "", ""],
+          [actions-38.yaml, "not clipboard", "", "", "", "", ""],
           [actions-pypy-38.yaml, "not slow and not clipboard", "", "", "", "", "--max-worker-restart 0"],
-          [actions-39.yaml, "slow", "", "", "", "", ""],
-          [actions-39.yaml, "not slow and not clipboard", "", "", "", "", ""],
-          [actions-310-numpydev.yaml, "not slow and not network", "xclip", "", "", "deprecate", "-W error"],
-          [actions-310.yaml, "not slow and not clipboard", "", "", "", "", ""],
-          [actions-310.yaml, "slow", "", "", "", "", ""],
+          [actions-39.yaml, "not clipboard", "", "", "", "", ""],
+          [actions-310-numpydev.yaml, "not slow and not network", "xsel", "", "", "deprecate", "-W error"],
+          [actions-310.yaml, "not clipboard", "", "", "", "", ""],
         ]
       fail-fast: false
     env:
@@ -54,7 +50,7 @@ jobs:
       COVERAGE: ${{ !contains(matrix.settings[0], 'pypy') }}
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.settings[0] }}-${{ matrix.settings[1] }}
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.settings[0] }}-${{ matrix.settings[1] }}-${{ matrix.settings[2] }}
       cancel-in-progress: true
 
     services:
@@ -153,9 +149,6 @@ jobs:
         name: Test results
         path: test-data.xml
       if: failure()
-
-    - name: Print skipped tests
-      run: python ci/print_skipped.py
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v2
