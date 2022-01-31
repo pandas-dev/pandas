@@ -149,7 +149,7 @@ def test_statsmodels():
 
 # Cython import warning
 @pytest.mark.filterwarnings("ignore:can't:ImportWarning")
-def test_scikit_learn(df):
+def test_scikit_learn():
 
     sklearn = import_module("sklearn")  # noqa:F841
     from sklearn import (
@@ -173,7 +173,7 @@ def test_seaborn():
     seaborn.stripplot(x="day", y="total_bill", data=tips)
 
 
-def test_pandas_gbq(df):
+def test_pandas_gbq():
 
     pandas_gbq = import_module("pandas_gbq")  # noqa:F841
 

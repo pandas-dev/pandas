@@ -12,7 +12,7 @@ import pandas._testing as tm
 
 
 class TestMelt:
-    def setup_method(self, method):
+    def setup_method(self):
         self.df = tm.makeTimeDataFrame()[:10]
         self.df["id1"] = (self.df["A"] > 0).astype(np.int64)
         self.df["id2"] = (self.df["B"] > 0).astype(np.int64)

@@ -38,8 +38,8 @@ from pandas.core.dtypes.astype import astype_array_safe
 from pandas.core.dtypes.cast import (
     can_hold_element,
     find_result_type,
-    maybe_downcast_numeric,
     maybe_downcast_to_dtype,
+    np_can_hold_element,
     soft_convert_objects,
 )
 from pandas.core.dtypes.common import (
@@ -367,20 +367,22 @@ class Block(PandasObject):
         # "Union[int, integer[Any]]"
         return self.values[i]  # type: ignore[index]
 
-    def set_inplace(self, locs, values) -> None:
+    def set_inplace(self, locs, values: ArrayLike) -> None:
         """
         Modify block values in-place with new item value.
 
         Notes
         -----
-        `set` never creates a new array or new Block, whereas `setitem` _may_
-        create a new array and always creates a new Block.
+        `set_inplace` never creates a new array or new Block, whereas `setitem`
+        _may_ create a new array and always creates a new Block.
+
+        Caller is responsible for checking values.dtype == self.dtype.
         """
         self.values[locs] = values
 
-    def delete(self, loc) -> None:
+    def delete(self, loc) -> Block:
         """
-        Delete given loc(-s) from block in-place.
+        Return a new Block with the given loc(s) deleted.
         """
         # Argument 1 to "delete" has incompatible type "Union[ndarray[Any, Any],
         # ExtensionArray]"; expected "Union[_SupportsArray[dtype[Any]],
@@ -388,13 +390,9 @@ class Block(PandasObject):
         # [_SupportsArray[dtype[Any]]]], Sequence[Sequence[Sequence[
         # _SupportsArray[dtype[Any]]]]], Sequence[Sequence[Sequence[Sequence[
         # _SupportsArray[dtype[Any]]]]]]]"  [arg-type]
-        self.values = np.delete(self.values, loc, 0)  # type: ignore[arg-type]
-        self.mgr_locs = self._mgr_locs.delete(loc)
-        try:
-            self._cache.clear()
-        except AttributeError:
-            # _cache not yet initialized
-            pass
+        values = np.delete(self.values, loc, 0)  # type: ignore[arg-type]
+        mgr_locs = self._mgr_locs.delete(loc)
+        return type(self)(values, placement=mgr_locs, ndim=self.ndim)
 
     @final
     def apply(self, func, **kwargs) -> list[Block]:
@@ -531,6 +529,8 @@ class Block(PandasObject):
 
     @final
     def _maybe_downcast(self, blocks: list[Block], downcast=None) -> list[Block]:
+        if downcast is False:
+            return blocks
 
         if self.dtype == _dtype_obj:
             # GH#44241 We downcast regardless of the argument;
@@ -543,10 +543,6 @@ class Block(PandasObject):
             )
 
         if downcast is None:
-            return blocks
-        if downcast is False:
-            # turn if off completely
-            # TODO: not reached, deprecate in favor of downcast=None
             return blocks
 
         return extend_blocks([b._downcast_2d(downcast) for b in blocks])
@@ -932,7 +928,7 @@ class Block(PandasObject):
 
         if is_empty_indexer(indexer):
             # GH#8669 empty indexers, test_loc_setitem_boolean_mask_allfalse
-            pass
+            values[indexer] = value
 
         elif is_scalar_indexer(indexer, self.ndim):
             # setting a single element for each dim and with a rhs that could
@@ -1183,20 +1179,26 @@ class Block(PandasObject):
         icond, noop = validate_putmask(values, ~cond)
         if noop:
             # GH-39595: Always return a copy; short-circuit up/downcasting
-            return self.copy()
+            return [self.copy()]
 
         if other is lib.no_default:
             other = self.fill_value
 
         other = self._standardize_fill_value(other)
 
-        if not self._can_hold_element(other):
+        try:
+            # try/except here is equivalent to a self._can_hold_element check,
+            #  but this gets us back 'casted' which we will re-use below;
+            #  without using 'casted', expressions.where may do unwanted upcasts.
+            casted = np_can_hold_element(values.dtype, other)
+        except (ValueError, TypeError):
             # we cannot coerce, return a compat dtype
             block = self.coerce_to_target_dtype(other)
             blocks = block.where(orig_other, cond)
             return self._maybe_downcast(blocks, "infer")
 
         else:
+            other = casted
             alt = setitem_datetimelike_compat(values, icond.sum(), other)
             if alt is not other:
                 if is_list_like(other) and len(other) < len(values):
@@ -1226,38 +1228,13 @@ class Block(PandasObject):
 
                 # Note: expressions.where may upcast.
                 result = expressions.where(~icond, values, other)
+                # The np_can_hold_element check _should_ ensure that we always
+                #  have result.dtype == self.dtype here.
 
-        if self._can_hold_na or self.ndim == 1:
+        if transpose:
+            result = result.T
 
-            if transpose:
-                result = result.T
-
-            return [self.make_block(result)]
-
-        # might need to separate out blocks
-        cond = ~icond
-        axis = cond.ndim - 1
-        cond = cond.swapaxes(axis, 0)
-        mask = cond.all(axis=1)
-
-        result_blocks: list[Block] = []
-        for m in [mask, ~mask]:
-            if m.any():
-                taken = result.take(m.nonzero()[0], axis=axis)
-                r = maybe_downcast_numeric(taken, self.dtype)
-                if r.dtype != taken.dtype:
-                    warnings.warn(
-                        "Downcasting integer-dtype results in .where is "
-                        "deprecated and will change in a future version. "
-                        "To retain the old behavior, explicitly cast the results "
-                        "to the desired dtype.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
-                nb = self.make_block(r.T, placement=self._mgr_locs[m])
-                result_blocks.append(nb)
-
-        return result_blocks
+        return [self.make_block(result)]
 
     def _unstack(
         self,
@@ -1375,7 +1352,8 @@ class EABackedBlock(Block):
 
         values = self.values
         if values.ndim == 2:
-            # TODO: string[pyarrow] tests break if we transpose unconditionally
+            # TODO(GH#45419): string[pyarrow] tests break if we transpose
+            #  unconditionally
             values = values.T
         check_setitem_lengths(indexer, value, values)
         values[indexer] = value
@@ -1396,7 +1374,7 @@ class EABackedBlock(Block):
         if noop:
             # GH#44181, GH#45135
             # Avoid a) raising for Interval/PeriodDtype and b) unnecessary object upcast
-            return self.copy()
+            return [self.copy()]
 
         try:
             res_values = arr._where(cond, other).T
@@ -1436,6 +1414,7 @@ class EABackedBlock(Block):
 
         values = self.values
 
+        new = self._maybe_squeeze_arg(new)
         mask = self._maybe_squeeze_arg(mask)
 
         try:
@@ -1502,18 +1481,11 @@ class EABackedBlock(Block):
 
         return [self.make_block_same_class(values=new_values)]
 
-    def delete(self, loc) -> None:
-        """
-        Delete given loc(-s) from block in-place.
-        """
+    def delete(self, loc) -> Block:
         # This will be unnecessary if/when __array_function__ is implemented
-        self.values = self.values.delete(loc)
-        self.mgr_locs = self._mgr_locs.delete(loc)
-        try:
-            self._cache.clear()
-        except AttributeError:
-            # _cache not yet initialized
-            pass
+        values = self.values.delete(loc)
+        mgr_locs = self._mgr_locs.delete(loc)
+        return type(self)(values, placement=mgr_locs, ndim=self.ndim)
 
     @cache_readonly
     def array_values(self) -> ExtensionArray:
@@ -1597,12 +1569,16 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
                 raise IndexError(f"{self} only contains one item")
             return self.values
 
-    def set_inplace(self, locs, values) -> None:
+    def set_inplace(self, locs, values: ArrayLike) -> None:
         # NB: This is a misnomer, is supposed to be inplace but is not,
         #  see GH#33457
         # When an ndarray, we should have locs.tolist() == [0]
         # When a BlockPlacement we should have list(locs) == [0]
-        self.values = values
+
+        # error: Incompatible types in assignment (expression has type
+        # "Union[ExtensionArray, ndarray[Any, Any]]", variable has type
+        # "ExtensionArray")
+        self.values = values  # type: ignore[assignment]
         try:
             # TODO(GH33457) this can be removed
             self._cache.clear()
