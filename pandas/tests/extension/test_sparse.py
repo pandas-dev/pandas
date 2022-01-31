@@ -278,14 +278,6 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
 
 
 class TestMethods(BaseSparseTests, base.BaseMethodsTests):
-    @pytest.mark.parametrize("ascending", [True, False])
-    def test_sort_values_frame(self, data_for_sorting, ascending):
-        msg = "will store that array directly"
-        with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=False
-        ):
-            super().test_sort_values_frame(data_for_sorting, ascending)
-
     def test_combine_le(self, data_repeated):
         # We return a Series[SparseArray].__le__ returns a
         # Series[Sparse[bool]]
