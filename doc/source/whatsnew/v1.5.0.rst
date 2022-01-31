@@ -139,12 +139,12 @@ read_xml now supports large XML using iterparse
 For very large XML files that can range in hundreds of megabytes to gigabytes, :func:`pandas.read_xml`
 now supports parsing such sizeable files using `lxml's iterparse`_ and `etree's iterparse`_
 which are memory-efficient methods to iterate through XML trees and extract specific elements
-and attributes without holding entire tree in memory.
+and attributes without holding entire tree in memory (:issue:`#45442`).
 
 .. code-block:: ipython
 
     In [1]: df = pd.read_xml(
-    ...      "/path/to/downloaded/enwikisource-latest-pages-articles.xml,
+    ...      "/path/to/downloaded/enwikisource-latest-pages-articles.xml",
     ...      iterparse = {"page": ["title", "ns", "id"]})
     ...  )
     df

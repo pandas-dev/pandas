@@ -3292,23 +3292,25 @@ supports parsing such sizeable files using `lxml's iterparse`_ and `etree's iter
 which are memory-efficient methods to iterate through an XML tree and extract specific elements and attributes.
 without holding entire tree in memory.
 
+    .. versionadded:: 1.5.0
+
 .. _`lxml's iterparse`: https://lxml.de/3.2/parsing.html#iterparse-and-iterwalk
 .. _`etree's iterparse`: https://docs.python.org/3/library/xml.etree.elementtree.html#xml.etree.ElementTree.iterparse
 
-To use, you must pass the XML file path into ``read_xml`` and use the ``iterparse`` argument. Files should
-not be compressed or from online sources but stored on local disk. Also, ``iterparse`` should be a dictionary
-where the key is the repeating nodes in document (which become the rows) and the value is a list of any
-element or attribute that is a descendant (i.e., child, grandchild) of repeating node. Since XPath is not
+To use this feature, you must pass a physical XML file path into ``read_xml`` and use the ``iterparse`` argument.
+Files should not be compressed or point to online sources but stored on local disk. Also, ``iterparse`` should be
+a dictionary where the key is the repeating nodes in document (which become the rows) and the value is a list of
+any element or attribute that is a descendant (i.e., child, grandchild) of repeating node. Since XPath is not
 used in this method, descendants do not need to share same relationship with one another. Below shows example
-of reading in Wikipedia's very large (10 GB+) latest article data dump.
+of reading in Wikipedia's very large (12 GB+) latest article data dump.
 
 .. code-block:: ipython
 
     In [1]: df = pd.read_xml(
-    ...      "/path/to/downloaded/enwikisource-latest-pages-articles.xml,
-    ...      iterparse = {"page": ["title", "ns", "id"]})
-    ...  )
-    ...  df
+    ...         "/path/to/downloaded/enwikisource-latest-pages-articles.xml",
+    ...         iterparse = {"page": ["title", "ns", "id"]}
+    ...     )
+    ...     df
     Out[2]:
                                                          title   ns        id
     0                                       Gettysburg Address    0     21450
@@ -3324,9 +3326,6 @@ of reading in Wikipedia's very large (10 GB+) latest article data dump.
     3578764  Page:Shakespeare of Stratford (1926) Yale.djvu/91  104     21450
 
     [3578765 rows x 3 columns]
-
-    .. versionadded:: 1.5.0
-
 
 .. _io.xml:
 

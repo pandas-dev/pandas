@@ -98,6 +98,12 @@ class _XMLFrameParser:
         URL, file, file-like object, or a raw string containing XSLT,
         `etree` does not support XSLT but retained for consistency.
 
+    iterparse : dict, optional
+        Dict of row element and descendant elements and/or attributes to
+        retrieve in iterparsing of XML document.
+
+        .. versionadded:: 1.5.0
+
     {decompression_options}
 
         .. versionchanged:: 1.4.0 Zstandard support.
@@ -183,30 +189,33 @@ class _XMLFrameParser:
 
         Notes
         -----
-        Namespace URIs will be removed from return node values.Also,
+        Namespace URIs will be removed from return node values. Also,
         elements with missing children or attributes compared to siblings
-        will have optional keys filled withi None values.
+        will have optional keys filled with None values.
         """
 
         raise AbstractMethodError(self)
 
     def _iterparse_nodes(self) -> list[dict[str, str | None]]:
         """
-        Parse xml nodes.
+        Iterparse xml nodes.
 
-        This method will parse elements and underlying descendants
-        and attributes by iterparse, a method to iterate through an XML
-        tree without parsing entire XML tree in memory.
+        This method will read in local disk, decompressed XML files for elements
+        and underlying descendants using iterparse, a method to iterate through
+        an XML tree without holding entire XML tree in memory.
 
         Raises
         ------
-        ValueError
-            * If only elements and only attributes are specified.
+        TypeError
+            * If `iterparse` is not a dict or its dict value is not list-like.
+        ParserError
+            * If `path_or_buffer` is not a physical, decompressed file on disk.
+            * If no data is returned from selected items in `iterparse`.
 
         Notes
         -----
-        Namespace URIs will be removed from return node values.Also,
-        elements with missing children or attributes compared to siblings
+        Namespace URIs will be removed from return node values. Also,
+        elements with missing children or attributes in submitted list
         will have optional keys filled withi None values.
         """
 
