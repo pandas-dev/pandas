@@ -8939,7 +8939,8 @@ NaN 12.3   33.0
         .. deprecated:: 1.4.0
             ``DataFrame.append`` is deprecated,
             use ``pandas.concat`` instead.
-            For further details see section *Deprecated Frame.append and Series.append* in the What's new or
+            For further details see section *Deprecated Frame.append and Series.append*
+            in the What's new or
             *Merge, join, concatenate and compare* in the User Guide.
 
         Parameters
