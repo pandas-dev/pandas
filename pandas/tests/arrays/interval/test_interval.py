@@ -76,7 +76,7 @@ class TestMethods:
         ],
     )
     def test_where_raises(self, other):
-        # The IntervalArray methods raises; the Series method coerces
+        # GH#45768 The IntervalArray methods raises; the Series method coerces
         ser = pd.Series(IntervalArray.from_breaks([1, 2, 3, 4], closed="left"))
         mask = np.array([True, False, True])
         match = "'value.closed' is 'right', expected 'left'."

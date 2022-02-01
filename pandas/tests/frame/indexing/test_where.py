@@ -707,6 +707,7 @@ class TestDataFrameIndexingWhere:
         tm.assert_series_equal(res, ser)
 
     def test_where_interval_fullop_downcast(self, frame_or_series):
+        # GH#45768
         obj = frame_or_series([pd.Interval(0, 0)] * 2)
         other = frame_or_series([1.0, 2.0])
         res = obj.where(~obj.notna(), other)
@@ -750,7 +751,7 @@ class TestDataFrameIndexingWhere:
         tm.assert_frame_equal(res4, df)
 
         # opposite case where we are replacing *all* values -> we downcast
-        #  from object dtype
+        #  from object dtype # GH#45768
         res5 = df.where(mask2, 4)
         expected = DataFrame(4, index=df.index, columns=df.columns)
         tm.assert_frame_equal(res5, expected)

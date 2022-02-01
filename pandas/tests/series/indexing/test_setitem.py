@@ -1281,6 +1281,7 @@ class TestCoercionTimedelta64(CoercionTest):
 )
 @pytest.mark.parametrize("exp_dtype", [object])
 class TestPeriodIntervalCoercion(CoercionTest):
+    # GH#45768
     @pytest.fixture(
         params=[
             period_range("2016-01-01", periods=3, freq="D"),
