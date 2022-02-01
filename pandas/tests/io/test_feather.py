@@ -2,8 +2,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat.pyarrow import pa_version_under4p0
-
 import pandas as pd
 import pandas._testing as tm
 
@@ -87,11 +85,7 @@ class TestFeather:
                 ),
             }
         )
-        if not pa_version_under4p0:
-            # older pyarrow incorrectly uses pandas internal API, so
-            #  constructs invalid Block
-            df["periods"] = pd.period_range("2013", freq="M", periods=3)
-
+        df["periods"] = pd.period_range("2013", freq="M", periods=3)
         df["timedeltas"] = pd.timedelta_range("1 day", periods=3)
         df["intervals"] = pd.interval_range(0, 3, 3)
 
@@ -187,6 +181,7 @@ class TestFeather:
         df = tm.makeDataFrame().reset_index()
         self.check_round_trip(df, write_kwargs={"version": 1})
 
+    @pytest.mark.network
     @tm.network
     def test_http_path(self, feather_file):
         # GH 29055

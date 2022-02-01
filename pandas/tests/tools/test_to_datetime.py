@@ -1066,6 +1066,33 @@ class TestToDatetime:
         )
         tm.assert_series_equal(result_series, expected_series)
 
+    @pytest.mark.parametrize("cache", [True, False])
+    @pytest.mark.parametrize(
+        ("input", "expected"),
+        (
+            (
+                Series([NaT] * 20 + [None] * 20, dtype="object"),  # type: ignore[list-item] # noqa: E501
+                Series([NaT] * 40, dtype="datetime64[ns]"),
+            ),
+            (
+                Series([NaT] * 60 + [None] * 60, dtype="object"),  # type: ignore[list-item] # noqa: E501
+                Series([NaT] * 120, dtype="datetime64[ns]"),
+            ),
+            (Series([None] * 20), Series([NaT] * 20, dtype="datetime64[ns]")),
+            (Series([None] * 60), Series([NaT] * 60, dtype="datetime64[ns]")),
+            (Series([""] * 20), Series([NaT] * 20, dtype="datetime64[ns]")),
+            (Series([""] * 60), Series([NaT] * 60, dtype="datetime64[ns]")),
+            (Series([pd.NA] * 20), Series([NaT] * 20, dtype="datetime64[ns]")),
+            (Series([pd.NA] * 60), Series([NaT] * 60, dtype="datetime64[ns]")),
+            (Series([np.NaN] * 20), Series([NaT] * 20, dtype="datetime64[ns]")),
+            (Series([np.NaN] * 60), Series([NaT] * 60, dtype="datetime64[ns]")),
+        ),
+    )
+    def test_to_datetime_converts_null_like_to_nat(self, cache, input, expected):
+        # GH35888
+        result = to_datetime(input, cache=cache)
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize(
         "date, format",
         [
