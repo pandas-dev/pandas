@@ -68,6 +68,7 @@ from pandas.util._exceptions import (
 
 from pandas.core.dtypes.astype import astype_nansafe
 from pandas.core.dtypes.cast import (
+    LossySetitemError,
     can_hold_element,
     common_dtype_categorical_compat,
     ensure_dtype_can_hold_na,
@@ -5087,12 +5088,13 @@ class Index(IndexOpsMixin, PandasObject):
         """
         dtype = self.dtype
         if isinstance(dtype, np.dtype) and dtype.kind not in ["m", "M"]:
+            # return np_can_hold_element(dtype, value)
             try:
                 return np_can_hold_element(dtype, value)
-            except ValueError as err:
+            except LossySetitemError as err:
                 # re-raise as TypeError for consistency
                 raise TypeError from err
-        if not can_hold_element(self._values, value):
+        elif not can_hold_element(self._values, value):
             raise TypeError
         return value
 
@@ -5310,7 +5312,7 @@ class Index(IndexOpsMixin, PandasObject):
             value = self._na_value
         try:
             converted = self._validate_fill_value(value)
-        except (ValueError, TypeError) as err:
+        except (LossySetitemError, ValueError, TypeError) as err:
             if is_object_dtype(self):  # pragma: no cover
                 raise err
 
@@ -6440,8 +6442,6 @@ class Index(IndexOpsMixin, PandasObject):
         If we have a float key and are not a floating index, then try to cast
         to an int if equivalent.
         """
-        if not self.is_floating():
-            return com.cast_scalar_indexer(key)
         return key
 
     def _maybe_cast_listlike_indexer(self, target) -> Index:
@@ -6739,7 +6739,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return type(self)._simple_new(res_values, name=self.name)
             else:
                 item = self._validate_fill_value(item)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, LossySetitemError):
             # e.g. trying to insert an integer into a DatetimeIndex
             #  We cannot keep the same dtype, so cast to the (often object)
             #  minimal shared dtype before doing the insert.

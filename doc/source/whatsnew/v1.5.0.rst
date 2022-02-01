@@ -279,7 +279,7 @@ Indexing
 
 Missing
 ^^^^^^^
--
+- Bug in :meth:`Series.fillna` and :meth:`DataFrame.fillna` with ``downcast`` keyword not being respected in some cases where there are no NA values present (:issue:`45423`)
 -
 
 MultiIndex
