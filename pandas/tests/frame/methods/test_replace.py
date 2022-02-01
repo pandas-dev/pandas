@@ -661,12 +661,19 @@ class TestDataFrameReplace:
         result = df.replace({"col": {-1: "-", 1: "a", 4: "b"}})
         tm.assert_frame_equal(expected, result)
 
-    @pytest.mark.parametrize("to_replace, value", [(np.nan, pd.NA), (np.nan, None)])
-    def test_replace_numpy_nan(self, to_replace, value):
-        # GH#45725 ensure numpy.nan can be replaced with pandas.NA or None
-        df = DataFrame({"A": [to_replace]}, dtype=object)
-        result = df.replace({to_replace: value})
-        expected = DataFrame({"A": [value]}, dtype=object)
+    def test_replace_numpy_nan(self, nulls_fixture):
+        # GH#45725 ensure numpy.nan can be replaced with all other null types
+        to_replace = np.nan
+        value = nulls_fixture
+        dtype = object
+        df = DataFrame({"A": [to_replace]}, dtype=dtype)
+        expected = DataFrame({"A": [value]}, dtype=dtype)
+
+        result = df.replace({to_replace: value}).astype(dtype=dtype)
+        tm.assert_frame_equal(result, expected)
+
+        # same thing but different calling convention
+        result = df.replace(to_replace, value).astype(dtype=dtype)
         tm.assert_frame_equal(result, expected)
 
     def test_replace_value_is_none(self, datetime_frame):
