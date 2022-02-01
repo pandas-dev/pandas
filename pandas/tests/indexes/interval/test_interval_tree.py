@@ -58,7 +58,7 @@ class TestIntervalTree:
 
     @pytest.mark.parametrize(
         "dtype, target_value, target_dtype",
-        [("int64", 2 ** 63 + 1, "uint64"), ("uint64", -1, "int64")],
+        [("int64", 2**63 + 1, "uint64"), ("uint64", -1, "int64")],
     )
     def test_get_indexer_overflow(self, dtype, target_value, target_dtype):
         left, right = np.array([0, 1], dtype=dtype), np.array([1, 2], dtype=dtype)
@@ -89,7 +89,7 @@ class TestIntervalTree:
 
     @pytest.mark.parametrize(
         "dtype, target_value, target_dtype",
-        [("int64", 2 ** 63 + 1, "uint64"), ("uint64", -1, "int64")],
+        [("int64", 2**63 + 1, "uint64"), ("uint64", -1, "int64")],
     )
     def test_get_indexer_non_unique_overflow(self, dtype, target_value, target_dtype):
         left, right = np.array([0, 2], dtype=dtype), np.array([1, 3], dtype=dtype)
