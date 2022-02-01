@@ -9,9 +9,7 @@ The full license is in the STUBS_LICENSE file, distributed with this software.
 # TODO: many functions need return types annotations for pyright
 # to run with reportGeneralTypeIssues = true
 import io
-import os
 from pathlib import Path
-import tempfile
 from typing import (
     Any,
     Iterable,
@@ -22,6 +20,7 @@ from typing import (
 import numpy as np
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.util import _test_decorators as td
 
 
@@ -43,33 +42,19 @@ def test_types_to_csv() -> None:
     # variable has type "str")
     csv_df: str = df.to_csv()  # type: ignore[assignment]
 
-    # NamedTemporaryFile cannot be used with delete=True on Windows
-    # see https://docs.python.org/3/library/tempfile.html#tempfile.NamedTemporaryFile
-    try:
-        with tempfile.NamedTemporaryFile(delete=False) as file:
-            tmp_file = file.name
-            df.to_csv(tmp_file)
-            df2: pd.DataFrame = pd.read_csv(tmp_file)
-    finally:
-        os.unlink(tmp_file)
+    with tm.ensure_clean() as path:
+        df.to_csv(path)
+        df2: pd.DataFrame = pd.read_csv(path)
 
-    try:
-        with tempfile.NamedTemporaryFile(delete=False) as file:
-            tmp_file = file.name
-            df.to_csv(Path(tmp_file))
-            df3: pd.DataFrame = pd.read_csv(Path(tmp_file))
-    finally:
-        os.unlink(tmp_file)
+    with tm.ensure_clean() as path:
+        df.to_csv(Path(path))
+        df3: pd.DataFrame = pd.read_csv(Path(path))
 
     # This keyword was added in 1.1.0
     # https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
-    try:
-        with tempfile.NamedTemporaryFile(delete=False) as file:
-            tmp_file = file.name
-            df.to_csv(tmp_file, errors="replace")
-            df4: pd.DataFrame = pd.read_csv(tmp_file)
-    finally:
-        os.unlink(tmp_file)
+    with tm.ensure_clean() as path:
+        df.to_csv(path, errors="replace")
+        df4: pd.DataFrame = pd.read_csv(path)
 
     # Testing support for binary file handles, added in 1.2.0
     # https://pandas.pydata.org/docs/whatsnew/v1.2.0.html
@@ -614,8 +599,9 @@ def test_types_to_feather() -> None:
     # See https://pandas.pydata.org/docs/whatsnew/v1.0.0.html
     # Docstring and type were updated in 1.2.0.
     # https://github.com/pandas-dev/pandas/pull/35408
-    with tempfile.TemporaryFile() as f:
-        df.to_feather(f)
+    with tm.ensure_clean() as path:
+        with open(path, "wb") as f:
+            df.to_feather(f)
 
 
 # compare() method added in 1.1.0
@@ -775,12 +761,8 @@ def test_types_to_parquet() -> None:
     df = pd.DataFrame([[1, 2], [8, 9]], columns=["A", "B"]).set_flags(
         allows_duplicate_labels=False
     )
-    try:
-        with tempfile.NamedTemporaryFile(delete=False) as file:
-            tmp_file = file.name
-            df.to_parquet(Path(tmp_file))
-    finally:
-        os.unlink(tmp_file)
+    with tm.ensure_clean() as path:
+        df.to_parquet(Path(path))
     # to_parquet() returns bytes when no path given since 1.2.0
     # https://pandas.pydata.org/docs/whatsnew/v1.2.0.html
     # error: Incompatible types in assignment (expression has type "Optional[bytes]",

@@ -8,16 +8,14 @@ The full license is in the STUBS_LICENSE file, distributed with this software.
 # flake8: noqa: F841
 # TODO: many functions need return types annotations for pyright
 # to run with reportGeneralTypeIssues = true
-import os
 from pathlib import Path
-import tempfile
 from typing import List
 
 import numpy as np
 
-from pandas._typing import Scalar
-
 import pandas as pd
+import pandas._testing as tm
+from pandas._typing import Scalar
 from pandas.core.window import ExponentialMovingWindow
 from pandas.util import _test_decorators as td
 
@@ -66,33 +64,19 @@ def test_types_csv() -> None:
     # variable has type "str")
     csv_df: str = s.to_csv()  # type: ignore[assignment]
 
-    # NamedTemporaryFile cannot be used with delete=True on Windows
-    # see https://docs.python.org/3/library/tempfile.html#tempfile.NamedTemporaryFile
-    try:
-        with tempfile.NamedTemporaryFile(delete=False) as file:
-            tmp_file = file.name
-            s.to_csv(tmp_file)
-            s2: pd.DataFrame = pd.read_csv(tmp_file)
-    finally:
-        os.unlink(tmp_file)
+    with tm.ensure_clean() as path:
+        s.to_csv(path)
+        s2: pd.DataFrame = pd.read_csv(path)
 
-    try:
-        with tempfile.NamedTemporaryFile(delete=False) as file:
-            tmp_file = file.name
-            s.to_csv(Path(tmp_file))
-            s3: pd.DataFrame = pd.read_csv(Path(tmp_file))
-    finally:
-        os.unlink(tmp_file)
+    with tm.ensure_clean() as path:
+        s.to_csv(Path(path))
+        s3: pd.DataFrame = pd.read_csv(Path(path))
 
     # This keyword was added in 1.1.0
     # https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
-    try:
-        with tempfile.NamedTemporaryFile(delete=False) as file:
-            tmp_file = file.name
-            s.to_csv(tmp_file, errors="replace")
-            s4: pd.DataFrame = pd.read_csv(tmp_file)
-    finally:
-        os.unlink(tmp_file)
+    with tm.ensure_clean() as path:
+        s.to_csv(path, errors="replace")
+        s4: pd.DataFrame = pd.read_csv(path)
 
 
 def test_types_copy() -> None:
