@@ -242,10 +242,7 @@ Look,a snake,🐍"""
                 r"Cannot save file into a non-existent directory: .*missing_folder",
             ]
         )
-        with pytest.raises(
-            error_class,
-            match=msg,
-        ):
+        with pytest.raises(error_class, match=msg):
             method(dummy_frame, path)
 
     @pytest.mark.parametrize(
