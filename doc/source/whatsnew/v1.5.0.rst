@@ -285,7 +285,7 @@ Conversion
 - Bug in :meth:`Float64Index.astype` to unsigned integer dtype incorrectly casting to ``np.int64`` dtype (:issue:`45309`)
 - Bug in :meth:`Series.astype` and :meth:`DataFrame.astype` from floating dtype to unsigned integer dtype failing to raise in the presence of negative values (:issue:`45151`)
 - Bug in :func:`array` with ``FloatingDtype`` and values containing float-castable strings incorrectly raising (:issue:`45424`)
--
+- Bug when comparing string and datetime64ns objects causing ``OverflowError`` exception. (:issue:`45506`)
 
 Strings
 ^^^^^^^
@@ -316,7 +316,7 @@ Indexing
 
 Missing
 ^^^^^^^
--
+- Bug in :meth:`Series.fillna` and :meth:`DataFrame.fillna` with ``downcast`` keyword not being respected in some cases where there are no NA values present (:issue:`45423`)
 -
 
 MultiIndex
