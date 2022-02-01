@@ -75,7 +75,6 @@ import pandas.core.algorithms as algos
 from pandas.core.array_algos.putmask import (
     extract_bool_array,
     putmask_inplace,
-    putmask_smart,
     putmask_without_repeat,
     setitem_datetimelike_compat,
     validate_putmask,
@@ -978,15 +977,12 @@ class Block(PandasObject):
             # no need to split columns
 
             if not is_list_like(new):
-                # putmask_smart can't save us the need to cast
+                # using just new[indexer] can't save us the need to cast
                 return self.coerce_to_target_dtype(new).putmask(mask, new)
-
-            # This differs from
-            #  `self.coerce_to_target_dtype(new).putmask(mask, new)`
-            # because putmask_smart will check if new[mask] may be held
-            # by our dtype.
-            nv = putmask_smart(values.T, mask, new).T
-            return [self.make_block(nv)]
+            else:
+                indexer = mask.nonzero()[0]
+                nb = self.setitem(indexer, new[indexer])
+                return [nb]
 
         else:
             is_array = isinstance(new, np.ndarray)
@@ -1488,7 +1484,16 @@ class EABackedBlock(Block):
                 # We support filling a DatetimeTZ with a `value` whose timezone
                 #  is different by coercing to object.
                 if self.dtype.kind == "m":
-                    # TODO: don't special-case td64
+                    # GH#45746
+                    warnings.warn(
+                        "The behavior of fillna with timedelta64[ns] dtype and "
+                        f"an incompatible value ({type(value)}) is deprecated. "
+                        "In a future version, this will cast to a common dtype "
+                        "(usually object) instead of raising, matching the "
+                        "behavior of other dtypes.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
                     raise
                 blk = self.coerce_to_target_dtype(value)
                 return blk.fillna(value, limit, inplace, downcast)

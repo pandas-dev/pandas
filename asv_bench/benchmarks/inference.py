@@ -85,8 +85,8 @@ class MaybeConvertNumeric:
     #  go in benchmarks/libs.py
 
     def setup_cache(self):
-        N = 10 ** 6
-        arr = np.repeat([2 ** 63], N) + np.arange(N).astype("uint64")
+        N = 10**6
+        arr = np.repeat([2**63], N) + np.arange(N).astype("uint64")
         data = arr.astype(object)
         data[1::2] = arr[1::2].astype(str)
         data[-1] = -1
@@ -101,7 +101,7 @@ class MaybeConvertObjects:
     #  does have some run-time imports from outside of _libs
 
     def setup(self):
-        N = 10 ** 5
+        N = 10**5
 
         data = list(range(N))
         data[0] = NaT
