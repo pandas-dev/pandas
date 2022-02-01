@@ -926,7 +926,7 @@ class Block(PandasObject):
         value = extract_array(value, extract_numpy=True)
         try:
             casted = np_can_hold_element(values.dtype, value)
-        except ValueError:
+        except LossySetitemError:
             # current dtype cannot store value, coerce to common dtype
             nb = self.coerce_to_target_dtype(value)
             return nb.setitem(indexer, value)

@@ -58,6 +58,17 @@ class ODSWriter(ExcelWriter):
         self.book = OpenDocumentSpreadsheet(**engine_kwargs)
         self._style_dict: dict[str, str] = {}
 
+    @property
+    def sheets(self) -> dict[str, Any]:
+        """Mapping of sheet names to sheet objects."""
+        from odf.table import Table
+
+        result = {
+            sheet.getAttribute("name"): sheet
+            for sheet in self.book.getElementsByType(Table)
+        }
+        return result
+
     def save(self) -> None:
         """
         Save workbook to disk.
@@ -91,7 +102,7 @@ class ODSWriter(ExcelWriter):
             wks = self.sheets[sheet_name]
         else:
             wks = Table(name=sheet_name)
-            self.sheets[sheet_name] = wks
+            self.book.spreadsheet.addElement(wks)
 
         if validate_freeze_panes(freeze_panes):
             freeze_panes = cast(Tuple[int, int], freeze_panes)
