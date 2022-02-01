@@ -277,7 +277,7 @@ class TestSeriesFillNA:
         expected = frame_or_series(expected)
         tm.assert_equal(result, expected)
 
-        result = obj.fillna(np.timedelta64(10 ** 9))
+        result = obj.fillna(np.timedelta64(10**9))
         expected = Series(
             [
                 timedelta(seconds=1),
