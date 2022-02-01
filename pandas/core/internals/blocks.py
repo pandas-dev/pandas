@@ -1474,9 +1474,10 @@ class EABackedBlock(Block):
                     # GH#45746
                     warnings.warn(
                         "The behavior of fillna with timedelta64[ns] dtype and "
-                        "an incompatible value is deprecated. In a future version, "
-                        "this will cast to a common dtype (usually object) "
-                        "instead of raising, matching the behavior of other dtypes.",
+                        f"an incompatible value ({type(value)}) is deprecated. "
+                        "In a future version, this will cast to a common dtype "
+                        "(usually object) instead of raising, matching the "
+                        "behavior of other dtypes.",
                         FutureWarning,
                         stacklevel=find_stack_level(),
                     )
