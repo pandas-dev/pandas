@@ -397,7 +397,7 @@ class TestDataFrameSetItem:
         expected["A"] = expected["A"].astype("object")
         tm.assert_frame_equal(df, expected)
 
-    def test_setitem_frame_duplicate_columns(self, using_array_manager, request):
+    def test_setitem_frame_duplicate_columns(self, using_array_manager):
         # GH#15695
         warn = FutureWarning if using_array_manager else None
         msg = "will attempt to set the values inplace"
@@ -1105,7 +1105,7 @@ class TestDataFrameSetitemCopyViewSemantics:
     @pytest.mark.parametrize(
         "value", [1, np.array([[1], [1]], dtype="int64"), [[1], [1]]]
     )
-    def test_setitem_same_dtype_not_inplace(self, value, using_array_manager, request):
+    def test_setitem_same_dtype_not_inplace(self, value, using_array_manager):
         # GH#39510
         cols = ["A", "B"]
         df = DataFrame(0, index=[0, 1], columns=cols)

@@ -6,7 +6,6 @@ from io import (
     BytesIO,
     StringIO,
 )
-import os
 
 import numpy as np
 import pytest
@@ -25,27 +24,23 @@ from pandas.io.parsers.c_parser_wrapper import ensure_dtype_objs
 
 
 class TestTextReader:
-    @pytest.fixture(autouse=True)
-    def setup_method(self, datapath):
-        self.dirpath = datapath("io", "parser", "data")
-        csv1_dirpath = datapath("io", "data", "csv")
-        self.csv1 = os.path.join(csv1_dirpath, "test1.csv")
-        self.csv2 = os.path.join(self.dirpath, "test2.csv")
-        self.xls1 = os.path.join(self.dirpath, "test.xls")
+    @pytest.fixture
+    def csv_path(self, datapath):
+        return datapath("io", "data", "csv", "test1.csv")
 
-    def test_file_handle(self):
-        with open(self.csv1, "rb") as f:
+    def test_file_handle(self, csv_path):
+        with open(csv_path, "rb") as f:
             reader = TextReader(f)
             reader.read()
 
-    def test_file_handle_mmap(self):
+    def test_file_handle_mmap(self, csv_path):
         # this was never using memory_map=True
-        with open(self.csv1, "rb") as f:
+        with open(csv_path, "rb") as f:
             reader = TextReader(f, header=None)
             reader.read()
 
-    def test_StringIO(self):
-        with open(self.csv1, "rb") as f:
+    def test_StringIO(self, csv_path):
+        with open(csv_path, "rb") as f:
             text = f.read()
         src = BytesIO(text)
         reader = TextReader(src, header=None)

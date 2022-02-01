@@ -673,13 +673,9 @@ class TestQuantileExtensionDtype:
 
     # TODO(GH#39763): filtering can be removed after GH#39763 is fixed
     @pytest.mark.filterwarnings("ignore:Using .astype to convert:FutureWarning")
-    def test_quantile_ea_all_na(self, obj, index, frame_or_series, request):
-        warn = None
-        # if using_array_manager and frame_or_series is DataFrame:
-        #    warn = FutureWarning
-
+    def test_quantile_ea_all_na(self, obj, index):
         msg = "will attempt to set the values inplace"
-        with tm.assert_produces_warning(warn, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             obj.iloc[:] = index._na_value
 
         # TODO(ArrayManager): this casting should be unnecessary after GH#39763 is fixed
