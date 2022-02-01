@@ -20,8 +20,8 @@ def test_bad_arg_length_max_value_single():
     max_length = len(compat_args) + min_fname_arg_count
     actual_length = len(args) + min_fname_arg_count
     msg = (
-        fr"{_fname}\(\) takes at most {max_length} "
-        fr"argument \({actual_length} given\)"
+        rf"{_fname}\(\) takes at most {max_length} "
+        rf"argument \({actual_length} given\)"
     )
 
     with pytest.raises(TypeError, match=msg):
@@ -36,8 +36,8 @@ def test_bad_arg_length_max_value_multiple():
     max_length = len(compat_args) + min_fname_arg_count
     actual_length = len(args) + min_fname_arg_count
     msg = (
-        fr"{_fname}\(\) takes at most {max_length} "
-        fr"arguments \({actual_length} given\)"
+        rf"{_fname}\(\) takes at most {max_length} "
+        rf"arguments \({actual_length} given\)"
     )
 
     with pytest.raises(TypeError, match=msg):
@@ -49,7 +49,7 @@ def test_not_all_defaults(i):
     bad_arg = "foo"
     msg = (
         f"the '{bad_arg}' parameter is not supported "
-        fr"in the pandas implementation of {_fname}\(\)"
+        rf"in the pandas implementation of {_fname}\(\)"
     )
 
     compat_args = {"foo": 2, "bar": -1, "baz": 3}

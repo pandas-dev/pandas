@@ -167,7 +167,7 @@ class TestTimedeltaIndexEquals(EqualsTests):
 
         # Check that we dont raise OverflowError on comparisons outside the
         #  implementation range GH#28532
-        oob = Index([timedelta(days=10 ** 6)] * 3, dtype=object)
+        oob = Index([timedelta(days=10**6)] * 3, dtype=object)
         assert not idx.equals(oob)
         assert not idx2.equals(oob)
 

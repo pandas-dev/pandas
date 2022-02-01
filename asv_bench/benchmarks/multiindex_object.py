@@ -203,7 +203,7 @@ class SetOperations:
     param_names = ["index_structure", "dtype", "method"]
 
     def setup(self, index_structure, dtype, method):
-        N = 10 ** 5
+        N = 10**5
         level1 = range(1000)
 
         level2 = date_range(start="1/1/2000", periods=N // 1000)

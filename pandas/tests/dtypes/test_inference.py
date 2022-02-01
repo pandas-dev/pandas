@@ -594,25 +594,25 @@ class TestInference:
         tm.assert_numpy_array_equal(result, np.array([np.nan, 1.0, np.nan]))
 
     def test_convert_numeric_uint64(self):
-        arr = np.array([2 ** 63], dtype=object)
-        exp = np.array([2 ** 63], dtype=np.uint64)
+        arr = np.array([2**63], dtype=object)
+        exp = np.array([2**63], dtype=np.uint64)
         tm.assert_numpy_array_equal(lib.maybe_convert_numeric(arr, set())[0], exp)
 
-        arr = np.array([str(2 ** 63)], dtype=object)
-        exp = np.array([2 ** 63], dtype=np.uint64)
+        arr = np.array([str(2**63)], dtype=object)
+        exp = np.array([2**63], dtype=np.uint64)
         tm.assert_numpy_array_equal(lib.maybe_convert_numeric(arr, set())[0], exp)
 
-        arr = np.array([np.uint64(2 ** 63)], dtype=object)
-        exp = np.array([2 ** 63], dtype=np.uint64)
+        arr = np.array([np.uint64(2**63)], dtype=object)
+        exp = np.array([2**63], dtype=np.uint64)
         tm.assert_numpy_array_equal(lib.maybe_convert_numeric(arr, set())[0], exp)
 
     @pytest.mark.parametrize(
         "arr",
         [
-            np.array([2 ** 63, np.nan], dtype=object),
-            np.array([str(2 ** 63), np.nan], dtype=object),
-            np.array([np.nan, 2 ** 63], dtype=object),
-            np.array([np.nan, str(2 ** 63)], dtype=object),
+            np.array([2**63, np.nan], dtype=object),
+            np.array([str(2**63), np.nan], dtype=object),
+            np.array([np.nan, 2**63], dtype=object),
+            np.array([np.nan, str(2**63)], dtype=object),
         ],
     )
     def test_convert_numeric_uint64_nan(self, coerce, arr):
@@ -624,11 +624,11 @@ class TestInference:
     def test_convert_numeric_uint64_nan_values(
         self, coerce, convert_to_masked_nullable
     ):
-        arr = np.array([2 ** 63, 2 ** 63 + 1], dtype=object)
-        na_values = {2 ** 63}
+        arr = np.array([2**63, 2**63 + 1], dtype=object)
+        na_values = {2**63}
 
         expected = (
-            np.array([np.nan, 2 ** 63 + 1], dtype=float) if coerce else arr.copy()
+            np.array([np.nan, 2**63 + 1], dtype=float) if coerce else arr.copy()
         )
         result = lib.maybe_convert_numeric(
             arr,
@@ -638,7 +638,7 @@ class TestInference:
         )
         if convert_to_masked_nullable and coerce:
             expected = IntegerArray(
-                np.array([0, 2 ** 63 + 1], dtype="u8"),
+                np.array([0, 2**63 + 1], dtype="u8"),
                 np.array([True, False], dtype="bool"),
             )
             result = IntegerArray(*result)
@@ -649,12 +649,12 @@ class TestInference:
     @pytest.mark.parametrize(
         "case",
         [
-            np.array([2 ** 63, -1], dtype=object),
-            np.array([str(2 ** 63), -1], dtype=object),
-            np.array([str(2 ** 63), str(-1)], dtype=object),
-            np.array([-1, 2 ** 63], dtype=object),
-            np.array([-1, str(2 ** 63)], dtype=object),
-            np.array([str(-1), str(2 ** 63)], dtype=object),
+            np.array([2**63, -1], dtype=object),
+            np.array([str(2**63), -1], dtype=object),
+            np.array([str(2**63), str(-1)], dtype=object),
+            np.array([-1, 2**63], dtype=object),
+            np.array([-1, str(2**63)], dtype=object),
+            np.array([str(-1), str(2**63)], dtype=object),
         ],
     )
     @pytest.mark.parametrize("convert_to_masked_nullable", [True, False])
@@ -686,7 +686,7 @@ class TestInference:
             result = result[0]
         assert np.isnan(result)
 
-    @pytest.mark.parametrize("value", [-(2 ** 63) - 1, 2 ** 64])
+    @pytest.mark.parametrize("value", [-(2**63) - 1, 2**64])
     def test_convert_int_overflow(self, value):
         # see gh-18584
         arr = np.array([value], dtype=object)
@@ -695,23 +695,23 @@ class TestInference:
 
     def test_maybe_convert_objects_uint64(self):
         # see gh-4471
-        arr = np.array([2 ** 63], dtype=object)
-        exp = np.array([2 ** 63], dtype=np.uint64)
+        arr = np.array([2**63], dtype=object)
+        exp = np.array([2**63], dtype=np.uint64)
         tm.assert_numpy_array_equal(lib.maybe_convert_objects(arr), exp)
 
         # NumPy bug: can't compare uint64 to int64, as that
         # results in both casting to float64, so we should
         # make sure that this function is robust against it
-        arr = np.array([np.uint64(2 ** 63)], dtype=object)
-        exp = np.array([2 ** 63], dtype=np.uint64)
+        arr = np.array([np.uint64(2**63)], dtype=object)
+        exp = np.array([2**63], dtype=np.uint64)
         tm.assert_numpy_array_equal(lib.maybe_convert_objects(arr), exp)
 
         arr = np.array([2, -1], dtype=object)
         exp = np.array([2, -1], dtype=np.int64)
         tm.assert_numpy_array_equal(lib.maybe_convert_objects(arr), exp)
 
-        arr = np.array([2 ** 63, -1], dtype=object)
-        exp = np.array([2 ** 63, -1], dtype=object)
+        arr = np.array([2**63, -1], dtype=object)
+        exp = np.array([2**63, -1], dtype=object)
         tm.assert_numpy_array_equal(lib.maybe_convert_objects(arr), exp)
 
     def test_maybe_convert_objects_datetime(self):

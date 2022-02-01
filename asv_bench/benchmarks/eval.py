@@ -43,7 +43,7 @@ class Eval:
 
 class Query:
     def setup(self):
-        N = 10 ** 6
+        N = 10**6
         halfway = (N // 2) - 1
         index = pd.date_range("20010101", periods=N, freq="T")
         s = pd.Series(index)

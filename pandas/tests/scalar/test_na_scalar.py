@@ -100,7 +100,7 @@ def test_comparison_ops():
 def test_pow_special(value, asarray):
     if asarray:
         value = np.array([value])
-    result = NA ** value
+    result = NA**value
 
     if asarray:
         result = result[0]
@@ -117,7 +117,7 @@ def test_pow_special(value, asarray):
 def test_rpow_special(value, asarray):
     if asarray:
         value = np.array([value])
-    result = value ** NA
+    result = value**NA
 
     if asarray:
         result = result[0]
@@ -133,7 +133,7 @@ def test_rpow_special(value, asarray):
 def test_rpow_minus_one(value, asarray):
     if asarray:
         value = np.array([value])
-    result = value ** NA
+    result = value**NA
 
     if asarray:
         result = result[0]

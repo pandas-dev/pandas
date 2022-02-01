@@ -37,7 +37,7 @@ class NumericSeriesIndexing:
     param_names = ["index_dtype", "index_structure"]
 
     def setup(self, index, index_structure):
-        N = 10 ** 6
+        N = 10**6
         indices = {
             "unique_monotonic_inc": index(range(N)),
             "nonunique_monotonic_inc": index(
@@ -97,7 +97,7 @@ class NonNumericSeriesIndexing:
     param_names = ["index_dtype", "index_structure"]
 
     def setup(self, index, index_structure):
-        N = 10 ** 6
+        N = 10**6
         if index == "string":
             index = tm.makeStringIndex(N)
         elif index == "datetime":
@@ -263,7 +263,7 @@ class CategoricalIndexIndexing:
     param_names = ["index"]
 
     def setup(self, index):
-        N = 10 ** 5
+        N = 10**5
         values = list("a" * N + "b" * N + "c" * N)
         indices = {
             "monotonic_incr": CategoricalIndex(values),
@@ -332,7 +332,7 @@ class IndexSingleRow:
     param_names = ["unique_cols"]
 
     def setup(self, unique_cols):
-        arr = np.arange(10 ** 7).reshape(-1, 10)
+        arr = np.arange(10**7).reshape(-1, 10)
         df = DataFrame(arr)
         dtypes = ["u1", "u2", "u4", "u8", "i1", "i2", "i4", "i8", "f8", "f4"]
         for i, d in enumerate(dtypes):
@@ -364,7 +364,7 @@ class AssignTimeseriesIndex:
 
 class InsertColumns:
     def setup(self):
-        self.N = 10 ** 3
+        self.N = 10**3
         self.df = DataFrame(index=range(self.N))
         self.df2 = DataFrame(np.random.randn(self.N, 2))
 

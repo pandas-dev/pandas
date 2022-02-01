@@ -225,10 +225,10 @@ def test_agg_str_with_kwarg_axis_1_raises(df, reduction_func):
     "func, expected, dtype, result_dtype_dict",
     [
         ("sum", [5, 7, 9], "int64", {}),
-        ("std", [4.5 ** 0.5] * 3, int, {"i": float, "j": float, "k": float}),
+        ("std", [4.5**0.5] * 3, int, {"i": float, "j": float, "k": float}),
         ("var", [4.5] * 3, int, {"i": float, "j": float, "k": float}),
         ("sum", [5, 7, 9], "Int64", {"j": "int64"}),
-        ("std", [4.5 ** 0.5] * 3, "Int64", {"i": float, "j": float, "k": float}),
+        ("std", [4.5**0.5] * 3, "Int64", {"i": float, "j": float, "k": float}),
         ("var", [4.5] * 3, "Int64", {"i": "float64", "j": "float64", "k": "float64"}),
     ],
 )
@@ -250,7 +250,7 @@ def test_multiindex_groupby_mixed_cols_axis1(func, expected, dtype, result_dtype
     [
         ("sum", [[2, 4], [10, 12], [18, 20]], {10: "int64", 20: "int64"}),
         # std should ideally return Int64 / Float64 #43330
-        ("std", [[2 ** 0.5] * 2] * 3, "float64"),
+        ("std", [[2**0.5] * 2] * 3, "float64"),
         ("var", [[2] * 2] * 3, {10: "float64", 20: "float64"}),
     ],
 )
@@ -1097,7 +1097,7 @@ class TestLambdaMangling:
         # check pd.NameAgg case
         result1 = df.groupby(by="kind").agg(
             height_sqr_min=pd.NamedAgg(
-                column="height", aggfunc=lambda x: np.min(x ** 2)
+                column="height", aggfunc=lambda x: np.min(x**2)
             ),
             height_max=pd.NamedAgg(column="height", aggfunc="max"),
             weight_max=pd.NamedAgg(column="weight", aggfunc="max"),
@@ -1106,7 +1106,7 @@ class TestLambdaMangling:
 
         # check agg(key=(col, aggfunc)) case
         result2 = df.groupby(by="kind").agg(
-            height_sqr_min=("height", lambda x: np.min(x ** 2)),
+            height_sqr_min=("height", lambda x: np.min(x**2)),
             height_max=("height", "max"),
             weight_max=("weight", "max"),
         )
@@ -1143,7 +1143,7 @@ class TestLambdaMangling:
 
         # check agg(key=(col, aggfunc)) case
         result1 = df.groupby(by="kind").agg(
-            height_sqr_min=("height", lambda x: np.min(x ** 2)),
+            height_sqr_min=("height", lambda x: np.min(x**2)),
             height_max=("height", "max"),
             weight_max=("weight", "max"),
             height_max_2=("height", lambda x: np.max(x)),
@@ -1154,7 +1154,7 @@ class TestLambdaMangling:
         # check pd.NamedAgg case
         result2 = df.groupby(by="kind").agg(
             height_sqr_min=pd.NamedAgg(
-                column="height", aggfunc=lambda x: np.min(x ** 2)
+                column="height", aggfunc=lambda x: np.min(x**2)
             ),
             height_max=pd.NamedAgg(column="height", aggfunc="max"),
             weight_max=pd.NamedAgg(column="weight", aggfunc="max"),

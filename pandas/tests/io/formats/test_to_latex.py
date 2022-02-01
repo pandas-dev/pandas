@@ -282,7 +282,7 @@ class TestToLatexLongtable:
     )
     def test_to_latex_longtable_continued_on_next_page(self, df, expected_number):
         result = df.to_latex(index=False, longtable=True)
-        assert fr"\multicolumn{{{expected_number}}}" in result
+        assert rf"\multicolumn{{{expected_number}}}" in result
 
 
 class TestToLatexHeader:
@@ -1006,7 +1006,7 @@ class TestToLatexFormatters:
         )
         result = df.to_latex(na_rep=na_rep, float_format="{:.2f}".format)
         expected = _dedent(
-            fr"""
+            rf"""
             \begin{{tabular}}{{llr}}
             \toprule
             {{}} & Group &  Data \\

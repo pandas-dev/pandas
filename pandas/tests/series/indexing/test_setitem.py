@@ -1074,7 +1074,7 @@ class TestSetitemRangeIntoIntegerSeries(SetitemCastingEquivalents):
     [
         np.array([2.0, 3.0]),
         np.array([2.5, 3.5]),
-        np.array([2 ** 65, 2 ** 65 + 1], dtype=np.float64),  # all ints, but can't cast
+        np.array([2**65, 2**65 + 1], dtype=np.float64),  # all ints, but can't cast
     ],
 )
 class TestSetitemFloatNDarrayIntoIntegerSeries(SetitemCastingEquivalents):
@@ -1113,7 +1113,7 @@ class TestSetitemIntoIntegerSeriesNeedsUpcast(SetitemCastingEquivalents):
         return Series([1, 512, 3], dtype=np.int16)
 
 
-@pytest.mark.parametrize("val", [2 ** 33 + 1.0, 2 ** 33 + 1.1, 2 ** 62])
+@pytest.mark.parametrize("val", [2**33 + 1.0, 2**33 + 1.1, 2**62])
 class TestSmallIntegerSetitemUpcast(SetitemCastingEquivalents):
     # https://github.com/pandas-dev/pandas/issues/39584#issuecomment-941212124
     @pytest.fixture
@@ -1148,7 +1148,7 @@ class CoercionTest(SetitemCastingEquivalents):
 
 
 @pytest.mark.parametrize(
-    "val,exp_dtype", [(np.int32(1), np.int8), (np.int16(2 ** 9), np.int16)]
+    "val,exp_dtype", [(np.int32(1), np.int8), (np.int16(2**9), np.int16)]
 )
 class TestCoercionInt8(CoercionTest):
     # previously test_setitem_series_int8 in tests.indexing.test_coercion

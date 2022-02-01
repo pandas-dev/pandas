@@ -217,7 +217,7 @@ def test_astype_floating():
 
 def test_astype_dt64():
     # GH#32435
-    arr = pd.array([1, 2, 3, pd.NA]) * 10 ** 9
+    arr = pd.array([1, 2, 3, pd.NA]) * 10**9
 
     result = arr.astype("datetime64[ns]")
 

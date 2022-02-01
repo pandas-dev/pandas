@@ -15,7 +15,7 @@ def test_bad_kwarg():
     compat_args = {good_arg: "foo", bad_arg + "o": "bar"}
     kwargs = {good_arg: "foo", bad_arg: "bar"}
 
-    msg = fr"{_fname}\(\) got an unexpected keyword argument '{bad_arg}'"
+    msg = rf"{_fname}\(\) got an unexpected keyword argument '{bad_arg}'"
 
     with pytest.raises(TypeError, match=msg):
         validate_kwargs(_fname, kwargs, compat_args)
@@ -25,8 +25,8 @@ def test_bad_kwarg():
 def test_not_all_none(i):
     bad_arg = "foo"
     msg = (
-        fr"the '{bad_arg}' parameter is not supported "
-        fr"in the pandas implementation of {_fname}\(\)"
+        rf"the '{bad_arg}' parameter is not supported "
+        rf"in the pandas implementation of {_fname}\(\)"
     )
 
     compat_args = {"foo": 1, "bar": "s", "baz": None}

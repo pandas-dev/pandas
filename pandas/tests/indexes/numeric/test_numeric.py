@@ -563,8 +563,8 @@ class TestUIntNumericIndex(NumericInt):
 
     @pytest.fixture(
         params=[
-            [2 ** 63, 2 ** 63 + 10, 2 ** 63 + 15, 2 ** 63 + 20, 2 ** 63 + 25],
-            [2 ** 63 + 25, 2 ** 63 + 20, 2 ** 63 + 15, 2 ** 63 + 10, 2 ** 63],
+            [2**63, 2**63 + 10, 2**63 + 15, 2**63 + 20, 2**63 + 25],
+            [2**63 + 25, 2**63 + 20, 2**63 + 15, 2**63 + 10, 2**63],
         ],
         ids=["index_inc", "index_dec"],
     )
@@ -594,21 +594,21 @@ class TestUInt64Index(TestUIntNumericIndex):
         res = Index([1, 2, 3], dtype=dtype)
         tm.assert_index_equal(res, idx, exact=exact)
 
-        idx = index_cls([1, 2 ** 63])
-        res = Index([1, 2 ** 63], dtype=dtype)
+        idx = index_cls([1, 2**63])
+        res = Index([1, 2**63], dtype=dtype)
         tm.assert_index_equal(res, idx, exact=exact)
 
-        idx = index_cls([1, 2 ** 63])
-        res = Index([1, 2 ** 63])
+        idx = index_cls([1, 2**63])
+        res = Index([1, 2**63])
         tm.assert_index_equal(res, idx, exact=exact)
 
-        idx = Index([-1, 2 ** 63], dtype=object)
-        res = Index(np.array([-1, 2 ** 63], dtype=object))
+        idx = Index([-1, 2**63], dtype=object)
+        res = Index(np.array([-1, 2**63], dtype=object))
         tm.assert_index_equal(res, idx, exact=exact)
 
         # https://github.com/pandas-dev/pandas/issues/29526
-        idx = index_cls([1, 2 ** 63 + 1], dtype=dtype)
-        res = Index([1, 2 ** 63 + 1], dtype=dtype)
+        idx = index_cls([1, 2**63 + 1], dtype=dtype)
+        res = Index([1, 2**63 + 1], dtype=dtype)
         tm.assert_index_equal(res, idx, exact=exact)
 
     def test_constructor_does_not_cast_to_float(self):

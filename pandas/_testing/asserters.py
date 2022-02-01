@@ -212,7 +212,7 @@ def _get_tol_from_less_precise(check_less_precise: bool | int) -> float:
             return 0.5e-5
     else:
         # Equivalent to setting checking_less_precise=<decimals>
-        return 0.5 * 10 ** -check_less_precise
+        return 0.5 * 10**-check_less_precise
 
 
 def _check_isinstance(left, right, cls):

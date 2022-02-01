@@ -52,14 +52,14 @@ class TestTimedeltaArray:
             np.datetime64("NaT"),
             pd.Timestamp("2021-01-01"),
             "invalid",
-            np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9,
-            (np.arange(10) * 24 * 3600 * 10 ** 9).view("datetime64[ns]"),
+            np.arange(10, dtype="i8") * 24 * 3600 * 10**9,
+            (np.arange(10) * 24 * 3600 * 10**9).view("datetime64[ns]"),
             pd.Timestamp("2021-01-01").to_period("D"),
         ],
     )
     @pytest.mark.parametrize("index", [True, False])
     def test_searchsorted_invalid_types(self, other, index):
-        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
+        data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
         arr = TimedeltaArray(data, freq="D")
         if index:
             arr = pd.Index(arr)
@@ -76,10 +76,10 @@ class TestTimedeltaArray:
 
 class TestUnaryOps:
     def test_abs(self):
-        vals = np.array([-3600 * 10 ** 9, "NaT", 7200 * 10 ** 9], dtype="m8[ns]")
+        vals = np.array([-3600 * 10**9, "NaT", 7200 * 10**9], dtype="m8[ns]")
         arr = TimedeltaArray(vals)
 
-        evals = np.array([3600 * 10 ** 9, "NaT", 7200 * 10 ** 9], dtype="m8[ns]")
+        evals = np.array([3600 * 10**9, "NaT", 7200 * 10**9], dtype="m8[ns]")
         expected = TimedeltaArray(evals)
 
         result = abs(arr)
@@ -89,7 +89,7 @@ class TestUnaryOps:
         tm.assert_timedelta_array_equal(result2, expected)
 
     def test_pos(self):
-        vals = np.array([-3600 * 10 ** 9, "NaT", 7200 * 10 ** 9], dtype="m8[ns]")
+        vals = np.array([-3600 * 10**9, "NaT", 7200 * 10**9], dtype="m8[ns]")
         arr = TimedeltaArray(vals)
 
         result = +arr
@@ -101,10 +101,10 @@ class TestUnaryOps:
         assert not tm.shares_memory(result2, arr)
 
     def test_neg(self):
-        vals = np.array([-3600 * 10 ** 9, "NaT", 7200 * 10 ** 9], dtype="m8[ns]")
+        vals = np.array([-3600 * 10**9, "NaT", 7200 * 10**9], dtype="m8[ns]")
         arr = TimedeltaArray(vals)
 
-        evals = np.array([3600 * 10 ** 9, "NaT", -7200 * 10 ** 9], dtype="m8[ns]")
+        evals = np.array([3600 * 10**9, "NaT", -7200 * 10**9], dtype="m8[ns]")
         expected = TimedeltaArray(evals)
 
         result = -arr

@@ -866,7 +866,7 @@ def test_cummin_max_skipna_multiple_cols(method):
 @td.skip_if_32bit
 @pytest.mark.parametrize("method", ["cummin", "cummax"])
 @pytest.mark.parametrize(
-    "dtype,val", [("UInt64", np.iinfo("uint64").max), ("Int64", 2 ** 53 + 1)]
+    "dtype,val", [("UInt64", np.iinfo("uint64").max), ("Int64", 2**53 + 1)]
 )
 def test_nullable_int_not_cast_as_float(method, dtype, val):
     data = [val, pd.NA]

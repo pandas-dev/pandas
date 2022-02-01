@@ -467,8 +467,8 @@ class ExcelFormatter:
         This is only called for body cells.
     """
 
-    max_rows = 2 ** 20
-    max_cols = 2 ** 14
+    max_rows = 2**20
+    max_cols = 2**14
 
     def __init__(
         self,

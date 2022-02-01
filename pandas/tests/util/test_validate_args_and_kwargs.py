@@ -15,8 +15,8 @@ def test_invalid_total_length_max_length_one():
     actual_length = len(kwargs) + len(args) + min_fname_arg_count
 
     msg = (
-        fr"{_fname}\(\) takes at most {max_length} "
-        fr"argument \({actual_length} given\)"
+        rf"{_fname}\(\) takes at most {max_length} "
+        rf"argument \({actual_length} given\)"
     )
 
     with pytest.raises(TypeError, match=msg):
@@ -33,8 +33,8 @@ def test_invalid_total_length_max_length_multiple():
     actual_length = len(kwargs) + len(args) + min_fname_arg_count
 
     msg = (
-        fr"{_fname}\(\) takes at most {max_length} "
-        fr"arguments \({actual_length} given\)"
+        rf"{_fname}\(\) takes at most {max_length} "
+        rf"arguments \({actual_length} given\)"
     )
 
     with pytest.raises(TypeError, match=msg):
@@ -49,8 +49,8 @@ def test_missing_args_or_kwargs(args, kwargs):
     compat_args = {"foo": -5, bad_arg: 1}
 
     msg = (
-        fr"the '{bad_arg}' parameter is not supported "
-        fr"in the pandas implementation of {_fname}\(\)"
+        rf"the '{bad_arg}' parameter is not supported "
+        rf"in the pandas implementation of {_fname}\(\)"
     )
 
     with pytest.raises(ValueError, match=msg):
@@ -64,7 +64,7 @@ def test_duplicate_argument():
     kwargs = {"foo": None, "bar": None}
     args = (None,)  # duplicate value for "foo"
 
-    msg = fr"{_fname}\(\) got multiple values for keyword argument 'foo'"
+    msg = rf"{_fname}\(\) got multiple values for keyword argument 'foo'"
 
     with pytest.raises(TypeError, match=msg):
         validate_args_and_kwargs(_fname, args, kwargs, min_fname_arg_count, compat_args)

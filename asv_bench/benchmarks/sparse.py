@@ -40,7 +40,7 @@ class SparseArrayConstructor:
     param_names = ["dense_proportion", "fill_value", "dtype"]
 
     def setup(self, dense_proportion, fill_value, dtype):
-        N = 10 ** 6
+        N = 10**6
         self.array = make_array(N, dense_proportion, fill_value, dtype)
 
     def time_sparse_array(self, dense_proportion, fill_value, dtype):
@@ -111,7 +111,7 @@ class Arithmetic:
     param_names = ["dense_proportion", "fill_value"]
 
     def setup(self, dense_proportion, fill_value):
-        N = 10 ** 6
+        N = 10**6
         arr1 = make_array(N, dense_proportion, fill_value, np.int64)
         self.array1 = SparseArray(arr1, fill_value=fill_value)
         arr2 = make_array(N, dense_proportion, fill_value, np.int64)
@@ -136,7 +136,7 @@ class ArithmeticBlock:
     param_names = ["fill_value"]
 
     def setup(self, fill_value):
-        N = 10 ** 6
+        N = 10**6
         self.arr1 = self.make_block_array(
             length=N, num_blocks=1000, block_size=10, fill_value=fill_value
         )

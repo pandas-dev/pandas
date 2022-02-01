@@ -195,8 +195,8 @@ class TestCommon:
             index.unique(level=3)
 
         msg = (
-            fr"Requested level \(wrong\) does not match index name "
-            fr"\({re.escape(index.name.__repr__())}\)"
+            rf"Requested level \(wrong\) does not match index name "
+            rf"\({re.escape(index.name.__repr__())}\)"
         )
         with pytest.raises(KeyError, match=msg):
             index.unique(level="wrong")
