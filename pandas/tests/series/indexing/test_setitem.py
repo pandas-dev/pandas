@@ -366,7 +366,7 @@ class TestSetitemBooleanMask:
 
     def test_setitem_mask_smallint_upcast(self):
         orig = Series([1, 2, 3], dtype="int8")
-        alt = np.array([999, 1000, 1001])
+        alt = np.array([999, 1000, 1001], dtype=np.int64)
 
         mask = np.array([True, False, True])
 
@@ -387,7 +387,7 @@ class TestSetitemBooleanMask:
         # like test_setitem_mask_smallint_upcast, but while we can't hold 'alt',
         #  we *can* hold alt[mask] without casting
         orig = Series([1, 2, 3], dtype="uint8")
-        alt = Series([245, 1000, 246])
+        alt = Series([245, 1000, 246], dtype=np.int64)
 
         mask = np.array([True, False, True])
 
