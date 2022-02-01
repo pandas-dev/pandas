@@ -1804,7 +1804,6 @@ def test_groupby_categorical_aggregate_functions():
         [2, "small"]
     ], columns=["grp", "description"]).astype({"description": dtype})
 
-
     result = df.groupby("grp")["description"].max()
     expected = Series(
             ["big", "small"],
