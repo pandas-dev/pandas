@@ -8738,7 +8738,7 @@ NaN 12.3   33.0
 
         if isinstance(result, DataFrame):
             result = result.squeeze()
-            
+
         return result
 
     agg = aggregate
