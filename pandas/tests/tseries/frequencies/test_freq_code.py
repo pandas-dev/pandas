@@ -6,6 +6,7 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.dtypes import _attrname_to_abbrevs
+from numpy import datetime64
 
 
 @pytest.mark.parametrize(
@@ -78,3 +79,20 @@ def test_cat(args):
 
     with pytest.raises(ValueError, match=msg):
         to_offset(str(args[0]) + args[1])
+
+@pytest.mark.parametrize(
+    'freqstr,expected',
+    [   
+        ('1H','2021-01-01T09:00:00'),
+        ('1D','2021-01-01T08:00:00'),
+        ('1W','2021-01-03T08:00:00'),
+        ('1M','2021-01-31T08:00:00'),
+        ('1Y','2021-12-31T08:00:00')
+    ]
+)
+def test_compatibility(freqstr,expected):
+    ts_np = datetime64('2021-01-01T08:00:00.00')
+    do = to_offset(freqstr)
+    
+    assert ts_np + do == datetime64(expected)
+    
