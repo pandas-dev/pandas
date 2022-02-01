@@ -236,9 +236,15 @@ Look,a snake,🐍"""
 
         path = os.path.join(HERE, "data", "missing_folder", "does_not_exist." + fn_ext)
 
+        msg = r"|".join(
+            [
+                r"[Errno 2] No such",
+                r"Cannot save file into a non-existent directory: .*missing_folder",
+            ]
+        )
         with pytest.raises(
             error_class,
-            match=r"Cannot save file into a non-existent directory: .*missing_folder",
+            match=msg,
         ):
             method(dummy_frame, path)
 
