@@ -2868,9 +2868,8 @@ Name: Max Speed, dtype: float64
         .. deprecated:: 1.4.0
             ``Series.append`` is deprecated,
             use ``pandas.concat`` instead.
-            For further details see
-            :ref:`Deprecated Frame.append and Series.append
-            <https://pandas.pydata.org/docs/whatsnew/v1.4.0.html#deprecated-frame-append-and-series-append>`.
+            For further details see section *Deprecated Frame.append and Series.append* in the What's new or
+            *Merge, join, concatenate and compare* in the User Guide.
 
         Parameters
         ----------
