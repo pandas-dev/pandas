@@ -75,7 +75,6 @@ import pandas.core.algorithms as algos
 from pandas.core.array_algos.putmask import (
     extract_bool_array,
     putmask_inplace,
-    putmask_smart,
     putmask_without_repeat,
     setitem_datetimelike_compat,
     validate_putmask,
@@ -979,15 +978,12 @@ class Block(PandasObject):
             # no need to split columns
 
             if not is_list_like(new):
-                # putmask_smart can't save us the need to cast
+                # using just new[indexer] can't save us the need to cast
                 return self.coerce_to_target_dtype(new).putmask(mask, new)
-
-            # This differs from
-            #  `self.coerce_to_target_dtype(new).putmask(mask, new)`
-            # because putmask_smart will check if new[mask] may be held
-            # by our dtype.
-            nv = putmask_smart(values.T, mask, new).T
-            return [self.make_block(nv)]
+            else:
+                indexer = mask.nonzero()[0]
+                nb = self.setitem(indexer, new[indexer])
+                return [nb]
 
         else:
             is_array = isinstance(new, np.ndarray)
