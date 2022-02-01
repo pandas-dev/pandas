@@ -1795,8 +1795,9 @@ def test_groupby_categorical_observed_nunique():
     )
     tm.assert_series_equal(result, expected)
 
+
 def test_groupby_categorical_aggregate_functions():
-    #37275
+    # GH#37275
     dtype = pd.CategoricalDtype(categories=["small", "big"], ordered=True)
     df = pd.DataFrame([
         [1, "small"],
@@ -1806,11 +1807,10 @@ def test_groupby_categorical_aggregate_functions():
 
     result = df.groupby("grp")["description"].max()
     expected = Series(
-            ["big", "small"],
-            index=pd.Index([1, 2], name="grp"),
-            name="description",
-            dtype=pd.CategoricalDtype(categories=["small","big"], ordered=True)
-        )
+        ["big", "small"],
+        index=pd.Index([1, 2], name="grp"),
+        name="description",
+        dtype=pd.CategoricalDtype(categories=["small", "big"], ordered=True)
+    )
 
     tm.assert_series_equal(result, expected)
-
