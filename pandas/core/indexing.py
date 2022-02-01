@@ -2010,7 +2010,7 @@ class _iLocIndexer(_LocationIndexer):
                     "to set the values inplace instead of always setting a new "
                     "array. To retain the old behavior, use either "
                     "`df[df.columns[i]] = newvals` or, if columns are non-unique, "
-                    "`df.iloc(axis=1)[i] = newvals`.",
+                    "`df.isetitem(i, newvals)`",
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
