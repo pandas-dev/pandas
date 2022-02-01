@@ -17,7 +17,6 @@ import numpy as np
 
 from pandas._libs import (
     Timestamp,
-    algos as libalgos,
     internals as libinternals,
     lib,
     writers,
@@ -448,35 +447,41 @@ class Block(PandasObject):
         return [nb]
 
     def fillna(
-        self, value, limit=None, inplace: bool = False, downcast=None
+        self, value, limit: int | None = None, inplace: bool = False, downcast=None
     ) -> list[Block]:
         """
         fillna on the block with the value. If we fail, then convert to
         ObjectBlock and try again
         """
+        # Caller is responsible for validating limit; if int it is strictly positive
         inplace = validate_bool_kwarg(inplace, "inplace")
 
-        mask = isna(self.values)
-        mask, noop = validate_putmask(self.values, mask)
-
-        if limit is not None:
-            limit = libalgos.validate_limit(None, limit=limit)
-            mask[mask.cumsum(self.ndim - 1) > limit] = False
-
         if not self._can_hold_na:
+            # can short-circuit the isna call
+            noop = True
+        else:
+            mask = isna(self.values)
+            mask, noop = validate_putmask(self.values, mask)
+
+        if noop:
+            # we can't process the value, but nothing to do
             if inplace:
+                # Arbitrarily imposing the convention that we ignore downcast
+                #  on no-op when inplace=True
                 return [self]
             else:
-                return [self.copy()]
+                # GH#45423 consistent downcasting on no-ops.
+                nb = self.copy()
+                nbs = nb._maybe_downcast([nb], downcast=downcast)
+                return nbs
+
+        if limit is not None:
+            mask[mask.cumsum(self.ndim - 1) > limit] = False
 
         if self._can_hold_element(value):
             nb = self if inplace else self.copy()
             putmask_inplace(nb.values, mask, value)
             return nb._maybe_downcast([nb], downcast)
-
-        if noop:
-            # we can't process the value, but nothing to do
-            return [self] if inplace else [self.copy()]
 
         elif self.ndim == 1 or self.shape[0] == 1:
             blk = self.coerce_to_target_dtype(value)
@@ -1449,8 +1454,9 @@ class EABackedBlock(Block):
         return [self]
 
     def fillna(
-        self, value, limit=None, inplace: bool = False, downcast=None
+        self, value, limit: int | None = None, inplace: bool = False, downcast=None
     ) -> list[Block]:
+        # Caller is responsible for validating limit; if int it is strictly positive
 
         try:
             new_values = self.values.fillna(value=value, limit=limit)
