@@ -117,7 +117,7 @@ def _get_layout(nplots: int, layout=None, layout_type: str = "box") -> tuple[int
         return layouts[nplots]
     except KeyError:
         k = 1
-        while k ** 2 < nplots:
+        while k**2 < nplots:
             k += 1
 
         if (k - 1) * k >= nplots:

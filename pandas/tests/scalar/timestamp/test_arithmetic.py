@@ -61,7 +61,7 @@ class TestTimestampArithmetic:
         # used to crash, so check for proper overflow exception
 
         stamp = Timestamp("2000/1/1")
-        offset_overflow = to_offset("D") * 100 ** 5
+        offset_overflow = to_offset("D") * 100**5
 
         with pytest.raises(OverflowError, match=lmsg):
             stamp + offset_overflow

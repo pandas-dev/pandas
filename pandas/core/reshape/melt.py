@@ -494,7 +494,7 @@ def wide_to_long(
     """
 
     def get_var_names(df, stub: str, sep: str, suffix: str) -> list[str]:
-        regex = fr"^{re.escape(stub)}{re.escape(sep)}{suffix}$"
+        regex = rf"^{re.escape(stub)}{re.escape(sep)}{suffix}$"
         pattern = re.compile(regex)
         return [col for col in df.columns if pattern.match(col)]
 

@@ -16,7 +16,7 @@ class Methods:
     param_names = ["constructor", "window_kwargs", "dtype", "method"]
 
     def setup(self, constructor, window_kwargs, dtype, method):
-        N = 10 ** 5
+        N = 10**5
         window, kwargs = window_kwargs
         arr = (100 * np.random.random(N)).astype(dtype)
         obj = getattr(pd, constructor)(arr)
@@ -40,7 +40,7 @@ class Apply:
     param_names = ["constructor", "window", "dtype", "function", "raw"]
 
     def setup(self, constructor, window, dtype, function, raw):
-        N = 10 ** 3
+        N = 10**3
         arr = (100 * np.random.random(N)).astype(dtype)
         self.roll = getattr(pd, constructor)(arr).rolling(window)
 
@@ -67,7 +67,7 @@ class NumbaEngineMethods:
     ]
 
     def setup(self, constructor, dtype, window_kwargs, method, parallel, cols):
-        N = 10 ** 3
+        N = 10**3
         window, kwargs = window_kwargs
         shape = (N, cols) if cols is not None and constructor != "Series" else N
         arr = (100 * np.random.random(shape)).astype(dtype)
@@ -107,7 +107,7 @@ class NumbaEngineApply:
     ]
 
     def setup(self, constructor, dtype, window_kwargs, function, parallel, cols):
-        N = 10 ** 3
+        N = 10**3
         window, kwargs = window_kwargs
         shape = (N, cols) if cols is not None and constructor != "Series" else N
         arr = (100 * np.random.random(shape)).astype(dtype)
@@ -140,7 +140,7 @@ class EWMMethods:
             (
                 {
                     "halflife": "1 Day",
-                    "times": pd.date_range("1900", periods=10 ** 5, freq="23s"),
+                    "times": pd.date_range("1900", periods=10**5, freq="23s"),
                 },
                 "mean",
             ),
@@ -150,7 +150,7 @@ class EWMMethods:
     param_names = ["constructor", "kwargs_method", "dtype"]
 
     def setup(self, constructor, kwargs_method, dtype):
-        N = 10 ** 5
+        N = 10**5
         kwargs, method = kwargs_method
         arr = (100 * np.random.random(N)).astype(dtype)
         self.method = method
@@ -170,7 +170,7 @@ class VariableWindowMethods(Methods):
     param_names = ["constructor", "window", "dtype", "method"]
 
     def setup(self, constructor, window, dtype, method):
-        N = 10 ** 5
+        N = 10**5
         arr = (100 * np.random.random(N)).astype(dtype)
         index = pd.date_range("2017-01-01", periods=N, freq="5s")
         self.window = getattr(pd, constructor)(arr, index=index).rolling(window)
@@ -186,7 +186,7 @@ class Pairwise:
     param_names = ["window_kwargs", "method", "pairwise"]
 
     def setup(self, kwargs_window, method, pairwise):
-        N = 10 ** 4
+        N = 10**4
         n_groups = 20
         kwargs, window = kwargs_window
         groups = [i for _ in range(N // n_groups) for i in range(n_groups)]
@@ -215,7 +215,7 @@ class Quantile:
     param_names = ["constructor", "window", "dtype", "percentile"]
 
     def setup(self, constructor, window, dtype, percentile, interpolation):
-        N = 10 ** 5
+        N = 10**5
         arr = np.random.random(N).astype(dtype)
         self.roll = getattr(pd, constructor)(arr).rolling(window)
 
@@ -242,7 +242,7 @@ class Rank:
     ]
 
     def setup(self, constructor, window, dtype, percentile, ascending, method):
-        N = 10 ** 5
+        N = 10**5
         arr = np.random.random(N).astype(dtype)
         self.roll = getattr(pd, constructor)(arr).rolling(window)
 
@@ -255,7 +255,7 @@ class PeakMemFixedWindowMinMax:
     params = ["min", "max"]
 
     def setup(self, operation):
-        N = 10 ** 6
+        N = 10**6
         arr = np.random.random(N)
         self.roll = pd.Series(arr).rolling(2)
 
@@ -274,7 +274,7 @@ class ForwardWindowMethods:
     param_names = ["constructor", "window_size", "dtype", "method"]
 
     def setup(self, constructor, window_size, dtype, method):
-        N = 10 ** 5
+        N = 10**5
         arr = np.random.random(N).astype(dtype)
         indexer = pd.api.indexers.FixedForwardWindowIndexer(window_size=window_size)
         self.roll = getattr(pd, constructor)(arr).rolling(window=indexer)
