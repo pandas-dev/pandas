@@ -93,7 +93,6 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.cast import (
-    can_hold_element,
     construct_1d_arraylike_from_scalar,
     construct_2d_arraylike_from_scalar,
     find_common_type,
@@ -3864,23 +3863,16 @@ class DataFrame(NDFrame, OpsMixin):
         try:
             if takeable:
                 series = self._ixs(col, axis=1)
-                series._set_value(index, value, takeable=True)
-                return
+                loc = index
+            else:
+                series = self._get_item_cache(col)
+                loc = self.index.get_loc(index)
 
-            series = self._get_item_cache(col)
-            loc = self.index.get_loc(index)
-            dtype = series.dtype
-            if isinstance(dtype, np.dtype) and dtype.kind not in ["m", "M"]:
-                # otherwise we have EA values, and this check will be done
-                #  via setitem_inplace
-                if not can_hold_element(series._values, value):
-                    # We'll go through loc and end up casting.
-                    raise TypeError
-
+            # setitem_inplace will do validation that may raise TypeError
+            #  or ValueError
             series._mgr.setitem_inplace(loc, value)
-            # Note: trying to use series._set_value breaks tests in
-            #  tests.frame.indexing.test_indexing and tests.indexing.test_partial
-        except (KeyError, TypeError):
+
+        except (KeyError, TypeError, ValueError):
             # set using a non-recursive method & reset the cache
             if takeable:
                 self.iloc[index, col] = value
