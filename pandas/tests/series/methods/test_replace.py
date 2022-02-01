@@ -36,6 +36,20 @@ class TestSeriesReplace:
         assert expected.iloc[-1] is None
         tm.assert_series_equal(result, expected)
 
+    def test_replace_numpy_nan(self):
+        # GH#45725 ensure np.nan can be replaced
+        ser = pd.Series([np.nan, np.nan], dtype=object)
+        result = ser.replace({np.nan: pd.NA})
+        expected = pd.Series([pd.NA, pd.NA], dtype=object)
+        tm.assert_series_equal(result, expected)
+        assert result.dtype == object
+
+        # same thing but with None
+        result = ser.replace({np.nan: None})
+        expected = pd.Series([None, None], dtype=object)
+        tm.assert_series_equal(result, expected)
+        assert result.dtype == object
+
     def test_replace_noop_doesnt_downcast(self):
         # GH#44498
         ser = pd.Series([None, None, pd.Timestamp("2021-12-16 17:31")], dtype=object)

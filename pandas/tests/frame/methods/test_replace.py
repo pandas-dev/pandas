@@ -661,6 +661,18 @@ class TestDataFrameReplace:
         result = df.replace({"col": {-1: "-", 1: "a", 4: "b"}})
         tm.assert_frame_equal(expected, result)
 
+    def test_replace_numpy_nan(self):
+        # GH#45725 ensure np.nan can be replaced with pd.NA
+        df = pd.DataFrame({"A": [np.nan], "B": [np.nan]}, dtype=object)
+        result = df.replace({np.nan: pd.NA})
+        expected = pd.DataFrame({"A": [pd.NA], "B": [pd.NA]}, dtype=object)
+        tm.assert_frame_equal(result, expected)
+
+        # same thing but with None
+        result = df.replace({np.nan: None})
+        expected = pd.DataFrame({"A": [None], "B": [None]}, dtype=object)
+        tm.assert_frame_equal(result, expected)
+
     def test_replace_value_is_none(self, datetime_frame):
         orig_value = datetime_frame.iloc[0, 0]
         orig2 = datetime_frame.iloc[1, 0]
