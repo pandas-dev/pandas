@@ -36,6 +36,7 @@ from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.astype import astype_array_safe
 from pandas.core.dtypes.cast import (
+    LossySetitemError,
     can_hold_element,
     find_result_type,
     maybe_downcast_to_dtype,
@@ -1191,7 +1192,7 @@ class Block(PandasObject):
             #  but this gets us back 'casted' which we will re-use below;
             #  without using 'casted', expressions.where may do unwanted upcasts.
             casted = np_can_hold_element(values.dtype, other)
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, LossySetitemError):
             # we cannot coerce, return a compat dtype
             block = self.coerce_to_target_dtype(other)
             blocks = block.where(orig_other, cond)

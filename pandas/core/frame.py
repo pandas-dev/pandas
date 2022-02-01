@@ -93,6 +93,7 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.cast import (
+    LossySetitemError,
     can_hold_element,
     construct_1d_arraylike_from_scalar,
     construct_2d_arraylike_from_scalar,
@@ -3882,11 +3883,11 @@ class DataFrame(NDFrame, OpsMixin):
                 series = self._get_item_cache(col)
                 loc = self.index.get_loc(index)
 
-            # setitem_inplace will do validation that may raise TypeError
-            #  or ValueError
+            # setitem_inplace will do validation that may raise TypeError,
+            #  ValueError, or LossySetitemError
             series._mgr.setitem_inplace(loc, value)
 
-        except (KeyError, TypeError, ValueError):
+        except (KeyError, TypeError, ValueError, LossySetitemError):
             # set using a non-recursive method & reset the cache
             if takeable:
                 self.iloc[index, col] = value

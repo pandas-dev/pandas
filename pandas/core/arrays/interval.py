@@ -39,6 +39,7 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import IntCastingNaNError
 from pandas.util._decorators import Appender
 
+from pandas.core.dtypes.cast import LossySetitemError
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_dtype_equal,
@@ -1081,7 +1082,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         try:
             self.left._validate_fill_value(value_left)
-        except (ValueError, TypeError) as err:
+        except (LossySetitemError, TypeError) as err:
             msg = (
                 "'value' should be a compatible interval type, "
                 f"got {type(value)} instead."
