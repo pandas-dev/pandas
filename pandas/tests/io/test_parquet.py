@@ -374,7 +374,13 @@ def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
         tm.assert_frame_equal(result, df[["a", "d"]])
 
 
-def test_cross_engine_fp_pa(request, df_cross_compat, pa, fp):
+@pytest.mark.xfail(
+    is_platform_mac(),
+    raises=ImportError,
+    reason="Raises Library not loaded: @rpath/libssl.1.1.dylib in CI",
+    strict=False,
+)
+def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
     # cross-compat with differing reading/writing engines
     df = df_cross_compat
     with tm.ensure_clean() as path:
@@ -868,7 +874,7 @@ class TestParquetPyArrow(Base):
             repeat=1,
         )
 
-    @td.skip_if_no("pyarrow")
+    @td.skip_if_no("pyarrow", min_version="3")
     def test_read_file_like_obj_support(self, df_compat):
         buffer = BytesIO()
         df_compat.to_parquet(buffer)
