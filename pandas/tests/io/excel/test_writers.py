@@ -1271,10 +1271,12 @@ class TestExcelWriterEngineTests:
         # some awkward mocking to test out dispatch and such actually works
         called_save = []
         called_write_cells = []
+        called_sheets = []
 
         class DummyClass(ExcelWriter):
             called_save = False
             called_write_cells = False
+            called_sheets = False
             supported_extensions = ["xlsx", "xls"]
             engine = "dummy"
 
@@ -1284,12 +1286,18 @@ class TestExcelWriterEngineTests:
             def write_cells(self, *args, **kwargs):
                 called_write_cells.append(True)
 
+            @property
+            def sheets(self):
+                called_sheets.append(True)
+
         def check_called(func):
             func()
             assert len(called_save) >= 1
             assert len(called_write_cells) >= 1
+            assert len(called_sheets) == 0
             del called_save[:]
             del called_write_cells[:]
+            del called_sheets[:]
 
         with option_context("io.excel.xlsx.writer", "dummy"):
             path = "something.xlsx"
