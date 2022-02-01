@@ -607,16 +607,16 @@ class SeriesGroupBy(GroupBy[Series]):
         if is_categorical_dtype(val.dtype) or (bins and not np.iterable(bins)):
             # scalar bins cannot be done at top level
             # in a backward compatible way
-            # GH38672
-            s = self.apply(
+            # GH38672 relates to categorical dtype
+            ser = self.apply(
                 Series.value_counts,
                 normalize=normalize,
                 sort=sort,
                 ascending=ascending,
                 bins=bins,
             )
-            s.index.names = names
-            return s
+            ser.index.names = names
+            return ser
 
         # groupby removes null keys from groupings
         mask = ids != -1
