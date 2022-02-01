@@ -17,12 +17,12 @@ import numpy as np
 
 from pandas._libs import (
     Timestamp,
-    algos as libalgos,
     internals as libinternals,
     lib,
     writers,
 )
 from pandas._libs.internals import BlockPlacement
+from pandas._libs.tslibs import IncompatibleFrequency
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
@@ -36,10 +36,11 @@ from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.astype import astype_array_safe
 from pandas.core.dtypes.cast import (
+    LossySetitemError,
     can_hold_element,
     find_result_type,
-    maybe_downcast_numeric,
     maybe_downcast_to_dtype,
+    np_can_hold_element,
     soft_convert_objects,
 )
 from pandas.core.dtypes.common import (
@@ -105,11 +106,7 @@ from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
-from pandas.core.indexers import (
-    check_setitem_lengths,
-    is_empty_indexer,
-    is_scalar_indexer,
-)
+from pandas.core.indexers import check_setitem_lengths
 import pandas.core.missing as missing
 
 if TYPE_CHECKING:
@@ -380,9 +377,9 @@ class Block(PandasObject):
         """
         self.values[locs] = values
 
-    def delete(self, loc) -> None:
+    def delete(self, loc) -> Block:
         """
-        Delete given loc(-s) from block in-place.
+        Return a new Block with the given loc(s) deleted.
         """
         # Argument 1 to "delete" has incompatible type "Union[ndarray[Any, Any],
         # ExtensionArray]"; expected "Union[_SupportsArray[dtype[Any]],
@@ -390,13 +387,9 @@ class Block(PandasObject):
         # [_SupportsArray[dtype[Any]]]], Sequence[Sequence[Sequence[
         # _SupportsArray[dtype[Any]]]]], Sequence[Sequence[Sequence[Sequence[
         # _SupportsArray[dtype[Any]]]]]]]"  [arg-type]
-        self.values = np.delete(self.values, loc, 0)  # type: ignore[arg-type]
-        self.mgr_locs = self._mgr_locs.delete(loc)
-        try:
-            self._cache.clear()
-        except AttributeError:
-            # _cache not yet initialized
-            pass
+        values = np.delete(self.values, loc, 0)  # type: ignore[arg-type]
+        mgr_locs = self._mgr_locs.delete(loc)
+        return type(self)(values, placement=mgr_locs, ndim=self.ndim)
 
     @final
     def apply(self, func, **kwargs) -> list[Block]:
@@ -451,35 +444,41 @@ class Block(PandasObject):
         return [nb]
 
     def fillna(
-        self, value, limit=None, inplace: bool = False, downcast=None
+        self, value, limit: int | None = None, inplace: bool = False, downcast=None
     ) -> list[Block]:
         """
         fillna on the block with the value. If we fail, then convert to
         ObjectBlock and try again
         """
+        # Caller is responsible for validating limit; if int it is strictly positive
         inplace = validate_bool_kwarg(inplace, "inplace")
 
-        mask = isna(self.values)
-        mask, noop = validate_putmask(self.values, mask)
-
-        if limit is not None:
-            limit = libalgos.validate_limit(None, limit=limit)
-            mask[mask.cumsum(self.ndim - 1) > limit] = False
-
         if not self._can_hold_na:
+            # can short-circuit the isna call
+            noop = True
+        else:
+            mask = isna(self.values)
+            mask, noop = validate_putmask(self.values, mask)
+
+        if noop:
+            # we can't process the value, but nothing to do
             if inplace:
+                # Arbitrarily imposing the convention that we ignore downcast
+                #  on no-op when inplace=True
                 return [self]
             else:
-                return [self.copy()]
+                # GH#45423 consistent downcasting on no-ops.
+                nb = self.copy()
+                nbs = nb._maybe_downcast([nb], downcast=downcast)
+                return nbs
+
+        if limit is not None:
+            mask[mask.cumsum(self.ndim - 1) > limit] = False
 
         if self._can_hold_element(value):
             nb = self if inplace else self.copy()
             putmask_inplace(nb.values, mask, value)
             return nb._maybe_downcast([nb], downcast)
-
-        if noop:
-            # we can't process the value, but nothing to do
-            return [self] if inplace else [self.copy()]
 
         elif self.ndim == 1 or self.shape[0] == 1:
             blk = self.coerce_to_target_dtype(value)
@@ -917,12 +916,6 @@ class Block(PandasObject):
 
         value = self._standardize_fill_value(value)
 
-        # coerce if block dtype can store value
-        if not self._can_hold_element(value):
-            # current dtype cannot store value, coerce to common dtype
-            return self.coerce_to_target_dtype(value).setitem(indexer, value)
-
-        # value must be storable at this moment
         values = cast(np.ndarray, self.values)
         if self.ndim == 2:
             values = values.T
@@ -930,19 +923,22 @@ class Block(PandasObject):
         # length checking
         check_setitem_lengths(indexer, value, values)
 
-        if is_empty_indexer(indexer):
-            # GH#8669 empty indexers, test_loc_setitem_boolean_mask_allfalse
-            pass
-
-        elif is_scalar_indexer(indexer, self.ndim):
-            # setting a single element for each dim and with a rhs that could
-            #  be e.g. a list; see GH#6043
-            values[indexer] = value
-
+        value = extract_array(value, extract_numpy=True)
+        try:
+            casted = np_can_hold_element(values.dtype, value)
+        except LossySetitemError:
+            # current dtype cannot store value, coerce to common dtype
+            nb = self.coerce_to_target_dtype(value)
+            return nb.setitem(indexer, value)
         else:
-            value = setitem_datetimelike_compat(values, len(values[indexer]), value)
-            values[indexer] = value
-
+            if self.dtype == _dtype_obj:
+                # TODO: avoid having to construct values[indexer]
+                vi = values[indexer]
+                if lib.is_list_like(vi):
+                    # checking lib.is_scalar here fails on
+                    #  test_iloc_setitem_custom_object
+                    casted = setitem_datetimelike_compat(values, len(vi), casted)
+            values[indexer] = casted
         return self
 
     def putmask(self, mask, new) -> list[Block]:
@@ -1190,13 +1186,19 @@ class Block(PandasObject):
 
         other = self._standardize_fill_value(other)
 
-        if not self._can_hold_element(other):
+        try:
+            # try/except here is equivalent to a self._can_hold_element check,
+            #  but this gets us back 'casted' which we will re-use below;
+            #  without using 'casted', expressions.where may do unwanted upcasts.
+            casted = np_can_hold_element(values.dtype, other)
+        except (ValueError, TypeError, LossySetitemError):
             # we cannot coerce, return a compat dtype
             block = self.coerce_to_target_dtype(other)
             blocks = block.where(orig_other, cond)
             return self._maybe_downcast(blocks, "infer")
 
         else:
+            other = casted
             alt = setitem_datetimelike_compat(values, icond.sum(), other)
             if alt is not other:
                 if is_list_like(other) and len(other) < len(values):
@@ -1226,38 +1228,13 @@ class Block(PandasObject):
 
                 # Note: expressions.where may upcast.
                 result = expressions.where(~icond, values, other)
+                # The np_can_hold_element check _should_ ensure that we always
+                #  have result.dtype == self.dtype here.
 
-        if self._can_hold_na or self.ndim == 1:
+        if transpose:
+            result = result.T
 
-            if transpose:
-                result = result.T
-
-            return [self.make_block(result)]
-
-        # might need to separate out blocks
-        cond = ~icond
-        axis = cond.ndim - 1
-        cond = cond.swapaxes(axis, 0)
-        mask = cond.all(axis=1)
-
-        result_blocks: list[Block] = []
-        for m in [mask, ~mask]:
-            if m.any():
-                taken = result.take(m.nonzero()[0], axis=axis)
-                r = maybe_downcast_numeric(taken, self.dtype)
-                if r.dtype != taken.dtype:
-                    warnings.warn(
-                        "Downcasting integer-dtype results in .where is "
-                        "deprecated and will change in a future version. "
-                        "To retain the old behavior, explicitly cast the results "
-                        "to the desired dtype.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
-                nb = self.make_block(r.T, placement=self._mgr_locs[m])
-                result_blocks.append(nb)
-
-        return result_blocks
+        return [self.make_block(result)]
 
     def _unstack(
         self,
@@ -1365,10 +1342,8 @@ class EABackedBlock(Block):
         `indexer` is a direct slice/positional indexer. `value` must
         be a compatible shape.
         """
-        if not self._can_hold_element(value):
-            # see TestSetitemFloatIntervalWithIntIntervalValues
-            nb = self.coerce_to_target_dtype(value)
-            return nb.setitem(indexer, value)
+        orig_indexer = indexer
+        orig_value = value
 
         indexer = self._unwrap_setitem_indexer(indexer)
         value = self._maybe_squeeze_arg(value)
@@ -1379,8 +1354,26 @@ class EABackedBlock(Block):
             #  unconditionally
             values = values.T
         check_setitem_lengths(indexer, value, values)
-        values[indexer] = value
-        return self
+
+        try:
+            values[indexer] = value
+        except (ValueError, TypeError) as err:
+            _catch_deprecated_value_error(err)
+
+            if is_interval_dtype(self.dtype):
+                # see TestSetitemFloatIntervalWithIntIntervalValues
+                nb = self.coerce_to_target_dtype(orig_value)
+                return nb.setitem(orig_indexer, orig_value)
+
+            elif isinstance(self, NDArrayBackedExtensionBlock):
+                nb = self.coerce_to_target_dtype(orig_value)
+                return nb.setitem(orig_indexer, orig_value)
+
+            else:
+                raise
+
+        else:
+            return self
 
     def where(self, other, cond) -> list[Block]:
         arr = self.values.T
@@ -1471,8 +1464,9 @@ class EABackedBlock(Block):
         return [self]
 
     def fillna(
-        self, value, limit=None, inplace: bool = False, downcast=None
+        self, value, limit: int | None = None, inplace: bool = False, downcast=None
     ) -> list[Block]:
+        # Caller is responsible for validating limit; if int it is strictly positive
 
         try:
             new_values = self.values.fillna(value=value, limit=limit)
@@ -1494,7 +1488,16 @@ class EABackedBlock(Block):
                 # We support filling a DatetimeTZ with a `value` whose timezone
                 #  is different by coercing to object.
                 if self.dtype.kind == "m":
-                    # TODO: don't special-case td64
+                    # GH#45746
+                    warnings.warn(
+                        "The behavior of fillna with timedelta64[ns] dtype and "
+                        f"an incompatible value ({type(value)}) is deprecated. "
+                        "In a future version, this will cast to a common dtype "
+                        "(usually object) instead of raising, matching the "
+                        "behavior of other dtypes.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
                     raise
                 blk = self.coerce_to_target_dtype(value)
                 return blk.fillna(value, limit, inplace, downcast)
@@ -1504,18 +1507,11 @@ class EABackedBlock(Block):
 
         return [self.make_block_same_class(values=new_values)]
 
-    def delete(self, loc) -> None:
-        """
-        Delete given loc(-s) from block in-place.
-        """
+    def delete(self, loc) -> Block:
         # This will be unnecessary if/when __array_function__ is implemented
-        self.values = self.values.delete(loc)
-        self.mgr_locs = self._mgr_locs.delete(loc)
-        try:
-            self._cache.clear()
-        except AttributeError:
-            # _cache not yet initialized
-            pass
+        values = self.values.delete(loc)
+        mgr_locs = self._mgr_locs.delete(loc)
+        return type(self)(values, placement=mgr_locs, ndim=self.ndim)
 
     @cache_readonly
     def array_values(self) -> ExtensionArray:
@@ -1893,7 +1889,12 @@ def _catch_deprecated_value_error(err: Exception) -> None:
     if isinstance(err, ValueError):
         # TODO(2.0): once DTA._validate_setitem_value deprecation
         #  is enforced, stop catching ValueError here altogether
-        if "Timezones don't match" not in str(err):
+        if isinstance(err, IncompatibleFrequency):
+            pass
+        elif "'value.closed' is" in str(err):
+            # IntervalDtype mismatched 'closed'
+            pass
+        elif "Timezones don't match" not in str(err):
             raise
 
 

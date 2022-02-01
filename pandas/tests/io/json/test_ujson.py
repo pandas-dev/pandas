@@ -422,13 +422,13 @@ class TestUltraJSONTests:
         stamp = Timestamp(val)
 
         roundtrip = ujson.decode(ujson.encode(val, date_unit="s"))
-        assert roundtrip == stamp.value // 10 ** 9
+        assert roundtrip == stamp.value // 10**9
 
         roundtrip = ujson.decode(ujson.encode(val, date_unit="ms"))
-        assert roundtrip == stamp.value // 10 ** 6
+        assert roundtrip == stamp.value // 10**6
 
         roundtrip = ujson.decode(ujson.encode(val, date_unit="us"))
-        assert roundtrip == stamp.value // 10 ** 3
+        assert roundtrip == stamp.value // 10**3
 
         roundtrip = ujson.decode(ujson.encode(val, date_unit="ns"))
         assert roundtrip == stamp.value
@@ -600,7 +600,7 @@ class TestUltraJSONTests:
         assert output == json.dumps(long_input)
         assert long_input == ujson.decode(output)
 
-    @pytest.mark.parametrize("bigNum", [2 ** 64, -(2 ** 63) - 1])
+    @pytest.mark.parametrize("bigNum", [2**64, -(2**63) - 1])
     def test_dumps_ints_larger_than_maxsize(self, bigNum):
         encoding = ujson.encode(bigNum)
         assert str(bigNum) == encoding
@@ -622,7 +622,7 @@ class TestUltraJSONTests:
         with pytest.raises(TypeError, match=msg):
             ujson.loads(None)
 
-    @pytest.mark.parametrize("val", [3590016419, 2 ** 31, 2 ** 32, (2 ** 32) - 1])
+    @pytest.mark.parametrize("val", [3590016419, 2**31, 2**32, (2**32) - 1])
     def test_decode_number_with_32bit_sign_bit(self, val):
         # Test that numbers that fit within 32 bits but would have the
         # sign bit set (2**31 <= x < 2**32) are decoded properly.
@@ -997,9 +997,11 @@ class TestPandasJSONTests:
         }
         assert ujson.decode(ujson.encode(nested, **kwargs)) == exp
 
-    def test_dataframe_numpy_labelled(self, orient):
+    def test_dataframe_numpy_labelled(self, orient, request):
         if orient in ("split", "values"):
-            pytest.skip("Incompatible with labelled=True")
+            request.node.add_marker(
+                pytest.mark.xfail(reason=f"{orient} incompatible for labelled=True")
+            )
 
         df = DataFrame(
             [[1, 2, 3], [4, 5, 6]],
