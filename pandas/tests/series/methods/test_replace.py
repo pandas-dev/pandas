@@ -36,17 +36,13 @@ class TestSeriesReplace:
         assert expected.iloc[-1] is None
         tm.assert_series_equal(result, expected)
 
-    def test_replace_numpy_nan(self):
-        # GH#45725 ensure np.nan can be replaced
-        ser = pd.Series([np.nan, np.nan], dtype=object)
-        result = ser.replace({np.nan: pd.NA})
-        expected = pd.Series([pd.NA, pd.NA], dtype=object)
-        tm.assert_series_equal(result, expected)
-        assert result.dtype == object
-
-        # same thing but with None
-        result = ser.replace({np.nan: None})
-        expected = pd.Series([None, None], dtype=object)
+    @pytest.mark.parametrize("dtype", [object])
+    @pytest.mark.parametrize("to_replace, value", [(np.nan, pd.NA), (np.nan, None)])
+    def test_replace_numpy_nan(self, dtype, to_replace, value):
+        # GH#45725 ensure numpy.nan can be replaced with pandas.NA or None
+        ser = pd.Series([to_replace], dtype=dtype)
+        result = ser.replace({to_replace: value})
+        expected = pd.Series([value], dtype=dtype)
         tm.assert_series_equal(result, expected)
         assert result.dtype == object
 
