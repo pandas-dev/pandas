@@ -381,6 +381,13 @@ def from_dummies(
     >>> df = pd.DataFrame({"a": [1, 0, 0, 1], "b": [0, 1, 0, 0],
     ...                    "c": [0, 0, 1, 0]})
 
+    >>> df
+    a  b  c
+    0  1  0  0
+    1  0  1  0
+    2  0  0  1
+    3  1  0  0
+
     >>> pd.from_dummies(df)
     0     a
     1     b
@@ -391,6 +398,12 @@ def from_dummies(
     ...                    "col2_a": [0, 1, 0], "col2_b": [1, 0, 0],
     ...                    "col2_c": [0, 0, 1]})
 
+    >>> df
+    col1_a  col1_b  col2_a  col2_b  col2_c
+    0       1       0       0       1       0
+    1       0       1       1       0       0
+    2       1       0       0       0       1
+
     >>> pd.from_dummies(df, sep="_")
         col1    col2
     0    a       b
@@ -400,6 +413,12 @@ def from_dummies(
     >>> df = pd.DataFrame({"col1_a": [1, 0, 0], "col1_b": [0, 1, 0],
     ...                    "col2_a": [0, 1, 0], "col2_b": [1, 0, 0],
     ...                    "col2_c": [0, 0, 0]})
+
+    >>> df
+    col1_a  col1_b  col2_a  col2_b  col2_c
+    0       1       0       0       1       0
+    1       0       1       1       0       0
+    2       0       0       0       0       0
 
     >>> pd.from_dummies(df, sep="_", base_category={"col1": "d", "col2": "e"})
         col1    col2
