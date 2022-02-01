@@ -15,7 +15,6 @@ import pandas._testing as tm
 
 class TestMultiIndexBasic:
     def test_multiindex_perf_warn(self):
-
         df = DataFrame(
             {
                 "jim": [0, 0, 1, 1],
@@ -47,7 +46,6 @@ class TestMultiIndexBasic:
         _index._SIZE_CUTOFF = old_cutoff
 
     def test_multi_nan_indexing(self):
-
         # GH 3588
         df = DataFrame(
             {
@@ -69,6 +67,28 @@ class TestMultiIndexBasic:
             ],
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_exclusive_nat_column_indexing(self):
+        # GH 38025
+        # test multi indexing when one column exclusively contains NaT values
+        df = DataFrame(
+            {
+                "a": [pd.NaT, pd.NaT, pd.NaT, pd.NaT],
+                "b": ["C1", "C2", "C3", "C4"],
+                "c": [10, 15, np.nan, 20],
+            }
+        )
+        df = df.set_index(["a", "b"])
+        expected = DataFrame(
+            {
+                "c": [10, 15, np.nan, 20],
+            },
+            index=[
+                Index([pd.NaT, pd.NaT, pd.NaT, pd.NaT], name="a"),
+                Index(["C1", "C2", "C3", "C4"], name="b"),
+            ],
+        )
+        tm.assert_frame_equal(df, expected)
 
     def test_nested_tuples_duplicates(self):
         # GH#30892
@@ -98,3 +118,34 @@ class TestMultiIndexBasic:
         result = df.loc[0].index
         tm.assert_index_equal(result, dti)
         assert result.freq == dti.freq
+
+    def test_multiindex_complex(self):
+        # GH#42145
+        complex_data = [1 + 2j, 4 - 3j, 10 - 1j]
+        non_complex_data = [3, 4, 5]
+        result = DataFrame(
+            {
+                "x": complex_data,
+                "y": non_complex_data,
+                "z": non_complex_data,
+            }
+        )
+        result.set_index(["x", "y"], inplace=True)
+        expected = DataFrame(
+            {"z": non_complex_data},
+            index=MultiIndex.from_arrays(
+                [complex_data, non_complex_data],
+                names=("x", "y"),
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_rename_multiindex_with_duplicates(self):
+        # GH 38015
+        mi = MultiIndex.from_tuples([("A", "cat"), ("B", "cat"), ("B", "cat")])
+        df = DataFrame(index=mi)
+        df = df.rename(index={"A": "Apple"}, level=0)
+
+        mi2 = MultiIndex.from_tuples([("Apple", "cat"), ("B", "cat"), ("B", "cat")])
+        expected = DataFrame(index=mi2)
+        tm.assert_frame_equal(df, expected)

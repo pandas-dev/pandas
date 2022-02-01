@@ -69,20 +69,33 @@ def test_builtins_apply(keys, f):
     df = DataFrame(np.random.randint(1, 50, (1000, 2)), columns=["jim", "joe"])
     df["jolie"] = np.random.randn(1000)
 
+    gb = df.groupby(keys)
+
     fname = f.__name__
-    result = df.groupby(keys).apply(f)
+    result = gb.apply(f)
     ngroups = len(df.drop_duplicates(subset=keys))
 
     assert_msg = f"invalid frame shape: {result.shape} (expected ({ngroups}, 3))"
     assert result.shape == (ngroups, 3), assert_msg
 
-    tm.assert_frame_equal(
-        result,  # numpy's equivalent function
-        df.groupby(keys).apply(getattr(np, fname)),
-    )
+    npfunc = getattr(np, fname)  # numpy's equivalent function
+    if f in [max, min]:
+        warn = FutureWarning
+    else:
+        warn = None
+    msg = "scalar (max|min) over the entire DataFrame"
+    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
+        # stacklevel can be thrown off because (i think) the stack
+        #  goes through some of numpy's C code.
+        expected = gb.apply(npfunc)
+    tm.assert_frame_equal(result, expected)
+
+    with tm.assert_produces_warning(None):
+        expected2 = gb.apply(lambda x: npfunc(x, axis=0))
+    tm.assert_frame_equal(result, expected2)
 
     if f != sum:
-        expected = df.groupby(keys).agg(fname).reset_index()
+        expected = gb.agg(fname).reset_index()
         expected.set_index(keys, inplace=True, drop=False)
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
@@ -154,9 +167,7 @@ class TestNumericOnly:
             ],
         )
 
-        with tm.assert_produces_warning(
-            FutureWarning, match="Dropping invalid", check_stacklevel=False
-        ):
+        with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
             result = getattr(gb, method)(numeric_only=False)
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
@@ -394,8 +405,7 @@ def test_median_empty_bins(observed):
 
     result = df.groupby(bins, observed=observed).median()
     expected = df.groupby(bins, observed=observed).agg(lambda x: x.median())
-    # TODO: GH 41137
-    tm.assert_frame_equal(result, expected, check_dtype=False)
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -680,6 +690,23 @@ def test_nsmallest():
     tm.assert_series_equal(gb.nsmallest(3, keep="last"), e)
 
 
+@pytest.mark.parametrize(
+    "data, groups",
+    [([0, 1, 2, 3], [0, 0, 1, 1]), ([0], [0])],
+)
+@pytest.mark.parametrize("method", ["nlargest", "nsmallest"])
+def test_nlargest_and_smallest_noop(data, groups, method):
+    # GH 15272, GH 16345, GH 29129
+    # Test nlargest/smallest when it results in a noop,
+    # i.e. input is sorted and group size <= n
+    if method == "nlargest":
+        data = list(reversed(data))
+    ser = Series(data, name="a")
+    result = getattr(ser.groupby(groups), method)(n=2)
+    expected = Series(data, index=MultiIndex.from_arrays([groups, ser.index]), name="a")
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("func", ["cumprod", "cumsum"])
 def test_numpy_compat(func):
     # see gh-12811
@@ -801,6 +828,39 @@ def test_cummax(dtypes_for_minmax):
     result = df.groupby("a").b.cummax()
     expected = Series([2, 1, 2], name="b")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["cummin", "cummax"])
+@pytest.mark.parametrize("dtype", ["float", "Int64", "Float64"])
+@pytest.mark.parametrize(
+    "groups,expected_data",
+    [
+        ([1, 1, 1], [1, None, None]),
+        ([1, 2, 3], [1, None, 2]),
+        ([1, 3, 3], [1, None, None]),
+    ],
+)
+def test_cummin_max_skipna(method, dtype, groups, expected_data):
+    # GH-34047
+    df = DataFrame({"a": Series([1, None, 2], dtype=dtype)})
+    gb = df.groupby(groups)["a"]
+
+    result = getattr(gb, method)(skipna=False)
+    expected = Series(expected_data, dtype=dtype, name="a")
+
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["cummin", "cummax"])
+def test_cummin_max_skipna_multiple_cols(method):
+    # Ensure missing value in "a" doesn't cause "b" to be nan-filled
+    df = DataFrame({"a": [np.nan, 2.0, 2.0], "b": [2.0, 2.0, 2.0]})
+    gb = df.groupby([1, 1, 1])[["a", "b"]]
+
+    result = getattr(gb, method)(skipna=False)
+    expected = DataFrame({"a": [np.nan, np.nan, np.nan], "b": [2.0, 2.0, 2.0]})
+
+    tm.assert_frame_equal(result, expected)
 
 
 @td.skip_if_32bit
@@ -1076,7 +1136,7 @@ def test_apply_to_nullable_integer_returns_float(values, function):
     # https://github.com/pandas-dev/pandas/issues/32219
     output = 0.5 if function == "var" else 1.5
     arr = np.array([output] * 3, dtype=float)
-    idx = Index([1, 2, 3], dtype=object, name="a")
+    idx = Index([1, 2, 3], name="a", dtype="Int64")
     expected = DataFrame({"b": arr}, index=idx).astype("Float64")
 
     groups = DataFrame(values, dtype="Int64").groupby("a")
@@ -1096,7 +1156,7 @@ def test_groupby_sum_below_mincount_nullable_integer():
     # https://github.com/pandas-dev/pandas/issues/32861
     df = DataFrame({"a": [0, 1, 2], "b": [0, 1, 2], "c": [0, 1, 2]}, dtype="Int64")
     grouped = df.groupby("a")
-    idx = Index([0, 1, 2], dtype=object, name="a")
+    idx = Index([0, 1, 2], name="a", dtype="Int64")
 
     result = grouped["b"].sum(min_count=2)
     expected = Series([pd.NA] * 3, dtype="Int64", index=idx, name="b")
@@ -1105,3 +1165,37 @@ def test_groupby_sum_below_mincount_nullable_integer():
     result = grouped.sum(min_count=2)
     expected = DataFrame({"b": [pd.NA] * 3, "c": [pd.NA] * 3}, dtype="Int64", index=idx)
     tm.assert_frame_equal(result, expected)
+
+
+def test_mean_on_timedelta():
+    # GH 17382
+    df = DataFrame({"time": pd.to_timedelta(range(10)), "cat": ["A", "B"] * 5})
+    result = df.groupby("cat")["time"].mean()
+    expected = Series(
+        pd.to_timedelta([4, 5]), name="time", index=Index(["A", "B"], name="cat")
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_groupby_sum_timedelta_with_nat():
+    # GH#42659
+    df = DataFrame(
+        {
+            "a": [1, 1, 2, 2],
+            "b": [pd.Timedelta("1d"), pd.Timedelta("2d"), pd.Timedelta("3d"), pd.NaT],
+        }
+    )
+    td3 = pd.Timedelta(days=3)
+
+    gb = df.groupby("a")
+
+    res = gb.sum()
+    expected = DataFrame({"b": [td3, td3]}, index=Index([1, 2], name="a"))
+    tm.assert_frame_equal(res, expected)
+
+    res = gb["b"].sum()
+    tm.assert_series_equal(res, expected["b"])
+
+    res = gb["b"].sum(min_count=2)
+    expected = Series([td3, pd.NaT], dtype="m8[ns]", name="b", index=expected.index)
+    tm.assert_series_equal(res, expected)

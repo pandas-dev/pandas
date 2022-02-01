@@ -1,4 +1,4 @@
-# flake8: noqa
+# flake8: noqa:F401
 
 from pandas._libs import (
     NaT,
@@ -57,6 +57,7 @@ from pandas.core.indexes.api import (
     Int64Index,
     IntervalIndex,
     MultiIndex,
+    NumericIndex,
     PeriodIndex,
     RangeIndex,
     TimedeltaIndex,

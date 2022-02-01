@@ -1,12 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas import (
+import pandas._testing as tm
+from pandas.core.indexes.api import (
     Index,
     Int64Index,
     UInt64Index,
 )
-import pandas._testing as tm
 
 
 class TestJoinInt64Index:

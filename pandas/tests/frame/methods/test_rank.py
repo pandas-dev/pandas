@@ -136,7 +136,10 @@ class TestRank:
         float_string_frame["datetime"] = datetime.now()
         float_string_frame["timedelta"] = timedelta(days=1, seconds=1)
 
-        result = float_string_frame.rank(1)
+        with tm.assert_produces_warning(FutureWarning, match="numeric_only=None"):
+            float_string_frame.rank(numeric_only=None)
+        with tm.assert_produces_warning(FutureWarning, match="Dropping of nuisance"):
+            result = float_string_frame.rank(1)
         expected = float_string_frame.rank(1, numeric_only=True)
         tm.assert_frame_equal(result, expected)
 
@@ -246,22 +249,17 @@ class TestRank:
                     expected = DataFrame(sprank, columns=cols).astype("float64")
                     tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented
     @pytest.mark.parametrize("dtype", ["O", "f8", "i8"])
     @pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
     def test_rank_descending(self, method, dtype):
-
         if "i" in dtype:
-            df = self.df.dropna()
+            df = self.df.dropna().astype(dtype)
         else:
             df = self.df.astype(dtype)
 
         res = df.rank(ascending=False)
         expected = (df.max() - df).rank()
         tm.assert_frame_equal(res, expected)
-
-        if method == "first" and dtype == "O":
-            return
 
         expected = (df.max() - df).rank(method=method)
 
@@ -287,9 +285,6 @@ class TestRank:
             result = df.rank(method=method, axis=axis)
             tm.assert_frame_equal(result, exp_df)
 
-        disabled = {(object, "first")}
-        if (dtype, method) in disabled:
-            return
         frame = df if dtype is None else df.astype(dtype)
         _check2d(frame, self.results[method], method=method, axis=axis)
 
@@ -457,6 +452,38 @@ class TestRank:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
+        "na_option,ascending,expected",
+        [
+            ("top", True, [3.0, 1.0, 2.0]),
+            ("top", False, [2.0, 1.0, 3.0]),
+            ("bottom", True, [2.0, 3.0, 1.0]),
+            ("bottom", False, [1.0, 3.0, 2.0]),
+        ],
+    )
+    def test_rank_inf_nans_na_option(
+        self, frame_or_series, method, na_option, ascending, expected
+    ):
+        obj = frame_or_series([np.inf, np.nan, -np.inf])
+        result = obj.rank(method=method, na_option=na_option, ascending=ascending)
+        expected = frame_or_series(expected)
+        tm.assert_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "na_option,ascending,expected",
+        [
+            ("bottom", True, [1.0, 2.0, 4.0, 3.0]),
+            ("bottom", False, [1.0, 2.0, 4.0, 3.0]),
+            ("top", True, [2.0, 3.0, 1.0, 4.0]),
+            ("top", False, [2.0, 3.0, 1.0, 4.0]),
+        ],
+    )
+    def test_rank_object_first(self, frame_or_series, na_option, ascending, expected):
+        obj = frame_or_series(["foo", "foo", None, "foo"])
+        result = obj.rank(method="first", na_option=na_option, ascending=ascending)
+        expected = frame_or_series(expected)
+        tm.assert_equal(result, expected)
+
+    @pytest.mark.parametrize(
         "data,expected",
         [
             ({"a": [1, 2, "a"], "b": [4, 5, 6]}, DataFrame({"b": [1.0, 2.0, 3.0]})),
@@ -465,5 +492,7 @@ class TestRank:
     )
     def test_rank_mixed_axis_zero(self, data, expected):
         df = DataFrame(data)
-        result = df.rank()
+        msg = "Dropping of nuisance columns"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.rank()
         tm.assert_frame_equal(result, expected)

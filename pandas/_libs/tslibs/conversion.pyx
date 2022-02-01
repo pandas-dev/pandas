@@ -200,7 +200,7 @@ cdef inline int64_t get_datetime64_nanos(object val) except? -1:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def ensure_datetime64ns(arr: ndarray, copy: bool=True):
+def ensure_datetime64ns(arr: ndarray, copy: bool = True):
     """
     Ensure a np.datetime64 array has dtype specifically 'datetime64[ns]'
 
@@ -227,12 +227,7 @@ def ensure_datetime64ns(arr: ndarray, copy: bool=True):
         dtype = arr.dtype
         arr = arr.astype(dtype.newbyteorder("<"))
 
-    ivalues = arr.view(np.int64).ravel("K")
-
-    result = np.empty_like(arr, dtype=DT64NS_DTYPE)
-    iresult = result.ravel("K").view(np.int64)
-
-    if len(iresult) == 0:
+    if arr.size == 0:
         result = arr.view(DT64NS_DTYPE)
         if copy:
             result = result.copy()
@@ -245,22 +240,28 @@ def ensure_datetime64ns(arr: ndarray, copy: bool=True):
         raise ValueError("datetime64/timedelta64 must have a unit specified")
 
     if unit == NPY_FR_ns:
+        # Check this before allocating result for perf, might save some memory
         if copy:
-            arr = arr.copy()
-        result = arr
-    else:
-        for i in range(n):
-            if ivalues[i] != NPY_NAT:
-                pandas_datetime_to_datetimestruct(ivalues[i], unit, &dts)
-                iresult[i] = dtstruct_to_dt64(&dts)
-                check_dts_bounds(&dts)
-            else:
-                iresult[i] = NPY_NAT
+            return arr.copy()
+        return arr
+
+    ivalues = arr.view(np.int64).ravel("K")
+
+    result = np.empty_like(arr, dtype=DT64NS_DTYPE)
+    iresult = result.ravel("K").view(np.int64)
+
+    for i in range(n):
+        if ivalues[i] != NPY_NAT:
+            pandas_datetime_to_datetimestruct(ivalues[i], unit, &dts)
+            iresult[i] = dtstruct_to_dt64(&dts)
+            check_dts_bounds(&dts)
+        else:
+            iresult[i] = NPY_NAT
 
     return result
 
 
-def ensure_timedelta64ns(arr: ndarray, copy: bool=True):
+def ensure_timedelta64ns(arr: ndarray, copy: bool = True):
     """
     Ensure a np.timedelta64 array has dtype specifically 'timedelta64[ns]'
 

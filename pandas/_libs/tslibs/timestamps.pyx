@@ -129,6 +129,13 @@ cdef inline object create_timestamp_from_ts(int64_t value,
     return ts_base
 
 
+def _unpickle_timestamp(value, freq, tz):
+    # GH#41949 dont warn on unpickle if we have a freq
+    ts = Timestamp(value, tz=tz)
+    ts._set_freq(freq)
+    return ts
+
+
 # ----------------------------------------------------------------------
 
 def integer_op_not_supported(obj):
@@ -164,7 +171,7 @@ cdef class _Timestamp(ABCTimestamp):
     @property
     def freq(self):
         warnings.warn(
-            "Timestamp.freq is deprecated and will be removed in a future version",
+            "Timestamp.freq is deprecated and will be removed in a future version.",
             FutureWarning,
             stacklevel=1,
         )
@@ -173,6 +180,8 @@ cdef class _Timestamp(ABCTimestamp):
     def __hash__(_Timestamp self):
         if self.nanosecond:
             return hash(self.value)
+        if self.fold:
+            return datetime.__hash__(self.replace(fold=0))
         return datetime.__hash__(self)
 
     def __richcmp__(_Timestamp self, object other, int op):
@@ -228,8 +237,8 @@ cdef class _Timestamp(ABCTimestamp):
             # We follow the stdlib datetime behavior of never being equal
             warnings.warn(
                 "Comparison of Timestamp with datetime.date is deprecated in "
-                "order to match the standard library behavior.  "
-                "In a future version these will be considered non-comparable."
+                "order to match the standard library behavior. "
+                "In a future version these will be considered non-comparable. "
                 "Use 'ts == pd.Timestamp(date)' or 'ts.date() == date' instead.",
                 FutureWarning,
                 stacklevel=1,
@@ -263,9 +272,9 @@ cdef class _Timestamp(ABCTimestamp):
         if op == Py_EQ:
             return False
         if op == Py_LE or op == Py_LT:
-            return other.year <= self.year
+            return self.year <= other.year
         if op == Py_GE or op == Py_GT:
-            return other.year >= self.year
+            return self.year >= other.year
 
     cdef bint _can_compare(self, datetime other):
         if self.tzinfo is not None:
@@ -300,7 +309,6 @@ cdef class _Timestamp(ABCTimestamp):
         elif not isinstance(self, _Timestamp):
             # cython semantics, args have been switched and this is __radd__
             return other.__add__(self)
-
         return NotImplemented
 
     def __sub__(self, other):
@@ -336,10 +344,10 @@ cdef class _Timestamp(ABCTimestamp):
             else:
                 self = type(other)(self)
 
-            # validate tz's
-            if not tz_compare(self.tzinfo, other.tzinfo):
-                raise TypeError("Timestamp subtraction must have the "
-                                "same timezones or no timezones")
+            if (self.tzinfo is None) ^ (other.tzinfo is None):
+                raise TypeError(
+                    "Cannot subtract tz-naive and tz-aware datetime-like objects."
+                )
 
             # scalar Timestamp/datetime - Timestamp/datetime -> yields a
             # Timedelta
@@ -418,7 +426,7 @@ cdef class _Timestamp(ABCTimestamp):
                 warnings.warn(
                     "Timestamp.freq is deprecated and will be removed in a future "
                     "version. When you have a freq, use "
-                    f"freq.{field}(timestamp) instead",
+                    f"freq.{field}(timestamp) instead.",
                     FutureWarning,
                     stacklevel=1,
                 )
@@ -725,14 +733,47 @@ cdef class _Timestamp(ABCTimestamp):
 
     def __reduce__(self):
         object_state = self.value, self._freq, self.tzinfo
-        return (Timestamp, object_state)
+        return (_unpickle_timestamp, object_state)
 
     # -----------------------------------------------------------------
     # Rendering Methods
 
-    def isoformat(self, sep: str = "T") -> str:
-        base = super(_Timestamp, self).isoformat(sep=sep)
-        if self.nanosecond == 0:
+    def isoformat(self, sep: str = "T", timespec: str = "auto") -> str:
+        """
+        Return the time formatted according to ISO 8610.
+
+        The full format looks like 'YYYY-MM-DD HH:MM:SS.mmmmmmnnn'.
+        By default, the fractional part is omitted if self.microsecond == 0
+        and self.nanosecond == 0.
+
+        If self.tzinfo is not None, the UTC offset is also attached, giving
+        giving a full format of 'YYYY-MM-DD HH:MM:SS.mmmmmmnnn+HH:MM'.
+
+        Parameters
+        ----------
+        sep : str, default 'T'
+            String used as the separator between the date and time.
+
+        timespec : str, default 'auto'
+            Specifies the number of additional terms of the time to include.
+            The valid values are 'auto', 'hours', 'minutes', 'seconds',
+            'milliseconds', 'microseconds', and 'nanoseconds'.
+
+        Returns
+        -------
+        str
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
+        >>> ts.isoformat()
+        '2020-03-14T15:32:52.192548651'
+        >>> ts.isoformat(timespec='microseconds')
+        '2020-03-14T15:32:52.192548'
+        """
+        base_ts = "microseconds" if timespec == "nanoseconds" else timespec
+        base = super(_Timestamp, self).isoformat(sep=sep, timespec=base_ts)
+        if self.nanosecond == 0 and timespec != "nanoseconds":
             return base
 
         if self.tzinfo is not None:
@@ -740,10 +781,11 @@ cdef class _Timestamp(ABCTimestamp):
         else:
             base1, base2 = base, ""
 
-        if self.microsecond != 0:
-            base1 += f"{self.nanosecond:03d}"
-        else:
-            base1 += f".{self.nanosecond:09d}"
+        if timespec == "nanoseconds" or (timespec == "auto" and self.nanosecond):
+            if self.microsecond:
+                base1 += f"{self.nanosecond:03d}"
+            else:
+                base1 += f".{self.nanosecond:09d}"
 
         return base1 + base2
 
@@ -851,12 +893,12 @@ cdef class _Timestamp(ABCTimestamp):
         NaT
         """
         if self.nanosecond != 0 and warn:
-            warnings.warn("Discarding nonzero nanoseconds in conversion",
+            warnings.warn("Discarding nonzero nanoseconds in conversion.",
                           UserWarning, stacklevel=2)
 
         return datetime(self.year, self.month, self.day,
                         self.hour, self.minute, self.second,
-                        self.microsecond, self.tzinfo)
+                        self.microsecond, self.tzinfo, fold=self.fold)
 
     cpdef to_datetime64(self):
         """
@@ -893,6 +935,10 @@ cdef class _Timestamp(ABCTimestamp):
         >>> pd.NaT.to_numpy()
         numpy.datetime64('NaT')
         """
+        if dtype is not None or copy is not False:
+            raise ValueError(
+                "Timestamp.to_numpy dtype and copy arguments are ignored."
+            )
         return self.to_datetime64()
 
     def to_period(self, freq=None):
@@ -902,16 +948,20 @@ cdef class _Timestamp(ABCTimestamp):
         Examples
         --------
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
-        >>> ts.to_period(freq='Y) # Year end frequency
-        numpy.datetime64('2020-03-14T15:32:52.192548651')
+        >>> # Year end frequency
+        >>> ts.to_period(freq='Y')
+        Period('2020', 'A-DEC')
 
-        >>> ts.to_period(freq='M') # Month end frequency
+        >>> # Month end frequency
+        >>> ts.to_period(freq='M')
         Period('2020-03', 'M')
 
-        >>> ts.to_period(freq='W') # Weekly frequency
+        >>> # Weekly frequency
+        >>> ts.to_period(freq='W')
         Period('2020-03-09/2020-03-15', 'W-SUN')
 
-        >>> ts.to_period(freq='Q') # Quarter end frequency
+        >>> # Quarter end frequency
+        >>> ts.to_period(freq='Q')
         Period('2020Q1', 'Q-DEC')
         """
         from pandas import Period
@@ -970,7 +1020,7 @@ class Timestamp(_Timestamp):
         Due to daylight saving time, one wall clock time can occur twice
         when shifting from summer to winter time; fold describes whether the
         datetime-like corresponds  to the first (0) or the second time (1)
-        the wall clock hits the ambiguous time
+        the wall clock hits the ambiguous time.
 
         .. versionadded:: 1.1.0
 
@@ -1052,7 +1102,7 @@ class Timestamp(_Timestamp):
 
         Examples
         --------
-        >>> pd.Timestamp.now()
+        >>> pd.Timestamp.now()  # doctest: +SKIP
         Timestamp('2020-11-16 22:06:16.378782')
 
         Analogous for ``pd.NaT``:
@@ -1080,7 +1130,7 @@ class Timestamp(_Timestamp):
 
         Examples
         --------
-        >>> pd.Timestamp.today()
+        >>> pd.Timestamp.today()    # doctest: +SKIP
         Timestamp('2020-11-16 22:37:39.969883')
 
         Analogous for ``pd.NaT``:
@@ -1099,7 +1149,7 @@ class Timestamp(_Timestamp):
 
         Examples
         --------
-        >>> pd.Timestamp.utcnow()
+        >>> pd.Timestamp.utcnow()   # doctest: +SKIP
         Timestamp('2020-11-16 22:50:18.092888+0000', tz='UTC')
         """
         return cls.now(UTC)
@@ -1113,13 +1163,23 @@ class Timestamp(_Timestamp):
 
         Examples
         --------
-        >>> pd.Timestamp.fromtimestamp(1584199972)
+        >>> pd.Timestamp.utcfromtimestamp(1584199972)
         Timestamp('2020-03-14 15:32:52')
         """
+        # GH#22451
+        warnings.warn(
+            "The behavior of Timestamp.utcfromtimestamp is deprecated, in a "
+            "future version will return a timezone-aware Timestamp with UTC "
+            "timezone. To keep the old behavior, use "
+            "Timestamp.utcfromtimestamp(ts).tz_localize(None). "
+            "To get the future behavior, use Timestamp.fromtimestamp(ts, 'UTC')",
+            FutureWarning,
+            stacklevel=1,
+        )
         return cls(datetime.utcfromtimestamp(ts))
 
     @classmethod
-    def fromtimestamp(cls, ts):
+    def fromtimestamp(cls, ts, tz=None):
         """
         Timestamp.fromtimestamp(ts)
 
@@ -1127,12 +1187,13 @@ class Timestamp(_Timestamp):
 
         Examples
         --------
-        >>> pd.Timestamp.utcfromtimestamp(1584199972)
+        >>> pd.Timestamp.fromtimestamp(1584199972)
         Timestamp('2020-03-14 15:32:52')
 
         Note that the output may change depending on your local time.
         """
-        return cls(datetime.fromtimestamp(ts))
+        tz = maybe_get_tz(tz)
+        return cls(datetime.fromtimestamp(ts, tz))
 
     def strftime(self, format):
         """
@@ -1234,6 +1295,27 @@ class Timestamp(_Timestamp):
             # GH#17690 tzinfo must be a datetime.tzinfo object, ensured
             #  by the cython annotation.
             if tz is not None:
+                if (is_integer_object(tz)
+                    and is_integer_object(ts_input)
+                    and is_integer_object(freq)
+                ):
+                    # GH#31929 e.g. Timestamp(2019, 3, 4, 5, 6, tzinfo=foo)
+                    # TODO(GH#45307): this will still be fragile to
+                    #  mixed-and-matched positional/keyword arguments
+                    ts_input = datetime(
+                        ts_input,
+                        freq,
+                        tz,
+                        unit or 0,
+                        year or 0,
+                        month or 0,
+                        day or 0,
+                        fold=fold or 0,
+                    )
+                    nanosecond = hour
+                    tz = tzinfo
+                    return cls(ts_input, nanosecond=nanosecond, tz=tz)
+
                 raise ValueError('Can provide at most one of tz, tzinfo')
 
             # User passed tzinfo instead of tz; avoid silently ignoring
@@ -1322,6 +1404,19 @@ class Timestamp(_Timestamp):
                              "the tz parameter. Use tz_convert instead.")
 
         tzobj = maybe_get_tz(tz)
+        if tzobj is not None and is_datetime64_object(ts_input):
+            # GH#24559, GH#42288 In the future we will treat datetime64 as
+            #  wall-time (consistent with DatetimeIndex)
+            warnings.warn(
+                "In a future version, when passing a np.datetime64 object and "
+                "a timezone to Timestamp, the datetime64 will be interpreted "
+                "as a wall time, not a UTC time.  To interpret as a UTC time, "
+                "use `Timestamp(dt64).tz_localize('UTC').tz_convert(tz)`",
+                FutureWarning,
+                stacklevel=1,
+            )
+            # Once this deprecation is enforced, we can do
+            #  return Timestamp(ts_input).tz_localize(tzobj)
         ts = convert_to_tsobject(ts_input, tzobj, unit, 0, 0, nanosecond or 0)
 
         if ts.value == NPY_NAT:
@@ -1400,6 +1495,13 @@ timedelta}, default 'raise'
         ------
         ValueError if the freq cannot be converted
 
+        Notes
+        -----
+        If the Timestamp has a timezone, rounding will take place relative to the
+        local ("wall") time and re-localized to the same timezone. When rounding
+        near daylight savings time, use ``nonexistent`` and ``ambiguous`` to
+        control the re-localization behavior.
+
         Examples
         --------
         Create a timestamp object:
@@ -1434,6 +1536,17 @@ timedelta}, default 'raise'
 
         >>> pd.NaT.round()
         NaT
+
+        When rounding near a daylight savings time transition, use ``ambiguous`` or
+        ``nonexistent`` to control how the timestamp should be re-localized.
+
+        >>> ts_tz = pd.Timestamp("2021-10-31 01:30:00").tz_localize("Europe/Amsterdam")
+
+        >>> ts_tz.round("H", ambiguous=False)
+        Timestamp('2021-10-31 02:00:00+0100', tz='Europe/Amsterdam')
+
+        >>> ts_tz.round("H", ambiguous=True)
+        Timestamp('2021-10-31 02:00:00+0200', tz='Europe/Amsterdam')
         """
         return self._round(
             freq, RoundTo.NEAREST_HALF_EVEN, ambiguous, nonexistent
@@ -1473,6 +1586,13 @@ timedelta}, default 'raise'
         ------
         ValueError if the freq cannot be converted.
 
+        Notes
+        -----
+        If the Timestamp has a timezone, flooring will take place relative to the
+        local ("wall") time and re-localized to the same timezone. When flooring
+        near daylight savings time, use ``nonexistent`` and ``ambiguous`` to
+        control the re-localization behavior.
+
         Examples
         --------
         Create a timestamp object:
@@ -1507,6 +1627,17 @@ timedelta}, default 'raise'
 
         >>> pd.NaT.floor()
         NaT
+
+        When rounding near a daylight savings time transition, use ``ambiguous`` or
+        ``nonexistent`` to control how the timestamp should be re-localized.
+
+        >>> ts_tz = pd.Timestamp("2021-10-31 03:30:00").tz_localize("Europe/Amsterdam")
+
+        >>> ts_tz.floor("2H", ambiguous=False)
+        Timestamp('2021-10-31 02:00:00+0100', tz='Europe/Amsterdam')
+
+        >>> ts_tz.floor("2H", ambiguous=True)
+        Timestamp('2021-10-31 02:00:00+0200', tz='Europe/Amsterdam')
         """
         return self._round(freq, RoundTo.MINUS_INFTY, ambiguous, nonexistent)
 
@@ -1544,6 +1675,13 @@ timedelta}, default 'raise'
         ------
         ValueError if the freq cannot be converted.
 
+        Notes
+        -----
+        If the Timestamp has a timezone, ceiling will take place relative to the
+        local ("wall") time and re-localized to the same timezone. When ceiling
+        near daylight savings time, use ``nonexistent`` and ``ambiguous`` to
+        control the re-localization behavior.
+
         Examples
         --------
         Create a timestamp object:
@@ -1578,6 +1716,17 @@ timedelta}, default 'raise'
 
         >>> pd.NaT.ceil()
         NaT
+
+        When rounding near a daylight savings time transition, use ``ambiguous`` or
+        ``nonexistent`` to control how the timestamp should be re-localized.
+
+        >>> ts_tz = pd.Timestamp("2021-10-31 01:30:00").tz_localize("Europe/Amsterdam")
+
+        >>> ts_tz.ceil("H", ambiguous=False)
+        Timestamp('2021-10-31 02:00:00+0100', tz='Europe/Amsterdam')
+
+        >>> ts_tz.ceil("H", ambiguous=True)
+        Timestamp('2021-10-31 02:00:00+0200', tz='Europe/Amsterdam')
         """
         return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)
 
@@ -1621,7 +1770,7 @@ timedelta}, default 'raise'
     def tz_localize(self, tz, ambiguous='raise', nonexistent='raise'):
         """
         Convert naive Timestamp to local time zone, or remove
-        timezone from tz-aware Timestamp.
+        timezone from timezone-aware Timestamp.
 
         Parameters
         ----------
@@ -1724,7 +1873,7 @@ default 'raise'
 
     def tz_convert(self, tz):
         """
-        Convert tz-aware Timestamp to another time zone.
+        Convert timezone-aware Timestamp to another time zone.
 
         Parameters
         ----------
@@ -1938,7 +2087,21 @@ default 'raise'
                  self.second / 3600.0 +
                  self.microsecond / 3600.0 / 1e+6 +
                  self.nanosecond / 3600.0 / 1e+9
-                ) / 24.0)
+                 ) / 24.0)
+
+    def isoweekday(self):
+        """
+        Return the day of the week represented by the date.
+        Monday == 1 ... Sunday == 7.
+        """
+        return super().isoweekday()
+
+    def weekday(self):
+        """
+        Return the day of the week represented by the date.
+        Monday == 0 ... Sunday == 6.
+        """
+        return super().weekday()
 
 
 # Aliases

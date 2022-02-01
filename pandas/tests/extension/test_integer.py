@@ -101,10 +101,7 @@ def data_for_grouping(dtype):
 
 
 class TestDtype(base.BaseDtypeTests):
-    @pytest.mark.skip(reason="using multiple dtypes")
-    def test_is_dtype_unboxes_dtype(self):
-        # we have multiple dtypes, so skip
-        pass
+    pass
 
 
 class TestArithmeticOps(base.BaseArithmeticOpsTests):
@@ -115,15 +112,16 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
     def _check_op(self, s, op, other, op_name, exc=NotImplementedError):
         if exc is None:
             sdtype = tm.get_dtype(s)
-            if sdtype.is_unsigned_integer and (op_name == "__rsub__"):
-                # TODO see https://github.com/pandas-dev/pandas/issues/22023
-                pytest.skip("unsigned subtraction gives negative values")
 
             if (
                 hasattr(other, "dtype")
                 and not is_extension_array_dtype(other.dtype)
                 and is_integer_dtype(other.dtype)
+                and sdtype.is_unsigned_integer
             ):
+                # TODO: comment below is inaccurate; other can be int8, int16, ...
+                #  and the trouble is that e.g. if s is UInt8 and other is int8,
+                #  then result is UInt16
                 # other is np.int64 and would therefore always result in
                 # upcasting, so keeping other as same numpy_dtype
                 other = other.astype(sdtype.numpy_dtype)
@@ -133,20 +131,9 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
             if op_name in ("__rtruediv__", "__truediv__", "__div__"):
                 expected = expected.fillna(np.nan).astype("Float64")
-            elif op_name.startswith("__r"):
-                # TODO reverse operators result in object dtype
-                # see https://github.com/pandas-dev/pandas/issues/22024
-                expected = expected.astype(sdtype)
-                result = result.astype(sdtype)
             else:
                 # combine method result in 'biggest' (int64) dtype
                 expected = expected.astype(sdtype)
-                pass
-
-            if (op_name == "__rpow__") and isinstance(other, pd.Series):
-                # TODO pow on Int arrays gives different result with NA
-                # see https://github.com/pandas-dev/pandas/issues/22022
-                result = result.fillna(1)
 
             self.assert_equal(result, expected)
         else:
@@ -171,7 +158,8 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
     def check_opname(self, s, op_name, other, exc=None):
         super().check_opname(s, op_name, other, exc=None)
 
-    def _compare_other(self, s, data, op_name, other):
+    def _compare_other(self, s, data, op, other):
+        op_name = f"__{op.__name__}__"
         self.check_opname(s, op_name, other)
 
 
@@ -199,12 +187,16 @@ class TestSetitem(base.BaseSetitemTests):
     pass
 
 
+class TestIndex(base.BaseIndexTests):
+    pass
+
+
 class TestMissing(base.BaseMissingTests):
     pass
 
 
 class TestMethods(base.BaseMethodsTests):
-    @pytest.mark.skip(reason="uses nullable integer")
+    @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna):
         all_data = all_data[:10]
         if dropna:
@@ -214,13 +206,14 @@ class TestMethods(base.BaseMethodsTests):
 
         result = pd.Series(all_data).value_counts(dropna=dropna).sort_index()
         expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
+        expected = expected.astype("Int64")
         expected.index = expected.index.astype(all_data.dtype)
 
         self.assert_series_equal(result, expected)
 
-    @pytest.mark.skip(reason="uses nullable integer")
+    @pytest.mark.xfail(reason="uses nullable integer")
     def test_value_counts_with_normalize(self, data):
-        pass
+        super().test_value_counts_with_normalize(data)
 
 
 class TestCasting(base.BaseCastingTests):
@@ -243,6 +236,7 @@ class TestNumericReduce(base.BaseNumericReduceTests):
         tm.assert_almost_equal(result, expected)
 
 
+@pytest.mark.skip(reason="Tested in tests/reductions/test_reductions.py")
 class TestBooleanReduce(base.BaseBooleanReduceTests):
     pass
 
@@ -252,4 +246,8 @@ class TestPrinting(base.BasePrintingTests):
 
 
 class TestParsing(base.BaseParsingTests):
+    pass
+
+
+class Test2DCompat(base.Dim2CompatTests):
     pass

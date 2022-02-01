@@ -20,6 +20,7 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
+from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
 from pandas.core.groupby.generic import (
     DataFrameGroupBy,
     SeriesGroupBy,
@@ -164,13 +165,12 @@ def test_transform_broadcast(tsframe, ts):
             assert_fp_equal(res.xs(idx), agged[idx])
 
 
-def test_transform_axis_1(request, transformation_func, using_array_manager):
+def test_transform_axis_1(request, transformation_func):
     # GH 36308
-    if using_array_manager and transformation_func == "pct_change":
-        # TODO(ArrayManager) column-wise shift
-        request.node.add_marker(
-            pytest.mark.xfail(reason="ArrayManager: shift axis=1 not yet implemented")
-        )
+
+    # TODO(2.0) Remove after pad/backfill deprecation enforced
+    transformation_func = maybe_normalize_deprecated_kernels(transformation_func)
+
     warn = None
     if transformation_func == "tshift":
         warn = FutureWarning
@@ -183,7 +183,7 @@ def test_transform_axis_1(request, transformation_func, using_array_manager):
         result = df.groupby([0, 0, 1], axis=1).transform(transformation_func, *args)
         expected = df.T.groupby([0, 0, 1]).transform(transformation_func, *args).T
 
-    if transformation_func == "diff":
+    if transformation_func in ["diff", "shift"]:
         # Result contains nans, so transpose coerces to float
         expected["b"] = expected["b"].astype("int64")
 
@@ -357,7 +357,8 @@ def test_transform_transformation_func(request, transformation_func):
         },
         index=date_range("2020-01-01", "2020-01-07"),
     )
-
+    # TODO(2.0) Remove after pad/backfill deprecation enforced
+    transformation_func = maybe_normalize_deprecated_kernels(transformation_func)
     if transformation_func == "cumcount":
         test_op = lambda x: x.transform("cumcount")
         mock_op = lambda x: Series(range(len(x)), x.index)
@@ -483,8 +484,15 @@ def test_transform_coercion():
     g = df.groupby("A")
 
     expected = g.transform(np.mean)
-    result = g.transform(lambda x: np.mean(x))
+
+    msg = "will return a scalar mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
+        result = g.transform(lambda x: np.mean(x))
     tm.assert_frame_equal(result, expected)
+
+    with tm.assert_produces_warning(None):
+        result2 = g.transform(lambda x: np.mean(x, axis=0))
+    tm.assert_frame_equal(result2, expected)
 
 
 def test_groupby_transform_with_int():
@@ -791,39 +799,29 @@ def test_transform_with_non_scalar_group():
 
 
 @pytest.mark.parametrize(
-    "cols,exp,comp_func",
+    "cols,expected",
     [
-        ("a", Series([1, 1, 1], name="a"), tm.assert_series_equal),
+        ("a", Series([1, 1, 1], name="a")),
         (
             ["a", "c"],
             DataFrame({"a": [1, 1, 1], "c": [1, 1, 1]}),
-            tm.assert_frame_equal,
         ),
     ],
 )
 @pytest.mark.parametrize("agg_func", ["count", "rank", "size"])
-def test_transform_numeric_ret(cols, exp, comp_func, agg_func, request):
-    if agg_func == "size" and isinstance(cols, list):
-        # https://github.com/pytest-dev/pytest/issues/6300
-        # workaround to xfail fixture/param permutations
-        reason = "'size' transformation not supported with NDFrameGroupy"
-        request.node.add_marker(pytest.mark.xfail(reason=reason))
-
-    # GH 19200
+def test_transform_numeric_ret(cols, expected, agg_func):
+    # GH#19200 and GH#27469
     df = DataFrame(
         {"a": date_range("2018-01-01", periods=3), "b": range(3), "c": range(7, 10)}
     )
-
-    warn = FutureWarning
-    if isinstance(exp, Series) or agg_func != "size":
-        warn = None
-    with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
-        result = df.groupby("b")[cols].transform(agg_func)
+    result = df.groupby("b")[cols].transform(agg_func)
 
     if agg_func == "rank":
-        exp = exp.astype("float")
-
-    comp_func(result, exp)
+        expected = expected.astype("float")
+    elif agg_func == "size" and cols == ["a", "c"]:
+        # transform("size") returns a Series
+        expected = expected["a"].rename(None)
+    tm.assert_equal(result, expected)
 
 
 def test_transform_ffill():
@@ -1119,27 +1117,19 @@ def test_transform_agg_by_name(request, reduction_func, obj):
         request.node.add_marker(
             pytest.mark.xfail(reason="TODO: g.transform('ngroup') doesn't work")
         )
-    if func == "size" and obj.ndim == 2:  # GH#27469
-        request.node.add_marker(
-            pytest.mark.xfail(reason="TODO: g.transform('size') doesn't work")
-        )
     if func == "corrwith" and isinstance(obj, Series):  # GH#32293
         request.node.add_marker(
             pytest.mark.xfail(reason="TODO: implement SeriesGroupBy.corrwith")
         )
 
     args = {"nth": [0], "quantile": [0.5], "corrwith": [obj]}.get(func, [])
-
-    warn = None
-    if isinstance(obj, DataFrame) and func == "size":
-        warn = FutureWarning
-
-    with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
-        result = g.transform(func, *args)
+    result = g.transform(func, *args)
 
     # this is the *definition* of a transformation
     tm.assert_index_equal(result.index, obj.index)
-    if hasattr(obj, "columns"):
+
+    if func != "size" and obj.ndim == 2:
+        # size returns a Series, unlike other transforms
         tm.assert_index_equal(result.columns, obj.columns)
 
     # verify that values were broadcasted across each group
@@ -1275,4 +1265,25 @@ def test_string_rank_grouping():
     df = DataFrame({"A": [1, 1, 2], "B": [1, 2, 3]})
     result = df.groupby("A").transform("rank")
     expected = DataFrame({"B": [1.0, 2.0, 1.0]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_transform_cumcount():
+    # GH 27472
+    df = DataFrame({"a": [0, 0, 0, 1, 1, 1], "b": range(6)})
+    grp = df.groupby(np.repeat([0, 1], 3))
+
+    result = grp.cumcount()
+    expected = Series([0, 1, 2, 0, 1, 2])
+    tm.assert_series_equal(result, expected)
+
+    result = grp.transform("cumcount")
+    tm.assert_series_equal(result, expected)
+
+
+def test_null_group_lambda_self():
+    # GH 17093
+    df = DataFrame({"A": [1, np.nan], "B": [1, 1]})
+    result = df.groupby("A").transform(lambda x: x)
+    expected = DataFrame([1], columns=["B"])
     tm.assert_frame_equal(result, expected)

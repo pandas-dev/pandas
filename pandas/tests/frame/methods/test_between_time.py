@@ -23,8 +23,7 @@ class TestBetweenTime:
         # GH#11818
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
-        if frame_or_series is Series:
-            ts = ts[0]
+        ts = tm.get_obj(ts, frame_or_series)
 
         strings = [
             ("2:00", "2:30"),
@@ -62,39 +61,38 @@ class TestBetweenTime:
         # GH11818
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
         obj = DataFrame({"A": 0}, index=rng)
-        if frame_or_series is Series:
-            obj = obj["A"]
+        obj = tm.get_obj(obj, frame_or_series)
 
         msg = r"Cannot convert arg \[datetime\.datetime\(2010, 1, 2, 1, 0\)\] to a time"
         with pytest.raises(ValueError, match=msg):
             obj.between_time(datetime(2010, 1, 2, 1), datetime(2010, 1, 2, 5))
 
-    def test_between_time(self, close_open_fixture, frame_or_series):
+    def test_between_time(self, inclusive_endpoints_fixture, frame_or_series):
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
-        if frame_or_series is not DataFrame:
-            ts = ts[0]
+        ts = tm.get_obj(ts, frame_or_series)
 
         stime = time(0, 0)
         etime = time(1, 0)
-        inc_start, inc_end = close_open_fixture
+        inclusive = inclusive_endpoints_fixture
 
-        filtered = ts.between_time(stime, etime, inc_start, inc_end)
+        filtered = ts.between_time(stime, etime, inclusive=inclusive)
         exp_len = 13 * 4 + 1
-        if not inc_start:
+
+        if inclusive in ["right", "neither"]:
             exp_len -= 5
-        if not inc_end:
+        if inclusive in ["left", "neither"]:
             exp_len -= 4
 
         assert len(filtered) == exp_len
         for rs in filtered.index:
             t = rs.time()
-            if inc_start:
+            if inclusive in ["left", "both"]:
                 assert t >= stime
             else:
                 assert t > stime
 
-            if inc_end:
+            if inclusive in ["right", "both"]:
                 assert t <= etime
             else:
                 assert t < etime
@@ -106,27 +104,26 @@ class TestBetweenTime:
         # across midnight
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
-        if frame_or_series is not DataFrame:
-            ts = ts[0]
+        ts = tm.get_obj(ts, frame_or_series)
         stime = time(22, 0)
         etime = time(9, 0)
 
-        filtered = ts.between_time(stime, etime, inc_start, inc_end)
+        filtered = ts.between_time(stime, etime, inclusive=inclusive)
         exp_len = (12 * 11 + 1) * 4 + 1
-        if not inc_start:
+        if inclusive in ["right", "neither"]:
             exp_len -= 4
-        if not inc_end:
+        if inclusive in ["left", "neither"]:
             exp_len -= 4
 
         assert len(filtered) == exp_len
         for rs in filtered.index:
             t = rs.time()
-            if inc_start:
+            if inclusive in ["left", "both"]:
                 assert (t >= stime) or (t <= etime)
             else:
                 assert (t > stime) or (t <= etime)
 
-            if inc_end:
+            if inclusive in ["right", "both"]:
                 assert (t <= etime) or (t >= stime)
             else:
                 assert (t < etime) or (t >= stime)
@@ -134,8 +131,7 @@ class TestBetweenTime:
     def test_between_time_raises(self, frame_or_series):
         # GH#20725
         obj = DataFrame([[1, 2, 3], [4, 5, 6]])
-        if frame_or_series is not DataFrame:
-            obj = obj[0]
+        obj = tm.get_obj(obj, frame_or_series)
 
         msg = "Index must be DatetimeIndex"
         with pytest.raises(TypeError, match=msg):  # index is not a DatetimeIndex
@@ -207,3 +203,87 @@ class TestBetweenTime:
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(result, expected2)
         assert len(result) == 12
+
+    @pytest.mark.parametrize("include_start", [True, False])
+    @pytest.mark.parametrize("include_end", [True, False])
+    def test_between_time_warn(self, include_start, include_end, frame_or_series):
+        # GH40245
+        rng = date_range("1/1/2000", "1/5/2000", freq="5min")
+        ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
+        ts = tm.get_obj(ts, frame_or_series)
+
+        stime = time(0, 0)
+        etime = time(1, 0)
+
+        match = (
+            "`include_start` and `include_end` "
+            "are deprecated in favour of `inclusive`."
+        )
+        with tm.assert_produces_warning(FutureWarning, match=match):
+            _ = ts.between_time(stime, etime, include_start, include_end)
+
+    def test_between_time_incorr_arg_inclusive(self):
+        # GH40245
+        rng = date_range("1/1/2000", "1/5/2000", freq="5min")
+        ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
+
+        stime = time(0, 0)
+        etime = time(1, 0)
+        inclusive = "bad_string"
+        msg = "Inclusive has to be either 'both', 'neither', 'left' or 'right'"
+        with pytest.raises(ValueError, match=msg):
+            ts.between_time(stime, etime, inclusive=inclusive)
+
+    @pytest.mark.parametrize(
+        "include_start, include_end", [(True, None), (True, True), (None, True)]
+    )
+    def test_between_time_incompatiable_args_given(self, include_start, include_end):
+        # GH40245
+        rng = date_range("1/1/2000", "1/5/2000", freq="5min")
+        ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
+
+        stime = time(0, 0)
+        etime = time(1, 0)
+        msg = (
+            "Deprecated arguments `include_start` and `include_end` cannot be "
+            "passed if `inclusive` has been given."
+        )
+        with pytest.raises(ValueError, match=msg):
+            ts.between_time(stime, etime, include_start, include_end, inclusive="left")
+
+    def test_between_time_same_functionality_old_and_new_args(self):
+        # GH40245
+        rng = date_range("1/1/2000", "1/5/2000", freq="5min")
+        ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
+        stime = time(0, 0)
+        etime = time(1, 0)
+        match = (
+            "`include_start` and `include_end` "
+            "are deprecated in favour of `inclusive`."
+        )
+
+        result = ts.between_time(stime, etime)
+        expected = ts.between_time(stime, etime, inclusive="both")
+        tm.assert_frame_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning, match=match):
+            result = ts.between_time(stime, etime, include_start=False)
+        expected = ts.between_time(stime, etime, inclusive="right")
+        tm.assert_frame_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning, match=match):
+            result = ts.between_time(stime, etime, include_end=False)
+        expected = ts.between_time(stime, etime, inclusive="left")
+        tm.assert_frame_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning, match=match):
+            result = ts.between_time(
+                stime, etime, include_start=False, include_end=False
+            )
+        expected = ts.between_time(stime, etime, inclusive="neither")
+        tm.assert_frame_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning, match=match):
+            result = ts.between_time(stime, etime, include_start=True, include_end=True)
+        expected = ts.between_time(stime, etime, inclusive="both")
+        tm.assert_frame_equal(result, expected)

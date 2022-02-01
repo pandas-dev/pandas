@@ -1,12 +1,13 @@
+from __future__ import annotations
+
 from datetime import datetime
-from typing import List
 
 import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.cast import astype_nansafe
+from pandas.core.dtypes.astype import astype_nansafe
 import pandas.core.dtypes.common as com
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -19,17 +20,18 @@ from pandas.core.dtypes.missing import isna
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.api.types import pandas_dtype
 from pandas.arrays import SparseArray
 
 
 # EA & Actual Dtypes
 def to_ea_dtypes(dtypes):
-    """ convert list of string dtypes to EA dtype """
+    """convert list of string dtypes to EA dtype"""
     return [getattr(pd, dt + "Dtype") for dt in dtypes]
 
 
 def to_numpy_dtypes(dtypes):
-    """ convert list of string dtypes to numpy dtype """
+    """convert list of string dtypes to numpy dtype"""
     return [getattr(np, dt) for dt in dtypes if isinstance(dt, str)]
 
 
@@ -114,6 +116,7 @@ dtypes = {
     "float": np.dtype(np.float64),
     "object": np.dtype(object),
     "category": com.pandas_dtype("category"),
+    "string": pd.StringDtype(),
 }
 
 
@@ -125,6 +128,12 @@ def test_dtype_equal(name1, dtype1, name2, dtype2):
     assert com.is_dtype_equal(dtype1, dtype1)
     if name1 != name2:
         assert not com.is_dtype_equal(dtype1, dtype2)
+
+
+@pytest.mark.parametrize("name,dtype", list(dtypes.items()), ids=lambda x: str(x))
+def test_pyarrow_string_import_error(name, dtype):
+    # GH-44276
+    assert not com.is_dtype_equal(dtype, "string[pyarrow]")
 
 
 @pytest.mark.parametrize(
@@ -153,6 +162,7 @@ def get_is_dtype_funcs():
 
     """
     fnames = [f for f in dir(com) if (f.startswith("is_") and f.endswith("dtype"))]
+    fnames.remove("is_string_or_object_np_dtype")  # fastpath requires np.dtype obj
     return [getattr(com, fname) for fname in fnames]
 
 
@@ -287,17 +297,17 @@ def test_is_string_dtype_nullable(nullable_string_dtype):
     assert com.is_string_dtype(pd.array(["a", "b"], dtype=nullable_string_dtype))
 
 
-integer_dtypes: List = []
+integer_dtypes: list = []
 
 
 @pytest.mark.parametrize(
     "dtype",
     integer_dtypes
     + [pd.Series([1, 2])]
-    + tm.ALL_INT_DTYPES
-    + to_numpy_dtypes(tm.ALL_INT_DTYPES)
-    + tm.ALL_EA_INT_DTYPES
-    + to_ea_dtypes(tm.ALL_EA_INT_DTYPES),
+    + tm.ALL_INT_NUMPY_DTYPES
+    + to_numpy_dtypes(tm.ALL_INT_NUMPY_DTYPES)
+    + tm.ALL_INT_EA_DTYPES
+    + to_ea_dtypes(tm.ALL_INT_EA_DTYPES),
 )
 def test_is_integer_dtype(dtype):
     assert com.is_integer_dtype(dtype)
@@ -319,17 +329,17 @@ def test_is_not_integer_dtype(dtype):
     assert not com.is_integer_dtype(dtype)
 
 
-signed_integer_dtypes: List = []
+signed_integer_dtypes: list = []
 
 
 @pytest.mark.parametrize(
     "dtype",
     signed_integer_dtypes
     + [pd.Series([1, 2])]
-    + tm.SIGNED_INT_DTYPES
-    + to_numpy_dtypes(tm.SIGNED_INT_DTYPES)
-    + tm.SIGNED_EA_INT_DTYPES
-    + to_ea_dtypes(tm.SIGNED_EA_INT_DTYPES),
+    + tm.SIGNED_INT_NUMPY_DTYPES
+    + to_numpy_dtypes(tm.SIGNED_INT_NUMPY_DTYPES)
+    + tm.SIGNED_INT_EA_DTYPES
+    + to_ea_dtypes(tm.SIGNED_INT_EA_DTYPES),
 )
 def test_is_signed_integer_dtype(dtype):
     assert com.is_integer_dtype(dtype)
@@ -346,26 +356,26 @@ def test_is_signed_integer_dtype(dtype):
         np.array(["a", "b"]),
         np.array([], dtype=np.timedelta64),
     ]
-    + tm.UNSIGNED_INT_DTYPES
-    + to_numpy_dtypes(tm.UNSIGNED_INT_DTYPES)
-    + tm.UNSIGNED_EA_INT_DTYPES
-    + to_ea_dtypes(tm.UNSIGNED_EA_INT_DTYPES),
+    + tm.UNSIGNED_INT_NUMPY_DTYPES
+    + to_numpy_dtypes(tm.UNSIGNED_INT_NUMPY_DTYPES)
+    + tm.UNSIGNED_INT_EA_DTYPES
+    + to_ea_dtypes(tm.UNSIGNED_INT_EA_DTYPES),
 )
 def test_is_not_signed_integer_dtype(dtype):
     assert not com.is_signed_integer_dtype(dtype)
 
 
-unsigned_integer_dtypes: List = []
+unsigned_integer_dtypes: list = []
 
 
 @pytest.mark.parametrize(
     "dtype",
     unsigned_integer_dtypes
     + [pd.Series([1, 2], dtype=np.uint32)]
-    + tm.UNSIGNED_INT_DTYPES
-    + to_numpy_dtypes(tm.UNSIGNED_INT_DTYPES)
-    + tm.UNSIGNED_EA_INT_DTYPES
-    + to_ea_dtypes(tm.UNSIGNED_EA_INT_DTYPES),
+    + tm.UNSIGNED_INT_NUMPY_DTYPES
+    + to_numpy_dtypes(tm.UNSIGNED_INT_NUMPY_DTYPES)
+    + tm.UNSIGNED_INT_EA_DTYPES
+    + to_ea_dtypes(tm.UNSIGNED_INT_EA_DTYPES),
 )
 def test_is_unsigned_integer_dtype(dtype):
     assert com.is_unsigned_integer_dtype(dtype)
@@ -382,10 +392,10 @@ def test_is_unsigned_integer_dtype(dtype):
         np.array(["a", "b"]),
         np.array([], dtype=np.timedelta64),
     ]
-    + tm.SIGNED_INT_DTYPES
-    + to_numpy_dtypes(tm.SIGNED_INT_DTYPES)
-    + tm.SIGNED_EA_INT_DTYPES
-    + to_ea_dtypes(tm.SIGNED_EA_INT_DTYPES),
+    + tm.SIGNED_INT_NUMPY_DTYPES
+    + to_numpy_dtypes(tm.SIGNED_INT_NUMPY_DTYPES)
+    + tm.SIGNED_INT_EA_DTYPES
+    + to_ea_dtypes(tm.SIGNED_INT_EA_DTYPES),
 )
 def test_is_not_unsigned_integer_dtype(dtype):
     assert not com.is_unsigned_integer_dtype(dtype)
@@ -396,6 +406,23 @@ def test_is_not_unsigned_integer_dtype(dtype):
 )
 def test_is_int64_dtype(dtype):
     assert com.is_int64_dtype(dtype)
+
+
+def test_type_comparison_with_numeric_ea_dtype(any_numeric_ea_dtype):
+    # GH#43038
+    assert pandas_dtype(any_numeric_ea_dtype) == any_numeric_ea_dtype
+
+
+def test_type_comparison_with_real_numpy_dtype(any_real_numpy_dtype):
+    # GH#43038
+    assert pandas_dtype(any_real_numpy_dtype) == any_real_numpy_dtype
+
+
+def test_type_comparison_with_signed_int_ea_dtype_and_signed_int_numpy_dtype(
+    any_signed_int_ea_dtype, any_signed_int_numpy_dtype
+):
+    # GH#43038
+    assert not pandas_dtype(any_signed_int_ea_dtype) == any_signed_int_numpy_dtype
 
 
 @pytest.mark.parametrize(
@@ -535,12 +562,14 @@ def test_is_bool_dtype():
     assert not com.is_bool_dtype(int)
     assert not com.is_bool_dtype(str)
     assert not com.is_bool_dtype(pd.Series([1, 2]))
+    assert not com.is_bool_dtype(pd.Series(["a", "b"], dtype="category"))
     assert not com.is_bool_dtype(np.array(["a", "b"]))
     assert not com.is_bool_dtype(pd.Index(["a", "b"]))
     assert not com.is_bool_dtype("Int64")
 
     assert com.is_bool_dtype(bool)
     assert com.is_bool_dtype(np.bool_)
+    assert com.is_bool_dtype(pd.Series([True, False], dtype="category"))
     assert com.is_bool_dtype(np.array([True, False]))
     assert com.is_bool_dtype(pd.Index([True, False]))
 
@@ -716,14 +745,12 @@ def test_astype_nansafe(val, typ):
 
     msg = "Cannot convert NaT values to integer"
     with pytest.raises(ValueError, match=msg):
-        with tm.assert_produces_warning(FutureWarning):
-            # datetimelike astype(int64) deprecated
-            astype_nansafe(arr, dtype=typ)
+        astype_nansafe(arr, dtype=typ)
 
 
-def test_astype_nansafe_copy_false(any_int_dtype):
+def test_astype_nansafe_copy_false(any_int_numpy_dtype):
     # GH#34457 use astype, not view
-    arr = np.array([1, 2, 3], dtype=any_int_dtype)
+    arr = np.array([1, 2, 3], dtype=any_int_numpy_dtype)
 
     dtype = np.dtype("float64")
     result = astype_nansafe(arr, dtype, copy=False)

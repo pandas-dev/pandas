@@ -34,7 +34,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.ops import roperator
 
 
-def fill_zeros(result, x, y):
+def _fill_zeros(result, x, y):
     """
     If this is a reversed op, then flip x,y
 
@@ -47,7 +47,7 @@ def fill_zeros(result, x, y):
     if is_float_dtype(result.dtype):
         return result
 
-    is_variable_type = hasattr(y, "dtype") or hasattr(y, "type")
+    is_variable_type = hasattr(y, "dtype")
     is_scalar_type = is_scalar(y)
 
     if not is_variable_type and not is_scalar_type:
@@ -58,23 +58,22 @@ def fill_zeros(result, x, y):
 
     if is_integer_dtype(y.dtype):
 
-        if (y == 0).any():
+        ymask = y == 0
+        if ymask.any():
 
-            # GH#7325, mask and nans must be broadcastable (also: GH#9308)
-            # Raveling and then reshaping makes np.putmask faster
-            mask = ((y == 0) & ~np.isnan(result)).ravel()
+            # GH#7325, mask and nans must be broadcastable
+            mask = ymask & ~np.isnan(result)
 
-            shape = result.shape
-            result = result.astype("float64", copy=False).ravel()
+            # GH#9308 doing ravel on result and mask can improve putmask perf,
+            #  but can also make unwanted copies.
+            result = result.astype("float64", copy=False)
 
             np.putmask(result, mask, np.nan)
-
-            result = result.reshape(shape)
 
     return result
 
 
-def mask_zero_div_zero(x, y, result):
+def mask_zero_div_zero(x, y, result: np.ndarray) -> np.ndarray:
     """
     Set results of  0 // 0 to np.nan, regardless of the dtypes
     of the numerator or the denominator.
@@ -102,18 +101,15 @@ def mask_zero_div_zero(x, y, result):
     >>> mask_zero_div_zero(x, y, result)
     array([ inf,  nan, -inf])
     """
-    if not isinstance(result, np.ndarray):
-        # FIXME: SparseArray would raise TypeError with np.putmask
-        return result
 
-    if is_scalar(y):
+    if not hasattr(y, "dtype"):
+        # e.g. scalar, tuple
         y = np.array(y)
+    if not hasattr(x, "dtype"):
+        # e.g scalar, tuple
+        x = np.array(x)
 
     zmask = y == 0
-
-    if isinstance(zmask, bool):
-        # FIXME: numpy did not evaluate pointwise, seen in docs build
-        return result
 
     if zmask.any():
 
@@ -121,10 +117,12 @@ def mask_zero_div_zero(x, y, result):
         zneg_mask = zmask & np.signbit(y)
         zpos_mask = zmask & ~zneg_mask
 
+        x_lt0 = x < 0
+        x_gt0 = x > 0
         nan_mask = zmask & (x == 0)
         with np.errstate(invalid="ignore"):
-            neginf_mask = (zpos_mask & (x < 0)) | (zneg_mask & (x > 0))
-            posinf_mask = (zpos_mask & (x > 0)) | (zneg_mask & (x < 0))
+            neginf_mask = (zpos_mask & x_lt0) | (zneg_mask & x_gt0)
+            posinf_mask = (zpos_mask & x_gt0) | (zneg_mask & x_lt0)
 
         if nan_mask.any() or neginf_mask.any() or posinf_mask.any():
             # Fill negative/0 with -inf, positive/0 with +inf, 0/0 with NaN
@@ -139,7 +137,7 @@ def mask_zero_div_zero(x, y, result):
 
 def dispatch_fill_zeros(op, left, right, result):
     """
-    Call fill_zeros with the appropriate fill value depending on the operation,
+    Call _fill_zeros with the appropriate fill value depending on the operation,
     with special logic for divmod and rdivmod.
 
     Parameters
@@ -161,12 +159,12 @@ def dispatch_fill_zeros(op, left, right, result):
     if op is divmod:
         result = (
             mask_zero_div_zero(left, right, result[0]),
-            fill_zeros(result[1], left, right),
+            _fill_zeros(result[1], left, right),
         )
     elif op is roperator.rdivmod:
         result = (
             mask_zero_div_zero(right, left, result[0]),
-            fill_zeros(result[1], right, left),
+            _fill_zeros(result[1], right, left),
         )
     elif op is operator.floordiv:
         # Note: no need to do this for truediv; in py3 numpy behaves the way
@@ -177,7 +175,7 @@ def dispatch_fill_zeros(op, left, right, result):
         #  we want.
         result = mask_zero_div_zero(right, left, result)
     elif op is operator.mod:
-        result = fill_zeros(result, left, right)
+        result = _fill_zeros(result, left, right)
     elif op is roperator.rmod:
-        result = fill_zeros(result, right, left)
+        result = _fill_zeros(result, right, left)
     return result

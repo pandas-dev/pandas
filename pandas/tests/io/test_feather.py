@@ -2,14 +2,12 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 import pandas._testing as tm
 
 from pandas.io.feather_format import read_feather, to_feather  # isort:skip
 
-pyarrow = pytest.importorskip("pyarrow")
+pyarrow = pytest.importorskip("pyarrow", minversion="1.0.1")
 
 
 filter_sparse = pytest.mark.filterwarnings("ignore:The Sparse")
@@ -89,9 +87,7 @@ class TestFeather:
         )
         df["periods"] = pd.period_range("2013", freq="M", periods=3)
         df["timedeltas"] = pd.timedelta_range("1 day", periods=3)
-        # TODO temporary disable due to regression in pyarrow 0.17.1
-        # https://github.com/pandas-dev/pandas/issues/34255
-        # df["intervals"] = pd.interval_range(0, 3, 3)
+        df["intervals"] = pd.interval_range(0, 3, 3)
 
         assert df.dttz.dtype.tz.zone == "US/Eastern"
         self.check_round_trip(df)
@@ -122,7 +118,6 @@ class TestFeather:
         columns = ["col1", "col3"]
         self.check_round_trip(df, expected=df[columns], columns=columns)
 
-    @td.skip_if_no("pyarrow", min_version="0.17.1")
     def read_columns_different_order(self):
         # GH 33878
         df = pd.DataFrame({"A": [1, 2], "B": ["x", "y"], "C": [True, False]})
@@ -182,17 +177,16 @@ class TestFeather:
         result = tm.round_trip_localpath(df.to_feather, read_feather)
         tm.assert_frame_equal(df, result)
 
-    @td.skip_if_no("pyarrow", min_version="0.17.0")
     def test_passthrough_keywords(self):
         df = tm.makeDataFrame().reset_index()
         self.check_round_trip(df, write_kwargs={"version": 1})
 
-    @td.skip_if_no("pyarrow")
+    @pytest.mark.network
     @tm.network
     def test_http_path(self, feather_file):
         # GH 29055
         url = (
-            "https://raw.githubusercontent.com/pandas-dev/pandas/master/"
+            "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
             "pandas/tests/io/data/feather/feather-0_3_1.feather"
         )
         expected = read_feather(feather_file)

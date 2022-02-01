@@ -240,12 +240,54 @@ def test_groupby_quantile_nullable_array(values, q):
 def test_groupby_quantile_skips_invalid_dtype(q):
     df = DataFrame({"a": [1], "b": [2.0], "c": ["x"]})
 
-    warn = None if isinstance(q, list) else FutureWarning
-    with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
         result = df.groupby("a").quantile(q)
 
     expected = df.groupby("a")[["b"]].quantile(q)
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_quantile_NA_float(any_float_dtype):
+    # GH#42849
+    df = DataFrame({"x": [1, 1], "y": [0.2, np.nan]}, dtype=any_float_dtype)
+    result = df.groupby("x")["y"].quantile(0.5)
+    exp_index = Index([1.0], dtype=any_float_dtype, name="x")
+    expected = pd.Series([0.2], dtype=float, index=exp_index, name="y")
+    tm.assert_series_equal(expected, result)
+
+    result = df.groupby("x")["y"].quantile([0.5, 0.75])
+    expected = pd.Series(
+        [0.2] * 2,
+        index=pd.MultiIndex.from_product((exp_index, [0.5, 0.75]), names=["x", None]),
+        name="y",
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_groupby_quantile_NA_int(any_int_ea_dtype):
+    # GH#42849
+    df = DataFrame({"x": [1, 1], "y": [2, 5]}, dtype=any_int_ea_dtype)
+    result = df.groupby("x")["y"].quantile(0.5)
+    expected = pd.Series(
+        [3.5], dtype=float, index=Index([1], name="x", dtype=any_int_ea_dtype), name="y"
+    )
+    tm.assert_series_equal(expected, result)
+
+    result = df.groupby("x").quantile(0.5)
+    expected = DataFrame({"y": 3.5}, index=Index([1], name="x", dtype=any_int_ea_dtype))
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["Float64", "Float32"])
+def test_groupby_quantile_allNA_column(dtype):
+    # GH#42849
+    df = DataFrame({"x": [1, 1], "y": [pd.NA] * 2}, dtype=dtype)
+    result = df.groupby("x")["y"].quantile(0.5)
+    expected = pd.Series(
+        [np.nan], dtype=float, index=Index([1.0], dtype=dtype), name="y"
+    )
+    expected.index.name = "x"
+    tm.assert_series_equal(expected, result)
 
 
 def test_groupby_timedelta_quantile():

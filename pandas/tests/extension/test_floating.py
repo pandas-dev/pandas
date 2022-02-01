@@ -89,10 +89,7 @@ def data_for_grouping(dtype):
 
 
 class TestDtype(base.BaseDtypeTests):
-    @pytest.mark.skip(reason="using multiple dtypes")
-    def test_is_dtype_unboxes_dtype(self):
-        # we have multiple dtypes, so skip
-        pass
+    pass
 
 
 class TestArithmeticOps(base.BaseArithmeticOpsTests):
@@ -128,6 +125,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
+    # TODO: share with IntegerArray?
     def _check_op(self, s, op, other, op_name, exc=NotImplementedError):
         if exc is None:
             result = op(s, other)
@@ -141,7 +139,8 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
     def check_opname(self, s, op_name, other, exc=None):
         super().check_opname(s, op_name, other, exc=None)
 
-    def _compare_other(self, s, data, op_name, other):
+    def _compare_other(self, s, data, op, other):
+        op_name = f"__{op.__name__}__"
         self.check_opname(s, op_name, other)
 
 
@@ -165,12 +164,16 @@ class TestSetitem(base.BaseSetitemTests):
     pass
 
 
+class TestIndex(base.BaseIndexTests):
+    pass
+
+
 class TestMissing(base.BaseMissingTests):
     pass
 
 
 class TestMethods(base.BaseMethodsTests):
-    @pytest.mark.skip(reason="uses nullable integer")
+    @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna):
         all_data = all_data[:10]
         if dropna:
@@ -180,13 +183,14 @@ class TestMethods(base.BaseMethodsTests):
 
         result = pd.Series(all_data).value_counts(dropna=dropna).sort_index()
         expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
+        expected = expected.astype("Int64")
         expected.index = expected.index.astype(all_data.dtype)
 
         self.assert_series_equal(result, expected)
 
-    @pytest.mark.skip(reason="uses nullable integer")
+    @pytest.mark.xfail(reason="uses nullable integer")
     def test_value_counts_with_normalize(self, data):
-        pass
+        super().test_value_counts_with_normalize(data)
 
 
 class TestCasting(base.BaseCastingTests):
@@ -211,6 +215,7 @@ class TestNumericReduce(base.BaseNumericReduceTests):
         tm.assert_almost_equal(result, expected)
 
 
+@pytest.mark.skip(reason="Tested in tests/reductions/test_reductions.py")
 class TestBooleanReduce(base.BaseBooleanReduceTests):
     pass
 
@@ -220,4 +225,8 @@ class TestPrinting(base.BasePrintingTests):
 
 
 class TestParsing(base.BaseParsingTests):
+    pass
+
+
+class Test2DCompat(base.Dim2CompatTests):
     pass

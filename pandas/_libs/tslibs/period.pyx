@@ -4,6 +4,7 @@ cimport numpy as cnp
 from cpython.object cimport (
     Py_EQ,
     Py_NE,
+    PyObject_RichCompare,
     PyObject_RichCompareBool,
 )
 from numpy cimport (
@@ -103,7 +104,7 @@ from pandas._libs.tslibs.nattype cimport (
     _nat_scalar_rules,
     c_NaT as NaT,
     c_nat_strings as nat_strings,
-    is_null_datetimelike,
+    checknull_with_nat,
 )
 from pandas._libs.tslibs.offsets cimport (
     BaseOffset,
@@ -197,7 +198,7 @@ cdef freq_conv_func get_asfreq_func(int from_freq, int to_freq) nogil:
             return <freq_conv_func>asfreq_BtoW
         elif to_group == FR_BUS:
             return <freq_conv_func>no_op
-        elif to_group  in [FR_DAY, FR_HR, FR_MIN, FR_SEC, FR_MS, FR_US, FR_NS]:
+        elif to_group in [FR_DAY, FR_HR, FR_MIN, FR_SEC, FR_MS, FR_US, FR_NS]:
             return <freq_conv_func>asfreq_BtoDT
         else:
             return <freq_conv_func>nofunc
@@ -982,14 +983,14 @@ def periodarr_to_dt64arr(const int64_t[:] periodarr, int freq):
     """
     cdef:
         int64_t[:] out
-        Py_ssize_t i, l
+        Py_ssize_t i, N
 
     if freq < 6000:  # i.e. FR_DAY, hard-code to avoid need to cast
-        l = len(periodarr)
-        out = np.empty(l, dtype="i8")
+        N = len(periodarr)
+        out = np.empty(N, dtype="i8")
 
         # We get here with freqs that do not correspond to a datetime64 unit
-        for i in range(l):
+        for i in range(N):
             out[i] = period_ordinal_to_dt64(periodarr[i], freq)
 
         return out.base  # .base to access underlying np.ndarray
@@ -1087,6 +1088,7 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
     """
     cdef:
         Py_ssize_t n = len(arr)
+        Py_ssize_t increment = arr.strides[0] // 8
         ndarray[int64_t] result = np.empty(n, dtype=np.int64)
 
     _period_asfreq(
@@ -1096,6 +1098,7 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
         freq1,
         freq2,
         end,
+        increment,
     )
     return result
 
@@ -1109,6 +1112,7 @@ cdef void _period_asfreq(
     int freq1,
     int freq2,
     bint end,
+    Py_ssize_t increment=1,
 ):
     """See period_asfreq.__doc__"""
     cdef:
@@ -1126,7 +1130,7 @@ cdef void _period_asfreq(
     get_asfreq_info(freq1, freq2, end, &af_info)
 
     for i in range(length):
-        val = ordinals[i]
+        val = ordinals[i * increment]
         if val != NPY_NAT:
             val = func(val, &af_info)
         out[i] = val
@@ -1458,10 +1462,13 @@ def extract_ordinals(ndarray[object] values, freq) -> np.ndarray:
     for i in range(n):
         p = values[i]
 
-        if is_null_datetimelike(p):
+        if checknull_with_nat(p):
             ordinals[i] = NPY_NAT
         elif util.is_integer_object(p):
-            raise TypeError(p)
+            if p == NPY_NAT:
+                ordinals[i] = NPY_NAT
+            else:
+                raise TypeError(p)
         else:
             try:
                 ordinals[i] = p.ordinal
@@ -1564,6 +1571,20 @@ cdef class PeriodMixin:
 
     @property
     def end_time(self) -> Timestamp:
+        """
+        Get the Timestamp for the end of the period.
+
+        Returns
+        -------
+        Timestamp
+
+        See Also
+        --------
+        Period.start_time : Return the start Timestamp.
+        Period.dayofyear : Return the day of year.
+        Period.daysinmonth : Return the days in that month.
+        Period.dayofweek : Return the day of the week.
+        """
         return self.to_timestamp(how="end")
 
     def _require_matching_freq(self, other, base=False):
@@ -1593,6 +1614,9 @@ cdef class _Period(PeriodMixin):
         int64_t ordinal
         PeriodDtypeBase _dtype
         BaseOffset freq
+
+    # higher than np.ndarray, np.matrix, np.timedelta64
+    __array_priority__ = 100
 
     dayofweek = _Period.day_of_week
     dayofyear = _Period.day_of_year
@@ -1652,7 +1676,14 @@ cdef class _Period(PeriodMixin):
             return PyObject_RichCompareBool(self.ordinal, other.ordinal, op)
         elif other is NaT:
             return _nat_scalar_rules[op]
-        return NotImplemented  # TODO: ndarray[object]?
+        elif util.is_array(other):
+            # GH#44285
+            if cnp.PyArray_IsZeroDim(other):
+                return PyObject_RichCompare(self, other.item(), op)
+            else:
+                # in particular ndarray[object]; see test_pi_cmp_period
+                return np.array([PyObject_RichCompare(self, x, op) for x in other])
+        return NotImplemented
 
     def __hash__(self):
         return hash((self.ordinal, self.freqstr))
@@ -1818,11 +1849,17 @@ cdef class _Period(PeriodMixin):
 
     @property
     def year(self) -> int:
+        """
+        Return the year this Period falls on.
+        """
         base = self._dtype._dtype_code
         return pyear(self.ordinal, base)
 
     @property
     def month(self) -> int:
+        """
+        Return the month this Period falls on.
+        """
         base = self._dtype._dtype_code
         return pmonth(self.ordinal, base)
 
@@ -1929,6 +1966,32 @@ cdef class _Period(PeriodMixin):
 
     @property
     def weekofyear(self) -> int:
+        """
+        Get the week of the year on the given Period.
+
+        Returns
+        -------
+        int
+
+        See Also
+        --------
+        Period.dayofweek : Get the day component of the Period.
+        Period.weekday : Get the day component of the Period.
+
+        Examples
+        --------
+        >>> p = pd.Period("2018-03-11", "H")
+        >>> p.weekofyear
+        10
+
+        >>> p = pd.Period("2018-02-01", "D")
+        >>> p.weekofyear
+        5
+
+        >>> p = pd.Period("2018-01-06", "D")
+        >>> p.weekofyear
+        1
+        """
         base = self._dtype._dtype_code
         return pweek(self.ordinal, base)
 
@@ -2103,6 +2166,9 @@ cdef class _Period(PeriodMixin):
 
     @property
     def quarter(self) -> int:
+        """
+        Return the quarter this Period falls on.
+        """
         base = self._dtype._dtype_code
         return pquarter(self.ordinal, base)
 
@@ -2208,14 +2274,23 @@ cdef class _Period(PeriodMixin):
 
     @property
     def is_leap_year(self) -> bool:
+        """
+        Return True if the period's year is in a leap year.
+        """
         return bool(is_leapyear(self.year))
 
     @classmethod
     def now(cls, freq=None):
+        """
+        Return the period of now's date.
+        """
         return Period(datetime.now(), freq=freq)
 
     @property
     def freqstr(self) -> str:
+        """
+        Return a string representation of the frequency.
+        """
         return self.freq.freqstr
 
     def __repr__(self) -> str:
@@ -2241,7 +2316,7 @@ cdef class _Period(PeriodMixin):
         return (Period, object_state)
 
     def strftime(self, fmt: str) -> str:
-        """
+        r"""
         Returns the string representation of the :class:`Period`, depending
         on the selected ``fmt``. ``fmt`` must be a string
         containing one or several directives.  The method recognizes the same
@@ -2375,7 +2450,7 @@ cdef class _Period(PeriodMixin):
         >>>
         >>> a = Period(freq='D', year=2001, month=1, day=1)
         >>> a.strftime('%d-%b-%Y')
-        '01-Jan-2006'
+        '01-Jan-2001'
         >>> a.strftime('%b. %d, %Y was a %A')
         'Jan. 01, 2001 was a Monday'
         """
@@ -2462,14 +2537,17 @@ class Period(_Period):
                 converted = other.asfreq(freq)
                 ordinal = converted.ordinal
 
-        elif is_null_datetimelike(value) or (isinstance(value, str) and
-                                             value in nat_strings):
+        elif checknull_with_nat(value) or (isinstance(value, str) and
+                                           value in nat_strings):
             # explicit str check is necessary to avoid raising incorrectly
             #  if we have a non-hashable value.
             ordinal = NPY_NAT
 
         elif isinstance(value, str) or util.is_integer_object(value):
             if util.is_integer_object(value):
+                if value == NPY_NAT:
+                    value = "NaT"
+
                 value = str(value)
             value = value.upper()
             dt, reso = parse_time_string(value, freq)

@@ -69,20 +69,20 @@ class TestDatetimeIndex:
 
     def test_categorical_preserves_tz(self):
         # GH#18664 retain tz when going DTI-->Categorical-->DTI
-        # TODO: parametrize over DatetimeIndex/DatetimeArray
-        #  once pd.CategoricalIndex(DTA) works
-
         dti = DatetimeIndex(
             [pd.NaT, "2015-01-01", "1999-04-06 15:14:13", "2015-01-01"], tz="US/Eastern"
         )
 
-        ci = pd.CategoricalIndex(dti)
-        carr = pd.Categorical(dti)
-        cser = pd.Series(ci)
+        for dtobj in [dti, dti._data]:
+            # works for DatetimeIndex or DatetimeArray
 
-        for obj in [ci, carr, cser]:
-            result = DatetimeIndex(obj)
-            tm.assert_index_equal(result, dti)
+            ci = pd.CategoricalIndex(dtobj)
+            carr = pd.Categorical(dtobj)
+            cser = pd.Series(ci)
+
+            for obj in [ci, carr, cser]:
+                result = DatetimeIndex(obj)
+                tm.assert_index_equal(result, dti)
 
     def test_dti_with_period_data_raises(self):
         # GH#23675
@@ -123,7 +123,9 @@ class TestDatetimeIndex:
             Timestamp("2016-05-01T01:00:00.000000"),
         ]
         arr = pd.arrays.SparseArray(values)
-        result = Index(arr)
+        msg = "will store that array directly"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = Index(arr)
         expected = DatetimeIndex(values)
         tm.assert_index_equal(result, expected)
 
@@ -942,7 +944,7 @@ class TestTimeSeries:
         ]:
             tm.assert_index_equal(rng, expected)
 
-    def test_dti_constructor_small_int(self, any_int_dtype):
+    def test_dti_constructor_small_int(self, any_int_numpy_dtype):
         # see gh-13721
         exp = DatetimeIndex(
             [
@@ -952,7 +954,7 @@ class TestTimeSeries:
             ]
         )
 
-        arr = np.array([0, 10, 20], dtype=any_int_dtype)
+        arr = np.array([0, 10, 20], dtype=any_int_numpy_dtype)
         tm.assert_index_equal(DatetimeIndex(arr), exp)
 
     def test_ctor_str_intraday(self):

@@ -14,7 +14,6 @@ from pandas._typing import (
     AggFuncType,
     AggFuncTypeBase,
     AggFuncTypeDict,
-    FrameOrSeriesUnion,
     IndexLabel,
 )
 from pandas.util._decorators import (
@@ -26,6 +25,7 @@ from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
+    is_nested_list_like,
     is_scalar,
 )
 from pandas.core.dtypes.generic import (
@@ -60,11 +60,11 @@ def pivot_table(
     columns=None,
     aggfunc: AggFuncType = "mean",
     fill_value=None,
-    margins=False,
-    dropna=True,
-    margins_name="All",
-    observed=False,
-    sort=True,
+    margins: bool = False,
+    dropna: bool = True,
+    margins_name: str = "All",
+    observed: bool = False,
+    sort: bool = True,
 ) -> DataFrame:
     index = _convert_by(index)
     columns = _convert_by(columns)
@@ -178,13 +178,12 @@ def __internal_pivot_table(
                 and v in agged
                 and not is_integer_dtype(agged[v])
             ):
-                if isinstance(agged[v], ABCDataFrame):
+                if not isinstance(agged[v], ABCDataFrame):
                     # exclude DataFrame case bc maybe_downcast_to_dtype expects
                     #  ArrayLike
-                    # TODO: why does test_pivot_table_doctest_case fail if
-                    # we don't do this apparently-unnecessary setitem?
-                    agged[v] = agged[v]
-                else:
+                    # e.g. test_pivot_table_multiindex_columns_doctest_case
+                    #  agged.columns is a MultiIndex and 'v' is indexing only
+                    #  on its first level.
                     agged[v] = maybe_downcast_to_dtype(agged[v], data[v].dtype)
 
     table = agged
@@ -221,9 +220,7 @@ def __internal_pivot_table(
         table = table.sort_index(axis=1)
 
     if fill_value is not None:
-        _table = table.fillna(fill_value, downcast="infer")
-        assert _table is not None  # needed for mypy
-        table = _table
+        table = table.fillna(fill_value, downcast="infer")
 
     if margins:
         if dropna:
@@ -254,8 +251,8 @@ def __internal_pivot_table(
 
 
 def _add_margins(
-    table: FrameOrSeriesUnion,
-    data,
+    table: DataFrame | Series,
+    data: DataFrame,
     values,
     rows,
     cols,
@@ -289,7 +286,7 @@ def _add_margins(
     if not values and isinstance(table, ABCSeries):
         # If there are no values and the table is a series, then there is only
         # one column in the data. Compute grand margin and return it.
-        return table.append(Series({key: grand_margin[margins_name]}))
+        return table._append(Series({key: grand_margin[margins_name]}))
 
     elif values:
         marginal_result_set = _generate_marginal_results(
@@ -327,13 +324,13 @@ def _add_margins(
         margin_dummy[cols] = margin_dummy[cols].apply(
             maybe_downcast_to_dtype, args=(dtype,)
         )
-    result = result.append(margin_dummy)
+    result = result._append(margin_dummy)
     result.index.names = row_names
 
     return result
 
 
-def _compute_grand_margin(data, values, aggfunc, margins_name: str = "All"):
+def _compute_grand_margin(data: DataFrame, values, aggfunc, margins_name: str = "All"):
 
     if values:
         grand_margin = {}
@@ -482,7 +479,7 @@ def pivot(
     if columns is None:
         raise TypeError("pivot() missing 1 required argument: 'columns'")
 
-    columns = com.convert_to_list_like(columns)
+    columns_listlike = com.convert_to_list_like(columns)
 
     if values is None:
         if index is not None:
@@ -494,28 +491,33 @@ def pivot(
         # error: Unsupported operand types for + ("List[Any]" and "ExtensionArray")
         # error: Unsupported left operand type for + ("ExtensionArray")
         indexed = data.set_index(
-            cols + columns, append=append  # type: ignore[operator]
+            cols + columns_listlike, append=append  # type: ignore[operator]
         )
     else:
         if index is None:
-            index = [Series(data.index, name=data.index.name)]
+            if isinstance(data.index, MultiIndex):
+                # GH 23955
+                index_list = [
+                    data.index.get_level_values(i) for i in range(data.index.nlevels)
+                ]
+            else:
+                index_list = [Series(data.index, name=data.index.name)]
         else:
-            index = com.convert_to_list_like(index)
-            index = [data[idx] for idx in index]
+            index_list = [data[idx] for idx in com.convert_to_list_like(index)]
 
-        data_columns = [data[col] for col in columns]
-        index.extend(data_columns)
-        index = MultiIndex.from_arrays(index)
+        data_columns = [data[col] for col in columns_listlike]
+        index_list.extend(data_columns)
+        multiindex = MultiIndex.from_arrays(index_list)
 
         if is_list_like(values) and not isinstance(values, tuple):
             # Exclude tuple because it is seen as a single column name
             values = cast(Sequence[Hashable], values)
             indexed = data._constructor(
-                data[values]._values, index=index, columns=values
+                data[values]._values, index=multiindex, columns=values
             )
         else:
-            indexed = data._constructor_sliced(data[values]._values, index=index)
-    return indexed.unstack(columns)
+            indexed = data._constructor_sliced(data[values]._values, index=multiindex)
+    return indexed.unstack(columns_listlike)
 
 
 def crosstab(
@@ -525,7 +527,7 @@ def crosstab(
     rownames=None,
     colnames=None,
     aggfunc=None,
-    margins=False,
+    margins: bool = False,
     margins_name: str = "All",
     dropna: bool = True,
     normalize=False,
@@ -587,6 +589,8 @@ def crosstab(
     In the event that there aren't overlapping indexes an empty DataFrame will
     be returned.
 
+    Reference :ref:`the user guide <reshaping.crosstabulations>` for more examples.
+
     Examples
     --------
     >>> a = np.array(["foo", "foo", "foo", "foo", "bar", "bar",
@@ -627,8 +631,10 @@ def crosstab(
     if values is not None and aggfunc is None:
         raise ValueError("values cannot be used without an aggfunc.")
 
-    index = com.maybe_make_list(index)
-    columns = com.maybe_make_list(columns)
+    if not is_nested_list_like(index):
+        index = [index]
+    if not is_nested_list_like(columns):
+        columns = [columns]
 
     common_idx = None
     pass_objs = [x for x in index + columns if isinstance(x, (ABCSeries, ABCDataFrame))]
@@ -683,7 +689,9 @@ def crosstab(
     return table
 
 
-def _normalize(table, normalize, margins: bool, margins_name="All"):
+def _normalize(
+    table: DataFrame, normalize, margins: bool, margins_name="All"
+) -> DataFrame:
 
     if not isinstance(normalize, (bool, str)):
         axis_subs = {0: "index", 1: "columns"}
@@ -739,7 +747,7 @@ def _normalize(table, normalize, margins: bool, margins_name="All"):
 
         elif normalize == "index":
             index_margin = index_margin / index_margin.sum()
-            table = table.append(index_margin)
+            table = table._append(index_margin)
             table = table.fillna(0)
             table.index = table_index
 
@@ -748,7 +756,7 @@ def _normalize(table, normalize, margins: bool, margins_name="All"):
             index_margin = index_margin / index_margin.sum()
             index_margin.loc[margins_name] = 1
             table = concat([table, column_margin], axis=1)
-            table = table.append(index_margin)
+            table = table._append(index_margin)
 
             table = table.fillna(0)
             table.index = table_index

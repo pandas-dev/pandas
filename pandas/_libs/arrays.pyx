@@ -6,6 +6,7 @@ cimport cython
 import numpy as np
 
 cimport numpy as cnp
+from cpython cimport PyErr_Clear
 from numpy cimport ndarray
 
 cnp.import_array()
@@ -84,7 +85,7 @@ cdef class NDArrayBacked:
             elif "_ndarray" in state:
                 data = state.pop("_ndarray")
             else:
-                raise ValueError
+                raise ValueError  # pragma: no cover
             self._ndarray = data
             self._dtype = state.pop("_dtype")
 
@@ -95,7 +96,7 @@ cdef class NDArrayBacked:
                 if len(state) == 1 and isinstance(state[0], dict):
                     self.__setstate__(state[0])
                     return
-                raise NotImplementedError(state)
+                raise NotImplementedError(state)  # pragma: no cover
 
             data, dtype = state[:2]
             if isinstance(dtype, np.ndarray):
@@ -107,9 +108,9 @@ cdef class NDArrayBacked:
                 for key, val in state[2].items():
                     setattr(self, key, val)
             else:
-                raise NotImplementedError(state)
+                raise NotImplementedError(state)  # pragma: no cover
         else:
-            raise NotImplementedError(state)
+            raise NotImplementedError(state)  # pragma: no cover
 
     def __len__(self) -> int:
         return len(self._ndarray)
@@ -131,9 +132,20 @@ cdef class NDArrayBacked:
     def nbytes(self) -> int:
         return self._ndarray.nbytes
 
-    def copy(self):
-        # NPY_ANYORDER -> same order as self._ndarray
-        res_values = cnp.PyArray_NewCopy(self._ndarray, cnp.NPY_ANYORDER)
+    def copy(self, order="C"):
+        cdef:
+            cnp.NPY_ORDER order_code
+            int success
+
+        success = cnp.PyArray_OrderConverter(order, &order_code)
+        if not success:
+            # clear exception so that we don't get a SystemError
+            PyErr_Clear()
+            # same message used by numpy
+            msg = f"order must be one of 'C', 'F', 'A', or 'K' (got '{order}')"
+            raise ValueError(msg)
+
+        res_values = cnp.PyArray_NewCopy(self._ndarray, order_code)
         return self._from_backing_data(res_values)
 
     def delete(self, loc, axis=0):
@@ -164,4 +176,8 @@ cdef class NDArrayBacked:
     @property
     def T(self):
         res_values = self._ndarray.T
+        return self._from_backing_data(res_values)
+
+    def transpose(self, *axes):
+        res_values = self._ndarray.transpose(*axes)
         return self._from_backing_data(res_values)

@@ -4,7 +4,6 @@ import pytest
 import pandas as pd
 from pandas import (
     Index,
-    Int64Index,
     MultiIndex,
 )
 import pandas._testing as tm
@@ -222,10 +221,32 @@ def test_pivot_multiindexed_rows_and_cols(using_array_manager):
         columns=MultiIndex.from_tuples(
             [(0, 1, 0), (0, 1, 1)], names=["col_L0", "col_L1", "idx_L1"]
         ),
-        index=Int64Index([0, 1], dtype="int64", name="idx_L0"),
+        index=Index([0, 1], dtype="int64", name="idx_L0"),
     )
     if not using_array_manager:
         # BlockManager does not preserve the dtypes
         expected = expected.astype("float64")
 
     tm.assert_frame_equal(res, expected)
+
+
+def test_pivot_df_multiindex_index_none():
+    # GH 23955
+    df = pd.DataFrame(
+        [
+            ["A", "A1", "label1", 1],
+            ["A", "A2", "label2", 2],
+            ["B", "A1", "label1", 3],
+            ["B", "A2", "label2", 4],
+        ],
+        columns=["index_1", "index_2", "label", "value"],
+    )
+    df = df.set_index(["index_1", "index_2"])
+
+    result = df.pivot(index=None, columns="label", values="value")
+    expected = pd.DataFrame(
+        [[1.0, np.nan], [np.nan, 2.0], [3.0, np.nan], [np.nan, 4.0]],
+        index=df.index,
+        columns=Index(["label1", "label2"], name="label"),
+    )
+    tm.assert_frame_equal(result, expected)

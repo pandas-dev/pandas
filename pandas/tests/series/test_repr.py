@@ -11,7 +11,6 @@ from pandas import (
     Categorical,
     DataFrame,
     Index,
-    MultiIndex,
     Series,
     date_range,
     option_context,
@@ -22,13 +21,9 @@ import pandas._testing as tm
 
 
 class TestSeriesRepr:
-    def test_multilevel_name_print(self):
-        index = MultiIndex(
-            levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
-            codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-            names=["first", "second"],
-        )
-        s = Series(range(len(index)), index=index, name="sth")
+    def test_multilevel_name_print(self, lexsorted_two_level_string_multiindex):
+        index = lexsorted_two_level_string_multiindex
+        ser = Series(range(len(index)), index=index, name="sth")
         expected = [
             "first  second",
             "foo    one       0",
@@ -44,9 +39,9 @@ class TestSeriesRepr:
             "Name: sth, dtype: int64",
         ]
         expected = "\n".join(expected)
-        assert repr(s) == expected
+        assert repr(ser) == expected
 
-    def test_name_printing(self):
+    def test_small_name_printing(self):
         # Test small Series.
         s = Series([0, 1, 2])
 
@@ -56,6 +51,7 @@ class TestSeriesRepr:
         s.name = None
         assert "Name:" not in repr(s)
 
+    def test_big_name_printing(self):
         # Test big Series (diff code path).
         s = Series(range(1000))
 
@@ -65,32 +61,39 @@ class TestSeriesRepr:
         s.name = None
         assert "Name:" not in repr(s)
 
+    def test_empty_name_printing(self):
         s = Series(index=date_range("20010101", "20020101"), name="test", dtype=object)
         assert "Name: test" in repr(s)
 
-    def test_repr(self, datetime_series, string_series, object_series):
-        str(datetime_series)
-        str(string_series)
-        str(string_series.astype(int))
-        str(object_series)
+    @pytest.mark.parametrize("args", [(), (0, -1)])
+    def test_float_range(self, args):
+        str(Series(np.random.randn(1000), index=np.arange(1000, *args)))
 
-        str(Series(np.random.randn(1000), index=np.arange(1000)))
-        str(Series(np.random.randn(1000), index=np.arange(1000, 0, step=-1)))
-
+    def test_empty_object(self):
         # empty
         str(Series(dtype=object))
+
+    def test_string(self, string_series):
+        str(string_series)
+        str(string_series.astype(int))
 
         # with NaNs
         string_series[5:7] = np.NaN
         str(string_series)
 
+    def test_object(self, object_series):
+        str(object_series)
+
+    def test_datetime(self, datetime_series):
+        str(datetime_series)
         # with Nones
         ots = datetime_series.astype("O")
         ots[::2] = None
         repr(ots)
 
-        # various names
-        for name in [
+    @pytest.mark.parametrize(
+        "name",
+        [
             "",
             1,
             1.2,
@@ -102,36 +105,43 @@ class TestSeriesRepr:
             ("foo", 1, 2.3),
             ("\u03B1", "\u03B2", "\u03B3"),
             ("\u03B1", "bar"),
-        ]:
-            string_series.name = name
-            repr(string_series)
+        ],
+    )
+    def test_various_names(self, name, string_series):
+        # various names
+        string_series.name = name
+        repr(string_series)
 
+    def test_tuple_name(self):
         biggie = Series(
             np.random.randn(1000), index=np.arange(1000), name=("foo", "bar", "baz")
         )
         repr(biggie)
 
-        # 0 as name
-        ser = Series(np.random.randn(100), name=0)
-        rep_str = repr(ser)
-        assert "Name: 0" in rep_str
-
+    @pytest.mark.parametrize("arg", [100, 1001])
+    def test_tidy_repr_name_0(self, arg):
         # tidy repr
-        ser = Series(np.random.randn(1001), name=0)
+        ser = Series(np.random.randn(arg), name=0)
         rep_str = repr(ser)
         assert "Name: 0" in rep_str
 
+    def test_newline(self):
         ser = Series(["a\n\r\tb"], name="a\n\r\td", index=["a\n\r\tf"])
         assert "\t" not in repr(ser)
         assert "\r" not in repr(ser)
         assert "a\n" not in repr(ser)
 
+    @pytest.mark.parametrize(
+        "name, expected",
+        [
+            ["foo", "Series([], Name: foo, dtype: int64)"],
+            [None, "Series([], dtype: int64)"],
+        ],
+    )
+    def test_empty_int64(self, name, expected):
         # with empty series (#4651)
-        s = Series([], dtype=np.int64, name="foo")
-        assert repr(s) == "Series([], Name: foo, dtype: int64)"
-
-        s = Series([], dtype=np.int64, name=None)
-        assert repr(s) == "Series([], dtype: int64)"
+        s = Series([], dtype=np.int64, name=name)
+        assert repr(s) == expected
 
     def test_tidy_repr(self):
         a = Series(["\u05d0"] * 1000)
@@ -169,7 +179,7 @@ class TestSeriesRepr:
 
     def test_repr_max_rows(self):
         # GH 6863
-        with option_context("max_rows", None):
+        with option_context("display.max_rows", None):
             str(Series(range(1001)))  # should not raise exception
 
     def test_unicode_string_with_unicode(self):
@@ -196,6 +206,7 @@ class TestSeriesRepr:
         ts2 = ts.iloc[np.random.randint(0, len(ts) - 1, 400)]
         repr(ts2).splitlines()[-1]
 
+    @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_latex_repr(self):
         result = r"""\begin{tabular}{ll}
 \toprule
@@ -246,6 +257,13 @@ class TestSeriesRepr:
         ser = Series([1.0]).astype(object)
         expected = "0    1.0\ndtype: object"
         assert repr(ser) == expected
+
+    def test_different_null_objects(self):
+        # GH#45263
+        ser = Series([1, 2, 3, 4], [True, None, np.nan, pd.NaT])
+        result = repr(ser)
+        expected = "True    1\nNone    2\nNaN     3\nNaT     4\ndtype: int64"
+        assert result == expected
 
 
 class TestCategoricalRepr:
@@ -355,7 +373,7 @@ Categories (10, int64): [0 < 1 < 2 < 3 ... 6 < 7 < 8 < 9]"""
 4   2011-01-01 13:00:00
 dtype: category
 Categories (5, datetime64[ns]): [2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-01-01 11:00:00,
-                                 2011-01-01 12:00:00, 2011-01-01 13:00:00]"""  # noqa
+                                 2011-01-01 12:00:00, 2011-01-01 13:00:00]"""  # noqa:E501
 
         assert repr(s) == exp
 
@@ -369,7 +387,7 @@ Categories (5, datetime64[ns]): [2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-
 dtype: category
 Categories (5, datetime64[ns, US/Eastern]): [2011-01-01 09:00:00-05:00, 2011-01-01 10:00:00-05:00,
                                              2011-01-01 11:00:00-05:00, 2011-01-01 12:00:00-05:00,
-                                             2011-01-01 13:00:00-05:00]"""  # noqa
+                                             2011-01-01 13:00:00-05:00]"""  # noqa:E501
 
         assert repr(s) == exp
 
@@ -383,7 +401,7 @@ Categories (5, datetime64[ns, US/Eastern]): [2011-01-01 09:00:00-05:00, 2011-01-
 4   2011-01-01 13:00:00
 dtype: category
 Categories (5, datetime64[ns]): [2011-01-01 09:00:00 < 2011-01-01 10:00:00 < 2011-01-01 11:00:00 <
-                                 2011-01-01 12:00:00 < 2011-01-01 13:00:00]"""  # noqa
+                                 2011-01-01 12:00:00 < 2011-01-01 13:00:00]"""  # noqa:E501
 
         assert repr(s) == exp
 
@@ -397,7 +415,7 @@ Categories (5, datetime64[ns]): [2011-01-01 09:00:00 < 2011-01-01 10:00:00 < 201
 dtype: category
 Categories (5, datetime64[ns, US/Eastern]): [2011-01-01 09:00:00-05:00 < 2011-01-01 10:00:00-05:00 <
                                              2011-01-01 11:00:00-05:00 < 2011-01-01 12:00:00-05:00 <
-                                             2011-01-01 13:00:00-05:00]"""  # noqa
+                                             2011-01-01 13:00:00-05:00]"""  # noqa:E501
 
         assert repr(s) == exp
 
@@ -411,7 +429,7 @@ Categories (5, datetime64[ns, US/Eastern]): [2011-01-01 09:00:00-05:00 < 2011-01
 4    2011-01-01 13:00
 dtype: category
 Categories (5, period[H]): [2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00,
-                            2011-01-01 13:00]"""  # noqa
+                            2011-01-01 13:00]"""  # noqa:E501
 
         assert repr(s) == exp
 
@@ -437,7 +455,7 @@ Categories (5, period[M]): [2011-01, 2011-02, 2011-03, 2011-04, 2011-05]"""
 4    2011-01-01 13:00
 dtype: category
 Categories (5, period[H]): [2011-01-01 09:00 < 2011-01-01 10:00 < 2011-01-01 11:00 < 2011-01-01 12:00 <
-                            2011-01-01 13:00]"""  # noqa
+                            2011-01-01 13:00]"""  # noqa:E501
 
         assert repr(s) == exp
 
@@ -481,7 +499,7 @@ Categories (5, timedelta64[ns]): [1 days, 2 days, 3 days, 4 days, 5 days]"""
 dtype: category
 Categories (10, timedelta64[ns]): [0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00,
                                    3 days 01:00:00, ..., 6 days 01:00:00, 7 days 01:00:00,
-                                   8 days 01:00:00, 9 days 01:00:00]"""  # noqa
+                                   8 days 01:00:00, 9 days 01:00:00]"""  # noqa:E501
 
         assert repr(s) == exp
 
@@ -513,6 +531,6 @@ Categories (5, timedelta64[ns]): [1 days < 2 days < 3 days < 4 days < 5 days]"""
 dtype: category
 Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01:00:00 <
                                    3 days 01:00:00 ... 6 days 01:00:00 < 7 days 01:00:00 <
-                                   8 days 01:00:00 < 9 days 01:00:00]"""  # noqa
+                                   8 days 01:00:00 < 9 days 01:00:00]"""  # noqa:E501
 
         assert repr(s) == exp

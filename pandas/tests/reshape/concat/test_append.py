@@ -1,12 +1,9 @@
 import datetime as dt
-from datetime import datetime
 from itertools import combinations
 
 import dateutil
 import numpy as np
 import pytest
-
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -31,23 +28,23 @@ class TestAppend:
         begin_frame = float_frame.reindex(begin_index)
         end_frame = float_frame.reindex(end_index)
 
-        appended = begin_frame.append(end_frame)
+        appended = begin_frame._append(end_frame)
         tm.assert_almost_equal(appended["A"], float_frame["A"])
 
         del end_frame["A"]
-        partial_appended = begin_frame.append(end_frame, sort=sort)
+        partial_appended = begin_frame._append(end_frame, sort=sort)
         assert "A" in partial_appended
 
-        partial_appended = end_frame.append(begin_frame, sort=sort)
+        partial_appended = end_frame._append(begin_frame, sort=sort)
         assert "A" in partial_appended
 
         # mixed type handling
-        appended = mixed_frame[:5].append(mixed_frame[5:])
+        appended = mixed_frame[:5]._append(mixed_frame[5:])
         tm.assert_frame_equal(appended, mixed_frame)
 
         # what to test here
-        mixed_appended = mixed_frame[:5].append(float_frame[5:], sort=sort)
-        mixed_appended2 = float_frame[:5].append(mixed_frame[5:], sort=sort)
+        mixed_appended = mixed_frame[:5]._append(float_frame[5:], sort=sort)
+        mixed_appended2 = float_frame[:5]._append(mixed_frame[5:], sort=sort)
 
         # all equal except 'foo' column
         tm.assert_frame_equal(
@@ -58,18 +55,18 @@ class TestAppend:
     def test_append_empty(self, float_frame):
         empty = DataFrame()
 
-        appended = float_frame.append(empty)
+        appended = float_frame._append(empty)
         tm.assert_frame_equal(float_frame, appended)
         assert appended is not float_frame
 
-        appended = empty.append(float_frame)
+        appended = empty._append(float_frame)
         tm.assert_frame_equal(float_frame, appended)
         assert appended is not float_frame
 
     def test_append_overlap_raises(self, float_frame):
         msg = "Indexes have overlapping values"
         with pytest.raises(ValueError, match=msg):
-            float_frame.append(float_frame, verify_integrity=True)
+            float_frame._append(float_frame, verify_integrity=True)
 
     def test_append_new_columns(self):
         # see gh-6129: new columns
@@ -82,13 +79,13 @@ class TestAppend:
                 "c": {"z": 7},
             }
         )
-        result = df.append(row)
+        result = df._append(row)
         tm.assert_frame_equal(result, expected)
 
     def test_append_length0_frame(self, sort):
         df = DataFrame(columns=["A", "B", "C"])
         df3 = DataFrame(index=[0, 1], columns=["A", "B"])
-        df5 = df.append(df3, sort=sort)
+        df5 = df._append(df3, sort=sort)
 
         expected = DataFrame(index=[0, 1], columns=["A", "B", "C"])
         tm.assert_frame_equal(df5, expected)
@@ -103,7 +100,7 @@ class TestAppend:
         df1 = DataFrame(arr1)
         df2 = DataFrame(arr2)
 
-        result = df1.append(df2, ignore_index=True)
+        result = df1._append(df2, ignore_index=True)
         expected = DataFrame(np.concatenate((arr1, arr2)))
         tm.assert_frame_equal(result, expected)
 
@@ -112,8 +109,7 @@ class TestAppend:
         df1 = DataFrame({"a": [1, 2], "b": [1, 2]}, columns=["b", "a"])
         df2 = DataFrame({"a": [1, 2], "c": [3, 4]}, index=[2, 3])
 
-        with tm.assert_produces_warning(None):
-            result = df1.append(df2, sort=sort)
+        result = df1._append(df2, sort=sort)
 
         # for None / True
         expected = DataFrame(
@@ -137,7 +133,7 @@ class TestAppend:
         a = df[:5].loc[:, ["bools", "ints", "floats"]]
         b = df[5:].loc[:, ["strings", "ints", "floats"]]
 
-        appended = a.append(b, sort=sort)
+        appended = a._append(b, sort=sort)
         assert isna(appended["strings"][0:4]).all()
         assert isna(appended["bools"][5:]).all()
 
@@ -149,12 +145,12 @@ class TestAppend:
             float_frame[15:],
         ]
 
-        result = chunks[0].append(chunks[1:])
+        result = chunks[0]._append(chunks[1:])
         tm.assert_frame_equal(result, float_frame)
 
         chunks[-1] = chunks[-1].copy()
         chunks[-1]["foo"] = "bar"
-        result = chunks[0].append(chunks[1:], sort=sort)
+        result = chunks[0]._append(chunks[1:], sort=sort)
         tm.assert_frame_equal(result.loc[:, float_frame.columns], float_frame)
         assert (result["foo"][15:] == "bar").all()
         assert result["foo"][:15].isna().all()
@@ -166,7 +162,7 @@ class TestAppend:
         df2 = DataFrame(data=[[1, 4, 7], [2, 5, 8], [3, 6, 9]], columns=["A", "B", "C"])
         df2 = df2.set_index(["A"])
 
-        result = df1.append(df2)
+        result = df1._append(df2)
         assert result.index.name == "A"
 
     indexes_can_append = [
@@ -197,10 +193,14 @@ class TestAppend:
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=index)
         ser_index = index[:2]
         ser = Series([7, 8], index=ser_index, name=2)
-        result = df.append(ser)
+        result = df._append(ser)
         expected = DataFrame(
-            [[1.0, 2.0, 3.0], [4, 5, 6], [7, 8, np.nan]], index=[0, 1, 2], columns=index
+            [[1, 2, 3.0], [4, 5, 6], [7, 8, np.nan]], index=[0, 1, 2], columns=index
         )
+        # integer dtype is preserved for columns present in ser.index
+        assert expected.dtypes.iloc[0].kind == "i"
+        assert expected.dtypes.iloc[1].kind == "i"
+
         tm.assert_frame_equal(result, expected)
 
         # ser wider than df
@@ -208,7 +208,7 @@ class TestAppend:
         index = index[:2]
         df = DataFrame([[1, 2], [4, 5]], columns=index)
         ser = Series([7, 8, 9], index=ser_index, name=2)
-        result = df.append(ser)
+        result = df._append(ser)
         expected = DataFrame(
             [[1, 2, np.nan], [4, 5, np.nan], [7, 8, 9]],
             index=[0, 1, 2],
@@ -229,7 +229,7 @@ class TestAppend:
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=df_columns)
         ser = Series([7, 8, 9], index=series_index, name=2)
 
-        result = df.append(ser)
+        result = df._append(ser)
         idx_diff = ser.index.difference(df_columns)
         combined_columns = Index(df_columns.tolist()).append(idx_diff)
         expected = DataFrame(
@@ -286,7 +286,7 @@ class TestAppend:
             axis=1,
             sort=sort,
         )
-        result = df1.append(df2, ignore_index=True, sort=sort)
+        result = df1._append(df2, ignore_index=True, sort=sort)
         if sort:
             expected = expected[["end_time", "start_time"]]
         else:
@@ -298,20 +298,16 @@ class TestAppend:
         df1 = DataFrame({"A": np.array([1, 2, 3, 4], dtype="i8")})
         df2 = DataFrame({"B": np.array([True, False, True, False], dtype=bool)})
 
-        appended = df1.append(df2, ignore_index=True, sort=sort)
+        appended = df1._append(df2, ignore_index=True, sort=sort)
         assert appended["A"].dtype == "f8"
         assert appended["B"].dtype == "O"
 
-    # TODO(ArrayManager) DataFrame.append reindexes a Series itself (giving
-    # float dtype) -> delay reindexing until concat_array_managers which properly
-    # takes care of all-null dtype inference
-    @td.skip_array_manager_not_yet_implemented
     def test_append_empty_frame_to_series_with_dateutil_tz(self):
         # GH 23682
         date = Timestamp("2018-10-24 07:30:00", tz=dateutil.tz.tzutc())
-        ser = Series({"date": date, "a": 1.0, "b": 2.0})
+        ser = Series({"a": 1.0, "b": 2.0, "date": date})
         df = DataFrame(columns=["c", "d"])
-        result_a = df.append(ser, ignore_index=True)
+        result_a = df._append(ser, ignore_index=True)
         expected = DataFrame(
             [[np.nan, np.nan, 1.0, 2.0, date]], columns=["c", "d", "a", "b", "date"]
         )
@@ -325,12 +321,10 @@ class TestAppend:
         )
         expected["c"] = expected["c"].astype(object)
         expected["d"] = expected["d"].astype(object)
-        result_b = result_a.append(ser, ignore_index=True)
+        result_b = result_a._append(ser, ignore_index=True)
         tm.assert_frame_equal(result_b, expected)
 
-        # column order is different
-        expected = expected[["c", "d", "date", "a", "b"]]
-        result = df.append([ser, ser], ignore_index=True)
+        result = df._append([ser, ser], ignore_index=True)
         tm.assert_frame_equal(result, expected)
 
     def test_append_empty_tz_frame_with_datetime64ns(self):
@@ -338,14 +332,20 @@ class TestAppend:
         df = DataFrame(columns=["a"]).astype("datetime64[ns, UTC]")
 
         # pd.NaT gets inferred as tz-naive, so append result is tz-naive
-        result = df.append({"a": pd.NaT}, ignore_index=True)
+        result = df._append({"a": pd.NaT}, ignore_index=True)
         expected = DataFrame({"a": [pd.NaT]}).astype(object)
         tm.assert_frame_equal(result, expected)
 
         # also test with typed value to append
         df = DataFrame(columns=["a"]).astype("datetime64[ns, UTC]")
         other = Series({"a": pd.NaT}, dtype="datetime64[ns]")
-        result = df.append(other, ignore_index=True)
+        result = df._append(other, ignore_index=True)
+        expected = DataFrame({"a": [pd.NaT]}).astype(object)
+        tm.assert_frame_equal(result, expected)
+
+        # mismatched tz
+        other = Series({"a": pd.NaT}, dtype="datetime64[ns, US/Pacific]")
+        result = df._append(other, ignore_index=True)
         expected = DataFrame({"a": [pd.NaT]}).astype(object)
         tm.assert_frame_equal(result, expected)
 
@@ -358,7 +358,7 @@ class TestAppend:
         df = DataFrame(columns=["a"]).astype(dtype_str)
 
         other = DataFrame({"a": [np.timedelta64(val, "ns")]})
-        result = df.append(other, ignore_index=True)
+        result = df._append(other, ignore_index=True)
 
         expected = other.astype(object)
         tm.assert_frame_equal(result, expected)
@@ -372,7 +372,7 @@ class TestAppend:
         df = DataFrame({"a": pd.array([1], dtype=dtype_str)})
 
         other = DataFrame({"a": [np.timedelta64(val, "ns")]})
-        result = df.append(other, ignore_index=True)
+        result = df._append(other, ignore_index=True)
 
         expected = DataFrame({"a": [df.iloc[0, 0], other.iloc[0, 0]]}, dtype=object)
         tm.assert_frame_equal(result, expected)

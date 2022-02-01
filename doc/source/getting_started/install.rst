@@ -12,7 +12,7 @@ cross platform distribution for data analysis and scientific computing.
 This is the recommended installation method for most users.
 
 Instructions for installing from source,
-`PyPI <https://pypi.org/project/pandas>`__, `ActivePython <https://www.activestate.com/activepython/downloads>`__, various Linux distributions, or a
+`PyPI <https://pypi.org/project/pandas>`__, `ActivePython <https://www.activestate.com/products/python/>`__, various Linux distributions, or a
 `development version <https://github.com/pandas-dev/pandas>`__ are also provided.
 
 .. _install.version:
@@ -20,7 +20,7 @@ Instructions for installing from source,
 Python version support
 ----------------------
 
-Officially Python 3.7.1 and above, 3.8, and 3.9.
+Officially Python 3.8, and 3.9.
 
 Installing pandas
 -----------------
@@ -47,7 +47,7 @@ rest of the `SciPy <https://scipy.org/>`__ stack without needing to install
 anything else, and without needing to wait for any software to be compiled.
 
 Installation instructions for `Anaconda <https://docs.continuum.io/anaconda/>`__
-`can be found here <https://docs.continuum.io/anaconda/install.html>`__.
+`can be found here <https://docs.continuum.io/anaconda/install/>`__.
 
 A full list of the packages available as part of the
 `Anaconda <https://docs.continuum.io/anaconda/>`__ distribution
@@ -70,18 +70,18 @@ and involves downloading the installer which is a few hundred megabytes in size.
 
 If you want to have more control on which packages, or have a limited internet
 bandwidth, then installing pandas with
-`Miniconda <https://conda.pydata.org/miniconda.html>`__ may be a better solution.
+`Miniconda <https://docs.conda.io/en/latest/miniconda.html>`__ may be a better solution.
 
-`Conda <https://conda.pydata.org/docs/>`__ is the package manager that the
+`Conda <https://conda.io/en/latest/>`__ is the package manager that the
 `Anaconda <https://docs.continuum.io/anaconda/>`__ distribution is built upon.
 It is a package manager that is both cross-platform and language agnostic
 (it can play a similar role to a pip and virtualenv combination).
 
 `Miniconda <https://conda.pydata.org/miniconda.html>`__ allows you to create a
 minimal self contained Python installation, and then use the
-`Conda <https://conda.pydata.org/docs/>`__ command to install additional packages.
+`Conda <https://conda.io/en/latest/>`__ command to install additional packages.
 
-First you will need `Conda <https://conda.pydata.org/docs/>`__ to be installed and
+First you will need `Conda <https://conda.io/en/latest/>`__ to be installed and
 downloading and running the `Miniconda
 <https://conda.pydata.org/miniconda.html>`__
 will do this for you. The installer
@@ -132,6 +132,9 @@ Installing from PyPI
 pandas can be installed via pip from
 `PyPI <https://pypi.org/project/pandas>`__.
 
+.. note::
+    You must have ``pip>=19.3`` to install from PyPI.
+
 ::
 
     pip install pandas
@@ -140,8 +143,8 @@ Installing with ActivePython
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Installation instructions for
-`ActivePython <https://www.activestate.com/activepython>`__ can be found
-`here <https://www.activestate.com/activepython/downloads>`__. Versions
+`ActivePython <https://www.activestate.com/products/python/>`__ can be found
+`here <https://www.activestate.com/products/python/>`__. Versions
 2.7, 3.5 and 3.6 include pandas.
 
 Installing using your Linux distribution's package manager.
@@ -155,10 +158,10 @@ The commands in this table will install pandas for Python 3 from your distributi
 
 
     Debian, stable, `official Debian repository <https://packages.debian.org/search?keywords=pandas&searchon=names&suite=all&section=all>`__ , ``sudo apt-get install python3-pandas``
-    Debian & Ubuntu, unstable (latest packages), `NeuroDebian <http://neuro.debian.net/index.html#how-to-use-this-repository>`__ , ``sudo apt-get install python3-pandas``
+    Debian & Ubuntu, unstable (latest packages), `NeuroDebian <https://neuro.debian.net/index.html#how-to-use-this-repository>`__ , ``sudo apt-get install python3-pandas``
     Ubuntu, stable, `official Ubuntu repository <https://packages.ubuntu.com/search?keywords=pandas&searchon=names&suite=all&section=all>`__ , ``sudo apt-get install python3-pandas``
     OpenSuse, stable, `OpenSuse Repository  <https://software.opensuse.org/package/python-pandas?search_term=pandas>`__ , ``zypper in python3-pandas``
-    Fedora, stable, `official Fedora repository  <https://admin.fedoraproject.org/pkgdb/package/rpms/python-pandas/>`__ , ``dnf install python3-pandas``
+    Fedora, stable, `official Fedora repository  <https://src.fedoraproject.org/rpms/python-pandas>`__ , ``dnf install python3-pandas``
     Centos/RHEL, stable, `EPEL repository <https://admin.fedoraproject.org/pkgdb/package/rpms/python-pandas/>`__ , ``yum install python3-pandas``
 
 **However**, the packages in the linux package managers are often a few versions behind, so
@@ -196,7 +199,7 @@ the code base as of this writing. To run it on your machine to verify that
 everything is working (and that you have all of the dependencies, soft and hard,
 installed), make sure you have `pytest
 <https://docs.pytest.org/en/latest/>`__ >= 6.0 and `Hypothesis
-<https://hypothesis.readthedocs.io/>`__ >= 3.58, then run:
+<https://hypothesis.readthedocs.io/en/latest/>`__ >= 3.58, then run:
 
 ::
 
@@ -221,9 +224,9 @@ Dependencies
 ================================================================ ==========================
 Package                                                          Minimum supported version
 ================================================================ ==========================
-`NumPy <https://numpy.org>`__                                    1.17.3
-`python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.7.3
-`pytz <https://pypi.org/project/pytz/>`__                        2017.3
+`NumPy <https://numpy.org>`__                                    1.18.5
+`python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.8.1
+`pytz <https://pypi.org/project/pytz/>`__                        2020.1
 ================================================================ ==========================
 
 .. _install.recommended_dependencies:
@@ -233,11 +236,11 @@ Recommended dependencies
 
 * `numexpr <https://github.com/pydata/numexpr>`__: for accelerating certain numerical operations.
   ``numexpr`` uses multiple cores as well as smart chunking and caching to achieve large speedups.
-  If installed, must be Version 2.7.0 or higher.
+  If installed, must be Version 2.7.1 or higher.
 
 * `bottleneck <https://github.com/pydata/bottleneck>`__: for accelerating certain types of ``nan``
   evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups. If installed,
-  must be Version 1.2.1 or higher.
+  must be Version 1.3.1 or higher.
 
 .. note::
 
@@ -262,9 +265,8 @@ Visualization
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-setuptools                38.6.0             Utils for entry points of plotting backend
-matplotlib                2.2.3              Plotting library
-Jinja2                    2.10               Conditional formatting with DataFrame.style
+matplotlib                3.3.2              Plotting library
+Jinja2                    2.11               Conditional formatting with DataFrame.style
 tabulate                  0.8.7              Printing in Markdown-friendly format (see `tabulate`_)
 ========================= ================== =============================================================
 
@@ -274,10 +276,10 @@ Computation
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-SciPy                     1.12.0             Miscellaneous statistical functions
-numba                     0.46.0             Alternative execution engine for rolling operations
+SciPy                     1.14.1             Miscellaneous statistical functions
+numba                     0.50.1             Alternative execution engine for rolling operations
                                              (see :ref:`Enhancing Performance <enhancingperf.numba>`)
-xarray                    0.12.3             pandas-like API for N-dimensional data
+xarray                    0.15.1             pandas-like API for N-dimensional data
 ========================= ================== =============================================================
 
 Excel files
@@ -286,10 +288,10 @@ Excel files
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-xlrd                      1.2.0              Reading Excel
+xlrd                      2.0.1              Reading Excel
 xlwt                      1.3.0              Writing Excel
-xlsxwriter                1.0.2              Writing Excel
-openpyxl                  3.0.0              Reading / writing for xlsx files
+xlsxwriter                1.2.2              Writing Excel
+openpyxl                  3.0.3              Reading / writing for xlsx files
 pyxlsb                    1.0.6              Reading for xlsb files
 ========================= ================== =============================================================
 
@@ -299,9 +301,9 @@ HTML
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-BeautifulSoup4            4.6.0              HTML parser for read_html
-html5lib                  1.0.1              HTML parser for read_html
-lxml                      4.3.0              HTML parser for read_html
+BeautifulSoup4            4.8.2              HTML parser for read_html
+html5lib                  1.1                HTML parser for read_html
+lxml                      4.5.0              HTML parser for read_html
 ========================= ================== =============================================================
 
 One of the following combinations of libraries is needed to use the
@@ -334,7 +336,7 @@ XML
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-lxml                      4.3.0              XML parser for read_xml and tree builder for to_xml
+lxml                      4.5.0              XML parser for read_xml and tree builder for to_xml
 ========================= ================== =============================================================
 
 SQL databases
@@ -343,9 +345,9 @@ SQL databases
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-SQLAlchemy                1.3.0              SQL support for databases other than sqlite
-psycopg2                  2.7                PostgreSQL engine for sqlalchemy
-pymysql                   0.8.1              MySQL engine for sqlalchemy
+SQLAlchemy                1.4.0               SQL support for databases other than sqlite
+psycopg2                  2.8.4               PostgreSQL engine for sqlalchemy
+pymysql                   0.10.1              MySQL engine for sqlalchemy
 ========================= ================== =============================================================
 
 Other data sources
@@ -354,12 +356,12 @@ Other data sources
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-PyTables                  3.5.1              HDF5-based reading / writing
-blosc                     1.17.0             Compression for HDF5
+PyTables                  3.6.1              HDF5-based reading / writing
+blosc                     1.20.1             Compression for HDF5
 zlib                                         Compression for HDF5
 fastparquet               0.4.0              Parquet reading / writing
-pyarrow                   0.17.0             Parquet, ORC, and feather reading / writing
-pyreadstat                                   SPSS files (.sav) reading
+pyarrow                   1.0.1              Parquet, ORC, and feather reading / writing
+pyreadstat                1.1.0              SPSS files (.sav) reading
 ========================= ================== =============================================================
 
 .. _install.warn_orc:
@@ -385,7 +387,7 @@ Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
 fsspec                    0.7.4              Handling files aside from simple local and HTTP
 gcsfs                     0.6.0              Google Cloud Storage access
-pandas-gbq                0.12.0             Google Big Query access
+pandas-gbq                0.14.0             Google Big Query access
 s3fs                      0.4.0              Amazon S3 access
 ========================= ================== =============================================================
 
@@ -399,4 +401,14 @@ PyQt4/PyQt5                                  Clipboard I/O
 qtpy                                         Clipboard I/O
 xclip                                        Clipboard I/O on linux
 xsel                                         Clipboard I/O on linux
+========================= ================== =============================================================
+
+
+Compression
+^^^^^^^^^^^
+
+========================= ================== =============================================================
+Dependency                Minimum Version    Notes
+========================= ================== =============================================================
+Zstandard                                    Zstandard compression
 ========================= ================== =============================================================

@@ -200,5 +200,41 @@ class TestCategoricalConcat:
         dfx = pd.concat([df1, df2])
         tm.assert_index_equal(df["grade"].cat.categories, dfx["grade"].cat.categories)
 
-        dfa = df1.append(df2)
+        dfa = df1._append(df2)
         tm.assert_index_equal(df["grade"].cat.categories, dfa["grade"].cat.categories)
+
+    def test_categorical_index_upcast(self):
+        # GH 17629
+        # test upcasting to object when concatinating on categorical indexes
+        # with non-identical categories
+
+        a = DataFrame({"foo": [1, 2]}, index=Categorical(["foo", "bar"]))
+        b = DataFrame({"foo": [4, 3]}, index=Categorical(["baz", "bar"]))
+
+        res = pd.concat([a, b])
+        exp = DataFrame({"foo": [1, 2, 4, 3]}, index=["foo", "bar", "baz", "bar"])
+
+        tm.assert_equal(res, exp)
+
+        a = Series([1, 2], index=Categorical(["foo", "bar"]))
+        b = Series([4, 3], index=Categorical(["baz", "bar"]))
+
+        res = pd.concat([a, b])
+        exp = Series([1, 2, 4, 3], index=["foo", "bar", "baz", "bar"])
+
+        tm.assert_equal(res, exp)
+
+    def test_categorical_missing_from_one_frame(self):
+        # GH 25412
+        df1 = DataFrame({"f1": [1, 2, 3]})
+        df2 = DataFrame({"f1": [2, 3, 1], "f2": Series([4, 4, 4]).astype("category")})
+        result = pd.concat([df1, df2], sort=True)
+        dtype = CategoricalDtype([4])
+        expected = DataFrame(
+            {
+                "f1": [1, 2, 3, 2, 3, 1],
+                "f2": Categorical.from_codes([-1, -1, -1, 0, 0, 0], dtype=dtype),
+            },
+            index=[0, 1, 2, 0, 1, 2],
+        )
+        tm.assert_frame_equal(result, expected)

@@ -12,41 +12,23 @@ Additional tests should either be added to one of the BaseExtensionTests
 classes (if they are relevant for the extension interface for all dtypes), or
 be added to the array-specific tests in `pandas/tests/arrays/`.
 
+Note: we do not bother with base.BaseIndexTests because PandasArray
+will never be held in an Index.
 """
 import numpy as np
 import pytest
-
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.cast import can_hold_element
 from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
     PandasDtype,
 )
-from pandas.core.dtypes.generic import ABCPandasArray
 
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.numpy_ import PandasArray
-from pandas.core.internals import (
-    blocks,
-    managers,
-)
+from pandas.core.internals import blocks
 from pandas.tests.extension import base
-
-# TODO(ArrayManager) PandasArray
-pytestmark = td.skip_array_manager_not_yet_implemented
-
-
-def _extract_array_patched(obj):
-    if isinstance(obj, (pd.Index, pd.Series)):
-        obj = obj._values
-    if isinstance(obj, ABCPandasArray):
-        # TODO for reasons unclear, we get here in a couple of tests
-        #  with PandasArray._typ *not* patched
-        obj = obj.to_numpy()
-
-    return obj
 
 
 def _can_hold_element_patched(obj, element) -> bool:
@@ -98,7 +80,6 @@ def allow_in_pandas(monkeypatch):
     """
     with monkeypatch.context() as m:
         m.setattr(PandasArray, "_typ", "extension")
-        m.setattr(managers, "_extract_array", _extract_array_patched)
         m.setattr(blocks, "can_hold_element", _can_hold_element_patched)
         m.setattr(tm.asserters, "assert_attr_equal", _assert_attr_equal)
         yield
@@ -286,6 +267,18 @@ class TestMethods(BaseNumPyTests, base.BaseMethodsTests):
     def test_diff(self, data, periods):
         return super().test_diff(data, periods)
 
+    def test_insert(self, data, request):
+        if data.dtype.numpy_dtype == object:
+            mark = pytest.mark.xfail(reason="Dimension mismatch in np.concatenate")
+            request.node.add_marker(mark)
+
+        super().test_insert(data)
+
+    @skip_nested
+    def test_insert_invalid(self, data, invalid_scalar):
+        # PandasArray[object] can hold anything, so skip
+        super().test_insert_invalid(data, invalid_scalar)
+
 
 class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
     divmod_exc = None
@@ -357,33 +350,31 @@ class TestReshaping(BaseNumPyTests, base.BaseReshapingTests):
         # Fails creating expected (key column becomes a PandasDtype because)
         super().test_merge(data, na_value)
 
+    @pytest.mark.parametrize(
+        "in_frame",
+        [
+            True,
+            pytest.param(
+                False,
+                marks=pytest.mark.xfail(reason="PandasArray inconsistently extracted"),
+            ),
+        ],
+    )
+    def test_concat(self, data, in_frame):
+        super().test_concat(data, in_frame)
+
 
 class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
+    @skip_nested
+    def test_setitem_invalid(self, data, invalid_scalar):
+        # object dtype can hold anything, so doesn't raise
+        super().test_setitem_invalid(data, invalid_scalar)
+
     @skip_nested
     def test_setitem_sequence_broadcasts(self, data, box_in_series):
         # ValueError: cannot set using a list-like indexer with a different
         # length than the value
         super().test_setitem_sequence_broadcasts(data, box_in_series)
-
-    @skip_nested
-    def test_setitem_loc_scalar_mixed(self, data):
-        # AssertionError
-        super().test_setitem_loc_scalar_mixed(data)
-
-    @skip_nested
-    def test_setitem_loc_scalar_multiple_homogoneous(self, data):
-        # AssertionError
-        super().test_setitem_loc_scalar_multiple_homogoneous(data)
-
-    @skip_nested
-    def test_setitem_iloc_scalar_mixed(self, data):
-        # AssertionError
-        super().test_setitem_iloc_scalar_mixed(data)
-
-    @skip_nested
-    def test_setitem_iloc_scalar_multiple_homogoneous(self, data):
-        # AssertionError
-        super().test_setitem_iloc_scalar_multiple_homogoneous(data)
 
     @skip_nested
     @pytest.mark.parametrize("setter", ["loc", None])
@@ -468,5 +459,5 @@ class TestParsing(BaseNumPyTests, base.BaseParsingTests):
     pass
 
 
-class Test2DCompat(BaseNumPyTests, base.Dim2CompatTests):
+class Test2DCompat(BaseNumPyTests, base.NDArrayBacked2DTests):
     pass

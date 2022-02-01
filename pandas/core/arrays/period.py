@@ -6,11 +6,13 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Literal,
     Sequence,
 )
 
 import numpy as np
 
+from pandas._libs import algos as libalgos
 from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import (
     BaseOffset,
@@ -41,6 +43,7 @@ from pandas._typing import (
     AnyArrayLike,
     Dtype,
     NpDtype,
+    npt,
 )
 from pandas.util._decorators import (
     cache_readonly,
@@ -50,6 +53,7 @@ from pandas.util._decorators import (
 from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
     ensure_object,
+    is_datetime64_any_dtype,
     is_datetime64_dtype,
     is_dtype_equal,
     is_float_dtype,
@@ -71,10 +75,18 @@ from pandas.core.dtypes.missing import (
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import datetimelike as dtl
+from pandas.core.arrays.base import ExtensionArray
 import pandas.core.common as com
 
 if TYPE_CHECKING:
+
+    from pandas._typing import (
+        NumpySorter,
+        NumpyValueArrayLike,
+    )
+
     from pandas.core.arrays import DatetimeArray
+
 
 _shared_doc_kwargs = {
     "klass": "PeriodArray",
@@ -496,7 +508,22 @@ class PeriodArray(dtl.DatelikeOps):
         new_parr = self.asfreq(freq, how=how)
 
         new_data = libperiod.periodarr_to_dt64arr(new_parr.asi8, base)
-        return DatetimeArray(new_data)._with_freq("infer")
+        dta = DatetimeArray(new_data)
+
+        if self.freq.name == "B":
+            # See if we can retain BDay instead of Day in cases where
+            #  len(self) is too small for infer_freq to distinguish between them
+            diffs = libalgos.unique_deltas(self.asi8)
+            if len(diffs) == 1:
+                diff = diffs[0]
+                if diff == self.freq.n:
+                    dta._freq = self.freq
+                elif diff == 1:
+                    dta._freq = self.freq.base
+                # TODO: other cases?
+            return dta
+        else:
+            return dta._with_freq("infer")
 
     # --------------------------------------------------------------------
 
@@ -521,7 +548,7 @@ class PeriodArray(dtl.DatelikeOps):
                 f"{type(self).__name__}._time_shift"
             )
         values = self.asi8 + periods * self.freq.n
-        if self._hasnans:
+        if self._hasna:
             values[self._isnan] = iNaT
         return type(self)(values, freq=self.freq)
 
@@ -591,7 +618,7 @@ class PeriodArray(dtl.DatelikeOps):
 
         new_data = period_asfreq_arr(ordinal, base1, base2, end)
 
-        if self._hasnans:
+        if self._hasna:
             new_data[self._isnan] = iNaT
 
         return type(self)(new_data, freq=freq)
@@ -606,7 +633,7 @@ class PeriodArray(dtl.DatelikeOps):
 
     @dtl.ravel_compat
     def _format_native_types(
-        self, na_rep="NaT", date_format=None, **kwargs
+        self, *, na_rep="NaT", date_format=None, **kwargs
     ) -> np.ndarray:
         """
         actually format my specific types
@@ -618,7 +645,7 @@ class PeriodArray(dtl.DatelikeOps):
         else:
             formatter = lambda dt: str(dt)
 
-        if self._hasnans:
+        if self._hasna:
             mask = self._isnan
             values[mask] = na_rep
             imask = ~mask
@@ -640,21 +667,34 @@ class PeriodArray(dtl.DatelikeOps):
                 return self.copy()
         if is_period_dtype(dtype):
             return self.asfreq(dtype.freq)
+
+        if is_datetime64_any_dtype(dtype):
+            # GH#45038 match PeriodIndex behavior.
+            tz = getattr(dtype, "tz", None)
+            return self.to_timestamp().tz_localize(tz)
+
         return super().astype(dtype, copy=copy)
 
-    def searchsorted(self, value, side="left", sorter=None) -> np.ndarray:
-        value = self._validate_searchsorted_value(value).view("M8[ns]")
+    def searchsorted(
+        self,
+        value: NumpyValueArrayLike | ExtensionArray,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter = None,
+    ) -> npt.NDArray[np.intp] | np.intp:
+        npvalue = self._validate_searchsorted_value(value).view("M8[ns]")
 
         # Cast to M8 to get datetime-like NaT placement
         m8arr = self._ndarray.view("M8[ns]")
-        return m8arr.searchsorted(value, side=side, sorter=sorter)
+        return m8arr.searchsorted(npvalue, side=side, sorter=sorter)
 
     def fillna(self, value=None, method=None, limit=None) -> PeriodArray:
         if method is not None:
             # view as dt64 so we get treated as timelike in core.missing
             dta = self.view("M8[ns]")
             result = dta.fillna(value=value, method=method, limit=limit)
-            return result.view(self.dtype)
+            # error: Incompatible return value type (got "Union[ExtensionArray,
+            # ndarray[Any, Any]]", expected "PeriodArray")
+            return result.view(self.dtype)  # type: ignore[return-value]
         return super().fillna(value=value, method=method, limit=limit)
 
     # ------------------------------------------------------------------
@@ -672,7 +712,7 @@ class PeriodArray(dtl.DatelikeOps):
         new_data = asi8 - other.ordinal
         new_data = np.array([self.freq * x for x in new_data])
 
-        if self._hasnans:
+        if self._hasna:
             new_data[self._isnan] = NaT
 
         return new_data
@@ -699,7 +739,7 @@ class PeriodArray(dtl.DatelikeOps):
         )
 
         new_values = np.array([self.freq.base * x for x in new_values])
-        if self._hasnans or other._hasnans:
+        if self._hasna or other._hasna:
             mask = self._isnan | other._isnan
             new_values[mask] = NaT
         return new_values
@@ -1072,11 +1112,10 @@ def dt64arr_to_periodarr(data, freq, tz=None):
         elif isinstance(data, ABCSeries):
             data, freq = data._values, data.dt.freq
 
-    freq = Period._maybe_convert_freq(freq)
-
-    if isinstance(data, (ABCIndex, ABCSeries)):
+    elif isinstance(data, (ABCIndex, ABCSeries)):
         data = data._values
 
+    freq = Period._maybe_convert_freq(freq)
     base = freq._period_dtype_code
     return c_dt64arr_to_periodarr(data.view("i8"), base, tz), freq
 
@@ -1138,7 +1177,7 @@ def _range_from_fields(
     minute=None,
     second=None,
     freq=None,
-):
+) -> tuple[np.ndarray, BaseOffset]:
     if hour is None:
         hour = 0
     if minute is None:
@@ -1176,7 +1215,7 @@ def _range_from_fields(
     return np.array(ordinals, dtype=np.int64), freq
 
 
-def _make_field_arrays(*fields):
+def _make_field_arrays(*fields) -> list[np.ndarray]:
     length = None
     for x in fields:
         if isinstance(x, (list, np.ndarray, ABCSeries)):

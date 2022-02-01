@@ -393,26 +393,27 @@ class TestSparseIndexCommon:
             exp = np.array([-1, -1, 1, -1], dtype=np.int32)
             tm.assert_numpy_array_equal(res, exp)
 
-    def test_lookup_basics(self):
-        def _check(index):
-            assert index.lookup(0) == -1
-            assert index.lookup(5) == 0
-            assert index.lookup(7) == 2
-            assert index.lookup(8) == -1
-            assert index.lookup(9) == -1
-            assert index.lookup(10) == -1
-            assert index.lookup(11) == -1
-            assert index.lookup(12) == 3
-            assert index.lookup(17) == 8
-            assert index.lookup(18) == -1
-
+    @pytest.mark.parametrize(
+        "idx, expected",
+        [
+            [0, -1],
+            [5, 0],
+            [7, 2],
+            [8, -1],
+            [9, -1],
+            [10, -1],
+            [11, -1],
+            [12, 3],
+            [17, 8],
+            [18, -1],
+        ],
+    )
+    def test_lookup_basics(self, idx, expected):
         bindex = BlockIndex(20, [5, 12], [3, 6])
+        assert bindex.lookup(idx) == expected
+
         iindex = bindex.to_int_index()
-
-        _check(bindex)
-        _check(iindex)
-
-        # corner cases
+        assert iindex.lookup(idx) == expected
 
 
 class TestBlockIndex:
@@ -460,11 +461,10 @@ class TestBlockIndex:
         lengths = []
 
         # 0-length OK
-        # TODO: index variables are not used...is that right?
-        index = BlockIndex(0, locs, lengths)
+        BlockIndex(0, locs, lengths)
 
         # also OK even though empty
-        index = BlockIndex(1, locs, lengths)  # noqa
+        BlockIndex(1, locs, lengths)
 
         msg = "Block 0 extends beyond end"
         with pytest.raises(ValueError, match=msg):

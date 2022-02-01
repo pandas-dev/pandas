@@ -5,10 +5,50 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core.arrays import IntervalArray
 
 
 class TestSeriesReplace:
-    def test_replace(self, datetime_series):
+    def test_replace_explicit_none(self):
+        # GH#36984 if the user explicitly passes value=None, give it to them
+        ser = pd.Series([0, 0, ""], dtype=object)
+        result = ser.replace("", None)
+        expected = pd.Series([0, 0, None], dtype=object)
+        tm.assert_series_equal(result, expected)
+
+        df = pd.DataFrame(np.zeros((3, 3)))
+        df.iloc[2, 2] = ""
+        result = df.replace("", None)
+        expected = pd.DataFrame(
+            {
+                0: np.zeros(3),
+                1: np.zeros(3),
+                2: np.array([0.0, 0.0, None], dtype=object),
+            }
+        )
+        assert expected.iloc[2, 2] is None
+        tm.assert_frame_equal(result, expected)
+
+        # GH#19998 same thing with object dtype
+        ser = pd.Series([10, 20, 30, "a", "a", "b", "a"])
+        result = ser.replace("a", None)
+        expected = pd.Series([10, 20, 30, None, None, "b", None])
+        assert expected.iloc[-1] is None
+        tm.assert_series_equal(result, expected)
+
+    def test_replace_noop_doesnt_downcast(self):
+        # GH#44498
+        ser = pd.Series([None, None, pd.Timestamp("2021-12-16 17:31")], dtype=object)
+        res = ser.replace({np.nan: None})  # should be a no-op
+        tm.assert_series_equal(res, ser)
+        assert res.dtype == object
+
+        # same thing but different calling convention
+        res = ser.replace(np.nan, None)
+        tm.assert_series_equal(res, ser)
+        assert res.dtype == object
+
+    def test_replace(self):
         N = 100
         ser = pd.Series(np.random.randn(N))
         ser[0:4] = np.nan
@@ -58,6 +98,7 @@ class TestSeriesReplace:
         assert (ser[6:10] == -1).all()
         assert (ser[20:30] == -1).all()
 
+    def test_replace_nan_with_inf(self):
         ser = pd.Series([np.nan, 0, np.inf])
         tm.assert_series_equal(ser.replace(np.nan, 0), ser.fillna(0))
 
@@ -67,6 +108,7 @@ class TestSeriesReplace:
         filled[4] = 0
         tm.assert_series_equal(ser.replace(np.inf, 0), filled)
 
+    def test_replace_listlike_value_listlike_target(self, datetime_series):
         ser = pd.Series(datetime_series.index)
         tm.assert_series_equal(ser.replace(np.nan, 0), ser.fillna(0))
 
@@ -146,20 +188,21 @@ class TestSeriesReplace:
         tm.assert_series_equal(s, ser)
 
     def test_replace_mixed_types(self):
-        s = pd.Series(np.arange(5), dtype="int64")
+        ser = pd.Series(np.arange(5), dtype="int64")
 
         def check_replace(to_rep, val, expected):
-            sc = s.copy()
-            r = s.replace(to_rep, val)
+            sc = ser.copy()
+            result = ser.replace(to_rep, val)
             return_value = sc.replace(to_rep, val, inplace=True)
             assert return_value is None
-            tm.assert_series_equal(expected, r)
+            tm.assert_series_equal(expected, result)
             tm.assert_series_equal(expected, sc)
 
-        # MUST upcast to float
-        e = pd.Series([0.0, 1.0, 2.0, 3.0, 4.0])
+        # 3.0 can still be held in our int64 series, so we do not upcast GH#44940
         tr, v = [3], [3.0]
-        check_replace(tr, v, e)
+        check_replace(tr, v, ser)
+        # Note this matches what we get with the scalars 3 and 3.0
+        check_replace(tr[0], v[0], ser)
 
         # MUST upcast to float
         e = pd.Series([0, 1, 2, 3.5, 4])
@@ -211,12 +254,12 @@ class TestSeriesReplace:
         expected = pd.Series(["yes", False, "yes"])
         tm.assert_series_equal(result, expected)
 
-    def test_replace_Int_with_na(self, any_nullable_int_dtype):
+    def test_replace_Int_with_na(self, any_int_ea_dtype):
         # GH 38267
-        result = pd.Series([0, None], dtype=any_nullable_int_dtype).replace(0, pd.NA)
-        expected = pd.Series([pd.NA, pd.NA], dtype=any_nullable_int_dtype)
+        result = pd.Series([0, None], dtype=any_int_ea_dtype).replace(0, pd.NA)
+        expected = pd.Series([pd.NA, pd.NA], dtype=any_int_ea_dtype)
         tm.assert_series_equal(result, expected)
-        result = pd.Series([0, 1], dtype=any_nullable_int_dtype).replace(0, pd.NA)
+        result = pd.Series([0, 1], dtype=any_int_ea_dtype).replace(0, pd.NA)
         result.replace(1, pd.NA, inplace=True)
         tm.assert_series_equal(result, expected)
 
@@ -255,10 +298,10 @@ class TestSeriesReplace:
         assert (ser[20:30] == -1).all()
 
     def test_replace_with_dictlike_and_string_dtype(self, nullable_string_dtype):
-        # GH 32621
-        s = pd.Series(["one", "two", np.nan], dtype=nullable_string_dtype)
-        expected = pd.Series(["1", "2", np.nan])
-        result = s.replace({"one": "1", "two": "2"})
+        # GH 32621, GH#44940
+        ser = pd.Series(["one", "two", np.nan], dtype=nullable_string_dtype)
+        expected = pd.Series(["1", "2", np.nan], dtype=nullable_string_dtype)
+        result = ser.replace({"one": "1", "two": "2"})
         tm.assert_series_equal(expected, result)
 
     def test_replace_with_empty_dictlike(self):
@@ -266,7 +309,7 @@ class TestSeriesReplace:
         s = pd.Series(list("abcd"))
         tm.assert_series_equal(s, s.replace({}))
 
-        with tm.assert_produces_warning(DeprecationWarning):
+        with tm.assert_produces_warning(FutureWarning):
             empty_series = pd.Series([])
         tm.assert_series_equal(s, s.replace(empty_series))
 
@@ -303,17 +346,18 @@ class TestSeriesReplace:
         "categorical, numeric",
         [
             (pd.Categorical(["A"], categories=["A", "B"]), [1]),
-            (pd.Categorical(("A",), categories=["A", "B"]), [1]),
-            (pd.Categorical(("A", "B"), categories=["A", "B"]), [1, 2]),
+            (pd.Categorical(["A", "B"], categories=["A", "B"]), [1, 2]),
         ],
     )
     def test_replace_categorical(self, categorical, numeric):
-        # GH 24971
-        # Do not check if dtypes are equal due to a known issue that
-        # Categorical.replace sometimes coerces to object (GH 23305)
-        s = pd.Series(categorical)
-        result = s.replace({"A": 1, "B": 2})
-        expected = pd.Series(numeric)
+        # GH 24971, GH#23305
+        ser = pd.Series(categorical)
+        result = ser.replace({"A": 1, "B": 2})
+        expected = pd.Series(numeric).astype("category")
+        if 2 not in expected.cat.categories:
+            # i.e. categories should be [1, 2] even if there are no "B"s present
+            # GH#44940
+            expected = expected.cat.add_categories(2)
         tm.assert_series_equal(expected, result)
 
     def test_replace_categorical_single(self):
@@ -419,10 +463,10 @@ class TestSeriesReplace:
         tm.assert_equal(res, obj)
         assert res is not obj
 
-    def test_replace_only_one_dictlike_arg(self):
+    def test_replace_only_one_dictlike_arg(self, fixed_now_ts):
         # GH#33340
 
-        ser = pd.Series([1, 2, "A", pd.Timestamp.now(), True])
+        ser = pd.Series([1, 2, "A", fixed_now_ts, True])
         to_replace = {0: 1, 2: "A"}
         value = "foo"
         msg = "Series.replace cannot use dict-like to_replace and non-None value"
@@ -442,10 +486,168 @@ class TestSeriesReplace:
         # should not have changed dtype
         tm.assert_equal(obj, result)
 
+    def _check_replace_with_method(self, ser: pd.Series):
+        df = ser.to_frame()
+
+        res = ser.replace(ser[1], method="pad")
+        expected = pd.Series([ser[0], ser[0]] + list(ser[2:]), dtype=ser.dtype)
+        tm.assert_series_equal(res, expected)
+
+        res_df = df.replace(ser[1], method="pad")
+        tm.assert_frame_equal(res_df, expected.to_frame())
+
+        ser2 = ser.copy()
+        res2 = ser2.replace(ser[1], method="pad", inplace=True)
+        assert res2 is None
+        tm.assert_series_equal(ser2, expected)
+
+        res_df2 = df.replace(ser[1], method="pad", inplace=True)
+        assert res_df2 is None
+        tm.assert_frame_equal(df, expected.to_frame())
+
+    def test_replace_ea_dtype_with_method(self, any_numeric_ea_dtype):
+        arr = pd.array([1, 2, pd.NA, 4], dtype=any_numeric_ea_dtype)
+        ser = pd.Series(arr)
+
+        self._check_replace_with_method(ser)
+
+    @pytest.mark.parametrize("as_categorical", [True, False])
+    def test_replace_interval_with_method(self, as_categorical):
+        # in particular interval that can't hold NA
+
+        idx = pd.IntervalIndex.from_breaks(range(4))
+        ser = pd.Series(idx)
+        if as_categorical:
+            ser = ser.astype("category")
+
+        self._check_replace_with_method(ser)
+
+    @pytest.mark.parametrize("as_period", [True, False])
+    @pytest.mark.parametrize("as_categorical", [True, False])
+    def test_replace_datetimelike_with_method(self, as_period, as_categorical):
+        idx = pd.date_range("2016-01-01", periods=5, tz="US/Pacific")
+        if as_period:
+            idx = idx.tz_localize(None).to_period("D")
+
+        ser = pd.Series(idx)
+        ser.iloc[-2] = pd.NaT
+        if as_categorical:
+            ser = ser.astype("category")
+
+        self._check_replace_with_method(ser)
+
     def test_replace_with_compiled_regex(self):
         # https://github.com/pandas-dev/pandas/issues/35680
         s = pd.Series(["a", "b", "c"])
         regex = re.compile("^a$")
         result = s.replace({regex: "z"}, regex=True)
         expected = pd.Series(["z", "b", "c"])
+        tm.assert_series_equal(result, expected)
+
+    def test_pandas_replace_na(self):
+        # GH#43344
+        ser = pd.Series(["AA", "BB", "CC", "DD", "EE", "", pd.NA], dtype="string")
+        regex_mapping = {
+            "AA": "CC",
+            "BB": "CC",
+            "EE": "CC",
+            "CC": "CC-REPL",
+        }
+        result = ser.replace(regex_mapping, regex=True)
+        exp = pd.Series(["CC", "CC", "CC-REPL", "DD", "CC", "", pd.NA], dtype="string")
+        tm.assert_series_equal(result, exp)
+
+    @pytest.mark.parametrize(
+        "dtype, input_data, to_replace, expected_data",
+        [
+            ("bool", [True, False], {True: False}, [False, False]),
+            ("int64", [1, 2], {1: 10, 2: 20}, [10, 20]),
+            ("Int64", [1, 2], {1: 10, 2: 20}, [10, 20]),
+            ("float64", [1.1, 2.2], {1.1: 10.1, 2.2: 20.5}, [10.1, 20.5]),
+            ("Float64", [1.1, 2.2], {1.1: 10.1, 2.2: 20.5}, [10.1, 20.5]),
+            ("string", ["one", "two"], {"one": "1", "two": "2"}, ["1", "2"]),
+            (
+                pd.IntervalDtype("int64"),
+                IntervalArray([pd.Interval(1, 2), pd.Interval(2, 3)]),
+                {pd.Interval(1, 2): pd.Interval(10, 20)},
+                IntervalArray([pd.Interval(10, 20), pd.Interval(2, 3)]),
+            ),
+            (
+                pd.IntervalDtype("float64"),
+                IntervalArray([pd.Interval(1.0, 2.7), pd.Interval(2.8, 3.1)]),
+                {pd.Interval(1.0, 2.7): pd.Interval(10.6, 20.8)},
+                IntervalArray([pd.Interval(10.6, 20.8), pd.Interval(2.8, 3.1)]),
+            ),
+            (
+                pd.PeriodDtype("M"),
+                [pd.Period("2020-05", freq="M")],
+                {pd.Period("2020-05", freq="M"): pd.Period("2020-06", freq="M")},
+                [pd.Period("2020-06", freq="M")],
+            ),
+        ],
+    )
+    def test_replace_dtype(self, dtype, input_data, to_replace, expected_data):
+        # GH#33484
+        ser = pd.Series(input_data, dtype=dtype)
+        result = ser.replace(to_replace)
+        expected = pd.Series(expected_data, dtype=dtype)
+        tm.assert_series_equal(result, expected)
+
+    def test_replace_string_dtype(self):
+        # GH#40732, GH#44940
+        ser = pd.Series(["one", "two", np.nan], dtype="string")
+        res = ser.replace({"one": "1", "two": "2"})
+        expected = pd.Series(["1", "2", np.nan], dtype="string")
+        tm.assert_series_equal(res, expected)
+
+        # GH#31644
+        ser2 = pd.Series(["A", np.nan], dtype="string")
+        res2 = ser2.replace("A", "B")
+        expected2 = pd.Series(["B", np.nan], dtype="string")
+        tm.assert_series_equal(res2, expected2)
+
+        ser3 = pd.Series(["A", "B"], dtype="string")
+        res3 = ser3.replace("A", pd.NA)
+        expected3 = pd.Series([pd.NA, "B"], dtype="string")
+        tm.assert_series_equal(res3, expected3)
+
+    def test_replace_string_dtype_list_to_replace(self):
+        # GH#41215, GH#44940
+        ser = pd.Series(["abc", "def"], dtype="string")
+        res = ser.replace(["abc", "any other string"], "xyz")
+        expected = pd.Series(["xyz", "def"], dtype="string")
+        tm.assert_series_equal(res, expected)
+
+    def test_replace_string_dtype_regex(self):
+        # GH#31644
+        ser = pd.Series(["A", "B"], dtype="string")
+        res = ser.replace(r".", "C", regex=True)
+        expected = pd.Series(["C", "C"], dtype="string")
+        tm.assert_series_equal(res, expected)
+
+    def test_replace_nullable_numeric(self):
+        # GH#40732, GH#44940
+
+        floats = pd.Series([1.0, 2.0, 3.999, 4.4], dtype=pd.Float64Dtype())
+        assert floats.replace({1.0: 9}).dtype == floats.dtype
+        assert floats.replace(1.0, 9).dtype == floats.dtype
+        assert floats.replace({1.0: 9.0}).dtype == floats.dtype
+        assert floats.replace(1.0, 9.0).dtype == floats.dtype
+
+        res = floats.replace(to_replace=[1.0, 2.0], value=[9.0, 10.0])
+        assert res.dtype == floats.dtype
+
+        ints = pd.Series([1, 2, 3, 4], dtype=pd.Int64Dtype())
+        assert ints.replace({1: 9}).dtype == ints.dtype
+        assert ints.replace(1, 9).dtype == ints.dtype
+        assert ints.replace({1: 9.0}).dtype == ints.dtype
+        assert ints.replace(1, 9.0).dtype == ints.dtype
+        # FIXME: ints.replace({1: 9.5}) raises bc of incorrect _can_hold_element
+
+    @pytest.mark.parametrize("regex", [False, True])
+    def test_replace_regex_dtype_series(self, regex):
+        # GH-48644
+        series = pd.Series(["0"])
+        expected = pd.Series([1])
+        result = series.replace(to_replace="0", value=1, regex=regex)
         tm.assert_series_equal(result, expected)

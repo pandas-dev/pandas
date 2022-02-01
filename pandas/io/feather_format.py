@@ -1,28 +1,34 @@
 """ feather-format compat """
+from __future__ import annotations
 
-from typing import AnyStr
+from typing import (
+    Hashable,
+    Sequence,
+)
 
 from pandas._typing import (
-    FilePathOrBuffer,
+    FilePath,
+    ReadBuffer,
     StorageOptions,
+    WriteBuffer,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
-from pandas import (
+from pandas.core.api import (
     DataFrame,
     Int64Index,
     RangeIndex,
 )
-from pandas.core import generic
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import get_handle
 
 
-@doc(storage_options=generic._shared_docs["storage_options"])
+@doc(storage_options=_shared_docs["storage_options"])
 def to_feather(
     df: DataFrame,
-    path: FilePathOrBuffer[AnyStr],
+    path: FilePath | WriteBuffer[bytes],
     storage_options: StorageOptions = None,
     **kwargs,
 ):
@@ -32,7 +38,7 @@ def to_feather(
     Parameters
     ----------
     df : DataFrame
-    path : string file path, or file-like object
+    path : str, path object, or file-like object
     {storage_options}
 
         .. versionadded:: 1.2.0
@@ -87,27 +93,23 @@ def to_feather(
         feather.write_feather(df, handles.handle, **kwargs)
 
 
-@doc(storage_options=generic._shared_docs["storage_options"])
+@doc(storage_options=_shared_docs["storage_options"])
 def read_feather(
-    path, columns=None, use_threads: bool = True, storage_options: StorageOptions = None
+    path: FilePath | ReadBuffer[bytes],
+    columns: Sequence[Hashable] | None = None,
+    use_threads: bool = True,
+    storage_options: StorageOptions = None,
 ):
     """
     Load a feather-format object from the file path.
 
     Parameters
     ----------
-    path : str, path object or file-like object
-        Any valid string path is acceptable. The string could be a URL. Valid
-        URL schemes include http, ftp, s3, and file. For file URLs, a host is
-        expected. A local file could be:
-        ``file://localhost/path/to/table.feather``.
-
-        If you want to pass in a path object, pandas accepts any
-        ``os.PathLike``.
-
-        By file-like object, we refer to objects with a ``read()`` method,
-        such as a file handle (e.g. via builtin ``open`` function)
-        or ``StringIO``.
+    path : str, path object, or file-like object
+        String, path object (implementing ``os.PathLike[str]``), or file-like
+        object implementing a binary ``read()`` function. The string could be a URL.
+        Valid URL schemes include http, ftp, s3, and file. For file URLs, a host is
+        expected. A local file could be: ``file://localhost/path/to/table.feather``.
     columns : sequence, default None
         If not provided, all columns are read.
     use_threads : bool, default True

@@ -12,13 +12,9 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.tests.generic.test_generic import Generic
 
 
-class TestDataFrame(Generic):
-    _typ = DataFrame
-    _comparator = lambda self, x, y: tm.assert_frame_equal(x, y)
-
+class TestDataFrame:
     @pytest.mark.parametrize("func", ["_set_axis_name", "rename_axis"])
     def test_set_axis_name(self, func):
         df = DataFrame([[1, 2], [3, 4]])
@@ -76,7 +72,7 @@ class TestDataFrame(Generic):
             }
         )
         result = df.groupby("A").sum()
-        self.check_metadata(df, result)
+        tm.assert_metadata_equivalent(df, result)
 
     def test_metadata_propagation_indiv_resample(self):
         # resample
@@ -85,20 +81,11 @@ class TestDataFrame(Generic):
             index=date_range("20130101", periods=1000, freq="s"),
         )
         result = df.resample("1T")
-        self.check_metadata(df, result)
+        tm.assert_metadata_equivalent(df, result)
 
-    def test_metadata_propagation_indiv(self):
+    def test_metadata_propagation_indiv(self, monkeypatch):
         # merging with override
         # GH 6923
-        _metadata = DataFrame._metadata
-        _finalize = DataFrame.__finalize__
-
-        np.random.seed(10)
-        df1 = DataFrame(np.random.randint(0, 4, (3, 2)), columns=["a", "b"])
-        df2 = DataFrame(np.random.randint(0, 4, (3, 2)), columns=["c", "d"])
-        DataFrame._metadata = ["filename"]
-        df1.filename = "fname1.csv"
-        df2.filename = "fname2.csv"
 
         def finalize(self, other, method=None, **kwargs):
 
@@ -107,41 +94,37 @@ class TestDataFrame(Generic):
                     left, right = other.left, other.right
                     value = getattr(left, name, "") + "|" + getattr(right, name, "")
                     object.__setattr__(self, name, value)
+                elif method == "concat":
+                    value = "+".join(
+                        [getattr(o, name) for o in other.objs if getattr(o, name, None)]
+                    )
+                    object.__setattr__(self, name, value)
                 else:
                     object.__setattr__(self, name, getattr(other, name, ""))
 
             return self
 
-        DataFrame.__finalize__ = finalize
-        result = df1.merge(df2, left_on=["a"], right_on=["c"], how="inner")
-        assert result.filename == "fname1.csv|fname2.csv"
+        with monkeypatch.context() as m:
+            m.setattr(DataFrame, "_metadata", ["filename"])
+            m.setattr(DataFrame, "__finalize__", finalize)
 
-        # concat
-        # GH 6927
-        DataFrame._metadata = ["filename"]
-        df1 = DataFrame(np.random.randint(0, 4, (3, 2)), columns=list("ab"))
-        df1.filename = "foo"
+            np.random.seed(10)
+            df1 = DataFrame(np.random.randint(0, 4, (3, 2)), columns=["a", "b"])
+            df2 = DataFrame(np.random.randint(0, 4, (3, 2)), columns=["c", "d"])
+            DataFrame._metadata = ["filename"]
+            df1.filename = "fname1.csv"
+            df2.filename = "fname2.csv"
 
-        def finalize(self, other, method=None, **kwargs):
-            for name in self._metadata:
-                if method == "concat":
-                    value = "+".join(
-                        getattr(o, name) for o in other.objs if getattr(o, name, None)
-                    )
-                    object.__setattr__(self, name, value)
-                else:
-                    object.__setattr__(self, name, getattr(other, name, None))
+            result = df1.merge(df2, left_on=["a"], right_on=["c"], how="inner")
+            assert result.filename == "fname1.csv|fname2.csv"
 
-            return self
+            # concat
+            # GH#6927
+            df1 = DataFrame(np.random.randint(0, 4, (3, 2)), columns=list("ab"))
+            df1.filename = "foo"
 
-        DataFrame.__finalize__ = finalize
-
-        result = pd.concat([df1, df1])
-        assert result.filename == "foo+foo"
-
-        # reset
-        DataFrame._metadata = _metadata
-        DataFrame.__finalize__ = _finalize  # FIXME: use monkeypatch
+            result = pd.concat([df1, df1])
+            assert result.filename == "foo+foo"
 
     def test_set_attribute(self):
         # Test for consistent setattr behavior when an attribute and a column
@@ -161,7 +144,7 @@ class TestDataFrame(Generic):
         empty_frame = DataFrame(data=[], index=[], columns=["A"])
         empty_frame_copy = deepcopy(empty_frame)
 
-        self._compare(empty_frame_copy, empty_frame)
+        tm.assert_frame_equal(empty_frame_copy, empty_frame)
 
 
 # formerly in Generic but only test DataFrame

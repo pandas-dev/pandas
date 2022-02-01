@@ -1,6 +1,16 @@
+from __future__ import annotations
+
 from typing import (
-    List,
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Hashable,
+    Iterable,
+    Literal,
     MutableMapping,
+    Sequence,
+    TypeVar,
+    overload,
 )
 
 from pandas.compat._optional import import_optional_dependency
@@ -10,10 +20,16 @@ from pandas.core.dtypes.common import (
     is_list_like,
 )
 
-_writers: MutableMapping[str, str] = {}
+if TYPE_CHECKING:
+    from pandas.io.excel._base import ExcelWriter
+
+    ExcelWriter_t = type[ExcelWriter]
+    usecols_func = TypeVar("usecols_func", bound=Callable[[Hashable], object])
+
+_writers: MutableMapping[str, ExcelWriter_t] = {}
 
 
-def register_writer(klass):
+def register_writer(klass: ExcelWriter_t) -> None:
     """
     Add engine to the excel writer registry.io.excel.
 
@@ -26,10 +42,12 @@ def register_writer(klass):
     if not callable(klass):
         raise ValueError("Can only register callables as engines")
     engine_name = klass.engine
+    # for mypy
+    assert isinstance(engine_name, str)
     _writers[engine_name] = klass
 
 
-def get_default_engine(ext, mode="reader"):
+def get_default_engine(ext: str, mode: Literal["reader", "writer"] = "reader") -> str:
     """
     Return the default reader/writer for the given extension.
 
@@ -71,7 +89,7 @@ def get_default_engine(ext, mode="reader"):
         return _default_readers[ext]
 
 
-def get_writer(engine_name):
+def get_writer(engine_name: str) -> ExcelWriter_t:
     try:
         return _writers[engine_name]
     except KeyError as err:
@@ -110,7 +128,7 @@ def _excel2num(x: str) -> int:
     return index - 1
 
 
-def _range2cols(areas: str) -> List[int]:
+def _range2cols(areas: str) -> list[int]:
     """
     Convert comma separated list of column names and ranges to indices.
 
@@ -131,7 +149,7 @@ def _range2cols(areas: str) -> List[int]:
     >>> _range2cols('A,C,Z:AB')
     [0, 2, 25, 26, 27]
     """
-    cols: List[int] = []
+    cols: list[int] = []
 
     for rng in areas.split(","):
         if ":" in rng:
@@ -143,7 +161,29 @@ def _range2cols(areas: str) -> List[int]:
     return cols
 
 
-def maybe_convert_usecols(usecols):
+@overload
+def maybe_convert_usecols(usecols: str | list[int]) -> list[int]:
+    ...
+
+
+@overload
+def maybe_convert_usecols(usecols: list[str]) -> list[str]:
+    ...
+
+
+@overload
+def maybe_convert_usecols(usecols: usecols_func) -> usecols_func:
+    ...
+
+
+@overload
+def maybe_convert_usecols(usecols: None) -> None:
+    ...
+
+
+def maybe_convert_usecols(
+    usecols: str | list[int] | list[str] | usecols_func | None,
+) -> None | list[int] | list[str] | usecols_func:
     """
     Convert `usecols` into a compatible format for parsing in `parsers.py`.
 
@@ -172,7 +212,17 @@ def maybe_convert_usecols(usecols):
     return usecols
 
 
-def validate_freeze_panes(freeze_panes):
+@overload
+def validate_freeze_panes(freeze_panes: tuple[int, int]) -> Literal[True]:
+    ...
+
+
+@overload
+def validate_freeze_panes(freeze_panes: None) -> Literal[False]:
+    ...
+
+
+def validate_freeze_panes(freeze_panes: tuple[int, int] | None) -> bool:
     if freeze_panes is not None:
         if len(freeze_panes) == 2 and all(
             isinstance(item, int) for item in freeze_panes
@@ -189,7 +239,9 @@ def validate_freeze_panes(freeze_panes):
     return False
 
 
-def fill_mi_header(row, control_row):
+def fill_mi_header(
+    row: list[Hashable], control_row: list[bool]
+) -> tuple[list[Hashable], list[bool]]:
     """
     Forward fill blank entries in row but only inside the same parent index.
 
@@ -222,7 +274,9 @@ def fill_mi_header(row, control_row):
     return row, control_row
 
 
-def pop_header_name(row, index_col):
+def pop_header_name(
+    row: list[Hashable], index_col: int | Sequence[int]
+) -> tuple[Hashable | None, list[Hashable]]:
     """
     Pop the header name for MultiIndex parsing.
 
@@ -241,9 +295,41 @@ def pop_header_name(row, index_col):
         The original data row with the header name removed.
     """
     # Pop out header name and fill w/blank.
-    i = index_col if not is_list_like(index_col) else max(index_col)
+    if is_list_like(index_col):
+        assert isinstance(index_col, Iterable)
+        i = max(index_col)
+    else:
+        assert not isinstance(index_col, Iterable)
+        i = index_col
 
     header_name = row[i]
     header_name = None if header_name == "" else header_name
 
     return header_name, row[:i] + [""] + row[i + 1 :]
+
+
+def combine_kwargs(engine_kwargs: dict[str, Any] | None, kwargs: dict) -> dict:
+    """
+    Used to combine two sources of kwargs for the backend engine.
+
+    Use of kwargs is deprecated, this function is solely for use in 1.3 and should
+    be removed in 1.4/2.0. Also _base.ExcelWriter.__new__ ensures either engine_kwargs
+    or kwargs must be None or empty respectively.
+
+    Parameters
+    ----------
+    engine_kwargs: dict
+        kwargs to be passed through to the engine.
+    kwargs: dict
+        kwargs to be psased through to the engine (deprecated)
+
+    Returns
+    -------
+    engine_kwargs combined with kwargs
+    """
+    if engine_kwargs is None:
+        result = {}
+    else:
+        result = engine_kwargs.copy()
+    result.update(kwargs)
+    return result

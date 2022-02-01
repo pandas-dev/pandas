@@ -272,7 +272,7 @@ horizontal and cumulative histograms can be drawn by
    plt.close("all")
 
 See the :meth:`hist <matplotlib.axes.Axes.hist>` method and the
-`matplotlib hist documentation <https://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.hist>`__ for more.
+`matplotlib hist documentation <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.hist.html>`__ for more.
 
 
 The existing interface ``DataFrame.hist`` to plot histogram still can be used.
@@ -316,6 +316,34 @@ The ``by`` keyword can be specified to plot grouped histograms:
    @savefig grouped_hist.png
    data.hist(by=np.random.randint(0, 4, 1000), figsize=(6, 4));
 
+.. ipython:: python
+   :suppress:
+
+   plt.close("all")
+   np.random.seed(123456)
+
+In addition, the ``by`` keyword can also be specified in :meth:`DataFrame.plot.hist`.
+
+.. versionchanged:: 1.4.0
+
+.. ipython:: python
+
+   data = pd.DataFrame(
+       {
+           "a": np.random.choice(["x", "y", "z"], 1000),
+           "b": np.random.choice(["e", "f", "g"], 1000),
+           "c": np.random.randn(1000),
+           "d": np.random.randn(1000) - 1,
+       },
+   )
+
+   @savefig grouped_hist_by.png
+   data.plot.hist(by=["a", "b"], figsize=(10, 5));
+
+.. ipython:: python
+   :suppress:
+
+   plt.close("all")
 
 .. _visualization.box:
 
@@ -382,7 +410,7 @@ For example, horizontal and custom-positioned boxplot can be drawn by
 
 
 See the :meth:`boxplot <matplotlib.axes.Axes.boxplot>` method and the
-`matplotlib boxplot documentation <https://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.boxplot>`__ for more.
+`matplotlib boxplot documentation <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.boxplot.html>`__ for more.
 
 
 The existing interface ``DataFrame.boxplot`` to plot boxplot still can be used.
@@ -442,6 +470,32 @@ columns:
 
    @savefig box_plot_ex3.png
    bp = df.boxplot(column=["Col1", "Col2"], by=["X", "Y"])
+
+.. ipython:: python
+   :suppress:
+
+    plt.close("all")
+
+You could also create groupings with :meth:`DataFrame.plot.box`, for instance:
+
+.. versionchanged:: 1.4.0
+
+.. ipython:: python
+   :suppress:
+
+   plt.close("all")
+   np.random.seed(123456)
+
+.. ipython:: python
+   :okwarning:
+
+   df = pd.DataFrame(np.random.rand(10, 3), columns=["Col1", "Col2", "Col3"])
+   df["X"] = pd.Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
+
+   plt.figure();
+
+   @savefig box_plot_ex4.png
+   bp = df.plot.box(column=["Col1", "Col2"], by="X")
 
 .. ipython:: python
    :suppress:
@@ -620,7 +674,7 @@ bubble chart using a column of the ``DataFrame`` as the bubble size.
    plt.close("all")
 
 See the :meth:`scatter <matplotlib.axes.Axes.scatter>` method and the
-`matplotlib scatter documentation <https://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.scatter>`__ for more.
+`matplotlib scatter documentation <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.scatter.html>`__ for more.
 
 .. _visualization.hexbin:
 
@@ -680,7 +734,7 @@ given by column ``z``. The bins are aggregated with NumPy's ``max`` function.
    plt.close("all")
 
 See the :meth:`hexbin <matplotlib.axes.Axes.hexbin>` method and the
-`matplotlib hexbin documentation <https://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.hexbin>`__ for more.
+`matplotlib hexbin documentation <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.hexbin.html>`__ for more.
 
 .. _visualization.pie:
 
@@ -785,7 +839,7 @@ If you pass values whose sum total is less than 1.0, matplotlib draws a semicirc
    @savefig series_pie_plot_semi.png
    series.plot.pie(figsize=(6, 6));
 
-See the `matplotlib pie documentation <https://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.pie>`__ for more.
+See the `matplotlib pie documentation <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.pie.html>`__ for more.
 
 .. ipython:: python
     :suppress:
@@ -902,7 +956,7 @@ for more information. By coloring these curves differently for each class
 it is possible to visualize data clustering. Curves belonging to samples
 of the same class will usually be closer together and form larger structures.
 
-**Note**: The "Iris" dataset is available `here <https://raw.github.com/pandas-dev/pandas/master/pandas/tests/io/data/csv/iris.csv>`__.
+**Note**: The "Iris" dataset is available `here <https://raw.githubusercontent.com/pandas-dev/pandas/main/pandas/tests/io/data/csv/iris.csv>`__.
 
 .. ipython:: python
 
@@ -1059,10 +1113,10 @@ unit interval). The point in the plane, where our sample settles to (where the
 forces acting on our sample are at an equilibrium) is where a dot representing
 our sample will be drawn. Depending on which class that sample belongs it will
 be colored differently.
-See the R package `Radviz <https://cran.r-project.org/package=Radviz/>`__
+See the R package `Radviz <https://cran.r-project.org/web/packages/Radviz/index.html>`__
 for more information.
 
-**Note**: The "Iris" dataset is available `here <https://raw.github.com/pandas-dev/pandas/master/pandas/tests/io/data/csv/iris.csv>`__.
+**Note**: The "Iris" dataset is available `here <https://raw.githubusercontent.com/pandas-dev/pandas/main/pandas/tests/io/data/csv/iris.csv>`__.
 
 .. ipython:: python
 
@@ -1330,7 +1384,7 @@ tick locator methods, it is useful to call the automatic
 date tick adjustment from matplotlib for figures whose ticklabels overlap.
 
 See the :meth:`autofmt_xdate <matplotlib.figure.autofmt_xdate>` method and the
-`matplotlib documentation <https://matplotlib.org/users/recipes.html#fixing-common-date-annoyances>`__ for more.
+`matplotlib documentation <https://matplotlib.org/2.0.2/users/recipes.html#fixing-common-date-annoyances>`__ for more.
 
 Subplots
 ~~~~~~~~
@@ -1566,7 +1620,7 @@ as seen in the example below.
 There also exists a helper function ``pandas.plotting.table``, which creates a
 table from :class:`DataFrame` or :class:`Series`, and adds it to an
 ``matplotlib.Axes`` instance. This function can accept keywords which the
-matplotlib `table <https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes.table>`__ has.
+matplotlib `table <https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.table.html>`__ has.
 
 .. ipython:: python
 
@@ -1597,7 +1651,7 @@ remedy this, ``DataFrame`` plotting supports the use of the ``colormap`` argumen
 which accepts either a Matplotlib `colormap <https://matplotlib.org/api/cm_api.html>`__
 or a string that is a name of a colormap registered with Matplotlib. A
 visualization of the default matplotlib colormaps is available `here
-<https://matplotlib.org/examples/color/colormaps_reference.html>`__.
+<https://matplotlib.org/stable/gallery/color/colormap_reference.html>`__.
 
 As matplotlib does not directly support colormaps for line-based plots, the
 colors are selected based on an even spacing determined by the number of columns
@@ -1740,7 +1794,7 @@ Starting in version 0.25, pandas can be extended with third-party plotting backe
 main idea is letting users select a plotting backend different than the provided
 one based on Matplotlib.
 
-This can be done by passsing 'backend.module' as the argument ``backend`` in ``plot``
+This can be done by passing 'backend.module' as the argument ``backend`` in ``plot``
 function. For example:
 
 .. code-block:: python

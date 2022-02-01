@@ -24,9 +24,6 @@ from pandas.tests.io.pytables.common import (
     ensure_clean_store,
 )
 
-# TODO(ArrayManager) HDFStore relies on accessing the blocks
-pytestmark = td.skip_array_manager_not_yet_implemented
-
 
 def _compare_with_tz(a, b):
     tm.assert_frame_equal(a, b)
@@ -307,7 +304,7 @@ def test_store_timezone(setup_path):
         tm.assert_frame_equal(result, df)
 
 
-def test_legacy_datetimetz_object(datapath, setup_path):
+def test_legacy_datetimetz_object(datapath):
     # legacy from < 0.17.0
     # 8260
     expected = DataFrame(
@@ -359,7 +356,7 @@ def test_read_with_where_tz_aware_index(setup_path):
         tm.assert_frame_equal(result, expected)
 
 
-def test_py2_created_with_datetimez(datapath, setup_path):
+def test_py2_created_with_datetimez(datapath):
     # The test HDF5 file was created in Python 2, but could not be read in
     # Python 3.
     #

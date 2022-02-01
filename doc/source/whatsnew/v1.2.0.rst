@@ -150,6 +150,7 @@ and a short caption (:issue:`36267`).
 The keyword ``position`` has been added to set the position.
 
 .. ipython:: python
+   :okwarning:
 
    data = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
    table = data.to_latex(position='ht')
@@ -161,6 +162,7 @@ one can optionally provide a tuple ``(full_caption, short_caption)``
 to add a short caption macro.
 
 .. ipython:: python
+   :okwarning:
 
    data = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
    table = data.to_latex(caption=('the full long caption', 'short caption'))

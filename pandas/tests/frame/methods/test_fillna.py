@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     Categorical,
     DataFrame,
@@ -173,7 +171,7 @@ class TestFillNA:
         tm.assert_frame_equal(res, df_exp_fill)
 
         msg = "Cannot setitem on a Categorical with a new category"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             df.fillna(value={"cats": 4, "vals": "c"})
 
         res = df.fillna(method="pad")
@@ -232,7 +230,6 @@ class TestFillNA:
         df = DataFrame({"a": Categorical(idx)})
         tm.assert_frame_equal(df.fillna(value=NaT), df)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) implement downcast
     def test_fillna_downcast(self):
         # GH#15277
         # infer int64 from float64
@@ -247,7 +244,42 @@ class TestFillNA:
         expected = DataFrame({"a": [1, 0]})
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) object upcasting
+    def test_fillna_downcast_false(self, frame_or_series):
+        # GH#45603 preserve object dtype with downcast=False
+        obj = frame_or_series([1, 2, 3], dtype="object")
+        result = obj.fillna("", downcast=False)
+        tm.assert_equal(result, obj)
+
+    def test_fillna_downcast_noop(self, frame_or_series):
+        # GH#45423
+        # Two relevant paths:
+        #  1) not _can_hold_na (e.g. integer)
+        #  2) _can_hold_na + noop + not can_hold_element
+
+        obj = frame_or_series([1, 2, 3], dtype=np.int64)
+        res = obj.fillna("foo", downcast=np.dtype(np.int32))
+        expected = obj.astype(np.int32)
+        tm.assert_equal(res, expected)
+
+        obj2 = obj.astype(np.float64)
+        res2 = obj2.fillna("foo", downcast="infer")
+        expected2 = obj  # get back int64
+        tm.assert_equal(res2, expected2)
+
+        res3 = obj2.fillna("foo", downcast=np.dtype(np.int32))
+        tm.assert_equal(res3, expected)
+
+    @pytest.mark.parametrize("columns", [["A", "A", "B"], ["A", "A"]])
+    def test_fillna_dictlike_value_duplicate_colnames(self, columns):
+        # GH#43476
+        df = DataFrame(np.nan, index=[0, 1], columns=columns)
+        with tm.assert_produces_warning(None):
+            result = df.fillna({"A": 0})
+
+        expected = df.copy()
+        expected["A"] = 0.0
+        tm.assert_frame_equal(result, expected)
+
     def test_fillna_dtype_conversion(self):
         # make sure that fillna on an empty frame works
         df = DataFrame(index=["A", "B", "C"], columns=[1, 2, 3, 4, 5])
@@ -265,7 +297,6 @@ class TestFillNA:
         expected = DataFrame("nan", index=range(3), columns=["A", "B"])
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) object upcasting
     @pytest.mark.parametrize("val", ["", 1, np.nan, 1.0])
     def test_fillna_dtype_conversion_equiv_replace(self, val):
         df = DataFrame({"A": [1, np.nan], "B": [1.0, 2.0]})
@@ -273,7 +304,6 @@ class TestFillNA:
         result = df.fillna(val)
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_invalid_test
     def test_fillna_datetime_columns(self):
         # GH#7095
         df = DataFrame(
@@ -573,6 +603,60 @@ class TestFillNA:
             result = df.fillna(0, None, None)
         expected = DataFrame({"a": [1, 2, 3, 0]}, dtype=float)
         tm.assert_frame_equal(result, expected)
+
+    def test_fillna_with_columns_and_limit(self):
+        # GH40989
+        df = DataFrame(
+            [
+                [np.nan, 2, np.nan, 0],
+                [3, 4, np.nan, 1],
+                [np.nan, np.nan, np.nan, 5],
+                [np.nan, 3, np.nan, 4],
+            ],
+            columns=list("ABCD"),
+        )
+        result = df.fillna(axis=1, value=100, limit=1)
+        result2 = df.fillna(axis=1, value=100, limit=2)
+
+        expected = DataFrame(
+            {
+                "A": Series([100, 3, 100, 100], dtype="float64"),
+                "B": [2, 4, np.nan, 3],
+                "C": [np.nan, 100, np.nan, np.nan],
+                "D": Series([0, 1, 5, 4], dtype="float64"),
+            },
+            index=[0, 1, 2, 3],
+        )
+        expected2 = DataFrame(
+            {
+                "A": Series([100, 3, 100, 100], dtype="float64"),
+                "B": Series([2, 4, 100, 3], dtype="float64"),
+                "C": [100, 100, np.nan, 100],
+                "D": Series([0, 1, 5, 4], dtype="float64"),
+            },
+            index=[0, 1, 2, 3],
+        )
+
+        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result2, expected2)
+
+    def test_fillna_inplace_with_columns_limit_and_value(self):
+        # GH40989
+        df = DataFrame(
+            [
+                [np.nan, 2, np.nan, 0],
+                [3, 4, np.nan, 1],
+                [np.nan, np.nan, np.nan, 5],
+                [np.nan, 3, np.nan, 4],
+            ],
+            columns=list("ABCD"),
+        )
+
+        expected = df.fillna(axis=1, value=100, limit=1)
+        assert expected is not df
+
+        df.fillna(axis=1, value=100, limit=1, inplace=True)
+        tm.assert_frame_equal(df, expected)
 
 
 def test_fillna_nonconsolidated_frame():

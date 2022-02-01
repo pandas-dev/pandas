@@ -7,8 +7,6 @@ from typing import (
     Sequence,
 )
 
-import pkg_resources
-
 from pandas._config import get_option
 
 from pandas._typing import IndexLabel
@@ -340,7 +338,7 @@ by ``df.boxplot()`` or indicating the columns to be used:
     >>> np.random.seed(1234)
     >>> df = pd.DataFrame(np.random.randn(10, 4),
     ...                   columns=['Col1', 'Col2', 'Col3', 'Col4'])
-    >>> boxplot = df.boxplot(column=['Col1', 'Col2', 'Col3'])
+    >>> boxplot = df.boxplot(column=['Col1', 'Col2', 'Col3'])  # doctest: +SKIP
 
 Boxplots of variables distributions grouped by the values of a third
 variable can be created using the option ``by``. For instance:
@@ -383,7 +381,7 @@ or changing the fontsize (i.e. ``fontsize=15``):
 .. plot::
     :context: close-figs
 
-    >>> boxplot = df.boxplot(grid=False, rot=45, fontsize=15)
+    >>> boxplot = df.boxplot(grid=False, rot=45, fontsize=15)  # doctest: +SKIP
 
 The parameter ``return_type`` can be used to select the type of element
 returned by `boxplot`.  When ``return_type='axes'`` is selected,
@@ -430,7 +428,7 @@ _bar_or_line_doc = """
         y : label or position, optional
             Allows plotting of one column versus another. If not specified,
             all numerical columns are used.
-        color : str, array_like, or dict, optional
+        color : str, array-like, or dict, optional
             The color for each of the DataFrame's columns. Possible values are:
 
             - A single color string referred to by name, RGB or RGBA code,
@@ -593,14 +591,14 @@ def boxplot_frame_groupby(
         >>> data = np.random.randn(len(index),4)
         >>> df = pd.DataFrame(data, columns=list('ABCD'), index=index)
         >>> grouped = df.groupby(level='lvl1')
-        >>> grouped.boxplot(rot=45, fontsize=12, figsize=(8,10))
+        >>> grouped.boxplot(rot=45, fontsize=12, figsize=(8,10))  # doctest: +SKIP
 
     The ``subplots=False`` option shows the boxplots in a single figure.
 
     .. plot::
         :context: close-figs
 
-        >>> grouped.boxplot(subplots=False, rot=45, fontsize=12)
+        >>> grouped.boxplot(subplots=False, rot=45, fontsize=12)  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend(backend)
     return plot_backend.boxplot_frame_groupby(
@@ -868,7 +866,7 @@ class PlotAccessor(PandasObject):
         if args and isinstance(data, ABCSeries):
             positional_args = str(args)[1:-1]
             keyword_args = ", ".join(
-                f"{name}={repr(value)}" for (name, _), value in zip(arg_def, args)
+                [f"{name}={repr(value)}" for (name, _), value in zip(arg_def, args)]
             )
             msg = (
                 "`Series.plot()` should not be called with positional "
@@ -989,6 +987,7 @@ class PlotAccessor(PandasObject):
 
             >>> s = pd.Series([1, 3, 2])
             >>> s.plot.line()
+            <AxesSubplot:ylabel='Density'>
 
         .. plot::
             :context: close-figs
@@ -1239,6 +1238,11 @@ class PlotAccessor(PandasObject):
         ----------
         by : str or sequence
             Column in the DataFrame to group by.
+
+            .. versionchanged:: 1.4.0
+
+               Previously, `by` is silently ignore and makes no groupings
+
         **kwargs
             Additional keywords are documented in
             :meth:`DataFrame.plot`.
@@ -1264,6 +1268,18 @@ class PlotAccessor(PandasObject):
             >>> data = np.random.randn(25, 4)
             >>> df = pd.DataFrame(data, columns=list('ABCD'))
             >>> ax = df.plot.box()
+
+        You can also generate groupings if you specify the `by` parameter (which
+        can take a column name, or a list or tuple of column names):
+
+        .. versionchanged:: 1.4.0
+
+        .. plot::
+            :context: close-figs
+
+            >>> age_list = [8, 10, 12, 14, 72, 74, 76, 78, 20, 25, 30, 35, 60, 85]
+            >>> df = pd.DataFrame({"gender": list("MMMMMMMMFFFFFF"), "age": age_list})
+            >>> ax = df.plot.box(column="age", by="gender", figsize=(10, 8))
         """
         return self(kind="box", by=by, **kwargs)
 
@@ -1280,6 +1296,11 @@ class PlotAccessor(PandasObject):
         ----------
         by : str or sequence, optional
             Column in the DataFrame to group by.
+
+            .. versionchanged:: 1.4.0
+
+               Previously, `by` is silently ignore and makes no groupings
+
         bins : int, default 10
             Number of histogram bins to be used.
         **kwargs
@@ -1298,8 +1319,8 @@ class PlotAccessor(PandasObject):
 
         Examples
         --------
-        When we draw a dice 6000 times, we expect to get each value around 1000
-        times. But when we draw two dices and sum the result, the distribution
+        When we roll a die 6000 times, we expect to get each value around 1000
+        times. But when we roll two dice and sum the result, the distribution
         is going to be quite different. A histogram illustrates those
         distributions.
 
@@ -1311,6 +1332,16 @@ class PlotAccessor(PandasObject):
             ...     columns = ['one'])
             >>> df['two'] = df['one'] + np.random.randint(1, 7, 6000)
             >>> ax = df.plot.hist(bins=12, alpha=0.5)
+
+        A grouped histogram can be generated by providing the parameter `by` (which
+        can be a column name, or a list of column names):
+
+        .. plot::
+            :context: close-figs
+
+            >>> age_list = [8, 10, 12, 14, 72, 74, 76, 78, 20, 25, 30, 35, 60, 85]
+            >>> df = pd.DataFrame({"gender": list("MMMMMMMMFFFFFF"), "age": age_list})
+            >>> ax = df.plot.hist(column=["age"], by="gender", figsize=(10, 8))
         """
         return self(kind="hist", by=by, bins=bins, **kwargs)
 
@@ -1571,7 +1602,7 @@ class PlotAccessor(PandasObject):
         y : int or str
             The column name or column position to be used as vertical
             coordinates for each point.
-        s : str, scalar or array_like, optional
+        s : str, scalar or array-like, optional
             The size of each point. Possible values are:
 
             - A string with the name of the column to be used for marker's size.
@@ -1584,7 +1615,7 @@ class PlotAccessor(PandasObject):
 
               .. versionchanged:: 1.1.0
 
-        c : str, int or array_like, optional
+        c : str, int or array-like, optional
             The color of each point. Possible values are:
 
             - A single color string referred to by name, RGB or RGBA code,
@@ -1745,6 +1776,8 @@ def _load_backend(backend: str) -> types.ModuleType:
     types.ModuleType
         The imported backend.
     """
+    from importlib.metadata import entry_points
+
     if backend == "matplotlib":
         # Because matplotlib is an optional dependency and first-party backend,
         # we need to attempt an import here to raise an ImportError if needed.
@@ -1759,11 +1792,13 @@ def _load_backend(backend: str) -> types.ModuleType:
 
     found_backend = False
 
-    for entry_point in pkg_resources.iter_entry_points("pandas_plotting_backends"):
-        found_backend = entry_point.name == backend
-        if found_backend:
-            module = entry_point.load()
-            break
+    eps = entry_points()
+    if "pandas_plotting_backends" in eps:
+        for entry_point in eps["pandas_plotting_backends"]:
+            found_backend = entry_point.name == backend
+            if found_backend:
+                module = entry_point.load()
+                break
 
     if not found_backend:
         # Fall back to unregistered, module name approach.

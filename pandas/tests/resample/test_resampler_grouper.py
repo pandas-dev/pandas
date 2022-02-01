@@ -9,11 +9,13 @@ from pandas.util._test_decorators import async_mark
 import pandas as pd
 from pandas import (
     DataFrame,
+    Index,
     Series,
     TimedeltaIndex,
     Timestamp,
 )
 import pandas._testing as tm
+from pandas.core.api import Int64Index
 from pandas.core.indexes.datetimes import date_range
 
 test_frame = DataFrame(
@@ -200,44 +202,51 @@ def test_nearest():
     tm.assert_series_equal(result, expected)
 
 
-def test_methods():
+@pytest.mark.parametrize(
+    "f",
+    [
+        "first",
+        "last",
+        "median",
+        "sem",
+        "sum",
+        "mean",
+        "min",
+        "max",
+        "size",
+        "count",
+        "nearest",
+        "bfill",
+        "ffill",
+        "asfreq",
+        "ohlc",
+    ],
+)
+def test_methods(f):
     g = test_frame.groupby("A")
     r = g.resample("2s")
 
-    for f in ["first", "last", "median", "sem", "sum", "mean", "min", "max"]:
-        result = getattr(r, f)()
-        expected = g.apply(lambda x: getattr(x.resample("2s"), f)())
-        tm.assert_frame_equal(result, expected)
+    result = getattr(r, f)()
+    expected = g.apply(lambda x: getattr(x.resample("2s"), f)())
+    tm.assert_equal(result, expected)
 
-    for f in ["size"]:
-        result = getattr(r, f)()
-        expected = g.apply(lambda x: getattr(x.resample("2s"), f)())
-        tm.assert_series_equal(result, expected)
 
-    for f in ["count"]:
-        result = getattr(r, f)()
-        expected = g.apply(lambda x: getattr(x.resample("2s"), f)())
-        tm.assert_frame_equal(result, expected)
-
+def test_methods_nunique():
     # series only
-    for f in ["nunique"]:
-        result = getattr(r.B, f)()
-        expected = g.B.apply(lambda x: getattr(x.resample("2s"), f)())
-        tm.assert_series_equal(result, expected)
+    g = test_frame.groupby("A")
+    r = g.resample("2s")
+    result = r.B.nunique()
+    expected = g.B.apply(lambda x: x.resample("2s").nunique())
+    tm.assert_series_equal(result, expected)
 
-    for f in ["nearest", "backfill", "ffill", "asfreq"]:
-        result = getattr(r, f)()
-        expected = g.apply(lambda x: getattr(x.resample("2s"), f)())
-        tm.assert_frame_equal(result, expected)
 
-    result = r.ohlc()
-    expected = g.apply(lambda x: x.resample("2s").ohlc())
+@pytest.mark.parametrize("f", ["std", "var"])
+def test_methods_std_var(f):
+    g = test_frame.groupby("A")
+    r = g.resample("2s")
+    result = getattr(r, f)(ddof=1)
+    expected = g.apply(lambda x: getattr(x.resample("2s"), f)(ddof=1))
     tm.assert_frame_equal(result, expected)
-
-    for f in ["std", "var"]:
-        result = getattr(r, f)(ddof=1)
-        expected = g.apply(lambda x: getattr(x.resample("2s"), f)(ddof=1))
-        tm.assert_frame_equal(result, expected)
 
 
 def test_apply():
@@ -324,7 +333,7 @@ def test_consistency_with_window():
 
     # consistent return values with window
     df = test_frame
-    expected = pd.Int64Index([1, 2, 3], name="A")
+    expected = Int64Index([1, 2, 3], name="A")
     result = df.groupby("A").resample("2s").mean()
     assert result.index.nlevels == 2
     tm.assert_index_equal(result.index.levels[0], expected)
@@ -402,6 +411,20 @@ def test_resample_groupby_agg():
     expected = resampled.sum()
     result = resampled.agg({"num": "sum"})
 
+    tm.assert_frame_equal(result, expected)
+
+
+def test_resample_groupby_agg_listlike():
+    # GH 42905
+    ts = Timestamp("2021-02-28 00:00:00")
+    df = DataFrame({"class": ["beta"], "value": [69]}, index=Index([ts], name="date"))
+    resampled = df.groupby("class").resample("M")["value"]
+    result = resampled.agg(["sum", "size"])
+    expected = DataFrame(
+        [[69, 1]],
+        index=pd.MultiIndex.from_tuples([("beta", ts)], names=["class", "date"]),
+        columns=["sum", "size"],
+    )
     tm.assert_frame_equal(result, expected)
 
 

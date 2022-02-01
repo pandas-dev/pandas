@@ -1,12 +1,10 @@
-# flake8: noqa
-
 """
 Expose public exceptions & warnings
 """
 
-from pandas._config.config import OptionError
+from pandas._config.config import OptionError  # noqa:F401
 
-from pandas._libs.tslibs import (
+from pandas._libs.tslibs import (  # noqa:F401
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
 )
@@ -14,7 +12,7 @@ from pandas._libs.tslibs import (
 
 class IntCastingNaNError(ValueError):
     """
-    raised when attempting an astype operation on an array with NaN to an integer
+    Raised when attempting an astype operation on an array with NaN to an integer
     dtype.
     """
 
@@ -95,32 +93,29 @@ class DtypeWarning(Warning):
 
     >>> df = pd.DataFrame({'a': (['1'] * 100000 + ['X'] * 100000 +
     ...                          ['1'] * 100000),
-    ...                    'b': ['b'] * 300000})
-    >>> df.to_csv('test.csv', index=False)
-    >>> df2 = pd.read_csv('test.csv')
+    ...                    'b': ['b'] * 300000})  # doctest: +SKIP
+    >>> df.to_csv('test.csv', index=False)  # doctest: +SKIP
+    >>> df2 = pd.read_csv('test.csv')  # doctest: +SKIP
     ... # DtypeWarning: Columns (0) have mixed types
 
     Important to notice that ``df2`` will contain both `str` and `int` for the
     same input, '1'.
 
-    >>> df2.iloc[262140, 0]
+    >>> df2.iloc[262140, 0]  # doctest: +SKIP
     '1'
-    >>> type(df2.iloc[262140, 0])
+    >>> type(df2.iloc[262140, 0])  # doctest: +SKIP
     <class 'str'>
-    >>> df2.iloc[262150, 0]
+    >>> df2.iloc[262150, 0]  # doctest: +SKIP
     1
-    >>> type(df2.iloc[262150, 0])
+    >>> type(df2.iloc[262150, 0])  # doctest: +SKIP
     <class 'int'>
 
     One way to solve this issue is using the `dtype` parameter in the
     `read_csv` and `read_table` functions to explicit the conversion:
 
-    >>> df2 = pd.read_csv('test.csv', sep=',', dtype={'a': str})
+    >>> df2 = pd.read_csv('test.csv', sep=',', dtype={'a': str})  # doctest: +SKIP
 
     No warning was issued.
-
-    >>> import os
-    >>> os.remove('test.csv')
     """
 
 

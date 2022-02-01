@@ -1,0 +1,44 @@
+name: Submit Question
+description: Ask a general question about pandas
+title: "QST: "
+labels: [Usage Question, Needs Triage]
+
+body:
+  - type: markdown
+    attributes:
+      value: >
+        Since [StackOverflow](https://stackoverflow.com) is better suited towards answering
+        usage questions, we ask that all usage questions are first asked on StackOverflow.
+  - type: checkboxes
+    attributes:
+      label: Research
+      options:
+        - label: >
+            I have searched the [[pandas] tag](https://stackoverflow.com/questions/tagged/pandas)
+            on StackOverflow for similar questions.
+          required: true
+        - label: >
+            I have asked my usage related question on [StackOverflow](https://stackoverflow.com).
+          required: true
+  - type: input
+    id: question-link
+    attributes:
+      label: Link to question on StackOverflow
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: ---
+  - type: textarea
+    id: question
+    attributes:
+      label: Question about pandas
+      description: >
+        **Note**: If you'd still like to submit a question, please read [this guide](
+        https://matthewrocklin.com/blog/work/2018/02/28/minimal-bug-reports) detailing
+        how to provide the necessary information for us to reproduce your question.
+      placeholder: |
+        ```python
+        # Your code here, if applicable
+
+        ```

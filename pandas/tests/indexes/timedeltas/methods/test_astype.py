@@ -5,15 +5,18 @@ import pytest
 
 import pandas as pd
 from pandas import (
-    Float64Index,
     Index,
-    Int64Index,
     NaT,
     Timedelta,
     TimedeltaIndex,
     timedelta_range,
 )
 import pandas._testing as tm
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+    UInt64Index,
+)
 
 
 class TestTimedeltaIndex:
@@ -55,8 +58,7 @@ class TestTimedeltaIndex:
         )
         tm.assert_index_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = idx.astype(int)
+        result = idx.astype(int)
         expected = Int64Index(
             [100000000000000] + [-9223372036854775808] * 3, dtype=np.int64, name="idx"
         )
@@ -67,19 +69,17 @@ class TestTimedeltaIndex:
         tm.assert_index_equal(result, expected)
 
         rng = timedelta_range("1 days", periods=10)
-        with tm.assert_produces_warning(FutureWarning):
-            result = rng.astype("i8")
+        result = rng.astype("i8")
         tm.assert_index_equal(result, Index(rng.asi8))
         tm.assert_numpy_array_equal(rng.asi8, result.values)
 
     def test_astype_uint(self):
         arr = timedelta_range("1H", periods=2)
-        expected = pd.UInt64Index(
+        expected = UInt64Index(
             np.array([3600000000000, 90000000000000], dtype="uint64")
         )
-        with tm.assert_produces_warning(FutureWarning):
-            tm.assert_index_equal(arr.astype("uint64"), expected)
-            tm.assert_index_equal(arr.astype("uint32"), expected)
+        tm.assert_index_equal(arr.astype("uint64"), expected)
+        tm.assert_index_equal(arr.astype("uint32"), expected)
 
     def test_astype_timedelta64(self):
         # GH 13149, GH 13209

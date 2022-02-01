@@ -51,7 +51,7 @@ class TestSeriesSortValues:
         expected = ts.sort_values(ascending=False, na_position="first")
         tm.assert_series_equal(expected, ordered)
 
-        msg = "ascending must be boolean"
+        msg = 'For argument "ascending" expected type bool, received type NoneType.'
         with pytest.raises(ValueError, match=msg):
             ts.sort_values(ascending=None)
         msg = r"Length of ascending \(0\) must be 1 for Series"
@@ -63,7 +63,7 @@ class TestSeriesSortValues:
         msg = r"Length of ascending \(2\) must be 1 for Series"
         with pytest.raises(ValueError, match=msg):
             ts.sort_values(ascending=[False, False])
-        msg = "ascending must be boolean"
+        msg = 'For argument "ascending" expected type bool, received type str.'
         with pytest.raises(ValueError, match=msg):
             ts.sort_values(ascending="foobar")
 
@@ -205,6 +205,27 @@ class TestSeriesSortValues:
         result = s.sort_values(ascending=False, kind="mergesort")
         expected = Series([3, 2, 1, 1], ["c", "b", "first", "second"])
         tm.assert_series_equal(result, expected)
+
+    def test_sort_values_validate_ascending_for_value_error(self):
+        # GH41634
+        ser = Series([23, 7, 21])
+
+        msg = 'For argument "ascending" expected type bool, received type str.'
+        with pytest.raises(ValueError, match=msg):
+            ser.sort_values(ascending="False")
+
+    @pytest.mark.parametrize("ascending", [False, 0, 1, True])
+    def test_sort_values_validate_ascending_functional(self, ascending):
+        # GH41634
+        ser = Series([23, 7, 21])
+        expected = np.sort(ser.values)
+
+        sorted_ser = ser.sort_values(ascending=ascending)
+        if not ascending:
+            expected = expected[::-1]
+
+        result = sorted_ser.values
+        tm.assert_numpy_array_equal(result, expected)
 
 
 class TestSeriesSortingKey:

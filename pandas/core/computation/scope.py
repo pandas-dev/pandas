@@ -50,7 +50,7 @@ def _raw_hex_id(obj) -> str:
     """Return the padded hexadecimal id of ``obj``."""
     # interpret as a pointer since that's what really what id returns
     packed = struct.pack("@P", id(obj))
-    return "".join(_replacer(x) for x in packed)
+    return "".join([_replacer(x) for x in packed])
 
 
 DEFAULT_GLOBALS = {
@@ -133,18 +133,13 @@ class Scope:
             # shallow copy here because we don't want to replace what's in
             # scope when we align terms (alignment accesses the underlying
             # numpy array of pandas objects)
-
-            # error: Incompatible types in assignment (expression has type
-            # "ChainMap[str, Any]", variable has type "DeepChainMap[str, Any]")
-            self.scope = self.scope.new_child(  # type: ignore[assignment]
-                (global_dict or frame.f_globals).copy()
-            )
+            scope_global = self.scope.new_child((global_dict or frame.f_globals).copy())
+            self.scope = DeepChainMap(scope_global)
             if not isinstance(local_dict, Scope):
-                # error: Incompatible types in assignment (expression has type
-                # "ChainMap[str, Any]", variable has type "DeepChainMap[str, Any]")
-                self.scope = self.scope.new_child(  # type: ignore[assignment]
+                scope_local = self.scope.new_child(
                     (local_dict or frame.f_locals).copy()
                 )
+                self.scope = DeepChainMap(scope_local)
         finally:
             del frame
 
@@ -237,8 +232,7 @@ class Scope:
 
         for mapping in maps:
             if old_key in mapping:
-                # error: Unsupported target for indexed assignment ("Mapping[Any, Any]")
-                mapping[new_key] = new_value  # type: ignore[index]
+                mapping[new_key] = new_value
                 return
 
     def _get_vars(self, stack, scopes: list[str]) -> None:
@@ -257,9 +251,7 @@ class Scope:
         for scope, (frame, _, _, _, _, _) in variables:
             try:
                 d = getattr(frame, "f_" + scope)
-                # error: Incompatible types in assignment (expression has type
-                # "ChainMap[str, Any]", variable has type "DeepChainMap[str, Any]")
-                self.scope = self.scope.new_child(d)  # type: ignore[assignment]
+                self.scope = DeepChainMap(self.scope.new_child(d))
             finally:
                 # won't remove it, but DECREF it
                 # in Py3 this probably isn't necessary since frame won't be

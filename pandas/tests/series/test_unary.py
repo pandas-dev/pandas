@@ -5,7 +5,7 @@ import pandas._testing as tm
 
 
 class TestSeriesUnaryOps:
-    # __neg__, __pos__, __inv__
+    # __neg__, __pos__, __invert__
 
     def test_neg(self):
         ser = tm.makeStringSeries()
@@ -25,10 +25,10 @@ class TestSeriesUnaryOps:
         ],
     )
     def test_all_numeric_unary_operators(
-        self, any_nullable_numeric_dtype, source, neg_target, abs_target
+        self, any_numeric_ea_dtype, source, neg_target, abs_target
     ):
         # GH38794
-        dtype = any_nullable_numeric_dtype
+        dtype = any_numeric_ea_dtype
         ser = Series(source, dtype=dtype)
         neg_result, pos_result, abs_result = -ser, +ser, abs(ser)
         if dtype.startswith("U"):

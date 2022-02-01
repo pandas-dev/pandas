@@ -1,23 +1,26 @@
-from typing import (
-    Any,
-    Dict,
-    List,
-    Optional,
-    Tuple,
-)
+from __future__ import annotations
+
+from typing import Any
 
 import pandas._libs.json as json
-from pandas._typing import StorageOptions
+from pandas._typing import (
+    FilePath,
+    StorageOptions,
+    WriteExcelBuffer,
+)
 
 from pandas.io.excel._base import ExcelWriter
-from pandas.io.excel._util import validate_freeze_panes
+from pandas.io.excel._util import (
+    combine_kwargs,
+    validate_freeze_panes,
+)
 
 
 class _XlsxStyler:
     # Map from openpyxl-oriented styles to flatter xlsxwriter representation
     # Ordering necessary for both determinism and because some are keyed by
     # prefixes of others.
-    STYLE_MAPPING: Dict[str, List[Tuple[Tuple[str, ...], str]]] = {
+    STYLE_MAPPING: dict[str, list[tuple[tuple[str, ...], str]]] = {
         "font": [
             (("name",), "font_name"),
             (("sz",), "font_size"),
@@ -171,19 +174,20 @@ class XlsxWriter(ExcelWriter):
 
     def __init__(
         self,
-        path,
-        engine=None,
-        date_format=None,
-        datetime_format=None,
+        path: FilePath | WriteExcelBuffer | ExcelWriter,
+        engine: str | None = None,
+        date_format: str | None = None,
+        datetime_format: str | None = None,
         mode: str = "w",
         storage_options: StorageOptions = None,
-        if_sheet_exists: Optional[str] = None,
-        engine_kwargs: Optional[Dict[str, Any]] = None,
+        if_sheet_exists: str | None = None,
+        engine_kwargs: dict[str, Any] | None = None,
+        **kwargs,
     ):
         # Use the xlsxwriter module as the Excel writer.
         from xlsxwriter import Workbook
 
-        engine_kwargs = engine_kwargs or {}
+        engine_kwargs = combine_kwargs(engine_kwargs, kwargs)
 
         if mode == "a":
             raise ValueError("Append mode is not supported with xlsxwriter!")
@@ -201,23 +205,31 @@ class XlsxWriter(ExcelWriter):
 
         self.book = Workbook(self.handles.handle, **engine_kwargs)
 
-    def save(self):
+    @property
+    def sheets(self) -> dict[str, Any]:
+        result = self.book.sheetnames
+        return result
+
+    def save(self) -> None:
         """
         Save workbook to disk.
         """
-        return self.book.close()
+        self.book.close()
 
     def write_cells(
-        self, cells, sheet_name=None, startrow=0, startcol=0, freeze_panes=None
-    ):
+        self,
+        cells,
+        sheet_name: str | None = None,
+        startrow: int = 0,
+        startcol: int = 0,
+        freeze_panes: tuple[int, int] | None = None,
+    ) -> None:
         # Write the frame cells using xlsxwriter.
         sheet_name = self._get_sheet_name(sheet_name)
 
-        if sheet_name in self.sheets:
-            wks = self.sheets[sheet_name]
-        else:
+        wks = self.book.get_worksheet_by_name(sheet_name)
+        if wks is None:
             wks = self.book.add_worksheet(sheet_name)
-            self.sheets[sheet_name] = wks
 
         style_dict = {"null": None}
 

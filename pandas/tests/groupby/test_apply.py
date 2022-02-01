@@ -7,8 +7,6 @@ from io import StringIO
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -18,6 +16,7 @@ from pandas import (
     bdate_range,
 )
 import pandas._testing as tm
+from pandas.core.api import Int64Index
 
 
 def test_apply_issues():
@@ -84,40 +83,6 @@ def test_apply_trivial_fail():
     result = df.groupby([str(x) for x in df.dtypes], axis=1).apply(lambda x: df)
 
     tm.assert_frame_equal(result, expected)
-
-
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fast_apply not used
-def test_fast_apply():
-    # make sure that fast apply is correctly called
-    # rather than raising any kind of error
-    # otherwise the python path will be callsed
-    # which slows things down
-    N = 1000
-    labels = np.random.randint(0, 2000, size=N)
-    labels2 = np.random.randint(0, 3, size=N)
-    df = DataFrame(
-        {
-            "key": labels,
-            "key2": labels2,
-            "value1": np.random.randn(N),
-            "value2": ["foo", "bar", "baz", "qux"] * (N // 4),
-        }
-    )
-
-    def f(g):
-        return 1
-
-    g = df.groupby(["key", "key2"])
-
-    grouper = g.grouper
-
-    splitter = grouper._get_splitter(g._selected_obj, axis=g.axis)
-    group_keys = grouper._get_group_keys()
-    sdata = splitter.sorted_data
-
-    values, mutated = splitter.fast_apply(f, sdata, group_keys)
-
-    assert not mutated
 
 
 @pytest.mark.parametrize(
@@ -216,8 +181,6 @@ def test_group_apply_once_per_group2(capsys):
     assert result == expected
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fast_apply not used
-@pytest.mark.xfail(reason="GH-34998")
 def test_apply_fast_slow_identical():
     # GH 31613
 
@@ -237,16 +200,13 @@ def test_apply_fast_slow_identical():
     tm.assert_frame_equal(fast_df, slow_df)
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fast_apply not used
 @pytest.mark.parametrize(
     "func",
     [
         lambda x: x,
-        pytest.param(lambda x: x[:], marks=pytest.mark.xfail(reason="GH-34998")),
+        lambda x: x[:],
         lambda x: x.copy(deep=False),
-        pytest.param(
-            lambda x: x.copy(deep=True), marks=pytest.mark.xfail(reason="GH-34998")
-        ),
+        lambda x: x.copy(deep=True),
     ],
 )
 def test_groupby_apply_identity_maybecopy_index_identical(func):
@@ -281,7 +241,7 @@ def test_apply_with_mixed_dtype():
     tm.assert_series_equal(result1, result2)
 
 
-def test_groupby_as_index_apply(df):
+def test_groupby_as_index_apply():
     # GH #4648 and #3417
     df = DataFrame(
         {
@@ -400,18 +360,18 @@ def test_apply_frame_not_as_index_column_name(df):
     grouped = df.groupby(["A", "B"], as_index=False)
     result = grouped.apply(len)
     expected = grouped.count().rename(columns={"C": np.nan}).drop(columns="D")
-    # TODO: Use assert_frame_equal when column name is not np.nan (GH 36306)
+    # TODO(GH#34306): Use assert_frame_equal when column name is not np.nan
     tm.assert_index_equal(result.index, expected.index)
     tm.assert_numpy_array_equal(result.values, expected.values)
 
 
 def test_apply_frame_concat_series():
     def trans(group):
-        return group.groupby("B")["C"].sum().sort_values()[:2]
+        return group.groupby("B")["C"].sum().sort_values().iloc[:2]
 
     def trans2(group):
         grouped = group.groupby(df.reindex(group.index)["B"])
-        return grouped.sum().sort_values()[:2]
+        return grouped.sum().sort_values().iloc[:2]
 
     df = DataFrame(
         {
@@ -449,7 +409,7 @@ def test_apply_chunk_view():
     # Low level tinkering could be unsafe, make sure not
     df = DataFrame({"key": [1, 1, 1, 2, 2, 2, 3, 3, 3], "value": range(9)})
 
-    result = df.groupby("key", group_keys=False).apply(lambda x: x[:2])
+    result = df.groupby("key", group_keys=False).apply(lambda x: x.iloc[:2])
     expected = df.take([0, 1, 3, 4, 6, 7])
     tm.assert_frame_equal(result, expected)
 
@@ -826,10 +786,10 @@ def test_apply_with_mixed_types():
 
 def test_func_returns_object():
     # GH 28652
-    df = DataFrame({"a": [1, 2]}, index=pd.Int64Index([1, 2]))
+    df = DataFrame({"a": [1, 2]}, index=Int64Index([1, 2]))
     result = df.groupby("a").apply(lambda g: g.index)
     expected = Series(
-        [pd.Int64Index([1]), pd.Int64Index([2])], index=pd.Int64Index([1, 2], name="a")
+        [Int64Index([1]), Int64Index([2])], index=Int64Index([1, 2], name="a")
     )
 
     tm.assert_series_equal(result, expected)
@@ -883,7 +843,7 @@ def test_apply_series_return_dataframe_groups():
     )
 
     def most_common_values(df):
-        return Series({c: s.value_counts().index[0] for c, s in df.iteritems()})
+        return Series({c: s.value_counts().index[0] for c, s in df.items()})
 
     result = tdf.groupby("day").apply(most_common_values)["userId"]
     expected = Series(
@@ -1102,9 +1062,10 @@ def test_apply_by_cols_equals_apply_by_rows_transposed():
     tm.assert_frame_equal(by_cols, df)
 
 
-def test_apply_dropna_with_indexed_same():
+@pytest.mark.parametrize("dropna", [True, False])
+def test_apply_dropna_with_indexed_same(dropna):
     # GH 38227
-
+    # GH#43205
     df = DataFrame(
         {
             "col": [1, 2, 3, 4, 5],
@@ -1112,15 +1073,8 @@ def test_apply_dropna_with_indexed_same():
         },
         index=list("xxyxz"),
     )
-    result = df.groupby("group").apply(lambda x: x)
-    expected = DataFrame(
-        {
-            "col": [1, 4, 5],
-            "group": ["a", "b", "b"],
-        },
-        index=list("xxz"),
-    )
-
+    result = df.groupby("group", dropna=dropna).apply(lambda x: x)
+    expected = df.dropna() if dropna else df.iloc[[0, 3, 1, 2, 4]]
     tm.assert_frame_equal(result, expected)
 
 
@@ -1177,4 +1131,119 @@ def test_positional_slice_groups_datetimelike():
     result = expected.groupby([expected.let, expected.date.dt.date]).apply(
         lambda x: x.iloc[0:]
     )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_apply_shape_cache_safety():
+    # GH#42702 this fails if we cache_readonly Block.shape
+    df = DataFrame({"A": ["a", "a", "b"], "B": [1, 2, 3], "C": [4, 6, 5]})
+    gb = df.groupby("A")
+    result = gb[["B", "C"]].apply(lambda x: x.astype(float).max() - x.min())
+
+    expected = DataFrame(
+        {"B": [1.0, 0.0], "C": [2.0, 0.0]}, index=Index(["a", "b"], name="A")
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dropna", [True, False])
+def test_apply_na(dropna):
+    # GH#28984
+    df = DataFrame(
+        {"grp": [1, 1, 2, 2], "y": [1, 0, 2, 5], "z": [1, 2, np.nan, np.nan]}
+    )
+    dfgrp = df.groupby("grp", dropna=dropna)
+    result = dfgrp.apply(lambda grp_df: grp_df.nlargest(1, "z"))
+    expected = dfgrp.apply(lambda x: x.sort_values("z", ascending=False).head(1))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_apply_empty_string_nan_coerce_bug():
+    # GH#24903
+    result = (
+        DataFrame(
+            {
+                "a": [1, 1, 2, 2],
+                "b": ["", "", "", ""],
+                "c": pd.to_datetime([1, 2, 3, 4], unit="s"),
+            }
+        )
+        .groupby(["a", "b"])
+        .apply(lambda df: df.iloc[-1])
+    )
+    expected = DataFrame(
+        [[1, "", pd.to_datetime(2, unit="s")], [2, "", pd.to_datetime(4, unit="s")]],
+        columns=["a", "b", "c"],
+        index=MultiIndex.from_tuples([(1, ""), (2, "")], names=["a", "b"]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("index_values", [[1, 2, 3], [1.0, 2.0, 3.0]])
+def test_apply_index_key_error_bug(index_values):
+    # GH 44310
+    result = DataFrame(
+        {
+            "a": ["aa", "a2", "a3"],
+            "b": [1, 2, 3],
+        },
+        index=Index(index_values),
+    )
+    expected = DataFrame(
+        {
+            "b_mean": [2.0, 3.0, 1.0],
+        },
+        index=Index(["a2", "a3", "aa"], name="a"),
+    )
+    result = result.groupby("a").apply(
+        lambda df: Series([df["b"].mean()], index=["b_mean"])
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "arg,idx",
+    [
+        [
+            [
+                1,
+                2,
+                3,
+            ],
+            [
+                0.1,
+                0.3,
+                0.2,
+            ],
+        ],
+        [
+            [
+                1,
+                2,
+                3,
+            ],
+            [
+                0.1,
+                0.2,
+                0.3,
+            ],
+        ],
+        [
+            [
+                1,
+                4,
+                3,
+            ],
+            [
+                0.1,
+                0.4,
+                0.2,
+            ],
+        ],
+    ],
+)
+def test_apply_nonmonotonic_float_index(arg, idx):
+    # GH 34455
+    expected = DataFrame({"col": arg}, index=idx)
+    result = expected.groupby("col").apply(lambda x: x)
     tm.assert_frame_equal(result, expected)

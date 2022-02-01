@@ -8,6 +8,7 @@ from pandas.errors import PerformanceWarning
 import pandas as pd
 from pandas import (
     DataFrame,
+    DatetimeIndex,
     Index,
     MultiIndex,
     Series,
@@ -128,6 +129,10 @@ class TestDataFrameDrop:
             simple.drop([1, 5])
         with pytest.raises(KeyError, match=r"\['C'\] not found in axis"):
             simple.drop(["A", "C"], axis=1)
+
+        # GH 42881
+        with pytest.raises(KeyError, match=r"\['C', 'D', 'F'\] not found in axis"):
+            simple.drop(["C", "D", "F"], axis=1)
 
         # errors = 'ignore'
         tm.assert_frame_equal(simple.drop(5, errors="ignore"), simple)
@@ -268,6 +273,28 @@ class TestDataFrameDrop:
         with pytest.raises(KeyError, match="not found in axis"):
             DataFrame(index=index).drop(drop_labels)
 
+    @pytest.mark.parametrize(
+        "empty_listlike",
+        [
+            [],
+            {},
+            np.array([]),
+            Series([], dtype="datetime64[ns]"),
+            Index([]),
+            DatetimeIndex([]),
+        ],
+    )
+    def test_drop_empty_listlike_non_unique_datetime_index(self, empty_listlike):
+        # GH#27994
+        data = {"column_a": [5, 10], "column_b": ["one", "two"]}
+        index = [Timestamp("2021-01-01"), Timestamp("2021-01-01")]
+        df = DataFrame(data, index=index)
+
+        # Passing empty list-like should return the same DataFrame.
+        expected = df.copy()
+        result = df.drop(empty_listlike)
+        tm.assert_frame_equal(result, expected)
+
     def test_mixed_depth_drop(self):
         arrays = [
             ["a", "top", "top", "routine1", "routine1", "routine2"],
@@ -354,17 +381,8 @@ class TestDataFrameDrop:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_drop_level(self):
-        index = MultiIndex(
-            levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
-            codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-            names=["first", "second"],
-        )
-        frame = DataFrame(
-            np.random.randn(10, 3),
-            index=index,
-            columns=Index(["A", "B", "C"], name="exp"),
-        )
+    def test_drop_level(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
 
         result = frame.drop(["bar", "qux"], level="first")
         expected = frame.iloc[[0, 1, 2, 5, 6]]
@@ -454,6 +472,17 @@ class TestDataFrameDrop:
         df = DataFrame([1, 2, 3], index=mi)
         result = df.drop(index="x")
         expected = DataFrame([2], index=MultiIndex.from_arrays([["y"], ["j"]]))
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("indexer", [("a", "a"), [("a", "a")]])
+    def test_drop_tuple_with_non_unique_multiindex(self, indexer):
+        # GH#42771
+        idx = MultiIndex.from_product([["a", "b"], ["a", "a"]])
+        df = DataFrame({"x": range(len(idx))}, index=idx)
+        result = df.drop(index=[("a", "a")])
+        expected = DataFrame(
+            {"x": [2, 3]}, index=MultiIndex.from_tuples([("b", "a"), ("b", "a")])
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_drop_with_duplicate_columns(self):

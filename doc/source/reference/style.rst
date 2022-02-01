@@ -24,7 +24,10 @@ Styler properties
 
    Styler.env
    Styler.template_html
+   Styler.template_html_style
+   Styler.template_html_table
    Styler.template_latex
+   Styler.template_string
    Styler.loader
 
 Style application
@@ -34,13 +37,17 @@ Style application
 
    Styler.apply
    Styler.applymap
-   Styler.where
+   Styler.apply_index
+   Styler.applymap_index
    Styler.format
+   Styler.format_index
+   Styler.hide
    Styler.set_td_classes
    Styler.set_table_styles
    Styler.set_table_attributes
    Styler.set_tooltips
    Styler.set_caption
+   Styler.set_sticky
    Styler.set_properties
    Styler.set_uuid
    Styler.clear
@@ -65,9 +72,9 @@ Style export and import
 .. autosummary::
    :toctree: api/
 
-   Styler.render
+   Styler.to_html
+   Styler.to_latex
+   Styler.to_excel
+   Styler.to_string
    Styler.export
    Styler.use
-   Styler.to_html
-   Styler.to_excel
-   Styler.to_latex

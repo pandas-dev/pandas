@@ -1,14 +1,11 @@
 import numpy as np
 import pytest
 
-from pandas.compat import PYPY
-
 from pandas import MultiIndex
 import pandas._testing as tm
 
 
-@pytest.mark.skipif(not PYPY, reason="tuples cmp recursively on PyPy")
-def test_isin_nan_pypy():
+def test_isin_nan():
     idx = MultiIndex.from_arrays([["foo", "bar"], [1.0, np.nan]])
     tm.assert_numpy_array_equal(idx.isin([("bar", np.nan)]), np.array([False, True]))
     tm.assert_numpy_array_equal(
@@ -29,15 +26,6 @@ def test_isin():
     result = idx.isin(values)
     assert len(result) == 0
     assert result.dtype == np.bool_
-
-
-@pytest.mark.skipif(PYPY, reason="tuples cmp recursively on PyPy")
-def test_isin_nan_not_pypy():
-    idx = MultiIndex.from_arrays([["foo", "bar"], [1.0, np.nan]])
-    tm.assert_numpy_array_equal(idx.isin([("bar", np.nan)]), np.array([False, False]))
-    tm.assert_numpy_array_equal(
-        idx.isin([("bar", float("nan"))]), np.array([False, False])
-    )
 
 
 def test_isin_level_kwarg():

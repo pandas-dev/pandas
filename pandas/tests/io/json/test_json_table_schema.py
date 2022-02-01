@@ -1,7 +1,6 @@
 """Tests for Table Schema integration."""
 from collections import OrderedDict
 import json
-import sys
 
 import numpy as np
 import pytest
@@ -186,14 +185,11 @@ class TestTableSchemaType:
     def test_as_json_table_type_timedelta_dtypes(self, td_dtype):
         assert as_json_table_type(td_dtype) == "duration"
 
-    @pytest.mark.parametrize("str_dtype", [object])  # TODO
+    @pytest.mark.parametrize("str_dtype", [object])  # TODO(GH#14904) flesh out dtypes?
     def test_as_json_table_type_string_dtypes(self, str_dtype):
         assert as_json_table_type(str_dtype) == "string"
 
     def test_as_json_table_type_categorical_dtypes(self):
-        # TODO: I think before is_categorical_dtype(Categorical)
-        # returned True, but now it's False. Figure out why or
-        # if it matters
         assert as_json_table_type(pd.Categorical(["a"]).dtype) == "any"
         assert as_json_table_type(CategoricalDtype()) == "any"
 
@@ -691,7 +687,6 @@ class TestTableOrientReader:
             },
         ],
     )
-    @pytest.mark.skipif(sys.version_info[:3] == (3, 7, 0), reason="GH-35309")
     def test_read_json_table_orient(self, index_nm, vals, recwarn):
         df = DataFrame(vals, index=pd.Index(range(4), name=index_nm))
         out = df.to_json(orient="table")
@@ -741,7 +736,6 @@ class TestTableOrientReader:
             },
         ],
     )
-    @pytest.mark.skipif(sys.version_info[:3] == (3, 7, 0), reason="GH-35309")
     def test_read_json_table_timezones_orient(self, idx, vals, recwarn):
         # GH 35973
         df = DataFrame(vals, index=idx)
@@ -794,4 +788,26 @@ class TestTableOrientReader:
         expected = df.copy()
         out = df.to_json(orient="table")
         result = pd.read_json(out, orient="table")
+        tm.assert_frame_equal(expected, result)
+
+    def test_read_json_orient_table_old_schema_version(self):
+        df_json = """
+        {
+            "schema":{
+                "fields":[
+                    {"name":"index","type":"integer"},
+                    {"name":"a","type":"string"}
+                ],
+                "primaryKey":["index"],
+                "pandas_version":"0.20.0"
+            },
+            "data":[
+                {"index":0,"a":1},
+                {"index":1,"a":2.0},
+                {"index":2,"a":"s"}
+            ]
+        }
+        """
+        expected = DataFrame({"a": [1, 2.0, "s"]})
+        result = pd.read_json(df_json, orient="table")
         tm.assert_frame_equal(expected, result)

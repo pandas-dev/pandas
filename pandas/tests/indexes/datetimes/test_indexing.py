@@ -21,25 +21,12 @@ from pandas import (
 )
 import pandas._testing as tm
 
-from pandas.tseries.offsets import (
-    BDay,
-    CDay,
-)
+from pandas.tseries.frequencies import to_offset
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 
 class TestGetItem:
-    def test_ellipsis(self):
-        # GH#21282
-        idx = date_range(
-            "2011-01-01", "2011-01-31", freq="D", tz="Asia/Tokyo", name="idx"
-        )
-
-        result = idx[...]
-        assert result.equals(idx)
-        assert result is not idx
-
     def test_getitem_slice_keeps_name(self):
         # GH4226
         st = Timestamp("2013-07-01 00:00:00", tz="America/Los_Angeles")
@@ -88,17 +75,17 @@ class TestGetItem:
             tm.assert_index_equal(result, expected)
             assert result.freq == expected.freq
 
-    def test_dti_business_getitem(self):
-        rng = bdate_range(START, END)
+    @pytest.mark.parametrize("freq", ["B", "C"])
+    def test_dti_business_getitem(self, freq):
+        rng = bdate_range(START, END, freq=freq)
         smaller = rng[:5]
-        exp = DatetimeIndex(rng.view(np.ndarray)[:5], freq="B")
+        exp = DatetimeIndex(rng.view(np.ndarray)[:5], freq=freq)
         tm.assert_index_equal(smaller, exp)
         assert smaller.freq == exp.freq
-
         assert smaller.freq == rng.freq
 
         sliced = rng[::5]
-        assert sliced.freq == BDay() * 5
+        assert sliced.freq == to_offset(freq) * 5
 
         fancy_indexed = rng[[4, 3, 2, 1, 0]]
         assert len(fancy_indexed) == 5
@@ -108,35 +95,9 @@ class TestGetItem:
         # 32-bit vs. 64-bit platforms
         assert rng[4] == rng[np.int_(4)]
 
-    def test_dti_business_getitem_matplotlib_hackaround(self):
-        rng = bdate_range(START, END)
-        with tm.assert_produces_warning(FutureWarning):
-            # GH#30588 multi-dimensional indexing deprecated
-            values = rng[:, None]
-        expected = rng.values[:, None]
-        tm.assert_numpy_array_equal(values, expected)
-
-    def test_dti_custom_getitem(self):
-        rng = bdate_range(START, END, freq="C")
-        smaller = rng[:5]
-        exp = DatetimeIndex(rng.view(np.ndarray)[:5], freq="C")
-        tm.assert_index_equal(smaller, exp)
-        assert smaller.freq == exp.freq
-        assert smaller.freq == rng.freq
-
-        sliced = rng[::5]
-        assert sliced.freq == CDay() * 5
-
-        fancy_indexed = rng[[4, 3, 2, 1, 0]]
-        assert len(fancy_indexed) == 5
-        assert isinstance(fancy_indexed, DatetimeIndex)
-        assert fancy_indexed.freq is None
-
-        # 32-bit vs. 64-bit platforms
-        assert rng[4] == rng[np.int_(4)]
-
-    def test_dti_custom_getitem_matplotlib_hackaround(self):
-        rng = bdate_range(START, END, freq="C")
+    @pytest.mark.parametrize("freq", ["B", "C"])
+    def test_dti_business_getitem_matplotlib_hackaround(self, freq):
+        rng = bdate_range(START, END, freq=freq)
         with tm.assert_produces_warning(FutureWarning):
             # GH#30588 multi-dimensional indexing deprecated
             values = rng[:, None]
@@ -255,6 +216,12 @@ class TestWhere:
 
 
 class TestTake:
+    def test_take_nan_first_datetime(self):
+        index = DatetimeIndex([pd.NaT, Timestamp("20130101"), Timestamp("20130102")])
+        result = index.take([-1, 0, 1])
+        expected = DatetimeIndex([index[-1], index[0], index[1]])
+        tm.assert_index_equal(result, expected)
+
     def test_take(self):
         # GH#10295
         idx1 = date_range("2011-01-01", "2011-01-31", freq="D", name="idx")
@@ -422,6 +389,7 @@ class TestTake:
 
 class TestGetLoc:
     @pytest.mark.parametrize("method", [None, "pad", "backfill", "nearest"])
+    @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
     def test_get_loc_method_exact_match(self, method):
         idx = date_range("2000-01-01", periods=3)
         assert idx.get_loc(idx[1], method) == 1
@@ -431,6 +399,7 @@ class TestGetLoc:
         if method is not None:
             assert idx.get_loc(idx[1], method, tolerance=pd.Timedelta("0 days")) == 1
 
+    @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
     def test_get_loc(self):
         idx = date_range("2000-01-01", periods=3)
 
@@ -483,22 +452,51 @@ class TestGetLoc:
         with pytest.raises(InvalidIndexError, match=r"slice\(None, 2, None\)"):
             idx.get_loc(slice(2))
 
-        idx = pd.to_datetime(["2000-01-01", "2000-01-04"])
+        idx = DatetimeIndex(["2000-01-01", "2000-01-04"])
         assert idx.get_loc("2000-01-02", method="nearest") == 0
         assert idx.get_loc("2000-01-03", method="nearest") == 1
         assert idx.get_loc("2000-01", method="nearest") == slice(0, 2)
 
+    def test_get_loc_time_obj(self):
         # time indexing
         idx = date_range("2000-01-01", periods=24, freq="H")
-        tm.assert_numpy_array_equal(
-            idx.get_loc(time(12)), np.array([12]), check_dtype=False
-        )
-        tm.assert_numpy_array_equal(
-            idx.get_loc(time(12, 30)), np.array([]), check_dtype=False
-        )
+
+        result = idx.get_loc(time(12))
+        expected = np.array([12])
+        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
+
+        result = idx.get_loc(time(12, 30))
+        expected = np.array([])
+        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
+
         msg = "cannot yet lookup inexact labels when key is a time object"
         with pytest.raises(NotImplementedError, match=msg):
-            idx.get_loc(time(12, 30), method="pad")
+            with tm.assert_produces_warning(FutureWarning, match="deprecated"):
+                idx.get_loc(time(12, 30), method="pad")
+
+    def test_get_loc_time_obj2(self):
+        # GH#8667
+
+        from pandas._libs.index import _SIZE_CUTOFF
+
+        ns = _SIZE_CUTOFF + np.array([-100, 100], dtype=np.int64)
+        key = time(15, 11, 30)
+        start = key.hour * 3600 + key.minute * 60 + key.second
+        step = 24 * 3600
+
+        for n in ns:
+            idx = date_range("2014-11-26", periods=n, freq="S")
+            ts = pd.Series(np.random.randn(n), index=idx)
+            locs = np.arange(start, n, step, dtype=np.intp)
+
+            result = ts.index.get_loc(key)
+            tm.assert_numpy_array_equal(result, locs)
+            tm.assert_series_equal(ts[key], ts.iloc[locs])
+
+            left, right = ts.copy(), ts.copy()
+            left[key] *= -10
+            right.iloc[locs] *= -10
+            tm.assert_series_equal(left, right)
 
     def test_get_loc_time_nat(self):
         # GH#35114
@@ -518,7 +516,8 @@ class TestGetLoc:
             freq="5s",
         )
         key = Timestamp("2019-12-12 10:19:25", tz="US/Eastern")
-        result = dti.get_loc(key, method="nearest")
+        with tm.assert_produces_warning(FutureWarning, match="deprecated"):
+            result = dti.get_loc(key, method="nearest")
         assert result == 7433
 
     def test_get_loc_nat(self):
@@ -652,10 +651,7 @@ class TestGetIndexer:
             ([date(9999, 1, 1), date(9999, 1, 1)], [-1, -1]),
         ],
     )
-    # FIXME: these warnings are flaky GH#36131
-    @pytest.mark.filterwarnings(
-        "ignore:Comparison of Timestamp with datetime.date:FutureWarning"
-    )
+    @pytest.mark.filterwarnings("ignore:Comparison of Timestamp.*:FutureWarning")
     def test_get_indexer_out_of_bounds_date(self, target, positions):
         values = DatetimeIndex([Timestamp("2020-01-01"), Timestamp("2020-01-02")])
 
@@ -695,7 +691,7 @@ class TestMaybeCastSliceBound:
         assert result == expected
 
 
-class TestDatetimeIndex:
+class TestGetValue:
     def test_get_value(self):
         # specifically make sure we have test for np.datetime64 key
         dti = date_range("2016-01-01", periods=3)
@@ -740,7 +736,7 @@ class TestGetSliceBounds:
             result = index.get_slice_bound(key, kind=kind, side=side)
         assert result == expected
 
-    @pytest.mark.parametrize("box", [date, datetime, Timestamp])
+    @pytest.mark.parametrize("box", [datetime, Timestamp])
     @pytest.mark.parametrize("kind", ["getitem", "loc", None])
     @pytest.mark.parametrize("side", ["left", "right"])
     @pytest.mark.parametrize("year, expected", [(1999, 0), (2020, 30)])
@@ -758,7 +754,7 @@ class TestGetSliceBounds:
             result = index.get_slice_bound(key, kind=kind, side=side)
         assert result == expected
 
-    @pytest.mark.parametrize("box", [date, datetime, Timestamp])
+    @pytest.mark.parametrize("box", [datetime, Timestamp])
     @pytest.mark.parametrize("kind", ["getitem", "loc", None])
     def test_slice_datetime_locs(self, box, kind, tz_aware_fixture):
         # GH 34077

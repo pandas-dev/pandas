@@ -3,6 +3,8 @@ import io
 import numpy as np
 import pytest
 
+from pandas.compat._optional import VERSIONS
+
 from pandas import (
     DataFrame,
     date_range,
@@ -13,6 +15,7 @@ from pandas import (
     read_parquet,
     read_pickle,
     read_stata,
+    read_table,
 )
 import pandas._testing as tm
 from pandas.util import _test_decorators as td
@@ -38,9 +41,8 @@ def cleared_fs():
 
 
 def test_read_csv(cleared_fs):
-    from fsspec.implementations.memory import MemoryFile
-
-    cleared_fs.store["test/test.csv"] = MemoryFile(data=text)
+    with cleared_fs.open("test/test.csv", "wb") as w:
+        w.write(text)
     df2 = read_csv("memory://test/test.csv", parse_dates=["dt"])
 
     tm.assert_frame_equal(df1, df2)
@@ -122,6 +124,17 @@ def test_csv_options(fsspectest):
     assert fsspectest.test[0] == "csv_read"
 
 
+def test_read_table_options(fsspectest):
+    # GH #39167
+    df = DataFrame({"a": [0]})
+    df.to_csv(
+        "testmem://test/test.csv", storage_options={"test": "csv_write"}, index=False
+    )
+    assert fsspectest.test[0] == "csv_write"
+    read_table("testmem://test/test.csv", storage_options={"test": "csv_read"})
+    assert fsspectest.test[0] == "csv_read"
+
+
 @pytest.mark.parametrize("extension", ["xlsx", "xls"])
 def test_excel_options(fsspectest, extension):
     if extension == "xls":
@@ -147,7 +160,7 @@ def test_to_parquet_new_file(monkeypatch, cleared_fs):
     )
 
 
-@td.skip_if_no("pyarrow")
+@td.skip_if_no("pyarrow", min_version="2")
 def test_arrowparquet_options(fsspectest):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
     df = DataFrame({"a": [0]})
@@ -278,11 +291,25 @@ def test_stata_options(fsspectest):
 
 
 @td.skip_if_no("tabulate")
-def test_markdown_options(fsspectest):
+def test_markdown_options(request, fsspectest):
+    import fsspec
+
+    # error: Library stubs not installed for "tabulate"
+    # (or incompatible with Python 3.8)
+    import tabulate  # type: ignore[import]
+
+    request.node.add_marker(
+        pytest.mark.xfail(
+            fsspec.__version__ == VERSIONS["fsspec"]
+            and tabulate.__version__ == VERSIONS["tabulate"],
+            reason="Fails on the min version build",
+            raises=FileNotFoundError,
+        )
+    )
     df = DataFrame({"a": [0]})
     df.to_markdown("testmem://afile", storage_options={"test": "md_write"})
     assert fsspectest.test[0] == "md_write"
-    assert fsspectest.cat("afile")
+    assert fsspectest.cat("testmem://afile")
 
 
 @td.skip_if_no("pyarrow")

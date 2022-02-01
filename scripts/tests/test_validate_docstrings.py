@@ -82,6 +82,21 @@ class BadDocstrings:
         """
         pass
 
+    def write_array_like_with_hyphen_not_underscore(self):
+        """
+        In docstrings, use array-like over array_like
+        """
+        pass
+
+    def leftover_files(self):
+        """
+        Examples
+        --------
+        >>> import pathlib
+        >>> pathlib.Path("foo.txt").touch()
+        """
+        pass
+
 
 class TestValidator:
     def _import_path(self, klass=None, func=None):
@@ -172,6 +187,11 @@ class TestValidator:
                 "missing_whitespace_after_comma",
                 ("flake8 error: E231 missing whitespace after ',' (3 times)",),
             ),
+            (
+                "BadDocstrings",
+                "write_array_like_with_hyphen_not_underscore",
+                ("Use 'array-like' rather than 'array_like' in docstrings",),
+            ),
         ],
     )
     def test_bad_docstrings(self, capsys, klass, func, msgs):
@@ -179,7 +199,13 @@ class TestValidator:
             self._import_path(klass=klass, func=func)
         )
         for msg in msgs:
-            assert msg in " ".join(err[1] for err in result["errors"])
+            assert msg in " ".join([err[1] for err in result["errors"]])
+
+    def test_leftover_files_raises(self):
+        with pytest.raises(Exception, match="The following files"):
+            validate_docstrings.pandas_validate(
+                self._import_path(klass="BadDocstrings", func="leftover_files")
+            )
 
     def test_validate_all_ignore_deprecated(self, monkeypatch):
         monkeypatch.setattr(

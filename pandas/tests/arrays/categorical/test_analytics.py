@@ -29,20 +29,32 @@ class TestCategoricalAnalytics:
         with pytest.raises(TypeError, match=msg):
             agg_func()
 
-    def test_min_max_ordered(self):
+        ufunc = np.minimum if aggregation == "min" else np.maximum
+        with pytest.raises(TypeError, match=msg):
+            ufunc.reduce(cat)
+
+    def test_min_max_ordered(self, index_or_series_or_array):
         cat = Categorical(["a", "b", "c", "d"], ordered=True)
-        _min = cat.min()
-        _max = cat.max()
+        obj = index_or_series_or_array(cat)
+        _min = obj.min()
+        _max = obj.max()
         assert _min == "a"
         assert _max == "d"
+
+        assert np.minimum.reduce(obj) == "a"
+        assert np.maximum.reduce(obj) == "d"
+        # TODO: raises if we pass axis=0  (on Index and Categorical, not Series)
 
         cat = Categorical(
             ["a", "b", "c", "d"], categories=["d", "c", "b", "a"], ordered=True
         )
-        _min = cat.min()
-        _max = cat.max()
+        obj = index_or_series_or_array(cat)
+        _min = obj.min()
+        _max = obj.max()
         assert _min == "d"
         assert _max == "a"
+        assert np.minimum.reduce(obj) == "d"
+        assert np.maximum.reduce(obj) == "a"
 
     @pytest.mark.parametrize(
         "categories,expected",
@@ -147,7 +159,9 @@ class TestCategoricalAnalytics:
     )
     def test_mode(self, values, categories, exp_mode):
         s = Categorical(values, categories=categories, ordered=True)
-        res = s.mode()
+        msg = "Use Series.mode instead"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = s.mode()
         exp = Categorical(exp_mode, categories=categories, ordered=True)
         tm.assert_categorical_equal(res, exp)
 
@@ -186,15 +200,19 @@ class TestCategoricalAnalytics:
         tm.assert_numpy_array_equal(res_ser, exp)
 
         # Searching for a single value that is not from the Categorical
-        with pytest.raises(KeyError, match="cucumber"):
+        with pytest.raises(TypeError, match="cucumber"):
             cat.searchsorted("cucumber")
-        with pytest.raises(KeyError, match="cucumber"):
+        with pytest.raises(TypeError, match="cucumber"):
             ser.searchsorted("cucumber")
 
         # Searching for multiple values one of each is not from the Categorical
-        with pytest.raises(KeyError, match="cucumber"):
+        msg = (
+            "Cannot setitem on a Categorical with a new category, "
+            "set the categories first"
+        )
+        with pytest.raises(TypeError, match=msg):
             cat.searchsorted(["bread", "cucumber"])
-        with pytest.raises(KeyError, match="cucumber"):
+        with pytest.raises(TypeError, match=msg):
             ser.searchsorted(["bread", "cucumber"])
 
     def test_unique(self, ordered):

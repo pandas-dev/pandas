@@ -23,6 +23,10 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+)
 
 dti4 = date_range("2016-01-01", periods=4)
 dti = dti4[:-1]
@@ -48,14 +52,6 @@ def non_comparable_idx(request):
 
 
 class TestGetItem:
-    def test_ellipsis(self):
-        # GH#21282
-        idx = period_range("2011-01-01", "2011-01-31", freq="D", name="idx")
-
-        result = idx[...]
-        assert result.equals(idx)
-        assert result is not idx
-
     def test_getitem_slice_keeps_name(self):
         idx = period_range("20010101", periods=10, freq="D", name="bob")
         assert idx.name == idx[1:].name
@@ -148,7 +144,7 @@ class TestGetItem:
         result = ts[24:]
         tm.assert_series_equal(exp, result)
 
-        ts = ts[10:].append(ts[10:])
+        ts = pd.concat([ts[10:], ts[10:]])
         msg = "left slice bound for non-unique label: '2008'"
         with pytest.raises(KeyError, match=msg):
             ts[slice("2008", "2009")]
@@ -197,19 +193,18 @@ class TestGetItem:
                 "2013/02/01 9H",
                 "2013/02/01 09:00",
             ]
-            for v in values:
+            for val in values:
                 # GH7116
                 # these show deprecations as we are trying
                 # to slice with non-integer indexers
-                # with pytest.raises(IndexError):
-                #    idx[v]
-                continue
+                with pytest.raises(IndexError, match="only integers, slices"):
+                    idx[val]
 
-            s = Series(np.random.rand(len(idx)), index=idx)
-            tm.assert_series_equal(s["2013/01/01 10:00"], s[3600:3660])
-            tm.assert_series_equal(s["2013/01/01 9H"], s[:3600])
+            ser = Series(np.random.rand(len(idx)), index=idx)
+            tm.assert_series_equal(ser["2013/01/01 10:00"], ser[3600:3660])
+            tm.assert_series_equal(ser["2013/01/01 9H"], ser[:3600])
             for d in ["2013/01/01", "2013/01", "2013"]:
-                tm.assert_series_equal(s[d], s)
+                tm.assert_series_equal(ser[d], ser)
 
     def test_getitem_day(self):
         # GH#6716
@@ -226,24 +221,23 @@ class TestGetItem:
                 "2013/02/01 9H",
                 "2013/02/01 09:00",
             ]
-            for v in values:
+            for val in values:
 
                 # GH7116
                 # these show deprecations as we are trying
                 # to slice with non-integer indexers
-                # with pytest.raises(IndexError):
-                #    idx[v]
-                continue
+                with pytest.raises(IndexError, match="only integers, slices"):
+                    idx[val]
 
-            s = Series(np.random.rand(len(idx)), index=idx)
-            tm.assert_series_equal(s["2013/01"], s[0:31])
-            tm.assert_series_equal(s["2013/02"], s[31:59])
-            tm.assert_series_equal(s["2014"], s[365:])
+            ser = Series(np.random.rand(len(idx)), index=idx)
+            tm.assert_series_equal(ser["2013/01"], ser[0:31])
+            tm.assert_series_equal(ser["2013/02"], ser[31:59])
+            tm.assert_series_equal(ser["2014"], ser[365:])
 
             invalid = ["2013/02/01 9H", "2013/02/01 09:00"]
-            for v in invalid:
-                with pytest.raises(KeyError, match=v):
-                    s[v]
+            for val in invalid:
+                with pytest.raises(KeyError, match=val):
+                    ser[val]
 
 
 class TestGetLoc:
@@ -339,6 +333,7 @@ class TestGetLoc:
 
     # TODO: This method came from test_period; de-dup with version above
     @pytest.mark.parametrize("method", [None, "pad", "backfill", "nearest"])
+    @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
     def test_get_loc_method(self, method):
         idx = period_range("2000-01-01", periods=3)
 
@@ -352,6 +347,7 @@ class TestGetLoc:
             idx.get_loc(key, method=method)
 
     # TODO: This method came from test_period; de-dup with version above
+    @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
     def test_get_loc3(self):
 
         idx = period_range("2000-01-01", periods=5)[::2]
@@ -513,11 +509,13 @@ class TestGetIndexer:
                 continue
             # Two different error message patterns depending on dtypes
             msg = "|".join(
-                re.escape(msg)
-                for msg in (
-                    f"Cannot compare dtypes {pi.dtype} and {other.dtype}",
-                    " not supported between instances of ",
-                )
+                [
+                    re.escape(msg)
+                    for msg in (
+                        f"Cannot compare dtypes {pi.dtype} and {other.dtype}",
+                        " not supported between instances of ",
+                    )
+                ]
             )
             with pytest.raises(TypeError, match=msg):
                 pi.get_indexer(other2, method=method)
@@ -594,17 +592,16 @@ class TestGetIndexer:
 
 
 class TestWhere:
-    @pytest.mark.parametrize("klass", [list, tuple, np.array, Series])
-    def test_where(self, klass):
+    def test_where(self, listlike_box):
         i = period_range("20130101", periods=5, freq="D")
         cond = [True] * len(i)
         expected = i
-        result = i.where(klass(cond))
+        result = i.where(listlike_box(cond))
         tm.assert_index_equal(result, expected)
 
         cond = [False] + [True] * (len(i) - 1)
         expected = PeriodIndex([NaT] + i[1:].tolist(), freq="D")
-        result = i.where(klass(cond))
+        result = i.where(listlike_box(cond))
         tm.assert_index_equal(result, expected)
 
     def test_where_other(self):
@@ -807,12 +804,6 @@ class TestGetValue:
             result2 = idx2.get_value(input2, p1)
         tm.assert_series_equal(result2, expected2)
 
-    def test_loc_str(self):
-        # https://github.com/pandas-dev/pandas/issues/33964
-        index = period_range(start="2000", periods=20, freq="B")
-        series = Series(range(20), index=index)
-        assert series.loc["2000-01-14"] == 9
-
     @pytest.mark.parametrize("freq", ["H", "D"])
     def test_get_value_datetime_hourly(self, freq):
         # get_loc and get_value should treat datetime objects symmetrically
@@ -925,10 +916,10 @@ class TestAsOfLocs:
 
         msg = "must be DatetimeIndex or PeriodIndex"
         with pytest.raises(TypeError, match=msg):
-            pi.asof_locs(pd.Int64Index(pi.asi8), mask)
+            pi.asof_locs(Int64Index(pi.asi8), mask)
 
         with pytest.raises(TypeError, match=msg):
-            pi.asof_locs(pd.Float64Index(pi.asi8), mask)
+            pi.asof_locs(Float64Index(pi.asi8), mask)
 
         with pytest.raises(TypeError, match=msg):
             # TimedeltaIndex

@@ -13,6 +13,10 @@ import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
 
+# We'll probably always skip these for pyarrow
+# Maybe we'll add our own tests for pyarrow too
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+
 
 def _construct_dataframe(num_rows):
     """
@@ -44,7 +48,7 @@ def test_multi_thread_string_io_read_csv(all_parsers):
     num_files = 100
 
     bytes_to_df = [
-        "\n".join(f"{i:d},{i:d},{i:d}" for i in range(max_row_range)).encode()
+        "\n".join([f"{i:d},{i:d},{i:d}" for i in range(max_row_range)]).encode()
         for _ in range(num_files)
     ]
 

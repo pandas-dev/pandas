@@ -3,8 +3,6 @@ from collections import abc
 import numpy as np
 import pytest
 
-from pandas.compat import is_numpy_dev
-
 from pandas import (
     CategoricalDtype,
     DataFrame,
@@ -92,8 +90,16 @@ class TestDataFrameToRecords:
 
         df.index = MultiIndex.from_tuples([("a", "x"), ("a", "y"), ("b", "z")])
         df.index.names = ["A", None]
-        rs = df.to_records()
-        assert "level_0" in rs.dtype.fields
+        result = df.to_records()
+        expected = np.rec.fromarrays(
+            [np.array(["a", "a", "b"]), np.array(["x", "y", "z"])]
+            + [np.asarray(df.iloc[:, i]) for i in range(3)],
+            dtype={
+                "names": ["A", "level_1", "0", "1", "2"],
+                "formats": ["<U1", "<U1", "<f8", "<f8", "<f8"],
+            },
+        )
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_to_records_with_unicode_index(self):
         # GH#13172
@@ -173,27 +179,19 @@ class TestDataFrameToRecords:
                 ),
             ),
             # Pass in a type instance.
-            pytest.param(
+            (
                 {"column_dtypes": str},
                 np.rec.array(
                     [("0", "1", "0.2", "a"), ("1", "2", "1.5", "bc")],
                     dtype=[("index", "<i8"), ("A", "<U"), ("B", "<U"), ("C", "<U")],
                 ),
-                marks=pytest.mark.xfail(
-                    is_numpy_dev,
-                    reason="https://github.com/numpy/numpy/issues/19078",
-                ),
             ),
             # Pass in a dtype instance.
-            pytest.param(
+            (
                 {"column_dtypes": np.dtype("unicode")},
                 np.rec.array(
                     [("0", "1", "0.2", "a"), ("1", "2", "1.5", "bc")],
                     dtype=[("index", "<i8"), ("A", "<U"), ("B", "<U"), ("C", "<U")],
-                ),
-                marks=pytest.mark.xfail(
-                    is_numpy_dev,
-                    reason="https://github.com/numpy/numpy/issues/19078",
                 ),
             ),
             # Pass in a dictionary (name-only).

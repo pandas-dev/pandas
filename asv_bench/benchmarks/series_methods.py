@@ -3,6 +3,7 @@ from datetime import datetime
 import numpy as np
 
 from pandas import (
+    Index,
     NaT,
     Series,
     date_range,
@@ -12,19 +13,35 @@ from .pandas_vb_common import tm
 
 
 class SeriesConstructor:
-
-    params = [None, "dict"]
-    param_names = ["data"]
-
-    def setup(self, data):
+    def setup(self):
         self.idx = date_range(
             start=datetime(2015, 10, 26), end=datetime(2016, 1, 1), freq="50s"
         )
-        dict_data = dict(zip(self.idx, range(len(self.idx))))
-        self.data = None if data is None else dict_data
+        self.data = dict(zip(self.idx, range(len(self.idx))))
+        self.array = np.array([1, 2, 3])
+        self.idx2 = Index(["a", "b", "c"])
 
-    def time_constructor(self, data):
+    def time_constructor_dict(self):
         Series(data=self.data, index=self.idx)
+
+    def time_constructor_no_data(self):
+        Series(data=None, index=self.idx)
+
+    def time_constructor_fastpath(self):
+        Series(self.array, index=self.idx2, name="name", fastpath=True)
+
+
+class ToFrame:
+    params = [["int64", "datetime64[ns]", "category", "Int64"], [None, "foo"]]
+    param_names = ["dtype", "name"]
+
+    def setup(self, dtype, name):
+        arr = np.arange(10 ** 5)
+        ser = Series(arr, dtype=dtype)
+        self.ser = ser
+
+    def time_to_frame(self, dtype, name):
+        self.ser.to_frame(name)
 
 
 class NSort:
@@ -139,6 +156,18 @@ class ValueCounts:
         self.s.value_counts()
 
 
+class ValueCountsObjectDropNAFalse:
+
+    params = [10 ** 3, 10 ** 4, 10 ** 5]
+    param_names = ["N"]
+
+    def setup(self, N):
+        self.s = Series(np.random.randint(0, N, size=10 * N)).astype("object")
+
+    def time_value_counts(self, N):
+        self.s.value_counts(dropna=False)
+
+
 class Mode:
 
     params = [[10 ** 3, 10 ** 4, 10 ** 5], ["int", "uint", "float", "object"]]
@@ -149,6 +178,18 @@ class Mode:
 
     def time_mode(self, N, dtype):
         self.s.mode()
+
+
+class ModeObjectDropNAFalse:
+
+    params = [10 ** 3, 10 ** 4, 10 ** 5]
+    param_names = ["N"]
+
+    def setup(self, N):
+        self.s = Series(np.random.randint(0, N, size=10 * N)).astype("object")
+
+    def time_mode(self, N):
+        self.s.mode(dropna=False)
 
 
 class Dir:

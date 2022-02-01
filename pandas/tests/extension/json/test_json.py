@@ -196,6 +196,10 @@ class TestGetitem(BaseJSON, base.BaseGetitemTests):
     pass
 
 
+class TestIndex(BaseJSON, base.BaseIndexTests):
+    pass
+
+
 class TestMissing(BaseJSON, base.BaseMissingTests):
     @pytest.mark.skip(reason="Setting a dict as a scalar")
     def test_fillna_series(self):
@@ -226,12 +230,6 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
     def test_sort_values_frame(self):
         # TODO (EA.factorize): see if _values_for_factorize allows this.
         pass
-
-    def test_argsort(self, data_for_sorting):
-        super().test_argsort(data_for_sorting)
-
-    def test_argsort_missing(self, data_missing_for_sorting):
-        super().test_argsort_missing(data_missing_for_sorting)
 
     @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values(self, data_for_sorting, ascending, sort_by_key):
@@ -312,9 +310,19 @@ class TestGroupby(BaseJSON, base.BaseGroupbyTests):
         we'll be able to dispatch unique.
         """
 
-    @pytest.mark.parametrize("as_index", [True, False])
-    def test_groupby_extension_agg(self, as_index, data_for_grouping):
-        super().test_groupby_extension_agg(as_index, data_for_grouping)
+    @unhashable
+    def test_groupby_extension_agg(self):
+        """
+        This fails when we get to tm.assert_series_equal when left.index
+        contains dictionaries, which are not hashable.
+        """
+
+    @unhashable
+    def test_groupby_extension_no_sort(self):
+        """
+        This fails when we get to tm.assert_series_equal when left.index
+        contains dictionaries, which are not hashable.
+        """
 
     @pytest.mark.xfail(reason="GH#39098: Converts agg result to object")
     def test_groupby_agg_extension(self, data_for_grouping):

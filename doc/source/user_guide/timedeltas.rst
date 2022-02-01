@@ -88,12 +88,18 @@ or a list/array of strings:
 
    pd.to_timedelta(["1 days 06:05:01.00003", "15.5us", "nan"])
 
-The ``unit`` keyword argument specifies the unit of the Timedelta:
+The ``unit`` keyword argument specifies the unit of the Timedelta if the input
+is numeric:
 
 .. ipython:: python
 
    pd.to_timedelta(np.arange(5), unit="s")
    pd.to_timedelta(np.arange(5), unit="d")
+
+.. warning::
+    If a string or array of strings is passed as an input then the ``unit`` keyword
+    argument will be ignored. If a string without units is passed then the default
+    unit of nanoseconds is assumed.
 
 .. _timedeltas.limitations:
 

@@ -9,9 +9,7 @@ from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas import (
     Categorical,
     CategoricalIndex,
-    Float64Index,
     Index,
-    Int64Index,
     Interval,
     IntervalIndex,
     date_range,
@@ -20,6 +18,10 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+)
 from pandas.core.arrays import IntervalArray
 import pandas.core.common as com
 
@@ -72,21 +74,13 @@ class ConstructorTests:
     )
     def test_constructor_dtype(self, constructor, breaks, subtype):
         # GH 19262: conversion via dtype parameter
-        warn = None
-        if subtype == "int64" and breaks.dtype.kind in ["M", "m"]:
-            # astype(int64) deprecated
-            warn = FutureWarning
-
-        with tm.assert_produces_warning(warn):
-            expected_kwargs = self.get_kwargs_from_breaks(breaks.astype(subtype))
+        expected_kwargs = self.get_kwargs_from_breaks(breaks.astype(subtype))
         expected = constructor(**expected_kwargs)
 
         result_kwargs = self.get_kwargs_from_breaks(breaks)
         iv_dtype = IntervalDtype(subtype, "right")
         for dtype in (iv_dtype, str(iv_dtype)):
-            with tm.assert_produces_warning(warn):
-
-                result = constructor(dtype=dtype, **result_kwargs)
+            result = constructor(dtype=dtype, **result_kwargs)
             tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -176,9 +170,6 @@ class ConstructorTests:
     @pytest.mark.parametrize("cat_constructor", [Categorical, CategoricalIndex])
     def test_constructor_categorical_valid(self, constructor, cat_constructor):
         # GH 21243/21253
-        if isinstance(constructor, partial) and constructor.func is Index:
-            # Index is defined to create CategoricalIndex from categorical data
-            pytest.skip()
 
         breaks = np.arange(10, dtype="int64")
         expected = IntervalIndex.from_breaks(breaks)

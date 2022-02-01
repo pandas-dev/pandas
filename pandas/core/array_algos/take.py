@@ -13,7 +13,10 @@ from pandas._libs import (
     algos as libalgos,
     lib,
 )
-from pandas._typing import ArrayLike
+from pandas._typing import (
+    ArrayLike,
+    npt,
+)
 
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
@@ -91,6 +94,12 @@ def take_nd(
     """
     if fill_value is lib.no_default:
         fill_value = na_value_for_dtype(arr.dtype, compat=False)
+    elif isinstance(arr.dtype, np.dtype) and arr.dtype.kind in "mM":
+        dtype, fill_value = maybe_promote(arr.dtype, fill_value)
+        if arr.dtype != dtype:
+            # EA.take is strict about returning a new object of the same type
+            # so for that case cast upfront
+            arr = arr.astype(dtype)
 
     if not isinstance(arr, np.ndarray):
         # i.e. ExtensionArray,
@@ -110,7 +119,7 @@ def take_nd(
 
 def _take_nd_ndarray(
     arr: np.ndarray,
-    indexer,
+    indexer: npt.NDArray[np.intp] | None,
     axis: int,
     fill_value,
     allow_fill: bool,
@@ -122,7 +131,7 @@ def _take_nd_ndarray(
     else:
         indexer = ensure_platform_int(indexer)
 
-    indexer, dtype, fill_value, mask_info = _take_preprocess_indexer_and_fill_value(
+    dtype, fill_value, mask_info = _take_preprocess_indexer_and_fill_value(
         arr, indexer, fill_value, allow_fill
     )
 
@@ -160,38 +169,48 @@ def _take_nd_ndarray(
 
 def take_1d(
     arr: ArrayLike,
-    indexer: np.ndarray,
+    indexer: npt.NDArray[np.intp],
     fill_value=None,
     allow_fill: bool = True,
+    mask: npt.NDArray[np.bool_] | None = None,
 ) -> ArrayLike:
     """
     Specialized version for 1D arrays. Differences compared to `take_nd`:
 
     - Assumes input array has already been converted to numpy array / EA
-    - Assumes indexer is already guaranteed to be int64 dtype ndarray
+    - Assumes indexer is already guaranteed to be intp dtype ndarray
     - Only works for 1D arrays
 
     To ensure the lowest possible overhead.
 
     Note: similarly to `take_nd`, this function assumes that the indexer is
     a valid(ated) indexer with no out of bound indices.
+
+    Parameters
+    ----------
+    arr : np.ndarray or ExtensionArray
+        Input array.
+    indexer : ndarray
+        1-D array of indices to take (validated indices, intp dtype).
+    fill_value : any, default np.nan
+        Fill value to replace -1 values with
+    allow_fill : bool, default True
+        If False, indexer is assumed to contain no -1 values so no filling
+        will be done.  This short-circuits computation of a mask. Result is
+        undefined if allow_fill == False and -1 is present in indexer.
+    mask : np.ndarray, optional, default None
+        If `allow_fill` is True, and the mask (where indexer == -1) is already
+        known, it can be passed to avoid recomputation.
     """
     if not isinstance(arr, np.ndarray):
         # ExtensionArray -> dispatch to their method
-
-        # error: Argument 1 to "take" of "ExtensionArray" has incompatible type
-        # "ndarray"; expected "Sequence[int]"
-        return arr.take(
-            indexer,  # type: ignore[arg-type]
-            fill_value=fill_value,
-            allow_fill=allow_fill,
-        )
+        return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
 
     if not allow_fill:
         return arr.take(indexer)
 
-    indexer, dtype, fill_value, mask_info = _take_preprocess_indexer_and_fill_value(
-        arr, indexer, fill_value, True
+    dtype, fill_value, mask_info = _take_preprocess_indexer_and_fill_value(
+        arr, indexer, fill_value, True, mask
     )
 
     # at this point, it's guaranteed that dtype can hold both the arr values
@@ -207,7 +226,9 @@ def take_1d(
 
 
 def take_2d_multi(
-    arr: np.ndarray, indexer: tuple[np.ndarray, np.ndarray], fill_value=np.nan
+    arr: np.ndarray,
+    indexer: tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]],
+    fill_value=np.nan,
 ) -> np.ndarray:
     """
     Specialized Cython take which sets NaN values in one pass.
@@ -256,6 +277,7 @@ def take_2d_multi(
     if func is not None:
         func(arr, indexer, out=out, fill_value=fill_value)
     else:
+        # test_reindex_multi
         _take_2d_multi_object(
             arr, indexer, out, fill_value=fill_value, mask_info=mask_info
         )
@@ -283,6 +305,9 @@ def _get_take_nd_function_cached(
     if func is not None:
         return func
 
+    # We get here with string, uint, float16, and complex dtypes that could
+    #  potentially be handled in algos_take_helper.
+    #  Also a couple with (M8[ns], object) and (m8[ns], object)
     tup = (out_dtype.name, out_dtype.name)
     if ndim == 1:
         func = _take_1d_dict.get(tup, None)
@@ -372,6 +397,9 @@ _take_1d_dict = {
     ("datetime64[ns]", "datetime64[ns]"): _view_wrapper(
         libalgos.take_1d_int64_int64, np.int64, np.int64, np.int64
     ),
+    ("timedelta64[ns]", "timedelta64[ns]"): _view_wrapper(
+        libalgos.take_1d_int64_int64, np.int64, np.int64, np.int64
+    ),
 }
 
 _take_2d_axis0_dict = {
@@ -399,6 +427,9 @@ _take_2d_axis0_dict = {
         libalgos.take_2d_axis0_bool_object, np.uint8, None
     ),
     ("datetime64[ns]", "datetime64[ns]"): _view_wrapper(
+        libalgos.take_2d_axis0_int64_int64, np.int64, np.int64, fill_wrap=np.int64
+    ),
+    ("timedelta64[ns]", "timedelta64[ns]"): _view_wrapper(
         libalgos.take_2d_axis0_int64_int64, np.int64, np.int64, fill_wrap=np.int64
     ),
 }
@@ -430,6 +461,9 @@ _take_2d_axis1_dict = {
     ("datetime64[ns]", "datetime64[ns]"): _view_wrapper(
         libalgos.take_2d_axis1_int64_int64, np.int64, np.int64, fill_wrap=np.int64
     ),
+    ("timedelta64[ns]", "timedelta64[ns]"): _view_wrapper(
+        libalgos.take_2d_axis1_int64_int64, np.int64, np.int64, fill_wrap=np.int64
+    ),
 }
 
 _take_2d_multi_dict = {
@@ -459,12 +493,15 @@ _take_2d_multi_dict = {
     ("datetime64[ns]", "datetime64[ns]"): _view_wrapper(
         libalgos.take_2d_multi_int64_int64, np.int64, np.int64, fill_wrap=np.int64
     ),
+    ("timedelta64[ns]", "timedelta64[ns]"): _view_wrapper(
+        libalgos.take_2d_multi_int64_int64, np.int64, np.int64, fill_wrap=np.int64
+    ),
 }
 
 
 def _take_nd_object(
     arr: np.ndarray,
-    indexer: np.ndarray,  # np.ndarray[np.intp]
+    indexer: npt.NDArray[np.intp],
     out: np.ndarray,
     axis: int,
     fill_value,
@@ -487,7 +524,7 @@ def _take_nd_object(
 
 def _take_2d_multi_object(
     arr: np.ndarray,
-    indexer: tuple[np.ndarray, np.ndarray],
+    indexer: tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]],
     out: np.ndarray,
     fill_value,
     mask_info,
@@ -516,11 +553,12 @@ def _take_2d_multi_object(
 
 def _take_preprocess_indexer_and_fill_value(
     arr: np.ndarray,
-    indexer: np.ndarray,
+    indexer: npt.NDArray[np.intp],
     fill_value,
     allow_fill: bool,
+    mask: npt.NDArray[np.bool_] | None = None,
 ):
-    mask_info = None
+    mask_info: tuple[np.ndarray | None, bool] | None = None
 
     if not allow_fill:
         dtype, fill_value = arr.dtype, arr.dtype.type()
@@ -531,8 +569,11 @@ def _take_preprocess_indexer_and_fill_value(
         dtype, fill_value = maybe_promote(arr.dtype, fill_value)
         if dtype != arr.dtype:
             # check if promotion is actually required based on indexer
-            mask = indexer == -1
-            needs_masking = mask.any()
+            if mask is not None:
+                needs_masking = True
+            else:
+                mask = indexer == -1
+                needs_masking = bool(mask.any())
             mask_info = mask, needs_masking
             if not needs_masking:
                 # if not, then depromote, set fill_value to dummy
@@ -540,5 +581,4 @@ def _take_preprocess_indexer_and_fill_value(
                 # to crash when trying to cast it to dtype)
                 dtype, fill_value = arr.dtype, arr.dtype.type()
 
-    indexer = ensure_platform_int(indexer)
-    return indexer, dtype, fill_value, mask_info
+    return dtype, fill_value, mask_info

@@ -9,7 +9,12 @@ def test_error():
     df = pd.DataFrame(
         {"A": pd.Series([[0, 1, 2], np.nan, [], (3, 4)], index=list("abcd")), "B": 1}
     )
-    with pytest.raises(ValueError, match="column must be a scalar"):
+    with pytest.raises(
+        ValueError, match="column must be a scalar, tuple, or list thereof"
+    ):
+        df.explode([list("AA")])
+
+    with pytest.raises(ValueError, match="column must be unique"):
         df.explode(list("AA"))
 
     df.columns = list("AA")
@@ -17,14 +22,49 @@ def test_error():
         df.explode("A")
 
 
-def test_basic():
+@pytest.mark.parametrize(
+    "input_subset, error_message",
+    [
+        (
+            list("AC"),
+            "columns must have matching element counts",
+        ),
+        (
+            [],
+            "column must be nonempty",
+        ),
+        (
+            list("AC"),
+            "columns must have matching element counts",
+        ),
+    ],
+)
+def test_error_multi_columns(input_subset, error_message):
+    # GH 39240
     df = pd.DataFrame(
-        {"A": pd.Series([[0, 1, 2], np.nan, [], (3, 4)], index=list("abcd")), "B": 1}
+        {
+            "A": [[0, 1, 2], np.nan, [], (3, 4)],
+            "B": 1,
+            "C": [["a", "b", "c"], "foo", [], ["d", "e", "f"]],
+        },
+        index=list("abcd"),
     )
-    result = df.explode("A")
+    with pytest.raises(ValueError, match=error_message):
+        df.explode(input_subset)
+
+
+@pytest.mark.parametrize(
+    "scalar",
+    ["a", 0, 1.5, pd.Timedelta("1 days"), pd.Timestamp("2019-12-31")],
+)
+def test_basic(scalar):
+    df = pd.DataFrame(
+        {scalar: pd.Series([[0, 1, 2], np.nan, [], (3, 4)], index=list("abcd")), "B": 1}
+    )
+    result = df.explode(scalar)
     expected = pd.DataFrame(
         {
-            "A": pd.Series(
+            scalar: pd.Series(
                 [0, 1, 2, np.nan, np.nan, 3, 4], index=list("aaabcdd"), dtype=object
             ),
             "B": 1,
@@ -179,4 +219,59 @@ def test_explode_sets():
     df = pd.DataFrame({"a": [{"x", "y"}], "b": [1]}, index=[1])
     result = df.explode(column="a").sort_values(by="a")
     expected = pd.DataFrame({"a": ["x", "y"], "b": [1, 1]}, index=[1, 1])
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "input_subset, expected_dict, expected_index",
+    [
+        (
+            list("AC"),
+            {
+                "A": pd.Series(
+                    [0, 1, 2, np.nan, np.nan, 3, 4, np.nan],
+                    index=list("aaabcdde"),
+                    dtype=object,
+                ),
+                "B": 1,
+                "C": ["a", "b", "c", "foo", np.nan, "d", "e", np.nan],
+            },
+            list("aaabcdde"),
+        ),
+        (
+            list("A"),
+            {
+                "A": pd.Series(
+                    [0, 1, 2, np.nan, np.nan, 3, 4, np.nan],
+                    index=list("aaabcdde"),
+                    dtype=object,
+                ),
+                "B": 1,
+                "C": [
+                    ["a", "b", "c"],
+                    ["a", "b", "c"],
+                    ["a", "b", "c"],
+                    "foo",
+                    [],
+                    ["d", "e"],
+                    ["d", "e"],
+                    np.nan,
+                ],
+            },
+            list("aaabcdde"),
+        ),
+    ],
+)
+def test_multi_columns(input_subset, expected_dict, expected_index):
+    # GH 39240
+    df = pd.DataFrame(
+        {
+            "A": [[0, 1, 2], np.nan, [], (3, 4), np.nan],
+            "B": 1,
+            "C": [["a", "b", "c"], "foo", [], ["d", "e"], np.nan],
+        },
+        index=list("abcde"),
+    )
+    result = df.explode(input_subset)
+    expected = pd.DataFrame(expected_dict, expected_index)
     tm.assert_frame_equal(result, expected)

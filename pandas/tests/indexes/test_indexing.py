@@ -7,6 +7,7 @@ test_indexing tests the following Index methods:
     take
     where
     get_indexer
+    get_indexer_for
     slice_locs
     asof_locs
 
@@ -20,17 +21,21 @@ from pandas.errors import InvalidIndexError
 
 from pandas import (
     DatetimeIndex,
-    Float64Index,
     Index,
-    Int64Index,
     IntervalIndex,
     MultiIndex,
+    NaT,
     PeriodIndex,
+    RangeIndex,
     Series,
     TimedeltaIndex,
-    UInt64Index,
 )
 import pandas._testing as tm
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+    UInt64Index,
+)
 
 
 class TestTake:
@@ -64,6 +69,14 @@ class TestTake:
             msg = r"'(.*Index)' object has no attribute 'freq'"
             with pytest.raises(AttributeError, match=msg):
                 index.freq
+
+    def test_take_indexer_type(self):
+        # GH#42875
+        integer_index = Index([0, 1, 2, 3])
+        scalar_index = 1
+        msg = "Expected indices to be array-like"
+        with pytest.raises(TypeError, match=msg):
+            integer_index.take(scalar_index)
 
     def test_take_minus1_without_fill(self, index):
         # -1 does not get treated as NA unless allow_fill=True is passed
@@ -167,7 +180,7 @@ class TestGetValue:
         "index", ["string", "int", "datetime", "timedelta"], indirect=True
     )
     def test_get_value(self, index):
-        # TODO: Remove function? GH#19728
+        # TODO(2.0): can remove once get_value deprecation is enforced GH#19728
         values = np.random.randn(100)
         value = index[67]
 
@@ -179,6 +192,34 @@ class TestGetValue:
         with tm.assert_produces_warning(FutureWarning):
             result = index.get_value(Series(values, index=values), value)
         tm.assert_almost_equal(result, values[67])
+
+
+class TestGetLoc:
+    def test_get_loc_non_hashable(self, index):
+        # MultiIndex and Index raise TypeError, others InvalidIndexError
+
+        with pytest.raises((TypeError, InvalidIndexError), match="slice"):
+            index.get_loc(slice(0, 1))
+
+    def test_get_loc_generator(self, index):
+
+        exc = KeyError
+        if isinstance(
+            index,
+            (
+                DatetimeIndex,
+                TimedeltaIndex,
+                PeriodIndex,
+                RangeIndex,
+                IntervalIndex,
+                MultiIndex,
+            ),
+        ):
+            # TODO: make these more consistent?
+            exc = InvalidIndexError
+        with pytest.raises(exc, match="generator object"):
+            # MultiIndex specifically checks for generator; others for scalar
+            index.get_loc(x for x in range(5))
 
 
 class TestGetIndexer:
@@ -272,3 +313,46 @@ def test_maybe_cast_slice_bound_kind_deprecated(index):
     with tm.assert_produces_warning(FutureWarning):
         # pass as positional
         index._maybe_cast_slice_bound(index[0], "left", "loc")
+
+
+@pytest.mark.parametrize(
+    "idx,target,expected",
+    [
+        ([np.nan, "var1", np.nan], [np.nan], np.array([0, 2], dtype=np.intp)),
+        (
+            [np.nan, "var1", np.nan],
+            [np.nan, "var1"],
+            np.array([0, 2, 1], dtype=np.intp),
+        ),
+        (
+            np.array([np.nan, "var1", np.nan], dtype=object),
+            [np.nan],
+            np.array([0, 2], dtype=np.intp),
+        ),
+        (
+            DatetimeIndex(["2020-08-05", NaT, NaT]),
+            [NaT],
+            np.array([1, 2], dtype=np.intp),
+        ),
+        (["a", "b", "a", np.nan], [np.nan], np.array([3], dtype=np.intp)),
+        (
+            np.array(["b", np.nan, float("NaN"), "b"], dtype=object),
+            Index([np.nan], dtype=object),
+            np.array([1, 2], dtype=np.intp),
+        ),
+    ],
+)
+def test_get_indexer_non_unique_multiple_nans(idx, target, expected):
+    # GH 35392
+    axis = Index(idx)
+    actual = axis.get_indexer_for(target)
+    tm.assert_numpy_array_equal(actual, expected)
+
+
+def test_get_indexer_non_unique_nans_in_object_dtype_target(nulls_fixture):
+    idx = Index([1.0, 2.0])
+    target = Index([1, nulls_fixture], dtype="object")
+
+    result_idx, result_missing = idx.get_indexer_non_unique(target)
+    tm.assert_numpy_array_equal(result_idx, np.array([0, -1], dtype=np.intp))
+    tm.assert_numpy_array_equal(result_missing, np.array([1], dtype=np.intp))

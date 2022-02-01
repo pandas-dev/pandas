@@ -95,6 +95,10 @@ class TestSetitem(base.BaseSetitemTests):
     pass
 
 
+class TestIndex(base.BaseIndexTests):
+    pass
+
+
 class TestMissing(base.BaseMissingTests):
     pass
 
@@ -149,17 +153,6 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
     def check_opname(self, s, op_name, other, exc=None):
         # overwriting to indicate ops don't raise an error
         super().check_opname(s, op_name, other, exc=None)
-
-    def _compare_other(self, s, data, op_name, other):
-        self.check_opname(s, op_name, other)
-
-    @pytest.mark.skip(reason="Tested in tests/arrays/test_boolean.py")
-    def test_compare_scalar(self, data, all_compare_operators):
-        pass
-
-    @pytest.mark.skip(reason="Tested in tests/arrays/test_boolean.py")
-    def test_compare_array(self, data, all_compare_operators):
-        pass
 
 
 class TestReshaping(base.BaseReshapingTests):
@@ -219,13 +212,13 @@ class TestMethods(base.BaseMethodsTests):
         sorter = np.array([1, 0])
         assert data_for_sorting.searchsorted(a, sorter=sorter) == 0
 
-    @pytest.mark.skip(reason="uses nullable integer")
+    @pytest.mark.xfail(reason="uses nullable integer")
     def test_value_counts(self, all_data, dropna):
         return super().test_value_counts(all_data, dropna)
 
-    @pytest.mark.skip(reason="uses nullable integer")
+    @pytest.mark.xfail(reason="uses nullable integer")
     def test_value_counts_with_normalize(self, data):
-        pass
+        super().test_value_counts_with_normalize(data)
 
     def test_argmin_argmax(self, data_for_sorting, data_missing_for_sorting):
         # override because there are only 2 unique values
@@ -269,14 +262,14 @@ class TestGroupby(base.BaseGroupbyTests):
     def test_groupby_extension_agg(self, as_index, data_for_grouping):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1], "B": data_for_grouping})
         result = df.groupby("B", as_index=as_index).A.mean()
-        _, index = pd.factorize(data_for_grouping, sort=True)
+        _, uniques = pd.factorize(data_for_grouping, sort=True)
 
-        index = pd.Index(index, name="B")
-        expected = pd.Series([3.0, 1.0], index=index, name="A")
         if as_index:
+            index = pd.Index(uniques, name="B")
+            expected = pd.Series([3.0, 1.0], index=index, name="A")
             self.assert_series_equal(result, expected)
         else:
-            expected = expected.reset_index()
+            expected = pd.DataFrame({"B": uniques, "A": [3.0, 1.0]})
             self.assert_frame_equal(result, expected)
 
     def test_groupby_agg_extension(self, data_for_grouping):
@@ -394,4 +387,8 @@ class TestUnaryOps(base.BaseUnaryOpsTests):
 
 
 class TestParsing(base.BaseParsingTests):
+    pass
+
+
+class Test2DCompat(base.Dim2CompatTests):
     pass

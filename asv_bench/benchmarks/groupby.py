@@ -369,6 +369,18 @@ class Size:
         self.draws.groupby(self.cats).size()
 
 
+class Shift:
+    def setup(self):
+        N = 18
+        self.df = DataFrame({"g": ["a", "b"] * 9, "v": list(range(N))})
+
+    def time_defaults(self):
+        self.df.groupby("g").shift()
+
+    def time_fill_value(self):
+        self.df.groupby("g").shift(fill_value=99)
+
+
 class FillNA:
     def setup(self):
         N = 100
@@ -391,7 +403,7 @@ class FillNA:
 
 class GroupByMethods:
 
-    param_names = ["dtype", "method", "application"]
+    param_names = ["dtype", "method", "application", "ncols"]
     params = [
         ["int", "float", "object", "datetime", "uint"],
         [
@@ -431,15 +443,39 @@ class GroupByMethods:
             "var",
         ],
         ["direct", "transformation"],
+        [1, 5],
     ]
 
-    def setup(self, dtype, method, application):
+    def setup(self, dtype, method, application, ncols):
         if method in method_blocklist.get(dtype, {}):
             raise NotImplementedError  # skip benchmark
-        ngroups = 1000
+
+        if ncols != 1 and method in ["value_counts", "unique"]:
+            # DataFrameGroupBy doesn't have these methods
+            raise NotImplementedError
+
+        if application == "transformation" and method in [
+            "describe",
+            "head",
+            "tail",
+            "unique",
+            "value_counts",
+            "size",
+        ]:
+            # DataFrameGroupBy doesn't have these methods
+            raise NotImplementedError
+
+        if method == "describe":
+            ngroups = 20
+        elif method in ["mad", "skew"]:
+            ngroups = 100
+        else:
+            ngroups = 1000
         size = ngroups * 2
-        rng = np.arange(ngroups)
-        values = rng.take(np.random.randint(0, ngroups, size=size))
+        rng = np.arange(ngroups).reshape(-1, 1)
+        rng = np.broadcast_to(rng, (len(rng), ncols))
+        taker = np.random.randint(0, ngroups, size=size)
+        values = rng.take(taker, axis=0)
         if dtype == "int":
             key = np.random.randint(0, size, size=size)
         elif dtype == "uint":
@@ -453,22 +489,24 @@ class GroupByMethods:
         elif dtype == "datetime":
             key = date_range("1/1/2011", periods=size, freq="s")
 
-        df = DataFrame({"values": values, "key": key})
+        cols = [f"values{n}" for n in range(ncols)]
+        df = DataFrame(values, columns=cols)
+        df["key"] = key
 
-        if application == "transform":
-            if method == "describe":
-                raise NotImplementedError
+        if len(cols) == 1:
+            cols = cols[0]
 
-            self.as_group_method = lambda: df.groupby("key")["values"].transform(method)
-            self.as_field_method = lambda: df.groupby("values")["key"].transform(method)
+        if application == "transformation":
+            self.as_group_method = lambda: df.groupby("key")[cols].transform(method)
+            self.as_field_method = lambda: df.groupby(cols)["key"].transform(method)
         else:
-            self.as_group_method = getattr(df.groupby("key")["values"], method)
-            self.as_field_method = getattr(df.groupby("values")["key"], method)
+            self.as_group_method = getattr(df.groupby("key")[cols], method)
+            self.as_field_method = getattr(df.groupby(cols)["key"], method)
 
-    def time_dtype_as_group(self, dtype, method, application):
+    def time_dtype_as_group(self, dtype, method, application, ncols):
         self.as_group_method()
 
-    def time_dtype_as_field(self, dtype, method, application):
+    def time_dtype_as_field(self, dtype, method, application, ncols):
         self.as_field_method()
 
 
@@ -568,6 +606,38 @@ class Float32:
         self.df.groupby(["a"])["b"].sum()
 
 
+class String:
+    # GH#41596
+    param_names = ["dtype", "method"]
+    params = [
+        ["str", "string[python]"],
+        [
+            "sum",
+            "prod",
+            "min",
+            "max",
+            "mean",
+            "median",
+            "var",
+            "first",
+            "last",
+            "any",
+            "all",
+        ],
+    ]
+
+    def setup(self, dtype, method):
+        cols = list("abcdefghjkl")
+        self.df = DataFrame(
+            np.random.randint(0, 100, size=(1_000_000, len(cols))),
+            columns=cols,
+            dtype=dtype,
+        )
+
+    def time_str_func(self, dtype, method):
+        self.df.groupby("a")[self.df.columns[1:]].agg(method)
+
+
 class Categories:
     def setup(self):
         N = 10 ** 5
@@ -665,6 +735,18 @@ class Transform:
         data = DataFrame(arr, index=index, columns=["col1", "col20", "col3"])
         self.df = data
 
+        n = 1000
+        self.df_wide = DataFrame(
+            np.random.randn(n, n),
+            index=np.random.choice(range(10), n),
+        )
+
+        n = 1_000_000
+        self.df_tall = DataFrame(
+            np.random.randn(n, 3),
+            index=np.random.randint(0, 5, n),
+        )
+
         n = 20000
         self.df1 = DataFrame(
             np.random.randint(1, n, (n, 3)), columns=["jim", "joe", "jolie"]
@@ -683,6 +765,12 @@ class Transform:
 
     def time_transform_ufunc_max(self):
         self.df.groupby(level="lev1").transform(np.max)
+
+    def time_transform_lambda_max_tall(self):
+        self.df_tall.groupby(level=0).transform(lambda x: np.max(x, axis=0))
+
+    def time_transform_lambda_max_wide(self):
+        self.df_wide.groupby(level=0).transform(lambda x: np.max(x, axis=0))
 
     def time_transform_multi_key1(self):
         self.df1.groupby(["jim", "joe"])["jolie"].transform("max")
@@ -830,6 +918,20 @@ class AggEngine:
             return total
 
         self.grouper.agg(function, engine="cython")
+
+
+class Sample:
+    def setup(self):
+        N = 10 ** 3
+        self.df = DataFrame({"a": np.zeros(N)})
+        self.groups = np.arange(0, N)
+        self.weights = np.ones(N)
+
+    def time_sample(self):
+        self.df.groupby(self.groups).sample(n=1)
+
+    def time_sample_weights(self):
+        self.df.groupby(self.groups).sample(n=1, weights=self.weights)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

@@ -1,6 +1,8 @@
 """
 Tests of pandas.tseries.offsets
 """
+from __future__ import annotations
+
 from datetime import (
     datetime,
     timedelta,
@@ -26,7 +28,6 @@ from pandas._libs.tslibs.offsets import (
     _offset_map,
 )
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
-from pandas.compat import np_datetime64_compat
 from pandas.errors import PerformanceWarning
 
 from pandas import DatetimeIndex
@@ -34,7 +35,6 @@ import pandas._testing as tm
 from pandas.tests.tseries.offsets.common import (
     Base,
     WeekDay,
-    assert_offset_equal,
 )
 
 import pandas.tseries.offsets as offsets
@@ -49,7 +49,6 @@ from pandas.tseries.offsets import (
     CustomBusinessMonthBegin,
     CustomBusinessMonthEnd,
     DateOffset,
-    Day,
     Easter,
     FY5253Quarter,
     LastWeekOfMonth,
@@ -101,7 +100,7 @@ class TestCommon(Base):
         "Second": Timestamp("2011-01-01 09:00:01"),
         "Milli": Timestamp("2011-01-01 09:00:00.001000"),
         "Micro": Timestamp("2011-01-01 09:00:00.000001"),
-        "Nano": Timestamp(np_datetime64_compat("2011-01-01T09:00:00.000000001Z")),
+        "Nano": Timestamp("2011-01-01T09:00:00.000000001"),
     }
 
     def test_immutable(self, offset_types):
@@ -125,7 +124,7 @@ class TestCommon(Base):
         assert offset + NaT is NaT
 
         assert NaT - offset is NaT
-        assert (-offset).apply(NaT) is NaT
+        assert (-offset)._apply(NaT) is NaT
 
     def test_offset_n(self, offset_types):
         offset = self._get_offset(offset_types)
@@ -188,7 +187,7 @@ class TestCommon(Base):
 
         if (
             type(offset_s).__name__ == "DateOffset"
-            and (funcname == "apply" or normalize)
+            and (funcname in ["apply", "_apply"] or normalize)
             and ts.nanosecond > 0
         ):
             exp_warning = UserWarning
@@ -196,6 +195,17 @@ class TestCommon(Base):
         # test nanosecond is preserved
         with tm.assert_produces_warning(exp_warning):
             result = func(ts)
+
+        if exp_warning is None and funcname == "_apply":
+            # GH#44522
+            # Check in this particular case to avoid headaches with
+            #  testing for multiple warnings produced by the same call.
+            with tm.assert_produces_warning(FutureWarning, match="apply is deprecated"):
+                res2 = offset_s.apply(ts)
+
+            assert type(res2) is type(result)
+            assert res2 == result
+
         assert isinstance(result, Timestamp)
         if normalize is False:
             assert result == expected + Nano(5)
@@ -225,7 +235,7 @@ class TestCommon(Base):
 
             if (
                 type(offset_s).__name__ == "DateOffset"
-                and (funcname == "apply" or normalize)
+                and (funcname in ["apply", "_apply"] or normalize)
                 and ts.nanosecond > 0
             ):
                 exp_warning = UserWarning
@@ -241,15 +251,16 @@ class TestCommon(Base):
 
     def test_apply(self, offset_types):
         sdt = datetime(2011, 1, 1, 9, 0)
-        ndt = np_datetime64_compat("2011-01-01 09:00Z")
+        ndt = np.datetime64("2011-01-01 09:00")
+
+        expected = self.expecteds[offset_types.__name__]
+        expected_norm = Timestamp(expected.date())
 
         for dt in [sdt, ndt]:
-            expected = self.expecteds[offset_types.__name__]
-            self._check_offsetfunc_works(offset_types, "apply", dt, expected)
+            self._check_offsetfunc_works(offset_types, "_apply", dt, expected)
 
-            expected = Timestamp(expected.date())
             self._check_offsetfunc_works(
-                offset_types, "apply", dt, expected, normalize=True
+                offset_types, "_apply", dt, expected_norm, normalize=True
             )
 
     def test_rollforward(self, offset_types):
@@ -297,7 +308,7 @@ class TestCommon(Base):
         norm_expected.update(normalized)
 
         sdt = datetime(2011, 1, 1, 9, 0)
-        ndt = np_datetime64_compat("2011-01-01 09:00Z")
+        ndt = np.datetime64("2011-01-01 09:00")
 
         for dt in [sdt, ndt]:
             expected = expecteds[offset_types.__name__]
@@ -371,7 +382,7 @@ class TestCommon(Base):
         norm_expected.update(normalized)
 
         sdt = datetime(2011, 1, 1, 9, 0)
-        ndt = np_datetime64_compat("2011-01-01 09:00Z")
+        ndt = np.datetime64("2011-01-01 09:00")
 
         for dt in [sdt, ndt]:
             expected = expecteds[offset_types.__name__]
@@ -498,11 +509,11 @@ class TestCommon(Base):
         base_dt = datetime(2020, 1, 1)
         assert base_dt + off == base_dt + res
 
-    def test_onOffset_deprecated(self, offset_types):
+    def test_onOffset_deprecated(self, offset_types, fixed_now_ts):
         # GH#30340 use idiomatic naming
         off = self._get_offset(offset_types)
 
-        ts = Timestamp.now()
+        ts = fixed_now_ts
         with tm.assert_produces_warning(FutureWarning):
             result = off.onOffset(ts)
 
@@ -526,7 +537,7 @@ class TestCommon(Base):
 
 
 class TestDateOffset(Base):
-    def setup_method(self, method):
+    def setup_method(self):
         self.d = Timestamp(datetime(2008, 1, 2))
         _offset_map.clear()
 
@@ -561,22 +572,6 @@ class TestDateOffset(Base):
         offset2 = DateOffset(days=365)
 
         assert offset1 != offset2
-
-
-def test_Easter():
-    assert_offset_equal(Easter(), datetime(2010, 1, 1), datetime(2010, 4, 4))
-    assert_offset_equal(Easter(), datetime(2010, 4, 5), datetime(2011, 4, 24))
-    assert_offset_equal(Easter(2), datetime(2010, 1, 1), datetime(2011, 4, 24))
-
-    assert_offset_equal(Easter(), datetime(2010, 4, 4), datetime(2011, 4, 24))
-    assert_offset_equal(Easter(2), datetime(2010, 4, 4), datetime(2012, 4, 8))
-
-    assert_offset_equal(-Easter(), datetime(2011, 1, 1), datetime(2010, 4, 4))
-    assert_offset_equal(-Easter(), datetime(2010, 4, 5), datetime(2010, 4, 4))
-    assert_offset_equal(-Easter(2), datetime(2011, 1, 1), datetime(2009, 4, 12))
-
-    assert_offset_equal(-Easter(), datetime(2010, 4, 4), datetime(2009, 4, 12))
-    assert_offset_equal(-Easter(2), datetime(2010, 4, 4), datetime(2008, 3, 23))
 
 
 class TestOffsetNames:
@@ -627,7 +622,7 @@ def test_get_offset_legacy():
 
 
 class TestOffsetAliases:
-    def setup_method(self, method):
+    def setup_method(self):
         _offset_map.clear()
 
     def test_alias_equality(self):
@@ -671,14 +666,6 @@ class TestOffsetAliases:
                 alias = "-".join([base, v])
                 assert alias == _get_offset(alias).rule_code
                 assert alias == (_get_offset(alias) * 5).rule_code
-
-
-def test_dateoffset_misc():
-    oset = offsets.DateOffset(months=2, days=4)
-    # it works
-    oset.freqstr
-
-    assert not offsets.DateOffset(months=2) == 2
 
 
 def test_freq_offsets():
@@ -796,63 +783,52 @@ def test_tick_normalize_raises(tick_classes):
         cls(n=3, normalize=True)
 
 
-def test_weeks_onoffset():
-    # GH#18510 Week with weekday = None, normalize = False should always
-    # be is_on_offset
-    offset = Week(n=2, weekday=None)
-    ts = Timestamp("1862-01-13 09:03:34.873477378+0210", tz="Africa/Lusaka")
-    fast = offset.is_on_offset(ts)
-    slow = (ts + offset) - offset == ts
-    assert fast == slow
-
-    # negative n
-    offset = Week(n=2, weekday=None)
-    ts = Timestamp("1856-10-24 16:18:36.556360110-0717", tz="Pacific/Easter")
-    fast = offset.is_on_offset(ts)
-    slow = (ts + offset) - offset == ts
-    assert fast == slow
-
-
-def test_weekofmonth_onoffset():
-    # GH#18864
-    # Make sure that nanoseconds don't trip up is_on_offset (and with it apply)
-    offset = WeekOfMonth(n=2, week=2, weekday=0)
-    ts = Timestamp("1916-05-15 01:14:49.583410462+0422", tz="Asia/Qyzylorda")
-    fast = offset.is_on_offset(ts)
-    slow = (ts + offset) - offset == ts
-    assert fast == slow
-
-    # negative n
-    offset = WeekOfMonth(n=-3, week=1, weekday=0)
-    ts = Timestamp("1980-12-08 03:38:52.878321185+0500", tz="Asia/Oral")
-    fast = offset.is_on_offset(ts)
-    slow = (ts + offset) - offset == ts
-    assert fast == slow
-
-
-def test_last_week_of_month_on_offset():
-    # GH#19036, GH#18977 _adjust_dst was incorrect for LastWeekOfMonth
-    offset = LastWeekOfMonth(n=4, weekday=6)
-    ts = Timestamp("1917-05-27 20:55:27.084284178+0200", tz="Europe/Warsaw")
-    slow = (ts + offset) - offset == ts
-    fast = offset.is_on_offset(ts)
-    assert fast == slow
-
-    # negative n
-    offset = LastWeekOfMonth(n=-4, weekday=5)
-    ts = Timestamp("2005-08-27 05:01:42.799392561-0500", tz="America/Rainy_River")
-    slow = (ts + offset) - offset == ts
-    fast = offset.is_on_offset(ts)
-    assert fast == slow
+@pytest.mark.parametrize(
+    "offset_kwargs, expected_arg",
+    [
+        ({"nanoseconds": 1}, "1970-01-01 00:00:00.000000001"),
+        ({"nanoseconds": 5}, "1970-01-01 00:00:00.000000005"),
+        ({"nanoseconds": -1}, "1969-12-31 23:59:59.999999999"),
+        ({"microseconds": 1}, "1970-01-01 00:00:00.000001"),
+        ({"microseconds": -1}, "1969-12-31 23:59:59.999999"),
+        ({"seconds": 1}, "1970-01-01 00:00:01"),
+        ({"seconds": -1}, "1969-12-31 23:59:59"),
+        ({"minutes": 1}, "1970-01-01 00:01:00"),
+        ({"minutes": -1}, "1969-12-31 23:59:00"),
+        ({"hours": 1}, "1970-01-01 01:00:00"),
+        ({"hours": -1}, "1969-12-31 23:00:00"),
+        ({"days": 1}, "1970-01-02 00:00:00"),
+        ({"days": -1}, "1969-12-31 00:00:00"),
+        ({"weeks": 1}, "1970-01-08 00:00:00"),
+        ({"weeks": -1}, "1969-12-25 00:00:00"),
+        ({"months": 1}, "1970-02-01 00:00:00"),
+        ({"months": -1}, "1969-12-01 00:00:00"),
+        ({"years": 1}, "1971-01-01 00:00:00"),
+        ({"years": -1}, "1969-01-01 00:00:00"),
+    ],
+)
+def test_dateoffset_add_sub(offset_kwargs, expected_arg):
+    offset = DateOffset(**offset_kwargs)
+    ts = Timestamp(0)
+    result = ts + offset
+    expected = Timestamp(expected_arg)
+    assert result == expected
+    result -= offset
+    assert result == ts
+    result = offset + ts
+    assert result == expected
 
 
-def test_week_add_invalid():
-    # Week with weekday should raise TypeError and _not_ AttributeError
-    #  when adding invalid offset
-    offset = Week(weekday=1)
-    other = Day()
-    with pytest.raises(TypeError, match="Cannot add"):
-        offset + other
+def test_dataoffset_add_sub_timestamp_with_nano():
+    offset = DateOffset(minutes=2, nanoseconds=9)
+    ts = Timestamp(4)
+    result = ts + offset
+    expected = Timestamp("1970-01-01 00:02:00.000000013")
+    assert result == expected
+    result -= offset
+    assert result == ts
+    result = offset + ts
+    assert result == expected
 
 
 @pytest.mark.parametrize(
@@ -872,19 +848,9 @@ def test_dateoffset_immutable(attribute):
         setattr(offset, attribute, 5)
 
 
-@pytest.mark.parametrize(
-    "weekmask, expected_time, mult",
-    [
-        ["Mon Tue Wed Thu Fri Sat", "2018-11-10 09:00:00", 10],
-        ["Tue Wed Thu Fri Sat", "2018-11-13 08:00:00", 18],
-    ],
-)
-def test_custom_businesshour_weekmask_and_holidays(weekmask, expected_time, mult):
-    # GH 23542
-    holidays = ["2018-11-09"]
-    bh = CustomBusinessHour(
-        start="08:00", end="17:00", weekmask=weekmask, holidays=holidays
-    )
-    result = Timestamp("2018-11-08 08:00") + mult * bh
-    expected = Timestamp(expected_time)
-    assert result == expected
+def test_dateoffset_misc():
+    oset = offsets.DateOffset(months=2, days=4)
+    # it works
+    oset.freqstr
+
+    assert not offsets.DateOffset(months=2) == 2

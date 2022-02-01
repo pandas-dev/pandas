@@ -32,11 +32,10 @@ import numpy as np
 import pytest
 
 from pandas.compat import (
-    PY38,
     get_lzma_file,
-    import_lzma,
     is_platform_little_endian,
 )
+from pandas.compat._optional import import_optional_dependency
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -47,19 +46,15 @@ from pandas import (
 )
 import pandas._testing as tm
 
+import pandas.io.common as icom
 from pandas.tseries.offsets import (
     Day,
     MonthEnd,
 )
 
-lzma = import_lzma()
-
-
-# TODO(ArrayManager) pickling
-pytestmark = [
-    td.skip_array_manager_not_yet_implemented,
-    pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning"),
-]
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Timestamp.freq is deprecated:FutureWarning"
+)
 
 
 @pytest.fixture(scope="module")
@@ -163,9 +158,9 @@ def compare_index_period(result, expected, typ, version):
     tm.assert_index_equal(result.shift(2), expected.shift(2))
 
 
-files = glob.glob(
-    os.path.join(os.path.dirname(__file__), "data", "legacy_pickle", "*", "*.pickle")
-)
+here = os.path.dirname(__file__)
+legacy_dirname = os.path.join(here, "data", "legacy_pickle")
+files = glob.glob(os.path.join(legacy_dirname, "*", "*.pickle"))
 
 
 @pytest.fixture(params=files)
@@ -210,7 +205,6 @@ def python_unpickler(path):
         pytest.param(
             functools.partial(pd.to_pickle, protocol=5),
             id="pandas_proto_5",
-            marks=pytest.mark.skipif(not PY38, reason="protocol 5 not supported"),
         ),
     ],
 )
@@ -294,12 +288,8 @@ def get_random_path():
 
 class TestCompression:
 
-    _compression_to_extension = {
-        None: ".none",
-        "gzip": ".gz",
-        "bz2": ".bz2",
-        "zip": ".zip",
-        "xz": ".xz",
+    _extension_to_compression = {
+        ext: compression for compression, ext in icom._compression_to_extension.items()
     }
 
     def compress_file(self, src_path, dest_path, compression):
@@ -315,7 +305,9 @@ class TestCompression:
             with zipfile.ZipFile(dest_path, "w", compression=zipfile.ZIP_DEFLATED) as f:
                 f.write(src_path, os.path.basename(src_path))
         elif compression == "xz":
-            f = get_lzma_file(lzma)(dest_path, "w")
+            f = get_lzma_file()(dest_path, "w")
+        elif compression == "zstd":
+            f = import_optional_dependency("zstandard").open(dest_path, "wb")
         else:
             msg = f"Unrecognized compression type: {compression}"
             raise ValueError(msg)
@@ -352,16 +344,11 @@ class TestCompression:
                 df = tm.makeDataFrame()
                 df.to_pickle(path, compression=compression)
 
-    @pytest.mark.parametrize("ext", ["", ".gz", ".bz2", ".no_compress", ".xz"])
-    def test_write_infer(self, ext, get_random_path):
+    def test_write_infer(self, compression_ext, get_random_path):
         base = get_random_path
-        path1 = base + ext
+        path1 = base + compression_ext
         path2 = base + ".raw"
-        compression = None
-        for c in self._compression_to_extension:
-            if self._compression_to_extension[c] == ext:
-                compression = c
-                break
+        compression = self._extension_to_compression.get(compression_ext.lower())
 
         with tm.ensure_clean(path1) as p1, tm.ensure_clean(path2) as p2:
             df = tm.makeDataFrame()
@@ -398,16 +385,11 @@ class TestCompression:
 
             tm.assert_frame_equal(df, df2)
 
-    @pytest.mark.parametrize("ext", ["", ".gz", ".bz2", ".zip", ".no_compress", ".xz"])
-    def test_read_infer(self, ext, get_random_path):
+    def test_read_infer(self, compression_ext, get_random_path):
         base = get_random_path
         path1 = base + ".raw"
-        path2 = base + ext
-        compression = None
-        for c in self._compression_to_extension:
-            if self._compression_to_extension[c] == ext:
-                compression = c
-                break
+        path2 = base + compression_ext
+        compression = self._extension_to_compression.get(compression_ext.lower())
 
         with tm.ensure_clean(path1) as p1, tm.ensure_clean(path2) as p2:
             df = tm.makeDataFrame()
@@ -614,6 +596,7 @@ def test_pickle_strings(string_series):
     tm.assert_series_equal(unp_series, string_series)
 
 
+@td.skip_array_manager_invalid_test
 def test_pickle_preserves_block_ndim():
     # GH#37631
     ser = Series(list("abc")).astype("category").iloc[[0]]
@@ -635,3 +618,13 @@ def test_pickle_big_dataframe_compression(protocol, compression):
         partial(pd.read_pickle, compression=compression),
     )
     tm.assert_frame_equal(df, result)
+
+
+def test_pickle_frame_v124_unpickle_130():
+    # GH#42345 DataFrame created in 1.2.x, unpickle in 1.3.x
+    path = os.path.join(legacy_dirname, "1.2.4", "empty_frame_v1_2_4-GH#42345.pkl")
+    with open(path, "rb") as fd:
+        df = pickle.load(fd)
+
+    expected = pd.DataFrame()
+    tm.assert_frame_equal(df, expected)

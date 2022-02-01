@@ -307,15 +307,15 @@ def test_assert_frame_equal_columns_mixed_dtype():
     tm.assert_frame_equal(df, df, check_like=True)
 
 
-def test_frame_equal_extension_dtype(frame_or_series, any_nullable_numeric_dtype):
+def test_frame_equal_extension_dtype(frame_or_series, any_numeric_ea_dtype):
     # GH#39410
-    obj = frame_or_series([1, 2], dtype=any_nullable_numeric_dtype)
+    obj = frame_or_series([1, 2], dtype=any_numeric_ea_dtype)
     tm.assert_equal(obj, obj, check_exact=True)
 
 
 @pytest.mark.parametrize("indexer", [(0, 1), (1, 0)])
-def test_frame_equal_mixed_dtypes(frame_or_series, any_nullable_numeric_dtype, indexer):
-    dtypes = (any_nullable_numeric_dtype, "int64")
+def test_frame_equal_mixed_dtypes(frame_or_series, any_numeric_ea_dtype, indexer):
+    dtypes = (any_numeric_ea_dtype, "int64")
     obj1 = frame_or_series([1, 2], dtype=dtypes[indexer[0]])
     obj2 = frame_or_series([1, 2], dtype=dtypes[indexer[1]])
     msg = r'(Series|DataFrame.iloc\[:, 0\] \(column name="0"\) classes) are different'
@@ -323,9 +323,22 @@ def test_frame_equal_mixed_dtypes(frame_or_series, any_nullable_numeric_dtype, i
         tm.assert_equal(obj1, obj2, check_exact=True, check_dtype=False)
 
 
-def test_assert_series_equal_check_like_different_indexes():
+def test_assert_frame_equal_check_like_different_indexes():
     # GH#39739
     df1 = DataFrame(index=pd.Index([], dtype="object"))
     df2 = DataFrame(index=pd.RangeIndex(start=0, stop=0, step=1))
     with pytest.raises(AssertionError, match="DataFrame.index are different"):
         tm.assert_frame_equal(df1, df2, check_like=True)
+
+
+def test_assert_frame_equal_checking_allow_dups_flag():
+    # GH#45554
+    left = DataFrame([[1, 2], [3, 4]])
+    left.flags.allows_duplicate_labels = False
+
+    right = DataFrame([[1, 2], [3, 4]])
+    right.flags.allows_duplicate_labels = True
+    tm.assert_frame_equal(left, right, check_flags=False)
+
+    with pytest.raises(AssertionError, match="allows_duplicate_labels"):
+        tm.assert_frame_equal(left, right, check_flags=True)

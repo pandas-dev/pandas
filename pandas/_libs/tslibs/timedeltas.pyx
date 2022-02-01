@@ -180,7 +180,7 @@ cpdef int64_t delta_to_nanoseconds(delta) except? -1:
     if PyDelta_Check(delta):
         try:
             return (
-                delta.days * 24 * 60 * 60 * 1_000_000
+                delta.days * 24 * 3600 * 1_000_000
                 + delta.seconds * 1_000_000
                 + delta.microseconds
             ) * 1000
@@ -571,7 +571,7 @@ cdef inline timedelta_from_spec(object number, object frac, object unit):
         if unit in ["M", "Y", "y"]:
             warnings.warn(
                 "Units 'M', 'Y' and 'y' do not represent unambiguous "
-                "timedelta values and will be removed in a future version",
+                "timedelta values and will be removed in a future version.",
                 FutureWarning,
                 stacklevel=2,
             )
@@ -641,7 +641,8 @@ def _binary_op_method_timedeltalike(op, name):
             return NaT
 
         elif is_datetime64_object(other) or (
-           PyDateTime_Check(other) and not isinstance(other, ABCTimestamp)):
+            PyDateTime_Check(other) and not isinstance(other, ABCTimestamp)
+        ):
             # this case is for a datetime object that is specifically
             # *not* a Timestamp, as the Timestamp case will be
             # handled after `_validate_ops_compat` returns False below
@@ -885,7 +886,7 @@ cdef class _Timedelta(timedelta):
 
     cpdef timedelta to_pytimedelta(_Timedelta self):
         """
-        Convert a pandas Timedelta object into a python timedelta object.
+        Convert a pandas Timedelta object into a python ``datetime.timedelta`` object.
 
         Timedelta objects are internally saved as numpy datetime64[ns] dtype.
         Use to_pytimedelta() to convert to object dtype.
@@ -928,6 +929,10 @@ cdef class _Timedelta(timedelta):
         --------
         Series.to_numpy : Similar method for Series.
         """
+        if dtype is not None or copy is not False:
+            raise ValueError(
+                "Timedelta.to_numpy dtype and copy arguments are ignored"
+            )
         return self.to_timedelta64()
 
     def view(self, dtype):
@@ -1246,11 +1251,33 @@ class Timedelta(_Timedelta):
 
     Notes
     -----
+    The constructor may take in either both values of value and unit or
+    kwargs as above. Either one of them must be used during initialization
+
     The ``.value`` attribute is always in ns.
 
     If the precision is higher than nanoseconds, the precision of the duration is
     truncated to nanoseconds.
+
+    Examples
+    --------
+    Here we initialize Timedelta object with both value and unit
+
+    >>> td = pd.Timedelta(1, "d")
+    >>> td
+    Timedelta('1 days 00:00:00')
+
+    Here we initialize the Timedelta object with kwargs
+
+    >>> td2 = pd.Timedelta(days=1)
+    >>> td2
+    Timedelta('1 days 00:00:00')
+
+    We see that either way we get the same result
     """
+
+    _req_any_kwargs_new = {"weeks", "days", "hours", "minutes", "seconds",
+                           "milliseconds", "microseconds", "nanoseconds"}
 
     def __new__(cls, object value=_no_input, unit=None, **kwargs):
         cdef _Timedelta td_base
@@ -1263,17 +1290,36 @@ class Timedelta(_Timedelta):
 
             kwargs = {key: _to_py_int_float(kwargs[key]) for key in kwargs}
 
-            nano = convert_to_timedelta64(kwargs.pop('nanoseconds', 0), 'ns')
-            try:
-                value = nano + convert_to_timedelta64(timedelta(**kwargs),
-                                                      'ns')
-            except TypeError as e:
+            unsupported_kwargs = set(kwargs)
+            unsupported_kwargs.difference_update(cls._req_any_kwargs_new)
+            if unsupported_kwargs or not cls._req_any_kwargs_new.intersection(kwargs):
                 raise ValueError(
                     "cannot construct a Timedelta from the passed arguments, "
                     "allowed keywords are "
                     "[weeks, days, hours, minutes, seconds, "
                     "milliseconds, microseconds, nanoseconds]"
                 )
+
+            # GH43764, convert any input to nanoseconds first and then
+            # create the timestamp. This ensures that any potential
+            # nanosecond contributions from kwargs parsed as floats
+            # are taken into consideration.
+            seconds = int((
+                (
+                    (kwargs.get('days', 0) + kwargs.get('weeks', 0) * 7) * 24
+                    + kwargs.get('hours', 0)
+                ) * 3600
+                + kwargs.get('minutes', 0) * 60
+                + kwargs.get('seconds', 0)
+                ) * 1_000_000_000
+            )
+
+            value = np.timedelta64(
+                int(kwargs.get('nanoseconds', 0))
+                + int(kwargs.get('microseconds', 0) * 1_000)
+                + int(kwargs.get('milliseconds', 0) * 1_000_000)
+                + seconds
+            )
 
         if unit in {'Y', 'y', 'M'}:
             raise ValueError(
@@ -1396,7 +1442,6 @@ class Timedelta(_Timedelta):
     # Arithmetic Methods
     # TODO: Can some of these be defined in the cython class?
 
-    __inv__ = _op_unary_method(lambda x: -x, '__inv__')
     __neg__ = _op_unary_method(lambda x: -x, '__neg__')
     __pos__ = _op_unary_method(lambda x: x, '__pos__')
     __abs__ = _op_unary_method(lambda x: abs(x), '__abs__')

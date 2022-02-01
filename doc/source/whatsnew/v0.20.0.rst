@@ -105,6 +105,7 @@ aggregations. This is similar to how groupby ``.agg()`` works. (:issue:`15015`)
    df.dtypes
 
 .. ipython:: python
+   :okwarning:
 
    df.agg(['min', 'sum'])
 
@@ -187,7 +188,7 @@ support for bz2 compression in the python 2 C-engine improved (:issue:`14874`).
 
    url = ('https://github.com/{repo}/raw/{branch}/{path}'
           .format(repo='pandas-dev/pandas',
-                  branch='master',
+                  branch='main',
                   path='pandas/tests/io/parser/data/salaries.csv.bz2'))
    # default, infer compression
    df = pd.read_csv(url, sep='\t', compression='infer')
@@ -248,11 +249,12 @@ or purely non-negative, integers. Previously, handling these integers would
 result in improper rounding or data-type casting, leading to incorrect results.
 Notably, a new numerical index, ``UInt64Index``, has been created (:issue:`14937`)
 
-.. ipython:: python
+.. code-block:: ipython
 
-   idx = pd.UInt64Index([1, 2, 3])
-   df = pd.DataFrame({'A': ['a', 'b', 'c']}, index=idx)
-   df.index
+   In [1]: idx = pd.UInt64Index([1, 2, 3])
+   In [2]: df = pd.DataFrame({'A': ['a', 'b', 'c']}, index=idx)
+   In [3]: df.index
+   Out[3]: UInt64Index([1, 2, 3], dtype='uint64')
 
 - Bug in converting object elements of array-like objects to unsigned 64-bit integers (:issue:`4471`, :issue:`14982`)
 - Bug in ``Series.unique()`` in which unsigned 64-bit integers were causing overflow (:issue:`14721`)
@@ -326,7 +328,7 @@ more information about the data.
 You must enable this by setting the ``display.html.table_schema`` option to ``True``.
 
 .. _Table Schema: http://specs.frictionlessdata.io/json-table-schema/
-.. _nteract: http://nteract.io/
+.. _nteract: https://nteract.io/
 
 .. _whatsnew_0200.enhancements.scipy_sparse:
 

@@ -7,10 +7,10 @@ Enhancing performance
 *********************
 
 In this part of the tutorial, we will investigate how to speed up certain
-functions operating on pandas ``DataFrames`` using three different techniques:
+functions operating on pandas :class:`DataFrame` using three different techniques:
 Cython, Numba and :func:`pandas.eval`. We will see a speed improvement of ~200
 when we use Cython and Numba on a test function operating row-wise on the
-``DataFrame``. Using :func:`pandas.eval` we will speed up a sum by an order of
+:class:`DataFrame`. Using :func:`pandas.eval` we will speed up a sum by an order of
 ~2.
 
 .. note::
@@ -35,7 +35,7 @@ by trying to remove for-loops and making use of NumPy vectorization. It's always
 optimising in Python first.
 
 This tutorial walks through a "typical" process of cythonizing a slow computation.
-We use an `example from the Cython documentation <http://docs.cython.org/src/quickstart/cythonize.html>`__
+We use an `example from the Cython documentation <https://docs.cython.org/en/latest/src/quickstart/cythonize.html>`__
 but in the context of pandas. Our final cythonized solution is around 100 times
 faster than the pure Python solution.
 
@@ -44,7 +44,7 @@ faster than the pure Python solution.
 Pure Python
 ~~~~~~~~~~~
 
-We have a ``DataFrame`` to which we want to apply a function row-wise.
+We have a :class:`DataFrame` to which we want to apply a function row-wise.
 
 .. ipython:: python
 
@@ -73,12 +73,11 @@ Here's the function in pure Python:
            s += f(a + i * dx)
        return s * dx
 
-We achieve our result by using ``apply`` (row-wise):
+We achieve our result by using :meth:`DataFrame.apply` (row-wise):
 
-.. code-block:: ipython
+.. ipython:: python
 
-   In [7]: %timeit df.apply(lambda x: integrate_f(x["a"], x["b"], x["N"]), axis=1)
-   10 loops, best of 3: 174 ms per loop
+   %timeit df.apply(lambda x: integrate_f(x["a"], x["b"], x["N"]), axis=1)
 
 But clearly this isn't fast enough for us. Let's take a look and see where the
 time is spent during this operation (limited to the most time consuming
@@ -126,10 +125,9 @@ is here to distinguish between function versions):
   to be using bleeding edge IPython for paste to play well with cell magics.
 
 
-.. code-block:: ipython
+.. ipython:: python
 
-   In [4]: %timeit df.apply(lambda x: integrate_f_plain(x["a"], x["b"], x["N"]), axis=1)
-   10 loops, best of 3: 85.5 ms per loop
+   %timeit df.apply(lambda x: integrate_f_plain(x["a"], x["b"], x["N"]), axis=1)
 
 Already this has shaved a third off, not too bad for a simple copy and paste.
 
@@ -155,10 +153,9 @@ We get another huge improvement simply by providing type information:
       ...:     return s * dx
       ...:
 
-.. code-block:: ipython
+.. ipython:: python
 
-   In [4]: %timeit df.apply(lambda x: integrate_f_typed(x["a"], x["b"], x["N"]), axis=1)
-   10 loops, best of 3: 20.3 ms per loop
+   %timeit df.apply(lambda x: integrate_f_typed(x["a"], x["b"], x["N"]), axis=1)
 
 Now, we're talking! It's now over ten times faster than the original Python
 implementation, and we haven't *really* modified the code. Let's have another
@@ -173,7 +170,7 @@ look at what's eating up time:
 Using ndarray
 ~~~~~~~~~~~~~
 
-It's calling series... a lot! It's creating a Series from each row, and get-ting from both
+It's calling series a lot! It's creating a :class:`Series` from each row, and calling get from both
 the index and the series (three times for each row). Function calls are expensive
 in Python, so maybe we could minimize these by cythonizing the apply part.
 
@@ -216,10 +213,10 @@ the rows, applying our ``integrate_f_typed``, and putting this in the zeros arra
 
 .. warning::
 
-   You can **not pass** a ``Series`` directly as a ``ndarray`` typed parameter
+   You can **not pass** a :class:`Series` directly as a ``ndarray`` typed parameter
    to a Cython function. Instead pass the actual ``ndarray`` using the
    :meth:`Series.to_numpy`. The reason is that the Cython
-   definition is specific to an ndarray and not the passed ``Series``.
+   definition is specific to an ndarray and not the passed :class:`Series`.
 
    So, do not do this:
 
@@ -238,10 +235,9 @@ the rows, applying our ``integrate_f_typed``, and putting this in the zeros arra
     Loops like this would be *extremely* slow in Python, but in Cython looping
     over NumPy arrays is *fast*.
 
-.. code-block:: ipython
+.. ipython:: python
 
-   In [4]: %timeit apply_integrate_f(df["a"].to_numpy(), df["b"].to_numpy(), df["N"].to_numpy())
-   1000 loops, best of 3: 1.25 ms per loop
+   %timeit apply_integrate_f(df["a"].to_numpy(), df["b"].to_numpy(), df["N"].to_numpy())
 
 We've gotten another big improvement. Let's check again where the time is spent:
 
@@ -267,33 +263,33 @@ advanced Cython techniques:
       ...: cimport cython
       ...: cimport numpy as np
       ...: import numpy as np
-      ...: cdef double f_typed(double x) except? -2:
+      ...: cdef np.float64_t f_typed(np.float64_t x) except? -2:
       ...:     return x * (x - 1)
-      ...: cpdef double integrate_f_typed(double a, double b, int N):
-      ...:     cdef int i
-      ...:     cdef double s, dx
-      ...:     s = 0
+      ...: cpdef np.float64_t integrate_f_typed(np.float64_t a, np.float64_t b, np.int64_t N):
+      ...:     cdef np.int64_t i
+      ...:     cdef np.float64_t s = 0.0, dx
       ...:     dx = (b - a) / N
       ...:     for i in range(N):
       ...:         s += f_typed(a + i * dx)
       ...:     return s * dx
       ...: @cython.boundscheck(False)
       ...: @cython.wraparound(False)
-      ...: cpdef np.ndarray[double] apply_integrate_f_wrap(np.ndarray[double] col_a,
-      ...:                                                 np.ndarray[double] col_b,
-      ...:                                                 np.ndarray[int] col_N):
-      ...:     cdef int i, n = len(col_N)
+      ...: cpdef np.ndarray[np.float64_t] apply_integrate_f_wrap(
+      ...:     np.ndarray[np.float64_t] col_a,
+      ...:     np.ndarray[np.float64_t] col_b,
+      ...:     np.ndarray[np.int64_t] col_N
+      ...: ):
+      ...:     cdef np.int64_t i, n = len(col_N)
       ...:     assert len(col_a) == len(col_b) == n
-      ...:     cdef np.ndarray[double] res = np.empty(n)
+      ...:     cdef np.ndarray[np.float64_t] res = np.empty(n, dtype=np.float64)
       ...:     for i in range(n):
       ...:         res[i] = integrate_f_typed(col_a[i], col_b[i], col_N[i])
       ...:     return res
       ...:
 
-.. code-block:: ipython
+.. ipython:: python
 
-   In [4]: %timeit apply_integrate_f_wrap(df["a"].to_numpy(), df["b"].to_numpy(), df["N"].to_numpy())
-   1000 loops, best of 3: 987 us per loop
+   %timeit apply_integrate_f_wrap(df["a"].to_numpy(), df["b"].to_numpy(), df["N"].to_numpy())
 
 Even faster, with the caveat that a bug in our Cython code (an off-by-one error,
 for example) might cause a segfault because memory access isn't checked.
@@ -302,28 +298,63 @@ For more about ``boundscheck`` and ``wraparound``, see the Cython docs on
 
 .. _enhancingperf.numba:
 
-Using Numba
------------
+Numba (JIT compilation)
+-----------------------
 
-A recent alternative to statically compiling Cython code, is to use a *dynamic jit-compiler*, Numba.
+An alternative to statically compiling Cython code is to use a dynamic just-in-time (JIT) compiler with `Numba <https://numba.pydata.org/>`__.
 
-Numba gives you the power to speed up your applications with high performance functions written directly in Python. With a few annotations, array-oriented and math-heavy Python code can be just-in-time compiled to native machine instructions, similar in performance to C, C++ and Fortran, without having to switch languages or Python interpreters.
+Numba allows you to write a pure Python function which can be JIT compiled to native machine instructions, similar in performance to C, C++ and Fortran,
+by decorating your function with ``@jit``.
 
-Numba works by generating optimized machine code using the LLVM compiler infrastructure at import time, runtime, or statically (using the included pycc tool). Numba supports compilation of Python to run on either CPU or GPU hardware, and is designed to integrate with the Python scientific software stack.
-
-.. note::
-
-    You will need to install Numba. This is easy with ``conda``, by using: ``conda install numba``, see :ref:`installing using miniconda<install.miniconda>`.
+Numba works by generating optimized machine code using the LLVM compiler infrastructure at import time, runtime, or statically (using the included pycc tool).
+Numba supports compilation of Python to run on either CPU or GPU hardware and is designed to integrate with the Python scientific software stack.
 
 .. note::
 
-    As of Numba version 0.20, pandas objects cannot be passed directly to Numba-compiled functions. Instead, one must pass the NumPy array underlying the pandas object to the Numba-compiled function as demonstrated below.
+    The ``@jit`` compilation will add overhead to the runtime of the function, so performance benefits may not be realized especially when using small data sets.
+    Consider `caching <https://numba.readthedocs.io/en/stable/developer/caching.html>`__ your function to avoid compilation overhead each time your function is run.
 
-Jit
-~~~
+Numba can be used in 2 ways with pandas:
 
-We demonstrate how to use Numba to just-in-time compile our code. We simply
-take the plain Python code from above and annotate with the ``@jit`` decorator.
+#. Specify the ``engine="numba"`` keyword in select pandas methods
+#. Define your own Python function decorated with ``@jit`` and pass the underlying NumPy array of :class:`Series` or :class:`DataFrame` (using ``to_numpy()``) into the function
+
+pandas Numba Engine
+~~~~~~~~~~~~~~~~~~~
+
+If Numba is installed, one can specify ``engine="numba"`` in select pandas methods to execute the method using Numba.
+Methods that support ``engine="numba"`` will also have an ``engine_kwargs`` keyword that accepts a dictionary that allows one to specify
+``"nogil"``, ``"nopython"`` and ``"parallel"`` keys with boolean values to pass into the ``@jit`` decorator.
+If ``engine_kwargs`` is not specified, it defaults to ``{"nogil": False, "nopython": True, "parallel": False}`` unless otherwise specified.
+
+In terms of performance, **the first time a function is run using the Numba engine will be slow**
+as Numba will have some function compilation overhead. However, the JIT compiled functions are cached,
+and subsequent calls will be fast. In general, the Numba engine is performant with
+a larger amount of data points (e.g. 1+ million).
+
+.. code-block:: ipython
+
+   In [1]: data = pd.Series(range(1_000_000))  # noqa: E225
+
+   In [2]: roll = data.rolling(10)
+
+   In [3]: def f(x):
+      ...:     return np.sum(x) + 5
+   # Run the first time, compilation time will affect performance
+   In [4]: %timeit -r 1 -n 1 roll.apply(f, engine='numba', raw=True)
+   1.23 s ± 0 ns per loop (mean ± std. dev. of 1 run, 1 loop each)
+   # Function is cached and performance will improve
+   In [5]: %timeit roll.apply(f, engine='numba', raw=True)
+   188 ms ± 1.93 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+
+   In [6]: %timeit roll.apply(f, engine='cython', raw=True)
+   3.92 s ± 59 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+
+Custom Function Examples
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+A custom Python function decorated with ``@jit`` can be used with pandas objects by passing their NumPy array
+representations with ``to_numpy()``.
 
 .. code-block:: python
 
@@ -360,8 +391,6 @@ take the plain Python code from above and annotate with the ``@jit`` decorator.
        )
        return pd.Series(result, index=df.index, name="result")
 
-Note that we directly pass NumPy arrays to the Numba function. ``compute_numba`` is just a wrapper that provides a
-nicer interface by passing/returning pandas objects.
 
 .. code-block:: ipython
 
@@ -370,19 +399,9 @@ nicer interface by passing/returning pandas objects.
 
 In this example, using Numba was faster than Cython.
 
-Numba as an argument
-~~~~~~~~~~~~~~~~~~~~
-
-Additionally, we can leverage the power of `Numba <https://numba.pydata.org/>`__
-by calling it as an argument in :meth:`~Rolling.apply`. See :ref:`Computation tools
-<window.numba_engine>` for an extensive example.
-
-Vectorize
-~~~~~~~~~
-
 Numba can also be used to write vectorized functions that do not require the user to explicitly
 loop over the observations of a vector; a vectorized function will be applied to each row automatically.
-Consider the following toy example of doubling each observation:
+Consider the following example of doubling each observation:
 
 .. code-block:: python
 
@@ -414,25 +433,23 @@ Consider the following toy example of doubling each observation:
 Caveats
 ~~~~~~~
 
-.. note::
-
-    Numba will execute on any function, but can only accelerate certain classes of functions.
-
 Numba is best at accelerating functions that apply numerical functions to NumPy
-arrays. When passed a function that only uses operations it knows how to
-accelerate, it will execute in ``nopython`` mode.
-
-If Numba is passed a function that includes something it doesn't know how to
-work with -- a category that currently includes sets, lists, dictionaries, or
-string functions -- it will revert to ``object mode``. In ``object mode``,
-Numba will execute but your code will not speed up significantly. If you would
+arrays. If you try to ``@jit`` a function that contains unsupported `Python <https://numba.readthedocs.io/en/stable/reference/pysupported.html>`__
+or `NumPy <https://numba.readthedocs.io/en/stable/reference/numpysupported.html>`__
+code, compilation will revert `object mode <https://numba.readthedocs.io/en/stable/glossary.html#term-object-mode>`__ which
+will mostly likely not speed up your function. If you would
 prefer that Numba throw an error if it cannot compile a function in a way that
 speeds up your code, pass Numba the argument
-``nopython=True`` (e.g.  ``@numba.jit(nopython=True)``). For more on
+``nopython=True`` (e.g.  ``@jit(nopython=True)``). For more on
 troubleshooting Numba modes, see the `Numba troubleshooting page
 <https://numba.pydata.org/numba-doc/latest/user/troubleshoot.html#the-compiled-code-is-too-slow>`__.
 
-Read more in the `Numba docs <https://numba.pydata.org/>`__.
+Using ``parallel=True`` (e.g. ``@jit(parallel=True)``) may result in a ``SIGABRT`` if the threading layer leads to unsafe
+behavior. You can first `specify a safe threading layer <https://numba.readthedocs.io/en/stable/user/threading-layer.html#selecting-a-threading-layer-for-safe-parallel-execution>`__
+before running a JIT function with ``parallel=True``.
+
+Generally if the you encounter a segfault (``SIGSEGV``) while using Numba, please report the issue
+to the `Numba issue tracker. <https://github.com/numba/numba/issues/new/choose>`__
 
 .. _enhancingperf.eval:
 
@@ -574,8 +591,8 @@ Now let's do the same thing but with comparisons:
    of type ``bool`` or ``np.bool_``. Again, you should perform these kinds of
    operations in plain Python.
 
-The ``DataFrame.eval`` method
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The :meth:`DataFrame.eval` method
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In addition to the top level :func:`pandas.eval` function you can also
 evaluate an expression in the "context" of a :class:`~pandas.DataFrame`.
@@ -609,7 +626,7 @@ new column name or an existing column name, and it must be a valid Python
 identifier.
 
 The ``inplace`` keyword determines whether this assignment will performed
-on the original ``DataFrame`` or return a copy with the new column.
+on the original :class:`DataFrame` or return a copy with the new column.
 
 .. ipython:: python
 
@@ -619,7 +636,7 @@ on the original ``DataFrame`` or return a copy with the new column.
    df.eval("a = 1", inplace=True)
    df
 
-When ``inplace`` is set to ``False``, the default, a copy of the ``DataFrame`` with the
+When ``inplace`` is set to ``False``, the default, a copy of the :class:`DataFrame` with the
 new or modified columns is returned and the original frame is unchanged.
 
 .. ipython:: python
@@ -651,7 +668,7 @@ The equivalent in standard Python would be
    df["a"] = 1
    df
 
-The ``query`` method has a ``inplace`` keyword which determines
+The :class:`DataFrame.query` method has a ``inplace`` keyword which determines
 whether the query modifies the original frame.
 
 .. ipython:: python
@@ -793,7 +810,7 @@ computation. The two lines are two different engines.
        .. image:: ../_static/eval-perf-small.png
 
 
-This plot was created using a ``DataFrame`` with 3 columns each containing
+This plot was created using a :class:`DataFrame` with 3 columns each containing
 floating point values generated using ``numpy.random.randn()``.
 
 Technical minutia regarding expression evaluation

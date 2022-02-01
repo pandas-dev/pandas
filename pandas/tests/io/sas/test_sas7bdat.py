@@ -1,3 +1,4 @@
+import contextlib
 from datetime import datetime
 import io
 import os
@@ -7,10 +8,7 @@ import dateutil.parser
 import numpy as np
 import pytest
 
-from pandas.errors import (
-    EmptyDataError,
-    PerformanceWarning,
-)
+from pandas.errors import EmptyDataError
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -138,9 +136,8 @@ def test_encoding_options(datapath):
 
     from pandas.io.sas.sas7bdat import SAS7BDATReader
 
-    rdr = SAS7BDATReader(fname, convert_header_text=False)
-    df3 = rdr.read()
-    rdr.close()
+    with contextlib.closing(SAS7BDATReader(fname, convert_header_text=False)) as rdr:
+        df3 = rdr.read()
     for x, y in zip(df1.columns, df3.columns):
         assert x == y.decode()
 
@@ -202,15 +199,11 @@ def test_compact_numerical_values(datapath):
     tm.assert_series_equal(result, expected, check_exact=True)
 
 
-def test_many_columns(datapath, using_array_manager):
+def test_many_columns(datapath):
     # Test for looking for column information in more places (PR #22628)
     fname = datapath("io", "sas", "data", "many_columns.sas7bdat")
-    expected_warning = None
-    if not using_array_manager:
-        expected_warning = PerformanceWarning
-    with tm.assert_produces_warning(expected_warning):
-        # Many DataFrame.insert calls
-        df = pd.read_sas(fname, encoding="latin-1")
+
+    df = pd.read_sas(fname, encoding="latin-1")
 
     fname = datapath("io", "sas", "data", "many_columns.csv")
     df0 = pd.read_csv(fname, encoding="latin-1")

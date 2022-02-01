@@ -18,7 +18,11 @@ from pandas import (
 )
 import pandas._testing as tm
 
+# TODO(1.4): Change me to xfails at release time
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
+
+@skip_pyarrow
 def test_read_with_bad_header(all_parsers):
     parser = all_parsers
     msg = r"but only \d+ lines in file"
@@ -78,7 +82,8 @@ def test_no_header_prefix(all_parsers):
 6,7,8,9,10
 11,12,13,14,15
 """
-    result = parser.read_csv(StringIO(data), prefix="Field", header=None)
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        result = parser.read_csv(StringIO(data), prefix="Field", header=None)
     expected = DataFrame(
         [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10], [11, 12, 13, 14, 15]],
         columns=["Field0", "Field1", "Field2", "Field3", "Field4"],
@@ -86,6 +91,7 @@ def test_no_header_prefix(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 def test_header_with_index_col(all_parsers):
     parser = all_parsers
     data = """foo,1,2,3
@@ -123,6 +129,7 @@ baz,12,13,14,15
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 def test_header_multi_index(all_parsers):
     parser = all_parsers
     expected = tm.makeCustomDataframe(5, 3, r_idx_nlevels=2, c_idx_nlevels=4)
@@ -188,6 +195,7 @@ R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
 _TestTuple = namedtuple("_TestTuple", ["first", "second"])
 
 
+@skip_pyarrow
 @pytest.mark.parametrize(
     "kwargs",
     [
@@ -235,6 +243,7 @@ two,7,8,9,10,11,12"""
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize(
     "kwargs",
     [
@@ -281,6 +290,7 @@ two,7,8,9,10,11,12"""
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize(
     "kwargs",
     [
@@ -328,6 +338,7 @@ q,r,s,t,u,v
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 def test_header_multi_index_common_format_malformed1(all_parsers):
     parser = all_parsers
     expected = DataFrame(
@@ -348,6 +359,7 @@ q,r,s,t,u,v
     tm.assert_frame_equal(expected, result)
 
 
+@skip_pyarrow
 def test_header_multi_index_common_format_malformed2(all_parsers):
     parser = all_parsers
     expected = DataFrame(
@@ -369,6 +381,7 @@ q,r,s,t,u,v
     tm.assert_frame_equal(expected, result)
 
 
+@skip_pyarrow
 def test_header_multi_index_common_format_malformed3(all_parsers):
     parser = all_parsers
     expected = DataFrame(
@@ -389,6 +402,7 @@ q,r,s,t,u,v
     tm.assert_frame_equal(expected, result)
 
 
+@skip_pyarrow
 def test_header_multi_index_blank_line(all_parsers):
     # GH 40442
     parser = all_parsers
@@ -400,6 +414,7 @@ def test_header_multi_index_blank_line(all_parsers):
     tm.assert_frame_equal(expected, result)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize(
     "data,header", [("1,2,3\n4,5,6", None), ("foo,bar,baz\n1,2,3\n4,5,6", 0)]
 )
@@ -412,6 +427,7 @@ def test_header_names_backward_compat(all_parsers, data, header):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize("kwargs", [{}, {"index_col": False}])
 def test_read_only_header_no_rows(all_parsers, kwargs):
     # See gh-7773
@@ -442,7 +458,11 @@ def test_no_header(all_parsers, kwargs, names):
     expected = DataFrame(
         [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10], [11, 12, 13, 14, 15]], columns=names
     )
-    result = parser.read_csv(StringIO(data), header=None, **kwargs)
+    if "prefix" in kwargs.keys():
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = parser.read_csv(StringIO(data), header=None, **kwargs)
+    else:
+        result = parser.read_csv(StringIO(data), header=None, **kwargs)
     tm.assert_frame_equal(result, expected)
 
 
@@ -457,6 +477,7 @@ def test_non_int_header(all_parsers, header):
         parser.read_csv(StringIO(data), header=header)
 
 
+@skip_pyarrow
 def test_singleton_header(all_parsers):
     # see gh-7757
     data = """a,b,c\n0,1,2\n1,2,3"""
@@ -467,6 +488,7 @@ def test_singleton_header(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize(
     "data,expected",
     [
@@ -513,6 +535,7 @@ def test_mangles_multi_index(all_parsers, data, expected):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize("index_col", [None, [0]])
 @pytest.mark.parametrize(
     "columns", [None, (["", "Unnamed"]), (["Unnamed", ""]), (["Unnamed", "NotUnnamed"])]
@@ -534,28 +557,37 @@ def test_multi_index_unnamed(all_parsers, index_col, columns):
     else:
         data = ",".join([""] + (columns or ["", ""])) + "\n,0,1\n0,2,3\n1,4,5\n"
 
+    result = parser.read_csv(StringIO(data), header=header, index_col=index_col)
+    exp_columns = []
+
     if columns is None:
-        msg = (
-            r"Passed header=\[0,1\] are too "
-            r"many rows for this multi_index of columns"
-        )
-        with pytest.raises(ParserError, match=msg):
-            parser.read_csv(StringIO(data), header=header, index_col=index_col)
-    else:
-        result = parser.read_csv(StringIO(data), header=header, index_col=index_col)
-        exp_columns = []
+        columns = ["", "", ""]
 
-        for i, col in enumerate(columns):
-            if not col:  # Unnamed.
-                col = f"Unnamed: {i if index_col is None else i + 1}_level_0"
+    for i, col in enumerate(columns):
+        if not col:  # Unnamed.
+            col = f"Unnamed: {i if index_col is None else i + 1}_level_0"
 
-            exp_columns.append(col)
+        exp_columns.append(col)
 
-        columns = MultiIndex.from_tuples(zip(exp_columns, ["0", "1"]))
-        expected = DataFrame([[2, 3], [4, 5]], columns=columns)
-        tm.assert_frame_equal(result, expected)
+    columns = MultiIndex.from_tuples(zip(exp_columns, ["0", "1"]))
+    expected = DataFrame([[2, 3], [4, 5]], columns=columns)
+    tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
+def test_names_longer_than_header_but_equal_with_data_rows(all_parsers):
+    # GH#38453
+    parser = all_parsers
+    data = """a, b
+1,2,3
+5,6,4
+"""
+    result = parser.read_csv(StringIO(data), header=0, names=["A", "B", "C"])
+    expected = DataFrame({"A": [1, 5], "B": [2, 6], "C": [3, 4]})
+    tm.assert_frame_equal(result, expected)
+
+
+@skip_pyarrow
 def test_read_csv_multiindex_columns(all_parsers):
     # GH#6051
     parser = all_parsers
@@ -585,3 +617,52 @@ def test_read_csv_multiindex_columns(all_parsers):
     tm.assert_frame_equal(df1, expected.iloc[:1])
     df2 = parser.read_csv(StringIO(s2), header=[0, 1])
     tm.assert_frame_equal(df2, expected)
+
+
+@skip_pyarrow
+def test_read_csv_multi_header_length_check(all_parsers):
+    # GH#43102
+    parser = all_parsers
+
+    case = """row11,row12,row13
+row21,row22, row23
+row31,row32
+"""
+
+    with pytest.raises(
+        ParserError, match="Header rows must have an equal number of columns."
+    ):
+        parser.read_csv(StringIO(case), header=[0, 2])
+
+
+@skip_pyarrow
+def test_header_none_and_implicit_index(all_parsers):
+    # GH#22144
+    parser = all_parsers
+    data = "x,1,5\ny,2\nz,3\n"
+    result = parser.read_csv(StringIO(data), names=["a", "b"], header=None)
+    expected = DataFrame(
+        {"a": [1, 2, 3], "b": [5, np.nan, np.nan]}, index=["x", "y", "z"]
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@skip_pyarrow
+def test_header_none_and_implicit_index_in_second_row(all_parsers):
+    # GH#22144
+    parser = all_parsers
+    data = "x,1\ny,2,5\nz,3\n"
+    with pytest.raises(ParserError, match="Expected 2 fields in line 2, saw 3"):
+        parser.read_csv(StringIO(data), names=["a", "b"], header=None)
+
+
+@skip_pyarrow
+def test_header_none_and_on_bad_lines_skip(all_parsers):
+    # GH#22144
+    parser = all_parsers
+    data = "x,1\ny,2,5\nz,3\n"
+    result = parser.read_csv(
+        StringIO(data), names=["a", "b"], header=None, on_bad_lines="skip"
+    )
+    expected = DataFrame({"a": ["x", "z"], "b": [1, 3]})
+    tm.assert_frame_equal(result, expected)

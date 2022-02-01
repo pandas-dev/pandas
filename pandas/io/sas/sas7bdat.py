@@ -21,14 +21,14 @@ from datetime import (
     timedelta,
 )
 import struct
-from typing import (
-    IO,
-    Any,
-    cast,
-)
+from typing import cast
 
 import numpy as np
 
+from pandas._typing import (
+    FilePath,
+    ReadBuffer,
+)
 from pandas.errors import (
     EmptyDataError,
     OutOfBoundsDatetime,
@@ -103,13 +103,14 @@ class _Column:
     col_id: int
     name: str | bytes
     label: str | bytes
-    format: str | bytes  # TODO: i think allowing bytes is from py2 days
+    format: str | bytes
     ctype: bytes
     length: int
 
     def __init__(
         self,
         col_id: int,
+        # These can be bytes when convert_header_text is False
         name: str | bytes,
         label: str | bytes,
         format: str | bytes,
@@ -159,7 +160,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
 
     def __init__(
         self,
-        path_or_buf,
+        path_or_buf: FilePath | ReadBuffer[bytes],
         index=None,
         convert_dates=True,
         blank_missing=True,
@@ -179,16 +180,16 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
 
         self.default_encoding = "latin-1"
         self.compression = b""
-        self.column_names_strings = []
-        self.column_names = []
-        self.column_formats = []
-        self.columns = []
+        self.column_names_strings: list[str] = []
+        self.column_names: list[str] = []
+        self.column_formats: list[str] = []
+        self.columns: list[_Column] = []
 
-        self._current_page_data_subheader_pointers = []
+        self._current_page_data_subheader_pointers: list[_SubheaderPointer] = []
         self._cached_page = None
-        self._column_data_lengths = []
-        self._column_data_offsets = []
-        self._column_types = []
+        self._column_data_lengths: list[int] = []
+        self._column_data_offsets: list[int] = []
+        self._column_types: list[bytes] = []
 
         self._current_row_in_file_index = 0
         self._current_row_on_page_index = 0
@@ -196,7 +197,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
 
         self.handles = get_handle(path_or_buf, "rb", is_text=False)
 
-        self._path_or_buf = cast(IO[Any], self.handles.handle)
+        self._path_or_buf = self.handles.handle
 
         try:
             self._get_properties()
@@ -227,7 +228,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
 
         # Check magic number
         self._path_or_buf.seek(0)
-        self._cached_page = cast(bytes, self._path_or_buf.read(288))
+        self._cached_page = self._path_or_buf.read(288)
         if self._cached_page[0 : len(const.magic)] != const.magic:
             raise ValueError("magic number mismatch (not a SAS file?)")
 
@@ -301,7 +302,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         )
 
         # Read the rest of the header into cached_page.
-        buf = cast(bytes, self._path_or_buf.read(self.header_length - 288))
+        buf = self._path_or_buf.read(self.header_length - 288)
         self._cached_page += buf
         # error: Argument 1 to "len" has incompatible type "Optional[bytes]";
         #  expected "Sized"
@@ -400,7 +401,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
     def _parse_metadata(self) -> None:
         done = False
         while not done:
-            self._cached_page = cast(bytes, self._path_or_buf.read(self._page_length))
+            self._cached_page = self._path_or_buf.read(self._page_length)
             if len(self._cached_page) <= 0:
                 break
             if len(self._cached_page) != self._page_length:
@@ -761,7 +762,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
 
     def _read_next_page(self):
         self._current_page_data_subheader_pointers = []
-        self._cached_page = cast(bytes, self._path_or_buf.read(self._page_length))
+        self._cached_page = self._path_or_buf.read(self._page_length)
         if len(self._cached_page) <= 0:
             return True
         elif len(self._cached_page) != self._page_length:
@@ -789,7 +790,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         n = self._current_row_in_chunk_index
         m = self._current_row_in_file_index
         ix = range(m - n, m)
-        rslt = DataFrame(index=ix)
+        rslt = {}
 
         js, jb = 0, 0
         for j in range(self.column_count):
@@ -797,8 +798,8 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
             name = self.column_names[j]
 
             if self._column_types[j] == b"d":
-                rslt[name] = self._byte_chunk[jb, :].view(dtype=self.byte_order + "d")
-                rslt[name] = np.asarray(rslt[name], dtype=np.float64)
+                col_arr = self._byte_chunk[jb, :].view(dtype=self.byte_order + "d")
+                rslt[name] = pd.Series(col_arr, dtype=np.float64, index=ix)
                 if self.convert_dates:
                     if self.column_formats[j] in const.sas_date_formats:
                         rslt[name] = _convert_datetimes(rslt[name], "d")
@@ -806,17 +807,18 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
                         rslt[name] = _convert_datetimes(rslt[name], "s")
                 jb += 1
             elif self._column_types[j] == b"s":
-                rslt[name] = self._string_chunk[js, :]
+                rslt[name] = pd.Series(self._string_chunk[js, :], index=ix)
                 if self.convert_text and (self.encoding is not None):
                     rslt[name] = rslt[name].str.decode(
                         self.encoding or self.default_encoding
                     )
                 if self.blank_missing:
                     ii = rslt[name].str.len() == 0
-                    rslt.loc[ii, name] = np.nan
+                    rslt[name][ii] = np.nan
                 js += 1
             else:
                 self.close()
-                raise ValueError(f"unknown column type {self._column_types[j]}")
+                raise ValueError(f"unknown column type {repr(self._column_types[j])}")
 
-        return rslt
+        df = DataFrame(rslt, columns=self.column_names, index=ix, copy=False)
+        return df

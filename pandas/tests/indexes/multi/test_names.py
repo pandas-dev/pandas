@@ -148,7 +148,7 @@ def test_setting_names_from_levels_raises():
         new.index.name = "bar"
 
     assert pd.Index._no_setting_name is False
-    assert pd.Int64Index._no_setting_name is False
+    assert pd.core.api.NumericIndex._no_setting_name is False
     assert pd.RangeIndex._no_setting_name is False
 
 

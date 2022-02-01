@@ -143,7 +143,7 @@ cdef class _NaT(datetime):
                 return True
             warnings.warn(
                 "Comparison of NaT with datetime.date is deprecated in "
-                "order to match the standard library behavior.  "
+                "order to match the standard library behavior. "
                 "In a future version these will be considered non-comparable.",
                 FutureWarning,
                 stacklevel=1,
@@ -166,7 +166,6 @@ cdef class _NaT(datetime):
 
         elif util.is_integer_object(other):
             # For Period compat
-            # TODO: the integer behavior is deprecated, remove it
             return c_NaT
 
         elif util.is_array(other):
@@ -201,7 +200,6 @@ cdef class _NaT(datetime):
 
         elif util.is_integer_object(other):
             # For Period compat
-            # TODO: the integer behavior is deprecated, remove it
             return c_NaT
 
         elif util.is_array(other):
@@ -260,19 +258,20 @@ cdef class _NaT(datetime):
         """
         return np.datetime64('NaT', "ns")
 
-    def to_numpy(self, dtype=None, copy=False) -> np.datetime64:
+    def to_numpy(self, dtype=None, copy=False) -> np.datetime64 | np.timedelta64:
         """
-        Convert the Timestamp to a NumPy datetime64.
+        Convert the Timestamp to a NumPy datetime64 or timedelta64.
 
         .. versionadded:: 0.25.0
 
-        This is an alias method for `Timestamp.to_datetime64()`. The dtype and
-        copy parameters are available here only for compatibility. Their values
+        With the default 'dtype', this is an alias method for `NaT.to_datetime64()`.
+
+        The copy parameter is available here only for compatibility. Its value
         will not affect the return value.
 
         Returns
         -------
-        numpy.datetime64
+        numpy.datetime64 or numpy.timedelta64
 
         See Also
         --------
@@ -288,7 +287,22 @@ cdef class _NaT(datetime):
 
         >>> pd.NaT.to_numpy()
         numpy.datetime64('NaT')
+
+        >>> pd.NaT.to_numpy("m8[ns]")
+        numpy.timedelta64('NaT','ns')
         """
+        if dtype is not None:
+            # GH#44460
+            dtype = np.dtype(dtype)
+            if dtype.kind == "M":
+                return np.datetime64("NaT").astype(dtype)
+            elif dtype.kind == "m":
+                return np.timedelta64("NaT").astype(dtype)
+            else:
+                raise ValueError(
+                    "NaT.to_numpy dtype must be a datetime64 dtype, timedelta64 "
+                    "dtype, or None."
+                )
         return self.to_datetime64()
 
     def __repr__(self) -> str:
@@ -297,7 +311,7 @@ cdef class _NaT(datetime):
     def __str__(self) -> str:
         return "NaT"
 
-    def isoformat(self, sep="T") -> str:
+    def isoformat(self, sep: str = "T", timespec: str = "auto") -> str:
         # This allows Timestamp(ts.isoformat()) to always correctly roundtrip.
         return "NaT"
 
@@ -343,9 +357,17 @@ class NaTType(_NaT):
 
         base = _NaT.__new__(cls, 1, 1, 1)
         base.value = NPY_NAT
-        base.freq = None
 
         return base
+
+    @property
+    def freq(self):
+        warnings.warn(
+            "NaT.freq is deprecated and will be removed in a future version.",
+            FutureWarning,
+            stacklevel=1,
+        )
+        return None
 
     def __reduce_ex__(self, protocol):
         # python 3.6 compat
@@ -355,9 +377,6 @@ class NaTType(_NaT):
 
     def __reduce__(self):
         return (__nat_unpickle, (None, ))
-
-    def __rdiv__(self, other):
-        return _nat_rdivide_op(self, other)
 
     def __rtruediv__(self, other):
         return _nat_rdivide_op(self, other)
@@ -409,8 +428,20 @@ class NaTType(_NaT):
     # These are the ones that can get their docstrings from datetime.
 
     # nan methods
-    weekday = _make_nan_func("weekday", datetime.weekday.__doc__)
-    isoweekday = _make_nan_func("isoweekday", datetime.isoweekday.__doc__)
+    weekday = _make_nan_func(
+        "weekday",
+        """
+        Return the day of the week represented by the date.
+        Monday == 0 ... Sunday == 6.
+        """,
+    )
+    isoweekday = _make_nan_func(
+        "isoweekday",
+        """
+        Return the day of the week represented by the date.
+        Monday == 1 ... Sunday == 7.
+        """,
+    )
     total_seconds = _make_nan_func("total_seconds", timedelta.total_seconds.__doc__)
     month_name = _make_nan_func(
         "month_name",
@@ -527,7 +558,7 @@ class NaTType(_NaT):
 
         Examples
         --------
-        >>> pd.Timestamp.fromtimestamp(1584199972)
+        >>> pd.Timestamp.utcfromtimestamp(1584199972)
         Timestamp('2020-03-14 15:32:52')
         """,
     )
@@ -540,7 +571,7 @@ class NaTType(_NaT):
 
         Examples
         --------
-        >>> pd.Timestamp.utcfromtimestamp(1584199972)
+        >>> pd.Timestamp.fromtimestamp(1584199972)
         Timestamp('2020-03-14 15:32:52')
 
         Note that the output may change depending on your local time.
@@ -569,7 +600,7 @@ class NaTType(_NaT):
 
         Examples
         --------
-        >>> pd.Timestamp.utcnow()
+        >>> pd.Timestamp.utcnow()   # doctest: +SKIP
         Timestamp('2020-11-16 22:50:18.092888+0000', tz='UTC')
         """,
     )
@@ -592,7 +623,7 @@ class NaTType(_NaT):
     astimezone = _make_error_func(
         "astimezone",
         """
-        Convert tz-aware Timestamp to another time zone.
+        Convert timezone-aware Timestamp to another time zone.
 
         Parameters
         ----------
@@ -693,7 +724,7 @@ class NaTType(_NaT):
 
         Examples
         --------
-        >>> pd.Timestamp.now()
+        >>> pd.Timestamp.now()  # doctest: +SKIP
         Timestamp('2020-11-16 22:06:16.378782')
 
         Analogous for ``pd.NaT``:
@@ -718,7 +749,7 @@ class NaTType(_NaT):
 
         Examples
         --------
-        >>> pd.Timestamp.today()
+        >>> pd.Timestamp.today()    # doctest: +SKIP
         Timestamp('2020-11-16 22:37:39.969883')
 
         Analogous for ``pd.NaT``:
@@ -766,6 +797,13 @@ timedelta}, default 'raise'
         ------
         ValueError if the freq cannot be converted
 
+        Notes
+        -----
+        If the Timestamp has a timezone, rounding will take place relative to the
+        local ("wall") time and re-localized to the same timezone. When rounding
+        near daylight savings time, use ``nonexistent`` and ``ambiguous`` to
+        control the re-localization behavior.
+
         Examples
         --------
         Create a timestamp object:
@@ -800,6 +838,17 @@ timedelta}, default 'raise'
 
         >>> pd.NaT.round()
         NaT
+
+        When rounding near a daylight savings time transition, use ``ambiguous`` or
+        ``nonexistent`` to control how the timestamp should be re-localized.
+
+        >>> ts_tz = pd.Timestamp("2021-10-31 01:30:00").tz_localize("Europe/Amsterdam")
+
+        >>> ts_tz.round("H", ambiguous=False)
+        Timestamp('2021-10-31 02:00:00+0100', tz='Europe/Amsterdam')
+
+        >>> ts_tz.round("H", ambiguous=True)
+        Timestamp('2021-10-31 02:00:00+0200', tz='Europe/Amsterdam')
         """,
     )
     floor = _make_nat_func(
@@ -837,6 +886,13 @@ timedelta}, default 'raise'
         ------
         ValueError if the freq cannot be converted.
 
+        Notes
+        -----
+        If the Timestamp has a timezone, flooring will take place relative to the
+        local ("wall") time and re-localized to the same timezone. When flooring
+        near daylight savings time, use ``nonexistent`` and ``ambiguous`` to
+        control the re-localization behavior.
+
         Examples
         --------
         Create a timestamp object:
@@ -871,6 +927,17 @@ timedelta}, default 'raise'
 
         >>> pd.NaT.floor()
         NaT
+
+        When rounding near a daylight savings time transition, use ``ambiguous`` or
+        ``nonexistent`` to control how the timestamp should be re-localized.
+
+        >>> ts_tz = pd.Timestamp("2021-10-31 03:30:00").tz_localize("Europe/Amsterdam")
+
+        >>> ts_tz.floor("2H", ambiguous=False)
+        Timestamp('2021-10-31 02:00:00+0100', tz='Europe/Amsterdam')
+
+        >>> ts_tz.floor("2H", ambiguous=True)
+        Timestamp('2021-10-31 02:00:00+0200', tz='Europe/Amsterdam')
         """,
     )
     ceil = _make_nat_func(
@@ -908,6 +975,13 @@ timedelta}, default 'raise'
         ------
         ValueError if the freq cannot be converted.
 
+        Notes
+        -----
+        If the Timestamp has a timezone, ceiling will take place relative to the
+        local ("wall") time and re-localized to the same timezone. When ceiling
+        near daylight savings time, use ``nonexistent`` and ``ambiguous`` to
+        control the re-localization behavior.
+
         Examples
         --------
         Create a timestamp object:
@@ -942,13 +1016,24 @@ timedelta}, default 'raise'
 
         >>> pd.NaT.ceil()
         NaT
+
+        When rounding near a daylight savings time transition, use ``ambiguous`` or
+        ``nonexistent`` to control how the timestamp should be re-localized.
+
+        >>> ts_tz = pd.Timestamp("2021-10-31 01:30:00").tz_localize("Europe/Amsterdam")
+
+        >>> ts_tz.ceil("H", ambiguous=False)
+        Timestamp('2021-10-31 02:00:00+0100', tz='Europe/Amsterdam')
+
+        >>> ts_tz.ceil("H", ambiguous=True)
+        Timestamp('2021-10-31 02:00:00+0200', tz='Europe/Amsterdam')
         """,
     )
 
     tz_convert = _make_nat_func(
         "tz_convert",
         """
-        Convert tz-aware Timestamp to another time zone.
+        Convert timezone-aware Timestamp to another time zone.
 
         Parameters
         ----------
@@ -993,7 +1078,7 @@ timedelta}, default 'raise'
         "tz_localize",
         """
         Convert naive Timestamp to local time zone, or remove
-        timezone from tz-aware Timestamp.
+        timezone from timezone-aware Timestamp.
 
         Parameters
         ----------
@@ -1122,30 +1207,19 @@ cdef inline bint checknull_with_nat(object val):
     return val is None or util.is_nan(val) or val is c_NaT
 
 
-cpdef bint is_null_datetimelike(object val, bint inat_is_null=True):
+cdef inline bint is_dt64nat(object val):
     """
-    Determine if we have a null for a timedelta/datetime (or integer versions).
-
-    Parameters
-    ----------
-    val : object
-    inat_is_null : bool, default True
-        Whether to treat integer iNaT value as null
-
-    Returns
-    -------
-    bool
+    Is this a np.datetime64 object np.datetime64("NaT").
     """
-    if val is None:
-        return True
-    elif val is c_NaT:
-        return True
-    elif util.is_float_object(val) or util.is_complex_object(val):
-        return val != val
-    elif util.is_timedelta64_object(val):
-        return get_timedelta64_value(val) == NPY_NAT
-    elif util.is_datetime64_object(val):
+    if util.is_datetime64_object(val):
         return get_datetime64_value(val) == NPY_NAT
-    elif inat_is_null and util.is_integer_object(val):
-        return val == NPY_NAT
+    return False
+
+
+cdef inline bint is_td64nat(object val):
+    """
+    Is this a np.timedelta64 object np.timedelta64("NaT").
+    """
+    if util.is_timedelta64_object(val):
+        return get_timedelta64_value(val) == NPY_NAT
     return False

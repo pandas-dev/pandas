@@ -11,7 +11,7 @@ from typing import (
 )
 import warnings
 
-from pandas._libs.properties import cache_readonly  # noqa
+from pandas._libs.properties import cache_readonly  # noqa:F401
 from pandas._typing import F
 
 
@@ -51,7 +51,7 @@ def deprecate(
     """
     alt_name = alt_name or alternative.__name__
     klass = klass or FutureWarning
-    warning_msg = msg or f"{name} is deprecated, use {alt_name} instead"
+    warning_msg = msg or f"{name} is deprecated, use {alt_name} instead."
 
     @wraps(alternative)
     def wrapper(*args, **kwargs) -> Callable[..., Any]:
@@ -122,19 +122,19 @@ def deprecate_kwarg(
     >>> f(columns='should work ok')
     should work ok
 
-    >>> f(cols='should raise warning')
+    >>> f(cols='should raise warning')  # doctest: +SKIP
     FutureWarning: cols is deprecated, use columns instead
       warnings.warn(msg, FutureWarning)
     should raise warning
 
-    >>> f(cols='should error', columns="can\'t pass do both")
+    >>> f(cols='should error', columns="can\'t pass do both")  # doctest: +SKIP
     TypeError: Can only specify 'cols' or 'columns', not both
 
     >>> @deprecate_kwarg('old', 'new', {'yes': True, 'no': False})
     ... def f(new=False):
     ...     print('yes!' if new else 'no!')
     ...
-    >>> f(old='yes')
+    >>> f(old='yes')  # doctest: +SKIP
     FutureWarning: old='yes' is deprecated, use new=True instead
       warnings.warn(msg, FutureWarning)
     yes!
@@ -145,14 +145,14 @@ def deprecate_kwarg(
     ... def f(cols='', another_param=''):
     ...     print(cols)
     ...
-    >>> f(cols='should raise warning')
+    >>> f(cols='should raise warning')  # doctest: +SKIP
     FutureWarning: the 'cols' keyword is deprecated and will be removed in a
     future version please takes steps to stop use of 'cols'
     should raise warning
-    >>> f(another_param='should not raise warning')
+    >>> f(another_param='should not raise warning')  # doctest: +SKIP
     should not raise warning
 
-    >>> f(cols='should raise warning', another_param='')
+    >>> f(cols='should raise warning', another_param='')  # doctest: +SKIP
     FutureWarning: the 'cols' keyword is deprecated and will be removed in a
     future version please takes steps to stop use of 'cols'
     should raise warning
@@ -186,20 +186,20 @@ def deprecate_kwarg(
                     msg = (
                         f"the {old_arg_name}={repr(old_arg_value)} keyword is "
                         "deprecated, use "
-                        f"{new_arg_name}={repr(new_arg_value)} instead"
+                        f"{new_arg_name}={repr(new_arg_value)} instead."
                     )
                 else:
                     new_arg_value = old_arg_value
                     msg = (
                         f"the {repr(old_arg_name)}' keyword is deprecated, "
-                        f"use {repr(new_arg_name)} instead"
+                        f"use {repr(new_arg_name)} instead."
                     )
 
                 warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
                 if kwargs.get(new_arg_name) is not None:
                     msg = (
                         f"Can only specify {repr(old_arg_name)} "
-                        f"or {repr(new_arg_name)}, not both"
+                        f"or {repr(new_arg_name)}, not both."
                     )
                     raise TypeError(msg)
                 else:
@@ -245,7 +245,7 @@ def _format_argument_list(allow_args: list[str]):
         return f" except for the argument '{allow_args[0]}'"
     else:
         last = allow_args[-1]
-        args = ", ".join("'" + x + "'" for x in allow_args[:-1])
+        args = ", ".join(["'" + x + "'" for x in allow_args[:-1]])
         return f" except for the arguments {args} and '{last}'"
 
 
@@ -296,7 +296,7 @@ def deprecate_nonkeyword_arguments(
         num_allow_args = len(allow_args)
         msg = (
             f"{future_version_msg(version)} all arguments of "
-            f"{func.__qualname__}{{arguments}} will be keyword-only"
+            f"{func.__qualname__}{{arguments}} will be keyword-only."
         )
 
         @wraps(func)
@@ -385,10 +385,12 @@ def doc(*docstrings: str | Callable, **params) -> Callable[[F], F]:
 
         # formatting templates and concatenating docstring
         decorated.__doc__ = "".join(
-            component.format(**params)
-            if isinstance(component, str)
-            else dedent(component.__doc__ or "")
-            for component in docstring_components
+            [
+                component.format(**params)
+                if isinstance(component, str)
+                else dedent(component.__doc__ or "")
+                for component in docstring_components
+            ]
         )
 
         # error: "F" has no attribute "_docstring_components"

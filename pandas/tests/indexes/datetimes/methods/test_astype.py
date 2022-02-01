@@ -9,13 +9,16 @@ import pandas as pd
 from pandas import (
     DatetimeIndex,
     Index,
-    Int64Index,
     NaT,
     PeriodIndex,
     Timestamp,
     date_range,
 )
 import pandas._testing as tm
+from pandas.core.api import (
+    Int64Index,
+    UInt64Index,
+)
 
 
 class TestDatetimeIndex:
@@ -29,8 +32,7 @@ class TestDatetimeIndex:
         )
         tm.assert_index_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = idx.astype(int)
+        result = idx.astype(int)
         expected = Int64Index(
             [1463356800000000000] + [-9223372036854775808] * 3,
             dtype=np.int64,
@@ -39,20 +41,18 @@ class TestDatetimeIndex:
         tm.assert_index_equal(result, expected)
 
         rng = date_range("1/1/2000", periods=10, name="idx")
-        with tm.assert_produces_warning(FutureWarning):
-            result = rng.astype("i8")
+        result = rng.astype("i8")
         tm.assert_index_equal(result, Index(rng.asi8, name="idx"))
         tm.assert_numpy_array_equal(result.values, rng.asi8)
 
     def test_astype_uint(self):
         arr = date_range("2000", periods=2, name="idx")
-        expected = pd.UInt64Index(
+        expected = UInt64Index(
             np.array([946684800000000000, 946771200000000000], dtype="uint64"),
             name="idx",
         )
-        with tm.assert_produces_warning(FutureWarning):
-            tm.assert_index_equal(arr.astype("uint64"), expected)
-            tm.assert_index_equal(arr.astype("uint32"), expected)
+        tm.assert_index_equal(arr.astype("uint64"), expected)
+        tm.assert_index_equal(arr.astype("uint32"), expected)
 
     def test_astype_with_tz(self):
 

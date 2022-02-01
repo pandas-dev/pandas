@@ -67,16 +67,42 @@ class FromCoo:
 
 
 class ToCoo:
-    def setup(self):
+    params = [True, False]
+    param_names = ["sort_labels"]
+
+    def setup(self, sort_labels):
         s = Series([np.nan] * 10000)
         s[0] = 3.0
         s[100] = -1.0
         s[999] = 12.1
-        s.index = MultiIndex.from_product([range(10)] * 4)
-        self.ss = s.astype("Sparse")
 
-    def time_sparse_series_to_coo(self):
-        self.ss.sparse.to_coo(row_levels=[0, 1], column_levels=[2, 3], sort_labels=True)
+        s_mult_lvl = s.set_axis(MultiIndex.from_product([range(10)] * 4))
+        self.ss_mult_lvl = s_mult_lvl.astype("Sparse")
+
+        s_two_lvl = s.set_axis(MultiIndex.from_product([range(100)] * 2))
+        self.ss_two_lvl = s_two_lvl.astype("Sparse")
+
+    def time_sparse_series_to_coo(self, sort_labels):
+        self.ss_mult_lvl.sparse.to_coo(
+            row_levels=[0, 1], column_levels=[2, 3], sort_labels=sort_labels
+        )
+
+    def time_sparse_series_to_coo_single_level(self, sort_labels):
+        self.ss_two_lvl.sparse.to_coo(sort_labels=sort_labels)
+
+
+class ToCooFrame:
+    def setup(self):
+        N = 10000
+        k = 10
+        arr = np.zeros((N, k), dtype=float)
+        arr[0, 0] = 3.0
+        arr[12, 7] = -1.0
+        arr[0, 9] = 11.2
+        self.df = pd.DataFrame(arr, dtype=pd.SparseDtype("float", fill_value=0.0))
+
+    def time_to_coo(self):
+        self.df.sparse.to_coo()
 
 
 class Arithmetic:
@@ -138,6 +164,70 @@ class ArithmeticBlock:
 
     def time_division(self, fill_value):
         self.arr1 / self.arr2
+
+
+class MinMax:
+
+    params = (["min", "max"], [0.0, np.nan])
+    param_names = ["func", "fill_value"]
+
+    def setup(self, func, fill_value):
+        N = 1_000_000
+        arr = make_array(N, 1e-5, fill_value, np.float64)
+        self.sp_arr = SparseArray(arr, fill_value=fill_value)
+
+    def time_min_max(self, func, fill_value):
+        getattr(self.sp_arr, func)()
+
+
+class Take:
+
+    params = ([np.array([0]), np.arange(100_000), np.full(100_000, -1)], [True, False])
+    param_names = ["indices", "allow_fill"]
+
+    def setup(self, indices, allow_fill):
+        N = 1_000_000
+        fill_value = 0.0
+        arr = make_array(N, 1e-5, fill_value, np.float64)
+        self.sp_arr = SparseArray(arr, fill_value=fill_value)
+
+    def time_take(self, indices, allow_fill):
+        self.sp_arr.take(indices, allow_fill=allow_fill)
+
+
+class GetItem:
+    def setup(self):
+        N = 1_000_000
+        d = 1e-5
+        arr = make_array(N, d, np.nan, np.float64)
+        self.sp_arr = SparseArray(arr)
+
+    def time_integer_indexing(self):
+        self.sp_arr[78]
+
+    def time_slice(self):
+        self.sp_arr[1:]
+
+
+class GetItemMask:
+
+    params = [True, False, np.nan]
+    param_names = ["fill_value"]
+
+    def setup(self, fill_value):
+        N = 1_000_000
+        d = 1e-5
+        arr = make_array(N, d, np.nan, np.float64)
+        self.sp_arr = SparseArray(arr)
+        b_arr = np.full(shape=N, fill_value=fill_value, dtype=np.bool8)
+        fv_inds = np.unique(
+            np.random.randint(low=0, high=N - 1, size=int(N * d), dtype=np.int32)
+        )
+        b_arr[fv_inds] = True if pd.isna(fill_value) else not fill_value
+        self.sp_b_arr = SparseArray(b_arr, dtype=np.bool8, fill_value=fill_value)
+
+    def time_mask(self, fill_value):
+        self.sp_arr[self.sp_b_arr]
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

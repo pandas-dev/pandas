@@ -1,43 +1,52 @@
 from __future__ import annotations
 
-import datetime
 import numbers
 from typing import (
     TYPE_CHECKING,
-    Any,
     TypeVar,
 )
 
 import numpy as np
 
 from pandas._libs import (
-    Timedelta,
+    lib,
     missing as libmissing,
+)
+from pandas._typing import (
+    Dtype,
+    DtypeObj,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import (
-    is_float,
+    is_bool_dtype,
     is_float_dtype,
-    is_integer,
     is_integer_dtype,
     is_list_like,
+    is_object_dtype,
+    is_string_dtype,
+    pandas_dtype,
 )
 
 from pandas.core import ops
+from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
 )
+from pandas.core.construction import ensure_wrapped_if_datetimelike
 
 if TYPE_CHECKING:
     import pyarrow
+
 
 T = TypeVar("T", bound="NumericArray")
 
 
 class NumericDtype(BaseMaskedDtype):
+    _default_np_dtype: np.dtype
+
     def __from_arrow__(
         self, array: pyarrow.Array | pyarrow.ChunkedArray
     ) -> BaseMaskedArray:
@@ -52,6 +61,16 @@ class NumericDtype(BaseMaskedDtype):
 
         pyarrow_type = pyarrow.from_numpy_dtype(self.type)
         if not array.type.equals(pyarrow_type):
+            # test_from_arrow_type_error raise for string, but allow
+            #  through itemsize conversion GH#31896
+            rt_dtype = pandas_dtype(array.type.to_pandas_dtype())
+            if rt_dtype.kind not in ["i", "u", "f"]:
+                # Could allow "c" or potentially disallow float<->int conversion,
+                #  but at the moment we specifically test that uint<->int works
+                raise TypeError(
+                    f"Expected array of {self} type, got {array.type} instead"
+                )
+
             array = array.cast(pyarrow_type)
 
         if isinstance(array, pyarrow.Array):
@@ -76,47 +95,163 @@ class NumericDtype(BaseMaskedDtype):
         else:
             return array_class._concat_same_type(results)
 
+    @classmethod
+    def _standardize_dtype(cls, dtype) -> NumericDtype:
+        """
+        Convert a string representation or a numpy dtype to NumericDtype.
+        """
+        raise AbstractMethodError(cls)
+
+    @classmethod
+    def _safe_cast(cls, values: np.ndarray, dtype: np.dtype, copy: bool) -> np.ndarray:
+        """
+        Safely cast the values to the given dtype.
+
+        "safe" in this context means the casting is lossless.
+        """
+        raise AbstractMethodError(cls)
+
+
+def _coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype):
+    if default_dtype.kind == "f":
+        checker = is_float_dtype
+    else:
+        checker = is_integer_dtype
+
+    inferred_type = None
+
+    if dtype is None and hasattr(values, "dtype"):
+        if checker(values.dtype):
+            dtype = values.dtype
+
+    if dtype is not None:
+        dtype = dtype_cls._standardize_dtype(dtype)
+
+    cls = dtype_cls.construct_array_type()
+    if isinstance(values, cls):
+        values, mask = values._data, values._mask
+        if dtype is not None:
+            values = values.astype(dtype.numpy_dtype, copy=False)
+
+        if copy:
+            values = values.copy()
+            mask = mask.copy()
+        return values, mask, dtype, inferred_type
+
+    values = np.array(values, copy=copy)
+    inferred_type = None
+    if is_object_dtype(values.dtype) or is_string_dtype(values.dtype):
+        inferred_type = lib.infer_dtype(values, skipna=True)
+        if inferred_type == "empty":
+            pass
+        elif inferred_type == "boolean":
+            name = dtype_cls.__name__.strip("_")
+            raise TypeError(f"{values.dtype} cannot be converted to {name}")
+
+    elif is_bool_dtype(values) and checker(dtype):
+        values = np.array(values, dtype=default_dtype, copy=copy)
+
+    elif not (is_integer_dtype(values) or is_float_dtype(values)):
+        name = dtype_cls.__name__.strip("_")
+        raise TypeError(f"{values.dtype} cannot be converted to {name}")
+
+    if values.ndim != 1:
+        raise TypeError("values must be a 1D list-like")
+
+    if mask is None:
+        mask = libmissing.is_numeric_na(values)
+    else:
+        assert len(mask) == len(values)
+
+    if mask.ndim != 1:
+        raise TypeError("mask must be a 1D list-like")
+
+    # infer dtype if needed
+    if dtype is None:
+        dtype = default_dtype
+    else:
+        dtype = dtype.type
+
+    # we copy as need to coerce here
+    if mask.any():
+        values = values.copy()
+        values[mask] = cls._internal_fill_value
+    if inferred_type in ("string", "unicode"):
+        # casts from str are always safe since they raise
+        # a ValueError if the str cannot be parsed into a float
+        values = values.astype(dtype, copy=copy)
+    else:
+        values = dtype_cls._safe_cast(values, dtype, copy=False)
+
+    return values, mask, dtype, inferred_type
+
 
 class NumericArray(BaseMaskedArray):
     """
     Base class for IntegerArray and FloatingArray.
     """
 
-    def _maybe_mask_result(self, result, mask, other, op_name: str):
-        raise AbstractMethodError(self)
+    _dtype_cls: type[NumericDtype]
+
+    @classmethod
+    def _coerce_to_array(
+        cls, value, *, dtype: DtypeObj, copy: bool = False
+    ) -> tuple[np.ndarray, np.ndarray]:
+        dtype_cls = cls._dtype_cls
+        default_dtype = dtype_cls._default_np_dtype
+        mask = None
+        values, mask, _, _ = _coerce_to_data_and_mask(
+            value, mask, dtype, copy, dtype_cls, default_dtype
+        )
+        return values, mask
+
+    @classmethod
+    def _from_sequence_of_strings(
+        cls: type[T], strings, *, dtype: Dtype | None = None, copy: bool = False
+    ) -> T:
+        from pandas.core.tools.numeric import to_numeric
+
+        scalars = to_numeric(strings, errors="raise")
+        return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
     def _arith_method(self, other, op):
         op_name = op.__name__
         omask = None
 
-        if getattr(other, "ndim", 0) > 1:
-            raise NotImplementedError("can only perform ops with 1-d structures")
-
-        if isinstance(other, NumericArray):
+        if isinstance(other, BaseMaskedArray):
             other, omask = other._data, other._mask
 
         elif is_list_like(other):
-            other = np.asarray(other)
+            if not isinstance(other, ExtensionArray):
+                other = np.asarray(other)
             if other.ndim > 1:
                 raise NotImplementedError("can only perform ops with 1-d structures")
-            if len(self) != len(other):
-                raise ValueError("Lengths must match")
-            if not (is_float_dtype(other) or is_integer_dtype(other)):
-                raise TypeError("can only perform ops with numeric values")
 
-        elif isinstance(other, (datetime.timedelta, np.timedelta64)):
-            other = Timedelta(other)
+        # We wrap the non-masked arithmetic logic used for numpy dtypes
+        #  in Series/Index arithmetic ops.
+        other = ops.maybe_prepare_scalar_for_op(other, (len(self),))
+        pd_op = ops.get_array_op(op)
+        other = ensure_wrapped_if_datetimelike(other)
 
+        mask = self._propagate_mask(omask, other)
+
+        if other is libmissing.NA:
+            result = np.ones_like(self._data)
+            if "truediv" in op_name and self.dtype.kind != "f":
+                # The actual data here doesn't matter since the mask
+                #  will be all-True, but since this is division, we want
+                #  to end up with floating dtype.
+                result = result.astype(np.float64)
         else:
-            if not (is_float(other) or is_integer(other) or other is libmissing.NA):
-                raise TypeError("can only perform ops with numeric values")
+            # Make sure we do this before the "pow" mask checks
+            #  to get an expected exception message on shape mismatch.
+            if self.dtype.kind in ["i", "u"] and op_name in ["floordiv", "mod"]:
+                # ATM we don't match the behavior of non-masked types with
+                #  respect to floordiv-by-zero
+                pd_op = op
 
-        if omask is None:
-            mask = self._mask.copy()
-            if other is libmissing.NA:
-                mask |= True
-        else:
-            mask = self._mask | omask
+            with np.errstate(all="ignore"):
+                result = pd_op(self._data, other)
 
         if op_name == "pow":
             # 1 ** x is 1.
@@ -136,81 +271,15 @@ class NumericArray(BaseMaskedArray):
             # x ** 0 is 1.
             mask = np.where((self._data == 0) & ~self._mask, False, mask)
 
-        if other is libmissing.NA:
-            result = np.ones_like(self._data)
-        else:
-            with np.errstate(all="ignore"):
-                result = op(self._data, other)
-
-        # divmod returns a tuple
-        if op_name == "divmod":
-            div, mod = result
-            return (
-                self._maybe_mask_result(div, mask, other, "floordiv"),
-                self._maybe_mask_result(mod, mask, other, "mod"),
-            )
-
         return self._maybe_mask_result(result, mask, other, op_name)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
-
-    def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
-        # For NumericArray inputs, we apply the ufunc to ._data
-        # and mask the result.
-        if method == "reduce":
-            # Not clear how to handle missing values in reductions. Raise.
-            raise NotImplementedError("The 'reduce' method is not supported.")
-        out = kwargs.get("out", ())
-
-        for x in inputs + out:
-            if not isinstance(x, self._HANDLED_TYPES + (NumericArray,)):
-                return NotImplemented
-
-        # for binary ops, use our custom dunder methods
-        result = ops.maybe_dispatch_ufunc_to_dunder_op(
-            self, ufunc, method, *inputs, **kwargs
-        )
-        if result is not NotImplemented:
-            return result
-
-        mask = np.zeros(len(self), dtype=bool)
-        inputs2: list[Any] = []
-        for x in inputs:
-            if isinstance(x, NumericArray):
-                mask |= x._mask
-                inputs2.append(x._data)
-            else:
-                inputs2.append(x)
-
-        def reconstruct(x):
-            # we don't worry about scalar `x` here, since we
-            # raise for reduce up above.
-
-            if is_integer_dtype(x.dtype):
-                from pandas.core.arrays import IntegerArray
-
-                m = mask.copy()
-                return IntegerArray(x, m)
-            elif is_float_dtype(x.dtype):
-                from pandas.core.arrays import FloatingArray
-
-                m = mask.copy()
-                return FloatingArray(x, m)
-            else:
-                x[mask] = np.nan
-            return x
-
-        result = getattr(ufunc, method)(*inputs2, **kwargs)
-        if isinstance(result, tuple):
-            return tuple(reconstruct(x) for x in result)
-        else:
-            return reconstruct(result)
 
     def __neg__(self):
         return type(self)(-self._data, self._mask.copy())
 
     def __pos__(self):
-        return self
+        return self.copy()
 
     def __abs__(self):
         return type(self)(abs(self._data), self._mask.copy())
