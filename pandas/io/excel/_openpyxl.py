@@ -68,14 +68,18 @@ class OpenpyxlWriter(ExcelWriter):
 
             self.book = load_workbook(self.handles.handle, **engine_kwargs)
             self.handles.handle.seek(0)
-            self.sheets = {name: self.book[name] for name in self.book.sheetnames}
-
         else:
             # Create workbook object with default optimized_write=True.
             self.book = Workbook(**engine_kwargs)
 
             if self.book.worksheets:
                 self.book.remove(self.book.worksheets[0])
+
+    @property
+    def sheets(self) -> dict[str, Any]:
+        """Mapping of sheet names to sheet objects."""
+        result = {name: self.book[name] for name in self.book.sheetnames}
+        return result
 
     def save(self) -> None:
         """
@@ -440,7 +444,6 @@ class OpenpyxlWriter(ExcelWriter):
                     target_index = self.book.index(old_wks)
                     del self.book[sheet_name]
                     wks = self.book.create_sheet(sheet_name, target_index)
-                    self.sheets[sheet_name] = wks
                 elif self.if_sheet_exists == "error":
                     raise ValueError(
                         f"Sheet '{sheet_name}' already exists and "
@@ -458,7 +461,6 @@ class OpenpyxlWriter(ExcelWriter):
         else:
             wks = self.book.create_sheet()
             wks.title = sheet_name
-            self.sheets[sheet_name] = wks
 
         if validate_freeze_panes(freeze_panes):
             freeze_panes = cast(Tuple[int, int], freeze_panes)

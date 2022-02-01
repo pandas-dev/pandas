@@ -205,6 +205,11 @@ class XlsxWriter(ExcelWriter):
 
         self.book = Workbook(self.handles.handle, **engine_kwargs)
 
+    @property
+    def sheets(self) -> dict[str, Any]:
+        result = self.book.sheetnames
+        return result
+
     def save(self) -> None:
         """
         Save workbook to disk.
@@ -222,11 +227,9 @@ class XlsxWriter(ExcelWriter):
         # Write the frame cells using xlsxwriter.
         sheet_name = self._get_sheet_name(sheet_name)
 
-        if sheet_name in self.sheets:
-            wks = self.sheets[sheet_name]
-        else:
+        wks = self.book.get_worksheet_by_name(sheet_name)
+        if wks is None:
             wks = self.book.add_worksheet(sheet_name)
-            self.sheets[sheet_name] = wks
 
         style_dict = {"null": None}
 

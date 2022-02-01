@@ -63,6 +63,12 @@ class XlwtWriter(ExcelWriter):
         self.fm_datetime = xlwt.easyxf(num_format_str=self.datetime_format)
         self.fm_date = xlwt.easyxf(num_format_str=self.date_format)
 
+    @property
+    def sheets(self) -> dict[str, Any]:
+        """Mapping of sheet names to sheet objects."""
+        result = {sheet.name: sheet for sheet in self.book._Workbook__worksheets}
+        return result
+
     def save(self) -> None:
         """
         Save workbook to disk.

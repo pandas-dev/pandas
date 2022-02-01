@@ -1048,6 +1048,12 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         """Name of engine."""
         pass
 
+    @property
+    @abc.abstractmethod
+    def sheets(self) -> dict[str, Any]:
+        """Mapping of sheet names to sheet objects."""
+        pass
+
     @abc.abstractmethod
     def write_cells(
         self,
@@ -1112,7 +1118,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             self.handles = get_handle(
                 path, mode, storage_options=storage_options, is_text=False
             )
-        self.sheets: dict[str, Any] = {}
         self.cur_sheet = None
 
         if date_format is None:
