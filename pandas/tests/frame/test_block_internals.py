@@ -118,14 +118,14 @@ class TestDataFrameBlockInternals:
     def test_constructor_with_convert(self):
         # this is actually mostly a test of lib.maybe_convert_objects
         # #2845
-        df = DataFrame({"A": [2 ** 63 - 1]})
+        df = DataFrame({"A": [2**63 - 1]})
         result = df["A"]
-        expected = Series(np.asarray([2 ** 63 - 1], np.int64), name="A")
+        expected = Series(np.asarray([2**63 - 1], np.int64), name="A")
         tm.assert_series_equal(result, expected)
 
-        df = DataFrame({"A": [2 ** 63]})
+        df = DataFrame({"A": [2**63]})
         result = df["A"]
-        expected = Series(np.asarray([2 ** 63], np.uint64), name="A")
+        expected = Series(np.asarray([2**63], np.uint64), name="A")
         tm.assert_series_equal(result, expected)
 
         df = DataFrame({"A": [datetime(2005, 1, 1), True]})

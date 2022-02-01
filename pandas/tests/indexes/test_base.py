@@ -743,7 +743,7 @@ class TestIndex(Base):
             tm.assert_index_equal(result, expected)
 
         removed = index.drop(to_drop[1])
-        msg = fr"\"\[{re.escape(to_drop[1].__repr__())}\] not found in axis\""
+        msg = rf"\"\[{re.escape(to_drop[1].__repr__())}\] not found in axis\""
         for drop_me in to_drop[1], [to_drop[1]]:
             with pytest.raises(KeyError, match=msg):
                 removed.drop(drop_me)
@@ -871,7 +871,7 @@ class TestIndex(Base):
             msg = f"'Level {label} not found'"
         else:
             index = index.rename("foo")
-            msg = fr"Requested level \({label}\) does not match index name \(foo\)"
+            msg = rf"Requested level \({label}\) does not match index name \(foo\)"
         with pytest.raises(KeyError, match=msg):
             index.isin([], level=label)
 

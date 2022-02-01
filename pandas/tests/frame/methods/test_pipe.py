@@ -15,7 +15,7 @@ class TestPipe:
             obj = obj["A"]
             expected = expected["A"]
 
-        f = lambda x, y: x ** y
+        f = lambda x, y: x**y
         result = obj.pipe(f, 2)
         tm.assert_equal(result, expected)
 
