@@ -806,6 +806,7 @@ cdef class BoolEngine(UInt8Engine):
     cdef _check_type(self, object val):
         if not util.is_bool_object(val):
             raise KeyError(val)
+        return <uint8_t>val
 
 
 @cython.internal
