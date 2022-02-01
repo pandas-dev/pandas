@@ -985,18 +985,16 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
-    @tm.network
-    @pytest.mark.single
-    def test_round_trip_exception_(self):
+    def test_round_trip_exception_(self, datapath):
         # GH 3867
-        csv = "https://raw.github.com/hayd/lahman2012/master/csvs/Teams.csv"
-        df = pd.read_csv(csv)
+        path = datapath("io", "json", "data", "teams.csv")
+        df = pd.read_csv(path)
         s = df.to_json()
         result = read_json(s)
         tm.assert_frame_equal(result.reindex(index=df.index, columns=df.columns), df)
 
+    @pytest.mark.network
     @tm.network
-    @pytest.mark.single
     @pytest.mark.parametrize(
         "field,dtype",
         [
@@ -1271,7 +1269,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         expected = '{"0":{"articleId":' + str(bigNum) + "}}"
         assert json == expected
 
-    @pytest.mark.parametrize("bigNum", [-(2 ** 63) - 1, 2 ** 64])
+    @pytest.mark.parametrize("bigNum", [-(2**63) - 1, 2**64])
     def test_read_json_large_numbers(self, bigNum):
         # GH20599, 26068
         json = StringIO('{"articleId":' + str(bigNum) + "}")

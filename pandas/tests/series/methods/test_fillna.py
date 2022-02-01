@@ -250,8 +250,11 @@ class TestSeriesFillNA:
 
         # interpreted as seconds, no longer supported
         msg = "value should be a 'Timedelta', 'NaT', or array of those. Got 'int'"
+        wmsg = "In a future version, this will cast to a common dtype"
         with pytest.raises(TypeError, match=msg):
-            obj.fillna(1)
+            with tm.assert_produces_warning(FutureWarning, match=wmsg):
+                # GH#45746
+                obj.fillna(1)
 
         result = obj.fillna(Timedelta(seconds=1))
         expected = Series(
@@ -277,7 +280,7 @@ class TestSeriesFillNA:
         expected = frame_or_series(expected)
         tm.assert_equal(result, expected)
 
-        result = obj.fillna(np.timedelta64(10 ** 9))
+        result = obj.fillna(np.timedelta64(10**9))
         expected = Series(
             [
                 timedelta(seconds=1),
