@@ -244,7 +244,7 @@ def create_mgr(descr, item_shape=None):
 
 
 class TestBlock:
-    def setup_method(self, method):
+    def setup_method(self):
         self.fblock = create_block("float", [0, 2, 4])
         self.cblock = create_block("complex", [7])
         self.oblock = create_block("object", [1, 3])
@@ -285,27 +285,36 @@ class TestBlock:
 
     def test_delete(self):
         newb = self.fblock.copy()
-        newb.delete(0)
-        assert isinstance(newb.mgr_locs, BlockPlacement)
+        locs = newb.mgr_locs
+        nb = newb.delete(0)
+        assert newb.mgr_locs is locs
+
+        assert nb is not newb
+
         tm.assert_numpy_array_equal(
-            newb.mgr_locs.as_array, np.array([2, 4], dtype=np.intp)
+            nb.mgr_locs.as_array, np.array([2, 4], dtype=np.intp)
         )
-        assert (newb.values[0] == 1).all()
+        assert not (newb.values[0] == 1).all()
+        assert (nb.values[0] == 1).all()
 
         newb = self.fblock.copy()
-        newb.delete(1)
-        assert isinstance(newb.mgr_locs, BlockPlacement)
+        locs = newb.mgr_locs
+        nb = newb.delete(1)
+        assert newb.mgr_locs is locs
+
         tm.assert_numpy_array_equal(
-            newb.mgr_locs.as_array, np.array([0, 4], dtype=np.intp)
+            nb.mgr_locs.as_array, np.array([0, 4], dtype=np.intp)
         )
-        assert (newb.values[1] == 2).all()
+        assert not (newb.values[1] == 2).all()
+        assert (nb.values[1] == 2).all()
 
         newb = self.fblock.copy()
-        newb.delete(2)
+        locs = newb.mgr_locs
+        nb = newb.delete(2)
         tm.assert_numpy_array_equal(
-            newb.mgr_locs.as_array, np.array([0, 2], dtype=np.intp)
+            nb.mgr_locs.as_array, np.array([0, 2], dtype=np.intp)
         )
-        assert (newb.values[1] == 1).all()
+        assert (nb.values[1] == 1).all()
 
         newb = self.fblock.copy()
 
@@ -319,15 +328,15 @@ class TestBlock:
         blk = df._mgr.blocks[0]
         assert isinstance(blk.values, TimedeltaArray)
 
-        blk.delete(1)
-        assert isinstance(blk.values, TimedeltaArray)
+        nb = blk.delete(1)
+        assert isinstance(nb.values, TimedeltaArray)
 
         df = DataFrame(arr.view("M8[ns]"))
         blk = df._mgr.blocks[0]
         assert isinstance(blk.values, DatetimeArray)
 
-        blk.delete([1, 3])
-        assert isinstance(blk.values, DatetimeArray)
+        nb = blk.delete([1, 3])
+        assert isinstance(nb.values, DatetimeArray)
 
     def test_split(self):
         # GH#37799

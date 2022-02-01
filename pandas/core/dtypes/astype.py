@@ -15,6 +15,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
@@ -138,14 +139,10 @@ def astype_nansafe(
 
     elif is_object_dtype(arr.dtype):
 
-        # work around NumPy brokenness, #1987
-        if np.issubdtype(dtype.type, np.integer):
-            return lib.astype_intsafe(arr, dtype)
-
         # if we have a datetime/timedelta array of objects
         # then coerce to a proper dtype and recall astype_nansafe
 
-        elif is_datetime64_dtype(dtype):
+        if is_datetime64_dtype(dtype):
             from pandas import to_datetime
 
             return astype_nansafe(
@@ -154,9 +151,10 @@ def astype_nansafe(
                 copy=copy,
             )
         elif is_timedelta64_dtype(dtype):
-            from pandas import to_timedelta
-
-            return astype_nansafe(to_timedelta(arr)._values, dtype, copy=copy)
+            # bc we know arr.dtype == object, this is equivalent to
+            #  `np.asarray(to_timedelta(arr))`, but using a lower-level API that
+            #  does not require a circular import.
+            return array_to_timedelta64(arr).view("m8[ns]").astype(dtype, copy=False)
 
     if dtype.name in ("datetime64", "timedelta64"):
         msg = (
