@@ -669,7 +669,7 @@ class Block(PandasObject):
         #  go through replace_list
 
         values = self.values
-        value = self._standardize_fill_value(value) # GH#45725
+        value = self._standardize_fill_value(value)  # GH#45725
 
         if isinstance(values, Categorical):
             # TODO: avoid special-casing
