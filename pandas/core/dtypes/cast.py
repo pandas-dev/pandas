@@ -1980,7 +1980,6 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             if tipo.kind not in ["i", "u"]:
                 if isinstance(element, np.ndarray) and element.dtype.kind == "f":
                     # If all can be losslessly cast to integers, then we can hold them
-                    #  We do something similar in putmask_smart
                     casted = element.astype(dtype)
                     comp = casted == element
                     if comp.all():
