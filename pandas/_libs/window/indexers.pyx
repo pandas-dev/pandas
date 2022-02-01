@@ -16,6 +16,7 @@ def calculate_variable_window_bounds(
     object min_periods,  # unused but here to match get_window_bounds signature
     bint center,
     str closed,
+    int64_t step,
     const int64_t[:] index
 ):
     """
@@ -38,17 +39,20 @@ def calculate_variable_window_bounds(
     closed : str
         string of side of the window that should be closed
 
+    step : int64
+        Spacing between windows
+
     index : ndarray[int64]
         time series index to roll over
 
     Returns
     -------
-    (ndarray[int64], ndarray[int64])
+    (ndarray[int64], ndarray[int64], ndarray[int64])
     """
     cdef:
         bint left_closed = False
         bint right_closed = False
-        ndarray[int64_t, ndim=1] start, end
+        ndarray[int64_t, ndim=1] start, end, ref
         int64_t start_bound, end_bound, index_growth_sign = 1
         Py_ssize_t i, j
 
@@ -143,4 +147,6 @@ def calculate_variable_window_bounds(
             # right endpoint is open
             if not right_closed and not center:
                 end[i] -= 1
-    return start, end
+    ref = (None if step is None or step == 1
+           else np.arange(0, num_values, step, dtype='int64'))
+    return start[::step], end[::step], ref
