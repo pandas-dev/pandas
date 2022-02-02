@@ -271,13 +271,6 @@ class NumericIndex(Index):
             if not np.array_equal(data, subarr):
                 raise TypeError("Unsafe NumPy casting, you must explicitly cast")
 
-    @property
-    def _is_all_dates(self) -> bool:
-        """
-        Checks that all the labels are datetime objects.
-        """
-        return False
-
     def _format_native_types(
         self, *, na_rep="", float_format=None, decimal=".", quoting=None, **kwargs
     ):

@@ -2213,8 +2213,14 @@ class Index(IndexOpsMixin, PandasObject):
     # Introspection Methods
 
     @cache_readonly
+    @final
     def _can_hold_na(self) -> bool:
         if isinstance(self.dtype, ExtensionDtype):
+            if isinstance(self.dtype, IntervalDtype):
+                # FIXME(GH#45720): this is inaccurate for integer-backed
+                #  IntervalArray, but without it other.categories.take raises
+                #  in IntervalArray._cmp_method
+                return True
             return self.dtype._can_hold_na
         if self.dtype.kind in ["i", "u", "b"]:
             return False
@@ -2676,11 +2682,19 @@ class Index(IndexOpsMixin, PandasObject):
         return lib.infer_dtype(self._values, skipna=False)
 
     @cache_readonly
+    @final
     def _is_all_dates(self) -> bool:
         """
         Whether or not the index values only consist of dates.
         """
-        if self.dtype.kind == "b":
+        if needs_i8_conversion(self.dtype):
+            return True
+        elif self.dtype != _dtype_obj:
+            # TODO(ExtensionIndex): 3rd party EA might override?
+            # Note: this includes IntervalIndex, even when the left/right
+            #  contain datetime-like objects.
+            return False
+        elif self._is_multi:
             return False
         return is_datetime_array(ensure_object(self._values))
 
@@ -6177,7 +6191,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if self.dtype.kind == "b":
             return dtype.kind == "b"
-        if is_numeric_dtype(self.dtype):
+        elif is_numeric_dtype(self.dtype):
             return is_numeric_dtype(dtype)
         return True
 
