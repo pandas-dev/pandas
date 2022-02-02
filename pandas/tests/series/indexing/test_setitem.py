@@ -18,6 +18,7 @@ from pandas import (
     IntervalIndex,
     MultiIndex,
     NaT,
+    Period,
     Series,
     Timedelta,
     Timestamp,
@@ -363,6 +364,48 @@ class TestSetitemBooleanMask:
         result[0] = np.nan
         expected = Series([np.nan, False, True], dtype=object)
         tm.assert_series_equal(result, expected)
+
+    def test_setitem_mask_smallint_upcast(self):
+        orig = Series([1, 2, 3], dtype="int8")
+        alt = np.array([999, 1000, 1001], dtype=np.int64)
+
+        mask = np.array([True, False, True])
+
+        ser = orig.copy()
+        ser[mask] = Series(alt)
+        expected = Series([999, 2, 1001])
+        tm.assert_series_equal(ser, expected)
+
+        ser2 = orig.copy()
+        ser2.mask(mask, alt, inplace=True)
+        tm.assert_series_equal(ser2, expected)
+
+        ser3 = orig.copy()
+        res = ser3.where(~mask, Series(alt))
+        tm.assert_series_equal(res, expected)
+
+    def test_setitem_mask_smallint_no_upcast(self):
+        # like test_setitem_mask_smallint_upcast, but while we can't hold 'alt',
+        #  we *can* hold alt[mask] without casting
+        orig = Series([1, 2, 3], dtype="uint8")
+        alt = Series([245, 1000, 246], dtype=np.int64)
+
+        mask = np.array([True, False, True])
+
+        ser = orig.copy()
+        ser[mask] = alt
+        expected = Series([245, 2, 246], dtype="uint8")
+        tm.assert_series_equal(ser, expected)
+
+        ser2 = orig.copy()
+        ser2.mask(mask, alt, inplace=True)
+        tm.assert_series_equal(ser2, expected)
+
+        # FIXME: don't leave commented-out
+        # FIXME: ser.where(~mask, alt) unnecessarily upcasts to int64
+        # ser3 = orig.copy()
+        # res = ser3.where(~mask, alt)
+        # tm.assert_series_equal(res, expected)
 
 
 class TestSetitemViewCopySemantics:
@@ -1273,6 +1316,22 @@ class TestCoercionTimedelta64(CoercionTest):
     @pytest.fixture
     def obj(self):
         return Series(timedelta_range("1 day", periods=4))
+
+
+@pytest.mark.parametrize(
+    "val", ["foo", Period("2016", freq="Y"), Interval(1, 2, closed="both")]
+)
+@pytest.mark.parametrize("exp_dtype", [object])
+class TestPeriodIntervalCoercion(CoercionTest):
+    # GH#45768
+    @pytest.fixture(
+        params=[
+            period_range("2016-01-01", periods=3, freq="D"),
+            interval_range(1, 5),
+        ]
+    )
+    def obj(self, request):
+        return Series(request.param)
 
 
 def test_20643():

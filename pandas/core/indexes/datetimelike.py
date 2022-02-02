@@ -100,10 +100,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         ),
     )
 
-    @property
-    def _is_all_dates(self) -> bool:
-        return True
-
     # ------------------------------------------------------------------------
 
     def equals(self, other: Any) -> bool:
@@ -150,8 +146,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         except (KeyError, TypeError, ValueError):
             return False
         return True
-
-    _can_hold_na = True
 
     def _convert_tolerance(self, tolerance, target):
         tolerance = np.asarray(to_timedelta(tolerance).to_numpy())

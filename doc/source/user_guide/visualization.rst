@@ -823,7 +823,7 @@ Also, other keywords supported by :func:`matplotlib.pyplot.pie` can be used.
        figsize=(6, 6),
    );
 
-If you pass values whose sum total is less than 1.0, matplotlib draws a semicircle.
+If you pass values whose sum total is less than 1.0 they will be rescaled so that they sum to 1.
 
 .. ipython:: python
    :suppress:
