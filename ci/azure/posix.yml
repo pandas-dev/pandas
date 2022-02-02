@@ -27,7 +27,10 @@ jobs:
 
     # Re-install pyarrow for occasional pyarrow-parquet error
     # Library not loaded: @rpath/libssl.1.1.dylib
-    - script: ci/setup_env.sh
+    - script: |
+        ci/setup_env.sh
+        conda remove -n pandas-dev --yes pyarrow
+        conda install -n pandas-dev -c conda-forge pyarrow
       displayName: 'Setup environment and build pandas'
 
     - script: |
