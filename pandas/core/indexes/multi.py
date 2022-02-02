@@ -1841,10 +1841,6 @@ class MultiIndex(Index):
         """
         return Index(self._values, tupleize_cols=False)
 
-    @property
-    def _is_all_dates(self) -> bool:
-        return False
-
     def is_lexsorted(self) -> bool:
         warnings.warn(
             "MultiIndex.is_lexsorted is deprecated as a public function, "

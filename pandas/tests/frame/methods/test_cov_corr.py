@@ -348,7 +348,7 @@ class TestDataFrameCorrWith:
     def test_corrwith_spearman(self):
         # GH#21925
         df = DataFrame(np.random.random(size=(100, 3)))
-        result = df.corrwith(df ** 2, method="spearman")
+        result = df.corrwith(df**2, method="spearman")
         expected = Series(np.ones(len(result)))
         tm.assert_series_equal(result, expected)
 
@@ -356,6 +356,6 @@ class TestDataFrameCorrWith:
     def test_corrwith_kendall(self):
         # GH#21925
         df = DataFrame(np.random.random(size=(100, 3)))
-        result = df.corrwith(df ** 2, method="kendall")
+        result = df.corrwith(df**2, method="kendall")
         expected = Series(np.ones(len(result)))
         tm.assert_series_equal(result, expected)
