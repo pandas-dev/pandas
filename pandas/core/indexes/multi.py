@@ -3128,7 +3128,12 @@ class MultiIndex(Index):
                     # e.g. test_partial_string_timestamp_multiindex
                     return indexer, self[indexer]
 
-            return indexer, maybe_mi_droplevels(indexer, [level])
+            try:
+                result_index = maybe_mi_droplevels(indexer, [level])
+            except ValueError:
+                result_index = self[indexer]
+
+            return indexer, result_index
 
     def _get_level_indexer(
         self, key, level: int = 0, indexer: Int64Index | None = None
