@@ -233,6 +233,13 @@ class Block(PandasObject):
         # Used in reindex_indexer
         return na_value_for_dtype(self.dtype, compat=False)
 
+    @final
+    def _standardize_fill_value(self, value):
+        # if we are passed a scalar None, convert it here
+        if self.dtype != _dtype_obj and is_valid_na_for_dtype(value, self.dtype):
+            value = self.fill_value
+        return value
+
     @property
     def mgr_locs(self) -> BlockPlacement:
         return self._mgr_locs
@@ -299,13 +306,6 @@ class Block(PandasObject):
     def __len__(self) -> int:
         return len(self.values)
 
-    def _slice(
-        self, slicer: slice | npt.NDArray[np.bool_] | npt.NDArray[np.intp]
-    ) -> ArrayLike:
-        """return a slice of my values"""
-
-        return self.values[slicer]
-
     @final
     def getitem_block(self, slicer: slice | npt.NDArray[np.intp]) -> Block:
         """
@@ -353,28 +353,6 @@ class Block(PandasObject):
     @cache_readonly
     def dtype(self) -> DtypeObj:
         return self.values.dtype
-
-    def iget(self, i: int | tuple[int, int] | tuple[slice, int]):
-        # In the case where we have a tuple[slice, int], the slice will always
-        #  be slice(None)
-        # Note: only reached with self.ndim == 2
-        # Invalid index type "Union[int, Tuple[int, int], Tuple[slice, int]]"
-        # for "Union[ndarray[Any, Any], ExtensionArray]"; expected type
-        # "Union[int, integer[Any]]"
-        return self.values[i]  # type: ignore[index]
-
-    def set_inplace(self, locs, values: ArrayLike) -> None:
-        """
-        Modify block values in-place with new item value.
-
-        Notes
-        -----
-        `set_inplace` never creates a new array or new Block, whereas `setitem`
-        _may_ create a new array and always creates a new Block.
-
-        Caller is responsible for checking values.dtype == self.dtype.
-        """
-        self.values[locs] = values
 
     def delete(self, loc) -> Block:
         """
@@ -873,12 +851,8 @@ class Block(PandasObject):
             )
 
     # ---------------------------------------------------------------------
-
-    def _standardize_fill_value(self, value):
-        # if we are passed a scalar None, convert it here
-        if self.dtype != _dtype_obj and is_valid_na_for_dtype(value, self.dtype):
-            value = self.fill_value
-        return value
+    # 2D Methods - Shared by NumpyBlock and NDArrayBackedExtensionBlock
+    #  but not ExtensionBlock
 
     def _maybe_squeeze_arg(self, arg: np.ndarray) -> np.ndarray:
         """
@@ -891,6 +865,119 @@ class Block(PandasObject):
         For compatibility with 1D-only ExtensionArrays.
         """
         return indexer
+
+    def iget(self, i: int | tuple[int, int] | tuple[slice, int]):
+        # In the case where we have a tuple[slice, int], the slice will always
+        #  be slice(None)
+        # Note: only reached with self.ndim == 2
+        # Invalid index type "Union[int, Tuple[int, int], Tuple[slice, int]]"
+        # for "Union[ndarray[Any, Any], ExtensionArray]"; expected type
+        # "Union[int, integer[Any]]"
+        return self.values[i]  # type: ignore[index]
+
+    def _slice(
+        self, slicer: slice | npt.NDArray[np.bool_] | npt.NDArray[np.intp]
+    ) -> ArrayLike:
+        """return a slice of my values"""
+
+        return self.values[slicer]
+
+    def set_inplace(self, locs, values: ArrayLike) -> None:
+        """
+        Modify block values in-place with new item value.
+
+        Notes
+        -----
+        `set_inplace` never creates a new array or new Block, whereas `setitem`
+        _may_ create a new array and always creates a new Block.
+
+        Caller is responsible for checking values.dtype == self.dtype.
+        """
+        self.values[locs] = values
+
+    def take_nd(
+        self,
+        indexer,
+        axis: int,
+        new_mgr_locs: BlockPlacement | None = None,
+        fill_value=lib.no_default,
+    ) -> Block:
+        """
+        Take values according to indexer and return them as a block.bb
+
+        """
+        # algos.take_nd dispatches for DatetimeTZBlock, CategoricalBlock
+        # so need to preserve types
+        # sparse is treated like an ndarray, but needs .get_values() shaping
+
+        values = self.values
+
+        if fill_value is lib.no_default:
+            fill_value = self.fill_value
+            allow_fill = False
+        else:
+            allow_fill = True
+
+        new_values = algos.take_nd(
+            values, indexer, axis=axis, allow_fill=allow_fill, fill_value=fill_value
+        )
+
+        # Called from three places in managers, all of which satisfy
+        #  this assertion
+        assert not (axis == 0 and new_mgr_locs is None)
+        if new_mgr_locs is None:
+            new_mgr_locs = self._mgr_locs
+
+        if not is_dtype_equal(new_values.dtype, self.dtype):
+            return self.make_block(new_values, new_mgr_locs)
+        else:
+            return self.make_block_same_class(new_values, new_mgr_locs)
+
+    def _unstack(
+        self,
+        unstacker,
+        fill_value,
+        new_placement: npt.NDArray[np.intp],
+        needs_masking: npt.NDArray[np.bool_],
+    ):
+        """
+        Return a list of unstacked blocks of self
+
+        Parameters
+        ----------
+        unstacker : reshape._Unstacker
+        fill_value : int
+            Only used in ExtensionBlock._unstack
+        new_placement : np.ndarray[np.intp]
+        allow_fill : bool
+        needs_masking : np.ndarray[bool]
+
+        Returns
+        -------
+        blocks : list of Block
+            New blocks of unstacked values.
+        mask : array-like of bool
+            The mask of columns of `blocks` we should keep.
+        """
+        new_values, mask = unstacker.get_new_values(
+            self.values.T, fill_value=fill_value
+        )
+
+        mask = mask.any(0)
+        # TODO: in all tests we have mask.all(); can we rely on that?
+
+        # Note: these next two lines ensure that
+        #  mask.sum() == sum(len(nb.mgr_locs) for nb in blocks)
+        #  which the calling function needs in order to pass verify_integrity=False
+        #  to the BlockManager constructor
+        new_values = new_values.T[mask]
+        new_placement = new_placement[mask]
+
+        bp = BlockPlacement(new_placement)
+        blocks = [new_block_2d(new_values, placement=bp)]
+        return blocks, mask
+
+    # ---------------------------------------------------------------------
 
     def setitem(self, indexer, value):
         """
@@ -1079,44 +1166,6 @@ class Block(PandasObject):
         nb = self.make_block_same_class(data)
         return nb._maybe_downcast([nb], downcast)
 
-    def take_nd(
-        self,
-        indexer,
-        axis: int,
-        new_mgr_locs: BlockPlacement | None = None,
-        fill_value=lib.no_default,
-    ) -> Block:
-        """
-        Take values according to indexer and return them as a block.bb
-
-        """
-        # algos.take_nd dispatches for DatetimeTZBlock, CategoricalBlock
-        # so need to preserve types
-        # sparse is treated like an ndarray, but needs .get_values() shaping
-
-        values = self.values
-
-        if fill_value is lib.no_default:
-            fill_value = self.fill_value
-            allow_fill = False
-        else:
-            allow_fill = True
-
-        new_values = algos.take_nd(
-            values, indexer, axis=axis, allow_fill=allow_fill, fill_value=fill_value
-        )
-
-        # Called from three places in managers, all of which satisfy
-        #  this assertion
-        assert not (axis == 0 and new_mgr_locs is None)
-        if new_mgr_locs is None:
-            new_mgr_locs = self._mgr_locs
-
-        if not is_dtype_equal(new_values.dtype, self.dtype):
-            return self.make_block(new_values, new_mgr_locs)
-        else:
-            return self.make_block_same_class(new_values, new_mgr_locs)
-
     def diff(self, n: int, axis: int = 1) -> list[Block]:
         """return block for the diff of the values"""
         new_values = algos.diff(self.values, n, axis=axis)
@@ -1231,50 +1280,6 @@ class Block(PandasObject):
             result = result.T
 
         return [self.make_block(result)]
-
-    def _unstack(
-        self,
-        unstacker,
-        fill_value,
-        new_placement: npt.NDArray[np.intp],
-        needs_masking: npt.NDArray[np.bool_],
-    ):
-        """
-        Return a list of unstacked blocks of self
-
-        Parameters
-        ----------
-        unstacker : reshape._Unstacker
-        fill_value : int
-            Only used in ExtensionBlock._unstack
-        new_placement : np.ndarray[np.intp]
-        allow_fill : bool
-        needs_masking : np.ndarray[bool]
-
-        Returns
-        -------
-        blocks : list of Block
-            New blocks of unstacked values.
-        mask : array-like of bool
-            The mask of columns of `blocks` we should keep.
-        """
-        new_values, mask = unstacker.get_new_values(
-            self.values.T, fill_value=fill_value
-        )
-
-        mask = mask.any(0)
-        # TODO: in all tests we have mask.all(); can we rely on that?
-
-        # Note: these next two lines ensure that
-        #  mask.sum() == sum(len(nb.mgr_locs) for nb in blocks)
-        #  which the calling function needs in order to pass verify_integrity=False
-        #  to the BlockManager constructor
-        new_values = new_values.T[mask]
-        new_placement = new_placement[mask]
-
-        bp = BlockPlacement(new_placement)
-        blocks = [new_block_2d(new_values, placement=bp)]
-        return blocks, mask
 
     @final
     def quantile(
