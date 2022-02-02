@@ -1245,19 +1245,44 @@ class TestExcelWriter:
                 ExcelWriter(f, if_sheet_exists="replace")
 
 
+@pytest.mark.parametrize(
+    "engine,ext",
+    [
+        pytest.param(
+            "openpyxl",
+            ".xlsx",
+            marks=[td.skip_if_no("openpyxl"), td.skip_if_no("xlrd")],
+        ),
+        pytest.param(
+            "openpyxl",
+            ".xlsm",
+            marks=[td.skip_if_no("openpyxl"), td.skip_if_no("xlrd")],
+        ),
+        pytest.param(
+            "xlwt", ".xls", marks=[td.skip_if_no("xlwt"), td.skip_if_no("xlrd")]
+        ),
+        pytest.param(
+            "xlsxwriter",
+            ".xlsx",
+            marks=[td.skip_if_no("xlsxwriter"), td.skip_if_no("xlrd")],
+        ),
+        pytest.param("odf", ".ods", marks=td.skip_if_no("odf")),
+    ],
+)
+@pytest.mark.usefixtures("set_engine")
 class TestExcelWriterEngineTests:
     @pytest.mark.parametrize(
-        "klass,ext",
+        "klass,klass_ext",
         [
             pytest.param(_XlsxWriter, ".xlsx", marks=td.skip_if_no("xlsxwriter")),
             pytest.param(_OpenpyxlWriter, ".xlsx", marks=td.skip_if_no("openpyxl")),
             pytest.param(_XlwtWriter, ".xls", marks=td.skip_if_no("xlwt")),
         ],
     )
-    def test_ExcelWriter_dispatch(self, klass, ext):
-        with tm.ensure_clean(ext) as path:
+    def test_ExcelWriter_dispatch(self, klass, klass_ext):
+        with tm.ensure_clean(klass_ext) as path:
             with ExcelWriter(path) as writer:
-                if ext == ".xlsx" and td.safe_import("xlsxwriter"):
+                if klass_ext == ".xlsx" and td.safe_import("xlsxwriter"):
                     # xlsxwriter has preference over openpyxl if both installed
                     assert isinstance(writer, _XlsxWriter)
                 else:
@@ -1313,20 +1338,34 @@ class TestExcelWriterEngineTests:
             with tm.ensure_clean("something.xls") as filepath:
                 check_called(lambda: df.to_excel(filepath, engine="dummy"))
 
-    @pytest.mark.parametrize(
-        "ext",
-        [
-            pytest.param(".xlsx", marks=td.skip_if_no("xlsxwriter")),
-            pytest.param(".xlsx", marks=td.skip_if_no("openpyxl")),
-            pytest.param(".ods", marks=td.skip_if_no("odf")),
-        ],
-    )
     def test_engine_kwargs_and_kwargs_raises(self, ext):
         # GH 40430
         msg = re.escape("Cannot use both engine_kwargs and **kwargs")
         with pytest.raises(ValueError, match=msg):
             with ExcelWriter("", engine_kwargs={"a": 1}, b=2):
                 pass
+
+    @pytest.mark.parametrize("attr", ["cur_sheet", "handles", "path"])
+    def test_deprecated_attr(self, engine, ext, attr):
+        with tm.ensure_clean(ext) as path:
+            with ExcelWriter(path) as writer:
+                msg = f"{attr} is not part of the public API"
+                with tm.assert_produces_warning(FutureWarning, match=msg):
+                    getattr(writer, attr)
+                # Some engines raise if nothing is written
+                DataFrame([0]).to_excel(writer)
+
+    @pytest.mark.parametrize(
+        "attr, args", [("save", ()), ("write_cells", ([], "test"))]
+    )
+    def test_deprecated_method(self, engine, ext, attr, args):
+        with tm.ensure_clean(ext) as path:
+            with ExcelWriter(path) as writer:
+                msg = f"{attr} is not part of the public API"
+                # Some engines raise if nothing is written
+                DataFrame([0]).to_excel(writer)
+                with tm.assert_produces_warning(FutureWarning, match=msg):
+                    getattr(writer, attr)(*args)
 
 
 @td.skip_if_no("xlrd")
