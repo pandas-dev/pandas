@@ -706,6 +706,20 @@ class TestDataFrameIndexingWhere:
         res = ser.where(ser.notna())
         tm.assert_series_equal(res, ser)
 
+    def test_where_interval_fullop_downcast(self, frame_or_series):
+        # GH#45768
+        obj = frame_or_series([pd.Interval(0, 0)] * 2)
+        other = frame_or_series([1.0, 2.0])
+        res = obj.where(~obj.notna(), other)
+
+        # since all entries are being changed, we will downcast result
+        #  from object to ints (not floats)
+        tm.assert_equal(res, other.astype(np.int64))
+
+        # unlike where, Block.putmask does not downcast
+        obj.mask(obj.notna(), other, inplace=True)
+        tm.assert_equal(obj, other.astype(object))
+
     @pytest.mark.parametrize(
         "dtype",
         [
@@ -735,6 +749,16 @@ class TestDataFrameIndexingWhere:
 
         res4 = df.mask(mask2, "foo")
         tm.assert_frame_equal(res4, df)
+
+        # opposite case where we are replacing *all* values -> we downcast
+        #  from object dtype # GH#45768
+        res5 = df.where(mask2, 4)
+        expected = DataFrame(4, index=df.index, columns=df.columns)
+        tm.assert_frame_equal(res5, expected)
+
+        # unlike where, Block.putmask does not downcast
+        df.mask(~mask2, 4, inplace=True)
+        tm.assert_frame_equal(df, expected.astype(object))
 
 
 def test_where_try_cast_deprecated(frame_or_series):
@@ -894,14 +918,29 @@ def test_where_period_invalid_na(frame_or_series, as_cat, request):
     else:
         msg = "value should be a 'Period'"
 
-    with pytest.raises(TypeError, match=msg):
-        obj.where(mask, tdnat)
+    if as_cat:
+        with pytest.raises(TypeError, match=msg):
+            obj.where(mask, tdnat)
 
-    with pytest.raises(TypeError, match=msg):
-        obj.mask(mask, tdnat)
+        with pytest.raises(TypeError, match=msg):
+            obj.mask(mask, tdnat)
 
-    with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError, match=msg):
+            obj.mask(mask, tdnat, inplace=True)
+
+    else:
+        # With PeriodDtype, ser[i] = tdnat coerces instead of raising,
+        #  so for consistency, ser[mask] = tdnat must as well
+        expected = obj.astype(object).where(mask, tdnat)
+        result = obj.where(mask, tdnat)
+        tm.assert_equal(result, expected)
+
+        expected = obj.astype(object).mask(mask, tdnat)
+        result = obj.mask(mask, tdnat)
+        tm.assert_equal(result, expected)
+
         obj.mask(mask, tdnat, inplace=True)
+        tm.assert_equal(obj, expected)
 
 
 def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):
