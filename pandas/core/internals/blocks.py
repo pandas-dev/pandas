@@ -1376,6 +1376,8 @@ class EABackedBlock(Block):
 
         cond = extract_bool_array(cond)
 
+        orig_other = other
+        orig_cond = cond
         other = self._maybe_squeeze_arg(other)
         cond = self._maybe_squeeze_arg(cond)
 
@@ -1395,21 +1397,15 @@ class EABackedBlock(Block):
 
             if is_interval_dtype(self.dtype):
                 # TestSetitemFloatIntervalWithIntIntervalValues
-                blk = self.coerce_to_target_dtype(other)
-                if blk.dtype == _dtype_obj:
-                    # For now at least only support casting e.g.
-                    #  Interval[int64]->Interval[float64]
-                    raise
-                return blk.where(other, cond)
+                blk = self.coerce_to_target_dtype(orig_other)
+                nbs = blk.where(orig_other, orig_cond)
+                return self._maybe_downcast(nbs, "infer")
 
             elif isinstance(self, NDArrayBackedExtensionBlock):
                 # NB: not (yet) the same as
                 #  isinstance(values, NDArrayBackedExtensionArray)
-                if isinstance(self.dtype, PeriodDtype):
-                    # TODO: don't special-case
-                    raise
-                blk = self.coerce_to_target_dtype(other)
-                nbs = blk.where(other, cond)
+                blk = self.coerce_to_target_dtype(orig_other)
+                nbs = blk.where(orig_other, orig_cond)
                 return self._maybe_downcast(nbs, "infer")
 
             else:
@@ -1426,6 +1422,8 @@ class EABackedBlock(Block):
 
         values = self.values
 
+        orig_new = new
+        orig_mask = mask
         new = self._maybe_squeeze_arg(new)
         mask = self._maybe_squeeze_arg(mask)
 
@@ -1438,21 +1436,14 @@ class EABackedBlock(Block):
             if is_interval_dtype(self.dtype):
                 # Discussion about what we want to support in the general
                 #  case GH#39584
-                blk = self.coerce_to_target_dtype(new)
-                if blk.dtype == _dtype_obj:
-                    # For now at least, only support casting e.g.
-                    #  Interval[int64]->Interval[float64],
-                    raise
-                return blk.putmask(mask, new)
+                blk = self.coerce_to_target_dtype(orig_new)
+                return blk.putmask(orig_mask, orig_new)
 
             elif isinstance(self, NDArrayBackedExtensionBlock):
                 # NB: not (yet) the same as
                 #  isinstance(values, NDArrayBackedExtensionArray)
-                if isinstance(self.dtype, PeriodDtype):
-                    # TODO: don't special-case
-                    raise
-                blk = self.coerce_to_target_dtype(new)
-                return blk.putmask(mask, new)
+                blk = self.coerce_to_target_dtype(orig_new)
+                return blk.putmask(orig_mask, orig_new)
 
             else:
                 raise
