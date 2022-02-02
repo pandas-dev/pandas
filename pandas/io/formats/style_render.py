@@ -1063,7 +1063,7 @@ class StylerRenderer:
         thousands: str | None = None,
         escape: str | None = None,
         hyperlinks: str | None = None,
-        aliases: list[str] | list[list[str]] | None = None,
+        alias: list[str] | list[list[str]] | None = None,
     ) -> StylerRenderer:
         r"""
         Format the text display value of index labels or column headers.
@@ -1075,11 +1075,11 @@ class StylerRenderer:
         formatter : str, callable, dict or None
             Object to define how values are displayed. See notes.
         axis : {0, "index", 1, "columns"}
-            Whether to apply the ``formatter`` or ``aliases`` to the index or column
+            Whether to apply the ``formatter`` or ``alias`` to the index or column
             headers.
         level : int, str, list
-            The level(s) over which to apply the generic ``formatter``, or ``aliases``.
-            In the case of ``aliases`` defaults to the last level of a MultiIndex,
+            The level(s) over which to apply the generic ``formatter``, or ``alias``.
+            In the case of ``alias`` defaults to the last level of a MultiIndex,
             for the reason that the last level is never sparsified.
         na_rep : str, optional
             Representation for missing values.
@@ -1102,7 +1102,7 @@ class StylerRenderer:
             Convert string patterns containing https://, http://, ftp:// or www. to
             HTML <a> tags as clickable URL hyperlinks if "html", or LaTeX \href
             commands if "latex".
-        aliases : list of str, list of list of str
+        alias : list of str, list of list of str
             Values to replace the existing index or column headers. If specifying
             more than one ``level`` then this should be a list containing sub-lists for
             each identified level, in the respective order.
@@ -1145,7 +1145,7 @@ class StylerRenderer:
         `ValueError` will be raised.
 
         Since it is not possible to apply a generic function which will return an
-        arbitrary set of column aliases, the argument ``aliases`` provides the
+        arbitrary set of column aliases, the argument ``alias`` provides the
         ability to automate this, across individual index levels if necessary.
 
         Examples
@@ -1202,14 +1202,14 @@ class StylerRenderer:
         0 & 1 & 2 & 3 \\
         \end{tabular}
 
-        Using ``aliases`` to overwrite column names.
+        Using ``alias`` to overwrite column names.
 
         >>> df = pd.DataFrame([[1, 2, 3]], columns=[1, 2, 3])
-        >>> df.style.format_index(axis=1, aliases=["A", "B", "C"])  # doctest: +SKIP
+        >>> df.style.format_index(axis=1, alias=["A", "B", "C"])  # doctest: +SKIP
                 A      B       C
         0       1      2       3
 
-        Using ``aliases`` to overwrite column names of remaining **visible** items.
+        Using ``alias`` to overwrite column names of remaining **visible** items.
 
         >>> df = pd.DataFrame([[1, 2, 3]],
         ...                   columns=pd.MultiIndex.from_product([[1, 2, 3], ["X"]]))
@@ -1220,7 +1220,7 @@ class StylerRenderer:
 
         >>> styler.hide([2], axis=1)      # hides a column as a `subset` hide
         ...       .hide(level=1, axis=1)  # hides the entire axis level
-        ...       .format_index(axis=1, aliases=["A", "C"], level=0)  # doctest: +SKIP
+        ...       .format_index(axis=1, alias=["A", "C"], level=0)  # doctest: +SKIP
                 A      C
         0       1      3
         """
@@ -1245,14 +1245,14 @@ class StylerRenderer:
             )
         )
 
-        if formatting_args_unset and level is None and aliases is None:
+        if formatting_args_unset and level is None and alias is None:
             # clear the formatter / revert to default and avoid looping
             display_funcs_.clear()
 
-        elif aliases is not None:  # then apply a formatting function from arg: aliases
+        elif alias is not None:  # then apply a formatting function from arg: alias
             if not formatting_args_unset:
                 raise ValueError(
-                    "``aliases`` cannot be supplied together with any of "
+                    "``alias`` cannot be supplied together with any of "
                     "``formatter``, ``precision``, ``decimal``, ``na_rep``, "
                     "``escape``, or ``hyperlinks``."
                 )
@@ -1260,22 +1260,22 @@ class StylerRenderer:
                 visible_len = len(obj) - len(set(hidden_labels))
                 if level is None:
                     levels_ = [obj.nlevels - 1]  # default to last level
-                elif len(levels_) > 1 and len(aliases) != len(levels_):
+                elif len(levels_) > 1 and len(alias) != len(levels_):
                     raise ValueError(
                         f"``level`` specifies {len(levels_)} levels but the length of "
-                        f"``aliases``, {len(aliases)}, does not match."
+                        f"``alias``, {len(alias)}, does not match."
                     )
 
-                def alias(x, value):
+                def alias_(x, value):
                     return value
 
                 for i, lvl in enumerate(levels_):
-                    level_aliases = aliases[i] if len(levels_) > 1 else aliases
-                    if len(level_aliases) != visible_len:
+                    level_alias = alias[i] if len(levels_) > 1 else alias
+                    if len(level_alias) != visible_len:
                         raise ValueError(
-                            "``aliases`` must be of length equal to the number of "
+                            "``alias`` must be of length equal to the number of "
                             "visible labels along ``axis``. If ``level`` is given and "
-                            "contains more than one level ``aliases`` should be a "
+                            "contains more than one level ``alias`` should be a "
                             "list of lists with each sub-list having length equal to"
                             "the number of visible labels along ``axis``."
                         )
@@ -1286,7 +1286,7 @@ class StylerRenderer:
                             if i not in hidden_labels
                         ]
                     ):
-                        display_funcs_[idx] = partial(alias, value=level_aliases[ai])
+                        display_funcs_[idx] = partial(alias_, value=level_alias[ai])
 
         else:  # then apply a formatting function from arg: formatter
             if not isinstance(formatter, dict):
