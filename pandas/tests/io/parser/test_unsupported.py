@@ -177,7 +177,7 @@ def test_close_file_handle_on_invalid_usecols(all_parsers):
     if parser.engine == "pyarrow":
         pyarrow = pytest.importorskip("pyarrow")
         error = pyarrow.lib.ArrowKeyError
-        if is_platform_windows() or is_platform_mac:
+        if is_platform_windows() or is_platform_mac():
             # GH#45547 causes timeouts on windows/mac builds
             pytest.skip("GH#45547 causing timeouts on windows/mac builds 2022-01-22")
 
