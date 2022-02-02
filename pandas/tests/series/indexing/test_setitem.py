@@ -364,6 +364,48 @@ class TestSetitemBooleanMask:
         expected = Series([np.nan, False, True], dtype=object)
         tm.assert_series_equal(result, expected)
 
+    def test_setitem_mask_smallint_upcast(self):
+        orig = Series([1, 2, 3], dtype="int8")
+        alt = np.array([999, 1000, 1001], dtype=np.int64)
+
+        mask = np.array([True, False, True])
+
+        ser = orig.copy()
+        ser[mask] = Series(alt)
+        expected = Series([999, 2, 1001])
+        tm.assert_series_equal(ser, expected)
+
+        ser2 = orig.copy()
+        ser2.mask(mask, alt, inplace=True)
+        tm.assert_series_equal(ser2, expected)
+
+        ser3 = orig.copy()
+        res = ser3.where(~mask, Series(alt))
+        tm.assert_series_equal(res, expected)
+
+    def test_setitem_mask_smallint_no_upcast(self):
+        # like test_setitem_mask_smallint_upcast, but while we can't hold 'alt',
+        #  we *can* hold alt[mask] without casting
+        orig = Series([1, 2, 3], dtype="uint8")
+        alt = Series([245, 1000, 246], dtype=np.int64)
+
+        mask = np.array([True, False, True])
+
+        ser = orig.copy()
+        ser[mask] = alt
+        expected = Series([245, 2, 246], dtype="uint8")
+        tm.assert_series_equal(ser, expected)
+
+        ser2 = orig.copy()
+        ser2.mask(mask, alt, inplace=True)
+        tm.assert_series_equal(ser2, expected)
+
+        # FIXME: don't leave commented-out
+        # FIXME: ser.where(~mask, alt) unnecessarily upcasts to int64
+        # ser3 = orig.copy()
+        # res = ser3.where(~mask, alt)
+        # tm.assert_series_equal(res, expected)
+
 
 class TestSetitemViewCopySemantics:
     def test_setitem_invalidates_datetime_index_freq(self):
@@ -1074,7 +1116,7 @@ class TestSetitemRangeIntoIntegerSeries(SetitemCastingEquivalents):
     [
         np.array([2.0, 3.0]),
         np.array([2.5, 3.5]),
-        np.array([2 ** 65, 2 ** 65 + 1], dtype=np.float64),  # all ints, but can't cast
+        np.array([2**65, 2**65 + 1], dtype=np.float64),  # all ints, but can't cast
     ],
 )
 class TestSetitemFloatNDarrayIntoIntegerSeries(SetitemCastingEquivalents):
@@ -1113,7 +1155,7 @@ class TestSetitemIntoIntegerSeriesNeedsUpcast(SetitemCastingEquivalents):
         return Series([1, 512, 3], dtype=np.int16)
 
 
-@pytest.mark.parametrize("val", [2 ** 33 + 1.0, 2 ** 33 + 1.1, 2 ** 62])
+@pytest.mark.parametrize("val", [2**33 + 1.0, 2**33 + 1.1, 2**62])
 class TestSmallIntegerSetitemUpcast(SetitemCastingEquivalents):
     # https://github.com/pandas-dev/pandas/issues/39584#issuecomment-941212124
     @pytest.fixture
@@ -1148,7 +1190,7 @@ class CoercionTest(SetitemCastingEquivalents):
 
 
 @pytest.mark.parametrize(
-    "val,exp_dtype", [(np.int32(1), np.int8), (np.int16(2 ** 9), np.int16)]
+    "val,exp_dtype", [(np.int32(1), np.int8), (np.int16(2**9), np.int16)]
 )
 class TestCoercionInt8(CoercionTest):
     # previously test_setitem_series_int8 in tests.indexing.test_coercion

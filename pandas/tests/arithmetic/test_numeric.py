@@ -120,12 +120,12 @@ class TestNumericComparisons:
         box = box_with_array
         xbox = box if box is not Index else np.ndarray
 
-        obj = Series(np.random.randn(10 ** 5))
+        obj = Series(np.random.randn(10**5))
         obj = tm.box_expected(obj, box, transpose=False)
 
         result = obj == "a"
 
-        expected = Series(np.zeros(10 ** 5, dtype=bool))
+        expected = Series(np.zeros(10**5, dtype=bool))
         expected = tm.box_expected(expected, xbox, transpose=False)
         tm.assert_equal(result, expected)
 
@@ -231,7 +231,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         # GH#44772 for the float64 case
         box = box_with_array
 
-        arr_i8 = np.arange(2 * 10 ** 4).astype(np.int64, copy=False)
+        arr_i8 = np.arange(2 * 10**4).astype(np.int64, copy=False)
         arr = arr_i8.astype(dtype, copy=False)
         obj = tm.box_expected(arr, box, transpose=False)
 
@@ -676,7 +676,7 @@ class TestMultiplicationDivision:
         idx = numeric_idx
 
         result = idx * idx
-        tm.assert_index_equal(result, idx ** 2)
+        tm.assert_index_equal(result, idx**2)
 
     def test_mul_datelike_raises(self, numeric_idx):
         idx = numeric_idx
@@ -775,7 +775,7 @@ class TestMultiplicationDivision:
         df = pd.DataFrame({"A": ts})
 
         tm.assert_series_equal(ts + ts, ts + df["A"], check_names=False)
-        tm.assert_series_equal(ts ** ts, ts ** df["A"], check_names=False)
+        tm.assert_series_equal(ts**ts, ts ** df["A"], check_names=False)
         tm.assert_series_equal(ts < ts, ts < df["A"], check_names=False)
         tm.assert_series_equal(ts / ts, ts / df["A"], check_names=False)
 
@@ -1269,7 +1269,7 @@ class TestNumericArithmeticUnsorted:
 
         # __pow__
         idx = RangeIndex(0, 1000, 2)
-        result = idx ** 2
+        result = idx**2
         expected = Int64Index(idx._values) ** 2
         tm.assert_index_equal(Index(result.values), expected, exact=True)
 
@@ -1393,7 +1393,7 @@ def test_sub_multiindex_swapped_levels():
 @pytest.mark.parametrize("string_size", [0, 1, 2, 5])
 def test_empty_str_comparison(power, string_size):
     # GH 37348
-    a = np.array(range(10 ** power))
+    a = np.array(range(10**power))
     right = pd.DataFrame(a, dtype=np.int64)
     left = " " * string_size
 

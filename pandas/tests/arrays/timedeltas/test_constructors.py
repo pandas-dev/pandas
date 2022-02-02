@@ -19,7 +19,7 @@ class TestTimedeltaArrayConstructor:
 
     def test_freq_validation(self):
         # ensure that the public constructor cannot create an invalid instance
-        arr = np.array([0, 0, 1], dtype=np.int64) * 3600 * 10 ** 9
+        arr = np.array([0, 0, 1], dtype=np.int64) * 3600 * 10**9
 
         msg = (
             "Inferred frequency None from passed values does not "

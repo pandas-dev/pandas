@@ -110,7 +110,7 @@ def test_series_not_equal_metadata_mismatch(kwargs):
 @pytest.mark.parametrize("dtype", ["float32", "float64", "Float32"])
 @pytest.mark.parametrize("decimals", [0, 1, 2, 3, 5, 10])
 def test_less_precise(data1, data2, dtype, decimals):
-    rtol = 10 ** -decimals
+    rtol = 10**-decimals
     s1 = Series([data1], dtype=dtype)
     s2 = Series([data2], dtype=dtype)
 
