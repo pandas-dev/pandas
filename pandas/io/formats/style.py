@@ -2498,7 +2498,7 @@ class Styler(StylerRenderer):
         Styler.hide: Hide the entire index / columns, or specific rows / columns.
         """
         warnings.warn(
-            "this method is deprecated in favour of `Styler.hide(axis=\"index\")`",
+            'this method is deprecated in favour of `Styler.hide(axis="index")`',
             FutureWarning,
             stacklevel=find_stack_level(),
         )
@@ -2551,7 +2551,7 @@ class Styler(StylerRenderer):
         Styler.hide: Hide the entire index / columns, or specific rows / columns.
         """
         warnings.warn(
-            "this method is deprecated in favour of `Styler.hide(axis=\"columns\")`",
+            'this method is deprecated in favour of `Styler.hide(axis="columns")`',
             FutureWarning,
             stacklevel=find_stack_level(),
         )

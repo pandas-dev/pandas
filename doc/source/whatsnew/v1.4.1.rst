@@ -41,7 +41,7 @@ Bug fixes
 Other
 ~~~~~
 - Reverted performance speedup of :meth:`DataFrame.corr` for ``method=pearson`` to fix precision regression (:issue:`45640`, :issue:`42761`)
--
+- Improved messages and parameters consistency on Styler methods ``hide()``, ``hide_columns()`` and ``hide_index()``.
 
 .. ---------------------------------------------------------------------------
 
