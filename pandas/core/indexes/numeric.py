@@ -14,7 +14,6 @@ from pandas._libs import (
 )
 from pandas._typing import (
     Dtype,
-    DtypeObj,
     npt,
 )
 from pandas.util._decorators import (
@@ -90,14 +89,6 @@ class NumericIndex(Index):
     _is_numeric_dtype = True
     _can_hold_strings = False
     _is_backward_compat_public_numeric_index: bool = True
-
-    # error: Signature of "_can_hold_na" incompatible with supertype "Index"
-    @cache_readonly
-    def _can_hold_na(self) -> bool:  # type: ignore[override]
-        if is_float_dtype(self.dtype):
-            return True
-        else:
-            return False
 
     _engine_types: dict[np.dtype, type[libindex.IndexEngine]] = {
         np.dtype(np.int8): libindex.Int8Engine,
@@ -268,10 +259,6 @@ class NumericIndex(Index):
                 )
         return tolerance
 
-    def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
-        # If we ever have BoolIndex or ComplexIndex, this may need to be tightened
-        return is_numeric_dtype(dtype)
-
     @classmethod
     def _assert_safe_casting(cls, data: np.ndarray, subarr: np.ndarray) -> None:
         """
@@ -283,13 +270,6 @@ class NumericIndex(Index):
         if is_integer_dtype(subarr.dtype):
             if not np.array_equal(data, subarr):
                 raise TypeError("Unsafe NumPy casting, you must explicitly cast")
-
-    @property
-    def _is_all_dates(self) -> bool:
-        """
-        Checks that all the labels are datetime objects.
-        """
-        return False
 
     def _format_native_types(
         self, *, na_rep="", float_format=None, decimal=".", quoting=None, **kwargs
