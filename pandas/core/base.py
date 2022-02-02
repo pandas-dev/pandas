@@ -541,7 +541,7 @@ class IndexOpsMixin(OpsMixin):
         if copy or na_value is not lib.no_default:
             result = result.copy()
             if na_value is not lib.no_default:
-                result[self.isna().reset_index(drop=True)] = na_value
+                result[self.isna().to_numpy()] = na_value
         return result
 
     @property
