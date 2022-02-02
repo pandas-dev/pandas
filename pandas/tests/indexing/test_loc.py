@@ -43,20 +43,18 @@ from pandas.core.indexing import (
 from pandas.tests.indexing.common import Base
 
 
-def test_not_change_nan_loc2():
+@pytest.mark.parametrize(
+    "series, new_serie, expected_ser",
+    [
+        [[np.nan, np.nan, "b"], ["a", np.nan, np.nan], [False, True, True]],
+        [[np.nan, "b"], ["a", np.nan], [False, True]],
+    ],
+)
+def test_not_change_nan_loc(series, new_serie, expected_ser):
     # GH 28403
-    df = DataFrame({"A": [np.nan, np.nan, "b"]})
-    df["A"].loc[[0, 1, 2]] = ["a", np.nan, np.nan]
-    expected = DataFrame({"A": [False, True, True]})
-    tm.assert_frame_equal(df.isna(), expected)
-    tm.assert_frame_equal(df.notna(), ~expected)
-
-
-def test_not_change_nan_loc():
-    # GH 28403
-    df = DataFrame({"A": [np.nan, "b"]})
-    df["A"].loc[[0, 1]] = ["a", np.nan]
-    expected = DataFrame({"A": [False, True]})
+    df = DataFrame({"A": series})
+    df["A"].loc[:] = new_serie
+    expected = DataFrame({"A": expected_ser})
     tm.assert_frame_equal(df.isna(), expected)
     tm.assert_frame_equal(df.notna(), ~expected)
 
