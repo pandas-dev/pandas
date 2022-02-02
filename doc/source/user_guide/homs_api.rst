@@ -10,11 +10,15 @@ pandas Higher Order Methods
 
 pandas is experimenting with improving the behavior of higher order methods (HOMs). These
 are methods that take a function as an argument, often a user-defined function (UDF).
-They include ``.apply``, ``.agg``, ``.transform``, and ``.filter``. The goal is to make
-these methods behave in a more predictable and consistent manner, reducing the complexity
-of their implementation, and improving performance where possible. This page details the
-differences between the old and new behaviors, as well as providing some context behind
-each change that is being made.
+The modified methods include the following.
+
+ - :meth:`DataFrame.agg`
+ - :meth:`.DataFrameGroupBy.aggregate`
+
+The goal is to make these methods behave in a more predictable and consistent manner,
+reducing the complexity of their implementation, and improving performance where
+possible. This page details the differences between the old and new behaviors, as well
+as providing some context behind each change that is being made.
 
 There are a great number of changes that are planned. In order to transition in a
 reasonable manner for users, all changes are behind an experimental "api.use_hom"
