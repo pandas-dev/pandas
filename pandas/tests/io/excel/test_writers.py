@@ -1280,10 +1280,13 @@ class TestExcelWriterEngineTests:
             supported_extensions = ["xlsx", "xls"]
             engine = "dummy"
 
-            def save(self):
+            def book(self):
+                pass
+
+            def _save(self):
                 called_save.append(True)
 
-            def write_cells(self, *args, **kwargs):
+            def _write_cells(self, *args, **kwargs):
                 called_write_cells.append(True)
 
             @property

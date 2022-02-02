@@ -183,6 +183,19 @@ use ``series.loc[i:j]``.
 
 Slicing on a :class:`DataFrame` will not be affected.
 
+.. _whatsnew_150.deprecations.excel_writer_attributes:
+
+:class:`ExcelWriter` attributes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The attributes and methods of :class:`ExcelWriter` were previously documented as not
+being public. However some third party Excel engines documented accessing
+``ExcelWriter.book`` or ``ExcelWriter.sheets``, and users were utilizing these
+and possibly other attributes. In order to support this, pandas has made some
+attributes and methods public. Other attributes and methods have been deprecated
+and will raise a ``FutureWarning`` when accessed as they will be removed in a future
+version. See the documentation of :class:`ExcelWriter` for further details.
+
 .. _whatsnew_150.deprecations.other:
 
 Other Deprecations
