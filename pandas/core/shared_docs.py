@@ -195,6 +195,10 @@ DataFrame.pivot : Return reshaped DataFrame organized
 DataFrame.explode : Explode a DataFrame from list-like
         columns to long format.
 
+Notes
+-----
+Reference :ref:`the user guide <reshaping.melt>` for more examples.
+
 Examples
 --------
 >>> df = pd.DataFrame({'A': {0: 'a', 1: 'b', 2: 'c'},
