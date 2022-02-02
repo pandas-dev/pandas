@@ -76,7 +76,7 @@ class SeriesConstructors:
             raise NotImplementedError(
                 "Series constructors do not support using generators with indexes"
             )
-        N = 10 ** 4
+        N = 10**4
         if dtype == "float":
             arr = np.random.randn(N)
         else:
@@ -90,7 +90,7 @@ class SeriesConstructors:
 
 class SeriesDtypesConstructors:
     def setup(self):
-        N = 10 ** 4
+        N = 10**4
         self.arr = np.random.randn(N)
         self.arr_str = np.array(["foo", "bar", "baz"], dtype=object)
         self.s = Series(
@@ -114,7 +114,7 @@ class SeriesDtypesConstructors:
 
 class MultiIndexConstructor:
     def setup(self):
-        N = 10 ** 4
+        N = 10**4
         self.iterables = [tm.makeStringIndex(N), range(20)]
 
     def time_multiindex_from_iterables(self):
