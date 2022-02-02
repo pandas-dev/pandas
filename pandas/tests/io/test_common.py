@@ -222,12 +222,7 @@ Look,a snake,🐍"""
             (pd.DataFrame.to_html, "os", OSError, "html"),
             (pd.DataFrame.to_excel, "xlrd", OSError, "xlsx"),
             (pd.DataFrame.to_feather, "pyarrow", OSError, "feather"),
-            (
-                pd.DataFrame.to_parquet,
-                "pyarrow",
-                (OSError, FileNotFoundError),
-                "parquet",
-            ),
+            (pd.DataFrame.to_parquet, "pyarrow", OSError, "parquet"),
             (pd.DataFrame.to_stata, "os", OSError, "dta"),
             (pd.DataFrame.to_json, "os", OSError, "json"),
             (pd.DataFrame.to_pickle, "os", OSError, "pickle"),
@@ -241,13 +236,10 @@ Look,a snake,🐍"""
 
         path = os.path.join(HERE, "data", "missing_folder", "does_not_exist." + fn_ext)
 
-        msg = "|".join(
-            [
-                r"\[Errno 2\] No such",
-                "Cannot save file into a non-existent directory: .*missing_folder",
-            ]
-        )
-        with pytest.raises(error_class, match=msg):
+        with pytest.raises(
+            error_class,
+            match=r"Cannot save file into a non-existent directory: .*missing_folder",
+        ):
             method(dummy_frame, path)
 
     @pytest.mark.parametrize(

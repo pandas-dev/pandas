@@ -13,10 +13,7 @@ import pytest
 
 from pandas._config import get_option
 
-from pandas.compat import (
-    is_platform_mac,
-    is_platform_windows,
-)
+from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
     pa_version_under2p0,
     pa_version_under5p0,
@@ -258,12 +255,6 @@ def test_invalid_engine(df_compat):
         check_round_trip(df_compat, "foo", "bar")
 
 
-@pytest.mark.xfail(
-    is_platform_mac(),
-    raises=ImportError,
-    reason="Raises Library not loaded: @rpath/libssl.1.1.dylib in CI",
-    strict=False,
-)
 def test_options_py(df_compat, pa):
     # use the set option
 
@@ -285,12 +276,6 @@ def test_options_auto(df_compat, fp, pa):
         check_round_trip(df_compat)
 
 
-@pytest.mark.xfail(
-    is_platform_mac(),
-    raises=ImportError,
-    reason="Raises Library not loaded: @rpath/libssl.1.1.dylib in CI",
-    strict=False,
-)
 def test_options_get_engine(fp, pa):
     assert isinstance(get_engine("pyarrow"), PyArrowImpl)
     assert isinstance(get_engine("fastparquet"), FastParquetImpl)
@@ -354,12 +339,6 @@ def test_get_engine_auto_error_message():
                 get_engine("auto")
 
 
-@pytest.mark.xfail(
-    is_platform_mac(),
-    raises=ImportError,
-    reason="Raises Library not loaded: @rpath/libssl.1.1.dylib in CI",
-    strict=False,
-)
 def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
     # cross-compat with differing reading/writing engines
 
@@ -374,13 +353,7 @@ def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
         tm.assert_frame_equal(result, df[["a", "d"]])
 
 
-@pytest.mark.xfail(
-    is_platform_mac(),
-    raises=ImportError,
-    reason="Raises Library not loaded: @rpath/libssl.1.1.dylib in CI",
-    strict=False,
-)
-def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
+def test_cross_engine_fp_pa(request, df_cross_compat, pa, fp):
     # cross-compat with differing reading/writing engines
     df = df_cross_compat
     with tm.ensure_clean() as path:
@@ -420,12 +393,6 @@ class Base:
         tm.assert_frame_equal(df, df_compat)
 
 
-@pytest.mark.xfail(
-    is_platform_mac(),
-    raises=ImportError,
-    reason="Raises Library not loaded: @rpath/libssl.1.1.dylib in CI",
-    strict=False,
-)
 class TestBasic(Base):
     def test_error(self, engine):
         for obj in [
@@ -701,12 +668,6 @@ class TestBasic(Base):
         check_round_trip(df, pa, read_kwargs={"use_nullable_dtypes": True})
 
 
-@pytest.mark.xfail(
-    is_platform_mac(),
-    raises=ImportError,
-    reason="Raises Library not loaded: @rpath/libssl.1.1.dylib in CI",
-    strict=False,
-)
 @pytest.mark.filterwarnings("ignore:CategoricalBlock is deprecated:DeprecationWarning")
 class TestParquetPyArrow(Base):
     def test_basic(self, pa, df_full):
@@ -874,7 +835,7 @@ class TestParquetPyArrow(Base):
             repeat=1,
         )
 
-    @td.skip_if_no("pyarrow", min_version="3")
+    @td.skip_if_no("pyarrow")
     def test_read_file_like_obj_support(self, df_compat):
         buffer = BytesIO()
         df_compat.to_parquet(buffer)
