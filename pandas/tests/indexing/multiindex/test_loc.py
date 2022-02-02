@@ -943,3 +943,16 @@ def test_multindex_series_loc_with_tuple_label():
     ser = Series([1, 2], index=mi)
     result = ser.loc[(3, (4, 5))]
     assert result == 2
+
+
+@pytest.mark.parametrize("third_element", [slice(10, 12), 5])
+def test_multiindex_indexer_deeper_than_nlevels(third_element):
+    # GH#45762
+    df = DataFrame(
+        [[1, 2]],
+        index=MultiIndex.from_tuples([(1, 2)], names=["A", "B"]),
+    )
+
+    msg = "Depth of indexer is deeper than the number of levels of the MultiIndex."
+    with pytest.raises(IndexError, match=msg):
+        df.loc[pd.IndexSlice[2:4, 8:10, third_element]]
