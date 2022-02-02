@@ -1811,5 +1811,4 @@ def test_groupby_categorical_aggregate_functions():
         dtype=pd.CategoricalDtype(categories=["small", "big"], ordered=True),
     )
 
-    
     tm.assert_series_equal(result, expected)
