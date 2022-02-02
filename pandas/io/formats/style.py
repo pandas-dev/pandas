@@ -2498,11 +2498,11 @@ class Styler(StylerRenderer):
         Styler.hide: Hide the entire index / columns, or specific rows / columns.
         """
         warnings.warn(
-            "this method is deprecated in favour of `Styler.hide(axis='index')`",
+            "this method is deprecated in favour of `Styler.hide(axis=\"index\")`",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
-        return self.hide(axis=0, level=level, subset=subset, names=names)
+        return self.hide(axis="index", level=level, subset=subset, names=names)
 
     def hide_columns(
         self,
@@ -2551,16 +2551,16 @@ class Styler(StylerRenderer):
         Styler.hide: Hide the entire index / columns, or specific rows / columns.
         """
         warnings.warn(
-            "this method is deprecated in favour of `Styler.hide(axis='columns')`",
+            "this method is deprecated in favour of `Styler.hide(axis=\"columns\")`",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
-        return self.hide(axis=1, level=level, subset=subset, names=names)
+        return self.hide(axis="columns", level=level, subset=subset, names=names)
 
     def hide(
         self,
         subset: Subset | None = None,
-        axis: Axis = 0,
+        axis: Axis = "index",
         level: Level | list[Level] | None = None,
         names: bool = False,
     ) -> Styler:
