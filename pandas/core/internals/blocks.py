@@ -17,12 +17,12 @@ import numpy as np
 
 from pandas._libs import (
     Timestamp,
-    algos as libalgos,
     internals as libinternals,
     lib,
     writers,
 )
 from pandas._libs.internals import BlockPlacement
+from pandas._libs.tslibs import IncompatibleFrequency
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
@@ -36,6 +36,7 @@ from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.astype import astype_array_safe
 from pandas.core.dtypes.cast import (
+    LossySetitemError,
     can_hold_element,
     find_result_type,
     maybe_downcast_to_dtype,
@@ -74,7 +75,6 @@ import pandas.core.algorithms as algos
 from pandas.core.array_algos.putmask import (
     extract_bool_array,
     putmask_inplace,
-    putmask_smart,
     putmask_without_repeat,
     setitem_datetimelike_compat,
     validate_putmask,
@@ -105,11 +105,7 @@ from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
-from pandas.core.indexers import (
-    check_setitem_lengths,
-    is_empty_indexer,
-    is_scalar_indexer,
-)
+from pandas.core.indexers import check_setitem_lengths
 import pandas.core.missing as missing
 
 if TYPE_CHECKING:
@@ -447,35 +443,41 @@ class Block(PandasObject):
         return [nb]
 
     def fillna(
-        self, value, limit=None, inplace: bool = False, downcast=None
+        self, value, limit: int | None = None, inplace: bool = False, downcast=None
     ) -> list[Block]:
         """
         fillna on the block with the value. If we fail, then convert to
         ObjectBlock and try again
         """
+        # Caller is responsible for validating limit; if int it is strictly positive
         inplace = validate_bool_kwarg(inplace, "inplace")
 
-        mask = isna(self.values)
-        mask, noop = validate_putmask(self.values, mask)
-
-        if limit is not None:
-            limit = libalgos.validate_limit(None, limit=limit)
-            mask[mask.cumsum(self.ndim - 1) > limit] = False
-
         if not self._can_hold_na:
+            # can short-circuit the isna call
+            noop = True
+        else:
+            mask = isna(self.values)
+            mask, noop = validate_putmask(self.values, mask)
+
+        if noop:
+            # we can't process the value, but nothing to do
             if inplace:
+                # Arbitrarily imposing the convention that we ignore downcast
+                #  on no-op when inplace=True
                 return [self]
             else:
-                return [self.copy()]
+                # GH#45423 consistent downcasting on no-ops.
+                nb = self.copy()
+                nbs = nb._maybe_downcast([nb], downcast=downcast)
+                return nbs
+
+        if limit is not None:
+            mask[mask.cumsum(self.ndim - 1) > limit] = False
 
         if self._can_hold_element(value):
             nb = self if inplace else self.copy()
             putmask_inplace(nb.values, mask, value)
             return nb._maybe_downcast([nb], downcast)
-
-        if noop:
-            # we can't process the value, but nothing to do
-            return [self] if inplace else [self.copy()]
 
         elif self.ndim == 1 or self.shape[0] == 1:
             blk = self.coerce_to_target_dtype(value)
@@ -913,12 +915,6 @@ class Block(PandasObject):
 
         value = self._standardize_fill_value(value)
 
-        # coerce if block dtype can store value
-        if not self._can_hold_element(value):
-            # current dtype cannot store value, coerce to common dtype
-            return self.coerce_to_target_dtype(value).setitem(indexer, value)
-
-        # value must be storable at this moment
         values = cast(np.ndarray, self.values)
         if self.ndim == 2:
             values = values.T
@@ -926,19 +922,22 @@ class Block(PandasObject):
         # length checking
         check_setitem_lengths(indexer, value, values)
 
-        if is_empty_indexer(indexer):
-            # GH#8669 empty indexers, test_loc_setitem_boolean_mask_allfalse
-            values[indexer] = value
-
-        elif is_scalar_indexer(indexer, self.ndim):
-            # setting a single element for each dim and with a rhs that could
-            #  be e.g. a list; see GH#6043
-            values[indexer] = value
-
+        value = extract_array(value, extract_numpy=True)
+        try:
+            casted = np_can_hold_element(values.dtype, value)
+        except LossySetitemError:
+            # current dtype cannot store value, coerce to common dtype
+            nb = self.coerce_to_target_dtype(value)
+            return nb.setitem(indexer, value)
         else:
-            value = setitem_datetimelike_compat(values, len(values[indexer]), value)
-            values[indexer] = value
-
+            if self.dtype == _dtype_obj:
+                # TODO: avoid having to construct values[indexer]
+                vi = values[indexer]
+                if lib.is_list_like(vi):
+                    # checking lib.is_scalar here fails on
+                    #  test_iloc_setitem_custom_object
+                    casted = setitem_datetimelike_compat(values, len(vi), casted)
+            values[indexer] = casted
         return self
 
     def putmask(self, mask, new) -> list[Block]:
@@ -978,15 +977,12 @@ class Block(PandasObject):
             # no need to split columns
 
             if not is_list_like(new):
-                # putmask_smart can't save us the need to cast
+                # using just new[indexer] can't save us the need to cast
                 return self.coerce_to_target_dtype(new).putmask(mask, new)
-
-            # This differs from
-            #  `self.coerce_to_target_dtype(new).putmask(mask, new)`
-            # because putmask_smart will check if new[mask] may be held
-            # by our dtype.
-            nv = putmask_smart(values.T, mask, new).T
-            return [self.make_block(nv)]
+            else:
+                indexer = mask.nonzero()[0]
+                nb = self.setitem(indexer, new[indexer])
+                return [nb]
 
         else:
             is_array = isinstance(new, np.ndarray)
@@ -1191,7 +1187,7 @@ class Block(PandasObject):
             #  but this gets us back 'casted' which we will re-use below;
             #  without using 'casted', expressions.where may do unwanted upcasts.
             casted = np_can_hold_element(values.dtype, other)
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, LossySetitemError):
             # we cannot coerce, return a compat dtype
             block = self.coerce_to_target_dtype(other)
             blocks = block.where(orig_other, cond)
@@ -1342,10 +1338,8 @@ class EABackedBlock(Block):
         `indexer` is a direct slice/positional indexer. `value` must
         be a compatible shape.
         """
-        if not self._can_hold_element(value):
-            # see TestSetitemFloatIntervalWithIntIntervalValues
-            nb = self.coerce_to_target_dtype(value)
-            return nb.setitem(indexer, value)
+        orig_indexer = indexer
+        orig_value = value
 
         indexer = self._unwrap_setitem_indexer(indexer)
         value = self._maybe_squeeze_arg(value)
@@ -1356,14 +1350,34 @@ class EABackedBlock(Block):
             #  unconditionally
             values = values.T
         check_setitem_lengths(indexer, value, values)
-        values[indexer] = value
-        return self
+
+        try:
+            values[indexer] = value
+        except (ValueError, TypeError) as err:
+            _catch_deprecated_value_error(err)
+
+            if is_interval_dtype(self.dtype):
+                # see TestSetitemFloatIntervalWithIntIntervalValues
+                nb = self.coerce_to_target_dtype(orig_value)
+                return nb.setitem(orig_indexer, orig_value)
+
+            elif isinstance(self, NDArrayBackedExtensionBlock):
+                nb = self.coerce_to_target_dtype(orig_value)
+                return nb.setitem(orig_indexer, orig_value)
+
+            else:
+                raise
+
+        else:
+            return self
 
     def where(self, other, cond) -> list[Block]:
         arr = self.values.T
 
         cond = extract_bool_array(cond)
 
+        orig_other = other
+        orig_cond = cond
         other = self._maybe_squeeze_arg(other)
         cond = self._maybe_squeeze_arg(cond)
 
@@ -1383,21 +1397,15 @@ class EABackedBlock(Block):
 
             if is_interval_dtype(self.dtype):
                 # TestSetitemFloatIntervalWithIntIntervalValues
-                blk = self.coerce_to_target_dtype(other)
-                if blk.dtype == _dtype_obj:
-                    # For now at least only support casting e.g.
-                    #  Interval[int64]->Interval[float64]
-                    raise
-                return blk.where(other, cond)
+                blk = self.coerce_to_target_dtype(orig_other)
+                nbs = blk.where(orig_other, orig_cond)
+                return self._maybe_downcast(nbs, "infer")
 
             elif isinstance(self, NDArrayBackedExtensionBlock):
                 # NB: not (yet) the same as
                 #  isinstance(values, NDArrayBackedExtensionArray)
-                if isinstance(self.dtype, PeriodDtype):
-                    # TODO: don't special-case
-                    raise
-                blk = self.coerce_to_target_dtype(other)
-                nbs = blk.where(other, cond)
+                blk = self.coerce_to_target_dtype(orig_other)
+                nbs = blk.where(orig_other, orig_cond)
                 return self._maybe_downcast(nbs, "infer")
 
             else:
@@ -1414,6 +1422,8 @@ class EABackedBlock(Block):
 
         values = self.values
 
+        orig_new = new
+        orig_mask = mask
         new = self._maybe_squeeze_arg(new)
         mask = self._maybe_squeeze_arg(mask)
 
@@ -1426,21 +1436,14 @@ class EABackedBlock(Block):
             if is_interval_dtype(self.dtype):
                 # Discussion about what we want to support in the general
                 #  case GH#39584
-                blk = self.coerce_to_target_dtype(new)
-                if blk.dtype == _dtype_obj:
-                    # For now at least, only support casting e.g.
-                    #  Interval[int64]->Interval[float64],
-                    raise
-                return blk.putmask(mask, new)
+                blk = self.coerce_to_target_dtype(orig_new)
+                return blk.putmask(orig_mask, orig_new)
 
             elif isinstance(self, NDArrayBackedExtensionBlock):
                 # NB: not (yet) the same as
                 #  isinstance(values, NDArrayBackedExtensionArray)
-                if isinstance(self.dtype, PeriodDtype):
-                    # TODO: don't special-case
-                    raise
-                blk = self.coerce_to_target_dtype(new)
-                return blk.putmask(mask, new)
+                blk = self.coerce_to_target_dtype(orig_new)
+                return blk.putmask(orig_mask, orig_new)
 
             else:
                 raise
@@ -1448,8 +1451,9 @@ class EABackedBlock(Block):
         return [self]
 
     def fillna(
-        self, value, limit=None, inplace: bool = False, downcast=None
+        self, value, limit: int | None = None, inplace: bool = False, downcast=None
     ) -> list[Block]:
+        # Caller is responsible for validating limit; if int it is strictly positive
 
         try:
             new_values = self.values.fillna(value=value, limit=limit)
@@ -1471,7 +1475,16 @@ class EABackedBlock(Block):
                 # We support filling a DatetimeTZ with a `value` whose timezone
                 #  is different by coercing to object.
                 if self.dtype.kind == "m":
-                    # TODO: don't special-case td64
+                    # GH#45746
+                    warnings.warn(
+                        "The behavior of fillna with timedelta64[ns] dtype and "
+                        f"an incompatible value ({type(value)}) is deprecated. "
+                        "In a future version, this will cast to a common dtype "
+                        "(usually object) instead of raising, matching the "
+                        "behavior of other dtypes.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
                     raise
                 blk = self.coerce_to_target_dtype(value)
                 return blk.fillna(value, limit, inplace, downcast)
@@ -1863,7 +1876,12 @@ def _catch_deprecated_value_error(err: Exception) -> None:
     if isinstance(err, ValueError):
         # TODO(2.0): once DTA._validate_setitem_value deprecation
         #  is enforced, stop catching ValueError here altogether
-        if "Timezones don't match" not in str(err):
+        if isinstance(err, IncompatibleFrequency):
+            pass
+        elif "'value.closed' is" in str(err):
+            # IntervalDtype mismatched 'closed'
+            pass
+        elif "Timezones don't match" not in str(err):
             raise
 
 
