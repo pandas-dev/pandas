@@ -81,7 +81,7 @@ class SharedTests:
 
     @pytest.fixture
     def arr1d(self):
-        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
+        data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
         arr = self.array_cls(data, freq="D")
         return arr
 
@@ -148,7 +148,7 @@ class SharedTests:
             tm.assert_numpy_array_equal(result, ones)
 
     def test_take(self):
-        data = np.arange(100, dtype="i8") * 24 * 3600 * 10 ** 9
+        data = np.arange(100, dtype="i8") * 24 * 3600 * 10**9
         np.random.shuffle(data)
 
         freq = None if self.array_cls is not PeriodArray else "D"
@@ -170,7 +170,7 @@ class SharedTests:
 
     @pytest.mark.parametrize("fill_value", [2, 2.0, Timestamp(2021, 1, 1, 12).time])
     def test_take_fill_raises(self, fill_value):
-        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
+        data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
 
         arr = self.array_cls(data, freq="D")
 
@@ -179,7 +179,7 @@ class SharedTests:
             arr.take([0, 1], allow_fill=True, fill_value=fill_value)
 
     def test_take_fill(self):
-        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
+        data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
 
         arr = self.array_cls(data, freq="D")
 
@@ -215,7 +215,7 @@ class SharedTests:
         tm.assert_index_equal(self.index_cls(result), expected)
 
     def test_unbox_scalar(self):
-        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
+        data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
         arr = self.array_cls(data, freq="D")
         result = arr._unbox_scalar(arr[0])
         expected = arr._data.dtype.type
@@ -229,7 +229,7 @@ class SharedTests:
             arr._unbox_scalar("foo")
 
     def test_check_compatible_with(self):
-        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
+        data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
         arr = self.array_cls(data, freq="D")
 
         arr._check_compatible_with(arr[0])
@@ -237,13 +237,13 @@ class SharedTests:
         arr._check_compatible_with(NaT)
 
     def test_scalar_from_string(self):
-        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
+        data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
         arr = self.array_cls(data, freq="D")
         result = arr._scalar_from_string(str(arr[0]))
         assert result == arr[0]
 
     def test_reduce_invalid(self):
-        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
+        data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
         arr = self.array_cls(data, freq="D")
 
         msg = "does not support reduction 'not a method'"
@@ -252,7 +252,7 @@ class SharedTests:
 
     @pytest.mark.parametrize("method", ["pad", "backfill"])
     def test_fillna_method_doesnt_change_orig(self, method):
-        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
+        data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
         arr = self.array_cls(data, freq="D")
         arr[4] = NaT
 
@@ -265,7 +265,7 @@ class SharedTests:
         assert arr[4] is NaT
 
     def test_searchsorted(self):
-        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
+        data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
         arr = self.array_cls(data, freq="D")
 
         # scalar
@@ -415,11 +415,11 @@ class SharedTests:
         assert result == expected
 
     def test_setitem(self):
-        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
+        data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
         arr = self.array_cls(data, freq="D")
 
         arr[0] = arr[1]
-        expected = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
+        expected = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
         expected[0] = expected[1]
 
         tm.assert_numpy_array_equal(arr.asi8, expected)
@@ -504,7 +504,7 @@ class SharedTests:
         tm.assert_equal(arr1d, expected)
 
     def test_setitem_raises(self):
-        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
+        data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
         arr = self.array_cls(data, freq="D")
         val = arr[0]
 
@@ -540,7 +540,7 @@ class SharedTests:
 
     def test_inplace_arithmetic(self):
         # GH#24115 check that iadd and isub are actually in-place
-        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
+        data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
         arr = self.array_cls(data, freq="D")
 
         expected = arr + pd.Timedelta(days=1)
@@ -553,7 +553,7 @@ class SharedTests:
 
     def test_shift_fill_int_deprecated(self):
         # GH#31971
-        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
+        data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
         arr = self.array_cls(data, freq="D")
 
         msg = "Passing <class 'int'> to shift"
