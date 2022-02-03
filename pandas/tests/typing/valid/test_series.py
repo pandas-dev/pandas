@@ -16,9 +16,10 @@ from typing import (
 
 import numpy as np
 
+from pandas._typing import Scalar
+
 import pandas as pd
 import pandas._testing as tm
-from pandas._typing import Scalar
 from pandas.core.window import ExponentialMovingWindow
 from pandas.util import _test_decorators as td
 
