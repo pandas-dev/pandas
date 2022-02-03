@@ -1136,7 +1136,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         # validate that this engine can handle the extension
         if isinstance(path, str):
             ext = os.path.splitext(path)[-1]
-            self._check_extension(ext)
+            self.check_extension(ext)
 
         # use mode to open the file
         if "b" not in mode:
@@ -1289,16 +1289,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         checks that path's extension against the Writer's supported
         extensions.  If it isn't supported, raises UnsupportedFiletypeError.
         """
-        warnings.warn(
-            "Using check_extension is not part of the public API and will be removed "
-            "in a future version.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return cls._check_extension(ext)
-
-    @classmethod
-    def _check_extension(cls, ext: str) -> Literal[True]:
         if ext.startswith("."):
             ext = ext[1:]
         # error: "Callable[[ExcelWriter], Any]" has no attribute "__iter__" (not
