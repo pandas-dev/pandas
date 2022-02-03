@@ -1465,11 +1465,6 @@ class EABackedBlock(Block):
                 # Discussion about what we want to support in the general
                 #  case GH#39584
                 blk = self.coerce_to_target_dtype(value)
-                if blk.dtype == _dtype_obj:
-                    # For now at least, only support casting e.g.
-                    #  Interval[int64]->Interval[float64],
-                    raise
-                # Never actually reached, but *could* be possible pending GH#45412
                 return blk.fillna(value, limit, inplace, downcast)
 
             elif isinstance(self, NDArrayBackedExtensionBlock):
