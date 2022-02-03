@@ -1024,7 +1024,6 @@ class Block(PandasObject):
         limit_direction: str = "forward",
         limit_area: str | None = None,
         fill_value: Any | None = None,
-        coerce: bool = False,
         downcast: str | None = None,
         **kwargs,
     ) -> list[Block]:
@@ -1033,6 +1032,16 @@ class Block(PandasObject):
 
         if not self._can_hold_na:
             # If there are no NAs, then interpolate is a no-op
+            return [self] if inplace else [self.copy()]
+
+        try:
+            m = missing.clean_fill_method(method)
+        except ValueError:
+            m = None
+        if m is None and self.dtype.kind != "f":
+            # only deal with floats
+            # bc we already checked that can_hold_na, we dont have int dtype here
+            # test_interp_basic checks that we make a copy here
             return [self] if inplace else [self.copy()]
 
         if self.is_object and self.ndim == 2 and self.shape[0] != 1 and axis == 0:
@@ -1047,20 +1056,9 @@ class Block(PandasObject):
                 limit_direction,
                 limit_area,
                 fill_value,
-                coerce,
                 downcast,
                 **kwargs,
             )
-
-        try:
-            m = missing.clean_fill_method(method)
-        except ValueError:
-            m = None
-        if m is None and self.dtype.kind != "f":
-            # only deal with floats
-            # bc we already checked that can_hold_na, we dont have int dtype here
-            # TODO: make a copy if not inplace?
-            return [self]
 
         data = self.values if inplace else self.values.copy()
         data = cast(np.ndarray, data)  # bc overridden by ExtensionBlock
