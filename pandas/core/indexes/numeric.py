@@ -14,7 +14,6 @@ from pandas._libs import (
 )
 from pandas._typing import (
     Dtype,
-    DtypeObj,
     npt,
 )
 from pandas.util._decorators import (
@@ -25,7 +24,6 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_dtype_equal,
-    is_float,
     is_float_dtype,
     is_integer_dtype,
     is_numeric_dtype,
@@ -91,14 +89,6 @@ class NumericIndex(Index):
     _is_numeric_dtype = True
     _can_hold_strings = False
     _is_backward_compat_public_numeric_index: bool = True
-
-    # error: Signature of "_can_hold_na" incompatible with supertype "Index"
-    @cache_readonly
-    def _can_hold_na(self) -> bool:  # type: ignore[override]
-        if is_float_dtype(self.dtype):
-            return True
-        else:
-            return False
 
     _engine_types: dict[np.dtype, type[libindex.IndexEngine]] = {
         np.dtype(np.int8): libindex.Int8Engine,
@@ -213,22 +203,6 @@ class NumericIndex(Index):
             # dtype for Int64Index, UInt64Index etc. Needed for backwards compat.
             return cls._default_dtype
 
-    def __contains__(self, key) -> bool:
-        """
-        Check if key is a float and has a decimal. If it has, return False.
-        """
-        if not is_integer_dtype(self.dtype):
-            return super().__contains__(key)
-
-        hash(key)
-        try:
-            if is_float(key) and int(key) != key:
-                # otherwise the `key in self._engine` check casts e.g. 1.1 -> 1
-                return False
-            return key in self._engine
-        except (OverflowError, TypeError, ValueError):
-            return False
-
     # ----------------------------------------------------------------
     # Indexing Methods
 
@@ -285,10 +259,6 @@ class NumericIndex(Index):
                 )
         return tolerance
 
-    def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
-        # If we ever have BoolIndex or ComplexIndex, this may need to be tightened
-        return is_numeric_dtype(dtype)
-
     @classmethod
     def _assert_safe_casting(cls, data: np.ndarray, subarr: np.ndarray) -> None:
         """
@@ -300,13 +270,6 @@ class NumericIndex(Index):
         if is_integer_dtype(subarr.dtype):
             if not np.array_equal(data, subarr):
                 raise TypeError("Unsafe NumPy casting, you must explicitly cast")
-
-    @property
-    def _is_all_dates(self) -> bool:
-        """
-        Checks that all the labels are datetime objects.
-        """
-        return False
 
     def _format_native_types(
         self, *, na_rep="", float_format=None, decimal=".", quoting=None, **kwargs

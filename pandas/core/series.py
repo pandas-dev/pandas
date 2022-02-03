@@ -62,6 +62,7 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.cast import (
+    LossySetitemError,
     convert_dtypes,
     maybe_box_native,
     maybe_cast_pointwise_result,
@@ -1102,7 +1103,7 @@ class Series(base.IndexOpsMixin, NDFrame):
                 # GH#12862 adding a new key to the Series
                 self.loc[key] = value
 
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, LossySetitemError):
             # The key was OK, but we cannot set the value losslessly
             indexer = self.index.get_loc(key)
             self._set_values(indexer, value)
@@ -1812,7 +1813,8 @@ class Series(base.IndexOpsMixin, NDFrame):
             columns = Index([name])
 
         mgr = self._mgr.to_2d_mgr(columns)
-        return self._constructor_expanddim(mgr)
+        df = self._constructor_expanddim(mgr)
+        return df.__finalize__(self, method="to_frame")
 
     def _set_name(self, name, inplace=False) -> Series:
         """

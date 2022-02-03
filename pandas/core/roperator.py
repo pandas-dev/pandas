@@ -45,7 +45,7 @@ def rdivmod(left, right):
 
 
 def rpow(left, right):
-    return right ** left
+    return right**left
 
 
 def rand_(left, right):

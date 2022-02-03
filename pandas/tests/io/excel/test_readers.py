@@ -763,6 +763,7 @@ class TestReaders:
         with pytest.raises(error, match=msg):
             pd.read_excel(bad_stream)
 
+    @pytest.mark.network
     @tm.network
     def test_read_from_http_url(self, read_ext):
         url = (
@@ -1562,7 +1563,7 @@ class TestExcelFileRead:
         # GH41778
         errors = (BadZipFile,)
         if engine is None:
-            pytest.skip()
+            pytest.skip(f"Invalid test for engine={engine}")
         elif engine == "xlrd":
             import xlrd
 

@@ -286,7 +286,7 @@ class TestDatetimeArray:
 
     @pytest.mark.parametrize("index", [True, False])
     def test_searchsorted_different_tz(self, index):
-        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
+        data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
         arr = DatetimeArray(data, freq="D").tz_localize("Asia/Tokyo")
         if index:
             arr = pd.Index(arr)
@@ -301,7 +301,7 @@ class TestDatetimeArray:
 
     @pytest.mark.parametrize("index", [True, False])
     def test_searchsorted_tzawareness_compat(self, index):
-        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
+        data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
         arr = DatetimeArray(data, freq="D")
         if index:
             arr = pd.Index(arr)
@@ -328,14 +328,14 @@ class TestDatetimeArray:
             np.timedelta64("NaT"),
             pd.Timedelta(days=2),
             "invalid",
-            np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9,
-            np.arange(10).view("timedelta64[ns]") * 24 * 3600 * 10 ** 9,
+            np.arange(10, dtype="i8") * 24 * 3600 * 10**9,
+            np.arange(10).view("timedelta64[ns]") * 24 * 3600 * 10**9,
             pd.Timestamp("2021-01-01").to_period("D"),
         ],
     )
     @pytest.mark.parametrize("index", [True, False])
     def test_searchsorted_invalid_types(self, other, index):
-        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
+        data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
         arr = DatetimeArray(data, freq="D")
         if index:
             arr = pd.Index(arr)

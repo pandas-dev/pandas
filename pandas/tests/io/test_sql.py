@@ -368,7 +368,7 @@ def test_frame1():
 def test_frame3():
     columns = ["index", "A", "B"]
     data = [
-        ("2000-01-03 00:00:00", 2 ** 31 - 1, -1.987670),
+        ("2000-01-03 00:00:00", 2**31 - 1, -1.987670),
         ("2000-01-04 00:00:00", -29, -0.0412318367011),
         ("2000-01-05 00:00:00", 20000, 0.731167677815),
         ("2000-01-06 00:00:00", -290867, 1.56762092543),
@@ -1532,8 +1532,24 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
     @pytest.mark.skipif(SQLALCHEMY_INSTALLED, reason="SQLAlchemy is installed")
     def test_con_string_import_error(self):
         conn = "mysql://root@localhost/pandas"
-        with pytest.raises(ImportError, match="SQLAlchemy"):
+        msg = "Using URI string without sqlalchemy installed"
+        with pytest.raises(ImportError, match=msg):
             sql.read_sql("SELECT * FROM iris", conn)
+
+    @pytest.mark.skipif(SQLALCHEMY_INSTALLED, reason="SQLAlchemy is installed")
+    def test_con_unknown_dbapi2_class_does_not_error_without_sql_alchemy_installed(
+        self,
+    ):
+        class MockSqliteConnection:
+            def __init__(self, *args, **kwargs):
+                self.conn = sqlite3.Connection(*args, **kwargs)
+
+            def __getattr__(self, name):
+                return getattr(self.conn, name)
+
+        conn = MockSqliteConnection(":memory:")
+        with tm.assert_produces_warning(UserWarning):
+            sql.read_sql("SELECT 1", conn)
 
     def test_read_sql_delegate(self):
         iris_frame1 = sql.read_sql_query("SELECT * FROM iris", self.conn)
@@ -1693,7 +1709,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     def test_bigint(self):
         # int64 should be converted to BigInteger, GH7433
-        df = DataFrame(data={"i64": [2 ** 62]})
+        df = DataFrame(data={"i64": [2**62]})
         assert df.to_sql("test_bigint", self.conn, index=False) == 1
         result = sql.read_sql_table("test_bigint", self.conn)
 
@@ -1935,7 +1951,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     def test_mixed_dtype_insert(self):
         # see GH6509
-        s1 = Series(2 ** 25 + 1, dtype=np.int32)
+        s1 = Series(2**25 + 1, dtype=np.int32)
         s2 = Series(0.0, dtype=np.float32)
         df = DataFrame({"s1": s1, "s2": s2})
 
