@@ -9,14 +9,16 @@ The full license is in the STUBS_LICENSE file, distributed with this software.
 # TODO: many functions need return types annotations for pyright
 # to run with reportGeneralTypeIssues = true
 from pathlib import Path
-from typing import List
+from typing import (
+    List,
+    cast,
+)
 
 import numpy as np
 
-from pandas._typing import Scalar
-
 import pandas as pd
 import pandas._testing as tm
+from pandas._typing import Scalar
 from pandas.core.window import ExponentialMovingWindow
 from pandas.util import _test_decorators as td
 
@@ -66,18 +68,18 @@ def test_types_csv() -> None:
     csv_df: str = s.to_csv()  # type: ignore[assignment]
 
     with tm.ensure_clean() as path:
-        s.to_csv(path)
-        s2: pd.DataFrame = pd.read_csv(path)
+        s.to_csv(cast(str, path))
+        s2: pd.DataFrame = pd.read_csv(cast(str, path))
 
     with tm.ensure_clean() as path:
-        s.to_csv(Path(path))
-        s3: pd.DataFrame = pd.read_csv(Path(path))
+        s.to_csv(Path(cast(str, path)))
+        s3: pd.DataFrame = pd.read_csv(Path(cast(str, path)))
 
     # This keyword was added in 1.1.0
     # https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
     with tm.ensure_clean() as path:
-        s.to_csv(path, errors="replace")
-        s4: pd.DataFrame = pd.read_csv(path)
+        s.to_csv(cast(str, path), errors="replace")
+        s4: pd.DataFrame = pd.read_csv(cast(str, path))
 
 
 def test_types_copy() -> None:
@@ -206,7 +208,7 @@ def test_types_sort_index_with_key() -> None:
 
 def test_types_sort_values() -> None:
     s = pd.Series([4, 2, 1, 3])
-    res: pd.Series = s.sort_values(0)
+    res: pd.Series = s.sort_values(axis=0)
     res2: pd.Series = s.sort_values(ascending=False)
     res3: None = s.sort_values(inplace=True, kind="quicksort")
     res4: pd.Series = s.sort_values(na_position="last")
@@ -227,7 +229,7 @@ def test_types_shift() -> None:
 
 
 def test_types_rank() -> None:
-    s = pd.Series([1, 1, 2, 5, 6, np.nan, "million"])
+    s = pd.Series([1, 1, 2, 5, 6, np.nan])
     s.rank()
     s.rank(axis=0, na_option="bottom")
     s.rank(method="min", pct=True)
@@ -242,7 +244,7 @@ def test_types_mean() -> None:
     f1: float = s.mean()  # type: ignore[assignment]
     # error: Incompatible types in assignment (expression has type "Union[Series,
     # float]", variable has type "Series")
-    s1: pd.Series = s.mean(axis=0, level=0)  # type: ignore[assignment]
+    s1: pd.Series = s.mean(axis=0)  # type: ignore[assignment]
     # error: Incompatible types in assignment (expression has type "Union[Series,
     # float]", variable has type "float")
     f2: float = s.mean(skipna=False)  # type: ignore[assignment]
@@ -258,7 +260,7 @@ def test_types_median() -> None:
     f1: float = s.median()  # type: ignore[assignment]
     # error: Incompatible types in assignment (expression has type "Union[Series,
     # float]", variable has type "Series")
-    s1: pd.Series = s.median(axis=0, level=0)  # type: ignore[assignment]
+    s1: pd.Series = s.median(axis=0)  # type: ignore[assignment]
     # error: Incompatible types in assignment (expression has type "Union[Series,
     # float]", variable has type "float")
     f2: float = s.median(skipna=False)  # type: ignore[assignment]
@@ -270,7 +272,7 @@ def test_types_median() -> None:
 def test_types_sum() -> None:
     s = pd.Series([1, 2, 3, np.nan])
     s.sum()
-    s.sum(axis=0, level=0)
+    s.sum(axis=0)
     s.sum(skipna=False)
     s.sum(numeric_only=False)
     s.sum(min_count=4)
@@ -287,7 +289,6 @@ def test_types_min() -> None:
     s = pd.Series([1, 2, 3, np.nan])
     s.min()
     s.min(axis=0)
-    s.min(level=0)
     s.min(skipna=False)
 
 
@@ -295,7 +296,6 @@ def test_types_max() -> None:
     s = pd.Series([1, 2, 3, np.nan])
     s.max()
     s.max(axis=0)
-    s.max(level=0)
     s.max(skipna=False)
 
 
@@ -409,7 +409,7 @@ def test_types_plot() -> None:
 def test_types_window() -> None:
     s = pd.Series([0, 1, 1, 0, 5, 1, -10])
     s.expanding()
-    s.expanding(axis=0, center=True)
+    s.expanding(axis=0)
 
     s.rolling(2)
     s.rolling(2, axis=0, center=True)

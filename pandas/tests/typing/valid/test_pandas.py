@@ -17,7 +17,6 @@ from typing import (
 
 import pandas as pd
 import pandas._testing as tm
-
 from pandas.io.parsers import TextFileReader
 
 
@@ -147,11 +146,10 @@ def test_types_read_csv() -> None:
     with tm.ensure_clean() as path:
         df.to_csv(path)
         df2: pd.DataFrame = pd.read_csv(path)
-        df3: pd.DataFrame = pd.read_csv(path, sep="a", squeeze=False)
+        df3: pd.DataFrame = pd.read_csv(path, sep="a")
         df4: pd.DataFrame = pd.read_csv(
             path,
             header=None,
-            prefix="b",
             mangle_dupe_cols=True,
             keep_default_na=False,
         )

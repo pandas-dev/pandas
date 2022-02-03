@@ -23,6 +23,4 @@ def test_types_assert_series_equal() -> None:
         check_flags=True,
         check_datetimelike_compat=True,
     )
-    tm.assert_series_equal(
-        s1, s2, check_dtype=True, check_less_precise=True, check_names=True
-    )
+    tm.assert_series_equal(s1, s2, check_dtype=True, check_names=True)

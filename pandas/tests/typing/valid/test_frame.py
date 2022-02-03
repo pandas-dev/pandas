@@ -15,6 +15,7 @@ from typing import (
     Iterable,
     List,
     Tuple,
+    cast,
 )
 
 import numpy as np
@@ -43,18 +44,18 @@ def test_types_to_csv() -> None:
     csv_df: str = df.to_csv()  # type: ignore[assignment]
 
     with tm.ensure_clean() as path:
-        df.to_csv(path)
-        df2: pd.DataFrame = pd.read_csv(path)
+        df.to_csv(cast(str, path))
+        df2: pd.DataFrame = pd.read_csv(cast(str, path))
 
     with tm.ensure_clean() as path:
-        df.to_csv(Path(path))
-        df3: pd.DataFrame = pd.read_csv(Path(path))
+        df.to_csv(Path(cast(str, path)))
+        df3: pd.DataFrame = pd.read_csv(Path(cast(str, path)))
 
     # This keyword was added in 1.1.0
     # https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
     with tm.ensure_clean() as path:
-        df.to_csv(path, errors="replace")
-        df4: pd.DataFrame = pd.read_csv(path)
+        df.to_csv(cast(str, path), errors="replace")
+        df4: pd.DataFrame = pd.read_csv(cast(str, path))
 
     # Testing support for binary file handles, added in 1.2.0
     # https://pandas.pydata.org/docs/whatsnew/v1.2.0.html
@@ -283,13 +284,13 @@ def test_types_mean() -> None:
     s2: pd.Series = df.mean(axis=0)  # type: ignore[assignment]
     # error: Incompatible types in assignment (expression has type "Union[Series,
     # float]", variable has type "DataFrame")
-    df2: pd.DataFrame = df.mean(level=0)  # type: ignore[assignment]
+    df2: pd.DataFrame = df.mean()  # type: ignore[assignment]
     # error: Incompatible types in assignment (expression has type "Union[Series,
     # float]", variable has type "DataFrame")
-    df3: pd.DataFrame = df.mean(axis=1, level=0)  # type: ignore[assignment]
+    df3: pd.DataFrame = df.mean(axis=1)  # type: ignore[assignment]
     # error: Incompatible types in assignment (expression has type "Union[Series,
     # float]", variable has type "DataFrame")
-    df4: pd.DataFrame = df.mean(1, True, level=0)  # type: ignore[assignment]
+    df4: pd.DataFrame = df.mean(1, True)  # type: ignore[assignment]
     # error: Incompatible types in assignment (expression has type "Union[Series,
     # float]", variable has type "Series")# error: Incompatible types in assignment
     # (expression has type "Union[Series, float]", variable has type "Series")
@@ -308,13 +309,13 @@ def test_types_median() -> None:
     s2: pd.Series = df.median(axis=0)  # type: ignore[assignment]
     # error: Incompatible types in assignment (expression has type "Union[Series,
     # float]", variable has type "DataFrame")
-    df2: pd.DataFrame = df.median(level=0)  # type: ignore[assignment]
+    df2: pd.DataFrame = df.median()  # type: ignore[assignment]
     # error: Incompatible types in assignment (expression has type "Union[Series,
     # float]", variable has type "DataFrame")
-    df3: pd.DataFrame = df.median(axis=1, level=0)  # type: ignore[assignment]
+    df3: pd.DataFrame = df.median(axis=1)  # type: ignore[assignment]
     # error: Incompatible types in assignment (expression has type "Union[Series,
     # float]", variable has type "DataFrame")
-    df4: pd.DataFrame = df.median(1, True, level=0)  # type: ignore[assignment]
+    df4: pd.DataFrame = df.median(1, True)  # type: ignore[assignment]
     # error: Incompatible types in assignment (expression has type "Union[Series,
     # float]", variable has type "Series")
     s3: pd.Series = df.median(  # type: ignore[assignment]
@@ -546,7 +547,7 @@ def test_types_plot() -> None:
 def test_types_window() -> None:
     df = pd.DataFrame(data={"col1": [1, 1, 2], "col2": [3, 4, 5]})
     df.expanding()
-    df.expanding(axis=1, center=True)
+    df.expanding(axis=1)
 
     df.rolling(2)
     df.rolling(2, axis=1, center=True)
@@ -600,7 +601,7 @@ def test_types_to_feather() -> None:
     # Docstring and type were updated in 1.2.0.
     # https://github.com/pandas-dev/pandas/pull/35408
     with tm.ensure_clean() as path:
-        with open(path, "wb") as f:
+        with open(cast(str, path), "wb") as f:
             df.to_feather(f)
 
 
@@ -636,8 +637,8 @@ def test_types_describe() -> None:
         }
     )
     df.describe()
-    df.describe(percentiles=[0.5], include="all")
-    df.describe(exclude=np.number)
+    df.describe(percentiles=[0.5], include="all", datetime_is_numeric=True)
+    df.describe(exclude=np.number, datetime_is_numeric=True)
     # datetime_is_numeric param added in 1.1.0
     # https://pandas.pydata.org/docs/whatsnew/v1.1.0.html
     df.describe(datetime_is_numeric=True)
@@ -762,7 +763,7 @@ def test_types_to_parquet() -> None:
         allows_duplicate_labels=False
     )
     with tm.ensure_clean() as path:
-        df.to_parquet(Path(path))
+        df.to_parquet(Path(cast(str, path)))
     # to_parquet() returns bytes when no path given since 1.2.0
     # https://pandas.pydata.org/docs/whatsnew/v1.2.0.html
     # error: Incompatible types in assignment (expression has type "Optional[bytes]",
@@ -772,16 +773,14 @@ def test_types_to_parquet() -> None:
 
 def test_types_to_latex() -> None:
     df = pd.DataFrame([[1, 2], [8, 9]], columns=["A", "B"])
-    df.to_latex(
-        columns=["A"], label="some_label", caption="some_caption", multirow=True
-    )
-    df.to_latex(escape=False, decimal=",", column_format="r")
+    df.style.to_latex(label="some_label", caption="some_caption")
+    df.style.to_latex(column_format="r")
     # position param was added in 1.2.0
     # https://pandas.pydata.org/docs/whatsnew/v1.2.0.html
-    df.to_latex(position="some")
+    df.style.to_latex(position="some")
     # caption param was extended to accept tuple in 1.2.0
     # https://pandas.pydata.org/docs/whatsnew/v1.2.0.html
-    df.to_latex(caption=("cap1", "cap2"))
+    df.style.to_latex(caption=("cap1", "cap2"))
 
 
 def test_types_explode() -> None:
