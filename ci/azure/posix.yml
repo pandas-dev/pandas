@@ -25,11 +25,11 @@ jobs:
     - script: echo '##vso[task.prependpath]$(HOME)/miniconda3/bin'
       displayName: 'Set conda path'
 
-    # Upgrade pyarrow for occasional pyarrow-parquet error
+    # Remove fastparquet for occasional pyarrow-parquet error
     # Library not loaded: @rpath/libssl.1.1.dylib
     - script: |
         ci/setup_env.sh
-        conda update -n pandas-dev --yes pyarrow
+        conda remove -n pandas-dev --yes fastparquet
       displayName: 'Setup environment and build pandas'
 
     - script: |
