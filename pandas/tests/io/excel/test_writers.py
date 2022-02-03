@@ -1353,7 +1353,7 @@ class TestExcelWriterEngineTests:
                 with tm.assert_produces_warning(FutureWarning, match=msg):
                     getattr(writer, attr)
                 # Some engines raise if nothing is written
-                DataFrame([0]).to_excel(writer)
+                DataFrame().to_excel(writer)
 
     @pytest.mark.parametrize(
         "attr, args", [("save", ()), ("write_cells", ([], "test"))]
@@ -1363,7 +1363,7 @@ class TestExcelWriterEngineTests:
             with ExcelWriter(path) as writer:
                 msg = f"{attr} is not part of the public API"
                 # Some engines raise if nothing is written
-                DataFrame([0]).to_excel(writer)
+                DataFrame().to_excel(writer)
                 with tm.assert_produces_warning(FutureWarning, match=msg):
                     getattr(writer, attr)(*args)
 
