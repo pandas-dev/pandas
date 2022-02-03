@@ -1139,14 +1139,16 @@ class Block(PandasObject):
 
         fill_value = self._standardize_fill_value(fill_value)
 
-        if not self._can_hold_element(fill_value):
+        try:
+            casted = np_can_hold_element(self.dtype, fill_value)
+        except LossySetitemError:
             nb = self.coerce_to_target_dtype(fill_value)
             return nb.shift(periods, axis=axis, fill_value=fill_value)
 
-        values = cast(np.ndarray, self.values)
-        new_values = shift(values, periods, axis, fill_value)
-
-        return [self.make_block(new_values)]
+        else:
+            values = cast(np.ndarray, self.values)
+            new_values = shift(values, periods, axis, casted)
+            return [self.make_block(new_values)]
 
     def where(self, other, cond) -> list[Block]:
         """
