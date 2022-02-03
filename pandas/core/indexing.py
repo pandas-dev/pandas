@@ -2169,7 +2169,8 @@ class _iLocIndexer(_LocationIndexer):
             # we have a frame, with multiple indexers on both axes; and a
             # series, so need to broadcast (see GH5206)
             if sum_aligners == self.ndim and all(is_sequence(_) for _ in indexer):
-                if is_empty_indexer(indexer[0]):
+                # TODO: This is hacky, align Series and DataFrame behavior GH#45778
+                if obj.ndim == 2 and is_empty_indexer(indexer[0]):
                     return ser._values.copy()
                 ser = ser.reindex(obj.axes[0][indexer[0]], copy=True)._values
 
