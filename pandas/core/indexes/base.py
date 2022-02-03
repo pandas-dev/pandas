@@ -68,6 +68,7 @@ from pandas.util._exceptions import (
 
 from pandas.core.dtypes.astype import astype_nansafe
 from pandas.core.dtypes.cast import (
+    LossySetitemError,
     can_hold_element,
     common_dtype_categorical_compat,
     ensure_dtype_can_hold_na,
@@ -390,7 +391,6 @@ class Index(IndexOpsMixin, PandasObject):
     _comparables: list[str] = ["name"]
     _attributes: list[str] = ["name"]
     _is_numeric_dtype: bool = False
-    _can_hold_na: bool = True
     _can_hold_strings: bool = True
 
     # Whether this index is a NumericIndex, but not a Int64Index, Float64Index,
@@ -2205,6 +2205,20 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Introspection Methods
 
+    @cache_readonly
+    @final
+    def _can_hold_na(self) -> bool:
+        if isinstance(self.dtype, ExtensionDtype):
+            if isinstance(self.dtype, IntervalDtype):
+                # FIXME(GH#45720): this is inaccurate for integer-backed
+                #  IntervalArray, but without it other.categories.take raises
+                #  in IntervalArray._cmp_method
+                return True
+            return self.dtype._can_hold_na
+        if self.dtype.kind in ["i", "u", "b"]:
+            return False
+        return True
+
     @final
     @property
     def is_monotonic(self) -> bool:
@@ -2661,10 +2675,21 @@ class Index(IndexOpsMixin, PandasObject):
         return lib.infer_dtype(self._values, skipna=False)
 
     @cache_readonly
+    @final
     def _is_all_dates(self) -> bool:
         """
         Whether or not the index values only consist of dates.
         """
+
+        if needs_i8_conversion(self.dtype):
+            return True
+        elif self.dtype != _dtype_obj:
+            # TODO(ExtensionIndex): 3rd party EA might override?
+            # Note: this includes IntervalIndex, even when the left/right
+            #  contain datetime-like objects.
+            return False
+        elif self._is_multi:
+            return False
         return is_datetime_array(ensure_object(self._values))
 
     @cache_readonly
@@ -4587,11 +4612,11 @@ class Index(IndexOpsMixin, PandasObject):
         if join_index is self:
             lindexer = None
         else:
-            lindexer = self.get_indexer(join_index)
+            lindexer = self.get_indexer_for(join_index)
         if join_index is other:
             rindexer = None
         else:
-            rindexer = other.get_indexer(join_index)
+            rindexer = other.get_indexer_for(join_index)
         return join_index, lindexer, rindexer
 
     @final
@@ -5071,12 +5096,13 @@ class Index(IndexOpsMixin, PandasObject):
         """
         dtype = self.dtype
         if isinstance(dtype, np.dtype) and dtype.kind not in ["m", "M"]:
+            # return np_can_hold_element(dtype, value)
             try:
                 return np_can_hold_element(dtype, value)
-            except ValueError as err:
+            except LossySetitemError as err:
                 # re-raise as TypeError for consistency
                 raise TypeError from err
-        if not can_hold_element(self._values, value):
+        elif not can_hold_element(self._values, value):
             raise TypeError
         return value
 
@@ -5294,7 +5320,7 @@ class Index(IndexOpsMixin, PandasObject):
             value = self._na_value
         try:
             converted = self._validate_fill_value(value)
-        except (ValueError, TypeError) as err:
+        except (LossySetitemError, ValueError, TypeError) as err:
             if is_object_dtype(self):  # pragma: no cover
                 raise err
 
@@ -6157,6 +6183,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Can we compare values of the given dtype to our own?
         """
+        if self.dtype.kind == "b":
+            return dtype.kind == "b"
+        elif is_numeric_dtype(self.dtype):
+            return is_numeric_dtype(dtype)
         return True
 
     @final
@@ -6420,8 +6450,6 @@ class Index(IndexOpsMixin, PandasObject):
         If we have a float key and are not a floating index, then try to cast
         to an int if equivalent.
         """
-        if not self.is_floating():
-            return com.cast_scalar_indexer(key)
         return key
 
     def _maybe_cast_listlike_indexer(self, target) -> Index:
@@ -6719,7 +6747,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return type(self)._simple_new(res_values, name=self.name)
             else:
                 item = self._validate_fill_value(item)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, LossySetitemError):
             # e.g. trying to insert an integer into a DatetimeIndex
             #  We cannot keep the same dtype, so cast to the (often object)
             #  minimal shared dtype before doing the insert.

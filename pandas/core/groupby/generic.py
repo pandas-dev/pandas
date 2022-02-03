@@ -472,7 +472,7 @@ class SeriesGroupBy(GroupBy[Series]):
         result.name = self.obj.name
         return result
 
-    def _can_use_transform_fast(self, result) -> bool:
+    def _can_use_transform_fast(self, func: str, result) -> bool:
         return True
 
     def filter(self, func, dropna: bool = True, *args, **kwargs):
@@ -1185,9 +1185,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
         )
 
-    def _can_use_transform_fast(self, result) -> bool:
-        return isinstance(result, DataFrame) and result.columns.equals(
-            self._obj_with_exclusions.columns
+    def _can_use_transform_fast(self, func: str, result) -> bool:
+        return func == "size" or (
+            isinstance(result, DataFrame)
+            and result.columns.equals(self._obj_with_exclusions.columns)
         )
 
     def _define_paths(self, func, *args, **kwargs):
@@ -1795,7 +1796,7 @@ def _wrap_transform_general_frame(
             res_frame.index = group.index
         else:
             res_frame = obj._constructor(
-                np.concatenate([res.values] * len(group.index)).reshape(group.shape),
+                np.tile(res.values, (len(group.index), 1)),
                 columns=group.columns,
                 index=group.index,
             )
