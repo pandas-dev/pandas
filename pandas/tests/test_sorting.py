@@ -1,6 +1,7 @@
 from collections import defaultdict
 from datetime import datetime
 from itertools import product
+import os
 
 import numpy as np
 import pytest
@@ -427,7 +428,7 @@ class TestSafeSort:
         tm.assert_numpy_array_equal(result_codes, expected_codes)
 
     @pytest.mark.skipif(
-        is_platform_windows(),
+        is_platform_windows() and os.environ.get("PANDAS_CI", "0") == "1",
         reason="In CI environment can crash thread with: "
         "Windows fatal exception: access violation",
     )
