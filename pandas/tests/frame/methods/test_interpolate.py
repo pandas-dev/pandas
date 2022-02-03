@@ -49,7 +49,7 @@ class TestDataFrameInterpolate:
         result = df.interpolate()
         tm.assert_frame_equal(result, expected)
 
-        # check we didn't operate inplace
+        # check we didn't operate inplace GH#45791
         cvalues = df["C"]._values
         dvalues = df["D"].values
         assert not np.shares_memory(cvalues, result["C"]._values)
