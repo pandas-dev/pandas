@@ -20,6 +20,7 @@ Fixed regressions
 - Regression in :meth:`DataFrame.iat` setting values leading to not propagating correctly in subsequent lookups (:issue:`45684`)
 - Regression when setting values with :meth:`DataFrame.loc` losing :class:`Index` name if :class:`DataFrame` was empty before (:issue:`45621`)
 - Regression in :meth:`~Index.join` with overlapping :class:`IntervalIndex` raising an ``InvalidIndexError`` (:issue:`45661`)
+- Regression in :meth:`Series.loc.__setitem__` raising with all ``False`` indexer and :class:`Series` on the right hand side (:issue:`45778`)
 - Regression in :func:`read_sql` with a DBAPI2 connection that is not an instance of ``sqlite3.Connection`` incorrectly requiring SQLAlchemy be installed (:issue:`45660`)
 -
 
