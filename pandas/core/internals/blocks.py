@@ -1139,7 +1139,11 @@ class Block(PandasObject):
         fill_value = self._standardize_fill_value(fill_value)
 
         try:
-            casted = np_can_hold_element(self.dtype, fill_value)
+            # error: Argument 1 to "np_can_hold_element" has incompatible type
+            # "Union[dtype[Any], ExtensionDtype]"; expected "dtype[Any]"
+            casted = np_can_hold_element(
+                self.dtype, fill_value  # type: ignore[arg-type]
+            )
         except LossySetitemError:
             nb = self.coerce_to_target_dtype(fill_value)
             return nb.shift(periods, axis=axis, fill_value=fill_value)
@@ -1465,11 +1469,6 @@ class EABackedBlock(Block):
                 # Discussion about what we want to support in the general
                 #  case GH#39584
                 blk = self.coerce_to_target_dtype(value)
-                if blk.dtype == _dtype_obj:
-                    # For now at least, only support casting e.g.
-                    #  Interval[int64]->Interval[float64],
-                    raise
-                # Never actually reached, but *could* be possible pending GH#45412
                 return blk.fillna(value, limit, inplace, downcast)
 
             elif isinstance(self, NDArrayBackedExtensionBlock):
