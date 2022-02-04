@@ -145,7 +145,7 @@ class ArrowParserWrapper(ParserBase):
         """
         pyarrow_csv = import_optional_dependency("pyarrow.csv")
         self._get_pyarrow_options()
-        print(self.read_options)
+
         table = pyarrow_csv.read_csv(
             self.src,
             read_options=pyarrow_csv.ReadOptions(**self.read_options),
