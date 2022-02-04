@@ -668,6 +668,7 @@ class Block(PandasObject):
         #  go through replace_list
 
         values = self.values
+        value = self._standardize_fill_value(value)  # GH#45725
 
         if isinstance(values, Categorical):
             # TODO: avoid special-casing
@@ -1023,7 +1024,6 @@ class Block(PandasObject):
         limit_direction: str = "forward",
         limit_area: str | None = None,
         fill_value: Any | None = None,
-        coerce: bool = False,
         downcast: str | None = None,
         **kwargs,
     ) -> list[Block]:
@@ -1032,6 +1032,16 @@ class Block(PandasObject):
 
         if not self._can_hold_na:
             # If there are no NAs, then interpolate is a no-op
+            return [self] if inplace else [self.copy()]
+
+        try:
+            m = missing.clean_fill_method(method)
+        except ValueError:
+            m = None
+        if m is None and self.dtype.kind != "f":
+            # only deal with floats
+            # bc we already checked that can_hold_na, we dont have int dtype here
+            # test_interp_basic checks that we make a copy here
             return [self] if inplace else [self.copy()]
 
         if self.is_object and self.ndim == 2 and self.shape[0] != 1 and axis == 0:
@@ -1046,20 +1056,9 @@ class Block(PandasObject):
                 limit_direction,
                 limit_area,
                 fill_value,
-                coerce,
                 downcast,
                 **kwargs,
             )
-
-        try:
-            m = missing.clean_fill_method(method)
-        except ValueError:
-            m = None
-        if m is None and self.dtype.kind != "f":
-            # only deal with floats
-            # bc we already checked that can_hold_na, we dont have int dtype here
-            # TODO: make a copy if not inplace?
-            return [self]
 
         data = self.values if inplace else self.values.copy()
         data = cast(np.ndarray, data)  # bc overridden by ExtensionBlock
@@ -1139,14 +1138,20 @@ class Block(PandasObject):
 
         fill_value = self._standardize_fill_value(fill_value)
 
-        if not self._can_hold_element(fill_value):
+        try:
+            # error: Argument 1 to "np_can_hold_element" has incompatible type
+            # "Union[dtype[Any], ExtensionDtype]"; expected "dtype[Any]"
+            casted = np_can_hold_element(
+                self.dtype, fill_value  # type: ignore[arg-type]
+            )
+        except LossySetitemError:
             nb = self.coerce_to_target_dtype(fill_value)
             return nb.shift(periods, axis=axis, fill_value=fill_value)
 
-        values = cast(np.ndarray, self.values)
-        new_values = shift(values, periods, axis, fill_value)
-
-        return [self.make_block(new_values)]
+        else:
+            values = cast(np.ndarray, self.values)
+            new_values = shift(values, periods, axis, casted)
+            return [self.make_block(new_values)]
 
     def where(self, other, cond) -> list[Block]:
         """
@@ -1464,11 +1469,6 @@ class EABackedBlock(Block):
                 # Discussion about what we want to support in the general
                 #  case GH#39584
                 blk = self.coerce_to_target_dtype(value)
-                if blk.dtype == _dtype_obj:
-                    # For now at least, only support casting e.g.
-                    #  Interval[int64]->Interval[float64],
-                    raise
-                # Never actually reached, but *could* be possible pending GH#45412
                 return blk.fillna(value, limit, inplace, downcast)
 
             elif isinstance(self, NDArrayBackedExtensionBlock):
