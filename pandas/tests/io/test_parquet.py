@@ -13,7 +13,10 @@ import pytest
 
 from pandas._config import get_option
 
-from pandas.compat import is_platform_windows
+from pandas.compat import (
+    is_platform_mac,
+    is_platform_windows,
+)
 from pandas.compat.pyarrow import (
     pa_version_under2p0,
     pa_version_under5p0,
@@ -54,9 +57,17 @@ except ImportError:
     _HAVE_FASTPARQUET = False
 
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:RangeIndex.* is deprecated:DeprecationWarning"
-)
+pytestmark = [
+    pytest.mark.filterwarnings("ignore:RangeIndex.* is deprecated:DeprecationWarning"),
+    pytest.mark.xfail(
+        is_platform_mac(),
+        reason="Incorrect build can lead to "
+        "dlopen(.../pyarrow/_parquet.cpython-39-darwin.so, 2): "
+        "Library not loaded: @rpath/libssl.1.1.dylib",
+        raises=ImportError,
+        strict=False,
+    ),
+]
 
 
 # TODO(ArrayManager) fastparquet relies on BlockManager internals
