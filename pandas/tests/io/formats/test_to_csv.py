@@ -1,6 +1,8 @@
 import io
 import os
+from pathlib import Path
 import sys
+from zipfile import ZipFile
 
 import numpy as np
 import pytest
@@ -11,6 +13,8 @@ from pandas import (
     compat,
 )
 import pandas._testing as tm
+
+import pandas.io.common as icom
 
 
 class TestToCSV:
@@ -280,6 +284,37 @@ $1$,$2$
         df_sec_grouped = df_sec.groupby([pd.Grouper(key="A", freq="1h"), "B"])
         assert df_sec_grouped.mean().to_csv(date_format="%Y-%m-%d") == expected_ymd_sec
 
+    def test_to_csv_different_datetime_formats(self):
+        # GH#21734
+        df = DataFrame(
+            {
+                "date": pd.to_datetime("1970-01-01"),
+                "datetime": pd.date_range("1970-01-01", periods=2, freq="H"),
+            }
+        )
+        expected_rows = [
+            "date,datetime",
+            "1970-01-01,1970-01-01 00:00:00",
+            "1970-01-01,1970-01-01 01:00:00",
+        ]
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert df.to_csv(index=False) == expected
+
+    def test_to_csv_date_format_in_categorical(self):
+        # GH#40754
+        ser = pd.Series(pd.to_datetime(["2021-03-27", pd.NaT], format="%Y-%m-%d"))
+        ser = ser.astype("category")
+        expected = tm.convert_rows_list_to_csv_str(["0", "2021-03-27", '""'])
+        assert ser.to_csv(index=False) == expected
+
+        ser = pd.Series(
+            pd.date_range(
+                start="2021-03-27", freq="D", periods=1, tz="Europe/Berlin"
+            ).append(pd.DatetimeIndex([pd.NaT]))
+        )
+        ser = ser.astype("category")
+        assert ser.to_csv(index=False, date_format="%Y-%m-%d") == expected
+
     def test_to_csv_multi_index(self):
         # see gh-6618
         df = DataFrame([1], columns=pd.MultiIndex.from_arrays([[1], [2]]))
@@ -334,9 +369,11 @@ $1$,$2$
     @pytest.mark.parametrize("klass", [DataFrame, pd.Series])
     def test_to_csv_single_level_multi_index(self, ind, expected, klass):
         # see gh-19589
-        result = klass(pd.Series([1], ind, name="data")).to_csv(
-            line_terminator="\n", header=True
-        )
+        obj = klass(pd.Series([1], ind, name="data"))
+
+        with tm.assert_produces_warning(FutureWarning, match="lineterminator"):
+            # GH#9568 standardize on lineterminator matching stdlib
+            result = obj.to_csv(line_terminator="\n", header=True)
         assert result == expected
 
     def test_to_csv_string_array_ascii(self):
@@ -390,14 +427,14 @@ $1$,$2$
         with tm.ensure_clean("lf_test.csv") as path:
             # case 2: LF as line terminator
             expected_lf = b'int,str_lf\n1,abc\n2,"d\nef"\n3,"g\nh\n\ni"\n'
-            df.to_csv(path, line_terminator="\n", index=False)
+            df.to_csv(path, lineterminator="\n", index=False)
             with open(path, "rb") as f:
                 assert f.read() == expected_lf
         with tm.ensure_clean("lf_test.csv") as path:
             # case 3: CRLF as line terminator
-            # 'line_terminator' should not change inner element
+            # 'lineterminator' should not change inner element
             expected_crlf = b'int,str_lf\r\n1,abc\r\n2,"d\nef"\r\n3,"g\nh\n\ni"\r\n'
-            df.to_csv(path, line_terminator="\r\n", index=False)
+            df.to_csv(path, lineterminator="\r\n", index=False)
             with open(path, "rb") as f:
                 assert f.read() == expected_crlf
 
@@ -424,19 +461,19 @@ $1$,$2$
         with tm.ensure_clean("crlf_test.csv") as path:
             # case 2: LF as line terminator
             expected_lf = b'int,str_crlf\n1,abc\n2,"d\r\nef"\n3,"g\r\nh\r\n\r\ni"\n'
-            df.to_csv(path, line_terminator="\n", index=False)
+            df.to_csv(path, lineterminator="\n", index=False)
             with open(path, "rb") as f:
                 assert f.read() == expected_lf
         with tm.ensure_clean("crlf_test.csv") as path:
             # case 3: CRLF as line terminator
-            # 'line_terminator' should not change inner element
+            # 'lineterminator' should not change inner element
             expected_crlf = (
                 b"int,str_crlf\r\n"
                 b"1,abc\r\n"
                 b'2,"d\r\nef"\r\n'
                 b'3,"g\r\nh\r\n\r\ni"\r\n'
             )
-            df.to_csv(path, line_terminator="\r\n", index=False)
+            df.to_csv(path, lineterminator="\r\n", index=False)
             with open(path, "rb") as f:
                 assert f.read() == expected_crlf
 
@@ -496,18 +533,9 @@ z
         # see gh-15008
         compression = compression_only
 
-        if compression == "zip":
-            pytest.skip(f"{compression} is not supported for to_csv")
-
         # We'll complete file extension subsequently.
         filename = "test."
-
-        if compression == "gzip":
-            filename += "gz"
-        else:
-            # xz --> .xz
-            # bz2 --> .bz2
-            filename += compression
+        filename += icom._compression_to_extension[compression]
 
         df = DataFrame({"A": [1]})
 
@@ -524,7 +552,11 @@ z
         method = compression_only
         df = DataFrame({"ABC": [1]})
         filename = "to_csv_compress_as_dict."
-        filename += "gz" if method == "gzip" else method
+        extension = {
+            "gzip": "gz",
+            "zstd": "zst",
+        }.get(method, method)
+        filename += extension
         with tm.ensure_clean(filename) as path:
             df.to_csv(path, compression={"method": method})
             read_df = pd.read_csv(path, index_col=0)
@@ -541,23 +573,38 @@ z
                 df.to_csv(path, compression=compression)
 
     @pytest.mark.parametrize("compression", ["zip", "infer"])
-    @pytest.mark.parametrize(
-        "archive_name", [None, "test_to_csv.csv", "test_to_csv.zip"]
-    )
+    @pytest.mark.parametrize("archive_name", ["test_to_csv.csv", "test_to_csv.zip"])
     def test_to_csv_zip_arguments(self, compression, archive_name):
         # GH 26023
-        from zipfile import ZipFile
-
         df = DataFrame({"ABC": [1]})
         with tm.ensure_clean("to_csv_archive_name.zip") as path:
             df.to_csv(
                 path, compression={"method": compression, "archive_name": archive_name}
             )
             with ZipFile(path) as zp:
-                expected_arcname = path if archive_name is None else archive_name
-                expected_arcname = os.path.basename(expected_arcname)
                 assert len(zp.filelist) == 1
-                archived_file = os.path.basename(zp.filelist[0].filename)
+                archived_file = zp.filelist[0].filename
+                assert archived_file == archive_name
+
+    @pytest.mark.parametrize(
+        "filename,expected_arcname",
+        [
+            ("archive.csv", "archive.csv"),
+            ("archive.tsv", "archive.tsv"),
+            ("archive.csv.zip", "archive.csv"),
+            ("archive.tsv.zip", "archive.tsv"),
+            ("archive.zip", "archive"),
+        ],
+    )
+    def test_to_csv_zip_infer_name(self, filename, expected_arcname):
+        # GH 39465
+        df = DataFrame({"ABC": [1]})
+        with tm.ensure_clean_dir() as dir:
+            path = Path(dir, filename)
+            df.to_csv(path, compression="zip")
+            with ZipFile(path) as zp:
+                assert len(zp.filelist) == 1
+                archived_file = zp.filelist[0].filename
                 assert archived_file == expected_arcname
 
     @pytest.mark.parametrize("df_new_type", ["Int64"])

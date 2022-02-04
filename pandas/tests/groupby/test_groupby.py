@@ -1,6 +1,5 @@
 from datetime import datetime
 from decimal import Decimal
-from io import StringIO
 
 import numpy as np
 import pytest
@@ -20,17 +19,13 @@ from pandas import (
     Timedelta,
     Timestamp,
     date_range,
-    read_csv,
     to_datetime,
 )
 import pandas._testing as tm
-from pandas.core.arrays import (
-    BooleanArray,
-    FloatingArray,
-    IntegerArray,
-)
+from pandas.core.arrays import BooleanArray
 from pandas.core.base import SpecificationError
 import pandas.core.common as com
+from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
 
 
 def test_repr():
@@ -718,11 +713,8 @@ def test_ops_not_as_index(reduction_func):
     # GH 10355, 21090
     # Using as_index=False should not modify grouped column
 
-    if reduction_func in ("corrwith",):
-        pytest.skip("Test not applicable")
-
-    if reduction_func in ("nth", "ngroup"):
-        pytest.skip("Skip until behavior is determined (GH #5755)")
+    if reduction_func in ("corrwith", "nth", "ngroup"):
+        pytest.skip(f"GH 5755: Test not applicable for {reduction_func}")
 
     df = DataFrame(np.random.randint(0, 5, size=(100, 2)), columns=["a", "b"])
     expected = getattr(df.groupby("a"), reduction_func)()
@@ -826,7 +818,7 @@ def test_groupby_as_index_corner(df, ts):
         df.groupby(lambda x: x.lower(), as_index=False, axis=1)
 
 
-def test_groupby_multiple_key(df):
+def test_groupby_multiple_key():
     df = tm.makeTimeDataFrame()
     grouped = df.groupby([lambda x: x.year, lambda x: x.month, lambda x: x.day])
     agged = grouped.sum()
@@ -871,7 +863,7 @@ def test_omit_nuisance(df):
 
     # won't work with axis = 1
     grouped = df.groupby({"A": 0, "C": 0, "D": 1, "E": 1}, axis=1)
-    msg = "'DatetimeArray' does not implement reduction 'sum'"
+    msg = "does not support reduction 'sum'"
     with pytest.raises(TypeError, match=msg):
         grouped.agg(lambda x: x.sum(0, numeric_only=False))
 
@@ -904,9 +896,7 @@ def test_omit_nuisance_agg(df, agg_function):
 
 def test_omit_nuisance_warnings(df):
     # GH 38815
-    with tm.assert_produces_warning(
-        FutureWarning, filter_level="always", check_stacklevel=False
-    ):
+    with tm.assert_produces_warning(FutureWarning, filter_level="always"):
         grouped = df.groupby("A")
         result = grouped.skew()
         expected = df.loc[:, ["A", "C", "D"]].groupby("A").skew()
@@ -1134,14 +1124,18 @@ def test_grouping_ndarray(df):
 
 
 def test_groupby_wrong_multi_labels():
-    data = """index,foo,bar,baz,spam,data
-0,foo1,bar1,baz1,spam2,20
-1,foo1,bar2,baz1,spam3,30
-2,foo2,bar2,baz1,spam2,40
-3,foo1,bar1,baz2,spam1,50
-4,foo3,bar1,baz2,spam1,60"""
 
-    data = read_csv(StringIO(data), index_col=0)
+    index = Index([0, 1, 2, 3, 4], name="index")
+    data = DataFrame(
+        {
+            "foo": ["foo1", "foo1", "foo2", "foo1", "foo3"],
+            "bar": ["bar1", "bar2", "bar2", "bar1", "bar1"],
+            "baz": ["baz1", "baz1", "baz1", "baz2", "baz2"],
+            "spam": ["spam2", "spam3", "spam2", "spam1", "spam1"],
+            "data": [20, 30, 40, 50, 60],
+        },
+        index=index,
+    )
 
     grouped = data.groupby(["foo", "bar", "baz", "spam"])
 
@@ -1820,6 +1814,18 @@ def test_pivot_table_values_key_error():
         pd.array([0], dtype="Float64"),
         pd.array([False], dtype="boolean"),
     ],
+    ids=[
+        "bool",
+        "int",
+        "float",
+        "str",
+        "cat",
+        "dt64",
+        "dt64tz",
+        "Int64",
+        "Float64",
+        "boolean",
+    ],
 )
 @pytest.mark.parametrize("method", ["attr", "agg", "apply"])
 @pytest.mark.parametrize(
@@ -1876,15 +1882,6 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
             raises=AssertionError, match="(DataFrame|Series) are different"
         )
         request.node.add_marker(mark)
-    elif (
-        isinstance(values, (IntegerArray, FloatingArray))
-        and op == "mad"
-        and isinstance(columns, list)
-    ):
-        mark = pytest.mark.xfail(
-            raises=TypeError, match="can only perform ops with numeric values"
-        )
-        request.node.add_marker(mark)
 
     elif (
         op == "mad"
@@ -1931,7 +1928,7 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
                 # GH#41291
                 # datetime64 -> prod and sum are invalid
                 if op == "skew":
-                    msg = "'DatetimeArray' does not implement reduction 'skew'"
+                    msg = "does not support reduction 'skew'"
                 else:
                     msg = "datetime64 type does not support"
                 with pytest.raises(TypeError, match=msg):
@@ -1943,9 +1940,9 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
                 # GH#41291
                 if op == "mad":
                     # mad calls mean, which Categorical doesn't implement
-                    msg = "'Categorical' does not implement reduction 'mean'"
+                    msg = "does not support reduction 'mean'"
                 elif op == "skew":
-                    msg = f"'Categorical' does not implement reduction '{op}'"
+                    msg = f"does not support reduction '{op}'"
                 else:
                     msg = "category type does not support"
                 with pytest.raises(TypeError, match=msg):
@@ -2029,6 +2026,16 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
     if len(keys) == 1:
         expected.index.name = keys[0]
     tm.assert_equal(result, expected)
+
+
+def test_empty_groupby_apply_nonunique_columns():
+    # GH#44417
+    df = DataFrame(np.random.randn(0, 4))
+    df[3] = df[3].astype(np.int64)
+    df.columns = [0, 1, 2, 0]
+    gb = df.groupby(df[1])
+    res = gb.apply(lambda x: x)
+    assert (res.dtypes == df.dtypes).all()
 
 
 def test_tuple_as_grouping():
@@ -2258,8 +2265,9 @@ def test_groupby_duplicate_index():
 @pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
 def test_dup_labels_output_shape(groupby_func, idx):
     if groupby_func in {"size", "ngroup", "cumcount"}:
-        pytest.skip("Not applicable")
-
+        pytest.skip(f"Not applicable for {groupby_func}")
+    # TODO(2.0) Remove after pad/backfill deprecation enforced
+    groupby_func = maybe_normalize_deprecated_kernels(groupby_func)
     df = DataFrame([[1, 1]], columns=idx)
     grp_by = df.groupby([0])
 
@@ -2604,3 +2612,12 @@ def test_rolling_wrong_param_min_period():
     result_error_msg = r"__init__\(\) got an unexpected keyword argument 'min_period'"
     with pytest.raises(TypeError, match=result_error_msg):
         test_df.groupby("name")["val"].rolling(window=2, min_period=1).sum()
+
+
+def test_pad_backfill_deprecation():
+    # GH 33396
+    s = Series([1, 2, 3])
+    with tm.assert_produces_warning(FutureWarning, match="backfill"):
+        s.groupby(level=0).backfill()
+    with tm.assert_produces_warning(FutureWarning, match="pad"):
+        s.groupby(level=0).pad()

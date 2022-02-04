@@ -1,6 +1,11 @@
 import numpy as np
 import pytest
 
+from pandas.compat import (
+    is_ci_environment,
+    is_platform_mac,
+    is_platform_windows,
+)
 from pandas.errors import NumbaUtilError
 import pandas.util._test_decorators as td
 
@@ -13,9 +18,40 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 
+# TODO(GH#44584): Mark these as pytest.mark.single
+pytestmark = pytest.mark.skipif(
+    is_ci_environment() and (is_platform_windows() or is_platform_mac()),
+    reason="On Azure CI, Windows can fail with "
+    "'Windows fatal exception: stack overflow' "
+    "and MacOS can timeout",
+)
+
+
+@pytest.fixture(params=["single", "table"])
+def method(request):
+    """method keyword in rolling/expanding/ewm constructor"""
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        ["sum", {}],
+        ["mean", {}],
+        ["median", {}],
+        ["max", {}],
+        ["min", {}],
+        ["var", {}],
+        ["var", {"ddof": 0}],
+        ["std", {}],
+        ["std", {"ddof": 0}],
+    ]
+)
+def arithmetic_numba_supported_operators(request):
+    return request.param
+
 
 @td.skip_if_no("numba")
-@pytest.mark.filterwarnings("ignore:\\nThe keyword argument")
+@pytest.mark.filterwarnings("ignore:\n")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 class TestEngine:
     @pytest.mark.parametrize("jit", [True, False])
@@ -50,16 +86,18 @@ class TestEngine:
         self, data, nogil, parallel, nopython, arithmetic_numba_supported_operators
     ):
 
-        method = arithmetic_numba_supported_operators
+        method, kwargs = arithmetic_numba_supported_operators
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
         roll = data.rolling(2)
-        result = getattr(roll, method)(engine="numba", engine_kwargs=engine_kwargs)
-        expected = getattr(roll, method)(engine="cython")
+        result = getattr(roll, method)(
+            engine="numba", engine_kwargs=engine_kwargs, **kwargs
+        )
+        expected = getattr(roll, method)(engine="cython", **kwargs)
 
         # Check the cache
-        if method not in ("mean", "sum"):
+        if method not in ("mean", "sum", "var", "std", "max", "min"):
             assert (
                 getattr(np, f"nan{method}"),
                 "Rolling_apply_single",
@@ -74,17 +112,19 @@ class TestEngine:
         self, data, nogil, parallel, nopython, arithmetic_numba_supported_operators
     ):
 
-        method = arithmetic_numba_supported_operators
+        method, kwargs = arithmetic_numba_supported_operators
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
         data = DataFrame(np.eye(5))
         expand = data.expanding()
-        result = getattr(expand, method)(engine="numba", engine_kwargs=engine_kwargs)
-        expected = getattr(expand, method)(engine="cython")
+        result = getattr(expand, method)(
+            engine="numba", engine_kwargs=engine_kwargs, **kwargs
+        )
+        expected = getattr(expand, method)(engine="cython", **kwargs)
 
         # Check the cache
-        if method not in ("mean", "sum"):
+        if method not in ("mean", "sum", "var", "std", "max", "min"):
             assert (
                 getattr(np, f"nan{method}"),
                 "Expanding_apply_single",
@@ -146,15 +186,16 @@ class TestEngine:
         def add(values, x):
             return np.sum(values) + x
 
+        engine_kwargs = {"nopython": nopython, "nogil": nogil, "parallel": parallel}
         df = DataFrame({"value": [0, 0, 0]})
-        result = getattr(df, window)(**window_kwargs).apply(
-            add, raw=True, engine="numba", args=(1,)
+        result = getattr(df, window)(method=method, **window_kwargs).apply(
+            add, raw=True, engine="numba", engine_kwargs=engine_kwargs, args=(1,)
         )
         expected = DataFrame({"value": [1.0, 1.0, 1.0]})
         tm.assert_frame_equal(result, expected)
 
-        result = getattr(df, window)(**window_kwargs).apply(
-            add, raw=True, engine="numba", args=(2,)
+        result = getattr(df, window)(method=method, **window_kwargs).apply(
+            add, raw=True, engine="numba", engine_kwargs=engine_kwargs, args=(2,)
         )
         expected = DataFrame({"value": [2.0, 2.0, 2.0]})
         tm.assert_frame_equal(result, expected)
@@ -265,7 +306,7 @@ def test_invalid_kwargs_nopython():
 
 @td.skip_if_no("numba")
 @pytest.mark.slow
-@pytest.mark.filterwarnings("ignore:\\nThe keyword argument")
+@pytest.mark.filterwarnings("ignore:\n")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 class TestTableMethod:
     def test_table_series_valueerror(self):
@@ -282,19 +323,26 @@ class TestTableMethod:
     def test_table_method_rolling_methods(
         self, axis, nogil, parallel, nopython, arithmetic_numba_supported_operators
     ):
-        method = arithmetic_numba_supported_operators
+        method, kwargs = arithmetic_numba_supported_operators
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
         df = DataFrame(np.eye(3))
-
-        result = getattr(
-            df.rolling(2, method="table", axis=axis, min_periods=0), method
-        )(engine_kwargs=engine_kwargs, engine="numba")
-        expected = getattr(
-            df.rolling(2, method="single", axis=axis, min_periods=0), method
-        )(engine_kwargs=engine_kwargs, engine="numba")
-        tm.assert_frame_equal(result, expected)
+        roll_table = df.rolling(2, method="table", axis=axis, min_periods=0)
+        if method in ("var", "std"):
+            with pytest.raises(NotImplementedError, match=f"{method} not supported"):
+                getattr(roll_table, method)(
+                    engine_kwargs=engine_kwargs, engine="numba", **kwargs
+                )
+        else:
+            roll_single = df.rolling(2, method="single", axis=axis, min_periods=0)
+            result = getattr(roll_table, method)(
+                engine_kwargs=engine_kwargs, engine="numba", **kwargs
+            )
+            expected = getattr(roll_single, method)(
+                engine_kwargs=engine_kwargs, engine="numba", **kwargs
+            )
+            tm.assert_frame_equal(result, expected)
 
     def test_table_method_rolling_apply(self, axis, nogil, parallel, nopython):
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
@@ -349,19 +397,26 @@ class TestTableMethod:
     def test_table_method_expanding_methods(
         self, axis, nogil, parallel, nopython, arithmetic_numba_supported_operators
     ):
-        method = arithmetic_numba_supported_operators
+        method, kwargs = arithmetic_numba_supported_operators
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
         df = DataFrame(np.eye(3))
-
-        result = getattr(df.expanding(method="table", axis=axis), method)(
-            engine_kwargs=engine_kwargs, engine="numba"
-        )
-        expected = getattr(df.expanding(method="single", axis=axis), method)(
-            engine_kwargs=engine_kwargs, engine="numba"
-        )
-        tm.assert_frame_equal(result, expected)
+        expand_table = df.expanding(method="table", axis=axis)
+        if method in ("var", "std"):
+            with pytest.raises(NotImplementedError, match=f"{method} not supported"):
+                getattr(expand_table, method)(
+                    engine_kwargs=engine_kwargs, engine="numba", **kwargs
+                )
+        else:
+            expand_single = df.expanding(method="single", axis=axis)
+            result = getattr(expand_table, method)(
+                engine_kwargs=engine_kwargs, engine="numba", **kwargs
+            )
+            expected = getattr(expand_single, method)(
+                engine_kwargs=engine_kwargs, engine="numba", **kwargs
+            )
+            tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("data", [np.eye(3), np.ones((2, 3)), np.ones((3, 2))])
     @pytest.mark.parametrize("method", ["mean", "sum"])

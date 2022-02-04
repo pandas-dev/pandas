@@ -12,11 +12,13 @@ import pytest
 import pandas.util._test_decorators as td
 
 from pandas import (
+    NA,
     DataFrame,
     Index,
 )
 import pandas._testing as tm
 
+import pandas.io.common as icom
 from pandas.io.common import get_handle
 from pandas.io.xml import read_xml
 
@@ -361,21 +363,21 @@ na_expected = """\
 </data>"""
 
 
-def test_na_elem_output(datapath, parser):
+def test_na_elem_output(parser):
     output = geom_df.to_xml(parser=parser)
     output = equalize_decl(output)
 
     assert output == na_expected
 
 
-def test_na_empty_str_elem_option(datapath, parser):
+def test_na_empty_str_elem_option(parser):
     output = geom_df.to_xml(na_rep="", parser=parser)
     output = equalize_decl(output)
 
     assert output == na_expected
 
 
-def test_na_empty_elem_option(datapath, parser):
+def test_na_empty_elem_option(parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
 <data>
@@ -408,7 +410,7 @@ def test_na_empty_elem_option(datapath, parser):
 # ATTR_COLS
 
 
-def test_attrs_cols_nan_output(datapath, parser):
+def test_attrs_cols_nan_output(parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
 <data>
@@ -423,7 +425,7 @@ def test_attrs_cols_nan_output(datapath, parser):
     assert output == expected
 
 
-def test_attrs_cols_prefix(datapath, parser):
+def test_attrs_cols_prefix(parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
 <doc:data xmlns:doc="http://example.xom">
@@ -459,7 +461,7 @@ def test_attrs_wrong_type(parser):
 # ELEM_COLS
 
 
-def test_elems_cols_nan_output(datapath, parser):
+def test_elems_cols_nan_output(parser):
     elems_cols_expected = """\
 <?xml version='1.0' encoding='utf-8'?>
 <data>
@@ -498,7 +500,7 @@ def test_elems_wrong_type(parser):
         geom_df.to_xml(elem_cols='"shape", "degree", "sides"', parser=parser)
 
 
-def test_elems_and_attrs_cols(datapath, parser):
+def test_elems_and_attrs_cols(parser):
     elems_cols_expected = """\
 <?xml version='1.0' encoding='utf-8'?>
 <data>
@@ -530,7 +532,7 @@ def test_elems_and_attrs_cols(datapath, parser):
 # HIERARCHICAL COLUMNS
 
 
-def test_hierarchical_columns(datapath, parser):
+def test_hierarchical_columns(parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
 <data>
@@ -577,7 +579,7 @@ def test_hierarchical_columns(datapath, parser):
     assert output == expected
 
 
-def test_hierarchical_attrs_columns(datapath, parser):
+def test_hierarchical_attrs_columns(parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
 <data>
@@ -607,7 +609,7 @@ sum_mass="2667.54" mean_mass="333.44"/>
 # MULTIINDEX
 
 
-def test_multi_index(datapath, parser):
+def test_multi_index(parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
 <data>
@@ -646,7 +648,7 @@ def test_multi_index(datapath, parser):
     assert output == expected
 
 
-def test_multi_index_attrs_cols(datapath, parser):
+def test_multi_index_attrs_cols(parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
 <data>
@@ -1018,7 +1020,7 @@ def test_stylesheet_buffered_reader(datapath, mode):
 
 
 @td.skip_if_no("lxml")
-def test_stylesheet_wrong_path(datapath):
+def test_stylesheet_wrong_path():
     from lxml.etree import XMLSyntaxError
 
     xsl = os.path.join("data", "xml", "row_field_output.xslt")
@@ -1100,7 +1102,7 @@ def test_incorrect_xsl_eval():
 
 
 @td.skip_if_no("lxml")
-def test_incorrect_xsl_apply(parser):
+def test_incorrect_xsl_apply():
     from lxml.etree import XSLTApplyError
 
     xsl = """\
@@ -1120,7 +1122,7 @@ def test_incorrect_xsl_apply(parser):
             geom_df.to_xml(path, stylesheet=xsl)
 
 
-def test_stylesheet_with_etree(datapath):
+def test_stylesheet_with_etree():
     xsl = """\
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
     <xsl:output method="xml" encoding="utf-8" indent="yes" />
@@ -1158,7 +1160,7 @@ def test_style_to_csv():
     </xsl:template>
 </xsl:stylesheet>"""
 
-    out_csv = geom_df.to_csv(line_terminator="\n")
+    out_csv = geom_df.to_csv(lineterminator="\n")
 
     if out_csv is not None:
         out_csv = out_csv.strip()
@@ -1273,15 +1275,14 @@ geom_xml = """\
 </data>"""
 
 
-@pytest.mark.parametrize("comp", ["bz2", "gzip", "xz", "zip"])
-def test_compression_output(parser, comp):
+def test_compression_output(parser, compression_only):
     with tm.ensure_clean() as path:
-        geom_df.to_xml(path, parser=parser, compression=comp)
+        geom_df.to_xml(path, parser=parser, compression=compression_only)
 
         with get_handle(
             path,
             "r",
-            compression=comp,
+            compression=compression_only,
         ) as handle_obj:
             output = handle_obj.handle.read()
 
@@ -1290,16 +1291,15 @@ def test_compression_output(parser, comp):
     assert geom_xml == output.strip()
 
 
-@pytest.mark.parametrize("comp", ["bz2", "gzip", "xz", "zip"])
-@pytest.mark.parametrize("compfile", ["xml.bz2", "xml.gz", "xml.xz", "xml.zip"])
-def test_filename_and_suffix_comp(parser, comp, compfile):
+def test_filename_and_suffix_comp(parser, compression_only):
+    compfile = "xml." + icom._compression_to_extension[compression_only]
     with tm.ensure_clean(filename=compfile) as path:
-        geom_df.to_xml(path, parser=parser, compression=comp)
+        geom_df.to_xml(path, parser=parser, compression=compression_only)
 
         with get_handle(
             path,
             "r",
-            compression=comp,
+            compression=compression_only,
         ) as handle_obj:
             output = handle_obj.handle.read()
 
@@ -1308,7 +1308,21 @@ def test_filename_and_suffix_comp(parser, comp, compfile):
     assert geom_xml == output.strip()
 
 
-def test_unsuported_compression(datapath, parser):
+def test_ea_dtypes(any_numeric_ea_dtype, parser):
+    # GH#43903
+    expected = """<?xml version='1.0' encoding='utf-8'?>
+<data>
+  <row>
+    <index>0</index>
+    <a/>
+  </row>
+</data>"""
+    df = DataFrame({"a": [NA]}).astype(any_numeric_ea_dtype)
+    result = df.to_xml(parser=parser)
+    assert equalize_decl(result).strip() == expected
+
+
+def test_unsuported_compression(parser):
     with pytest.raises(ValueError, match="Unrecognized compression type"):
         with tm.ensure_clean() as path:
             geom_df.to_xml(path, parser=parser, compression="7z")
@@ -1317,10 +1331,10 @@ def test_unsuported_compression(datapath, parser):
 # STORAGE OPTIONS
 
 
-@tm.network
 @td.skip_if_no("s3fs")
 @td.skip_if_no("lxml")
-def test_s3_permission_output(parser):
+def test_s3_permission_output(parser, s3_resource):
+    # s3_resource hosts pandas-test
     import s3fs
 
     with pytest.raises(PermissionError, match="Access Denied"):

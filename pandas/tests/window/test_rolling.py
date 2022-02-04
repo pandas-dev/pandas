@@ -132,6 +132,7 @@ def test_numpy_compat(method):
         getattr(r, method)(dtype=np.float64)
 
 
+@pytest.mark.parametrize("closed", ["right", "left", "both", "neither"])
 def test_closed_fixed(closed, arithmetic_win_operators):
     # GH 34315
     func_name = arithmetic_win_operators
@@ -697,7 +698,7 @@ def test_rolling_count_default_min_periods_with_null_values(frame_or_series):
     expected_counts = [1.0, 2.0, 3.0, 2.0, 2.0, 2.0, 3.0]
 
     # GH 31302
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning):
         result = frame_or_series(values).rolling(3).count()
     expected = frame_or_series(expected_counts)
     tm.assert_equal(result, expected)
@@ -1391,7 +1392,7 @@ def test_rolling_corr_timedelta_index(index, window):
     # GH: 31286
     x = Series([1, 2, 3, 4, 5], index=index)
     y = x.copy()
-    x[0:2] = 0.0
+    x.iloc[0:2] = 0.0
     result = x.rolling(window).corr(y)
     expected = Series([np.nan, np.nan, 1, 1, 1], index=index)
     tm.assert_almost_equal(result, expected)
@@ -1417,6 +1418,18 @@ def test_groupby_rolling_nan_included():
         ),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_rolling_non_monotonic():
+    # GH 43909
+
+    shuffled = [3, 0, 1, 2]
+    sec = 1_000
+    df = DataFrame(
+        [{"t": Timestamp(2 * x * sec), "x": x + 1, "c": 42} for x in shuffled]
+    )
+    with pytest.raises(ValueError, match=r".* must be monotonic"):
+        df.groupby("c").rolling(on="t", window="3s")
 
 
 @pytest.mark.parametrize("method", ["skew", "kurt"])

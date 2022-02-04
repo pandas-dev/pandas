@@ -204,10 +204,10 @@ class TestRangeIndex(NumericBase):
         loc = [1, 2, 3, 4]
         result = idx.delete(loc)
         expected = RangeIndex(0, 6, 5)
-        tm.assert_index_equal(result, expected, exact="equiv")  # TODO: retain!
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = idx.delete(loc[::-1])
-        tm.assert_index_equal(result, expected, exact="equiv")  # TODO: retain!
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_delete_all_preserves_rangeindex(self):
         idx = RangeIndex(0, 6, 1)
@@ -311,34 +311,34 @@ class TestRangeIndex(NumericBase):
 
     def test_is_monotonic(self):
         index = RangeIndex(0, 20, 2)
-        assert index.is_monotonic is True
+        assert index.is_monotonic_increasing is True
         assert index.is_monotonic_increasing is True
         assert index.is_monotonic_decreasing is False
         assert index._is_strictly_monotonic_increasing is True
         assert index._is_strictly_monotonic_decreasing is False
 
         index = RangeIndex(4, 0, -1)
-        assert index.is_monotonic is False
+        assert index.is_monotonic_increasing is False
         assert index._is_strictly_monotonic_increasing is False
         assert index.is_monotonic_decreasing is True
         assert index._is_strictly_monotonic_decreasing is True
 
         index = RangeIndex(1, 2)
-        assert index.is_monotonic is True
+        assert index.is_monotonic_increasing is True
         assert index.is_monotonic_increasing is True
         assert index.is_monotonic_decreasing is True
         assert index._is_strictly_monotonic_increasing is True
         assert index._is_strictly_monotonic_decreasing is True
 
         index = RangeIndex(2, 1)
-        assert index.is_monotonic is True
+        assert index.is_monotonic_increasing is True
         assert index.is_monotonic_increasing is True
         assert index.is_monotonic_decreasing is True
         assert index._is_strictly_monotonic_increasing is True
         assert index._is_strictly_monotonic_decreasing is True
 
         index = RangeIndex(1, 1)
-        assert index.is_monotonic is True
+        assert index.is_monotonic_increasing is True
         assert index.is_monotonic_increasing is True
         assert index.is_monotonic_decreasing is True
         assert index._is_strictly_monotonic_increasing is True

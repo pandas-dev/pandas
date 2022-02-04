@@ -223,7 +223,7 @@ def test_versioning(setup_path):
         ),
     ],
 )
-def test_walk(where, expected, setup_path):
+def test_walk(where, expected):
     # GH10143
     objs = {
         "df1": DataFrame([1, 2, 3]),
@@ -533,7 +533,9 @@ def test_same_name_scoping(setup_path):
         result = store.select("df", "index>datetime.datetime(2013,1,5)")
         tm.assert_frame_equal(result, expected)
 
-        from datetime import datetime  # noqa
+        # changes what 'datetime' points to in the namespace where
+        #  'select' does the lookup
+        from datetime import datetime  # noqa:F401
 
         # technically an error, but allow it
         result = store.select("df", "index>datetime.datetime(2013,1,5)")
@@ -807,7 +809,7 @@ def test_select_filter_corner(setup_path):
         tm.assert_frame_equal(result, df.loc[:, df.columns[:75:2]])
 
 
-def test_path_pathlib(setup_path):
+def test_path_pathlib():
     df = tm.makeDataFrame()
 
     result = tm.round_trip_pathlib(
@@ -833,7 +835,7 @@ def test_contiguous_mixed_data_table(start, stop, setup_path):
         tm.assert_frame_equal(df[start:stop], result)
 
 
-def test_path_pathlib_hdfstore(setup_path):
+def test_path_pathlib_hdfstore():
     df = tm.makeDataFrame()
 
     def writer(path):
@@ -848,7 +850,7 @@ def test_path_pathlib_hdfstore(setup_path):
     tm.assert_frame_equal(df, result)
 
 
-def test_pickle_path_localpath(setup_path):
+def test_pickle_path_localpath():
     df = tm.makeDataFrame()
     result = tm.round_trip_pathlib(
         lambda p: df.to_hdf(p, "df"), lambda p: read_hdf(p, "df")
@@ -856,7 +858,7 @@ def test_pickle_path_localpath(setup_path):
     tm.assert_frame_equal(df, result)
 
 
-def test_path_localpath_hdfstore(setup_path):
+def test_path_localpath_hdfstore():
     df = tm.makeDataFrame()
 
     def writer(path):
@@ -871,7 +873,7 @@ def test_path_localpath_hdfstore(setup_path):
     tm.assert_frame_equal(df, result)
 
 
-def test_copy(setup_path):
+def test_copy():
 
     with catch_warnings(record=True):
 
@@ -970,7 +972,8 @@ def test_columns_multiindex_modified(setup_path):
         )
         cols2load = list("BCD")
         cols2load_original = list(cols2load)
-        df_loaded = read_hdf(path, "df", columns=cols2load)  # noqa
+        # GH#10055 make sure read_hdf call does not alter cols2load inplace
+        read_hdf(path, "df", columns=cols2load)
         assert cols2load_original == cols2load
 
 
@@ -1008,3 +1011,12 @@ def test_to_hdf_with_object_column_names(setup_path):
                 df.to_hdf(path, "df", format="table", data_columns=True)
                 result = read_hdf(path, "df", where=f"index = [{df.index[0]}]")
                 assert len(result)
+
+
+def test_hdfstore_iteritems_deprecated(setup_path):
+    with ensure_clean_path(setup_path) as path:
+        df = DataFrame({"a": [1]})
+        with HDFStore(path, mode="w") as hdf:
+            hdf.put("table", df)
+            with tm.assert_produces_warning(FutureWarning):
+                next(hdf.iteritems())

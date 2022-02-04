@@ -16,6 +16,7 @@ from typing import (
     final,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -35,6 +36,7 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -55,6 +57,7 @@ from pandas.core.dtypes.missing import (
 
 from pandas.core import (
     algorithms,
+    nanops,
     ops,
 )
 from pandas.core.accessor import DirNamesMixin
@@ -70,7 +73,6 @@ from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
-import pandas.core.nanops as nanops
 
 if TYPE_CHECKING:
 
@@ -224,9 +226,9 @@ class SelectionMixin(Generic[NDFrameT]):
         if len(self.exclusions) > 0:
             # equivalent to `self.obj.drop(self.exclusions, axis=1)
             #  but this avoids consolidating and making a copy
-            return self.obj._drop_axis(
-                self.exclusions, axis=1, consolidate=False, only_slice=True
-            )
+            # TODO: following GH#45287 can we now use .drop directly without
+            #  making a copy?
+            return self.obj._drop_axis(self.exclusions, axis=1, only_slice=True)
         else:
             return self.obj
 
@@ -235,7 +237,7 @@ class SelectionMixin(Generic[NDFrameT]):
             raise IndexError(f"Column(s) {self._selection} already selected")
 
         if isinstance(key, (list, tuple, ABCSeries, ABCIndex, np.ndarray)):
-            if len(self.obj.columns.intersection(key)) != len(key):
+            if len(self.obj.columns.intersection(key)) != len(set(key)):
                 bad_keys = list(set(key).difference(self.obj.columns))
                 raise KeyError(f"Columns not found: {str(bad_keys)[1:-1]}")
             return self._gotitem(list(key), ndim=2)
@@ -527,10 +529,7 @@ class IndexOpsMixin(OpsMixin):
               dtype='datetime64[ns]')
         """
         if is_extension_array_dtype(self.dtype):
-            # error: Too many arguments for "to_numpy" of "ExtensionArray"
-            return self.array.to_numpy(  # type: ignore[call-arg]
-                dtype, copy=copy, na_value=na_value, **kwargs
-            )
+            return self.array.to_numpy(dtype, copy=copy, na_value=na_value, **kwargs)
         elif kwargs:
             bad_keys = list(kwargs.keys())[0]
             raise TypeError(
@@ -766,7 +765,9 @@ class IndexOpsMixin(OpsMixin):
     @cache_readonly
     def hasnans(self) -> bool:
         """
-        Return if I have any nans; enables various perf speedups.
+        Return True if there are any NaNs.
+
+        Enables various performance speedups.
         """
         return bool(isna(self).any())
 
@@ -1051,17 +1052,27 @@ class IndexOpsMixin(OpsMixin):
         -------
         bool
         """
-        from pandas import Index
-
-        return Index(self).is_monotonic
+        warnings.warn(
+            "is_monotonic is deprecated and will be removed in a future version. "
+            "Use is_monotonic_increasing instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self.is_monotonic_increasing
 
     @property
     def is_monotonic_increasing(self) -> bool:
         """
-        Alias for is_monotonic.
+        Return boolean if values in the object are
+        monotonic_increasing.
+
+        Returns
+        -------
+        bool
         """
-        # mypy complains if we alias directly
-        return self.is_monotonic
+        from pandas import Index
+
+        return Index(self).is_monotonic_increasing
 
     @property
     def is_monotonic_decreasing(self) -> bool:
@@ -1239,8 +1250,8 @@ class IndexOpsMixin(OpsMixin):
     def searchsorted(  # type: ignore[misc]
         self,
         value: npt._ScalarLike_co,
-        side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
+        side: Literal["left", "right"] = ...,
+        sorter: NumpySorter = ...,
     ) -> np.intp:
         ...
 
@@ -1248,8 +1259,8 @@ class IndexOpsMixin(OpsMixin):
     def searchsorted(
         self,
         value: npt.ArrayLike | ExtensionArray,
-        side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
+        side: Literal["left", "right"] = ...,
+        sorter: NumpySorter = ...,
     ) -> npt.NDArray[np.intp]:
         ...
 

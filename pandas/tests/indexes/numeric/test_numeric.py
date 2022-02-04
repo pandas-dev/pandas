@@ -6,13 +6,13 @@ from pandas._libs.tslibs import Timestamp
 import pandas as pd
 from pandas import (
     Index,
-    NumericIndex,
     Series,
 )
 import pandas._testing as tm
 from pandas.core.indexes.api import (
     Float64Index,
     Int64Index,
+    NumericIndex,
     UInt64Index,
 )
 from pandas.tests.indexes.common import NumericBase
@@ -326,19 +326,19 @@ class NumericInt(NumericBase):
         index_cls = self._index_cls
 
         index = index_cls([1, 2, 3, 4])
-        assert index.is_monotonic is True
+        assert index.is_monotonic_increasing is True
         assert index.is_monotonic_increasing is True
         assert index._is_strictly_monotonic_increasing is True
         assert index.is_monotonic_decreasing is False
         assert index._is_strictly_monotonic_decreasing is False
 
         index = index_cls([4, 3, 2, 1])
-        assert index.is_monotonic is False
+        assert index.is_monotonic_increasing is False
         assert index._is_strictly_monotonic_increasing is False
         assert index._is_strictly_monotonic_decreasing is True
 
         index = index_cls([1])
-        assert index.is_monotonic is True
+        assert index.is_monotonic_increasing is True
         assert index.is_monotonic_increasing is True
         assert index.is_monotonic_decreasing is True
         assert index._is_strictly_monotonic_increasing is True
@@ -563,8 +563,8 @@ class TestUIntNumericIndex(NumericInt):
 
     @pytest.fixture(
         params=[
-            [2 ** 63, 2 ** 63 + 10, 2 ** 63 + 15, 2 ** 63 + 20, 2 ** 63 + 25],
-            [2 ** 63 + 25, 2 ** 63 + 20, 2 ** 63 + 15, 2 ** 63 + 10, 2 ** 63],
+            [2**63, 2**63 + 10, 2**63 + 15, 2**63 + 20, 2**63 + 25],
+            [2**63 + 25, 2**63 + 20, 2**63 + 15, 2**63 + 10, 2**63],
         ],
         ids=["index_inc", "index_dec"],
     )
@@ -594,21 +594,21 @@ class TestUInt64Index(TestUIntNumericIndex):
         res = Index([1, 2, 3], dtype=dtype)
         tm.assert_index_equal(res, idx, exact=exact)
 
-        idx = index_cls([1, 2 ** 63])
-        res = Index([1, 2 ** 63], dtype=dtype)
+        idx = index_cls([1, 2**63])
+        res = Index([1, 2**63], dtype=dtype)
         tm.assert_index_equal(res, idx, exact=exact)
 
-        idx = index_cls([1, 2 ** 63])
-        res = Index([1, 2 ** 63])
+        idx = index_cls([1, 2**63])
+        res = Index([1, 2**63])
         tm.assert_index_equal(res, idx, exact=exact)
 
-        idx = Index([-1, 2 ** 63], dtype=object)
-        res = Index(np.array([-1, 2 ** 63], dtype=object))
+        idx = Index([-1, 2**63], dtype=object)
+        res = Index(np.array([-1, 2**63], dtype=object))
         tm.assert_index_equal(res, idx, exact=exact)
 
         # https://github.com/pandas-dev/pandas/issues/29526
-        idx = index_cls([1, 2 ** 63 + 1], dtype=dtype)
-        res = Index([1, 2 ** 63 + 1], dtype=dtype)
+        idx = index_cls([1, 2**63 + 1], dtype=dtype)
+        res = Index([1, 2**63 + 1], dtype=dtype)
         tm.assert_index_equal(res, idx, exact=exact)
 
     def test_constructor_does_not_cast_to_float(self):
@@ -657,7 +657,7 @@ def test_uint_index_does_not_convert_to_float64(box):
     )
     tm.assert_index_equal(result.index, expected)
 
-    tm.assert_equal(result, series[:3])
+    tm.assert_equal(result, series.iloc[:3])
 
 
 def test_float64_index_equals():
@@ -670,3 +670,20 @@ def test_float64_index_equals():
 
     result = string_index.equals(float_index)
     assert result is False
+
+
+def test_map_dtype_inference_unsigned_to_signed():
+    # GH#44609 cases where we don't retain dtype
+    idx = UInt64Index([1, 2, 3])
+    result = idx.map(lambda x: -x)
+    expected = Int64Index([-1, -2, -3])
+    tm.assert_index_equal(result, expected)
+
+
+def test_map_dtype_inference_overflows():
+    # GH#44609 case where we have to upcast
+    idx = NumericIndex(np.array([1, 2, 3], dtype=np.int8))
+    result = idx.map(lambda x: x * 1000)
+    # TODO: we could plausibly try to infer down to int16 here
+    expected = NumericIndex([1000, 2000, 3000], dtype=np.int64)
+    tm.assert_index_equal(result, expected)

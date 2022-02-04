@@ -32,7 +32,7 @@ from pandas.tests.tseries.offsets.common import (
 class TestBusinessHour(Base):
     _offset = BusinessHour
 
-    def setup_method(self, method):
+    def setup_method(self):
         self.d = datetime(2014, 7, 1, 10, 00)
 
         self.offset1 = BusinessHour()
@@ -318,7 +318,7 @@ class TestBusinessHour(Base):
     def test_normalize(self, case):
         offset, cases = case
         for dt, expected in cases.items():
-            assert offset.apply(dt) == expected
+            assert offset._apply(dt) == expected
 
     on_offset_cases = []
     on_offset_cases.append(

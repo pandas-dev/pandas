@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import InvalidIndexError
+
 from pandas import (
     Index,
     RangeIndex,
@@ -18,7 +20,7 @@ from pandas.core.indexes.api import (
 @pytest.fixture
 def index_large():
     # large values used in UInt64Index tests where no compat needed with Int64/Float64
-    large = [2 ** 63, 2 ** 63 + 10, 2 ** 63 + 15, 2 ** 63 + 20, 2 ** 63 + 25]
+    large = [2**63, 2**63 + 10, 2**63 + 15, 2**63 + 20, 2**63 + 25]
     return UInt64Index(large)
 
 
@@ -41,10 +43,12 @@ class TestGetLoc:
         index = Index([0, 1, 2])
         if method:
             msg = "not supported between"
+            err = TypeError
         else:
-            msg = "invalid key"
+            msg = r"\[1, 2\]"
+            err = InvalidIndexError
 
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(err, match=msg):
             index.get_loc([1, 2], method=method)
 
     @pytest.mark.parametrize(
@@ -141,7 +145,7 @@ class TestGetLoc:
             idx.get_loc(3)
         with pytest.raises(KeyError, match="^nan$"):
             idx.get_loc(np.nan)
-        with pytest.raises(TypeError, match=r"'\[nan\]' is an invalid key"):
+        with pytest.raises(InvalidIndexError, match=r"\[nan\]"):
             # listlike/non-hashable raises TypeError
             idx.get_loc([np.nan])
 
@@ -157,7 +161,7 @@ class TestGetLoc:
     @pytest.mark.parametrize("dtype", ["f8", "i8", "u8"])
     def test_get_loc_numericindex_none_raises(self, dtype):
         # case that goes through searchsorted and key is non-comparable to values
-        arr = np.arange(10 ** 7, dtype=dtype)
+        arr = np.arange(10**7, dtype=dtype)
         idx = Index(arr)
         with pytest.raises(KeyError, match="None"):
             idx.get_loc(None)
@@ -372,17 +376,17 @@ class TestGetIndexer:
         tm.assert_numpy_array_equal(indexer, expected)
 
     def test_get_indexer_uint64(self, index_large):
-        target = UInt64Index(np.arange(10).astype("uint64") * 5 + 2 ** 63)
+        target = UInt64Index(np.arange(10).astype("uint64") * 5 + 2**63)
         indexer = index_large.get_indexer(target)
         expected = np.array([0, -1, 1, 2, 3, 4, -1, -1, -1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected)
 
-        target = UInt64Index(np.arange(10).astype("uint64") * 5 + 2 ** 63)
+        target = UInt64Index(np.arange(10).astype("uint64") * 5 + 2**63)
         indexer = index_large.get_indexer(target, method="pad")
         expected = np.array([0, 0, 1, 2, 3, 4, 4, 4, 4, 4], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected)
 
-        target = UInt64Index(np.arange(10).astype("uint64") * 5 + 2 ** 63)
+        target = UInt64Index(np.arange(10).astype("uint64") * 5 + 2**63)
         indexer = index_large.get_indexer(target, method="backfill")
         expected = np.array([0, 1, 1, 2, 3, 4, -1, -1, -1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected)
@@ -397,14 +401,14 @@ class TestWhere:
             UInt64Index(np.arange(5, dtype="uint64")),
         ],
     )
-    def test_where(self, listlike_box_with_tuple, index):
+    def test_where(self, listlike_box, index):
         cond = [True] * len(index)
         expected = index
-        result = index.where(listlike_box_with_tuple(cond))
+        result = index.where(listlike_box(cond))
 
         cond = [False] + [True] * (len(index) - 1)
         expected = Float64Index([index._na_value] + index[1:].tolist())
-        result = index.where(listlike_box_with_tuple(cond))
+        result = index.where(listlike_box(cond))
         tm.assert_index_equal(result, expected)
 
     def test_where_uint64(self):

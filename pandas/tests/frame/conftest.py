@@ -212,7 +212,7 @@ def uint64_frame():
     Columns are ['A', 'B']
     """
     return DataFrame(
-        {"A": np.arange(3), "B": [2 ** 63, 2 ** 63 + 5, 2 ** 63 + 10]}, dtype=np.uint64
+        {"A": np.arange(3), "B": [2**63, 2**63 + 5, 2**63 + 10]}, dtype=np.uint64
     )
 
 
@@ -259,3 +259,26 @@ def frame_of_index_cols():
         }
     )
     return df
+
+
+@pytest.fixture(
+    params=[
+        "any",
+        "all",
+        "count",
+        "sum",
+        "prod",
+        "max",
+        "min",
+        "mean",
+        "median",
+        "skew",
+        "kurt",
+        "sem",
+        "var",
+        "std",
+        "mad",
+    ]
+)
+def reduction_functions(request):
+    return request.param

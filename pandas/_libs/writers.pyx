@@ -30,7 +30,7 @@ def write_csv_rows(
 
     Parameters
     ----------
-    data : list
+    data : list[ArrayLike]
     data_index : ndarray
     nlevels : int
     cols : ndarray

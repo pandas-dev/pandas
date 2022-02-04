@@ -1,7 +1,6 @@
 """ test partial slicing on Series/Frame """
 
 from datetime import datetime
-import operator
 
 import numpy as np
 import pytest
@@ -282,7 +281,7 @@ class TestSlicing:
                 result = df["a"][ts_string]
                 assert isinstance(result, np.int64)
                 assert result == expected
-                msg = fr"^'{ts_string}'$"
+                msg = rf"^'{ts_string}'$"
                 with pytest.raises(KeyError, match=msg):
                     df[ts_string]
 
@@ -312,7 +311,7 @@ class TestSlicing:
                 result = df["a"][ts_string]
                 assert isinstance(result, np.int64)
                 assert result == 2
-                msg = fr"^'{ts_string}'$"
+                msg = rf"^'{ts_string}'$"
                 with pytest.raises(KeyError, match=msg):
                     df[ts_string]
 
@@ -321,7 +320,7 @@ class TestSlicing:
             for fmt, res in list(zip(formats, resolutions))[rnum + 1 :]:
                 ts = index[1] + Timedelta("1 " + res)
                 ts_string = ts.strftime(fmt)
-                msg = fr"^'{ts_string}'$"
+                msg = rf"^'{ts_string}'$"
                 with pytest.raises(KeyError, match=msg):
                     df["a"][ts_string]
                 with pytest.raises(KeyError, match=msg):
@@ -411,40 +410,6 @@ class TestSlicing:
 
         result = df.loc["2016-10-01T00:00:00":]
         tm.assert_frame_equal(result, df)
-
-    @pytest.mark.parametrize(
-        "datetimelike",
-        [
-            Timestamp("20130101"),
-            datetime(2013, 1, 1),
-            np.datetime64("2013-01-01T00:00", "ns"),
-        ],
-    )
-    @pytest.mark.parametrize(
-        "op,expected",
-        [
-            (operator.lt, [True, False, False, False]),
-            (operator.le, [True, True, False, False]),
-            (operator.eq, [False, True, False, False]),
-            (operator.gt, [False, False, False, True]),
-        ],
-    )
-    def test_selection_by_datetimelike(self, datetimelike, op, expected):
-        # GH issue #17965, test for ability to compare datetime64[ns] columns
-        # to datetimelike
-        df = DataFrame(
-            {
-                "A": [
-                    Timestamp("20120101"),
-                    Timestamp("20130101"),
-                    np.nan,
-                    Timestamp("20130103"),
-                ]
-            }
-        )
-        result = op(df.A, datetimelike)
-        expected = Series(expected, name="A")
-        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "start",

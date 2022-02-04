@@ -10,6 +10,7 @@ from typing import (
     Iterable,
     Sequence,
 )
+import warnings
 
 import numpy as np
 
@@ -320,7 +321,12 @@ def lexsort_indexer(
     keys = [ensure_key_mapped(k, key) for k in keys]
 
     for k, order in zip(keys, orders):
-        cat = Categorical(k, ordered=True)
+        with warnings.catch_warnings():
+            # TODO(2.0): unnecessary once deprecation is enforced
+            # GH#45618 don't issue warning user can't do anything about
+            warnings.filterwarnings("ignore", ".*SparseArray.*", category=FutureWarning)
+
+            cat = Categorical(k, ordered=True)
 
         if na_position not in ["last", "first"]:
             raise ValueError(f"invalid na_position: {na_position}")
@@ -354,7 +360,7 @@ def nargsort(
     ascending: bool = True,
     na_position: str = "last",
     key: Callable | None = None,
-    mask: np.ndarray | None = None,
+    mask: npt.NDArray[np.bool_] | None = None,
 ) -> npt.NDArray[np.intp]:
     """
     Intended to be a drop-in replacement for np.argsort which handles NaNs.
@@ -369,7 +375,7 @@ def nargsort(
     ascending : bool, default True
     na_position : {'first', 'last'}, default 'last'
     key : Optional[Callable], default None
-    mask : Optional[np.ndarray], default None
+    mask : Optional[np.ndarray[bool]], default None
         Passed when called by ExtensionArray.argsort.
 
     Returns

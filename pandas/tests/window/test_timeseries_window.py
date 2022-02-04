@@ -20,7 +20,7 @@ class TestRollingTS:
     # rolling time-series friendly
     # xref GH13327
 
-    def setup_method(self, method):
+    def setup_method(self):
 
         self.regular = DataFrame(
             {"A": date_range("20130101", periods=5, freq="s"), "B": range(5)}
@@ -115,11 +115,11 @@ class TestRollingTS:
             {"A": date_range("20130101", periods=5, freq="s"), "B": range(5)}
         )
 
-        assert df.A.is_monotonic
+        assert df.A.is_monotonic_increasing
         df.rolling("2s", on="A").sum()
 
         df = df.set_index("A")
-        assert df.index.is_monotonic
+        assert df.index.is_monotonic_increasing
         df.rolling("2s").sum()
 
     def test_non_monotonic_on(self):
@@ -132,7 +132,7 @@ class TestRollingTS:
         non_monotonic_index[0] = non_monotonic_index[3]
         df.index = non_monotonic_index
 
-        assert not df.index.is_monotonic
+        assert not df.index.is_monotonic_increasing
 
         msg = "index must be monotonic"
         with pytest.raises(ValueError, match=msg):
@@ -648,6 +648,9 @@ class TestRollingTS:
         # GH 15130
         # we don't need to validate monotonicity when grouping
 
+        # GH 43909 we should raise an error here to match
+        # behaviour of non-groupby rolling.
+
         data = [
             ["David", "1/1/2015", 100],
             ["David", "1/5/2015", 500],
@@ -663,6 +666,7 @@ class TestRollingTS:
 
         df = DataFrame(data=data, columns=["name", "date", "amount"])
         df["date"] = to_datetime(df["date"])
+        df = df.sort_values("date")
 
         expected = (
             df.set_index("date")
@@ -672,8 +676,10 @@ class TestRollingTS:
         result = df.groupby("name").rolling("180D", on="date")["amount"].sum()
         tm.assert_series_equal(result, expected)
 
-    def test_non_monotonic(self):
+    def test_non_monotonic_raises(self):
         # GH 13966 (similar to #15130, closed by #15175)
+
+        # superseded by 43909
 
         dates = date_range(start="2016-01-01 09:30:00", periods=20, freq="s")
         df = DataFrame(
@@ -684,11 +690,13 @@ class TestRollingTS:
             }
         )
 
-        result = df.groupby("A").rolling("4s", on="B").C.mean()
         expected = (
             df.set_index("B").groupby("A").apply(lambda x: x.rolling("4s")["C"].mean())
         )
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(ValueError, match=r".* must be monotonic"):
+            df.groupby("A").rolling(
+                "4s", on="B"
+            ).C.mean()  # should raise for non-monotonic t series
 
         df2 = df.sort_values("B")
         result = df2.groupby("A").rolling("4s", on="B").C.mean()

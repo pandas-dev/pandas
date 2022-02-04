@@ -1,24 +1,24 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 import numpy as np
 
-from pandas._typing import ArrayLike
+from pandas._libs import lib
+from pandas._typing import (
+    ArrayLike,
+    Scalar,
+    npt,
+)
+from pandas.compat.numpy import np_percentile_argname
 
-from pandas.core.dtypes.common import is_sparse
 from pandas.core.dtypes.missing import (
     isna,
     na_value_for_dtype,
 )
 
-from pandas.core.nanops import nanpercentile
 
-if TYPE_CHECKING:
-    from pandas.core.arrays import ExtensionArray
-
-
-def quantile_compat(values: ArrayLike, qs: np.ndarray, interpolation: str) -> ArrayLike:
+def quantile_compat(
+    values: ArrayLike, qs: npt.NDArray[np.float64], interpolation: str
+) -> ArrayLike:
     """
     Compute the quantiles of the given values for each quantile in `qs`.
 
@@ -35,27 +35,16 @@ def quantile_compat(values: ArrayLike, qs: np.ndarray, interpolation: str) -> Ar
     if isinstance(values, np.ndarray):
         fill_value = na_value_for_dtype(values.dtype, compat=False)
         mask = isna(values)
-        return _quantile_with_mask(values, mask, fill_value, qs, interpolation)
+        return quantile_with_mask(values, mask, fill_value, qs, interpolation)
     else:
-        # In general we don't want to import from arrays here;
-        #  this is temporary pending discussion in GH#41428
-        from pandas.core.arrays import BaseMaskedArray
-
-        if isinstance(values, BaseMaskedArray):
-            # e.g. IntegerArray, does not implement _from_factorized
-            out = _quantile_ea_fallback(values, qs, interpolation)
-
-        else:
-            out = _quantile_ea_compat(values, qs, interpolation)
-
-        return out
+        return values._quantile(qs, interpolation)
 
 
-def _quantile_with_mask(
+def quantile_with_mask(
     values: np.ndarray,
-    mask: np.ndarray,
+    mask: npt.NDArray[np.bool_],
     fill_value,
-    qs: np.ndarray,
+    qs: npt.NDArray[np.float64],
     interpolation: str,
 ) -> np.ndarray:
     """
@@ -96,10 +85,9 @@ def _quantile_with_mask(
         flat = np.array([fill_value] * len(qs))
         result = np.repeat(flat, len(values)).reshape(len(values), len(qs))
     else:
-        # asarray needed for Sparse, see GH#24600
-        result = nanpercentile(
+        result = _nanpercentile(
             values,
-            np.array(qs) * 100,
+            qs * 100.0,
             na_value=fill_value,
             mask=mask,
             interpolation=interpolation,
@@ -111,80 +99,90 @@ def _quantile_with_mask(
     return result
 
 
-def _quantile_ea_compat(
-    values: ExtensionArray, qs: np.ndarray, interpolation: str
-) -> ExtensionArray:
+def _nanpercentile_1d(
+    values: np.ndarray,
+    mask: npt.NDArray[np.bool_],
+    qs: npt.NDArray[np.float64],
+    na_value: Scalar,
+    interpolation,
+) -> Scalar | np.ndarray:
     """
-    ExtensionArray compatibility layer for _quantile_with_mask.
-
-    We pretend that an ExtensionArray with shape (N,) is actually (1, N,)
-    for compatibility with non-EA code.
+    Wrapper for np.percentile that skips missing values, specialized to
+    1-dimensional case.
 
     Parameters
     ----------
-    values : ExtensionArray
-    qs : np.ndarray[float64]
-    interpolation: str
+    values : array over which to find quantiles
+    mask : ndarray[bool]
+        locations in values that should be considered missing
+    qs : np.ndarray[float64] of quantile indices to find
+    na_value : scalar
+        value to return for empty or all-null values
+    interpolation : str
 
     Returns
     -------
-    ExtensionArray
+    quantiles : scalar or array
     """
-    # TODO(EA2D): make-believe not needed with 2D EAs
-    orig = values
+    # mask is Union[ExtensionArray, ndarray]
+    values = values[~mask]
 
-    # asarray needed for Sparse, see GH#24600
-    mask = np.asarray(values.isna())
-    mask = np.atleast_2d(mask)
+    if len(values) == 0:
+        return np.array([na_value] * len(qs), dtype=values.dtype)
 
-    arr, fill_value = values._values_for_factorize()
-    arr = np.atleast_2d(arr)
-
-    result = _quantile_with_mask(arr, mask, fill_value, qs, interpolation)
-
-    if not is_sparse(orig.dtype):
-        # shape[0] should be 1 as long as EAs are 1D
-
-        if orig.ndim == 2:
-            # i.e. DatetimeArray
-            result = type(orig)._from_factorized(result, orig)
-
-        else:
-            assert result.shape == (1, len(qs)), result.shape
-            result = type(orig)._from_factorized(result[0], orig)
-
-    # error: Incompatible return value type (got "ndarray", expected "ExtensionArray")
-    return result  # type: ignore[return-value]
+    return np.percentile(values, qs, **{np_percentile_argname: interpolation})
 
 
-def _quantile_ea_fallback(
-    values: ExtensionArray, qs: np.ndarray, interpolation: str
-) -> ExtensionArray:
+def _nanpercentile(
+    values: np.ndarray,
+    qs: npt.NDArray[np.float64],
+    *,
+    na_value,
+    mask: npt.NDArray[np.bool_],
+    interpolation,
+):
     """
-    quantile compatibility for ExtensionArray subclasses that do not
-    implement `_from_factorized`, e.g. IntegerArray.
+    Wrapper for np.percentile that skips missing values.
 
-    Notes
-    -----
-    We assume that all impacted cases are 1D-only.
+    Parameters
+    ----------
+    values : np.ndarray[ndim=2]  over which to find quantiles
+    qs : np.ndarray[float64] of quantile indices to find
+    na_value : scalar
+        value to return for empty or all-null values
+    mask : np.ndarray[bool]
+        locations in values that should be considered missing
+    interpolation : str
+
+    Returns
+    -------
+    quantiles : scalar or array
     """
-    mask = np.atleast_2d(np.asarray(values.isna()))
-    npvalues = np.atleast_2d(np.asarray(values))
 
-    res = _quantile_with_mask(
-        npvalues,
-        mask=mask,
-        fill_value=values.dtype.na_value,
-        qs=qs,
-        interpolation=interpolation,
-    )
-    assert res.ndim == 2
-    assert res.shape[0] == 1
-    res = res[0]
-    try:
-        out = type(values)._from_sequence(res, dtype=values.dtype)
-    except TypeError:
-        # GH#42626: not able to safely cast Int64
-        # for floating point output
-        out = np.atleast_2d(np.asarray(res, dtype=np.float64))
-    return out
+    if values.dtype.kind in ["m", "M"]:
+        # need to cast to integer to avoid rounding errors in numpy
+        result = _nanpercentile(
+            values.view("i8"),
+            qs=qs,
+            na_value=na_value.view("i8"),
+            mask=mask,
+            interpolation=interpolation,
+        )
+
+        # Note: we have to do `astype` and not view because in general we
+        #  have float result at this point, not i8
+        return result.astype(values.dtype)
+
+    if not lib.is_scalar(mask) and mask.any():
+        # Caller is responsible for ensuring mask shape match
+        assert mask.shape == values.shape
+        result = [
+            _nanpercentile_1d(val, m, qs, na_value, interpolation=interpolation)
+            for (val, m) in zip(list(values), list(mask))
+        ]
+        result = np.array(result, dtype=values.dtype, copy=False).T
+        return result
+    else:
+        return np.percentile(
+            values, qs, axis=1, **{np_percentile_argname: interpolation}
+        )

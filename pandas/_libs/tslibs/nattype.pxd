@@ -10,7 +10,6 @@ cdef set c_nat_strings
 cdef class _NaT(datetime):
     cdef readonly:
         int64_t value
-        object freq
 
 cdef _NaT c_NaT
 
@@ -18,4 +17,3 @@ cdef _NaT c_NaT
 cdef bint checknull_with_nat(object val)
 cdef bint is_dt64nat(object val)
 cdef bint is_td64nat(object val)
-cpdef bint is_null_datetimelike(object val, bint inat_is_null=*)

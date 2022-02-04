@@ -12,6 +12,8 @@ import warnings
 
 import numpy as np
 
+from pandas.util._exceptions import find_stack_level
+
 from pandas.core.dtypes.common import (
     is_bool,
     is_integer,
@@ -279,14 +281,15 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
 
     Examples
     --------
-    >>> df._validate_axis_style_args((str.upper,), {'columns': id},
-    ...                              'mapper', 'rename')
-    {'columns': <function id>, 'index': <method 'upper' of 'str' objects>}
+    >>> df = pd.DataFrame(range(2))
+    >>> validate_axis_style_args(df, (str.upper,), {'columns': id},
+    ...                          'mapper', 'rename')
+    {'columns': <built-in function id>, 'index': <method 'upper' of 'str' objects>}
 
     This emits a warning
-    >>> df._validate_axis_style_args((str.upper, id), {},
-    ...                              'mapper', 'rename')
-    {'columns': <function id>, 'index': <method 'upper' of 'str' objects>}
+    >>> validate_axis_style_args(df, (str.upper, id), {},
+    ...                          'mapper', 'rename')
+    {'index': <method 'upper' of 'str' objects>, 'columns': <built-in function id>}
     """
     # TODO: Change to keyword-only args and remove all this
 
@@ -339,7 +342,7 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
             "positional arguments for 'index' or 'columns' will raise "
             "a 'TypeError'."
         )
-        warnings.warn(msg, FutureWarning, stacklevel=4)
+        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
         out[data._get_axis_name(0)] = args[0]
         out[data._get_axis_name(1)] = args[1]
     else:

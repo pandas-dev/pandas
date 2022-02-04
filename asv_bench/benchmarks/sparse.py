@@ -40,7 +40,7 @@ class SparseArrayConstructor:
     param_names = ["dense_proportion", "fill_value", "dtype"]
 
     def setup(self, dense_proportion, fill_value, dtype):
-        N = 10 ** 6
+        N = 10**6
         self.array = make_array(N, dense_proportion, fill_value, dtype)
 
     def time_sparse_array(self, dense_proportion, fill_value, dtype):
@@ -111,7 +111,7 @@ class Arithmetic:
     param_names = ["dense_proportion", "fill_value"]
 
     def setup(self, dense_proportion, fill_value):
-        N = 10 ** 6
+        N = 10**6
         arr1 = make_array(N, dense_proportion, fill_value, np.int64)
         self.array1 = SparseArray(arr1, fill_value=fill_value)
         arr2 = make_array(N, dense_proportion, fill_value, np.int64)
@@ -136,7 +136,7 @@ class ArithmeticBlock:
     param_names = ["fill_value"]
 
     def setup(self, fill_value):
-        N = 10 ** 6
+        N = 10**6
         self.arr1 = self.make_block_array(
             length=N, num_blocks=1000, block_size=10, fill_value=fill_value
         )
@@ -198,7 +198,8 @@ class Take:
 class GetItem:
     def setup(self):
         N = 1_000_000
-        arr = make_array(N, 1e-5, np.nan, np.float64)
+        d = 1e-5
+        arr = make_array(N, d, np.nan, np.float64)
         self.sp_arr = SparseArray(arr)
 
     def time_integer_indexing(self):
@@ -206,6 +207,27 @@ class GetItem:
 
     def time_slice(self):
         self.sp_arr[1:]
+
+
+class GetItemMask:
+
+    params = [True, False, np.nan]
+    param_names = ["fill_value"]
+
+    def setup(self, fill_value):
+        N = 1_000_000
+        d = 1e-5
+        arr = make_array(N, d, np.nan, np.float64)
+        self.sp_arr = SparseArray(arr)
+        b_arr = np.full(shape=N, fill_value=fill_value, dtype=np.bool8)
+        fv_inds = np.unique(
+            np.random.randint(low=0, high=N - 1, size=int(N * d), dtype=np.int32)
+        )
+        b_arr[fv_inds] = True if pd.isna(fill_value) else not fill_value
+        self.sp_b_arr = SparseArray(b_arr, dtype=np.bool8, fill_value=fill_value)
+
+    def time_mask(self, fill_value):
+        self.sp_arr[self.sp_b_arr]
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

@@ -353,9 +353,9 @@ class TestGetIndexer:
             ]
         )
         # sanity check
-        assert mult_idx_1.is_monotonic
+        assert mult_idx_1.is_monotonic_increasing
         assert mult_idx_1.is_unique
-        assert mult_idx_2.is_monotonic
+        assert mult_idx_2.is_monotonic_increasing
         assert mult_idx_2.is_unique
 
         # show the relationships between the two
@@ -652,7 +652,7 @@ class TestGetLoc:
             idx.get_loc(3)
         with pytest.raises(KeyError, match=r"^nan$"):
             idx.get_loc(np.nan)
-        with pytest.raises(TypeError, match="unhashable type: 'list'"):
+        with pytest.raises(InvalidIndexError, match=r"\[nan\]"):
             # listlike/non-hashable raises TypeError
             idx.get_loc([np.nan])
 
@@ -699,8 +699,8 @@ class TestGetLoc:
     def test_multiindex_get_loc_list_raises(self):
         # GH#35878
         idx = MultiIndex.from_tuples([("a", 1), ("b", 2)])
-        msg = "unhashable type"
-        with pytest.raises(TypeError, match=msg):
+        msg = r"\[\]"
+        with pytest.raises(InvalidIndexError, match=msg):
             idx.get_loc([])
 
     def test_get_loc_nested_tuple_raises_keyerror(self):
@@ -720,12 +720,12 @@ class TestWhere:
         with pytest.raises(NotImplementedError, match=msg):
             i.where(True)
 
-    def test_where_array_like(self, listlike_box_with_tuple):
+    def test_where_array_like(self, listlike_box):
         mi = MultiIndex.from_tuples([("A", 1), ("A", 2)])
         cond = [False, True]
         msg = r"\.where is not supported for MultiIndex operations"
         with pytest.raises(NotImplementedError, match=msg):
-            mi.where(listlike_box_with_tuple(cond))
+            mi.where(listlike_box(cond))
 
 
 class TestContains:
@@ -790,8 +790,8 @@ class TestContains:
     @pytest.mark.slow
     def test_large_mi_contains(self):
         # GH#10645
-        result = MultiIndex.from_arrays([range(10 ** 6), range(10 ** 6)])
-        assert not (10 ** 6, 0) in result
+        result = MultiIndex.from_arrays([range(10**6), range(10**6)])
+        assert not (10**6, 0) in result
 
 
 def test_timestamp_multiindex_indexer():

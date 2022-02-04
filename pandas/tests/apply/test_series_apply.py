@@ -284,8 +284,6 @@ def test_transform_partial_failure(op, request):
                 raises=AssertionError, reason=f"{op} is successful on any dtype"
             )
         )
-    if op in ("rank", "fillna"):
-        pytest.skip(f"{op} doesn't raise TypeError on object")
 
     # Using object makes most transform kernels fail
     ser = Series(3 * [object])
@@ -378,11 +376,11 @@ def test_agg_apply_evaluate_lambdas_the_same(string_series):
 def test_with_nested_series(datetime_series):
     # GH 2316
     # .agg with a reducer and a transform, what to do
-    result = datetime_series.apply(lambda x: Series([x, x ** 2], index=["x", "x^2"]))
-    expected = DataFrame({"x": datetime_series, "x^2": datetime_series ** 2})
+    result = datetime_series.apply(lambda x: Series([x, x**2], index=["x", "x^2"]))
+    expected = DataFrame({"x": datetime_series, "x^2": datetime_series**2})
     tm.assert_frame_equal(result, expected)
 
-    result = datetime_series.agg(lambda x: Series([x, x ** 2], index=["x", "x^2"]))
+    result = datetime_series.agg(lambda x: Series([x, x**2], index=["x", "x^2"]))
     tm.assert_frame_equal(result, expected)
 
 
@@ -497,9 +495,13 @@ def test_map(datetime_series):
     tm.assert_series_equal(a.map(c), exp)
 
 
-def test_map_empty(index):
+def test_map_empty(request, index):
     if isinstance(index, MultiIndex):
-        pytest.skip("Initializing a Series from a MultiIndex is not supported")
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="Initializing a Series from a MultiIndex is not supported"
+            )
+        )
 
     s = Series(index)
     result = s.map({})
@@ -794,18 +796,15 @@ def test_apply_to_timedelta():
     list_of_valid_strings = ["00:00:01", "00:00:02"]
     a = pd.to_timedelta(list_of_valid_strings)
     b = Series(list_of_valid_strings).apply(pd.to_timedelta)
-    # FIXME: dont leave commented-out
-    # Can't compare until apply on a Series gives the correct dtype
-    # assert_series_equal(a, b)
+    tm.assert_series_equal(Series(a), b)
 
     list_of_strings = ["00:00:01", np.nan, pd.NaT, pd.NaT]
 
-    a = pd.to_timedelta(list_of_strings)  # noqa
+    a = pd.to_timedelta(list_of_strings)
     with tm.assert_produces_warning(FutureWarning, match="Inferring timedelta64"):
         ser = Series(list_of_strings)
-    b = ser.apply(pd.to_timedelta)  # noqa
-    # Can't compare until apply on a Series gives the correct dtype
-    # assert_series_equal(a, b)
+    b = ser.apply(pd.to_timedelta)
+    tm.assert_series_equal(Series(a), b)
 
 
 @pytest.mark.parametrize(

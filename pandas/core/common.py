@@ -18,8 +18,10 @@ from typing import (
     Any,
     Callable,
     Collection,
+    Hashable,
     Iterable,
     Iterator,
+    Sequence,
     cast,
     overload,
 )
@@ -36,6 +38,7 @@ from pandas._typing import (
     Scalar,
     T,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -175,7 +178,7 @@ def cast_scalar_indexer(val, warn_float: bool = False):
                 "Indexing with a float is deprecated, and will raise an IndexError "
                 "in pandas 2.0. You can manually convert to an integer key instead.",
                 FutureWarning,
-                stacklevel=3,
+                stacklevel=find_stack_level(),
             )
         return int(val)
     return val
@@ -559,7 +562,14 @@ def require_length_match(data, index: Index):
         )
 
 
-_builtin_table = {builtins.sum: np.sum, builtins.max: np.max, builtins.min: np.min}
+# the ufuncs np.maximum.reduce and np.minimum.reduce default to axis=0,
+#  whereas np.min and np.max (which directly call obj.min and obj.max)
+#  default to axis=None.
+_builtin_table = {
+    builtins.sum: np.sum,
+    builtins.max: np.maximum.reduce,
+    builtins.min: np.minimum.reduce,
+}
 
 _cython_table = {
     builtins.sum: "sum",
@@ -603,3 +613,22 @@ def is_builtin_func(arg):
     otherwise return the arg
     """
     return _builtin_table.get(arg, arg)
+
+
+def fill_missing_names(names: Sequence[Hashable | None]) -> list[Hashable]:
+    """
+    If a name is missing then replace it by level_n, where n is the count
+
+    .. versionadded:: 1.4.0
+
+    Parameters
+    ----------
+    names : list-like
+        list of column names or None values.
+
+    Returns
+    -------
+    list
+        list of column names with the None values replaced.
+    """
+    return [f"level_{i}" if name is None else name for i, name in enumerate(names)]

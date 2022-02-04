@@ -28,7 +28,6 @@ from pandas._libs.tslibs.offsets import (
     _offset_map,
 )
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
-from pandas.compat import np_datetime64_compat
 from pandas.errors import PerformanceWarning
 
 from pandas import DatetimeIndex
@@ -101,7 +100,7 @@ class TestCommon(Base):
         "Second": Timestamp("2011-01-01 09:00:01"),
         "Milli": Timestamp("2011-01-01 09:00:00.001000"),
         "Micro": Timestamp("2011-01-01 09:00:00.000001"),
-        "Nano": Timestamp(np_datetime64_compat("2011-01-01T09:00:00.000000001Z")),
+        "Nano": Timestamp("2011-01-01T09:00:00.000000001"),
     }
 
     def test_immutable(self, offset_types):
@@ -125,7 +124,7 @@ class TestCommon(Base):
         assert offset + NaT is NaT
 
         assert NaT - offset is NaT
-        assert (-offset).apply(NaT) is NaT
+        assert (-offset)._apply(NaT) is NaT
 
     def test_offset_n(self, offset_types):
         offset = self._get_offset(offset_types)
@@ -188,7 +187,7 @@ class TestCommon(Base):
 
         if (
             type(offset_s).__name__ == "DateOffset"
-            and (funcname == "apply" or normalize)
+            and (funcname in ["apply", "_apply"] or normalize)
             and ts.nanosecond > 0
         ):
             exp_warning = UserWarning
@@ -196,6 +195,17 @@ class TestCommon(Base):
         # test nanosecond is preserved
         with tm.assert_produces_warning(exp_warning):
             result = func(ts)
+
+        if exp_warning is None and funcname == "_apply":
+            # GH#44522
+            # Check in this particular case to avoid headaches with
+            #  testing for multiple warnings produced by the same call.
+            with tm.assert_produces_warning(FutureWarning, match="apply is deprecated"):
+                res2 = offset_s.apply(ts)
+
+            assert type(res2) is type(result)
+            assert res2 == result
+
         assert isinstance(result, Timestamp)
         if normalize is False:
             assert result == expected + Nano(5)
@@ -225,7 +235,7 @@ class TestCommon(Base):
 
             if (
                 type(offset_s).__name__ == "DateOffset"
-                and (funcname == "apply" or normalize)
+                and (funcname in ["apply", "_apply"] or normalize)
                 and ts.nanosecond > 0
             ):
                 exp_warning = UserWarning
@@ -241,15 +251,16 @@ class TestCommon(Base):
 
     def test_apply(self, offset_types):
         sdt = datetime(2011, 1, 1, 9, 0)
-        ndt = np_datetime64_compat("2011-01-01 09:00Z")
+        ndt = np.datetime64("2011-01-01 09:00")
+
+        expected = self.expecteds[offset_types.__name__]
+        expected_norm = Timestamp(expected.date())
 
         for dt in [sdt, ndt]:
-            expected = self.expecteds[offset_types.__name__]
-            self._check_offsetfunc_works(offset_types, "apply", dt, expected)
+            self._check_offsetfunc_works(offset_types, "_apply", dt, expected)
 
-            expected = Timestamp(expected.date())
             self._check_offsetfunc_works(
-                offset_types, "apply", dt, expected, normalize=True
+                offset_types, "_apply", dt, expected_norm, normalize=True
             )
 
     def test_rollforward(self, offset_types):
@@ -297,7 +308,7 @@ class TestCommon(Base):
         norm_expected.update(normalized)
 
         sdt = datetime(2011, 1, 1, 9, 0)
-        ndt = np_datetime64_compat("2011-01-01 09:00Z")
+        ndt = np.datetime64("2011-01-01 09:00")
 
         for dt in [sdt, ndt]:
             expected = expecteds[offset_types.__name__]
@@ -371,7 +382,7 @@ class TestCommon(Base):
         norm_expected.update(normalized)
 
         sdt = datetime(2011, 1, 1, 9, 0)
-        ndt = np_datetime64_compat("2011-01-01 09:00Z")
+        ndt = np.datetime64("2011-01-01 09:00")
 
         for dt in [sdt, ndt]:
             expected = expecteds[offset_types.__name__]
@@ -498,11 +509,11 @@ class TestCommon(Base):
         base_dt = datetime(2020, 1, 1)
         assert base_dt + off == base_dt + res
 
-    def test_onOffset_deprecated(self, offset_types):
+    def test_onOffset_deprecated(self, offset_types, fixed_now_ts):
         # GH#30340 use idiomatic naming
         off = self._get_offset(offset_types)
 
-        ts = Timestamp.now()
+        ts = fixed_now_ts
         with tm.assert_produces_warning(FutureWarning):
             result = off.onOffset(ts)
 
@@ -526,7 +537,7 @@ class TestCommon(Base):
 
 
 class TestDateOffset(Base):
-    def setup_method(self, method):
+    def setup_method(self):
         self.d = Timestamp(datetime(2008, 1, 2))
         _offset_map.clear()
 
@@ -611,7 +622,7 @@ def test_get_offset_legacy():
 
 
 class TestOffsetAliases:
-    def setup_method(self, method):
+    def setup_method(self):
         _offset_map.clear()
 
     def test_alias_equality(self):
@@ -655,14 +666,6 @@ class TestOffsetAliases:
                 alias = "-".join([base, v])
                 assert alias == _get_offset(alias).rule_code
                 assert alias == (_get_offset(alias) * 5).rule_code
-
-
-def test_dateoffset_misc():
-    oset = offsets.DateOffset(months=2, days=4)
-    # it works
-    oset.freqstr
-
-    assert not offsets.DateOffset(months=2) == 2
 
 
 def test_freq_offsets():
@@ -781,6 +784,54 @@ def test_tick_normalize_raises(tick_classes):
 
 
 @pytest.mark.parametrize(
+    "offset_kwargs, expected_arg",
+    [
+        ({"nanoseconds": 1}, "1970-01-01 00:00:00.000000001"),
+        ({"nanoseconds": 5}, "1970-01-01 00:00:00.000000005"),
+        ({"nanoseconds": -1}, "1969-12-31 23:59:59.999999999"),
+        ({"microseconds": 1}, "1970-01-01 00:00:00.000001"),
+        ({"microseconds": -1}, "1969-12-31 23:59:59.999999"),
+        ({"seconds": 1}, "1970-01-01 00:00:01"),
+        ({"seconds": -1}, "1969-12-31 23:59:59"),
+        ({"minutes": 1}, "1970-01-01 00:01:00"),
+        ({"minutes": -1}, "1969-12-31 23:59:00"),
+        ({"hours": 1}, "1970-01-01 01:00:00"),
+        ({"hours": -1}, "1969-12-31 23:00:00"),
+        ({"days": 1}, "1970-01-02 00:00:00"),
+        ({"days": -1}, "1969-12-31 00:00:00"),
+        ({"weeks": 1}, "1970-01-08 00:00:00"),
+        ({"weeks": -1}, "1969-12-25 00:00:00"),
+        ({"months": 1}, "1970-02-01 00:00:00"),
+        ({"months": -1}, "1969-12-01 00:00:00"),
+        ({"years": 1}, "1971-01-01 00:00:00"),
+        ({"years": -1}, "1969-01-01 00:00:00"),
+    ],
+)
+def test_dateoffset_add_sub(offset_kwargs, expected_arg):
+    offset = DateOffset(**offset_kwargs)
+    ts = Timestamp(0)
+    result = ts + offset
+    expected = Timestamp(expected_arg)
+    assert result == expected
+    result -= offset
+    assert result == ts
+    result = offset + ts
+    assert result == expected
+
+
+def test_dataoffset_add_sub_timestamp_with_nano():
+    offset = DateOffset(minutes=2, nanoseconds=9)
+    ts = Timestamp(4)
+    result = ts + offset
+    expected = Timestamp("1970-01-01 00:02:00.000000013")
+    assert result == expected
+    result -= offset
+    assert result == ts
+    result = offset + ts
+    assert result == expected
+
+
+@pytest.mark.parametrize(
     "attribute",
     [
         "hours",
@@ -795,3 +846,11 @@ def test_dateoffset_immutable(attribute):
     msg = "DateOffset objects are immutable"
     with pytest.raises(AttributeError, match=msg):
         setattr(offset, attribute, 5)
+
+
+def test_dateoffset_misc():
+    oset = offsets.DateOffset(months=2, days=4)
+    # it works
+    oset.freqstr
+
+    assert not offsets.DateOffset(months=2) == 2

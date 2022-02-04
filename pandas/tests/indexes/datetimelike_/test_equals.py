@@ -166,12 +166,17 @@ class TestTimedeltaIndexEquals(EqualsTests):
         assert not idx.equals(pd.Series(idx2))
 
         # Check that we dont raise OverflowError on comparisons outside the
-        #  implementation range
-        oob = Index([timedelta(days=10 ** 6)] * 3, dtype=object)
+        #  implementation range GH#28532
+        oob = Index([timedelta(days=10**6)] * 3, dtype=object)
         assert not idx.equals(oob)
         assert not idx2.equals(oob)
 
-        # FIXME: oob.apply(np.timedelta64) incorrectly overflows
         oob2 = Index([np.timedelta64(x) for x in oob], dtype=object)
+        assert (oob == oob2).all()
         assert not idx.equals(oob2)
         assert not idx2.equals(oob2)
+
+        oob3 = oob.map(np.timedelta64)
+        assert (oob3 == oob).all()
+        assert not idx.equals(oob3)
+        assert not idx2.equals(oob3)

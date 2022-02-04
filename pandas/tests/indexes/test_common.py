@@ -1,7 +1,7 @@
 """
 Collection of tests asserting things that should be true for
-any index subclass. Makes use of the `indices` fixture defined
-in pandas/tests/indexes/conftest.py.
+any index subclass except for MultiIndex. Makes use of the `index_flat`
+fixture defined in pandas/conftest.py.
 """
 import re
 
@@ -10,34 +10,50 @@ import pytest
 
 from pandas.compat import IS64
 
-from pandas.core.dtypes.common import (
-    is_integer_dtype,
-    needs_i8_conversion,
-)
+from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
 from pandas import (
     CategoricalIndex,
     DatetimeIndex,
     MultiIndex,
-    NumericIndex,
     PeriodIndex,
     RangeIndex,
     TimedeltaIndex,
 )
 import pandas._testing as tm
+from pandas.core.api import NumericIndex
 
 
 class TestCommon:
-    def test_droplevel(self, index):
+    @pytest.mark.parametrize("name", [None, "new_name"])
+    def test_to_frame(self, name, index_flat):
+        # see GH#15230, GH#22580
+        idx = index_flat
+
+        if name:
+            idx_name = name
+        else:
+            idx_name = idx.name or 0
+
+        df = idx.to_frame(name=idx_name)
+
+        assert df.index is idx
+        assert len(df.columns) == 1
+        assert df.columns[0] == idx_name
+        assert df[idx_name].values is not idx.values
+
+        df = idx.to_frame(index=False, name=idx_name)
+        assert df.index is not idx
+
+    def test_droplevel(self, index_flat):
         # GH 21115
-        if isinstance(index, MultiIndex):
-            # Tested separately in test_multi.py
-            return
+        # MultiIndex is tested separately in test_multi.py
+        index = index_flat
 
         assert index.droplevel([]).equals(index)
 
-        for level in index.name, [index.name]:
+        for level in [index.name, [index.name]]:
             if isinstance(index.name, tuple) and level is index.name:
                 # GH 21121 : droplevel with tuple name
                 continue
@@ -126,13 +142,51 @@ class TestCommon:
         new_copy = index.copy(deep=True, name="banana")
         assert new_copy.name == "banana"
 
+    def test_copy_name(self, index_flat):
+        # GH#12309: Check that the "name" argument
+        # passed at initialization is honored.
+        index = index_flat
+
+        first = type(index)(index, copy=True, name="mario")
+        second = type(first)(first, copy=False)
+
+        # Even though "copy=False", we want a new object.
+        assert first is not second
+        tm.assert_index_equal(first, second)
+
+        # Not using tm.assert_index_equal() since names differ.
+        assert index.equals(first)
+
+        assert first.name == "mario"
+        assert second.name == "mario"
+
+        # TODO: belongs in series arithmetic tests?
+        s1 = pd.Series(2, index=first)
+        s2 = pd.Series(3, index=second[:-1])
+        # See GH#13365
+        s3 = s1 * s2
+        assert s3.index.name == "mario"
+
+    def test_copy_name2(self, index_flat):
+        # GH#35592
+        index = index_flat
+
+        assert index.copy(name="mario").name == "mario"
+
+        with pytest.raises(ValueError, match="Length of new names must be 1, got 2"):
+            index.copy(name=["mario", "luigi"])
+
+        msg = f"{type(index).__name__}.name must be a hashable type"
+        with pytest.raises(TypeError, match=msg):
+            index.copy(name=[["mario"]])
+
     def test_unique_level(self, index_flat):
         # don't test a MultiIndex here (as its tested separated)
         index = index_flat
 
         # GH 17896
         expected = index.drop_duplicates()
-        for level in 0, index.name, None:
+        for level in [0, index.name, None]:
             result = index.unique(level=level)
             tm.assert_index_equal(result, expected)
 
@@ -141,8 +195,8 @@ class TestCommon:
             index.unique(level=3)
 
         msg = (
-            fr"Requested level \(wrong\) does not match index name "
-            fr"\({re.escape(index.name.__repr__())}\)"
+            rf"Requested level \(wrong\) does not match index name "
+            rf"\({re.escape(index.name.__repr__())}\)"
         )
         with pytest.raises(KeyError, match=msg):
             index.unique(level="wrong")
@@ -187,13 +241,17 @@ class TestCommon:
             result = i.unique()
             tm.assert_index_equal(result, expected)
 
-    def test_searchsorted_monotonic(self, index_flat):
+    def test_searchsorted_monotonic(self, index_flat, request):
         # GH17271
         index = index_flat
         # not implemented for tuple searches in MultiIndex
         # or Intervals searches in IntervalIndex
         if isinstance(index, pd.IntervalIndex):
-            pytest.skip("Skip check for MultiIndex/IntervalIndex")
+            mark = pytest.mark.xfail(
+                reason="IntervalIndex.searchsorted does not support Interval arg",
+                raises=NotImplementedError,
+            )
+            request.node.add_marker(mark)
 
         # nothing to test if the index is empty
         if index.empty:
@@ -322,10 +380,7 @@ class TestCommon:
             index.name = "idx"
 
         warn = None
-        if dtype in ["int64", "uint64"]:
-            if needs_i8_conversion(index.dtype):
-                warn = FutureWarning
-        elif (
+        if (
             isinstance(index, DatetimeIndex)
             and index.tz is not None
             and dtype == "datetime64[ns]"
@@ -404,7 +459,9 @@ def test_sort_values_with_missing(index_with_missing, na_position):
         sorted_values = np.concatenate([[None] * missing_count, sorted_values])
     else:
         sorted_values = np.concatenate([sorted_values, [None] * missing_count])
-    expected = type(index_with_missing)(sorted_values)
+
+    # Explicitly pass dtype needed for Index backed by EA e.g. IntegerArray
+    expected = type(index_with_missing)(sorted_values, dtype=index_with_missing.dtype)
 
     result = index_with_missing.sort_values(na_position=na_position)
     tm.assert_index_equal(result, expected)

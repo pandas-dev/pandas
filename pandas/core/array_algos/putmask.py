@@ -4,7 +4,6 @@ EA-compatible analogue to to np.putmask
 from __future__ import annotations
 
 from typing import Any
-import warnings
 
 import numpy as np
 
@@ -13,18 +12,13 @@ from pandas._typing import (
     ArrayLike,
     npt,
 )
+from pandas.compat import np_version_under1p20
 
 from pandas.core.dtypes.cast import (
     convert_scalar_for_putitemlike,
-    find_common_type,
     infer_dtype_from,
 )
-from pandas.core.dtypes.common import (
-    is_float_dtype,
-    is_integer_dtype,
-    is_list_like,
-)
-from pandas.core.dtypes.missing import isna_compat
+from pandas.core.dtypes.common import is_list_like
 
 from pandas.core.arrays import ExtensionArray
 
@@ -65,89 +59,9 @@ def putmask_inplace(values: ArrayLike, mask: npt.NDArray[np.bool_], value: Any) 
         np.putmask(values, mask, value)
 
 
-def putmask_smart(values: np.ndarray, mask: np.ndarray, new) -> np.ndarray:
-    """
-    Return a new ndarray, try to preserve dtype if possible.
-
-    Parameters
-    ----------
-    values : np.ndarray
-        `values`, updated in-place.
-    mask : np.ndarray[bool]
-        Applies to both sides (array like).
-    new : `new values` either scalar or an array like aligned with `values`
-
-    Returns
-    -------
-    values : ndarray with updated values
-        this *may* be a copy of the original
-
-    See Also
-    --------
-    ndarray.putmask
-    """
-    # we cannot use np.asarray() here as we cannot have conversions
-    # that numpy does when numeric are mixed with strings
-
-    # n should be the length of the mask or a scalar here
-    if not is_list_like(new):
-        new = np.broadcast_to(new, mask.shape)
-
-    # see if we are only masking values that if putted
-    # will work in the current dtype
-    try:
-        nn = new[mask]
-    except TypeError:
-        # TypeError: only integer scalar arrays can be converted to a scalar index
-        pass
-    else:
-        # make sure that we have a nullable type if we have nulls
-        if not isna_compat(values, nn[0]):
-            pass
-        elif not (is_float_dtype(nn.dtype) or is_integer_dtype(nn.dtype)):
-            # only compare integers/floats
-            pass
-        elif not (is_float_dtype(values.dtype) or is_integer_dtype(values.dtype)):
-            # only compare integers/floats
-            pass
-        else:
-
-            # we ignore ComplexWarning here
-            with warnings.catch_warnings(record=True):
-                warnings.simplefilter("ignore", np.ComplexWarning)
-                nn_at = nn.astype(values.dtype)
-
-            comp = nn == nn_at
-            if is_list_like(comp) and comp.all():
-                nv = values.copy()
-                nv[mask] = nn_at
-                return nv
-
-    new = np.asarray(new)
-
-    if values.dtype.kind == new.dtype.kind:
-        # preserves dtype if possible
-        return _putmask_preserve(values, new, mask)
-
-    dtype = find_common_type([values.dtype, new.dtype])
-    # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has incompatible type
-    # "Union[dtype[Any], ExtensionDtype]"; expected "Union[dtype[Any], None, type,
-    # _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]],
-    # List[Any], _DTypeDict, Tuple[Any, Any]]]"
-    values = values.astype(dtype)  # type: ignore[arg-type]
-
-    return _putmask_preserve(values, new, mask)
-
-
-def _putmask_preserve(new_values: np.ndarray, new, mask: np.ndarray):
-    try:
-        new_values[mask] = new[mask]
-    except (IndexError, ValueError):
-        new_values[mask] = new
-    return new_values
-
-
-def putmask_without_repeat(values: np.ndarray, mask: np.ndarray, new: Any) -> None:
+def putmask_without_repeat(
+    values: np.ndarray, mask: npt.NDArray[np.bool_], new: Any
+) -> None:
     """
     np.putmask will truncate or repeat if `new` is a listlike with
     len(new) != len(values).  We require an exact match.
@@ -158,6 +72,9 @@ def putmask_without_repeat(values: np.ndarray, mask: np.ndarray, new: Any) -> No
     mask : np.ndarray[bool]
     new : Any
     """
+    if np_version_under1p20:
+        new = setitem_datetimelike_compat(values, mask.sum(), new)
+
     if getattr(new, "ndim", 0) >= 1:
         new = new.astype(values.dtype, copy=False)
 
@@ -181,7 +98,9 @@ def putmask_without_repeat(values: np.ndarray, mask: np.ndarray, new: Any) -> No
         np.putmask(values, mask, new)
 
 
-def validate_putmask(values: ArrayLike, mask: np.ndarray) -> tuple[np.ndarray, bool]:
+def validate_putmask(
+    values: ArrayLike, mask: np.ndarray
+) -> tuple[npt.NDArray[np.bool_], bool]:
     """
     Validate mask and check if this putmask operation is a no-op.
     """
@@ -193,7 +112,7 @@ def validate_putmask(values: ArrayLike, mask: np.ndarray) -> tuple[np.ndarray, b
     return mask, noop
 
 
-def extract_bool_array(mask: ArrayLike) -> np.ndarray:
+def extract_bool_array(mask: ArrayLike) -> npt.NDArray[np.bool_]:
     """
     If we have a SparseArray or BooleanArray, convert it to ndarray[bool].
     """

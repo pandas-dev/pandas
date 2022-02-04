@@ -3,7 +3,6 @@ import datetime as dt
 from datetime import datetime
 import gzip
 import io
-import lzma
 import os
 import struct
 import warnings
@@ -22,6 +21,7 @@ from pandas.core.frame import (
 )
 from pandas.core.indexes.api import ensure_index
 
+import pandas.io.common as icom
 from pandas.io.parsers import read_csv
 from pandas.io.stata import (
     CategoricalConversionWarning,
@@ -477,9 +477,9 @@ class TestStata:
             tm.assert_frame_equal(written_and_read_again.set_index("index"), formatted)
 
     def test_read_write_dta13(self):
-        s1 = Series(2 ** 9, dtype=np.int16)
-        s2 = Series(2 ** 17, dtype=np.int32)
-        s3 = Series(2 ** 33, dtype=np.int64)
+        s1 = Series(2**9, dtype=np.int16)
+        s2 = Series(2**17, dtype=np.int32)
+        s3 = Series(2**33, dtype=np.int64)
         original = DataFrame({"int16": s1, "int32": s2, "int64": s3})
         original.index.name = "index"
 
@@ -610,8 +610,8 @@ class TestStata:
     def test_large_value_conversion(self):
         s0 = Series([1, 99], dtype=np.int8)
         s1 = Series([1, 127], dtype=np.int8)
-        s2 = Series([1, 2 ** 15 - 1], dtype=np.int16)
-        s3 = Series([1, 2 ** 63 - 1], dtype=np.int64)
+        s2 = Series([1, 2**15 - 1], dtype=np.int16)
+        s3 = Series([1, 2**63 - 1], dtype=np.int64)
         original = DataFrame({"s0": s0, "s1": s1, "s2": s2, "s3": s3})
         original.index.name = "index"
         with tm.ensure_clean() as path:
@@ -699,10 +699,10 @@ class TestStata:
         s0 = Series([0, 1, True], dtype=np.bool_)
         s1 = Series([0, 1, 100], dtype=np.uint8)
         s2 = Series([0, 1, 255], dtype=np.uint8)
-        s3 = Series([0, 1, 2 ** 15 - 100], dtype=np.uint16)
-        s4 = Series([0, 1, 2 ** 16 - 1], dtype=np.uint16)
-        s5 = Series([0, 1, 2 ** 31 - 100], dtype=np.uint32)
-        s6 = Series([0, 1, 2 ** 32 - 1], dtype=np.uint32)
+        s3 = Series([0, 1, 2**15 - 100], dtype=np.uint16)
+        s4 = Series([0, 1, 2**16 - 1], dtype=np.uint16)
+        s5 = Series([0, 1, 2**31 - 100], dtype=np.uint32)
+        s6 = Series([0, 1, 2**32 - 1], dtype=np.uint32)
 
         original = DataFrame(
             {"s0": s0, "s1": s1, "s2": s2, "s3": s3, "s4": s4, "s5": s5, "s6": s6}
@@ -1135,7 +1135,7 @@ class TestStata:
     ):
         fname = getattr(self, file)
 
-        with warnings.catch_warnings(record=True) as w:
+        with warnings.catch_warnings(record=True):
             warnings.simplefilter("always")
             parsed = read_stata(
                 fname,
@@ -1151,7 +1151,7 @@ class TestStata:
 
         pos = 0
         for j in range(5):
-            with warnings.catch_warnings(record=True) as w:  # noqa
+            with warnings.catch_warnings(record=True):
                 warnings.simplefilter("always")
                 try:
                     chunk = itr.read(chunksize)
@@ -1232,7 +1232,7 @@ class TestStata:
         fname = getattr(self, file)
 
         # Read the whole file
-        with warnings.catch_warnings(record=True) as w:
+        with warnings.catch_warnings(record=True):
             warnings.simplefilter("always")
             parsed = read_stata(
                 fname,
@@ -1249,7 +1249,7 @@ class TestStata:
         )
         pos = 0
         for j in range(5):
-            with warnings.catch_warnings(record=True) as w:  # noqa
+            with warnings.catch_warnings(record=True):
                 warnings.simplefilter("always")
                 try:
                     chunk = itr.read(chunksize)
@@ -1473,15 +1473,6 @@ The repeated labels are:\n-+\nwolof
             with tm.ensure_clean() as path:
                 df.to_stata(path)
 
-        df.loc[2, "ColumnTooBig"] = np.inf
-        msg = (
-            "Column ColumnTooBig has a maximum value of infinity which is outside "
-            "the range supported by Stata"
-        )
-        with pytest.raises(ValueError, match=msg):
-            with tm.ensure_clean() as path:
-                df.to_stata(path)
-
     def test_out_of_range_float(self):
         original = DataFrame(
             {
@@ -1507,14 +1498,17 @@ The repeated labels are:\n-+\nwolof
             original["ColumnTooBig"] = original["ColumnTooBig"].astype(np.float64)
             tm.assert_frame_equal(original, reread.set_index("index"))
 
-        original.loc[2, "ColumnTooBig"] = np.inf
+    @pytest.mark.parametrize("infval", [np.inf, -np.inf])
+    def test_inf(self, infval):
+        # GH 45350
+        df = DataFrame({"WithoutInf": [0.0, 1.0], "WithInf": [2.0, infval]})
         msg = (
-            "Column ColumnTooBig has a maximum value of infinity which "
-            "is outside the range supported by Stata"
+            "Column WithInf contains infinity or -infinity"
+            "which is outside the range supported by Stata."
         )
         with pytest.raises(ValueError, match=msg):
             with tm.ensure_clean() as path:
-                original.to_stata(path)
+                df.to_stata(path)
 
     def test_path_pathlib(self):
         df = tm.makeDataFrame()
@@ -1882,7 +1876,10 @@ def test_backward_compat(version, datapath):
 def test_compression(compression, version, use_dict, infer):
     file_name = "dta_inferred_compression.dta"
     if compression:
-        file_ext = "gz" if compression == "gzip" and not use_dict else compression
+        if use_dict:
+            file_ext = compression
+        else:
+            file_ext = icom._compression_to_extension[compression]
         file_name += f".{file_ext}"
     compression_arg = compression
     if infer:
@@ -1903,7 +1900,12 @@ def test_compression(compression, version, use_dict, infer):
         elif compression == "bz2":
             with bz2.open(path, "rb") as comp:
                 fp = io.BytesIO(comp.read())
+        elif compression == "zstd":
+            zstd = pytest.importorskip("zstandard")
+            with zstd.open(path, "rb") as comp:
+                fp = io.BytesIO(comp.read())
         elif compression == "xz":
+            lzma = pytest.importorskip("lzma")
             with lzma.open(path, "rb") as comp:
                 fp = io.BytesIO(comp.read())
         elif compression is None:
@@ -1991,7 +1993,7 @@ def test_iterator_value_labels():
 
 def test_precision_loss():
     df = DataFrame(
-        [[sum(2 ** i for i in range(60)), sum(2 ** i for i in range(52))]],
+        [[sum(2**i for i in range(60)), sum(2**i for i in range(52))]],
         columns=["big", "little"],
     )
     with tm.ensure_clean() as path:
@@ -2032,7 +2034,7 @@ def test_compression_roundtrip(compression):
 def test_stata_compression(compression_only, read_infer, to_infer):
     compression = compression_only
 
-    ext = "gz" if compression == "gzip" else compression
+    ext = icom._compression_to_extension[compression]
     filename = f"test.{ext}"
 
     df = DataFrame(

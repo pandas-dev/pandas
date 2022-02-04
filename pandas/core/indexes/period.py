@@ -25,6 +25,7 @@ from pandas._typing import (
     DtypeObj,
 )
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_datetime64_any_dtype,
@@ -151,6 +152,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
     _data: PeriodArray
     freq: BaseOffset
+    dtype: PeriodDtype
 
     _data_cls = PeriodArray
     _engine_type = libindex.PeriodEngine
@@ -228,6 +230,10 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
         if data is None and ordinal is None:
             # range-based.
+            if not fields:
+                # test_pickle_compat_construction
+                raise cls._scalar_data_error(None)
+
             data, freq2 = PeriodArray._generate_range(None, None, None, freq, fields)
             # PeriodArray._generate range does validation that fields is
             # empty when really using the range-based constructor.
@@ -345,13 +351,16 @@ class PeriodIndex(DatetimeIndexOpsMixin):
                 "will be removed in a future version. "
                 "Use index.to_timestamp(how=how) instead.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
         else:
             how = "start"
 
         if is_datetime64_any_dtype(dtype):
             # 'how' is index-specific, isn't part of the EA interface.
+            # GH#45038 implement this for PeriodArray (but without "how")
+            #  once the "how" deprecation is enforced we can just dispatch
+            #  directly to PeriodArray.
             tz = getattr(dtype, "tz", None)
             return self.to_timestamp(how=how).tz_localize(tz)
 
@@ -434,9 +443,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
                     # TODO: pass if method is not None, like DTI does?
                     raise KeyError(key) from err
 
-            # error: Item "ExtensionDtype"/"dtype[Any]" of "Union[dtype[Any],
-            # ExtensionDtype]" has no attribute "resolution"
-            if reso == self.dtype.resolution:  # type: ignore[union-attr]
+            if reso == self.dtype.resolution:
                 # the reso < self.dtype.resolution case goes through _get_string_slice
                 key = Period(parsed, freq=self.freq)
                 loc = self.get_loc(key, method=method, tolerance=tolerance)
@@ -489,9 +496,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     def _can_partial_date_slice(self, reso: Resolution) -> bool:
         assert isinstance(reso, Resolution), (type(reso), reso)
         # e.g. test_getitem_setitem_periodindex
-        # error: Item "ExtensionDtype"/"dtype[Any]" of "Union[dtype[Any],
-        # ExtensionDtype]" has no attribute "resolution"
-        return reso > self.dtype.resolution  # type: ignore[union-attr]
+        return reso > self.dtype.resolution
 
 
 def period_range(

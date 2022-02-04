@@ -35,6 +35,7 @@ from pandas._typing import (
     npt,
 )
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
@@ -107,8 +108,6 @@ if TYPE_CHECKING:
         TimedeltaArray,
     )
 
-_shared_docs: dict[str, str] = {}
-
 
 # --------------- #
 # dtype access    #
@@ -121,7 +120,7 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
     This will coerce:
     - ints -> int64
     - uint -> uint64
-    - bool -> uint64 (TODO this should be uint8)
+    - bool -> uint8
     - datetimelike -> i8
     - datetime64tz -> i8 (in local tz)
     - categorical -> codes
@@ -151,7 +150,7 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
             # i.e. all-bool Categorical, BooleanArray
             try:
                 return np.asarray(values).astype("uint8", copy=False)
-            except TypeError:
+            except (TypeError, ValueError):
                 # GH#42107 we have pd.NAs present
                 return np.asarray(values)
 
@@ -217,7 +216,7 @@ def _reconstruct_data(
         if isinstance(values, cls) and values.dtype == dtype:
             return values
 
-        values = cls._from_sequence(values)
+        values = cls._from_sequence(values, dtype=dtype)
     elif is_bool_dtype(dtype):
         values = values.astype(dtype, copy=False)
 
@@ -288,8 +287,6 @@ def _get_hashtable_algo(values: np.ndarray):
 
 
 def _get_values_for_rank(values: ArrayLike) -> np.ndarray:
-    if is_categorical_dtype(values):
-        values = cast("Categorical", values)._values_for_rank()
 
     values = _ensure_data(values)
     if values.dtype.kind in ["i", "u", "f"]:
@@ -299,7 +296,7 @@ def _get_values_for_rank(values: ArrayLike) -> np.ndarray:
     return values
 
 
-def get_data_algo(values: ArrayLike):
+def _get_data_algo(values: ArrayLike):
     values = _get_values_for_rank(values)
 
     ndtype = _check_object_for_strings(values)
@@ -338,8 +335,9 @@ def _check_object_for_strings(values: np.ndarray) -> str:
 
 def unique(values):
     """
-    Hash table-based unique. Uniques are returned in order
-    of appearance. This does NOT sort.
+    Return unique values based on a hash table.
+
+    Uniques are returned in order of appearance. This does NOT sort.
 
     Significantly faster than numpy.unique for long enough sequences.
     Includes NA values.
@@ -556,7 +554,7 @@ def factorize_array(
     codes : ndarray[np.intp]
     uniques : ndarray
     """
-    hash_klass, values = get_data_algo(values)
+    hash_klass, values = _get_data_algo(values)
 
     table = hash_klass(size_hint or len(values))
     uniques, codes = table.factorize(
@@ -623,7 +621,7 @@ def factorize(
         is a Categorical. When `values` is some other pandas object, an
         `Index` is returned. Otherwise, a 1-D ndarray is returned.
 
-        .. note ::
+        .. note::
 
            Even if there's a missing value in `values`, `uniques` will
            *not* contain an entry for it.
@@ -632,6 +630,10 @@ def factorize(
     --------
     cut : Discretize continuous-valued array.
     unique : Find the unique value in an array.
+
+    Notes
+    -----
+    Reference :ref:`the user guide <reshaping.factorize>` for more examples.
 
     Examples
     --------
@@ -772,7 +774,12 @@ def factorize(
         # na_value is set based on the dtype of uniques, and compat set to False is
         # because we do not want na_value to be 0 for integers
         na_value = na_value_for_dtype(uniques.dtype, compat=False)
-        uniques = np.append(uniques, [na_value])
+        # Argument 2 to "append" has incompatible type "List[Union[str, float, Period,
+        # Timestamp, Timedelta, Any]]"; expected "Union[_SupportsArray[dtype[Any]],
+        # _NestedSequence[_SupportsArray[dtype[Any]]]
+        # , bool, int, float, complex, str, bytes, _NestedSequence[Union[bool, int,
+        # float, complex, str, bytes]]]"  [arg-type]
+        uniques = np.append(uniques, [na_value])  # type: ignore[arg-type]
         codes = np.where(code_is_na, len(uniques) - 1, codes)
 
     uniques = _reconstruct_data(uniques, dtype, original)
@@ -889,7 +896,6 @@ def value_counts_arraylike(values, dropna: bool):
     original = values
     values = _ensure_data(values)
 
-    # TODO: handle uint8
     keys, counts = htable.value_count(values, dropna)
 
     if needs_i8_conversion(original.dtype):
@@ -928,7 +934,7 @@ def duplicated(
     return htable.duplicated(values, keep=keep)
 
 
-def mode(values, dropna: bool = True) -> Series:
+def mode(values: ArrayLike, dropna: bool = True) -> ArrayLike:
     """
     Returns the mode(s) of an array.
 
@@ -941,24 +947,17 @@ def mode(values, dropna: bool = True) -> Series:
 
     Returns
     -------
-    mode : Series
+    np.ndarray or ExtensionArray
     """
-    from pandas import Series
-    from pandas.core.indexes.api import default_index
-
     values = _ensure_arraylike(values)
     original = values
 
-    # categorical is a fast-path
-    if is_categorical_dtype(values):
-        if isinstance(values, Series):
-            # TODO: should we be passing `name` below?
-            return Series(values._values.mode(dropna=dropna), name=values.name)
-        return values.mode(dropna=dropna)
-
-    if dropna and needs_i8_conversion(values.dtype):
-        mask = values.isnull()
-        values = values[~mask]
+    if needs_i8_conversion(values.dtype):
+        # Got here with ndarray; dispatch to DatetimeArray/TimedeltaArray.
+        values = ensure_wrapped_if_datetimelike(values)
+        # error: Item "ndarray[Any, Any]" of "Union[ExtensionArray,
+        # ndarray[Any, Any]]" has no attribute "_mode"
+        return values._mode(dropna=dropna)  # type: ignore[union-attr]
 
     values = _ensure_data(values)
 
@@ -969,8 +968,7 @@ def mode(values, dropna: bool = True) -> Series:
         warn(f"Unable to sort modes: {err}")
 
     result = _reconstruct_data(npresult, original.dtype, original)
-    # Ensure index is type stable (should always use int index)
-    return Series(result, index=default_index(len(result)))
+    return result
 
 
 def rank(
@@ -980,13 +978,13 @@ def rank(
     na_option: str = "keep",
     ascending: bool = True,
     pct: bool = False,
-) -> np.ndarray:
+) -> npt.NDArray[np.float64]:
     """
     Rank the values along a given axis.
 
     Parameters
     ----------
-    values : array-like
+    values : np.ndarray or ExtensionArray
         Array whose values will be ranked. The number of dimensions in this
         array must not exceed 2.
     axis : int, default 0
@@ -1080,7 +1078,12 @@ def checked_add_with_arr(
     elif arr_mask is not None:
         not_nan = np.logical_not(arr_mask)
     elif b_mask is not None:
-        not_nan = np.logical_not(b2_mask)
+        # Argument 1 to "__call__" of "_UFunc_Nin1_Nout1" has incompatible type
+        # "Optional[ndarray[Any, dtype[bool_]]]"; expected
+        # "Union[_SupportsArray[dtype[Any]], _NestedSequence[_SupportsArray[dtype[An
+        # y]]], bool, int, float, complex, str, bytes, _NestedSequence[Union[bool,
+        # int, float, complex, str, bytes]]]"  [arg-type]
+        not_nan = np.logical_not(b2_mask)  # type: ignore[arg-type]
     else:
         not_nan = np.empty(arr.shape, dtype=bool)
         not_nan.fill(True)
@@ -1541,7 +1544,7 @@ def searchsorted(
 _diff_special = {"float64", "float32", "int64", "int32", "int16", "int8"}
 
 
-def diff(arr, n: int, axis: int = 0, stacklevel: int = 3):
+def diff(arr, n: int, axis: int = 0):
     """
     difference of n between self,
     analogous to s-s.shift(n)
@@ -1587,7 +1590,7 @@ def diff(arr, n: int, axis: int = 0, stacklevel: int = 3):
                 "dtype lost in 'diff()'. In the future this will raise a "
                 "TypeError. Convert to a suitable dtype prior to calling 'diff'.",
                 FutureWarning,
-                stacklevel=stacklevel,
+                stacklevel=find_stack_level(),
             )
             arr = np.asarray(arr)
             dtype = arr.dtype
@@ -1757,7 +1760,7 @@ def safe_sort(
 
     if sorter is None:
         # mixed types
-        hash_klass, values = get_data_algo(values)
+        hash_klass, values = _get_data_algo(values)
         t = hash_klass(len(values))
         t.map_locations(values)
         sorter = ensure_platform_int(t.lookup(ordered))
@@ -1839,5 +1842,5 @@ def union_with_duplicates(lvals: ArrayLike, rvals: ArrayLike) -> ArrayLike:
     unique_array = ensure_wrapped_if_datetimelike(unique_array)
 
     for i, value in enumerate(unique_array):
-        indexer += [i] * int(max(l_count[value], r_count[value]))
+        indexer += [i] * int(max(l_count.at[value], r_count.at[value]))
     return unique_array.take(indexer)

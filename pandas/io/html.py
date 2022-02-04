@@ -12,9 +12,13 @@ import re
 from typing import (
     Pattern,
     Sequence,
+    cast,
 )
 
-from pandas._typing import FilePathOrBuffer
+from pandas._typing import (
+    FilePath,
+    ReadBuffer,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     AbstractMethodError,
@@ -44,7 +48,7 @@ _HAS_LXML = False
 _HAS_HTML5LIB = False
 
 
-def _importers():
+def _importers() -> None:
     # import things we need
     # but make this done on a first use basis
 
@@ -90,7 +94,7 @@ def _remove_whitespace(s: str, regex: Pattern = _RE_WHITESPACE) -> str:
     return regex.sub(" ", s.strip())
 
 
-def _get_skiprows(skiprows: int | Sequence[int] | slice | None):
+def _get_skiprows(skiprows: int | Sequence[int] | slice | None) -> int | Sequence[int]:
     """
     Get an iterator given an integer, slice or container.
 
@@ -113,24 +117,27 @@ def _get_skiprows(skiprows: int | Sequence[int] | slice | None):
         start, step = skiprows.start or 0, skiprows.step or 1
         return list(range(start, skiprows.stop, step))
     elif isinstance(skiprows, numbers.Integral) or is_list_like(skiprows):
-        return skiprows
+        return cast("int | Sequence[int]", skiprows)
     elif skiprows is None:
         return 0
     raise TypeError(f"{type(skiprows).__name__} is not a valid type for skipping rows")
 
 
-def _read(obj: bytes | FilePathOrBuffer, encoding: str | None) -> str | bytes:
+def _read(
+    obj: bytes | FilePath | ReadBuffer[str] | ReadBuffer[bytes], encoding: str | None
+) -> str | bytes:
     """
     Try to read from a url, file or string.
 
     Parameters
     ----------
-    obj : str, unicode, or file-like
+    obj : str, unicode, path object, or file-like object
 
     Returns
     -------
     raw_text : str
     """
+    text: str | bytes
     if (
         is_url(obj)
         or hasattr(obj, "read")
@@ -148,9 +155,7 @@ def _read(obj: bytes | FilePathOrBuffer, encoding: str | None) -> str | bytes:
         text = obj
     else:
         raise TypeError(f"Cannot read object of type '{type(obj).__name__}'")
-    # error: Incompatible return value type (got "Union[Any, bytes, None, str]",
-    # expected "Union[str, bytes]")
-    return text  # type: ignore[return-value]
+    return text
 
 
 class _HtmlFrameParser:
@@ -211,7 +216,7 @@ class _HtmlFrameParser:
 
     def __init__(
         self,
-        io: FilePathOrBuffer,
+        io: FilePath | ReadBuffer[str] | ReadBuffer[bytes],
         match: str | Pattern,
         attrs: dict[str, str] | None,
         encoding: str,
@@ -944,7 +949,7 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
 
 @deprecate_nonkeyword_arguments(version="2.0")
 def read_html(
-    io: FilePathOrBuffer,
+    io: FilePath | ReadBuffer[str],
     match: str | Pattern = ".+",
     flavor: str | None = None,
     header: int | Sequence[int] | None = None,
@@ -965,8 +970,10 @@ def read_html(
 
     Parameters
     ----------
-    io : str, path object or file-like object
-        A URL, a file-like object, or a raw string containing HTML. Note that
+    io : str, path object, or file-like object
+        String, path object (implementing ``os.PathLike[str]``), or file-like
+        object implementing a string ``read()`` function.
+        The string can represent a URL or the HTML itself. Note that
         lxml only accepts the http, ftp and file url protocols. If you have a
         URL that starts with ``'https'`` you might try removing the ``'s'``.
 

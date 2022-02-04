@@ -142,21 +142,21 @@ def test_attribute_access(test_frame):
     tm.assert_series_equal(r.A.sum(), r["A"].sum())
 
 
-def test_api_compat_before_use():
+@pytest.mark.parametrize("attr", ["groups", "ngroups", "indices"])
+def test_api_compat_before_use(attr):
 
     # make sure that we are setting the binner
     # on these attributes
-    for attr in ["groups", "ngroups", "indices"]:
-        rng = date_range("1/1/2012", periods=100, freq="S")
-        ts = Series(np.arange(len(rng)), index=rng)
-        rs = ts.resample("30s")
+    rng = date_range("1/1/2012", periods=100, freq="S")
+    ts = Series(np.arange(len(rng)), index=rng)
+    rs = ts.resample("30s")
 
-        # before use
-        getattr(rs, attr)
+    # before use
+    getattr(rs, attr)
 
-        # after grouper is initialized is ok
-        rs.mean()
-        getattr(rs, attr)
+    # after grouper is initialized is ok
+    rs.mean()
+    getattr(rs, attr)
 
 
 def tests_skip_nuisance(test_frame):
@@ -273,15 +273,16 @@ def test_fillna():
         r.fillna(0)
 
 
-def test_apply_without_aggregation():
-
+@pytest.mark.parametrize(
+    "func",
+    [lambda x: x.resample("20min"), lambda x: x.groupby(pd.Grouper(freq="20min"))],
+    ids=["resample", "groupby"],
+)
+def test_apply_without_aggregation(func):
     # both resample and groupby should work w/o aggregation
-    r = test_series.resample("20min")
-    g = test_series.groupby(pd.Grouper(freq="20min"))
-
-    for t in [g, r]:
-        result = t.apply(lambda x: x)
-        tm.assert_series_equal(result, test_series)
+    t = func(test_series)
+    result = t.apply(lambda x: x)
+    tm.assert_series_equal(result, test_series)
 
 
 def test_agg_consistency():
@@ -316,7 +317,7 @@ def test_agg_consistency_int_str_column_mix():
         r.agg({2: "mean", "b": "sum"})
 
 
-# TODO: once GH 14008 is fixed, move these tests into
+# TODO(GH#14008): once GH 14008 is fixed, move these tests into
 # `Base` test class
 
 

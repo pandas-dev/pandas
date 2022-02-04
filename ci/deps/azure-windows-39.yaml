@@ -21,13 +21,11 @@ dependencies:
   - jinja2
   - lxml
   - matplotlib
-  - moto>=1.3.14
-  - flask
   - numba
   - numexpr
   - numpy
   - openpyxl
-  - pyarrow
+  - pyarrow=6
   - pytables
   - python-dateutil
   - pytz
@@ -38,6 +36,5 @@ dependencies:
   - xlsxwriter
   - xlwt
   - pyreadstat
-  - pip
-  - pip:
-    - pyxlsb
+  - pyxlsb
+  - zstandard

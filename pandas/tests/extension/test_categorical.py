@@ -144,6 +144,10 @@ class TestSetitem(base.BaseSetitemTests):
     pass
 
 
+class TestIndex(base.BaseIndexTests):
+    pass
+
+
 class TestMissing(base.BaseMissingTests):
     @pytest.mark.skip(reason="Not implemented")
     def test_fillna_limit_pad(self, data_missing):
@@ -303,3 +307,14 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
 
 class TestParsing(base.BaseParsingTests):
     pass
+
+
+class Test2DCompat(base.NDArrayBacked2DTests):
+    def test_repr_2d(self, data):
+        # Categorical __repr__ doesn't include "Categorical", so we need
+        #  to special-case
+        res = repr(data.reshape(1, -1))
+        assert res.count("\nCategories") == 1
+
+        res = repr(data.reshape(-1, 1))
+        assert res.count("\nCategories") == 1

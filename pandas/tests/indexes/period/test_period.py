@@ -34,16 +34,6 @@ class TestPeriodIndex(DatetimeLike):
     def index(self, request):
         return request.param
 
-    @pytest.mark.xfail(reason="Goes through a generate_range path")
-    def test_pickle_compat_construction(self):
-        super().test_pickle_compat_construction()
-
-    @pytest.mark.parametrize("freq", ["D", "M", "A"])
-    def test_pickle_round_trip(self, freq):
-        idx = PeriodIndex(["2016-05-16", "NaT", NaT, np.NaN], freq=freq)
-        result = tm.round_trip_pickle(idx)
-        tm.assert_index_equal(result, idx)
-
     def test_where(self):
         # This is handled in test_indexing
         pass
@@ -211,7 +201,7 @@ class TestPeriodIndex(DatetimeLike):
         ]
 
         periods = list(periodindex)
-        s = Series(periodindex)
+        ser = Series(periodindex)
 
         for field in fields:
             field_idx = getattr(periodindex, field)
@@ -219,10 +209,10 @@ class TestPeriodIndex(DatetimeLike):
             for x, val in zip(periods, field_idx):
                 assert getattr(x, field) == val
 
-            if len(s) == 0:
+            if len(ser) == 0:
                 continue
 
-            field_s = getattr(s.dt, field)
+            field_s = getattr(ser.dt, field)
             assert len(periodindex) == len(field_s)
             for x, val in zip(periods, field_s):
                 assert getattr(x, field) == val
@@ -307,13 +297,6 @@ class TestPeriodIndex(DatetimeLike):
 
         assert isinstance(s.index.values[0][0], Period)
 
-    def test_pickle_freq(self):
-        # GH2891
-        prng = period_range("1/1/2011", "1/1/2012", freq="M")
-        new_prng = tm.round_trip_pickle(prng)
-        assert new_prng.freq == offsets.MonthEnd()
-        assert new_prng.freqstr == "M"
-
     def test_map(self):
         # test_map_dictlike generally tests
 
@@ -339,47 +322,6 @@ def test_maybe_convert_timedelta():
     msg = r"Input has different freq=B from PeriodIndex\(freq=D\)"
     with pytest.raises(ValueError, match=msg):
         pi._maybe_convert_timedelta(offset)
-
-
-def test_is_monotonic_with_nat():
-    # GH#31437
-    # PeriodIndex.is_monotonic should behave analogously to DatetimeIndex,
-    #  in particular never be monotonic when we have NaT
-    dti = date_range("2016-01-01", periods=3)
-    pi = dti.to_period("D")
-    tdi = Index(dti.view("timedelta64[ns]"))
-
-    for obj in [pi, pi._engine, dti, dti._engine, tdi, tdi._engine]:
-        if isinstance(obj, Index):
-            # i.e. not Engines
-            assert obj.is_monotonic
-        assert obj.is_monotonic_increasing
-        assert not obj.is_monotonic_decreasing
-        assert obj.is_unique
-
-    dti1 = dti.insert(0, NaT)
-    pi1 = dti1.to_period("D")
-    tdi1 = Index(dti1.view("timedelta64[ns]"))
-
-    for obj in [pi1, pi1._engine, dti1, dti1._engine, tdi1, tdi1._engine]:
-        if isinstance(obj, Index):
-            # i.e. not Engines
-            assert not obj.is_monotonic
-        assert not obj.is_monotonic_increasing
-        assert not obj.is_monotonic_decreasing
-        assert obj.is_unique
-
-    dti2 = dti.insert(3, NaT)
-    pi2 = dti2.to_period("H")
-    tdi2 = Index(dti2.view("timedelta64[ns]"))
-
-    for obj in [pi2, pi2._engine, dti2, dti2._engine, tdi2, tdi2._engine]:
-        if isinstance(obj, Index):
-            # i.e. not Engines
-            assert not obj.is_monotonic
-        assert not obj.is_monotonic_increasing
-        assert not obj.is_monotonic_decreasing
-        assert obj.is_unique
 
 
 @pytest.mark.parametrize("array", [True, False])

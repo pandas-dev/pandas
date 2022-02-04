@@ -145,6 +145,8 @@ def cut(
     Any NA values will be NA in the result. Out of bounds values will be NA in
     the resulting Series or Categorical object.
 
+    Reference :ref:`the user guide <reshaping.tile.cut>` for more examples.
+
     Examples
     --------
     Discretize into three equal-sized bins.
@@ -443,7 +445,8 @@ def _bins_to_cuts(
             )
         elif ordered and len(set(labels)) != len(labels):
             raise ValueError(
-                "labels must be unique if ordered=True; pass ordered=False for duplicate labels"  # noqa
+                "labels must be unique if ordered=True; pass ordered=False "
+                "for duplicate labels"
             )
         else:
             if len(labels) != len(bins) - 1:
