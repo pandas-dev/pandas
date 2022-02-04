@@ -3,6 +3,7 @@ from __future__ import annotations
 from functools import reduce
 from itertools import product
 import operator
+import random
 import warnings
 
 import numpy as np
@@ -74,22 +75,14 @@ def parser(request):
     return request.param
 
 
-def _get_unary_fns_for_ne():
-    return list(_unary_math_ops) if NUMEXPR_INSTALLED else []
-
-
-@pytest.fixture(params=_get_unary_fns_for_ne())
+@pytest.fixture(params=list(_unary_math_ops) if NUMEXPR_INSTALLED else [])
 def unary_fns_for_ne(request):
     return request.param
 
 
-def engine_has_neg_frac(engine):
-    return ENGINES[engine].has_neg_frac
-
-
 def _eval_single_bin(lhs, cmp1, rhs, engine):
     c = _binary_ops_dict[cmp1]
-    if engine_has_neg_frac(engine):
+    if ENGINES[engine].has_neg_frac:
         try:
             return c(lhs, rhs)
         except ValueError as e:
@@ -99,29 +92,6 @@ def _eval_single_bin(lhs, cmp1, rhs, engine):
                 return np.nan
             raise
     return c(lhs, rhs)
-
-
-def _series_and_2d_ndarray(lhs, rhs):
-    return (
-        isinstance(lhs, Series) and isinstance(rhs, np.ndarray) and rhs.ndim > 1
-    ) or (isinstance(rhs, Series) and isinstance(lhs, np.ndarray) and lhs.ndim > 1)
-
-
-def _series_and_frame(lhs, rhs):
-    return (isinstance(lhs, Series) and isinstance(rhs, DataFrame)) or (
-        isinstance(rhs, Series) and isinstance(lhs, DataFrame)
-    )
-
-
-def _bool_and_frame(lhs, rhs):
-    return isinstance(lhs, bool) and isinstance(rhs, pd.core.generic.NDFrame)
-
-
-def _is_py3_complex_incompat(result, expected):
-    return isinstance(expected, (complex, np.complexfloating)) and np.isnan(result)
-
-
-_good_arith_ops = sorted(set(ARITH_OPS_SYMS).difference(SPECIAL_CASE_ARITH_OPS_SYMS))
 
 
 # TODO: using range(5) here is a kludge
@@ -155,12 +125,6 @@ class TestEval:
         self.engine = engine
         self.parser = parser
 
-    @classmethod
-    def setup_class(cls):
-        import numexpr as ne
-
-        cls.ne = ne
-
     @property
     def current_engines(self):
         return (engine for engine in ENGINES if engine != self.engine)
@@ -177,7 +141,7 @@ class TestEval:
             msg = "'BoolOp' nodes are not implemented"
             with pytest.raises(NotImplementedError, match=msg):
                 ex = f"(lhs {cmp1} rhs) {binop} (lhs {cmp2} rhs)"
-                result = pd.eval(ex, engine=self.engine, parser=self.parser)
+                pd.eval(ex, engine=self.engine, parser=self.parser)
             return
 
         lhs_new = _eval_single_bin(lhs, cmp1, rhs, self.engine)
@@ -186,7 +150,7 @@ class TestEval:
 
         ex = f"(lhs {cmp1} rhs) {binop} (lhs {cmp2} rhs)"
         result = pd.eval(ex, engine=self.engine, parser=self.parser)
-        self.check_equal(result, expected)
+        tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("cmp_op", expr.CMP_OPS_SYMS)
     def test_simple_cmp_ops(self, cmp_op, lhs, rhs):
@@ -197,10 +161,31 @@ class TestEval:
             msg = "'(In|NotIn)' nodes are not implemented"
 
             with pytest.raises(NotImplementedError, match=msg):
-                self.check_simple_cmp_op(lhs, cmp_op, rhs)
+                ex = f"lhs {cmp_op} rhs"
+                pd.eval(ex, engine=self.engine, parser=self.parser)
             return
 
-        self.check_simple_cmp_op(lhs, cmp_op, rhs)
+        ex = f"lhs {cmp_op} rhs"
+        msg = "|".join(
+            [
+                r"only list-like( or dict-like)? objects are allowed to be "
+                r"passed to (DataFrame\.)?isin\(\), you passed a "
+                r"(\[|')bool(\]|')",
+                "argument of type 'bool' is not iterable",
+            ]
+        )
+        if cmp_op in ("in", "not in") and not is_list_like(rhs):
+            with pytest.raises(TypeError, match=msg):
+                pd.eval(
+                    ex,
+                    engine=self.engine,
+                    parser=self.parser,
+                    local_dict={"lhs": lhs, "rhs": rhs},
+                )
+        else:
+            expected = _eval_single_bin(lhs, cmp_op, rhs, self.engine)
+            result = pd.eval(ex, engine=self.engine, parser=self.parser)
+            tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("op", expr.CMP_OPS_SYMS)
     def test_compound_invert_op(self, op, lhs, rhs, request):
@@ -208,7 +193,8 @@ class TestEval:
 
             msg = "'(In|NotIn)' nodes are not implemented"
             with pytest.raises(NotImplementedError, match=msg):
-                self.check_compound_invert_op(lhs, op, rhs)
+                ex = f"~(lhs {op} rhs)"
+                pd.eval(ex, engine=self.engine, parser=self.parser)
             return
 
         if (
@@ -223,26 +209,46 @@ class TestEval:
                 "expected is incorrect or result is incorrect"
             )
             request.node.add_marker(mark)
+        skip_these = ["in", "not in"]
+        ex = f"~(lhs {op} rhs)"
 
-        self.check_compound_invert_op(lhs, op, rhs)
+        msg = "|".join(
+            [
+                r"only list-like( or dict-like)? objects are allowed to be "
+                r"passed to (DataFrame\.)?isin\(\), you passed a "
+                r"(\[|')float(\]|')",
+                "argument of type 'float' is not iterable",
+            ]
+        )
+        if is_scalar(rhs) and op in skip_these:
+            with pytest.raises(TypeError, match=msg):
+                pd.eval(
+                    ex,
+                    engine=self.engine,
+                    parser=self.parser,
+                    local_dict={"lhs": lhs, "rhs": rhs},
+                )
+        else:
+            # compound
+            if is_scalar(lhs) and is_scalar(rhs):
+                lhs, rhs = map(lambda x: np.array([x]), (lhs, rhs))
+            expected = _eval_single_bin(lhs, op, rhs, self.engine)
+            if is_scalar(expected):
+                expected = not expected
+            else:
+                expected = ~expected
+            result = pd.eval(ex, engine=self.engine, parser=self.parser)
+            tm.assert_almost_equal(expected, result)
+
+            # make sure the other engines work the same as this one
+            for engine in self.current_engines:
+                ev = pd.eval(ex, engine=self.engine, parser=self.parser)
+                tm.assert_almost_equal(ev, result)
 
     @pytest.mark.parametrize("cmp1", ["<", ">"])
     @pytest.mark.parametrize("cmp2", ["<", ">"])
     def test_chained_cmp_op(self, cmp1, cmp2, lhs, midhs, rhs):
-        self.check_chained_cmp_op(lhs, cmp1, midhs, cmp2, rhs)
-
-    def check_equal(self, result, expected):
-        if isinstance(result, DataFrame):
-            tm.assert_frame_equal(result, expected)
-        elif isinstance(result, Series):
-            tm.assert_series_equal(result, expected)
-        elif isinstance(result, np.ndarray):
-            tm.assert_numpy_array_equal(result, expected)
-        else:
-            assert result == expected
-
-    def check_chained_cmp_op(self, lhs, cmp1, mid, cmp2, rhs):
-
+        mid = midhs
         if self.parser == "python":
             ex1 = f"lhs {cmp1} mid {cmp2} rhs"
             msg = "'BoolOp' nodes are not implemented"
@@ -264,30 +270,9 @@ class TestEval:
 
                 tm.assert_almost_equal(result, expected)
 
-    def check_simple_cmp_op(self, lhs, cmp1, rhs):
-        ex = f"lhs {cmp1} rhs"
-        msg = "|".join(
-            [
-                r"only list-like( or dict-like)? objects are allowed to be "
-                r"passed to (DataFrame\.)?isin\(\), you passed a "
-                r"(\[|')bool(\]|')",
-                "argument of type 'bool' is not iterable",
-            ]
-        )
-        if cmp1 in ("in", "not in") and not is_list_like(rhs):
-            with pytest.raises(TypeError, match=msg):
-                pd.eval(
-                    ex,
-                    engine=self.engine,
-                    parser=self.parser,
-                    local_dict={"lhs": lhs, "rhs": rhs},
-                )
-        else:
-            expected = _eval_single_bin(lhs, cmp1, rhs, self.engine)
-            result = pd.eval(ex, engine=self.engine, parser=self.parser)
-            self.check_equal(result, expected)
-
-    @pytest.mark.parametrize("arith1", _good_arith_ops)
+    @pytest.mark.parametrize(
+        "arith1", sorted(set(ARITH_OPS_SYMS).difference(SPECIAL_CASE_ARITH_OPS_SYMS))
+    )
     def test_binary_arith_ops(self, arith1, lhs, rhs):
         ex = f"lhs {arith1} rhs"
         result = pd.eval(ex, engine=self.engine, parser=self.parser)
@@ -297,26 +282,25 @@ class TestEval:
         ex = f"lhs {arith1} rhs {arith1} rhs"
         result = pd.eval(ex, engine=self.engine, parser=self.parser)
         nlhs = _eval_single_bin(lhs, arith1, rhs, self.engine)
-        self.check_alignment(result, nlhs, rhs, arith1)
-
-    def check_alignment(self, result, nlhs, ghs, op):
         try:
-            nlhs, ghs = nlhs.align(ghs)
+            nlhs, ghs = nlhs.align(rhs)
         except (ValueError, TypeError, AttributeError):
             # ValueError: series frame or frame series align
             # TypeError, AttributeError: series or frame with scalar align
-            pass
+            return
         else:
             if self.engine == "numexpr":
+                import numexpr as ne
+
                 # direct numpy comparison
-                expected = self.ne.evaluate(f"nlhs {op} ghs")
+                expected = ne.evaluate(f"nlhs {arith1} ghs")
                 # Update assert statement due to unreliable numerical
                 # precision component (GH37328)
                 # TODO: update testing code so that assert_almost_equal statement
                 #  can be replaced again by the assert_numpy_array_equal statement
                 tm.assert_almost_equal(result.values, expected)
             else:
-                expected = eval(f"nlhs {op} ghs")
+                expected = eval(f"nlhs {arith1} ghs")
                 tm.assert_almost_equal(result, expected)
 
     # modulus, pow, and floor division require special casing
@@ -328,7 +312,9 @@ class TestEval:
         tm.assert_almost_equal(result, expected)
 
         if self.engine == "numexpr":
-            expected = self.ne.evaluate(r"expected % rhs")
+            import numexpr as ne
+
+            expected = ne.evaluate(r"expected % rhs")
             if isinstance(result, (DataFrame, Series)):
                 tm.assert_almost_equal(result.values, expected)
             else:
@@ -343,7 +329,7 @@ class TestEval:
         if self.engine == "python":
             res = pd.eval(ex, engine=self.engine, parser=self.parser)
             expected = lhs // rhs
-            self.check_equal(res, expected)
+            tm.assert_equal(res, expected)
         else:
             msg = (
                 r"unsupported operand type\(s\) for //: 'VariableNode' and "
@@ -367,7 +353,8 @@ class TestEval:
         if (
             is_scalar(lhs)
             and is_scalar(rhs)
-            and _is_py3_complex_incompat(result, expected)
+            and isinstance(expected, (complex, np.complexfloating))
+            and np.isnan(result)
         ):
             msg = "(DataFrame.columns|numpy array) are different"
             with pytest.raises(AssertionError, match=msg):
@@ -397,43 +384,6 @@ class TestEval:
                 result, pd.eval("~elb", engine=engine, parser=self.parser)
             )
 
-    def check_compound_invert_op(self, lhs, cmp1, rhs):
-        skip_these = ["in", "not in"]
-        ex = f"~(lhs {cmp1} rhs)"
-
-        msg = "|".join(
-            [
-                r"only list-like( or dict-like)? objects are allowed to be "
-                r"passed to (DataFrame\.)?isin\(\), you passed a "
-                r"(\[|')float(\]|')",
-                "argument of type 'float' is not iterable",
-            ]
-        )
-        if is_scalar(rhs) and cmp1 in skip_these:
-            with pytest.raises(TypeError, match=msg):
-                pd.eval(
-                    ex,
-                    engine=self.engine,
-                    parser=self.parser,
-                    local_dict={"lhs": lhs, "rhs": rhs},
-                )
-        else:
-            # compound
-            if is_scalar(lhs) and is_scalar(rhs):
-                lhs, rhs = map(lambda x: np.array([x]), (lhs, rhs))
-            expected = _eval_single_bin(lhs, cmp1, rhs, self.engine)
-            if is_scalar(expected):
-                expected = not expected
-            else:
-                expected = ~expected
-            result = pd.eval(ex, engine=self.engine, parser=self.parser)
-            tm.assert_almost_equal(expected, result)
-
-            # make sure the other engines work the same as this one
-            for engine in self.current_engines:
-                ev = pd.eval(ex, engine=self.engine, parser=self.parser)
-                tm.assert_almost_equal(ev, result)
-
     def test_frame_invert(self):
         expr = "~lhs"
 
@@ -444,18 +394,18 @@ class TestEval:
         if self.engine == "numexpr":
             msg = "couldn't find matching opcode for 'invert_dd'"
             with pytest.raises(NotImplementedError, match=msg):
-                result = pd.eval(expr, engine=self.engine, parser=self.parser)
+                pd.eval(expr, engine=self.engine, parser=self.parser)
         else:
             msg = "ufunc 'invert' not supported for the input types"
             with pytest.raises(TypeError, match=msg):
-                result = pd.eval(expr, engine=self.engine, parser=self.parser)
+                pd.eval(expr, engine=self.engine, parser=self.parser)
 
         # int raises on numexpr
         lhs = DataFrame(np.random.randint(5, size=(5, 2)))
         if self.engine == "numexpr":
             msg = "couldn't find matching opcode for 'invert"
             with pytest.raises(NotImplementedError, match=msg):
-                result = pd.eval(expr, engine=self.engine, parser=self.parser)
+                pd.eval(expr, engine=self.engine, parser=self.parser)
         else:
             expect = ~lhs
             result = pd.eval(expr, engine=self.engine, parser=self.parser)
@@ -471,11 +421,11 @@ class TestEval:
         lhs = DataFrame({"b": ["a", 1, 2.0], "c": np.random.rand(3) > 0.5})
         if self.engine == "numexpr":
             with pytest.raises(ValueError, match="unknown type object"):
-                result = pd.eval(expr, engine=self.engine, parser=self.parser)
+                pd.eval(expr, engine=self.engine, parser=self.parser)
         else:
             msg = "bad operand type for unary ~: 'str'"
             with pytest.raises(TypeError, match=msg):
-                result = pd.eval(expr, engine=self.engine, parser=self.parser)
+                pd.eval(expr, engine=self.engine, parser=self.parser)
 
     def test_series_invert(self):
         # ~ ####
@@ -518,11 +468,11 @@ class TestEval:
         lhs = Series(["a", 1, 2.0])
         if self.engine == "numexpr":
             with pytest.raises(ValueError, match="unknown type object"):
-                result = pd.eval(expr, engine=self.engine, parser=self.parser)
+                pd.eval(expr, engine=self.engine, parser=self.parser)
         else:
             msg = "bad operand type for unary ~: 'str'"
             with pytest.raises(TypeError, match=msg):
-                result = pd.eval(expr, engine=self.engine, parser=self.parser)
+                pd.eval(expr, engine=self.engine, parser=self.parser)
 
     def test_frame_negate(self):
         expr = "-lhs"
@@ -544,7 +494,7 @@ class TestEval:
         if self.engine == "numexpr":
             msg = "couldn't find matching opcode for 'neg_bb'"
             with pytest.raises(NotImplementedError, match=msg):
-                result = pd.eval(expr, engine=self.engine, parser=self.parser)
+                pd.eval(expr, engine=self.engine, parser=self.parser)
         else:
             expect = -lhs
             result = pd.eval(expr, engine=self.engine, parser=self.parser)
@@ -570,7 +520,7 @@ class TestEval:
         if self.engine == "numexpr":
             msg = "couldn't find matching opcode for 'neg_bb'"
             with pytest.raises(NotImplementedError, match=msg):
-                result = pd.eval(expr, engine=self.engine, parser=self.parser)
+                pd.eval(expr, engine=self.engine, parser=self.parser)
         else:
             expect = -lhs
             result = pd.eval(expr, engine=self.engine, parser=self.parser)
@@ -661,13 +611,11 @@ class TestEval:
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
-    def test_float_comparison_bin_op(self, dtype):
+    @pytest.mark.parametrize("expr", ["x < -0.1", "-5 > x"])
+    def test_float_comparison_bin_op(self, dtype, expr):
         # GH 16363
         df = DataFrame({"x": np.array([0], dtype=dtype)})
-        res = df.eval("x < -0.1")
-        assert res.values == np.array([False])
-
-        res = df.eval("-5 > x")
+        res = df.eval(expr)
         assert res.values == np.array([False])
 
     @pytest.mark.parametrize(
@@ -777,15 +725,11 @@ class TestTypeCasting:
     # maybe someday... numexpr has too many upcasting rules now
     # chain(*(np.sctypes[x] for x in ['uint', 'int', 'float']))
     @pytest.mark.parametrize("dt", [np.float32, np.float64])
-    def test_binop_typecasting(self, engine, parser, op, dt):
+    @pytest.mark.parametrize("left_right", [("df", "3"), ("3", "df")])
+    def test_binop_typecasting(self, engine, parser, op, dt, left_right):
         df = tm.makeCustomDataframe(5, 3, data_gen_f=f, dtype=dt)
-        s = f"df {op} 3"
-        res = pd.eval(s, engine=engine, parser=parser)
-        assert df.values.dtype == dt
-        assert res.values.dtype == dt
-        tm.assert_frame_equal(res, eval(s))
-
-        s = f"3 {op} df"
+        left, right = left_right
+        s = f"{left} {op} {right}"
         res = pd.eval(s, engine=engine, parser=parser)
         assert df.values.dtype == dt
         assert res.values.dtype == dt
@@ -796,13 +740,11 @@ class TestTypeCasting:
 # Basic and complex alignment
 
 
-def _is_datetime(x):
-    return issubclass(x.dtype.type, np.datetime64)
-
-
 def should_warn(*args):
     not_mono = not any(map(operator.attrgetter("is_monotonic_increasing"), args))
-    only_one_dt = reduce(operator.xor, map(_is_datetime, args))
+    only_one_dt = reduce(
+        operator.xor, map(lambda x: issubclass(x.dtype.type, np.datetime64), args)
+    )
     return not_mono and only_one_dt
 
 
@@ -967,8 +909,6 @@ class TestAlignment:
     @pytest.mark.parametrize("r2", index_types)
     @pytest.mark.parametrize("c2", index_types)
     def test_complex_series_frame_alignment(self, engine, parser, r1, c1, r2, c2):
-        import random
-
         n = 3
         m1 = 5
         m2 = 2 * m1
@@ -1227,72 +1167,74 @@ class TestOperations:
         with pytest.raises(ValueError, match=msg):
             self.eval(expr1, local_dict={"df": df, "df2": df2})
 
-    def test_assignment_column(self):
+    def test_assignment_column_multiple_raise(self):
         df = DataFrame(np.random.randn(5, 2), columns=list("ab"))
-        orig_df = df.copy()
-
         # multiple assignees
         with pytest.raises(SyntaxError, match="invalid syntax"):
             df.eval("d c = a + b")
 
+    def test_assignment_column_invalid_assign(self):
+        df = DataFrame(np.random.randn(5, 2), columns=list("ab"))
         # invalid assignees
         msg = "left hand side of an assignment must be a single name"
         with pytest.raises(SyntaxError, match=msg):
             df.eval("d,c = a + b")
 
+    def test_assignment_column_invalid_assign_function_call(self):
+        df = DataFrame(np.random.randn(5, 2), columns=list("ab"))
         msg = "cannot assign to function call"
         with pytest.raises(SyntaxError, match=msg):
             df.eval('Timestamp("20131001") = a + b')
 
+    def test_assignment_single_assign_existing(self):
+        df = DataFrame(np.random.randn(5, 2), columns=list("ab"))
         # single assignment - existing variable
-        expected = orig_df.copy()
+        expected = df.copy()
         expected["a"] = expected["a"] + expected["b"]
-        df = orig_df.copy()
         df.eval("a = a + b", inplace=True)
         tm.assert_frame_equal(df, expected)
 
+    def test_assignment_single_assign_new(self):
+        df = DataFrame(np.random.randn(5, 2), columns=list("ab"))
         # single assignment - new variable
-        expected = orig_df.copy()
+        expected = df.copy()
         expected["c"] = expected["a"] + expected["b"]
-        df = orig_df.copy()
         df.eval("c = a + b", inplace=True)
         tm.assert_frame_equal(df, expected)
 
-        # with a local name overlap
-        def f():
-            df = orig_df.copy()
-            a = 1  # noqa:F841
-            df.eval("a = 1 + b", inplace=True)
-            return df
+    def test_assignment_single_assign_local_overlap(self):
+        df = DataFrame(np.random.randn(5, 2), columns=list("ab"))
+        df = df.copy()
+        a = 1  # noqa:F841
+        df.eval("a = 1 + b", inplace=True)
 
-        df = f()
-        expected = orig_df.copy()
+        expected = df.copy()
         expected["a"] = 1 + expected["b"]
         tm.assert_frame_equal(df, expected)
 
-        df = orig_df.copy()
+    def test_assignment_single_assign_name(self):
+        df = DataFrame(np.random.randn(5, 2), columns=list("ab"))
 
-        def f():
-            a = 1  # noqa:F841
-            old_a = df.a.copy()
-            df.eval("a = a + b", inplace=True)
-            result = old_a + df.b
-            tm.assert_series_equal(result, df.a, check_names=False)
-            assert result.name is None
+        a = 1  # noqa:F841
+        old_a = df.a.copy()
+        df.eval("a = a + b", inplace=True)
+        result = old_a + df.b
+        tm.assert_series_equal(result, df.a, check_names=False)
+        assert result.name is None
 
-        f()
-
+    def test_assignment_multiple_raises(self):
+        df = DataFrame(np.random.randn(5, 2), columns=list("ab"))
         # multiple assignment
-        df = orig_df.copy()
         df.eval("c = a + b", inplace=True)
         msg = "can only assign a single expression"
         with pytest.raises(SyntaxError, match=msg):
             df.eval("c = a = b")
 
+    def test_assignment_explicit(self):
+        df = DataFrame(np.random.randn(5, 2), columns=list("ab"))
         # explicit targets
-        df = orig_df.copy()
         self.eval("c = df.a + df.b", local_dict={"df": df}, target=df, inplace=True)
-        expected = orig_df.copy()
+        expected = df.copy()
         expected["c"] = expected["a"] + expected["b"]
         tm.assert_frame_equal(df, expected)
 
@@ -1687,7 +1629,22 @@ class TestMath:
         expect = np.sin(df.a + df.b)
         tm.assert_series_equal(got, expect, check_names=False)
 
-    def check_result_type(self, dtype, expect_dtype):
+    @pytest.mark.parametrize(
+        "dtype, expect_dtype",
+        [
+            (np.int32, np.float64),
+            (np.int64, np.float64),
+            (np.float32, np.float32),
+            (np.float64, np.float64),
+            pytest.param(np.complex128, np.complex128, marks=td.skip_if_windows),
+        ],
+    )
+    def test_result_types(self, dtype, expect_dtype):
+        # xref https://github.com/pandas-dev/pandas/issues/12293
+        #  this fails on Windows, apparently a floating point precision issue
+
+        # Did not test complex64 because DataFrame is converting it to
+        # complex128. Due to https://github.com/pandas-dev/pandas/issues/10952
         df = DataFrame({"a": np.random.randn(10).astype(dtype)})
         assert df.a.dtype == dtype
         df.eval("b = sin(a)", engine=self.engine, parser=self.parser, inplace=True)
@@ -1696,21 +1653,6 @@ class TestMath:
         assert expect.dtype == got.dtype
         assert expect_dtype == got.dtype
         tm.assert_series_equal(got, expect, check_names=False)
-
-    def test_result_types(self):
-        self.check_result_type(np.int32, np.float64)
-        self.check_result_type(np.int64, np.float64)
-        self.check_result_type(np.float32, np.float32)
-        self.check_result_type(np.float64, np.float64)
-
-    @td.skip_if_windows
-    def test_result_complex128(self):
-        # xref https://github.com/pandas-dev/pandas/issues/12293
-        #  this fails on Windows, apparently a floating point precision issue
-
-        # Did not test complex64 because DataFrame is converting it to
-        # complex128. Due to https://github.com/pandas-dev/pandas/issues/10952
-        self.check_result_type(np.complex128, np.complex128)
 
     def test_undefined_func(self):
         df = DataFrame({"a": np.random.randn(10)})
@@ -1865,7 +1807,7 @@ def test_empty_string_raises(engine, parser):
 
 
 def test_more_than_one_expression_raises(engine, parser):
-    with pytest.raises(SyntaxError, match=("only a single expression is allowed")):
+    with pytest.raises(SyntaxError, match="only a single expression is allowed"):
         pd.eval("1 + 1; 2 + 2", engine=engine, parser=parser)
 
 
