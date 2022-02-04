@@ -7,11 +7,11 @@ from io import (
     StringIO,
 )
 import logging
-import os
 
 import numpy as np
 import pytest
 
+from pandas.compat import is_ci_environment
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame
@@ -263,7 +263,7 @@ class TestS3:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.skipif(
-        os.environ.get("PANDAS_CI", "0") == "1",
+        is_ci_environment(),
         reason="This test can hang in our CI min_versions build "
         "and leads to '##[error]The runner has "
         "received a shutdown signal...' in GHA. GH: 45651",

@@ -1,12 +1,14 @@
 from collections import defaultdict
 from datetime import datetime
 from itertools import product
-import os
 
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_windows
+from pandas.compat import (
+    is_ci_environment,
+    is_platform_windows,
+)
 
 from pandas import (
     DataFrame,
@@ -428,7 +430,7 @@ class TestSafeSort:
         tm.assert_numpy_array_equal(result_codes, expected_codes)
 
     @pytest.mark.skipif(
-        is_platform_windows() and os.environ.get("PANDAS_CI", "0") == "1",
+        is_platform_windows() and is_ci_environment(),
         reason="In CI environment can crash thread with: "
         "Windows fatal exception: access violation",
     )
