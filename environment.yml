@@ -34,7 +34,7 @@ dependencies:
   - gitdb
   - sphinx
   - sphinx-panels
-  - numpydoc < 1.2  # 2021-02-09 1.2dev breaking CI
+  - numpydoc
   - pydata-sphinx-theme
   - types-python-dateutil
   - types-PyMySQL

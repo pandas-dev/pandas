@@ -20,7 +20,7 @@ gitpython
 gitdb
 sphinx
 sphinx-panels
-numpydoc < 1.2
+numpydoc
 pydata-sphinx-theme
 types-python-dateutil
 types-PyMySQL
