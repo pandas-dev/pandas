@@ -132,8 +132,9 @@ class ODSWriter(ExcelWriter):
             tc.addElement(p)
 
         # add all rows to the sheet
-        for row_nr in range(max(rows.keys()) + 1):
-            wks.addElement(rows[row_nr])
+        if len(rows) > 0:
+            for row_nr in range(max(rows.keys()) + 1):
+                wks.addElement(rows[row_nr])
 
     def _make_table_cell_attributes(self, cell) -> dict[str, int | str]:
         """Convert cell attributes to OpenDocument attributes
