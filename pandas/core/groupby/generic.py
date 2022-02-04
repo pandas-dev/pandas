@@ -1186,7 +1186,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
 
     def _can_use_transform_fast(self, func: str, result) -> bool:
-        return func == "size" or (
+        # ngroup can only use transform_fast when there are no null keys dropped
+        # caller is responsible to check this case
+        return func in ("ngroup", "size") or (
             isinstance(result, DataFrame)
             and result.columns.equals(self._obj_with_exclusions.columns)
         )

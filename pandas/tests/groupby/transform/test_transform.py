@@ -1113,10 +1113,6 @@ def test_transform_agg_by_name(request, reduction_func, obj):
     func = reduction_func
     g = obj.groupby(np.repeat([0, 1], 3))
 
-    if func == "ngroup":  # GH#27468
-        request.node.add_marker(
-            pytest.mark.xfail(reason="TODO: g.transform('ngroup') doesn't work")
-        )
     if func == "corrwith" and isinstance(obj, Series):  # GH#32293
         request.node.add_marker(
             pytest.mark.xfail(reason="TODO: implement SeriesGroupBy.corrwith")
@@ -1128,8 +1124,8 @@ def test_transform_agg_by_name(request, reduction_func, obj):
     # this is the *definition* of a transformation
     tm.assert_index_equal(result.index, obj.index)
 
-    if func != "size" and obj.ndim == 2:
-        # size returns a Series, unlike other transforms
+    if func not in ("ngroup", "size") and obj.ndim == 2:
+        # size/ngroup return a Series, unlike other transforms
         tm.assert_index_equal(result.columns, obj.columns)
 
     # verify that values were broadcasted across each group
@@ -1281,9 +1277,88 @@ def test_transform_cumcount():
     tm.assert_series_equal(result, expected)
 
 
-def test_null_group_lambda_self():
+# Test both monotonic increasing and not
+@pytest.mark.parametrize("keys", [[1, 2, np.nan], [2, 1, np.nan]])
+def test_null_group_lambda_self(dropna, keys):
     # GH 17093
-    df = DataFrame({"A": [1, np.nan], "B": [1, 1]})
-    result = df.groupby("A").transform(lambda x: x)
-    expected = DataFrame([1], columns=["B"])
+    df = DataFrame({"A": keys, "B": [1, 2, 3]})
+    result = df.groupby("A", dropna=dropna).transform(lambda x: x)
+    value = np.nan if dropna else 3
+    expected = DataFrame([1, 2, value], columns=["B"])
     tm.assert_frame_equal(result, expected)
+
+
+def test_null_group_str_reducer(request, dropna, reduction_func):
+    # GH 17093
+    index = [1, 2, 3, 4]  # test transform preserves non-standard index
+    df = DataFrame({"A": [1, 1, np.nan, np.nan], "B": [1, 2, 2, 3]}, index=index)
+    gb = df.groupby("A", dropna=dropna)
+
+    if reduction_func == "corrwith":
+        args = (df["B"],)
+    elif reduction_func == "nth":
+        args = (0,)
+    else:
+        args = ()
+
+    # Manually handle reducers that don't fit the generic pattern
+    # Set expected with dropna=False, then replace if necessary
+    if reduction_func == "first":
+        expected = DataFrame({"B": [1, 1, 2, 2]}, index=index)
+    elif reduction_func == "last":
+        expected = DataFrame({"B": [2, 2, 3, 3]}, index=index)
+    elif reduction_func == "nth":
+        expected = DataFrame({"B": [1, 1, 2, 2]}, index=index)
+    elif reduction_func == "size":
+        expected = Series([2, 2, 2, 2], index=index)
+    elif reduction_func == "ngroup":
+        expected = Series([0, 0, 1, 1], index=index)
+    elif reduction_func == "corrwith":
+        expected = DataFrame({"B": [1.0, 1.0, 1.0, 1.0]}, index=index)
+    else:
+        expected_gb = df.groupby("A", dropna=False)
+        buffer = []
+        for idx, group in expected_gb:
+            res = getattr(group["B"], reduction_func)()
+            buffer.append(Series(res, index=group.index))
+        expected = concat(buffer).to_frame("B")
+    if dropna:
+        dtype = object if reduction_func in ("any", "all") else float
+        expected = expected.astype(dtype)
+        if expected.ndim == 2:
+            expected.iloc[[2, 3], 0] = np.nan
+        else:
+            expected.iloc[[2, 3]] = np.nan
+
+    result = gb.transform(reduction_func, *args)
+    tm.assert_equal(result, expected)
+
+
+def test_null_group_str_transformer(request, dropna, transformation_func):
+    # GH 17093
+    if transformation_func == "tshift":
+        msg = "tshift requires timeseries"
+        request.node.add_marker(pytest.mark.xfail(reason=msg))
+    args = (0,) if transformation_func == "fillna" else ()
+    df = DataFrame({"A": [1, 1, np.nan], "B": [1, 2, 2]}, index=[1, 2, 3])
+    gb = df.groupby("A", dropna=dropna)
+
+    buffer = []
+    for idx, group in gb:
+        if transformation_func == "cumcount":
+            # DataFrame has no cumcount method
+            res = DataFrame({"B": range(len(group))}, index=group.index)
+        else:
+            res = getattr(group[["B"]], transformation_func)(*args)
+        buffer.append(res)
+    if dropna:
+        dtype = object if transformation_func in ("any", "all") else None
+        buffer.append(DataFrame([[np.nan]], index=[3], dtype=dtype, columns=["B"]))
+    expected = concat(buffer)
+
+    if transformation_func == "cumcount":
+        # cumcount always returns a Series as it counts the groups, not values
+        expected = expected["B"].rename(None)
+
+    result = gb.transform(transformation_func, *args)
+    tm.assert_equal(result, expected)

@@ -38,6 +38,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import (
+    ensure_dtype_can_hold_na,
     maybe_cast_pointwise_result,
     maybe_downcast_to_dtype,
 )
@@ -112,7 +113,8 @@ class WrappedCythonOp:
     #  back to the original dtype.
     cast_blocklist = frozenset(["rank", "count", "size", "idxmin", "idxmax"])
 
-    def __init__(self, kind: str, how: str):
+    def __init__(self, grouper, kind: str, how: str):
+        self.grouper = grouper
         self.kind = kind
         self.how = how
 
@@ -199,7 +201,9 @@ class WrappedCythonOp:
         func = self._get_cython_function(kind, how, values.dtype, is_numeric)
 
         if values.dtype.kind in ["i", "u"]:
-            if how in ["add", "var", "prod", "mean", "ohlc"]:
+            if how in ["add", "var", "prod", "mean", "ohlc"] or (
+                kind == "transform" and self.grouper.has_dropped_na
+            ):
                 # result may still include NaN, so we have to cast
                 values = ensure_float64(values)
 
@@ -262,6 +266,9 @@ class WrappedCythonOp:
 
     def get_out_dtype(self, dtype: np.dtype) -> np.dtype:
         how = self.how
+
+        if self.kind == "transform" and self.grouper.has_dropped_na:
+            dtype = ensure_dtype_can_hold_na(dtype)
 
         if how == "rank":
             out_dtype = "float64"
@@ -463,6 +470,11 @@ class WrappedCythonOp:
             # otherwise we have OHLC
             return res.T
 
+        if self.kind == "transform" and self.grouper.has_dropped_na:
+            mask = comp_ids == -1
+            # make mask 2d
+            mask = mask[None, :]
+
         return self._call_cython_op(
             values,
             min_count=min_count,
@@ -570,6 +582,10 @@ class WrappedCythonOp:
                     result[empty_groups] = np.nan
 
         result = result.T
+
+        if self.how == "rank" and self.grouper.has_dropped_na:
+            # TODO: Wouldn't need this if group_rank supported mask
+            result = np.where(comp_ids < 0, np.nan, result)
 
         if self.how not in self.cast_blocklist:
             # e.g. if we are int64 and need to restore to datetime64/timedelta64
@@ -825,6 +841,14 @@ class BaseGrouper:
         # return if my group orderings are monotonic
         return Index(self.group_info[0]).is_monotonic_increasing
 
+    @final
+    @cache_readonly
+    def has_dropped_na(self) -> bool:
+        # TODO: Would like this to be named "contains_na" and be True whenever
+        #       there is a null in the grouper (regardless of dropna), but right
+        #       now will only be True when there is a null and dropna=True.
+        return bool((self.group_info[0] < 0).any())
+
     @cache_readonly
     def group_info(self) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
         comp_ids, obs_group_ids = self._get_compressed_codes()
@@ -928,7 +952,7 @@ class BaseGrouper:
         """
         assert kind in ["transform", "aggregate"]
 
-        cy_op = WrappedCythonOp(kind=kind, how=how)
+        cy_op = WrappedCythonOp(grouper=self, kind=kind, how=how)
 
         ids, _, _ = self.group_info
         ngroups = self.ngroups
