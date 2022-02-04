@@ -136,8 +136,10 @@ def get_api_items(api_doc_fd):
 
 
 class PandasDocstring(Validator):
-    def __init__(self, func_name: str, doc_obj):
+    def __init__(self, func_name: str, doc_obj=None):
         self.func_name = func_name
+        if doc_obj is None:
+            doc_obj = get_doc_object(Validator._load_obj(func_name))
         super().__init__(doc_obj)
 
     @property
