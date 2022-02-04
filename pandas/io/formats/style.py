@@ -3640,11 +3640,15 @@ def _highlight_between(
         if left is not None
         else np.full(data.shape, True, dtype=bool)
     )
+    if isinstance(g_left, (DataFrame, Series)):
+        g_left = g_left.where(pd.notna(g_left), False)
     l_right = (
         ops[1](data, right)
         if right is not None
         else np.full(data.shape, True, dtype=bool)
     )
+    if isinstance(l_right, (DataFrame, Series)):
+        l_right = l_right.where(pd.notna(l_right), False)
     return np.where(g_left & l_right, props, "")
 
 
@@ -3655,7 +3659,9 @@ def _highlight_value(data: DataFrame | Series, op: str, props: str) -> np.ndarra
     value = getattr(data, op)(skipna=True)
     if isinstance(data, DataFrame):  # min/max must be done twice to return scalar
         value = getattr(value, op)(skipna=True)
-    return np.where(data == value, props, "")
+    cond = data == value
+    cond = cond.where(pd.notna(cond), False)
+    return np.where(cond, props, "")
 
 
 def _bar(
