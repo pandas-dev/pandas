@@ -14,6 +14,3 @@ result = df2.index
 expected = MultiIndex.from_product(iterables)
 
 tm.assert_index_equal(result, expected)
-
-assert df2.index.has_duplicates == True
-assert df2.index.is_unique == False
