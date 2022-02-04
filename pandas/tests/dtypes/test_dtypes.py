@@ -848,7 +848,7 @@ class TestCategoricalDtypeParametrized:
         tm.assert_index_equal(result.categories, pd.Index(["a", "b", "c"]))
         assert result.ordered is False
 
-    def test_equal_but_different(self, ordered):
+    def test_equal_but_different(self):
         c1 = CategoricalDtype([1, 2, 3])
         c2 = CategoricalDtype([1.0, 2.0, 3.0])
         assert c1 is not c2

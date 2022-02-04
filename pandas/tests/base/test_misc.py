@@ -148,14 +148,18 @@ def test_memory_usage_components_narrow_series(dtype):
     assert total_usage == non_index_usage + index_usage
 
 
-def test_searchsorted(index_or_series_obj):
+def test_searchsorted(request, index_or_series_obj):
     # numpy.searchsorted calls obj.searchsorted under the hood.
     # See gh-12238
     obj = index_or_series_obj
 
     if isinstance(obj, pd.MultiIndex):
         # See gh-14833
-        pytest.skip("np.searchsorted doesn't work on pd.MultiIndex")
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="np.searchsorted doesn't work on pd.MultiIndex: GH 14833"
+            )
+        )
 
     max_obj = max(obj, default=0)
     index = np.searchsorted(obj, max_obj)

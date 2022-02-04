@@ -87,6 +87,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.inference import is_list_like
 from pandas.core.dtypes.missing import (
+    array_equivalent,
     is_valid_na_for_dtype,
     isna,
     na_value_for_dtype,
@@ -470,8 +471,13 @@ def ensure_dtype_can_hold_na(dtype: DtypeObj) -> DtypeObj:
     If we have a dtype that cannot hold NA values, find the best match that can.
     """
     if isinstance(dtype, ExtensionDtype):
-        # TODO: ExtensionDtype.can_hold_na?
-        return dtype
+        if dtype._can_hold_na:
+            return dtype
+        elif isinstance(dtype, IntervalDtype):
+            # TODO(GH#45349): don't special-case IntervalDtype, allow
+            #  overriding instead of returning object below.
+            return IntervalDtype(np.float64, closed=dtype.closed)
+        return _dtype_obj
     elif dtype.kind == "b":
         return _dtype_obj
     elif dtype.kind in ["i", "u"]:
@@ -1470,6 +1476,10 @@ def find_result_type(left: ArrayLike, right: Any) -> DtypeObj:
 
         new_dtype = np.result_type(left, right)
 
+    elif is_valid_na_for_dtype(right, left.dtype):
+        # e.g. IntervalDtype[int] and None/np.nan
+        new_dtype = ensure_dtype_can_hold_na(left.dtype)
+
     else:
         dtype, _ = infer_dtype_from(right, pandas_dtype=True)
 
@@ -1914,6 +1924,8 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
                 arr._validate_setitem_value(element)
                 return True
             except (ValueError, TypeError):
+                # TODO(2.0): stop catching ValueError for tzaware, see
+                #  _catch_deprecated_value_error
                 return False
 
         # This is technically incorrect, but maintains the behavior of
@@ -1923,7 +1935,7 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
     try:
         np_can_hold_element(dtype, element)
         return True
-    except (TypeError, ValueError):
+    except (TypeError, LossySetitemError):
         return False
 
 
@@ -1953,7 +1965,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
         if isinstance(element, range):
             if _dtype_can_hold_range(element, dtype):
                 return element
-            raise ValueError
+            raise LossySetitemError
 
         elif is_integer(element) or (is_float(element) and element.is_integer()):
             # e.g. test_setitem_series_int8 if we have a python int 1
@@ -1961,14 +1973,13 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             #  in smaller int dtypes.
             info = np.iinfo(dtype)
             if info.min <= element <= info.max:
-                return element
-            raise ValueError
+                return dtype.type(element)
+            raise LossySetitemError
 
         if tipo is not None:
             if tipo.kind not in ["i", "u"]:
                 if isinstance(element, np.ndarray) and element.dtype.kind == "f":
                     # If all can be losslessly cast to integers, then we can hold them
-                    #  We do something similar in putmask_smart
                     casted = element.astype(dtype)
                     comp = casted == element
                     if comp.all():
@@ -1976,10 +1987,10 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                         #  np.putmask, whereas the raw values cannot.
                         #  see TestSetitemFloatNDarrayIntoIntegerSeries
                         return casted
-                    raise ValueError
+                    raise LossySetitemError
 
                 # Anything other than integer we cannot hold
-                raise ValueError
+                raise LossySetitemError
             elif (
                 dtype.kind == "u"
                 and isinstance(element, np.ndarray)
@@ -1991,37 +2002,46 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                     # TODO: faster to check (element >=0).all()?  potential
                     #  itemsize issues there?
                     return casted
-                raise ValueError
+                raise LossySetitemError
             elif dtype.itemsize < tipo.itemsize:
-                raise ValueError
+                raise LossySetitemError
             elif not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype; we can put this into an ndarray
                 #  losslessly iff it has no NAs
                 if element._hasna:
-                    raise ValueError
+                    raise LossySetitemError
                 return element
 
             return element
 
-        raise ValueError
+        raise LossySetitemError
 
     elif dtype.kind == "f":
         if tipo is not None:
             # TODO: itemsize check?
             if tipo.kind not in ["f", "i", "u"]:
                 # Anything other than float/integer we cannot hold
-                raise ValueError
+                raise LossySetitemError
             elif not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype or FloatingDtype;
                 #  we can put this into an ndarray losslessly iff it has no NAs
                 if element._hasna:
-                    raise ValueError
+                    raise LossySetitemError
                 return element
+            elif tipo.itemsize > dtype.itemsize:
+                if isinstance(element, np.ndarray):
+                    # e.g. TestDataFrameIndexingWhere::test_where_alignment
+                    casted = element.astype(dtype)
+                    # TODO(np>=1.20): we can just use np.array_equal with equal_nan
+                    if array_equivalent(casted, element):
+                        return casted
+                    raise LossySetitemError
+
             return element
 
         if lib.is_integer(element) or lib.is_float(element):
             return element
-        raise ValueError
+        raise LossySetitemError
 
     elif dtype.kind == "c":
         if lib.is_integer(element) or lib.is_complex(element) or lib.is_float(element):
@@ -2033,13 +2053,13 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             if casted == element:
                 return casted
             # otherwise e.g. overflow see test_32878_complex_itemsize
-            raise ValueError
+            raise LossySetitemError
 
         if tipo is not None:
             if tipo.kind in ["c", "f", "i", "u"]:
                 return element
-            raise ValueError
-        raise ValueError
+            raise LossySetitemError
+        raise LossySetitemError
 
     elif dtype.kind == "b":
         if tipo is not None:
@@ -2048,12 +2068,12 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                     # i.e. we have a BooleanArray
                     if element._hasna:
                         # i.e. there are pd.NA elements
-                        raise ValueError
+                        raise LossySetitemError
                 return element
-            raise ValueError
+            raise LossySetitemError
         if lib.is_bool(element):
             return element
-        raise ValueError
+        raise LossySetitemError
 
     elif dtype.kind == "S":
         # TODO: test tests.frame.methods.test_replace tests get here,
@@ -2061,10 +2081,10 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
         if tipo is not None:
             if tipo.kind == "S" and tipo.itemsize <= dtype.itemsize:
                 return element
-            raise ValueError
+            raise LossySetitemError
         if isinstance(element, bytes) and len(element) <= dtype.itemsize:
             return element
-        raise ValueError
+        raise LossySetitemError
 
     raise NotImplementedError(dtype)
 
@@ -2078,3 +2098,11 @@ def _dtype_can_hold_range(rng: range, dtype: np.dtype) -> bool:
     if not len(rng):
         return True
     return np.can_cast(rng[0], dtype) and np.can_cast(rng[-1], dtype)
+
+
+class LossySetitemError(Exception):
+    """
+    Raised when trying to do a __setitem__ on an np.ndarray that is not lossless.
+    """
+
+    pass

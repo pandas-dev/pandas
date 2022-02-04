@@ -18,12 +18,14 @@ from pandas import (
     IntervalIndex,
     MultiIndex,
     NaT,
+    Period,
     Series,
     Timedelta,
     Timestamp,
     array,
     concat,
     date_range,
+    interval_range,
     period_range,
     timedelta_range,
 )
@@ -362,6 +364,48 @@ class TestSetitemBooleanMask:
         result[0] = np.nan
         expected = Series([np.nan, False, True], dtype=object)
         tm.assert_series_equal(result, expected)
+
+    def test_setitem_mask_smallint_upcast(self):
+        orig = Series([1, 2, 3], dtype="int8")
+        alt = np.array([999, 1000, 1001], dtype=np.int64)
+
+        mask = np.array([True, False, True])
+
+        ser = orig.copy()
+        ser[mask] = Series(alt)
+        expected = Series([999, 2, 1001])
+        tm.assert_series_equal(ser, expected)
+
+        ser2 = orig.copy()
+        ser2.mask(mask, alt, inplace=True)
+        tm.assert_series_equal(ser2, expected)
+
+        ser3 = orig.copy()
+        res = ser3.where(~mask, Series(alt))
+        tm.assert_series_equal(res, expected)
+
+    def test_setitem_mask_smallint_no_upcast(self):
+        # like test_setitem_mask_smallint_upcast, but while we can't hold 'alt',
+        #  we *can* hold alt[mask] without casting
+        orig = Series([1, 2, 3], dtype="uint8")
+        alt = Series([245, 1000, 246], dtype=np.int64)
+
+        mask = np.array([True, False, True])
+
+        ser = orig.copy()
+        ser[mask] = alt
+        expected = Series([245, 2, 246], dtype="uint8")
+        tm.assert_series_equal(ser, expected)
+
+        ser2 = orig.copy()
+        ser2.mask(mask, alt, inplace=True)
+        tm.assert_series_equal(ser2, expected)
+
+        # FIXME: don't leave commented-out
+        # FIXME: ser.where(~mask, alt) unnecessarily upcasts to int64
+        # ser3 = orig.copy()
+        # res = ser3.where(~mask, alt)
+        # tm.assert_series_equal(res, expected)
 
 
 class TestSetitemViewCopySemantics:
@@ -714,7 +758,7 @@ class SetitemCastingEquivalents:
 
         self._check_inplace(is_inplace, orig, arr, obj)
 
-    def test_index_where(self, obj, key, expected, val, request):
+    def test_index_where(self, obj, key, expected, val):
         if obj.dtype == bool or obj.dtype.kind == "c" or expected.dtype.kind == "c":
             # TODO(GH#45061): Should become unreachable (at least the bool part)
             pytest.skip("test not applicable for this dtype")
@@ -740,6 +784,17 @@ class SetitemCastingEquivalents:
 @pytest.mark.parametrize(
     "obj,expected,key",
     [
+        pytest.param(
+            # GH#45568 setting a valid NA value into IntervalDtype[int] should
+            #  cast to IntervalDtype[float]
+            Series(interval_range(1, 5)),
+            Series(
+                [Interval(1, 2), np.nan, Interval(3, 4), Interval(4, 5)],
+                dtype="interval[float64]",
+            ),
+            1,
+            id="interval_int_na_value",
+        ),
         pytest.param(
             # these induce dtype changes
             Series([2, 3, 4, 5, 6, 7, 8, 9, 10]),
@@ -1062,7 +1117,7 @@ class TestSetitemRangeIntoIntegerSeries(SetitemCastingEquivalents):
     [
         np.array([2.0, 3.0]),
         np.array([2.5, 3.5]),
-        np.array([2 ** 65, 2 ** 65 + 1], dtype=np.float64),  # all ints, but can't cast
+        np.array([2**65, 2**65 + 1], dtype=np.float64),  # all ints, but can't cast
     ],
 )
 class TestSetitemFloatNDarrayIntoIntegerSeries(SetitemCastingEquivalents):
@@ -1101,7 +1156,7 @@ class TestSetitemIntoIntegerSeriesNeedsUpcast(SetitemCastingEquivalents):
         return Series([1, 512, 3], dtype=np.int16)
 
 
-@pytest.mark.parametrize("val", [2 ** 33 + 1.0, 2 ** 33 + 1.1, 2 ** 62])
+@pytest.mark.parametrize("val", [2**33 + 1.0, 2**33 + 1.1, 2**62])
 class TestSmallIntegerSetitemUpcast(SetitemCastingEquivalents):
     # https://github.com/pandas-dev/pandas/issues/39584#issuecomment-941212124
     @pytest.fixture
@@ -1136,7 +1191,7 @@ class CoercionTest(SetitemCastingEquivalents):
 
 
 @pytest.mark.parametrize(
-    "val,exp_dtype", [(np.int32(1), np.int8), (np.int16(2 ** 9), np.int16)]
+    "val,exp_dtype", [(np.int32(1), np.int8), (np.int16(2**9), np.int16)]
 )
 class TestCoercionInt8(CoercionTest):
     # previously test_setitem_series_int8 in tests.indexing.test_coercion
@@ -1261,6 +1316,22 @@ class TestCoercionTimedelta64(CoercionTest):
     @pytest.fixture
     def obj(self):
         return Series(timedelta_range("1 day", periods=4))
+
+
+@pytest.mark.parametrize(
+    "val", ["foo", Period("2016", freq="Y"), Interval(1, 2, closed="both")]
+)
+@pytest.mark.parametrize("exp_dtype", [object])
+class TestPeriodIntervalCoercion(CoercionTest):
+    # GH#45768
+    @pytest.fixture(
+        params=[
+            period_range("2016-01-01", periods=3, freq="D"),
+            interval_range(1, 5),
+        ]
+    )
+    def obj(self, request):
+        return Series(request.param)
 
 
 def test_20643():

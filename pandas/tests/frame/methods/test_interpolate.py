@@ -49,6 +49,38 @@ class TestDataFrameInterpolate:
         result = df.interpolate()
         tm.assert_frame_equal(result, expected)
 
+        # check we didn't operate inplace GH#45791
+        cvalues = df["C"]._values
+        dvalues = df["D"].values
+        assert not np.shares_memory(cvalues, result["C"]._values)
+        assert not np.shares_memory(dvalues, result["D"]._values)
+
+        res = df.interpolate(inplace=True)
+        assert res is None
+        tm.assert_frame_equal(df, expected)
+
+        # check we DID operate inplace
+        assert np.shares_memory(df["C"]._values, cvalues)
+        assert np.shares_memory(df["D"]._values, dvalues)
+
+    def test_interp_basic_with_non_range_index(self):
+        df = DataFrame(
+            {
+                "A": [1, 2, np.nan, 4],
+                "B": [1, 4, 9, np.nan],
+                "C": [1, 2, 3, 5],
+                "D": list("abcd"),
+            }
+        )
+        expected = DataFrame(
+            {
+                "A": [1.0, 2.0, 3.0, 4.0],
+                "B": [1.0, 4.0, 9.0, 9.0],
+                "C": [1, 2, 3, 5],
+                "D": list("abcd"),
+            }
+        )
+
         result = df.set_index("C").interpolate()
         expected = df.set_index("C")
         expected.loc[3, "A"] = 3
@@ -320,7 +352,7 @@ class TestDataFrameInterpolate:
         result = df[["B", "D"]].interpolate(downcast=None)
         tm.assert_frame_equal(result, df[["B", "D"]])
 
-    def test_interp_time_inplace_axis(self, axis):
+    def test_interp_time_inplace_axis(self):
         # GH 9687
         periods = 5
         idx = date_range(start="2014-01-01", periods=periods)
