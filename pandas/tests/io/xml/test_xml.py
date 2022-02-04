@@ -12,6 +12,7 @@ from zipfile import BadZipFile
 import numpy as np
 import pytest
 
+from pandas.compat import is_ci_environment
 from pandas.compat._optional import import_optional_dependency
 import pandas.util._test_decorators as td
 
@@ -1107,7 +1108,7 @@ def test_unsuported_compression(datapath, parser):
 @td.skip_if_no("s3fs")
 @td.skip_if_no("lxml")
 @pytest.mark.skipif(
-    os.environ.get("PANDAS_CI", "0") == "1",
+    is_ci_environment(),
     reason="2022.1.17: Hanging on the CI min versions build.",
 )
 @tm.network
