@@ -411,14 +411,14 @@ def test_types_unique() -> None:
 
 def test_types_apply() -> None:
     df = pd.DataFrame(data={"col1": [2, 1], "col2": [3, 4]})
-    df.apply(lambda x: x ** 2)
+    df.apply(lambda x: x**2)
     df.apply(np.exp)
     df.apply(str)
 
 
 def test_types_applymap() -> None:
     df = pd.DataFrame(data={"col1": [2, 1], "col2": [3, 4]})
-    df.applymap(lambda x: x ** 2)
+    df.applymap(lambda x: x**2)
     df.applymap(np.exp)
     df.applymap(str)
     # na_action parameter was added in 1.2.0
@@ -771,6 +771,7 @@ def test_types_to_parquet() -> None:
     b: bytes = df.to_parquet()  # type: ignore[assignment]
 
 
+@td.skip_if_no("jinja2")  # type: ignore[misc]
 def test_types_to_latex() -> None:
     df = pd.DataFrame([[1, 2], [8, 9]], columns=["A", "B"])
     df.style.to_latex(label="some_label", caption="some_caption")

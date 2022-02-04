@@ -357,7 +357,7 @@ def test_types_unique() -> None:
 
 def test_types_apply() -> None:
     s = pd.Series([-10, 2, 2, 3, 10, 10])
-    s.apply(lambda x: x ** 2)
+    s.apply(lambda x: x**2)
     s.apply(np.exp)
     s.apply(str)
 
