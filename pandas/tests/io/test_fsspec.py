@@ -3,6 +3,7 @@ import io
 import numpy as np
 import pytest
 
+from pandas.compat import is_platform_mac
 from pandas.compat._optional import VERSIONS
 
 from pandas import (
@@ -161,6 +162,14 @@ def test_to_parquet_new_file(monkeypatch, cleared_fs):
 
 
 @td.skip_if_no("pyarrow", min_version="2")
+@pytest.mark.xfail(
+    is_platform_mac(),
+    reason="Incorrect build can lead to "
+    "dlopen(.../pyarrow/_parquet.cpython-39-darwin.so, 2): "
+    "Library not loaded: @rpath/libssl.1.1.dylib",
+    raises=ImportError,
+    strict=False,
+)
 def test_arrowparquet_options(fsspectest):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
     df = DataFrame({"a": [0]})

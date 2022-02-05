@@ -14,6 +14,7 @@ import pytest
 from pandas._config import get_option
 
 from pandas.compat import (
+    PY39,
     is_platform_mac,
     is_platform_windows,
 )
@@ -182,6 +183,7 @@ def check_round_trip(
     check_names=True,
     check_like=False,
     check_dtype=True,
+    check_index_type="equiv",
     repeat=2,
 ):
     """Verify parquet serializer and deserializer produce the same results.
@@ -228,6 +230,7 @@ def check_round_trip(
                 check_names=check_names,
                 check_like=check_like,
                 check_dtype=check_dtype,
+                check_index_type=check_index_type,
             )
 
     if path is None:
@@ -847,6 +850,11 @@ class TestParquetPyArrow(Base):
         )
 
     @td.skip_if_no("pyarrow")
+    @pytest.mark.xfail(
+        is_platform_mac() and PY39,
+        raises=TypeError,
+        reason="expected str, bytes or os.PathLike object, not BytesIO",
+    )
     def test_read_file_like_obj_support(self, df_compat):
         buffer = BytesIO()
         df_compat.to_parquet(buffer)
@@ -969,7 +977,7 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame(index=idx, data={"index_as_col": idx})
 
         # see gh-36004
-        # compare time(zone) values only, skip their class:
+        # compare time(zone) values only, skip their class in the values and index:
         # pyarrow always creates fixed offset timezones using pytz.FixedOffset()
         # even if it was datetime.timezone() originally
         #
@@ -977,7 +985,7 @@ class TestParquetPyArrow(Base):
         # they both implement datetime.tzinfo
         # they both wrap datetime.timedelta()
         # this use-case sets the resolution to 1 minute
-        check_round_trip(df, pa, check_dtype=False)
+        check_round_trip(df, pa, check_dtype=False, check_index_type=False)
 
     @td.skip_if_no("pyarrow", min_version="1.0.0")
     def test_filter_row_groups(self, pa):
