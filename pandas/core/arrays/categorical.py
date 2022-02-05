@@ -1911,11 +1911,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             )
         return values
 
-    def view(self, dtype=None):
-        if dtype is not None:
-            raise NotImplementedError(dtype)
-        return self._from_backing_data(self._ndarray)
-
     def to_dense(self) -> np.ndarray:
         """
         Return my 'dense' representation
