@@ -981,40 +981,43 @@ class Block(PandasObject):
             new = self.fill_value
 
         new = self._standardize_fill_value(new)
+        new = extract_array(new, extract_numpy=True)
 
-        if self._can_hold_element(new):
-            putmask_without_repeat(values.T, mask, new)
+        if noop:
             return [self]
 
-        elif noop:
+        try:
+            casted = np_can_hold_element(values.dtype, new)
+            putmask_without_repeat(values.T, mask, casted)
             return [self]
+        except LossySetitemError:
 
-        elif self.ndim == 1 or self.shape[0] == 1:
-            # no need to split columns
+            if self.ndim == 1 or self.shape[0] == 1:
+                # no need to split columns
 
-            if not is_list_like(new):
-                # using just new[indexer] can't save us the need to cast
-                return self.coerce_to_target_dtype(new).putmask(mask, new)
+                if not is_list_like(new):
+                    # using just new[indexer] can't save us the need to cast
+                    return self.coerce_to_target_dtype(new).putmask(mask, new)
+                else:
+                    indexer = mask.nonzero()[0]
+                    nb = self.setitem(indexer, new[indexer])
+                    return [nb]
+
             else:
-                indexer = mask.nonzero()[0]
-                nb = self.setitem(indexer, new[indexer])
-                return [nb]
+                is_array = isinstance(new, np.ndarray)
 
-        else:
-            is_array = isinstance(new, np.ndarray)
+                res_blocks = []
+                nbs = self._split()
+                for i, nb in enumerate(nbs):
+                    n = new
+                    if is_array:
+                        # we have a different value per-column
+                        n = new[:, i : i + 1]
 
-            res_blocks = []
-            nbs = self._split()
-            for i, nb in enumerate(nbs):
-                n = new
-                if is_array:
-                    # we have a different value per-column
-                    n = new[:, i : i + 1]
-
-                submask = orig_mask[:, i : i + 1]
-                rbs = nb.putmask(submask, n)
-                res_blocks.extend(rbs)
-            return res_blocks
+                    submask = orig_mask[:, i : i + 1]
+                    rbs = nb.putmask(submask, n)
+                    res_blocks.extend(rbs)
+                return res_blocks
 
     def where(self, other, cond) -> list[Block]:
         """
@@ -1057,9 +1060,32 @@ class Block(PandasObject):
             casted = np_can_hold_element(values.dtype, other)
         except (ValueError, TypeError, LossySetitemError):
             # we cannot coerce, return a compat dtype
-            block = self.coerce_to_target_dtype(other)
-            blocks = block.where(orig_other, cond)
-            return self._maybe_downcast(blocks, "infer")
+
+            if self.ndim == 1 or self.shape[0] == 1:
+                # no need to split columns
+
+                block = self.coerce_to_target_dtype(other)
+                blocks = block.where(orig_other, cond)
+                return self._maybe_downcast(blocks, "infer")
+
+            else:
+                # since _maybe_downcast would split blocks anyway, we
+                #  can avoid some potential upcast/downcast by splitting
+                #  on the front end.
+                is_array = isinstance(other, (np.ndarray, ExtensionArray))
+
+                res_blocks = []
+                nbs = self._split()
+                for i, nb in enumerate(nbs):
+                    oth = other
+                    if is_array:
+                        # we have a different value per-column
+                        oth = other[:, i : i + 1]
+
+                    submask = cond[:, i : i + 1]
+                    rbs = nb.where(oth, submask)
+                    res_blocks.extend(rbs)
+                return res_blocks
 
         else:
             other = casted
