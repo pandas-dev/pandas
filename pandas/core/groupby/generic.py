@@ -1234,6 +1234,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         path = slow_path
         res = slow_path(group)
 
+        if self.ngroups == 1:
+            # no need to evaluate multiple paths when only
+            # a single group exists
+            return path, res
+
         # if we make it here, test if we can use the fast path
         try:
             res_fast = fast_path(group)

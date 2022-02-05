@@ -897,14 +897,6 @@ class IntervalIndex(ExtensionIndex):
 
     # --------------------------------------------------------------------
 
-    @property
-    def _is_all_dates(self) -> bool:
-        """
-        This is False even when left/right contain datetime-like objects,
-        as the check is done on the Interval itself
-        """
-        return False
-
     def _get_engine_target(self) -> np.ndarray:
         # Note: we _could_ use libjoin functions by either casting to object
         #  dtype or constructing tuples (faster than constructing Intervals)

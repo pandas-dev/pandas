@@ -568,7 +568,7 @@ def check_parent_directory(path: Path | str) -> None:
     """
     parent = Path(path).parent
     if not parent.is_dir():
-        raise OSError(fr"Cannot save file into a non-existent directory: '{parent}'")
+        raise OSError(rf"Cannot save file into a non-existent directory: '{parent}'")
 
 
 @overload
