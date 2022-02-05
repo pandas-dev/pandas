@@ -220,9 +220,6 @@ def _reconstruct_data(
     elif is_bool_dtype(dtype):
         values = values.astype(dtype, copy=False)
 
-        # we only support object dtypes bool Index
-        if isinstance(original, ABCIndex):
-            values = values.astype(object, copy=False)
     elif dtype is not None:
         if is_datetime64_dtype(dtype):
             dtype = np.dtype("datetime64[ns]")
@@ -830,7 +827,10 @@ def value_counts(
     -------
     Series
     """
-    from pandas.core.series import Series
+    from pandas import (
+        Index,
+        Series,
+    )
 
     name = getattr(values, "name", None)
 
@@ -868,7 +868,13 @@ def value_counts(
         else:
             keys, counts = value_counts_arraylike(values, dropna)
 
-            result = Series(counts, index=keys, name=name)
+            # For backwards compatibility, we let Index do its normal type
+            #  inference, _except_ for if if infers from object to bool.
+            idx = Index._with_infer(keys)
+            if idx.dtype == bool and keys.dtype == object:
+                idx = idx.astype(object)
+
+            result = Series(counts, index=idx, name=name)
 
     if sort:
         result = result.sort_values(ascending=ascending)

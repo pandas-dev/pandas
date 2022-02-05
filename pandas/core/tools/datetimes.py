@@ -1076,6 +1076,8 @@ def to_datetime(
             result = convert_listlike(arg, format)
     else:
         result = convert_listlike(np.array([arg]), format)[0]
+        if isinstance(arg, bool) and isinstance(result, np.bool_):
+            result = bool(result)  # TODO: avoid this kludge.
 
     #  error: Incompatible return value type (got "Union[Timestamp, NaTType,
     # Series, Index]", expected "Union[DatetimeIndex, Series, float, str,

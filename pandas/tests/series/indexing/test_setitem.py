@@ -759,26 +759,26 @@ class SetitemCastingEquivalents:
         self._check_inplace(is_inplace, orig, arr, obj)
 
     def test_index_where(self, obj, key, expected, val):
-        if obj.dtype == bool or obj.dtype.kind == "c" or expected.dtype.kind == "c":
-            # TODO(GH#45061): Should become unreachable (at least the bool part)
+        if obj.dtype.kind == "c" or expected.dtype.kind == "c":
+            # TODO(Index[complex]): Should become unreachable
             pytest.skip("test not applicable for this dtype")
 
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
 
         res = Index(obj).where(~mask, val)
-        tm.assert_index_equal(res, Index(expected))
+        tm.assert_index_equal(res, Index(expected, dtype=expected.dtype))
 
     def test_index_putmask(self, obj, key, expected, val):
-        if obj.dtype == bool or obj.dtype.kind == "c" or expected.dtype.kind == "c":
-            # TODO(GH#45061): Should become unreachable (at least the bool part)
+        if obj.dtype.kind == "c" or expected.dtype.kind == "c":
+            # TODO(Index[complex]): Should become unreachable
             pytest.skip("test not applicable for this dtype")
 
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
 
         res = Index(obj).putmask(mask, val)
-        tm.assert_index_equal(res, Index(expected))
+        tm.assert_index_equal(res, Index(expected, dtype=expected.dtype))
 
 
 @pytest.mark.parametrize(
