@@ -39,11 +39,13 @@ import pandas._testing as tm
             np.array([decimal.Decimal(0.0)]),
         ),
         (
+            # GH#45837
             np.array([Timedelta(days=1), Timedelta(days=2)], dtype=object),
             "infer",
             np.array([1, 2], dtype="m8[D]").astype("m8[ns]"),
         ),
         (
+            # GH#45837
             np.array([Timestamp("2016-01-01")] * 2, dtype=object),
             "infer",
             np.array(["2016-01-01"] * 2, dtype="M8[ns]"),
