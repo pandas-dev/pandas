@@ -429,20 +429,14 @@ class StylerRenderer:
             header_element_visible = _is_visible(c, r, col_lengths)
             if header_element_visible:
                 visible_col_count += col_lengths.get((r, c), 0)
-            if visible_col_count > max_cols:
-                # add an extra column with `...` value to indicate trimming
-                column_headers.append(
-                    _element(
-                        "th",
-                        (
-                            f"{self.css['col_heading']} {self.css['level']}{r} "
-                            f"{self.css['col_trim']}"
-                        ),
-                        "...",
-                        True,
-                        attributes="",
-                    )
-                )
+            if self._check_trim(
+                visible_col_count,
+                max_cols,
+                column_headers,
+                "th",
+                f"{self.css['col_heading']} {self.css['level']}{r} "
+                f"{self.css['col_trim']}",
+            ):
                 break
 
             header_element = _element(
@@ -516,19 +510,14 @@ class StylerRenderer:
                 header_element_visible = _is_visible(c, last_level, col_lengths)
                 if header_element_visible:
                     visible_col_count += 1
-                if visible_col_count > max_cols:
-                    column_blanks.append(
-                        _element(
-                            "th",
-                            (
-                                f"{self.css['blank']} {self.css['col']}{c} "
-                                f"{self.css['col_trim']}"
-                            ),
-                            self.css["blank_value"],
-                            True,
-                            attributes="",
-                        )
-                    )
+                if self._check_trim(
+                    visible_col_count,
+                    max_cols,
+                    column_blanks,
+                    "th",
+                    f"{self.css['blank']} {self.css['col']}{c} {self.css['col_trim']}",
+                    self.css["blank_value"],
+                ):
                     break
 
                 column_blanks.append(
@@ -573,15 +562,59 @@ class StylerRenderer:
             z for z in enumerate(self.data.itertuples()) if z[0] not in self.hidden_rows
         ]:
             row_count += 1
-            if row_count > max_rows:  # used only to add a '...' trimmed row:
-                trimmed_row = self._generate_trimmed_row(max_cols)
-                body.append(trimmed_row)
+            if self._check_trim(
+                row_count,
+                max_rows,
+                body,
+                "row",
+            ):
                 break
+
             body_row = self._generate_body_row(
                 (r, row_tup, rlabels), max_cols, idx_lengths
             )
             body.append(body_row)
         return body
+
+    def _check_trim(
+        self,
+        count,
+        max,
+        obj,
+        element,
+        css=None,
+        value="...",
+    ):
+        """
+        Indicates whether to break render loops and append a trimming indicator
+
+        Parameters
+        ----------
+        count : int
+            The loop count of previous visible items.
+        max : int
+            The allowable rendered items in the loop.
+        obj : list
+            The current render collection of the rendered items.
+        element : str
+            The type of element to append in the case a trimming indicator is needed.
+        css : str, optional
+            The css to add to the trimming indicator element.
+        value : str, optional
+            The value of the elements display if necessary.
+
+        Returns
+        -------
+        result : bool
+            Whether a trimming element was required and appended.
+        """
+        if count > max:
+            if element == "row":
+                obj.append(self._generate_trimmed_row(max))
+            else:
+                obj.append(_element(element, css, value, True, attributes=""))
+            return True
+        return False
 
     def _generate_trimmed_row(self, max_cols: int) -> list:
         """
@@ -615,19 +648,13 @@ class StylerRenderer:
             data_element_visible = c not in self.hidden_columns
             if data_element_visible:
                 visible_col_count += 1
-            if visible_col_count > max_cols:
-                data.append(
-                    _element(
-                        "td",
-                        (
-                            f"{self.css['data']} {self.css['row_trim']} "
-                            f"{self.css['col_trim']}"
-                        ),
-                        "...",
-                        True,
-                        attributes="",
-                    )
-                )
+            if self._check_trim(
+                visible_col_count,
+                max_cols,
+                data,
+                "td",
+                f"{self.css['data']} {self.css['row_trim']} {self.css['col_trim']}",
+            ):
                 break
 
             data.append(
@@ -715,19 +742,13 @@ class StylerRenderer:
             )
             if data_element_visible:
                 visible_col_count += 1
-            if visible_col_count > max_cols:
-                data.append(
-                    _element(
-                        "td",
-                        (
-                            f"{self.css['data']} {self.css['row']}{r} "
-                            f"{self.css['col_trim']}"
-                        ),
-                        "...",
-                        True,
-                        attributes="",
-                    )
-                )
+            if self._check_trim(
+                visible_col_count,
+                max_cols,
+                data,
+                "td",
+                f"{self.css['data']} {self.css['row']}{r} {self.css['col_trim']}",
+            ):
                 break
 
             # add custom classes from cell context
