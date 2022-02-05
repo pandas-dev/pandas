@@ -461,7 +461,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                     warnings.warn(
                         f"The behavior of .astype from {self.dtype} to {dtype} is "
                         "deprecated. In a future version, this astype will "
-                        "raise if the conversion overflows.",
+                        "raise if the conversion overflows, as it did in this "
+                        "case with negative int64 values.",
                         FutureWarning,
                         stacklevel=find_stack_level(),
                     )
