@@ -173,7 +173,7 @@ class TestDataFrameNonuniqueIndexes:
             this_df = df.copy()
             expected_ser = Series(index.values, index=this_df.index)
             expected_df = DataFrame(
-                {"A": expected_ser, "B": this_df["B"], "A": expected_ser},
+                {"A": expected_ser, "B": this_df["B"]},
                 columns=["A", "B", "A"],
             )
             this_df["A"] = index

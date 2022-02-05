@@ -238,7 +238,7 @@ def assert_bool_op_api(
     ----------
     opname : str
         Name of the operator to test on frame
-    float_frame : DataFrame
+    bool_frame_with_na : DataFrame
         DataFrame with columns of type float
     float_string_frame : DataFrame
         DataFrame with both float and string columns
