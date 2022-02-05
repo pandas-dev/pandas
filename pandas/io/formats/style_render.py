@@ -424,7 +424,8 @@ class StylerRenderer:
             )
         ]
 
-        column_headers, visible_col_count = [], 0
+        column_headers: list = []
+        visible_col_count: int = 0
         for c, value in enumerate(clabels[r]):
             header_element_visible = _is_visible(c, r, col_lengths)
             if header_element_visible:
@@ -503,7 +504,8 @@ class StylerRenderer:
             for c, name in enumerate(self.data.index.names)
         ]
 
-        column_blanks, visible_col_count = [], 0
+        column_blanks: list = []
+        visible_col_count: int = 0
         if clabels:
             last_level = self.columns.nlevels - 1  # use last level since never sparsed
             for c, value in enumerate(clabels[last_level]):
@@ -557,7 +559,8 @@ class StylerRenderer:
         if not isinstance(self.data.index, MultiIndex):
             rlabels = [[x] for x in rlabels]
 
-        body, visible_row_count = [], 0
+        body: list = []
+        visible_row_count: int = 0
         for r, row_tup in [
             z for z in enumerate(self.data.itertuples()) if z[0] not in self.hidden_rows
         ]:
@@ -643,7 +646,8 @@ class StylerRenderer:
             for c in range(self.data.index.nlevels)
         ]
 
-        data, visible_col_count = [], 0
+        data: list = []
+        visible_col_count: int = 0
         for c, _ in enumerate(self.columns):
             data_element_visible = c not in self.hidden_columns
             if data_element_visible:
@@ -735,7 +739,8 @@ class StylerRenderer:
 
             index_headers.append(header_element)
 
-        data, visible_col_count = [], 0
+        data: list = []
+        visible_col_count: int = 0
         for c, value in enumerate(row_tup[1:]):
             data_element_visible = (
                 c not in self.hidden_columns and r not in self.hidden_rows
