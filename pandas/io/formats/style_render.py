@@ -557,13 +557,13 @@ class StylerRenderer:
         if not isinstance(self.data.index, MultiIndex):
             rlabels = [[x] for x in rlabels]
 
-        body, row_count = [], 0
+        body, visible_row_count = [], 0
         for r, row_tup in [
             z for z in enumerate(self.data.itertuples()) if z[0] not in self.hidden_rows
         ]:
-            row_count += 1
+            visible_row_count += 1
             if self._check_trim(
-                row_count,
+                visible_row_count,
                 max_rows,
                 body,
                 "row",
