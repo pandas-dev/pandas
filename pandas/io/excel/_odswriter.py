@@ -139,8 +139,8 @@ class ODSWriter(ExcelWriter):
             p = P(text=pvalue)
             tc.addElement(p)
 
+        # add all rows to the sheet
         if len(rows) > 0:
-            # add all rows to the sheet
             for row_nr in range(max(rows.keys()) + 1):
                 wks.addElement(rows[row_nr])
 
