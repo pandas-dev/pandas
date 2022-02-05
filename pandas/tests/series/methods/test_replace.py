@@ -652,7 +652,7 @@ class TestSeriesReplace:
         result = series.replace(to_replace="0", value=1, regex=regex)
         tm.assert_series_equal(result, expected)
 
-    def test_replace_different_int_types(self):
+    def test_replace_different_int_types(self, any_int_numpy_dtype):
         # GH#45311
         labs = pd.Series([1, 1, 1, 0, 0, 2, 2, 2], dtype=any_int_numpy_dtype)
 
