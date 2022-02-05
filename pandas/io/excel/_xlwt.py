@@ -60,12 +60,13 @@ class XlwtWriter(ExcelWriter):
         if encoding is None:
             encoding = "ascii"
         self._book = xlwt.Workbook(encoding=encoding, **engine_kwargs)
-        self.fm_datetime = xlwt.easyxf(num_format_str=self._datetime_format)
-        self.fm_date = xlwt.easyxf(num_format_str=self._date_format)
+        self._fm_datetime = xlwt.easyxf(num_format_str=self._datetime_format)
+        self._fm_date = xlwt.easyxf(num_format_str=self._date_format)
 
     @property
     def book(self):
-        """Book instance of class xlwt.Workbook.
+        """
+        Book instance of class xlwt.Workbook.
 
         This attribute can be used to access engine-specific features.
         """
@@ -76,6 +77,22 @@ class XlwtWriter(ExcelWriter):
         """Mapping of sheet names to sheet objects."""
         result = {sheet.name: sheet for sheet in self.book._Workbook__worksheets}
         return result
+
+    @property
+    def fm_date(self):
+        """
+        XFStyle formatter for dates.
+        """
+        self._deprecate("fm_date")
+        return self._fm_date
+
+    @property
+    def fm_datetime(self):
+        """
+        XFStyle formatter for dates.
+        """
+        self._deprecate("fm_datetime")
+        return self._fm_datetime
 
     def _save(self) -> None:
         """

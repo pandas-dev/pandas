@@ -207,7 +207,8 @@ class XlsxWriter(ExcelWriter):
 
     @property
     def book(self):
-        """Book instance of class xlsxwriter.Workbook.
+        """
+        Book instance of class xlsxwriter.Workbook.
 
         This attribute can be used to access engine-specific features.
         """

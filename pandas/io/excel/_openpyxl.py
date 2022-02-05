@@ -77,7 +77,8 @@ class OpenpyxlWriter(ExcelWriter):
 
     @property
     def book(self):
-        """Book instance of class openpyxl.workbook.Workbook.
+        """
+        Book instance of class openpyxl.workbook.Workbook.
 
         This attribute can be used to access engine-specific features.
         """

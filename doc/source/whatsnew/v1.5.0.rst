@@ -189,13 +189,37 @@ Slicing on a :class:`DataFrame` will not be affected.
 :class:`ExcelWriter` attributes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The attributes and methods of :class:`ExcelWriter` were previously documented as not
-being public. However some third party Excel engines documented accessing
+All attributes of :class:`ExcelWriter` were previously documented as not
+public. However some third party Excel engines documented accessing
 ``ExcelWriter.book`` or ``ExcelWriter.sheets``, and users were utilizing these
-and possibly other attributes. In order to support this, pandas has made some
-attributes and methods public. Other attributes and methods have been deprecated
-and will raise a ``FutureWarning`` when accessed as they will be removed in a future
-version. See the documentation of :class:`ExcelWriter` for further details.
+and possibly other attributes. Previously these attributes were not safe to use;
+e.g. modifications to ``ExcelWriter.book`` would not update ``ExcelWriter.sheets``
+and conversely. In order to support this, pandas has made some attributes public
+and improved their implementations so that they may now be safely used. (:issue:`45572`)
+
+The following attributes are now public and considered safe to access.
+
+ - ``book``
+ - ``check_extension``
+ - ``close``
+ - ``date_format``
+ - ``datetime_format``
+ - ``engine``
+ - ``if_sheet_exists``
+ - ``sheets``
+ - ``supported_extensions``
+
+The following attributes have been deprecated. They now raise a ``FutureWarning``
+when accessed and will removed in a future version. Users should be aware
+that their usage is considered unsafe, and can lead to unexpected results.
+
+ - ``cur_sheet``
+ - ``handles``
+ - ``path``
+ - ``save``
+ - ``write_cells``
+
+See the documentation of :class:`ExcelWriter` for further details.
 
 .. _whatsnew_150.deprecations.other:
 

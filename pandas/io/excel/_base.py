@@ -1047,7 +1047,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     @property
     @abc.abstractmethod
     def book(self):
-        """Book instance. Class type will depend on the engine used.
+        """
+        Book instance. Class type will depend on the engine used.
 
         This attribute can be used to access engine-specific features.
         """

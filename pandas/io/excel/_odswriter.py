@@ -60,7 +60,8 @@ class ODSWriter(ExcelWriter):
 
     @property
     def book(self):
-        """Book instance of class odf.opendocument.OpenDocumentSpreadsheet.
+        """
+        Book instance of class odf.opendocument.OpenDocumentSpreadsheet.
 
         This attribute can be used to access engine-specific features.
         """
