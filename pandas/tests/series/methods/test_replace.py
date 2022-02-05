@@ -656,7 +656,7 @@ class TestSeriesReplace:
         # GH#45311
         labs = pd.Series([1, 1, 1, 0, 0, 2, 2, 2], dtype=any_int_numpy_dtype)
 
-        maps = pd.Series([np.int8(0), np.int8(2), np.int8(1)])
+        maps = pd.Series([0, 2, 1], dtype=any_int_numpy_dtype)
         map_dict = {old: new for (old, new) in zip(maps.values, maps.index)}
 
         result = labs.replace(map_dict)
