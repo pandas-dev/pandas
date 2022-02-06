@@ -76,8 +76,8 @@ def test_write_cells_merge_styled(ext):
 
     with tm.ensure_clean(ext) as path:
         with _OpenpyxlWriter(path) as writer:
-            writer.write_cells(initial_cells, sheet_name=sheet_name)
-            writer.write_cells(merge_cells, sheet_name=sheet_name)
+            writer._write_cells(initial_cells, sheet_name=sheet_name)
+            writer._write_cells(merge_cells, sheet_name=sheet_name)
 
             wks = writer.sheets[sheet_name]
         xcell_b1 = wks["B1"]

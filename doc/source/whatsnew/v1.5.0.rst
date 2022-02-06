@@ -184,6 +184,43 @@ use ``series.loc[i:j]``.
 
 Slicing on a :class:`DataFrame` will not be affected.
 
+.. _whatsnew_150.deprecations.excel_writer_attributes:
+
+:class:`ExcelWriter` attributes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+All attributes of :class:`ExcelWriter` were previously documented as not
+public. However some third party Excel engines documented accessing
+``ExcelWriter.book`` or ``ExcelWriter.sheets``, and users were utilizing these
+and possibly other attributes. Previously these attributes were not safe to use;
+e.g. modifications to ``ExcelWriter.book`` would not update ``ExcelWriter.sheets``
+and conversely. In order to support this, pandas has made some attributes public
+and improved their implementations so that they may now be safely used. (:issue:`45572`)
+
+The following attributes are now public and considered safe to access.
+
+ - ``book``
+ - ``check_extension``
+ - ``close``
+ - ``date_format``
+ - ``datetime_format``
+ - ``engine``
+ - ``if_sheet_exists``
+ - ``sheets``
+ - ``supported_extensions``
+
+The following attributes have been deprecated. They now raise a ``FutureWarning``
+when accessed and will removed in a future version. Users should be aware
+that their usage is considered unsafe, and can lead to unexpected results.
+
+ - ``cur_sheet``
+ - ``handles``
+ - ``path``
+ - ``save``
+ - ``write_cells``
+
+See the documentation of :class:`ExcelWriter` for further details.
+
 .. _whatsnew_150.deprecations.other:
 
 Other Deprecations
@@ -298,6 +335,7 @@ MultiIndex
 I/O
 ^^^
 - Bug in :meth:`DataFrame.to_stata` where no error is raised if the :class:`DataFrame` contains ``-np.inf`` (:issue:`45350`)
+- Bug in :func:`read_excel` results in an infinite loop with certain ``skiprows`` callables (:issue:`45585`)
 - Bug in :meth:`DataFrame.info` where a new line at the end of the output is omitted when called on an empty :class:`DataFrame` (:issue:`45494`)
 - Bug in :func:`read_csv` not recognizing line break for ``on_bad_lines="warn"`` for ``engine="c"`` (:issue:`41710`)
 - Bug in :func:`read_parquet` when ``engine="pyarrow"`` which caused partial write to disk when column of unsupported datatype was passed (:issue:`44914`)

@@ -1713,8 +1713,6 @@ def test_hypothesis_delimited_date(
                 "e.g. %m.%Y is a float or a date"
             )
         )
-    result, expected = None, None
-    except_in_dateutil, except_out_dateutil = None, None
     date_string = test_datetime.strftime(date_format.replace(" ", delimiter))
 
     with warnings.catch_warnings():
