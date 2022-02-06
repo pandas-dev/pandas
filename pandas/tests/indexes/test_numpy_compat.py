@@ -72,6 +72,7 @@ def test_numpy_ufuncs_basic(index, func):
         isinstance(index, NumericIndex)
         or (not isinstance(index.dtype, np.dtype) and index.dtype._is_numeric)
         or (index.dtype.kind == "c" and func not in [np.deg2rad, np.rad2deg])
+        or index.dtype == bool
     ):
         # coerces to float (e.g. np.sin)
         with np.errstate(all="ignore"):
@@ -79,7 +80,7 @@ def test_numpy_ufuncs_basic(index, func):
             exp = Index(func(index.values), name=index.name)
 
         tm.assert_index_equal(result, exp)
-        if type(index) is not Index:
+        if type(index) is not Index or index.dtype == bool:
             # i.e NumericIndex
             assert isinstance(result, Float64Index)
         else:
@@ -123,6 +124,7 @@ def test_numpy_ufuncs_other(index, func):
         isinstance(index, NumericIndex)
         or (not isinstance(index.dtype, np.dtype) and index.dtype._is_numeric)
         or (index.dtype.kind == "c" and func is not np.signbit)
+        or index.dtype == bool
     ):
         # Results in bool array
         result = func(index)

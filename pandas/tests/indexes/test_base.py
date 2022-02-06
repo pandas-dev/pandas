@@ -321,15 +321,21 @@ class TestIndex(Base):
             "unicode",
             "string",
             pytest.param("categorical", marks=pytest.mark.xfail(reason="gh-25464")),
-            "bool",
+            "bool-object",
+            "bool-dtype",
             "empty",
         ],
         indirect=True,
     )
     def test_view_with_args_object_array_raises(self, index):
-        msg = "Cannot change data-type for object array"
-        with pytest.raises(TypeError, match=msg):
-            index.view("i8")
+        if index.dtype == bool:
+            msg = "When changing to a larger dtype"
+            with pytest.raises(ValueError, match=msg):
+                index.view("i8")
+        else:
+            msg = "Cannot change data-type for object array"
+            with pytest.raises(TypeError, match=msg):
+                index.view("i8")
 
     @pytest.mark.parametrize("index", ["int", "range"], indirect=True)
     def test_astype(self, index):
@@ -397,9 +403,9 @@ class TestIndex(Base):
 
     def test_asof_numeric_vs_bool_raises(self):
         left = Index([1, 2, 3])
-        right = Index([True, False])
+        right = Index([True, False], dtype=object)
 
-        msg = "Cannot compare dtypes int64 and object"
+        msg = "Cannot compare dtypes int64 and bool"
         with pytest.raises(TypeError, match=msg):
             left.asof(right[0])
         # TODO: should right.asof(left[0]) also raise?
@@ -596,7 +602,8 @@ class TestIndex(Base):
         "index, expected",
         [
             ("string", False),
-            ("bool", False),
+            ("bool-object", False),
+            ("bool-dtype", False),
             ("categorical", False),
             ("int", True),
             ("datetime", False),
@@ -611,7 +618,8 @@ class TestIndex(Base):
         "index, expected",
         [
             ("string", True),
-            ("bool", True),
+            ("bool-object", True),
+            ("bool-dtype", False),
             ("categorical", False),
             ("int", False),
             ("datetime", False),
@@ -626,7 +634,8 @@ class TestIndex(Base):
         "index, expected",
         [
             ("string", False),
-            ("bool", False),
+            ("bool-object", False),
+            ("bool-dtype", False),
             ("categorical", False),
             ("int", False),
             ("datetime", True),
@@ -749,7 +758,7 @@ class TestIndex(Base):
             tm.assert_index_equal(result, expected)
 
         removed = index.drop(to_drop[1])
-        msg = fr"\"\[{re.escape(to_drop[1].__repr__())}\] not found in axis\""
+        msg = rf"\"\[{re.escape(to_drop[1].__repr__())}\] not found in axis\""
         for drop_me in to_drop[1], [to_drop[1]]:
             with pytest.raises(KeyError, match=msg):
                 removed.drop(drop_me)
@@ -877,7 +886,7 @@ class TestIndex(Base):
             msg = f"'Level {label} not found'"
         else:
             index = index.rename("foo")
-            msg = fr"Requested level \({label}\) does not match index name \(foo\)"
+            msg = rf"Requested level \({label}\) does not match index name \(foo\)"
         with pytest.raises(KeyError, match=msg):
             index.isin([], level=label)
 

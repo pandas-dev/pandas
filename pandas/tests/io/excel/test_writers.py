@@ -335,8 +335,8 @@ class TestExcelWriter:
     def test_excel_sheet_size(self, path):
 
         # GH 26080
-        breaking_row_count = 2 ** 20 + 1
-        breaking_col_count = 2 ** 14 + 1
+        breaking_row_count = 2**20 + 1
+        breaking_col_count = 2**14 + 1
         # purposely using two arrays to prevent memory issues while testing
         row_arr = np.zeros(shape=(breaking_row_count, 1))
         col_arr = np.zeros(shape=(1, breaking_col_count))
@@ -1244,6 +1244,23 @@ class TestExcelWriter:
             with pytest.raises(ValueError, match=re.escape(msg)):
                 ExcelWriter(f, if_sheet_exists="replace")
 
+    def test_excel_writer_empty_frame(self, engine, ext):
+        # GH#45793
+        with tm.ensure_clean(ext) as path:
+            with ExcelWriter(path, engine=engine) as writer:
+                DataFrame().to_excel(writer)
+            result = pd.read_excel(path)
+            expected = DataFrame()
+            tm.assert_frame_equal(result, expected)
+
+    def test_to_excel_empty_frame(self, engine, ext):
+        # GH#45793
+        with tm.ensure_clean(ext) as path:
+            DataFrame().to_excel(path, engine=engine)
+            result = pd.read_excel(path)
+            expected = DataFrame()
+            tm.assert_frame_equal(result, expected)
+
 
 class TestExcelWriterEngineTests:
     @pytest.mark.parametrize(
@@ -1271,10 +1288,12 @@ class TestExcelWriterEngineTests:
         # some awkward mocking to test out dispatch and such actually works
         called_save = []
         called_write_cells = []
+        called_sheets = []
 
         class DummyClass(ExcelWriter):
             called_save = False
             called_write_cells = False
+            called_sheets = False
             supported_extensions = ["xlsx", "xls"]
             engine = "dummy"
 
@@ -1284,12 +1303,18 @@ class TestExcelWriterEngineTests:
             def write_cells(self, *args, **kwargs):
                 called_write_cells.append(True)
 
+            @property
+            def sheets(self):
+                called_sheets.append(True)
+
         def check_called(func):
             func()
             assert len(called_save) >= 1
             assert len(called_write_cells) >= 1
+            assert len(called_sheets) == 0
             del called_save[:]
             del called_write_cells[:]
+            del called_sheets[:]
 
         with option_context("io.excel.xlsx.writer", "dummy"):
             path = "something.xlsx"

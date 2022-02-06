@@ -56,6 +56,12 @@ class TestFactorize:
         if isinstance(obj, MultiIndex):
             constructor = MultiIndex.from_tuples
         expected_uniques = constructor(obj.unique())
+        if (
+            isinstance(obj, Index)
+            and expected_uniques.dtype == bool
+            and obj.dtype == object
+        ):
+            expected_uniques = expected_uniques.astype(object)
 
         if sort:
             expected_uniques = expected_uniques.sort_values()
@@ -266,20 +272,20 @@ class TestFactorize:
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
     def test_uint64_factorize(self, writable):
-        data = np.array([2 ** 64 - 1, 1, 2 ** 64 - 1], dtype=np.uint64)
+        data = np.array([2**64 - 1, 1, 2**64 - 1], dtype=np.uint64)
         data.setflags(write=writable)
         expected_codes = np.array([0, 1, 0], dtype=np.intp)
-        expected_uniques = np.array([2 ** 64 - 1, 1], dtype=np.uint64)
+        expected_uniques = np.array([2**64 - 1, 1], dtype=np.uint64)
 
         codes, uniques = algos.factorize(data)
         tm.assert_numpy_array_equal(codes, expected_codes)
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
     def test_int64_factorize(self, writable):
-        data = np.array([2 ** 63 - 1, -(2 ** 63), 2 ** 63 - 1], dtype=np.int64)
+        data = np.array([2**63 - 1, -(2**63), 2**63 - 1], dtype=np.int64)
         data.setflags(write=writable)
         expected_codes = np.array([0, 1, 0], dtype=np.intp)
-        expected_uniques = np.array([2 ** 63 - 1, -(2 ** 63)], dtype=np.int64)
+        expected_uniques = np.array([2**63 - 1, -(2**63)], dtype=np.int64)
 
         codes, uniques = algos.factorize(data)
         tm.assert_numpy_array_equal(codes, expected_codes)
@@ -354,7 +360,7 @@ class TestFactorize:
     def test_deprecate_order(self):
         # gh 19727 - check warning is raised for deprecated keyword, order.
         # Test not valid once order keyword is removed.
-        data = np.array([2 ** 63, 1, 2 ** 63], dtype=np.uint64)
+        data = np.array([2**63, 1, 2**63], dtype=np.uint64)
         with pytest.raises(TypeError, match="got an unexpected keyword"):
             algos.factorize(data, order=True)
         with tm.assert_produces_warning(False):
@@ -364,7 +370,7 @@ class TestFactorize:
         "data",
         [
             np.array([0, 1, 0], dtype="u8"),
-            np.array([-(2 ** 63), 1, -(2 ** 63)], dtype="i8"),
+            np.array([-(2**63), 1, -(2**63)], dtype="i8"),
             np.array(["__nan__", "foo", "__nan__"], dtype="object"),
         ],
     )
@@ -381,8 +387,8 @@ class TestFactorize:
         [
             (np.array([0, 1, 0, 2], dtype="u8"), 0),
             (np.array([1, 0, 1, 2], dtype="u8"), 1),
-            (np.array([-(2 ** 63), 1, -(2 ** 63), 0], dtype="i8"), -(2 ** 63)),
-            (np.array([1, -(2 ** 63), 1, 0], dtype="i8"), 1),
+            (np.array([-(2**63), 1, -(2**63), 0], dtype="i8"), -(2**63)),
+            (np.array([1, -(2**63), 1, 0], dtype="i8"), 1),
             (np.array(["a", "", "a", "b"], dtype=object), "a"),
             (np.array([(), ("a", 1), (), ("a", 2)], dtype=object), ()),
             (np.array([("a", 1), (), ("a", 1), ("a", 2)], dtype=object), ("a", 1)),
@@ -601,8 +607,8 @@ class TestUnique:
         assert result.dtype == expected.dtype
 
     def test_uint64_overflow(self):
-        s = Series([1, 2, 2 ** 63, 2 ** 63], dtype=np.uint64)
-        exp = np.array([1, 2, 2 ** 63], dtype=np.uint64)
+        s = Series([1, 2, 2**63, 2**63], dtype=np.uint64)
+        exp = np.array([1, 2, 2**63], dtype=np.uint64)
         tm.assert_numpy_array_equal(algos.unique(s), exp)
 
     def test_nan_in_object_array(self):
@@ -1240,7 +1246,7 @@ class TestValueCounts:
 
         tm.assert_series_equal(
             Series([True] * 3 + [False] * 2 + [None] * 5).value_counts(dropna=True),
-            Series([3, 2], index=[True, False]),
+            Series([3, 2], index=Index([True, False], dtype=object)),
         )
         tm.assert_series_equal(
             Series([True] * 5 + [False] * 3 + [None] * 2).value_counts(dropna=False),
@@ -1280,14 +1286,14 @@ class TestValueCounts:
         tm.assert_series_equal(result, expected)
 
     def test_value_counts_uint64(self):
-        arr = np.array([2 ** 63], dtype=np.uint64)
-        expected = Series([1], index=[2 ** 63])
+        arr = np.array([2**63], dtype=np.uint64)
+        expected = Series([1], index=[2**63])
         result = algos.value_counts(arr)
 
         tm.assert_series_equal(result, expected)
 
-        arr = np.array([-1, 2 ** 63], dtype=object)
-        expected = Series([1, 1], index=[-1, 2 ** 63])
+        arr = np.array([-1, 2**63], dtype=object)
+        expected = Series([1, 1], index=[-1, 2**63])
         result = algos.value_counts(arr)
 
         tm.assert_series_equal(result, expected)
@@ -1354,7 +1360,7 @@ class TestDuplicated:
             ),
             np.array(["a", "b", "a", "e", "c", "b", "d", "a", "e", "f"], dtype=object),
             np.array(
-                [1, 2 ** 63, 1, 3 ** 5, 10, 2 ** 63, 39, 1, 3 ** 5, 7], dtype=np.uint64
+                [1, 2**63, 1, 3**5, 10, 2**63, 39, 1, 3**5, 7], dtype=np.uint64
             ),
         ],
     )
@@ -1572,7 +1578,7 @@ class TestHashTable:
         assert len(m) == 1  # NAN1 and NAN2 are equivalent
 
     def test_lookup_overflow(self, writable):
-        xs = np.array([1, 2, 2 ** 63], dtype=np.uint64)
+        xs = np.array([1, 2, 2**63], dtype=np.uint64)
         # GH 21688 ensure we can deal with readonly memory views
         xs.setflags(write=writable)
         m = ht.UInt64HashTable()
@@ -1580,8 +1586,8 @@ class TestHashTable:
         tm.assert_numpy_array_equal(m.lookup(xs), np.arange(len(xs), dtype=np.intp))
 
     def test_get_unique(self):
-        s = Series([1, 2, 2 ** 63, 2 ** 63], dtype=np.uint64)
-        exp = np.array([1, 2, 2 ** 63], dtype=np.uint64)
+        s = Series([1, 2, 2**63, 2**63], dtype=np.uint64)
+        exp = np.array([1, 2, 2**63], dtype=np.uint64)
         tm.assert_numpy_array_equal(s.unique(), exp)
 
     @pytest.mark.parametrize("nvals", [0, 10])  # resizing to 0 is special case
@@ -1777,7 +1783,7 @@ class TestRank:
     def test_uint64_overflow(self, dtype):
         exp = np.array([1, 2], dtype=np.float64)
 
-        s = Series([1, 2 ** 63], dtype=dtype)
+        s = Series([1, 2**63], dtype=dtype)
         tm.assert_numpy_array_equal(algos.rank(s), exp)
 
     def test_too_many_ndims(self):
@@ -1791,11 +1797,11 @@ class TestRank:
     @pytest.mark.high_memory
     def test_pct_max_many_rows(self):
         # GH 18271
-        values = np.arange(2 ** 24 + 1)
+        values = np.arange(2**24 + 1)
         result = algos.rank(values, pct=True).max()
         assert result == 1
 
-        values = np.arange(2 ** 25 + 2).reshape(2 ** 24 + 1, 2)
+        values = np.arange(2**25 + 2).reshape(2**24 + 1, 2)
         result = algos.rank(values, pct=True).max()
         assert result == 1
 
@@ -2361,13 +2367,13 @@ class TestMode:
         tm.assert_series_equal(ser.mode(), exp)
 
     def test_uint64_overflow(self):
-        exp = Series([2 ** 63], dtype=np.uint64)
-        ser = Series([1, 2 ** 63, 2 ** 63], dtype=np.uint64)
+        exp = Series([2**63], dtype=np.uint64)
+        ser = Series([1, 2**63, 2**63], dtype=np.uint64)
         tm.assert_numpy_array_equal(algos.mode(ser.values), exp.values)
         tm.assert_series_equal(ser.mode(), exp)
 
-        exp = Series([1, 2 ** 63], dtype=np.uint64)
-        ser = Series([1, 2 ** 63], dtype=np.uint64)
+        exp = Series([1, 2**63], dtype=np.uint64)
+        ser = Series([1, 2**63], dtype=np.uint64)
         tm.assert_numpy_array_equal(algos.mode(ser.values), exp.values)
         tm.assert_series_equal(ser.mode(), exp)
 
