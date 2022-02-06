@@ -53,7 +53,6 @@ Excel
 
 .. autosummary::
    :toctree: api/
-   :template: autosummary/class_without_autosummary.rst
 
    ExcelWriter
 
