@@ -1279,7 +1279,7 @@ class TestCoercionFloat64(CoercionTest):
         # float32 cannot hold 2**33-1 exactly
         # (closest it can hold is 4294967300.0 which off by 5.0), so
         # we cast to float64
-        (np.uint32(2**33 - 1), np.float64),
+        (np.uint32(np.iinfo(np.uint32).max), np.float64),
         (np.uint64(2), np.float32),
         (np.int64(2), np.float32),
     ],
