@@ -71,9 +71,7 @@ def test_div(left_array, right_array):
     [
         "floordiv",
         "mod",
-        pytest.param(
-            "pow", marks=pytest.mark.xfail(reason="TODO follow int8 behaviour? GH34686")
-        ),
+        "pow",
     ],
 )
 def test_op_int8(left_array, right_array, opname):
