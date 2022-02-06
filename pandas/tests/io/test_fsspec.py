@@ -153,7 +153,7 @@ def test_excel_options(fsspectest, extension):
 
 
 @td.skip_if_no("fastparquet")
-def test_to_parquet_new_file(monkeypatch, cleared_fs):
+def test_to_parquet_new_file(cleared_fs):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
     df1.to_parquet(
         "memory://test/test.csv", index=True, engine="fastparquet", compression=None

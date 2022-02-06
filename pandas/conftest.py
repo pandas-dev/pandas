@@ -1776,7 +1776,7 @@ def indexer_ial(request):
 
 
 @pytest.fixture
-def using_array_manager(request):
+def using_array_manager():
     """
     Fixture to check if the array manager is being used.
     """
