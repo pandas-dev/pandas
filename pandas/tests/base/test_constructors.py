@@ -54,9 +54,6 @@ class TestPandasDelegate:
         def __init__(self, obj):
             self.obj = obj
 
-    def setup_method(self, method):
-        pass
-
     def test_invalid_delegation(self):
         # these show that in order for the delegation to work
         # the _delegate_* methods need to be overridden to not raise
