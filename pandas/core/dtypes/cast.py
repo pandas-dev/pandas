@@ -260,7 +260,7 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
                 dtype = "bool"
             elif inferred_type == "integer":
                 dtype = "int64"
-            elif inferred_type in ["datetime", "datetime64"]:
+            elif inferred_type == "datetime64":
                 dtype = "datetime64[ns]"
             elif inferred_type in ["timedelta", "timedelta64"]:
                 dtype = "timedelta64[ns]"
