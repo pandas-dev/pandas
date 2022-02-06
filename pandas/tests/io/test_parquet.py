@@ -3,6 +3,7 @@ import datetime
 from io import BytesIO
 import os
 import pathlib
+import sys
 from warnings import (
     catch_warnings,
     filterwarnings,
@@ -14,7 +15,6 @@ import pytest
 from pandas._config import get_option
 
 from pandas.compat import (
-    PY39,
     is_platform_mac,
     is_platform_windows,
 )
@@ -851,7 +851,7 @@ class TestParquetPyArrow(Base):
 
     @td.skip_if_no("pyarrow")
     @pytest.mark.xfail(
-        is_platform_mac() and PY39,
+        is_platform_mac() and sys.version_info[:2] == (3, 9),
         raises=TypeError,
         reason="expected str, bytes or os.PathLike object, not BytesIO",
     )
@@ -966,6 +966,7 @@ class TestParquetPyArrow(Base):
         if (
             not pa_version_under2p0
             and timezone_aware_date_list.tzinfo != datetime.timezone.utc
+            and not is_platform_windows()
         ):
             request.node.add_marker(
                 pytest.mark.xfail(
