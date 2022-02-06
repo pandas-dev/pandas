@@ -2017,6 +2017,13 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
         raise LossySetitemError
 
     elif dtype.kind == "f":
+        if lib.is_integer(element) or lib.is_float(element):
+            casted = dtype.type(element)
+            if np.isnan(casted) or casted == element:
+                return casted
+            # otherwise e.g. overflow see TestCoercionFloat32
+            raise LossySetitemError
+
         if tipo is not None:
             # TODO: itemsize check?
             if tipo.kind not in ["f", "i", "u"]:
@@ -2028,7 +2035,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                 if element._hasna:
                     raise LossySetitemError
                 return element
-            elif tipo.itemsize > dtype.itemsize:
+            elif tipo.itemsize > dtype.itemsize or tipo.kind != dtype.kind:
                 if isinstance(element, np.ndarray):
                     # e.g. TestDataFrameIndexingWhere::test_where_alignment
                     casted = element.astype(dtype)
@@ -2039,8 +2046,6 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
 
             return element
 
-        if lib.is_integer(element) or lib.is_float(element):
-            return element
         raise LossySetitemError
 
     elif dtype.kind == "c":
