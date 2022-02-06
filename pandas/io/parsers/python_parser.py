@@ -667,6 +667,8 @@ class PythonParser(ParserBase):
     def _next_line(self) -> list[Scalar]:
         if isinstance(self.data, list):
             while self.skipfunc(self.pos):
+                if self.pos >= len(self.data):
+                    break
                 self.pos += 1
 
             while True:
