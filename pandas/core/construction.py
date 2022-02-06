@@ -787,6 +787,7 @@ def _try_cast(
     elif dtype.kind == "U":
         # TODO: test cases with arr.dtype.kind in ["m", "M"]
         if is_ndarray:
+            arr = cast(np.ndarray, arr)
             shape = arr.shape
             if arr.ndim > 1:
                 arr = arr.ravel()
