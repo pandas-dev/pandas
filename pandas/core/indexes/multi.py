@@ -2995,6 +2995,10 @@ class MultiIndex(Index):
 
         # different name to distinguish from maybe_droplevels
         def maybe_mi_droplevels(indexer, levels):
+            """
+            If level does not exist or all levels were dropped, the exception
+            has to be handled outside.
+            """
             new_index = self[indexer]
 
             for i in sorted(levels, reverse=True):
