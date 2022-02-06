@@ -50,7 +50,7 @@ repos:
         - flake8==4.0.1
         - flake8-comprehensions==3.7.0
         - flake8-bugbear==21.3.2
-        - pandas-dev-flaker==0.2.0
+        - pandas-dev-flaker==0.4.0
 -   repo: https://github.com/PyCQA/isort
     rev: 5.10.1
     hooks:
