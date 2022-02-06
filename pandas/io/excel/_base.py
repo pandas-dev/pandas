@@ -535,11 +535,16 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         pass
 
     def close(self) -> None:
-        if hasattr(self, "book") and hasattr(self.book, "close"):
-            # pyxlsb: opens a TemporaryFile
-            # openpyxl: https://stackoverflow.com/questions/31416842/
-            #     openpyxl-does-not-close-excel-workbook-in-read-only-mode
-            self.book.close()
+        if hasattr(self, "book"):
+            if hasattr(self.book, "close"):
+                # pyxlsb: opens a TemporaryFile
+                # openpyxl: https://stackoverflow.com/questions/31416842/
+                #     openpyxl-does-not-close-excel-workbook-in-read-only-mode
+                self.book.close()
+            elif hasattr(self.book, "release_resources"):
+                # xlrd
+                # https://github.com/python-excel/xlrd/blob/2.0.1/xlrd/book.py#L548
+                self.book.release_resources()
         self.handles.close()
 
     @property
@@ -1043,6 +1048,12 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         """Name of engine."""
         pass
 
+    @property
+    @abc.abstractmethod
+    def sheets(self) -> dict[str, Any]:
+        """Mapping of sheet names to sheet objects."""
+        pass
+
     @abc.abstractmethod
     def write_cells(
         self,
@@ -1107,7 +1118,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             self.handles = get_handle(
                 path, mode, storage_options=storage_options, is_text=False
             )
-        self.sheets: dict[str, Any] = {}
         self.cur_sheet = None
 
         if date_format is None:
@@ -1266,11 +1276,12 @@ def inspect_excel_format(
         elif not peek.startswith(ZIP_SIGNATURE):
             return None
 
-        zf = zipfile.ZipFile(stream)
-
-        # Workaround for some third party files that use forward slashes and
-        # lower case names.
-        component_names = [name.replace("\\", "/").lower() for name in zf.namelist()]
+        with zipfile.ZipFile(stream) as zf:
+            # Workaround for some third party files that use forward slashes and
+            # lower case names.
+            component_names = [
+                name.replace("\\", "/").lower() for name in zf.namelist()
+            ]
 
         if "xl/workbook.xml" in component_names:
             return "xlsx"

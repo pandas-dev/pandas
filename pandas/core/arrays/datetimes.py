@@ -37,7 +37,10 @@ from pandas._libs.tslibs import (
     tzconversion,
 )
 from pandas._typing import npt
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    OutOfBoundsDatetime,
+    PerformanceWarning,
+)
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_inclusive
 
@@ -738,7 +741,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         other_i8 = other.asi8
         arr_mask = self._isnan | other._isnan
         new_values = checked_add_with_arr(self_i8, -other_i8, arr_mask=arr_mask)
-        if self._hasnans or other._hasnans:
+        if self._hasna or other._hasna:
             np.putmask(new_values, arr_mask, iNaT)
         return new_values.view("timedelta64[ns]")
 
@@ -1356,7 +1359,7 @@ default 'raise'
         iso_calendar_df = DataFrame(
             sarray, columns=["year", "week", "day"], dtype="UInt32"
         )
-        if self._hasnans:
+        if self._hasna:
             iso_calendar_df.iloc[self._isnan] = None
         return iso_calendar_df
 
@@ -1923,8 +1926,8 @@ default 'raise'
                 self.hour
                 + self.minute / 60
                 + self.second / 3600
-                + self.microsecond / 3600 / 10 ** 6
-                + self.nanosecond / 3600 / 10 ** 9
+                + self.microsecond / 3600 / 10**6
+                + self.nanosecond / 3600 / 10**9
             )
             / 24
         )
@@ -2215,6 +2218,9 @@ def objects_to_datetime64ns(
             return values.view("i8"), tz_parsed
         except (ValueError, TypeError):
             raise err
+    except OverflowError as err:
+        # Exception is raised when a part of date is greater than 32 bit signed int
+        raise OutOfBoundsDatetime("Out of bounds nanosecond timestamp") from err
 
     if tz_parsed is not None:
         # We can take a shortcut since the datetime64 numpy array
@@ -2289,7 +2295,6 @@ def maybe_convert_dtype(data, copy: bool):
         copy = False
 
     elif is_extension_array_dtype(data.dtype) and not is_datetime64tz_dtype(data.dtype):
-        # Includes categorical
         # TODO: We have no tests for these
         data = np.array(data, dtype=np.object_)
         copy = False

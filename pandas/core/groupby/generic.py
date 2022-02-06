@@ -472,7 +472,7 @@ class SeriesGroupBy(GroupBy[Series]):
         result.name = self.obj.name
         return result
 
-    def _can_use_transform_fast(self, result) -> bool:
+    def _can_use_transform_fast(self, func: str, result) -> bool:
         return True
 
     def filter(self, func, dropna: bool = True, *args, **kwargs):
@@ -602,23 +602,23 @@ class SeriesGroupBy(GroupBy[Series]):
         ids, _, _ = self.grouper.group_info
         val = self.obj._values
 
-        def apply_series_value_counts():
-            return self.apply(
+        names = self.grouper.names + [self.obj.name]
+
+        if is_categorical_dtype(val.dtype) or (
+            bins is not None and not np.iterable(bins)
+        ):
+            # scalar bins cannot be done at top level
+            # in a backward compatible way
+            # GH38672 relates to categorical dtype
+            ser = self.apply(
                 Series.value_counts,
                 normalize=normalize,
                 sort=sort,
                 ascending=ascending,
                 bins=bins,
             )
-
-        if bins is not None:
-            if not np.iterable(bins):
-                # scalar bins cannot be done at top level
-                # in a backward compatible way
-                return apply_series_value_counts()
-        elif is_categorical_dtype(val.dtype):
-            # GH38672
-            return apply_series_value_counts()
+            ser.index.names = names
+            return ser
 
         # groupby removes null keys from groupings
         mask = ids != -1
@@ -683,7 +683,6 @@ class SeriesGroupBy(GroupBy[Series]):
         levels = [ping.group_index for ping in self.grouper.groupings] + [
             lev  # type: ignore[list-item]
         ]
-        names = self.grouper.names + [self.obj.name]
 
         if dropna:
             mask = codes[-1] != -1
@@ -1185,9 +1184,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
         )
 
-    def _can_use_transform_fast(self, result) -> bool:
-        return isinstance(result, DataFrame) and result.columns.equals(
-            self._obj_with_exclusions.columns
+    def _can_use_transform_fast(self, func: str, result) -> bool:
+        return func == "size" or (
+            isinstance(result, DataFrame)
+            and result.columns.equals(self._obj_with_exclusions.columns)
         )
 
     def _define_paths(self, func, *args, **kwargs):
@@ -1207,6 +1207,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         path = slow_path
         res = slow_path(group)
 
+        if self.ngroups == 1:
+            # no need to evaluate multiple paths when only
+            # a single group exists
+            return path, res
+
         # if we make it here, test if we can use the fast path
         try:
             res_fast = fast_path(group)
@@ -1217,12 +1222,16 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             #  raised; see test_transform.test_transform_fastpath_raises
             return path, res
 
-        # verify fast path does not change columns (and names), otherwise
-        # its results cannot be joined with those of the slow path
-        if not isinstance(res_fast, DataFrame):
-            return path, res
-
-        if not res_fast.columns.equals(group.columns):
+        # verify fast path returns either:
+        # a DataFrame with columns equal to group.columns
+        # OR a Series with index equal to group.columns
+        if isinstance(res_fast, DataFrame):
+            if not res_fast.columns.equals(group.columns):
+                return path, res
+        elif isinstance(res_fast, Series):
+            if not res_fast.index.equals(group.columns):
+                return path, res
+        else:
             return path, res
 
         if res_fast.equals(res):
@@ -1791,7 +1800,7 @@ def _wrap_transform_general_frame(
             res_frame.index = group.index
         else:
             res_frame = obj._constructor(
-                np.concatenate([res.values] * len(group.index)).reshape(group.shape),
+                np.tile(res.values, (len(group.index), 1)),
                 columns=group.columns,
                 index=group.index,
             )

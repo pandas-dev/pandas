@@ -271,7 +271,7 @@ def test_sorting_with_different_categoricals():
     index = ["low", "med", "high", "low", "med", "high"]
     index = Categorical(index, categories=["low", "med", "high"], ordered=True)
     index = [["A", "A", "A", "B", "B", "B"], CategoricalIndex(index)]
-    index = MultiIndex.from_arrays(index, names=["group", None])
+    index = MultiIndex.from_arrays(index, names=["group", "dose"])
     expected = Series([2] * 6, index=index, name="dose")
     tm.assert_series_equal(result, expected)
 
@@ -1447,7 +1447,7 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_true(reduction_fun
 
 @pytest.mark.parametrize("observed", [False, None])
 def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
-    reduction_func, observed, request
+    reduction_func, observed
 ):
     # GH 23865
     # GH 27075
@@ -1793,4 +1793,22 @@ def test_groupby_categorical_observed_nunique():
         ),
         name="c",
     )
+    tm.assert_series_equal(result, expected)
+
+
+def test_groupby_categorical_aggregate_functions():
+    # GH#37275
+    dtype = pd.CategoricalDtype(categories=["small", "big"], ordered=True)
+    df = DataFrame(
+        [[1, "small"], [1, "big"], [2, "small"]], columns=["grp", "description"]
+    ).astype({"description": dtype})
+
+    result = df.groupby("grp")["description"].max()
+    expected = Series(
+        ["big", "small"],
+        index=Index([1, 2], name="grp"),
+        name="description",
+        dtype=pd.CategoricalDtype(categories=["small", "big"], ordered=True),
+    )
+
     tm.assert_series_equal(result, expected)

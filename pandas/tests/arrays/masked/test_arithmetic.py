@@ -153,17 +153,27 @@ def test_error_len_mismatch(data, all_arithmetic_operators):
 
     other = [scalar] * (len(data) - 1)
 
+    msg = "|".join(
+        [
+            r"operands could not be broadcast together with shapes \(3,\) \(4,\)",
+            r"operands could not be broadcast together with shapes \(4,\) \(3,\)",
+        ]
+    )
+
+    if data.dtype.kind == "b":
+        msg = "Lengths must match"
+
     for other in [other, np.array(other)]:
-        with pytest.raises(ValueError, match="Lengths must match"):
+        with pytest.raises(ValueError, match=msg):
             op(data, other)
 
         s = pd.Series(data)
-        with pytest.raises(ValueError, match="Lengths must match"):
+        with pytest.raises(ValueError, match=msg):
             op(s, other)
 
 
 @pytest.mark.parametrize("op", ["__neg__", "__abs__", "__invert__"])
-def test_unary_op_does_not_propagate_mask(data, op, request):
+def test_unary_op_does_not_propagate_mask(data, op):
     # https://github.com/pandas-dev/pandas/issues/39943
     data, _ = data
     ser = pd.Series(data)

@@ -12,7 +12,7 @@ flake8==4.0.1
 flake8-bugbear==21.3.2
 flake8-comprehensions==3.7.0
 isort>=5.2.1
-mypy==0.930
+mypy==0.931
 pre-commit>=2.9.2
 pycodestyle
 pyupgrade
@@ -21,6 +21,7 @@ gitdb
 sphinx
 sphinx-panels
 numpydoc < 1.2
+pydata-sphinx-theme
 types-python-dateutil
 types-PyMySQL
 types-pytz
@@ -83,7 +84,6 @@ cftime
 pyreadstat
 tabulate>=0.8.3
 natsort
-git+https://github.com/pydata/pydata-sphinx-theme.git@master
 pandas-dev-flaker==0.2.0
 pytest-cython
 setuptools>=51.0.0

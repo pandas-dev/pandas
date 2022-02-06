@@ -1,6 +1,11 @@
 import numpy as np
 import pytest
 
+from pandas.compat import (
+    is_ci_environment,
+    is_platform_mac,
+    is_platform_windows,
+)
 from pandas.errors import NumbaUtilError
 import pandas.util._test_decorators as td
 
@@ -12,6 +17,37 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
+
+# TODO(GH#44584): Mark these as pytest.mark.single
+pytestmark = pytest.mark.skipif(
+    is_ci_environment() and (is_platform_windows() or is_platform_mac()),
+    reason="On Azure CI, Windows can fail with "
+    "'Windows fatal exception: stack overflow' "
+    "and MacOS can timeout",
+)
+
+
+@pytest.fixture(params=["single", "table"])
+def method(request):
+    """method keyword in rolling/expanding/ewm constructor"""
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        ["sum", {}],
+        ["mean", {}],
+        ["median", {}],
+        ["max", {}],
+        ["min", {}],
+        ["var", {}],
+        ["var", {"ddof": 0}],
+        ["std", {}],
+        ["std", {"ddof": 0}],
+    ]
+)
+def arithmetic_numba_supported_operators(request):
+    return request.param
 
 
 @td.skip_if_no("numba")

@@ -417,7 +417,7 @@ class TestDatetimeIndexSetOps:
 
 
 class TestBusinessDatetimeIndex:
-    def setup_method(self, method):
+    def setup_method(self):
         self.rng = bdate_range(START, END)
 
     def test_union(self, sort):
@@ -555,7 +555,7 @@ class TestBusinessDatetimeIndex:
 
 
 class TestCustomDatetimeIndex:
-    def setup_method(self, method):
+    def setup_method(self):
         self.rng = bdate_range(START, END, freq="C")
 
     def test_union(self, sort):

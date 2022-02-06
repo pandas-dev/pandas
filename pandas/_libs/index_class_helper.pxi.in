@@ -35,6 +35,10 @@ cdef class {{name}}Engine(IndexEngine):
     cdef _check_type(self, object val):
     {{if name not in {'Float64', 'Float32'} }}
         if not util.is_integer_object(val):
+            if util.is_float_object(val):
+                # Make sure Int64Index.get_loc(2.0) works
+                if val.is_integer():
+                    return int(val)
             raise KeyError(val)
         {{if name.startswith("U")}}
         if val < 0:
@@ -46,6 +50,7 @@ cdef class {{name}}Engine(IndexEngine):
             # in particular catch bool and avoid casting True -> 1.0
             raise KeyError(val)
     {{endif}}
+        return val
 
 
 {{endfor}}

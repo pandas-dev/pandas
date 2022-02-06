@@ -722,9 +722,7 @@ class TestTimeSeriesArithmetic:
 class TestNamePreservation:
     @pytest.mark.parametrize("box", [list, tuple, np.array, Index, Series, pd.array])
     @pytest.mark.parametrize("flex", [True, False])
-    def test_series_ops_name_retention(
-        self, request, flex, box, names, all_binary_operators
-    ):
+    def test_series_ops_name_retention(self, flex, box, names, all_binary_operators):
         # GH#33930 consistent name renteiton
         op = all_binary_operators
 

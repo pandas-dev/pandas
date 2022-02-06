@@ -4,7 +4,7 @@ ci:
     autofix_prs: false
 repos:
 -   repo: https://github.com/MarcoGorelli/absolufy-imports
-    rev: v0.3.0
+    rev: v0.3.1
     hooks:
     -   id: absolufy-imports
         files: ^pandas/
@@ -16,7 +16,7 @@ repos:
         pass_filenames: true
         require_serial: false
 -   repo: https://github.com/python/black
-    rev: 21.12b0
+    rev: 22.1.0
     hooks:
     -   id: black
 -   repo: https://github.com/codespell-project/codespell
@@ -84,8 +84,8 @@ repos:
         pass_filenames: false
         types: [python]
         stages: [manual]
-        # note: keep version in sync with .github/workflows/ci.yml
-        additional_dependencies: ['pyright@1.1.202']
+        # note: keep version in sync with .github/workflows/code-checks.yml
+        additional_dependencies: ['pyright@1.1.212']
 -   repo: local
     hooks:
     -   id: flake8-rst
