@@ -13,9 +13,7 @@ arr = SparseArray(arr_data)
 
 
 class TestGetitem:
-    @pytest.mark.parametrize("mul", [1, -1])
-    @pytest.mark.parametrize("idx", range(len(arr)))
-    def test_getitem(self, mul, idx):
+    def test_getitem(self):
         dense = arr.to_dense()
         for i in range(len(arr)):
             tm.assert_almost_equal(arr[i], dense[i])
