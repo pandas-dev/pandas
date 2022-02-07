@@ -850,8 +850,9 @@ class TestFrameArithmetic:
     @pytest.mark.parametrize("col", ["A", "B"])
     def test_arith_getitem_commute(self, all_arithmetic_functions, col):
         df = DataFrame({"A": [1.1, 3.3], "B": [2.5, -3.9]})
-        result = all_arithmetic_functions(df, 1)
-        tm.assert_series_equal(result[col], all_arithmetic_functions(df[col], 1))
+        result = all_arithmetic_functions(df, 1)[col]
+        expected = all_arithmetic_functions(df[col], 1)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "values", [[1, 2], (1, 2), np.array([1, 2]), range(1, 3), deque([1, 2])]

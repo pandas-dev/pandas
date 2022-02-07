@@ -16,8 +16,10 @@ class TestGetitem:
     @pytest.mark.parametrize("mul", [1, -1])
     @pytest.mark.parametrize("idx", range(len(arr)))
     def test_getitem(self, mul, idx):
-        i = mul * idx
-        tm.assert_almost_equal(arr[i], arr.to_dense()[i])
+        dense = arr.to_dense()
+        for i in range(len(arr)):
+            tm.assert_almost_equal(arr[i], dense[i])
+            tm.assert_almost_equal(arr[-i], dense[-i])
 
     def test_getitem_arraylike_mask(self):
         arr = SparseArray([0, 1, 2])

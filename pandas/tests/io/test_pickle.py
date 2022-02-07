@@ -552,30 +552,21 @@ def test_pickle_binary_object_compression(compression):
     tm.assert_frame_equal(df, read_df)
 
 
-@pytest.mark.parametrize(
-    "fixture_name",
-    [
-        "multiindex_year_month_day_dataframe_random_data",
-        "multiindex_dataframe_random_data",
-    ],
-)
-def test_pickle_dataframe_with_multilevel_index(fixture_name, request):
-    frame = request.getfixturevalue(fixture_name)
-    unpickled = tm.round_trip_pickle(frame)
-    tm.assert_frame_equal(frame, unpickled)
+def test_pickle_dataframe_with_multilevel_index(
+    multiindex_year_month_day_dataframe_random_data,
+    multiindex_dataframe_random_data,
+):
+    ymd = multiindex_year_month_day_dataframe_random_data
+    frame = multiindex_dataframe_random_data
 
+    def _test_roundtrip(frame):
+        unpickled = tm.round_trip_pickle(frame)
+        tm.assert_frame_equal(frame, unpickled)
 
-@pytest.mark.parametrize(
-    "fixture_name",
-    [
-        "multiindex_year_month_day_dataframe_random_data",
-        "multiindex_dataframe_random_data",
-    ],
-)
-def test_pickle_dataframe_with_multilevel_index_transpose(fixture_name, request):
-    frame = request.getfixturevalue(fixture_name).T
-    unpickled = tm.round_trip_pickle(frame)
-    tm.assert_frame_equal(frame, unpickled)
+    _test_roundtrip(frame)
+    _test_roundtrip(frame.T)
+    _test_roundtrip(ymd)
+    _test_roundtrip(ymd.T)
 
 
 def test_pickle_timeseries_periodindex():
