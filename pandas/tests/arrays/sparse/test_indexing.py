@@ -14,12 +14,10 @@ arr = SparseArray(arr_data)
 
 class TestGetitem:
     def test_getitem(self):
-        def _checkit(i):
-            tm.assert_almost_equal(arr[i], arr.to_dense()[i])
-
+        dense = arr.to_dense()
         for i in range(len(arr)):
-            _checkit(i)
-            _checkit(-i)
+            tm.assert_almost_equal(arr[i], dense[i])
+            tm.assert_almost_equal(arr[-i], dense[-i])
 
     def test_getitem_arraylike_mask(self):
         arr = SparseArray([0, 1, 2])
