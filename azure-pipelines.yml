@@ -18,6 +18,8 @@ pr:
 variables:
   PYTEST_WORKERS: auto
   PYTEST_TARGET:  pandas
+  PATTERN: "not slow and not high_memory and not db and not network"
+  PANDAS_CI: 1
 
 jobs:
 # Mac and Linux use the same template
