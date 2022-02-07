@@ -1652,9 +1652,12 @@ def construct_1d_arraylike_from_scalar(
 
     if isinstance(dtype, ExtensionDtype):
         cls = dtype.construct_array_type()
-        subarr = cls._from_sequence([], dtype=dtype)
-        taker = np.broadcast_to(np.intp(-1), length)
-        subarr = subarr.take(taker, allow_fill=True, fill_value=value)
+        if isinstance(dtype, CategoricalDtype):
+            subarr = cls._from_sequence([value] * length, dtype=dtype)
+        else:
+            subarr = cls._from_sequence([], dtype=dtype)
+            taker = np.broadcast_to(np.intp(-1), length)
+            subarr = subarr.take(taker, allow_fill=True, fill_value=value)
 
     else:
 
