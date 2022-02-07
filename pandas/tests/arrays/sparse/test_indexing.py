@@ -13,13 +13,11 @@ arr = SparseArray(arr_data)
 
 
 class TestGetitem:
-    def test_getitem(self):
-        def _checkit(i):
-            tm.assert_almost_equal(arr[i], arr.to_dense()[i])
-
-        for i in range(len(arr)):
-            _checkit(i)
-            _checkit(-i)
+    @pytest.mark.parametrize("mul", [1, -1])
+    @pytest.mark.parametrize("idx", range(len(arr)))
+    def test_getitem(self, mul, idx):
+        i = mul * idx
+        tm.assert_almost_equal(arr[i], arr.to_dense()[i])
 
     def test_getitem_arraylike_mask(self):
         arr = SparseArray([0, 1, 2])
