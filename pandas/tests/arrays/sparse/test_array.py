@@ -16,12 +16,22 @@ from pandas.core.arrays.sparse import (
 )
 
 
-class TestSparseArray:
-    def setup_method(self):
-        self.arr_data = np.array([np.nan, np.nan, 1, 2, 3, np.nan, 4, 5, np.nan, 6])
-        self.arr = SparseArray(self.arr_data)
-        self.zarr = SparseArray([0, 0, 1, 2, 3, 0, 4, 5, 0, 6], fill_value=0)
+@pytest.fixture
+def arr_data():
+    return np.array([np.nan, np.nan, 1, 2, 3, np.nan, 4, 5, np.nan, 6])
 
+
+@pytest.fixture
+def arr(arr_data):
+    return SparseArray(arr_data)
+
+
+@pytest.fixture
+def zarr():
+    return SparseArray([0, 0, 1, 2, 3, 0, 4, 5, 0, 6], fill_value=0)
+
+
+class TestSparseArray:
     @pytest.mark.parametrize("fill_value", [0, None, np.nan])
     def test_shift_fill_value(self, fill_value):
         # GH #24128
@@ -79,13 +89,13 @@ class TestSparseArray:
         with pytest.raises(ValueError, match=msg):
             arr.fill_value = val
 
-    def test_copy(self):
-        arr2 = self.arr.copy()
-        assert arr2.sp_values is not self.arr.sp_values
-        assert arr2.sp_index is self.arr.sp_index
+    def test_copy(self, arr):
+        arr2 = arr.copy()
+        assert arr2.sp_values is not arr.sp_values
+        assert arr2.sp_index is arr.sp_index
 
-    def test_values_asarray(self):
-        tm.assert_almost_equal(self.arr.to_dense(), self.arr_data)
+    def test_values_asarray(self, arr_data, arr):
+        tm.assert_almost_equal(arr.to_dense(), arr_data)
 
     @pytest.mark.parametrize(
         "data,shape,dtype",
@@ -121,13 +131,11 @@ class TestSparseArray:
 
         tm.assert_numpy_array_equal(res2, vals)
 
-    def test_pickle(self):
-        def _check_roundtrip(obj):
-            unpickled = tm.round_trip_pickle(obj)
-            tm.assert_sp_array_equal(unpickled, obj)
-
-        _check_roundtrip(self.arr)
-        _check_roundtrip(self.zarr)
+    @pytest.mark.parametrize("fix", ["arr", "zarr"])
+    def test_pickle(self, fix, request):
+        obj = request.getfixturevalue(fix)
+        unpickled = tm.round_trip_pickle(obj)
+        tm.assert_sp_array_equal(unpickled, obj)
 
     def test_generator_warnings(self):
         sp_arr = SparseArray([1, 2, 3])
