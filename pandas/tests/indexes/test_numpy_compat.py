@@ -68,8 +68,10 @@ def test_numpy_ufuncs_basic(index, func):
         with tm.external_error_raised((TypeError, AttributeError)):
             with np.errstate(all="ignore"):
                 func(index)
-    elif isinstance(index, NumericIndex) or (
-        not isinstance(index.dtype, np.dtype) and index.dtype._is_numeric
+    elif (
+        isinstance(index, NumericIndex)
+        or (not isinstance(index.dtype, np.dtype) and index.dtype._is_numeric)
+        or index.dtype == bool
     ):
         # coerces to float (e.g. np.sin)
         with np.errstate(all="ignore"):
@@ -77,7 +79,7 @@ def test_numpy_ufuncs_basic(index, func):
             exp = Index(func(index.values), name=index.name)
 
         tm.assert_index_equal(result, exp)
-        if type(index) is not Index:
+        if type(index) is not Index or index.dtype == bool:
             # i.e NumericIndex
             assert isinstance(result, Float64Index)
         else:
@@ -96,7 +98,7 @@ def test_numpy_ufuncs_basic(index, func):
 @pytest.mark.parametrize(
     "func", [np.isfinite, np.isinf, np.isnan, np.signbit], ids=lambda x: x.__name__
 )
-def test_numpy_ufuncs_other(index, func, request):
+def test_numpy_ufuncs_other(index, func):
     # test ufuncs of numpy, see:
     # https://numpy.org/doc/stable/reference/ufuncs.html
     if isinstance(index, (DatetimeIndex, TimedeltaIndex)):
@@ -117,8 +119,10 @@ def test_numpy_ufuncs_other(index, func, request):
         with tm.external_error_raised(TypeError):
             func(index)
 
-    elif isinstance(index, NumericIndex) or (
-        not isinstance(index.dtype, np.dtype) and index.dtype._is_numeric
+    elif (
+        isinstance(index, NumericIndex)
+        or (not isinstance(index.dtype, np.dtype) and index.dtype._is_numeric)
+        or index.dtype == bool
     ):
         # Results in bool array
         result = func(index)

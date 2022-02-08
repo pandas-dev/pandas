@@ -9,7 +9,6 @@ import numpy as np
 import pytest
 
 from pandas.core.dtypes.cast import find_common_type
-from pandas.core.dtypes.common import is_dtype_equal
 
 from pandas import (
     CategoricalIndex,
@@ -55,14 +54,20 @@ def test_union_different_types(index_flat, index_flat2, request):
 
     if (
         not idx1.is_unique
+        and not idx2.is_unique
+        and not idx2.is_monotonic_decreasing
         and idx1.dtype.kind == "i"
-        and is_dtype_equal(idx2.dtype, "boolean")
+        and idx2.dtype.kind == "b"
     ) or (
         not idx2.is_unique
+        and not idx1.is_unique
+        and not idx1.is_monotonic_decreasing
         and idx2.dtype.kind == "i"
-        and is_dtype_equal(idx1.dtype, "boolean")
+        and idx1.dtype.kind == "b"
     ):
-        mark = pytest.mark.xfail(reason="GH#44000 True==1", raises=ValueError)
+        mark = pytest.mark.xfail(
+            reason="GH#44000 True==1", raises=ValueError, strict=False
+        )
         request.node.add_marker(mark)
 
     common_dtype = find_common_type([idx1.dtype, idx2.dtype])
@@ -231,7 +236,11 @@ class TestSetOps:
     def test_difference_base(self, sort, index):
         first = index[2:]
         second = index[:4]
-        if isinstance(index, CategoricalIndex) or index.is_boolean():
+        if index.is_boolean():
+            # i think (TODO: be sure) there assumptions baked in about
+            #  the index fixture that don't hold here?
+            answer = set(first).difference(set(second))
+        elif isinstance(index, CategoricalIndex):
             answer = []
         else:
             answer = index[4:]
@@ -432,7 +441,7 @@ class TestSetOps:
         expected = index[:0]
         tm.assert_index_equal(result, expected, exact=True)
 
-    def test_difference_name_retention_equals(self, index, sort, names):
+    def test_difference_name_retention_equals(self, index, names):
         if isinstance(index, MultiIndex):
             names = [[x] * index.nlevels for x in names]
         index = index.rename(names[0])

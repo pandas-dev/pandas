@@ -265,7 +265,7 @@ class TestInsertIndexCoercion(CoercionBase):
         "insert_value",
         [pd.Timestamp("2012-01-01"), pd.Timestamp("2012-01-01", tz="Asia/Tokyo"), 1],
     )
-    def test_insert_index_datetimes(self, request, fill_val, exp_dtype, insert_value):
+    def test_insert_index_datetimes(self, fill_val, exp_dtype, insert_value):
 
         obj = pd.DatetimeIndex(
             ["2011-01-01", "2011-01-02", "2011-01-03", "2011-01-04"], tz=fill_val.tz
@@ -708,6 +708,30 @@ class TestFillnaSeriesCoercion(CoercionBase):
             warn = FutureWarning
         with tm.assert_produces_warning(warn, match="mismatched timezone"):
             self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
+
+    @pytest.mark.parametrize(
+        "fill_val",
+        [
+            1,
+            1.1,
+            1 + 1j,
+            True,
+            pd.Interval(1, 2, closed="left"),
+            pd.Timestamp("2012-01-01", tz="US/Eastern"),
+            pd.Timestamp("2012-01-01"),
+            pd.Timedelta(days=1),
+            pd.Period("2016-01-01", "D"),
+        ],
+    )
+    def test_fillna_interval(self, index_or_series, fill_val):
+        ii = pd.interval_range(1.0, 5.0, closed="right").insert(1, np.nan)
+        assert isinstance(ii.dtype, pd.IntervalDtype)
+        obj = index_or_series(ii)
+
+        exp = index_or_series([ii[0], fill_val, ii[2], ii[3], ii[4]], dtype=object)
+
+        fill_dtype = object
+        self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
 
     @pytest.mark.xfail(reason="Test not implemented")
     def test_fillna_series_int64(self):

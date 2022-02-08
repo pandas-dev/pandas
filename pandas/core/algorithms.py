@@ -220,9 +220,6 @@ def _reconstruct_data(
     elif is_bool_dtype(dtype):
         values = values.astype(dtype, copy=False)
 
-        # we only support object dtypes bool Index
-        if isinstance(original, ABCIndex):
-            values = values.astype(object, copy=False)
     elif dtype is not None:
         if is_datetime64_dtype(dtype):
             dtype = np.dtype("datetime64[ns]")
@@ -631,6 +628,10 @@ def factorize(
     cut : Discretize continuous-valued array.
     unique : Find the unique value in an array.
 
+    Notes
+    -----
+    Reference :ref:`the user guide <reshaping.factorize>` for more examples.
+
     Examples
     --------
     These examples all show factorize as a top-level method like
@@ -826,7 +827,10 @@ def value_counts(
     -------
     Series
     """
-    from pandas.core.series import Series
+    from pandas import (
+        Index,
+        Series,
+    )
 
     name = getattr(values, "name", None)
 
@@ -864,7 +868,13 @@ def value_counts(
         else:
             keys, counts = value_counts_arraylike(values, dropna)
 
-            result = Series(counts, index=keys, name=name)
+            # For backwards compatibility, we let Index do its normal type
+            #  inference, _except_ for if if infers from object to bool.
+            idx = Index._with_infer(keys)
+            if idx.dtype == bool and keys.dtype == object:
+                idx = idx.astype(object)
+
+            result = Series(counts, index=idx, name=name)
 
     if sort:
         result = result.sort_values(ascending=ascending)
@@ -1408,20 +1418,20 @@ def take(
 
     Examples
     --------
-    >>> from pandas.api.extensions import take
+    >>> import pandas as pd
 
     With the default ``allow_fill=False``, negative numbers indicate
     positional indices from the right.
 
-    >>> take(np.array([10, 20, 30]), [0, 0, -1])
+    >>> pd.api.extensions.take(np.array([10, 20, 30]), [0, 0, -1])
     array([10, 10, 30])
 
     Setting ``allow_fill=True`` will place `fill_value` in those positions.
 
-    >>> take(np.array([10, 20, 30]), [0, 0, -1], allow_fill=True)
+    >>> pd.api.extensions.take(np.array([10, 20, 30]), [0, 0, -1], allow_fill=True)
     array([10., 10., nan])
 
-    >>> take(np.array([10, 20, 30]), [0, 0, -1], allow_fill=True,
+    >>> pd.api.extensions.take(np.array([10, 20, 30]), [0, 0, -1], allow_fill=True,
     ...      fill_value=-10)
     array([ 10,  10, -10])
     """

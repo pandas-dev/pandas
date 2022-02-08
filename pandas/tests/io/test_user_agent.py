@@ -11,10 +11,18 @@ import urllib.error
 
 import pytest
 
+from pandas.compat import is_ci_environment
 import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
+
+pytestmark = pytest.mark.skipif(
+    is_ci_environment(),
+    reason="This test can hang in our CI min_versions build "
+    "and leads to '##[error]The runner has "
+    "received a shutdown signal...' in GHA. GH 45651",
+)
 
 
 class BaseUserAgentResponder(http.server.BaseHTTPRequestHandler):
@@ -217,6 +225,7 @@ def responder(request):
     )
     server_process.start()
     yield port
+    server_process.join(10)
     server_process.terminate()
     kill_time = 5
     wait_time = 0
@@ -241,7 +250,9 @@ def responder(request):
             pd.read_parquet,
             "fastparquet",
             # TODO(ArrayManager) fastparquet
-            marks=td.skip_array_manager_not_yet_implemented,
+            marks=[
+                td.skip_array_manager_not_yet_implemented,
+            ],
         ),
         (PickleUserAgentResponder, pd.read_pickle, None),
         (StataUserAgentResponder, pd.read_stata, None),
@@ -276,7 +287,9 @@ def test_server_and_default_headers(responder, read_method, parquet_engine):
             pd.read_parquet,
             "fastparquet",
             # TODO(ArrayManager) fastparquet
-            marks=td.skip_array_manager_not_yet_implemented,
+            marks=[
+                td.skip_array_manager_not_yet_implemented,
+            ],
         ),
         (PickleUserAgentResponder, pd.read_pickle, None),
         (StataUserAgentResponder, pd.read_stata, None),

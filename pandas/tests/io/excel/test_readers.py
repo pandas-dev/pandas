@@ -150,9 +150,7 @@ class TestReaders:
             expected = expected_defaults[read_ext[1:]]
         assert result == expected
 
-    def test_usecols_int(self, read_ext, df_ref):
-        df_ref = df_ref.reindex(columns=["A", "B", "C"])
-
+    def test_usecols_int(self, read_ext):
         # usecols as int
         msg = "Passing an integer for `usecols`"
         with pytest.raises(ValueError, match=msg):
@@ -721,7 +719,7 @@ class TestReaders:
             actual = pd.read_excel(f, sheet_name="Sheet1", index_col=0)
             tm.assert_frame_equal(expected, actual)
 
-    def test_bad_engine_raises(self, read_ext):
+    def test_bad_engine_raises(self):
         bad_engine = "foo"
         with pytest.raises(ValueError, match="Unknown engine: foo"):
             pd.read_excel("", engine=bad_engine)
@@ -743,7 +741,7 @@ class TestReaders:
         with pytest.raises(FileNotFoundError, match=match):
             pd.read_excel(bad_file)
 
-    def test_corrupt_bytes_raises(self, read_ext, engine):
+    def test_corrupt_bytes_raises(self, engine):
         bad_stream = b"foo"
         if engine is None:
             error = ValueError
@@ -765,6 +763,7 @@ class TestReaders:
         with pytest.raises(error, match=msg):
             pd.read_excel(bad_stream)
 
+    @pytest.mark.network
     @tm.network
     def test_read_from_http_url(self, read_ext):
         url = (
@@ -1165,6 +1164,31 @@ class TestReaders:
         )
         tm.assert_frame_equal(actual, expected)
 
+    def test_read_excel_skiprows_callable_not_in(self, request, read_ext):
+        # GH 4903
+        if read_ext == ".xlsb":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="Sheets containing datetimes not supported by pyxlsb"
+                )
+            )
+
+        actual = pd.read_excel(
+            "testskiprows" + read_ext,
+            sheet_name="skiprows_list",
+            skiprows=lambda x: x not in [1, 3, 5],
+        )
+        expected = DataFrame(
+            [
+                [1, 2.5, pd.Timestamp("2015-01-01"), True],
+                # [2, 3.5, pd.Timestamp("2015-01-02"), False],
+                [3, 4.5, pd.Timestamp("2015-01-03"), False],
+                # [4, 5.5, pd.Timestamp("2015-01-04"), True],
+            ],
+            columns=["a", "b", "c", "d"],
+        )
+        tm.assert_frame_equal(actual, expected)
+
     def test_read_excel_nrows(self, read_ext):
         # GH 16645
         num_rows_to_pull = 5
@@ -1287,7 +1311,7 @@ class TestReaders:
         ):
             pd.read_excel("chartsheet" + read_ext, sheet_name=1)
 
-    def test_euro_decimal_format(self, request, read_ext):
+    def test_euro_decimal_format(self, read_ext):
         # copied from read_csv
         result = pd.read_excel("test_decimal" + read_ext, decimal=",", skiprows=1)
         expected = DataFrame(
@@ -1311,7 +1335,7 @@ class TestExcelFileRead:
         monkeypatch.chdir(datapath("io", "data", "excel"))
         monkeypatch.setattr(pd, "ExcelFile", func)
 
-    def test_engine_used(self, read_ext, engine, monkeypatch):
+    def test_engine_used(self, read_ext, engine):
         expected_defaults = {
             "xlsx": "openpyxl",
             "xlsm": "openpyxl",
@@ -1564,7 +1588,7 @@ class TestExcelFileRead:
         # GH41778
         errors = (BadZipFile,)
         if engine is None:
-            pytest.skip()
+            pytest.skip(f"Invalid test for engine={engine}")
         elif engine == "xlrd":
             import xlrd
 
