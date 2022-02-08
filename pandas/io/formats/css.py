@@ -2,8 +2,8 @@
 Utilities for interpreting CSS from Stylers for formatting non-HTML outputs.
 """
 from __future__ import annotations
-from email.generator import Generator
 
+from email.generator import Generator
 import re
 from typing import Callable
 import warnings
@@ -32,6 +32,7 @@ def _side_expander(prop_fmt: str) -> Callable:
     -----
         Description of [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Shorthand_properties) syntax
     """
+
     def expand(self, prop, value: str) -> Generator:
         """
         Expand shorthand property into side-specific property (top, right, bottom, left)
