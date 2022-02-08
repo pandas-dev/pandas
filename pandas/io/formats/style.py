@@ -3545,9 +3545,9 @@ class Styler(StylerRenderer):
         Since the method returns a ``Styler`` object it can be chained with other
         methods as if applying the underlying highlighters directly.
 
-        >>> df.style.format("{:.1f}")\
+        >>> df.style.format("{:.1f}")
         ...         .pipe(some_highlights, min_color="green")
-        ...         .highlight_between(left=2, right=3)  # doctest: +SKIP
+        ...         .highlight_between(left=2, right=5)  # doctest: +SKIP
 
         .. figure:: ../../_static/style/df_pipe_hl2.png
 
@@ -3574,21 +3574,20 @@ class Styler(StylerRenderer):
 
         .. figure:: ../../_static/style/df_pipe_applymap.png
 
-        Additionally suppose we want to align column headers based on datatype.
+        Additionally suppose we want to highlight a column header if there is any
+        missing data in that column.
         In this case we need the data object itself to determine the effect on the
         column headers.
 
-        ### this does not work because pd.NA not classed as numeric in object type
-        >>> def align_header(styler):
-        ...     from pandas.api.types import is_numeric_dtype
-        ...     def dynamic_align(s):
+        >>> def highlight_header_missing(styler, level):
+        ...     def dynamic_highlight(s):
         ...         return np.where(
-        ...             styler.data.apply(is_numeric_dtype, axis=0),
-        ...             "text-align: right;",
-        ...             "text-align: left;"
+        ...             styler.data.isna().any(), "background-color: red;", ""
         ...         )
-        ...     return styler.apply_index(dynamic_align, axis=1)
-        >>> df.style.pipe(align_header)  # doctest: +SKIP
+        ...     return styler.apply_index(dynamic_highlight, axis=1, level=level)
+        >>> df.style.pipe(highlight_header_missing, level=1)  # doctest: +SKIP
+
+        .. figure:: ../../_static/style/df_pipe_applydata.png
 
         """
         return com.pipe(self, func, *args, **kwargs)
