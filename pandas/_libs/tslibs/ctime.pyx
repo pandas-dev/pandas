@@ -29,7 +29,19 @@ def pylocaltime():
     """
     python-exposed for testing
     """
-    return localtime()
+    lt = localtime()
+    # https://github.com/pandas-dev/pandas/pull/45864#issuecomment-1033021599
+    return {
+        "tm_year": lt.tm_year,
+        "tm_mon": lt.tm_mon,
+        "tm_mday": lt.tm_mday,
+        "tm_hour": lt.tm_hour,
+        "tm_min": lt.tm_min,
+        "tm_sec": lt.tm_sec,
+        "tm_wday": lt.tm_wday,
+        "tm_yday": lt.tm_yday,
+        "tm_isdst": lt.tm_isdst,
+    }
 
 
 cdef inline double time() nogil:
