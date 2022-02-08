@@ -992,40 +992,9 @@ class TestDataFrameReshape:
         expected = DataFrame([1, 2, 3, 4], index=eidx, columns=ecols)
         tm.assert_frame_equal(result, expected)
 
-    def test_stack_partial_multiIndex(self):
-        # GH 8844
-        def _test_stack_with_multiindex(multiindex):
-            df = DataFrame(
-                np.arange(3 * len(multiindex)).reshape(3, len(multiindex)),
-                columns=multiindex,
-            )
-            for level in (-1, 0, 1, [0, 1], [1, 0]):
-                result = df.stack(level=level, dropna=False)
-
-                if isinstance(level, int):
-                    # Stacking a single level should not make any all-NaN rows,
-                    # so df.stack(level=level, dropna=False) should be the same
-                    # as df.stack(level=level, dropna=True).
-                    expected = df.stack(level=level, dropna=True)
-                    if isinstance(expected, Series):
-                        tm.assert_series_equal(result, expected)
-                    else:
-                        tm.assert_frame_equal(result, expected)
-
-                df.columns = MultiIndex.from_tuples(
-                    df.columns.to_numpy(), names=df.columns.names
-                )
-                expected = df.stack(level=level, dropna=False)
-                if isinstance(expected, Series):
-                    tm.assert_series_equal(result, expected)
-                else:
-                    tm.assert_frame_equal(result, expected)
-
-        full_multiindex = MultiIndex.from_tuples(
-            [("B", "x"), ("B", "z"), ("A", "y"), ("C", "x"), ("C", "u")],
-            names=["Upper", "Lower"],
-        )
-        for multiindex_columns in (
+    @pytest.mark.parametrize(
+        "multiindex_columns",
+        [
             [0, 1, 2, 3, 4],
             [0, 1, 2, 3],
             [0, 1, 2, 4],
@@ -1038,12 +1007,56 @@ class TestDataFrameReshape:
             [0],
             [2],
             [4],
-        ):
-            _test_stack_with_multiindex(full_multiindex[multiindex_columns])
-            if len(multiindex_columns) > 1:
-                multiindex_columns.reverse()
-                _test_stack_with_multiindex(full_multiindex[multiindex_columns])
+            [4, 3, 2, 1, 0],
+            [3, 2, 1, 0],
+            [4, 2, 1, 0],
+            [2, 1, 0],
+            [3, 2, 1],
+            [4, 3, 2],
+            [1, 0],
+            [2, 0],
+            [3, 0],
+        ],
+    )
+    @pytest.mark.parametrize("level", (-1, 0, 1, [0, 1], [1, 0]))
+    def test_stack_partial_multiIndex(self, multiindex_columns, level):
+        # GH 8844
+        full_multiindex = MultiIndex.from_tuples(
+            [("B", "x"), ("B", "z"), ("A", "y"), ("C", "x"), ("C", "u")],
+            names=["Upper", "Lower"],
+        )
+        multiindex = full_multiindex[multiindex_columns]
+        df = DataFrame(
+            np.arange(3 * len(multiindex)).reshape(3, len(multiindex)),
+            columns=multiindex,
+        )
+        result = df.stack(level=level, dropna=False)
 
+        if isinstance(level, int):
+            # Stacking a single level should not make any all-NaN rows,
+            # so df.stack(level=level, dropna=False) should be the same
+            # as df.stack(level=level, dropna=True).
+            expected = df.stack(level=level, dropna=True)
+            if isinstance(expected, Series):
+                tm.assert_series_equal(result, expected)
+            else:
+                tm.assert_frame_equal(result, expected)
+
+        df.columns = MultiIndex.from_tuples(
+            df.columns.to_numpy(), names=df.columns.names
+        )
+        expected = df.stack(level=level, dropna=False)
+        if isinstance(expected, Series):
+            tm.assert_series_equal(result, expected)
+        else:
+            tm.assert_frame_equal(result, expected)
+
+    def test_stack_full_multiIndex(self):
+        # GH 8844
+        full_multiindex = MultiIndex.from_tuples(
+            [("B", "x"), ("B", "z"), ("A", "y"), ("C", "x"), ("C", "u")],
+            names=["Upper", "Lower"],
+        )
         df = DataFrame(np.arange(6).reshape(2, 3), columns=full_multiindex[[0, 1, 3]])
         result = df.stack(dropna=False)
         expected = DataFrame(

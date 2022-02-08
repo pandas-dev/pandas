@@ -534,9 +534,6 @@ class TestShallowCopy:
 
 
 class TestSeriesPeriod:
-    def setup_method(self, method):
-        self.series = Series(period_range("2000-01-01", periods=10, freq="D"))
-
     def test_constructor_cant_cast_period(self):
         msg = "Cannot cast PeriodIndex to dtype float64"
         with pytest.raises(TypeError, match=msg):

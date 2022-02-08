@@ -134,3 +134,13 @@ def test_book_and_sheets_consistent(ext):
             assert writer.sheets == {}
             sheet = writer.book.add_sheet("test_name")
             assert writer.sheets == {"test_name": sheet}
+
+
+@pytest.mark.parametrize("attr", ["fm_date", "fm_datetime"])
+def test_deprecated_attr(ext, attr):
+    # GH#45572
+    with tm.ensure_clean(ext) as path:
+        with ExcelWriter(path, engine="xlwt") as writer:
+            msg = f"{attr} is not part of the public API"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                getattr(writer, attr)

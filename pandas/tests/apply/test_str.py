@@ -256,7 +256,7 @@ def test_transform_groupby_kernel_series(string_series, op):
 
 
 @pytest.mark.parametrize("op", frame_transform_kernels)
-def test_transform_groupby_kernel_frame(axis, float_frame, op, request):
+def test_transform_groupby_kernel_frame(axis, float_frame, op):
     # TODO(2.0) Remove after pad/backfill deprecation enforced
     op = maybe_normalize_deprecated_kernels(op)
     # GH 35964

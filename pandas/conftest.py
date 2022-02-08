@@ -555,7 +555,8 @@ indices_dict = {
     "num_uint8": tm.makeNumericIndex(100, dtype="uint8"),
     "num_float64": tm.makeNumericIndex(100, dtype="float64"),
     "num_float32": tm.makeNumericIndex(100, dtype="float32"),
-    "bool": tm.makeBoolIndex(10),
+    "bool-object": tm.makeBoolIndex(10).astype(object),
+    "bool-dtype": Index(np.random.randn(10) < 0),
     "categorical": tm.makeCategoricalIndex(100),
     "interval": tm.makeIntervalIndex(100),
     "empty": Index([]),
@@ -630,7 +631,7 @@ def index_flat_unique(request):
         key
         for key in indices_dict
         if not (
-            key in ["int", "uint", "range", "empty", "repeats"]
+            key in ["int", "uint", "range", "empty", "repeats", "bool-dtype"]
             or key.startswith("num_")
         )
         and not isinstance(indices_dict[key], MultiIndex)
@@ -1775,7 +1776,7 @@ def indexer_ial(request):
 
 
 @pytest.fixture
-def using_array_manager(request):
+def using_array_manager():
     """
     Fixture to check if the array manager is being used.
     """
