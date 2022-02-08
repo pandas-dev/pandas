@@ -3588,7 +3588,6 @@ class Styler(StylerRenderer):
         >>> df.style.pipe(highlight_header_missing, level=1)  # doctest: +SKIP
 
         .. figure:: ../../_static/style/df_pipe_applydata.png
-
         """
         return com.pipe(self, func, *args, **kwargs)
 
