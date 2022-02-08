@@ -230,6 +230,43 @@ use ``series.loc[i:j]``.
 
 Slicing on a :class:`DataFrame` will not be affected.
 
+.. _whatsnew_150.deprecations.excel_writer_attributes:
+
+:class:`ExcelWriter` attributes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+All attributes of :class:`ExcelWriter` were previously documented as not
+public. However some third party Excel engines documented accessing
+``ExcelWriter.book`` or ``ExcelWriter.sheets``, and users were utilizing these
+and possibly other attributes. Previously these attributes were not safe to use;
+e.g. modifications to ``ExcelWriter.book`` would not update ``ExcelWriter.sheets``
+and conversely. In order to support this, pandas has made some attributes public
+and improved their implementations so that they may now be safely used. (:issue:`45572`)
+
+The following attributes are now public and considered safe to access.
+
+ - ``book``
+ - ``check_extension``
+ - ``close``
+ - ``date_format``
+ - ``datetime_format``
+ - ``engine``
+ - ``if_sheet_exists``
+ - ``sheets``
+ - ``supported_extensions``
+
+The following attributes have been deprecated. They now raise a ``FutureWarning``
+when accessed and will removed in a future version. Users should be aware
+that their usage is considered unsafe, and can lead to unexpected results.
+
+ - ``cur_sheet``
+ - ``handles``
+ - ``path``
+ - ``save``
+ - ``write_cells``
+
+See the documentation of :class:`ExcelWriter` for further details.
+
 .. _whatsnew_150.deprecations.group_keys_in_apply:
 
 Using ``group_keys`` with transformers in :meth:`.GroupBy.apply`
@@ -290,6 +327,7 @@ Datetimelike
 - Bug in :func:`to_datetime` with sequences of ``np.str_`` objects incorrectly raising (:issue:`32264`)
 - Bug in :class:`Timestamp` construction when passing datetime components as positional arguments and ``tzinfo`` as a keyword argument incorrectly raising (:issue:`31929`)
 - Bug in :meth:`Index.astype` when casting from object dtype to ``timedelta64[ns]`` dtype incorrectly casting ``np.datetime64("NaT")`` values to ``np.timedelta64("NaT")`` instead of raising (:issue:`45722`)
+- Bug in :meth:`SeriesGroupBy.value_counts` index when passing categorical column (:issue:`44324`)
 -
 
 Timedelta
@@ -360,6 +398,7 @@ MultiIndex
 I/O
 ^^^
 - Bug in :meth:`DataFrame.to_stata` where no error is raised if the :class:`DataFrame` contains ``-np.inf`` (:issue:`45350`)
+- Bug in :func:`read_excel` results in an infinite loop with certain ``skiprows`` callables (:issue:`45585`)
 - Bug in :meth:`DataFrame.info` where a new line at the end of the output is omitted when called on an empty :class:`DataFrame` (:issue:`45494`)
 - Bug in :func:`read_csv` not recognizing line break for ``on_bad_lines="warn"`` for ``engine="c"`` (:issue:`41710`)
 - Bug in :func:`read_parquet` when ``engine="pyarrow"`` which caused partial write to disk when column of unsupported datatype was passed (:issue:`44914`)
