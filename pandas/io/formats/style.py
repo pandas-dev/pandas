@@ -3529,7 +3529,7 @@ class Styler(StylerRenderer):
 
         **Common Use**
 
-        The most common usage pattern may be to pre-define styling operations which
+        A common usage pattern is to pre-define styling operations which
         can be easily applied to a generic styler in a single ``pipe`` call.
 
         >>> def some_highlights(styler, min_color="red", max_color="blue"):
@@ -3554,7 +3554,7 @@ class Styler(StylerRenderer):
         **Advanced Use**
 
         Sometimes it may be necessary to pre-define styling functions, but in the case
-        where those functions rely on the styler, or data, context. Since
+        where those functions rely on the styler, data or context. Since
         ``Styler.use`` and ``Styler.export`` are designed to be non-data dependent,
         they cannot be used for this purpose. Additionally the ``Styler.apply``
         and ``Styler.format`` type methods are not context aware, so a solution
