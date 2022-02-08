@@ -487,8 +487,8 @@ def _concatenate_join_units(join_units: list[JoinUnit], copy: bool) -> ArrayLike
         # argument type "Tuple[int, slice]"
         to_concat = [
             t
-            if is_1d_only_ea_dtype(t.dtype)  # type: ignore[call-overload]
-            else t[0, :]
+            if is_1d_only_ea_dtype(t.dtype)
+            else t[0, :]  # type: ignore[call-overload]
             for t in to_concat
         ]
         concat_values = concat_compat(to_concat, axis=0, ea_compat_axis=True)
