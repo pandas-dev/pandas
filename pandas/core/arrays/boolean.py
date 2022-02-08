@@ -1,10 +1,7 @@
 from __future__ import annotations
 
 import numbers
-from typing import (
-    TYPE_CHECKING,
-    overload,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -13,30 +10,19 @@ from pandas._libs import (
     missing as libmissing,
 )
 from pandas._typing import (
-    ArrayLike,
-    AstypeArg,
     Dtype,
     DtypeObj,
-    npt,
     type_t,
 )
 
 from pandas.core.dtypes.common import (
-    is_bool_dtype,
-    is_float_dtype,
-    is_integer_dtype,
     is_list_like,
     is_numeric_dtype,
-    pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import (
-    ExtensionDtype,
-    register_extension_dtype,
-)
+from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
-from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
@@ -360,93 +346,13 @@ class BooleanArray(BaseMaskedArray):
             assert dtype == "boolean"
         return coerce_to_array(value, copy=copy)
 
-    @overload
-    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
-        ...
-
-    @overload
-    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray:
-        ...
-
-    @overload
-    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike:
-        ...
-
-    def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
-
-        """
-        Cast to a NumPy array or ExtensionArray with 'dtype'.
-
-        Parameters
-        ----------
-        dtype : str or dtype
-            Typecode or data-type to which the array is cast.
-        copy : bool, default True
-            Whether to copy the data, even if not necessary. If False,
-            a copy is made only if the old dtype does not match the
-            new dtype.
-
-        Returns
-        -------
-        ndarray or ExtensionArray
-            NumPy ndarray, BooleanArray or IntegerArray with 'dtype' for its dtype.
-
-        Raises
-        ------
-        TypeError
-            if incompatible type with an BooleanDtype, equivalent of same_kind
-            casting
-        """
-        dtype = pandas_dtype(dtype)
-
-        if isinstance(dtype, ExtensionDtype):
-            return super().astype(dtype, copy)
-
-        if is_bool_dtype(dtype):
-            # astype_nansafe converts np.nan to True
-            if self._hasna:
-                raise ValueError("cannot convert float NaN to bool")
-            else:
-                return self._data.astype(dtype, copy=copy)
-
-        # for integer, error if there are missing values
-        if is_integer_dtype(dtype) and self._hasna:
-            raise ValueError("cannot convert NA to integer")
-
-        # for float dtype, ensure we use np.nan before casting (numpy cannot
-        # deal with pd.NA)
-        na_value = self._na_value
-        if is_float_dtype(dtype):
-            na_value = np.nan
-        # coerce
-        return self.to_numpy(dtype=dtype, na_value=na_value, copy=False)
-
-    def _values_for_argsort(self) -> np.ndarray:
-        """
-        Return values for sorting.
-
-        Returns
-        -------
-        ndarray
-            The transformed values should maintain the ordering between values
-            within the array.
-
-        See Also
-        --------
-        ExtensionArray.argsort : Return the indices that would sort this array.
-        """
-        data = self._data.copy()
-        data[self._mask] = -1
-        return data
-
     def _logical_method(self, other, op):
 
         assert op.__name__ in {"or_", "ror_", "and_", "rand_", "xor", "rxor"}
-        other_is_booleanarray = isinstance(other, BooleanArray)
         other_is_scalar = lib.is_scalar(other)
         mask = None
 
-        if other_is_booleanarray:
+        if isinstance(other, BooleanArray):
             other, mask = other._data, other._mask
         elif is_list_like(other):
             other = np.asarray(other, dtype="bool")
@@ -463,7 +369,7 @@ class BooleanArray(BaseMaskedArray):
             )
 
         if not other_is_scalar and len(self) != len(other):
-            raise ValueError("Lengths must match to compare")
+            raise ValueError("Lengths must match")
 
         if op.__name__ in {"or_", "ror_"}:
             result, mask = ops.kleene_or(self._data, other, self._mask, mask)
@@ -480,7 +386,7 @@ class BooleanArray(BaseMaskedArray):
         mask = None
         op_name = op.__name__
 
-        if isinstance(other, BooleanArray):
+        if isinstance(other, BaseMaskedArray):
             other, mask = other._data, other._mask
 
         elif is_list_like(other):
@@ -490,13 +396,7 @@ class BooleanArray(BaseMaskedArray):
             if len(self) != len(other):
                 raise ValueError("Lengths must match")
 
-        # nans propagate
-        if mask is None:
-            mask = self._mask
-            if other is libmissing.NA:
-                mask |= True
-        else:
-            mask = self._mask | mask
+        mask = self._propagate_mask(mask, other)
 
         if other is libmissing.NA:
             # if other is NA, the result will be all NA and we can't run the
@@ -516,14 +416,6 @@ class BooleanArray(BaseMaskedArray):
 
             with np.errstate(all="ignore"):
                 result = op(self._data, other)
-
-        # divmod returns a tuple
-        if op_name == "divmod":
-            div, mod = result
-            return (
-                self._maybe_mask_result(div, mask, other, "floordiv"),
-                self._maybe_mask_result(mod, mask, other, "mod"),
-            )
 
         return self._maybe_mask_result(result, mask, other, op_name)
 

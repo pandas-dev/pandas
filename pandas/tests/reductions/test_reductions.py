@@ -210,8 +210,8 @@ class TestIndexReductions:
         [
             (0, 400, 3),
             (500, 0, -6),
-            (-(10 ** 6), 10 ** 6, 4),
-            (10 ** 6, -(10 ** 6), -4),
+            (-(10**6), 10**6, 4),
+            (10**6, -(10**6), -4),
             (0, 10, 20),
         ],
     )
@@ -243,11 +243,11 @@ class TestIndexReductions:
 
         # monotonic
         idx1 = TimedeltaIndex(["1 days", "2 days", "3 days"])
-        assert idx1.is_monotonic
+        assert idx1.is_monotonic_increasing
 
         # non-monotonic
         idx2 = TimedeltaIndex(["1 days", np.nan, "3 days", "NaT"])
-        assert not idx2.is_monotonic
+        assert not idx2.is_monotonic_increasing
 
         for idx in [idx1, idx2]:
             assert idx.min() == Timedelta("1 days")
@@ -366,13 +366,13 @@ class TestIndexReductions:
         tz = tz_naive_fixture
         # monotonic
         idx1 = DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"], tz=tz)
-        assert idx1.is_monotonic
+        assert idx1.is_monotonic_increasing
 
         # non-monotonic
         idx2 = DatetimeIndex(
             ["2011-01-01", NaT, "2011-01-03", "2011-01-02", NaT], tz=tz
         )
-        assert not idx2.is_monotonic
+        assert not idx2.is_monotonic_increasing
 
         for idx in [idx1, idx2]:
             assert idx.min() == Timestamp("2011-01-01", tz=tz)
@@ -470,14 +470,14 @@ class TestIndexReductions:
 
         # monotonic
         idx1 = PeriodIndex([NaT, "2011-01-01", "2011-01-02", "2011-01-03"], freq="D")
-        assert not idx1.is_monotonic
-        assert idx1[1:].is_monotonic
+        assert not idx1.is_monotonic_increasing
+        assert idx1[1:].is_monotonic_increasing
 
         # non-monotonic
         idx2 = PeriodIndex(
             ["2011-01-01", NaT, "2011-01-03", "2011-01-02", NaT], freq="D"
         )
-        assert not idx2.is_monotonic
+        assert not idx2.is_monotonic_increasing
 
         for idx in [idx1, idx2]:
             assert idx.min() == Period("2011-01-01", freq="D")
@@ -1447,16 +1447,16 @@ class TestSeriesMode:
 
     @pytest.mark.parametrize(
         "dropna, expected1, expected2",
-        [(True, [2 ** 63], [1, 2 ** 63]), (False, [2 ** 63], [1, 2 ** 63])],
+        [(True, [2**63], [1, 2**63]), (False, [2**63], [1, 2**63])],
     )
     def test_mode_intoverflow(self, dropna, expected1, expected2):
         # Test for uint64 overflow.
-        s = Series([1, 2 ** 63, 2 ** 63], dtype=np.uint64)
+        s = Series([1, 2**63, 2**63], dtype=np.uint64)
         result = s.mode(dropna)
         expected1 = Series(expected1, dtype=np.uint64)
         tm.assert_series_equal(result, expected1)
 
-        s = Series([1, 2 ** 63], dtype=np.uint64)
+        s = Series([1, 2**63], dtype=np.uint64)
         result = s.mode(dropna)
         expected2 = Series(expected2, dtype=np.uint64)
         tm.assert_series_equal(result, expected2)

@@ -659,7 +659,7 @@ def test_frame_select_complex(setup_path):
         tm.assert_frame_equal(result, expected)
 
 
-def test_frame_select_complex2(setup_path):
+def test_frame_select_complex2():
 
     with ensure_clean_path(["params.hdf", "hist.hdf"]) as paths:
 

@@ -97,6 +97,15 @@ props = """props : str, default None
 color = """color : str, default 'yellow'
            Background color to use for highlighting."""
 
+buf = """buf : str, path object, file-like object, optional
+         String, path object (implementing ``os.PathLike[str]``), or file-like
+         object implementing a string ``write()`` function. If ``None``, the result is
+         returned as a string."""
+
+encoding = """encoding : str, optional
+              Character encoding setting for file output (and meta tags if available).
+              Defaults to ``pandas.options.styler.render.encoding`` value of "utf-8"."""
+
 #
 ###
 
@@ -1053,6 +1062,7 @@ class Styler(StylerRenderer):
             latex, buf=buf, encoding=None if buf is None else encoding
         )
 
+    @Substitution(buf=buf, encoding=encoding)
     def to_html(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
@@ -1077,10 +1087,7 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        buf : str, path object, file-like object, or None, default None
-            String, path object (implementing ``os.PathLike[str]``), or file-like
-            object implementing a string ``write()`` function. If None, the result is
-            returned as a string.
+        %(buf)s
         table_uuid : str, optional
             Id attribute assigned to the <table> HTML element in the format:
 
@@ -1127,9 +1134,7 @@ class Styler(StylerRenderer):
             which is 262144 (18 bit browser rendering).
 
             .. versionadded:: 1.4.0
-        encoding : str, optional
-            Character encoding setting for file output, and HTML meta tags.
-            Defaults to ``pandas.options.styler.render.encoding`` value of "utf-8".
+        %(encoding)s
         doctype_html : bool, default False
             Whether to output a fully structured HTML file including all
             HTML elements, or just the core ``<style>`` and ``<table>`` elements.
@@ -1189,6 +1194,7 @@ class Styler(StylerRenderer):
             html, buf=buf, encoding=(encoding if buf is not None else None)
         )
 
+    @Substitution(buf=buf, encoding=encoding)
     def to_string(
         self,
         buf=None,
@@ -1207,11 +1213,8 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        buf : str, Path, or StringIO-like, optional, default None
-            Buffer to write to. If ``None``, the output is returned as a string.
-        encoding : str, optional
-            Character encoding setting for file output.
-            Defaults to ``pandas.options.styler.render.encoding`` value of "utf-8".
+        %(buf)s
+        %(encoding)s
         sparse_index : bool, optional
             Whether to sparsify the display of a hierarchical index. Setting to False
             will display each explicit level element in a hierarchical key for each row.
@@ -1656,7 +1659,6 @@ class Styler(StylerRenderer):
         alt="applymap",
         altwise="elementwise",
         func="take a Series and return a string array of the same length",
-        axis='{0, 1, "index", "columns"}',
         input_note="the index as a Series, if an Index, or a level of a MultiIndex",
         output_note="an identically sized array of CSS styles as strings",
         var="s",
@@ -1681,7 +1683,7 @@ class Styler(StylerRenderer):
         ----------
         func : function
             ``func`` should {func}.
-        axis : {axis}
+        axis : {{0, 1, "index", "columns"}}
             The headers over which to apply the function.
         level : int, str, list, optional
             If index is MultiIndex the level(s) over which to apply the function.
@@ -1742,7 +1744,6 @@ class Styler(StylerRenderer):
         alt="apply",
         altwise="level-wise",
         func="take a scalar and return a string",
-        axis='{0, 1, "index", "columns"}',
         input_note="an index value, if an Index, or a level value of a MultiIndex",
         output_note="CSS styles as a string",
         var="v",
@@ -2751,7 +2752,6 @@ class Styler(StylerRenderer):
         name="background",
         alt="text",
         image_prefix="bg",
-        axis="{0 or 'index', 1 or 'columns', None}",
         text_threshold="",
     )
     @Substitution(subset=subset)
@@ -2786,7 +2786,7 @@ class Styler(StylerRenderer):
             Compress the color range at the high end. This is a multiple of the data
             range to extend above the maximum; good values usually in [0, 1],
             defaults to 0.
-        axis : {axis}, default 0
+        axis : {{0, 1, "index", "columns", None}}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
@@ -2912,7 +2912,6 @@ class Styler(StylerRenderer):
         name="text",
         alt="background",
         image_prefix="tg",
-        axis="{0 or 'index', 1 or 'columns', None}",
         text_threshold="This argument is ignored (only used in `background_gradient`).",
     )
     def text_gradient(
@@ -3711,11 +3710,15 @@ def _highlight_between(
         if left is not None
         else np.full(data.shape, True, dtype=bool)
     )
+    if isinstance(g_left, (DataFrame, Series)):
+        g_left = g_left.where(pd.notna(g_left), False)
     l_right = (
         ops[1](data, right)
         if right is not None
         else np.full(data.shape, True, dtype=bool)
     )
+    if isinstance(l_right, (DataFrame, Series)):
+        l_right = l_right.where(pd.notna(l_right), False)
     return np.where(g_left & l_right, props, "")
 
 
@@ -3726,7 +3729,9 @@ def _highlight_value(data: DataFrame | Series, op: str, props: str) -> np.ndarra
     value = getattr(data, op)(skipna=True)
     if isinstance(data, DataFrame):  # min/max must be done twice to return scalar
         value = getattr(value, op)(skipna=True)
-    return np.where(data == value, props, "")
+    cond = data == value
+    cond = cond.where(pd.notna(cond), False)
+    return np.where(cond, props, "")
 
 
 def _bar(

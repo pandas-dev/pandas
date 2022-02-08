@@ -10,10 +10,7 @@ import pytest
 
 from pandas.compat import IS64
 
-from pandas.core.dtypes.common import (
-    is_integer_dtype,
-    needs_i8_conversion,
-)
+from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
 from pandas import (
@@ -91,7 +88,9 @@ class TestCommon:
 
     def test_constructor_unwraps_index(self, index_flat):
         a = index_flat
-        b = type(a)(a)
+        # Passing dtype is necessary for Index([True, False], dtype=object)
+        #  case.
+        b = type(a)(a, dtype=a.dtype)
         tm.assert_equal(a._data, b._data)
 
     def test_to_flat_index(self, index_flat):
@@ -198,8 +197,8 @@ class TestCommon:
             index.unique(level=3)
 
         msg = (
-            fr"Requested level \(wrong\) does not match index name "
-            fr"\({re.escape(index.name.__repr__())}\)"
+            rf"Requested level \(wrong\) does not match index name "
+            rf"\({re.escape(index.name.__repr__())}\)"
         )
         with pytest.raises(KeyError, match=msg):
             index.unique(level="wrong")
@@ -383,10 +382,7 @@ class TestCommon:
             index.name = "idx"
 
         warn = None
-        if dtype in ["int64", "uint64"]:
-            if needs_i8_conversion(index.dtype):
-                warn = FutureWarning
-        elif (
+        if (
             isinstance(index, DatetimeIndex)
             and index.tz is not None
             and dtype == "datetime64[ns]"
@@ -431,6 +427,9 @@ class TestCommon:
         if len(index) == 0:
             return
         elif isinstance(index, NumericIndex) and is_integer_dtype(index.dtype):
+            return
+        elif index.dtype == bool:
+            # values[1] = np.nan below casts to True!
             return
 
         values[1] = np.nan

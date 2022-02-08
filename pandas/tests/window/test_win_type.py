@@ -15,6 +15,27 @@ import pandas._testing as tm
 from pandas.api.indexers import BaseIndexer
 
 
+@pytest.fixture(
+    params=[
+        "triang",
+        "blackman",
+        "hamming",
+        "bartlett",
+        "bohman",
+        "blackmanharris",
+        "nuttall",
+        "barthann",
+    ]
+)
+def win_types(request):
+    return request.param
+
+
+@pytest.fixture(params=["kaiser", "gaussian", "general_gaussian", "exponential"])
+def win_types_special(request):
+    return request.param
+
+
 @td.skip_if_no_scipy
 def test_constructor(frame_or_series):
     # GH 12669

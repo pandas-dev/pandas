@@ -398,7 +398,7 @@ class TestDataFrameConstructors:
 
     def test_constructor_overflow_int64(self):
         # see gh-14881
-        values = np.array([2 ** 64 - i for i in range(1, 10)], dtype=np.uint64)
+        values = np.array([2**64 - i for i in range(1, 10)], dtype=np.uint64)
 
         result = DataFrame({"a": values})
         assert result["a"].dtype == np.uint64
@@ -420,12 +420,12 @@ class TestDataFrameConstructors:
     @pytest.mark.parametrize(
         "values",
         [
-            np.array([2 ** 64], dtype=object),
-            np.array([2 ** 65]),
-            [2 ** 64 + 1],
-            np.array([-(2 ** 63) - 4], dtype=object),
-            np.array([-(2 ** 64) - 1]),
-            [-(2 ** 65) - 2],
+            np.array([2**64], dtype=object),
+            np.array([2**65]),
+            [2**64 + 1],
+            np.array([-(2**63) - 4], dtype=object),
+            np.array([-(2**64) - 1]),
+            [-(2**65) - 2],
         ],
     )
     def test_constructor_int_overflow(self, values):
@@ -1530,7 +1530,7 @@ class TestDataFrameConstructors:
         data["B"] = Series([4, 3, 2, 1], index=["bar", "qux", "baz", "foo"])
 
         result = DataFrame(data)
-        assert result.index.is_monotonic
+        assert result.index.is_monotonic_increasing
 
         # ordering ambiguous, raise exception
         with pytest.raises(ValueError, match="ambiguous ordering"):
@@ -2081,7 +2081,7 @@ class TestDataFrameConstructors:
         tm.assert_series_equal(result, expected)
 
         # overflow issue? (we always expected int64 upcasting here)
-        df = DataFrame({"a": [2 ** 31, 2 ** 31 + 1]})
+        df = DataFrame({"a": [2**31, 2**31 + 1]})
         assert df.dtypes.iloc[0] == np.dtype("int64")
 
         # GH #2751 (construction with no index specified), make sure we cast to
@@ -2641,6 +2641,23 @@ class TestDataFrameConstructors:
         msg = "Per-column arrays must each be 1-dimensional"
         with pytest.raises(ValueError, match=msg):
             DataFrame({"a": col_a, "b": col_b})
+
+    def test_from_dict_with_missing_copy_false(self):
+        # GH#45369 filled columns should not be views of one another
+        df = DataFrame(index=[1, 2, 3], columns=["a", "b", "c"], copy=False)
+        assert not np.shares_memory(df["a"]._values, df["b"]._values)
+
+        df.iloc[0, 0] = 0
+        expected = DataFrame(
+            {
+                "a": [0, np.nan, np.nan],
+                "b": [np.nan, np.nan, np.nan],
+                "c": [np.nan, np.nan, np.nan],
+            },
+            index=[1, 2, 3],
+            dtype=object,
+        )
+        tm.assert_frame_equal(df, expected)
 
 
 class TestDataFrameConstructorIndexInference:

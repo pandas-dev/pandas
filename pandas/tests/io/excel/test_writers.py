@@ -335,8 +335,8 @@ class TestExcelWriter:
     def test_excel_sheet_size(self, path):
 
         # GH 26080
-        breaking_row_count = 2 ** 20 + 1
-        breaking_col_count = 2 ** 14 + 1
+        breaking_row_count = 2**20 + 1
+        breaking_col_count = 2**14 + 1
         # purposely using two arrays to prevent memory issues while testing
         row_arr = np.zeros(shape=(breaking_row_count, 1))
         col_arr = np.zeros(shape=(1, breaking_col_count))
@@ -350,7 +350,7 @@ class TestExcelWriter:
         with pytest.raises(ValueError, match=msg):
             col_df.to_excel(path)
 
-    def test_excel_sheet_by_name_raise(self, path, engine):
+    def test_excel_sheet_by_name_raise(self, path):
         gt = DataFrame(np.random.randn(10, 2))
         gt.to_excel(path)
 
@@ -649,7 +649,7 @@ class TestExcelWriter:
 
         tm.assert_frame_equal(tsframe, recons)
 
-    def test_excel_date_datetime_format(self, engine, ext, path):
+    def test_excel_date_datetime_format(self, ext, path):
         # see gh-4133
         #
         # Excel output format strings
@@ -866,7 +866,7 @@ class TestExcelWriter:
             result = pd.read_excel(filename, sheet_name="TestSheet", index_col=0)
             tm.assert_frame_equal(result, df)
 
-    def test_to_excel_unicode_filename(self, ext, path):
+    def test_to_excel_unicode_filename(self, ext):
         with tm.ensure_clean("\u0192u." + ext) as filename:
             try:
                 f = open(filename, "wb")
@@ -1189,7 +1189,7 @@ class TestExcelWriter:
         result = tm.round_trip_localpath(writer, reader, path=f"foo{ext}")
         tm.assert_frame_equal(result, df)
 
-    def test_merged_cell_custom_objects(self, merge_cells, path):
+    def test_merged_cell_custom_objects(self, path):
         # see GH-27006
         mi = MultiIndex.from_tuples(
             [
@@ -1244,6 +1244,47 @@ class TestExcelWriter:
             with pytest.raises(ValueError, match=re.escape(msg)):
                 ExcelWriter(f, if_sheet_exists="replace")
 
+    def test_excel_writer_empty_frame(self, engine, ext):
+        # GH#45793
+        with tm.ensure_clean(ext) as path:
+            with ExcelWriter(path, engine=engine) as writer:
+                DataFrame().to_excel(writer)
+            result = pd.read_excel(path)
+            expected = DataFrame()
+            tm.assert_frame_equal(result, expected)
+
+    def test_to_excel_empty_frame(self, engine, ext):
+        # GH#45793
+        with tm.ensure_clean(ext) as path:
+            DataFrame().to_excel(path, engine=engine)
+            result = pd.read_excel(path)
+            expected = DataFrame()
+            tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("attr", ["cur_sheet", "handles", "path"])
+    def test_deprecated_attr(self, engine, ext, attr):
+        # GH#45572
+        with tm.ensure_clean(ext) as path:
+            with ExcelWriter(path) as writer:
+                msg = f"{attr} is not part of the public API"
+                with tm.assert_produces_warning(FutureWarning, match=msg):
+                    getattr(writer, attr)
+                # Some engines raise if nothing is written
+                DataFrame().to_excel(writer)
+
+    @pytest.mark.parametrize(
+        "attr, args", [("save", ()), ("write_cells", ([], "test"))]
+    )
+    def test_deprecated_method(self, engine, ext, attr, args):
+        # GH#45572
+        with tm.ensure_clean(ext) as path:
+            with ExcelWriter(path) as writer:
+                msg = f"{attr} is not part of the public API"
+                # Some engines raise if nothing is written
+                DataFrame().to_excel(writer)
+                with tm.assert_produces_warning(FutureWarning, match=msg):
+                    getattr(writer, attr)(*args)
+
 
 class TestExcelWriterEngineTests:
     @pytest.mark.parametrize(
@@ -1271,25 +1312,36 @@ class TestExcelWriterEngineTests:
         # some awkward mocking to test out dispatch and such actually works
         called_save = []
         called_write_cells = []
+        called_sheets = []
 
         class DummyClass(ExcelWriter):
             called_save = False
             called_write_cells = False
+            called_sheets = False
             supported_extensions = ["xlsx", "xls"]
             engine = "dummy"
 
-            def save(self):
+            def book(self):
+                pass
+
+            def _save(self):
                 called_save.append(True)
 
-            def write_cells(self, *args, **kwargs):
+            def _write_cells(self, *args, **kwargs):
                 called_write_cells.append(True)
+
+            @property
+            def sheets(self):
+                called_sheets.append(True)
 
         def check_called(func):
             func()
             assert len(called_save) >= 1
             assert len(called_write_cells) >= 1
+            assert len(called_sheets) == 0
             del called_save[:]
             del called_write_cells[:]
+            del called_sheets[:]
 
         with option_context("io.excel.xlsx.writer", "dummy"):
             path = "something.xlsx"

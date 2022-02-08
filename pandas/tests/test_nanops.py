@@ -31,7 +31,7 @@ def skipna(request):
 
 
 class TestnanopsDataFrame:
-    def setup_method(self, method):
+    def setup_method(self):
         np.random.seed(11235)
         nanops._USE_BOTTLENECK = False
 
@@ -95,7 +95,7 @@ class TestnanopsDataFrame:
         self.arr_float1_nan_1d = self.arr_float1_nan[:, 0]
         self.arr_nan_float1_1d = self.arr_nan_float1[:, 0]
 
-    def teardown_method(self, method):
+    def teardown_method(self):
         nanops._USE_BOTTLENECK = use_bn
 
     def check_results(self, targ, res, axis, check_dtype=True):
@@ -305,7 +305,7 @@ class TestnanopsDataFrame:
         # In the previous implementation mean can overflow for int dtypes, it
         # is now consistent with numpy
 
-        for a in [2 ** 55, -(2 ** 55), 20150515061816532]:
+        for a in [2**55, -(2**55), 20150515061816532]:
             s = Series(a, index=range(500), dtype=np.int64)
             result = s.mean()
             np_result = s.values.mean()
@@ -786,10 +786,10 @@ class TestNanvarFixedValues:
 
     # xref GH10242
 
-    def setup_method(self, method):
+    def setup_method(self):
         # Samples from a normal distribution.
         self.variance = variance = 3.0
-        self.samples = self.prng.normal(scale=variance ** 0.5, size=100000)
+        self.samples = self.prng.normal(scale=variance**0.5, size=100000)
 
     def test_nanvar_all_finite(self):
         samples = self.samples
@@ -811,7 +811,7 @@ class TestNanvarFixedValues:
         samples[::2] = self.samples
 
         actual_std = nanops.nanstd(samples, skipna=True)
-        tm.assert_almost_equal(actual_std, self.variance ** 0.5, rtol=1e-2)
+        tm.assert_almost_equal(actual_std, self.variance**0.5, rtol=1e-2)
 
         actual_std = nanops.nanvar(samples, skipna=False)
         tm.assert_almost_equal(actual_std, np.nan, rtol=1e-2)
@@ -903,7 +903,7 @@ class TestNanskewFixedValues:
 
     # xref GH 11974
 
-    def setup_method(self, method):
+    def setup_method(self):
         # Test data + skewness value (computed with scipy.stats.skew)
         self.samples = np.sin(np.linspace(0, 1, 200))
         self.actual_skew = -0.1875895205961754
@@ -952,7 +952,7 @@ class TestNankurtFixedValues:
 
     # xref GH 11974
 
-    def setup_method(self, method):
+    def setup_method(self):
         # Test data + kurtosis value (computed with scipy.stats.kurtosis)
         self.samples = np.sin(np.linspace(0, 1, 200))
         self.actual_kurt = -1.2058303433799713

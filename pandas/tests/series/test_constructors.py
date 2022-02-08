@@ -968,9 +968,7 @@ class TestSeriesConstructors:
         dts = Series(dates, dtype="datetime64[ns]")
 
         # valid astype
-        with tm.assert_produces_warning(FutureWarning):
-            # astype(np.int64) deprecated
-            dts.astype("int64")
+        dts.astype("int64")
 
         # invalid casting
         msg = r"cannot astype a datetimelike from \[datetime64\[ns\]\] to \[int32\]"
@@ -980,10 +978,8 @@ class TestSeriesConstructors:
         # ints are ok
         # we test with np.int64 to get similar results on
         # windows / 32-bit platforms
-        with tm.assert_produces_warning(FutureWarning):
-            # astype(np.int64) deprecated
-            result = Series(dts, dtype=np.int64)
-            expected = Series(dts.astype(np.int64))
+        result = Series(dts, dtype=np.int64)
+        expected = Series(dts.astype(np.int64))
         tm.assert_series_equal(result, expected)
 
     def test_constructor_dtype_datetime64_9(self):
@@ -1494,9 +1490,7 @@ class TestSeriesConstructors:
         assert td.dtype == "timedelta64[ns]"
 
         # valid astype
-        with tm.assert_produces_warning(FutureWarning):
-            # astype(int64) deprecated
-            td.astype("int64")
+        td.astype("int64")
 
         # invalid casting
         msg = r"cannot astype a datetimelike from \[timedelta64\[ns\]\] to \[int32\]"
@@ -1622,10 +1616,8 @@ class TestSeriesConstructors:
         # ints are ok
         # we test with np.int64 to get similar results on
         # windows / 32-bit platforms
-        with tm.assert_produces_warning(FutureWarning):
-            # asype(np.int64) deprecated, use .view(np.int64) instead
-            result = Series(index, dtype=np.int64)
-            expected = Series(index.astype(np.int64))
+        result = Series(index, dtype=np.int64)
+        expected = Series(index.astype(np.int64))
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -1684,28 +1676,28 @@ class TestSeriesConstructors:
 
     def test_constructor_range_overflows(self):
         # GH#30173 range objects that overflow int64
-        rng = range(2 ** 63, 2 ** 63 + 4)
+        rng = range(2**63, 2**63 + 4)
         ser = Series(rng)
         expected = Series(list(rng))
         tm.assert_series_equal(ser, expected)
         assert list(ser) == list(rng)
         assert ser.dtype == np.uint64
 
-        rng2 = range(2 ** 63 + 4, 2 ** 63, -1)
+        rng2 = range(2**63 + 4, 2**63, -1)
         ser2 = Series(rng2)
         expected2 = Series(list(rng2))
         tm.assert_series_equal(ser2, expected2)
         assert list(ser2) == list(rng2)
         assert ser2.dtype == np.uint64
 
-        rng3 = range(-(2 ** 63), -(2 ** 63) - 4, -1)
+        rng3 = range(-(2**63), -(2**63) - 4, -1)
         ser3 = Series(rng3)
         expected3 = Series(list(rng3))
         tm.assert_series_equal(ser3, expected3)
         assert list(ser3) == list(rng3)
         assert ser3.dtype == object
 
-        rng4 = range(2 ** 73, 2 ** 73 + 4)
+        rng4 = range(2**73, 2**73 + 4)
         ser4 = Series(rng4)
         expected4 = Series(list(rng4))
         tm.assert_series_equal(ser4, expected4)

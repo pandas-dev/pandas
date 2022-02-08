@@ -24,7 +24,7 @@ dependencies:
   - flake8-bugbear=21.3.2  # used by flake8, find likely bugs
   - flake8-comprehensions=3.7.0  # used by flake8, linting of unnecessary comprehensions
   - isort>=5.2.1  # check that imports are in the right order
-  - mypy=0.930
+  - mypy=0.931
   - pre-commit>=2.9.2
   - pycodestyle  # used by flake8
   - pyupgrade
@@ -32,9 +32,12 @@ dependencies:
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
   - gitdb
+  - numpydoc < 1.2  # 2021-02-09 1.2dev breaking CI
+  - pandas-dev-flaker=0.4.0
+  - pydata-sphinx-theme
+  - pytest-cython
   - sphinx
   - sphinx-panels
-  - numpydoc < 1.2  # 2021-02-09 1.2dev breaking CI
   - types-python-dateutil
   - types-PyMySQL
   - types-pytz
@@ -77,7 +80,6 @@ dependencies:
   - ipywidgets
   - nbformat
   - notebook>=6.0.3
-  - pip
 
   # optional
   - blosc
@@ -119,7 +121,3 @@ dependencies:
   - pyreadstat  # pandas.read_spss
   - tabulate>=0.8.3  # DataFrame.to_markdown
   - natsort  # DataFrame.sort_values
-  - pip:
-    - git+https://github.com/pydata/pydata-sphinx-theme.git@master
-    - pandas-dev-flaker==0.2.0
-    - pytest-cython

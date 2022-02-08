@@ -165,7 +165,7 @@ def test_setitem_ambiguous_keyerror(indexer_sl):
     tm.assert_series_equal(s2, expected)
 
 
-def test_setitem(datetime_series, string_series):
+def test_setitem(datetime_series):
     datetime_series[datetime_series.index[5]] = np.NaN
     datetime_series[[1, 2, 17]] = np.NaN
     datetime_series[6] = np.NaN
@@ -319,6 +319,15 @@ def test_frozenset_index():
     assert s[idx1] == 2
     s[idx1] = 3
     assert s[idx1] == 3
+
+
+def test_loc_setitem_all_false_indexer():
+    # GH#45778
+    ser = Series([1, 2], index=["a", "b"])
+    expected = ser.copy()
+    rhs = Series([6, 7], index=["a", "b"])
+    ser.loc[ser > 100] = rhs
+    tm.assert_series_equal(ser, expected)
 
 
 class TestDeprecatedIndexers:

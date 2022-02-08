@@ -115,6 +115,12 @@ def pytest_collection_modifyitems(items, config):
     ]
 
     for item in items:
+        if config.getoption("--doctest-modules") or config.getoption(
+            "--doctest-cython", default=False
+        ):
+            # autouse=True for the add_doctest_imports can lead to expensive teardowns
+            # since doctest_namespace is a session fixture
+            item.add_marker(pytest.mark.usefixtures("add_doctest_imports"))
         # mark all tests in the pandas/tests/frame directory with "arraymanager"
         if "/frame/" in item.nodeid:
             item.add_marker(pytest.mark.arraymanager)
@@ -187,6 +193,15 @@ for name in "QuarterBegin QuarterEnd BQuarterBegin BQuarterEnd".split():
     )
 
 
+@pytest.fixture
+def add_doctest_imports(doctest_namespace):
+    """
+    Make `np` and `pd` names available for doctests.
+    """
+    doctest_namespace["np"] = np
+    doctest_namespace["pd"] = pd
+
+
 # ----------------------------------------------------------------
 # Autouse fixtures
 # ----------------------------------------------------------------
@@ -196,15 +211,6 @@ def configure_tests():
     Configure settings for all tests and test modules.
     """
     pd.set_option("chained_assignment", "raise")
-
-
-@pytest.fixture(autouse=True)
-def add_imports(doctest_namespace):
-    """
-    Make `np` and `pd` names available for doctests.
-    """
-    doctest_namespace["np"] = np
-    doctest_namespace["pd"] = pd
 
 
 # ----------------------------------------------------------------
@@ -549,7 +555,8 @@ indices_dict = {
     "num_uint8": tm.makeNumericIndex(100, dtype="uint8"),
     "num_float64": tm.makeNumericIndex(100, dtype="float64"),
     "num_float32": tm.makeNumericIndex(100, dtype="float32"),
-    "bool": tm.makeBoolIndex(10),
+    "bool-object": tm.makeBoolIndex(10).astype(object),
+    "bool-dtype": Index(np.random.randn(10) < 0),
     "categorical": tm.makeCategoricalIndex(100),
     "interval": tm.makeIntervalIndex(100),
     "empty": Index([]),
@@ -624,7 +631,7 @@ def index_flat_unique(request):
         key
         for key in indices_dict
         if not (
-            key in ["int", "uint", "range", "empty", "repeats"]
+            key in ["int", "uint", "range", "empty", "repeats", "bool-dtype"]
             or key.startswith("num_")
         )
         and not isinstance(indices_dict[key], MultiIndex)
@@ -1728,6 +1735,14 @@ def indexer_sli(request):
     return request.param
 
 
+@pytest.fixture(params=[tm.loc, tm.iloc])
+def indexer_li(request):
+    """
+    Parametrize over loc.__getitem__, iloc.__getitem__
+    """
+    return request.param
+
+
 @pytest.fixture(params=[tm.setitem, tm.iloc])
 def indexer_si(request):
     """
@@ -1761,7 +1776,7 @@ def indexer_ial(request):
 
 
 @pytest.fixture
-def using_array_manager(request):
+def using_array_manager():
     """
     Fixture to check if the array manager is being used.
     """
