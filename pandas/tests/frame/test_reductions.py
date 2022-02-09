@@ -388,32 +388,37 @@ class TestDataFrameAnalytics:
     @pytest.mark.parametrize(
         "method", ["sum", "mean", "prod", "var", "std", "skew", "min", "max"]
     )
-    def test_stat_operators_attempt_obj_array(self, method):
+    @pytest.mark.parametrize(
+        "df",
+        [
+            DataFrame(
+                {
+                    "a": [
+                        -0.00049987540199591344,
+                        -0.0016467257772919831,
+                        0.00067695870775883013,
+                    ],
+                    "b": [-0, -0, 0.0],
+                    "c": [
+                        0.00031111847529610595,
+                        0.0014902627951905339,
+                        -0.00094099200035979691,
+                    ],
+                },
+                index=["foo", "bar", "baz"],
+                dtype="O",
+            ),
+            DataFrame({0: [np.nan, 2], 1: [np.nan, 3], 2: [np.nan, 4]}, dtype=object),
+        ],
+    )
+    def test_stat_operators_attempt_obj_array(self, method, df):
         # GH#676
-        data = {
-            "a": [
-                -0.00049987540199591344,
-                -0.0016467257772919831,
-                0.00067695870775883013,
-            ],
-            "b": [-0, -0, 0.0],
-            "c": [
-                0.00031111847529610595,
-                0.0014902627951905339,
-                -0.00094099200035979691,
-            ],
-        }
-        df1 = DataFrame(data, index=["foo", "bar", "baz"], dtype="O")
+        assert df.values.dtype == np.object_
+        result = getattr(df, method)(1)
+        expected = getattr(df.astype("f8"), method)(1)
 
-        df2 = DataFrame({0: [np.nan, 2], 1: [np.nan, 3], 2: [np.nan, 4]}, dtype=object)
-
-        for df in [df1, df2]:
-            assert df.values.dtype == np.object_
-            result = getattr(df, method)(1)
-            expected = getattr(df.astype("f8"), method)(1)
-
-            if method in ["sum", "prod"]:
-                tm.assert_series_equal(result, expected)
+        if method in ["sum", "prod"]:
+            tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("op", ["mean", "std", "var", "skew", "kurt", "sem"])
     def test_mixed_ops(self, op):
@@ -968,32 +973,36 @@ class TestDataFrameAnalytics:
     # ----------------------------------------------------------------------
     # Index of max / min
 
-    def test_idxmin(self, float_frame, int_frame):
+    @pytest.mark.parametrize("skipna", [True, False])
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_idxmin(self, float_frame, int_frame, skipna, axis):
         frame = float_frame
         frame.iloc[5:10] = np.nan
         frame.iloc[15:20, -2:] = np.nan
-        for skipna in [True, False]:
-            for axis in [0, 1]:
-                for df in [frame, int_frame]:
-                    result = df.idxmin(axis=axis, skipna=skipna)
-                    expected = df.apply(Series.idxmin, axis=axis, skipna=skipna)
-                    tm.assert_series_equal(result, expected)
+        for df in [frame, int_frame]:
+            result = df.idxmin(axis=axis, skipna=skipna)
+            expected = df.apply(Series.idxmin, axis=axis, skipna=skipna)
+            tm.assert_series_equal(result, expected)
 
+    def test_idxmin_axis_2(self, float_frame):
+        frame = float_frame
         msg = "No axis named 2 for object type DataFrame"
         with pytest.raises(ValueError, match=msg):
             frame.idxmin(axis=2)
 
-    def test_idxmax(self, float_frame, int_frame):
+    @pytest.mark.parametrize("skipna", [True, False])
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_idxmax(self, float_frame, int_frame, skipna, axis):
         frame = float_frame
         frame.iloc[5:10] = np.nan
         frame.iloc[15:20, -2:] = np.nan
-        for skipna in [True, False]:
-            for axis in [0, 1]:
-                for df in [frame, int_frame]:
-                    result = df.idxmax(axis=axis, skipna=skipna)
-                    expected = df.apply(Series.idxmax, axis=axis, skipna=skipna)
-                    tm.assert_series_equal(result, expected)
+        for df in [frame, int_frame]:
+            result = df.idxmax(axis=axis, skipna=skipna)
+            expected = df.apply(Series.idxmax, axis=axis, skipna=skipna)
+            tm.assert_series_equal(result, expected)
 
+    def test_idxmax_axis_2(self, float_frame):
+        frame = float_frame
         msg = "No axis named 2 for object type DataFrame"
         with pytest.raises(ValueError, match=msg):
             frame.idxmax(axis=2)
