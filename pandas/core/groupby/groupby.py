@@ -1827,7 +1827,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         return self._bool_agg("all", skipna)
 
-    @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
     def count(self) -> Series | DataFrame:
@@ -2135,7 +2134,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result.iloc[:, result_ilocs] /= np.sqrt(counts.iloc[:, count_ilocs])
         return result
 
-    @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
     def size(self) -> DataFrame | Series:

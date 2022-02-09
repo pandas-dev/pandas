@@ -240,7 +240,7 @@ class SeriesGroupBy(GroupBy[Series]):
             input="series", examples=_apply_docs["series_examples"]
         )
     )
-    def apply(self, func, *args, **kwargs):
+    def apply(self, func, *args, **kwargs) -> Series:
         return super().apply(func, *args, **kwargs)
 
     @doc(_agg_template, examples=_agg_examples_doc, klass="Series")
@@ -587,6 +587,12 @@ class SeriesGroupBy(GroupBy[Series]):
     def describe(self, **kwargs):
         return super().describe(**kwargs)
 
+    def count(self) -> Series:
+        return cast(Series, super().count())
+
+    def size(self) -> Series:
+        return cast(Series, super().size())
+
     def value_counts(
         self,
         normalize: bool = False,
@@ -763,6 +769,9 @@ class SeriesGroupBy(GroupBy[Series]):
 class DataFrameGroupBy(GroupBy[DataFrame]):
 
     _apply_allowlist = base.dataframe_apply_allowlist
+
+    def apply(self, func, *args, **kwargs) -> DataFrame:
+        return super().apply(func, *args, **kwargs)
 
     _agg_examples_doc = dedent(
         """
@@ -1534,6 +1543,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             self._insert_inaxis_grouper_inplace(results)
 
         return results
+
+    def count(self) -> DataFrame:
+        return cast(DataFrame, super().count())
+
+    def size(self) -> DataFrame:
+        return cast(DataFrame, super().size())
 
     @Appender(DataFrame.idxmax.__doc__)
     def idxmax(self, axis=0, skipna: bool = True):
