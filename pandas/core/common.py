@@ -475,7 +475,7 @@ def pipe(
     func : callable or tuple of (callable, str)
         Function to apply to this object or, alternatively, a
         ``(callable, data_keyword)`` tuple where ``data_keyword`` is a
-        string indicating the keyword of `callable`` that expects the
+        string indicating the keyword of ``callable`` that expects the
         object.
     *args : iterable, optional
         Positional arguments passed into ``func``.
