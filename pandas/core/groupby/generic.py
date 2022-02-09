@@ -587,6 +587,8 @@ class SeriesGroupBy(GroupBy[Series]):
     def describe(self, **kwargs):
         return super().describe(**kwargs)
 
+    # GH45875 - Added these methods to handle typing
+    # Should be able to add @final to groupby.py at some point
     def count(self) -> Series:
         return cast(Series, super().count())
 
@@ -769,6 +771,8 @@ class SeriesGroupBy(GroupBy[Series]):
 class DataFrameGroupBy(GroupBy[DataFrame]):
 
     _apply_allowlist = base.dataframe_apply_allowlist
+    # GH45875 - Added this method to handle typing
+    # Should be able to add @final to groupby.py at some point
 
     def apply(self, func, *args, **kwargs) -> DataFrame:
         return super().apply(func, *args, **kwargs)
@@ -1544,6 +1548,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return results
 
+    # GH45875 - Added these methods to handle typing
+    # Should be able to add @final to groupby.py at some point
     def count(self) -> DataFrame:
         return cast(DataFrame, super().count())
 
