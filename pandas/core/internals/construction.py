@@ -329,17 +329,17 @@ def ndarray_to_mgr(
         values = _prep_ndarray(values, copy=copy_on_sanitize)
 
     if dtype is not None and not is_dtype_equal(values.dtype, dtype):
-        shape = values.shape
-        flat = values.ravel()
-
         # GH#40110 see similar check inside sanitize_array
         rcf = not (is_integer_dtype(dtype) and values.dtype.kind == "f")
 
         values = sanitize_array(
-            flat, None, dtype=dtype, copy=copy_on_sanitize, raise_cast_failure=rcf
+            values,
+            None,
+            dtype=dtype,
+            copy=copy_on_sanitize,
+            raise_cast_failure=rcf,
+            allow_2d=True,
         )
-
-        values = values.reshape(shape)
 
     # _prep_ndarray ensures that values.ndim == 2 at this point
     index, columns = _get_axes(
