@@ -115,10 +115,12 @@ def test_types_setitem() -> None:
     df[i] = [8, 9]
 
 
-def test_types_setitem_mask() -> None:
-    df = pd.DataFrame(data={"col1": [1, 2], "col2": [3, 4], 5: [6, 7]})
-    select_df = pd.DataFrame({"col1": [True, True], "col2": [False, True]})
-    df[select_df] = [1, 2, 3]
+def test_types_where() -> None:
+    df = pd.DataFrame(data={"col1": [1, 2], "col2": [3, 4]})
+    replace_df = pd.DataFrame(data={"col1": [5, 6], "col2": [7, 8]})
+    mask = pd.DataFrame({"col1": [True, True], "col2": [False, True]})
+    res: pd.DataFrame = df.where(~mask, replace_df)
+    res2: pd.DataFrame = df.where(~mask, 10)
 
 
 def test_types_iloc_iat() -> None:
@@ -199,7 +201,7 @@ def test_types_dropna() -> None:
 def test_types_fillna() -> None:
     df = pd.DataFrame(data={"col1": [np.nan, np.nan], "col2": [3, np.nan]})
     res: pd.DataFrame = df.fillna(0)
-    res2: None = df.fillna(method="pad", axis=1, inplace=True)
+    res2: None = df.fillna(method="pad", inplace=True)
 
 
 def test_types_sort_index() -> None:
