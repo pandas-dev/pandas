@@ -295,7 +295,7 @@ Conversion
 
 Strings
 ^^^^^^^
--
+- Bug in :meth:`str.startswith` and :meth:`str.endswith` when using other series as parameters. (:issue:`3485`)
 -
 
 Interval

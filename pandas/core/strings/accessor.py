@@ -2282,6 +2282,9 @@ class StringMethods(NoNewAttributesMixin):
         3    False
         dtype: bool
         """
+        if not isinstance(pat, str):
+            msg = f"expected a string object, not {type(pat).__name__}"
+            raise TypeError(msg)
         result = self._data.array._str_startswith(pat, na=na)
         return self._wrap_result(result, returns_string=False)
 
@@ -2339,6 +2342,9 @@ class StringMethods(NoNewAttributesMixin):
         3    False
         dtype: bool
         """
+        if not isinstance(pat, str):
+            msg = f"expected a string object, not {type(pat).__name__}"
+            raise TypeError(msg)
         result = self._data.array._str_endswith(pat, na=na)
         return self._wrap_result(result, returns_string=False)
 

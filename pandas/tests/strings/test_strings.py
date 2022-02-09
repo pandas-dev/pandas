@@ -16,6 +16,17 @@ from pandas import (
 import pandas._testing as tm
 
 
+@pytest.mark.parametrize("pattern", [0, True, Series(["foo", "bar"])])
+def test_startswith_endswith_non_str_patterns(pattern):
+    # GH3485
+    ser = Series(["foo", "bar"])
+    msg = f"expected a string object, not {type(pattern).__name__}"
+    with pytest.raises(TypeError, match=msg):
+        ser.str.startswith(pattern)
+    with pytest.raises(TypeError, match=msg):
+        ser.str.endswith(pattern)
+
+
 def assert_series_or_index_equal(left, right):
     if isinstance(left, Series):
         tm.assert_series_equal(left, right)
