@@ -12,6 +12,7 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
+from pandas.errors import InvalidIndexError
 
 
 @pytest.fixture
@@ -369,3 +370,10 @@ class TestDataFrameJoin:
 
         tm.assert_index_equal(result.index, expected)
         assert result.index.tz.zone == "US/Central"
+
+    def test_join_duplicate_indices(self):
+        # https://github.com/pandas-dev/pandas/issues/36263
+        df1 = DataFrame(np.random.randn(5), index=[0, 1, 2, 3, 3], columns=["a"])
+        df2 = DataFrame(np.random.randn(5), index=[0, 1, 2, 2, 4], columns=["b"])
+        with pytest.raises(InvalidIndexError):
+            df1.join(df2, how="outer")
