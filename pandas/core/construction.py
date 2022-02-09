@@ -786,7 +786,16 @@ def _try_cast(
 
     elif dtype.kind == "U":
         # TODO: test cases with arr.dtype.kind in ["m", "M"]
-        return lib.ensure_string_array(arr, convert_na_value=False, copy=copy)
+        if is_ndarray:
+            arr = cast(np.ndarray, arr)
+            shape = arr.shape
+            if arr.ndim > 1:
+                arr = arr.ravel()
+        else:
+            shape = (len(arr),)
+        return lib.ensure_string_array(arr, convert_na_value=False, copy=copy).reshape(
+            shape
+        )
 
     elif dtype.kind in ["m", "M"]:
         return maybe_cast_to_datetime(arr, dtype)
