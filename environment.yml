@@ -9,7 +9,7 @@ dependencies:
   - pytz
 
   # benchmarks
-  - asv
+  - asv < 0.5.0
 
   # building
   # The compiler packages are meta-packages and install the correct compiler (activation) packages on the respective platforms.
