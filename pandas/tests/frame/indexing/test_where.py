@@ -98,7 +98,7 @@ class TestDataFrameIndexingWhere:
 
         tm.assert_series_equal(result, expected)
 
-    def test_where_alignment(self, where_frame, float_string_frame, mixed_int_frame):
+    def test_where_alignment(self, where_frame, float_string_frame):
         # aligning
         def _check_align(df, cond, other, check_dtypes=True):
             rs = df.where(cond, other)
