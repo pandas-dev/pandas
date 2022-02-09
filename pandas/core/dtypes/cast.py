@@ -292,6 +292,7 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
 
     elif dtype.kind == "m" and result.dtype == _dtype_obj:
         # test_where_downcast_to_td64
+        result = cast(np.ndarray, result)
         result = array_to_timedelta64(result)
 
     elif dtype == "M8[ns]" and result.dtype == _dtype_obj:
