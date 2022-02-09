@@ -16,6 +16,7 @@ Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Regression in :meth:`Series.mask` with ``inplace=True`` and ``PeriodDtype`` and an incompatible ``other`` coercing to a common dtype instead of raising (:issue:`45546`)
 - Regression in :func:`.assert_frame_equal` not respecting ``check_flags=False`` (:issue:`45554`)
+- Regression in :meth:`DataFrame.loc.__getitem__` raising ``ValueError`` when indexing on a :class:`MultiIndex` with one level (:issue:`45779`)
 - Regression in :meth:`Series.fillna` with ``downcast=False`` incorrectly downcasting ``object`` dtype (:issue:`45603`)
 - Regression in :func:`api.types.is_bool_dtype` raising an ``AttributeError`` when evaluating a categorical :class:`Series` (:issue:`45615`)
 - Regression in :meth:`DataFrame.iat` setting values leading to not propagating correctly in subsequent lookups (:issue:`45684`)
