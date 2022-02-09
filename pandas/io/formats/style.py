@@ -3144,6 +3144,9 @@ class Styler(StylerRenderer):
         def f(data: DataFrame, props: str) -> np.ndarray:
             return np.where(pd.isna(data).to_numpy(), props, "")
 
+        if null_color != "red":
+            raise FutureWarning("`null_color` is deprecated: use `color` instead")
+
         color = color if color else null_color
         if props is None:
             props = f"background-color: {color};"
