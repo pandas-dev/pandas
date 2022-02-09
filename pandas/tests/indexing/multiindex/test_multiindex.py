@@ -152,14 +152,14 @@ class TestMultiIndexBasic:
 
     def test_subtracting_two_series_with_unordered_index_and_all_nan_index(self):
         # GH 38439
-        a_index_result = pd.MultiIndex.from_tuples([(81.0, np.nan), (np.nan, np.nan)])
-        b_index_result = pd.MultiIndex.from_tuples([(np.nan, np.nan), (82.0, np.nan)])
+        a_index_result = MultiIndex.from_tuples([(81.0, np.nan), (np.nan, np.nan)])
+        b_index_result = MultiIndex.from_tuples([(np.nan, np.nan), (82.0, np.nan)])
         a_series_result = Series([1, 2], index=a_index_result)
         b_series_result = Series([1, 2], index=b_index_result)
         result = a_series_result.align(b_series_result)
 
-        a_index_expected = pd.MultiIndex.from_tuples([(81.0, np.nan), (np.nan, np.nan)])
-        b_index_expected = pd.MultiIndex.from_tuples([(81.0, np.nan), (np.nan, np.nan)])
+        a_index_expected = MultiIndex.from_tuples([(81.0, np.nan), (np.nan, np.nan)])
+        b_index_expected = MultiIndex.from_tuples([(81.0, np.nan), (np.nan, np.nan)])
         a_series_expected = Series([1, 2], index=a_index_expected)
         b_series_expected = Series([1, 1], index=b_index_expected)
         a_series_expected.index = a_series_expected.index.set_levels(
@@ -178,14 +178,14 @@ class TestMultiIndexBasic:
         tm.assert_series_equal(result[0], a_series_expected)
         tm.assert_series_equal(result[1], b_series_expected)
 
-        a_index_result = pd.MultiIndex.from_tuples([(81.0, np.nan), (np.nan, np.nan)])
-        b_index_result = pd.MultiIndex.from_tuples([(np.nan, np.nan), (81.0, np.nan)])
+        a_index_result = MultiIndex.from_tuples([(81.0, np.nan), (np.nan, np.nan)])
+        b_index_result = MultiIndex.from_tuples([(np.nan, np.nan), (81.0, np.nan)])
         a_series_result = Series([1, 2], index=a_index_result)
         b_series_result = Series([1, 2], index=b_index_result)
         result = a_series_result.align(b_series_result)
 
-        a_index_expected = pd.MultiIndex.from_tuples([(81.0, np.nan), (np.nan, np.nan)])
-        b_index_expected = pd.MultiIndex.from_tuples([(81.0, np.nan), (np.nan, np.nan)])
+        a_index_expected = MultiIndex.from_tuples([(81.0, np.nan), (np.nan, np.nan)])
+        b_index_expected = MultiIndex.from_tuples([(81.0, np.nan), (np.nan, np.nan)])
         a_series_expected = Series([1, 2], index=a_index_expected)
         b_series_expected = Series([2, 1], index=b_index_expected)
         a_series_expected.index = a_series_expected.index.set_levels(
