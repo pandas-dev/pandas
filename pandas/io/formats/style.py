@@ -3126,7 +3126,7 @@ class Styler(StylerRenderer):
             The background color for highlighting.
 
             .. deprecated:: 1.5.0
-               Use ``color`` instead. If ``color`` is given will ``null_color`` is
+               Use ``color`` instead. If ``color`` is given ``null_color`` is
                not used.
 
         Returns
