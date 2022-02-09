@@ -3097,19 +3097,23 @@ class Styler(StylerRenderer):
 
         return self
 
-    @Substitution(subset=subset, props=props)
+    @Substitution(subset=subset, props=props, color=color)
     def highlight_null(
         self,
-        null_color: str = "red",
+        color: str | None = None,
         subset: Subset | None = None,
         props: str | None = None,
+        null_color: str | None = "red",
     ) -> Styler:
         """
         Highlight missing values with a style.
 
         Parameters
         ----------
-        null_color : str, default 'red'
+        %(color)s
+
+            .. versionadded:: 1.5.0
+
         %(subset)s
 
             .. versionadded:: 1.1.0
@@ -3117,6 +3121,13 @@ class Styler(StylerRenderer):
         %(props)s
 
             .. versionadded:: 1.3.0
+
+        null_color : str, default 'red'
+            The background color for highlighting.
+
+            .. deprecated:: 1.5.0
+               Use ``color`` instead. If ``color`` is given will ``null_color`` is
+               not used.
 
         Returns
         -------
@@ -3133,8 +3144,9 @@ class Styler(StylerRenderer):
         def f(data: DataFrame, props: str) -> np.ndarray:
             return np.where(pd.isna(data).to_numpy(), props, "")
 
+        color = color if color else null_color
         if props is None:
-            props = f"background-color: {null_color};"
+            props = f"background-color: {color};"
         return self.apply(f, axis=None, subset=subset, props=props)
 
     @Substitution(subset=subset, color=color, props=props)
