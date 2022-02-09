@@ -25,15 +25,15 @@ jobs:
     strategy:
       matrix:
         settings: [
-          [actions-38-downstream_compat.yaml, "not slow and not network and not clipboard", "", "", "", "", ""],
-          [actions-38-minimum_versions.yaml, "not clipboard", "", "", "", "", ""],
-          [actions-38.yaml, "not slow and not network", "language-pack-it xsel", "it_IT.utf8", "it_IT.utf8", "", ""],
-          [actions-38.yaml, "not slow and not network", "language-pack-zh-hans xsel", "zh_CN.utf8", "zh_CN.utf8", "", ""],
-          [actions-38.yaml, "not clipboard", "", "", "", "", ""],
-          [actions-pypy-38.yaml, "not slow and not clipboard", "", "", "", "", "--max-worker-restart 0"],
-          [actions-39.yaml, "not clipboard", "", "", "", "", ""],
-          [actions-310-numpydev.yaml, "not slow and not network", "xsel", "", "", "deprecate", "-W error"],
-          [actions-310.yaml, "not clipboard", "", "", "", "", ""],
+          [actions-38-downstream_compat.yaml, "not slow and not network", "", "", "", "", ""],
+          [actions-38-minimum_versions.yaml, "", "", "", "", "", ""],
+          [actions-38.yaml, "not slow and not network", "language-pack-it", "it_IT.utf8", "it_IT.utf8", "", ""],
+          [actions-38.yaml, "not slow and not network", "language-pack-zh-hans", "zh_CN.utf8", "zh_CN.utf8", "", ""],
+          [actions-38.yaml, "", "", "", "", "", ""],
+          [actions-pypy-38.yaml, "not slow", "", "", "", "", "--max-worker-restart 0"],
+          [actions-39.yaml, "", "", "", "", "", ""],
+          [actions-310-numpydev.yaml, "not slow and not network", "", "", "", "deprecate", "-W error"],
+          [actions-310.yaml, "", "", "", "", "", ""],
         ]
       fail-fast: false
     env:
@@ -105,7 +105,8 @@ jobs:
           hashFiles('${{ env.ENV_FILE }}') }}
 
     - name: Extra installs
-      run: sudo apt-get update && sudo apt-get install -y libc6-dev-i386 ${{ env.EXTRA_APT }}
+      # xsel for clipboard tests
+      run: sudo apt-get update && sudo apt-get install -y libc6-dev-i386 xsel ${{ env.EXTRA_APT }}
 
     - uses: conda-incubator/setup-miniconda@v2
       with:
