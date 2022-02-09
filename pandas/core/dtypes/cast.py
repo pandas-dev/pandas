@@ -1652,7 +1652,8 @@ def construct_1d_arraylike_from_scalar(
 
     if isinstance(dtype, ExtensionDtype):
         cls = dtype.construct_array_type()
-        subarr = cls._from_sequence([value] * length, dtype=dtype)
+        seq = [] if length == 0 else [value]
+        subarr = cls._from_sequence(seq, dtype=dtype).repeat(length)
 
     else:
 

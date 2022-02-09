@@ -2,8 +2,10 @@ import numpy as np
 
 import pandas as pd
 from pandas import (
+    NA,
     Categorical,
     DataFrame,
+    Float64Dtype,
     MultiIndex,
     Series,
     Timestamp,
@@ -136,6 +138,27 @@ class FromRange:
 
     def time_frame_from_range(self):
         self.df = DataFrame(self.data)
+
+
+class FromScalar:
+    def setup(self):
+        self.nrows = 100_000
+
+    def time_frame_from_scalar_ea_float64(self):
+        DataFrame(
+            1.0,
+            index=range(self.nrows),
+            columns=list("abc"),
+            dtype=Float64Dtype(),
+        )
+
+    def time_frame_from_scalar_ea_float64_na(self):
+        DataFrame(
+            NA,
+            index=range(self.nrows),
+            columns=list("abc"),
+            dtype=Float64Dtype(),
+        )
 
 
 class FromArrays:
