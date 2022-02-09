@@ -771,9 +771,9 @@ class SeriesGroupBy(GroupBy[Series]):
 class DataFrameGroupBy(GroupBy[DataFrame]):
 
     _apply_allowlist = base.dataframe_apply_allowlist
+
     # GH45875 - Added this method to handle typing
     # Should be able to add @final to groupby.py at some point
-
     def apply(self, func, *args, **kwargs) -> DataFrame:
         return super().apply(func, *args, **kwargs)
 
