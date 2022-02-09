@@ -1262,6 +1262,43 @@ class TestCoercionFloat64(CoercionTest):
 
 @pytest.mark.parametrize(
     "val,exp_dtype",
+    [
+        (1, np.float32),
+        pytest.param(
+            1.1,
+            np.float32,
+            marks=pytest.mark.xfail(
+                reason="np.float32(1.1) ends up as 1.100000023841858, so "
+                "np_can_hold_element raises and we cast to float64",
+            ),
+        ),
+        (1 + 1j, np.complex128),
+        (True, object),
+        (np.uint8(2), np.float32),
+        (np.uint32(2), np.float32),
+        # float32 cannot hold np.iinfo(np.uint32).max exactly
+        # (closest it can hold is 4294967300.0 which off by 5.0), so
+        # we cast to float64
+        (np.uint32(np.iinfo(np.uint32).max), np.float64),
+        (np.uint64(2), np.float32),
+        (np.int64(2), np.float32),
+    ],
+)
+class TestCoercionFloat32(CoercionTest):
+    @pytest.fixture
+    def obj(self):
+        return Series([1.1, 2.2, 3.3, 4.4], dtype=np.float32)
+
+    def test_slice_key(self, obj, key, expected, val, indexer_sli, is_inplace):
+        super().test_slice_key(obj, key, expected, val, indexer_sli, is_inplace)
+
+        if type(val) is float:
+            # the xfail would xpass bc test_slice_key short-circuits
+            raise AssertionError("xfail not relevant for this test.")
+
+
+@pytest.mark.parametrize(
+    "val,exp_dtype",
     [(Timestamp("2012-01-01"), "datetime64[ns]"), (1, object), ("x", object)],
 )
 class TestCoercionDatetime64(CoercionTest):
