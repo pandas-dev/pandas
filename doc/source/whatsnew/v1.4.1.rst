@@ -16,7 +16,9 @@ Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Regression in :meth:`Series.mask` with ``inplace=True`` and ``PeriodDtype`` and an incompatible ``other`` coercing to a common dtype instead of raising (:issue:`45546`)
 - Regression in :func:`.assert_frame_equal` not respecting ``check_flags=False`` (:issue:`45554`)
+- Regression in :meth:`DataFrame.loc.__getitem__` raising ``ValueError`` when indexing on a :class:`MultiIndex` with one level (:issue:`45779`)
 - Regression in :meth:`Series.fillna` with ``downcast=False`` incorrectly downcasting ``object`` dtype (:issue:`45603`)
+- Regression in :func:`api.types.is_bool_dtype` raising an ``AttributeError`` when evaluating a categorical :class:`Series` (:issue:`45615`)
 - Regression in :meth:`DataFrame.iat` setting values leading to not propagating correctly in subsequent lookups (:issue:`45684`)
 - Regression when setting values with :meth:`DataFrame.loc` losing :class:`Index` name if :class:`DataFrame` was empty before (:issue:`45621`)
 - Regression in :meth:`~Index.join` with overlapping :class:`IntervalIndex` raising an ``InvalidIndexError`` (:issue:`45661`)
@@ -33,7 +35,6 @@ Bug fixes
 - Fixed segfault in :meth:`DataFrame.to_json` when dumping tz-aware datetimes in Python 3.10 (:issue:`42130`)
 - Stopped emitting unnecessary ``FutureWarning`` in :meth:`DataFrame.sort_values` with sparse columns (:issue:`45618`)
 - Fixed window aggregations in :meth:`DataFrame.rolling` and :meth:`Series.rolling` to skip over unused elements (:issue:`45647`)
-- Bug in :func:`api.types.is_bool_dtype` was raising an ``AttributeError`` when evaluating a categorical :class:`Series` (:issue:`45615`)
 - Fixed builtin highlighters in :class:`.Styler` to be responsive to ``NA`` with nullable dtypes (:issue:`45804`)
 
 .. ---------------------------------------------------------------------------
