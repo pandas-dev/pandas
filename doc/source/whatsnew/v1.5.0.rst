@@ -37,6 +37,7 @@ Other enhancements
 - :meth:`to_numeric` now preserves float64 arrays when downcasting would generate values not representable in float32 (:issue:`43693`)
 - :meth:`Series.reset_index` and :meth:`DataFrame.reset_index` now support the argument ``allow_duplicates`` (:issue:`44410`)
 - :meth:`.GroupBy.min` and :meth:`.GroupBy.max` now supports `Numba <https://numba.pydata.org/>`_ execution with the ``engine`` keyword (:issue:`45428`)
+- Implemented a ``bool``-dtype :class:`Index`, passing a bool-dtype arraylike to ``pd.Index`` will now retain ``bool`` dtype instead of casting to ``object`` (:issue:`45061`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -183,6 +184,43 @@ use ``series.loc[i:j]``.
 
 Slicing on a :class:`DataFrame` will not be affected.
 
+.. _whatsnew_150.deprecations.excel_writer_attributes:
+
+:class:`ExcelWriter` attributes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+All attributes of :class:`ExcelWriter` were previously documented as not
+public. However some third party Excel engines documented accessing
+``ExcelWriter.book`` or ``ExcelWriter.sheets``, and users were utilizing these
+and possibly other attributes. Previously these attributes were not safe to use;
+e.g. modifications to ``ExcelWriter.book`` would not update ``ExcelWriter.sheets``
+and conversely. In order to support this, pandas has made some attributes public
+and improved their implementations so that they may now be safely used. (:issue:`45572`)
+
+The following attributes are now public and considered safe to access.
+
+ - ``book``
+ - ``check_extension``
+ - ``close``
+ - ``date_format``
+ - ``datetime_format``
+ - ``engine``
+ - ``if_sheet_exists``
+ - ``sheets``
+ - ``supported_extensions``
+
+The following attributes have been deprecated. They now raise a ``FutureWarning``
+when accessed and will removed in a future version. Users should be aware
+that their usage is considered unsafe, and can lead to unexpected results.
+
+ - ``cur_sheet``
+ - ``handles``
+ - ``path``
+ - ``save``
+ - ``write_cells``
+
+See the documentation of :class:`ExcelWriter` for further details.
+
 .. _whatsnew_150.deprecations.other:
 
 Other Deprecations
@@ -205,6 +243,9 @@ Performance improvements
 - Performance improvement in :meth:`.GroupBy.transform` for some user-defined DataFrame -> Series functions (:issue:`45387`)
 - Performance improvement in :meth:`DataFrame.duplicated` when subset consists of only one column (:issue:`45236`)
 - Performance improvement in :meth:`.GroupBy.transform` when broadcasting values for user-defined functions (:issue:`45708`)
+- Performance improvement in :meth:`.GroupBy.transform` for user-defined functions when only a single group exists (:issue:`44977`)
+- Performance improvement in :func:`merge` when left and/or right are empty (:issue:`45838`)
+- Performance improvement in :class:`DataFrame` and :class:`Series` constructors for extension dtype scalars (:issue:`45854`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -215,6 +256,7 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
+- Bug in :meth:`Categorical.view` not accepting integer dtypes (:issue:`25464`)
 - Bug in :meth:`CategoricalIndex.union` when the index's categories are integer-dtype and the index contains ``NaN`` values incorrectly raising instead of casting to ``float64`` (:issue:`45362`)
 -
 
@@ -224,6 +266,7 @@ Datetimelike
 - Bug in :func:`to_datetime` with sequences of ``np.str_`` objects incorrectly raising (:issue:`32264`)
 - Bug in :class:`Timestamp` construction when passing datetime components as positional arguments and ``tzinfo`` as a keyword argument incorrectly raising (:issue:`31929`)
 - Bug in :meth:`Index.astype` when casting from object dtype to ``timedelta64[ns]`` dtype incorrectly casting ``np.datetime64("NaT")`` values to ``np.timedelta64("NaT")`` instead of raising (:issue:`45722`)
+- Bug in :meth:`SeriesGroupBy.value_counts` index when passing categorical column (:issue:`44324`)
 -
 
 Timedelta
@@ -266,20 +309,25 @@ Indexing
 - Bug in :meth:`DataFrame.iloc` where indexing a single row on a :class:`DataFrame` with a single ExtensionDtype column gave a copy instead of a view on the underlying data (:issue:`45241`)
 - Bug in setting a NA value (``None`` or ``np.nan``) into a :class:`Series` with int-based :class:`IntervalDtype` incorrectly casting to object dtype instead of a float-based :class:`IntervalDtype` (:issue:`45568`)
 - Bug in :meth:`Series.__setitem__` with a non-integer :class:`Index` when using an integer key to set a value that cannot be set inplace where a ``ValueError`` was raised insead of casting to a common dtype (:issue:`45070`)
+- Bug in :meth:`Series.__setitem__` when setting incompatible values into a ``PeriodDtype`` or ``IntervalDtype`` :class:`Series` raising when indexing with a boolean mask but coercing when indexing with otherwise-equivalent indexers; these now consistently coerce, along with :meth:`Series.mask` and :meth:`Series.where` (:issue:`45768`)
 - Bug in :meth:`Series.loc.__setitem__` and :meth:`Series.loc.__getitem__` not raising when using multiple keys without using a :class:`MultiIndex` (:issue:`13831`)
 - Bug when setting a value too large for a :class:`Series` dtype failing to coerce to a common type (:issue:`26049`, :issue:`32878`)
 - Bug in :meth:`loc.__setitem__` treating ``range`` keys as positional instead of label-based (:issue:`45479`)
 - Bug in :meth:`Series.__setitem__` when setting ``boolean`` dtype values containing ``NA`` incorrectly raising instead of casting to ``boolean`` dtype (:issue:`45462`)
 - Bug in :meth:`Series.__setitem__` where setting :attr:`NA` into a numeric-dtpye :class:`Series` would incorrectly upcast to object-dtype rather than treating the value as ``np.nan`` (:issue:`44199`)
+- Bug in :meth:`Series.mask` with ``inplace=True`` or setting values with a boolean mask with small integer dtypes incorrectly raising (:issue:`45750`)
 - Bug in :meth:`DataFrame.mask` with ``inplace=True`` and ``ExtensionDtype`` columns incorrectly raising (:issue:`45577`)
 - Bug in getting a column from a DataFrame with an object-dtype row index with datetime-like values: the resulting Series now preserves the exact object-dtype Index from the parent DataFrame (:issue:`42950`)
 - Bug in indexing on a :class:`DatetimeIndex` with a ``np.str_`` key incorrectly raising (:issue:`45580`)
 - Bug in :meth:`CategoricalIndex.get_indexer` when index contains ``NaN`` values, resulting in elements that are in target but not present in the index to be mapped to the index of the NaN element, instead of -1 (:issue:`45361`)
+- Bug in setting large integer values into :class:`Series` with ``float32`` or ``float16`` dtype incorrectly altering these values instead of coercing to ``float64`` dtype (:issue:`45844`)
 -
 
 Missing
 ^^^^^^^
 - Bug in :meth:`Series.fillna` and :meth:`DataFrame.fillna` with ``downcast`` keyword not being respected in some cases where there are no NA values present (:issue:`45423`)
+- Bug in :meth:`Series.fillna` and :meth:`DataFrame.fillna` with :class:`IntervalDtype` and incompatible value raising instead of casting to a common (usually object) dtype (:issue:`??`)
+- Bug in :meth:`DataFrame.interpolate` with object-dtype column not returning a copy with ``inplace=False`` (:issue:`45791`)
 -
 
 MultiIndex
@@ -290,10 +338,11 @@ MultiIndex
 I/O
 ^^^
 - Bug in :meth:`DataFrame.to_stata` where no error is raised if the :class:`DataFrame` contains ``-np.inf`` (:issue:`45350`)
+- Bug in :func:`read_excel` results in an infinite loop with certain ``skiprows`` callables (:issue:`45585`)
 - Bug in :meth:`DataFrame.info` where a new line at the end of the output is omitted when called on an empty :class:`DataFrame` (:issue:`45494`)
 - Bug in :func:`read_csv` not recognizing line break for ``on_bad_lines="warn"`` for ``engine="c"`` (:issue:`41710`)
 - Bug in :func:`read_parquet` when ``engine="pyarrow"`` which caused partial write to disk when column of unsupported datatype was passed (:issue:`44914`)
--
+- Bug in :func:`DataFrame.to_excel` and :class:`ExcelWriter` would raise when writing an empty DataFrame to a ``.ods`` file (:issue:`45793`)
 
 Period
 ^^^^^^

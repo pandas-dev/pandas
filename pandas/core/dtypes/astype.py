@@ -83,12 +83,6 @@ def astype_nansafe(
     ValueError
         The dtype was a datetime64/timedelta64 dtype, but it had no unit.
     """
-    if arr.ndim > 1:
-        flat = arr.ravel()
-        result = astype_nansafe(flat, dtype, copy=copy, skipna=skipna)
-        # error: Item "ExtensionArray" of "Union[ExtensionArray, ndarray]" has no
-        # attribute "reshape"
-        return result.reshape(arr.shape)  # type: ignore[union-attr]
 
     # We get here with 0-dim from sparse
     arr = np.atleast_1d(arr)
@@ -109,7 +103,12 @@ def astype_nansafe(
         return arr.astype(dtype, copy=copy)
 
     if issubclass(dtype.type, str):
-        return lib.ensure_string_array(arr, skipna=skipna, convert_na_value=False)
+        shape = arr.shape
+        if arr.ndim > 1:
+            arr = arr.ravel()
+        return lib.ensure_string_array(
+            arr, skipna=skipna, convert_na_value=False
+        ).reshape(shape)
 
     elif is_datetime64_dtype(arr.dtype):
         if dtype == np.int64:
@@ -146,7 +145,7 @@ def astype_nansafe(
             from pandas import to_datetime
 
             return astype_nansafe(
-                to_datetime(arr).values,
+                to_datetime(arr.ravel()).values.reshape(arr.shape),
                 dtype,
                 copy=copy,
             )

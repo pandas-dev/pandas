@@ -4,7 +4,7 @@ ci:
     autofix_prs: false
 repos:
 -   repo: https://github.com/MarcoGorelli/absolufy-imports
-    rev: v0.3.0
+    rev: v0.3.1
     hooks:
     -   id: absolufy-imports
         files: ^pandas/
@@ -16,7 +16,7 @@ repos:
         pass_filenames: true
         require_serial: false
 -   repo: https://github.com/python/black
-    rev: 21.12b0
+    rev: 22.1.0
     hooks:
     -   id: black
 -   repo: https://github.com/codespell-project/codespell
@@ -50,7 +50,7 @@ repos:
         - flake8==4.0.1
         - flake8-comprehensions==3.7.0
         - flake8-bugbear==21.3.2
-        - pandas-dev-flaker==0.2.0
+        - pandas-dev-flaker==0.4.0
 -   repo: https://github.com/PyCQA/isort
     rev: 5.10.1
     hooks:

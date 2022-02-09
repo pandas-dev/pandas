@@ -85,7 +85,9 @@ class CssExcelCell(ExcelCell):
         **kwargs,
     ):
         if css_styles and css_converter:
-            css = ";".join(a + ":" + str(v) for (a, v) in css_styles[css_row, css_col])
+            css = ";".join(
+                [a + ":" + str(v) for (a, v) in css_styles[css_row, css_col]]
+            )
             style = css_converter(css)
 
         return super().__init__(row=row, col=col, val=val, style=style, **kwargs)
@@ -467,8 +469,8 @@ class ExcelFormatter:
         This is only called for body cells.
     """
 
-    max_rows = 2 ** 20
-    max_cols = 2 ** 14
+    max_rows = 2**20
+    max_cols = 2**14
 
     def __init__(
         self,
@@ -888,7 +890,7 @@ class ExcelFormatter:
             need_save = True
 
         try:
-            writer.write_cells(
+            writer._write_cells(
                 formatted_cells,
                 sheet_name,
                 startrow=startrow,

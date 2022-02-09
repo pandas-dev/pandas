@@ -216,6 +216,12 @@ class Merge:
     def time_merge_dataframe_integer_key(self, sort):
         merge(self.df, self.df2, on="key1", sort=sort)
 
+    def time_merge_dataframe_empty_right(self, sort):
+        merge(self.left, self.right.iloc[:0], sort=sort)
+
+    def time_merge_dataframe_empty_left(self, sort):
+        merge(self.left.iloc[:0], self.right, sort=sort)
+
     def time_merge_dataframes_cross(self, sort):
         merge(self.left.loc[:2000], self.right.loc[:2000], how="cross", sort=sort)
 
@@ -226,7 +232,7 @@ class I8Merge:
     param_names = ["how"]
 
     def setup(self, how):
-        low, high, n = -1000, 1000, 10 ** 6
+        low, high, n = -1000, 1000, 10**6
         self.left = DataFrame(
             np.random.randint(low, high, (n, 7)), columns=list("ABCDEFG")
         )
@@ -394,8 +400,8 @@ class MergeAsof:
 
 class Align:
     def setup(self):
-        size = 5 * 10 ** 5
-        rng = np.arange(0, 10 ** 13, 10 ** 7)
+        size = 5 * 10**5
+        rng = np.arange(0, 10**13, 10**7)
         stamps = np.datetime64("now").view("i8") + rng
         idx1 = np.sort(np.random.choice(stamps, size, replace=False))
         idx2 = np.sort(np.random.choice(stamps, size, replace=False))

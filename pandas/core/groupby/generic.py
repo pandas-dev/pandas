@@ -602,23 +602,23 @@ class SeriesGroupBy(GroupBy[Series]):
         ids, _, _ = self.grouper.group_info
         val = self.obj._values
 
-        def apply_series_value_counts():
-            return self.apply(
+        names = self.grouper.names + [self.obj.name]
+
+        if is_categorical_dtype(val.dtype) or (
+            bins is not None and not np.iterable(bins)
+        ):
+            # scalar bins cannot be done at top level
+            # in a backward compatible way
+            # GH38672 relates to categorical dtype
+            ser = self.apply(
                 Series.value_counts,
                 normalize=normalize,
                 sort=sort,
                 ascending=ascending,
                 bins=bins,
             )
-
-        if bins is not None:
-            if not np.iterable(bins):
-                # scalar bins cannot be done at top level
-                # in a backward compatible way
-                return apply_series_value_counts()
-        elif is_categorical_dtype(val.dtype):
-            # GH38672
-            return apply_series_value_counts()
+            ser.index.names = names
+            return ser
 
         # groupby removes null keys from groupings
         mask = ids != -1
@@ -683,7 +683,6 @@ class SeriesGroupBy(GroupBy[Series]):
         levels = [ping.group_index for ping in self.grouper.groupings] + [
             lev  # type: ignore[list-item]
         ]
-        names = self.grouper.names + [self.obj.name]
 
         if dropna:
             mask = codes[-1] != -1
@@ -1207,6 +1206,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _choose_path(self, fast_path: Callable, slow_path: Callable, group: DataFrame):
         path = slow_path
         res = slow_path(group)
+
+        if self.ngroups == 1:
+            # no need to evaluate multiple paths when only
+            # a single group exists
+            return path, res
 
         # if we make it here, test if we can use the fast path
         try:
