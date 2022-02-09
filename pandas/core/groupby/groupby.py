@@ -960,6 +960,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 return self.apply(curried)
 
             result = self._python_apply_general(curried, self._obj_with_exclusions)
+
+            if result.ndim == 1:
+                # apply sets the name on each group as the key; if there is one
+                # group this name will come through on Series results
+                result.name = None
+
             if self.grouper.has_dropped_na and name in base.transformation_kernels:
                 # result will have dropped rows due to nans, fill with null
                 # and ensure index is ordered same as the input

@@ -1288,7 +1288,7 @@ def test_null_group_lambda_self(dropna, keys):
     tm.assert_frame_equal(result, expected)
 
 
-def test_null_group_str_reducer(request, dropna, reduction_func):
+def test_null_group_str_reducer(dropna, reduction_func):
     # GH 17093
     index = [1, 2, 3, 4]  # test transform preserves non-standard index
     df = DataFrame({"A": [1, 1, np.nan, np.nan], "B": [1, 2, 2, 3]}, index=index)
@@ -1359,6 +1359,79 @@ def test_null_group_str_transformer(request, dropna, transformation_func):
     if transformation_func == "cumcount":
         # cumcount always returns a Series as it counts the groups, not values
         expected = expected["B"].rename(None)
+
+    result = gb.transform(transformation_func, *args)
+    tm.assert_equal(result, expected)
+
+
+def test_null_group_str_reducer_series(request, dropna, reduction_func):
+    if reduction_func == "corrwith":
+        msg = "corrwith not implemented for SeriesGroupBy"
+        request.node.add_marker(pytest.mark.xfail(reason=msg))
+
+    # GH 17093
+    index = [1, 2, 3, 4]  # test transform preserves non-standard index
+    ser = Series([1, 2, 2, 3], index=index)
+    gb = ser.groupby([1, 1, np.nan, np.nan], dropna=dropna)
+
+    if reduction_func == "corrwith":
+        args = (ser,)
+    elif reduction_func == "nth":
+        args = (0,)
+    else:
+        args = ()
+
+    # Manually handle reducers that don't fit the generic pattern
+    # Set expected with dropna=False, then replace if necessary
+    if reduction_func == "first":
+        expected = Series([1, 1, 2, 2], index=index)
+    elif reduction_func == "last":
+        expected = Series([2, 2, 3, 3], index=index)
+    elif reduction_func == "nth":
+        expected = Series([1, 1, 2, 2], index=index)
+    elif reduction_func == "size":
+        expected = Series([2, 2, 2, 2], index=index)
+    elif reduction_func == "ngroup":
+        expected = Series([0, 0, 1, 1], index=index)
+    elif reduction_func == "corrwith":
+        expected = Series([1, 1, 2, 2], index=index)
+    else:
+        expected_gb = ser.groupby([1, 1, np.nan, np.nan], dropna=False)
+        buffer = []
+        for idx, group in expected_gb:
+            res = getattr(group, reduction_func)()
+            buffer.append(Series(res, index=group.index))
+        expected = concat(buffer)
+    if dropna:
+        dtype = object if reduction_func in ("any", "all") else float
+        expected = expected.astype(dtype)
+        expected.iloc[[2, 3]] = np.nan
+
+    result = gb.transform(reduction_func, *args)
+    tm.assert_series_equal(result, expected)
+
+
+def test_null_group_str_transformer_series(request, dropna, transformation_func):
+    # GH 17093
+    if transformation_func == "tshift":
+        msg = "tshift requires timeseries"
+        request.node.add_marker(pytest.mark.xfail(reason=msg))
+    args = (0,) if transformation_func == "fillna" else ()
+    ser = Series([1, 2, 2], index=[1, 2, 3])
+    gb = ser.groupby([1, 1, np.nan], dropna=dropna)
+
+    buffer = []
+    for idx, group in gb:
+        if transformation_func == "cumcount":
+            # Series has no cumcount method
+            res = Series(range(len(group)), index=group.index)
+        else:
+            res = getattr(group, transformation_func)(*args)
+        buffer.append(res)
+    if dropna:
+        dtype = object if transformation_func in ("any", "all") else None
+        buffer.append(Series([np.nan], index=[3], dtype=dtype))
+    expected = concat(buffer)
 
     result = gb.transform(transformation_func, *args)
     tm.assert_equal(result, expected)
