@@ -24,7 +24,7 @@ Fixed regressions
 - Regression in :meth:`~Index.join` with overlapping :class:`IntervalIndex` raising an ``InvalidIndexError`` (:issue:`45661`)
 - Regression when setting values with :meth:`Series.loc` raising with all ``False`` indexer and :class:`Series` on the right hand side (:issue:`45778`)
 - Regression in :func:`read_sql` with a DBAPI2 connection that is not an instance of ``sqlite3.Connection`` incorrectly requiring SQLAlchemy be installed (:issue:`45660`)
--
+- Regression in :class:`DateOffset` when constructing with an integer argument with no keywords (e.g. ``pd.DateOffset(n)``) would behave like ``datetime.timedelta(days=0)`` (:issue:`45643`, :issue:`45890`)
 
 .. ---------------------------------------------------------------------------
 
