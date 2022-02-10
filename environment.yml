@@ -9,7 +9,7 @@ dependencies:
   - pytz
 
   # benchmarks
-  - asv
+  - asv < 0.5.0  # 2022-02-08: v0.5.0 > leads to ASV checks running > 3 hours on CI
 
   # building
   # The compiler packages are meta-packages and install the correct compiler (activation) packages on the respective platforms.

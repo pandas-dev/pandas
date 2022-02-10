@@ -216,6 +216,12 @@ class Merge:
     def time_merge_dataframe_integer_key(self, sort):
         merge(self.df, self.df2, on="key1", sort=sort)
 
+    def time_merge_dataframe_empty_right(self, sort):
+        merge(self.left, self.right.iloc[:0], sort=sort)
+
+    def time_merge_dataframe_empty_left(self, sort):
+        merge(self.left.iloc[:0], self.right, sort=sort)
+
     def time_merge_dataframes_cross(self, sort):
         merge(self.left.loc[:2000], self.right.loc[:2000], how="cross", sort=sort)
 
