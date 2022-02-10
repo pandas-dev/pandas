@@ -617,6 +617,14 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         return self.grouper.indices
 
     @final
+    def _get_indices_by_codes(self, codes):
+        """
+        Safe get multiple indices, translate keys for
+        datelike to underlying repr.
+        """
+        return [self.grouper.code_indices.get(code, []) for code in codes]
+
+    @final
     def _get_indices(self, names):
         """
         Safe get multiple indices, translate keys for
@@ -665,17 +673,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
             converter = get_converter(index_sample)
             names = (converter(name) for name in names)
 
-        # return [self.indices.get(name, []) for name in names]
-        # self.indices is a dict and doesn't handle looking up nulls in the groups
-        from pandas import (
-            Index,
-            Series,
-        )
-
-        index = Index(self.indices.keys(), tupleize_cols=False)
-        indices = Series(self.indices.values(), index=index)
-        result = [indices[name] for name in names]
-        return result
+        return [self.indices.get(name, []) for name in names]
 
     @final
     def _get_index(self, name):
@@ -1109,8 +1107,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return result
 
         # row order is scrambled => sort the rows by position in original index
+        _, obs_group_ids, _ = self.grouper.group_info
         original_positions = Index(
-            np.concatenate(self._get_indices(self.grouper.result_index))
+            np.concatenate(self._get_indices_by_codes(obs_group_ids))
         )
         result.set_axis(original_positions, axis=self.axis, inplace=True)
         result = result.sort_index(axis=self.axis)
