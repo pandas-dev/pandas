@@ -203,20 +203,29 @@ class XlsxWriter(ExcelWriter):
             engine_kwargs=engine_kwargs,
         )
 
-        self.book = Workbook(self.handles.handle, **engine_kwargs)
+        self._book = Workbook(self._handles.handle, **engine_kwargs)
+
+    @property
+    def book(self):
+        """
+        Book instance of class xlsxwriter.Workbook.
+
+        This attribute can be used to access engine-specific features.
+        """
+        return self._book
 
     @property
     def sheets(self) -> dict[str, Any]:
         result = self.book.sheetnames
         return result
 
-    def save(self) -> None:
+    def _save(self) -> None:
         """
         Save workbook to disk.
         """
         self.book.close()
 
-    def write_cells(
+    def _write_cells(
         self,
         cells,
         sheet_name: str | None = None,

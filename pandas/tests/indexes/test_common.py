@@ -88,7 +88,9 @@ class TestCommon:
 
     def test_constructor_unwraps_index(self, index_flat):
         a = index_flat
-        b = type(a)(a)
+        # Passing dtype is necessary for Index([True, False], dtype=object)
+        #  case.
+        b = type(a)(a, dtype=a.dtype)
         tm.assert_equal(a._data, b._data)
 
     def test_to_flat_index(self, index_flat):
@@ -387,6 +389,10 @@ class TestCommon:
         ):
             # This astype is deprecated in favor of tz_localize
             warn = FutureWarning
+        elif index.dtype.kind == "c" and dtype in ["float64", "int64", "uint64"]:
+            # imaginary components discarded
+            warn = np.ComplexWarning
+
         try:
             # Some of these conversions cannot succeed so we use a try / except
             with tm.assert_produces_warning(warn):
@@ -425,6 +431,9 @@ class TestCommon:
         if len(index) == 0:
             return
         elif isinstance(index, NumericIndex) and is_integer_dtype(index.dtype):
+            return
+        elif index.dtype == bool:
+            # values[1] = np.nan below casts to True!
             return
 
         values[1] = np.nan

@@ -1,9 +1,6 @@
 from datetime import datetime
 
-from hypothesis import (
-    given,
-    settings,
-)
+from hypothesis import given
 import numpy as np
 import pytest
 
@@ -98,7 +95,7 @@ class TestDataFrameIndexingWhere:
 
         tm.assert_series_equal(result, expected)
 
-    def test_where_alignment(self, where_frame, float_string_frame, mixed_int_frame):
+    def test_where_alignment(self, where_frame, float_string_frame):
         # aligning
         def _check_align(df, cond, other, check_dtypes=True):
             rs = df.where(cond, other)
@@ -962,7 +959,6 @@ def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):
 
 
 @given(data=OPTIONAL_ONE_OF_ALL)
-@settings(deadline=None)  # GH 44969
 def test_where_inplace_casting(data):
     # GH 22051
     df = DataFrame({"a": data})
