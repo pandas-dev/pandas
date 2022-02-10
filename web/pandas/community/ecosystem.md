@@ -388,6 +388,7 @@ authors to coordinate on the namespace.
   | [pint-pandas](https://github.com/hgrecco/pint-pandas)                | `pint`     | `Series`, `DataFrame` |
   | [composeml](https://github.com/alteryx/compose)                      | `slice`    | `DataFrame`           |
   | [woodwork](https://github.com/alteryx/woodwork)                      | `slice`    | `Series`, `DataFrame` |
+
 ## Development tools
 
 ### [pandas-stubs](https://github.com/VirtusLab/pandas-stubs)
