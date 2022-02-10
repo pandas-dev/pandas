@@ -1,4 +1,4 @@
-from numpy import datetime64
+import numpy as np
 import pytest
 
 from pandas._libs.tslibs import (
@@ -92,6 +92,6 @@ def test_cat(args):
     ],
 )
 def test_compatibility(freqstr, expected):
-    ts_np = datetime64("2021-01-01T08:00:00.00")
+    ts_np = np.datetime64("2021-01-01T08:00:00.00")
     do = to_offset(freqstr)
-    assert ts_np + do == datetime64(expected)
+    assert ts_np + do == np.datetime64(expected)
