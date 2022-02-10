@@ -333,8 +333,12 @@ cdef _determine_offset(kwds):
         else:
             # sub-daily offset - use timedelta (tz-aware)
             offset = timedelta(**kwds_no_nanos)
+    elif any(nano in kwds for nano in ('nanosecond', 'nanoseconds')):
+        offset = timedelta(days=0)
     else:
-        offset = timedelta(0)
+        # GH 45643/45890: (historically) defaults to 1 day for non-nano
+        # since datetime.timedelta doesn't handle nanoseconds
+        offset = timedelta(days=1)
     return offset, use_relativedelta
 
 
@@ -1223,6 +1227,7 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     ----------
     n : int, default 1
         The number of time periods the offset represents.
+        If specified without a temporal pattern, defaults to n days.
     normalize : bool, default False
         Whether to round the result of a DateOffset addition down to the
         previous midnight.
