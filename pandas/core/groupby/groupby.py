@@ -923,6 +923,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # as are not passed directly but in the grouper
             f = getattr(self._obj_with_exclusions, name)
             if not isinstance(f, types.MethodType):
+                #  error: Incompatible return value type
+                # (got "NDFrameT", expected "Callable[..., Any]")  [return-value]
                 return cast(Callable, self.apply(lambda self: getattr(self, name)))
 
         f = getattr(type(self._obj_with_exclusions), name)
