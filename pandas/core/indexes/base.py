@@ -505,7 +505,7 @@ class Index(IndexOpsMixin, PandasObject):
             if data.dtype.kind in ["i", "u", "f"]:
                 # maybe coerce to a sub-class
                 arr = data
-            elif data.dtype.kind == "b":
+            elif data.dtype.kind in ["b", "c"]:
                 # No special subclass, and Index._ensure_array won't do this
                 #  for us.
                 arr = np.asarray(data)
@@ -636,7 +636,9 @@ class Index(IndexOpsMixin, PandasObject):
             # NB: assuming away MultiIndex
             return Index
 
-        elif issubclass(dtype.type, (str, bool, np.bool_)):
+        elif issubclass(
+            dtype.type, (str, bool, np.bool_, complex, np.complex64, np.complex128)
+        ):
             return Index
 
         raise NotImplementedError(dtype)
@@ -881,6 +883,10 @@ class Index(IndexOpsMixin, PandasObject):
         # `self` is not passed into the lambda.
         if target_values.dtype == bool:
             return libindex.BoolEngine(target_values)
+        elif target_values.dtype == np.complex64:
+            return libindex.Complex64Engine(target_values)
+        elif target_values.dtype == np.complex128:
+            return libindex.Complex128Engine(target_values)
 
         # error: Argument 1 to "ExtensionEngine" has incompatible type
         # "ndarray[Any, Any]"; expected "ExtensionArray"
@@ -6162,9 +6168,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         dtype = find_common_type([self.dtype, target_dtype])
         dtype = common_dtype_categorical_compat([self, target], dtype)
-
-        if dtype.kind == "c":
-            dtype = _dtype_obj
         return dtype
 
     @final
@@ -7308,8 +7311,6 @@ def _maybe_cast_data_without_dtype(
             FutureWarning,
             stacklevel=3,
         )
-    if result.dtype.kind in ["c"]:
-        return subarr
     result = ensure_wrapped_if_datetimelike(result)
     return result
 

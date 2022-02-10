@@ -71,6 +71,7 @@ def test_numpy_ufuncs_basic(index, func):
     elif (
         isinstance(index, NumericIndex)
         or (not isinstance(index.dtype, np.dtype) and index.dtype._is_numeric)
+        or (index.dtype.kind == "c" and func not in [np.deg2rad, np.rad2deg])
         or index.dtype == bool
     ):
         # coerces to float (e.g. np.sin)
@@ -122,6 +123,7 @@ def test_numpy_ufuncs_other(index, func):
     elif (
         isinstance(index, NumericIndex)
         or (not isinstance(index.dtype, np.dtype) and index.dtype._is_numeric)
+        or (index.dtype.kind == "c" and func is not np.signbit)
         or index.dtype == bool
     ):
         # Results in bool array
