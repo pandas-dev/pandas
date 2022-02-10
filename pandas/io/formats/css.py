@@ -3,9 +3,11 @@ Utilities for interpreting CSS from Stylers for formatting non-HTML outputs.
 """
 from __future__ import annotations
 
-from email.generator import Generator
 import re
-from typing import Callable
+from typing import (
+    Callable,
+    Generator,
+)
 import warnings
 
 
@@ -27,13 +29,9 @@ def _side_expander(prop_fmt: str) -> Callable:
     Returns
     -------
         function: Return to call when a 'border(-{side}): {value}' string is encountered
-
-    Notes
-    -----
-        Description of [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Shorthand_properties) syntax
     """
 
-    def expand(self, prop, value: str) -> Generator:
+    def expand(self, prop, value: str) -> Generator[tuple[str, str], None, None]:
         """
         Expand shorthand property into side-specific property (top, right, bottom, left)
 
@@ -74,7 +72,7 @@ def _border_expander(side: str = "") -> Callable:
     if side != "":
         side = f"-{side}"
 
-    def expand(self, prop, value: str) -> Generator:
+    def expand(self, prop, value: str) -> Generator[tuple[str, str], None, None]:
         """
         Expand border into color, style, and width tuples
 
@@ -348,7 +346,7 @@ class CSSResolver:
             size_fmt = f"{val:f}pt"
         return size_fmt
 
-    def atomize(self, declarations):
+    def atomize(self, declarations) -> Generator[tuple[str, str], None, None]:
         for prop, value in declarations:
             attr = "expand_" + prop.replace("-", "_")
             try:
