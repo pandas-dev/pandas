@@ -587,14 +587,6 @@ class SeriesGroupBy(GroupBy[Series]):
     def describe(self, **kwargs):
         return super().describe(**kwargs)
 
-    # GH45875 - Added these methods to handle typing
-    # Should be able to add @final to groupby.py at some point
-    def count(self) -> Series:
-        return cast(Series, super().count())
-
-    def size(self) -> Series:
-        return cast(Series, super().size())
-
     def value_counts(
         self,
         normalize: bool = False,
@@ -771,11 +763,6 @@ class SeriesGroupBy(GroupBy[Series]):
 class DataFrameGroupBy(GroupBy[DataFrame]):
 
     _apply_allowlist = base.dataframe_apply_allowlist
-
-    # GH45875 - Added this method to handle typing
-    # Should be able to add @final to groupby.py at some point
-    def apply(self, func, *args, **kwargs) -> DataFrame:
-        return super().apply(func, *args, **kwargs)
 
     _agg_examples_doc = dedent(
         """
@@ -1547,14 +1534,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             self._insert_inaxis_grouper_inplace(results)
 
         return results
-
-    # GH45875 - Added these methods to handle typing
-    # Should be able to add @final to groupby.py at some point
-    def count(self) -> DataFrame:
-        return cast(DataFrame, super().count())
-
-    def size(self) -> DataFrame:
-        return cast(DataFrame, super().size())
 
     @Appender(DataFrame.idxmax.__doc__)
     def idxmax(self, axis=0, skipna: bool = True):

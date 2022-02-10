@@ -923,7 +923,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # as are not passed directly but in the grouper
             f = getattr(self._obj_with_exclusions, name)
             if not isinstance(f, types.MethodType):
-                return self.apply(lambda self: getattr(self, name))
+                return cast(Callable, self.apply(lambda self: getattr(self, name)))
 
         f = getattr(type(self._obj_with_exclusions), name)
         sig = inspect.signature(f)
@@ -1372,7 +1372,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             input="dataframe", examples=_apply_docs["dataframe_examples"]
         )
     )
-    def apply(self, func, *args, **kwargs):
+    def apply(self, func, *args, **kwargs) -> NDFrameT:
 
         func = com.is_builtin_func(func)
 
@@ -1432,7 +1432,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         f: Callable,
         data: DataFrame | Series,
         not_indexed_same: bool | None = None,
-    ) -> DataFrame | Series:
+    ) -> NDFrameT:
         """
         Apply function f in python space
 
@@ -1827,9 +1827,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         return self._bool_agg("all", skipna)
 
+    @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def count(self) -> Series | DataFrame:
+    def count(self) -> NDFrameT:  # Series | DataFrame:
         """
         Compute count of group, excluding missing values.
 
@@ -2134,9 +2135,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result.iloc[:, result_ilocs] /= np.sqrt(counts.iloc[:, count_ilocs])
         return result
 
+    @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def size(self) -> DataFrame | Series:
+    def size(self) -> NDFrameT:
         """
         Compute group sizes.
 
@@ -2158,7 +2160,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # Item "None" of "Optional[Series]" has no attribute "reset_index"
             result = result.rename("size").reset_index()  # type: ignore[union-attr]
 
-        return self._reindex_output(result, fill_value=0)
+        # GH 45875 cast ensures result will be Series or DataFrame, as appropriate
+        return cast(NDFrameT, self._reindex_output(result, fill_value=0))
 
     @final
     @doc(_groupby_agg_method_template, fname="sum", no=True, mc=0)
