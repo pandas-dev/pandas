@@ -2138,7 +2138,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def size(self) -> NDFrameT:
+    def size(self) -> DataFrame | Series:
         """
         Compute group sizes.
 
@@ -2160,8 +2160,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # Item "None" of "Optional[Series]" has no attribute "reset_index"
             result = result.rename("size").reset_index()  # type: ignore[union-attr]
 
-        # GH 45875 cast ensures result will be Series or DataFrame, as appropriate
-        return cast(NDFrameT, self._reindex_output(result, fill_value=0))
+        return self._reindex_output(result, fill_value=0)
 
     @final
     @doc(_groupby_agg_method_template, fname="sum", no=True, mc=0)
