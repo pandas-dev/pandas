@@ -1488,7 +1488,7 @@ class EABackedBlock(Block):
 
         if self.dtype.kind == "m":
             try:
-                res_values = self.values.fillna(value, limit)
+                res_values = self.values.fillna(value, limit=limit)
             except (ValueError, TypeError):
                 # GH#45746
                 warnings.warn(
