@@ -1830,7 +1830,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def count(self) -> NDFrameT:  # Series | DataFrame:
+    def count(self) -> NDFrameT:
         """
         Compute count of group, excluding missing values.
 
