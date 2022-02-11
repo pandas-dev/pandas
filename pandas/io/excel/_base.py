@@ -274,11 +274,13 @@ mangle_dupe_cols : bool, default True
     are duplicate names in the columns.
 storage_options : dict, optional
     Extra options that make sense for a particular storage connection, e.g.
-    host, port, username, password, etc., if using a URL that will
-    be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
-    will be raised if providing this argument with a local path or
-    a file-like buffer. See the fsspec and backend storage implementation
-    docs for the set of allowed keys and values.
+    host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+    are forwarded to ``urllib`` as header options. For other URLs (e.g.
+    starting with "s3://", and "gcs://") the key-value pairs are forwarded to
+    ``fsspec``. Please see ``fsspec`` and ``urllib`` for more details,
+    and for more examples on storage options refer `here
+    <https://pandas.pydata.org/docs/user_guide/io.html?
+    highlight=storage_options#reading-writing-remote-files>`_.
 
     .. versionadded:: 1.2.0
 
@@ -761,6 +763,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             return output[asheetname]
 
 
+@doc(storage_options=_shared_docs["storage_options"])
 class ExcelWriter(metaclass=abc.ABCMeta):
     """
     Class for writing DataFrame objects into excel sheets.
@@ -796,10 +799,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         (e.g. 'YYYY-MM-DD HH:MM:SS').
     mode : {'w', 'a'}, default 'w'
         File mode to use (write or append). Append does not work with fsspec URLs.
-    storage_options : dict, optional
-        Extra options that make sense for a particular storage connection, e.g.
-        host, port, username, password, etc., if using a URL that will
-        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://".
+    {storage_options}
 
         .. versionadded:: 1.2.0
 
