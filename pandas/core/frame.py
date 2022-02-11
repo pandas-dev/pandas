@@ -9011,6 +9011,10 @@ NaN 12.3   33.0
         """
         Append rows of `other` to the end of caller, returning a new object.
 
+        .. deprecated:: 1.4.0
+            Use :func:`concat` instead. For further details see
+            :ref:`whatsnew_140.deprecations.frame_series_append`
+
         Columns in `other` that are not in the caller are added as new columns.
 
         Parameters
