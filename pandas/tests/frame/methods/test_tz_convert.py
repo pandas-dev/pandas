@@ -104,17 +104,17 @@ class TestTZConvert:
         # Not DatetimeIndex / PeriodIndex
         with pytest.raises(TypeError, match="DatetimeIndex"):
             df = DataFrame(index=int_idx)
-            df = getattr(df, fn)("US/Pacific")
+            getattr(df, fn)("US/Pacific")
 
         # Not DatetimeIndex / PeriodIndex
         with pytest.raises(TypeError, match="DatetimeIndex"):
             df = DataFrame(np.ones(5), MultiIndex.from_arrays([int_idx, l0]))
-            df = getattr(df, fn)("US/Pacific", level=0)
+            getattr(df, fn)("US/Pacific", level=0)
 
         # Invalid level
         with pytest.raises(ValueError, match="not valid"):
             df = DataFrame(index=l0)
-            df = getattr(df, fn)("US/Pacific", level=1)
+            getattr(df, fn)("US/Pacific", level=1)
 
     @pytest.mark.parametrize("copy", [True, False])
     def test_tz_convert_copy_inplace_mutate(self, copy, frame_or_series):

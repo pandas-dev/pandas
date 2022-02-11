@@ -23,7 +23,7 @@ def pytables_hdf5_file():
     testsamples = [
         {"c0": t0, "c1": "aaaaa", "c2": 1},
         {"c0": t0 + 1, "c1": "bbbbb", "c2": 2},
-        {"c0": t0 + 2, "c1": "ccccc", "c2": 10 ** 5},
+        {"c0": t0 + 2, "c1": "ccccc", "c2": 10**5},
         {"c0": t0 + 3, "c1": "ddddd", "c2": 4_294_967_295},
     ]
 

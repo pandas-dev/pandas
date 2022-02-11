@@ -538,6 +538,7 @@ class TestTimedelta64ArithmeticUnsorted:
         expected = index + timedelta(-1)
         tm.assert_index_equal(result, expected)
 
+    def test_timedelta_tick_arithmetic(self):
         # GH#4134, buggy with timedeltas
         rng = pd.date_range("2013", "2014")
         s = Series(rng)
@@ -1474,7 +1475,7 @@ class TestTimedeltaArraylikeMulDivOps:
     def test_tdi_mul_int_array(self, box_with_array):
         rng5 = np.arange(5, dtype="int64")
         idx = TimedeltaIndex(rng5)
-        expected = TimedeltaIndex(rng5 ** 2)
+        expected = TimedeltaIndex(rng5**2)
 
         idx = tm.box_expected(idx, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -2089,10 +2090,10 @@ class TestTimedelta64ArrayLikeArithmetic:
         # defined
         pattern = "operate|unsupported|cannot|not supported"
         with pytest.raises(TypeError, match=pattern):
-            scalar_td ** td1
+            scalar_td**td1
 
         with pytest.raises(TypeError, match=pattern):
-            td1 ** scalar_td
+            td1**scalar_td
 
 
 def test_add_timestamp_to_timedelta():

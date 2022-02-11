@@ -55,18 +55,38 @@ class ODSWriter(ExcelWriter):
 
         engine_kwargs = combine_kwargs(engine_kwargs, kwargs)
 
-        self.book = OpenDocumentSpreadsheet(**engine_kwargs)
+        self._book = OpenDocumentSpreadsheet(**engine_kwargs)
         self._style_dict: dict[str, str] = {}
 
-    def save(self) -> None:
+    @property
+    def book(self):
+        """
+        Book instance of class odf.opendocument.OpenDocumentSpreadsheet.
+
+        This attribute can be used to access engine-specific features.
+        """
+        return self._book
+
+    @property
+    def sheets(self) -> dict[str, Any]:
+        """Mapping of sheet names to sheet objects."""
+        from odf.table import Table
+
+        result = {
+            sheet.getAttribute("name"): sheet
+            for sheet in self.book.getElementsByType(Table)
+        }
+        return result
+
+    def _save(self) -> None:
         """
         Save workbook to disk.
         """
         for sheet in self.sheets.values():
             self.book.spreadsheet.addElement(sheet)
-        self.book.save(self.handles.handle)
+        self.book.save(self._handles.handle)
 
-    def write_cells(
+    def _write_cells(
         self,
         cells: list[ExcelCell],
         sheet_name: str | None = None,
@@ -91,7 +111,7 @@ class ODSWriter(ExcelWriter):
             wks = self.sheets[sheet_name]
         else:
             wks = Table(name=sheet_name)
-            self.sheets[sheet_name] = wks
+            self.book.spreadsheet.addElement(wks)
 
         if validate_freeze_panes(freeze_panes):
             freeze_panes = cast(Tuple[int, int], freeze_panes)
@@ -121,8 +141,9 @@ class ODSWriter(ExcelWriter):
             tc.addElement(p)
 
         # add all rows to the sheet
-        for row_nr in range(max(rows.keys()) + 1):
-            wks.addElement(rows[row_nr])
+        if len(rows) > 0:
+            for row_nr in range(max(rows.keys()) + 1):
+                wks.addElement(rows[row_nr])
 
     def _make_table_cell_attributes(self, cell) -> dict[str, int | str]:
         """Convert cell attributes to OpenDocument attributes

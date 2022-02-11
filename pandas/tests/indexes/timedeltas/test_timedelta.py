@@ -105,7 +105,7 @@ class TestTimedeltaIndex(DatetimeLike):
         tdi = timedelta_range("1 Day", periods=30)
 
         res = tdi.astype("m8[s]")
-        expected = Index((tdi.view("i8") / 10 ** 9).astype(np.float64))
+        expected = Index((tdi.view("i8") / 10**9).astype(np.float64))
         tm.assert_index_equal(res, expected)
 
         # check this matches Series and TimedeltaArray

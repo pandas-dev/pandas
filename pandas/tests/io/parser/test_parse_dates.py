@@ -11,10 +11,7 @@ from io import StringIO
 import warnings
 
 from dateutil.parser import parse as du_parse
-from hypothesis import (
-    given,
-    settings,
-)
+from hypothesis import given
 import numpy as np
 import pytest
 import pytz
@@ -1696,21 +1693,22 @@ def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
 
 @skip_pyarrow
 @given(DATETIME_NO_TZ)
-@settings(deadline=None)
 @pytest.mark.parametrize("delimiter", list(" -./"))
 @pytest.mark.parametrize("dayfirst", [True, False])
 @pytest.mark.parametrize(
     "date_format",
     ["%d %m %Y", "%m %d %Y", "%m %Y", "%Y %m %d", "%y %m %d", "%Y%m%d", "%y%m%d"],
 )
-def test_hypothesis_delimited_date(date_format, dayfirst, delimiter, test_datetime):
+def test_hypothesis_delimited_date(
+    request, date_format, dayfirst, delimiter, test_datetime
+):
     if date_format == "%m %Y" and delimiter == ".":
-        pytest.skip(
-            "parse_datetime_string cannot reliably tell whether "
-            "e.g. %m.%Y is a float or a date, thus we skip it"
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="parse_datetime_string cannot reliably tell whether "
+                "e.g. %m.%Y is a float or a date"
+            )
         )
-    result, expected = None, None
-    except_in_dateutil, except_out_dateutil = None, None
     date_string = test_datetime.strftime(date_format.replace(" ", delimiter))
 
     with warnings.catch_warnings():

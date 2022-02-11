@@ -374,7 +374,7 @@ on_bad_lines : {{'error', 'warn', 'skip'}} or callable, default 'error'
         - callable, function with signature
           ``(bad_line: list[str]) -> list[str] | None`` that will process a single
           bad line. ``bad_line`` is a list of strings split by the ``sep``.
-          If the function returns ``None`, the bad line will be ignored.
+          If the function returns ``None``, the bad line will be ignored.
           If the function returns a new list of strings with more elements than
           expected, a ``ParserWarning`` will be emitted while dropping extra elements.
           Only supported when ``engine="python"``
@@ -542,13 +542,11 @@ def _read(
     """Generic reader of line files."""
     # if we pass a date_parser and parse_dates=False, we should not parse the
     # dates GH#44366
-    if (
-        kwds.get("date_parser", None) is not None
-        and kwds.get("parse_dates", None) is None
-    ):
-        kwds["parse_dates"] = True
-    elif kwds.get("parse_dates", None) is None:
-        kwds["parse_dates"] = False
+    if kwds.get("parse_dates", None) is None:
+        if kwds.get("date_parser", None) is None:
+            kwds["parse_dates"] = False
+        else:
+            kwds["parse_dates"] = True
 
     # Extract some of the arguments (pass chunksize on).
     iterator = kwds.get("iterator", False)
@@ -564,7 +562,7 @@ def _read(
                 "The 'chunksize' option is not supported with the 'pyarrow' engine"
             )
     else:
-        chunksize = validate_integer("chunksize", kwds.get("chunksize", None), 1)
+        chunksize = validate_integer("chunksize", chunksize, 1)
 
     nrows = kwds.get("nrows", None)
 

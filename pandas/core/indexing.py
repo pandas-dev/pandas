@@ -20,6 +20,7 @@ from pandas.errors import (
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.cast import can_hold_element
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
@@ -53,6 +54,7 @@ from pandas.core.indexers import (
     is_empty_indexer,
     is_exact_shape_match,
     is_list_like_indexer,
+    is_scalar_indexer,
     length_of_indexer,
 )
 from pandas.core.indexes.api import (
@@ -665,9 +667,75 @@ class _LocationIndexer(NDFrameIndexerBase):
                 return self._convert_tuple(key)
 
         if isinstance(key, range):
-            return list(key)
+            # GH#45479 test_loc_setitem_range_key
+            key = list(key)
 
         return self._convert_to_indexer(key, axis=0)
+
+    @final
+    def _maybe_mask_setitem_value(self, indexer, value):
+        """
+        If we have obj.iloc[mask] = series_or_frame and series_or_frame has the
+        same length as obj, we treat this as obj.iloc[mask] = series_or_frame[mask],
+        similar to Series.__setitem__.
+
+        Note this is only for loc, not iloc.
+        """
+
+        if (
+            isinstance(indexer, tuple)
+            and len(indexer) == 2
+            and isinstance(value, (ABCSeries, ABCDataFrame))
+        ):
+            pi, icols = indexer
+            ndim = value.ndim
+            if com.is_bool_indexer(pi) and len(value) == len(pi):
+                newkey = pi.nonzero()[0]
+
+                if is_scalar_indexer(icols, self.ndim - 1) and ndim == 1:
+                    # e.g. test_loc_setitem_boolean_mask_allfalse
+                    if len(newkey) == 0:
+                        # FIXME: kludge for test_loc_setitem_boolean_mask_allfalse
+                        # TODO(GH#45333): may be fixed when deprecation is enforced
+
+                        value = value.iloc[:0]
+                    else:
+                        # test_loc_setitem_ndframe_values_alignment
+                        value = self.obj.iloc._align_series(indexer, value)
+                    indexer = (newkey, icols)
+
+                elif (
+                    isinstance(icols, np.ndarray)
+                    and icols.dtype.kind == "i"
+                    and len(icols) == 1
+                ):
+                    if ndim == 1:
+                        # We implicitly broadcast, though numpy does not, see
+                        # github.com/pandas-dev/pandas/pull/45501#discussion_r789071825
+                        if len(newkey) == 0:
+                            # FIXME: kludge for
+                            #  test_setitem_loc_only_false_indexer_dtype_changed
+                            #  TODO(GH#45333): may be fixed when deprecation is enforced
+                            value = value.iloc[:0]
+                        else:
+                            # test_loc_setitem_ndframe_values_alignment
+                            value = self.obj.iloc._align_series(indexer, value)
+                        indexer = (newkey, icols)
+
+                    elif ndim == 2 and value.shape[1] == 1:
+                        if len(newkey) == 0:
+                            # FIXME: kludge for
+                            #  test_loc_setitem_all_false_boolean_two_blocks
+                            #  TODO(GH#45333): may be fixed when deprecation is enforced
+                            value = value.iloc[:0]
+                        else:
+                            # test_loc_setitem_ndframe_values_alignment
+                            value = self.obj.iloc._align_frame(indexer, value)
+                        indexer = (newkey, icols)
+        elif com.is_bool_indexer(indexer):
+            indexer = indexer.nonzero()[0]
+
+        return indexer, value
 
     @final
     def _tupleize_axis_indexer(self, key) -> tuple:
@@ -932,7 +1000,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                 #  we are only getting non-hashable tuples, in particular ones
                 #  that themselves contain a slice entry
                 # See test_loc_series_getitem_too_many_dimensions
-                raise ValueError("Too many indices")
+                raise IndexingError("Too many indexers")
 
             # this is a series with a multi-index specified a tuple of
             # selectors
@@ -1258,6 +1326,14 @@ class _LocIndexer(_LocationIndexer):
         is_int_index = labels.is_integer()
         is_int_positional = is_integer(key) and not is_int_index
 
+        if (
+            isinstance(key, tuple)
+            and not isinstance(labels, MultiIndex)
+            and self.ndim < 2
+            and len(key) > 1
+        ):
+            raise IndexingError("Too many indexers")
+
         if is_scalar(key) or (isinstance(labels, MultiIndex) and is_hashable(key)):
             # Otherwise get_loc will raise InvalidIndexError
 
@@ -1289,7 +1365,7 @@ class _LocIndexer(_LocationIndexer):
         if is_nested_tuple(key, labels):
             if self.ndim == 1 and any(isinstance(k, tuple) for k in key):
                 # GH#35349 Raise if tuple in tuple for series
-                raise ValueError("Too many indices")
+                raise IndexingError("Too many indexers")
             return labels.get_locs(key)
 
         elif is_list_like_indexer(key):
@@ -1299,8 +1375,7 @@ class _LocIndexer(_LocationIndexer):
 
             if com.is_bool_indexer(key):
                 key = check_bool_indexer(labels, key)
-                (inds,) = key.nonzero()
-                return inds
+                return key
             else:
                 return self._get_listlike_indexer(key, axis)[1]
         else:
@@ -1583,15 +1658,13 @@ class _iLocIndexer(_LocationIndexer):
 
         # if there is only one block/type, still have to take split path
         # unless the block is one-dimensional or it can hold the value
-        if (
-            not take_split_path
-            and getattr(self.obj._mgr, "blocks", False)
-            and self.ndim > 1
-        ):
+        if not take_split_path and len(self.obj._mgr.arrays) and self.ndim > 1:
             # in case of dict, keys are indices
             val = list(value.values()) if isinstance(value, dict) else value
-            blk = self.obj._mgr.blocks[0]
-            take_split_path = not blk._can_hold_element(val)
+            arr = self.obj._mgr.arrays[0]
+            take_split_path = not can_hold_element(
+                arr, extract_array(val, extract_numpy=True)
+            )
 
         # if we have any multi-indexes that have non-trivial slices
         # (not null slices) then we must take the split path, xref
@@ -1695,6 +1768,10 @@ class _iLocIndexer(_LocationIndexer):
             if missing:
                 self._setitem_with_indexer_missing(indexer, value)
                 return
+
+        if name == "loc":
+            # must come after setting of missing
+            indexer, value = self._maybe_mask_setitem_value(indexer, value)
 
         # align and set the values
         if take_split_path:
@@ -2017,7 +2094,7 @@ class _iLocIndexer(_LocationIndexer):
                 # We will ignore the existing dtypes instead of using
                 #  internals.concat logic
                 df = value.to_frame().T
-                df.index = [indexer]
+                df.index = Index([indexer], name=self.obj.index.name)
                 if not has_dtype:
                     # i.e. if we already had a Series or ndarray, keep that
                     #  dtype.  But if we had a list or dict, then do inference
@@ -2092,7 +2169,8 @@ class _iLocIndexer(_LocationIndexer):
             # we have a frame, with multiple indexers on both axes; and a
             # series, so need to broadcast (see GH5206)
             if sum_aligners == self.ndim and all(is_sequence(_) for _ in indexer):
-                if is_empty_indexer(indexer[0]):
+                # TODO: This is hacky, align Series and DataFrame behavior GH#45778
+                if obj.ndim == 2 and is_empty_indexer(indexer[0]):
                     return ser._values.copy()
                 ser = ser.reindex(obj.axes[0][indexer[0]], copy=True)._values
 

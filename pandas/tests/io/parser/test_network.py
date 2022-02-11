@@ -11,6 +11,7 @@ import logging
 import numpy as np
 import pytest
 
+from pandas.compat import is_ci_environment
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame
@@ -22,17 +23,13 @@ from pandas.io.parsers import read_csv
 
 
 @pytest.mark.network
+@tm.network
 @pytest.mark.parametrize("mode", ["explicit", "infer"])
 @pytest.mark.parametrize("engine", ["python", "c"])
 def test_compressed_urls(salaries_table, mode, engine, compression_only):
-    extension = icom._compression_to_extension[compression_only]
-    check_compressed_urls(salaries_table, compression_only, extension, mode, engine)
-
-
-@tm.network
-def check_compressed_urls(salaries_table, compression, extension, mode, engine):
     # test reading compressed urls with various engines and
     # extension inference
+    extension = icom._compression_to_extension[compression_only]
     base_url = (
         "https://github.com/pandas-dev/pandas/raw/main/"
         "pandas/tests/io/parser/data/salaries.csv"
@@ -41,13 +38,14 @@ def check_compressed_urls(salaries_table, compression, extension, mode, engine):
     url = base_url + extension
 
     if mode != "explicit":
-        compression = mode
+        compression_only = mode
 
-    url_table = read_csv(url, sep="\t", compression=compression, engine=engine)
+    url_table = read_csv(url, sep="\t", compression=compression_only, engine=engine)
     tm.assert_frame_equal(url_table, salaries_table)
 
 
-@tm.network("https://raw.githubusercontent.com/", check_before_test=True)
+@pytest.mark.network
+@tm.network
 def test_url_encoding_csv():
     """
     read_csv should honor the requested encoding for URLs.
@@ -69,14 +67,14 @@ def tips_df(datapath):
 
 
 @pytest.mark.usefixtures("s3_resource")
+@pytest.mark.xfail(
+    reason="CI race condition GH 45433, GH 44584",
+    raises=FileNotFoundError,
+    strict=False,
+)
 @td.skip_if_not_us_locale()
 class TestS3:
     @td.skip_if_no("s3fs")
-    @pytest.mark.xfail(
-        reason="CI race condition GH 45433, GH 44584",
-        raises=FileNotFoundError,
-        strict=False,
-    )
     def test_parse_public_s3_bucket(self, tips_df, s3so):
 
         # more of an integration test due to the not-public contents portion
@@ -264,6 +262,12 @@ class TestS3:
         expected = read_csv(tips_file)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.skipif(
+        is_ci_environment(),
+        reason="This test can hang in our CI min_versions build "
+        "and leads to '##[error]The runner has "
+        "received a shutdown signal...' in GHA. GH: 45651",
+    )
     def test_read_csv_chunked_download(self, s3_resource, caplog, s3so):
         # 8 MB, S3FS uses 5MB chunks
         import s3fs
