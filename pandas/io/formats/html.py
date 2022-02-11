@@ -44,7 +44,7 @@ class HTMLFormatter:
         self,
         formatter: DataFrameFormatter,
         classes: str | list[str] | tuple[str, ...] | None = None,
-        border: int | None = None,
+        border: int | bool | None = None,
         table_id: str | None = None,
         render_links: bool = False,
     ) -> None:
@@ -61,6 +61,9 @@ class HTMLFormatter:
             border = cast(int, get_option("display.html.border"))
         elif not border:
             border = None
+        elif isinstance(border, bool):  # border=True
+            border = cast(int, get_option("display.html.border"))
+
         self.border = border
         self.table_id = table_id
         self.render_links = render_links
