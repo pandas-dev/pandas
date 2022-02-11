@@ -59,6 +59,8 @@ class HTMLFormatter:
         self.show_dimensions = self.fmt.show_dimensions
         if border is None:
             border = cast(int, get_option("display.html.border"))
+        elif not border:
+            border = None
         self.border = border
         self.table_id = table_id
         self.render_links = render_links
@@ -237,8 +239,13 @@ class HTMLFormatter:
         else:
             id_section = f' id="{self.table_id}"'
 
+        if self.border is None:
+            border_attr = ""
+        else:
+            border_attr = f' border="{self.border}"'
+
         self.write(
-            f'<table border="{self.border}" class="{" ".join(_classes)}"{id_section}>',
+            f'<table{border_attr} class="{" ".join(_classes)}"{id_section}>',
             indent,
         )
 
