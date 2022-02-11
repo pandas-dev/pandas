@@ -3,8 +3,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.errors import InvalidIndexError
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -371,11 +369,3 @@ class TestDataFrameJoin:
 
         tm.assert_index_equal(result.index, expected)
         assert result.index.tz.zone == "US/Central"
-
-    def test_duplicate_indices_concat_raise(self):
-        # https://github.com/pandas-dev/pandas/issues/36263
-        df1 = DataFrame(np.random.randn(5), index=[0, 1, 2, 3, 3], columns=["a"])
-        df2 = DataFrame(np.random.randn(5), index=[0, 1, 2, 2, 4], columns=["b"])
-        msg = "Reindexing only valid with uniquely valued Index objects"
-        with pytest.raises(InvalidIndexError, match=msg):
-            pd.concat([df1, df2], axis=1)
