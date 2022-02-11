@@ -2643,7 +2643,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             A single nth value for the row or a list of nth values or slices.
 
             .. versionchanged:: 1.4.0
-                Added slice and lists containiing slices.
+                Added slice and lists containing slices.
                 Added index notation.
 
         dropna : {'any', 'all', None}, default None
