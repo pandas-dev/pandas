@@ -1362,7 +1362,7 @@ def test_rolling_non_monotonic(method, expected):
     df = DataFrame({"values": np.arange(len(use_expanding)) ** 2})
 
     class CustomIndexer(BaseIndexer):
-        def get_window_bounds(self, num_values, min_periods, center, closed):
+        def get_window_bounds(self, num_values, min_periods, center, closed, step):
             start = np.empty(num_values, dtype=np.int64)
             end = np.empty(num_values, dtype=np.int64)
             for i in range(num_values):

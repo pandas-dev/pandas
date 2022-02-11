@@ -147,6 +147,4 @@ def calculate_variable_window_bounds(
             # right endpoint is open
             if not right_closed and not center:
                 end[i] -= 1
-    ref = (None if step is None or step == 1
-           else np.arange(0, num_values, step, dtype='int64'))
-    return start[::step], end[::step], ref
+    return start[::step], end[::step]

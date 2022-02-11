@@ -173,7 +173,7 @@ def test_win_type_freq_return_deprecation():
 @td.skip_if_no_scipy
 def test_win_type_not_implemented():
     class CustomIndexer(BaseIndexer):
-        def get_window_bounds(self, num_values, min_periods, center, closed):
+        def get_window_bounds(self, num_values, min_periods, center, closed, step):
             return np.array([0, 1]), np.array([1, 2])
 
     df = DataFrame({"values": range(2)})

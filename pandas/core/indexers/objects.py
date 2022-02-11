@@ -59,16 +59,6 @@ class BaseIndexer:
         for key, value in kwargs.items():
             setattr(self, key, value)
 
-    def _get_default_ref(self, num_values: int = 0, step: int | None = None):
-        """
-        Returns the default window reference locations.
-        """
-        return (
-            None
-            if step is None or step == 1
-            else np.arange(0, num_values, step, dtype="int64")
-        )
-
     @Appender(get_window_bounds_doc)
     def get_window_bounds(
         self,
@@ -76,67 +66,24 @@ class BaseIndexer:
         min_periods: int | None = None,
         center: bool | None = None,
         closed: str | None = None,
+        step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
 
         raise NotImplementedError
 
-    @Appender(get_window_bounds_doc)
-    def get_window_bounds2(
-        self,
-        num_values: int = 0,
-        min_periods: int | None = None,
-        center: bool | None = None,
-        closed: str | None = None,
-        step: int | None = None,
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray | None]:
 
-        start, end = self.get_window_bounds(num_values, min_periods, center, closed)
-        ref = self._get_default_ref(num_values, step)
-        return start[::step], end[::step], ref
-
-
-class BaseIndexer2(BaseIndexer):
-    """Base class for window bounds calculations with step optimization."""
-
-    @Appender(get_window_bounds_doc)
-    def get_window_bounds(
-        self,
-        num_values: int = 0,
-        min_periods: int | None = None,
-        center: bool | None = None,
-        closed: str | None = None,
-    ) -> tuple[np.ndarray, np.ndarray]:
-
-        start, end, ref = self.get_window_bounds2(
-            num_values, min_periods, center, closed
-        )
-        return start, end
-
-    @Appender(get_window_bounds_doc)
-    def get_window_bounds2(
-        self,
-        num_values: int = 0,
-        min_periods: int | None = None,
-        center: bool | None = None,
-        closed: str | None = None,
-        step: int | None = None,
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray | None]:
-
-        raise NotImplementedError
-
-
-class FixedWindowIndexer(BaseIndexer2):
+class FixedWindowIndexer(BaseIndexer):
     """Creates window boundaries that are of fixed length."""
 
     @Appender(get_window_bounds_doc)
-    def get_window_bounds2(
+    def get_window_bounds(
         self,
         num_values: int = 0,
         min_periods: int | None = None,
         center: bool | None = None,
         closed: str | None = None,
         step: int | None = None,
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray | None]:
+    ) -> tuple[np.ndarray, np.ndarray]:
 
         if center:
             offset = (self.window_size - 1) // 2
@@ -153,22 +100,21 @@ class FixedWindowIndexer(BaseIndexer2):
         end = np.clip(end, 0, num_values)
         start = np.clip(start, 0, num_values)
 
-        ref = self._get_default_ref(num_values, step)
-        return start, end, ref
+        return start, end
 
 
-class VariableWindowIndexer(BaseIndexer2):
+class VariableWindowIndexer(BaseIndexer):
     """Creates window boundaries that are of variable length, namely for time series."""
 
     @Appender(get_window_bounds_doc)
-    def get_window_bounds2(
+    def get_window_bounds(
         self,
         num_values: int = 0,
         min_periods: int | None = None,
         center: bool | None = None,
         closed: str | None = None,
         step: int | None = None,
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray | None]:
+    ) -> tuple[np.ndarray, np.ndarray]:
 
         # error: Argument 4 to "calculate_variable_window_bounds" has incompatible
         # type "Optional[bool]"; expected "bool"
@@ -207,6 +153,7 @@ class VariableOffsetWindowIndexer(BaseIndexer):
         min_periods: int | None = None,
         center: bool | None = None,
         closed: str | None = None,
+        step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
 
         # if windows is variable, default is 'right', otherwise default is 'both'
@@ -264,31 +211,30 @@ class VariableOffsetWindowIndexer(BaseIndexer):
             if not right_closed:
                 end[i] -= 1
 
-        return start, end
+        return start[::step], end[::step]
 
 
-class ExpandingIndexer(BaseIndexer2):
+class ExpandingIndexer(BaseIndexer):
     """Calculate expanding window bounds, mimicking df.expanding()"""
 
     @Appender(get_window_bounds_doc)
-    def get_window_bounds2(
+    def get_window_bounds(
         self,
         num_values: int = 0,
         min_periods: int | None = None,
         center: bool | None = None,
         closed: str | None = None,
         step: int | None = None,
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray | None]:
+    ) -> tuple[np.ndarray, np.ndarray]:
 
         if step is None:
             step = 1
         end = np.arange(1, num_values + 1, step, dtype=np.int64)
         start = np.zeros(len(end), dtype=np.int64)
-        ref = self._get_default_ref(num_values, step)
-        return start, end, ref
+        return start[::step], end[::step]
 
 
-class FixedForwardWindowIndexer(BaseIndexer2):
+class FixedForwardWindowIndexer(BaseIndexer):
     """
     Creates window boundaries for fixed-length windows that include the
     current row.
@@ -315,14 +261,14 @@ class FixedForwardWindowIndexer(BaseIndexer2):
     """
 
     @Appender(get_window_bounds_doc)
-    def get_window_bounds2(
+    def get_window_bounds(
         self,
         num_values: int = 0,
         min_periods: int | None = None,
         center: bool | None = None,
         closed: str | None = None,
         step: int | None = None,
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray | None]:
+    ) -> tuple[np.ndarray, np.ndarray]:
 
         if center:
             raise ValueError("Forward-looking windows can't have center=True")
@@ -338,11 +284,10 @@ class FixedForwardWindowIndexer(BaseIndexer2):
         if self.window_size:
             end = np.clip(end, 0, num_values)
 
-        ref = self._get_default_ref(num_values, step)
-        return start, end, ref
+        return start, end
 
 
-class GroupbyIndexer(BaseIndexer2):
+class GroupbyIndexer(BaseIndexer):
     """Calculate bounds to compute groupby rolling, mimicking df.groupby().rolling()"""
 
     def __init__(
@@ -382,21 +327,21 @@ class GroupbyIndexer(BaseIndexer2):
         )
 
     @Appender(get_window_bounds_doc)
-    def get_window_bounds2(
+    def get_window_bounds(
         self,
         num_values: int = 0,
         min_periods: int | None = None,
         center: bool | None = None,
         closed: str | None = None,
         step: int | None = None,
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray | None]:
+    ) -> tuple[np.ndarray, np.ndarray]:
+        if step not in [None, 1]:
+            raise NotImplementedError(f"unsupported step: {step}")
         # 1) For each group, get the indices that belong to the group
         # 2) Use the indices to calculate the start & end bounds of the window
         # 3) Append the window bounds in group order
         start_arrays = []
         end_arrays = []
-        ref_arrays = []
-        empty = np.array([], dtype=np.int64)
         window_indices_start = 0
         for key, indices in self.groupby_indices.items():
             index_array: np.ndarray | None
@@ -410,12 +355,11 @@ class GroupbyIndexer(BaseIndexer2):
                 window_size=self.window_size,
                 **self.indexer_kwargs,
             )
-            start, end, ref = indexer.get_window_bounds2(
+            start, end = indexer.get_window_bounds(
                 len(indices), min_periods, center, closed, step
             )
             start = start.astype(np.int64)
             end = end.astype(np.int64)
-            ref = None if ref is None else ref.astype(np.int64)
             assert len(start) == len(
                 end
             ), "these should be equal in length from get_window_bounds"
@@ -431,30 +375,27 @@ class GroupbyIndexer(BaseIndexer2):
             )
             start_arrays.append(window_indices.take(ensure_platform_int(start)))
             end_arrays.append(window_indices.take(ensure_platform_int(end)))
-            ref_arrays.append(
-                empty if ref is None else window_indices.take(ensure_platform_int(ref))
-            )
         start = np.concatenate(start_arrays)
         end = np.concatenate(end_arrays)
-        ref = None if step is None or step == 1 else np.concatenate(ref_arrays)
-        return start, end, ref
+        return start, end
 
 
-class ExponentialMovingWindowIndexer(BaseIndexer2):
+class ExponentialMovingWindowIndexer(BaseIndexer):
     """Calculate ewm window bounds (the entire window)"""
 
     @Appender(get_window_bounds_doc)
-    def get_window_bounds2(
+    def get_window_bounds(
         self,
         num_values: int = 0,
         min_periods: int | None = None,
         center: bool | None = None,
         closed: str | None = None,
         step: int | None = None,
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray | None]:
+    ) -> tuple[np.ndarray, np.ndarray]:
 
+        if step not in [None, 1]:
+            raise NotImplementedError(f"unsupported step: {step}")
         return (
             np.array([0], dtype=np.int64),
             np.array([num_values], dtype=np.int64),
-            None,
         )
