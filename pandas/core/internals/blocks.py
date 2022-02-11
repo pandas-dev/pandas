@@ -1426,21 +1426,40 @@ class EABackedBlock(Block):
         except (ValueError, TypeError) as err:
             _catch_deprecated_value_error(err)
 
-            if is_interval_dtype(self.dtype):
-                # TestSetitemFloatIntervalWithIntIntervalValues
-                blk = self.coerce_to_target_dtype(orig_other)
-                nbs = blk.where(orig_other, orig_cond)
-                return self._maybe_downcast(nbs, downcast=_downcast)
+            if self.ndim == 1 or self.shape[0] == 1:
 
-            elif isinstance(self, NDArrayBackedExtensionBlock):
-                # NB: not (yet) the same as
-                #  isinstance(values, NDArrayBackedExtensionArray)
-                blk = self.coerce_to_target_dtype(orig_other)
-                nbs = blk.where(orig_other, orig_cond)
-                return self._maybe_downcast(nbs, "infer")
+                if is_interval_dtype(self.dtype):
+                    # TestSetitemFloatIntervalWithIntIntervalValues
+                    blk = self.coerce_to_target_dtype(orig_other)
+                    nbs = blk.where(orig_other, orig_cond)
+                    return self._maybe_downcast(nbs, downcast=_downcast)
+
+                elif isinstance(self, NDArrayBackedExtensionBlock):
+                    # NB: not (yet) the same as
+                    #  isinstance(values, NDArrayBackedExtensionArray)
+                    blk = self.coerce_to_target_dtype(orig_other)
+                    nbs = blk.where(orig_other, orig_cond)
+                    return self._maybe_downcast(nbs, downcast=_downcast)
+
+                else:
+                    raise
 
             else:
-                raise
+                # Same pattern we use in Block.putmask
+                is_array = isinstance(orig_other, (np.ndarray, ExtensionArray))
+
+                res_blocks = []
+                nbs = self._split()
+                for i, nb in enumerate(nbs):
+                    n = orig_other
+                    if is_array:
+                        # we have a different value per-column
+                        n = orig_other[:, i : i + 1]
+
+                    submask = orig_cond[:, i : i + 1]
+                    rbs = nb.where(n, submask)
+                    res_blocks.extend(rbs)
+                return res_blocks
 
         nb = self.make_block_same_class(res_values)
         return [nb]

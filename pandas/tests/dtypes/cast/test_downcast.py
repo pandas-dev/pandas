@@ -5,7 +5,10 @@ import pytest
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 
-from pandas import Series
+from pandas import (
+    Series,
+    Timedelta,
+)
 import pandas._testing as tm
 
 
@@ -34,6 +37,13 @@ import pandas._testing as tm
             "int64",
             np.array([decimal.Decimal(0.0)]),
         ),
+        (
+            # GH#45837
+            np.array([Timedelta(days=1), Timedelta(days=2)], dtype=object),
+            "infer",
+            np.array([1, 2], dtype="m8[D]").astype("m8[ns]"),
+        ),
+        # TODO: similar for dt64, dt64tz, Period, Interval?
     ],
 )
 def test_downcast(arr, expected, dtype):
