@@ -489,7 +489,7 @@ class TestConcatenate:
         )
         result = concat({"First": Series(range(3)), "Another": Series(range(4))})
         tm.assert_series_equal(result, expected)
-    
+
     def test_concat_duplicate_indices_raise(self):
         # https://github.com/pandas-dev/pandas/issues/36263
         df1 = DataFrame(np.random.randn(5), index=[0, 1, 2, 3, 3], columns=["a"])
