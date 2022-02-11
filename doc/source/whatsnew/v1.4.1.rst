@@ -1,6 +1,6 @@
 .. _whatsnew_141:
 
-What's new in 1.4.1 (February ??, 2022)
+What's new in 1.4.1 (February 12, 2022)
 ---------------------------------------
 
 These are the changes in pandas 1.4.1. See :ref:`release` for a full changelog
@@ -45,7 +45,6 @@ Bug fixes
 Other
 ~~~~~
 - Reverted performance speedup of :meth:`DataFrame.corr` for ``method=pearson`` to fix precision regression (:issue:`45640`, :issue:`42761`)
--
 
 .. ---------------------------------------------------------------------------
 
