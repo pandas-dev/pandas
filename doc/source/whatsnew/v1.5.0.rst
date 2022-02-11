@@ -22,6 +22,7 @@ Styler
   - New method :meth:`.Styler.to_string` for alternative customisable output methods (:issue:`44502`)
   - New keyword argument ``alias`` added to :meth:`.Styler.format_index` to allow simple label string replacement (:issue:`45288`)
   - Various bug fixes, see below.
+  - Added the ability to render ``border`` and ``border-{side}`` CSS properties in Excel (:issue:`42276`)
 
 .. _whatsnew_150.enhancements.enhancement2:
 
@@ -39,6 +40,8 @@ Other enhancements
 - :meth:`Series.reset_index` and :meth:`DataFrame.reset_index` now support the argument ``allow_duplicates`` (:issue:`44410`)
 - :meth:`.GroupBy.min` and :meth:`.GroupBy.max` now supports `Numba <https://numba.pydata.org/>`_ execution with the ``engine`` keyword (:issue:`45428`)
 - Implemented a ``bool``-dtype :class:`Index`, passing a bool-dtype arraylike to ``pd.Index`` will now retain ``bool`` dtype instead of casting to ``object`` (:issue:`45061`)
+- Implemented a complex-dtype :class:`Index`, passing a complex-dtype arraylike to ``pd.Index`` will now retain complex dtype instead of casting to ``object`` (:issue:`45845`)
+
 -
 
 .. ---------------------------------------------------------------------------
@@ -51,8 +54,10 @@ These are bug fixes that might have notable behavior changes.
 
 .. _whatsnew_150.notable_bug_fixes.notable_bug_fix1:
 
-notable_bug_fix1
-^^^^^^^^^^^^^^^^
+Styler
+^^^^^^
+
+- Fixed bug in :class:`CSSToExcelConverter` leading to ``TypeError`` when border color provided without border style for ``xlsxwriter`` engine (:issue:`42276`)
 
 .. _whatsnew_150.notable_bug_fixes.notable_bug_fix2:
 
@@ -245,6 +250,8 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.duplicated` when subset consists of only one column (:issue:`45236`)
 - Performance improvement in :meth:`.GroupBy.transform` when broadcasting values for user-defined functions (:issue:`45708`)
 - Performance improvement in :meth:`.GroupBy.transform` for user-defined functions when only a single group exists (:issue:`44977`)
+- Performance improvement in :func:`merge` when left and/or right are empty (:issue:`45838`)
+- Performance improvement in :class:`DataFrame` and :class:`Series` constructors for extension dtype scalars (:issue:`45854`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -319,6 +326,7 @@ Indexing
 - Bug in getting a column from a DataFrame with an object-dtype row index with datetime-like values: the resulting Series now preserves the exact object-dtype Index from the parent DataFrame (:issue:`42950`)
 - Bug in indexing on a :class:`DatetimeIndex` with a ``np.str_`` key incorrectly raising (:issue:`45580`)
 - Bug in :meth:`CategoricalIndex.get_indexer` when index contains ``NaN`` values, resulting in elements that are in target but not present in the index to be mapped to the index of the NaN element, instead of -1 (:issue:`45361`)
+- Bug in setting large integer values into :class:`Series` with ``float32`` or ``float16`` dtype incorrectly altering these values instead of coercing to ``float64`` dtype (:issue:`45844`)
 -
 
 Missing
