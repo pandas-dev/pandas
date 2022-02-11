@@ -262,7 +262,7 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
                 dtype = "int64"
             elif inferred_type == "datetime64":
                 dtype = "datetime64[ns]"
-            elif inferred_type == "timedelta64":
+            elif inferred_type in ["timedelta", "timedelta64"]:
                 dtype = "timedelta64[ns]"
 
             # try to upcast here
@@ -289,6 +289,14 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
     # GH12821, iNaT is cast to float
     if dtype.kind in ["M", "m"] and result.dtype.kind in ["i", "f"]:
         result = result.astype(dtype)
+
+    elif dtype.kind == "m" and result.dtype == _dtype_obj:
+        # test_where_downcast_to_td64
+        result = cast(np.ndarray, result)
+        result = array_to_timedelta64(result)
+
+    elif dtype == "M8[ns]" and result.dtype == _dtype_obj:
+        return np.asarray(maybe_cast_to_datetime(result, dtype=dtype))
 
     return result
 
