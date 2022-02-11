@@ -1371,7 +1371,7 @@ class PlotAccessor(PandasObject):
             `ind` number of equally spaced points are used.
         **kwargs
             Additional keyword arguments are documented in
-            :meth:`pandas.%(this-datatype)s.plot`.
+            :meth:`DataFrame.plot`.
 
         Returns
         -------

@@ -20,7 +20,7 @@ Styler
 ^^^^^^
 
   - New method :meth:`.Styler.to_string` for alternative customisable output methods (:issue:`44502`)
-  - Various bug fixes, see below.
+  - Added the ability to render ``border`` and ``border-{side}`` CSS properties in Excel (:issue:`42276`)
 
 .. _whatsnew_150.enhancements.enhancement2:
 
@@ -38,6 +38,8 @@ Other enhancements
 - :meth:`Series.reset_index` and :meth:`DataFrame.reset_index` now support the argument ``allow_duplicates`` (:issue:`44410`)
 - :meth:`.GroupBy.min` and :meth:`.GroupBy.max` now supports `Numba <https://numba.pydata.org/>`_ execution with the ``engine`` keyword (:issue:`45428`)
 - Implemented a ``bool``-dtype :class:`Index`, passing a bool-dtype arraylike to ``pd.Index`` will now retain ``bool`` dtype instead of casting to ``object`` (:issue:`45061`)
+- Implemented a complex-dtype :class:`Index`, passing a complex-dtype arraylike to ``pd.Index`` will now retain complex dtype instead of casting to ``object`` (:issue:`45845`)
+
 -
 
 .. ---------------------------------------------------------------------------
@@ -50,8 +52,10 @@ These are bug fixes that might have notable behavior changes.
 
 .. _whatsnew_150.notable_bug_fixes.notable_bug_fix1:
 
-notable_bug_fix1
-^^^^^^^^^^^^^^^^
+Styler
+^^^^^^
+
+- Fixed bug in :class:`CSSToExcelConverter` leading to ``TypeError`` when border color provided without border style for ``xlsxwriter`` engine (:issue:`42276`)
 
 .. _whatsnew_150.notable_bug_fixes.notable_bug_fix2:
 
