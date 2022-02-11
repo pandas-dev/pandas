@@ -1281,9 +1281,12 @@ def test_transform_cumcount():
     tm.assert_series_equal(result, expected)
 
 
-def test_null_group_lambda_self():
+# Test both monotonic increasing and not
+@pytest.mark.parametrize("keys", [[1, 2, np.nan], [2, 1, np.nan]])
+def test_null_group_lambda_self(dropna, keys):
     # GH 17093
-    df = DataFrame({"A": [1, np.nan], "B": [1, 1]})
-    result = df.groupby("A").transform(lambda x: x)
-    expected = DataFrame([1], columns=["B"])
+    df = DataFrame({"A": keys, "B": [1, 2, 3]})
+    result = df.groupby("A", dropna=dropna).transform(lambda x: x)
+    value = np.nan if dropna else 3
+    expected = DataFrame([1, 2, value], columns=["B"])
     tm.assert_frame_equal(result, expected)

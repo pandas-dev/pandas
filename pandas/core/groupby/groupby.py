@@ -108,11 +108,15 @@ from pandas.core.indexes.api import (
     CategoricalIndex,
     Index,
     MultiIndex,
+    RangeIndex,
 )
 from pandas.core.internals.blocks import ensure_block_shape
 import pandas.core.sample as sample
 from pandas.core.series import Series
-from pandas.core.sorting import get_group_index_sorter
+from pandas.core.sorting import (
+    get_group_index,
+    get_group_index_sorter,
+)
 from pandas.core.util.numba_ import (
     NUMBA_FUNC_CACHE,
     maybe_use_numba,
@@ -615,6 +619,20 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         return self.grouper.indices
 
     @final
+    def _get_indices_by_codes(self, codes):
+        """
+        Safe get multiple indices by code.
+        """
+        group_index = get_group_index(
+            codes, self.grouper.shape, sort=True, xnull=self.dropna
+        )
+        if self.dropna:
+            # group_index can only be negative when passing xnull=True
+            group_index = group_index[np.where(group_index >= 0)]
+        sorter = get_group_index_sorter(group_index, len(group_index))
+        return sorter
+
+    @final
     def _get_indices(self, names):
         """
         Safe get multiple indices, translate keys for
@@ -1093,21 +1111,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return result
 
         # row order is scrambled => sort the rows by position in original index
-        original_positions = Index(
-            np.concatenate(self._get_indices(self.grouper.result_index))
-        )
+        original_positions = Index(self._get_indices_by_codes(self.grouper.codes))
         result.set_axis(original_positions, axis=self.axis, inplace=True)
         result = result.sort_index(axis=self.axis)
-
-        dropped_rows = len(result.index) < len(self.obj.index)
-
-        if dropped_rows:
-            # get index by slicing original index according to original positions
-            # slice drops attrs => use set_axis when no rows were dropped
-            sorted_indexer = result.index
-            result.index = self._selected_obj.index[sorted_indexer]
-        else:
-            result.set_axis(self.obj._get_axis(self.axis), axis=self.axis, inplace=True)
+        obj_axis = self.obj._get_axis(self.axis)
+        if self.grouper.has_dropped_na:
+            # Fill in any missing values due to dropna - index here is integral
+            # with values referring to the row of the input so can use RangeIndex
+            result = result.reindex(RangeIndex(len(obj_axis)), axis=self.axis)
+        result.set_axis(obj_axis, axis=self.axis, inplace=True)
 
         return result
 

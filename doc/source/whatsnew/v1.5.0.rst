@@ -57,6 +57,39 @@ Styler
 
 - Fixed bug in :class:`CSSToExcelConverter` leading to ``TypeError`` when border color provided without border style for ``xlsxwriter`` engine (:issue:`42276`)
 
+.. _whatsnew_150.notable_bug_fixes.groupby_transform_dropna:
+
+Using ``dropna=True`` with ``groupby`` transformers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A transformer is an operation whose result has the same size as its input. When the
+result is a :class:`DataFrame` or :class:`Series`, it is also required that the
+index of the result is equal to that of the input. In pandas 1.4, using
+:meth:`.DataFrameGroupBy.transform` or :meth:`.SeriesGroupBy.transform` with null
+values in the groups and ``dropna=True`` gave incorrect results. Demonstrated by the
+examples below, the incorrect results either contained incorrect values, or the result
+did not have the same index as the input.
+
+.. ipython:: python
+
+    df = pd.DataFrame({'a': [1, 1, np.nan], 'b': [2, 3, 4]})
+
+*Old behavior*:
+
+.. code-block:: ipython
+
+    In [3]: df.groupby('a', dropna=True).transform(lambda x: x)
+    Out[3]:
+       b
+    0  2
+    1  3
+
+*New behavior*:
+
+.. ipython:: python
+
+    df.groupby('a', dropna=True).transform(lambda x: x)
+
 .. _whatsnew_150.notable_bug_fixes.notable_bug_fix2:
 
 notable_bug_fix2

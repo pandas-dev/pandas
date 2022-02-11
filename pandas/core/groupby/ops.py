@@ -825,6 +825,14 @@ class BaseGrouper:
         # return if my group orderings are monotonic
         return Index(self.group_info[0]).is_monotonic_increasing
 
+    @final
+    @cache_readonly
+    def has_dropped_na(self) -> bool:
+        """
+        Whether grouper has null value(s) that are dropped.
+        """
+        return bool((self.group_info[0] < 0).any())
+
     @cache_readonly
     def group_info(self) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
         comp_ids, obs_group_ids = self._get_compressed_codes()
