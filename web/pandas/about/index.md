@@ -54,7 +54,7 @@ This will help ensure the success of development of _pandas_ as a world-class op
   series without losing data;
 
 - Highly **optimized for performance**, with critical code paths written in
-  [Cython](http://www.cython.org/) or C.
+  [Cython](https://cython.org) or C.
 
 - Python with *pandas* is in use in a wide variety of **academic and
   commercial** domains, including Finance, Neuroscience, Economics,

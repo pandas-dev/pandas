@@ -29,7 +29,7 @@ modeling functionality that is out of pandas' scope. Statsmodels
 leverages pandas objects as the underlying data container for
 computation.
 
-### [sklearn-pandas](https://github.com/paulgb/sklearn-pandas)
+### [sklearn-pandas](https://github.com/scikit-learn-contrib/sklearn-pandas)
 
 Use pandas DataFrames in your [scikit-learn](https://scikit-learn.org/)
 ML pipeline.
@@ -60,7 +60,7 @@ top of the powerful Vega-Lite JSON specification. This elegant
 simplicity produces beautiful and effective visualizations with a
 minimal amount of code. Altair works with Pandas DataFrames.
 
-### [Bokeh](https://bokeh.pydata.org)
+### [Bokeh](https://docs.bokeh.org)
 
 Bokeh is a Python interactive visualization library for large datasets
 that natively uses the latest web technologies. Its goal is to provide
@@ -172,7 +172,7 @@ inspection and rich visualization capabilities of a scientific
 environment like MATLAB or Rstudio.
 
 Its [Variable
-Explorer](https://docs.spyder-ide.org/variableexplorer.html) allows
+Explorer](https://docs.spyder-ide.org/current/panes/variableexplorer.html) allows
 users to view, manipulate and edit pandas `Index`, `Series`, and
 `DataFrame` objects like a "spreadsheet", including copying and
 modifying values, sorting, displaying a "heatmap", converting data
@@ -183,9 +183,9 @@ of plain text and binary files or the clipboard into a new pandas
 DataFrame via a sophisticated import wizard.
 
 Most pandas classes, methods and data attributes can be autocompleted in
-Spyder's [Editor](https://docs.spyder-ide.org/editor.html) and [IPython
-Console](https://docs.spyder-ide.org/ipythonconsole.html), and Spyder's
-[Help pane](https://docs.spyder-ide.org/help.html) can retrieve and
+Spyder's [Editor](https://docs.spyder-ide.org/current/panes/editor.html) and [IPython
+Console](https://docs.spyder-ide.org/current/panes/ipythonconsole.html), and Spyder's
+[Help pane](https://docs.spyder-ide.org/current/panes/help.html) can retrieve and
 render Numpydoc documentation on pandas objects in rich text with Sphinx
 both automatically and on-demand.
 
@@ -233,7 +233,7 @@ package requires valid credentials for this API (non free).
 ### [pandaSDMX](https://pandasdmx.readthedocs.io)
 
 pandaSDMX is a library to retrieve and acquire statistical data and
-metadata disseminated in [SDMX](https://www.sdmx.org) 2.1, an
+metadata disseminated in [SDMX](https://sdmx.org) 2.1, an
 ISO-standard widely used by institutions such as statistics offices,
 central banks, and international organisations. pandaSDMX can expose
 datasets and related structural metadata including data flows,
@@ -254,7 +254,7 @@ you can obtain for free on the FRED website.
 
 ## Domain specific
 
-### [Geopandas](https://github.com/kjordahl/geopandas)
+### [Geopandas](https://github.com/geopandas/geopandas)
 
 Geopandas extends pandas data objects to include geographic information
 which support geometric operations. If your work entails maps and
@@ -277,13 +277,13 @@ Blaze provides a standard API for doing computations with various
 in-memory and on-disk backends: NumPy, Pandas, SQLAlchemy, MongoDB,
 PyTables, PySpark.
 
-### [Dask](https://dask.readthedocs.io/en/latest/)
+### [Dask](https://docs.dask.org)
 
 Dask is a flexible parallel computing library for analytics. Dask
 provides a familiar `DataFrame` interface for out-of-core, parallel and
 distributed computing.
 
-### [Dask-ML](https://dask-ml.readthedocs.io/en/latest/)
+### [Dask-ML](https://ml.dask.org)
 
 Dask-ML enables parallel and distributed machine learning using Dask
 alongside existing machine learning libraries like Scikit-Learn,
@@ -303,7 +303,7 @@ packages such as PyTables, h5py, and pymongo to move data between non
 pandas formats. Its graph based approach is also extensible by end users
 for custom formats that may be too specific for the core of odo.
 
-### [Ray](https://ray.readthedocs.io/en/latest/pandas_on_ray.html)
+### [Ray](https://docs.ray.io/en/latest/data/modin/index.html)
 
 Pandas on Ray is an early stage DataFrame library that wraps Pandas and
 transparently distributes the data and computation. The user does not
@@ -320,14 +320,14 @@ Ray just like you would Pandas.
 import ray.dataframe as pd
 ```
 
-### [Vaex](https://docs.vaex.io/)
+### [Vaex](https://vaex.io/docs/)
 
 Increasingly, packages are being built on top of pandas to address
 specific needs in data preparation, analysis and visualization. Vaex is
 a python library for Out-of-Core DataFrames (similar to Pandas), to
 visualize and explore big tabular datasets. It can calculate statistics
 such as mean, sum, count, standard deviation etc, on an N-dimensional
-grid up to a billion (10^9^) objects/rows per second. Visualization is
+grid up to a billion (10^9) objects/rows per second. Visualization is
 done using histograms, density plots and 3d volume rendering, allowing
 interactive exploration of big data. Vaex uses memory mapping, zero
 memory copy policy and lazy computations for best performance (no memory
@@ -338,7 +338,7 @@ wasted).
 
 ## Data cleaning and validation
 
-### [pyjanitor](https://github.com/ericmjl/pyjanitor/)
+### [pyjanitor](https://github.com/pyjanitor-devs/pyjanitor)
 
 Pyjanitor provides a clean API for cleaning data, using method chaining.
 
@@ -388,6 +388,7 @@ authors to coordinate on the namespace.
   | [pint-pandas](https://github.com/hgrecco/pint-pandas)                | `pint`     | `Series`, `DataFrame` |
   | [composeml](https://github.com/alteryx/compose)                      | `slice`    | `DataFrame`           |
   | [woodwork](https://github.com/alteryx/woodwork)                      | `slice`    | `Series`, `DataFrame` |
+
 ## Development tools
 
 ### [pandas-stubs](https://github.com/VirtusLab/pandas-stubs)
