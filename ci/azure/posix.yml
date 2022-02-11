@@ -29,11 +29,13 @@ jobs:
       displayName: 'Setup environment and build pandas'
 
     - script: |
-        source activate pandas-dev
-        ci/run_tests.sh
+        conda run -n pandas-dev --no-capture-output ci/run_tests.sh
       displayName: 'Test'
 
-    - script: source activate pandas-dev && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
+    - script: |
+        pushd /tmp
+        conda run -n pandas-dev python -c "import pandas; pandas.show_versions()"
+        popd
       displayName: 'Build versions'
 
     - task: PublishTestResults@2
