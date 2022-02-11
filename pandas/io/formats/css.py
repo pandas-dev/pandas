@@ -4,6 +4,10 @@ Utilities for interpreting CSS from Stylers for formatting non-HTML outputs.
 from __future__ import annotations
 
 import re
+from typing import (
+    Callable,
+    Generator,
+)
 import warnings
 
 
@@ -13,8 +17,33 @@ class CSSWarning(UserWarning):
     """
 
 
-def _side_expander(prop_fmt: str):
-    def expand(self, prop, value: str):
+def _side_expander(prop_fmt: str) -> Callable:
+    """
+    Wrapper to expand shorthand property into top, right, bottom, left properties
+
+    Parameters
+    ----------
+    side : str
+        The border side to expand into properties
+
+    Returns
+    -------
+        function: Return to call when a 'border(-{side}): {value}' string is encountered
+    """
+
+    def expand(self, prop, value: str) -> Generator[tuple[str, str], None, None]:
+        """
+        Expand shorthand property into side-specific property (top, right, bottom, left)
+
+        Parameters
+        ----------
+            prop (str): CSS property name
+            value (str): String token for property
+
+        Yields
+        ------
+            Tuple (str, str): Expanded property, value
+        """
         tokens = value.split()
         try:
             mapping = self.SIDE_SHORTHANDS[len(tokens)]
@@ -27,12 +56,72 @@ def _side_expander(prop_fmt: str):
     return expand
 
 
+def _border_expander(side: str = "") -> Callable:
+    """
+    Wrapper to expand 'border' property into border color, style, and width properties
+
+    Parameters
+    ----------
+    side : str
+        The border side to expand into properties
+
+    Returns
+    -------
+        function: Return to call when a 'border(-{side}): {value}' string is encountered
+    """
+    if side != "":
+        side = f"-{side}"
+
+    def expand(self, prop, value: str) -> Generator[tuple[str, str], None, None]:
+        """
+        Expand border into color, style, and width tuples
+
+        Parameters
+        ----------
+            prop : str
+                CSS property name passed to styler
+            value : str
+                Value passed to styler for property
+
+        Yields
+        ------
+            Tuple (str, str): Expanded property, value
+        """
+        tokens = value.split()
+        if len(tokens) == 0 or len(tokens) > 3:
+            warnings.warn(
+                f'Too many tokens provided to "{prop}" (expected 1-3)', CSSWarning
+            )
+
+        # TODO: Can we use current color as initial value to comply with CSS standards?
+        border_declarations = {
+            f"border{side}-color": "black",
+            f"border{side}-style": "none",
+            f"border{side}-width": "medium",
+        }
+        for token in tokens:
+            if token in self.BORDER_STYLES:
+                border_declarations[f"border{side}-style"] = token
+            elif any([ratio in token for ratio in self.BORDER_WIDTH_RATIOS]):
+                border_declarations[f"border{side}-width"] = token
+            else:
+                border_declarations[f"border{side}-color"] = token
+            # TODO: Warn user if item entered more than once (e.g. "border: red green")
+
+        # Per CSS, "border" will reset previous "border-*" definitions
+        yield from self.atomize(border_declarations.items())
+
+    return expand
+
+
 class CSSResolver:
     """
     A callable for parsing and resolving CSS to atomic properties.
     """
 
     UNIT_RATIOS = {
+        "pt": ("pt", 1),
+        "em": ("em", 1),
         "rem": ("pt", 12),
         "ex": ("em", 0.5),
         # 'ch':
@@ -75,6 +164,19 @@ class CSSResolver:
             # Default: medium only if solid
         }
     )
+
+    BORDER_STYLES = [
+        "none",
+        "hidden",
+        "dotted",
+        "dashed",
+        "solid",
+        "double",
+        "groove",
+        "ridge",
+        "inset",
+        "outset",
+    ]
 
     SIDE_SHORTHANDS = {
         1: [0, 0, 0, 0],
@@ -244,7 +346,7 @@ class CSSResolver:
             size_fmt = f"{val:f}pt"
         return size_fmt
 
-    def atomize(self, declarations):
+    def atomize(self, declarations) -> Generator[tuple[str, str], None, None]:
         for prop, value in declarations:
             attr = "expand_" + prop.replace("-", "_")
             try:
@@ -254,6 +356,12 @@ class CSSResolver:
             else:
                 for prop, value in expand(prop, value):
                     yield prop, value
+
+    expand_border = _border_expander()
+    expand_border_top = _border_expander("top")
+    expand_border_right = _border_expander("right")
+    expand_border_bottom = _border_expander("bottom")
+    expand_border_left = _border_expander("left")
 
     expand_border_color = _side_expander("border-{:s}-color")
     expand_border_style = _side_expander("border-{:s}-style")
