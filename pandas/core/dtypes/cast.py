@@ -2083,7 +2083,7 @@ def maybe_cast_to_integer_array(
     if is_object_dtype(arr.dtype):
         raise ValueError("Trying to coerce float values to integers")
 
-    if casted.dtype < arr.dtype or lib.infer_dtype(casted) < lib.infer_dtype(arr):
+    if casted.dtype < arr.dtype or is_string_dtype(arr.dtype):
         # GH#41734 e.g. [1, 200, 923442] and dtype="int8" -> overflows
         warnings.warn(
             f"Values are too large to be losslessly cast to {dtype}. "
