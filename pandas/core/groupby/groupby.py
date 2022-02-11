@@ -108,6 +108,7 @@ from pandas.core.indexes.api import (
     CategoricalIndex,
     Index,
     MultiIndex,
+    RangeIndex,
 )
 from pandas.core.internals.blocks import ensure_block_shape
 import pandas.core.sample as sample
@@ -615,6 +616,14 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         return self.grouper.indices
 
     @final
+    def _get_indices_by_codes(self, codes):
+        """
+        Safe get multiple indices, translate keys for
+        datelike to underlying repr.
+        """
+        return [self.grouper.code_indices.get(code, []) for code in codes]
+
+    @final
     def _get_indices(self, names):
         """
         Safe get multiple indices, translate keys for
@@ -1093,21 +1102,18 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return result
 
         # row order is scrambled => sort the rows by position in original index
+        _, obs_group_ids, _ = self.grouper.group_info
         original_positions = Index(
-            np.concatenate(self._get_indices(self.grouper.result_index))
+            np.concatenate(self._get_indices_by_codes(obs_group_ids))
         )
         result.set_axis(original_positions, axis=self.axis, inplace=True)
         result = result.sort_index(axis=self.axis)
-
-        dropped_rows = len(result.index) < len(self.obj.index)
-
-        if dropped_rows:
-            # get index by slicing original index according to original positions
-            # slice drops attrs => use set_axis when no rows were dropped
-            sorted_indexer = result.index
-            result.index = self._selected_obj.index[sorted_indexer]
-        else:
-            result.set_axis(self.obj._get_axis(self.axis), axis=self.axis, inplace=True)
+        obj_axis = self.obj._get_axis(self.axis)
+        if self.grouper.has_dropped_na:
+            # Fill in any missing values due to dropna - index here is integral
+            # with values referring to the row of the input so can use RangeIndex
+            result = result.reindex(RangeIndex(len(obj_axis)), axis=self.axis)
+        result.set_axis(obj_axis, axis=self.axis, inplace=True)
 
         return result
 

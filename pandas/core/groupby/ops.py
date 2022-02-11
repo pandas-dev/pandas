@@ -783,6 +783,13 @@ class BaseGrouper:
         keys = [ping.group_index for ping in self.groupings]
         return get_indexer_dict(codes_list, keys)
 
+    @cache_readonly
+    def code_indices(self) -> dict[int, npt.NDArray[np.intp]]:
+        group_index = get_group_index(self.codes, self.shape, sort=True, xnull=True)
+        _, obs_group_ids, _ = self.group_info
+        result = {e: np.where(group_index == e)[0] for e in obs_group_ids}
+        return result
+
     @final
     @property
     def codes(self) -> list[np.ndarray]:
@@ -824,6 +831,11 @@ class BaseGrouper:
     def is_monotonic(self) -> bool:
         # return if my group orderings are monotonic
         return Index(self.group_info[0]).is_monotonic_increasing
+
+    @final
+    @cache_readonly
+    def has_dropped_na(self) -> bool:
+        return bool((self.group_info[0] < 0).any())
 
     @cache_readonly
     def group_info(self) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
