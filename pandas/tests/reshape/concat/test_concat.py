@@ -11,7 +11,10 @@ from warnings import (
 import numpy as np
 import pytest
 
-from pandas.errors import InvalidIndexError, PerformanceWarning
+from pandas.errors import (
+    InvalidIndexError,
+    PerformanceWarning,
+)
 
 import pandas as pd
 from pandas import (
