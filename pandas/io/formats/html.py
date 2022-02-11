@@ -57,12 +57,10 @@ class HTMLFormatter:
         self.bold_rows = self.fmt.bold_rows
         self.escape = self.fmt.escape
         self.show_dimensions = self.fmt.show_dimensions
-        if border is None:
+        if border is None or (border and isinstance(border, bool)):
             border = cast(int, get_option("display.html.border"))
-        elif not border:
+        elif not border and isinstance(border, bool):
             border = None
-        elif isinstance(border, bool):  # border=True
-            border = cast(int, get_option("display.html.border"))
 
         self.border = border
         self.table_id = table_id
