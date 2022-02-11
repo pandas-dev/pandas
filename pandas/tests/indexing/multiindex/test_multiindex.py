@@ -185,7 +185,7 @@ class TestMultiIndexBasic:
         ],
     )
     def test_subtracting_two_series_with_unordered_index_and_all_nan_index(
-        data_result, data_expected
+        self, data_result, data_expected
     ):
         # GH 38439
         a_index_result = MultiIndex.from_tuples(data_result[0])
