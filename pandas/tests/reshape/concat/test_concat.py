@@ -500,7 +500,7 @@ class TestConcatenate:
         df2 = DataFrame(np.random.randn(5), index=[0, 1, 2, 2, 4], columns=["b"])
         msg = "Reindexing only valid with uniquely valued Index objects"
         with pytest.raises(InvalidIndexError, match=msg):
-            pd.concat([df1, df2], axis=1)
+            concat([df1, df2], axis=1)
 
 
 @pytest.mark.parametrize("pdt", [Series, DataFrame])
