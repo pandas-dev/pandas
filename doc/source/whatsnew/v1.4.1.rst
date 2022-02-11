@@ -36,6 +36,7 @@ Bug fixes
 - Stopped emitting unnecessary ``FutureWarning`` in :meth:`DataFrame.sort_values` with sparse columns (:issue:`45618`)
 - Fixed window aggregations in :meth:`DataFrame.rolling` and :meth:`Series.rolling` to skip over unused elements (:issue:`45647`)
 - Fixed builtin highlighters in :class:`.Styler` to be responsive to ``NA`` with nullable dtypes (:issue:`45804`)
+- Bug in :meth:`~Rolling.apply` with ``axis=1`` raising an erroneous ``ValueError`` (:issue:`45912`)
 
 .. ---------------------------------------------------------------------------
 
