@@ -641,7 +641,7 @@ Deprecated Frame.append and Series.append
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :meth:`DataFrame.append` and :meth:`Series.append` have been deprecated and will
-be removed in Pandas 2.0. Use :func:`pandas.concat` instead (:issue:`35407`).
+be removed in a future version. Use :func:`pandas.concat` instead (:issue:`35407`).
 
 *Deprecated syntax*
 
