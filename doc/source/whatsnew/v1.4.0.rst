@@ -637,11 +637,11 @@ will continue to return :class:`Int64Index`, :class:`UInt64Index` and
 
 .. _whatsnew_140.deprecations.frame_series_append:
 
-Deprecated Frame.append and Series.append
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Deprecated DataFrame.append and Series.append
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :meth:`DataFrame.append` and :meth:`Series.append` have been deprecated and will
-be removed in Pandas 2.0. Use :func:`pandas.concat` instead (:issue:`35407`).
+be removed in a future version. Use :func:`pandas.concat` instead (:issue:`35407`).
 
 *Deprecated syntax*
 
