@@ -2881,7 +2881,8 @@ Name: Max Speed, dtype: float64
         Concatenate two or more Series.
 
         .. deprecated:: 1.4.0
-            Use :func:`concat` instead. For further details see :ref:`whatsnew_140.deprecations.frame_series_append`
+            Use :func:`concat` instead. For further details see
+            :ref:`whatsnew_140.deprecations.frame_series_append`
 
         Parameters
         ----------

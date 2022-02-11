@@ -9014,7 +9014,8 @@ NaN 12.3   33.0
         Columns in `other` that are not in the caller are added as new columns.
 
         .. deprecated:: 1.4.0
-            Use :func:`concat` instead. For further details see :ref:`whatsnew_140.deprecations.frame_series_append`
+            Use :func:`concat` instead. For further details see
+            :ref:`whatsnew_140.deprecations.frame_series_append`
 
         Parameters
         ----------
@@ -9034,8 +9035,7 @@ NaN 12.3   33.0
         Returns
         -------
         DataFrame
-            A new DataFrame consisting of the rows of caller and the rows of
-            `other`.
+            A new DataFrame consisting of the rows of caller and the rows of `other`.
 
         See Also
         --------
@@ -9043,9 +9043,9 @@ NaN 12.3   33.0
 
         Notes
         -----
-        If a list of dict/series is passed and the keys are all contained in the
-        DataFrame's index, the order of the columns in the resulting DataFrame
-        will be unchanged.
+        If a list of dict/series is passed and the keys are all contained in
+        the DataFrame's index, the order of the columns in the resulting
+        DataFrame will be unchanged.
 
         Iteratively appending rows to a DataFrame can be more computationally
         intensive than a single concatenate. A better solution is to append
