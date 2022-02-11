@@ -237,13 +237,14 @@ class CSSToExcelConverter:
                 "style": self._border_style(
                     props.get(f"border-{side}-style"),
                     props.get(f"border-{side}-width"),
+                    self.color_to_excel(props.get(f"border-{side}-color")),
                 ),
                 "color": self.color_to_excel(props.get(f"border-{side}-color")),
             }
             for side in ["top", "right", "bottom", "left"]
         }
 
-    def _border_style(self, style: str | None, width: str | None):
+    def _border_style(self, style: str | None, width: str | None, color: str | None):
         # convert styles and widths to openxml, one of:
         #       'dashDot'
         #       'dashDotDot'
@@ -258,14 +259,20 @@ class CSSToExcelConverter:
         #       'slantDashDot'
         #       'thick'
         #       'thin'
+        if width is None and style is None and color is None:
+            # Return None will remove "border" from style dictionary
+            return None
+
         if width is None and style is None:
-            return None
+            # Return "none" will keep "border" in style dictionary
+            return "none"
+
         if style == "none" or style == "hidden":
-            return None
+            return "none"
 
         width_name = self._get_width_name(width)
         if width_name is None:
-            return None
+            return "none"
 
         if style in (None, "groove", "ridge", "inset", "outset", "solid"):
             # not handled

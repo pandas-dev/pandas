@@ -1,9 +1,6 @@
 from datetime import datetime
 
-from hypothesis import (
-    given,
-    settings,
-)
+from hypothesis import given
 import numpy as np
 import pytest
 
@@ -962,7 +959,6 @@ def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):
 
 
 @given(data=OPTIONAL_ONE_OF_ALL)
-@settings(deadline=None)  # GH 44969
 def test_where_inplace_casting(data):
     # GH 22051
     df = DataFrame({"a": data})

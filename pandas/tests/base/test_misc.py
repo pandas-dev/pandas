@@ -160,6 +160,11 @@ def test_searchsorted(request, index_or_series_obj):
                 reason="np.searchsorted doesn't work on pd.MultiIndex: GH 14833"
             )
         )
+    elif obj.dtype.kind == "c" and isinstance(obj, Index):
+        # TODO: Should Series cases also raise? Looks like they use numpy
+        #  comparison semantics https://github.com/numpy/numpy/issues/15981
+        mark = pytest.mark.xfail(reason="complex objects are not comparable")
+        request.node.add_marker(mark)
 
     max_obj = max(obj, default=0)
     index = np.searchsorted(obj, max_obj)
