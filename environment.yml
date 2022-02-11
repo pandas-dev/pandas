@@ -9,7 +9,7 @@ dependencies:
   - pytz
 
   # benchmarks
-  - asv
+  - asv < 0.5.0  # 2022-02-08: v0.5.0 > leads to ASV checks running > 3 hours on CI
 
   # building
   # The compiler packages are meta-packages and install the correct compiler (activation) packages on the respective platforms.
@@ -32,10 +32,12 @@ dependencies:
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
   - gitdb
+  - numpydoc
+  - pandas-dev-flaker=0.4.0
+  - pydata-sphinx-theme
+  - pytest-cython
   - sphinx
   - sphinx-panels
-  - numpydoc < 1.2  # 2021-02-09 1.2dev breaking CI
-  - pydata-sphinx-theme
   - types-python-dateutil
   - types-PyMySQL
   - types-pytz
@@ -78,7 +80,6 @@ dependencies:
   - ipywidgets
   - nbformat
   - notebook>=6.0.3
-  - pip
 
   # optional
   - blosc
@@ -120,6 +121,3 @@ dependencies:
   - pyreadstat  # pandas.read_spss
   - tabulate>=0.8.3  # DataFrame.to_markdown
   - natsort  # DataFrame.sort_values
-  - pip:
-    - pandas-dev-flaker==0.2.0
-    - pytest-cython
