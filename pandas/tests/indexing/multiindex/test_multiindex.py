@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import pandas._libs.index as _index
 from pandas.errors import PerformanceWarning
@@ -150,44 +151,53 @@ class TestMultiIndexBasic:
         expected = DataFrame(index=mi2)
         tm.assert_frame_equal(df, expected)
 
-    def test_subtracting_two_series_with_unordered_index_and_all_nan_index(self):
+    @pytest.mark.parametrize(
+        "data_result, data_expected",
+        [
+            (
+                [
+                    [(81.0, np.nan), (np.nan, np.nan)],
+                    [(np.nan, np.nan), (82.0, np.nan)],
+                    [1, 2],
+                    [1, 2],
+                ],
+                [
+                    [(81.0, np.nan), (np.nan, np.nan)],
+                    [(81.0, np.nan), (np.nan, np.nan)],
+                    [1, 2],
+                    [1, 1],
+                ],
+            ),
+            (
+                [
+                    [(81.0, np.nan), (np.nan, np.nan)],
+                    [(np.nan, np.nan), (81.0, np.nan)],
+                    [1, 2],
+                    [1, 2],
+                ],
+                [
+                    [(81.0, np.nan), (np.nan, np.nan)],
+                    [(81.0, np.nan), (np.nan, np.nan)],
+                    [1, 2],
+                    [2, 1],
+                ],
+            ),
+        ],
+    )
+    def test_subtracting_two_series_with_unordered_index_and_all_nan_index(
+        data_result, data_expected
+    ):
         # GH 38439
-        a_index_result = MultiIndex.from_tuples([(81.0, np.nan), (np.nan, np.nan)])
-        b_index_result = MultiIndex.from_tuples([(np.nan, np.nan), (82.0, np.nan)])
-        a_series_result = Series([1, 2], index=a_index_result)
-        b_series_result = Series([1, 2], index=b_index_result)
+        a_index_result = MultiIndex.from_tuples(data_result[0])
+        b_index_result = MultiIndex.from_tuples(data_result[1])
+        a_series_result = Series(data_result[2], index=a_index_result)
+        b_series_result = Series(data_result[3], index=b_index_result)
         result = a_series_result.align(b_series_result)
 
-        a_index_expected = MultiIndex.from_tuples([(81.0, np.nan), (np.nan, np.nan)])
-        b_index_expected = MultiIndex.from_tuples([(81.0, np.nan), (np.nan, np.nan)])
-        a_series_expected = Series([1, 2], index=a_index_expected)
-        b_series_expected = Series([1, 1], index=b_index_expected)
-        a_series_expected.index = a_series_expected.index.set_levels(
-            [
-                a_series_expected.index.levels[0].astype("float"),
-                a_series_expected.index.levels[1].astype("float"),
-            ]
-        )
-        b_series_expected.index = b_series_expected.index.set_levels(
-            [
-                b_series_expected.index.levels[0].astype("float"),
-                b_series_expected.index.levels[1].astype("float"),
-            ]
-        )
-
-        tm.assert_series_equal(result[0], a_series_expected)
-        tm.assert_series_equal(result[1], b_series_expected)
-
-        a_index_result = MultiIndex.from_tuples([(81.0, np.nan), (np.nan, np.nan)])
-        b_index_result = MultiIndex.from_tuples([(np.nan, np.nan), (81.0, np.nan)])
-        a_series_result = Series([1, 2], index=a_index_result)
-        b_series_result = Series([1, 2], index=b_index_result)
-        result = a_series_result.align(b_series_result)
-
-        a_index_expected = MultiIndex.from_tuples([(81.0, np.nan), (np.nan, np.nan)])
-        b_index_expected = MultiIndex.from_tuples([(81.0, np.nan), (np.nan, np.nan)])
-        a_series_expected = Series([1, 2], index=a_index_expected)
-        b_series_expected = Series([2, 1], index=b_index_expected)
+        a_index_expected = MultiIndex.from_tuples(data_expected[0])
+        b_index_expected = MultiIndex.from_tuples(data_expected[1])
+        a_series_expected = Series(data_expected[2], index=a_index_expected)
+        b_series_expected = Series(data_expected[3], index=b_index_expected)
         a_series_expected.index = a_series_expected.index.set_levels(
             [
                 a_series_expected.index.levels[0].astype("float"),
