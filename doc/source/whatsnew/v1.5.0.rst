@@ -365,7 +365,6 @@ Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 - Bug in :meth:`DataFrame.resample` ignoring ``closed="right"`` on :class:`TimedeltaIndex` (:issue:`45414`)
 - Bug in :meth:`.DataFrameGroupBy.transform` fails when the input DataFrame has multiple columns (:issue:`27469`)
-- Bug in :meth:`~Rolling.apply` with ``axis=1`` raising an erroneous ``ValueError`` (:issue:`45912`)
 
 Reshaping
 ^^^^^^^^^
