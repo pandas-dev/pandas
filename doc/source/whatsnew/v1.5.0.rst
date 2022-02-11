@@ -39,7 +39,7 @@ Other enhancements
 - :meth:`.GroupBy.min` and :meth:`.GroupBy.max` now supports `Numba <https://numba.pydata.org/>`_ execution with the ``engine`` keyword (:issue:`45428`)
 - Implemented a ``bool``-dtype :class:`Index`, passing a bool-dtype array-like to ``pd.Index`` will now retain ``bool`` dtype instead of casting to ``object`` (:issue:`45061`)
 - Implemented a complex-dtype :class:`Index`, passing a complex-dtype array-like to ``pd.Index`` will now retain complex dtype instead of casting to ``object`` (:issue:`45845`)
-- :meth:`to_html` now excludes the ``border`` attribute from ``<table>`` elements when a falsy value is passed to the ``border`` keyword.
+- :meth:`to_html` now excludes the ``border`` attribute from ``<table>`` elements when ``border`` keyword is set to ``False``.
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.notable_bug_fixes:
