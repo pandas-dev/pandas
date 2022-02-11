@@ -1133,7 +1133,7 @@ class TestReadHtml:
         assert "2000-01-01" in result
 
     def test_to_html_borderless(self):
-        df = DataFrame([{'A': 1, 'B': 2}])
+        df = DataFrame([{"A": 1, "B": 2}])
         out_border_default = df.to_html()
         out_border_true = df.to_html(border=True)
         out_border_explicit_default = df.to_html(border=1)
