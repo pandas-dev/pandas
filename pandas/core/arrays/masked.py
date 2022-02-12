@@ -325,7 +325,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def T(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
         return type(self)(self._data.T, self._mask.T)
 
-    def round(self: T, decimals: int = 0, *args, **kwargs) -> T:
+    def round(self, decimals: int = 0, *args, **kwargs):
         """
         Round each value in the array a to the given number of decimals.
 
