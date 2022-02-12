@@ -619,12 +619,12 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         return self.grouper.indices
 
     @final
-    def _get_indices_by_codes(self, codes):
+    def _get_indices_by_codes(self, codes: list[np.ndarray]) -> npt.NDArray[np.intp]:
         """
         Safe get multiple indices by code.
         """
         group_index = get_group_index(
-            codes, self.grouper.shape, sort=True, xnull=self.dropna
+            codes, self.grouper.shape, sort=True, xnull=self.grouper.dropna
         )
         if self.grouper.has_dropped_na:
             group_index = group_index[np.where(group_index >= 0)]
