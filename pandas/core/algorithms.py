@@ -64,6 +64,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
+    BaseMaskedDtype,
     ExtensionDtype,
     PandasDtype,
 )
@@ -103,6 +104,7 @@ if TYPE_CHECKING:
         Series,
     )
     from pandas.core.arrays import (
+        BaseMaskedArray,
         DatetimeArray,
         ExtensionArray,
         TimedeltaArray,
@@ -141,6 +143,15 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
     # we check some simple dtypes first
     if is_object_dtype(values.dtype):
         return ensure_object(np.asarray(values))
+
+    elif isinstance(values.dtype, BaseMaskedDtype):
+        # i.e. BooleanArray, FloatingArray, IntegerArray
+        values = cast("BaseMaskedArray", values)
+        if not values._hasna:
+            # No pd.NAs -> We can avoid an object-dtype cast (and copy) GH#41816
+            #  recurse to avoid re-implementing logic for eg bool->uint8
+            return _ensure_data(values._data)
+        return np.asarray(values)
 
     elif is_bool_dtype(values.dtype):
         if isinstance(values, np.ndarray):
@@ -1187,18 +1198,6 @@ class SelectNSeries(SelectN):
 
         dropped = self.obj.dropna()
         nan_index = self.obj.drop(dropped.index)
-
-        if is_extension_array_dtype(dropped.dtype):
-            # GH#41816 bc we have dropped NAs above, MaskedArrays can use the
-            #  numpy logic.
-            from pandas.core.arrays import BaseMaskedArray
-
-            arr = dropped._values
-            if isinstance(arr, BaseMaskedArray):
-                ser = type(dropped)(arr._data, index=dropped.index, name=dropped.name)
-
-                result = type(self)(ser, n=self.n, keep=self.keep).compute(method)
-                return result.astype(arr.dtype)
 
         # slow method
         if n >= len(self.obj):
