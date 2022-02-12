@@ -807,6 +807,16 @@ class TestDataFramePlots(TestPlotBase):
         ax = df.plot.scatter(x="a", y="b", s="c")
         tm.assert_numpy_array_equal(df["c"].values, right=ax.collections[0].get_sizes())
 
+    def test_plot_scatter_with_norm(self):
+        import matplotlib as mpl
+
+        ax = self.hexbin_df.plot.scatter(x="A", y="B", c="C", norm=mpl.colors.LogNorm())
+        assert ax.collections[0].norm._scale
+
+    def test_plot_scatter_without_norm(self):
+        ax = self.hexbin_df.plot.scatter(x="A", y="B", c="C")
+        assert ax.collections[0].norm._scale is None
+
     def test_plot_bar(self):
         df = DataFrame(
             np.random.randn(6, 4),
