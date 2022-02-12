@@ -1,6 +1,6 @@
 .. _whatsnew_141:
 
-What's new in 1.4.1 (February ??, 2022)
+What's new in 1.4.1 (February 12, 2022)
 ---------------------------------------
 
 These are the changes in pandas 1.4.1. See :ref:`release` for a full changelog
@@ -36,6 +36,7 @@ Bug fixes
 - Stopped emitting unnecessary ``FutureWarning`` in :meth:`DataFrame.sort_values` with sparse columns (:issue:`45618`)
 - Fixed window aggregations in :meth:`DataFrame.rolling` and :meth:`Series.rolling` to skip over unused elements (:issue:`45647`)
 - Fixed builtin highlighters in :class:`.Styler` to be responsive to ``NA`` with nullable dtypes (:issue:`45804`)
+- Bug in :meth:`~Rolling.apply` with ``axis=1`` raising an erroneous ``ValueError`` (:issue:`45912`)
 
 .. ---------------------------------------------------------------------------
 
@@ -44,7 +45,6 @@ Bug fixes
 Other
 ~~~~~
 - Reverted performance speedup of :meth:`DataFrame.corr` for ``method=pearson`` to fix precision regression (:issue:`45640`, :issue:`42761`)
--
 
 .. ---------------------------------------------------------------------------
 
@@ -53,4 +53,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v1.4.0..v1.4.1|HEAD
+.. contributors:: v1.4.0..v1.4.1

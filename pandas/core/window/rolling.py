@@ -1343,7 +1343,8 @@ class RollingAndExpandingMixin(BaseWindow):
 
         def apply_func(values, begin, end, min_periods, raw=raw):
             if not raw:
-                values = Series(values, index=self.obj.index)
+                # GH 45912
+                values = Series(values, index=self._on)
             return window_func(values, begin, end, min_periods)
 
         return apply_func
