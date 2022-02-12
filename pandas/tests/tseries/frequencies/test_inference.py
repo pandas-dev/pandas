@@ -502,3 +502,8 @@ def test_ms_vs_capital_ms():
 
     assert left == offsets.Milli()
     assert right == offsets.MonthBegin()
+
+
+def test_infer_freq_warn_deprecated():
+    with tm.assert_produces_warning(FutureWarning):
+        frequencies.infer_freq(date_range(2022, periods=3), warn=False)
