@@ -213,3 +213,19 @@ class TestIsBoolIndexer:
         result = df[frozen]
         expected = df[[]]
         tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("with_exception", [True, False])
+def test_temp_setattr(with_exception):
+    ser = Series()
+    ser.name = "first"
+    try:
+        with com.temp_setattr(ser, "name", "second"):
+            assert ser.name == "second"
+            if with_exception:
+                raise ValueError("Exception raised")
+        assert ser.name == "first"
+    except ValueError:
+        pass
+
+    assert ser.name == "first"
