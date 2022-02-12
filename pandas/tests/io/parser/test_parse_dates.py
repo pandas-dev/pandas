@@ -948,7 +948,10 @@ def test_parse_dates_custom_euro_format(all_parsers, kwargs):
             )
 
 
-@xfail_pyarrow
+# TODO: Depending on what tests are selected (i.e. pytest marks are selected)
+#  this test can xpass (2020-02-12: Azure MacOS 3.10 & GHA Linux Datamanager 3.8 xpass)
+#  so change from xfail -> skip
+@skip_pyarrow
 def test_parse_tz_aware(all_parsers):
     # See gh-1693
     parser = all_parsers
