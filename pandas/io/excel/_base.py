@@ -414,9 +414,9 @@ def read_excel(
     ...
 
 
+@doc(storage_options=_shared_docs["storage_options"])
 @deprecate_nonkeyword_arguments(allowed_args=["io", "sheet_name"], version="2.0")
 @Appender(_read_excel_doc)
-@doc(storage_options=_shared_docs["storage_options"])
 def read_excel(
     io,
     sheet_name: str | int | list[IntStrT] | None = 0,
@@ -756,6 +756,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             return output[asheetname]
 
 
+@doc(storage_options=_shared_docs["storage_options"])
 class ExcelWriter(metaclass=abc.ABCMeta):
     """
     Class for writing DataFrame objects into excel sheets.
