@@ -485,6 +485,7 @@ def test_getitem_str_second_with_datetimeindex():
 
 
 def test_astype_timedelta64_with_np_nan():
+    # GH45798
     result = Series([1, np.nan]).astype("timedelta64[ns]")
     expected = Series([1, pd.NaT]).astype("timedelta64[ns]")
     tm.assert_series_equal(result, expected)
