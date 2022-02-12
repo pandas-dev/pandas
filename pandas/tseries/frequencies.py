@@ -128,14 +128,14 @@ def get_offset(name: str) -> DateOffset:
 
 def infer_freq(index, warn: bool = True) -> str | None:
     """
-    Infer the most likely frequency given the input index. If the frequency is
-    uncertain, a warning will be printed.
+    Infer the most likely frequency given the input index.
 
     Parameters
     ----------
     index : DatetimeIndex or TimedeltaIndex
       If passed a Series will use the values of the series (NOT THE INDEX).
     warn : bool, default True
+      .. deprecated:: 1.5.0
 
     Returns
     -------
@@ -220,6 +220,13 @@ class _FrequencyInferer:
                     self.i8values, index.tz
                 )
 
+        if warn is not True:
+            warnings.warn(
+                "warn is deprecated (and never implemented) and "
+                "will be removed in a future version.",
+                FutureWarning,
+                stacklevel=3,
+            )
         self.warn = warn
 
         if len(index) < 3:
