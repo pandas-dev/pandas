@@ -264,8 +264,9 @@ def can_connect(url, error_classes=None):
         error_classes = _get_default_network_errors()
 
     try:
-        with urlopen(url):
-            pass
+        with urlopen(url) as response:
+            if response.status != 200:
+                return False
     except error_classes:
         return False
     else:

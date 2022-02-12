@@ -381,7 +381,13 @@ class Base:
                 to_parquet(df, path, engine, compression=None)
 
     @pytest.mark.network
-    @tm.network
+    @tm.network(
+        url=(
+            "https://raw.githubusercontent.com/pandas-dev/pandas/"
+            "main/pandas/tests/io/data/parquet/simple.parquet"
+        ),
+        check_before_test=True,
+    )
     def test_parquet_read_from_url(self, df_compat, engine):
         if engine != "auto":
             pytest.importorskip(engine)
