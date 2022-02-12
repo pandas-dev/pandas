@@ -381,6 +381,3 @@ class BooleanArray(BaseMaskedArray):
         # error: Argument 2 to "BooleanArray" has incompatible type "Optional[Any]";
         # expected "ndarray"
         return BooleanArray(result, mask)  # type: ignore[arg-type]
-
-    def __abs__(self):
-        return self.copy()
