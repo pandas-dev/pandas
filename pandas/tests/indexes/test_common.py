@@ -389,6 +389,10 @@ class TestCommon:
         ):
             # This astype is deprecated in favor of tz_localize
             warn = FutureWarning
+        elif index.dtype.kind == "c" and dtype in ["float64", "int64", "uint64"]:
+            # imaginary components discarded
+            warn = np.ComplexWarning
+
         try:
             # Some of these conversions cannot succeed so we use a try / except
             with tm.assert_produces_warning(warn):
