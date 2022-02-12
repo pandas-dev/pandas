@@ -621,7 +621,17 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         Safe get multiple indices, translate keys for
         datelike to underlying repr.
         """
-        return [self.grouper.code_indices.get(code, []) for code in codes]
+        # code_indices = self.grouper.code_indices
+        # return [self.grouper.code_indices.get(code, []) for code in codes]
+        from pandas.core.sorting import get_group_index
+
+        group_index = get_group_index(
+            self.grouper.codes, self.grouper.shape, sort=True, xnull=True
+        )
+        _, obs_group_ids, _ = self.grouper.group_info
+
+        sorter = get_group_index_sorter(group_index, len(group_index))
+        return sorter
 
     @final
     def _get_indices(self, names):
@@ -1101,11 +1111,29 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result.set_axis(self.obj._get_axis(self.axis), axis=self.axis, inplace=True)
             return result
 
+        # # row order is scrambled => sort the rows by position in original index
+        # original_positions = Index(
+        #     np.concatenate(self._get_indices(self.grouper.result_index))
+        # )
+        # result.set_axis(original_positions, axis=self.axis, inplace=True)
+        # result = result.sort_index(axis=self.axis)
+
+        # dropped_rows = len(result.index) < len(self.obj.index)
+        #
+        # if dropped_rows:
+        #     # get index by slicing original index according to original positions
+        #     # slice drops attrs => use set_axis when no rows were dropped
+        #     sorted_indexer = result.index
+        #     result.index = self._selected_obj.index[sorted_indexer]
+        # else:
+        #     result.set_axis(self.obj._get_axis(self.axis), axis=self.axis, inplace=True)
+        #
+        # return result
+
         # row order is scrambled => sort the rows by position in original index
         _, obs_group_ids, _ = self.grouper.group_info
-        original_positions = Index(
-            np.concatenate(self._get_indices_by_codes(obs_group_ids))
-        )
+        new = self._get_indices_by_codes(obs_group_ids)
+        original_positions = Index(new)
         result.set_axis(original_positions, axis=self.axis, inplace=True)
         result = result.sort_index(axis=self.axis)
         obj_axis = self.obj._get_axis(self.axis)
