@@ -134,7 +134,8 @@ def astype_nansafe(
         raise TypeError(f"cannot astype a timedelta from [{arr.dtype}] to [{dtype}]")
 
     elif np.issubdtype(arr.dtype, np.floating) and np.issubdtype(dtype, np.integer):
-        return _astype_float_to_int_nansafe(arr, dtype, copy)
+        if dtype.kind != "m":
+            return _astype_float_to_int_nansafe(arr, dtype, copy)
 
     elif is_object_dtype(arr.dtype):
 

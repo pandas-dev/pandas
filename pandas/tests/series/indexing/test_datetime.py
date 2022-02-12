@@ -482,3 +482,9 @@ def test_getitem_str_second_with_datetimeindex():
     msg = r"Timestamp\('2012-01-02 18:01:02-0600', tz='US/Central', freq='S'\)"
     with pytest.raises(KeyError, match=msg):
         df[df.index[2]]
+
+
+def test_astype_timedelta64_with_np_nan():
+    result = Series([1, np.nan]).astype("timedelta64[ns]")
+    expected = Series([1, pd.NaT]).astype("timedelta64[ns]")
+    tm.assert_series_equal(result, expected)
