@@ -32,7 +32,7 @@ jobs:
           [actions-38.yaml, "not single_cpu", "", "", "", "", ""],
           [actions-pypy-38.yaml, "not slow and not single_cpu", "", "", "", "", "--max-worker-restart 0"],
           [actions-39.yaml, "not single_cpu", "", "", "", "", ""],
-          [actions-310-numpydev.yaml, "not slow and not network not single_cpu", "", "", "", "deprecate", "-W error"],
+          [actions-310-numpydev.yaml, "not slow and not network and not single_cpu", "", "", "", "deprecate", "-W error"],
           [actions-310.yaml, "not single_cpu", "", "", "", "", ""],
         ]
       fail-fast: false
