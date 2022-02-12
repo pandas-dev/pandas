@@ -218,7 +218,7 @@ class TestIsBoolIndexer:
 @pytest.mark.parametrize("with_exception", [True, False])
 def test_temp_setattr(with_exception):
     # GH#45954
-    ser = Series()
+    ser = Series(dtype=object)
     ser.name = "first"
     try:
         with com.temp_setattr(ser, "name", "second"):
