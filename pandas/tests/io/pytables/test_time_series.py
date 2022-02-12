@@ -10,7 +10,7 @@ from pandas import (
 )
 from pandas.tests.io.pytables.common import ensure_clean_store
 
-pytestmark = pytest.mark.single
+pytestmark = pytest.mark.single_cpu
 
 
 def test_store_datetime_fractional_secs(setup_path):

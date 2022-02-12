@@ -14,7 +14,7 @@ from pandas import (
 )
 import pandas._testing as tm
 
-# TODO(GH#44584): Mark these as pytest.mark.single
+# TODO(GH#44584): Mark these as pytest.mark.single_cpu
 pytestmark = pytest.mark.skipif(
     is_ci_environment() and (is_platform_windows() or is_platform_mac()),
     reason="On Azure CI, Windows can fail with "

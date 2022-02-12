@@ -16,7 +16,7 @@ from pandas.tests.io.pytables.common import (
 )
 
 pytestmark = [
-    pytest.mark.single,
+    pytest.mark.single_cpu,
     # pytables https://github.com/PyTables/PyTables/issues/822
     pytest.mark.filterwarnings(
         "ignore:a closed node found in the registry:UserWarning"

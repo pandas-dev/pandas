@@ -40,7 +40,7 @@ from pandas.io.pytables import (
     read_hdf,
 )
 
-pytestmark = pytest.mark.single
+pytestmark = pytest.mark.single_cpu
 
 
 def test_context(setup_path):
