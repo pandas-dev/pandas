@@ -22,6 +22,7 @@ jobs:
     defaults:
       run:
         shell: bash -l {0}
+    timeout-minutes: 120
     strategy:
       matrix:
         settings: [
