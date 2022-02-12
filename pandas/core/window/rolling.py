@@ -435,7 +435,8 @@ class BaseWindow(SelectionMixin):
             raise DataError("No numeric types to aggregate") from err
 
         result = homogeneous_func(values)
-        return obj._constructor(result, index=obj.index, name=obj.name)
+        index = obj.index if len(result) == len(obj.index) else obj.index[:: self.step]
+        return obj._constructor(result, index=index, name=obj.name)
 
     def _apply_blockwise(
         self, homogeneous_func: Callable[..., ArrayLike], name: str | None = None
@@ -472,9 +473,14 @@ class BaseWindow(SelectionMixin):
                 res_values.append(res)
                 taker.append(i)
 
+        index = (
+            obj.index
+            if len(res_values) == 0 or len(res_values[0]) == len(obj.index)
+            else obj.index[:: self.step]
+        )
         df = type(obj)._from_arrays(
             res_values,
-            index=obj.index,
+            index=index,
             columns=obj.columns.take(taker),
             verify_integrity=False,
         )
@@ -509,7 +515,13 @@ class BaseWindow(SelectionMixin):
         values = values.T if self.axis == 1 else values
         result = homogeneous_func(values)
         result = result.T if self.axis == 1 else result
-        out = obj._constructor(result, index=obj.index, columns=obj.columns)
+        index = obj.index if len(result) == len(obj.index) else obj.index[:: self.step]
+        columns = (
+            obj.columns
+            if result.shape[1] == len(obj.columns)
+            else obj.columns[:: self.step]
+        )
+        out = obj._constructor(result, index=index, columns=columns)
 
         return self._resolve_output(out, obj)
 
@@ -631,12 +643,18 @@ class BaseWindow(SelectionMixin):
         result = aggregator(values, start, end, min_periods, *func_args)
         NUMBA_FUNC_CACHE[(func, numba_cache_key_str)] = aggregator
         result = result.T if self.axis == 1 else result
+        index = obj.index if len(result) == len(obj.index) else obj.index[:: self.step]
         if obj.ndim == 1:
             result = result.squeeze()
-            out = obj._constructor(result, index=obj.index, name=obj.name)
+            out = obj._constructor(result, index=index, name=obj.name)
             return out
         else:
-            out = obj._constructor(result, index=obj.index, columns=obj.columns)
+            columns = (
+                obj.columns
+                if result.shape[1] == len(obj.columns)
+                else obj.columns[:: self.step]
+            )
+            out = obj._constructor(result, index=index, columns=columns)
             return self._resolve_output(out, obj)
 
     def aggregate(self, func, *args, **kwargs):
@@ -1588,6 +1606,9 @@ class RollingAndExpandingMixin(BaseWindow):
         ddof: int = 1,
         **kwargs,
     ):
+        if self.step not in [None, 1]:
+            raise NotImplementedError(f"invalid step: {self.step}")
+
         from pandas import Series
 
         def cov_func(x, y):
@@ -1629,6 +1650,9 @@ class RollingAndExpandingMixin(BaseWindow):
         ddof: int = 1,
         **kwargs,
     ):
+
+        if self.step not in [None, 1]:
+            raise NotImplementedError(f"invalid step: {self.step}")
 
         from pandas import Series
 
