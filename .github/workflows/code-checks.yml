@@ -156,3 +156,24 @@ jobs:
         name: Benchmarks log
         path: asv_bench/benchmarks.log
       if: failure()
+
+  build_docker_dev_environment:
+    name: Build Docker Dev Environment
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    concurrency:
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-pre-commit
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Build Docker Image
+        run: docker build --no-cache --tag pandas-dev-env .
