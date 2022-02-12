@@ -626,8 +626,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         group_index = get_group_index(
             codes, self.grouper.shape, sort=True, xnull=self.dropna
         )
-        if self.dropna:
-            # group_index can only be negative when passing xnull=True
+        if self.grouper.has_dropped_na:
             group_index = group_index[np.where(group_index >= 0)]
         sorter = get_group_index_sorter(group_index, len(group_index))
         return sorter
