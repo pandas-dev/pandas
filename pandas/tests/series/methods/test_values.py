@@ -30,7 +30,7 @@ class TestValues:
         )
 
     def test_values_multiplying_large_series_by_NA(self):
-
+        # GH#33701
         Int64NA = Series([np.nan], dtype=Int64Dtype()).iloc[0]
 
         result = Int64NA * Series(np.zeros(10001))
