@@ -38,6 +38,7 @@ def test_read_zipped_json(datapath):
 
 
 @td.skip_if_not_us_locale
+@pytest.mark.single_cpu
 @pytest.mark.xfail(
     reason="CI race condition GH 45433, GH 44584",
     raises=FileNotFoundError,

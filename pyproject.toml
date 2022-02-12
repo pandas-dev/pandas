@@ -48,7 +48,7 @@ filterwarnings = [
 ]
 junit_family = "xunit2"
 markers = [
-  "single: mark a test as single cpu only",
+  "single_cpu: mark a test that should run on a single cpu only",
   "slow: mark a test as slow",
   "network: mark a test as network",
   "db: tests requiring a database (mysql or postgres)",

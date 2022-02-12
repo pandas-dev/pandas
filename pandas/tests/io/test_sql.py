@@ -1276,7 +1276,6 @@ class _TestSQLApi(PandasSQLTest):
         tm.assert_frame_equal(res, df)
 
 
-@pytest.mark.single
 @pytest.mark.skipif(not SQLALCHEMY_INSTALLED, reason="SQLAlchemy not installed")
 class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
     """
@@ -1495,12 +1494,10 @@ class _EngineToConnMixin:
         self.pandasSQL = sql.SQLDatabase(self.__engine)
 
 
-@pytest.mark.single
 class TestSQLApiConn(_EngineToConnMixin, TestSQLApi):
     pass
 
 
-@pytest.mark.single
 class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
     """
     Test the public sqlite connection fallback API
@@ -2503,36 +2500,30 @@ class _TestPostgreSQLAlchemy:
             tm.assert_frame_equal(res1, res2)
 
 
-@pytest.mark.single
 @pytest.mark.db
 class TestMySQLAlchemy(_TestMySQLAlchemy, _TestSQLAlchemy):
     pass
 
 
-@pytest.mark.single
 @pytest.mark.db
 class TestMySQLAlchemyConn(_TestMySQLAlchemy, _TestSQLAlchemyConn):
     pass
 
 
-@pytest.mark.single
 @pytest.mark.db
 class TestPostgreSQLAlchemy(_TestPostgreSQLAlchemy, _TestSQLAlchemy):
     pass
 
 
-@pytest.mark.single
 @pytest.mark.db
 class TestPostgreSQLAlchemyConn(_TestPostgreSQLAlchemy, _TestSQLAlchemyConn):
     pass
 
 
-@pytest.mark.single
 class TestSQLiteAlchemy(_TestSQLiteAlchemy, _TestSQLAlchemy):
     pass
 
 
-@pytest.mark.single
 class TestSQLiteAlchemyConn(_TestSQLiteAlchemy, _TestSQLAlchemyConn):
     pass
 
@@ -2541,7 +2532,6 @@ class TestSQLiteAlchemyConn(_TestSQLiteAlchemy, _TestSQLAlchemyConn):
 # -- Test Sqlite / MySQL fallback
 
 
-@pytest.mark.single
 class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
     """
     Test the fallback mode against an in-memory sqlite database.
