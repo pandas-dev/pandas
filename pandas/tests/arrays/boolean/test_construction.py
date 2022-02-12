@@ -183,8 +183,11 @@ def test_coerce_to_array():
     values = np.array([True, False, True, False], dtype="bool")
     mask = np.array([False, False, False, True], dtype="bool")
 
+    # passing 2D values is OK as long as no mask
+    coerce_to_array(values.reshape(1, -1))
+
     with pytest.raises(ValueError, match="values.shape and mask.shape must match"):
-        coerce_to_array(values.reshape(1, -1))
+        coerce_to_array(values.reshape(1, -1), mask=mask)
 
     with pytest.raises(ValueError, match="values.shape and mask.shape must match"):
         coerce_to_array(values, mask=mask.reshape(1, -1))
