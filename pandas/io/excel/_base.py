@@ -272,15 +272,7 @@ mangle_dupe_cols : bool, default True
     Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
     'X'...'X'. Passing in False will cause data to be overwritten if there
     are duplicate names in the columns.
-storage_options : dict, optional
-    Extra options that make sense for a particular storage connection, e.g.
-    host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
-    are forwarded to ``urllib`` as header options. For other URLs (e.g.
-    starting with "s3://", and "gcs://") the key-value pairs are forwarded to
-    ``fsspec``. Please see ``fsspec`` and ``urllib`` for more details,
-    and for more examples on storage options refer `here
-    <https://pandas.pydata.org/docs/user_guide/io.html?
-    highlight=storage_options#reading-writing-remote-files>`_.
+{storage_options}
 
     .. versionadded:: 1.2.0
 
@@ -424,6 +416,7 @@ def read_excel(
 
 @deprecate_nonkeyword_arguments(allowed_args=["io", "sheet_name"], version="2.0")
 @Appender(_read_excel_doc)
+@doc(storage_options=_shared_docs["storage_options"])
 def read_excel(
     io,
     sheet_name: str | int | list[IntStrT] | None = 0,
@@ -798,15 +791,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         (e.g. 'YYYY-MM-DD HH:MM:SS').
     mode : {'w', 'a'}, default 'w'
         File mode to use (write or append). Append does not work with fsspec URLs.
-    storage_options : dict, optional
-        Extra options that make sense for a particular storage connection, e.g.
-        host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
-        are forwarded to ``urllib`` as header options. For other URLs (e.g.
-        starting with "s3://", and "gcs://") the key-value pairs are forwarded to
-        ``fsspec``. Please see ``fsspec`` and ``urllib`` for more details,
-        and for more examples on storage options refer `here
-        <https://pandas.pydata.org/docs/user_guide/io.html?
-        highlight=storage_options#reading-writing-remote-files>`_.
+    {storage_options}
 
         .. versionadded:: 1.2.0
 
