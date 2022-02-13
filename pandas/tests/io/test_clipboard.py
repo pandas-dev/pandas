@@ -148,7 +148,7 @@ def test_mock_clipboard(mock_clipboard):
     assert result == "abc"
 
 
-@pytest.mark.single
+@pytest.mark.single_cpu
 @pytest.mark.clipboard
 @pytest.mark.usefixtures("mock_clipboard")
 class TestClipboard:

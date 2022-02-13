@@ -14,7 +14,7 @@ filter_sparse = pytest.mark.filterwarnings("ignore:The Sparse")
 
 
 @filter_sparse
-@pytest.mark.single
+@pytest.mark.single_cpu
 @pytest.mark.filterwarnings("ignore:CategoricalBlock is deprecated:DeprecationWarning")
 class TestFeather:
     def check_error_on_write(self, df, exc, err_msg):
