@@ -1273,3 +1273,40 @@ class TestReadHtml:
         df1 = self.read_html(file_path_string)[0]
         df2 = self.read_html(file_path)[0]
         tm.assert_frame_equal(df1, df2)
+
+    def test_parse_br_as_space(self):
+        # GH 29528: pd.read_html() convert <br> to space
+        result = self.read_html("""
+            <table>
+                <tr>
+                    <th>A</th>
+                </tr>
+                <tr>
+                    <td>world1<br>word2</td>
+                </tr>
+            </table>
+        """)[0]
+
+        expected = DataFrame(data=[["word1 word2"]], columns=["A"])
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_parse_br_tail_retained(self):
+        # Ensure text after br are retained when they are replaced with a space.
+        # See:
+        #   https://stackoverflow.com/q/33281217 and
+        #   https://stackoverflow.com/questions/12545897/convert-br-to-end-line/48628074#comment84810813_34640357
+        result = self.read_html("""
+            <table>
+                <tr>
+                    <th>A</th>
+                </tr>
+                <tr>
+                    <td>world1<br>word2</td>
+                </tr>
+            </table>
+        """)[0]
+
+        expected = DataFrame(data=[["word1 word2"]], columns=["A"])
+
+        tm.assert_frame_equal(result, expected)
