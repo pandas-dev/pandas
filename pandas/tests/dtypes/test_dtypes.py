@@ -1119,4 +1119,3 @@ def test_skip_convert_nan_values_to_strings(self, array):
     expected = pd.Series(array)
 
     tm.assert_series_equal(result, expected)
-
