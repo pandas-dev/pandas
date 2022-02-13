@@ -30,7 +30,7 @@ from pandas.util import _test_decorators as td
 _default_compressor = "blosc"
 
 
-pytestmark = pytest.mark.single
+pytestmark = pytest.mark.single_cpu
 
 
 def test_conv_read_write(setup_path):

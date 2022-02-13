@@ -1331,6 +1331,7 @@ def test_unsuported_compression(datapath, parser):
 # STORAGE OPTIONS
 
 
+@pytest.mark.single_cpu
 @td.skip_if_no("s3fs")
 @td.skip_if_no("lxml")
 def test_s3_permission_output(parser, s3_resource):
