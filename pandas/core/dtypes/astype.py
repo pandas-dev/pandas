@@ -224,7 +224,7 @@ def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> Arra
         values = values.astype(dtype, copy=copy)
 
     else:
-        values = astype_nansafe(values, dtype, copy=copy)
+        values = astype_nansafe(values, dtype, copy=copy, skipna=True)
 
     # in pandas we don't store numpy str dtypes, so convert to object
     if isinstance(dtype, np.dtype) and issubclass(values.dtype.type, str):
