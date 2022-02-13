@@ -16,16 +16,15 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.computation.check import NUMEXPR_INSTALLED
 
-PARSERS = "python", "pandas"
-ENGINES = "python", pytest.param("numexpr", marks=td.skip_if_no_ne)
 
-
-@pytest.fixture(params=PARSERS, ids=lambda x: x)
+@pytest.fixture(params=["python", "pandas"], ids=lambda x: x)
 def parser(request):
     return request.param
 
 
-@pytest.fixture(params=ENGINES, ids=lambda x: x)
+@pytest.fixture(
+    params=["python", pytest.param("numexpr", marks=td.skip_if_no_ne)], ids=lambda x: x
+)
 def engine(request):
     return request.param
 

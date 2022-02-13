@@ -10,11 +10,9 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.arrays import SparseArray
 
-UNARY_UFUNCS = [np.positive, np.floor, np.exp]
 BINARY_UFUNCS = [np.add, np.logaddexp]  # dunder op
 SPARSE = [True, False]
 SPARSE_IDS = ["sparse", "dense"]
-SHUFFLE = [True, False]
 
 
 @pytest.fixture
@@ -29,7 +27,7 @@ def arrays_for_binary_ufunc():
     return a1, a2
 
 
-@pytest.mark.parametrize("ufunc", UNARY_UFUNCS)
+@pytest.mark.parametrize("ufunc", [np.positive, np.floor, np.exp])
 @pytest.mark.parametrize("sparse", SPARSE, ids=SPARSE_IDS)
 def test_unary_ufunc(ufunc, sparse):
     # Test that ufunc(pd.Series) == pd.Series(ufunc)
@@ -174,7 +172,7 @@ def test_binary_ufunc_scalar(ufunc, sparse, flip, arrays_for_binary_ufunc):
 
 @pytest.mark.parametrize("ufunc", [np.divmod])  # TODO: np.modf, np.frexp
 @pytest.mark.parametrize("sparse", SPARSE, ids=SPARSE_IDS)
-@pytest.mark.parametrize("shuffle", SHUFFLE)
+@pytest.mark.parametrize("shuffle", [True, False])
 @pytest.mark.filterwarnings("ignore:divide by zero:RuntimeWarning")
 def test_multiple_output_binary_ufuncs(ufunc, sparse, shuffle, arrays_for_binary_ufunc):
     # Test that
