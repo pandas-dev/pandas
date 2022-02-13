@@ -109,6 +109,32 @@ apply converter methods, and parse dates (:issue:`43567`).
     df
     df.dtypes
 
+read_html now supports ``extract_hrefs``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`pandas.read_html` can now extract hrefs from table cells (:issue:`13141`).
+
+.. ipython:: python
+
+    html_table = """
+    <table>
+      <tr>
+        <th>GitHub</th>
+      </tr>
+      <tr>
+        <td><a href="https://github.com/pandas-dev/pandas">pandas</a></td>
+      </tr>
+    </table>
+    """
+
+    df = pd.read_html(
+        html_table,
+        extract_hrefs=True
+    )[0]
+    df
+    df["GitHub"]
+    df["GitHub"].str[1]
+
 .. _whatsnew_150.api_breaking.api_breaking2:
 
 api_breaking_change2

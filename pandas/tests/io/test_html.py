@@ -1286,3 +1286,57 @@ class TestReadHtml:
         df1 = self.read_html(file_path_string)[0]
         df2 = self.read_html(file_path)[0]
         tm.assert_frame_equal(df1, df2)
+
+    def test_extract_hrefs(self):
+        # GH 13141:
+        # read_html argument to interpret hyperlinks as links (not merely text)
+        result = self.read_html(
+            """
+          <table>
+            <tr>
+              <th>Kingdom</th>
+              <th>Phylum</th>
+              <th>Class</th>
+              <th>Order</th>
+              <th>Family</th>
+              <th>Genus</th>
+              <th>Species</th>
+            </tr>
+            <tr>
+              <td><a href="https://en.wikipedia.org/wiki/Animal">Animalia</a></td>
+              <td><a href="https://en.wikipedia.org/wiki/Chordate">Chordata</a></td>
+              <td><a href="https://en.wikipedia.org/wiki/Mammal">Mammalia</a></td>
+              <td><a href="https://en.wikipedia.org/wiki/Carnivora">Carnivora</a></td>
+              <td><a href="https://en.wikipedia.org/wiki/Bear">Ursidae</a></td>
+              <td><a href="https://en.wikipedia.org/wiki/Ailuropoda">Ailuropoda</a></td>
+              <td>A. melanoleuca</td>
+            </tr>
+          </table>
+          """,
+            extract_hrefs=True,
+        )[0]
+
+        expected = DataFrame(
+            [
+                [
+                    ("Animalia", "https://en.wikipedia.org/wiki/Animal"),
+                    ("Chordata", "https://en.wikipedia.org/wiki/Chordate"),
+                    ("Mammalia", "https://en.wikipedia.org/wiki/Mammal"),
+                    ("Carnivora", "https://en.wikipedia.org/wiki/Carnivora"),
+                    ("Ursidae", "https://en.wikipedia.org/wiki/Bear"),
+                    ("Ailuropoda", "https://en.wikipedia.org/wiki/Ailuropoda"),
+                    ("A. melanoleuca",),
+                ]
+            ],
+            columns=(
+                "Kingdom",
+                "Phylum",
+                "Class",
+                "Order",
+                "Family",
+                "Genus",
+                "Species",
+            ),
+        )
+
+        tm.assert_frame_equal(result, expected)

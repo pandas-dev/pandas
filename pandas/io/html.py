@@ -180,6 +180,9 @@ class _HtmlFrameParser:
     displayed_only : bool
         Whether or not items with "display:none" should be ignored
 
+    extract_hrefs : bool, default False
+        Whether table elements with <a> tags should have the href extracted.
+
     Attributes
     ----------
     io : str or file-like
@@ -198,11 +201,15 @@ class _HtmlFrameParser:
     displayed_only : bool
         Whether or not items with "display:none" should be ignored
 
+    extract_hrefs : bool, default False
+        Whether table elements with <a> tags should have the href extracted.
+
     Notes
     -----
     To subclass this class effectively you must override the following methods:
         * :func:`_build_doc`
         * :func:`_attr_getter`
+        * :func:`_href_getter`
         * :func:`_text_getter`
         * :func:`_parse_td`
         * :func:`_parse_thead_tr`
@@ -221,12 +228,14 @@ class _HtmlFrameParser:
         attrs: dict[str, str] | None,
         encoding: str,
         displayed_only: bool,
+        extract_hrefs: bool,
     ):
         self.io = io
         self.match = match
         self.attrs = attrs
         self.encoding = encoding
         self.displayed_only = displayed_only
+        self.extract_hrefs = extract_hrefs
 
     def parse_tables(self):
         """
@@ -258,6 +267,22 @@ class _HtmlFrameParser:
         """
         # Both lxml and BeautifulSoup have the same implementation:
         return obj.get(attr)
+
+    def _href_getter(self, obj):
+        """
+        Return a href if the DOM node contains a child <a> or None.
+
+        Parameters
+        ----------
+        obj : node-like
+            A DOM node.
+
+        Returns
+        -------
+        href : str or unicode
+            The href from the <a> child of the DOM node.
+        """
+        raise AbstractMethodError(self)
 
     def _text_getter(self, obj):
         """
@@ -435,13 +460,13 @@ class _HtmlFrameParser:
             while body_rows and row_is_all_th(body_rows[0]):
                 header_rows.append(body_rows.pop(0))
 
-        header = self._expand_colspan_rowspan(header_rows)
+        header = self._expand_colspan_rowspan(header_rows, header=True)
         body = self._expand_colspan_rowspan(body_rows)
         footer = self._expand_colspan_rowspan(footer_rows)
 
         return header, body, footer
 
-    def _expand_colspan_rowspan(self, rows):
+    def _expand_colspan_rowspan(self, rows, header=False):
         """
         Given a list of <tr>s, return a list of text rows.
 
@@ -449,6 +474,8 @@ class _HtmlFrameParser:
         ----------
         rows : list of node-like
             List of <tr>s
+        header : whether the current row is the header - don't capture links if so,
+            as this results in a MultiIndex which is undesirable.
 
         Returns
         -------
@@ -481,6 +508,11 @@ class _HtmlFrameParser:
 
                 # Append the text from this <td>, colspan times
                 text = _remove_whitespace(self._text_getter(td))
+                if not header and self.extract_hrefs:
+                    # All cells will be tuples except for the headers for
+                    # consistency in selection (e.g. using .str indexing)
+                    href = self._href_getter(td)
+                    text = (text, href) if href else (text,)
                 rowspan = int(self._attr_getter(td, "rowspan") or 1)
                 colspan = int(self._attr_getter(td, "colspan") or 1)
 
@@ -585,6 +617,10 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
             raise ValueError(f"No tables found matching pattern {repr(match.pattern)}")
         return result
 
+    def _href_getter(self, obj):
+        a = obj.find("a", href=True)
+        return None if not a else a["href"]
+
     def _text_getter(self, obj):
         return obj.text
 
@@ -669,6 +705,10 @@ class _LxmlFrameParser(_HtmlFrameParser):
     Documentation strings for this class are in the base class
     :class:`_HtmlFrameParser`.
     """
+
+    def _href_getter(self, obj):
+        href = obj.xpath(".//a/@href")
+        return None if not href else href[0]
 
     def _text_getter(self, obj):
         return obj.text_content()
@@ -906,14 +946,14 @@ def _validate_flavor(flavor):
     return flavor
 
 
-def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
+def _parse(flavor, io, match, attrs, encoding, displayed_only, extract_hrefs, **kwargs):
     flavor = _validate_flavor(flavor)
     compiled_match = re.compile(match)  # you can pass a compiled regex here
 
     retained = None
     for flav in flavor:
         parser = _parser_dispatch(flav)
-        p = parser(io, compiled_match, attrs, encoding, displayed_only)
+        p = parser(io, compiled_match, attrs, encoding, displayed_only, extract_hrefs)
 
         try:
             tables = p.parse_tables()
@@ -964,6 +1004,7 @@ def read_html(
     na_values=None,
     keep_default_na: bool = True,
     displayed_only: bool = True,
+    extract_hrefs: bool = False,
 ) -> list[DataFrame]:
     r"""
     Read HTML tables into a ``list`` of ``DataFrame`` objects.
@@ -1058,6 +1099,9 @@ def read_html(
     displayed_only : bool, default True
         Whether elements with "display: none" should be parsed.
 
+    extract_hrefs : bool, default False
+        Whether table elements with <a> tags should have the href extracted.
+
     Returns
     -------
     dfs
@@ -1126,4 +1170,5 @@ def read_html(
         na_values=na_values,
         keep_default_na=keep_default_na,
         displayed_only=displayed_only,
+        extract_hrefs=extract_hrefs,
     )
