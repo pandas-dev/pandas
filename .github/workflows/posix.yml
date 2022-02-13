@@ -26,15 +26,15 @@ jobs:
     strategy:
       matrix:
         settings: [
-          [actions-38-downstream_compat.yaml, "not slow and not network", "", "", "", "", ""],
-          [actions-38-minimum_versions.yaml, "", "", "", "", "", ""],
-          [actions-38.yaml, "not slow and not network", "language-pack-it", "it_IT.utf8", "it_IT.utf8", "", ""],
-          [actions-38.yaml, "not slow and not network", "language-pack-zh-hans", "zh_CN.utf8", "zh_CN.utf8", "", ""],
-          [actions-38.yaml, "", "", "", "", "", ""],
-          [actions-pypy-38.yaml, "not slow", "", "", "", "", "--max-worker-restart 0"],
-          [actions-39.yaml, "", "", "", "", "", ""],
-          [actions-310-numpydev.yaml, "not slow and not network", "", "", "", "deprecate", "-W error"],
-          [actions-310.yaml, "", "", "", "", "", ""],
+          [actions-38-downstream_compat.yaml, "not slow and not network and not single_cpu", "", "", "", "", ""],
+          [actions-38-minimum_versions.yaml, "not single_cpu", "", "", "", "", ""],
+          [actions-38.yaml, "not slow and not network and not single_cpu", "language-pack-it", "it_IT.utf8", "it_IT.utf8", "", ""],
+          [actions-38.yaml, "not slow and not network and not single_cpu", "language-pack-zh-hans", "zh_CN.utf8", "zh_CN.utf8", "", ""],
+          [actions-38.yaml, "not single_cpu", "", "", "", "", ""],
+          [actions-pypy-38.yaml, "not slow and not single_cpu", "", "", "", "", "--max-worker-restart 0"],
+          [actions-39.yaml, "not single_cpu", "", "", "", "", ""],
+          [actions-310-numpydev.yaml, "not slow and not network and not single_cpu", "", "", "", "deprecate", "-W error"],
+          [actions-310.yaml, "not single_cpu", "", "", "", "", ""],
         ]
       fail-fast: false
     env:

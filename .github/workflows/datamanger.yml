@@ -46,7 +46,7 @@ jobs:
     - name: Run tests
       env:
         PANDAS_DATA_MANAGER: array
-        PATTERN: "not network and not clipboard"
+        PATTERN: "not network and not clipboard and not single_cpu"
         PYTEST_WORKERS: "auto"
         PYTEST_TARGET: pandas
       run: |
