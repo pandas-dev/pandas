@@ -23,7 +23,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.api import UInt64Index
-from pandas.core.arrays.integer import coerce_to_array
 
 
 def _check_cast(df, v):
@@ -222,10 +221,13 @@ class TestAstype:
         # in the keys of the dtype dict
         dt4 = dtype_class({"b": str, 2: str})
         dt5 = dtype_class({"e": str})
-        msg = "Only a column name can be used for the key in a dtype mappings argument"
-        with pytest.raises(KeyError, match=msg):
+        msg_frame = (
+            "Only a column name can be used for the key in a dtype mappings argument. "
+            "'{}' not found in columns."
+        )
+        with pytest.raises(KeyError, match=msg_frame.format(2)):
             df.astype(dt4)
-        with pytest.raises(KeyError, match=msg):
+        with pytest.raises(KeyError, match=msg_frame.format("e")):
             df.astype(dt5)
         tm.assert_frame_equal(df, original)
 
@@ -259,6 +261,26 @@ class TestAstype:
 
         result = df.astype({"a": "str"})
         expected = concat([a1_str, b, a2_str], axis=1)
+        tm.assert_frame_equal(result, expected)
+
+    def test_astype_duplicate_col_series_arg(self):
+        # GH#44417
+        vals = np.random.randn(3, 4)
+        df = DataFrame(vals, columns=["A", "B", "C", "A"])
+        dtypes = df.dtypes
+        dtypes.iloc[0] = str
+        dtypes.iloc[2] = "Float64"
+
+        result = df.astype(dtypes)
+        expected = DataFrame(
+            {
+                0: vals[:, 0].astype(str),
+                1: vals[:, 1],
+                2: pd.array(vals[:, 2], dtype="Float64"),
+                3: vals[:, 3],
+            }
+        )
+        expected.columns = df.columns
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -432,10 +454,10 @@ class TestAstype:
         msg = "|".join(
             [
                 # BlockManager path
-                fr"Cannot cast DatetimeArray to dtype timedelta64\[{unit}\]",
+                rf"Cannot cast DatetimeArray to dtype timedelta64\[{unit}\]",
                 # ArrayManager path
                 "cannot astype a datetimelike from "
-                fr"\[datetime64\[ns\]\] to \[timedelta64\[{unit}\]\]",
+                rf"\[datetime64\[ns\]\] to \[timedelta64\[{unit}\]\]",
             ]
         )
         with pytest.raises(TypeError, match=msg):
@@ -444,10 +466,10 @@ class TestAstype:
         msg = "|".join(
             [
                 # BlockManager path
-                fr"Cannot cast TimedeltaArray to dtype datetime64\[{unit}\]",
+                rf"Cannot cast TimedeltaArray to dtype datetime64\[{unit}\]",
                 # ArrayManager path
                 "cannot astype a timedelta from "
-                fr"\[timedelta64\[ns\]\] to \[datetime64\[{unit}\]\]",
+                rf"\[timedelta64\[ns\]\] to \[datetime64\[{unit}\]\]",
             ]
         )
         df = DataFrame(np.array([[1, 2, 3]], dtype=other))
@@ -691,6 +713,16 @@ class TestAstype:
         expected = df.iloc[index_slice]
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
+    def test_astype_retain_attrs(self, any_numpy_dtype):
+        # GH#44414
+        df = DataFrame({"a": [0, 1, 2], "b": [3, 4, 5]})
+        df.attrs["Location"] = "Michigan"
+
+        result = df.astype({"a": any_numpy_dtype}).attrs
+        expected = df.attrs
+
+        tm.assert_dict_equal(expected, result)
+
 
 class TestAstypeCategorical:
     def test_astype_from_categorical3(self):
@@ -732,7 +764,7 @@ class IntegerArrayNoCopy(pd.core.arrays.IntegerArray):
 
     @classmethod
     def _from_sequence(cls, scalars, *, dtype=None, copy=False):
-        values, mask = coerce_to_array(scalars, dtype=dtype, copy=copy)
+        values, mask = cls._coerce_to_array(scalars, dtype=dtype, copy=copy)
         return IntegerArrayNoCopy(values, mask)
 
     def copy(self):

@@ -15,20 +15,39 @@ from pandas import (
     CategoricalIndex,
     DataFrame,
     Index,
+    Interval,
     IntervalIndex,
     MultiIndex,
     RangeIndex,
     Series,
     Timestamp,
+    cut,
     date_range,
 )
 import pandas._testing as tm
 
 
+@pytest.fixture()
+def multiindex_df():
+    levels = [["A", ""], ["B", "b"]]
+    return DataFrame([[0, 2], [1, 3]], columns=MultiIndex.from_tuples(levels))
+
+
 class TestResetIndex:
+    def test_reset_index_empty_rangeindex(self):
+        # GH#45230
+        df = DataFrame(
+            columns=["brand"], dtype=np.int64, index=RangeIndex(0, 0, 1, name="foo")
+        )
+
+        df2 = df.set_index([df.index, "brand"])
+
+        result = df2.reset_index([1], drop=True)
+        tm.assert_frame_equal(result, df[[]], check_index_type=True)
+
     def test_set_reset(self):
 
-        idx = Index([2 ** 63, 2 ** 63 + 5, 2 ** 63 + 10], name="foo")
+        idx = Index([2**63, 2**63 + 5, 2**63 + 10], name="foo")
 
         # set/reset
         df = DataFrame({"A": [0, 1, 2]}, index=idx)
@@ -144,32 +163,31 @@ class TestResetIndex:
         df = float_frame.reset_index().set_index(["index", "A", "B"])
         rs = df.reset_index(["A", "B"])
 
-        # TODO should reset_index check_names ?
-        tm.assert_frame_equal(rs, float_frame, check_names=False)
+        tm.assert_frame_equal(rs, float_frame)
 
         rs = df.reset_index(["index", "A", "B"])
-        tm.assert_frame_equal(rs, float_frame.reset_index(), check_names=False)
+        tm.assert_frame_equal(rs, float_frame.reset_index())
 
         rs = df.reset_index(["index", "A", "B"])
-        tm.assert_frame_equal(rs, float_frame.reset_index(), check_names=False)
+        tm.assert_frame_equal(rs, float_frame.reset_index())
 
         rs = df.reset_index("A")
         xp = float_frame.reset_index().set_index(["index", "B"])
-        tm.assert_frame_equal(rs, xp, check_names=False)
+        tm.assert_frame_equal(rs, xp)
 
         # test resetting in place
         df = float_frame.copy()
         reset = float_frame.reset_index()
         return_value = df.reset_index(inplace=True)
         assert return_value is None
-        tm.assert_frame_equal(df, reset, check_names=False)
+        tm.assert_frame_equal(df, reset)
 
         df = float_frame.reset_index().set_index(["index", "A", "B"])
         rs = df.reset_index("A", drop=True)
         xp = float_frame.copy()
         del xp["A"]
         xp = xp.set_index(["B"], append=True)
-        tm.assert_frame_equal(rs, xp, check_names=False)
+        tm.assert_frame_equal(rs, xp)
 
     def test_reset_index_name(self):
         df = DataFrame(
@@ -220,7 +238,7 @@ class TestResetIndex:
     def test_reset_index_right_dtype(self):
         time = np.arange(0.0, 10, np.sqrt(2) / 2)
         s1 = Series(
-            (9.81 * time ** 2) / 2, index=Index(time, name="time"), name="speed"
+            (9.81 * time**2) / 2, index=Index(time, name="time"), name="speed"
         )
         df = DataFrame(s1)
 
@@ -369,33 +387,31 @@ class TestResetIndex:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_reset_index_multiindex_columns(self):
-        levels = [["A", ""], ["B", "b"]]
-        df = DataFrame([[0, 2], [1, 3]], columns=MultiIndex.from_tuples(levels))
-        result = df[["B"]].rename_axis("A").reset_index()
-        tm.assert_frame_equal(result, df)
+    def test_reset_index_multiindex_columns(self, multiindex_df):
+        result = multiindex_df[["B"]].rename_axis("A").reset_index()
+        tm.assert_frame_equal(result, multiindex_df)
 
         # GH#16120: already existing column
         msg = r"cannot insert \('A', ''\), already exists"
         with pytest.raises(ValueError, match=msg):
-            df.rename_axis("A").reset_index()
+            multiindex_df.rename_axis("A").reset_index()
 
         # GH#16164: multiindex (tuple) full key
-        result = df.set_index([("A", "")]).reset_index()
-        tm.assert_frame_equal(result, df)
+        result = multiindex_df.set_index([("A", "")]).reset_index()
+        tm.assert_frame_equal(result, multiindex_df)
 
         # with additional (unnamed) index level
         idx_col = DataFrame(
             [[0], [1]], columns=MultiIndex.from_tuples([("level_0", "")])
         )
-        expected = pd.concat([idx_col, df[[("B", "b"), ("A", "")]]], axis=1)
-        result = df.set_index([("B", "b")], append=True).reset_index()
+        expected = pd.concat([idx_col, multiindex_df[[("B", "b"), ("A", "")]]], axis=1)
+        result = multiindex_df.set_index([("B", "b")], append=True).reset_index()
         tm.assert_frame_equal(result, expected)
 
         # with index name which is a too long tuple...
         msg = "Item must have length equal to number of levels."
         with pytest.raises(ValueError, match=msg):
-            df.rename_axis([("C", "c", "i")]).reset_index()
+            multiindex_df.rename_axis([("C", "c", "i")]).reset_index()
 
         # or too short...
         levels = [["A", "a", ""], ["B", "b", "i"]]
@@ -420,6 +436,45 @@ class TestResetIndex:
         # with col_level != 0
         result = df2.rename_axis([("c", "ii")]).reset_index(col_level=1, col_fill="C")
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("flag", [False, True])
+    @pytest.mark.parametrize("allow_duplicates", [False, True])
+    def test_reset_index_duplicate_columns_allow(
+        self, multiindex_df, flag, allow_duplicates
+    ):
+        # GH#44755 reset_index with duplicate column labels
+        df = multiindex_df.rename_axis("A")
+        df = df.set_flags(allows_duplicate_labels=flag)
+
+        if flag and allow_duplicates:
+            result = df.reset_index(allow_duplicates=allow_duplicates)
+            levels = [["A", ""], ["A", ""], ["B", "b"]]
+            expected = DataFrame(
+                [[0, 0, 2], [1, 1, 3]], columns=MultiIndex.from_tuples(levels)
+            )
+            tm.assert_frame_equal(result, expected)
+        else:
+            if not flag and allow_duplicates:
+                msg = "Cannot specify 'allow_duplicates=True' when "
+                "'self.flags.allows_duplicate_labels' is False"
+            else:
+                msg = r"cannot insert \('A', ''\), already exists"
+            with pytest.raises(ValueError, match=msg):
+                df.reset_index(allow_duplicates=allow_duplicates)
+
+    @pytest.mark.parametrize("flag", [False, True])
+    def test_reset_index_duplicate_columns_default(self, multiindex_df, flag):
+        df = multiindex_df.rename_axis("A")
+        df = df.set_flags(allows_duplicate_labels=flag)
+
+        msg = r"cannot insert \('A', ''\), already exists"
+        with pytest.raises(ValueError, match=msg):
+            df.reset_index()
+
+    @pytest.mark.parametrize("allow_duplicates", ["bad value"])
+    def test_reset_index_allow_duplicates_check(self, multiindex_df, allow_duplicates):
+        with pytest.raises(ValueError, match="expected type bool"):
+            multiindex_df.reset_index(allow_duplicates=allow_duplicates)
 
     @pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning")
     def test_reset_index_datetime(self, tz_naive_fixture):
@@ -682,4 +737,17 @@ def test_drop_pos_args_deprecation():
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = df.reset_index("a", False)
     expected = DataFrame({"a": [1, 2, 3]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_reset_index_interval_columns_object_cast():
+    # GH 19136
+    df = DataFrame(
+        np.eye(2), index=Index([1, 2], name="Year"), columns=cut([1, 2], [0, 1, 2])
+    )
+    result = df.reset_index()
+    expected = DataFrame(
+        [[1, 1.0, 0.0], [2, 0.0, 1.0]],
+        columns=Index(["Year", Interval(0, 1), Interval(1, 2)]),
+    )
     tm.assert_frame_equal(result, expected)

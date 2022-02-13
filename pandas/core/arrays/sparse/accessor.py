@@ -339,11 +339,15 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
             dtype = dtype.subtype
 
         cols, rows, data = [], [], []
-        for col, (_, ser) in enumerate(self._parent.iteritems()):
-            row = ser.array.sp_index.to_int_index().indices
+        for col, (_, ser) in enumerate(self._parent.items()):
+            sp_arr = ser.array
+            if sp_arr.fill_value != 0:
+                raise ValueError("fill value must be 0 when converting to COO matrix")
+
+            row = sp_arr.sp_index.indices
             cols.append(np.repeat(col, len(row)))
             rows.append(row)
-            data.append(ser.array.sp_values.astype(dtype, copy=False))
+            data.append(sp_arr.sp_values.astype(dtype, copy=False))
 
         cols = np.concatenate(cols)
         rows = np.concatenate(rows)

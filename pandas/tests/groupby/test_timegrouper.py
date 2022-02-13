@@ -100,7 +100,7 @@ class TestGroupBy:
             expected = DataFrame(
                 {"Quantity": 0},
                 index=date_range(
-                    "20130901", "20131205", freq="5D", name="Date", closed="left"
+                    "20130901", "20131205", freq="5D", name="Date", inclusive="left"
                 ),
             )
             expected.iloc[[0, 6, 18], 0] = np.array([24, 6, 9], dtype="int64")

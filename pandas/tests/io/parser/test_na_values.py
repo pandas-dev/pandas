@@ -17,6 +17,7 @@ from pandas import (
 import pandas._testing as tm
 
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
+xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 
 @skip_pyarrow
@@ -468,12 +469,12 @@ def test_na_values_dict_col_index(all_parsers):
     "data,kwargs,expected",
     [
         (
-            str(2 ** 63) + "\n" + str(2 ** 63 + 1),
-            {"na_values": [2 ** 63]},
-            DataFrame([str(2 ** 63), str(2 ** 63 + 1)]),
+            str(2**63) + "\n" + str(2**63 + 1),
+            {"na_values": [2**63]},
+            DataFrame([str(2**63), str(2**63 + 1)]),
         ),
-        (str(2 ** 63) + ",1" + "\n,2", {}, DataFrame([[str(2 ** 63), 1], ["", 2]])),
-        (str(2 ** 63) + "\n1", {"na_values": [2 ** 63]}, DataFrame([np.nan, 1])),
+        (str(2**63) + ",1" + "\n,2", {}, DataFrame([[str(2**63), 1], ["", 2]])),
+        (str(2**63) + "\n1", {"na_values": [2**63]}, DataFrame([np.nan, 1])),
     ],
 )
 def test_na_values_uint64(all_parsers, data, kwargs, expected):
@@ -614,4 +615,42 @@ def test_nan_multi_index(all_parsers):
         }
     )
 
+    tm.assert_frame_equal(result, expected)
+
+
+@xfail_pyarrow
+def test_bool_and_nan_to_bool(all_parsers):
+    # GH#42808
+    parser = all_parsers
+    data = """0
+NaN
+True
+False
+"""
+    with pytest.raises(ValueError, match="NA values"):
+        parser.read_csv(StringIO(data), dtype="bool")
+
+
+def test_bool_and_nan_to_int(all_parsers):
+    # GH#42808
+    parser = all_parsers
+    data = """0
+NaN
+True
+False
+"""
+    with pytest.raises(ValueError, match="convert|NoneType"):
+        parser.read_csv(StringIO(data), dtype="int")
+
+
+def test_bool_and_nan_to_float(all_parsers):
+    # GH#42808
+    parser = all_parsers
+    data = """0
+NaN
+True
+False
+"""
+    result = parser.read_csv(StringIO(data), dtype="float")
+    expected = DataFrame.from_dict({"0": [np.nan, 1.0, 0.0]})
     tm.assert_frame_equal(result, expected)

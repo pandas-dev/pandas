@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import pandas._libs.index as _index
 from pandas.errors import PerformanceWarning
@@ -15,7 +16,6 @@ import pandas._testing as tm
 
 class TestMultiIndexBasic:
     def test_multiindex_perf_warn(self):
-
         df = DataFrame(
             {
                 "jim": [0, 0, 1, 1],
@@ -47,7 +47,6 @@ class TestMultiIndexBasic:
         _index._SIZE_CUTOFF = old_cutoff
 
     def test_multi_nan_indexing(self):
-
         # GH 3588
         df = DataFrame(
             {
@@ -69,6 +68,28 @@ class TestMultiIndexBasic:
             ],
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_exclusive_nat_column_indexing(self):
+        # GH 38025
+        # test multi indexing when one column exclusively contains NaT values
+        df = DataFrame(
+            {
+                "a": [pd.NaT, pd.NaT, pd.NaT, pd.NaT],
+                "b": ["C1", "C2", "C3", "C4"],
+                "c": [10, 15, np.nan, 20],
+            }
+        )
+        df = df.set_index(["a", "b"])
+        expected = DataFrame(
+            {
+                "c": [10, 15, np.nan, 20],
+            },
+            index=[
+                Index([pd.NaT, pd.NaT, pd.NaT, pd.NaT], name="a"),
+                Index(["C1", "C2", "C3", "C4"], name="b"),
+            ],
+        )
+        tm.assert_frame_equal(df, expected)
 
     def test_nested_tuples_duplicates(self):
         # GH#30892
@@ -129,3 +150,66 @@ class TestMultiIndexBasic:
         mi2 = MultiIndex.from_tuples([("Apple", "cat"), ("B", "cat"), ("B", "cat")])
         expected = DataFrame(index=mi2)
         tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize(
+        "data_result, data_expected",
+        [
+            (
+                [
+                    [(81.0, np.nan), (np.nan, np.nan)],
+                    [(np.nan, np.nan), (82.0, np.nan)],
+                    [1, 2],
+                    [1, 2],
+                ],
+                [
+                    [(81.0, np.nan), (np.nan, np.nan)],
+                    [(81.0, np.nan), (np.nan, np.nan)],
+                    [1, 2],
+                    [1, 1],
+                ],
+            ),
+            (
+                [
+                    [(81.0, np.nan), (np.nan, np.nan)],
+                    [(np.nan, np.nan), (81.0, np.nan)],
+                    [1, 2],
+                    [1, 2],
+                ],
+                [
+                    [(81.0, np.nan), (np.nan, np.nan)],
+                    [(81.0, np.nan), (np.nan, np.nan)],
+                    [1, 2],
+                    [2, 1],
+                ],
+            ),
+        ],
+    )
+    def test_subtracting_two_series_with_unordered_index_and_all_nan_index(
+        self, data_result, data_expected
+    ):
+        # GH 38439
+        a_index_result = MultiIndex.from_tuples(data_result[0])
+        b_index_result = MultiIndex.from_tuples(data_result[1])
+        a_series_result = Series(data_result[2], index=a_index_result)
+        b_series_result = Series(data_result[3], index=b_index_result)
+        result = a_series_result.align(b_series_result)
+
+        a_index_expected = MultiIndex.from_tuples(data_expected[0])
+        b_index_expected = MultiIndex.from_tuples(data_expected[1])
+        a_series_expected = Series(data_expected[2], index=a_index_expected)
+        b_series_expected = Series(data_expected[3], index=b_index_expected)
+        a_series_expected.index = a_series_expected.index.set_levels(
+            [
+                a_series_expected.index.levels[0].astype("float"),
+                a_series_expected.index.levels[1].astype("float"),
+            ]
+        )
+        b_series_expected.index = b_series_expected.index.set_levels(
+            [
+                b_series_expected.index.levels[0].astype("float"),
+                b_series_expected.index.levels[1].astype("float"),
+            ]
+        )
+
+        tm.assert_series_equal(result[0], a_series_expected)
+        tm.assert_series_equal(result[1], b_series_expected)

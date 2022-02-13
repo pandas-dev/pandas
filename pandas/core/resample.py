@@ -11,6 +11,7 @@ from typing import (
     final,
     no_type_check,
 )
+import warnings
 
 import numpy as np
 
@@ -25,8 +26,8 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._typing import (
-    FrameOrSeries,
     IndexLabel,
+    NDFrameT,
     T,
     TimedeltaConvertibleTypes,
     TimestampConvertibleTypes,
@@ -40,6 +41,7 @@ from pandas.util._decorators import (
     deprecate_nonkeyword_arguments,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -198,9 +200,9 @@ class Resampler(BaseGroupBy, PandasObject):
 
     # error: Signature of "obj" incompatible with supertype "BaseGroupBy"
     @property
-    def obj(self) -> FrameOrSeries:  # type: ignore[override]
+    def obj(self) -> NDFrameT:  # type: ignore[override]
         # error: Incompatible return value type (got "Optional[Any]",
-        # expected "FrameOrSeries")
+        # expected "NDFrameT")
         return self.groupby.obj  # type: ignore[return-value]
 
     @property
@@ -220,7 +222,7 @@ class Resampler(BaseGroupBy, PandasObject):
             self.groupby.key is not None or self.groupby.level is not None
         )
 
-    def _convert_obj(self, obj: FrameOrSeries) -> FrameOrSeries:
+    def _convert_obj(self, obj: NDFrameT) -> NDFrameT:
         """
         Provide any conversions for the object in order to correctly handle.
 
@@ -509,7 +511,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
         return result
 
-    def pad(self, limit=None):
+    def ffill(self, limit=None):
         """
         Forward fill the values.
 
@@ -527,9 +529,18 @@ class Resampler(BaseGroupBy, PandasObject):
         Series.fillna: Fill NA/NaN values using the specified method.
         DataFrame.fillna: Fill NA/NaN values using the specified method.
         """
-        return self._upsample("pad", limit=limit)
+        return self._upsample("ffill", limit=limit)
 
-    ffill = pad
+    def pad(self, limit=None):
+        warnings.warn(
+            "pad is deprecated and will be removed in a future version. "
+            "Use ffill instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self.ffill(limit=limit)
+
+    pad.__doc__ = ffill.__doc__
 
     def nearest(self, limit=None):
         """
@@ -591,7 +602,7 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         return self._upsample("nearest", limit=limit)
 
-    def backfill(self, limit=None):
+    def bfill(self, limit=None):
         """
         Backward fill the new missing values in the resampled data.
 
@@ -618,7 +629,7 @@ class Resampler(BaseGroupBy, PandasObject):
         fillna : Fill NaN values using the specified method, which can be
             'backfill'.
         nearest : Fill NaN values with nearest neighbor starting from center.
-        pad : Forward fill NaN values.
+        ffill : Forward fill NaN values.
         Series.fillna : Fill NaN values in the Series using the
             specified method, which can be 'backfill'.
         DataFrame.fillna : Fill NaN values in the DataFrame using the
@@ -640,7 +651,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 02:00:00    3
         Freq: H, dtype: int64
 
-        >>> s.resample('30min').backfill()
+        >>> s.resample('30min').bfill()
         2018-01-01 00:00:00    1
         2018-01-01 00:30:00    2
         2018-01-01 01:00:00    2
@@ -648,7 +659,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 02:00:00    3
         Freq: 30T, dtype: int64
 
-        >>> s.resample('15min').backfill(limit=2)
+        >>> s.resample('15min').bfill(limit=2)
         2018-01-01 00:00:00    1.0
         2018-01-01 00:15:00    NaN
         2018-01-01 00:30:00    2.0
@@ -671,7 +682,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 01:00:00  NaN  3
         2018-01-01 02:00:00  6.0  5
 
-        >>> df.resample('30min').backfill()
+        >>> df.resample('30min').bfill()
                                a  b
         2018-01-01 00:00:00  2.0  1
         2018-01-01 00:30:00  NaN  3
@@ -679,7 +690,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 01:30:00  6.0  5
         2018-01-01 02:00:00  6.0  5
 
-        >>> df.resample('15min').backfill(limit=2)
+        >>> df.resample('15min').bfill(limit=2)
                                a    b
         2018-01-01 00:00:00  2.0  1.0
         2018-01-01 00:15:00  NaN  NaN
@@ -691,9 +702,18 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 01:45:00  6.0  5.0
         2018-01-01 02:00:00  6.0  5.0
         """
-        return self._upsample("backfill", limit=limit)
+        return self._upsample("bfill", limit=limit)
 
-    bfill = backfill
+    def backfill(self, limit=None):
+        warnings.warn(
+            "backfill is deprecated and will be removed in a future version. "
+            "Use bfill instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self.bfill(limit=limit)
+
+    backfill.__doc__ = bfill.__doc__
 
     def fillna(self, method, limit=None):
         """
@@ -727,8 +747,8 @@ class Resampler(BaseGroupBy, PandasObject):
 
         See Also
         --------
-        backfill : Backward fill NaN values in the resampled data.
-        pad : Forward fill NaN values in the resampled data.
+        bfill : Backward fill NaN values in the resampled data.
+        ffill : Forward fill NaN values in the resampled data.
         nearest : Fill NaN values in the resampled data
             with nearest neighbor starting from center.
         interpolate : Fill NaN values using interpolation.
@@ -1260,7 +1280,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
             return super()._get_binner_for_time()
         return self.groupby._get_period_bins(self.ax)
 
-    def _convert_obj(self, obj: FrameOrSeries) -> FrameOrSeries:
+    def _convert_obj(self, obj: NDFrameT) -> NDFrameT:
         obj = super()._convert_obj(obj)
 
         if self._from_selection:
@@ -1682,12 +1702,19 @@ class TimeGrouper(Grouper):
             return binner, [], labels
 
         start, end = ax.min(), ax.max()
+
+        if self.closed == "right":
+            end += self.freq
+
         labels = binner = timedelta_range(
             start=start, end=end, freq=self.freq, name=ax.name
         )
 
-        end_stamps = labels + self.freq
-        bins = ax.searchsorted(end_stamps, side="left")
+        end_stamps = labels
+        if self.closed == "left":
+            end_stamps += self.freq
+
+        bins = ax.searchsorted(end_stamps, side=self.closed)
 
         if self.offset:
             # GH 10530 & 31809
@@ -1795,12 +1822,12 @@ class TimeGrouper(Grouper):
 
 
 def _take_new_index(
-    obj: FrameOrSeries, indexer: npt.NDArray[np.intp], new_index: Index, axis: int = 0
-) -> FrameOrSeries:
+    obj: NDFrameT, indexer: npt.NDArray[np.intp], new_index: Index, axis: int = 0
+) -> NDFrameT:
 
     if isinstance(obj, ABCSeries):
         new_values = algos.take_nd(obj._values, indexer)
-        # error: Incompatible return value type (got "Series", expected "FrameOrSeries")
+        # error: Incompatible return value type (got "Series", expected "NDFrameT")
         return obj._constructor(  # type: ignore[return-value]
             new_values, index=new_index, name=obj.name
         )
@@ -1809,7 +1836,7 @@ def _take_new_index(
             raise NotImplementedError("axis 1 is not supported")
         new_mgr = obj._mgr.reindex_indexer(new_axis=new_index, indexer=indexer, axis=1)
         # error: Incompatible return value type
-        # (got "DataFrame", expected "FrameOrSeries")
+        # (got "DataFrame", expected "NDFrameT")
         return obj._constructor(new_mgr)  # type: ignore[return-value]
     else:
         raise ValueError("'obj' should be either a Series or a DataFrame")
@@ -1957,8 +1984,13 @@ def _insert_nat_bin(
     assert nat_count > 0
     bins += nat_count
     bins = np.insert(bins, 0, nat_count)
-    binner = binner.insert(0, NaT)
-    labels = labels.insert(0, NaT)
+
+    # Incompatible types in assignment (expression has type "Index", variable
+    # has type "PeriodIndex")
+    binner = binner.insert(0, NaT)  # type: ignore[assignment]
+    # Incompatible types in assignment (expression has type "Index", variable
+    # has type "PeriodIndex")
+    labels = labels.insert(0, NaT)  # type: ignore[assignment]
     return binner, bins, labels
 
 
@@ -2007,30 +2039,30 @@ def _adjust_dates_anchored(
     if closed == "right":
         if foffset > 0:
             # roll back
-            fresult = first.value - foffset
+            fresult_int = first.value - foffset
         else:
-            fresult = first.value - freq.nanos
+            fresult_int = first.value - freq.nanos
 
         if loffset > 0:
             # roll forward
-            lresult = last.value + (freq.nanos - loffset)
+            lresult_int = last.value + (freq.nanos - loffset)
         else:
             # already the end of the road
-            lresult = last.value
+            lresult_int = last.value
     else:  # closed == 'left'
         if foffset > 0:
-            fresult = first.value - foffset
+            fresult_int = first.value - foffset
         else:
             # start of the road
-            fresult = first.value
+            fresult_int = first.value
 
         if loffset > 0:
             # roll forward
-            lresult = last.value + (freq.nanos - loffset)
+            lresult_int = last.value + (freq.nanos - loffset)
         else:
-            lresult = last.value + freq.nanos
-    fresult = Timestamp(fresult)
-    lresult = Timestamp(lresult)
+            lresult_int = last.value + freq.nanos
+    fresult = Timestamp(fresult_int)
+    lresult = Timestamp(lresult_int)
     if first_tzinfo is not None:
         fresult = fresult.tz_localize("UTC").tz_convert(first_tzinfo)
     if last_tzinfo is not None:
@@ -2039,13 +2071,13 @@ def _adjust_dates_anchored(
 
 
 def asfreq(
-    obj: FrameOrSeries,
+    obj: NDFrameT,
     freq,
     method=None,
     how=None,
     normalize: bool = False,
     fill_value=None,
-) -> FrameOrSeries:
+) -> NDFrameT:
     """
     Utility frequency conversion method for Series/DataFrame.
 

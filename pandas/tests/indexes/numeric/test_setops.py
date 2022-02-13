@@ -6,20 +6,20 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas import (
+import pandas._testing as tm
+from pandas.core.indexes.api import (
     Float64Index,
     Index,
     Int64Index,
     RangeIndex,
     UInt64Index,
 )
-import pandas._testing as tm
 
 
 @pytest.fixture
 def index_large():
     # large values used in TestUInt64Index where no compat needed with Int64/Float64
-    large = [2 ** 63, 2 ** 63 + 10, 2 ** 63 + 15, 2 ** 63 + 20, 2 ** 63 + 25]
+    large = [2**63, 2**63 + 10, 2**63 + 15, 2**63 + 20, 2**63 + 25]
     return UInt64Index(large)
 
 
@@ -89,7 +89,7 @@ class TestSetOps:
         tm.assert_index_equal(result, string_index)
 
     def test_intersection_uint64_outside_int64_range(self, index_large):
-        other = Index([2 ** 63, 2 ** 63 + 5, 2 ** 63 + 10, 2 ** 63 + 15, 2 ** 63 + 20])
+        other = Index([2**63, 2**63 + 5, 2**63 + 10, 2**63 + 15, 2**63 + 20])
         result = index_large.intersection(other)
         expected = Index(np.sort(np.intersect1d(index_large.values, other.values)))
         tm.assert_index_equal(result, expected)
@@ -155,7 +155,7 @@ class TestSetOpsSort:
     @pytest.mark.xfail(reason="Not implemented")
     @pytest.mark.parametrize("slice_", [slice(None), slice(0)])
     def test_union_sort_special_true(self, slice_):
-        # TODO: decide on True behaviour
+        # TODO(GH#25151): decide on True behaviour
         # sort=True
         idx = Index([1, 0, 2])
         # default, sort=None

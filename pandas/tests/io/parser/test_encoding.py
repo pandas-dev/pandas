@@ -153,9 +153,7 @@ def test_read_csv_utf_aliases(all_parsers, utf_value, encoding_fmt):
         (("io", "parser", "data", "sauron.SHIFT_JIS.csv"), "shiftjis"),
     ],
 )
-def test_binary_mode_file_buffers(
-    all_parsers, csv_dir_path, file_path, encoding, datapath
-):
+def test_binary_mode_file_buffers(all_parsers, file_path, encoding, datapath):
     # gh-23779: Python csv engine shouldn't error on files opened in binary.
     # gh-31575: Python csv engine shouldn't error on files opened in raw binary.
     parser = all_parsers
@@ -201,9 +199,6 @@ def test_encoding_named_temp_file(all_parsers):
     # see gh-31819
     parser = all_parsers
     encoding = "shift-jis"
-
-    if parser.engine == "python":
-        pytest.skip("NamedTemporaryFile does not work with Python engine")
 
     title = "てすと"
     data = "こむ"
@@ -272,13 +267,46 @@ def test_chunk_splits_multibyte_char(all_parsers):
     tm.assert_frame_equal(dfr, df)
 
 
-def test_not_readable(all_parsers):
+@skip_pyarrow
+def test_readcsv_memmap_utf8(all_parsers):
+    """
+    GH 43787
+
+    Test correct handling of UTF-8 chars when memory_map=True and encoding is UTF-8
+    """
+    lines = []
+    line_length = 128
+    start_char = " "
+    end_char = "\U00010080"
+    # This for loop creates a list of 128-char strings
+    # consisting of consecutive Unicode chars
+    for lnum in range(ord(start_char), ord(end_char), line_length):
+        line = "".join([chr(c) for c in range(lnum, lnum + 0x80)]) + "\n"
+        try:
+            line.encode("utf-8")
+        except UnicodeEncodeError:
+            continue
+        lines.append(line)
+    parser = all_parsers
+    df = DataFrame(lines)
+    with tm.ensure_clean("utf8test.csv") as fname:
+        df.to_csv(fname, index=False, header=False, encoding="utf-8")
+        dfr = parser.read_csv(
+            fname, header=None, memory_map=True, engine="c", encoding="utf-8"
+        )
+    tm.assert_frame_equal(df, dfr)
+
+
+@pytest.mark.usefixtures("pyarrow_xfail")
+@pytest.mark.parametrize("mode", ["w+b", "w+t"])
+def test_not_readable(all_parsers, mode):
     # GH43439
     parser = all_parsers
-    if parser.engine in ("python", "pyarrow"):
-        pytest.skip("SpooledTemporaryFile does only work with the c-engine")
-    with tempfile.SpooledTemporaryFile() as handle:
-        handle.write(b"abcd")
+    content = b"abcd"
+    if "t" in mode:
+        content = "abcd"
+    with tempfile.SpooledTemporaryFile(mode=mode) as handle:
+        handle.write(content)
         handle.seek(0)
         df = parser.read_csv(handle)
     expected = DataFrame([], columns=["abcd"])

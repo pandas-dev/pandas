@@ -303,11 +303,13 @@ class TestClipboard:
     def test_round_trip_valid_encodings(self, enc, df):
         self.check_round_trip_frame(df, encoding=enc)
 
-
-@pytest.mark.single
-@pytest.mark.clipboard
-@pytest.mark.parametrize("data", ["\U0001f44d...", "Ωœ∑´...", "abcd..."])
-def test_raw_roundtrip(data):
-    # PR #25040 wide unicode wasn't copied correctly on PY3 on windows
-    clipboard_set(data)
-    assert data == clipboard_get()
+    @pytest.mark.parametrize("data", ["\U0001f44d...", "Ωœ∑´...", "abcd..."])
+    @pytest.mark.xfail(
+        reason="Flaky test in multi-process CI environment: GH 44584",
+        raises=AssertionError,
+        strict=False,
+    )
+    def test_raw_roundtrip(self, data):
+        # PR #25040 wide unicode wasn't copied correctly on PY3 on windows
+        clipboard_set(data)
+        assert data == clipboard_get()

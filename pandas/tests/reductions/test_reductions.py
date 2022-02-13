@@ -83,13 +83,10 @@ class TestReductions:
         # GH#7261
         klass = index_or_series
 
-        if dtype in ["Int64", "boolean"] and klass == Index:
-            pytest.skip("EAs can't yet be stored in an index")
-
         def check_missing(res):
             if dtype == "datetime64[ns]":
                 return res is NaT
-            elif dtype == "Int64":
+            elif dtype in ["Int64", "boolean"]:
                 return res is pd.NA
             else:
                 return isna(res)
@@ -213,15 +210,15 @@ class TestIndexReductions:
         [
             (0, 400, 3),
             (500, 0, -6),
-            (-(10 ** 6), 10 ** 6, 4),
-            (10 ** 6, -(10 ** 6), -4),
+            (-(10**6), 10**6, 4),
+            (10**6, -(10**6), -4),
             (0, 10, 20),
         ],
     )
     def test_max_min_range(self, start, stop, step):
         # GH#17607
         idx = RangeIndex(start, stop, step)
-        expected = idx._int64index.max()
+        expected = idx._values.max()
         result = idx.max()
         assert result == expected
 
@@ -229,7 +226,7 @@ class TestIndexReductions:
         result2 = idx.max(skipna=False)
         assert result2 == expected
 
-        expected = idx._int64index.min()
+        expected = idx._values.min()
         result = idx.min()
         assert result == expected
 
@@ -246,11 +243,11 @@ class TestIndexReductions:
 
         # monotonic
         idx1 = TimedeltaIndex(["1 days", "2 days", "3 days"])
-        assert idx1.is_monotonic
+        assert idx1.is_monotonic_increasing
 
         # non-monotonic
         idx2 = TimedeltaIndex(["1 days", np.nan, "3 days", "NaT"])
-        assert not idx2.is_monotonic
+        assert not idx2.is_monotonic_increasing
 
         for idx in [idx1, idx2]:
             assert idx.min() == Timedelta("1 days")
@@ -355,7 +352,7 @@ class TestIndexReductions:
             [
                 f"reduction operation '{opname}' not allowed for this dtype",
                 rf"cannot perform {opname} with type timedelta64\[ns\]",
-                f"'TimedeltaArray' does not implement reduction '{opname}'",
+                f"does not support reduction '{opname}'",
             ]
         )
 
@@ -369,13 +366,13 @@ class TestIndexReductions:
         tz = tz_naive_fixture
         # monotonic
         idx1 = DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"], tz=tz)
-        assert idx1.is_monotonic
+        assert idx1.is_monotonic_increasing
 
         # non-monotonic
         idx2 = DatetimeIndex(
             ["2011-01-01", NaT, "2011-01-03", "2011-01-02", NaT], tz=tz
         )
-        assert not idx2.is_monotonic
+        assert not idx2.is_monotonic_increasing
 
         for idx in [idx1, idx2]:
             assert idx.min() == Timestamp("2011-01-01", tz=tz)
@@ -431,13 +428,11 @@ class TestIndexReductions:
         # GH#26125
         idx = RangeIndex(0, 10, 3)
 
-        expected = idx._int64index.max()
         result = np.max(idx)
-        assert result == expected
+        assert result == 9
 
-        expected = idx._int64index.min()
         result = np.min(idx)
-        assert result == expected
+        assert result == 0
 
         errmsg = "the 'out' parameter is not supported"
         with pytest.raises(ValueError, match=errmsg):
@@ -475,14 +470,14 @@ class TestIndexReductions:
 
         # monotonic
         idx1 = PeriodIndex([NaT, "2011-01-01", "2011-01-02", "2011-01-03"], freq="D")
-        assert not idx1.is_monotonic
-        assert idx1[1:].is_monotonic
+        assert not idx1.is_monotonic_increasing
+        assert idx1[1:].is_monotonic_increasing
 
         # non-monotonic
         idx2 = PeriodIndex(
             ["2011-01-01", NaT, "2011-01-03", "2011-01-02", NaT], freq="D"
         )
-        assert not idx2.is_monotonic
+        assert not idx2.is_monotonic_increasing
 
         for idx in [idx1, idx2]:
             assert idx.min() == Period("2011-01-01", freq="D")
@@ -492,19 +487,13 @@ class TestIndexReductions:
         assert idx1.argmax() == 3
         assert idx2.argmax() == 2
 
-        for op in ["min", "max"]:
-            # Return NaT
-            obj = PeriodIndex([], freq="M")
-            result = getattr(obj, op)()
-            assert result is NaT
-
-            obj = PeriodIndex([NaT], freq="M")
-            result = getattr(obj, op)()
-            assert result is NaT
-
-            obj = PeriodIndex([NaT, NaT, NaT], freq="M")
-            result = getattr(obj, op)()
-            assert result is NaT
+    @pytest.mark.parametrize("op", ["min", "max"])
+    @pytest.mark.parametrize("data", [[], [NaT], [NaT, NaT, NaT]])
+    def test_minmax_period_empty_nat(self, op, data):
+        # Return NaT
+        obj = PeriodIndex(data, freq="M")
+        result = getattr(obj, op)()
+        assert result is NaT
 
     def test_numpy_minmax_period(self):
         pr = pd.period_range(start="2016-01-15", end="2016-01-20")
@@ -571,7 +560,9 @@ class TestSeriesReductions:
         res = nanops.nansum(arr, axis=1)
         assert np.isinf(res).all()
 
-    @pytest.mark.parametrize("dtype", ["float64", "Int64", "boolean", "object"])
+    @pytest.mark.parametrize(
+        "dtype", ["float64", "Float32", "Int64", "boolean", "object"]
+    )
     @pytest.mark.parametrize("use_bottleneck", [True, False])
     @pytest.mark.parametrize("method, unit", [("sum", 0.0), ("prod", 1.0)])
     def test_empty(self, method, unit, use_bottleneck, dtype):
@@ -728,7 +719,7 @@ class TestSeriesReductions:
                 [
                     "operation 'var' not allowed",
                     r"cannot perform var with type timedelta64\[ns\]",
-                    "'TimedeltaArray' does not implement reduction 'var'",
+                    "does not support reduction 'var'",
                 ]
             )
             with pytest.raises(TypeError, match=msg):
@@ -743,40 +734,42 @@ class TestSeriesReductions:
         tm.assert_almost_equal(result, 1)
 
     @pytest.mark.parametrize("use_bottleneck", [True, False])
-    def test_sum_overflow(self, use_bottleneck):
+    @pytest.mark.parametrize("dtype", ["int32", "int64"])
+    def test_sum_overflow_int(self, use_bottleneck, dtype):
 
         with pd.option_context("use_bottleneck", use_bottleneck):
             # GH#6915
             # overflowing on the smaller int dtypes
-            for dtype in ["int32", "int64"]:
-                v = np.arange(5000000, dtype=dtype)
-                s = Series(v)
+            v = np.arange(5000000, dtype=dtype)
+            s = Series(v)
 
-                result = s.sum(skipna=False)
-                assert int(result) == v.sum(dtype="int64")
-                result = s.min(skipna=False)
-                assert int(result) == 0
-                result = s.max(skipna=False)
-                assert int(result) == v[-1]
+            result = s.sum(skipna=False)
+            assert int(result) == v.sum(dtype="int64")
+            result = s.min(skipna=False)
+            assert int(result) == 0
+            result = s.max(skipna=False)
+            assert int(result) == v[-1]
 
-            for dtype in ["float32", "float64"]:
-                v = np.arange(5000000, dtype=dtype)
-                s = Series(v)
+    @pytest.mark.parametrize("use_bottleneck", [True, False])
+    @pytest.mark.parametrize("dtype", ["float32", "float64"])
+    def test_sum_overflow_float(self, use_bottleneck, dtype):
+        with pd.option_context("use_bottleneck", use_bottleneck):
+            v = np.arange(5000000, dtype=dtype)
+            s = Series(v)
 
-                result = s.sum(skipna=False)
-                assert result == v.sum(dtype=dtype)
-                result = s.min(skipna=False)
-                assert np.allclose(float(result), 0.0)
-                result = s.max(skipna=False)
-                assert np.allclose(float(result), v[-1])
+            result = s.sum(skipna=False)
+            assert result == v.sum(dtype=dtype)
+            result = s.min(skipna=False)
+            assert np.allclose(float(result), 0.0)
+            result = s.max(skipna=False)
+            assert np.allclose(float(result), v[-1])
 
-    def test_empty_timeseries_reductions_return_nat(self):
+    @pytest.mark.parametrize("dtype", ("m8[ns]", "m8[ns]", "M8[ns]", "M8[ns, UTC]"))
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_empty_timeseries_reductions_return_nat(self, dtype, skipna):
         # covers GH#11245
-        for dtype in ("m8[ns]", "m8[ns]", "M8[ns]", "M8[ns, UTC]"):
-            assert Series([], dtype=dtype).min() is NaT
-            assert Series([], dtype=dtype).max() is NaT
-            assert Series([], dtype=dtype).min(skipna=False) is NaT
-            assert Series([], dtype=dtype).max(skipna=False) is NaT
+        assert Series([], dtype=dtype).min(skipna=skipna) is NaT
+        assert Series([], dtype=dtype).max(skipna=skipna) is NaT
 
     def test_numpy_argmin(self):
         # See GH#16830
@@ -931,13 +924,11 @@ class TestSeriesReductions:
             with tm.assert_produces_warning(FutureWarning):
                 s.all(bool_only=True, level=0)
 
-        # bool_only is not implemented alone.
-        # TODO GH38810 change this error message to:
-        # "Series.any does not implement bool_only"
-        msg = "Series.any does not implement numeric_only"
+        # GH#38810 bool_only is not implemented alone.
+        msg = "Series.any does not implement bool_only"
         with pytest.raises(NotImplementedError, match=msg):
             s.any(bool_only=True)
-        msg = "Series.all does not implement numeric_only."
+        msg = "Series.all does not implement bool_only."
         with pytest.raises(NotImplementedError, match=msg):
             s.all(bool_only=True)
 
@@ -1456,16 +1447,16 @@ class TestSeriesMode:
 
     @pytest.mark.parametrize(
         "dropna, expected1, expected2",
-        [(True, [2 ** 63], [1, 2 ** 63]), (False, [2 ** 63], [1, 2 ** 63])],
+        [(True, [2**63], [1, 2**63]), (False, [2**63], [1, 2**63])],
     )
     def test_mode_intoverflow(self, dropna, expected1, expected2):
         # Test for uint64 overflow.
-        s = Series([1, 2 ** 63, 2 ** 63], dtype=np.uint64)
+        s = Series([1, 2**63, 2**63], dtype=np.uint64)
         result = s.mode(dropna)
         expected1 = Series(expected1, dtype=np.uint64)
         tm.assert_series_equal(result, expected1)
 
-        s = Series([1, 2 ** 63], dtype=np.uint64)
+        s = Series([1, 2**63], dtype=np.uint64)
         result = s.mode(dropna)
         expected2 = Series(expected2, dtype=np.uint64)
         tm.assert_series_equal(result, expected2)

@@ -460,7 +460,11 @@ class MPLPlot:
             label = self.label
             if label is None and data.name is None:
                 label = "None"
-            data = data.to_frame(name=label)
+            if label is None:
+                # We'll end up with columns of [0] instead of [None]
+                data = data.to_frame()
+            else:
+                data = data.to_frame(name=label)
         elif self._kind in ("hist", "box"):
             cols = self.columns if self.by is None else self.columns + self.by
             data = data.loc[:, cols]
@@ -644,7 +648,7 @@ class MPLPlot:
         self.legend_handles.append(handle)
         self.legend_labels.append(label)
 
-    def _make_legend(self):
+    def _make_legend(self) -> None:
         ax, leg = self._get_ax_legend(self.axes[0])
 
         handles = []
@@ -660,20 +664,11 @@ class MPLPlot:
 
             if self.legend:
                 if self.legend == "reverse":
-                    # error: Incompatible types in assignment (expression has type
-                    # "Iterator[Any]", variable has type "List[Any]")
-                    self.legend_handles = reversed(  # type: ignore[assignment]
-                        self.legend_handles
-                    )
-                    # error: Incompatible types in assignment (expression has type
-                    # "Iterator[Hashable]", variable has type
-                    # "List[Hashable]")
-                    self.legend_labels = reversed(  # type: ignore[assignment]
-                        self.legend_labels
-                    )
-
-                handles += self.legend_handles
-                labels += self.legend_labels
+                    handles += reversed(self.legend_handles)
+                    labels += reversed(self.legend_labels)
+                else:
+                    handles += self.legend_handles
+                    labels += self.legend_labels
 
                 if self.legend_title is not None:
                     title = self.legend_title
@@ -759,6 +754,10 @@ class MPLPlot:
             args = (x, y, style) if style is not None else (x, y)
             return ax.plot(*args, **kwds)
 
+    def _get_custom_index_name(self):
+        """Specify whether xlabel/ylabel should be used to override index name"""
+        return self.xlabel
+
     def _get_index_name(self) -> str | None:
         if isinstance(self.data.index, ABCMultiIndex):
             name = self.data.index.names
@@ -771,9 +770,10 @@ class MPLPlot:
             if name is not None:
                 name = pprint_thing(name)
 
-        # GH 9093, override the default xlabel if xlabel is provided.
-        if self.xlabel is not None:
-            name = pprint_thing(self.xlabel)
+        # GH 45145, override the default axis label if one is provided.
+        index_name = self._get_custom_index_name()
+        if index_name is not None:
+            name = pprint_thing(index_name)
 
         return name
 
@@ -1577,12 +1577,11 @@ class BarPlot(MPLPlot):
             str_index = [pprint_thing(key) for key in data.index]
         else:
             str_index = [pprint_thing(key) for key in range(data.shape[0])]
-        name = self._get_index_name()
 
         s_edge = self.ax_pos[0] - 0.25 + self.lim_offset
         e_edge = self.ax_pos[-1] + 0.25 + self.bar_width + self.lim_offset
 
-        self._decorate_ticks(ax, name, str_index, s_edge, e_edge)
+        self._decorate_ticks(ax, self._get_index_name(), str_index, s_edge, e_edge)
 
     def _decorate_ticks(self, ax: Axes, name, ticklabels, start_edge, end_edge):
         ax.set_xlim((start_edge, end_edge))
@@ -1613,6 +1612,9 @@ class BarhPlot(BarPlot):
     ):
         return ax.barh(x, y, w, left=start, log=log, **kwds)
 
+    def _get_custom_index_name(self):
+        return self.ylabel
+
     def _decorate_ticks(self, ax: Axes, name, ticklabels, start_edge, end_edge):
         # horizontal bars
         ax.set_ylim((start_edge, end_edge))
@@ -1620,6 +1622,7 @@ class BarhPlot(BarPlot):
         ax.set_yticklabels(ticklabels)
         if name is not None and self.use_index:
             ax.set_ylabel(name)
+        ax.set_xlabel(self.xlabel)
 
 
 class PiePlot(MPLPlot):
@@ -1667,9 +1670,7 @@ class PiePlot(MPLPlot):
             if labels is not None:
                 blabels = [blank_labeler(left, value) for left, value in zip(labels, y)]
             else:
-                # error: Incompatible types in assignment (expression has type "None",
-                # variable has type "List[Any]")
-                blabels = None  # type: ignore[assignment]
+                blabels = None
             results = ax.pie(y, labels=blabels, **kwds)
 
             if kwds.get("autopct", None) is not None:

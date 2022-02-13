@@ -2,6 +2,7 @@ import calendar
 from datetime import (
     datetime,
     timedelta,
+    timezone,
 )
 
 import dateutil.tz
@@ -242,6 +243,25 @@ class TestTimestampConstructors:
         ]
         assert all(ts == stamps[0] for ts in stamps)
 
+    def test_constructor_positional_with_tzinfo(self):
+        # GH#31929
+        ts = Timestamp(2020, 12, 31, tzinfo=timezone.utc)
+        expected = Timestamp("2020-12-31", tzinfo=timezone.utc)
+        assert ts == expected
+
+    @pytest.mark.xfail(reason="GH#45307")
+    @pytest.mark.parametrize("kwd", ["nanosecond", "microsecond", "second", "minute"])
+    def test_constructor_positional_keyword_mixed_with_tzinfo(self, kwd):
+        # TODO: if we passed microsecond with a keyword we would mess up
+        #  xref GH#45307
+        kwargs = {kwd: 4}
+        ts = Timestamp(2020, 12, 31, tzinfo=timezone.utc, **kwargs)
+
+        td_kwargs = {kwd + "s": 4}
+        td = Timedelta(**td_kwargs)
+        expected = Timestamp("2020-12-31", tz=timezone.utc) + td
+        assert ts == expected
+
     def test_constructor_positional(self):
         # see gh-10758
         msg = (
@@ -292,20 +312,17 @@ class TestTimestampConstructors:
             Timestamp("20151112")
         )
 
-        assert (
-            repr(
-                Timestamp(
-                    year=2015,
-                    month=11,
-                    day=12,
-                    hour=1,
-                    minute=2,
-                    second=3,
-                    microsecond=999999,
-                )
+        assert repr(
+            Timestamp(
+                year=2015,
+                month=11,
+                day=12,
+                hour=1,
+                minute=2,
+                second=3,
+                microsecond=999999,
             )
-            == repr(Timestamp("2015-11-12 01:02:03.999999"))
-        )
+        ) == repr(Timestamp("2015-11-12 01:02:03.999999"))
 
     @pytest.mark.filterwarnings("ignore:Timestamp.freq is:FutureWarning")
     @pytest.mark.filterwarnings("ignore:The 'freq' argument:FutureWarning")

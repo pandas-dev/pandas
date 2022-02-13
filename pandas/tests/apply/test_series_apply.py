@@ -284,8 +284,6 @@ def test_transform_partial_failure(op, request):
                 raises=AssertionError, reason=f"{op} is successful on any dtype"
             )
         )
-    if op in ("rank", "fillna"):
-        pytest.skip(f"{op} doesn't raise TypeError on object")
 
     # Using object makes most transform kernels fail
     ser = Series(3 * [object])
@@ -378,11 +376,11 @@ def test_agg_apply_evaluate_lambdas_the_same(string_series):
 def test_with_nested_series(datetime_series):
     # GH 2316
     # .agg with a reducer and a transform, what to do
-    result = datetime_series.apply(lambda x: Series([x, x ** 2], index=["x", "x^2"]))
-    expected = DataFrame({"x": datetime_series, "x^2": datetime_series ** 2})
+    result = datetime_series.apply(lambda x: Series([x, x**2], index=["x", "x^2"]))
+    expected = DataFrame({"x": datetime_series, "x^2": datetime_series**2})
     tm.assert_frame_equal(result, expected)
 
-    result = datetime_series.agg(lambda x: Series([x, x ** 2], index=["x", "x^2"]))
+    result = datetime_series.agg(lambda x: Series([x, x**2], index=["x", "x^2"]))
     tm.assert_frame_equal(result, expected)
 
 
@@ -497,9 +495,13 @@ def test_map(datetime_series):
     tm.assert_series_equal(a.map(c), exp)
 
 
-def test_map_empty(index):
+def test_map_empty(request, index):
     if isinstance(index, MultiIndex):
-        pytest.skip("Initializing a Series from a MultiIndex is not supported")
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="Initializing a Series from a MultiIndex is not supported"
+            )
+        )
 
     s = Series(index)
     result = s.map({})
@@ -774,7 +776,7 @@ def test_apply_series_on_date_time_index_aware_series(dti, exp, aware):
     tm.assert_frame_equal(result, exp)
 
 
-def test_apply_scaler_on_date_time_index_aware_series():
+def test_apply_scalar_on_date_time_index_aware_series():
     # GH 25959
     # Calling apply on a localized time series should not cause an error
     series = tm.makeTimeSeries(nper=30).tz_localize("UTC")
@@ -794,18 +796,15 @@ def test_apply_to_timedelta():
     list_of_valid_strings = ["00:00:01", "00:00:02"]
     a = pd.to_timedelta(list_of_valid_strings)
     b = Series(list_of_valid_strings).apply(pd.to_timedelta)
-    # FIXME: dont leave commented-out
-    # Can't compare until apply on a Series gives the correct dtype
-    # assert_series_equal(a, b)
+    tm.assert_series_equal(Series(a), b)
 
     list_of_strings = ["00:00:01", np.nan, pd.NaT, pd.NaT]
 
-    a = pd.to_timedelta(list_of_strings)  # noqa
+    a = pd.to_timedelta(list_of_strings)
     with tm.assert_produces_warning(FutureWarning, match="Inferring timedelta64"):
         ser = Series(list_of_strings)
-    b = ser.apply(pd.to_timedelta)  # noqa
-    # Can't compare until apply on a Series gives the correct dtype
-    # assert_series_equal(a, b)
+    b = ser.apply(pd.to_timedelta)
+    tm.assert_series_equal(Series(a), b)
 
 
 @pytest.mark.parametrize(
@@ -878,3 +877,15 @@ def test_apply_dictlike_transformer(string_series, ops):
         expected.name = string_series.name
         result = string_series.apply(ops)
         tm.assert_series_equal(result, expected)
+
+
+def test_apply_retains_column_name():
+    # GH 16380
+    df = DataFrame({"x": range(3)}, Index(range(3), name="x"))
+    result = df.x.apply(lambda x: Series(range(x + 1), Index(range(x + 1), name="y")))
+    expected = DataFrame(
+        [[0.0, np.nan, np.nan], [0.0, 1.0, np.nan], [0.0, 1.0, 2.0]],
+        columns=Index(range(3), name="y"),
+        index=Index(range(3), name="x"),
+    )
+    tm.assert_frame_equal(result, expected)

@@ -18,10 +18,7 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import (
-    NaT,
-    lib,
-)
+from pandas._libs import lib
 from pandas._libs.interval import (
     VALID_CLOSED,
     Interval,
@@ -36,14 +33,15 @@ from pandas._typing import (
     PositionalIndexer,
     ScalarIndexer,
     SequenceIndexer,
+    npt,
 )
 from pandas.compat.numpy import function as nv
+from pandas.errors import IntCastingNaNError
 from pandas.util._decorators import Appender
 
+from pandas.core.dtypes.cast import LossySetitemError
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
     is_dtype_equal,
     is_float_dtype,
     is_integer_dtype,
@@ -52,7 +50,6 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_string_dtype,
-    is_timedelta64_dtype,
     needs_i8_conversion,
     pandas_dtype,
 )
@@ -79,7 +76,6 @@ from pandas.core.arrays.base import (
     ExtensionArray,
     _extension_array_shared_docs,
 )
-from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
@@ -685,6 +681,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             other = pd_array(other)
         elif not isinstance(other, Interval):
             # non-interval scalar -> no matches
+            if other is NA:
+                # GH#31882
+                from pandas.core.arrays import BooleanArray
+
+                arr = np.empty(self.shape, dtype=bool)
+                mask = np.ones(self.shape, dtype=bool)
+                return BooleanArray(arr, mask)
             return invalid_comparison(self, other, op)
 
         # determine the dtype of the elements we want to compare
@@ -743,7 +746,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 if obj is NA:
                     # comparison with np.nan returns NA
                     # github.com/pandas-dev/pandas/pull/37124#discussion_r509095092
-                    result[i] = op is operator.ne
+                    result = result.astype(object)
+                    result[i] = NA
                 else:
                     raise
         return result
@@ -789,6 +793,40 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return super().argsort(
             ascending=ascending, kind=kind, na_position=na_position, **kwargs
         )
+
+    def min(self, *, axis: int | None = None, skipna: bool = True):
+        nv.validate_minmax_axis(axis, self.ndim)
+
+        if not len(self):
+            return self._na_value
+
+        mask = self.isna()
+        if mask.any():
+            if not skipna:
+                return self._na_value
+            obj = self[~mask]
+        else:
+            obj = self
+
+        indexer = obj.argsort()[0]
+        return obj[indexer]
+
+    def max(self, *, axis: int | None = None, skipna: bool = True):
+        nv.validate_minmax_axis(axis, self.ndim)
+
+        if not len(self):
+            return self._na_value
+
+        mask = self.isna()
+        if mask.any():
+            if not skipna:
+                return self._na_value
+            obj = self[~mask]
+        else:
+            obj = self
+
+        indexer = obj.argsort()[-1]
+        return obj[indexer]
 
     def fillna(
         self: IntervalArrayT, value=None, method=None, limit=None
@@ -850,7 +888,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             ExtensionArray or NumPy ndarray with 'dtype' for its dtype.
         """
         from pandas import Index
-        from pandas.core.arrays.string_ import StringDtype
 
         if dtype is not None:
             dtype = pandas_dtype(dtype)
@@ -865,23 +902,23 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 #  np.nan entries to int subtypes
                 new_left = Index(self._left, copy=False).astype(dtype.subtype)
                 new_right = Index(self._right, copy=False).astype(dtype.subtype)
-            except TypeError as err:
+            except IntCastingNaNError:
+                # e.g test_subtype_integer
+                raise
+            except (TypeError, ValueError) as err:
+                # e.g. test_subtype_integer_errors f8->u8 can be lossy
+                #  and raises ValueError
                 msg = (
                     f"Cannot convert {self.dtype} to {dtype}; subtypes are incompatible"
                 )
                 raise TypeError(msg) from err
             return self._shallow_copy(new_left, new_right)
-        elif is_categorical_dtype(dtype):
-            return Categorical(np.asarray(self), dtype=dtype)
-        elif isinstance(dtype, StringDtype):
-            return dtype.construct_array_type()._from_sequence(self, copy=False)
-
-        # TODO: This try/except will be repeated.
-        try:
-            return np.asarray(self).astype(dtype, copy=copy)
-        except (TypeError, ValueError) as err:
-            msg = f"Cannot cast {type(self).__name__} to dtype {dtype}"
-            raise TypeError(msg) from err
+        else:
+            try:
+                return super().astype(dtype, copy=copy)
+            except (TypeError, ValueError) as err:
+                msg = f"Cannot cast {type(self).__name__} to dtype {dtype}"
+                raise TypeError(msg) from err
 
     def equals(self, other) -> bool:
         if type(self) != type(other):
@@ -1045,7 +1082,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         try:
             self.left._validate_fill_value(value_left)
-        except (ValueError, TypeError) as err:
+        except (LossySetitemError, TypeError) as err:
             msg = (
                 "'value' should be a compatible interval type, "
                 f"got {type(value)} instead."
@@ -1061,7 +1098,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             # TODO: check subdtype match like _validate_setitem_value?
         elif is_valid_na_for_dtype(value, self.left.dtype):
             # GH#18295
-            left = right = value
+            left = right = self.left._na_value
         else:
             raise TypeError(
                 "can only insert Interval objects and NA into an IntervalArray"
@@ -1069,22 +1106,15 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return left, right
 
     def _validate_setitem_value(self, value):
-        needs_float_conversion = False
 
         if is_valid_na_for_dtype(value, self.left.dtype):
             # na value: need special casing to set directly on numpy arrays
+            value = self.left._na_value
             if is_integer_dtype(self.dtype.subtype):
                 # can't set NaN on a numpy integer array
-                needs_float_conversion = True
-            elif is_datetime64_dtype(self.dtype.subtype):
-                # need proper NaT to set directly on the numpy array
-                value = np.datetime64("NaT")
-            elif is_datetime64tz_dtype(self.dtype.subtype):
-                # need proper NaT to set directly on the DatetimeArray array
-                value = NaT
-            elif is_timedelta64_dtype(self.dtype.subtype):
-                # need proper NaT to set directly on the numpy array
-                value = np.timedelta64("NaT")
+                # GH#45484 TypeError, not ValueError, matches what we get with
+                #  non-NA un-holdable value.
+                raise TypeError("Cannot set float NaN to integer-backed IntervalArray")
             value_left, value_right = value, value
 
         elif isinstance(value, Interval):
@@ -1097,8 +1127,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         else:
             return self._validate_listlike(value)
 
-        if needs_float_conversion:
-            raise ValueError("Cannot set float NaN to integer-backed IntervalArray")
         return value_left, value_right
 
     def value_counts(self, dropna: bool = True):
@@ -1201,15 +1229,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Return an Index with entries denoting the length of each Interval in
         the IntervalArray.
         """
-        try:
-            return self.right - self.left
-        except TypeError as err:
-            # length not defined for some types, e.g. string
-            msg = (
-                "IntervalArray contains Intervals without defined length, "
-                "e.g. Intervals with string endpoints"
-            )
-            raise TypeError(msg) from err
+        return self.right - self.left
 
     @property
     def mid(self):
@@ -1489,20 +1509,20 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     # ---------------------------------------------------------------------
 
-    def putmask(self, mask: np.ndarray, value) -> None:
+    def _putmask(self, mask: npt.NDArray[np.bool_], value) -> None:
         value_left, value_right = self._validate_setitem_value(value)
 
         if isinstance(self._left, np.ndarray):
             np.putmask(self._left, mask, value_left)
             np.putmask(self._right, mask, value_right)
         else:
-            self._left.putmask(mask, value_left)
-            self._right.putmask(mask, value_right)
+            self._left._putmask(mask, value_left)
+            self._right._putmask(mask, value_right)
 
     def insert(self: IntervalArrayT, loc: int, item: Interval) -> IntervalArrayT:
         """
         Return a new IntervalArray inserting new item at location. Follows
-        Python list.append semantics for negative values.  Only Interval
+        Python numpy.insert semantics for negative values.  Only Interval
         objects and NA can be inserted into an IntervalIndex
 
         Parameters
@@ -1611,7 +1631,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 #  complex128 ndarray is much more performant.
                 left = self._combined.view("complex128")
                 right = values._combined.view("complex128")
-                return np.in1d(left, right)
+                # Argument 1 to "in1d" has incompatible type "Union[ExtensionArray,
+                # ndarray[Any, Any], ndarray[Any, dtype[Any]]]"; expected
+                # "Union[_SupportsArray[dtype[Any]], _NestedSequence[_SupportsArray[
+                # dtype[Any]]], bool, int, float, complex, str, bytes,
+                # _NestedSequence[Union[bool, int, float, complex, str, bytes]]]"
+                # [arg-type]
+                return np.in1d(left, right)  # type: ignore[arg-type]
 
             elif needs_i8_conversion(self.left.dtype) ^ needs_i8_conversion(
                 values.left.dtype

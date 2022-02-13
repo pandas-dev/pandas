@@ -16,10 +16,12 @@ import numpy as np
 
 from pandas._typing import (
     ArrayLike,
-    FrameOrSeries,
+    NDFrameT,
+    npt,
 )
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import sanitize_to_nanoseconds
 from pandas.core.dtypes.common import (
@@ -104,11 +106,10 @@ class Grouper:
             However, loffset is also deprecated for ``.resample(...)``
             See: :class:`DataFrame.resample`
 
-    origin : {{'epoch', 'start', 'start_day', 'end', 'end_day'}}, Timestamp
-        or str, default 'start_day'
+    origin : Timestamp or str, default 'start_day'
         The timestamp on which to adjust the grouping. The timezone of origin must
         match the timezone of the index.
-        If a timestamp is not used, these values are also supported:
+        If string, must be one of the following:
 
         - 'epoch': `origin` is 1970-01-01
         - 'start': `origin` is the first value of the timeseries
@@ -305,8 +306,8 @@ class Grouper:
         return index
 
     def _get_grouper(
-        self, obj: FrameOrSeries, validate: bool = True
-    ) -> tuple[Any, ops.BaseGrouper, FrameOrSeries]:
+        self, obj: NDFrameT, validate: bool = True
+    ) -> tuple[Any, ops.BaseGrouper, NDFrameT]:
         """
         Parameters
         ----------
@@ -319,7 +320,7 @@ class Grouper:
         a tuple of binner, grouper, obj (possibly sorted)
         """
         self._set_grouper(obj)
-        # error: Value of type variable "FrameOrSeries" of "get_grouper" cannot be
+        # error: Value of type variable "NDFrameT" of "get_grouper" cannot be
         # "Optional[Any]"
         # error: Incompatible types in assignment (expression has type "BaseGrouper",
         # variable has type "None")
@@ -334,7 +335,7 @@ class Grouper:
         )
 
         # error: Incompatible return value type (got "Tuple[None, None, None]",
-        # expected "Tuple[Any, BaseGrouper, FrameOrSeries]")
+        # expected "Tuple[Any, BaseGrouper, NDFrameT]")
         return self.binner, self.grouper, self.obj  # type: ignore[return-value]
 
     @final
@@ -399,7 +400,7 @@ class Grouper:
                         raise ValueError(f"The level {level} is not valid")
 
         # possibly sort
-        if (self.sort or sort) and not ax.is_monotonic:
+        if (self.sort or sort) and not ax.is_monotonic_increasing:
             # use stable sort to support first, last, nth
             # TODO: why does putting na_position="first" fix datetimelike cases?
             indexer = self.indexer = ax.array.argsort(
@@ -409,7 +410,7 @@ class Grouper:
             obj = obj.take(indexer, axis=self.axis)
 
         # error: Incompatible types in assignment (expression has type
-        # "FrameOrSeries", variable has type "None")
+        # "NDFrameT", variable has type "None")
         self.obj = obj  # type: ignore[assignment]
         self._gpr_index = ax
         return self._gpr_index
@@ -604,7 +605,7 @@ class Grouping:
         return len(self.group_index)
 
     @cache_readonly
-    def indices(self):
+    def indices(self) -> dict[Hashable, npt.NDArray[np.intp]]:
         # we have a list of groupers
         if isinstance(self.grouping_vector, ops.BaseGrouper):
             return self.grouping_vector.indices
@@ -697,7 +698,7 @@ class Grouping:
 
 
 def get_grouper(
-    obj: FrameOrSeries,
+    obj: NDFrameT,
     key=None,
     axis: int = 0,
     level=None,
@@ -706,7 +707,7 @@ def get_grouper(
     mutated: bool = False,
     validate: bool = True,
     dropna: bool = True,
-) -> tuple[ops.BaseGrouper, frozenset[Hashable], FrameOrSeries]:
+) -> tuple[ops.BaseGrouper, frozenset[Hashable], NDFrameT]:
     """
     Create and return a BaseGrouper, which is an internal
     mapping of how to create the grouper indexers.
@@ -799,7 +800,7 @@ def get_grouper(
 
     # what are we after, exactly?
     any_callable = any(callable(g) or isinstance(g, dict) for g in keys)
-    any_groupers = any(isinstance(g, Grouper) for g in keys)
+    any_groupers = any(isinstance(g, (Grouper, Grouping)) for g in keys)
     any_arraylike = any(
         isinstance(g, (list, tuple, Series, Index, np.ndarray)) for g in keys
     )
@@ -886,12 +887,6 @@ def get_grouper(
         else:
             in_axis = False
 
-        if is_categorical_dtype(gpr) and len(gpr) != obj.shape[axis]:
-            raise ValueError(
-                f"Length of grouper ({len(gpr)}) and axis ({obj.shape[axis]}) "
-                "must be same length"
-            )
-
         # create the Grouping
         # allow us to passing the actual Grouping as the gpr
         ping = (
@@ -937,7 +932,7 @@ def _convert_grouper(axis: Index, grouper):
             return grouper.reindex(axis)._values
     elif isinstance(grouper, MultiIndex):
         return grouper._values
-    elif isinstance(grouper, (list, tuple, Series, Index, np.ndarray)):
+    elif isinstance(grouper, (list, tuple, Index, Categorical, np.ndarray)):
         if len(grouper) != len(axis):
             raise ValueError("Grouper and axis must be same length")
 
@@ -963,8 +958,6 @@ def _check_deprecated_resample_kwargs(kwargs, origin):
         From where this function is being called; either Grouper or TimeGrouper. Used
         to determine an approximate stacklevel.
     """
-    from pandas.core.resample import TimeGrouper
-
     # Deprecation warning of `base` and `loffset` since v1.1.0:
     # we are raising the warning here to be able to set the `stacklevel`
     # properly since we need to raise the `base` and `loffset` deprecation
@@ -974,11 +967,6 @@ def _check_deprecated_resample_kwargs(kwargs, origin):
     #   core/groupby/grouper.py::Grouper
     # raising these warnings from TimeGrouper directly would fail the test:
     #   tests/resample/test_deprecated.py::test_deprecating_on_loffset_and_base
-    # hacky way to set the stacklevel: if cls is TimeGrouper it means
-    # that the call comes from a pandas internal call of resample,
-    # otherwise it comes from pd.Grouper
-    stacklevel = (5 if origin is TimeGrouper else 2) + 1
-    # the + 1 is for this helper function, check_deprecated_resample_kwargs
 
     if kwargs.get("base", None) is not None:
         warnings.warn(
@@ -988,7 +976,7 @@ def _check_deprecated_resample_kwargs(kwargs, origin):
             "\nbecomes:\n"
             '\n>>> df.resample(freq="3s", offset="2s")\n',
             FutureWarning,
-            stacklevel=stacklevel,
+            stacklevel=find_stack_level(),
         )
     if kwargs.get("loffset", None) is not None:
         warnings.warn(
@@ -999,5 +987,5 @@ def _check_deprecated_resample_kwargs(kwargs, origin):
             '\n>>> df = df.resample(freq="3s").mean()'
             '\n>>> df.index = df.index.to_timestamp() + to_offset("8H")\n',
             FutureWarning,
-            stacklevel=stacklevel,
+            stacklevel=find_stack_level(),
         )

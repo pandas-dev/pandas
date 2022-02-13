@@ -6,7 +6,6 @@ from datetime import (
     timedelta,
 )
 import pickle
-import sys
 
 import numpy as np
 import pytest
@@ -22,6 +21,7 @@ from pandas import (
     Index,
     NaT,
     Series,
+    concat,
     isna,
     to_datetime,
 )
@@ -180,12 +180,7 @@ class TestTSPlot(TestPlotBase):
             first_line = ax.get_lines()[0]
             first_x = first_line.get_xdata()[0].ordinal
             first_y = first_line.get_ydata()[0]
-            try:
-                assert expected_string == ax.format_coord(first_x, first_y)
-            except (ValueError):
-                pytest.skip(
-                    "skipping test because issue forming test comparison GH7664"
-                )
+            assert expected_string == ax.format_coord(first_x, first_y)
 
         annual = Series(1, index=date_range("2014-01-01", periods=3, freq="A-DEC"))
         _, ax = self.plt.subplots()
@@ -250,7 +245,7 @@ class TestTSPlot(TestPlotBase):
         _, ax = self.plt.subplots()
         rng = date_range("2001-1-1", "2001-1-10")
         ts = Series(range(len(rng)), index=rng)
-        ts = ts[:3].append(ts[5:])
+        ts = concat([ts[:3], ts[5:]])
         ts.plot(ax=ax)
         assert not hasattr(ax, "freq")
 
@@ -1526,14 +1521,8 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
         with tm.ensure_clean(return_filelike=True) as path:
             plt.savefig(path)
 
-        # GH18439
-        # this is supported only in Python 3 pickle since
-        # pickle in Python2 doesn't support instancemethod pickling
-        # TODO(statsmodels 0.10.0): Remove the statsmodels check
-        # https://github.com/pandas-dev/pandas/issues/24088
-        # https://github.com/statsmodels/statsmodels/issues/4772
-        if "statsmodels" not in sys.modules:
-            with tm.ensure_clean(return_filelike=True) as path:
-                pickle.dump(fig, path)
+        # GH18439, GH#24088, statsmodels#4772
+        with tm.ensure_clean(return_filelike=True) as path:
+            pickle.dump(fig, path)
     finally:
         plt.close(fig)

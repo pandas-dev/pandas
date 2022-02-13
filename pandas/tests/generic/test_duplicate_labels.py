@@ -63,10 +63,9 @@ class TestPreserves:
         assert df.loc[["a"]].flags.allows_duplicate_labels is False
         assert df.loc[:, ["A", "B"]].flags.allows_duplicate_labels is False
 
-    @not_implemented
     def test_to_frame(self):
-        s = pd.Series(dtype=float).set_flags(allows_duplicate_labels=False)
-        assert s.to_frame().flags.allows_duplicate_labels is False
+        ser = pd.Series(dtype=float).set_flags(allows_duplicate_labels=False)
+        assert ser.to_frame().flags.allows_duplicate_labels is False
 
     @pytest.mark.parametrize("func", ["add", "sub"])
     @pytest.mark.parametrize(
@@ -294,14 +293,12 @@ class TestRaises:
 
         assert data.flags.allows_duplicate_labels is True
 
-    @pytest.mark.parametrize(
-        "func", [operator.methodcaller("append", pd.Series(0, index=["a", "b"]))]
-    )
-    def test_series_raises(self, func):
-        s = pd.Series([0, 1], index=["a", "b"]).set_flags(allows_duplicate_labels=False)
+    def test_series_raises(self):
+        a = pd.Series(0, index=["a", "b"])
+        b = pd.Series([0, 1], index=["a", "b"]).set_flags(allows_duplicate_labels=False)
         msg = "Index has duplicates."
         with pytest.raises(pd.errors.DuplicateLabelError, match=msg):
-            func(s)
+            pd.concat([a, b])
 
     @pytest.mark.parametrize(
         "getter, target",
@@ -318,9 +315,7 @@ class TestRaises:
             pytest.param(
                 operator.itemgetter((0, [0, 0])), "iloc", marks=not_implemented
             ),
-            pytest.param(
-                operator.itemgetter(([0, 0], 0)), "iloc", marks=not_implemented
-            ),
+            pytest.param(operator.itemgetter(([0, 0], 0)), "iloc"),
         ],
     )
     def test_getitem_raises(self, getter, target):

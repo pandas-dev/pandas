@@ -96,7 +96,7 @@ Reading external data
 
 Like SAS, pandas provides utilities for reading in data from
 many formats.  The ``tips`` dataset, found within the pandas
-tests (`csv <https://raw.github.com/pandas-dev/pandas/master/pandas/tests/io/data/csv/tips.csv>`_)
+tests (`csv <https://raw.githubusercontent.com/pandas-dev/pandas/main/pandas/tests/io/data/csv/tips.csv>`_)
 will be used in many of the following examples.
 
 SAS provides ``PROC IMPORT`` to read csv data into a data set.
@@ -113,7 +113,7 @@ The pandas method is :func:`read_csv`, which works similarly.
 
    url = (
        "https://raw.github.com/pandas-dev/"
-       "pandas/master/pandas/tests/io/data/csv/tips.csv"
+       "pandas/main/pandas/tests/io/data/csv/tips.csv"
    )
    tips = pd.read_csv(url)
    tips
@@ -335,7 +335,7 @@ Extracting substring by position
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 SAS extracts a substring from a string based on its position with the
-`SUBSTR <https://www2.sas.com/proceedings/sugi25/25/cc/25p088.pdf>`__ function.
+`SUBSTR <https://support.sas.com/documentation/cdl/en/imlug/66845/HTML/default/viewer.htm#imlug_langref_sect455.htm>`__ function.
 
 .. code-block:: sas
 
@@ -538,7 +538,7 @@ This means that the size of data able to be loaded in pandas is limited by your
 machine's memory, but also that the operations on that data may be faster.
 
 If out of core processing is needed, one possibility is the
-`dask.dataframe <https://dask.pydata.org/en/latest/dataframe.html>`_
+`dask.dataframe <https://docs.dask.org/en/latest/dataframe.html>`_
 library (currently in development) which
 provides a subset of pandas functionality for an on-disk ``DataFrame``
 

@@ -27,7 +27,6 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
-    is_1d_only_ea_obj,
     is_datetime64tz_dtype,
     is_dtype_equal,
 )
@@ -48,7 +47,7 @@ from pandas.core.internals.array_manager import (
 )
 from pandas.core.internals.blocks import (
     ensure_block_shape,
-    new_block,
+    new_block_2d,
 )
 from pandas.core.internals.managers import BlockManager
 
@@ -77,10 +76,16 @@ def _concatenate_array_managers(
     # reindex all arrays
     mgrs = []
     for mgr, indexers in mgrs_indexers:
+        axis1_made_copy = False
         for ax, indexer in indexers.items():
             mgr = mgr.reindex_indexer(
                 axes[ax], indexer, axis=ax, allow_dups=True, use_na_proxy=True
             )
+            if ax == 1 and indexer is not None:
+                axis1_made_copy = True
+        if copy and concat_axis == 0 and not axis1_made_copy:
+            # for concat_axis 1 we will always get a copy through concat_arrays
+            mgr = mgr.copy()
         mgrs.append(mgr)
 
     if concat_axis == 1:
@@ -94,8 +99,6 @@ def _concatenate_array_managers(
         # concatting along the columns -> combine reindexed arrays in a single manager
         assert concat_axis == 0
         arrays = list(itertools.chain.from_iterable([mgr.arrays for mgr in mgrs]))
-        if copy:
-            arrays = [x.copy() for x in arrays]
 
     new_mgr = ArrayManager(arrays, [axes[1], axes[0]], verify_integrity=False)
     return new_mgr
@@ -224,11 +227,11 @@ def concatenate_managers(
                 # _is_uniform_join_units ensures a single dtype, so
                 #  we can use np.concatenate, which is more performant
                 #  than concat_compat
-                values = np.concatenate(vals, axis=blk.ndim - 1)
+                values = np.concatenate(vals, axis=1)
             else:
                 # TODO(EA2D): special-casing not needed with 2D EAs
                 values = concat_compat(vals, axis=1)
-                values = ensure_block_shape(values, blk.ndim)
+                values = ensure_block_shape(values, ndim=2)
 
             values = ensure_wrapped_if_datetimelike(values)
 
@@ -240,7 +243,7 @@ def concatenate_managers(
         if fastpath:
             b = blk.make_block_same_class(values, placement=placement)
         else:
-            b = new_block(values, placement=placement, ndim=len(axes))
+            b = new_block_2d(values, placement=placement)
 
         blocks.append(b)
 
@@ -370,6 +373,8 @@ def _get_mgr_concatenation_plan(mgr: BlockManager):
 
         if not unit_no_ax0_reindexing:
             # create block from subset of columns
+            # Note: Blocks with only 1 column will always have unit_no_ax0_reindexing,
+            #  so we will never get here with ExtensionBlock.
             blk = blk.getitem_block(ax0_blk_indexer)
 
         # Assertions disabled for performance
@@ -472,7 +477,7 @@ def _concatenate_join_units(join_units: list[JoinUnit], copy: bool) -> ArrayLike
             else:
                 concat_values = concat_values.copy()
 
-    elif any(is_1d_only_ea_obj(t) for t in to_concat):
+    elif any(is_1d_only_ea_dtype(t.dtype) for t in to_concat):
         # TODO(EA2D): special case not needed if all EAs used HybridBlocks
         # NB: we are still assuming here that Hybrid blocks have shape (1, N)
         # concatting with at least one EA means we are concatting a single column
@@ -481,7 +486,9 @@ def _concatenate_join_units(join_units: list[JoinUnit], copy: bool) -> ArrayLike
         # error: No overload variant of "__getitem__" of "ExtensionArray" matches
         # argument type "Tuple[int, slice]"
         to_concat = [
-            t if is_1d_only_ea_obj(t) else t[0, :]  # type: ignore[call-overload]
+            t
+            if is_1d_only_ea_dtype(t.dtype)
+            else t[0, :]  # type: ignore[call-overload]
             for t in to_concat
         ]
         concat_values = concat_compat(to_concat, axis=0, ea_compat_axis=True)
@@ -528,7 +535,6 @@ def _get_empty_dtype(join_units: Sequence[JoinUnit]) -> DtypeObj:
         return blk.dtype
 
     if _is_uniform_reindex(join_units):
-        # FIXME: integrate property
         empty_dtype = join_units[0].block.dtype
         return empty_dtype
 

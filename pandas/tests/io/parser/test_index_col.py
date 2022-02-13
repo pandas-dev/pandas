@@ -19,7 +19,6 @@ import pandas._testing as tm
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
-@skip_pyarrow
 @pytest.mark.parametrize("with_header", [True, False])
 def test_index_col_named(all_parsers, with_header):
     parser = all_parsers
@@ -228,7 +227,6 @@ I2,1,3
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
 @pytest.mark.slow
 def test_index_col_large_csv(all_parsers):
     # https://github.com/pandas-dev/pandas/issues/37094
@@ -298,4 +296,59 @@ def test_multiindex_columns_index_col_with_data(all_parsers):
         ),
         index=Index(["data"]),
     )
+    tm.assert_frame_equal(result, expected)
+
+
+@skip_pyarrow
+def test_infer_types_boolean_sum(all_parsers):
+    # GH#44079
+    parser = all_parsers
+    result = parser.read_csv(
+        StringIO("0,1"),
+        names=["a", "b"],
+        index_col=["a"],
+        dtype={"a": "UInt8"},
+    )
+    expected = DataFrame(
+        data={
+            "a": [
+                0,
+            ],
+            "b": [1],
+        }
+    ).set_index("a")
+    # Not checking index type now, because the C parser will return a
+    # index column of dtype 'object', and the Python parser will return a
+    # index column of dtype 'int64'.
+    tm.assert_frame_equal(result, expected, check_index_type=False)
+
+
+@skip_pyarrow
+@pytest.mark.parametrize("dtype, val", [(object, "01"), ("int64", 1)])
+def test_specify_dtype_for_index_col(all_parsers, dtype, val):
+    # GH#9435
+    data = "a,b\n01,2"
+    parser = all_parsers
+    result = parser.read_csv(StringIO(data), index_col="a", dtype={"a": dtype})
+    expected = DataFrame({"b": [2]}, index=Index([val], name="a"))
+    tm.assert_frame_equal(result, expected)
+
+
+@skip_pyarrow
+def test_multiindex_columns_not_leading_index_col(all_parsers):
+    # GH#38549
+    parser = all_parsers
+    data = """a,b,c,d
+e,f,g,h
+x,y,1,2
+"""
+    result = parser.read_csv(
+        StringIO(data),
+        header=[0, 1],
+        index_col=1,
+    )
+    cols = MultiIndex.from_tuples(
+        [("a", "e"), ("c", "g"), ("d", "h")], names=["b", "f"]
+    )
+    expected = DataFrame([["x", 1, 2]], columns=cols, index=["y"])
     tm.assert_frame_equal(result, expected)

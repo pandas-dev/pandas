@@ -38,7 +38,7 @@ from pandas._typing import (
 from pandas.compat.numpy import function as nv
 from pandas.util._validators import validate_endpoints
 
-from pandas.core.dtypes.cast import astype_td64_unit_conversion
+from pandas.core.dtypes.astype import astype_td64_unit_conversion
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     TD64NS_DTYPE,
@@ -82,7 +82,7 @@ def _field_accessor(name: str, alias: str, docstring: str):
     def f(self) -> np.ndarray:
         values = self.asi8
         result = get_timedelta_field(values, alias)
-        if self._hasnans:
+        if self._hasna:
             result = self._maybe_mask_results(
                 result, fill_value=None, convert="float64"
             )
@@ -426,7 +426,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     @dtl.ravel_compat
     def _format_native_types(
-        self, na_rep="NaT", date_format=None, **kwargs
+        self, *, na_rep="NaT", date_format=None, **kwargs
     ) -> np.ndarray:
         from pandas.io.formats.format import get_format_timedelta64
 
@@ -573,12 +573,17 @@ class TimedeltaArray(dtl.TimelikeOps):
 
             # We need to do dtype inference in order to keep DataFrame ops
             #  behavior consistent with Series behavior
-            inferred = lib.infer_dtype(result)
+            inferred = lib.infer_dtype(result, skipna=False)
             if inferred == "timedelta":
                 flat = result.ravel()
                 result = type(self)._from_sequence(flat).reshape(result.shape)
             elif inferred == "floating":
                 result = result.astype(float)
+            elif inferred == "datetime":
+                # GH#39750 this occurs when result is all-NaT, in which case
+                #  we want to interpret these NaTs as td64.
+                #  We construct an all-td64NaT result.
+                result = self * np.nan
 
             return result
 
@@ -646,8 +651,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
             # at this point we should only have numeric scalars; anything
             #  else will raise
-            result = self.asi8 // other
-            np.putmask(result, self._isnan, iNaT)
+            result = self._ndarray // other
             freq = None
             if self.freq is not None:
                 # Note: freq gets division, not floor-division
@@ -656,7 +660,7 @@ class TimedeltaArray(dtl.TimelikeOps):
                     # e.g. if self.freq is Nano(1) then dividing by 2
                     #  rounds down to zero
                     freq = None
-            return type(self)(result.view("m8[ns]"), freq=freq)
+            return type(self)(result, freq=freq)
 
         if not hasattr(other, "dtype"):
             # list, tuple
@@ -679,13 +683,22 @@ class TimedeltaArray(dtl.TimelikeOps):
         elif is_object_dtype(other.dtype):
             # error: Incompatible types in assignment (expression has type
             # "List[Any]", variable has type "ndarray")
-            result = [  # type: ignore[assignment]
-                self[n] // other[n] for n in range(len(self))
-            ]
-            result = np.array(result)
-            if lib.infer_dtype(result, skipna=False) == "timedelta":
+            srav = self.ravel()
+            orav = other.ravel()
+            res_list = [srav[n] // orav[n] for n in range(len(srav))]
+            result_flat = np.asarray(res_list)
+            inferred = lib.infer_dtype(result_flat, skipna=False)
+
+            result = result_flat.reshape(self.shape)
+
+            if inferred == "timedelta":
                 result, _ = sequence_to_td64ns(result)
                 return type(self)(result)
+            if inferred == "datetime":
+                # GH#39750 occurs when result is all-NaT, which in this
+                #  case should be interpreted as td64nat. This can only
+                #  occur when self is all-td64nat
+                return self * np.nan
             return result
 
         elif is_integer_dtype(other.dtype) or is_float_dtype(other.dtype):
@@ -735,12 +748,8 @@ class TimedeltaArray(dtl.TimelikeOps):
             return result
 
         elif is_object_dtype(other.dtype):
-            # error: Incompatible types in assignment (expression has type
-            # "List[Any]", variable has type "ndarray")
-            result = [  # type: ignore[assignment]
-                other[n] // self[n] for n in range(len(self))
-            ]
-            result = np.array(result)
+            result_list = [other[n] // self[n] for n in range(len(self))]
+            result = np.array(result_list)
             return result
 
         else:
@@ -787,7 +796,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         return type(self)(-self._ndarray)
 
     def __pos__(self) -> TimedeltaArray:
-        return type(self)(self._ndarray, freq=self.freq)
+        return type(self)(self._ndarray.copy(), freq=self.freq)
 
     def __abs__(self) -> TimedeltaArray:
         # Note: freq is not preserved
@@ -902,7 +911,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             "microseconds",
             "nanoseconds",
         ]
-        hasnans = self._hasnans
+        hasnans = self._hasna
         if hasnans:
 
             def f(x):

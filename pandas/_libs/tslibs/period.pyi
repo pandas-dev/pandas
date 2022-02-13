@@ -58,23 +58,23 @@ class Period:
     # error: "__new__" must return a class instance (got "Union[Period, NaTType]")
     def __new__(  # type: ignore[misc]
         cls,
-        value=None,
-        freq=None,
-        ordinal=None,
-        year=None,
-        month=None,
-        quarter=None,
-        day=None,
-        hour=None,
-        minute=None,
-        second=None,
+        value=...,
+        freq: int | str | None = ...,
+        ordinal: int | None = ...,
+        year: int | None = ...,
+        month: int | None = ...,
+        quarter: int | None = ...,
+        day: int | None = ...,
+        hour: int | None = ...,
+        minute: int | None = ...,
+        second: int | None = ...,
     ) -> Period | NaTType: ...
     @classmethod
     def _maybe_convert_freq(cls, freq) -> BaseOffset: ...
     @classmethod
     def _from_ordinal(cls, ordinal: int, freq) -> Period: ...
     @classmethod
-    def now(cls, freq=...) -> Period: ...
+    def now(cls, freq: BaseOffset = ...) -> Period: ...
     def strftime(self, fmt: str) -> str: ...
     def to_timestamp(
         self,
@@ -82,7 +82,7 @@ class Period:
         how: str = ...,
         tz: Timezone | None = ...,
     ) -> Timestamp: ...
-    def asfreq(self, freq, how=...) -> Period: ...
+    def asfreq(self, freq: str, how: str = ...) -> Period: ...
     @property
     def freqstr(self) -> str: ...
     @property

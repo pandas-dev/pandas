@@ -8,9 +8,12 @@ from pandas.errors import InvalidIndexError
 from pandas import (
     NA,
     CategoricalIndex,
+    Index,
     Interval,
     IntervalIndex,
+    MultiIndex,
     NaT,
+    Series,
     Timedelta,
     date_range,
     timedelta_range,
@@ -373,6 +376,31 @@ class TestGetIndexer:
         expected = np.array([0, 1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_get_index_non_unique_non_monotonic(self):
+        # GH#44084 (root cause)
+        index = IntervalIndex.from_tuples(
+            [(0.0, 1.0), (1.0, 2.0), (0.0, 1.0), (1.0, 2.0)]
+        )
+
+        result, _ = index.get_indexer_non_unique([Interval(1.0, 2.0)])
+        expected = np.array([1, 3], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_get_indexer_multiindex_with_intervals(self):
+        # GH#44084 (MultiIndex case as reported)
+        interval_index = IntervalIndex.from_tuples(
+            [(2.0, 3.0), (0.0, 1.0), (1.0, 2.0)], name="interval"
+        )
+        foo_index = Index([1, 2, 3], name="foo")
+
+        multi_index = MultiIndex.from_product([foo_index, interval_index])
+
+        result = multi_index.get_level_values("interval").get_indexer_for(
+            [Interval(0.0, 1.0)]
+        )
+        expected = np.array([1, 4, 7], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
 
 class TestSliceLocs:
     def test_slice_locs_with_interval(self):
@@ -497,3 +525,63 @@ class TestSliceLocs:
             ),
         ):
             index.slice_locs(start, stop)
+
+
+class TestPutmask:
+    @pytest.mark.parametrize("tz", ["US/Pacific", None])
+    def test_putmask_dt64(self, tz):
+        # GH#37968
+        dti = date_range("2016-01-01", periods=9, tz=tz)
+        idx = IntervalIndex.from_breaks(dti)
+        mask = np.zeros(idx.shape, dtype=bool)
+        mask[0:3] = True
+
+        result = idx.putmask(mask, idx[-1])
+        expected = IntervalIndex([idx[-1]] * 3 + list(idx[3:]))
+        tm.assert_index_equal(result, expected)
+
+    def test_putmask_td64(self):
+        # GH#37968
+        dti = date_range("2016-01-01", periods=9)
+        tdi = dti - dti[0]
+        idx = IntervalIndex.from_breaks(tdi)
+        mask = np.zeros(idx.shape, dtype=bool)
+        mask[0:3] = True
+
+        result = idx.putmask(mask, idx[-1])
+        expected = IntervalIndex([idx[-1]] * 3 + list(idx[3:]))
+        tm.assert_index_equal(result, expected)
+
+
+class TestGetValue:
+    @pytest.mark.parametrize("key", [[5], (2, 3)])
+    def test_get_value_non_scalar_errors(self, key):
+        # GH#31117
+        idx = IntervalIndex.from_tuples([(1, 3), (2, 4), (3, 5), (7, 10), (3, 10)])
+        ser = Series(range(len(idx)), index=idx)
+
+        msg = str(key)
+        with pytest.raises(InvalidIndexError, match=msg):
+            with tm.assert_produces_warning(FutureWarning):
+                idx.get_value(ser, key)
+
+
+class TestContains:
+    # .__contains__, not .contains
+
+    def test_contains_dunder(self):
+
+        index = IntervalIndex.from_arrays([0, 1], [1, 2], closed="right")
+
+        # __contains__ requires perfect matches to intervals.
+        assert 0 not in index
+        assert 1 not in index
+        assert 2 not in index
+
+        assert Interval(0, 1, closed="right") in index
+        assert Interval(0, 2, closed="right") not in index
+        assert Interval(0, 0.5, closed="right") not in index
+        assert Interval(3, 5, closed="right") not in index
+        assert Interval(-1, 0, closed="left") not in index
+        assert Interval(0, 1, closed="left") not in index
+        assert Interval(0, 1, closed="both") not in index

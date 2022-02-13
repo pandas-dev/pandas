@@ -136,18 +136,31 @@ class TestSliceLocs:
         assert result == expected
 
 
-def test_putmask_with_wrong_mask(idx):
-    # GH18368
+class TestPutmask:
+    def test_putmask_with_wrong_mask(self, idx):
+        # GH18368
 
-    msg = "putmask: mask and data must be the same size"
-    with pytest.raises(ValueError, match=msg):
-        idx.putmask(np.ones(len(idx) + 1, np.bool_), 1)
+        msg = "putmask: mask and data must be the same size"
+        with pytest.raises(ValueError, match=msg):
+            idx.putmask(np.ones(len(idx) + 1, np.bool_), 1)
 
-    with pytest.raises(ValueError, match=msg):
-        idx.putmask(np.ones(len(idx) - 1, np.bool_), 1)
+        with pytest.raises(ValueError, match=msg):
+            idx.putmask(np.ones(len(idx) - 1, np.bool_), 1)
 
-    with pytest.raises(ValueError, match=msg):
-        idx.putmask("foo", 1)
+        with pytest.raises(ValueError, match=msg):
+            idx.putmask("foo", 1)
+
+    def test_putmask_multiindex_other(self):
+        # GH#43212 `value` is also a MultiIndex
+
+        left = MultiIndex.from_tuples([(np.nan, 6), (np.nan, 6), ("a", 4)])
+        right = MultiIndex.from_tuples([("a", 1), ("a", 1), ("d", 1)])
+        mask = np.array([True, True, False])
+
+        result = left.putmask(mask, right)
+
+        expected = MultiIndex.from_tuples([right[0], right[1], left[2]])
+        tm.assert_index_equal(result, expected)
 
 
 class TestGetIndexer:
@@ -340,9 +353,9 @@ class TestGetIndexer:
             ]
         )
         # sanity check
-        assert mult_idx_1.is_monotonic
+        assert mult_idx_1.is_monotonic_increasing
         assert mult_idx_1.is_unique
-        assert mult_idx_2.is_monotonic
+        assert mult_idx_2.is_monotonic_increasing
         assert mult_idx_2.is_unique
 
         # show the relationships between the two
@@ -608,13 +621,22 @@ class TestGetLoc:
         idx = MultiIndex.from_product(levels)
         assert idx.get_loc(tuple(key)) == 3
 
-    def test_get_loc_cast_bool(self):
-        # GH 19086 : int is casted to bool, but not vice-versa
-        levels = [[False, True], np.arange(2, dtype="int64")]
+    @pytest.mark.parametrize("dtype", [bool, object])
+    def test_get_loc_cast_bool(self, dtype):
+        # GH 19086 : int is casted to bool, but not vice-versa (for object dtype)
+        #  With bool dtype, we don't cast in either direction.
+        levels = [Index([False, True], dtype=dtype), np.arange(2, dtype="int64")]
         idx = MultiIndex.from_product(levels)
 
-        assert idx.get_loc((0, 1)) == 1
-        assert idx.get_loc((1, 0)) == 2
+        if dtype is bool:
+            with pytest.raises(KeyError, match=r"^\(0, 1\)$"):
+                assert idx.get_loc((0, 1)) == 1
+            with pytest.raises(KeyError, match=r"^\(1, 0\)$"):
+                assert idx.get_loc((1, 0)) == 2
+        else:
+            # We use python object comparisons, which treat 0 == False and 1 == True
+            assert idx.get_loc((0, 1)) == 1
+            assert idx.get_loc((1, 0)) == 2
 
         with pytest.raises(KeyError, match=r"^\(False, True\)$"):
             idx.get_loc((False, True))
@@ -639,7 +661,7 @@ class TestGetLoc:
             idx.get_loc(3)
         with pytest.raises(KeyError, match=r"^nan$"):
             idx.get_loc(np.nan)
-        with pytest.raises(TypeError, match="unhashable type: 'list'"):
+        with pytest.raises(InvalidIndexError, match=r"\[nan\]"):
             # listlike/non-hashable raises TypeError
             idx.get_loc([np.nan])
 
@@ -686,8 +708,8 @@ class TestGetLoc:
     def test_multiindex_get_loc_list_raises(self):
         # GH#35878
         idx = MultiIndex.from_tuples([("a", 1), ("b", 2)])
-        msg = "unhashable type"
-        with pytest.raises(TypeError, match=msg):
+        msg = r"\[\]"
+        with pytest.raises(InvalidIndexError, match=msg):
             idx.get_loc([])
 
     def test_get_loc_nested_tuple_raises_keyerror(self):
@@ -707,13 +729,12 @@ class TestWhere:
         with pytest.raises(NotImplementedError, match=msg):
             i.where(True)
 
-    @pytest.mark.parametrize("klass", [list, tuple, np.array, pd.Series])
-    def test_where_array_like(self, klass):
-        i = MultiIndex.from_tuples([("A", 1), ("A", 2)])
+    def test_where_array_like(self, listlike_box):
+        mi = MultiIndex.from_tuples([("A", 1), ("A", 2)])
         cond = [False, True]
         msg = r"\.where is not supported for MultiIndex operations"
         with pytest.raises(NotImplementedError, match=msg):
-            i.where(klass(cond))
+            mi.where(listlike_box(cond))
 
 
 class TestContains:
@@ -778,8 +799,8 @@ class TestContains:
     @pytest.mark.slow
     def test_large_mi_contains(self):
         # GH#10645
-        result = MultiIndex.from_arrays([range(10 ** 6), range(10 ** 6)])
-        assert not (10 ** 6, 0) in result
+        result = MultiIndex.from_arrays([range(10**6), range(10**6)])
+        assert not (10**6, 0) in result
 
 
 def test_timestamp_multiindex_indexer():

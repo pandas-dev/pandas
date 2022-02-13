@@ -253,7 +253,6 @@ _msg = f"cannot both support and not support {intersection}"
 assert not intersection, _msg
 
 
-# TODO: Python 3.6.2: replace Callable[..., None] with Callable[..., NoReturn]
 def _node_not_implemented(node_name: str) -> Callable[..., None]:
     """
     Return a function that raises a NotImplementedError with a passed node name.

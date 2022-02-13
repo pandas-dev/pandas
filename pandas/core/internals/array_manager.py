@@ -15,6 +15,7 @@ import numpy as np
 
 from pandas._libs import (
     NaT,
+    algos as libalgos,
     lib,
 )
 from pandas._typing import (
@@ -23,8 +24,8 @@ from pandas._typing import (
 )
 from pandas.util._validators import validate_bool_kwarg
 
+from pandas.core.dtypes.astype import astype_array_safe
 from pandas.core.dtypes.cast import (
-    astype_array_safe,
     ensure_dtype_can_hold_na,
     infer_dtype_from_scalar,
     soft_convert_objects,
@@ -170,7 +171,12 @@ class BaseArrayManager(DataManager):
     def get_dtypes(self):
         return np.array([arr.dtype for arr in self.arrays], dtype="object")
 
-    # TODO setstate getstate
+    def __getstate__(self):
+        return self.arrays, self._axes
+
+    def __setstate__(self, state):
+        self.arrays = state[0]
+        self._axes = state[1]
 
     def __repr__(self) -> str:
         output = type(self).__name__
@@ -322,7 +328,7 @@ class BaseArrayManager(DataManager):
 
         return type(self)(result_arrays, self._axes)
 
-    def where(self: T, other, cond, align: bool, errors: str) -> T:
+    def where(self: T, other, cond, align: bool) -> T:
         if align:
             align_keys = ["other", "cond"]
         else:
@@ -334,12 +340,10 @@ class BaseArrayManager(DataManager):
             align_keys=align_keys,
             other=other,
             cond=cond,
-            errors=errors,
         )
 
-    # TODO what is this used for?
-    # def setitem(self, indexer, value) -> ArrayManager:
-    #     return self.apply_with_block("setitem", indexer=indexer, value=value)
+    def setitem(self: T, indexer, value) -> T:
+        return self.apply_with_block("setitem", indexer=indexer, value=value)
 
     def putmask(self, mask, new, align: bool = True):
         if align:
@@ -361,7 +365,7 @@ class BaseArrayManager(DataManager):
             # with axis=0 is equivalent
             assert n == 0
             axis = 0
-        return self.apply(algos.diff, n=n, axis=axis, stacklevel=5)
+        return self.apply(algos.diff, n=n, axis=axis)
 
     def interpolate(self: T, **kwargs) -> T:
         return self.apply_with_block("interpolate", swap_axis=False, **kwargs)
@@ -379,12 +383,14 @@ class BaseArrayManager(DataManager):
         )
 
     def fillna(self: T, value, limit, inplace: bool, downcast) -> T:
+
+        if limit is not None:
+            # Do this validation even if we go through one of the no-op paths
+            limit = libalgos.validate_limit(None, limit=limit)
+
         return self.apply_with_block(
             "fillna", value=value, limit=limit, inplace=inplace, downcast=downcast
         )
-
-    def downcast(self: T) -> T:
-        return self.apply_with_block("downcast")
 
     def astype(self: T, dtype, copy: bool = False, errors: str = "raise") -> T:
         return self.apply(astype_array_safe, dtype=dtype, copy=copy, errors=errors)
@@ -412,11 +418,17 @@ class BaseArrayManager(DataManager):
 
         return self.apply(_convert)
 
-    def replace(self: T, value, **kwargs) -> T:
+    def replace_regex(self: T, **kwargs) -> T:
+        return self.apply_with_block("_replace_regex", **kwargs)
+
+    def replace(self: T, to_replace, value, inplace: bool) -> T:
+        inplace = validate_bool_kwarg(inplace, "inplace")
         assert np.ndim(value) == 0, value
         # TODO "replace" is right now implemented on the blocks, we should move
         # it to general array algos so it can be reused here
-        return self.apply_with_block("replace", value=value, **kwargs)
+        return self.apply_with_block(
+            "replace", value=value, to_replace=to_replace, inplace=inplace
+        )
 
     def replace_list(
         self: T,
@@ -429,7 +441,7 @@ class BaseArrayManager(DataManager):
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         return self.apply_with_block(
-            "_replace_list",
+            "replace_list",
             src_list=src_list,
             dest_list=dest_list,
             inplace=inplace,
@@ -460,7 +472,7 @@ class BaseArrayManager(DataManager):
 
     @property
     def is_single_block(self) -> bool:
-        return False
+        return len(self.arrays) == 1
 
     def _get_data_subset(self: T, predicate: Callable) -> T:
         indices = [i for i, arr in enumerate(self.arrays) if predicate(arr)]
@@ -526,8 +538,8 @@ class BaseArrayManager(DataManager):
         if deep:
             new_arrays = [arr.copy() for arr in self.arrays]
         else:
-            new_arrays = self.arrays
-        return type(self)(new_arrays, new_axes)
+            new_arrays = list(self.arrays)
+        return type(self)(new_arrays, new_axes, verify_integrity=False)
 
     def reindex_indexer(
         self: T,
@@ -538,7 +550,6 @@ class BaseArrayManager(DataManager):
         allow_dups: bool = False,
         copy: bool = True,
         # ignored keywords
-        consolidate: bool = True,
         only_slice: bool = False,
         # ArrayManager specific keywords
         use_na_proxy: bool = False,
@@ -609,16 +620,15 @@ class BaseArrayManager(DataManager):
         else:
             validate_indices(indexer, len(self._axes[0]))
             indexer = ensure_platform_int(indexer)
-            if (indexer == -1).any():
-                allow_fill = True
-            else:
-                allow_fill = False
+            mask = indexer == -1
+            needs_masking = mask.any()
             new_arrays = [
                 take_1d(
                     arr,
                     indexer,
-                    allow_fill=allow_fill,
+                    allow_fill=needs_masking,
                     fill_value=fill_value,
+                    mask=mask,
                     # if fill_value is not None else blk.fill_value
                 )
                 for arr in self.arrays
@@ -788,9 +798,12 @@ class ArrayManager(BaseArrayManager):
         """
         Used in the JSON C code to access column arrays.
         """
-        return self.arrays
 
-    def iset(self, loc: int | slice | np.ndarray, value: ArrayLike):
+        return [np.asarray(arr) for arr in self.arrays]
+
+    def iset(
+        self, loc: int | slice | np.ndarray, value: ArrayLike, inplace: bool = False
+    ):
         """
         Set new column(s).
 
@@ -802,6 +815,8 @@ class ArrayManager(BaseArrayManager):
         loc : integer, slice or boolean mask
             Positional location (already bounds checked)
         value : np.ndarray or ExtensionArray
+        inplace : bool, default False
+            Whether overwrite existing array as opposed to replacing it.
         """
         # single column -> single integer index
         if lib.is_integer(loc):
@@ -1051,22 +1066,33 @@ class ArrayManager(BaseArrayManager):
         if unstacker.mask.all():
             new_indexer = indexer
             allow_fill = False
+            new_mask2D = None
+            needs_masking = None
         else:
             new_indexer = np.full(unstacker.mask.shape, -1)
             new_indexer[unstacker.mask] = indexer
             allow_fill = True
+            # calculating the full mask once and passing it to take_1d is faster
+            # than letting take_1d calculate it in each repeated call
+            new_mask2D = (~unstacker.mask).reshape(*unstacker.full_shape)
+            needs_masking = new_mask2D.any(axis=0)
         new_indexer2D = new_indexer.reshape(*unstacker.full_shape)
         new_indexer2D = ensure_platform_int(new_indexer2D)
 
         new_arrays = []
         for arr in self.arrays:
             for i in range(unstacker.full_shape[1]):
-                new_arr = take_1d(
-                    arr,
-                    new_indexer2D[:, i],
-                    allow_fill=allow_fill,
-                    fill_value=fill_value,
-                )
+                if allow_fill:
+                    # error: Value of type "Optional[Any]" is not indexable  [index]
+                    new_arr = take_1d(
+                        arr,
+                        new_indexer2D[:, i],
+                        allow_fill=needs_masking[i],  # type: ignore[index]
+                        fill_value=fill_value,
+                        mask=new_mask2D[:, i],  # type: ignore[index]
+                    )
+                else:
+                    new_arr = take_1d(arr, new_indexer2D[:, i], allow_fill=False)
                 new_arrays.append(new_arr)
 
         new_index = unstacker.new_index
@@ -1077,7 +1103,6 @@ class ArrayManager(BaseArrayManager):
 
     def as_array(
         self,
-        transpose: bool = False,
         dtype=None,
         copy: bool = False,
         na_value=lib.no_default,
@@ -1087,8 +1112,6 @@ class ArrayManager(BaseArrayManager):
 
         Parameters
         ----------
-        transpose : bool, default False
-            If True, transpose the return array.
         dtype : object, default None
             Data type of the return array.
         copy : bool, default False
@@ -1103,8 +1126,8 @@ class ArrayManager(BaseArrayManager):
         arr : ndarray
         """
         if len(self.arrays) == 0:
-            arr = np.empty(self.shape, dtype=float)
-            return arr.transpose() if transpose else arr
+            empty_arr = np.empty(self.shape, dtype=float)
+            return empty_arr.transpose()
 
         # We want to copy when na_value is provided to avoid
         # mutating the original object
@@ -1124,9 +1147,7 @@ class ArrayManager(BaseArrayManager):
 
         result = np.empty(self.shape_proper, dtype=dtype)
 
-        # error: Incompatible types in assignment (expression has type "Union[ndarray,
-        # ExtensionArray]", variable has type "ndarray")
-        for i, arr in enumerate(self.arrays):  # type: ignore[assignment]
+        for i, arr in enumerate(self.arrays):
             arr = arr.astype(dtype, copy=copy)
             result[:, i] = arr
 
@@ -1134,7 +1155,6 @@ class ArrayManager(BaseArrayManager):
             result[isna(result)] = na_value
 
         return result
-        # return arr.transpose() if transpose else arr
 
 
 class SingleArrayManager(BaseArrayManager, SingleDataManager):
@@ -1187,7 +1207,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         """Return an empty ArrayManager with index/array of length 0"""
         if axes is None:
             axes = [Index([], dtype=object)]
-        array = np.array([], dtype=self.dtype)
+        array: np.ndarray = np.array([], dtype=self.dtype)
         return type(self)([array], axes)
 
     @classmethod
@@ -1265,6 +1285,8 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         See `setitem_inplace` for a version that works inplace and doesn't
         return a new Manager.
         """
+        if isinstance(indexer, np.ndarray) and indexer.ndim > self.ndim:
+            raise ValueError(f"Cannot set values with ndim > {self.ndim}")
         return self.apply_with_block("setitem", indexer=indexer, value=value)
 
     def idelete(self, indexer) -> SingleArrayManager:

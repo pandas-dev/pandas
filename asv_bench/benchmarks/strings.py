@@ -3,10 +3,12 @@ import warnings
 import numpy as np
 
 from pandas import (
+    NA,
     Categorical,
     DataFrame,
     Series,
 )
+from pandas.arrays import StringArray
 
 from .pandas_vb_common import tm
 
@@ -17,7 +19,7 @@ class Dtypes:
 
     def setup(self, dtype):
         try:
-            self.s = Series(tm.makeStringIndex(10 ** 5), dtype=dtype)
+            self.s = Series(tm.makeStringIndex(10**5), dtype=dtype)
         except ImportError:
             raise NotImplementedError
 
@@ -28,7 +30,7 @@ class Construction:
     param_names = ["dtype"]
 
     def setup(self, dtype):
-        self.series_arr = tm.rands_array(nchars=10, size=10 ** 5)
+        self.series_arr = tm.rands_array(nchars=10, size=10**5)
         self.frame_arr = self.series_arr.reshape((50_000, 2)).copy()
 
         # GH37371. Testing construction of string series/frames from ExtensionArrays
@@ -180,7 +182,7 @@ class Repeat:
     param_names = ["repeats"]
 
     def setup(self, repeats):
-        N = 10 ** 5
+        N = 10**5
         self.s = Series(tm.makeStringIndex(N))
         repeat = {"int": 1, "array": np.random.randint(1, 3, N)}
         self.values = repeat[repeats]
@@ -195,7 +197,7 @@ class Cat:
     param_names = ["other_cols", "sep", "na_rep", "na_frac"]
 
     def setup(self, other_cols, sep, na_rep, na_frac):
-        N = 10 ** 5
+        N = 10**5
         mask_gen = lambda: np.random.choice([True, False], N, p=[1 - na_frac, na_frac])
         self.s = Series(tm.makeStringIndex(N)).where(mask_gen())
         if other_cols == 0:
@@ -285,3 +287,18 @@ class Iter(Dtypes):
     def time_iter(self, dtype):
         for i in self.s:
             pass
+
+
+class StringArrayConstruction:
+    def setup(self):
+        self.series_arr = tm.rands_array(nchars=10, size=10**5)
+        self.series_arr_nan = np.concatenate([self.series_arr, np.array([NA] * 1000)])
+
+    def time_string_array_construction(self):
+        StringArray(self.series_arr)
+
+    def time_string_array_with_nan_construction(self):
+        StringArray(self.series_arr_nan)
+
+    def peakmem_stringarray_construction(self):
+        StringArray(self.series_arr)

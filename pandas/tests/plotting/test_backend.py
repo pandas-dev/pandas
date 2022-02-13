@@ -18,9 +18,8 @@ pytestmark = pytest.mark.slow
 @pytest.fixture
 def restore_backend():
     """Restore the plotting backend to matplotlib"""
-    pandas.set_option("plotting.backend", "matplotlib")
-    yield
-    pandas.set_option("plotting.backend", "matplotlib")
+    with pandas.option_context("plotting.backend", "matplotlib"):
+        yield
 
 
 def test_backend_is_not_module():
@@ -71,7 +70,7 @@ def test_register_entrypoint(restore_backend):
     result = pandas.plotting._core._get_plot_backend("my_backend")
     assert result is mod
 
-    # TODO: https://github.com/pandas-dev/pandas/issues/27517
+    # TODO(GH#27517): https://github.com/pandas-dev/pandas/issues/27517
     # Remove the td.skip_if_no_mpl
     with pandas.option_context("plotting.backend", "my_backend"):
         result = pandas.plotting._core._get_plot_backend()

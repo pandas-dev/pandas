@@ -31,7 +31,7 @@ dtypes = [('Complex128', 'complex128', 'complex128',
 @cython.wraparound(False)
 @cython.boundscheck(False)
 {{if dtype == 'object'}}
-cdef value_count_{{dtype}}(ndarray[{{dtype}}] values, bint dropna, navalue=np.NaN):
+cdef value_count_{{dtype}}(ndarray[{{dtype}}] values, bint dropna):
 {{else}}
 cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
 {{endif}}
@@ -42,7 +42,6 @@ cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
 
         # Don't use Py_ssize_t, since table.n_buckets is unsigned
         khiter_t k
-        bint is_null
 
         {{c_type}} val
 
@@ -61,11 +60,7 @@ cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
 
     for i in range(n):
         val = values[i]
-        is_null = checknull(val)
-        if not is_null or not dropna:
-            # all nas become the same representative:
-            if is_null:
-                val = navalue
+        if not dropna or not checknull(val):
             k = kh_get_{{ttype}}(table, <PyObject*>val)
             if k != table.n_buckets:
                 table.vals[k] += 1
@@ -470,3 +465,51 @@ cpdef mode(ndarray[htfunc_t] values, bint dropna):
 
     else:
         raise TypeError(values.dtype)
+
+
+{{py:
+
+# name, dtype, ttype, c_type
+dtypes = [('Int64', 'int64', 'int64', 'int64_t'),
+          ('Int32', 'int32', 'int32', 'int32_t'), ]
+
+}}
+
+{{for name, dtype, ttype, c_type in dtypes}}
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def _unique_label_indices_{{dtype}}(const {{c_type}}[:] labels) -> ndarray:
+    """
+    Indices of the first occurrences of the unique labels
+    *excluding* -1. equivalent to:
+        np.unique(labels, return_index=True)[1]
+    """
+    cdef:
+        int ret = 0
+        Py_ssize_t i, n = len(labels)
+        kh_{{ttype}}_t *table = kh_init_{{ttype}}()
+        {{name}}Vector idx = {{name}}Vector()
+        ndarray[{{c_type}}, ndim=1] arr
+        {{name}}VectorData *ud = idx.data
+
+    kh_resize_{{ttype}}(table, min(kh_needed_n_buckets(n), SIZE_HINT_LIMIT))
+
+    with nogil:
+        for i in range(n):
+            kh_put_{{ttype}}(table, labels[i], &ret)
+            if ret != 0:
+                if needs_resize(ud):
+                    with gil:
+                        idx.resize()
+                append_data_{{ttype}}(ud, i)
+
+    kh_destroy_{{ttype}}(table)
+
+    arr = idx.to_array()
+    arr = arr[np.asarray(labels)[arr].argsort()]
+
+    return arr[1:] if arr.size != 0 and labels[arr[0]] == -1 else arr
+
+{{endfor}}

@@ -76,13 +76,19 @@ class TestMethods:
         ],
     )
     def test_where_raises(self, other):
+        # GH#45768 The IntervalArray methods raises; the Series method coerces
         ser = pd.Series(IntervalArray.from_breaks([1, 2, 3, 4], closed="left"))
+        mask = np.array([True, False, True])
         match = "'value.closed' is 'right', expected 'left'."
         with pytest.raises(ValueError, match=match):
-            ser.where([True, False, True], other=other)
+            ser.array._where(mask, other)
+
+        res = ser.where(mask, other=other)
+        expected = ser.astype(object).where(mask, other)
+        tm.assert_series_equal(res, expected)
 
     def test_shift(self):
-        # https://github.com/pandas-dev/pandas/issues/31495
+        # https://github.com/pandas-dev/pandas/issues/31495, GH#22428, GH#31502
         a = IntervalArray.from_breaks([1, 2, 3])
         result = a.shift()
         # int -> float
@@ -90,6 +96,7 @@ class TestMethods:
         tm.assert_interval_array_equal(result, expected)
 
     def test_shift_datetime(self):
+        # GH#31502, GH#31504
         a = IntervalArray.from_breaks(date_range("2000", periods=4))
         result = a.shift(2)
         expected = a.take([-1, -1, 0], allow_fill=True)
@@ -103,6 +110,8 @@ class TestMethods:
 class TestSetitem:
     def test_set_na(self, left_right_dtypes):
         left, right = left_right_dtypes
+        left = left.copy(deep=True)
+        right = right.copy(deep=True)
         result = IntervalArray.from_arrays(left, right)
 
         if result.dtype.subtype.kind not in ["m", "M"]:
@@ -111,7 +120,9 @@ class TestSetitem:
                 result[0] = pd.NaT
         if result.dtype.subtype.kind in ["i", "u"]:
             msg = "Cannot set float NaN to integer-backed IntervalArray"
-            with pytest.raises(ValueError, match=msg):
+            # GH#45484 TypeError, not ValueError, matches what we get with
+            # non-NA un-holdable value.
+            with pytest.raises(TypeError, match=msg):
                 result[0] = np.NaN
             return
 
@@ -159,6 +170,71 @@ def test_repr():
         "Length: 2, dtype: interval[int64, right]"
     )
     assert result == expected
+
+
+class TestReductions:
+    def test_min_max_invalid_axis(self, left_right_dtypes):
+        left, right = left_right_dtypes
+        left = left.copy(deep=True)
+        right = right.copy(deep=True)
+        arr = IntervalArray.from_arrays(left, right)
+
+        msg = "`axis` must be fewer than the number of dimensions"
+        for axis in [-2, 1]:
+            with pytest.raises(ValueError, match=msg):
+                arr.min(axis=axis)
+            with pytest.raises(ValueError, match=msg):
+                arr.max(axis=axis)
+
+        msg = "'>=' not supported between"
+        with pytest.raises(TypeError, match=msg):
+            arr.min(axis="foo")
+        with pytest.raises(TypeError, match=msg):
+            arr.max(axis="foo")
+
+    def test_min_max(self, left_right_dtypes, index_or_series_or_array):
+        # GH#44746
+        left, right = left_right_dtypes
+        left = left.copy(deep=True)
+        right = right.copy(deep=True)
+        arr = IntervalArray.from_arrays(left, right)
+
+        # The expected results below are only valid if monotonic
+        assert left.is_monotonic_increasing
+        assert Index(arr).is_monotonic_increasing
+
+        MIN = arr[0]
+        MAX = arr[-1]
+
+        indexer = np.arange(len(arr))
+        np.random.shuffle(indexer)
+        arr = arr.take(indexer)
+
+        arr_na = arr.insert(2, np.nan)
+
+        arr = index_or_series_or_array(arr)
+        arr_na = index_or_series_or_array(arr_na)
+
+        for skipna in [True, False]:
+            res = arr.min(skipna=skipna)
+            assert res == MIN
+            assert type(res) == type(MIN)
+
+            res = arr.max(skipna=skipna)
+            assert res == MAX
+            assert type(res) == type(MAX)
+
+        res = arr_na.min(skipna=False)
+        assert np.isnan(res)
+        res = arr_na.max(skipna=False)
+        assert np.isnan(res)
+
+        res = arr_na.min(skipna=True)
+        assert res == MIN
+        assert type(res) == type(MIN)
+        res = arr_na.max(skipna=True)
+        assert res == MAX
+        assert type(res) == type(MAX)
 
 
 # ----------------------------------------------------------------------------

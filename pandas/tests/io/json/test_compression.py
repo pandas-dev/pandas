@@ -7,6 +7,8 @@ import pandas.util._test_decorators as td
 import pandas as pd
 import pandas._testing as tm
 
+import pandas.io.common as icom
+
 
 def test_compression_roundtrip(compression):
     df = pd.DataFrame(
@@ -36,6 +38,11 @@ def test_read_zipped_json(datapath):
 
 
 @td.skip_if_not_us_locale
+@pytest.mark.xfail(
+    reason="CI race condition GH 45433, GH 44584",
+    raises=FileNotFoundError,
+    strict=False,
+)
 def test_with_s3_url(compression, s3_resource, s3so):
     # Bucket "pandas-test" created in tests/io/conftest.py
 
@@ -95,18 +102,9 @@ def test_to_json_compression(compression_only, read_infer, to_infer):
     # see gh-15008
     compression = compression_only
 
-    if compression == "zip":
-        pytest.skip(f"{compression} is not supported for to_csv")
-
     # We'll complete file extension subsequently.
     filename = "test."
-
-    if compression == "gzip":
-        filename += "gz"
-    else:
-        # xz --> .xz
-        # bz2 --> .bz2
-        filename += compression
+    filename += icom._compression_to_extension[compression]
 
     df = pd.DataFrame({"A": [1]})
 
