@@ -170,10 +170,13 @@ jobs:
       cancel-in-progress: true
 
     steps:
+      - name: Clean up dangling images
+        run: docker image prune -f
+
       - name: Checkout
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
 
-      - name: Build Docker Image
+      - name: Build image
         run: docker build --no-cache --tag pandas-dev-env .
