@@ -611,17 +611,17 @@ class TestReadHtml:
         )
         assert df.shape == ground_truth.shape
         old = [
-            "First Vietnamese American BankIn Vietnamese",
-            "Westernbank Puerto RicoEn Espanol",
-            "R-G Premier Bank of Puerto RicoEn Espanol",
-            "EurobankEn Espanol",
-            "Sanderson State BankEn Espanol",
-            "Washington Mutual Bank(Including its subsidiary Washington "
+            "First Vietnamese American Bank In Vietnamese",
+            "Westernbank Puerto Rico En Espanol",
+            "R-G Premier Bank of Puerto Rico En Espanol",
+            "Eurobank En Espanol",
+            "Sanderson State Bank En Espanol",
+            "Washington Mutual Bank (Including its subsidiary Washington "
             "Mutual Bank FSB)",
-            "Silver State BankEn Espanol",
-            "AmTrade International BankEn Espanol",
-            "Hamilton Bank, NAEn Espanol",
-            "The Citizens Savings BankPioneer Community Bank, Inc.",
+            "Silver State Bank En Espanol",
+            "AmTrade International Bank En Espanol",
+            "Hamilton Bank, NA En Espanol",
+            "The Citizens Savings Bank Pioneer Community Bank, Inc.",
         ]
         new = [
             "First Vietnamese American Bank",
@@ -1295,27 +1295,7 @@ class TestReadHtml:
                     <th>A</th>
                 </tr>
                 <tr>
-                    <td>world1<br>word2</td>
-                </tr>
-            </table>
-        """)[0]
-
-        expected = DataFrame(data=[["word1 word2"]], columns=["A"])
-
-        tm.assert_frame_equal(result, expected)
-
-    def test_parse_br_tail_retained(self):
-        # Ensure text after br are retained when they are replaced with a space.
-        # See:
-        #   https://stackoverflow.com/q/33281217 and
-        #   https://stackoverflow.com/questions/12545897/convert-br-to-end-line/48628074#comment84810813_34640357
-        result = self.read_html("""
-            <table>
-                <tr>
-                    <th>A</th>
-                </tr>
-                <tr>
-                    <td>world1<br>word2</td>
+                    <td>word1<br>word2</td>
                 </tr>
             </table>
         """)[0]
