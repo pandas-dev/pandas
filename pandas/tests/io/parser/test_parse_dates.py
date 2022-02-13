@@ -11,17 +11,17 @@ from io import StringIO
 import warnings
 
 from dateutil.parser import parse as du_parse
-from hypothesis import (
-    given,
-    settings,
-)
+from hypothesis import given
 import numpy as np
 import pytest
 import pytz
 
 from pandas._libs.tslibs import parsing
 from pandas._libs.tslibs.parsing import parse_datetime_string
-from pandas.compat.pyarrow import pa_version_under6p0
+from pandas.compat.pyarrow import (
+    pa_version_under6p0,
+    pa_version_under7p0,
+)
 
 import pandas as pd
 from pandas import (
@@ -951,10 +951,11 @@ def test_parse_dates_custom_euro_format(all_parsers, kwargs):
             )
 
 
-@xfail_pyarrow
-def test_parse_tz_aware(all_parsers):
+def test_parse_tz_aware(all_parsers, request):
     # See gh-1693
     parser = all_parsers
+    if parser.engine == "pyarrow" and pa_version_under7p0:
+        request.node.add_marker(pytest.mark.xfail(reason="Fails for pyarrow < 7.0"))
     data = "Date,x\n2012-06-13T01:39:00Z,0.5"
 
     result = parser.read_csv(StringIO(data), index_col=0, parse_dates=True)
@@ -1696,7 +1697,6 @@ def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
 
 @skip_pyarrow
 @given(DATETIME_NO_TZ)
-@settings(deadline=None)
 @pytest.mark.parametrize("delimiter", list(" -./"))
 @pytest.mark.parametrize("dayfirst", [True, False])
 @pytest.mark.parametrize(

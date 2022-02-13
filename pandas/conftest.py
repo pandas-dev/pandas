@@ -155,7 +155,9 @@ hypothesis.settings.register_profile(
     # is too short for a specific test, (a) try to make it faster, and (b)
     # if it really is slow add `@settings(deadline=...)` with a working value,
     # or `deadline=None` to entirely disable timeouts for that test.
-    deadline=500,
+    # 2022-02-09: Changed deadline from 500 -> None. Deadline leads to
+    # non-actionable, flaky CI failures (# GH 24641, 44969, 45118, 44969)
+    deadline=None,
     suppress_health_check=(hypothesis.HealthCheck.too_slow,),
 )
 hypothesis.settings.load_profile("ci")
@@ -545,6 +547,8 @@ indices_dict = {
     "uint": tm.makeUIntIndex(100),
     "range": tm.makeRangeIndex(100),
     "float": tm.makeFloatIndex(100),
+    "complex64": tm.makeFloatIndex(100).astype("complex64"),
+    "complex128": tm.makeFloatIndex(100).astype("complex128"),
     "num_int64": tm.makeNumericIndex(100, dtype="int64"),
     "num_int32": tm.makeNumericIndex(100, dtype="int32"),
     "num_int16": tm.makeNumericIndex(100, dtype="int16"),

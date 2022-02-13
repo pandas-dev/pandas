@@ -538,6 +538,7 @@ class TestTimedelta64ArithmeticUnsorted:
         expected = index + timedelta(-1)
         tm.assert_index_equal(result, expected)
 
+    def test_timedelta_tick_arithmetic(self):
         # GH#4134, buggy with timedeltas
         rng = pd.date_range("2013", "2014")
         s = Series(rng)

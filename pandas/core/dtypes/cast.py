@@ -262,7 +262,7 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
                 dtype = "int64"
             elif inferred_type == "datetime64":
                 dtype = "datetime64[ns]"
-            elif inferred_type == "timedelta64":
+            elif inferred_type in ["timedelta", "timedelta64"]:
                 dtype = "timedelta64[ns]"
 
             # try to upcast here
@@ -289,6 +289,14 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
     # GH12821, iNaT is cast to float
     if dtype.kind in ["M", "m"] and result.dtype.kind in ["i", "f"]:
         result = result.astype(dtype)
+
+    elif dtype.kind == "m" and result.dtype == _dtype_obj:
+        # test_where_downcast_to_td64
+        result = cast(np.ndarray, result)
+        result = array_to_timedelta64(result)
+
+    elif dtype == "M8[ns]" and result.dtype == _dtype_obj:
+        return np.asarray(maybe_cast_to_datetime(result, dtype=dtype))
 
     return result
 
@@ -1652,7 +1660,8 @@ def construct_1d_arraylike_from_scalar(
 
     if isinstance(dtype, ExtensionDtype):
         cls = dtype.construct_array_type()
-        subarr = cls._from_sequence([value] * length, dtype=dtype)
+        seq = [] if length == 0 else [value]
+        subarr = cls._from_sequence(seq, dtype=dtype).repeat(length)
 
     else:
 
@@ -2017,6 +2026,13 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
         raise LossySetitemError
 
     elif dtype.kind == "f":
+        if lib.is_integer(element) or lib.is_float(element):
+            casted = dtype.type(element)
+            if np.isnan(casted) or casted == element:
+                return casted
+            # otherwise e.g. overflow see TestCoercionFloat32
+            raise LossySetitemError
+
         if tipo is not None:
             # TODO: itemsize check?
             if tipo.kind not in ["f", "i", "u"]:
@@ -2028,7 +2044,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                 if element._hasna:
                     raise LossySetitemError
                 return element
-            elif tipo.itemsize > dtype.itemsize:
+            elif tipo.itemsize > dtype.itemsize or tipo.kind != dtype.kind:
                 if isinstance(element, np.ndarray):
                     # e.g. TestDataFrameIndexingWhere::test_where_alignment
                     casted = element.astype(dtype)
@@ -2039,8 +2055,6 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
 
             return element
 
-        if lib.is_integer(element) or lib.is_float(element):
-            return element
         raise LossySetitemError
 
     elif dtype.kind == "c":
