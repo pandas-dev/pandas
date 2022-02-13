@@ -1107,7 +1107,8 @@ def test_compare_complex_dtypes():
 
     with pytest.raises(TypeError, match=msg):
         df.lt(df.astype(object))
-        
+
+
 @pytest.mark.parametrize(
     "array",
     [(["foo", "bar", pd.NA]), (["foo", "bar", np.NaN]), (["foo", "bar", None])],
@@ -1118,3 +1119,4 @@ def test_skip_convert_nan_values_to_strings(self, array):
     expected = pd.Series(array)
 
     tm.assert_series_equal(result, expected)
+
