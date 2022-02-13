@@ -66,6 +66,7 @@ def tips_df(datapath):
     return read_csv(datapath("io", "data", "csv", "tips.csv"))
 
 
+@pytest.mark.single_cpu
 @pytest.mark.usefixtures("s3_resource")
 @td.skip_if_not_us_locale()
 class TestS3:
@@ -242,6 +243,7 @@ class TestS3:
                 storage_options=s3so,
             )
 
+    @pytest.mark.single_cpu
     def test_read_csv_handles_boto_s3_object(self, s3_resource, tips_file):
         # see gh-16135
 
@@ -257,6 +259,7 @@ class TestS3:
         expected = read_csv(tips_file)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.single_cpu
     @pytest.mark.skipif(
         is_ci_environment(),
         reason="This test can hang in our CI min_versions build "
