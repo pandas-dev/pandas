@@ -1099,7 +1099,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         result = result.sort_index(axis=self.axis)
         obj_axis = self.obj._get_axis(self.axis)
         if self.grouper.has_dropped_na:
-            # Fill in any missing values due to dropna - index here is integral
+            # Add back in any missing rows due to dropna - index here is integral
             # with values referring to the row of the input so can use RangeIndex
             result = result.reindex(RangeIndex(len(obj_axis)), axis=self.axis)
         result.set_axis(obj_axis, axis=self.axis, inplace=True)
