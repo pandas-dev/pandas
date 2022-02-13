@@ -7,7 +7,8 @@ https://github.com/cython/cython/blob/master/tests/run/time_pxd.pyx
 
 import time
 
-from pandas._libs.tslibs import ctime
+# error: Module "pandas._libs.tslibs" has no attribute "ctime"
+from pandas._libs.tslibs import ctime  # type: ignore[attr-defined]
 
 
 def test_time():
