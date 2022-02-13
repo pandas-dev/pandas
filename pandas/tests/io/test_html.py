@@ -1289,7 +1289,8 @@ class TestReadHtml:
 
     def test_parse_br_as_space(self):
         # GH 29528: pd.read_html() convert <br> to space
-        result = self.read_html("""
+        result = self.read_html(
+            """
             <table>
                 <tr>
                     <th>A</th>
@@ -1298,7 +1299,8 @@ class TestReadHtml:
                     <td>word1<br>word2</td>
                 </tr>
             </table>
-        """)[0]
+        """
+        )[0]
 
         expected = DataFrame(data=[["word1 word2"]], columns=["A"])
 

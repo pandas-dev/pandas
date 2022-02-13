@@ -767,7 +767,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
                 raise XMLSyntaxError("no text parsed from document", 0, 0, 0)
 
         for br in r.xpath("*//br"):
-            br.tail = "\n" + (br.tail or '')
+            br.tail = "\n" + (br.tail or "")
 
         return r
 
