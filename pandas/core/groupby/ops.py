@@ -783,13 +783,6 @@ class BaseGrouper:
         keys = [ping.group_index for ping in self.groupings]
         return get_indexer_dict(codes_list, keys)
 
-    @cache_readonly
-    def code_indices(self) -> dict[int, npt.NDArray[np.intp]]:
-        group_index = get_group_index(self.codes, self.shape, sort=True, xnull=True)
-        _, obs_group_ids, _ = self.group_info
-        result = lib.code_indices_fast(group_index, obs_group_ids)
-        return result
-
     @final
     @property
     def codes(self) -> list[np.ndarray]:
@@ -835,6 +828,9 @@ class BaseGrouper:
     @final
     @cache_readonly
     def has_dropped_na(self) -> bool:
+        """
+        Whether grouper has null value(s) that are dropped.
+        """
         return bool((self.group_info[0] < 0).any())
 
     @cache_readonly
