@@ -944,21 +944,6 @@ def generate_slices(const intp_t[:] labels, Py_ssize_t ngroups):
     return np.asarray(starts), np.asarray(ends)
 
 
-def code_indices_fast(ndarray[intp_t, ndim=1] index, ndarray[intp_t, ndim=1] obs_group_ids) -> dict:
-    cdef:
-        Py_ssize_t i, j, k, l
-        ndarray[intp_t, ndim=1] result
-
-    result = np.empty(len(index))
-
-    for i in range(k):
-        result[obs_group_ids[i]] = []
-
-    for j in range(l):
-        result[index[j]].append(j)
-    return result
-
-
 def indices_fast(ndarray[intp_t, ndim=1] index, const int64_t[:] labels, list keys,
                  list sorted_labels) -> dict:
     """

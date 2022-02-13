@@ -113,10 +113,7 @@ from pandas.core.indexes.api import (
 from pandas.core.internals.blocks import ensure_block_shape
 import pandas.core.sample as sample
 from pandas.core.series import Series
-from pandas.core.sorting import (
-    get_group_index,
-    get_group_index_sorter,
-)
+from pandas.core.sorting import get_group_index_sorter
 from pandas.core.util.numba_ import (
     NUMBA_FUNC_CACHE,
     maybe_use_numba,
@@ -619,19 +616,6 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         return self.grouper.indices
 
     @final
-    def _get_indices_by_codes(self, codes: list[np.ndarray]) -> npt.NDArray[np.intp]:
-        """
-        Safe get multiple indices by code.
-        """
-        group_index = get_group_index(
-            codes, self.grouper.shape, sort=True, xnull=self.grouper.dropna
-        )
-        if self.grouper.has_dropped_na:
-            group_index = group_index[np.where(group_index >= 0)]
-        sorter = get_group_index_sorter(group_index, len(group_index))
-        return sorter
-
-    @final
     def _get_indices(self, names):
         """
         Safe get multiple indices, translate keys for
@@ -1110,7 +1094,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return result
 
         # row order is scrambled => sort the rows by position in original index
-        original_positions = Index(self._get_indices_by_codes(self.grouper.codes))
+        original_positions = Index(self.grouper.result_ilocs())
         result.set_axis(original_positions, axis=self.axis, inplace=True)
         result = result.sort_index(axis=self.axis)
         obj_axis = self.obj._get_axis(self.axis)

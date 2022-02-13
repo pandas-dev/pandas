@@ -1281,22 +1281,21 @@ def test_transform_cumcount():
     tm.assert_series_equal(result, expected)
 
 
-def test_null_group_lambda_self(dropna):
+def test_null_group_lambda_self(sort, dropna):
     # GH 17093
-    keys = np.random.randint(0, 5, size=5).astype(float)
+    np.random.seed(0)
+    keys = np.random.randint(0, 5, size=50).astype(float)
     nulls = np.random.choice([0, 1], keys.shape).astype(bool)
     keys[nulls] = np.nan
     values = np.random.randint(0, 5, size=keys.shape)
     df = DataFrame({"A": keys, "B": values})
 
     expected_values = values
-    if dropna:
+    if dropna and nulls.any():
         expected_values = expected_values.astype(float)
         expected_values[nulls] = np.nan
     expected = DataFrame(expected_values, columns=["B"])
 
-    result = df.groupby("A", dropna=dropna).transform(lambda x: x)
-    print(df)
-    print(result)
-    print(expected)
+    gb = df.groupby("A", dropna=dropna, sort=sort)
+    result = gb.transform(lambda x: x)
     tm.assert_frame_equal(result, expected)
