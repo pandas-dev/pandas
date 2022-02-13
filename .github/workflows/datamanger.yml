@@ -20,6 +20,7 @@ jobs:
   data_manager:
     name: Test experimental data manager
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     services:
       moto:
         image: motoserver/moto
