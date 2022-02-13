@@ -110,7 +110,7 @@ def all_parsers(request):
         pytest.importorskip("pyarrow", VERSIONS["pyarrow"])
         # Try setting num cpus to 1 to avoid hangs on Azure MacOS/Windows builds
         # or better yet find a way to disable threads
-        # TODO(GH#44584) pytest.mark.single these tests
+        # TODO(GH#44584) pytest.mark.single_cpu these tests
         import pyarrow
 
         pyarrow.set_cpu_count(1)

@@ -770,6 +770,7 @@ class TestParquetPyArrow(Base):
 
         check_round_trip(df, pa)
 
+    @pytest.mark.single_cpu
     def test_s3_roundtrip_explicit_fs(self, df_compat, s3_resource, pa, s3so):
         s3fs = pytest.importorskip("s3fs")
         s3 = s3fs.S3FileSystem(**s3so)
@@ -782,6 +783,7 @@ class TestParquetPyArrow(Base):
             write_kwargs=kw,
         )
 
+    @pytest.mark.single_cpu
     def test_s3_roundtrip(self, df_compat, s3_resource, pa, s3so):
         # GH #19134
         s3so = {"storage_options": s3so}
@@ -793,6 +795,7 @@ class TestParquetPyArrow(Base):
             write_kwargs=s3so,
         )
 
+    @pytest.mark.single_cpu
     @td.skip_if_no("s3fs")  # also requires flask
     @pytest.mark.parametrize(
         "partition_col",
@@ -1040,6 +1043,7 @@ class TestParquetFastParquet(Base):
             result = read_parquet(path, fp, filters=[("a", "==", 0)])
         assert len(result) == 1
 
+    @pytest.mark.single_cpu
     def test_s3_roundtrip(self, df_compat, s3_resource, fp, s3so):
         # GH #19134
         check_round_trip(

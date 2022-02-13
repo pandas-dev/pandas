@@ -199,6 +199,7 @@ def test_fastparquet_options(fsspectest):
     assert fsspectest.test[0] == "parquet_read"
 
 
+@pytest.mark.single_cpu
 @td.skip_if_no("s3fs")
 def test_from_s3_csv(s3_resource, tips_file, s3so):
     tm.assert_equal(
@@ -215,6 +216,7 @@ def test_from_s3_csv(s3_resource, tips_file, s3so):
     )
 
 
+@pytest.mark.single_cpu
 @pytest.mark.parametrize("protocol", ["s3", "s3a", "s3n"])
 @td.skip_if_no("s3fs")
 def test_s3_protocols(s3_resource, tips_file, protocol, s3so):
@@ -224,6 +226,7 @@ def test_s3_protocols(s3_resource, tips_file, protocol, s3so):
     )
 
 
+@pytest.mark.single_cpu
 @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fastparquet
 @td.skip_if_no("s3fs")
 @td.skip_if_no("fastparquet")
