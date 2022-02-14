@@ -1793,7 +1793,7 @@ class TestRank:
         with pytest.raises(TypeError, match=msg):
             algos.rank(arr)
 
-    @pytest.mark.single
+    @pytest.mark.single_cpu
     @pytest.mark.high_memory
     def test_pct_max_many_rows(self):
         # GH 18271
