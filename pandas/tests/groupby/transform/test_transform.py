@@ -192,7 +192,7 @@ def test_transform_axis_1(request, transformation_func):
 
 
 def test_transform_axis_1_reducer(request, reduction_func):
-    # GH 45984
+    # GH#45715
     if reduction_func in (
         "corrwith",
         "first",
@@ -202,7 +202,7 @@ def test_transform_axis_1_reducer(request, reduction_func):
         "ngroup",
         "nth",
     ):
-        marker = pytest.mark.xfail(reason="transform incorrectly fails - GH#")
+        marker = pytest.mark.xfail(reason="transform incorrectly fails - GH#45986")
         request.node.add_marker(marker)
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
     result = df.groupby([0, 0, 1], axis=1).transform(reduction_func)
