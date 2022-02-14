@@ -360,9 +360,7 @@ def test_len_mixed():
         ("rindex", "E", 0, 5, [4, 3, 1, 4]),
     ],
 )
-def test_index(
-    method, sub, start, end, index_or_series, any_string_dtype, expected, request
-):
+def test_index(method, sub, start, end, index_or_series, any_string_dtype, expected):
 
     obj = index_or_series(
         ["ABCDEFG", "BCDEFEF", "DEFGHIJEF", "EFGHEF"], dtype=any_string_dtype

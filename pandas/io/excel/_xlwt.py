@@ -59,19 +59,50 @@ class XlwtWriter(ExcelWriter):
 
         if encoding is None:
             encoding = "ascii"
-        self.book = xlwt.Workbook(encoding=encoding, **engine_kwargs)
-        self.fm_datetime = xlwt.easyxf(num_format_str=self.datetime_format)
-        self.fm_date = xlwt.easyxf(num_format_str=self.date_format)
+        self._book = xlwt.Workbook(encoding=encoding, **engine_kwargs)
+        self._fm_datetime = xlwt.easyxf(num_format_str=self._datetime_format)
+        self._fm_date = xlwt.easyxf(num_format_str=self._date_format)
 
-    def save(self) -> None:
+    @property
+    def book(self):
+        """
+        Book instance of class xlwt.Workbook.
+
+        This attribute can be used to access engine-specific features.
+        """
+        return self._book
+
+    @property
+    def sheets(self) -> dict[str, Any]:
+        """Mapping of sheet names to sheet objects."""
+        result = {sheet.name: sheet for sheet in self.book._Workbook__worksheets}
+        return result
+
+    @property
+    def fm_date(self):
+        """
+        XFStyle formatter for dates.
+        """
+        self._deprecate("fm_date")
+        return self._fm_date
+
+    @property
+    def fm_datetime(self):
+        """
+        XFStyle formatter for dates.
+        """
+        self._deprecate("fm_datetime")
+        return self._fm_datetime
+
+    def _save(self) -> None:
         """
         Save workbook to disk.
         """
         if self.sheets:
             # fails when the ExcelWriter is just opened and then closed
-            self.book.save(self.handles.handle)
+            self.book.save(self._handles.handle)
 
-    def write_cells(
+    def _write_cells(
         self,
         cells,
         sheet_name: str | None = None,

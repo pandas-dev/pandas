@@ -475,10 +475,10 @@ def test_rank_first_pct(dtype, ser, exp):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.single
+@pytest.mark.single_cpu
 @pytest.mark.high_memory
 def test_pct_max_many_rows():
     # GH 18271
-    s = Series(np.arange(2 ** 24 + 1))
+    s = Series(np.arange(2**24 + 1))
     result = s.rank(pct=True).max()
     assert result == 1

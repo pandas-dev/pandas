@@ -98,11 +98,15 @@ def test_raises_on_non_datetimelike_index():
 
 @all_ts
 @pytest.mark.parametrize("freq", ["M", "D", "H"])
-def test_resample_empty_series(freq, empty_series_dti, resample_method):
+def test_resample_empty_series(freq, empty_series_dti, resample_method, request):
     # GH12771 & GH12868
 
-    if resample_method == "ohlc":
-        pytest.skip("need to test for ohlc from GH13083")
+    if resample_method == "ohlc" and isinstance(empty_series_dti.index, PeriodIndex):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason=f"GH13083: {resample_method} fails for PeriodIndex"
+            )
+        )
 
     ser = empty_series_dti
     result = getattr(ser.resample(freq), resample_method)()

@@ -469,12 +469,12 @@ def test_na_values_dict_col_index(all_parsers):
     "data,kwargs,expected",
     [
         (
-            str(2 ** 63) + "\n" + str(2 ** 63 + 1),
-            {"na_values": [2 ** 63]},
-            DataFrame([str(2 ** 63), str(2 ** 63 + 1)]),
+            str(2**63) + "\n" + str(2**63 + 1),
+            {"na_values": [2**63]},
+            DataFrame([str(2**63), str(2**63 + 1)]),
         ),
-        (str(2 ** 63) + ",1" + "\n,2", {}, DataFrame([[str(2 ** 63), 1], ["", 2]])),
-        (str(2 ** 63) + "\n1", {"na_values": [2 ** 63]}, DataFrame([np.nan, 1])),
+        (str(2**63) + ",1" + "\n,2", {}, DataFrame([[str(2**63), 1], ["", 2]])),
+        (str(2**63) + "\n1", {"na_values": [2**63]}, DataFrame([np.nan, 1])),
     ],
 )
 def test_na_values_uint64(all_parsers, data, kwargs, expected):

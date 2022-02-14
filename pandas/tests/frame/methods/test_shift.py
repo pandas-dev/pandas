@@ -611,14 +611,8 @@ class TestDataFrameShift:
     )
     # TODO(2.0): remove filtering
     @pytest.mark.filterwarnings("ignore:Index.ravel.*:FutureWarning")
-    def test_shift_dt64values_axis1_invalid_fill(
-        self, vals, as_cat, using_array_manager, request
-    ):
+    def test_shift_dt64values_axis1_invalid_fill(self, vals, as_cat):
         # GH#44564
-        if using_array_manager:
-            mark = pytest.mark.xfail(raises=NotImplementedError)
-            request.node.add_marker(mark)
-
         ser = Series(vals)
         if as_cat:
             ser = ser.astype("category")
@@ -665,7 +659,6 @@ class TestDataFrameShift:
         )
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented
     def test_shift_axis1_many_periods(self):
         # GH#44978 periods > len(columns)
         df = DataFrame(np.random.rand(5, 3))

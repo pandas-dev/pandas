@@ -746,7 +746,7 @@ class TestDataFramePlots(TestPlotBase):
 
         _check_plot_works(df.plot.scatter, x=x, y=y)
 
-    def test_plot_scatter_with_c(self, request):
+    def test_plot_scatter_with_c(self):
         from pandas.plotting._matplotlib.compat import mpl_ge_3_4_0
 
         df = DataFrame(

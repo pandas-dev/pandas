@@ -370,7 +370,7 @@ def non_coercible_categorical(monkeypatch):
         yield
 
 
-def test_series_at(non_coercible_categorical):
+def test_series_at():
     arr = Categorical(["a", "b", "c"])
     ser = Series(arr)
     result = ser.at[0]

@@ -157,7 +157,7 @@ class TestRegistration:
 
 
 class TestDateTimeConverter:
-    def setup_method(self, method):
+    def setup_method(self):
         self.dtc = converter.DatetimeConverter()
         self.tc = converter.TimeFormatter(None)
 
@@ -213,7 +213,7 @@ class TestDateTimeConverter:
         assert rs[1] == xp
 
     def test_conversion_float(self):
-        rtol = 0.5 * 10 ** -9
+        rtol = 0.5 * 10**-9
 
         rs = self.dtc.convert(Timestamp("2012-1-1 01:02:03", tz="UTC"), None, None)
         xp = converter.dates.date2num(Timestamp("2012-1-1 01:02:03", tz="UTC"))
@@ -261,7 +261,7 @@ class TestDateTimeConverter:
         assert result == format_expected
 
     def test_dateindex_conversion(self):
-        rtol = 10 ** -9
+        rtol = 10**-9
 
         for freq in ("B", "L", "S"):
             dateindex = tm.makeDateIndex(k=10, freq=freq)
@@ -292,7 +292,7 @@ class TestDateTimeConverter:
 
 
 class TestPeriodConverter:
-    def setup_method(self, method):
+    def setup_method(self):
         self.pc = converter.PeriodConverter()
 
         class Axis:

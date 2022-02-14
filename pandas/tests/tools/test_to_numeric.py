@@ -390,19 +390,19 @@ def test_timedelta(transform_assert_equal):
     assert_equal(result, expected)
 
 
-def test_period(transform_assert_equal):
+def test_period(request, transform_assert_equal):
     transform, assert_equal = transform_assert_equal
 
     idx = pd.period_range("2011-01", periods=3, freq="M", name="")
     inp = transform(idx)
 
-    if isinstance(inp, Index):
-        result = to_numeric(inp)
-        expected = transform(idx.asi8)
-        assert_equal(result, expected)
-    else:
-        # TODO: PeriodDtype, so support it in to_numeric.
-        pytest.skip("Missing PeriodDtype support in to_numeric")
+    if not isinstance(inp, Index):
+        request.node.add_marker(
+            pytest.mark.xfail(reason="Missing PeriodDtype support in to_numeric")
+        )
+    result = to_numeric(inp)
+    expected = transform(idx.asi8)
+    assert_equal(result, expected)
 
 
 @pytest.mark.parametrize(
