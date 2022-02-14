@@ -3675,6 +3675,10 @@ should be passed to ``index_col`` and ``header``:
 
    os.remove("path_to_file.xlsx")
 
+Missing values in columns specified in ``index_col`` will be forward filled to
+allow roundtripping with ``to_excel`` for ``merged_cells=True``. To avoid forward
+filling the missing values use ``set_index`` after reading the data instead of
+``index_col``.
 
 Parsing specific columns
 ++++++++++++++++++++++++
