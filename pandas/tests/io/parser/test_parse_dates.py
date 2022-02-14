@@ -45,9 +45,6 @@ xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 # cause a deadlock instead, so we skip these instead of xfailing
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
-# constant
-_DEFAULT_DATETIME = datetime(1, 1, 1)
-
 
 @xfail_pyarrow
 def test_read_csv_with_custom_date_parser(all_parsers):
@@ -1723,7 +1720,7 @@ def test_hypothesis_delimited_date(
     except_in_dateutil, expected = _helper_hypothesis_delimited_date(
         du_parse,
         date_string,
-        default=_DEFAULT_DATETIME,
+        default=datetime(1, 1, 1),
         dayfirst=dayfirst,
         yearfirst=False,
     )
