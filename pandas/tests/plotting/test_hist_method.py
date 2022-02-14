@@ -215,7 +215,7 @@ class TestSeriesPlots(TestPlotBase):
         self._check_text_labels(ylabels, [""] * len(ylabels))
 
     @td.skip_if_no_scipy
-    def test_hist_kde_color(self):
+    def test_hist_kde_color(self, ts):
         _, ax = self.plt.subplots()
         ax = ts.plot.hist(logy=True, bins=10, color="b", ax=ax)
         self._check_ax_scales(ax, yaxis="log")
@@ -347,7 +347,7 @@ class TestDataFramePlots(TestPlotBase):
         df[2] = to_datetime(
             np.random.randint(
                 812419200000000000,
-                self.end_date_to_int64,
+                819331200000000000,
                 size=100,
                 dtype=np.int64,
             )
@@ -389,7 +389,7 @@ class TestDataFramePlots(TestPlotBase):
         df[2] = to_datetime(
             np.random.randint(
                 812419200000000000,
-                self.end_date_to_int64,
+                819331200000000000,
                 size=100,
                 dtype=np.int64,
             )
@@ -571,7 +571,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         df["B"] = to_datetime(
             np.random.randint(
                 812419200000000000,
-                self.end_date_to_int64,
+                819331200000000000,
                 size=500,
                 dtype=np.int64,
             )

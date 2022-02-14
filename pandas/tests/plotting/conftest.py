@@ -8,7 +8,7 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.mark.parametrize
+@pytest.fixture
 def hist_df():
     n = 100
     with tm.RNGContext(42):

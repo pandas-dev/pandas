@@ -10,10 +10,7 @@ def _mpl_version(version, op):
             import matplotlib as mpl
         except ImportError:
             return False
-        return (
-            op(Version(mpl.__version__), Version(version))
-            and str(mpl.__version__)[0] != "0"
-        )
+        return op(Version(mpl.__version__), Version(version))
 
     return inner
 

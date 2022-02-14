@@ -65,7 +65,7 @@ class TestSeriesPlots(TestPlotBase):
         _check_plot_works(iseries.plot)
 
     @pytest.mark.parametrize("kind", ["line", "bar", "barh", "kde", "hist", "box"])
-    def test_plot_series_kinds(self, kind):
+    def test_plot_series_kinds(self, series, kind):
         _check_plot_works(series[:5].plot, kind=kind)
 
     def test_plot_series_barh(self, series):
