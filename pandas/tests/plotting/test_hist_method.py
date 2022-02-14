@@ -64,8 +64,8 @@ class TestSeriesPlots(TestPlotBase):
         ax = df.hist(bins=2)[0][0]
         assert len(ax.patches) == 2
 
-    def test_hist_layout(self):
-        df = self.hist_df
+    def test_hist_layout(self, hist_df):
+        df = hist_df
         msg = "The 'layout' keyword is not supported when 'by' is None"
         with pytest.raises(ValueError, match=msg):
             df.height.hist(layout=(1, 1))
@@ -73,8 +73,8 @@ class TestSeriesPlots(TestPlotBase):
         with pytest.raises(ValueError, match=msg):
             df.height.hist(layout=[1, 1])
 
-    def test_hist_layout_with_by(self):
-        df = self.hist_df
+    def test_hist_layout_with_by(self, hist_df):
+        df = hist_df
 
         # _check_plot_works adds an `ax` kwarg to the method call
         # so we get a warning about an axis being cleared, even
@@ -126,8 +126,8 @@ class TestSeriesPlots(TestPlotBase):
         axes = fig.axes
         assert len(axes) == 2
 
-    def test_hist_by_no_extra_plots(self):
-        df = self.hist_df
+    def test_hist_by_no_extra_plots(self, hist_df):
+        df = hist_df
         axes = df.height.hist(by=df.gender)  # noqa
         assert len(self.plt.get_fignums()) == 1
 
@@ -236,18 +236,18 @@ class TestSeriesPlots(TestPlotBase):
 
 @td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
-    def test_hist_df_legacy(self):
+    def test_hist_df_legacy(self, hist_df):
         from matplotlib.patches import Rectangle
 
         with tm.assert_produces_warning(UserWarning):
-            _check_plot_works(self.hist_df.hist)
+            _check_plot_works(hist_df.hist)
 
         # make sure layout is handled
         df = DataFrame(np.random.randn(100, 2))
         df[2] = to_datetime(
             np.random.randint(
-                self.start_date_to_int64,
-                self.end_date_to_int64,
+                812419200000000000,
+                819331200000000000,
                 size=100,
                 dtype=np.int64,
             )
@@ -265,8 +265,8 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame(np.random.randn(100, 5))
         df[5] = to_datetime(
             np.random.randint(
-                self.start_date_to_int64,
-                self.end_date_to_int64,
+                812419200000000000,
+                819331200000000000,
                 size=100,
                 dtype=np.int64,
             )
@@ -350,7 +350,7 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame(np.random.randn(100, 2))
         df[2] = to_datetime(
             np.random.randint(
-                self.start_date_to_int64,
+                812419200000000000,
                 self.end_date_to_int64,
                 size=100,
                 dtype=np.int64,
@@ -392,7 +392,7 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame(np.random.randn(100, 2))
         df[2] = to_datetime(
             np.random.randint(
-                self.start_date_to_int64,
+                812419200000000000,
                 self.end_date_to_int64,
                 size=100,
                 dtype=np.int64,
@@ -574,7 +574,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         df = DataFrame(np.random.randn(500, 1), columns=["A"])
         df["B"] = to_datetime(
             np.random.randint(
-                self.start_date_to_int64,
+                812419200000000000,
                 self.end_date_to_int64,
                 size=500,
                 dtype=np.int64,
@@ -648,8 +648,8 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         assert len(self.plt.get_fignums()) == 2
         tm.close()
 
-    def test_grouped_hist_layout(self):
-        df = self.hist_df
+    def test_grouped_hist_layout(self, hist_df):
+        df = hist_df
         msg = "Layout of 1x1 must be larger than required size 2"
         with pytest.raises(ValueError, match=msg):
             df.hist(column="weight", by=df.gender, layout=(1, 1))
@@ -702,9 +702,9 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         axes = df.hist(column=["height", "weight", "category"])
         self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
 
-    def test_grouped_hist_multiple_axes(self):
+    def test_grouped_hist_multiple_axes(self, hist_df):
         # GH 6970, GH 7069
-        df = self.hist_df
+        df = hist_df
 
         fig, axes = self.plt.subplots(2, 3)
         returned = df.hist(column=["height", "weight", "category"], ax=axes[0])
@@ -722,8 +722,8 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         with pytest.raises(ValueError, match=msg):
             axes = df.hist(column="height", ax=axes)
 
-    def test_axis_share_x(self):
-        df = self.hist_df
+    def test_axis_share_x(self, hist_df):
+        df = hist_df
         # GH4089
         ax1, ax2 = df.hist(column="height", by=df.gender, sharex=True)
 
@@ -735,8 +735,8 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         assert not self.get_y_axis(ax1).joined(ax1, ax2)
         assert not self.get_y_axis(ax2).joined(ax1, ax2)
 
-    def test_axis_share_y(self):
-        df = self.hist_df
+    def test_axis_share_y(self, hist_df):
+        df = hist_df
         ax1, ax2 = df.hist(column="height", by=df.gender, sharey=True)
 
         # share y
@@ -747,8 +747,8 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         assert not self.get_x_axis(ax1).joined(ax1, ax2)
         assert not self.get_x_axis(ax2).joined(ax1, ax2)
 
-    def test_axis_share_xy(self):
-        df = self.hist_df
+    def test_axis_share_xy(self, hist_df):
+        df = hist_df
         ax1, ax2 = df.hist(column="height", by=df.gender, sharex=True, sharey=True)
 
         # share both x and y

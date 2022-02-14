@@ -531,8 +531,7 @@ class TestTSPlot(TestPlotBase):
         line = lines[0]
         data = line.get_xydata()
 
-        if self.mpl_ge_3_0_0 or not self.mpl_ge_2_2_3:
-            data = np.ma.MaskedArray(data, mask=isna(data), fill_value=np.nan)
+        data = np.ma.MaskedArray(data, mask=isna(data), fill_value=np.nan)
 
         assert isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
@@ -550,8 +549,7 @@ class TestTSPlot(TestPlotBase):
         line = lines[0]
         data = line.get_xydata()
 
-        if self.mpl_ge_3_0_0 or not self.mpl_ge_2_2_3:
-            data = np.ma.MaskedArray(data, mask=isna(data), fill_value=np.nan)
+        data = np.ma.MaskedArray(data, mask=isna(data), fill_value=np.nan)
 
         assert isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
@@ -568,8 +566,7 @@ class TestTSPlot(TestPlotBase):
         assert len(lines) == 1
         line = lines[0]
         data = line.get_xydata()
-        if self.mpl_ge_3_0_0 or not self.mpl_ge_2_2_3:
-            data = np.ma.MaskedArray(data, mask=isna(data), fill_value=np.nan)
+        data = np.ma.MaskedArray(data, mask=isna(data), fill_value=np.nan)
 
         assert isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
@@ -590,8 +587,7 @@ class TestTSPlot(TestPlotBase):
 
         line = lines[0]
         data = line.get_xydata()
-        if self.mpl_ge_3_0_0 or not self.mpl_ge_2_2_3:
-            data = np.ma.MaskedArray(data, mask=isna(data), fill_value=np.nan)
+        data = np.ma.MaskedArray(data, mask=isna(data), fill_value=np.nan)
 
         assert isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
@@ -614,7 +610,7 @@ class TestTSPlot(TestPlotBase):
 
         _, ax2 = self.plt.subplots()
         ser2.plot(ax=ax2)
-        assert ax2.get_yaxis().get_ticks_position() == self.default_tick_position
+        assert ax2.get_yaxis().get_ticks_position() == "left"
         self.plt.close(ax2.get_figure())
 
         ax = ser2.plot()
@@ -643,7 +639,7 @@ class TestTSPlot(TestPlotBase):
 
         _, ax2 = self.plt.subplots()
         ser2.plot(ax=ax2)
-        assert ax2.get_yaxis().get_ticks_position() == self.default_tick_position
+        assert ax2.get_yaxis().get_ticks_position() == "left"
         self.plt.close(ax2.get_figure())
 
         ax = ser2.plot()
@@ -672,14 +668,14 @@ class TestTSPlot(TestPlotBase):
         df = DataFrame(np.random.randn(5, 3), columns=["a", "b", "c"])
         axes = df.plot(secondary_y=["a", "c"], subplots=True)
         assert axes[0].get_yaxis().get_ticks_position() == "right"
-        assert axes[1].get_yaxis().get_ticks_position() == self.default_tick_position
+        assert axes[1].get_yaxis().get_ticks_position() == "left"
         assert axes[2].get_yaxis().get_ticks_position() == "right"
 
     def test_secondary_bar_frame(self):
         df = DataFrame(np.random.randn(5, 3), columns=["a", "b", "c"])
         axes = df.plot(kind="bar", secondary_y=["a", "c"], subplots=True)
         assert axes[0].get_yaxis().get_ticks_position() == "right"
-        assert axes[1].get_yaxis().get_ticks_position() == self.default_tick_position
+        assert axes[1].get_yaxis().get_ticks_position() == "left"
         assert axes[2].get_yaxis().get_ticks_position() == "right"
 
     def test_mixed_freq_regular_first(self):
@@ -1453,12 +1449,7 @@ class TestTSPlot(TestPlotBase):
         ax.scatter(x="time", y="y", data=df)
         self.plt.draw()
         label = ax.get_xticklabels()[0]
-        if self.mpl_ge_3_2_0:
-            expected = "2018-01-01"
-        elif self.mpl_ge_3_0_0:
-            expected = "2017-12-08"
-        else:
-            expected = "2017-12-12"
+        expected = "2018-01-01"
         assert label.get_text() == expected
 
     def test_check_xticks_rot(self):

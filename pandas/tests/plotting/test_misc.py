@@ -102,8 +102,6 @@ class TestDataFramePlots(TestPlotBase):
     @td.skip_if_no_scipy
     @pytest.mark.parametrize("pass_axis", [False, True])
     def test_scatter_matrix_axis(self, pass_axis):
-        from pandas.plotting._matplotlib.compat import mpl_ge_3_0_0
-
         scatter_matrix = plotting.scatter_matrix
 
         ax = None
@@ -114,9 +112,7 @@ class TestDataFramePlots(TestPlotBase):
             df = DataFrame(np.random.randn(100, 3))
 
         # we are plotting multiples on a sub-plot
-        with tm.assert_produces_warning(
-            UserWarning, raise_on_extra_warnings=mpl_ge_3_0_0()
-        ):
+        with tm.assert_produces_warning(UserWarning, raise_on_extra_warnings=True):
             axes = _check_plot_works(
                 scatter_matrix,
                 filterwarnings="always",
