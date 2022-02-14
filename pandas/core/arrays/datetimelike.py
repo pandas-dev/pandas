@@ -446,6 +446,36 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             if is_unsigned_integer_dtype(dtype):
                 # Again, we ignore int32 vs. int64
                 values = values.view("uint64")
+                if dtype != np.uint64:
+                    # GH#45034
+                    warnings.warn(
+                        f"The behavior of .astype from {self.dtype} to {dtype} is "
+                        "deprecated. In a future version, this astype will return "
+                        "exactly the specified dtype instead of uint64, and will "
+                        "raise if that conversion overflows.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
+                elif (self.asi8 < 0).any():
+                    # GH#45034
+                    warnings.warn(
+                        f"The behavior of .astype from {self.dtype} to {dtype} is "
+                        "deprecated. In a future version, this astype will "
+                        "raise if the conversion overflows, as it did in this "
+                        "case with negative int64 values.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
+            elif dtype != np.int64:
+                # GH#45034
+                warnings.warn(
+                    f"The behavior of .astype from {self.dtype} to {dtype} is "
+                    "deprecated. In a future version, this astype will return "
+                    "exactly the specified dtype instead of int64, and will "
+                    "raise if that conversion overflows.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
 
             if copy:
                 values = values.copy()
