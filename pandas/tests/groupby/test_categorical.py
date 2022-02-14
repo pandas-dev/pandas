@@ -807,8 +807,11 @@ def test_preserve_categorical_dtype():
         }
     )
     for col in ["C1", "C2"]:
-        result1 = df.groupby(by=col, as_index=False, observed=False).mean()
-        result2 = df.groupby(by=col, as_index=True, observed=False).mean().reset_index()
+        with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+            result1 = df.groupby(by=col, as_index=False, observed=False).mean()
+            result2 = (
+                df.groupby(by=col, as_index=True, observed=False).mean().reset_index()
+            )
         expected = exp_full.reindex(columns=result1.columns)
         tm.assert_frame_equal(result1, expected)
         tm.assert_frame_equal(result2, expected)

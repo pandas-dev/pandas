@@ -473,13 +473,16 @@ def test_frame_groupby_columns(tsframe):
 def test_frame_set_name_single(df):
     grouped = df.groupby("A")
 
-    result = grouped.mean()
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        result = grouped.mean()
     assert result.index.name == "A"
 
-    result = df.groupby("A", as_index=False).mean()
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        result = df.groupby("A", as_index=False).mean()
     assert result.index.name != "A"
 
-    result = grouped.agg(np.mean)
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        result = grouped.agg(np.mean)
     assert result.index.name == "A"
 
     result = grouped.agg({"C": np.mean, "D": np.std})
@@ -502,7 +505,8 @@ def test_multi_func(df):
     col2 = df["B"]
 
     grouped = df.groupby([col1.get, col2.get])
-    agged = grouped.mean()
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        agged = grouped.mean()
     expected = df.groupby(["A", "B"]).mean()
 
     # TODO groupby get drops names
@@ -658,8 +662,9 @@ def test_groupby_as_index_agg(df):
 
     # single-key
 
-    result = grouped.agg(np.mean)
-    expected = grouped.mean()
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        result = grouped.agg(np.mean)
+        expected = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
     result2 = grouped.agg({"C": np.mean, "D": np.sum})
@@ -746,7 +751,8 @@ def test_as_index_series_return_frame(df):
     grouped2 = df.groupby(["A", "B"], as_index=False)
 
     result = grouped["C"].agg(np.sum)
-    expected = grouped.agg(np.sum).loc[:, ["A", "C"]]
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        expected = grouped.agg(np.sum).loc[:, ["A", "C"]]
     assert isinstance(result, DataFrame)
     tm.assert_frame_equal(result, expected)
 
@@ -780,8 +786,9 @@ def test_groupby_as_index_cython(df):
 
     # single-key
     grouped = data.groupby("A", as_index=False)
-    result = grouped.mean()
-    expected = data.groupby(["A"]).mean()
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        result = grouped.mean()
+        expected = data.groupby(["A"]).mean()
     expected.insert(0, "A", expected.index)
     expected.index = np.arange(len(expected))
     tm.assert_frame_equal(result, expected)
@@ -850,15 +857,17 @@ def test_groupby_multi_corner(df):
 
 def test_omit_nuisance(df):
     grouped = df.groupby("A")
-    agged = grouped.agg(np.mean)
-    exp = grouped.mean()
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        agged = grouped.agg(np.mean)
+        exp = grouped.mean()
     tm.assert_frame_equal(agged, exp)
 
     df = df.loc[:, ["A", "C", "D"]]
     df["E"] = datetime.now()
     grouped = df.groupby("A")
-    result = grouped.agg(np.sum)
-    expected = grouped.sum()
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        result = grouped.agg(np.sum)
+        expected = grouped.sum()
     tm.assert_frame_equal(result, expected)
 
     # won't work with axis = 1
@@ -889,7 +898,8 @@ def test_keep_nuisance_agg(df, agg_function):
 def test_omit_nuisance_agg(df, agg_function):
     # GH 38774, GH 38815
     grouped = df.groupby("A")
-    result = getattr(grouped, agg_function)()
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        result = getattr(grouped, agg_function)()
     expected = getattr(df.loc[:, ["A", "C", "D"]].groupby("A"), agg_function)()
     tm.assert_frame_equal(result, expected)
 

@@ -258,6 +258,8 @@ class TestNumericOnly:
         elif method in ["min", "max"]:
             # these have numeric_only kwarg, but default to False
             warn = FutureWarning
+        elif method in ["mean", "median", "prod", "cumprod", "sum", "cumsum"]:
+            warn = FutureWarning
 
         with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
             result = getattr(gb, method)()

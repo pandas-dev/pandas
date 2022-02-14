@@ -27,6 +27,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import reduction as libreduction
+import pandas._libs.lib as lib
 from pandas._typing import (
     ArrayLike,
     Manager,
@@ -1102,9 +1103,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return self._reindex_output(result)
 
     def _cython_transform(
-        self, how: str, numeric_only: bool = True, axis: int = 0, **kwargs
+        self,
+        how: str,
+        numeric_only: bool | lib.no_default = lib.no_default,
+        axis: int = 0,
+        **kwargs,
     ) -> DataFrame:
         assert axis == 0  # handled by caller
+        numeric_only_bool = self._resolve_numeric_only(numeric_only)
         # TODO: no tests with self.ndim == 1 for DataFrameGroupBy
 
         # With self.axis == 0, we have multi-block tests
@@ -1113,7 +1119,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # With self.axis == 1, _get_data_to_aggregate does a transpose
         #  so we always have a single block.
         mgr: Manager2D = self._get_data_to_aggregate()
-        if numeric_only:
+        orig_len = len(mgr)
+        if numeric_only_bool:
             mgr = mgr.get_numeric_data(copy=False)
 
         def arr_func(bvalues: ArrayLike) -> ArrayLike:
@@ -1126,7 +1133,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         res_mgr = mgr.grouped_reduce(arr_func, ignore_failures=True)
         res_mgr.set_axis(1, mgr.axes[1])
 
-        if len(res_mgr) < len(mgr):
+        if len(res_mgr) < len(mgr) or (
+            numeric_only is lib.no_default and len(res_mgr) < orig_len
+        ):
             warn_dropping_nuisance_columns_deprecated(type(self), how)
 
         res_df = self.obj._constructor(res_mgr)

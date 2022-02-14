@@ -1494,7 +1494,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     def _agg_general(
         self,
-        numeric_only: bool = True,
+        numeric_only: bool | lib.no_default = True,
         min_count: int = -1,
         *,
         alias: str,
@@ -1553,15 +1553,21 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     def _cython_agg_general(
-        self, how: str, alt: Callable, numeric_only: bool, min_count: int = -1
+        self,
+        how: str,
+        alt: Callable,
+        numeric_only: bool | lib.no_default,
+        min_count: int = -1,
     ):
         # Note: we never get here with how="ohlc" for DataFrameGroupBy;
         #  that goes through SeriesGroupBy
 
         data = self._get_data_to_aggregate()
+        orig_len = len(data)
         is_ser = data.ndim == 1
+        numeric_only_bool = self._resolve_numeric_only(numeric_only)
 
-        if numeric_only:
+        if numeric_only_bool:
             if is_ser and not is_numeric_dtype(self._selected_obj.dtype):
                 # GH#41291 match Series behavior
                 kwd_name = "numeric_only"
@@ -1591,7 +1597,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         #  continue and exclude the block
         new_mgr = data.grouped_reduce(array_func, ignore_failures=True)
 
-        if not is_ser and len(new_mgr) < len(data):
+        if not is_ser and (
+            len(new_mgr) < len(data)
+            or (numeric_only is lib.no_default and len(new_mgr) < orig_len)
+        ):
             warn_dropping_nuisance_columns_deprecated(type(self), how)
 
         res = self._wrap_agged_manager(new_mgr)
@@ -1947,7 +1956,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Name: B, dtype: float64
         """
         numeric_only_bool = self._resolve_numeric_only(numeric_only)
-
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_mean
 
@@ -1956,7 +1964,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result = self._cython_agg_general(
                 "mean",
                 alt=lambda x: Series(x).mean(numeric_only=numeric_only_bool),
-                numeric_only=numeric_only_bool,
+                numeric_only=numeric_only,
             )
             return result.__finalize__(self.obj, method="groupby")
 
@@ -1980,12 +1988,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             Median of values within each group.
         """
-        numeric_only_bool = self._resolve_numeric_only(numeric_only)
-
         result = self._cython_agg_general(
             "median",
-            alt=lambda x: Series(x).median(numeric_only=numeric_only_bool),
-            numeric_only=numeric_only_bool,
+            alt=lambda x: Series(x).median(numeric_only=numeric_only),
+            numeric_only=numeric_only,
         )
         return result.__finalize__(self.obj, method="groupby")
 
@@ -2180,8 +2186,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 "groupby_sum",
             )
         else:
-            numeric_only = self._resolve_numeric_only(numeric_only)
-
             # If we are grouping on categoricals we want unobserved categories to
             # return zero, rather than the default of NaN which the reindexing in
             # _agg_general() returns. GH #31422
@@ -2200,8 +2204,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def prod(
         self, numeric_only: bool | lib.NoDefault = lib.no_default, min_count: int = 0
     ):
-        numeric_only = self._resolve_numeric_only(numeric_only)
-
         return self._agg_general(
             numeric_only=numeric_only, min_count=min_count, alias="prod", npfunc=np.prod
         )
@@ -3343,7 +3345,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         -------
         `Series` or `DataFrame`  with filled values
         """
-        numeric_only = self._resolve_numeric_only(numeric_only)
+        numeric_only_bool = self._resolve_numeric_only(numeric_only)
 
         if post_processing and not callable(post_processing):
             raise ValueError("'post_processing' must be a callable!")
@@ -3412,13 +3414,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # Operate block-wise instead of column-by-column
         is_ser = obj.ndim == 1
         mgr = self._get_data_to_aggregate()
+        orig_len = len(mgr.items)
 
-        if numeric_only:
+        if numeric_only_bool:
             mgr = mgr.get_numeric_data()
 
         res_mgr = mgr.grouped_reduce(blk_func, ignore_failures=True)
 
-        if not is_ser and len(res_mgr.items) != len(mgr.items):
+        if not is_ser and (
+            len(res_mgr.items) < len(mgr.items)
+            or (numeric_only is lib.no_default and len(res_mgr.items) < orig_len)
+        ):
             howstr = how.replace("group_", "")
             warn_dropping_nuisance_columns_deprecated(type(self), howstr)
 
