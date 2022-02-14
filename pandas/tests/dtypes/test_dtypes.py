@@ -1113,7 +1113,7 @@ def test_compare_complex_dtypes():
     "array",
     [(["foo", "bar", pd.NA]), (["foo", "bar", np.NaN]), (["foo", "bar", None])],
 )
-def test_skip_convert_nan_values_to_strings(self, array):
+def test_skip_convert_nan_values_to_strings(array):
     # GH 44156
     result = Series(array).astype("str")
     expected = Series(array)
