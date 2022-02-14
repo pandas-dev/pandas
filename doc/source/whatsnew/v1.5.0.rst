@@ -238,6 +238,7 @@ Other Deprecations
 - Deprecated behavior of :meth:`DatetimeIndex.intersection` and :meth:`DatetimeIndex.symmetric_difference` (``union`` behavior was already deprecated in version 1.3.0) with mixed time zones; in a future version both will be cast to UTC instead of object dtype (:issue:`39328`, :issue:`45357`)
 - Deprecated :meth:`DataFrame.iteritems`, :meth:`Series.iteritems`, :meth:`HDFStore.iteritems` in favor of :meth:`DataFrame.items`, :meth:`Series.items`, :meth:`HDFStore.items`  (:issue:`45321`)
 - Deprecated :meth:`Series.is_monotonic` and :meth:`Index.is_monotonic` in favor of :meth:`Series.is_monotonic_increasing` and :meth:`Index.is_monotonic_increasing` (:issue:`45422`, :issue:`21335`)
+- Deprecated behavior of :meth:`DatetimeIndex.astype`, :meth:`TimedeltaIndex.astype`, :meth:`PeriodIndex.astype` when converting to an integer dtype other than ``int64``. In a future version, these will convert to exactly the specified dtype (instead of always ``int64``) and will raise if the conversion overflows (:issue:`45034`)
 - Deprecated the ``__array_wrap__`` method of DataFrame and Series, rely on standard numpy ufuncs instead (:issue:`45451`)
 - Deprecated the behavior of :meth:`Series.fillna` and :meth:`DataFrame.fillna` with ``timedelta64[ns]`` dtype and incompatible fill value; in a future version this will cast to a common dtype (usually object) instead of raising, matching the behavior of other dtypes (:issue:`45746`)
 - Deprecated the ``warn`` parameter in :func:`infer_freq` (:issue:`45947`)

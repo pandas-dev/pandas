@@ -79,7 +79,11 @@ class TestTimedeltaIndex:
             np.array([3600000000000, 90000000000000], dtype="uint64")
         )
         tm.assert_index_equal(arr.astype("uint64"), expected)
-        tm.assert_index_equal(arr.astype("uint32"), expected)
+
+        msg = "will return exactly the specified dtype instead of uint64"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = arr.astype("uint32")
+        tm.assert_index_equal(res, expected)
 
     def test_astype_timedelta64(self):
         # GH 13149, GH 13209
