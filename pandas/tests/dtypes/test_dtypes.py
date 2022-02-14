@@ -1115,7 +1115,7 @@ def test_compare_complex_dtypes():
 )
 def test_skip_convert_nan_values_to_strings(self, array):
     # GH 44156
-    result = pd.Series(array).astype("str")
-    expected = pd.Series(array)
+    result = Series(array).astype("str")
+    expected = Series(array)
 
     tm.assert_series_equal(result, expected)
