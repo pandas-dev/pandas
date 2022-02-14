@@ -7,7 +7,6 @@ Currently all plotting tests are marked as slow via
 
 from __future__ import annotations
 
-import os
 from typing import (
     TYPE_CHECKING,
     Sequence,
@@ -40,7 +39,7 @@ class TestPlotBase:
 
         mpl.rcdefaults()
 
-    def teardown_method(self, method):
+    def teardown_method(self):
         tm.close()
 
     @cache_readonly
@@ -112,13 +111,12 @@ class TestPlotBase:
         xp_lines = xp.get_lines()
         rs_lines = rs.get_lines()
 
-        def check_line(xpl, rsl):
+        assert len(xp_lines) == len(rs_lines)
+        for xpl, rsl in zip(xp_lines, rs_lines):
             xpdata = xpl.get_xydata()
             rsdata = rsl.get_xydata()
             tm.assert_almost_equal(xpdata, rsdata)
 
-        assert len(xp_lines) == len(rs_lines)
-        [check_line(xpl, rsl) for xpl, rsl in zip(xp_lines, rs_lines)]
         tm.close()
 
     def _check_visible(self, collections, visible=True):
@@ -603,8 +601,3 @@ def _gen_two_subplots(f, fig, **kwargs):
     else:
         kwargs["ax"] = fig.add_subplot(212)
     yield f(**kwargs)
-
-
-def curpath():
-    pth, _ = os.path.split(os.path.abspath(__file__))
-    return pth

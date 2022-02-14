@@ -65,36 +65,30 @@ def test_get_accessor_args():
 
 @td.skip_if_no_mpl
 class TestSeriesPlots(TestPlotBase):
-    def setup_method(self, method):
-        TestPlotBase.setup_method(self, method)
-        import matplotlib as mpl
-
-        mpl.rcdefaults()
-
-        self.ts = tm.makeTimeSeries()
-        self.ts.name = "ts"
-
     def test_autocorrelation_plot(self):
         from pandas.plotting import autocorrelation_plot
 
+        ser = tm.makeTimeSeries(name="ts")
         # Ensure no UserWarning when making plot
         with tm.assert_produces_warning(None):
-            _check_plot_works(autocorrelation_plot, series=self.ts)
-            _check_plot_works(autocorrelation_plot, series=self.ts.values)
+            _check_plot_works(autocorrelation_plot, series=ser)
+            _check_plot_works(autocorrelation_plot, series=ser.values)
 
-            ax = autocorrelation_plot(self.ts, label="Test")
+            ax = autocorrelation_plot(ser, label="Test")
         self._check_legend_labels(ax, labels=["Test"])
 
-    def test_lag_plot(self):
+    @pytest.mark.parametrize("kwargs", [{}, {"lag": 5}])
+    def test_lag_plot(self, kwargs):
         from pandas.plotting import lag_plot
 
-        _check_plot_works(lag_plot, series=self.ts)
-        _check_plot_works(lag_plot, series=self.ts, lag=5)
+        ser = tm.makeTimeSeries(name="ts")
+        _check_plot_works(lag_plot, series=ser, **kwargs)
 
     def test_bootstrap_plot(self):
         from pandas.plotting import bootstrap_plot
 
-        _check_plot_works(bootstrap_plot, series=self.ts, size=10)
+        ser = tm.makeTimeSeries(name="ts")
+        _check_plot_works(bootstrap_plot, series=ser, size=10)
 
 
 @td.skip_if_no_mpl

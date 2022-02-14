@@ -21,43 +21,39 @@ from pandas.tests.plotting.common import (
 pytestmark = pytest.mark.slow
 
 
+@pytest.fixture
+def ts():
+    return tm.makeTimeSeries(name="ts")
+
+
 @td.skip_if_no_mpl
 class TestSeriesPlots(TestPlotBase):
-    def setup_method(self, method):
-        TestPlotBase.setup_method(self, method)
-        import matplotlib as mpl
-
-        mpl.rcdefaults()
-
-        self.ts = tm.makeTimeSeries()
-        self.ts.name = "ts"
-
-    def test_hist_legacy(self):
-        _check_plot_works(self.ts.hist)
-        _check_plot_works(self.ts.hist, grid=False)
-        _check_plot_works(self.ts.hist, figsize=(8, 10))
+    def test_hist_legacy(self, ts):
+        _check_plot_works(ts.hist)
+        _check_plot_works(ts.hist, grid=False)
+        _check_plot_works(ts.hist, figsize=(8, 10))
         # _check_plot_works adds an ax so catch warning. see GH #13188
         with tm.assert_produces_warning(UserWarning):
-            _check_plot_works(self.ts.hist, by=self.ts.index.month)
+            _check_plot_works(ts.hist, by=ts.index.month)
         with tm.assert_produces_warning(UserWarning):
-            _check_plot_works(self.ts.hist, by=self.ts.index.month, bins=5)
+            _check_plot_works(ts.hist, by=ts.index.month, bins=5)
 
         fig, ax = self.plt.subplots(1, 1)
-        _check_plot_works(self.ts.hist, ax=ax, default_axes=True)
-        _check_plot_works(self.ts.hist, ax=ax, figure=fig, default_axes=True)
-        _check_plot_works(self.ts.hist, figure=fig, default_axes=True)
+        _check_plot_works(ts.hist, ax=ax, default_axes=True)
+        _check_plot_works(ts.hist, ax=ax, figure=fig, default_axes=True)
+        _check_plot_works(ts.hist, figure=fig, default_axes=True)
         tm.close()
 
         fig, (ax1, ax2) = self.plt.subplots(1, 2)
-        _check_plot_works(self.ts.hist, figure=fig, ax=ax1, default_axes=True)
-        _check_plot_works(self.ts.hist, figure=fig, ax=ax2, default_axes=True)
+        _check_plot_works(ts.hist, figure=fig, ax=ax1, default_axes=True)
+        _check_plot_works(ts.hist, figure=fig, ax=ax2, default_axes=True)
 
         msg = (
             "Cannot pass 'figure' when using the 'by' argument, since a new 'Figure' "
             "instance will be created"
         )
         with pytest.raises(ValueError, match=msg):
-            self.ts.hist(by=self.ts.index, figure=fig)
+            ts.hist(by=ts.index, figure=fig)
 
     def test_hist_bins_legacy(self):
         df = DataFrame(np.random.randn(10, 2))
@@ -131,7 +127,7 @@ class TestSeriesPlots(TestPlotBase):
         axes = df.height.hist(by=df.gender)  # noqa
         assert len(self.plt.get_fignums()) == 1
 
-    def test_plot_fails_when_ax_differs_from_figure(self):
+    def test_plot_fails_when_ax_differs_from_figure(self, ts):
         from pylab import figure
 
         fig1 = figure()
@@ -139,7 +135,7 @@ class TestSeriesPlots(TestPlotBase):
         ax1 = fig1.add_subplot(111)
         msg = "passed axis not bound to passed figure"
         with pytest.raises(AssertionError, match=msg):
-            self.ts.hist(ax=ax1, figure=fig2)
+            ts.hist(ax=ax1, figure=fig2)
 
     @pytest.mark.parametrize(
         "histtype, expected",
@@ -180,27 +176,27 @@ class TestSeriesPlots(TestPlotBase):
         with pytest.raises(ValueError, match="Cannot use both legend and label"):
             s.hist(legend=True, by=by, label="c")
 
-    def test_hist_kwargs(self):
+    def test_hist_kwargs(self, ts):
         _, ax = self.plt.subplots()
-        ax = self.ts.plot.hist(bins=5, ax=ax)
+        ax = ts.plot.hist(bins=5, ax=ax)
         assert len(ax.patches) == 5
         self._check_text_labels(ax.yaxis.get_label(), "Frequency")
         tm.close()
 
         _, ax = self.plt.subplots()
-        ax = self.ts.plot.hist(orientation="horizontal", ax=ax)
+        ax = ts.plot.hist(orientation="horizontal", ax=ax)
         self._check_text_labels(ax.xaxis.get_label(), "Frequency")
         tm.close()
 
         _, ax = self.plt.subplots()
-        ax = self.ts.plot.hist(align="left", stacked=True, ax=ax)
+        ax = ts.plot.hist(align="left", stacked=True, ax=ax)
         tm.close()
 
     @td.skip_if_no_scipy
-    def test_hist_kde(self):
+    def test_hist_kde(self, ts):
 
         _, ax = self.plt.subplots()
-        ax = self.ts.plot.hist(logy=True, ax=ax)
+        ax = ts.plot.hist(logy=True, ax=ax)
         self._check_ax_scales(ax, yaxis="log")
         xlabels = ax.get_xticklabels()
         # ticks are values, thus ticklabels are blank
@@ -208,10 +204,10 @@ class TestSeriesPlots(TestPlotBase):
         ylabels = ax.get_yticklabels()
         self._check_text_labels(ylabels, [""] * len(ylabels))
 
-        _check_plot_works(self.ts.plot.kde)
-        _check_plot_works(self.ts.plot.density)
+        _check_plot_works(ts.plot.kde)
+        _check_plot_works(ts.plot.density)
         _, ax = self.plt.subplots()
-        ax = self.ts.plot.kde(logy=True, ax=ax)
+        ax = ts.plot.kde(logy=True, ax=ax)
         self._check_ax_scales(ax, yaxis="log")
         xlabels = ax.get_xticklabels()
         self._check_text_labels(xlabels, [""] * len(xlabels))
@@ -221,13 +217,13 @@ class TestSeriesPlots(TestPlotBase):
     @td.skip_if_no_scipy
     def test_hist_kde_color(self):
         _, ax = self.plt.subplots()
-        ax = self.ts.plot.hist(logy=True, bins=10, color="b", ax=ax)
+        ax = ts.plot.hist(logy=True, bins=10, color="b", ax=ax)
         self._check_ax_scales(ax, yaxis="log")
         assert len(ax.patches) == 10
         self._check_colors(ax.patches, facecolors=["b"] * 10)
 
         _, ax = self.plt.subplots()
-        ax = self.ts.plot.kde(logy=True, color="r", ax=ax)
+        ax = ts.plot.kde(logy=True, color="r", ax=ax)
         self._check_ax_scales(ax, yaxis="log")
         lines = ax.get_lines()
         assert len(lines) == 1
