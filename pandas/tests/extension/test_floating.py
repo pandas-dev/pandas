@@ -183,7 +183,6 @@ class TestMethods(base.BaseMethodsTests):
 
         result = pd.Series(all_data).value_counts(dropna=dropna).sort_index()
         expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
-        expected = expected.astype("Int64")
         expected.index = expected.index.astype(all_data.dtype)
 
         self.assert_series_equal(result, expected)

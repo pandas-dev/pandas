@@ -158,13 +158,9 @@ class TestNoReduce(base.BaseNoReduceTests):
 
 
 class TestMethods(base.BaseMethodsTests):
-    @pytest.mark.skip(reason="returns nullable")
+    @pytest.mark.xfail(reason="returns nullable")
     def test_value_counts(self, all_data, dropna):
         return super().test_value_counts(all_data, dropna)
-
-    @pytest.mark.skip(reason="returns nullable")
-    def test_value_counts_with_normalize(self, data):
-        pass
 
 
 class TestCasting(base.BaseCastingTests):
