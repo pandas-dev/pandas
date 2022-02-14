@@ -32,11 +32,6 @@ from pandas.core.api import (
     UInt64Index,
 )
 
-COMPATIBLE_INCONSISTENT_PAIRS = [
-    (np.float64, np.int64),
-    (np.float64, np.uint64),
-]
-
 
 def test_union_same_types(index):
     # Union with a non-unique, non-monotonic index raises error
@@ -72,6 +67,25 @@ def test_union_different_types(index_flat, index_flat2, request):
 
     common_dtype = find_common_type([idx1.dtype, idx2.dtype])
 
+    warn = None
+    if not len(idx1) or not len(idx2):
+        pass
+    elif (
+        idx1.dtype.kind == "c"
+        and (
+            idx2.dtype.kind not in ["i", "u", "f", "c"]
+            or not isinstance(idx2.dtype, np.dtype)
+        )
+    ) or (
+        idx2.dtype.kind == "c"
+        and (
+            idx1.dtype.kind not in ["i", "u", "f", "c"]
+            or not isinstance(idx1.dtype, np.dtype)
+        )
+    ):
+        # complex objects non-sortable
+        warn = RuntimeWarning
+
     any_uint64 = idx1.dtype == np.uint64 or idx2.dtype == np.uint64
     idx1_signed = is_signed_integer_dtype(idx1.dtype)
     idx2_signed = is_signed_integer_dtype(idx2.dtype)
@@ -81,8 +95,9 @@ def test_union_different_types(index_flat, index_flat2, request):
     idx1 = idx1.sort_values()
     idx2 = idx2.sort_values()
 
-    res1 = idx1.union(idx2)
-    res2 = idx2.union(idx1)
+    with tm.assert_produces_warning(warn, match="'<' not supported between"):
+        res1 = idx1.union(idx2)
+        res2 = idx2.union(idx1)
 
     if any_uint64 and (idx1_signed or idx2_signed):
         assert res1.dtype == np.dtype("O")

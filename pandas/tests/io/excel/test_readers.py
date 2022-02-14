@@ -775,6 +775,7 @@ class TestReaders:
         tm.assert_frame_equal(url_table, local_table)
 
     @td.skip_if_not_us_locale
+    @pytest.mark.single_cpu
     def test_read_from_s3_url(self, read_ext, s3_resource, s3so):
         # Bucket "pandas-test" created in tests/io/conftest.py
         with open("test1" + read_ext, "rb") as f:
@@ -786,6 +787,7 @@ class TestReaders:
         local_table = pd.read_excel("test1" + read_ext)
         tm.assert_frame_equal(url_table, local_table)
 
+    @pytest.mark.single_cpu
     def test_read_from_s3_object(self, read_ext, s3_resource, s3so):
         # GH 38788
         # Bucket "pandas-test" created in tests/io/conftest.py
@@ -1159,6 +1161,31 @@ class TestReaders:
                 [2, 3.5, pd.Timestamp("2015-01-02"), False],
                 [3, 4.5, pd.Timestamp("2015-01-03"), False],
                 [4, 5.5, pd.Timestamp("2015-01-04"), True],
+            ],
+            columns=["a", "b", "c", "d"],
+        )
+        tm.assert_frame_equal(actual, expected)
+
+    def test_read_excel_skiprows_callable_not_in(self, request, read_ext):
+        # GH 4903
+        if read_ext == ".xlsb":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="Sheets containing datetimes not supported by pyxlsb"
+                )
+            )
+
+        actual = pd.read_excel(
+            "testskiprows" + read_ext,
+            sheet_name="skiprows_list",
+            skiprows=lambda x: x not in [1, 3, 5],
+        )
+        expected = DataFrame(
+            [
+                [1, 2.5, pd.Timestamp("2015-01-01"), True],
+                # [2, 3.5, pd.Timestamp("2015-01-02"), False],
+                [3, 4.5, pd.Timestamp("2015-01-03"), False],
+                # [4, 5.5, pd.Timestamp("2015-01-04"), True],
             ],
             columns=["a", "b", "c", "d"],
         )

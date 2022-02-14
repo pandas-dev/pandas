@@ -1261,6 +1261,30 @@ class TestExcelWriter:
             expected = DataFrame()
             tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("attr", ["cur_sheet", "handles", "path"])
+    def test_deprecated_attr(self, engine, ext, attr):
+        # GH#45572
+        with tm.ensure_clean(ext) as path:
+            with ExcelWriter(path) as writer:
+                msg = f"{attr} is not part of the public API"
+                with tm.assert_produces_warning(FutureWarning, match=msg):
+                    getattr(writer, attr)
+                # Some engines raise if nothing is written
+                DataFrame().to_excel(writer)
+
+    @pytest.mark.parametrize(
+        "attr, args", [("save", ()), ("write_cells", ([], "test"))]
+    )
+    def test_deprecated_method(self, engine, ext, attr, args):
+        # GH#45572
+        with tm.ensure_clean(ext) as path:
+            with ExcelWriter(path) as writer:
+                msg = f"{attr} is not part of the public API"
+                # Some engines raise if nothing is written
+                DataFrame().to_excel(writer)
+                with tm.assert_produces_warning(FutureWarning, match=msg):
+                    getattr(writer, attr)(*args)
+
 
 class TestExcelWriterEngineTests:
     @pytest.mark.parametrize(
@@ -1297,10 +1321,13 @@ class TestExcelWriterEngineTests:
             supported_extensions = ["xlsx", "xls"]
             engine = "dummy"
 
-            def save(self):
+            def book(self):
+                pass
+
+            def _save(self):
                 called_save.append(True)
 
-            def write_cells(self, *args, **kwargs):
+            def _write_cells(self, *args, **kwargs):
                 called_write_cells.append(True)
 
             @property
