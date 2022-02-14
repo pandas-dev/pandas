@@ -314,3 +314,17 @@ def test_groupby_duplicated_columns(func):
         [[1.5, 3.0, 1.5]], columns=["A", "B", "A"], index=pd.Index(["G"], name="C")
     )
     tm.assert_frame_equal(result, expected)
+    
+def test_dataframe_groupby_incorrect_with_multiindex_make_df_from_data():
+    # GH#32492
+    df = pd.DataFrame(
+        data={
+            "A": ["a1", "a2", None],
+            "B": ["b1", "b2", "b1"],
+            "val": [1, 2, 3],
+        }
+    )
+    grps = df.groupby(by=["A", "B"])
+
+    with pytest.raises(KeyError):
+        grps.get_group(("a2", "b1"))
