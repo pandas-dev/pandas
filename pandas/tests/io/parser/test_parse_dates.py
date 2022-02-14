@@ -11,17 +11,17 @@ from io import StringIO
 import warnings
 
 from dateutil.parser import parse as du_parse
-from hypothesis import (
-    given,
-    settings,
-)
+from hypothesis import given
 import numpy as np
 import pytest
 import pytz
 
 from pandas._libs.tslibs import parsing
 from pandas._libs.tslibs.parsing import parse_datetime_string
-from pandas.compat.pyarrow import pa_version_under6p0
+from pandas.compat.pyarrow import (
+    pa_version_under6p0,
+    pa_version_under7p0,
+)
 
 import pandas as pd
 from pandas import (
@@ -951,10 +951,11 @@ def test_parse_dates_custom_euro_format(all_parsers, kwargs):
             )
 
 
-@xfail_pyarrow
-def test_parse_tz_aware(all_parsers):
+def test_parse_tz_aware(all_parsers, request):
     # See gh-1693
     parser = all_parsers
+    if parser.engine == "pyarrow" and pa_version_under7p0:
+        request.node.add_marker(pytest.mark.xfail(reason="Fails for pyarrow < 7.0"))
     data = "Date,x\n2012-06-13T01:39:00Z,0.5"
 
     result = parser.read_csv(StringIO(data), index_col=0, parse_dates=True)
@@ -1696,21 +1697,22 @@ def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
 
 @skip_pyarrow
 @given(DATETIME_NO_TZ)
-@settings(deadline=None)
 @pytest.mark.parametrize("delimiter", list(" -./"))
 @pytest.mark.parametrize("dayfirst", [True, False])
 @pytest.mark.parametrize(
     "date_format",
     ["%d %m %Y", "%m %d %Y", "%m %Y", "%Y %m %d", "%y %m %d", "%Y%m%d", "%y%m%d"],
 )
-def test_hypothesis_delimited_date(date_format, dayfirst, delimiter, test_datetime):
+def test_hypothesis_delimited_date(
+    request, date_format, dayfirst, delimiter, test_datetime
+):
     if date_format == "%m %Y" and delimiter == ".":
-        pytest.skip(
-            "parse_datetime_string cannot reliably tell whether "
-            "e.g. %m.%Y is a float or a date, thus we skip it"
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="parse_datetime_string cannot reliably tell whether "
+                "e.g. %m.%Y is a float or a date"
+            )
         )
-    result, expected = None, None
-    except_in_dateutil, except_out_dateutil = None, None
     date_string = test_datetime.strftime(date_format.replace(" ", delimiter))
 
     with warnings.catch_warnings():

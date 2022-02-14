@@ -24,6 +24,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
+    ABCExtensionArray,
     ABCIndex,
     ABCMultiIndex,
     ABCSeries,
@@ -286,9 +287,16 @@ def hash_array(
     if is_categorical_dtype(dtype):
         vals = cast("Categorical", vals)
         return _hash_categorical(vals, encoding, hash_key)
-    elif not isinstance(vals, np.ndarray):
-        # i.e. ExtensionArray
+
+    elif isinstance(vals, ABCExtensionArray):
         vals, _ = vals._values_for_factorize()
+
+    elif not isinstance(vals, np.ndarray):
+        # GH#42003
+        raise TypeError(
+            "hash_array requires np.ndarray or ExtensionArray, not "
+            f"{type(vals).__name__}. Use hash_pandas_object instead."
+        )
 
     return _hash_ndarray(vals, encoding, hash_key, categorize)
 
@@ -311,7 +319,7 @@ def _hash_ndarray(
 
     # First, turn whatever array this is into unsigned 64-bit ints, if we can
     # manage it.
-    elif isinstance(dtype, bool):
+    elif dtype == bool:
         vals = vals.astype("u8")
     elif issubclass(dtype.type, (np.datetime64, np.timedelta64)):
         vals = vals.view("i8").astype("u8", copy=False)

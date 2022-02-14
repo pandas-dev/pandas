@@ -469,7 +469,7 @@ def test_maximums(styler_mi, rows, cols):
     assert (">2</td>" in result) is not cols  # first trimmed horizontal element
 
 
-def test_replaced_css_class_names(styler_mi):
+def test_replaced_css_class_names():
     css = {
         "row_heading": "ROWHEAD",
         # "col_heading": "COLHEAD",

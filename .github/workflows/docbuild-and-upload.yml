@@ -3,12 +3,12 @@ name: Doc Build and Upload
 on:
   push:
     branches:
-      - master
-      - 1.3.x
+      - main
+      - 1.4.x
   pull_request:
     branches:
-      - master
-      - 1.3.x
+      - main
+      - 1.4.x
 
 env:
   ENV_FILE: environment.yml
@@ -40,12 +40,7 @@ jobs:
     - name: Build documentation
       run: |
         source activate pandas-dev
-        doc/make.py --warnings-are-errors | tee sphinx.log ; exit ${PIPESTATUS[0]}
-
-    # This can be removed when the ipython directive fails when there are errors,
-    # including the `tee sphinx.log` in te previous step (https://github.com/ipython/ipython/issues/11547)
-    - name: Check ipython directive errors
-      run: "! grep -B10 \"^<<<-------------------------------------------------------------------------$\" sphinx.log"
+        doc/make.py --warnings-are-errors
 
     - name: Install ssh key
       run: |
@@ -53,18 +48,18 @@ jobs:
         echo "${{ secrets.server_ssh_key }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
         echo "${{ secrets.server_ip }} ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBE1Kkopomm7FHG5enATf7SgnpICZ4W2bw+Ho+afqin+w7sMcrsa0je7sbztFAV8YchDkiBKnWTG4cRT+KZgZCaY=" > ~/.ssh/known_hosts
-      if: ${{github.event_name == 'push' && github.ref == 'refs/heads/master'}}
+      if: ${{github.event_name == 'push' && github.ref == 'refs/heads/main'}}
 
     - name: Copy cheatsheets into site directory
       run: cp doc/cheatsheet/Pandas_Cheat_Sheet* web/build/
 
     - name: Upload web
       run: rsync -az --delete --exclude='pandas-docs' --exclude='docs' web/build/ docs@${{ secrets.server_ip }}:/usr/share/nginx/pandas
-      if: ${{github.event_name == 'push' && github.ref == 'refs/heads/master'}}
+      if: ${{github.event_name == 'push' && github.ref == 'refs/heads/main'}}
 
     - name: Upload dev docs
       run: rsync -az --delete doc/build/html/ docs@${{ secrets.server_ip }}:/usr/share/nginx/pandas/pandas-docs/dev
-      if: ${{github.event_name == 'push' && github.ref == 'refs/heads/master'}}
+      if: ${{github.event_name == 'push' && github.ref == 'refs/heads/main'}}
 
     - name: Move docs into site directory
       run: mv doc/build/html web/build/docs

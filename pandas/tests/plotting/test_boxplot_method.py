@@ -21,6 +21,7 @@ from pandas.tests.plotting.common import (
     _check_plot_works,
 )
 
+from pandas.io.formats.printing import pprint_thing
 import pandas.plotting as plotting
 
 pytestmark = pytest.mark.slow
@@ -28,6 +29,27 @@ pytestmark = pytest.mark.slow
 
 @td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
+    def test_stacked_boxplot_set_axis(self):
+        # GH2980
+        import matplotlib.pyplot as plt
+
+        n = 80
+        df = DataFrame(
+            {
+                "Clinical": np.random.choice([0, 1, 2, 3], n),
+                "Confirmed": np.random.choice([0, 1, 2, 3], n),
+                "Discarded": np.random.choice([0, 1, 2, 3], n),
+            },
+            index=np.arange(0, n),
+        )
+        ax = df.plot(kind="bar", stacked=True)
+        assert [int(x.get_text()) for x in ax.get_xticklabels()] == df.index.to_list()
+        ax.set_xticks(np.arange(0, 80, 10))
+        plt.draw()  # Update changes
+        assert [int(x.get_text()) for x in ax.get_xticklabels()] == list(
+            np.arange(0, 80, 10)
+        )
+
     def test_boxplot_legacy1(self):
         df = DataFrame(
             np.random.randn(6, 4),
@@ -253,6 +275,56 @@ class TestDataFramePlots(TestPlotBase):
         result = df.boxplot(return_type="dict", **kwd)
 
         assert result[expected][0].get_color() == "C1"
+
+    @pytest.mark.parametrize("vert", [True, False])
+    def test_plot_xlabel_ylabel(self, vert):
+        df = DataFrame(
+            {
+                "a": np.random.randn(100),
+                "b": np.random.randn(100),
+                "group": np.random.choice(["group1", "group2"], 100),
+            }
+        )
+        xlabel, ylabel = "x", "y"
+        ax = df.plot(kind="box", vert=vert, xlabel=xlabel, ylabel=ylabel)
+        assert ax.get_xlabel() == xlabel
+        assert ax.get_ylabel() == ylabel
+
+    @pytest.mark.parametrize("vert", [True, False])
+    def test_boxplot_xlabel_ylabel(self, vert):
+        df = DataFrame(
+            {
+                "a": np.random.randn(100),
+                "b": np.random.randn(100),
+                "group": np.random.choice(["group1", "group2"], 100),
+            }
+        )
+        xlabel, ylabel = "x", "y"
+        ax = df.boxplot(vert=vert, xlabel=xlabel, ylabel=ylabel)
+        assert ax.get_xlabel() == xlabel
+        assert ax.get_ylabel() == ylabel
+
+    @pytest.mark.parametrize("vert", [True, False])
+    def test_boxplot_group_xlabel_ylabel(self, vert):
+        df = DataFrame(
+            {
+                "a": np.random.randn(100),
+                "b": np.random.randn(100),
+                "group": np.random.choice(["group1", "group2"], 100),
+            }
+        )
+        xlabel, ylabel = "x", "y"
+        ax = df.boxplot(by="group", vert=vert, xlabel=xlabel, ylabel=ylabel)
+        for subplot in ax:
+            assert subplot.get_xlabel() == xlabel
+            assert subplot.get_ylabel() == ylabel
+        self.plt.close()
+
+        ax = df.boxplot(by="group", vert=vert)
+        for subplot in ax:
+            target_label = subplot.get_xlabel() if vert else subplot.get_ylabel()
+            assert target_label == pprint_thing(["group"])
+        self.plt.close()
 
 
 @td.skip_if_no_mpl

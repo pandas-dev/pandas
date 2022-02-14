@@ -33,11 +33,11 @@ def test_can_hold_element_range(any_int_numpy_dtype):
         assert can_hold_element(arr, rng)
 
     # empty
-    rng = range(-(10 ** 10), -(10 ** 10))
+    rng = range(-(10**10), -(10**10))
     assert len(rng) == 0
     # assert can_hold_element(arr, rng)
 
-    rng = range(10 ** 10, 10 ** 10)
+    rng = range(10**10, 10**10)
     assert len(rng) == 0
     assert can_hold_element(arr, rng)
 
@@ -51,7 +51,7 @@ def test_can_hold_element_int_values_float_ndarray():
     assert not can_hold_element(arr, element + 0.5)
 
     # integer but not losslessly castable to int64
-    element = np.array([3, 2 ** 65], dtype=np.float64)
+    element = np.array([3, 2**65], dtype=np.float64)
     assert not can_hold_element(arr, element)
 
 
@@ -68,3 +68,12 @@ def test_can_hold_element_int8_int():
     assert can_hold_element(arr, np.uint32(element))
     assert can_hold_element(arr, np.int64(element))
     assert can_hold_element(arr, np.uint64(element))
+
+    element = 2**9
+    assert not can_hold_element(arr, element)
+    assert not can_hold_element(arr, np.int16(element))
+    assert not can_hold_element(arr, np.uint16(element))
+    assert not can_hold_element(arr, np.int32(element))
+    assert not can_hold_element(arr, np.uint32(element))
+    assert not can_hold_element(arr, np.int64(element))
+    assert not can_hold_element(arr, np.uint64(element))

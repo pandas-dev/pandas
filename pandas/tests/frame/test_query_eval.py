@@ -36,7 +36,7 @@ def skip_if_no_pandas_parser(parser):
 
 
 class TestCompat:
-    def setup_method(self, method):
+    def setup_method(self):
         self.df = DataFrame({"A": [1, 2, 3]})
         self.expected1 = self.df[self.df.A > 0]
         self.expected2 = self.df.A + 1
@@ -164,6 +164,17 @@ class TestDataFrameEval:
         dict2 = {"b": 2}
         assert df.eval("a + b", resolvers=[dict1, dict2]) == dict1["a"] + dict2["b"]
         assert pd.eval("a + b", resolvers=[dict1, dict2]) == dict1["a"] + dict2["b"]
+
+    def test_eval_resolvers_combined(self):
+        # GH 34966
+        df = DataFrame(np.random.randn(10, 2), columns=list("ab"))
+        dict1 = {"c": 2}
+
+        # Both input and default index/column resolvers should be usable
+        result = df.eval("a + b * c", resolvers=[dict1])
+
+        expected = df["a"] + df["b"] * dict1["c"]
+        tm.assert_series_equal(result, expected)
 
     def test_eval_object_dtype_binop(self):
         # GH#24883
@@ -1079,10 +1090,10 @@ class TestDataFrameQueryStrings:
 
 
 class TestDataFrameEvalWithFrame:
-    def setup_method(self, method):
+    def setup_method(self):
         self.frame = DataFrame(np.random.randn(10, 3), columns=list("abc"))
 
-    def teardown_method(self, method):
+    def teardown_method(self):
         del self.frame
 
     def test_simple_expr(self, parser, engine):

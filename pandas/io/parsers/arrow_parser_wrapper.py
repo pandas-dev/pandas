@@ -1,16 +1,12 @@
 from __future__ import annotations
 
-from pandas._typing import (
-    FilePath,
-    ReadBuffer,
-)
+from pandas._typing import ReadBuffer
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.inference import is_integer
 
 from pandas.core.frame import DataFrame
 
-from pandas.io.common import get_handle
 from pandas.io.parsers.base_parser import ParserBase
 
 
@@ -19,11 +15,10 @@ class ArrowParserWrapper(ParserBase):
     Wrapper for the pyarrow engine for read_csv()
     """
 
-    def __init__(self, src: FilePath | ReadBuffer[bytes], **kwds):
+    def __init__(self, src: ReadBuffer[bytes], **kwds):
+        super().__init__(kwds)
         self.kwds = kwds
         self.src = src
-
-        ParserBase.__init__(self, kwds)
 
         self._parse_kwds()
 
@@ -151,15 +146,12 @@ class ArrowParserWrapper(ParserBase):
         pyarrow_csv = import_optional_dependency("pyarrow.csv")
         self._get_pyarrow_options()
 
-        with get_handle(
-            self.src, "rb", encoding=self.encoding, is_text=False
-        ) as handles:
-            table = pyarrow_csv.read_csv(
-                handles.handle,
-                read_options=pyarrow_csv.ReadOptions(**self.read_options),
-                parse_options=pyarrow_csv.ParseOptions(**self.parse_options),
-                convert_options=pyarrow_csv.ConvertOptions(**self.convert_options),
-            )
+        table = pyarrow_csv.read_csv(
+            self.src,
+            read_options=pyarrow_csv.ReadOptions(**self.read_options),
+            parse_options=pyarrow_csv.ParseOptions(**self.parse_options),
+            convert_options=pyarrow_csv.ConvertOptions(**self.convert_options),
+        )
 
-            frame = table.to_pandas()
-            return self._finalize_output(frame)
+        frame = table.to_pandas()
+        return self._finalize_output(frame)

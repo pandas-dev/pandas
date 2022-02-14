@@ -1,6 +1,11 @@
 import numpy as np
 import pytest
 
+from pandas.compat import (
+    is_ci_environment,
+    is_platform_mac,
+    is_platform_windows,
+)
 from pandas.errors import NumbaUtilError
 import pandas.util._test_decorators as td
 
@@ -12,6 +17,37 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
+
+# TODO(GH#44584): Mark these as pytest.mark.single_cpu
+pytestmark = pytest.mark.skipif(
+    is_ci_environment() and (is_platform_windows() or is_platform_mac()),
+    reason="On Azure CI, Windows can fail with "
+    "'Windows fatal exception: stack overflow' "
+    "and MacOS can timeout",
+)
+
+
+@pytest.fixture(params=["single", "table"])
+def method(request):
+    """method keyword in rolling/expanding/ewm constructor"""
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        ["sum", {}],
+        ["mean", {}],
+        ["median", {}],
+        ["max", {}],
+        ["min", {}],
+        ["var", {}],
+        ["var", {"ddof": 0}],
+        ["std", {}],
+        ["std", {"ddof": 0}],
+    ]
+)
+def arithmetic_numba_supported_operators(request):
+    return request.param
 
 
 @td.skip_if_no("numba")
@@ -61,7 +97,7 @@ class TestEngine:
         expected = getattr(roll, method)(engine="cython", **kwargs)
 
         # Check the cache
-        if method not in ("mean", "sum", "var", "std"):
+        if method not in ("mean", "sum", "var", "std", "max", "min"):
             assert (
                 getattr(np, f"nan{method}"),
                 "Rolling_apply_single",
@@ -88,7 +124,7 @@ class TestEngine:
         expected = getattr(expand, method)(engine="cython", **kwargs)
 
         # Check the cache
-        if method not in ("mean", "sum", "var", "std"):
+        if method not in ("mean", "sum", "var", "std", "max", "min"):
             assert (
                 getattr(np, f"nan{method}"),
                 "Expanding_apply_single",
@@ -150,15 +186,16 @@ class TestEngine:
         def add(values, x):
             return np.sum(values) + x
 
+        engine_kwargs = {"nopython": nopython, "nogil": nogil, "parallel": parallel}
         df = DataFrame({"value": [0, 0, 0]})
-        result = getattr(df, window)(**window_kwargs).apply(
-            add, raw=True, engine="numba", args=(1,)
+        result = getattr(df, window)(method=method, **window_kwargs).apply(
+            add, raw=True, engine="numba", engine_kwargs=engine_kwargs, args=(1,)
         )
         expected = DataFrame({"value": [1.0, 1.0, 1.0]})
         tm.assert_frame_equal(result, expected)
 
-        result = getattr(df, window)(**window_kwargs).apply(
-            add, raw=True, engine="numba", args=(2,)
+        result = getattr(df, window)(method=method, **window_kwargs).apply(
+            add, raw=True, engine="numba", engine_kwargs=engine_kwargs, args=(2,)
         )
         expected = DataFrame({"value": [2.0, 2.0, 2.0]})
         tm.assert_frame_equal(result, expected)

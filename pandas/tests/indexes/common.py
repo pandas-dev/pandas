@@ -21,7 +21,6 @@ from pandas import (
     Index,
     IntervalIndex,
     MultiIndex,
-    NumericIndex,
     PeriodIndex,
     RangeIndex,
     Series,
@@ -32,6 +31,7 @@ import pandas._testing as tm
 from pandas.core.api import (  # noqa:F401
     Float64Index,
     Int64Index,
+    NumericIndex,
     UInt64Index,
 )
 from pandas.core.arrays import BaseMaskedArray
@@ -216,6 +216,8 @@ class Base:
             # RangeIndex cannot be initialized from data
             # MultiIndex and CategoricalIndex are tested separately
             return
+        elif index.dtype == object and index.inferred_type == "boolean":
+            init_kwargs["dtype"] = index.dtype
 
         index_type = type(index)
         result = index_type(index.values, copy=True, **init_kwargs)
@@ -422,9 +424,11 @@ class Base:
             #  fails for IntervalIndex
             return
 
+        is_ea_idx = type(index) is Index and not isinstance(index.dtype, np.dtype)
+
         assert index.equals(index)
         assert index.equals(index.copy())
-        if not (type(index) is Index and not isinstance(index.dtype, np.dtype)):
+        if not is_ea_idx:
             # doesn't hold for e.g. IntegerDtype
             assert index.equals(index.astype(object))
 
@@ -432,7 +436,7 @@ class Base:
         assert not index.equals(np.array(index))
 
         # Cannot pass in non-int64 dtype to RangeIndex
-        if not isinstance(index, RangeIndex):
+        if not isinstance(index, RangeIndex) and not is_ea_idx:
             same_values = Index(index, dtype=object)
             assert index.equals(same_values)
             assert same_values.equals(index)
@@ -519,6 +523,9 @@ class Base:
     def test_fillna(self, index):
         # GH 11343
         if len(index) == 0:
+            return
+        elif index.dtype == bool:
+            # can't hold NAs
             return
         elif isinstance(index, NumericIndex) and is_integer_dtype(index.dtype):
             return
@@ -890,6 +897,6 @@ class NumericBase(Base):
     def test_invalid_dtype(self, invalid_dtype):
         # GH 29539
         dtype = invalid_dtype
-        msg = fr"Incorrect `dtype` passed: expected \w+(?: \w+)?, received {dtype}"
+        msg = rf"Incorrect `dtype` passed: expected \w+(?: \w+)?, received {dtype}"
         with pytest.raises(ValueError, match=msg):
             self._index_cls([1, 2, 3], dtype=dtype)

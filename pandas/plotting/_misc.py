@@ -280,7 +280,7 @@ def andrews_curves(
 
         >>> df = pd.read_csv(
         ...     'https://raw.github.com/pandas-dev/'
-        ...     'pandas/master/pandas/tests/io/data/csv/iris.csv'
+        ...     'pandas/main/pandas/tests/io/data/csv/iris.csv'
         ... )
         >>> pd.plotting.andrews_curves(df, 'Name')
         <AxesSubplot:title={'center':'width'}>
@@ -406,7 +406,7 @@ def parallel_coordinates(
 
         >>> df = pd.read_csv(
         ...     'https://raw.github.com/pandas-dev/'
-        ...     'pandas/master/pandas/tests/io/data/csv/iris.csv'
+        ...     'pandas/main/pandas/tests/io/data/csv/iris.csv'
         ... )
         >>> pd.plotting.parallel_coordinates(
         ...     df, 'Name', color=('#556270', '#4ECDC4', '#C7F464')

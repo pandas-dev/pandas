@@ -38,7 +38,7 @@ from pandas._typing import (
 from pandas.compat.numpy import function as nv
 from pandas.util._validators import validate_endpoints
 
-from pandas.core.dtypes.cast import astype_td64_unit_conversion
+from pandas.core.dtypes.astype import astype_td64_unit_conversion
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     TD64NS_DTYPE,
@@ -82,7 +82,7 @@ def _field_accessor(name: str, alias: str, docstring: str):
     def f(self) -> np.ndarray:
         values = self.asi8
         result = get_timedelta_field(values, alias)
-        if self._hasnans:
+        if self._hasna:
             result = self._maybe_mask_results(
                 result, fill_value=None, convert="float64"
             )
@@ -911,7 +911,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             "microseconds",
             "nanoseconds",
         ]
-        hasnans = self._hasnans
+        hasnans = self._hasna
         if hasnans:
 
             def f(x):

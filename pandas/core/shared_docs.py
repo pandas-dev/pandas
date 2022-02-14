@@ -96,7 +96,7 @@ by : mapping, function, label, or list of labels
     will be used to determine the groups (the Series' values are first
     aligned; see ``.align()`` method). If a list or ndarray of length
     equal to the selected axis is passed (see the `groupby user guide
-    <https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#splitting-an-object-into-groups>`),
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#splitting-an-object-into-groups>`_),
     the values are used as-is to determine the groups. A label or list
     of labels may be passed to group by the columns in ``self``.
     Notice that a tuple is interpreted as a (single) key.
@@ -195,6 +195,10 @@ DataFrame.pivot : Return reshaped DataFrame organized
 DataFrame.explode : Explode a DataFrame from list-like
         columns to long format.
 
+Notes
+-----
+Reference :ref:`the user guide <reshaping.melt>` for more examples.
+
 Examples
 --------
 >>> df = pd.DataFrame({'A': {0: 'a', 1: 'b', 2: 'c'},
@@ -267,9 +271,7 @@ If you have multi-index columns:
 _shared_docs[
     "transform"
 ] = """
-Call ``func`` on self producing a {klass} with transformed values.
-
-Produced {klass} will have same axis length as self.
+Call ``func`` on self producing a {klass} with the same axis shape as self.
 
 Parameters
 ----------

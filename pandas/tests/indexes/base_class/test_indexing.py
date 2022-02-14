@@ -51,7 +51,7 @@ class TestGetLoc:
         lev = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
         dti = pd.date_range("2016-01-01", periods=100)
 
-        mi = pd.MultiIndex.from_product([lev, range(10 ** 3), dti])
+        mi = pd.MultiIndex.from_product([lev, range(10**3), dti])
         oidx = mi.to_flat_index()
 
         loc = len(oidx) // 2

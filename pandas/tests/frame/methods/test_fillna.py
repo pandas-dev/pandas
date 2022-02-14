@@ -244,6 +244,31 @@ class TestFillNA:
         expected = DataFrame({"a": [1, 0]})
         tm.assert_frame_equal(result, expected)
 
+    def test_fillna_downcast_false(self, frame_or_series):
+        # GH#45603 preserve object dtype with downcast=False
+        obj = frame_or_series([1, 2, 3], dtype="object")
+        result = obj.fillna("", downcast=False)
+        tm.assert_equal(result, obj)
+
+    def test_fillna_downcast_noop(self, frame_or_series):
+        # GH#45423
+        # Two relevant paths:
+        #  1) not _can_hold_na (e.g. integer)
+        #  2) _can_hold_na + noop + not can_hold_element
+
+        obj = frame_or_series([1, 2, 3], dtype=np.int64)
+        res = obj.fillna("foo", downcast=np.dtype(np.int32))
+        expected = obj.astype(np.int32)
+        tm.assert_equal(res, expected)
+
+        obj2 = obj.astype(np.float64)
+        res2 = obj2.fillna("foo", downcast="infer")
+        expected2 = obj  # get back int64
+        tm.assert_equal(res2, expected2)
+
+        res3 = obj2.fillna("foo", downcast=np.dtype(np.int32))
+        tm.assert_equal(res3, expected)
+
     @pytest.mark.parametrize("columns", [["A", "A", "B"], ["A", "A"]])
     def test_fillna_dictlike_value_duplicate_colnames(self, columns):
         # GH#43476

@@ -445,6 +445,33 @@ class TestTimestamp:
         stamp = Timestamp(datetime(2011, 1, 1))
         assert d[stamp] == 5
 
+    @pytest.mark.parametrize(
+        "timezone, year, month, day, hour",
+        [["America/Chicago", 2013, 11, 3, 1], ["America/Santiago", 2021, 4, 3, 23]],
+    )
+    def test_hash_timestamp_with_fold(self, timezone, year, month, day, hour):
+        # see gh-33931
+        test_timezone = gettz(timezone)
+        transition_1 = Timestamp(
+            year=year,
+            month=month,
+            day=day,
+            hour=hour,
+            minute=0,
+            fold=0,
+            tzinfo=test_timezone,
+        )
+        transition_2 = Timestamp(
+            year=year,
+            month=month,
+            day=day,
+            hour=hour,
+            minute=0,
+            fold=1,
+            tzinfo=test_timezone,
+        )
+        assert hash(transition_1) == hash(transition_2)
+
     def test_tz_conversion_freq(self, tz_naive_fixture):
         # GH25241
         with tm.assert_produces_warning(FutureWarning, match="freq"):
@@ -564,6 +591,13 @@ class TestTimestampConversion:
         assert result == expected
         assert type(result) == type(expected)
         assert result.dtype == expected.dtype
+
+    def test_to_pydatetime_fold(self):
+        # GH#45087
+        tzstr = "dateutil/usr/share/zoneinfo/America/Chicago"
+        ts = Timestamp(year=2013, month=11, day=3, hour=1, minute=0, fold=1, tz=tzstr)
+        dt = ts.to_pydatetime()
+        assert dt.fold == 1
 
     def test_to_pydatetime_nonzero_nano(self):
         ts = Timestamp("2011-01-01 9:00:00.123456789")

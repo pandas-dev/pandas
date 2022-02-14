@@ -12,6 +12,7 @@ from zipfile import BadZipFile
 import numpy as np
 import pytest
 
+from pandas.compat import is_ci_environment
 from pandas.compat._optional import import_optional_dependency
 import pandas.util._test_decorators as td
 
@@ -254,10 +255,11 @@ def test_parser_consistency_file(datapath):
     tm.assert_frame_equal(df_file_lxml, df_file_etree)
 
 
-@tm.network
+@pytest.mark.network
 @pytest.mark.slow
 @td.skip_if_no("lxml")
-def test_parser_consistency_url(datapath):
+@tm.network
+def test_parser_consistency_url():
     url = (
         "https://data.cityofchicago.org/api/views/"
         "8pix-ypme/rows.xml?accessType=DOWNLOAD"
@@ -401,6 +403,7 @@ def test_wrong_file_path_etree():
         read_xml(filename, parser="etree")
 
 
+@pytest.mark.network
 @tm.network
 @td.skip_if_no("lxml")
 def test_url():
@@ -421,6 +424,7 @@ def test_url():
     tm.assert_frame_equal(df_url, df_expected)
 
 
+@pytest.mark.network
 @tm.network
 def test_wrong_url(parser):
     with pytest.raises(HTTPError, match=("HTTP Error 404: Not Found")):
@@ -729,6 +733,32 @@ def test_parser_consistency_with_encoding(datapath):
     tm.assert_frame_equal(df_lxml, df_etree)
 
 
+@td.skip_if_no("lxml")
+def test_wrong_encoding_for_lxml():
+    # GH#45133
+    data = """<data>
+  <row>
+    <a>c</a>
+  </row>
+</data>
+"""
+    with pytest.raises(TypeError, match="encoding None"):
+        read_xml(StringIO(data), parser="lxml", encoding=None)
+
+
+def test_none_encoding_etree():
+    # GH#45133
+    data = """<data>
+  <row>
+    <a>c</a>
+  </row>
+</data>
+"""
+    result = read_xml(StringIO(data), parser="etree", encoding=None)
+    expected = DataFrame({"a": ["c"]})
+    tm.assert_frame_equal(result, expected)
+
+
 # PARSER
 
 
@@ -767,6 +797,19 @@ def test_stylesheet_file(datapath):
     )
 
     tm.assert_frame_equal(df_kml, df_style)
+
+
+def test_read_xml_passing_as_positional_deprecated(datapath, parser):
+    # GH#45133
+    kml = datapath("io", "data", "xml", "cta_rail_lines.kml")
+
+    with tm.assert_produces_warning(FutureWarning, match="keyword-only"):
+        read_xml(
+            kml,
+            ".//k:Placemark",
+            namespaces={"k": "http://www.opengis.net/kml/2.2"},
+            parser=parser,
+        )
 
 
 @td.skip_if_no("lxml")
@@ -954,7 +997,7 @@ def test_stylesheet_file_close(datapath, mode):
 
 
 @td.skip_if_no("lxml")
-def test_stylesheet_with_etree(datapath):
+def test_stylesheet_with_etree():
     kml = os.path.join("data", "xml", "cta_rail_lines.kml")
     xsl = os.path.join("data", "xml", "flatten_doc.xsl")
 
@@ -977,8 +1020,9 @@ def test_empty_stylesheet(val):
         read_xml(kml, stylesheet=val)
 
 
-@tm.network
+@pytest.mark.network
 @td.skip_if_no("lxml")
+@tm.network
 def test_online_stylesheet():
     xml = "https://www.w3schools.com/xml/cdcatalog_with_xsl.xml"
     xsl = "https://www.w3schools.com/xml/cdcatalog.xsl"
@@ -1051,7 +1095,7 @@ def test_wrong_compression(parser, compression, compression_only):
             read_xml(path, parser=parser, compression=attempted_compression)
 
 
-def test_unsuported_compression(datapath, parser):
+def test_unsuported_compression(parser):
     with pytest.raises(ValueError, match="Unrecognized compression type"):
         with tm.ensure_clean() as path:
             read_xml(path, parser=parser, compression="7z")
@@ -1060,9 +1104,14 @@ def test_unsuported_compression(datapath, parser):
 # STORAGE OPTIONS
 
 
-@tm.network
+@pytest.mark.network
 @td.skip_if_no("s3fs")
 @td.skip_if_no("lxml")
+@pytest.mark.skipif(
+    is_ci_environment(),
+    reason="2022.1.17: Hanging on the CI min versions build.",
+)
+@tm.network
 def test_s3_parser_consistency():
     # Python Software Foundation (2019 IRS-990 RETURN)
     s3 = "s3://irs-form-990/201923199349319487_public.xml"

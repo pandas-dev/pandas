@@ -1,43 +1,17 @@
 from __future__ import annotations
 
-from typing import overload
-
 import numpy as np
 
-from pandas._libs import (
-    lib,
-    missing as libmissing,
-)
-from pandas._typing import (
-    ArrayLike,
-    AstypeArg,
-    Dtype,
-    DtypeObj,
-    npt,
-)
+from pandas._typing import DtypeObj
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.base import (
-    ExtensionDtype,
-    register_extension_dtype,
-)
-from pandas.core.dtypes.common import (
-    is_bool_dtype,
-    is_datetime64_dtype,
-    is_float_dtype,
-    is_integer_dtype,
-    is_object_dtype,
-    is_string_dtype,
-    pandas_dtype,
-)
+from pandas.core.dtypes.base import register_extension_dtype
 
-from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.masked import BaseMaskedDtype
 from pandas.core.arrays.numeric import (
     NumericArray,
     NumericDtype,
 )
-from pandas.core.tools.numeric import to_numeric
 
 
 class _IntegerDtype(NumericDtype):
@@ -49,6 +23,8 @@ class _IntegerDtype(NumericDtype):
 
     The attributes name & type are set when these subclasses are created.
     """
+
+    _default_np_dtype = np.dtype(np.int64)
 
     def __repr__(self) -> str:
         sign = "U" if self.is_unsigned_integer else ""
@@ -109,49 +85,8 @@ class _IntegerDtype(NumericDtype):
             return FLOAT_STR_TO_DTYPE[str(np_dtype)]
         return None
 
-
-def safe_cast(values, dtype, copy: bool):
-    """
-    Safely cast the values to the dtype if they
-    are equivalent, meaning floats must be equivalent to the
-    ints.
-    """
-    try:
-        return values.astype(dtype, casting="safe", copy=copy)
-    except TypeError as err:
-        casted = values.astype(dtype, copy=copy)
-        if (casted == values).all():
-            return casted
-
-        raise TypeError(
-            f"cannot safely cast non-equivalent {values.dtype} to {np.dtype(dtype)}"
-        ) from err
-
-
-def coerce_to_array(
-    values, dtype, mask=None, copy: bool = False
-) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Coerce the input values array to numpy arrays with a mask.
-
-    Parameters
-    ----------
-    values : 1D list-like
-    dtype : integer dtype
-    mask : bool 1D array, optional
-    copy : bool, default False
-        if True, copy the input
-
-    Returns
-    -------
-    tuple of (values, mask)
-    """
-    # if values is integer numpy array, preserve its dtype
-    if dtype is None and hasattr(values, "dtype"):
-        if is_integer_dtype(values.dtype):
-            dtype = values.dtype
-
-    if dtype is not None:
+    @classmethod
+    def _standardize_dtype(cls, dtype) -> _IntegerDtype:
         if isinstance(dtype, str) and (
             dtype.startswith("Int") or dtype.startswith("UInt")
         ):
@@ -164,72 +99,26 @@ def coerce_to_array(
                 dtype = INT_STR_TO_DTYPE[str(np.dtype(dtype))]
             except KeyError as err:
                 raise ValueError(f"invalid dtype specified {dtype}") from err
+        return dtype
 
-    if isinstance(values, IntegerArray):
-        values, mask = values._data, values._mask
-        if dtype is not None:
-            values = values.astype(dtype.numpy_dtype, copy=False)
+    @classmethod
+    def _safe_cast(cls, values: np.ndarray, dtype: np.dtype, copy: bool) -> np.ndarray:
+        """
+        Safely cast the values to the given dtype.
 
-        if copy:
-            values = values.copy()
-            mask = mask.copy()
-        return values, mask
+        "safe" in this context means the casting is lossless. e.g. if 'values'
+        has a floating dtype, each value must be an integer.
+        """
+        try:
+            return values.astype(dtype, casting="safe", copy=copy)
+        except TypeError as err:
+            casted = values.astype(dtype, copy=copy)
+            if (casted == values).all():
+                return casted
 
-    values = np.array(values, copy=copy)
-    inferred_type = None
-    if is_object_dtype(values.dtype) or is_string_dtype(values.dtype):
-        inferred_type = lib.infer_dtype(values, skipna=True)
-        if inferred_type == "empty":
-            pass
-        elif inferred_type not in [
-            "floating",
-            "integer",
-            "mixed-integer",
-            "integer-na",
-            "mixed-integer-float",
-            "string",
-            "unicode",
-        ]:
-            raise TypeError(f"{values.dtype} cannot be converted to an IntegerDtype")
-
-    elif is_bool_dtype(values) and is_integer_dtype(dtype):
-        values = np.array(values, dtype=int, copy=copy)
-
-    elif not (is_integer_dtype(values) or is_float_dtype(values)):
-        raise TypeError(f"{values.dtype} cannot be converted to an IntegerDtype")
-
-    if values.ndim != 1:
-        raise TypeError("values must be a 1D list-like")
-
-    if mask is None:
-        mask = libmissing.is_numeric_na(values)
-    else:
-        assert len(mask) == len(values)
-
-    if mask.ndim != 1:
-        raise TypeError("mask must be a 1D list-like")
-
-    # infer dtype if needed
-    if dtype is None:
-        dtype = np.dtype("int64")
-    else:
-        dtype = dtype.type
-
-    # if we are float, let's make sure that we can
-    # safely cast
-
-    # we copy as need to coerce here
-    if mask.any():
-        values = values.copy()
-        values[mask] = 1
-    if inferred_type in ("string", "unicode"):
-        # casts from str are always safe since they raise
-        # a ValueError if the str cannot be parsed into an int
-        values = values.astype(dtype, copy=copy)
-    else:
-        values = safe_cast(values, dtype, copy=False)
-
-    return values, mask
+            raise TypeError(
+                f"cannot safely cast non-equivalent {values.dtype} to {np.dtype(dtype)}"
+            ) from err
 
 
 class IntegerArray(NumericArray):
@@ -300,6 +189,8 @@ class IntegerArray(NumericArray):
     Length: 3, dtype: UInt16
     """
 
+    _dtype_cls = _IntegerDtype
+
     # The value used to fill '_data' to avoid upcasting
     _internal_fill_value = 1
     # Fill values used for any/all
@@ -317,96 +208,6 @@ class IntegerArray(NumericArray):
                 "the 'pd.array' function instead"
             )
         super().__init__(values, mask, copy=copy)
-
-    @classmethod
-    def _from_sequence(
-        cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
-    ) -> IntegerArray:
-        values, mask = coerce_to_array(scalars, dtype=dtype, copy=copy)
-        return IntegerArray(values, mask)
-
-    @classmethod
-    def _from_sequence_of_strings(
-        cls, strings, *, dtype: Dtype | None = None, copy: bool = False
-    ) -> IntegerArray:
-        scalars = to_numeric(strings, errors="raise")
-        return cls._from_sequence(scalars, dtype=dtype, copy=copy)
-
-    def _coerce_to_array(self, value) -> tuple[np.ndarray, np.ndarray]:
-        return coerce_to_array(value, dtype=self.dtype)
-
-    @overload
-    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
-        ...
-
-    @overload
-    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray:
-        ...
-
-    @overload
-    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike:
-        ...
-
-    def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
-        """
-        Cast to a NumPy array or ExtensionArray with 'dtype'.
-
-        Parameters
-        ----------
-        dtype : str or dtype
-            Typecode or data-type to which the array is cast.
-        copy : bool, default True
-            Whether to copy the data, even if not necessary. If False,
-            a copy is made only if the old dtype does not match the
-            new dtype.
-
-        Returns
-        -------
-        ndarray or ExtensionArray
-            NumPy ndarray, BooleanArray or IntegerArray with 'dtype' for its dtype.
-
-        Raises
-        ------
-        TypeError
-            if incompatible type with an IntegerDtype, equivalent of same_kind
-            casting
-        """
-        dtype = pandas_dtype(dtype)
-
-        if isinstance(dtype, ExtensionDtype):
-            return super().astype(dtype, copy=copy)
-
-        na_value: float | np.datetime64 | lib.NoDefault
-
-        # coerce
-        if is_float_dtype(dtype):
-            # In astype, we consider dtype=float to also mean na_value=np.nan
-            na_value = np.nan
-        elif is_datetime64_dtype(dtype):
-            na_value = np.datetime64("NaT")
-        else:
-            na_value = lib.no_default
-
-        return self.to_numpy(dtype=dtype, na_value=na_value, copy=False)
-
-    def _values_for_argsort(self) -> np.ndarray:
-        """
-        Return values for sorting.
-
-        Returns
-        -------
-        ndarray
-            The transformed values should maintain the ordering between values
-            within the array.
-
-        See Also
-        --------
-        ExtensionArray.argsort : Return the indices that would sort this array.
-        """
-        data = self._data.copy()
-        if self._mask.any():
-            data[self._mask] = data.min() - 1
-        return data
 
 
 _dtype_docstring = """

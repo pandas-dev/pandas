@@ -18,11 +18,11 @@ from pandas._typing import (
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.astype import astype_nansafe
 from pandas.core.dtypes.base import (
     ExtensionDtype,
     register_extension_dtype,
 )
-from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_object_dtype,

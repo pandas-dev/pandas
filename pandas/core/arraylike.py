@@ -11,15 +11,13 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.generic import ABCNDFrame
 
+from pandas.core import roperator
 from pandas.core.construction import extract_array
-from pandas.core.ops import (
-    maybe_dispatch_ufunc_to_dunder_op,
-    roperator,
-)
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 REDUCTION_ALIASES = {
@@ -267,12 +265,7 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         return result
 
     # Determine if we should defer.
-
-    # error: "Type[ndarray]" has no attribute "__array_ufunc__"
-    no_defer = (
-        np.ndarray.__array_ufunc__,  # type: ignore[attr-defined]
-        cls.__array_ufunc__,
-    )
+    no_defer = (np.ndarray.__array_ufunc__, cls.__array_ufunc__)
 
     for item in inputs:
         higher_priority = (

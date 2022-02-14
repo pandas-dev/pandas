@@ -14,6 +14,7 @@ from typing import (
     TypeVar,
     Union,
     cast,
+    final,
     overload,
 )
 import warnings
@@ -36,6 +37,7 @@ from pandas._libs.tslibs import (
     delta_to_nanoseconds,
     iNaT,
     ints_to_pydatetime,
+    ints_to_pytimedelta,
     to_offset,
 )
 from pandas._libs.tslibs.fields import (
@@ -387,11 +389,16 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # to a period in from_sequence). For DatetimeArray, it's Timestamp...
         # I don't know if mypy can do that, possibly with Generics.
         # https://mypy.readthedocs.io/en/latest/generics.html
+
         no_op = check_setitem_lengths(key, value, self)
+
+        # Calling super() before the no_op short-circuit means that we raise
+        #  on invalid 'value' even if this is a no-op, e.g. wrong-dtype empty array.
+        super().__setitem__(key, value)
+
         if no_op:
             return
 
-        super().__setitem__(key, value)
         self._maybe_clear_freq()
 
     def _maybe_clear_freq(self):
@@ -420,6 +427,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 )
                 return converted.reshape(self.shape)
 
+            elif self.dtype.kind == "m":
+                i8data = self.asi8.ravel()
+                converted = ints_to_pytimedelta(i8data, box=True)
+                return converted.reshape(self.shape)
+
             return self._box_values(self.asi8.ravel()).reshape(self.shape)
 
         elif isinstance(dtype, ExtensionDtype):
@@ -429,14 +441,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         elif is_integer_dtype(dtype):
             # we deliberately ignore int32 vs. int64 here.
             # See https://github.com/pandas-dev/pandas/issues/24381 for more.
-            warnings.warn(
-                f"casting {self.dtype} values to int64 with .astype(...) is "
-                "deprecated and will raise in a future version. "
-                "Use .view(...) instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
             values = self.asi8
 
             if is_unsigned_integer_dtype(dtype):
@@ -848,7 +852,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return self.asi8 == iNaT
 
     @property  # NB: override with cache_readonly in immutable subclasses
-    def _hasnans(self) -> bool:
+    def _hasna(self) -> bool:
         """
         return if I have any nans; enables various perf speedups
         """
@@ -873,7 +877,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         This is an internal routine.
         """
-        if self._hasnans:
+        if self._hasna:
             if convert:
                 result = result.astype(convert)
             if fill_value is None:
@@ -1132,12 +1136,13 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         new_values = checked_add_with_arr(
             self_i8, other_i8, arr_mask=self._isnan, b_mask=other._isnan
         )
-        if self._hasnans or other._hasnans:
+        if self._hasna or other._hasna:
             mask = self._isnan | other._isnan
             np.putmask(new_values, mask, iNaT)
 
         return type(self)(new_values, dtype=self.dtype)
 
+    @final
     def _add_nat(self):
         """
         Add pd.NaT to self
@@ -1153,6 +1158,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         result.fill(iNaT)
         return type(self)(result, dtype=self.dtype, freq=None)
 
+    @final
     def _sub_nat(self):
         """
         Subtract pd.NaT from self
@@ -1589,7 +1595,7 @@ class DatelikeOps(DatetimeLikeArrayMixin):
               dtype='object')
         """
         result = self._format_native_types(date_format=date_format, na_rep=np.nan)
-        return result.astype(object)
+        return result.astype(object, copy=False)
 
 
 _round_doc = """

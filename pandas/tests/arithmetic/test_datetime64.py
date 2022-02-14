@@ -1097,6 +1097,7 @@ class TestDatetime64Arithmetic:
                 # IntegerArray
                 "can only perform ops with numeric values",
                 "unsupported operand type.*Categorical",
+                r"unsupported operand type\(s\) for -: 'int' and 'Timestamp'",
             ]
         )
         assert_invalid_addsub_type(obj, 1, msg)
@@ -1679,8 +1680,8 @@ class TestDatetime64OverflowHandling:
         tm.assert_series_equal(res, -expected)
 
     def test_datetimeindex_sub_timestamp_overflow(self):
-        dtimax = pd.to_datetime(["now", Timestamp.max])
-        dtimin = pd.to_datetime(["now", Timestamp.min])
+        dtimax = pd.to_datetime(["2021-12-28 17:19", Timestamp.max])
+        dtimin = pd.to_datetime(["2021-12-28 17:19", Timestamp.min])
 
         tsneg = Timestamp("1950-01-01")
         ts_neg_variants = [
@@ -1718,8 +1719,8 @@ class TestDatetime64OverflowHandling:
 
     def test_datetimeindex_sub_datetimeindex_overflow(self):
         # GH#22492, GH#22508
-        dtimax = pd.to_datetime(["now", Timestamp.max])
-        dtimin = pd.to_datetime(["now", Timestamp.min])
+        dtimax = pd.to_datetime(["2021-12-28 17:19", Timestamp.max])
+        dtimin = pd.to_datetime(["2021-12-28 17:19", Timestamp.min])
 
         ts_neg = pd.to_datetime(["1950-01-01", "1950-01-01"])
         ts_pos = pd.to_datetime(["1980-01-01", "1980-01-01"])

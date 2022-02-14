@@ -15,12 +15,12 @@ from pandas._typing import (
 )
 from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import (
-    astype_array,
+    common_dtype_categorical_compat,
     find_common_type,
 )
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
     is_dtype_equal,
     is_sparse,
 )
@@ -42,19 +42,10 @@ def cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
     """
     if is_dtype_equal(arr.dtype, dtype):
         return arr
-    if (
-        is_categorical_dtype(arr.dtype)
-        and isinstance(dtype, np.dtype)
-        and np.issubdtype(dtype, np.integer)
-    ):
-        # problem case: categorical of int -> gives int as result dtype,
-        # but categorical can contain NAs -> fall back to object dtype
-        try:
-            return arr.astype(dtype, copy=False)
-        except ValueError:
-            return arr.astype(object, copy=False)
 
     if is_sparse(arr) and not is_sparse(dtype):
+        # TODO(2.0): remove special case once SparseArray.astype deprecation
+        #  is enforced.
         # problem case: SparseArray.astype(dtype) doesn't follow the specified
         # dtype exactly, but converts this to Sparse[dtype] -> first manually
         # convert to dense array
@@ -125,6 +116,7 @@ def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):
         # for axis=0
         if not single_dtype:
             target_dtype = find_common_type([x.dtype for x in to_concat])
+            target_dtype = common_dtype_categorical_compat(to_concat, target_dtype)
             to_concat = [cast_to_common_type(arr, target_dtype) for arr in to_concat]
 
         if isinstance(to_concat[0], ABCExtensionArray):
@@ -202,8 +194,6 @@ def union_categoricals(
 
     Examples
     --------
-    >>> from pandas.api.types import union_categoricals
-
     If you want to combine categoricals that do not necessarily have
     the same categories, `union_categoricals` will combine a list-like
     of categoricals. The new categories will be the union of the
@@ -211,7 +201,7 @@ def union_categoricals(
 
     >>> a = pd.Categorical(["b", "c"])
     >>> b = pd.Categorical(["a", "b"])
-    >>> union_categoricals([a, b])
+    >>> pd.api.types.union_categoricals([a, b])
     ['b', 'c', 'a', 'b']
     Categories (3, object): ['b', 'c', 'a']
 
@@ -219,7 +209,7 @@ def union_categoricals(
     in the `categories` of the data. If you want the categories to be
     lexsorted, use `sort_categories=True` argument.
 
-    >>> union_categoricals([a, b], sort_categories=True)
+    >>> pd.api.types.union_categoricals([a, b], sort_categories=True)
     ['b', 'c', 'a', 'b']
     Categories (3, object): ['a', 'b', 'c']
 
@@ -229,7 +219,7 @@ def union_categoricals(
 
     >>> a = pd.Categorical(["a", "b"], ordered=True)
     >>> b = pd.Categorical(["a", "b", "a"], ordered=True)
-    >>> union_categoricals([a, b])
+    >>> pd.api.types.union_categoricals([a, b])
     ['a', 'b', 'a', 'b', 'a']
     Categories (2, object): ['a' < 'b']
 
@@ -237,7 +227,7 @@ def union_categoricals(
 
     >>> a = pd.Categorical(["a", "b"], ordered=True)
     >>> b = pd.Categorical(["a", "b", "c"], ordered=True)
-    >>> union_categoricals([a, b])
+    >>> pd.api.types.union_categoricals([a, b])
     Traceback (most recent call last):
         ...
     TypeError: to union ordered Categoricals, all categories must be the same
@@ -249,7 +239,7 @@ def union_categoricals(
 
     >>> a = pd.Categorical(["a", "b", "c"], ordered=True)
     >>> b = pd.Categorical(["c", "b", "a"], ordered=True)
-    >>> union_categoricals([a, b], ignore_order=True)
+    >>> pd.api.types.union_categoricals([a, b], ignore_order=True)
     ['a', 'b', 'c', 'c', 'b', 'a']
     Categories (3, object): ['a', 'b', 'c']
 
@@ -259,7 +249,7 @@ def union_categoricals(
 
     >>> a = pd.Series(["b", "c"], dtype='category')
     >>> b = pd.Series(["a", "b"], dtype='category')
-    >>> union_categoricals([a, b])
+    >>> pd.api.types.union_categoricals([a, b])
     ['b', 'c', 'a', 'b']
     Categories (3, object): ['b', 'c', 'a']
     """

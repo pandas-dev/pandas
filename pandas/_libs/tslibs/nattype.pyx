@@ -623,7 +623,7 @@ class NaTType(_NaT):
     astimezone = _make_error_func(
         "astimezone",
         """
-        Convert tz-aware Timestamp to another time zone.
+        Convert timezone-aware Timestamp to another time zone.
 
         Parameters
         ----------
@@ -1033,7 +1033,7 @@ timedelta}, default 'raise'
     tz_convert = _make_nat_func(
         "tz_convert",
         """
-        Convert tz-aware Timestamp to another time zone.
+        Convert timezone-aware Timestamp to another time zone.
 
         Parameters
         ----------
@@ -1078,7 +1078,7 @@ timedelta}, default 'raise'
         "tz_localize",
         """
         Convert naive Timestamp to local time zone, or remove
-        timezone from tz-aware Timestamp.
+        timezone from timezone-aware Timestamp.
 
         Parameters
         ----------

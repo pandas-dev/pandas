@@ -1,3 +1,5 @@
+import contextlib
+
 import numpy as np
 import pytest
 
@@ -37,13 +39,13 @@ def test_styler_to_excel_unstyled(engine):
             df.style.to_excel(writer, sheet_name="unstyled")
 
         openpyxl = pytest.importorskip("openpyxl")  # test loading only with openpyxl
-        wb = openpyxl.load_workbook(path)
+        with contextlib.closing(openpyxl.load_workbook(path)) as wb:
 
-        for col1, col2 in zip(wb["dataframe"].columns, wb["unstyled"].columns):
-            assert len(col1) == len(col2)
-            for cell1, cell2 in zip(col1, col2):
-                assert cell1.value == cell2.value
-                assert_equal_cell_styles(cell1, cell2)
+            for col1, col2 in zip(wb["dataframe"].columns, wb["unstyled"].columns):
+                assert len(col1) == len(col2)
+                for cell1, cell2 in zip(col1, col2):
+                    assert cell1.value == cell2.value
+                    assert_equal_cell_styles(cell1, cell2)
 
 
 shared_style_params = [
@@ -68,6 +70,44 @@ shared_style_params = [
         ["alignment", "vertical"],
         {"xlsxwriter": None, "openpyxl": "bottom"},  # xlsxwriter Fails
     ),
+    # Border widths
+    ("border-left: 2pt solid red", ["border", "left", "style"], "medium"),
+    ("border-left: 1pt dotted red", ["border", "left", "style"], "dotted"),
+    ("border-left: 2pt dotted red", ["border", "left", "style"], "mediumDashDotDot"),
+    ("border-left: 1pt dashed red", ["border", "left", "style"], "dashed"),
+    ("border-left: 2pt dashed red", ["border", "left", "style"], "mediumDashed"),
+    ("border-left: 1pt solid red", ["border", "left", "style"], "thin"),
+    ("border-left: 3pt solid red", ["border", "left", "style"], "thick"),
+    # Border expansion
+    (
+        "border-left: 2pt solid #111222",
+        ["border", "left", "color", "rgb"],
+        {"xlsxwriter": "FF111222", "openpyxl": "00111222"},
+    ),
+    ("border: 1pt solid red", ["border", "top", "style"], "thin"),
+    (
+        "border: 1pt solid #111222",
+        ["border", "top", "color", "rgb"],
+        {"xlsxwriter": "FF111222", "openpyxl": "00111222"},
+    ),
+    ("border: 1pt solid red", ["border", "right", "style"], "thin"),
+    (
+        "border: 1pt solid #111222",
+        ["border", "right", "color", "rgb"],
+        {"xlsxwriter": "FF111222", "openpyxl": "00111222"},
+    ),
+    ("border: 1pt solid red", ["border", "bottom", "style"], "thin"),
+    (
+        "border: 1pt solid #111222",
+        ["border", "bottom", "color", "rgb"],
+        {"xlsxwriter": "FF111222", "openpyxl": "00111222"},
+    ),
+    ("border: 1pt solid red", ["border", "left", "style"], "thin"),
+    (
+        "border: 1pt solid #111222",
+        ["border", "left", "color", "rgb"],
+        {"xlsxwriter": "FF111222", "openpyxl": "00111222"},
+    ),
 ]
 
 
@@ -87,13 +127,13 @@ def test_styler_to_excel_basic(engine, css, attrs, expected):
             styler.to_excel(writer, sheet_name="styled")
 
         openpyxl = pytest.importorskip("openpyxl")  # test loading only with openpyxl
-        wb = openpyxl.load_workbook(path)
+        with contextlib.closing(openpyxl.load_workbook(path)) as wb:
 
-        # test unstyled data cell does not have expected styles
-        # test styled cell has expected styles
-        u_cell, s_cell = wb["dataframe"].cell(2, 2), wb["styled"].cell(2, 2)
+            # test unstyled data cell does not have expected styles
+            # test styled cell has expected styles
+            u_cell, s_cell = wb["dataframe"].cell(2, 2), wb["styled"].cell(2, 2)
         for attr in attrs:
-            u_cell, s_cell = getattr(u_cell, attr), getattr(s_cell, attr)
+            u_cell, s_cell = getattr(u_cell, attr, None), getattr(s_cell, attr)
 
         if isinstance(expected, dict):
             assert u_cell is None or u_cell != expected[engine]
@@ -127,15 +167,15 @@ def test_styler_to_excel_basic_indexes(engine, css, attrs, expected):
             styler.to_excel(writer, sheet_name="styled")
 
         openpyxl = pytest.importorskip("openpyxl")  # test loading only with openpyxl
-        wb = openpyxl.load_workbook(path)
+        with contextlib.closing(openpyxl.load_workbook(path)) as wb:
 
-        # test null styled index cells does not have expected styles
-        # test styled cell has expected styles
-        ui_cell, si_cell = wb["null_styled"].cell(2, 1), wb["styled"].cell(2, 1)
-        uc_cell, sc_cell = wb["null_styled"].cell(1, 2), wb["styled"].cell(1, 2)
+            # test null styled index cells does not have expected styles
+            # test styled cell has expected styles
+            ui_cell, si_cell = wb["null_styled"].cell(2, 1), wb["styled"].cell(2, 1)
+            uc_cell, sc_cell = wb["null_styled"].cell(1, 2), wb["styled"].cell(1, 2)
         for attr in attrs:
-            ui_cell, si_cell = getattr(ui_cell, attr), getattr(si_cell, attr)
-            uc_cell, sc_cell = getattr(uc_cell, attr), getattr(sc_cell, attr)
+            ui_cell, si_cell = getattr(ui_cell, attr, None), getattr(si_cell, attr)
+            uc_cell, sc_cell = getattr(uc_cell, attr, None), getattr(sc_cell, attr)
 
         if isinstance(expected, dict):
             assert ui_cell is None or ui_cell != expected[engine]
@@ -163,5 +203,5 @@ def test_styler_custom_converter():
                 writer, sheet_name="custom"
             )
 
-        wb = openpyxl.load_workbook(path)
-        assert wb["custom"].cell(2, 2).font.color.value == "00111222"
+        with contextlib.closing(openpyxl.load_workbook(path)) as wb:
+            assert wb["custom"].cell(2, 2).font.color.value == "00111222"

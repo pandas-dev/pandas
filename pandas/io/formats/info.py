@@ -280,7 +280,9 @@ INFO_DOCSTRING = dedent(
         made based in column dtype and number of rows assuming values
         consume the same memory amount for corresponding dtypes. With deep
         memory introspection, a real memory usage calculation is performed
-        at the cost of computational resources.
+        at the cost of computational resources. See the
+        :ref:`Frequently Asked Questions <df-memory-usage>` for more
+        details.
     {show_counts_sub}{null_counts_sub}
 
     Returns
@@ -810,7 +812,7 @@ class DataFrameTableBuilder(TableBuilderAbstract):
         """Add lines to the info table, pertaining to empty dataframe."""
         self.add_object_type_line()
         self.add_index_range_line()
-        self._lines.append(f"Empty {type(self.data).__name__}")
+        self._lines.append(f"Empty {type(self.data).__name__}\n")
 
     @abstractmethod
     def _fill_non_empty_info(self) -> None:

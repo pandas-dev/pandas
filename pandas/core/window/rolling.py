@@ -354,9 +354,7 @@ class BaseWindow(SelectionMixin):
         if inf.any():
             values = np.where(inf, np.nan, values)
 
-        # error: Incompatible return value type (got "Optional[ndarray]",
-        # expected "ndarray")
-        return values  # type: ignore[return-value]
+        return values
 
     def _insert_on_column(self, result: DataFrame, obj: DataFrame) -> None:
         # if we have an 'on' column we want to put it back into
@@ -1345,7 +1343,8 @@ class RollingAndExpandingMixin(BaseWindow):
 
         def apply_func(values, begin, end, min_periods, raw=raw):
             if not raw:
-                values = Series(values, index=self.obj.index)
+                # GH 45912
+                values = Series(values, index=self._on)
             return window_func(values, begin, end, min_periods)
 
         return apply_func
@@ -1385,15 +1384,18 @@ class RollingAndExpandingMixin(BaseWindow):
         if maybe_use_numba(engine):
             if self.method == "table":
                 func = generate_manual_numpy_nan_agg_with_axis(np.nanmax)
+                return self.apply(
+                    func,
+                    raw=True,
+                    engine=engine,
+                    engine_kwargs=engine_kwargs,
+                )
             else:
-                func = np.nanmax
+                from pandas.core._numba.kernels import sliding_min_max
 
-            return self.apply(
-                func,
-                raw=True,
-                engine=engine,
-                engine_kwargs=engine_kwargs,
-            )
+                return self._numba_apply(
+                    sliding_min_max, "rolling_max", engine_kwargs, True
+                )
         window_func = window_aggregations.roll_max
         return self._apply(window_func, name="max", **kwargs)
 
@@ -1408,15 +1410,18 @@ class RollingAndExpandingMixin(BaseWindow):
         if maybe_use_numba(engine):
             if self.method == "table":
                 func = generate_manual_numpy_nan_agg_with_axis(np.nanmin)
+                return self.apply(
+                    func,
+                    raw=True,
+                    engine=engine,
+                    engine_kwargs=engine_kwargs,
+                )
             else:
-                func = np.nanmin
+                from pandas.core._numba.kernels import sliding_min_max
 
-            return self.apply(
-                func,
-                raw=True,
-                engine=engine,
-                engine_kwargs=engine_kwargs,
-            )
+                return self._numba_apply(
+                    sliding_min_max, "rolling_min", engine_kwargs, False
+                )
         window_func = window_aggregations.roll_min
         return self._apply(window_func, name="min", **kwargs)
 

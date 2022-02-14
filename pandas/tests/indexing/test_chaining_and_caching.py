@@ -157,16 +157,17 @@ class TestChaining:
     @pytest.mark.arm_slow
     def test_detect_chained_assignment(self):
 
-        pd.set_option("chained_assignment", "raise")
+        with option_context("chained_assignment", "raise"):
+            # work with the chain
+            expected = DataFrame([[-5, 1], [-6, 3]], columns=list("AB"))
+            df = DataFrame(
+                np.arange(4).reshape(2, 2), columns=list("AB"), dtype="int64"
+            )
+            assert df._is_copy is None
 
-        # work with the chain
-        expected = DataFrame([[-5, 1], [-6, 3]], columns=list("AB"))
-        df = DataFrame(np.arange(4).reshape(2, 2), columns=list("AB"), dtype="int64")
-        assert df._is_copy is None
-
-        df["A"][0] = -5
-        df["A"][1] = -6
-        tm.assert_frame_equal(df, expected)
+            df["A"][0] = -5
+            df["A"][1] = -6
+            tm.assert_frame_equal(df, expected)
 
     @pytest.mark.arm_slow
     def test_detect_chained_assignment_raises(self, using_array_manager):

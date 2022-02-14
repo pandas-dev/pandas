@@ -552,11 +552,11 @@ def test_ew_min_periods(min_periods, name):
 
 @pytest.mark.parametrize("name", ["cov", "corr"])
 def test_ewm_corr_cov(name):
-    A = Series(np.random.randn(50), index=np.arange(50))
+    A = Series(np.random.randn(50), index=range(50))
     B = A[2:] + np.random.randn(48)
 
     A[:10] = np.NaN
-    B[-10:] = np.NaN
+    B.iloc[-10:] = np.NaN
 
     result = getattr(A.ewm(com=20, min_periods=5), name)(B)
     assert np.isnan(result.values[:14]).all()
@@ -567,11 +567,11 @@ def test_ewm_corr_cov(name):
 @pytest.mark.parametrize("name", ["cov", "corr"])
 def test_ewm_corr_cov_min_periods(name, min_periods):
     # GH 7898
-    A = Series(np.random.randn(50), index=np.arange(50))
+    A = Series(np.random.randn(50), index=range(50))
     B = A[2:] + np.random.randn(48)
 
     A[:10] = np.NaN
-    B[-10:] = np.NaN
+    B.iloc[-10:] = np.NaN
 
     result = getattr(A.ewm(com=20, min_periods=min_periods), name)(B)
     # binary functions (ewmcov, ewmcorr) with bias=False require at
@@ -593,7 +593,7 @@ def test_ewm_corr_cov_min_periods(name, min_periods):
 
 @pytest.mark.parametrize("name", ["cov", "corr"])
 def test_different_input_array_raise_exception(name):
-    A = Series(np.random.randn(50), index=np.arange(50))
+    A = Series(np.random.randn(50), index=range(50))
     A[:10] = np.NaN
 
     msg = "other must be a DataFrame or Series"

@@ -27,7 +27,7 @@ def test_pipe():
         return dfgb.B.max() - dfgb.C.min().min()
 
     def square(srs):
-        return srs ** 2
+        return srs**2
 
     # Note that the transformations are
     # GroupBy -> Series
