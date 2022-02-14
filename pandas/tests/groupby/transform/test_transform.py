@@ -208,7 +208,7 @@ def test_transform_axis_1_reducer(request, reduction_func):
     result = df.groupby([0, 0, 1], axis=1).transform(reduction_func)
     if reduction_func == "size":
         # size doesn't behave in the same manner; hardcode expected result
-        expected = DataFrame([[2, 2, 1], [2, 2, 1]], index=df.index, columns=[0, 0, 1])
+        expected = DataFrame(2 * [[2, 2, 1]], index=df.index, columns=df.columns)
     else:
         expected = df.T.groupby([0, 0, 1]).transform(reduction_func).T
     tm.assert_equal(result, expected)

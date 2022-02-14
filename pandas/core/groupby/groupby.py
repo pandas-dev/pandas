@@ -1673,7 +1673,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             output = obj._constructor(out, index=obj.index, name=obj.name)
         else:
             output = result.take(ids, axis=self.axis)
-            output.index = obj.index
+            output = output.set_axis(obj._get_axis(self.axis), axis=self.axis)
         return output
 
     # -----------------------------------------------------------------
