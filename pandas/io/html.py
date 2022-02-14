@@ -488,7 +488,9 @@ class _HtmlFrameParser:
         to subsequent cells.
         """
         all_texts = []  # list of rows, each a list of str
-        remainder: list[tuple[int, str, int]] = []  # list of (index, text, nrows)
+        remainder: list[
+            tuple[int, str | tuple, int]
+        ] = []  # list of (index, text, nrows)
 
         for tr in rows:
             texts = []  # the output for this row
