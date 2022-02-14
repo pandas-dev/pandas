@@ -4342,6 +4342,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 if errors == "raise" and labels_missing:
                     raise KeyError(f"{labels} not found in axis")
 
+            if is_extension_array_dtype(mask.dtype):
+                mask = mask.to_numpy()
+
             indexer = mask.nonzero()[0]
             new_axis = axis.take(indexer)
 
