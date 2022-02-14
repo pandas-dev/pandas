@@ -32,11 +32,6 @@ from pandas.core.api import (
     UInt64Index,
 )
 
-COMPATIBLE_INCONSISTENT_PAIRS = [
-    (np.float64, np.int64),
-    (np.float64, np.uint64),
-]
-
 
 def test_union_same_types(index):
     # Union with a non-unique, non-monotonic index raises error

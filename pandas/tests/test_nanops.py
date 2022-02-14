@@ -19,7 +19,6 @@ from pandas.core.arrays import DatetimeArray
 import pandas.core.nanops as nanops
 
 use_bn = nanops._USE_BOTTLENECK
-has_c16 = hasattr(np, "complex128")
 
 
 @pytest.fixture(params=[True, False])
@@ -128,7 +127,7 @@ class TestnanopsDataFrame:
                 if targ.dtype.kind != "O":
                     res = res.astype(targ.dtype)
                 else:
-                    cast_dtype = "c16" if has_c16 else "f8"
+                    cast_dtype = "c16" if hasattr(np, "complex128") else "f8"
                     res = res.astype(cast_dtype)
                     targ = targ.astype(cast_dtype)
             # there should never be a case where numpy returns an object

@@ -45,12 +45,11 @@ def test_apply_with_string_funcs(request, float_frame, func, args, kwds, how):
     tm.assert_series_equal(result, expected)
 
 
-def test_with_string_args(datetime_series):
-
-    for arg in ["sum", "mean", "min", "max", "std"]:
-        result = datetime_series.apply(arg)
-        expected = getattr(datetime_series, arg)()
-        assert result == expected
+@pytest.mark.parametrize("arg", ["sum", "mean", "min", "max", "std"])
+def test_with_string_args(datetime_series, arg):
+    result = datetime_series.apply(arg)
+    expected = getattr(datetime_series, arg)()
+    assert result == expected
 
 
 @pytest.mark.parametrize("op", ["mean", "median", "std", "var"])
