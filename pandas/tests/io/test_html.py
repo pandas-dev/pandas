@@ -31,8 +31,6 @@ from pandas.io.common import file_path_to_url
 import pandas.io.html
 from pandas.io.html import read_html
 
-HERE = os.path.dirname(__file__)
-
 
 @pytest.fixture(
     params=[
