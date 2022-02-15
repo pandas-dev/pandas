@@ -501,13 +501,12 @@ class TestSeriesPlots(TestPlotBase):
         ylabels = ax.get_yticklabels()
         self._check_text_labels(ylabels, [""] * len(ylabels))
 
+    @td.skip_if_no_scipy
     @pytest.mark.parametrize(
         "kind",
         plotting.PlotAccessor._common_kinds + plotting.PlotAccessor._series_kinds,
     )
-    def test_kind_both_ways(self, request, kind):
-        if kind in ("kde", "density"):
-            request.node.add_marker(td.skip_if_no_scipy)
+    def test_kind_both_ways(self, kind):
         s = Series(range(3))
         _, ax = self.plt.subplots()
         s.plot(kind=kind, ax=ax)
@@ -524,10 +523,9 @@ class TestSeriesPlots(TestPlotBase):
         with pytest.raises(TypeError, match=msg):
             s.plot(kind=kind, ax=ax)
 
+    @td.skip_if_no_scipy
     @pytest.mark.parametrize("kind", plotting.PlotAccessor._common_kinds)
-    def test_valid_object_plot(self, request, kind):
-        if kind in ("kde", "density"):
-            request.node.add_marker(td.skip_if_no_scipy)
+    def test_valid_object_plot(self, kind):
         s = Series(range(10), dtype=object)
         _check_plot_works(s.plot, kind=kind)
 
