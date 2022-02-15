@@ -6870,9 +6870,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         similar names. These use the actual numerical values of the index.
         For more information on their behavior, see the
         `SciPy documentation
-        <https://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation>`__
-        and `SciPy tutorial
-        <https://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html>`__.
+        <https://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation>`__.
 
         Examples
         --------
