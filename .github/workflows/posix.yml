@@ -59,7 +59,7 @@ jobs:
       PANDAS_TESTING_MODE: ${{ matrix.pandas_testing_mode || '' }}
       TEST_ARGS: ${{ matrix.test_args || '' }}
       PYTEST_WORKERS: ${{ contains(matrix.pattern, 'not single_cpu') && 'auto' || '1' }}
-      PYTEST_TARGET: ${{ matrix.extra_apt || 'pandas' }}
+      PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
       IS_PYPY: ${{ contains(matrix.env_file, 'pypy') }}
       # TODO: re-enable coverage on pypy, its slow
       COVERAGE: ${{ !contains(matrix.env_file, 'pypy') }}
