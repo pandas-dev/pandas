@@ -18,8 +18,6 @@ from pandas.tests.plotting.common import (
     _check_plot_works,
 )
 
-pytestmark = pytest.mark.slow
-
 
 @pytest.fixture
 def ts():

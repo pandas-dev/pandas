@@ -17,8 +17,6 @@ from pandas.tests.plotting.common import (
 
 import pandas.plotting as plotting
 
-pytestmark = pytest.mark.slow
-
 
 @td.skip_if_mpl
 def test_import_error_message():

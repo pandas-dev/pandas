@@ -33,8 +33,6 @@ from pandas.tests.plotting.common import (
 from pandas.io.formats.printing import pprint_thing
 import pandas.plotting as plotting
 
-pytestmark = pytest.mark.slow
-
 
 @td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):

@@ -41,8 +41,6 @@ from pandas.tests.plotting.common import TestPlotBase
 
 from pandas.tseries.offsets import WeekOfMonth
 
-pytestmark = pytest.mark.slow
-
 
 @td.skip_if_no_mpl
 class TestTSPlot(TestPlotBase):

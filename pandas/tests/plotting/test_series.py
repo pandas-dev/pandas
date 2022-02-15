@@ -23,8 +23,6 @@ from pandas.tests.plotting.common import (
 
 import pandas.plotting as plotting
 
-pytestmark = pytest.mark.slow
-
 
 @pytest.fixture
 def ts():

@@ -7,8 +7,6 @@ from pandas import (
 )
 from pandas.tests.plotting.common import TestPlotBase
 
-pytestmark = pytest.mark.slow
-
 
 class TestFrameLegend(TestPlotBase):
     @pytest.mark.xfail(
