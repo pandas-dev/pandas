@@ -43,11 +43,9 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_dtype,
     is_dtype_equal,
-    is_float,
     is_float_dtype,
     is_integer_dtype,
     is_list_like,
-    is_numeric_dtype,
     is_object_dtype,
     is_scalar,
     is_string_dtype,
@@ -327,8 +325,52 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def T(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
         return type(self)(self._data.T, self._mask.T)
 
+    def round(self, decimals: int = 0, *args, **kwargs):
+        """
+        Round each value in the array a to the given number of decimals.
+
+        Parameters
+        ----------
+        decimals : int, default 0
+            Number of decimal places to round to. If decimals is negative,
+            it specifies the number of positions to the left of the decimal point.
+        *args, **kwargs
+            Additional arguments and keywords have no effect but might be
+            accepted for compatibility with NumPy.
+
+        Returns
+        -------
+        NumericArray
+            Rounded values of the NumericArray.
+
+        See Also
+        --------
+        numpy.around : Round values of an np.array.
+        DataFrame.round : Round values of a DataFrame.
+        Series.round : Round values of a Series.
+        """
+        nv.validate_round(args, kwargs)
+        values = np.round(self._data, decimals=decimals, **kwargs)
+
+        # Usually we'll get same type as self, but ndarray[bool] casts to float
+        return self._maybe_mask_result(values, self._mask.copy())
+
+    # ------------------------------------------------------------------
+    # Unary Methods
+
     def __invert__(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
         return type(self)(~self._data, self._mask.copy())
+
+    def __neg__(self):
+        return type(self)(-self._data, self._mask.copy())
+
+    def __pos__(self):
+        return self.copy()
+
+    def __abs__(self):
+        return type(self)(abs(self._data), self._mask.copy())
+
+    # ------------------------------------------------------------------
 
     def to_numpy(
         self,
@@ -671,7 +713,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             # x ** 0 is 1.
             mask = np.where((self._data == 0) & ~self._mask, False, mask)
 
-        return self._maybe_mask_result(result, mask, other, op_name)
+        return self._maybe_mask_result(result, mask)
 
     def _cmp_method(self, other, op) -> BooleanArray:
         from pandas.core.arrays import BooleanArray
@@ -713,36 +755,27 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         mask = self._propagate_mask(mask, other)
         return BooleanArray(result, mask, copy=False)
 
-    def _maybe_mask_result(self, result, mask, other, op_name: str):
+    def _maybe_mask_result(self, result, mask):
         """
         Parameters
         ----------
-        result : array-like
+        result : array-like or tuple[array-like]
         mask : array-like bool
-        other : scalar or array-like
-        op_name : str
         """
-        if op_name == "divmod":
-            # divmod returns a tuple
+        if isinstance(result, tuple):
+            # i.e. divmod
             div, mod = result
             return (
-                self._maybe_mask_result(div, mask, other, "floordiv"),
-                self._maybe_mask_result(mod, mask, other, "mod"),
+                self._maybe_mask_result(div, mask),
+                self._maybe_mask_result(mod, mask),
             )
 
-        # if we have a float operand we are by-definition
-        # a float result
-        # or our op is a divide
-        if (
-            (is_float_dtype(other) or is_float(other))
-            or (op_name in ["rtruediv", "truediv"])
-            or (is_float_dtype(self.dtype) and is_numeric_dtype(result.dtype))
-        ):
+        if is_float_dtype(result.dtype):
             from pandas.core.arrays import FloatingArray
 
             return FloatingArray(result, mask, copy=False)
 
-        elif is_bool_dtype(result):
+        elif is_bool_dtype(result.dtype):
             from pandas.core.arrays import BooleanArray
 
             return BooleanArray(result, mask, copy=False)
@@ -757,7 +790,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             result[mask] = result.dtype.type("NaT")
             return result
 
-        elif is_integer_dtype(result):
+        elif is_integer_dtype(result.dtype):
             from pandas.core.arrays import IntegerArray
 
             return IntegerArray(result, mask, copy=False)
@@ -980,6 +1013,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             out = np.asarray(res, dtype=np.float64)  # type: ignore[assignment]
         return out
 
+    # ------------------------------------------------------------------
+    # Reductions
+
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         if name in {"any", "all", "min", "max", "sum", "prod"}:
             return getattr(self, name)(skipna=skipna, **kwargs)
@@ -1015,7 +1051,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             else:
                 mask = self._mask.any(axis=axis)
 
-            return self._maybe_mask_result(result, mask, other=None, op_name=name)
+            return self._maybe_mask_result(result, mask)
         return result
 
     def sum(self, *, skipna=True, min_count=0, axis: int | None = 0, **kwargs):
