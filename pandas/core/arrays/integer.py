@@ -5,6 +5,7 @@ import numpy as np
 from pandas._typing import DtypeObj
 
 from pandas.core.dtypes.base import register_extension_dtype
+from pandas.core.dtypes.common import is_integer_dtype
 
 from pandas.core.arrays.masked import BaseMaskedDtype
 from pandas.core.arrays.numeric import (
@@ -24,6 +25,7 @@ class IntegerDtype(NumericDtype):
     """
 
     _default_np_dtype = np.dtype(np.int64)
+    _checker = is_integer_dtype
 
     @classmethod
     def construct_array_type(cls) -> type[IntegerArray]:
@@ -167,14 +169,6 @@ class IntegerArray(NumericArray):
     # Fill values used for any/all
     _truthy_value = 1
     _falsey_value = 0
-
-    def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
-        if not (isinstance(values, np.ndarray) and values.dtype.kind in ["i", "u"]):
-            raise TypeError(
-                "values should be integer numpy array. Use "
-                "the 'pd.array' function instead"
-            )
-        super().__init__(values, mask, copy=copy)
 
 
 _dtype_docstring = """

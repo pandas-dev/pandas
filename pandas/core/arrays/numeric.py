@@ -3,6 +3,8 @@ from __future__ import annotations
 import numbers
 from typing import (
     TYPE_CHECKING,
+    Any,
+    Callable,
     TypeVar,
 )
 
@@ -42,6 +44,7 @@ T = TypeVar("T", bound="NumericArray")
 
 class NumericDtype(BaseMaskedDtype):
     _default_np_dtype: np.dtype
+    _checker: Callable[[Any], bool]  # is_foo_dtype
 
     def __repr__(self) -> str:
         return f"{self.name}Dtype()"
@@ -139,10 +142,7 @@ class NumericDtype(BaseMaskedDtype):
 
 
 def _coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype):
-    if default_dtype.kind == "f":
-        checker = is_float_dtype
-    else:
-        checker = is_integer_dtype
+    checker = dtype_cls._checker
 
     inferred_type = None
 
@@ -218,6 +218,24 @@ class NumericArray(BaseMaskedArray):
     """
 
     _dtype_cls: type[NumericDtype]
+
+    def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
+        checker = self._dtype_cls._checker
+        if not (isinstance(values, np.ndarray) and checker(values.dtype)):
+            descr = (
+                "floating"
+                if self._dtype_cls.kind == "f"  # type: ignore[comparison-overlap]
+                else "integer"
+            )
+            raise TypeError(
+                f"values should be {descr} numpy array. Use "
+                "the 'pd.array' function instead"
+            )
+        if values.dtype == np.float16:
+            # If we don't raise here, then accessing self.dtype would raise
+            raise TypeError("FloatingArray does not support np.float16 dtype.")
+
+        super().__init__(values, mask, copy=copy)
 
     @cache_readonly
     def dtype(self) -> NumericDtype:

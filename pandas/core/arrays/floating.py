@@ -4,6 +4,7 @@ import numpy as np
 
 from pandas._typing import DtypeObj
 
+from pandas.core.dtypes.common import is_float_dtype
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
 from pandas.core.arrays.numeric import (
@@ -23,6 +24,7 @@ class FloatingDtype(NumericDtype):
     """
 
     _default_np_dtype = np.dtype(np.float64)
+    _checker = is_float_dtype
 
     @classmethod
     def construct_array_type(cls) -> type[FloatingArray]:
@@ -132,18 +134,6 @@ class FloatingArray(NumericArray):
     # Fill values used for any/all
     _truthy_value = 1.0
     _falsey_value = 0.0
-
-    def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
-        if not (isinstance(values, np.ndarray) and values.dtype.kind == "f"):
-            raise TypeError(
-                "values should be floating numpy array. Use "
-                "the 'pd.array' function instead"
-            )
-        if values.dtype == np.float16:
-            # If we don't raise here, then accessing self.dtype would raise
-            raise TypeError("FloatingArray does not support np.float16 dtype.")
-
-        super().__init__(values, mask, copy=copy)
 
 
 _dtype_docstring = """
