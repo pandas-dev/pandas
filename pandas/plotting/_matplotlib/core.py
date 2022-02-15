@@ -42,7 +42,6 @@ import pandas.core.common as com
 from pandas.core.frame import DataFrame
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._matplotlib.compat import mpl_ge_3_0_0
 from pandas.plotting._matplotlib.converter import register_pandas_matplotlib_converters
 from pandas.plotting._matplotlib.groupby import reconstruct_data_with_by
 from pandas.plotting._matplotlib.style import get_standard_colors
@@ -1032,29 +1031,7 @@ class PlanePlot(MPLPlot):
         # use the last one which contains the latest information
         # about the ax
         img = ax.collections[-1]
-        cbar = self.fig.colorbar(img, ax=ax, **kwds)
-
-        if mpl_ge_3_0_0():
-            # The workaround below is no longer necessary.
-            return cbar
-
-        points = ax.get_position().get_points()
-        cbar_points = cbar.ax.get_position().get_points()
-
-        cbar.ax.set_position(
-            [
-                cbar_points[0, 0],
-                points[0, 1],
-                cbar_points[1, 0] - cbar_points[0, 0],
-                points[1, 1] - points[0, 1],
-            ]
-        )
-        # To see the discrepancy in axis heights uncomment
-        # the following two lines:
-        # print(points[1, 1] - points[0, 1])
-        # print(cbar_points[1, 1] - cbar_points[0, 1])
-
-        return cbar
+        return self.fig.colorbar(img, ax=ax, **kwds)
 
 
 class ScatterPlot(PlanePlot):

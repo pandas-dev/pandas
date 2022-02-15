@@ -26,62 +26,69 @@ import pandas.plotting as plotting
 pytestmark = pytest.mark.slow
 
 
+@pytest.fixture
+def ts():
+    return tm.makeTimeSeries(name="ts")
+
+
+@pytest.fixture
+def series():
+    return tm.makeStringSeries(name="series")
+
+
+@pytest.fixture
+def iseries():
+    return tm.makePeriodSeries(name="iseries")
+
+
 @td.skip_if_no_mpl
 class TestSeriesPlots(TestPlotBase):
-    def setup_method(self, method):
-        TestPlotBase.setup_method(self, method)
-        import matplotlib as mpl
-
-        mpl.rcdefaults()
-
-        self.ts = tm.makeTimeSeries()
-        self.ts.name = "ts"
-
-        self.series = tm.makeStringSeries()
-        self.series.name = "series"
-
-        self.iseries = tm.makePeriodSeries()
-        self.iseries.name = "iseries"
-
-    def test_plot(self):
-        _check_plot_works(self.ts.plot, label="foo")
-        _check_plot_works(self.ts.plot, use_index=False)
-        axes = _check_plot_works(self.ts.plot, rot=0)
+    def test_plot(self, ts):
+        _check_plot_works(ts.plot, label="foo")
+        _check_plot_works(ts.plot, use_index=False)
+        axes = _check_plot_works(ts.plot, rot=0)
         self._check_ticks_props(axes, xrot=0)
 
-        ax = _check_plot_works(self.ts.plot, style=".", logy=True)
+        ax = _check_plot_works(ts.plot, style=".", logy=True)
         self._check_ax_scales(ax, yaxis="log")
 
-        ax = _check_plot_works(self.ts.plot, style=".", logx=True)
+        ax = _check_plot_works(ts.plot, style=".", logx=True)
         self._check_ax_scales(ax, xaxis="log")
 
-        ax = _check_plot_works(self.ts.plot, style=".", loglog=True)
+        ax = _check_plot_works(ts.plot, style=".", loglog=True)
         self._check_ax_scales(ax, xaxis="log", yaxis="log")
 
-        _check_plot_works(self.ts[:10].plot.bar)
-        _check_plot_works(self.ts.plot.area, stacked=False)
-        _check_plot_works(self.iseries.plot)
+        _check_plot_works(ts[:10].plot.bar)
+        _check_plot_works(ts.plot.area, stacked=False)
 
-        for kind in ["line", "bar", "barh", "kde", "hist", "box"]:
-            _check_plot_works(self.series[:5].plot, kind=kind)
+    def test_plot_iseries(self, iseries):
+        _check_plot_works(iseries.plot)
 
-        _check_plot_works(self.series[:10].plot.barh)
+    @pytest.mark.parametrize("kind", ["line", "bar", "barh", "kde", "hist", "box"])
+    def test_plot_series_kinds(self, series, kind):
+        _check_plot_works(series[:5].plot, kind=kind)
+
+    def test_plot_series_barh(self, series):
+        _check_plot_works(series[:10].plot.barh)
+
+    def test_plot_series_bar_ax(self):
         ax = _check_plot_works(Series(np.random.randn(10)).plot.bar, color="black")
         self._check_colors([ax.patches[0]], facecolors=["black"])
 
+    def test_plot_6951(self, ts):
         # GH 6951
-        ax = _check_plot_works(self.ts.plot, subplots=True)
+        ax = _check_plot_works(ts.plot, subplots=True)
         self._check_axes_shape(ax, axes_num=1, layout=(1, 1))
 
-        ax = _check_plot_works(self.ts.plot, subplots=True, layout=(-1, 1))
+        ax = _check_plot_works(ts.plot, subplots=True, layout=(-1, 1))
         self._check_axes_shape(ax, axes_num=1, layout=(1, 1))
-        ax = _check_plot_works(self.ts.plot, subplots=True, layout=(1, -1))
+        ax = _check_plot_works(ts.plot, subplots=True, layout=(1, -1))
         self._check_axes_shape(ax, axes_num=1, layout=(1, 1))
 
-    def test_plot_figsize_and_title(self):
+    def test_plot_figsize_and_title(self, series):
         # figsize and title
         _, ax = self.plt.subplots()
-        ax = self.series.plot(title="Test", figsize=(16, 8), ax=ax)
+        ax = series.plot(title="Test", figsize=(16, 8), ax=ax)
         self._check_text_labels(ax.title, "Test")
         self._check_axes_shape(ax, axes_num=1, layout=(1, 1), figsize=(16, 8))
 
@@ -93,24 +100,24 @@ class TestSeriesPlots(TestPlotBase):
         Series([1, 2, 3]).plot(ax=ax)
         assert colors == self.plt.rcParams[key]
 
-    def test_ts_line_lim(self):
+    def test_ts_line_lim(self, ts):
         fig, ax = self.plt.subplots()
-        ax = self.ts.plot(ax=ax)
+        ax = ts.plot(ax=ax)
         xmin, xmax = ax.get_xlim()
         lines = ax.get_lines()
         assert xmin <= lines[0].get_data(orig=False)[0][0]
         assert xmax >= lines[0].get_data(orig=False)[0][-1]
         tm.close()
 
-        ax = self.ts.plot(secondary_y=True, ax=ax)
+        ax = ts.plot(secondary_y=True, ax=ax)
         xmin, xmax = ax.get_xlim()
         lines = ax.get_lines()
         assert xmin <= lines[0].get_data(orig=False)[0][0]
         assert xmax >= lines[0].get_data(orig=False)[0][-1]
 
-    def test_ts_area_lim(self):
+    def test_ts_area_lim(self, ts):
         _, ax = self.plt.subplots()
-        ax = self.ts.plot.area(stacked=False, ax=ax)
+        ax = ts.plot.area(stacked=False, ax=ax)
         xmin, xmax = ax.get_xlim()
         line = ax.get_lines()[0].get_data(orig=False)[0]
         assert xmin <= line[0]
@@ -120,7 +127,7 @@ class TestSeriesPlots(TestPlotBase):
 
         # GH 7471
         _, ax = self.plt.subplots()
-        ax = self.ts.plot.area(stacked=False, x_compat=True, ax=ax)
+        ax = ts.plot.area(stacked=False, x_compat=True, ax=ax)
         xmin, xmax = ax.get_xlim()
         line = ax.get_lines()[0].get_data(orig=False)[0]
         assert xmin <= line[0]
@@ -128,7 +135,7 @@ class TestSeriesPlots(TestPlotBase):
         self._check_ticks_props(ax, xrot=30)
         tm.close()
 
-        tz_ts = self.ts.copy()
+        tz_ts = ts.copy()
         tz_ts.index = tz_ts.tz_localize("GMT").tz_convert("CET")
         _, ax = self.plt.subplots()
         ax = tz_ts.plot.area(stacked=False, x_compat=True, ax=ax)
@@ -147,12 +154,12 @@ class TestSeriesPlots(TestPlotBase):
         assert xmax >= line[-1]
         self._check_ticks_props(ax, xrot=0)
 
-    def test_area_sharey_dont_overwrite(self):
+    def test_area_sharey_dont_overwrite(self, ts):
         # GH37942
         fig, (ax1, ax2) = self.plt.subplots(1, 2, sharey=True)
 
-        abs(self.ts).plot(ax=ax1, kind="area")
-        abs(self.ts).plot(ax=ax2, kind="area")
+        abs(ts).plot(ax=ax1, kind="area")
+        abs(ts).plot(ax=ax2, kind="area")
 
         assert self.get_y_axis(ax1).joined(ax1, ax2)
         assert self.get_y_axis(ax2).joined(ax1, ax2)
@@ -194,28 +201,24 @@ class TestSeriesPlots(TestPlotBase):
         with pytest.raises(TypeError, match=msg):
             _check_plot_works(s.plot)
 
-    def test_line_area_nan_series(self):
+    @pytest.mark.parametrize("index", [None, tm.makeDateIndex(k=4)])
+    def test_line_area_nan_series(self, index):
         values = [1, 2, np.nan, 3]
-        s = Series(values)
-        ts = Series(values, index=tm.makeDateIndex(k=4))
+        d = Series(values, index=index)
+        ax = _check_plot_works(d.plot)
+        masked = ax.lines[0].get_ydata()
+        # remove nan for comparison purpose
+        exp = np.array([1, 2, 3], dtype=np.float64)
+        tm.assert_numpy_array_equal(np.delete(masked.data, 2), exp)
+        tm.assert_numpy_array_equal(masked.mask, np.array([False, False, True, False]))
 
-        for d in [s, ts]:
-            ax = _check_plot_works(d.plot)
-            masked = ax.lines[0].get_ydata()
-            # remove nan for comparison purpose
-            exp = np.array([1, 2, 3], dtype=np.float64)
-            tm.assert_numpy_array_equal(np.delete(masked.data, 2), exp)
-            tm.assert_numpy_array_equal(
-                masked.mask, np.array([False, False, True, False])
-            )
-
-            expected = np.array([1, 2, 0, 3], dtype=np.float64)
-            ax = _check_plot_works(d.plot, stacked=True)
-            tm.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected)
-            ax = _check_plot_works(d.plot.area)
-            tm.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected)
-            ax = _check_plot_works(d.plot.area, stacked=False)
-            tm.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected)
+        expected = np.array([1, 2, 0, 3], dtype=np.float64)
+        ax = _check_plot_works(d.plot, stacked=True)
+        tm.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected)
+        ax = _check_plot_works(d.plot.area)
+        tm.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected)
+        ax = _check_plot_works(d.plot.area, stacked=False)
+        tm.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected)
 
     def test_line_use_index_false(self):
         s = Series([1, 2, 3], index=["a", "b", "c"])
@@ -462,15 +465,15 @@ class TestSeriesPlots(TestPlotBase):
             x.plot(style="k--", color="k", ax=ax)
 
     @td.skip_if_no_scipy
-    def test_kde_kwargs(self):
+    def test_kde_kwargs(self, ts):
         sample_points = np.linspace(-100, 100, 20)
-        _check_plot_works(self.ts.plot.kde, bw_method="scott", ind=20)
-        _check_plot_works(self.ts.plot.kde, bw_method=None, ind=20)
-        _check_plot_works(self.ts.plot.kde, bw_method=None, ind=np.int_(20))
-        _check_plot_works(self.ts.plot.kde, bw_method=0.5, ind=sample_points)
-        _check_plot_works(self.ts.plot.density, bw_method=0.5, ind=sample_points)
+        _check_plot_works(ts.plot.kde, bw_method="scott", ind=20)
+        _check_plot_works(ts.plot.kde, bw_method=None, ind=20)
+        _check_plot_works(ts.plot.kde, bw_method=None, ind=np.int_(20))
+        _check_plot_works(ts.plot.kde, bw_method=0.5, ind=sample_points)
+        _check_plot_works(ts.plot.density, bw_method=0.5, ind=sample_points)
         _, ax = self.plt.subplots()
-        ax = self.ts.plot.kde(logy=True, bw_method=0.5, ind=sample_points, ax=ax)
+        ax = ts.plot.kde(logy=True, bw_method=0.5, ind=sample_points, ax=ax)
         self._check_ax_scales(ax, yaxis="log")
         self._check_text_labels(ax.yaxis.get_label(), "Density")
 
@@ -483,50 +486,48 @@ class TestSeriesPlots(TestPlotBase):
         # gh-14821: check if the values have any missing values
         assert any(~np.isnan(axes.lines[0].get_xdata()))
 
-    def test_boxplot_series(self):
+    def test_boxplot_series(self, ts):
         _, ax = self.plt.subplots()
-        ax = self.ts.plot.box(logy=True, ax=ax)
+        ax = ts.plot.box(logy=True, ax=ax)
         self._check_ax_scales(ax, yaxis="log")
         xlabels = ax.get_xticklabels()
-        self._check_text_labels(xlabels, [self.ts.name])
+        self._check_text_labels(xlabels, [ts.name])
         ylabels = ax.get_yticklabels()
         self._check_text_labels(ylabels, [""] * len(ylabels))
 
-    def test_kind_both_ways(self):
+    @pytest.mark.parametrize(
+        "kind",
+        plotting.PlotAccessor._common_kinds + plotting.PlotAccessor._series_kinds,
+    )
+    def test_kind_both_ways(self, kind):
         s = Series(range(3))
-        kinds = (
-            plotting.PlotAccessor._common_kinds + plotting.PlotAccessor._series_kinds
-        )
-        for kind in kinds:
-            _, ax = self.plt.subplots()
-            s.plot(kind=kind, ax=ax)
-            self.plt.close()
-            _, ax = self.plt.subplots()
-            getattr(s.plot, kind)()
-            self.plt.close()
+        _, ax = self.plt.subplots()
+        s.plot(kind=kind, ax=ax)
+        self.plt.close()
+        _, ax = self.plt.subplots()
+        getattr(s.plot, kind)()
+        self.plt.close()
 
-    def test_invalid_plot_data(self):
+    @pytest.mark.parametrize("kind", plotting.PlotAccessor._common_kinds)
+    def test_invalid_plot_data(self, kind):
         s = Series(list("abcd"))
         _, ax = self.plt.subplots()
-        for kind in plotting.PlotAccessor._common_kinds:
+        msg = "no numeric data to plot"
+        with pytest.raises(TypeError, match=msg):
+            s.plot(kind=kind, ax=ax)
 
-            msg = "no numeric data to plot"
-            with pytest.raises(TypeError, match=msg):
-                s.plot(kind=kind, ax=ax)
-
-    def test_valid_object_plot(self):
+    @pytest.mark.parametrize("kind", plotting.PlotAccessor._common_kinds)
+    def test_valid_object_plot(self, kind):
         s = Series(range(10), dtype=object)
-        for kind in plotting.PlotAccessor._common_kinds:
-            _check_plot_works(s.plot, kind=kind)
+        _check_plot_works(s.plot, kind=kind)
 
-    def test_partially_invalid_plot_data(self):
+    @pytest.mark.parametrize("kind", plotting.PlotAccessor._common_kinds)
+    def test_partially_invalid_plot_data(self, kind):
         s = Series(["a", "b", 1.0, 2])
         _, ax = self.plt.subplots()
-        for kind in plotting.PlotAccessor._common_kinds:
-
-            msg = "no numeric data to plot"
-            with pytest.raises(TypeError, match=msg):
-                s.plot(kind=kind, ax=ax)
+        msg = "no numeric data to plot"
+        with pytest.raises(TypeError, match=msg):
+            s.plot(kind=kind, ax=ax)
 
     def test_invalid_kind(self):
         s = Series([1, 2])
@@ -602,9 +603,9 @@ class TestSeriesPlots(TestPlotBase):
         with tm.external_error_raised(TypeError):
             s.plot(yerr=s_err)
 
-    def test_table(self):
-        _check_plot_works(self.series.plot, table=True)
-        _check_plot_works(self.series.plot, table=self.series)
+    def test_table(self, series):
+        _check_plot_works(series.plot, table=True)
+        _check_plot_works(series.plot, table=series)
 
     def test_series_grid_settings(self):
         # Make sure plot defaults to rcParams['axes.grid'] setting, GH 9792
@@ -613,21 +614,21 @@ class TestSeriesPlots(TestPlotBase):
             plotting.PlotAccessor._series_kinds + plotting.PlotAccessor._common_kinds,
         )
 
-    def test_standard_colors(self):
+    @pytest.mark.parametrize("c", ["r", "red", "green", "#FF0000"])
+    def test_standard_colors(self, c):
         from pandas.plotting._matplotlib.style import get_standard_colors
 
-        for c in ["r", "red", "green", "#FF0000"]:
-            result = get_standard_colors(1, color=c)
-            assert result == [c]
+        result = get_standard_colors(1, color=c)
+        assert result == [c]
 
-            result = get_standard_colors(1, color=[c])
-            assert result == [c]
+        result = get_standard_colors(1, color=[c])
+        assert result == [c]
 
-            result = get_standard_colors(3, color=c)
-            assert result == [c] * 3
+        result = get_standard_colors(3, color=c)
+        assert result == [c] * 3
 
-            result = get_standard_colors(3, color=[c])
-            assert result == [c] * 3
+        result = get_standard_colors(3, color=[c])
+        assert result == [c] * 3
 
     def test_standard_colors_all(self):
         import matplotlib.colors as colors

@@ -24,21 +24,6 @@ pytestmark = pytest.mark.slow
 
 @td.skip_if_no_mpl
 class TestDataFramePlotsSubplots(TestPlotBase):
-    def setup_method(self, method):
-        TestPlotBase.setup_method(self, method)
-        import matplotlib as mpl
-
-        mpl.rcdefaults()
-
-        self.tdf = tm.makeTimeDataFrame()
-        self.hexbin_df = DataFrame(
-            {
-                "A": np.random.uniform(size=20),
-                "B": np.random.uniform(size=20),
-                "C": np.arange(20) + np.random.uniform(size=20),
-            }
-        )
-
     def test_subplots(self):
         df = DataFrame(np.random.rand(10, 3), index=list(string.ascii_letters[:10]))
 
@@ -53,7 +38,7 @@ class TestDataFramePlotsSubplots(TestPlotBase):
             for ax in axes[:-2]:
                 self._check_visible(ax.xaxis)  # xaxis must be visible for grid
                 self._check_visible(ax.get_xticklabels(), visible=False)
-                if not (kind == "bar" and self.mpl_ge_3_1_0):
+                if kind != "bar":
                     # change https://github.com/pandas-dev/pandas/issues/26714
                     self._check_visible(ax.get_xticklabels(minor=True), visible=False)
                 self._check_visible(ax.xaxis.get_label(), visible=False)
@@ -405,8 +390,8 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         tm.assert_numpy_array_equal(ax[0].yaxis.get_ticklocs(), expected)
         tm.assert_numpy_array_equal(ax[1].yaxis.get_ticklocs(), expected)
 
-    def test_boxplot_subplots_return_type(self):
-        df = self.hist_df
+    def test_boxplot_subplots_return_type(self, hist_df):
+        df = hist_df
 
         # normal style: return_type=None
         result = df.plot.box(subplots=True)

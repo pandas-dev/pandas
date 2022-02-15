@@ -260,28 +260,24 @@ class TestDateTimeConverter:
         result = self.tc(time)
         assert result == format_expected
 
-    def test_dateindex_conversion(self):
+    @pytest.mark.parametrize("freq", ("B", "L", "S"))
+    def test_dateindex_conversion(self, freq):
         rtol = 10**-9
+        dateindex = tm.makeDateIndex(k=10, freq=freq)
+        rs = self.dtc.convert(dateindex, None, None)
+        xp = converter.dates.date2num(dateindex._mpl_repr())
+        tm.assert_almost_equal(rs, xp, rtol=rtol)
 
-        for freq in ("B", "L", "S"):
-            dateindex = tm.makeDateIndex(k=10, freq=freq)
-            rs = self.dtc.convert(dateindex, None, None)
-            xp = converter.dates.date2num(dateindex._mpl_repr())
-            tm.assert_almost_equal(rs, xp, rtol=rtol)
-
-    def test_resolution(self):
-        def _assert_less(ts1, ts2):
-            val1 = self.dtc.convert(ts1, None, None)
-            val2 = self.dtc.convert(ts2, None, None)
-            if not val1 < val2:
-                raise AssertionError(f"{val1} is not less than {val2}.")
-
+    @pytest.mark.parametrize("offset", [Second(), Milli(), Micro(50)])
+    def test_resolution(self, offset):
         # Matplotlib's time representation using floats cannot distinguish
         # intervals smaller than ~10 microsecond in the common range of years.
-        ts = Timestamp("2012-1-1")
-        _assert_less(ts, ts + Second())
-        _assert_less(ts, ts + Milli())
-        _assert_less(ts, ts + Micro(50))
+        ts1 = Timestamp("2012-1-1")
+        ts2 = ts1 + offset
+        val1 = self.dtc.convert(ts1, None, None)
+        val2 = self.dtc.convert(ts2, None, None)
+        if not val1 < val2:
+            raise AssertionError(f"{val1} is not less than {val2}.")
 
     def test_convert_nested(self):
         inner = [Timestamp("2017-01-01"), Timestamp("2017-01-02")]

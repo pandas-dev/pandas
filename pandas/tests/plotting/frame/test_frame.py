@@ -38,25 +38,8 @@ pytestmark = pytest.mark.slow
 
 @td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
-    def setup_method(self, method):
-        TestPlotBase.setup_method(self, method)
-        import matplotlib as mpl
-
-        mpl.rcdefaults()
-
-        self.tdf = tm.makeTimeDataFrame()
-        self.hexbin_df = DataFrame(
-            {
-                "A": np.random.uniform(size=20),
-                "B": np.random.uniform(size=20),
-                "C": np.arange(20) + np.random.uniform(size=20),
-            }
-        )
-
     def test_plot(self):
-        from pandas.plotting._matplotlib.compat import mpl_ge_3_1_0
-
-        df = self.tdf
+        df = tm.makeTimeDataFrame()
         _check_plot_works(df.plot, grid=False)
 
         # _check_plot_works adds an ax so use default_axes=True to avoid warning
@@ -81,10 +64,7 @@ class TestDataFramePlots(TestPlotBase):
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
         df = DataFrame({"x": [1, 2], "y": [3, 4]})
-        if mpl_ge_3_1_0():
-            msg = "'Line2D' object has no property 'blarg'"
-        else:
-            msg = "Unknown property blarg"
+        msg = "'Line2D' object has no property 'blarg'"
         with pytest.raises(AttributeError, match=msg):
             df.plot.line(blarg=True)
 
@@ -220,7 +200,7 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_plot_xy(self):
         # columns.inferred_type == 'string'
-        df = self.tdf
+        df = tm.makeTimeDataFrame()
         self._check_data(df.plot(x=0, y=1), df.set_index("A")["B"].plot())
         self._check_data(df.plot(x=0), df.set_index("A").plot())
         self._check_data(df.plot(y=0), df.B.plot())
@@ -272,7 +252,7 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_xcompat(self):
 
-        df = self.tdf
+        df = tm.makeTimeDataFrame()
         ax = df.plot(x_compat=True)
         lines = ax.get_lines()
         assert not isinstance(lines[0].get_xdata(), PeriodIndex)
@@ -383,7 +363,8 @@ class TestDataFramePlots(TestPlotBase):
             sy = sl.get_data()[1]
             tm.assert_numpy_array_equal(base, sy)
 
-    def test_line_area_stacked(self):
+    @pytest.mark.parametrize("kind", ["line", "area"])
+    def test_line_area_stacked(self, kind):
         with tm.RNGContext(42):
             df = DataFrame(np.random.rand(6, 4), columns=["w", "x", "y", "z"])
             neg_df = -df
@@ -403,33 +384,32 @@ class TestDataFramePlots(TestPlotBase):
                 columns=["w", "x", "y", "z"],
             )
 
-            for kind in ["line", "area"]:
-                ax1 = _check_plot_works(df.plot, kind=kind, stacked=False)
-                ax2 = _check_plot_works(df.plot, kind=kind, stacked=True)
-                self._compare_stacked_y_cood(ax1.lines, ax2.lines)
+            ax1 = _check_plot_works(df.plot, kind=kind, stacked=False)
+            ax2 = _check_plot_works(df.plot, kind=kind, stacked=True)
+            self._compare_stacked_y_cood(ax1.lines, ax2.lines)
 
-                ax1 = _check_plot_works(neg_df.plot, kind=kind, stacked=False)
-                ax2 = _check_plot_works(neg_df.plot, kind=kind, stacked=True)
-                self._compare_stacked_y_cood(ax1.lines, ax2.lines)
+            ax1 = _check_plot_works(neg_df.plot, kind=kind, stacked=False)
+            ax2 = _check_plot_works(neg_df.plot, kind=kind, stacked=True)
+            self._compare_stacked_y_cood(ax1.lines, ax2.lines)
 
-                ax1 = _check_plot_works(sep_df.plot, kind=kind, stacked=False)
-                ax2 = _check_plot_works(sep_df.plot, kind=kind, stacked=True)
-                self._compare_stacked_y_cood(ax1.lines[:2], ax2.lines[:2])
-                self._compare_stacked_y_cood(ax1.lines[2:], ax2.lines[2:])
+            ax1 = _check_plot_works(sep_df.plot, kind=kind, stacked=False)
+            ax2 = _check_plot_works(sep_df.plot, kind=kind, stacked=True)
+            self._compare_stacked_y_cood(ax1.lines[:2], ax2.lines[:2])
+            self._compare_stacked_y_cood(ax1.lines[2:], ax2.lines[2:])
 
-                _check_plot_works(mixed_df.plot, stacked=False)
-                msg = (
-                    "When stacked is True, each column must be either all positive or "
-                    "all negative. Column 'w' contains both positive and negative "
-                    "values"
-                )
-                with pytest.raises(ValueError, match=msg):
-                    mixed_df.plot(stacked=True)
+            _check_plot_works(mixed_df.plot, stacked=False)
+            msg = (
+                "When stacked is True, each column must be either all positive or "
+                "all negative. Column 'w' contains both positive and negative "
+                "values"
+            )
+            with pytest.raises(ValueError, match=msg):
+                mixed_df.plot(stacked=True)
 
-                # Use an index with strictly positive values, preventing
-                #  matplotlib from warning about ignoring xlim
-                df2 = df.set_index(df.index + 1)
-                _check_plot_works(df2.plot, kind=kind, logx=True, stacked=True)
+            # Use an index with strictly positive values, preventing
+            #  matplotlib from warning about ignoring xlim
+            df2 = df.set_index(df.index + 1)
+            _check_plot_works(df2.plot, kind=kind, logx=True, stacked=True)
 
     def test_line_area_nan_df(self):
         values1 = [1, 2, np.nan, 3]
@@ -839,8 +819,8 @@ class TestDataFramePlots(TestPlotBase):
         ax = df.plot.barh(rot=55, fontsize=11)
         self._check_ticks_props(ax, yrot=55, ylabelsize=11, xlabelsize=11)
 
-    def test_boxplot(self):
-        df = self.hist_df
+    def test_boxplot(self, hist_df):
+        df = hist_df
         series = df["height"]
         numeric_cols = df._get_numeric_data().columns
         labels = [pprint_thing(c) for c in numeric_cols]
@@ -850,7 +830,7 @@ class TestDataFramePlots(TestPlotBase):
         tm.assert_numpy_array_equal(
             ax.xaxis.get_ticklocs(), np.arange(1, len(numeric_cols) + 1)
         )
-        assert len(ax.lines) == self.bp_n_objects * len(numeric_cols)
+        assert len(ax.lines) == 7 * len(numeric_cols)
         tm.close()
 
         axes = series.plot.box(rot=40)
@@ -865,10 +845,10 @@ class TestDataFramePlots(TestPlotBase):
         labels = [pprint_thing(c) for c in numeric_cols]
         self._check_text_labels(ax.get_xticklabels(), labels)
         tm.assert_numpy_array_equal(ax.xaxis.get_ticklocs(), positions)
-        assert len(ax.lines) == self.bp_n_objects * len(numeric_cols)
+        assert len(ax.lines) == 7 * len(numeric_cols)
 
-    def test_boxplot_vertical(self):
-        df = self.hist_df
+    def test_boxplot_vertical(self, hist_df):
+        df = hist_df
         numeric_cols = df._get_numeric_data().columns
         labels = [pprint_thing(c) for c in numeric_cols]
 
@@ -876,7 +856,7 @@ class TestDataFramePlots(TestPlotBase):
         ax = df.plot.box(rot=50, fontsize=8, vert=False)
         self._check_ticks_props(ax, xrot=0, yrot=50, ylabelsize=8)
         self._check_text_labels(ax.get_yticklabels(), labels)
-        assert len(ax.lines) == self.bp_n_objects * len(numeric_cols)
+        assert len(ax.lines) == 7 * len(numeric_cols)
 
         axes = _check_plot_works(
             df.plot.box,
@@ -889,13 +869,13 @@ class TestDataFramePlots(TestPlotBase):
         self._check_ax_scales(axes, xaxis="log")
         for ax, label in zip(axes, labels):
             self._check_text_labels(ax.get_yticklabels(), [label])
-            assert len(ax.lines) == self.bp_n_objects
+            assert len(ax.lines) == 7
 
         positions = np.array([3, 2, 8])
         ax = df.plot.box(positions=positions, vert=False)
         self._check_text_labels(ax.get_yticklabels(), labels)
         tm.assert_numpy_array_equal(ax.yaxis.get_ticklocs(), positions)
-        assert len(ax.lines) == self.bp_n_objects * len(numeric_cols)
+        assert len(ax.lines) == 7 * len(numeric_cols)
 
     def test_boxplot_return_type(self):
         df = DataFrame(
@@ -1310,7 +1290,13 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.plot, x=x, y=y)
 
     def test_hexbin_basic(self):
-        df = self.hexbin_df
+        df = DataFrame(
+            {
+                "A": np.random.uniform(size=20),
+                "B": np.random.uniform(size=20),
+                "C": np.arange(20) + np.random.uniform(size=20),
+            }
+        )
 
         ax = df.plot.hexbin(x="A", y="B", gridsize=10)
         # TODO: need better way to test. This just does existence.
@@ -1325,7 +1311,13 @@ class TestDataFramePlots(TestPlotBase):
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
     def test_hexbin_with_c(self):
-        df = self.hexbin_df
+        df = DataFrame(
+            {
+                "A": np.random.uniform(size=20),
+                "B": np.random.uniform(size=20),
+                "C": np.arange(20) + np.random.uniform(size=20),
+            }
+        )
 
         ax = df.plot.hexbin(x="A", y="B", C="C")
         assert len(ax.collections) == 1
@@ -1342,7 +1334,13 @@ class TestDataFramePlots(TestPlotBase):
         ],
     )
     def test_hexbin_cmap(self, kwargs, expected):
-        df = self.hexbin_df
+        df = DataFrame(
+            {
+                "A": np.random.uniform(size=20),
+                "B": np.random.uniform(size=20),
+                "C": np.arange(20) + np.random.uniform(size=20),
+            }
+        )
         ax = df.plot.hexbin(x="A", y="B", **kwargs)
         assert ax.collections[0].cmap.name == expected
 
@@ -1762,12 +1760,18 @@ class TestDataFramePlots(TestPlotBase):
 
             args = {}
             if kind in ["hexbin", "scatter", "pie"]:
-                df = self.hexbin_df
+                df = DataFrame(
+                    {
+                        "A": np.random.uniform(size=20),
+                        "B": np.random.uniform(size=20),
+                        "C": np.arange(20) + np.random.uniform(size=20),
+                    }
+                )
                 args = {"x": "A", "y": "B"}
             elif kind == "area":
-                df = self.tdf.abs()
+                df = tm.makeTimeDataFrame().abs()
             else:
-                df = self.tdf
+                df = tm.makeTimeDataFrame()
 
             # Use a weakref so we can see if the object gets collected without
             # also preventing it from being collected
