@@ -65,7 +65,8 @@ def test_pipe_args():
     def h(df, arg3):
         return df.x + df.y - arg3
 
-    result = df.groupby("group").pipe(f, 0).pipe(g, 10).pipe(h, 100)
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        result = df.groupby("group").pipe(f, 0).pipe(g, 10).pipe(h, 100)
 
     # Assert the results here
     index = Index(["A", "B", "C"], name="group")

@@ -668,8 +668,9 @@ def test_groupby_as_index_agg(df):
     tm.assert_frame_equal(result, expected)
 
     result2 = grouped.agg({"C": np.mean, "D": np.sum})
-    expected2 = grouped.mean()
-    expected2["D"] = grouped.sum()["D"]
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        expected2 = grouped.mean()
+        expected2["D"] = grouped.sum()["D"]
     tm.assert_frame_equal(result2, expected2)
 
     grouped = df.groupby("A", as_index=True)
@@ -762,7 +763,8 @@ def test_as_index_series_return_frame(df):
     tm.assert_frame_equal(result2, expected2)
 
     result = grouped["C"].sum()
-    expected = grouped.sum().loc[:, ["A", "C"]]
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        expected = grouped.sum().loc[:, ["A", "C"]]
     assert isinstance(result, DataFrame)
     tm.assert_frame_equal(result, expected)
 
@@ -916,8 +918,9 @@ def test_omit_nuisance_warnings(df):
 def test_omit_nuisance_python_multiple(three_group):
     grouped = three_group.groupby(["A", "B"])
 
-    agged = grouped.agg(np.mean)
-    exp = grouped.mean()
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        agged = grouped.agg(np.mean)
+        exp = grouped.mean()
     tm.assert_frame_equal(agged, exp)
 
 
@@ -934,8 +937,9 @@ def test_empty_groups_corner(mframe):
     )
 
     grouped = df.groupby(["k1", "k2"])
-    result = grouped.agg(np.mean)
-    expected = grouped.mean()
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        result = grouped.agg(np.mean)
+        expected = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
     grouped = mframe[3:5].groupby(level=0)
@@ -957,7 +961,8 @@ def test_wrap_aggregated_output_multindex(mframe):
     df["baz", "two"] = "peekaboo"
 
     keys = [np.array([0, 0, 1]), np.array([0, 0, 1])]
-    agged = df.groupby(keys).agg(np.mean)
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        agged = df.groupby(keys).agg(np.mean)
     assert isinstance(agged.columns, MultiIndex)
 
     def aggfun(ser):
@@ -1118,15 +1123,17 @@ def test_groupby_with_hier_columns():
     # add a nuisance column
     sorted_columns, _ = columns.sortlevel(0)
     df["A", "foo"] = "bar"
-    result = df.groupby(level=0).mean()
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        result = df.groupby(level=0).mean()
     tm.assert_index_equal(result.columns, df.columns[:-1])
 
 
 def test_grouping_ndarray(df):
     grouped = df.groupby(df["A"].values)
 
-    result = grouped.sum()
-    expected = df.groupby("A").sum()
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        result = grouped.sum()
+        expected = df.groupby("A").sum()
     tm.assert_frame_equal(
         result, expected, check_names=False
     )  # Note: no names when grouping by value
@@ -1154,13 +1161,15 @@ def test_groupby_wrong_multi_labels():
 
 
 def test_groupby_series_with_name(df):
-    result = df.groupby(df["A"]).mean()
-    result2 = df.groupby(df["A"], as_index=False).mean()
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        result = df.groupby(df["A"]).mean()
+        result2 = df.groupby(df["A"], as_index=False).mean()
     assert result.index.name == "A"
     assert "A" in result2
 
-    result = df.groupby([df["A"], df["B"]]).mean()
-    result2 = df.groupby([df["A"], df["B"]], as_index=False).mean()
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        result = df.groupby([df["A"], df["B"]]).mean()
+        result2 = df.groupby([df["A"], df["B"]], as_index=False).mean()
     assert result.index.names == ("A", "B")
     assert "A" in result2
     assert "B" in result2
@@ -1306,8 +1315,9 @@ def test_groupby_unit64_float_conversion():
 
 
 def test_groupby_list_infer_array_like(df):
-    result = df.groupby(list(df["A"])).mean()
-    expected = df.groupby(df["A"]).mean()
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        result = df.groupby(list(df["A"])).mean()
+        expected = df.groupby(df["A"]).mean()
     tm.assert_frame_equal(result, expected, check_names=False)
 
     with pytest.raises(KeyError, match=r"^'foo'$"):
@@ -1420,7 +1430,8 @@ def test_groupby_2d_malformed():
     d["zeros"] = [0, 0]
     d["ones"] = [1, 1]
     d["label"] = ["l1", "l2"]
-    tmp = d.groupby(["group"]).mean()
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        tmp = d.groupby(["group"]).mean()
     res_values = np.array([[0.0, 1.0], [0.0, 1.0]])
     tm.assert_index_equal(tmp.columns, Index(["zeros", "ones"]))
     tm.assert_numpy_array_equal(tmp.values, res_values)
@@ -1586,10 +1597,12 @@ def test_group_name_available_in_inference_pass():
 
 def test_no_dummy_key_names(df):
     # see gh-1291
-    result = df.groupby(df["A"].values).sum()
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        result = df.groupby(df["A"].values).sum()
     assert result.index.name is None
 
-    result = df.groupby([df["A"].values, df["B"].values]).sum()
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        result = df.groupby([df["A"].values, df["B"].values]).sum()
     assert result.index.names == (None, None)
 
 
@@ -2566,7 +2579,8 @@ def test_groupby_aggregation_numeric_with_non_numeric_dtype():
     )
 
     gb = df.groupby(by=["x"])
-    result = gb.sum()
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        result = gb.sum()
     tm.assert_frame_equal(result, expected)
 
 

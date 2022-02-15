@@ -109,5 +109,6 @@ def test_groupby_resample_preserves_subclass(obj):
     df = df.set_index("Date")
 
     # Confirm groupby.resample() preserves dataframe type
-    result = df.groupby("Buyer").resample("5D").sum()
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        result = df.groupby("Buyer").resample("5D").sum()
     assert isinstance(result, obj)

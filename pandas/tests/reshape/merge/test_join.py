@@ -555,7 +555,8 @@ class TestJoin:
         df.insert(5, "dt", "foo")
 
         grouped = df.groupby("id")
-        mn = grouped.mean()
+        with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+            mn = grouped.mean()
         cn = grouped.count()
 
         # it works!

@@ -88,9 +88,9 @@ def test_groupby_resample_on_api():
         }
     )
 
-    expected = df.set_index("dates").groupby("key").resample("D").mean()
-
-    result = df.groupby("key").resample("D", on="dates").mean()
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        expected = df.set_index("dates").groupby("key").resample("D").mean()
+        result = df.groupby("key").resample("D", on="dates").mean()
     tm.assert_frame_equal(result, expected)
 
 
@@ -169,7 +169,8 @@ def tests_skip_nuisance(test_frame):
     tm.assert_frame_equal(result, expected)
 
     expected = r[["A", "B", "C"]].sum()
-    result = r.sum()
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        result = r.sum()
     tm.assert_frame_equal(result, expected)
 
 
@@ -607,10 +608,12 @@ def test_selection_api_validation():
 
     exp = df_exp.resample("2D").sum()
     exp.index.name = "date"
-    tm.assert_frame_equal(exp, df.resample("2D", on="date").sum())
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        tm.assert_frame_equal(exp, df.resample("2D", on="date").sum())
 
     exp.index.name = "d"
-    tm.assert_frame_equal(exp, df.resample("2D", level="d").sum())
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        tm.assert_frame_equal(exp, df.resample("2D", level="d").sum())
 
 
 @pytest.mark.parametrize(

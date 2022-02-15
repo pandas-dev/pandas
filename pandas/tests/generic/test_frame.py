@@ -71,7 +71,8 @@ class TestDataFrame:
                 "D": np.random.randn(8),
             }
         )
-        result = df.groupby("A").sum()
+        with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+            result = df.groupby("A").sum()
         tm.assert_metadata_equivalent(df, result)
 
     def test_metadata_propagation_indiv_resample(self):

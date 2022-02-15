@@ -3928,6 +3928,9 @@ def _insert_quantile_level(idx: Index, qs: npt.NDArray[np.float64]) -> MultiInde
 
 
 def warn_dropping_nuisance_columns_deprecated(cls, how: str) -> None:
+    if how == "add":
+        # groupby internally uses "add" instead of "sum" in some places
+        how = "sum"
     warnings.warn(
         "Dropping invalid columns in "
         f"{cls.__name__}.{how} is deprecated. "

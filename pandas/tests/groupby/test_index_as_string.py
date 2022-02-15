@@ -47,8 +47,9 @@ def series():
     ],
 )
 def test_grouper_index_level_as_string(frame, key_strs, groupers):
-    result = frame.groupby(key_strs).mean()
-    expected = frame.groupby(groupers).mean()
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+        result = frame.groupby(key_strs).mean()
+        expected = frame.groupby(groupers).mean()
     tm.assert_frame_equal(result, expected)
 
 

@@ -105,14 +105,17 @@ class TestGroupBy:
             )
             expected.iloc[[0, 6, 18], 0] = np.array([24, 6, 9], dtype="int64")
 
-            result1 = df.resample("5D").sum()
+            with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+                result1 = df.resample("5D").sum()
             tm.assert_frame_equal(result1, expected)
 
             df_sorted = df.sort_index()
-            result2 = df_sorted.groupby(Grouper(freq="5D")).sum()
+            with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+                result2 = df_sorted.groupby(Grouper(freq="5D")).sum()
             tm.assert_frame_equal(result2, expected)
 
-            result3 = df.groupby(Grouper(freq="5D")).sum()
+            with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+                result3 = df.groupby(Grouper(freq="5D")).sum()
             tm.assert_frame_equal(result3, expected)
 
     @pytest.mark.parametrize("should_sort", [True, False])
@@ -186,7 +189,8 @@ class TestGroupBy:
                 }
             ).set_index(["Date", "Buyer"])
 
-            result = df.groupby([Grouper(freq="A"), "Buyer"]).sum()
+            with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+                result = df.groupby([Grouper(freq="A"), "Buyer"]).sum()
             tm.assert_frame_equal(result, expected)
 
             expected = DataFrame(
@@ -201,7 +205,8 @@ class TestGroupBy:
                     ],
                 }
             ).set_index(["Date", "Buyer"])
-            result = df.groupby([Grouper(freq="6MS"), "Buyer"]).sum()
+            with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+                result = df.groupby([Grouper(freq="6MS"), "Buyer"]).sum()
             tm.assert_frame_equal(result, expected)
 
         df_original = DataFrame(
@@ -239,10 +244,12 @@ class TestGroupBy:
                 }
             ).set_index(["Date", "Buyer"])
 
-            result = df.groupby([Grouper(freq="1D"), "Buyer"]).sum()
+            with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+                result = df.groupby([Grouper(freq="1D"), "Buyer"]).sum()
             tm.assert_frame_equal(result, expected)
 
-            result = df.groupby([Grouper(freq="1M"), "Buyer"]).sum()
+            with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+                result = df.groupby([Grouper(freq="1M"), "Buyer"]).sum()
             expected = DataFrame(
                 {
                     "Buyer": "Carl Joe Mark".split(),
@@ -258,11 +265,15 @@ class TestGroupBy:
 
             # passing the name
             df = df.reset_index()
-            result = df.groupby([Grouper(freq="1M", key="Date"), "Buyer"]).sum()
+            with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+                result = df.groupby([Grouper(freq="1M", key="Date"), "Buyer"]).sum()
             tm.assert_frame_equal(result, expected)
 
-            with pytest.raises(KeyError, match="'The grouper name foo is not found'"):
-                df.groupby([Grouper(freq="1M", key="foo"), "Buyer"]).sum()
+            with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+                with pytest.raises(
+                    KeyError, match="'The grouper name foo is not found'"
+                ):
+                    df.groupby([Grouper(freq="1M", key="foo"), "Buyer"]).sum()
 
             # passing the level
             df = df.set_index("Date")
