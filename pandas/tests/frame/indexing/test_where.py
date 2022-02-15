@@ -1,9 +1,6 @@
 from datetime import datetime
 
-from hypothesis import (
-    given,
-    settings,
-)
+from hypothesis import given
 import numpy as np
 import pytest
 
@@ -98,7 +95,7 @@ class TestDataFrameIndexingWhere:
 
         tm.assert_series_equal(result, expected)
 
-    def test_where_alignment(self, where_frame, float_string_frame, mixed_int_frame):
+    def test_where_alignment(self, where_frame, float_string_frame):
         # aligning
         def _check_align(df, cond, other, check_dtypes=True):
             rs = df.where(cond, other)
@@ -962,10 +959,64 @@ def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):
 
 
 @given(data=OPTIONAL_ONE_OF_ALL)
-@settings(deadline=None)  # GH 44969
 def test_where_inplace_casting(data):
     # GH 22051
     df = DataFrame({"a": data})
     df_copy = df.where(pd.notnull(df), None).copy()
     df.where(pd.notnull(df), None, inplace=True)
     tm.assert_equal(df, df_copy)
+
+
+def test_where_downcast_to_td64():
+    ser = Series([1, 2, 3])
+
+    mask = np.array([False, False, False])
+
+    td = pd.Timedelta(days=1)
+
+    res = ser.where(mask, td)
+    expected = Series([td, td, td], dtype="m8[ns]")
+    tm.assert_series_equal(res, expected)
+
+
+def _check_where_equivalences(df, mask, other, expected):
+    # similar to tests.series.indexing.test_setitem.SetitemCastingEquivalences
+    #  but with DataFrame in mind and less fleshed-out
+    res = df.where(mask, other)
+    tm.assert_frame_equal(res, expected)
+
+    res = df.mask(~mask, other)
+    tm.assert_frame_equal(res, expected)
+
+    # Note: we cannot do the same with frame.mask(~mask, other, inplace=True)
+    #  bc that goes through Block.putmask which does *not* downcast.
+
+
+def test_where_dt64_2d():
+    dti = date_range("2016-01-01", periods=6)
+    dta = dti._data.reshape(3, 2)
+    other = dta - dta[0, 0]
+
+    df = DataFrame(dta, columns=["A", "B"])
+
+    mask = np.asarray(df.isna())
+    mask[:, 1] = True
+
+    # setting all of one column, none of the other
+    expected = DataFrame({"A": other[:, 0], "B": dta[:, 1]})
+    _check_where_equivalences(df, mask, other, expected)
+
+    # setting part of one column, none of the other
+    mask[1, 0] = True
+    expected = DataFrame(
+        {
+            "A": np.array([other[0, 0], dta[1, 0], other[2, 0]], dtype=object),
+            "B": dta[:, 1],
+        }
+    )
+    _check_where_equivalences(df, mask, other, expected)
+
+    # setting nothing in either column
+    mask[:] = True
+    expected = df
+    _check_where_equivalences(df, mask, other, expected)

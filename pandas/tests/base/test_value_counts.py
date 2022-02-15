@@ -284,7 +284,7 @@ def test_value_counts_with_nan(dropna, index_or_series):
     obj = klass(values)
     res = obj.value_counts(dropna=dropna)
     if dropna is True:
-        expected = Series([1], index=[True])
+        expected = Series([1], index=Index([True], dtype=obj.dtype))
     else:
         expected = Series([1, 1, 1], index=[True, pd.NA, np.nan])
     tm.assert_series_equal(res, expected)

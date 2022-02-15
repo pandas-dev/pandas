@@ -12,6 +12,7 @@ from zipfile import BadZipFile
 import numpy as np
 import pytest
 
+from pandas.compat import is_ci_environment
 from pandas.compat._optional import import_optional_dependency
 import pandas.util._test_decorators as td
 
@@ -257,7 +258,13 @@ def test_parser_consistency_file(datapath):
 @pytest.mark.network
 @pytest.mark.slow
 @td.skip_if_no("lxml")
-@tm.network
+@tm.network(
+    url=(
+        "https://data.cityofchicago.org/api/views/"
+        "8pix-ypme/rows.xml?accessType=DOWNLOAD"
+    ),
+    check_before_test=True,
+)
 def test_parser_consistency_url():
     url = (
         "https://data.cityofchicago.org/api/views/"
@@ -403,7 +410,10 @@ def test_wrong_file_path_etree():
 
 
 @pytest.mark.network
-@tm.network
+@tm.network(
+    url="https://www.w3schools.com/xml/books.xml",
+    check_before_test=True,
+)
 @td.skip_if_no("lxml")
 def test_url():
     url = "https://www.w3schools.com/xml/books.xml"
@@ -424,7 +434,7 @@ def test_url():
 
 
 @pytest.mark.network
-@tm.network
+@tm.network(url="https://www.w3schools.com/xml/python.xml", check_before_test=True)
 def test_wrong_url(parser):
     with pytest.raises(HTTPError, match=("HTTP Error 404: Not Found")):
         url = "https://www.w3schools.com/xml/python.xml"
@@ -1021,7 +1031,9 @@ def test_empty_stylesheet(val):
 
 @pytest.mark.network
 @td.skip_if_no("lxml")
-@tm.network
+@tm.network(
+    url="https://www.w3schools.com/xml/cdcatalog_with_xsl.xml", check_before_test=True
+)
 def test_online_stylesheet():
     xml = "https://www.w3schools.com/xml/cdcatalog_with_xsl.xml"
     xsl = "https://www.w3schools.com/xml/cdcatalog.xsl"
@@ -1107,7 +1119,7 @@ def test_unsuported_compression(parser):
 @td.skip_if_no("s3fs")
 @td.skip_if_no("lxml")
 @pytest.mark.skipif(
-    os.environ.get("PANDAS_CI", "0") == "1",
+    is_ci_environment(),
     reason="2022.1.17: Hanging on the CI min versions build.",
 )
 @tm.network

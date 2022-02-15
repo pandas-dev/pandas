@@ -505,6 +505,10 @@ class Index(IndexOpsMixin, PandasObject):
             if data.dtype.kind in ["i", "u", "f"]:
                 # maybe coerce to a sub-class
                 arr = data
+            elif data.dtype.kind in ["b", "c"]:
+                # No special subclass, and Index._ensure_array won't do this
+                #  for us.
+                arr = np.asarray(data)
             else:
                 arr = com.asarray_tuplesafe(data, dtype=_dtype_obj)
 
@@ -632,7 +636,9 @@ class Index(IndexOpsMixin, PandasObject):
             # NB: assuming away MultiIndex
             return Index
 
-        elif issubclass(dtype.type, (str, bool, np.bool_)):
+        elif issubclass(
+            dtype.type, (str, bool, np.bool_, complex, np.complex64, np.complex128)
+        ):
             return Index
 
         raise NotImplementedError(dtype)
@@ -702,7 +708,7 @@ class Index(IndexOpsMixin, PandasObject):
             # "Union[ExtensionArray, ndarray[Any, Any]]"; expected
             # "ndarray[Any, Any]"
             values = lib.maybe_convert_objects(result._values)  # type: ignore[arg-type]
-            if values.dtype.kind in ["i", "u", "f"]:
+            if values.dtype.kind in ["i", "u", "f", "b"]:
                 return Index(values, name=result.name)
 
         return result
@@ -872,9 +878,16 @@ class Index(IndexOpsMixin, PandasObject):
         ):
             return libindex.ExtensionEngine(target_values)
 
+        target_values = cast(np.ndarray, target_values)
         # to avoid a reference cycle, bind `target_values` to a local variable, so
         # `self` is not passed into the lambda.
-        target_values = cast(np.ndarray, target_values)
+        if target_values.dtype == bool:
+            return libindex.BoolEngine(target_values)
+        elif target_values.dtype == np.complex64:
+            return libindex.Complex64Engine(target_values)
+        elif target_values.dtype == np.complex128:
+            return libindex.Complex128Engine(target_values)
+
         # error: Argument 1 to "ExtensionEngine" has incompatible type
         # "ndarray[Any, Any]"; expected "ExtensionArray"
         return self._engine_type(target_values)  # type:ignore[arg-type]
@@ -2680,7 +2693,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Whether or not the index values only consist of dates.
         """
-
         if needs_i8_conversion(self.dtype):
             return True
         elif self.dtype != _dtype_obj:
@@ -6156,9 +6168,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         dtype = find_common_type([self.dtype, target_dtype])
         dtype = common_dtype_categorical_compat([self, target], dtype)
-
-        if dtype.kind == "c":
-            dtype = _dtype_obj
         return dtype
 
     @final
@@ -7302,8 +7311,6 @@ def _maybe_cast_data_without_dtype(
             FutureWarning,
             stacklevel=3,
         )
-    if result.dtype.kind in ["b", "c"]:
-        return subarr
     result = ensure_wrapped_if_datetimelike(result)
     return result
 

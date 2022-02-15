@@ -56,6 +56,12 @@ class TestFactorize:
         if isinstance(obj, MultiIndex):
             constructor = MultiIndex.from_tuples
         expected_uniques = constructor(obj.unique())
+        if (
+            isinstance(obj, Index)
+            and expected_uniques.dtype == bool
+            and obj.dtype == object
+        ):
+            expected_uniques = expected_uniques.astype(object)
 
         if sort:
             expected_uniques = expected_uniques.sort_values()
@@ -1240,7 +1246,7 @@ class TestValueCounts:
 
         tm.assert_series_equal(
             Series([True] * 3 + [False] * 2 + [None] * 5).value_counts(dropna=True),
-            Series([3, 2], index=[True, False]),
+            Series([3, 2], index=Index([True, False], dtype=object)),
         )
         tm.assert_series_equal(
             Series([True] * 5 + [False] * 3 + [None] * 2).value_counts(dropna=False),
@@ -1787,7 +1793,7 @@ class TestRank:
         with pytest.raises(TypeError, match=msg):
             algos.rank(arr)
 
-    @pytest.mark.single
+    @pytest.mark.single_cpu
     @pytest.mark.high_memory
     def test_pct_max_many_rows(self):
         # GH 18271

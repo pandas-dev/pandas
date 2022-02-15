@@ -1,9 +1,8 @@
-import os
-
 import numpy as np
 import pytest
 
 from pandas.compat import (
+    is_ci_environment,
     is_platform_mac,
     is_platform_windows,
 )
@@ -15,10 +14,9 @@ from pandas import (
 )
 import pandas._testing as tm
 
-# TODO(GH#44584): Mark these as pytest.mark.single
+# TODO(GH#44584): Mark these as pytest.mark.single_cpu
 pytestmark = pytest.mark.skipif(
-    os.environ.get("PANDAS_CI", "0") == "1"
-    and (is_platform_windows() or is_platform_mac()),
+    is_ci_environment() and (is_platform_windows() or is_platform_mac()),
     reason="On Azure CI, Windows can fail with "
     "'Windows fatal exception: stack overflow' "
     "and MacOS can timeout",
