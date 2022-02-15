@@ -229,6 +229,14 @@ def axis(request):
 axis_frame = axis
 
 
+@pytest.fixture(params=[1, "columns"], ids=lambda x: f"axis={repr(x)}")
+def axis_1(request):
+    """
+    Fixture for returning aliases of axis 1 of a DataFrame.
+    """
+    return request.param
+
+
 @pytest.fixture(params=[True, False, None])
 def observed(request):
     """

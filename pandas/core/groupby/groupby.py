@@ -1665,15 +1665,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         # for each col, reshape to size of original frame by take operation
         ids, _, _ = self.grouper.group_info
-        result = result.reindex(self.grouper.result_index, copy=False)
+        result = result.reindex(self.grouper.result_index, axis=self.axis, copy=False)
 
         if self.obj.ndim == 1:
             # i.e. SeriesGroupBy
             out = algorithms.take_nd(result._values, ids)
             output = obj._constructor(out, index=obj.index, name=obj.name)
         else:
-            output = result.take(ids, axis=0)
-            output.index = obj.index
+            output = result.take(ids, axis=self.axis)
+            output = output.set_axis(obj._get_axis(self.axis), axis=self.axis)
         return output
 
     # -----------------------------------------------------------------
@@ -2149,6 +2149,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             or a DataFrame if as_index is False.
         """
         result = self.grouper.size()
+
+        if self.axis == 1:
+            return DataFrame(
+                data=np.tile(result.values, (self.obj.shape[0], 1)),
+                columns=result.index,
+                index=self.obj.index,
+            )
 
         # GH28330 preserve subclassed Series/DataFrames through calls
         if issubclass(self.obj._constructor, Series):
