@@ -251,7 +251,10 @@ def is_fsspec_url(url: FilePath | BaseBuffer) -> bool:
     )
 
 
-@doc(compression_options=_shared_docs["compression_options"] % "filepath_or_buffer")
+@doc(
+    storage_options=_shared_docs["storage_options"],
+    compression_options=_shared_docs["compression_options"] % "filepath_or_buffer",
+)
 def _get_filepath_or_buffer(
     filepath_or_buffer: FilePath | BaseBuffer,
     encoding: str = "utf-8",
@@ -274,13 +277,7 @@ def _get_filepath_or_buffer(
     encoding : the encoding to use to decode bytes, default is 'utf-8'
     mode : str, optional
 
-    storage_options : dict, optional
-        Extra options that make sense for a particular storage connection, e.g.
-        host, port, username, password, etc., if using a URL that will
-        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
-        will be raised if providing this argument with a local path or
-        a file-like buffer. See the fsspec and backend storage implementation
-        docs for the set of allowed keys and values
+    {storage_options}
 
         .. versionadded:: 1.2.0
 

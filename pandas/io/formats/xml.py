@@ -30,7 +30,10 @@ from pandas.io.xml import (
 )
 
 
-@doc(compression_options=_shared_docs["compression_options"] % "path_or_buffer")
+@doc(
+    storage_options=_shared_docs["storage_options"],
+    compression_options=_shared_docs["compression_options"] % "path_or_buffer",
+)
 class BaseXMLFormatter:
     """
     Subclass for formatting data in XML.
@@ -82,9 +85,7 @@ class BaseXMLFormatter:
 
         .. versionchanged:: 1.4.0 Zstandard support.
 
-    storage_options : dict, optional
-        Extra options that make sense for a particular storage connection,
-        e.g. host, port, username, password, etc.,
+    {storage_options}
 
     See also
     --------

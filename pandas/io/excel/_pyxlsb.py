@@ -8,11 +8,15 @@ from pandas._typing import (
     StorageOptions,
 )
 from pandas.compat._optional import import_optional_dependency
+from pandas.util._decorators import doc
+
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.excel._base import BaseExcelReader
 
 
 class PyxlsbReader(BaseExcelReader):
+    @doc(storage_options=_shared_docs["storage_options"])
     def __init__(
         self,
         filepath_or_buffer: FilePath | ReadBuffer[bytes],
@@ -25,8 +29,7 @@ class PyxlsbReader(BaseExcelReader):
         ----------
         filepath_or_buffer : str, path object, or Workbook
             Object to be parsed.
-        storage_options : dict, optional
-            passed to fsspec for appropriate URLs (see ``_get_filepath_or_buffer``)
+        {storage_options}
         """
         import_optional_dependency("pyxlsb")
         # This will call load_workbook on the filepath or buffer

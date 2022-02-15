@@ -9,12 +9,15 @@ from pandas._typing import (
     StorageOptions,
 )
 from pandas.compat._optional import import_optional_dependency
+from pandas.util._decorators import doc
 
 import pandas as pd
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.excel._base import BaseExcelReader
 
 
+@doc(storage_options=_shared_docs["storage_options"])
 class ODFReader(BaseExcelReader):
     """
     Read tables out of OpenDocument formatted files.
@@ -23,8 +26,7 @@ class ODFReader(BaseExcelReader):
     ----------
     filepath_or_buffer : str, path to be parsed or
         an open readable stream.
-    storage_options : dict, optional
-        passed to fsspec for appropriate URLs (see ``_get_filepath_or_buffer``)
+    {storage_options}
     """
 
     def __init__(
