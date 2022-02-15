@@ -138,7 +138,7 @@ squeeze : bool, default False
        Append ``.squeeze("columns")`` to the call to ``read_excel`` to squeeze
        the data.
 dtype : Type name or dict of column -> type, default None
-    Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
+    Data type for data or columns. E.g. {{'a': np.float64, 'b': np.int32}}
     Use `object` to preserve data as stored in Excel and not interpret dtype.
     If converters are specified, they will be applied INSTEAD
     of dtype conversion.
@@ -222,7 +222,7 @@ parse_dates : bool, list-like, or dict, default False
       each as a separate date column.
     * list of lists. e.g.  If [[1, 3]] -> combine columns 1 and 3 and parse as
       a single date column.
-    * dict, e.g. {'foo' : [1, 3]} -> parse columns 1, 3 as date and call
+    * dict, e.g. {{'foo' : [1, 3]}} -> parse columns 1, 3 as date and call
       result 'foo'
 
     If a column or index contains an unparsable date, the entire column or
@@ -318,7 +318,7 @@ Index and header can be specified via the `index_col` and `header` arguments
 Column types are inferred but can be explicitly specified
 
 >>> pd.read_excel('tmp.xlsx', index_col=0,
-...               dtype={'Name': str, 'Value': float})  # doctest: +SKIP
+...               dtype={{'Name': str, 'Value': float}})  # doctest: +SKIP
        Name  Value
 0   string1    1.0
 1   string2    2.0
@@ -790,13 +790,13 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     datetime_format : str, default None
         Format string for datetime objects written into Excel files.
         (e.g. 'YYYY-MM-DD HH:MM:SS').
-    mode : {'w', 'a'}, default 'w'
+    mode : {{'w', 'a'}}, default 'w'
         File mode to use (write or append). Append does not work with fsspec URLs.
     {storage_options}
 
         .. versionadded:: 1.2.0
 
-    if_sheet_exists : {'error', 'new', 'replace', 'overlay'}, default 'error'
+    if_sheet_exists : {{'error', 'new', 'replace', 'overlay'}}, default 'error'
         How to behave when trying to write to a sheet that already
         exists (append mode only).
 
@@ -917,7 +917,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     >>> with pd.ExcelWriter(
     ...     "path_to_file.xlsx",
     ...     engine="xlsxwriter",
-    ...     engine_kwargs={"options": {"nan_inf_to_errors": True}}
+    ...     engine_kwargs={{"options": {{"nan_inf_to_errors": True}}}}
     ... ) as writer:
     ...     df.to_excel(writer)  # doctest: +SKIP
 
@@ -928,7 +928,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     ...     "path_to_file.xlsx",
     ...     engine="openpyxl",
     ...     mode="a",
-    ...     engine_kwargs={"keep_vba": True}
+    ...     engine_kwargs={{"keep_vba": True}}
     ... ) as writer:
     ...     df.to_excel(writer, sheet_name="Sheet2")  # doctest: +SKIP
     """
