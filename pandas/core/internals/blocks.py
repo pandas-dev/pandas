@@ -51,6 +51,7 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_interval_dtype,
     is_list_like,
+    is_sparse,
     is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -2257,7 +2258,7 @@ def to_native_types(
             results_converted.append(result.astype(object, copy=False))
         return np.vstack(results_converted)
 
-    elif values.dtype.kind == "f":
+    elif values.dtype.kind == "f" and not is_sparse(values):
         # see GH#13418: no special formatting is desired at the
         # output (important for appropriate 'quoting' behaviour),
         # so do not pass it through the FloatArrayFormatter
