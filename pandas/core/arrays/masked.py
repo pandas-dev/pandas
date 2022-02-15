@@ -27,13 +27,9 @@ from pandas._typing import (
     SequenceIndexer,
     Shape,
     npt,
-    type_t,
 )
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import (
-    cache_readonly,
-    doc,
-)
+from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.astype import astype_nansafe
@@ -51,6 +47,7 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import BaseMaskedDtype
 from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import (
     array_equivalent,
@@ -89,43 +86,6 @@ if TYPE_CHECKING:
 from pandas.compat.numpy import function as nv
 
 BaseMaskedArrayT = TypeVar("BaseMaskedArrayT", bound="BaseMaskedArray")
-
-
-class BaseMaskedDtype(ExtensionDtype):
-    """
-    Base class for dtypes for BaseMaskedArray subclasses.
-    """
-
-    name: str
-    base = None
-    type: type
-
-    na_value = libmissing.NA
-
-    @cache_readonly
-    def numpy_dtype(self) -> np.dtype:
-        """Return an instance of our numpy dtype"""
-        return np.dtype(self.type)
-
-    @cache_readonly
-    def kind(self) -> str:
-        return self.numpy_dtype.kind
-
-    @cache_readonly
-    def itemsize(self) -> int:
-        """Return the number of bytes in this dtype"""
-        return self.numpy_dtype.itemsize
-
-    @classmethod
-    def construct_array_type(cls) -> type_t[BaseMaskedArray]:
-        """
-        Return the array type associated with this dtype.
-
-        Returns
-        -------
-        type
-        """
-        raise NotImplementedError
 
 
 class BaseMaskedArray(OpsMixin, ExtensionArray):
