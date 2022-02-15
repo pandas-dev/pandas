@@ -327,5 +327,6 @@ def test_dataframe_groupby_incorrect_with_multiindex_make_df_from_data():
     )
     grps = df.groupby(by=["A", "B"])
 
-    with pytest.raises(KeyError, match="Selecting group which is not exist"):
+    msg = "('a2', 'b1')"
+    with pytest.raises(KeyError, match=msg):
         grps.get_group(("a2", "b1"))
