@@ -764,7 +764,13 @@ class TestReaders:
             pd.read_excel(bad_stream)
 
     @pytest.mark.network
-    @tm.network
+    @tm.network(
+        url=(
+            "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
+            "pandas/tests/io/data/excel/test1.xlsx"
+        ),
+        check_before_test=True,
+    )
     def test_read_from_http_url(self, read_ext):
         url = (
             "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
