@@ -2257,13 +2257,6 @@ def to_native_types(
             results_converted.append(result.astype(object, copy=False))
         return np.vstack(results_converted)
 
-    elif isinstance(values, ExtensionArray):
-        mask = isna(values)
-
-        new_values = np.asarray(values.astype(object))
-        new_values[mask] = na_rep
-        return new_values
-
     elif values.dtype.kind == "f":
         # see GH#13418: no special formatting is desired at the
         # output (important for appropriate 'quoting' behaviour),
@@ -2293,6 +2286,13 @@ def to_native_types(
         res = formatter.get_result_as_array()
         res = res.astype(object, copy=False)
         return res
+
+    elif isinstance(values, ExtensionArray):
+        mask = isna(values)
+
+        new_values = np.asarray(values.astype(object))
+        new_values[mask] = na_rep
+        return new_values
 
     else:
 
