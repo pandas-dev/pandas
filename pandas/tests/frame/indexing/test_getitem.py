@@ -358,6 +358,13 @@ class TestGetitemBooleanMask:
         expected = DataFrame([[1, 2, 100], [4, 5, 100]], columns=["a", "a", "b"])
         tm.assert_frame_equal(df, expected)
 
+    def test_getitem_frozenset_unique_in_column(self):
+        # GH#41062
+        df = DataFrame([[1, 2, 3, 4]], columns=[frozenset(["KEY"]), "B", "C", "C"])
+        result = df[frozenset(["KEY"])]
+        expected = Series([1], name=frozenset(["KEY"]))
+        tm.assert_series_equal(result, expected)
+
 
 class TestGetitemSlice:
     def test_getitem_slice_float64(self, frame_or_series):
