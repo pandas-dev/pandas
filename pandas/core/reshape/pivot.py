@@ -203,32 +203,12 @@ def __internal_pivot_table(
                 to_unstack.append(name)
         table = agged.unstack(to_unstack)
 
-    # BEGIN Issue #18030
-    # Commenting these lines in view of #18030.
-    # The cartesian product makes little sense and deprecation of this behaviour should be considered.
-    # It is unexpected that a pivot operation returns a larger index than is given.
-    # Secondly, this behaviour was never documented. The documentation says
-    #
-    # dropna:bool, default True
-    #
-    #   Do not include columns whose entries are all NaN.
-    #
-    # However the code below creates rows.
-
-    # if not dropna:
-    #     if isinstance(table.index, MultiIndex):
-    #         m = MultiIndex.from_arrays(
-    #             cartesian_product(table.index.levels), names=table.index.names
-    #         )
-    #         table = table.reindex(m, axis=0)
-    #
-    #     if isinstance(table.columns, MultiIndex):
-    #         m = MultiIndex.from_arrays(
-    #             cartesian_product(table.columns.levels), names=table.columns.names
-    #         )
-    #         table = table.reindex(m, axis=1)
-
-    # END Issue #18030
+    if not dropna:
+        if isinstance(table.columns, MultiIndex):
+            m = MultiIndex.from_arrays(
+                cartesian_product(table.columns.levels), names=table.columns.names
+            )
+            table = table.reindex(m, axis=1)
 
     if isinstance(table, ABCDataFrame):
         table = table.sort_index(axis=1)
