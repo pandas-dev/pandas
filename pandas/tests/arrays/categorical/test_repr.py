@@ -9,17 +9,16 @@ from pandas import (
     period_range,
     timedelta_range,
 )
-from pandas.tests.arrays.categorical.common import TestCategorical
 
 
-class TestCategoricalReprWithFactor(TestCategorical):
-    def test_print(self):
+class TestCategoricalReprWithFactor:
+    def test_print(self, factor):
         expected = [
             "['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c']",
             "Categories (3, object): ['a' < 'b' < 'c']",
         ]
         expected = "\n".join(expected)
-        actual = repr(self.factor)
+        actual = repr(factor)
         assert actual == expected
 
 

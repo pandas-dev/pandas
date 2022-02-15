@@ -500,23 +500,19 @@ def test_mismatched_length_cmp_op(cons):
 
 
 @pytest.mark.parametrize("op", ["add", "sub", "mul", "truediv", "floordiv", "pow"])
-def test_binary_operators(op):
+@pytest.mark.parametrize("fill_value", [np.nan, 3])
+def test_binary_operators(op, fill_value):
     op = getattr(operator, op)
     data1 = np.random.randn(20)
     data2 = np.random.randn(20)
 
-    data1[::2] = np.nan
-    data2[::3] = np.nan
+    data1[::2] = fill_value
+    data2[::3] = fill_value
 
-    arr1 = SparseArray(data1)
-    arr2 = SparseArray(data2)
+    first = SparseArray(data1, fill_value=fill_value)
+    second = SparseArray(data2, fill_value=fill_value)
 
-    data1[::2] = 3
-    data2[::3] = 3
-    farr1 = SparseArray(data1, fill_value=3)
-    farr2 = SparseArray(data2, fill_value=3)
-
-    def _check_op(op, first, second):
+    with np.errstate(all="ignore"):
         res = op(first, second)
         exp = SparseArray(
             op(first.to_dense(), second.to_dense()), fill_value=first.fill_value
@@ -544,7 +540,3 @@ def test_binary_operators(op):
         else:
             tm.assert_almost_equal(res4.fill_value, exp_fv)
             tm.assert_almost_equal(res4.to_dense(), exp)
-
-    with np.errstate(all="ignore"):
-        for first_arr, second_arr in [(arr1, arr2), (farr1, farr2)]:
-            _check_op(op, first_arr, second_arr)
