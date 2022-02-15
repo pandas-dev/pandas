@@ -21,6 +21,7 @@ import os
 from pathlib import Path
 import pickle
 import shutil
+import uuid
 from warnings import (
     catch_warnings,
     filterwarnings,
@@ -248,7 +249,7 @@ def test_legacy_sparse_warning(datapath, typ):
 
 @pytest.fixture
 def get_random_path():
-    return f"__{tm.rands(10)}__.pickle"
+    return f"__{uuid.uuid4()}__.pickle"
 
 
 class TestCompression:
