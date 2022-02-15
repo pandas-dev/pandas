@@ -17,6 +17,7 @@ from pandas._typing import (
     DtypeObj,
 )
 from pandas.errors import AbstractMethodError
+from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -41,6 +42,21 @@ T = TypeVar("T", bound="NumericArray")
 
 class NumericDtype(BaseMaskedDtype):
     _default_np_dtype: np.dtype
+
+    def __repr__(self) -> str:
+        return f"{self.name}Dtype()"
+
+    @cache_readonly
+    def is_signed_integer(self) -> bool:
+        return self.kind == "i"
+
+    @cache_readonly
+    def is_unsigned_integer(self) -> bool:
+        return self.kind == "u"
+
+    @property
+    def _is_numeric(self) -> bool:
+        return True
 
     def __from_arrow__(
         self, array: pyarrow.Array | pyarrow.ChunkedArray

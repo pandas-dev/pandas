@@ -26,22 +26,6 @@ class IntegerDtype(NumericDtype):
 
     _default_np_dtype = np.dtype(np.int64)
 
-    def __repr__(self) -> str:
-        sign = "U" if self.is_unsigned_integer else ""
-        return f"{sign}Int{8 * self.itemsize}Dtype()"
-
-    @cache_readonly
-    def is_signed_integer(self) -> bool:
-        return self.kind == "i"
-
-    @cache_readonly
-    def is_unsigned_integer(self) -> bool:
-        return self.kind == "u"
-
-    @property
-    def _is_numeric(self) -> bool:
-        return True
-
     @classmethod
     def construct_array_type(cls) -> type[IntegerArray]:
         """

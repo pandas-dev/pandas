@@ -25,13 +25,6 @@ class FloatingDtype(NumericDtype):
 
     _default_np_dtype = np.dtype(np.float64)
 
-    def __repr__(self) -> str:
-        return f"{self.name}Dtype()"
-
-    @property
-    def _is_numeric(self) -> bool:
-        return True
-
     @classmethod
     def construct_array_type(cls) -> type[FloatingArray]:
         """
