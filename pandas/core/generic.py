@@ -6871,7 +6871,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         For more information on their behavior, see the
         `SciPy documentation
         <https://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation>`__.
-        
+
         Examples
         --------
         Filling in ``NaN`` in a :class:`~pandas.Series` via linear
