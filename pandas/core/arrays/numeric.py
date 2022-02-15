@@ -219,6 +219,11 @@ class NumericArray(BaseMaskedArray):
 
     _dtype_cls: type[NumericDtype]
 
+    @cache_readonly
+    def dtype(self) -> NumericDtype:
+        mapping = self._dtype_cls._str_to_dtype_mapping()
+        return mapping[str(self._data.dtype)]
+
     @classmethod
     def _coerce_to_array(
         cls, value, *, dtype: DtypeObj, copy: bool = False

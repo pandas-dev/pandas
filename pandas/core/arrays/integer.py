@@ -3,7 +3,6 @@ from __future__ import annotations
 import numpy as np
 
 from pandas._typing import DtypeObj
-from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.base import register_extension_dtype
 
@@ -168,10 +167,6 @@ class IntegerArray(NumericArray):
     # Fill values used for any/all
     _truthy_value = 1
     _falsey_value = 0
-
-    @cache_readonly
-    def dtype(self) -> IntegerDtype:
-        return INT_STR_TO_DTYPE[str(self._data.dtype)]
 
     def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
         if not (isinstance(values, np.ndarray) and values.dtype.kind in ["i", "u"]):
