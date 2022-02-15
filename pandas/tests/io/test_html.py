@@ -1294,22 +1294,14 @@ class TestReadHtml:
             """
           <table>
             <tr>
-              <th>Kingdom</th>
-              <th>Phylum</th>
-              <th>Class</th>
-              <th>Order</th>
-              <th>Family</th>
-              <th>Genus</th>
-              <th>Species</th>
+              <th>HTTP</th>
+              <th>FTP</th>
+              <th><a href="https://en.wiktionary.org/wiki/linkless">None</a></th>
             </tr>
             <tr>
-              <td><a href="https://en.wikipedia.org/wiki/Animal">Animalia</a></td>
-              <td><a href="https://en.wikipedia.org/wiki/Chordate">Chordata</a></td>
-              <td><a href="https://en.wikipedia.org/wiki/Mammal">Mammalia</a></td>
-              <td><a href="https://en.wikipedia.org/wiki/Carnivora">Carnivora</a></td>
-              <td><a href="https://en.wikipedia.org/wiki/Bear">Ursidae</a></td>
-              <td><a href="https://en.wikipedia.org/wiki/Ailuropoda">Ailuropoda</a></td>
-              <td>A. melanoleuca</td>
+              <td><a href="https://en.wikipedia.org/">Wikipedia</a></td>
+              <td><a href="ftp://ftp.us.debian.org/">Debian</a></td>
+              <td>Linkless</td>
             </tr>
           </table>
           """,
@@ -1319,23 +1311,15 @@ class TestReadHtml:
         expected = DataFrame(
             [
                 [
-                    ("Animalia", "https://en.wikipedia.org/wiki/Animal"),
-                    ("Chordata", "https://en.wikipedia.org/wiki/Chordate"),
-                    ("Mammalia", "https://en.wikipedia.org/wiki/Mammal"),
-                    ("Carnivora", "https://en.wikipedia.org/wiki/Carnivora"),
-                    ("Ursidae", "https://en.wikipedia.org/wiki/Bear"),
-                    ("Ailuropoda", "https://en.wikipedia.org/wiki/Ailuropoda"),
-                    ("A. melanoleuca",),
+                    ("Wikipedia", "https://en.wikipedia.org/"),
+                    ("Debian", "ftp://ftp.us.debian.org/"),
+                    ("Linkless",),
                 ]
             ],
             columns=(
-                "Kingdom",
-                "Phylum",
-                "Class",
-                "Order",
-                "Family",
-                "Genus",
-                "Species",
+                "HTTP",
+                "FTP",
+                "None",
             ),
         )
 
