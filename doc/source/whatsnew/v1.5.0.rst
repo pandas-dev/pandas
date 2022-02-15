@@ -358,7 +358,7 @@ I/O
 
 Period
 ^^^^^^
--
+- Bug in subtraction of :class:`Period` from :class:`PeriodArray` returning wrong results (:issue:`45999`)
 -
 
 Plotting
