@@ -994,7 +994,10 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         tm.assert_frame_equal(result.reindex(index=df.index, columns=df.columns), df)
 
     @pytest.mark.network
-    @tm.network
+    @tm.network(
+        url="https://api.github.com/repos/pandas-dev/pandas/issues?per_page=5",
+        check_before_test=True,
+    )
     @pytest.mark.parametrize(
         "field,dtype",
         [

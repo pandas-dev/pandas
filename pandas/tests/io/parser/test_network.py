@@ -23,7 +23,13 @@ from pandas.io.parsers import read_csv
 
 
 @pytest.mark.network
-@tm.network
+@tm.network(
+    url=(
+        "https://github.com/pandas-dev/pandas/raw/main/"
+        "pandas/tests/io/parser/data/salaries.csv"
+    ),
+    check_before_test=True,
+)
 @pytest.mark.parametrize("mode", ["explicit", "infer"])
 @pytest.mark.parametrize("engine", ["python", "c"])
 def test_compressed_urls(salaries_table, mode, engine, compression_only):
@@ -45,7 +51,13 @@ def test_compressed_urls(salaries_table, mode, engine, compression_only):
 
 
 @pytest.mark.network
-@tm.network
+@tm.network(
+    url=(
+        "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
+        "pandas/tests/io/parser/data/unicode_series.csv"
+    ),
+    check_before_test=True,
+)
 def test_url_encoding_csv():
     """
     read_csv should honor the requested encoding for URLs.
