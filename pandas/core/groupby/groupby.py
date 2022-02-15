@@ -1494,7 +1494,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     def _agg_general(
         self,
-        numeric_only: bool | lib.no_default = True,
+        numeric_only: bool | lib.NoDefault = True,
         min_count: int = -1,
         *,
         alias: str,
@@ -1556,7 +1556,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self,
         how: str,
         alt: Callable,
-        numeric_only: bool | lib.no_default,
+        numeric_only: bool | lib.NoDefault,
         min_count: int = -1,
     ):
         # Note: we never get here with how="ohlc" for DataFrameGroupBy;
@@ -1988,9 +1988,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             Median of values within each group.
         """
+        numeric_only_bool = self._resolve_numeric_only(numeric_only)
         result = self._cython_agg_general(
             "median",
-            alt=lambda x: Series(x).median(numeric_only=numeric_only),
+            alt=lambda x: Series(x).median(numeric_only=numeric_only_bool),
             numeric_only=numeric_only,
         )
         return result.__finalize__(self.obj, method="groupby")

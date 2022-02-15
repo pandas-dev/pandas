@@ -1105,7 +1105,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _cython_transform(
         self,
         how: str,
-        numeric_only: bool | lib.no_default = lib.no_default,
+        numeric_only: bool | lib.NoDefault = lib.no_default,
         axis: int = 0,
         **kwargs,
     ) -> DataFrame:
