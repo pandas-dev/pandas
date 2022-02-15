@@ -10,7 +10,6 @@ from hypothesis import (
     assume,
     example,
     given,
-    settings,
 )
 import numpy as np
 import pytest
@@ -62,7 +61,6 @@ def test_delta_to_tick():
 
 
 @pytest.mark.parametrize("cls", tick_classes)
-@settings(deadline=None)  # GH 24641
 @example(n=2, m=3)
 @example(n=800, m=300)
 @example(n=1000, m=5)
@@ -84,7 +82,6 @@ def test_tick_add_sub(cls, n, m):
 
 @pytest.mark.arm_slow
 @pytest.mark.parametrize("cls", tick_classes)
-@settings(deadline=None)
 @example(n=2, m=3)
 @given(n=INT_NEG_999_TO_POS_999, m=INT_NEG_999_TO_POS_999)
 def test_tick_equality(cls, n, m):

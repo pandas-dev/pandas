@@ -29,7 +29,7 @@ class TestDatetimeArrayConstructor:
     def test_freq_validation(self):
         # GH#24623 check that invalid instances cannot be created with the
         #  public constructor
-        arr = np.arange(5, dtype=np.int64) * 3600 * 10 ** 9
+        arr = np.arange(5, dtype=np.int64) * 3600 * 10**9
 
         msg = (
             "Inferred frequency H from passed values does not "
@@ -64,7 +64,7 @@ class TestDatetimeArrayConstructor:
                 meth(obj)
 
     def test_from_pandas_array(self):
-        arr = pd.array(np.arange(5, dtype=np.int64)) * 3600 * 10 ** 9
+        arr = pd.array(np.arange(5, dtype=np.int64)) * 3600 * 10**9
 
         result = DatetimeArray._from_sequence(arr)._with_freq("infer")
 

@@ -24,7 +24,7 @@ from pandas.tests.io.pytables.common import (
     ensure_clean_store,
 )
 
-pytestmark = pytest.mark.single
+pytestmark = pytest.mark.single_cpu
 
 
 @pytest.mark.filterwarnings("ignore:object name:tables.exceptions.NaturalNameWarning")
@@ -77,10 +77,10 @@ def test_append(setup_path):
                         np.random.randint(0, high=65535, size=5), dtype=np.uint16
                     ),
                     "u32": Series(
-                        np.random.randint(0, high=2 ** 30, size=5), dtype=np.uint32
+                        np.random.randint(0, high=2**30, size=5), dtype=np.uint32
                     ),
                     "u64": Series(
-                        [2 ** 58, 2 ** 59, 2 ** 60, 2 ** 61, 2 ** 62],
+                        [2**58, 2**59, 2**60, 2**61, 2**62],
                         dtype=np.uint64,
                     ),
                 },
