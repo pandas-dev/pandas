@@ -45,7 +45,7 @@ from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_int64,
     ensure_platform_int,
-    is_1d_only_ea_obj,
+    is_1d_only_ea_dtype,
     is_bool_dtype,
     is_categorical_dtype,
     is_complex_dtype,
@@ -601,7 +601,7 @@ class WrappedCythonOp:
             raise NotImplementedError("number of dimensions is currently limited to 2")
         elif values.ndim == 2:
             assert axis == 1, axis
-        elif not is_1d_only_ea_obj(values):
+        elif not is_1d_only_ea_dtype(values.dtype):
             # Note: it is *not* the case that axis is always 0 for 1-dim values,
             #  as we can have 1D ExtensionArrays that we need to treat as 2D
             assert axis == 0

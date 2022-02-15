@@ -2010,7 +2010,7 @@ class TestLocSetitemWithExpansion:
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.filterwarnings("ignore:indexing past lexsort depth")
-    def test_loc_setitem_with_expansion_nonunique_index(self, index, request):
+    def test_loc_setitem_with_expansion_nonunique_index(self, index):
         # GH#40096
         if not len(index):
             return

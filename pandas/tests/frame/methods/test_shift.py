@@ -617,7 +617,7 @@ class TestDataFrameShift:
     )
     # TODO(2.0): remove filtering
     @pytest.mark.filterwarnings("ignore:Index.ravel.*:FutureWarning")
-    def test_shift_dt64values_axis1_invalid_fill(self, vals, as_cat, request):
+    def test_shift_dt64values_axis1_invalid_fill(self, vals, as_cat):
         # GH#44564
         ser = Series(vals)
         if as_cat:

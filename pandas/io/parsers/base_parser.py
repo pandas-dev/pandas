@@ -303,9 +303,7 @@ class ParserBase:
 
         # clean the index_names
         index_names = header.pop(-1)
-        index_names, _, _ = self._clean_index_names(
-            index_names, self.index_col, self.unnamed_cols
-        )
+        index_names, _, _ = self._clean_index_names(index_names, self.index_col)
 
         # extract the columns
         field_count = len(header[0])
@@ -381,21 +379,24 @@ class ParserBase:
         return columns
 
     @final
-    def _make_index(self, data, alldata, columns, indexnamerow=False):
+    def _make_index(
+        self, data, alldata, columns, indexnamerow=False
+    ) -> tuple[Index | None, Sequence[Hashable] | MultiIndex]:
+        index: Index | None
         if not is_index_col(self.index_col) or not self.index_col:
             index = None
 
         elif not self._has_complex_date_col:
-            index = self._get_simple_index(alldata, columns)
-            index = self._agg_index(index)
+            simple_index = self._get_simple_index(alldata, columns)
+            index = self._agg_index(simple_index)
         elif self._has_complex_date_col:
             if not self._name_processed:
                 (self.index_names, _, self.index_col) = self._clean_index_names(
-                    list(columns), self.index_col, self.unnamed_cols
+                    list(columns), self.index_col
                 )
                 self._name_processed = True
-            index = self._get_complex_date_index(data, columns)
-            index = self._agg_index(index, try_parse_dates=False)
+            date_index = self._get_complex_date_index(data, columns)
+            index = self._agg_index(date_index, try_parse_dates=False)
 
         # add names for the index
         if indexnamerow:
@@ -966,7 +967,7 @@ class ParserBase:
             return usecols, usecols_dtype
         return usecols, None
 
-    def _clean_index_names(self, columns, index_col, unnamed_cols):
+    def _clean_index_names(self, columns, index_col):
         if not is_index_col(index_col):
             return None, columns, index_col
 
@@ -998,7 +999,7 @@ class ParserBase:
 
         # Only clean index names that were placeholders.
         for i, name in enumerate(index_names):
-            if isinstance(name, str) and name in unnamed_cols:
+            if isinstance(name, str) and name in self.unnamed_cols:
                 index_names[i] = None
 
         return index_names, columns, index_col

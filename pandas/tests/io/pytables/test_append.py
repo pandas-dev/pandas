@@ -24,7 +24,7 @@ from pandas.tests.io.pytables.common import (
     ensure_clean_store,
 )
 
-pytestmark = pytest.mark.single
+pytestmark = pytest.mark.single_cpu
 
 
 @pytest.mark.filterwarnings("ignore:object name:tables.exceptions.NaturalNameWarning")
