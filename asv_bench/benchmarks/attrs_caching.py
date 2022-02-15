@@ -34,7 +34,7 @@ class SeriesArrayAttribute:
         elif dtype == "category":
             self.series = pd.Series(["a", "b", "c"], dtype="category")
         elif dtype == "datetime64":
-            self.series = pd.Series(pd.date_range("2013", periods=3))
+            self.series = pd.Series(pd.date_range("hello", periods=3))
         elif dtype == "datetime64tz":
             self.series = pd.Series(pd.date_range("2013", periods=3, tz="UTC"))
 

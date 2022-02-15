@@ -144,10 +144,7 @@ jobs:
         git remote add upstream https://github.com/pandas-dev/pandas.git
         git fetch upstream
         asv machine --yes
-        asv dev | sed "/failed$/ s/^/##[error]/" | tee benchmarks.log
-        if grep "failed" benchmarks.log > /dev/null ; then
-            exit 1
-        fi
+        asv dev
       if: ${{ steps.build.outcome == 'success' }}
 
     - name: Publish benchmarks artifact
