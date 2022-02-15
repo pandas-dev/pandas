@@ -1,6 +1,4 @@
 """ Test cases for Series.plot """
-
-
 from datetime import datetime
 from itertools import chain
 
@@ -62,7 +60,17 @@ class TestSeriesPlots(TestPlotBase):
     def test_plot_iseries(self, iseries):
         _check_plot_works(iseries.plot)
 
-    @pytest.mark.parametrize("kind", ["line", "bar", "barh", "kde", "hist", "box"])
+    @pytest.mark.parametrize(
+        "kind",
+        [
+            "line",
+            "bar",
+            "barh",
+            pytest.param("kde", marks=td.skip_if_no_scipy),
+            "hist",
+            "box",
+        ],
+    )
     def test_plot_series_kinds(self, series, kind):
         _check_plot_works(series[:5].plot, kind=kind)
 
@@ -497,7 +505,9 @@ class TestSeriesPlots(TestPlotBase):
         "kind",
         plotting.PlotAccessor._common_kinds + plotting.PlotAccessor._series_kinds,
     )
-    def test_kind_both_ways(self, kind):
+    def test_kind_both_ways(self, request, kind):
+        if kind in ("kde", "density"):
+            request.node.add_marker(td.skip_if_no_scipy)
         s = Series(range(3))
         _, ax = self.plt.subplots()
         s.plot(kind=kind, ax=ax)
@@ -515,7 +525,9 @@ class TestSeriesPlots(TestPlotBase):
             s.plot(kind=kind, ax=ax)
 
     @pytest.mark.parametrize("kind", plotting.PlotAccessor._common_kinds)
-    def test_valid_object_plot(self, kind):
+    def test_valid_object_plot(self, request, kind):
+        if kind in ("kde", "density"):
+            request.node.add_marker(td.skip_if_no_scipy)
         s = Series(range(10), dtype=object)
         _check_plot_works(s.plot, kind=kind)
 
@@ -605,6 +617,7 @@ class TestSeriesPlots(TestPlotBase):
         _check_plot_works(series.plot, table=True)
         _check_plot_works(series.plot, table=series)
 
+    @td.skip_if_no_scipy
     def test_series_grid_settings(self):
         # Make sure plot defaults to rcParams['axes.grid'] setting, GH 9792
         self._check_grid_settings(
