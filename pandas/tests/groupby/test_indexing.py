@@ -316,7 +316,7 @@ def test_groupby_duplicated_columns(func):
     tm.assert_frame_equal(result, expected)
 
 
-def test_dataframe_groupby_incorrect_with_multiindex_make_df_from_data():
+def test_groupby_get_nonexisting_groups():
     # GH#32492
     df = pd.DataFrame(
         data={
