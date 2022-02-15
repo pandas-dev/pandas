@@ -3,6 +3,7 @@ import json
 import numpy as np
 import pyarrow
 
+from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.interval import VALID_CLOSED
 
 
@@ -139,3 +140,11 @@ class ArrowIntervalType(pyarrow.ExtensionType):
 # register the type with a dummy instance
 _interval_type = ArrowIntervalType(pyarrow.int64(), "left")
 pyarrow.register_extension_type(_interval_type)
+
+
+class ArrowExtensionArray(ExtensionArray):
+    """
+    Base class for ExtensionArray backed by Arrow array.
+    """
+
+    pass

@@ -43,7 +43,6 @@ from pandas.core.arrays import (
     IntegerArray,
     PandasArray,
 )
-from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.floating import FloatingDtype
 from pandas.core.arrays.integer import IntegerDtype
 from pandas.core.construction import extract_array
@@ -223,7 +222,11 @@ class StringDtype(ExtensionDtype):
             return StringArray(np.array([], dtype="object"))
 
 
-class BaseStringArray(ExtensionArray):
+class BaseStringArray:
+    """
+    Mixin class for StringArray, ArrowStringArray.
+    """
+
     pass
 
 
