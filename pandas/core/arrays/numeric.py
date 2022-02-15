@@ -107,11 +107,26 @@ class NumericDtype(BaseMaskedDtype):
             return array_class._concat_same_type(results)
 
     @classmethod
+    def _str_to_dtype_mapping(cls):
+        raise AbstractMethodError(cls)
+
+    @classmethod
     def _standardize_dtype(cls, dtype) -> NumericDtype:
         """
         Convert a string representation or a numpy dtype to NumericDtype.
         """
-        raise AbstractMethodError(cls)
+        if isinstance(dtype, str) and (dtype.startswith(("Int", "UInt", "Float"))):
+            # Avoid DeprecationWarning from NumPy about np.dtype("Int64")
+            # https://github.com/numpy/numpy/pull/7476
+            dtype = dtype.lower()
+
+        if not issubclass(type(dtype), cls):
+            mapping = cls._str_to_dtype_mapping()
+            try:
+                dtype = mapping[str(np.dtype(dtype))]
+            except KeyError as err:
+                raise ValueError(f"invalid dtype specified {dtype}") from err
+        return dtype
 
     @classmethod
     def _safe_cast(cls, values: np.ndarray, dtype: np.dtype, copy: bool) -> np.ndarray:

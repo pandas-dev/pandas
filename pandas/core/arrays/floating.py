@@ -51,18 +51,8 @@ class FloatingDtype(NumericDtype):
         return None
 
     @classmethod
-    def _standardize_dtype(cls, dtype) -> FloatingDtype:
-        if isinstance(dtype, str) and dtype.startswith("Float"):
-            # Avoid DeprecationWarning from NumPy about np.dtype("Float64")
-            # https://github.com/numpy/numpy/pull/7476
-            dtype = dtype.lower()
-
-        if not issubclass(type(dtype), FloatingDtype):
-            try:
-                dtype = FLOAT_STR_TO_DTYPE[str(np.dtype(dtype))]
-            except KeyError as err:
-                raise ValueError(f"invalid dtype specified {dtype}") from err
-        return dtype
+    def _str_to_dtype_mapping(cls):
+        return FLOAT_STR_TO_DTYPE
 
     @classmethod
     def _safe_cast(cls, values: np.ndarray, dtype: np.dtype, copy: bool) -> np.ndarray:
