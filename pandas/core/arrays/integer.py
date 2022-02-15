@@ -14,12 +14,12 @@ from pandas.core.arrays.numeric import (
 )
 
 
-class _IntegerDtype(NumericDtype):
+class IntegerDtype(NumericDtype):
     """
     An ExtensionDtype to hold a single size & kind of integer dtype.
 
     These specific implementations are subclasses of the non-public
-    _IntegerDtype. For example we have Int8Dtype to represent signed int 8s.
+    IntegerDtype. For example we have Int8Dtype to represent signed int 8s.
 
     The attributes name & type are set when these subclasses are created.
     """
@@ -86,7 +86,7 @@ class _IntegerDtype(NumericDtype):
         return None
 
     @classmethod
-    def _standardize_dtype(cls, dtype) -> _IntegerDtype:
+    def _standardize_dtype(cls, dtype) -> IntegerDtype:
         if isinstance(dtype, str) and (
             dtype.startswith("Int") or dtype.startswith("UInt")
         ):
@@ -94,7 +94,7 @@ class _IntegerDtype(NumericDtype):
             # https://github.com/numpy/numpy/pull/7476
             dtype = dtype.lower()
 
-        if not issubclass(type(dtype), _IntegerDtype):
+        if not issubclass(type(dtype), IntegerDtype):
             try:
                 dtype = INT_STR_TO_DTYPE[str(np.dtype(dtype))]
             except KeyError as err:
@@ -189,7 +189,7 @@ class IntegerArray(NumericArray):
     Length: 3, dtype: UInt16
     """
 
-    _dtype_cls = _IntegerDtype
+    _dtype_cls = IntegerDtype
 
     # The value used to fill '_data' to avoid upcasting
     _internal_fill_value = 1
@@ -198,7 +198,7 @@ class IntegerArray(NumericArray):
     _falsey_value = 0
 
     @cache_readonly
-    def dtype(self) -> _IntegerDtype:
+    def dtype(self) -> IntegerDtype:
         return INT_STR_TO_DTYPE[str(self._data.dtype)]
 
     def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
@@ -231,62 +231,62 @@ None
 
 
 @register_extension_dtype
-class Int8Dtype(_IntegerDtype):
+class Int8Dtype(IntegerDtype):
     type = np.int8
     name = "Int8"
     __doc__ = _dtype_docstring.format(dtype="int8")
 
 
 @register_extension_dtype
-class Int16Dtype(_IntegerDtype):
+class Int16Dtype(IntegerDtype):
     type = np.int16
     name = "Int16"
     __doc__ = _dtype_docstring.format(dtype="int16")
 
 
 @register_extension_dtype
-class Int32Dtype(_IntegerDtype):
+class Int32Dtype(IntegerDtype):
     type = np.int32
     name = "Int32"
     __doc__ = _dtype_docstring.format(dtype="int32")
 
 
 @register_extension_dtype
-class Int64Dtype(_IntegerDtype):
+class Int64Dtype(IntegerDtype):
     type = np.int64
     name = "Int64"
     __doc__ = _dtype_docstring.format(dtype="int64")
 
 
 @register_extension_dtype
-class UInt8Dtype(_IntegerDtype):
+class UInt8Dtype(IntegerDtype):
     type = np.uint8
     name = "UInt8"
     __doc__ = _dtype_docstring.format(dtype="uint8")
 
 
 @register_extension_dtype
-class UInt16Dtype(_IntegerDtype):
+class UInt16Dtype(IntegerDtype):
     type = np.uint16
     name = "UInt16"
     __doc__ = _dtype_docstring.format(dtype="uint16")
 
 
 @register_extension_dtype
-class UInt32Dtype(_IntegerDtype):
+class UInt32Dtype(IntegerDtype):
     type = np.uint32
     name = "UInt32"
     __doc__ = _dtype_docstring.format(dtype="uint32")
 
 
 @register_extension_dtype
-class UInt64Dtype(_IntegerDtype):
+class UInt64Dtype(IntegerDtype):
     type = np.uint64
     name = "UInt64"
     __doc__ = _dtype_docstring.format(dtype="uint64")
 
 
-INT_STR_TO_DTYPE: dict[str, _IntegerDtype] = {
+INT_STR_TO_DTYPE: dict[str, IntegerDtype] = {
     "int8": Int8Dtype(),
     "int16": Int16Dtype(),
     "int32": Int32Dtype(),
