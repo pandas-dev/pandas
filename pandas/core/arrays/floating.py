@@ -3,8 +3,8 @@ from __future__ import annotations
 import numpy as np
 
 from pandas._typing import DtypeObj
-from pandas.util._decorators import cache_readonly
 
+from pandas.core.dtypes.common import is_float_dtype
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
 from pandas.core.arrays.numeric import (
@@ -24,13 +24,7 @@ class FloatingDtype(NumericDtype):
     """
 
     _default_np_dtype = np.dtype(np.float64)
-
-    def __repr__(self) -> str:
-        return f"{self.name}Dtype()"
-
-    @property
-    def _is_numeric(self) -> bool:
-        return True
+    _checker = is_float_dtype
 
     @classmethod
     def construct_array_type(cls) -> type[FloatingArray]:
@@ -58,18 +52,8 @@ class FloatingDtype(NumericDtype):
         return None
 
     @classmethod
-    def _standardize_dtype(cls, dtype) -> FloatingDtype:
-        if isinstance(dtype, str) and dtype.startswith("Float"):
-            # Avoid DeprecationWarning from NumPy about np.dtype("Float64")
-            # https://github.com/numpy/numpy/pull/7476
-            dtype = dtype.lower()
-
-        if not issubclass(type(dtype), FloatingDtype):
-            try:
-                dtype = FLOAT_STR_TO_DTYPE[str(np.dtype(dtype))]
-            except KeyError as err:
-                raise ValueError(f"invalid dtype specified {dtype}") from err
-        return dtype
+    def _str_to_dtype_mapping(cls):
+        return FLOAT_STR_TO_DTYPE
 
     @classmethod
     def _safe_cast(cls, values: np.ndarray, dtype: np.dtype, copy: bool) -> np.ndarray:
@@ -150,22 +134,6 @@ class FloatingArray(NumericArray):
     # Fill values used for any/all
     _truthy_value = 1.0
     _falsey_value = 0.0
-
-    @cache_readonly
-    def dtype(self) -> FloatingDtype:
-        return FLOAT_STR_TO_DTYPE[str(self._data.dtype)]
-
-    def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
-        if not (isinstance(values, np.ndarray) and values.dtype.kind == "f"):
-            raise TypeError(
-                "values should be floating numpy array. Use "
-                "the 'pd.array' function instead"
-            )
-        if values.dtype == np.float16:
-            # If we don't raise here, then accessing self.dtype would raise
-            raise TypeError("FloatingArray does not support np.float16 dtype.")
-
-        super().__init__(values, mask, copy=copy)
 
 
 _dtype_docstring = """
