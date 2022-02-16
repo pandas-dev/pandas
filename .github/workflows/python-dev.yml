@@ -21,7 +21,7 @@ on:
       - "doc/**"
 
 env:
-  PYTEST_WORKERS: "auto"
+  TEST_ARGS: "--numprocesses auto --dist=loadfile"
   PANDAS_CI: 1
   PATTERN: "not slow and not network and not clipboard and not single_cpu"
   COVERAGE: true

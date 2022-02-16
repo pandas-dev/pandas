@@ -16,7 +16,7 @@ pr:
     - 1.4.x
 
 variables:
-  PYTEST_WORKERS: auto
+  TEST_ARGS: "--numprocesses auto --dist=loadfile"
   PYTEST_TARGET:  pandas
   PATTERN: "not slow and not high_memory and not db and not network and not single_cpu"
   PANDAS_CI: 1

@@ -7,7 +7,7 @@ jobs:
     resource_class: arm.medium
     environment:
       ENV_FILE: ci/deps/circle-38-arm64.yaml
-      PYTEST_WORKERS: auto
+      TEST_ARGS: "--numprocesses auto --dist=loadfile"
       PATTERN: "not slow and not network and not clipboard and not arm_slow"
       PYTEST_TARGET: "pandas"
     steps:

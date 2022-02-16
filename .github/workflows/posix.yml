@@ -57,8 +57,8 @@ jobs:
       LANG: ${{ matrix.lang || '' }}
       LC_ALL: ${{ matrix.lc_all || '' }}
       PANDAS_TESTING_MODE: ${{ matrix.pandas_testing_mode || '' }}
-      TEST_ARGS: ${{ matrix.test_args || '' }}
-      PYTEST_WORKERS: ${{ contains(matrix.pattern, 'not single_cpu') && 'auto' || '1' }}
+      # Don't activate pytest-xdist (-n) if signle_cpu build
+      TEST_ARGS: ${{ format('{0} {1}', matrix.test_args || '', contains(matrix.pattern, 'not single_cpu') && '--numprocesses auto --dist=loadfile' || '' }}
       PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
       IS_PYPY: ${{ contains(matrix.env_file, 'pypy') }}
       # TODO: re-enable coverage on pypy, its slow

@@ -47,7 +47,7 @@ jobs:
       env:
         PANDAS_DATA_MANAGER: array
         PATTERN: "not network and not clipboard and not single_cpu"
-        PYTEST_WORKERS: "auto"
+        TEST_ARGS: "--numprocesses auto --dist=loadfile"
         PYTEST_TARGET: pandas
       run: |
         source activate pandas-dev
