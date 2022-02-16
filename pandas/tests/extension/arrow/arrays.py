@@ -77,7 +77,9 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
     _data: pa.ChunkedArray
 
     @classmethod
-    def from_scalars(cls, values):
+    def _from_sequence(cls, values, dtype=None, copy=False):
+        # TODO: respect dtype, copy
+
         if isinstance(values, cls):
             # in particular for empty cases the pa.array(np.asarray(...))
             #  does not round-trip
@@ -90,15 +92,6 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
         arr = pa.chunked_array([pa.array(np.asarray(values))])
         return cls(arr)
-
-    @classmethod
-    def from_array(cls, arr):
-        assert isinstance(arr, pa.Array)
-        return cls(pa.chunked_array([arr]))
-
-    @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=False):
-        return cls.from_scalars(scalars)
 
     def __repr__(self):
         return f"{type(self).__name__}({repr(self._data)})"
@@ -116,7 +109,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             return self._data.to_pandas()[item]
         else:
             vals = self._data.to_pandas()[item]
-            return type(self).from_scalars(vals)
+            return type(self)._from_sequence(vals)
 
     def __len__(self):
         return len(self._data)
@@ -160,7 +153,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
     def isna(self):
         nas = pd.isna(self._data.to_pandas())
-        return type(self).from_scalars(nas)
+        return type(self)._from_sequence(nas)
 
     def take(self, indices, allow_fill=False, fill_value=None):
         data = self._data.to_pandas()
@@ -182,7 +175,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         return cls(arr)
 
     def __invert__(self):
-        return type(self).from_scalars(~self._data.to_pandas())
+        return type(self)._from_sequence(~self._data.to_pandas())
 
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         if skipna:
