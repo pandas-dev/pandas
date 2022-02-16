@@ -47,12 +47,12 @@ def calculate_variable_window_bounds(
 
     Returns
     -------
-    (ndarray[int64], ndarray[int64], ndarray[int64])
+    (ndarray[int64], ndarray[int64])
     """
     cdef:
         bint left_closed = False
         bint right_closed = False
-        ndarray[int64_t, ndim=1] start, end, ref
+        ndarray[int64_t, ndim=1] start, end
         int64_t start_bound, end_bound, index_growth_sign = 1
         Py_ssize_t i, j
 

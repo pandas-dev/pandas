@@ -3,6 +3,8 @@ import warnings
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import (
     DataFrame,
     Index,
@@ -52,6 +54,7 @@ def test_rolling_apply_out_of_bounds(engine_and_raw):
 
 
 @pytest.mark.parametrize("window", [2, "2s"])
+@td.step_not_implemented(when=lambda bargs: bargs.get("window") == "2s")
 def test_rolling_apply_with_pandas_objects(window, step):
     # 5071
     df = DataFrame(
@@ -95,6 +98,7 @@ def test_rolling_apply(engine_and_raw, step):
     tm.assert_series_equal(result, expected)
 
 
+@td.step_not_implemented()
 def test_all_apply(engine_and_raw, step):
     engine, raw = engine_and_raw
 
@@ -112,6 +116,7 @@ def test_all_apply(engine_and_raw, step):
     tm.assert_frame_equal(result, expected)
 
 
+@td.step_not_implemented()
 def test_ragged_apply(engine_and_raw, step):
     engine, raw = engine_and_raw
 

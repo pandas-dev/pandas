@@ -34,10 +34,8 @@ win_type : str, default None
 
 Returns
 -------
-A tuple of ndarray[int64]s:
-start : array of start boundaries
-end : array of end boundaries
-ref : array of window reference locations, or None indicating all if step is None or 1
+A tuple of ndarray[int64]s, indicating the boundaries of each
+window
 """
 
 
@@ -113,8 +111,11 @@ class VariableWindowIndexer(BaseIndexer):
         min_periods: int | None = None,
         center: bool | None = None,
         closed: str | None = None,
-        step: int | None = None,
+        step: None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
+
+        if step is not None:
+            raise NotImplementedError("step not implemented for variable window")
 
         # error: Argument 4 to "calculate_variable_window_bounds" has incompatible
         # type "Optional[bool]"; expected "bool"
@@ -126,7 +127,7 @@ class VariableWindowIndexer(BaseIndexer):
             min_periods,
             center,  # type: ignore[arg-type]
             closed,
-            step if step is not None else 1,
+            1,
             self.index_array,  # type: ignore[arg-type]
         )
 
@@ -153,8 +154,11 @@ class VariableOffsetWindowIndexer(BaseIndexer):
         min_periods: int | None = None,
         center: bool | None = None,
         closed: str | None = None,
-        step: int | None = None,
+        step: None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
+
+        if step is not None:
+            raise NotImplementedError("step not implemented for variable offset window")
 
         # if windows is variable, default is 'right', otherwise default is 'both'
         if closed is None:
@@ -211,7 +215,7 @@ class VariableOffsetWindowIndexer(BaseIndexer):
             if not right_closed:
                 end[i] -= 1
 
-        return start[::step], end[::step]
+        return start, end
 
 
 class ExpandingIndexer(BaseIndexer):
@@ -224,14 +228,15 @@ class ExpandingIndexer(BaseIndexer):
         min_periods: int | None = None,
         center: bool | None = None,
         closed: str | None = None,
-        step: int | None = None,
+        step: None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
 
-        if step is None:
-            step = 1
-        end = np.arange(1, num_values + 1, step, dtype=np.int64)
+        if step is not None:
+            raise NotImplementedError("step not implemented for expanding window")
+
+        end = np.arange(1, num_values + 1, dtype=np.int64)
         start = np.zeros(len(end), dtype=np.int64)
-        return start[::step], end[::step]
+        return start, end
 
 
 class FixedForwardWindowIndexer(BaseIndexer):
@@ -333,10 +338,11 @@ class GroupbyIndexer(BaseIndexer):
         min_periods: int | None = None,
         center: bool | None = None,
         closed: str | None = None,
-        step: int | None = None,
+        step: None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
-        if step not in [None, 1]:
-            raise NotImplementedError(f"unsupported step: {step}")
+        if step is not None:
+            raise NotImplementedError("step not implemented for groupby window")
+
         # 1) For each group, get the indices that belong to the group
         # 2) Use the indices to calculate the start & end bounds of the window
         # 3) Append the window bounds in group order
@@ -390,11 +396,13 @@ class ExponentialMovingWindowIndexer(BaseIndexer):
         min_periods: int | None = None,
         center: bool | None = None,
         closed: str | None = None,
-        step: int | None = None,
+        step: None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
 
-        if step not in [None, 1]:
-            raise NotImplementedError(f"unsupported step: {step}")
+        if step is not None:
+            raise NotImplementedError(
+                "step not implemented for exponentail moving window"
+            )
         return (
             np.array([0], dtype=np.int64),
             np.array([num_values], dtype=np.int64),

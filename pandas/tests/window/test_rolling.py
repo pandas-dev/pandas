@@ -11,6 +11,7 @@ from pandas.compat import (
     is_platform_mac,
 )
 from pandas.errors import UnsupportedFunctionCall
+import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
@@ -82,6 +83,7 @@ def test_invalid_constructor(frame_or_series, w):
 
 
 @pytest.mark.parametrize("window", [timedelta(days=3), Timedelta(days=3)])
+@td.step_not_implemented()
 def test_constructor_with_timedelta_window(window, step):
     # GH 15440
     n = 10
@@ -102,6 +104,7 @@ def test_constructor_with_timedelta_window(window, step):
 
 
 @pytest.mark.parametrize("window", [timedelta(days=3), Timedelta(days=3), "3D"])
+@td.step_not_implemented()
 def test_constructor_timedelta_window_and_minperiods(window, step, raw):
     # GH 15305
     n = 10
@@ -135,6 +138,7 @@ def test_numpy_compat(method):
 
 
 @pytest.mark.parametrize("closed", ["right", "left", "both", "neither"])
+@td.step_not_implemented()
 def test_closed_fixed(closed, arithmetic_win_operators, step):
     # GH 34315
     func_name = arithmetic_win_operators
@@ -200,6 +204,7 @@ def test_closed_fixed(closed, arithmetic_win_operators, step):
         ),
     ],
 )
+@td.step_not_implemented()
 def test_datetimelike_centered_selections(
     closed, window_selections, step, arithmetic_win_operators
 ):
@@ -240,6 +245,7 @@ def test_datetimelike_centered_selections(
         ("2s", "neither", [1.0, 2.0, 2.0]),
     ],
 )
+@td.step_not_implemented()
 def test_datetimelike_centered_offset_covers_all(
     window, closed, expected, step, frame_or_series
 ):
@@ -266,6 +272,7 @@ def test_datetimelike_centered_offset_covers_all(
         ("2D", "neither", [2, 2, 2, 2, 2, 2, 2, 2]),
     ],
 )
+@td.step_not_implemented()
 def test_datetimelike_nonunique_index_centering(
     window, closed, expected, frame_or_series, step
 ):
@@ -290,6 +297,7 @@ def test_datetimelike_nonunique_index_centering(
     tm.assert_equal(result, expected)
 
 
+@td.step_not_implemented()
 def test_even_number_window_alignment(step):
     # see discussion in GH 38780
     s = Series(range(3), index=date_range(start="2020-01-01", freq="D", periods=3))
@@ -331,6 +339,7 @@ def test_closed_fixed_binary_col(center, step):
 
 
 @pytest.mark.parametrize("closed", ["neither", "left"])
+@td.step_not_implemented()
 def test_closed_empty(closed, arithmetic_win_operators, step):
     # GH 26005
     func_name = arithmetic_win_operators
@@ -343,6 +352,7 @@ def test_closed_empty(closed, arithmetic_win_operators, step):
 
 
 @pytest.mark.parametrize("func", ["min", "max"])
+@td.step_not_implemented()
 def test_closed_one_entry(func, step):
     # GH24718
     ser = Series(data=[2], index=date_range("2000", periods=1))

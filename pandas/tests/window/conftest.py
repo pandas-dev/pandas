@@ -132,22 +132,3 @@ def frame():
 def step(request):
     """step keyword argument for rolling window operations."""
     return request.param
-
-
-@pytest.fixture
-def step_methods():
-    """Make a step-argument helper as fixture."""
-
-    class StepMethods:
-        @staticmethod
-        def get_selected_indices(step, group_keys):
-            """Return step-selected indices within groups."""
-            step = step or 1
-            group_ind = {}
-            for i, key in enumerate(group_keys):
-                group_ind.setdefault(key, []).append(i)
-            return sorted(
-                ind[j] for ind in group_ind.values() for j in range(0, len(ind), step)
-            )
-
-    return StepMethods

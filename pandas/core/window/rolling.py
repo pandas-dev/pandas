@@ -243,8 +243,18 @@ class BaseWindow(SelectionMixin):
             raise ValueError(
                 f"start and end bounds ({len(start)}) must be the same length "
                 f"as the object ({num_vals}) divided by the step ({self.step}) "
-                f"if given and rounded up unless groupby was used"
+                f"if given and rounded up"
             )
+
+    def _slice_index(self, index: Index, result: int | None = None) -> Index:
+        """
+        Slices the index for a given result.
+        """
+        return (
+            index
+            if result is None or len(result) == len(index)
+            else index[:: self.step]
+        )
 
     def _create_data(self, obj: NDFrameT) -> NDFrameT:
         """
@@ -435,7 +445,7 @@ class BaseWindow(SelectionMixin):
             raise DataError("No numeric types to aggregate") from err
 
         result = homogeneous_func(values)
-        index = obj.index if len(result) == len(obj.index) else obj.index[:: self.step]
+        index = self._slice_index(obj.index, result)
         return obj._constructor(result, index=index, name=obj.name)
 
     def _apply_blockwise(
@@ -467,16 +477,17 @@ class BaseWindow(SelectionMixin):
             # GH#42736 operate column-wise instead of block-wise
             try:
                 res = hfunc(arr)
-            except (TypeError, NotImplementedError):
+            except TypeError:
                 pass
+            except NotImplementedError as err:
+                if "step not implemented" in str(err):
+                    raise
             else:
                 res_values.append(res)
                 taker.append(i)
 
-        index = (
-            obj.index
-            if len(res_values) == 0 or len(res_values[0]) == len(obj.index)
-            else obj.index[:: self.step]
+        index = self._slice_index(
+            obj.index, res_values[0] if len(res_values) > 0 else None
         )
         df = type(obj)._from_arrays(
             res_values,
@@ -515,7 +526,7 @@ class BaseWindow(SelectionMixin):
         values = values.T if self.axis == 1 else values
         result = homogeneous_func(values)
         result = result.T if self.axis == 1 else result
-        index = obj.index if len(result) == len(obj.index) else obj.index[:: self.step]
+        index = self._slice_index(obj.index, result)
         columns = (
             obj.columns
             if result.shape[1] == len(obj.columns)
@@ -643,7 +654,7 @@ class BaseWindow(SelectionMixin):
         result = aggregator(values, start, end, min_periods, *func_args)
         NUMBA_FUNC_CACHE[(func, numba_cache_key_str)] = aggregator
         result = result.T if self.axis == 1 else result
-        index = obj.index if len(result) == len(obj.index) else obj.index[:: self.step]
+        index = self._slice_index(obj.index, result)
         if obj.ndim == 1:
             result = result.squeeze()
             out = obj._constructor(result, index=index, name=obj.name)
@@ -1606,8 +1617,10 @@ class RollingAndExpandingMixin(BaseWindow):
         ddof: int = 1,
         **kwargs,
     ):
-        if self.step not in [None, 1]:
-            raise NotImplementedError(f"invalid step: {self.step}")
+        if self.step is not None:
+            raise NotImplementedError(
+                "step not implemented for rolling and expanding cov"
+            )
 
         from pandas import Series
 
@@ -1651,8 +1664,10 @@ class RollingAndExpandingMixin(BaseWindow):
         **kwargs,
     ):
 
-        if self.step not in [None, 1]:
-            raise NotImplementedError(f"invalid step: {self.step}")
+        if self.step is not None:
+            raise NotImplementedError(
+                "step not implemented for rolling and expanding corr"
+            )
 
         from pandas import Series
 
@@ -2630,6 +2645,15 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
     """
     Provide a rolling groupby implementation.
     """
+
+    def __init__(
+        self,
+        *args,
+        **kwargs,
+    ):
+        if kwargs.get("step") is not None:
+            raise NotImplementedError("step not implemented for rolling groupby")
+        super().__init__(*args, **kwargs)
 
     _attributes = Rolling._attributes + BaseWindowGroupby._attributes
 

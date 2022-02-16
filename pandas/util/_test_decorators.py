@@ -26,6 +26,11 @@ For more information, refer to the ``pytest`` documentation on ``skipif``.
 from __future__ import annotations
 
 from contextlib import contextmanager
+from functools import wraps
+from inspect import (
+    Parameter,
+    signature,
+)
 import locale
 from typing import Callable
 import warnings
@@ -312,3 +317,38 @@ skip_array_manager_invalid_test = pytest.mark.skipif(
     get_option("mode.data_manager") == "array",
     reason="Test that relies on BlockManager internals or specific behaviour",
 )
+
+
+def step_not_implemented(when=None):
+    """
+    Decorator factory for test cases expecting "step not implemented" errors.
+
+    Parameters
+    ----------
+    when : Callable
+        a callable accepting a BoundArguments object, which contains the arguments
+        passed to the test method, and returning True when a "step not implemented"
+        error is expected, provided the "step" argument is not None. Defaults to
+        always True, meaning that the error is expected only when the step argument
+        is not None.
+    """
+
+    def decorate_step_not_implemented(f):
+        expected_kinds = [Parameter.POSITIONAL_ONLY, Parameter.POSITIONAL_OR_KEYWORD]
+        sig = signature(f)
+        prms = sig.parameters
+        if prms.get("step") is None or prms["step"].kind not in expected_kinds:
+            raise ValueError(f"missing positional step parameter in {f}")
+
+        @wraps(f)
+        def wrap_step_not_implemented(*args, **kwargs):
+            bargs = sig.bind(*args, **kwargs).arguments
+            if bargs.get("step") is not None and (when is None or when(bargs)):
+                with pytest.raises(NotImplementedError, match="step not implemented"):
+                    return f(*args, **kwargs)
+            else:
+                return f(*args, **kwargs)
+
+        return wrap_step_not_implemented
+
+    return decorate_step_not_implemented
