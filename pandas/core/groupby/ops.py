@@ -76,7 +76,7 @@ from pandas.core.arrays.floating import (
 )
 from pandas.core.arrays.integer import (
     Int64Dtype,
-    _IntegerDtype,
+    IntegerDtype,
 )
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
@@ -300,10 +300,10 @@ class WrappedCythonOp:
         if how in ["add", "cumsum", "sum", "prod"]:
             if dtype == np.dtype(bool):
                 return np.dtype(np.int64)
-            elif isinstance(dtype, (BooleanDtype, _IntegerDtype)):
+            elif isinstance(dtype, (BooleanDtype, IntegerDtype)):
                 return Int64Dtype()
         elif how in ["mean", "median", "var"]:
-            if isinstance(dtype, (BooleanDtype, _IntegerDtype)):
+            if isinstance(dtype, (BooleanDtype, IntegerDtype)):
                 return Float64Dtype()
             elif is_float_dtype(dtype) or is_complex_dtype(dtype):
                 return dtype
@@ -341,7 +341,7 @@ class WrappedCythonOp:
             # All of the functions implemented here are ordinal, so we can
             #  operate on the tz-naive equivalents
             npvalues = values._ndarray.view("M8[ns]")
-        elif isinstance(values.dtype, (BooleanDtype, _IntegerDtype)):
+        elif isinstance(values.dtype, (BooleanDtype, IntegerDtype)):
             # IntegerArray or BooleanArray
             npvalues = values.to_numpy("float64", na_value=np.nan)
         elif isinstance(values.dtype, FloatingDtype):
@@ -378,7 +378,7 @@ class WrappedCythonOp:
         # TODO: allow EAs to override this logic
 
         if isinstance(
-            values.dtype, (BooleanDtype, _IntegerDtype, FloatingDtype, StringDtype)
+            values.dtype, (BooleanDtype, IntegerDtype, FloatingDtype, StringDtype)
         ):
             dtype = self._get_result_dtype(values.dtype)
             cls = dtype.construct_array_type()
