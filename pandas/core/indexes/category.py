@@ -571,15 +571,9 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     def _concat(self, to_concat: list[Index], name: Hashable) -> Index:
         # if calling index is category, don't check dtype of others
         try:
-            new_values = []
-            new_categories = []
-            for c in to_concat:
-                new_values.extend(list(self._is_dtype_compat(c)))
-                new_categories.extend(list(self._is_dtype_compat(c).categories))
-            new_categories = sorted(list(set(new_categories)))
-            new_data = Categorical(new_values, categories=new_categories)
-            codes = new_data.codes
-            # codes = np.concatenate([self._is_dtype_compat(c).codes for c in to_concat])
+            datas = np.concatenate([self._is_dtype_compat(c).tolist() for c in to_concat])
+            categories = set(np.concatenate([self._is_dtype_compat(c).categories for c in to_concat]))
+            codes = Categorical(data=datas, categories=categories).codes
         except TypeError:
             # not all to_concat elements are among our categories (or NA)
             from pandas.core.dtypes.concat import concat_compat
