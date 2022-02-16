@@ -179,4 +179,4 @@ jobs:
           fetch-depth: 0
 
       - name: Build image
-        run: docker build --no-cache --tag pandas-dev-env .
+        run: docker build --pull --no-cache --tag pandas-dev-env .
