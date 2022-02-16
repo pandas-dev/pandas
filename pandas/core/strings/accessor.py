@@ -1908,8 +1908,8 @@ class StringMethods(NoNewAttributesMixin):
     1    2. Bee!\n
     2    3. Cat?\t
     3          NaN
-    4          10
-    5          True
+    4           10
+    5         True
     dtype: object
 
     >>> s.str.strip()
