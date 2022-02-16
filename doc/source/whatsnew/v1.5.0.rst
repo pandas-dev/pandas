@@ -399,6 +399,9 @@ Styler
 Other
 ^^^^^
 
+- Fix some cases for subclasses that define their ``_constructor`` properties as general callables (:issue:`46018`)
+
+
 .. ***DO NOT USE THIS SECTION***
 
 -
