@@ -570,6 +570,7 @@ class TestSeriesPlots(TestPlotBase):
 
         tm.close()
 
+    @pytest.mark.slow
     def test_errorbar_plot(self):
 
         s = Series(np.arange(10), name="x")
@@ -611,6 +612,7 @@ class TestSeriesPlots(TestPlotBase):
         with tm.external_error_raised(TypeError):
             s.plot(yerr=s_err)
 
+    @pytest.mark.slow
     def test_table(self, series):
         _check_plot_works(series.plot, table=True)
         _check_plot_works(series.plot, table=series)

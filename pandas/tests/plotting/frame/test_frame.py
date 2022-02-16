@@ -36,6 +36,7 @@ import pandas.plotting as plotting
 
 @td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
+    @pytest.mark.slow
     def test_plot(self):
         df = tm.makeTimeDataFrame()
         _check_plot_works(df.plot, grid=False)
@@ -785,6 +786,7 @@ class TestDataFramePlots(TestPlotBase):
         ax = df.plot.scatter(x="a", y="b", s="c")
         tm.assert_numpy_array_equal(df["c"].values, right=ax.collections[0].get_sizes())
 
+    @pytest.mark.slow
     def test_plot_bar(self):
         df = DataFrame(
             np.random.randn(6, 4),
@@ -1511,6 +1513,7 @@ class TestDataFramePlots(TestPlotBase):
         ax = _check_plot_works(df.plot, y=0, yerr=1)
         self._check_has_errorbars(ax, xerr=0, yerr=1)
 
+    @pytest.mark.slow
     def test_errorbar_with_partial_columns(self):
         df = DataFrame(np.random.randn(10, 3))
         df_err = DataFrame(np.random.randn(10, 2), columns=[0, 2])

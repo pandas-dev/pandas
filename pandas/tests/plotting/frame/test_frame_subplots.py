@@ -22,6 +22,7 @@ from pandas.io.formats.printing import pprint_thing
 
 @td.skip_if_no_mpl
 class TestDataFramePlotsSubplots(TestPlotBase):
+    @pytest.mark.slow
     def test_subplots(self):
         df = DataFrame(np.random.rand(10, 3), index=list(string.ascii_letters[:10]))
 

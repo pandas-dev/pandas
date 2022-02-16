@@ -135,6 +135,7 @@ class TestDataFramePlots(TestPlotBase):
         self._check_text_labels(axes0_labels, expected)
         self._check_ticks_props(axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
 
+    @pytest.mark.slow
     def test_andrews_curves(self, iris):
         from matplotlib import cm
 
@@ -211,6 +212,7 @@ class TestDataFramePlots(TestPlotBase):
         handles, labels = ax.get_legend_handles_labels()
         self._check_colors(handles, linecolors=colors)
 
+    @pytest.mark.slow
     def test_parallel_coordinates(self, iris):
         from matplotlib import cm
 
