@@ -6,6 +6,7 @@ from __future__ import annotations
 from collections import abc
 from typing import (
     TYPE_CHECKING,
+    Callable,
     Hashable,
     Iterable,
     Literal,
@@ -541,7 +542,7 @@ class _Concatenator:
         self.new_axes = self._get_new_axes()
 
     def get_result(self):
-        cons: type[DataFrame | Series]
+        cons: Callable
         sample: DataFrame | Series
 
         # series only
