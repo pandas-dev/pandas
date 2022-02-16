@@ -545,8 +545,10 @@ def temp_setattr(obj, attr: str, value) -> Iterator[None]:
     """
     old_value = getattr(obj, attr)
     setattr(obj, attr, value)
-    yield obj
-    setattr(obj, attr, old_value)
+    try:
+        yield obj
+    finally:
+        setattr(obj, attr, old_value)
 
 
 def require_length_match(data, index: Index):
