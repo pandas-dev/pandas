@@ -157,11 +157,18 @@ class JoinIndex:
     def time_left_outer_join_index(self):
         self.left.join(self.right, on="jim")
 
-    def time_join_left_empty(self):
-        self.left.iloc[:0].join(self.right, on="jim")
 
-    def time_join_right_empty(self):
-        self.left.join(self.right.iloc[:0], on="jim")
+class JoinEmpty:
+    def setup(self):
+        N = 100_000
+        self.df = DataFrame({"A": np.arange(N)})
+        self.df_empty = DataFrame(columns=["B", "C"], dtype="int64")
+
+    def time_inner_join_left_empty(self):
+        self.df_empty.join(self.df, how="inner")
+
+    def time_inner_join_right_empty(self):
+        self.df.join(self.df_empty, how="inner")
 
 
 class JoinNonUnique:
