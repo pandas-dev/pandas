@@ -1107,8 +1107,8 @@ def test_compare_complex_dtypes():
 
     with pytest.raises(TypeError, match=msg):
         df.lt(df.astype(object))
-        
-        
+
+
 @pytest.mark.parametrize(
     "datetime64",
     ["datetime64", "datetime64[s]", "datetime64[m]", "datetime64[h]", "datetime64[D]"],
