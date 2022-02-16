@@ -4544,12 +4544,22 @@ class Index(IndexOpsMixin, PandasObject):
 
         if len(other) == 0 and how in ("left", "outer"):
             join_index = self._view()
-            rindexer = np.repeat(np.intp(-1), len(join_index))
+            rindexer = np.broadcast_to(np.intp(-1), len(join_index))
             return join_index, None, rindexer
 
         if len(self) == 0 and how in ("right", "outer"):
             join_index = other._view()
-            lindexer = np.repeat(np.intp(-1), len(join_index))
+            lindexer = np.broadcast_to(np.intp(-1), len(join_index))
+            return join_index, lindexer, None
+
+        if len(self) == 0 and how in ("left", "inner", "cross"):
+            join_index = self._view()
+            rindexer = np.array([])
+            return join_index, None, rindexer
+
+        if len(other) == 0 and how in ("right", "inner", "cross"):
+            join_index = other._view()
+            lindexer = np.array([])
             return join_index, lindexer, None
 
         if self._join_precedence < other._join_precedence:
