@@ -5226,7 +5226,10 @@ class Index(IndexOpsMixin, PandasObject):
             #  takes 166 µs + 2.1 ms and cuts the ndarray.__getitem__
             #  time below from 3.8 ms to 496 µs
             # if we already have ndarray[bool], the overhead is 1.4 µs or .25%
-            key = np.asarray(key, dtype=bool)
+            if is_extension_array_dtype(getattr(key, "dtype", None)):
+                key = key.to_numpy(dtype=bool, na_value=False)
+            else:
+                key = np.asarray(key, dtype=bool)
 
         result = getitem(key)
         # Because we ruled out integer above, we always get an arraylike here
