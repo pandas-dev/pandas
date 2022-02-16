@@ -542,7 +542,7 @@ class _Concatenator:
         self.new_axes = self._get_new_axes()
 
     def get_result(self):
-        cons: Callable
+        cons: Callable[..., DataFrame | Series]
         sample: DataFrame | Series
 
         # series only
