@@ -1116,7 +1116,7 @@ def test_compare_complex_dtypes():
 def test_integer_overflow_datetime64(datetime64):
     # GH 28045
 
-    result = pd.Series(["9/22/1677", "4/11/2262"], dtype="U").astype(datetime64)
-    expected = pd.Series(["9/22/1677", "4/11/2262"], dtype="datetime64[ns]")
+    result = Series(["9/22/1677", "4/11/2262"], dtype="U").astype(datetime64)
+    expected = Series(["9/22/1677", "4/11/2262"], dtype="datetime64[ns]")
 
     tm.assert_series_equal(result, expected)
