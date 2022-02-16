@@ -108,9 +108,9 @@ class TestDataFramePlots(TestPlotBase):
         lines = list(itertools.chain.from_iterable(d.values()))
         assert len(ax.get_lines()) == len(lines)
 
-    def test_boxplot_return_type_none(self):
+    def test_boxplot_return_type_none(self, hist_df):
         # GH 12216; return_type=None & by=None -> axes
-        result = self.hist_df.boxplot()
+        result = hist_df.boxplot()
         assert isinstance(result, self.plt.Axes)
 
     def test_boxplot_return_type_legacy(self):
@@ -140,13 +140,13 @@ class TestDataFramePlots(TestPlotBase):
             result = df.boxplot(return_type="both")
         self._check_box_return_type(result, "both")
 
-    def test_boxplot_axis_limits(self):
+    def test_boxplot_axis_limits(self, hist_df):
         def _check_ax_limits(col, ax):
             y_min, y_max = ax.get_ylim()
             assert y_min <= col.min()
             assert y_max >= col.max()
 
-        df = self.hist_df.copy()
+        df = hist_df.copy()
         df["age"] = np.random.randint(1, 20, df.shape[0])
         # One full row
         height_ax, weight_ax = df.boxplot(["height", "weight"], by="category")
@@ -329,8 +329,8 @@ class TestDataFramePlots(TestPlotBase):
 
 @td.skip_if_no_mpl
 class TestDataFrameGroupByPlots(TestPlotBase):
-    def test_boxplot_legacy1(self):
-        grouped = self.hist_df.groupby(by="gender")
+    def test_boxplot_legacy1(self, hist_df):
+        grouped = hist_df.groupby(by="gender")
         with tm.assert_produces_warning(UserWarning):
             axes = _check_plot_works(grouped.boxplot, return_type="axes")
         self._check_axes_shape(list(axes.values), axes_num=2, layout=(1, 2))
@@ -381,8 +381,8 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         res = df.groupby("gender").hist()
         tm.close()
 
-    def test_grouped_box_return_type(self):
-        df = self.hist_df
+    def test_grouped_box_return_type(self, hist_df):
+        df = hist_df
 
         # old style: return_type=None
         result = df.boxplot(by="gender")
@@ -415,8 +415,8 @@ class TestDataFrameGroupByPlots(TestPlotBase):
             returned = df2.boxplot(by="category", return_type=t)
             self._check_box_return_type(returned, t, expected_keys=columns2)
 
-    def test_grouped_box_layout(self):
-        df = self.hist_df
+    def test_grouped_box_layout(self, hist_df):
+        df = hist_df
 
         msg = "Layout of 1x1 must be larger than required size 2"
         with pytest.raises(ValueError, match=msg):
@@ -508,9 +508,9 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         )
         self._check_axes_shape(self.plt.gcf().axes, axes_num=3, layout=(1, 3))
 
-    def test_grouped_box_multiple_axes(self):
+    def test_grouped_box_multiple_axes(self, hist_df):
         # GH 6970, GH 7069
-        df = self.hist_df
+        df = hist_df
 
         # check warning to ignore sharex / sharey
         # this check should be done in the first function which
@@ -614,9 +614,9 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         result_xticklabel = [x.get_text() for x in axes.get_xticklabels()]
         assert expected_xticklabel == result_xticklabel
 
-    def test_groupby_boxplot_object(self):
+    def test_groupby_boxplot_object(self, hist_df):
         # GH 43480
-        df = self.hist_df.astype("object")
+        df = hist_df.astype("object")
         grouped = df.groupby("gender")
         msg = "boxplot method requires numerical columns, nothing to plot"
         with pytest.raises(ValueError, match=msg):

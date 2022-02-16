@@ -42,7 +42,10 @@ from pandas.io.common import (
 from pandas.io.parsers import TextParser
 
 
-@doc(decompression_options=_shared_docs["decompression_options"] % "path_or_buffer")
+@doc(
+    storage_options=_shared_docs["storage_options"],
+    decompression_options=_shared_docs["decompression_options"] % "path_or_buffer",
+)
 class _XMLFrameParser:
     """
     Internal subclass to parse XML into DataFrames.
@@ -98,9 +101,7 @@ class _XMLFrameParser:
 
         .. versionchanged:: 1.4.0 Zstandard support.
 
-    storage_options : dict, optional
-        Extra options that make sense for a particular storage connection,
-        e.g. host, port, username, password, etc.,
+    {storage_options}
 
     See also
     --------
