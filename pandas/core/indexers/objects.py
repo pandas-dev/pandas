@@ -111,7 +111,7 @@ class VariableWindowIndexer(BaseIndexer):
         min_periods: int | None = None,
         center: bool | None = None,
         closed: str | None = None,
-        step: None = None,
+        step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
 
         if step is not None:
@@ -154,7 +154,7 @@ class VariableOffsetWindowIndexer(BaseIndexer):
         min_periods: int | None = None,
         center: bool | None = None,
         closed: str | None = None,
-        step: None = None,
+        step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
 
         if step is not None:
@@ -228,7 +228,7 @@ class ExpandingIndexer(BaseIndexer):
         min_periods: int | None = None,
         center: bool | None = None,
         closed: str | None = None,
-        step: None = None,
+        step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
 
         if step is not None:
@@ -338,7 +338,7 @@ class GroupbyIndexer(BaseIndexer):
         min_periods: int | None = None,
         center: bool | None = None,
         closed: str | None = None,
-        step: None = None,
+        step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
         if step is not None:
             raise NotImplementedError("step not implemented for groupby window")
@@ -396,7 +396,7 @@ class ExponentialMovingWindowIndexer(BaseIndexer):
         min_periods: int | None = None,
         center: bool | None = None,
         closed: str | None = None,
-        step: None = None,
+        step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
 
         if step is not None:

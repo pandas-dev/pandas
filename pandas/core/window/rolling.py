@@ -14,6 +14,7 @@ from typing import (
     Any,
     Callable,
     Hashable,
+    Sized,
 )
 import warnings
 
@@ -246,7 +247,7 @@ class BaseWindow(SelectionMixin):
                 f"if given and rounded up"
             )
 
-    def _slice_index(self, index: Index, result: int | None = None) -> Index:
+    def _slice_index(self, index: Index, result: Sized | None = None) -> Index:
         """
         Slices the index for a given result.
         """
