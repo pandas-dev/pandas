@@ -286,6 +286,14 @@ class TestCategoricalIndex(Base):
         # See test_map.py
         pass
 
+    def test_append(self):
+        # GH 44099
+        # concat indexes which have the same categories
+
+        ci1 = CategoricalIndex(["a", "b", "c"], categories=["a", "b", "c"])
+        ci2 = CategoricalIndex(["b", "a", "c"], categories=["b", "a", "c"])
+        expected = CategoricalIndex(["a", "b", "c", "b", "a", "c"], categories=["a", "b", "c"])
+        tm.assert_index_equal(ci1.append(ci2), expected)
 
 class TestCategoricalIndex2:
     # Tests that are not overriding a test in Base
