@@ -1905,8 +1905,7 @@ class TestIsScalar:
         assert not is_scalar(zerodim)
         assert is_scalar(lib.item_from_zerodim(zerodim))
 
-    @pytest.mark.parametrize("arr", [np.array([]), np.array([[]]), np.matrix("1; 2")])
-    @pytest.mark.filterwarnings("ignore::PendingDeprecationWarning")
+    @pytest.mark.parametrize("arr", [np.array([]), np.array([[]])])
     def test_is_scalar_numpy_arrays(self, arr):
         assert not is_scalar(arr)
         assert not is_scalar(MockNumpyLikeArray(arr))

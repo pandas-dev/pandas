@@ -666,7 +666,9 @@ never_na_vals = [
 
 class TestLibMissing:
     @pytest.mark.parametrize("func", [libmissing.checknull, isna])
-    @pytest.mark.parametrize("value", na_vals + sometimes_na_vals)
+    @pytest.mark.parametrize(
+        "value", na_vals + sometimes_na_vals  # type: ignore[operator]
+    )
     def test_checknull_na_vals(self, func, value):
         assert func(value)
 
@@ -685,7 +687,9 @@ class TestLibMissing:
     def test_checknull_never_na_vals(self, func, value):
         assert not func(value)
 
-    @pytest.mark.parametrize("value", na_vals + sometimes_na_vals)
+    @pytest.mark.parametrize(
+        "value", na_vals + sometimes_na_vals  # type: ignore[operator]
+    )
     def test_checknull_old_na_vals(self, value):
         assert libmissing.checknull(value, inf_as_na=True)
 
