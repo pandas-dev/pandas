@@ -2158,7 +2158,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
 
         # GH28330 preserve subclassed Series/DataFrames through calls
-        if issubclass(self.obj._constructor, Series):
+        if isinstance(self.obj, Series):
             result = self._obj_1d_constructor(result, name=self.obj.name)
         else:
             result = self._obj_1d_constructor(result)
