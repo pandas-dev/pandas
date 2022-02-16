@@ -1880,6 +1880,7 @@ class StringMethods(NoNewAttributesMixin):
 
     Strip whitespaces (including newlines) or a set of specified characters
     from each string in the Series/Index from %(side)s.
+    Replaces any non-strings in series with NaN.
     Equivalent to :meth:`str.%(method)s`.
 
     Parameters
