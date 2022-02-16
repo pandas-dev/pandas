@@ -10,8 +10,6 @@ from hypothesis import (
     assume,
     example,
     given,
-    settings,
-    strategies as st,
 )
 import numpy as np
 import pytest
@@ -23,6 +21,7 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
+from pandas._testing._hypothesis import INT_NEG_999_TO_POS_999
 from pandas.tests.tseries.offsets.common import assert_offset_equal
 
 from pandas.tseries import offsets
@@ -62,11 +61,10 @@ def test_delta_to_tick():
 
 
 @pytest.mark.parametrize("cls", tick_classes)
-@settings(deadline=None)  # GH 24641
 @example(n=2, m=3)
 @example(n=800, m=300)
 @example(n=1000, m=5)
-@given(n=st.integers(-999, 999), m=st.integers(-999, 999))
+@given(n=INT_NEG_999_TO_POS_999, m=INT_NEG_999_TO_POS_999)
 def test_tick_add_sub(cls, n, m):
     # For all Tick subclasses and all integers n, m, we should have
     # tick(n) + tick(m) == tick(n+m)
@@ -84,9 +82,8 @@ def test_tick_add_sub(cls, n, m):
 
 @pytest.mark.arm_slow
 @pytest.mark.parametrize("cls", tick_classes)
-@settings(deadline=None)
 @example(n=2, m=3)
-@given(n=st.integers(-999, 999), m=st.integers(-999, 999))
+@given(n=INT_NEG_999_TO_POS_999, m=INT_NEG_999_TO_POS_999)
 def test_tick_equality(cls, n, m):
     assume(m != n)
     # tick == tock iff tick.n == tock.n

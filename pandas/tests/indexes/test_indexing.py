@@ -70,6 +70,14 @@ class TestTake:
             with pytest.raises(AttributeError, match=msg):
                 index.freq
 
+    def test_take_indexer_type(self):
+        # GH#42875
+        integer_index = Index([0, 1, 2, 3])
+        scalar_index = 1
+        msg = "Expected indices to be array-like"
+        with pytest.raises(TypeError, match=msg):
+            integer_index.take(scalar_index)
+
     def test_take_minus1_without_fill(self, index):
         # -1 does not get treated as NA unless allow_fill=True is passed
         if len(index) == 0:
@@ -198,7 +206,14 @@ class TestGetLoc:
         exc = KeyError
         if isinstance(
             index,
-            (DatetimeIndex, TimedeltaIndex, PeriodIndex, RangeIndex, IntervalIndex),
+            (
+                DatetimeIndex,
+                TimedeltaIndex,
+                PeriodIndex,
+                RangeIndex,
+                IntervalIndex,
+                MultiIndex,
+            ),
         ):
             # TODO: make these more consistent?
             exc = InvalidIndexError

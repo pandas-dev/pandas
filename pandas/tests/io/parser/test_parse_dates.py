@@ -11,22 +11,17 @@ from io import StringIO
 import warnings
 
 from dateutil.parser import parse as du_parse
-from hypothesis import (
-    given,
-    settings,
-    strategies as st,
-)
+from hypothesis import given
 import numpy as np
 import pytest
 import pytz
 
 from pandas._libs.tslibs import parsing
 from pandas._libs.tslibs.parsing import parse_datetime_string
-from pandas.compat import (
-    is_platform_windows,
-    np_array_datetime64_compat,
+from pandas.compat.pyarrow import (
+    pa_version_under6p0,
+    pa_version_under7p0,
 )
-from pandas.compat.pyarrow import pa_version_under6p0
 
 import pandas as pd
 from pandas import (
@@ -38,6 +33,7 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
+from pandas._testing._hypothesis import DATETIME_NO_TZ
 from pandas.core.indexes.datetimes import date_range
 
 import pandas.io.date_converters as conv
@@ -48,15 +44,6 @@ xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 # GH#43650: Some expected failures with the pyarrow engine can occasionally
 # cause a deadlock instead, so we skip these instead of xfailing
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
-
-# constant
-_DEFAULT_DATETIME = datetime(1, 1, 1)
-
-# Strategy for hypothesis
-if is_platform_windows():
-    date_strategy = st.datetimes(min_value=datetime(1900, 1, 1))
-else:
-    date_strategy = st.datetimes()
 
 
 @xfail_pyarrow
@@ -180,14 +167,21 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         """
         return parsing.try_parse_dates(parsing.concat_date_cols(date_cols))
 
-    result = parser.read_csv(
+    kwds = {
+        "header": None,
+        "date_parser": date_parser,
+        "prefix": "X",
+        "parse_dates": {"actual": [1, 2], "nominal": [1, 3]},
+        "keep_date_col": keep_date_col,
+    }
+    result = parser.read_csv_check_warnings(
+        FutureWarning,
+        "The prefix argument has been deprecated "
+        "and will be removed in a future version. .*\n\n",
         StringIO(data),
-        header=None,
-        date_parser=date_parser,
-        prefix="X",
-        parse_dates={"actual": [1, 2], "nominal": [1, 3]},
-        keep_date_col=keep_date_col,
+        **kwds,
     )
+
     expected = DataFrame(
         [
             [
@@ -318,13 +312,20 @@ KORD,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
 KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
 """
     parser = all_parsers
-    result = parser.read_csv(
+    kwds = {
+        "header": None,
+        "prefix": "X",
+        "parse_dates": [[1, 2], [1, 3]],
+        "keep_date_col": keep_date_col,
+    }
+    result = parser.read_csv_check_warnings(
+        FutureWarning,
+        "The prefix argument has been deprecated "
+        "and will be removed in a future version. .*\n\n",
         StringIO(data),
-        header=None,
-        prefix="X",
-        parse_dates=[[1, 2], [1, 3]],
-        keep_date_col=keep_date_col,
+        **kwds,
     )
+
     expected = DataFrame(
         [
             [
@@ -436,8 +437,13 @@ KORD,19990127 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
 KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
 """
     parser = all_parsers
-    result = parser.read_csv(
-        StringIO(data), header=None, prefix="X", parse_dates=[1], index_col=1
+    kwds = {"header": None, "prefix": "X", "parse_dates": [1], "index_col": 1}
+    result = parser.read_csv_check_warnings(
+        FutureWarning,
+        "The prefix argument has been deprecated "
+        "and will be removed in a future version. .*\n\n",
+        StringIO(data),
+        **kwds,
     )
 
     index = Index(
@@ -486,14 +492,19 @@ def test_multiple_date_cols_int_cast(all_parsers, date_parser, warning):
     parse_dates = {"actual": [1, 2], "nominal": [1, 3]}
     parser = all_parsers
 
-    with tm.assert_produces_warning(warning, check_stacklevel=False):
-        result = parser.read_csv(
-            StringIO(data),
-            header=None,
-            date_parser=date_parser,
-            parse_dates=parse_dates,
-            prefix="X",
-        )
+    kwds = {
+        "header": None,
+        "prefix": "X",
+        "parse_dates": parse_dates,
+        "date_parser": date_parser,
+    }
+    result = parser.read_csv_check_warnings(
+        FutureWarning,
+        "The prefix argument has been deprecated "
+        "and will be removed in a future version. .*\n\n",
+        StringIO(data),
+        **kwds,
+    )
 
     expected = DataFrame(
         [
@@ -937,10 +948,11 @@ def test_parse_dates_custom_euro_format(all_parsers, kwargs):
             )
 
 
-@xfail_pyarrow
-def test_parse_tz_aware(all_parsers):
+def test_parse_tz_aware(all_parsers, request):
     # See gh-1693
     parser = all_parsers
+    if parser.engine == "pyarrow" and pa_version_under7p0:
+        request.node.add_marker(pytest.mark.xfail(reason="Fails for pyarrow < 7.0"))
     data = "Date,x\n2012-06-13T01:39:00Z,0.5"
 
     result = parser.read_csv(StringIO(data), index_col=0, parse_dates=True)
@@ -1526,7 +1538,7 @@ date,time,prn,rxstatus
 """
 
     def date_parser(dt, time):
-        return np_array_datetime64_compat(dt + "T" + time + "Z", dtype="datetime64[s]")
+        return np.array(dt + "T" + time, dtype="datetime64[s]")
 
     result = parser.read_csv(
         StringIO(data),
@@ -1535,9 +1547,7 @@ date,time,prn,rxstatus
         index_col=["datetime", "prn"],
     )
 
-    datetimes = np_array_datetime64_compat(
-        ["2013-11-03T19:00:00Z"] * 3, dtype="datetime64[s]"
-    )
+    datetimes = np.array(["2013-11-03T19:00:00"] * 3, dtype="datetime64[s]")
     expected = DataFrame(
         data={"rxstatus": ["00E80000"] * 3},
         index=MultiIndex.from_tuples(
@@ -1683,22 +1693,23 @@ def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
 
 
 @skip_pyarrow
-@given(date_strategy)
-@settings(deadline=None)
+@given(DATETIME_NO_TZ)
 @pytest.mark.parametrize("delimiter", list(" -./"))
 @pytest.mark.parametrize("dayfirst", [True, False])
 @pytest.mark.parametrize(
     "date_format",
     ["%d %m %Y", "%m %d %Y", "%m %Y", "%Y %m %d", "%y %m %d", "%Y%m%d", "%y%m%d"],
 )
-def test_hypothesis_delimited_date(date_format, dayfirst, delimiter, test_datetime):
+def test_hypothesis_delimited_date(
+    request, date_format, dayfirst, delimiter, test_datetime
+):
     if date_format == "%m %Y" and delimiter == ".":
-        pytest.skip(
-            "parse_datetime_string cannot reliably tell whether \
-        e.g. %m.%Y is a float or a date, thus we skip it"
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="parse_datetime_string cannot reliably tell whether "
+                "e.g. %m.%Y is a float or a date"
+            )
         )
-    result, expected = None, None
-    except_in_dateutil, except_out_dateutil = None, None
     date_string = test_datetime.strftime(date_format.replace(" ", delimiter))
 
     with warnings.catch_warnings():
@@ -1709,7 +1720,7 @@ def test_hypothesis_delimited_date(date_format, dayfirst, delimiter, test_dateti
     except_in_dateutil, expected = _helper_hypothesis_delimited_date(
         du_parse,
         date_string,
-        default=_DEFAULT_DATETIME,
+        default=datetime(1, 1, 1),
         dayfirst=dayfirst,
         yearfirst=False,
     )
@@ -1959,4 +1970,17 @@ def test_replace_nans_before_parsing_dates(all_parsers):
             ]
         }
     )
+    tm.assert_frame_equal(result, expected)
+
+
+@skip_pyarrow
+def test_parse_dates_and_string_dtype(all_parsers):
+    # GH#34066
+    parser = all_parsers
+    data = """a,b
+1,2019-12-31
+"""
+    result = parser.read_csv(StringIO(data), dtype="string", parse_dates=["b"])
+    expected = DataFrame({"a": ["1"], "b": [Timestamp("2019-12-31")]})
+    expected["a"] = expected["a"].astype("string")
     tm.assert_frame_equal(result, expected)

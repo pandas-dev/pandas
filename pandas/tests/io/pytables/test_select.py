@@ -27,7 +27,7 @@ from pandas.tests.io.pytables.common import (
 
 from pandas.io.pytables import Term
 
-pytestmark = pytest.mark.single
+pytestmark = pytest.mark.single_cpu
 
 
 def test_select_columns_in_where(setup_path):
@@ -188,12 +188,12 @@ def test_select_dtypes(setup_path):
         _maybe_remove(store, "df")
         store.append("df", df, data_columns=True)
 
-        expected = df[df.boolv == True].reindex(columns=["A", "boolv"])  # noqa
+        expected = df[df.boolv == True].reindex(columns=["A", "boolv"])  # noqa:E712
         for v in [True, "true", 1]:
             result = store.select("df", f"boolv == {v}", columns=["A", "boolv"])
             tm.assert_frame_equal(expected, result)
 
-        expected = df[df.boolv == False].reindex(columns=["A", "boolv"])  # noqa
+        expected = df[df.boolv == False].reindex(columns=["A", "boolv"])  # noqa:E712
         for v in [False, "false", 0]:
             result = store.select("df", f"boolv == {v}", columns=["A", "boolv"])
             tm.assert_frame_equal(expected, result)
@@ -659,7 +659,7 @@ def test_frame_select_complex(setup_path):
         tm.assert_frame_equal(result, expected)
 
 
-def test_frame_select_complex2(setup_path):
+def test_frame_select_complex2():
 
     with ensure_clean_path(["params.hdf", "hist.hdf"]) as paths:
 

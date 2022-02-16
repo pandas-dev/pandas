@@ -426,8 +426,9 @@ class TestSeriesDatetimeValues:
         with pytest.raises(AttributeError, match="You cannot add any new attribute"):
             ser.dt.xlabel = "a"
 
+    # error: Unsupported operand types for + ("List[None]" and "List[str]")
     @pytest.mark.parametrize(
-        "time_locale", [None] if tm.get_locales() is None else [None] + tm.get_locales()
+        "time_locale", [None] + (tm.get_locales() or [])  # type: ignore[operator]
     )
     def test_dt_accessor_datetime_name_accessors(self, time_locale):
         # Test Monday -> Sunday and January -> December, in that sequence
@@ -476,7 +477,7 @@ class TestSeriesDatetimeValues:
             name = name.capitalize()
             assert ser.dt.day_name(locale=time_locale)[day] == name
             assert ser.dt.day_name(locale=None)[day] == eng_name
-        ser = ser.append(Series([pd.NaT]))
+        ser = pd.concat([ser, Series([pd.NaT])])
         assert np.isnan(ser.dt.day_name(locale=time_locale).iloc[-1])
 
         ser = Series(date_range(freq="M", start="2012", end="2013"))
@@ -498,7 +499,7 @@ class TestSeriesDatetimeValues:
 
             assert result == expected
 
-        ser = ser.append(Series([pd.NaT]))
+        ser = pd.concat([ser, Series([pd.NaT])])
         assert np.isnan(ser.dt.month_name(locale=time_locale).iloc[-1])
 
     def test_strftime(self):

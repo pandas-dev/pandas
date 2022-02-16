@@ -20,58 +20,39 @@ from pandas.tests.indexing.common import Base
 
 class TestScalar(Base):
     @pytest.mark.parametrize("kind", ["series", "frame"])
-    def test_at_and_iat_get(self, kind):
-        def _check(f, func, values=False):
-
-            if f is not None:
-                indices = self.generate_indices(f, values)
-                for i in indices:
-                    result = getattr(f, func)[i]
-                    expected = self.get_value(func, f, i, values)
-                    tm.assert_almost_equal(result, expected)
-
-        d = getattr(self, kind)
-
-        # iat
-        for f in [d["ints"], d["uints"]]:
-            _check(f, "iat", values=True)
-
-        for f in [d["labels"], d["ts"], d["floats"]]:
-            if f is not None:
-                msg = "iAt based indexing can only have integer indexers"
-                with pytest.raises(ValueError, match=msg):
-                    self.check_values(f, "iat")
-
-        # at
-        for f in [d["ints"], d["uints"], d["labels"], d["ts"], d["floats"]]:
-            _check(f, "at")
+    @pytest.mark.parametrize("col", ["ints", "uints"])
+    def test_iat_set_ints(self, kind, col):
+        f = getattr(self, kind)[col]
+        if f is not None:
+            indices = self.generate_indices(f, True)
+            for i in indices:
+                f.iat[i] = 1
+                expected = self.get_value("iat", f, i, True)
+                tm.assert_almost_equal(expected, 1)
 
     @pytest.mark.parametrize("kind", ["series", "frame"])
-    def test_at_and_iat_set(self, kind):
-        def _check(f, func, values=False):
-
-            if f is not None:
-                indices = self.generate_indices(f, values)
+    @pytest.mark.parametrize("col", ["labels", "ts", "floats"])
+    def test_iat_set_other(self, kind, col):
+        f = getattr(self, kind)[col]
+        if f is not None:
+            msg = "iAt based indexing can only have integer indexers"
+            with pytest.raises(ValueError, match=msg):
+                indices = self.generate_indices(f, False)
                 for i in indices:
-                    getattr(f, func)[i] = 1
-                    expected = self.get_value(func, f, i, values)
+                    f.iat[i] = 1
+                    expected = self.get_value("iat", f, i, False)
                     tm.assert_almost_equal(expected, 1)
 
-        d = getattr(self, kind)
-
-        # iat
-        for f in [d["ints"], d["uints"]]:
-            _check(f, "iat", values=True)
-
-        for f in [d["labels"], d["ts"], d["floats"]]:
-            if f is not None:
-                msg = "iAt based indexing can only have integer indexers"
-                with pytest.raises(ValueError, match=msg):
-                    _check(f, "iat")
-
-        # at
-        for f in [d["ints"], d["uints"], d["labels"], d["ts"], d["floats"]]:
-            _check(f, "at")
+    @pytest.mark.parametrize("kind", ["series", "frame"])
+    @pytest.mark.parametrize("col", ["ints", "uints", "labels", "ts", "floats"])
+    def test_at_set_ints_other(self, kind, col):
+        f = getattr(self, kind)[col]
+        if f is not None:
+            indices = self.generate_indices(f, False)
+            for i in indices:
+                f.at[i] = 1
+                expected = self.get_value("at", f, i, False)
+                tm.assert_almost_equal(expected, 1)
 
 
 class TestAtAndiAT:
@@ -95,24 +76,24 @@ class TestAtAndiAT:
         xp = s.values[5]
         assert result == xp
 
+    @pytest.mark.parametrize(
+        "ser, expected",
+        [
+            [
+                Series(["2014-01-01", "2014-02-02"], dtype="datetime64[ns]"),
+                Timestamp("2014-02-02"),
+            ],
+            [
+                Series(["1 days", "2 days"], dtype="timedelta64[ns]"),
+                Timedelta("2 days"),
+            ],
+        ],
+    )
+    def test_iloc_iat_coercion_datelike(self, indexer_ial, ser, expected):
         # GH 7729
         # make sure we are boxing the returns
-        s = Series(["2014-01-01", "2014-02-02"], dtype="datetime64[ns]")
-        expected = Timestamp("2014-02-02")
-
-        for r in [lambda: s.iat[1], lambda: s.iloc[1]]:
-            result = r()
-            assert result == expected
-
-        s = Series(["1 days", "2 days"], dtype="timedelta64[ns]")
-        expected = Timedelta("2 days")
-
-        for r in [lambda: s.iat[1], lambda: s.iloc[1]]:
-            result = r()
-            assert result == expected
-
-    def test_iat_invalid_args(self):
-        pass
+        result = indexer_ial(ser)[1]
+        assert result == expected
 
     def test_imethods_with_dups(self):
 

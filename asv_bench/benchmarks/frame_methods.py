@@ -50,7 +50,7 @@ class Lookup:
 
 class Reindex:
     def setup(self):
-        N = 10 ** 3
+        N = 10**3
         self.df = DataFrame(np.random.randn(N * 10, N))
         self.idx = np.arange(4 * N, 7 * N)
         self.idx_cols = np.random.randint(0, N, N)
@@ -76,7 +76,7 @@ class Reindex:
         self.df.reindex(columns=self.idx)
 
     def time_reindex_both_axes(self):
-        self.df.reindex(index=self.idx, columns=self.idx)
+        self.df.reindex(index=self.idx, columns=self.idx_cols)
 
     def time_reindex_upcast(self):
         self.df2.reindex(np.random.permutation(range(1200)))
@@ -84,7 +84,7 @@ class Reindex:
 
 class Rename:
     def setup(self):
-        N = 10 ** 3
+        N = 10**3
         self.df = DataFrame(np.random.randn(N * 10, N))
         self.idx = np.arange(4 * N, 7 * N)
         self.dict_idx = {k: k for k in self.idx}
@@ -329,7 +329,7 @@ class MaskBool:
 
 class Isnull:
     def setup(self):
-        N = 10 ** 3
+        N = 10**3
         self.df_no_null = DataFrame(np.random.randn(N, N))
 
         sample = np.array([np.nan, 1.0])
@@ -497,7 +497,7 @@ class Dtypes:
 
 class Equals:
     def setup(self):
-        N = 10 ** 3
+        N = 10**3
         self.float_df = DataFrame(np.random.randn(N, N))
         self.float_df_nan = self.float_df.copy()
         self.float_df_nan.iloc[-1, -1] = np.nan
@@ -611,6 +611,9 @@ class Duplicated:
     def time_frame_duplicated_wide(self):
         self.df2.duplicated()
 
+    def time_frame_duplicated_subset(self):
+        self.df.duplicated(subset=["a"])
+
 
 class XS:
 
@@ -618,7 +621,7 @@ class XS:
     param_names = ["axis"]
 
     def setup(self, axis):
-        self.N = 10 ** 4
+        self.N = 10**4
         self.df = DataFrame(np.random.randn(self.N, self.N))
 
     def time_frame_xs(self, axis):
@@ -718,9 +721,9 @@ class Describe:
     def setup(self):
         self.df = DataFrame(
             {
-                "a": np.random.randint(0, 100, 10 ** 6),
-                "b": np.random.randint(0, 100, 10 ** 6),
-                "c": np.random.randint(0, 100, 10 ** 6),
+                "a": np.random.randint(0, 100, 10**6),
+                "b": np.random.randint(0, 100, 10**6),
+                "c": np.random.randint(0, 100, 10**6),
             }
         )
 
@@ -729,17 +732,6 @@ class Describe:
 
     def time_dataframe_describe(self):
         self.df.describe()
-
-
-class SelectDtypes:
-    params = [100, 1000]
-    param_names = ["n"]
-
-    def setup(self, n):
-        self.df = DataFrame(np.random.randn(10, n))
-
-    def time_select_dtypes(self, n):
-        self.df.select_dtypes(include="int")
 
 
 class MemoryUsage:

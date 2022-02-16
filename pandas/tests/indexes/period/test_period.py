@@ -34,10 +34,6 @@ class TestPeriodIndex(DatetimeLike):
     def index(self, request):
         return request.param
 
-    @pytest.mark.xfail(reason="Goes through a generate_range path")
-    def test_pickle_compat_construction(self):
-        super().test_pickle_compat_construction()
-
     def test_where(self):
         # This is handled in test_indexing
         pass

@@ -357,6 +357,23 @@ class BaseSetitemTests(BaseExtensionTests):
         )
         self.assert_series_equal(result, expected)
 
+    def test_setitem_frame_2d_values(self, data):
+        # GH#44514
+        df = pd.DataFrame({"A": data})
+        orig = df.copy()
+
+        df.iloc[:] = df
+        self.assert_frame_equal(df, orig)
+
+        df.iloc[:-1] = df.iloc[:-1]
+        self.assert_frame_equal(df, orig)
+
+        df.iloc[:] = df.values
+        self.assert_frame_equal(df, orig)
+
+        df.iloc[:-1] = df.values[:-1]
+        self.assert_frame_equal(df, orig)
+
     def test_delitem_series(self, data):
         # GH#40763
         ser = pd.Series(data, name="data")

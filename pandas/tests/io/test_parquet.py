@@ -17,6 +17,7 @@ from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
     pa_version_under2p0,
     pa_version_under5p0,
+    pa_version_under6p0,
 )
 import pandas.util._test_decorators as td
 
@@ -43,6 +44,9 @@ try:
     with catch_warnings():
         # `np.bool` is a deprecated alias...
         filterwarnings("ignore", "`np.bool`", category=DeprecationWarning)
+        # accessing pd.Int64Index in pd namespace
+        filterwarnings("ignore", ".*Int64Index.*", category=FutureWarning)
+
         import fastparquet
 
     _HAVE_FASTPARQUET = True
@@ -349,7 +353,7 @@ def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
         tm.assert_frame_equal(result, df[["a", "d"]])
 
 
-def test_cross_engine_fp_pa(request, df_cross_compat, pa, fp):
+def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
     # cross-compat with differing reading/writing engines
     df = df_cross_compat
     with tm.ensure_clean() as path:
@@ -376,13 +380,20 @@ class Base:
             with tm.external_error_raised(exc):
                 to_parquet(df, path, engine, compression=None)
 
-    @tm.network
+    @pytest.mark.network
+    @tm.network(
+        url=(
+            "https://raw.githubusercontent.com/pandas-dev/pandas/"
+            "main/pandas/tests/io/data/parquet/simple.parquet"
+        ),
+        check_before_test=True,
+    )
     def test_parquet_read_from_url(self, df_compat, engine):
         if engine != "auto":
             pytest.importorskip(engine)
         url = (
             "https://raw.githubusercontent.com/pandas-dev/pandas/"
-            "master/pandas/tests/io/data/parquet/simple.parquet"
+            "main/pandas/tests/io/data/parquet/simple.parquet"
         )
         df = read_parquet(url)
         tm.assert_frame_equal(df, df_compat)
@@ -595,13 +606,16 @@ class TestBasic(Base):
         msg = r"parquet must have string column names"
         self.check_error_on_write(df, engine, ValueError, msg)
 
-    def test_use_nullable_dtypes(self, engine):
+    def test_use_nullable_dtypes(self, engine, request):
         import pyarrow.parquet as pq
 
         if engine == "fastparquet":
             # We are manually disabling fastparquet's
             # nullable dtype support pending discussion
-            pytest.skip("Fastparquet nullable dtype support is disabled")
+            mark = pytest.mark.xfail(
+                reason="Fastparquet nullable dtype support is disabled"
+            )
+            request.node.add_marker(mark)
 
         table = pyarrow.table(
             {
@@ -715,6 +729,34 @@ class TestParquetPyArrow(Base):
         # older pyarrows raise ArrowInvalid
         self.check_external_error_on_write(df, pa, pyarrow.ArrowException)
 
+    def test_unsupported_float16(self, pa):
+        # #44847, #44914
+        # Not able to write float 16 column using pyarrow.
+        data = np.arange(2, 10, dtype=np.float16)
+        df = pd.DataFrame(data=data, columns=["fp16"])
+        self.check_external_error_on_write(df, pa, pyarrow.ArrowException)
+
+    @pytest.mark.xfail(
+        is_platform_windows(),
+        reason=(
+            "PyArrow does not cleanup of partial files dumps when unsupported "
+            "dtypes are passed to_parquet function in windows"
+        ),
+    )
+    @pytest.mark.parametrize("path_type", [str, pathlib.Path])
+    def test_unsupported_float16_cleanup(self, pa, path_type):
+        # #44847, #44914
+        # Not able to write float 16 column using pyarrow.
+        # Tests cleanup by pyarrow in case of an error
+        data = np.arange(2, 10, dtype=np.float16)
+        df = pd.DataFrame(data=data, columns=["fp16"])
+
+        with tm.ensure_clean() as path_str:
+            path = path_type(path_str)
+            with tm.external_error_raised(pyarrow.ArrowException):
+                df.to_parquet(path=path, engine=pa)
+            assert not os.path.isfile(path)
+
     def test_categorical(self, pa):
 
         # supported in >= 0.7.0
@@ -734,11 +776,7 @@ class TestParquetPyArrow(Base):
 
         check_round_trip(df, pa)
 
-    @pytest.mark.xfail(
-        is_platform_windows(),
-        reason="localhost connection rejected",
-        strict=False,
-    )
+    @pytest.mark.single_cpu
     def test_s3_roundtrip_explicit_fs(self, df_compat, s3_resource, pa, s3so):
         s3fs = pytest.importorskip("s3fs")
         s3 = s3fs.S3FileSystem(**s3so)
@@ -751,6 +789,7 @@ class TestParquetPyArrow(Base):
             write_kwargs=kw,
         )
 
+    @pytest.mark.single_cpu
     def test_s3_roundtrip(self, df_compat, s3_resource, pa, s3so):
         # GH #19134
         s3so = {"storage_options": s3so}
@@ -762,6 +801,7 @@ class TestParquetPyArrow(Base):
             write_kwargs=s3so,
         )
 
+    @pytest.mark.single_cpu
     @td.skip_if_no("s3fs")  # also requires flask
     @pytest.mark.parametrize(
         "partition_col",
@@ -902,16 +942,27 @@ class TestParquetPyArrow(Base):
         check_round_trip(df, pa)
 
     def test_timestamp_nanoseconds(self, pa):
-        # with version 2.0, pyarrow defaults to writing the nanoseconds, so
+        # with version 2.6, pyarrow defaults to writing the nanoseconds, so
         # this should work without error
+        # Note in previous pyarrows(<6.0.0), only the pseudo-version 2.0 was available
+        if not pa_version_under6p0:
+            ver = "2.6"
+        else:
+            ver = "2.0"
         df = pd.DataFrame({"a": pd.date_range("2017-01-01", freq="1n", periods=10)})
-        check_round_trip(df, pa, write_kwargs={"version": "2.0"})
+        check_round_trip(df, pa, write_kwargs={"version": ver})
 
-    def test_timezone_aware_index(self, pa, timezone_aware_date_list):
-        if not pa_version_under2p0:
-            # temporary skip this test until it is properly resolved
-            # https://github.com/pandas-dev/pandas/issues/37286
-            pytest.skip()
+    def test_timezone_aware_index(self, request, pa, timezone_aware_date_list):
+        if (
+            not pa_version_under2p0
+            and timezone_aware_date_list.tzinfo != datetime.timezone.utc
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="temporary skip this test until it is properly resolved: "
+                    "https://github.com/pandas-dev/pandas/issues/37286"
+                )
+            )
         idx = 5 * [timezone_aware_date_list]
         df = pd.DataFrame(index=idx, data={"index_as_col": idx})
 
@@ -960,7 +1011,6 @@ class TestParquetFastParquet(Base):
         df["timedelta"] = pd.timedelta_range("1 day", periods=3)
         check_round_trip(df, fp)
 
-    @pytest.mark.skip(reason="not supported")
     def test_duplicate_columns(self, fp):
 
         # not currently able to handle duplicate columns
@@ -999,6 +1049,7 @@ class TestParquetFastParquet(Base):
             result = read_parquet(path, fp, filters=[("a", "==", 0)])
         assert len(result) == 1
 
+    @pytest.mark.single_cpu
     def test_s3_roundtrip(self, df_compat, s3_resource, fp, s3so):
         # GH #19134
         check_round_trip(
@@ -1094,7 +1145,7 @@ class TestParquetFastParquet(Base):
         expected.index.name = "index"
         check_round_trip(df, fp, expected=expected)
 
-    def test_use_nullable_dtypes_not_supported(self, monkeypatch, fp):
+    def test_use_nullable_dtypes_not_supported(self, fp):
         df = pd.DataFrame({"a": [1, 2]})
 
         with tm.ensure_clean() as path:

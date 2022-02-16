@@ -116,8 +116,8 @@ JSOBJ FASTCALL_MSVC decodePreciseFloat(struct DecoderState *ds) {
 
 JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
     int intNeg = 1;
-    int mantSize = 0;
     JSUINT64 intValue;
+    JSUINT64 prevIntValue;
     int chr;
     int decimalCount = 0;
     double frcValue = 0.0;
@@ -134,10 +134,10 @@ JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
     } else if (*(offset) == '-') {
         offset++;
         intNeg = -1;
+        overflowLimit  = LLONG_MIN;
         if (*(offset) == 'I') {
           goto DECODE_INF;
         }
-        overflowLimit = LLONG_MIN;
     }
 
     // Scan integer part
@@ -157,19 +157,18 @@ JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
             case '7':
             case '8':
             case '9': {
-                // FIXME: Check for arithmetic overflow here
-                // PERF: Don't do 64-bit arithmetic here unless we know we have
-                // to
-                intValue = intValue * 10ULL + (JSLONG)(chr - 48);
+                // PERF: Don't do 64-bit arithmetic here unless we have to
+                prevIntValue = intValue;
+                intValue = intValue * 10ULL + (JSLONG) (chr - 48);
 
-                if (intValue > overflowLimit) {
-                    return SetError(ds, -1, overflowLimit == LLONG_MAX
-                                                ? "Value is too big"
-                                                : "Value is too small");
+                if (intNeg == 1 && prevIntValue > intValue) {
+                    return SetError(ds, -1, "Value is too big!");
+                } else if (intNeg == -1 && intValue > overflowLimit) {
+                    return SetError(ds, -1, overflowLimit == LLONG_MAX ?
+                                    "Value is too big!" : "Value is too small");
                 }
 
                 offset++;
-                mantSize++;
                 break;
             }
             case '.': {
@@ -196,11 +195,12 @@ BREAK_INT_LOOP:
     ds->lastType = JT_INT;
     ds->start = offset;
 
-    if ((intValue >> 31)) {
+    if (intNeg == 1 && (intValue & 0x8000000000000000ULL) != 0)
+        return ds->dec->newUnsignedLong(ds->prv, intValue);
+    else if ((intValue >> 31))
         return ds->dec->newLong(ds->prv, (JSINT64)(intValue * (JSINT64)intNeg));
-    } else {
+    else
         return ds->dec->newInt(ds->prv, (JSINT32)(intValue * intNeg));
-    }
 
 DECODE_FRACTION:
 

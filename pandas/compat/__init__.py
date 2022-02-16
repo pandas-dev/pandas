@@ -7,15 +7,13 @@ Cross-compatible functions for different versions of Python.
 Other items:
 * platform checker
 """
+import os
 import platform
 import sys
-import warnings
 
 from pandas._typing import F
 from pandas.compat.numpy import (
     is_numpy_dev,
-    np_array_datetime64_compat,
-    np_datetime64_compat,
     np_version_under1p19,
     np_version_under1p20,
 )
@@ -29,7 +27,7 @@ from pandas.compat.pyarrow import (
 PY39 = sys.version_info >= (3, 9)
 PY310 = sys.version_info >= (3, 10)
 PYPY = platform.python_implementation() == "PyPy"
-IS64 = sys.maxsize > 2 ** 32
+IS64 = sys.maxsize > 2**32
 
 
 def set_function_name(f: F, name: str, cls) -> F:
@@ -92,7 +90,7 @@ def is_platform_mac() -> bool:
 
 def is_platform_arm() -> bool:
     """
-    Checking if he running platform use ARM architecture.
+    Checking if the running platform use ARM architecture.
 
     Returns
     -------
@@ -104,27 +102,20 @@ def is_platform_arm() -> bool:
     )
 
 
-def import_lzma():
+def is_ci_environment() -> bool:
     """
-    Importing the `lzma` module.
+    Checking if running in a continuous integration environment by checking
+    the PANDAS_CI environment variable.
 
-    Warns
-    -----
-    When the `lzma` module is not available.
+    Returns
+    -------
+    bool
+        True if the running in a continuous integration environment.
     """
-    try:
-        import lzma
-
-        return lzma
-    except ImportError:
-        msg = (
-            "Could not import the lzma module. Your installed Python is incomplete. "
-            "Attempting to use lzma compression will result in a RuntimeError."
-        )
-        warnings.warn(msg)
+    return os.environ.get("PANDAS_CI", "0") == "1"
 
 
-def get_lzma_file(lzma):
+def get_lzma_file():
     """
     Importing the `LZMAFile` class from the `lzma` module.
 
@@ -138,7 +129,9 @@ def get_lzma_file(lzma):
     RuntimeError
         If the `lzma` module was not imported correctly, or didn't exist.
     """
-    if lzma is None:
+    try:
+        import lzma
+    except ImportError:
         raise RuntimeError(
             "lzma module not available. "
             "A Python re-install with the proper dependencies, "
@@ -149,8 +142,6 @@ def get_lzma_file(lzma):
 
 __all__ = [
     "is_numpy_dev",
-    "np_array_datetime64_compat",
-    "np_datetime64_compat",
     "np_version_under1p19",
     "np_version_under1p20",
     "pa_version_under1p01",

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import inspect
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
 )
@@ -90,10 +91,12 @@ def generate_numba_agg_func(
         return NUMBA_FUNC_CACHE[cache_key]
 
     numba_func = jit_user_function(func, nopython, nogil, parallel)
-    numba = import_optional_dependency("numba")
+    if TYPE_CHECKING:
+        import numba
+    else:
+        numba = import_optional_dependency("numba")
 
-    # error: Untyped decorator makes function "group_agg" untyped
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)  # type: ignore[misc]
+    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
     def group_agg(
         values: np.ndarray,
         index: np.ndarray,
@@ -152,10 +155,12 @@ def generate_numba_transform_func(
         return NUMBA_FUNC_CACHE[cache_key]
 
     numba_func = jit_user_function(func, nopython, nogil, parallel)
-    numba = import_optional_dependency("numba")
+    if TYPE_CHECKING:
+        import numba
+    else:
+        numba = import_optional_dependency("numba")
 
-    # error: Untyped decorator makes function "group_transform" untyped
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)  # type: ignore[misc]
+    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
     def group_transform(
         values: np.ndarray,
         index: np.ndarray,

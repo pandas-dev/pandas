@@ -339,8 +339,11 @@ class TestMultiIndexLoc:
             convert_nested_indexer(indexer_type, k)
             for indexer_type, k in zip(types, keys)
         )
-
-        result = df.loc[indexer, "Data"]
+        if indexer_type_1 is set or indexer_type_2 is set:
+            with tm.assert_produces_warning(FutureWarning):
+                result = df.loc[indexer, "Data"]
+        else:
+            result = df.loc[indexer, "Data"]
         expected = Series(
             [1, 2, 4, 5], name="Data", index=MultiIndex.from_product(keys)
         )
@@ -378,6 +381,26 @@ class TestMultiIndexLoc:
             columns=["a", "b", "c", "d"],
         )
         tm.assert_frame_equal(df, expected)
+
+    def test_sorted_multiindex_after_union(self):
+        # GH#44752
+        midx = MultiIndex.from_product(
+            [pd.date_range("20110101", periods=2), Index(["a", "b"])]
+        )
+        ser1 = Series(1, index=midx)
+        ser2 = Series(1, index=midx[:2])
+        df = pd.concat([ser1, ser2], axis=1)
+        expected = df.copy()
+        result = df.loc["2011-01-01":"2011-01-02"]
+        tm.assert_frame_equal(result, expected)
+
+        df = DataFrame({0: ser1, 1: ser2})
+        result = df.loc["2011-01-01":"2011-01-02"]
+        tm.assert_frame_equal(result, expected)
+
+        df = pd.concat([ser1, ser2.reindex(ser1.index)], axis=1)
+        result = df.loc["2011-01-01":"2011-01-02"]
+        tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(

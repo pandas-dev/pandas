@@ -49,8 +49,15 @@ def create_iter_data_given_by(
     ...          [3, 4, np.nan, np.nan], [np.nan, np.nan, 5, 6]]
     >>> data = DataFrame(value, columns=mi)
     >>> create_iter_data_given_by(data)
-    {'h1': DataFrame({'a': [1, 3, np.nan], 'b': [3, 4, np.nan]}),
-     'h2': DataFrame({'a': [np.nan, np.nan, 5], 'b': [np.nan, np.nan, 6]})}
+    {'h1':     h1
+         a    b
+    0  1.0  3.0
+    1  3.0  4.0
+    2  NaN  NaN, 'h2':     h2
+         a    b
+    0  NaN  NaN
+    1  NaN  NaN
+    2  5.0  6.0}
     """
 
     # For `hist` plot, before transformation, the values in level 0 are values
@@ -96,10 +103,10 @@ def reconstruct_data_with_by(
     >>> df = DataFrame(d)
     >>> reconstruct_data_with_by(df, by='h', cols=['a', 'b'])
        h1      h2
-       a   b   a   b
-    0  1   3   NaN NaN
-    1  3   4   NaN NaN
-    2  NaN NaN 5   6
+       a     b     a     b
+    0  1.0   3.0   NaN   NaN
+    1  3.0   4.0   NaN   NaN
+    2  NaN   NaN   5.0   6.0
     """
     grouped = data.groupby(by)
 

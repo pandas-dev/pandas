@@ -144,7 +144,7 @@ class TestGetItem:
         result = ts[24:]
         tm.assert_series_equal(exp, result)
 
-        ts = ts[10:].append(ts[10:])
+        ts = pd.concat([ts[10:], ts[10:]])
         msg = "left slice bound for non-unique label: '2008'"
         with pytest.raises(KeyError, match=msg):
             ts[slice("2008", "2009")]
@@ -193,20 +193,18 @@ class TestGetItem:
                 "2013/02/01 9H",
                 "2013/02/01 09:00",
             ]
-            for v in values:
+            for val in values:
                 # GH7116
                 # these show deprecations as we are trying
                 # to slice with non-integer indexers
-                # FIXME: don't leave commented-out
-                # with pytest.raises(IndexError):
-                #    idx[v]
-                continue
+                with pytest.raises(IndexError, match="only integers, slices"):
+                    idx[val]
 
-            s = Series(np.random.rand(len(idx)), index=idx)
-            tm.assert_series_equal(s["2013/01/01 10:00"], s[3600:3660])
-            tm.assert_series_equal(s["2013/01/01 9H"], s[:3600])
+            ser = Series(np.random.rand(len(idx)), index=idx)
+            tm.assert_series_equal(ser["2013/01/01 10:00"], ser[3600:3660])
+            tm.assert_series_equal(ser["2013/01/01 9H"], ser[:3600])
             for d in ["2013/01/01", "2013/01", "2013"]:
-                tm.assert_series_equal(s[d], s)
+                tm.assert_series_equal(ser[d], ser)
 
     def test_getitem_day(self):
         # GH#6716
@@ -223,24 +221,23 @@ class TestGetItem:
                 "2013/02/01 9H",
                 "2013/02/01 09:00",
             ]
-            for v in values:
+            for val in values:
 
                 # GH7116
                 # these show deprecations as we are trying
                 # to slice with non-integer indexers
-                # with pytest.raises(IndexError):
-                #    idx[v]
-                continue
+                with pytest.raises(IndexError, match="only integers, slices"):
+                    idx[val]
 
-            s = Series(np.random.rand(len(idx)), index=idx)
-            tm.assert_series_equal(s["2013/01"], s[0:31])
-            tm.assert_series_equal(s["2013/02"], s[31:59])
-            tm.assert_series_equal(s["2014"], s[365:])
+            ser = Series(np.random.rand(len(idx)), index=idx)
+            tm.assert_series_equal(ser["2013/01"], ser[0:31])
+            tm.assert_series_equal(ser["2013/02"], ser[31:59])
+            tm.assert_series_equal(ser["2014"], ser[365:])
 
             invalid = ["2013/02/01 9H", "2013/02/01 09:00"]
-            for v in invalid:
-                with pytest.raises(KeyError, match=v):
-                    s[v]
+            for val in invalid:
+                with pytest.raises(KeyError, match=val):
+                    ser[val]
 
 
 class TestGetLoc:

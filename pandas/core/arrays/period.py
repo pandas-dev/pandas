@@ -53,6 +53,7 @@ from pandas.util._decorators import (
 from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
     ensure_object,
+    is_datetime64_any_dtype,
     is_datetime64_dtype,
     is_dtype_equal,
     is_float_dtype,
@@ -547,7 +548,7 @@ class PeriodArray(dtl.DatelikeOps):
                 f"{type(self).__name__}._time_shift"
             )
         values = self.asi8 + periods * self.freq.n
-        if self._hasnans:
+        if self._hasna:
             values[self._isnan] = iNaT
         return type(self)(values, freq=self.freq)
 
@@ -617,7 +618,7 @@ class PeriodArray(dtl.DatelikeOps):
 
         new_data = period_asfreq_arr(ordinal, base1, base2, end)
 
-        if self._hasnans:
+        if self._hasna:
             new_data[self._isnan] = iNaT
 
         return type(self)(new_data, freq=freq)
@@ -632,7 +633,7 @@ class PeriodArray(dtl.DatelikeOps):
 
     @dtl.ravel_compat
     def _format_native_types(
-        self, na_rep="NaT", date_format=None, **kwargs
+        self, *, na_rep="NaT", date_format=None, **kwargs
     ) -> np.ndarray:
         """
         actually format my specific types
@@ -644,7 +645,7 @@ class PeriodArray(dtl.DatelikeOps):
         else:
             formatter = lambda dt: str(dt)
 
-        if self._hasnans:
+        if self._hasna:
             mask = self._isnan
             values[mask] = na_rep
             imask = ~mask
@@ -666,6 +667,12 @@ class PeriodArray(dtl.DatelikeOps):
                 return self.copy()
         if is_period_dtype(dtype):
             return self.asfreq(dtype.freq)
+
+        if is_datetime64_any_dtype(dtype):
+            # GH#45038 match PeriodIndex behavior.
+            tz = getattr(dtype, "tz", None)
+            return self.to_timestamp().tz_localize(tz)
+
         return super().astype(dtype, copy=copy)
 
     def searchsorted(
@@ -705,7 +712,7 @@ class PeriodArray(dtl.DatelikeOps):
         new_data = asi8 - other.ordinal
         new_data = np.array([self.freq * x for x in new_data])
 
-        if self._hasnans:
+        if self._hasna:
             new_data[self._isnan] = NaT
 
         return new_data
@@ -732,7 +739,7 @@ class PeriodArray(dtl.DatelikeOps):
         )
 
         new_values = np.array([self.freq.base * x for x in new_values])
-        if self._hasnans or other._hasnans:
+        if self._hasna or other._hasna:
             mask = self._isnan | other._isnan
             new_values[mask] = NaT
         return new_values

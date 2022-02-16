@@ -5,19 +5,27 @@
 from __future__ import annotations
 
 import io
+from typing import Sequence
 
 from pandas._typing import (
     CompressionOptions,
+    ConvertersArg,
+    DtypeArg,
     FilePath,
+    ParseDatesArg,
     ReadBuffer,
     StorageOptions,
+    XMLParsers,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     AbstractMethodError,
     ParserError,
 )
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    deprecate_nonkeyword_arguments,
+    doc,
+)
 
 from pandas.core.dtypes.common import is_list_like
 
@@ -34,6 +42,10 @@ from pandas.io.common import (
 from pandas.io.parsers import TextParser
 
 
+@doc(
+    storage_options=_shared_docs["storage_options"],
+    decompression_options=_shared_docs["decompression_options"] % "path_or_buffer",
+)
 class _XMLFrameParser:
     """
     Internal subclass to parse XML into DataFrames.
@@ -61,6 +73,23 @@ class _XMLFrameParser:
     names : list
         Column names for Data Frame of parsed XML data.
 
+    dtype : dict
+        Data type for data or columns. E.g. {{'a': np.float64,
+        'b': np.int32, 'c': 'Int64'}}
+
+        .. versionadded:: 1.5.0
+
+    converters : dict, optional
+        Dict of functions for converting values in certain columns. Keys can
+        either be integers or column labels.
+
+        .. versionadded:: 1.5.0
+
+    parse_dates : bool or list of int or names or list of lists or dict
+        Converts either index or select columns to datetimes
+
+        .. versionadded:: 1.5.0
+
     encoding : str
         Encoding of xml object or document.
 
@@ -68,13 +97,11 @@ class _XMLFrameParser:
         URL, file, file-like object, or a raw string containing XSLT,
         `etree` does not support XSLT but retained for consistency.
 
-    compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
-        Compression type for on-the-fly decompression of on-disk data.
-        If 'infer', then use extension for gzip, bz2, zip or xz.
+    {decompression_options}
 
-    storage_options : dict, optional
-        Extra options that make sense for a particular storage connection,
-        e.g. host, port, username, password, etc.,
+        .. versionchanged:: 1.4.0 Zstandard support.
+
+    {storage_options}
 
     See also
     --------
@@ -97,23 +124,29 @@ class _XMLFrameParser:
 
     def __init__(
         self,
-        path_or_buffer,
-        xpath,
-        namespaces,
-        elems_only,
-        attrs_only,
-        names,
-        encoding,
-        stylesheet,
-        compression,
-        storage_options,
-    ) -> None:
+        path_or_buffer: FilePath | ReadBuffer[bytes] | ReadBuffer[str],
+        xpath: str,
+        namespaces: dict[str, str] | None,
+        elems_only: bool,
+        attrs_only: bool,
+        names: Sequence[str] | None,
+        dtype: DtypeArg | None,
+        converters: ConvertersArg | None,
+        parse_dates: ParseDatesArg | None,
+        encoding: str | None,
+        stylesheet: FilePath | ReadBuffer[bytes] | ReadBuffer[str] | None,
+        compression: CompressionOptions,
+        storage_options: StorageOptions,
+    ):
         self.path_or_buffer = path_or_buffer
         self.xpath = xpath
         self.namespaces = namespaces
         self.elems_only = elems_only
         self.attrs_only = attrs_only
         self.names = names
+        self.dtype = dtype
+        self.converters = converters
+        self.parse_dates = parse_dates
         self.encoding = encoding
         self.stylesheet = stylesheet
         self.is_style = None
@@ -370,9 +403,6 @@ class _LxmlFrameParser(_XMLFrameParser):
     XPath 1.0 and XSLT 1.0.
     """
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-
     def parse_data(self) -> list[dict[str, str | None]]:
         """
         Parse xml data.
@@ -543,6 +573,11 @@ class _LxmlFrameParser(_XMLFrameParser):
             curr_parser = XMLParser(encoding=self.encoding)
 
             if isinstance(xml_data, io.StringIO):
+                if self.encoding is None:
+                    raise TypeError(
+                        "Can not pass encoding None when input is StringIO."
+                    )
+
                 doc = fromstring(
                     xml_data.getvalue().encode(self.encoding), parser=curr_parser
                 )
@@ -569,9 +604,9 @@ class _LxmlFrameParser(_XMLFrameParser):
 
 def get_data_from_filepath(
     filepath_or_buffer: FilePath | bytes | ReadBuffer[bytes] | ReadBuffer[str],
-    encoding,
-    compression,
-    storage_options,
+    encoding: str | None,
+    compression: CompressionOptions,
+    storage_options: StorageOptions,
 ) -> str | bytes | ReadBuffer[bytes] | ReadBuffer[str]:
     """
     Extract raw XML data.
@@ -657,17 +692,20 @@ def _data_to_frame(data, **kwargs) -> DataFrame:
 
 
 def _parse(
-    path_or_buffer,
-    xpath,
-    namespaces,
-    elems_only,
-    attrs_only,
-    names,
-    encoding,
-    parser,
-    stylesheet,
-    compression,
-    storage_options,
+    path_or_buffer: FilePath | ReadBuffer[bytes] | ReadBuffer[str],
+    xpath: str,
+    namespaces: dict[str, str] | None,
+    elems_only: bool,
+    attrs_only: bool,
+    names: Sequence[str] | None,
+    dtype: DtypeArg | None,
+    converters: ConvertersArg | None,
+    parse_dates: ParseDatesArg | None,
+    encoding: str | None,
+    parser: XMLParsers,
+    stylesheet: FilePath | ReadBuffer[bytes] | ReadBuffer[str] | None,
+    compression: CompressionOptions,
+    storage_options: StorageOptions,
     **kwargs,
 ) -> DataFrame:
     """
@@ -685,11 +723,11 @@ def _parse(
         * If parser is not lxml or etree.
     """
 
-    lxml = import_optional_dependency("lxml.etree", errors="ignore")
-
     p: _EtreeFrameParser | _LxmlFrameParser
 
     if parser == "lxml":
+        lxml = import_optional_dependency("lxml.etree", errors="ignore")
+
         if lxml is not None:
             p = _LxmlFrameParser(
                 path_or_buffer,
@@ -698,6 +736,9 @@ def _parse(
                 elems_only,
                 attrs_only,
                 names,
+                dtype,
+                converters,
+                parse_dates,
                 encoding,
                 stylesheet,
                 compression,
@@ -714,6 +755,9 @@ def _parse(
             elems_only,
             attrs_only,
             names,
+            dtype,
+            converters,
+            parse_dates,
             encoding,
             stylesheet,
             compression,
@@ -724,19 +768,35 @@ def _parse(
 
     data_dicts = p.parse_data()
 
-    return _data_to_frame(data=data_dicts, **kwargs)
+    return _data_to_frame(
+        data=data_dicts,
+        dtype=dtype,
+        converters=converters,
+        parse_dates=parse_dates,
+        **kwargs,
+    )
 
 
-@doc(storage_options=_shared_docs["storage_options"])
+@deprecate_nonkeyword_arguments(
+    version=None, allowed_args=["path_or_buffer"], stacklevel=2
+)
+@doc(
+    storage_options=_shared_docs["storage_options"],
+    decompression_options=_shared_docs["decompression_options"] % "path_or_buffer",
+)
 def read_xml(
     path_or_buffer: FilePath | ReadBuffer[bytes] | ReadBuffer[str],
-    xpath: str | None = "./*",
-    namespaces: dict | list[dict] | None = None,
-    elems_only: bool | None = False,
-    attrs_only: bool | None = False,
-    names: list[str] | None = None,
+    xpath: str = "./*",
+    namespaces: dict[str, str] | None = None,
+    elems_only: bool = False,
+    attrs_only: bool = False,
+    names: Sequence[str] | None = None,
+    dtype: DtypeArg | None = None,
+    converters: ConvertersArg | None = None,
+    parse_dates: ParseDatesArg | None = None,
+    # encoding can not be None for lxml and StringIO input
     encoding: str | None = "utf-8",
-    parser: str | None = "lxml",
+    parser: XMLParsers = "lxml",
     stylesheet: FilePath | ReadBuffer[bytes] | ReadBuffer[str] | None = None,
     compression: CompressionOptions = "infer",
     storage_options: StorageOptions = None,
@@ -784,6 +844,35 @@ def read_xml(
         Column names for DataFrame of parsed XML data. Use this parameter to
         rename original element names and distinguish same named elements.
 
+    dtype : Type name or dict of column -> type, optional
+        Data type for data or columns. E.g. {{'a': np.float64, 'b': np.int32,
+        'c': 'Int64'}}
+        Use `str` or `object` together with suitable `na_values` settings
+        to preserve and not interpret dtype.
+        If converters are specified, they will be applied INSTEAD
+        of dtype conversion.
+
+        .. versionadded:: 1.5.0
+
+    converters : dict, optional
+        Dict of functions for converting values in certain columns. Keys can either
+        be integers or column labels.
+
+        .. versionadded:: 1.5.0
+
+    parse_dates : bool or list of int or names or list of lists or dict, default False
+        Identifiers to parse index or columns to datetime. The behavior is as follows:
+
+        * boolean. If True -> try parsing the index.
+        * list of int or names. e.g. If [1, 2, 3] -> try parsing columns 1, 2, 3
+          each as a separate date column.
+        * list of lists. e.g.  If [[1, 3]] -> combine columns 1 and 3 and parse as
+          a single date column.
+        * dict, e.g. {{'foo' : [1, 3]}} -> parse columns 1, 3 as date and call
+          result 'foo'
+
+        .. versionadded:: 1.5.0
+
     encoding : str, optional, default 'utf-8'
         Encoding of XML document.
 
@@ -801,12 +890,9 @@ def read_xml(
         transformation and not the original XML document. Only XSLT 1.0
         scripts and not later versions is currently supported.
 
-    compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
-        For on-the-fly decompression of on-disk data. If 'infer', then use
-        gzip, bz2, zip or xz if path_or_buffer is a string ending in
-        '.gz', '.bz2', '.zip', or 'xz', respectively, and no decompression
-        otherwise. If using 'zip', the ZIP file must contain only one data
-        file to be read in. Set to None for no decompression.
+    {decompression_options}
+
+        .. versionchanged:: 1.4.0 Zstandard support.
 
     {storage_options}
 
@@ -930,6 +1016,9 @@ def read_xml(
         elems_only=elems_only,
         attrs_only=attrs_only,
         names=names,
+        dtype=dtype,
+        converters=converters,
+        parse_dates=parse_dates,
         encoding=encoding,
         parser=parser,
         stylesheet=stylesheet,

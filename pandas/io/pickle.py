@@ -15,19 +15,22 @@ from pandas._typing import (
 from pandas.compat import pickle_compat as pc
 from pandas.util._decorators import doc
 
-from pandas.core import generic
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import get_handle
 
 
-@doc(storage_options=generic._shared_docs["storage_options"])
+@doc(
+    storage_options=_shared_docs["storage_options"],
+    compression_options=_shared_docs["compression_options"] % "filepath_or_buffer",
+)
 def to_pickle(
     obj: Any,
     filepath_or_buffer: FilePath | WriteBuffer[bytes],
     compression: CompressionOptions = "infer",
     protocol: int = pickle.HIGHEST_PROTOCOL,
     storage_options: StorageOptions = None,
-):
+) -> None:
     """
     Pickle (serialize) object to file.
 
@@ -41,12 +44,10 @@ def to_pickle(
 
         .. versionchanged:: 1.0.0
            Accept URL. URL has to be of S3 or GCS.
+    {compression_options}
 
-    compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
-        If 'infer' and 'path_or_url' is path-like, then detect compression from
-        the following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
-        compression) If 'infer' and 'path_or_url' is not path-like, then use
-        None (= no decompression).
+        .. versionchanged:: 1.4.0 Zstandard support.
+
     protocol : int
         Int which indicates which protocol should be used by the pickler,
         default HIGHEST_PROTOCOL (see [1], paragraph 12.1.2). The possible
@@ -71,28 +72,25 @@ def to_pickle(
 
     Examples
     --------
-    >>> original_df = pd.DataFrame({{"foo": range(5), "bar": range(5, 10)}})
-    >>> original_df
+    >>> original_df = pd.DataFrame({{"foo": range(5), "bar": range(5, 10)}})  # doctest: +SKIP
+    >>> original_df  # doctest: +SKIP
        foo  bar
     0    0    5
     1    1    6
     2    2    7
     3    3    8
     4    4    9
-    >>> pd.to_pickle(original_df, "./dummy.pkl")
+    >>> pd.to_pickle(original_df, "./dummy.pkl")  # doctest: +SKIP
 
-    >>> unpickled_df = pd.read_pickle("./dummy.pkl")
-    >>> unpickled_df
+    >>> unpickled_df = pd.read_pickle("./dummy.pkl")  # doctest: +SKIP
+    >>> unpickled_df  # doctest: +SKIP
        foo  bar
     0    0    5
     1    1    6
     2    2    7
     3    3    8
     4    4    9
-
-    >>> import os
-    >>> os.remove("./dummy.pkl")
-    """
+    """  # noqa: E501
     if protocol < 0:
         protocol = pickle.HIGHEST_PROTOCOL
 
@@ -114,7 +112,10 @@ def to_pickle(
             pickle.dump(obj, handles.handle, protocol=protocol)
 
 
-@doc(storage_options=generic._shared_docs["storage_options"])
+@doc(
+    storage_options=_shared_docs["storage_options"],
+    decompression_options=_shared_docs["decompression_options"] % "filepath_or_buffer",
+)
 def read_pickle(
     filepath_or_buffer: FilePath | ReadPickleBuffer,
     compression: CompressionOptions = "infer",
@@ -137,11 +138,9 @@ def read_pickle(
         .. versionchanged:: 1.0.0
            Accept URL. URL is not limited to S3 and GCS.
 
-    compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
-        If 'infer' and 'path_or_url' is path-like, then detect compression from
-        the following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
-        compression) If 'infer' and 'path_or_url' is not path-like, then use
-        None (= no decompression).
+    {decompression_options}
+
+        .. versionchanged:: 1.4.0 Zstandard support.
 
     {storage_options}
 
@@ -165,28 +164,25 @@ def read_pickle(
 
     Examples
     --------
-    >>> original_df = pd.DataFrame({{"foo": range(5), "bar": range(5, 10)}})
-    >>> original_df
+    >>> original_df = pd.DataFrame({{"foo": range(5), "bar": range(5, 10)}})  # doctest: +SKIP
+    >>> original_df  # doctest: +SKIP
        foo  bar
     0    0    5
     1    1    6
     2    2    7
     3    3    8
     4    4    9
-    >>> pd.to_pickle(original_df, "./dummy.pkl")
+    >>> pd.to_pickle(original_df, "./dummy.pkl")  # doctest: +SKIP
 
-    >>> unpickled_df = pd.read_pickle("./dummy.pkl")
-    >>> unpickled_df
+    >>> unpickled_df = pd.read_pickle("./dummy.pkl")  # doctest: +SKIP
+    >>> unpickled_df  # doctest: +SKIP
        foo  bar
     0    0    5
     1    1    6
     2    2    7
     3    3    8
     4    4    9
-
-    >>> import os
-    >>> os.remove("./dummy.pkl")
-    """
+    """  # noqa: E501
     excs_to_catch = (AttributeError, ImportError, ModuleNotFoundError, TypeError)
     with get_handle(
         filepath_or_buffer,

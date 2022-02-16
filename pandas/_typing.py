@@ -84,6 +84,7 @@ PythonScalar = Union[str, int, float, bool]
 DatetimeLikeScalar = Union["Period", "Timestamp", "Timedelta"]
 PandasScalar = Union["Period", "Timestamp", "Timedelta", "Interval"]
 Scalar = Union[PythonScalar, PandasScalar]
+IntStrT = TypeVar("IntStrT", int, str)
 
 
 # timestamp and timedelta convertible types
@@ -127,6 +128,14 @@ AstypeArg = Union["ExtensionDtype", "npt.DTypeLike"]
 # DtypeArg specifies all allowable dtypes in a functions its dtype argument
 DtypeArg = Union[Dtype, Dict[Hashable, Dtype]]
 DtypeObj = Union[np.dtype, "ExtensionDtype"]
+
+# converters
+ConvertersArg = Dict[Hashable, Callable[[Dtype], Dtype]]
+
+# parse_dates
+ParseDatesArg = Union[
+    bool, List[Hashable], List[List[Hashable]], Dict[Hashable, List[Hashable]]
+]
 
 # For functions like rename that convert one label to another
 Renamer = Union[Mapping[Hashable, Any], Callable[[Hashable], Hashable]]
@@ -242,8 +251,9 @@ StorageOptions = Optional[Dict[str, Any]]
 
 # compression keywords and compression
 CompressionDict = Dict[str, Any]
-CompressionOptions = Optional[Union[str, CompressionDict]]
-
+CompressionOptions = Optional[
+    Union[Literal["infer", "gzip", "bz2", "zip", "xz", "zstd"], CompressionDict]
+]
 
 # types in DataFrameFormatter
 FormattersType = Union[
@@ -272,7 +282,7 @@ Manager2D = Union["ArrayManager", "BlockManager"]
 # SequenceIndexer is for list like or slices (but not tuples)
 # PositionalIndexerTuple is extends the PositionalIndexer for 2D arrays
 # These are used in various __getitem__ overloads
-# TODO: add Ellipsis, see
+# TODO(typing#684): add Ellipsis, see
 # https://github.com/python/typing/issues/684#issuecomment-548203158
 # https://bugs.python.org/issue41810
 # Using List[int] here rather than Sequence[int] to disallow tuples.
@@ -288,3 +298,9 @@ else:
 
 # Windowing rank methods
 WindowingRankType = Literal["average", "min", "max"]
+
+# read_csv engines
+CSVEngine = Literal["c", "python", "pyarrow", "python-fwf"]
+
+# read_xml parsers
+XMLParsers = Literal["lxml", "etree"]

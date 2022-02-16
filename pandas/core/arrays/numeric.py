@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import datetime
 import numbers
 from typing import (
     TYPE_CHECKING,
@@ -10,18 +9,22 @@ from typing import (
 import numpy as np
 
 from pandas._libs import (
-    Timedelta,
+    lib,
     missing as libmissing,
 )
-from pandas.compat.numpy import function as nv
+from pandas._typing import (
+    Dtype,
+    DtypeObj,
+)
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import (
-    is_float,
+    is_bool_dtype,
     is_float_dtype,
-    is_integer,
     is_integer_dtype,
-    is_list_like,
+    is_object_dtype,
+    is_string_dtype,
+    pandas_dtype,
 )
 
 from pandas.core.arrays.masked import (
@@ -32,10 +35,13 @@ from pandas.core.arrays.masked import (
 if TYPE_CHECKING:
     import pyarrow
 
+
 T = TypeVar("T", bound="NumericArray")
 
 
 class NumericDtype(BaseMaskedDtype):
+    _default_np_dtype: np.dtype
+
     def __from_arrow__(
         self, array: pyarrow.Array | pyarrow.ChunkedArray
     ) -> BaseMaskedArray:
@@ -50,6 +56,16 @@ class NumericDtype(BaseMaskedDtype):
 
         pyarrow_type = pyarrow.from_numpy_dtype(self.type)
         if not array.type.equals(pyarrow_type):
+            # test_from_arrow_type_error raise for string, but allow
+            #  through itemsize conversion GH#31896
+            rt_dtype = pandas_dtype(array.type.to_pandas_dtype())
+            if rt_dtype.kind not in ["i", "u", "f"]:
+                # Could allow "c" or potentially disallow float<->int conversion,
+                #  but at the moment we specifically test that uint<->int works
+                raise TypeError(
+                    f"Expected array of {self} type, got {array.type} instead"
+                )
+
             array = array.cast(pyarrow_type)
 
         if isinstance(array, pyarrow.Array):
@@ -74,129 +90,123 @@ class NumericDtype(BaseMaskedDtype):
         else:
             return array_class._concat_same_type(results)
 
+    @classmethod
+    def _standardize_dtype(cls, dtype) -> NumericDtype:
+        """
+        Convert a string representation or a numpy dtype to NumericDtype.
+        """
+        raise AbstractMethodError(cls)
+
+    @classmethod
+    def _safe_cast(cls, values: np.ndarray, dtype: np.dtype, copy: bool) -> np.ndarray:
+        """
+        Safely cast the values to the given dtype.
+
+        "safe" in this context means the casting is lossless.
+        """
+        raise AbstractMethodError(cls)
+
+
+def _coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype):
+    if default_dtype.kind == "f":
+        checker = is_float_dtype
+    else:
+        checker = is_integer_dtype
+
+    inferred_type = None
+
+    if dtype is None and hasattr(values, "dtype"):
+        if checker(values.dtype):
+            dtype = values.dtype
+
+    if dtype is not None:
+        dtype = dtype_cls._standardize_dtype(dtype)
+
+    cls = dtype_cls.construct_array_type()
+    if isinstance(values, cls):
+        values, mask = values._data, values._mask
+        if dtype is not None:
+            values = values.astype(dtype.numpy_dtype, copy=False)
+
+        if copy:
+            values = values.copy()
+            mask = mask.copy()
+        return values, mask, dtype, inferred_type
+
+    values = np.array(values, copy=copy)
+    inferred_type = None
+    if is_object_dtype(values.dtype) or is_string_dtype(values.dtype):
+        inferred_type = lib.infer_dtype(values, skipna=True)
+        if inferred_type == "empty":
+            pass
+        elif inferred_type == "boolean":
+            name = dtype_cls.__name__.strip("_")
+            raise TypeError(f"{values.dtype} cannot be converted to {name}")
+
+    elif is_bool_dtype(values) and checker(dtype):
+        values = np.array(values, dtype=default_dtype, copy=copy)
+
+    elif not (is_integer_dtype(values) or is_float_dtype(values)):
+        name = dtype_cls.__name__.strip("_")
+        raise TypeError(f"{values.dtype} cannot be converted to {name}")
+
+    if values.ndim != 1:
+        raise TypeError("values must be a 1D list-like")
+
+    if mask is None:
+        mask = libmissing.is_numeric_na(values)
+    else:
+        assert len(mask) == len(values)
+
+    if mask.ndim != 1:
+        raise TypeError("mask must be a 1D list-like")
+
+    # infer dtype if needed
+    if dtype is None:
+        dtype = default_dtype
+    else:
+        dtype = dtype.type
+
+    # we copy as need to coerce here
+    if mask.any():
+        values = values.copy()
+        values[mask] = cls._internal_fill_value
+    if inferred_type in ("string", "unicode"):
+        # casts from str are always safe since they raise
+        # a ValueError if the str cannot be parsed into a float
+        values = values.astype(dtype, copy=copy)
+    else:
+        values = dtype_cls._safe_cast(values, dtype, copy=False)
+
+    return values, mask, dtype, inferred_type
+
 
 class NumericArray(BaseMaskedArray):
     """
     Base class for IntegerArray and FloatingArray.
     """
 
-    def _maybe_mask_result(self, result, mask, other, op_name: str):
-        raise AbstractMethodError(self)
+    _dtype_cls: type[NumericDtype]
 
-    def _arith_method(self, other, op):
-        op_name = op.__name__
-        omask = None
+    @classmethod
+    def _coerce_to_array(
+        cls, value, *, dtype: DtypeObj, copy: bool = False
+    ) -> tuple[np.ndarray, np.ndarray]:
+        dtype_cls = cls._dtype_cls
+        default_dtype = dtype_cls._default_np_dtype
+        mask = None
+        values, mask, _, _ = _coerce_to_data_and_mask(
+            value, mask, dtype, copy, dtype_cls, default_dtype
+        )
+        return values, mask
 
-        if getattr(other, "ndim", 0) > 1:
-            raise NotImplementedError("can only perform ops with 1-d structures")
+    @classmethod
+    def _from_sequence_of_strings(
+        cls: type[T], strings, *, dtype: Dtype | None = None, copy: bool = False
+    ) -> T:
+        from pandas.core.tools.numeric import to_numeric
 
-        if isinstance(other, NumericArray):
-            other, omask = other._data, other._mask
-
-        elif is_list_like(other):
-            other = np.asarray(other)
-            if other.ndim > 1:
-                raise NotImplementedError("can only perform ops with 1-d structures")
-            if len(self) != len(other):
-                raise ValueError("Lengths must match")
-            if not (is_float_dtype(other) or is_integer_dtype(other)):
-                raise TypeError("can only perform ops with numeric values")
-
-        elif isinstance(other, (datetime.timedelta, np.timedelta64)):
-            other = Timedelta(other)
-
-        else:
-            if not (is_float(other) or is_integer(other) or other is libmissing.NA):
-                raise TypeError("can only perform ops with numeric values")
-
-        if omask is None:
-            mask = self._mask.copy()
-            if other is libmissing.NA:
-                mask |= True
-        else:
-            mask = self._mask | omask
-
-        if op_name == "pow":
-            # 1 ** x is 1.
-            mask = np.where((self._data == 1) & ~self._mask, False, mask)
-            # x ** 0 is 1.
-            if omask is not None:
-                mask = np.where((other == 0) & ~omask, False, mask)
-            elif other is not libmissing.NA:
-                mask = np.where(other == 0, False, mask)
-
-        elif op_name == "rpow":
-            # 1 ** x is 1.
-            if omask is not None:
-                mask = np.where((other == 1) & ~omask, False, mask)
-            elif other is not libmissing.NA:
-                mask = np.where(other == 1, False, mask)
-            # x ** 0 is 1.
-            mask = np.where((self._data == 0) & ~self._mask, False, mask)
-
-        if other is libmissing.NA:
-            result = np.ones_like(self._data)
-        else:
-            with np.errstate(all="ignore"):
-                result = op(self._data, other)
-
-        # divmod returns a tuple
-        if op_name == "divmod":
-            div, mod = result
-            return (
-                self._maybe_mask_result(div, mask, other, "floordiv"),
-                self._maybe_mask_result(mod, mask, other, "mod"),
-            )
-
-        return self._maybe_mask_result(result, mask, other, op_name)
+        scalars = to_numeric(strings, errors="raise")
+        return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
-
-    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
-        result = super()._reduce(name, skipna=skipna, **kwargs)
-        if isinstance(result, np.ndarray):
-            axis = kwargs["axis"]
-            if skipna:
-                # we only retain mask for all-NA rows/columns
-                mask = self._mask.all(axis=axis)
-            else:
-                mask = self._mask.any(axis=axis)
-            return type(self)(result, mask=mask)
-        return result
-
-    def __neg__(self):
-        return type(self)(-self._data, self._mask.copy())
-
-    def __pos__(self):
-        return self.copy()
-
-    def __abs__(self):
-        return type(self)(abs(self._data), self._mask.copy())
-
-    def round(self: T, decimals: int = 0, *args, **kwargs) -> T:
-        """
-        Round each value in the array a to the given number of decimals.
-
-        Parameters
-        ----------
-        decimals : int, default 0
-            Number of decimal places to round to. If decimals is negative,
-            it specifies the number of positions to the left of the decimal point.
-        *args, **kwargs
-            Additional arguments and keywords have no effect but might be
-            accepted for compatibility with NumPy.
-
-        Returns
-        -------
-        NumericArray
-            Rounded values of the NumericArray.
-
-        See Also
-        --------
-        numpy.around : Round values of an np.array.
-        DataFrame.round : Round values of a DataFrame.
-        Series.round : Round values of a Series.
-        """
-        nv.validate_round(args, kwargs)
-        values = np.round(self._data, decimals=decimals, **kwargs)
-        return type(self)(values, self._mask.copy())

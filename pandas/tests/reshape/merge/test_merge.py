@@ -118,7 +118,7 @@ def dfs_for_indicator():
 
 
 class TestMerge:
-    def setup_method(self, method):
+    def setup_method(self):
         # aggregate multiple columns
         self.df = DataFrame(
             {
@@ -597,7 +597,7 @@ class TestMerge:
         tm.assert_frame_equal(actual, expected)
 
     def test_merge_nosort(self):
-        # GH#2098, TODO: anything to do?
+        # GH#2098
 
         d = {
             "var1": np.random.randint(0, 10, size=10),
@@ -686,10 +686,12 @@ class TestMerge:
         # timedelta64 issues with join/merge
         # GH 5695
 
-        d = {"d": datetime(2013, 11, 5, 5, 56), "t": timedelta(0, 22500)}
+        d = DataFrame.from_dict(
+            {"d": [datetime(2013, 11, 5, 5, 56)], "t": [timedelta(0, 22500)]}
+        )
         df = DataFrame(columns=list("dt"))
-        df = df.append(d, ignore_index=True)
-        result = df.append(d, ignore_index=True)
+        df = concat([df, d], ignore_index=True)
+        result = concat([df, d], ignore_index=True)
         expected = DataFrame(
             {
                 "d": [datetime(2013, 11, 5, 5, 56), datetime(2013, 11, 5, 5, 56)],
@@ -1176,7 +1178,7 @@ class TestMerge:
         tm.assert_frame_equal(result, expected_3)
 
         # Dups on right
-        right_w_dups = right.append(DataFrame({"a": ["e"], "c": ["moo"]}, index=[4]))
+        right_w_dups = concat([right, DataFrame({"a": ["e"], "c": ["moo"]}, index=[4])])
         merge(
             left,
             right_w_dups,
@@ -1199,8 +1201,8 @@ class TestMerge:
             merge(left, right_w_dups, on="a", validate="one_to_one")
 
         # Dups on left
-        left_w_dups = left.append(
-            DataFrame({"a": ["a"], "c": ["cow"]}, index=[3]), sort=True
+        left_w_dups = concat(
+            [left, DataFrame({"a": ["a"], "c": ["cow"]}, index=[3])], sort=True
         )
         merge(
             left_w_dups,
@@ -1714,6 +1716,46 @@ class TestMergeDtypes:
             ),
         )
         tm.assert_series_equal(merged.dtypes, expected)
+
+    @pytest.mark.parametrize(
+        "left_empty, how, exp",
+        [
+            (False, "left", "left"),
+            (False, "right", "empty"),
+            (False, "inner", "empty"),
+            (False, "outer", "left"),
+            (False, "cross", "empty_cross"),
+            (True, "left", "empty"),
+            (True, "right", "right"),
+            (True, "inner", "empty"),
+            (True, "outer", "right"),
+            (True, "cross", "empty_cross"),
+        ],
+    )
+    def test_merge_empty(self, left_empty, how, exp):
+
+        left = DataFrame({"A": [2, 1], "B": [3, 4]})
+        right = DataFrame({"A": [1], "C": [5]}, dtype="int64")
+
+        if left_empty:
+            left = left.head(0)
+        else:
+            right = right.head(0)
+
+        result = left.merge(right, how=how)
+
+        if exp == "left":
+            expected = DataFrame({"A": [2, 1], "B": [3, 4], "C": [np.nan, np.nan]})
+        elif exp == "right":
+            expected = DataFrame({"B": [np.nan], "A": [1], "C": [5]})
+        elif exp == "empty":
+            expected = DataFrame(columns=["A", "B", "C"], dtype="int64")
+            if left_empty:
+                expected = expected[["B", "A", "C"]]
+        elif exp == "empty_cross":
+            expected = DataFrame(columns=["A_x", "B", "A_y", "C"], dtype="int64")
+
+        tm.assert_frame_equal(result, expected)
 
 
 @pytest.fixture
@@ -2617,4 +2659,13 @@ def test_merge_outer_with_NaN(dtype):
         },
         dtype=dtype,
     )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_different_index_names():
+    # GH#45094
+    left = DataFrame({"a": [1]}, index=pd.Index([1], name="c"))
+    right = DataFrame({"a": [1]}, index=pd.Index([1], name="d"))
+    result = merge(left, right, left_on="c", right_on="d")
+    expected = DataFrame({"a_x": [1], "a_y": 1})
     tm.assert_frame_equal(result, expected)

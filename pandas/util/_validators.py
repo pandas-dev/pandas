@@ -281,14 +281,15 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
 
     Examples
     --------
-    >>> df._validate_axis_style_args((str.upper,), {'columns': id},
-    ...                              'mapper', 'rename')
-    {'columns': <function id>, 'index': <method 'upper' of 'str' objects>}
+    >>> df = pd.DataFrame(range(2))
+    >>> validate_axis_style_args(df, (str.upper,), {'columns': id},
+    ...                          'mapper', 'rename')
+    {'columns': <built-in function id>, 'index': <method 'upper' of 'str' objects>}
 
     This emits a warning
-    >>> df._validate_axis_style_args((str.upper, id), {},
-    ...                              'mapper', 'rename')
-    {'columns': <function id>, 'index': <method 'upper' of 'str' objects>}
+    >>> validate_axis_style_args(df, (str.upper, id), {},
+    ...                          'mapper', 'rename')
+    {'index': <method 'upper' of 'str' objects>, 'columns': <built-in function id>}
     """
     # TODO: Change to keyword-only args and remove all this
 

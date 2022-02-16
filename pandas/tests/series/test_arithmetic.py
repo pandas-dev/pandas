@@ -16,7 +16,6 @@ import pandas as pd
 from pandas import (
     Categorical,
     Index,
-    IntervalIndex,
     Series,
     Timedelta,
     bdate_range,
@@ -723,18 +722,9 @@ class TestTimeSeriesArithmetic:
 class TestNamePreservation:
     @pytest.mark.parametrize("box", [list, tuple, np.array, Index, Series, pd.array])
     @pytest.mark.parametrize("flex", [True, False])
-    def test_series_ops_name_retention(
-        self, request, flex, box, names, all_binary_operators
-    ):
+    def test_series_ops_name_retention(self, flex, box, names, all_binary_operators):
         # GH#33930 consistent name renteiton
         op = all_binary_operators
-
-        if op is ops.rfloordiv and box in [list, tuple] and not flex:
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason="op fails because of inconsistent ndarray-wrapping GH#28759"
-                )
-            )
 
         left = Series(range(10), name=names[0])
         right = Series(range(10), name=names[1])
@@ -835,9 +825,7 @@ class TestInplaceOperations:
 
 def test_none_comparison(series_with_simple_index):
     series = series_with_simple_index
-    if isinstance(series.index, IntervalIndex):
-        # IntervalIndex breaks on "series[0] = np.nan" below
-        pytest.skip("IntervalIndex doesn't support assignment")
+
     if len(series) < 1:
         pytest.skip("Test doesn't make sense on empty data")
 
@@ -897,8 +885,8 @@ def test_series_varied_multiindex_alignment():
     expected = Series(
         [1000, 2001, 3002, 4003],
         index=pd.MultiIndex.from_tuples(
-            [("a", "x", 1), ("a", "x", 2), ("a", "y", 1), ("a", "y", 2)],
-            names=["ab", "xy", "num"],
+            [("x", 1, "a"), ("x", 2, "a"), ("y", 1, "a"), ("y", 2, "a")],
+            names=["xy", "num", "ab"],
         ),
     )
     tm.assert_series_equal(result, expected)

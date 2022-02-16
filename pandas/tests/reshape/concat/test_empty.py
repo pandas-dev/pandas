@@ -109,7 +109,12 @@ class TestEmptyConcat:
         ],
     )
     def test_concat_empty_series_dtypes(self, left, right, expected):
-        result = concat([Series(dtype=left), Series(dtype=right)])
+        warn = None
+        if (left is np.bool_ or right is np.bool_) and expected is not np.object_:
+            warn = FutureWarning
+        with tm.assert_produces_warning(warn, match="concatenating bool-dtype"):
+            # GH#39817
+            result = concat([Series(dtype=left), Series(dtype=right)])
         assert result.dtype == expected
 
     @pytest.mark.parametrize(
@@ -197,14 +202,12 @@ class TestEmptyConcat:
         result = concat(
             [Series(dtype="float64").astype("Sparse"), Series(dtype="float64")]
         )
-        # TODO: release-note: concat sparse dtype
         expected = pd.SparseDtype(np.float64)
         assert result.dtype == expected
 
         result = concat(
             [Series(dtype="float64").astype("Sparse"), Series(dtype="object")]
         )
-        # TODO: release-note: concat sparse dtype
         expected = pd.SparseDtype("object")
         assert result.dtype == expected
 

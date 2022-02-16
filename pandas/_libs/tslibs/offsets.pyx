@@ -186,8 +186,9 @@ def apply_wraps(func):
         if self.normalize:
             result = result.normalize()
 
-        # nanosecond may be deleted depending on offset process
-        if not self.normalize and nano != 0:
+        # If the offset object does not have a nanoseconds component,
+        # the result's nanosecond component may be lost.
+        if not self.normalize and nano != 0 and not hasattr(self, "nanoseconds"):
             if result.nanosecond != nano:
                 if result.tz is not None:
                     # convert to UTC
@@ -332,8 +333,12 @@ cdef _determine_offset(kwds):
         else:
             # sub-daily offset - use timedelta (tz-aware)
             offset = timedelta(**kwds_no_nanos)
+    elif any(nano in kwds for nano in ('nanosecond', 'nanoseconds')):
+        offset = timedelta(days=0)
     else:
-        offset = timedelta(1)
+        # GH 45643/45890: (historically) defaults to 1 day for non-nano
+        # since datetime.timedelta doesn't handle nanoseconds
+        offset = timedelta(days=1)
     return offset, use_relativedelta
 
 
@@ -928,7 +933,8 @@ cdef class Tick(SingleConstructorOffset):
         if util.is_timedelta64_object(other) or PyDelta_Check(other):
             return other + self.delta
         elif isinstance(other, type(self)):
-            # TODO: this is reached in tests that specifically call apply,
+            # TODO(2.0): remove once apply deprecation is enforced.
+            #  This is reached in tests that specifically call apply,
             #  but should not be reached "naturally" because __add__ should
             #  catch this case first.
             return type(self)(self.n + other.n)
@@ -1067,12 +1073,17 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 # perform calculation in UTC
                 other = other.replace(tzinfo=None)
 
+            if hasattr(self, "nanoseconds"):
+                td_nano = Timedelta(nanoseconds=self.nanoseconds)
+            else:
+                td_nano = Timedelta(0)
+
             if self.n > 0:
                 for i in range(self.n):
-                    other = other + self._offset
+                    other = other + self._offset + td_nano
             else:
                 for i in range(-self.n):
-                    other = other - self._offset
+                    other = other - self._offset - td_nano
 
             if tzinfo is not None and self._use_relativedelta:
                 # bring tz back from UTC calculation
@@ -1149,7 +1160,6 @@ cdef class RelativeDeltaOffset(BaseOffset):
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
-        # TODO: see GH#1395
         return True
 
 
@@ -1217,6 +1227,7 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     ----------
     n : int, default 1
         The number of time periods the offset represents.
+        If specified without a temporal pattern, defaults to n days.
     normalize : bool, default False
         Whether to round the result of a DateOffset addition down to the
         previous midnight.
@@ -2658,7 +2669,6 @@ cdef class WeekOfMonth(WeekOfMonthMixin):
     def _from_name(cls, suffix=None):
         if not suffix:
             raise ValueError(f"Prefix {repr(cls._prefix)} requires a suffix.")
-        # TODO: handle n here...
         # only one digit weeks (1 --> week 0, 2 --> week 1, etc.)
         week = int(suffix[0]) - 1
         weekday = weekday_to_int[suffix[1:]]
@@ -2724,7 +2734,6 @@ cdef class LastWeekOfMonth(WeekOfMonthMixin):
     def _from_name(cls, suffix=None):
         if not suffix:
             raise ValueError(f"Prefix {repr(cls._prefix)} requires a suffix.")
-        # TODO: handle n here...
         weekday = weekday_to_int[suffix]
         return cls(weekday=weekday)
 
@@ -3575,7 +3584,7 @@ cpdef to_offset(freq):
 
     Parameters
     ----------
-    freq : str, tuple, datetime.timedelta, DateOffset or None
+    freq : str, datetime.timedelta, BaseOffset or None
 
     Returns
     -------
@@ -3588,7 +3597,7 @@ cpdef to_offset(freq):
 
     See Also
     --------
-    DateOffset : Standard kind of date increment used for a date range.
+    BaseOffset : Standard kind of date increment used for a date range.
 
     Examples
     --------

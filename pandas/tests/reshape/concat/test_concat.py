@@ -11,7 +11,10 @@ from warnings import (
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    InvalidIndexError,
+    PerformanceWarning,
+)
 
 import pandas as pd
 from pandas import (
@@ -241,7 +244,7 @@ class TestConcatenate:
             columns=columns,
         )
 
-        appended = df1.append(df2, ignore_index=True)
+        appended = concat([df1, df2], ignore_index=True)
         expected = DataFrame(
             np.concatenate([df1.values, df2.values], axis=0), columns=columns
         )
@@ -490,6 +493,15 @@ class TestConcatenate:
         result = concat({"First": Series(range(3)), "Another": Series(range(4))})
         tm.assert_series_equal(result, expected)
 
+    def test_concat_duplicate_indices_raise(self):
+        # GH 45888: test raise for concat DataFrames with duplicate indices
+        # https://github.com/pandas-dev/pandas/issues/36263
+        df1 = DataFrame(np.random.randn(5), index=[0, 1, 2, 3, 3], columns=["a"])
+        df2 = DataFrame(np.random.randn(5), index=[0, 1, 2, 2, 4], columns=["b"])
+        msg = "Reindexing only valid with uniquely valued Index objects"
+        with pytest.raises(InvalidIndexError, match=msg):
+            concat([df1, df2], axis=1)
+
 
 @pytest.mark.parametrize("pdt", [Series, DataFrame])
 @pytest.mark.parametrize("dt", np.sctypes["float"])
@@ -541,11 +553,10 @@ def test_concat_sparse():
 
 def test_concat_dense_sparse():
     # GH 30668
-    a = Series(pd.arrays.SparseArray([1, None]), dtype=float)
+    dtype = pd.SparseDtype(np.float64, None)
+    a = Series(pd.arrays.SparseArray([1, None]), dtype=dtype)
     b = Series([1], dtype=float)
-    expected = Series(data=[1, None, 1], index=[0, 1, 0]).astype(
-        pd.SparseDtype(np.float64, None)
-    )
+    expected = Series(data=[1, None, 1], index=[0, 1, 0]).astype(dtype)
     result = concat([a, b], axis=0)
     tm.assert_series_equal(result, expected)
 
@@ -698,3 +709,49 @@ def test_concat_posargs_deprecation():
         result = concat([df, df2], 0)
     expected = DataFrame([[1, 2, 3], [4, 5, 6]], index=["a", "b"])
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        Series(data=[1, 2]),
+        DataFrame(
+            data={
+                "col1": [1, 2],
+            }
+        ),
+        DataFrame(dtype=float),
+        Series(dtype=float),
+    ],
+)
+def test_concat_drop_attrs(data):
+    # GH#41828
+    df1 = data.copy()
+    df1.attrs = {1: 1}
+    df2 = data.copy()
+    df2.attrs = {1: 2}
+    df = concat([df1, df2])
+    assert len(df.attrs) == 0
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        Series(data=[1, 2]),
+        DataFrame(
+            data={
+                "col1": [1, 2],
+            }
+        ),
+        DataFrame(dtype=float),
+        Series(dtype=float),
+    ],
+)
+def test_concat_retain_attrs(data):
+    # GH#41828
+    df1 = data.copy()
+    df1.attrs = {1: 1}
+    df2 = data.copy()
+    df2.attrs = {1: 1}
+    df = concat([df1, df2])
+    assert df.attrs[1] == 1

@@ -112,7 +112,7 @@ class Integer:
         self.mi_int.get_indexer(self.other_mi_many_mismatches, method="pad")
 
     def time_is_monotonic(self):
-        self.mi_int.is_monotonic
+        self.mi_int.is_monotonic_increasing
 
 
 class Duplicated:
@@ -203,7 +203,7 @@ class SetOperations:
     param_names = ["index_structure", "dtype", "method"]
 
     def setup(self, index_structure, dtype, method):
-        N = 10 ** 5
+        N = 10**5
         level1 = range(1000)
 
         level2 = date_range(start="1/1/2000", periods=N // 1000)

@@ -26,6 +26,7 @@ from pandas.api.extensions import (
 )
 from pandas.api.types import is_scalar
 from pandas.core.arraylike import OpsMixin
+from pandas.core.construction import extract_array
 
 
 @register_extension_dtype
@@ -77,6 +78,16 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
     @classmethod
     def from_scalars(cls, values):
+        if isinstance(values, cls):
+            # in particular for empty cases the pa.array(np.asarray(...))
+            #  does not round-trip
+            return cls(values._data)
+
+        elif not len(values):
+            if isinstance(values, list):
+                dtype = bool if cls is ArrowBoolArray else str
+                values = np.array([], dtype=dtype)
+
         arr = pa.chunked_array([pa.array(np.asarray(values))])
         return cls(arr)
 
@@ -91,6 +102,14 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
     def __repr__(self):
         return f"{type(self).__name__}({repr(self._data)})"
+
+    def __contains__(self, obj) -> bool:
+        if obj is None or obj is self.dtype.na_value:
+            # None -> EA.__contains__ only checks for self._dtype.na_value, not
+            #  any compatible NA value.
+            # self.dtype.na_value -> <pa.NullScalar:None> isn't recognized by pd.isna
+            return bool(self.isna().any())
+        return bool(super().__contains__(obj))
 
     def __getitem__(self, item):
         if is_scalar(item):
@@ -125,7 +144,8 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
     def __eq__(self, other):
         if not isinstance(other, type(self)):
-            return False
+            # TODO: use some pyarrow function here?
+            return np.asarray(self).__eq__(other)
 
         return self._logical_method(other, operator.eq)
 
@@ -144,6 +164,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
     def take(self, indices, allow_fill=False, fill_value=None):
         data = self._data.to_pandas()
+        data = extract_array(data, extract_numpy=True)
 
         if allow_fill and fill_value is None:
             fill_value = self.dtype.na_value

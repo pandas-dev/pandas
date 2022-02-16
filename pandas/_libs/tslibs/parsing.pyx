@@ -239,6 +239,9 @@ cdef inline bint does_string_look_like_time(str parse_string):
 
 
 def parse_datetime_string(
+    # NB: This will break with np.str_ (GH#32264) even though
+    #  isinstance(npstrobj, str) evaluates to True, so caller must ensure
+    #  the argument is *exactly* 'str'
     str date_string,
     bint dayfirst=False,
     bint yearfirst=False,
@@ -254,7 +257,7 @@ def parse_datetime_string(
     """
 
     cdef:
-        object dt
+        datetime dt
 
     if not _does_string_look_like_datetime(date_string):
         raise ValueError('Given date string not likely a datetime.')
@@ -288,7 +291,7 @@ def parse_datetime_string(
     return dt
 
 
-def parse_time_string(arg: str, freq=None, dayfirst=None, yearfirst=None):
+def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     """
     Try hard to parse datetime string, leveraging dateutil plus some extra
     goodies like quarter recognition.
@@ -309,6 +312,16 @@ def parse_time_string(arg: str, freq=None, dayfirst=None, yearfirst=None):
     str
         Describing resolution of parsed string.
     """
+    if type(arg) is not str:
+        # GH#45580 np.str_ satisfies isinstance(obj, str) but if we annotate
+        #  arg as "str" this raises here
+        if not isinstance(arg, np.str_):
+            raise TypeError(
+                "Argument 'arg' has incorrect type "
+                f"(expected str, got {type(arg).__name__})"
+            )
+        arg = str(arg)
+
     if is_offset_object(freq):
         freq = freq.rule_code
 

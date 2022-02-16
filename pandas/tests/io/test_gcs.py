@@ -16,6 +16,8 @@ from pandas import (
 import pandas._testing as tm
 from pandas.util import _test_decorators as td
 
+import pandas.io.common as icom
+
 
 @pytest.fixture
 def gcs_buffer(monkeypatch):
@@ -142,10 +144,9 @@ def test_to_csv_compression_encoding_gcs(gcs_buffer, compression_only, encoding)
     tm.assert_frame_equal(df, read_df)
 
     # write compressed file with implicit compression
-    if compression_only == "gzip":
-        compression_only = "gz"
+    file_ext = icom._compression_to_extension[compression_only]
     compression["method"] = "infer"
-    path_gcs += f".{compression_only}"
+    path_gcs += f".{file_ext}"
     df.to_csv(path_gcs, compression=compression, encoding=encoding)
 
     res = gcs_buffer.getvalue()

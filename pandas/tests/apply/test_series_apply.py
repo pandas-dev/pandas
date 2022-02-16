@@ -284,8 +284,6 @@ def test_transform_partial_failure(op, request):
                 raises=AssertionError, reason=f"{op} is successful on any dtype"
             )
         )
-    if op in ("rank", "fillna"):
-        pytest.skip(f"{op} doesn't raise TypeError on object")
 
     # Using object makes most transform kernels fail
     ser = Series(3 * [object])
@@ -378,11 +376,11 @@ def test_agg_apply_evaluate_lambdas_the_same(string_series):
 def test_with_nested_series(datetime_series):
     # GH 2316
     # .agg with a reducer and a transform, what to do
-    result = datetime_series.apply(lambda x: Series([x, x ** 2], index=["x", "x^2"]))
-    expected = DataFrame({"x": datetime_series, "x^2": datetime_series ** 2})
+    result = datetime_series.apply(lambda x: Series([x, x**2], index=["x", "x^2"]))
+    expected = DataFrame({"x": datetime_series, "x^2": datetime_series**2})
     tm.assert_frame_equal(result, expected)
 
-    result = datetime_series.agg(lambda x: Series([x, x ** 2], index=["x", "x^2"]))
+    result = datetime_series.agg(lambda x: Series([x, x**2], index=["x", "x^2"]))
     tm.assert_frame_equal(result, expected)
 
 
@@ -497,9 +495,13 @@ def test_map(datetime_series):
     tm.assert_series_equal(a.map(c), exp)
 
 
-def test_map_empty(index):
+def test_map_empty(request, index):
     if isinstance(index, MultiIndex):
-        pytest.skip("Initializing a Series from a MultiIndex is not supported")
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="Initializing a Series from a MultiIndex is not supported"
+            )
+        )
 
     s = Series(index)
     result = s.map({})

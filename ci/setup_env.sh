@@ -48,6 +48,7 @@ conda config --set ssl_verify false
 conda config --set quiet true --set always_yes true --set changeps1 false
 conda install pip conda  # create conda to create a historical artifact for pip & setuptools
 conda update -n base conda
+conda install -y -c conda-forge mamba
 
 echo "conda info -a"
 conda info -a
@@ -62,8 +63,8 @@ conda list
 conda remove --all -q -y -n pandas-dev
 
 echo
-echo "conda env create -q --file=${ENV_FILE}"
-time conda env create -q --file="${ENV_FILE}"
+echo "mamba env create -q --file=${ENV_FILE}"
+time mamba env create -q --file="${ENV_FILE}"
 
 
 if [[ "$BITS32" == "yes" ]]; then
@@ -87,11 +88,6 @@ conda remove pandas -y --force || true
 pip uninstall -y pandas || true
 
 echo
-echo "remove postgres if has been installed with conda"
-echo "we use the one from the CI"
-conda remove postgresql -y --force || true
-
-echo
 echo "remove qt"
 echo "causes problems with the clipboard, we use xsel for that"
 conda remove qt -y --force || true
@@ -106,7 +102,8 @@ echo "[Build extensions]"
 python setup.py build_ext -q -j2
 
 echo "[Updating pip]"
-python -m pip install --no-deps -U pip wheel setuptools
+# TODO: GH#44980 https://github.com/pypa/setuptools/issues/2941
+python -m pip install --no-deps -U pip wheel "setuptools<60.0.0"
 
 echo "[Install pandas]"
 python -m pip install --no-build-isolation -e .
@@ -115,13 +112,4 @@ echo
 echo "conda list"
 conda list
 
-# Install DB for Linux
-
-if [[ -n ${SQL:0} ]]; then
-  echo "installing dbs"
-  mysql -e 'create database pandas_nosetest;'
-  psql -c 'create database pandas_nosetest;' -U postgres
-else
-   echo "not using dbs on non-linux Travis builds or Azure Pipelines"
-fi
 echo "done"

@@ -10,22 +10,19 @@ import pytest
 
 from pandas.compat import IS64
 
-from pandas.core.dtypes.common import (
-    is_integer_dtype,
-    needs_i8_conversion,
-)
+from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
 from pandas import (
     CategoricalIndex,
     DatetimeIndex,
     MultiIndex,
-    NumericIndex,
     PeriodIndex,
     RangeIndex,
     TimedeltaIndex,
 )
 import pandas._testing as tm
+from pandas.core.api import NumericIndex
 
 
 class TestCommon:
@@ -49,15 +46,14 @@ class TestCommon:
         df = idx.to_frame(index=False, name=idx_name)
         assert df.index is not idx
 
-    def test_droplevel(self, index):
+    def test_droplevel(self, index_flat):
         # GH 21115
-        if isinstance(index, MultiIndex):
-            # Tested separately in test_multi.py
-            return
+        # MultiIndex is tested separately in test_multi.py
+        index = index_flat
 
         assert index.droplevel([]).equals(index)
 
-        for level in index.name, [index.name]:
+        for level in [index.name, [index.name]]:
             if isinstance(index.name, tuple) and level is index.name:
                 # GH 21121 : droplevel with tuple name
                 continue
@@ -92,7 +88,9 @@ class TestCommon:
 
     def test_constructor_unwraps_index(self, index_flat):
         a = index_flat
-        b = type(a)(a)
+        # Passing dtype is necessary for Index([True, False], dtype=object)
+        #  case.
+        b = type(a)(a, dtype=a.dtype)
         tm.assert_equal(a._data, b._data)
 
     def test_to_flat_index(self, index_flat):
@@ -174,8 +172,6 @@ class TestCommon:
     def test_copy_name2(self, index_flat):
         # GH#35592
         index = index_flat
-        if isinstance(index, MultiIndex):
-            return
 
         assert index.copy(name="mario").name == "mario"
 
@@ -192,7 +188,7 @@ class TestCommon:
 
         # GH 17896
         expected = index.drop_duplicates()
-        for level in 0, index.name, None:
+        for level in [0, index.name, None]:
             result = index.unique(level=level)
             tm.assert_index_equal(result, expected)
 
@@ -201,8 +197,8 @@ class TestCommon:
             index.unique(level=3)
 
         msg = (
-            fr"Requested level \(wrong\) does not match index name "
-            fr"\({re.escape(index.name.__repr__())}\)"
+            rf"Requested level \(wrong\) does not match index name "
+            rf"\({re.escape(index.name.__repr__())}\)"
         )
         with pytest.raises(KeyError, match=msg):
             index.unique(level="wrong")
@@ -247,13 +243,17 @@ class TestCommon:
             result = i.unique()
             tm.assert_index_equal(result, expected)
 
-    def test_searchsorted_monotonic(self, index_flat):
+    def test_searchsorted_monotonic(self, index_flat, request):
         # GH17271
         index = index_flat
         # not implemented for tuple searches in MultiIndex
         # or Intervals searches in IntervalIndex
         if isinstance(index, pd.IntervalIndex):
-            pytest.skip("Skip check for MultiIndex/IntervalIndex")
+            mark = pytest.mark.xfail(
+                reason="IntervalIndex.searchsorted does not support Interval arg",
+                raises=NotImplementedError,
+            )
+            request.node.add_marker(mark)
 
         # nothing to test if the index is empty
         if index.empty:
@@ -382,19 +382,17 @@ class TestCommon:
             index.name = "idx"
 
         warn = None
-        if dtype in ["int64", "uint64"]:
-            if needs_i8_conversion(index.dtype):
-                warn = FutureWarning
-        elif (
+        if (
             isinstance(index, DatetimeIndex)
             and index.tz is not None
             and dtype == "datetime64[ns]"
         ):
             # This astype is deprecated in favor of tz_localize
             warn = FutureWarning
-        elif isinstance(index, PeriodIndex) and dtype == "datetime64[ns]":
-            # Deprecated in favor of to_timestamp GH#44398
-            warn = FutureWarning
+        elif index.dtype.kind == "c" and dtype in ["float64", "int64", "uint64"]:
+            # imaginary components discarded
+            warn = np.ComplexWarning
+
         try:
             # Some of these conversions cannot succeed so we use a try / except
             with tm.assert_produces_warning(warn):
@@ -434,6 +432,9 @@ class TestCommon:
             return
         elif isinstance(index, NumericIndex) and is_integer_dtype(index.dtype):
             return
+        elif index.dtype == bool:
+            # values[1] = np.nan below casts to True!
+            return
 
         values[1] = np.nan
 
@@ -467,7 +468,9 @@ def test_sort_values_with_missing(index_with_missing, na_position):
         sorted_values = np.concatenate([[None] * missing_count, sorted_values])
     else:
         sorted_values = np.concatenate([sorted_values, [None] * missing_count])
-    expected = type(index_with_missing)(sorted_values)
+
+    # Explicitly pass dtype needed for Index backed by EA e.g. IntegerArray
+    expected = type(index_with_missing)(sorted_values, dtype=index_with_missing.dtype)
 
     result = index_with_missing.sort_values(na_position=na_position)
     tm.assert_index_equal(result, expected)

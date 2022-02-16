@@ -357,9 +357,17 @@ class NaTType(_NaT):
 
         base = _NaT.__new__(cls, 1, 1, 1)
         base.value = NPY_NAT
-        base.freq = None
 
         return base
+
+    @property
+    def freq(self):
+        warnings.warn(
+            "NaT.freq is deprecated and will be removed in a future version.",
+            FutureWarning,
+            stacklevel=1,
+        )
+        return None
 
     def __reduce_ex__(self, protocol):
         # python 3.6 compat
@@ -369,9 +377,6 @@ class NaTType(_NaT):
 
     def __reduce__(self):
         return (__nat_unpickle, (None, ))
-
-    def __rdiv__(self, other):
-        return _nat_rdivide_op(self, other)
 
     def __rtruediv__(self, other):
         return _nat_rdivide_op(self, other)
@@ -553,7 +558,7 @@ class NaTType(_NaT):
 
         Examples
         --------
-        >>> pd.Timestamp.fromtimestamp(1584199972)
+        >>> pd.Timestamp.utcfromtimestamp(1584199972)
         Timestamp('2020-03-14 15:32:52')
         """,
     )
@@ -566,7 +571,7 @@ class NaTType(_NaT):
 
         Examples
         --------
-        >>> pd.Timestamp.utcfromtimestamp(1584199972)
+        >>> pd.Timestamp.fromtimestamp(1584199972)
         Timestamp('2020-03-14 15:32:52')
 
         Note that the output may change depending on your local time.
@@ -618,7 +623,7 @@ class NaTType(_NaT):
     astimezone = _make_error_func(
         "astimezone",
         """
-        Convert tz-aware Timestamp to another time zone.
+        Convert timezone-aware Timestamp to another time zone.
 
         Parameters
         ----------
@@ -1028,7 +1033,7 @@ timedelta}, default 'raise'
     tz_convert = _make_nat_func(
         "tz_convert",
         """
-        Convert tz-aware Timestamp to another time zone.
+        Convert timezone-aware Timestamp to another time zone.
 
         Parameters
         ----------
@@ -1073,7 +1078,7 @@ timedelta}, default 'raise'
         "tz_localize",
         """
         Convert naive Timestamp to local time zone, or remove
-        timezone from tz-aware Timestamp.
+        timezone from timezone-aware Timestamp.
 
         Parameters
         ----------

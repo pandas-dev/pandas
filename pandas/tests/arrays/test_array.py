@@ -51,6 +51,12 @@ from pandas.tests.extension.decimal import (
         # String alias passes through to NumPy
         ([1, 2], "float32", PandasArray(np.array([1, 2], dtype="float32"))),
         ([1, 2], "int64", PandasArray(np.array([1, 2], dtype=np.int64))),
+        # GH#44715 FloatingArray does not support float16, so fall back to PandasArray
+        (
+            np.array([1, 2], dtype=np.float16),
+            None,
+            PandasArray(np.array([1, 2], dtype=np.float16)),
+        ),
         # idempotency with e.g. pd.array(pd.array([1, 2], dtype="int64"))
         (
             PandasArray(np.array([1, 2], dtype=np.int32)),
@@ -178,15 +184,15 @@ def test_array_copy():
     a = np.array([1, 2])
     # default is to copy
     b = pd.array(a, dtype=a.dtype)
-    assert np.shares_memory(a, b._ndarray) is False
+    assert not tm.shares_memory(a, b)
 
     # copy=True
     b = pd.array(a, dtype=a.dtype, copy=True)
-    assert np.shares_memory(a, b._ndarray) is False
+    assert not tm.shares_memory(a, b)
 
     # copy=False
     b = pd.array(a, dtype=a.dtype, copy=False)
-    assert np.shares_memory(a, b._ndarray) is True
+    assert tm.shares_memory(a, b)
 
 
 cet = pytz.timezone("CET")
