@@ -577,7 +577,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             categories = set(
                 np.concatenate([self._is_dtype_compat(c).categories for c in to_concat])
             )
-            codes = Categorical(data=data, categories=categories).codes
+            codes = Categorical(data, categories=categories).codes
         except TypeError:
             # not all to_concat elements are among our categories (or NA)
             from pandas.core.dtypes.concat import concat_compat
