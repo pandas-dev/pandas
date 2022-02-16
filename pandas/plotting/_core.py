@@ -1793,12 +1793,14 @@ def _load_backend(backend: str) -> types.ModuleType:
     found_backend = False
 
     eps = entry_points()
+    key = "pandas_plotting_backends"
     # entry_points lost dict API ~ PY 3.10
     # https://github.com/python/importlib_metadata/issues/298
     if hasattr(eps, "select"):
-        entry = eps.select(group="pandas_plotting_backends")
+        # error: "Dict[str, Tuple[EntryPoint, ...]]" has no attribute "select"
+        entry = eps.select(group=key)  # type: ignore[attr-defined]
     else:
-        entry = eps.get("pandas_plotting_backends", ())
+        entry = eps.get(key, ())
     for entry_point in entry:
         found_backend = entry_point.name == backend
         if found_backend:
