@@ -18,6 +18,9 @@ from pandas._typing import (
     WriteExcelBuffer,
 )
 from pandas.compat._optional import import_optional_dependency
+from pandas.util._decorators import doc
+
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.excel._base import (
     BaseExcelReader,
@@ -63,17 +66,26 @@ class OpenpyxlWriter(ExcelWriter):
 
         # ExcelWriter replaced "a" by "r+" to allow us to first read the excel file from
         # the file and later write to it
-        if "r+" in self.mode:  # Load from existing workbook
+        if "r+" in self._mode:  # Load from existing workbook
             from openpyxl import load_workbook
 
-            self.book = load_workbook(self.handles.handle, **engine_kwargs)
-            self.handles.handle.seek(0)
+            self._book = load_workbook(self._handles.handle, **engine_kwargs)
+            self._handles.handle.seek(0)
         else:
             # Create workbook object with default optimized_write=True.
-            self.book = Workbook(**engine_kwargs)
+            self._book = Workbook(**engine_kwargs)
 
             if self.book.worksheets:
                 self.book.remove(self.book.worksheets[0])
+
+    @property
+    def book(self):
+        """
+        Book instance of class openpyxl.workbook.Workbook.
+
+        This attribute can be used to access engine-specific features.
+        """
+        return self._book
 
     @property
     def sheets(self) -> dict[str, Any]:
@@ -81,14 +93,14 @@ class OpenpyxlWriter(ExcelWriter):
         result = {name: self.book[name] for name in self.book.sheetnames}
         return result
 
-    def save(self) -> None:
+    def _save(self) -> None:
         """
         Save workbook to disk.
         """
-        self.book.save(self.handles.handle)
-        if "r+" in self.mode and not isinstance(self.handles.handle, mmap.mmap):
+        self.book.save(self._handles.handle)
+        if "r+" in self._mode and not isinstance(self._handles.handle, mmap.mmap):
             # truncate file to the written content
-            self.handles.handle.truncate()
+            self._handles.handle.truncate()
 
     @classmethod
     def _convert_to_style_kwargs(cls, style_dict: dict) -> dict[str, Serialisable]:
@@ -424,7 +436,7 @@ class OpenpyxlWriter(ExcelWriter):
 
         return Protection(**protection_dict)
 
-    def write_cells(
+    def _write_cells(
         self,
         cells,
         sheet_name: str | None = None,
@@ -437,23 +449,23 @@ class OpenpyxlWriter(ExcelWriter):
 
         _style_cache: dict[str, dict[str, Serialisable]] = {}
 
-        if sheet_name in self.sheets and self.if_sheet_exists != "new":
-            if "r+" in self.mode:
-                if self.if_sheet_exists == "replace":
+        if sheet_name in self.sheets and self._if_sheet_exists != "new":
+            if "r+" in self._mode:
+                if self._if_sheet_exists == "replace":
                     old_wks = self.sheets[sheet_name]
                     target_index = self.book.index(old_wks)
                     del self.book[sheet_name]
                     wks = self.book.create_sheet(sheet_name, target_index)
-                elif self.if_sheet_exists == "error":
+                elif self._if_sheet_exists == "error":
                     raise ValueError(
                         f"Sheet '{sheet_name}' already exists and "
                         f"if_sheet_exists is set to 'error'."
                     )
-                elif self.if_sheet_exists == "overlay":
+                elif self._if_sheet_exists == "overlay":
                     wks = self.sheets[sheet_name]
                 else:
                     raise ValueError(
-                        f"'{self.if_sheet_exists}' is not valid for if_sheet_exists. "
+                        f"'{self._if_sheet_exists}' is not valid for if_sheet_exists. "
                         "Valid options are 'error', 'new', 'replace' and 'overlay'."
                     )
             else:
@@ -517,6 +529,7 @@ class OpenpyxlWriter(ExcelWriter):
 
 
 class OpenpyxlReader(BaseExcelReader):
+    @doc(storage_options=_shared_docs["storage_options"])
     def __init__(
         self,
         filepath_or_buffer: FilePath | ReadBuffer[bytes],
@@ -529,8 +542,7 @@ class OpenpyxlReader(BaseExcelReader):
         ----------
         filepath_or_buffer : str, path object or Workbook
             Object to be parsed.
-        storage_options : dict, optional
-            passed to fsspec for appropriate URLs (see ``_get_filepath_or_buffer``)
+        {storage_options}
         """
         import_optional_dependency("openpyxl")
         super().__init__(filepath_or_buffer, storage_options=storage_options)

@@ -15,9 +15,7 @@ from pandas._typing import (
 from pandas.compat import np_version_under1p20
 
 from pandas.core.dtypes.cast import (
-    can_hold_element,
     convert_scalar_for_putitemlike,
-    find_common_type,
     infer_dtype_from,
 )
 from pandas.core.dtypes.common import is_list_like
@@ -59,59 +57,6 @@ def putmask_inplace(values: ArrayLike, mask: npt.NDArray[np.bool_], value: Any) 
     else:
         # GH#37833 np.putmask is more performant than __setitem__
         np.putmask(values, mask, value)
-
-
-def putmask_smart(values: np.ndarray, mask: npt.NDArray[np.bool_], new) -> np.ndarray:
-    """
-    Return a new ndarray, try to preserve dtype if possible.
-
-    Parameters
-    ----------
-    values : np.ndarray
-        `values`, updated in-place.
-    mask : np.ndarray[bool]
-        Applies to both sides (array like).
-    new : listlike `new values` aligned with `values`
-
-    Returns
-    -------
-    values : ndarray with updated values
-        this *may* be a copy of the original
-
-    See Also
-    --------
-    np.putmask
-    """
-    # we cannot use np.asarray() here as we cannot have conversions
-    # that numpy does when numeric are mixed with strings
-
-    # see if we are only masking values that if putted
-    # will work in the current dtype
-    try:
-        nn = new[mask]
-    except TypeError:
-        # TypeError: only integer scalar arrays can be converted to a scalar index
-        pass
-    else:
-        # We only get to putmask_smart when we cannot hold 'new' in values.
-        #  The "smart" part of putmask_smart is checking if we can hold new[mask]
-        #  in values, in which case we can still avoid the need to cast.
-        if can_hold_element(values, nn):
-            values[mask] = nn
-            return values
-
-    new = np.asarray(new)
-
-    if values.dtype.kind == new.dtype.kind:
-        # preserves dtype if possible
-        np.putmask(values, mask, new)
-        return values
-
-    dtype = find_common_type([values.dtype, new.dtype])
-    values = values.astype(dtype)
-
-    np.putmask(values, mask, new)
-    return values
 
 
 def putmask_without_repeat(

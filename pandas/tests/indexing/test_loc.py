@@ -43,6 +43,22 @@ from pandas.core.indexing import (
 from pandas.tests.indexing.common import Base
 
 
+@pytest.mark.parametrize(
+    "series, new_serie, expected_ser",
+    [
+        [[np.nan, np.nan, "b"], ["a", np.nan, np.nan], [False, True, True]],
+        [[np.nan, "b"], ["a", np.nan], [False, True]],
+    ],
+)
+def test_not_change_nan_loc(series, new_serie, expected_ser):
+    # GH 28403
+    df = DataFrame({"A": series})
+    df["A"].loc[:] = new_serie
+    expected = DataFrame({"A": expected_ser})
+    tm.assert_frame_equal(df.isna(), expected)
+    tm.assert_frame_equal(df.notna(), ~expected)
+
+
 class TestLoc(Base):
     def test_loc_getitem_int(self):
 
@@ -1304,11 +1320,11 @@ class TestLocBaseIndependent:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "val,expected", [(2 ** 63 - 1, Series([1])), (2 ** 63, Series([2]))]
+        "val,expected", [(2**63 - 1, Series([1])), (2**63, Series([2]))]
     )
     def test_loc_getitem_uint64_scalar(self, val, expected):
         # see GH#19399
-        df = DataFrame([1, 2], index=[2 ** 63 - 1, 2 ** 63])
+        df = DataFrame([1, 2], index=[2**63 - 1, 2**63])
         result = df.loc[val]
 
         expected.name = val
@@ -1835,9 +1851,9 @@ class TestLocSetitemWithExpansion:
     @pytest.mark.slow
     def test_loc_setitem_with_expansion_large_dataframe(self):
         # GH#10692
-        result = DataFrame({"x": range(10 ** 6)}, dtype="int64")
+        result = DataFrame({"x": range(10**6)}, dtype="int64")
         result.loc[len(result)] = len(result) + 1
-        expected = DataFrame({"x": range(10 ** 6 + 1)}, dtype="int64")
+        expected = DataFrame({"x": range(10**6 + 1)}, dtype="int64")
         tm.assert_frame_equal(result, expected)
 
     def test_loc_setitem_empty_series(self):
@@ -1963,7 +1979,7 @@ class TestLocSetitemWithExpansion:
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.filterwarnings("ignore:indexing past lexsort depth")
-    def test_loc_setitem_with_expansion_nonunique_index(self, index, request):
+    def test_loc_setitem_with_expansion_nonunique_index(self, index):
         # GH#40096
         if not len(index):
             return
@@ -2823,10 +2839,10 @@ def test_loc_setitem_using_datetimelike_str_as_index(fill_val, exp_dtype):
 
 
 class TestLocSeries:
-    @pytest.mark.parametrize("val,expected", [(2 ** 63 - 1, 3), (2 ** 63, 4)])
+    @pytest.mark.parametrize("val,expected", [(2**63 - 1, 3), (2**63, 4)])
     def test_loc_uint64(self, val, expected):
         # see GH#19399
-        ser = Series({2 ** 63 - 1: 3, 2 ** 63: 4})
+        ser = Series({2**63 - 1: 3, 2**63: 4})
         assert ser.loc[val] == expected
 
     def test_loc_getitem(self, string_series, datetime_series):

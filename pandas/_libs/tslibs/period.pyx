@@ -4,6 +4,7 @@ cimport numpy as cnp
 from cpython.object cimport (
     Py_EQ,
     Py_NE,
+    PyObject,
     PyObject_RichCompare,
     PyObject_RichCompareBool,
 )
@@ -1449,45 +1450,69 @@ def from_ordinals(const int64_t[:] values, freq):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def extract_ordinals(ndarray[object] values, freq) -> np.ndarray:
-    # TODO: Change type to const object[:] when Cython supports that.
+def extract_ordinals(ndarray values, freq) -> np.ndarray:
+    # values is object-dtype, may be 2D
 
     cdef:
-        Py_ssize_t i, n = len(values)
-        int64_t[:] ordinals = np.empty(n, dtype=np.int64)
+        Py_ssize_t i, n = values.size
+        int64_t ordinal
+        ndarray ordinals = np.empty((<object>values).shape, dtype=np.int64)
+        cnp.broadcast mi = cnp.PyArray_MultiIterNew2(ordinals, values)
         object p
+
+    if values.descr.type_num != cnp.NPY_OBJECT:
+        # if we don't raise here, we'll segfault later!
+        raise TypeError("extract_ordinals values must be object-dtype")
 
     freqstr = Period._maybe_convert_freq(freq).freqstr
 
     for i in range(n):
-        p = values[i]
+        # Analogous to: p = values[i]
+        p = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
-        if checknull_with_nat(p):
-            ordinals[i] = NPY_NAT
-        elif util.is_integer_object(p):
-            if p == NPY_NAT:
-                ordinals[i] = NPY_NAT
-            else:
-                raise TypeError(p)
+        ordinal = _extract_ordinal(p, freqstr, freq)
+
+        # Analogous to: ordinals[i] = ordinal
+        (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = ordinal
+
+        cnp.PyArray_MultiIter_NEXT(mi)
+
+    return ordinals
+
+
+cdef inline int64_t _extract_ordinal(object item, str freqstr, freq) except? -1:
+    """
+    See extract_ordinals.
+    """
+    cdef:
+        int64_t ordinal
+
+    if checknull_with_nat(item):
+        ordinal = NPY_NAT
+    elif util.is_integer_object(item):
+        if item == NPY_NAT:
+            ordinal = NPY_NAT
         else:
-            try:
-                ordinals[i] = p.ordinal
+            raise TypeError(item)
+    else:
+        try:
+            ordinal = item.ordinal
 
-                if p.freqstr != freqstr:
-                    msg = DIFFERENT_FREQ.format(cls="PeriodIndex",
-                                                own_freq=freqstr,
-                                                other_freq=p.freqstr)
-                    raise IncompatibleFrequency(msg)
+            if item.freqstr != freqstr:
+                msg = DIFFERENT_FREQ.format(cls="PeriodIndex",
+                                            own_freq=freqstr,
+                                            other_freq=item.freqstr)
+                raise IncompatibleFrequency(msg)
 
-            except AttributeError:
-                p = Period(p, freq=freq)
-                if p is NaT:
-                    # input may contain NaT-like string
-                    ordinals[i] = NPY_NAT
-                else:
-                    ordinals[i] = p.ordinal
+        except AttributeError:
+            item = Period(item, freq=freq)
+            if item is NaT:
+                # input may contain NaT-like string
+                ordinal = NPY_NAT
+            else:
+                ordinal = item.ordinal
 
-    return ordinals.base  # .base to access underlying np.ndarray
+    return ordinal
 
 
 def extract_freq(ndarray[object] values) -> BaseOffset:

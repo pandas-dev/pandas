@@ -20,6 +20,7 @@ jobs:
   data_manager:
     name: Test experimental data manager
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     services:
       moto:
         image: motoserver/moto
@@ -45,7 +46,7 @@ jobs:
     - name: Run tests
       env:
         PANDAS_DATA_MANAGER: array
-        PATTERN: "not network and not clipboard"
+        PATTERN: "not network and not clipboard and not single_cpu"
         PYTEST_WORKERS: "auto"
         PYTEST_TARGET: pandas
       run: |

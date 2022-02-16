@@ -6448,7 +6448,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 axis=axis,
                 limit=limit,
                 inplace=inplace,
-                coerce=True,
                 downcast=downcast,
             )
         else:
@@ -6871,9 +6870,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         similar names. These use the actual numerical values of the index.
         For more information on their behavior, see the
         `SciPy documentation
-        <https://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation>`__
-        and `SciPy tutorial
-        <https://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html>`__.
+        <https://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation>`__.
 
         Examples
         --------
@@ -11444,7 +11441,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @doc(position="first", klass=_shared_doc_kwargs["klass"])
     def first_valid_index(self) -> Hashable | None:
         """
-        Return index for {position} non-NA value or None, if no NA value is found.
+        Return index for {position} non-NA value or None, if no non-NA value is found.
 
         Returns
         -------

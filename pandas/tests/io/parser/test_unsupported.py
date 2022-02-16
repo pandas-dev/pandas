@@ -12,7 +12,11 @@ from pathlib import Path
 
 import pytest
 
-from pandas.compat import is_platform_windows
+from pandas.compat import (
+    is_ci_environment,
+    is_platform_mac,
+    is_platform_windows,
+)
 from pandas.errors import ParserError
 
 import pandas._testing as tm
@@ -174,9 +178,9 @@ def test_close_file_handle_on_invalid_usecols(all_parsers):
     if parser.engine == "pyarrow":
         pyarrow = pytest.importorskip("pyarrow")
         error = pyarrow.lib.ArrowKeyError
-        if is_platform_windows():
-            # GH#45547 causes timeouts on windows builds
-            pytest.skip("GH#45547 causing timeouts on windows builds 2022-01-22")
+        if is_ci_environment() and (is_platform_windows() or is_platform_mac()):
+            # GH#45547 causes timeouts on windows/mac builds
+            pytest.skip("GH#45547 causing timeouts on windows/mac builds 2022-01-22")
 
     with tm.ensure_clean("test.csv") as fname:
         Path(fname).write_text("col1,col2\na,b\n1,2")
