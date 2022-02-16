@@ -537,3 +537,15 @@ class TestDataFrameDrop:
         df = DataFrame(index=MultiIndex.from_product([range(3), range(3)]))
         with pytest.raises(KeyError, match="labels \\[5\\] not found in level"):
             df.drop(5, level=0)
+
+    @pytest.mark.parametrize("idx, level", [(["a", "b"], 0), (["a"], None)])
+    def test_drop_index_ea_dtype(self, any_numeric_ea_dtype, idx, level):
+        # GH#45860
+        df = DataFrame(
+            {"a": [1, 2, 2, pd.NA], "b": 100}, dtype=any_numeric_ea_dtype
+        ).set_index(idx)
+        result = df.drop(Index([2, pd.NA]), level=level)
+        expected = DataFrame(
+            {"a": [1], "b": 100}, dtype=any_numeric_ea_dtype
+        ).set_index(idx)
+        tm.assert_frame_equal(result, expected)
