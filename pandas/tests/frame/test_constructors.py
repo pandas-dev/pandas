@@ -70,6 +70,14 @@ MIXED_INT_DTYPES = [
 
 
 class TestDataFrameConstructors:
+    def test_constructor_from_ndarray_with_str_dtype(self):
+        # If we don't ravel/reshape around ensure_str_array, we end up
+        #  with an array of strings each of which is e.g. "[0 1 2]"
+        arr = np.arange(12).reshape(4, 3)
+        df = DataFrame(arr, dtype=str)
+        expected = DataFrame(arr.astype(str))
+        tm.assert_frame_equal(df, expected)
+
     def test_constructor_from_2d_datetimearray(self, using_array_manager):
         dti = date_range("2016-01-01", periods=6, tz="US/Pacific")
         dta = dti._data.reshape(3, 2)

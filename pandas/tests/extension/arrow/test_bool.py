@@ -23,12 +23,12 @@ def dtype():
 def data():
     values = np.random.randint(0, 2, size=100, dtype=bool)
     values[1] = ~values[0]
-    return ArrowBoolArray.from_scalars(values)
+    return ArrowBoolArray._from_sequence(values)
 
 
 @pytest.fixture
 def data_missing():
-    return ArrowBoolArray.from_scalars([None, True])
+    return ArrowBoolArray._from_sequence([None, True])
 
 
 def test_basic_equals(data):

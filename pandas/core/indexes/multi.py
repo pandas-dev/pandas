@@ -2995,6 +2995,10 @@ class MultiIndex(Index):
 
         # different name to distinguish from maybe_droplevels
         def maybe_mi_droplevels(indexer, levels):
+            """
+            If level does not exist or all levels were dropped, the exception
+            has to be handled outside.
+            """
             new_index = self[indexer]
 
             for i in sorted(levels, reverse=True):
@@ -3128,7 +3132,12 @@ class MultiIndex(Index):
                     # e.g. test_partial_string_timestamp_multiindex
                     return indexer, self[indexer]
 
-            return indexer, maybe_mi_droplevels(indexer, [level])
+            try:
+                result_index = maybe_mi_droplevels(indexer, [level])
+            except ValueError:
+                result_index = self[indexer]
+
+            return indexer, result_index
 
     def _get_level_indexer(
         self, key, level: int = 0, indexer: Int64Index | None = None

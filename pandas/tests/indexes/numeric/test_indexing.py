@@ -424,6 +424,17 @@ class TestWhere:
         result = idx.putmask(~mask, other)
         tm.assert_index_equal(result, expected)
 
+    def test_where_infers_type_instead_of_trying_to_convert_string_to_float(self):
+        # GH 32413
+        index = Index([1, np.nan])
+        cond = index.notna()
+        other = Index(["a", "b"], dtype="string")
+
+        expected = Index([1.0, "b"])
+        result = index.where(cond, other)
+
+        tm.assert_index_equal(result, expected)
+
 
 class TestTake:
     @pytest.mark.parametrize("klass", [Float64Index, Int64Index, UInt64Index])
