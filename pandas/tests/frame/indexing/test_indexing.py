@@ -1085,7 +1085,7 @@ class TestDataFrameIndexing:
         df.loc[trange[bool_idx], "A"] += 6
         tm.assert_frame_equal(df, expected)
 
-    def test_setitem_with_unaligned_tz_aware_datetime_column(self, using_array_manager):
+    def test_setitem_with_unaligned_tz_aware_datetime_column(self):
         # GH 12981
         # Assignment of unaligned offset-aware datetime series.
         # Make sure timezone isn't lost
@@ -1094,11 +1094,8 @@ class TestDataFrameIndexing:
         df["dates"] = column[[1, 0, 2]]
         tm.assert_series_equal(df["dates"], column)
 
-        warn = FutureWarning if using_array_manager else None
-        msg = "will attempt to set the values inplace"
         df = DataFrame({"dates": column})
-        with tm.assert_produces_warning(warn, match=msg):
-            df.loc[[0, 1, 2], "dates"] = column[[1, 0, 2]]
+        df.loc[[0, 1, 2], "dates"] = column[[1, 0, 2]]
         tm.assert_series_equal(df["dates"], column)
 
     def test_loc_setitem_datetimelike_with_inference(self):
