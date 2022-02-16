@@ -467,7 +467,9 @@ class _Concatenator:
 
         # Standardize axis parameter to int
         if isinstance(sample, ABCSeries):
-            axis = sample._constructor_expanddim._get_axis_number(axis)
+            from pandas import DataFrame
+
+            axis = DataFrame._get_axis_number(axis)
         else:
             axis = sample._get_axis_number(axis)
 
