@@ -595,3 +595,9 @@ class TestAstypeCategorical:
         exp = Series(Categorical(lst, categories=list("abcdef"), ordered=True))
         res = ser.astype(CategoricalDtype(list("abcdef"), ordered=True))
         tm.assert_series_equal(res, exp)
+
+    def test_astype_timedelta64_with_np_nan(self):
+        # GH45798
+        result = Series([1, np.nan]).astype("timedelta64[ns]")
+        expected = Series([1, NaT]).astype("timedelta64[ns]")
+        tm.assert_series_equal(result, expected)
