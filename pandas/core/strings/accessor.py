@@ -1917,7 +1917,7 @@ class StringMethods(NoNewAttributesMixin):
     1    2. Bee!
     2    3. Cat?
     3        NaN
-    4        Nan
+    4        NaN
     5        NaN
     dtype: object
 
@@ -1926,7 +1926,7 @@ class StringMethods(NoNewAttributesMixin):
     1    Bee!\n
     2    Cat?\t
     3       NaN
-    4       Nan
+    4       NaN
     5       NaN
     dtype: object
 
@@ -1935,7 +1935,7 @@ class StringMethods(NoNewAttributesMixin):
     1    2. Bee
     2    3. Cat
     3       NaN
-    4       Nan
+    4       NaN
     5       NaN
     dtype: object
 
@@ -1944,7 +1944,7 @@ class StringMethods(NoNewAttributesMixin):
     1    Bee
     2    Cat
     3    NaN
-    4    Nan
+    4    NaN
     5    NaN
     dtype: object
     """
