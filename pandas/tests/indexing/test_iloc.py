@@ -81,7 +81,7 @@ class TestiLocBaseIndependent:
 
         overwrite = isinstance(key, slice) and key == slice(None)
         warn = None
-        if overwrite or using_array_manager:
+        if overwrite:
             warn = FutureWarning
         msg = "will attempt to set the values inplace instead"
         with tm.assert_produces_warning(warn, match=msg):
