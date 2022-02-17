@@ -441,6 +441,7 @@ cdef class BaseOffset:
     def __add__(self, other):
         if not isinstance(self, BaseOffset):
             # cython semantics; this is __radd__
+            # TODO: (Cython 3.0) remove this, this moved to __radd__
             return other.__add__(self)
 
         elif util.is_array(other) and other.dtype == object:
@@ -450,6 +451,9 @@ cdef class BaseOffset:
             return self._apply(other)
         except ApplyTypeError:
             return NotImplemented
+
+    def __radd__(self, other):
+        return other.__add__(self)
 
     def __sub__(self, other):
         if PyDateTime_Check(other):
@@ -902,6 +906,7 @@ cdef class Tick(SingleConstructorOffset):
     def __add__(self, other):
         if not isinstance(self, Tick):
             # cython semantics; this is __radd__
+            # TODO: (Cython 3.0) remove this, this moved to __radd__
             return other.__add__(self)
 
         if isinstance(other, Tick):
@@ -918,6 +923,8 @@ cdef class Tick(SingleConstructorOffset):
             raise OverflowError(
                 f"the add operation between {self} and {other} will overflow"
             ) from err
+    def __radd__(self, other):
+        return other.__add__(self)
 
     def _apply(self, other):
         # Timestamp can handle tz and nano sec, thus no need to use apply_wraps
