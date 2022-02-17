@@ -537,6 +537,8 @@ class TimedeltaArray(dtl.TimelikeOps):
 
         if isinstance(other, self._recognized_scalars):
             other = Timedelta(other)
+            # mypy assumes that __new__ returns an instance of the class
+            # github.com/python/mypy/issues/1020
             if cast("Timedelta | NaTType", other) is NaT:
                 # specifically timedelta64-NaT
                 result = np.empty(self.shape, dtype=np.float64)
@@ -602,6 +604,8 @@ class TimedeltaArray(dtl.TimelikeOps):
         # X / timedelta is defined only for timedelta-like X
         if isinstance(other, self._recognized_scalars):
             other = Timedelta(other)
+            # mypy assumes that __new__ returns an instance of the class
+            # github.com/python/mypy/issues/1020
             if cast("Timedelta | NaTType", other) is NaT:
                 # specifically timedelta64-NaT
                 result = np.empty(self.shape, dtype=np.float64)
@@ -645,6 +649,8 @@ class TimedeltaArray(dtl.TimelikeOps):
         if is_scalar(other):
             if isinstance(other, self._recognized_scalars):
                 other = Timedelta(other)
+                # mypy assumes that __new__ returns an instance of the class
+                # github.com/python/mypy/issues/1020
                 if cast("Timedelta | NaTType", other) is NaT:
                     # treat this specifically as timedelta-NaT
                     result = np.empty(self.shape, dtype=np.float64)
@@ -720,6 +726,8 @@ class TimedeltaArray(dtl.TimelikeOps):
         if is_scalar(other):
             if isinstance(other, self._recognized_scalars):
                 other = Timedelta(other)
+                # mypy assumes that __new__ returns an instance of the class
+                # github.com/python/mypy/issues/1020
                 if cast("Timedelta | NaTType", other) is NaT:
                     # treat this specifically as timedelta-NaT
                     result = np.empty(self.shape, dtype=np.float64)
