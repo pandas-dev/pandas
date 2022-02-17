@@ -1,4 +1,4 @@
-FROM quay.io/condaforge/miniforge3
+FROM quay.io/condaforge/miniforge3:4.11.0-0
 
 # if you forked pandas, you can pass in your own GitHub username to use your fork
 # i.e. gh_username=myname
@@ -45,4 +45,4 @@ RUN . /opt/conda/etc/profile.d/conda.sh \
     && cd "$pandas_home" \
     && export \
     && python setup.py build_ext -j 4 \
-    && python -m pip install -e .
+    && python -m pip install --no-build-isolation -e .
