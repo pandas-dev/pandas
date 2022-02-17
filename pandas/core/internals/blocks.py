@@ -51,6 +51,7 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_interval_dtype,
     is_list_like,
+    is_sparse,
     is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -1426,21 +1427,40 @@ class EABackedBlock(Block):
         except (ValueError, TypeError) as err:
             _catch_deprecated_value_error(err)
 
-            if is_interval_dtype(self.dtype):
-                # TestSetitemFloatIntervalWithIntIntervalValues
-                blk = self.coerce_to_target_dtype(orig_other)
-                nbs = blk.where(orig_other, orig_cond)
-                return self._maybe_downcast(nbs, downcast=_downcast)
+            if self.ndim == 1 or self.shape[0] == 1:
 
-            elif isinstance(self, NDArrayBackedExtensionBlock):
-                # NB: not (yet) the same as
-                #  isinstance(values, NDArrayBackedExtensionArray)
-                blk = self.coerce_to_target_dtype(orig_other)
-                nbs = blk.where(orig_other, orig_cond)
-                return self._maybe_downcast(nbs, "infer")
+                if is_interval_dtype(self.dtype):
+                    # TestSetitemFloatIntervalWithIntIntervalValues
+                    blk = self.coerce_to_target_dtype(orig_other)
+                    nbs = blk.where(orig_other, orig_cond)
+                    return self._maybe_downcast(nbs, downcast=_downcast)
+
+                elif isinstance(self, NDArrayBackedExtensionBlock):
+                    # NB: not (yet) the same as
+                    #  isinstance(values, NDArrayBackedExtensionArray)
+                    blk = self.coerce_to_target_dtype(orig_other)
+                    nbs = blk.where(orig_other, orig_cond)
+                    return self._maybe_downcast(nbs, downcast=_downcast)
+
+                else:
+                    raise
 
             else:
-                raise
+                # Same pattern we use in Block.putmask
+                is_array = isinstance(orig_other, (np.ndarray, ExtensionArray))
+
+                res_blocks = []
+                nbs = self._split()
+                for i, nb in enumerate(nbs):
+                    n = orig_other
+                    if is_array:
+                        # we have a different value per-column
+                        n = orig_other[:, i : i + 1]
+
+                    submask = orig_cond[:, i : i + 1]
+                    rbs = nb.where(n, submask)
+                    res_blocks.extend(rbs)
+                return res_blocks
 
         nb = self.make_block_same_class(res_values)
         return [nb]
@@ -2238,14 +2258,7 @@ def to_native_types(
             results_converted.append(result.astype(object, copy=False))
         return np.vstack(results_converted)
 
-    elif isinstance(values, ExtensionArray):
-        mask = isna(values)
-
-        new_values = np.asarray(values.astype(object))
-        new_values[mask] = na_rep
-        return new_values
-
-    elif values.dtype.kind == "f":
+    elif values.dtype.kind == "f" and not is_sparse(values):
         # see GH#13418: no special formatting is desired at the
         # output (important for appropriate 'quoting' behaviour),
         # so do not pass it through the FloatArrayFormatter
@@ -2274,6 +2287,13 @@ def to_native_types(
         res = formatter.get_result_as_array()
         res = res.astype(object, copy=False)
         return res
+
+    elif isinstance(values, ExtensionArray):
+        mask = isna(values)
+
+        new_values = np.asarray(values.astype(object))
+        new_values[mask] = na_rep
+        return new_values
 
     else:
 
