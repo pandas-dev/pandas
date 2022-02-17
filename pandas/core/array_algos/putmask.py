@@ -81,7 +81,11 @@ def putmask_without_repeat(
     # TODO: this prob needs some better checking for 2D cases
     nlocs = mask.sum()
     if nlocs > 0 and is_list_like(new) and getattr(new, "ndim", 1) == 1:
-        if nlocs == len(new):
+        shape = np.shape(new)
+        # np.shape compat for if setitem_datetimelike_compat
+        #  changed arraylike to list e.g. test_where_dt64_2d
+
+        if nlocs == shape[-1]:
             # GH#30567
             # If length of ``new`` is less than the length of ``values``,
             # `np.putmask` would first repeat the ``new`` array and then
@@ -90,7 +94,7 @@ def putmask_without_repeat(
             # to place in the masked locations of ``values``
             np.place(values, mask, new)
             # i.e. values[mask] = new
-        elif mask.shape[-1] == len(new) or len(new) == 1:
+        elif mask.shape[-1] == shape[-1] or shape[-1] == 1:
             np.putmask(values, mask, new)
         else:
             raise ValueError("cannot assign mismatch length to masked array")
