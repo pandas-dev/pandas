@@ -27,5 +27,3 @@ class TestValues:
         tm.assert_almost_equal(
             datetime_series.values, datetime_series, check_dtype=False
         )
-
- 
