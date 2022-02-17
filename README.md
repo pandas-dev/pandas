@@ -136,7 +136,7 @@ or alternatively
 python setup.py develop
 ```
 
-See the full instructions for [installing from source](https://pandas.pydata.org/pandas-docs/stable/install.html#installing-from-source).
+See the full instructions for [installing from source](https://pandas.pydata.org/pandas-docs/stable/getting_started/install.html#installing-from-source).
 
 ## License
 [BSD 3](LICENSE)
