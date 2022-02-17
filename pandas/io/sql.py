@@ -473,7 +473,7 @@ def read_sql(
 
 
 def read_sql(
-    sql,
+    sql: str | None,
     con,
     index_col: str | Sequence[str] | None = None,
     coerce_float: bool = True,
@@ -481,7 +481,7 @@ def read_sql(
     parse_dates=None,
     columns=None,
     chunksize: int | None = None,
-) -> DataFrame | Iterator[DataFrame]:
+) -> DataFrame | Iterator[DataFrame] | dict[str, DataFrame]:
     """
     Read SQL query or database table into a DataFrame.
 
@@ -494,7 +494,8 @@ def read_sql(
 
     Parameters
     ----------
-    sql : str or SQLAlchemy Selectable (select or text object)
+    sql : str or SQLAlchemy Selectable (select or text object) or
+          None (to select all tables)
         SQL query to be executed or a table name.
     con : SQLAlchemy connectable, str, or sqlite3 connection
         Using SQLAlchemy makes it possible to use any DB supported by that
@@ -531,7 +532,7 @@ def read_sql(
 
     Returns
     -------
-    DataFrame or Iterator[DataFrame]
+    DataFrame or Iterator[DataFrame] or Dict of DataFrames
 
     See Also
     --------
@@ -556,6 +557,8 @@ def read_sql(
     1           1    12/11/10
 
     >>> pd.read_sql('test_data', 'postgres:///db_name')  # doctest:+SKIP
+
+    >>> pd.read_sql(None, 'postgres:///db_name')  # doctest:+SKIP
 
     Apply date parsing to columns through the ``parse_dates`` argument
 
@@ -598,7 +601,29 @@ def read_sql(
     """
     pandas_sql = pandasSQL_builder(con)
 
+    # only supports SQLAlchemy connectible
+    if sql is None and not isinstance(pandas_sql, SQLiteDatabase):
+        multi_datatable = {}
+        # get the table names
+        table_names = pandas_sql.get_tables(con)
+        # use the table names to get their dataframes
+        for name in table_names:
+            _has_table = pandas_sql.has_table(name)
+            if _has_table:
+                pandas_sql.meta.reflect(only=[name])
+                multi_datatable[name] = pandas_sql.read_table(
+                    name,
+                    index_col=index_col,
+                    coerce_float=coerce_float,
+                    parse_dates=parse_dates,
+                    columns=columns,
+                    chunksize=chunksize,
+                )
+
+        return multi_datatable
+
     if isinstance(pandas_sql, SQLiteDatabase):
+        # TODO: SQLiteDatabase to read table_names also
         return pandas_sql.read_query(
             sql,
             index_col=index_col,
@@ -1808,6 +1833,11 @@ class SQLDatabase(PandasSQL):
                 column.type.asdecimal = False
 
         return tbl
+
+    def get_tables(self, conn):
+        from sqlalchemy import inspect
+
+        return inspect(conn).get_table_names()
 
     def drop_table(self, table_name: str, schema: str | None = None):
         schema = schema or self.meta.schema

@@ -1284,6 +1284,35 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
 
         return iris
 
+    def test_query_by_none(self):
+        engine = sqlalchemy.create_engine("sqlite:///:memory:")
+
+        df_test_1 = DataFrame(
+            data=[[100, "10/11/12"], [200, "12/11/10"]],
+            columns=["int_column", "date_column"],
+        )
+        df_test_1_e = DataFrame(
+            data=[[0, 100, "10/11/12"], [1, 200, "12/11/10"]],
+            columns=["index", "int_column", "date_column"],
+        )
+        sql.to_sql(df_test_1, "test_data", engine)
+
+        df_test_2 = DataFrame(
+            data=[[300, "8/9/10"], [400, "10/9/8"]],
+            columns=["int_column", "date_column"],
+        )
+        df_test_2_e = DataFrame(
+            data=[[0, 300, "8/9/10"], [1, 400, "10/9/8"]],
+            columns=["index", "int_column", "date_column"],
+        )
+        sql.to_sql(df_test_2, "test_data2", engine)
+
+        multi_datatable = sql.read_sql(None, engine)
+        expected = {"test_data": df_test_1_e, "test_data2": df_test_2_e}
+
+        for key, val in expected.items():
+            assert key in multi_datatable and expected[key].equals(multi_datatable[key])
+
     def test_query_by_text_obj(self):
         # WIP : GH10846
         name_text = sqlalchemy.text("select * from iris where name=:name")
