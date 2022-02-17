@@ -34,7 +34,7 @@ def get_period_field_arr(
 ) -> npt.NDArray[np.int64]: ...
 def from_ordinals(
     values: npt.NDArray[np.int64],  # const int64_t[:]
-    freq: timedelta | BaseOffset | str | None,
+    freq: timedelta | BaseOffset | str,
 ) -> npt.NDArray[np.int64]: ...
 def extract_ordinals(
     values: npt.NDArray[np.object_],
