@@ -230,6 +230,7 @@ Other enhancements
 - Add keyword ``sort`` to :func:`pivot_table` to allow non-sorting of the result (:issue:`39143`)
 - Add keyword ``dropna`` to :meth:`DataFrame.value_counts` to allow counting rows that include ``NA`` values (:issue:`41325`)
 - :meth:`Series.replace` will now cast results to ``PeriodDtype`` where possible instead of ``object`` dtype (:issue:`41526`)
+- :meth:`pandas.read_sql` can now return a dictionary of all tables present in database created (:issue:`45979`)
 
 .. ---------------------------------------------------------------------------
 
