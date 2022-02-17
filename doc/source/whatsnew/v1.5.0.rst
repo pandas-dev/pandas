@@ -59,8 +59,8 @@ Styler
 
 .. _whatsnew_150.notable_bug_fixes.groupby_transform_dropna:
 
-Using ``dropna=True`` with ``groupby`` transformers
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Using ``dropna=True`` with ``groupby`` transforms
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A transform is an operation whose result has the same size as its input. When the
 result is a :class:`DataFrame` or :class:`Series`, it is also required that the
