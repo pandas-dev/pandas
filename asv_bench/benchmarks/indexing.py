@@ -217,11 +217,15 @@ class MultiIndexing:
                     "y": np.random.choice(range(25), n),
                 }
             )
-        self.idx = IndexSlice[20000:30000, 20:30, 35:45, 30000:40000]
         self.mdt = self.mdt.set_index(["A", "B", "C", "D"]).sort_index()
+        self.idx = IndexSlice[20000:30000, 20:30, 35:45, 30000:40000]
+        self.idx_partial = IndexSlice[20000:30000]
 
     def time_index_slice(self):
         self.mdt.loc[self.idx, :]
+
+    def time_index_slice_partial(self):
+        self.mdt.loc[self.idx_partial, :]
 
 
 class IntervalIndexing:
