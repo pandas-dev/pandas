@@ -453,7 +453,7 @@ cdef class BaseOffset:
             return NotImplemented
 
     def __radd__(self, other):
-        return other.__add__(self)
+        return self.__add__(other)
 
     def __sub__(self, other):
         if PyDateTime_Check(other):
