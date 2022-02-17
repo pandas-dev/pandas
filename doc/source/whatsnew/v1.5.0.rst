@@ -39,6 +39,8 @@ Other enhancements
 - :meth:`.GroupBy.min` and :meth:`.GroupBy.max` now supports `Numba <https://numba.pydata.org/>`_ execution with the ``engine`` keyword (:issue:`45428`)
 - Implemented a ``bool``-dtype :class:`Index`, passing a bool-dtype array-like to ``pd.Index`` will now retain ``bool`` dtype instead of casting to ``object`` (:issue:`45061`)
 - Implemented a complex-dtype :class:`Index`, passing a complex-dtype array-like to ``pd.Index`` will now retain complex dtype instead of casting to ``object`` (:issue:`45845`)
+- :func:`pandas.read_html` now supports extracting hrefs from table cells (:issue:`13141`).
+
 
 -
 
@@ -108,32 +110,6 @@ apply converter methods, and parse dates (:issue:`43567`).
     )
     df
     df.dtypes
-
-read_html now supports ``extract_hrefs``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-:func:`pandas.read_html` can now extract hrefs from table cells (:issue:`13141`).
-
-.. ipython:: python
-
-    html_table = """
-    <table>
-      <tr>
-        <th>GitHub</th>
-      </tr>
-      <tr>
-        <td><a href="https://github.com/pandas-dev/pandas">pandas</a></td>
-      </tr>
-    </table>
-    """
-
-    df = pd.read_html(
-        html_table,
-        extract_hrefs=True
-    )[0]
-    df
-    df["GitHub"]
-    df["GitHub"].str[1]
 
 .. _whatsnew_150.api_breaking.api_breaking2:
 

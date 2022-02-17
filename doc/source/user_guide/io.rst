@@ -2729,6 +2729,28 @@ succeeds, the function will return*.
 
    dfs = pd.read_html(url, "Metcalf Bank", index_col=0, flavor=["lxml", "bs4"])
 
+Links can be extracted from cells along with the text using ``extract_hrefs=True``.
+
+.. ipython:: python
+
+    html_table = """
+    <table>
+      <tr>
+        <th>GitHub</th>
+      </tr>
+      <tr>
+        <td><a href="https://github.com/pandas-dev/pandas">pandas</a></td>
+      </tr>
+    </table>
+    """
+
+    df = pd.read_html(
+        html_table,
+        extract_hrefs=True
+    )[0]
+    df
+    df["GitHub"]
+    df["GitHub"].str[1]
 
 .. _io.html:
 
