@@ -1189,7 +1189,7 @@ class TextFileReader(abc.Iterator):
 
     def _make_engine(
         self,
-        f: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str] | list | IO,
+        f: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str] | IO,
         engine: CSVEngine = "c",
     ):
         mapping: dict[str, type[ParserBase]] = {
@@ -1202,28 +1202,30 @@ class TextFileReader(abc.Iterator):
             raise ValueError(
                 f"Unknown engine: {engine} (valid options are {mapping.keys()})"
             )
-        if not isinstance(f, list):
-            # open file here
-            is_text = True
-            mode = "r"
-            if engine == "pyarrow":
-                is_text = False
-                mode = "rb"
-            # error: No overload variant of "get_handle" matches argument types
-            # "Union[str, PathLike[str], ReadCsvBuffer[bytes], ReadCsvBuffer[str]]"
-            # , "str", "bool", "Any", "Any", "Any", "Any", "Any"
-            self.handles = get_handle(  # type: ignore[call-overload]
-                f,
-                mode,
-                encoding=self.options.get("encoding", None),
-                compression=self.options.get("compression", None),
-                memory_map=self.options.get("memory_map", False),
-                is_text=is_text,
-                errors=self.options.get("encoding_errors", "strict"),
-                storage_options=self.options.get("storage_options", None),
-            )
-            assert self.handles is not None
-            f = self.handles.handle
+        # fixing #45957 issue
+        #Passing an empty list to read_csv causes segmentation fault 
+        #if not isinstance(f, list):
+        # open file here
+        is_text = True
+        mode = "r"
+        if engine == "pyarrow":
+            is_text = False
+            mode = "rb"
+        # error: No overload variant of "get_handle" matches argument types
+        # "Union[str, PathLike[str], ReadCsvBuffer[bytes], ReadCsvBuffer[str]]"
+        # , "str", "bool", "Any", "Any", "Any", "Any", "Any"
+        self.handles = get_handle(  # type: ignore[call-overload]
+            f,
+            mode,
+            encoding=self.options.get("encoding", None),
+            compression=self.options.get("compression", None),
+            memory_map=self.options.get("memory_map", False),
+            is_text=is_text,
+            errors=self.options.get("encoding_errors", "strict"),
+            storage_options=self.options.get("storage_options", None),
+        )
+        assert self.handles is not None
+        f = self.handles.handle
 
         try:
             return mapping[engine](f, **self.options)
