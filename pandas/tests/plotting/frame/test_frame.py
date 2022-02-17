@@ -162,6 +162,7 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df[["A", "D"]].plot, x="A", y="D")
         _check_plot_works(df[["A", "E"]].plot, x="A", y="E")
 
+    @pytest.mark.slow
     def test_integer_array_plot(self):
         # GH 25587
         arr = pd.array([1, 2, 3, 4], dtype="UInt32")
@@ -1416,6 +1417,7 @@ class TestDataFramePlots(TestPlotBase):
             expected_labels = base_expected[:i] + base_expected[i + 1 :]
             assert result_labels == expected_labels
 
+    @pytest.mark.slow
     def test_errorbar_plot(self):
         d = {"x": np.arange(12), "y": np.arange(12, 0, -1)}
         df = DataFrame(d)
@@ -1462,6 +1464,7 @@ class TestDataFramePlots(TestPlotBase):
         with tm.external_error_raised(TypeError):
             df.plot(yerr=df_err)
 
+    @pytest.mark.slow
     @pytest.mark.parametrize("kind", ["line", "bar", "barh"])
     def test_errorbar_plot_different_kinds(self, kind):
         d = {"x": np.arange(12), "y": np.arange(12, 0, -1)}

@@ -39,6 +39,7 @@ def iseries():
 
 @td.skip_if_no_mpl
 class TestSeriesPlots(TestPlotBase):
+    @pytest.mark.slow
     def test_plot(self, ts):
         _check_plot_works(ts.plot, label="foo")
         _check_plot_works(ts.plot, use_index=False)
@@ -617,6 +618,7 @@ class TestSeriesPlots(TestPlotBase):
         _check_plot_works(series.plot, table=True)
         _check_plot_works(series.plot, table=series)
 
+    @pytest.mark.slow
     @td.skip_if_no_scipy
     def test_series_grid_settings(self):
         # Make sure plot defaults to rcParams['axes.grid'] setting, GH 9792

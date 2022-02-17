@@ -495,6 +495,7 @@ class TestTSPlot(TestPlotBase):
 
         assert rs == xp
 
+    @pytest.mark.slow
     def test_finder_minutely(self):
         nminutes = 50 * 24 * 60
         rng = date_range("1/1/1999", freq="Min", periods=nminutes)
