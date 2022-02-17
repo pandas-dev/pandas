@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 from pandas import (
-    Int64Dtype,
     IntervalIndex,
     Series,
     period_range,
@@ -29,11 +28,4 @@ class TestValues:
             datetime_series.values, datetime_series, check_dtype=False
         )
 
-    def test_values_multiplying_large_series_by_NA(self):
-        # GH#33701
-        Int64NA = Series([np.nan], dtype=Int64Dtype()).iloc[0]
-
-        result = Int64NA * Series(np.zeros(10001))
-        expected = Series(np.zeros(10001) * Int64NA)
-
-        tm.assert_series_equal(result, expected)
+ 
