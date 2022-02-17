@@ -119,6 +119,11 @@ index_col : int, list of int, default None
     those columns will be combined into a ``MultiIndex``.  If a
     subset of data is selected with ``usecols``, index_col
     is based on the subset.
+
+    Missing values will be forward filled to allow roundtripping with
+    ``to_excel`` for ``merged_cells=True``. To avoid forward filling the
+    missing values use ``set_index`` after reading the data instead of
+    ``index_col``.
 usecols : str, list-like, or callable, default None
     * If None, then parse all columns.
     * If str, then indicates comma separated list of Excel column letters
@@ -138,7 +143,7 @@ squeeze : bool, default False
        Append ``.squeeze("columns")`` to the call to ``read_excel`` to squeeze
        the data.
 dtype : Type name or dict of column -> type, default None
-    Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
+    Data type for data or columns. E.g. {{'a': np.float64, 'b': np.int32}}
     Use `object` to preserve data as stored in Excel and not interpret dtype.
     If converters are specified, they will be applied INSTEAD
     of dtype conversion.
@@ -222,7 +227,7 @@ parse_dates : bool, list-like, or dict, default False
       each as a separate date column.
     * list of lists. e.g.  If [[1, 3]] -> combine columns 1 and 3 and parse as
       a single date column.
-    * dict, e.g. {'foo' : [1, 3]} -> parse columns 1, 3 as date and call
+    * dict, e.g. {{'foo' : [1, 3]}} -> parse columns 1, 3 as date and call
       result 'foo'
 
     If a column or index contains an unparsable date, the entire column or
@@ -272,13 +277,7 @@ mangle_dupe_cols : bool, default True
     Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
     'X'...'X'. Passing in False will cause data to be overwritten if there
     are duplicate names in the columns.
-storage_options : dict, optional
-    Extra options that make sense for a particular storage connection, e.g.
-    host, port, username, password, etc., if using a URL that will
-    be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
-    will be raised if providing this argument with a local path or
-    a file-like buffer. See the fsspec and backend storage implementation
-    docs for the set of allowed keys and values.
+{storage_options}
 
     .. versionadded:: 1.2.0
 
@@ -324,7 +323,7 @@ Index and header can be specified via the `index_col` and `header` arguments
 Column types are inferred but can be explicitly specified
 
 >>> pd.read_excel('tmp.xlsx', index_col=0,
-...               dtype={'Name': str, 'Value': float})  # doctest: +SKIP
+...               dtype={{'Name': str, 'Value': float}})  # doctest: +SKIP
        Name  Value
 0   string1    1.0
 1   string2    2.0
@@ -420,6 +419,7 @@ def read_excel(
     ...
 
 
+@doc(storage_options=_shared_docs["storage_options"])
 @deprecate_nonkeyword_arguments(allowed_args=["io", "sheet_name"], version="2.0")
 @Appender(_read_excel_doc)
 def read_excel(
@@ -761,6 +761,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             return output[asheetname]
 
 
+@doc(storage_options=_shared_docs["storage_options"])
 class ExcelWriter(metaclass=abc.ABCMeta):
     """
     Class for writing DataFrame objects into excel sheets.
@@ -794,16 +795,13 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     datetime_format : str, default None
         Format string for datetime objects written into Excel files.
         (e.g. 'YYYY-MM-DD HH:MM:SS').
-    mode : {'w', 'a'}, default 'w'
+    mode : {{'w', 'a'}}, default 'w'
         File mode to use (write or append). Append does not work with fsspec URLs.
-    storage_options : dict, optional
-        Extra options that make sense for a particular storage connection, e.g.
-        host, port, username, password, etc., if using a URL that will
-        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://".
+    {storage_options}
 
         .. versionadded:: 1.2.0
 
-    if_sheet_exists : {'error', 'new', 'replace', 'overlay'}, default 'error'
+    if_sheet_exists : {{'error', 'new', 'replace', 'overlay'}}, default 'error'
         How to behave when trying to write to a sheet that already
         exists (append mode only).
 
@@ -924,7 +922,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     >>> with pd.ExcelWriter(
     ...     "path_to_file.xlsx",
     ...     engine="xlsxwriter",
-    ...     engine_kwargs={"options": {"nan_inf_to_errors": True}}
+    ...     engine_kwargs={{"options": {{"nan_inf_to_errors": True}}}}
     ... ) as writer:
     ...     df.to_excel(writer)  # doctest: +SKIP
 
@@ -935,7 +933,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     ...     "path_to_file.xlsx",
     ...     engine="openpyxl",
     ...     mode="a",
-    ...     engine_kwargs={"keep_vba": True}
+    ...     engine_kwargs={{"keep_vba": True}}
     ... ) as writer:
     ...     df.to_excel(writer, sheet_name="Sheet2")  # doctest: +SKIP
     """

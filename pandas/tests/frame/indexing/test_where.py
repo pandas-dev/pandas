@@ -965,3 +965,66 @@ def test_where_inplace_casting(data):
     df_copy = df.where(pd.notnull(df), None).copy()
     df.where(pd.notnull(df), None, inplace=True)
     tm.assert_equal(df, df_copy)
+
+
+def test_where_downcast_to_td64():
+    ser = Series([1, 2, 3])
+
+    mask = np.array([False, False, False])
+
+    td = pd.Timedelta(days=1)
+
+    res = ser.where(mask, td)
+    expected = Series([td, td, td], dtype="m8[ns]")
+    tm.assert_series_equal(res, expected)
+
+
+def _check_where_equivalences(df, mask, other, expected):
+    # similar to tests.series.indexing.test_setitem.SetitemCastingEquivalences
+    #  but with DataFrame in mind and less fleshed-out
+    res = df.where(mask, other)
+    tm.assert_frame_equal(res, expected)
+
+    res = df.mask(~mask, other)
+    tm.assert_frame_equal(res, expected)
+
+    # Note: frame.mask(~mask, other, inplace=True) takes some more work bc
+    #  Block.putmask does *not* downcast.  The change to 'expected' here
+    #  is specific to the cases in test_where_dt64_2d.
+    df = df.copy()
+    df.mask(~mask, other, inplace=True)
+    if not mask.all():
+        # with mask.all(), Block.putmask is a no-op, so does not downcast
+        expected = expected.copy()
+        expected["A"] = expected["A"].astype(object)
+    tm.assert_frame_equal(df, expected)
+
+
+def test_where_dt64_2d():
+    dti = date_range("2016-01-01", periods=6)
+    dta = dti._data.reshape(3, 2)
+    other = dta - dta[0, 0]
+
+    df = DataFrame(dta, columns=["A", "B"])
+
+    mask = np.asarray(df.isna())
+    mask[:, 1] = True
+
+    # setting all of one column, none of the other
+    expected = DataFrame({"A": other[:, 0], "B": dta[:, 1]})
+    _check_where_equivalences(df, mask, other, expected)
+
+    # setting part of one column, none of the other
+    mask[1, 0] = True
+    expected = DataFrame(
+        {
+            "A": np.array([other[0, 0], dta[1, 0], other[2, 0]], dtype=object),
+            "B": dta[:, 1],
+        }
+    )
+    _check_where_equivalences(df, mask, other, expected)
+
+    # setting nothing in either column
+    mask[:] = True
+    expected = df
+    _check_where_equivalences(df, mask, other, expected)
