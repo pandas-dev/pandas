@@ -314,3 +314,12 @@ def test_unary_int_operators(any_signed_int_ea_dtype, source, neg_target, abs_ta
     tm.assert_extension_array_equal(pos_result, arr)
     assert not tm.shares_memory(pos_result, arr)
     tm.assert_extension_array_equal(abs_result, abs_target)
+
+
+def test_values_multiplying_large_series_by_NA(self):
+    # GH#33701
+
+    result = pd.NA * pd.Series(np.zeros(10001))
+    expected = pd.Series(np.zeros(10001) * pd.NA)
+
+    tm.assert_series_equal(result, expected)
