@@ -368,7 +368,7 @@ def test_union_sort_other_empty(slice_):
 
 
 @pytest.mark.xfail(reason="Not implemented.")
-def test_union_sort_other_empty_sort(slice_):
+def test_union_sort_other_empty_sort():
     # TODO(GH#25151): decide on True behaviour
     # # sort=True
     idx = MultiIndex.from_product([[1, 0], ["a", "b"]])
@@ -525,11 +525,17 @@ def test_union_nan_got_duplicated():
     tm.assert_index_equal(result, mi2)
 
 
-def test_union_duplicates(index):
+def test_union_duplicates(index, request):
     # GH#38977
     if index.empty or isinstance(index, (IntervalIndex, CategoricalIndex)):
         # No duplicates in empty indexes
         return
+    if index.dtype.kind == "c":
+        mark = pytest.mark.xfail(
+            reason="sort_values() call raises bc complex objects are not comparable"
+        )
+        request.node.add_marker(mark)
+
     values = index.unique().values.tolist()
     mi1 = MultiIndex.from_arrays([values, [1] * len(values)])
     mi2 = MultiIndex.from_arrays([[values[0]] + values, [1] * (len(values) + 1)])

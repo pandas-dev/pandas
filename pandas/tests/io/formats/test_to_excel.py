@@ -187,6 +187,10 @@ from pandas.io.formats.excel import CSSToExcelConverter
             "border-top-style: solid; border-top-color: #06c",
             {"border": {"top": {"style": "medium", "color": "0066CC"}}},
         ),
+        (
+            "border-top-color: blue",
+            {"border": {"top": {"color": "0000FF", "style": "none"}}},
+        ),
         # ALIGNMENT
         # - horizontal
         ("text-align: center", {"alignment": {"horizontal": "center"}}),
@@ -288,7 +292,8 @@ def test_css_to_excel_good_colors(input_color, output_color):
     expected["font"] = {"color": output_color}
 
     expected["border"] = {
-        k: {"color": output_color} for k in ("top", "right", "bottom", "left")
+        k: {"color": output_color, "style": "none"}
+        for k in ("top", "right", "bottom", "left")
     }
 
     with tm.assert_produces_warning(None):

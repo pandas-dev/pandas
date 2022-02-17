@@ -241,7 +241,7 @@ def test_apply_with_mixed_dtype():
     tm.assert_series_equal(result1, result2)
 
 
-def test_groupby_as_index_apply(df):
+def test_groupby_as_index_apply():
     # GH #4648 and #3417
     df = DataFrame(
         {

@@ -562,12 +562,14 @@ def test_is_bool_dtype():
     assert not com.is_bool_dtype(int)
     assert not com.is_bool_dtype(str)
     assert not com.is_bool_dtype(pd.Series([1, 2]))
+    assert not com.is_bool_dtype(pd.Series(["a", "b"], dtype="category"))
     assert not com.is_bool_dtype(np.array(["a", "b"]))
     assert not com.is_bool_dtype(pd.Index(["a", "b"]))
     assert not com.is_bool_dtype("Int64")
 
     assert com.is_bool_dtype(bool)
     assert com.is_bool_dtype(np.bool_)
+    assert com.is_bool_dtype(pd.Series([True, False], dtype="category"))
     assert com.is_bool_dtype(np.array([True, False]))
     assert com.is_bool_dtype(pd.Index([True, False]))
 

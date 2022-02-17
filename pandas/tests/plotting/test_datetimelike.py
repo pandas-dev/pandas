@@ -46,28 +46,6 @@ pytestmark = pytest.mark.slow
 
 @td.skip_if_no_mpl
 class TestTSPlot(TestPlotBase):
-    def setup_method(self, method):
-        TestPlotBase.setup_method(self, method)
-
-        self.freq = ["S", "T", "H", "D", "W", "M", "Q", "A"]
-        idx = [period_range("12/31/1999", freq=x, periods=100) for x in self.freq]
-        self.period_ser = [Series(np.random.randn(len(x)), x) for x in idx]
-        self.period_df = [
-            DataFrame(np.random.randn(len(x), 3), index=x, columns=["A", "B", "C"])
-            for x in idx
-        ]
-
-        freq = ["S", "T", "H", "D", "W", "M", "Q-DEC", "A", "1B30Min"]
-        idx = [date_range("12/31/1999", freq=x, periods=100) for x in freq]
-        self.datetime_ser = [Series(np.random.randn(len(x)), x) for x in idx]
-        self.datetime_df = [
-            DataFrame(np.random.randn(len(x), 3), index=x, columns=["A", "B", "C"])
-            for x in idx
-        ]
-
-    def teardown_method(self, method):
-        tm.close()
-
     def test_ts_plot_with_tz(self, tz_aware_fixture):
         # GH2877, GH17173, GH31205, GH31580
         tz = tz_aware_fixture
@@ -128,17 +106,24 @@ class TestTSPlot(TestPlotBase):
         with pytest.raises(TypeError, match=msg):
             df["A"].plot()
 
-    def test_tsplot(self):
-
+    @pytest.mark.parametrize("freq", ["S", "T", "H", "D", "W", "M", "Q", "A"])
+    def test_tsplot_period(self, freq):
+        idx = period_range("12/31/1999", freq=freq, periods=100)
+        ser = Series(np.random.randn(len(idx)), idx)
         _, ax = self.plt.subplots()
+        _check_plot_works(ser.plot, ax=ax)
+
+    @pytest.mark.parametrize(
+        "freq", ["S", "T", "H", "D", "W", "M", "Q-DEC", "A", "1B30Min"]
+    )
+    def test_tsplot_datetime(self, freq):
+        idx = date_range("12/31/1999", freq=freq, periods=100)
+        ser = Series(np.random.randn(len(idx)), idx)
+        _, ax = self.plt.subplots()
+        _check_plot_works(ser.plot, ax=ax)
+
+    def test_tsplot(self):
         ts = tm.makeTimeSeries()
-
-        for s in self.period_ser:
-            _check_plot_works(s.plot, ax=ax)
-
-        for s in self.datetime_ser:
-            _check_plot_works(s.plot, ax=ax)
-
         _, ax = self.plt.subplots()
         ts.plot(style="k", ax=ax)
         color = (0.0, 0.0, 0.0, 1)
@@ -159,13 +144,12 @@ class TestTSPlot(TestPlotBase):
         with pytest.raises(ValueError, match=msg):
             s.plot(style="b-", color="#000099")
 
-    def test_high_freq(self):
-        freaks = ["ms", "us"]
-        for freq in freaks:
-            _, ax = self.plt.subplots()
-            rng = date_range("1/1/2012", periods=100, freq=freq)
-            ser = Series(np.random.randn(len(rng)), rng)
-            _check_plot_works(ser.plot, ax=ax)
+    @pytest.mark.parametrize("freq", ["ms", "us"])
+    def test_high_freq(self, freq):
+        _, ax = self.plt.subplots()
+        rng = date_range("1/1/2012", periods=100, freq=freq)
+        ser = Series(np.random.randn(len(rng)), rng)
+        _check_plot_works(ser.plot, ax=ax)
 
     def test_get_datevalue(self):
         from pandas.plotting._matplotlib.converter import get_datevalue
@@ -194,9 +178,11 @@ class TestTSPlot(TestPlotBase):
         check_format_of_first_point(ax, "t = 2014-01-01  y = 1.000000")
         tm.close()
 
-    def test_line_plot_period_series(self):
-        for s in self.period_ser:
-            _check_plot_works(s.plot, s.index.freq)
+    @pytest.mark.parametrize("freq", ["S", "T", "H", "D", "W", "M", "Q", "A"])
+    def test_line_plot_period_series(self, freq):
+        idx = period_range("12/31/1999", freq=freq, periods=100)
+        ser = Series(np.random.randn(len(idx)), idx)
+        _check_plot_works(ser.plot, ser.index.freq)
 
     @pytest.mark.parametrize(
         "frqncy", ["1S", "3S", "5T", "7H", "4D", "8W", "11M", "3A"]
@@ -208,13 +194,19 @@ class TestTSPlot(TestPlotBase):
         s = Series(np.random.randn(len(idx)), idx)
         _check_plot_works(s.plot, s.index.freq.rule_code)
 
-    def test_line_plot_datetime_series(self):
-        for s in self.datetime_ser:
-            _check_plot_works(s.plot, s.index.freq.rule_code)
+    @pytest.mark.parametrize(
+        "freq", ["S", "T", "H", "D", "W", "M", "Q-DEC", "A", "1B30Min"]
+    )
+    def test_line_plot_datetime_series(self, freq):
+        idx = date_range("12/31/1999", freq=freq, periods=100)
+        ser = Series(np.random.randn(len(idx)), idx)
+        _check_plot_works(ser.plot, ser.index.freq.rule_code)
 
-    def test_line_plot_period_frame(self):
-        for df in self.period_df:
-            _check_plot_works(df.plot, df.index.freq)
+    @pytest.mark.parametrize("freq", ["S", "T", "H", "D", "W", "M", "Q", "A"])
+    def test_line_plot_period_frame(self, freq):
+        idx = date_range("12/31/1999", freq=freq, periods=100)
+        df = DataFrame(np.random.randn(len(idx), 3), index=idx, columns=["A", "B", "C"])
+        _check_plot_works(df.plot, df.index.freq)
 
     @pytest.mark.parametrize(
         "frqncy", ["1S", "3S", "5T", "7H", "4D", "8W", "11M", "3A"]
@@ -228,18 +220,26 @@ class TestTSPlot(TestPlotBase):
         freq = df.index.asfreq(df.index.freq.rule_code).freq
         _check_plot_works(df.plot, freq)
 
-    def test_line_plot_datetime_frame(self):
-        for df in self.datetime_df:
-            freq = df.index.to_period(df.index.freq.rule_code).freq
-            _check_plot_works(df.plot, freq)
+    @pytest.mark.parametrize(
+        "freq", ["S", "T", "H", "D", "W", "M", "Q-DEC", "A", "1B30Min"]
+    )
+    def test_line_plot_datetime_frame(self, freq):
+        idx = date_range("12/31/1999", freq=freq, periods=100)
+        df = DataFrame(np.random.randn(len(idx), 3), index=idx, columns=["A", "B", "C"])
+        freq = df.index.to_period(df.index.freq.rule_code).freq
+        _check_plot_works(df.plot, freq)
 
-    def test_line_plot_inferred_freq(self):
-        for ser in self.datetime_ser:
-            ser = Series(ser.values, Index(np.asarray(ser.index)))
-            _check_plot_works(ser.plot, ser.index.inferred_freq)
+    @pytest.mark.parametrize(
+        "freq", ["S", "T", "H", "D", "W", "M", "Q-DEC", "A", "1B30Min"]
+    )
+    def test_line_plot_inferred_freq(self, freq):
+        idx = date_range("12/31/1999", freq=freq, periods=100)
+        ser = Series(np.random.randn(len(idx)), idx)
+        ser = Series(ser.values, Index(np.asarray(ser.index)))
+        _check_plot_works(ser.plot, ser.index.inferred_freq)
 
-            ser = ser[[0, 3, 5, 6]]
-            _check_plot_works(ser.plot)
+        ser = ser[[0, 3, 5, 6]]
+        _check_plot_works(ser.plot)
 
     def test_fake_inferred_business(self):
         _, ax = self.plt.subplots()
@@ -531,8 +531,7 @@ class TestTSPlot(TestPlotBase):
         line = lines[0]
         data = line.get_xydata()
 
-        if self.mpl_ge_3_0_0 or not self.mpl_ge_2_2_3:
-            data = np.ma.MaskedArray(data, mask=isna(data), fill_value=np.nan)
+        data = np.ma.MaskedArray(data, mask=isna(data), fill_value=np.nan)
 
         assert isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
@@ -550,8 +549,7 @@ class TestTSPlot(TestPlotBase):
         line = lines[0]
         data = line.get_xydata()
 
-        if self.mpl_ge_3_0_0 or not self.mpl_ge_2_2_3:
-            data = np.ma.MaskedArray(data, mask=isna(data), fill_value=np.nan)
+        data = np.ma.MaskedArray(data, mask=isna(data), fill_value=np.nan)
 
         assert isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
@@ -568,8 +566,7 @@ class TestTSPlot(TestPlotBase):
         assert len(lines) == 1
         line = lines[0]
         data = line.get_xydata()
-        if self.mpl_ge_3_0_0 or not self.mpl_ge_2_2_3:
-            data = np.ma.MaskedArray(data, mask=isna(data), fill_value=np.nan)
+        data = np.ma.MaskedArray(data, mask=isna(data), fill_value=np.nan)
 
         assert isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
@@ -590,8 +587,7 @@ class TestTSPlot(TestPlotBase):
 
         line = lines[0]
         data = line.get_xydata()
-        if self.mpl_ge_3_0_0 or not self.mpl_ge_2_2_3:
-            data = np.ma.MaskedArray(data, mask=isna(data), fill_value=np.nan)
+        data = np.ma.MaskedArray(data, mask=isna(data), fill_value=np.nan)
 
         assert isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
@@ -614,7 +610,7 @@ class TestTSPlot(TestPlotBase):
 
         _, ax2 = self.plt.subplots()
         ser2.plot(ax=ax2)
-        assert ax2.get_yaxis().get_ticks_position() == self.default_tick_position
+        assert ax2.get_yaxis().get_ticks_position() == "left"
         self.plt.close(ax2.get_figure())
 
         ax = ser2.plot()
@@ -643,7 +639,7 @@ class TestTSPlot(TestPlotBase):
 
         _, ax2 = self.plt.subplots()
         ser2.plot(ax=ax2)
-        assert ax2.get_yaxis().get_ticks_position() == self.default_tick_position
+        assert ax2.get_yaxis().get_ticks_position() == "left"
         self.plt.close(ax2.get_figure())
 
         ax = ser2.plot()
@@ -672,14 +668,14 @@ class TestTSPlot(TestPlotBase):
         df = DataFrame(np.random.randn(5, 3), columns=["a", "b", "c"])
         axes = df.plot(secondary_y=["a", "c"], subplots=True)
         assert axes[0].get_yaxis().get_ticks_position() == "right"
-        assert axes[1].get_yaxis().get_ticks_position() == self.default_tick_position
+        assert axes[1].get_yaxis().get_ticks_position() == "left"
         assert axes[2].get_yaxis().get_ticks_position() == "right"
 
     def test_secondary_bar_frame(self):
         df = DataFrame(np.random.randn(5, 3), columns=["a", "b", "c"])
         axes = df.plot(kind="bar", secondary_y=["a", "c"], subplots=True)
         assert axes[0].get_yaxis().get_ticks_position() == "right"
-        assert axes[1].get_yaxis().get_ticks_position() == self.default_tick_position
+        assert axes[1].get_yaxis().get_ticks_position() == "left"
         assert axes[2].get_yaxis().get_ticks_position() == "right"
 
     def test_mixed_freq_regular_first(self):
@@ -1453,12 +1449,7 @@ class TestTSPlot(TestPlotBase):
         ax.scatter(x="time", y="y", data=df)
         self.plt.draw()
         label = ax.get_xticklabels()[0]
-        if self.mpl_ge_3_2_0:
-            expected = "2018-01-01"
-        elif self.mpl_ge_3_0_0:
-            expected = "2017-12-08"
-        else:
-            expected = "2017-12-12"
+        expected = "2018-01-01"
         assert label.get_text() == expected
 
     def test_check_xticks_rot(self):

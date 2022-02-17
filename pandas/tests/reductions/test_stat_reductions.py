@@ -128,7 +128,7 @@ class TestSeriesStatReductions:
 
             # GH#2888
             items = [0]
-            items.extend(range(2 ** 40, 2 ** 40 + 1000))
+            items.extend(range(2**40, 2**40 + 1000))
             s = Series(items, dtype="int64")
             tm.assert_almost_equal(float(f(s)), float(alternate(s.values)))
 

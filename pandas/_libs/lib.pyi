@@ -157,10 +157,6 @@ def ensure_string_array(
 def infer_datetimelike_array(
     arr: npt.NDArray[np.object_],
 ) -> tuple[str, bool]: ...
-def astype_intsafe(
-    arr: npt.NDArray[np.object_],
-    new_dtype: np.dtype,
-) -> np.ndarray: ...
 def convert_nans_to_NA(
     arr: npt.NDArray[np.object_],
 ) -> npt.NDArray[np.object_]: ...

@@ -18,10 +18,7 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import (
-    NaT,
-    lib,
-)
+from pandas._libs import lib
 from pandas._libs.interval import (
     VALID_CLOSED,
     Interval,
@@ -42,10 +39,9 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import IntCastingNaNError
 from pandas.util._decorators import Appender
 
+from pandas.core.dtypes.cast import LossySetitemError
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
     is_dtype_equal,
     is_float_dtype,
     is_integer_dtype,
@@ -54,7 +50,6 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_string_dtype,
-    is_timedelta64_dtype,
     needs_i8_conversion,
     pandas_dtype,
 )
@@ -1087,7 +1082,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         try:
             self.left._validate_fill_value(value_left)
-        except (ValueError, TypeError) as err:
+        except (LossySetitemError, TypeError) as err:
             msg = (
                 "'value' should be a compatible interval type, "
                 f"got {type(value)} instead."
@@ -1103,7 +1098,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             # TODO: check subdtype match like _validate_setitem_value?
         elif is_valid_na_for_dtype(value, self.left.dtype):
             # GH#18295
-            left = right = value
+            left = right = self.left._na_value
         else:
             raise TypeError(
                 "can only insert Interval objects and NA into an IntervalArray"
@@ -1111,22 +1106,15 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return left, right
 
     def _validate_setitem_value(self, value):
-        needs_float_conversion = False
 
         if is_valid_na_for_dtype(value, self.left.dtype):
             # na value: need special casing to set directly on numpy arrays
+            value = self.left._na_value
             if is_integer_dtype(self.dtype.subtype):
                 # can't set NaN on a numpy integer array
-                needs_float_conversion = True
-            elif is_datetime64_dtype(self.dtype.subtype):
-                # need proper NaT to set directly on the numpy array
-                value = np.datetime64("NaT")
-            elif is_datetime64tz_dtype(self.dtype.subtype):
-                # need proper NaT to set directly on the DatetimeArray array
-                value = NaT
-            elif is_timedelta64_dtype(self.dtype.subtype):
-                # need proper NaT to set directly on the numpy array
-                value = np.timedelta64("NaT")
+                # GH#45484 TypeError, not ValueError, matches what we get with
+                #  non-NA un-holdable value.
+                raise TypeError("Cannot set float NaN to integer-backed IntervalArray")
             value_left, value_right = value, value
 
         elif isinstance(value, Interval):
@@ -1139,10 +1127,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         else:
             return self._validate_listlike(value)
 
-        if needs_float_conversion:
-            # GH#45484 TypeError, not ValueError, matches what we get with
-            #  non-NA un-holdable value.
-            raise TypeError("Cannot set float NaN to integer-backed IntervalArray")
         return value_left, value_right
 
     def value_counts(self, dropna: bool = True):

@@ -441,7 +441,7 @@ def test_apply_map_header_raises(mi_styler):
 
 
 class TestStyler:
-    def setup_method(self, method):
+    def setup_method(self):
         np.random.seed(24)
         self.s = DataFrame({"A": np.random.permutation(range(6))})
         self.df = DataFrame({"A": [0, 1], "B": np.random.randn(2)})
@@ -839,12 +839,16 @@ class TestStyler:
     def test_table_styles_dict_multiple_selectors(self):
         # GH 44011
         result = self.df.style.set_table_styles(
-            [{"selector": "th,td", "props": [("border-left", "2px solid black")]}]
+            {
+                "B": [
+                    {"selector": "th,td", "props": [("border-left", "2px solid black")]}
+                ]
+            }
         )._translate(True, True)["table_styles"]
 
         expected = [
-            {"selector": "th", "props": [("border-left", "2px solid black")]},
-            {"selector": "td", "props": [("border-left", "2px solid black")]},
+            {"selector": "th.col1", "props": [("border-left", "2px solid black")]},
+            {"selector": "td.col1", "props": [("border-left", "2px solid black")]},
         ]
 
         assert result == expected
