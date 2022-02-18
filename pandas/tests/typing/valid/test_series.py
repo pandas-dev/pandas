@@ -16,7 +16,10 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import Scalar
+from pandas._typing import (
+    ArrayLike,
+    Scalar,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -506,10 +509,10 @@ def test_types_rename_axis() -> None:
 
 
 def test_types_values() -> None:
-    n1: np.ndarray = pd.Series([1, 2, 3]).values
-    n2: np.ndarray = pd.Series(list("aabc")).values
-    n3: np.ndarray = pd.Series(list("aabc")).astype("category").values
-    n4: np.ndarray = pd.Series(
+    n1: ArrayLike = pd.Series([1, 2, 3]).values
+    n2: ArrayLike = pd.Series(list("aabc")).values
+    n3: ArrayLike = pd.Series(list("aabc")).astype("category").values
+    n4: ArrayLike = pd.Series(
         pd.date_range("20130101", periods=3, tz="US/Eastern")
     ).values
 
