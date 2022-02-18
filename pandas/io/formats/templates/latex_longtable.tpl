@@ -59,7 +59,7 @@
 {% if midrule is not none %}
 \{{midrule}}
 {% endif %}
-\multicolumn{% raw %}{{% endraw %}{{column_format|length}}{% raw %}}{% endraw %}{r}{Continued on next page} \\
+\multicolumn{% raw %}{{% endraw %}{{n_columns}}{% raw %}}{% endraw %}{r}{Continued on next page} \\
 {% if midrule is not none %}
 \{{midrule}}
 {% endif %}
