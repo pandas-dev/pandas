@@ -11,7 +11,10 @@ from warnings import (
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    InvalidIndexError,
+    PerformanceWarning,
+)
 
 import pandas as pd
 from pandas import (
@@ -489,6 +492,15 @@ class TestConcatenate:
         )
         result = concat({"First": Series(range(3)), "Another": Series(range(4))})
         tm.assert_series_equal(result, expected)
+
+    def test_concat_duplicate_indices_raise(self):
+        # GH 45888: test raise for concat DataFrames with duplicate indices
+        # https://github.com/pandas-dev/pandas/issues/36263
+        df1 = DataFrame(np.random.randn(5), index=[0, 1, 2, 3, 3], columns=["a"])
+        df2 = DataFrame(np.random.randn(5), index=[0, 1, 2, 2, 4], columns=["b"])
+        msg = "Reindexing only valid with uniquely valued Index objects"
+        with pytest.raises(InvalidIndexError, match=msg):
+            concat([df1, df2], axis=1)
 
 
 @pytest.mark.parametrize("pdt", [Series, DataFrame])

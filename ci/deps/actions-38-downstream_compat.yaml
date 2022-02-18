@@ -4,52 +4,57 @@ channels:
   - conda-forge
 dependencies:
   - python=3.8
-  - pip
 
   # test dependencies
-  - cython>=0.29.24
+  - cython=0.29.24
   - pytest>=6.0
+  - pytest-cov
   - pytest-xdist>=1.31
   - hypothesis>=5.5.3
-  - pytest-cov>=2.10.1  # this is only needed in the coverage build, ref: GH 35737
-  - nomkl
+  - psutil
 
   # required dependencies
-  - numpy
   - python-dateutil
+  - numpy
   - pytz
 
   # optional dependencies
   - beautifulsoup4
   - blosc
-  - fastparquet>=0.4.0
-  - fsspec>=0.7.4
-  - gcsfs
+  - bottleneck
+  - fastparquet
+  - fsspec
   - html5lib
+  - gcsfs
   - jinja2
   - lxml
   - matplotlib
+  - numba
   - numexpr
-  - odfpy
   - openpyxl
+  - odfpy
   - pandas-gbq
   - psycopg2
-  - pyarrow>=1.0.1
   - pymysql
   - pytables
+  - pyarrow
+  - pyreadstat
   - pyxlsb
-  - s3fs>=0.4.0
+  - s3fs
   - scipy
   - sqlalchemy
+  - tabulate
   - xarray
   - xlrd
   - xlsxwriter
   - xlwt
+  - zstandard
 
   # downstream packages
-  - aiobotocore<2.0.0  # GH#44311 pinned to fix docbuild
+  - aiobotocore
   - boto3
-  - botocore>=1.11
+  - botocore
+  - cftime
   - dask
   - ipython
   - geopandas
@@ -62,5 +67,4 @@ dependencies:
   - pandas-datareader
   - pyyaml
   - py
-  - pip:
-    - torch
+  - pytorch

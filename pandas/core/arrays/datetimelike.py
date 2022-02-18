@@ -389,11 +389,16 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # to a period in from_sequence). For DatetimeArray, it's Timestamp...
         # I don't know if mypy can do that, possibly with Generics.
         # https://mypy.readthedocs.io/en/latest/generics.html
+
         no_op = check_setitem_lengths(key, value, self)
+
+        # Calling super() before the no_op short-circuit means that we raise
+        #  on invalid 'value' even if this is a no-op, e.g. wrong-dtype empty array.
+        super().__setitem__(key, value)
+
         if no_op:
             return
 
-        super().__setitem__(key, value)
         self._maybe_clear_freq()
 
     def _maybe_clear_freq(self):
@@ -441,6 +446,36 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             if is_unsigned_integer_dtype(dtype):
                 # Again, we ignore int32 vs. int64
                 values = values.view("uint64")
+                if dtype != np.uint64:
+                    # GH#45034
+                    warnings.warn(
+                        f"The behavior of .astype from {self.dtype} to {dtype} is "
+                        "deprecated. In a future version, this astype will return "
+                        "exactly the specified dtype instead of uint64, and will "
+                        "raise if that conversion overflows.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
+                elif (self.asi8 < 0).any():
+                    # GH#45034
+                    warnings.warn(
+                        f"The behavior of .astype from {self.dtype} to {dtype} is "
+                        "deprecated. In a future version, this astype will "
+                        "raise if the conversion overflows, as it did in this "
+                        "case with negative int64 values.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
+            elif dtype != np.int64:
+                # GH#45034
+                warnings.warn(
+                    f"The behavior of .astype from {self.dtype} to {dtype} is "
+                    "deprecated. In a future version, this astype will return "
+                    "exactly the specified dtype instead of int64, and will "
+                    "raise if that conversion overflows.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
 
             if copy:
                 values = values.copy()

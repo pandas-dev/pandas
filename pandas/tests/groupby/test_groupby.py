@@ -713,11 +713,8 @@ def test_ops_not_as_index(reduction_func):
     # GH 10355, 21090
     # Using as_index=False should not modify grouped column
 
-    if reduction_func in ("corrwith",):
-        pytest.skip("Test not applicable")
-
-    if reduction_func in ("nth", "ngroup"):
-        pytest.skip("Skip until behavior is determined (GH #5755)")
+    if reduction_func in ("corrwith", "nth", "ngroup"):
+        pytest.skip(f"GH 5755: Test not applicable for {reduction_func}")
 
     df = DataFrame(np.random.randint(0, 5, size=(100, 2)), columns=["a", "b"])
     expected = getattr(df.groupby("a"), reduction_func)()
@@ -821,7 +818,7 @@ def test_groupby_as_index_corner(df, ts):
         df.groupby(lambda x: x.lower(), as_index=False, axis=1)
 
 
-def test_groupby_multiple_key(df):
+def test_groupby_multiple_key():
     df = tm.makeTimeDataFrame()
     grouped = df.groupby([lambda x: x.year, lambda x: x.month, lambda x: x.day])
     agged = grouped.sum()
@@ -1050,15 +1047,14 @@ def test_groupby_complex_numbers():
     )
     expected = DataFrame(
         np.array([1, 1, 1], dtype=np.int64),
-        index=Index([(1 + 1j), (1 + 2j), (1 + 0j)], dtype="object", name="b"),
+        index=Index([(1 + 1j), (1 + 2j), (1 + 0j)], name="b"),
         columns=Index(["a"], dtype="object"),
     )
     result = df.groupby("b", sort=False).count()
     tm.assert_frame_equal(result, expected)
 
     # Sorted by the magnitude of the complex numbers
-    # Complex Index dtype is cast to object
-    expected.index = Index([(1 + 0j), (1 + 1j), (1 + 2j)], dtype="object", name="b")
+    expected.index = Index([(1 + 0j), (1 + 1j), (1 + 2j)], name="b")
     result = df.groupby("b", sort=True).count()
     tm.assert_frame_equal(result, expected)
 
@@ -2268,7 +2264,7 @@ def test_groupby_duplicate_index():
 @pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
 def test_dup_labels_output_shape(groupby_func, idx):
     if groupby_func in {"size", "ngroup", "cumcount"}:
-        pytest.skip("Not applicable")
+        pytest.skip(f"Not applicable for {groupby_func}")
     # TODO(2.0) Remove after pad/backfill deprecation enforced
     groupby_func = maybe_normalize_deprecated_kernels(groupby_func)
     df = DataFrame([[1, 1]], columns=idx)

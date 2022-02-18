@@ -62,6 +62,7 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.cast import (
+    LossySetitemError,
     convert_dtypes,
     maybe_box_native,
     maybe_cast_pointwise_result,
@@ -1102,7 +1103,7 @@ class Series(base.IndexOpsMixin, NDFrame):
                 # GH#12862 adding a new key to the Series
                 self.loc[key] = value
 
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, LossySetitemError):
             # The key was OK, but we cannot set the value losslessly
             indexer = self.index.get_loc(key)
             self._set_values(indexer, value)
@@ -1359,7 +1360,14 @@ class Series(base.IndexOpsMixin, NDFrame):
         )
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "level"])
-    def reset_index(self, level=None, drop=False, name=lib.no_default, inplace=False):
+    def reset_index(
+        self,
+        level=None,
+        drop=False,
+        name=lib.no_default,
+        inplace=False,
+        allow_duplicates: bool = False,
+    ):
         """
         Generate a new DataFrame or Series with the index reset.
 
@@ -1381,6 +1389,10 @@ class Series(base.IndexOpsMixin, NDFrame):
             when `drop` is True.
         inplace : bool, default False
             Modify the Series in place (do not create a new object).
+        allow_duplicates : bool, default False
+            Allow duplicate column labels to be created.
+
+            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -1497,7 +1509,9 @@ class Series(base.IndexOpsMixin, NDFrame):
                     name = self.name
 
             df = self.to_frame(name)
-            return df.reset_index(level=level, drop=drop)
+            return df.reset_index(
+                level=level, drop=drop, allow_duplicates=allow_duplicates
+            )
 
     # ----------------------------------------------------------------------
     # Rendering Methods
@@ -1799,7 +1813,8 @@ class Series(base.IndexOpsMixin, NDFrame):
             columns = Index([name])
 
         mgr = self._mgr.to_2d_mgr(columns)
-        return self._constructor_expanddim(mgr)
+        df = self._constructor_expanddim(mgr)
+        return df.__finalize__(self, method="to_frame")
 
     def _set_name(self, name, inplace=False) -> Series:
         """
@@ -2864,6 +2879,10 @@ Name: Max Speed, dtype: float64
     ):
         """
         Concatenate two or more Series.
+
+        .. deprecated:: 1.4.0
+            Use :func:`concat` instead. For further details see
+            :ref:`whatsnew_140.deprecations.frame_series_append`
 
         Parameters
         ----------
@@ -4483,7 +4502,9 @@ Keep all original rows and also all original values
     ) -> Series:
         # Note: new_index is None iff indexer is None
         # if not None, indexer is np.intp
-        if indexer is None:
+        if indexer is None and (
+            new_index is None or new_index.names == self.index.names
+        ):
             if copy:
                 return self.copy()
             return self

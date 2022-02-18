@@ -876,7 +876,7 @@ with cf.config_prefix("styler"):
 
     cf.register_option(
         "render.max_elements",
-        2 ** 18,
+        2**18,
         styler_max_elements,
         validator=is_nonnegative_int,
     )

@@ -357,7 +357,7 @@ class BaseSetitemTests(BaseExtensionTests):
         )
         self.assert_series_equal(result, expected)
 
-    def test_setitem_frame_2d_values(self, data, request):
+    def test_setitem_frame_2d_values(self, data):
         # GH#44514
         df = pd.DataFrame({"A": data})
         orig = df.copy()

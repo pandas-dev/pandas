@@ -64,7 +64,7 @@ class TestMultiIndexSorted:
         assert result.index.is_monotonic_increasing
         tm.assert_frame_equal(result, expected)
 
-    def test_sort_values_key(self, multiindex_dataframe_random_data):
+    def test_sort_values_key(self):
         arrays = [
             ["bar", "bar", "baz", "baz", "qux", "qux", "foo", "foo"],
             ["one", "two", "one", "two", "one", "two", "one", "two"],

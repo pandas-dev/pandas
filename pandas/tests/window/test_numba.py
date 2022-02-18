@@ -1,6 +1,11 @@
 import numpy as np
 import pytest
 
+from pandas.compat import (
+    is_ci_environment,
+    is_platform_mac,
+    is_platform_windows,
+)
 from pandas.errors import NumbaUtilError
 import pandas.util._test_decorators as td
 
@@ -12,6 +17,14 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
+
+# TODO(GH#44584): Mark these as pytest.mark.single_cpu
+pytestmark = pytest.mark.skipif(
+    is_ci_environment() and (is_platform_windows() or is_platform_mac()),
+    reason="On Azure CI, Windows can fail with "
+    "'Windows fatal exception: stack overflow' "
+    "and MacOS can timeout",
+)
 
 
 @pytest.fixture(params=["single", "table"])
