@@ -471,6 +471,9 @@ class ParserBase:
             if isinstance(col, int) and col not in self.orig_names:
                 col = self.orig_names[col]
             clean[col] = v
+        if isinstance(mapping, defaultdict):
+            remaining_cols = set(self.orig_names) - set(clean.keys())
+            clean.update({col: mapping[col] for col in remaining_cols})
         return clean
 
     @final
