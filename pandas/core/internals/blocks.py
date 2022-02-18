@@ -545,7 +545,8 @@ class Block(PandasObject):
         if deep:
             # "K" -> retain 'order' where possible, can be significantly
             #  faster than the default.
-            values = values.copy("K")
+            # error: Too many arguments for "copy" of "ExtensionArray"
+            values = values.copy("K")  # type: ignore[call-arg]
         return type(self)(values, placement=self._mgr_locs, ndim=self.ndim)
 
     # ---------------------------------------------------------------------
