@@ -55,8 +55,8 @@ class ParallelGroupbyMethods:
     def setup(self, threads, method):
         if not have_real_test_parallel:
             raise NotImplementedError
-        N = 10 ** 6
-        ngroups = 10 ** 3
+        N = 10**6
+        ngroups = 10**3
         df = DataFrame(
             {"key": np.random.randint(0, ngroups, size=N), "data": np.random.randn(N)}
         )
@@ -88,8 +88,8 @@ class ParallelGroups:
     def setup(self, threads):
         if not have_real_test_parallel:
             raise NotImplementedError
-        size = 2 ** 22
-        ngroups = 10 ** 3
+        size = 2**22
+        ngroups = 10**3
         data = Series(np.random.randint(0, ngroups, size=size))
 
         @test_parallel(num_threads=threads)
@@ -110,7 +110,7 @@ class ParallelTake1D:
     def setup(self, dtype):
         if not have_real_test_parallel:
             raise NotImplementedError
-        N = 10 ** 6
+        N = 10**6
         df = DataFrame({"col": np.arange(N, dtype=dtype)})
         indexer = np.arange(100, len(df) - 100)
 
@@ -133,8 +133,8 @@ class ParallelKth:
     def setup(self):
         if not have_real_test_parallel:
             raise NotImplementedError
-        N = 10 ** 7
-        k = 5 * 10 ** 5
+        N = 10**7
+        k = 5 * 10**5
         kwargs_list = [{"arr": np.random.randn(N)}, {"arr": np.random.randn(N)}]
 
         @test_parallel(num_threads=2, kwargs_list=kwargs_list)
@@ -151,7 +151,7 @@ class ParallelDatetimeFields:
     def setup(self):
         if not have_real_test_parallel:
             raise NotImplementedError
-        N = 10 ** 6
+        N = 10**6
         self.dti = date_range("1900-01-01", periods=N, freq="T")
         self.period = self.dti.to_period("D")
 

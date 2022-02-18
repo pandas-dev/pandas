@@ -4,8 +4,8 @@ import pytest
 from pandas.core.dtypes.common import is_datetime64tz_dtype
 
 import pandas as pd
-from pandas import NumericIndex
 import pandas._testing as tm
+from pandas.core.api import NumericIndex
 from pandas.tests.base.common import allow_na_ops
 
 
@@ -104,7 +104,10 @@ def test_nunique_null(null_obj, index_or_series_obj):
         assert obj.nunique(dropna=False) == max(0, num_unique_values)
 
 
-@pytest.mark.single
+@pytest.mark.single_cpu
+@pytest.mark.xfail(
+    reason="Flaky in the CI. Remove once CI has a single build: GH 44584", strict=False
+)
 def test_unique_bad_unicode(index_or_series):
     # regression test for #34550
     uval = "\ud83d"  # smiley emoji

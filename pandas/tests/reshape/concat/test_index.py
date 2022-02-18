@@ -178,14 +178,14 @@ class TestIndexConcat:
         tm.assert_frame_equal(result.iloc[10:], df)
 
         # append
-        result = df.iloc[0:8, :].append(df.iloc[8:])
+        result = df.iloc[0:8, :]._append(df.iloc[8:])
         tm.assert_frame_equal(result, df)
 
-        result = df.iloc[0:8, :].append(df.iloc[8:9]).append(df.iloc[9:10])
+        result = df.iloc[0:8, :]._append(df.iloc[8:9])._append(df.iloc[9:10])
         tm.assert_frame_equal(result, df)
 
         expected = concat([df, df], axis=0)
-        result = df.append(df)
+        result = df._append(df)
         tm.assert_frame_equal(result, expected)
 
 
@@ -306,3 +306,20 @@ class TestMultiIndexConcat:
             result_df = concat((df1, df2), axis=1)
 
         tm.assert_frame_equal(expected_df, result_df)
+
+    def test_concat_multiindex_(self):
+        # GitHub #44786
+        df = DataFrame({"col": ["a", "b", "c"]}, index=["1", "2", "2"])
+        df = concat([df], keys=["X"])
+
+        iterables = [["X"], ["1", "2", "2"]]
+        result_index = df.index
+        expected_index = MultiIndex.from_product(iterables)
+
+        tm.assert_index_equal(result_index, expected_index)
+
+        result_df = df
+        expected_df = DataFrame(
+            {"col": ["a", "b", "c"]}, index=MultiIndex.from_product(iterables)
+        )
+        tm.assert_frame_equal(result_df, expected_df)

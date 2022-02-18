@@ -54,17 +54,17 @@ class TestMultiIndexSorted:
         with tm.assert_produces_warning(FutureWarning):
             return_value = df2.index.set_codes([0, 1, 0, 2], level="col1", inplace=True)
         assert return_value is None
-        assert not df2.index.is_monotonic
+        assert not df2.index.is_monotonic_increasing
 
         assert df2_original.index.equals(df2.index)
         expected = df2.sort_index(key=key)
-        assert expected.index.is_monotonic
+        assert expected.index.is_monotonic_increasing
 
         result = df2.sort_index(level=0, key=key)
-        assert result.index.is_monotonic
+        assert result.index.is_monotonic_increasing
         tm.assert_frame_equal(result, expected)
 
-    def test_sort_values_key(self, multiindex_dataframe_random_data):
+    def test_sort_values_key(self):
         arrays = [
             ["bar", "bar", "baz", "baz", "qux", "qux", "foo", "foo"],
             ["one", "two", "one", "two", "one", "two", "one", "two"],

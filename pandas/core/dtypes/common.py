@@ -534,9 +534,7 @@ def is_string_or_object_np_dtype(dtype: np.dtype) -> bool:
     """
     Faster alternative to is_string_dtype, assumes we have a np.dtype object.
     """
-    # error: Non-overlapping equality check (left operand type: "dtype[Any]",
-    # right operand type: "Type[object]")
-    return dtype == object or dtype.kind in "SU"  # type: ignore[comparison-overlap]
+    return dtype == object or dtype.kind in "SU"
 
 
 def is_string_dtype(arr_or_dtype) -> bool:
@@ -1321,16 +1319,12 @@ def is_bool_dtype(arr_or_dtype) -> bool:
         return False
 
     if isinstance(dtype, CategoricalDtype):
-        arr_or_dtype = arr_or_dtype.categories
+        arr_or_dtype = dtype.categories
         # now we use the special definition for Index
 
     if isinstance(arr_or_dtype, ABCIndex):
-
-        # TODO(jreback)
-        # we don't have a boolean Index class
-        # so its object, we need to infer to
-        # guess this
-        return arr_or_dtype.is_object() and arr_or_dtype.inferred_type == "boolean"
+        # Allow Index[object] that is all-bools or Index["boolean"]
+        return arr_or_dtype.inferred_type == "boolean"
     elif isinstance(dtype, ExtensionDtype):
         return getattr(dtype, "_is_boolean", False)
 

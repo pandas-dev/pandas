@@ -7,7 +7,6 @@ import datetime
 from enum import Enum
 import itertools
 from typing import (
-    Any,
     Callable,
     DefaultDict,
     Hashable,
@@ -32,8 +31,6 @@ from pandas._libs.tslibs import parsing
 from pandas._typing import (
     ArrayLike,
     DtypeArg,
-    FilePath,
-    ReadCsvBuffer,
 )
 from pandas.errors import (
     ParserError,
@@ -41,7 +38,7 @@ from pandas.errors import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.cast import astype_nansafe
+from pandas.core.dtypes.astype import astype_nansafe
 from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
@@ -71,57 +68,7 @@ from pandas.core.indexes.api import (
 from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
 
-from pandas.io.common import (
-    IOHandles,
-    get_handle,
-)
 from pandas.io.date_converters import generic_parser
-
-parser_defaults = {
-    "delimiter": None,
-    "escapechar": None,
-    "quotechar": '"',
-    "quoting": csv.QUOTE_MINIMAL,
-    "doublequote": True,
-    "skipinitialspace": False,
-    "lineterminator": None,
-    "header": "infer",
-    "index_col": None,
-    "names": None,
-    "prefix": None,
-    "skiprows": None,
-    "skipfooter": 0,
-    "nrows": None,
-    "na_values": None,
-    "keep_default_na": True,
-    "true_values": None,
-    "false_values": None,
-    "converters": None,
-    "dtype": None,
-    "cache_dates": True,
-    "thousands": None,
-    "comment": None,
-    "decimal": ".",
-    # 'engine': 'c',
-    "parse_dates": False,
-    "keep_date_col": False,
-    "dayfirst": False,
-    "date_parser": None,
-    "usecols": None,
-    # 'iterator': False,
-    "chunksize": None,
-    "verbose": False,
-    "encoding": None,
-    "squeeze": None,
-    "compression": None,
-    "mangle_dupe_cols": True,
-    "infer_datetime_format": False,
-    "skip_blank_lines": True,
-    "encoding_errors": "strict",
-    "on_bad_lines": "error",
-    "error_bad_lines": None,
-    "warn_bad_lines": None,
-}
 
 
 class ParserBase:
@@ -222,29 +169,9 @@ class ParserBase:
 
         self.usecols, self.usecols_dtype = self._validate_usecols_arg(kwds["usecols"])
 
-        self.handles: IOHandles[str] | None = None
-
         # Fallback to error to pass a sketchy test(test_override_set_noconvert_columns)
         # Normally, this arg would get pre-processed earlier on
         self.on_bad_lines = kwds.get("on_bad_lines", self.BadLineHandleMethod.ERROR)
-
-    def _open_handles(
-        self,
-        src: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
-        kwds: dict[str, Any],
-    ) -> None:
-        """
-        Let the readers open IOHandles after they are done with their potential raises.
-        """
-        self.handles = get_handle(
-            src,
-            "r",
-            encoding=kwds.get("encoding", None),
-            compression=kwds.get("compression", None),
-            memory_map=kwds.get("memory_map", False),
-            storage_options=kwds.get("storage_options", None),
-            errors=kwds.get("encoding_errors", "strict"),
-        )
 
     def _validate_parse_dates_presence(self, columns: Sequence[Hashable]) -> Iterable:
         """
@@ -308,8 +235,7 @@ class ParserBase:
         ]
 
     def close(self):
-        if self.handles is not None:
-            self.handles.close()
+        pass
 
     @final
     @property
@@ -377,9 +303,7 @@ class ParserBase:
 
         # clean the index_names
         index_names = header.pop(-1)
-        index_names, _, _ = self._clean_index_names(
-            index_names, self.index_col, self.unnamed_cols
-        )
+        index_names, _, _ = self._clean_index_names(index_names, self.index_col)
 
         # extract the columns
         field_count = len(header[0])
@@ -455,21 +379,24 @@ class ParserBase:
         return columns
 
     @final
-    def _make_index(self, data, alldata, columns, indexnamerow=False):
+    def _make_index(
+        self, data, alldata, columns, indexnamerow=False
+    ) -> tuple[Index | None, Sequence[Hashable] | MultiIndex]:
+        index: Index | None
         if not is_index_col(self.index_col) or not self.index_col:
             index = None
 
         elif not self._has_complex_date_col:
-            index = self._get_simple_index(alldata, columns)
-            index = self._agg_index(index)
+            simple_index = self._get_simple_index(alldata, columns)
+            index = self._agg_index(simple_index)
         elif self._has_complex_date_col:
             if not self._name_processed:
                 (self.index_names, _, self.index_col) = self._clean_index_names(
-                    list(columns), self.index_col, self.unnamed_cols
+                    list(columns), self.index_col
                 )
                 self._name_processed = True
-            index = self._get_complex_date_index(data, columns)
-            index = self._agg_index(index, try_parse_dates=False)
+            date_index = self._get_complex_date_index(data, columns)
+            index = self._agg_index(date_index, try_parse_dates=False)
 
         # add names for the index
         if indexnamerow:
@@ -1040,7 +967,7 @@ class ParserBase:
             return usecols, usecols_dtype
         return usecols, None
 
-    def _clean_index_names(self, columns, index_col, unnamed_cols):
+    def _clean_index_names(self, columns, index_col):
         if not is_index_col(index_col):
             return None, columns, index_col
 
@@ -1072,7 +999,7 @@ class ParserBase:
 
         # Only clean index names that were placeholders.
         for i, name in enumerate(index_names):
-            if isinstance(name, str) and name in unnamed_cols:
+            if isinstance(name, str) and name in self.unnamed_cols:
                 index_names[i] = None
 
         return index_names, columns, index_col
@@ -1176,6 +1103,53 @@ def _make_date_converter(
                     return generic_parser(date_parser, *date_cols)
 
     return converter
+
+
+parser_defaults = {
+    "delimiter": None,
+    "escapechar": None,
+    "quotechar": '"',
+    "quoting": csv.QUOTE_MINIMAL,
+    "doublequote": True,
+    "skipinitialspace": False,
+    "lineterminator": None,
+    "header": "infer",
+    "index_col": None,
+    "names": None,
+    "prefix": None,
+    "skiprows": None,
+    "skipfooter": 0,
+    "nrows": None,
+    "na_values": None,
+    "keep_default_na": True,
+    "true_values": None,
+    "false_values": None,
+    "converters": None,
+    "dtype": None,
+    "cache_dates": True,
+    "thousands": None,
+    "comment": None,
+    "decimal": ".",
+    # 'engine': 'c',
+    "parse_dates": False,
+    "keep_date_col": False,
+    "dayfirst": False,
+    "date_parser": None,
+    "usecols": None,
+    # 'iterator': False,
+    "chunksize": None,
+    "verbose": False,
+    "encoding": None,
+    "squeeze": None,
+    "compression": None,
+    "mangle_dupe_cols": True,
+    "infer_datetime_format": False,
+    "skip_blank_lines": True,
+    "encoding_errors": "strict",
+    "on_bad_lines": ParserBase.BadLineHandleMethod.ERROR,
+    "error_bad_lines": None,
+    "warn_bad_lines": None,
+}
 
 
 def _process_date_conversion(

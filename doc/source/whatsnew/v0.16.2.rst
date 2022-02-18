@@ -62,6 +62,7 @@ When the function you wish to apply takes its data anywhere other than the first
 of ``(function, keyword)`` indicating where the DataFrame should flow. For example:
 
 .. ipython:: python
+   :okwarning:
 
    import statsmodels.formula.api as sm
 
@@ -82,7 +83,7 @@ popular ``(%>%)`` pipe operator for R_.
 
 See the :ref:`documentation <basics.pipe>` for more. (:issue:`10129`)
 
-.. _dplyr: https://github.com/hadley/dplyr
+.. _dplyr: https://github.com/tidyverse/dplyr
 .. _magrittr: https://github.com/smbache/magrittr
 .. _R: http://www.r-project.org
 

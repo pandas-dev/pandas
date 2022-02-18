@@ -16,6 +16,17 @@ from pandas import (
 import pandas._testing as tm
 
 
+@pytest.mark.parametrize("pattern", [0, True, Series(["foo", "bar"])])
+def test_startswith_endswith_non_str_patterns(pattern):
+    # GH3485
+    ser = Series(["foo", "bar"])
+    msg = f"expected a string object, not {type(pattern).__name__}"
+    with pytest.raises(TypeError, match=msg):
+        ser.str.startswith(pattern)
+    with pytest.raises(TypeError, match=msg):
+        ser.str.endswith(pattern)
+
+
 def assert_series_or_index_equal(left, right):
     if isinstance(left, Series):
         tm.assert_series_equal(left, right)
@@ -360,12 +371,7 @@ def test_len_mixed():
         ("rindex", "E", 0, 5, [4, 3, 1, 4]),
     ],
 )
-def test_index(
-    method, sub, start, end, index_or_series, any_string_dtype, expected, request
-):
-    if index_or_series is Index and not any_string_dtype == "object":
-        mark = pytest.mark.xfail(reason="Need EA-backed Index")
-        request.node.add_marker(mark)
+def test_index(method, sub, start, end, index_or_series, any_string_dtype, expected):
 
     obj = index_or_series(
         ["ABCDEFG", "BCDEFEF", "DEFGHIJEF", "EFGHEF"], dtype=any_string_dtype

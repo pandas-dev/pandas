@@ -24,6 +24,31 @@ def get_dtype(dtype, coerce_int=None):
     return pandas_dtype(dtype)
 
 
+@pytest.fixture(
+    params=[
+        "object",
+        "category",
+        "int8",
+        "int16",
+        "int32",
+        "int64",
+        "uint8",
+        "uint16",
+        "uint32",
+        "uint64",
+        "float16",
+        "float32",
+        "float64",
+        "m8[ns]",
+        "M8[ns]",
+        "datetime64[ns, UTC]",
+    ]
+)
+def dtypes(request):
+    """Dtypes for window tests"""
+    return request.param
+
+
 @pytest.mark.parametrize(
     "method, data, expected_data, coerce_int, min_periods",
     [

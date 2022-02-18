@@ -214,7 +214,8 @@ def test_center(raw):
     expected = (
         concat([obj, Series([np.NaN] * 9)])
         .rolling(20, min_periods=15)
-        .apply(f, raw=raw)[9:]
+        .apply(f, raw=raw)
+        .iloc[9:]
         .reset_index(drop=True)
     )
     tm.assert_series_equal(result, expected)
@@ -307,3 +308,11 @@ def test_center_reindex_frame(raw, frame):
     )
     frame_rs = frame.rolling(window=25, min_periods=minp, center=True).apply(f, raw=raw)
     tm.assert_frame_equal(frame_xp, frame_rs)
+
+
+def test_axis1(raw):
+    # GH 45912
+    df = DataFrame([1, 2])
+    result = df.rolling(window=1, axis=1).apply(np.sum, raw=raw)
+    expected = DataFrame([1.0, 2.0])
+    tm.assert_frame_equal(result, expected)

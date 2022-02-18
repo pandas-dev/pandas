@@ -231,7 +231,8 @@ def build_table_schema(
         level or levels if the index is unique.
     version : bool, default True
         Whether to include a field `pandas_version` with the version
-        of pandas that generated the schema.
+        of pandas that last revised the table schema. This version
+        can be different from the installed pandas version.
 
     Returns
     -------

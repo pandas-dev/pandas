@@ -59,13 +59,13 @@ jobs:
           git remote add upstream https://github.com/pandas-dev/pandas.git
           git fetch upstream
           asv machine --yes
-          asv continuous -f 1.1 -b $REGEX upstream/master HEAD
+          asv continuous -f 1.1 -b $REGEX upstream/main HEAD
           echo 'BENCH_OUTPUT<<EOF' >> $GITHUB_ENV
-          asv compare -f 1.1 upstream/master HEAD >> $GITHUB_ENV
+          asv compare -f 1.1 upstream/main HEAD >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
           echo "REGEX=$REGEX" >> $GITHUB_ENV
 
-      - uses: actions/github-script@v4
+      - uses: actions/github-script@v5
         env:
           BENCH_OUTPUT: ${{env.BENCH_OUTPUT}}
           REGEX: ${{env.REGEX}}
@@ -73,7 +73,7 @@ jobs:
           script: |
             const ENV_VARS = process.env
             const run_url = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
-            github.issues.createComment({
+            github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,

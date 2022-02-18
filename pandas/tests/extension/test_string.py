@@ -18,6 +18,8 @@ import string
 import numpy as np
 import pytest
 
+from pandas.compat import pa_version_under2p0
+
 import pandas as pd
 from pandas.core.arrays import ArrowStringArray
 from pandas.core.arrays.string_ import StringDtype
@@ -134,6 +136,10 @@ class TestSetitem(base.BaseSetitemTests):
         super().test_setitem_preserves_views(data)
 
 
+class TestIndex(base.BaseIndexTests):
+    pass
+
+
 class TestMissing(base.BaseMissingTests):
     pass
 
@@ -186,7 +192,12 @@ class TestPrinting(base.BasePrintingTests):
 
 
 class TestGroupBy(base.BaseGroupbyTests):
-    pass
+    def test_groupby_extension_transform(self, data_for_grouping, request):
+        if data_for_grouping.dtype.storage == "pyarrow" and pa_version_under2p0:
+            # failure observed in 1.0.1, not in 2.0 or later
+            mark = pytest.mark.xfail(reason="pyarrow raises in self._data[item]")
+            request.node.add_marker(mark)
+        super().test_groupby_extension_transform(data_for_grouping)
 
 
 class Test2DCompat(base.Dim2CompatTests):

@@ -4,21 +4,22 @@ parameters:
 
 jobs:
 - job: ${{ parameters.name }}
+  timeoutInMinutes: 90
   pool:
     vmImage: ${{ parameters.vmImage }}
   strategy:
     matrix:
-      ${{ if eq(parameters.name, 'macOS') }}:
-        py38_macos_1:
-          ENV_FILE: ci/deps/azure-macos-38.yaml
-          CONDA_PY: "38"
-          PATTERN: "not slow"
-          PYTEST_TARGET: "pandas/tests/[a-h]*"
-        py38_macos_2:
-          ENV_FILE: ci/deps/azure-macos-38.yaml
-          CONDA_PY: "38"
-          PATTERN: "not slow"
-          PYTEST_TARGET: "pandas/tests/[i-z]*"
+      py38:
+        ENV_FILE: ci/deps/azure-macos-38.yaml
+        CONDA_PY: "38"
+
+      py39:
+        ENV_FILE: ci/deps/azure-macos-39.yaml
+        CONDA_PY: "39"
+
+      py310:
+        ENV_FILE: ci/deps/azure-macos-310.yaml
+        CONDA_PY: "310"
 
   steps:
     - script: echo '##vso[task.prependpath]$(HOME)/miniconda3/bin'
@@ -42,8 +43,3 @@ jobs:
         testResultsFiles: 'test-data.xml'
         testRunTitle: ${{ format('{0}-$(CONDA_PY)', parameters.name) }}
       displayName: 'Publish test results'
-
-    - script: |
-        source activate pandas-dev
-        python ci/print_skipped.py
-      displayName: 'Print skipped tests'

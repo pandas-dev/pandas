@@ -845,3 +845,148 @@ def test_latex_hiding_index_columns_multiindex_alignment():
         """
     )
     assert result == expected
+
+
+def test_rendered_links():
+    # note the majority of testing is done in test_html.py: test_rendered_links
+    # these test only the alternative latex format is functional
+    df = DataFrame(["text www.domain.com text"])
+    result = df.style.format(hyperlinks="latex").to_latex()
+    assert r"text \href{www.domain.com}{www.domain.com} text" in result
+
+
+def test_apply_index_hidden_levels():
+    # gh 45156
+    styler = DataFrame(
+        [[1]],
+        index=MultiIndex.from_tuples([(0, 1)], names=["l0", "l1"]),
+        columns=MultiIndex.from_tuples([(0, 1)], names=["c0", "c1"]),
+    ).style
+    styler.hide(level=1)
+    styler.applymap_index(lambda v: "color: red;", level=0, axis=1)
+    result = styler.to_latex(convert_css=True)
+    expected = dedent(
+        """\
+        \\begin{tabular}{lr}
+        c0 & \\color{red} 0 \\\\
+        c1 & 1 \\\\
+        l0 &  \\\\
+        0 & 1 \\\\
+        \\end{tabular}
+        """
+    )
+    assert result == expected
+
+
+@pytest.mark.parametrize("clines", ["bad", "index", "skip-last", "all", "data"])
+def test_clines_validation(clines, styler):
+    msg = f"`clines` value of {clines} is invalid."
+    with pytest.raises(ValueError, match=msg):
+        styler.to_latex(clines=clines)
+
+
+@pytest.mark.parametrize(
+    "clines, exp",
+    [
+        ("all;index", "\n\\cline{1-1}"),
+        ("all;data", "\n\\cline{1-2}"),
+        ("skip-last;index", ""),
+        ("skip-last;data", ""),
+        (None, ""),
+    ],
+)
+@pytest.mark.parametrize("env", ["table", "longtable"])
+def test_clines_index(clines, exp, env):
+    df = DataFrame([[1], [2], [3], [4]])
+    result = df.style.to_latex(clines=clines, environment=env)
+    expected = f"""\
+0 & 1 \\\\{exp}
+1 & 2 \\\\{exp}
+2 & 3 \\\\{exp}
+3 & 4 \\\\{exp}
+"""
+    assert expected in result
+
+
+@pytest.mark.parametrize(
+    "clines, expected",
+    [
+        (
+            None,
+            dedent(
+                """\
+            \\multirow[c]{2}{*}{A} & X & 1 \\\\
+             & Y & 2 \\\\
+            \\multirow[c]{2}{*}{B} & X & 3 \\\\
+             & Y & 4 \\\\
+            """
+            ),
+        ),
+        (
+            "skip-last;index",
+            dedent(
+                """\
+            \\multirow[c]{2}{*}{A} & X & 1 \\\\
+             & Y & 2 \\\\
+            \\cline{1-2}
+            \\multirow[c]{2}{*}{B} & X & 3 \\\\
+             & Y & 4 \\\\
+            \\cline{1-2}
+            """
+            ),
+        ),
+        (
+            "skip-last;data",
+            dedent(
+                """\
+            \\multirow[c]{2}{*}{A} & X & 1 \\\\
+             & Y & 2 \\\\
+            \\cline{1-3}
+            \\multirow[c]{2}{*}{B} & X & 3 \\\\
+             & Y & 4 \\\\
+            \\cline{1-3}
+            """
+            ),
+        ),
+        (
+            "all;index",
+            dedent(
+                """\
+            \\multirow[c]{2}{*}{A} & X & 1 \\\\
+            \\cline{2-2}
+             & Y & 2 \\\\
+            \\cline{1-2} \\cline{2-2}
+            \\multirow[c]{2}{*}{B} & X & 3 \\\\
+            \\cline{2-2}
+             & Y & 4 \\\\
+            \\cline{1-2} \\cline{2-2}
+            """
+            ),
+        ),
+        (
+            "all;data",
+            dedent(
+                """\
+            \\multirow[c]{2}{*}{A} & X & 1 \\\\
+            \\cline{2-3}
+             & Y & 2 \\\\
+            \\cline{1-3} \\cline{2-3}
+            \\multirow[c]{2}{*}{B} & X & 3 \\\\
+            \\cline{2-3}
+             & Y & 4 \\\\
+            \\cline{1-3} \\cline{2-3}
+            """
+            ),
+        ),
+    ],
+)
+@pytest.mark.parametrize("env", ["table"])
+def test_clines_multiindex(clines, expected, env):
+    # also tests simultaneously with hidden rows and a hidden multiindex level
+    midx = MultiIndex.from_product([["A", "-", "B"], [0], ["X", "Y"]])
+    df = DataFrame([[1], [2], [99], [99], [3], [4]], index=midx)
+    styler = df.style
+    styler.hide([("-", 0, "X"), ("-", 0, "Y")])
+    styler.hide(level=1)
+    result = styler.to_latex(clines=clines, environment=env)
+    assert expected in result

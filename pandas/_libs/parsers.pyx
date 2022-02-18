@@ -1,5 +1,6 @@
 # Copyright (c) 2012, Lambda Foundry, Inc.
 # See LICENSE for the license
+from base64 import decode
 from csv import (
     QUOTE_MINIMAL,
     QUOTE_NONE,
@@ -375,6 +376,8 @@ cdef class TextReader:
         # set encoding for native Python and C library
         if isinstance(encoding_errors, str):
             encoding_errors = encoding_errors.encode("utf-8")
+        elif encoding_errors is None:
+            encoding_errors = b"strict"
         Py_INCREF(encoding_errors)
         self.encoding_errors = PyBytes_AsString(encoding_errors)
 
@@ -837,7 +840,9 @@ cdef class TextReader:
             status = tokenize_nrows(self.parser, nrows, self.encoding_errors)
 
         if self.parser.warn_msg != NULL:
-            print(self.parser.warn_msg, file=sys.stderr)
+            print(PyUnicode_DecodeUTF8(
+                self.parser.warn_msg, strlen(self.parser.warn_msg),
+                self.encoding_errors), file=sys.stderr)
             free(self.parser.warn_msg)
             self.parser.warn_msg = NULL
 
@@ -866,7 +871,9 @@ cdef class TextReader:
                 status = tokenize_all_rows(self.parser, self.encoding_errors)
 
             if self.parser.warn_msg != NULL:
-                print(self.parser.warn_msg, file=sys.stderr)
+                print(PyUnicode_DecodeUTF8(
+                    self.parser.warn_msg, strlen(self.parser.warn_msg),
+                    self.encoding_errors), file=sys.stderr)
                 free(self.parser.warn_msg)
                 self.parser.warn_msg = NULL
 
