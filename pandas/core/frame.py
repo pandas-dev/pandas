@@ -7448,7 +7448,10 @@ Keep all original rows and columns and also all original values
 
         Combine two DataFrame objects by filling null values in one DataFrame
         with non-null values from other DataFrame. The row and column indexes
-        of the resulting DataFrame will be the union of the two.
+        of the resulting DataFrame will be the union of the two. The 'first'
+        dataframe overrides the second one where both first.loc[index, col]
+        and second.loc[index, col] are not nan, upon calling
+        first.combine_first(second).
 
         Parameters
         ----------
