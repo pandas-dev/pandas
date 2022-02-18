@@ -22,9 +22,7 @@ def flex_binary_moment(arg1, arg2, f, pairwise=False):
         from pandas import DataFrame
 
         def dataframe_from_int_dict(data, frame_template):
-            result = DataFrame(
-                data, index=None if len(data) > 0 else frame_template.index
-            )
+            result = DataFrame(data, index=frame_template.index)
             if len(result.columns) > 0:
                 result.columns = frame_template.columns[result.columns]
             return result
@@ -44,16 +42,13 @@ def flex_binary_moment(arg1, arg2, f, pairwise=False):
                         raise ValueError("'arg2' columns are not unique")
                     X, Y = arg1.align(arg2, join="outer")
                     X, Y = prep_binary(X, Y)
-                    result_index = X.index
                     res_columns = arg1.columns.union(arg2.columns)
                     for col in res_columns:
                         if col in X and col in Y:
                             results[col] = f(X[col], Y[col])
-                            result_index = results[col].index
-                    return DataFrame(results, index=result_index, columns=res_columns)
+                    return DataFrame(results, index=X.index, columns=res_columns)
             elif pairwise is True:
                 results = defaultdict(dict)
-                result_index = arg1.index.union(arg2.index)
                 for i in range(len(arg1.columns)):
                     for j in range(len(arg2.columns)):
                         if j < i and arg2 is arg1:
@@ -63,10 +58,10 @@ def flex_binary_moment(arg1, arg2, f, pairwise=False):
                             results[i][j] = f(
                                 *prep_binary(arg1.iloc[:, i], arg2.iloc[:, j])
                             )
-                            result_index = results[i][j].index
 
                 from pandas import concat
 
+                result_index = arg1.index.union(arg2.index)
                 if len(result_index):
 
                     # construct result frame

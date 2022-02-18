@@ -249,7 +249,7 @@ class BaseWindow(SelectionMixin):
 
     def _slice_index(self, index: Index, result: Sized | None = None) -> Index:
         """
-        Slices the index for a given result.
+        Slices the index for a given result and the preset step.
         """
         return (
             index
@@ -478,11 +478,8 @@ class BaseWindow(SelectionMixin):
             # GH#42736 operate column-wise instead of block-wise
             try:
                 res = hfunc(arr)
-            except TypeError:
+            except (TypeError, NotImplementedError):
                 pass
-            except NotImplementedError as err:
-                if "step not implemented" in str(err):
-                    raise
             else:
                 res_values.append(res)
                 taker.append(i)
@@ -661,11 +658,7 @@ class BaseWindow(SelectionMixin):
             out = obj._constructor(result, index=index, name=obj.name)
             return out
         else:
-            columns = (
-                obj.columns
-                if result.shape[1] == len(obj.columns)
-                else obj.columns[:: self.step]
-            )
+            columns = self._slice_index(obj.columns, result.T)
             out = obj._constructor(result, index=index, columns=columns)
             return self._resolve_output(out, obj)
 
@@ -705,6 +698,9 @@ class BaseWindowGroupby(BaseWindow):
         # groupby.<agg_func>, but unexpected to users in
         # groupby.rolling.<agg_func>
         obj = obj.drop(columns=self._grouper.names, errors="ignore")
+        # GH 15354
+        if kwargs.get("step") is not None:
+            raise NotImplementedError("step not implemented for rolling groupby")
         super().__init__(obj, *args, **kwargs)
 
     def _apply(
@@ -957,6 +953,16 @@ class Window(BaseWindow):
 
             The closed parameter with fixed windows is now supported.
 
+    step : int, default None
+        When supported, applies ``[::step]`` to the resulting sequence of windows, in a
+        computationally efficient manner. Currently supported only with fixed-length
+        window indexers. Note that using a step argument other than None or 1 will
+        produce a result with a different shape than the input.
+
+        ..versionadded:: 1.5
+
+            The step parameter is only supported with fixed windows.
+
     method : str {'single', 'table'}, default 'single'
 
         .. versionadded:: 1.3.0
@@ -1074,6 +1080,17 @@ class Window(BaseWindow):
     2  3.0
     3  3.0
     4  6.0
+
+    **step**
+
+    Rolling sum with a window length of 2 observations, minimum of 1 observation to
+    calculate a value, and a step of 2.
+
+    >>> df.rolling(2, min_periods=1, step=2).sum()
+         B
+    0  0.0
+    2  3.0
+    4  4.0
 
     **win_type**
 
@@ -1759,9 +1776,22 @@ class Rolling(RollingAndExpandingMixin):
 
         elif isinstance(self.window, BaseIndexer):
             # Passed BaseIndexer subclass should handle all other rolling kwargs
-            return
+            pass
         elif not is_integer(self.window) or self.window < 0:
             raise ValueError("window must be an integer 0 or greater")
+        # GH 15354:
+        # validate window indexer parameters do not raise in get_window_bounds
+        # this cannot be done in BaseWindow._validate because there _get_window_indexer
+        # would erroneously create a fixed window given a window argument like "1s" due
+        # to _win_freq_i8 not being set
+        indexer = self._get_window_indexer()
+        indexer.get_window_bounds(
+            num_values=0,
+            min_periods=self.min_periods,
+            center=self.center,
+            closed=self.closed,
+            step=self.step,
+        )
 
     def _validate_monotonic(self):
         """
@@ -2646,15 +2676,6 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
     """
     Provide a rolling groupby implementation.
     """
-
-    def __init__(
-        self,
-        *args,
-        **kwargs,
-    ):
-        if kwargs.get("step") is not None:
-            raise NotImplementedError("step not implemented for rolling groupby")
-        super().__init__(*args, **kwargs)
 
     _attributes = Rolling._attributes + BaseWindowGroupby._attributes
 

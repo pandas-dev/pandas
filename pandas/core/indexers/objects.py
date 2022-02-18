@@ -29,6 +29,7 @@ closed : str, default None
     closed passed from the top level rolling API
 step : int, default None
     step passed from the top level rolling API
+    .. versionadded:: 1.5
 win_type : str, default None
     win_type passed from the top level rolling API
 
@@ -159,6 +160,8 @@ class VariableOffsetWindowIndexer(BaseIndexer):
 
         if step is not None:
             raise NotImplementedError("step not implemented for variable offset window")
+        if num_values <= 0:
+            return np.empty(0, dtype="int64"), np.empty(0, dtype="int64")
 
         # if windows is variable, default is 'right', otherwise default is 'both'
         if closed is None:
@@ -381,6 +384,8 @@ class GroupbyIndexer(BaseIndexer):
             )
             start_arrays.append(window_indices.take(ensure_platform_int(start)))
             end_arrays.append(window_indices.take(ensure_platform_int(end)))
+        if len(start_arrays) == 0:
+            return np.array([], dtype=np.int64), np.array([], dtype=np.int64)
         start = np.concatenate(start_arrays)
         end = np.concatenate(end_arrays)
         return start, end

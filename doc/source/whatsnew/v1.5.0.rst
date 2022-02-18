@@ -37,6 +37,7 @@ Other enhancements
 - :meth:`to_numeric` now preserves float64 arrays when downcasting would generate values not representable in float32 (:issue:`43693`)
 - :meth:`Series.reset_index` and :meth:`DataFrame.reset_index` now support the argument ``allow_duplicates`` (:issue:`44410`)
 - :meth:`.GroupBy.min` and :meth:`.GroupBy.max` now supports `Numba <https://numba.pydata.org/>`_ execution with the ``engine`` keyword (:issue:`45428`)
+- :meth:`DataFrame.rolling` and :meth:`Series.rolling` now support a ``step`` parameter with fixed-length windows (:issue:`15354`)
 -
 
 .. ---------------------------------------------------------------------------

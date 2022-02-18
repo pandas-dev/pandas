@@ -11,7 +11,6 @@ from pandas.compat import (
     is_platform_mac,
 )
 from pandas.errors import UnsupportedFunctionCall
-import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
@@ -27,7 +26,16 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.api.indexers import BaseIndexer
+from pandas.core.indexers.objects import (
+    ExpandingIndexer,
+    ExponentialMovingWindowIndexer,
+    GroupbyIndexer,
+    VariableOffsetWindowIndexer,
+    VariableWindowIndexer,
+)
 from pandas.core.window import Rolling
+
+from pandas.tseries.offsets import BusinessDay
 
 
 def test_doc_string():
@@ -82,8 +90,38 @@ def test_invalid_constructor(frame_or_series, w):
         c(window=2, min_periods=1, center=w)
 
 
+@pytest.mark.parametrize(
+    "window",
+    [
+        timedelta(days=3),
+        Timedelta(days=3),
+        "3D",
+        ExpandingIndexer(window_size=3),
+        ExponentialMovingWindowIndexer(window_size=3),
+        GroupbyIndexer(window_size=3),
+        VariableOffsetWindowIndexer(
+            index=date_range("2015-12-26", periods=3), offset=BusinessDay(1)
+        ),
+        VariableWindowIndexer(window_size=3),
+    ],
+)
+def test_constructor_step_not_implemented(window, step):
+    # GH 15354
+    n = 10
+    df = DataFrame(
+        {"value": np.arange(n)},
+        index=date_range("2015-12-24", periods=n, freq="D"),
+    )
+    f = lambda: df.rolling(window=window, step=step)
+    if step is None:
+        f()
+    else:
+        with pytest.raises(NotImplementedError, match="step not implemented"):
+            f()
+
+
 @pytest.mark.parametrize("window", [timedelta(days=3), Timedelta(days=3)])
-@td.step_not_implemented()
+@pytest.mark.parametrize("step", [None])
 def test_constructor_with_timedelta_window(window, step):
     # GH 15440
     n = 10
@@ -104,7 +142,7 @@ def test_constructor_with_timedelta_window(window, step):
 
 
 @pytest.mark.parametrize("window", [timedelta(days=3), Timedelta(days=3), "3D"])
-@td.step_not_implemented()
+@pytest.mark.parametrize("step", [None])
 def test_constructor_timedelta_window_and_minperiods(window, step, raw):
     # GH 15305
     n = 10
@@ -138,7 +176,7 @@ def test_numpy_compat(method):
 
 
 @pytest.mark.parametrize("closed", ["right", "left", "both", "neither"])
-@td.step_not_implemented()
+@pytest.mark.parametrize("step", [None])
 def test_closed_fixed(closed, arithmetic_win_operators, step):
     # GH 34315
     func_name = arithmetic_win_operators
@@ -204,7 +242,7 @@ def test_closed_fixed(closed, arithmetic_win_operators, step):
         ),
     ],
 )
-@td.step_not_implemented()
+@pytest.mark.parametrize("step", [None])
 def test_datetimelike_centered_selections(
     closed, window_selections, step, arithmetic_win_operators
 ):
@@ -245,7 +283,7 @@ def test_datetimelike_centered_selections(
         ("2s", "neither", [1.0, 2.0, 2.0]),
     ],
 )
-@td.step_not_implemented()
+@pytest.mark.parametrize("step", [None])
 def test_datetimelike_centered_offset_covers_all(
     window, closed, expected, step, frame_or_series
 ):
@@ -272,7 +310,7 @@ def test_datetimelike_centered_offset_covers_all(
         ("2D", "neither", [2, 2, 2, 2, 2, 2, 2, 2]),
     ],
 )
-@td.step_not_implemented()
+@pytest.mark.parametrize("step", [None])
 def test_datetimelike_nonunique_index_centering(
     window, closed, expected, frame_or_series, step
 ):
@@ -297,7 +335,7 @@ def test_datetimelike_nonunique_index_centering(
     tm.assert_equal(result, expected)
 
 
-@td.step_not_implemented()
+@pytest.mark.parametrize("step", [None])
 def test_even_number_window_alignment(step):
     # see discussion in GH 38780
     s = Series(range(3), index=date_range(start="2020-01-01", freq="D", periods=3))
@@ -339,7 +377,7 @@ def test_closed_fixed_binary_col(center, step):
 
 
 @pytest.mark.parametrize("closed", ["neither", "left"])
-@td.step_not_implemented()
+@pytest.mark.parametrize("step", [None])
 def test_closed_empty(closed, arithmetic_win_operators, step):
     # GH 26005
     func_name = arithmetic_win_operators
@@ -352,7 +390,7 @@ def test_closed_empty(closed, arithmetic_win_operators, step):
 
 
 @pytest.mark.parametrize("func", ["min", "max"])
-@td.step_not_implemented()
+@pytest.mark.parametrize("step", [None])
 def test_closed_one_entry(func, step):
     # GH24718
     ser = Series(data=[2], index=date_range("2000", periods=1))
