@@ -449,6 +449,37 @@ class IndexingMixin:
         8          4       5
         9          7       8
 
+        **Set values with a Series**
+
+        Set column values using a Series
+
+        >>> df.loc[:, 'shield'] = pd.Series({7: 8, 8: 10, 9: 13})
+        >>> df
+           max_speed  shield
+        7          1       8
+        8          4       10
+        9          7       13
+
+        Setting values using a Series with inconsistent indexes aligns the
+        right hand side to the index of the left
+
+        >>> df.loc[:, 'shield'] = pd.Series({8: 10})
+        >>> df
+           max_speed  shield
+        7          1     NaN
+        8          4    10.0
+        9          7     NaN
+
+        Setting value to Series with a missing index leaves the DataFrame
+        unchanged
+
+        >>> df.loc[:, 'shield'] = pd.Series({11: 14})
+        >>> df
+           max_speed  shield
+        7          1     NaN
+        8          4     NaN
+        9          7     NaN
+
         **Getting values with a MultiIndex**
 
         A number of examples using a DataFrame with a MultiIndex
