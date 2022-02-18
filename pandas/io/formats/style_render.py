@@ -838,8 +838,6 @@ class StylerRenderer:
             body.append(row_body_headers + row_body_cells)
         d["body"] = body
 
-        d["n_columns"] = len(d["body"][0])  # used by longtable template for count
-
         # clines are determined from info on index_lengths and hidden_rows and input
         # to a dict defining which row clines should be added in the template.
         if clines not in [
