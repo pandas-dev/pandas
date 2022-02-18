@@ -359,6 +359,7 @@ I/O
 - Bug in :meth:`DataFrame.to_csv` not respecting ``float_format`` for ``Float64`` dtype (:issue:`45991`)
 - Bug in :func:`read_parquet` when ``engine="pyarrow"`` which caused partial write to disk when column of unsupported datatype was passed (:issue:`44914`)
 - Bug in :func:`DataFrame.to_excel` and :class:`ExcelWriter` would raise when writing an empty DataFrame to a ``.ods`` file (:issue:`45793`)
+- Bug in :func:`read_excel` when reading a ``.ods`` file with newlines between xml elements(:issue:`45598`)
 
 Period
 ^^^^^^
