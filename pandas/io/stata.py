@@ -62,7 +62,7 @@ from pandas import (
     to_timedelta,
 )
 from pandas.core.arrays.boolean import BooleanDtype
-from pandas.core.arrays.integer import _IntegerDtype
+from pandas.core.arrays.integer import IntegerDtype
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.base import Index
 from pandas.core.series import Series
@@ -585,7 +585,7 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
 
     for col in data:
         # Cast from unsupported types to supported types
-        is_nullable_int = isinstance(data[col].dtype, (_IntegerDtype, BooleanDtype))
+        is_nullable_int = isinstance(data[col].dtype, (IntegerDtype, BooleanDtype))
         orig = data[col]
         # We need to find orig_missing before altering data below
         orig_missing = orig.isna()
@@ -593,7 +593,7 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
             missing_loc = data[col].isna()
             if missing_loc.any():
                 # Replace with always safe value
-                fv = 0 if isinstance(data[col].dtype, _IntegerDtype) else False
+                fv = 0 if isinstance(data[col].dtype, IntegerDtype) else False
                 data.loc[missing_loc, col] = fv
             # Replace with NumPy-compatible column
             data[col] = data[col].astype(data[col].dtype.numpy_dtype)

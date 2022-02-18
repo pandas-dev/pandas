@@ -1309,11 +1309,6 @@ class TestExcelWriterEngineTests:
             ExcelWriter("nothing")
 
     def test_register_writer(self):
-        # some awkward mocking to test out dispatch and such actually works
-        called_save = []
-        called_write_cells = []
-        called_sheets = []
-
         class DummyClass(ExcelWriter):
             called_save = False
             called_write_cells = False
@@ -1325,34 +1320,37 @@ class TestExcelWriterEngineTests:
                 pass
 
             def _save(self):
-                called_save.append(True)
+                type(self).called_save = True
 
             def _write_cells(self, *args, **kwargs):
-                called_write_cells.append(True)
+                type(self).called_write_cells = True
 
             @property
             def sheets(self):
-                called_sheets.append(True)
+                type(self).called_sheets = True
 
-        def check_called(func):
-            func()
-            assert len(called_save) >= 1
-            assert len(called_write_cells) >= 1
-            assert len(called_sheets) == 0
-            del called_save[:]
-            del called_write_cells[:]
-            del called_sheets[:]
+            @classmethod
+            def assert_called_and_reset(cls):
+                assert cls.called_save
+                assert cls.called_write_cells
+                assert not cls.called_sheets
+                cls.called_save = False
+                cls.called_write_cells = False
+
+        register_writer(DummyClass)
 
         with option_context("io.excel.xlsx.writer", "dummy"):
             path = "something.xlsx"
             with tm.ensure_clean(path) as filepath:
-                register_writer(DummyClass)
                 with ExcelWriter(filepath) as writer:
                     assert isinstance(writer, DummyClass)
                 df = tm.makeCustomDataframe(1, 1)
-                check_called(lambda: df.to_excel(filepath))
-            with tm.ensure_clean("something.xls") as filepath:
-                check_called(lambda: df.to_excel(filepath, engine="dummy"))
+                df.to_excel(filepath)
+            DummyClass.assert_called_and_reset()
+
+        with tm.ensure_clean("something.xls") as filepath:
+            df.to_excel(filepath, engine="dummy")
+        DummyClass.assert_called_and_reset()
 
     @pytest.mark.parametrize(
         "ext",
