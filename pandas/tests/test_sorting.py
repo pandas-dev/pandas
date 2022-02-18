@@ -5,6 +5,11 @@ from itertools import product
 import numpy as np
 import pytest
 
+from pandas.compat import (
+    is_ci_environment,
+    is_platform_windows,
+)
+
 from pandas import (
     DataFrame,
     MultiIndex,
@@ -424,6 +429,11 @@ class TestSafeSort:
         tm.assert_numpy_array_equal(result, expected)
         tm.assert_numpy_array_equal(result_codes, expected_codes)
 
+    @pytest.mark.skipif(
+        is_platform_windows() and is_ci_environment(),
+        reason="In CI environment can crash thread with: "
+        "Windows fatal exception: access violation",
+    )
     @pytest.mark.parametrize("na_sentinel", [-1, 99])
     def test_codes_out_of_bound(self, na_sentinel):
         values = [3, 1, 2, 0, 4]

@@ -203,15 +203,29 @@ class XlsxWriter(ExcelWriter):
             engine_kwargs=engine_kwargs,
         )
 
-        self.book = Workbook(self.handles.handle, **engine_kwargs)
+        self._book = Workbook(self._handles.handle, **engine_kwargs)
 
-    def save(self) -> None:
+    @property
+    def book(self):
+        """
+        Book instance of class xlsxwriter.Workbook.
+
+        This attribute can be used to access engine-specific features.
+        """
+        return self._book
+
+    @property
+    def sheets(self) -> dict[str, Any]:
+        result = self.book.sheetnames
+        return result
+
+    def _save(self) -> None:
         """
         Save workbook to disk.
         """
         self.book.close()
 
-    def write_cells(
+    def _write_cells(
         self,
         cells,
         sheet_name: str | None = None,
@@ -222,11 +236,9 @@ class XlsxWriter(ExcelWriter):
         # Write the frame cells using xlsxwriter.
         sheet_name = self._get_sheet_name(sheet_name)
 
-        if sheet_name in self.sheets:
-            wks = self.sheets[sheet_name]
-        else:
+        wks = self.book.get_worksheet_by_name(sheet_name)
+        if wks is None:
             wks = self.book.add_worksheet(sheet_name)
-            self.sheets[sheet_name] = wks
 
         style_dict = {"null": None}
 

@@ -1331,10 +1331,11 @@ def test_unsuported_compression(parser):
 # STORAGE OPTIONS
 
 
-@tm.network
+@pytest.mark.single_cpu
 @td.skip_if_no("s3fs")
 @td.skip_if_no("lxml")
-def test_s3_permission_output(parser):
+def test_s3_permission_output(parser, s3_resource):
+    # s3_resource hosts pandas-test
     import s3fs
 
     with pytest.raises(PermissionError, match="Access Denied"):

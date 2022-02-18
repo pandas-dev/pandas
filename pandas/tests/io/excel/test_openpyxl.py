@@ -76,8 +76,8 @@ def test_write_cells_merge_styled(ext):
 
     with tm.ensure_clean(ext) as path:
         with _OpenpyxlWriter(path) as writer:
-            writer.write_cells(initial_cells, sheet_name=sheet_name)
-            writer.write_cells(merge_cells, sheet_name=sheet_name)
+            writer._write_cells(initial_cells, sheet_name=sheet_name)
+            writer._write_cells(merge_cells, sheet_name=sheet_name)
 
             wks = writer.sheets[sheet_name]
         xcell_b1 = wks["B1"]
@@ -379,3 +379,12 @@ def test_read_empty_with_blank_row(datapath, ext, read_only):
             result = pd.read_excel(wb, engine="openpyxl")
     expected = DataFrame()
     tm.assert_frame_equal(result, expected)
+
+
+def test_book_and_sheets_consistent(ext):
+    # GH#45687 - Ensure sheets is updated if user modifies book
+    with tm.ensure_clean(ext) as f:
+        with ExcelWriter(f, engine="openpyxl") as writer:
+            assert writer.sheets == {}
+            sheet = writer.book.create_sheet("test_name", 0)
+            assert writer.sheets == {"test_name": sheet}

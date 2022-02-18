@@ -117,7 +117,7 @@ def _get_layout(nplots: int, layout=None, layout_type: str = "box") -> tuple[int
         return layouts[nplots]
     except KeyError:
         k = 1
-        while k ** 2 < nplots:
+        while k**2 < nplots:
             k += 1
 
         if (k - 1) * k >= nplots:
@@ -388,12 +388,8 @@ def handle_shared_axes(
     sharey: bool,
 ):
     if nplots > 1:
-        if compat.mpl_ge_3_2_0():
-            row_num = lambda x: x.get_subplotspec().rowspan.start
-            col_num = lambda x: x.get_subplotspec().colspan.start
-        else:
-            row_num = lambda x: x.rowNum
-            col_num = lambda x: x.colNum
+        row_num = lambda x: x.get_subplotspec().rowspan.start
+        col_num = lambda x: x.get_subplotspec().colspan.start
 
         if compat.mpl_ge_3_4_0():
             is_first_col = lambda x: x.get_subplotspec().is_first_col()
