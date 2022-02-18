@@ -103,6 +103,7 @@ class ParserBase:
         self.keep_default_na = kwds.get("keep_default_na", True)
 
         self.dtype = copy(kwds.get("dtype", None))
+        self.converters = kwds.get("converters")
 
         self.true_values = kwds.get("true_values")
         self.false_values = kwds.get("false_values")
@@ -476,6 +477,7 @@ class ParserBase:
     @final
     def _agg_index(self, index, try_parse_dates: bool = True) -> Index:
         arrays = []
+        converters = self._clean_mapping(self.converters)
 
         for i, arr in enumerate(index):
 
@@ -503,7 +505,11 @@ class ParserBase:
             if isinstance(clean_dtypes, dict) and self.index_names is not None:
                 cast_type = clean_dtypes.get(self.index_names[i], None)
 
-            try_num_bool = not (cast_type and is_string_dtype(cast_type))
+            conv = False
+            if isinstance(converters, dict) and self.index_names is not None:
+                conv = converters.get(self.index_names[i]) is not None
+
+            try_num_bool = not (cast_type and is_string_dtype(cast_type) or conv)
 
             arr, _ = self._infer_types(
                 arr, col_na_values | col_na_fvalues, try_num_bool
