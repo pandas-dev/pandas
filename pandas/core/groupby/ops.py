@@ -789,7 +789,7 @@ class BaseGrouper:
         Get the original integer locations of result_index in the input.
         """
         # Original indices are where group_index would go via sorting.
-        # But when dropna is true, we need to remove null values whilst accounting for
+        # But when dropna is true, we need to remove null values while accounting for
         # any gaps that then occur because of them.
         group_index = get_group_index(self.codes, self.shape, sort=False, xnull=True)
 

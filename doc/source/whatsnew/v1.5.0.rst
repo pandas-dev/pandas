@@ -59,12 +59,12 @@ Styler
 
 .. _whatsnew_150.notable_bug_fixes.groupby_transform_dropna:
 
-Using ``dropna=True`` with ``groupby`` transformers
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Using ``dropna=True`` with ``groupby`` transforms
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A transformer is an operation whose result has the same size as its input. When the
+A transform is an operation whose result has the same size as its input. When the
 result is a :class:`DataFrame` or :class:`Series`, it is also required that the
-index of the result is equal to that of the input. In pandas 1.4, using
+index of the result matches that of the input. In pandas 1.4, using
 :meth:`.DataFrameGroupBy.transform` or :meth:`.SeriesGroupBy.transform` with null
 values in the groups and ``dropna=True`` gave incorrect results. Demonstrated by the
 examples below, the incorrect results either contained incorrect values, or the result
