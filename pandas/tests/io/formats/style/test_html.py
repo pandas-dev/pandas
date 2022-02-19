@@ -615,6 +615,7 @@ def test_hiding_index_columns_multiindex_alignment():
     styler.hide(level=1, axis=0).hide(level=0, axis=1)
     styler.hide([("j0", "i1", "j2")], axis=0)
     styler.hide([("c0", "d1", "d2")], axis=1)
+    styler.set_footer(["mean"])
     result = styler.to_html()
     expected = dedent(
         """\
@@ -665,6 +666,15 @@ def test_hiding_index_columns_multiindex_alignment():
           <td id="T__row2_col2" class="data row2 col2" >10</td>
         </tr>
       </tbody>
+      <tfoot>
+        <tr>
+          <th class="blank" >&nbsp;</th>
+          <th class="descriptor_name descriptor0" >mean</th>
+          <th class="descriptor_value descriptor0 col0" >6.000000</th>
+          <th class="descriptor_value descriptor0 col1" >7.000000</th>
+          <th class="descriptor_value descriptor0 col2" >8.000000</th>
+        </tr>
+      </tfoot>
     </table>
     """
     )
