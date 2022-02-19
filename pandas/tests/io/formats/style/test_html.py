@@ -234,6 +234,7 @@ def test_block_names(tpl_style, tpl_table):
         "after_head_rows",
         "before_rows",
         "tr",
+        "tfoot",
         "after_rows",
     }
     result1 = set(tpl_style.blocks)
