@@ -710,7 +710,7 @@ class PeriodArray(dtl.DatelikeOps):
         self._check_compatible_with(other)
         asi8 = self.asi8
         new_data = asi8 - other.ordinal
-        new_data = np.array([self.freq * x for x in new_data])
+        new_data = np.array([self.freq.base * x for x in new_data])
 
         if self._hasna:
             new_data[self._isnan] = NaT

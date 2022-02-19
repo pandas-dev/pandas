@@ -11,7 +11,7 @@ from pandas.tests.io.pytables.common import (
     tables,
 )
 
-pytestmark = pytest.mark.single
+pytestmark = pytest.mark.single_cpu
 
 
 def test_keys(setup_path):

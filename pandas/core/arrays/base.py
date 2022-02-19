@@ -180,7 +180,7 @@ class ExtensionArray:
     * dropna
     * unique
     * factorize / _values_for_factorize
-    * argsort / _values_for_argsort
+    * argsort, argmax, argmin / _values_for_argsort
     * searchsorted
 
     The remaining methods implemented on this class should be performant,
@@ -639,7 +639,7 @@ class ExtensionArray:
         This means that the corresponding entries in the returned array don't need to
         be modified to sort correctly.
         """
-        # Note: this is used in `ExtensionArray.argsort`.
+        # Note: this is used in `ExtensionArray.argsort/argmin/argmax`.
         return np.array(self)
 
     def argsort(
@@ -676,7 +676,8 @@ class ExtensionArray:
         # Implementor note: You have two places to override the behavior of
         # argsort.
         # 1. _values_for_argsort : construct the values passed to np.argsort
-        # 2. argsort : total control over sorting.
+        # 2. argsort : total control over sorting. In case of overriding this,
+        #    it is recommended to also override argmax/argmin
         ascending = nv.validate_argsort_with_ascending(ascending, args, kwargs)
 
         values = self._values_for_argsort()
@@ -707,6 +708,10 @@ class ExtensionArray:
         --------
         ExtensionArray.argmax
         """
+        # Implementor note: You have two places to override the behavior of
+        # argmin.
+        # 1. _values_for_argsort : construct the values used in nargminmax
+        # 2. argmin itself : total control over sorting.
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
             raise NotImplementedError
@@ -731,6 +736,10 @@ class ExtensionArray:
         --------
         ExtensionArray.argmin
         """
+        # Implementor note: You have two places to override the behavior of
+        # argmax.
+        # 1. _values_for_argsort : construct the values used in nargminmax
+        # 2. argmax itself : total control over sorting.
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
             raise NotImplementedError
