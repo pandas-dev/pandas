@@ -25,6 +25,11 @@ from pandas._libs import lib
 from pandas._typing import Level
 from pandas.compat._optional import import_optional_dependency
 
+from pandas.core.dtypes.common import (
+    is_complex,
+    is_float,
+    is_integer,
+)
 from pandas.core.dtypes.generic import ABCSeries
 
 from pandas import (
@@ -46,6 +51,7 @@ ExtFormatter = Union[BaseFormatter, Dict[Any, Optional[BaseFormatter]]]
 CSSPair = Tuple[str, Union[str, int, float]]
 CSSList = List[CSSPair]
 CSSProperties = Union[str, CSSList]
+Descriptor = Union[str, Callable[[Series], Any]]
 
 
 class CSSDict(TypedDict):
@@ -115,6 +121,9 @@ class StylerRenderer:
             "level": "level",
             "data": "data",
             "blank": "blank",
+            "descriptor": "descriptor",
+            "descriptor_value": "descriptor_value",
+            "descriptor_name": "descriptor_name",
         }
 
         # add rendering variables
@@ -124,6 +133,7 @@ class StylerRenderer:
         self.hide_columns_: list = [False] * self.columns.nlevels
         self.hidden_rows: Sequence[int] = []  # sequence for specific hidden rows/cols
         self.hidden_columns: Sequence[int] = []
+        self.descriptors: list[Descriptor | tuple[str, Descriptor]] = []
         self.ctx: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
         self.ctx_index: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
         self.ctx_columns: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
@@ -1442,9 +1452,9 @@ def _default_formatter(x: Any, precision: int, thousands: bool = False) -> Any:
     value : Any
         Matches input type, or string if input is float or complex or int with sep.
     """
-    if isinstance(x, (float, complex)):
+    if is_float(x) or is_complex(x):
         return f"{x:,.{precision}f}" if thousands else f"{x:.{precision}f}"
-    elif isinstance(x, int):
+    elif is_integer(x):
         return f"{x:,.0f}" if thousands else f"{x:.0f}"
     return x
 
@@ -1459,7 +1469,7 @@ def _wrap_decimal_thousands(
     """
 
     def wrapper(x):
-        if isinstance(x, (float, complex, int)):
+        if is_float(x) or is_integer(x) or is_complex(x):
             if decimal != "." and thousands is not None and thousands != ",":
                 return (
                     formatter(x)

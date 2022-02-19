@@ -54,6 +54,7 @@ jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires ji
 from pandas.io.formats.style_render import (
     CSSProperties,
     CSSStyles,
+    Descriptor,
     ExtFormatter,
     StylerRenderer,
     Subset,
@@ -1435,6 +1436,7 @@ class Styler(StylerRenderer):
         ]
         deep = [  # nested lists or dicts
             "css",
+            "descriptors",
             "_display_funcs",
             "_display_funcs_index",
             "_display_funcs_columns",
@@ -1977,6 +1979,9 @@ class Styler(StylerRenderer):
 
         Can be applied to a second Styler with ``Styler.use``.
 
+        .. versionchanged:: 1.5.0
+           Adds ``descriptors`` to the exported items for use with ``set_footer``.
+
         Returns
         -------
         styles : dict
@@ -1995,9 +2000,10 @@ class Styler(StylerRenderer):
         The following items are exported since they are not generally data dependent:
 
           - Styling functions added by the ``apply`` and ``applymap``
-          - Whether axes and names are hidden from the display, if unambiguous.
+          - Whether axes and names are hidden from the display, if unambiguous
           - Table attributes
           - Table styles
+          - Descriptors, i.e. from ``set_footer``
 
         The following attributes are considered data dependent and therefore not
         exported:
@@ -2027,6 +2033,7 @@ class Styler(StylerRenderer):
             "hide_index_names": self.hide_index_names,
             "hide_column_names": self.hide_column_names,
             "css": copy.copy(self.css),
+            "descriptors": copy.copy(self.descriptors),
         }
 
     def use(self, styles: dict[str, Any]) -> Styler:
@@ -2034,6 +2041,9 @@ class Styler(StylerRenderer):
         Set the styles on the current Styler.
 
         Possibly uses styles from ``Styler.export``.
+
+        .. versionchanged:: 1.5.0
+           Adds ``descriptors`` to the used items for use with ``set_footer``.
 
         Parameters
         ----------
@@ -2052,6 +2062,7 @@ class Styler(StylerRenderer):
               - "hide_index_names": whether index names are hidden.
               - "hide_column_names": whether column header names are hidden.
               - "css": the css class names used.
+              - "descriptors": list of descriptors, typically added with ``set_footer``.
 
         Returns
         -------
@@ -2094,6 +2105,8 @@ class Styler(StylerRenderer):
         self.hide_column_names = styles.get("hide_column_names", False)
         if styles.get("css"):
             self.css = styles.get("css")  # type: ignore[assignment]
+        if styles.get("descriptors"):
+            self.set_footer(styles.get("descriptors"))
         return self
 
     def set_uuid(self, uuid: str) -> Styler:
@@ -2352,7 +2365,10 @@ class Styler(StylerRenderer):
                                "row_trim": "row_trim",
                                "level": "level",
                                "data": "data",
-                               "blank": "blank}
+                               "blank": "blank",
+                               "descriptor": "descriptor",
+                               "descriptor_name": "descriptor_name",
+                               "descriptor_value": "descriptor_value"}
 
         Examples
         --------
@@ -2421,6 +2437,42 @@ class Styler(StylerRenderer):
             self.table_styles.extend(table_styles)
         else:
             self.table_styles = table_styles
+        return self
+
+    def set_descriptors(
+        self, descriptors: list[Descriptor | tuple[str, Descriptor]] | None = None
+    ) -> Styler:
+        """
+        Add header-level calculations to the output which describes the data.
+        .. versionadded:: 1.5.0
+        Parameters
+        ----------
+        descriptors : list of str, callables or 2-tuples of str and callable
+            If a string is given must be a valid Series method, e.g. "mean" invokes
+            Series.mean().
+            If a callable is given must accept a Series and return a scalar.
+            If a 2-tuple, must be a string used as the name of the row and a
+            callable or string as above.
+        Returns
+        -------
+        self : Styler
+        Examples
+        --------
+        >>> df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> def udf_func(s):
+        ...     return s.mean()
+        >>> styler = df.style.set_descriptors([
+        ...     "mean",
+        ...     Series.mean,
+        ...     ("my-text", "mean"),
+        ...     ("my-text2", Series.mean),
+        ...     ("my-func", lambda s: s.sum()/2),
+        ...     lambda s: s.sum()/2,
+        ...     udf_func,
+        ... ])  # doctest: +SKIP
+        .. figure:: ../../_static/style/des_mean.png
+        """
+        self.descriptors = descriptors if descriptors is not None else []
         return self
 
     def set_na_rep(self, na_rep: str) -> StylerRenderer:
