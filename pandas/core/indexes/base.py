@@ -1077,7 +1077,11 @@ class Index(IndexOpsMixin, PandasObject):
             with rewrite_exception(type(values).__name__, type(self).__name__):
                 new_values = values.astype(dtype, copy=copy)
 
-        elif is_float_dtype(self.dtype) and needs_i8_conversion(dtype):
+        elif (
+            is_float_dtype(self.dtype)
+            and needs_i8_conversion(dtype)
+            and np.isnan(values) == False
+        ):
             # NB: this must come before the ExtensionDtype check below
             # TODO: this differs from Series behavior; can/should we align them?
             raise TypeError(
