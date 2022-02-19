@@ -458,16 +458,17 @@ class StylerRenderer:
             try:
                 ret = method(s)
             except Exception as e:
+                msg = (
+                    "`Styler.set_footer` raised Exception when calculating method "
+                    f"`{method.__name__}` on column `{s.name}`"
+                )
                 if self.descriptors["errors"] == "ignore":
                     return NA
                 elif self.descriptors["errors"] == "warn":
-                    warnings.warn(
-                        "``set_footer`` raised Exception when calculating a column",
-                        Warning,
-                    )
+                    warnings.warn(msg, Warning)
                     return NA
                 else:
-                    raise e
+                    raise Exception(msg) from e
             else:
                 return ret
 
