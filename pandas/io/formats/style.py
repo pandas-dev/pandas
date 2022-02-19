@@ -54,7 +54,6 @@ jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires ji
 from pandas.io.formats.style_render import (
     CSSProperties,
     CSSStyles,
-    Descriptor,
     ExtFormatter,
     StylerRenderer,
     Subset,
@@ -2105,8 +2104,13 @@ class Styler(StylerRenderer):
         self.hide_column_names = styles.get("hide_column_names", False)
         if styles.get("css"):
             self.css = styles.get("css")  # type: ignore[assignment]
-        if styles.get("descriptors"):
-            self.set_footer(styles.get("descriptors"))
+        if styles.get("descriptors") and styles["descriptors"]["methods"]:
+            self.set_footer(
+                func=styles["descriptors"]["methods"],
+                alias=styles["descriptors"]["names"],
+                format_kwargs=styles["descriptors"]["format"],
+                errors=styles["descriptors"]["errors"],
+            )
         return self
 
     def set_uuid(self, uuid: str) -> Styler:
@@ -2439,29 +2443,43 @@ class Styler(StylerRenderer):
             self.table_styles = table_styles
         return self
 
-    def set_descriptors(
-        self, descriptors: list[Descriptor | tuple[str, Descriptor]] | None = None
+    def set_footer(
+        self,
+        func: Sequence[str | Callable] | None = None,
+        alias: Sequence[str] | None = None,
+        errors: str = "ignore",
+        format_kwargs: dict[str, Any] = {},
     ) -> Styler:
         """
-        Add header-level calculations to the output which describes the data.
+        Add footer-level calculations to the output which describes the data.
+
         .. versionadded:: 1.5.0
+
         Parameters
         ----------
-        descriptors : list of str, callables or 2-tuples of str and callable
+        func : list-like of str or callable
             If a string is given must be a valid Series method, e.g. "mean" invokes
             Series.mean().
             If a callable is given must accept a Series and return a scalar.
-            If a 2-tuple, must be a string used as the name of the row and a
-            callable or string as above.
+        alias : list-like of str, optional
+            Aliases to use for the function names. Must have length equal to ``func``.
+        errors : {"ignore", "warn", "raise"}
+            If errors, will be ignored or warned returning ``NA``, or raise.
+        format_kwargs : dict
+            Keyword args to pass to the formatting function. See ``Styler.format``.
+            The ``formatter`` can be given as str, callable or list, where a list
+            must have the same length as ``func``.
+
         Returns
         -------
         self : Styler
+
         Examples
         --------
         >>> df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
         >>> def udf_func(s):
         ...     return s.mean()
-        >>> styler = df.style.set_descriptors([
+        >>> styler = df.style.set_footer([
         ...     "mean",
         ...     Series.mean,
         ...     ("my-text", "mean"),
@@ -2472,7 +2490,24 @@ class Styler(StylerRenderer):
         ... ])  # doctest: +SKIP
         .. figure:: ../../_static/style/des_mean.png
         """
-        self.descriptors = descriptors if descriptors is not None else []
+        if func is not None:
+            if alias is not None and len(alias) != len(func):
+                raise ValueError("``alias`` must have same length as ``func``")
+
+            if isinstance(format_kwargs.get("formatter", None), list) and len(
+                format_kwargs["formatter"]
+            ) != len(func):
+                raise ValueError(
+                    "``formatter`` key of ``format_kwargs`` as list must have "
+                    "same length as ``func``"
+                )
+
+        self.descriptors = {
+            "methods": func,
+            "names": alias,
+            "errors": errors,
+            "format": format_kwargs,
+        }
         return self
 
     def set_na_rep(self, na_rep: str) -> StylerRenderer:
