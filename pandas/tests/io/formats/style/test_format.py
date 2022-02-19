@@ -443,7 +443,8 @@ def test_1level_multiindex():
         ({"precision": 3, "decimal": "+", "thousands": ">"}, ["1>001", "998+163"]),
     ],
 )
-def test_format_footer_option_context(styler, format_kwargs, exp):
+def test_format_footer(styler, format_kwargs, exp):
+    # test explicit input and option context values
     with option_context(
         "styler.format.precision",
         5,
