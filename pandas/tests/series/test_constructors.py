@@ -1999,7 +1999,7 @@ def test_numpy_array_np_v1p19():
 
 def test_series_with_NAs_and_interval_of_datetime_dtype():
     # GH#41805
-    result = pd.Series(data=[None], dtype="interval[datetime64[ns]]")
-    expected = pd.Series(np.nan, dtype="interval[datetime64[ns]]")
+    result = Series(data=[None], dtype="interval[datetime64[ns]]")
+    expected = Series(np.nan, dtype="interval[datetime64[ns]]")
 
     tm.assert_series_equal(result, expected)
