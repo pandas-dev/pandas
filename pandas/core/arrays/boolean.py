@@ -214,7 +214,7 @@ def coerce_to_array(
             raise TypeError("Need to pass bool-like values")
 
     if mask is None and mask_values is None:
-        mask = np.zeros(len(values), dtype=bool)
+        mask = np.zeros(values.shape, dtype=bool)
     elif mask is None:
         mask = mask_values
     else:
@@ -381,6 +381,3 @@ class BooleanArray(BaseMaskedArray):
         # error: Argument 2 to "BooleanArray" has incompatible type "Optional[Any]";
         # expected "ndarray"
         return BooleanArray(result, mask)  # type: ignore[arg-type]
-
-    def __abs__(self):
-        return self.copy()
