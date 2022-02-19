@@ -136,7 +136,7 @@ jobs:
       if: ${{ env.IS_PYPY == 'false' }} # No pypy3.8 support
 
     - name: Upgrade Arrow version
-      run: conda install -n pandas-dev -c conda-forge pyarrow=${{ matrix.pyarrow_version }}
+      run: conda install -n pandas-dev -c conda-forge --no-update-deps pyarrow=${{ matrix.pyarrow_version }}
       if: ${{ matrix.pyarrow_version }}
 
     - name: Setup PyPy
