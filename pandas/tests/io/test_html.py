@@ -31,8 +31,6 @@ from pandas.io.common import file_path_to_url
 import pandas.io.html
 from pandas.io.html import read_html
 
-HERE = os.path.dirname(__file__)
-
 
 @pytest.fixture(
     params=[
@@ -135,9 +133,15 @@ class TestReadHtml:
         tm.assert_frame_equal(res, df)
 
     @pytest.mark.network
-    @tm.network
+    @tm.network(
+        url=(
+            "https://www.fdic.gov/resources/resolutions/"
+            "bank-failures/failed-bank-list/index.html"
+        ),
+        check_before_test=True,
+    )
     def test_banklist_url_positional_match(self):
-        url = "http://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/index.html"  # noqa E501
+        url = "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/index.html"  # noqa E501
         # Passing match argument as positional should cause a FutureWarning.
         with tm.assert_produces_warning(FutureWarning):
             df1 = self.read_html(
@@ -155,9 +159,15 @@ class TestReadHtml:
         assert_framelist_equal(df1, df2)
 
     @pytest.mark.network
-    @tm.network
+    @tm.network(
+        url=(
+            "https://www.fdic.gov/resources/resolutions/"
+            "bank-failures/failed-bank-list/index.html"
+        ),
+        check_before_test=True,
+    )
     def test_banklist_url(self):
-        url = "http://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/index.html"  # noqa E501
+        url = "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/index.html"  # noqa E501
         df1 = self.read_html(
             # lxml cannot find attrs leave out for now
             url,
@@ -172,7 +182,13 @@ class TestReadHtml:
         assert_framelist_equal(df1, df2)
 
     @pytest.mark.network
-    @tm.network
+    @tm.network(
+        url=(
+            "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
+            "pandas/tests/io/data/html/spam.html"
+        ),
+        check_before_test=True,
+    )
     def test_spam_url(self):
         url = (
             "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
@@ -408,14 +424,14 @@ class TestReadHtml:
             self.read_html(spam_data, match="Water", skiprows=-1)
 
     @pytest.mark.network
-    @tm.network
+    @tm.network(url="https://docs.python.org/2/", check_before_test=True)
     def test_multiple_matches(self):
         url = "https://docs.python.org/2/"
         dfs = self.read_html(url, match="Python")
         assert len(dfs) > 1
 
     @pytest.mark.network
-    @tm.network
+    @tm.network(url="https://docs.python.org/2/", check_before_test=True)
     def test_python_docs_table(self):
         url = "https://docs.python.org/2/"
         dfs = self.read_html(url, match="Python")

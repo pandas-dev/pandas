@@ -271,7 +271,9 @@ Other Deprecations
 - Deprecated behavior of :meth:`DatetimeIndex.intersection` and :meth:`DatetimeIndex.symmetric_difference` (``union`` behavior was already deprecated in version 1.3.0) with mixed time zones; in a future version both will be cast to UTC instead of object dtype (:issue:`39328`, :issue:`45357`)
 - Deprecated :meth:`DataFrame.iteritems`, :meth:`Series.iteritems`, :meth:`HDFStore.iteritems` in favor of :meth:`DataFrame.items`, :meth:`Series.items`, :meth:`HDFStore.items`  (:issue:`45321`)
 - Deprecated :meth:`Series.is_monotonic` and :meth:`Index.is_monotonic` in favor of :meth:`Series.is_monotonic_increasing` and :meth:`Index.is_monotonic_increasing` (:issue:`45422`, :issue:`21335`)
+- Deprecated behavior of :meth:`DatetimeIndex.astype`, :meth:`TimedeltaIndex.astype`, :meth:`PeriodIndex.astype` when converting to an integer dtype other than ``int64``. In a future version, these will convert to exactly the specified dtype (instead of always ``int64``) and will raise if the conversion overflows (:issue:`45034`)
 - Deprecated the ``__array_wrap__`` method of DataFrame and Series, rely on standard numpy ufuncs instead (:issue:`45451`)
+- Deprecated treating float-dtype data as wall-times when passed with a timezone to :class:`Series` or :class:`DatetimeIndex` (:issue:`45573`)
 - Deprecated the behavior of :meth:`Series.fillna` and :meth:`DataFrame.fillna` with ``timedelta64[ns]`` dtype and incompatible fill value; in a future version this will cast to a common dtype (usually object) instead of raising, matching the behavior of other dtypes (:issue:`45746`)
 - Deprecated the ``warn`` parameter in :func:`infer_freq` (:issue:`45947`)
 
@@ -285,6 +287,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.duplicated` when subset consists of only one column (:issue:`45236`)
 - Performance improvement in :meth:`.GroupBy.transform` when broadcasting values for user-defined functions (:issue:`45708`)
 - Performance improvement in :meth:`.GroupBy.transform` for user-defined functions when only a single group exists (:issue:`44977`)
+- Performance improvement in :meth:`MultiIndex.get_locs` (:issue:`45681`)
 - Performance improvement in :func:`merge` when left and/or right are empty (:issue:`45838`)
 - Performance improvement in :class:`DataFrame` and :class:`Series` constructors for extension dtype scalars (:issue:`45854`)
 -
@@ -336,7 +339,7 @@ Conversion
 
 Strings
 ^^^^^^^
--
+- Bug in :meth:`str.startswith` and :meth:`str.endswith` when using other series as parameter _pat_. Now raises ``TypeError`` (:issue:`3485`)
 -
 
 Interval
@@ -348,6 +351,7 @@ Indexing
 ^^^^^^^^
 - Bug in :meth:`loc.__getitem__` with a list of keys causing an internal inconsistency that could lead to a disconnect between ``frame.at[x, y]`` vs ``frame[y].loc[x]`` (:issue:`22372`)
 - Bug in :meth:`DataFrame.iloc` where indexing a single row on a :class:`DataFrame` with a single ExtensionDtype column gave a copy instead of a view on the underlying data (:issue:`45241`)
+- Bug in :meth:`Series.align` does not create :class:`MultiIndex` with union of levels when both MultiIndexes intersections are identical (:issue:`45224`)
 - Bug in setting a NA value (``None`` or ``np.nan``) into a :class:`Series` with int-based :class:`IntervalDtype` incorrectly casting to object dtype instead of a float-based :class:`IntervalDtype` (:issue:`45568`)
 - Bug in :meth:`Series.__setitem__` with a non-integer :class:`Index` when using an integer key to set a value that cannot be set inplace where a ``ValueError`` was raised instead of casting to a common dtype (:issue:`45070`)
 - Bug in :meth:`Series.__setitem__` when setting incompatible values into a ``PeriodDtype`` or ``IntervalDtype`` :class:`Series` raising when indexing with a boolean mask but coercing when indexing with otherwise-equivalent indexers; these now consistently coerce, along with :meth:`Series.mask` and :meth:`Series.where` (:issue:`45768`)
@@ -357,6 +361,8 @@ Indexing
 - Bug in :meth:`loc.__setitem__` treating ``range`` keys as positional instead of label-based (:issue:`45479`)
 - Bug in :meth:`Series.__setitem__` when setting ``boolean`` dtype values containing ``NA`` incorrectly raising instead of casting to ``boolean`` dtype (:issue:`45462`)
 - Bug in :meth:`Series.__setitem__` where setting :attr:`NA` into a numeric-dtpye :class:`Series` would incorrectly upcast to object-dtype rather than treating the value as ``np.nan`` (:issue:`44199`)
+- Bug in :meth:`Series.__setitem__` with ``datetime64[ns]`` dtype, an all-``False`` boolean mask, and an incompatible value incorrectly casting to ``object`` instead of retaining ``datetime64[ns]`` dtype (:issue:`45967`)
+- Bug in :meth:`Index.__getitem__`  raising ``ValueError`` when indexer is from boolean dtype with ``NA`` (:issue:`45806`)
 - Bug in :meth:`Series.mask` with ``inplace=True`` or setting values with a boolean mask with small integer dtypes incorrectly raising (:issue:`45750`)
 - Bug in :meth:`DataFrame.mask` with ``inplace=True`` and ``ExtensionDtype`` columns incorrectly raising (:issue:`45577`)
 - Bug in getting a column from a DataFrame with an object-dtype row index with datetime-like values: the resulting Series now preserves the exact object-dtype Index from the parent DataFrame (:issue:`42950`)
@@ -384,12 +390,13 @@ I/O
 - Bug in :func:`read_excel` results in an infinite loop with certain ``skiprows`` callables (:issue:`45585`)
 - Bug in :meth:`DataFrame.info` where a new line at the end of the output is omitted when called on an empty :class:`DataFrame` (:issue:`45494`)
 - Bug in :func:`read_csv` not recognizing line break for ``on_bad_lines="warn"`` for ``engine="c"`` (:issue:`41710`)
+- Bug in :meth:`DataFrame.to_csv` not respecting ``float_format`` for ``Float64`` dtype (:issue:`45991`)
 - Bug in :func:`read_parquet` when ``engine="pyarrow"`` which caused partial write to disk when column of unsupported datatype was passed (:issue:`44914`)
 - Bug in :func:`DataFrame.to_excel` and :class:`ExcelWriter` would raise when writing an empty DataFrame to a ``.ods`` file (:issue:`45793`)
 
 Period
 ^^^^^^
--
+- Bug in subtraction of :class:`Period` from :class:`PeriodArray` returning wrong results (:issue:`45999`)
 -
 
 Plotting
@@ -403,7 +410,8 @@ Plotting
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 - Bug in :meth:`DataFrame.resample` ignoring ``closed="right"`` on :class:`TimedeltaIndex` (:issue:`45414`)
-- Bug in :meth:`.DataFrameGroupBy.transform` fails when the input DataFrame has multiple columns (:issue:`27469`)
+- Bug in :meth:`.DataFrameGroupBy.transform` fails when ``func="size"`` and the input DataFrame has multiple columns (:issue:`27469`)
+- Bug in :meth:`.DataFrameGroupBy.size` and :meth:`.DataFrameGroupBy.transform` with ``func="size"`` produced incorrect results when ``axis=1`` (:issue:`45715`)
 
 Reshaping
 ^^^^^^^^^
