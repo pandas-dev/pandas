@@ -2474,21 +2474,55 @@ class Styler(StylerRenderer):
         -------
         self : Styler
 
+        Notes
+        -----
+        These metrics are calculated at render time and can therefore be exported
+        and used on similar dataframes. This method will add a ``descriptors`` attribute
+        to the Styler instance, which can be inspected.
+
         Examples
         --------
-        >>> df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
-        >>> def udf_func(s):
-        ...     return s.mean()
-        >>> styler = df.style.set_footer([
-        ...     "mean",
-        ...     Series.mean,
-        ...     ("my-text", "mean"),
-        ...     ("my-text2", Series.mean),
-        ...     ("my-func", lambda s: s.sum()/2),
-        ...     lambda s: s.sum()/2,
-        ...     udf_func,
-        ... ])  # doctest: +SKIP
-        .. figure:: ../../_static/style/des_mean.png
+        A common use case is adding totals rows for descriptive tables.
+
+        >>> df = DataFrame([[4, 6], [1, 9], [3, 4], [5, 5], [9,6]],
+        ...                columns=["Mike", "Jim"],
+        ...                index=["Mon", "Tue", "Wed", "Thurs", "Fri"])
+        >>> styler = df.style.set_footer(["sum"])  # doctest: +SKIP
+
+        .. figure:: ../../_static/style/footer_simple.png
+
+        It is possible to use the ``alias`` and ``format_kwargs`` arguments to have
+        greater control over the look of the table.
+
+        >>> df = DataFrame({
+        ...          "Normal": np.random.randn(1000000),
+        ...          "Uniform": np.random.rand(1000000),
+        ...          "Poisson": np.random.poisson(size=1000000),
+        ... })
+        >>> with pd.option_context("styler.render.max_rows", 5):
+        ...     df.style.set_footer(["mean", "var", "skew", "kurtosis"],
+        ...                         alias=["1st Moment", "2nd", "3rd", "4th"],
+        ...                         format_kwargs={"precision": 3}
+        ...     )  # doctest: +SKIP
+
+        .. figure:: ../../_static/style/footer_stats.png
+
+        User defined functions can also be used, which is useful for displaying
+        metrics such as dtypes, missing value counts, or unique value counts etc.
+
+        >>> def reject_h0(s):
+        ...     count = (s > 0.8).sum()
+        ...     return "Reject" if count > 3 else "Accept"
+        >>> df = DataFrame({
+        ...          "Machine 1": np.random.rand(10),
+        ...          "Machine 2": np.random.rand(10),
+        ...          "Machine 3": np.random.rand(10),
+        ... })
+        >>> df.style.highlight_between(left=0.8, props="color: red;")
+        ...         .set_footer([reject_h0],
+        ...                     alias=["Hypothesis Test:"])  # doctest: +SKIP
+
+        .. figure:: ../../_static/style/footer_hypothesis.png
         """
         if func is not None:
             if alias is not None and len(alias) != len(func):
