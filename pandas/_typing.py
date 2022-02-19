@@ -307,6 +307,7 @@ XMLParsers = Literal["lxml", "etree"]
 # on which side(s) Interval is closed
 IntervalBound = Literal["left", "right", "both", "neither"]
 
+
 # minimal required interface to be used in IntervalMixin
 class Orderable(Protocol):
     def __sub__(self, __other):
