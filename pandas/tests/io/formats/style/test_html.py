@@ -689,7 +689,15 @@ def test_hiding_index_columns_multiindex_trimming():
     df.index.names, df.columns.names = ["a", "b"], ["c", "d"]
     styler = Styler(df, cell_ids=False, uuid_len=0)
     styler.hide([(0, 0), (0, 1), (1, 0)], axis=1).hide([(0, 0), (0, 1), (1, 0)], axis=0)
-    with option_context("styler.render.max_rows", 4, "styler.render.max_columns", 4):
+    styler.set_footer(["mean"])
+    with option_context(
+        "styler.render.max_rows",
+        4,
+        "styler.render.max_columns",
+        4,
+        "styler.format.precision",
+        0,
+    ):
         result = styler.to_html()
 
     expected = dedent(
@@ -770,10 +778,20 @@ def test_hiding_index_columns_multiindex_trimming():
           <td class="data row_trim col_trim" >...</td>
         </tr>
       </tbody>
+      <tfoot>
+        <tr>
+          <th class="blank" >&nbsp;</th>
+          <th class="descriptor_name descriptor0" >mean</th>
+          <th class="descriptor_value descriptor0 col3" >31</th>
+          <th class="descriptor_value descriptor0 col4" >32</th>
+          <th class="descriptor_value descriptor0 col5" >33</th>
+          <th class="descriptor_value descriptor0 col6" >34</th>
+          <th class="descriptor_value descriptor0 col_trim" >...</th>
+        </tr>
+      </tfoot>
     </table>
     """
     )
-
     assert result == expected
 
 

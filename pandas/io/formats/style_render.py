@@ -966,7 +966,7 @@ class StylerRenderer:
                 visible_col_count,
                 max_cols,
                 descriptor_values,
-                "td",
+                "th",
                 f"{self.css['descriptor_value']} {self.css['descriptor']}{r} "
                 f"{self.css['col_trim']}",
             ):
