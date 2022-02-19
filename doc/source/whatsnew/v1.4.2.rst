@@ -23,7 +23,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Bug in :meth:`Groupby.rolling` with a frequency window would raise a ``ValueError`` even if the datetimes within each group were monotonic (:issue:`46061`)
 -
 
 .. ---------------------------------------------------------------------------
