@@ -1560,3 +1560,33 @@ def test_no_empty_apply(mi_styler):
     # 45313
     mi_styler.apply(lambda s: ["a:v;"] * 2, subset=[False, False])
     mi_styler._compute()
+
+
+@pytest.mark.parametrize("alias", [None, ["mean", "average", "lambda", "udf"]])
+def test_set_footer(mi_styler, alias):
+    def udf_func(s):
+        return s.mean()
+
+    mi_styler.set_footer(
+        [
+            "mean",
+            Series.mean,
+            lambda s: s.sum() / len(s),
+            udf_func,
+        ],
+        alias=alias,
+    )
+    ctx = mi_styler._translate(True, True)
+    assert len(ctx["foot"]) == 4  # 4 descriptors
+
+    exp_label = alias if alias is not None else ["mean", "mean", "<lambda>", "udf_func"]
+    for r, row in enumerate(ctx["foot"]):
+        for c, col in enumerate(row[2:]):  # iterate after row headers
+            result = {k: col[k] for k in ["type", "is_visible", "value"]}
+            assert (
+                result.items() <= ctx["foot"][0][c + 2].items()
+            )  # test rows 3,4,5 are equivalent to row 2 in value, type and visibility
+            assert col["class"] == f"descriptor_value descriptor{r} col{c}"  # test css
+
+        assert row[1]["value"] == exp_label[r]  # test label is printed
+        assert f"descriptor_name descriptor{r}" in row[1]["class"]  # test css
