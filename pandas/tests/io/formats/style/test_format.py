@@ -434,3 +434,21 @@ def test_1level_multiindex():
     assert ctx["body"][0][0]["is_visible"] is True
     assert ctx["body"][1][0]["display_value"] == "2"
     assert ctx["body"][1][0]["is_visible"] is True
+
+
+def test_format_footer(styler):
+    with option_context(
+        "styler.format.precision",
+        5,
+        "styler.format.decimal",
+        "*",
+        "styler.format.thousands",
+        "_",
+    ):
+        styler.set_footer([lambda s: s.sum() + 1000])
+        ctx = styler._translate(True, True)
+
+    exp_col_1 = {"value": 1001, "display_value": "1_001"}
+    assert exp_col_1.items() <= ctx["foot"][0][1].items()
+    exp_col_2 = {"value": 998.163, "display_value": "998*16300"}
+    assert exp_col_2.items() <= ctx["foot"][0][2].items()
