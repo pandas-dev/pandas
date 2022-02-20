@@ -2482,7 +2482,7 @@ class Styler(StylerRenderer):
 
         Examples
         --------
-        A common use case is adding totals rows for descriptive tables.
+        A common use case is adding totals rows for descriptive tables, with ``func``.
 
         >>> df = DataFrame([[4, 6], [1, 9], [3, 4], [5, 5], [9,6]],
         ...                columns=["Mike", "Jim"],
@@ -2500,7 +2500,7 @@ class Styler(StylerRenderer):
         ...          "Poisson": np.random.poisson(size=1000000),
         ... })
         >>> with pd.option_context("styler.render.max_rows", 5):
-        ...     df.style.set_footer(["mean", "var", "skew", "kurtosis"],
+        ...     df.style.set_footer(func=["mean", "var", "skew", "kurtosis"],
         ...                         alias=["1st Moment", "2nd", "3rd", "4th"],
         ...                         format_kwargs={"precision": 3}
         ...     )  # doctest: +SKIP
@@ -2519,7 +2519,7 @@ class Styler(StylerRenderer):
         ...          "Machine 3": np.random.rand(10),
         ... })
         >>> df.style.highlight_between(left=0.8, props="color: red;")
-        ...         .set_footer([reject_h0],
+        ...         .set_footer(func=[reject_h0],
         ...                     alias=["Hypothesis Test:"])  # doctest: +SKIP
 
         .. figure:: ../../_static/style/footer_hypothesis.png
