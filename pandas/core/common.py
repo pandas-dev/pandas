@@ -517,7 +517,7 @@ def get_rename_function(mapper):
 
 
 def convert_to_list_like(
-    values: Scalar | Iterable | AnyArrayLike,
+    values: Scalar | Iterable | AnyArrayLike | Hashable,
 ) -> list | AnyArrayLike:
     """
     Convert list-like or scalar input to list-like. List, numpy and pandas array-like

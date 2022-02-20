@@ -113,7 +113,7 @@ class PythonParser(ParserBase):
         # Get columns in two steps: infer from data, then
         # infer column indices from self.usecols if it is specified.
         self._col_indices: list[int] | None = None
-        columns: list[list[Scalar | None]]
+        columns: list[list[Hashable | None]]
         (
             columns,
             self.num_original_columns,
@@ -352,11 +352,11 @@ class PythonParser(ParserBase):
 
     def _infer_columns(
         self,
-    ) -> tuple[list[list[Scalar | None]], int, set[Scalar | None]]:
+    ) -> tuple[list[list[Hashable | None]], int, set[Hashable | None]]:
         names = self.names
         num_original_columns = 0
         clear_buffer = True
-        unnamed_cols: set[Scalar | None] = set()
+        unnamed_cols: set[Hashable | None] = set()
         self._header_line = None
 
         if self.header is not None:
@@ -371,7 +371,7 @@ class PythonParser(ParserBase):
                 have_mi_columns = False
                 header = [header]
 
-            columns: list[list[Scalar | None]] = []
+            columns: list[list[Hashable | None]] = []
             for level, hr in enumerate(header):
                 try:
                     line = self._buffered_line()
@@ -400,7 +400,7 @@ class PythonParser(ParserBase):
 
                     line = self.names[:]
 
-                this_columns: list[Scalar | None] = []
+                this_columns: list[Hashable | None] = []
                 this_unnamed_cols = []
 
                 for i, c in enumerate(line):
@@ -475,7 +475,7 @@ class PythonParser(ParserBase):
             if clear_buffer:
                 self._clear_buffer()
 
-            first_line: list[Scalar] | None
+            first_line: list[Hashable] | None
             if names is not None:
                 # Read first row after header to check if data are longer
                 try:
@@ -551,10 +551,10 @@ class PythonParser(ParserBase):
 
     def _handle_usecols(
         self,
-        columns: list[list[Scalar | None]],
-        usecols_key: list[Scalar | None],
+        columns: list[list[Hashable | None]],
+        usecols_key: list[Hashable | None],
         num_original_columns: int,
-    ) -> list[list[Scalar | None]]:
+    ) -> list[list[Hashable | None]]:
         """
         Sets self._col_indices
 
@@ -599,7 +599,7 @@ class PythonParser(ParserBase):
             self._col_indices = sorted(col_indices)
         return columns
 
-    def _buffered_line(self) -> list[Scalar]:
+    def _buffered_line(self) -> list[Hashable]:
         """
         Return a line from buffer, filling buffer if required.
         """
@@ -608,7 +608,7 @@ class PythonParser(ParserBase):
         else:
             return self._next_line()
 
-    def _check_for_bom(self, first_row: list[Scalar]) -> list[Scalar]:
+    def _check_for_bom(self, first_row: list[Hashable]) -> list[Hashable]:
         """
         Checks whether the file begins with the BOM character.
         If it does, remove it. In addition, if there is quoting
@@ -659,10 +659,10 @@ class PythonParser(ParserBase):
             # No quotation so just remove BOM from first element
             new_row = first_row_bom[1:]
 
-        new_row_list: list[Scalar] = [new_row]
+        new_row_list: list[Hashable] = [new_row]
         return new_row_list + first_row[1:]
 
-    def _is_line_empty(self, line: list[Scalar]) -> bool:
+    def _is_line_empty(self, line: list[Hashable]) -> bool:
         """
         Check if a line is empty or not.
 
@@ -677,7 +677,7 @@ class PythonParser(ParserBase):
         """
         return not line or all(not x for x in line)
 
-    def _next_line(self) -> list[Scalar]:
+    def _next_line(self) -> list[Hashable]:
         if isinstance(self.data, list):
             while self.skipfunc(self.pos):
                 if self.pos >= len(self.data):
@@ -756,7 +756,7 @@ class PythonParser(ParserBase):
             base = f"Skipping line {row_num}: "
             sys.stderr.write(base + msg + "\n")
 
-    def _next_iter_line(self, row_num: int) -> list[Scalar] | None:
+    def _next_iter_line(self, row_num: int) -> list[Hashable] | None:
         """
         Wrapper around iterating through `self.data` (CSV source).
 
@@ -804,7 +804,7 @@ class PythonParser(ParserBase):
                 self._alert_malformed(msg, row_num)
             return None
 
-    def _check_comments(self, lines: list[list[Scalar]]) -> list[list[Scalar]]:
+    def _check_comments(self, lines: list[list[Hashable]]) -> list[list[Hashable]]:
         if self.comment is None:
             return lines
         ret = []
@@ -825,7 +825,7 @@ class PythonParser(ParserBase):
             ret.append(rl)
         return ret
 
-    def _remove_empty_lines(self, lines: list[list[Scalar]]) -> list[list[Scalar]]:
+    def _remove_empty_lines(self, lines: list[list[Hashable]]) -> list[list[Hashable]]:
         """
         Iterate through the lines and remove any that are
         either empty or contain only one whitespace value
@@ -851,7 +851,7 @@ class PythonParser(ParserBase):
                 ret.append(line)
         return ret
 
-    def _check_thousands(self, lines: list[list[Scalar]]) -> list[list[Scalar]]:
+    def _check_thousands(self, lines: list[list[Hashable]]) -> list[list[Hashable]]:
         if self.thousands is None:
             return lines
 
@@ -860,8 +860,8 @@ class PythonParser(ParserBase):
         )
 
     def _search_replace_num_columns(
-        self, lines: list[list[Scalar]], search: str, replace: str
-    ) -> list[list[Scalar]]:
+        self, lines: list[list[Hashable]], search: str, replace: str
+    ) -> list[list[Hashable]]:
         ret = []
         for line in lines:
             rl = []
@@ -878,7 +878,7 @@ class PythonParser(ParserBase):
             ret.append(rl)
         return ret
 
-    def _check_decimal(self, lines: list[list[Scalar]]) -> list[list[Scalar]]:
+    def _check_decimal(self, lines: list[list[Hashable]]) -> list[list[Hashable]]:
         if self.decimal == parser_defaults["decimal"]:
             return lines
 
@@ -908,7 +908,7 @@ class PythonParser(ParserBase):
         orig_names = list(columns)
         columns = list(columns)
 
-        line: list[Scalar] | None
+        line: list[Hashable] | None
         if self._header_line is not None:
             line = self._header_line
         else:
@@ -917,7 +917,7 @@ class PythonParser(ParserBase):
             except StopIteration:
                 line = None
 
-        next_line: list[Scalar] | None
+        next_line: list[Hashable] | None
         try:
             next_line = self._next_line()
         except StopIteration:
@@ -964,7 +964,7 @@ class PythonParser(ParserBase):
 
         return index_name, orig_names, columns
 
-    def _rows_to_cols(self, content: list[list[Scalar]]) -> list[np.ndarray]:
+    def _rows_to_cols(self, content: list[list[Hashable]]) -> list[np.ndarray]:
         col_len = self.num_original_columns
 
         if self._implicit_index:
@@ -1051,7 +1051,7 @@ class PythonParser(ParserBase):
                 ]
         return zipped_content
 
-    def _get_lines(self, rows: int | None = None) -> list[list[Scalar]]:
+    def _get_lines(self, rows: int | None = None) -> list[list[Hashable]]:
         lines = self.buf
         new_rows = None
 
@@ -1281,7 +1281,7 @@ class FixedWidthFieldParser(PythonParser):
             self.infer_nrows,
         )
 
-    def _remove_empty_lines(self, lines: list[list[Scalar]]) -> list[list[Scalar]]:
+    def _remove_empty_lines(self, lines: list[list[Hashable]]) -> list[list[Hashable]]:
         """
         Returns the list of lines without the empty ones. With fixed-width
         fields, empty lines become arrays of empty strings.

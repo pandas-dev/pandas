@@ -7,6 +7,7 @@ from operator import (
 )
 import textwrap
 from typing import (
+    Any,
     Sequence,
     TypeVar,
     Union,
@@ -196,6 +197,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     ndim = 1
     can_hold_na = True
     _na_value = _fill_value = np.nan
+
+    # To make mypy recognize the fields
+    _left: Any
+    _right: Any
+    _dtype: Any
 
     # ---------------------------------------------------------------------
     # Constructors
