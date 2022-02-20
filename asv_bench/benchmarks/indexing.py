@@ -13,7 +13,6 @@ from pandas import (
     CategoricalIndex,
     DataFrame,
     Float64Index,
-    IndexSlice,
     Int64Index,
     IntervalIndex,
     MultiIndex,
@@ -201,31 +200,48 @@ class Take:
 
 class MultiIndexing:
     def setup(self):
-        mi = MultiIndex.from_product([range(1000), range(1000)])
-        self.s = Series(np.random.randn(1000000), index=mi)
-        self.df = DataFrame(self.s)
+        self.ndim = 2
+        mi = MultiIndex.from_product([range(1000)] * self.ndim)
+        self.df = DataFrame(np.random.randn(len(mi)), index=mi)
 
-        n = 100000
-        with warnings.catch_warnings(record=True):
-            self.mdt = DataFrame(
-                {
-                    "A": np.random.choice(range(10000, 45000, 1000), n),
-                    "B": np.random.choice(range(10, 400), n),
-                    "C": np.random.choice(range(1, 150), n),
-                    "D": np.random.choice(range(10000, 45000), n),
-                    "x": np.random.choice(range(400), n),
-                    "y": np.random.choice(range(25), n),
-                }
-            )
-        self.mdt = self.mdt.set_index(["A", "B", "C", "D"]).sort_index()
-        self.idx = IndexSlice[20000:30000, 20:30, 35:45, 30000:40000]
-        self.idx_partial = IndexSlice[20000:30000]
+    def time_index_all_slices(self):
+        target = slice(200, 800)
+        target = tuple([target] * self.ndim)
+        self.df.loc[target, :]
 
-    def time_index_slice(self):
-        self.mdt.loc[self.idx, :]
+    def time_index_all_null_slices(self):
+        target = slice(None)
+        target = tuple([target] * self.ndim)
+        self.df.loc[target, :]
 
-    def time_index_slice_partial(self):
-        self.mdt.loc[self.idx_partial, :]
+    def time_index_all_lists(self):
+        target = list(range(0, 1000, 10))
+        target = tuple([target] * self.ndim)
+        self.df.loc[target, :]
+
+    def time_index_all_scalars(self):
+        target = tuple([500] * self.ndim)
+        self.df.loc[target, :]
+
+    def time_index_partial_slice(self):
+        target = slice(200, 800)
+        self.df.loc[target, :]
+
+    def time_index_partial_null_slice(self):
+        target = slice(None)
+        self.df.loc[target, :]
+
+    def time_index_partial_list(self):
+        target = list(range(0, 1000, 10))
+        self.df.loc[target, :]
+
+    def time_index_partial_scalar(self):
+        target = 500
+        self.df.loc[target, :]
+
+    def time_index_slice_plus_null_slice(self):
+        target = (slice(200, 800), slice(None))
+        self.df.loc[target, :]
 
 
 class IntervalIndexing:
