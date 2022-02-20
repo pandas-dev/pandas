@@ -13,7 +13,6 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.errors import NumbaUtilError
 
 GLOBAL_USE_NUMBA: bool = False
-NUMBA_FUNC_CACHE: dict[tuple[Callable, str], Callable] = {}
 
 
 def maybe_use_numba(engine: str | None) -> bool:

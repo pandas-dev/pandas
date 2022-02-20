@@ -16,7 +16,6 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
-from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 
 # TODO(GH#44584): Mark these as pytest.mark.single_cpu
 pytestmark = pytest.mark.skipif(
@@ -95,14 +94,6 @@ class TestEngine:
             engine="numba", engine_kwargs=engine_kwargs, **kwargs
         )
         expected = getattr(roll, method)(engine="cython", **kwargs)
-
-        # Check the cache
-        if method not in ("mean", "sum", "var", "std", "max", "min"):
-            assert (
-                getattr(np, f"nan{method}"),
-                "Rolling_apply_single",
-            ) in NUMBA_FUNC_CACHE
-
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -122,14 +113,6 @@ class TestEngine:
             engine="numba", engine_kwargs=engine_kwargs, **kwargs
         )
         expected = getattr(expand, method)(engine="cython", **kwargs)
-
-        # Check the cache
-        if method not in ("mean", "sum", "var", "std", "max", "min"):
-            assert (
-                getattr(np, f"nan{method}"),
-                "Expanding_apply_single",
-            ) in NUMBA_FUNC_CACHE
-
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("jit", [True, False])
@@ -155,9 +138,6 @@ class TestEngine:
         )
         expected = roll.apply(func_1, engine="cython", raw=True)
         tm.assert_series_equal(result, expected)
-
-        # func_1 should be in the cache now
-        assert (func_1, "Rolling_apply_single") in NUMBA_FUNC_CACHE
 
         result = roll.apply(
             func_2, engine="numba", engine_kwargs=engine_kwargs, raw=True

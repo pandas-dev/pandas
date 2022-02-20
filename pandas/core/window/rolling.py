@@ -73,7 +73,7 @@ from pandas.core.indexes.api import (
 )
 from pandas.core.reshape.concat import concat
 from pandas.core.util.numba_ import (
-    NUMBA_FUNC_CACHE,
+    get_jit_arguments,
     maybe_use_numba,
 )
 from pandas.core.window.common import (
@@ -530,7 +530,6 @@ class BaseWindow(SelectionMixin):
         self,
         func: Callable[..., Any],
         name: str | None = None,
-        numba_cache_key: tuple[Callable, str] | None = None,
         numba_args: tuple[Any, ...] = (),
         **kwargs,
     ):
@@ -543,8 +542,6 @@ class BaseWindow(SelectionMixin):
         ----------
         func : callable function to apply
         name : str,
-        numba_cache_key : tuple
-            caching key to be used to store a compiled numba func
         numba_args : tuple
             args to be passed when func is a numba func
         **kwargs
@@ -581,9 +578,6 @@ class BaseWindow(SelectionMixin):
             with np.errstate(all="ignore"):
                 result = calc(values)
 
-            if numba_cache_key is not None:
-                NUMBA_FUNC_CACHE[numba_cache_key] = func
-
             return result
 
         if self.method == "single":
@@ -594,7 +588,6 @@ class BaseWindow(SelectionMixin):
     def _numba_apply(
         self,
         func: Callable[..., Any],
-        numba_cache_key_str: str,
         engine_kwargs: dict[str, bool] | None = None,
         *func_args,
     ):
@@ -618,10 +611,9 @@ class BaseWindow(SelectionMixin):
         )
         self._check_window_bounds(start, end, len(values))
         aggregator = executor.generate_shared_aggregator(
-            func, engine_kwargs, numba_cache_key_str
+            func, *get_jit_arguments(engine_kwargs)
         )
         result = aggregator(values, start, end, min_periods, *func_args)
-        NUMBA_FUNC_CACHE[(func, numba_cache_key_str)] = aggregator
         result = result.T if self.axis == 1 else result
         if obj.ndim == 1:
             result = result.squeeze()
@@ -673,14 +665,12 @@ class BaseWindowGroupby(BaseWindow):
         self,
         func: Callable[..., Any],
         name: str | None = None,
-        numba_cache_key: tuple[Callable, str] | None = None,
         numba_args: tuple[Any, ...] = (),
         **kwargs,
     ) -> DataFrame | Series:
         result = super()._apply(
             func,
             name,
-            numba_cache_key,
             numba_args,
             **kwargs,
         )
@@ -1294,23 +1284,19 @@ class RollingAndExpandingMixin(BaseWindow):
         if not is_bool(raw):
             raise ValueError("raw parameter must be `True` or `False`")
 
-        numba_cache_key = None
         numba_args: tuple[Any, ...] = ()
         if maybe_use_numba(engine):
             if raw is False:
                 raise ValueError("raw must be `True` when using the numba engine")
-            caller_name = type(self).__name__
             numba_args = args
             if self.method == "single":
                 apply_func = generate_numba_apply_func(
-                    kwargs, func, engine_kwargs, caller_name
+                    func, *get_jit_arguments(engine_kwargs, kwargs)
                 )
-                numba_cache_key = (func, f"{caller_name}_apply_single")
             else:
                 apply_func = generate_numba_table_func(
-                    kwargs, func, engine_kwargs, f"{caller_name}_apply"
+                    func, *get_jit_arguments(engine_kwargs, kwargs)
                 )
-                numba_cache_key = (func, f"{caller_name}_apply_table")
         elif engine in ("cython", None):
             if engine_kwargs is not None:
                 raise ValueError("cython engine does not accept engine_kwargs")
@@ -1320,7 +1306,6 @@ class RollingAndExpandingMixin(BaseWindow):
 
         return self._apply(
             apply_func,
-            numba_cache_key=numba_cache_key,
             numba_args=numba_args,
         )
 
@@ -1369,7 +1354,7 @@ class RollingAndExpandingMixin(BaseWindow):
             else:
                 from pandas.core._numba.kernels import sliding_sum
 
-                return self._numba_apply(sliding_sum, "rolling_sum", engine_kwargs)
+                return self._numba_apply(sliding_sum, engine_kwargs)
         window_func = window_aggregations.roll_sum
         return self._apply(window_func, name="sum", **kwargs)
 
@@ -1393,9 +1378,7 @@ class RollingAndExpandingMixin(BaseWindow):
             else:
                 from pandas.core._numba.kernels import sliding_min_max
 
-                return self._numba_apply(
-                    sliding_min_max, "rolling_max", engine_kwargs, True
-                )
+                return self._numba_apply(sliding_min_max, engine_kwargs, True)
         window_func = window_aggregations.roll_max
         return self._apply(window_func, name="max", **kwargs)
 
@@ -1419,9 +1402,7 @@ class RollingAndExpandingMixin(BaseWindow):
             else:
                 from pandas.core._numba.kernels import sliding_min_max
 
-                return self._numba_apply(
-                    sliding_min_max, "rolling_min", engine_kwargs, False
-                )
+                return self._numba_apply(sliding_min_max, engine_kwargs, False)
         window_func = window_aggregations.roll_min
         return self._apply(window_func, name="min", **kwargs)
 
@@ -1445,7 +1426,7 @@ class RollingAndExpandingMixin(BaseWindow):
             else:
                 from pandas.core._numba.kernels import sliding_mean
 
-                return self._numba_apply(sliding_mean, "rolling_mean", engine_kwargs)
+                return self._numba_apply(sliding_mean, engine_kwargs)
         window_func = window_aggregations.roll_mean
         return self._apply(window_func, name="mean", **kwargs)
 
@@ -1485,9 +1466,7 @@ class RollingAndExpandingMixin(BaseWindow):
             else:
                 from pandas.core._numba.kernels import sliding_var
 
-                return zsqrt(
-                    self._numba_apply(sliding_var, "rolling_std", engine_kwargs, ddof)
-                )
+                return zsqrt(self._numba_apply(sliding_var, engine_kwargs, ddof))
         window_func = window_aggregations.roll_var
 
         def zsqrt_func(values, begin, end, min_periods):
@@ -1514,9 +1493,7 @@ class RollingAndExpandingMixin(BaseWindow):
             else:
                 from pandas.core._numba.kernels import sliding_var
 
-                return self._numba_apply(
-                    sliding_var, "rolling_var", engine_kwargs, ddof
-                )
+                return self._numba_apply(sliding_var, engine_kwargs, ddof)
         window_func = partial(window_aggregations.roll_var, ddof=ddof)
         return self._apply(
             window_func,
