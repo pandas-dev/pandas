@@ -1,21 +1,38 @@
 from datetime import timedelta
 import numbers
 from typing import (
+    Any,
     Generic,
     TypeVar,
+    overload,
 )
 
 import numpy as np
 import numpy.typing as npt
 
-from pandas._typing import (
-    IntervalBound,
-    Orderable,
+from pandas._typing import IntervalBound
+
+from pandas import (
+    Timedelta,
+    Timestamp,
 )
 
-_OrderableT = TypeVar("_OrderableT", bound=Orderable)
+_OrderableMixinT = TypeVar(
+    "_OrderableMixinT", int, float, Timestamp, Timedelta, npt.NDArray[np.generic]
+)
+_OrderableT = TypeVar("_OrderableT", int, float, Timestamp, Timedelta)
 
-class IntervalMixin(Generic[_OrderableT]):
+# note: mypy doesn't support overloading properties
+# based on github.com/microsoft/python-type-stubs/pull/167
+class _LengthProperty:
+    @overload
+    def __get__(self, instance: IntervalMixin[Timestamp], owner: Any) -> Timedelta: ...
+    @overload
+    def __get__(
+        self, instance: IntervalMixin[_OrderableMixinT], owner: Any
+    ) -> _OrderableMixinT: ...
+
+class IntervalMixin(Generic[_OrderableMixinT]):
     @property
     def closed_left(self) -> bool: ...
     @property
@@ -26,9 +43,7 @@ class IntervalMixin(Generic[_OrderableT]):
     def open_right(self) -> bool: ...
     @property
     def mid(self) -> _OrderableT: ...
-    # TODO: IntervalMixin[datetime] returns timedelta
-    @property
-    def length(self) -> _OrderableT: ...
+    length: _LengthProperty
     @property
     def is_empty(self) -> bool: ...
     def _check_closed_matches(self, other: IntervalMixin, name: str = ...) -> None: ...
@@ -75,7 +90,12 @@ def intervals_to_interval_bounds(
 # from pandas/_libs/intervaltree.pxi.in
 _GenericT = TypeVar("_GenericT", bound=np.generic)
 
-class IntervalTree(Generic[_GenericT], IntervalMixin[npt.NDArray[_GenericT]]):
+# error: Value of type variable "_OrderableMixinT" of "IntervalMixin"
+# cannot be "ndarray"
+class IntervalTree(
+    Generic[_GenericT],
+    IntervalMixin[npt.NDArray[_GenericT]],  # type: ignore[type-var]
+):
     _na_count: int
     def __init__(
         self,
@@ -83,7 +103,7 @@ class IntervalTree(Generic[_GenericT], IntervalMixin[npt.NDArray[_GenericT]]):
         right: npt.NDArray[_GenericT],
         closed: IntervalBound = ...,
         leaf_size: int = ...,
-    ): ...
+    ) -> None: ...
     @property
     def left_sorter(self) -> npt.NDArray[_GenericT]: ...
     @property

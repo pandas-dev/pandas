@@ -306,28 +306,3 @@ XMLParsers = Literal["lxml", "etree"]
 
 # on which side(s) Interval is closed
 IntervalBound = Literal["left", "right", "both", "neither"]
-
-
-# minimal required interface to be used in IntervalMixin
-class Orderable(Protocol):
-    def __sub__(self, __other):
-        # needed for IntervalMixin.length
-        ...
-
-    def __add__(self, __other):
-        # needed for IntervalMixin.mid
-        # note: also need __mul__ for non datetime-like classes
-        ...
-
-    def __le__(self: T, __other: T) -> bool | npt.NDArray[np.bool_]:
-        # note: IntervalTree uses it with ndarrays
-        ...
-
-    def __lt__(self: T, __other: T) -> bool | npt.NDArray[np.bool_]:
-        ...
-
-    def __ge__(self: T, __other: T) -> bool | npt.NDArray[np.bool_]:
-        ...
-
-    def __gt__(self: T, __other: T) -> bool | npt.NDArray[np.bool_]:
-        ...
