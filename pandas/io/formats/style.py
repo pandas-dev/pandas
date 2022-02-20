@@ -2477,8 +2477,10 @@ class Styler(StylerRenderer):
         Notes
         -----
         These metrics are calculated at render time and can therefore be exported
-        and used on similar dataframes. This method will add a ``descriptors`` attribute
-        to the Styler instance, which can be inspected.
+        and used on other general Styler objects.
+
+        Footers are applied to all Styler output formats including ``to_html``,
+        ``to_latex`` and ``to_string``.
 
         Examples
         --------
