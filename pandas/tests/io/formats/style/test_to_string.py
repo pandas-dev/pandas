@@ -40,3 +40,11 @@ def test_string_delimiter(styler):
     """
     )
     assert result == expected
+
+
+@pytest.mark.parametrize("delimiter", [" ", ";"])
+def test_set_footer(styler, delimiter):
+    styler.set_footer(["sum"])
+    expected = f"sum{delimiter}1{delimiter}-1.830000{delimiter}abcd"
+    result = styler.to_string(delimiter=delimiter)
+    assert expected in result
