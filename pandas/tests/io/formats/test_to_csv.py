@@ -320,9 +320,12 @@ $1$,$2$
         df = DataFrame({"a": [1.1, 2.02, pd.NA, 6.000006], "b": "c"})
         df["a"] = df["a"].astype("Float64")
         result = df.to_csv(index=False, float_format="%.5f")
-        expected = tm.convert_rows_list_to_csv_str(
-            ["a,b", "1.10000,c", "2.02000,c", ",c", "6.00001,c"]
-        )
+        expected = """a,b
+1.10000,c
+2.02000,c
+,c
+6.00001,c
+"""
         assert result == expected
 
     def test_to_csv_float_ea_no_float_format(self):
@@ -330,9 +333,12 @@ $1$,$2$
         df = DataFrame({"a": [1.1, 2.02, pd.NA, 6.000006], "b": "c"})
         df["a"] = df["a"].astype("Float64")
         result = df.to_csv(index=False)
-        expected = tm.convert_rows_list_to_csv_str(
-            ["a,b", "1.1,c", "2.02,c", ",c", "6.000006,c"]
-        )
+        expected = """a,b
+1.1,c
+2.02,c
+,c
+6.000006,c
+"""
         assert result == expected
 
     def test_to_csv_multi_index(self):
