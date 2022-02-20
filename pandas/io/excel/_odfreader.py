@@ -205,7 +205,7 @@ class ODFReader(BaseExcelReader):
         elif cell_type == "time":
             stamp: pd.Timestamp | NaTType = pd.to_datetime(str(cell))
             if not isinstance(stamp, NaTType):
-                return stamp
+                return stamp.time()
             else:
                 self.close()
                 raise ValueError(f"Unrecognized time {str(cell)}")
