@@ -14,7 +14,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
-- Fixed regression in :meth:`DataFrame.drop` and :meth:`Series.drop` when :class:`Index` had extension dtype and duplicates (:issue:`45820`)
+- Fixed regression in :meth:`DataFrame.drop` and :meth:`Series.drop` when :class:`Index` had extension dtype and duplicates (:issue:`45860`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -23,7 +23,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Bug in :meth:`Groupby.rolling` with a frequency window would raise a ``ValueError`` even if the datetimes within each group were monotonic (:issue:`46061`)
 -
 
 .. ---------------------------------------------------------------------------
