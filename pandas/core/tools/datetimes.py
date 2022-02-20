@@ -66,6 +66,7 @@ from pandas.arrays import (
 )
 from pandas.core import algorithms
 from pandas.core.algorithms import unique
+from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.datetimes import (
     maybe_convert_dtype,
     objects_to_datetime64ns,
@@ -79,7 +80,6 @@ if TYPE_CHECKING:
     from pandas._libs.tslibs.nattype import NaTType
 
     from pandas import Series
-    from pandas.core.arrays.base import ExtensionArray
 
 # ---------------------------------------------------------------------
 # types used in annotations
@@ -1068,7 +1068,7 @@ def to_datetime(
             # ndarray[Any, Any], Series]"; expected "Union[List[Any], Tuple[Any, ...],
             # Union[Union[ExtensionArray, ndarray[Any, Any]], Index, Series], Series]"
             arg = cast(
-                Union[list, tuple, ExtensionArray, np.ndarray, Series, Index], arg
+                Union[list, tuple, ExtensionArray, np.ndarray, "Series", Index], arg
             )
             cache_array = _maybe_cache(arg, format, cache, convert_listlike)
         except OutOfBoundsDatetime:
