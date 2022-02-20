@@ -1040,6 +1040,8 @@ class StylerRenderer:
             body.append(row_body_headers + row_body_cells)
         d["body"] = body
 
+        d["foot"] = [[{**col, "cellstyle": []} for col in row] for row in d["foot"]]
+
         # clines are determined from info on index_lengths and hidden_rows and input
         # to a dict defining which row clines should be added in the template.
         if clines not in [
