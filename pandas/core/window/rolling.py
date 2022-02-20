@@ -1091,7 +1091,6 @@ class Window(BaseWindow):
         self,
         func: Callable[[np.ndarray, int, int], np.ndarray],
         name: str | None = None,
-        numba_cache_key: tuple[Callable, str] | None = None,
         numba_args: tuple[Any, ...] = (),
         **kwargs,
     ):
@@ -1104,8 +1103,6 @@ class Window(BaseWindow):
         ----------
         func : callable function to apply
         name : str,
-        use_numba_cache : tuple
-            unused
         numba_args : tuple
             unused
         **kwargs
