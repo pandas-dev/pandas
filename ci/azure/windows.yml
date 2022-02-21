@@ -32,9 +32,10 @@ jobs:
     - bash: |
         # See https://github.com/mamba-org/mamba/issues/1370
         # See https://github.com/mamba-org/mamba/issues/633
-        # TODO: GH#44980 https://github.com/pypa/setuptools/issues/2941
-        C:\\Miniconda\\condabin\\mamba.bat create -n pandas-dev 'setuptools<60'
+        C:\\Miniconda\\condabin\\mamba.bat create -n pandas-dev
         C:\\Miniconda\\condabin\\mamba.bat env update -n pandas-dev --file ci\\deps\\actions-$(CONDA_PY).yaml
+        # TODO: GH#44980 https://github.com/pypa/setuptools/issues/2941
+        C:\\Miniconda\\condabin\\mamba.bat install -n pandas-dev 'setuptools<60'
         C:\\Miniconda\\condabin\\mamba.bat list -n pandas-dev
       displayName: 'Create anaconda environment'
     - bash: |
