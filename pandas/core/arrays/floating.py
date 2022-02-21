@@ -2,19 +2,9 @@ from __future__ import annotations
 
 import numpy as np
 
-from pandas._libs import (
-    lib,
-    missing as libmissing,
-)
 from pandas._typing import DtypeObj
-from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.common import (
-    is_bool_dtype,
-    is_float_dtype,
-    is_integer_dtype,
-    is_object_dtype,
-)
+from pandas.core.dtypes.common import is_float_dtype
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
 from pandas.core.arrays.numeric import (
@@ -33,12 +23,8 @@ class FloatingDtype(NumericDtype):
     The attributes name & type are set when these subclasses are created.
     """
 
-    def __repr__(self) -> str:
-        return f"{self.name}Dtype()"
-
-    @property
-    def _is_numeric(self) -> bool:
-        return True
+    _default_np_dtype = np.dtype(np.float64)
+    _checker = is_float_dtype
 
     @classmethod
     def construct_array_type(cls) -> type[FloatingArray]:
@@ -65,101 +51,20 @@ class FloatingDtype(NumericDtype):
             return FLOAT_STR_TO_DTYPE[str(np_dtype)]
         return None
 
+    @classmethod
+    def _str_to_dtype_mapping(cls):
+        return FLOAT_STR_TO_DTYPE
 
-def coerce_to_array(
-    values, dtype=None, mask=None, copy: bool = False
-) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Coerce the input values array to numpy arrays with a mask.
+    @classmethod
+    def _safe_cast(cls, values: np.ndarray, dtype: np.dtype, copy: bool) -> np.ndarray:
+        """
+        Safely cast the values to the given dtype.
 
-    Parameters
-    ----------
-    values : 1D list-like
-    dtype : float dtype
-    mask : bool 1D array, optional
-    copy : bool, default False
-        if True, copy the input
-
-    Returns
-    -------
-    tuple of (values, mask)
-    """
-    # if values is floating numpy array, preserve its dtype
-    if dtype is None and hasattr(values, "dtype"):
-        if is_float_dtype(values.dtype):
-            dtype = values.dtype
-
-    if dtype is not None:
-        if isinstance(dtype, str) and dtype.startswith("Float"):
-            # Avoid DeprecationWarning from NumPy about np.dtype("Float64")
-            # https://github.com/numpy/numpy/pull/7476
-            dtype = dtype.lower()
-
-        if not issubclass(type(dtype), FloatingDtype):
-            try:
-                dtype = FLOAT_STR_TO_DTYPE[str(np.dtype(dtype))]
-            except KeyError as err:
-                raise ValueError(f"invalid dtype specified {dtype}") from err
-
-    if isinstance(values, FloatingArray):
-        values, mask = values._data, values._mask
-        if dtype is not None:
-            values = values.astype(dtype.numpy_dtype, copy=False)
-
-        if copy:
-            values = values.copy()
-            mask = mask.copy()
-        return values, mask
-
-    values = np.array(values, copy=copy)
-    if is_object_dtype(values.dtype):
-        inferred_type = lib.infer_dtype(values, skipna=True)
-        if inferred_type == "empty":
-            pass
-        elif inferred_type not in [
-            "floating",
-            "integer",
-            "mixed-integer",
-            "integer-na",
-            "mixed-integer-float",
-        ]:
-            raise TypeError(f"{values.dtype} cannot be converted to a FloatingDtype")
-
-    elif is_bool_dtype(values) and is_float_dtype(dtype):
-        values = np.array(values, dtype=float, copy=copy)
-
-    elif not (is_integer_dtype(values) or is_float_dtype(values)):
-        raise TypeError(f"{values.dtype} cannot be converted to a FloatingDtype")
-
-    if values.ndim != 1:
-        raise TypeError("values must be a 1D list-like")
-
-    if mask is None:
-        mask = libmissing.is_numeric_na(values)
-
-    else:
-        assert len(mask) == len(values)
-
-    if not mask.ndim == 1:
-        raise TypeError("mask must be a 1D list-like")
-
-    # infer dtype if needed
-    if dtype is None:
-        dtype = np.dtype("float64")
-    else:
-        dtype = dtype.type
-
-    # if we are float, let's make sure that we can
-    # safely cast
-
-    # we copy as need to coerce here
-    # TODO should this be a safe cast?
-    if mask.any():
-        values = values.copy()
-        values[mask] = np.nan
-    values = values.astype(dtype, copy=False)  # , casting="safe")
-
-    return values, mask
+        "safe" in this context means the casting is lossless.
+        """
+        # This is really only here for compatibility with IntegerDtype
+        # Here for compat with IntegerDtype
+        return values.astype(dtype, copy=copy)
 
 
 class FloatingArray(NumericArray):
@@ -222,36 +127,13 @@ class FloatingArray(NumericArray):
     Length: 3, dtype: Float32
     """
 
+    _dtype_cls = FloatingDtype
+
     # The value used to fill '_data' to avoid upcasting
-    _internal_fill_value = 0.0
+    _internal_fill_value = np.nan
     # Fill values used for any/all
     _truthy_value = 1.0
     _falsey_value = 0.0
-
-    @cache_readonly
-    def dtype(self) -> FloatingDtype:
-        return FLOAT_STR_TO_DTYPE[str(self._data.dtype)]
-
-    def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
-        if not (isinstance(values, np.ndarray) and values.dtype.kind == "f"):
-            raise TypeError(
-                "values should be floating numpy array. Use "
-                "the 'pd.array' function instead"
-            )
-        if values.dtype == np.float16:
-            # If we don't raise here, then accessing self.dtype would raise
-            raise TypeError("FloatingArray does not support np.float16 dtype.")
-
-        super().__init__(values, mask, copy=copy)
-
-    @classmethod
-    def _coerce_to_array(
-        cls, value, *, dtype: DtypeObj, copy: bool = False
-    ) -> tuple[np.ndarray, np.ndarray]:
-        return coerce_to_array(value, dtype=dtype, copy=copy)
-
-    def _values_for_argsort(self) -> np.ndarray:
-        return self._data
 
 
 _dtype_docstring = """

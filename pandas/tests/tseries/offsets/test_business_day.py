@@ -34,7 +34,7 @@ from pandas.tseries import offsets as offsets
 class TestBusinessDay(Base):
     _offset = BDay
 
-    def setup_method(self, method):
+    def setup_method(self):
         self.d = datetime(2008, 1, 1)
         self.nd = np.datetime64("2008-01-01 00:00:00")
 

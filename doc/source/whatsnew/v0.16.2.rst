@@ -83,7 +83,7 @@ popular ``(%>%)`` pipe operator for R_.
 
 See the :ref:`documentation <basics.pipe>` for more. (:issue:`10129`)
 
-.. _dplyr: https://github.com/hadley/dplyr
+.. _dplyr: https://github.com/tidyverse/dplyr
 .. _magrittr: https://github.com/smbache/magrittr
 .. _R: http://www.r-project.org
 

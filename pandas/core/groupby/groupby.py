@@ -1650,7 +1650,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             with com.temp_setattr(self, "observed", True):
                 result = getattr(self, func)(*args, **kwargs)
 
-            if self._can_use_transform_fast(result):
+            if self._can_use_transform_fast(func, result):
                 return self._wrap_transform_fast_result(result)
 
             # only reached for DataFrameGroupBy
@@ -1665,15 +1665,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         # for each col, reshape to size of original frame by take operation
         ids, _, _ = self.grouper.group_info
-        result = result.reindex(self.grouper.result_index, copy=False)
+        result = result.reindex(self.grouper.result_index, axis=self.axis, copy=False)
 
         if self.obj.ndim == 1:
             # i.e. SeriesGroupBy
             out = algorithms.take_nd(result._values, ids)
             output = obj._constructor(out, index=obj.index, name=obj.name)
         else:
-            output = result.take(ids, axis=0)
-            output.index = obj.index
+            output = result.take(ids, axis=self.axis)
+            output = output.set_axis(obj._get_axis(self.axis), axis=self.axis)
         return output
 
     # -----------------------------------------------------------------
@@ -2150,6 +2150,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         result = self.grouper.size()
 
+        if self.axis == 1:
+            return DataFrame(
+                data=np.tile(result.values, (self.obj.shape[0], 1)),
+                columns=result.index,
+                index=self.obj.index,
+            )
+
         # GH28330 preserve subclassed Series/DataFrames through calls
         if issubclass(self.obj._constructor, Series):
             result = self._obj_1d_constructor(result, name=self.obj.name)
@@ -2208,17 +2215,49 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @doc(_groupby_agg_method_template, fname="min", no=False, mc=-1)
-    def min(self, numeric_only: bool = False, min_count: int = -1):
-        return self._agg_general(
-            numeric_only=numeric_only, min_count=min_count, alias="min", npfunc=np.min
-        )
+    def min(
+        self,
+        numeric_only: bool = False,
+        min_count: int = -1,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+    ):
+        if maybe_use_numba(engine):
+            from pandas.core._numba.kernels import sliding_min_max
+
+            return self._numba_agg_general(
+                sliding_min_max, engine_kwargs, "groupby_min", False
+            )
+        else:
+            return self._agg_general(
+                numeric_only=numeric_only,
+                min_count=min_count,
+                alias="min",
+                npfunc=np.min,
+            )
 
     @final
     @doc(_groupby_agg_method_template, fname="max", no=False, mc=-1)
-    def max(self, numeric_only: bool = False, min_count: int = -1):
-        return self._agg_general(
-            numeric_only=numeric_only, min_count=min_count, alias="max", npfunc=np.max
-        )
+    def max(
+        self,
+        numeric_only: bool = False,
+        min_count: int = -1,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+    ):
+        if maybe_use_numba(engine):
+            from pandas.core._numba.kernels import sliding_min_max
+
+            return self._numba_agg_general(
+                sliding_min_max, engine_kwargs, "groupby_max", True
+            )
+        else:
+            return self._agg_general(
+                numeric_only=numeric_only,
+                min_count=min_count,
+                alias="max",
+                npfunc=np.max,
+            )
 
     @final
     @doc(_groupby_agg_method_template, fname="first", no=False, mc=-1)
@@ -2643,7 +2682,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             A single nth value for the row or a list of nth values or slices.
 
             .. versionchanged:: 1.4.0
-                Added slice and lists containiing slices.
+                Added slice and lists containing slices.
                 Added index notation.
 
         dropna : {'any', 'all', None}, default None

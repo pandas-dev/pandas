@@ -27,6 +27,7 @@ from pandas._libs.tslibs import (
     iNaT,
     nat_strings,
     parsing,
+    timezones,
 )
 from pandas._libs.tslibs.parsing import (  # noqa:F401
     DateParseError,
@@ -364,7 +365,7 @@ def _convert_listlike_datetimes(
     # NB: this must come after unit transformation
     orig_arg = arg
     try:
-        arg, _ = maybe_convert_dtype(arg, copy=False)
+        arg, _ = maybe_convert_dtype(arg, copy=False, tz=timezones.maybe_get_tz(tz))
     except TypeError:
         if errors == "coerce":
             npvalues = np.array(["NaT"], dtype="datetime64[ns]").repeat(len(arg))
@@ -1076,6 +1077,8 @@ def to_datetime(
             result = convert_listlike(arg, format)
     else:
         result = convert_listlike(np.array([arg]), format)[0]
+        if isinstance(arg, bool) and isinstance(result, np.bool_):
+            result = bool(result)  # TODO: avoid this kludge.
 
     #  error: Incompatible return value type (got "Union[Timestamp, NaTType,
     # Series, Index]", expected "Union[DatetimeIndex, Series, float, str,

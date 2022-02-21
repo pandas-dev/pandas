@@ -145,6 +145,9 @@ class JSONArray(ExtensionArray):
     def __array__(self, dtype=None):
         if dtype is None:
             dtype = object
+        if dtype == object:
+            # on py38 builds it looks like numpy is inferring to a non-1D array
+            return construct_1d_object_array_from_listlike(list(self))
         return np.asarray(self.data, dtype=dtype)
 
     @property

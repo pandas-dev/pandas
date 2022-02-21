@@ -20,6 +20,7 @@ from typing import (
 )
 import warnings
 
+from dateutil.parser import ParserError
 import numpy as np
 
 from pandas._libs import lib
@@ -86,6 +87,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.inference import is_list_like
 from pandas.core.dtypes.missing import (
+    array_equivalent,
     is_valid_na_for_dtype,
     isna,
     na_value_for_dtype,
@@ -260,7 +262,7 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
                 dtype = "int64"
             elif inferred_type == "datetime64":
                 dtype = "datetime64[ns]"
-            elif inferred_type == "timedelta64":
+            elif inferred_type in ["timedelta", "timedelta64"]:
                 dtype = "timedelta64[ns]"
 
             # try to upcast here
@@ -287,6 +289,14 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
     # GH12821, iNaT is cast to float
     if dtype.kind in ["M", "m"] and result.dtype.kind in ["i", "f"]:
         result = result.astype(dtype)
+
+    elif dtype.kind == "m" and result.dtype == _dtype_obj:
+        # test_where_downcast_to_td64
+        result = cast(np.ndarray, result)
+        result = array_to_timedelta64(result)
+
+    elif dtype == "M8[ns]" and result.dtype == _dtype_obj:
+        return np.asarray(maybe_cast_to_datetime(result, dtype=dtype))
 
     return result
 
@@ -357,7 +367,17 @@ def maybe_downcast_numeric(
         and not is_bool_dtype(result.dtype)
         and not is_string_dtype(result.dtype)
     ):
-        return result.astype(dtype)
+        new_result = result.astype(dtype)
+
+        # Adjust tolerances based on floating point size
+        size_tols = {4: 5e-4, 8: 5e-8, 16: 5e-16}
+
+        atol = size_tols.get(new_result.dtype.itemsize, 0.0)
+
+        # Check downcast float values are still equal within 7 digits when
+        # converting from float64 to float32
+        if np.allclose(new_result, result, equal_nan=True, rtol=0.0, atol=atol):
+            return new_result
 
     return result
 
@@ -459,8 +479,13 @@ def ensure_dtype_can_hold_na(dtype: DtypeObj) -> DtypeObj:
     If we have a dtype that cannot hold NA values, find the best match that can.
     """
     if isinstance(dtype, ExtensionDtype):
-        # TODO: ExtensionDtype.can_hold_na?
-        return dtype
+        if dtype._can_hold_na:
+            return dtype
+        elif isinstance(dtype, IntervalDtype):
+            # TODO(GH#45349): don't special-case IntervalDtype, allow
+            #  overriding instead of returning object below.
+            return IntervalDtype(np.float64, closed=dtype.closed)
+        return _dtype_obj
     elif dtype.kind == "b":
         return _dtype_obj
     elif dtype.kind in ["i", "u"]:
@@ -1326,9 +1351,8 @@ def maybe_cast_to_datetime(
                             value = dta.tz_localize("UTC").tz_convert(dtype.tz)
                 except OutOfBoundsDatetime:
                     raise
-                except ValueError:
-                    # TODO(GH#40048): only catch dateutil's ParserError
-                    #  once we can reliably import it in all supported versions
+                except ParserError:
+                    # Note: this is dateutil's ParserError, not ours.
                     pass
 
         elif getattr(vdtype, "kind", None) in ["m", "M"]:
@@ -1447,8 +1471,10 @@ def find_result_type(left: ArrayLike, right: Any) -> DtypeObj:
     """
     new_dtype: DtypeObj
 
-    if left.dtype.kind in ["i", "u", "c"] and (
-        lib.is_integer(right) or lib.is_float(right)
+    if (
+        isinstance(left, np.ndarray)
+        and left.dtype.kind in ["i", "u", "c"]
+        and (lib.is_integer(right) or lib.is_float(right))
     ):
         # e.g. with int8 dtype and right=512, we want to end up with
         # np.int16, whereas infer_dtype_from(512) gives np.int64,
@@ -1456,14 +1482,11 @@ def find_result_type(left: ArrayLike, right: Any) -> DtypeObj:
         if lib.is_float(right) and right.is_integer() and left.dtype.kind != "f":
             right = int(right)
 
-        # Argument 1 to "result_type" has incompatible type "Union[ExtensionArray,
-        # ndarray[Any, Any]]"; expected "Union[Union[_SupportsArray[dtype[Any]],
-        # _NestedSequence[_SupportsArray[dtype[Any]]], bool, int, float, complex,
-        # str, bytes, _NestedSequence[Union[bool, int, float, complex, str, bytes]]],
-        # Union[dtype[Any], None, Type[Any], _SupportsDType[dtype[Any]], str,
-        # Union[Tuple[Any, int], Tuple[Any, Union[SupportsIndex,
-        # Sequence[SupportsIndex]]], List[Any], _DTypeDict, Tuple[Any, Any]]]]"
-        new_dtype = np.result_type(left, right)  # type:ignore[arg-type]
+        new_dtype = np.result_type(left, right)
+
+    elif is_valid_na_for_dtype(right, left.dtype):
+        # e.g. IntervalDtype[int] and None/np.nan
+        new_dtype = ensure_dtype_can_hold_na(left.dtype)
 
     else:
         dtype, _ = infer_dtype_from(right, pandas_dtype=True)
@@ -1502,7 +1525,7 @@ def common_dtype_categorical_compat(
                     hasnas = obj.hasnans
                 else:
                     # Categorical
-                    hasnas = cast("Categorical", obj)._hasnans
+                    hasnas = cast("Categorical", obj)._hasna
 
                 if hasnas:
                     # see test_union_int_categorical_with_nan
@@ -1637,7 +1660,8 @@ def construct_1d_arraylike_from_scalar(
 
     if isinstance(dtype, ExtensionDtype):
         cls = dtype.construct_array_type()
-        subarr = cls._from_sequence([value] * length, dtype=dtype)
+        seq = [] if length == 0 else [value]
+        subarr = cls._from_sequence(seq, dtype=dtype).repeat(length)
 
     else:
 
@@ -1909,6 +1933,8 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
                 arr._validate_setitem_value(element)
                 return True
             except (ValueError, TypeError):
+                # TODO(2.0): stop catching ValueError for tzaware, see
+                #  _catch_deprecated_value_error
                 return False
 
         # This is technically incorrect, but maintains the behavior of
@@ -1918,7 +1944,7 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
     try:
         np_can_hold_element(dtype, element)
         return True
-    except (TypeError, ValueError):
+    except (TypeError, LossySetitemError):
         return False
 
 
@@ -1948,7 +1974,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
         if isinstance(element, range):
             if _dtype_can_hold_range(element, dtype):
                 return element
-            raise ValueError
+            raise LossySetitemError
 
         elif is_integer(element) or (is_float(element) and element.is_integer()):
             # e.g. test_setitem_series_int8 if we have a python int 1
@@ -1956,14 +1982,13 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             #  in smaller int dtypes.
             info = np.iinfo(dtype)
             if info.min <= element <= info.max:
-                return element
-            raise ValueError
+                return dtype.type(element)
+            raise LossySetitemError
 
         if tipo is not None:
             if tipo.kind not in ["i", "u"]:
                 if isinstance(element, np.ndarray) and element.dtype.kind == "f":
                     # If all can be losslessly cast to integers, then we can hold them
-                    #  We do something similar in putmask_smart
                     casted = element.astype(dtype)
                     comp = casted == element
                     if comp.all():
@@ -1971,10 +1996,10 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                         #  np.putmask, whereas the raw values cannot.
                         #  see TestSetitemFloatNDarrayIntoIntegerSeries
                         return casted
-                    raise ValueError
+                    raise LossySetitemError
 
                 # Anything other than integer we cannot hold
-                raise ValueError
+                raise LossySetitemError
             elif (
                 dtype.kind == "u"
                 and isinstance(element, np.ndarray)
@@ -1986,41 +2011,51 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                     # TODO: faster to check (element >=0).all()?  potential
                     #  itemsize issues there?
                     return casted
-                raise ValueError
+                raise LossySetitemError
             elif dtype.itemsize < tipo.itemsize:
-                raise ValueError
+                raise LossySetitemError
             elif not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype; we can put this into an ndarray
                 #  losslessly iff it has no NAs
-                hasnas = element._mask.any()
-                # TODO: don't rely on implementation detail
-                if hasnas:
-                    raise ValueError
+                if element._hasna:
+                    raise LossySetitemError
                 return element
 
             return element
 
-        raise ValueError
+        raise LossySetitemError
 
     elif dtype.kind == "f":
+        if lib.is_integer(element) or lib.is_float(element):
+            casted = dtype.type(element)
+            if np.isnan(casted) or casted == element:
+                return casted
+            # otherwise e.g. overflow see TestCoercionFloat32
+            raise LossySetitemError
+
         if tipo is not None:
             # TODO: itemsize check?
             if tipo.kind not in ["f", "i", "u"]:
                 # Anything other than float/integer we cannot hold
-                raise ValueError
+                raise LossySetitemError
             elif not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype or FloatingDtype;
                 #  we can put this into an ndarray losslessly iff it has no NAs
-                hasnas = element._mask.any()
-                # TODO: don't rely on implementation detail
-                if hasnas:
-                    raise ValueError
+                if element._hasna:
+                    raise LossySetitemError
                 return element
+            elif tipo.itemsize > dtype.itemsize or tipo.kind != dtype.kind:
+                if isinstance(element, np.ndarray):
+                    # e.g. TestDataFrameIndexingWhere::test_where_alignment
+                    casted = element.astype(dtype)
+                    # TODO(np>=1.20): we can just use np.array_equal with equal_nan
+                    if array_equivalent(casted, element):
+                        return casted
+                    raise LossySetitemError
+
             return element
 
-        if lib.is_integer(element) or lib.is_float(element):
-            return element
-        raise ValueError
+        raise LossySetitemError
 
     elif dtype.kind == "c":
         if lib.is_integer(element) or lib.is_complex(element) or lib.is_float(element):
@@ -2032,22 +2067,27 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             if casted == element:
                 return casted
             # otherwise e.g. overflow see test_32878_complex_itemsize
-            raise ValueError
+            raise LossySetitemError
 
         if tipo is not None:
             if tipo.kind in ["c", "f", "i", "u"]:
                 return element
-            raise ValueError
-        raise ValueError
+            raise LossySetitemError
+        raise LossySetitemError
 
     elif dtype.kind == "b":
         if tipo is not None:
-            if tipo.kind == "b":  # FIXME: wrong with BooleanArray?
+            if tipo.kind == "b":
+                if not isinstance(tipo, np.dtype):
+                    # i.e. we have a BooleanArray
+                    if element._hasna:
+                        # i.e. there are pd.NA elements
+                        raise LossySetitemError
                 return element
-            raise ValueError
+            raise LossySetitemError
         if lib.is_bool(element):
             return element
-        raise ValueError
+        raise LossySetitemError
 
     elif dtype.kind == "S":
         # TODO: test tests.frame.methods.test_replace tests get here,
@@ -2055,10 +2095,10 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
         if tipo is not None:
             if tipo.kind == "S" and tipo.itemsize <= dtype.itemsize:
                 return element
-            raise ValueError
+            raise LossySetitemError
         if isinstance(element, bytes) and len(element) <= dtype.itemsize:
             return element
-        raise ValueError
+        raise LossySetitemError
 
     raise NotImplementedError(dtype)
 
@@ -2072,3 +2112,11 @@ def _dtype_can_hold_range(rng: range, dtype: np.dtype) -> bool:
     if not len(rng):
         return True
     return np.can_cast(rng[0], dtype) and np.can_cast(rng[-1], dtype)
+
+
+class LossySetitemError(Exception):
+    """
+    Raised when trying to do a __setitem__ on an np.ndarray that is not lossless.
+    """
+
+    pass

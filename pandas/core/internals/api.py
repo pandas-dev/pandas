@@ -24,6 +24,7 @@ from pandas.core.construction import extract_array
 from pandas.core.internals.blocks import (
     Block,
     DatetimeTZBlock,
+    ExtensionBlock,
     check_ndim,
     ensure_block_shape,
     extract_pandas_array,
@@ -50,6 +51,12 @@ def make_block(
         dtype = pandas_dtype(dtype)
 
     values, dtype = extract_pandas_array(values, dtype, ndim)
+
+    if klass is ExtensionBlock and is_period_dtype(values.dtype):
+        # GH-44681 changed PeriodArray to be stored in the 2D
+        # NDArrayBackedExtensionBlock instead of ExtensionBlock
+        # -> still allow ExtensionBlock to be passed in this case for back compat
+        klass = None
 
     if klass is None:
         dtype = dtype or values.dtype

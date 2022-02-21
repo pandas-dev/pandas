@@ -2,10 +2,10 @@
 Tests encoding functionality during parsing
 for all of the parsers defined in parsers.py
 """
-
 from io import BytesIO
 import os
 import tempfile
+import uuid
 
 import numpy as np
 import pytest
@@ -54,7 +54,7 @@ A,B,C
 4,5,6""".replace(
         ",", sep
     )
-    path = f"__{tm.rands(10)}__.csv"
+    path = f"__{uuid.uuid4()}__.csv"
     kwargs = {"sep": sep, "skiprows": 2}
     utf8 = "utf-8"
 
@@ -153,9 +153,7 @@ def test_read_csv_utf_aliases(all_parsers, utf_value, encoding_fmt):
         (("io", "parser", "data", "sauron.SHIFT_JIS.csv"), "shiftjis"),
     ],
 )
-def test_binary_mode_file_buffers(
-    all_parsers, csv_dir_path, file_path, encoding, datapath
-):
+def test_binary_mode_file_buffers(all_parsers, file_path, encoding, datapath):
     # gh-23779: Python csv engine shouldn't error on files opened in binary.
     # gh-31575: Python csv engine shouldn't error on files opened in raw binary.
     parser = all_parsers

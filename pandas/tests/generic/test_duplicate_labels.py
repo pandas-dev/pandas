@@ -63,10 +63,9 @@ class TestPreserves:
         assert df.loc[["a"]].flags.allows_duplicate_labels is False
         assert df.loc[:, ["A", "B"]].flags.allows_duplicate_labels is False
 
-    @not_implemented
     def test_to_frame(self):
-        s = pd.Series(dtype=float).set_flags(allows_duplicate_labels=False)
-        assert s.to_frame().flags.allows_duplicate_labels is False
+        ser = pd.Series(dtype=float).set_flags(allows_duplicate_labels=False)
+        assert ser.to_frame().flags.allows_duplicate_labels is False
 
     @pytest.mark.parametrize("func", ["add", "sub"])
     @pytest.mark.parametrize(

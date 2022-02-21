@@ -648,6 +648,9 @@ def is_valid_na_for_dtype(obj, dtype: DtypeObj) -> bool:
     elif dtype.kind in ["i", "u", "f", "c"]:
         # Numeric
         return obj is not NaT and not isinstance(obj, (np.datetime64, np.timedelta64))
+    elif dtype.kind == "b":
+        # We allow pd.NA, None, np.nan in BooleanArray (same as IntervalDtype)
+        return lib.is_float(obj) or obj is None or obj is libmissing.NA
 
     elif dtype == _dtype_str:
         # numpy string dtypes to avoid float np.nan

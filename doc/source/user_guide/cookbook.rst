@@ -193,8 +193,7 @@ The :ref:`indexing <indexing>` docs.
 
    df[(df.AAA <= 6) & (df.index.isin([0, 2, 4]))]
 
-`Use loc for label-oriented slicing and iloc positional slicing
-<https://github.com/pandas-dev/pandas/issues/2904>`__
+Use loc for label-oriented slicing and iloc positional slicing :issue:`2904`
 
 .. ipython:: python
 
@@ -229,7 +228,7 @@ Ambiguity arises when an index consists of integers with a non-zero start or non
    df2.loc[1:3]  # Label-oriented
 
 `Using inverse operator (~) to take the complement of a mask
-<https://stackoverflow.com/questions/14986510/picking-out-elements-based-on-complement-of-indices-in-python-pandas>`__
+<https://stackoverflow.com/q/14986510>`__
 
 .. ipython:: python
 
@@ -259,7 +258,7 @@ New columns
    df
 
 `Keep other columns when using min() with groupby
-<https://stackoverflow.com/questions/23394476/keep-other-columns-when-using-min-with-groupby>`__
+<https://stackoverflow.com/q/23394476>`__
 
 .. ipython:: python
 
@@ -389,14 +388,13 @@ Sorting
 *******
 
 `Sort by specific column or an ordered list of columns, with a MultiIndex
-<https://stackoverflow.com/questions/14733871/mutli-index-sorting-in-pandas>`__
+<https://stackoverflow.com/q/14733871>`__
 
 .. ipython:: python
 
    df.sort_values(by=("Labs", "II"), ascending=False)
 
-`Partial selection, the need for sortedness;
-<https://github.com/pandas-dev/pandas/issues/2995>`__
+Partial selection, the need for sortedness :issue:`2995`
 
 Levels
 ******
@@ -405,7 +403,7 @@ Levels
 <https://stackoverflow.com/questions/14744068/prepend-a-level-to-a-pandas-multiindex>`__
 
 `Flatten Hierarchical columns
-<https://stackoverflow.com/questions/14507794/python-pandas-how-to-flatten-a-hierarchical-index-in-columns>`__
+<https://stackoverflow.com/q/14507794>`__
 
 .. _cookbook.missing_data:
 
@@ -556,7 +554,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
    ts
 
 `Create a value counts column and reassign back to the DataFrame
-<https://stackoverflow.com/questions/17709270/i-want-to-create-a-column-of-value-counts-in-my-pandas-dataframe>`__
+<https://stackoverflow.com/q/17709270>`__
 
 .. ipython:: python
 
@@ -663,7 +661,7 @@ Pivot
 The :ref:`Pivot <reshaping.pivot>` docs.
 
 `Partial sums and subtotals
-<https://stackoverflow.com/questions/15570099/pandas-pivot-tables-row-subtotals/15574875#15574875>`__
+<https://stackoverflow.com/a/15574875>`__
 
 .. ipython:: python
 
@@ -870,7 +868,7 @@ Timeseries
 <https://stackoverflow.com/questions/17559885/pandas-dataframe-mask-based-on-index>`__
 
 `Constructing a datetime range that excludes weekends and includes only certain times
-<https://stackoverflow.com/questions/24010830/pandas-generate-sequential-timestamp-with-jump/24014440#24014440?>`__
+<https://stackoverflow.com/a/24014440>`__
 
 `Vectorized Lookup
 <https://stackoverflow.com/questions/13893227/vectorized-look-up-of-values-in-pandas-dataframe>`__
@@ -910,8 +908,7 @@ Valid frequency arguments to Grouper :ref:`Timeseries <timeseries.offset_aliases
 `Grouping using a MultiIndex
 <https://stackoverflow.com/questions/41483763/pandas-timegrouper-on-multiindex>`__
 
-`Using TimeGrouper and another grouping to create subgroups, then apply a custom function
-<https://github.com/pandas-dev/pandas/issues/3791>`__
+Using TimeGrouper and another grouping to create subgroups, then apply a custom function :issue:`3791`
 
 `Resampling with custom periods
 <https://stackoverflow.com/questions/15408156/resampling-with-custom-periods>`__
@@ -947,8 +944,7 @@ Depending on df construction, ``ignore_index`` may be needed
    df = pd.concat([df1, df2], ignore_index=True)
    df
 
-`Self Join of a DataFrame
-<https://github.com/pandas-dev/pandas/issues/2996>`__
+Self Join of a DataFrame :issue:`2996`
 
 .. ipython:: python
 
@@ -1038,7 +1034,7 @@ Data in/out
 -----------
 
 `Performance comparison of SQL vs HDF5
-<https://stackoverflow.com/questions/16628329/hdf5-and-sqlite-concurrency-compression-i-o-performance>`__
+<https://stackoverflow.com/q/16628329>`__
 
 .. _cookbook.csv:
 
@@ -1070,14 +1066,7 @@ using that handle to read.
 `Inferring dtypes from a file
 <https://stackoverflow.com/questions/15555005/get-inferred-dataframe-types-iteratively-using-chunksize>`__
 
-`Dealing with bad lines
-<https://github.com/pandas-dev/pandas/issues/2886>`__
-
-`Dealing with bad lines II
-<http://nipunbatra.github.io/2013/06/reading-unclean-data-csv-using-pandas/>`__
-
-`Reading CSV with Unix timestamps and converting to local timezone
-<http://nipunbatra.github.io/2013/06/pandas-reading-csv-with-unix-timestamps-and-converting-to-local-timezone/>`__
+Dealing with bad lines :issue:`2886`
 
 `Write a multi-row index CSV without writing duplicates
 <https://stackoverflow.com/questions/17349574/pandas-write-multiindex-rows-with-to-csv>`__
@@ -1211,8 +1200,7 @@ The :ref:`Excel <io.excel>` docs
 `Modifying formatting in XlsxWriter output
 <https://pbpython.com/improve-pandas-excel-output.html>`__
 
-`Loading only visible sheets
-<https://github.com/pandas-dev/pandas/issues/19842#issuecomment-892150745>`__
+Loading only visible sheets :issue:`19842#issuecomment-892150745`
 
 .. _cookbook.html:
 
@@ -1232,8 +1220,7 @@ The :ref:`HDFStores <io.hdf5>` docs
 `Simple queries with a Timestamp Index
 <https://stackoverflow.com/questions/13926089/selecting-columns-from-pandas-hdfstore-table>`__
 
-`Managing heterogeneous data using a linked multiple table hierarchy
-<https://github.com/pandas-dev/pandas/issues/3032>`__
+Managing heterogeneous data using a linked multiple table hierarchy :issue:`3032`
 
 `Merging on-disk tables with millions of rows
 <https://stackoverflow.com/questions/14614512/merging-two-tables-with-millions-of-rows-in-python/14617925#14617925>`__
@@ -1253,7 +1240,7 @@ csv file and creating a store by chunks, with date parsing as well.
 <https://stackoverflow.com/questions/16997048/how-does-one-append-large-amounts-of-data-to-a-pandas-hdfstore-and-get-a-natural/16999397#16999397>`__
 
 `Large Data work flows
-<https://stackoverflow.com/questions/14262433/large-data-work-flows-using-pandas>`__
+<https://stackoverflow.com/q/14262433>`__
 
 `Reading in a sequence of files, then providing a global unique index to a store while appending
 <https://stackoverflow.com/questions/16997048/how-does-one-append-large-amounts-of-data-to-a-pandas-hdfstore-and-get-a-natural>`__
@@ -1384,7 +1371,7 @@ Computation
 -----------
 
 `Numerical integration (sample-based) of a time series
-<https://nbviewer.ipython.org/5720498>`__
+<https://nbviewer.ipython.org/gist/metakermit/5720498>`__
 
 Correlation
 ***********

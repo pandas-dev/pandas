@@ -13,6 +13,7 @@ from typing import (
     DefaultDict,
     Hashable,
     Iterator,
+    List,
     Literal,
     Mapping,
     Sequence,
@@ -36,6 +37,11 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.inference import is_dict_like
+
+from pandas import (
+    Index,
+    MultiIndex,
+)
 
 from pandas.io.parsers.base_parser import (
     ParserBase,
@@ -158,16 +164,16 @@ class PythonParser(ParserBase):
 
         decimal = re.escape(self.decimal)
         if self.thousands is None:
-            regex = fr"^[\-\+]?[0-9]*({decimal}[0-9]*)?([0-9]?(E|e)\-?[0-9]+)?$"
+            regex = rf"^[\-\+]?[0-9]*({decimal}[0-9]*)?([0-9]?(E|e)\-?[0-9]+)?$"
         else:
             thousands = re.escape(self.thousands)
             regex = (
-                fr"^[\-\+]?([0-9]+{thousands}|[0-9])*({decimal}[0-9]*)?"
-                fr"([0-9]?(E|e)\-?[0-9]+)?$"
+                rf"^[\-\+]?([0-9]+{thousands}|[0-9])*({decimal}[0-9]*)?"
+                rf"([0-9]?(E|e)\-?[0-9]+)?$"
             )
         self.num = re.compile(regex)
 
-    def _make_reader(self, f) -> None:
+    def _make_reader(self, f: IO[str] | ReadCsvBuffer[str]) -> None:
         sep = self.delimiter
 
         if sep is None or len(sep) == 1:
@@ -198,10 +204,11 @@ class PythonParser(ParserBase):
                     self.pos += 1
                     line = f.readline()
                     lines = self._check_comments([[line]])[0]
+                lines_str = cast(List[str], lines)
 
                 # since `line` was a string, lines will be a list containing
                 # only a single string
-                line = lines[0]
+                line = lines_str[0]
 
                 self.pos += 1
                 self.line_pos += 1
@@ -233,7 +240,11 @@ class PythonParser(ParserBase):
         # TextIOWrapper, mmap, None]")
         self.data = reader  # type: ignore[assignment]
 
-    def read(self, rows: int | None = None):
+    def read(
+        self, rows: int | None = None
+    ) -> tuple[
+        Index | None, Sequence[Hashable] | MultiIndex, Mapping[Hashable, ArrayLike]
+    ]:
         try:
             content = self._get_lines(rows)
         except StopIteration:
@@ -273,9 +284,11 @@ class PythonParser(ParserBase):
         conv_data = self._convert_data(data)
         columns, conv_data = self._do_date_conversions(columns, conv_data)
 
-        index, columns = self._make_index(conv_data, alldata, columns, indexnamerow)
+        index, result_columns = self._make_index(
+            conv_data, alldata, columns, indexnamerow
+        )
 
-        return index, columns, conv_data
+        return index, result_columns, conv_data
 
     def _exclude_implicit_index(
         self,
@@ -586,7 +599,7 @@ class PythonParser(ParserBase):
             self._col_indices = sorted(col_indices)
         return columns
 
-    def _buffered_line(self):
+    def _buffered_line(self) -> list[Scalar]:
         """
         Return a line from buffer, filling buffer if required.
         """
@@ -667,6 +680,8 @@ class PythonParser(ParserBase):
     def _next_line(self) -> list[Scalar]:
         if isinstance(self.data, list):
             while self.skipfunc(self.pos):
+                if self.pos >= len(self.data):
+                    break
                 self.pos += 1
 
             while True:
@@ -876,7 +891,9 @@ class PythonParser(ParserBase):
 
     _implicit_index = False
 
-    def _get_index_name(self, columns: list[Hashable]):
+    def _get_index_name(
+        self, columns: list[Hashable]
+    ) -> tuple[list[Hashable] | None, list[Hashable], list[Hashable]]:
         """
         Try several cases to get lines:
 
@@ -941,8 +958,8 @@ class PythonParser(ParserBase):
 
         else:
             # Case 2
-            (index_name, columns_, self.index_col) = self._clean_index_names(
-                columns, self.index_col, self.unnamed_cols
+            (index_name, _, self.index_col) = self._clean_index_names(
+                columns, self.index_col
             )
 
         return index_name, orig_names, columns
@@ -1034,7 +1051,7 @@ class PythonParser(ParserBase):
                 ]
         return zipped_content
 
-    def _get_lines(self, rows: int | None = None):
+    def _get_lines(self, rows: int | None = None) -> list[list[Scalar]]:
         lines = self.buf
         new_rows = None
 
@@ -1131,7 +1148,7 @@ class FixedWidthReader(abc.Iterator):
 
     def __init__(
         self,
-        f: IO[str],
+        f: IO[str] | ReadCsvBuffer[str],
         colspecs: list[tuple[int, int]] | Literal["infer"],
         delimiter: str | None,
         comment: str | None,
@@ -1209,7 +1226,7 @@ class FixedWidthReader(abc.Iterator):
         self, infer_nrows: int = 100, skiprows: set[int] | None = None
     ) -> list[tuple[int, int]]:
         # Regex escape the delimiters
-        delimiters = "".join([fr"\{x}" for x in self.delimiter])
+        delimiters = "".join([rf"\{x}" for x in self.delimiter])
         pattern = re.compile(f"([^{delimiters}]+)")
         rows = self.get_rows(infer_nrows, skiprows)
         if not rows:
@@ -1228,14 +1245,16 @@ class FixedWidthReader(abc.Iterator):
         return edge_pairs
 
     def __next__(self) -> list[str]:
+        # Argument 1 to "next" has incompatible type "Union[IO[str],
+        # ReadCsvBuffer[str]]"; expected "SupportsNext[str]"
         if self.buffer is not None:
             try:
                 line = next(self.buffer)
             except StopIteration:
                 self.buffer = None
-                line = next(self.f)
+                line = next(self.f)  # type: ignore[arg-type]
         else:
-            line = next(self.f)
+            line = next(self.f)  # type: ignore[arg-type]
         # Note: 'colspecs' is a sequence of half-open intervals.
         return [line[fromm:to].strip(self.delimiter) for (fromm, to) in self.colspecs]
 
@@ -1252,7 +1271,7 @@ class FixedWidthFieldParser(PythonParser):
         self.infer_nrows = kwds.pop("infer_nrows")
         PythonParser.__init__(self, f, **kwds)
 
-    def _make_reader(self, f: IO[str]) -> None:
+    def _make_reader(self, f: IO[str] | ReadCsvBuffer[str]) -> None:
         self.data = FixedWidthReader(
             f,
             self.colspecs,

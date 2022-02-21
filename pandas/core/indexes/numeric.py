@@ -14,7 +14,6 @@ from pandas._libs import (
 )
 from pandas._typing import (
     Dtype,
-    DtypeObj,
     npt,
 )
 from pandas.util._decorators import (
@@ -23,18 +22,14 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.astype import astype_nansafe
 from pandas.core.dtypes.common import (
     is_dtype_equal,
-    is_extension_array_dtype,
-    is_float,
     is_float_dtype,
     is_integer_dtype,
     is_numeric_dtype,
     is_scalar,
     is_signed_integer_dtype,
     is_unsigned_integer_dtype,
-    needs_i8_conversion,
     pandas_dtype,
 )
 from pandas.core.dtypes.generic import ABCSeries
@@ -95,14 +90,6 @@ class NumericIndex(Index):
     _can_hold_strings = False
     _is_backward_compat_public_numeric_index: bool = True
 
-    # error: Signature of "_can_hold_na" incompatible with supertype "Index"
-    @cache_readonly
-    def _can_hold_na(self) -> bool:  # type: ignore[override]
-        if is_float_dtype(self.dtype):
-            return True
-        else:
-            return False
-
     _engine_types: dict[np.dtype, type[libindex.IndexEngine]] = {
         np.dtype(np.int8): libindex.Int8Engine,
         np.dtype(np.int16): libindex.Int16Engine,
@@ -114,6 +101,8 @@ class NumericIndex(Index):
         np.dtype(np.uint64): libindex.UInt64Engine,
         np.dtype(np.float32): libindex.Float32Engine,
         np.dtype(np.float64): libindex.Float64Engine,
+        np.dtype(np.complex64): libindex.Complex64Engine,
+        np.dtype(np.complex128): libindex.Complex128Engine,
     }
 
     @property
@@ -128,6 +117,7 @@ class NumericIndex(Index):
             "i": "integer",
             "u": "integer",
             "f": "floating",
+            "c": "complex",
         }[self.dtype.kind]
 
     def __new__(cls, data=None, dtype: Dtype | None = None, copy=False, name=None):
@@ -216,51 +206,6 @@ class NumericIndex(Index):
             # dtype for Int64Index, UInt64Index etc. Needed for backwards compat.
             return cls._default_dtype
 
-    def __contains__(self, key) -> bool:
-        """
-        Check if key is a float and has a decimal. If it has, return False.
-        """
-        if not is_integer_dtype(self.dtype):
-            return super().__contains__(key)
-
-        hash(key)
-        try:
-            if is_float(key) and int(key) != key:
-                # otherwise the `key in self._engine` check casts e.g. 1.1 -> 1
-                return False
-            return key in self._engine
-        except (OverflowError, TypeError, ValueError):
-            return False
-
-    @doc(Index.astype)
-    def astype(self, dtype, copy: bool = True):
-        dtype = pandas_dtype(dtype)
-        if is_float_dtype(self.dtype):
-            if needs_i8_conversion(dtype):
-                raise TypeError(
-                    f"Cannot convert Float64Index to dtype {dtype}; integer "
-                    "values are required for conversion"
-                )
-            elif is_integer_dtype(dtype) and not is_extension_array_dtype(dtype):
-                # TODO(ExtensionIndex); this can change once we have an EA Index type
-                # GH 13149
-                arr = astype_nansafe(self._values, dtype=dtype)
-                if isinstance(self, Float64Index):
-                    if dtype.kind == "i":
-                        return Int64Index(arr, name=self.name)
-                    else:
-                        return UInt64Index(arr, name=self.name)
-                else:
-                    return NumericIndex(arr, name=self.name, dtype=dtype)
-        elif self._is_backward_compat_public_numeric_index:
-            # this block is needed so e.g. NumericIndex[int8].astype("int32") returns
-            # NumericIndex[int32] and not Int64Index with dtype int64.
-            # When Int64Index etc. are removed from the code base, removed this also.
-            if not is_extension_array_dtype(dtype) and is_numeric_dtype(dtype):
-                return self._constructor(self, dtype=dtype, copy=copy)
-
-        return super().astype(dtype, copy=copy)
-
     # ----------------------------------------------------------------
     # Indexing Methods
 
@@ -272,6 +217,8 @@ class NumericIndex(Index):
 
     @doc(Index._convert_slice_indexer)
     def _convert_slice_indexer(self, key: slice, kind: str, is_frame: bool = False):
+        # TODO(2.0): once #45324 deprecation is enforced we should be able
+        #  to simplify this.
         if is_float_dtype(self.dtype):
             assert kind in ["loc", "getitem"]
 
@@ -315,10 +262,6 @@ class NumericIndex(Index):
                 )
         return tolerance
 
-    def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
-        # If we ever have BoolIndex or ComplexIndex, this may need to be tightened
-        return is_numeric_dtype(dtype)
-
     @classmethod
     def _assert_safe_casting(cls, data: np.ndarray, subarr: np.ndarray) -> None:
         """
@@ -330,13 +273,6 @@ class NumericIndex(Index):
         if is_integer_dtype(subarr.dtype):
             if not np.array_equal(data, subarr):
                 raise TypeError("Unsafe NumPy casting, you must explicitly cast")
-
-    @property
-    def _is_all_dates(self) -> bool:
-        """
-        Checks that all the labels are datetime objects.
-        """
-        return False
 
     def _format_native_types(
         self, *, na_rep="", float_format=None, decimal=".", quoting=None, **kwargs

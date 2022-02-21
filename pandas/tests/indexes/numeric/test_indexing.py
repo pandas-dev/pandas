@@ -20,7 +20,7 @@ from pandas.core.indexes.api import (
 @pytest.fixture
 def index_large():
     # large values used in UInt64Index tests where no compat needed with Int64/Float64
-    large = [2 ** 63, 2 ** 63 + 10, 2 ** 63 + 15, 2 ** 63 + 20, 2 ** 63 + 25]
+    large = [2**63, 2**63 + 10, 2**63 + 15, 2**63 + 20, 2**63 + 25]
     return UInt64Index(large)
 
 
@@ -161,7 +161,7 @@ class TestGetLoc:
     @pytest.mark.parametrize("dtype", ["f8", "i8", "u8"])
     def test_get_loc_numericindex_none_raises(self, dtype):
         # case that goes through searchsorted and key is non-comparable to values
-        arr = np.arange(10 ** 7, dtype=dtype)
+        arr = np.arange(10**7, dtype=dtype)
         idx = Index(arr)
         with pytest.raises(KeyError, match="None"):
             idx.get_loc(None)
@@ -376,17 +376,17 @@ class TestGetIndexer:
         tm.assert_numpy_array_equal(indexer, expected)
 
     def test_get_indexer_uint64(self, index_large):
-        target = UInt64Index(np.arange(10).astype("uint64") * 5 + 2 ** 63)
+        target = UInt64Index(np.arange(10).astype("uint64") * 5 + 2**63)
         indexer = index_large.get_indexer(target)
         expected = np.array([0, -1, 1, 2, 3, 4, -1, -1, -1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected)
 
-        target = UInt64Index(np.arange(10).astype("uint64") * 5 + 2 ** 63)
+        target = UInt64Index(np.arange(10).astype("uint64") * 5 + 2**63)
         indexer = index_large.get_indexer(target, method="pad")
         expected = np.array([0, 0, 1, 2, 3, 4, 4, 4, 4, 4], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected)
 
-        target = UInt64Index(np.arange(10).astype("uint64") * 5 + 2 ** 63)
+        target = UInt64Index(np.arange(10).astype("uint64") * 5 + 2**63)
         indexer = index_large.get_indexer(target, method="backfill")
         expected = np.array([0, 1, 1, 2, 3, 4, -1, -1, -1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected)
@@ -422,6 +422,17 @@ class TestWhere:
         tm.assert_index_equal(result, expected)
 
         result = idx.putmask(~mask, other)
+        tm.assert_index_equal(result, expected)
+
+    def test_where_infers_type_instead_of_trying_to_convert_string_to_float(self):
+        # GH 32413
+        index = Index([1, np.nan])
+        cond = index.notna()
+        other = Index(["a", "b"], dtype="string")
+
+        expected = Index([1.0, "b"])
+        result = index.where(cond, other)
+
         tm.assert_index_equal(result, expected)
 
 

@@ -328,7 +328,7 @@ more information about the data.
 You must enable this by setting the ``display.html.table_schema`` option to ``True``.
 
 .. _Table Schema: http://specs.frictionlessdata.io/json-table-schema/
-.. _nteract: http://nteract.io/
+.. _nteract: https://nteract.io/
 
 .. _whatsnew_0200.enhancements.scipy_sparse:
 
