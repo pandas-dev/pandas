@@ -2160,7 +2160,5 @@ Thu,Lunch,Yes,51.51,17"""
         df[df.columns[0]] = df[df.columns[0]].astype(pd.Float64Dtype())
         result = df.stack("station")
 
-        # TODO(EA2D): we get object dtype because DataFrame.values can't
-        #  be an EA
-        expected = df.astype(object).stack("station")
+        expected = expected.astype({"t_mean": pd.Int64Dtype(), "r": object})
         tm.assert_frame_equal(result, expected)
