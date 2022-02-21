@@ -444,6 +444,13 @@ class StylerRenderer:
 
         Wraps UDFs so they do not raise errors on, for example, non-conforming dtypes.
 
+        Parameters
+        ----------
+        methods : sequence of str or callable
+            A list of methods that will called on each column of data.
+        names : sequence of str
+            A list of aliases that will overwrite the system method names in display.
+
         Returns
         -------
         DataFrame, list
