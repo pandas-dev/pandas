@@ -76,8 +76,6 @@ from pandas.core.indexers import check_array_indexer
 from pandas.core.ops import invalid_comparison
 
 if TYPE_CHECKING:
-    from lib import NoDefault
-    from libmissing import NAType
     from pandas import Series
     from pandas.core.arrays import BooleanArray
     from pandas._typing import (
@@ -338,7 +336,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         self,
         dtype: npt.DTypeLike | None = None,
         copy: bool = False,
-        na_value: Scalar | NoDefault | NAType = lib.no_default,
+        na_value: Scalar | lib.NoDefault | libmissing.NAType = lib.no_default,
     ) -> np.ndarray:
         """
         Convert to a NumPy Array.
