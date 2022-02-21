@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import json
+from typing import TypeVar
 
 import numpy as np
 import pyarrow
@@ -142,9 +145,60 @@ _interval_type = ArrowIntervalType(pyarrow.int64(), "left")
 pyarrow.register_extension_type(_interval_type)
 
 
+ArrowExtensionArrayT = TypeVar("ArrowExtensionArrayT", bound="ArrowExtensionArray")
+
+
 class ArrowExtensionArray(ExtensionArray):
     """
     Base class for ExtensionArray backed by Arrow array.
     """
 
-    pass
+    _data: pyarrow.ChunkedArray
+
+    def __init__(self, values: pyarrow.ChunkedArray):
+        raise NotImplementedError
+
+    def __arrow_array__(self, type=None):
+        """Convert myself to a pyarrow Array or ChunkedArray."""
+        return self._data
+
+    def __len__(self) -> int:
+        """
+        Length of this array.
+
+        Returns
+        -------
+        length : int
+        """
+        return len(self._data)
+
+    def copy(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
+        """
+        Return a shallow copy of the array.
+
+        Underlying ChunkedArray is immutable, so a deep copy is unnecessary.
+
+        Returns
+        -------
+        type(self)
+        """
+        return type(self)(self._data)
+
+    @classmethod
+    def _concat_same_type(
+        cls: type[ArrowExtensionArrayT], to_concat
+    ) -> ArrowExtensionArrayT:
+        """
+        Concatenate multiple ArrowExtensionArrays.
+
+        Parameters
+        ----------
+        to_concat : sequence of ArrowExtensionArrays
+
+        Returns
+        -------
+        ArrowExtensionArray
+        """
+        chunks = [array for ea in to_concat for array in ea._data.iterchunks()]
+        arr = pyarrow.chunked_array(chunks)
+        return cls(arr)

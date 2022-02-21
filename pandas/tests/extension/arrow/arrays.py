@@ -8,7 +8,6 @@ current implementation is not efficient.
 """
 from __future__ import annotations
 
-import copy
 import itertools
 import operator
 
@@ -111,9 +110,6 @@ class ArrowExtensionArray(OpsMixin, _ArrowExtensionArray):
             vals = self._data.to_pandas()[item]
             return type(self)._from_sequence(vals)
 
-    def __len__(self):
-        return len(self._data)
-
     def astype(self, dtype, copy=True):
         # needed to fix this astype for the Series constructor.
         if isinstance(dtype, type(self.dtype)) and dtype == self.dtype:
@@ -164,9 +160,6 @@ class ArrowExtensionArray(OpsMixin, _ArrowExtensionArray):
 
         result = take(data, indices, fill_value=fill_value, allow_fill=allow_fill)
         return self._from_sequence(result, dtype=self.dtype)
-
-    def copy(self):
-        return type(self)(copy.copy(self._data))
 
     @classmethod
     def _concat_same_type(cls, to_concat):

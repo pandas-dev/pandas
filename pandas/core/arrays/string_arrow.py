@@ -194,10 +194,6 @@ class ArrowStringArray(
         """Correctly construct numpy arrays when passed to `np.asarray()`."""
         return self.to_numpy(dtype=dtype)
 
-    def __arrow_array__(self, type=None):
-        """Convert myself to a pyarrow Array or ChunkedArray."""
-        return self._data
-
     def to_numpy(
         self,
         dtype: npt.DTypeLike | None = None,
@@ -219,16 +215,6 @@ class ArrowStringArray(
             result[mask] = na_value
         return result
 
-    def __len__(self) -> int:
-        """
-        Length of this array.
-
-        Returns
-        -------
-        length : int
-        """
-        return len(self._data)
-
     @doc(ExtensionArray.factorize)
     def factorize(self, na_sentinel: int = -1) -> tuple[np.ndarray, ExtensionArray]:
         encoded = self._data.dictionary_encode()
@@ -245,25 +231,6 @@ class ArrowStringArray(
             uniques = type(self)(pa.array([], type=encoded.type.value_type))
 
         return indices.values, uniques
-
-    @classmethod
-    def _concat_same_type(cls, to_concat) -> ArrowStringArray:
-        """
-        Concatenate multiple ArrowStringArray.
-
-        Parameters
-        ----------
-        to_concat : sequence of ArrowStringArray
-
-        Returns
-        -------
-        ArrowStringArray
-        """
-        return cls(
-            pa.chunked_array(
-                [array for ea in to_concat for array in ea._data.iterchunks()]
-            )
-        )
 
     @overload
     def __getitem__(self, item: ScalarIndexer) -> ArrowStringScalarOrNAT:
@@ -360,18 +327,6 @@ class ArrowStringArray(
         """
         # TODO: Implement .to_numpy for ChunkedArray
         return self._data.is_null().to_pandas().values
-
-    def copy(self) -> ArrowStringArray:
-        """
-        Return a shallow copy of the array.
-
-        Underlying ChunkedArray is immutable, so a deep copy is unnecessary.
-
-        Returns
-        -------
-        ArrowStringArray
-        """
-        return type(self)(self._data)
 
     def _cmp_method(self, other, op):
         from pandas.arrays import BooleanArray

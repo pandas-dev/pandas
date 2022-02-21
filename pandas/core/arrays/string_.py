@@ -39,6 +39,7 @@ from pandas.core.dtypes.common import (
 from pandas.core import ops
 from pandas.core.array_algos import masked_reductions
 from pandas.core.arrays import (
+    ExtensionArray,
     FloatingArray,
     IntegerArray,
     PandasArray,
@@ -222,7 +223,7 @@ class StringDtype(ExtensionDtype):
             return StringArray(np.array([], dtype="object"))
 
 
-class BaseStringArray:
+class BaseStringArray(ExtensionArray):
     """
     Mixin class for StringArray, ArrowStringArray.
     """
