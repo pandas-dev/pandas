@@ -14,6 +14,23 @@ import pandas._testing as tm
 
 
 class TestDataFrameQuantile:
+    def test_numeric_only_default_false(self):
+        # GH #7308
+        df = DataFrame({"A": [1, 2, 3], "B": [2, 3, 4]})
+        df["C"] = pd.date_range("2014-01-01", periods=3, freq="m")
+
+        df_expected_num_only_false = Series(
+            [2.0, 3.0, Timestamp("2014-02-28 00:00:00")],
+            index=["A", "B", "C"],
+            name=0.5,
+        )
+        tm.assert_series_equal(df.quantile(0.5), df_expected_num_only_false)
+
+        df_expected_num_only_true = Series([2.0, 3.0], index=["A", "B"], name=0.5)
+        tm.assert_series_equal(
+            df.quantile(0.5, numeric_only=True), df_expected_num_only_true
+        )
+
     @pytest.mark.parametrize(
         "df,expected",
         [

@@ -10558,7 +10558,7 @@ NaN 12.3   33.0
         self,
         q=0.5,
         axis: Axis = 0,
-        numeric_only: bool = True,
+        numeric_only: bool = False,
         interpolation: str = "linear",
     ):
         """
@@ -10570,7 +10570,7 @@ NaN 12.3   33.0
             Value between 0 <= q <= 1, the quantile(s) to compute.
         axis : {0, 1, 'index', 'columns'}, default 0
             Equals 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
-        numeric_only : bool, default True
+        numeric_only : bool, default False
             If False, the quantile of datetime and timedelta data will be
             computed as well.
         interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
