@@ -491,6 +491,7 @@ class StylerRenderer:
         else:
             names_ = [method.__name__ for method in methods_]
 
+        # performance: should probably subsample based on hidden columns so as no calc
         return self.data.agg(methods_), names_
 
     def _generate_col_header_row(self, iter: tuple, max_cols: int, col_lengths: dict):
