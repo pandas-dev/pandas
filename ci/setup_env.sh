@@ -65,7 +65,8 @@ echo
 mamba env remove -n pandas-dev
 echo "mamba env update --file=${ENV_FILE}"
 # See https://github.com/mamba-org/mamba/issues/633
-mamba create -q -n pandas-dev
+# TODO: GH#44980 https://github.com/pypa/setuptools/issues/2941
+mamba create -q -n pandas-dev 'setuptools<60'
 time mamba env update -n pandas-dev --file="${ENV_FILE}"
 
 echo "conda list -n pandas-dev"
