@@ -1590,25 +1590,3 @@ def test_set_footer_methods_names(mi_styler, alias):
 
         assert row[1]["value"] == exp_label[r]  # test label is printed
         assert f"descriptor_name descriptor{r}" in row[1]["class"]  # test css
-
-
-def test_set_footer_warn():
-    df = DataFrame([["a"]])
-    styler = df.style.set_footer(["mean"], errors="warn")
-    msg = (
-        "`Styler.set_footer` raised Exception when calculating method `mean` on "
-        "column `0`"
-    )
-    with tm.assert_produces_warning(Warning, match=msg):
-        styler._translate(True, True)
-
-
-def test_set_footer_raise():
-    df = DataFrame([["a"]])
-    styler = df.style.set_footer(["mean"], errors="raise")
-    msg = (
-        "`Styler.set_footer` raised Exception when calculating method `mean` on "
-        "column `0`"
-    )
-    with pytest.raises(Exception, match=msg):
-        styler._translate(True, True)
