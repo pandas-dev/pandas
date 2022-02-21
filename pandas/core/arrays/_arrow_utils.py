@@ -6,6 +6,8 @@ from typing import TypeVar
 import numpy as np
 import pyarrow
 
+from pandas._typing import npt
+
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.interval import VALID_CLOSED
 
@@ -162,6 +164,13 @@ class ArrowExtensionArray(ExtensionArray):
         """Convert myself to a pyarrow Array or ChunkedArray."""
         return self._data
 
+    @property
+    def nbytes(self) -> int:
+        """
+        The number of bytes needed to store this object in memory.
+        """
+        return self._data.nbytes
+
     def __len__(self) -> int:
         """
         Length of this array.
@@ -171,6 +180,15 @@ class ArrowExtensionArray(ExtensionArray):
         length : int
         """
         return len(self._data)
+
+    def isna(self) -> npt.NDArray[np.bool_]:
+        """
+        Boolean NumPy array indicating if each value is missing.
+
+        This should return a 1-D array the same length as 'self'.
+        """
+        # TODO: Implement .to_numpy for ChunkedArray
+        return self._data.is_null().to_pandas().values
 
     def copy(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
         """

@@ -138,19 +138,6 @@ class ArrowExtensionArray(OpsMixin, _ArrowExtensionArray):
 
         return self._logical_method(other, operator.eq)
 
-    @property
-    def nbytes(self) -> int:
-        return sum(
-            x.size
-            for chunk in self._data.chunks
-            for x in chunk.buffers()
-            if x is not None
-        )
-
-    def isna(self):
-        nas = pd.isna(self._data.to_pandas())
-        return type(self)._from_sequence(nas)
-
     def take(self, indices, allow_fill=False, fill_value=None):
         data = self._data.to_pandas()
         data = extract_array(data, extract_numpy=True)

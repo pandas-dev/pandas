@@ -312,22 +312,6 @@ class ArrowStringArray(
         else:
             return scalar
 
-    @property
-    def nbytes(self) -> int:
-        """
-        The number of bytes needed to store this object in memory.
-        """
-        return self._data.nbytes
-
-    def isna(self) -> np.ndarray:
-        """
-        Boolean NumPy array indicating if each value is missing.
-
-        This should return a 1-D array the same length as 'self'.
-        """
-        # TODO: Implement .to_numpy for ChunkedArray
-        return self._data.is_null().to_pandas().values
-
     def _cmp_method(self, other, op):
         from pandas.arrays import BooleanArray
 
