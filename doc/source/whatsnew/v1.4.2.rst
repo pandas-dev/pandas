@@ -32,7 +32,7 @@ Bug fixes
 
 Other
 ~~~~~
-- Removed docstring comment indicating incorrectly that default unit is 'ms' rather than 'ns'
+-
 -
 
 .. ---------------------------------------------------------------------------
