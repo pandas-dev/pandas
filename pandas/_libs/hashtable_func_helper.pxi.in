@@ -110,6 +110,8 @@ cdef duplicated_{{dtype}}(const {{dtype}}_t[:] values, object keep='first'):
         int ret = 0
         {{if dtype != 'object'}}
         {{c_type}} value
+        {{else}}
+        PyObject* value
         {{endif}}
         Py_ssize_t i, n = len(values)
         khiter_t k
@@ -123,44 +125,33 @@ cdef duplicated_{{dtype}}(const {{dtype}}_t[:] values, object keep='first'):
 
     if keep == 'last':
         {{if dtype == 'object'}}
-        for i in range(n - 1, -1, -1):
-            # equivalent: range(n)[::-1], which cython doesn't like in nogil
-            kh_put_{{ttype}}(table, {{to_c_type}}values[i], &ret)
-            out[i] = ret == 0
+        if True:
         {{else}}
         with nogil:
+        {{endif}}
             for i in range(n - 1, -1, -1):
                 # equivalent: range(n)[::-1], which cython doesn't like in nogil
                 value = {{to_c_type}}(values[i])
                 kh_put_{{ttype}}(table, value, &ret)
                 out[i] = ret == 0
-        {{endif}}
+
     elif keep == 'first':
         {{if dtype == 'object'}}
-        for i in range(n):
-            kh_put_{{ttype}}(table, {{to_c_type}}values[i], &ret)
-            out[i] = ret == 0
+        if True:
         {{else}}
         with nogil:
+        {{endif}}
             for i in range(n):
                 value = {{to_c_type}}(values[i])
                 kh_put_{{ttype}}(table, value, &ret)
                 out[i] = ret == 0
-        {{endif}}
+
     else:
         {{if dtype == 'object'}}
-        for i in range(n):
-            value = values[i]
-            k = kh_get_{{ttype}}(table, {{to_c_type}}value)
-            if k != table.n_buckets:
-                out[table.vals[k]] = 1
-                out[i] = 1
-            else:
-                k = kh_put_{{ttype}}(table, {{to_c_type}}value, &ret)
-                table.vals[k] = i
-                out[i] = 0
+        if True:
         {{else}}
         with nogil:
+        {{endif}}
             for i in range(n):
                 value = {{to_c_type}}(values[i])
                 k = kh_get_{{ttype}}(table, value)
@@ -171,7 +162,7 @@ cdef duplicated_{{dtype}}(const {{dtype}}_t[:] values, object keep='first'):
                     k = kh_put_{{ttype}}(table, value, &ret)
                     table.vals[k] = i
                     out[i] = 0
-        {{endif}}
+
     kh_destroy_{{ttype}}(table)
     return out
 
