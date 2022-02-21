@@ -1332,7 +1332,7 @@ class DataFrame(NDFrame, OpsMixin):
         columns = self.columns
         klass = self._constructor_sliced
         for k, v in zip(self.index, self.values):
-            s = klass(v, index=columns, name=k)
+            s = klass(v, index=columns, name=k).__finalize__(self)
             yield k, s
 
     def itertuples(
@@ -3444,7 +3444,7 @@ class DataFrame(NDFrame, OpsMixin):
                 index=self.columns,
                 name=self.index[i],
                 dtype=new_values.dtype,
-            )
+            ).__finalize__(self)
             result._set_is_copy(self, copy=copy)
             return result
 
