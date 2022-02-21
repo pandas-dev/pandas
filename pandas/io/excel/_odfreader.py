@@ -208,7 +208,7 @@ class ODFReader(BaseExcelReader):
             # cast needed because `pd.to_datetime can return NaTType,
             # but we know this is a valid time
             stamp = cast(pd.Timestamp, pd.to_datetime(str(cell)))
-            return stamp.time()
+            return stamp
         else:
             self.close()
             raise ValueError(f"Unrecognized type {cell_type}")
