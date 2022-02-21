@@ -2479,8 +2479,8 @@ class Styler(StylerRenderer):
         These metrics are calculated at render time and can therefore be exported
         and used on other general Styler objects.
 
-        Footers are applied to all Styler output formats including ``to_html``,
-        ``to_latex`` and ``to_string``.
+        Footers are applied to Styler output formats including ``to_html``,
+        ``to_latex`` and ``to_string``, but not, currently, ``to_excel``.
 
         Examples
         --------
