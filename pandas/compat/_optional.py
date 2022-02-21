@@ -19,6 +19,7 @@ VERSIONS = {
     "gcsfs": "0.6.0",
     "jinja2": "2.11",
     "lxml.etree": "4.5.0",
+    "markupsafe": "2.0.1",
     "matplotlib": "3.3.2",
     "numba": "0.50.1",
     "numexpr": "2.7.1",

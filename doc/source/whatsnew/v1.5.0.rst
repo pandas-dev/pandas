@@ -242,6 +242,7 @@ Other Deprecations
 - Deprecated :meth:`Series.is_monotonic` and :meth:`Index.is_monotonic` in favor of :meth:`Series.is_monotonic_increasing` and :meth:`Index.is_monotonic_increasing` (:issue:`45422`, :issue:`21335`)
 - Deprecated behavior of :meth:`DatetimeIndex.astype`, :meth:`TimedeltaIndex.astype`, :meth:`PeriodIndex.astype` when converting to an integer dtype other than ``int64``. In a future version, these will convert to exactly the specified dtype (instead of always ``int64``) and will raise if the conversion overflows (:issue:`45034`)
 - Deprecated the ``__array_wrap__`` method of DataFrame and Series, rely on standard numpy ufuncs instead (:issue:`45451`)
+- Deprecated treating float-dtype data as wall-times when passed with a timezone to :class:`Series` or :class:`DatetimeIndex` (:issue:`45573`)
 - Deprecated the behavior of :meth:`Series.fillna` and :meth:`DataFrame.fillna` with ``timedelta64[ns]`` dtype and incompatible fill value; in a future version this will cast to a common dtype (usually object) instead of raising, matching the behavior of other dtypes (:issue:`45746`)
 - Deprecated the ``warn`` parameter in :func:`infer_freq` (:issue:`45947`)
 
@@ -255,6 +256,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.duplicated` when subset consists of only one column (:issue:`45236`)
 - Performance improvement in :meth:`.GroupBy.transform` when broadcasting values for user-defined functions (:issue:`45708`)
 - Performance improvement in :meth:`.GroupBy.transform` for user-defined functions when only a single group exists (:issue:`44977`)
+- Performance improvement in :meth:`MultiIndex.get_locs` (:issue:`45681`)
 - Performance improvement in :func:`merge` when left and/or right are empty (:issue:`45838`)
 - Performance improvement in :class:`DataFrame` and :class:`Series` constructors for extension dtype scalars (:issue:`45854`)
 -
@@ -328,6 +330,7 @@ Indexing
 - Bug in :meth:`loc.__setitem__` treating ``range`` keys as positional instead of label-based (:issue:`45479`)
 - Bug in :meth:`Series.__setitem__` when setting ``boolean`` dtype values containing ``NA`` incorrectly raising instead of casting to ``boolean`` dtype (:issue:`45462`)
 - Bug in :meth:`Series.__setitem__` where setting :attr:`NA` into a numeric-dtpye :class:`Series` would incorrectly upcast to object-dtype rather than treating the value as ``np.nan`` (:issue:`44199`)
+- Bug in :meth:`Series.__setitem__` with ``datetime64[ns]`` dtype, an all-``False`` boolean mask, and an incompatible value incorrectly casting to ``object`` instead of retaining ``datetime64[ns]`` dtype (:issue:`45967`)
 - Bug in :meth:`Index.__getitem__`  raising ``ValueError`` when indexer is from boolean dtype with ``NA`` (:issue:`45806`)
 - Bug in :meth:`Series.mask` with ``inplace=True`` or setting values with a boolean mask with small integer dtypes incorrectly raising (:issue:`45750`)
 - Bug in :meth:`DataFrame.mask` with ``inplace=True`` and ``ExtensionDtype`` columns incorrectly raising (:issue:`45577`)
