@@ -26,13 +26,14 @@ jobs:
         Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
         Write-Host "##vso[task.prependpath]$HOME/miniconda3/bin"
       displayName: 'Add conda to PATH'
-    - bash: conda install -yv -c conda-forge -n base 'mamba<0.21'
+    - bash: conda install -yv -c conda-forge -n base 'mamba>=0.21.2'
       displayName: 'Install mamba'
 
     - bash: |
         # See https://github.com/mamba-org/mamba/issues/1370
         # See https://github.com/mamba-org/mamba/issues/633
-        C:\\Miniconda\\condabin\\mamba.bat create -n pandas-dev
+        # TODO: GH#44980 https://github.com/pypa/setuptools/issues/2941
+        C:\\Miniconda\\condabin\\mamba.bat create -n pandas-dev 'setuptools<60'
         C:\\Miniconda\\condabin\\mamba.bat env update -n pandas-dev --file ci\\deps\\actions-$(CONDA_PY).yaml
         C:\\Miniconda\\condabin\\mamba.bat list -n pandas-dev
       displayName: 'Create anaconda environment'
