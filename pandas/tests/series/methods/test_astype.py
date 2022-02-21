@@ -598,6 +598,6 @@ class TestAstypeCategorical:
 
     def test_astype_timedelta64_with_np_nan(self):
         # GH45798
-        result = Series([1, np.nan]).astype("timedelta64[ns]")
-        expected = Series([1, NaT]).astype("timedelta64[ns]")
+        result = Series([Timedelta(1), np.nan], dtype="timedelta64[ns]")
+        expected = Series([Timedelta(1), NaT], dtype="timedelta64[ns]")
         tm.assert_series_equal(result, expected)
