@@ -436,15 +436,8 @@ def test_1level_multiindex():
     assert ctx["body"][1][0]["is_visible"] is True
 
 
-@pytest.mark.parametrize(
-    "format_kwargs, exp",
-    [
-        ({}, ["1_001", "998*16300"]),
-        ({"precision": 3, "decimal": "+", "thousands": ">"}, ["1>001", "998+163"]),
-    ],
-)
-def test_format_footer(styler, format_kwargs, exp):
-    # test explicit input and option context values
+def test_format_footer(styler):
+    # test option context values
     with option_context(
         "styler.format.precision",
         5,
@@ -453,10 +446,10 @@ def test_format_footer(styler, format_kwargs, exp):
         "styler.format.thousands",
         "_",
     ):
-        styler.set_footer([lambda s: s.sum() + 1000], format_kwargs=format_kwargs)
+        styler.set_footer([lambda s: s.sum() + 1000])
         ctx = styler._translate(True, True)
 
-    exp_col_1 = {"value": 1001, "display_value": exp[0]}
+    exp_col_1 = {"value": 1001, "display_value": "1_001"}
     assert exp_col_1.items() <= ctx["foot"][0][1].items()
-    exp_col_2 = {"value": 998.163, "display_value": exp[1]}
+    exp_col_2 = {"value": 998.163, "display_value": "998*16300"}
     assert exp_col_2.items() <= ctx["foot"][0][2].items()

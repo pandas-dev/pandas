@@ -2108,7 +2108,6 @@ class Styler(StylerRenderer):
             self.set_footer(
                 func=styles["descriptors"]["methods"],
                 alias=styles["descriptors"]["names"],
-                format_kwargs=styles["descriptors"]["format"],
                 errors=styles["descriptors"]["errors"],
             )
         return self
@@ -2448,7 +2447,6 @@ class Styler(StylerRenderer):
         func: Sequence[str | Callable] | None = None,
         alias: Sequence[str] | None = None,
         errors: str = "ignore",
-        format_kwargs: dict[str, Any] = {},
     ) -> Styler:
         """
         Add footer-level calculations to the output which describes the data.
@@ -2465,10 +2463,6 @@ class Styler(StylerRenderer):
             Aliases to use for the function names. Must have length equal to ``func``.
         errors : {"ignore", "warn", "raise"}
             If errors, will be ignored or warned returning ``NA``, or raise.
-        format_kwargs : dict
-            Keyword args to pass to the formatting function. See ``Styler.format``.
-            The ``formatter`` can be given as str, callable or list, where a list
-            must have the same length as ``func``.
 
         Returns
         -------
@@ -2493,24 +2487,9 @@ class Styler(StylerRenderer):
 
         .. figure:: ../../_static/style/footer_simple.png
 
-        It is possible to use the ``alias`` and ``format_kwargs`` arguments to have
-        greater control over the look of the table.
-
-        >>> df = DataFrame({
-        ...          "Normal": np.random.randn(1000000),
-        ...          "Uniform": np.random.rand(1000000),
-        ...          "Poisson": np.random.poisson(size=1000000),
-        ... })
-        >>> with pd.option_context("styler.render.max_rows", 5):
-        ...     df.style.set_footer(func=["mean", "var", "skew", "kurtosis"],
-        ...                         alias=["1st Moment", "2nd", "3rd", "4th"],
-        ...                         format_kwargs={"precision": 3}
-        ...     )  # doctest: +SKIP
-
-        .. figure:: ../../_static/style/footer_stats.png
-
-        User defined functions can also be used, which is useful for displaying
-        metrics such as dtypes, missing value counts, or unique value counts etc.
+        User defined functions and an ``alias`` can also be used, which is useful for
+        displaying metrics such as dtypes, missing value counts, or unique value
+        counts etc.
 
         >>> def reject_h0(s):
         ...     count = (s > 0.8).sum()
@@ -2530,19 +2509,10 @@ class Styler(StylerRenderer):
             if alias is not None and len(alias) != len(func):
                 raise ValueError("``alias`` must have same length as ``func``")
 
-            if isinstance(format_kwargs.get("formatter", None), list) and len(
-                format_kwargs["formatter"]
-            ) != len(func):
-                raise ValueError(
-                    "``formatter`` key of ``format_kwargs`` as list must have "
-                    "same length as ``func``"
-                )
-
         self.descriptors = {
             "methods": func,
             "names": alias,
             "errors": errors,
-            "format": format_kwargs,
         }
         return self
 

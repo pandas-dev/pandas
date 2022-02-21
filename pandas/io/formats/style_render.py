@@ -58,7 +58,6 @@ CSSProperties = Union[str, CSSList]
 class Descriptors(TypedDict):
     methods: Sequence[str | Callable] | None
     names: Sequence[str] | None
-    format: dict[str, Any]
     errors: str
 
 
@@ -144,7 +143,6 @@ class StylerRenderer:
         self.descriptors: Descriptors = {
             "methods": None,
             "names": None,
-            "format": {},
             "errors": "ignore",
         }
         self.ctx: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
@@ -940,10 +938,7 @@ class StylerRenderer:
             "precision": get_option("styler.format.precision"),
             "na_rep": get_option("styler.format.na_rep"),
             "escape": get_option("styler.format.escape"),
-            **self.descriptors["format"],
         }  # set defaults from Styler options
-        if isinstance(self.descriptors["format"].get("formatter", None), list):
-            format_["formatter"] = self.descriptors["format"]["formatter"][r]
         display_func: Callable = _maybe_wrap_formatter(
             formatter=format_["formatter"],
             decimal=format_["decimal"],  # type: ignore[arg-type]
@@ -1040,7 +1035,8 @@ class StylerRenderer:
             body.append(row_body_headers + row_body_cells)
         d["body"] = body
 
-        d["foot"] = [[{**col, "cellstyle": []} for col in row] for row in d["foot"]]
+        if d["foot"] is not None:
+            d["foot"] = [[{**col, "cellstyle": []} for col in row] for row in d["foot"]]
 
         # clines are determined from info on index_lengths and hidden_rows and input
         # to a dict defining which row clines should be added in the template.

@@ -2,10 +2,9 @@ import pytest
 
 jinja2 = pytest.importorskip("jinja2")
 
-from pandas import (
-    DataFrame,
-    Styler,
-)
+from pandas import DataFrame
+
+from pandas.io.formats.style import Styler
 
 
 @pytest.fixture
