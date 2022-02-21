@@ -78,16 +78,16 @@ class TestHashTable:
         with pytest.raises(KeyError, match=str(index + 2)):
             table.get_item(index + 2)
 
-    def test_map(self, table_type, dtype, writable):
-        # PyObjectHashTable has no map-method
-        if table_type != ht.PyObjectHashTable:
+    def test_map_keys_to_values(self, table_type, dtype, writable):
+        # only Int64HashTable has this method
+        if table_type == ht.Int64HashTable:
             N = 77
             table = table_type()
             keys = np.arange(N).astype(dtype)
             vals = np.arange(N).astype(np.int64) + N
             keys.flags.writeable = writable
             vals.flags.writeable = writable
-            table.get_flattened_list(keys, vals)
+            table.map_keys_to_values(keys, vals)
             for i in range(N):
                 assert table.get_item(keys[i]) == i + N
 
@@ -440,15 +440,6 @@ class TestHashTableWithNans:
         assert len(table) == 1
         assert index in table
         assert table.get_item(index) == 41
-
-    def test_map(self, table_type, dtype):
-        N = 332
-        table = table_type()
-        keys = np.full(N, np.nan, dtype=dtype)
-        vals = (np.arange(N) + N).astype(np.int64)
-        table.get_flattened_list(keys, vals)
-        assert len(table) == 1
-        assert table.get_item(np.nan) == 2 * N - 1
 
     def test_map_locations(self, table_type, dtype):
         N = 10
