@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import cast
+
 import numpy as np
 
 from pandas._libs.tslibs.nattype import NaTType
@@ -203,12 +205,10 @@ class ODFReader(BaseExcelReader):
             cell_value = cell.attributes.get((OFFICENS, "date-value"))
             return pd.to_datetime(cell_value)
         elif cell_type == "time":
-            stamp: pd.Timestamp | NaTType = pd.to_datetime(str(cell))
-            if not isinstance(stamp, NaTType):
-                return stamp.time()
-            else:
-                self.close()
-                raise ValueError(f"Unrecognized time {str(cell)}")
+            # cast needed because `pd.to_datetime can return NaTType,
+            # but we know this is a valid time
+            stamp = cast(pd.Timestamp, pd.to_datetime(str(cell)))
+            return stamp.time()
         else:
             self.close()
             raise ValueError(f"Unrecognized type {cell_type}")
