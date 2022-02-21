@@ -2162,3 +2162,10 @@ Thu,Lunch,Yes,51.51,17"""
 
         expected = expected.astype({"t_mean": pd.Int64Dtype(), "r": object})
         tm.assert_frame_equal(result, expected)
+
+        # quasi-homogeneous case
+        df[df.columns[2]] = df[df.columns[2]].astype(pd.Float64Dtype())
+        result = df.stack("station")
+
+        expected = expected.astype({"t_mean": pd.Int64Dtype(), "r": pd.Float64Dtype()})
+        tm.assert_frame_equal(result, expected)
