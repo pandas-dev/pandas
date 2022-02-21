@@ -100,24 +100,62 @@ def test_invalid_constructor(frame_or_series, w):
         ExponentialMovingWindowIndexer(window_size=3),
         GroupbyIndexer(window_size=3),
         VariableOffsetWindowIndexer(
-            index=date_range("2015-12-26", periods=3), offset=BusinessDay(1)
+            index=date_range("2015-12-25", periods=5), offset=BusinessDay(1)
         ),
         VariableWindowIndexer(window_size=3),
     ],
 )
-def test_constructor_step_not_implemented(window, step):
+@pytest.mark.parametrize(
+    "func",
+    [
+        lambda df: df.rolling,
+        lambda df: df.groupby("key").rolling,
+    ],
+)
+def test_constructor_step_not_implemented(window, func, step):
     # GH 15354
-    n = 10
     df = DataFrame(
-        {"value": np.arange(n)},
-        index=date_range("2015-12-24", periods=n, freq="D"),
+        {"value": np.arange(10), "key": np.array([1] * 5 + [2] * 5)},
+        index=date_range("2015-12-24", periods=10, freq="D"),
     )
-    f = lambda: df.rolling(window=window, step=step)
+    f = lambda: func(df)(window=window, step=step)
     if step is None:
         f()
     else:
         with pytest.raises(NotImplementedError, match="step not implemented"):
             f()
+
+
+@pytest.mark.parametrize("agg", ["cov", "corr"])
+def test_constructor_step_not_implemented_for_cov_corr(agg, step):
+    # GH 15354
+    df = DataFrame(
+        {"value": np.arange(10), "key": np.array([1] * 5 + [2] * 5)},
+        index=date_range("2015-12-24", periods=10, freq="D"),
+    )
+    f = lambda: getattr(df.rolling(window=2, step=step), agg)(df)
+    if step is None:
+        f()
+    else:
+        with pytest.raises(NotImplementedError, match="step not implemented"):
+            f()
+
+
+@pytest.mark.parametrize(
+    "func",
+    [
+        lambda df: df.expanding,
+        lambda df: df.ewm,
+    ],
+)
+def test_constructor_step_unsupported(func, step):
+    # GH 15354
+    df = DataFrame(
+        {"value": np.arange(10), "key": np.array([1] * 5 + [2] * 5)},
+        index=date_range("2015-12-24", periods=10, freq="D"),
+    )
+    with pytest.raises(TypeError, match="got an unexpected keyword argument 'step'"):
+        func(df)(step=step)
 
 
 @pytest.mark.parametrize("window", [timedelta(days=3), Timedelta(days=3)])
