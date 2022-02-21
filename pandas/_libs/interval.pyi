@@ -10,12 +10,11 @@ from typing import (
 import numpy as np
 import numpy.typing as npt
 
-from pandas._typing import IntervalBound
-
-from pandas import (
+from pandas._libs import (
     Timedelta,
     Timestamp,
 )
+from pandas._typing import IntervalBound
 
 _OrderableMixinT = TypeVar(
     "_OrderableMixinT", int, float, Timestamp, Timedelta, npt.NDArray[np.generic]
@@ -77,6 +76,7 @@ class Interval(IntervalMixin[_OrderableT]):
     def __truediv__(self, y: numbers.Number) -> Interval[_OrderableT]: ...
     def __floordiv__(self, y: numbers.Number) -> Interval[_OrderableT]: ...
     def __hash__(self) -> int: ...
+    def __contains__(self: Interval[_OrderableT], key: _OrderableT) -> bool: ...
     def overlaps(self, other: Interval[_OrderableT]) -> bool: ...
 
 VALID_CLOSED: frozenset[str]

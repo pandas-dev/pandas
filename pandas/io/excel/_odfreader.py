@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from pandas._typing import (
@@ -15,6 +17,9 @@ import pandas as pd
 from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.excel._base import BaseExcelReader
+
+if TYPE_CHECKING:
+    from pandas._libs.tslibs.nattype import NaTType
 
 
 @doc(storage_options=_shared_docs["storage_options"])
@@ -81,7 +86,7 @@ class ODFReader(BaseExcelReader):
         self.close()
         raise ValueError(f"sheet {name} not found")
 
-    def get_sheet_data(self, sheet, convert_float: bool) -> list[list[Scalar]]:
+    def get_sheet_data(self, sheet, convert_float: bool) -> list[list[Scalar | NaTType]]:
         """
         Parse an ODF Table into a list of lists
         """
@@ -99,12 +104,11 @@ class ODFReader(BaseExcelReader):
         empty_rows = 0
         max_row_len = 0
 
-        table: list[list[Scalar]] = []
-
+        table: list[list[Scalar | NaTType]] = []
         for sheet_row in sheet_rows:
             sheet_cells = [x for x in sheet_row.childNodes if x.qname in cell_names]
             empty_cells = 0
-            table_row: list[Scalar] = []
+            table_row: list[Scalar | NaTType] = []
 
             for sheet_cell in sheet_cells:
                 if sheet_cell.qname == table_cell_name:
@@ -167,7 +171,7 @@ class ODFReader(BaseExcelReader):
 
         return True
 
-    def _get_cell_value(self, cell, convert_float: bool) -> Scalar:
+    def _get_cell_value(self, cell, convert_float: bool) -> Scalar | NaTType:
         from odf.namespaces import OFFICENS
 
         if str(cell) == "#N/A":
@@ -198,10 +202,7 @@ class ODFReader(BaseExcelReader):
             return float(cell_value)
         elif cell_type == "date":
             cell_value = cell.attributes.get((OFFICENS, "date-value"))
-            # error: Incompatible return value type (got "Union[float, str, NaTType]",
-            # expected "Union[Union[str, int, float, bool], Union[Period, Timestamp,
-            # Timedelta, Interval[Any]], datetime64, timedelta64]")
-            return pd.to_datetime(cell_value)  # type: ignore[return-value]
+            return pd.to_datetime(cell_value)
         elif cell_type == "time":
             stamp = pd.to_datetime(str(cell))
             # error: Item "str" of "Union[float, str, NaTType]" has no attribute "time"
