@@ -329,8 +329,7 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
-- Bug in :meth:`IndexOpsMixin.to_numpy` where multiindexed Series could not be converted to numpy arrays when an ``na_value`` was supplied (:issue:`45774`)
--
+- Bug in :meth:`Series.to_numpy` where multiindexed Series could not be converted to numpy arrays when an ``na_value`` was supplied (:issue:`45774`)
 
 I/O
 ^^^
