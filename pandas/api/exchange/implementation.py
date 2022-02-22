@@ -1,4 +1,4 @@
-import collections
+import collections.abc
 import ctypes
 
 from typing import Tuple, Any
@@ -14,9 +14,8 @@ def from_dataframe(df : DataFrameXchg,
     """
     Construct a pandas DataFrame from ``df`` if it supports ``__dataframe__``
     """
-    # NOTE: commented out for roundtrip testing
-    # if isinstance(df, pd.DataFrame):
-    #     return df
+    if isinstance(df, pd.DataFrame):
+        return df
 
     if not hasattr(df, '__dataframe__'):
         raise ValueError("`df` does not support __dataframe__")
@@ -606,20 +605,31 @@ class _PandasDataFrameXchg(DataFrameXchg):
                 for name in self._df.columns]
 
     def select_columns(self, indices):
-        if not isinstance(indices, collections.Sequence):
+        if not isinstance(indices, collections.abc.Sequence):
             raise ValueError("`indices` is not a sequence")
+        if not isinstance(indices, list):
+            indices = list(indices)
 
-        return _PandasDataFrameXchg(self._df.iloc[:, indices])
+        return _PandasDataFrameXchg(self._df.iloc[:, indices], self._nan_as_null, self._allow_copy)
 
     def select_columns_by_name(self, names):
-        if not isinstance(names, collections.Sequence):
+        if not isinstance(names, collections.abc.Sequence):
             raise ValueError("`names` is not a sequence")
+        if not isinstance(names, list):
+            names = list(names)
 
-        return _PandasDataFrameXchg(self._df.xs(names, axis='columns'))
+        return _PandasDataFrameXchg(self._df.loc[:, names], self._nan_as_null, self._allow_copy)
 
     def get_chunks(self, n_chunks=None):
         """
         Return an iterator yielding the chunks.
         """
-        #TODO: implement chunking when n_chunks > 1
-        return (self,)
+        if n_chunks and n_chunks > 1:
+            size = len(self._df)
+            step = size // n_chunks
+            if size % n_chunks != 0:
+                step +=1
+            for start in range(0, step * n_chunks, step):
+                yield _PandasDataFrameXchg(self._df.iloc[start:start + step, :], self._nan_as_null, self._allow_copy)
+        else:
+            yield self
