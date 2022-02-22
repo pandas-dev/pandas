@@ -274,14 +274,41 @@ class Styler(StylerRenderer):
 
     def concat(self, other: Styler) -> Styler:
         """
+        Append another Styler to combine the output into a single table.
+
+        Parameters
+        ----------
+        other : Styler
+            The other Styler object which has already been styled and formatted. The
+            data for this Styler must have the same columns as the original.
+
+        Returns
+        -------
+        self : Styler
 
         Notes
         -----
-        These metrics are calculated at render time and can therefore be exported
-        and used on other general Styler objects.
+        The purpose of this method is to extend existing styled dataframes with other
+        metrics that may be useful but may not conform to the original's structure.
+        For example adding a sub total row, or displaying metrics such as means,
+        variance or counts.
 
-        Footers are applied to Styler output formats including ``to_html``,
-        ``to_latex`` and ``to_string``, but not, currently, ``to_excel``.
+        Styles that are applied using the ``apply``, ``applymap``, ``apply_index``
+        and ``applymap_index``, and formatting applied with ``format`` and
+        ``format_index`` will be preserved.
+
+        The following are the current limitations:
+
+          - ``table_styles``, ``table_attributes``, ``caption`` and ``uuid`` are all
+            inherited from the original Styler and not ``other``.
+          - the concatenated object will not currently export via ``to_excel``, although
+            support for `to_html``, ``to_latex`` and ``to_string`` is available.
+          - hidden columns and hidden index levels will be inherited from the
+            original Styler
+
+        A common use case is to concatenate user defined functions with
+        ``DataFrame.agg`` or with described statistics via ``DataFrame.describe``.
+        See examples.
 
         Examples
         --------
@@ -290,7 +317,7 @@ class Styler(StylerRenderer):
         >>> df = DataFrame([[4, 6], [1, 9], [3, 4], [5, 5], [9,6]],
         ...                columns=["Mike", "Jim"],
         ...                index=["Mon", "Tue", "Wed", "Thurs", "Fri"])
-        >>> styler = df.style.set_footer(["sum"])  # doctest: +SKIP
+        >>> styler = df.style.concat(df.agg(["sum"]).style)  # doctest: +SKIP
 
         .. figure:: ../../_static/style/footer_simple.png
 

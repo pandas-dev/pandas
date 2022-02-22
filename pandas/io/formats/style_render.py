@@ -219,6 +219,8 @@ class StylerRenderer:
         (application method, *args, **kwargs)
         """
         if self.concatenated is not None:
+            self.concatenated.hide_index_ = self.hide_index_
+            self.concatenated.hidden_columns = self.hidden_columns
             self.concatenated._compute()
         self.ctx.clear()
         self.ctx_index.clear()
