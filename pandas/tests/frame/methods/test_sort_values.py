@@ -15,6 +15,16 @@ import pandas._testing as tm
 
 
 class TestDataFrameSortValues:
+    def test_sort_values_sparse_no_warning(self):
+        # GH#45618
+        # TODO(2.0): test will be unnecessary
+        ser = pd.Series(Categorical(["a", "b", "a"], categories=["a", "b", "c"]))
+        df = pd.get_dummies(ser, sparse=True)
+
+        with tm.assert_produces_warning(None):
+            # No warnings about constructing Index from SparseArray
+            df.sort_values(by=df.columns.tolist())
+
     def test_sort_values(self):
         frame = DataFrame(
             [[1, 1, 2], [3, 1, 0], [4, 5, 6]], index=[1, 2, 3], columns=list("ABC")

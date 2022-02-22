@@ -16,6 +16,7 @@ from typing import (
     final,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -35,6 +36,7 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -224,9 +226,9 @@ class SelectionMixin(Generic[NDFrameT]):
         if len(self.exclusions) > 0:
             # equivalent to `self.obj.drop(self.exclusions, axis=1)
             #  but this avoids consolidating and making a copy
-            return self.obj._drop_axis(
-                self.exclusions, axis=1, consolidate=False, only_slice=True
-            )
+            # TODO: following GH#45287 can we now use .drop directly without
+            #  making a copy?
+            return self.obj._drop_axis(self.exclusions, axis=1, only_slice=True)
         else:
             return self.obj
 
@@ -1050,17 +1052,27 @@ class IndexOpsMixin(OpsMixin):
         -------
         bool
         """
-        from pandas import Index
-
-        return Index(self).is_monotonic
+        warnings.warn(
+            "is_monotonic is deprecated and will be removed in a future version. "
+            "Use is_monotonic_increasing instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self.is_monotonic_increasing
 
     @property
     def is_monotonic_increasing(self) -> bool:
         """
-        Alias for is_monotonic.
+        Return boolean if values in the object are
+        monotonic_increasing.
+
+        Returns
+        -------
+        bool
         """
-        # mypy complains if we alias directly
-        return self.is_monotonic
+        from pandas import Index
+
+        return Index(self).is_monotonic_increasing
 
     @property
     def is_monotonic_decreasing(self) -> bool:

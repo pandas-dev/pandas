@@ -132,6 +132,7 @@ def test_numpy_compat(method):
         getattr(r, method)(dtype=np.float64)
 
 
+@pytest.mark.parametrize("closed", ["right", "left", "both", "neither"])
 def test_closed_fixed(closed, arithmetic_win_operators):
     # GH 34315
     func_name = arithmetic_win_operators
@@ -1391,7 +1392,7 @@ def test_rolling_corr_timedelta_index(index, window):
     # GH: 31286
     x = Series([1, 2, 3, 4, 5], index=index)
     y = x.copy()
-    x[0:2] = 0.0
+    x.iloc[0:2] = 0.0
     result = x.rolling(window).corr(y)
     expected = Series([np.nan, np.nan, 1, 1, 1], index=index)
     tm.assert_almost_equal(result, expected)

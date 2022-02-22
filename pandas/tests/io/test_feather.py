@@ -2,8 +2,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat.pyarrow import pa_version_under2p0
-
 import pandas as pd
 import pandas._testing as tm
 
@@ -16,7 +14,7 @@ filter_sparse = pytest.mark.filterwarnings("ignore:The Sparse")
 
 
 @filter_sparse
-@pytest.mark.single
+@pytest.mark.single_cpu
 @pytest.mark.filterwarnings("ignore:CategoricalBlock is deprecated:DeprecationWarning")
 class TestFeather:
     def check_error_on_write(self, df, exc, err_msg):
@@ -87,11 +85,7 @@ class TestFeather:
                 ),
             }
         )
-        if not pa_version_under2p0:
-            # older pyarrow incorrectly uses pandas internal API, so
-            #  constructs invalid Block
-            df["periods"] = pd.period_range("2013", freq="M", periods=3)
-
+        df["periods"] = pd.period_range("2013", freq="M", periods=3)
         df["timedeltas"] = pd.timedelta_range("1 day", periods=3)
         df["intervals"] = pd.interval_range(0, 3, 3)
 
@@ -187,7 +181,14 @@ class TestFeather:
         df = tm.makeDataFrame().reset_index()
         self.check_round_trip(df, write_kwargs={"version": 1})
 
-    @tm.network
+    @pytest.mark.network
+    @tm.network(
+        url=(
+            "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
+            "pandas/tests/io/data/feather/feather-0_3_1.feather"
+        ),
+        check_before_test=True,
+    )
     def test_http_path(self, feather_file):
         # GH 29055
         url = (

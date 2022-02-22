@@ -45,7 +45,7 @@ from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_int64,
     ensure_platform_int,
-    is_1d_only_ea_obj,
+    is_1d_only_ea_dtype,
     is_bool_dtype,
     is_categorical_dtype,
     is_complex_dtype,
@@ -76,7 +76,7 @@ from pandas.core.arrays.floating import (
 )
 from pandas.core.arrays.integer import (
     Int64Dtype,
-    _IntegerDtype,
+    IntegerDtype,
 )
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
@@ -300,10 +300,10 @@ class WrappedCythonOp:
         if how in ["add", "cumsum", "sum", "prod"]:
             if dtype == np.dtype(bool):
                 return np.dtype(np.int64)
-            elif isinstance(dtype, (BooleanDtype, _IntegerDtype)):
+            elif isinstance(dtype, (BooleanDtype, IntegerDtype)):
                 return Int64Dtype()
         elif how in ["mean", "median", "var"]:
-            if isinstance(dtype, (BooleanDtype, _IntegerDtype)):
+            if isinstance(dtype, (BooleanDtype, IntegerDtype)):
                 return Float64Dtype()
             elif is_float_dtype(dtype) or is_complex_dtype(dtype):
                 return dtype
@@ -341,7 +341,7 @@ class WrappedCythonOp:
             # All of the functions implemented here are ordinal, so we can
             #  operate on the tz-naive equivalents
             npvalues = values._ndarray.view("M8[ns]")
-        elif isinstance(values.dtype, (BooleanDtype, _IntegerDtype)):
+        elif isinstance(values.dtype, (BooleanDtype, IntegerDtype)):
             # IntegerArray or BooleanArray
             npvalues = values.to_numpy("float64", na_value=np.nan)
         elif isinstance(values.dtype, FloatingDtype):
@@ -378,7 +378,7 @@ class WrappedCythonOp:
         # TODO: allow EAs to override this logic
 
         if isinstance(
-            values.dtype, (BooleanDtype, _IntegerDtype, FloatingDtype, StringDtype)
+            values.dtype, (BooleanDtype, IntegerDtype, FloatingDtype, StringDtype)
         ):
             dtype = self._get_result_dtype(values.dtype)
             cls = dtype.construct_array_type()
@@ -601,7 +601,7 @@ class WrappedCythonOp:
             raise NotImplementedError("number of dimensions is currently limited to 2")
         elif values.ndim == 2:
             assert axis == 1, axis
-        elif not is_1d_only_ea_obj(values):
+        elif not is_1d_only_ea_dtype(values.dtype):
             # Note: it is *not* the case that axis is always 0 for 1-dim values,
             #  as we can have 1D ExtensionArrays that we need to treat as 2D
             assert axis == 0
@@ -705,8 +705,7 @@ class BaseGrouper:
         """
         splitter = self._get_splitter(data, axis=axis)
         keys = self.group_keys_seq
-        for key, group in zip(keys, splitter):
-            yield key, group.__finalize__(data, method="groupby")
+        yield from zip(keys, splitter)
 
     @final
     def _get_splitter(self, data: NDFrame, axis: int = 0) -> DataSplitter:
@@ -714,8 +713,6 @@ class BaseGrouper:
         Returns
         -------
         Generator yielding subsetted objects
-
-        __finalize__ has not been called for the subsetted objects returned.
         """
         ids, _, ngroups = self.group_info
         return get_splitter(data, ids, ngroups, axis=axis)
@@ -826,7 +823,7 @@ class BaseGrouper:
     @cache_readonly
     def is_monotonic(self) -> bool:
         # return if my group orderings are monotonic
-        return Index(self.group_info[0]).is_monotonic
+        return Index(self.group_info[0]).is_monotonic_increasing
 
     @cache_readonly
     def group_info(self) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
@@ -1242,14 +1239,8 @@ class SeriesSplitter(DataSplitter):
     def _chop(self, sdata: Series, slice_obj: slice) -> Series:
         # fastpath equivalent to `sdata.iloc[slice_obj]`
         mgr = sdata._mgr.get_slice(slice_obj)
-        # __finalize__ not called here, must be applied by caller if applicable
-
-        # fastpath equivalent to:
-        # `return sdata._constructor(mgr, name=sdata.name, fastpath=True)`
-        obj = type(sdata)._from_mgr(mgr)
-        object.__setattr__(obj, "_flags", sdata._flags)
-        object.__setattr__(obj, "_name", sdata._name)
-        return obj
+        ser = sdata._constructor(mgr, name=sdata.name, fastpath=True)
+        return ser.__finalize__(sdata, method="groupby")
 
 
 class FrameSplitter(DataSplitter):
@@ -1260,12 +1251,8 @@ class FrameSplitter(DataSplitter):
         # else:
         #     return sdata.iloc[:, slice_obj]
         mgr = sdata._mgr.get_slice(slice_obj, axis=1 - self.axis)
-        # __finalize__ not called here, must be applied by caller if applicable
-
-        # fastpath equivalent to `return sdata._constructor(mgr)`
-        obj = type(sdata)._from_mgr(mgr)
-        object.__setattr__(obj, "_flags", sdata._flags)
-        return obj
+        df = sdata._constructor(mgr)
+        return df.__finalize__(sdata, method="groupby")
 
 
 def get_splitter(

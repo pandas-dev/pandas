@@ -76,10 +76,16 @@ class TestMethods:
         ],
     )
     def test_where_raises(self, other):
+        # GH#45768 The IntervalArray methods raises; the Series method coerces
         ser = pd.Series(IntervalArray.from_breaks([1, 2, 3, 4], closed="left"))
+        mask = np.array([True, False, True])
         match = "'value.closed' is 'right', expected 'left'."
         with pytest.raises(ValueError, match=match):
-            ser.where([True, False, True], other=other)
+            ser.array._where(mask, other)
+
+        res = ser.where(mask, other=other)
+        expected = ser.astype(object).where(mask, other)
+        tm.assert_series_equal(res, expected)
 
     def test_shift(self):
         # https://github.com/pandas-dev/pandas/issues/31495, GH#22428, GH#31502
@@ -114,7 +120,9 @@ class TestSetitem:
                 result[0] = pd.NaT
         if result.dtype.subtype.kind in ["i", "u"]:
             msg = "Cannot set float NaN to integer-backed IntervalArray"
-            with pytest.raises(ValueError, match=msg):
+            # GH#45484 TypeError, not ValueError, matches what we get with
+            # non-NA un-holdable value.
+            with pytest.raises(TypeError, match=msg):
                 result[0] = np.NaN
             return
 

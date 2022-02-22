@@ -397,7 +397,7 @@ class TestDataFrameSetItem:
         expected["A"] = expected["A"].astype("object")
         tm.assert_frame_equal(df, expected)
 
-    def test_setitem_frame_duplicate_columns(self, using_array_manager, request):
+    def test_setitem_frame_duplicate_columns(self, using_array_manager):
         # GH#15695
         cols = ["A", "B", "C"] * 2
         df = DataFrame(index=range(3), columns=cols)
@@ -421,10 +421,6 @@ class TestDataFrameSetItem:
             # TODO(ArrayManager) .loc still overwrites
             expected["B"] = expected["B"].astype("int64")
 
-            mark = pytest.mark.xfail(
-                reason="Both 'A' columns get set with 3 instead of 0 and 3"
-            )
-            request.node.add_marker(mark)
         else:
             # set these with unique columns to be extra-unambiguous
             expected[2] = expected[2].astype(np.int64)
@@ -1103,7 +1099,7 @@ class TestDataFrameSetitemCopyViewSemantics:
     @pytest.mark.parametrize(
         "value", [1, np.array([[1], [1]], dtype="int64"), [[1], [1]]]
     )
-    def test_setitem_same_dtype_not_inplace(self, value, using_array_manager, request):
+    def test_setitem_same_dtype_not_inplace(self, value, using_array_manager):
         # GH#39510
         cols = ["A", "B"]
         df = DataFrame(0, index=[0, 1], columns=cols)

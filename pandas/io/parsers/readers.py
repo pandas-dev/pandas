@@ -8,6 +8,7 @@ import csv
 import sys
 from textwrap import fill
 from typing import (
+    IO,
     Any,
     Callable,
     NamedTuple,
@@ -21,6 +22,7 @@ from pandas._libs.parsers import STR_NA_VALUES
 from pandas._typing import (
     ArrayLike,
     CompressionOptions,
+    CSVEngine,
     DtypeArg,
     FilePath,
     ReadCsvBuffer,
@@ -48,7 +50,11 @@ from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import RangeIndex
 from pandas.core.shared_docs import _shared_docs
 
-from pandas.io.common import validate_header_arg
+from pandas.io.common import (
+    IOHandles,
+    get_handle,
+    validate_header_arg,
+)
 from pandas.io.parsers.arrow_parser_wrapper import ArrowParserWrapper
 from pandas.io.parsers.base_parser import (
     ParserBase,
@@ -368,7 +374,7 @@ on_bad_lines : {{'error', 'warn', 'skip'}} or callable, default 'error'
         - callable, function with signature
           ``(bad_line: list[str]) -> list[str] | None`` that will process a single
           bad line. ``bad_line`` is a list of strings split by the ``sep``.
-          If the function returns ``None`, the bad line will be ignored.
+          If the function returns ``None``, the bad line will be ignored.
           If the function returns a new list of strings with more elements than
           expected, a ``ParserWarning`` will be emitted while dropping extra elements.
           Only supported when ``engine="python"``
@@ -536,13 +542,11 @@ def _read(
     """Generic reader of line files."""
     # if we pass a date_parser and parse_dates=False, we should not parse the
     # dates GH#44366
-    if (
-        kwds.get("date_parser", None) is not None
-        and kwds.get("parse_dates", None) is None
-    ):
-        kwds["parse_dates"] = True
-    elif kwds.get("parse_dates", None) is None:
-        kwds["parse_dates"] = False
+    if kwds.get("parse_dates", None) is None:
+        if kwds.get("date_parser", None) is None:
+            kwds["parse_dates"] = False
+        else:
+            kwds["parse_dates"] = True
 
     # Extract some of the arguments (pass chunksize on).
     iterator = kwds.get("iterator", False)
@@ -558,7 +562,7 @@ def _read(
                 "The 'chunksize' option is not supported with the 'pyarrow' engine"
             )
     else:
-        chunksize = validate_integer("chunksize", kwds.get("chunksize", None), 1)
+        chunksize = validate_integer("chunksize", chunksize, 1)
 
     nrows = kwds.get("nrows", None)
 
@@ -601,7 +605,7 @@ def read_csv(
     mangle_dupe_cols=True,
     # General Parsing Configuration
     dtype: DtypeArg | None = None,
-    engine=None,
+    engine: CSVEngine | None = None,
     converters=None,
     true_values=None,
     false_values=None,
@@ -700,7 +704,7 @@ def read_table(
     mangle_dupe_cols=True,
     # General Parsing Configuration
     dtype: DtypeArg | None = None,
-    engine=None,
+    engine: CSVEngine | None = None,
     converters=None,
     true_values=None,
     false_values=None,
@@ -850,7 +854,7 @@ def read_fwf(
     # Ensure length of `colspecs` matches length of `names`
     names = kwds.get("names")
     if names is not None:
-        if len(names) != len(colspecs):
+        if len(names) != len(colspecs) and colspecs != "infer":
             # need to check len(index_col) as it might contain
             # unnamed indices, in which case it's name is not required
             len_index = 0
@@ -877,10 +881,12 @@ class TextFileReader(abc.Iterator):
 
     """
 
-    def __init__(self, f, engine=None, **kwds):
-
-        self.f = f
-
+    def __init__(
+        self,
+        f: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str] | list,
+        engine: CSVEngine | None = None,
+        **kwds,
+    ):
         if engine is not None:
             engine_specified = True
         else:
@@ -921,9 +927,12 @@ class TextFileReader(abc.Iterator):
         if "has_index_names" in kwds:
             self.options["has_index_names"] = kwds["has_index_names"]
 
-        self._engine = self._make_engine(self.engine)
+        self.handles: IOHandles | None = None
+        self._engine = self._make_engine(f, self.engine)
 
     def close(self):
+        if self.handles is not None:
+            self.handles.close()
         self._engine.close()
 
     def _get_options_with_defaults(self, engine):
@@ -1178,7 +1187,11 @@ class TextFileReader(abc.Iterator):
             self.close()
             raise
 
-    def _make_engine(self, engine="c"):
+    def _make_engine(
+        self,
+        f: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str] | list | IO,
+        engine: CSVEngine = "c",
+    ):
         mapping: dict[str, type[ParserBase]] = {
             "c": CParserWrapper,
             "python": PythonParser,
@@ -1189,17 +1202,53 @@ class TextFileReader(abc.Iterator):
             raise ValueError(
                 f"Unknown engine: {engine} (valid options are {mapping.keys()})"
             )
-        return mapping[engine](self.f, **self.options)
+        if not isinstance(f, list):
+            # open file here
+            is_text = True
+            mode = "r"
+            if engine == "pyarrow":
+                is_text = False
+                mode = "rb"
+            # error: No overload variant of "get_handle" matches argument types
+            # "Union[str, PathLike[str], ReadCsvBuffer[bytes], ReadCsvBuffer[str]]"
+            # , "str", "bool", "Any", "Any", "Any", "Any", "Any"
+            self.handles = get_handle(  # type: ignore[call-overload]
+                f,
+                mode,
+                encoding=self.options.get("encoding", None),
+                compression=self.options.get("compression", None),
+                memory_map=self.options.get("memory_map", False),
+                is_text=is_text,
+                errors=self.options.get("encoding_errors", "strict"),
+                storage_options=self.options.get("storage_options", None),
+            )
+            assert self.handles is not None
+            f = self.handles.handle
+
+        try:
+            return mapping[engine](f, **self.options)
+        except Exception:
+            if self.handles is not None:
+                self.handles.close()
+            raise
 
     def _failover_to_python(self):
         raise AbstractMethodError(self)
 
     def read(self, nrows=None):
         if self.engine == "pyarrow":
-            df = self._engine.read()
+            try:
+                df = self._engine.read()
+            except Exception:
+                self.close()
+                raise
         else:
             nrows = validate_integer("nrows", nrows)
-            index, columns, col_dict = self._engine.read(nrows)
+            try:
+                index, columns, col_dict = self._engine.read(nrows)
+            except Exception:
+                self.close()
+                raise
 
             if index is None:
                 if col_dict:
@@ -1374,7 +1423,7 @@ def _refine_defaults_read(
     dialect: str | csv.Dialect,
     delimiter: str | object,
     delim_whitespace: bool,
-    engine: str,
+    engine: CSVEngine | None,
     sep: str | object,
     error_bad_lines: bool | None,
     warn_bad_lines: bool | None,

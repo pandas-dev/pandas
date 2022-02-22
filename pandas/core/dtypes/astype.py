@@ -15,6 +15,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
@@ -82,12 +83,6 @@ def astype_nansafe(
     ValueError
         The dtype was a datetime64/timedelta64 dtype, but it had no unit.
     """
-    if arr.ndim > 1:
-        flat = arr.ravel()
-        result = astype_nansafe(flat, dtype, copy=copy, skipna=skipna)
-        # error: Item "ExtensionArray" of "Union[ExtensionArray, ndarray]" has no
-        # attribute "reshape"
-        return result.reshape(arr.shape)  # type: ignore[union-attr]
 
     # We get here with 0-dim from sparse
     arr = np.atleast_1d(arr)
@@ -108,17 +103,15 @@ def astype_nansafe(
         return arr.astype(dtype, copy=copy)
 
     if issubclass(dtype.type, str):
-        return lib.ensure_string_array(arr, skipna=skipna, convert_na_value=False)
+        shape = arr.shape
+        if arr.ndim > 1:
+            arr = arr.ravel()
+        return lib.ensure_string_array(
+            arr, skipna=skipna, convert_na_value=False
+        ).reshape(shape)
 
     elif is_datetime64_dtype(arr.dtype):
         if dtype == np.int64:
-            warnings.warn(
-                f"casting {arr.dtype} values to int64 with .astype(...) "
-                "is deprecated and will raise in a future version. "
-                "Use .view(...) instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
             if isna(arr).any():
                 raise ValueError("Cannot convert NaT values to integer")
             return arr.view(dtype)
@@ -131,13 +124,6 @@ def astype_nansafe(
 
     elif is_timedelta64_dtype(arr.dtype):
         if dtype == np.int64:
-            warnings.warn(
-                f"casting {arr.dtype} values to int64 with .astype(...) "
-                "is deprecated and will raise in a future version. "
-                "Use .view(...) instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
             if isna(arr).any():
                 raise ValueError("Cannot convert NaT values to integer")
             return arr.view(dtype)
@@ -152,25 +138,22 @@ def astype_nansafe(
 
     elif is_object_dtype(arr.dtype):
 
-        # work around NumPy brokenness, #1987
-        if np.issubdtype(dtype.type, np.integer):
-            return lib.astype_intsafe(arr, dtype)
-
         # if we have a datetime/timedelta array of objects
         # then coerce to a proper dtype and recall astype_nansafe
 
-        elif is_datetime64_dtype(dtype):
+        if is_datetime64_dtype(dtype):
             from pandas import to_datetime
 
             return astype_nansafe(
-                to_datetime(arr).values,
+                to_datetime(arr.ravel()).values.reshape(arr.shape),
                 dtype,
                 copy=copy,
             )
         elif is_timedelta64_dtype(dtype):
-            from pandas import to_timedelta
-
-            return astype_nansafe(to_timedelta(arr)._values, dtype, copy=copy)
+            # bc we know arr.dtype == object, this is equivalent to
+            #  `np.asarray(to_timedelta(arr))`, but using a lower-level API that
+            #  does not require a circular import.
+            return array_to_timedelta64(arr).view("m8[ns]").astype(dtype, copy=False)
 
     if dtype.name in ("datetime64", "timedelta64"):
         msg = (
@@ -196,6 +179,10 @@ def _astype_float_to_int_nansafe(
         raise IntCastingNaNError(
             "Cannot convert non-finite values (NA or inf) to integer"
         )
+    if dtype.kind == "u":
+        # GH#45151
+        if not (values >= 0).all():
+            raise ValueError(f"Cannot losslessly cast from {values.dtype} to {dtype}")
     return values.astype(dtype, copy=copy)
 
 

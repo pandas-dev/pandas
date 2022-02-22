@@ -74,7 +74,7 @@ class TestIndexConstructorInference:
             index = Index(vals)
 
         assert type(index) is Index
-        assert index.dtype == object
+        assert index.dtype == bool
 
     def test_constructor_categorical_to_object(self):
         # GH#32167 Categorical data and dtype=object should return object-dtype

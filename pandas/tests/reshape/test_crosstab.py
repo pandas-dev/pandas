@@ -16,7 +16,7 @@ import pandas._testing as tm
 
 
 class TestCrosstab:
-    def setup_method(self, method):
+    def setup_method(self):
         df = DataFrame(
             {
                 "A": [

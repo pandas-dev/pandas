@@ -9,6 +9,14 @@ from pandas import (
 import pandas._testing as tm
 
 
+@pytest.mark.parametrize("operation, expected", [("min", "a"), ("max", "b")])
+def test_reductions_series_strings(operation, expected):
+    # GH#31746
+    ser = Series(["a", "b"], dtype="string")
+    res_operation_serie = getattr(ser, operation)()
+    assert res_operation_serie == expected
+
+
 @pytest.mark.parametrize("as_period", [True, False])
 def test_mode_extension_dtype(as_period):
     # GH#41927 preserve dt64tz dtype
@@ -94,7 +102,7 @@ def test_validate_any_all_out_keepdims_raises(kwargs, func):
     msg = (
         f"the '{param}' parameter is not "
         "supported in the pandas "
-        fr"implementation of {name}\(\)"
+        rf"implementation of {name}\(\)"
     )
     with pytest.raises(ValueError, match=msg):
         func(ser, **kwargs)

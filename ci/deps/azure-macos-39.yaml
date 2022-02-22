@@ -1,7 +1,7 @@
 name: pandas-dev
 channels:
-  - conda-forge
   - defaults
+  - conda-forge
 dependencies:
   - python=3.9
 
@@ -15,26 +15,22 @@ dependencies:
   # pandas dependencies
   - beautifulsoup4
   - bottleneck
-  - fsspec>=0.8.0
-  - gcsfs
   - html5lib
   - jinja2
   - lxml
-  - matplotlib
-  - numba
+  - matplotlib=3.3.2
+  - nomkl
   - numexpr
-  - numpy
+  - numpy=1.21.3
   - openpyxl
-  - pyarrow
+  - pyarrow=4
+  - pyreadstat
   - pytables
-  - python-dateutil
+  - python-dateutil==2.8.1
   - pytz
-  - s3fs>=0.4.2
-  - scipy
-  - sqlalchemy
+  - pyxlsb
+  - xarray
   - xlrd
   - xlsxwriter
   - xlwt
-  - pyreadstat
-  - pyxlsb
   - zstandard

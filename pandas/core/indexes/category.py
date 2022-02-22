@@ -576,7 +576,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             # not all to_concat elements are among our categories (or NA)
             from pandas.core.dtypes.concat import concat_compat
 
-            res = concat_compat(to_concat)
+            res = concat_compat([x._values for x in to_concat])
             return Index(res, name=name)
         else:
             cat = self._data._from_backing_data(codes)

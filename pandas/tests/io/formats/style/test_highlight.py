@@ -12,9 +12,12 @@ pytest.importorskip("jinja2")
 from pandas.io.formats.style import Styler
 
 
-@pytest.fixture
-def df():
-    return DataFrame({"A": [0, np.nan, 10], "B": [1, None, 2]})
+@pytest.fixture(params=[(None, "float64"), (NA, "Int64")])
+def df(request):
+    # GH 45804
+    return DataFrame(
+        {"A": [0, np.nan, 10], "B": [1, request.param[0], 2]}, dtype=request.param[1]
+    )
 
 
 @pytest.fixture
