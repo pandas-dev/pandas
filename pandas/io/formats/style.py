@@ -2090,9 +2090,6 @@ class Styler(StylerRenderer):
 
         Possibly uses styles from ``Styler.export``.
 
-        .. versionchanged:: 1.5.0
-           Adds ``descriptors`` to the used items for use with ``set_footer``.
-
         Parameters
         ----------
         styles : dict(str, Any)

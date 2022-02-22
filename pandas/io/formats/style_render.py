@@ -16,7 +16,6 @@ from typing import (
     Union,
 )
 from uuid import uuid4
-import warnings
 
 import numpy as np
 
@@ -34,7 +33,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCSeries
 
 from pandas import (
-    NA,
     DataFrame,
     Index,
     IndexSlice,
@@ -53,12 +51,6 @@ ExtFormatter = Union[BaseFormatter, Dict[Any, Optional[BaseFormatter]]]
 CSSPair = Tuple[str, Union[str, int, float]]
 CSSList = List[CSSPair]
 CSSProperties = Union[str, CSSList]
-
-
-class Descriptors(TypedDict):
-    methods: Sequence[str | Callable] | None
-    names: Sequence[str] | None
-    errors: str
 
 
 class CSSDict(TypedDict):
@@ -128,9 +120,6 @@ class StylerRenderer:
             "level": "level",
             "data": "data",
             "blank": "blank",
-            "descriptor": "descriptor",
-            "descriptor_value": "descriptor_value",
-            "descriptor_name": "descriptor_name",
             "foot": "foot",
             "foot_heading": "foot_heading",
         }
@@ -142,11 +131,6 @@ class StylerRenderer:
         self.hide_columns_: list = [False] * self.columns.nlevels
         self.hidden_rows: Sequence[int] = []  # sequence for specific hidden rows/cols
         self.hidden_columns: Sequence[int] = []
-        self.descriptors: Descriptors = {
-            "methods": None,
-            "names": None,
-            "errors": "ignore",
-        }
         self.ctx: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
         self.ctx_index: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
         self.ctx_columns: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
@@ -303,9 +287,6 @@ class StylerRenderer:
         head = self._translate_header(sparse_cols, max_cols)
         d.update({"head": head})
 
-        foot = self._translate_footer(max_cols)
-        d.update({"foot": foot})
-
         # for sparsifying a MultiIndex and for use with latex clines
         idx_lengths = _get_level_lengths(
             self.index, sparse_index, max_rows, self.hidden_rows
@@ -414,97 +395,6 @@ class StylerRenderer:
             head.append(index_names_row)
 
         return head
-
-    def _translate_footer(self, max_cols: int):
-        """
-        Build each <tr> within table <tfoot> as a list
-
-        Using the structure:
-             +----------------------------+---------------+---------------------------+
-             |  index_blanks ...          | name_0        |  column_values            |
-          1) |       ..                   |       ..      |             ..            |
-             |  index_blanks ...          | name_n        |  column_values            |
-             +----------------------------+---------------+---------------------------+
-
-        Parameters
-        ----------
-        max_cols : int
-            Maximum number of columns to render. If exceeded will contain `...` filler.
-
-        Returns
-        -------
-        foot : list
-            The associated HTML elements needed for template rendering.
-        """
-        if self.descriptors["methods"] is None:
-            foot = None
-        else:
-            foot = []
-            descriptors, names = self._calc_wrapped_descriptor_methods(
-                self.descriptors["methods"], self.descriptors["names"]
-            )
-            for r, row in enumerate(descriptors.itertuples()):
-                descriptor_row = self._generate_footer_row((r, row, names[r]), max_cols)
-                foot.append(descriptor_row)
-        return foot
-
-    def _calc_wrapped_descriptor_methods(
-        self, methods: Sequence[str | Callable], names: Sequence[str] | None
-    ) -> tuple[DataFrame, list[str | None]]:
-        """
-        Use DataFrame.agg to calculate the UDF methods displayed in footer
-
-        Wraps UDFs so they do not raise errors on, for example, non-conforming dtypes.
-
-        Parameters
-        ----------
-        methods : sequence of str or callable
-            A list of methods that will called on each column of data.
-        names : sequence of str
-            A list of aliases that will overwrite the system method names in display.
-
-        Returns
-        -------
-        DataFrame, list
-        """
-        from functools import update_wrapper
-
-        def _err_wrap(s: Series, method: Callable):
-            if not isinstance(s, Series):  # called to trigger `agg` to use `df.apply`
-                raise TypeError("`agg` requires Series to reduce")  # gh 45800
-            try:
-                ret = method(s)
-            except Exception as e:
-                msg = (
-                    "`Styler.set_footer` raised Exception when calculating method "
-                    f"`{method.__name__}` on column `{s.name}`"
-                )
-                if self.descriptors["errors"] == "ignore":
-                    return NA
-                elif self.descriptors["errors"] == "warn":
-                    warnings.warn(msg, Warning)
-                    return NA
-                else:
-                    raise Exception(msg) from e
-            else:
-                return ret
-
-        methods_: list[Callable] = [
-            getattr(Series, method) if isinstance(method, str) else method
-            for method in methods
-        ]
-        for i, method in enumerate(methods_):
-            wrapper = partial(_err_wrap, method=method)
-            update_wrapper(wrapper, method)
-            methods_[i] = wrapper
-
-        if names is not None:
-            names_: list[str | None] = list(names)
-        else:
-            names_ = [method.__name__ for method in methods_]
-
-        # performance: should probably subsample based on hidden columns so as no calc
-        return self.data.agg(methods_), names_
 
     def _generate_col_header_row(self, iter: tuple, max_cols: int, col_lengths: dict):
         """
@@ -912,96 +802,6 @@ class StylerRenderer:
             data.append(data_element)
 
         return index_headers + data
-
-    def _generate_footer_row(self, iter: tuple, max_cols: int):
-        """
-        Generate the row containing calculated descriptor values for columns:
-
-         +----------------------------+---------------+---------------------------+
-         |  index_blanks ...          | descriptor_i  |  value_i by col           |
-         +----------------------------+---------------+---------------------------+
-
-        Parameters
-        ----------
-        iter : tuple
-            Looping variables from outer scope.
-        max_cols : int
-            Permissible number of columns.
-
-        Returns
-        -------
-        list of elements
-        """
-
-        r, row, name = iter
-
-        # number of index blanks is governed by number of hidden index levels
-        index_blanks = [
-            _element("th", self.css["blank"], self.css["blank_value"], True)
-        ] * (self.index.nlevels - sum(self.hide_index_) - 1)
-
-        # name cell
-        base_css = f"{self.css['descriptor_name']} {self.css['descriptor']}{r}"
-        if name is not None and not self.hide_column_names:
-            name_css = base_css
-            name_val = name
-        else:
-            name_css = f"{self.css['blank']} {base_css}"
-            name_val = self.css["blank_value"]
-        descriptor_name = _element("th", name_css, name_val, not all(self.hide_index_))
-
-        # descriptor values
-        format_ = {
-            "formatter": None,
-            "decimal": get_option("styler.format.decimal"),
-            "thousands": get_option("styler.format.thousands"),
-            "precision": get_option("styler.format.precision"),
-            "na_rep": get_option("styler.format.na_rep"),
-            "escape": get_option("styler.format.escape"),
-        }  # set defaults from Styler options
-        display_func: Callable = _maybe_wrap_formatter(
-            formatter=format_["formatter"],
-            decimal=format_["decimal"],  # type: ignore[arg-type]
-            thousands=format_["thousands"],
-            precision=format_["precision"],
-            na_rep=format_["na_rep"],
-            escape=format_["escape"],
-        )
-        descriptor_values: list[Any] = []
-        visible_col_count = 0
-        for c, col in enumerate(self.columns):
-            if c not in self.hidden_columns:
-                header_element_visible = True
-                visible_col_count += 1
-                header_element_value = row[c + 1]
-            else:
-                header_element_visible = False
-                header_element_value = None
-
-            if self._check_trim(
-                visible_col_count,
-                max_cols,
-                descriptor_values,
-                "th",
-                f"{self.css['descriptor_value']} {self.css['descriptor']}{r} "
-                f"{self.css['col_trim']}",
-            ):
-                break
-
-            body_element = _element(
-                "th",
-                (
-                    f"{self.css['descriptor_value']} {self.css['descriptor']}{r} "
-                    f"{self.css['col']}{c}"
-                ),
-                header_element_value,
-                header_element_visible,
-                display_value=display_func(header_element_value),
-                attributes="",
-            )
-            descriptor_values.append(body_element)
-
-        return index_blanks + [descriptor_name] + descriptor_values
 
     def _translate_latex(self, d: dict, clines: str | None) -> None:
         r"""
