@@ -273,6 +273,45 @@ class Styler(StylerRenderer):
         )
 
     def concat(self, other: Styler) -> Styler:
+        """
+
+        Notes
+        -----
+        These metrics are calculated at render time and can therefore be exported
+        and used on other general Styler objects.
+
+        Footers are applied to Styler output formats including ``to_html``,
+        ``to_latex`` and ``to_string``, but not, currently, ``to_excel``.
+
+        Examples
+        --------
+        A common use case is adding totals rows for descriptive tables, with ``func``.
+
+        >>> df = DataFrame([[4, 6], [1, 9], [3, 4], [5, 5], [9,6]],
+        ...                columns=["Mike", "Jim"],
+        ...                index=["Mon", "Tue", "Wed", "Thurs", "Fri"])
+        >>> styler = df.style.set_footer(["sum"])  # doctest: +SKIP
+
+        .. figure:: ../../_static/style/footer_simple.png
+
+        User defined functions and an ``alias`` can also be used, which is useful for
+        displaying metrics such as dtypes, missing value counts, or unique value
+        counts etc.
+
+        >>> def reject_h0(s):
+        ...     count = (s > 0.8).sum()
+        ...     return "Reject" if count > 3 else "Accept"
+        >>> df = DataFrame({
+        ...          "Machine 1": np.random.rand(10),
+        ...          "Machine 2": np.random.rand(10),
+        ...          "Machine 3": np.random.rand(10),
+        ... })
+        >>> df.style.highlight_between(left=0.8, props="color: red;")
+        ...         .set_footer(func=[reject_h0],
+        ...                     alias=["Hypothesis Test:"])  # doctest: +SKIP
+
+        .. figure:: ../../_static/style/footer_hypothesis.png
+        """
         if not self.data.columns.equals(other.data.columns):
             raise ValueError("`other.data` must have same columns as `Styler.data`")
         other.set_table_styles(
@@ -2071,7 +2110,6 @@ class Styler(StylerRenderer):
               - "hide_index_names": whether index names are hidden.
               - "hide_column_names": whether column header names are hidden.
               - "css": the css class names used.
-              - "descriptors": list of descriptors, typically added with ``set_footer``.
 
         Returns
         -------
@@ -2114,12 +2152,6 @@ class Styler(StylerRenderer):
         self.hide_column_names = styles.get("hide_column_names", False)
         if styles.get("css"):
             self.css = styles.get("css")  # type: ignore[assignment]
-        if styles.get("descriptors") and styles["descriptors"]["methods"]:
-            self.set_footer(
-                func=styles["descriptors"]["methods"],
-                alias=styles["descriptors"]["names"],
-                errors=styles["descriptors"]["errors"],
-            )
         return self
 
     def set_uuid(self, uuid: str) -> Styler:
@@ -2450,80 +2482,6 @@ class Styler(StylerRenderer):
             self.table_styles.extend(table_styles)
         else:
             self.table_styles = table_styles
-        return self
-
-    def set_footer(
-        self,
-        func: Sequence[str | Callable] | None = None,
-        alias: Sequence[str] | None = None,
-        errors: str = "ignore",
-    ) -> Styler:
-        """
-        Add footer-level calculations to the output which describes the data.
-
-        .. versionadded:: 1.5.0
-
-        Parameters
-        ----------
-        func : list-like of str or callable
-            If a string is given must be a valid Series method, e.g. "mean" invokes
-            Series.mean().
-            If a callable is given must accept a Series and return a scalar.
-        alias : list-like of str, optional
-            Aliases to use for the function names. Must have length equal to ``func``.
-        errors : {"ignore", "warn", "raise"}
-            If errors, will be ignored or warned returning ``NA``, or raise.
-
-        Returns
-        -------
-        self : Styler
-
-        Notes
-        -----
-        These metrics are calculated at render time and can therefore be exported
-        and used on other general Styler objects.
-
-        Footers are applied to Styler output formats including ``to_html``,
-        ``to_latex`` and ``to_string``, but not, currently, ``to_excel``.
-
-        Examples
-        --------
-        A common use case is adding totals rows for descriptive tables, with ``func``.
-
-        >>> df = DataFrame([[4, 6], [1, 9], [3, 4], [5, 5], [9,6]],
-        ...                columns=["Mike", "Jim"],
-        ...                index=["Mon", "Tue", "Wed", "Thurs", "Fri"])
-        >>> styler = df.style.set_footer(["sum"])  # doctest: +SKIP
-
-        .. figure:: ../../_static/style/footer_simple.png
-
-        User defined functions and an ``alias`` can also be used, which is useful for
-        displaying metrics such as dtypes, missing value counts, or unique value
-        counts etc.
-
-        >>> def reject_h0(s):
-        ...     count = (s > 0.8).sum()
-        ...     return "Reject" if count > 3 else "Accept"
-        >>> df = DataFrame({
-        ...          "Machine 1": np.random.rand(10),
-        ...          "Machine 2": np.random.rand(10),
-        ...          "Machine 3": np.random.rand(10),
-        ... })
-        >>> df.style.highlight_between(left=0.8, props="color: red;")
-        ...         .set_footer(func=[reject_h0],
-        ...                     alias=["Hypothesis Test:"])  # doctest: +SKIP
-
-        .. figure:: ../../_static/style/footer_hypothesis.png
-        """
-        if func is not None:
-            if alias is not None and len(alias) != len(func):
-                raise ValueError("``alias`` must have same length as ``func``")
-
-        self.descriptors = {
-            "methods": func,
-            "names": alias,
-            "errors": errors,
-        }
         return self
 
     def set_na_rep(self, na_rep: str) -> StylerRenderer:
