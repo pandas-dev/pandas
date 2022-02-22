@@ -344,7 +344,7 @@ def test_dtypes_defaultdict(all_parsers, default):
     data = """a,b
 1,2
 """
-    dtype = defaultdict(lambda: "float64", a="int64")
+    dtype = defaultdict(lambda: default, a="int64")
     parser = all_parsers
     result = parser.read_csv(StringIO(data), dtype=dtype)
     expected = DataFrame({"a": [1], "b": 2.0})
@@ -362,3 +362,14 @@ def test_dtypes_defaultdict_mangle_dup_cols(all_parsers):
     result = parser.read_csv(StringIO(data), dtype=dtype)
     expected = DataFrame({"a": [1], "b": 2.0, "a.1": [3], "b.2": [4.0], "b.1": [5]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_dtypes_defaultdict_invalid(all_parsers):
+    # GH#41574
+    data = """a,b
+1,2
+"""
+    dtype = defaultdict(lambda: "invalid_dtype", a="int64")
+    parser = all_parsers
+    with pytest.raises(TypeError, match="not understood"):
+        parser.read_csv(StringIO(data), dtype=dtype)
