@@ -782,7 +782,7 @@ def test_finalize_frame_series_name():
         lambda x: x.iloc[[True, True, False]],
         lambda x: x.loc["idxA"],  # returns Series
         lambda x: x.loc[["idxA", "idxB"]],
-        lambda x: x.loc["idxA":"idxB"],
+        lambda x: x.loc[slice("idxA", "idxB")],
         lambda x: x.loc[[True, True, False]],
         lambda x: x.loc[
             pd.Series(
