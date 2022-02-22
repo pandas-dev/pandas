@@ -722,9 +722,7 @@ class TestTimeSeriesArithmetic:
 class TestNamePreservation:
     @pytest.mark.parametrize("box", [list, tuple, np.array, Index, Series, pd.array])
     @pytest.mark.parametrize("flex", [True, False])
-    def test_series_ops_name_retention(
-        self, request, flex, box, names, all_binary_operators
-    ):
+    def test_series_ops_name_retention(self, flex, box, names, all_binary_operators):
         # GH#33930 consistent name renteiton
         op = all_binary_operators
 
@@ -887,8 +885,8 @@ def test_series_varied_multiindex_alignment():
     expected = Series(
         [1000, 2001, 3002, 4003],
         index=pd.MultiIndex.from_tuples(
-            [("a", "x", 1), ("a", "x", 2), ("a", "y", 1), ("a", "y", 2)],
-            names=["ab", "xy", "num"],
+            [("x", 1, "a"), ("x", 2, "a"), ("y", 1, "a"), ("y", 2, "a")],
+            names=["xy", "num", "ab"],
         ),
     )
     tm.assert_series_equal(result, expected)

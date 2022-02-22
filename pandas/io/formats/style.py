@@ -97,6 +97,15 @@ props = """props : str, default None
 color = """color : str, default 'yellow'
            Background color to use for highlighting."""
 
+buf = """buf : str, path object, file-like object, optional
+         String, path object (implementing ``os.PathLike[str]``), or file-like
+         object implementing a string ``write()`` function. If ``None``, the result is
+         returned as a string."""
+
+encoding = """encoding : str, optional
+              Character encoding setting for file output (and meta tags if available).
+              Defaults to ``pandas.options.styler.render.encoding`` value of "utf-8"."""
+
 #
 ###
 
@@ -1053,6 +1062,7 @@ class Styler(StylerRenderer):
             latex, buf=buf, encoding=None if buf is None else encoding
         )
 
+    @Substitution(buf=buf, encoding=encoding)
     def to_html(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
@@ -1077,10 +1087,7 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        buf : str, path object, file-like object, or None, default None
-            String, path object (implementing ``os.PathLike[str]``), or file-like
-            object implementing a string ``write()`` function. If None, the result is
-            returned as a string.
+        %(buf)s
         table_uuid : str, optional
             Id attribute assigned to the <table> HTML element in the format:
 
@@ -1127,9 +1134,7 @@ class Styler(StylerRenderer):
             which is 262144 (18 bit browser rendering).
 
             .. versionadded:: 1.4.0
-        encoding : str, optional
-            Character encoding setting for file output, and HTML meta tags.
-            Defaults to ``pandas.options.styler.render.encoding`` value of "utf-8".
+        %(encoding)s
         doctype_html : bool, default False
             Whether to output a fully structured HTML file including all
             HTML elements, or just the core ``<style>`` and ``<table>`` elements.
@@ -1189,6 +1194,7 @@ class Styler(StylerRenderer):
             html, buf=buf, encoding=(encoding if buf is not None else None)
         )
 
+    @Substitution(buf=buf, encoding=encoding)
     def to_string(
         self,
         buf=None,
@@ -1207,11 +1213,8 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        buf : str, Path, or StringIO-like, optional, default None
-            Buffer to write to. If ``None``, the output is returned as a string.
-        encoding : str, optional
-            Character encoding setting for file output.
-            Defaults to ``pandas.options.styler.render.encoding`` value of "utf-8".
+        %(buf)s
+        %(encoding)s
         sparse_index : bool, optional
             Whether to sparsify the display of a hierarchical index. Setting to False
             will display each explicit level element in a hierarchical key for each row.
@@ -1656,7 +1659,6 @@ class Styler(StylerRenderer):
         alt="applymap",
         altwise="elementwise",
         func="take a Series and return a string array of the same length",
-        axis='{0, 1, "index", "columns"}',
         input_note="the index as a Series, if an Index, or a level of a MultiIndex",
         output_note="an identically sized array of CSS styles as strings",
         var="s",
@@ -1681,7 +1683,7 @@ class Styler(StylerRenderer):
         ----------
         func : function
             ``func`` should {func}.
-        axis : {axis}
+        axis : {{0, 1, "index", "columns"}}
             The headers over which to apply the function.
         level : int, str, list, optional
             If index is MultiIndex the level(s) over which to apply the function.
@@ -1742,7 +1744,6 @@ class Styler(StylerRenderer):
         alt="apply",
         altwise="level-wise",
         func="take a scalar and return a string",
-        axis='{0, 1, "index", "columns"}',
         input_note="an index value, if an Index, or a level value of a MultiIndex",
         output_note="CSS styles as a string",
         var="v",
@@ -2751,7 +2752,6 @@ class Styler(StylerRenderer):
         name="background",
         alt="text",
         image_prefix="bg",
-        axis="{0 or 'index', 1 or 'columns', None}",
         text_threshold="",
     )
     @Substitution(subset=subset)
@@ -2786,7 +2786,7 @@ class Styler(StylerRenderer):
             Compress the color range at the high end. This is a multiple of the data
             range to extend above the maximum; good values usually in [0, 1],
             defaults to 0.
-        axis : {axis}, default 0
+        axis : {{0, 1, "index", "columns", None}}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
@@ -2912,7 +2912,6 @@ class Styler(StylerRenderer):
         name="text",
         alt="background",
         image_prefix="tg",
-        axis="{0 or 'index', 1 or 'columns', None}",
         text_threshold="This argument is ignored (only used in `background_gradient`).",
     )
     def text_gradient(
@@ -3510,41 +3509,85 @@ class Styler(StylerRenderer):
 
         .. code-block:: python
 
-            f(g(df.style.set_precision(3), arg1=a), arg2=b, arg3=c)
+            f(g(df.style.format(precision=3), arg1=a), arg2=b, arg3=c)
 
         users can write:
 
         .. code-block:: python
 
-            (df.style.set_precision(3)
+            (df.style.format(precision=3)
                .pipe(g, arg1=a)
                .pipe(f, arg2=b, arg3=c))
 
         In particular, this allows users to define functions that take a
         styler object, along with other parameters, and return the styler after
         making styling changes (such as calling :meth:`Styler.apply` or
-        :meth:`Styler.set_properties`).  Using ``.pipe``, these user-defined
-        style "transformations" can be interleaved with calls to the built-in
-        Styler interface.
+        :meth:`Styler.set_properties`).
 
         Examples
         --------
-        >>> def format_conversion(styler):
-        ...     return (styler.set_properties(**{'text-align': 'right'})
-        ...                   .format({'conversion': '{:.1%}'}))
 
-        The user-defined ``format_conversion`` function above can be called
-        within a sequence of other style modifications:
+        **Common Use**
 
-        >>> df = pd.DataFrame({'trial': list(range(5)),
-        ...                    'conversion': [0.75, 0.85, np.nan, 0.7, 0.72]})
-        >>> (df.style
-        ...    .highlight_min(subset=['conversion'], color='yellow')
-        ...    .pipe(format_conversion)
-        ...    .set_caption("Results with minimum conversion highlighted."))
-        ...  # doctest: +SKIP
+        A common usage pattern is to pre-define styling operations which
+        can be easily applied to a generic styler in a single ``pipe`` call.
 
-        .. figure:: ../../_static/style/df_pipe.png
+        >>> def some_highlights(styler, min_color="red", max_color="blue"):
+        ...      styler.highlight_min(color=min_color, axis=None)
+        ...      styler.highlight_max(color=max_color, axis=None)
+        ...      styler.highlight_null()
+        ...      return styler
+        >>> df = pd.DataFrame([[1, 2, 3, pd.NA], [pd.NA, 4, 5, 6]], dtype="Int64")
+        >>> df.style.pipe(some_highlights, min_color="green")  # doctest: +SKIP
+
+        .. figure:: ../../_static/style/df_pipe_hl.png
+
+        Since the method returns a ``Styler`` object it can be chained with other
+        methods as if applying the underlying highlighters directly.
+
+        >>> df.style.format("{:.1f}")
+        ...         .pipe(some_highlights, min_color="green")
+        ...         .highlight_between(left=2, right=5)  # doctest: +SKIP
+
+        .. figure:: ../../_static/style/df_pipe_hl2.png
+
+        **Advanced Use**
+
+        Sometimes it may be necessary to pre-define styling functions, but in the case
+        where those functions rely on the styler, data or context. Since
+        ``Styler.use`` and ``Styler.export`` are designed to be non-data dependent,
+        they cannot be used for this purpose. Additionally the ``Styler.apply``
+        and ``Styler.format`` type methods are not context aware, so a solution
+        is to use ``pipe`` to dynamically wrap this functionality.
+
+        Suppose we want to code a generic styling function that highlights the final
+        level of a MultiIndex. The number of levels in the Index is dynamic so we
+        need the ``Styler`` context to define the level.
+
+        >>> def highlight_last_level(styler):
+        ...     return styler.apply_index(
+        ...         lambda v: "background-color: pink; color: yellow", axis="columns",
+        ...         level=styler.columns.nlevels-1
+        ...     )  # doctest: +SKIP
+        >>> df.columns = pd.MultiIndex.from_product([["A", "B"], ["X", "Y"]])
+        >>> df.style.pipe(highlight_last_level)  # doctest: +SKIP
+
+        .. figure:: ../../_static/style/df_pipe_applymap.png
+
+        Additionally suppose we want to highlight a column header if there is any
+        missing data in that column.
+        In this case we need the data object itself to determine the effect on the
+        column headers.
+
+        >>> def highlight_header_missing(styler, level):
+        ...     def dynamic_highlight(s):
+        ...         return np.where(
+        ...             styler.data.isna().any(), "background-color: red;", ""
+        ...         )
+        ...     return styler.apply_index(dynamic_highlight, axis=1, level=level)
+        >>> df.style.pipe(highlight_header_missing, level=1)  # doctest: +SKIP
+
+        .. figure:: ../../_static/style/df_pipe_applydata.png
         """
         return com.pipe(self, func, *args, **kwargs)
 
@@ -3711,11 +3754,15 @@ def _highlight_between(
         if left is not None
         else np.full(data.shape, True, dtype=bool)
     )
+    if isinstance(g_left, (DataFrame, Series)):
+        g_left = g_left.where(pd.notna(g_left), False)
     l_right = (
         ops[1](data, right)
         if right is not None
         else np.full(data.shape, True, dtype=bool)
     )
+    if isinstance(l_right, (DataFrame, Series)):
+        l_right = l_right.where(pd.notna(l_right), False)
     return np.where(g_left & l_right, props, "")
 
 
@@ -3726,7 +3773,9 @@ def _highlight_value(data: DataFrame | Series, op: str, props: str) -> np.ndarra
     value = getattr(data, op)(skipna=True)
     if isinstance(data, DataFrame):  # min/max must be done twice to return scalar
         value = getattr(value, op)(skipna=True)
-    return np.where(data == value, props, "")
+    cond = data == value
+    cond = cond.where(pd.notna(cond), False)
+    return np.where(cond, props, "")
 
 
 def _bar(

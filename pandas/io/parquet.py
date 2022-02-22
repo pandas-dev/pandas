@@ -180,8 +180,12 @@ class PyArrowImpl(BaseImpl):
             mode="wb",
             is_dir=partition_cols is not None,
         )
-        if isinstance(path_or_handle, io.BufferedWriter):
-            path_or_handle = path_or_handle.raw.name
+        if (
+            isinstance(path_or_handle, io.BufferedWriter)
+            and hasattr(path_or_handle, "name")
+            and isinstance(path_or_handle.name, (str, bytes))
+        ):
+            path_or_handle = path_or_handle.name
 
         try:
             if partition_cols is not None:

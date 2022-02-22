@@ -61,10 +61,7 @@ class TestConcatAppendCommon:
         considering not-supported dtypes
         """
         if isinstance(obj, Index):
-            if label == "bool":
-                assert obj.dtype == "object"
-            else:
-                assert obj.dtype == label
+            assert obj.dtype == label
         elif isinstance(obj, Series):
             if label.startswith("period"):
                 assert obj.dtype == "Period[M]"
@@ -185,7 +182,7 @@ class TestConcatAppendCommon:
         with pytest.raises(TypeError, match=msg):
             pd.concat([Series(vals1), Series(vals2), vals3])
 
-    def test_concatlike_dtypes_coercion(self, item, item2):
+    def test_concatlike_dtypes_coercion(self, item, item2, request):
         # GH 13660
         typ1, vals1 = item
         typ2, vals2 = item2
@@ -210,9 +207,13 @@ class TestConcatAppendCommon:
             # series coerces to numeric based on numpy rule
             # index doesn't because bool is object dtype
             exp_series_dtype = typ2
+            mark = pytest.mark.xfail(reason="GH#39187 casting to object")
+            request.node.add_marker(mark)
             warn = FutureWarning
         elif typ2 == "bool" and typ1 in ("int64", "float64"):
             exp_series_dtype = typ1
+            mark = pytest.mark.xfail(reason="GH#39187 casting to object")
+            request.node.add_marker(mark)
             warn = FutureWarning
         elif (
             typ1 == "datetime64[ns, US/Eastern]"
@@ -229,7 +230,9 @@ class TestConcatAppendCommon:
         # ----- Index ----- #
 
         # index.append
-        res = Index(vals1).append(Index(vals2))
+        with tm.assert_produces_warning(warn, match="concatenating bool-dtype"):
+            # GH#39817
+            res = Index(vals1).append(Index(vals2))
         exp = Index(exp_data, dtype=exp_index_dtype)
         tm.assert_index_equal(res, exp)
 

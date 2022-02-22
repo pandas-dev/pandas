@@ -15,6 +15,7 @@ import numpy as np
 
 from pandas._libs import (
     NaT,
+    algos as libalgos,
     lib,
 )
 from pandas._typing import (
@@ -341,9 +342,8 @@ class BaseArrayManager(DataManager):
             cond=cond,
         )
 
-    # TODO what is this used for?
-    # def setitem(self, indexer, value) -> ArrayManager:
-    #     return self.apply_with_block("setitem", indexer=indexer, value=value)
+    def setitem(self: T, indexer, value) -> T:
+        return self.apply_with_block("setitem", indexer=indexer, value=value)
 
     def putmask(self, mask, new, align: bool = True):
         if align:
@@ -383,6 +383,11 @@ class BaseArrayManager(DataManager):
         )
 
     def fillna(self: T, value, limit, inplace: bool, downcast) -> T:
+
+        if limit is not None:
+            # Do this validation even if we go through one of the no-op paths
+            limit = libalgos.validate_limit(None, limit=limit)
+
         return self.apply_with_block(
             "fillna", value=value, limit=limit, inplace=inplace, downcast=downcast
         )
@@ -467,7 +472,7 @@ class BaseArrayManager(DataManager):
 
     @property
     def is_single_block(self) -> bool:
-        return False
+        return len(self.arrays) == 1
 
     def _get_data_subset(self: T, predicate: Callable) -> T:
         indices = [i for i, arr in enumerate(self.arrays) if predicate(arr)]

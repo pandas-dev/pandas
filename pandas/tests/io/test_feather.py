@@ -14,7 +14,7 @@ filter_sparse = pytest.mark.filterwarnings("ignore:The Sparse")
 
 
 @filter_sparse
-@pytest.mark.single
+@pytest.mark.single_cpu
 @pytest.mark.filterwarnings("ignore:CategoricalBlock is deprecated:DeprecationWarning")
 class TestFeather:
     def check_error_on_write(self, df, exc, err_msg):
@@ -181,7 +181,14 @@ class TestFeather:
         df = tm.makeDataFrame().reset_index()
         self.check_round_trip(df, write_kwargs={"version": 1})
 
-    @tm.network
+    @pytest.mark.network
+    @tm.network(
+        url=(
+            "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
+            "pandas/tests/io/data/feather/feather-0_3_1.feather"
+        ),
+        check_before_test=True,
+    )
     def test_http_path(self, feather_file):
         # GH 29055
         url = (

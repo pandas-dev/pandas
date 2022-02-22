@@ -337,11 +337,18 @@ class TestDataFrameCorrWith:
         expected = Series(np.ones(4), index=[0, 0, 1, 2])
         tm.assert_series_equal(result, expected)
 
+    def test_corr_numerical_instabilities(self):
+        # GH#45640
+        df = DataFrame([[0.2, 0.4], [0.4, 0.2]])
+        result = df.corr()
+        expected = DataFrame({0: [1.0, -1.0], 1: [-1.0, 1.0]})
+        tm.assert_frame_equal(result - 1, expected - 1, atol=1e-17)
+
     @td.skip_if_no_scipy
     def test_corrwith_spearman(self):
         # GH#21925
         df = DataFrame(np.random.random(size=(100, 3)))
-        result = df.corrwith(df ** 2, method="spearman")
+        result = df.corrwith(df**2, method="spearman")
         expected = Series(np.ones(len(result)))
         tm.assert_series_equal(result, expected)
 
@@ -349,6 +356,6 @@ class TestDataFrameCorrWith:
     def test_corrwith_kendall(self):
         # GH#21925
         df = DataFrame(np.random.random(size=(100, 3)))
-        result = df.corrwith(df ** 2, method="kendall")
+        result = df.corrwith(df**2, method="kendall")
         expected = Series(np.ones(len(result)))
         tm.assert_series_equal(result, expected)
