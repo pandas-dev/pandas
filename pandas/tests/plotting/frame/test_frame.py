@@ -788,12 +788,14 @@ class TestDataFramePlots(TestPlotBase):
         tm.assert_numpy_array_equal(df["c"].values, right=ax.collections[0].get_sizes())
 
     def test_plot_scatter_with_norm(self):
+        # added while fixing GH 45809
         import matplotlib as mpl
 
         ax = self.hexbin_df.plot.scatter(x="A", y="B", c="C", norm=mpl.colors.LogNorm())
         assert ax.collections[0].norm._scale
 
     def test_plot_scatter_without_norm(self):
+        # added while fixing GH 45809
         ax = self.hexbin_df.plot.scatter(x="A", y="B", c="C")
         assert ax.collections[0].norm._scale is None
 
