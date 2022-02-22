@@ -302,7 +302,7 @@ class Styler(StylerRenderer):
           - ``table_styles``, ``table_attributes``, ``caption`` and ``uuid`` are all
             inherited from the original Styler and not ``other``.
           - the concatenated object will not currently export via ``to_excel``, although
-            support for `to_html``, ``to_latex`` and ``to_string`` is available.
+            support for ``to_html``, ``to_latex`` and ``to_string`` is available.
           - hidden columns and hidden index levels will be inherited from the
             original Styler
 
