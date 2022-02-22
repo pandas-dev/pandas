@@ -27,10 +27,20 @@ class ColumnNullType:
     USE_BITMASK = 3
     USE_BYTEMASK = 4
 
-class CategoricalDescription(TypedDict):
-    is_ordered: bool # whether the ordering of dictionary indices is semantically meaningful
-    is_dictionary: bool # whether a dictionary-style mapping of categorical values to other objects exists
-    mapping: Optional[dict] # Python-level only (e.g. ``{int: str}``). None if not a dictionary-style categorical.
+class ColumnBuffers(TypedDict):
+    data: Tuple["Buffer", Any] # first element is a buffer containing the column data;
+                               # second element is the data buffer's associated dtype
+    validity: Optional[Tuple["Buffer", Any]] # first element is a buffer containing mask values
+                                             # indicating missing data and second element is
+                                             # the mask value buffer's associated dtype.
+                                             # None if the null representation is not a bit or byte mask
+    offsets: Optional[Tuple["Buffer", Any]] # first element is a buffer containing the
+                                            # offset values for variable-size binary data
+                                            # (e.g., variable-length strings) and
+                                            # second element is the offsets buffer's associated dtype.
+                                            # None if the data buffer does not have
+                                            # an associated offsets buffer
+
 
 class Buffer:
     """
@@ -77,20 +87,6 @@ class Buffer:
         Note: must be implemented even if ``__dlpack__`` is not.
         """
         pass
-
-class ColumnBuffers(TypedDict):
-    data: Tuple[Buffer, Any] # first element is a buffer containing the column data;
-                             # second element is the data buffer's associated dtype
-    validity: Optional[Tuple[Buffer, Any]] # first element is a buffer containing mask values
-                                           # indicating missing data and second element is
-                                           # the mask value buffer's associated dtype.
-                                           # None if the null representation is not a bit or byte mask
-    offsets: Optional[Tuple[Buffer, Any]] # first element is a buffer containing the
-                                          # offset values for variable-size binary data
-                                          # (e.g., variable-length strings) and
-                                          # second element is the offsets buffer's associated dtype.
-                                          # None if the data buffer does not have
-                                          # an associated offsets buffer
 
 
 class Column:
@@ -179,13 +175,14 @@ class Column:
         pass
 
     @property
-    def describe_categorical(self) -> CategoricalDescription:
+    def describe_categorical(self) -> Tuple[bool, bool, dict]:
         """
         If the dtype is categorical, there are two options:
         - There are only values in the data buffer.
         - There is a separate dictionary-style encoding for categorical values.
-        Raises RuntimeError if the dtype is not categorical
-        Content of returned dict:
+        Raises TypeError if the dtype is not categorical
+
+        Returns the description on how to interpret the data buffer:
             - "is_ordered" : bool, whether the ordering of dictionary indices is
                              semantically meaningful.
             - "is_dictionary" : bool, whether a dictionary-style mapping of
@@ -276,25 +273,7 @@ class DataFrame:
     ``__dataframe__`` method of a public data frame class in a library adhering
     to the dataframe interchange protocol specification.
     """
-    def __dataframe__(self, nan_as_null : bool = False,
-                      allow_copy : bool = True) -> dict:
-        """
-        Produces a dictionary object following the dataframe protocol specification.
-        ``nan_as_null`` is a keyword intended for the consumer to tell the
-        producer to overwrite null values in the data with ``NaN`` (or ``NaT``).
-        It is intended for cases where the consumer does not support the bit
-        mask or byte mask that is the producer's native representation.
-        ``allow_copy`` is a keyword that defines whether or not the library is
-        allowed to make a copy of the data. For example, copying data would be
-        necessary if a library supports strided buffers, given that this protocol
-        specifies contiguous buffers.
-        """
-        self._nan_as_null = nan_as_null
-        self._allow_zero_zopy = allow_copy
-        return {
-            "dataframe": self,  # DataFrame object adhering to the protocol
-            "version": 0        # Version number of the protocol
-        }
+    version = 0 # version of the protocol
 
     @property
     def metadata(self) -> Dict[str, Any]:
