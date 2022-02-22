@@ -2050,7 +2050,7 @@ class Styler(StylerRenderer):
         The following items are exported since they are not generally data dependent:
 
           - Styling functions added by the ``apply`` and ``applymap``
-          - Whether axes and names are hidden from the display, if unambiguous
+          - Whether axes and names are hidden from the display, if unambiguous.
           - Table attributes
           - Table styles
 
