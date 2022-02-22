@@ -437,8 +437,8 @@ class WrappedCythonOp:
         min_count: int,
         ngroups: int,
         comp_ids: np.ndarray,
-        mask: np.ndarray | None = None,
-        result_mask: np.ndarray | None = None,
+        mask: npt.NDArray[np.bool_] | None = None,
+        result_mask: npt.NDArray[np.bool_] | None = None,
         **kwargs,
     ) -> np.ndarray:
         if values.ndim == 1:
@@ -481,8 +481,8 @@ class WrappedCythonOp:
         min_count: int,
         ngroups: int,
         comp_ids: np.ndarray,
-        mask: np.ndarray | None,
-        result_mask: np.ndarray | None,
+        mask: npt.NDArray[np.bool_] | None,
+        result_mask: npt.NDArray[np.bool_] | None,
         **kwargs,
     ) -> np.ndarray:  # np.ndarray[ndim=2]
         orig_values = values
