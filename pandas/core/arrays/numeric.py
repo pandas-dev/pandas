@@ -17,6 +17,7 @@ from pandas._libs import (
 from pandas._typing import (
     Dtype,
     DtypeObj,
+    npt,
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
@@ -219,7 +220,9 @@ class NumericArray(BaseMaskedArray):
 
     _dtype_cls: type[NumericDtype]
 
-    def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
+    def __init__(
+        self, values: np.ndarray, mask: npt.NDArray[np.bool_], copy: bool = False
+    ):
         checker = self._dtype_cls._checker
         if not (isinstance(values, np.ndarray) and checker(values.dtype)):
             descr = (

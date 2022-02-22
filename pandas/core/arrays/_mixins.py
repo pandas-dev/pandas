@@ -360,7 +360,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         np.putmask(self._ndarray, mask, value)
 
     def _where(
-        self: NDArrayBackedExtensionArrayT, mask: np.ndarray, value
+        self: NDArrayBackedExtensionArrayT, mask: npt.NDArray[np.bool_], value
     ) -> NDArrayBackedExtensionArrayT:
         """
         Analogue to np.where(mask, self, value)

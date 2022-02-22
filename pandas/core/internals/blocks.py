@@ -735,7 +735,7 @@ class Block(PandasObject):
         self,
         to_replace,
         value,
-        mask: np.ndarray,
+        mask: npt.NDArray[np.bool_],
         inplace: bool = True,
         regex: bool = False,
     ) -> list[Block]:

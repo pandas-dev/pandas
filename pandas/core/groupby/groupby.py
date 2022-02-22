@@ -3607,13 +3607,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return self._mask_selected_obj(mask)
 
     @final
-    def _mask_selected_obj(self, mask: np.ndarray) -> NDFrameT:
+    def _mask_selected_obj(self, mask: npt.NDArray[np.bool_]) -> NDFrameT:
         """
         Return _selected_obj with mask applied to the correct axis.
 
         Parameters
         ----------
-        mask : np.ndarray
+        mask : np.ndarray[bool]
             Boolean mask to apply.
 
         Returns
