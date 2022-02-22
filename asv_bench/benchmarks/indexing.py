@@ -199,9 +199,16 @@ class Take:
 
 
 class MultiIndexing:
-    def setup(self):
+
+    params = [True, False]
+    param_names = ["unique_levels"]
+
+    def setup(self, unique_levels):
         self.ndim = 2
-        mi = MultiIndex.from_product([range(1000)] * self.ndim)
+        if unique_levels:
+            mi = MultiIndex.from_arrays([range(1000000)] * self.ndim)
+        else:
+            mi = MultiIndex.from_product([range(1000)] * self.ndim)
         self.df = DataFrame(np.random.randn(len(mi)), index=mi)
 
     def time_loc_all_slices(self):
