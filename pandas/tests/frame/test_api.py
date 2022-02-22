@@ -194,15 +194,19 @@ class TestDataFrameMisc:
         df = DataFrame(index=["a", "b"], columns=["c", "d"]).dropna()
         assert df.empty
         assert df.T.empty
-        empty_frames = [
+
+    @pytest.mark.parametrize(
+        "df",
+        [
             DataFrame(),
             DataFrame(index=[1]),
             DataFrame(columns=[1]),
             DataFrame({1: []}),
-        ]
-        for df in empty_frames:
-            assert df.empty
-            assert df.T.empty
+        ],
+    )
+    def test_empty_like(self, df):
+        assert df.empty
+        assert df.T.empty
 
     def test_with_datetimelikes(self):
 
