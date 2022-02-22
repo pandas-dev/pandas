@@ -1167,7 +1167,7 @@ def test_groupby_sum_below_mincount_nullable_integer():
     tm.assert_frame_equal(result, expected)
 
 
-def test_if_is_multiindex():
+def test_if_empty_multiindex():
     # GH 32464
     # Test if index after groupby with more then one column is always MultiIndex
     a = DataFrame({"a": [1, 2], "b": [5, 6], "c": [8, 9]})
