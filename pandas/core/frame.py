@@ -204,6 +204,8 @@ from pandas.core.sorting import (
     nargsort,
 )
 
+from pandas.api.exchange.dataframe_protocol import DataFrame as DataFrameXchg
+
 from pandas.io.common import get_handle
 from pandas.io.formats import (
     console,
@@ -810,6 +812,21 @@ class DataFrame(NDFrame, OpsMixin):
         mgr = mgr_to_mgr(mgr, typ=manager)
 
         NDFrame.__init__(self, mgr)
+
+    # ----------------------------------------------------------------------
+    def __dataframe__(self, nan_as_null : bool = False,
+                  allow_copy : bool = True) -> DataFrameXchg:
+        """
+        Return the dataframe exchange object implementing the exchange protocol.
+
+        See Also
+        --------
+        Details on the exchange protocol:
+        https://data-apis.org/dataframe-protocol/latest/index.html
+        """
+
+        from pandas.api.exchange.implementation import _PandasDataFrameXchg
+        return _PandasDataFrameXchg(self, nan_as_null, allow_copy)
 
     # ----------------------------------------------------------------------
 
