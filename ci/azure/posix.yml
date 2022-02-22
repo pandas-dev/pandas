@@ -25,6 +25,9 @@ jobs:
     - script: echo '##vso[task.prependpath]$(HOME)/miniconda3/bin'
       displayName: 'Set conda path'
 
+    - script: rm /usr/local/miniconda/pkgs/cache/*.json
+      displayName: 'Workaround for mamba-org/mamba#488'
+
     - script: ci/setup_env.sh
       displayName: 'Setup environment and build pandas'
 
