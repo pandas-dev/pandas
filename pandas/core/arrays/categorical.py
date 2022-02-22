@@ -2312,9 +2312,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     @classmethod
     def _from_factorized(cls, uniques, original):
-        return original._constructor(
-            original.categories.take(uniques), dtype=original.dtype
-        )
+        # ensure we have the same itemsize for codes
+        codes = coerce_indexer_dtype(uniques, original.dtype.categories)
+        return original._from_backing_data(codes)
 
     def equals(self, other: object) -> bool:
         """

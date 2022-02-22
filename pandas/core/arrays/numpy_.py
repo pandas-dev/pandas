@@ -110,7 +110,7 @@ class PandasArray(
 
     @classmethod
     def _from_factorized(cls, values, original) -> PandasArray:
-        return cls(values)
+        return original._from_backing_data(values)
 
     def _from_backing_data(self, arr: np.ndarray) -> PandasArray:
         return type(self)(arr)
