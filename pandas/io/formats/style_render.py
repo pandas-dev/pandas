@@ -131,6 +131,8 @@ class StylerRenderer:
             "descriptor": "descriptor",
             "descriptor_value": "descriptor_value",
             "descriptor_name": "descriptor_name",
+            "foot": "foot",
+            "foot_heading": "foot_heading",
         }
 
         # add rendering variables
@@ -232,6 +234,8 @@ class StylerRenderer:
 
         (application method, *args, **kwargs)
         """
+        if self.concatenated is not None:
+            self.concatenated._compute()
         self.ctx.clear()
         self.ctx_index.clear()
         self.ctx_columns.clear()
@@ -328,6 +332,14 @@ class StylerRenderer:
                 for props, selectors in getattr(self, attr).items()
             ]
             d.update({k: map})
+
+        if self.concatenated is not None:
+            dx = self.concatenated._translate(
+                sparse_index, sparse_cols, max_rows, max_cols, blank
+            )
+            d["body"].extend(dx["body"])
+            d["cellstyle"].extend(dx["cellstyle"])
+            d["cellstyle_index"].extend(dx["cellstyle"])
 
         table_attr = self.table_attributes
         if not get_option("styler.html.mathjax"):

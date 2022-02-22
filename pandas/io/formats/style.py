@@ -251,6 +251,7 @@ class Styler(StylerRenderer):
             cell_ids=cell_ids,
             precision=precision,
         )
+        self.concatenated: Styler | None = None
 
         # validate ordered args
         thousands = thousands or get_option("styler.format.thousands")
@@ -270,6 +271,19 @@ class Styler(StylerRenderer):
             decimal=decimal,
             thousands=thousands,
         )
+
+    def concat(self, other: Styler) -> Styler:
+        if not self.data.columns.equals(other.data.columns):
+            raise ValueError("`other.data` must have same columns as `Styler.data`")
+        other.set_table_styles(
+            css_class_names={
+                "data": self.css["foot"],
+                "row_heading": self.css["foot_heading"],
+                "row": self.css["foot"],
+            }
+        )
+        self.concatenated = other
+        return self
 
     def _repr_html_(self) -> str | None:
         """
@@ -1405,6 +1419,7 @@ class Styler(StylerRenderer):
           - cell_context (cell css classes)
           - ctx (cell css styles)
           - caption
+          - concatenated stylers
 
         Non-data dependent attributes [copied and exported]:
           - css
@@ -1436,6 +1451,7 @@ class Styler(StylerRenderer):
         deep = [  # nested lists or dicts
             "css",
             "descriptors",
+            "concatenated",
             "_display_funcs",
             "_display_funcs_index",
             "_display_funcs_columns",
@@ -2364,14 +2380,14 @@ class Styler(StylerRenderer):
                                "col_heading": "col_heading",
                                "index_name": "index_name",
                                "col": "col",
+                               "row": "row",
                                "col_trim": "col_trim",
                                "row_trim": "row_trim",
                                "level": "level",
                                "data": "data",
                                "blank": "blank",
-                               "descriptor": "descriptor",
-                               "descriptor_name": "descriptor_name",
-                               "descriptor_value": "descriptor_value"}
+                               "foot": "foot",
+                               "foot_heading": "foot_heading"}
 
         Examples
         --------
