@@ -34,9 +34,7 @@ class _LengthDescriptor:
         self, instance: Interval[_OrderableTimesT], owner: Any
     ) -> Timedelta: ...
     @overload
-    def __get__(
-        self, instance: IntervalTree[_OrderableT], owner: Any
-    ) -> _OrderableT: ...
+    def __get__(self, instance: IntervalTree, owner: Any) -> np.ndarray: ...
 
 class _MidDescriptor:
     @overload
@@ -46,9 +44,7 @@ class _MidDescriptor:
         self, instance: Interval[_OrderableTimesT], owner: Any
     ) -> _OrderableTimesT: ...
     @overload
-    def __get__(
-        self, instance: IntervalTree[_OrderableT], owner: Any
-    ) -> _OrderableT: ...
+    def __get__(self, instance: IntervalTree, owner: Any) -> np.ndarray: ...
 
 class IntervalMixin:
     @property
@@ -159,7 +155,7 @@ def intervals_to_interval_bounds(
     intervals: np.ndarray, validate_closed: bool = ...
 ) -> Tuple[np.ndarray, np.ndarray, str]: ...
 
-class IntervalTree(IntervalMixin, Generic[_OrderableT]):
+class IntervalTree(IntervalMixin):
     def __init__(
         self,
         left: np.ndarray,
