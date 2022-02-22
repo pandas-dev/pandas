@@ -1,4 +1,4 @@
-from typing import Tuple, Optional, Dict, Any, Iterable, Sequence
+from typing import Tuple, Optional, Dict, Any, Iterable, Sequence, TypedDict
 import enum
 
 class DlpackDeviceType(enum.IntEnum):
@@ -26,6 +26,11 @@ class ColumnNullType:
     USE_SENTINEL = 2
     USE_BITMASK = 3
     USE_BYTEMASK = 4
+
+class CategoricalDescription(TypedDict):
+    is_ordered: bool # whether the ordering of dictionary indices is semantically meaningful
+    is_dictionary: bool # whether a dictionary-style mapping of categorical values to other objects exists
+    mapping: Optional[dict] # Python-level only (e.g. ``{int: str}``). None if not a dictionary-style categorical.
 
 class Buffer:
     """
@@ -72,6 +77,20 @@ class Buffer:
         Note: must be implemented even if ``__dlpack__`` is not.
         """
         pass
+
+class ColumnBuffers(TypedDict):
+    data: Tuple[Buffer, Any] # first element is a buffer containing the column data;
+                             # second element is the data buffer's associated dtype
+    validity: Optional[Tuple[Buffer, Any]] # first element is a buffer containing mask values
+                                           # indicating missing data and second element is
+                                           # the mask value buffer's associated dtype.
+                                           # None if the null representation is not a bit or byte mask
+    offsets: Optional[Tuple[Buffer, Any]] # first element is a buffer containing the
+                                          # offset values for variable-size binary data
+                                          # (e.g., variable-length strings) and
+                                          # second element is the offsets buffer's associated dtype.
+                                          # None if the data buffer does not have
+                                          # an associated offsets buffer
 
 
 class Column:
@@ -160,7 +179,7 @@ class Column:
         pass
 
     @property
-    def describe_categorical(self) -> Dict[bool, bool, Optional[dict]]:
+    def describe_categorical(self) -> CategoricalDescription:
         """
         If the dtype is categorical, there are two options:
         - There are only values in the data buffer.
@@ -216,7 +235,7 @@ class Column:
         """
         pass
 
-    def get_buffers(self) -> Dict[Tuple[Buffer, Any], Optional[Tuple[Buffer, Any]], Optional[Tuple[Buffer, Any]]]:
+    def get_buffers(self) -> ColumnBuffers:
         """
         Return a dictionary containing the underlying buffers.
         The returned dictionary has the following contents:
