@@ -204,43 +204,43 @@ class MultiIndexing:
         mi = MultiIndex.from_product([range(1000)] * self.ndim)
         self.df = DataFrame(np.random.randn(len(mi)), index=mi)
 
-    def time_index_all_slices(self):
+    def time_loc_all_slices(self):
         target = slice(200, 800)
         target = tuple([target] * self.ndim)
         self.df.loc[target, :]
 
-    def time_index_all_null_slices(self):
+    def time_loc_all_null_slices(self):
         target = slice(None)
         target = tuple([target] * self.ndim)
         self.df.loc[target, :]
 
-    def time_index_all_lists(self):
+    def time_loc_all_lists(self):
         target = list(range(0, 1000, 10))
         target = tuple([target] * self.ndim)
         self.df.loc[target, :]
 
-    def time_index_all_scalars(self):
+    def time_loc_all_scalars(self):
         target = tuple([500] * self.ndim)
         self.df.loc[target, :]
 
-    def time_index_partial_slice(self):
+    def time_loc_slice_plus_null_slice(self):
+        target = (slice(200, 800), slice(None))
+        self.df.loc[target, :]
+
+    def time_loc_partial_key_slice(self):
         target = slice(200, 800)
         self.df.loc[target, :]
 
-    def time_index_partial_null_slice(self):
+    def time_loc_partial_key_null_slice(self):
         target = slice(None)
         self.df.loc[target, :]
 
-    def time_index_partial_list(self):
+    def time_loc_partial_key_list(self):
         target = list(range(0, 1000, 10))
         self.df.loc[target, :]
 
-    def time_index_partial_scalar(self):
+    def time_loc_partial_key_scalar(self):
         target = 500
-        self.df.loc[target, :]
-
-    def time_index_slice_plus_null_slice(self):
-        target = (slice(200, 800), slice(None))
         self.df.loc[target, :]
 
 
