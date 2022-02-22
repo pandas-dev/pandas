@@ -502,14 +502,17 @@ class ParserBase:
             clean_dtypes = self._clean_mapping(self.dtype)
 
             cast_type = None
-            if isinstance(clean_dtypes, dict) and self.index_names is not None:
-                cast_type = clean_dtypes.get(self.index_names[i], None)
+            index_converter = False
+            if self.index_names is not None:
+                if isinstance(clean_dtypes, dict):
+                    cast_type = clean_dtypes.get(self.index_names[i], None)
 
-            conv = False
-            if isinstance(converters, dict) and self.index_names is not None:
-                conv = converters.get(self.index_names[i]) is not None
+                if isinstance(converters, dict):
+                    index_converter = converters.get(self.index_names[i]) is not None
 
-            try_num_bool = not (cast_type and is_string_dtype(cast_type) or conv)
+            try_num_bool = not (
+                cast_type and is_string_dtype(cast_type) or index_converter
+            )
 
             arr, _ = self._infer_types(
                 arr, col_na_values | col_na_fvalues, try_num_bool
