@@ -678,14 +678,7 @@ def test_hiding_index_columns_multiindex_trimming():
     df.index.names, df.columns.names = ["a", "b"], ["c", "d"]
     styler = Styler(df, cell_ids=False, uuid_len=0)
     styler.hide([(0, 0), (0, 1), (1, 0)], axis=1).hide([(0, 0), (0, 1), (1, 0)], axis=0)
-    with option_context(
-        "styler.render.max_rows",
-        4,
-        "styler.render.max_columns",
-        4,
-        "styler.format.precision",
-        0,
-    ):
+    with option_context("styler.render.max_rows", 4, "styler.render.max_columns", 4):
         result = styler.to_html()
 
     expected = dedent(

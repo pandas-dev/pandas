@@ -336,6 +336,8 @@ class Styler(StylerRenderer):
 
         .. figure:: ../../_static/style/footer_extended.png
         """
+        if not isinstance(other, Styler):
+            raise TypeError("`other` must be of type `Styler`")
         if not self.data.columns.equals(other.data.columns):
             raise ValueError("`other.data` must have same columns as `Styler.data`")
         other.set_table_styles(

@@ -992,10 +992,16 @@ def test_clines_multiindex(clines, expected, env):
     assert expected in result
 
 
-@pytest.mark.parametrize("hrules", [False, True])
-def test_set_footer(styler, hrules):
-    styler.set_footer(["sum"])
-    result = styler.to_latex(hrules=hrules)
-    midrule = "\\midrule\n" if hrules else ""
-    expected = f"{midrule}sum & 1 & -1.830000 & abcd \\\\"
-    assert expected in result
+def test_concat(styler):
+    result = styler.concat(styler.data.agg(["sum"]).style).to_latex()
+    expected = dedent(
+        """\
+    \\begin{tabular}{lrrl}
+     & A & B & C \\\\
+    0 & 0 & -0.61 & ab \\\\
+    1 & 1 & -1.22 & cd \\\\
+    sum & 1 & -1.830000 & abcd \\\\
+    \\end{tabular}
+    """
+    )
+    assert result == expected

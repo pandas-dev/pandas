@@ -43,7 +43,7 @@ def mi_styler(mi_df):
 
 
 @pytest.fixture
-def mi_styler_comp(mi_styler):
+def mi_styler_comp(mi_styler, mi_df):
     # comprehensively add features to mi_styler
     mi_styler = mi_styler._copy(deepcopy=True)
     mi_styler.css = {**mi_styler.css, **{"row": "ROW", "col": "COL"}}
@@ -56,7 +56,7 @@ def mi_styler_comp(mi_styler):
     mi_styler.hide(axis="index")
     mi_styler.hide([("i0", "i1_a")], axis="index", names=True)
     mi_styler.set_table_attributes('class="box"')
-    mi_styler.set_footer(["mean"])
+    mi_styler.concat(mi_styler.data.agg(["mean"]).style)
     mi_styler.format(na_rep="MISSING", precision=3)
     mi_styler.format_index(precision=2, axis=0)
     mi_styler.format_index(precision=4, axis=1)
@@ -347,7 +347,6 @@ def test_export(mi_styler_comp, mi_styler):
         "table_attributes",
         "table_styles",
         "css",
-        "descriptors",
     ]
     for attr in exp_attrs:
         check = getattr(mi_styler, attr) == getattr(mi_styler_comp, attr)
@@ -1560,33 +1559,3 @@ def test_no_empty_apply(mi_styler):
     # 45313
     mi_styler.apply(lambda s: ["a:v;"] * 2, subset=[False, False])
     mi_styler._compute()
-
-
-@pytest.mark.parametrize("alias", [None, ["mean", "average", "lambda", "udf"]])
-def test_set_footer_methods_names(mi_styler, alias):
-    def udf_func(s):
-        return s.mean()
-
-    mi_styler.set_footer(
-        [
-            "mean",
-            Series.mean,
-            lambda s: s.sum() / len(s),
-            udf_func,
-        ],
-        alias=alias,
-    )
-    ctx = mi_styler._translate(True, True)
-    assert len(ctx["foot"]) == 4  # 4 descriptors
-
-    exp_label = alias if alias is not None else ["mean", "mean", "<lambda>", "udf_func"]
-    for r, row in enumerate(ctx["foot"]):
-        for c, col in enumerate(row[2:]):  # iterate after row headers
-            result = {k: col[k] for k in ["type", "is_visible", "value"]}
-            assert (
-                result.items() <= ctx["foot"][0][c + 2].items()
-            )  # test rows 3,4,5 are equivalent to row 2 in value, type and visibility
-            assert col["class"] == f"descriptor_value descriptor{r} col{c}"  # test css
-
-        assert row[1]["value"] == exp_label[r]  # test label is printed
-        assert f"descriptor_name descriptor{r}" in row[1]["class"]  # test css
