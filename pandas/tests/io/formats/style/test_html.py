@@ -234,7 +234,6 @@ def test_block_names(tpl_style, tpl_table):
         "after_head_rows",
         "before_rows",
         "tr",
-        "tfoot",
         "after_rows",
     }
     result1 = set(tpl_style.blocks)
@@ -615,7 +614,6 @@ def test_hiding_index_columns_multiindex_alignment():
     styler.hide(level=1, axis=0).hide(level=0, axis=1)
     styler.hide([("j0", "i1", "j2")], axis=0)
     styler.hide([("c0", "d1", "d2")], axis=1)
-    styler.set_footer(["mean"])
     result = styler.to_html()
     expected = dedent(
         """\
@@ -666,15 +664,6 @@ def test_hiding_index_columns_multiindex_alignment():
           <td id="T__row2_col2" class="data row2 col2" >10</td>
         </tr>
       </tbody>
-      <tfoot>
-        <tr>
-          <th class="blank" >&nbsp;</th>
-          <th class="descriptor_name descriptor0" >mean</th>
-          <th class="descriptor_value descriptor0 col0" >6.000000</th>
-          <th class="descriptor_value descriptor0 col1" >7.000000</th>
-          <th class="descriptor_value descriptor0 col2" >8.000000</th>
-        </tr>
-      </tfoot>
     </table>
     """
     )
@@ -689,7 +678,6 @@ def test_hiding_index_columns_multiindex_trimming():
     df.index.names, df.columns.names = ["a", "b"], ["c", "d"]
     styler = Styler(df, cell_ids=False, uuid_len=0)
     styler.hide([(0, 0), (0, 1), (1, 0)], axis=1).hide([(0, 0), (0, 1), (1, 0)], axis=0)
-    styler.set_footer(["mean"])
     with option_context(
         "styler.render.max_rows",
         4,
@@ -778,17 +766,6 @@ def test_hiding_index_columns_multiindex_trimming():
           <td class="data row_trim col_trim" >...</td>
         </tr>
       </tbody>
-      <tfoot>
-        <tr>
-          <th class="blank" >&nbsp;</th>
-          <th class="descriptor_name descriptor0" >mean</th>
-          <th class="descriptor_value descriptor0 col3" >31</th>
-          <th class="descriptor_value descriptor0 col4" >32</th>
-          <th class="descriptor_value descriptor0 col5" >33</th>
-          <th class="descriptor_value descriptor0 col6" >34</th>
-          <th class="descriptor_value descriptor0 col_trim" >...</th>
-        </tr>
-      </tfoot>
     </table>
     """
     )
