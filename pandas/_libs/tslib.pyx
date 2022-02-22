@@ -133,7 +133,7 @@ def format_array_from_datetime(
 
     # if we don't have a format nor tz, then choose
     # a format based on precision
-    basic_format = format is None and tz is None
+    basic_format = (format is None or format == "%Y-%m-%d %H:%M:%S") and tz is None
     if basic_format:
         consider_values = values[values != NPY_NAT]
         show_ns = (consider_values % 1000).any()
