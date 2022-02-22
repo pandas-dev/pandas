@@ -46,16 +46,6 @@
 
 {% endif %}
 {% endfor %}
-{% if foot is not none %}
-{% if midrule is not none %}
-\{{midrule}}
-{% endif %}
-{% for row in foot %}
-{% for c in row %}{% if not loop.first %} & {% endif %}
-{{parse_header(c, multirow_align, multicol_align, False, convert_css)}}
-{%- endfor %} \\
-{% endfor %}
-{% endif %}
 {% set bottomrule = parse_table(table_styles, 'bottomrule') %}
 {% if bottomrule is not none %}
 \{{bottomrule}}
