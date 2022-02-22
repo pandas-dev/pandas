@@ -1,0 +1,45 @@
+.. _whatsnew_142:
+
+What's new in 1.4.2 (March ??, 2022)
+------------------------------------
+
+These are the changes in pandas 1.4.2. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_142.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Fixed regression in :meth:`DataFrame.drop` and :meth:`Series.drop` when :class:`Index` had extension dtype and duplicates (:issue:`45860`)
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_142.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_142.other:
+
+Other
+~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_142.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.4.1..v1.4.2|HEAD

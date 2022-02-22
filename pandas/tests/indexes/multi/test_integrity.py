@@ -52,7 +52,7 @@ def test_values_boxed():
 
 def test_values_multiindex_datetimeindex():
     # Test to ensure we hit the boxing / nobox part of MI.values
-    ints = np.arange(10 ** 18, 10 ** 18 + 5)
+    ints = np.arange(10**18, 10**18 + 5)
     naive = pd.DatetimeIndex(ints)
 
     aware = pd.DatetimeIndex(ints, tz="US/Central")

@@ -62,6 +62,7 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.cast import (
+    LossySetitemError,
     convert_dtypes,
     maybe_box_native,
     maybe_cast_pointwise_result,
@@ -1102,7 +1103,7 @@ class Series(base.IndexOpsMixin, NDFrame):
                 # GH#12862 adding a new key to the Series
                 self.loc[key] = value
 
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, LossySetitemError):
             # The key was OK, but we cannot set the value losslessly
             indexer = self.index.get_loc(key)
             self._set_values(indexer, value)
@@ -2879,6 +2880,10 @@ Name: Max Speed, dtype: float64
         """
         Concatenate two or more Series.
 
+        .. deprecated:: 1.4.0
+            Use :func:`concat` instead. For further details see
+            :ref:`whatsnew_140.deprecations.frame_series_append`
+
         Parameters
         ----------
         to_append : Series or list/tuple of Series
@@ -4497,7 +4502,9 @@ Keep all original rows and also all original values
     ) -> Series:
         # Note: new_index is None iff indexer is None
         # if not None, indexer is np.intp
-        if indexer is None:
+        if indexer is None and (
+            new_index is None or new_index.names == self.index.names
+        ):
             if copy:
                 return self.copy()
             return self

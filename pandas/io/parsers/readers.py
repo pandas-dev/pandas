@@ -374,7 +374,7 @@ on_bad_lines : {{'error', 'warn', 'skip'}} or callable, default 'error'
         - callable, function with signature
           ``(bad_line: list[str]) -> list[str] | None`` that will process a single
           bad line. ``bad_line`` is a list of strings split by the ``sep``.
-          If the function returns ``None`, the bad line will be ignored.
+          If the function returns ``None``, the bad line will be ignored.
           If the function returns a new list of strings with more elements than
           expected, a ``ParserWarning`` will be emitted while dropping extra elements.
           Only supported when ``engine="python"``

@@ -1880,6 +1880,7 @@ class StringMethods(NoNewAttributesMixin):
 
     Strip whitespaces (including newlines) or a set of specified characters
     from each string in the Series/Index from %(side)s.
+    Replaces any non-strings in Series with NaNs.
     Equivalent to :meth:`str.%(method)s`.
 
     Parameters
@@ -1901,12 +1902,14 @@ class StringMethods(NoNewAttributesMixin):
 
     Examples
     --------
-    >>> s = pd.Series(['1. Ant.  ', '2. Bee!\n', '3. Cat?\t', np.nan])
+    >>> s = pd.Series(['1. Ant.  ', '2. Bee!\n', '3. Cat?\t', np.nan, 10, True])
     >>> s
     0    1. Ant.
     1    2. Bee!\n
     2    3. Cat?\t
     3          NaN
+    4           10
+    5         True
     dtype: object
 
     >>> s.str.strip()
@@ -1914,6 +1917,8 @@ class StringMethods(NoNewAttributesMixin):
     1    2. Bee!
     2    3. Cat?
     3        NaN
+    4        NaN
+    5        NaN
     dtype: object
 
     >>> s.str.lstrip('123.')
@@ -1921,6 +1926,8 @@ class StringMethods(NoNewAttributesMixin):
     1    Bee!\n
     2    Cat?\t
     3       NaN
+    4       NaN
+    5       NaN
     dtype: object
 
     >>> s.str.rstrip('.!? \n\t')
@@ -1928,6 +1935,8 @@ class StringMethods(NoNewAttributesMixin):
     1    2. Bee
     2    3. Cat
     3       NaN
+    4       NaN
+    5       NaN
     dtype: object
 
     >>> s.str.strip('123.!? \n\t')
@@ -1935,6 +1944,8 @@ class StringMethods(NoNewAttributesMixin):
     1    Bee
     2    Cat
     3    NaN
+    4    NaN
+    5    NaN
     dtype: object
     """
 
@@ -2282,6 +2293,9 @@ class StringMethods(NoNewAttributesMixin):
         3    False
         dtype: bool
         """
+        if not isinstance(pat, str):
+            msg = f"expected a string object, not {type(pat).__name__}"
+            raise TypeError(msg)
         result = self._data.array._str_startswith(pat, na=na)
         return self._wrap_result(result, returns_string=False)
 
@@ -2339,6 +2353,9 @@ class StringMethods(NoNewAttributesMixin):
         3    False
         dtype: bool
         """
+        if not isinstance(pat, str):
+            msg = f"expected a string object, not {type(pat).__name__}"
+            raise TypeError(msg)
         result = self._data.array._str_endswith(pat, na=na)
         return self._wrap_result(result, returns_string=False)
 

@@ -124,6 +124,7 @@ def test_oo_optimized_datetime_index_unpickle():
     )
 
 
+@pytest.mark.network
 @tm.network
 # Cython import warning
 @pytest.mark.filterwarnings("ignore:pandas.util.testing is deprecated")
@@ -164,6 +165,7 @@ def test_scikit_learn():
 
 
 # Cython import warning and traitlets
+@pytest.mark.network
 @tm.network
 @pytest.mark.filterwarnings("ignore")
 def test_seaborn():
@@ -174,16 +176,18 @@ def test_seaborn():
 
 
 def test_pandas_gbq():
-
+    # Older versions import from non-public, non-existent pandas funcs
+    pytest.importorskip("pandas_gbq", minversion="0.10.0")
     pandas_gbq = import_module("pandas_gbq")  # noqa:F841
 
 
+@pytest.mark.network
+@tm.network
 @pytest.mark.xfail(
     raises=ValueError,
     reason="The Quandl API key must be provided either through the api_key "
     "variable or through the environmental variable QUANDL_API_KEY",
 )
-@tm.network
 def test_pandas_datareader():
 
     pandas_datareader = import_module("pandas_datareader")

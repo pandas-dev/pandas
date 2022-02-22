@@ -353,7 +353,7 @@ def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
         tm.assert_frame_equal(result, df[["a", "d"]])
 
 
-def test_cross_engine_fp_pa(request, df_cross_compat, pa, fp):
+def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
     # cross-compat with differing reading/writing engines
     df = df_cross_compat
     with tm.ensure_clean() as path:
@@ -380,7 +380,14 @@ class Base:
             with tm.external_error_raised(exc):
                 to_parquet(df, path, engine, compression=None)
 
-    @tm.network
+    @pytest.mark.network
+    @tm.network(
+        url=(
+            "https://raw.githubusercontent.com/pandas-dev/pandas/"
+            "main/pandas/tests/io/data/parquet/simple.parquet"
+        ),
+        check_before_test=True,
+    )
     def test_parquet_read_from_url(self, df_compat, engine):
         if engine != "auto":
             pytest.importorskip(engine)
@@ -769,6 +776,7 @@ class TestParquetPyArrow(Base):
 
         check_round_trip(df, pa)
 
+    @pytest.mark.single_cpu
     def test_s3_roundtrip_explicit_fs(self, df_compat, s3_resource, pa, s3so):
         s3fs = pytest.importorskip("s3fs")
         s3 = s3fs.S3FileSystem(**s3so)
@@ -781,6 +789,7 @@ class TestParquetPyArrow(Base):
             write_kwargs=kw,
         )
 
+    @pytest.mark.single_cpu
     def test_s3_roundtrip(self, df_compat, s3_resource, pa, s3so):
         # GH #19134
         s3so = {"storage_options": s3so}
@@ -792,6 +801,7 @@ class TestParquetPyArrow(Base):
             write_kwargs=s3so,
         )
 
+    @pytest.mark.single_cpu
     @td.skip_if_no("s3fs")  # also requires flask
     @pytest.mark.parametrize(
         "partition_col",
@@ -1039,6 +1049,7 @@ class TestParquetFastParquet(Base):
             result = read_parquet(path, fp, filters=[("a", "==", 0)])
         assert len(result) == 1
 
+    @pytest.mark.single_cpu
     def test_s3_roundtrip(self, df_compat, s3_resource, fp, s3so):
         # GH #19134
         check_round_trip(
@@ -1134,7 +1145,7 @@ class TestParquetFastParquet(Base):
         expected.index.name = "index"
         check_round_trip(df, fp, expected=expected)
 
-    def test_use_nullable_dtypes_not_supported(self, monkeypatch, fp):
+    def test_use_nullable_dtypes_not_supported(self, fp):
         df = pd.DataFrame({"a": [1, 2]})
 
         with tm.ensure_clean() as path:
