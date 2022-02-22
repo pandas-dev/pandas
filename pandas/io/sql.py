@@ -748,9 +748,9 @@ def pandasSQL_builder(con, schema: str | None = None):
         return SQLDatabase(con, schema=schema)
 
     warnings.warn(
-        "pandas only support SQLAlchemy connectable(engine/connection) or"
-        "database string URI or sqlite3 DBAPI2 connection"
-        "other DBAPI2 objects are not tested, please consider using SQLAlchemy",
+        "pandas only supports SQLAlchemy connectable (engine/connection) or "
+        "database string URI or sqlite3 DBAPI2 connection. "
+        "Other DBAPI2 objects are not tested. Please consider using SQLAlchemy.",
         UserWarning,
     )
     return SQLiteDatabase(con)
