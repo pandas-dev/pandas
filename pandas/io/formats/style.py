@@ -312,7 +312,8 @@ class Styler(StylerRenderer):
 
         Examples
         --------
-        A common use case is adding totals rows for descriptive tables, with ``func``.
+        A common use case is adding totals rows, or otherwise, via methods calculated
+        in ``DataFrame.agg``.
 
         >>> df = DataFrame([[4, 6], [1, 9], [3, 4], [5, 5], [9,6]],
         ...                columns=["Mike", "Jim"],
@@ -321,23 +322,19 @@ class Styler(StylerRenderer):
 
         .. figure:: ../../_static/style/footer_simple.png
 
-        User defined functions and an ``alias`` can also be used, which is useful for
-        displaying metrics such as dtypes, missing value counts, or unique value
-        counts etc.
+        Since the concatenated object is a Styler the existing functionality can be
+        used to conditionally format it as well as the original.
 
-        >>> def reject_h0(s):
-        ...     count = (s > 0.8).sum()
-        ...     return "Reject" if count > 3 else "Accept"
-        >>> df = DataFrame({
-        ...          "Machine 1": np.random.rand(10),
-        ...          "Machine 2": np.random.rand(10),
-        ...          "Machine 3": np.random.rand(10),
-        ... })
-        >>> df.style.highlight_between(left=0.8, props="color: red;")
-        ...         .set_footer(func=[reject_h0],
-        ...                     alias=["Hypothesis Test:"])  # doctest: +SKIP
+        >>> descriptors = df.agg(["sum", "mean", lambda s: s.dtype])
+        >>> descriptors.index = ["Total", "Average", "dtype"]
+        >>> other = descriptors.style
+        ...          .highlight_max(axis=1, subset=(["Total", "Average"], slice(None)))
+        ...          .format(subset=("Average", slice(None)), precision=2, decimal=",")
+        ...          .applymap(lambda v: "font-weight: bold;")
+        >>> styler = df.style.highlight_max(color="salmon")
+        >>> styler.concat(other)  # doctest: +SKIP
 
-        .. figure:: ../../_static/style/footer_hypothesis.png
+        .. figure:: ../../_static/style/footer_extended.png
         """
         if not self.data.columns.equals(other.data.columns):
             raise ValueError("`other.data` must have same columns as `Styler.data`")
