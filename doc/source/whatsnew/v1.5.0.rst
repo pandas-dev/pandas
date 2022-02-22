@@ -21,7 +21,7 @@ Styler
 
   - New method :meth:`.Styler.to_string` for alternative customisable output methods (:issue:`44502`)
   - Added the ability to render ``border`` and ``border-{side}`` CSS properties in Excel (:issue:`42276`)
-  - Added a new method :meth:`.Styler.set_footer` which allows adding customised footer rows to explore and make calculations on the data, e.g. totals and counts etc. (:issue:`43875`)
+  - Added a new method :meth:`.Styler.concat` which allows adding customised footer rows to visualise additional calculations on the data, e.g. totals and counts etc. (:issue:`43875`)
 
 .. _whatsnew_150.enhancements.enhancement2:
 

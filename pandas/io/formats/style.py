@@ -1450,7 +1450,6 @@ class Styler(StylerRenderer):
         ]
         deep = [  # nested lists or dicts
             "css",
-            "descriptors",
             "concatenated",
             "_display_funcs",
             "_display_funcs_index",
@@ -1994,9 +1993,6 @@ class Styler(StylerRenderer):
 
         Can be applied to a second Styler with ``Styler.use``.
 
-        .. versionchanged:: 1.5.0
-           Adds ``descriptors`` to the exported items for use with ``set_footer``.
-
         Returns
         -------
         styles : dict
@@ -2018,7 +2014,6 @@ class Styler(StylerRenderer):
           - Whether axes and names are hidden from the display, if unambiguous
           - Table attributes
           - Table styles
-          - Descriptors, i.e. from ``set_footer``
 
         The following attributes are considered data dependent and therefore not
         exported:
@@ -2048,7 +2043,6 @@ class Styler(StylerRenderer):
             "hide_index_names": self.hide_index_names,
             "hide_column_names": self.hide_column_names,
             "css": copy.copy(self.css),
-            "descriptors": copy.copy(self.descriptors),
         }
 
     def use(self, styles: dict[str, Any]) -> Styler:
