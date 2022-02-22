@@ -3,6 +3,8 @@ from __future__ import annotations
 import numbers
 from typing import (
     TYPE_CHECKING,
+    Any,
+    Callable,
     TypeVar,
 )
 
@@ -17,6 +19,7 @@ from pandas._typing import (
     DtypeObj,
 )
 from pandas.errors import AbstractMethodError
+from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -41,6 +44,22 @@ T = TypeVar("T", bound="NumericArray")
 
 class NumericDtype(BaseMaskedDtype):
     _default_np_dtype: np.dtype
+    _checker: Callable[[Any], bool]  # is_foo_dtype
+
+    def __repr__(self) -> str:
+        return f"{self.name}Dtype()"
+
+    @cache_readonly
+    def is_signed_integer(self) -> bool:
+        return self.kind == "i"
+
+    @cache_readonly
+    def is_unsigned_integer(self) -> bool:
+        return self.kind == "u"
+
+    @property
+    def _is_numeric(self) -> bool:
+        return True
 
     def __from_arrow__(
         self, array: pyarrow.Array | pyarrow.ChunkedArray
@@ -91,11 +110,26 @@ class NumericDtype(BaseMaskedDtype):
             return array_class._concat_same_type(results)
 
     @classmethod
+    def _str_to_dtype_mapping(cls):
+        raise AbstractMethodError(cls)
+
+    @classmethod
     def _standardize_dtype(cls, dtype) -> NumericDtype:
         """
         Convert a string representation or a numpy dtype to NumericDtype.
         """
-        raise AbstractMethodError(cls)
+        if isinstance(dtype, str) and (dtype.startswith(("Int", "UInt", "Float"))):
+            # Avoid DeprecationWarning from NumPy about np.dtype("Int64")
+            # https://github.com/numpy/numpy/pull/7476
+            dtype = dtype.lower()
+
+        if not issubclass(type(dtype), cls):
+            mapping = cls._str_to_dtype_mapping()
+            try:
+                dtype = mapping[str(np.dtype(dtype))]
+            except KeyError as err:
+                raise ValueError(f"invalid dtype specified {dtype}") from err
+        return dtype
 
     @classmethod
     def _safe_cast(cls, values: np.ndarray, dtype: np.dtype, copy: bool) -> np.ndarray:
@@ -108,10 +142,7 @@ class NumericDtype(BaseMaskedDtype):
 
 
 def _coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype):
-    if default_dtype.kind == "f":
-        checker = is_float_dtype
-    else:
-        checker = is_integer_dtype
+    checker = dtype_cls._checker
 
     inferred_type = None
 
@@ -187,6 +218,29 @@ class NumericArray(BaseMaskedArray):
     """
 
     _dtype_cls: type[NumericDtype]
+
+    def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
+        checker = self._dtype_cls._checker
+        if not (isinstance(values, np.ndarray) and checker(values.dtype)):
+            descr = (
+                "floating"
+                if self._dtype_cls.kind == "f"  # type: ignore[comparison-overlap]
+                else "integer"
+            )
+            raise TypeError(
+                f"values should be {descr} numpy array. Use "
+                "the 'pd.array' function instead"
+            )
+        if values.dtype == np.float16:
+            # If we don't raise here, then accessing self.dtype would raise
+            raise TypeError("FloatingArray does not support np.float16 dtype.")
+
+        super().__init__(values, mask, copy=copy)
+
+    @cache_readonly
+    def dtype(self) -> NumericDtype:
+        mapping = self._dtype_cls._str_to_dtype_mapping()
+        return mapping[str(self._data.dtype)]
 
     @classmethod
     def _coerce_to_array(
