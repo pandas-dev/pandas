@@ -26,6 +26,9 @@ jobs:
       matrix:
         env_file: [actions-38.yaml, actions-39.yaml, actions-310.yaml]
         pattern: ["not single_cpu", "single_cpu"]
+        # Don't test pyarrow v2/3: Causes timeouts in read_csv engine
+        # even if tests are skipped/xfailed
+        pyarrow_version: ["5", "6", "7"]
         include:
           - env_file: actions-38-downstream_compat.yaml
             pattern: "not slow and not network and not single_cpu"
@@ -65,7 +68,7 @@ jobs:
       COVERAGE: ${{ !contains(matrix.env_file, 'pypy') }}
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.env_file }}-${{ matrix.pattern }}-${{ matrix.extra_apt || '' }}
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.env_file }}-${{ matrix.pattern }}-${{ matrix.pyarrow_version || '' }}-${{ matrix.extra_apt || '' }}
       cancel-in-progress: true
 
     services:
@@ -132,6 +135,10 @@ jobs:
         environment-file: ${{ env.ENV_FILE }}
         use-only-tar-bz2: true
       if: ${{ env.IS_PYPY == 'false' }} # No pypy3.8 support
+
+    - name: Upgrade Arrow version
+      run: conda install -n pandas-dev -c conda-forge --no-update-deps pyarrow=${{ matrix.pyarrow_version }}
+      if: ${{ matrix.pyarrow_version }}
 
     - name: Setup PyPy
       uses: actions/setup-python@v2
