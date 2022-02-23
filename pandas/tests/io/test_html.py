@@ -1287,7 +1287,7 @@ class TestReadHtml:
         df2 = self.read_html(file_path)[0]
         tm.assert_frame_equal(df1, df2)
 
-    def test_extract_hrefs(self):
+    def test_extract_hrefs_body(self):
         # GH 13141:
         # read_html argument to interpret hyperlinks as links (not merely text)
         result = self.read_html(
@@ -1305,7 +1305,7 @@ class TestReadHtml:
             </tr>
           </table>
           """,
-            extract_hrefs=True,
+            extract_hrefs="body",
         )[0]
 
         expected = DataFrame(
@@ -1321,6 +1321,30 @@ class TestReadHtml:
                 "FTP",
                 "None",
             ),
+        )
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_extract_hrefs_header(self):
+        # GH 13141:
+        # read_html argument to interpret hyperlinks as links (not merely text)
+        result = self.read_html(
+            """
+          <table>
+            <tr>
+              <th><a href="https://en.wiktionary.org/wiki/linkless">Linkless</a></th>
+            </tr>
+            <tr>
+              <td><a href="https://en.wikipedia.org/">Wikipedia</a></td>
+            </tr>
+          </table>
+          """,
+            extract_hrefs="header",
+        )[0]
+
+        expected = DataFrame(
+            [["Wikipedia"]],
+            columns=(("Linkless", "https://en.wiktionary.org/wiki/linkless"),),
         )
 
         tm.assert_frame_equal(result, expected)

@@ -10,6 +10,7 @@ from collections import abc
 import numbers
 import re
 from typing import (
+    Literal,
     Pattern,
     Sequence,
     cast,
@@ -180,8 +181,10 @@ class _HtmlFrameParser:
     displayed_only : bool
         Whether or not items with "display:none" should be ignored
 
-    extract_hrefs : bool, default False
-        Whether table elements with <a> tags should have the href extracted.
+    extract_hrefs : all/header/body/footer or None
+        Table elements in the specified section(s) with <a> tags will have their
+        href extracted. Note that specifying "header" will result in a
+        :class:`~pandas.MultiIndex`.
 
     Attributes
     ----------
@@ -228,7 +231,7 @@ class _HtmlFrameParser:
         attrs: dict[str, str] | None,
         encoding: str,
         displayed_only: bool,
-        extract_hrefs: bool,
+        extract_hrefs: Literal["all", "header", "body", "footer", None],
     ):
         self.io = io
         self.match = match
@@ -460,13 +463,15 @@ class _HtmlFrameParser:
             while body_rows and row_is_all_th(body_rows[0]):
                 header_rows.append(body_rows.pop(0))
 
-        header = self._expand_colspan_rowspan(header_rows, header=True)
-        body = self._expand_colspan_rowspan(body_rows)
-        footer = self._expand_colspan_rowspan(footer_rows)
+        header = self._expand_colspan_rowspan(header_rows, section="header")
+        body = self._expand_colspan_rowspan(body_rows, section="body")
+        footer = self._expand_colspan_rowspan(footer_rows, section="footer")
 
         return header, body, footer
 
-    def _expand_colspan_rowspan(self, rows, header=False):
+    def _expand_colspan_rowspan(
+        self, rows, section: Literal["header", "body", "footer"]
+    ):
         """
         Given a list of <tr>s, return a list of text rows.
 
@@ -474,8 +479,7 @@ class _HtmlFrameParser:
         ----------
         rows : list of node-like
             List of <tr>s
-        header : whether the current row is the header - don't capture links if so,
-            as this results in a MultiIndex which is undesirable.
+        section : the section that the rows belong to (header, body or footer).
 
         Returns
         -------
@@ -511,7 +515,7 @@ class _HtmlFrameParser:
 
                 # Append the text from this <td>, colspan times
                 text = _remove_whitespace(self._text_getter(td))
-                if not header and self.extract_hrefs:
+                if self.extract_hrefs == "all" or self.extract_hrefs == section:
                     # All cells will be tuples except for the headers for
                     # consistency in selection (e.g. using .str indexing)
                     href = self._href_getter(td)
@@ -1007,7 +1011,7 @@ def read_html(
     na_values=None,
     keep_default_na: bool = True,
     displayed_only: bool = True,
-    extract_hrefs: bool = False,
+    extract_hrefs: Literal["all", "header", "body", "footer", None] = None,
 ) -> list[DataFrame]:
     r"""
     Read HTML tables into a ``list`` of ``DataFrame`` objects.
@@ -1102,8 +1106,10 @@ def read_html(
     displayed_only : bool, default True
         Whether elements with "display: none" should be parsed.
 
-    extract_hrefs : bool, default False
-        Whether table elements with <a> tags should have the href extracted.
+    extract_hrefs : all/header/body/footer or None, default None
+        Table elements in the specified section(s) with <a> tags will have their
+        href extracted. Note that specifying "header" will result in a
+        :class:`~pandas.MultiIndex`.
 
     Returns
     -------
