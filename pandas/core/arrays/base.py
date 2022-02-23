@@ -43,6 +43,7 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
     cache_readonly,
+    deprecate_nonkeyword_arguments,
 )
 from pandas.util._validators import (
     validate_bool_kwarg,
@@ -642,6 +643,7 @@ class ExtensionArray:
         # Note: this is used in `ExtensionArray.argsort/argmin/argmax`.
         return np.array(self)
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def argsort(
         self,
         ascending: bool = True,
