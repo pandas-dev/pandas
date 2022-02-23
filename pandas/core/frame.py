@@ -10653,6 +10653,7 @@ NaN 12.3   33.0
                 "be considered in the results. To not consider these columns"
                 "specify numeric_only=True and ignore this warning.",
                 FutureWarning,
+                stacklevel=find_stack_level(),
             )
 
         q = Index(q, dtype=np.float64)
