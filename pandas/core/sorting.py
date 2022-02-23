@@ -193,7 +193,7 @@ def get_group_index(
 
 def get_compressed_ids(
     labels, sizes: Shape
-) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.int64]]:
+) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
     """
     Group_index is offsets into cartesian product of all possible labels. This
     space can be huge, so this function compresses it, by computing offsets
@@ -208,7 +208,7 @@ def get_compressed_ids(
     -------
     np.ndarray[np.intp]
         comp_ids
-    np.ndarray[np.int64]
+    np.ndarray[np.intp]
         obs_group_ids
     """
     ids = get_group_index(labels, sizes, sort=True, xnull=False)
@@ -223,7 +223,9 @@ def is_int64_overflow_possible(shape) -> bool:
     return the_prod >= lib.i8max
 
 
-def decons_group_index(comp_labels, shape):
+def _decons_group_index(
+    comp_labels: npt.NDArray[np.intp], shape: Shape
+) -> list[npt.NDArray[np.intp]]:
     # reconstruct labels
     if is_int64_overflow_possible(shape):
         # at some point group indices are factorized,
@@ -232,7 +234,7 @@ def decons_group_index(comp_labels, shape):
 
     label_list = []
     factor = 1
-    y = 0
+    y = np.array(0)
     x = comp_labels
     for i in reversed(range(len(shape))):
         labels = (x - y) % (factor * shape[i]) // factor
@@ -244,24 +246,32 @@ def decons_group_index(comp_labels, shape):
 
 
 def decons_obs_group_ids(
-    comp_ids: npt.NDArray[np.intp], obs_ids, shape, labels, xnull: bool
-):
+    comp_ids: npt.NDArray[np.intp],
+    obs_ids: npt.NDArray[np.intp],
+    shape: Shape,
+    labels: Sequence[npt.NDArray[np.signedinteger]],
+    xnull: bool,
+) -> list[npt.NDArray[np.intp]]:
     """
     Reconstruct labels from observed group ids.
 
     Parameters
     ----------
     comp_ids : np.ndarray[np.intp]
+    obs_ids: np.ndarray[np.intp]
+    shape : tuple[int]
+    labels : Sequence[np.ndarray[np.signedinteger]]
     xnull : bool
         If nulls are excluded; i.e. -1 labels are passed through.
     """
     if not xnull:
-        lift = np.fromiter(((a == -1).any() for a in labels), dtype="i8")
-        shape = np.asarray(shape, dtype="i8") + lift
+        lift = np.fromiter(((a == -1).any() for a in labels), dtype=np.intp)
+        arr_shape = np.asarray(shape, dtype=np.intp) + lift
+        shape = tuple(arr_shape)
 
     if not is_int64_overflow_possible(shape):
         # obs ids are deconstructable! take the fast route!
-        out = decons_group_index(obs_ids, shape)
+        out = _decons_group_index(obs_ids, shape)
         return out if xnull or not lift.any() else [x - y for x, y in zip(out, lift)]
 
     indexer = unique_label_indices(comp_ids)
@@ -660,7 +670,7 @@ def get_group_index_sorter(
 
 def compress_group_index(
     group_index: npt.NDArray[np.int64], sort: bool = True
-) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]]:
+) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.intp]]:
     """
     Group_index is offsets into cartesian product of all possible labels. This
     space can be huge, so this function compresses it, by computing offsets
@@ -673,11 +683,12 @@ def compress_group_index(
 
     # note, group labels come out ascending (ie, 1,2,3 etc)
     comp_ids, obs_group_ids = table.get_labels_groupby(group_index)
+    obs_group_ids = ensure_platform_int(obs_group_ids)  # int64->int32 on 32bit
 
     if sort and len(obs_group_ids) > 0:
         obs_group_ids, comp_ids = _reorder_by_uniques(obs_group_ids, comp_ids)
 
-    return ensure_int64(comp_ids), ensure_int64(obs_group_ids)
+    return ensure_int64(comp_ids), ensure_platform_int(obs_group_ids)
 
 
 def _reorder_by_uniques(

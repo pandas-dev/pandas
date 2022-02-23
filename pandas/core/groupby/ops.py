@@ -785,7 +785,7 @@ class BaseGrouper:
 
     @final
     @property
-    def codes(self) -> list[np.ndarray]:
+    def codes(self) -> list[npt.NDArray[np.signedinteger]]:
         return [ping.codes for ping in self.groupings]
 
     @property
