@@ -762,6 +762,7 @@ def test_hiding_index_columns_multiindex_trimming():
     </table>
     """
     )
+
     assert result == expected
 
 

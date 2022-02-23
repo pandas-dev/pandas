@@ -992,6 +992,7 @@ def test_clines_multiindex(clines, expected, env):
     assert expected in result
 
 
+@pytest.mark.xfail  # concat not yet implemented for to_latex
 def test_concat(styler):
     result = styler.concat(styler.data.agg(["sum"]).style).to_latex()
     expected = dedent(

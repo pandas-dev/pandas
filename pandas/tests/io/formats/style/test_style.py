@@ -43,7 +43,7 @@ def mi_styler(mi_df):
 
 
 @pytest.fixture
-def mi_styler_comp(mi_styler, mi_df):
+def mi_styler_comp(mi_styler):
     # comprehensively add features to mi_styler
     mi_styler = mi_styler._copy(deepcopy=True)
     mi_styler.css = {**mi_styler.css, **{"row": "ROW", "col": "COL"}}
