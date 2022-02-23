@@ -71,8 +71,8 @@ time mamba env create -q --file="${ENV_FILE}"
 # Referenced from: /Users/runner/miniconda3/envs/pandas-dev/lib/libthrift.0.13.0.dylib
 # Reason: image not found
 if [[ "$(uname)" == 'Darwin' ]]; then
-    echo "Update libthrift for pyarrow on MacOS"
-    conda install -n pandas-dev -c conda-forge --no-update-deps libthrift=0.15.0
+    echo "Update pyarrow for pyarrow on MacOS"
+    conda install -n pandas-dev -c conda-forge --no-update-deps pyarrow=6
 fi
 
 if [[ "$BITS32" == "yes" ]]; then
