@@ -332,10 +332,10 @@ class Styler(StylerRenderer):
 
         >>> descriptors = df.agg(["sum", "mean", lambda s: s.dtype])
         >>> descriptors.index = ["Total", "Average", "dtype"]
-        >>> other = descriptors.style
+        >>> other = (descriptors.style
         ...          .highlight_max(axis=1, subset=(["Total", "Average"], slice(None)))
         ...          .format(subset=("Average", slice(None)), precision=2, decimal=",")
-        ...          .applymap(lambda v: "font-weight: bold;")
+        ...          .applymap(lambda v: "font-weight: bold;"))
         >>> styler = df.style.highlight_max(color="salmon")
         >>> styler.concat(other)  # doctest: +SKIP
 
