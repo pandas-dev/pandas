@@ -122,6 +122,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_sequence,
+    is_timedelta64_dtype,
     needs_i8_conversion,
     pandas_dtype,
 )
@@ -10558,7 +10559,7 @@ NaN 12.3   33.0
         self,
         q=0.5,
         axis: Axis = 0,
-        numeric_only: bool = False,
+        numeric_only: bool = True,
         interpolation: str = "linear",
     ):
         """
@@ -10641,6 +10642,18 @@ NaN 12.3   33.0
                 if needs_i8_conversion(dtype):
                     return res.astype(dtype)
             return res
+
+        has_any_datetime_or_timestamp = any(
+            is_datetime64_any_dtype(x) or is_timedelta64_dtype(x) for x in self.dtypes
+        )
+        if numeric_only and has_any_datetime_or_timestamp:
+            warnings.warn(
+                "In future versions of pandas, numeric_only will be set to "
+                "False by default, and the datetime/timedelta columns will "
+                "be considered in the results. To not consider these columns"
+                "specify numeric_only=True and ignore this warning.",
+                FutureWarning,
+            )
 
         q = Index(q, dtype=np.float64)
         data = self._get_numeric_data() if numeric_only else self
