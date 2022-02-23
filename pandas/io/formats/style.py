@@ -336,7 +336,11 @@ class Styler(StylerRenderer):
         ...          .highlight_max(axis=1, subset=(["Total", "Average"], slice(None)))
         ...          .format(subset=("Average", slice(None)), precision=2, decimal=",")
         ...          .applymap(lambda v: "font-weight: bold;"))
-        >>> styler = df.style.highlight_max(color="salmon")
+        >>> styler = (df.style
+        ...             .highlight_max(color="salmon")
+        ...             .set_table_styles([
+        ...              {"selector": ".foot0", "props": "border-top: 1px solid black;"}
+        ...             ]))
         >>> styler.concat(other)  # doctest: +SKIP
 
         .. figure:: ../../_static/style/footer_extended.png
