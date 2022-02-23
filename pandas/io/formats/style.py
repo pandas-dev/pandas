@@ -3145,7 +3145,11 @@ class Styler(StylerRenderer):
             return np.where(pd.isna(data).to_numpy(), props, "")
 
         if null_color != "red":
-            raise FutureWarning("`null_color` is deprecated: use `color` instead")
+            warnings.warn(
+                "`null_color` is deprecated: use `color` instead",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
         color = color if color else null_color
         if props is None:
