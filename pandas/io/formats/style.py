@@ -297,12 +297,17 @@ class Styler(StylerRenderer):
         and ``applymap_index``, and formatting applied with ``format`` and
         ``format_index`` will be preserved.
 
-        The following are the current limitations:
+        .. warning::
+            Only the output methods ``to_html`` and ``to_string`` currently work with
+            concatenated Stylers.
+
+            The output methods ``to_latex`` and ``to_excel`` **do not** work with
+            concatenated Stylers.
+
+        The following should be noted:
 
           - ``table_styles``, ``table_attributes``, ``caption`` and ``uuid`` are all
             inherited from the original Styler and not ``other``.
-          - the concatenated object will not currently export via ``to_excel``, although
-            support for ``to_html``, ``to_latex`` and ``to_string`` is available.
           - hidden columns and hidden index levels will be inherited from the
             original Styler
 

@@ -158,13 +158,17 @@ class StylerRenderer:
         max_cols: int | None = None,
         blank: str = "",
     ):
+        """
+        Computes and applies styles and then generates the general render dicts
+        """
         self._compute()
-
-        dx = None
-        if self.concatenated is not None:
-            dx = self.concatenated._translate(
+        dx = (
+            self.concatenated._translate(
                 sparse_index, sparse_columns, max_rows, max_cols, blank
             )
+            if self.concatenated is not None
+            else None
+        )
         d = self._translate(sparse_index, sparse_columns, max_rows, max_cols, blank, dx)
         return d, dx
 
@@ -194,7 +198,7 @@ class StylerRenderer:
         """
         Render a Styler in latex format
         """
-        d, dx = self._render(sparse_index, sparse_columns, None, None)
+        d, _ = self._render(sparse_index, sparse_columns, None, None)
         self._translate_latex(d, clines=clines)
         self.template_latex.globals["parse_wrap"] = _parse_latex_table_wrapping
         self.template_latex.globals["parse_table"] = _parse_latex_table_styles
