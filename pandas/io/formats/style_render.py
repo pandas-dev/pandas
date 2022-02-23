@@ -25,11 +25,6 @@ from pandas._libs import lib
 from pandas._typing import Level
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.core.dtypes.common import (
-    is_complex,
-    is_float,
-    is_integer,
-)
 from pandas.core.dtypes.generic import ABCSeries
 
 from pandas import (
@@ -1474,9 +1469,9 @@ def _default_formatter(x: Any, precision: int, thousands: bool = False) -> Any:
     value : Any
         Matches input type, or string if input is float or complex or int with sep.
     """
-    if is_float(x) or is_complex(x):
+    if isinstance(x, (float, complex)):
         return f"{x:,.{precision}f}" if thousands else f"{x:.{precision}f}"
-    elif is_integer(x):
+    elif isinstance(x, int):
         return f"{x:,.0f}" if thousands else f"{x:.0f}"
     return x
 
@@ -1491,7 +1486,7 @@ def _wrap_decimal_thousands(
     """
 
     def wrapper(x):
-        if is_float(x) or is_integer(x) or is_complex(x):
+        if isinstance(x, (float, complex, int)):
             if decimal != "." and thousands is not None and thousands != ",":
                 return (
                     formatter(x)
