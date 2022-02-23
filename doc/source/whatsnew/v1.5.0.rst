@@ -244,6 +244,47 @@ use ``series.loc[i:j]``.
 
 Slicing on a :class:`DataFrame` will not be affected.
 
+.. _whatsnew_150.deprecations.quantile_datetime_timedelta_columns:
+
+
+In a future version, method :meth:`DataFrame.quantile` attribute ``numeric_only`` will default False. Including datetime/timedelta columns in the result (:issue:`7308`).
+
+
+For example:
+.. ipython:: python
+
+  In [2]: df = pd.DataFrame(
+     ...:     {"A": [1, 2, 3], "B": pd.date_range("2014-01-01", periods=3, freq="m")}
+     ...: )
+
+
+In the old behavior, datetime/timedelta columns are dropped:
+
+*Old behavior*:
+
+.. code-block:: ipython
+
+  In [3]: df.quantile(0.5)
+  Out[3]:
+  A    2.0
+  Name: 0.5, dtype: float64
+
+
+In a future version, these columns will be included in the result:
+
+*Future behavior*:
+
+.. code-block:: ipython
+
+  In [4]: df.quantile(0.5)
+  Out[4]:
+  A                    2.0
+  B    2014-02-28 00:00:00
+  Name: 0.5, dtype: object
+
+To retain the old behavior, use ``df.quantile(q, numeric_only=False)``.
+
+
 .. _whatsnew_150.deprecations.excel_writer_attributes:
 
 :class:`ExcelWriter` attributes
@@ -352,7 +393,6 @@ Numeric
 - Bug in operations with array-likes with ``dtype="boolean"`` and :attr:`NA` incorrectly altering the array in-place (:issue:`45421`)
 - Bug in division, ``pow`` and ``mod`` operations on array-likes with ``dtype="boolean"`` not being like their ``np.bool_`` counterparts (:issue:`46063`)
 - Bug in multiplying a :class:`Series` with ``IntegerDtype`` or ``FloatingDtype`` by an array-like with ``timedelta64[ns]`` dtype incorrectly raising (:issue:`45622`)
-- Bug in :meth:`DataFrame.quantile` attribute ``numeric_only"`` should default False (:issue:`7308`)
 -
 
 Conversion
