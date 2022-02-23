@@ -7,7 +7,6 @@ from operator import (
 )
 import textwrap
 from typing import (
-    Any,
     Sequence,
     TypeVar,
     Union,
@@ -30,6 +29,7 @@ from pandas._libs.missing import NA
 from pandas._typing import (
     ArrayLike,
     Dtype,
+    IntervalClosedType,
     NpDtype,
     PositionalIndexer,
     ScalarIndexer,
@@ -199,9 +199,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     _na_value = _fill_value = np.nan
 
     # To make mypy recognize the fields
-    _left: Any
-    _right: Any
-    _dtype: Any
+    _left: np.ndarray
+    _right: np.ndarray
+    _dtype: IntervalDtype
 
     # ---------------------------------------------------------------------
     # Constructors
@@ -663,11 +663,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             if is_scalar(left) and isna(left):
                 return self._fill_value
             return Interval(left, right, self.closed)
-        # error: Argument 1 to "ndim" has incompatible type "Union[ndarray,
-        # ExtensionArray]"; expected "Union[Union[int, float, complex, str, bytes,
-        # generic], Sequence[Union[int, float, complex, str, bytes, generic]],
-        # Sequence[Sequence[Any]], _SupportsArray]"
-        if np.ndim(left) > 1:  # type: ignore[arg-type]
+        if np.ndim(left) > 1:
             # GH#30588 multi-dimensional indexer disallowed
             raise ValueError("multi-dimensional indexing not allowed")
         return self._shallow_copy(left, right)
@@ -1370,7 +1366,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             ),
         }
     )
-    def set_closed(self: IntervalArrayT, closed) -> IntervalArrayT:
+    def set_closed(self: IntervalArrayT, closed: IntervalClosedType) -> IntervalArrayT:
         if closed not in VALID_CLOSED:
             msg = f"invalid option for 'closed': {closed}"
             raise ValueError(msg)
@@ -1671,8 +1667,14 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         dtype = self._left.dtype
         if needs_i8_conversion(dtype):
-            new_left = type(self._left)._from_sequence(nc[:, 0], dtype=dtype)
-            new_right = type(self._right)._from_sequence(nc[:, 1], dtype=dtype)
+            # error: "Type[ndarray[Any, Any]]" has no attribute "_from_sequence"
+            new_left = type(self._left)._from_sequence(  # type: ignore[attr-defined]
+                nc[:, 0], dtype=dtype
+            )
+            # error: "Type[ndarray[Any, Any]]" has no attribute "_from_sequence"
+            new_right = type(self._right)._from_sequence(  # type: ignore[attr-defined]
+                nc[:, 1], dtype=dtype
+            )
         else:
             new_left = nc[:, 0].view(dtype)
             new_right = nc[:, 1].view(dtype)

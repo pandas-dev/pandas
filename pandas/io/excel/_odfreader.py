@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from typing import cast
+from typing import (
+    TYPE_CHECKING,
+    cast,
+)
 
 import numpy as np
 
-from pandas._libs.tslibs.nattype import NaTType
 from pandas._typing import (
     FilePath,
     ReadBuffer,
@@ -18,6 +20,9 @@ import pandas as pd
 from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.excel._base import BaseExcelReader
+
+if TYPE_CHECKING:
+    from pandas._libs.tslibs.nattype import NaTType
 
 
 @doc(storage_options=_shared_docs["storage_options"])

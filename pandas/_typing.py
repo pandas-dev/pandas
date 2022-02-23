@@ -304,3 +304,7 @@ CSVEngine = Literal["c", "python", "pyarrow", "python-fwf"]
 
 # read_xml parsers
 XMLParsers = Literal["lxml", "etree"]
+
+# Interval closed type
+
+IntervalClosedType = Literal["left", "right", "both", "neither"]
