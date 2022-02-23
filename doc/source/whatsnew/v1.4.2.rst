@@ -14,7 +14,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
-- Fixed regression in :meth:`DataFrame.drop` and :meth:`Series.drop` when :class:`Index` had extension dtype and duplicates (:issue:`45820`)
+- Fixed regression in :meth:`DataFrame.drop` and :meth:`Series.drop` when :class:`Index` had extension dtype and duplicates (:issue:`45860`)
 -
 
 .. ---------------------------------------------------------------------------
