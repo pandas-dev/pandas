@@ -21,6 +21,7 @@ Styler
 
   - New method :meth:`.Styler.to_string` for alternative customisable output methods (:issue:`44502`)
   - Added the ability to render ``border`` and ``border-{side}`` CSS properties in Excel (:issue:`42276`)
+  - :meth:`.Styler.highlight_null` now accepts ``color`` consistently with other builtin methods and deprecates ``null_color`` although this remains backwards compatible (:issue:`45907`)
 
 .. _whatsnew_150.enhancements.enhancement2:
 
