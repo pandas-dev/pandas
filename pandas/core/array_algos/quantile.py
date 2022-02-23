@@ -129,7 +129,8 @@ def _nanpercentile_1d(
     if len(values) == 0:
         # Can't pass dtype=values.dtype here bc we might have na_value=np.nan
         #  with values.dtype=int64 see test_quantile_empty
-        return np.array([na_value] * len(qs))
+        # equiv: 'np.array([na_value] * len(qs))' but much faster
+        return np.full(len(qs), na_value)
 
     return np.percentile(values, qs, **{np_percentile_argname: interpolation})
 
