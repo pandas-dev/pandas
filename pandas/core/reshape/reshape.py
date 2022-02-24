@@ -387,11 +387,9 @@ def _unstack_multiple(data, clocs, fill_value=None):
     rnames = [index.names[i] for i in rlocs]
 
     shape = tuple(len(x) for x in clevels)
-
-    # TODO: why sort=False here? if flipped, could use get_compressed_ids
     group_index = get_group_index(ccodes, shape, sort=False, xnull=False)
-    comp_ids, obs_ids = compress_group_index(group_index, sort=False)
 
+    comp_ids, obs_ids = compress_group_index(group_index, sort=False)
     recons_codes = decons_obs_group_ids(comp_ids, obs_ids, shape, ccodes, xnull=False)
 
     if not rlocs:

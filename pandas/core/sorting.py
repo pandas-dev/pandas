@@ -193,7 +193,7 @@ def get_group_index(
 
 def get_compressed_ids(
     labels, sizes: Shape
-) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
+) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.int64]]:
     """
     Group_index is offsets into cartesian product of all possible labels. This
     space can be huge, so this function compresses it, by computing offsets
@@ -208,7 +208,7 @@ def get_compressed_ids(
     -------
     np.ndarray[np.intp]
         comp_ids
-    np.ndarray[np.intp]
+    np.ndarray[np.int64]
         obs_group_ids
     """
     ids = get_group_index(labels, sizes, sort=True, xnull=False)
@@ -670,7 +670,7 @@ def get_group_index_sorter(
 
 def compress_group_index(
     group_index: npt.NDArray[np.int64], sort: bool = True
-) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.intp]]:
+) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]]:
     """
     Group_index is offsets into cartesian product of all possible labels. This
     space can be huge, so this function compresses it, by computing offsets
@@ -684,12 +684,10 @@ def compress_group_index(
     # note, group labels come out ascending (ie, 1,2,3 etc)
     comp_ids, obs_group_ids = table.get_labels_groupby(group_index)
 
-    obs_group_ids = ensure_platform_int(obs_group_ids)  # int64->int32 on 32bit
-
     if sort and len(obs_group_ids) > 0:
         obs_group_ids, comp_ids = _reorder_by_uniques(obs_group_ids, comp_ids)
 
-    return ensure_int64(comp_ids), ensure_platform_int(obs_group_ids)
+    return ensure_int64(comp_ids), ensure_int64(obs_group_ids)
 
 
 def _reorder_by_uniques(
