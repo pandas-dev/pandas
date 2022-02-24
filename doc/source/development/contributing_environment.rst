@@ -44,7 +44,8 @@ Run Container::
 
         python setup.py build_ext -j 4
 
-    You might need to rebuild the C extensions if/when you merge your repo with upstream/main.
+    You need to rebuild the C extensions anytime the Cython code in ``pandas/_libs`` changes.
+    This most frequently occurs when changing or merging branches.
 
 *Even easier, you can integrate Docker with the following IDEs:*
 
