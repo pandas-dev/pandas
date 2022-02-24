@@ -451,7 +451,8 @@ class IndexingMixin:
 
         **Set values with a Series**
 
-        Set column values using a Series
+        Setting column values using a Series aligns along the index values of
+        the Series and DataFrame
 
         >>> df.loc[:, 'shield'] = pd.Series({7: 8, 8: 10, 9: 13})
         >>> df
@@ -460,8 +461,8 @@ class IndexingMixin:
         8          4       10
         9          7       13
 
-        Setting values using a Series with inconsistent indexes aligns the
-        right hand side to the index of the left
+        Where the index values are not found in the Series index, the values
+        will be NaN
 
         >>> df.loc[:, 'shield'] = pd.Series({8: 10})
         >>> df
