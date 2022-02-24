@@ -5910,6 +5910,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # GH 19920: retain column metadata after concat
         result = concat(results, axis=1, copy=False)
         # GH#40810 retain subclass
+        # error: Incompatible types in assignment
+        # (expression has type "NDFrameT", variable has type "DataFrame")
         result = self._constructor(result)  # type: ignore[assignment]
         result.columns = self.columns
         result = result.__finalize__(self, method="astype")
