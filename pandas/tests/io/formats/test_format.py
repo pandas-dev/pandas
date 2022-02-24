@@ -3086,9 +3086,9 @@ class TestTimedelta64Formatter:
 
 class TestDatetimeFastFormatter:
     @pytest.mark.parametrize("strftime_format", (
-            "%Y-%m-%d %H:%M:%S",
-            "%Y %Y",
-            "%Y-%m-%dT%H:%M:%S.fZ",
+        "%Y-%m-%d %H:%M:%S",
+        "%Y %Y",
+        "%Y-%m-%dT%H:%M:%S.fZ",
     ))
     @pytest.mark.parametrize("new_style", (False, True))
     def test_fast_strftime_basic(self, strftime_format, new_style):
@@ -3118,9 +3118,9 @@ class TestDatetimeFastFormatter:
         assert res2 == res
 
     @pytest.mark.parametrize("strftime_format", (
-            "%Y-%m-%d %H:%M:%S",
-            "%Y %Y",
-            "%Y-%m-%dT%H:%M:%S.fZ",
+        "%Y-%m-%d %H:%M:%S",
+        "%Y %Y",
+        "%Y-%m-%dT%H:%M:%S.fZ",
     ))
     def test_fast_strftime_perf(self, strftime_format):
         """Test that formatting standard `datetime` objects with our utils is faster than strftime."""
