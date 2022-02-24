@@ -54,18 +54,24 @@ jobs:
         pip list
         python setup.py sdist --formats=gztar
 
-    - uses: conda-incubator/setup-miniconda@v2
+    - name: Set up Conda
+      uses: ./.github/actions/setup
       with:
+        environment-file: ""
         activate-environment: pandas-sdist
-        channels: conda-forge
-        python-version: '${{ matrix.python-version }}'
+        python-version: ${{ matrix.python-version }}
+
+    - name: Set up ccache
+      uses: ./.github/actions/setup-sccache
+      with:
+        extra-cache-key: ${{ matrix.python-version }}
 
     # TODO: GH#44980 https://github.com/pypa/setuptools/issues/2941
     - name: Install pandas from sdist
       run: |
         python -m pip install --upgrade "setuptools<60.0.0"
         pip list
-        python -m pip install dist/*.gz
+        time DISTUTILS_C_COMPILER_LAUNCHER=sccache python -m pip install -vv dist/*.gz
 
     - name: Force oldest supported NumPy
       run: |
@@ -78,8 +84,5 @@ jobs:
           pip install numpy==1.21.2 ;;
         esac
 
-    - name: Import pandas
-      run: |
-        cd ..
-        conda list
-        python -c "import pandas; pandas.show_versions();"
+    - name: Build Version
+      run: pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd

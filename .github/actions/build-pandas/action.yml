@@ -1,0 +1,52 @@
+name: Build pandas
+description: Rebuilds the C extensions and installs pandas
+inputs:
+  use-login-shell:
+    description: "Use 'bash -l' as shell (required for Conda envs)"
+    default: true
+runs:
+  using: composite
+  steps:
+    # Create a shell wrapper to be able to call "bash" or "bash -l" depending
+    # on the "use-login-shell" arguments.
+    # We need this because GHA does not allow ${{ inputs. }} in "shell: " arguments.
+    - name: Set shell
+      shell: bash
+      run: |
+        if [ ${{ inputs.use-login-shell }} = true ]; then
+          args="-l"
+        fi
+        echo "exec bash $args \"\$@\"" > /tmp/_build_pandas_shell
+        cat /tmp/_build_pandas_shell
+
+    - name: Environment Detail
+      shell: bash /tmp/_build_pandas_shell {0}
+      run: |
+        if which conda; then
+          conda info
+          conda list
+        fi
+        if which pip; then
+          pip list
+        fi
+        python --version
+
+    - name: Get Python version
+      id: get-python-version
+      shell: bash /tmp/_build_pandas_shell {0}
+      run: python3 -c "import platform as p; print(f'::set-output name=version::{p.python_version()}-{p.python_branch()}')"
+
+    - name: Set up sccache
+      uses: ./.github/actions/setup-sccache
+      with:
+        extra-cache-key: ${{ steps.get-python-version.outputs.version }}
+
+    - name: Build Pandas
+      shell: bash /tmp/_build_pandas_shell {0}
+      run: |
+        time DISTUTILS_C_COMPILER_LAUNCHER=sccache python setup.py build_ext -vv -j 2
+        python -m pip install -vv -e . --no-build-isolation --no-use-pep517 --no-index
+
+    - name: Build Version
+      shell: bash /tmp/_build_pandas_shell {0}
+      run: pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
