@@ -21,11 +21,11 @@ on:
       - "doc/**"
 
 env:
-  PYTEST_WORKERS: "auto"
   PANDAS_CI: 1
+  PYTEST_WORKERS: "auto"
+  PYTEST_TARGET: pandas
   PATTERN: "not slow and not network and not clipboard and not single_cpu"
   COVERAGE: true
-  PYTEST_TARGET: pandas
 
 jobs:
   build:
@@ -56,27 +56,19 @@ jobs:
 
     # TODO: GH#44980 https://github.com/pypa/setuptools/issues/2941
     - name: Install dependencies
-      shell: bash
       run: |
         python -m pip install --upgrade pip "setuptools<60.0.0" wheel
         pip install -i https://pypi.anaconda.org/scipy-wheels-nightly/simple numpy
         pip install git+https://github.com/nedbat/coveragepy.git
         pip install cython python-dateutil pytz hypothesis pytest>=6.2.5 pytest-xdist pytest-cov
-        pip list
 
-    - name: Build Pandas
-      run: |
-        python setup.py build_ext -q -j2
-        python -m pip install -e . --no-build-isolation --no-use-pep517
-
-    - name: Build Version
-      run: |
-        python -c "import pandas; pandas.show_versions();"
+    - name: Build pandas
+      uses: ./.github/actions/build-pandas
+      with:
+        use-login-shell: false
 
     - name: Test with pytest
-      shell: bash
-      run: |
-        ci/run_tests.sh
+      run: bash ci/run_tests.sh
 
     - name: Publish test results
       uses: actions/upload-artifact@v2
@@ -86,8 +78,7 @@ jobs:
       if: failure()
 
     - name: Report Coverage
-      run: |
-        coverage report -m
+      run: coverage report -m
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v2

@@ -6,8 +6,7 @@ on:
       - created
 
 env:
-  ENV_FILE: environment.yml
-  COMMENT: ${{github.event.comment.body}}
+  COMMENT: ${{ github.event.comment.body }}
 
 jobs:
   autotune:
@@ -33,20 +32,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Cache conda
-        uses: actions/cache@v2
-        with:
-          path: ~/conda_pkgs_dir
-          key: ${{ runner.os }}-conda-${{ hashFiles('${{ env.ENV_FILE }}') }}
-
-        # Although asv sets up its own env, deps are still needed
-        # during discovery process
-      - uses: conda-incubator/setup-miniconda@v2
-        with:
-          activate-environment: pandas-dev
-          channel-priority: strict
-          environment-file: ${{ env.ENV_FILE }}
-          use-only-tar-bz2: true
+      # Although asv sets up its own env, deps are still needed
+      # during discovery process
+      - name: Set up Conda
+        uses: ./.github/actions/setup
 
       - name: Run benchmarks
         id: bench

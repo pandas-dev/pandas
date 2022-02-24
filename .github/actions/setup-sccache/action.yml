@@ -1,0 +1,18 @@
+name: Setup sccache
+inputs:
+  extra-cache-key:
+    required: false
+    default: ''
+runs:
+  using: composite
+  steps:
+    - name: Get Date
+      id: get-date
+      run: echo "::set-output name=today::$(/bin/date -u '+%Y%m%d')"
+      shell: bash
+
+    - name: Setup sccache
+      uses: jonashaag/ccache-action@sccache-2
+      with:
+        sccache: true
+        key: ${{ runner.os }}--${{ runner.arch }}--${{ github.workflow }}--${{ steps.get-date.outputs.today }}--${{ inputs.extra-cache-key }}
