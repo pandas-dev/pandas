@@ -3,11 +3,17 @@ import ctypes
 
 from typing import Tuple, Any
 
-from .dataframe_protocol import Buffer, Column, DataFrame as DataFrameXchg, DtypeKind, DlpackDeviceType
+from .dataframe_protocol import Buffer, Column, ColumnNullType, DataFrame as DataFrameXchg, DtypeKind, DlpackDeviceType
 
 import pandas as pd
 import numpy as np
 
+_NP_DTYPES = {
+    DtypeKind.INT: {8: np.int8, 16: np.int16, 32: np.int32, 64: np.int64},
+    DtypeKind.UINT: {8: np.uint8, 16: np.uint16, 32: np.uint32, 64: np.uint64},
+    DtypeKind.FLOAT: {32: np.float32, 64: np.float64},
+    DtypeKind.BOOL: {8: bool},
+}
 
 def from_dataframe(df : DataFrameXchg,
                    allow_copy : bool = True) -> pd.DataFrame:
@@ -65,10 +71,7 @@ def convert_column_to_ndarray(col : Column) -> Tuple[np.ndarray, Buffer]:
     """
     Convert an int, uint, float or bool column to a numpy array.
     """
-    if col.offset != 0:
-        raise NotImplementedError("column.offset > 0 not handled yet")
-
-    if col.describe_null[0] not in (0, 1):
+    if col.describe_null[0] not in (ColumnNullType.NON_NULLABLE, ColumnNullType.USE_NAN):
         raise NotImplementedError("Null values represented as masks or "
                                   "sentinel values not handled yet")
 
@@ -80,14 +83,10 @@ def buffer_to_ndarray(_buffer : Buffer, _dtype) -> np.ndarray:
     # Handle the dtype
     kind = _dtype[0]
     bitwidth = _dtype[1]
-    if _dtype[0] not in (DtypeKind.INT, DtypeKind.UINT, DtypeKind.FLOAT, DtypeKind.BOOL):
-        raise RuntimeError("Not a boolean, integer or floating-point dtype")
+    if kind not in _NP_DTYPES:
+        raise RuntimeError(f"Unsupported data type: {kind}")
 
-    _ints = {8: np.int8, 16: np.int16, 32: np.int32, 64: np.int64}
-    _uints = {8: np.uint8, 16: np.uint16, 32: np.uint32, 64: np.uint64}
-    _floats = {32: np.float32, 64: np.float64}
-    _np_dtypes = {0: _ints, 1: _uints, 2: _floats, 20: {8: bool}}
-    column_dtype = _np_dtypes[kind][bitwidth]
+    column_dtype = _NP_DTYPES[kind][bitwidth]
 
     # No DLPack yet, so need to construct a new ndarray from the data pointer
     # and size in the buffer plus the dtype on the column
@@ -124,10 +123,10 @@ def convert_categorical_column(col : Column) -> Tuple[pd.Series, Buffer]:
     cat = pd.Categorical(values, categories=categories, ordered=ordered)
     series = pd.Series(cat)
     null_kind = col.describe_null[0]
-    if null_kind == 2:  # sentinel value
+    if null_kind == ColumnNullType.USE_SENTINEL:  # sentinel value
         sentinel = col.describe_null[1]
         series[codes == sentinel] = np.nan
-    else:
+    elif null_kind != ColumnNullType.NON_NULLABLE:
         raise NotImplementedError("Only categorical columns with sentinel "
                                   "value supported at the moment")
 
@@ -164,16 +163,16 @@ def convert_string_column(col : Column) -> Tuple[np.ndarray, dict]:
     str_list = []
     for i in range(obuf.size-1):
         # Check for missing values
-        if null_kind == 3:  # bit mask
-            v = mbuf[i/8]
+        if null_kind == ColumnNullType.USE_BITMASK:
+            v = mbuf[i // 8]
             if null_value == 1:
                 v = ~v
 
-            if v & (1<<(i%8)):
+            if v & (1<<(i % 8)):
                 str_list.append(np.nan)
                 continue
 
-        elif null_kind == 4 and mbuf[i] == null_value:  # byte mask
+        elif null_kind == ColumnNullType.USE_BYTEMASK and mbuf[i] == null_value:
             str_list.append(np.nan)
             continue
 
@@ -268,8 +267,7 @@ class _PandasColumn(Column):
         Series/ndarray for now.
         """
         if not isinstance(column, pd.Series):
-            raise NotImplementedError("Columns of type {} not handled "
-                                      "yet".format(type(column)))
+            raise NotImplementedError(f"Columns of type {type(column)} not handled yet")
 
         # Store the column as a private attribute
         self._col = column
