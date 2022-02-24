@@ -72,18 +72,41 @@ def test_dataframe(df_from_dict):
     assert dfX.column_names() == ["x", "y", "z"]
     assert dfX.select_columns((0, 2)).column_names() == dfX.select_columns_by_name(("x", "z")).column_names()
 
-@pytest.mark.parametrize(["size", "n_chunks"],
-    [(10, 3), (12, 3), (12, 5)]
-)
-def test_chunks(size, n_chunks, df_from_dict):
+@pytest.mark.parametrize(["size", "n_chunks"], [(10, 3), (12, 3), (12, 5)])
+def test_df_get_chunks(size, n_chunks, df_from_dict):
     df = df_from_dict({"x": list(range(size))})
     dfX = df.__dataframe__()
     chunks = list(dfX.get_chunks(n_chunks))
     assert len(chunks) == n_chunks
     assert sum(chunk.num_rows() for chunk in chunks) == size
 
-
-def test_get_chunks(df_from_dict):
-    df = df_from_dict({"x": [1]})
+@pytest.mark.parametrize(["size", "n_chunks"], [(10, 3), (12, 3), (12, 5)])
+def test_column_get_chunks(size, n_chunks, df_from_dict):
+    df = df_from_dict({"x": list(range(size))})
     dfX = df.__dataframe__()
-    assert len(list(dfX.get_chunks())) == 1
+    chunks = list(dfX.get_column(0).get_chunks(n_chunks))
+    assert len(chunks) == n_chunks
+    assert sum(chunk.size for chunk in chunks) == size
+
+def test_get_columns(df_from_dict):
+    df = df_from_dict({"a": [0, 1], "b": [2.5, 3.5]})
+    dfX = df.__dataframe__()
+    for colX in dfX.get_columns():
+        assert colX.size == 2
+        assert colX.num_chunks() == 1
+    assert dfX.get_column(0).dtype[0] == 0
+    assert dfX.get_column(1).dtype[0] == 2
+
+def test_buffer(df_from_dict):
+    df = df_from_dict({"a": [0, 1]})
+    dfX = df.__dataframe__()
+    colX = dfX.get_column(0)
+    bufX = colX.get_buffers()
+
+    dataBuf, dataDtype = bufX['data']
+
+    assert dataBuf.bufsize > 0
+    assert dataBuf.ptr != 0
+    assert dataBuf.__dlpack_device__
+
+    assert dataDtype[0] == 0
