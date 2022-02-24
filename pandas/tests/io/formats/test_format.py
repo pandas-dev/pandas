@@ -3202,7 +3202,7 @@ class TestDatetime64TZFormatter:
             [
                 datetime(2013, 1, 1, tzinfo=utc),
                 datetime(2013, 1, 1, 12, tzinfo=utc),
-                pd.NaT,
+                NaT,
             ]
         )
         result = fmt.Datetime64TZFormatter(x).get_result()
