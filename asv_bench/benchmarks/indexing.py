@@ -220,46 +220,46 @@ class MultiIndexing:
         bool_indexer[slice(0, len(mi), 100)] = True
         self.tgt_bool_indexer = bool_indexer
 
-    def time_loc_partial_key_slice(self):
+    def time_loc_partial_key_slice(self, unique_levels):
         self.df.loc[self.tgt_slice, :]
 
-    def time_loc_partial_key_null_slice(self):
+    def time_loc_partial_key_null_slice(self, unique_levels):
         self.df.loc[self.tgt_null_slice, :]
 
-    def time_loc_partial_key_list(self):
+    def time_loc_partial_key_list(self, unique_levels):
         self.df.loc[self.tgt_list, :]
 
-    def time_loc_partial_key_scalar(self):
+    def time_loc_partial_key_scalar(self, unique_levels):
         self.df.loc[self.tgt_scalar, :]
 
-    def time_loc_partial_bool_indexer(self):
+    def time_loc_partial_bool_indexer(self, unique_levels):
         self.df.loc[self.tgt_bool_indexer, :]
 
-    def time_loc_all_slices(self):
+    def time_loc_all_slices(self, unique_levels):
         target = tuple([self.tgt_slice] * self.ndim)
         self.df.loc[target, :]
 
-    def time_loc_all_null_slices(self):
+    def time_loc_all_null_slices(self, unique_levels):
         target = tuple([self.tgt_null_slice] * self.ndim)
         self.df.loc[target, :]
 
-    def time_loc_all_lists(self):
+    def time_loc_all_lists(self, unique_levels):
         target = tuple([self.tgt_list] * self.ndim)
         self.df.loc[target, :]
 
-    def time_loc_all_scalars(self):
+    def time_loc_all_scalars(self, unique_levels):
         target = tuple([self.tgt_scalar] * self.ndim)
         self.df.loc[target, :]
 
-    def time_loc_all_bool_indexers(self):
+    def time_loc_all_bool_indexers(self, unique_levels):
         target = tuple([self.tgt_bool_indexer] * self.ndim)
         self.df.loc[target, :]
 
-    def time_loc_slice_plus_null_slice(self):
+    def time_loc_slice_plus_null_slice(self, unique_levels):
         target = (self.tgt_slice, self.tgt_null_slice)
         self.df.loc[target, :]
 
-    def time_loc_null_slice_plus_slice(self):
+    def time_loc_null_slice_plus_slice(self, unique_levels):
         target = (self.tgt_null_slice, self.tgt_slice)
         self.df.loc[target, :]
 
