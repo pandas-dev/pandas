@@ -1,14 +1,10 @@
 from __future__ import annotations
 
 import json
-from typing import TypeVar
 
 import numpy as np
 import pyarrow
 
-from pandas._typing import npt
-
-from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.interval import VALID_CLOSED
 
 
@@ -145,78 +141,3 @@ class ArrowIntervalType(pyarrow.ExtensionType):
 # register the type with a dummy instance
 _interval_type = ArrowIntervalType(pyarrow.int64(), "left")
 pyarrow.register_extension_type(_interval_type)
-
-
-ArrowExtensionArrayT = TypeVar("ArrowExtensionArrayT", bound="ArrowExtensionArray")
-
-
-class ArrowExtensionArray(ExtensionArray):
-    """
-    Base class for ExtensionArray backed by Arrow array.
-    """
-
-    _data: pyarrow.ChunkedArray
-
-    def __init__(self, values: pyarrow.ChunkedArray):
-        raise NotImplementedError
-
-    def __arrow_array__(self, type=None):
-        """Convert myself to a pyarrow Array or ChunkedArray."""
-        return self._data
-
-    @property
-    def nbytes(self) -> int:
-        """
-        The number of bytes needed to store this object in memory.
-        """
-        return self._data.nbytes
-
-    def __len__(self) -> int:
-        """
-        Length of this array.
-
-        Returns
-        -------
-        length : int
-        """
-        return len(self._data)
-
-    def isna(self) -> npt.NDArray[np.bool_]:
-        """
-        Boolean NumPy array indicating if each value is missing.
-
-        This should return a 1-D array the same length as 'self'.
-        """
-        # TODO: Implement .to_numpy for ChunkedArray
-        return self._data.is_null().to_pandas().values
-
-    def copy(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
-        """
-        Return a shallow copy of the array.
-
-        Underlying ChunkedArray is immutable, so a deep copy is unnecessary.
-
-        Returns
-        -------
-        type(self)
-        """
-        return type(self)(self._data)
-
-    @classmethod
-    def _concat_same_type(
-        cls: type[ArrowExtensionArrayT], to_concat
-    ) -> ArrowExtensionArrayT:
-        """
-        Concatenate multiple ArrowExtensionArrays.
-
-        Parameters
-        ----------
-        to_concat : sequence of ArrowExtensionArrays
-
-        Returns
-        -------
-        ArrowExtensionArray
-        """
-        chunks = [array for ea in to_concat for array in ea._data.iterchunks()]
-        arr = pyarrow.chunked_array(chunks)
-        return cls(arr)

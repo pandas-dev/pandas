@@ -48,7 +48,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays._arrow_utils import ArrowExtensionArray
+from pandas.core.arrays._mixins import ArrowExtensionArray
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.boolean import BooleanDtype
 from pandas.core.arrays.integer import Int64Dtype
