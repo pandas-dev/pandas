@@ -1,6 +1,7 @@
 """
 Test output formatting for Series/DataFrame, including to_string & reprs
 """
+from timeit import Timer
 
 from datetime import datetime
 from io import StringIO
@@ -21,6 +22,11 @@ import pytz
 from pandas.compat import (
     IS64,
     is_platform_windows,
+)
+from pandas.core.tools.datetimes import (
+    convert_dtformat,
+    get_datetime_fmt_dct,
+    fast_strftime
 )
 import pandas.util._test_decorators as td
 
@@ -3076,6 +3082,73 @@ class TestTimedelta64Formatter:
         x = pd.to_timedelta(list(range(1)), unit="D")
         result = fmt.Timedelta64Formatter(x, box=True).get_result()
         assert result[0].strip() == "'0 days'"
+
+
+class TestDatetimeFastFormatter:
+    @pytest.mark.parametrize("strftime_format", (
+            "%Y-%m-%d %H:%M:%S",
+            "%Y %Y",
+            "%Y-%m-%dT%H:%M:%S.fZ",
+    ))
+    @pytest.mark.parametrize("new_style", (False, True))
+    def test_fast_strftime_basic(self, strftime_format, new_style):
+        """Test that formatting standard `datetime` objects with our utils works as good as strftime."""
+
+        # create a datetime instance
+        dt = datetime.now()
+
+        # strftime
+        strftime_res = dt.strftime(strftime_format)
+
+        # common dict used for formatting
+        fmt_dct = get_datetime_fmt_dct(dt)
+
+        # get the formatting string
+        style_format = convert_dtformat(strftime_format, new_style_fmt=new_style)
+
+        # apply it and check the output
+        if new_style:
+            res = style_format.format(**fmt_dct)
+        else:
+            res = style_format % fmt_dct
+        assert res == strftime_res
+
+        # fast_strftime is a shortcut function for the above
+        res2 = fast_strftime(dt, strftime_format, new_style_fmt=new_style)
+        assert res2 == res
+
+    @pytest.mark.parametrize("strftime_format", (
+            "%Y-%m-%d %H:%M:%S",
+            "%Y %Y",
+            "%Y-%m-%dT%H:%M:%S.fZ",
+    ))
+    def test_fast_strftime_perf(self, strftime_format):
+        """Test that formatting standard `datetime` objects with our utils is faster than strftime."""
+
+        # create a datetime instance
+        dt = datetime.now()
+
+        # pre-compute the formats
+        new_style_format = convert_dtformat(strftime_format, new_style_fmt=True)
+        old_style_format = convert_dtformat(strftime_format)
+
+        # Perf comparison: confirm the results in https://stackoverflow.com/a/43495629/7262247
+        glob = globals()
+        glob.update(locals())
+        strftime_best = min(
+            Timer("dt.strftime(strftime_format)", globals=glob).repeat(7, 1000)
+        )
+        #   Out[3]: 0.0062
+        new_style_best = min(
+            Timer("new_style_format.format(**get_datetime_fmt_dct(dt))", globals=glob).repeat(7, 1000)
+        )
+        #   Out[4]: 0.0018  if get_datetime_fmt_dct is pre-evaluated, 0.0036 otherwise
+        old_style_best = min(
+            Timer("old_style_format % get_datetime_fmt_dct(dt)", globals=glob).repeat(7, 1000)
+        )
+        #   Out[5]: 0.0012  if get_datetime_fmt_dct is pre-evaluated, 0.0030 otherwise
+        assert new_style_best < strftime_best   # much better
+        assert old_style_best < new_style_best  # even better !
 
 
 class TestDatetime64Formatter:
