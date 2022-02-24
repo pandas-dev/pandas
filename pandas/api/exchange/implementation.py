@@ -29,33 +29,34 @@ def _from_dataframe(df : DataFrameXchg) -> pd.DataFrame:
     only Pandas. Later, we need to implement/test support for categoricals,
     bit/byte masks, chunk handling, etc.
     """
-    # Check number of chunks, if there's more than one we need to iterate
-    if df.num_chunks() > 1:
-        raise NotImplementedError
-
-    # We need a dict of columns here, with each column being a numpy array (at
-    # least for now, deal with non-numpy dtypes later).
-    columns = dict()
     _buffers = []  # hold on to buffers, keeps memory alive
-    for name in df.column_names():
-        if not isinstance(name, str):
-            raise ValueError(f"Column {name} is not a string")
-        if name in columns:
-            raise ValueError(f"Column {name} is not unique")
-        col = df.get_column_by_name(name)
-        if col.dtype[0] in (DtypeKind.INT, DtypeKind.UINT, DtypeKind.FLOAT, DtypeKind.BOOL):
-            # Simple numerical or bool dtype, turn into numpy array
-            columns[name], _buf = convert_column_to_ndarray(col)
-        elif col.dtype[0] == DtypeKind.CATEGORICAL:
-            columns[name], _buf = convert_categorical_column(col)
-        elif col.dtype[0] == DtypeKind.STRING:
-            columns[name], _buf = convert_string_column(col)
-        else:
-            raise NotImplementedError(f"Data type {col.dtype[0]} not handled yet")
+    result = []
+    for chunk in df.get_chunks():
+        # We need a dict of columns here, with each column being a numpy array (at
+        # least for now, deal with non-numpy dtypes later).
+        chunk_cols = {}
+        for name in chunk.column_names():
+            if not isinstance(name, str):
+                raise ValueError(f"Column {name} is not a string")
+            if name in chunk_cols:
+                raise ValueError(f"Column {name} is not unique")
+            col = chunk.get_column_by_name(name)
+            if col.dtype[0] in (DtypeKind.INT, DtypeKind.UINT, DtypeKind.FLOAT, DtypeKind.BOOL):
+                # Simple numerical or bool dtype, turn into numpy array
+                chunk_cols[name], _buf = convert_column_to_ndarray(col)
+            elif col.dtype[0] == DtypeKind.CATEGORICAL:
+                chunk_cols[name], _buf = convert_categorical_column(col)
+            elif col.dtype[0] == DtypeKind.STRING:
+                chunk_cols[name], _buf = convert_string_column(col)
+            else:
+                raise NotImplementedError(f"Data type {col.dtype[0]} not handled yet")
 
-        _buffers.append(_buf)
+            _buffers.append(_buf)
 
-    df_new = pd.DataFrame(columns)
+        df_new = pd.DataFrame(chunk_cols)
+        result.append(df_new)
+
+    df_new = pd.concat(result)
     df_new._buffers = _buffers
     return df_new
 
