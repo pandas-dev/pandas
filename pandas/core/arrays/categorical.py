@@ -43,7 +43,6 @@ from pandas._typing import (
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
-    cache_readonly,
     deprecate_kwarg,
     deprecate_nonkeyword_arguments,
 )
