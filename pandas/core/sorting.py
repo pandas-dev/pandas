@@ -683,6 +683,8 @@ def compress_group_index(
 
     # note, group labels come out ascending (ie, 1,2,3 etc)
     comp_ids, obs_group_ids = table.get_labels_groupby(group_index)
+
+    assert (obs_group_ids <= np.iinfo(np.int32).max).all()  # debugging 32bit build
     obs_group_ids = ensure_platform_int(obs_group_ids)  # int64->int32 on 32bit
 
     if sort and len(obs_group_ids) > 0:
