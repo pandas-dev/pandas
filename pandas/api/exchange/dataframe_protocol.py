@@ -2,6 +2,7 @@ from typing import Tuple, Optional, Dict, Any, Iterable, Sequence, TypedDict
 import enum
 from abc import ABC, abstractmethod
 
+
 class DlpackDeviceType(enum.IntEnum):
     """Integer enum for device type codes matching DLPack."""
 
@@ -13,6 +14,7 @@ class DlpackDeviceType(enum.IntEnum):
     METAL = 8
     VPI = 9
     ROCM = 10
+
 
 class DtypeKind(enum.IntEnum):
     """
@@ -44,6 +46,7 @@ class DtypeKind(enum.IntEnum):
     DATETIME = 22
     CATEGORICAL = 23
 
+
 class ColumnNullType(enum.IntEnum):
     """
     Integer enum for null type representation.
@@ -68,6 +71,7 @@ class ColumnNullType(enum.IntEnum):
     USE_BITMASK = 3
     USE_BYTEMASK = 4
 
+
 class ColumnBuffers(TypedDict):
     data: Tuple["Buffer", Any] # first element is a buffer containing the column data;
                                # second element is the data buffer's associated dtype
@@ -86,11 +90,13 @@ class ColumnBuffers(TypedDict):
 class Buffer(ABC):
     """
     Data in the buffer is guaranteed to be contiguous in memory.
+
     Note that there is no dtype attribute present, a buffer can be thought of
     as simply a block of memory. However, if the column that the buffer is
     attached to has a dtype that's supported by DLPack and ``__dlpack__`` is
     implemented, then that dtype information will be contained in the return
     value from ``__dlpack__``.
+
     This distinction is useful to support both data exchange via DLPack on a
     buffer and (b) dtypes like variable-length strings which do not have a
     fixed number of bytes per element.
@@ -116,9 +122,12 @@ class Buffer(ABC):
     def __dlpack__(self):
         """
         Produce DLPack capsule (see array API standard).
+
         Raises:
+
             - TypeError : if the buffer contains unsupported dtypes.
             - NotImplementedError : if DLPack support is not implemented
+
         Useful to have to connect to array libraries. Support optional because
         it's not completely trivial to implement for a Python-only library.
         """
@@ -138,27 +147,33 @@ class Column(ABC):
     """
     A column object, with only the methods and properties required by the
     interchange protocol defined.
+
     A column can contain one or more chunks. Each chunk can contain up to three
     buffers - a data buffer, a mask buffer (depending on null representation),
     and an offsets buffer (if variable-size binary; e.g., variable-length
     strings).
+
     TBD: Arrow has a separate "null" dtype, and has no separate mask concept.
          Instead, it seems to use "children" for both columns with a bit mask,
          and for nested dtypes. Unclear whether this is elegant or confusing.
          This design requires checking the null representation explicitly.
+
          The Arrow design requires checking:
          1. the ARROW_FLAG_NULLABLE (for sentinel values)
          2. if a column has two children, combined with one of those children
             having a null dtype.
+
          Making the mask concept explicit seems useful. One null dtype would
          not be enough to cover both bit and byte masks, so that would mean
          even more checking if we did it the Arrow way.
+
     TBD: there's also the "chunk" concept here, which is implicit in Arrow as
          multiple buffers per array (= column here). Semantically it may make
          sense to have both: chunks were meant for example for lazy evaluation
          of data which doesn't fit in memory, while multiple buffers per column
          could also come from doing a selection operation on a single
          contiguous buffer.
+
          Given these concepts, one would expect chunks to be all of the same
          size (say a 10,000 row dataframe could have 10 chunks of 1,000 rows),
          while multiple buffers could have data-dependent lengths. Not an issue
@@ -167,6 +182,7 @@ class Column(ABC):
          Are multiple chunks *and* multiple buffers per column necessary for
          the purposes of this interchange protocol, or must producers either
          reuse the chunk concept for this or copy the data?
+
     Note: this Column object can only be produced by ``__dataframe__``, so
           doesn't need its own version or ``__column__`` protocol.
     """
@@ -176,6 +192,7 @@ class Column(ABC):
     def size(self) -> Optional[int]:
         """
         Size of the column, in elements.
+
         Corresponds to DataFrame.num_rows() if column is a single chunk;
         equal to size of this current chunk otherwise.
         """
@@ -186,6 +203,7 @@ class Column(ABC):
     def offset(self) -> int:
         """
         Offset of first element.
+
         May be > 0 if using chunks; for example for a column with N chunks of
         equal size M (only the last chunk may be shorter),
         ``offset = n * M``, ``n = 0 .. N-1``.
@@ -197,10 +215,12 @@ class Column(ABC):
     def dtype(self) -> Tuple[DtypeKind, int, str, str]:
         """
         Dtype description as a tuple ``(kind, bit-width, format string, endianness)``.
+
         Bit-width : the number of bits as an integer
         Format string : data type description format string in Apache Arrow C
                         Data Interface format.
         Endianness : current only native endianness (``=``) is supported
+
         Notes:
             - Kind specifiers are aligned with DLPack where possible (hence the
               jump to 20, leave enough room for future extension)
@@ -229,6 +249,7 @@ class Column(ABC):
         If the dtype is categorical, there are two options:
         - There are only values in the data buffer.
         - There is a separate dictionary-style encoding for categorical values.
+
         Raises TypeError if the dtype is not categorical
 
         Returns the description on how to interpret the data buffer:
@@ -238,6 +259,7 @@ class Column(ABC):
                                 categorical values to other objects exists
             - "mapping" : dict, Python-level only (e.g. ``{int: str}``).
                           None if not a dictionary-style categorical.
+
         TBD: are there any other in-memory representations that are needed?
         """
         pass
@@ -248,6 +270,7 @@ class Column(ABC):
         """
         Return the missing value (or "null") representation the column dtype
         uses, as a tuple ``(kind, value)``.
+
         Value : if kind is "sentinel value", the actual value. If kind is a bit
         mask or a byte mask, the value (0 or 1) indicating a missing value. None
         otherwise.
@@ -259,6 +282,7 @@ class Column(ABC):
     def null_count(self) -> Optional[int]:
         """
         Number of null elements, if known.
+
         Note: Arrow uses -1 to indicate "unknown", but None seems cleaner.
         """
         pass
@@ -282,6 +306,7 @@ class Column(ABC):
     def get_chunks(self, n_chunks : Optional[int] = None) -> Iterable["Column"]:
         """
         Return an iterator yielding the chunks.
+
         See `DataFrame.get_chunks` for details on ``n_chunks``.
         """
         pass
@@ -290,7 +315,9 @@ class Column(ABC):
     def get_buffers(self) -> ColumnBuffers:
         """
         Return a dictionary containing the underlying buffers.
+
         The returned dictionary has the following contents:
+
             - "data": a two-element tuple whose first element is a buffer
                       containing the data and whose second element is the data
                       buffer's associated dtype.
@@ -320,14 +347,17 @@ class DataFrame(ABC):
     """
     A data frame class, with only the methods required by the interchange
     protocol defined.
+
     A "data frame" represents an ordered collection of named columns.
     A column's "name" must be a unique string.
     Columns may be accessed by name or by position.
+
     This could be a public data frame class, or an object with the methods and
     attributes defined on this DataFrame class could be returned from the
     ``__dataframe__`` method of a public data frame class in a library adhering
     to the dataframe interchange protocol specification.
     """
+
     version = 0 # version of the protocol
 
     @property
@@ -414,6 +444,7 @@ class DataFrame(ABC):
     def get_chunks(self, n_chunks : Optional[int] = None) -> Iterable["DataFrame"]:
         """
         Return an iterator yielding the chunks.
+
         By default (None), yields the chunks that the data is stored as by the
         producer. If given, ``n_chunks`` must be a multiple of
         ``self.num_chunks()``, meaning the producer must subdivide each chunk
