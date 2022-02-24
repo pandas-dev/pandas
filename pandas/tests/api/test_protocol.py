@@ -3,10 +3,10 @@ import math
 
 @pytest.mark.parametrize("test_data",
                          [
-                             {'a': ["foo", "bar"],
-                              'b': ["baz", "qux"]},
-                             {'a': [1.5, 2.5, 3.5], 'b': [9.2, 10.5, 11.8]},
-                             {'A': [1, 2, 3, 4], 'B': [1, 2, 3, 4]}
+                             {"a": ["foo", "bar"],
+                              "b": ["baz", "qux"]},
+                             {"a": [1.5, 2.5, 3.5], "b": [9.2, 10.5, 11.8]},
+                             {"A": [1, 2, 3, 4], "B": [1, 2, 3, 4]}
                          ],
                          ids=["str_data", "float_data", "int_data"])
 def test_only_one_dtype(test_data, df_from_dict):
@@ -22,12 +22,12 @@ def test_only_one_dtype(test_data, df_from_dict):
 
 
 def test_float_int(df_from_dict):
-    df = df_from_dict({'a': [1, 2, 3], 'b': [3, 4, 5],
-                       'c': [1.5, 2.5, 3.5], 'd': [9, 10, 11],
-                       'e': [True, False, True],
-                       'f': ["a", "", "c"]})
+    df = df_from_dict({"a": [1, 2, 3], "b": [3, 4, 5],
+                       "c": [1.5, 2.5, 3.5], "d": [9, 10, 11],
+                       "e": [True, False, True],
+                       "f": ["a", "", "c"]})
     dfX = df.__dataframe__()
-    columns = {'a': 0, 'b': 0, 'c': 2, 'd': 0, 'e': 20, 'f': 21}
+    columns = {"a": 0, "b": 0, "c": 2, "d": 0, "e": 20, "f": 21}
 
     for column, kind in columns.items():
         colX = dfX.get_column_by_name(column)
@@ -41,15 +41,15 @@ def test_float_int(df_from_dict):
 
 
 def test_na_float(df_from_dict):
-    df = df_from_dict({'a': [1.0, math.nan, 2.0]})
+    df = df_from_dict({"a": [1.0, math.nan, 2.0]})
     dfX = df.__dataframe__()
-    colX = dfX.get_column_by_name('a')
+    colX = dfX.get_column_by_name("a")
     assert colX.null_count == 1
 
 def test_noncategorical(df_from_dict):
-    df = df_from_dict({'a': [1, 2, 3]})
+    df = df_from_dict({"a": [1, 2, 3]})
     dfX = df.__dataframe__()
-    colX = dfX.get_column_by_name('a')
+    colX = dfX.get_column_by_name("a")
     with pytest.raises(TypeError):
         colX.describe_categorical
 
@@ -103,7 +103,7 @@ def test_buffer(df_from_dict):
     colX = dfX.get_column(0)
     bufX = colX.get_buffers()
 
-    dataBuf, dataDtype = bufX['data']
+    dataBuf, dataDtype = bufX["data"]
 
     assert dataBuf.bufsize > 0
     assert dataBuf.ptr != 0
