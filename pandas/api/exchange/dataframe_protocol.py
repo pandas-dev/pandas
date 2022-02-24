@@ -1,5 +1,6 @@
 from typing import Tuple, Optional, Dict, Any, Iterable, Sequence, TypedDict
 import enum
+from abc import ABC, abstractmethod
 
 class DlpackDeviceType(enum.IntEnum):
     CPU = 1
@@ -20,7 +21,7 @@ class DtypeKind(enum.IntEnum):
     DATETIME = 22
     CATEGORICAL = 23
 
-class ColumnNullType:
+class ColumnNullType(enum.IntEnum):
     NON_NULLABLE = 0
     USE_NAN = 1
     USE_SENTINEL = 2
@@ -42,7 +43,7 @@ class ColumnBuffers(TypedDict):
                                             # an associated offsets buffer
 
 
-class Buffer:
+class Buffer(ABC):
     """
     Data in the buffer is guaranteed to be contiguous in memory.
     Note that there is no dtype attribute present, a buffer can be thought of
@@ -56,6 +57,7 @@ class Buffer:
     """
 
     @property
+    @abstractmethod
     def bufsize(self) -> int:
         """
         Buffer size in bytes.
@@ -63,12 +65,14 @@ class Buffer:
         pass
 
     @property
+    @abstractmethod
     def ptr(self) -> int:
         """
         Pointer to start of the buffer as an integer.
         """
         pass
 
+    @abstractmethod
     def __dlpack__(self):
         """
         Produce DLPack capsule (see array API standard).
@@ -80,6 +84,7 @@ class Buffer:
         """
         raise NotImplementedError("__dlpack__")
 
+    @abstractmethod
     def __dlpack_device__(self) -> Tuple[DlpackDeviceType, int]:
         """
         Device type and device ID for where the data in the buffer resides.
@@ -89,7 +94,7 @@ class Buffer:
         pass
 
 
-class Column:
+class Column(ABC):
     """
     A column object, with only the methods and properties required by the
     interchange protocol defined.
@@ -127,6 +132,7 @@ class Column:
     """
 
     @property
+    @abstractmethod
     def size(self) -> Optional[int]:
         """
         Size of the column, in elements.
@@ -136,6 +142,7 @@ class Column:
         pass
 
     @property
+    @abstractmethod
     def offset(self) -> int:
         """
         Offset of first element.
@@ -146,6 +153,7 @@ class Column:
         pass
 
     @property
+    @abstractmethod
     def dtype(self) -> Tuple[DtypeKind, int, str, str]:
         """
         Dtype description as a tuple ``(kind, bit-width, format string, endianness)``.
@@ -175,6 +183,7 @@ class Column:
         pass
 
     @property
+    @abstractmethod
     def describe_categorical(self) -> Tuple[bool, bool, dict]:
         """
         If the dtype is categorical, there are two options:
@@ -194,6 +203,7 @@ class Column:
         pass
 
     @property
+    @abstractmethod
     def describe_null(self) -> Tuple[ColumnNullType, Any]:
         """
         Return the missing value (or "null") representation the column dtype
@@ -205,6 +215,7 @@ class Column:
         pass
 
     @property
+    @abstractmethod
     def null_count(self) -> Optional[int]:
         """
         Number of null elements, if known.
@@ -213,18 +224,21 @@ class Column:
         pass
 
     @property
+    @abstractmethod
     def metadata(self) -> Dict[str, Any]:
         """
         The metadata for the column. See `DataFrame.metadata` for more details.
         """
         pass
 
+    @abstractmethod
     def num_chunks(self) -> int:
         """
         Return the number of chunks the column consists of.
         """
         pass
 
+    @abstractmethod
     def get_chunks(self, n_chunks : Optional[int] = None) -> Iterable["Column"]:
         """
         Return an iterator yielding the chunks.
@@ -232,6 +246,7 @@ class Column:
         """
         pass
 
+    @abstractmethod
     def get_buffers(self) -> ColumnBuffers:
         """
         Return a dictionary containing the underlying buffers.
@@ -261,7 +276,7 @@ class Column:
 #        pass
 
 
-class DataFrame:
+class DataFrame(ABC):
     """
     A data frame class, with only the methods required by the interchange
     protocol defined.
@@ -276,6 +291,7 @@ class DataFrame:
     version = 0 # version of the protocol
 
     @property
+    @abstractmethod
     def metadata(self) -> Dict[str, Any]:
         """
         The metadata for the data frame, as a dictionary with string keys. The
@@ -288,12 +304,14 @@ class DataFrame:
         """
         pass
 
+    @abstractmethod
     def num_columns(self) -> int:
         """
         Return the number of columns in the DataFrame.
         """
         pass
 
+    @abstractmethod
     def num_rows(self) -> Optional[int]:
         # TODO: not happy with Optional, but need to flag it may be expensive
         #       why include it if it may be None - what do we expect consumers
@@ -303,48 +321,56 @@ class DataFrame:
         """
         pass
 
+    @abstractmethod
     def num_chunks(self) -> int:
         """
         Return the number of chunks the DataFrame consists of.
         """
         pass
 
+    @abstractmethod
     def column_names(self) -> Iterable[str]:
         """
         Return an iterator yielding the column names.
         """
         pass
 
+    @abstractmethod
     def get_column(self, i: int) -> Column:
         """
         Return the column at the indicated position.
         """
         pass
 
+    @abstractmethod
     def get_column_by_name(self, name: str) -> Column:
         """
         Return the column whose name is the indicated name.
         """
         pass
 
+    @abstractmethod
     def get_columns(self) -> Iterable[Column]:
         """
         Return an iterator yielding the columns.
         """
         pass
 
+    @abstractmethod
     def select_columns(self, indices: Sequence[int]) -> "DataFrame":
         """
         Create a new DataFrame by selecting a subset of columns by index.
         """
         pass
 
+    @abstractmethod
     def select_columns_by_name(self, names: Sequence[str]) -> "DataFrame":
         """
         Create a new DataFrame by selecting a subset of columns by name.
         """
         pass
 
+    @abstractmethod
     def get_chunks(self, n_chunks : Optional[int] = None) -> Iterable["DataFrame"]:
         """
         Return an iterator yielding the chunks.
