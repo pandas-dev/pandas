@@ -11,13 +11,15 @@ on:
       - 1.4.x
 
 env:
-  ENV_FILE: environment.yml
   PANDAS_CI: 1
 
 jobs:
   web_and_docs:
     name: Doc Build and Upload
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
@@ -26,21 +28,21 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
 
-    - name: Set up pandas
+    - name: Set up Conda
       uses: ./.github/actions/setup
 
+    - name: Build pandas
+      uses: ./.github/actions/build-pandas
+
     - name: Build website
-      run: |
-        source activate pandas-dev
-        python web/pandas_web.py web/pandas --target-path=web/build
+      run: python web/pandas_web.py web/pandas --target-path=web/build
+
     - name: Build documentation
-      run: |
-        source activate pandas-dev
-        doc/make.py --warnings-are-errors
+      run: doc/make.py --warnings-are-errors
 
     - name: Install ssh key
       run: |

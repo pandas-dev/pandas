@@ -21,11 +21,11 @@ on:
       - "doc/**"
 
 env:
-  PYTEST_WORKERS: "auto"
   PANDAS_CI: 1
+  PYTEST_TARGET: pandas
+  PYTEST_WORKERS: "auto"
   PATTERN: "not slow and not network and not clipboard and not single_cpu"
   COVERAGE: true
-  PYTEST_TARGET: pandas
 
 jobs:
   build:
@@ -35,63 +35,43 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macOS-latest, windows-latest]
+        python-version: ["3.11-dev"]
 
-    name: actions-311-dev
+    name: ${{ matrix.python-version }}
     timeout-minutes: 80
+    defaults:
+      run:
+        shell: bash -el {0}
 
     concurrency:
       #https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.os }}-${{ matrix.pytest_target }}-dev
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.os }}-dev
       cancel-in-progress: true
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         fetch-depth: 0
 
-    - name: Set up Python Dev Version
-      uses: actions/setup-python@v2
+    - name: Set up Python ${{ matrix.python-version }} and install dependencies
+      uses: ./.github/actions/setup-python
       with:
-        python-version: '3.11-dev'
+        python-version: ${{ matrix.python-version }}
 
-    # TODO: GH#44980 https://github.com/pypa/setuptools/issues/2941
-    - name: Install dependencies
-      shell: bash
+    - name: Install NumPy nightly
+      run:
+        pip install -Ui https://pypi.anaconda.org/scipy-wheels-nightly/simple numpy
+
+    - name: Build pandas
+      uses: ./.github/actions/build-pandas
+
+    - name: Install pandas from sdist
       run: |
-        python -m pip install --upgrade pip "setuptools<60.0.0" wheel
-        pip install -i https://pypi.anaconda.org/scipy-wheels-nightly/simple numpy
-        pip install git+https://github.com/nedbat/coveragepy.git
-        pip install cython python-dateutil pytz hypothesis pytest>=6.2.5 pytest-xdist pytest-cov
+        # Double check that we have the expected Python and NumPy
+        python --version
         pip list
+        python --version | grep -i "$(echo "${{ matrix.python-version }}" | sed 's/-.*//')"
+        pip list | egrep -i "numpy.+dev"
 
-    - name: Build Pandas
-      run: |
-        python setup.py build_ext -q -j2
-        python -m pip install -e . --no-build-isolation --no-use-pep517
-
-    - name: Build Version
-      run: |
-        python -c "import pandas; pandas.show_versions();"
-
-    - name: Test with pytest
-      shell: bash
-      run: |
-        ci/run_tests.sh
-
-    - name: Publish test results
-      uses: actions/upload-artifact@v2
-      with:
-        name: Test results
-        path: test-data.xml
-      if: failure()
-
-    - name: Report Coverage
-      run: |
-        coverage report -m
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v2
-      with:
-        flags: unittests
-        name: codecov-pandas
-        fail_ci_if_error: true
+    - name: Run tests
+      uses: ./.github/actions/run-tests

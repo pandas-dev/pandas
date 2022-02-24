@@ -30,6 +30,10 @@ if [[ "$PATTERN" ]]; then
   PYTEST_CMD="$PYTEST_CMD -m \"$PATTERN\""
 fi
 
+which pytest
+which python
+pytest -VV || true
+python -VV || true
 echo $PYTEST_CMD
 sh -c "$PYTEST_CMD"
 

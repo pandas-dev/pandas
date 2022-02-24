@@ -11,7 +11,6 @@ on:
       - 1.4.x
 
 env:
-  ENV_FILE: environment.yml
   PANDAS_CI: 1
 
 jobs:
@@ -24,10 +23,10 @@ jobs:
       cancel-in-progress: true
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Install Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v3
       with:
         python-version: '3.9.7'
 
@@ -39,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        shell: bash -l {0}
+        shell: bash -el {0}
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
@@ -48,24 +47,17 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
 
-    - name: Cache conda
-      uses: actions/cache@v2
-      with:
-        path: ~/conda_pkgs_dir
-        key: ${{ runner.os }}-conda-${{ hashFiles('${{ env.ENV_FILE }}') }}
+    - name: Set up Conda
+      uses: ./.github/actions/setup
 
-    - uses: conda-incubator/setup-miniconda@v2
-      with:
-        mamba-version: "*"
-        channels: conda-forge
-        activate-environment: pandas-dev
-        channel-priority: strict
-        environment-file: ${{ env.ENV_FILE }}
-        use-only-tar-bz2: true
+    - name: Build Pandas
+      uses: ./.github/actions/build-pandas
+      id: build
+      continue-on-error: true
 
     - name: Install node.js (for pyright)
       uses: actions/setup-node@v2
@@ -75,10 +67,6 @@ jobs:
     - name: Install pyright
       # note: keep version in sync with .pre-commit-config.yaml
       run: npm install -g pyright@1.1.230
-
-    - name: Build Pandas
-      id: build
-      uses: ./.github/actions/build_pandas
 
     - name: Run checks on imported code
       run: ci/code_checks.sh code
@@ -105,7 +93,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        shell: bash -l {0}
+        shell: bash -el {0}
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
@@ -114,28 +102,15 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
 
-    - name: Cache conda
-      uses: actions/cache@v2
-      with:
-        path: ~/conda_pkgs_dir
-        key: ${{ runner.os }}-conda-${{ hashFiles('${{ env.ENV_FILE }}') }}
-
-    - uses: conda-incubator/setup-miniconda@v2
-      with:
-        mamba-version: "*"
-        channels: conda-forge
-        activate-environment: pandas-dev
-        channel-priority: strict
-        environment-file: ${{ env.ENV_FILE }}
-        use-only-tar-bz2: true
+    - name: Set up Conda
+      uses: ./.github/actions/setup
 
     - name: Build Pandas
-      id: build
-      uses: ./.github/actions/build_pandas
+      uses: ./.github/actions/build-pandas
 
     - name: Run ASV benchmarks
       run: |
@@ -148,7 +123,6 @@ jobs:
         if grep "failed" benchmarks.log > /dev/null ; then
             exit 1
         fi
-      if: ${{ steps.build.outcome == 'success' }}
 
     - name: Publish benchmarks artifact
       uses: actions/upload-artifact@v2
@@ -162,7 +136,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        shell: bash -l {0}
+        shell: bash -el {0}
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
@@ -174,7 +148,7 @@ jobs:
         run: docker image prune -f
 
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
