@@ -3,6 +3,8 @@ import enum
 from abc import ABC, abstractmethod
 
 class DlpackDeviceType(enum.IntEnum):
+    """Integer enum for device type codes matching DLPack."""
+
     CPU = 1
     CUDA = 2
     CPU_PINNED = 3
@@ -13,6 +15,27 @@ class DlpackDeviceType(enum.IntEnum):
     ROCM = 10
 
 class DtypeKind(enum.IntEnum):
+    """
+    Integer enum for data types.
+
+    Attributes
+    ----------
+    INT : int
+        Matches to signed integer data type.
+    UINT : int
+        Matches to unsigned integer data type.
+    FLOAT : int
+        Matches to floating point data type.
+    BOOL : int
+        Matches to boolean data type.
+    STRING : int
+        Matches to string data type (UTF-8 encoded).
+    DATETIME : int
+        Matches to datetime data type.
+    CATEGORICAL : int
+        Matches to categorical data type.
+    """
+
     INT = 0
     UINT = 1
     FLOAT = 2
@@ -22,6 +45,23 @@ class DtypeKind(enum.IntEnum):
     CATEGORICAL = 23
 
 class ColumnNullType(enum.IntEnum):
+    """
+    Integer enum for null type representation.
+
+    Attributes
+    ----------
+    NON_NULLABLE : int
+        Non-nullable column.
+    USE_NAN : int
+        Use explicit float NaN/NaT value.
+    USE_SENTINEL : int
+        Sentinel value besides NaN/NaT.
+    USE_BITMASK : int
+        The bit is set/unset representing a null on a certain position.
+    USE_BYTEMASK : int
+        The byte is set/unset representing a null on a certain position.
+    """
+
     NON_NULLABLE = 0
     USE_NAN = 1
     USE_SENTINEL = 2
@@ -85,7 +125,7 @@ class Buffer(ABC):
         raise NotImplementedError("__dlpack__")
 
     @abstractmethod
-    def __dlpack_device__(self) -> Tuple[DlpackDeviceType, int]:
+    def __dlpack_device__(self) -> Tuple[DlpackDeviceType, Optional[int]]:
         """
         Device type and device ID for where the data in the buffer resides.
         Uses device type codes matching DLPack.
@@ -184,7 +224,7 @@ class Column(ABC):
 
     @property
     @abstractmethod
-    def describe_categorical(self) -> Tuple[bool, bool, dict]:
+    def describe_categorical(self) -> Tuple[bool, bool, Optional[dict]]:
         """
         If the dtype is categorical, there are two options:
         - There are only values in the data buffer.
