@@ -453,6 +453,9 @@ cdef class BaseOffset:
             return NotImplemented
 
     def __radd__(self, other):
+        # We land here because the other object doesn't know how to add
+        # offset. We can call our own add method since order of operations
+        # doesn't matter.
         return self.__add__(other)
 
     def __sub__(self, other):
@@ -462,11 +465,18 @@ cdef class BaseOffset:
             return type(self)(self.n - other.n, normalize=self.normalize,
                               **self.kwds)
         elif not isinstance(self, BaseOffset):
+            # TODO(Cython 3): remove, this moved to __rsub__
             # cython semantics, this is __rsub__
             return (-other).__add__(self)
         else:
             # e.g. PeriodIndex
             return NotImplemented
+
+    def __rsub__(self, other):
+        # We land here because the other object doesn't know how to sub
+        # offset. We can call our own add method since order of operations
+        # doesn't matter.
+        return self.__sub__(other)
 
     def __call__(self, other):
         warnings.warn(
@@ -494,9 +504,16 @@ cdef class BaseOffset:
             return type(self)(n=other * self.n, normalize=self.normalize,
                               **self.kwds)
         elif not isinstance(self, BaseOffset):
+            # TODO: (Cython 3) remove this, this moved to __rmul__
             # cython semantics, this is __rmul__
             return other.__mul__(self)
         return NotImplemented
+
+    def __rmul__(self, other):
+        # We land here because the other object doesn't know how to mul
+        # offset. We can call our own mul method since order of operations
+        # doesn't matter.
+        return self.__mul__(other)
 
     def __neg__(self):
         # Note: we are deferring directly to __mul__ instead of __rmul__, as
@@ -882,6 +899,7 @@ cdef class Tick(SingleConstructorOffset):
 
     def __mul__(self, other):
         if not isinstance(self, Tick):
+            # TODO: Cython3, remove this, this moved to __rmul__
             # cython semantics, this is __rmul__
             return other.__mul__(self)
         if is_float_object(other):
@@ -894,6 +912,12 @@ cdef class Tick(SingleConstructorOffset):
             new_self = self._next_higher_resolution()
             return new_self * other
         return BaseOffset.__mul__(self, other)
+
+    def __rmul__(self, other):
+        # We land here because the other object doesn't know how to mul
+        # offset. We can call our own mul method since order of operations
+        # doesn't matter.
+        return self.__mul__(other)
 
     def __truediv__(self, other):
         if not isinstance(self, Tick):
@@ -924,7 +948,10 @@ cdef class Tick(SingleConstructorOffset):
                 f"the add operation between {self} and {other} will overflow"
             ) from err
     def __radd__(self, other):
-        return other.__add__(self)
+        # We land here because the other object doesn't know how to add
+        # offset. We can call our own add method since order of operations
+        # doesn't matter.
+        return self.__add__(other)
 
     def _apply(self, other):
         # Timestamp can handle tz and nano sec, thus no need to use apply_wraps
