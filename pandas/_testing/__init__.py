@@ -803,6 +803,11 @@ class SubclassedSeries(Series):
 
     @property
     def _constructor(self):
+        # For testing, those properties return a generic callable, and not
+        # the actual class. In this case that is equivalent, but it is to
+        # ensure we don't rely on the property returning a class
+        # See https://github.com/pandas-dev/pandas/pull/46018 and
+        # https://github.com/pandas-dev/pandas/issues/32638 and linked issues
         return lambda *args, **kwargs: SubclassedSeries(*args, **kwargs)
 
     @property
