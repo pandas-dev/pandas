@@ -42,7 +42,7 @@ class DtypeKind(enum.IntEnum):
     UINT = 1
     FLOAT = 2
     BOOL = 20
-    STRING = 21   # UTF-8
+    STRING = 21  # UTF-8
     DATETIME = 22
     CATEGORICAL = 23
 
@@ -73,18 +73,20 @@ class ColumnNullType(enum.IntEnum):
 
 
 class ColumnBuffers(TypedDict):
-    data: Tuple["Buffer", Any] # first element is a buffer containing the column data;
-                               # second element is the data buffer's associated dtype
-    validity: Optional[Tuple["Buffer", Any]] # first element is a buffer containing mask values
-                                             # indicating missing data and second element is
-                                             # the mask value buffer's associated dtype.
-                                             # None if the null representation is not a bit or byte mask
-    offsets: Optional[Tuple["Buffer", Any]] # first element is a buffer containing the
-                                            # offset values for variable-size binary data
-                                            # (e.g., variable-length strings) and
-                                            # second element is the offsets buffer's associated dtype.
-                                            # None if the data buffer does not have
-                                            # an associated offsets buffer
+    # first element is a buffer containing the column data;
+    # second element is the data buffer's associated dtype
+    data: Tuple["Buffer", Any]
+
+    # first element is a buffer containing mask values indicating missing data;
+    # second element is the mask value buffer's associated dtype.
+    # None if the null representation is not a bit or byte mask
+    validity: Optional[Tuple["Buffer", Any]]
+
+    # first element is a buffer containing the offset values for
+    # variable-size binary data (e.g., variable-length strings);
+    # second element is the offsets buffer's associated dtype.
+    # None if the data buffer does not have an associated offsets buffer
+    offsets: Optional[Tuple["Buffer", Any]]
 
 
 class Buffer(ABC):
@@ -303,7 +305,7 @@ class Column(ABC):
         pass
 
     @abstractmethod
-    def get_chunks(self, n_chunks : Optional[int] = None) -> Iterable["Column"]:
+    def get_chunks(self, n_chunks: Optional[int] = None) -> Iterable["Column"]:
         """
         Return an iterator yielding the chunks.
 
@@ -335,6 +337,7 @@ class Column(ABC):
         """
         pass
 
+
 #    def get_children(self) -> Iterable[Column]:
 #        """
 #        Children columns underneath the column, each object in this iterator
@@ -358,7 +361,7 @@ class DataFrame(ABC):
     to the dataframe interchange protocol specification.
     """
 
-    version = 0 # version of the protocol
+    version = 0  # version of the protocol
 
     @property
     @abstractmethod
@@ -441,7 +444,7 @@ class DataFrame(ABC):
         pass
 
     @abstractmethod
-    def get_chunks(self, n_chunks : Optional[int] = None) -> Iterable["DataFrame"]:
+    def get_chunks(self, n_chunks: Optional[int] = None) -> Iterable["DataFrame"]:
         """
         Return an iterator yielding the chunks.
 

@@ -3,7 +3,14 @@ import ctypes
 
 from typing import Tuple, Any
 
-from .dataframe_protocol import Buffer, Column, ColumnNullType, DataFrame as DataFrameXchg, DtypeKind, DlpackDeviceType
+from .dataframe_protocol import (
+    Buffer,
+    Column,
+    ColumnNullType,
+    DataFrame as DataFrameXchg,
+    DtypeKind,
+    DlpackDeviceType,
+)
 
 import pandas as pd
 import numpy as np
@@ -15,21 +22,21 @@ _NP_DTYPES = {
     DtypeKind.BOOL: {8: bool},
 }
 
-def from_dataframe(df : DataFrameXchg,
-                   allow_copy : bool = True) -> pd.DataFrame:
+
+def from_dataframe(df: DataFrameXchg, allow_copy: bool = True) -> pd.DataFrame:
     """
     Construct a pandas DataFrame from ``df`` if it supports ``__dataframe__``
     """
     if isinstance(df, pd.DataFrame):
         return df
 
-    if not hasattr(df, '__dataframe__'):
+    if not hasattr(df, "__dataframe__"):
         raise ValueError("`df` does not support __dataframe__")
 
     return _from_dataframe(df.__dataframe__(allow_copy=allow_copy))
 
 
-def _from_dataframe(df : DataFrameXchg) -> pd.DataFrame:
+def _from_dataframe(df: DataFrameXchg) -> pd.DataFrame:
     """
     Note: not all cases are handled yet, only ones that can be implemented with
     only Pandas. Later, we need to implement/test support for categoricals,
@@ -47,7 +54,12 @@ def _from_dataframe(df : DataFrameXchg) -> pd.DataFrame:
             if name in chunk_cols:
                 raise ValueError(f"Column {name} is not unique")
             col = chunk.get_column_by_name(name)
-            if col.dtype[0] in (DtypeKind.INT, DtypeKind.UINT, DtypeKind.FLOAT, DtypeKind.BOOL):
+            if col.dtype[0] in (
+                DtypeKind.INT,
+                DtypeKind.UINT,
+                DtypeKind.FLOAT,
+                DtypeKind.BOOL,
+            ):
                 # Simple numerical or bool dtype, turn into numpy array
                 chunk_cols[name], _buf = convert_column_to_ndarray(col)
             elif col.dtype[0] == DtypeKind.CATEGORICAL:
@@ -67,19 +79,23 @@ def _from_dataframe(df : DataFrameXchg) -> pd.DataFrame:
     return df_new
 
 
-def convert_column_to_ndarray(col : Column) -> Tuple[np.ndarray, Buffer]:
+def convert_column_to_ndarray(col: Column) -> Tuple[np.ndarray, Buffer]:
     """
     Convert an int, uint, float or bool column to a numpy array.
     """
-    if col.describe_null[0] not in (ColumnNullType.NON_NULLABLE, ColumnNullType.USE_NAN):
-        raise NotImplementedError("Null values represented as masks or "
-                                  "sentinel values not handled yet")
+    if col.describe_null[0] not in (
+        ColumnNullType.NON_NULLABLE,
+        ColumnNullType.USE_NAN,
+    ):
+        raise NotImplementedError(
+            "Null values represented as masks or " "sentinel values not handled yet"
+        )
 
     _buffer, _dtype = col.get_buffers()["data"]
     return buffer_to_ndarray(_buffer, _dtype), _buffer
 
 
-def buffer_to_ndarray(_buffer : Buffer, _dtype) -> np.ndarray:
+def buffer_to_ndarray(_buffer: Buffer, _dtype) -> np.ndarray:
     # Handle the dtype
     kind = _dtype[0]
     bitwidth = _dtype[1]
@@ -96,19 +112,18 @@ def buffer_to_ndarray(_buffer : Buffer, _dtype) -> np.ndarray:
     # NOTE: `x` does not own its memory, so the caller of this function must
     #       either make a copy or hold on to a reference of the column or
     #       buffer! (not done yet, this is pretty awful ...)
-    x = np.ctypeslib.as_array(data_pointer,
-                              shape=(_buffer.bufsize // (bitwidth//8),))
+    x = np.ctypeslib.as_array(data_pointer, shape=(_buffer.bufsize // (bitwidth // 8),))
 
     return x
 
 
-def convert_categorical_column(col : Column) -> Tuple[pd.Series, Buffer]:
+def convert_categorical_column(col: Column) -> Tuple[pd.Series, Buffer]:
     """
     Convert a categorical column to a Series instance.
     """
     ordered, is_dict, mapping = col.describe_categorical
     if not is_dict:
-        raise NotImplementedError('Non-dictionary categoricals not supported yet')
+        raise NotImplementedError("Non-dictionary categoricals not supported yet")
 
     # If you want to cheat for testing (can't use `_col` in real-world code):
     #    categories = col._col.values.categories.values
@@ -127,13 +142,14 @@ def convert_categorical_column(col : Column) -> Tuple[pd.Series, Buffer]:
         sentinel = col.describe_null[1]
         series[codes == sentinel] = np.nan
     elif null_kind != ColumnNullType.NON_NULLABLE:
-        raise NotImplementedError("Only categorical columns with sentinel "
-                                  "value supported at the moment")
+        raise NotImplementedError(
+            "Only categorical columns with sentinel " "value supported at the moment"
+        )
 
     return series, codes_buffer
 
 
-def convert_string_column(col : Column) -> Tuple[np.ndarray, dict]:
+def convert_string_column(col: Column) -> Tuple[np.ndarray, dict]:
     """
     Convert a string column to a NumPy array.
     """
@@ -153,7 +169,12 @@ def convert_string_column(col : Column) -> Tuple[np.ndarray, dict]:
     null_kind, null_value = col.describe_null
 
     # Convert the buffers to NumPy arrays
-    dt = (DtypeKind.UINT, 8, None, None)  # note: in order to go from STRING to an equivalent ndarray, we claim that the buffer is uint8 (i.e., a byte array)
+    dt = (
+        DtypeKind.UINT,
+        8,
+        None,
+        None,
+    )  # note: in order to go from STRING to an equivalent ndarray, we claim that the buffer is uint8 (i.e., a byte array)
     dbuf = buffer_to_ndarray(dbuffer, dt)
 
     obuf = buffer_to_ndarray(obuffer, odtype)
@@ -161,14 +182,14 @@ def convert_string_column(col : Column) -> Tuple[np.ndarray, dict]:
 
     # Assemble the strings from the code units
     str_list = []
-    for i in range(obuf.size-1):
+    for i in range(obuf.size - 1):
         # Check for missing values
         if null_kind == ColumnNullType.USE_BITMASK:
             v = mbuf[i // 8]
             if null_value == 1:
                 v = ~v
 
-            if v & (1<<(i % 8)):
+            if v & (1 << (i % 8)):
                 str_list.append(np.nan)
                 continue
 
@@ -177,7 +198,7 @@ def convert_string_column(col : Column) -> Tuple[np.ndarray, dict]:
             continue
 
         # Extract a range of code units
-        units = dbuf[obuf[i]:obuf[i+1]]
+        units = dbuf[obuf[i] : obuf[i + 1]]
 
         # Convert the list of code units to bytes
         b = bytes(units)
@@ -191,15 +212,17 @@ def convert_string_column(col : Column) -> Tuple[np.ndarray, dict]:
     # Convert the string list to a NumPy array
     return np.asarray(str_list, dtype="object"), buffers
 
+
 # Implementation of interchange protocol
 # --------------------------------------
+
 
 class _PandasBuffer(Buffer):
     """
     Data in the buffer is guaranteed to be contiguous in memory.
     """
 
-    def __init__(self, x : np.ndarray, allow_copy : bool = True) -> None:
+    def __init__(self, x: np.ndarray, allow_copy: bool = True) -> None:
         """
         Handle only regular columns (= numpy arrays) for now.
         """
@@ -209,8 +232,10 @@ class _PandasBuffer(Buffer):
             if allow_copy:
                 x = x.copy()
             else:
-                raise RuntimeError("Exports cannot be zero-copy in the case "
-                                   "of a non-contiguous buffer")
+                raise RuntimeError(
+                    "Exports cannot be zero-copy in the case "
+                    "of a non-contiguous buffer"
+                )
 
         # Store the numpy array in which the data resides as a private
         # attribute, so we can use it to retrieve the public attributes
@@ -228,7 +253,7 @@ class _PandasBuffer(Buffer):
         """
         Pointer to start of the buffer as an integer.
         """
-        return self._x.__array_interface__['data'][0]
+        return self._x.__array_interface__["data"][0]
 
     def __dlpack__(self):
         """
@@ -243,10 +268,18 @@ class _PandasBuffer(Buffer):
         return (DlpackDeviceType.CPU, None)
 
     def __repr__(self) -> str:
-        return 'PandasBuffer(' + str({'bufsize': self.bufsize,
-                                      'ptr': self.ptr,
-                                      'device': self.__dlpack_device__()[0].name}
-                                      ) + ')'
+        return (
+            "PandasBuffer("
+            + str(
+                {
+                    "bufsize": self.bufsize,
+                    "ptr": self.ptr,
+                    "device": self.__dlpack_device__()[0].name,
+                }
+            )
+            + ")"
+        )
+
 
 class _PandasColumn(Column):
     """
@@ -260,8 +293,7 @@ class _PandasColumn(Column):
           doesn't need its own version or ``__column__`` protocol.
     """
 
-    def __init__(self, column : pd.Series,
-                 allow_copy : bool = True) -> None:
+    def __init__(self, column: pd.Series, allow_copy: bool = True) -> None:
         """
         Note: doesn't deal with extension arrays yet, just assume a regular
         Series/ndarray for now.
@@ -285,6 +317,7 @@ class _PandasColumn(Column):
         """
         Offset of first element. Always zero.
         """
+        # FIXME: chunks are implemented now, this should return something!
         return 0
 
     @property
@@ -292,8 +325,8 @@ class _PandasColumn(Column):
         dtype = self._col.dtype
 
         # For now, assume that, if the column dtype is 'O' (i.e., `object`), then we have an array of strings
-        if not isinstance(dtype, pd.CategoricalDtype) and dtype.kind == 'O':
-            return (DtypeKind.STRING, 8, 'u', '=')
+        if not isinstance(dtype, pd.CategoricalDtype) and dtype.kind == "O":
+            return (DtypeKind.STRING, 8, "u", "=")
 
         return self._dtype_from_pandasdtype(dtype)
 
@@ -304,26 +337,39 @@ class _PandasColumn(Column):
         # Note: 'c' (complex) not handled yet (not in array spec v1).
         #       'b', 'B' (bytes), 'S', 'a', (old-style string) 'V' (void) not handled
         #       datetime and timedelta both map to datetime (is timedelta handled?)
-        _np_kinds = {"i": DtypeKind.INT, "u": DtypeKind.UINT, "f": DtypeKind.FLOAT, "b": DtypeKind.BOOL,
-                     "U": DtypeKind.STRING,
-                     "M": DtypeKind.DATETIME, "m": DtypeKind.DATETIME}
+        _np_kinds = {
+            "i": DtypeKind.INT,
+            "u": DtypeKind.UINT,
+            "f": DtypeKind.FLOAT,
+            "b": DtypeKind.BOOL,
+            "U": DtypeKind.STRING,
+            "M": DtypeKind.DATETIME,
+            "m": DtypeKind.DATETIME,
+        }
         kind = _np_kinds.get(dtype.kind, None)
         if kind is None:
             # Not a NumPy dtype. Check if it's a categorical maybe
             if isinstance(dtype, pd.CategoricalDtype):
                 kind = DtypeKind.CATEGORICAL
             else:
-                raise ValueError(f"Data type {dtype} not supported by exchange"
-                                 "protocol")
+                raise ValueError(
+                    f"Data type {dtype} not supported by exchange" "protocol"
+                )
 
-        if kind not in (DtypeKind.INT, DtypeKind.UINT, DtypeKind.FLOAT, DtypeKind.BOOL, DtypeKind.CATEGORICAL, DtypeKind.STRING):
+        if kind not in (
+            DtypeKind.INT,
+            DtypeKind.UINT,
+            DtypeKind.FLOAT,
+            DtypeKind.BOOL,
+            DtypeKind.CATEGORICAL,
+            DtypeKind.STRING,
+        ):
             raise NotImplementedError(f"Data type {dtype} not handled yet")
 
         bitwidth = dtype.itemsize * 8
         format_str = dtype.str
-        endianness = dtype.byteorder if not kind == DtypeKind.CATEGORICAL else '='
+        endianness = dtype.byteorder if not kind == DtypeKind.CATEGORICAL else "="
         return (kind, bitwidth, format_str, endianness)
-
 
     @property
     def describe_categorical(self):
@@ -341,8 +387,10 @@ class _PandasColumn(Column):
                           None if not a dictionary-style categorical.
         """
         if not self.dtype[0] == DtypeKind.CATEGORICAL:
-            raise TypeError("`describe_categorical only works on a column with "
-                            "categorical dtype!")
+            raise TypeError(
+                "`describe_categorical only works on a column with "
+                "categorical dtype!"
+            )
 
         ordered = self._col.dtype.ordered
         is_dictionary = True
@@ -373,7 +421,9 @@ class _PandasColumn(Column):
             value = -1
         elif kind == DtypeKind.STRING:
             null = 4
-            value = 0  # follow Arrow in using 1 as valid value and 0 for missing/null value
+            value = (
+                0  # follow Arrow in using 1 as valid value and 0 for missing/null value
+            )
         else:
             raise NotImplementedError(f"Data type {self.dtype} not yet supported")
 
@@ -408,9 +458,11 @@ class _PandasColumn(Column):
             size = len(self._col)
             step = size // n_chunks
             if size % n_chunks != 0:
-                step +=1
+                step += 1
             for start in range(0, step * n_chunks, step):
-                yield _PandasColumn(self._col.iloc[start:start + step], self._allow_copy)
+                yield _PandasColumn(
+                    self._col.iloc[start : start + step], self._allow_copy
+                )
         else:
             yield self
 
@@ -447,18 +499,23 @@ class _PandasColumn(Column):
 
         return buffers
 
-    def _get_data_buffer(self) -> Tuple[_PandasBuffer, Any]:  # Any is for self.dtype tuple
+    def _get_data_buffer(
+        self,
+    ) -> Tuple[_PandasBuffer, Any]:  # Any is for self.dtype tuple
         """
         Return the buffer containing the data and the buffer's associated dtype.
         """
-        if self.dtype[0] in (DtypeKind.INT, DtypeKind.UINT, DtypeKind.FLOAT, DtypeKind.BOOL):
-            buffer = _PandasBuffer(
-                self._col.to_numpy(), allow_copy=self._allow_copy)
+        if self.dtype[0] in (
+            DtypeKind.INT,
+            DtypeKind.UINT,
+            DtypeKind.FLOAT,
+            DtypeKind.BOOL,
+        ):
+            buffer = _PandasBuffer(self._col.to_numpy(), allow_copy=self._allow_copy)
             dtype = self.dtype
         elif self.dtype[0] == DtypeKind.CATEGORICAL:
             codes = self._col.values.codes
-            buffer = _PandasBuffer(
-                codes, allow_copy=self._allow_copy)
+            buffer = _PandasBuffer(codes, allow_copy=self._allow_copy)
             dtype = self._dtype_from_pandasdtype(codes.dtype)
         elif self.dtype[0] == DtypeKind.STRING:
             # Marshal the strings from a NumPy object array into a byte array
@@ -474,7 +531,12 @@ class _PandasColumn(Column):
             buffer = _PandasBuffer(np.frombuffer(b, dtype="uint8"))
 
             # Define the dtype for the returned buffer
-            dtype = (DtypeKind.STRING, 8, "u", "=")  # note: currently only support native endianness
+            dtype = (
+                DtypeKind.STRING,
+                8,
+                "u",
+                "=",
+            )  # note: currently only support native endianness
         else:
             raise NotImplementedError(f"Data type {self._col.dtype} not handled yet")
 
@@ -551,9 +613,16 @@ class _PandasColumn(Column):
             buffer = _PandasBuffer(buf)
 
             # Assemble the buffer dtype info
-            dtype = (DtypeKind.INT, 64, 'l', "=")  # note: currently only support native endianness
+            dtype = (
+                DtypeKind.INT,
+                64,
+                "l",
+                "=",
+            )  # note: currently only support native endianness
         else:
-            raise RuntimeError("This column has a fixed-length dtype so does not have an offsets buffer")
+            raise RuntimeError(
+                "This column has a fixed-length dtype so does not have an offsets buffer"
+            )
 
         return buffer, dtype
 
@@ -566,8 +635,10 @@ class _PandasDataFrameXchg(DataFrameXchg):
     ``pd.DataFrame.__dataframe__`` as objects with the methods and
     attributes defined on this class.
     """
-    def __init__(self, df : pd.DataFrame, nan_as_null : bool = False,
-                 allow_copy : bool = True) -> None:
+
+    def __init__(
+        self, df: pd.DataFrame, nan_as_null: bool = False, allow_copy: bool = True
+    ) -> None:
         """
         Constructor - an instance of this (private) class is returned from
         `pd.DataFrame.__dataframe__`.
@@ -599,16 +670,16 @@ class _PandasDataFrameXchg(DataFrameXchg):
         return self._df.columns.tolist()
 
     def get_column(self, i: int) -> _PandasColumn:
-        return _PandasColumn(
-            self._df.iloc[:, i], allow_copy=self._allow_copy)
+        return _PandasColumn(self._df.iloc[:, i], allow_copy=self._allow_copy)
 
     def get_column_by_name(self, name: str) -> _PandasColumn:
-        return _PandasColumn(
-            self._df[name], allow_copy=self._allow_copy)
+        return _PandasColumn(self._df[name], allow_copy=self._allow_copy)
 
     def get_columns(self):
-        return [_PandasColumn(self._df[name], allow_copy=self._allow_copy)
-                for name in self._df.columns]
+        return [
+            _PandasColumn(self._df[name], allow_copy=self._allow_copy)
+            for name in self._df.columns
+        ]
 
     def select_columns(self, indices):
         if not isinstance(indices, collections.abc.Sequence):
@@ -616,7 +687,9 @@ class _PandasDataFrameXchg(DataFrameXchg):
         if not isinstance(indices, list):
             indices = list(indices)
 
-        return _PandasDataFrameXchg(self._df.iloc[:, indices], self._nan_as_null, self._allow_copy)
+        return _PandasDataFrameXchg(
+            self._df.iloc[:, indices], self._nan_as_null, self._allow_copy
+        )
 
     def select_columns_by_name(self, names):
         if not isinstance(names, collections.abc.Sequence):
@@ -624,7 +697,9 @@ class _PandasDataFrameXchg(DataFrameXchg):
         if not isinstance(names, list):
             names = list(names)
 
-        return _PandasDataFrameXchg(self._df.loc[:, names], self._nan_as_null, self._allow_copy)
+        return _PandasDataFrameXchg(
+            self._df.loc[:, names], self._nan_as_null, self._allow_copy
+        )
 
     def get_chunks(self, n_chunks=None):
         """
@@ -634,8 +709,12 @@ class _PandasDataFrameXchg(DataFrameXchg):
             size = len(self._df)
             step = size // n_chunks
             if size % n_chunks != 0:
-                step +=1
+                step += 1
             for start in range(0, step * n_chunks, step):
-                yield _PandasDataFrameXchg(self._df.iloc[start:start + step, :], self._nan_as_null, self._allow_copy)
+                yield _PandasDataFrameXchg(
+                    self._df.iloc[start : start + step, :],
+                    self._nan_as_null,
+                    self._allow_copy,
+                )
         else:
             yield self
