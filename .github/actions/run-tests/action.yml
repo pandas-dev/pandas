@@ -1,0 +1,34 @@
+name: Run tests and report results
+inputs:
+  check-pyarrow-version:
+    required: false
+runs:
+  using: composite
+  steps:
+    - name: Check PyArrow version
+      run: |
+        # Double check that we have the expected PyArrow
+        pushd /tmp
+        python -c "import pandas; pandas.show_versions()" | egrep -i "pyarrow.+: ${{ matrix.check-pyarrow-version }}"
+        popd
+      shell: bash -el {0}
+      if: ${{ inputs.check-pyarrow-version }}
+
+    - name: Test
+      run: ci/run_tests.sh
+      shell: bash -el {0}
+
+    - name: Publish test results
+      uses: actions/upload-artifact@v2
+      with:
+        name: Test results
+        path: test-data.xml
+      if: failure()
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v2
+      with:
+        flags: unittests
+        name: codecov-pandas
+        fail_ci_if_error: false
+      if: failure()

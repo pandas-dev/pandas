@@ -1,0 +1,62 @@
+name: macOS and Windows
+
+on:
+  push:
+    branches:
+      - main
+      - 1.4.x
+  pull_request:
+    branches:
+      - main
+      - 1.4.x
+    paths-ignore:
+      - "doc/**"
+
+env:
+  PANDAS_CI: 1
+  PYTEST_TARGET: pandas
+  PYTEST_WORKERS: auto
+  PATTERN: "not slow and not db and not network and not single_cpu"
+
+jobs:
+  pytest:
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash -el {0}
+    timeout-minutes: 120
+    strategy:
+      matrix:
+        os: [macos-10.15, windows-2019]
+        env_file: [actions-38.yaml, actions-39.yaml, actions-310.yaml]
+        pyarrow_version: [6]
+      fail-fast: false
+    name: ${{ matrix.name || format('{0} {1} pyarrow={2}', matrix.os, matrix.env_file, matrix.pyarrow_version) }}
+    concurrency:
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.os }}-${{ matrix.env_file }}-${{ matrix.pyarrow_version }}-mac-win
+      cancel-in-progress: true
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: wmic.exe
+      run: wmic.exe cpu get caption, deviceid, name, numberofcores, maxclockspeed
+      if: ${{ runner.os == 'Windows' }}
+
+    - name: Set up Conda (${{ matrix.env_file }}, Arrow ${{ matrix.pyarrow_version}})
+      uses: ./.github/actions/setup
+      with:
+        environment-file: ci/deps/${{ matrix.env_file }}
+        pyarrow-version: ${{ matrix.pyarrow_version }}
+
+    - name: Build pandas
+      uses: ./.github/actions/build-pandas
+
+    - name: Run tests
+      uses: ./.github/actions/run-tests
+      with:
+        check-pyarrow-version: ${{ matrix.pyarrow_version }}

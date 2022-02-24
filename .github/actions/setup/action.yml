@@ -1,12 +1,50 @@
 name: Set up pandas
 description: Runs all the setup steps required to have a built pandas ready to use
+inputs:
+  environment-file:
+    default: environment.yml
+  pyarrow-version:
+      required: false
+  is-pypy:
+    default: false
+  environment-name:
+    default: pandas-dev
+  python-version:
+    required: false
 runs:
   using: composite
   steps:
-    - name: Setting conda path
-      run: echo "${HOME}/miniconda3/bin" >> $GITHUB_PATH
-      shell: bash -l {0}
+    - name: Set Arrow version in ${{ inputs.environment-file }} to ${{ inputs.pyarrow-version }}
+      run: |
+        grep -q '  - pyarrow' ${{ inputs.environment-file }}
+        sed -i"" -e "s/  - pyarrow/  - pyarrow=${{ inputs.pyarrow-version }}/" ${{ inputs.environment-file }}
+        cat ${{ inputs.environment-file }}
+      shell: bash
+      if: ${{ inputs.pyarrow-version }}
 
-    - name: Setup environment and build pandas
-      run: ci/setup_env.sh
-      shell: bash -l {0}
+    - name: Pin setuptools (GH#44980)
+      run: |
+        echo '  - setuptools <60' >> ${{ inputs.environment-file }}
+      shell: bash
+
+    - name: Install ${{ inputs.environment-file }} (Python ${{ inputs.python-version }})
+      uses: mamba-org/provision-with-micromamba@main
+      with:
+        environment-name: ${{ inputs.environment-name }}
+        environment-file: ${{ inputs.environment-file }}
+        extra-specs: |
+          ${{ inputs.python-version && format('python={0}', inputs.python-version) }}
+        cache-env: true
+      if: ${{ inputs.is-pypy == 'false' }} # No pypy3.8 support
+
+    - name: Setup PyPy
+      uses: actions/setup-python@v3
+      with:
+        python-version: "pypy-3.8"
+      if: ${{ inputs.is-pypy == 'true' }}
+
+    - name: Setup PyPy dependencies
+      # TODO: re-enable cov, its slowing the tests down though
+      run: pip install Cython numpy python-dateutil pytz pytest>=6.0 pytest-xdist>=1.31.0 hypothesis>=5.5.3 pytest-asyncio>=0.17
+      shell: bash
+      if: ${{ inputs.is-pypy == 'true' }}

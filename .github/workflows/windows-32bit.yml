@@ -1,0 +1,56 @@
+name: Windows 32 bit builds
+
+on:
+  push:
+    branches:
+      - main
+      - 1.4.x
+  pull_request:
+    branches:
+      - main
+      - 1.4.x
+    paths-ignore:
+      - "doc/**"
+
+env:
+  PANDAS_CI: 1
+  PYTEST_TARGET: pandas
+  PYTEST_WORKERS: auto
+  PATTERN: "not slow and not network and not clipboard and not single_cpu"
+  COVERAGE: true
+
+jobs:
+  windows-32bit:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    concurrency:
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.python-version }}-windows-32bit
+      cancel-in-progress: true
+    strategy:
+      matrix:
+        python-version: [3.9]
+    defaults:
+      run:
+        shell: bash -el {0}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: wmic.exe
+      run: wmic.exe cpu get caption, deviceid, name, numberofcores, maxclockspeed
+
+    - name: Set up Python ${{ matrix.python-version }} x86 and install dependencies
+      uses: ./.github/actions/setup-python
+      with:
+        python-version: ${{ matrix.python-version }}
+        architecture: x86
+
+    - name: Build pandas
+      uses: ./.github/actions/build-pandas
+
+    - name: Run tests
+      uses: ./.github/actions/run-tests
