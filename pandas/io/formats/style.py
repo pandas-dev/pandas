@@ -251,7 +251,6 @@ class Styler(StylerRenderer):
             cell_ids=cell_ids,
             precision=precision,
         )
-        self.concatenated: Styler | None = None
 
         # validate ordered args
         thousands = thousands or get_option("styler.format.thousands")

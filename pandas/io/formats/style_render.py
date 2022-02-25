@@ -118,7 +118,7 @@ class StylerRenderer:
             "foot": "foot",
             "foot_heading": "foot_heading",
         }
-
+        self.concatenated: StylerRenderer | None = None
         # add rendering variables
         self.hide_index_names: bool = False
         self.hide_column_names: bool = False
@@ -312,7 +312,7 @@ class StylerRenderer:
         self.cellstyle_map_index: DefaultDict[
             tuple[CSSPair, ...], list[str]
         ] = defaultdict(list)
-        body = self._translate_body(idx_lengths, max_rows, max_cols)
+        body: list = self._translate_body(idx_lengths, max_rows, max_cols)
         d.update({"body": body})
 
         ctx_maps = {
@@ -328,9 +328,9 @@ class StylerRenderer:
             d.update({k: map})
 
         if dx is not None:  # self.concatenated is not None
-            d["body"].extend(dx["body"])
-            d["cellstyle"].extend(dx["cellstyle"])
-            d["cellstyle_index"].extend(dx["cellstyle"])
+            d["body"].extend(dx["body"])  # type: ignore[union-attr]
+            d["cellstyle"].extend(dx["cellstyle"])  # type: ignore[union-attr]
+            d["cellstyle_index"].extend(dx["cellstyle"])  # type: ignore[union-attr]
 
         table_attr = self.table_attributes
         if not get_option("styler.html.mathjax"):
