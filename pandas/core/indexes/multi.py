@@ -3185,25 +3185,25 @@ class MultiIndex(Index):
         if isinstance(key, slice):
             # handle a slice, returning a slice if we can
             # otherwise a boolean indexer
+            step = key.step
+            is_negative_step = step is not None and step < 0
 
             try:
                 if key.start is not None:
                     start = level_index.get_loc(key.start)
-                elif key.step is not None and key.step < 0:
+                elif is_negative_step:
                     start = len(level_index) - 1
                 else:
                     start = 0
 
                 if key.stop is not None:
                     stop = level_index.get_loc(key.stop)
-                elif key.step is not None and key.step < 0:
-                    stop = -1
+                elif is_negative_step:
+                    stop = 0
                 elif isinstance(start, slice):
                     stop = len(level_index)
                 else:
                     stop = len(level_index) - 1
-
-                step = key.step
             except KeyError:
 
                 # we have a partial slice (like looking up a partial date
@@ -3224,9 +3224,8 @@ class MultiIndex(Index):
                 # need to have like semantics here to right
                 # searching as when we are using a slice
                 # so adjust the stop by 1 (so we include stop)
-                if step is not None and step < 0:
-                    return convert_indexer(start, stop - 1, step)
-                return convert_indexer(start, stop + 1, step)
+                stop = (stop - 1) if is_negative_step else (stop + 1)
+                return convert_indexer(start, stop, step)
             else:
                 # sorted, so can return slice object -> view
                 i = algos.searchsorted(level_codes, start, side="left")
@@ -3517,6 +3516,7 @@ class MultiIndex(Index):
 
                 new_order = key_order_map[self.codes[i][indexer]]
             elif isinstance(k, slice) and k.step is not None and k.step < 0:
+                # flip order for negative step
                 new_order = np.arange(n)[::-1][indexer]
             elif isinstance(k, slice) and k.start is None and k.stop is None:
                 # slice(None) should not determine order GH#31330
