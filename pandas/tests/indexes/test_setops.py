@@ -50,13 +50,11 @@ def test_union_different_types(index_flat, index_flat2, request):
     if (
         not idx1.is_unique
         and not idx2.is_unique
-        and not idx2.is_monotonic_decreasing
         and idx1.dtype.kind == "i"
         and idx2.dtype.kind == "b"
     ) or (
         not idx2.is_unique
         and not idx1.is_unique
-        and not idx1.is_monotonic_decreasing
         and idx2.dtype.kind == "i"
         and idx1.dtype.kind == "b"
     ):
