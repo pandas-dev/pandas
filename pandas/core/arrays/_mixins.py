@@ -510,7 +510,7 @@ class ArrowExtensionArray(ExtensionArray):
     _data: pa.ChunkedArray
 
     def __init__(self, values: pa.ChunkedArray):
-        raise NotImplementedError
+        self._data = values
 
     def __arrow_array__(self, type=None):
         """Convert myself to a pyarrow Array or ChunkedArray."""
