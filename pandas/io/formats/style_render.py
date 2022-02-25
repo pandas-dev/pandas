@@ -157,13 +157,13 @@ class StylerRenderer:
         Computes and applies styles and then generates the general render dicts
         """
         self._compute()
-        dx = (
-            self.concatenated._translate(
+        dx = None
+        if self.concatenated is not None:
+            self.concatenated.hide_index_ = self.hide_index_
+            self.concatenated.hidden_columns = self.hidden_columns
+            dx, _ = self.concatenated._render(
                 sparse_index, sparse_columns, max_rows, max_cols, blank
             )
-            if self.concatenated is not None
-            else None
-        )
         d = self._translate(sparse_index, sparse_columns, max_rows, max_cols, blank, dx)
         return d, dx
 
@@ -226,10 +226,6 @@ class StylerRenderer:
 
         (application method, *args, **kwargs)
         """
-        if self.concatenated is not None:
-            self.concatenated.hide_index_ = self.hide_index_
-            self.concatenated.hidden_columns = self.hidden_columns
-            self.concatenated._compute()
         self.ctx.clear()
         self.ctx_index.clear()
         self.ctx_columns.clear()
