@@ -349,7 +349,9 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
--
+- Bug in :meth:`DataFrame.loc` returning empty result when indexer contains a slice with a negative step size and non-null start/stop values (:issue:`...`)
+- Bug in :meth:`DataFrame.loc` raising when indexer contains a slice with a negative step size other than -1 (:issue:`...`)
+- Bug in :meth:`DataFrame.loc` raising when indexer contains a slice with a negative step size and slicing a non-int labeled index level (:issue:`...`)
 -
 
 I/O
