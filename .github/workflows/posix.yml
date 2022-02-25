@@ -63,7 +63,7 @@ jobs:
             test_args: "-W error"
             name: "Numpy Dev"
       fail-fast: false
-    name: ${{ matrix.name || format('{0} pyarrow={1} {2}', matrix.env_file, matrix.pyarrow_version, matrix.pattern)}
+    name: ${{ matrix.name || format('{0} pyarrow={1} {2}', matrix.env_file, matrix.pyarrow_version, matrix.pattern) }}
     env:
       ENV_FILE: ci/deps/${{ matrix.env_file }}
       PATTERN: ${{ matrix.pattern }}
