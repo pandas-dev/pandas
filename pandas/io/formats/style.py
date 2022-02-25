@@ -337,9 +337,8 @@ class Styler(StylerRenderer):
         ...          .applymap(lambda v: "font-weight: bold;"))
         >>> styler = (df.style
         ...             .highlight_max(color="salmon")
-        ...             .set_table_styles([
-        ...              {"selector": ".foot0", "props": "border-top: 1px solid black;"}
-        ...             ]))
+        ...             .set_table_styles([{"selector": ".foot_row0",
+        ...                                 "props": "border-top: 1px solid black;"}]))
         >>> styler.concat(other)  # doctest: +SKIP
 
         .. figure:: ../../_static/style/footer_extended.png
@@ -348,13 +347,6 @@ class Styler(StylerRenderer):
             raise TypeError("`other` must be of type `Styler`")
         if not self.data.columns.equals(other.data.columns):
             raise ValueError("`other.data` must have same columns as `Styler.data`")
-        other.set_table_styles(
-            css_class_names={
-                "data": self.css["foot"],
-                "row_heading": self.css["foot_heading"],
-                "row": self.css["foot"],
-            }
-        )
         self.concatenated = other
         return self
 
@@ -2443,8 +2435,7 @@ class Styler(StylerRenderer):
                                "level": "level",
                                "data": "data",
                                "blank": "blank",
-                               "foot": "foot",
-                               "foot_heading": "foot_heading"}
+                               "foot": "foot"}
 
         Examples
         --------

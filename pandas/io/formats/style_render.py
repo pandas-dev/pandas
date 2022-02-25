@@ -116,7 +116,6 @@ class StylerRenderer:
             "data": "data",
             "blank": "blank",
             "foot": "foot",
-            "foot_heading": "foot_heading",
         }
         self.concatenated: StylerRenderer | None = None
         # add rendering variables
@@ -161,6 +160,14 @@ class StylerRenderer:
         if self.concatenated is not None:
             self.concatenated.hide_index_ = self.hide_index_
             self.concatenated.hidden_columns = self.hidden_columns
+            self.concatenated.set_table_styles(
+                css_class_names={
+                    "data": f"{self.css['foot']}_{self.css['data']}",
+                    "row_heading": f"{self.css['foot']}_{self.css['row_heading']}",
+                    "row": f"{self.css['foot']}_{self.css['row']}",
+                    "foot": self.css["foot"],
+                }
+            )
             dx, _ = self.concatenated._render(
                 sparse_index, sparse_columns, max_rows, max_cols, blank
             )
