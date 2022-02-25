@@ -1436,6 +1436,8 @@ cdef group_cummin_max(iu_64_floating_t[:, ::1] out,
 
     if uses_mask:
         na_possible = True
+        # Will never be used, just to avoid uninitialized warning
+        na_val = 0
     elif iu_64_floating_t is float64_t or iu_64_floating_t is float32_t:
         na_val = NaN
         na_possible = True
