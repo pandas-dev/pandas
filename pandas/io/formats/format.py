@@ -1636,7 +1636,7 @@ class Datetime64Formatter(GenericArrayFormatter):
             )
 
         if len(values_shape) > 1:
-            fmt_values = np.array(fmt_values).reshape(values_shape)
+            fmt_values = np.reshape(fmt_values, values_shape)
             nested_formatter = GenericArrayFormatter(fmt_values)
             fmt_values = nested_formatter.get_result()
 
@@ -1826,7 +1826,7 @@ class Datetime64TZFormatter(Datetime64Formatter):
         )
         fmt_values = [formatter(x) for x in values]
         if len(values_shape) > 1:
-            fmt_values = np.array(values).reshape(values_shape)
+            fmt_values = np.reshape(values, values_shape)
             nested_formatter = GenericArrayFormatter(fmt_values)
             fmt_values = nested_formatter.get_result()
 
