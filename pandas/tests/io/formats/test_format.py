@@ -3159,7 +3159,7 @@ class TestDatetime64Formatter:
         assert result == ["10:10", "12:12"]
 
     def test_datetime64formatter_2d_array(self):
-        x = pd.date_range("2018-01-01", periods=10, freq="H").to_numpy()
+        x = date_range("2018-01-01", periods=10, freq="H").to_numpy()
 
         formatter = fmt.Datetime64Formatter(x.reshape((5, 2)))
         result = formatter.get_result()
@@ -3174,7 +3174,7 @@ class TestDatetime64Formatter:
         assert result[1].strip() == "[2018-01-01 05:00:00, 2018-01-01 06:00:00, 201..."
 
     def test_datetime64formatter_3d_array(self):
-        x = pd.date_range("2018-01-01", periods=10, freq="H").to_numpy()
+        x = date_range("2018-01-01", periods=10, freq="H").to_numpy()
 
         formatter = fmt.Datetime64Formatter(x.reshape((10, 1, 1)))
         result = formatter.get_result()
@@ -3183,7 +3183,7 @@ class TestDatetime64Formatter:
         assert result[9].strip() == "[[2018-01-01 09:00:00]]"
 
     def test_datetime64formatter_2d_array_format_func(self):
-        x = pd.date_range("2018-01-01", periods=24, freq="H").to_numpy()
+        x = date_range("2018-01-01", periods=24, freq="H").to_numpy()
 
         def format_func(t):
             return t.strftime("%H-%m")
@@ -3202,7 +3202,7 @@ class TestDatetime64TZFormatter:
             [
                 datetime(2013, 1, 1, tzinfo=utc),
                 datetime(2013, 1, 1, 12, tzinfo=utc),
-                pd.NaT,
+                NaT,
             ]
         )
         result = fmt.Datetime64TZFormatter(x).get_result()
@@ -3212,7 +3212,7 @@ class TestDatetime64TZFormatter:
         assert result[2].strip() == "NaT"
 
     def test_datetime64formatter_1d_array(self):
-        x = pd.date_range("2018-01-01", periods=3, freq="H", tz="US/Pacific").to_numpy()
+        x = date_range("2018-01-01", periods=3, freq="H", tz="US/Pacific").to_numpy()
         formatter = fmt.Datetime64TZFormatter(x)
         result = formatter.get_result()
         assert len(result) == 3
@@ -3221,9 +3221,7 @@ class TestDatetime64TZFormatter:
         assert result[2].strip() == "2018-01-01 02:00:00-08:00"
 
     def test_datetime64formatter_2d_array(self):
-        x = pd.date_range(
-            "2018-01-01", periods=10, freq="H", tz="US/Pacific"
-        ).to_numpy()
+        x = date_range("2018-01-01", periods=10, freq="H", tz="US/Pacific").to_numpy()
         formatter = fmt.Datetime64TZFormatter(x.reshape((5, 2)))
         result = formatter.get_result()
         assert len(result) == 5
@@ -3231,9 +3229,7 @@ class TestDatetime64TZFormatter:
         assert result[4].strip() == "[2018-01-01 08:00:00-08:00, 2018-01-01 09:00:0..."
 
     def test_datetime64formatter_2d_array_format_func(self):
-        x = pd.date_range(
-            "2018-01-01", periods=16, freq="H", tz="US/Pacific"
-        ).to_numpy()
+        x = date_range("2018-01-01", periods=16, freq="H", tz="US/Pacific").to_numpy()
 
         def format_func(t):
             return t.strftime("%H-%m %Z")
