@@ -3154,9 +3154,6 @@ class MultiIndex(Index):
             # given the inputs and the codes/indexer, compute an indexer set
             # if we have a provided indexer, then this need not consider
             # the entire labels set
-            if step is not None and step < 0:
-                # Switch elements for negative step size
-                start, stop = stop - 1, start - 1
             r = np.arange(start, stop, step)
 
             if indexer is not None and len(indexer) != len(codes):
@@ -3192,14 +3189,20 @@ class MultiIndex(Index):
             try:
                 if key.start is not None:
                     start = level_index.get_loc(key.start)
+                elif key.step is not None and key.step < 0:
+                    start = len(level_index) - 1
                 else:
                     start = 0
+
                 if key.stop is not None:
                     stop = level_index.get_loc(key.stop)
+                elif key.step is not None and key.step < 0:
+                    stop = -1
                 elif isinstance(start, slice):
                     stop = len(level_index)
                 else:
                     stop = len(level_index) - 1
+
                 step = key.step
             except KeyError:
 
@@ -3220,7 +3223,9 @@ class MultiIndex(Index):
             elif level > 0 or self._lexsort_depth == 0 or step is not None:
                 # need to have like semantics here to right
                 # searching as when we are using a slice
-                # so include the stop+1 (so we include stop)
+                # so adjust the stop by 1 (so we include stop)
+                if step is not None and step < 0:
+                    return convert_indexer(start, stop - 1, step)
                 return convert_indexer(start, stop + 1, step)
             else:
                 # sorted, so can return slice object -> view
@@ -3512,7 +3517,7 @@ class MultiIndex(Index):
 
                 new_order = key_order_map[self.codes[i][indexer]]
             elif isinstance(k, slice) and k.step is not None and k.step < 0:
-                new_order = np.arange(n)[k][indexer]
+                new_order = np.arange(n)[::-1][indexer]
             elif isinstance(k, slice) and k.start is None and k.stop is None:
                 # slice(None) should not determine order GH#31330
                 new_order = np.ones((n,))[indexer]
