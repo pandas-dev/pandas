@@ -812,21 +812,16 @@ def test_concat(styler):
     result = styler.to_html()
     expected = dedent(
         """\
-          <tbody>
-            <tr>
-              <th id="T_X_level0_row0" class="row_heading level0 row0" >a</th>
-              <td id="T_X_row0_col0" class="data row0 col0" >2.610000</td>
-            </tr>
-            <tr>
-              <th id="T_X_level0_row1" class="row_heading level0 row1" >b</th>
-              <td id="T_X_row1_col0" class="data row1 col0" >2.690000</td>
-            </tr>
-            <tr>
-              <th id="T_X_level0_foot0" class="foot_heading level0 foot0" >mean</th>
-              <td id="T_X_foot0_col0" class="foot foot0 col0" >2.650000</td>
-            </tr>
-          </tbody>
-        </table>
-        """
+    <tr>
+      <th id="T_X_level0_row1" class="row_heading level0 row1" >b</th>
+      <td id="T_X_row1_col0" class="data row1 col0" >2.690000</td>
+    </tr>
+    <tr>
+      <th id="T_X_level0_foot_row0" class="foot_row_heading level0 foot_row0" >mean</th>
+      <td id="T_X_foot_row0_col0" class="foot_data foot_row0 col0" >2.650000</td>
+    </tr>
+  </tbody>
+</table>
+    """
     )
     assert expected in result
