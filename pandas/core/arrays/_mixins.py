@@ -313,11 +313,12 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
                 # TODO: check value is None
                 # (for now) when self.ndim == 2, we assume axis=0
                 func = missing.get_fill_func(method, ndim=self.ndim)
-                new_values, _ = func(self._ndarray.T.copy(), limit=limit, mask=mask.T)
-                new_values = new_values.T
+                npvalues = self._ndarray.T.copy()
+                func(npvalues, limit=limit, mask=mask.T)
+                npvalues = npvalues.T
 
                 # TODO: PandasArray didn't used to copy, need tests for this
-                new_values = self._from_backing_data(new_values)
+                new_values = self._from_backing_data(npvalues)
             else:
                 # fill with value
                 new_values = self.copy()
