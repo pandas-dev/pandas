@@ -181,7 +181,9 @@ class _HtmlFrameParser:
     displayed_only : bool
         Whether or not items with "display:none" should be ignored
 
-    extract_hrefs : all/header/body/footer or None
+    .. versionadded:: 1.5.0
+
+    extract_hrefs : "all"/"header"/"body"/"footer" or None
         Table elements in the specified section(s) with <a> tags will have their
         href extracted. Note that specifying "header" will result in a
         :class:`~pandas.MultiIndex`.
@@ -204,8 +206,12 @@ class _HtmlFrameParser:
     displayed_only : bool
         Whether or not items with "display:none" should be ignored
 
-    extract_hrefs : bool, default False
-        Whether table elements with <a> tags should have the href extracted.
+    .. versionadded:: 1.5.0
+
+    extract_hrefs : "all"/"header"/"body"/"footer" or None, default None
+        Table elements in the specified section(s) with <a> tags will have their
+        href extracted. Note that specifying "header" will result in a
+        :class:`~pandas.MultiIndex`.
 
     Notes
     -----
@@ -624,7 +630,7 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
             raise ValueError(f"No tables found matching pattern {repr(match.pattern)}")
         return result
 
-    def _href_getter(self, obj):
+    def _href_getter(self, obj) -> str | None:
         a = obj.find("a", href=True)
         return None if not a else a["href"]
 
@@ -713,7 +719,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
     :class:`_HtmlFrameParser`.
     """
 
-    def _href_getter(self, obj):
+    def _href_getter(self, obj) -> str | None:
         href = obj.xpath(".//a/@href")
         return None if not href else href[0]
 
@@ -1106,7 +1112,9 @@ def read_html(
     displayed_only : bool, default True
         Whether elements with "display: none" should be parsed.
 
-    extract_hrefs : all/header/body/footer or None, default None
+    .. versionadded:: 1.5.0
+
+    extract_hrefs : "all"/"header"/"body"/"footer" or None, default None
         Table elements in the specified section(s) with <a> tags will have their
         href extracted. Note that specifying "header" will result in a
         :class:`~pandas.MultiIndex`.

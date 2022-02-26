@@ -2729,6 +2729,8 @@ succeeds, the function will return*.
 
    dfs = pd.read_html(url, "Metcalf Bank", index_col=0, flavor=["lxml", "bs4"])
 
+.. versionadded:: 1.5.0
+
 Links can be extracted from cells along with the text using ``extract_hrefs=True``.
 
 .. ipython:: python
