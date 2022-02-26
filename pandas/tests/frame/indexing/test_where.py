@@ -12,6 +12,7 @@ import pandas as pd
 from pandas import (
     DataFrame,
     DatetimeIndex,
+    Index,
     Series,
     StringDtype,
     Timestamp,
@@ -769,25 +770,15 @@ def test_where_try_cast_deprecated(frame_or_series):
         obj.where(mask, -1, try_cast=False)
 
 
-def test_where_int_downcasting_deprecated(using_array_manager, request):
+def test_where_int_downcasting_deprecated():
     # GH#44597
-    if not using_array_manager:
-        mark = pytest.mark.xfail(
-            reason="After fixing a bug in can_hold_element, we don't go through "
-            "the deprecated path, and also up-cast both columns to int32 "
-            "instead of just 1."
-        )
-        request.node.add_marker(mark)
     arr = np.arange(6).astype(np.int16).reshape(3, 2)
     df = DataFrame(arr)
 
     mask = np.zeros(arr.shape, dtype=bool)
     mask[:, 0] = True
 
-    msg = "Downcasting integer-dtype"
-    warn = FutureWarning if not using_array_manager else None
-    with tm.assert_produces_warning(warn, match=msg):
-        res = df.where(mask, 2**17)
+    res = df.where(mask, 2**17)
 
     expected = DataFrame({0: arr[:, 0], 1: np.array([2**17] * 3, dtype=np.int32)})
     tm.assert_frame_equal(res, expected)
@@ -861,6 +852,21 @@ def test_where_none_nan_coerce():
     )
     result = expected.where(expected.notnull(), None)
     tm.assert_frame_equal(result, expected)
+
+
+def test_where_duplicate_axes_mixed_dtypes():
+    # GH 25399, verify manually masking is not affected anymore by dtype of column for
+    # duplicate axes.
+    result = DataFrame(data=[[0, np.nan]], columns=Index(["A", "A"]))
+    index, columns = result.axes
+    mask = DataFrame(data=[[True, True]], columns=columns, index=index)
+    a = result.astype(object).where(mask)
+    b = result.astype("f8").where(mask)
+    c = result.T.where(mask.T).T
+    d = result.where(mask)  # used to fail with "cannot reindex from a duplicate axis"
+    tm.assert_frame_equal(a.astype("f8"), b.astype("f8"))
+    tm.assert_frame_equal(b.astype("f8"), c.astype("f8"))
+    tm.assert_frame_equal(c.astype("f8"), d.astype("f8"))
 
 
 def test_where_non_keyword_deprecation(frame_or_series):

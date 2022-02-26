@@ -3616,6 +3616,10 @@ class MultiIndex(Index):
                 # i.e. ExtensionArray
                 if not self_values.equals(other_values):
                     return False
+            elif not isinstance(other_values, np.ndarray):
+                # i.e. other is ExtensionArray
+                if not other_values.equals(self_values):
+                    return False
             else:
                 if not array_equivalent(self_values, other_values):
                     return False
