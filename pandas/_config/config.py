@@ -289,6 +289,8 @@ OptionError : if no such option exists
 
 Notes
 -----
+Please reference the :ref:`User Guide <options>` for more information.
+
 The available options with its descriptions:
 
 {opts_desc}
@@ -323,6 +325,8 @@ OptionError if no such option exists
 
 Notes
 -----
+Please reference the :ref:`User Guide <options>` for more information.
+
 The available options with its descriptions:
 
 {opts_desc}
@@ -355,6 +359,8 @@ is False
 
 Notes
 -----
+Please reference the :ref:`User Guide <options>` for more information.
+
 The available options with its descriptions:
 
 {opts_desc}
@@ -385,6 +391,8 @@ None
 
 Notes
 -----
+Please reference the :ref:`User Guide <options>` for more information.
+
 The available options with its descriptions:
 
 {opts_desc}
