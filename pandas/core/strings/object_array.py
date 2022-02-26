@@ -62,7 +62,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             na_value = self._str_na_value
 
         if not len(self):
-            return np.ndarray(0, dtype=dtype)
+            return np.array([], dtype=dtype)
 
         arr = np.asarray(self, dtype=object)
         mask = isna(arr)

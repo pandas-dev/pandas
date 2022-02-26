@@ -534,7 +534,7 @@ def factorize_array(
     na_sentinel: int = -1,
     size_hint: int | None = None,
     na_value=None,
-    mask: np.ndarray | None = None,
+    mask: npt.NDArray[np.bool_] | None = None,
 ) -> tuple[npt.NDArray[np.intp], np.ndarray]:
     """
     Factorize a numpy array to codes and uniques.

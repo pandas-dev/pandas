@@ -3,6 +3,7 @@ from __future__ import annotations
 import numpy as np
 
 from pandas._libs import lib
+from pandas._typing import npt
 
 from pandas.core.dtypes.cast import maybe_downcast_numeric
 from pandas.core.dtypes.common import (
@@ -167,7 +168,7 @@ def to_numeric(arg, errors="raise", downcast=None):
 
     # GH33013: for IntegerArray & FloatingArray extract non-null values for casting
     # save mask to reconstruct the full array after casting
-    mask: np.ndarray | None = None
+    mask: npt.NDArray[np.bool_] | None = None
     if isinstance(values, NumericArray):
         mask = values._mask
         values = values._data[~mask]

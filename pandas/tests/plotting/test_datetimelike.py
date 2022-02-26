@@ -523,7 +523,7 @@ class TestTSPlot(TestPlotBase):
 
     def test_gaps(self):
         ts = tm.makeTimeSeries()
-        ts[5:25] = np.nan
+        ts.iloc[5:25] = np.nan
         _, ax = self.plt.subplots()
         ts.plot(ax=ax)
         lines = ax.get_lines()
@@ -541,7 +541,7 @@ class TestTSPlot(TestPlotBase):
         # irregular
         ts = tm.makeTimeSeries()
         ts = ts[[0, 1, 2, 5, 7, 9, 12, 15, 20]]
-        ts[2:5] = np.nan
+        ts.iloc[2:5] = np.nan
         _, ax = self.plt.subplots()
         ax = ts.plot(ax=ax)
         lines = ax.get_lines()

@@ -770,25 +770,15 @@ def test_where_try_cast_deprecated(frame_or_series):
         obj.where(mask, -1, try_cast=False)
 
 
-def test_where_int_downcasting_deprecated(using_array_manager, request):
+def test_where_int_downcasting_deprecated():
     # GH#44597
-    if not using_array_manager:
-        mark = pytest.mark.xfail(
-            reason="After fixing a bug in can_hold_element, we don't go through "
-            "the deprecated path, and also up-cast both columns to int32 "
-            "instead of just 1."
-        )
-        request.node.add_marker(mark)
     arr = np.arange(6).astype(np.int16).reshape(3, 2)
     df = DataFrame(arr)
 
     mask = np.zeros(arr.shape, dtype=bool)
     mask[:, 0] = True
 
-    msg = "Downcasting integer-dtype"
-    warn = FutureWarning if not using_array_manager else None
-    with tm.assert_produces_warning(warn, match=msg):
-        res = df.where(mask, 2**17)
+    res = df.where(mask, 2**17)
 
     expected = DataFrame({0: arr[:, 0], 1: np.array([2**17] * 3, dtype=np.int32)})
     tm.assert_frame_equal(res, expected)

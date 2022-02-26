@@ -2276,14 +2276,13 @@ def _factorize_keys(
 
 
 def _sort_labels(
-    uniques: np.ndarray, left: np.ndarray, right: np.ndarray
+    uniques: np.ndarray, left: npt.NDArray[np.intp], right: npt.NDArray[np.intp]
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
 
     llength = len(left)
     labels = np.concatenate([left, right])
 
     _, new_labels = algos.safe_sort(uniques, labels, na_sentinel=-1)
-    assert new_labels.dtype == np.intp
     new_left, new_right = new_labels[:llength], new_labels[llength:]
 
     return new_left, new_right
