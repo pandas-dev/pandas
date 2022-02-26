@@ -99,6 +99,12 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
     _ndarray: np.ndarray
 
+    # scalar used to denote NA value inside our self._ndarray, e.g. -1
+    #  for Categorical, iNaT for Period. Outside of object dtype,
+    #  self.isna() should be exactly locations in self._ndarray with
+    #  _internal_fill_value.
+    _internal_fill_value: Any
+
     def _box_func(self, x):
         """
         Wrap numpy type in our dtype.type if necessary.
@@ -463,17 +469,24 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         mask = np.atleast_2d(mask)
 
         arr = np.atleast_2d(self._ndarray)
-        # TODO: something NDArrayBacked-specific instead of _values_for_factorize[1]?
-        fill_value = self._values_for_factorize()[1]
+        fill_value = self._internal_fill_value
 
         res_values = quantile_with_mask(arr, mask, fill_value, qs, interpolation)
-
-        result = type(self)._from_factorized(res_values, self)
+        res_values = self._cast_quantile_result(res_values)
+        result = self._from_backing_data(res_values)
         if self.ndim == 1:
             assert result.shape == (1, len(qs)), result.shape
             result = result[0]
 
         return result
+
+    # TODO: see if we can share this with other dispatch-wrapping methods
+    def _cast_quantile_result(self, res_values: np.ndarray) -> np.ndarray:
+        """
+        Cast the result of quantile_with_mask to an appropriate dtype
+        to pass to _from_backing_data in _quantile.
+        """
+        return res_values
 
     # ------------------------------------------------------------------------
     # numpy-like methods
