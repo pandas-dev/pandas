@@ -858,7 +858,7 @@ class TestSeriesFillNA:
             (["A", "B", np.nan, "A"], "B", ["A", "B", "B", "A"], ["A", "B"]),
         ],
     )
-    def test_fillna_categorical(
+    def test_fillna_categorical_accept_same_type(
         self, input, input_fillna, expected_data, expected_categories
     ):
         # GH32414
