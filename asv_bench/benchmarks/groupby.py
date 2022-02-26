@@ -405,7 +405,7 @@ class GroupByMethods:
 
     param_names = ["dtype", "method", "application", "ncols"]
     params = [
-        ["int", "float", "object", "datetime", "uint"],
+        ["int", "int16", "float", "object", "datetime", "uint"],
         [
             "all",
             "any",
@@ -479,7 +479,7 @@ class GroupByMethods:
         values = rng.take(taker, axis=0)
         if dtype == "int":
             key = np.random.randint(0, size, size=size)
-        elif dtype == "uint":
+        elif dtype in ("int16", "uint"):
             key = np.random.randint(0, size, size=size, dtype=dtype)
         elif dtype == "float":
             key = np.concatenate(
