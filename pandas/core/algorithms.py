@@ -759,7 +759,7 @@ def factorize(
     else:
         dtype = values.dtype
         values = _ensure_data(values)
-        na_value: Scalar
+        na_value: Scalar | None
 
         if original.dtype.kind in ["m", "M"]:
             # Note: factorize_array will cast NaT bc it has a __int__

@@ -892,7 +892,7 @@ class PythonParser(ParserBase):
 
     def _get_index_name(
         self, columns: list[Hashable]
-    ) -> tuple[list[Hashable] | None, list[Hashable], list[Hashable]]:
+    ) -> tuple[Sequence[Hashable] | None, list[Hashable], list[Hashable]]:
         """
         Try several cases to get lines:
 
