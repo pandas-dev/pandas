@@ -1199,3 +1199,13 @@ def test_groupby_sum_timedelta_with_nat():
     res = gb["b"].sum(min_count=2)
     expected = Series([td3, pd.NaT], dtype="m8[ns]", name="b", index=expected.index)
     tm.assert_series_equal(res, expected)
+
+
+def test_groupby_empty_dataset():
+    # GH#41575
+    df = DataFrame(columns=["A", "B", "C"])
+    result = df.groupby("A").B.describe()
+    expected_index = pd.Index([], dtype="object", name="A")
+    expected = Series([], name="B", dtype=np.object_, index=expected_index)
+
+    tm.assert_series_equal(result, expected)
