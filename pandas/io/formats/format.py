@@ -1642,6 +1642,9 @@ class Datetime64Formatter(GenericArrayFormatter):
         else:
             fmt_values = values
 
+        if isinstance(fmt_values, np.ndarray):
+            fmt_values = fmt_values.tolist()
+
         return fmt_values
 
 
@@ -1834,6 +1837,9 @@ class Datetime64TZFormatter(Datetime64Formatter):
         else:
             values = [formatter(x) for x in values]
             fmt_values = values
+
+        if isinstance(fmt_values, np.ndarray):
+            fmt_values = fmt_values.tolist()
 
         return fmt_values
 
