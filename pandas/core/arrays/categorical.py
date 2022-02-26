@@ -45,6 +45,7 @@ from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     cache_readonly,
     deprecate_kwarg,
+    deprecate_nonkeyword_arguments,
 )
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
@@ -1717,6 +1718,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "Categorical to an ordered one\n"
             )
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def argsort(self, ascending=True, kind="quicksort", **kwargs):
         """
         Return the indices that would sort the Categorical.
