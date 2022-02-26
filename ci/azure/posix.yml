@@ -10,15 +10,15 @@ jobs:
   strategy:
     matrix:
       py38:
-        ENV_FILE: ci/deps/azure-macos-38.yaml
+        ENV_FILE: ci/deps/actions-38.yaml
         CONDA_PY: "38"
 
       py39:
-        ENV_FILE: ci/deps/azure-macos-39.yaml
+        ENV_FILE: ci/deps/actions-39.yaml
         CONDA_PY: "39"
 
       py310:
-        ENV_FILE: ci/deps/azure-macos-310.yaml
+        ENV_FILE: ci/deps/actions-310.yaml
         CONDA_PY: "310"
 
   steps:
