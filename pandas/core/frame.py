@@ -576,10 +576,10 @@ class DataFrame(NDFrame, OpsMixin):
     _mgr: BlockManager | ArrayManager
 
     @property
-    def _constructor(self) -> type[DataFrame]:
+    def _constructor(self) -> Callable[..., DataFrame]:
         return DataFrame
 
-    _constructor_sliced: type[Series] = Series
+    _constructor_sliced: Callable[..., Series] = Series
 
     # ----------------------------------------------------------------------
     # Constructors

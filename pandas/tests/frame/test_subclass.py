@@ -730,3 +730,11 @@ class TestDataFrameSubclassing:
         df2 = tm.SubclassedDataFrame({"a": [1, 2, 3]})
         assert df1.equals(df2)
         assert df2.equals(df1)
+
+    def test_replace_list_method(self):
+        # https://github.com/pandas-dev/pandas/pull/46018
+        df = tm.SubclassedDataFrame({"A": [0, 1, 2]})
+        result = df.replace([1, 2], method="ffill")
+        expected = tm.SubclassedDataFrame({"A": [0, 0, 0]})
+        assert isinstance(result, tm.SubclassedDataFrame)
+        tm.assert_frame_equal(result, expected)

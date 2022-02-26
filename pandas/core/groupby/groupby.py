@@ -1733,7 +1733,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @property
-    def _obj_1d_constructor(self) -> type[Series]:
+    def _obj_1d_constructor(self) -> Callable:
         # GH28330 preserve subclassed Series/DataFrames
         if isinstance(self.obj, DataFrame):
             return self.obj._constructor_sliced
@@ -2151,7 +2151,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         result = self.grouper.size()
 
         # GH28330 preserve subclassed Series/DataFrames through calls
-        if issubclass(self.obj._constructor, Series):
+        if isinstance(self.obj, Series):
             result = self._obj_1d_constructor(result, name=self.obj.name)
         else:
             result = self._obj_1d_constructor(result)
