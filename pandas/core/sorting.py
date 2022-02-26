@@ -41,6 +41,7 @@ from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
     from pandas import MultiIndex
+    from pandas.core.arrays import ExtensionArray
     from pandas.core.indexes.base import Index
 
 
@@ -52,7 +53,7 @@ def get_indexer_indexer(
     na_position: str,
     sort_remaining: bool,
     key: IndexKeyFunc,
-) -> np.ndarray | None:
+) -> npt.NDArray[np.intp] | None:
     """
     Helper method that return the indexer according to input parameters for
     the sort_index method of DataFrame and Series.
@@ -69,7 +70,7 @@ def get_indexer_indexer(
 
     Returns
     -------
-    Optional[ndarray]
+    Optional[ndarray[intp]]
         The indexer for the new index.
     """
 
@@ -215,7 +216,7 @@ def get_compressed_ids(
     return compress_group_index(ids, sort=True)
 
 
-def is_int64_overflow_possible(shape) -> bool:
+def is_int64_overflow_possible(shape: Shape) -> bool:
     the_prod = 1
     for x in shape:
         the_prod *= int(x)
@@ -438,7 +439,7 @@ def nargsort(
     return ensure_platform_int(indexer)
 
 
-def nargminmax(values, method: str, axis: int = 0):
+def nargminmax(values: ExtensionArray, method: str, axis: int = 0):
     """
     Implementation of np.argmin/argmax but for ExtensionArray and which
     handles missing values.
@@ -457,21 +458,21 @@ def nargminmax(values, method: str, axis: int = 0):
     func = np.argmax if method == "argmax" else np.argmin
 
     mask = np.asarray(isna(values))
-    values = values._values_for_argsort()
+    arr_values = values._values_for_argsort()
 
-    if values.ndim > 1:
+    if arr_values.ndim > 1:
         if mask.any():
             if axis == 1:
-                zipped = zip(values, mask)
+                zipped = zip(arr_values, mask)
             else:
-                zipped = zip(values.T, mask.T)
+                zipped = zip(arr_values.T, mask.T)
             return np.array([_nanargminmax(v, m, func) for v, m in zipped])
-        return func(values, axis=axis)
+        return func(arr_values, axis=axis)
 
-    return _nanargminmax(values, mask, func)
+    return _nanargminmax(arr_values, mask, func)
 
 
-def _nanargminmax(values, mask, func) -> int:
+def _nanargminmax(values: np.ndarray, mask: npt.NDArray[np.bool_], func) -> int:
     """
     See nanargminmax.__doc__.
     """
@@ -586,7 +587,7 @@ def get_flattened_list(
     arrays: DefaultDict[int, list[int]] = defaultdict(list)
     for labs, level in zip(labels, levels):
         table = hashtable.Int64HashTable(ngroups)
-        table.map(comp_ids, labs.astype(np.int64, copy=False))
+        table.map_keys_to_values(comp_ids, labs.astype(np.int64, copy=False))
         for i in range(ngroups):
             arrays[i].append(level[table.get_item(i)])
     return [tuple(array) for array in arrays.values()]
@@ -601,9 +602,9 @@ def get_indexer_dict(
     dict:
         Labels mapped to indexers.
     """
-    shape = [len(x) for x in keys]
+    shape = tuple(len(x) for x in keys)
 
-    group_index = get_group_index(label_list, tuple(shape), sort=True, xnull=True)
+    group_index = get_group_index(label_list, shape, sort=True, xnull=True)
     if np.all(group_index == -1):
         # Short-circuit, lib.indices_fast will return the same
         return {}

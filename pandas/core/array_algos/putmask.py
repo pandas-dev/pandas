@@ -14,10 +14,7 @@ from pandas._typing import (
 )
 from pandas.compat import np_version_under1p20
 
-from pandas.core.dtypes.cast import (
-    convert_scalar_for_putitemlike,
-    infer_dtype_from,
-)
+from pandas.core.dtypes.cast import infer_dtype_from
 from pandas.core.dtypes.common import is_list_like
 
 from pandas.core.arrays import ExtensionArray
@@ -35,9 +32,6 @@ def putmask_inplace(values: ArrayLike, mask: npt.NDArray[np.bool_], value: Any) 
         We assume extract_bool_array has already been called.
     value : Any
     """
-
-    if lib.is_scalar(value) and isinstance(values, np.ndarray):
-        value = convert_scalar_for_putitemlike(value, values.dtype)
 
     if (
         not isinstance(values, np.ndarray)
