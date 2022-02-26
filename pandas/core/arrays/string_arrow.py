@@ -762,7 +762,7 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
         return type(self)(result)
 
     def _str_match(
-        self, pat: str, case: bool = True, flags: int = 0, na: Scalar = None
+        self, pat: str, case: bool = True, flags: int = 0, na: Scalar | None = None
     ):
         if pa_version_under4p0:
             return super()._str_match(pat, case, flags, na)
@@ -771,7 +771,9 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
             pat = "^" + pat
         return self._str_contains(pat, case, flags, na, regex=True)
 
-    def _str_fullmatch(self, pat, case: bool = True, flags: int = 0, na: Scalar = None):
+    def _str_fullmatch(
+        self, pat, case: bool = True, flags: int = 0, na: Scalar | None = None
+    ):
         if pa_version_under4p0:
             return super()._str_fullmatch(pat, case, flags, na)
 

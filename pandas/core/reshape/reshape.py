@@ -253,6 +253,8 @@ class _Unstacker:
         else:
             if isinstance(dtype, ExtensionDtype):
                 # GH#41875
+                # We are assuming that fill_value can be held by this dtype,
+                #  unlike the non-EA case that promotes.
                 cls = dtype.construct_array_type()
                 new_values = cls._empty(result_shape, dtype=dtype)
                 new_values[:] = fill_value
