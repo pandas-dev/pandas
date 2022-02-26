@@ -1629,16 +1629,18 @@ class Datetime64Formatter(GenericArrayFormatter):
             values = DatetimeIndex(values)
 
         if self.formatter is not None and callable(self.formatter):
-            fmt_values = [self.formatter(x) for x in values]
+            values = [self.formatter(x) for x in values]
         else:
-            fmt_values = values._data._format_native_types(
+            values = values._data._format_native_types(
                 na_rep=self.nat_rep, date_format=self.date_format
             )
 
         if len(values_shape) > 1:
-            fmt_values = np.reshape(fmt_values, values_shape)
+            fmt_values = np.reshape(values, values_shape)
             nested_formatter = GenericArrayFormatter(fmt_values)
             fmt_values = nested_formatter.get_result()
+        else:
+            fmt_values = values
 
         return fmt_values
 
@@ -1824,11 +1826,14 @@ class Datetime64TZFormatter(Datetime64Formatter):
         formatter = self.formatter or get_format_datetime64(
             ido, date_format=self.date_format
         )
-        fmt_values = [formatter(x) for x in values]
+
         if len(values_shape) > 1:
             fmt_values = np.reshape(values, values_shape)
             nested_formatter = GenericArrayFormatter(fmt_values)
             fmt_values = nested_formatter.get_result()
+        else:
+            values = [formatter(x) for x in values]
+            fmt_values = values
 
         return fmt_values
 
