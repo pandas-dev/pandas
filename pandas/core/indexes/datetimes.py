@@ -33,6 +33,7 @@ from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas._typing import (
     Dtype,
     DtypeObj,
+    IntervalClosedType,
     npt,
 )
 from pandas.util._decorators import (
@@ -884,8 +885,8 @@ def date_range(
     tz=None,
     normalize: bool = False,
     name: Hashable = None,
-    closed: str | None | lib.NoDefault = lib.no_default,
-    inclusive: str | None = None,
+    closed: Literal["left", "right"] | None | lib.NoDefault = lib.no_default,
+    inclusive: IntervalClosedType | None = None,
     **kwargs,
 ) -> DatetimeIndex:
     """
@@ -1091,7 +1092,7 @@ def bdate_range(
     weekmask=None,
     holidays=None,
     closed: lib.NoDefault = lib.no_default,
-    inclusive: str | None = None,
+    inclusive: IntervalClosedType | None = None,
     **kwargs,
 ) -> DatetimeIndex:
     """
