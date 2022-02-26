@@ -791,13 +791,21 @@ class TestDataFramePlots(TestPlotBase):
         # added while fixing GH 45809
         import matplotlib as mpl
 
-        ax = self.hexbin_df.plot.scatter(x="A", y="B", c="C", norm=mpl.colors.LogNorm())
-        assert ax.collections[0].norm._scale
+        df = DataFrame(np.random.random((10, 3)) * 100, columns=["a", "b", "c"])
+        norm = mpl.colors.LogNorm()
+        ax = df.plot.scatter(x="a", y="b", c="c", norm=norm)
+        assert ax.collections[0].norm is norm
 
     def test_plot_scatter_without_norm(self):
         # added while fixing GH 45809
-        ax = self.hexbin_df.plot.scatter(x="A", y="B", c="C")
-        assert ax.collections[0].norm._scale is None
+        import matplotlib as mpl
+
+        df = DataFrame(np.random.random((10, 3)) * 100, columns=["a", "b", "c"])
+        ax = df.plot.scatter(x="a", y="b", c="c")
+        color_min_max = (df.c.min(), df.c.max())
+        default_norm = mpl.colors.Normalize(*color_min_max)
+        for c in range(100):
+            assert ax.collections[0].norm(c) == default_norm(c)
 
     def test_plot_bar(self):
         df = DataFrame(
