@@ -163,6 +163,7 @@ class PeriodArray(dtl.DatelikeOps):
     __array_priority__ = 1000
     _typ = "periodarray"  # ABCPeriodArray
     _scalar_type = Period
+    _internal_fill_value = np.int64(iNaT)
     _recognized_scalars = (Period,)
     _is_recognized_dtype = is_period_dtype
     _infer_matches = ("period",)
@@ -696,6 +697,12 @@ class PeriodArray(dtl.DatelikeOps):
             # ndarray[Any, Any]]", expected "PeriodArray")
             return result.view(self.dtype)  # type: ignore[return-value]
         return super().fillna(value=value, method=method, limit=limit)
+
+    # TODO: alternately could override _quantile like searchsorted
+    def _cast_quantile_result(self, res_values: np.ndarray) -> np.ndarray:
+        # quantile_with_mask may return float64 instead of int64, in which
+        #  case we need to cast back
+        return res_values.astype(np.int64, copy=False)
 
     # ------------------------------------------------------------------
     # Arithmetic Methods

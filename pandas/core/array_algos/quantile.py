@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import numpy as np
 
-from pandas._libs import lib
 from pandas._typing import (
     ArrayLike,
     Scalar,
@@ -128,7 +127,10 @@ def _nanpercentile_1d(
     values = values[~mask]
 
     if len(values) == 0:
-        return np.array([na_value] * len(qs), dtype=values.dtype)
+        # Can't pass dtype=values.dtype here bc we might have na_value=np.nan
+        #  with values.dtype=int64 see test_quantile_empty
+        # equiv: 'np.array([na_value] * len(qs))' but much faster
+        return np.full(len(qs), na_value)
 
     return np.percentile(values, qs, **{np_percentile_argname: interpolation})
 
@@ -173,7 +175,7 @@ def _nanpercentile(
         #  have float result at this point, not i8
         return result.astype(values.dtype)
 
-    if not lib.is_scalar(mask) and mask.any():
+    if mask.any():
         # Caller is responsible for ensuring mask shape match
         assert mask.shape == values.shape
         result = [
