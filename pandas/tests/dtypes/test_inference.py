@@ -1826,12 +1826,13 @@ class TestNumberScalar:
         assert not is_datetime64tz_dtype(ts)
         assert is_datetime64tz_dtype(tsa)
 
-        for tz in ["US/Eastern", "UTC"]:
-            dtype = f"datetime64[ns, {tz}]"
-            assert not is_datetime64_dtype(dtype)
-            assert is_datetime64tz_dtype(dtype)
-            assert is_datetime64_ns_dtype(dtype)
-            assert is_datetime64_any_dtype(dtype)
+    @pytest.mark.parametrize("tz", ["US/Eastern", "UTC"])
+    def test_is_datetime_dtypes_with_tz(self, tz):
+        dtype = f"datetime64[ns, {tz}]"
+        assert not is_datetime64_dtype(dtype)
+        assert is_datetime64tz_dtype(dtype)
+        assert is_datetime64_ns_dtype(dtype)
+        assert is_datetime64_any_dtype(dtype)
 
     def test_is_timedelta(self):
         assert is_timedelta64_dtype("timedelta64")
@@ -1890,26 +1891,24 @@ class TestIsScalar:
         assert is_scalar(np.datetime64("2014-01-01"))
         assert is_scalar(np.timedelta64(1, "h"))
 
-    def test_is_scalar_numpy_zerodim_arrays(self):
-        for zerodim in [
+    @pytest.mark.parametrize(
+        "zerodim",
+        [
             np.array(1),
             np.array("foobar"),
             np.array(np.datetime64("2014-01-01")),
             np.array(np.timedelta64(1, "h")),
             np.array(np.datetime64("NaT")),
-        ]:
-            assert not is_scalar(zerodim)
-            assert is_scalar(lib.item_from_zerodim(zerodim))
+        ],
+    )
+    def test_is_scalar_numpy_zerodim_arrays(self, zerodim):
+        assert not is_scalar(zerodim)
+        assert is_scalar(lib.item_from_zerodim(zerodim))
 
-    @pytest.mark.filterwarnings("ignore::PendingDeprecationWarning")
-    def test_is_scalar_numpy_arrays(self):
-        for a in [
-            np.array([]),
-            np.array([[]]),
-            np.matrix("1; 2"),
-        ]:
-            assert not is_scalar(a)
-            assert not is_scalar(MockNumpyLikeArray(a))
+    @pytest.mark.parametrize("arr", [np.array([]), np.array([[]])])
+    def test_is_scalar_numpy_arrays(self, arr):
+        assert not is_scalar(arr)
+        assert not is_scalar(MockNumpyLikeArray(arr))
 
     def test_is_scalar_pandas_scalars(self):
         assert is_scalar(Timestamp("2014-01-01"))
@@ -1948,10 +1947,10 @@ class TestIsScalar:
         assert is_scalar(num)
 
 
-def test_datetimeindex_from_empty_datetime64_array():
-    for unit in ["ms", "us", "ns"]:
-        idx = DatetimeIndex(np.array([], dtype=f"datetime64[{unit}]"))
-        assert len(idx) == 0
+@pytest.mark.parametrize("unit", ["ms", "us", "ns"])
+def test_datetimeindex_from_empty_datetime64_array(unit):
+    idx = DatetimeIndex(np.array([], dtype=f"datetime64[{unit}]"))
+    assert len(idx) == 0
 
 
 def test_nan_to_nat_conversions():

@@ -475,18 +475,15 @@ def group_any_all(int8_t[:, ::1] out,
 # group_add, group_prod, group_var, group_mean, group_ohlc
 # ----------------------------------------------------------------------
 
-ctypedef fused add_t:
-    float64_t
-    float32_t
-    complex64_t
-    complex128_t
-    object
-
 ctypedef fused mean_t:
     float64_t
     float32_t
     complex64_t
     complex128_t
+
+ctypedef fused add_t:
+    mean_t
+    object
 
 
 @cython.wraparound(False)

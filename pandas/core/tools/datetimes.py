@@ -27,6 +27,7 @@ from pandas._libs.tslibs import (
     iNaT,
     nat_strings,
     parsing,
+    timezones,
 )
 from pandas._libs.tslibs.parsing import (  # noqa:F401
     DateParseError,
@@ -364,7 +365,7 @@ def _convert_listlike_datetimes(
     # NB: this must come after unit transformation
     orig_arg = arg
     try:
-        arg, _ = maybe_convert_dtype(arg, copy=False)
+        arg, _ = maybe_convert_dtype(arg, copy=False, tz=timezones.maybe_get_tz(tz))
     except TypeError:
         if errors == "coerce":
             npvalues = np.array(["NaT"], dtype="datetime64[ns]").repeat(len(arg))
@@ -764,8 +765,8 @@ def to_datetime(
     unit : str, default 'ns'
         The unit of the arg (D,s,ms,us,ns) denote the unit, which is an
         integer or float number. This will be based off the origin.
-        Example, with ``unit='ms'`` and ``origin='unix'`` (the default), this
-        would calculate the number of milliseconds to the unix epoch start.
+        Example, with ``unit='ms'`` and ``origin='unix'``, this would calculate
+        the number of milliseconds to the unix epoch start.
     infer_datetime_format : bool, default False
         If :const:`True` and no `format` is given, attempt to infer the format
         of the datetime strings based on the first non-NaN element,

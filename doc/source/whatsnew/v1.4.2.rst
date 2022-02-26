@@ -14,7 +14,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
--
+- Fixed regression in :meth:`DataFrame.drop` and :meth:`Series.drop` when :class:`Index` had extension dtype and duplicates (:issue:`45860`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -23,7 +23,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Fixed "longtable" formatting in :meth:`.Styler.to_latex` when ``column_format`` is given in extended format (:issue:`46037`)
 -
 
 .. ---------------------------------------------------------------------------
