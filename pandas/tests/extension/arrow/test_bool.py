@@ -62,11 +62,6 @@ class TestInterface(BaseArrowTests, base.BaseInterfaceTests):
 
 
 class TestConstructors(BaseArrowTests, base.BaseConstructorsTests):
-    # seems like some bug in isna on empty BoolArray returning floats.
-    @pytest.mark.xfail(reason="bad is-na for empty data")
-    def test_from_sequence_from_cls(self, data):
-        super().test_from_sequence_from_cls(data)
-
     @pytest.mark.xfail(reason="pa.NULL is not recognised as scalar, GH-33899")
     def test_series_constructor_no_data_with_index(self, dtype, na_value):
         # pyarrow.lib.ArrowInvalid: only handle 1-dimensional arrays
@@ -76,10 +71,6 @@ class TestConstructors(BaseArrowTests, base.BaseConstructorsTests):
     def test_series_constructor_scalar_na_with_index(self, dtype, na_value):
         # pyarrow.lib.ArrowInvalid: only handle 1-dimensional arrays
         super().test_series_constructor_scalar_na_with_index(dtype, na_value)
-
-    @pytest.mark.xfail(reason="ufunc 'invert' not supported for the input types")
-    def test_construct_empty_dataframe(self, dtype):
-        super().test_construct_empty_dataframe(dtype)
 
     @pytest.mark.xfail(reason="_from_sequence ignores dtype keyword")
     def test_empty(self, dtype):
