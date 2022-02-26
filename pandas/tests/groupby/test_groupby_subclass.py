@@ -46,7 +46,7 @@ def test_groupby_preserves_subclass(obj, groupby_func):
     # Reduction or transformation kernels should preserve type
     slices = {"ngroup", "cumcount", "size"}
     if isinstance(obj, DataFrame) and groupby_func in slices:
-        assert isinstance(result1, obj._constructor_sliced)
+        assert isinstance(result1, tm.SubclassedSeries)
     else:
         assert isinstance(result1, type(obj))
 

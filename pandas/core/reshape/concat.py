@@ -6,6 +6,7 @@ from __future__ import annotations
 from collections import abc
 from typing import (
     TYPE_CHECKING,
+    Callable,
     Hashable,
     Iterable,
     Literal,
@@ -467,7 +468,9 @@ class _Concatenator:
 
         # Standardize axis parameter to int
         if isinstance(sample, ABCSeries):
-            axis = sample._constructor_expanddim._get_axis_number(axis)
+            from pandas import DataFrame
+
+            axis = DataFrame._get_axis_number(axis)
         else:
             axis = sample._get_axis_number(axis)
 
@@ -539,7 +542,7 @@ class _Concatenator:
         self.new_axes = self._get_new_axes()
 
     def get_result(self):
-        cons: type[DataFrame | Series]
+        cons: Callable[..., DataFrame | Series]
         sample: DataFrame | Series
 
         # series only
