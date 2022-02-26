@@ -243,7 +243,8 @@ Other Deprecations
 - Deprecated treating float-dtype data as wall-times when passed with a timezone to :class:`Series` or :class:`DatetimeIndex` (:issue:`45573`)
 - Deprecated the behavior of :meth:`Series.fillna` and :meth:`DataFrame.fillna` with ``timedelta64[ns]`` dtype and incompatible fill value; in a future version this will cast to a common dtype (usually object) instead of raising, matching the behavior of other dtypes (:issue:`45746`)
 - Deprecated the ``warn`` parameter in :func:`infer_freq` (:issue:`45947`)
-
+- Deprecated allowing non-keyword arguments in :meth:`ExtensionArray.argsort` (:issue:`46134`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.performance:
@@ -257,6 +258,7 @@ Performance improvements
 - Performance improvement in :meth:`.GroupBy.transform` for user-defined functions when only a single group exists (:issue:`44977`)
 - Performance improvement in :meth:`MultiIndex.get_locs` (:issue:`45681`)
 - Performance improvement in :func:`merge` when left and/or right are empty (:issue:`45838`)
+- Performance improvement in :meth:`DataFrame.join` when left and/or right are empty (:issue:`46015`)
 - Performance improvement in :class:`DataFrame` and :class:`Series` constructors for extension dtype scalars (:issue:`45854`)
 -
 
@@ -349,7 +351,7 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
--
+- Bug in :class:`MultiIndex.equals` not commutative when only one side has extension array dtype (:issue:`46026`)
 -
 
 I/O
@@ -359,6 +361,7 @@ I/O
 - Bug in :meth:`DataFrame.info` where a new line at the end of the output is omitted when called on an empty :class:`DataFrame` (:issue:`45494`)
 - Bug in :func:`read_csv` not recognizing line break for ``on_bad_lines="warn"`` for ``engine="c"`` (:issue:`41710`)
 - Bug in :meth:`DataFrame.to_csv` not respecting ``float_format`` for ``Float64`` dtype (:issue:`45991`)
+- Bug in :func:`read_csv` not respecting a specified converter to index columns in all cases (:issue:`40589`)
 - Bug in :func:`read_parquet` when ``engine="pyarrow"`` which caused partial write to disk when column of unsupported datatype was passed (:issue:`44914`)
 - Bug in :func:`DataFrame.to_excel` and :class:`ExcelWriter` would raise when writing an empty DataFrame to a ``.ods`` file (:issue:`45793`)
 
