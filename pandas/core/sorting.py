@@ -577,7 +577,7 @@ def get_flattened_list(
     arrays: DefaultDict[int, list[int]] = defaultdict(list)
     for labs, level in zip(labels, levels):
         table = hashtable.Int64HashTable(ngroups)
-        table.map(comp_ids, labs.astype(np.int64, copy=False))
+        table.map_keys_to_values(comp_ids, labs.astype(np.int64, copy=False))
         for i in range(ngroups):
             arrays[i].append(level[table.get_item(i)])
     return [tuple(array) for array in arrays.values()]
