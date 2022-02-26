@@ -2355,6 +2355,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 return result.T
             return result.unstack()
 
+
     @final
     def resample(self, rule, *args, **kwargs):
         """
@@ -3689,6 +3690,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         index, _ = MultiIndex.from_product(levels_list, names=names).sortlevel()
 
         if self.as_index:
+            # Always holds for SeriesGroupBy unless GH#36507 is implemented
             d = {
                 self.obj._get_axis_name(self.axis): index,
                 "copy": False,
