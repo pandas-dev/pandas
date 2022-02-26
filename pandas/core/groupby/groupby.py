@@ -1733,7 +1733,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @property
-    def _obj_1d_constructor(self) -> type[Series]:
+    def _obj_1d_constructor(self) -> Callable:
         # GH28330 preserve subclassed Series/DataFrames
         if isinstance(self.obj, DataFrame):
             return self.obj._constructor_sliced
@@ -2158,7 +2158,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
 
         # GH28330 preserve subclassed Series/DataFrames through calls
-        if issubclass(self.obj._constructor, Series):
+        if isinstance(self.obj, Series):
             result = self._obj_1d_constructor(result, name=self.obj.name)
         else:
             result = self._obj_1d_constructor(result)
@@ -3607,13 +3607,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return self._mask_selected_obj(mask)
 
     @final
-    def _mask_selected_obj(self, mask: np.ndarray) -> NDFrameT:
+    def _mask_selected_obj(self, mask: npt.NDArray[np.bool_]) -> NDFrameT:
         """
         Return _selected_obj with mask applied to the correct axis.
 
         Parameters
         ----------
-        mask : np.ndarray
+        mask : np.ndarray[bool]
             Boolean mask to apply.
 
         Returns
@@ -3687,6 +3687,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         index, _ = MultiIndex.from_product(levels_list, names=names).sortlevel()
 
         if self.as_index:
+            # Always holds for SeriesGroupBy unless GH#36507 is implemented
             d = {
                 self.obj._get_axis_name(self.axis): index,
                 "copy": False,
