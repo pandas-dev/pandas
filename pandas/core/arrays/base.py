@@ -789,8 +789,9 @@ class ExtensionArray:
         if mask.any():
             if method is not None:
                 func = missing.get_fill_func(method)
-                new_values, _ = func(self.astype(object), limit=limit, mask=mask)
-                new_values = self._from_sequence(new_values, dtype=self.dtype)
+                npvalues = self.astype(object)
+                func(npvalues, limit=limit, mask=mask)
+                new_values = self._from_sequence(npvalues, dtype=self.dtype)
             else:
                 # fill with value
                 new_values = self.copy()
@@ -1397,7 +1398,8 @@ class ExtensionArray:
     __hash__: None  # type: ignore[assignment]
 
     # ------------------------------------------------------------------------
-    # Non-Optimized Default Methods
+    # Non-Optimized Default Methods; in the case of the private methods here,
+    #  these are not guaranteeed to be stable across pandas versions.
 
     def tolist(self) -> list:
         """
@@ -1510,10 +1512,11 @@ class ExtensionArray:
         ExtensionArray.fillna
         """
         func = missing.get_fill_func(method)
+        npvalues = self.astype(object)
         # NB: if we don't copy mask here, it may be altered inplace, which
         #  would mess up the `self[mask] = ...` below.
-        new_values, _ = func(self.astype(object), limit=limit, mask=mask.copy())
-        new_values = self._from_sequence(new_values, dtype=self.dtype)
+        func(npvalues, limit=limit, mask=mask.copy())
+        new_values = self._from_sequence(npvalues, dtype=self.dtype)
         self[mask] = new_values[mask]
         return
 

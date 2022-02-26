@@ -6,7 +6,7 @@ import pyarrow
 from pandas.core.arrays.interval import VALID_CLOSED
 
 
-def pyarrow_array_to_numpy_and_mask(arr, dtype):
+def pyarrow_array_to_numpy_and_mask(arr, dtype: np.dtype):
     """
     Convert a primitive pyarrow.Array to a numpy array and boolean mask based
     on the buffers of the Array.

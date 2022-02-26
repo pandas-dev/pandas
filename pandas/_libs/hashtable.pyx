@@ -27,6 +27,7 @@ cnp.import_array()
 
 
 from pandas._libs cimport util
+from pandas._libs.dtypes cimport numeric_object_t
 from pandas._libs.khash cimport (
     KHASH_TRACE_DOMAIN,
     are_equivalent_float32_t,

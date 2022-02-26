@@ -301,19 +301,9 @@ cdef mode_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
 
 
 ctypedef fused htfunc_t:
+    numeric_object_t
     complex128_t
     complex64_t
-    float64_t
-    float32_t
-    uint64_t
-    uint32_t
-    uint16_t
-    uint8_t
-    int64_t
-    int32_t
-    int16_t
-    int8_t
-    object
 
 
 cpdef value_count(ndarray[htfunc_t] values, bint dropna):

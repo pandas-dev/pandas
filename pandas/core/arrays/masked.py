@@ -174,12 +174,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if mask.any():
             if method is not None:
                 func = missing.get_fill_func(method, ndim=self.ndim)
-                new_values, new_mask = func(
-                    self._data.copy().T,
-                    limit=limit,
-                    mask=mask.copy().T,
-                )
-                return type(self)(new_values.T, new_mask.view(np.bool_).T)
+                npvalues = self._data.copy().T
+                new_mask = mask.copy().T
+                func(npvalues, limit=limit, mask=new_mask)
+                return type(self)(npvalues.T, new_mask.T)
             else:
                 # fill with value
                 new_values = self.copy()
