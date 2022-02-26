@@ -4542,15 +4542,25 @@ class Index(IndexOpsMixin, PandasObject):
         if level is not None and (self._is_multi or other._is_multi):
             return self._join_level(other, level, how=how)
 
-        if len(other) == 0 and how in ("left", "outer"):
-            join_index = self._view()
-            rindexer = np.repeat(np.intp(-1), len(join_index))
-            return join_index, None, rindexer
+        if len(other) == 0:
+            if how in ("left", "outer"):
+                join_index = self._view()
+                rindexer = np.broadcast_to(np.intp(-1), len(join_index))
+                return join_index, None, rindexer
+            elif how in ("right", "inner", "cross"):
+                join_index = other._view()
+                lindexer = np.array([])
+                return join_index, lindexer, None
 
-        if len(self) == 0 and how in ("right", "outer"):
-            join_index = other._view()
-            lindexer = np.repeat(np.intp(-1), len(join_index))
-            return join_index, lindexer, None
+        if len(self) == 0:
+            if how in ("right", "outer"):
+                join_index = other._view()
+                lindexer = np.broadcast_to(np.intp(-1), len(join_index))
+                return join_index, lindexer, None
+            elif how in ("left", "inner", "cross"):
+                join_index = self._view()
+                rindexer = np.array([])
+                return join_index, None, rindexer
 
         if self._join_precedence < other._join_precedence:
             how = {"right": "left", "left": "right"}.get(how, how)
@@ -5538,7 +5548,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self[loc]
 
-    def asof_locs(self, where: Index, mask: np.ndarray) -> npt.NDArray[np.intp]:
+    def asof_locs(
+        self, where: Index, mask: npt.NDArray[np.bool_]
+    ) -> npt.NDArray[np.intp]:
         """
         Return the locations (indices) of labels in the index.
 

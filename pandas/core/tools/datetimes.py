@@ -10,8 +10,8 @@ from typing import (
     Hashable,
     List,
     Tuple,
-    TypeVar,
     Union,
+    cast,
     overload,
 )
 import warnings
@@ -66,6 +66,7 @@ from pandas.arrays import (
 )
 from pandas.core import algorithms
 from pandas.core.algorithms import unique
+from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.datetimes import (
     maybe_convert_dtype,
     objects_to_datetime64ns,
@@ -85,7 +86,8 @@ if TYPE_CHECKING:
 
 ArrayConvertible = Union[List, Tuple, AnyArrayLike, "Series"]
 Scalar = Union[int, float, str]
-DatetimeScalar = TypeVar("DatetimeScalar", Scalar, datetime)
+DatetimeScalar = Union[Scalar, datetime]
+
 DatetimeScalarOrArrayConvertible = Union[DatetimeScalar, ArrayConvertible]
 start_caching_at = 50
 
@@ -638,7 +640,7 @@ def to_datetime(
     infer_datetime_format: bool = ...,
     origin=...,
     cache: bool = ...,
-) -> DatetimeScalar | NaTType:
+) -> Timestamp | NaTType:
     ...
 
 
@@ -765,8 +767,8 @@ def to_datetime(
     unit : str, default 'ns'
         The unit of the arg (D,s,ms,us,ns) denote the unit, which is an
         integer or float number. This will be based off the origin.
-        Example, with ``unit='ms'`` and ``origin='unix'`` (the default), this
-        would calculate the number of milliseconds to the unix epoch start.
+        Example, with ``unit='ms'`` and ``origin='unix'``, this would calculate
+        the number of milliseconds to the unix epoch start.
     infer_datetime_format : bool, default False
         If :const:`True` and no `format` is given, attempt to infer the format
         of the datetime strings based on the first non-NaN element,
@@ -1061,6 +1063,13 @@ def to_datetime(
             result = convert_listlike(arg, format, name=arg.name)
     elif is_list_like(arg):
         try:
+            # error: Argument 1 to "_maybe_cache" has incompatible type
+            # "Union[float, str, datetime, List[Any], Tuple[Any, ...], ExtensionArray,
+            # ndarray[Any, Any], Series]"; expected "Union[List[Any], Tuple[Any, ...],
+            # Union[Union[ExtensionArray, ndarray[Any, Any]], Index, Series], Series]"
+            arg = cast(
+                Union[list, tuple, ExtensionArray, np.ndarray, "Series", Index], arg
+            )
             cache_array = _maybe_cache(arg, format, cache, convert_listlike)
         except OutOfBoundsDatetime:
             # caching attempts to create a DatetimeIndex, which may raise

@@ -23,6 +23,7 @@ from pandas._libs.tslibs import (
 from pandas._typing import (
     Dtype,
     DtypeObj,
+    npt,
 )
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
@@ -327,7 +328,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     # ------------------------------------------------------------------------
     # Index Methods
 
-    def asof_locs(self, where: Index, mask: np.ndarray) -> np.ndarray:
+    def asof_locs(self, where: Index, mask: npt.NDArray[np.bool_]) -> np.ndarray:
         """
         where : array of timestamps
         mask : np.ndarray[bool]
