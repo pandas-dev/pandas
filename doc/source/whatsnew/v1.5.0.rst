@@ -350,7 +350,7 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
--
+- Bug in :class:`MultiIndex.equals` not commutative when only one side has extension array dtype (:issue:`46026`)
 -
 
 I/O
