@@ -1285,7 +1285,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         df = data if data.ndim == 2 else data.to_frame()
         starts, ends, sorted_index, sorted_data = self._numba_prep(df)
         aggregator = executor.generate_shared_aggregator(
-            func, *get_jit_arguments(engine_kwargs)
+            func, **get_jit_arguments(engine_kwargs)
         )
         result = aggregator(sorted_data, starts, ends, 0, *aggregator_args)
 
@@ -1309,7 +1309,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         starts, ends, sorted_index, sorted_data = self._numba_prep(data)
         numba_.validate_udf(func)
         numba_transform_func = numba_.generate_numba_transform_func(
-            func, *get_jit_arguments(engine_kwargs, kwargs)
+            func, **get_jit_arguments(engine_kwargs, kwargs)
         )
         result = numba_transform_func(
             sorted_data,
@@ -1335,7 +1335,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         starts, ends, sorted_index, sorted_data = self._numba_prep(data)
         numba_.validate_udf(func)
         numba_agg_func = numba_.generate_numba_agg_func(
-            func, *get_jit_arguments(engine_kwargs, kwargs)
+            func, **get_jit_arguments(engine_kwargs, kwargs)
         )
         result = numba_agg_func(
             sorted_data,

@@ -611,7 +611,7 @@ class BaseWindow(SelectionMixin):
         )
         self._check_window_bounds(start, end, len(values))
         aggregator = executor.generate_shared_aggregator(
-            func, *get_jit_arguments(engine_kwargs)
+            func, **get_jit_arguments(engine_kwargs)
         )
         result = aggregator(values, start, end, min_periods, *func_args)
         result = result.T if self.axis == 1 else result
@@ -1288,11 +1288,11 @@ class RollingAndExpandingMixin(BaseWindow):
             numba_args = args
             if self.method == "single":
                 apply_func = generate_numba_apply_func(
-                    func, *get_jit_arguments(engine_kwargs, kwargs)
+                    func, **get_jit_arguments(engine_kwargs, kwargs)
                 )
             else:
                 apply_func = generate_numba_table_func(
-                    func, *get_jit_arguments(engine_kwargs, kwargs)
+                    func, **get_jit_arguments(engine_kwargs, kwargs)
                 )
         elif engine in ("cython", None):
             if engine_kwargs is not None:

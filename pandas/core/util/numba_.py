@@ -29,7 +29,7 @@ def set_use_numba(enable: bool = False) -> None:
 
 def get_jit_arguments(
     engine_kwargs: dict[str, bool] | None = None, kwargs: dict | None = None
-) -> tuple[bool, bool, bool]:
+) -> dict[str, bool]:
     """
     Return arguments to pass to numba.JIT, falling back on pandas default JIT settings.
 
@@ -42,7 +42,7 @@ def get_jit_arguments(
 
     Returns
     -------
-    (bool, bool, bool)
+    dict[str, bool]
         nopython, nogil, parallel
 
     Raises
@@ -60,7 +60,7 @@ def get_jit_arguments(
         )
     nogil = engine_kwargs.get("nogil", False)
     parallel = engine_kwargs.get("parallel", False)
-    return nopython, nogil, parallel
+    return {"nopython": nopython, "nogil": nogil, "parallel": parallel}
 
 
 def jit_user_function(

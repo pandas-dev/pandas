@@ -535,7 +535,7 @@ class ExponentialMovingWindow(BaseWindow):
             else:
                 func = generate_numba_ewm_table_func
             ewm_func = func(
-                *get_jit_arguments(engine_kwargs),
+                **get_jit_arguments(engine_kwargs),
                 com=self._com,
                 adjust=self.adjust,
                 ignore_na=self.ignore_na,
@@ -586,7 +586,7 @@ class ExponentialMovingWindow(BaseWindow):
             else:
                 func = generate_numba_ewm_table_func
             ewm_func = func(
-                *get_jit_arguments(engine_kwargs),
+                **get_jit_arguments(engine_kwargs),
                 com=self._com,
                 adjust=self.adjust,
                 ignore_na=self.ignore_na,
@@ -1007,7 +1007,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
                 result_kwargs["name"] = self._selected_obj.name
             np_array = self._selected_obj.astype(np.float64).to_numpy()
         ewma_func = generate_online_numba_ewma_func(
-            *get_jit_arguments(self.engine_kwargs)
+            **get_jit_arguments(self.engine_kwargs)
         )
         result = self._mean.run_ewm(
             np_array if is_frame else np_array[:, np.newaxis],
