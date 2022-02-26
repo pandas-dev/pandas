@@ -680,7 +680,7 @@ class Grouping:
         elif isinstance(self.grouping_vector, ops.BaseGrouper):
             # we have a list of groupers
             codes = self.grouping_vector.codes_info
-            uniques = self.grouping_vector.result_arraylike
+            uniques = self.grouping_vector.result_index._values
         else:
             # GH35667, replace dropna=False with na_sentinel=None
             if not self._dropna:

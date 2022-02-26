@@ -66,6 +66,14 @@ echo
 echo "mamba env create -q --file=${ENV_FILE}"
 time mamba env create -q --file="${ENV_FILE}"
 
+# From pyarrow on MacOS
+# ImportError: 2): Library not loaded: @rpath/libssl.1.1.dylib
+# Referenced from: /Users/runner/miniconda3/envs/pandas-dev/lib/libthrift.0.13.0.dylib
+# Reason: image not found
+if [[ "$(uname)" == 'Darwin' ]]; then
+    echo "Update pyarrow for pyarrow on MacOS"
+    conda install -n pandas-dev -c conda-forge --no-update-deps pyarrow=6
+fi
 
 if [[ "$BITS32" == "yes" ]]; then
     # activate 32-bit compiler
