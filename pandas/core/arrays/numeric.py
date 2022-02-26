@@ -95,7 +95,7 @@ class NumericDtype(BaseMaskedDtype):
 
         results = []
         for arr in chunks:
-            data, mask = pyarrow_array_to_numpy_and_mask(arr, dtype=self.type)
+            data, mask = pyarrow_array_to_numpy_and_mask(arr, dtype=self.numpy_dtype)
             num_arr = array_class(data.copy(), ~mask, copy=False)
             results.append(num_arr)
 
