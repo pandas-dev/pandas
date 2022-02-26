@@ -118,8 +118,6 @@ def astype_nansafe(
 
         # allow frequency conversions
         if dtype.kind == "M":
-            if dtype == "<M8[D]":
-                return arr
             return arr.astype(dtype)
 
         raise TypeError(f"cannot astype a datetimelike from [{arr.dtype}] to [{dtype}]")
