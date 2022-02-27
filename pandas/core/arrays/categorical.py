@@ -43,7 +43,6 @@ from pandas._typing import (
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
-    cache_readonly,
     deprecate_kwarg,
     deprecate_nonkeyword_arguments,
 )
@@ -562,13 +561,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             )
 
         return result
-
-    @cache_readonly
-    def itemsize(self) -> int:
-        """
-        return the size of a single category
-        """
-        return self.categories.itemsize
 
     def to_list(self):
         """
