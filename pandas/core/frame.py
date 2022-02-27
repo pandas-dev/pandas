@@ -5625,6 +5625,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
         allow_duplicates: bool | lib.NoDefault = ...,
+        names: Hashable | Sequence[Hashable] = None,
     ) -> DataFrame:
         ...
 
@@ -5637,6 +5638,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
         allow_duplicates: bool | lib.NoDefault = ...,
+        names: Hashable | Sequence[Hashable] = None,
     ) -> None:
         ...
 
@@ -5649,6 +5651,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
         allow_duplicates: bool | lib.NoDefault = ...,
+        names: Hashable | Sequence[Hashable] = None,
     ) -> None:
         ...
 
@@ -5661,6 +5664,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
         allow_duplicates: bool | lib.NoDefault = ...,
+        names: Hashable | Sequence[Hashable] = None,
     ) -> None:
         ...
 
@@ -5672,6 +5676,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
         allow_duplicates: bool | lib.NoDefault = ...,
+        names: Hashable | Sequence[Hashable] = None,
     ) -> None:
         ...
 
@@ -5684,6 +5689,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
         allow_duplicates: bool | lib.NoDefault = ...,
+        names: Hashable | Sequence[Hashable] = None,
     ) -> DataFrame | None:
         ...
 
@@ -5696,6 +5702,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_level: Hashable = 0,
         col_fill: Hashable = "",
         allow_duplicates: bool | lib.NoDefault = lib.no_default,
+        names: Hashable | Sequence[Hashable] = None,
     ) -> DataFrame | None:
         """
         Reset the index, or a level of it.
@@ -5723,6 +5730,10 @@ class DataFrame(NDFrame, OpsMixin):
             levels are named. If None then the index name is repeated.
         allow_duplicates : bool, optional, default lib.no_default
             Allow duplicate column labels to be created.
+        names : str, tuple or list, default None
+            Using the given string, rename the DataFrame column which contains the
+            index data. If the DataFrame has a MultiIndex, this has to be a list or
+            tuple with length equal to the number of levels.
 
             .. versionadded:: 1.5.0
 
@@ -5841,6 +5852,15 @@ class DataFrame(NDFrame, OpsMixin):
         parrot           bird   24.0     fly
         lion           mammal   80.5     run
         monkey         mammal    NaN    jump
+
+        Using the `names` parameter, it is possible to choose a name for the old index column:
+        >>> df.reset_index(names='name')
+             name   class  max_speed
+        0  falcon    bird      389.0
+        1  parrot    bird       24.0
+        2    lion  mammal       80.5
+        3  monkey  mammal        NaN
+
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         self._check_inplace_and_allows_duplicate_labels(inplace)
@@ -5861,12 +5881,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         if not drop:
             to_insert: Iterable[tuple[Any, Any | None]]
+
+            names = self.index.get_default_index_names(names)
             if isinstance(self.index, MultiIndex):
-                names = com.fill_missing_names(self.index.names)
                 to_insert = zip(self.index.levels, self.index.codes)
             else:
-                default = "index" if "index" not in self else "level_0"
-                names = [default] if self.index.name is None else [self.index.name]
                 to_insert = ((self.index, None),)
 
             multi_col = isinstance(self.columns, MultiIndex)
