@@ -3,8 +3,6 @@ from __future__ import annotations
 from typing import (
     Any,
     Generic,
-    Literal,
-    Tuple,
     TypeVar,
     Union,
     overload,
@@ -14,6 +12,7 @@ import numpy as np
 import numpy.typing as npt
 
 from pandas._typing import (
+    IntervalClosedType,
     Timedelta,
     Timestamp,
 )
@@ -26,9 +25,9 @@ _OrderableT = TypeVar("_OrderableT", int, float, Timestamp, Timedelta)
 
 class _LengthDescriptor:
     @overload
-    def __get__(self, instance: Interval[float], owner: Any) -> float: ...
-    @overload
-    def __get__(self, instance: Interval[int], owner: Any) -> int: ...
+    def __get__(
+        self, instance: Interval[_OrderableScalarT], owner: Any
+    ) -> _OrderableScalarT: ...
     @overload
     def __get__(
         self, instance: Interval[_OrderableTimesT], owner: Any
@@ -67,12 +66,12 @@ class Interval(IntervalMixin, Generic[_OrderableT]):
     @property
     def right(self: Interval[_OrderableT]) -> _OrderableT: ...
     @property
-    def closed(self) -> Literal["left", "right", "both", "neither"]: ...
+    def closed(self) -> IntervalClosedType: ...
     def __init__(
         self,
         left: _OrderableT,
         right: _OrderableT,
-        closed: Literal["left", "right", "both", "neither"] = ...,
+        closed: IntervalClosedType = ...,
     ): ...
     def __hash__(self) -> int: ...
     @overload
@@ -153,20 +152,20 @@ class Interval(IntervalMixin, Generic[_OrderableT]):
 
 def intervals_to_interval_bounds(
     intervals: np.ndarray, validate_closed: bool = ...
-) -> Tuple[np.ndarray, np.ndarray, str]: ...
+) -> tuple[np.ndarray, np.ndarray, str]: ...
 
 class IntervalTree(IntervalMixin):
     def __init__(
         self,
         left: np.ndarray,
         right: np.ndarray,
-        closed: Literal["left", "right", "both", "neither"] = ...,
+        closed: IntervalClosedType = ...,
         leaf_size: int = ...,
     ): ...
     def get_indexer(self, target) -> npt.NDArray[np.intp]: ...
     def get_indexer_non_unique(
         self, target
-    ) -> Tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]: ...
+    ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]: ...
     _na_count: int
     @property
     def is_overlapping(self) -> bool: ...
