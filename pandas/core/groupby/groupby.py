@@ -114,7 +114,7 @@ import pandas.core.sample as sample
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
 from pandas.core.util.numba_ import (
-    NUMBA_FUNC_CACHE,
+    get_jit_arguments,
     maybe_use_numba,
 )
 
@@ -1247,11 +1247,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     # numba
 
     @final
-    def _numba_prep(self, func, data):
-        if not callable(func):
-            raise NotImplementedError(
-                "Numba engine can only be used with a single function."
-            )
+    def _numba_prep(self, data):
         ids, _, ngroups = self.grouper.group_info
         sorted_index = get_group_index_sorter(ids, ngroups)
         sorted_ids = algorithms.take_nd(ids, sorted_index, allow_fill=False)
@@ -1271,7 +1267,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self,
         func: Callable,
         engine_kwargs: dict[str, bool] | None,
-        numba_cache_key_str: str,
         *aggregator_args,
     ):
         """
@@ -1288,15 +1283,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         with self._group_selection_context():
             data = self._selected_obj
         df = data if data.ndim == 2 else data.to_frame()
-        starts, ends, sorted_index, sorted_data = self._numba_prep(func, df)
+        starts, ends, sorted_index, sorted_data = self._numba_prep(df)
         aggregator = executor.generate_shared_aggregator(
-            func, engine_kwargs, numba_cache_key_str
+            func, **get_jit_arguments(engine_kwargs)
         )
         result = aggregator(sorted_data, starts, ends, 0, *aggregator_args)
-
-        cache_key = (func, numba_cache_key_str)
-        if cache_key not in NUMBA_FUNC_CACHE:
-            NUMBA_FUNC_CACHE[cache_key] = aggregator
 
         index = self.grouper.result_index
         if data.ndim == 1:
@@ -1315,10 +1306,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         to generate the indices of each group in the sorted data and then passes the
         data and indices into a Numba jitted function.
         """
-        starts, ends, sorted_index, sorted_data = self._numba_prep(func, data)
-
+        starts, ends, sorted_index, sorted_data = self._numba_prep(data)
+        numba_.validate_udf(func)
         numba_transform_func = numba_.generate_numba_transform_func(
-            kwargs, func, engine_kwargs
+            func, **get_jit_arguments(engine_kwargs, kwargs)
         )
         result = numba_transform_func(
             sorted_data,
@@ -1328,11 +1319,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             len(data.columns),
             *args,
         )
-
-        cache_key = (func, "groupby_transform")
-        if cache_key not in NUMBA_FUNC_CACHE:
-            NUMBA_FUNC_CACHE[cache_key] = numba_transform_func
-
         # result values needs to be resorted to their original positions since we
         # evaluated the data sorted by group
         return result.take(np.argsort(sorted_index), axis=0)
@@ -1346,9 +1332,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         to generate the indices of each group in the sorted data and then passes the
         data and indices into a Numba jitted function.
         """
-        starts, ends, sorted_index, sorted_data = self._numba_prep(func, data)
-
-        numba_agg_func = numba_.generate_numba_agg_func(kwargs, func, engine_kwargs)
+        starts, ends, sorted_index, sorted_data = self._numba_prep(data)
+        numba_.validate_udf(func)
+        numba_agg_func = numba_.generate_numba_agg_func(
+            func, **get_jit_arguments(engine_kwargs, kwargs)
+        )
         result = numba_agg_func(
             sorted_data,
             sorted_index,
@@ -1357,11 +1345,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             len(data.columns),
             *args,
         )
-
-        cache_key = (func, "groupby_agg")
-        if cache_key not in NUMBA_FUNC_CACHE:
-            NUMBA_FUNC_CACHE[cache_key] = numba_agg_func
-
         return result
 
     # -----------------------------------------------------------------
@@ -1947,7 +1930,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_mean
 
-            return self._numba_agg_general(sliding_mean, engine_kwargs, "groupby_mean")
+            return self._numba_agg_general(sliding_mean, engine_kwargs)
         else:
             result = self._cython_agg_general(
                 "mean",
@@ -2029,9 +2012,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_var
 
-            return np.sqrt(
-                self._numba_agg_general(sliding_var, engine_kwargs, "groupby_std", ddof)
-            )
+            return np.sqrt(self._numba_agg_general(sliding_var, engine_kwargs, ddof))
         else:
             return self._get_cythonized_result(
                 libgroupby.group_var,
@@ -2085,9 +2066,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_var
 
-            return self._numba_agg_general(
-                sliding_var, engine_kwargs, "groupby_var", ddof
-            )
+            return self._numba_agg_general(sliding_var, engine_kwargs, ddof)
         else:
             if ddof == 1:
                 numeric_only = self._resolve_numeric_only(lib.no_default)
@@ -2180,7 +2159,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return self._numba_agg_general(
                 sliding_sum,
                 engine_kwargs,
-                "groupby_sum",
             )
         else:
             numeric_only = self._resolve_numeric_only(numeric_only)
@@ -2221,9 +2199,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_min_max
 
-            return self._numba_agg_general(
-                sliding_min_max, engine_kwargs, "groupby_min", False
-            )
+            return self._numba_agg_general(sliding_min_max, engine_kwargs, False)
         else:
             return self._agg_general(
                 numeric_only=numeric_only,
@@ -2244,9 +2220,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_min_max
 
-            return self._numba_agg_general(
-                sliding_min_max, engine_kwargs, "groupby_max", True
-            )
+            return self._numba_agg_general(sliding_min_max, engine_kwargs, True)
         else:
             return self._agg_general(
                 numeric_only=numeric_only,
