@@ -804,8 +804,7 @@ class TestDataFramePlots(TestPlotBase):
         ax = df.plot.scatter(x="a", y="b", c="c")
         color_min_max = (df.c.min(), df.c.max())
         default_norm = mpl.colors.Normalize(*color_min_max)
-        for c in range(100):
-            assert ax.collections[0].norm(c) == default_norm(c)
+        assert all(df.c.apply(lambda x: ax.collections[0].norm(x) == default_norm(x)))
 
     def test_plot_bar(self):
         df = DataFrame(
