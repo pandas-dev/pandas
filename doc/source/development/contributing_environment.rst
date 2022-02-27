@@ -26,14 +26,28 @@ with a full pandas development environment.
 
 **Docker Commands**
 
-Pass your GitHub username in the ``DockerFile`` to use your own fork::
+Build the Docker image::
 
     # Build the image pandas-yourname-env
     docker build --tag pandas-yourname-env .
-    # Run a container and bind your local forked repo, pandas-yourname, to the container
-    docker run -it --rm -v path-to-pandas-yourname:/home/pandas-yourname pandas-yourname-env
+    # Or build the image by passing your GitHub username to use your own fork
+    docker build --build-arg gh_username=yourname --tag pandas-yourname-env .
 
-Even easier, you can integrate Docker with the following IDEs:
+Run Container::
+
+    # Run a container and bind your local repo to the container
+    docker run -it -w /home/pandas --rm -v path-to-local-pandas-repo:/home/pandas pandas-yourname-env
+
+.. note::
+    If you bind your local repo for the first time, you have to build the C extensions afterwards.
+    Run the following command inside the container::
+
+        python setup.py build_ext -j 4
+
+    You need to rebuild the C extensions anytime the Cython code in ``pandas/_libs`` changes.
+    This most frequently occurs when changing or merging branches.
+
+*Even easier, you can integrate Docker with the following IDEs:*
 
 **Visual Studio Code**
 
@@ -46,11 +60,6 @@ See https://code.visualstudio.com/docs/remote/containers for details.
 Enable Docker support and use the Services tool window to build and manage images as well as
 run and interact with containers.
 See https://www.jetbrains.com/help/pycharm/docker.html for details.
-
-Note that you might need to rebuild the C extensions if/when you merge with upstream/main using::
-
-    python setup.py build_ext -j 4
-
 
 Creating an environment without Docker
 ---------------------------------------
