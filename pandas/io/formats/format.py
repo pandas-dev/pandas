@@ -1635,6 +1635,10 @@ class Datetime64Formatter(GenericArrayFormatter):
                 na_rep=self.nat_rep, date_format=self.date_format
             )
 
+        fmt_values = self._reshape_formatted_strings(values, values_shape)
+        return fmt_values
+
+    def _reshape_formatted_strings(self, values, values_shape):
         if len(values_shape) > 1:
             fmt_values = np.reshape(values, values_shape)
             nested_formatter = GenericArrayFormatter(fmt_values)
@@ -1642,10 +1646,7 @@ class Datetime64Formatter(GenericArrayFormatter):
         else:
             fmt_values = values
 
-        if isinstance(fmt_values, np.ndarray):
-            fmt_values = fmt_values.tolist()
-
-        return fmt_values
+        return list(fmt_values)
 
 
 class ExtensionArrayFormatter(GenericArrayFormatter):
@@ -1830,17 +1831,10 @@ class Datetime64TZFormatter(Datetime64Formatter):
             ido, date_format=self.date_format
         )
 
-        if len(values_shape) > 1:
-            fmt_values = np.reshape(values, values_shape)
-            nested_formatter = GenericArrayFormatter(fmt_values)
-            fmt_values = nested_formatter.get_result()
-        else:
+        if len(values_shape) == 1:
             values = [formatter(x) for x in values]
-            fmt_values = values
 
-        if isinstance(fmt_values, np.ndarray):
-            fmt_values = fmt_values.tolist()
-
+        fmt_values = self._reshape_formatted_strings(values, values_shape)
         return fmt_values
 
 
