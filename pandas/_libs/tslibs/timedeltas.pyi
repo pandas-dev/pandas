@@ -33,14 +33,12 @@ class Timedelta(timedelta):
     max: ClassVar[Timedelta]
     resolution: ClassVar[Timedelta]
     value: int  # np.int64
-
-    # error: "__new__" must return a class instance (got "Union[Timedelta, NaTType]")
-    def __new__(  # type: ignore[misc]
+    def __new__(
         cls: Type[_S],
         value=...,
         unit: str = ...,
         **kwargs: int | float | np.integer | np.floating,
-    ) -> _S | NaTType: ...
+    ) -> _S: ...
     @property
     def days(self) -> int: ...
     @property
