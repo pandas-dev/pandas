@@ -18,8 +18,6 @@ from pandas.tests.plotting.common import (
     _check_plot_works,
 )
 
-pytestmark = pytest.mark.slow
-
 
 @pytest.fixture
 def ts():
@@ -69,6 +67,7 @@ class TestSeriesPlots(TestPlotBase):
         with pytest.raises(ValueError, match=msg):
             df.height.hist(layout=[1, 1])
 
+    @pytest.mark.slow
     def test_hist_layout_with_by(self, hist_df):
         df = hist_df
 
@@ -232,6 +231,7 @@ class TestSeriesPlots(TestPlotBase):
 
 @td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
+    @pytest.mark.slow
     def test_hist_df_legacy(self, hist_df):
         from matplotlib.patches import Rectangle
 
@@ -644,6 +644,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         assert len(self.plt.get_fignums()) == 2
         tm.close()
 
+    @pytest.mark.slow
     def test_grouped_hist_layout(self, hist_df):
         df = hist_df
         msg = "Layout of 1x1 must be larger than required size 2"
