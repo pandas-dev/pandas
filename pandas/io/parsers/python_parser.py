@@ -95,7 +95,6 @@ class PythonParser(ParserBase):
             self.has_index_names = kwds["has_index_names"]
 
         self.verbose = kwds["verbose"]
-        self.converters = kwds["converters"]
 
         self.thousands = kwds["thousands"]
         self.decimal = kwds["decimal"]
@@ -893,7 +892,7 @@ class PythonParser(ParserBase):
 
     def _get_index_name(
         self, columns: list[Hashable]
-    ) -> tuple[list[Hashable] | None, list[Hashable], list[Hashable]]:
+    ) -> tuple[Sequence[Hashable] | None, list[Hashable], list[Hashable]]:
         """
         Try several cases to get lines:
 
