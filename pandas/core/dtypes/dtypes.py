@@ -1006,7 +1006,7 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
 
         results = []
         for arr in chunks:
-            data, mask = pyarrow_array_to_numpy_and_mask(arr, dtype="int64")
+            data, mask = pyarrow_array_to_numpy_and_mask(arr, dtype=np.dtype(np.int64))
             parr = PeriodArray(data.copy(), freq=self.freq, copy=False)
             parr[~mask] = NaT
             results.append(parr)
