@@ -19,7 +19,7 @@ New features
 - Implement new :ref:`SparseArray <sparse.array>` and ``SparseList``
   data structures. SparseSeries now derives from SparseArray (:issue:`463`)
 - :ref:`Better console printing options <basics.console_output>` (:issue:`453`)
-- Implement fast :ref:`data ranking <computation.ranking>` for Series and
+- Implement fast data ranking for Series and
   DataFrame, fast versions of scipy.stats.rankdata (:issue:`428`)
 - Implement ``DataFrame.from_items`` alternate
   constructor (:issue:`444`)
