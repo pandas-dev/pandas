@@ -323,43 +323,34 @@ class TestDataFrameConstructors:
         with pytest.raises(ValueError, match=r"shape=\(2, 2, 1\)"):
             DataFrame([a, a])
 
-    def test_constructor_mixed_dtypes(self):
-        def _make_mixed_dtypes_df(typ, ad=None):
+    @pytest.mark.parametrize(
+        "typ, ad",
+        [
+            # mixed floating and integer coexist in the same frame
+            ["float", {}],
+            # add lots of types
+            ["float", {"A": 1, "B": "foo", "C": "bar"}],
+            # GH 622
+            ["int", {}],
+        ],
+    )
+    def test_constructor_mixed_dtypes(self, typ, ad):
+        if typ == "int":
+            dtypes = MIXED_INT_DTYPES
+            arrays = [np.array(np.random.rand(10), dtype=d) for d in dtypes]
+        elif typ == "float":
+            dtypes = MIXED_FLOAT_DTYPES
+            arrays = [np.array(np.random.randint(10, size=10), dtype=d) for d in dtypes]
 
-            if typ == "int":
-                dtypes = MIXED_INT_DTYPES
-                arrays = [np.array(np.random.rand(10), dtype=d) for d in dtypes]
-            elif typ == "float":
-                dtypes = MIXED_FLOAT_DTYPES
-                arrays = [
-                    np.array(np.random.randint(10, size=10), dtype=d) for d in dtypes
-                ]
+        for d, a in zip(dtypes, arrays):
+            assert a.dtype == d
+        ad.update({d: a for d, a in zip(dtypes, arrays)})
+        df = DataFrame(ad)
 
-            for d, a in zip(dtypes, arrays):
-                assert a.dtype == d
-            if ad is None:
-                ad = {}
-            ad.update({d: a for d, a in zip(dtypes, arrays)})
-            return DataFrame(ad)
-
-        def _check_mixed_dtypes(df, dtypes=None):
-            if dtypes is None:
-                dtypes = MIXED_FLOAT_DTYPES + MIXED_INT_DTYPES
-            for d in dtypes:
-                if d in df:
-                    assert df.dtypes[d] == d
-
-        # mixed floating and integer coexist in the same frame
-        df = _make_mixed_dtypes_df("float")
-        _check_mixed_dtypes(df)
-
-        # add lots of types
-        df = _make_mixed_dtypes_df("float", {"A": 1, "B": "foo", "C": "bar"})
-        _check_mixed_dtypes(df)
-
-        # GH 622
-        df = _make_mixed_dtypes_df("int")
-        _check_mixed_dtypes(df)
+        dtypes = MIXED_FLOAT_DTYPES + MIXED_INT_DTYPES
+        for d in dtypes:
+            if d in df:
+                assert df.dtypes[d] == d
 
     def test_constructor_complex_dtypes(self):
         # GH10952
