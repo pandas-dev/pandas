@@ -87,7 +87,6 @@ from pandas.core.array_algos.replace import (
     replace_regex,
     should_use_regex,
 )
-from pandas.core.array_algos.take import take_nd
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays import (
     Categorical,
@@ -736,7 +735,7 @@ class Block(PandasObject):
         self,
         to_replace,
         value,
-        mask: np.ndarray,
+        mask: npt.NDArray[np.bool_],
         inplace: bool = True,
         regex: bool = False,
     ) -> list[Block]:
@@ -827,19 +826,14 @@ class Block(PandasObject):
 
     def take_nd(
         self,
-        indexer,
+        indexer: npt.NDArray[np.intp],
         axis: int,
         new_mgr_locs: BlockPlacement | None = None,
         fill_value=lib.no_default,
     ) -> Block:
         """
-        Take values according to indexer and return them as a block.bb
-
+        Take values according to indexer and return them as a block.
         """
-        # algos.take_nd dispatches for DatetimeTZBlock, CategoricalBlock
-        # so need to preserve types
-        # sparse is treated like an ndarray, but needs .get_values() shaping
-
         values = self.values
 
         if fill_value is lib.no_default:
@@ -848,6 +842,7 @@ class Block(PandasObject):
         else:
             allow_fill = True
 
+        # Note: algos.take_nd has upcast logic similar to coerce_to_target_dtype
         new_values = algos.take_nd(
             values, indexer, axis=axis, allow_fill=allow_fill, fill_value=fill_value
         )
@@ -1478,26 +1473,48 @@ class EABackedBlock(Block):
         new = self._maybe_squeeze_arg(new)
         mask = self._maybe_squeeze_arg(mask)
 
+        if not mask.any():
+            return [self]
+
         try:
             # Caller is responsible for ensuring matching lengths
             values._putmask(mask, new)
         except (TypeError, ValueError) as err:
             _catch_deprecated_value_error(err)
 
-            if is_interval_dtype(self.dtype):
-                # Discussion about what we want to support in the general
-                #  case GH#39584
-                blk = self.coerce_to_target_dtype(orig_new)
-                return blk.putmask(orig_mask, orig_new)
+            if self.ndim == 1 or self.shape[0] == 1:
 
-            elif isinstance(self, NDArrayBackedExtensionBlock):
-                # NB: not (yet) the same as
-                #  isinstance(values, NDArrayBackedExtensionArray)
-                blk = self.coerce_to_target_dtype(orig_new)
-                return blk.putmask(orig_mask, orig_new)
+                if is_interval_dtype(self.dtype):
+                    # Discussion about what we want to support in the general
+                    #  case GH#39584
+                    blk = self.coerce_to_target_dtype(orig_new)
+                    return blk.putmask(orig_mask, orig_new)
+
+                elif isinstance(self, NDArrayBackedExtensionBlock):
+                    # NB: not (yet) the same as
+                    #  isinstance(values, NDArrayBackedExtensionArray)
+                    blk = self.coerce_to_target_dtype(orig_new)
+                    return blk.putmask(orig_mask, orig_new)
+
+                else:
+                    raise
 
             else:
-                raise
+                # Same pattern we use in Block.putmask
+                is_array = isinstance(orig_new, (np.ndarray, ExtensionArray))
+
+                res_blocks = []
+                nbs = self._split()
+                for i, nb in enumerate(nbs):
+                    n = orig_new
+                    if is_array:
+                        # we have a different value per-column
+                        n = orig_new[:, i : i + 1]
+
+                    submask = orig_mask[:, i : i + 1]
+                    rbs = nb.putmask(submask, n)
+                    res_blocks.extend(rbs)
+                return res_blocks
 
         return [self]
 
@@ -1705,7 +1722,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
 
     def take_nd(
         self,
-        indexer,
+        indexer: npt.NDArray[np.intp],
         axis: int = 0,
         new_mgr_locs: BlockPlacement | None = None,
         fill_value=lib.no_default,
@@ -2237,7 +2254,7 @@ def to_native_types(
     """convert to our native types format"""
     if isinstance(values, Categorical):
         # GH#40754 Convert categorical datetimes to datetime array
-        values = take_nd(
+        values = algos.take_nd(
             values.categories._values,
             ensure_platform_int(values._codes),
             fill_value=na_rep,
