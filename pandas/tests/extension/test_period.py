@@ -25,9 +25,9 @@ from pandas.core.arrays import PeriodArray
 from pandas.tests.extension import base
 
 
-@pytest.fixture
-def dtype():
-    return PeriodDtype(freq="D")
+@pytest.fixture(params=["D", "2D"])
+def dtype(request):
+    return PeriodDtype(freq=request.param)
 
 
 @pytest.fixture
