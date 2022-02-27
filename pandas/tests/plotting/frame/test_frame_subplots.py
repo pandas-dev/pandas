@@ -19,11 +19,10 @@ from pandas.tests.plotting.common import TestPlotBase
 
 from pandas.io.formats.printing import pprint_thing
 
-pytestmark = pytest.mark.slow
-
 
 @td.skip_if_no_mpl
 class TestDataFramePlotsSubplots(TestPlotBase):
+    @pytest.mark.slow
     def test_subplots(self):
         df = DataFrame(np.random.rand(10, 3), index=list(string.ascii_letters[:10]))
 
@@ -237,6 +236,7 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         )
         assert axes.shape == expected_shape
 
+    @pytest.mark.slow
     def test_subplots_warnings(self):
         # GH 9464
         with tm.assert_produces_warning(None):
@@ -580,19 +580,21 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         df = DataFrame(np.random.randn(5, 5))
         self._check_bar_alignment(df, width=0.9, position=0.2, **kwargs)
 
-    def test_bar_barwidth_position_int(self):
+    @pytest.mark.parametrize("w", [1, 1.0])
+    def test_bar_barwidth_position_int(self, w):
         # GH 12979
         df = DataFrame(np.random.randn(5, 5))
+        ax = df.plot.bar(stacked=True, width=w)
+        ticks = ax.xaxis.get_ticklocs()
+        tm.assert_numpy_array_equal(ticks, np.array([0, 1, 2, 3, 4]))
+        assert ax.get_xlim() == (-0.75, 4.75)
+        # check left-edge of bars
+        assert ax.patches[0].get_x() == -0.5
+        assert ax.patches[-1].get_x() == 3.5
 
-        for w in [1, 1.0]:
-            ax = df.plot.bar(stacked=True, width=w)
-            ticks = ax.xaxis.get_ticklocs()
-            tm.assert_numpy_array_equal(ticks, np.array([0, 1, 2, 3, 4]))
-            assert ax.get_xlim() == (-0.75, 4.75)
-            # check left-edge of bars
-            assert ax.patches[0].get_x() == -0.5
-            assert ax.patches[-1].get_x() == 3.5
-
+    def test_bar_barwidth_position_int_width_1(self):
+        # GH 12979
+        df = DataFrame(np.random.randn(5, 5))
         self._check_bar_alignment(df, kind="bar", stacked=True, width=1)
         self._check_bar_alignment(df, kind="barh", stacked=False, width=1)
         self._check_bar_alignment(df, kind="barh", stacked=True, width=1)

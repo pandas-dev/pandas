@@ -1,8 +1,5 @@
 """
 Module consolidating common testing functions for checking plotting.
-
-Currently all plotting tests are marked as slow via
-``pytestmark = pytest.mark.slow`` at the module level.
 """
 
 from __future__ import annotations

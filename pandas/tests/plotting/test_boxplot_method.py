@@ -24,8 +24,6 @@ from pandas.tests.plotting.common import (
 from pandas.io.formats.printing import pprint_thing
 import pandas.plotting as plotting
 
-pytestmark = pytest.mark.slow
-
 
 @td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
@@ -50,6 +48,7 @@ class TestDataFramePlots(TestPlotBase):
             np.arange(0, 80, 10)
         )
 
+    @pytest.mark.slow
     def test_boxplot_legacy1(self):
         df = DataFrame(
             np.random.randn(6, 4),
@@ -337,6 +336,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         axes = _check_plot_works(grouped.boxplot, subplots=False, return_type="axes")
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
+    @pytest.mark.slow
     def test_boxplot_legacy2(self):
         tuples = zip(string.ascii_letters[:10], range(10))
         df = DataFrame(np.random.rand(10, 3), index=MultiIndex.from_tuples(tuples))
@@ -381,6 +381,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         res = df.groupby("gender").hist()
         tm.close()
 
+    @pytest.mark.slow
     def test_grouped_box_return_type(self, hist_df):
         df = hist_df
 
@@ -415,6 +416,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
             returned = df2.boxplot(by="category", return_type=t)
             self._check_box_return_type(returned, t, expected_keys=columns2)
 
+    @pytest.mark.slow
     def test_grouped_box_layout(self, hist_df):
         df = hist_df
 
@@ -508,6 +510,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         )
         self._check_axes_shape(self.plt.gcf().axes, axes_num=3, layout=(1, 3))
 
+    @pytest.mark.slow
     def test_grouped_box_multiple_axes(self, hist_df):
         # GH 6970, GH 7069
         df = hist_df

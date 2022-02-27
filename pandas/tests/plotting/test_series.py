@@ -1,6 +1,4 @@
 """ Test cases for Series.plot """
-
-
 from datetime import datetime
 from itertools import chain
 
@@ -23,8 +21,6 @@ from pandas.tests.plotting.common import (
 
 import pandas.plotting as plotting
 
-pytestmark = pytest.mark.slow
-
 
 @pytest.fixture
 def ts():
@@ -43,6 +39,7 @@ def iseries():
 
 @td.skip_if_no_mpl
 class TestSeriesPlots(TestPlotBase):
+    @pytest.mark.slow
     def test_plot(self, ts):
         _check_plot_works(ts.plot, label="foo")
         _check_plot_works(ts.plot, use_index=False)
@@ -64,7 +61,17 @@ class TestSeriesPlots(TestPlotBase):
     def test_plot_iseries(self, iseries):
         _check_plot_works(iseries.plot)
 
-    @pytest.mark.parametrize("kind", ["line", "bar", "barh", "kde", "hist", "box"])
+    @pytest.mark.parametrize(
+        "kind",
+        [
+            "line",
+            "bar",
+            "barh",
+            pytest.param("kde", marks=td.skip_if_no_scipy),
+            "hist",
+            "box",
+        ],
+    )
     def test_plot_series_kinds(self, series, kind):
         _check_plot_works(series[:5].plot, kind=kind)
 
@@ -495,6 +502,7 @@ class TestSeriesPlots(TestPlotBase):
         ylabels = ax.get_yticklabels()
         self._check_text_labels(ylabels, [""] * len(ylabels))
 
+    @td.skip_if_no_scipy
     @pytest.mark.parametrize(
         "kind",
         plotting.PlotAccessor._common_kinds + plotting.PlotAccessor._series_kinds,
@@ -516,6 +524,7 @@ class TestSeriesPlots(TestPlotBase):
         with pytest.raises(TypeError, match=msg):
             s.plot(kind=kind, ax=ax)
 
+    @td.skip_if_no_scipy
     @pytest.mark.parametrize("kind", plotting.PlotAccessor._common_kinds)
     def test_valid_object_plot(self, kind):
         s = Series(range(10), dtype=object)
@@ -562,6 +571,7 @@ class TestSeriesPlots(TestPlotBase):
 
         tm.close()
 
+    @pytest.mark.slow
     def test_errorbar_plot(self):
 
         s = Series(np.arange(10), name="x")
@@ -603,10 +613,13 @@ class TestSeriesPlots(TestPlotBase):
         with tm.external_error_raised(TypeError):
             s.plot(yerr=s_err)
 
+    @pytest.mark.slow
     def test_table(self, series):
         _check_plot_works(series.plot, table=True)
         _check_plot_works(series.plot, table=series)
 
+    @pytest.mark.slow
+    @td.skip_if_no_scipy
     def test_series_grid_settings(self):
         # Make sure plot defaults to rcParams['axes.grid'] setting, GH 9792
         self._check_grid_settings(
