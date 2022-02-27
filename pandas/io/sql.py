@@ -1382,9 +1382,17 @@ class SQLDatabase(PandasSQL):
         else:
             yield self.connectable
 
-    def execute(self, *args, **kwargs):
-        """Simple passthrough to SQLAlchemy connectable"""
-        if "chunksize" in kwargs:
+    def execute(self, chunksize: int = 0, *args, **kwargs):
+        """
+        Simple passthrough to SQLAlchemy connectable
+
+        Parameters
+        ----------
+        chunksize : int, default 0
+            Specify the number of rows in each batch to be written at a time.
+            By default, all rows will be written at once.
+        """
+        if chunksize:
             # See: https://pythonspeed.com/articles/pandas-sql-chunking/
             return self.connectable.execution_options(stream_results=True).execute(
                 *args, **kwargs
