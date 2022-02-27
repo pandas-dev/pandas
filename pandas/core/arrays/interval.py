@@ -38,7 +38,10 @@ from pandas._typing import (
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import IntCastingNaNError
-from pandas.util._decorators import Appender
+from pandas.util._decorators import (
+    Appender,
+    deprecate_nonkeyword_arguments,
+)
 
 from pandas.core.dtypes.cast import LossySetitemError
 from pandas.core.dtypes.common import (
@@ -778,6 +781,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def __le__(self, other):
         return self._cmp_method(other, operator.le)
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def argsort(
         self,
         ascending: bool = True,

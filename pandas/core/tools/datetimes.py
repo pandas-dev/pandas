@@ -767,8 +767,8 @@ def to_datetime(
     unit : str, default 'ns'
         The unit of the arg (D,s,ms,us,ns) denote the unit, which is an
         integer or float number. This will be based off the origin.
-        Example, with ``unit='ms'`` and ``origin='unix'`` (the default), this
-        would calculate the number of milliseconds to the unix epoch start.
+        Example, with ``unit='ms'`` and ``origin='unix'``, this would calculate
+        the number of milliseconds to the unix epoch start.
     infer_datetime_format : bool, default False
         If :const:`True` and no `format` is given, attempt to infer the format
         of the datetime strings based on the first non-NaN element,
