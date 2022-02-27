@@ -867,7 +867,7 @@ class TestSeriesFillNA:
         filled = cat.fillna(ser)
         result = cat.fillna(filled)
         expected = Categorical(expected_data, categories=expected_categories)
-        tm.assert_almost_equal(result, expected)
+        tm.assert_categorical_equal(result, expected)
 
 
 class TestFillnaPad:
