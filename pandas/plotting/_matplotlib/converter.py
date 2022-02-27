@@ -531,7 +531,8 @@ def has_level_label(label_flags: np.ndarray, vmin: float) -> bool:
 
 
 def _daily_finder(vmin, vmax, freq: BaseOffset):
-    dtype_code = freq._period_dtype_code
+    # error: "BaseOffset" has no attribute "_period_dtype_code"
+    dtype_code = freq._period_dtype_code  # type: ignore[attr-defined]
 
     periodsperday = -1
 
@@ -895,7 +896,8 @@ def _annual_finder(vmin, vmax, freq):
 
 
 def get_finder(freq: BaseOffset):
-    dtype_code = freq._period_dtype_code
+    # error: "BaseOffset" has no attribute "_period_dtype_code"
+    dtype_code = freq._period_dtype_code  # type: ignore[attr-defined]
     fgroup = (dtype_code // 1000) * 1000
     fgroup = FreqGroup(fgroup)
 
