@@ -714,16 +714,15 @@ class TestDataFrameQueryNumExprPandas:
         expected = df.loc[df.index[df.index > 5]]
         tm.assert_frame_equal(result, expected)
 
-    def test_inf(self):
+    @pytest.mark.parametrize("op, f", [["==", operator.eq], ["!=", operator.ne]])
+    def test_inf(self, op, f):
         n = 10
         df = DataFrame({"a": np.random.rand(n), "b": np.random.rand(n)})
         df.loc[::2, 0] = np.inf
-        d = {"==": operator.eq, "!=": operator.ne}
-        for op, f in d.items():
-            q = f"a {op} inf"
-            expected = df[f(df.a, np.inf)]
-            result = df.query(q, engine=self.engine, parser=self.parser)
-            tm.assert_frame_equal(result, expected)
+        q = f"a {op} inf"
+        expected = df[f(df.a, np.inf)]
+        result = df.query(q, engine=self.engine, parser=self.parser)
+        tm.assert_frame_equal(result, expected)
 
     def test_check_tz_aware_index_query(self, tz_aware_fixture):
         # https://github.com/pandas-dev/pandas/issues/29463
@@ -1053,18 +1052,24 @@ class TestDataFrameQueryStrings:
         expec = df[df.a == "test & test"]
         tm.assert_frame_equal(res, expec)
 
-    def test_query_lex_compare_strings(self, parser, engine):
+    @pytest.mark.parametrize(
+        "op, func",
+        [
+            ["<", operator.lt],
+            [">", operator.gt],
+            ["<=", operator.le],
+            [">=", operator.ge],
+        ],
+    )
+    def test_query_lex_compare_strings(self, parser, engine, op, func):
 
         a = Series(np.random.choice(list("abcde"), 20))
         b = Series(np.arange(a.size))
         df = DataFrame({"X": a, "Y": b})
 
-        ops = {"<": operator.lt, ">": operator.gt, "<=": operator.le, ">=": operator.ge}
-
-        for op, func in ops.items():
-            res = df.query(f'X {op} "d"', engine=engine, parser=parser)
-            expected = df[func(df.X, "d")]
-            tm.assert_frame_equal(res, expected)
+        res = df.query(f'X {op} "d"', engine=engine, parser=parser)
+        expected = df[func(df.X, "d")]
+        tm.assert_frame_equal(res, expected)
 
     def test_query_single_element_booleans(self, parser, engine):
         columns = "bid", "bidsize", "ask", "asksize"
