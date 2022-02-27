@@ -56,6 +56,7 @@ def mi_styler_comp(mi_styler):
     mi_styler.hide(axis="index")
     mi_styler.hide([("i0", "i1_a")], axis="index", names=True)
     mi_styler.set_table_attributes('class="box"')
+    mi_styler.concat(mi_styler.data.agg(["mean"]).style)
     mi_styler.format(na_rep="MISSING", precision=3)
     mi_styler.format_index(precision=2, axis=0)
     mi_styler.format_index(precision=4, axis=1)

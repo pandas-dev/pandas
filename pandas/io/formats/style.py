@@ -271,6 +271,87 @@ class Styler(StylerRenderer):
             thousands=thousands,
         )
 
+    def concat(self, other: Styler) -> Styler:
+        """
+        Append another Styler to combine the output into a single table.
+
+        .. versionadded:: 1.5.0
+
+        Parameters
+        ----------
+        other : Styler
+            The other Styler object which has already been styled and formatted. The
+            data for this Styler must have the same columns as the original.
+
+        Returns
+        -------
+        self : Styler
+
+        Notes
+        -----
+        The purpose of this method is to extend existing styled dataframes with other
+        metrics that may be useful but may not conform to the original's structure.
+        For example adding a sub total row, or displaying metrics such as means,
+        variance or counts.
+
+        Styles that are applied using the ``apply``, ``applymap``, ``apply_index``
+        and ``applymap_index``, and formatting applied with ``format`` and
+        ``format_index`` will be preserved.
+
+        .. warning::
+            Only the output methods ``to_html`` and ``to_string`` currently work with
+            concatenated Stylers.
+
+            The output methods ``to_latex`` and ``to_excel`` **do not** work with
+            concatenated Stylers.
+
+        The following should be noted:
+
+          - ``table_styles``, ``table_attributes``, ``caption`` and ``uuid`` are all
+            inherited from the original Styler and not ``other``.
+          - hidden columns and hidden index levels will be inherited from the
+            original Styler
+
+        A common use case is to concatenate user defined functions with
+        ``DataFrame.agg`` or with described statistics via ``DataFrame.describe``.
+        See examples.
+
+        Examples
+        --------
+        A common use case is adding totals rows, or otherwise, via methods calculated
+        in ``DataFrame.agg``.
+
+        >>> df = DataFrame([[4, 6], [1, 9], [3, 4], [5, 5], [9,6]],
+        ...                columns=["Mike", "Jim"],
+        ...                index=["Mon", "Tue", "Wed", "Thurs", "Fri"])
+        >>> styler = df.style.concat(df.agg(["sum"]).style)  # doctest: +SKIP
+
+        .. figure:: ../../_static/style/footer_simple.png
+
+        Since the concatenated object is a Styler the existing functionality can be
+        used to conditionally format it as well as the original.
+
+        >>> descriptors = df.agg(["sum", "mean", lambda s: s.dtype])
+        >>> descriptors.index = ["Total", "Average", "dtype"]
+        >>> other = (descriptors.style
+        ...          .highlight_max(axis=1, subset=(["Total", "Average"], slice(None)))
+        ...          .format(subset=("Average", slice(None)), precision=2, decimal=",")
+        ...          .applymap(lambda v: "font-weight: bold;"))
+        >>> styler = (df.style
+        ...             .highlight_max(color="salmon")
+        ...             .set_table_styles([{"selector": ".foot_row0",
+        ...                                 "props": "border-top: 1px solid black;"}]))
+        >>> styler.concat(other)  # doctest: +SKIP
+
+        .. figure:: ../../_static/style/footer_extended.png
+        """
+        if not isinstance(other, Styler):
+            raise TypeError("`other` must be of type `Styler`")
+        if not self.data.columns.equals(other.data.columns):
+            raise ValueError("`other.data` must have same columns as `Styler.data`")
+        self.concatenated = other
+        return self
+
     def _repr_html_(self) -> str | None:
         """
         Hooks into Jupyter notebook rich display system, which calls _repr_html_ by
@@ -1405,6 +1486,7 @@ class Styler(StylerRenderer):
           - cell_context (cell css classes)
           - ctx (cell css styles)
           - caption
+          - concatenated stylers
 
         Non-data dependent attributes [copied and exported]:
           - css
@@ -1435,6 +1517,7 @@ class Styler(StylerRenderer):
         ]
         deep = [  # nested lists or dicts
             "css",
+            "concatenated",
             "_display_funcs",
             "_display_funcs_index",
             "_display_funcs_columns",
@@ -2348,11 +2431,13 @@ class Styler(StylerRenderer):
                                "col_heading": "col_heading",
                                "index_name": "index_name",
                                "col": "col",
+                               "row": "row",
                                "col_trim": "col_trim",
                                "row_trim": "row_trim",
                                "level": "level",
                                "data": "data",
-                               "blank": "blank}
+                               "blank": "blank",
+                               "foot": "foot"}
 
         Examples
         --------
