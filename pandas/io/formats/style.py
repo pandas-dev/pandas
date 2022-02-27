@@ -275,6 +275,8 @@ class Styler(StylerRenderer):
         """
         Append another Styler to combine the output into a single table.
 
+        .. versionadded:: 1.5.0
+
         Parameters
         ----------
         other : Styler
