@@ -138,7 +138,9 @@ class WrappedCythonOp:
         },
     }
 
-    _MASKED_CYTHON_FUNCTIONS = {"cummin", "cummax", "min", "max"}
+    # "group_any" and "group_all" are also support masks, but don't go
+    #  through WrappedCythonOp
+    _MASKED_CYTHON_FUNCTIONS = {"cummin", "cummax", "min", "max", "last"}
 
     _cython_arity = {"ohlc": 4}  # OHLC
 
@@ -437,8 +439,8 @@ class WrappedCythonOp:
         min_count: int,
         ngroups: int,
         comp_ids: np.ndarray,
-        mask: np.ndarray | None = None,
-        result_mask: np.ndarray | None = None,
+        mask: npt.NDArray[np.bool_] | None = None,
+        result_mask: npt.NDArray[np.bool_] | None = None,
         **kwargs,
     ) -> np.ndarray:
         if values.ndim == 1:
@@ -481,8 +483,8 @@ class WrappedCythonOp:
         min_count: int,
         ngroups: int,
         comp_ids: np.ndarray,
-        mask: np.ndarray | None,
-        result_mask: np.ndarray | None,
+        mask: npt.NDArray[np.bool_] | None,
+        result_mask: npt.NDArray[np.bool_] | None,
         **kwargs,
     ) -> np.ndarray:  # np.ndarray[ndim=2]
         orig_values = values
@@ -529,6 +531,16 @@ class WrappedCythonOp:
                     mask=mask,
                     result_mask=result_mask,
                     is_datetimelike=is_datetimelike,
+                )
+            elif self.how in ["last"]:
+                func(
+                    out=result,
+                    counts=counts,
+                    values=values,
+                    labels=comp_ids,
+                    min_count=min_count,
+                    mask=mask,
+                    result_mask=result_mask,
                 )
             elif self.how in ["add"]:
                 # We support datetimelike

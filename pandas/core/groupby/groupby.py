@@ -1650,11 +1650,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             with com.temp_setattr(self, "observed", True):
                 result = getattr(self, func)(*args, **kwargs)
 
-            if self._can_use_transform_fast(func, result):
-                return self._wrap_transform_fast_result(result)
-
-            # only reached for DataFrameGroupBy
-            return self._transform_general(func, *args, **kwargs)
+            return self._wrap_transform_fast_result(result)
 
     @final
     def _wrap_transform_fast_result(self, result: NDFrameT) -> NDFrameT:
@@ -1733,7 +1729,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @property
-    def _obj_1d_constructor(self) -> type[Series]:
+    def _obj_1d_constructor(self) -> Callable:
         # GH28330 preserve subclassed Series/DataFrames
         if isinstance(self.obj, DataFrame):
             return self.obj._constructor_sliced
@@ -2158,7 +2154,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
 
         # GH28330 preserve subclassed Series/DataFrames through calls
-        if issubclass(self.obj._constructor, Series):
+        if isinstance(self.obj, Series):
             result = self._obj_1d_constructor(result, name=self.obj.name)
         else:
             result = self._obj_1d_constructor(result)
@@ -3609,13 +3605,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return self._mask_selected_obj(mask)
 
     @final
-    def _mask_selected_obj(self, mask: np.ndarray) -> NDFrameT:
+    def _mask_selected_obj(self, mask: npt.NDArray[np.bool_]) -> NDFrameT:
         """
         Return _selected_obj with mask applied to the correct axis.
 
         Parameters
         ----------
-        mask : np.ndarray
+        mask : np.ndarray[bool]
             Boolean mask to apply.
 
         Returns
