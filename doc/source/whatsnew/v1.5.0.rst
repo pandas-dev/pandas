@@ -39,7 +39,6 @@ Other enhancements
 - :meth:`.GroupBy.min` and :meth:`.GroupBy.max` now supports `Numba <https://numba.pydata.org/>`_ execution with the ``engine`` keyword (:issue:`45428`)
 - Implemented a ``bool``-dtype :class:`Index`, passing a bool-dtype array-like to ``pd.Index`` will now retain ``bool`` dtype instead of casting to ``object`` (:issue:`45061`)
 - Implemented a complex-dtype :class:`Index`, passing a complex-dtype array-like to ``pd.Index`` will now retain complex dtype instead of casting to ``object`` (:issue:`45845`)
-- :meth:`to_html` now excludes the ``border`` attribute from ``<table>`` elements when ``border`` keyword is set to ``False``.
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.notable_bug_fixes:
@@ -353,6 +352,7 @@ I/O
 - Bug in :func:`read_csv` not recognizing line break for ``on_bad_lines="warn"`` for ``engine="c"`` (:issue:`41710`)
 - Bug in :func:`read_parquet` when ``engine="pyarrow"`` which caused partial write to disk when column of unsupported datatype was passed (:issue:`44914`)
 - Bug in :func:`DataFrame.to_excel` and :class:`ExcelWriter` would raise when writing an empty DataFrame to a ``.ods`` file (:issue:`45793`)
+- :meth:`to_html` now excludes the ``border`` attribute from ``<table>`` elements when ``border`` keyword is set to ``False``.
 
 Period
 ^^^^^^
