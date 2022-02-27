@@ -1795,7 +1795,7 @@ cdef class _Period(PeriodMixin):
 
         Parameters
         ----------
-        freq : str
+        freq : str, BaseOffset
             The desired frequency.
         how : {'E', 'S', 'end', 'start'}, default 'end'
             Start or end of the timespan.

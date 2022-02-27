@@ -16,7 +16,8 @@ import pandas._testing as tm
 
 def get_freq_code(freqstr: str) -> int:
     off = to_offset(freqstr)
-    code = off._period_dtype_code
+    # error: "BaseOffset" has no attribute "_period_dtype_code"
+    code = off._period_dtype_code  # type: ignore[attr-defined]
     return code
 
 

@@ -606,7 +606,8 @@ class PeriodArray(dtl.DatelikeOps):
 
         freq = Period._maybe_convert_freq(freq)
 
-        base1 = self.freq._period_dtype_code
+        # error: "BaseOffset" has no attribute "_period_dtype_code"
+        base1 = self.freq._period_dtype_code  # type: ignore[attr-defined]
         base2 = freq._period_dtype_code
 
         asi8 = self.asi8
@@ -1049,7 +1050,9 @@ def period_array(
 
     if is_integer_dtype(arrdata.dtype):
         arr = arrdata.astype(np.int64, copy=False)
-        ordinals = libperiod.from_ordinals(arr, freq)
+        # error: Argument 2 to "from_ordinals" has incompatible type "Union[str,
+        # Tick, None]"; expected "Union[timedelta, BaseOffset, str]"
+        ordinals = libperiod.from_ordinals(arr, freq)  # type: ignore[arg-type]
         return PeriodArray(ordinals, dtype=dtype)
 
     data = ensure_object(arrdata)

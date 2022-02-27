@@ -14,6 +14,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.offsets import (
     FY5253,
+    BaseOffset,
     BusinessHour,
     CustomBusinessHour,
     DateOffset,
@@ -59,7 +60,7 @@ class WeekDay:
 
 
 class Base:
-    _offset: type[DateOffset] | None = None
+    _offset: type[BaseOffset] | None = None
     d = Timestamp(datetime(2008, 1, 2))
 
     timezones = [

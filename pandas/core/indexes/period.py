@@ -321,7 +321,9 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         freq = dtype.freq
         own_freq = self.freq
         return (
-            freq._period_dtype_code == own_freq._period_dtype_code
+            freq._period_dtype_code
+            # error: "BaseOffset" has no attribute "_period_dtype_code"
+            == own_freq._period_dtype_code  # type: ignore[attr-defined]
             and freq.n == own_freq.n
         )
 
@@ -461,7 +463,10 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             kfreq = key.freq
             if not (
                 sfreq.n == kfreq.n
-                and sfreq._period_dtype_code == kfreq._period_dtype_code
+                # error: "BaseOffset" has no attribute "_period_dtype_code"
+                and sfreq._period_dtype_code  # type: ignore[attr-defined]
+                # error: "BaseOffset" has no attribute "_period_dtype_code"
+                == kfreq._period_dtype_code  # type: ignore[attr-defined]
             ):
                 # GH#42247 For the subset of DateOffsets that can be Period freqs,
                 #  checking these two attributes is sufficient to check equality,
