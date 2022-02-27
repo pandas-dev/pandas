@@ -108,6 +108,7 @@ from pandas.core.indexes.api import (
     CategoricalIndex,
     Index,
     MultiIndex,
+    RangeIndex,
 )
 from pandas.core.internals.blocks import ensure_block_shape
 import pandas.core.sample as sample
@@ -1093,21 +1094,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return result
 
         # row order is scrambled => sort the rows by position in original index
-        original_positions = Index(
-            np.concatenate(self._get_indices(self.grouper.result_index))
-        )
+        original_positions = Index(self.grouper.result_ilocs())
         result.set_axis(original_positions, axis=self.axis, inplace=True)
         result = result.sort_index(axis=self.axis)
-
-        dropped_rows = len(result.index) < len(self.obj.index)
-
-        if dropped_rows:
-            # get index by slicing original index according to original positions
-            # slice drops attrs => use set_axis when no rows were dropped
-            sorted_indexer = result.index
-            result.index = self._selected_obj.index[sorted_indexer]
-        else:
-            result.set_axis(self.obj._get_axis(self.axis), axis=self.axis, inplace=True)
+        obj_axis = self.obj._get_axis(self.axis)
+        if self.grouper.has_dropped_na:
+            # Add back in any missing rows due to dropna - index here is integral
+            # with values referring to the row of the input so can use RangeIndex
+            result = result.reindex(RangeIndex(len(obj_axis)), axis=self.axis)
+        result.set_axis(obj_axis, axis=self.axis, inplace=True)
 
         return result
 

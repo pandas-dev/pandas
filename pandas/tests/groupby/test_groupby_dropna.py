@@ -171,52 +171,30 @@ def test_grouper_dropna_propagation(dropna):
 
 
 @pytest.mark.parametrize(
-    "dropna,input_index,expected_data,expected_index",
+    "index",
     [
-        (True, pd.RangeIndex(0, 4), {"B": [2, 2, 1]}, pd.RangeIndex(0, 3)),
-        (True, list("abcd"), {"B": [2, 2, 1]}, list("abc")),
-        (
-            True,
-            pd.MultiIndex.from_tuples(
-                [(1, "R"), (1, "B"), (2, "R"), (2, "B")], names=["num", "col"]
-            ),
-            {"B": [2, 2, 1]},
-            pd.MultiIndex.from_tuples(
-                [(1, "R"), (1, "B"), (2, "R")], names=["num", "col"]
-            ),
-        ),
-        (False, pd.RangeIndex(0, 4), {"B": [2, 2, 1, 1]}, pd.RangeIndex(0, 4)),
-        (False, list("abcd"), {"B": [2, 2, 1, 1]}, list("abcd")),
-        (
-            False,
-            pd.MultiIndex.from_tuples(
-                [(1, "R"), (1, "B"), (2, "R"), (2, "B")], names=["num", "col"]
-            ),
-            {"B": [2, 2, 1, 1]},
-            pd.MultiIndex.from_tuples(
-                [(1, "R"), (1, "B"), (2, "R"), (2, "B")], names=["num", "col"]
-            ),
-        ),
+        pd.RangeIndex(0, 4),
+        list("abcd"),
+        pd.MultiIndex.from_product([(1, 2), ("R", "B")], names=["num", "col"]),
     ],
 )
-def test_groupby_dataframe_slice_then_transform(
-    dropna, input_index, expected_data, expected_index
-):
+def test_groupby_dataframe_slice_then_transform(dropna, index):
     # GH35014 & GH35612
+    expected_data = {"B": [2, 2, 1, np.nan if dropna else 1]}
 
-    df = pd.DataFrame({"A": [0, 0, 1, None], "B": [1, 2, 3, None]}, index=input_index)
+    df = pd.DataFrame({"A": [0, 0, 1, None], "B": [1, 2, 3, None]}, index=index)
     gb = df.groupby("A", dropna=dropna)
 
     result = gb.transform(len)
-    expected = pd.DataFrame(expected_data, index=expected_index)
+    expected = pd.DataFrame(expected_data, index=index)
     tm.assert_frame_equal(result, expected)
 
     result = gb[["B"]].transform(len)
-    expected = pd.DataFrame(expected_data, index=expected_index)
+    expected = pd.DataFrame(expected_data, index=index)
     tm.assert_frame_equal(result, expected)
 
     result = gb["B"].transform(len)
-    expected = pd.Series(expected_data["B"], index=expected_index, name="B")
+    expected = pd.Series(expected_data["B"], index=index, name="B")
     tm.assert_series_equal(result, expected)
 
 
