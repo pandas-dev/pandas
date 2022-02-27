@@ -675,6 +675,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         return self._maybe_mask_result(result, mask)
 
+    _logical_method = _arith_method
+
     def _cmp_method(self, other, op) -> BooleanArray:
         from pandas.core.arrays import BooleanArray
 

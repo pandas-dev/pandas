@@ -140,7 +140,7 @@ class WrappedCythonOp:
 
     # "group_any" and "group_all" are also support masks, but don't go
     #  through WrappedCythonOp
-    _MASKED_CYTHON_FUNCTIONS = {"cummin", "cummax", "min", "max", "last"}
+    _MASKED_CYTHON_FUNCTIONS = {"cummin", "cummax", "min", "max", "last", "first"}
 
     _cython_arity = {"ohlc": 4}  # OHLC
 
@@ -532,7 +532,7 @@ class WrappedCythonOp:
                     result_mask=result_mask,
                     is_datetimelike=is_datetimelike,
                 )
-            elif self.how in ["last"]:
+            elif self.how in ["first", "last"]:
                 func(
                     out=result,
                     counts=counts,
@@ -796,8 +796,32 @@ class BaseGrouper:
         return get_indexer_dict(codes_list, keys)
 
     @final
+    def result_ilocs(self) -> npt.NDArray[np.intp]:
+        """
+        Get the original integer locations of result_index in the input.
+        """
+        # Original indices are where group_index would go via sorting.
+        # But when dropna is true, we need to remove null values while accounting for
+        # any gaps that then occur because of them.
+        group_index = get_group_index(self.codes, self.shape, sort=False, xnull=True)
+
+        if self.has_dropped_na:
+            mask = np.where(group_index >= 0)
+            # Count how many gaps are caused by previous null values for each position
+            null_gaps = np.cumsum(group_index == -1)[mask]
+            group_index = group_index[mask]
+
+        result = get_group_index_sorter(group_index, self.ngroups)
+
+        if self.has_dropped_na:
+            # Shift by the number of prior null gaps
+            result += np.take(null_gaps, result)
+
+        return result
+
+    @final
     @property
-    def codes(self) -> list[np.ndarray]:
+    def codes(self) -> list[npt.NDArray[np.signedinteger]]:
         return [ping.codes for ping in self.groupings]
 
     @property
@@ -837,6 +861,14 @@ class BaseGrouper:
         # return if my group orderings are monotonic
         return Index(self.group_info[0]).is_monotonic_increasing
 
+    @final
+    @cache_readonly
+    def has_dropped_na(self) -> bool:
+        """
+        Whether grouper has null value(s) that are dropped.
+        """
+        return bool((self.group_info[0] < 0).any())
+
     @cache_readonly
     def group_info(self) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
         comp_ids, obs_group_ids = self._get_compressed_codes()
@@ -860,11 +892,14 @@ class BaseGrouper:
         return ids
 
     @final
-    def _get_compressed_codes(self) -> tuple[np.ndarray, npt.NDArray[np.intp]]:
+    def _get_compressed_codes(
+        self,
+    ) -> tuple[npt.NDArray[np.signedinteger], npt.NDArray[np.intp]]:
         # The first returned ndarray may have any signed integer dtype
         if len(self.groupings) > 1:
             group_index = get_group_index(self.codes, self.shape, sort=True, xnull=True)
             return compress_group_index(group_index, sort=self._sort)
+            # FIXME: compress_group_index's second return value is int64, not intp
 
         ping = self.groupings[0]
         return ping.codes, np.arange(len(ping.group_index), dtype=np.intp)
@@ -875,7 +910,7 @@ class BaseGrouper:
         return len(self.result_index)
 
     @property
-    def reconstructed_codes(self) -> list[np.ndarray]:
+    def reconstructed_codes(self) -> list[npt.NDArray[np.intp]]:
         codes = self.codes
         ids, obs_ids, _ = self.group_info
         return decons_obs_group_ids(ids, obs_ids, self.shape, codes, xnull=True)
