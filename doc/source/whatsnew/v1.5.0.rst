@@ -259,7 +259,7 @@ Performance improvements
 - Performance improvement in :func:`merge` when left and/or right are empty (:issue:`45838`)
 - Performance improvement in :meth:`DataFrame.join` when left and/or right are empty (:issue:`46015`)
 - Performance improvement in :class:`DataFrame` and :class:`Series` constructors for extension dtype scalars (:issue:`45854`)
--
+- Performance improvement in :meth:`io.sql.SQLDatabase.execute` which streams results when chunking is enabled (:issue:`40847`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.bug_fixes:
