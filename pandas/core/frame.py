@@ -9838,7 +9838,23 @@ NaN 12.3   33.0
         this = self._get_numeric_data()
 
         if isinstance(other, Series):
-            return this.apply(lambda x: other.corr(x, method=method), axis=axis)
+            if method == "kendall" or axis == 1:
+                return this.apply(lambda x: other.corr(x, method=method), axis=axis)
+            else:
+                corrs = {}
+                ndf = self.values.transpose()
+                k = other.values
+                if method == "pearson":
+                    for i, r in enumerate(ndf):
+                        nonnull_mask = (~np.isnan(r) & ~np.isnan(k))
+                        corrs[self.columns[i]] = np.corrcoef(r[nonnull_mask], k[nonnull_mask])[0, 1]
+                elif method == "spearman":
+                    for i, r in enumerate(ndf):
+                        nonnull_mask = (~np.isnan(r) & ~np.isnan(k))
+                        corrs[self.columns[i]] = np.corrcoef(r[nonnull_mask].argsort().argsort(), k[nonnull_mask].argsort().argsort())[0, 1]
+                else:
+                    raise NotImplementedError(f"Invalid correlation method {method}")
+                return Series(corrs)
 
         other = other._get_numeric_data()
         left, right = this.align(other, join="inner", copy=False)
