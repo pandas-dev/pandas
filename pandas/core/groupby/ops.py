@@ -140,7 +140,7 @@ class WrappedCythonOp:
 
     # "group_any" and "group_all" are also support masks, but don't go
     #  through WrappedCythonOp
-    _MASKED_CYTHON_FUNCTIONS = {"cummin", "cummax", "min", "max", "last"}
+    _MASKED_CYTHON_FUNCTIONS = {"cummin", "cummax", "min", "max", "last", "first"}
 
     _cython_arity = {"ohlc": 4}  # OHLC
 
@@ -532,7 +532,7 @@ class WrappedCythonOp:
                     result_mask=result_mask,
                     is_datetimelike=is_datetimelike,
                 )
-            elif self.how in ["last"]:
+            elif self.how in ["first", "last"]:
                 func(
                     out=result,
                     counts=counts,
@@ -797,7 +797,7 @@ class BaseGrouper:
 
     @final
     @property
-    def codes(self) -> list[np.ndarray]:
+    def codes(self) -> list[npt.NDArray[np.signedinteger]]:
         return [ping.codes for ping in self.groupings]
 
     @property
@@ -860,11 +860,14 @@ class BaseGrouper:
         return ids
 
     @final
-    def _get_compressed_codes(self) -> tuple[np.ndarray, npt.NDArray[np.intp]]:
+    def _get_compressed_codes(
+        self,
+    ) -> tuple[npt.NDArray[np.signedinteger], npt.NDArray[np.intp]]:
         # The first returned ndarray may have any signed integer dtype
         if len(self.groupings) > 1:
             group_index = get_group_index(self.codes, self.shape, sort=True, xnull=True)
             return compress_group_index(group_index, sort=self._sort)
+            # FIXME: compress_group_index's second return value is int64, not intp
 
         ping = self.groupings[0]
         return ping.codes, np.arange(len(ping.group_index), dtype=np.intp)
@@ -875,7 +878,7 @@ class BaseGrouper:
         return len(self.result_index)
 
     @property
-    def reconstructed_codes(self) -> list[np.ndarray]:
+    def reconstructed_codes(self) -> list[npt.NDArray[np.intp]]:
         codes = self.codes
         ids, obs_ids, _ = self.group_info
         return decons_obs_group_ids(ids, obs_ids, self.shape, codes, xnull=True)
