@@ -758,9 +758,9 @@ def test_reset_index_interval_columns_object_cast():
 
 def test_reset_index_rename(float_frame):
     # GH 6878
-    rdf = float_frame.reset_index(names="new_name")
-    exp = Series(float_frame.index.values, name="new_name")
-    tm.assert_series_equal(rdf["new_name"], exp)
+    result = float_frame.reset_index(names="new_name")
+    expected = Series(float_frame.index.values, name="new_name")
+    tm.assert_series_equal(result["new_name"], expected)
 
     with pytest.raises(ValueError, match="Names must be a string"):
         float_frame.reset_index(names=1)
@@ -768,19 +768,16 @@ def test_reset_index_rename(float_frame):
 
 def test_reset_index_rename_multiindex(float_frame):
     # GH 6878
-    stacked = float_frame.stack()[::2]
-    stacked = DataFrame({"foo": stacked, "bar": stacked})
+    stacked_df = float_frame.stack()[::2]
+    stacked_df = DataFrame({"foo": stacked_df, "bar": stacked_df})
 
     names = ["first", "second"]
-    stacked.index.names = names
-    deleveled = stacked.reset_index()
-    deleveled2 = stacked.reset_index(names=["new_first", "new_second"])
-    tm.assert_series_equal(
-        deleveled["first"], deleveled2["new_first"], check_names=False
-    )
-    tm.assert_series_equal(
-        deleveled["second"], deleveled2["new_second"], check_names=False
-    )
+    stacked_df.index.names = names
+
+    result = stacked_df.reset_index()
+    expected = stacked_df.reset_index(names=["new_first", "new_second"])
+    tm.assert_series_equal(result["first"], expected["new_first"], check_names=False)
+    tm.assert_series_equal(result["second"], expected["new_second"], check_names=False)
 
     with pytest.raises(ValueError, match="Names must be a string or list"):
-        stacked.reset_index(names={"first": "new_first", "second": "new_second"})
+        stacked_df.reset_index(names={"first": "new_first", "second": "new_second"})
