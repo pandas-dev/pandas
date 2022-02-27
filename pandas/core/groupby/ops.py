@@ -140,7 +140,7 @@ class WrappedCythonOp:
 
     # "group_any" and "group_all" are also support masks, but don't go
     #  through WrappedCythonOp
-    _MASKED_CYTHON_FUNCTIONS = {"cummin", "cummax", "min", "max", "last"}
+    _MASKED_CYTHON_FUNCTIONS = {"cummin", "cummax", "min", "max", "last", "first"}
 
     _cython_arity = {"ohlc": 4}  # OHLC
 
@@ -532,7 +532,7 @@ class WrappedCythonOp:
                     result_mask=result_mask,
                     is_datetimelike=is_datetimelike,
                 )
-            elif self.how in ["last"]:
+            elif self.how in ["first", "last"]:
                 func(
                     out=result,
                     counts=counts,
