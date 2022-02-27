@@ -1765,6 +1765,30 @@ class Index(IndexOpsMixin, PandasObject):
 
         return new_names
 
+    def get_default_index_names(self, names=None) -> Sequence[str]:
+        from pandas.core.indexes.multi import MultiIndex
+
+        # if names is not None and not all(isinstance(name, str) for name in names):
+        #    raise ValueError("Names must be a string")
+        if names is not None:
+            if isinstance(names, str):
+                names = [names]
+            elif isinstance(names, list) and not all(
+                isinstance(name, str) for name in names
+            ):
+                raise ValueError("Names must be a string")
+            elif not (isinstance(names, list) and not isinstance(names, str)):
+                raise ValueError("Names must be a string or list")
+
+        if not names:
+            if isinstance(self, MultiIndex):
+                names = com.fill_missing_names(self.names)
+            else:
+                default = "index" if "index" not in self else "level_0"
+                names = [default] if self.name is None else [self.name]
+
+        return names
+
     def _get_names(self) -> FrozenList:
         return FrozenList((self.name,))
 
