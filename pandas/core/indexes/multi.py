@@ -1481,7 +1481,9 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
 
     @doc(Index._get_grouper_for_level)
-    def _get_grouper_for_level(self, mapper, *, level):
+    def _get_grouper_for_level(
+        self, mapper, *, level=None
+    ) -> tuple[Index, npt.NDArray[np.signedinteger] | None, Index | None]:
         indexer = self.codes[level]
         level_index = self.levels[level]
 
