@@ -29,6 +29,15 @@ def check_skip(data, op_name):
         pytest.skip("subtract not implemented for boolean")
 
 
+def is_bool_not_implemented(data, op_name):
+    # match non-masked behavior
+    return data.dtype.kind == "b" and op_name.strip("_").lstrip("r") in [
+        "pow",
+        "truediv",
+        "floordiv",
+    ]
+
+
 # Test equivalence of scalars, numpy arrays with array ops
 # -----------------------------------------------------------------------------
 
@@ -42,9 +51,16 @@ def test_array_scalar_like_equivalence(data, all_arithmetic_operators):
 
     # TODO also add len-1 array (np.array([scalar], dtype=data.dtype.numpy_dtype))
     for scalar in [scalar, data.dtype.type(scalar)]:
-        result = op(data, scalar)
-        expected = op(data, scalar_array)
-        tm.assert_extension_array_equal(result, expected)
+        if is_bool_not_implemented(data, all_arithmetic_operators):
+            msg = "operator '.*' not implemented for bool dtypes"
+            with pytest.raises(NotImplementedError, match=msg):
+                op(data, scalar)
+            with pytest.raises(NotImplementedError, match=msg):
+                op(data, scalar_array)
+        else:
+            result = op(data, scalar)
+            expected = op(data, scalar_array)
+            tm.assert_extension_array_equal(result, expected)
 
 
 def test_array_NA(data, all_arithmetic_operators):
@@ -56,6 +72,15 @@ def test_array_NA(data, all_arithmetic_operators):
     scalar_array = pd.array([pd.NA] * len(data), dtype=data.dtype)
 
     mask = data._mask.copy()
+
+    if is_bool_not_implemented(data, all_arithmetic_operators):
+        msg = "operator '.*' not implemented for bool dtypes"
+        with pytest.raises(NotImplementedError, match=msg):
+            op(data, scalar)
+        # GH#45421 check op doesn't alter data._mask inplace
+        tm.assert_numpy_array_equal(mask, data._mask)
+        return
+
     result = op(data, scalar)
     # GH#45421 check op doesn't alter data._mask inplace
     tm.assert_numpy_array_equal(mask, data._mask)
@@ -74,6 +99,14 @@ def test_numpy_array_equivalence(data, all_arithmetic_operators):
     numpy_array = np.array([scalar] * len(data), dtype=data.dtype.numpy_dtype)
     pd_array = pd.array(numpy_array, dtype=data.dtype)
 
+    if is_bool_not_implemented(data, all_arithmetic_operators):
+        msg = "operator '.*' not implemented for bool dtypes"
+        with pytest.raises(NotImplementedError, match=msg):
+            op(data, numpy_array)
+        with pytest.raises(NotImplementedError, match=msg):
+            op(data, pd_array)
+        return
+
     result = op(data, numpy_array)
     expected = op(data, pd_array)
     tm.assert_extension_array_equal(result, expected)
@@ -91,6 +124,14 @@ def test_frame(data, all_arithmetic_operators):
     # DataFrame with scalar
     df = pd.DataFrame({"A": data})
 
+    if is_bool_not_implemented(data, all_arithmetic_operators):
+        msg = "operator '.*' not implemented for bool dtypes"
+        with pytest.raises(NotImplementedError, match=msg):
+            op(df, scalar)
+        with pytest.raises(NotImplementedError, match=msg):
+            op(data, scalar)
+        return
+
     result = op(df, scalar)
     expected = pd.DataFrame({"A": op(data, scalar)})
     tm.assert_frame_equal(result, expected)
@@ -101,30 +142,25 @@ def test_series(data, all_arithmetic_operators):
     op = tm.get_op_from_name(all_arithmetic_operators)
     check_skip(data, all_arithmetic_operators)
 
-    s = pd.Series(data)
+    ser = pd.Series(data)
 
-    # Series with scalar
-    result = op(s, scalar)
-    expected = pd.Series(op(data, scalar))
-    tm.assert_series_equal(result, expected)
+    others = [
+        scalar,
+        np.array([scalar] * len(data), dtype=data.dtype.numpy_dtype),
+        pd.array([scalar] * len(data), dtype=data.dtype),
+        pd.Series([scalar] * len(data), dtype=data.dtype),
+    ]
 
-    # Series with np.ndarray
-    other = np.array([scalar] * len(data), dtype=data.dtype.numpy_dtype)
-    result = op(s, other)
-    expected = pd.Series(op(data, other))
-    tm.assert_series_equal(result, expected)
+    for other in others:
+        if is_bool_not_implemented(data, all_arithmetic_operators):
+            msg = "operator '.*' not implemented for bool dtypes"
+            with pytest.raises(NotImplementedError, match=msg):
+                op(ser, other)
 
-    # Series with pd.array
-    other = pd.array([scalar] * len(data), dtype=data.dtype)
-    result = op(s, other)
-    expected = pd.Series(op(data, other))
-    tm.assert_series_equal(result, expected)
-
-    # Series with Series
-    other = pd.Series([scalar] * len(data), dtype=data.dtype)
-    result = op(s, other)
-    expected = pd.Series(op(data, other.array))
-    tm.assert_series_equal(result, expected)
+        else:
+            result = op(ser, other)
+            expected = pd.Series(op(data, other))
+            tm.assert_series_equal(result, expected)
 
 
 # Test generic characteristics / errors
@@ -169,6 +205,9 @@ def test_error_len_mismatch(data, all_arithmetic_operators):
             r"numpy boolean subtract, the `\-` operator, is not supported, use "
             r"the bitwise_xor, the `\^` operator, or the logical_xor function instead"
         )
+    elif is_bool_not_implemented(data, all_arithmetic_operators):
+        msg = "operator '.*' not implemented for bool dtypes"
+        err = NotImplementedError
 
     for other in [other, np.array(other)]:
         with pytest.raises(err, match=msg):

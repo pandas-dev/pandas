@@ -108,7 +108,11 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
     def check_opname(self, s, op_name, other, exc=None):
         # overwriting to indicate ops don't raise an error
-        super().check_opname(s, op_name, other, exc=None)
+        exc = None
+        if op_name.strip("_").lstrip("r") in ["pow", "truediv", "floordiv"]:
+            # match behavior with non-masked bool dtype
+            exc = NotImplementedError
+        super().check_opname(s, op_name, other, exc=exc)
 
     def _check_op(self, obj, op, other, op_name, exc=NotImplementedError):
         if exc is None:
@@ -144,9 +148,19 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
             with pytest.raises(exc):
                 op(obj, other)
 
-    def _check_divmod_op(self, s, op, other, exc=None):
-        # override to not raise an error
-        super()._check_divmod_op(s, op, other, None)
+    @pytest.mark.xfail(
+        reason="Inconsistency between floordiv and divmod; we raise for floordiv "
+        "but not for divmod. This matches what we do for non-masked bool dtype."
+    )
+    def test_divmod_series_array(self, data, data_for_twos):
+        super().test_divmod_series_array(data, data_for_twos)
+
+    @pytest.mark.xfail(
+        reason="Inconsistency between floordiv and divmod; we raise for floordiv "
+        "but not for divmod. This matches what we do for non-masked bool dtype."
+    )
+    def test_divmod(self, data):
+        super().test_divmod(data)
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
