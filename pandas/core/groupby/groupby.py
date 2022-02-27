@@ -2355,7 +2355,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 return result.T
             return result.unstack()
 
-
     @final
     def resample(self, rule, *args, **kwargs):
         """
