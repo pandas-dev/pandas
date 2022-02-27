@@ -78,10 +78,7 @@ from pandas.core.arrays.integer import (
     Int64Dtype,
     IntegerDtype,
 )
-from pandas.core.arrays.masked import (
-    BaseMaskedArray,
-    BaseMaskedDtype,
-)
+from pandas.core.arrays.masked import BaseMaskedArray
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
@@ -339,23 +336,7 @@ class WrappedCythonOp:
                 **kwargs,
             )
 
-        if isinstance(values, (DatetimeArray, PeriodArray, TimedeltaArray)):
-            # All of the functions implemented here are ordinal, so we can
-            #  operate on the tz-naive equivalents
-            npvalues = values._ndarray.view("M8[ns]")
-        elif isinstance(values.dtype, (BooleanDtype, IntegerDtype)):
-            # IntegerArray or BooleanArray
-            npvalues = values.to_numpy("float64", na_value=np.nan)
-        elif isinstance(values.dtype, FloatingDtype):
-            # FloatingArray
-            npvalues = values.to_numpy(values.dtype.numpy_dtype, na_value=np.nan)
-        elif isinstance(values.dtype, StringDtype):
-            # StringArray
-            npvalues = values.to_numpy(object, na_value=np.nan)
-        else:
-            raise NotImplementedError(
-                f"function is not implemented for this dtype: {values.dtype}"
-            )
+        npvalues = self._ea_to_cython_values(values)
 
         res_values = self._cython_op_ndim_compat(
             npvalues,
@@ -373,6 +354,27 @@ class WrappedCythonOp:
 
         return self._reconstruct_ea_result(values, res_values)
 
+    def _ea_to_cython_values(self, values: ExtensionArray):
+        # GH#43682
+        if isinstance(values, (DatetimeArray, PeriodArray, TimedeltaArray)):
+            # All of the functions implemented here are ordinal, so we can
+            #  operate on the tz-naive equivalents
+            npvalues = values._ndarray.view("M8[ns]")
+        elif isinstance(values.dtype, (BooleanDtype, IntegerDtype)):
+            # IntegerArray or BooleanArray
+            npvalues = values.to_numpy("float64", na_value=np.nan)
+        elif isinstance(values.dtype, FloatingDtype):
+            # FloatingArray
+            npvalues = values.to_numpy(values.dtype.numpy_dtype, na_value=np.nan)
+        elif isinstance(values.dtype, StringDtype):
+            # StringArray
+            npvalues = values.to_numpy(object, na_value=np.nan)
+        else:
+            raise NotImplementedError(
+                f"function is not implemented for this dtype: {values.dtype}"
+            )
+        return npvalues
+
     def _reconstruct_ea_result(self, values, res_values):
         """
         Construct an ExtensionArray result from an ndarray result.
@@ -387,6 +389,7 @@ class WrappedCythonOp:
             return cls._from_sequence(res_values, dtype=dtype)
 
         elif needs_i8_conversion(values.dtype):
+            assert res_values.dtype.kind != "f"  # just to be on the safe side
             i8values = res_values.view("i8")
             return type(values)(i8values, dtype=values.dtype)
 
@@ -422,14 +425,13 @@ class WrappedCythonOp:
             **kwargs,
         )
 
-        dtype = self._get_result_dtype(orig_values.dtype)
-        assert isinstance(dtype, BaseMaskedDtype)
-        cls = dtype.construct_array_type()
-
         if self.kind != "aggregate":
-            return cls(res_values.astype(dtype.type, copy=False), mask)
+            res_mask = mask
         else:
-            return cls(res_values.astype(dtype.type, copy=False), result_mask)
+            res_mask = result_mask
+        # _cython_op_ndim_compat will return res_values with the correct
+        #  dtype, so we do not need to re-call _get_result_dtype and re-cast.
+        return orig_values._maybe_mask_result(res_values, res_mask)
 
     @final
     def _cython_op_ndim_compat(
@@ -577,9 +579,12 @@ class WrappedCythonOp:
                 cutoff = max(1, min_count)
                 empty_groups = counts < cutoff
                 if empty_groups.any():
-                    # Note: this conversion could be lossy, see GH#40767
-                    result = result.astype("float64")
-                    result[empty_groups] = np.nan
+                    if mask is not None and self.uses_mask():
+                        assert result_mask[empty_groups].all()
+                    else:
+                        # Note: this conversion could be lossy, see GH#40767
+                        result = result.astype("float64")
+                        result[empty_groups] = np.nan
 
         result = result.T
 
