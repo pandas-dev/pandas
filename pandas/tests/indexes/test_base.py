@@ -321,15 +321,21 @@ class TestIndex(Base):
             "unicode",
             "string",
             pytest.param("categorical", marks=pytest.mark.xfail(reason="gh-25464")),
-            "bool",
+            "bool-object",
+            "bool-dtype",
             "empty",
         ],
         indirect=True,
     )
     def test_view_with_args_object_array_raises(self, index):
-        msg = "Cannot change data-type for object array"
-        with pytest.raises(TypeError, match=msg):
-            index.view("i8")
+        if index.dtype == bool:
+            msg = "When changing to a larger dtype"
+            with pytest.raises(ValueError, match=msg):
+                index.view("i8")
+        else:
+            msg = "Cannot change data-type for object array"
+            with pytest.raises(TypeError, match=msg):
+                index.view("i8")
 
     @pytest.mark.parametrize("index", ["int", "range"], indirect=True)
     def test_astype(self, index):
@@ -397,9 +403,9 @@ class TestIndex(Base):
 
     def test_asof_numeric_vs_bool_raises(self):
         left = Index([1, 2, 3])
-        right = Index([True, False])
+        right = Index([True, False], dtype=object)
 
-        msg = "Cannot compare dtypes int64 and object"
+        msg = "Cannot compare dtypes int64 and bool"
         with pytest.raises(TypeError, match=msg):
             left.asof(right[0])
         # TODO: should right.asof(left[0]) also raise?
@@ -526,7 +532,7 @@ class TestIndex(Base):
             lambda values, index: Series(values, index),
         ],
     )
-    def test_map_dictlike(self, index, mapper):
+    def test_map_dictlike(self, index, mapper, request):
         # GH 12756
         if isinstance(index, CategoricalIndex):
             # Tested in test_categorical
@@ -534,6 +540,11 @@ class TestIndex(Base):
         elif not index.is_unique:
             # Cannot map duplicated index
             return
+        if index.dtype == np.complex64 and not isinstance(mapper(index, index), Series):
+            mark = pytest.mark.xfail(
+                reason="maybe_downcast_to_dtype doesn't handle complex"
+            )
+            request.node.add_marker(mark)
 
         rng = np.arange(len(index), 0, -1)
 
@@ -591,7 +602,8 @@ class TestIndex(Base):
         "index, expected",
         [
             ("string", False),
-            ("bool", False),
+            ("bool-object", False),
+            ("bool-dtype", False),
             ("categorical", False),
             ("int", True),
             ("datetime", False),
@@ -606,7 +618,8 @@ class TestIndex(Base):
         "index, expected",
         [
             ("string", True),
-            ("bool", True),
+            ("bool-object", True),
+            ("bool-dtype", False),
             ("categorical", False),
             ("int", False),
             ("datetime", False),
@@ -621,7 +634,8 @@ class TestIndex(Base):
         "index, expected",
         [
             ("string", False),
-            ("bool", False),
+            ("bool-object", False),
+            ("bool-dtype", False),
             ("categorical", False),
             ("int", False),
             ("datetime", True),
@@ -655,7 +669,8 @@ class TestIndex(Base):
         # 2845
         vals = list(vals)  # Copy for each iteration
         vals.append(nulls_fixture)
-        index = Index(vals)
+        index = Index(vals, dtype=object)
+        # TODO: case with complex dtype?
 
         formatted = index.format()
         null_repr = "NaN" if isinstance(nulls_fixture, float) else str(nulls_fixture)

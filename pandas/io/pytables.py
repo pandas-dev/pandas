@@ -41,6 +41,7 @@ from pandas._typing import (
     ArrayLike,
     DtypeArg,
     Shape,
+    npt,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
@@ -2040,10 +2041,10 @@ class IndexCol:
             map(pprint_thing, (self.name, self.cname, self.axis, self.pos, self.kind))
         )
         return ",".join(
-            (
+            [
                 f"{key}->{value}"
                 for key, value in zip(["name", "cname", "axis", "pos", "kind"], temp)
-            )
+            ]
         )
 
     def __eq__(self, other: Any) -> bool:
@@ -2341,10 +2342,10 @@ class DataCol(IndexCol):
             )
         )
         return ",".join(
-            (
+            [
                 f"{key}->{value}"
                 for key, value in zip(["name", "cname", "dtype", "kind", "shape"], temp)
-            )
+            ]
         )
 
     def __eq__(self, other: Any) -> bool:
@@ -4409,7 +4410,7 @@ class AppendableTable(Table):
         self,
         rows: np.ndarray,
         indexes: list[np.ndarray],
-        mask: np.ndarray | None,
+        mask: npt.NDArray[np.bool_] | None,
         values: list[np.ndarray],
     ):
         """

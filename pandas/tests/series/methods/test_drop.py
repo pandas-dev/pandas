@@ -1,6 +1,9 @@
 import pytest
 
-from pandas import Series
+from pandas import (
+    Index,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -54,7 +57,8 @@ def test_drop_with_ignore_errors():
 
     # GH 8522
     ser = Series([2, 3], index=[True, False])
-    assert ser.index.is_object()
+    assert not ser.index.is_object()
+    assert ser.index.dtype == bool
     result = ser.drop(True)
     expected = Series([3], index=[False])
     tm.assert_series_equal(result, expected)
@@ -96,4 +100,13 @@ def test_drop_pos_args_deprecation():
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = ser.drop(1, 0)
     expected = Series([1, 3], index=[0, 2])
+    tm.assert_series_equal(result, expected)
+
+
+def test_drop_index_ea_dtype(any_numeric_ea_dtype):
+    # GH#45860
+    df = Series(100, index=Index([1, 2, 2], dtype=any_numeric_ea_dtype))
+    idx = Index([df.index[1]])
+    result = df.drop(idx)
+    expected = Series(100, index=Index([1], dtype=any_numeric_ea_dtype))
     tm.assert_series_equal(result, expected)

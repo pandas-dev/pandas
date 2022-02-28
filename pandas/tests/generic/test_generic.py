@@ -309,23 +309,31 @@ class Generic:
 class TestNDFrame:
     # tests that don't fit elsewhere
 
-    def test_squeeze(self):
+    @pytest.mark.parametrize(
+        "ser", [tm.makeFloatSeries(), tm.makeStringSeries(), tm.makeObjectSeries()]
+    )
+    def test_squeeze_series_noop(self, ser):
         # noop
-        for s in [tm.makeFloatSeries(), tm.makeStringSeries(), tm.makeObjectSeries()]:
-            tm.assert_series_equal(s.squeeze(), s)
-        for df in [tm.makeTimeDataFrame()]:
-            tm.assert_frame_equal(df.squeeze(), df)
+        tm.assert_series_equal(ser.squeeze(), ser)
 
+    def test_squeeze_frame_noop(self):
+        # noop
+        df = tm.makeTimeDataFrame()
+        tm.assert_frame_equal(df.squeeze(), df)
+
+    def test_squeeze_frame_reindex(self):
         # squeezing
         df = tm.makeTimeDataFrame().reindex(columns=["A"])
         tm.assert_series_equal(df.squeeze(), df["A"])
 
+    def test_squeeze_0_len_dim(self):
         # don't fail with 0 length dimensions GH11229 & GH8999
         empty_series = Series([], name="five", dtype=np.float64)
         empty_frame = DataFrame([empty_series])
         tm.assert_series_equal(empty_series, empty_series.squeeze())
         tm.assert_series_equal(empty_series, empty_frame.squeeze())
 
+    def test_squeeze_axis(self):
         # axis argument
         df = tm.makeTimeDataFrame(nper=1).iloc[:, :1]
         assert df.shape == (1, 1)
@@ -341,6 +349,7 @@ class TestNDFrame:
         with pytest.raises(ValueError, match=msg):
             df.squeeze(axis="x")
 
+    def test_squeeze_axis_len_3(self):
         df = tm.makeTimeDataFrame(3)
         tm.assert_frame_equal(df.squeeze(axis=0), df)
 
@@ -351,12 +360,16 @@ class TestNDFrame:
         df = tm.makeTimeDataFrame().reindex(columns=["A"])
         tm.assert_series_equal(np.squeeze(df), df["A"])
 
-    def test_transpose(self):
-        for s in [tm.makeFloatSeries(), tm.makeStringSeries(), tm.makeObjectSeries()]:
-            # calls implementation in pandas/core/base.py
-            tm.assert_series_equal(s.transpose(), s)
-        for df in [tm.makeTimeDataFrame()]:
-            tm.assert_frame_equal(df.transpose().transpose(), df)
+    @pytest.mark.parametrize(
+        "ser", [tm.makeFloatSeries(), tm.makeStringSeries(), tm.makeObjectSeries()]
+    )
+    def test_transpose_series(self, ser):
+        # calls implementation in pandas/core/base.py
+        tm.assert_series_equal(ser.transpose(), ser)
+
+    def test_transpose_frame(self):
+        df = tm.makeTimeDataFrame()
+        tm.assert_frame_equal(df.transpose().transpose(), df)
 
     def test_numpy_transpose(self, frame_or_series):
 
@@ -374,22 +387,29 @@ class TestNDFrame:
         with pytest.raises(ValueError, match=msg):
             np.transpose(obj, axes=1)
 
-    def test_take(self):
+    @pytest.mark.parametrize(
+        "ser", [tm.makeFloatSeries(), tm.makeStringSeries(), tm.makeObjectSeries()]
+    )
+    def test_take_series(self, ser):
         indices = [1, 5, -2, 6, 3, -1]
-        for s in [tm.makeFloatSeries(), tm.makeStringSeries(), tm.makeObjectSeries()]:
-            out = s.take(indices)
-            expected = Series(
-                data=s.values.take(indices), index=s.index.take(indices), dtype=s.dtype
-            )
-            tm.assert_series_equal(out, expected)
-        for df in [tm.makeTimeDataFrame()]:
-            out = df.take(indices)
-            expected = DataFrame(
-                data=df.values.take(indices, axis=0),
-                index=df.index.take(indices),
-                columns=df.columns,
-            )
-            tm.assert_frame_equal(out, expected)
+        out = ser.take(indices)
+        expected = Series(
+            data=ser.values.take(indices),
+            index=ser.index.take(indices),
+            dtype=ser.dtype,
+        )
+        tm.assert_series_equal(out, expected)
+
+    def test_take_frame(self):
+        indices = [1, 5, -2, 6, 3, -1]
+        df = tm.makeTimeDataFrame()
+        out = df.take(indices)
+        expected = DataFrame(
+            data=df.values.take(indices, axis=0),
+            index=df.index.take(indices),
+            columns=df.columns,
+        )
+        tm.assert_frame_equal(out, expected)
 
     def test_take_invalid_kwargs(self, frame_or_series):
         indices = [-3, 2, 0, 1]

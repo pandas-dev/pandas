@@ -14,6 +14,7 @@ from typing import (
 import numpy as np
 import pytz
 
+from pandas._libs import missing as libmissing
 from pandas._libs.interval import Interval
 from pandas._libs.properties import cache_readonly
 from pandas._libs.tslibs import (
@@ -57,6 +58,7 @@ if TYPE_CHECKING:
         Index,
     )
     from pandas.core.arrays import (
+        BaseMaskedArray,
         DatetimeArray,
         IntervalArray,
         PandasArray,
@@ -1004,7 +1006,7 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
 
         results = []
         for arr in chunks:
-            data, mask = pyarrow_array_to_numpy_and_mask(arr, dtype="int64")
+            data, mask = pyarrow_array_to_numpy_and_mask(arr, dtype=np.dtype(np.int64))
             parr = PeriodArray(data.copy(), freq=self.freq, copy=False)
             parr[~mask] = NaT
             results.append(parr)
@@ -1251,16 +1253,18 @@ class IntervalDtype(PandasExtensionDtype):
 
         results = []
         for arr in chunks:
-            left = np.asarray(arr.storage.field("left"), dtype=self.subtype)
-            right = np.asarray(arr.storage.field("right"), dtype=self.subtype)
-            iarr = IntervalArray.from_arrays(left, right, closed=array.type.closed)
+            if isinstance(arr, pyarrow.ExtensionArray):
+                arr = arr.storage
+            left = np.asarray(arr.field("left"), dtype=self.subtype)
+            right = np.asarray(arr.field("right"), dtype=self.subtype)
+            iarr = IntervalArray.from_arrays(left, right, closed=self.closed)
             results.append(iarr)
 
         if not results:
             return IntervalArray.from_arrays(
                 np.array([], dtype=self.subtype),
                 np.array([], dtype=self.subtype),
-                closed=array.type.closed,
+                closed=self.closed,
             )
         return IntervalArray._concat_same_type(results)
 
@@ -1376,3 +1380,40 @@ class PandasDtype(ExtensionDtype):
         The element size of this data-type object.
         """
         return self._dtype.itemsize
+
+
+class BaseMaskedDtype(ExtensionDtype):
+    """
+    Base class for dtypes for BaseMaskedArray subclasses.
+    """
+
+    name: str
+    base = None
+    type: type
+
+    na_value = libmissing.NA
+
+    @cache_readonly
+    def numpy_dtype(self) -> np.dtype:
+        """Return an instance of our numpy dtype"""
+        return np.dtype(self.type)
+
+    @cache_readonly
+    def kind(self) -> str:
+        return self.numpy_dtype.kind
+
+    @cache_readonly
+    def itemsize(self) -> int:
+        """Return the number of bytes in this dtype"""
+        return self.numpy_dtype.itemsize
+
+    @classmethod
+    def construct_array_type(cls) -> type_t[BaseMaskedArray]:
+        """
+        Return the array type associated with this dtype.
+
+        Returns
+        -------
+        type
+        """
+        raise NotImplementedError
