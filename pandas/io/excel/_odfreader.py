@@ -115,7 +115,7 @@ class ODFReader(BaseExcelReader):
             sheet_cells = [
                 x
                 for x in sheet_row.childNodes
-                if "qname" in dir(x) and x.qname in cell_names
+                if hasattr(x, "qname") and x.qname in cell_names
             ]
             empty_cells = 0
             table_row: list[Scalar | NaTType] = []
