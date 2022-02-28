@@ -9804,18 +9804,19 @@ NaN 12.3   33.0
         if isinstance(other, Series):
             if axis == 0 and method in ["pearson", "spearman"]:
                 corrs = {}
-                ndf = self.select_dtypes(include=np.number).values.transpose()
+                numeric_cols = self.select_dtypes(include=np.number).columns
+                ndf = self[numeric_cols].values.transpose()
                 k = other.values
                 if method == "pearson":
                     for i, r in enumerate(ndf):
                         nonnull_mask = ~np.isnan(r) & ~np.isnan(k)
-                        corrs[self.columns[i]] = np.corrcoef(
+                        corrs[numeric_cols[i]] = np.corrcoef(
                             r[nonnull_mask], k[nonnull_mask]
                         )[0, 1]
                 else:
                     for i, r in enumerate(ndf):
                         nonnull_mask = ~np.isnan(r) & ~np.isnan(k)
-                        corrs[self.columns[i]] = np.corrcoef(
+                        corrs[numeric_cols[i]] = np.corrcoef(
                             r[nonnull_mask].argsort().argsort(),
                             k[nonnull_mask].argsort().argsort(),
                         )[0, 1]
