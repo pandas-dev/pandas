@@ -220,8 +220,8 @@ def generate_numba_table_func(
         minimum_periods: int,
         *args: Any,
     ):
-        result = np.empty(values.shape)
-        min_periods_mask = np.empty(values.shape)
+        result = np.empty((len(begin), values.shape[1]))
+        min_periods_mask = np.empty(result.shape)
         for i in numba.prange(len(result)):
             start = begin[i]
             stop = end[i]

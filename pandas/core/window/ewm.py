@@ -732,6 +732,7 @@ class ExponentialMovingWindow(BaseWindow):
                 min_periods=min_periods,
                 center=self.center,
                 closed=self.closed,
+                step=self.step,
             )
             result = window_aggregations.ewmcov(
                 x_array,
@@ -798,6 +799,7 @@ class ExponentialMovingWindow(BaseWindow):
                 min_periods=min_periods,
                 center=self.center,
                 closed=self.closed,
+                step=self.step,
             )
 
             def _cov(X, Y):

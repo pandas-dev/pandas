@@ -126,3 +126,9 @@ def frame():
         index=bdate_range(datetime(2009, 1, 1), periods=100),
         columns=np.arange(10),
     )
+
+
+@pytest.fixture(params=[None, 1, 2, 5, 10])
+def step(request):
+    """step keyword argument for rolling window operations."""
+    return request.param

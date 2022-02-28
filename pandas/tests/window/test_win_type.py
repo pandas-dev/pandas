@@ -125,10 +125,10 @@ def test_constructor_with_win_type_invalid(frame_or_series):
 
 @td.skip_if_no_scipy
 @pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
-def test_window_with_args():
+def test_window_with_args(step):
     # make sure that we are aggregating window functions correctly with arg
     r = Series(np.random.randn(100)).rolling(
-        window=10, min_periods=1, win_type="gaussian"
+        window=10, min_periods=1, win_type="gaussian", step=step
     )
     expected = concat([r.mean(std=10), r.mean(std=0.01)], axis=1)
     expected.columns = ["<lambda>", "<lambda>"]
@@ -173,7 +173,7 @@ def test_win_type_freq_return_deprecation():
 @td.skip_if_no_scipy
 def test_win_type_not_implemented():
     class CustomIndexer(BaseIndexer):
-        def get_window_bounds(self, num_values, min_periods, center, closed):
+        def get_window_bounds(self, num_values, min_periods, center, closed, step):
             return np.array([0, 1]), np.array([1, 2])
 
     df = DataFrame({"values": range(2)})
@@ -183,10 +183,10 @@ def test_win_type_not_implemented():
 
 
 @td.skip_if_no_scipy
-def test_cmov_mean():
+def test_cmov_mean(step):
     # GH 8238
     vals = np.array([6.95, 15.21, 4.72, 9.12, 13.81, 13.49, 16.68, 9.48, 10.63, 14.48])
-    result = Series(vals).rolling(5, center=True).mean()
+    result = Series(vals).rolling(5, center=True, step=step).mean()
     expected_values = [
         np.nan,
         np.nan,
@@ -199,15 +199,15 @@ def test_cmov_mean():
         np.nan,
         np.nan,
     ]
-    expected = Series(expected_values)
+    expected = Series(expected_values)[::step]
     tm.assert_series_equal(expected, result)
 
 
 @td.skip_if_no_scipy
-def test_cmov_window():
+def test_cmov_window(step):
     # GH 8238
     vals = np.array([6.95, 15.21, 4.72, 9.12, 13.81, 13.49, 16.68, 9.48, 10.63, 14.48])
-    result = Series(vals).rolling(5, win_type="boxcar", center=True).mean()
+    result = Series(vals).rolling(5, win_type="boxcar", center=True, step=step).mean()
     expected_values = [
         np.nan,
         np.nan,
@@ -220,28 +220,28 @@ def test_cmov_window():
         np.nan,
         np.nan,
     ]
-    expected = Series(expected_values)
+    expected = Series(expected_values)[::step]
     tm.assert_series_equal(expected, result)
 
 
 @td.skip_if_no_scipy
-def test_cmov_window_corner():
+def test_cmov_window_corner(step):
     # GH 8238
     # all nan
     vals = Series([np.nan] * 10)
-    result = vals.rolling(5, center=True, win_type="boxcar").mean()
+    result = vals.rolling(5, center=True, win_type="boxcar", step=step).mean()
     assert np.isnan(result).all()
 
     # empty
     vals = Series([], dtype=object)
-    result = vals.rolling(5, center=True, win_type="boxcar").mean()
+    result = vals.rolling(5, center=True, win_type="boxcar", step=step).mean()
     assert len(result) == 0
 
     # shorter than window
     vals = Series(np.random.randn(5))
-    result = vals.rolling(10, win_type="boxcar").mean()
+    result = vals.rolling(10, win_type="boxcar", step=step).mean()
     assert np.isnan(result).all()
-    assert len(result) == 5
+    assert len(result) == len(range(0, 5, step or 1))
 
 
 @td.skip_if_no_scipy
@@ -310,7 +310,7 @@ def test_cmov_window_corner():
         ),
     ],
 )
-def test_cmov_window_frame(f, xp):
+def test_cmov_window_frame(f, xp, step):
     # Gh 8238
     df = DataFrame(
         np.array(
@@ -328,28 +328,30 @@ def test_cmov_window_frame(f, xp):
             ]
         )
     )
-    xp = DataFrame(np.array(xp))
+    xp = DataFrame(np.array(xp))[::step]
 
-    roll = df.rolling(5, win_type="boxcar", center=True)
+    roll = df.rolling(5, win_type="boxcar", center=True, step=step)
     rs = getattr(roll, f)()
 
     tm.assert_frame_equal(xp, rs)
 
 
 @td.skip_if_no_scipy
-def test_cmov_window_na_min_periods():
+def test_cmov_window_na_min_periods(step):
     # min_periods
     vals = Series(np.random.randn(10))
     vals[4] = np.nan
     vals[8] = np.nan
 
-    xp = vals.rolling(5, min_periods=4, center=True).mean()
-    rs = vals.rolling(5, win_type="boxcar", min_periods=4, center=True).mean()
+    xp = vals.rolling(5, min_periods=4, center=True, step=step).mean()
+    rs = vals.rolling(
+        5, win_type="boxcar", min_periods=4, center=True, step=step
+    ).mean()
     tm.assert_series_equal(xp, rs)
 
 
 @td.skip_if_no_scipy
-def test_cmov_window_regular(win_types):
+def test_cmov_window_regular(win_types, step):
     # GH 8238
     vals = np.array([6.95, 15.21, 4.72, 9.12, 13.81, 13.49, 16.68, 9.48, 10.63, 14.48])
     xps = {
@@ -451,26 +453,26 @@ def test_cmov_window_regular(win_types):
         ],
     }
 
-    xp = Series(xps[win_types])
-    rs = Series(vals).rolling(5, win_type=win_types, center=True).mean()
+    xp = Series(xps[win_types])[::step]
+    rs = Series(vals).rolling(5, win_type=win_types, center=True, step=step).mean()
     tm.assert_series_equal(xp, rs)
 
 
 @td.skip_if_no_scipy
-def test_cmov_window_regular_linear_range(win_types):
+def test_cmov_window_regular_linear_range(win_types, step):
     # GH 8238
     vals = np.array(range(10), dtype=float)
     xp = vals.copy()
     xp[:2] = np.nan
     xp[-2:] = np.nan
-    xp = Series(xp)
+    xp = Series(xp)[::step]
 
-    rs = Series(vals).rolling(5, win_type=win_types, center=True).mean()
+    rs = Series(vals).rolling(5, win_type=win_types, center=True, step=step).mean()
     tm.assert_series_equal(xp, rs)
 
 
 @td.skip_if_no_scipy
-def test_cmov_window_regular_missing_data(win_types):
+def test_cmov_window_regular_missing_data(win_types, step):
     # GH 8238
     vals = np.array(
         [6.95, 15.21, 4.72, 9.12, 13.81, 13.49, 16.68, np.nan, 10.63, 14.48]
@@ -574,13 +576,13 @@ def test_cmov_window_regular_missing_data(win_types):
         ],
     }
 
-    xp = Series(xps[win_types])
-    rs = Series(vals).rolling(5, win_type=win_types, min_periods=3).mean()
+    xp = Series(xps[win_types])[::step]
+    rs = Series(vals).rolling(5, win_type=win_types, min_periods=3, step=step).mean()
     tm.assert_series_equal(xp, rs)
 
 
 @td.skip_if_no_scipy
-def test_cmov_window_special(win_types_special):
+def test_cmov_window_special(win_types_special, step):
     # GH 8238
     kwds = {
         "kaiser": {"beta": 1.0},
@@ -642,17 +644,17 @@ def test_cmov_window_special(win_types_special):
         ],
     }
 
-    xp = Series(xps[win_types_special])
+    xp = Series(xps[win_types_special])[::step]
     rs = (
         Series(vals)
-        .rolling(5, win_type=win_types_special, center=True)
+        .rolling(5, win_type=win_types_special, center=True, step=step)
         .mean(**kwds[win_types_special])
     )
     tm.assert_series_equal(xp, rs)
 
 
 @td.skip_if_no_scipy
-def test_cmov_window_special_linear_range(win_types_special):
+def test_cmov_window_special_linear_range(win_types_special, step):
     # GH 8238
     kwds = {
         "kaiser": {"beta": 1.0},
@@ -666,11 +668,11 @@ def test_cmov_window_special_linear_range(win_types_special):
     xp = vals.copy()
     xp[:2] = np.nan
     xp[-2:] = np.nan
-    xp = Series(xp)
+    xp = Series(xp)[::step]
 
     rs = (
         Series(vals)
-        .rolling(5, win_type=win_types_special, center=True)
+        .rolling(5, win_type=win_types_special, center=True, step=step)
         .mean(**kwds[win_types_special])
     )
     tm.assert_series_equal(xp, rs)
