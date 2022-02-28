@@ -76,7 +76,6 @@ Guides
     boolean
     visualization
     style
-    computation
     groupby
     window
     timeseries
