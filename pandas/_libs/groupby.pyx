@@ -1344,14 +1344,13 @@ cdef group_min_max(iu_64_floating_t[:, ::1] out,
         for i in range(ngroups):
             for j in range(K):
                 if nobs[i, j] < min_count:
-                    if iu_64_floating_t is uint64_t:
+                    if uses_mask:
+                        result_mask[i, j] = True
+                    elif iu_64_floating_t is uint64_t:
                         runtime_error = True
                         break
                     else:
-                        if uses_mask:
-                            result_mask[i, j] = True
-                        else:
-                            out[i, j] = nan_val
+                        out[i, j] = nan_val
                 else:
                     out[i, j] = group_min_or_max[i, j]
 
