@@ -299,10 +299,10 @@ class Styler(StylerRenderer):
         ``format_index`` will be preserved.
 
         .. warning::
-            Only the output methods ``to_html`` and ``to_string`` currently work with
-            concatenated Stylers.
+            Only the output methods ``to_html``, ``to_string`` and ``to_latex``
+            currently work with concatenated Stylers.
 
-            The output methods ``to_latex`` and ``to_excel`` **do not** work with
+            Other output methods, including ``to_excel``, **do not** work with
             concatenated Stylers.
 
         The following should be noted:
