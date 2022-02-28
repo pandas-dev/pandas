@@ -18,9 +18,9 @@ from pandas.errors import (
 
 import pandas as pd
 from pandas import (
+    CategoricalIndex,
     DataFrame,
     Index,
-    CategoricalIndex,
     MultiIndex,
     PeriodIndex,
     Series,
@@ -506,7 +506,7 @@ class TestConcatenate:
     def test_concat_with_categorical_indices(self):
         # GH 44099
         # concat frames with categorical indices that have the same values
-        
+
         df1 = DataFrame(
             {"col1": ["a_val", "b_val", "c_val"]},
             index=CategoricalIndex(["a", "b", "c"], categories=["a", "b", "c"]),
@@ -522,6 +522,7 @@ class TestConcatenate:
             ),
         )
         tm.assert_frame_equal(concat([df1, df2]), expected)
+
 
 @pytest.mark.parametrize("pdt", [Series, DataFrame])
 @pytest.mark.parametrize("dt", np.sctypes["float"])
