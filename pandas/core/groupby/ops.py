@@ -523,11 +523,11 @@ class WrappedCythonOp:
             counts = np.zeros(ngroups, dtype=np.int64)
             if self.how in ["min", "max", "mean"]:
                 func(
-                    result,
-                    counts,
-                    values,
-                    comp_ids,
-                    min_count,
+                    out=result,
+                    counts=counts,
+                    values=values,
+                    labels=comp_ids,
+                    min_count=min_count,
                     mask=mask,
                     result_mask=result_mask,
                     is_datetimelike=is_datetimelike,
@@ -545,12 +545,12 @@ class WrappedCythonOp:
             elif self.how in ["add"]:
                 # We support datetimelike
                 func(
-                    result,
-                    counts,
-                    values,
-                    comp_ids,
-                    min_count,
-                    datetimelike=is_datetimelike,
+                    out=result,
+                    counts=counts,
+                    values=values,
+                    labels=comp_ids,
+                    min_count=min_count,
+                    is_datetimelike=is_datetimelike,
                 )
             else:
                 func(result, counts, values, comp_ids, min_count)
@@ -558,11 +558,11 @@ class WrappedCythonOp:
             # TODO: min_count
             if self.uses_mask():
                 func(
-                    result,
-                    values,
-                    comp_ids,
-                    ngroups,
-                    is_datetimelike,
+                    out=result,
+                    values=values,
+                    labels=comp_ids,
+                    ngroups=ngroups,
+                    is_datetimelike=is_datetimelike,
                     mask=mask,
                     **kwargs,
                 )
