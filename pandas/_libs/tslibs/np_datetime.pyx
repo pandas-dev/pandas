@@ -98,6 +98,8 @@ cdef inline bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1:
 
 
 class OutOfBoundsDatetime(ValueError):
+    """Raised when the datetime is outside the range that
+    can be represented."""
     pass
 
 
