@@ -1003,11 +1003,6 @@ def rank(
     is_datetimelike = needs_i8_conversion(values.dtype)
     values = _ensure_data(values)
 
-    if values.dtype.kind in ["i", "u", "f"]:
-        # rank_t includes only object, int64, uint64, float64
-        dtype = values.dtype.kind + "8"
-        values = values.astype(dtype, copy=False)
-
     if values.ndim == 1:
         ranks = algos.rank_1d(
             values,
