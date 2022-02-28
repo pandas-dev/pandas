@@ -35,7 +35,6 @@ from pandas._typing import (
     ArrayLike,
     NpDtype,
     RandomState,
-    Scalar,
     T,
 )
 from pandas.util._exceptions import find_stack_level
@@ -475,7 +474,7 @@ def pipe(
     func : callable or tuple of (callable, str)
         Function to apply to this object or, alternatively, a
         ``(callable, data_keyword)`` tuple where ``data_keyword`` is a
-        string indicating the keyword of `callable`` that expects the
+        string indicating the keyword of ``callable`` that expects the
         object.
     *args : iterable, optional
         Positional arguments passed into ``func``.
@@ -517,7 +516,7 @@ def get_rename_function(mapper):
 
 
 def convert_to_list_like(
-    values: Scalar | Iterable | AnyArrayLike,
+    values: Hashable | Iterable | AnyArrayLike,
 ) -> list | AnyArrayLike:
     """
     Convert list-like or scalar input to list-like. List, numpy and pandas array-like
@@ -545,8 +544,10 @@ def temp_setattr(obj, attr: str, value) -> Iterator[None]:
     """
     old_value = getattr(obj, attr)
     setattr(obj, attr, value)
-    yield obj
-    setattr(obj, attr, old_value)
+    try:
+        yield obj
+    finally:
+        setattr(obj, attr, old_value)
 
 
 def require_length_match(data, index: Index):

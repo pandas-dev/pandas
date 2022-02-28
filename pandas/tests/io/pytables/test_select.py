@@ -27,7 +27,7 @@ from pandas.tests.io.pytables.common import (
 
 from pandas.io.pytables import Term
 
-pytestmark = pytest.mark.single
+pytestmark = pytest.mark.single_cpu
 
 
 def test_select_columns_in_where(setup_path):
@@ -659,7 +659,7 @@ def test_frame_select_complex(setup_path):
         tm.assert_frame_equal(result, expected)
 
 
-def test_frame_select_complex2(setup_path):
+def test_frame_select_complex2():
 
     with ensure_clean_path(["params.hdf", "hist.hdf"]) as paths:
 

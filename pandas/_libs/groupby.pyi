@@ -111,6 +111,8 @@ def group_nth(
     counts: np.ndarray,  # int64_t[::1]
     values: np.ndarray,  # ndarray[rank_t, ndim=2]
     labels: np.ndarray,  # const int64_t[:]
+    mask: npt.NDArray[np.bool_] | None,
+    result_mask: npt.NDArray[np.bool_] | None,
     min_count: int = ...,  # int64_t
     rank: int = ...,  # int64_t
 ) -> None: ...

@@ -70,6 +70,14 @@ MIXED_INT_DTYPES = [
 
 
 class TestDataFrameConstructors:
+    def test_constructor_from_ndarray_with_str_dtype(self):
+        # If we don't ravel/reshape around ensure_str_array, we end up
+        #  with an array of strings each of which is e.g. "[0 1 2]"
+        arr = np.arange(12).reshape(4, 3)
+        df = DataFrame(arr, dtype=str)
+        expected = DataFrame(arr.astype(str))
+        tm.assert_frame_equal(df, expected)
+
     def test_constructor_from_2d_datetimearray(self, using_array_manager):
         dti = date_range("2016-01-01", periods=6, tz="US/Pacific")
         dta = dti._data.reshape(3, 2)
@@ -315,43 +323,34 @@ class TestDataFrameConstructors:
         with pytest.raises(ValueError, match=r"shape=\(2, 2, 1\)"):
             DataFrame([a, a])
 
-    def test_constructor_mixed_dtypes(self):
-        def _make_mixed_dtypes_df(typ, ad=None):
+    @pytest.mark.parametrize(
+        "typ, ad",
+        [
+            # mixed floating and integer coexist in the same frame
+            ["float", {}],
+            # add lots of types
+            ["float", {"A": 1, "B": "foo", "C": "bar"}],
+            # GH 622
+            ["int", {}],
+        ],
+    )
+    def test_constructor_mixed_dtypes(self, typ, ad):
+        if typ == "int":
+            dtypes = MIXED_INT_DTYPES
+            arrays = [np.array(np.random.rand(10), dtype=d) for d in dtypes]
+        elif typ == "float":
+            dtypes = MIXED_FLOAT_DTYPES
+            arrays = [np.array(np.random.randint(10, size=10), dtype=d) for d in dtypes]
 
-            if typ == "int":
-                dtypes = MIXED_INT_DTYPES
-                arrays = [np.array(np.random.rand(10), dtype=d) for d in dtypes]
-            elif typ == "float":
-                dtypes = MIXED_FLOAT_DTYPES
-                arrays = [
-                    np.array(np.random.randint(10, size=10), dtype=d) for d in dtypes
-                ]
+        for d, a in zip(dtypes, arrays):
+            assert a.dtype == d
+        ad.update({d: a for d, a in zip(dtypes, arrays)})
+        df = DataFrame(ad)
 
-            for d, a in zip(dtypes, arrays):
-                assert a.dtype == d
-            if ad is None:
-                ad = {}
-            ad.update({d: a for d, a in zip(dtypes, arrays)})
-            return DataFrame(ad)
-
-        def _check_mixed_dtypes(df, dtypes=None):
-            if dtypes is None:
-                dtypes = MIXED_FLOAT_DTYPES + MIXED_INT_DTYPES
-            for d in dtypes:
-                if d in df:
-                    assert df.dtypes[d] == d
-
-        # mixed floating and integer coexist in the same frame
-        df = _make_mixed_dtypes_df("float")
-        _check_mixed_dtypes(df)
-
-        # add lots of types
-        df = _make_mixed_dtypes_df("float", {"A": 1, "B": "foo", "C": "bar"})
-        _check_mixed_dtypes(df)
-
-        # GH 622
-        df = _make_mixed_dtypes_df("int")
-        _check_mixed_dtypes(df)
+        dtypes = MIXED_FLOAT_DTYPES + MIXED_INT_DTYPES
+        for d in dtypes:
+            if d in df:
+                assert df.dtypes[d] == d
 
     def test_constructor_complex_dtypes(self):
         # GH10952
@@ -398,7 +397,7 @@ class TestDataFrameConstructors:
 
     def test_constructor_overflow_int64(self):
         # see gh-14881
-        values = np.array([2 ** 64 - i for i in range(1, 10)], dtype=np.uint64)
+        values = np.array([2**64 - i for i in range(1, 10)], dtype=np.uint64)
 
         result = DataFrame({"a": values})
         assert result["a"].dtype == np.uint64
@@ -420,12 +419,12 @@ class TestDataFrameConstructors:
     @pytest.mark.parametrize(
         "values",
         [
-            np.array([2 ** 64], dtype=object),
-            np.array([2 ** 65]),
-            [2 ** 64 + 1],
-            np.array([-(2 ** 63) - 4], dtype=object),
-            np.array([-(2 ** 64) - 1]),
-            [-(2 ** 65) - 2],
+            np.array([2**64], dtype=object),
+            np.array([2**65]),
+            [2**64 + 1],
+            np.array([-(2**63) - 4], dtype=object),
+            np.array([-(2**64) - 1]),
+            [-(2**65) - 2],
         ],
     )
     def test_constructor_int_overflow(self, values):
@@ -2081,7 +2080,7 @@ class TestDataFrameConstructors:
         tm.assert_series_equal(result, expected)
 
         # overflow issue? (we always expected int64 upcasting here)
-        df = DataFrame({"a": [2 ** 31, 2 ** 31 + 1]})
+        df = DataFrame({"a": [2**31, 2**31 + 1]})
         assert df.dtypes.iloc[0] == np.dtype("int64")
 
         # GH #2751 (construction with no index specified), make sure we cast to

@@ -14,7 +14,6 @@ from pandas._libs import (
 )
 from pandas._typing import (
     Dtype,
-    DtypeObj,
     npt,
 )
 from pandas.util._decorators import (
@@ -91,14 +90,6 @@ class NumericIndex(Index):
     _can_hold_strings = False
     _is_backward_compat_public_numeric_index: bool = True
 
-    # error: Signature of "_can_hold_na" incompatible with supertype "Index"
-    @cache_readonly
-    def _can_hold_na(self) -> bool:  # type: ignore[override]
-        if is_float_dtype(self.dtype):
-            return True
-        else:
-            return False
-
     _engine_types: dict[np.dtype, type[libindex.IndexEngine]] = {
         np.dtype(np.int8): libindex.Int8Engine,
         np.dtype(np.int16): libindex.Int16Engine,
@@ -110,6 +101,8 @@ class NumericIndex(Index):
         np.dtype(np.uint64): libindex.UInt64Engine,
         np.dtype(np.float32): libindex.Float32Engine,
         np.dtype(np.float64): libindex.Float64Engine,
+        np.dtype(np.complex64): libindex.Complex64Engine,
+        np.dtype(np.complex128): libindex.Complex128Engine,
     }
 
     @property
@@ -124,6 +117,7 @@ class NumericIndex(Index):
             "i": "integer",
             "u": "integer",
             "f": "floating",
+            "c": "complex",
         }[self.dtype.kind]
 
     def __new__(cls, data=None, dtype: Dtype | None = None, copy=False, name=None):
@@ -268,10 +262,6 @@ class NumericIndex(Index):
                 )
         return tolerance
 
-    def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
-        # If we ever have BoolIndex or ComplexIndex, this may need to be tightened
-        return is_numeric_dtype(dtype)
-
     @classmethod
     def _assert_safe_casting(cls, data: np.ndarray, subarr: np.ndarray) -> None:
         """
@@ -283,13 +273,6 @@ class NumericIndex(Index):
         if is_integer_dtype(subarr.dtype):
             if not np.array_equal(data, subarr):
                 raise TypeError("Unsafe NumPy casting, you must explicitly cast")
-
-    @property
-    def _is_all_dates(self) -> bool:
-        """
-        Checks that all the labels are datetime objects.
-        """
-        return False
 
     def _format_native_types(
         self, *, na_rep="", float_format=None, decimal=".", quoting=None, **kwargs

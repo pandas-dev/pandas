@@ -40,24 +40,26 @@ def times_frame():
     )
 
 
-class TestRolling:
-    def setup_method(self):
-        self.frame = DataFrame({"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)})
+@pytest.fixture
+def roll_frame():
+    return DataFrame({"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)})
 
-    def test_mutated(self):
+
+class TestRolling:
+    def test_mutated(self, roll_frame):
 
         msg = r"groupby\(\) got an unexpected keyword argument 'foo'"
         with pytest.raises(TypeError, match=msg):
-            self.frame.groupby("A", foo=1)
+            roll_frame.groupby("A", foo=1)
 
-        g = self.frame.groupby("A")
+        g = roll_frame.groupby("A")
         assert not g.mutated
-        g = get_groupby(self.frame, by="A", mutated=True)
+        g = get_groupby(roll_frame, by="A", mutated=True)
         assert g.mutated
 
-    def test_getitem(self):
-        g = self.frame.groupby("A")
-        g_mutated = get_groupby(self.frame, by="A", mutated=True)
+    def test_getitem(self, roll_frame):
+        g = roll_frame.groupby("A")
+        g_mutated = get_groupby(roll_frame, by="A", mutated=True)
 
         expected = g_mutated.B.apply(lambda x: x.rolling(2).mean())
 
@@ -70,15 +72,15 @@ class TestRolling:
         result = g.B.rolling(2).mean()
         tm.assert_series_equal(result, expected)
 
-        result = self.frame.B.groupby(self.frame.A).rolling(2).mean()
+        result = roll_frame.B.groupby(roll_frame.A).rolling(2).mean()
         tm.assert_series_equal(result, expected)
 
-    def test_getitem_multiple(self):
+    def test_getitem_multiple(self, roll_frame):
 
         # GH 13174
-        g = self.frame.groupby("A")
+        g = roll_frame.groupby("A")
         r = g.rolling(2, min_periods=0)
-        g_mutated = get_groupby(self.frame, by="A", mutated=True)
+        g_mutated = get_groupby(roll_frame, by="A", mutated=True)
         expected = g_mutated.B.apply(lambda x: x.rolling(2, min_periods=0).count())
 
         result = r.B.count()
@@ -102,8 +104,8 @@ class TestRolling:
             "skew",
         ],
     )
-    def test_rolling(self, f):
-        g = self.frame.groupby("A")
+    def test_rolling(self, f, roll_frame):
+        g = roll_frame.groupby("A")
         r = g.rolling(window=4)
 
         result = getattr(r, f)()
@@ -111,13 +113,13 @@ class TestRolling:
         # groupby.apply doesn't drop the grouped-by column
         expected = expected.drop("A", axis=1)
         # GH 39732
-        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected_index = MultiIndex.from_arrays([roll_frame["A"], range(40)])
         expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("f", ["std", "var"])
-    def test_rolling_ddof(self, f):
-        g = self.frame.groupby("A")
+    def test_rolling_ddof(self, f, roll_frame):
+        g = roll_frame.groupby("A")
         r = g.rolling(window=4)
 
         result = getattr(r, f)(ddof=1)
@@ -125,15 +127,15 @@ class TestRolling:
         # groupby.apply doesn't drop the grouped-by column
         expected = expected.drop("A", axis=1)
         # GH 39732
-        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected_index = MultiIndex.from_arrays([roll_frame["A"], range(40)])
         expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "interpolation", ["linear", "lower", "higher", "midpoint", "nearest"]
     )
-    def test_rolling_quantile(self, interpolation):
-        g = self.frame.groupby("A")
+    def test_rolling_quantile(self, interpolation, roll_frame):
+        g = roll_frame.groupby("A")
         r = g.rolling(window=4)
 
         result = r.quantile(0.4, interpolation=interpolation)
@@ -143,7 +145,7 @@ class TestRolling:
         # groupby.apply doesn't drop the grouped-by column
         expected = expected.drop("A", axis=1)
         # GH 39732
-        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected_index = MultiIndex.from_arrays([roll_frame["A"], range(40)])
         expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
@@ -173,14 +175,14 @@ class TestRolling:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("f", ["corr", "cov"])
-    def test_rolling_corr_cov_other_diff_size_as_groups(self, f):
-        g = self.frame.groupby("A")
+    def test_rolling_corr_cov_other_diff_size_as_groups(self, f, roll_frame):
+        g = roll_frame.groupby("A")
         r = g.rolling(window=4)
 
-        result = getattr(r, f)(self.frame)
+        result = getattr(r, f)(roll_frame)
 
         def func(x):
-            return getattr(x.rolling(4), f)(self.frame)
+            return getattr(x.rolling(4), f)(roll_frame)
 
         expected = g.apply(func)
         # GH 39591: The grouped column should be all np.nan
@@ -189,8 +191,8 @@ class TestRolling:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("f", ["corr", "cov"])
-    def test_rolling_corr_cov_pairwise(self, f):
-        g = self.frame.groupby("A")
+    def test_rolling_corr_cov_pairwise(self, f, roll_frame):
+        g = roll_frame.groupby("A")
         r = g.rolling(window=4)
 
         result = getattr(r.B, f)(pairwise=True)
@@ -237,8 +239,8 @@ class TestRolling:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_rolling_apply(self, raw):
-        g = self.frame.groupby("A")
+    def test_rolling_apply(self, raw, roll_frame):
+        g = roll_frame.groupby("A")
         r = g.rolling(window=4)
 
         # reduction
@@ -247,7 +249,7 @@ class TestRolling:
         # groupby.apply doesn't drop the grouped-by column
         expected = expected.drop("A", axis=1)
         # GH 39732
-        expected_index = MultiIndex.from_arrays([self.frame["A"], range(40)])
+        expected_index = MultiIndex.from_arrays([roll_frame["A"], range(40)])
         expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
@@ -778,9 +780,9 @@ class TestRolling:
         )
         tm.assert_index_equal(result.index, expected_index, exact="equiv")
 
-    def test_groupby_rolling_object_doesnt_affect_groupby_apply(self):
+    def test_groupby_rolling_object_doesnt_affect_groupby_apply(self, roll_frame):
         # GH 39732
-        g = self.frame.groupby("A")
+        g = roll_frame.groupby("A")
         expected = g.apply(lambda x: x.rolling(4).sum()).index
         _ = g.rolling(window=4)
         result = g.apply(lambda x: x.rolling(4).sum()).index

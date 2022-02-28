@@ -19,7 +19,6 @@ from pandas.core.arrays import DatetimeArray
 import pandas.core.nanops as nanops
 
 use_bn = nanops._USE_BOTTLENECK
-has_c16 = hasattr(np, "complex128")
 
 
 @pytest.fixture(params=[True, False])
@@ -128,7 +127,7 @@ class TestnanopsDataFrame:
                 if targ.dtype.kind != "O":
                     res = res.astype(targ.dtype)
                 else:
-                    cast_dtype = "c16" if has_c16 else "f8"
+                    cast_dtype = "c16" if hasattr(np, "complex128") else "f8"
                     res = res.astype(cast_dtype)
                     targ = targ.astype(cast_dtype)
             # there should never be a case where numpy returns an object
@@ -305,7 +304,7 @@ class TestnanopsDataFrame:
         # In the previous implementation mean can overflow for int dtypes, it
         # is now consistent with numpy
 
-        for a in [2 ** 55, -(2 ** 55), 20150515061816532]:
+        for a in [2**55, -(2**55), 20150515061816532]:
             s = Series(a, index=range(500), dtype=np.int64)
             result = s.mean()
             np_result = s.values.mean()
@@ -789,7 +788,7 @@ class TestNanvarFixedValues:
     def setup_method(self):
         # Samples from a normal distribution.
         self.variance = variance = 3.0
-        self.samples = self.prng.normal(scale=variance ** 0.5, size=100000)
+        self.samples = self.prng.normal(scale=variance**0.5, size=100000)
 
     def test_nanvar_all_finite(self):
         samples = self.samples
@@ -811,7 +810,7 @@ class TestNanvarFixedValues:
         samples[::2] = self.samples
 
         actual_std = nanops.nanstd(samples, skipna=True)
-        tm.assert_almost_equal(actual_std, self.variance ** 0.5, rtol=1e-2)
+        tm.assert_almost_equal(actual_std, self.variance**0.5, rtol=1e-2)
 
         actual_std = nanops.nanvar(samples, skipna=False)
         tm.assert_almost_equal(actual_std, np.nan, rtol=1e-2)

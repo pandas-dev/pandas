@@ -21,10 +21,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
-from pandas.core.groupby.generic import (
-    DataFrameGroupBy,
-    SeriesGroupBy,
-)
+from pandas.core.groupby.generic import DataFrameGroupBy
 
 
 def assert_fp_equal(a, b):
@@ -188,6 +185,27 @@ def test_transform_axis_1(request, transformation_func):
         expected["b"] = expected["b"].astype("int64")
 
     # cumcount returns Series; the rest are DataFrame
+    tm.assert_equal(result, expected)
+
+
+def test_transform_axis_1_reducer(request, reduction_func):
+    # GH#45715
+    if reduction_func in (
+        "corrwith",
+        "idxmax",
+        "idxmin",
+        "ngroup",
+        "nth",
+    ):
+        marker = pytest.mark.xfail(reason="transform incorrectly fails - GH#45986")
+        request.node.add_marker(marker)
+    df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
+    result = df.groupby([0, 0, 1], axis=1).transform(reduction_func)
+    if reduction_func == "size":
+        # size doesn't behave in the same manner; hardcode expected result
+        expected = DataFrame(2 * [[2, 2, 1]], index=df.index, columns=df.columns)
+    else:
+        expected = df.T.groupby([0, 0, 1]).transform(reduction_func).T
     tm.assert_equal(result, expected)
 
 
@@ -395,45 +413,36 @@ def test_transform_select_columns(df):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("duplicates", [True, False])
-def test_transform_exclude_nuisance(df, duplicates):
+def test_transform_exclude_nuisance(df):
     # case that goes through _transform_item_by_item
 
-    if duplicates:
-        # make sure we work with duplicate columns GH#41427
-        df.columns = ["A", "C", "C", "D"]
+    df.columns = ["A", "B", "B", "D"]
 
     # this also tests orderings in transform between
     # series/frame to make sure it's consistent
     expected = {}
     grouped = df.groupby("A")
 
-    gbc = grouped["C"]
-    warn = FutureWarning if duplicates else None
-    with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
-        expected["C"] = gbc.transform(np.mean)
-    if duplicates:
-        # squeeze 1-column DataFrame down to Series
-        expected["C"] = expected["C"]["C"]
+    gbc = grouped["B"]
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
+        expected["B"] = gbc.transform(lambda x: np.mean(x))
+    # squeeze 1-column DataFrame down to Series
+    expected["B"] = expected["B"]["B"]
 
-        assert isinstance(gbc.obj, DataFrame)
-        assert isinstance(gbc, DataFrameGroupBy)
-    else:
-        assert isinstance(gbc, SeriesGroupBy)
-        assert isinstance(gbc.obj, Series)
+    assert isinstance(gbc.obj, DataFrame)
+    assert isinstance(gbc, DataFrameGroupBy)
 
     expected["D"] = grouped["D"].transform(np.mean)
     expected = DataFrame(expected)
     with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
-        result = df.groupby("A").transform(np.mean)
+        result = df.groupby("A").transform(lambda x: np.mean(x))
 
     tm.assert_frame_equal(result, expected)
 
 
 def test_transform_function_aliases(df):
-    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
-        result = df.groupby("A").transform("mean")
-        expected = df.groupby("A").transform(np.mean)
+    result = df.groupby("A").transform("mean")
+    expected = df.groupby("A").transform(np.mean)
     tm.assert_frame_equal(result, expected)
 
     result = df.groupby("A")["C"].transform("mean")
@@ -480,7 +489,7 @@ def test_transform_coercion():
     # 14457
     # when we are transforming be sure to not coerce
     # via assignment
-    df = DataFrame({"A": ["a", "a"], "B": [0, 1]})
+    df = DataFrame({"A": ["a", "a", "b", "b"], "B": [0, 1, 3, 4]})
     g = df.groupby("A")
 
     expected = g.transform(np.mean)
@@ -1281,9 +1290,21 @@ def test_transform_cumcount():
     tm.assert_series_equal(result, expected)
 
 
-def test_null_group_lambda_self():
+def test_null_group_lambda_self(sort, dropna):
     # GH 17093
-    df = DataFrame({"A": [1, np.nan], "B": [1, 1]})
-    result = df.groupby("A").transform(lambda x: x)
-    expected = DataFrame([1], columns=["B"])
+    np.random.seed(0)
+    keys = np.random.randint(0, 5, size=50).astype(float)
+    nulls = np.random.choice([0, 1], keys.shape).astype(bool)
+    keys[nulls] = np.nan
+    values = np.random.randint(0, 5, size=keys.shape)
+    df = DataFrame({"A": keys, "B": values})
+
+    expected_values = values
+    if dropna and nulls.any():
+        expected_values = expected_values.astype(float)
+        expected_values[nulls] = np.nan
+    expected = DataFrame(expected_values, columns=["B"])
+
+    gb = df.groupby("A", dropna=dropna, sort=sort)
+    result = gb.transform(lambda x: x)
     tm.assert_frame_equal(result, expected)

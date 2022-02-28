@@ -12,6 +12,7 @@ from zipfile import BadZipFile
 import numpy as np
 import pytest
 
+from pandas.compat import is_ci_environment
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
@@ -271,7 +272,13 @@ def test_parser_consistency_file(datapath):
 
 @pytest.mark.network
 @pytest.mark.slow
-@tm.network
+@tm.network(
+    url=(
+        "https://data.cityofchicago.org/api/views/"
+        "8pix-ypme/rows.xml?accessType=DOWNLOAD"
+    ),
+    check_before_test=True,
+)
 def test_parser_consistency_url(parser):
     url = (
         "https://data.cityofchicago.org/api/views/"
@@ -449,7 +456,31 @@ def test_wrong_file_path_etree():
 
 
 @pytest.mark.network
-@tm.network
+@tm.network(
+    url="https://www.w3schools.com/xml/books.xml",
+    check_before_test=True,
+)
+@td.skip_if_no("lxml")
+def test_url():
+    url = "https://www.w3schools.com/xml/books.xml"
+    df_url = read_xml(url, xpath=".//book[count(*)=4]")
+
+    df_expected = DataFrame(
+        {
+            "category": ["cooking", "children", "web"],
+            "title": ["Everyday Italian", "Harry Potter", "Learning XML"],
+            "author": ["Giada De Laurentiis", "J K. Rowling", "Erik T. Ray"],
+            "year": [2005, 2005, 2003],
+            "price": [30.00, 29.99, 39.95],
+            "cover": [None, None, "paperback"],
+        }
+    )
+
+    tm.assert_frame_equal(df_url, df_expected)
+
+
+@pytest.mark.network
+@tm.network(url="https://www.w3schools.com/xml/python.xml", check_before_test=True)
 def test_wrong_url(parser):
     with pytest.raises(HTTPError, match=("HTTP Error 404: Not Found")):
         url = "https://www.w3schools.com/xml/python.xml"
@@ -1235,7 +1266,9 @@ def test_no_result(datapath, parser):
 
 @pytest.mark.network
 @td.skip_if_no("lxml")
-@tm.network
+@tm.network(
+    url="https://www.w3schools.com/xml/cdcatalog_with_xsl.xml", check_before_test=True
+)
 def test_online_stylesheet():
     xml = "https://www.w3schools.com/xml/cdcatalog_with_xsl.xml"
     xsl = "https://www.w3schools.com/xml/cdcatalog.xsl"
@@ -1335,7 +1368,7 @@ def test_unsuported_compression(parser):
 @td.skip_if_no("s3fs")
 @td.skip_if_no("lxml")
 @pytest.mark.skipif(
-    os.environ.get("PANDAS_CI", "0") == "1",
+    is_ci_environment(),
     reason="2022.1.17: Hanging on the CI min versions build.",
 )
 @tm.network

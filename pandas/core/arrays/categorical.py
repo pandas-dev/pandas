@@ -43,8 +43,8 @@ from pandas._typing import (
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
-    cache_readonly,
     deprecate_kwarg,
+    deprecate_nonkeyword_arguments,
 )
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
@@ -356,6 +356,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # For comparisons, so that numpy uses our implementation if the compare
     # ops, which raise
     __array_priority__ = 1000
+    _internal_fill_value = -1
     # tolist is not actually deprecated, just suppressed in the __dir__
     _hidden_attrs = PandasObject._hidden_attrs | frozenset(["tolist"])
     _typ = "categorical"
@@ -560,13 +561,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             )
 
         return result
-
-    @cache_readonly
-    def itemsize(self) -> int:
-        """
-        return the size of a single category
-        """
-        return self.categories.itemsize
 
     def to_list(self):
         """
@@ -1716,6 +1710,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "Categorical to an ordered one\n"
             )
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def argsort(self, ascending=True, kind="quicksort", **kwargs):
         """
         Return the indices that would sort the Categorical.
@@ -1910,11 +1905,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 self.rename_categories(Series(self.categories).rank().values)
             )
         return values
-
-    def view(self, dtype=None):
-        if dtype is not None:
-            raise NotImplementedError(dtype)
-        return self._from_backing_data(self._ndarray)
 
     def to_dense(self) -> np.ndarray:
         """
@@ -2317,9 +2307,14 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     @classmethod
     def _from_factorized(cls, uniques, original):
-        return original._constructor(
-            original.categories.take(uniques), dtype=original.dtype
-        )
+        # ensure we have the same itemsize for codes
+        codes = coerce_indexer_dtype(uniques, original.dtype.categories)
+        return original._from_backing_data(codes)
+
+    def _cast_quantile_result(self, res_values: np.ndarray) -> np.ndarray:
+        # make sure we have correct itemsize for resulting codes
+        res_values = coerce_indexer_dtype(res_values, self.dtype.categories)
+        return res_values
 
     def equals(self, other: object) -> bool:
         """

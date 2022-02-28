@@ -262,7 +262,7 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
                 dtype = "int64"
             elif inferred_type == "datetime64":
                 dtype = "datetime64[ns]"
-            elif inferred_type == "timedelta64":
+            elif inferred_type in ["timedelta", "timedelta64"]:
                 dtype = "timedelta64[ns]"
 
             # try to upcast here
@@ -289,6 +289,14 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
     # GH12821, iNaT is cast to float
     if dtype.kind in ["M", "m"] and result.dtype.kind in ["i", "f"]:
         result = result.astype(dtype)
+
+    elif dtype.kind == "m" and result.dtype == _dtype_obj:
+        # test_where_downcast_to_td64
+        result = cast(np.ndarray, result)
+        result = array_to_timedelta64(result)
+
+    elif dtype == "M8[ns]" and result.dtype == _dtype_obj:
+        return np.asarray(maybe_cast_to_datetime(result, dtype=dtype))
 
     return result
 
@@ -1652,7 +1660,8 @@ def construct_1d_arraylike_from_scalar(
 
     if isinstance(dtype, ExtensionDtype):
         cls = dtype.construct_array_type()
-        subarr = cls._from_sequence([value] * length, dtype=dtype)
+        seq = [] if length == 0 else [value]
+        subarr = cls._from_sequence(seq, dtype=dtype).repeat(length)
 
     else:
 
@@ -1840,65 +1849,6 @@ def maybe_cast_to_integer_array(
     raise ValueError(f"values cannot be losslessly cast to {dtype}")
 
 
-def convert_scalar_for_putitemlike(scalar: Scalar, dtype: np.dtype) -> Scalar:
-    """
-    Convert datetimelike scalar if we are setting into a datetime64
-    or timedelta64 ndarray.
-
-    Parameters
-    ----------
-    scalar : scalar
-    dtype : np.dtype
-
-    Returns
-    -------
-    scalar
-    """
-    if dtype.kind in ["m", "M"]:
-        scalar = maybe_box_datetimelike(scalar, dtype)
-        return _maybe_unbox_datetimelike(scalar, dtype)
-    else:
-        _validate_numeric_casting(dtype, scalar)
-    return scalar
-
-
-def _validate_numeric_casting(dtype: np.dtype, value: Scalar) -> None:
-    """
-    Check that we can losslessly insert the given value into an array
-    with the given dtype.
-
-    Parameters
-    ----------
-    dtype : np.dtype
-    value : scalar
-
-    Raises
-    ------
-    ValueError
-    """
-    # error: Argument 1 to "__call__" of "ufunc" has incompatible type
-    # "Union[Union[str, int, float, bool], Union[Any, Timestamp, Timedelta, Any]]";
-    # expected "Union[Union[int, float, complex, str, bytes, generic],
-    # Sequence[Union[int, float, complex, str, bytes, generic]],
-    # Sequence[Sequence[Any]], _SupportsArray]"
-    if (
-        issubclass(dtype.type, (np.integer, np.bool_))
-        and is_float(value)
-        and np.isnan(value)  # type: ignore[arg-type]
-    ):
-        raise ValueError("Cannot assign nan to integer series")
-
-    elif dtype.kind in ["i", "u", "f", "c"]:
-        if is_bool(value) or isinstance(value, np.timedelta64):
-            # numpy will cast td64 to integer if we're not careful
-            raise ValueError(
-                f"Cannot assign {type(value).__name__} to float/integer series"
-            )
-    elif dtype.kind == "b":
-        if is_scalar(value) and not is_bool(value):
-            raise ValueError(f"Cannot assign {type(value).__name__} to bool series")
-
-
 def can_hold_element(arr: ArrayLike, element: Any) -> bool:
     """
     Can we do an inplace setitem with this element in an array with this dtype?
@@ -1980,7 +1930,6 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             if tipo.kind not in ["i", "u"]:
                 if isinstance(element, np.ndarray) and element.dtype.kind == "f":
                     # If all can be losslessly cast to integers, then we can hold them
-                    #  We do something similar in putmask_smart
                     casted = element.astype(dtype)
                     comp = casted == element
                     if comp.all():
@@ -2018,6 +1967,13 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
         raise LossySetitemError
 
     elif dtype.kind == "f":
+        if lib.is_integer(element) or lib.is_float(element):
+            casted = dtype.type(element)
+            if np.isnan(casted) or casted == element:
+                return casted
+            # otherwise e.g. overflow see TestCoercionFloat32
+            raise LossySetitemError
+
         if tipo is not None:
             # TODO: itemsize check?
             if tipo.kind not in ["f", "i", "u"]:
@@ -2029,7 +1985,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                 if element._hasna:
                     raise LossySetitemError
                 return element
-            elif tipo.itemsize > dtype.itemsize:
+            elif tipo.itemsize > dtype.itemsize or tipo.kind != dtype.kind:
                 if isinstance(element, np.ndarray):
                     # e.g. TestDataFrameIndexingWhere::test_where_alignment
                     casted = element.astype(dtype)
@@ -2040,8 +1996,6 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
 
             return element
 
-        if lib.is_integer(element) or lib.is_float(element):
-            return element
         raise LossySetitemError
 
     elif dtype.kind == "c":

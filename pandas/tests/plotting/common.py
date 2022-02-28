@@ -1,13 +1,9 @@
 """
 Module consolidating common testing functions for checking plotting.
-
-Currently all plotting tests are marked as slow via
-``pytestmark = pytest.mark.slow`` at the module level.
 """
 
 from __future__ import annotations
 
-import os
 from typing import (
     TYPE_CHECKING,
     Sequence,
@@ -22,11 +18,7 @@ import pandas.util._test_decorators as td
 from pandas.core.dtypes.api import is_list_like
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Series,
-    to_datetime,
-)
+from pandas import Series
 import pandas._testing as tm
 
 if TYPE_CHECKING:
@@ -39,62 +31,12 @@ class TestPlotBase:
     This is a common base class used for various plotting tests
     """
 
-    def setup_method(self, method):
-
+    def setup_method(self):
         import matplotlib as mpl
-
-        from pandas.plotting._matplotlib import compat
-
-        self.compat = compat
 
         mpl.rcdefaults()
 
-        self.start_date_to_int64 = 812419200000000000
-        self.end_date_to_int64 = 819331200000000000
-
-        self.mpl_ge_2_2_3 = compat.mpl_ge_2_2_3()
-        self.mpl_ge_3_0_0 = compat.mpl_ge_3_0_0()
-        self.mpl_ge_3_1_0 = compat.mpl_ge_3_1_0()
-        self.mpl_ge_3_2_0 = compat.mpl_ge_3_2_0()
-
-        self.bp_n_objects = 7
-        self.polycollection_factor = 2
-        self.default_figsize = (6.4, 4.8)
-        self.default_tick_position = "left"
-
-        n = 100
-        with tm.RNGContext(42):
-            gender = np.random.choice(["Male", "Female"], size=n)
-            classroom = np.random.choice(["A", "B", "C"], size=n)
-
-            self.hist_df = DataFrame(
-                {
-                    "gender": gender,
-                    "classroom": classroom,
-                    "height": np.random.normal(66, 4, size=n),
-                    "weight": np.random.normal(161, 32, size=n),
-                    "category": np.random.randint(4, size=n),
-                    "datetime": to_datetime(
-                        np.random.randint(
-                            self.start_date_to_int64,
-                            self.end_date_to_int64,
-                            size=n,
-                            dtype=np.int64,
-                        )
-                    ),
-                }
-            )
-
-        self.tdf = tm.makeTimeDataFrame()
-        self.hexbin_df = DataFrame(
-            {
-                "A": np.random.uniform(size=20),
-                "B": np.random.uniform(size=20),
-                "C": np.arange(20) + np.random.uniform(size=20),
-            }
-        )
-
-    def teardown_method(self, method):
+    def teardown_method(self):
         tm.close()
 
     @cache_readonly
@@ -166,13 +108,12 @@ class TestPlotBase:
         xp_lines = xp.get_lines()
         rs_lines = rs.get_lines()
 
-        def check_line(xpl, rsl):
+        assert len(xp_lines) == len(rs_lines)
+        for xpl, rsl in zip(xp_lines, rs_lines):
             xpdata = xpl.get_xydata()
             rsdata = rsl.get_xydata()
             tm.assert_almost_equal(xpdata, rsdata)
 
-        assert len(xp_lines) == len(rs_lines)
-        [check_line(xpl, rsl) for xpl, rsl in zip(xp_lines, rs_lines)]
         tm.close()
 
     def _check_visible(self, collections, visible=True):
@@ -387,7 +328,7 @@ class TestPlotBase:
         from pandas.plotting._matplotlib.tools import flatten_axes
 
         if figsize is None:
-            figsize = self.default_figsize
+            figsize = (6.4, 4.8)
         visible_axes = self._flatten_visible(axes)
 
         if axes_num is not None:
@@ -525,15 +466,8 @@ class TestPlotBase:
         def is_grid_on():
             xticks = self.plt.gca().xaxis.get_major_ticks()
             yticks = self.plt.gca().yaxis.get_major_ticks()
-            # for mpl 2.2.2, gridOn and gridline.get_visible disagree.
-            # for new MPL, they are the same.
-
-            if self.mpl_ge_3_1_0:
-                xoff = all(not g.gridline.get_visible() for g in xticks)
-                yoff = all(not g.gridline.get_visible() for g in yticks)
-            else:
-                xoff = all(not g.gridOn for g in xticks)
-                yoff = all(not g.gridOn for g in yticks)
+            xoff = all(not g.gridline.get_visible() for g in xticks)
+            yoff = all(not g.gridline.get_visible() for g in yticks)
 
             return not (xoff and yoff)
 
@@ -572,10 +506,18 @@ class TestPlotBase:
         return [v[field] for v in rcParams["axes.prop_cycle"]]
 
     def get_x_axis(self, ax):
-        return ax._shared_axes["x"] if self.compat.mpl_ge_3_5_0() else ax._shared_x_axes
+        from pandas.plotting._matplotlib.compat import mpl_ge_3_5_0
+
+        if mpl_ge_3_5_0():
+            return ax._shared_axes["x"]
+        return ax._shared_x_axes
 
     def get_y_axis(self, ax):
-        return ax._shared_axes["y"] if self.compat.mpl_ge_3_5_0() else ax._shared_y_axes
+        from pandas.plotting._matplotlib.compat import mpl_ge_3_5_0
+
+        if mpl_ge_3_5_0():
+            return ax._shared_axes["y"]
+        return ax._shared_y_axes
 
 
 def _check_plot_works(f, filterwarnings="always", default_axes=False, **kwargs):
@@ -656,8 +598,3 @@ def _gen_two_subplots(f, fig, **kwargs):
     else:
         kwargs["ax"] = fig.add_subplot(212)
     yield f(**kwargs)
-
-
-def curpath():
-    pth, _ = os.path.split(os.path.abspath(__file__))
-    return pth
