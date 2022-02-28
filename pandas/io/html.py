@@ -183,7 +183,7 @@ class _HtmlFrameParser:
 
     .. versionadded:: 1.5.0
 
-    extract_hrefs : "all"/"header"/"body"/"footer" or None
+    extract_links : "all"/"header"/"body"/"footer" or None
         Table elements in the specified section(s) with <a> tags will have their
         href extracted. Note that specifying "header" will result in a
         :class:`~pandas.MultiIndex`.
@@ -208,7 +208,7 @@ class _HtmlFrameParser:
 
     .. versionadded:: 1.5.0
 
-    extract_hrefs : "all"/"header"/"body"/"footer" or None, default None
+    extract_links : "all"/"header"/"body"/"footer" or None, default None
         Table elements in the specified section(s) with <a> tags will have their
         href extracted. Note that specifying "header" will result in a
         :class:`~pandas.MultiIndex`.
@@ -237,14 +237,14 @@ class _HtmlFrameParser:
         attrs: dict[str, str] | None,
         encoding: str,
         displayed_only: bool,
-        extract_hrefs: Literal["all", "header", "body", "footer", None],
+        extract_links: Literal["all", "header", "body", "footer", None],
     ):
         self.io = io
         self.match = match
         self.attrs = attrs
         self.encoding = encoding
         self.displayed_only = displayed_only
-        self.extract_hrefs = extract_hrefs
+        self.extract_links = extract_links
 
     def parse_tables(self):
         """
@@ -521,7 +521,7 @@ class _HtmlFrameParser:
 
                 # Append the text from this <td>, colspan times
                 text = _remove_whitespace(self._text_getter(td))
-                if self.extract_hrefs == "all" or self.extract_hrefs == section:
+                if self.extract_links == "all" or self.extract_links == section:
                     # All cells will be tuples except for the headers for
                     # consistency in selection (e.g. using .str indexing)
                     href = self._href_getter(td)
@@ -959,14 +959,14 @@ def _validate_flavor(flavor):
     return flavor
 
 
-def _parse(flavor, io, match, attrs, encoding, displayed_only, extract_hrefs, **kwargs):
+def _parse(flavor, io, match, attrs, encoding, displayed_only, extract_links, **kwargs):
     flavor = _validate_flavor(flavor)
     compiled_match = re.compile(match)  # you can pass a compiled regex here
 
     retained = None
     for flav in flavor:
         parser = _parser_dispatch(flav)
-        p = parser(io, compiled_match, attrs, encoding, displayed_only, extract_hrefs)
+        p = parser(io, compiled_match, attrs, encoding, displayed_only, extract_links)
 
         try:
             tables = p.parse_tables()
@@ -1017,7 +1017,7 @@ def read_html(
     na_values=None,
     keep_default_na: bool = True,
     displayed_only: bool = True,
-    extract_hrefs: Literal["all", "header", "body", "footer", None] = None,
+    extract_links: Literal["all", "header", "body", "footer", None] = None,
 ) -> list[DataFrame]:
     r"""
     Read HTML tables into a ``list`` of ``DataFrame`` objects.
@@ -1114,7 +1114,7 @@ def read_html(
 
     .. versionadded:: 1.5.0
 
-    extract_hrefs : "all"/"header"/"body"/"footer" or None, default None
+    extract_links : "all"/"header"/"body"/"footer" or None, default None
         Table elements in the specified section(s) with <a> tags will have their
         href extracted. Note that specifying "header" will result in a
         :class:`~pandas.MultiIndex`.
@@ -1187,5 +1187,5 @@ def read_html(
         na_values=na_values,
         keep_default_na=keep_default_na,
         displayed_only=displayed_only,
-        extract_hrefs=extract_hrefs,
+        extract_links=extract_links,
     )

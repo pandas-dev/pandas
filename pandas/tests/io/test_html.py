@@ -1287,7 +1287,7 @@ class TestReadHtml:
         df2 = self.read_html(file_path)[0]
         tm.assert_frame_equal(df1, df2)
 
-    def test_extract_hrefs_body(self):
+    def test_extract_links_body(self):
         # GH 13141:
         # read_html argument to interpret hyperlinks as links (not merely text)
         result = self.read_html(
@@ -1305,7 +1305,7 @@ class TestReadHtml:
             </tr>
           </table>
           """,
-            extract_hrefs="body",
+            extract_links="body",
         )[0]
 
         expected = DataFrame(
@@ -1325,7 +1325,7 @@ class TestReadHtml:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_extract_hrefs_header(self):
+    def test_extract_links_header(self):
         # GH 13141:
         # read_html argument to interpret hyperlinks as links (not merely text)
         result = self.read_html(
@@ -1339,7 +1339,7 @@ class TestReadHtml:
             </tr>
           </table>
           """,
-            extract_hrefs="header",
+            extract_links="header",
         )[0]
 
         expected = DataFrame(

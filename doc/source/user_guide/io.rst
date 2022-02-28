@@ -2731,7 +2731,7 @@ succeeds, the function will return*.
 
 .. versionadded:: 1.5.0
 
-Links can be extracted from cells along with the text using ``extract_hrefs=True``.
+Links can be extracted from cells along with the text using ``extract_links=True``.
 
 .. ipython:: python
 
@@ -2748,7 +2748,7 @@ Links can be extracted from cells along with the text using ``extract_hrefs=True
 
     df = pd.read_html(
         html_table,
-        extract_hrefs=True
+        extract_links=True
     )[0]
     df
     df["GitHub"]
