@@ -78,7 +78,10 @@ from pandas.core.arrays.integer import (
     Int64Dtype,
     IntegerDtype,
 )
-from pandas.core.arrays.masked import BaseMaskedArray
+from pandas.core.arrays.masked import (
+    BaseMaskedArray,
+    BaseMaskedDtype,
+)
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
@@ -425,13 +428,14 @@ class WrappedCythonOp:
             **kwargs,
         )
 
+        dtype = self._get_result_dtype(orig_values.dtype)
+        assert isinstance(dtype, BaseMaskedDtype)
+        cls = dtype.construct_array_type()
+
         if self.kind != "aggregate":
-            res_mask = mask
+            return cls(res_values.astype(dtype.type, copy=False), mask)
         else:
-            res_mask = result_mask
-        # _cython_op_ndim_compat will return res_values with the correct
-        #  dtype, so we do not need to re-call _get_result_dtype and re-cast.
-        return orig_values._maybe_mask_result(res_values, res_mask)
+            return cls(res_values.astype(dtype.type, copy=False), result_mask)
 
     @final
     def _cython_op_ndim_compat(
