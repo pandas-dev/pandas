@@ -24,6 +24,7 @@ def hist_df():
 
 @td.skip_if_no_mpl
 class TestHistWithBy(TestPlotBase):
+    @pytest.mark.slow
     @pytest.mark.parametrize(
         "by, column, titles, legends",
         [
