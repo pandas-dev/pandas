@@ -175,6 +175,14 @@ class StylerRenderer:
             dx, _ = self.concatenated._render(
                 sparse_index, sparse_columns, max_rows, max_cols, blank
             )
+            # extend ctx objects with concatenated recursively
+            n, obj = 0, self
+            while obj.concatenated is not None:
+                n, obj = n + len(obj.index), obj.concatenated
+            for (r, c), v in self.concatenated.ctx.items():
+                self.ctx[(r + n, c)] = self.concatenated[(r, c)]
+                self.ctx_index[(r + n, c)] = self.concatenated[(r, c)]
+
         d = self._translate(sparse_index, sparse_columns, max_rows, max_cols, blank, dx)
         return d, dx
 
