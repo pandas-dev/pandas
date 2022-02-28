@@ -77,18 +77,19 @@ class TestDatetimeArray:
     @pytest.mark.parametrize("dtype", [int, np.int32, np.int64, "uint32", "uint64"])
     def test_astype_int(self, dtype):
         arr = DatetimeArray._from_sequence([pd.Timestamp("2000"), pd.Timestamp("2001")])
-        with tm.assert_produces_warning(FutureWarning):
-            # astype(int..) deprecated
-            result = arr.astype(dtype)
 
         if np.dtype(dtype).kind == "u":
             expected_dtype = np.dtype("uint64")
         else:
             expected_dtype = np.dtype("int64")
+        expected = arr.astype(expected_dtype)
 
-        with tm.assert_produces_warning(FutureWarning):
-            # astype(int..) deprecated
-            expected = arr.astype(expected_dtype)
+        warn = None
+        if dtype != expected_dtype:
+            warn = FutureWarning
+        msg = " will return exactly the specified dtype"
+        with tm.assert_produces_warning(warn, match=msg):
+            result = arr.astype(dtype)
 
         assert result.dtype == expected_dtype
         tm.assert_numpy_array_equal(result, expected)
@@ -285,7 +286,7 @@ class TestDatetimeArray:
 
     @pytest.mark.parametrize("index", [True, False])
     def test_searchsorted_different_tz(self, index):
-        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
+        data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
         arr = DatetimeArray(data, freq="D").tz_localize("Asia/Tokyo")
         if index:
             arr = pd.Index(arr)
@@ -300,7 +301,7 @@ class TestDatetimeArray:
 
     @pytest.mark.parametrize("index", [True, False])
     def test_searchsorted_tzawareness_compat(self, index):
-        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
+        data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
         arr = DatetimeArray(data, freq="D")
         if index:
             arr = pd.Index(arr)
@@ -327,14 +328,14 @@ class TestDatetimeArray:
             np.timedelta64("NaT"),
             pd.Timedelta(days=2),
             "invalid",
-            np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9,
-            np.arange(10).view("timedelta64[ns]") * 24 * 3600 * 10 ** 9,
+            np.arange(10, dtype="i8") * 24 * 3600 * 10**9,
+            np.arange(10).view("timedelta64[ns]") * 24 * 3600 * 10**9,
             pd.Timestamp("2021-01-01").to_period("D"),
         ],
     )
     @pytest.mark.parametrize("index", [True, False])
     def test_searchsorted_invalid_types(self, other, index):
-        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
+        data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
         arr = DatetimeArray(data, freq="D")
         if index:
             arr = pd.Index(arr)

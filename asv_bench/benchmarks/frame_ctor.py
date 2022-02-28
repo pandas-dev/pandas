@@ -2,8 +2,10 @@ import numpy as np
 
 import pandas as pd
 from pandas import (
+    NA,
     Categorical,
     DataFrame,
+    Float64Dtype,
     MultiIndex,
     Series,
     Timestamp,
@@ -77,7 +79,7 @@ class FromDictwithTimestamp:
     param_names = ["offset"]
 
     def setup(self, offset):
-        N = 10 ** 3
+        N = 10**3
         idx = date_range(Timestamp("1/1/1900"), freq=offset, periods=N)
         df = DataFrame(np.random.randn(N, 10), index=idx)
         self.d = df.to_dict()
@@ -138,6 +140,27 @@ class FromRange:
         self.df = DataFrame(self.data)
 
 
+class FromScalar:
+    def setup(self):
+        self.nrows = 100_000
+
+    def time_frame_from_scalar_ea_float64(self):
+        DataFrame(
+            1.0,
+            index=range(self.nrows),
+            columns=list("abc"),
+            dtype=Float64Dtype(),
+        )
+
+    def time_frame_from_scalar_ea_float64_na(self):
+        DataFrame(
+            NA,
+            index=range(self.nrows),
+            columns=list("abc"),
+            dtype=Float64Dtype(),
+        )
+
+
 class FromArrays:
 
     goal_time = 0.2
@@ -180,6 +203,23 @@ class FromArrays:
             columns=self.columns,
             verify_integrity=False,
         )
+
+
+class From3rdParty:
+    # GH#44616
+
+    def setup(self):
+        try:
+            import torch
+        except ImportError:
+            raise NotImplementedError
+
+        row = 700000
+        col = 64
+        self.val_tensor = torch.randn(row, col)
+
+    def time_from_torch(self):
+        DataFrame(self.val_tensor)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

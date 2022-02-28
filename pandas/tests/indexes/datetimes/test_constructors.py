@@ -123,7 +123,9 @@ class TestDatetimeIndex:
             Timestamp("2016-05-01T01:00:00.000000"),
         ]
         arr = pd.arrays.SparseArray(values)
-        result = Index(arr)
+        msg = "will store that array directly"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = Index(arr)
         expected = DatetimeIndex(values)
         tm.assert_index_equal(result, expected)
 

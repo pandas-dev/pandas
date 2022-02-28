@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import IS64
+from pandas.errors import InvalidIndexError
 from pandas.util._test_decorators import async_mark
 
 import pandas as pd
@@ -16,7 +17,6 @@ from pandas import (
     DataFrame,
     DatetimeIndex,
     IntervalIndex,
-    NumericIndex,
     PeriodIndex,
     RangeIndex,
     Series,
@@ -28,6 +28,7 @@ import pandas._testing as tm
 from pandas.core.api import (
     Float64Index,
     Int64Index,
+    NumericIndex,
     UInt64Index,
 )
 from pandas.core.indexes.api import (
@@ -320,15 +321,21 @@ class TestIndex(Base):
             "unicode",
             "string",
             pytest.param("categorical", marks=pytest.mark.xfail(reason="gh-25464")),
-            "bool",
+            "bool-object",
+            "bool-dtype",
             "empty",
         ],
         indirect=True,
     )
     def test_view_with_args_object_array_raises(self, index):
-        msg = "Cannot change data-type for object array"
-        with pytest.raises(TypeError, match=msg):
-            index.view("i8")
+        if index.dtype == bool:
+            msg = "When changing to a larger dtype"
+            with pytest.raises(ValueError, match=msg):
+                index.view("i8")
+        else:
+            msg = "Cannot change data-type for object array"
+            with pytest.raises(TypeError, match=msg):
+                index.view("i8")
 
     @pytest.mark.parametrize("index", ["int", "range"], indirect=True)
     def test_astype(self, index):
@@ -396,13 +403,17 @@ class TestIndex(Base):
 
     def test_asof_numeric_vs_bool_raises(self):
         left = Index([1, 2, 3])
-        right = Index([True, False])
+        right = Index([True, False], dtype=object)
 
-        msg = "'<' not supported between instances"
+        msg = "Cannot compare dtypes int64 and bool"
         with pytest.raises(TypeError, match=msg):
+            left.asof(right[0])
+        # TODO: should right.asof(left[0]) also raise?
+
+        with pytest.raises(InvalidIndexError, match=re.escape(str(right))):
             left.asof(right)
 
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(InvalidIndexError, match=re.escape(str(left))):
             right.asof(left)
 
     @pytest.mark.parametrize("index", ["string"], indirect=True)
@@ -447,7 +458,7 @@ class TestIndex(Base):
         with pytest.raises(IndexError, match=msg):
             index[empty_farr]
 
-    def test_union_dt_as_obj(self, sort, simple_index):
+    def test_union_dt_as_obj(self, simple_index):
         # TODO: Replace with fixturesult
         index = simple_index
         date_index = date_range("2019-01-01", periods=10)
@@ -521,7 +532,7 @@ class TestIndex(Base):
             lambda values, index: Series(values, index),
         ],
     )
-    def test_map_dictlike(self, index, mapper):
+    def test_map_dictlike(self, index, mapper, request):
         # GH 12756
         if isinstance(index, CategoricalIndex):
             # Tested in test_categorical
@@ -529,22 +540,26 @@ class TestIndex(Base):
         elif not index.is_unique:
             # Cannot map duplicated index
             return
+        if index.dtype == np.complex64 and not isinstance(mapper(index, index), Series):
+            mark = pytest.mark.xfail(
+                reason="maybe_downcast_to_dtype doesn't handle complex"
+            )
+            request.node.add_marker(mark)
+
+        rng = np.arange(len(index), 0, -1)
 
         if index.empty:
             # to match proper result coercion for uints
             expected = Index([])
         elif index._is_backward_compat_public_numeric_index:
-            expected = index._constructor(
-                np.arange(len(index), 0, -1), dtype=index.dtype
-            )
+            expected = index._constructor(rng, dtype=index.dtype)
         elif type(index) is Index and index.dtype != object:
             # i.e. EA-backed, for now just Nullable
-            expected = Index(np.arange(len(index), 0, -1), dtype=index.dtype)
+            expected = Index(rng, dtype=index.dtype)
         elif index.dtype.kind == "u":
-            # TODO: case where e.g. we cannot hold result in UInt8?
-            expected = Index(np.arange(len(index), 0, -1), dtype=index.dtype)
+            expected = Index(rng, dtype=index.dtype)
         else:
-            expected = Index(np.arange(len(index), 0, -1))
+            expected = Index(rng)
 
         result = index.map(mapper(expected, index))
         tm.assert_index_equal(result, expected)
@@ -587,7 +602,8 @@ class TestIndex(Base):
         "index, expected",
         [
             ("string", False),
-            ("bool", False),
+            ("bool-object", False),
+            ("bool-dtype", False),
             ("categorical", False),
             ("int", True),
             ("datetime", False),
@@ -602,7 +618,8 @@ class TestIndex(Base):
         "index, expected",
         [
             ("string", True),
-            ("bool", True),
+            ("bool-object", True),
+            ("bool-dtype", False),
             ("categorical", False),
             ("int", False),
             ("datetime", False),
@@ -617,7 +634,8 @@ class TestIndex(Base):
         "index, expected",
         [
             ("string", False),
-            ("bool", False),
+            ("bool-object", False),
+            ("bool-dtype", False),
             ("categorical", False),
             ("int", False),
             ("datetime", True),
@@ -651,10 +669,12 @@ class TestIndex(Base):
         # 2845
         vals = list(vals)  # Copy for each iteration
         vals.append(nulls_fixture)
-        index = Index(vals)
+        index = Index(vals, dtype=object)
+        # TODO: case with complex dtype?
 
         formatted = index.format()
-        expected = [str(index[0]), str(index[1]), str(index[2]), "NaN"]
+        null_repr = "NaN" if isinstance(nulls_fixture, float) else str(nulls_fixture)
+        expected = [str(index[0]), str(index[1]), str(index[2]), null_repr]
 
         assert formatted == expected
         assert index[3] is nulls_fixture
@@ -738,7 +758,7 @@ class TestIndex(Base):
             tm.assert_index_equal(result, expected)
 
         removed = index.drop(to_drop[1])
-        msg = fr"\"\[{re.escape(to_drop[1].__repr__())}\] not found in axis\""
+        msg = rf"\"\[{re.escape(to_drop[1].__repr__())}\] not found in axis\""
         for drop_me in to_drop[1], [to_drop[1]]:
             with pytest.raises(KeyError, match=msg):
                 removed.drop(drop_me)
@@ -787,7 +807,7 @@ class TestIndex(Base):
         result = index.isin(values)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_isin_nan_common_object(self, request, nulls_fixture, nulls_fixture2):
+    def test_isin_nan_common_object(self, nulls_fixture, nulls_fixture2):
         # Test cartesian product of null fixtures and ensure that we don't
         # mangle the various types (save a corner case with PyPy)
 
@@ -815,7 +835,7 @@ class TestIndex(Base):
                 np.array([False, False]),
             )
 
-    def test_isin_nan_common_float64(self, request, nulls_fixture):
+    def test_isin_nan_common_float64(self, nulls_fixture):
 
         if nulls_fixture is pd.NaT or nulls_fixture is pd.NA:
             # Check 1) that we cannot construct a Float64Index with this value
@@ -866,7 +886,7 @@ class TestIndex(Base):
             msg = f"'Level {label} not found'"
         else:
             index = index.rename("foo")
-            msg = fr"Requested level \({label}\) does not match index name \(foo\)"
+            msg = rf"Requested level \({label}\) does not match index name \(foo\)"
         with pytest.raises(KeyError, match=msg):
             index.isin([], level=label)
 

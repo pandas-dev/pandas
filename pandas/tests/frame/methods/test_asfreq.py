@@ -88,8 +88,7 @@ class TestAsFreq:
         index_name = "bar"
         index = date_range("20130101", periods=20, name=index_name)
         obj = DataFrame(list(range(20)), columns=["foo"], index=index)
-        if frame_or_series is Series:
-            obj = obj["foo"]
+        obj = tm.get_obj(obj, frame_or_series)
 
         assert index_name == obj.index.name
         assert index_name == obj.asfreq("10D").index.name
@@ -97,8 +96,7 @@ class TestAsFreq:
     def test_asfreq_ts(self, frame_or_series):
         index = period_range(freq="A", start="1/1/2001", end="12/31/2010")
         obj = DataFrame(np.random.randn(len(index), 3), index=index)
-        if frame_or_series is Series:
-            obj = obj[0]
+        obj = tm.get_obj(obj, frame_or_series)
 
         result = obj.asfreq("D", how="end")
         exp_index = index.asfreq("D", how="end")
@@ -115,8 +113,7 @@ class TestAsFreq:
         # we test if .asfreq() and .resample() set the correct value for .freq
         dti = to_datetime(["2012-01-01", "2012-01-02", "2012-01-03"])
         obj = DataFrame({"col": [1, 2, 3]}, index=dti)
-        if frame_or_series is Series:
-            obj = obj["col"]
+        obj = tm.get_obj(obj, frame_or_series)
 
         # testing the settings before calling .asfreq() and .resample()
         assert obj.index.freq is None

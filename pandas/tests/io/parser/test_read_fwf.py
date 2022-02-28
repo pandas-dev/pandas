@@ -22,6 +22,7 @@ from pandas import (
 )
 import pandas._testing as tm
 
+import pandas.io.common as icom
 from pandas.io.parsers import (
     read_csv,
     read_fwf,
@@ -655,7 +656,7 @@ def test_fwf_compression(compression_only, infer):
     3333333333""".strip()
 
     compression = compression_only
-    extension = "gz" if compression == "gzip" else compression
+    extension = icom._compression_to_extension[compression]
 
     kwargs = {"widths": [5, 5], "names": ["one", "two"]}
     expected = read_fwf(StringIO(data), **kwargs)
@@ -918,4 +919,14 @@ def test_skiprows_passing_as_positional_deprecated():
     with tm.assert_produces_warning(FutureWarning, match="keyword-only"):
         result = read_fwf(StringIO(data), [(0, 2)])
     expected = DataFrame({"0": [1, 2]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_names_and_infer_colspecs():
+    # GH#45337
+    data = """X   Y   Z
+      959.0    345   22.2
+    """
+    result = read_fwf(StringIO(data), skiprows=1, usecols=[0, 2], names=["a", "b"])
+    expected = DataFrame({"a": [959.0], "b": 22.2})
     tm.assert_frame_equal(result, expected)

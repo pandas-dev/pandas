@@ -287,7 +287,7 @@ and we want to use an expanding window where ``use_expanding`` is ``True`` other
    3     3.0
    4    10.0
 
-You can view other examples of ``BaseIndexer`` subclasses `here <https://github.com/pandas-dev/pandas/blob/master/pandas/core/window/indexers.py>`__
+You can view other examples of ``BaseIndexer`` subclasses `here <https://github.com/pandas-dev/pandas/blob/main/pandas/core/indexers/objects.py>`__
 
 .. versionadded:: 1.1
 

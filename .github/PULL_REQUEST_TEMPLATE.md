@@ -1,4 +1,4 @@
-- [ ] closes #xxxx
-- [ ] tests added / passed
-- [ ] Ensure all linting tests pass, see [here](https://pandas.pydata.org/pandas-docs/dev/development/contributing_codebase.html#pre-commit) for how to run them
-- [ ] whatsnew entry
+- [ ] closes #xxxx (Replace xxxx with the Github issue number)
+- [ ] [Tests added and passed](https://pandas.pydata.org/pandas-docs/dev/development/contributing_codebase.html#writing-tests) if fixing a bug or adding a new feature
+- [ ] All [code checks passed](https://pandas.pydata.org/pandas-docs/dev/development/contributing_codebase.html#pre-commit).
+- [ ] Added an entry in the latest `doc/source/whatsnew/vX.X.X.rst` file if fixing a bug or adding a new feature.

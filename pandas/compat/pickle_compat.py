@@ -194,8 +194,8 @@ _class_locations_map = {
 # our Unpickler sub-class to override methods and some dispatcher
 # functions for compat and uses a non-public class of the pickle module.
 
-# error: Name 'pkl._Unpickler' is not defined
-class Unpickler(pkl._Unpickler):  # type: ignore[name-defined]
+
+class Unpickler(pkl._Unpickler):
     def find_class(self, module, name):
         # override superclass
         key = (module, name)
@@ -266,7 +266,8 @@ def load(fh, encoding: str | None = None, is_verbose: bool = False):
             up = Unpickler(fh, encoding=encoding)
         else:
             up = Unpickler(fh)
-        up.is_verbose = is_verbose
+        # "Unpickler" has no attribute "is_verbose"  [attr-defined]
+        up.is_verbose = is_verbose  # type: ignore[attr-defined]
 
         return up.load()
     except (ValueError, TypeError):

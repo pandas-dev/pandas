@@ -27,7 +27,7 @@ def test_numeric_compat(idx):
         1 // idx
 
 
-@pytest.mark.parametrize("method", ["all", "any"])
+@pytest.mark.parametrize("method", ["all", "any", "__invert__"])
 def test_logical_compat(idx, method):
     msg = f"cannot perform {method}"
 

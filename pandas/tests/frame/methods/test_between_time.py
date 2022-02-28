@@ -23,8 +23,7 @@ class TestBetweenTime:
         # GH#11818
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
-        if frame_or_series is Series:
-            ts = ts[0]
+        ts = tm.get_obj(ts, frame_or_series)
 
         strings = [
             ("2:00", "2:30"),
@@ -62,8 +61,7 @@ class TestBetweenTime:
         # GH11818
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
         obj = DataFrame({"A": 0}, index=rng)
-        if frame_or_series is Series:
-            obj = obj["A"]
+        obj = tm.get_obj(obj, frame_or_series)
 
         msg = r"Cannot convert arg \[datetime\.datetime\(2010, 1, 2, 1, 0\)\] to a time"
         with pytest.raises(ValueError, match=msg):
@@ -72,8 +70,7 @@ class TestBetweenTime:
     def test_between_time(self, inclusive_endpoints_fixture, frame_or_series):
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
-        if frame_or_series is not DataFrame:
-            ts = ts[0]
+        ts = tm.get_obj(ts, frame_or_series)
 
         stime = time(0, 0)
         etime = time(1, 0)
@@ -107,8 +104,7 @@ class TestBetweenTime:
         # across midnight
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
-        if frame_or_series is not DataFrame:
-            ts = ts[0]
+        ts = tm.get_obj(ts, frame_or_series)
         stime = time(22, 0)
         etime = time(9, 0)
 
@@ -135,8 +131,7 @@ class TestBetweenTime:
     def test_between_time_raises(self, frame_or_series):
         # GH#20725
         obj = DataFrame([[1, 2, 3], [4, 5, 6]])
-        if frame_or_series is not DataFrame:
-            obj = obj[0]
+        obj = tm.get_obj(obj, frame_or_series)
 
         msg = "Index must be DatetimeIndex"
         with pytest.raises(TypeError, match=msg):  # index is not a DatetimeIndex
@@ -215,8 +210,7 @@ class TestBetweenTime:
         # GH40245
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
-        if frame_or_series is not DataFrame:
-            ts = ts[0]
+        ts = tm.get_obj(ts, frame_or_series)
 
         stime = time(0, 0)
         etime = time(1, 0)

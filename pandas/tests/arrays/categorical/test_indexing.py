@@ -14,31 +14,30 @@ from pandas import (
 )
 import pandas._testing as tm
 import pandas.core.common as com
-from pandas.tests.arrays.categorical.common import TestCategorical
 
 
-class TestCategoricalIndexingWithFactor(TestCategorical):
-    def test_getitem(self):
-        assert self.factor[0] == "a"
-        assert self.factor[-1] == "c"
+class TestCategoricalIndexingWithFactor:
+    def test_getitem(self, factor):
+        assert factor[0] == "a"
+        assert factor[-1] == "c"
 
-        subf = self.factor[[0, 1, 2]]
+        subf = factor[[0, 1, 2]]
         tm.assert_numpy_array_equal(subf._codes, np.array([0, 1, 1], dtype=np.int8))
 
-        subf = self.factor[np.asarray(self.factor) == "c"]
+        subf = factor[np.asarray(factor) == "c"]
         tm.assert_numpy_array_equal(subf._codes, np.array([2, 2, 2], dtype=np.int8))
 
-    def test_setitem(self):
+    def test_setitem(self, factor):
 
         # int/positional
-        c = self.factor.copy()
+        c = factor.copy()
         c[0] = "b"
         assert c[0] == "b"
         c[-1] = "a"
         assert c[-1] == "a"
 
         # boolean
-        c = self.factor.copy()
+        c = factor.copy()
         indexer = np.zeros(len(c), dtype="bool")
         indexer[0] = True
         indexer[-1] = True
@@ -105,15 +104,15 @@ class TestCategoricalIndexingWithFactor(TestCategorical):
         # GH#9469
         # properly coerce the input indexers
         np.random.seed(1)
-        c = Categorical(
+        cat = Categorical(
             np.random.randint(0, 5, size=150000).astype(np.int8)
         ).add_categories([-1000])
         indexer = np.array([100000]).astype(np.int64)
-        c[indexer] = -1000
+        cat[indexer] = -1000
 
         # we are asserting the code result here
         # which maps to the -1000 category
-        result = c.codes[np.array([100000]).astype(np.int64)]
+        result = cat.codes[np.array([100000]).astype(np.int64)]
         tm.assert_numpy_array_equal(result, np.array([5], dtype="int8"))
 
 
@@ -189,11 +188,11 @@ class TestCategoricalIndexing:
         tm.assert_index_equal(cat3.categories, exp_idx)
 
     def test_categories_assignments(self):
-        s = Categorical(["a", "b", "c", "a"])
+        cat = Categorical(["a", "b", "c", "a"])
         exp = np.array([1, 2, 3, 1], dtype=np.int64)
-        s.categories = [1, 2, 3]
-        tm.assert_numpy_array_equal(s.__array__(), exp)
-        tm.assert_index_equal(s.categories, Index([1, 2, 3]))
+        cat.categories = [1, 2, 3]
+        tm.assert_numpy_array_equal(cat.__array__(), exp)
+        tm.assert_index_equal(cat.categories, Index([1, 2, 3]))
 
     @pytest.mark.parametrize("new_categories", [[1, 2, 3, 4], [1, 2]])
     def test_categories_assignments_wrong_length_raises(self, new_categories):
@@ -277,20 +276,20 @@ class TestCategoricalIndexing:
 class TestContains:
     def test_contains(self):
         # GH#21508
-        c = Categorical(list("aabbca"), categories=list("cab"))
+        cat = Categorical(list("aabbca"), categories=list("cab"))
 
-        assert "b" in c
-        assert "z" not in c
-        assert np.nan not in c
+        assert "b" in cat
+        assert "z" not in cat
+        assert np.nan not in cat
         with pytest.raises(TypeError, match="unhashable type: 'list'"):
-            assert [1] in c
+            assert [1] in cat
 
         # assert codes NOT in index
-        assert 0 not in c
-        assert 1 not in c
+        assert 0 not in cat
+        assert 1 not in cat
 
-        c = Categorical(list("aabbca") + [np.nan], categories=list("cab"))
-        assert np.nan in c
+        cat = Categorical(list("aabbca") + [np.nan], categories=list("cab"))
+        assert np.nan in cat
 
     @pytest.mark.parametrize(
         "item, expected",
@@ -325,27 +324,27 @@ class TestContains:
 
 @pytest.mark.parametrize("index", [True, False])
 def test_mask_with_boolean(index):
-    s = Series(range(3))
+    ser = Series(range(3))
     idx = Categorical([True, False, True])
     if index:
         idx = CategoricalIndex(idx)
 
     assert com.is_bool_indexer(idx)
-    result = s[idx]
-    expected = s[idx.astype("object")]
+    result = ser[idx]
+    expected = ser[idx.astype("object")]
     tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("index", [True, False])
 def test_mask_with_boolean_na_treated_as_false(index):
     # https://github.com/pandas-dev/pandas/issues/31503
-    s = Series(range(3))
+    ser = Series(range(3))
     idx = Categorical([True, False, None])
     if index:
         idx = CategoricalIndex(idx)
 
-    result = s[idx]
-    expected = s[idx.fillna(False)]
+    result = ser[idx]
+    expected = ser[idx.fillna(False)]
 
     tm.assert_series_equal(result, expected)
 
@@ -370,7 +369,7 @@ def non_coercible_categorical(monkeypatch):
         yield
 
 
-def test_series_at(non_coercible_categorical):
+def test_series_at():
     arr = Categorical(["a", "b", "c"])
     ser = Series(arr)
     result = ser.at[0]

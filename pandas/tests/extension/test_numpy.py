@@ -12,6 +12,8 @@ Additional tests should either be added to one of the BaseExtensionTests
 classes (if they are relevant for the extension interface for all dtypes), or
 be added to the array-specific tests in `pandas/tests/arrays/`.
 
+Note: we do not bother with base.BaseIndexTests because PandasArray
+will never be held in an Index.
 """
 import numpy as np
 import pytest
@@ -457,5 +459,5 @@ class TestParsing(BaseNumPyTests, base.BaseParsingTests):
     pass
 
 
-class Test2DCompat(BaseNumPyTests, base.Dim2CompatTests):
+class Test2DCompat(BaseNumPyTests, base.NDArrayBacked2DTests):
     pass

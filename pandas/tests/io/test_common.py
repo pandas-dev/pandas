@@ -100,22 +100,9 @@ bar2,12,13,14,15
             with fsspec.open(f"file://{path}", mode="wb") as fsspec_obj:
                 assert fsspec_obj == icom.stringify_path(fsspec_obj)
 
-    @pytest.mark.parametrize(
-        "extension,expected",
-        [
-            ("", None),
-            (".gz", "gzip"),
-            (".bz2", "bz2"),
-            (".zip", "zip"),
-            (".xz", "xz"),
-            (".GZ", "gzip"),
-            (".BZ2", "bz2"),
-            (".ZIP", "zip"),
-            (".XZ", "xz"),
-        ],
-    )
     @pytest.mark.parametrize("path_type", path_types)
-    def test_infer_compression_from_path(self, extension, expected, path_type):
+    def test_infer_compression_from_path(self, compression_format, path_type):
+        extension, expected = compression_format
         path = path_type("foo/bar.csv" + extension)
         compression = icom.infer_compression(path, compression="infer")
         assert compression == expected
@@ -208,23 +195,23 @@ Look,a snake,🐍"""
         pytest.importorskip(module)
 
         path = os.path.join(HERE, "data", "does_not_exist." + fn_ext)
-        msg1 = fr"File (b')?.+does_not_exist\.{fn_ext}'? does not exist"
-        msg2 = fr"\[Errno 2\] No such file or directory: '.+does_not_exist\.{fn_ext}'"
+        msg1 = rf"File (b')?.+does_not_exist\.{fn_ext}'? does not exist"
+        msg2 = rf"\[Errno 2\] No such file or directory: '.+does_not_exist\.{fn_ext}'"
         msg3 = "Expected object or value"
         msg4 = "path_or_buf needs to be a string file path or file-like"
         msg5 = (
-            fr"\[Errno 2\] File .+does_not_exist\.{fn_ext} does not exist: "
-            fr"'.+does_not_exist\.{fn_ext}'"
+            rf"\[Errno 2\] File .+does_not_exist\.{fn_ext} does not exist: "
+            rf"'.+does_not_exist\.{fn_ext}'"
         )
-        msg6 = fr"\[Errno 2\] 没有那个文件或目录: '.+does_not_exist\.{fn_ext}'"
+        msg6 = rf"\[Errno 2\] 没有那个文件或目录: '.+does_not_exist\.{fn_ext}'"
         msg7 = (
-            fr"\[Errno 2\] File o directory non esistente: '.+does_not_exist\.{fn_ext}'"
+            rf"\[Errno 2\] File o directory non esistente: '.+does_not_exist\.{fn_ext}'"
         )
-        msg8 = fr"Failed to open local file.+does_not_exist\.{fn_ext}"
+        msg8 = rf"Failed to open local file.+does_not_exist\.{fn_ext}"
 
         with pytest.raises(
             error_class,
-            match=fr"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8})",
+            match=rf"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8})",
         ):
             reader(path)
 
@@ -278,23 +265,23 @@ Look,a snake,🐍"""
         path = os.path.join("~", "does_not_exist." + fn_ext)
         monkeypatch.setattr(icom, "_expand_user", lambda x: os.path.join("foo", x))
 
-        msg1 = fr"File (b')?.+does_not_exist\.{fn_ext}'? does not exist"
-        msg2 = fr"\[Errno 2\] No such file or directory: '.+does_not_exist\.{fn_ext}'"
+        msg1 = rf"File (b')?.+does_not_exist\.{fn_ext}'? does not exist"
+        msg2 = rf"\[Errno 2\] No such file or directory: '.+does_not_exist\.{fn_ext}'"
         msg3 = "Unexpected character found when decoding 'false'"
         msg4 = "path_or_buf needs to be a string file path or file-like"
         msg5 = (
-            fr"\[Errno 2\] File .+does_not_exist\.{fn_ext} does not exist: "
-            fr"'.+does_not_exist\.{fn_ext}'"
+            rf"\[Errno 2\] File .+does_not_exist\.{fn_ext} does not exist: "
+            rf"'.+does_not_exist\.{fn_ext}'"
         )
-        msg6 = fr"\[Errno 2\] 没有那个文件或目录: '.+does_not_exist\.{fn_ext}'"
+        msg6 = rf"\[Errno 2\] 没有那个文件或目录: '.+does_not_exist\.{fn_ext}'"
         msg7 = (
-            fr"\[Errno 2\] File o directory non esistente: '.+does_not_exist\.{fn_ext}'"
+            rf"\[Errno 2\] File o directory non esistente: '.+does_not_exist\.{fn_ext}'"
         )
-        msg8 = fr"Failed to open local file.+does_not_exist\.{fn_ext}"
+        msg8 = rf"Failed to open local file.+does_not_exist\.{fn_ext}"
 
         with pytest.raises(
             error_class,
-            match=fr"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8})",
+            match=rf"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8})",
         ):
             reader(path)
 
@@ -428,8 +415,8 @@ class TestMMapWrapper:
         with pytest.raises(err, match=msg):
             icom._MMapWrapper(non_file)
 
-        target = open(mmap_file)
-        target.close()
+        with open(mmap_file) as target:
+            pass
 
         msg = "I/O operation on closed file"
         with pytest.raises(ValueError, match=msg):
@@ -507,6 +494,11 @@ def test_is_fsspec_url():
     assert not icom.is_fsspec_url("random:pandas/somethingelse.com")
     assert not icom.is_fsspec_url("/local/path")
     assert not icom.is_fsspec_url("relative/local/path")
+    # fsspec URL in string should not be recognized
+    assert not icom.is_fsspec_url("this is not fsspec://url")
+    assert not icom.is_fsspec_url("{'url': 'gs://pandas/somethingelse.com'}")
+    # accept everything that conforms to RFC 3986 schema
+    assert icom.is_fsspec_url("RFC-3986+compliant.spec://something")
 
 
 @pytest.mark.parametrize("encoding", [None, "utf-8"])
@@ -563,9 +555,8 @@ def test_encoding_errors(encoding_errors, format):
     bad_encoding = b"\xe4"
 
     if format == "csv":
-        return
-        content = bad_encoding + b"\n" + bad_encoding
-        reader = pd.read_csv
+        content = b"," + bad_encoding + b"\n" + bad_encoding * 2 + b"," + bad_encoding
+        reader = partial(pd.read_csv, index_col=0)
     else:
         content = (
             b'{"'

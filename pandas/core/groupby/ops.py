@@ -45,7 +45,7 @@ from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_int64,
     ensure_platform_int,
-    is_1d_only_ea_obj,
+    is_1d_only_ea_dtype,
     is_bool_dtype,
     is_categorical_dtype,
     is_complex_dtype,
@@ -76,7 +76,7 @@ from pandas.core.arrays.floating import (
 )
 from pandas.core.arrays.integer import (
     Int64Dtype,
-    _IntegerDtype,
+    IntegerDtype,
 )
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
@@ -138,7 +138,9 @@ class WrappedCythonOp:
         },
     }
 
-    _MASKED_CYTHON_FUNCTIONS = {"cummin", "cummax", "min", "max"}
+    # "group_any" and "group_all" are also support masks, but don't go
+    #  through WrappedCythonOp
+    _MASKED_CYTHON_FUNCTIONS = {"cummin", "cummax", "min", "max", "last", "first"}
 
     _cython_arity = {"ohlc": 4}  # OHLC
 
@@ -158,9 +160,7 @@ class WrappedCythonOp:
         f = getattr(libgroupby, ftype)
         if is_numeric:
             return f
-        # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-        # operand type: "Literal['object']")
-        elif dtype == object:  # type: ignore[comparison-overlap]
+        elif dtype == object:
             if "object" not in f.__signatures__:
                 # raise NotImplementedError here rather than TypeError later
                 raise NotImplementedError(
@@ -302,10 +302,10 @@ class WrappedCythonOp:
         if how in ["add", "cumsum", "sum", "prod"]:
             if dtype == np.dtype(bool):
                 return np.dtype(np.int64)
-            elif isinstance(dtype, (BooleanDtype, _IntegerDtype)):
+            elif isinstance(dtype, (BooleanDtype, IntegerDtype)):
                 return Int64Dtype()
         elif how in ["mean", "median", "var"]:
-            if isinstance(dtype, (BooleanDtype, _IntegerDtype)):
+            if isinstance(dtype, (BooleanDtype, IntegerDtype)):
                 return Float64Dtype()
             elif is_float_dtype(dtype) or is_complex_dtype(dtype):
                 return dtype
@@ -343,7 +343,7 @@ class WrappedCythonOp:
             # All of the functions implemented here are ordinal, so we can
             #  operate on the tz-naive equivalents
             npvalues = values._ndarray.view("M8[ns]")
-        elif isinstance(values.dtype, (BooleanDtype, _IntegerDtype)):
+        elif isinstance(values.dtype, (BooleanDtype, IntegerDtype)):
             # IntegerArray or BooleanArray
             npvalues = values.to_numpy("float64", na_value=np.nan)
         elif isinstance(values.dtype, FloatingDtype):
@@ -380,7 +380,7 @@ class WrappedCythonOp:
         # TODO: allow EAs to override this logic
 
         if isinstance(
-            values.dtype, (BooleanDtype, _IntegerDtype, FloatingDtype, StringDtype)
+            values.dtype, (BooleanDtype, IntegerDtype, FloatingDtype, StringDtype)
         ):
             dtype = self._get_result_dtype(values.dtype)
             cls = dtype.construct_array_type()
@@ -439,8 +439,8 @@ class WrappedCythonOp:
         min_count: int,
         ngroups: int,
         comp_ids: np.ndarray,
-        mask: np.ndarray | None = None,
-        result_mask: np.ndarray | None = None,
+        mask: npt.NDArray[np.bool_] | None = None,
+        result_mask: npt.NDArray[np.bool_] | None = None,
         **kwargs,
     ) -> np.ndarray:
         if values.ndim == 1:
@@ -483,8 +483,8 @@ class WrappedCythonOp:
         min_count: int,
         ngroups: int,
         comp_ids: np.ndarray,
-        mask: np.ndarray | None,
-        result_mask: np.ndarray | None,
+        mask: npt.NDArray[np.bool_] | None,
+        result_mask: npt.NDArray[np.bool_] | None,
         **kwargs,
     ) -> np.ndarray:  # np.ndarray[ndim=2]
         orig_values = values
@@ -531,6 +531,16 @@ class WrappedCythonOp:
                     mask=mask,
                     result_mask=result_mask,
                     is_datetimelike=is_datetimelike,
+                )
+            elif self.how in ["first", "last"]:
+                func(
+                    out=result,
+                    counts=counts,
+                    values=values,
+                    labels=comp_ids,
+                    min_count=min_count,
+                    mask=mask,
+                    result_mask=result_mask,
                 )
             elif self.how in ["add"]:
                 # We support datetimelike
@@ -603,7 +613,7 @@ class WrappedCythonOp:
             raise NotImplementedError("number of dimensions is currently limited to 2")
         elif values.ndim == 2:
             assert axis == 1, axis
-        elif not is_1d_only_ea_obj(values):
+        elif not is_1d_only_ea_dtype(values.dtype):
             # Note: it is *not* the case that axis is always 0 for 1-dim values,
             #  as we can have 1D ExtensionArrays that we need to treat as 2D
             assert axis == 0
@@ -707,8 +717,7 @@ class BaseGrouper:
         """
         splitter = self._get_splitter(data, axis=axis)
         keys = self.group_keys_seq
-        for key, group in zip(keys, splitter):
-            yield key, group.__finalize__(data, method="groupby")
+        yield from zip(keys, splitter)
 
     @final
     def _get_splitter(self, data: NDFrame, axis: int = 0) -> DataSplitter:
@@ -716,8 +725,6 @@ class BaseGrouper:
         Returns
         -------
         Generator yielding subsetted objects
-
-        __finalize__ has not been called for the subsetted objects returned.
         """
         ids, _, ngroups = self.group_info
         return get_splitter(data, ids, ngroups, axis=axis)
@@ -789,8 +796,32 @@ class BaseGrouper:
         return get_indexer_dict(codes_list, keys)
 
     @final
+    def result_ilocs(self) -> npt.NDArray[np.intp]:
+        """
+        Get the original integer locations of result_index in the input.
+        """
+        # Original indices are where group_index would go via sorting.
+        # But when dropna is true, we need to remove null values while accounting for
+        # any gaps that then occur because of them.
+        group_index = get_group_index(self.codes, self.shape, sort=False, xnull=True)
+
+        if self.has_dropped_na:
+            mask = np.where(group_index >= 0)
+            # Count how many gaps are caused by previous null values for each position
+            null_gaps = np.cumsum(group_index == -1)[mask]
+            group_index = group_index[mask]
+
+        result = get_group_index_sorter(group_index, self.ngroups)
+
+        if self.has_dropped_na:
+            # Shift by the number of prior null gaps
+            result += np.take(null_gaps, result)
+
+        return result
+
+    @final
     @property
-    def codes(self) -> list[np.ndarray]:
+    def codes(self) -> list[npt.NDArray[np.signedinteger]]:
         return [ping.codes for ping in self.groupings]
 
     @property
@@ -807,6 +838,7 @@ class BaseGrouper:
         Compute group sizes.
         """
         ids, _, ngroups = self.group_info
+        out: np.ndarray | list
         if ngroups:
             out = np.bincount(ids[ids != -1], minlength=ngroups)
         else:
@@ -827,7 +859,15 @@ class BaseGrouper:
     @cache_readonly
     def is_monotonic(self) -> bool:
         # return if my group orderings are monotonic
-        return Index(self.group_info[0]).is_monotonic
+        return Index(self.group_info[0]).is_monotonic_increasing
+
+    @final
+    @cache_readonly
+    def has_dropped_na(self) -> bool:
+        """
+        Whether grouper has null value(s) that are dropped.
+        """
+        return bool((self.group_info[0] < 0).any())
 
     @cache_readonly
     def group_info(self) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
@@ -852,11 +892,14 @@ class BaseGrouper:
         return ids
 
     @final
-    def _get_compressed_codes(self) -> tuple[np.ndarray, npt.NDArray[np.intp]]:
+    def _get_compressed_codes(
+        self,
+    ) -> tuple[npt.NDArray[np.signedinteger], npt.NDArray[np.intp]]:
         # The first returned ndarray may have any signed integer dtype
         if len(self.groupings) > 1:
             group_index = get_group_index(self.codes, self.shape, sort=True, xnull=True)
             return compress_group_index(group_index, sort=self._sort)
+            # FIXME: compress_group_index's second return value is int64, not intp
 
         ping = self.groupings[0]
         return ping.codes, np.arange(len(ping.group_index), dtype=np.intp)
@@ -867,25 +910,10 @@ class BaseGrouper:
         return len(self.result_index)
 
     @property
-    def reconstructed_codes(self) -> list[np.ndarray]:
+    def reconstructed_codes(self) -> list[npt.NDArray[np.intp]]:
         codes = self.codes
         ids, obs_ids, _ = self.group_info
         return decons_obs_group_ids(ids, obs_ids, self.shape, codes, xnull=True)
-
-    @final
-    @cache_readonly
-    def result_arraylike(self) -> ArrayLike:
-        """
-        Analogous to result_index, but returning an ndarray/ExtensionArray
-        allowing us to retain ExtensionDtypes not supported by Index.
-        """
-        # TODO(ExtensionIndex): once Index supports arbitrary EAs, this can
-        #  be removed in favor of result_index
-        if len(self.groupings) == 1:
-            return self.groupings[0].group_arraylike
-
-        # result_index is MultiIndex
-        return self.result_index._values
 
     @cache_readonly
     def result_index(self) -> Index:
@@ -1151,7 +1179,7 @@ class BinGrouper(BaseGrouper):
         return [np.r_[0, np.flatnonzero(self.bins[1:] != self.bins[:-1]) + 1]]
 
     @cache_readonly
-    def result_index(self):
+    def result_index(self) -> Index:
         if len(self.binlabels) != 0 and isna(self.binlabels[0]):
             return self.binlabels[1:]
 
@@ -1243,14 +1271,8 @@ class SeriesSplitter(DataSplitter):
     def _chop(self, sdata: Series, slice_obj: slice) -> Series:
         # fastpath equivalent to `sdata.iloc[slice_obj]`
         mgr = sdata._mgr.get_slice(slice_obj)
-        # __finalize__ not called here, must be applied by caller if applicable
-
-        # fastpath equivalent to:
-        # `return sdata._constructor(mgr, name=sdata.name, fastpath=True)`
-        obj = type(sdata)._from_mgr(mgr)
-        object.__setattr__(obj, "_flags", sdata._flags)
-        object.__setattr__(obj, "_name", sdata._name)
-        return obj
+        ser = sdata._constructor(mgr, name=sdata.name, fastpath=True)
+        return ser.__finalize__(sdata, method="groupby")
 
 
 class FrameSplitter(DataSplitter):
@@ -1261,12 +1283,8 @@ class FrameSplitter(DataSplitter):
         # else:
         #     return sdata.iloc[:, slice_obj]
         mgr = sdata._mgr.get_slice(slice_obj, axis=1 - self.axis)
-        # __finalize__ not called here, must be applied by caller if applicable
-
-        # fastpath equivalent to `return sdata._constructor(mgr)`
-        obj = type(sdata)._from_mgr(mgr)
-        object.__setattr__(obj, "_flags", sdata._flags)
-        return obj
+        df = sdata._constructor(mgr)
+        return df.__finalize__(sdata, method="groupby")
 
 
 def get_splitter(

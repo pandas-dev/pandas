@@ -17,7 +17,6 @@ class NATests:
         index_with_na = index_without_na.copy(deep=True)
         index_with_na._data[1] = NaT
 
-        assert type(index_without_na)._na_value is NaT
         assert empty_index._na_value is NaT
         assert index_with_na._na_value is NaT
         assert index_without_na._na_value is NaT

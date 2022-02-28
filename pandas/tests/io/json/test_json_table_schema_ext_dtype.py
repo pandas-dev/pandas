@@ -30,7 +30,7 @@ from pandas.io.json._table_schema import (
 
 
 class TestBuildSchema:
-    def setup_method(self, method):
+    def setup_method(self):
         self.da = DateArray([dt.date(2021, 10, 10)])
         self.dc = DecimalArray([decimal.Decimal(10)])
         self.sa = array(["pandas"], dtype="string")
@@ -117,7 +117,7 @@ class TestTableSchemaType:
 
 
 class TestTableOrient:
-    def setup_method(self, method):
+    def setup_method(self):
         self.da = DateArray([dt.date(2021, 10, 10)])
         self.dc = DecimalArray([decimal.Decimal(10)])
         self.sa = array(["pandas"], dtype="string")
@@ -132,6 +132,7 @@ class TestTableOrient:
         )
 
     def test_build_date_series(self):
+
         s = Series(self.da, name="a")
         s.index.name = "id"
         result = s.to_json(orient="table", date_format="iso")
@@ -157,6 +158,7 @@ class TestTableOrient:
         assert result == expected
 
     def test_build_decimal_series(self):
+
         s = Series(self.dc, name="a")
         s.index.name = "id"
         result = s.to_json(orient="table", date_format="iso")
@@ -232,6 +234,7 @@ class TestTableOrient:
         assert result == expected
 
     def test_to_json(self):
+
         df = self.df.copy()
         df.index.name = "idx"
         result = df.to_json(orient="table", date_format="iso")

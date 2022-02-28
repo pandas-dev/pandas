@@ -9,20 +9,6 @@ from pandas import (
 )
 import pandas._testing as tm
 
-AGG_FUNCTIONS = [
-    "sum",
-    "prod",
-    "min",
-    "max",
-    "median",
-    "mean",
-    "skew",
-    "mad",
-    "std",
-    "var",
-    "sem",
-]
-
 
 class TestMultiLevel:
     def test_reindex_level(self, multiindex_year_month_day_dataframe_random_data):
@@ -169,15 +155,15 @@ class TestMultiLevel:
         exp = x.reindex(exp_index) - y.reindex(exp_index)
         tm.assert_series_equal(res, exp)
 
-    @pytest.mark.parametrize("op", AGG_FUNCTIONS)
     @pytest.mark.parametrize("level", [0, 1])
     @pytest.mark.parametrize("skipna", [True, False])
     @pytest.mark.parametrize("sort", [True, False])
     def test_series_group_min_max(
-        self, op, level, skipna, sort, series_with_multilevel_index
+        self, all_numeric_reductions, level, skipna, sort, series_with_multilevel_index
     ):
         # GH 17537
         ser = series_with_multilevel_index
+        op = all_numeric_reductions
 
         grouped = ser.groupby(level=level, sort=sort)
         # skipna=True
@@ -188,13 +174,18 @@ class TestMultiLevel:
             rightside = rightside.sort_index(level=level)
         tm.assert_series_equal(leftside, rightside)
 
-    @pytest.mark.parametrize("op", AGG_FUNCTIONS)
     @pytest.mark.parametrize("level", [0, 1])
     @pytest.mark.parametrize("axis", [0, 1])
     @pytest.mark.parametrize("skipna", [True, False])
     @pytest.mark.parametrize("sort", [True, False])
     def test_frame_group_ops(
-        self, op, level, axis, skipna, sort, multiindex_dataframe_random_data
+        self,
+        all_numeric_reductions,
+        level,
+        axis,
+        skipna,
+        sort,
+        multiindex_dataframe_random_data,
     ):
         # GH 17537
         frame = multiindex_dataframe_random_data
@@ -212,6 +203,7 @@ class TestMultiLevel:
         grouped = frame.groupby(level=level, axis=axis, sort=sort)
 
         pieces = []
+        op = all_numeric_reductions
 
         def aggf(x):
             pieces.append(x)
@@ -256,8 +248,7 @@ class TestMultiLevel:
         self, multiindex_year_month_day_dataframe_random_data, frame_or_series
     ):
         ymd = multiindex_year_month_day_dataframe_random_data
-        if frame_or_series is Series:
-            ymd = ymd["A"]
+        ymd = tm.get_obj(ymd, frame_or_series)
 
         with tm.assert_produces_warning(FutureWarning):
             result = ymd.sum(level=["year", "month"])
@@ -407,10 +398,10 @@ class TestSorted:
         )
 
         df = DataFrame({"col": range(len(idx))}, index=idx, dtype="int64")
-        assert df.index.is_monotonic is False
+        assert df.index.is_monotonic_increasing is False
 
         sorted = df.sort_index()
-        assert sorted.index.is_monotonic is True
+        assert sorted.index.is_monotonic_increasing is True
 
         expected = DataFrame(
             {"col": [1, 4, 5, 2]},

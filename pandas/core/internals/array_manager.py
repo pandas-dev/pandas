@@ -15,16 +15,18 @@ import numpy as np
 
 from pandas._libs import (
     NaT,
+    algos as libalgos,
     lib,
 )
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
+    npt,
 )
 from pandas.util._validators import validate_bool_kwarg
 
+from pandas.core.dtypes.astype import astype_array_safe
 from pandas.core.dtypes.cast import (
-    astype_array_safe,
     ensure_dtype_can_hold_na,
     infer_dtype_from_scalar,
     soft_convert_objects,
@@ -341,9 +343,8 @@ class BaseArrayManager(DataManager):
             cond=cond,
         )
 
-    # TODO what is this used for?
-    # def setitem(self, indexer, value) -> ArrayManager:
-    #     return self.apply_with_block("setitem", indexer=indexer, value=value)
+    def setitem(self: T, indexer, value) -> T:
+        return self.apply_with_block("setitem", indexer=indexer, value=value)
 
     def putmask(self, mask, new, align: bool = True):
         if align:
@@ -383,6 +384,11 @@ class BaseArrayManager(DataManager):
         )
 
     def fillna(self: T, value, limit, inplace: bool, downcast) -> T:
+
+        if limit is not None:
+            # Do this validation even if we go through one of the no-op paths
+            limit = libalgos.validate_limit(None, limit=limit)
+
         return self.apply_with_block(
             "fillna", value=value, limit=limit, inplace=inplace, downcast=downcast
         )
@@ -467,7 +473,7 @@ class BaseArrayManager(DataManager):
 
     @property
     def is_single_block(self) -> bool:
-        return False
+        return len(self.arrays) == 1
 
     def _get_data_subset(self: T, predicate: Callable) -> T:
         indices = [i for i, arr in enumerate(self.arrays) if predicate(arr)]
@@ -545,7 +551,6 @@ class BaseArrayManager(DataManager):
         allow_dups: bool = False,
         copy: bool = True,
         # ignored keywords
-        consolidate: bool = True,
         only_slice: bool = False,
         # ArrayManager specific keywords
         use_na_proxy: bool = False,
@@ -564,7 +569,7 @@ class BaseArrayManager(DataManager):
     def _reindex_indexer(
         self: T,
         new_axis,
-        indexer,
+        indexer: npt.NDArray[np.intp] | None,
         axis: int,
         fill_value=None,
         allow_dups: bool = False,
@@ -575,7 +580,7 @@ class BaseArrayManager(DataManager):
         Parameters
         ----------
         new_axis : Index
-        indexer : ndarray of int64 or None
+        indexer : ndarray[intp] or None
         axis : int
         fill_value : object, default None
         allow_dups : bool, default False
@@ -794,7 +799,8 @@ class ArrayManager(BaseArrayManager):
         """
         Used in the JSON C code to access column arrays.
         """
-        return self.arrays
+
+        return [np.asarray(arr) for arr in self.arrays]
 
     def iset(
         self, loc: int | slice | np.ndarray, value: ArrayLike, inplace: bool = False
@@ -1202,7 +1208,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         """Return an empty ArrayManager with index/array of length 0"""
         if axes is None:
             axes = [Index([], dtype=object)]
-        array = np.array([], dtype=self.dtype)
+        array: np.ndarray = np.array([], dtype=self.dtype)
         return type(self)([array], axes)
 
     @classmethod
@@ -1280,6 +1286,8 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         See `setitem_inplace` for a version that works inplace and doesn't
         return a new Manager.
         """
+        if isinstance(indexer, np.ndarray) and indexer.ndim > self.ndim:
+            raise ValueError(f"Cannot set values with ndim > {self.ndim}")
         return self.apply_with_block("setitem", indexer=indexer, value=value)
 
     def idelete(self, indexer) -> SingleArrayManager:

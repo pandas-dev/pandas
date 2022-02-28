@@ -23,7 +23,7 @@ generate_legacy_storage_files with an *older* version of pandas to
 generate a pickle file. We will then check this file into a current
 branch, and test using test_pickle.py. This will load the *older*
 pickles and test versus the current data that is generated
-(with master). These are then compared.
+(with main). These are then compared.
 
 If we have cases where we changed the signature (e.g. we renamed
 offset -> freq in Timestamp). Then we have to conditionally execute

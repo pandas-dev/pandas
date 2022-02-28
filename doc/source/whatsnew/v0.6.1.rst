@@ -6,7 +6,7 @@ Version 0.6.1 (December 13, 2011)
 
 New features
 ~~~~~~~~~~~~
-- Can :ref:`append single rows <merging.append.row>` (as Series) to a DataFrame
+- Can append single rows (as Series) to a DataFrame
 - Add Spearman and Kendall rank :ref:`correlation <computation.correlation>`
   options to Series.corr and DataFrame.corr (:issue:`428`)
 - :ref:`Added <indexing.basics.get_value>` ``get_value`` and ``set_value`` methods to

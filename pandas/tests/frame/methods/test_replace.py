@@ -483,8 +483,7 @@ class TestDataFrameReplace:
         # GH 21977
         ser = Series([["a", "b"], [], np.nan, [1]])
         obj = DataFrame({"col": ser})
-        if frame_or_series is Series:
-            obj = ser
+        obj = tm.get_obj(obj, frame_or_series)
         expected = obj
         result = obj.replace([], np.nan)
         tm.assert_equal(result, expected)
@@ -662,6 +661,21 @@ class TestDataFrameReplace:
         result = df.replace({"col": {-1: "-", 1: "a", 4: "b"}})
         tm.assert_frame_equal(expected, result)
 
+    def test_replace_numpy_nan(self, nulls_fixture):
+        # GH#45725 ensure numpy.nan can be replaced with all other null types
+        to_replace = np.nan
+        value = nulls_fixture
+        dtype = object
+        df = DataFrame({"A": [to_replace]}, dtype=dtype)
+        expected = DataFrame({"A": [value]}, dtype=dtype)
+
+        result = df.replace({to_replace: value}).astype(dtype=dtype)
+        tm.assert_frame_equal(result, expected)
+
+        # same thing but different calling convention
+        result = df.replace(to_replace, value).astype(dtype=dtype)
+        tm.assert_frame_equal(result, expected)
+
     def test_replace_value_is_none(self, datetime_frame):
         orig_value = datetime_frame.iloc[0, 0]
         orig2 = datetime_frame.iloc[1, 0]
@@ -753,6 +767,13 @@ class TestDataFrameReplace:
                 "foo",
                 "bar",
                 DataFrame({"dt": [datetime(3017, 12, 20)], "str": ["bar"]}),
+            ),
+            # GH 36782
+            (
+                DataFrame({"dt": [datetime(2920, 10, 1)]}),
+                datetime(2920, 10, 1),
+                datetime(2020, 10, 1),
+                DataFrame({"dt": [datetime(2020, 10, 1)]}),
             ),
             (
                 DataFrame(
@@ -870,6 +891,7 @@ class TestDataFrameReplace:
         tm.assert_frame_equal(result, expected)
 
     def test_replace_limit(self):
+        # TODO
         pass
 
     def test_replace_dict_no_regex(self):
@@ -1332,8 +1354,7 @@ class TestDataFrameReplace:
     def test_replace_ea_ignore_float(self, frame_or_series, value):
         # GH#34871
         obj = DataFrame({"Per": [value] * 3})
-        if frame_or_series is not DataFrame:
-            obj = obj["Per"]
+        obj = tm.get_obj(obj, frame_or_series)
 
         expected = obj.copy()
         result = obj.replace(1.0, 0.0)
@@ -1508,3 +1529,16 @@ class TestDataFrameReplaceRegex:
 
         expected.loc[expected["a"] == ".", "a"] = expected_replace_val
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("regex", [False, True])
+    def test_replace_regex_dtype_frame(self, regex):
+        # GH-48644
+        df1 = DataFrame({"A": ["0"], "B": ["0"]})
+        expected_df1 = DataFrame({"A": [1], "B": [1]})
+        result_df1 = df1.replace(to_replace="0", value=1, regex=regex)
+        tm.assert_frame_equal(result_df1, expected_df1)
+
+        df2 = DataFrame({"A": ["0"], "B": ["1"]})
+        expected_df2 = DataFrame({"A": [1], "B": ["1"]})
+        result_df2 = df2.replace(to_replace="0", value=1, regex=regex)
+        tm.assert_frame_equal(result_df2, expected_df2)

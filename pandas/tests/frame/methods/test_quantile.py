@@ -293,6 +293,28 @@ class TestDataFrameQuantile:
         expected = DataFrame(index=[0.5])
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "datetime64[ns]",
+            "datetime64[ns, US/Pacific]",
+            "timedelta64[ns]",
+            "Period[D]",
+        ],
+    )
+    def test_quantile_dt64_empty(self, dtype):
+        # GH#41544
+        df = DataFrame(columns=["a", "b"], dtype=dtype)
+
+        res = df.quantile(0.5, axis=1, numeric_only=False)
+        expected = Series([], index=[], name=0.5, dtype=dtype)
+        tm.assert_series_equal(res, expected)
+
+        # no columns in result, so no dtype preservation
+        res = df.quantile([0.5], axis=1, numeric_only=False)
+        expected = DataFrame(index=[0.5])
+        tm.assert_frame_equal(res, expected)
+
     def test_quantile_invalid(self, datetime_frame):
         msg = "percentiles should all be in the interval \\[0, 1\\]"
         for invalid in [-1, 2, [0.5, -1], [0.5, 2]]:
@@ -651,19 +673,7 @@ class TestQuantileExtensionDtype:
 
     # TODO(GH#39763): filtering can be removed after GH#39763 is fixed
     @pytest.mark.filterwarnings("ignore:Using .astype to convert:FutureWarning")
-    def test_quantile_ea_all_na(
-        self, obj, index, frame_or_series, using_array_manager, request
-    ):
-        if (
-            using_array_manager
-            and frame_or_series is DataFrame
-            and index.dtype == "m8[ns]"
-        ):
-            mark = pytest.mark.xfail(
-                reason="obj.astype fails bc obj is incorrectly dt64 at this point"
-            )
-            request.node.add_marker(mark)
-
+    def test_quantile_ea_all_na(self, obj, index):
         obj.iloc[:] = index._na_value
 
         # TODO(ArrayManager): this casting should be unnecessary after GH#39763 is fixed
@@ -722,14 +732,7 @@ class TestQuantileExtensionDtype:
     @pytest.mark.parametrize(
         "dtype, expected_data, expected_index, axis, expected_dtype",
         [
-            pytest.param(
-                "datetime64[ns]",
-                [],
-                [],
-                1,
-                "datetime64[ns]",
-                marks=pytest.mark.xfail(reason="#GH 41544"),
-            ),
+            ["datetime64[ns]", [], [], 1, "datetime64[ns]"],
             ["datetime64[ns]", [pd.NaT, pd.NaT], ["a", "b"], 0, "datetime64[ns]"],
         ],
     )

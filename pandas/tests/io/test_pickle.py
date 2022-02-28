@@ -21,6 +21,7 @@ import os
 from pathlib import Path
 import pickle
 import shutil
+import uuid
 from warnings import (
     catch_warnings,
     filterwarnings,
@@ -35,6 +36,7 @@ from pandas.compat import (
     get_lzma_file,
     is_platform_little_endian,
 )
+from pandas.compat._optional import import_optional_dependency
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -45,6 +47,7 @@ from pandas import (
 )
 import pandas._testing as tm
 
+import pandas.io.common as icom
 from pandas.tseries.offsets import (
     Day,
     MonthEnd,
@@ -71,14 +74,13 @@ def current_pickle_data():
 # ---------------------
 # comparison functions
 # ---------------------
-def compare_element(result, expected, typ, version=None):
+def compare_element(result, expected, typ):
     if isinstance(expected, Index):
         tm.assert_index_equal(expected, result)
         return
 
     if typ.startswith("sp_"):
-        comparator = tm.assert_equal
-        comparator(result, expected)
+        tm.assert_equal(result, expected)
     elif typ == "timestamp":
         if expected is pd.NaT:
             assert result is pd.NaT
@@ -90,74 +92,7 @@ def compare_element(result, expected, typ, version=None):
         comparator(result, expected)
 
 
-def compare(data, vf, version):
-
-    data = pd.read_pickle(vf)
-
-    m = globals()
-    for typ, dv in data.items():
-        for dt, result in dv.items():
-            expected = data[typ][dt]
-
-            # use a specific comparator
-            # if available
-            comparator = f"compare_{typ}_{dt}"
-
-            comparator = m.get(comparator, m["compare_element"])
-            comparator(result, expected, typ, version)
-    return data
-
-
-def compare_series_ts(result, expected, typ, version):
-    # GH 7748
-    tm.assert_series_equal(result, expected)
-    assert result.index.freq == expected.index.freq
-    assert not result.index.freq.normalize
-    tm.assert_series_equal(result > 0, expected > 0)
-
-    # GH 9291
-    freq = result.index.freq
-    assert freq + Day(1) == Day(2)
-
-    res = freq + pd.Timedelta(hours=1)
-    assert isinstance(res, pd.Timedelta)
-    assert res == pd.Timedelta(days=1, hours=1)
-
-    res = freq + pd.Timedelta(nanoseconds=1)
-    assert isinstance(res, pd.Timedelta)
-    assert res == pd.Timedelta(days=1, nanoseconds=1)
-
-
-def compare_series_dt_tz(result, expected, typ, version):
-    tm.assert_series_equal(result, expected)
-
-
-def compare_series_cat(result, expected, typ, version):
-    tm.assert_series_equal(result, expected)
-
-
-def compare_frame_dt_mixed_tzs(result, expected, typ, version):
-    tm.assert_frame_equal(result, expected)
-
-
-def compare_frame_cat_onecol(result, expected, typ, version):
-    tm.assert_frame_equal(result, expected)
-
-
-def compare_frame_cat_and_float(result, expected, typ, version):
-    compare_frame_cat_onecol(result, expected, typ, version)
-
-
-def compare_index_period(result, expected, typ, version):
-    tm.assert_index_equal(result, expected)
-    assert isinstance(result.freq, MonthEnd)
-    assert result.freq == MonthEnd()
-    assert result.freqstr == "M"
-    tm.assert_index_equal(result.shift(2), expected.shift(2))
-
-
-here = os.path.dirname(__file__)
-legacy_dirname = os.path.join(here, "data", "legacy_pickle")
+legacy_dirname = os.path.join(os.path.dirname(__file__), "data", "legacy_pickle")
 files = glob.glob(os.path.join(legacy_dirname, "*", "*.pickle"))
 
 
@@ -169,14 +104,53 @@ def legacy_pickle(request, datapath):
 # ---------------------
 # tests
 # ---------------------
-def test_pickles(current_pickle_data, legacy_pickle):
+def test_pickles(legacy_pickle):
     if not is_platform_little_endian():
         pytest.skip("known failure on non-little endian")
 
-    version = os.path.basename(os.path.dirname(legacy_pickle))
     with catch_warnings(record=True):
         simplefilter("ignore")
-        compare(current_pickle_data, legacy_pickle, version)
+
+        data = pd.read_pickle(legacy_pickle)
+
+        for typ, dv in data.items():
+            for dt, result in dv.items():
+                expected = data[typ][dt]
+
+                if typ == "series" and dt == "ts":
+                    # GH 7748
+                    tm.assert_series_equal(result, expected)
+                    assert result.index.freq == expected.index.freq
+                    assert not result.index.freq.normalize
+                    tm.assert_series_equal(result > 0, expected > 0)
+
+                    # GH 9291
+                    freq = result.index.freq
+                    assert freq + Day(1) == Day(2)
+
+                    res = freq + pd.Timedelta(hours=1)
+                    assert isinstance(res, pd.Timedelta)
+                    assert res == pd.Timedelta(days=1, hours=1)
+
+                    res = freq + pd.Timedelta(nanoseconds=1)
+                    assert isinstance(res, pd.Timedelta)
+                    assert res == pd.Timedelta(days=1, nanoseconds=1)
+                elif typ == "index" and dt == "period":
+                    tm.assert_index_equal(result, expected)
+                    assert isinstance(result.freq, MonthEnd)
+                    assert result.freq == MonthEnd()
+                    assert result.freqstr == "M"
+                    tm.assert_index_equal(result.shift(2), expected.shift(2))
+                elif typ == "series" and dt in ("dt_tz", "cat"):
+                    tm.assert_series_equal(result, expected)
+                elif typ == "frame" and dt in (
+                    "dt_mixed_tzs",
+                    "cat_onecol",
+                    "cat_and_float",
+                ):
+                    tm.assert_frame_equal(result, expected)
+                else:
+                    compare_element(result, expected, typ)
 
 
 def python_pickler(obj, path):
@@ -206,32 +180,32 @@ def python_unpickler(path):
         ),
     ],
 )
+@pytest.mark.parametrize("writer", [pd.to_pickle, python_pickler])
 @pytest.mark.filterwarnings("ignore:The 'freq' argument in Timestamp:FutureWarning")
-def test_round_trip_current(current_pickle_data, pickle_writer):
+def test_round_trip_current(current_pickle_data, pickle_writer, writer):
     data = current_pickle_data
     for typ, dv in data.items():
         for dt, expected in dv.items():
 
-            for writer in [pd.to_pickle, python_pickler]:
-                with tm.ensure_clean() as path:
-                    # test writing with each pickler
-                    pickle_writer(expected, path)
+            with tm.ensure_clean() as path:
+                # test writing with each pickler
+                pickle_writer(expected, path)
 
-                    # test reading with each unpickler
-                    result = pd.read_pickle(path)
-                    compare_element(result, expected, typ)
+                # test reading with each unpickler
+                result = pd.read_pickle(path)
+                compare_element(result, expected, typ)
 
-                    result = python_unpickler(path)
-                    compare_element(result, expected, typ)
+                result = python_unpickler(path)
+                compare_element(result, expected, typ)
 
-                    # and the same for file objects (GH 35679)
-                    with open(path, mode="wb") as handle:
-                        writer(expected, path)
-                        handle.seek(0)  # shouldn't close file handle
-                    with open(path, mode="rb") as handle:
-                        result = pd.read_pickle(handle)
-                        handle.seek(0)  # shouldn't close file handle
-                    compare_element(result, expected, typ)
+                # and the same for file objects (GH 35679)
+                with open(path, mode="wb") as handle:
+                    writer(expected, path)
+                    handle.seek(0)  # shouldn't close file handle
+                with open(path, mode="rb") as handle:
+                    result = pd.read_pickle(handle)
+                    handle.seek(0)  # shouldn't close file handle
+                compare_element(result, expected, typ)
 
 
 def test_pickle_path_pathlib():
@@ -246,7 +220,8 @@ def test_pickle_path_localpath():
     tm.assert_frame_equal(df, result)
 
 
-def test_legacy_sparse_warning(datapath):
+@pytest.mark.parametrize("typ", ["sparseseries", "sparseframe"])
+def test_legacy_sparse_warning(datapath, typ):
     """
 
     Generated with
@@ -262,14 +237,7 @@ def test_legacy_sparse_warning(datapath):
     with tm.assert_produces_warning(FutureWarning):
         simplefilter("ignore", DeprecationWarning)  # from boto
         pd.read_pickle(
-            datapath("io", "data", "pickle", "sparseseries-0.20.3.pickle.gz"),
-            compression="gzip",
-        )
-
-    with tm.assert_produces_warning(FutureWarning):
-        simplefilter("ignore", DeprecationWarning)  # from boto
-        pd.read_pickle(
-            datapath("io", "data", "pickle", "sparseframe-0.20.3.pickle.gz"),
+            datapath("io", "data", "pickle", f"{typ}-0.20.3.pickle.gz"),
             compression="gzip",
         )
 
@@ -281,17 +249,13 @@ def test_legacy_sparse_warning(datapath):
 
 @pytest.fixture
 def get_random_path():
-    return f"__{tm.rands(10)}__.pickle"
+    return f"__{uuid.uuid4()}__.pickle"
 
 
 class TestCompression:
 
-    _compression_to_extension = {
-        None: ".none",
-        "gzip": ".gz",
-        "bz2": ".bz2",
-        "zip": ".zip",
-        "xz": ".xz",
+    _extension_to_compression = {
+        ext: compression for compression, ext in icom._compression_to_extension.items()
     }
 
     def compress_file(self, src_path, dest_path, compression):
@@ -308,6 +272,8 @@ class TestCompression:
                 f.write(src_path, os.path.basename(src_path))
         elif compression == "xz":
             f = get_lzma_file()(dest_path, "w")
+        elif compression == "zstd":
+            f = import_optional_dependency("zstandard").open(dest_path, "wb")
         else:
             msg = f"Unrecognized compression type: {compression}"
             raise ValueError(msg)
@@ -344,16 +310,11 @@ class TestCompression:
                 df = tm.makeDataFrame()
                 df.to_pickle(path, compression=compression)
 
-    @pytest.mark.parametrize("ext", ["", ".gz", ".bz2", ".no_compress", ".xz"])
-    def test_write_infer(self, ext, get_random_path):
+    def test_write_infer(self, compression_ext, get_random_path):
         base = get_random_path
-        path1 = base + ext
+        path1 = base + compression_ext
         path2 = base + ".raw"
-        compression = None
-        for c in self._compression_to_extension:
-            if self._compression_to_extension[c] == ext:
-                compression = c
-                break
+        compression = self._extension_to_compression.get(compression_ext.lower())
 
         with tm.ensure_clean(path1) as p1, tm.ensure_clean(path2) as p2:
             df = tm.makeDataFrame()
@@ -390,16 +351,11 @@ class TestCompression:
 
             tm.assert_frame_equal(df, df2)
 
-    @pytest.mark.parametrize("ext", ["", ".gz", ".bz2", ".zip", ".no_compress", ".xz"])
-    def test_read_infer(self, ext, get_random_path):
+    def test_read_infer(self, compression_ext, get_random_path):
         base = get_random_path
         path1 = base + ".raw"
-        path2 = base + ext
-        compression = None
-        for c in self._compression_to_extension:
-            if self._compression_to_extension[c] == ext:
-                compression = c
-                break
+        path2 = base + compression_ext
+        compression = self._extension_to_compression.get(compression_ext.lower())
 
         with tm.ensure_clean(path1) as p1, tm.ensure_clean(path2) as p2:
             df = tm.makeDataFrame()

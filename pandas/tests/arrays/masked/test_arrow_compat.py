@@ -176,15 +176,9 @@ def test_pyarrow_array_to_numpy_and_mask(np_dtype_to_arrays):
     tm.assert_numpy_array_equal(mask, mask_expected_empty)
 
 
-def test_from_arrow_type_error(request, data):
+def test_from_arrow_type_error(data):
     # ensure that __from_arrow__ returns a TypeError when getting a wrong
     # array type
-    if data.dtype != "boolean":
-        # TODO numeric dtypes cast any incoming array to the correct dtype
-        # instead of erroring
-        request.node.add_marker(
-            pytest.mark.xfail(raises=None, reason="numeric dtypes don't error but cast")
-        )
 
     arr = pa.array(data).cast("string")
     with pytest.raises(TypeError, match=None):

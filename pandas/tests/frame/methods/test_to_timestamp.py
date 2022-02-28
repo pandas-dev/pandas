@@ -34,8 +34,7 @@ class TestToTimestamp:
             columns=["A", "B", "C", "D", "E"],
         )
         obj["mix"] = "a"
-        if frame_or_series is Series:
-            obj = obj["A"]
+        obj = tm.get_obj(obj, frame_or_series)
 
         exp_index = date_range("1/1/2001", end="12/31/2009", freq="A-DEC")
         exp_index = exp_index + Timedelta(1, "D") - Timedelta(1, "ns")
