@@ -160,6 +160,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         formatter: Callable | None = None,
         na_rep: str = "NaT",
         date_format: str | None = None,
+        fast_strftime: bool = True,
     ) -> list[str]:
         """
         Render a string representation of the Index.
@@ -175,14 +176,14 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         if formatter is not None:
             return header + list(self.map(formatter))
 
-        return self._format_with_header(header, na_rep=na_rep, date_format=date_format)
+        return self._format_with_header(header, na_rep=na_rep, date_format=date_format, fast_strftime=fast_strftime)
 
     def _format_with_header(
-        self, header: list[str], na_rep: str = "NaT", date_format: str | None = None
+        self, header: list[str], na_rep: str = "NaT", date_format: str | None = None, fast_strftime: bool = True,
     ) -> list[str]:
         # matches base class except for whitespace padding and date_format
         return header + list(
-            self._format_native_types(na_rep=na_rep, date_format=date_format)
+            self._format_native_types(na_rep=na_rep, date_format=date_format, fast_strftime=fast_strftime)
         )
 
     @property

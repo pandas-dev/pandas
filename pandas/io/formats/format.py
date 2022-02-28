@@ -43,6 +43,8 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
     iNaT,
+    convert_dtformat,
+    UnsupportedDatetimeDirective,
 )
 from pandas._libs.tslibs.nattype import NaTType
 from pandas._typing import (
@@ -1613,11 +1615,13 @@ class Datetime64Formatter(GenericArrayFormatter):
         values: np.ndarray | Series | DatetimeIndex | DatetimeArray,
         nat_rep: str = "NaT",
         date_format: None = None,
+        fast_strftime: bool = True,
         **kwargs,
     ):
         super().__init__(values, **kwargs)
         self.nat_rep = nat_rep
         self.date_format = date_format
+        self.fast_strftime = fast_strftime
 
     def _format_strings(self) -> list[str]:
         """we by definition have DO NOT have a TZ"""
@@ -1630,7 +1634,7 @@ class Datetime64Formatter(GenericArrayFormatter):
             return [self.formatter(x) for x in values]
 
         fmt_values = values._data._format_native_types(
-            na_rep=self.nat_rep, date_format=self.date_format
+            na_rep=self.nat_rep, date_format=self.date_format, fast_strftime=self.fast_strftime
         )
         return fmt_values.tolist()
 
@@ -1766,12 +1770,21 @@ def _format_datetime64_dateonly(
     x: NaTType | Timestamp,
     nat_rep: str = "NaT",
     date_format: str | None = None,
+    str_date_fmt: str | None = None,
 ) -> str:
     if x is NaT:
         return nat_rep
 
     if date_format:
-        return x.strftime(date_format)
+        if str_date_fmt:
+            # Faster, using string formatting
+            return str_date_fmt % dict(
+                year=x.year, month=x.month, day=x.day, hour=x.hour,
+                min=x.min, sec=x.sec, us=x.us
+            )
+        else:
+            # Slower
+            return x.strftime(date_format)
     else:
         # error: Item "NaTType" of "Union[NaTType, Any]" has no attribute "_date_repr"
         #  The underlying problem here is that mypy doesn't understand that NaT
@@ -1780,12 +1793,24 @@ def _format_datetime64_dateonly(
 
 
 def get_format_datetime64(
-    is_dates_only: bool, nat_rep: str = "NaT", date_format: str | None = None
+    is_dates_only: bool, nat_rep: str = "NaT", date_format: str | None = None, fast_strftime : bool = True,
 ) -> Callable:
+    """Return a formatter callable taking a datetime64 as input and providing
+    a string as output"""
 
     if is_dates_only:
+        str_date_fmt = None
+        if date_format is not None and fast_strftime:
+            try:
+                # Try to get the string formatting template for this format
+                str_date_fmt = convert_dtformat(date_format)
+            except UnsupportedDatetimeDirective:
+                # Unsupported directive: fallback to standard `strftime`
+                pass
+
         return lambda x: _format_datetime64_dateonly(
-            x, nat_rep=nat_rep, date_format=date_format
+            x, nat_rep=nat_rep, date_format=date_format,
+            str_date_fmt=str_date_fmt
         )
     else:
         return lambda x: _format_datetime64(x, nat_rep=nat_rep)
@@ -1812,7 +1837,7 @@ class Datetime64TZFormatter(Datetime64Formatter):
         values = self.values.astype(object)
         ido = is_dates_only(values)
         formatter = self.formatter or get_format_datetime64(
-            ido, date_format=self.date_format
+            ido, date_format=self.date_format, fast_strftime=self.fast_strftime
         )
         fmt_values = [formatter(x) for x in values]
 
