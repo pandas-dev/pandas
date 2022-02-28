@@ -82,9 +82,11 @@ jobs:
 
     - name: Run typing validation
       run: ci/code_checks.sh typing
+      if: ${{ steps.build.outcome == 'success' }}
 
     - name: Run docstring validation script tests
       run: pytest scripts
+      if: ${{ steps.build.outcome == 'success' }}
 
   asv-benchmarks:
     name: ASV Benchmarks
