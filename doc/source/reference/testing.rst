@@ -5,6 +5,7 @@
 =======
 Testing
 =======
+.. currentmodule:: pandas
 
 .. _api.general.testing:
 

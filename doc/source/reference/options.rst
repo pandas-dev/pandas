@@ -5,6 +5,7 @@
 ====================
 Options and settings
 ====================
+.. currentmodule:: pandas
 
 API for configuring global behavior. See :ref:`the User Guide <options>` for more.
 
