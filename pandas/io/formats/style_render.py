@@ -120,8 +120,9 @@ class StylerRenderer:
             "level": "level",
             "data": "data",
             "blank": "blank",
+            "foot": "foot",
         }
-
+        self.concatenated: StylerRenderer | None = None
         # add rendering variables
         self.hide_index_names: bool = False
         self.hide_column_names: bool = False
@@ -148,6 +149,35 @@ class StylerRenderer:
             tuple[int, int], Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
 
+    def _render(
+        self,
+        sparse_index: bool,
+        sparse_columns: bool,
+        max_rows: int | None = None,
+        max_cols: int | None = None,
+        blank: str = "",
+    ):
+        """
+        Computes and applies styles and then generates the general render dicts
+        """
+        self._compute()
+        dx = None
+        if self.concatenated is not None:
+            self.concatenated.hide_index_ = self.hide_index_
+            self.concatenated.hidden_columns = self.hidden_columns
+            self.concatenated.css = {
+                **self.css,
+                "data": f"{self.css['foot']}_{self.css['data']}",
+                "row_heading": f"{self.css['foot']}_{self.css['row_heading']}",
+                "row": f"{self.css['foot']}_{self.css['row']}",
+                "foot": self.css["foot"],
+            }
+            dx, _ = self.concatenated._render(
+                sparse_index, sparse_columns, max_rows, max_cols, blank
+            )
+        d = self._translate(sparse_index, sparse_columns, max_rows, max_cols, blank, dx)
+        return d, dx
+
     def _render_html(
         self,
         sparse_index: bool,
@@ -160,9 +190,7 @@ class StylerRenderer:
         Renders the ``Styler`` including all applied styles to HTML.
         Generates a dict with necessary kwargs passed to jinja2 template.
         """
-        self._compute()
-        # TODO: namespace all the pandas keys
-        d = self._translate(sparse_index, sparse_columns, max_rows, max_cols)
+        d, _ = self._render(sparse_index, sparse_columns, max_rows, max_cols, "&nbsp;")
         d.update(kwargs)
         return self.template_html.render(
             **d,
@@ -176,16 +204,12 @@ class StylerRenderer:
         """
         Render a Styler in latex format
         """
-        self._compute()
-
-        d = self._translate(sparse_index, sparse_columns, blank="")
+        d, _ = self._render(sparse_index, sparse_columns, None, None)
         self._translate_latex(d, clines=clines)
-
         self.template_latex.globals["parse_wrap"] = _parse_latex_table_wrapping
         self.template_latex.globals["parse_table"] = _parse_latex_table_styles
         self.template_latex.globals["parse_cell"] = _parse_latex_cell_styles
         self.template_latex.globals["parse_header"] = _parse_latex_header_span
-
         d.update(kwargs)
         return self.template_latex.render(**d)
 
@@ -200,10 +224,7 @@ class StylerRenderer:
         """
         Render a Styler in string format
         """
-        self._compute()
-
-        d = self._translate(sparse_index, sparse_columns, max_rows, max_cols, blank="")
-
+        d, _ = self._render(sparse_index, sparse_columns, max_rows, max_cols)
         d.update(kwargs)
         return self.template_string.render(**d)
 
@@ -231,6 +252,7 @@ class StylerRenderer:
         max_rows: int | None = None,
         max_cols: int | None = None,
         blank: str = "&nbsp;",
+        dx: dict | None = None,
     ):
         """
         Process Styler data and settings into a dict for template rendering.
@@ -246,10 +268,12 @@ class StylerRenderer:
         sparse_cols : bool
             Whether to sparsify the columns or print all hierarchical column elements.
             Upstream defaults are typically to `pandas.options.styler.sparse.columns`.
-        blank : str
-            Entry to top-left blank cells.
         max_rows, max_cols : int, optional
             Specific max rows and cols. max_elements always take precedence in render.
+        blank : str
+            Entry to top-left blank cells.
+        dx : dict
+            The render dict of the concatenated Styler.
 
         Returns
         -------
@@ -295,7 +319,7 @@ class StylerRenderer:
         self.cellstyle_map_index: DefaultDict[
             tuple[CSSPair, ...], list[str]
         ] = defaultdict(list)
-        body = self._translate_body(idx_lengths, max_rows, max_cols)
+        body: list = self._translate_body(idx_lengths, max_rows, max_cols)
         d.update({"body": body})
 
         ctx_maps = {
@@ -309,6 +333,11 @@ class StylerRenderer:
                 for props, selectors in getattr(self, attr).items()
             ]
             d.update({k: map})
+
+        if dx is not None:  # self.concatenated is not None
+            d["body"].extend(dx["body"])  # type: ignore[union-attr]
+            d["cellstyle"].extend(dx["cellstyle"])  # type: ignore[union-attr]
+            d["cellstyle_index"].extend(dx["cellstyle"])  # type: ignore[union-attr]
 
         table_attr = self.table_attributes
         if not get_option("styler.html.mathjax"):

@@ -21,6 +21,7 @@ Styler
 
   - New method :meth:`.Styler.to_string` for alternative customisable output methods (:issue:`44502`)
   - Added the ability to render ``border`` and ``border-{side}`` CSS properties in Excel (:issue:`42276`)
+  - Added a new method :meth:`.Styler.concat` which allows adding customised footer rows to visualise additional calculations on the data, e.g. totals and counts etc. (:issue:`43875`)
 
 .. _whatsnew_150.enhancements.enhancement2:
 
@@ -39,7 +40,7 @@ Other enhancements
 - :meth:`.GroupBy.min` and :meth:`.GroupBy.max` now supports `Numba <https://numba.pydata.org/>`_ execution with the ``engine`` keyword (:issue:`45428`)
 - Implemented a ``bool``-dtype :class:`Index`, passing a bool-dtype array-like to ``pd.Index`` will now retain ``bool`` dtype instead of casting to ``object`` (:issue:`45061`)
 - Implemented a complex-dtype :class:`Index`, passing a complex-dtype array-like to ``pd.Index`` will now retain complex dtype instead of casting to ``object`` (:issue:`45845`)
-
+- :class:`Series` and :class:`DataFrame` with ``IntegerDtype`` now supports bitwise operations (:issue:`34463`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -56,6 +57,39 @@ Styler
 ^^^^^^
 
 - Fixed bug in :class:`CSSToExcelConverter` leading to ``TypeError`` when border color provided without border style for ``xlsxwriter`` engine (:issue:`42276`)
+
+.. _whatsnew_150.notable_bug_fixes.groupby_transform_dropna:
+
+Using ``dropna=True`` with ``groupby`` transforms
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A transform is an operation whose result has the same size as its input. When the
+result is a :class:`DataFrame` or :class:`Series`, it is also required that the
+index of the result matches that of the input. In pandas 1.4, using
+:meth:`.DataFrameGroupBy.transform` or :meth:`.SeriesGroupBy.transform` with null
+values in the groups and ``dropna=True`` gave incorrect results. Demonstrated by the
+examples below, the incorrect results either contained incorrect values, or the result
+did not have the same index as the input.
+
+.. ipython:: python
+
+    df = pd.DataFrame({'a': [1, 1, np.nan], 'b': [2, 3, 4]})
+
+*Old behavior*:
+
+.. code-block:: ipython
+
+    In [3]: df.groupby('a', dropna=True).transform(lambda x: x)
+    Out[3]:
+       b
+    0  2
+    1  3
+
+*New behavior*:
+
+.. ipython:: python
+
+    df.groupby('a', dropna=True).transform(lambda x: x)
 
 .. _whatsnew_150.notable_bug_fixes.notable_bug_fix2:
 
@@ -285,7 +319,7 @@ Datetimelike
 
 Timedelta
 ^^^^^^^^^
--
+- Bug in :func:`astype_nansafe` astype("timedelta64[ns]") fails when np.nan is included (:issue:`45798`)
 
 Time Zones
 ^^^^^^^^^^
@@ -295,6 +329,7 @@ Time Zones
 Numeric
 ^^^^^^^
 - Bug in operations with array-likes with ``dtype="boolean"`` and :attr:`NA` incorrectly altering the array in-place (:issue:`45421`)
+- Bug in division, ``pow`` and ``mod`` operations on array-likes with ``dtype="boolean"`` not being like their ``np.bool_`` counterparts (:issue:`46063`)
 - Bug in multiplying a :class:`Series` with ``IntegerDtype`` or ``FloatingDtype`` by an array-like with ``timedelta64[ns]`` dtype incorrectly raising (:issue:`45622`)
 -
 
@@ -364,6 +399,7 @@ I/O
 - Bug in :func:`read_csv` not respecting a specified converter to index columns in all cases (:issue:`40589`)
 - Bug in :func:`read_parquet` when ``engine="pyarrow"`` which caused partial write to disk when column of unsupported datatype was passed (:issue:`44914`)
 - Bug in :func:`DataFrame.to_excel` and :class:`ExcelWriter` would raise when writing an empty DataFrame to a ``.ods`` file (:issue:`45793`)
+- Bug in Parquet roundtrip for Interval dtype with ``datetime64[ns]`` subtype (:issue:`45881`)
 
 Period
 ^^^^^^
@@ -383,6 +419,8 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.resample` ignoring ``closed="right"`` on :class:`TimedeltaIndex` (:issue:`45414`)
 - Bug in :meth:`.DataFrameGroupBy.transform` fails when ``func="size"`` and the input DataFrame has multiple columns (:issue:`27469`)
 - Bug in :meth:`.DataFrameGroupBy.size` and :meth:`.DataFrameGroupBy.transform` with ``func="size"`` produced incorrect results when ``axis=1`` (:issue:`45715`)
+- Bug in :meth:`.ExponentialMovingWindow.mean` with ``axis=1`` and ``engine='numba'`` when the :class:`DataFrame` has more columns than rows (:issue:`46086`)
+- Bug when using ``engine="numba"`` would return the same jitted function when modifying ``engine_kwargs`` (:issue:`46086`)
 - Bug in :meth:`.DataFrameGroupby.transform` fails when ``axis=1`` and ``func`` is ``"first"`` or ``"last"`` (:issue:`45986`)
 
 Reshaping
