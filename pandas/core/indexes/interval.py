@@ -9,6 +9,7 @@ import textwrap
 from typing import (
     Any,
     Hashable,
+    Literal,
 )
 
 import numpy as np
@@ -28,6 +29,7 @@ from pandas._libs.tslibs import (
 from pandas._typing import (
     Dtype,
     DtypeObj,
+    IntervalClosedType,
     npt,
 )
 from pandas.errors import InvalidIndexError
@@ -191,10 +193,12 @@ class IntervalIndex(ExtensionIndex):
     _typ = "intervalindex"
 
     # annotate properties pinned via inherit_names
-    closed: str
+    closed: IntervalClosedType
     is_non_overlapping_monotonic: bool
     closed_left: bool
     closed_right: bool
+    open_left: bool
+    open_right: bool
 
     _data: IntervalArray
     _values: IntervalArray
@@ -317,9 +321,10 @@ class IntervalIndex(ExtensionIndex):
         return cls._simple_new(arr, name=name)
 
     # --------------------------------------------------------------------
-
+    # error: Return type "IntervalTree" of "_engine" incompatible with return type
+    # "Union[IndexEngine, ExtensionEngine]" in supertype "Index"
     @cache_readonly
-    def _engine(self) -> IntervalTree:
+    def _engine(self) -> IntervalTree:  # type: ignore[override]
         left = self._maybe_convert_i8(self.left)
         right = self._maybe_convert_i8(self.right)
         return IntervalTree(left, right, closed=self.closed)
@@ -511,7 +516,10 @@ class IntervalIndex(ExtensionIndex):
             left = self._maybe_convert_i8(key.left)
             right = self._maybe_convert_i8(key.right)
             constructor = Interval if scalar else IntervalIndex.from_arrays
-            return constructor(left, right, closed=self.closed)
+            # error: "object" not callable
+            return constructor(
+                left, right, closed=self.closed
+            )  # type: ignore[operator]
 
         if scalar:
             # Timestamp/Timedelta
@@ -543,7 +551,7 @@ class IntervalIndex(ExtensionIndex):
 
         return key_i8
 
-    def _searchsorted_monotonic(self, label, side: str = "left"):
+    def _searchsorted_monotonic(self, label, side: Literal["left", "right"] = "left"):
         if not self.is_non_overlapping_monotonic:
             raise KeyError(
                 "can only get slices from an IntervalIndex if bounds are "
@@ -941,7 +949,12 @@ def _is_type_compatible(a, b) -> bool:
 
 
 def interval_range(
-    start=None, end=None, periods=None, freq=None, name: Hashable = None, closed="right"
+    start=None,
+    end=None,
+    periods=None,
+    freq=None,
+    name: Hashable = None,
+    closed: IntervalClosedType = "right",
 ) -> IntervalIndex:
     """
     Return a fixed frequency IntervalIndex.

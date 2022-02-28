@@ -12,9 +12,6 @@ dummy_backend = types.ModuleType("pandas_dummy_backend")
 setattr(dummy_backend, "plot", lambda *args, **kwargs: "used_dummy")
 
 
-pytestmark = pytest.mark.slow
-
-
 @pytest.fixture
 def restore_backend():
     """Restore the plotting backend to matplotlib"""

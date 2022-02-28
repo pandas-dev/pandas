@@ -1,6 +1,8 @@
 """
 Tests for offsets.CustomBusinessHour
 """
+from __future__ import annotations
+
 from datetime import datetime
 
 import numpy as np
@@ -23,7 +25,7 @@ from pandas.tseries.holiday import USFederalHolidayCalendar
 
 
 class TestCustomBusinessHour(Base):
-    _offset = CustomBusinessHour
+    _offset: type[CustomBusinessHour] = CustomBusinessHour
     holidays = ["2014-06-27", datetime(2014, 6, 30), np.datetime64("2014-07-02")]
 
     def setup_method(self):
