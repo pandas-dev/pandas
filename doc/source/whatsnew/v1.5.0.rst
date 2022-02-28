@@ -267,8 +267,7 @@ Categorical
 ^^^^^^^^^^^
 - Bug in :meth:`Categorical.view` not accepting integer dtypes (:issue:`25464`)
 - Bug in :meth:`CategoricalIndex.union` when the index's categories are integer-dtype and the index contains ``NaN`` values incorrectly raising instead of casting to ``float64`` (:issue:`45362`)
-- Bug in :meth:`CategoricalIndex._concat` when concatenating categorical indexes that have the same categories returning indexes in improper order (:issue:`44099`)
--
+- Bug in :meth:`CategoricalIndex._concat` when concatenating categorical indexes that have the same categories returning indexes in improper order; this happening along with :meth:`concat` (:issue:`44099`)
 
 Datetimelike
 ^^^^^^^^^^^^
