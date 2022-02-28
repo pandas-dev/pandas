@@ -102,8 +102,9 @@ class _XMLFrameParser:
         `etree` does not support XSLT but retained for consistency.
 
     iterparse : dict, optional
-        Dict of row element and descendant elements and/or attributes to
-        retrieve in iterparsing of XML document.
+        Dict with row element as key and list of descendant elements
+        and/or attributes as value to be retrieved in iterparsing of
+        XML document.
 
         .. versionadded:: 1.5.0
 
@@ -123,6 +124,7 @@ class _XMLFrameParser:
     To subclass this class effectively you must override the following methods:`
         * :func:`parse_data`
         * :func:`_parse_nodes`
+        * :func:`_iterparse_nodes`
         * :func:`_parse_doc`
         * :func:`_validate_names`
         * :func:`_validate_path`
@@ -217,7 +219,7 @@ class _XMLFrameParser:
         -----
         Namespace URIs will be removed from return node values. Also,
         elements with missing children or attributes in submitted list
-        will have optional keys filled withi None values.
+        will have optional keys filled with None values.
         """
 
         raise AbstractMethodError(self)

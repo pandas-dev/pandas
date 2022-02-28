@@ -1165,7 +1165,8 @@ def test_file_like_error(datapath, parser, mode):
             )
 
 
-@tm.network
+@pytest.mark.network
+@tm.network(url="https://www.w3schools.com/xml/books.xml", check_before_test=True)
 def test_url_path_error(parser):
     url = "https://www.w3schools.com/xml/books.xml"
     with pytest.raises(
