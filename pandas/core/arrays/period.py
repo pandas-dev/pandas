@@ -25,6 +25,8 @@ from pandas._libs.tslibs import (
     parsing,
     period as libperiod,
     to_offset,
+    convert_dtformat,
+    UnsupportedDatetimeDirective,
 )
 from pandas._libs.tslibs.dtypes import FreqGroup
 from pandas._libs.tslibs.fields import isleapyear_arr
@@ -633,7 +635,7 @@ class PeriodArray(dtl.DatelikeOps):
 
     @dtl.ravel_compat
     def _format_native_types(
-        self, *, na_rep="NaT", date_format=None, **kwargs
+        self, *, na_rep="NaT", date_format=None, fast_strftime=True, **kwargs
     ) -> np.ndarray:
         """
         actually format my specific types
@@ -641,7 +643,23 @@ class PeriodArray(dtl.DatelikeOps):
         values = self.astype(object)
 
         if date_format:
-            formatter = lambda dt: dt.strftime(date_format)
+            if fast_strftime:
+                try:
+                    # Try to get the string formatting template for this format
+                    str_format = convert_dtformat(date_format)
+                except UnsupportedDatetimeDirective:
+                    # Unsupported directive: fallback to standard `strftime`
+                    fast_strftime = False
+
+            if fast_strftime:
+                # Faster: python old-style string formatting
+                formatter = lambda dt: str_format % dict(
+                    year=dt.year, month=dt.month, day=dt.day, hour=dt.hour,
+                    min=dt.min, sec=dt.sec, us=dt.us
+                )
+            else:
+                # Slower: strftime
+                formatter = lambda dt: dt.strftime(date_format)
         else:
             formatter = lambda dt: str(dt)
 
