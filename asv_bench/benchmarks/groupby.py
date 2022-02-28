@@ -18,6 +18,7 @@ from .pandas_vb_common import tm
 
 method_blocklist = {
     "object": {
+        "diff",
         "median",
         "prod",
         "sem",
