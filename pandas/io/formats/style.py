@@ -349,9 +349,9 @@ class Styler(StylerRenderer):
         When ``other`` has fewer index levels than the original Styler it is possible
         to extend the index in ``other``, with placeholder levels.
 
-        >>> df = DataFrame([[1], [2]], index=MultiIndex.from_product([[0], [1, 2]]))
+        >>> df = DataFrame([[1], [2]], index=pd.MultiIndex.from_product([[0], [1, 2]]))
         >>> descriptors = df.agg(["sum"])
-        >>> descriptors.index = MultiIndex.from_product([[""], descriptors.index])
+        >>> descriptors.index = pd.MultiIndex.from_product([[""], descriptors.index])
         >>> df.style.concat(descriptors.style)  # doctest: +SKIP
         """
         if not isinstance(other, Styler):
