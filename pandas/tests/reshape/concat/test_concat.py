@@ -20,6 +20,7 @@ import pandas as pd
 from pandas import (
     DataFrame,
     Index,
+    CategoricalIndex,
     MultiIndex,
     PeriodIndex,
     Series,
@@ -502,6 +503,23 @@ class TestConcatenate:
         with pytest.raises(InvalidIndexError, match=msg):
             concat([df1, df2], axis=1)
 
+    def test_concat_with_categorical_indices(self):
+        # GH 44099
+        # concat frames with categorical indices that have the same values
+        
+        df1 = DataFrame(
+            {"col1": ["a_val", "b_val", "c_val"]},
+            index=CategoricalIndex(["a", "b", "c"], categories=["a", "b", "c"]),
+        )
+        df2 = DataFrame(
+            {"col1": ["b_val", "a_val", "c_val"]},
+            index=CategoricalIndex(["b", "a", "c"], categories=["b", "a", "c"]),
+        )
+        expected = DataFrame(
+            {"col1": ["a_val", "b_val", "c_val", "b_val", "a_val", "c_val"]},
+            index=CategoricalIndex(["a", "b", "c", "b", "a", "c"], categories=["a", "b", "c"]),
+        )
+        tm.assert_frame_equal(concat([df1, df2]), expected)
 
 @pytest.mark.parametrize("pdt", [Series, DataFrame])
 @pytest.mark.parametrize("dt", np.sctypes["float"])
