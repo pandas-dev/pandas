@@ -1350,6 +1350,10 @@ cdef group_min_max(iu_64_floating_t[:, ::1] out,
                     else:
                         if uses_mask:
                             result_mask[i, j] = True
+                            # set out[i, j] to 0 to be deterministic, as
+                            #  it was initialized with np.empty. Also ensures
+                            #  we can downcast out if appropriate.
+                            out[i, j] = 0
                         else:
                             out[i, j] = nan_val
                 else:
@@ -1494,6 +1498,10 @@ cdef group_cummin_max(iu_64_floating_t[:, ::1] out,
                 if not skipna and na_possible and seen_na[lab, j]:
                     if uses_mask:
                         mask[i, j] = 1   # FIXME: shouldn't alter inplace
+                        # Set to 0 ensures that we are deterministic and can
+                        #  downcast if appropriate
+                        out[i, j] = 0
+
                     else:
                         out[i, j] = na_val
                 else:
