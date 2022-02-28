@@ -375,12 +375,9 @@ class BooleanArray(BaseMaskedArray):
             result, mask = ops.kleene_or(self._data, other, self._mask, mask)
         elif op.__name__ in {"and_", "rand_"}:
             result, mask = ops.kleene_and(self._data, other, self._mask, mask)
-        elif op.__name__ in {"xor", "rxor"}:
+        else:
+            # i.e. xor, rxor
             result, mask = ops.kleene_xor(self._data, other, self._mask, mask)
 
-        # error: Argument 2 to "BooleanArray" has incompatible type "Optional[Any]";
-        # expected "ndarray"
-        return BooleanArray(result, mask)  # type: ignore[arg-type]
-
-    def __abs__(self):
-        return self.copy()
+        # i.e. BooleanArray
+        return self._maybe_mask_result(result, mask)

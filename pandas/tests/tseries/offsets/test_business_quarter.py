@@ -3,9 +3,13 @@ Tests for the following offsets:
 - BQuarterBegin
 - BQuarterEnd
 """
+from __future__ import annotations
+
 from datetime import datetime
 
 import pytest
+
+from pandas._libs.tslibs.offsets import QuarterOffset
 
 from pandas.tests.tseries.offsets.common import (
     Base,
@@ -44,7 +48,7 @@ def test_on_offset(offset):
 
 
 class TestBQuarterBegin(Base):
-    _offset = BQuarterBegin
+    _offset: type[QuarterOffset] = BQuarterBegin
 
     def test_repr(self):
         expected = "<BusinessQuarterBegin: startingMonth=3>"
@@ -169,7 +173,7 @@ class TestBQuarterBegin(Base):
 
 
 class TestBQuarterEnd(Base):
-    _offset = BQuarterEnd
+    _offset: type[QuarterOffset] = BQuarterEnd
 
     def test_repr(self):
         expected = "<BusinessQuarterEnd: startingMonth=3>"

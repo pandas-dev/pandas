@@ -472,9 +472,6 @@ class SeriesGroupBy(GroupBy[Series]):
         result.name = self.obj.name
         return result
 
-    def _can_use_transform_fast(self, func: str, result) -> bool:
-        return True
-
     def filter(self, func, dropna: bool = True, *args, **kwargs):
         """
         Return a copy of a Series excluding elements from groups that
@@ -1182,14 +1179,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
         return self._transform(
             func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
-        )
-
-    def _can_use_transform_fast(self, func: str, result) -> bool:
-        # ngroup can only use transform_fast when there are no null keys dropped
-        # caller is responsible to check this case
-        return func in ("ngroup", "size") or (
-            isinstance(result, DataFrame)
-            and result.columns.equals(self._obj_with_exclusions.columns)
         )
 
     def _define_paths(self, func, *args, **kwargs):

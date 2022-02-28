@@ -64,6 +64,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
+    BaseMaskedDtype,
     ExtensionDtype,
     PandasDtype,
 )
@@ -103,6 +104,7 @@ if TYPE_CHECKING:
         Series,
     )
     from pandas.core.arrays import (
+        BaseMaskedArray,
         DatetimeArray,
         ExtensionArray,
         TimedeltaArray,
@@ -141,6 +143,15 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
     # we check some simple dtypes first
     if is_object_dtype(values.dtype):
         return ensure_object(np.asarray(values))
+
+    elif isinstance(values.dtype, BaseMaskedDtype):
+        # i.e. BooleanArray, FloatingArray, IntegerArray
+        values = cast("BaseMaskedArray", values)
+        if not values._hasna:
+            # No pd.NAs -> We can avoid an object-dtype cast (and copy) GH#41816
+            #  recurse to avoid re-implementing logic for eg bool->uint8
+            return _ensure_data(values._data)
+        return np.asarray(values)
 
     elif is_bool_dtype(values.dtype):
         if isinstance(values, np.ndarray):
@@ -280,25 +291,6 @@ def _get_hashtable_algo(values: np.ndarray):
 
     ndtype = _check_object_for_strings(values)
     htable = _hashtables[ndtype]
-    return htable, values
-
-
-def _get_values_for_rank(values: ArrayLike) -> np.ndarray:
-
-    values = _ensure_data(values)
-    if values.dtype.kind in ["i", "u", "f"]:
-        # rank_t includes only object, int64, uint64, float64
-        dtype = values.dtype.kind + "8"
-        values = values.astype(dtype, copy=False)
-    return values
-
-
-def _get_data_algo(values: ArrayLike):
-    values = _get_values_for_rank(values)
-
-    ndtype = _check_object_for_strings(values)
-    htable = _hashtables.get(ndtype, _hashtables["object"])
-
     return htable, values
 
 
@@ -523,7 +515,7 @@ def factorize_array(
     na_sentinel: int = -1,
     size_hint: int | None = None,
     na_value=None,
-    mask: np.ndarray | None = None,
+    mask: npt.NDArray[np.bool_] | None = None,
 ) -> tuple[npt.NDArray[np.intp], np.ndarray]:
     """
     Factorize a numpy array to codes and uniques.
@@ -551,7 +543,7 @@ def factorize_array(
     codes : ndarray[np.intp]
     uniques : ndarray
     """
-    hash_klass, values = _get_data_algo(values)
+    hash_klass, values = _get_hashtable_algo(values)
 
     table = hash_klass(size_hint or len(values))
     uniques, codes = table.factorize(
@@ -748,7 +740,7 @@ def factorize(
     else:
         dtype = values.dtype
         values = _ensure_data(values)
-        na_value: Scalar
+        na_value: Scalar | None
 
         if original.dtype.kind in ["m", "M"]:
             # Note: factorize_array will cast NaT bc it has a __int__
@@ -1009,7 +1001,8 @@ def rank(
         (e.g. 1, 2, 3) or in percentile form (e.g. 0.333..., 0.666..., 1).
     """
     is_datetimelike = needs_i8_conversion(values.dtype)
-    values = _get_values_for_rank(values)
+    values = _ensure_data(values)
+
     if values.ndim == 1:
         ranks = algos.rank_1d(
             values,
@@ -1187,18 +1180,6 @@ class SelectNSeries(SelectN):
 
         dropped = self.obj.dropna()
         nan_index = self.obj.drop(dropped.index)
-
-        if is_extension_array_dtype(dropped.dtype):
-            # GH#41816 bc we have dropped NAs above, MaskedArrays can use the
-            #  numpy logic.
-            from pandas.core.arrays import BaseMaskedArray
-
-            arr = dropped._values
-            if isinstance(arr, BaseMaskedArray):
-                ser = type(dropped)(arr._data, index=dropped.index, name=dropped.name)
-
-                result = type(self)(ser, n=self.n, keep=self.keep).compute(method)
-                return result.astype(arr.dtype)
 
         # slow method
         if n >= len(self.obj):
@@ -1766,7 +1747,7 @@ def safe_sort(
 
     if sorter is None:
         # mixed types
-        hash_klass, values = _get_data_algo(values)
+        hash_klass, values = _get_hashtable_algo(values)
         t = hash_klass(len(values))
         t.map_locations(values)
         sorter = ensure_platform_int(t.lookup(ordered))
