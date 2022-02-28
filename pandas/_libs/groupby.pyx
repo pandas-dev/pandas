@@ -1449,6 +1449,13 @@ cdef group_cummin_max(iu_64_floating_t[:, ::1] out,
     """
     cdef:
         iu_64_floating_t[:, ::1] accum
+        Py_ssize_t i, j, N, K
+        iu_64_floating_t val, mval, na_val
+        uint8_t[:, ::1] seen_na
+        intp_t lab
+        bint na_possible
+        bint uses_mask = mask is not None
+        bint isna_entry
 
     accum = np.empty((ngroups, (<object>values).shape[1]), dtype=values.dtype)
     if iu_64_floating_t is int64_t:
@@ -1458,40 +1465,18 @@ cdef group_cummin_max(iu_64_floating_t[:, ::1] out,
     else:
         accum[:] = -np.inf if compute_max else np.inf
 
-    if mask is not None:
-        masked_cummin_max(out, values, mask, labels, accum, skipna, compute_max)
-    else:
-        cummin_max(out, values, labels, accum, skipna, is_datetimelike, compute_max)
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cdef cummin_max(iu_64_floating_t[:, ::1] out,
-                ndarray[iu_64_floating_t, ndim=2] values,
-                const intp_t[::1] labels,
-                iu_64_floating_t[:, ::1] accum,
-                bint skipna,
-                bint is_datetimelike,
-                bint compute_max):
-    """
-    Compute the cumulative minimum/maximum of columns of `values`, in row groups
-    `labels`.
-    """
-    cdef:
-        Py_ssize_t i, j, N, K
-        iu_64_floating_t val, mval, na_val
-        uint8_t[:, ::1] seen_na
-        intp_t lab
-        bint na_possible
-
-    if iu_64_floating_t is float64_t or iu_64_floating_t is float32_t:
+    if uses_mask:
+        na_possible = True
+        # Will never be used, just to avoid uninitialized warning
+        na_val = 0
+    elif iu_64_floating_t is float64_t or iu_64_floating_t is float32_t:
         na_val = NaN
         na_possible = True
     elif is_datetimelike:
         na_val = NPY_NAT
         na_possible = True
-    # Will never be used, just to avoid uninitialized warning
     else:
+        # Will never be used, just to avoid uninitialized warning
         na_val = 0
         na_possible = False
 
@@ -1505,11 +1490,21 @@ cdef cummin_max(iu_64_floating_t[:, ::1] out,
             if lab < 0:
                 continue
             for j in range(K):
+
                 if not skipna and na_possible and seen_na[lab, j]:
-                    out[i, j] = na_val
+                    if uses_mask:
+                        mask[i, j] = 1   # FIXME: shouldn't alter inplace
+                    else:
+                        out[i, j] = na_val
                 else:
                     val = values[i, j]
-                    if not _treat_as_na(val, is_datetimelike):
+
+                    if uses_mask:
+                        isna_entry = mask[i, j]
+                    else:
+                        isna_entry = _treat_as_na(val, is_datetimelike)
+
+                    if not isna_entry:
                         mval = accum[lab, j]
                         if compute_max:
                             if val > mval:
@@ -1521,50 +1516,6 @@ cdef cummin_max(iu_64_floating_t[:, ::1] out,
                     else:
                         seen_na[lab, j] = 1
                         out[i, j] = val
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cdef masked_cummin_max(iu_64_floating_t[:, ::1] out,
-                       ndarray[iu_64_floating_t, ndim=2] values,
-                       uint8_t[:, ::1] mask,
-                       const intp_t[::1] labels,
-                       iu_64_floating_t[:, ::1] accum,
-                       bint skipna,
-                       bint compute_max):
-    """
-    Compute the cumulative minimum/maximum of columns of `values`, in row groups
-    `labels` with a masked algorithm.
-    """
-    cdef:
-        Py_ssize_t i, j, N, K
-        iu_64_floating_t val, mval
-        uint8_t[:, ::1] seen_na
-        intp_t lab
-
-    N, K = (<object>values).shape
-    seen_na = np.zeros((<object>accum).shape, dtype=np.uint8)
-    with nogil:
-        for i in range(N):
-            lab = labels[i]
-            if lab < 0:
-                continue
-            for j in range(K):
-                if not skipna and seen_na[lab, j]:
-                    mask[i, j] = 1
-                else:
-                    if not mask[i, j]:
-                        val = values[i, j]
-                        mval = accum[lab, j]
-                        if compute_max:
-                            if val > mval:
-                                accum[lab, j] = mval = val
-                        else:
-                            if val < mval:
-                                accum[lab, j] = mval = val
-                        out[i, j] = mval
-                    else:
-                        seen_na[lab, j] = 1
 
 
 @cython.boundscheck(False)
