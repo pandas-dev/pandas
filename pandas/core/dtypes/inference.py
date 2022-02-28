@@ -451,6 +451,7 @@ def is_inferred_bool_dtype(arr: ArrayLike) -> bool:
     elif dtype == np.dtype("object"):
         result = lib.is_bool_array(arr)
         if result:
+            # GH#46188
             warnings.warn(
                 "In a future version, object-dtype columns with all-bool values "
                 "will not be included in reductions with bool_only=True. "
