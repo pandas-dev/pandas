@@ -168,6 +168,10 @@ def test_transform_axis_1(request, transformation_func):
     # TODO(2.0) Remove after pad/backfill deprecation enforced
     transformation_func = maybe_normalize_deprecated_kernels(transformation_func)
 
+    if transformation_func == "ngroup":
+        msg = "ngroup fails with axis=1: #45986"
+        request.node.add_marker(pytest.mark.xfail(reason=msg))
+
     warn = None
     if transformation_func == "tshift":
         warn = FutureWarning
@@ -383,6 +387,17 @@ def test_transform_transformation_func(request, transformation_func):
     elif transformation_func == "fillna":
         test_op = lambda x: x.transform("fillna", value=0)
         mock_op = lambda x: x.fillna(value=0)
+    elif transformation_func == "ngroup":
+        test_op = lambda x: x.transform("ngroup")
+        counter = -1
+
+        def mock_op(x):
+            nonlocal counter
+            counter += 1
+            print(x)
+            print("counter:", counter)
+            return Series(counter, index=x.index)
+
     elif transformation_func == "tshift":
         msg = (
             "Current behavior of groupby.tshift is inconsistent with other "
@@ -394,10 +409,14 @@ def test_transform_transformation_func(request, transformation_func):
         mock_op = lambda x: getattr(x, transformation_func)()
 
     result = test_op(df.groupby("A"))
-    groups = [df[["B"]].iloc[:4], df[["B"]].iloc[4:6], df[["B"]].iloc[6:]]
-    expected = concat([mock_op(g) for g in groups])
+    # pass the group in same order as iterating `for ... in df.groupby(...)`
+    # but reorder to match df's index since this is a transform
+    groups = [df[["B"]].iloc[4:6], df[["B"]].iloc[6:], df[["B"]].iloc[:4]]
+    expected = concat([mock_op(g) for g in groups]).sort_index()
+    # sort_index does not preserve the freq
+    expected = expected.set_axis(df.index)
 
-    if transformation_func == "cumcount":
+    if transformation_func in ("cumcount", "ngroup"):
         tm.assert_series_equal(result, expected)
     else:
         tm.assert_frame_equal(result, expected)
@@ -1138,6 +1157,8 @@ def test_transform_agg_by_name(request, reduction_func, obj):
         tm.assert_index_equal(result.columns, obj.columns)
 
     # verify that values were broadcasted across each group
+    print(obj)
+    print(result)
     assert len(set(DataFrame(result).iloc[-3:, -1])) == 1
 
 
@@ -1362,10 +1383,12 @@ def test_null_group_str_transformer(request, dropna, transformation_func):
     gb = df.groupby("A", dropna=dropna)
 
     buffer = []
-    for idx, group in gb:
+    for k, (idx, group) in enumerate(gb):
         if transformation_func == "cumcount":
             # DataFrame has no cumcount method
             res = DataFrame({"B": range(len(group))}, index=group.index)
+        elif transformation_func == "ngroup":
+            res = Series(k, index=group.index)
         else:
             res = getattr(group[["B"]], transformation_func)(*args)
         buffer.append(res)

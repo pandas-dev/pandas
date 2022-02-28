@@ -1101,6 +1101,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     ) -> OutputFrameOrSeries:
         # set the result index on the passed values object and
         # return the new object, xref 8046
+
         if self.grouper.is_monotonic:
             # shortcut if we have an already ordered grouper
             result.set_axis(self.obj._get_axis(self.axis), axis=self.axis, inplace=True)
@@ -1662,7 +1663,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # Don't convert indices: negative indices need to give rise
             # to null values in the result
             output = result._take(ids, axis=self.axis, convert_indices=False)
-            output.index = output.set_axis(obj._get_axis(self.axis), axis=self.axis)
+            output = output.set_axis(obj._get_axis(self.axis), axis=self.axis)
         return output
 
     # -----------------------------------------------------------------
