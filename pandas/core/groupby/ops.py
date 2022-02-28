@@ -579,7 +579,7 @@ class WrappedCythonOp:
                 cutoff = max(1, min_count)
                 empty_groups = counts < cutoff
                 if empty_groups.any():
-                    if mask is not None and self.uses_mask():
+                    if result_mask is not None and self.uses_mask():
                         assert result_mask[empty_groups].all()
                     else:
                         # Note: this conversion could be lossy, see GH#40767
