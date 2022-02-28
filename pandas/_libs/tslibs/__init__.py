@@ -9,6 +9,8 @@ __all__ = [
     "OutOfBoundsTimedelta",
     "IncompatibleFrequency",
     "Period",
+    "convert_dtformat",
+    "UnsupportedDatetimeDirective",
     "Resolution",
     "Timedelta",
     "normalize_i8_timestamps",
@@ -47,6 +49,10 @@ from pandas._libs.tslibs.offsets import (
 from pandas._libs.tslibs.period import (
     IncompatibleFrequency,
     Period,
+)
+from pandas._libs.tslibs.strftime import (
+    convert_dtformat,
+    UnsupportedDatetimeDirective,
 )
 from pandas._libs.tslibs.timedeltas import (
     Timedelta,

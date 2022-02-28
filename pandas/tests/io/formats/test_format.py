@@ -19,15 +19,13 @@ import numpy as np
 import pytest
 import pytz
 
+from pandas._libs.tslibs import convert_dtformat
+
 from pandas.compat import (
     IS64,
     is_platform_windows,
 )
-from pandas.core.tools.datetimes import (
-    convert_dtformat,
-    get_datetime_fmt_dct,
-    fast_strftime
-)
+from pandas.core.tools.datetimes import fast_strftime
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -3101,7 +3099,10 @@ class TestDatetimeFastFormatter:
         strftime_res = dt.strftime(strftime_format)
 
         # common dict used for formatting
-        fmt_dct = get_datetime_fmt_dct(dt)
+        fmt_dct = dict(
+            year=dt.year, month=dt.month, day=dt.day, hour=dt.hour,
+            min=dt.minute, sec=dt.second, us=dt.microsecond
+        )
 
         # get the formatting string
         style_format = convert_dtformat(strftime_format, new_style_fmt=new_style)

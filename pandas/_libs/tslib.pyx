@@ -62,6 +62,11 @@ from pandas._libs.tslibs.timestamps cimport _Timestamp
 
 from pandas._libs.tslibs.timestamps import Timestamp
 
+from pandas._libs.tslibs.strftime import (
+    convert_dtformat,
+    UnsupportedDatetimeDirective,
+)
+
 # Note: this is the only non-tslibs intra-pandas dependency here
 
 from pandas._libs.missing cimport checknull_with_nat_and_na
@@ -101,7 +106,8 @@ def format_array_from_datetime(
     ndarray[int64_t] values,
     tzinfo tz=None,
     str format=None,
-    object na_rep=None
+    object na_rep=None,
+    fast_strftime=True,
 ) -> np.ndarray:
     """
     return a np object array of the string formatted values
@@ -114,6 +120,9 @@ def format_array_from_datetime(
           a strftime capable string
     na_rep : optional, default is None
           a nat format
+    fast_strftime : bool, default True
+          If `True` (default) and the format permits it, a faster formatting
+          method will be used. See `convert_dtformat`.
 
     Returns
     -------
@@ -133,7 +142,7 @@ def format_array_from_datetime(
 
     # if we don't have a format nor tz, then choose
     # a format based on precision
-    basic_format = (format is None or format == "%Y-%m-%d %H:%M:%S") and tz is None
+    basic_format = format is None and tz is None
     if basic_format:
         consider_values = values[values != NPY_NAT]
         show_ns = (consider_values % 1000).any()
@@ -145,6 +154,24 @@ def format_array_from_datetime(
             if not show_ms:
                 consider_values //= 1000
                 show_ms = (consider_values % 1000).any()
+
+    elif format == "%Y-%m-%d %H:%M:%S":
+        # Same format as default, but with hardcoded precision (s)
+        basic_format = True
+        show_ns = show_us = show_ms = False
+
+    elif format == "%Y-%m-%d %H:%M:%S.%f":
+        # Same format as default, but with hardcoded precision (us)
+        basic_format = show_us = True
+        show_ns = show_ms = False
+
+    elif fast_strftime:
+        try:
+            # Try to get the string formatting template for this format
+            str_format = convert_dtformat(format)
+        except UnsupportedDatetimeDirective:
+            # Unsupported directive: fallback to standard `strftime`
+            fast_strftime = False
 
     for i in range(N):
         val = values[i]
@@ -166,6 +193,16 @@ def format_array_from_datetime(
                 res += f'.{dts.us // 1000:03d}'
 
             result[i] = res
+
+        elif fast_strftime:
+
+            dt64_to_dtstruct(val, &dts)
+
+            # Use string formatting for faster strftime
+            result[i] = str_format % dict(
+                year=dts.year, month=dts.month, day=dts.day, hour=dts.hour,
+                min=dts.min, sec=dts.sec, us=dts.us
+            )
 
         else:
 
