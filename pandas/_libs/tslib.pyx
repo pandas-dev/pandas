@@ -60,12 +60,11 @@ from pandas._libs.tslibs.nattype cimport (
 )
 from pandas._libs.tslibs.timestamps cimport _Timestamp
 
-from pandas._libs.tslibs.timestamps import Timestamp
-
 from pandas._libs.tslibs.strftime import (
-    convert_dtformat,
     UnsupportedDatetimeDirective,
+    convert_dtformat,
 )
+from pandas._libs.tslibs.timestamps import Timestamp
 
 # Note: this is the only non-tslibs intra-pandas dependency here
 

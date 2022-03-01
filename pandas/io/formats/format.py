@@ -42,9 +42,9 @@ from pandas._libs.tslibs import (
     NaT,
     Timedelta,
     Timestamp,
-    iNaT,
-    convert_dtformat,
     UnsupportedDatetimeDirective,
+    convert_dtformat,
+    iNaT,
 )
 from pandas._libs.tslibs.nattype import NaTType
 from pandas._typing import (

@@ -51,8 +51,8 @@ from pandas._libs.tslibs.period import (
     Period,
 )
 from pandas._libs.tslibs.strftime import (
-    convert_dtformat,
     UnsupportedDatetimeDirective,
+    convert_dtformat,
 )
 from pandas._libs.tslibs.timedeltas import (
     Timedelta,

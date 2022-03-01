@@ -1,8 +1,6 @@
 """
 Test output formatting for Series/DataFrame, including to_string & reprs
 """
-from timeit import Timer
-
 from datetime import datetime
 from io import StringIO
 import itertools
@@ -13,6 +11,7 @@ import re
 from shutil import get_terminal_size
 import sys
 import textwrap
+from timeit import Timer
 
 import dateutil
 import numpy as np
@@ -20,12 +19,10 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs import convert_dtformat
-
 from pandas.compat import (
     IS64,
     is_platform_windows,
 )
-from pandas.core.tools.datetimes import fast_strftime
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -44,6 +41,7 @@ from pandas import (
     set_option,
 )
 import pandas._testing as tm
+from pandas.core.tools.datetimes import fast_strftime
 
 import pandas.io.formats.format as fmt
 import pandas.io.formats.printing as printing
