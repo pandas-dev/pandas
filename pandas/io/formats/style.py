@@ -281,7 +281,8 @@ class Styler(StylerRenderer):
         ----------
         other : Styler
             The other Styler object which has already been styled and formatted. The
-            data for this Styler must have the same columns as the original.
+            data for this Styler must have the same columns as the original, and the
+            number of index levels must also be the same to render correctly.
 
         Returns
         -------
@@ -299,10 +300,10 @@ class Styler(StylerRenderer):
         ``format_index`` will be preserved.
 
         .. warning::
-            Only the output methods ``to_html`` and ``to_string`` currently work with
-            concatenated Stylers.
+            Only the output methods ``to_html``, ``to_string`` and ``to_latex``
+            currently work with concatenated Stylers.
 
-            The output methods ``to_latex`` and ``to_excel`` **do not** work with
+            Other output methods, including ``to_excel``, **do not** work with
             concatenated Stylers.
 
         The following should be noted:
@@ -344,11 +345,24 @@ class Styler(StylerRenderer):
         >>> styler.concat(other)  # doctest: +SKIP
 
         .. figure:: ../../_static/style/footer_extended.png
+
+        When ``other`` has fewer index levels than the original Styler it is possible
+        to extend the index in ``other``, with placeholder levels.
+
+        >>> df = DataFrame([[1], [2]], index=pd.MultiIndex.from_product([[0], [1, 2]]))
+        >>> descriptors = df.agg(["sum"])
+        >>> descriptors.index = pd.MultiIndex.from_product([[""], descriptors.index])
+        >>> df.style.concat(descriptors.style)  # doctest: +SKIP
         """
         if not isinstance(other, Styler):
             raise TypeError("`other` must be of type `Styler`")
         if not self.data.columns.equals(other.data.columns):
             raise ValueError("`other.data` must have same columns as `Styler.data`")
+        if not self.data.index.nlevels == other.data.index.nlevels:
+            raise ValueError(
+                "number of index levels must be same in `other` "
+                "as in `Styler`. See documentation for suggestions."
+            )
         self.concatenated = other
         return self
 
@@ -3551,7 +3565,7 @@ class Styler(StylerRenderer):
         # mypy doesn't like dynamically-defined classes
         # error: Variable "cls" is not valid as a type
         # error: Invalid base class "cls"
-        class MyStyler(cls):  # type:ignore[valid-type,misc]
+        class MyStyler(cls):  # type: ignore[valid-type,misc]
             env = jinja2.Environment(loader=loader)
             if html_table:
                 template_html_table = env.get_template(html_table)

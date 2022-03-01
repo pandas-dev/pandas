@@ -595,7 +595,7 @@ class Apply(metaclass=abc.ABCMeta):
             for k, v in func.items():
                 if not is_aggregator(v):
                     # mypy can't realize v is not a list here
-                    new_func[k] = [v]  # type:ignore[list-item]
+                    new_func[k] = [v]  # type: ignore[list-item]
                 else:
                     new_func[k] = v
             func = new_func
