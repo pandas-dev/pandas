@@ -136,17 +136,8 @@ def test_is_extension_array_dtype(dtype):
 
 
 @pytest.mark.parametrize("na_value", [np.nan, pd.NA, None])
-def test_empty_series_construction(na_value):
-    class TempDType(DummyDtype):
-        @classmethod
-        def construct_array_type(cls):
-            return TempArray
-
-    TempDType.na_value = na_value
-
-    class TempArray(DummyArray):
-        _dtype = TempDType
-
-    result = pd.Series(index=[1, 2, 3], dtype=TempDType())
-    expected = pd.Series([na_value] * 3, index=[1, 2, 3], dtype=TempDType())
+def test_empty_series_construction(monkeypatch, na_value):
+    monkeypatch.setattr(DummyDtype, "na_value", na_value)
+    result = pd.Series(index=[1, 2, 3], dtype=DummyDtype())
+    expected = pd.Series([na_value] * 3, index=[1, 2, 3], dtype=DummyDtype())
     tm.assert_series_equal(result, expected)
