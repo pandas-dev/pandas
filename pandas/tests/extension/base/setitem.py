@@ -373,6 +373,12 @@ class BaseSetitemTests(BaseExtensionTests):
             data.dtype, (PandasDtype, PeriodDtype, IntervalDtype, DatetimeTZDtype)
         )
 
+        # Avoiding using_array_manager fixture
+        #  https://github.com/pandas-dev/pandas/pull/44514#discussion_r754002410
+        using_array_manager = isinstance(df._mgr, pd.core.internals.ArrayManager)
+
+        blk_data = df._mgr.arrays[0]
+
         orig = df.copy()
 
         msg = "will attempt to set the values inplace instead"
@@ -394,6 +400,10 @@ class BaseSetitemTests(BaseExtensionTests):
         with tm.assert_produces_warning(warn, match=msg):
             df.iloc[:] = df.values
         self.assert_frame_equal(df, orig)
+        if not using_array_manager:
+            # GH#33457 Check that this setting occurred in-place
+            # FIXME(ArrayManager): this should work there too
+            assert df._mgr.arrays[0] is blk_data
 
         df.iloc[:-1] = df.values[:-1]
         self.assert_frame_equal(df, orig)
