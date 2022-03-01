@@ -158,7 +158,10 @@ class StylerRenderer:
         blank: str = "",
     ):
         """
-        Computes and applies styles and then generates the general render dicts
+        Computes and applies styles and then generates the general render dicts.
+
+        Also extends the `ctx` and `ctx_index` attributes with those of concatenated
+        stylers for use within `_translate_latex`
         """
         self._compute()
         dx = None
@@ -172,18 +175,17 @@ class StylerRenderer:
                 "row": f"{self.css['foot']}_{self.css['row']}",
                 "foot": self.css["foot"],
             }
-            dx, _ = self.concatenated._render(
+            dx = self.concatenated._render(
                 sparse_index, sparse_columns, max_rows, max_cols, blank
             )
 
-            # extend ctx objects with concatenated recursively for _translate_latex
             for (r, c), v in self.concatenated.ctx.items():
                 self.ctx[(r + len(self.index), c)] = v
             for (r, c), v in self.concatenated.ctx_index.items():
                 self.ctx_index[(r + len(self.index), c)] = v
 
         d = self._translate(sparse_index, sparse_columns, max_rows, max_cols, blank, dx)
-        return d, dx
+        return d
 
     def _render_html(
         self,
@@ -197,7 +199,7 @@ class StylerRenderer:
         Renders the ``Styler`` including all applied styles to HTML.
         Generates a dict with necessary kwargs passed to jinja2 template.
         """
-        d, _ = self._render(sparse_index, sparse_columns, max_rows, max_cols, "&nbsp;")
+        d = self._render(sparse_index, sparse_columns, max_rows, max_cols, "&nbsp;")
         d.update(kwargs)
         return self.template_html.render(
             **d,
@@ -211,7 +213,7 @@ class StylerRenderer:
         """
         Render a Styler in latex format
         """
-        d, _ = self._render(sparse_index, sparse_columns, None, None)
+        d = self._render(sparse_index, sparse_columns, None, None)
         self._translate_latex(d, clines=clines)
         self.template_latex.globals["parse_wrap"] = _parse_latex_table_wrapping
         self.template_latex.globals["parse_table"] = _parse_latex_table_styles
@@ -231,7 +233,7 @@ class StylerRenderer:
         """
         Render a Styler in string format
         """
-        d, _ = self._render(sparse_index, sparse_columns, max_rows, max_cols)
+        d = self._render(sparse_index, sparse_columns, max_rows, max_cols)
         d.update(kwargs)
         return self.template_string.render(**d)
 
