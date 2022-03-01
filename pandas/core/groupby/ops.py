@@ -339,23 +339,7 @@ class WrappedCythonOp:
                 **kwargs,
             )
 
-        if isinstance(values, (DatetimeArray, PeriodArray, TimedeltaArray)):
-            # All of the functions implemented here are ordinal, so we can
-            #  operate on the tz-naive equivalents
-            npvalues = values._ndarray.view("M8[ns]")
-        elif isinstance(values.dtype, (BooleanDtype, IntegerDtype)):
-            # IntegerArray or BooleanArray
-            npvalues = values.to_numpy("float64", na_value=np.nan)
-        elif isinstance(values.dtype, FloatingDtype):
-            # FloatingArray
-            npvalues = values.to_numpy(values.dtype.numpy_dtype, na_value=np.nan)
-        elif isinstance(values.dtype, StringDtype):
-            # StringArray
-            npvalues = values.to_numpy(object, na_value=np.nan)
-        else:
-            raise NotImplementedError(
-                f"function is not implemented for this dtype: {values.dtype}"
-            )
+        npvalues = self._ea_to_cython_values(values)
 
         res_values = self._cython_op_ndim_compat(
             npvalues,
@@ -373,6 +357,27 @@ class WrappedCythonOp:
 
         return self._reconstruct_ea_result(values, res_values)
 
+    def _ea_to_cython_values(self, values: ExtensionArray):
+        # GH#43682
+        if isinstance(values, (DatetimeArray, PeriodArray, TimedeltaArray)):
+            # All of the functions implemented here are ordinal, so we can
+            #  operate on the tz-naive equivalents
+            npvalues = values._ndarray.view("M8[ns]")
+        elif isinstance(values.dtype, (BooleanDtype, IntegerDtype)):
+            # IntegerArray or BooleanArray
+            npvalues = values.to_numpy("float64", na_value=np.nan)
+        elif isinstance(values.dtype, FloatingDtype):
+            # FloatingArray
+            npvalues = values.to_numpy(values.dtype.numpy_dtype, na_value=np.nan)
+        elif isinstance(values.dtype, StringDtype):
+            # StringArray
+            npvalues = values.to_numpy(object, na_value=np.nan)
+        else:
+            raise NotImplementedError(
+                f"function is not implemented for this dtype: {values.dtype}"
+            )
+        return npvalues
+
     def _reconstruct_ea_result(self, values, res_values):
         """
         Construct an ExtensionArray result from an ndarray result.
@@ -387,6 +392,7 @@ class WrappedCythonOp:
             return cls._from_sequence(res_values, dtype=dtype)
 
         elif needs_i8_conversion(values.dtype):
+            assert res_values.dtype.kind != "f"  # just to be on the safe side
             i8values = res_values.view("i8")
             return type(values)(i8values, dtype=values.dtype)
 
@@ -577,9 +583,12 @@ class WrappedCythonOp:
                 cutoff = max(1, min_count)
                 empty_groups = counts < cutoff
                 if empty_groups.any():
-                    # Note: this conversion could be lossy, see GH#40767
-                    result = result.astype("float64")
-                    result[empty_groups] = np.nan
+                    if result_mask is not None and self.uses_mask():
+                        assert result_mask[empty_groups].all()
+                    else:
+                        # Note: this conversion could be lossy, see GH#40767
+                        result = result.astype("float64")
+                        result[empty_groups] = np.nan
 
         result = result.T
 
