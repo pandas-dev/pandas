@@ -245,6 +245,21 @@ def parser(request):
     return request.param
 
 
+def read_xml_iterparse(data, **kwargs):
+    with tm.ensure_clean() as path:
+        with open(path, "w") as f:
+            f.write(data)
+        return read_xml(path, **kwargs)
+
+
+def read_xml_iterparse_comp(comp_path, compression_only, **kwargs):
+    with get_handle(comp_path, "r", compression=compression_only) as handles:
+        with tm.ensure_clean() as path:
+            with open(path, "w") as f:
+                f.write(handles.handle.read())
+            return read_xml(path, **kwargs)
+
+
 # FILE / URL
 
 
@@ -525,13 +540,11 @@ def test_default_namespace(parser):
         parser=parser,
     )
 
-    with tm.ensure_clean(filename="xml_prefix_nmsp.xml") as path:
-        with open(path, "w") as f:
-            f.write(xml_default_nmsp)
-
-        df_iter = read_xml(
-            path, parser=parser, iterparse={"row": ["shape", "degrees", "sides"]}
-        )
+    df_iter = read_xml_iterparse(
+        xml_default_nmsp,
+        parser=parser,
+        iterparse={"row": ["shape", "degrees", "sides"]},
+    )
 
     df_expected = DataFrame(
         {
@@ -552,14 +565,9 @@ def test_prefix_namespace(parser):
         namespaces={"doc": "http://example.com"},
         parser=parser,
     )
-
-    with tm.ensure_clean(filename="xml_prefix_nmsp.xml") as path:
-        with open(path, "w") as f:
-            f.write(xml_prefix_nmsp)
-
-        df_iter = read_xml(
-            path, parser=parser, iterparse={"row": ["shape", "degrees", "sides"]}
-        )
+    df_iter = read_xml_iterparse(
+        xml_prefix_nmsp, parser=parser, iterparse={"row": ["shape", "degrees", "sides"]}
+    )
 
     df_expected = DataFrame(
         {
@@ -1307,23 +1315,20 @@ def test_online_stylesheet():
 
 
 def test_compression_read(parser, compression_only):
-    with tm.ensure_clean() as comp_path, tm.ensure_clean() as ext_path:
+    with tm.ensure_clean() as comp_path:
         geom_df.to_xml(
             comp_path, index=False, parser=parser, compression=compression_only
         )
 
         df_xpath = read_xml(comp_path, parser=parser, compression=compression_only)
 
-        with get_handle(comp_path, "r", compression=compression_only) as handles:
-            with open(ext_path, "w") as f:
-                f.write(handles.handle.read())
-
-            df_iter = read_xml(
-                ext_path,
-                parser=parser,
-                iterparse={"row": ["shape", "degrees", "sides"]},
-                compression=compression_only,
-            )
+        df_iter = read_xml_iterparse_comp(
+            comp_path,
+            compression_only,
+            parser=parser,
+            iterparse={"row": ["shape", "degrees", "sides"]},
+            compression=compression_only,
+        )
 
     tm.assert_frame_equal(df_xpath, geom_df)
     tm.assert_frame_equal(df_iter, geom_df)

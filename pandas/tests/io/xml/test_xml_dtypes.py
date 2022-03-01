@@ -20,6 +20,13 @@ def parser(request):
     return request.param
 
 
+def read_xml_iterparse(data, **kwargs):
+    with tm.ensure_clean() as path:
+        with open(path, "w") as f:
+            f.write(data)
+        return read_xml(path, **kwargs)
+
+
 xml_types = """\
 <?xml version='1.0' encoding='utf-8'?>
 <data>
@@ -68,16 +75,12 @@ xml_dates = """<?xml version='1.0' encoding='utf-8'?>
 
 def test_dtype_single_str(parser):
     df_result = read_xml(xml_types, dtype={"degrees": "str"}, parser=parser)
-    with tm.ensure_clean() as path:
-        with open(path, "w") as f:
-            f.write(xml_types)
-
-        df_iter = read_xml(
-            path,
-            parser=parser,
-            dtype={"degrees": "str"},
-            iterparse={"row": ["shape", "degrees", "sides"]},
-        )
+    df_iter = read_xml_iterparse(
+        xml_types,
+        parser=parser,
+        dtype={"degrees": "str"},
+        iterparse={"row": ["shape", "degrees", "sides"]},
+    )
 
     df_expected = DataFrame(
         {
@@ -93,16 +96,12 @@ def test_dtype_single_str(parser):
 
 def test_dtypes_all_str(parser):
     df_result = read_xml(xml_dates, dtype="string", parser=parser)
-    with tm.ensure_clean() as path:
-        with open(path, "w") as f:
-            f.write(xml_dates)
-
-        df_iter = read_xml(
-            path,
-            parser=parser,
-            dtype="string",
-            iterparse={"row": ["shape", "degrees", "sides", "date"]},
-        )
+    df_iter = read_xml_iterparse(
+        xml_dates,
+        parser=parser,
+        dtype="string",
+        iterparse={"row": ["shape", "degrees", "sides", "date"]},
+    )
 
     df_expected = DataFrame(
         {
@@ -125,17 +124,13 @@ def test_dtypes_with_names(parser):
         dtype={"Col2": "string", "Col3": "Int64", "Col4": "datetime64"},
         parser=parser,
     )
-    with tm.ensure_clean() as path:
-        with open(path, "w") as f:
-            f.write(xml_dates)
-
-        df_iter = read_xml(
-            path,
-            parser=parser,
-            names=["Col1", "Col2", "Col3", "Col4"],
-            dtype={"Col2": "string", "Col3": "Int64", "Col4": "datetime64"},
-            iterparse={"row": ["shape", "degrees", "sides", "date"]},
-        )
+    df_iter = read_xml_iterparse(
+        xml_dates,
+        parser=parser,
+        names=["Col1", "Col2", "Col3", "Col4"],
+        dtype={"Col2": "string", "Col3": "Int64", "Col4": "datetime64"},
+        iterparse={"row": ["shape", "degrees", "sides", "date"]},
+    )
 
     df_expected = DataFrame(
         {
@@ -152,16 +147,12 @@ def test_dtypes_with_names(parser):
 
 def test_dtype_nullable_int(parser):
     df_result = read_xml(xml_types, dtype={"sides": "Int64"}, parser=parser)
-    with tm.ensure_clean() as path:
-        with open(path, "w") as f:
-            f.write(xml_types)
-
-        df_iter = read_xml(
-            path,
-            parser=parser,
-            dtype={"sides": "Int64"},
-            iterparse={"row": ["shape", "degrees", "sides"]},
-        )
+    df_iter = read_xml_iterparse(
+        xml_types,
+        parser=parser,
+        dtype={"sides": "Int64"},
+        iterparse={"row": ["shape", "degrees", "sides"]},
+    )
 
     df_expected = DataFrame(
         {
@@ -177,16 +168,12 @@ def test_dtype_nullable_int(parser):
 
 def test_dtype_float(parser):
     df_result = read_xml(xml_types, dtype={"degrees": "float"}, parser=parser)
-    with tm.ensure_clean() as path:
-        with open(path, "w") as f:
-            f.write(xml_types)
-
-        df_iter = read_xml(
-            path,
-            parser=parser,
-            dtype={"degrees": "float"},
-            iterparse={"row": ["shape", "degrees", "sides"]},
-        )
+    df_iter = read_xml_iterparse(
+        xml_types,
+        parser=parser,
+        dtype={"degrees": "float"},
+        iterparse={"row": ["shape", "degrees", "sides"]},
+    )
 
     df_expected = DataFrame(
         {
@@ -232,16 +219,12 @@ def test_both_dtype_converters(parser):
 
 def test_converters_str(parser):
     df_result = read_xml(xml_types, converters={"degrees": str}, parser=parser)
-    with tm.ensure_clean() as path:
-        with open(path, "w") as f:
-            f.write(xml_types)
-
-        df_iter = read_xml(
-            path,
-            parser=parser,
-            converters={"degrees": str},
-            iterparse={"row": ["shape", "degrees", "sides"]},
-        )
+    df_iter = read_xml_iterparse(
+        xml_types,
+        parser=parser,
+        converters={"degrees": str},
+        iterparse={"row": ["shape", "degrees", "sides"]},
+    )
 
     df_expected = DataFrame(
         {
@@ -260,16 +243,12 @@ def test_converters_date(parser):
     df_result = read_xml(
         xml_dates, converters={"date": convert_to_datetime}, parser=parser
     )
-    with tm.ensure_clean() as path:
-        with open(path, "w") as f:
-            f.write(xml_dates)
-
-        df_iter = read_xml(
-            path,
-            parser=parser,
-            converters={"date": convert_to_datetime},
-            iterparse={"row": ["shape", "degrees", "sides", "date"]},
-        )
+    df_iter = read_xml_iterparse(
+        xml_dates,
+        parser=parser,
+        converters={"date": convert_to_datetime},
+        iterparse={"row": ["shape", "degrees", "sides", "date"]},
+    )
 
     df_expected = DataFrame(
         {
@@ -304,16 +283,12 @@ def test_callable_str_converters(parser):
 
 def test_parse_dates_column_name(parser):
     df_result = read_xml(xml_dates, parse_dates=["date"], parser=parser)
-    with tm.ensure_clean() as path:
-        with open(path, "w") as f:
-            f.write(xml_dates)
-
-        df_iter = read_xml(
-            path,
-            parser=parser,
-            parse_dates=["date"],
-            iterparse={"row": ["shape", "degrees", "sides", "date"]},
-        )
+    df_iter = read_xml_iterparse(
+        xml_dates,
+        parser=parser,
+        parse_dates=["date"],
+        iterparse={"row": ["shape", "degrees", "sides", "date"]},
+    )
 
     df_expected = DataFrame(
         {
@@ -330,16 +305,12 @@ def test_parse_dates_column_name(parser):
 
 def test_parse_dates_column_index(parser):
     df_result = read_xml(xml_dates, parse_dates=[3], parser=parser)
-    with tm.ensure_clean() as path:
-        with open(path, "w") as f:
-            f.write(xml_dates)
-
-        df_iter = read_xml(
-            path,
-            parser=parser,
-            parse_dates=[3],
-            iterparse={"row": ["shape", "degrees", "sides", "date"]},
-        )
+    df_iter = read_xml_iterparse(
+        xml_dates,
+        parser=parser,
+        parse_dates=[3],
+        iterparse={"row": ["shape", "degrees", "sides", "date"]},
+    )
 
     df_expected = DataFrame(
         {
@@ -356,16 +327,13 @@ def test_parse_dates_column_index(parser):
 
 def test_parse_dates_true(parser):
     df_result = read_xml(xml_dates, parse_dates=True, parser=parser)
-    with tm.ensure_clean() as path:
-        with open(path, "w") as f:
-            f.write(xml_dates)
 
-        df_iter = read_xml(
-            path,
-            parser=parser,
-            parse_dates=True,
-            iterparse={"row": ["shape", "degrees", "sides", "date"]},
-        )
+    df_iter = read_xml_iterparse(
+        xml_dates,
+        parser=parser,
+        parse_dates=True,
+        iterparse={"row": ["shape", "degrees", "sides", "date"]},
+    )
 
     df_expected = DataFrame(
         {
@@ -412,16 +380,12 @@ def test_parse_dates_dictionary(parser):
     df_result = read_xml(
         xml, parse_dates={"date_end": ["year", "month", "day"]}, parser=parser
     )
-    with tm.ensure_clean() as path:
-        with open(path, "w") as f:
-            f.write(xml)
-
-        df_iter = read_xml(
-            path,
-            parser=parser,
-            parse_dates={"date_end": ["year", "month", "day"]},
-            iterparse={"row": ["shape", "degrees", "sides", "year", "month", "day"]},
-        )
+    df_iter = read_xml_iterparse(
+        xml,
+        parser=parser,
+        parse_dates={"date_end": ["year", "month", "day"]},
+        iterparse={"row": ["shape", "degrees", "sides", "year", "month", "day"]},
+    )
 
     df_expected = DataFrame(
         {
