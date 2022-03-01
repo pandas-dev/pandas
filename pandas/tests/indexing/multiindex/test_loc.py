@@ -405,7 +405,7 @@ class TestMultiIndexLoc:
     def test_loc_no_second_level_index(self):
         # GH#43599
         df = DataFrame(
-            index=MultiIndex.from_product([list("ab"), list("cd"), list("e")]), 
+            index=MultiIndex.from_product([list("ab"), list("cd"), list("e")]),
             columns=["Val"],
         )
         res = df.loc[np.s_[:, "c", :]]
