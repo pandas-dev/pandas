@@ -427,10 +427,16 @@ can even be omitted:
 .. note::
 
     Missing values are ignored and each entry is computed using the pairwise
-    complete observations.  Please see the :ref:`covariance section
-    <computation.covariance>` for :ref:`caveats
-    <computation.covariance.caveats>` associated with this method of
-    calculating covariance and correlation matrices.
+    complete observations.
+
+    Assuming the missing data are missing at random this results in an estimate
+    for the covariance matrix which is unbiased. However, for many applications
+    this estimate may not be acceptable because the estimated covariance matrix
+    is not guaranteed to be positive semi-definite. This could lead to
+    estimated correlations having absolute values which are greater than one,
+    and/or a non-invertible covariance matrix. See `Estimation of covariance
+    matrices <https://en.wikipedia.org/w/index.php?title=Estimation_of_covariance_matrices>`_
+    for more details.
 
 .. ipython:: python
 
