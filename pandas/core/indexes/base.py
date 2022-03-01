@@ -890,7 +890,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         # error: Argument 1 to "ExtensionEngine" has incompatible type
         # "ndarray[Any, Any]"; expected "ExtensionArray"
-        return self._engine_type(target_values)  # type:ignore[arg-type]
+        return self._engine_type(target_values)  # type: ignore[arg-type]
 
     @final
     @cache_readonly
@@ -3934,7 +3934,7 @@ class Index(IndexOpsMixin, PandasObject):
             # error: Argument 1 to "get_indexer" of "IndexEngine" has incompatible
             # type "Union[ExtensionArray, ndarray[Any, Any]]"; expected
             # "ndarray[Any, Any]"
-            indexer = self._engine.get_indexer(tgt_values)  # type:ignore[arg-type]
+            indexer = self._engine.get_indexer(tgt_values)  # type: ignore[arg-type]
 
         return ensure_platform_int(indexer)
 
@@ -7167,7 +7167,7 @@ def ensure_index_from_sequences(sequences, names=None) -> Index:
     if len(sequences) == 1:
         if names is not None:
             names = names[0]
-        return Index(sequences[0], name=names)
+        return Index._with_infer(sequences[0], name=names)
     else:
         return MultiIndex.from_arrays(sequences, names=names)
 

@@ -103,7 +103,7 @@ def _nanpercentile_1d(
     mask: npt.NDArray[np.bool_],
     qs: npt.NDArray[np.float64],
     na_value: Scalar,
-    interpolation,
+    interpolation: str,
 ) -> Scalar | np.ndarray:
     """
     Wrapper for np.percentile that skips missing values, specialized to
@@ -132,7 +132,14 @@ def _nanpercentile_1d(
         # equiv: 'np.array([na_value] * len(qs))' but much faster
         return np.full(len(qs), na_value)
 
-    return np.percentile(values, qs, **{np_percentile_argname: interpolation})
+    return np.percentile(
+        values,
+        qs,
+        # error: No overload variant of "percentile" matches argument types
+        # "ndarray[Any, Any]", "ndarray[Any, dtype[floating[_64Bit]]]",
+        # "int", "Dict[str, str]"
+        **{np_percentile_argname: interpolation},  # type: ignore[call-overload]
+    )
 
 
 def _nanpercentile(
@@ -141,7 +148,7 @@ def _nanpercentile(
     *,
     na_value,
     mask: npt.NDArray[np.bool_],
-    interpolation,
+    interpolation: str,
 ):
     """
     Wrapper for np.percentile that skips missing values.
@@ -186,5 +193,11 @@ def _nanpercentile(
         return result
     else:
         return np.percentile(
-            values, qs, axis=1, **{np_percentile_argname: interpolation}
+            values,
+            qs,
+            axis=1,
+            # error: No overload variant of "percentile" matches argument types
+            # "ndarray[Any, Any]", "ndarray[Any, dtype[floating[_64Bit]]]",
+            # "int", "Dict[str, str]"
+            **{np_percentile_argname: interpolation},  # type: ignore[call-overload]
         )

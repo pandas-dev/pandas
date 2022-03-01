@@ -186,7 +186,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         return self._ndarray
 
     # Signature of "argmin" incompatible with supertype "ExtensionArray"
-    def argmin(self, axis: int = 0, skipna: bool = True):  # type:ignore[override]
+    def argmin(self, axis: int = 0, skipna: bool = True):  # type: ignore[override]
         # override base class by adding axis keyword
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
@@ -194,7 +194,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         return nargminmax(self, "argmin", axis=axis)
 
     # Signature of "argmax" incompatible with supertype "ExtensionArray"
-    def argmax(self, axis: int = 0, skipna: bool = True):  # type:ignore[override]
+    def argmax(self, axis: int = 0, skipna: bool = True):  # type: ignore[override]
         # override base class by adding axis keyword
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
@@ -229,12 +229,16 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter = None,
     ) -> npt.NDArray[np.intp] | np.intp:
+        # TODO(2.0): use _validate_setitem_value once dt64tz mismatched-timezone
+        #  deprecation is enforced
         npvalue = self._validate_searchsorted_value(value)
         return self._ndarray.searchsorted(npvalue, side=side, sorter=sorter)
 
     def _validate_searchsorted_value(
         self, value: NumpyValueArrayLike | ExtensionArray
     ) -> NumpyValueArrayLike:
+        # TODO(2.0): after deprecation in datetimelikearraymixin is enforced,
+        #  we can remove this and use _validate_setitem_value directly
         if isinstance(value, ExtensionArray):
             return value.to_numpy()
         else:
