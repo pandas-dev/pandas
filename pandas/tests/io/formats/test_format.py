@@ -3312,11 +3312,11 @@ class TestDatetimeFastFormatter:
         old_style_format = convert_dtformat(strftime_format)
 
         # Perf comparison: confirm the results in https://stackoverflow.com/a/43495629/7262247
-        def get_datetime_fmt_dct(dt):
-            return dict(
-                year=dt.year, month=dt.month, day=dt.day, hour=dt.hour,
-                min=dt.minute, sec=dt.second, us=dt.microsecond
-            )
+        fmt_dct = dict(
+            year=dt.year, month=dt.month, day=dt.day, hour=dt.hour,
+            min=dt.minute, sec=dt.second, us=dt.microsecond
+        )
+
         glob = globals()
         glob.update(locals())
         strftime_best = min(
@@ -3324,13 +3324,13 @@ class TestDatetimeFastFormatter:
         )
         #   Out[3]: 0.0062
         new_style_best = min(
-            Timer("new_style_format.format(**get_datetime_fmt_dct(dt))", globals=glob).repeat(7, 1000)
+            Timer("new_style_format.format(**fmt_dct)", globals=glob).repeat(7, 1000)
         )
-        #   Out[4]: 0.0018  if get_datetime_fmt_dct is pre-evaluated, 0.0036 otherwise
+        #   Out[4]: 0.0036
         old_style_best = min(
-            Timer("old_style_format % get_datetime_fmt_dct(dt)", globals=glob).repeat(7, 1000)
+            Timer("old_style_format % fmt_dct", globals=glob).repeat(7, 1000)
         )
-        #   Out[5]: 0.0012  if get_datetime_fmt_dct is pre-evaluated, 0.0030 otherwise
+        #   Out[5]: 0.0030
         assert new_style_best < strftime_best   # much better
         assert old_style_best < new_style_best  # even better !
 
