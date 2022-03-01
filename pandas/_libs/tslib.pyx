@@ -166,12 +166,16 @@ def format_array_from_datetime(
         show_ns = show_ms = False
 
     elif fast_strftime:
-        try:
-            # Try to get the string formatting template for this format
-            str_format = convert_dtformat(format)
-        except UnsupportedDatetimeDirective:
-            # Unsupported directive: fallback to standard `strftime`
+        if format is None:
+            # We'll fallback to the Timestamp.str method
             fast_strftime = False
+        else:
+            try:
+                # Try to get the string formatting template for this format
+                str_format = convert_dtformat(format)
+            except UnsupportedDatetimeDirective:
+                # Unsupported directive: fallback to standard `strftime`
+                fast_strftime = False
 
     for i in range(N):
         val = values[i]
