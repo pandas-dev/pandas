@@ -78,10 +78,3 @@ Hashing
 
    util.hash_array
    util.hash_pandas_object
-
-Testing
-~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-   test

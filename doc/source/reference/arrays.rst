@@ -6,6 +6,10 @@
 pandas arrays, scalars, and data types
 ======================================
 
+*******
+Objects
+*******
+
 .. currentmodule:: pandas
 
 For most data types, pandas uses NumPy arrays as the concrete
@@ -40,8 +44,8 @@ stored in a :class:`Series`, :class:`Index`, or as a column in a :class:`DataFra
 
 .. _api.arrays.datetime:
 
-Datetime data
--------------
+Datetimes
+---------
 
 NumPy cannot natively represent timezone-aware datetimes. pandas supports this
 with the :class:`arrays.DatetimeArray` extension array, which can hold timezone-naive
@@ -161,8 +165,8 @@ If the data are timezone-aware, then every value in the array must have the same
 
 .. _api.arrays.timedelta:
 
-Timedelta data
---------------
+Timedeltas
+----------
 
 NumPy can natively represent timedeltas. pandas provides :class:`Timedelta`
 for symmetry with :class:`Timestamp`.
@@ -216,8 +220,8 @@ A collection of :class:`Timedelta` may be stored in a :class:`TimedeltaArray`.
 
 .. _api.arrays.period:
 
-Timespan data
--------------
+Periods
+-------
 
 pandas represents spans of times as :class:`Period` objects.
 
@@ -284,8 +288,8 @@ Every period in a :class:`arrays.PeriodArray` must have the same ``freq``.
 
 .. _api.arrays.interval:
 
-Interval data
--------------
+Intervals
+---------
 
 Arbitrary intervals can be represented as :class:`Interval` objects.
 
@@ -379,8 +383,8 @@ pandas provides this through :class:`arrays.IntegerArray`.
 
 .. _api.arrays.categorical:
 
-Categorical data
-----------------
+Categoricals
+------------
 
 pandas defines a custom data type for representing data that can take only a
 limited, fixed set of values. The dtype of a :class:`Categorical` can be described by
@@ -444,8 +448,8 @@ data. See :ref:`api.series.cat` for more.
 
 .. _api.arrays.sparse:
 
-Sparse data
------------
+Sparse
+------
 
 Data where a single value is repeated many times (e.g. ``0`` or ``NaN``) may
 be stored efficiently as a :class:`arrays.SparseArray`.
@@ -469,8 +473,8 @@ and methods if the :class:`Series` contains sparse values. See
 
 .. _api.arrays.string:
 
-Text data
----------
+Strings
+-------
 
 When working with text data, where each valid element is a string or missing,
 we recommend using :class:`StringDtype` (with the alias ``"string"``).
@@ -494,8 +498,8 @@ See :ref:`api.series.str` for more.
 
 .. _api.arrays.bool:
 
-Boolean data with missing values
---------------------------------
+Nullable Boolean
+----------------
 
 The boolean dtype (with the alias ``"boolean"``) provides support for storing
 boolean data (``True``, ``False``) with missing values, which is not possible
@@ -525,3 +529,72 @@ with a bool :class:`numpy.ndarray`.
       DatetimeTZDtype.tz
       PeriodDtype.freq
       IntervalDtype.subtype
+
+*********
+Utilities
+*********
+
+Constructors
+------------
+.. autosummary::
+   :toctree: api/
+
+   api.types.union_categoricals
+   api.types.infer_dtype
+   api.types.pandas_dtype
+
+Data type introspection
+~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+    api.types.is_bool_dtype
+    api.types.is_categorical_dtype
+    api.types.is_complex_dtype
+    api.types.is_datetime64_any_dtype
+    api.types.is_datetime64_dtype
+    api.types.is_datetime64_ns_dtype
+    api.types.is_datetime64tz_dtype
+    api.types.is_extension_type
+    api.types.is_extension_array_dtype
+    api.types.is_float_dtype
+    api.types.is_int64_dtype
+    api.types.is_integer_dtype
+    api.types.is_interval_dtype
+    api.types.is_numeric_dtype
+    api.types.is_object_dtype
+    api.types.is_period_dtype
+    api.types.is_signed_integer_dtype
+    api.types.is_string_dtype
+    api.types.is_timedelta64_dtype
+    api.types.is_timedelta64_ns_dtype
+    api.types.is_unsigned_integer_dtype
+    api.types.is_sparse
+
+Iterable introspection
+~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+    api.types.is_dict_like
+    api.types.is_file_like
+    api.types.is_list_like
+    api.types.is_named_tuple
+    api.types.is_iterator
+
+Scalar introspection
+~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+    api.types.is_bool
+    api.types.is_categorical
+    api.types.is_complex
+    api.types.is_float
+    api.types.is_hashable
+    api.types.is_integer
+    api.types.is_interval
+    api.types.is_number
+    api.types.is_re
+    api.types.is_re_compilable
+    api.types.is_scalar
