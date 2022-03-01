@@ -1221,8 +1221,8 @@ cdef str _period_fast_strftime(int64_t value, int freq):
         # fmt = b'%FQ%q'
         quarter = get_yq(value, freq, &dts)
         # TODO check _period_strftime : this should be the fiscal year
-        # f"{(dts.year % 100):02d}Q{quarter}"
-        return "%02dQ%s" % ((dts.year % 100), quarter)
+        # f"{dts.year}Q{quarter}"
+        return "%sQ%s" % (dts.year, quarter)
 
     elif freq_group == FR_MTH:
         # fmt = b'%Y-%m'
