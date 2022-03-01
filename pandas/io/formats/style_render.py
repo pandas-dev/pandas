@@ -175,14 +175,12 @@ class StylerRenderer:
             dx, _ = self.concatenated._render(
                 sparse_index, sparse_columns, max_rows, max_cols, blank
             )
-            # extend ctx objects with concatenated recursively
-            n, obj = 0, self
-            while obj.concatenated is not None:
-                n, obj = n + len(obj.index), obj.concatenated
+
+            # extend ctx objects with concatenated recursively for _translate_latex
             for (r, c), v in self.concatenated.ctx.items():
-                self.ctx[(r + n, c)] = v
+                self.ctx[(r + len(self.index), c)] = v
             for (r, c), v in self.concatenated.ctx_index.items():
-                self.ctx_index[(r + n, c)] = v
+                self.ctx_index[(r + len(self.index), c)] = v
 
         d = self._translate(sparse_index, sparse_columns, max_rows, max_cols, blank, dx)
         return d, dx
@@ -850,22 +848,23 @@ class StylerRenderer:
             for r, row in enumerate(d["head"])
         ]
 
-        def concatenated_visible_rows():
+        def concatenated_visible_rows(obj, n, row_indices):
             """
-            Extract all visible row indices recursively from concatenated stylers
+            Extract all visible row indices recursively from concatenated stylers.
             """
-            obj, n = self, len(self.data.index)
-            row_indices = [r for r in range(n) if r not in obj.hidden_rows]
-            while obj.concatenated is not None:
-                obj = obj.concatenated
-                row_indices.extend(
-                    [r + n for r in range(len(obj.index)) if r not in obj.hidden_rows]
+            row_indices.extend(
+                [r + n for r in range(len(obj.index)) if r not in obj.hidden_rows]
+            )
+            return (
+                row_indices
+                if obj.concatenated is None
+                else concatenated_visible_rows(
+                    obj.concatenated, n + len(obj.index), row_indices
                 )
-                n += len(obj.index)
-            return row_indices
+            )
 
         body = []
-        for r, row in zip(concatenated_visible_rows(), d["body"]):
+        for r, row in zip(concatenated_visible_rows(self, 0, []), d["body"]):
             # note: cannot enumerate d["body"] because rows were dropped if hidden
             # during _translate_body so must zip to acquire the true r-index associated
             # with the ctx obj which contains the cell styles.
