@@ -1636,21 +1636,9 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             return self.values
 
     def set_inplace(self, locs, values: ArrayLike) -> None:
-        # NB: This is a misnomer, is supposed to be inplace but is not,
-        #  see GH#33457
         # When an ndarray, we should have locs.tolist() == [0]
         # When a BlockPlacement we should have list(locs) == [0]
-
-        # error: Incompatible types in assignment (expression has type
-        # "Union[ExtensionArray, ndarray[Any, Any]]", variable has type
-        # "ExtensionArray")
-        self.values = values  # type: ignore[assignment]
-        try:
-            # TODO(GH33457) this can be removed
-            self._cache.clear()
-        except AttributeError:
-            # _cache not yet initialized
-            pass
+        self.values[:] = values
 
     def _maybe_squeeze_arg(self, arg):
         """
