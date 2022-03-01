@@ -14,6 +14,7 @@ from typing import (
     Any,
     Callable,
     Hashable,
+    Sized,
 )
 import warnings
 
@@ -126,6 +127,7 @@ class BaseWindow(SelectionMixin):
         axis: Axis = 0,
         on: str | Index | None = None,
         closed: str | None = None,
+        step: int | None = None,
         method: str = "single",
         *,
         selection=None,
@@ -133,6 +135,7 @@ class BaseWindow(SelectionMixin):
         self.obj = obj
         self.on = on
         self.closed = closed
+        self.step = step
         self.window = window
         self.min_periods = min_periods
         self.center = center
@@ -235,11 +238,24 @@ class BaseWindow(SelectionMixin):
                 f"start ({len(start)}) and end ({len(end)}) bounds must be the "
                 f"same length"
             )
-        elif len(start) != num_vals:
+        elif not isinstance(self._get_window_indexer(), GroupbyIndexer) and len(
+            start
+        ) != (num_vals + (self.step or 1) - 1) // (self.step or 1):
             raise ValueError(
                 f"start and end bounds ({len(start)}) must be the same length "
-                f"as the object ({num_vals})"
+                f"as the object ({num_vals}) divided by the step ({self.step}) "
+                f"if given and rounded up"
             )
+
+    def _slice_index(self, index: Index, result: Sized | None = None) -> Index:
+        """
+        Slices the index for a given result and the preset step.
+        """
+        return (
+            index
+            if result is None or len(result) == len(index)
+            else index[:: self.step]
+        )
 
     def _create_data(self, obj: NDFrameT) -> NDFrameT:
         """
@@ -324,6 +340,7 @@ class BaseWindow(SelectionMixin):
             min_periods=self.min_periods,
             center=self.center,
             closed=self.closed,
+            step=self.step,
         )
         self._check_window_bounds(start, end, len(obj))
 
@@ -429,7 +446,8 @@ class BaseWindow(SelectionMixin):
             raise DataError("No numeric types to aggregate") from err
 
         result = homogeneous_func(values)
-        return obj._constructor(result, index=obj.index, name=obj.name)
+        index = self._slice_index(obj.index, result)
+        return obj._constructor(result, index=index, name=obj.name)
 
     def _apply_blockwise(
         self, homogeneous_func: Callable[..., ArrayLike], name: str | None = None
@@ -466,9 +484,12 @@ class BaseWindow(SelectionMixin):
                 res_values.append(res)
                 taker.append(i)
 
+        index = self._slice_index(
+            obj.index, res_values[0] if len(res_values) > 0 else None
+        )
         df = type(obj)._from_arrays(
             res_values,
-            index=obj.index,
+            index=index,
             columns=obj.columns.take(taker),
             verify_integrity=False,
         )
@@ -503,7 +524,13 @@ class BaseWindow(SelectionMixin):
         values = values.T if self.axis == 1 else values
         result = homogeneous_func(values)
         result = result.T if self.axis == 1 else result
-        out = obj._constructor(result, index=obj.index, columns=obj.columns)
+        index = self._slice_index(obj.index, result)
+        columns = (
+            obj.columns
+            if result.shape[1] == len(obj.columns)
+            else obj.columns[:: self.step]
+        )
+        out = obj._constructor(result, index=index, columns=columns)
 
         return self._resolve_output(out, obj)
 
@@ -570,6 +597,7 @@ class BaseWindow(SelectionMixin):
                     min_periods=min_periods,
                     center=self.center,
                     closed=self.closed,
+                    step=self.step,
                 )
                 self._check_window_bounds(start, end, len(x))
 
@@ -608,6 +636,7 @@ class BaseWindow(SelectionMixin):
             min_periods=min_periods,
             center=self.center,
             closed=self.closed,
+            step=self.step,
         )
         self._check_window_bounds(start, end, len(values))
         aggregator = executor.generate_shared_aggregator(
@@ -615,12 +644,14 @@ class BaseWindow(SelectionMixin):
         )
         result = aggregator(values, start, end, min_periods, *func_args)
         result = result.T if self.axis == 1 else result
+        index = self._slice_index(obj.index, result)
         if obj.ndim == 1:
             result = result.squeeze()
-            out = obj._constructor(result, index=obj.index, name=obj.name)
+            out = obj._constructor(result, index=index, name=obj.name)
             return out
         else:
-            out = obj._constructor(result, index=obj.index, columns=obj.columns)
+            columns = self._slice_index(obj.columns, result.T)
+            out = obj._constructor(result, index=index, columns=columns)
             return self._resolve_output(out, obj)
 
     def aggregate(self, func, *args, **kwargs):
@@ -659,6 +690,9 @@ class BaseWindowGroupby(BaseWindow):
         # groupby.<agg_func>, but unexpected to users in
         # groupby.rolling.<agg_func>
         obj = obj.drop(columns=self._grouper.names, errors="ignore")
+        # GH 15354
+        if kwargs.get("step") is not None:
+            raise NotImplementedError("step not implemented for rolling groupby")
         super().__init__(obj, *args, **kwargs)
 
     def _apply(
@@ -827,12 +861,6 @@ class BaseWindowGroupby(BaseWindow):
             subset = self.obj.set_index(self._on)
         return super()._gotitem(key, ndim, subset=subset)
 
-    def _validate_monotonic(self):
-        """
-        Validate that "on" is monotonic; already validated at a higher level.
-        """
-        pass
-
 
 class Window(BaseWindow):
     """
@@ -854,8 +882,8 @@ class Window(BaseWindow):
 
         If a BaseIndexer subclass, the window boundaries
         based on the defined ``get_window_bounds`` method. Additional rolling
-        keyword arguments, namely ``min_periods``, ``center``, and
-        ``closed`` will be passed to ``get_window_bounds``.
+        keyword arguments, namely ``min_periods``, ``center``, ``closed`` and
+        ``step`` will be passed to ``get_window_bounds``.
 
     min_periods : int, default None
         Minimum number of observations in window required to have a value;
@@ -908,6 +936,16 @@ class Window(BaseWindow):
         .. versionchanged:: 1.2.0
 
             The closed parameter with fixed windows is now supported.
+
+    step : int, default None
+        When supported, applies ``[::step]`` to the resulting sequence of windows, in a
+        computationally efficient manner. Currently supported only with fixed-length
+        window indexers. Note that using a step argument other than None or 1 will
+        produce a result with a different shape than the input.
+
+        ..versionadded:: 1.5
+
+            The step parameter is only supported with fixed windows.
 
     method : str {'single', 'table'}, default 'single'
 
@@ -1027,6 +1065,17 @@ class Window(BaseWindow):
     3  3.0
     4  6.0
 
+    **step**
+
+    Rolling sum with a window length of 2 observations, minimum of 1 observation to
+    calculate a value, and a step of 2.
+
+    >>> df.rolling(2, min_periods=1, step=2).sum()
+         B
+    0  0.0
+    2  3.0
+    4  4.0
+
     **win_type**
 
     Rolling sum with a window length of 2, using the Scipy ``'gaussian'``
@@ -1049,6 +1098,7 @@ class Window(BaseWindow):
         "axis",
         "on",
         "closed",
+        "step",
         "method",
     ]
 
@@ -1138,7 +1188,7 @@ class Window(BaseWindow):
 
             return result
 
-        return self._apply_blockwise(homogeneous_func, name)
+        return self._apply_blockwise(homogeneous_func, name)[:: self.step]
 
     @doc(
         _shared_docs["aggregate"],
@@ -1554,6 +1604,11 @@ class RollingAndExpandingMixin(BaseWindow):
         ddof: int = 1,
         **kwargs,
     ):
+        if self.step is not None:
+            raise NotImplementedError(
+                "step not implemented for rolling and expanding cov"
+            )
+
         from pandas import Series
 
         def cov_func(x, y):
@@ -1570,6 +1625,7 @@ class RollingAndExpandingMixin(BaseWindow):
                 min_periods=min_periods,
                 center=self.center,
                 closed=self.closed,
+                step=self.step,
             )
             self._check_window_bounds(start, end, len(x_array))
 
@@ -1595,6 +1651,11 @@ class RollingAndExpandingMixin(BaseWindow):
         **kwargs,
     ):
 
+        if self.step is not None:
+            raise NotImplementedError(
+                "step not implemented for rolling and expanding corr"
+            )
+
         from pandas import Series
 
         def corr_func(x, y):
@@ -1611,6 +1672,7 @@ class RollingAndExpandingMixin(BaseWindow):
                 min_periods=min_periods,
                 center=self.center,
                 closed=self.closed,
+                step=self.step,
             )
             self._check_window_bounds(start, end, len(x_array))
 
@@ -1649,6 +1711,7 @@ class Rolling(RollingAndExpandingMixin):
         "axis",
         "on",
         "closed",
+        "step",
         "method",
     ]
 
@@ -1661,7 +1724,7 @@ class Rolling(RollingAndExpandingMixin):
             or isinstance(self._on, (DatetimeIndex, TimedeltaIndex, PeriodIndex))
         ) and isinstance(self.window, (str, BaseOffset, timedelta)):
 
-            self._validate_monotonic()
+            self._validate_datetimelike_monotonic()
 
             # this will raise ValueError on non-fixed freqs
             try:
@@ -1688,22 +1751,41 @@ class Rolling(RollingAndExpandingMixin):
 
         elif isinstance(self.window, BaseIndexer):
             # Passed BaseIndexer subclass should handle all other rolling kwargs
-            return
+            pass
         elif not is_integer(self.window) or self.window < 0:
             raise ValueError("window must be an integer 0 or greater")
+        # GH 15354:
+        # validate window indexer parameters do not raise in get_window_bounds
+        # this cannot be done in BaseWindow._validate because there _get_window_indexer
+        # would erroneously create a fixed window given a window argument like "1s" due
+        # to _win_freq_i8 not being set
+        indexer = self._get_window_indexer()
+        indexer.get_window_bounds(
+            num_values=0,
+            min_periods=self.min_periods,
+            center=self.center,
+            closed=self.closed,
+            step=self.step,
+        )
 
-    def _validate_monotonic(self):
+    def _validate_datetimelike_monotonic(self):
         """
-        Validate monotonic (increasing or decreasing).
+        Validate self._on is monotonic (increasing or decreasing) and has
+        no NaT values for frequency windows.
         """
+        if self._on.hasnans:
+            self._raise_monotonic_error("values must not have NaT")
         if not (self._on.is_monotonic_increasing or self._on.is_monotonic_decreasing):
-            self._raise_monotonic_error()
+            self._raise_monotonic_error("values must be monotonic")
 
-    def _raise_monotonic_error(self):
-        formatted = self.on
-        if self.on is None:
-            formatted = "index"
-        raise ValueError(f"{formatted} must be monotonic")
+    def _raise_monotonic_error(self, msg: str):
+        on = self.on
+        if on is None:
+            if self.axis == 0:
+                on = "index"
+            else:
+                on = "column"
+        raise ValueError(f"{on} {msg}")
 
     @doc(
         _shared_docs["aggregate"],
@@ -2610,13 +2692,3 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
             indexer_kwargs=indexer_kwargs,
         )
         return window_indexer
-
-    def _validate_monotonic(self):
-        """
-        Validate that on is monotonic;
-        """
-        if (
-            not (self._on.is_monotonic_increasing or self._on.is_monotonic_decreasing)
-            or self._on.hasnans
-        ):
-            self._raise_monotonic_error()
