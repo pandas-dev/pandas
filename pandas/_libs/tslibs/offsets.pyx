@@ -474,9 +474,8 @@ cdef class BaseOffset:
 
     def __rsub__(self, other):
         # We land here because the other object doesn't know how to sub
-        # offset. We can call our own add method since order of operations
-        # doesn't matter.
-        return self.__sub__(other)
+        # offset.
+        return (-self).__add__(other)
 
     def __call__(self, other):
         warnings.warn(
@@ -925,6 +924,10 @@ cdef class Tick(SingleConstructorOffset):
             result = other.delta.__rtruediv__(self)
         else:
             result = self.delta.__truediv__(other)
+        return _wrap_timedelta_result(result)
+
+    def __rtruediv__(self, other):
+        result = self.delta.__rtruediv__(other)
         return _wrap_timedelta_result(result)
 
     def __add__(self, other):
