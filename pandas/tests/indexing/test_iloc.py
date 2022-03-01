@@ -875,16 +875,19 @@ class TestiLocBaseIndependent:
         result = s.iloc[np.array(0)]
         assert result == 1
 
-    @pytest.mark.xfail(reason="https://github.com/pandas-dev/pandas/issues/33457")
+    @td.skip_array_manager_not_yet_implemented
     def test_iloc_setitem_categorical_updates_inplace(self):
         # Mixed dtype ensures we go through take_split_path in setitem_with_indexer
         cat = Categorical(["A", "B", "C"])
-        df = DataFrame({1: cat, 2: [1, 2, 3]})
+        df = DataFrame({1: cat, 2: [1, 2, 3]}, copy=False)
+
+        assert tm.shares_memory(df[1], cat)
 
         # This should modify our original values in-place
         df.iloc[:, 0] = cat[::-1]
+        assert tm.shares_memory(df[1], cat)
 
-        expected = Categorical(["C", "B", "A"])
+        expected = Categorical(["C", "B", "A"], categories=["A", "B", "C"])
         tm.assert_categorical_equal(cat, expected)
 
     def test_iloc_with_boolean_operation(self):
