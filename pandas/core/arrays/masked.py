@@ -99,13 +99,15 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     _internal_fill_value: Scalar
     # our underlying data and mask are each ndarrays
     _data: np.ndarray
-    _mask: np.ndarray
+    _mask: npt.NDArray[np.bool_]
 
     # Fill values used for any/all
     _truthy_value = Scalar  # bool(_truthy_value) = True
     _falsey_value = Scalar  # bool(_falsey_value) = False
 
-    def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
+    def __init__(
+        self, values: np.ndarray, mask: npt.NDArray[np.bool_], copy: bool = False
+    ):
         # values is supposed to already be validated in the subclass
         if not (isinstance(mask, np.ndarray) and mask.dtype == np.bool_):
             raise TypeError(
@@ -174,12 +176,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if mask.any():
             if method is not None:
                 func = missing.get_fill_func(method, ndim=self.ndim)
-                new_values, new_mask = func(
-                    self._data.copy().T,
-                    limit=limit,
-                    mask=mask.copy().T,
-                )
-                return type(self)(new_values.T, new_mask.view(np.bool_).T)
+                npvalues = self._data.copy().T
+                new_mask = mask.copy().T
+                func(npvalues, limit=limit, mask=new_mask)
+                return type(self)(npvalues.T, new_mask.T)
             else:
                 # fill with value
                 new_values = self.copy()
@@ -336,7 +336,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         self,
         dtype: npt.DTypeLike | None = None,
         copy: bool = False,
-        na_value: Scalar = lib.no_default,
+        na_value: Scalar | lib.NoDefault | libmissing.NAType = lib.no_default,
     ) -> np.ndarray:
         """
         Convert to a NumPy Array.
