@@ -2519,6 +2519,7 @@ class TestDataFrameConstructors:
             return
 
         c = pd.array([1, 2], dtype=any_numeric_ea_dtype)
+        c_orig = c.copy()
         df = DataFrame({"a": a, "b": b, "c": c}, copy=copy)
 
         def get_base(obj):
@@ -2530,9 +2531,19 @@ class TestDataFrameConstructors:
             else:
                 raise TypeError
 
-        def check_views():
+        def check_views(c_only: bool = False):
             # written to work for either BlockManager or ArrayManager
+
+            # Check that the underlying data behind df["c"] is still `c`
+            #  after setting with iloc.  Since we don't know which entry in
+            #  df._mgr.arrays corresponds to df["c"], we just check that exactly
+            #  one of these arrays is `c`.  GH#38939
             assert sum(x is c for x in df._mgr.arrays) == 1
+            if c_only:
+                # If we ever stop consolidating in setitem_with_indexer,
+                #  this will become unnecessary.
+                return
+
             assert (
                 sum(
                     get_base(x) is a
@@ -2554,23 +2565,18 @@ class TestDataFrameConstructors:
             # constructor preserves views
             check_views()
 
+        # TODO: most of the rest of this test belongs in indexing tests
         df.iloc[0, 0] = 0
         df.iloc[0, 1] = 0
         if not copy:
-            # Check that the underlying data behind df["c"] is still `c`
-            #  after setting with iloc.  Since we don't know which entry in
-            #  df._mgr.arrays corresponds to df["c"], we just check that exactly
-            #  one of these arrays is `c`.  GH#38939
-            assert sum(x is c for x in df._mgr.arrays) == 1
-            # TODO: we can call check_views if we stop consolidating
-            #  in setitem_with_indexer
+            check_views(True)
 
         # FIXME(GH#35417): until GH#35417, iloc.setitem into EA values does not preserve
         #  view, so we have to check in the other direction
-        # df.iloc[0, 2] = 0
-        # if not copy:
-        #     check_views()
-        c[0] = 0
+        df.iloc[:, 2] = pd.array([45, 46], dtype=c.dtype)
+        assert df.dtypes.iloc[2] == c.dtype
+        if not copy:
+            check_views(True)
 
         if copy:
             if a.dtype.kind == "M":
@@ -2580,14 +2586,13 @@ class TestDataFrameConstructors:
                 assert a[0] == a.dtype.type(1)
                 assert b[0] == b.dtype.type(3)
             # FIXME(GH#35417): enable after GH#35417
-            # assert c[0] == 1
-            assert df.iloc[0, 2] == 1
+            assert c[0] == c_orig[0]  # i.e. df.iloc[0, 2]=45 did *not* update c
         else:
             # TODO: we can call check_views if we stop consolidating
             #  in setitem_with_indexer
-            # FIXME(GH#35417): enable after GH#35417
-            # assert b[0] == 0
-            assert df.iloc[0, 2] == 0
+            assert c[0] == 45  # i.e. df.iloc[0, 2]=45 *did* update c
+            # TODO: we can check b[0] == 0 if we stop consolidating in
+            #  setitem_with_indexer (except for datetimelike?)
 
     def test_from_series_with_name_with_columns(self):
         # GH 7893
