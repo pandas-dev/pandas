@@ -211,6 +211,7 @@ def format_array_from_datetime(
 
             ts = Timestamp(val, tz=tz)
             if format is None:
+                # Use datetime.str, that returns ts.isoformat(sep=' ')
                 result[i] = str(ts)
             else:
 
@@ -219,6 +220,7 @@ def format_array_from_datetime(
                 try:
                     result[i] = ts.strftime(format)
                 except ValueError:
+                    # Use datetime.str, that returns ts.isoformat(sep=' ')
                     result[i] = str(ts)
 
     return result
