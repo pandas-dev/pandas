@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Functions for preparing various inputs passed to the DataFrame or Series
 constructors before passing them to a BlockManager.

@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """Sparse Dtype"""
 from __future__ import annotations
 

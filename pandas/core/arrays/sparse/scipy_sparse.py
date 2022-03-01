@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Interaction with scipy.sparse matrices.
 

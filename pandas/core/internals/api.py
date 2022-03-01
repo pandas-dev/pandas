@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 This is a pseudo-public API for downstream libraries.  We ask that downstream
 authors

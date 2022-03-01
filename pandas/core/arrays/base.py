@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 An interface for extending pandas with custom arrays.
 

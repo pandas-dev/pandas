@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Methods used by Block.replace and related methods.
 """

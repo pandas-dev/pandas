@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Provide classes to perform the groupby aggregate operations.
 

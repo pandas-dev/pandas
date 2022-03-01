@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Arithmetic operations for PandasObjects
 

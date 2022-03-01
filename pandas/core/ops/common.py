@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Boilerplate functions used in defining binary operations.
 """

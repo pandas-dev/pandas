@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 The config module holds package-wide configurables and provides
 a uniform API for working with them.

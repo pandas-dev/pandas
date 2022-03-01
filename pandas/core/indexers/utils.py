@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Low-dependency indexing utilities.
 """

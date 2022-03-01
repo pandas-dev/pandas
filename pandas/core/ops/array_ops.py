@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Functions for arithmetic and comparison operations on NumPy arrays and
 ExtensionArrays.

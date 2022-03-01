@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Core eval alignment algorithms.
 """

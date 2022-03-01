@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Base class for the internal managers. Both BlockManager and ArrayManager
 inherit from this class.

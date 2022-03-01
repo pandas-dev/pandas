@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """Common utility functions for rolling operations"""
 from collections import defaultdict
 from typing import cast

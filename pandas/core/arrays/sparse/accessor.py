@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """Sparse accessor"""
 
 import numpy as np

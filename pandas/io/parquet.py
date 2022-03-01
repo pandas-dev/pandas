@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """ parquet compat """
 from __future__ import annotations
 

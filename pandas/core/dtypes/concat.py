@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Utility functions related to concat.
 """

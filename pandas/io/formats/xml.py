@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 :mod:`pandas.io.formats.xml` is a module for formatting data in XML.
 """

@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 # TODO: Use the fact that axis can have units to simplify the process
 
 from __future__ import annotations

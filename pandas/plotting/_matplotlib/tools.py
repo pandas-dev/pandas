@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 # being a bit too dynamic
 from __future__ import annotations
 

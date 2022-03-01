@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Support pre-0.12 series pickle compatibility.
 """

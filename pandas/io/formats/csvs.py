@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Module for formatting output data into CSV files.
 """

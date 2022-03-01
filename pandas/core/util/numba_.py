@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """Common utilities for Numba operations"""
 from __future__ import annotations
 

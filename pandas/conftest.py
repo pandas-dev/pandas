@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 This file is very long and growing, but it was decided to not split it yet, as
 it's still manageable (2020-03-17, ~1.1k LoC). See gh-31989

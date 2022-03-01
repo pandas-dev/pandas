@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Quantilization functions and related stuff
 """

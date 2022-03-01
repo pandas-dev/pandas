@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 SQL-style merge routines
 """

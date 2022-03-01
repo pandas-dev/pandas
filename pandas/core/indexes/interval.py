@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """ define the IntervalIndex """
 from __future__ import annotations
 

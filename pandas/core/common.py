@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Misc tools for implementing data structures
 

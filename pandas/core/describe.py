@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Module responsible for execution of NDFrame.describe() method.
 

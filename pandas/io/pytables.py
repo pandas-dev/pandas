@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 High level interface to PyTables for reading and writing pandas data structures
 to disk

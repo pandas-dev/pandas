@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """ manage PyTables query interface via Expressions """
 from __future__ import annotations
 

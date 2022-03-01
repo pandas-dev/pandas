@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Module for applying conditional formatting to DataFrames and Series.
 """

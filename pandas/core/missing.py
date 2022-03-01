@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Routines for filling missing data.
 """

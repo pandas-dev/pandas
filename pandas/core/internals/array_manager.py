@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Experimental manager based on storing a collection of 1D arrays
 """

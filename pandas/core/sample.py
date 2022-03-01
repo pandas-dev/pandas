@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Module containing utilities for NDFrame.sample() and .GroupBy.sample()
 """

@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Functions for implementing 'astype' methods according to pandas conventions,
 particularly ones that differ from numpy.

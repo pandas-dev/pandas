@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Base and utility classes for tseries type pandas objects.
 """

@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Extend pandas with custom array types.
 """

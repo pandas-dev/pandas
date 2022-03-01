@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Operator classes for eval.
 """

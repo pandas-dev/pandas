@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 # pyright: reportMissingImports=false
 from __future__ import annotations
 

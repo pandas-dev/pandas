@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Module contains tools for processing files into DataFrames or other objects
 """

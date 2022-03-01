@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Helper functions to generate range-like data for DatetimeArray
 (and possibly TimedeltaArray/PeriodArray)

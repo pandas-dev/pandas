@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 :mod:`pandas.io.html` is a module containing functionality for dealing with
 HTML IO.

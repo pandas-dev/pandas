@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Utilities for conversion to writer-agnostic Excel representation.
 """

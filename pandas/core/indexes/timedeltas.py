@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """ implement the TimedeltaIndex """
 from __future__ import annotations
 

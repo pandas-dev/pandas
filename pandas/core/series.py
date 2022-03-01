@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Data structure for 1-dimensional cross-sectional and time series data
 """

@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Provide the groupby split-apply-combine paradigm. Define the GroupBy
 class providing the base-class of operations.

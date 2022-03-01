@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """ miscellaneous sorting / groupby utilities """
 from __future__ import annotations
 

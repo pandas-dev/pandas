@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Constructor functions intended to be shared by pd.array, Series.__init__,
 and Index.__new__.

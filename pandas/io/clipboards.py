@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """ io on the clipboard """
 from __future__ import annotations
 

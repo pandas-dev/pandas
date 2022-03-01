@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Define the SeriesGroupBy and DataFrameGroupBy
 classes that hold the groupby interfaces (and some implementations).

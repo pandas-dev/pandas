@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 frozen (immutable) data structures to support MultiIndexing
 

@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Provide user facing operators for doing the split part of the
 split-apply-combine paradigm.

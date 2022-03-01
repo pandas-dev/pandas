@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Common type operations.
 """

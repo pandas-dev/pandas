@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Shared methods for Index subclasses backed by ExtensionArray.
 """

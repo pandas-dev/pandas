@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 :mod:`pandas.io.xml` is a module for reading XML.
 """

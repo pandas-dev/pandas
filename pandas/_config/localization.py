@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Helpers for configuring locale settings.
 

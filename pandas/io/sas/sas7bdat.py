@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 Read SAS7BDAT files
 

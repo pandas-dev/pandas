@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 data hash pandas / numpy objects
 """

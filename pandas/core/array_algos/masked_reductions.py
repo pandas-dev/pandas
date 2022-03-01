@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 masked_reductions.py is for reduction algorithms using a mask-based approach
 for missing values.

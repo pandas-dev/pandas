@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 # ---------------------------------------------------------------------
 # JSON normalization routines
 from __future__ import annotations

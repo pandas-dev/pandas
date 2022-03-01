@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues = false
 """
 :func:`~pandas.eval` parsers.
 """
