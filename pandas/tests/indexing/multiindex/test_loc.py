@@ -402,7 +402,6 @@ class TestMultiIndexLoc:
         result = df.loc["2011-01-01":"2011-01-02"]
         tm.assert_frame_equal(result, expected)
 
-
     def test_loc_no_second_level_index(self):
         # GH#43599
         df = DataFrame(
