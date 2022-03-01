@@ -642,8 +642,11 @@ class PeriodArray(dtl.DatelikeOps):
         """
         values = self.astype(object)
 
+        # Create the formatter function
         if date_format:
             if fast_strftime:
+                # TODO update this using _period_strftime contents
+                #   note: work on a test that fails currently (find one ?)
                 try:
                     # Try to get the string formatting template for this format
                     str_format = convert_dtformat(date_format)
@@ -653,23 +656,26 @@ class PeriodArray(dtl.DatelikeOps):
 
             if fast_strftime:
                 # Faster: python old-style string formatting
-                formatter = lambda dt: str_format % dict(
-                    year=dt.year, month=dt.month, day=dt.day, hour=dt.hour,
-                    min=dt.min, sec=dt.sec, us=dt.us
+                formatter = lambda p: str_format % dict(
+                    year=p.year, month=p.month, day=p.day, hour=p.hour,
+                    min=p.minute, sec=p.second
                 )
             else:
                 # Slower: strftime
-                formatter = lambda dt: dt.strftime(date_format)
+                formatter = lambda p: p.strftime(date_format)
         else:
-            formatter = lambda dt: str(dt)
+            # Uses `_Period.str>format_period` that is faster than strftime too
+            formatter = lambda p: str(p)
 
+        # Apply the formatter to all values in the array, possibly with a mask
         if self._hasna:
             mask = self._isnan
             values[mask] = na_rep
             imask = ~mask
-            values[imask] = np.array([formatter(dt) for dt in values[imask]])
+            values[imask] = np.array([formatter(p) for p in values[imask]])
         else:
-            values = np.array([formatter(dt) for dt in values])
+            values = np.array([formatter(p) for p in values])
+
         return values
 
     # ------------------------------------------------------------------

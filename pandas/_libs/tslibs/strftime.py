@@ -10,6 +10,11 @@ def convert_dtformat(
 ) -> str:
     """Convert a strftime formatting string into a string formatting template string.
 
+    TODO should we have one such method for each type (date, time, datetime, period), or
+      accept a parameter target='date'/'time'/'datetime'/'period' ? That
+      would allow us to validate the directives further, for example period microsecond
+      does not exist. See PeriodArray._format_native_types
+
     Parameters
     ----------
     strftime_fmt : str

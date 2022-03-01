@@ -1191,39 +1191,87 @@ cdef str period_format(int64_t value, int freq, object fmt=None):
     if value == NPY_NAT:
         return "NaT"
 
-    if isinstance(fmt, str):
-        fmt = fmt.encode("utf-8")
-
     if fmt is None:
-        freq_group = get_freq_group(freq)
-        if freq_group == FR_ANN:
-            fmt = b'%Y'
-        elif freq_group == FR_QTR:
-            fmt = b'%FQ%q'
-        elif freq_group == FR_MTH:
-            fmt = b'%Y-%m'
-        elif freq_group == FR_WK:
-            left = period_asfreq(value, freq, FR_DAY, 0)
-            right = period_asfreq(value, freq, FR_DAY, 1)
-            return f"{period_format(left, FR_DAY)}/{period_format(right, FR_DAY)}"
-        elif freq_group == FR_BUS or freq_group == FR_DAY:
-            fmt = b'%Y-%m-%d'
-        elif freq_group == FR_HR:
-            fmt = b'%Y-%m-%d %H:00'
-        elif freq_group == FR_MIN:
-            fmt = b'%Y-%m-%d %H:%M'
-        elif freq_group == FR_SEC:
-            fmt = b'%Y-%m-%d %H:%M:%S'
-        elif freq_group == FR_MS:
-            fmt = b'%Y-%m-%d %H:%M:%S.%l'
-        elif freq_group == FR_US:
-            fmt = b'%Y-%m-%d %H:%M:%S.%u'
-        elif freq_group == FR_NS:
-            fmt = b'%Y-%m-%d %H:%M:%S.%n'
-        else:
-            raise ValueError(f"Unknown freq: {freq}")
+        return _period_fast_strftime(value, freq)
+    else:
+        if isinstance(fmt, str):
+            fmt = fmt.encode("utf-8")
 
-    return _period_strftime(value, freq, fmt)
+        return _period_strftime(value, freq, fmt)
+
+
+cdef str _period_fast_strftime(int64_t value, int freq):
+    """A faster strftime alternative leveraging string formatting."""
+
+    cdef:
+        int freq_group
+        tm c_date
+        npy_datetimestruct dts
+
+    # fill dts
+    get_date_info(value, freq, &dts)
+
+    # get the appropriate format depending on frequency group
+    freq_group = get_freq_group(freq)
+    if freq_group == FR_ANN:
+        # fmt = b'%Y'
+        return f"{dts.year}"
+
+    elif freq_group == FR_QTR:
+        # fmt = b'%FQ%q'
+        quarter = get_yq(value, freq, &dts)
+        # TODO check _period_strftime : this should be the fiscal year
+        # f"{(dts.year % 100):02d}Q{quarter}"
+        return "%02dQ%s" % ((dts.year % 100), quarter)
+
+    elif freq_group == FR_MTH:
+        # fmt = b'%Y-%m'
+        return f"{dts.year}-{dts.month:02d}"
+
+    elif freq_group == FR_WK:
+        # special: start_date/end_date. Recurse
+        left = period_asfreq(value, freq, FR_DAY, 0)
+        right = period_asfreq(value, freq, FR_DAY, 1)
+        return f"{period_format(left, FR_DAY)}/{period_format(right, FR_DAY)}"
+
+    elif freq_group == FR_BUS or freq_group == FR_DAY:
+        # fmt = b'%Y-%m-%d'
+        return f"{dts.year}-{dts.month:02d}-{dts.day:02d}"
+
+    elif freq_group == FR_HR:
+        # fmt = b'%Y-%m-%d %H:00'
+        return f"{dts.year}-{dts.month:02d}-{dts.day:02d} {dts.hour:02d}:00"
+
+    elif freq_group == FR_MIN:
+        # fmt = b'%Y-%m-%d %H:%M'
+        return (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
+                f"{dts.hour:02d}:{dts.min:02d}")
+
+    elif freq_group == FR_SEC:
+        # fmt = b'%Y-%m-%d %H:%M:%S'
+        return (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
+                f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}")
+
+    elif freq_group == FR_MS:
+        # fmt = b'%Y-%m-%d %H:%M:%S.%l'
+        return (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
+                f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}"
+                f".{(value % 1_000):03d}")
+
+    elif freq_group == FR_US:
+        # fmt = b'%Y-%m-%d %H:%M:%S.%u'
+        return (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
+                f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}"
+                f".{(value % 1_000_000):06d}")
+
+    elif freq_group == FR_NS:
+        # fmt = b'%Y-%m-%d %H:%M:%S.%n'
+        return (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
+                f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}"
+                f".{(value % 1_000_000_000):09d}")
+
+    else:
+        raise ValueError(f"Unknown freq: {freq}")
 
 
 cdef list extra_fmts = [(b"%q", b"^`AB`^"),
@@ -1247,6 +1295,9 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt):
         str result, repl
 
     get_date_info(value, freq, &dts)
+
+    # Find our additional directives in the pattern and replace them with
+    # placeholders that are not processed by c_strftime
     for i in range(len(extra_fmts)):
         pat = extra_fmts[i][0]
         brepl = extra_fmts[i][1]
@@ -1254,27 +1305,31 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt):
             fmt = fmt.replace(pat, brepl)
             found_pat[i] = True
 
+    # Execute c_strftime to process the usual datetime directives
     formatted = c_strftime(&dts, <char*>fmt)
 
     result = util.char_to_string(formatted)
     free(formatted)
 
+    # Now fill the placeholders corresponding to our additional directives
     for i in range(len(extra_fmts)):
         if found_pat[i]:
 
             quarter = get_yq(value, freq, &dts)
 
-            if i == 0:
+            if i == 0:  # %q, quarter
                 repl = str(quarter)
-            elif i == 1:  # %f, 2-digit year
+            elif i == 1:  # %f, 2-digit 'Fiscal' year
+                # TODO why is this not the fiscal year ?
                 repl = f"{(dts.year % 100):02d}"
-            elif i == 2:
+            elif i == 2:  # %F, 'Fiscal' year with a century
+                # TODO why is this not the fiscal year ?
                 repl = str(dts.year)
-            elif i == 3:
+            elif i == 3:  # %l, milliseconds
                 repl = f"{(value % 1_000):03d}"
-            elif i == 4:
+            elif i == 4:  # %u, microseconds
                 repl = f"{(value % 1_000_000):06d}"
-            elif i == 5:
+            elif i == 5:  # %n, nanoseconds
                 repl = f"{(value % 1_000_000_000):09d}"
 
             result = result.replace(str_extra_fmts[i], repl)
