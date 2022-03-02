@@ -1605,7 +1605,7 @@ class DatelikeOps(DatetimeLikeArrayMixin):
 
         fast_strftime : boolean, default: True
             if `True` (default) and the format permits it, a faster formatting
-            method will be used. See `convert_dtformat`.
+            method will be used. See `convert_strftime_format`.
 
             .. versionadded:: 1.5.0
 

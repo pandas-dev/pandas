@@ -19,8 +19,8 @@ from pandas._libs.tslibs import (
     NaT,
     NaTType,
     Timedelta,
-    UnsupportedDatetimeDirective,
-    convert_dtformat,
+    UnsupportedStrFmtDirective,
+    convert_strftime_format,
     delta_to_nanoseconds,
     dt64arr_to_periodarr as c_dt64arr_to_periodarr,
     iNaT,
@@ -639,27 +639,25 @@ class PeriodArray(dtl.DatelikeOps):
     ) -> np.ndarray:
         """
         actually format my specific types
+
+        TODO maybe rather align with the way it is done in datetimes.py ?
+         (delegate all to a tslib.format_array_from_period cython numpy method)
         """
         values = self.astype(object)
 
         # Create the formatter function
         if date_format:
             if fast_strftime:
-                # TODO update this using _period_strftime contents
-                #   note: work on a test that fails currently (find one ?)
                 try:
                     # Try to get the string formatting template for this format
-                    str_format = convert_dtformat(date_format)
-                except UnsupportedDatetimeDirective:
+                    str_format = convert_strftime_format(date_format, target="period")
+                except UnsupportedStrFmtDirective:
                     # Unsupported directive: fallback to standard `strftime`
                     fast_strftime = False
 
             if fast_strftime:
                 # Faster: python old-style string formatting
-                formatter = lambda p: str_format % dict(
-                    year=p.year, month=p.month, day=p.day, hour=p.hour,
-                    min=p.minute, sec=p.second
-                )
+                formatter = lambda p: p.fast_strftime(str_format)
             else:
                 # Slower: strftime
                 formatter = lambda p: p.strftime(date_format)

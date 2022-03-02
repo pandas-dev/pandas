@@ -61,8 +61,8 @@ from pandas._libs.tslibs.nattype cimport (
 from pandas._libs.tslibs.timestamps cimport _Timestamp
 
 from pandas._libs.tslibs.strftime import (
-    UnsupportedDatetimeDirective,
-    convert_dtformat,
+    UnsupportedStrFmtDirective,
+    convert_strftime_format,
 )
 from pandas._libs.tslibs.timestamps import Timestamp
 
@@ -121,7 +121,7 @@ def format_array_from_datetime(
           a nat format
     fast_strftime : bool, default True
           If `True` (default) and the format permits it, a faster formatting
-          method will be used. See `convert_dtformat`.
+          method will be used. See `convert_strftime_format`.
 
     Returns
     -------
@@ -171,8 +171,8 @@ def format_array_from_datetime(
         else:
             try:
                 # Try to get the string formatting template for this format
-                str_format = convert_dtformat(format)
-            except UnsupportedDatetimeDirective:
+                str_format = convert_strftime_format(format)
+            except UnsupportedStrFmtDirective:
                 # Unsupported directive: fallback to standard `strftime`
                 fast_strftime = False
 

@@ -18,7 +18,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._libs.tslibs import convert_dtformat
+from pandas._libs.tslibs import convert_strftime_format
 from pandas.compat import (
     IS64,
     is_platform_windows,
@@ -3263,7 +3263,8 @@ class TestDatetimeFastFormatter:
 
     @pytest.mark.parametrize("strftime_format", (
         "%Y-%m-%d %H:%M:%S",
-        "%Y %Y",
+        "%Y%%Y",
+        "%Y{%Y}",
         "%Y-%m-%dT%H:%M:%S.%fZ",
     ))
     @pytest.mark.parametrize("new_style", (False, True))
@@ -3283,7 +3284,7 @@ class TestDatetimeFastFormatter:
         )
 
         # get the formatting string
-        style_format = convert_dtformat(strftime_format, new_style_fmt=new_style)
+        style_format = convert_strftime_format(strftime_format, new_style_fmt=new_style)
 
         # apply it and check the output
         if new_style:
@@ -3308,8 +3309,8 @@ class TestDatetimeFastFormatter:
         dt = datetime.now()
 
         # pre-compute the formats
-        new_style_format = convert_dtformat(strftime_format, new_style_fmt=True)
-        old_style_format = convert_dtformat(strftime_format)
+        new_style_format = convert_strftime_format(strftime_format, new_style_fmt=True)
+        old_style_format = convert_strftime_format(strftime_format)
 
         # Perf comparison: confirm the results in https://stackoverflow.com/a/43495629/7262247
         fmt_dct = dict(

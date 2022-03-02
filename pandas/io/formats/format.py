@@ -42,8 +42,8 @@ from pandas._libs.tslibs import (
     NaT,
     Timedelta,
     Timestamp,
-    UnsupportedDatetimeDirective,
-    convert_dtformat,
+    UnsupportedStrFmtDirective,
+    convert_strftime_format,
     iNaT,
 )
 from pandas._libs.tslibs.nattype import NaTType
@@ -1634,7 +1634,8 @@ class Datetime64Formatter(GenericArrayFormatter):
             return [self.formatter(x) for x in values]
 
         fmt_values = values._data._format_native_types(
-            na_rep=self.nat_rep, date_format=self.date_format, fast_strftime=self.fast_strftime
+            na_rep=self.nat_rep, date_format=self.date_format,
+            fast_strftime=self.fast_strftime
         )
         return fmt_values.tolist()
 
@@ -1803,8 +1804,8 @@ def get_format_datetime64(
         if date_format is not None and fast_strftime:
             try:
                 # Try to get the string formatting template for this format
-                str_date_fmt = convert_dtformat(date_format)
-            except UnsupportedDatetimeDirective:
+                str_date_fmt = convert_strftime_format(date_format)
+            except UnsupportedStrFmtDirective:
                 # Unsupported directive: fallback to standard `strftime`
                 pass
 

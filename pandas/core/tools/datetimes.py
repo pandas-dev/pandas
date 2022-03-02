@@ -24,7 +24,7 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
     conversion,
-    convert_dtformat,
+    convert_strftime_format,
     iNaT,
     nat_strings,
     parsing,
@@ -1303,7 +1303,7 @@ def fast_strftime(
 
     Raises
     ------
-    UnsupportedDatetimeDirective
+    UnsupportedStrFmtDirective
         Raised when the received `strftime_fmt` format contains a directive for which the output
         can not currently be created using string formatting.
 
@@ -1321,7 +1321,7 @@ def fast_strftime(
     )
 
     # get the formatting template
-    fmt_str = convert_dtformat(fmt, new_style_fmt=new_style_fmt)
+    fmt_str = convert_strftime_format(fmt, new_style_fmt=new_style_fmt)
 
     # execute
     return fmt_str.format(**fmt_dct) if new_style_fmt else (fmt_str % fmt_dct)

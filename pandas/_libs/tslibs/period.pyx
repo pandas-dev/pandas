@@ -2389,6 +2389,47 @@ cdef class _Period(PeriodMixin):
         object_state = None, self.freq, self.ordinal
         return (Period, object_state)
 
+    def fast_strftime(self, fmt_str: str) -> str:
+        """A faster alternative to `strftime` using string formatting.
+
+        `fmt_str` should be created using `convert_period_format(fmt)`.
+
+        See also `self.strftime`, that relies on `period_format`.
+
+        Examples
+        --------
+
+        >>> a = Period(freq='Q-JUL', year=2006, quarter=1)
+        >>> a.strftime('%F-Q%q')
+        '2006-Q1'
+        >>> fast_fmt = convert_period_format('%F-Q%q')
+        >>> a.fast_strftime(fast_fmt)
+        '2006-Q1'
+        """
+        freq = self._dtype._dtype_code
+        value = self.ordinal
+
+        if value == NPY_NAT:
+            return "NaT"
+
+        cdef:
+            npy_datetimestruct dts, dts2
+            int quarter
+
+        # Fill dts with all fields
+        get_date_info(value, freq, &dts)
+
+        # Get the quarter and fiscal year
+        quarter = get_yq(value, freq, &dts2)
+
+        # Finally use the string template
+        return fmt_str % dict(
+            year=dts.year, month=dts.month, day=dts.day, hour=dts.hour,
+            min=dts.min, sec=dts.sec,
+            ms=dts.us // 1000, us=dts.us, ns=dts.us * 1000,
+            q=quarter, Fyear=dts2.year, fyear=dts2.year % 100
+        )
+
     def strftime(self, fmt: str) -> str:
         r"""
         Returns the string representation of the :class:`Period`, depending
