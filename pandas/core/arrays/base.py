@@ -43,6 +43,7 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
     cache_readonly,
+    deprecate_nonkeyword_arguments,
 )
 from pandas.util._validators import (
     validate_bool_kwarg,
@@ -180,7 +181,7 @@ class ExtensionArray:
     * dropna
     * unique
     * factorize / _values_for_factorize
-    * argsort / _values_for_argsort
+    * argsort, argmax, argmin / _values_for_argsort
     * searchsorted
 
     The remaining methods implemented on this class should be performant,
@@ -639,9 +640,10 @@ class ExtensionArray:
         This means that the corresponding entries in the returned array don't need to
         be modified to sort correctly.
         """
-        # Note: this is used in `ExtensionArray.argsort`.
+        # Note: this is used in `ExtensionArray.argsort/argmin/argmax`.
         return np.array(self)
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def argsort(
         self,
         ascending: bool = True,
@@ -676,7 +678,8 @@ class ExtensionArray:
         # Implementor note: You have two places to override the behavior of
         # argsort.
         # 1. _values_for_argsort : construct the values passed to np.argsort
-        # 2. argsort : total control over sorting.
+        # 2. argsort : total control over sorting. In case of overriding this,
+        #    it is recommended to also override argmax/argmin
         ascending = nv.validate_argsort_with_ascending(ascending, args, kwargs)
 
         values = self._values_for_argsort()
@@ -707,6 +710,10 @@ class ExtensionArray:
         --------
         ExtensionArray.argmax
         """
+        # Implementor note: You have two places to override the behavior of
+        # argmin.
+        # 1. _values_for_argsort : construct the values used in nargminmax
+        # 2. argmin itself : total control over sorting.
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
             raise NotImplementedError
@@ -731,6 +738,10 @@ class ExtensionArray:
         --------
         ExtensionArray.argmin
         """
+        # Implementor note: You have two places to override the behavior of
+        # argmax.
+        # 1. _values_for_argsort : construct the values used in nargminmax
+        # 2. argmax itself : total control over sorting.
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
             raise NotImplementedError
@@ -780,8 +791,9 @@ class ExtensionArray:
         if mask.any():
             if method is not None:
                 func = missing.get_fill_func(method)
-                new_values, _ = func(self.astype(object), limit=limit, mask=mask)
-                new_values = self._from_sequence(new_values, dtype=self.dtype)
+                npvalues = self.astype(object)
+                func(npvalues, limit=limit, mask=mask)
+                new_values = self._from_sequence(npvalues, dtype=self.dtype)
             else:
                 # fill with value
                 new_values = self.copy()
@@ -1388,7 +1400,8 @@ class ExtensionArray:
     __hash__: None  # type: ignore[assignment]
 
     # ------------------------------------------------------------------------
-    # Non-Optimized Default Methods
+    # Non-Optimized Default Methods; in the case of the private methods here,
+    #  these are not guaranteeed to be stable across pandas versions.
 
     def tolist(self) -> list:
         """
@@ -1501,10 +1514,11 @@ class ExtensionArray:
         ExtensionArray.fillna
         """
         func = missing.get_fill_func(method)
+        npvalues = self.astype(object)
         # NB: if we don't copy mask here, it may be altered inplace, which
         #  would mess up the `self[mask] = ...` below.
-        new_values, _ = func(self.astype(object), limit=limit, mask=mask.copy())
-        new_values = self._from_sequence(new_values, dtype=self.dtype)
+        func(npvalues, limit=limit, mask=mask.copy())
+        new_values = self._from_sequence(npvalues, dtype=self.dtype)
         self[mask] = new_values[mask]
         return
 

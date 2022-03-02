@@ -2,12 +2,20 @@ import numpy as np
 
 from pandas import (
     Categorical,
+    IntervalIndex,
     Series,
+    date_range,
 )
 import pandas._testing as tm
 
 
 class TestUnique:
+    def test_unique_uint64(self):
+        ser = Series([1, 2, 2**63, 2**63], dtype=np.uint64)
+        res = ser.unique()
+        exp = np.array([1, 2, 2**63], dtype=np.uint64)
+        tm.assert_numpy_array_equal(res, exp)
+
     def test_unique_data_ownership(self):
         # it works! GH#1807
         Series(Series(["a", "c", "b"]).unique()).sort_values()
@@ -50,3 +58,19 @@ class TestUnique:
         ser = Series(cat)
         result = ser.unique()
         tm.assert_categorical_equal(result, cat)
+
+    def test_tz_unique(self):
+        # GH 46128
+        dti1 = date_range("2016-01-01", periods=3)
+        ii1 = IntervalIndex.from_breaks(dti1)
+        ser1 = Series(ii1)
+        uni1 = ser1.unique()
+        tm.assert_interval_array_equal(ser1.array, uni1)
+
+        dti2 = date_range("2016-01-01", periods=3, tz="US/Eastern")
+        ii2 = IntervalIndex.from_breaks(dti2)
+        ser2 = Series(ii2)
+        uni2 = ser2.unique()
+        tm.assert_interval_array_equal(ser2.array, uni2)
+
+        assert uni1.dtype != uni2.dtype

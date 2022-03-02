@@ -27,6 +27,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_dtype_equal,
+    is_integer_dtype,
     is_object_dtype,
     is_timedelta64_dtype,
     pandas_dtype,
@@ -83,12 +84,6 @@ def astype_nansafe(
     ValueError
         The dtype was a datetime64/timedelta64 dtype, but it had no unit.
     """
-    if arr.ndim > 1:
-        flat = arr.ravel()
-        result = astype_nansafe(flat, dtype, copy=copy, skipna=skipna)
-        # error: Item "ExtensionArray" of "Union[ExtensionArray, ndarray]" has no
-        # attribute "reshape"
-        return result.reshape(arr.shape)  # type: ignore[union-attr]
 
     # We get here with 0-dim from sparse
     arr = np.atleast_1d(arr)
@@ -109,7 +104,12 @@ def astype_nansafe(
         return arr.astype(dtype, copy=copy)
 
     if issubclass(dtype.type, str):
-        return lib.ensure_string_array(arr, skipna=skipna, convert_na_value=False)
+        shape = arr.shape
+        if arr.ndim > 1:
+            arr = arr.ravel()
+        return lib.ensure_string_array(
+            arr, skipna=skipna, convert_na_value=False
+        ).reshape(shape)
 
     elif is_datetime64_dtype(arr.dtype):
         if dtype == np.int64:
@@ -134,7 +134,7 @@ def astype_nansafe(
 
         raise TypeError(f"cannot astype a timedelta from [{arr.dtype}] to [{dtype}]")
 
-    elif np.issubdtype(arr.dtype, np.floating) and np.issubdtype(dtype, np.integer):
+    elif np.issubdtype(arr.dtype, np.floating) and is_integer_dtype(dtype):
         return _astype_float_to_int_nansafe(arr, dtype, copy)
 
     elif is_object_dtype(arr.dtype):
@@ -146,7 +146,7 @@ def astype_nansafe(
             from pandas import to_datetime
 
             return astype_nansafe(
-                to_datetime(arr).values,
+                to_datetime(arr.ravel()).values.reshape(arr.shape),
                 dtype,
                 copy=copy,
             )

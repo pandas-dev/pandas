@@ -51,6 +51,7 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_interval_dtype,
     is_list_like,
+    is_sparse,
     is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -86,7 +87,6 @@ from pandas.core.array_algos.replace import (
     replace_regex,
     should_use_regex,
 )
-from pandas.core.array_algos.take import take_nd
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays import (
     Categorical,
@@ -735,7 +735,7 @@ class Block(PandasObject):
         self,
         to_replace,
         value,
-        mask: np.ndarray,
+        mask: npt.NDArray[np.bool_],
         inplace: bool = True,
         regex: bool = False,
     ) -> list[Block]:
@@ -826,19 +826,14 @@ class Block(PandasObject):
 
     def take_nd(
         self,
-        indexer,
+        indexer: npt.NDArray[np.intp],
         axis: int,
         new_mgr_locs: BlockPlacement | None = None,
         fill_value=lib.no_default,
     ) -> Block:
         """
-        Take values according to indexer and return them as a block.bb
-
+        Take values according to indexer and return them as a block.
         """
-        # algos.take_nd dispatches for DatetimeTZBlock, CategoricalBlock
-        # so need to preserve types
-        # sparse is treated like an ndarray, but needs .get_values() shaping
-
         values = self.values
 
         if fill_value is lib.no_default:
@@ -847,6 +842,7 @@ class Block(PandasObject):
         else:
             allow_fill = True
 
+        # Note: algos.take_nd has upcast logic similar to coerce_to_target_dtype
         new_values = algos.take_nd(
             values, indexer, axis=axis, allow_fill=allow_fill, fill_value=fill_value
         )
@@ -981,42 +977,45 @@ class Block(PandasObject):
             new = self.fill_value
 
         new = self._standardize_fill_value(new)
+        new = extract_array(new, extract_numpy=True)
 
-        if self._can_hold_element(new):
-            putmask_without_repeat(values.T, mask, new)
+        if noop:
             return [self]
 
-        elif noop:
+        try:
+            casted = np_can_hold_element(values.dtype, new)
+            putmask_without_repeat(values.T, mask, casted)
             return [self]
+        except LossySetitemError:
 
-        elif self.ndim == 1 or self.shape[0] == 1:
-            # no need to split columns
+            if self.ndim == 1 or self.shape[0] == 1:
+                # no need to split columns
 
-            if not is_list_like(new):
-                # using just new[indexer] can't save us the need to cast
-                return self.coerce_to_target_dtype(new).putmask(mask, new)
+                if not is_list_like(new):
+                    # using just new[indexer] can't save us the need to cast
+                    return self.coerce_to_target_dtype(new).putmask(mask, new)
+                else:
+                    indexer = mask.nonzero()[0]
+                    nb = self.setitem(indexer, new[indexer])
+                    return [nb]
+
             else:
-                indexer = mask.nonzero()[0]
-                nb = self.setitem(indexer, new[indexer])
-                return [nb]
+                is_array = isinstance(new, np.ndarray)
 
-        else:
-            is_array = isinstance(new, np.ndarray)
+                res_blocks = []
+                nbs = self._split()
+                for i, nb in enumerate(nbs):
+                    n = new
+                    if is_array:
+                        # we have a different value per-column
+                        n = new[:, i : i + 1]
 
-            res_blocks = []
-            nbs = self._split()
-            for i, nb in enumerate(nbs):
-                n = new
-                if is_array:
-                    # we have a different value per-column
-                    n = new[:, i : i + 1]
+                    submask = orig_mask[:, i : i + 1]
+                    rbs = nb.putmask(submask, n)
+                    res_blocks.extend(rbs)
+                return res_blocks
 
-                submask = orig_mask[:, i : i + 1]
-                rbs = nb.putmask(submask, n)
-                res_blocks.extend(rbs)
-            return res_blocks
-
-    def where(self, other, cond) -> list[Block]:
+    def where(self, other, cond, _downcast="infer") -> list[Block]:
         """
         evaluate the block; return result block(s) from the result
 
@@ -1024,6 +1023,8 @@ class Block(PandasObject):
         ----------
         other : a ndarray/object
         cond : np.ndarray[bool], SparseArray[bool], or BooleanArray
+        _downcast : str or None, default "infer"
+            Private because we only specify it when calling from fillna.
 
         Returns
         -------
@@ -1057,9 +1058,32 @@ class Block(PandasObject):
             casted = np_can_hold_element(values.dtype, other)
         except (ValueError, TypeError, LossySetitemError):
             # we cannot coerce, return a compat dtype
-            block = self.coerce_to_target_dtype(other)
-            blocks = block.where(orig_other, cond)
-            return self._maybe_downcast(blocks, "infer")
+
+            if self.ndim == 1 or self.shape[0] == 1:
+                # no need to split columns
+
+                block = self.coerce_to_target_dtype(other)
+                blocks = block.where(orig_other, cond)
+                return self._maybe_downcast(blocks, downcast=_downcast)
+
+            else:
+                # since _maybe_downcast would split blocks anyway, we
+                #  can avoid some potential upcast/downcast by splitting
+                #  on the front end.
+                is_array = isinstance(other, (np.ndarray, ExtensionArray))
+
+                res_blocks = []
+                nbs = self._split()
+                for i, nb in enumerate(nbs):
+                    oth = other
+                    if is_array:
+                        # we have a different value per-column
+                        oth = other[:, i : i + 1]
+
+                    submask = cond[:, i : i + 1]
+                    rbs = nb.where(oth, submask, _downcast=_downcast)
+                    res_blocks.extend(rbs)
+                return res_blocks
 
         else:
             other = casted
@@ -1132,21 +1156,19 @@ class Block(PandasObject):
         if limit is not None:
             mask[mask.cumsum(self.ndim - 1) > limit] = False
 
-        if self._can_hold_element(value):
-            nb = self if inplace else self.copy()
-            putmask_inplace(nb.values, mask, value)
-            return nb._maybe_downcast([nb], downcast)
-
-        elif self.ndim == 1 or self.shape[0] == 1:
-            blk = self.coerce_to_target_dtype(value)
-            # bc we have already cast, inplace=True may avoid an extra copy
-            return blk.fillna(value, limit=limit, inplace=True, downcast=None)
-
+        if inplace:
+            nbs = self.putmask(mask.T, value)
         else:
-            # operate column-by-column
-            return self.split_and_operate(
-                type(self).fillna, value, limit=limit, inplace=inplace, downcast=None
-            )
+            # without _downcast, we would break
+            #  test_fillna_dtype_conversion_equiv_replace
+            nbs = self.where(value, ~mask.T, _downcast=False)
+
+        # Note: blk._maybe_downcast vs self._maybe_downcast(nbs)
+        #  makes a difference bc blk may have object dtype, which has
+        #  different behavior in _maybe_downcast.
+        return extend_blocks(
+            [blk._maybe_downcast([blk], downcast=downcast) for blk in nbs]
+        )
 
     def interpolate(
         self,
@@ -1375,7 +1397,8 @@ class EABackedBlock(Block):
         else:
             return self
 
-    def where(self, other, cond) -> list[Block]:
+    def where(self, other, cond, _downcast="infer") -> list[Block]:
+        # _downcast private bc we only specify it when calling from fillna
         arr = self.values.T
 
         cond = extract_bool_array(cond)
@@ -1399,21 +1422,40 @@ class EABackedBlock(Block):
         except (ValueError, TypeError) as err:
             _catch_deprecated_value_error(err)
 
-            if is_interval_dtype(self.dtype):
-                # TestSetitemFloatIntervalWithIntIntervalValues
-                blk = self.coerce_to_target_dtype(orig_other)
-                nbs = blk.where(orig_other, orig_cond)
-                return self._maybe_downcast(nbs, "infer")
+            if self.ndim == 1 or self.shape[0] == 1:
 
-            elif isinstance(self, NDArrayBackedExtensionBlock):
-                # NB: not (yet) the same as
-                #  isinstance(values, NDArrayBackedExtensionArray)
-                blk = self.coerce_to_target_dtype(orig_other)
-                nbs = blk.where(orig_other, orig_cond)
-                return self._maybe_downcast(nbs, "infer")
+                if is_interval_dtype(self.dtype):
+                    # TestSetitemFloatIntervalWithIntIntervalValues
+                    blk = self.coerce_to_target_dtype(orig_other)
+                    nbs = blk.where(orig_other, orig_cond)
+                    return self._maybe_downcast(nbs, downcast=_downcast)
+
+                elif isinstance(self, NDArrayBackedExtensionBlock):
+                    # NB: not (yet) the same as
+                    #  isinstance(values, NDArrayBackedExtensionArray)
+                    blk = self.coerce_to_target_dtype(orig_other)
+                    nbs = blk.where(orig_other, orig_cond)
+                    return self._maybe_downcast(nbs, downcast=_downcast)
+
+                else:
+                    raise
 
             else:
-                raise
+                # Same pattern we use in Block.putmask
+                is_array = isinstance(orig_other, (np.ndarray, ExtensionArray))
+
+                res_blocks = []
+                nbs = self._split()
+                for i, nb in enumerate(nbs):
+                    n = orig_other
+                    if is_array:
+                        # we have a different value per-column
+                        n = orig_other[:, i : i + 1]
+
+                    submask = orig_cond[:, i : i + 1]
+                    rbs = nb.where(n, submask)
+                    res_blocks.extend(rbs)
+                return res_blocks
 
         nb = self.make_block_same_class(res_values)
         return [nb]
@@ -1431,26 +1473,48 @@ class EABackedBlock(Block):
         new = self._maybe_squeeze_arg(new)
         mask = self._maybe_squeeze_arg(mask)
 
+        if not mask.any():
+            return [self]
+
         try:
             # Caller is responsible for ensuring matching lengths
             values._putmask(mask, new)
         except (TypeError, ValueError) as err:
             _catch_deprecated_value_error(err)
 
-            if is_interval_dtype(self.dtype):
-                # Discussion about what we want to support in the general
-                #  case GH#39584
-                blk = self.coerce_to_target_dtype(orig_new)
-                return blk.putmask(orig_mask, orig_new)
+            if self.ndim == 1 or self.shape[0] == 1:
 
-            elif isinstance(self, NDArrayBackedExtensionBlock):
-                # NB: not (yet) the same as
-                #  isinstance(values, NDArrayBackedExtensionArray)
-                blk = self.coerce_to_target_dtype(orig_new)
-                return blk.putmask(orig_mask, orig_new)
+                if is_interval_dtype(self.dtype):
+                    # Discussion about what we want to support in the general
+                    #  case GH#39584
+                    blk = self.coerce_to_target_dtype(orig_new)
+                    return blk.putmask(orig_mask, orig_new)
+
+                elif isinstance(self, NDArrayBackedExtensionBlock):
+                    # NB: not (yet) the same as
+                    #  isinstance(values, NDArrayBackedExtensionArray)
+                    blk = self.coerce_to_target_dtype(orig_new)
+                    return blk.putmask(orig_mask, orig_new)
+
+                else:
+                    raise
 
             else:
-                raise
+                # Same pattern we use in Block.putmask
+                is_array = isinstance(orig_new, (np.ndarray, ExtensionArray))
+
+                res_blocks = []
+                nbs = self._split()
+                for i, nb in enumerate(nbs):
+                    n = orig_new
+                    if is_array:
+                        # we have a different value per-column
+                        n = orig_new[:, i : i + 1]
+
+                    submask = orig_mask[:, i : i + 1]
+                    rbs = nb.putmask(submask, n)
+                    res_blocks.extend(rbs)
+                return res_blocks
 
         return [self]
 
@@ -1459,39 +1523,29 @@ class EABackedBlock(Block):
     ) -> list[Block]:
         # Caller is responsible for validating limit; if int it is strictly positive
 
-        try:
-            new_values = self.values.fillna(value=value, limit=limit)
-        except (TypeError, ValueError) as err:
-            _catch_deprecated_value_error(err)
-
-            if is_interval_dtype(self.dtype):
-                # Discussion about what we want to support in the general
-                #  case GH#39584
-                blk = self.coerce_to_target_dtype(value)
-                return blk.fillna(value, limit, inplace, downcast)
-
-            elif isinstance(self, NDArrayBackedExtensionBlock):
-                # We support filling a DatetimeTZ with a `value` whose timezone
-                #  is different by coercing to object.
-                if self.dtype.kind == "m":
-                    # GH#45746
-                    warnings.warn(
-                        "The behavior of fillna with timedelta64[ns] dtype and "
-                        f"an incompatible value ({type(value)}) is deprecated. "
-                        "In a future version, this will cast to a common dtype "
-                        "(usually object) instead of raising, matching the "
-                        "behavior of other dtypes.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
-                    raise
-                blk = self.coerce_to_target_dtype(value)
-                return blk.fillna(value, limit, inplace, downcast)
-
-            else:
+        if self.dtype.kind == "m":
+            try:
+                res_values = self.values.fillna(value, limit=limit)
+            except (ValueError, TypeError):
+                # GH#45746
+                warnings.warn(
+                    "The behavior of fillna with timedelta64[ns] dtype and "
+                    f"an incompatible value ({type(value)}) is deprecated. "
+                    "In a future version, this will cast to a common dtype "
+                    "(usually object) instead of raising, matching the "
+                    "behavior of other dtypes.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
                 raise
+            else:
+                res_blk = self.make_block(res_values)
+                return [res_blk]
 
-        return [self.make_block_same_class(values=new_values)]
+        # TODO: since this now dispatches to super, which in turn dispatches
+        #  to putmask, it may *actually* respect 'inplace=True'. If so, add
+        #  tests for this.
+        return super().fillna(value, limit=limit, inplace=inplace, downcast=downcast)
 
     def delete(self, loc) -> Block:
         # This will be unnecessary if/when __array_function__ is implemented
@@ -1668,7 +1722,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
 
     def take_nd(
         self,
-        indexer,
+        indexer: npt.NDArray[np.intp],
         axis: int = 0,
         new_mgr_locs: BlockPlacement | None = None,
         fill_value=lib.no_default,
@@ -2200,7 +2254,7 @@ def to_native_types(
     """convert to our native types format"""
     if isinstance(values, Categorical):
         # GH#40754 Convert categorical datetimes to datetime array
-        values = take_nd(
+        values = algos.take_nd(
             values.categories._values,
             ensure_platform_int(values._codes),
             fill_value=na_rep,
@@ -2221,14 +2275,7 @@ def to_native_types(
             results_converted.append(result.astype(object, copy=False))
         return np.vstack(results_converted)
 
-    elif isinstance(values, ExtensionArray):
-        mask = isna(values)
-
-        new_values = np.asarray(values.astype(object))
-        new_values[mask] = na_rep
-        return new_values
-
-    elif values.dtype.kind == "f":
+    elif values.dtype.kind == "f" and not is_sparse(values):
         # see GH#13418: no special formatting is desired at the
         # output (important for appropriate 'quoting' behaviour),
         # so do not pass it through the FloatArrayFormatter
@@ -2257,6 +2304,13 @@ def to_native_types(
         res = formatter.get_result_as_array()
         res = res.astype(object, copy=False)
         return res
+
+    elif isinstance(values, ExtensionArray):
+        mask = isna(values)
+
+        new_values = np.asarray(values.astype(object))
+        new_values[mask] = na_rep
+        return new_values
 
     else:
 

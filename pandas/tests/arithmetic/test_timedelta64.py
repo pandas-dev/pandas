@@ -204,8 +204,26 @@ class TestTimedelta64ArrayComparisons:
         tm.assert_numpy_array_equal(lhs < NaT, expected)
         tm.assert_numpy_array_equal(NaT > lhs, expected)
 
-    def test_comparisons_nat(self):
-        tdidx1 = TimedeltaIndex(
+    @pytest.mark.parametrize(
+        "idx2",
+        [
+            TimedeltaIndex(
+                ["2 day", "2 day", NaT, NaT, "1 day 00:00:02", "5 days 00:00:03"]
+            ),
+            np.array(
+                [
+                    np.timedelta64(2, "D"),
+                    np.timedelta64(2, "D"),
+                    np.timedelta64("nat"),
+                    np.timedelta64("nat"),
+                    np.timedelta64(1, "D") + np.timedelta64(2, "s"),
+                    np.timedelta64(5, "D") + np.timedelta64(3, "s"),
+                ]
+            ),
+        ],
+    )
+    def test_comparisons_nat(self, idx2):
+        idx1 = TimedeltaIndex(
             [
                 "1 day",
                 NaT,
@@ -215,48 +233,30 @@ class TestTimedelta64ArrayComparisons:
                 "5 day 00:00:03",
             ]
         )
-        tdidx2 = TimedeltaIndex(
-            ["2 day", "2 day", NaT, NaT, "1 day 00:00:02", "5 days 00:00:03"]
-        )
-        tdarr = np.array(
-            [
-                np.timedelta64(2, "D"),
-                np.timedelta64(2, "D"),
-                np.timedelta64("nat"),
-                np.timedelta64("nat"),
-                np.timedelta64(1, "D") + np.timedelta64(2, "s"),
-                np.timedelta64(5, "D") + np.timedelta64(3, "s"),
-            ]
-        )
-
-        cases = [(tdidx1, tdidx2), (tdidx1, tdarr)]
-
         # Check pd.NaT is handles as the same as np.nan
-        for idx1, idx2 in cases:
+        result = idx1 < idx2
+        expected = np.array([True, False, False, False, True, False])
+        tm.assert_numpy_array_equal(result, expected)
 
-            result = idx1 < idx2
-            expected = np.array([True, False, False, False, True, False])
-            tm.assert_numpy_array_equal(result, expected)
+        result = idx2 > idx1
+        expected = np.array([True, False, False, False, True, False])
+        tm.assert_numpy_array_equal(result, expected)
 
-            result = idx2 > idx1
-            expected = np.array([True, False, False, False, True, False])
-            tm.assert_numpy_array_equal(result, expected)
+        result = idx1 <= idx2
+        expected = np.array([True, False, False, False, True, True])
+        tm.assert_numpy_array_equal(result, expected)
 
-            result = idx1 <= idx2
-            expected = np.array([True, False, False, False, True, True])
-            tm.assert_numpy_array_equal(result, expected)
+        result = idx2 >= idx1
+        expected = np.array([True, False, False, False, True, True])
+        tm.assert_numpy_array_equal(result, expected)
 
-            result = idx2 >= idx1
-            expected = np.array([True, False, False, False, True, True])
-            tm.assert_numpy_array_equal(result, expected)
+        result = idx1 == idx2
+        expected = np.array([False, False, False, False, False, True])
+        tm.assert_numpy_array_equal(result, expected)
 
-            result = idx1 == idx2
-            expected = np.array([False, False, False, False, False, True])
-            tm.assert_numpy_array_equal(result, expected)
-
-            result = idx1 != idx2
-            expected = np.array([True, True, True, True, True, False])
-            tm.assert_numpy_array_equal(result, expected)
+        result = idx1 != idx2
+        expected = np.array([True, True, True, True, True, False])
+        tm.assert_numpy_array_equal(result, expected)
 
     # TODO: better name
     def test_comparisons_coverage(self):
@@ -538,6 +538,7 @@ class TestTimedelta64ArithmeticUnsorted:
         expected = index + timedelta(-1)
         tm.assert_index_equal(result, expected)
 
+    def test_timedelta_tick_arithmetic(self):
         # GH#4134, buggy with timedeltas
         rng = pd.date_range("2013", "2014")
         s = Series(rng)
@@ -664,28 +665,21 @@ class TestTimedelta64ArithmeticUnsorted:
 class TestAddSubNaTMasking:
     # TODO: parametrize over boxes
 
-    def test_tdarr_add_timestamp_nat_masking(self, box_with_array):
+    @pytest.mark.parametrize("str_ts", ["1950-01-01", "1980-01-01"])
+    def test_tdarr_add_timestamp_nat_masking(self, box_with_array, str_ts):
         # GH#17991 checking for overflow-masking with NaT
         tdinat = pd.to_timedelta(["24658 days 11:15:00", "NaT"])
         tdobj = tm.box_expected(tdinat, box_with_array)
 
-        tsneg = Timestamp("1950-01-01")
-        ts_neg_variants = [
-            tsneg,
-            tsneg.to_pydatetime(),
-            tsneg.to_datetime64().astype("datetime64[ns]"),
-            tsneg.to_datetime64().astype("datetime64[D]"),
+        ts = Timestamp(str_ts)
+        ts_variants = [
+            ts,
+            ts.to_pydatetime(),
+            ts.to_datetime64().astype("datetime64[ns]"),
+            ts.to_datetime64().astype("datetime64[D]"),
         ]
 
-        tspos = Timestamp("1980-01-01")
-        ts_pos_variants = [
-            tspos,
-            tspos.to_pydatetime(),
-            tspos.to_datetime64().astype("datetime64[ns]"),
-            tspos.to_datetime64().astype("datetime64[D]"),
-        ]
-
-        for variant in ts_neg_variants + ts_pos_variants:
+        for variant in ts_variants:
             res = tdobj + variant
             if box_with_array is DataFrame:
                 assert res.iloc[1, 1] is NaT

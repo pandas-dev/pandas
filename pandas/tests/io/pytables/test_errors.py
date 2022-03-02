@@ -25,7 +25,7 @@ from pandas.io.pytables import (
     _maybe_adjust_name,
 )
 
-pytestmark = pytest.mark.single
+pytestmark = pytest.mark.single_cpu
 
 
 def test_pass_spec_to_storer(setup_path):

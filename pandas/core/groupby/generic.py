@@ -472,9 +472,6 @@ class SeriesGroupBy(GroupBy[Series]):
         result.name = self.obj.name
         return result
 
-    def _can_use_transform_fast(self, func: str, result) -> bool:
-        return True
-
     def filter(self, func, dropna: bool = True, *args, **kwargs):
         """
         Return a copy of a Series excluding elements from groups that
@@ -602,23 +599,23 @@ class SeriesGroupBy(GroupBy[Series]):
         ids, _, _ = self.grouper.group_info
         val = self.obj._values
 
-        def apply_series_value_counts():
-            return self.apply(
+        names = self.grouper.names + [self.obj.name]
+
+        if is_categorical_dtype(val.dtype) or (
+            bins is not None and not np.iterable(bins)
+        ):
+            # scalar bins cannot be done at top level
+            # in a backward compatible way
+            # GH38672 relates to categorical dtype
+            ser = self.apply(
                 Series.value_counts,
                 normalize=normalize,
                 sort=sort,
                 ascending=ascending,
                 bins=bins,
             )
-
-        if bins is not None:
-            if not np.iterable(bins):
-                # scalar bins cannot be done at top level
-                # in a backward compatible way
-                return apply_series_value_counts()
-        elif is_categorical_dtype(val.dtype):
-            # GH38672
-            return apply_series_value_counts()
+            ser.index.names = names
+            return ser
 
         # groupby removes null keys from groupings
         mask = ids != -1
@@ -683,7 +680,6 @@ class SeriesGroupBy(GroupBy[Series]):
         levels = [ping.group_index for ping in self.grouper.groupings] + [
             lev  # type: ignore[list-item]
         ]
-        names = self.grouper.names + [self.obj.name]
 
         if dropna:
             mask = codes[-1] != -1
@@ -1183,14 +1179,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
         return self._transform(
             func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
-        )
-
-    def _can_use_transform_fast(self, func: str, result) -> bool:
-        # ngroup can only use transform_fast when there are no null keys dropped
-        # caller is responsible to check this case
-        return func in ("ngroup", "size") or (
-            isinstance(result, DataFrame)
-            and result.columns.equals(self._obj_with_exclusions.columns)
         )
 
     def _define_paths(self, func, *args, **kwargs):

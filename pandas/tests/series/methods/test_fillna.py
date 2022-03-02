@@ -749,13 +749,30 @@ class TestSeriesFillNA:
 
     @pytest.mark.parametrize("dtype", [float, "float32", "float64"])
     @pytest.mark.parametrize("fill_type", tm.ALL_REAL_NUMPY_DTYPES)
-    def test_fillna_float_casting(self, dtype, fill_type):
+    @pytest.mark.parametrize("scalar", [True, False])
+    def test_fillna_float_casting(self, dtype, fill_type, scalar):
         # GH-43424
         ser = Series([np.nan, 1.2], dtype=dtype)
         fill_values = Series([2, 2], dtype=fill_type)
+        if scalar:
+            fill_values = fill_values.dtype.type(2)
+
         result = ser.fillna(fill_values)
         expected = Series([2.0, 1.2], dtype=dtype)
         tm.assert_series_equal(result, expected)
+
+        ser = Series([np.nan, 1.2], dtype=dtype)
+        mask = ser.isna().to_numpy()
+        ser[mask] = fill_values
+        tm.assert_series_equal(ser, expected)
+
+        ser = Series([np.nan, 1.2], dtype=dtype)
+        ser.mask(mask, fill_values, inplace=True)
+        tm.assert_series_equal(ser, expected)
+
+        ser = Series([np.nan, 1.2], dtype=dtype)
+        res = ser.where(~mask, fill_values)
+        tm.assert_series_equal(res, expected)
 
     def test_fillna_f32_upcast_with_dict(self):
         # GH-43424
@@ -833,6 +850,24 @@ class TestSeriesFillNA:
             result = srs.fillna(0, None, None)
         expected = Series([1, 2, 3, 0], dtype=float)
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "input, input_fillna, expected_data, expected_categories",
+        [
+            (["A", "B", None, "A"], "B", ["A", "B", "B", "A"], ["A", "B"]),
+            (["A", "B", np.nan, "A"], "B", ["A", "B", "B", "A"], ["A", "B"]),
+        ],
+    )
+    def test_fillna_categorical_accept_same_type(
+        self, input, input_fillna, expected_data, expected_categories
+    ):
+        # GH32414
+        cat = Categorical(input)
+        ser = Series(cat).fillna(input_fillna)
+        filled = cat.fillna(ser)
+        result = cat.fillna(filled)
+        expected = Categorical(expected_data, categories=expected_categories)
+        tm.assert_categorical_equal(result, expected)
 
 
 class TestFillnaPad:

@@ -21,10 +21,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
-from pandas.core.groupby.generic import (
-    DataFrameGroupBy,
-    SeriesGroupBy,
-)
+from pandas.core.groupby.generic import DataFrameGroupBy
 
 
 def assert_fp_equal(a, b):
@@ -171,6 +168,10 @@ def test_transform_axis_1(request, transformation_func):
     # TODO(2.0) Remove after pad/backfill deprecation enforced
     transformation_func = maybe_normalize_deprecated_kernels(transformation_func)
 
+    if transformation_func == "ngroup":
+        msg = "ngroup fails with axis=1: #45986"
+        request.node.add_marker(pytest.mark.xfail(reason=msg))
+
     warn = None
     if transformation_func == "tshift":
         warn = FutureWarning
@@ -188,6 +189,27 @@ def test_transform_axis_1(request, transformation_func):
         expected["b"] = expected["b"].astype("int64")
 
     # cumcount returns Series; the rest are DataFrame
+    tm.assert_equal(result, expected)
+
+
+def test_transform_axis_1_reducer(request, reduction_func):
+    # GH#45715
+    if reduction_func in (
+        "corrwith",
+        "idxmax",
+        "idxmin",
+        "ngroup",
+        "nth",
+    ):
+        marker = pytest.mark.xfail(reason="transform incorrectly fails - GH#45986")
+        request.node.add_marker(marker)
+    df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
+    result = df.groupby([0, 0, 1], axis=1).transform(reduction_func)
+    if reduction_func == "size":
+        # size doesn't behave in the same manner; hardcode expected result
+        expected = DataFrame(2 * [[2, 2, 1]], index=df.index, columns=df.columns)
+    else:
+        expected = df.T.groupby([0, 0, 1]).transform(reduction_func).T
     tm.assert_equal(result, expected)
 
 
@@ -365,6 +387,17 @@ def test_transform_transformation_func(request, transformation_func):
     elif transformation_func == "fillna":
         test_op = lambda x: x.transform("fillna", value=0)
         mock_op = lambda x: x.fillna(value=0)
+    elif transformation_func == "ngroup":
+        test_op = lambda x: x.transform("ngroup")
+        counter = -1
+
+        def mock_op(x):
+            nonlocal counter
+            counter += 1
+            print(x)
+            print("counter:", counter)
+            return Series(counter, index=x.index)
+
     elif transformation_func == "tshift":
         msg = (
             "Current behavior of groupby.tshift is inconsistent with other "
@@ -376,10 +409,14 @@ def test_transform_transformation_func(request, transformation_func):
         mock_op = lambda x: getattr(x, transformation_func)()
 
     result = test_op(df.groupby("A"))
-    groups = [df[["B"]].iloc[:4], df[["B"]].iloc[4:6], df[["B"]].iloc[6:]]
-    expected = concat([mock_op(g) for g in groups])
+    # pass the group in same order as iterating `for ... in df.groupby(...)`
+    # but reorder to match df's index since this is a transform
+    groups = [df[["B"]].iloc[4:6], df[["B"]].iloc[6:], df[["B"]].iloc[:4]]
+    expected = concat([mock_op(g) for g in groups]).sort_index()
+    # sort_index does not preserve the freq
+    expected = expected.set_axis(df.index)
 
-    if transformation_func == "cumcount":
+    if transformation_func in ("cumcount", "ngroup"):
         tm.assert_series_equal(result, expected)
     else:
         tm.assert_frame_equal(result, expected)
@@ -395,45 +432,36 @@ def test_transform_select_columns(df):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("duplicates", [True, False])
-def test_transform_exclude_nuisance(df, duplicates):
+def test_transform_exclude_nuisance(df):
     # case that goes through _transform_item_by_item
 
-    if duplicates:
-        # make sure we work with duplicate columns GH#41427
-        df.columns = ["A", "C", "C", "D"]
+    df.columns = ["A", "B", "B", "D"]
 
     # this also tests orderings in transform between
     # series/frame to make sure it's consistent
     expected = {}
     grouped = df.groupby("A")
 
-    gbc = grouped["C"]
-    warn = FutureWarning if duplicates else None
-    with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
-        expected["C"] = gbc.transform(np.mean)
-    if duplicates:
-        # squeeze 1-column DataFrame down to Series
-        expected["C"] = expected["C"]["C"]
+    gbc = grouped["B"]
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
+        expected["B"] = gbc.transform(lambda x: np.mean(x))
+    # squeeze 1-column DataFrame down to Series
+    expected["B"] = expected["B"]["B"]
 
-        assert isinstance(gbc.obj, DataFrame)
-        assert isinstance(gbc, DataFrameGroupBy)
-    else:
-        assert isinstance(gbc, SeriesGroupBy)
-        assert isinstance(gbc.obj, Series)
+    assert isinstance(gbc.obj, DataFrame)
+    assert isinstance(gbc, DataFrameGroupBy)
 
     expected["D"] = grouped["D"].transform(np.mean)
     expected = DataFrame(expected)
     with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
-        result = df.groupby("A").transform(np.mean)
+        result = df.groupby("A").transform(lambda x: np.mean(x))
 
     tm.assert_frame_equal(result, expected)
 
 
 def test_transform_function_aliases(df):
-    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
-        result = df.groupby("A").transform("mean")
-        expected = df.groupby("A").transform(np.mean)
+    result = df.groupby("A").transform("mean")
+    expected = df.groupby("A").transform(np.mean)
     tm.assert_frame_equal(result, expected)
 
     result = df.groupby("A")["C"].transform("mean")
@@ -1129,6 +1157,8 @@ def test_transform_agg_by_name(request, reduction_func, obj):
         tm.assert_index_equal(result.columns, obj.columns)
 
     # verify that values were broadcasted across each group
+    print(obj)
+    print(result)
     assert len(set(DataFrame(result).iloc[-3:, -1])) == 1
 
 
@@ -1277,14 +1307,23 @@ def test_transform_cumcount():
     tm.assert_series_equal(result, expected)
 
 
-# Test both monotonic increasing and not
-@pytest.mark.parametrize("keys", [[1, 2, np.nan], [2, 1, np.nan]])
-def test_null_group_lambda_self(dropna, keys):
+def test_null_group_lambda_self(sort, dropna):
     # GH 17093
-    df = DataFrame({"A": keys, "B": [1, 2, 3]})
-    result = df.groupby("A", dropna=dropna).transform(lambda x: x)
-    value = np.nan if dropna else 3
-    expected = DataFrame([1, 2, value], columns=["B"])
+    np.random.seed(0)
+    keys = np.random.randint(0, 5, size=50).astype(float)
+    nulls = np.random.choice([0, 1], keys.shape).astype(bool)
+    keys[nulls] = np.nan
+    values = np.random.randint(0, 5, size=keys.shape)
+    df = DataFrame({"A": keys, "B": values})
+
+    expected_values = values
+    if dropna and nulls.any():
+        expected_values = expected_values.astype(float)
+        expected_values[nulls] = np.nan
+    expected = DataFrame(expected_values, columns=["B"])
+
+    gb = df.groupby("A", dropna=dropna, sort=sort)
+    result = gb.transform(lambda x: x)
     tm.assert_frame_equal(result, expected)
 
 
@@ -1344,10 +1383,12 @@ def test_null_group_str_transformer(request, dropna, transformation_func):
     gb = df.groupby("A", dropna=dropna)
 
     buffer = []
-    for idx, group in gb:
+    for k, (idx, group) in enumerate(gb):
         if transformation_func == "cumcount":
             # DataFrame has no cumcount method
             res = DataFrame({"B": range(len(group))}, index=group.index)
+        elif transformation_func == "ngroup":
+            res = Series(k, index=group.index)
         else:
             res = getattr(group[["B"]], transformation_func)(*args)
         buffer.append(res)
