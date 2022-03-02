@@ -308,8 +308,12 @@ cdef class _Timestamp(ABCTimestamp):
 
         elif not isinstance(self, _Timestamp):
             # cython semantics, args have been switched and this is __radd__
+            # TODO: Cython 3, remove this it moved to __radd__
             return other.__add__(self)
         return NotImplemented
+
+    def __radd__(self, other):
+        return self.__add__(other)
 
     def __sub__(self, other):
 
@@ -367,10 +371,15 @@ cdef class _Timestamp(ABCTimestamp):
         elif is_datetime64_object(self):
             # GH#28286 cython semantics for __rsub__, `other` is actually
             #  the Timestamp
+            # TODO: Cython 3 remove this, this moved to __rsub__
             return type(other)(self) - other
 
         return NotImplemented
 
+    def __rsub__(self, other):
+        if is_datetime64_object(other):
+            return type(self)(other) - self
+        return NotImplemented
     # -----------------------------------------------------------------
 
     cdef int64_t _maybe_convert_value_to_local(self):

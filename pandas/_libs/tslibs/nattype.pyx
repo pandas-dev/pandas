@@ -154,6 +154,7 @@ cdef class _NaT(datetime):
 
     def __add__(self, other):
         if self is not c_NaT:
+            # TODO: Cython 3, remove this it moved to __radd__
             # cython __radd__ semantics
             self, other = other, self
 
@@ -180,6 +181,9 @@ cdef class _NaT(datetime):
         # Includes Period, DateOffset going through here
         return NotImplemented
 
+    def __radd__(self, other):
+        return self.__add__(other)
+
     def __sub__(self, other):
         # Duplicate some logic from _Timestamp.__sub__ to avoid needing
         # to subclass; allows us to @final(_Timestamp.__sub__)
@@ -188,6 +192,7 @@ cdef class _NaT(datetime):
 
         if self is not c_NaT:
             # cython __rsub__ semantics
+            # TODO: Cython 3, remove __rsub__ logic from here
             self, other = other, self
             is_rsub = True
 
@@ -230,6 +235,24 @@ cdef class _NaT(datetime):
 
         # Includes Period, DateOffset going through here
         return NotImplemented
+
+    def __rsub__(self, other):
+        if util.is_array(other):
+            if other.dtype.kind == "m":
+                # timedelta64 - NaT we have to treat NaT as timedelta64
+                #  for this to be meaningful, and the result is timedelta64
+                result = np.empty(other.shape, dtype="timedelta64[ns]")
+                result.fill("NaT")
+                return result
+
+            elif other.dtype.kind == "M":
+                # We treat NaT as a datetime, so regardless of whether this is
+                #  NaT - other or other - NaT, the result is timedelta64
+                result = np.empty(other.shape, dtype="timedelta64[ns]")
+                result.fill("NaT")
+                return result
+        # other cases are same, swap operands is allowed even though we subtract because this is NaT
+        return self.__sub__(other)
 
     def __pos__(self):
         return NaT
