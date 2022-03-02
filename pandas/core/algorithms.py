@@ -224,14 +224,10 @@ def _reconstruct_data(
     if not isinstance(dtype, np.dtype):
         # i.e. ExtensionDtype
         cls = dtype.construct_array_type()
-        if isinstance(values, cls) and values.dtype == dtype:
-            return values
 
         values = cls._from_sequence(values, dtype=dtype)
-    elif is_bool_dtype(dtype):
-        values = values.astype(dtype, copy=False)
 
-    elif dtype is not None:
+    else:
         if is_datetime64_dtype(dtype):
             dtype = np.dtype("datetime64[ns]")
         elif is_timedelta64_dtype(dtype):
@@ -858,6 +854,7 @@ def value_counts(
             counts = result._values
 
         else:
+            values = _ensure_arraylike(values)
             keys, counts = value_counts_arraylike(values, dropna)
 
             # For backwards compatibility, we let Index do its normal type
@@ -878,19 +875,18 @@ def value_counts(
 
 
 # Called once from SparseArray, otherwise could be private
-def value_counts_arraylike(values, dropna: bool):
+def value_counts_arraylike(values: np.ndarray, dropna: bool):
     """
     Parameters
     ----------
-    values : arraylike
+    values : np.ndarray
     dropna : bool
 
     Returns
     -------
-    uniques : np.ndarray or ExtensionArray
-    counts : np.ndarray
+    uniques : np.ndarray
+    counts : np.ndarray[np.int64]
     """
-    values = _ensure_arraylike(values)
     original = values
     values = _ensure_data(values)
 
@@ -900,8 +896,8 @@ def value_counts_arraylike(values, dropna: bool):
         # datetime, timedelta, or period
 
         if dropna:
-            msk = keys != iNaT
-            keys, counts = keys[msk], counts[msk]
+            mask = keys != iNaT
+            keys, counts = keys[mask], counts[mask]
 
     res_keys = _reconstruct_data(keys, original.dtype, original)
     return res_keys, counts
@@ -1029,7 +1025,7 @@ def rank(
 
 
 def checked_add_with_arr(
-    arr: np.ndarray,
+    arr: npt.NDArray[np.int64],
     b,
     arr_mask: npt.NDArray[np.bool_] | None = None,
     b_mask: npt.NDArray[np.bool_] | None = None,
@@ -1044,7 +1040,7 @@ def checked_add_with_arr(
 
     Parameters
     ----------
-    arr : array addend.
+    arr : np.ndarray[int64] addend.
     b : array or scalar addend.
     arr_mask : np.ndarray[bool] or None, default None
         array indicating which elements to exclude from checking
