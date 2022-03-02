@@ -1201,7 +1201,7 @@ cdef str _period_fast_strftime(int64_t value, int freq):
     """A faster strftime alternative leveraging string formatting."""
 
     cdef:
-        int freq_group
+        int freq_group, quarter
         npy_datetimestruct dts
 
     # fill dts
@@ -1215,10 +1215,9 @@ cdef str _period_fast_strftime(int64_t value, int freq):
 
     elif freq_group == FR_QTR:
         # fmt = b'%FQ%q'
+        # get quarter and modify dts.year to be the fiscal year (?)
         quarter = get_yq(value, freq, &dts)
-        # TODO check _period_strftime : this should be the fiscal year
-        # f"{dts.year}Q{quarter}"
-        return "%sQ%s" % (dts.year, quarter)
+        return f"{dts.year}Q{quarter:02d}"
 
     elif freq_group == FR_MTH:
         # fmt = b'%Y-%m'
@@ -1287,7 +1286,7 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt):
         char *formatted
         bytes pat, brepl
         list found_pat = [False] * len(extra_fmts)
-        int year, quarter
+        int quarter
         str result, repl
 
     get_date_info(value, freq, &dts)
@@ -1308,18 +1307,17 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt):
     free(formatted)
 
     # Now fill the placeholders corresponding to our additional directives
+    if found_pat[0] or found_pat[1] or found_pat[2]:
+        # get the quarter and modify the year in-place (fiscal?)
+        quarter = get_yq(value, freq, &dts)
+
     for i in range(len(extra_fmts)):
         if found_pat[i]:
-
-            quarter = get_yq(value, freq, &dts)
-
-            if i == 0:  # %q, quarter
-                repl = str(quarter)
+            if i == 0:  # %q, 2-digit quarter. TODO add a test
+                repl = f"{quarter:02d}"
             elif i == 1:  # %f, 2-digit 'Fiscal' year
-                # TODO why is this not the fiscal year ?
                 repl = f"{(dts.year % 100):02d}"
             elif i == 2:  # %F, 'Fiscal' year with a century
-                # TODO why is this not the fiscal year ?
                 repl = str(dts.year)
             elif i == 3:  # %l, milliseconds
                 repl = f"{(value % 1_000):03d}"
