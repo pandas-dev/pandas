@@ -1217,7 +1217,7 @@ cdef str _period_fast_strftime(int64_t value, int freq):
         # fmt = b'%FQ%q'
         # get quarter and modify dts.year to be the fiscal year (?)
         quarter = get_yq(value, freq, &dts)
-        return f"{dts.year}Q{quarter:02d}"
+        return f"{dts.year}Q{quarter}"
 
     elif freq_group == FR_MTH:
         # fmt = b'%Y-%m'
@@ -1313,8 +1313,8 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt):
 
     for i in range(len(extra_fmts)):
         if found_pat[i]:
-            if i == 0:  # %q, 2-digit quarter. TODO add a test
-                repl = f"{quarter:02d}"
+            if i == 0:  # %q, quarter.
+                repl = f"{quarter}"
             elif i == 1:  # %f, 2-digit 'Fiscal' year
                 repl = f"{(dts.year % 100):02d}"
             elif i == 2:  # %F, 'Fiscal' year with a century
@@ -2444,7 +2444,7 @@ cdef class _Period(PeriodMixin):
         |           | AM or PM.                      |       |
         +-----------+--------------------------------+-------+
         | ``%q``    | Quarter as a decimal number    |       |
-        |           | [01,04]                        |       |
+        |           | [1,4]                          |       |
         +-----------+--------------------------------+-------+
         | ``%S``    | Second as a decimal number     | \(4)  |
         |           | [00,61].                       |       |
