@@ -138,7 +138,9 @@ class WrappedCythonOp:
         },
     }
 
-    _MASKED_CYTHON_FUNCTIONS = {"cummin", "cummax", "min", "max"}
+    # "group_any" and "group_all" are also support masks, but don't go
+    #  through WrappedCythonOp
+    _MASKED_CYTHON_FUNCTIONS = {"cummin", "cummax", "min", "max", "last", "first"}
 
     _cython_arity = {"ohlc": 4}  # OHLC
 
@@ -337,23 +339,7 @@ class WrappedCythonOp:
                 **kwargs,
             )
 
-        if isinstance(values, (DatetimeArray, PeriodArray, TimedeltaArray)):
-            # All of the functions implemented here are ordinal, so we can
-            #  operate on the tz-naive equivalents
-            npvalues = values._ndarray.view("M8[ns]")
-        elif isinstance(values.dtype, (BooleanDtype, IntegerDtype)):
-            # IntegerArray or BooleanArray
-            npvalues = values.to_numpy("float64", na_value=np.nan)
-        elif isinstance(values.dtype, FloatingDtype):
-            # FloatingArray
-            npvalues = values.to_numpy(values.dtype.numpy_dtype, na_value=np.nan)
-        elif isinstance(values.dtype, StringDtype):
-            # StringArray
-            npvalues = values.to_numpy(object, na_value=np.nan)
-        else:
-            raise NotImplementedError(
-                f"function is not implemented for this dtype: {values.dtype}"
-            )
+        npvalues = self._ea_to_cython_values(values)
 
         res_values = self._cython_op_ndim_compat(
             npvalues,
@@ -371,6 +357,27 @@ class WrappedCythonOp:
 
         return self._reconstruct_ea_result(values, res_values)
 
+    def _ea_to_cython_values(self, values: ExtensionArray):
+        # GH#43682
+        if isinstance(values, (DatetimeArray, PeriodArray, TimedeltaArray)):
+            # All of the functions implemented here are ordinal, so we can
+            #  operate on the tz-naive equivalents
+            npvalues = values._ndarray.view("M8[ns]")
+        elif isinstance(values.dtype, (BooleanDtype, IntegerDtype)):
+            # IntegerArray or BooleanArray
+            npvalues = values.to_numpy("float64", na_value=np.nan)
+        elif isinstance(values.dtype, FloatingDtype):
+            # FloatingArray
+            npvalues = values.to_numpy(values.dtype.numpy_dtype, na_value=np.nan)
+        elif isinstance(values.dtype, StringDtype):
+            # StringArray
+            npvalues = values.to_numpy(object, na_value=np.nan)
+        else:
+            raise NotImplementedError(
+                f"function is not implemented for this dtype: {values.dtype}"
+            )
+        return npvalues
+
     def _reconstruct_ea_result(self, values, res_values):
         """
         Construct an ExtensionArray result from an ndarray result.
@@ -385,6 +392,7 @@ class WrappedCythonOp:
             return cls._from_sequence(res_values, dtype=dtype)
 
         elif needs_i8_conversion(values.dtype):
+            assert res_values.dtype.kind != "f"  # just to be on the safe side
             i8values = res_values.view("i8")
             return type(values)(i8values, dtype=values.dtype)
 
@@ -437,8 +445,8 @@ class WrappedCythonOp:
         min_count: int,
         ngroups: int,
         comp_ids: np.ndarray,
-        mask: np.ndarray | None = None,
-        result_mask: np.ndarray | None = None,
+        mask: npt.NDArray[np.bool_] | None = None,
+        result_mask: npt.NDArray[np.bool_] | None = None,
         **kwargs,
     ) -> np.ndarray:
         if values.ndim == 1:
@@ -481,8 +489,8 @@ class WrappedCythonOp:
         min_count: int,
         ngroups: int,
         comp_ids: np.ndarray,
-        mask: np.ndarray | None,
-        result_mask: np.ndarray | None,
+        mask: npt.NDArray[np.bool_] | None,
+        result_mask: npt.NDArray[np.bool_] | None,
         **kwargs,
     ) -> np.ndarray:  # np.ndarray[ndim=2]
         orig_values = values
@@ -521,24 +529,34 @@ class WrappedCythonOp:
             counts = np.zeros(ngroups, dtype=np.int64)
             if self.how in ["min", "max", "mean"]:
                 func(
-                    result,
-                    counts,
-                    values,
-                    comp_ids,
-                    min_count,
+                    out=result,
+                    counts=counts,
+                    values=values,
+                    labels=comp_ids,
+                    min_count=min_count,
                     mask=mask,
                     result_mask=result_mask,
                     is_datetimelike=is_datetimelike,
                 )
+            elif self.how in ["first", "last"]:
+                func(
+                    out=result,
+                    counts=counts,
+                    values=values,
+                    labels=comp_ids,
+                    min_count=min_count,
+                    mask=mask,
+                    result_mask=result_mask,
+                )
             elif self.how in ["add"]:
                 # We support datetimelike
                 func(
-                    result,
-                    counts,
-                    values,
-                    comp_ids,
-                    min_count,
-                    datetimelike=is_datetimelike,
+                    out=result,
+                    counts=counts,
+                    values=values,
+                    labels=comp_ids,
+                    min_count=min_count,
+                    is_datetimelike=is_datetimelike,
                 )
             else:
                 func(result, counts, values, comp_ids, min_count)
@@ -546,11 +564,11 @@ class WrappedCythonOp:
             # TODO: min_count
             if self.uses_mask():
                 func(
-                    result,
-                    values,
-                    comp_ids,
-                    ngroups,
-                    is_datetimelike,
+                    out=result,
+                    values=values,
+                    labels=comp_ids,
+                    ngroups=ngroups,
+                    is_datetimelike=is_datetimelike,
                     mask=mask,
                     **kwargs,
                 )
@@ -565,9 +583,12 @@ class WrappedCythonOp:
                 cutoff = max(1, min_count)
                 empty_groups = counts < cutoff
                 if empty_groups.any():
-                    # Note: this conversion could be lossy, see GH#40767
-                    result = result.astype("float64")
-                    result[empty_groups] = np.nan
+                    if result_mask is not None and self.uses_mask():
+                        assert result_mask[empty_groups].all()
+                    else:
+                        # Note: this conversion could be lossy, see GH#40767
+                        result = result.astype("float64")
+                        result[empty_groups] = np.nan
 
         result = result.T
 
@@ -784,8 +805,32 @@ class BaseGrouper:
         return get_indexer_dict(codes_list, keys)
 
     @final
+    def result_ilocs(self) -> npt.NDArray[np.intp]:
+        """
+        Get the original integer locations of result_index in the input.
+        """
+        # Original indices are where group_index would go via sorting.
+        # But when dropna is true, we need to remove null values while accounting for
+        # any gaps that then occur because of them.
+        group_index = get_group_index(self.codes, self.shape, sort=False, xnull=True)
+
+        if self.has_dropped_na:
+            mask = np.where(group_index >= 0)
+            # Count how many gaps are caused by previous null values for each position
+            null_gaps = np.cumsum(group_index == -1)[mask]
+            group_index = group_index[mask]
+
+        result = get_group_index_sorter(group_index, self.ngroups)
+
+        if self.has_dropped_na:
+            # Shift by the number of prior null gaps
+            result += np.take(null_gaps, result)
+
+        return result
+
+    @final
     @property
-    def codes(self) -> list[np.ndarray]:
+    def codes(self) -> list[npt.NDArray[np.signedinteger]]:
         return [ping.codes for ping in self.groupings]
 
     @property
@@ -825,6 +870,14 @@ class BaseGrouper:
         # return if my group orderings are monotonic
         return Index(self.group_info[0]).is_monotonic_increasing
 
+    @final
+    @cache_readonly
+    def has_dropped_na(self) -> bool:
+        """
+        Whether grouper has null value(s) that are dropped.
+        """
+        return bool((self.group_info[0] < 0).any())
+
     @cache_readonly
     def group_info(self) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
         comp_ids, obs_group_ids = self._get_compressed_codes()
@@ -848,11 +901,14 @@ class BaseGrouper:
         return ids
 
     @final
-    def _get_compressed_codes(self) -> tuple[np.ndarray, npt.NDArray[np.intp]]:
+    def _get_compressed_codes(
+        self,
+    ) -> tuple[npt.NDArray[np.signedinteger], npt.NDArray[np.intp]]:
         # The first returned ndarray may have any signed integer dtype
         if len(self.groupings) > 1:
             group_index = get_group_index(self.codes, self.shape, sort=True, xnull=True)
             return compress_group_index(group_index, sort=self._sort)
+            # FIXME: compress_group_index's second return value is int64, not intp
 
         ping = self.groupings[0]
         return ping.codes, np.arange(len(ping.group_index), dtype=np.intp)
@@ -863,25 +919,10 @@ class BaseGrouper:
         return len(self.result_index)
 
     @property
-    def reconstructed_codes(self) -> list[np.ndarray]:
+    def reconstructed_codes(self) -> list[npt.NDArray[np.intp]]:
         codes = self.codes
         ids, obs_ids, _ = self.group_info
         return decons_obs_group_ids(ids, obs_ids, self.shape, codes, xnull=True)
-
-    @final
-    @cache_readonly
-    def result_arraylike(self) -> ArrayLike:
-        """
-        Analogous to result_index, but returning an ndarray/ExtensionArray
-        allowing us to retain ExtensionDtypes not supported by Index.
-        """
-        # TODO(ExtensionIndex): once Index supports arbitrary EAs, this can
-        #  be removed in favor of result_index
-        if len(self.groupings) == 1:
-            return self.groupings[0].group_arraylike
-
-        # result_index is MultiIndex
-        return self.result_index._values
 
     @cache_readonly
     def result_index(self) -> Index:
@@ -1147,7 +1188,7 @@ class BinGrouper(BaseGrouper):
         return [np.r_[0, np.flatnonzero(self.bins[1:] != self.bins[:-1]) + 1]]
 
     @cache_readonly
-    def result_index(self):
+    def result_index(self) -> Index:
         if len(self.binlabels) != 0 and isna(self.binlabels[0]):
             return self.binlabels[1:]
 
