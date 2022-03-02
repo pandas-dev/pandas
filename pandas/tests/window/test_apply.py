@@ -52,8 +52,7 @@ def test_rolling_apply_out_of_bounds(engine_and_raw):
 
 
 @pytest.mark.parametrize("window", [2, "2s"])
-@pytest.mark.parametrize("step", [None])
-def test_rolling_apply_with_pandas_objects(window, step):
+def test_rolling_apply_with_pandas_objects(window):
     # 5071
     df = DataFrame(
         {"A": np.random.randn(5), "B": np.random.randint(0, 10, size=5)},
@@ -67,8 +66,8 @@ def test_rolling_apply_with_pandas_objects(window, step):
             return np.nan
         return x.iloc[-1]
 
-    result = df.rolling(window, step=step).apply(f, raw=False)
-    expected = df.iloc[2:].reindex_like(df)[::step]
+    result = df.rolling(window).apply(f, raw=False)
+    expected = df.iloc[2:].reindex_like(df)
     tm.assert_frame_equal(result, expected)
 
     with tm.external_error_raised(AttributeError):
@@ -96,8 +95,7 @@ def test_rolling_apply(engine_and_raw, step):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("step", [None])
-def test_all_apply(engine_and_raw, step):
+def test_all_apply(engine_and_raw):
     engine, raw = engine_and_raw
 
     df = (
@@ -106,16 +104,15 @@ def test_all_apply(engine_and_raw, step):
         ).set_index("A")
         * 2
     )
-    er = df.rolling(window=1, step=step)
-    r = df.rolling(window="1s", step=step)
+    er = df.rolling(window=1)
+    r = df.rolling(window="1s")
 
     result = r.apply(lambda x: 1, engine=engine, raw=raw)
     expected = er.apply(lambda x: 1, engine=engine, raw=raw)
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("step", [None])
-def test_ragged_apply(engine_and_raw, step):
+def test_ragged_apply(engine_and_raw):
     engine, raw = engine_and_raw
 
     df = DataFrame({"B": range(5)})
@@ -128,24 +125,18 @@ def test_ragged_apply(engine_and_raw, step):
     ]
 
     f = lambda x: 1
-    result = df.rolling(window="1s", min_periods=1, step=step).apply(
-        f, engine=engine, raw=raw
-    )
-    expected = df.copy()[::step]
+    result = df.rolling(window="1s", min_periods=1).apply(f, engine=engine, raw=raw)
+    expected = df.copy()
     expected["B"] = 1.0
     tm.assert_frame_equal(result, expected)
 
-    result = df.rolling(window="2s", min_periods=1, step=step).apply(
-        f, engine=engine, raw=raw
-    )
-    expected = df.copy()[::step]
+    result = df.rolling(window="2s", min_periods=1).apply(f, engine=engine, raw=raw)
+    expected = df.copy()
     expected["B"] = 1.0
     tm.assert_frame_equal(result, expected)
 
-    result = df.rolling(window="5s", min_periods=1, step=step).apply(
-        f, engine=engine, raw=raw
-    )
-    expected = df.copy()[::step]
+    result = df.rolling(window="5s", min_periods=1).apply(f, engine=engine, raw=raw)
+    expected = df.copy()
     expected["B"] = 1.0
     tm.assert_frame_equal(result, expected)
 

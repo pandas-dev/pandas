@@ -26,13 +26,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.api.indexers import BaseIndexer
-from pandas.core.indexers.objects import (
-    ExpandingIndexer,
-    ExponentialMovingWindowIndexer,
-    GroupbyIndexer,
-    VariableOffsetWindowIndexer,
-    VariableWindowIndexer,
-)
+from pandas.core.indexers.objects import VariableOffsetWindowIndexer
 from pandas.core.window import Rolling
 
 from pandas.tseries.offsets import BusinessDay
@@ -96,71 +90,33 @@ def test_invalid_constructor(frame_or_series, w):
         timedelta(days=3),
         Timedelta(days=3),
         "3D",
-        ExpandingIndexer(window_size=3),
-        ExponentialMovingWindowIndexer(window_size=3),
-        GroupbyIndexer(window_size=3),
         VariableOffsetWindowIndexer(
             index=date_range("2015-12-25", periods=5), offset=BusinessDay(1)
         ),
-        VariableWindowIndexer(window_size=3),
     ],
 )
-@pytest.mark.parametrize(
-    "func",
-    [
-        lambda df: df.rolling,
-        lambda df: df.groupby("key").rolling,
-    ],
-)
-def test_constructor_step_not_implemented(window, func, step):
+def test_freq_window_not_implemented(window):
     # GH 15354
     df = DataFrame(
-        {"value": np.arange(10), "key": np.array([1] * 5 + [2] * 5)},
+        np.arange(10),
         index=date_range("2015-12-24", periods=10, freq="D"),
     )
-    f = lambda: func(df)(window=window, step=step)
-    if step is None:
-        f()
-    else:
-        with pytest.raises(NotImplementedError, match="step not implemented"):
-            f()
+    with pytest.raises(
+        NotImplementedError, match="step is not supported with frequency windows"
+    ):
+        df.rolling("3D", step=3)
 
 
 @pytest.mark.parametrize("agg", ["cov", "corr"])
-def test_constructor_step_not_implemented_for_cov_corr(agg, step):
+def test_step_not_implemented_for_cov_corr(agg):
     # GH 15354
-    df = DataFrame(
-        {"value": np.arange(10), "key": np.array([1] * 5 + [2] * 5)},
-        index=date_range("2015-12-24", periods=10, freq="D"),
-    )
-    f = lambda: getattr(df.rolling(window=2, step=step), agg)(df)
-    if step is None:
-        f()
-    else:
-        with pytest.raises(NotImplementedError, match="step not implemented"):
-            f()
-
-
-@pytest.mark.parametrize(
-    "func",
-    [
-        lambda df: df.expanding,
-        lambda df: df.ewm,
-    ],
-)
-def test_constructor_step_unsupported(func, step):
-    # GH 15354
-    df = DataFrame(
-        {"value": np.arange(10), "key": np.array([1] * 5 + [2] * 5)},
-        index=date_range("2015-12-24", periods=10, freq="D"),
-    )
-    with pytest.raises(TypeError, match="got an unexpected keyword argument 'step'"):
-        func(df)(step=step)
+    roll = DataFrame(range(2)).rolling(1, step=2)
+    with pytest.raises(NotImplementedError, match="step not implemented"):
+        getattr(roll, agg)()
 
 
 @pytest.mark.parametrize("window", [timedelta(days=3), Timedelta(days=3)])
-@pytest.mark.parametrize("step", [None])
-def test_constructor_with_timedelta_window(window, step):
+def test_constructor_with_timedelta_window(window):
     # GH 15440
     n = 10
     df = DataFrame(
@@ -169,19 +125,18 @@ def test_constructor_with_timedelta_window(window, step):
     )
     expected_data = np.append([0.0, 1.0], np.arange(3.0, 27.0, 3))
 
-    result = df.rolling(window=window, step=step).sum()
+    result = df.rolling(window=window).sum()
     expected = DataFrame(
         {"value": expected_data},
         index=date_range("2015-12-24", periods=n, freq="D"),
-    )[::step]
+    )
     tm.assert_frame_equal(result, expected)
-    expected = df.rolling("3D", step=step).sum()
+    expected = df.rolling("3D").sum()
     tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("window", [timedelta(days=3), Timedelta(days=3), "3D"])
-@pytest.mark.parametrize("step", [None])
-def test_constructor_timedelta_window_and_minperiods(window, step, raw):
+def test_constructor_timedelta_window_and_minperiods(window, raw):
     # GH 15305
     n = 10
     df = DataFrame(
@@ -191,11 +146,9 @@ def test_constructor_timedelta_window_and_minperiods(window, step, raw):
     expected = DataFrame(
         {"value": np.append([np.NaN, 1.0], np.arange(3.0, 27.0, 3))},
         index=date_range("2017-08-08", periods=n, freq="D"),
-    )[::step]
-    result_roll_sum = df.rolling(window=window, min_periods=2, step=step).sum()
-    result_roll_generic = df.rolling(window=window, min_periods=2, step=step).apply(
-        sum, raw=raw
     )
+    result_roll_sum = df.rolling(window=window, min_periods=2).sum()
+    result_roll_generic = df.rolling(window=window, min_periods=2).apply(sum, raw=raw)
     tm.assert_frame_equal(result_roll_sum, expected)
     tm.assert_frame_equal(result_roll_generic, expected)
 
@@ -214,21 +167,18 @@ def test_numpy_compat(method):
 
 
 @pytest.mark.parametrize("closed", ["right", "left", "both", "neither"])
-@pytest.mark.parametrize("step", [None])
-def test_closed_fixed(closed, arithmetic_win_operators, step):
+def test_closed_fixed(closed, arithmetic_win_operators):
     # GH 34315
     func_name = arithmetic_win_operators
     df_fixed = DataFrame({"A": [0, 1, 2, 3, 4]})
     df_time = DataFrame({"A": [0, 1, 2, 3, 4]}, index=date_range("2020", periods=5))
 
     result = getattr(
-        df_fixed.rolling(2, closed=closed, min_periods=1, step=step),
+        df_fixed.rolling(2, closed=closed, min_periods=1),
         func_name,
     )()
-    if step is not None:
-        result = result.reset_index(drop=True)
     expected = getattr(
-        df_time.rolling("2D", closed=closed, min_periods=1, step=step),
+        df_time.rolling("2D", closed=closed, min_periods=1),
         func_name,
     )().reset_index(drop=True)
 
@@ -280,9 +230,8 @@ def test_closed_fixed(closed, arithmetic_win_operators, step):
         ),
     ],
 )
-@pytest.mark.parametrize("step", [None])
 def test_datetimelike_centered_selections(
-    closed, window_selections, step, arithmetic_win_operators
+    closed, window_selections, arithmetic_win_operators
 ):
     # GH 34315
     func_name = arithmetic_win_operators
@@ -293,7 +242,7 @@ def test_datetimelike_centered_selections(
     expected = DataFrame(
         {"A": [getattr(df_time["A"].iloc[s], func_name)() for s in window_selections]},
         index=date_range("2020", periods=5),
-    )[::step]
+    )
 
     if func_name == "sem":
         kwargs = {"ddof": 0}
@@ -301,7 +250,7 @@ def test_datetimelike_centered_selections(
         kwargs = {}
 
     result = getattr(
-        df_time.rolling("2D", closed=closed, min_periods=1, center=True, step=step),
+        df_time.rolling("2D", closed=closed, min_periods=1, center=True),
         func_name,
     )(**kwargs)
 
@@ -321,9 +270,8 @@ def test_datetimelike_centered_selections(
         ("2s", "neither", [1.0, 2.0, 2.0]),
     ],
 )
-@pytest.mark.parametrize("step", [None])
 def test_datetimelike_centered_offset_covers_all(
-    window, closed, expected, step, frame_or_series
+    window, closed, expected, frame_or_series
 ):
     # GH 42753
 
@@ -334,8 +282,8 @@ def test_datetimelike_centered_offset_covers_all(
     ]
     df = frame_or_series([1, 1, 1], index=index)
 
-    result = df.rolling(window, closed=closed, center=True, step=step).sum()
-    expected = frame_or_series(expected, index=index)[::step]
+    result = df.rolling(window, closed=closed, center=True).sum()
+    expected = frame_or_series(expected, index=index)
     tm.assert_equal(result, expected)
 
 
@@ -348,9 +296,8 @@ def test_datetimelike_centered_offset_covers_all(
         ("2D", "neither", [2, 2, 2, 2, 2, 2, 2, 2]),
     ],
 )
-@pytest.mark.parametrize("step", [None])
 def test_datetimelike_nonunique_index_centering(
-    window, closed, expected, frame_or_series, step
+    window, closed, expected, frame_or_series
 ):
     index = DatetimeIndex(
         [
@@ -366,24 +313,23 @@ def test_datetimelike_nonunique_index_centering(
     )
 
     df = frame_or_series([1] * 8, index=index, dtype=float)
-    expected = frame_or_series(expected, index=index, dtype=float)[::step]
+    expected = frame_or_series(expected, index=index, dtype=float)
 
-    result = df.rolling(window, center=True, closed=closed, step=step).sum()
+    result = df.rolling(window, center=True, closed=closed).sum()
 
     tm.assert_equal(result, expected)
 
 
-@pytest.mark.parametrize("step", [None])
-def test_even_number_window_alignment(step):
+def test_even_number_window_alignment():
     # see discussion in GH 38780
     s = Series(range(3), index=date_range(start="2020-01-01", freq="D", periods=3))
 
     # behavior of index- and datetime-based windows differs here!
     # s.rolling(window=2, min_periods=1, center=True).mean()
 
-    result = s.rolling(window="2D", min_periods=1, center=True, step=step).mean()
+    result = s.rolling(window="2D", min_periods=1, center=True).mean()
 
-    expected = Series([0.5, 1.5, 2], index=s.index)[::step]
+    expected = Series([0.5, 1.5, 2], index=s.index)
 
     tm.assert_series_equal(result, expected)
 
@@ -415,27 +361,23 @@ def test_closed_fixed_binary_col(center, step):
 
 
 @pytest.mark.parametrize("closed", ["neither", "left"])
-@pytest.mark.parametrize("step", [None])
-def test_closed_empty(closed, arithmetic_win_operators, step):
+def test_closed_empty(closed, arithmetic_win_operators):
     # GH 26005
     func_name = arithmetic_win_operators
     ser = Series(data=np.arange(5), index=date_range("2000", periods=5, freq="2D"))
-    roll = ser.rolling("1D", closed=closed, step=step)
+    roll = ser.rolling("1D", closed=closed)
 
     result = getattr(roll, func_name)()
-    expected = Series([np.nan] * 5, index=ser.index)[::step]
+    expected = Series([np.nan] * 5, index=ser.index)
     tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("func", ["min", "max"])
-@pytest.mark.parametrize("step", [None])
-def test_closed_one_entry(func, step):
+def test_closed_one_entry(func):
     # GH24718
     ser = Series(data=[2], index=date_range("2000", periods=1))
-    result = getattr(ser.rolling("10D", closed="left", step=step), func)()
-    index = ser.index.copy()
-    index.freq = index.freq * (step or 1)
-    tm.assert_series_equal(result, Series([np.nan], index=index))
+    result = getattr(ser.rolling("10D", closed="left"), func)()
+    tm.assert_series_equal(result, Series([np.nan], index=ser.index))
 
 
 @pytest.mark.parametrize("func", ["min", "max"])
@@ -1829,3 +1771,13 @@ def test_rolling_std_neg_sqrt():
 
     b = a.ewm(span=3).std()
     assert np.isfinite(b[2:]).all()
+
+
+def test_step_not_integer_raises():
+    with pytest.raises(ValueError, match="step must be an integer"):
+        DataFrame(range(2)).rolling(1, step="foo")
+
+
+def test_step_not_positive_raises():
+    with pytest.raises(ValueError, match="step must be >= 0"):
+        DataFrame(range(2)).rolling(1, step=-1)
