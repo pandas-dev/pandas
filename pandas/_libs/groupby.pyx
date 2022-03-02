@@ -1141,6 +1141,11 @@ def group_nth(
 
                 if uses_mask:
                     isna_entry = mask[i, j]
+                    if isna_entry:
+                        # set out[i, j] to 0 to be deterministic, as
+                        #  it was initialized with np.empty. Also ensures
+                        #  we can downcast out if appropriate.
+                        out[i, j] = 0
                 else:
                     isna_entry = checknull(val)
 
