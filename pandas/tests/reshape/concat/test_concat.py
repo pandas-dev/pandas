@@ -521,7 +521,8 @@ class TestConcatenate:
                 ["a", "b", "c", "b", "a", "c"], categories=["a", "b", "c"]
             ),
         )
-        tm.assert_frame_equal(concat([df1, df2]), expected)
+        result = concat([df1, df2])
+        tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("pdt", [Series, DataFrame])

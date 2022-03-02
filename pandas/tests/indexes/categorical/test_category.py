@@ -295,7 +295,8 @@ class TestCategoricalIndex(Base):
         expected = CategoricalIndex(
             ["a", "b", "c", "b", "a", "c"], categories=["a", "b", "c"]
         )
-        tm.assert_index_equal(ci1.append(ci2), expected)
+        result = ci1.append(ci2)
+        tm.assert_index_equal(result, expected)
 
 
 class TestCategoricalIndex2:
