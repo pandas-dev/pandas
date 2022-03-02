@@ -39,6 +39,9 @@ class Timedelta(timedelta):
         unit: str = ...,
         **kwargs: int | float | np.integer | np.floating,
     ) -> _S: ...
+    # GH 46171
+    # While Timedelta can return pd.NaT, having the constructor return
+    # a Union with NaTType makes things awkward for users of pandas
     @property
     def days(self) -> int: ...
     @property

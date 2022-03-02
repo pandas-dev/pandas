@@ -55,6 +55,9 @@ class Timestamp(datetime):
         *,
         fold: int | None = ...,
     ) -> _DatetimeT: ...
+    # GH 46171
+    # While Timestamp can return pd.NaT, having the constructor return
+    # a Union with NaTType makes things awkward for users of pandas
     def _set_freq(self, freq: BaseOffset | None) -> None: ...
     @property
     def year(self) -> int: ...
