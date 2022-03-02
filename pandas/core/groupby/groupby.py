@@ -3066,9 +3066,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         with self._group_selection_context():
             index = self._selected_obj.index
-            result = self._obj_1d_constructor(
-                self.grouper.group_info[0], index, dtype=np.int64
-            )
+            comp_ids = self.grouper.group_info[0]
+            if self.grouper.has_dropped_na:
+                comp_ids = np.where(comp_ids == -1, np.nan, comp_ids)
+            result = self._obj_1d_constructor(comp_ids, index, dtype=np.int64)
             if not ascending:
                 result = self.ngroups - 1 - result
             return result

@@ -1350,8 +1350,6 @@ def test_null_group_str_reducer(dropna, reduction_func):
         expected = DataFrame({"B": [1, 1, 2, 2]}, index=index)
     elif reduction_func == "size":
         expected = Series([2, 2, 2, 2], index=index)
-    elif reduction_func == "ngroup":
-        expected = Series([0, 0, 1, 1], index=index)
     elif reduction_func == "corrwith":
         expected = DataFrame({"B": [1.0, 1.0, 1.0, 1.0]}, index=index)
     else:
@@ -1388,7 +1386,7 @@ def test_null_group_str_transformer(request, dropna, transformation_func):
             # DataFrame has no cumcount method
             res = DataFrame({"B": range(len(group))}, index=group.index)
         elif transformation_func == "ngroup":
-            res = Series(k, index=group.index)
+            res = DataFrame(len(group) * [k], index=group.index, columns=["B"])
         else:
             res = getattr(group[["B"]], transformation_func)(*args)
         buffer.append(res)
@@ -1397,11 +1395,13 @@ def test_null_group_str_transformer(request, dropna, transformation_func):
         buffer.append(DataFrame([[np.nan]], index=[3], dtype=dtype, columns=["B"]))
     expected = concat(buffer)
 
-    if transformation_func == "cumcount":
-        # cumcount always returns a Series as it counts the groups, not values
+    if transformation_func in ("cumcount", "ngroup"):
+        # ngroup/cumcount always returns a Series as it counts the groups, not values
         expected = expected["B"].rename(None)
 
     result = gb.transform(transformation_func, *args)
+    print(result)
+    print(expected)
     tm.assert_equal(result, expected)
 
 
@@ -1432,8 +1432,6 @@ def test_null_group_str_reducer_series(request, dropna, reduction_func):
         expected = Series([1, 1, 2, 2], index=index)
     elif reduction_func == "size":
         expected = Series([2, 2, 2, 2], index=index)
-    elif reduction_func == "ngroup":
-        expected = Series([0, 0, 1, 1], index=index)
     elif reduction_func == "corrwith":
         expected = Series([1, 1, 2, 2], index=index)
     else:
@@ -1462,10 +1460,12 @@ def test_null_group_str_transformer_series(request, dropna, transformation_func)
     gb = ser.groupby([1, 1, np.nan], dropna=dropna)
 
     buffer = []
-    for idx, group in gb:
+    for k, (idx, group) in enumerate(gb):
         if transformation_func == "cumcount":
             # Series has no cumcount method
             res = Series(range(len(group)), index=group.index)
+        elif transformation_func == "ngroup":
+            res = Series(k, index=group.index)
         else:
             res = getattr(group, transformation_func)(*args)
         buffer.append(res)
