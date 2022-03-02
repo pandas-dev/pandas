@@ -10634,7 +10634,7 @@ NaN 12.3   33.0
                 "In future versions of pandas, numeric_only will be set to "
                 "False by default, and the datetime/timedelta columns will "
                 "be considered in the results. To not consider these columns"
-                "specify numeric_only=True and ignore this warning.",
+                "specify numeric_only=True.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
