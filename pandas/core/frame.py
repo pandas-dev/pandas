@@ -8525,7 +8525,7 @@ NaN 12.3   33.0
 
     @doc(
         Series.diff,
-        klass="Dataframe",
+        klass="DataFrame",
         extra_params="axis : {0 or 'index', 1 or 'columns'}, default 0\n    "
         "Take difference over rows (0) or columns (1).\n",
         other_klass="Series",
