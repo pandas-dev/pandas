@@ -77,28 +77,48 @@ def convert_dtformat(
 
     # Mapping between strftime and string formatting, according to both styles
     if new_style_fmt:
+        esc_l = "+^_\\"
+        esc_r = "/_^+"
         supported = {
-            "%d": "{day:02d}",    # Day of the month as a zero-padded decimal number.
-            "%m": "{month:02d}",  # Month as a zero-padded decimal number.
-            "%Y": "{year}",       # Year with century as a decimal number.
-            "%H": "{hour:02d}",   # Hour (24-hour clock) as a zero-padded decimal number.
-            "%M": "{min:02d}",    # Minute as a zero-padded decimal number.
-            "%S": "{sec:02d}",    # Second as a zero-padded decimal number.
-            "%f": "{us:06d}",     # Microsecond as a decimal number, zero-padded to 6 digits.
-        }
-    else:
-        supported = {
-            "%d": "%(day)02d",    # Day of the month as a zero-padded decimal number.
-            "%m": "%(month)02d",  # Month as a zero-padded decimal number.
-            "%Y": "%(year)s",     # Year with century as a decimal number.
-            "%H": "%(hour)02d",   # Hour (24-hour clock) as a zero-padded decimal number.
-            "%M": "%(min)02d",    # Minute as a zero-padded decimal number.
-            "%S": "%(sec)02d",    # Second as a zero-padded decimal number.
-            "%f": "%(us)06d",     # Microsecond as a decimal number, zero-padded to 6 digits.
+            "%d": f"{esc_l}day:02df{esc_r}",    # Day of the month as a zero-padded decimal number.
+            "%m": f"{esc_l}month:02d{esc_r}",  # Month as a zero-padded decimal number.
+            "%Y": f"{esc_l}year{esc_r}",       # Year with century as a decimal number.
+            "%H": f"{esc_l}hour:02d{esc_r}",   # Hour (24-hour clock) as a zero-padded decimal number.
+            "%M": f"{esc_l}min:02d{esc_r}",    # Minute as a zero-padded decimal number.
+            "%S": f"{esc_l}sec:02d{esc_r}",    # Second as a zero-padded decimal number.
+            "%f": f"{esc_l}us:06d{esc_r}",     # Microsecond as a decimal number, zero-padded to 6 digits.
         }
 
-    # Create the output by replacing all directives
-    for key, replacement in supported.items():
-        strftime_fmt = strftime_fmt.replace(key, replacement)
+        # Create the output by replacing all directives
+        for key, replacement in supported.items():
+            strftime_fmt = strftime_fmt.replace(key, replacement)
+
+        # Escape remaining curly braces
+        strftime_fmt = strftime_fmt.replace("{", "{{").replace("}", "}}")
+
+        # Finally replace our placeholders
+        strftime_fmt = strftime_fmt.replace(esc_l, "{").replace(esc_r, "}")
+
+    else:
+        esc = "/_^+"
+        supported = {
+            "%d": f"{esc}(day)02d",    # Day of the month as a zero-padded decimal number.
+            "%m": f"{esc}(month)02d",  # Month as a zero-padded decimal number.
+            "%Y": f"{esc}(year)s",     # Year with century as a decimal number.
+            "%H": f"{esc}(hour)02d",   # Hour (24-hour clock) as a zero-padded decimal number.
+            "%M": f"{esc}(min)02d",    # Minute as a zero-padded decimal number.
+            "%S": f"{esc}(sec)02d",    # Second as a zero-padded decimal number.
+            "%f": f"{esc}(us)06d",     # Microsecond as a decimal number, zero-padded to 6 digits.
+        }
+
+        # Create the output by replacing all directives
+        for key, replacement in supported.items():
+            strftime_fmt = strftime_fmt.replace(key, replacement)
+
+        # Escape remaining percent signs
+        strftime_fmt = strftime_fmt.replace("%", "%%")
+
+        # Finally replace our placeholder
+        strftime_fmt = strftime_fmt.replace(esc, "%")
 
     return strftime_fmt
