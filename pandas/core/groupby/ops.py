@@ -16,7 +16,6 @@ from typing import (
     Iterator,
     Sequence,
     final,
-    overload,
 )
 
 import numpy as np
@@ -57,7 +56,6 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.missing import (
     isna,
     maybe_fill,
@@ -70,14 +68,8 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.arrays.boolean import BooleanDtype
-from pandas.core.arrays.floating import (
-    Float64Dtype,
-    FloatingDtype,
-)
-from pandas.core.arrays.integer import (
-    Int64Dtype,
-    IntegerDtype,
-)
+from pandas.core.arrays.floating import FloatingDtype
+from pandas.core.arrays.integer import IntegerDtype
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
@@ -274,27 +266,18 @@ class WrappedCythonOp:
                 out_dtype = "object"
         return np.dtype(out_dtype)
 
-    @overload
     def _get_result_dtype(self, dtype: np.dtype) -> np.dtype:
-        ...  # pragma: no cover
-
-    @overload
-    def _get_result_dtype(self, dtype: ExtensionDtype) -> ExtensionDtype:
-        ...  # pragma: no cover
-
-    def _get_result_dtype(self, dtype: DtypeObj) -> DtypeObj:
         """
         Get the desired dtype of a result based on the
         input dtype and how it was computed.
 
         Parameters
         ----------
-        dtype : np.dtype or ExtensionDtype
-            Input dtype.
+        dtype : np.dtype
 
         Returns
         -------
-        np.dtype or ExtensionDtype
+        np.dtype
             The desired dtype of the result.
         """
         how = self.how
@@ -302,12 +285,8 @@ class WrappedCythonOp:
         if how in ["add", "cumsum", "sum", "prod"]:
             if dtype == np.dtype(bool):
                 return np.dtype(np.int64)
-            elif isinstance(dtype, (BooleanDtype, IntegerDtype)):
-                return Int64Dtype()
         elif how in ["mean", "median", "var"]:
-            if isinstance(dtype, (BooleanDtype, IntegerDtype)):
-                return Float64Dtype()
-            elif is_float_dtype(dtype) or is_complex_dtype(dtype):
+            if is_float_dtype(dtype) or is_complex_dtype(dtype):
                 return dtype
             elif is_numeric_dtype(dtype):
                 return np.dtype(np.float64)
@@ -384,10 +363,19 @@ class WrappedCythonOp:
         """
         # TODO: allow EAs to override this logic
 
-        if isinstance(
-            values.dtype, (BooleanDtype, IntegerDtype, FloatingDtype, StringDtype)
-        ):
-            dtype = self._get_result_dtype(values.dtype)
+        if isinstance(values.dtype, StringDtype):
+            dtype = values.dtype
+            cls = dtype.construct_array_type()
+            return cls._from_sequence(res_values, dtype=dtype)
+
+        if isinstance(values.dtype, BaseMaskedDtype):
+            new_dtype = self._get_result_dtype(values.dtype.numpy_dtype)
+            # error: Incompatible types in assignment (expression has type
+            # "BaseMaskedDtype", variable has type "StringDtype")
+            dtype = BaseMaskedDtype.from_numpy_dtype(  # type: ignore[assignment]
+                new_dtype
+            )
+
             cls = dtype.construct_array_type()
             return cls._from_sequence(res_values, dtype=dtype)
 
@@ -428,7 +416,8 @@ class WrappedCythonOp:
             **kwargs,
         )
 
-        dtype = self._get_result_dtype(orig_values.dtype)
+        new_dtype = self._get_result_dtype(orig_values.dtype.numpy_dtype)
+        dtype = BaseMaskedDtype.from_numpy_dtype(new_dtype)
         assert isinstance(dtype, BaseMaskedDtype)
         cls = dtype.construct_array_type()
 
