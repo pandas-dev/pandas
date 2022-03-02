@@ -1310,6 +1310,9 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt):
     if found_pat[0] or found_pat[1] or found_pat[2]:
         # get the quarter and modify the year in-place (fiscal?)
         quarter = get_yq(value, freq, &dts)
+    else:
+        # initialize it still, otherwise generated c code has an error
+        quarter = 0
 
     for i in range(len(extra_fmts)):
         if found_pat[i]:
