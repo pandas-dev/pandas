@@ -617,14 +617,6 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         return self.grouper.indices
 
     @final
-    def _get_indices_by_codes(self, codes):
-        """
-        Safe get multiple indices, translate keys for
-        datelike to underlying repr.
-        """
-        return [self.grouper.code_indices.get(code, []) for code in codes]
-
-    @final
     def _get_indices(self, names):
         """
         Safe get multiple indices, translate keys for
@@ -959,7 +951,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             result = self._python_apply_general(curried, self._obj_with_exclusions)
 
-            if result.ndim == 1:
+            # TODO: Are there other cases where the name attribute is set incorrectly?
+            if result.ndim == 1 and self.obj.ndim == 1 and result.name != self.obj.name:
                 # apply sets the name on each group as the key; if there is one
                 # group this name will come through on Series results
                 result.name = None
