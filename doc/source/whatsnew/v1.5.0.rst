@@ -244,47 +244,6 @@ use ``series.loc[i:j]``.
 
 Slicing on a :class:`DataFrame` will not be affected.
 
-.. _whatsnew_150.deprecations.quantile_datetime_timedelta_columns:
-
-
-In a future version, method :meth:`DataFrame.quantile` attribute ``numeric_only`` will default False. Including datetime/timedelta columns in the result (:issue:`7308`).
-
-
-For example:
-.. ipython:: python
-
-  In [2]: df = pd.DataFrame(
-     ...:     {"A": [1, 2, 3], "B": pd.date_range("2014-01-01", periods=3, freq="m")}
-     ...: )
-
-
-In the old behavior, datetime/timedelta columns are dropped:
-
-*Old behavior*:
-
-.. code-block:: ipython
-
-  In [3]: df.quantile(0.5)
-  Out[3]:
-  A    2.0
-  Name: 0.5, dtype: float64
-
-
-In a future version, these columns will be included in the result:
-
-*Future behavior*:
-
-.. code-block:: ipython
-
-  In [4]: df.quantile(0.5)
-  Out[4]:
-  A                    2.0
-  B    2014-02-28 00:00:00
-  Name: 0.5, dtype: object
-
-To retain the old behavior, use ``df.quantile(q, numeric_only=False)``.
-
-
 .. _whatsnew_150.deprecations.excel_writer_attributes:
 
 :class:`ExcelWriter` attributes
@@ -338,6 +297,7 @@ Other Deprecations
 - Deprecated the ``warn`` parameter in :func:`infer_freq` (:issue:`45947`)
 - Deprecated allowing non-keyword arguments in :meth:`ExtensionArray.argsort` (:issue:`46134`)
 - Deprecated treating all-bool ``object``-dtype columns as bool-like in :meth:`DataFrame.any` and :meth:`DataFrame.all` with ``bool_only=True``, explicitly cast to bool instead (:issue:`46188`)
+- In a future version, method :meth:`DataFrame.quantile` attribute ``numeric_only`` will default False. Including datetime/timedelta columns in the result (:issue:`7308`).
 -
 
 .. ---------------------------------------------------------------------------
