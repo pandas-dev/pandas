@@ -23,6 +23,7 @@ from pandas._libs.tslibs import (
 from pandas._typing import (
     Dtype,
     DtypeObj,
+    npt,
 )
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
@@ -173,27 +174,27 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         return type(self)._simple_new(arr, name=self.name)
 
     @doc(PeriodArray.to_timestamp)
-    def to_timestamp(self, freq=None, how="start") -> DatetimeIndex:
+    def to_timestamp(self, freq=None, how: str = "start") -> DatetimeIndex:
         arr = self._data.to_timestamp(freq, how)
         return DatetimeIndex._simple_new(arr, name=self.name)
 
     # https://github.com/python/mypy/issues/1362
     # error: Decorated property not supported
-    @property  # type:ignore[misc]
+    @property  # type: ignore[misc]
     @doc(PeriodArray.hour.fget)
     def hour(self) -> Int64Index:
         return Int64Index(self._data.hour, name=self.name)
 
     # https://github.com/python/mypy/issues/1362
     # error: Decorated property not supported
-    @property  # type:ignore[misc]
+    @property  # type: ignore[misc]
     @doc(PeriodArray.minute.fget)
     def minute(self) -> Int64Index:
         return Int64Index(self._data.minute, name=self.name)
 
     # https://github.com/python/mypy/issues/1362
     # error: Decorated property not supported
-    @property  # type:ignore[misc]
+    @property  # type: ignore[misc]
     @doc(PeriodArray.second.fget)
     def second(self) -> Int64Index:
         return Int64Index(self._data.second, name=self.name)
@@ -320,14 +321,16 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         freq = dtype.freq
         own_freq = self.freq
         return (
-            freq._period_dtype_code == own_freq._period_dtype_code
+            freq._period_dtype_code
+            # error: "BaseOffset" has no attribute "_period_dtype_code"
+            == own_freq._period_dtype_code  # type: ignore[attr-defined]
             and freq.n == own_freq.n
         )
 
     # ------------------------------------------------------------------------
     # Index Methods
 
-    def asof_locs(self, where: Index, mask: np.ndarray) -> np.ndarray:
+    def asof_locs(self, where: Index, mask: npt.NDArray[np.bool_]) -> np.ndarray:
         """
         where : array of timestamps
         mask : np.ndarray[bool]
@@ -460,7 +463,10 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             kfreq = key.freq
             if not (
                 sfreq.n == kfreq.n
-                and sfreq._period_dtype_code == kfreq._period_dtype_code
+                # error: "BaseOffset" has no attribute "_period_dtype_code"
+                and sfreq._period_dtype_code  # type: ignore[attr-defined]
+                # error: "BaseOffset" has no attribute "_period_dtype_code"
+                == kfreq._period_dtype_code  # type: ignore[attr-defined]
             ):
                 # GH#42247 For the subset of DateOffsets that can be Period freqs,
                 #  checking these two attributes is sufficient to check equality,

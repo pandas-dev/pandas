@@ -46,6 +46,7 @@ from pandas._typing import (
     FilePath,
     IndexKeyFunc,
     IndexLabel,
+    IntervalClosedType,
     JSONSerializable,
     Level,
     Manager,
@@ -443,7 +444,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # Construction
 
     @property
-    def _constructor(self: NDFrameT) -> type[NDFrameT]:
+    def _constructor(self: NDFrameT) -> Callable[..., NDFrameT]:
         """
         Used when a manipulation result has the same dimensions as the
         original.
@@ -778,17 +779,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if copy:
             new_values = new_values.copy()
 
-        # ignore needed because of NDFrame constructor is different than
-        # DataFrame/Series constructors.
         return self._constructor(
-            # error: Argument 1 to "NDFrame" has incompatible type "ndarray"; expected
-            # "Union[ArrayManager, BlockManager]"
-            # error: Argument 2 to "NDFrame" has incompatible type "*Generator[Index,
-            # None, None]"; expected "bool" [arg-type]
-            # error: Argument 2 to "NDFrame" has incompatible type "*Generator[Index,
-            # None, None]"; expected "Optional[Mapping[Hashable, Any]]"
-            new_values,  # type: ignore[arg-type]
-            *new_axes,  # type: ignore[arg-type]
+            new_values,
+            *new_axes,
         ).__finalize__(self, method="swapaxes")
 
     @final
@@ -2087,11 +2080,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # ptp also requires the item_from_zerodim
             return res
         d = self._construct_axes_dict(self._AXIS_ORDERS, copy=False)
-        # error: Argument 1 to "NDFrame" has incompatible type "ndarray";
-        # expected "BlockManager"
-        return self._constructor(res, **d).__finalize__(  # type: ignore[arg-type]
-            self, method="__array_wrap__"
-        )
+        return self._constructor(res, **d).__finalize__(self, method="__array_wrap__")
 
     @final
     def __array_ufunc__(
@@ -5922,11 +5911,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # GH 19920: retain column metadata after concat
         result = concat(results, axis=1, copy=False)
         # GH#40810 retain subclass
-        # Incompatible types in assignment (expression has type "NDFrameT",
-        # variable has type "DataFrame")
-        # Argument 1 to "NDFrame" has incompatible type "DataFrame"; expected
-        # "Union[ArrayManager, SingleArrayManager, BlockManager, SingleBlockManager]"
-        result = self._constructor(result)  # type: ignore[arg-type,assignment]
+        # error: Incompatible types in assignment
+        # (expression has type "NDFrameT", variable has type "DataFrame")
+        result = self._constructor(result)  # type: ignore[assignment]
         result.columns = self.columns
         result = result.__finalize__(self, method="astype")
         # https://github.com/python/mypy/issues/8354
@@ -6612,8 +6599,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             if isinstance(to_replace, (tuple, list)):
                 if isinstance(self, ABCDataFrame):
+                    from pandas import Series
+
                     result = self.apply(
-                        self._constructor_sliced._replace_single,
+                        Series._replace_single,
                         args=(to_replace, method, inplace, limit),
                     )
                     if inplace:
@@ -7776,7 +7765,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         end_time,
         include_start: bool_t | lib.NoDefault = lib.no_default,
         include_end: bool_t | lib.NoDefault = lib.no_default,
-        inclusive: str | None = None,
+        inclusive: IntervalClosedType | None = None,
         axis=None,
     ) -> NDFrameT:
         """
@@ -7881,7 +7870,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             left = True if isinstance(include_start, lib.NoDefault) else include_start
             right = True if isinstance(include_end, lib.NoDefault) else include_end
 
-            inc_dict = {
+            inc_dict: dict[tuple[bool_t, bool_t], IntervalClosedType] = {
                 (True, True): "both",
                 (True, False): "left",
                 (False, True): "right",
@@ -8533,6 +8522,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3   spider          8.0
         4    snake          NaN
 
+        Ties are assigned the mean of the ranks (by default) for the group.
+
+        >>> s = pd.Series(range(5), index=list("abcde"))
+        >>> s["d"] = s["b"]
+        >>> s.rank()
+        a    1.0
+        b    2.5
+        c    4.0
+        d    2.5
+        e    5.0
+        dtype: float64
+
         The following example shows how the method behaves with the above
         parameters:
 
@@ -9138,11 +9139,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             # we are the same shape, so create an actual object for alignment
             else:
-                # error: Argument 1 to "NDFrame" has incompatible type "ndarray";
-                # expected "BlockManager"
-                other = self._constructor(
-                    other, **self._construct_axes_dict()  # type: ignore[arg-type]
-                )
+                other = self._constructor(other, **self._construct_axes_dict())
 
         if axis is None:
             axis = 0
@@ -10266,7 +10263,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         periods : int, default 1
             Periods to shift for forming percent change.
         fill_method : str, default 'pad'
-            How to handle NAs before computing percent changes.
+            How to handle NAs **before** computing percent changes.
         limit : int, default None
             The number of consecutive NAs to fill before stopping.
         freq : DateOffset, timedelta, or str, optional
@@ -11264,6 +11261,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         on: str | None = None,
         axis: Axis = 0,
         closed: str | None = None,
+        step: int | None = None,
         method: str = "single",
     ):
         axis = self._get_axis_number(axis)
@@ -11278,6 +11276,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 on=on,
                 axis=axis,
                 closed=closed,
+                step=step,
                 method=method,
             )
 
@@ -11290,6 +11289,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             on=on,
             axis=axis,
             closed=closed,
+            step=step,
             method=method,
         )
 

@@ -581,10 +581,10 @@ class DataFrame(NDFrame, OpsMixin):
     _mgr: BlockManager | ArrayManager
 
     @property
-    def _constructor(self) -> type[DataFrame]:
+    def _constructor(self) -> Callable[..., DataFrame]:
         return DataFrame
 
-    _constructor_sliced: type[Series] = Series
+    _constructor_sliced: Callable[..., Series] = Series
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -9592,6 +9592,14 @@ NaN 12.3   33.0
             DataFrame or Series.
         Series.corr : Compute the correlation between two Series.
 
+        Notes
+        -----
+        Pearson, Kendall and Spearman correlation are currently computed using pairwise complete observations.
+
+        * `Pearson correlation coefficient <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_
+        * `Kendall rank correlation coefficient <https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient>`_
+        * `Spearman's rank correlation coefficient <https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient>`_
+
         Examples
         --------
         >>> def histogram_intersection(a, b):
@@ -9603,7 +9611,14 @@ NaN 12.3   33.0
               dogs  cats
         dogs   1.0   0.3
         cats   0.3   1.0
-        """
+
+        >>> df = pd.DataFrame([(1, 1), (2, np.nan), (np.nan, 3), (4, 4)],
+        ...                   columns=['dogs', 'cats'])
+        >>> df.corr(min_periods=3)
+              dogs  cats
+        dogs   1.0   NaN
+        cats   NaN   1.0
+        """  # noqa:E501
         numeric_df = self._get_numeric_data()
         cols = numeric_df.columns
         idx = cols.copy()
@@ -9797,7 +9812,28 @@ NaN 12.3   33.0
         See Also
         --------
         DataFrame.corr : Compute pairwise correlation of columns.
-        """
+
+        Examples
+        --------
+        >>> index = ["a", "b", "c", "d", "e"]
+        >>> columns = ["one", "two", "three", "four"]
+        >>> df1 = pd.DataFrame(np.arange(20).reshape(5, 4), index=index, columns=columns)
+        >>> df2 = pd.DataFrame(np.arange(16).reshape(4, 4), index=index[:4], columns=columns)
+        >>> df1.corrwith(df2)
+        one      1.0
+        two      1.0
+        three    1.0
+        four     1.0
+        dtype: float64
+
+        >>> df2.corrwith(df1, axis=1)
+        a    1.0
+        b    1.0
+        c    1.0
+        d    1.0
+        e    NaN
+        dtype: float64
+        """  # noqa:E501
         axis = self._get_axis_number(axis)
         this = self._get_numeric_data()
 
