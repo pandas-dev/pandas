@@ -290,17 +290,21 @@ class DatetimeIndexIndexing:
         self.dti = dti
         self.dti2 = dti2
 
-        index = np.random.choice(dti, 10000, replace=True)
-        df = DataFrame(index=index, data={"a": 1})
-        df_sort = df.sort_index()
-        self.df = df
-        self.df_sort = df_sort
-
     def time_get_indexer_mismatched_tz(self):
         # reached via e.g.
         #  ser = Series(range(len(dti)), index=dti)
         #  ser[dti2]
         self.dti.get_indexer(self.dti2)
+
+
+class SortedAndUnsortedDatetimeIndexLoc:
+    def setup(self):
+        dti = date_range("2016-01-01", periods=10000, tz="US/Pacific")
+        index = np.array(dti)
+        df = DataFrame(index=index, data={"a": 1})
+        df_sort = df.sort_index()
+        self.df = df
+        self.df_sort = df_sort
 
     def time_loc_unsorted(self):
         self.df.loc["2016-6-11"]
