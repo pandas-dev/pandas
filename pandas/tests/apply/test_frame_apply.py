@@ -1551,3 +1551,11 @@ def test_nuisance_depr_passes_through_warnings():
     df = DataFrame({"a": [1, 2, 3]})
     with tm.assert_produces_warning(UserWarning, match="Hello, World!"):
         df.agg([foo])
+
+
+def test_apply_return_type():
+    # GH 35517
+    df = pd.DataFrame([["foo"]])
+    result = type(df.apply(lambda col: np.array("bar")).iloc[0])
+    expected = np.ndarray
+    assert result == expected
