@@ -1185,9 +1185,6 @@ cdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) except? -1:
 
 
 cdef str period_format(int64_t value, int freq, object fmt=None):
-    cdef:
-        int freq_group
-
     if value == NPY_NAT:
         return "NaT"
 
@@ -1205,7 +1202,6 @@ cdef str _period_fast_strftime(int64_t value, int freq):
 
     cdef:
         int freq_group
-        tm c_date
         npy_datetimestruct dts
 
     # fill dts
@@ -2402,7 +2398,8 @@ cdef class _Period(PeriodMixin):
         containing one or several directives.  The method recognizes the same
         directives as the :func:`time.strftime` function of the standard Python
         distribution, as well as the specific additional directives ``%f``,
-        ``%F``, ``%q``. (formatting & docs originally from scikits.timeries).
+        ``%F``, ``%q``, ``%l``, ``%u``, ``%n``.
+        (formatting & docs originally from scikits.timeries).
 
         +-----------+--------------------------------+-------+
         | Directive | Meaning                        | Notes |
