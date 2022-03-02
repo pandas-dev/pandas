@@ -19,6 +19,7 @@ import numpy as np
 
 from pandas._config import get_option
 
+from pandas._libs import lib
 from pandas._typing import (
     Axis,
     FilePath,
@@ -3209,7 +3210,7 @@ class Styler(StylerRenderer):
         color: str | None = None,
         subset: Subset | None = None,
         props: str | None = None,
-        null_color: str | None = "red",
+        null_color=lib.no_default,
     ) -> Styler:
         """
         Highlight missing values with a style.
@@ -3228,7 +3229,7 @@ class Styler(StylerRenderer):
 
             .. versionadded:: 1.3.0
 
-        null_color : str, default 'red'
+        null_color : str, default None
             The background color for highlighting.
 
             .. deprecated:: 1.5.0
@@ -3250,14 +3251,17 @@ class Styler(StylerRenderer):
         def f(data: DataFrame, props: str) -> np.ndarray:
             return np.where(pd.isna(data).to_numpy(), props, "")
 
-        if null_color != "red":
+        if null_color != lib.no_default:
             warnings.warn(
                 "`null_color` is deprecated: use `color` instead",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
 
-        color = color if color else null_color
+        if color is None and null_color == lib.no_default:
+            color = "red"
+        elif color is None and null_color != lib.no_default:
+            color = null_color
         if props is None:
             props = f"background-color: {color};"
         return self.apply(f, axis=None, subset=subset, props=props)
