@@ -354,6 +354,7 @@ of columns could result in a larger Series result. See (:issue:`37799`).
 *New behavior*:
 
 .. ipython:: python
+   :okwarning:
 
     In [5]: df.all(bool_only=True)
 

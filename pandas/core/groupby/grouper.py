@@ -459,7 +459,7 @@ class Grouping:
       * groups : dict of {group -> label_list}
     """
 
-    _codes: np.ndarray | None = None
+    _codes: npt.NDArray[np.signedinteger] | None = None
     _group_index: Index | None = None
     _passed_categorical: bool
     _all_grouper: Categorical | None
@@ -614,7 +614,7 @@ class Grouping:
         return values._reverse_indexer()
 
     @property
-    def codes(self) -> np.ndarray:
+    def codes(self) -> npt.NDArray[np.signedinteger]:
         if self._codes is not None:
             # _codes is set in __init__ for MultiIndex cases
             return self._codes
@@ -657,7 +657,7 @@ class Grouping:
         return Index._with_infer(uniques, name=self.name)
 
     @cache_readonly
-    def _codes_and_uniques(self) -> tuple[np.ndarray, ArrayLike]:
+    def _codes_and_uniques(self) -> tuple[npt.NDArray[np.signedinteger], ArrayLike]:
         if self._passed_categorical:
             # we make a CategoricalIndex out of the cat grouper
             # preserving the categories / ordered attributes
@@ -680,7 +680,7 @@ class Grouping:
         elif isinstance(self.grouping_vector, ops.BaseGrouper):
             # we have a list of groupers
             codes = self.grouping_vector.codes_info
-            uniques = self.grouping_vector.result_arraylike
+            uniques = self.grouping_vector.result_index._values
         else:
             # GH35667, replace dropna=False with na_sentinel=None
             if not self._dropna:
