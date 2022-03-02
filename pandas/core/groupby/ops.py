@@ -398,7 +398,8 @@ class WrappedCythonOp:
         elif needs_i8_conversion(values.dtype):
             assert res_values.dtype.kind != "f"  # just to be on the safe side
             i8values = res_values.view("i8")
-            return type(values)(i8values, dtype=values.dtype)
+            # error: Too many arguments for "ExtensionArray"
+            return type(values)(i8values, dtype=values.dtype)  # type: ignore[call-arg]
 
         raise NotImplementedError
 
