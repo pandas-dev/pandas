@@ -112,7 +112,11 @@ class ODFReader(BaseExcelReader):
         table: list[list[Scalar | NaTType]] = []
 
         for sheet_row in sheet_rows:
-            sheet_cells = [x for x in sheet_row.childNodes if x.qname in cell_names]
+            sheet_cells = [
+                x
+                for x in sheet_row.childNodes
+                if hasattr(x, "qname") and x.qname in cell_names
+            ]
             empty_cells = 0
             table_row: list[Scalar | NaTType] = []
 
@@ -243,5 +247,5 @@ class ODFReader(BaseExcelReader):
                     # https://github.com/pandas-dev/pandas/pull/36175#discussion_r484639704
                     value.append(self._get_cell_string_value(fragment))
             else:
-                value.append(str(fragment))
+                value.append(str(fragment).strip("\n"))
         return "".join(value)
