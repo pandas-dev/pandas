@@ -9837,6 +9837,14 @@ NaN 12.3   33.0
         axis = self._get_axis_number(axis)
         this = self._get_numeric_data()
 
+        # GH46174: when other is a Series object, we achieve a speedup over passing
+        # .corr() to .apply() by taking the columns as ndarrays and iterating over
+        # their transposition row-wise. Then we delegate the correlation coefficient
+        # computation and null-masking to np.corrcoef and np.isnan respectively,
+        # which are much faster. We exploit the fact that the Spearman correlation
+        # of two vectors is equal to the Pearson correlation of their ranks to use
+        # substantially the same method for Pearson and Spearman,
+        # just with intermediate argsorts on the latter.
         if isinstance(other, Series):
             if axis == 0 and method in ["pearson", "spearman"]:
                 corrs = {}
