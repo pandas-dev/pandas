@@ -3186,7 +3186,6 @@ class TestDatetime64Formatter:
         x = date_range("2018-01-01", periods=24, freq="H").to_numpy()
 
         def format_func(t):
-            t = pd.to_datetime(t)
             return t.strftime("%H-%m")
 
         formatter = fmt.Datetime64Formatter(x.reshape((4, 2, 3)), formatter=format_func)
