@@ -2,7 +2,10 @@ import pytest
 
 jinja2 = pytest.importorskip("jinja2")
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+    MultiIndex,
+)
 
 from pandas.io.formats.style import Styler
 
@@ -31,3 +34,11 @@ def test_concat_bad_type(styler):
     msg = "`other` must be of type `Styler`"
     with pytest.raises(TypeError, match=msg):
         styler.concat(DataFrame([[1, 2]]))
+
+
+def test_concat_bad_index_levels(styler, df):
+    df = df.copy()
+    df.index = MultiIndex.from_tuples([(0, 0), (1, 1)])
+    msg = "number of index levels must be same in `other`"
+    with pytest.raises(ValueError, match=msg):
+        styler.concat(df.style)
