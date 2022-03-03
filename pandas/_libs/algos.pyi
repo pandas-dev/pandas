@@ -102,7 +102,7 @@ def is_monotonic(
 # ----------------------------------------------------------------------
 
 def rank_1d(
-    values: np.ndarray,  # ndarray[iu_64_floating_obj_t, ndim=1]
+    values: np.ndarray,  # ndarray[numeric_object_t, ndim=1]
     labels: np.ndarray | None = ...,  # const int64_t[:]=None
     is_datetimelike: bool = ...,
     ties_method=...,
@@ -111,7 +111,7 @@ def rank_1d(
     na_option=...,
 ) -> np.ndarray: ...  # np.ndarray[float64_t, ndim=1]
 def rank_2d(
-    in_arr: np.ndarray,  # ndarray[iu_64_floating_obj_t, ndim=2]
+    in_arr: np.ndarray,  # ndarray[numeric_object_t, ndim=2]
     axis: int = ...,
     is_datetimelike: bool = ...,
     ties_method=...,
