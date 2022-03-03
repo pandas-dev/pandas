@@ -1,6 +1,11 @@
 from __future__ import annotations
 
+import dataclasses
+from typing import final
+
 import numpy as np
+
+from pandas._typing import npt
 
 from pandas.core.algorithms import unique1d
 from pandas.core.arrays.categorical import (
@@ -8,7 +13,60 @@ from pandas.core.arrays.categorical import (
     CategoricalDtype,
     recode_for_categories,
 )
-from pandas.core.indexes.api import CategoricalIndex
+from pandas.core.indexes.api import (
+    CategoricalIndex,
+    Index,
+)
+
+
+@final
+@dataclasses.dataclass
+class CategoricalGrouper:
+    original_grouping_vector: Categorical | None
+    new_grouping_vector: Categorical
+    observed: bool
+    sort: bool
+
+    def result_index(self, group_index: Index) -> Index:
+        if self.original_grouping_vector is None:
+            return group_index
+        assert isinstance(group_index, CategoricalIndex)
+        return recode_from_groupby(
+            self.original_grouping_vector, self.sort, group_index
+        )
+
+    @classmethod
+    def make(cls, grouping_vector, sort: bool, observed: bool) -> CategoricalGrouper:
+        new_grouping_vector, original_grouping_vector = recode_for_groupby(
+            grouping_vector, sort, observed
+        )
+        return cls(
+            original_grouping_vector=original_grouping_vector,
+            new_grouping_vector=new_grouping_vector,
+            observed=observed,
+            sort=sort,
+        )
+
+    def codes_and_uniques(
+        self, cat: Categorical
+    ) -> tuple[npt.NDArray[np.signedinteger], Categorical]:
+        """
+        This does a version of `algorithms.factorize()` that works on categoricals.
+        """
+        categories = cat.categories
+
+        if self.observed:
+            ucodes = unique1d(cat.codes)
+            ucodes = ucodes[ucodes != -1]
+            if self.sort or cat.ordered:
+                ucodes = np.sort(ucodes)
+        else:
+            ucodes = np.arange(len(categories))
+
+        uniques = Categorical.from_codes(
+            codes=ucodes, categories=categories, ordered=cat.ordered
+        )
+        return cat.codes, uniques
 
 
 def recode_for_groupby(

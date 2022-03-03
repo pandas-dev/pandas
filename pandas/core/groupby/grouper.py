@@ -8,6 +8,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Hashable,
+    cast,
     final,
 )
 import warnings
@@ -15,6 +16,7 @@ import warnings
 import numpy as np
 
 from pandas._typing import (
+    AnyArrayLike,
     ArrayLike,
     NDFrameT,
     npt,
@@ -38,12 +40,8 @@ from pandas.core.arrays import (
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import ops
-from pandas.core.groupby.categorical import (
-    recode_for_groupby,
-    recode_from_groupby,
-)
+from pandas.core.groupby.categorical import CategoricalGrouper
 from pandas.core.indexes.api import (
-    CategoricalIndex,
     Index,
     MultiIndex,
 )
@@ -461,8 +459,7 @@ class Grouping:
 
     _codes: npt.NDArray[np.signedinteger] | None = None
     _group_index: Index | None = None
-    _passed_categorical: bool
-    _all_grouper: Categorical | None
+    _cat_grouper: CategoricalGrouper | None = None
     _index: Index
 
     def __init__(
@@ -479,15 +476,11 @@ class Grouping:
         self.level = level
         self._orig_grouper = grouper
         self.grouping_vector = _convert_grouper(index, grouper)
-        self._all_grouper = None
         self._index = index
         self._sort = sort
         self.obj = obj
-        self._observed = observed
         self.in_axis = in_axis
         self._dropna = dropna
-
-        self._passed_categorical = False
 
         # we have a single grouper which may be a myriad of things,
         # some of which are dependent on the passing in level
@@ -527,13 +520,10 @@ class Grouping:
                 self.grouping_vector = Index(ng, name=newgrouper.result_index.name)
 
         elif is_categorical_dtype(self.grouping_vector):
-            # a passed Categorical
-            self._passed_categorical = True
-
-            self.grouping_vector, self._all_grouper = recode_for_groupby(
+            self._cat_grouper = CategoricalGrouper.make(
                 self.grouping_vector, sort, observed
             )
-
+            self.grouping_vector = self._cat_grouper.new_grouping_vector
         elif not isinstance(
             self.grouping_vector, (Series, Index, ExtensionArray, np.ndarray)
         ):
@@ -631,20 +621,23 @@ class Grouping:
             # _group_index is set in __init__ for MultiIndex cases
             return self._group_index._values
 
-        elif self._all_grouper is not None:
+        elif (
+            self._cat_grouper is not None
+            and self._cat_grouper.original_grouping_vector is not None
+        ):
             # retain dtype for categories, including unobserved ones
             return self.result_index._values
 
-        return self._codes_and_uniques[1]
+        return cast(ArrayLike, self._codes_and_uniques[1])
 
     @cache_readonly
     def result_index(self) -> Index:
-        # result_index retains dtype for categories, including unobserved ones,
-        #  which group_index does not
-        if self._all_grouper is not None:
-            group_idx = self.group_index
-            assert isinstance(group_idx, CategoricalIndex)
-            return recode_from_groupby(self._all_grouper, self._sort, group_idx)
+        """
+        result_index retains dtype for categories, including unobserved ones,
+        which group_index does not
+        """
+        if self._cat_grouper is not None:
+            return self._cat_grouper.result_index(self.group_index)
         return self.group_index
 
     @cache_readonly
@@ -657,26 +650,10 @@ class Grouping:
         return Index._with_infer(uniques, name=self.name)
 
     @cache_readonly
-    def _codes_and_uniques(self) -> tuple[npt.NDArray[np.signedinteger], ArrayLike]:
-        if self._passed_categorical:
-            # we make a CategoricalIndex out of the cat grouper
-            # preserving the categories / ordered attributes
-            cat = self.grouping_vector
-            categories = cat.categories
-
-            if self._observed:
-                ucodes = algorithms.unique1d(cat.codes)
-                ucodes = ucodes[ucodes != -1]
-                if self._sort or cat.ordered:
-                    ucodes = np.sort(ucodes)
-            else:
-                ucodes = np.arange(len(categories))
-
-            uniques = Categorical.from_codes(
-                codes=ucodes, categories=categories, ordered=cat.ordered
-            )
-            return cat.codes, uniques
-
+    def _codes_and_uniques(self) -> tuple[npt.NDArray[np.signedinteger], AnyArrayLike]:
+        uniques: AnyArrayLike
+        if self._cat_grouper is not None:
+            return self._cat_grouper.codes_and_uniques(self.grouping_vector)
         elif isinstance(self.grouping_vector, ops.BaseGrouper):
             # we have a list of groupers
             codes = self.grouping_vector.codes_info
