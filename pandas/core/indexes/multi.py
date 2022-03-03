@@ -1481,7 +1481,9 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
 
     @doc(Index._get_grouper_for_level)
-    def _get_grouper_for_level(self, mapper, *, level):
+    def _get_grouper_for_level(
+        self, mapper, *, level=None
+    ) -> tuple[Index, npt.NDArray[np.signedinteger] | None, Index | None]:
         indexer = self.codes[level]
         level_index = self.levels[level]
 
@@ -2762,7 +2764,7 @@ class MultiIndex(Index):
             if lab not in lev and not isna(lab):
                 # short circuit
                 try:
-                    loc = lev.searchsorted(lab, side=side)
+                    loc = algos.searchsorted(lev, lab, side=side)
                 except TypeError as err:
                     # non-comparable e.g. test_slice_locs_with_type_mismatch
                     raise TypeError(f"Level type mismatch: {lab}") from err
@@ -2771,7 +2773,7 @@ class MultiIndex(Index):
                     raise TypeError(f"Level type mismatch: {lab}")
                 if side == "right" and loc >= 0:
                     loc -= 1
-                return start + section.searchsorted(loc, side=side)
+                return start + algos.searchsorted(section, loc, side=side)
 
             idx = self._get_loc_single_level_index(lev, lab)
             if isinstance(idx, slice) and k < n - 1:
@@ -2780,13 +2782,21 @@ class MultiIndex(Index):
                 start = idx.start
                 end = idx.stop
             elif k < n - 1:
-                end = start + section.searchsorted(idx, side="right")
-                start = start + section.searchsorted(idx, side="left")
+                # error: Incompatible types in assignment (expression has type
+                # "Union[ndarray[Any, dtype[signedinteger[Any]]]
+                end = start + algos.searchsorted(  # type: ignore[assignment]
+                    section, idx, side="right"
+                )
+                # error: Incompatible types in assignment (expression has type
+                # "Union[ndarray[Any, dtype[signedinteger[Any]]]
+                start = start + algos.searchsorted(  # type: ignore[assignment]
+                    section, idx, side="left"
+                )
             elif isinstance(idx, slice):
                 idx = idx.start
-                return start + section.searchsorted(idx, side=side)
+                return start + algos.searchsorted(section, idx, side=side)
             else:
-                return start + section.searchsorted(idx, side=side)
+                return start + algos.searchsorted(section, idx, side=side)
 
     def _get_loc_single_level_index(self, level_index: Index, key: Hashable) -> int:
         """
@@ -3610,6 +3620,10 @@ class MultiIndex(Index):
             if not isinstance(self_values, np.ndarray):
                 # i.e. ExtensionArray
                 if not self_values.equals(other_values):
+                    return False
+            elif not isinstance(other_values, np.ndarray):
+                # i.e. other is ExtensionArray
+                if not other_values.equals(self_values):
                     return False
             else:
                 if not array_equivalent(self_values, other_values):

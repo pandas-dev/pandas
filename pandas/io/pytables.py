@@ -41,6 +41,7 @@ from pandas._typing import (
     ArrayLike,
     DtypeArg,
     Shape,
+    npt,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
@@ -4409,7 +4410,7 @@ class AppendableTable(Table):
         self,
         rows: np.ndarray,
         indexes: list[np.ndarray],
-        mask: np.ndarray | None,
+        mask: npt.NDArray[np.bool_] | None,
         values: list[np.ndarray],
     ):
         """

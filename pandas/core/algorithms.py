@@ -224,14 +224,10 @@ def _reconstruct_data(
     if not isinstance(dtype, np.dtype):
         # i.e. ExtensionDtype
         cls = dtype.construct_array_type()
-        if isinstance(values, cls) and values.dtype == dtype:
-            return values
 
         values = cls._from_sequence(values, dtype=dtype)
-    elif is_bool_dtype(dtype):
-        values = values.astype(dtype, copy=False)
 
-    elif dtype is not None:
+    else:
         if is_datetime64_dtype(dtype):
             dtype = np.dtype("datetime64[ns]")
         elif is_timedelta64_dtype(dtype):
@@ -291,25 +287,6 @@ def _get_hashtable_algo(values: np.ndarray):
 
     ndtype = _check_object_for_strings(values)
     htable = _hashtables[ndtype]
-    return htable, values
-
-
-def _get_values_for_rank(values: ArrayLike) -> np.ndarray:
-
-    values = _ensure_data(values)
-    if values.dtype.kind in ["i", "u", "f"]:
-        # rank_t includes only object, int64, uint64, float64
-        dtype = values.dtype.kind + "8"
-        values = values.astype(dtype, copy=False)
-    return values
-
-
-def _get_data_algo(values: ArrayLike):
-    values = _get_values_for_rank(values)
-
-    ndtype = _check_object_for_strings(values)
-    htable = _hashtables.get(ndtype, _hashtables["object"])
-
     return htable, values
 
 
@@ -534,7 +511,7 @@ def factorize_array(
     na_sentinel: int = -1,
     size_hint: int | None = None,
     na_value=None,
-    mask: np.ndarray | None = None,
+    mask: npt.NDArray[np.bool_] | None = None,
 ) -> tuple[npt.NDArray[np.intp], np.ndarray]:
     """
     Factorize a numpy array to codes and uniques.
@@ -562,7 +539,7 @@ def factorize_array(
     codes : ndarray[np.intp]
     uniques : ndarray
     """
-    hash_klass, values = _get_data_algo(values)
+    hash_klass, values = _get_hashtable_algo(values)
 
     table = hash_klass(size_hint or len(values))
     uniques, codes = table.factorize(
@@ -759,7 +736,7 @@ def factorize(
     else:
         dtype = values.dtype
         values = _ensure_data(values)
-        na_value: Scalar
+        na_value: Scalar | None
 
         if original.dtype.kind in ["m", "M"]:
             # Note: factorize_array will cast NaT bc it has a __int__
@@ -877,6 +854,7 @@ def value_counts(
             counts = result._values
 
         else:
+            values = _ensure_arraylike(values)
             keys, counts = value_counts_arraylike(values, dropna)
 
             # For backwards compatibility, we let Index do its normal type
@@ -897,19 +875,18 @@ def value_counts(
 
 
 # Called once from SparseArray, otherwise could be private
-def value_counts_arraylike(values, dropna: bool):
+def value_counts_arraylike(values: np.ndarray, dropna: bool):
     """
     Parameters
     ----------
-    values : arraylike
+    values : np.ndarray
     dropna : bool
 
     Returns
     -------
-    uniques : np.ndarray or ExtensionArray
-    counts : np.ndarray
+    uniques : np.ndarray
+    counts : np.ndarray[np.int64]
     """
-    values = _ensure_arraylike(values)
     original = values
     values = _ensure_data(values)
 
@@ -919,8 +896,8 @@ def value_counts_arraylike(values, dropna: bool):
         # datetime, timedelta, or period
 
         if dropna:
-            msk = keys != iNaT
-            keys, counts = keys[msk], counts[msk]
+            mask = keys != iNaT
+            keys, counts = keys[mask], counts[mask]
 
     res_keys = _reconstruct_data(keys, original.dtype, original)
     return res_keys, counts
@@ -1020,7 +997,8 @@ def rank(
         (e.g. 1, 2, 3) or in percentile form (e.g. 0.333..., 0.666..., 1).
     """
     is_datetimelike = needs_i8_conversion(values.dtype)
-    values = _get_values_for_rank(values)
+    values = _ensure_data(values)
+
     if values.ndim == 1:
         ranks = algos.rank_1d(
             values,
@@ -1047,7 +1025,7 @@ def rank(
 
 
 def checked_add_with_arr(
-    arr: np.ndarray,
+    arr: npt.NDArray[np.int64],
     b,
     arr_mask: npt.NDArray[np.bool_] | None = None,
     b_mask: npt.NDArray[np.bool_] | None = None,
@@ -1062,7 +1040,7 @@ def checked_add_with_arr(
 
     Parameters
     ----------
-    arr : array addend.
+    arr : np.ndarray[int64] addend.
     b : array or scalar addend.
     arr_mask : np.ndarray[bool] or None, default None
         array indicating which elements to exclude from checking
@@ -1765,7 +1743,7 @@ def safe_sort(
 
     if sorter is None:
         # mixed types
-        hash_klass, values = _get_data_algo(values)
+        hash_klass, values = _get_hashtable_algo(values)
         t = hash_klass(len(values))
         t.map_locations(values)
         sorter = ensure_platform_int(t.lookup(ordered))
