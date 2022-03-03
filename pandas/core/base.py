@@ -541,8 +541,6 @@ class IndexOpsMixin(OpsMixin):
         if copy or na_value is not lib.no_default:
             result = result.copy()
             if na_value is not lib.no_default:
-                # Convert the mask to numpy in order to prevent possible
-                # issues with multiindex compatibility (#45774)
                 result[np.asanyarray(self.isna())] = na_value
         return result
 
