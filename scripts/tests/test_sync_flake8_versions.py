@@ -71,7 +71,7 @@ def test_wrong_env_add_dep(capsys):
         get_revisions(precommit_config, environment)
     result, _ = capsys.readouterr()
     expected = (
-        "Mismatch of 'flake8-bugs' version between 'enviroment.yml' "
+        "Mismatch of 'flake8-bugs' version between 'environment.yml' "
         "and additional dependencies of 'flake8' in '.pre-commit-config.yaml'\n"
     )
     assert result == expected
