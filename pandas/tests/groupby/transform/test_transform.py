@@ -1403,6 +1403,7 @@ def test_null_group_str_transformer(request, dropna, transformation_func):
 
 
 def test_null_group_str_reducer_series(request, dropna, reduction_func):
+    # GH 17093
     if reduction_func == "corrwith":
         msg = "corrwith not implemented for SeriesGroupBy"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
