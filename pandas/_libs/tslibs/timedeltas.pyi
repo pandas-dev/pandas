@@ -7,12 +7,7 @@ from typing import (
 )
 
 import numpy as np
-
-from pandas._libs.tslibs import (
-    NaTType,
-    Tick,
-)
-from pandas._typing import npt
+import numpy.typing as npt
 
 _S = TypeVar("_S", bound=timedelta)
 
@@ -26,7 +21,7 @@ def array_to_timedelta64(
     errors: str = ...,
 ) -> np.ndarray: ...  # np.ndarray[m8ns]
 def parse_timedelta_unit(unit: str | None) -> str: ...
-def delta_to_nanoseconds(delta: Tick | np.timedelta64 | timedelta | int) -> int: ...
+def delta_to_nanoseconds(delta: np.timedelta64 | timedelta | int) -> int: ...
 
 class Timedelta(timedelta):
     min: ClassVar[Timedelta]

@@ -16,6 +16,7 @@ import warnings
 
 import numpy as np
 
+from pandas._libs.tslibs import NaTType
 from pandas._typing import (
     FilePath,
     ReadBuffer,
@@ -139,7 +140,7 @@ A DataFrame.
 """
 
 
-def _parse_date(datestr: str) -> datetime:
+def _parse_date(datestr: str) -> datetime | NaTType:
     """Given a date in xport format, return Python date."""
     try:
         # e.g. "16FEB11:10:07:55"
