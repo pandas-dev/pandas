@@ -140,7 +140,6 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
         # extract_array would raise
         values = extract_array(values, extract_numpy=True)
 
-    # we check some simple dtypes first
     if is_object_dtype(values.dtype):
         return ensure_object(np.asarray(values))
 
@@ -153,17 +152,19 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
             return _ensure_data(values._data)
         return np.asarray(values)
 
+    elif is_categorical_dtype(values.dtype):
+        # NB: cases that go through here should NOT be using _reconstruct_data
+        #  on the back-end.
+        values = cast("Categorical", values)
+        return values.codes
+
     elif is_bool_dtype(values.dtype):
         if isinstance(values, np.ndarray):
             # i.e. actually dtype == np.dtype("bool")
             return np.asarray(values).view("uint8")
         else:
-            # i.e. all-bool Categorical, BooleanArray
-            try:
-                return np.asarray(values).astype("uint8", copy=False)
-            except (TypeError, ValueError):
-                # GH#42107 we have pd.NAs present
-                return np.asarray(values)
+            # e.g. Sparse[bool, False]  # TODO: no test cases get here
+            return np.asarray(values).astype("uint8", copy=False)
 
     elif is_integer_dtype(values.dtype):
         return np.asarray(values)
@@ -178,10 +179,7 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
         return np.asarray(values)
 
     elif is_complex_dtype(values.dtype):
-        # Incompatible return value type (got "Tuple[Union[Any, ExtensionArray,
-        # ndarray[Any, Any]], Union[Any, ExtensionDtype]]", expected
-        # "Tuple[ndarray[Any, Any], Union[dtype[Any], ExtensionDtype]]")
-        return values  # type: ignore[return-value]
+        return cast(np.ndarray, values)
 
     # datetimelike
     elif needs_i8_conversion(values.dtype):
@@ -190,11 +188,6 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
         npvalues = values.view("i8")
         npvalues = cast(np.ndarray, npvalues)
         return npvalues
-
-    elif is_categorical_dtype(values.dtype):
-        values = cast("Categorical", values)
-        values = values.codes
-        return values
 
     # we have failed, return object
     values = np.asarray(values, dtype=object)
@@ -222,7 +215,8 @@ def _reconstruct_data(
         return values
 
     if not isinstance(dtype, np.dtype):
-        # i.e. ExtensionDtype
+        # i.e. ExtensionDtype; note we have ruled out above the possibility
+        #  that values.dtype == dtype
         cls = dtype.construct_array_type()
 
         values = cls._from_sequence(values, dtype=dtype)
@@ -949,9 +943,8 @@ def mode(values: ArrayLike, dropna: bool = True) -> ArrayLike:
     if needs_i8_conversion(values.dtype):
         # Got here with ndarray; dispatch to DatetimeArray/TimedeltaArray.
         values = ensure_wrapped_if_datetimelike(values)
-        # error: Item "ndarray[Any, Any]" of "Union[ExtensionArray,
-        # ndarray[Any, Any]]" has no attribute "_mode"
-        return values._mode(dropna=dropna)  # type: ignore[union-attr]
+        values = cast("ExtensionArray", values)
+        return values._mode(dropna=dropna)
 
     values = _ensure_data(values)
 
