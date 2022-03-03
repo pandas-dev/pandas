@@ -9,12 +9,12 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import Timestamp
+from pandas.compat import is_platform_windows
 
 import pandas as pd
 from pandas import (
     DataFrame,
     Index,
-    MultiIndex,
     Series,
     _testing as tm,
     bdate_range,
@@ -30,10 +30,10 @@ from pandas.util import _test_decorators as td
 _default_compressor = "blosc"
 
 
-pytestmark = pytest.mark.single
+pytestmark = pytest.mark.single_cpu
 
 
-def test_conv_read_write(setup_path):
+def test_conv_read_write():
     with tm.ensure_clean() as path:
 
         def roundtrip(key, obj, **kwargs):
@@ -350,11 +350,14 @@ def test_timeseries_preepoch(setup_path):
     try:
         _check_roundtrip(ts, tm.assert_series_equal, path=setup_path)
     except OverflowError:
-        pytest.skip("known failure on some windows platforms")
+        if is_platform_windows():
+            pytest.xfail("known failure on some windows platforms")
+        else:
+            raise
 
 
 @pytest.mark.parametrize(
-    "compression", [False, pytest.param(True, marks=td.skip_if_windows_python_3)]
+    "compression", [False, pytest.param(True, marks=td.skip_if_windows)]
 )
 def test_frame(compression, setup_path):
 
@@ -415,13 +418,8 @@ def test_can_serialize_dates(setup_path):
     _check_roundtrip(frame, tm.assert_frame_equal, path=setup_path)
 
 
-def test_store_hierarchical(setup_path):
-    index = MultiIndex(
-        levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
-        codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-        names=["foo", "bar"],
-    )
-    frame = DataFrame(np.random.randn(10, 3), index=index, columns=["A", "B", "C"])
+def test_store_hierarchical(setup_path, multiindex_dataframe_random_data):
+    frame = multiindex_dataframe_random_data
 
     _check_roundtrip(frame, tm.assert_frame_equal, path=setup_path)
     _check_roundtrip(frame.T, tm.assert_frame_equal, path=setup_path)
@@ -435,7 +433,7 @@ def test_store_hierarchical(setup_path):
 
 
 @pytest.mark.parametrize(
-    "compression", [False, pytest.param(True, marks=td.skip_if_windows_python_3)]
+    "compression", [False, pytest.param(True, marks=td.skip_if_windows)]
 )
 def test_store_mixed(compression, setup_path):
     def _make_one():
@@ -491,20 +489,6 @@ def _check_roundtrip(obj, comparator, path, compression=False, **kwargs):
         store["obj"] = obj
         retrieved = store["obj"]
         comparator(retrieved, obj, **kwargs)
-
-
-def _check_double_roundtrip(self, obj, comparator, path, compression=False, **kwargs):
-    options = {}
-    if compression:
-        options["complib"] = compression or _default_compressor
-
-    with ensure_clean_store(path, "w", **options) as store:
-        store["obj"] = obj
-        retrieved = store["obj"]
-        comparator(retrieved, obj, **kwargs)
-        store["obj"] = retrieved
-        again = store["obj"]
-        comparator(again, obj, **kwargs)
 
 
 def _check_roundtrip_table(obj, comparator, path, compression=False):

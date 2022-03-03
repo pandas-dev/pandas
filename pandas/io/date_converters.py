@@ -4,6 +4,7 @@ import warnings
 import numpy as np
 
 from pandas._libs.tslibs import parsing
+from pandas.util._exceptions import find_stack_level
 
 
 def parse_date_time(date_col, time_col):
@@ -18,7 +19,7 @@ def parse_date_time(date_col, time_col):
         Use pd.to_datetime(date_col + " " + time_col).to_pydatetime() instead to get a Numpy array.
 """,  # noqa: E501
         FutureWarning,
-        stacklevel=2,
+        stacklevel=find_stack_level(),
     )
     date_col = _maybe_cast(date_col)
     time_col = _maybe_cast(time_col)
@@ -38,7 +39,7 @@ def parse_date_fields(year_col, month_col, day_col):
         np.array([s.to_pydatetime() for s in ser]) instead to get a Numpy array.
 """,  # noqa: E501
         FutureWarning,
-        stacklevel=2,
+        stacklevel=find_stack_level(),
     )
 
     year_col = _maybe_cast(year_col)
@@ -63,7 +64,7 @@ def parse_all_fields(year_col, month_col, day_col, hour_col, minute_col, second_
         np.array([s.to_pydatetime() for s in ser]) instead to get a Numpy array.
 """,  # noqa: E501
         FutureWarning,
-        stacklevel=2,
+        stacklevel=find_stack_level(),
     )
 
     year_col = _maybe_cast(year_col)
@@ -89,7 +90,7 @@ def generic_parser(parse_func, *cols):
         Use pd.to_datetime instead.
 """,
         FutureWarning,
-        stacklevel=2,
+        stacklevel=find_stack_level(),
     )
 
     N = _check_columns(cols)
@@ -102,13 +103,13 @@ def generic_parser(parse_func, *cols):
     return results
 
 
-def _maybe_cast(arr):
+def _maybe_cast(arr: np.ndarray) -> np.ndarray:
     if not arr.dtype.type == np.object_:
         arr = np.array(arr, dtype=object)
     return arr
 
 
-def _check_columns(cols):
+def _check_columns(cols) -> int:
     if not len(cols):
         raise AssertionError("There must be at least 1 column")
 

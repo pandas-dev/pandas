@@ -25,9 +25,9 @@ from pandas.core.arrays import PeriodArray
 from pandas.tests.extension import base
 
 
-@pytest.fixture
-def dtype():
-    return PeriodDtype(freq="D")
+@pytest.fixture(params=["D", "2D"])
+def dtype(request):
+    return PeriodDtype(freq=request.param)
 
 
 @pytest.fixture
@@ -82,6 +82,10 @@ class TestConstructors(BasePeriodTests, base.BaseConstructorsTests):
 
 
 class TestGetitem(BasePeriodTests, base.BaseGetitemTests):
+    pass
+
+
+class TestIndex(base.BaseIndexTests):
     pass
 
 
@@ -154,10 +158,7 @@ class TestCasting(BasePeriodTests, base.BaseCastingTests):
 
 
 class TestComparisonOps(BasePeriodTests, base.BaseComparisonOpsTests):
-    def _compare_other(self, s, data, op_name, other):
-        # the base test is not appropriate for us. We raise on comparison
-        # with (some) integers, depending on the value.
-        pass
+    pass
 
 
 class TestMissing(BasePeriodTests, base.BaseMissingTests):
@@ -186,5 +187,5 @@ class TestParsing(BasePeriodTests, base.BaseParsingTests):
         super().test_EA_types(engine, data)
 
 
-class Test2DCompat(BasePeriodTests, base.Dim2CompatTests):
+class Test2DCompat(BasePeriodTests, base.NDArrayBacked2DTests):
     pass

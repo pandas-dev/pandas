@@ -59,7 +59,7 @@ class IntFrameWithScalar:
 class OpWithFillValue:
     def setup(self):
         # GH#31300
-        arr = np.arange(10 ** 6)
+        arr = np.arange(10**6)
         df = DataFrame({"A": arr})
         ser = df["A"]
 
@@ -93,7 +93,7 @@ class MixedFrameWithSeriesAxis:
     param_names = ["opname"]
 
     def setup(self, opname):
-        arr = np.arange(10 ** 6).reshape(1000, -1)
+        arr = np.arange(10**6).reshape(1000, -1)
         df = DataFrame(arr)
         df["C"] = 1.0
         self.df = df
@@ -144,7 +144,7 @@ class FrameWithFrameWide:
         # should already be the case, but just to be sure
         df._consolidate_inplace()
 
-        # TODO: GH#33198 the setting here shoudlnt need two steps
+        # TODO: GH#33198 the setting here shouldn't need two steps
         arr1 = np.random.randn(n_rows, max(n_cols // 4, 3)).astype("f8")
         arr2 = np.random.randn(n_rows, n_cols // 2).astype("i8")
         arr3 = np.random.randn(n_rows, n_cols // 4).astype("f8")
@@ -201,7 +201,7 @@ class Ops:
 
 class Ops2:
     def setup(self):
-        N = 10 ** 3
+        N = 10**3
         self.df = DataFrame(np.random.randn(N, N))
         self.df2 = DataFrame(np.random.randn(N, N))
 
@@ -258,7 +258,7 @@ class Timeseries:
     param_names = ["tz"]
 
     def setup(self, tz):
-        N = 10 ** 6
+        N = 10**6
         halfway = (N // 2) - 1
         self.s = Series(date_range("20010101", periods=N, freq="T", tz=tz))
         self.ts = self.s[halfway]
@@ -280,7 +280,7 @@ class Timeseries:
 
 class IrregularOps:
     def setup(self):
-        N = 10 ** 5
+        N = 10**5
         idx = date_range(start="1/1/2000", periods=N, freq="s")
         s = Series(np.random.randn(N), index=idx)
         self.left = s.sample(frac=1)
@@ -304,7 +304,7 @@ class CategoricalComparisons:
     param_names = ["op"]
 
     def setup(self, op):
-        N = 10 ** 5
+        N = 10**5
         self.cat = pd.Categorical(list("aabbcd") * N, ordered=True)
 
     def time_categorical_op(self, op):
@@ -317,7 +317,7 @@ class IndexArithmetic:
     param_names = ["dtype"]
 
     def setup(self, dtype):
-        N = 10 ** 6
+        N = 10**6
         indexes = {"int": "makeIntIndex", "float": "makeFloatIndex"}
         self.index = getattr(tm, indexes[dtype])(N)
 
@@ -343,7 +343,7 @@ class NumericInferOps:
     param_names = ["dtype"]
 
     def setup(self, dtype):
-        N = 5 * 10 ** 5
+        N = 5 * 10**5
         self.df = DataFrame(
             {"A": np.arange(N).astype(dtype), "B": np.arange(N).astype(dtype)}
         )
@@ -367,7 +367,7 @@ class NumericInferOps:
 class DateInferOps:
     # from GH 7332
     def setup_cache(self):
-        N = 5 * 10 ** 5
+        N = 5 * 10**5
         df = DataFrame({"datetime64": np.arange(N).astype("datetime64[ms]")})
         df["timedelta"] = df["datetime64"] - df["datetime64"]
         return df
@@ -388,7 +388,7 @@ class AddOverflowScalar:
     param_names = ["scalar"]
 
     def setup(self, scalar):
-        N = 10 ** 6
+        N = 10**6
         self.arr = np.arange(N)
 
     def time_add_overflow_scalar(self, scalar):
@@ -397,7 +397,7 @@ class AddOverflowScalar:
 
 class AddOverflowArray:
     def setup(self):
-        N = 10 ** 6
+        N = 10**6
         self.arr = np.arange(N)
         self.arr_rev = np.arange(-N, 0)
         self.arr_mixed = np.array([1, -1]).repeat(N / 2)

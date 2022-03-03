@@ -19,7 +19,7 @@ cdef class NDFrameIndexerBase:
         if ndim is None:
             ndim = self._ndim = self.obj.ndim
             if ndim > 2:
-                raise ValueError(
+                raise ValueError(  # pragma: no cover
                     "NDFrameIndexer does not support NDFrame objects with ndim > 2"
                 )
         return ndim

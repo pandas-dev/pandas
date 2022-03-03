@@ -45,6 +45,8 @@ class TestConvert:
         with pytest.raises(ValueError, match="invalid literal"):
             converted["H"].astype("int32")
 
+    def test_convert_mixed_single_column(self):
+        # GH#4119, not converting a mixed type (e.g.floats and object)
         # mixed in a single column
         df = DataFrame({"s": Series([1, "na", 3, 4])})
         result = df._convert(datetime=True, numeric=True)

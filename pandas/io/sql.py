@@ -28,6 +28,7 @@ import pandas._libs.lib as lib
 from pandas._typing import DtypeArg
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
@@ -43,8 +44,8 @@ from pandas.core.api import (
     Series,
 )
 from pandas.core.base import PandasObject
+import pandas.core.common as com
 from pandas.core.tools.datetimes import to_datetime
-from pandas.util.version import Version
 
 
 class DatabaseError(OSError):
@@ -53,16 +54,6 @@ class DatabaseError(OSError):
 
 # -----------------------------------------------------------------------------
 # -- Helper functions
-
-
-def _gt14() -> bool:
-    """
-    Check if sqlalchemy.__version__ is at least 1.4.0, when several
-    deprecations were made.
-    """
-    import sqlalchemy
-
-    return Version(sqlalchemy.__version__) >= Version("1.4.0")
 
 
 def _convert_params(sql, params):
@@ -190,12 +181,12 @@ def execute(sql, con, params=None):
 def read_sql_table(
     table_name,
     con,
-    schema=None,
-    index_col=None,
-    coerce_float=True,
-    parse_dates=None,
-    columns=None,
-    chunksize: None = None,
+    schema=...,
+    index_col=...,
+    coerce_float=...,
+    parse_dates=...,
+    columns=...,
+    chunksize: None = ...,
 ) -> DataFrame:
     ...
 
@@ -204,12 +195,12 @@ def read_sql_table(
 def read_sql_table(
     table_name,
     con,
-    schema=None,
-    index_col=None,
-    coerce_float=True,
-    parse_dates=None,
-    columns=None,
-    chunksize: int = 1,
+    schema=...,
+    index_col=...,
+    coerce_float=...,
+    parse_dates=...,
+    columns=...,
+    chunksize: int = ...,
 ) -> Iterator[DataFrame]:
     ...
 
@@ -302,12 +293,12 @@ def read_sql_table(
 def read_sql_query(
     sql,
     con,
-    index_col=None,
-    coerce_float=True,
-    params=None,
-    parse_dates=None,
-    chunksize: None = None,
-    dtype: DtypeArg | None = None,
+    index_col=...,
+    coerce_float=...,
+    params=...,
+    parse_dates=...,
+    chunksize: None = ...,
+    dtype: DtypeArg | None = ...,
 ) -> DataFrame:
     ...
 
@@ -316,12 +307,12 @@ def read_sql_query(
 def read_sql_query(
     sql,
     con,
-    index_col=None,
-    coerce_float=True,
-    params=None,
-    parse_dates=None,
-    chunksize: int = 1,
-    dtype: DtypeArg | None = None,
+    index_col=...,
+    coerce_float=...,
+    params=...,
+    parse_dates=...,
+    chunksize: int = ...,
+    dtype: DtypeArg | None = ...,
 ) -> Iterator[DataFrame]:
     ...
 
@@ -375,7 +366,7 @@ def read_sql_query(
         rows to include in each chunk.
     dtype : Type name or dict of columns
         Data type for data or columns. E.g. np.float64 or
-        {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}
+        {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}.
 
         .. versionadded:: 1.3.0
 
@@ -409,12 +400,12 @@ def read_sql_query(
 def read_sql(
     sql,
     con,
-    index_col=None,
-    coerce_float=True,
-    params=None,
-    parse_dates=None,
-    columns=None,
-    chunksize: None = None,
+    index_col=...,
+    coerce_float=...,
+    params=...,
+    parse_dates=...,
+    columns=...,
+    chunksize: None = ...,
 ) -> DataFrame:
     ...
 
@@ -423,12 +414,12 @@ def read_sql(
 def read_sql(
     sql,
     con,
-    index_col=None,
-    coerce_float=True,
-    params=None,
-    parse_dates=None,
-    columns=None,
-    chunksize: int = 1,
+    index_col=...,
+    coerce_float=...,
+    params=...,
+    parse_dates=...,
+    columns=...,
+    chunksize: int = ...,
 ) -> Iterator[DataFrame]:
     ...
 
@@ -510,6 +501,7 @@ def read_sql(
     >>> df = pd.DataFrame(data=[[0, '10/11/12'], [1, '12/11/10']],
     ...                   columns=['int_column', 'date_column'])
     >>> df.to_sql('test_data', conn)
+    2
 
     >>> pd.read_sql('SELECT int_column, date_column FROM test_data', conn)
        int_column date_column
@@ -610,7 +602,7 @@ def to_sql(
     method: str | None = None,
     engine: str = "auto",
     **engine_kwargs,
-) -> None:
+) -> int | None:
     """
     Write records stored in a DataFrame to a SQL database.
 
@@ -657,8 +649,8 @@ def to_sql(
         Controls the SQL insertion clause used:
 
         - None : Uses standard SQL ``INSERT`` clause (one per row).
-        - 'multi': Pass multiple values in a single ``INSERT`` clause.
-        - callable with signature ``(pd_table, conn, keys, data_iter)``.
+        - ``'multi'``: Pass multiple values in a single ``INSERT`` clause.
+        - callable with signature ``(pd_table, conn, keys, data_iter) -> int | None``.
 
         Details and a sample callable implementation can be found in the
         section :ref:`insert method <io.sql.method>`.
@@ -671,12 +663,25 @@ def to_sql(
 
     **engine_kwargs
         Any additional kwargs are passed to the engine.
-    """
-    if if_exists not in (
-        "fail",
-        "replace",
-        "append",
-    ):
+
+    Returns
+    -------
+    None or int
+        Number of rows affected by to_sql. None is returned if the callable
+        passed into ``method`` does not return the number of rows.
+
+        .. versionadded:: 1.4.0
+
+    Notes
+    -----
+    The returned rows affected is the sum of the ``rowcount`` attribute of ``sqlite3.Cursor``
+    or SQLAlchemy connectable. The returned value may not reflect the exact number of written
+    rows as stipulated in the
+    `sqlite3 <https://docs.python.org/3/library/sqlite3.html#sqlite3.Cursor.rowcount>`__ or
+    `SQLAlchemy <https://docs.sqlalchemy.org/en/14/core/connections.html#sqlalchemy.engine.BaseCursorResult.rowcount>`__
+    """  # noqa:E501
+
+    if if_exists not in ("fail", "replace", "append"):
         raise ValueError(f"'{if_exists}' is not valid for if_exists")
 
     if on_conflict:
@@ -696,7 +701,7 @@ def to_sql(
             "'frame' argument should be either a Series or a DataFrame"
         )
 
-    pandas_sql.to_sql(
+    return pandas_sql.to_sql(
         frame,
         name,
         if_exists=if_exists,
@@ -745,22 +750,29 @@ def pandasSQL_builder(con, schema: str | None = None):
     provided parameters.
     """
     import sqlite3
+    import warnings
 
     if isinstance(con, sqlite3.Connection) or con is None:
         return SQLiteDatabase(con)
 
-    sqlalchemy = import_optional_dependency("sqlalchemy")
+    sqlalchemy = import_optional_dependency("sqlalchemy", errors="ignore")
 
     if isinstance(con, str):
-        con = sqlalchemy.create_engine(con)
+        if sqlalchemy is None:
+            raise ImportError("Using URI string without sqlalchemy installed.")
+        else:
+            con = sqlalchemy.create_engine(con)
 
-    if isinstance(con, sqlalchemy.engine.Connectable):
+    if sqlalchemy is not None and isinstance(con, sqlalchemy.engine.Connectable):
         return SQLDatabase(con, schema=schema)
 
-    raise ValueError(
-        "pandas only support SQLAlchemy connectable(engine/connection) or"
-        "database string URI or sqlite3 DBAPI2 connection"
+    warnings.warn(
+        "pandas only supports SQLAlchemy connectable (engine/connection) or "
+        "database string URI or sqlite3 DBAPI2 connection. "
+        "Other DBAPI2 objects are not tested. Please consider using SQLAlchemy.",
+        UserWarning,
     )
+    return SQLiteDatabase(con)
 
 
 class SQLTable(PandasObject):
@@ -819,10 +831,7 @@ class SQLTable(PandasObject):
 
     def _execute_create(self):
         # Inserting table into database, add to MetaData object
-        if _gt14():
-            self.table = self.table.to_metadata(self.pd_sql.meta)
-        else:
-            self.table = self.table.tometadata(self.pd_sql.meta)
+        self.table = self.table.to_metadata(self.pd_sql.meta)
         self.table.create(bind=self.pd_sql.connectable)
 
     def create(self):
@@ -1017,7 +1026,7 @@ class SQLTable(PandasObject):
         primary_key_values = list(zip(*(temp[key] for key in primary_keys)))
         return primary_keys, primary_key_values
 
-    def _execute_insert(self, conn, keys: list[str], data_iter):
+    def _execute_insert(self, conn, keys: list[str], data_iter) -> int:
         """
         Execute SQL statement inserting data
 
@@ -1030,9 +1039,10 @@ class SQLTable(PandasObject):
            Each item contains a list of values to be inserted
         """
         data = [dict(zip(keys, row)) for row in data_iter]
-        conn.execute(self.table.insert(), data)
+        result = conn.execute(self.table.insert(), data)
+        return result.rowcount
 
-    def _execute_insert_multi(self, conn, keys: list[str], data_iter):
+    def _execute_insert_multi(self, conn, keys: list[str], data_iter) -> int:
         """
         Alternative to _execute_insert for DBs support multivalue INSERT.
 
@@ -1045,7 +1055,8 @@ class SQLTable(PandasObject):
 
         data = [dict(zip(keys, row)) for row in data_iter]
         stmt = insert(self.table).values(data)
-        conn.execute(stmt)
+        result = conn.execute(stmt)
+        return result.rowcount
 
     def _get_index_formatted_dataframe(self):
         """
@@ -1099,7 +1110,9 @@ class SQLTable(PandasObject):
 
         return column_names, data_list
 
-    def insert(self, chunksize: int | None = None, method: str | None = None):
+    def insert(
+        self, chunksize: int | None = None, method: str | None = None
+    ) -> int | None:
         """
         Determines what data to pass to the underlying insert method.
         """
@@ -1136,7 +1149,7 @@ class SQLTable(PandasObject):
         nrows = len(data)
 
         if nrows == 0:
-            return
+            return 0
 
         if chunksize is None:
             chunksize = nrows
@@ -1144,7 +1157,7 @@ class SQLTable(PandasObject):
             raise ValueError("chunksize argument should be non-zero")
 
         chunks = (nrows // chunksize) + 1
-
+        total_inserted = 0
         with self.pd_sql.run_transaction() as conn:
             if len(other_stmts) > 0:
                 for stmt in other_stmts:
@@ -1157,7 +1170,12 @@ class SQLTable(PandasObject):
                     break
 
                 chunk_iter = zip(*(arr[start_i:end_i] for arr in data_list))
-                exec_insert(conn, keys, chunk_iter)
+                num_inserted = exec_insert(conn, keys, chunk_iter)
+                if num_inserted is None:
+                    total_inserted = None
+                else:
+                    total_inserted += num_inserted
+        return total_inserted
 
     def _query_iterator(
         self,
@@ -1198,10 +1216,9 @@ class SQLTable(PandasObject):
             if self.index is not None:
                 for idx in self.index[::-1]:
                     cols.insert(0, self.table.c[idx])
-            sql_select = select(*cols) if _gt14() else select(cols)
+            sql_select = select(*cols)
         else:
-            sql_select = select(self.table) if _gt14() else self.table.select()
-
+            sql_select = select(self.table)
         result = self.pd_sql.execute(sql_select)
         column_names = result.keys()
 
@@ -1249,10 +1266,7 @@ class SQLTable(PandasObject):
             ):
                 return ["index"]
             else:
-                return [
-                    l if l is not None else f"level_{i}"
-                    for i, l in enumerate(self.frame.index.names)
-                ]
+                return com.fill_missing_names(self.frame.index.names)
 
         # for reading: index=(list of) string to specify column to set as index
         elif isinstance(index, str):
@@ -1399,7 +1413,7 @@ class SQLTable(PandasObject):
                 "the 'timedelta' type is not supported, and will be "
                 "written as integer values (ns frequency) to the database.",
                 UserWarning,
-                stacklevel=8,
+                stacklevel=find_stack_level(),
             )
             return BigInteger
         elif col_type == "floating":
@@ -1481,7 +1495,7 @@ class PandasSQL(PandasObject):
         chunksize=None,
         dtype: DtypeArg | None = None,
         method=None,
-    ):
+    ) -> int | None:
         raise ValueError(
             "PandasSQL must be created with an SQLAlchemy "
             "connectable or sqlite connection"
@@ -1500,7 +1514,7 @@ class BaseEngine:
         chunksize=None,
         method=None,
         **engine_kwargs,
-    ):
+    ) -> int | None:
         """
         Inserts data into already-prepared table
         """
@@ -1524,11 +1538,11 @@ class SQLAlchemyEngine(BaseEngine):
         chunksize=None,
         method=None,
         **engine_kwargs,
-    ):
+    ) -> int | None:
         from sqlalchemy import exc
 
         try:
-            table.insert(chunksize=chunksize, method=method)
+            return table.insert(chunksize=chunksize, method=method)
         except exc.SQLAlchemyError as err:
             # GH34431
             # https://stackoverflow.com/a/67358288/6067848
@@ -1594,7 +1608,6 @@ class SQLDatabase(PandasSQL):
 
         self.connectable = engine
         self.meta = MetaData(schema=schema)
-        self.meta.reflect(bind=engine)
 
     @contextmanager
     def run_transaction(self):
@@ -1852,19 +1865,11 @@ class SQLDatabase(PandasSQL):
         if not name.isdigit() and not name.islower():
             # check for potentially case sensitivity issues (GH7815)
             # Only check when name is not a number and name is not lower case
-            engine = self.connectable.engine
-            with self.connectable.connect() as conn:
-                if _gt14():
-                    from sqlalchemy import inspect
+            from sqlalchemy import inspect
 
-                    insp = inspect(conn)
-                    table_names = insp.get_table_names(
-                        schema=schema or self.meta.schema
-                    )
-                else:
-                    table_names = engine.table_names(
-                        schema=schema or self.meta.schema, connection=conn
-                    )
+            with self.connectable.connect() as conn:
+                insp = inspect(conn)
+                table_names = insp.get_table_names(schema=schema or self.meta.schema)
             if name not in table_names:
                 msg = (
                     f"The provided table name '{name}' is not found exactly as "
@@ -1888,7 +1893,7 @@ class SQLDatabase(PandasSQL):
         method=None,
         engine="auto",
         **engine_kwargs,
-    ):
+    ) -> int | None:
         """
         Write records stored in a DataFrame to a SQL database.
 
@@ -1958,7 +1963,7 @@ class SQLDatabase(PandasSQL):
             dtype=dtype,
         )
 
-        sql_engine.insert_records(
+        total_inserted = sql_engine.insert_records(
             table=table,
             con=self.connectable,
             frame=frame,
@@ -1971,36 +1976,31 @@ class SQLDatabase(PandasSQL):
         )
 
         self.check_case_sensitive(name=name, schema=schema)
+        return total_inserted
 
     @property
     def tables(self):
         return self.meta.tables
 
     def has_table(self, name: str, schema: str | None = None):
-        if _gt14():
-            from sqlalchemy import inspect
+        from sqlalchemy import inspect
 
-            insp = inspect(self.connectable)
-            return insp.has_table(name, schema or self.meta.schema)
-        else:
-            return self.connectable.run_callable(
-                self.connectable.dialect.has_table, name, schema or self.meta.schema
-            )
+        insp = inspect(self.connectable)
+        return insp.has_table(name, schema or self.meta.schema)
 
     def get_table(self, table_name: str, schema: str | None = None):
+        from sqlalchemy import (
+            Numeric,
+            Table,
+        )
+
         schema = schema or self.meta.schema
-        if schema:
-            tbl = self.meta.tables.get(".".join([schema, table_name]))
-        else:
-            tbl = self.meta.tables.get(table_name)
-
-        # Avoid casting double-precision floats into decimals
-        from sqlalchemy import Numeric
-
+        tbl = Table(
+            table_name, self.meta, autoload_with=self.connectable, schema=schema
+        )
         for column in tbl.columns:
             if isinstance(column.type, Numeric):
                 column.type.asdecimal = False
-
         return tbl
 
     def drop_table(self, table_name: str, schema: str | None = None):
@@ -2070,12 +2070,6 @@ def _get_valid_sqlite_name(name):
     return '"' + uname.replace('"', '""') + '"'
 
 
-_SAFE_NAMES_WARNING = (
-    "The spaces in these column names will not be changed. "
-    "In pandas versions < 0.14, spaces were converted to underscores."
-)
-
-
 class SQLiteTable(SQLTable):
     """
     Patch the SQLTable for fallback support.
@@ -2119,14 +2113,16 @@ class SQLiteTable(SQLTable):
         )
         return insert_statement
 
-    def _execute_insert(self, conn, keys, data_iter):
+    def _execute_insert(self, conn, keys, data_iter) -> int:
         data_list = list(data_iter)
         conn.executemany(self.insert_statement(num_rows=1), data_list)
+        return conn.rowcount
 
-    def _execute_insert_multi(self, conn, keys, data_iter):
+    def _execute_insert_multi(self, conn, keys, data_iter) -> int:
         data_list = list(data_iter)
         flattened_data = [x for row in data_list for x in row]
         conn.execute(self.insert_statement(num_rows=len(data_list)), flattened_data)
+        return conn.rowcount
 
     def _create_table_setup(self):
         """
@@ -2135,12 +2131,6 @@ class SQLiteTable(SQLTable):
         statement while the rest will be CREATE INDEX statements.
         """
         column_names_and_types = self._get_column_names_and_types(self._sql_type_name)
-
-        pat = re.compile(r"\s+")
-        column_names = [col_name for col_name, _, _ in column_names_and_types]
-        if any(map(pat.search, column_names)):
-            warnings.warn(_SAFE_NAMES_WARNING, stacklevel=6)
-
         escape = _get_valid_sqlite_name
 
         create_tbl_stmts = [
@@ -2201,7 +2191,7 @@ class SQLiteTable(SQLTable):
                 "the 'timedelta' type is not supported, and will be "
                 "written as integer values (ns frequency) to the database.",
                 UserWarning,
-                stacklevel=8,
+                stacklevel=find_stack_level(),
             )
             col_type = "integer"
 
@@ -2355,7 +2345,7 @@ class SQLiteDatabase(PandasSQL):
         dtype: DtypeArg | None = None,
         method=None,
         **kwargs,
-    ):
+    ) -> int | None:
         """
         Write records stored in a DataFrame to a SQL database.
 
@@ -2427,12 +2417,9 @@ class SQLiteDatabase(PandasSQL):
             dtype=dtype,
         )
         table.create()
-        table.insert(chunksize, method)
+        return table.insert(chunksize, method)
 
     def has_table(self, name: str, schema: str | None = None):
-        # TODO(wesm): unused?
-        # escape = _get_valid_sqlite_name
-        # esc_name = escape(name)
 
         wld = "?"
         query = f"SELECT name FROM sqlite_master WHERE type='table' AND name={wld};"

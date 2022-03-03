@@ -1,11 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    NA,
-    Series,
-    StringDtype,
-)
+from pandas import Series
 import pandas._testing as tm
 
 
@@ -41,15 +37,19 @@ def test_mask():
     with pytest.raises(ValueError, match=msg):
         s.mask(cond[:3].values, -s)
 
+
+def test_mask_casts():
     # dtype changes
-    s = Series([1, 2, 3, 4])
-    result = s.mask(s > 2, np.nan)
+    ser = Series([1, 2, 3, 4])
+    result = ser.mask(ser > 2, np.nan)
     expected = Series([1, 2, np.nan, np.nan])
     tm.assert_series_equal(result, expected)
 
+
+def test_mask_casts2():
     # see gh-21891
-    s = Series([1, 2])
-    res = s.mask([True, False])
+    ser = Series([1, 2])
+    res = ser.mask([True, False])
 
     exp = Series([np.nan, 2])
     tm.assert_series_equal(res, exp)
@@ -67,36 +67,3 @@ def test_mask_inplace():
     rs = s.copy()
     rs.mask(cond, -s, inplace=True)
     tm.assert_series_equal(rs, s.mask(cond, -s))
-
-
-def test_mask_stringdtype():
-    # GH 40824
-    ser = Series(
-        ["foo", "bar", "baz", NA],
-        index=["id1", "id2", "id3", "id4"],
-        dtype=StringDtype(),
-    )
-    filtered_ser = Series(["this", "that"], index=["id2", "id3"], dtype=StringDtype())
-    filter_ser = Series([False, True, True, False])
-    result = ser.mask(filter_ser, filtered_ser)
-
-    expected = Series(
-        [NA, "this", "that", NA],
-        index=["id1", "id2", "id3", "id4"],
-        dtype=StringDtype(),
-    )
-    tm.assert_series_equal(result, expected)
-
-
-def test_mask_pos_args_deprecation():
-    # https://github.com/pandas-dev/pandas/issues/41485
-    s = Series(range(5))
-    expected = Series([-1, 1, -1, 3, -1])
-    cond = s % 2 == 0
-    msg = (
-        r"In a future version of pandas all arguments of Series.mask except for "
-        r"the arguments 'cond' and 'other' will be keyword-only"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = s.mask(cond, -1, False)
-    tm.assert_series_equal(result, expected)

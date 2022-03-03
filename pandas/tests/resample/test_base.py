@@ -20,7 +20,7 @@ from pandas.core.resample import _asfreq_compat
 # a fixture value can be overridden by the test parameter value. Note that the
 # value of the fixture can be overridden this way even if the test doesn't use
 # it directly (doesn't mention it in the function prototype).
-# see https://docs.pytest.org/en/latest/fixture.html#override-a-fixture-with-direct-test-parametrization  # noqa
+# see https://docs.pytest.org/en/latest/fixture.html#override-a-fixture-with-direct-test-parametrization  # noqa:E501
 # in this module we override the fixture values defined in conftest.py
 # tuples of '_index_factory,_series_name,_index_start,_index_end'
 DATE_RANGE = (date_range, "dti", datetime(2005, 1, 1), datetime(2005, 1, 10))
@@ -61,14 +61,14 @@ def test_asfreq(series_and_frame, freq, create_index):
 def test_asfreq_fill_value(series, create_index):
     # test for fill value during resampling, issue 3715
 
-    s = series
+    ser = series
 
-    result = s.resample("1H").asfreq()
-    new_index = create_index(s.index[0], s.index[-1], freq="1H")
-    expected = s.reindex(new_index)
+    result = ser.resample("1H").asfreq()
+    new_index = create_index(ser.index[0], ser.index[-1], freq="1H")
+    expected = ser.reindex(new_index)
     tm.assert_series_equal(result, expected)
 
-    frame = s.to_frame("value")
+    frame = ser.to_frame("value")
     frame.iloc[1] = None
     result = frame.resample("1H").asfreq(fill_value=4.0)
     new_index = create_index(frame.index[0], frame.index[-1], freq="1H")
@@ -98,17 +98,21 @@ def test_raises_on_non_datetimelike_index():
 
 @all_ts
 @pytest.mark.parametrize("freq", ["M", "D", "H"])
-def test_resample_empty_series(freq, empty_series_dti, resample_method):
+def test_resample_empty_series(freq, empty_series_dti, resample_method, request):
     # GH12771 & GH12868
 
-    if resample_method == "ohlc":
-        pytest.skip("need to test for ohlc from GH13083")
+    if resample_method == "ohlc" and isinstance(empty_series_dti.index, PeriodIndex):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason=f"GH13083: {resample_method} fails for PeriodIndex"
+            )
+        )
 
-    s = empty_series_dti
-    result = getattr(s.resample(freq), resample_method)()
+    ser = empty_series_dti
+    result = getattr(ser.resample(freq), resample_method)()
 
-    expected = s.copy()
-    expected.index = _asfreq_compat(s.index, freq)
+    expected = ser.copy()
+    expected.index = _asfreq_compat(ser.index, freq)
 
     tm.assert_index_equal(result.index, expected.index)
     assert result.index.freq == expected.index.freq
@@ -123,17 +127,18 @@ def test_resample_nat_index_series(request, freq, series, resample_method):
     if freq == "M":
         request.node.add_marker(pytest.mark.xfail(reason="Don't know why this fails"))
 
-    s = series.copy()
-    s.index = PeriodIndex([NaT] * len(s), freq=freq)
-    result = getattr(s.resample(freq), resample_method)()
+    ser = series.copy()
+    ser.index = PeriodIndex([NaT] * len(ser), freq=freq)
+    rs = ser.resample(freq)
+    result = getattr(rs, resample_method)()
 
     if resample_method == "ohlc":
         expected = DataFrame(
-            [], index=s.index[:0].copy(), columns=["open", "high", "low", "close"]
+            [], index=ser.index[:0].copy(), columns=["open", "high", "low", "close"]
         )
         tm.assert_frame_equal(result, expected, check_dtype=False)
     else:
-        expected = s[:0].copy()
+        expected = ser[:0].copy()
         tm.assert_series_equal(result, expected, check_dtype=False)
     tm.assert_index_equal(result.index, expected.index)
     assert result.index.freq == expected.index.freq
@@ -223,14 +228,14 @@ def test_resample_empty_dtypes(index, dtype, resample_method):
 
 
 @all_ts
-def test_apply_to_empty_series(empty_series_dti):
+@pytest.mark.parametrize("freq", ["M", "D", "H"])
+def test_apply_to_empty_series(empty_series_dti, freq):
     # GH 14313
-    s = empty_series_dti
-    for freq in ["M", "D", "H"]:
-        result = s.resample(freq).apply(lambda x: 1)
-        expected = s.resample(freq).apply(np.sum)
+    ser = empty_series_dti
+    result = ser.resample(freq).apply(lambda x: 1)
+    expected = ser.resample(freq).apply(np.sum)
 
-        tm.assert_series_equal(result, expected, check_dtype=False)
+    tm.assert_series_equal(result, expected, check_dtype=False)
 
 
 @all_ts
@@ -248,9 +253,9 @@ def test_resampler_is_iterable(series):
 @all_ts
 def test_resample_quantile(series):
     # GH 15023
-    s = series
+    ser = series
     q = 0.75
     freq = "H"
-    result = s.resample(freq).quantile(q)
-    expected = s.resample(freq).agg(lambda x: x.quantile(q)).rename(s.name)
+    result = ser.resample(freq).quantile(q)
+    expected = ser.resample(freq).agg(lambda x: x.quantile(q)).rename(ser.name)
     tm.assert_series_equal(result, expected)

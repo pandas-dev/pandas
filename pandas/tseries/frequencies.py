@@ -21,6 +21,7 @@ from pandas._libs.tslibs.fields import (
     month_position_check,
 )
 from pandas._libs.tslibs.offsets import (  # noqa:F401
+    BaseOffset,
     DateOffset,
     Day,
     _get_offset,
@@ -29,6 +30,7 @@ from pandas._libs.tslibs.offsets import (  # noqa:F401
 from pandas._libs.tslibs.parsing import get_rule_month
 from pandas._typing import npt
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
@@ -102,7 +104,7 @@ def get_period_alias(offset_str: str) -> str | None:
     return _offset_to_period_map.get(offset_str, None)
 
 
-def get_offset(name: str) -> DateOffset:
+def get_offset(name: str) -> BaseOffset:
     """
     Return DateOffset object associated with rule name.
 
@@ -116,7 +118,7 @@ def get_offset(name: str) -> DateOffset:
         "get_offset is deprecated and will be removed in a future version, "
         "use to_offset instead.",
         FutureWarning,
-        stacklevel=2,
+        stacklevel=find_stack_level(),
     )
     return _get_offset(name)
 
@@ -127,14 +129,14 @@ def get_offset(name: str) -> DateOffset:
 
 def infer_freq(index, warn: bool = True) -> str | None:
     """
-    Infer the most likely frequency given the input index. If the frequency is
-    uncertain, a warning will be printed.
+    Infer the most likely frequency given the input index.
 
     Parameters
     ----------
     index : DatetimeIndex or TimedeltaIndex
       If passed a Series will use the values of the series (NOT THE INDEX).
     warn : bool, default True
+      .. deprecated:: 1.5.0
 
     Returns
     -------
@@ -219,6 +221,13 @@ class _FrequencyInferer:
                     self.i8values, index.tz
                 )
 
+        if warn is not True:
+            warnings.warn(
+                "warn is deprecated (and never implemented) and "
+                "will be removed in a future version.",
+                FutureWarning,
+                stacklevel=3,
+            )
         self.warn = warn
 
         if len(index) < 3:
@@ -398,10 +407,12 @@ class _FrequencyInferer:
         shifts = np.diff(self.index.asi8)
         shifts = np.floor_divide(shifts, _ONE_DAY)
         weekdays = np.mod(first_weekday + np.cumsum(shifts), 7)
-        # error: Incompatible return value type (got "bool_", expected "bool")
-        return np.all(  # type: ignore[return-value]
-            ((weekdays == 0) & (shifts == 3))
-            | ((weekdays > 0) & (weekdays <= 4) & (shifts == 1))
+
+        return bool(
+            np.all(
+                ((weekdays == 0) & (shifts == 3))
+                | ((weekdays > 0) & (weekdays <= 4) & (shifts == 1))
+            )
         )
 
     def _get_wom_rule(self) -> str | None:

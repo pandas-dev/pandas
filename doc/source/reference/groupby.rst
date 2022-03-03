@@ -122,6 +122,7 @@ application to columns of a specific data type.
    DataFrameGroupBy.skew
    DataFrameGroupBy.take
    DataFrameGroupBy.tshift
+   DataFrameGroupBy.value_counts
 
 The following methods are available only for ``SeriesGroupBy`` objects.
 

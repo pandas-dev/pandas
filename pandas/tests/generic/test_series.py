@@ -10,13 +10,9 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.tests.generic.test_generic import Generic
 
 
-class TestSeries(Generic):
-    _typ = Series
-    _comparator = lambda self, x, y: tm.assert_series_equal(x, y)
-
+class TestSeries:
     @pytest.mark.parametrize("func", ["rename_axis", "_set_axis_name"])
     def test_set_axis_name_mi(self, func):
         ser = Series(
@@ -41,7 +37,7 @@ class TestSeries(Generic):
     def test_get_bool_data_preserve_dtype(self):
         ser = Series([True, False, True])
         result = ser._get_bool_data()
-        self._compare(result, ser)
+        tm.assert_series_equal(result, ser)
 
     def test_nonzero_single_element(self):
 
@@ -101,15 +97,15 @@ class TestSeries(Generic):
             name="foo",
         )
         result = ts.resample("1T").mean()
-        self.check_metadata(ts, result)
+        tm.assert_metadata_equivalent(ts, result)
 
         result = ts.resample("1T").min()
-        self.check_metadata(ts, result)
+        tm.assert_metadata_equivalent(ts, result)
 
         result = ts.resample("1T").apply(lambda x: x.sum())
-        self.check_metadata(ts, result)
+        tm.assert_metadata_equivalent(ts, result)
 
-    def test_metadata_propagation_indiv(self):
+    def test_metadata_propagation_indiv(self, monkeypatch):
         # check that the metadata matches up on the resulting ops
 
         ser = Series(range(3), range(3))
@@ -118,13 +114,7 @@ class TestSeries(Generic):
         ser2.name = "bar"
 
         result = ser.T
-        self.check_metadata(ser, result)
-
-        _metadata = Series._metadata
-        _finalize = Series.__finalize__
-        Series._metadata = ["name", "filename"]
-        ser.filename = "foo"
-        ser2.filename = "bar"
+        tm.assert_metadata_equivalent(ser, result)
 
         def finalize(self, other, method=None, **kwargs):
             for name in self._metadata:
@@ -142,12 +132,13 @@ class TestSeries(Generic):
 
             return self
 
-        Series.__finalize__ = finalize
+        with monkeypatch.context() as m:
+            m.setattr(Series, "_metadata", ["name", "filename"])
+            m.setattr(Series, "__finalize__", finalize)
 
-        result = pd.concat([ser, ser2])
-        assert result.filename == "foo+bar"
-        assert result.name is None
+            ser.filename = "foo"
+            ser2.filename = "bar"
 
-        # reset
-        Series._metadata = _metadata
-        Series.__finalize__ = _finalize  # FIXME: use monkeypatch
+            result = pd.concat([ser, ser2])
+            assert result.filename == "foo+bar"
+            assert result.name is None

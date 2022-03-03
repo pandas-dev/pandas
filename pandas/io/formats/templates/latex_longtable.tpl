@@ -59,7 +59,7 @@
 {% if midrule is not none %}
 \{{midrule}}
 {% endif %}
-\multicolumn{% raw %}{{% endraw %}{{column_format|length}}{% raw %}}{% endraw %}{r}{Continued on next page} \\
+\multicolumn{% raw %}{{% endraw %}{{body[0]|length}}{% raw %}}{% endraw %}{r}{Continued on next page} \\
 {% if midrule is not none %}
 \{{midrule}}
 {% endif %}
@@ -73,6 +73,10 @@
 {% for c in row %}{% if not loop.first %} & {% endif %}
   {%- if c.type == 'th' %}{{parse_header(c, multirow_align, multicol_align)}}{% else %}{{parse_cell(c.cellstyle, c.display_value, convert_css)}}{% endif %}
 {%- endfor %} \\
+{% if clines and clines[loop.index] | length > 0 %}
+  {%- for cline in clines[loop.index] %}{% if not loop.first %} {% endif %}{{ cline }}{% endfor %}
+
+{% endif %}
 {% endfor %}
 \end{longtable}
 {% raw %}{% endraw %}

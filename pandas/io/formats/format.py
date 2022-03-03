@@ -19,7 +19,6 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
-    AnyStr,
     Callable,
     Hashable,
     Iterable,
@@ -51,12 +50,14 @@ from pandas._typing import (
     ColspaceArgType,
     ColspaceType,
     CompressionOptions,
-    FilePathOrBuffer,
+    FilePath,
     FloatFormatType,
     FormattersType,
     IndexLabel,
     StorageOptions,
+    WriteBuffer,
 )
+from pandas.util._decorators import deprecate_kwarg
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -164,9 +165,6 @@ common_docstring = """
             * unset.
         max_rows : int, optional
             Maximum number of rows to display in the console.
-        min_rows : int, optional
-            The number of rows to display in the console in a truncated repr
-            (when number of rows is above `max_rows`).
         max_cols : int, optional
             Maximum number of columns to display in the console.
         show_dimensions : bool, default False
@@ -481,6 +479,77 @@ def get_adjustment() -> TextAdjustment:
         return EastAsianTextAdjustment()
     else:
         return TextAdjustment()
+
+
+def get_dataframe_repr_params() -> dict[str, Any]:
+    """Get the parameters used to repr(dataFrame) calls using DataFrame.to_string.
+
+    Supplying these parameters to DataFrame.to_string is equivalent to calling
+    ``repr(DataFrame)``. This is useful if you want to adjust the repr output.
+
+    .. versionadded:: 1.4.0
+
+    Example
+    -------
+    >>> import pandas as pd
+    >>>
+    >>> df = pd.DataFrame([[1, 2], [3, 4]])
+    >>> repr_params = pd.io.formats.format.get_dataframe_repr_params()
+    >>> repr(df) == df.to_string(**repr_params)
+    True
+    """
+    from pandas.io.formats import console
+
+    if get_option("display.expand_frame_repr"):
+        line_width, _ = console.get_console_size()
+    else:
+        line_width = None
+    return {
+        "max_rows": get_option("display.max_rows"),
+        "min_rows": get_option("display.min_rows"),
+        "max_cols": get_option("display.max_columns"),
+        "max_colwidth": get_option("display.max_colwidth"),
+        "show_dimensions": get_option("display.show_dimensions"),
+        "line_width": line_width,
+    }
+
+
+def get_series_repr_params() -> dict[str, Any]:
+    """Get the parameters used to repr(Series) calls using Series.to_string.
+
+    Supplying these parameters to Series.to_string is equivalent to calling
+    ``repr(series)``. This is useful if you want to adjust the series repr output.
+
+    .. versionadded:: 1.4.0
+
+    Example
+    -------
+    >>> import pandas as pd
+    >>>
+    >>> ser = pd.Series([1, 2, 3, 4])
+    >>> repr_params = pd.io.formats.format.get_series_repr_params()
+    >>> repr(ser) == ser.to_string(**repr_params)
+    True
+    """
+    width, height = get_terminal_size()
+    max_rows = (
+        height
+        if get_option("display.max_rows") == 0
+        else get_option("display.max_rows")
+    )
+    min_rows = (
+        height
+        if get_option("display.max_rows") == 0
+        else get_option("display.min_rows")
+    )
+
+    return {
+        "name": True,
+        "dtype": True,
+        "min_rows": min_rows,
+        "max_rows": max_rows,
+        "length": get_option("display.show_dimensions"),
+    }
 
 
 class DataFrameFormatter:
@@ -953,7 +1022,7 @@ class DataFrameRenderer:
 
     def to_latex(
         self,
-        buf: FilePathOrBuffer[str] | None = None,
+        buf: FilePath | WriteBuffer[str] | None = None,
         column_format: str | None = None,
         longtable: bool = False,
         encoding: str | None = None,
@@ -985,7 +1054,7 @@ class DataFrameRenderer:
 
     def to_html(
         self,
-        buf: FilePathOrBuffer[str] | None = None,
+        buf: FilePath | WriteBuffer[str] | None = None,
         encoding: str | None = None,
         classes: str | list | tuple | None = None,
         notebook: bool = False,
@@ -998,8 +1067,10 @@ class DataFrameRenderer:
 
         Parameters
         ----------
-        buf : str, Path or StringIO-like, optional, default None
-            Buffer to write to. If None, the output is returned as a string.
+        buf : str, path object, file-like object, or None, default None
+            String, path object (implementing ``os.PathLike[str]``), or file-like
+            object implementing a string ``write()`` function. If None, the result is
+            returned as a string.
         encoding : str, default “utf-8”
             Set character encoding.
         classes : str or list-like
@@ -1034,7 +1105,7 @@ class DataFrameRenderer:
 
     def to_string(
         self,
-        buf: FilePathOrBuffer[str] | None = None,
+        buf: FilePath | WriteBuffer[str] | None = None,
         encoding: str | None = None,
         line_width: int | None = None,
     ) -> str | None:
@@ -1043,8 +1114,10 @@ class DataFrameRenderer:
 
         Parameters
         ----------
-        buf : str, Path or StringIO-like, optional, default None
-            Buffer to write to. If None, the output is returned as a string.
+        buf : str, path object, file-like object, or None, default None
+            String, path object (implementing ``os.PathLike[str]``), or file-like
+            object implementing a string ``write()`` function. If None, the result is
+            returned as a string.
         encoding: str, default “utf-8”
             Set character encoding.
         line_width : int, optional
@@ -1056,9 +1129,10 @@ class DataFrameRenderer:
         string = string_formatter.to_string()
         return save_to_buffer(string, buf=buf, encoding=encoding)
 
+    @deprecate_kwarg(old_arg_name="line_terminator", new_arg_name="lineterminator")
     def to_csv(
         self,
-        path_or_buf: FilePathOrBuffer[AnyStr] | None = None,
+        path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
         encoding: str | None = None,
         sep: str = ",",
         columns: Sequence[Hashable] | None = None,
@@ -1067,7 +1141,7 @@ class DataFrameRenderer:
         compression: CompressionOptions = "infer",
         quoting: int | None = None,
         quotechar: str = '"',
-        line_terminator: str | None = None,
+        lineterminator: str | None = None,
         chunksize: int | None = None,
         date_format: str | None = None,
         doublequote: bool = True,
@@ -1088,7 +1162,7 @@ class DataFrameRenderer:
 
         csv_formatter = CSVFormatter(
             path_or_buf=path_or_buf,
-            line_terminator=line_terminator,
+            lineterminator=lineterminator,
             sep=sep,
             encoding=encoding,
             errors=errors,
@@ -1118,7 +1192,7 @@ class DataFrameRenderer:
 
 def save_to_buffer(
     string: str,
-    buf: FilePathOrBuffer[str] | None = None,
+    buf: FilePath | WriteBuffer[str] | None = None,
     encoding: str | None = None,
 ) -> str | None:
     """
@@ -1132,7 +1206,7 @@ def save_to_buffer(
 
 
 @contextmanager
-def get_buffer(buf: FilePathOrBuffer[str] | None, encoding: str | None = None):
+def get_buffer(buf: FilePath | WriteBuffer[str] | None, encoding: str | None = None):
     """
     Context manager to open, yield and close buffer for filenames or Path-like
     objects, otherwise yield buf unchanged.
@@ -1672,7 +1746,7 @@ def is_dates_only(values: np.ndarray | DatetimeArray | Index | DatetimeIndex) ->
 
     values_int = values.asi8
     consider_values = values_int != iNaT
-    one_day_nanos = 86400 * 10 ** 9
+    one_day_nanos = 86400 * 10**9
     even_days = (
         np.logical_and(consider_values, values_int % int(one_day_nanos) != 0).sum() == 0
     )
@@ -1779,7 +1853,7 @@ def get_format_timedelta64(
 
     consider_values = values_int != iNaT
 
-    one_day_nanos = 86400 * 10 ** 9
+    one_day_nanos = 86400 * 10**9
     # error: Unsupported operand types for % ("ExtensionArray" and "int")
     not_midnight = values_int % one_day_nanos != 0  # type: ignore[operator]
     # error: Argument 1 to "__call__" of "ufunc" has incompatible type
@@ -1890,7 +1964,7 @@ def _trim_zeros_float(
     necessary.
     """
     trimmed = str_floats
-    number_regex = re.compile(fr"^\s*[\+-]?[0-9]+\{decimal}[0-9]*$")
+    number_regex = re.compile(rf"^\s*[\+-]?[0-9]+\{decimal}[0-9]*$")
 
     def is_number_with_decimal(x):
         return re.match(number_regex, x) is not None
@@ -2007,7 +2081,7 @@ class EngFormatter:
             else:
                 prefix = f"E+{int_pow10:02d}"
 
-        mant = sign * dnum / (10 ** pow10)
+        mant = sign * dnum / (10**pow10)
 
         if self.accuracy is None:  # pragma: no cover
             format_str = "{mant: g}{prefix}"
@@ -2074,7 +2148,7 @@ def get_level_lengths(
     return result
 
 
-def buffer_put_lines(buf: IO[str], lines: list[str]) -> None:
+def buffer_put_lines(buf: WriteBuffer[str], lines: list[str]) -> None:
     """
     Appends lines to a buffer.
 

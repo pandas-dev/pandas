@@ -14,11 +14,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.arrays import (
-    DatetimeArray,
-    PeriodArray,
-    TimedeltaArray,
-)
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.indexes.accessors import Properties
 
@@ -88,7 +83,7 @@ class TestCatAccessor:
         return_value = ser.drop(0, inplace=True)
         assert return_value is None
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             return_value = ser.cat.remove_unused_categories(inplace=True)
 
         assert return_value is None
@@ -163,86 +158,84 @@ class TestCatAccessor:
         )
         tm.assert_series_equal(result, expected)
 
-    def test_dt_accessor_api_for_categorical(self):
+    @pytest.mark.parametrize(
+        "idx",
+        [
+            date_range("1/1/2015", periods=5),
+            date_range("1/1/2015", periods=5, tz="MET"),
+            period_range("1/1/2015", freq="D", periods=5),
+            timedelta_range("1 days", "10 days"),
+        ],
+    )
+    def test_dt_accessor_api_for_categorical(self, idx):
         # https://github.com/pandas-dev/pandas/issues/10661
 
-        s_dr = Series(date_range("1/1/2015", periods=5, tz="MET"))
-        c_dr = s_dr.astype("category")
-
-        s_pr = Series(period_range("1/1/2015", freq="D", periods=5))
-        c_pr = s_pr.astype("category")
-
-        s_tdr = Series(timedelta_range("1 days", "10 days"))
-        c_tdr = s_tdr.astype("category")
+        ser = Series(idx)
+        cat = ser.astype("category")
 
         # only testing field (like .day)
         # and bool (is_month_start)
-        get_ops = lambda x: x._datetimelike_ops
+        attr_names = type(ser._values)._datetimelike_ops
 
-        test_data = [
-            ("Datetime", get_ops(DatetimeArray), s_dr, c_dr),
-            ("Period", get_ops(PeriodArray), s_pr, c_pr),
-            ("Timedelta", get_ops(TimedeltaArray), s_tdr, c_tdr),
-        ]
-
-        assert isinstance(c_dr.dt, Properties)
+        assert isinstance(cat.dt, Properties)
 
         special_func_defs = [
             ("strftime", ("%Y-%m-%d",), {}),
-            ("tz_convert", ("EST",), {}),
             ("round", ("D",), {}),
             ("floor", ("D",), {}),
             ("ceil", ("D",), {}),
             ("asfreq", ("D",), {}),
-            # FIXME: don't leave commented-out
-            # ('tz_localize', ("UTC",), {}),
         ]
+        if idx.dtype == "M8[ns]":
+            # exclude dt64tz since that is already localized and would raise
+            tup = ("tz_localize", ("UTC",), {})
+            special_func_defs.append(tup)
+        elif idx.dtype.kind == "M":
+            # exclude dt64 since that is not localized so would raise
+            tup = ("tz_convert", ("EST",), {})
+            special_func_defs.append(tup)
+
         _special_func_names = [f[0] for f in special_func_defs]
 
-        # the series is already localized
-        _ignore_names = ["tz_localize", "components"]
+        _ignore_names = ["components", "tz_localize", "tz_convert"]
 
-        for name, attr_names, s, c in test_data:
-            func_names = [
-                f
-                for f in dir(s.dt)
-                if not (
-                    f.startswith("_")
-                    or f in attr_names
-                    or f in _special_func_names
-                    or f in _ignore_names
-                )
-            ]
+        func_names = [
+            fname
+            for fname in dir(ser.dt)
+            if not (
+                fname.startswith("_")
+                or fname in attr_names
+                or fname in _special_func_names
+                or fname in _ignore_names
+            )
+        ]
 
-            func_defs = [(f, (), {}) for f in func_names]
-            for f_def in special_func_defs:
-                if f_def[0] in dir(s.dt):
-                    func_defs.append(f_def)
+        func_defs = [(fname, (), {}) for fname in func_names]
 
-            for func, args, kwargs in func_defs:
-                with warnings.catch_warnings():
-                    if func == "to_period":
-                        # dropping TZ
-                        warnings.simplefilter("ignore", UserWarning)
-                    res = getattr(c.dt, func)(*args, **kwargs)
-                    exp = getattr(s.dt, func)(*args, **kwargs)
+        for f_def in special_func_defs:
+            if f_def[0] in dir(ser.dt):
+                func_defs.append(f_def)
 
-                tm.assert_equal(res, exp)
+        for func, args, kwargs in func_defs:
+            with warnings.catch_warnings():
+                if func == "to_period":
+                    # dropping TZ
+                    warnings.simplefilter("ignore", UserWarning)
+                res = getattr(cat.dt, func)(*args, **kwargs)
+                exp = getattr(ser.dt, func)(*args, **kwargs)
 
-            for attr in attr_names:
-                if attr in ["week", "weekofyear"]:
-                    # GH#33595 Deprecate week and weekofyear
-                    continue
-                res = getattr(c.dt, attr)
-                exp = getattr(s.dt, attr)
+            tm.assert_equal(res, exp)
 
-            if isinstance(res, DataFrame):
-                tm.assert_frame_equal(res, exp)
-            elif isinstance(res, Series):
-                tm.assert_series_equal(res, exp)
-            else:
-                tm.assert_almost_equal(res, exp)
+        for attr in attr_names:
+            if attr in ["week", "weekofyear"]:
+                # GH#33595 Deprecate week and weekofyear
+                continue
+            res = getattr(cat.dt, attr)
+            exp = getattr(ser.dt, attr)
 
+            tm.assert_equal(res, exp)
+
+    def test_dt_accessor_api_for_categorical_invalid(self):
         invalid = Series([1, 2, 3]).astype("category")
         msg = "Can only use .dt accessor with datetimelike"
 

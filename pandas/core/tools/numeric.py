@@ -3,6 +3,7 @@ from __future__ import annotations
 import numpy as np
 
 from pandas._libs import lib
+from pandas._typing import npt
 
 from pandas.core.dtypes.cast import maybe_downcast_numeric
 from pandas.core.dtypes.common import (
@@ -48,7 +49,8 @@ def to_numeric(arg, errors="raise", downcast=None):
         - If 'raise', then invalid parsing will raise an exception.
         - If 'coerce', then invalid parsing will be set as NaN.
         - If 'ignore', then invalid parsing will return the input.
-    downcast : {'integer', 'signed', 'unsigned', 'float'}, default None
+    downcast : str, default None
+        Can be 'integer', 'signed', 'unsigned', or 'float'.
         If not None, and if the data has been successfully cast to a
         numerical dtype (or if the data was numeric to begin with),
         downcast that resulting data to the smallest numerical dtype
@@ -166,7 +168,7 @@ def to_numeric(arg, errors="raise", downcast=None):
 
     # GH33013: for IntegerArray & FloatingArray extract non-null values for casting
     # save mask to reconstruct the full array after casting
-    mask: np.ndarray | None = None
+    mask: npt.NDArray[np.bool_] | None = None
     if isinstance(values, NumericArray):
         mask = values._mask
         values = values._data[~mask]

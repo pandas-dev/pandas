@@ -357,6 +357,35 @@ class BaseSetitemTests(BaseExtensionTests):
         )
         self.assert_series_equal(result, expected)
 
+    def test_setitem_frame_2d_values(self, data):
+        # GH#44514
+        df = pd.DataFrame({"A": data})
+
+        # Avoiding using_array_manager fixture
+        #  https://github.com/pandas-dev/pandas/pull/44514#discussion_r754002410
+        using_array_manager = isinstance(df._mgr, pd.core.internals.ArrayManager)
+
+        df = pd.DataFrame({"A": data})
+        blk_data = df._mgr.arrays[0]
+
+        orig = df.copy()
+
+        df.iloc[:] = df
+        self.assert_frame_equal(df, orig)
+
+        df.iloc[:-1] = df.iloc[:-1]
+        self.assert_frame_equal(df, orig)
+
+        df.iloc[:] = df.values
+        self.assert_frame_equal(df, orig)
+        if not using_array_manager:
+            # GH#33457 Check that this setting occurred in-place
+            # FIXME(ArrayManager): this should work there too
+            assert df._mgr.arrays[0] is blk_data
+
+        df.iloc[:-1] = df.values[:-1]
+        self.assert_frame_equal(df, orig)
+
     def test_delitem_series(self, data):
         # GH#40763
         ser = pd.Series(data, name="data")
@@ -367,3 +396,11 @@ class BaseSetitemTests(BaseExtensionTests):
         expected = ser[taker]
         del ser[1]
         self.assert_series_equal(ser, expected)
+
+    def test_setitem_invalid(self, data, invalid_scalar):
+        msg = ""  # messages vary by subclass, so we do not test it
+        with pytest.raises((ValueError, TypeError), match=msg):
+            data[0] = invalid_scalar
+
+        with pytest.raises((ValueError, TypeError), match=msg):
+            data[:] = invalid_scalar

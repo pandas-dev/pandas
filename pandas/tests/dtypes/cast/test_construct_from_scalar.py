@@ -7,7 +7,6 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas import (
     Categorical,
     Timedelta,
-    Timestamp,
 )
 import pandas._testing as tm
 
@@ -25,9 +24,9 @@ def test_cast_1d_array_like_from_scalar_categorical():
     tm.assert_categorical_equal(result, expected)
 
 
-def test_cast_1d_array_like_from_timestamp():
+def test_cast_1d_array_like_from_timestamp(fixed_now_ts):
     # check we dont lose nanoseconds
-    ts = Timestamp.now() + Timedelta(1)
+    ts = fixed_now_ts + Timedelta(1)
     res = construct_1d_arraylike_from_scalar(ts, 2, np.dtype("M8[ns]"))
     assert res[0] == ts
 

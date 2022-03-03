@@ -257,7 +257,7 @@ cdef object get_dst_info(tzinfo tz):
     ndarray[int64_t]
         Nanosecond UTC offsets corresponding to DST transitions.
     str
-        Desscribing the type of tzinfo object.
+        Describing the type of tzinfo object.
     """
     cache_key = tz_cache_key(tz)
     if cache_key is None:

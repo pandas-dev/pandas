@@ -89,16 +89,6 @@ Some other important things to know about the docs:
   ``doc/source/reference``, else Sphinx
   will emit a warning.
 
-.. note::
-
-    The ``.rst`` files are used to automatically generate Markdown and HTML versions
-    of the docs. For this reason, please do not edit ``CONTRIBUTING.md`` directly,
-    but instead make any changes to ``doc/source/development/contributing.rst``. Then, to
-    generate ``CONTRIBUTING.md``, use `pandoc <https://johnmacfarlane.net/pandoc/>`_
-    with the following command::
-
-      pandoc doc/source/development/contributing.rst -t markdown_github > CONTRIBUTING.md
-
 The utility script ``scripts/validate_docstrings.py`` can be used to get a csv
 summary of the API documentation. And also validate common errors in the docstring
 of a specific class, function or method. The summary also compares the list of
@@ -202,10 +192,10 @@ And you'll have the satisfaction of seeing your new and improved documentation!
 
 .. _contributing.dev_docs:
 
-Building master branch documentation
+Building main branch documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When pull requests are merged into the pandas ``master`` branch, the main parts of
+When pull requests are merged into the pandas ``main`` branch, the main parts of
 the documentation are also built by Travis-CI. These docs are then hosted `here
 <https://pandas.pydata.org/docs/dev/>`__, see also
 the :any:`Continuous Integration <contributing.ci>` section.

@@ -119,3 +119,9 @@ class BaseInterfaceTests(BaseExtensionTests):
 
         # check specifically that the `dtype` kwarg is accepted
         data.view(dtype=None)
+
+    def test_tolist(self, data):
+        result = data.tolist()
+        expected = list(data)
+        assert isinstance(result, list)
+        assert result == expected

@@ -33,6 +33,7 @@ from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas._typing import (
     Dtype,
     DtypeObj,
+    IntervalClosedType,
     npt,
 )
 from pandas.util._decorators import (
@@ -387,6 +388,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         A bit of a hack to accelerate unioning a collection of indexes.
         """
+        warnings.warn(
+            "DatetimeIndex.union_many is deprecated and will be removed in "
+            "a future version. Use obj.union instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
         this = self
 
         for other in others:
@@ -495,7 +503,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     "is deprecated and will be removed in a future version. "
                     "You can stop passing 'keep_tz' to silence this warning.",
                     FutureWarning,
-                    stacklevel=2,
+                    stacklevel=find_stack_level(),
                 )
             else:
                 warnings.warn(
@@ -505,7 +513,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     "can do 'idx.tz_convert(None)' before calling "
                     "'to_series'.",
                     FutureWarning,
-                    stacklevel=2,
+                    stacklevel=find_stack_level(),
                 )
         else:
             keep_tz = True
@@ -647,7 +655,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             try:
                 key = self._maybe_cast_for_get_loc(key)
             except ValueError as err:
-                # FIXME: we get here because parse_with_reso doesn't raise on "t2m"
+                # FIXME(dateutil#1180): we get here because parse_with_reso
+                #  doesn't raise on "t2m"
                 raise KeyError(key) from err
 
         elif isinstance(key, timedelta):
@@ -752,7 +761,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 "with non-existing keys is deprecated and will raise a "
                 "KeyError in a future Version.",
                 FutureWarning,
-                stacklevel=5,
+                stacklevel=find_stack_level(),
             )
         indexer = mask.nonzero()[0][::step]
         if len(indexer) == len(self):
@@ -876,8 +885,8 @@ def date_range(
     tz=None,
     normalize: bool = False,
     name: Hashable = None,
-    closed: str | None | lib.NoDefault = lib.no_default,
-    inclusive: str | None = None,
+    closed: Literal["left", "right"] | None | lib.NoDefault = lib.no_default,
+    inclusive: IntervalClosedType | None = None,
     **kwargs,
 ) -> DatetimeIndex:
     """
@@ -1014,22 +1023,23 @@ def date_range(
                    '2018-01-05 00:00:00+09:00'],
                   dtype='datetime64[ns, Asia/Tokyo]', freq='D')
 
-    `closed` controls whether to include `start` and `end` that are on the
-    boundary. The default includes boundary points on either end.
+    `inclusive` controls whether to include `start` and `end` that are on the
+    boundary. The default, "both", includes boundary points on either end.
 
-    >>> pd.date_range(start='2017-01-01', end='2017-01-04', closed=None)
+    >>> pd.date_range(start='2017-01-01', end='2017-01-04', inclusive="both")
     DatetimeIndex(['2017-01-01', '2017-01-02', '2017-01-03', '2017-01-04'],
                   dtype='datetime64[ns]', freq='D')
 
-    Use ``closed='left'`` to exclude `end` if it falls on the boundary.
+    Use ``inclusive='left'`` to exclude `end` if it falls on the boundary.
 
-    >>> pd.date_range(start='2017-01-01', end='2017-01-04', closed='left')
+    >>> pd.date_range(start='2017-01-01', end='2017-01-04', inclusive='left')
     DatetimeIndex(['2017-01-01', '2017-01-02', '2017-01-03'],
                   dtype='datetime64[ns]', freq='D')
 
-    Use ``closed='right'`` to exclude `start` if it falls on the boundary.
+    Use ``inclusive='right'`` to exclude `start` if it falls on the boundary, and
+    similarly ``inclusive='neither'`` will exclude both `start` and `end`.
 
-    >>> pd.date_range(start='2017-01-01', end='2017-01-04', closed='right')
+    >>> pd.date_range(start='2017-01-01', end='2017-01-04', inclusive='right')
     DatetimeIndex(['2017-01-02', '2017-01-03', '2017-01-04'],
                   dtype='datetime64[ns]', freq='D')
     """
@@ -1042,7 +1052,7 @@ def date_range(
         warnings.warn(
             "Argument `closed` is deprecated in favor of `inclusive`.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         if closed is None:
             inclusive = "both"
@@ -1082,7 +1092,7 @@ def bdate_range(
     weekmask=None,
     holidays=None,
     closed: lib.NoDefault = lib.no_default,
-    inclusive: str | None = None,
+    inclusive: IntervalClosedType | None = None,
     **kwargs,
 ) -> DatetimeIndex:
     """

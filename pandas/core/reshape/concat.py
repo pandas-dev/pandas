@@ -6,6 +6,7 @@ from __future__ import annotations
 from collections import abc
 from typing import (
     TYPE_CHECKING,
+    Callable,
     Hashable,
     Iterable,
     Literal,
@@ -13,6 +14,7 @@ from typing import (
     cast,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -21,12 +23,14 @@ from pandas.util._decorators import (
     cache_readonly,
     deprecate_nonkeyword_arguments,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
+from pandas.core.dtypes.inference import is_bool
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays.categorical import (
@@ -126,12 +130,12 @@ def concat(
     axis: Axis = ...,
     join: str = ...,
     ignore_index: bool = ...,
-    keys=None,
-    levels=None,
-    names=None,
-    verify_integrity: bool = False,
-    sort: bool = False,
-    copy: bool = True,
+    keys=...,
+    levels=...,
+    names=...,
+    verify_integrity: bool = ...,
+    sort: bool = ...,
+    copy: bool = ...,
 ) -> DataFrame | Series:
     ...
 
@@ -464,7 +468,9 @@ class _Concatenator:
 
         # Standardize axis parameter to int
         if isinstance(sample, ABCSeries):
-            axis = sample._constructor_expanddim._get_axis_number(axis)
+            from pandas import DataFrame
+
+            axis = DataFrame._get_axis_number(axis)
         else:
             axis = sample._get_axis_number(axis)
 
@@ -519,6 +525,14 @@ class _Concatenator:
         self.keys = keys
         self.names = names or getattr(keys, "names", None)
         self.levels = levels
+
+        if not is_bool(sort):
+            warnings.warn(
+                "Passing non boolean values for sort is deprecated and "
+                "will error in a future version!",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         self.sort = sort
 
         self.ignore_index = ignore_index
@@ -528,7 +542,7 @@ class _Concatenator:
         self.new_axes = self._get_new_axes()
 
     def get_result(self):
-        cons: type[DataFrame | Series]
+        cons: Callable[..., DataFrame | Series]
         sample: DataFrame | Series
 
         # series only

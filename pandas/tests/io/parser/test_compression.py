@@ -12,6 +12,8 @@ import pytest
 from pandas import DataFrame
 import pandas._testing as tm
 
+import pandas.io.common as icom
+
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
@@ -93,7 +95,7 @@ def test_compression(parser_and_data, compression_only, buffer, filename):
     parser, data, expected = parser_and_data
     compress_type = compression_only
 
-    ext = "gz" if compress_type == "gzip" else compress_type
+    ext = icom._compression_to_extension[compress_type]
     filename = filename if filename is None else filename.format(ext=ext)
 
     if filename and buffer:
@@ -103,8 +105,6 @@ def test_compression(parser_and_data, compression_only, buffer, filename):
         tm.write_to_compressed(compress_type, path, data)
         compression = "infer" if filename else compress_type
 
-        if ext == "bz2":
-            pytest.xfail("pyarrow wheels don't have bz2 codec support")
         if buffer:
             with open(path, "rb") as f:
                 result = parser.read_csv(f, compression=compression)

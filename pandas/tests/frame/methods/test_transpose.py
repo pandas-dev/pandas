@@ -5,12 +5,25 @@ import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
+    DatetimeIndex,
     date_range,
 )
 import pandas._testing as tm
 
 
 class TestTranspose:
+    def test_transpose_empty_preserves_datetimeindex(self):
+        # GH#41382
+        df = DataFrame(index=DatetimeIndex([]))
+
+        expected = DatetimeIndex([], dtype="datetime64[ns]", freq=None)
+
+        result1 = df.T.sum().index
+        result2 = df.sum(axis=1).index
+
+        tm.assert_index_equal(result1, expected)
+        tm.assert_index_equal(result2, expected)
+
     def test_transpose_tzaware_1col_single_tz(self):
         # GH#26825
         dti = date_range("2016-04-05 04:30", periods=3, tz="UTC")
@@ -102,4 +115,4 @@ class TestTranspose:
         assert result._mgr.nblocks == 1
 
         rtrip = result._mgr.blocks[0].values
-        assert np.shares_memory(arr._data, rtrip._data)
+        assert np.shares_memory(arr._ndarray, rtrip._ndarray)

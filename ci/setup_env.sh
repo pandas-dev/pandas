@@ -13,29 +13,34 @@ if [[ "$(uname)" == "Linux" && -n "$LC_ALL" ]]; then
 fi
 
 
-echo "Install Miniconda"
-DEFAULT_CONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-latest"
-if [[ "$(uname -m)" == 'aarch64' ]]; then
-    CONDA_URL="https://github.com/conda-forge/miniforge/releases/download/4.10.1-4/Miniforge3-4.10.1-4-Linux-aarch64.sh"
-elif [[ "$(uname)" == 'Linux' ]]; then
-    if [[ "$BITS32" == "yes" ]]; then
-        CONDA_URL="$DEFAULT_CONDA_URL-Linux-x86.sh"
-    else
-        CONDA_URL="$DEFAULT_CONDA_URL-Linux-x86_64.sh"
-    fi
-elif [[ "$(uname)" == 'Darwin' ]]; then
-    CONDA_URL="$DEFAULT_CONDA_URL-MacOSX-x86_64.sh"
+MINICONDA_DIR=/usr/local/miniconda
+if [ -e $MINICONDA_DIR ] && [ "$BITS32" != yes ]; then
+    echo "Found Miniconda installation at $MINICONDA_DIR"
 else
-  echo "OS $(uname) not supported"
-  exit 1
-fi
-echo "Downloading $CONDA_URL"
-wget -q $CONDA_URL -O miniconda.sh
-chmod +x miniconda.sh
+    echo "Install Miniconda"
+    DEFAULT_CONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-latest"
+    if [[ "$(uname -m)" == 'aarch64' ]]; then
+        CONDA_URL="https://github.com/conda-forge/miniforge/releases/download/4.10.1-4/Miniforge3-4.10.1-4-Linux-aarch64.sh"
+    elif [[ "$(uname)" == 'Linux' ]]; then
+        if [[ "$BITS32" == "yes" ]]; then
+            CONDA_URL="$DEFAULT_CONDA_URL-Linux-x86.sh"
+        else
+            CONDA_URL="$DEFAULT_CONDA_URL-Linux-x86_64.sh"
+        fi
+    elif [[ "$(uname)" == 'Darwin' ]]; then
+        CONDA_URL="$DEFAULT_CONDA_URL-MacOSX-x86_64.sh"
+    else
+      echo "OS $(uname) not supported"
+      exit 1
+    fi
+    echo "Downloading $CONDA_URL"
+    wget -q $CONDA_URL -O miniconda.sh
+    chmod +x miniconda.sh
 
-MINICONDA_DIR="$HOME/miniconda3"
-rm -rf $MINICONDA_DIR
-./miniconda.sh -b -p $MINICONDA_DIR
+    MINICONDA_DIR="$HOME/miniconda3"
+    rm -rf $MINICONDA_DIR
+    ./miniconda.sh -b -p $MINICONDA_DIR
+fi
 export PATH=$MINICONDA_DIR/bin:$PATH
 
 echo
@@ -46,25 +51,36 @@ echo
 echo "update conda"
 conda config --set ssl_verify false
 conda config --set quiet true --set always_yes true --set changeps1 false
-conda install pip conda  # create conda to create a historical artifact for pip & setuptools
-conda update -n base conda
+# TODO: GH#44980 https://github.com/pypa/setuptools/issues/2941
+conda install -y -c conda-forge -n base 'mamba>=0.21.2' pip
 
 echo "conda info -a"
 conda info -a
 
-echo "source deactivate"
-source deactivate
-
 echo "conda list (root environment)"
 conda list
 
-# Clean up any left-over from a previous build
-conda remove --all -q -y -n pandas-dev
-
 echo
-echo "conda env create -q --file=${ENV_FILE}"
-time conda env create -q --file="${ENV_FILE}"
+# Clean up any left-over from a previous build
+mamba env remove -n pandas-dev
+echo "mamba env update --file=${ENV_FILE}"
+# See https://github.com/mamba-org/mamba/issues/633
+mamba create -q -n pandas-dev
+time mamba env update -n pandas-dev --file="${ENV_FILE}"
+# TODO: GH#44980 https://github.com/pypa/setuptools/issues/2941
+mamba install -n pandas-dev 'setuptools<60'
 
+echo "conda list -n pandas-dev"
+conda list -n pandas-dev
+
+# From pyarrow on MacOS
+# ImportError: 2): Library not loaded: @rpath/libssl.1.1.dylib
+# Referenced from: /Users/runner/miniconda3/envs/pandas-dev/lib/libthrift.0.13.0.dylib
+# Reason: image not found
+if [[ "$(uname)" == 'Darwin' ]]; then
+    echo "Update pyarrow for pyarrow on MacOS"
+    conda install -n pandas-dev -c conda-forge --no-update-deps pyarrow=6
+fi
 
 if [[ "$BITS32" == "yes" ]]; then
     # activate 32-bit compiler
@@ -80,48 +96,23 @@ source activate pandas-dev
 # downstream CI jobs that may also build pandas from source.
 export PANDAS_CI=1
 
-echo
-echo "remove any installed pandas package"
-echo "w/o removing anything else"
-conda remove pandas -y --force || true
-pip uninstall -y pandas || true
+if pip list | grep -q ^pandas; then
+    echo
+    echo "remove any installed pandas package w/o removing anything else"
+    pip uninstall -y pandas || true
+fi
 
-echo
-echo "remove postgres if has been installed with conda"
-echo "we use the one from the CI"
-conda remove postgresql -y --force || true
+if [ "$(conda list -f qt --json)" != [] ]; then
+    echo
+    echo "remove qt"
+    echo "causes problems with the clipboard, we use xsel for that"
+    conda remove qt -y --force || true
+fi
 
-echo
-echo "remove qt"
-echo "causes problems with the clipboard, we use xsel for that"
-conda remove qt -y --force || true
+echo "Build extensions"
+python setup.py build_ext -q -j3
 
-echo
-echo "conda list pandas"
-conda list pandas
-
-# Make sure any error below is reported as such
-
-echo "[Build extensions]"
-python setup.py build_ext -q -j2
-
-echo "[Updating pip]"
-python -m pip install --no-deps -U pip wheel setuptools
-
-echo "[Install pandas]"
+echo "Install pandas"
 python -m pip install --no-build-isolation -e .
 
-echo
-echo "conda list"
-conda list
-
-# Install DB for Linux
-
-if [[ -n ${SQL:0} ]]; then
-  echo "installing dbs"
-  mysql -e 'create database pandas_nosetest;'
-  psql -c 'create database pandas_nosetest;' -U postgres
-else
-   echo "not using dbs on non-linux Travis builds or Azure Pipelines"
-fi
 echo "done"

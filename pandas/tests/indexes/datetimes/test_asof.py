@@ -1,8 +1,12 @@
+from datetime import timedelta
+
 from pandas import (
     Index,
     Timestamp,
     date_range,
+    isna,
 )
+import pandas._testing as tm
 
 
 class TestAsOf:
@@ -12,3 +16,16 @@ class TestAsOf:
         result = index.asof("2010-02")
         assert result == expected
         assert not isinstance(result, Index)
+
+    def test_asof(self):
+        index = tm.makeDateIndex(100)
+
+        dt = index[0]
+        assert index.asof(dt) == dt
+        assert isna(index.asof(dt - timedelta(1)))
+
+        dt = index[-1]
+        assert index.asof(dt + timedelta(1)) == dt
+
+        dt = index[0].to_pydatetime()
+        assert isinstance(index.asof(dt), Timestamp)

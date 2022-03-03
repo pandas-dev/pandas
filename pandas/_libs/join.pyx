@@ -264,6 +264,9 @@ def left_join_indexer_unique(
     ndarray[numeric_object_t] left,
     ndarray[numeric_object_t] right
 ):
+    """
+    Both left and right are strictly monotonic increasing.
+    """
     cdef:
         Py_ssize_t i, j, nleft, nright
         ndarray[intp_t] indexer
@@ -311,6 +314,9 @@ def left_join_indexer_unique(
 def left_join_indexer(ndarray[numeric_object_t] left, ndarray[numeric_object_t] right):
     """
     Two-pass algorithm for monotonic indexes. Handles many-to-one merges.
+
+    Both left and right are monotonic increasing, but at least one of them
+    is non-unique (if both were unique we'd use left_join_indexer_unique).
     """
     cdef:
         Py_ssize_t i, j, k, nright, nleft, count
@@ -321,6 +327,7 @@ def left_join_indexer(ndarray[numeric_object_t] left, ndarray[numeric_object_t] 
     nleft = len(left)
     nright = len(right)
 
+    # First pass is to find the size 'count' of our output indexers.
     i = 0
     j = 0
     count = 0
@@ -334,6 +341,8 @@ def left_join_indexer(ndarray[numeric_object_t] left, ndarray[numeric_object_t] 
             rval = right[j]
 
             if lval == rval:
+                # This block is identical across
+                #  left_join_indexer, inner_join_indexer, outer_join_indexer
                 count += 1
                 if i < nleft - 1:
                     if j < nright - 1 and right[j + 1] == rval:
@@ -398,12 +407,14 @@ def left_join_indexer(ndarray[numeric_object_t] left, ndarray[numeric_object_t] 
                     # end of the road
                     break
             elif lval < rval:
+                # i.e. lval not in right; we keep for left_join_indexer
                 lindexer[count] = i
                 rindexer[count] = -1
-                result[count] = left[i]
+                result[count] = lval
                 count += 1
                 i += 1
             else:
+                # i.e. rval not in left; we discard for left_join_indexer
                 j += 1
 
     return result, lindexer, rindexer
@@ -414,6 +425,8 @@ def left_join_indexer(ndarray[numeric_object_t] left, ndarray[numeric_object_t] 
 def inner_join_indexer(ndarray[numeric_object_t] left, ndarray[numeric_object_t] right):
     """
     Two-pass algorithm for monotonic indexes. Handles many-to-one merges.
+
+    Both left and right are monotonic increasing but not necessarily unique.
     """
     cdef:
         Py_ssize_t i, j, k, nright, nleft, count
@@ -424,6 +437,7 @@ def inner_join_indexer(ndarray[numeric_object_t] left, ndarray[numeric_object_t]
     nleft = len(left)
     nright = len(right)
 
+    # First pass is to find the size 'count' of our output indexers.
     i = 0
     j = 0
     count = 0
@@ -453,8 +467,10 @@ def inner_join_indexer(ndarray[numeric_object_t] left, ndarray[numeric_object_t]
                     # end of the road
                     break
             elif lval < rval:
+                # i.e. lval not in right; we discard for inner_indexer
                 i += 1
             else:
+                # i.e. rval not in left; we discard for inner_indexer
                 j += 1
 
     # do it again now that result size is known
@@ -478,7 +494,7 @@ def inner_join_indexer(ndarray[numeric_object_t] left, ndarray[numeric_object_t]
             if lval == rval:
                 lindexer[count] = i
                 rindexer[count] = j
-                result[count] = rval
+                result[count] = lval
                 count += 1
                 if i < nleft - 1:
                     if j < nright - 1 and right[j + 1] == rval:
@@ -495,8 +511,10 @@ def inner_join_indexer(ndarray[numeric_object_t] left, ndarray[numeric_object_t]
                     # end of the road
                     break
             elif lval < rval:
+                # i.e. lval not in right; we discard for inner_indexer
                 i += 1
             else:
+                # i.e. rval not in left; we discard for inner_indexer
                 j += 1
 
     return result, lindexer, rindexer
@@ -505,6 +523,9 @@ def inner_join_indexer(ndarray[numeric_object_t] left, ndarray[numeric_object_t]
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def outer_join_indexer(ndarray[numeric_object_t] left, ndarray[numeric_object_t] right):
+    """
+    Both left and right are monotonic increasing but not necessarily unique.
+    """
     cdef:
         Py_ssize_t i, j, nright, nleft, count
         numeric_object_t lval, rval
@@ -514,6 +535,9 @@ def outer_join_indexer(ndarray[numeric_object_t] left, ndarray[numeric_object_t]
     nleft = len(left)
     nright = len(right)
 
+    # First pass is to find the size 'count' of our output indexers.
+    # count will be length of left plus the number of elements of right not in
+    # left (counting duplicates)
     i = 0
     j = 0
     count = 0
@@ -616,12 +640,14 @@ def outer_join_indexer(ndarray[numeric_object_t] left, ndarray[numeric_object_t]
                     # end of the road
                     break
             elif lval < rval:
+                # i.e. lval not in right; we keep for outer_join_indexer
                 lindexer[count] = i
                 rindexer[count] = -1
                 result[count] = lval
                 count += 1
                 i += 1
             else:
+                # i.e. rval not in left; we keep for outer_join_indexer
                 lindexer[count] = -1
                 rindexer[count] = j
                 result[count] = rval
@@ -952,12 +978,11 @@ def asof_join_nearest(numeric_t[:] left_values,
                       tolerance=None):
 
     cdef:
-        Py_ssize_t left_size, right_size, i
+        Py_ssize_t left_size, i
         ndarray[intp_t] left_indexer, right_indexer, bli, bri, fli, fri
         numeric_t bdiff, fdiff
 
     left_size = len(left_values)
-    right_size = len(right_values)
 
     left_indexer = np.empty(left_size, dtype=np.intp)
     right_indexer = np.empty(left_size, dtype=np.intp)

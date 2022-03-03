@@ -59,7 +59,7 @@ will allow others to reproduce the bug and provide insight into fixing. See
 `this blogpost <https://matthewrocklin.com/blog/work/2018/02/28/minimal-bug-reports>`_
 for tips on writing a good bug report.
 
-Trying the bug-producing code out on the *master* branch is often a worthwhile exercise
+Trying the bug-producing code out on the *main* branch is often a worthwhile exercise
 to confirm the bug still exists. It is also worth searching existing bug reports and pull requests
 to see if the issue has already been reported and/or fixed.
 
@@ -143,7 +143,7 @@ as the version number cannot be computed anymore.
 Creating a branch
 -----------------
 
-You want your master branch to reflect only production-ready code, so create a
+You want your main branch to reflect only production-ready code, so create a
 feature branch for making your changes. For example::
 
     git branch shiny-new-feature
@@ -158,14 +158,14 @@ changes in this branch specific to one bug or feature so it is clear
 what the branch brings to pandas. You can have many shiny-new-features
 and switch in between them using the git checkout command.
 
-When creating this branch, make sure your master branch is up to date with
-the latest upstream master version. To update your local master branch, you
+When creating this branch, make sure your main branch is up to date with
+the latest upstream main version. To update your local main branch, you
 can do::
 
-    git checkout master
-    git pull upstream master --ff-only
+    git checkout main
+    git pull upstream main --ff-only
 
-When you want to update the feature branch with changes in master after
+When you want to update the feature branch with changes in main after
 you created the branch, check the section on
 :ref:`updating a PR <contributing.update-pr>`.
 
@@ -256,7 +256,7 @@ double check your branch changes against the branch it was based on:
 #. Navigate to your repository on GitHub -- https://github.com/your-user-name/pandas
 #. Click on ``Branches``
 #. Click on the ``Compare`` button for your feature branch
-#. Select the ``base`` and ``compare`` branches, if necessary. This will be ``master`` and
+#. Select the ``base`` and ``compare`` branches, if necessary. This will be ``main`` and
    ``shiny-new-feature``, respectively.
 
 Finally, make the pull request
@@ -264,8 +264,8 @@ Finally, make the pull request
 
 If everything looks good, you are ready to make a pull request.  A pull request is how
 code from a local repository becomes available to the GitHub community and can be looked
-at and eventually merged into the master version.  This pull request and its associated
-changes will eventually be committed to the master branch and available in the next
+at and eventually merged into the main version.  This pull request and its associated
+changes will eventually be committed to the main branch and available in the next
 release.  To submit a pull request:
 
 #. Navigate to your repository on GitHub
@@ -294,14 +294,14 @@ This will automatically update your pull request with the latest code and restar
 :any:`Continuous Integration <contributing.ci>` tests.
 
 Another reason you might need to update your pull request is to solve conflicts
-with changes that have been merged into the master branch since you opened your
+with changes that have been merged into the main branch since you opened your
 pull request.
 
-To do this, you need to "merge upstream master" in your branch::
+To do this, you need to "merge upstream main" in your branch::
 
     git checkout shiny-new-feature
     git fetch upstream
-    git merge upstream/master
+    git merge upstream/main
 
 If there are no conflicts (or they could be fixed automatically), a file with a
 default commit message will open, and you can simply save and quit this file.
@@ -313,7 +313,7 @@ Once the conflicts are merged and the files where the conflicts were solved are
 added, you can run ``git commit`` to save those fixes.
 
 If you have uncommitted changes at the moment you want to update the branch with
-master, you will need to ``stash`` them prior to updating (see the
+main, you will need to ``stash`` them prior to updating (see the
 `stash docs <https://git-scm.com/book/en/v2/Git-Tools-Stashing-and-Cleaning>`__).
 This will effectively store your changes and they can be reapplied after updating.
 
@@ -342,12 +342,12 @@ Delete your merged branch (optional)
 ------------------------------------
 
 Once your feature branch is accepted into upstream, you'll probably want to get rid of
-the branch. First, merge upstream master into your branch so git knows it is safe to
+the branch. First, merge upstream main into your branch so git knows it is safe to
 delete your branch::
 
     git fetch upstream
-    git checkout master
-    git merge upstream/master
+    git checkout main
+    git merge upstream/main
 
 Then you can do::
 

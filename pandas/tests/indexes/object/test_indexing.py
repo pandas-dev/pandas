@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import numpy as np
 import pytest
 
@@ -90,8 +92,59 @@ class TestGetIndexerNonUnique:
         # matching-but-not-identical nans
         if is_matching_na(nulls_fixture, float("NaN")):
             index = Index(["a", float("NaN"), "b", float("NaN")])
+            match_but_not_identical = True
+        elif is_matching_na(nulls_fixture, Decimal("NaN")):
+            index = Index(["a", Decimal("NaN"), "b", Decimal("NaN")])
+            match_but_not_identical = True
+        else:
+            match_but_not_identical = False
+
+        if match_but_not_identical:
             indexer, missing = index.get_indexer_non_unique([nulls_fixture])
 
+            expected_indexer = np.array([1, 3], dtype=np.intp)
+            tm.assert_numpy_array_equal(indexer, expected_indexer)
+            tm.assert_numpy_array_equal(missing, expected_missing)
+
+    @pytest.mark.filterwarnings("ignore:elementwise comp:DeprecationWarning")
+    def test_get_indexer_non_unique_np_nats(self, np_nat_fixture, np_nat_fixture2):
+        expected_missing = np.array([], dtype=np.intp)
+        # matching-but-not-identical nats
+        if is_matching_na(np_nat_fixture, np_nat_fixture2):
+            # ensure nats are different objects
+            index = Index(
+                np.array(
+                    ["2021-10-02", np_nat_fixture.copy(), np_nat_fixture2.copy()],
+                    dtype=object,
+                ),
+                dtype=object,
+            )
+            # pass as index to prevent target from being casted to DatetimeIndex
+            indexer, missing = index.get_indexer_non_unique(
+                Index([np_nat_fixture], dtype=object)
+            )
+            expected_indexer = np.array([1, 2], dtype=np.intp)
+            tm.assert_numpy_array_equal(indexer, expected_indexer)
+            tm.assert_numpy_array_equal(missing, expected_missing)
+        # dt64nat vs td64nat
+        else:
+            index = Index(
+                np.array(
+                    [
+                        "2021-10-02",
+                        np_nat_fixture,
+                        np_nat_fixture2,
+                        np_nat_fixture,
+                        np_nat_fixture2,
+                    ],
+                    dtype=object,
+                ),
+                dtype=object,
+            )
+            # pass as index to prevent target from being casted to DatetimeIndex
+            indexer, missing = index.get_indexer_non_unique(
+                Index([np_nat_fixture], dtype=object)
+            )
             expected_indexer = np.array([1, 3], dtype=np.intp)
             tm.assert_numpy_array_equal(indexer, expected_indexer)
             tm.assert_numpy_array_equal(missing, expected_missing)

@@ -9,6 +9,18 @@ from pandas.tests.indexes.common import Base
 
 
 class DatetimeLike(Base):
+    def test_isin(self, simple_index):
+        index = simple_index[:4]
+        result = index.isin(index)
+        assert result.all()
+
+        result = index.isin(list(index))
+        assert result.all()
+
+        result = index.isin([index[2], 5])
+        expected = np.array([False, False, True, False])
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_argsort_matches_array(self, simple_index):
         idx = simple_index
         idx = idx.insert(1, pd.NaT)

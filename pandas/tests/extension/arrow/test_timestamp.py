@@ -12,7 +12,7 @@ from pandas.api.extensions import (
     register_extension_dtype,
 )
 
-pytest.importorskip("pyarrow", minversion="0.13.0")
+pytest.importorskip("pyarrow", minversion="1.0.1")
 
 import pyarrow as pa  # isort:skip
 
@@ -51,10 +51,7 @@ class ArrowTimestampUSArray(ArrowExtensionArray):
 
 def test_constructor_extensionblock():
     # GH 34986
-    pd.DataFrame(
-        {
-            "timestamp": ArrowTimestampUSArray.from_scalars(
-                [None, datetime.datetime(2010, 9, 8, 7, 6, 5, 4)]
-            )
-        }
+    arr = ArrowTimestampUSArray._from_sequence(
+        [None, datetime.datetime(2010, 9, 8, 7, 6, 5, 4)]
     )
+    pd.DataFrame({"timestamp": arr})
