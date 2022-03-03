@@ -422,6 +422,13 @@ def test_to_numpy_na_value_numpy_dtype(
             [1, 2, None, 4],
             [(0, "a"), (0, "b"), (1, "b"), (1, "c")],
             float,
+            None,
+            [1.0, 2.0, np.nan, 4.0],
+        ),
+        (
+            [1, 2, None, 4],
+            [(0, "a"), (0, "b"), (1, "b"), (1, "c")],
+            float,
             np.nan,
             [1.0, 2.0, np.nan, 4.0],
         ),
