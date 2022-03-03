@@ -39,6 +39,7 @@ def test_read_writer_table():
 
 
 def test_read_newlines_between_xml_elements_table():
+    # GH#45598
     # Also test reading table from an text OpenDocument file
     # (.ods) that contains newlines between xml elements.
     expected = pd.DataFrame(
