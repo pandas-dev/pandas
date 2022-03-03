@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import (
     Categorical,
     DataFrame,
@@ -17,7 +19,7 @@ from pandas.tests.frame.common import _check_mixed_float
 
 
 class TestFillNA:
-    @tm.skip_array_manager_not_yet_implemented
+    @td.skip_array_manager_not_yet_implemented
     def test_fillna_on_column_view(self):
         # GH#46149 avoid unnecessary copies
         arr = np.full((40, 50), np.nan)
