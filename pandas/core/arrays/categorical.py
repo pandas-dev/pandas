@@ -2305,12 +2305,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     def _values_for_factorize(self):
         return self._ndarray, -1
 
-    @classmethod
-    def _from_factorized(cls, uniques, original):
-        # ensure we have the same itemsize for codes
-        codes = coerce_indexer_dtype(uniques, original.dtype.categories)
-        return original._from_backing_data(codes)
-
     def _cast_quantile_result(self, res_values: np.ndarray) -> np.ndarray:
         # make sure we have correct itemsize for resulting codes
         res_values = coerce_indexer_dtype(res_values, self.dtype.categories)

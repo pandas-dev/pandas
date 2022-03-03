@@ -11,7 +11,6 @@ from typing import (
     Hashable,
     Literal,
     Sequence,
-    Union,
     cast,
     final,
 )
@@ -30,7 +29,6 @@ from pandas._typing import (
     ArrayLike,
     DtypeObj,
     IndexLabel,
-    Scalar,
     TakeIndexer,
     npt,
 )
@@ -105,9 +103,7 @@ if TYPE_CHECKING:
     )
     from pandas.core.arrays import (
         BaseMaskedArray,
-        DatetimeArray,
         ExtensionArray,
-        TimedeltaArray,
     )
 
 
@@ -539,12 +535,23 @@ def factorize_array(
     codes : ndarray[np.intp]
     uniques : ndarray
     """
+    original = values
+    if values.dtype.kind in ["m", "M"]:
+        # _get_hashtable_algo will cast dt64/td64 to i8 via _ensure_data, so we
+        #  need to do the same to na_value. We are assuming here that the passed
+        #  na_value is an appropriately-typed NaT.
+        # e.g. test_where_datetimelike_categorical
+        na_value = iNaT
+
     hash_klass, values = _get_hashtable_algo(values)
 
     table = hash_klass(size_hint or len(values))
     uniques, codes = table.factorize(
         values, na_sentinel=na_sentinel, na_value=na_value, mask=mask
     )
+
+    # re-cast e.g. i8->dt64/td64, uint8->bool
+    uniques = _reconstruct_data(uniques, original.dtype, original)
 
     codes = ensure_platform_int(codes)
     return codes, uniques
@@ -720,33 +727,18 @@ def factorize(
         isinstance(values, (ABCDatetimeArray, ABCTimedeltaArray))
         and values.freq is not None
     ):
+        # The presence of 'freq' means we can fast-path sorting and know there
+        #  aren't NAs
         codes, uniques = values.factorize(sort=sort)
-        if isinstance(original, ABCIndex):
-            uniques = original._shallow_copy(uniques, name=None)
-        elif isinstance(original, ABCSeries):
-            from pandas import Index
-
-            uniques = Index(uniques)
-        return codes, uniques
+        return _re_wrap_factorize(original, uniques, codes)
 
     if not isinstance(values.dtype, np.dtype):
         # i.e. ExtensionDtype
         codes, uniques = values.factorize(na_sentinel=na_sentinel)
-        dtype = original.dtype
     else:
-        dtype = values.dtype
-        values = _ensure_data(values)
-        na_value: Scalar | None
-
-        if original.dtype.kind in ["m", "M"]:
-            # Note: factorize_array will cast NaT bc it has a __int__
-            #  method, but will not cast the more-correct dtype.type("nat")
-            na_value = iNaT
-        else:
-            na_value = None
-
+        values = np.asarray(values)  # convert DTA/TDA/MultiIndex
         codes, uniques = factorize_array(
-            values, na_sentinel=na_sentinel, size_hint=size_hint, na_value=na_value
+            values, na_sentinel=na_sentinel, size_hint=size_hint
         )
 
     if sort and len(uniques) > 0:
@@ -759,23 +751,20 @@ def factorize(
         # na_value is set based on the dtype of uniques, and compat set to False is
         # because we do not want na_value to be 0 for integers
         na_value = na_value_for_dtype(uniques.dtype, compat=False)
-        # Argument 2 to "append" has incompatible type "List[Union[str, float, Period,
-        # Timestamp, Timedelta, Any]]"; expected "Union[_SupportsArray[dtype[Any]],
-        # _NestedSequence[_SupportsArray[dtype[Any]]]
-        # , bool, int, float, complex, str, bytes, _NestedSequence[Union[bool, int,
-        # float, complex, str, bytes]]]"  [arg-type]
-        uniques = np.append(uniques, [na_value])  # type: ignore[arg-type]
+        uniques = np.append(uniques, [na_value])
         codes = np.where(code_is_na, len(uniques) - 1, codes)
 
-    uniques = _reconstruct_data(uniques, dtype, original)
+    uniques = _reconstruct_data(uniques, original.dtype, original)
 
-    # return original tenor
+    return _re_wrap_factorize(original, uniques, codes)
+
+
+def _re_wrap_factorize(original, uniques, codes: np.ndarray):
+    """
+    Wrap factorize results in Series or Index depending on original type.
+    """
     if isinstance(original, ABCIndex):
-        if original.dtype.kind in ["m", "M"] and isinstance(uniques, np.ndarray):
-            original._data = cast(
-                "Union[DatetimeArray, TimedeltaArray]", original._data
-            )
-            uniques = type(original._data)._simple_new(uniques, dtype=original.dtype)
+        uniques = ensure_wrapped_if_datetimelike(uniques)
         uniques = original._shallow_copy(uniques, name=None)
     elif isinstance(original, ABCSeries):
         from pandas import Index

@@ -874,8 +874,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         codes, uniques = factorize_array(arr, na_sentinel=na_sentinel, mask=mask)
 
-        # the hashtables don't handle all different types of bits
-        uniques = uniques.astype(self.dtype.numpy_dtype, copy=False)
+        # check that factorize_array correctly preserves dtype.
+        assert uniques.dtype == self.dtype.numpy_dtype, (uniques.dtype, self.dtype)
+
         uniques_ea = type(self)(uniques, np.zeros(len(uniques), dtype=bool))
         return codes, uniques_ea
 
