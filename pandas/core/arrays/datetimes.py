@@ -775,6 +775,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     def _sub_datetimelike_scalar(self, other):
         # subtract a datetime from myself, yielding a ndarray[timedelta64[ns]]
         assert isinstance(other, (datetime, np.datetime64))
+        # error: Non-overlapping identity check (left operand type: "Union[datetime,
+        # datetime64]", right operand type: "NaTType")  [comparison-overlap]
+        assert other is not NaT  # type: ignore[comparison-overlap]
         other = Timestamp(other)
         # error: Non-overlapping identity check (left operand type: "Timestamp",
         # right operand type: "NaTType")
