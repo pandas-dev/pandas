@@ -15,6 +15,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed regression in :meth:`DataFrame.drop` and :meth:`Series.drop` when :class:`Index` had extension dtype and duplicates (:issue:`45860`)
+- Fixed performance regression in :meth:`Series.fillna` when called on a :class:`DataFrame` column with ``inplace=True`` (:issue:`46149`)
 -
 
 .. ---------------------------------------------------------------------------
