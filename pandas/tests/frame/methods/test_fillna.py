@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     Categorical,
     DataFrame,
@@ -232,7 +230,6 @@ class TestFillNA:
         df = DataFrame({"a": Categorical(idx)})
         tm.assert_frame_equal(df.fillna(value=NaT), df)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) implement downcast
     def test_fillna_downcast(self):
         # GH#15277
         # infer int64 from float64
@@ -247,6 +244,31 @@ class TestFillNA:
         expected = DataFrame({"a": [1, 0]})
         tm.assert_frame_equal(result, expected)
 
+    def test_fillna_downcast_false(self, frame_or_series):
+        # GH#45603 preserve object dtype with downcast=False
+        obj = frame_or_series([1, 2, 3], dtype="object")
+        result = obj.fillna("", downcast=False)
+        tm.assert_equal(result, obj)
+
+    def test_fillna_downcast_noop(self, frame_or_series):
+        # GH#45423
+        # Two relevant paths:
+        #  1) not _can_hold_na (e.g. integer)
+        #  2) _can_hold_na + noop + not can_hold_element
+
+        obj = frame_or_series([1, 2, 3], dtype=np.int64)
+        res = obj.fillna("foo", downcast=np.dtype(np.int32))
+        expected = obj.astype(np.int32)
+        tm.assert_equal(res, expected)
+
+        obj2 = obj.astype(np.float64)
+        res2 = obj2.fillna("foo", downcast="infer")
+        expected2 = obj  # get back int64
+        tm.assert_equal(res2, expected2)
+
+        res3 = obj2.fillna("foo", downcast=np.dtype(np.int32))
+        tm.assert_equal(res3, expected)
+
     @pytest.mark.parametrize("columns", [["A", "A", "B"], ["A", "A"]])
     def test_fillna_dictlike_value_duplicate_colnames(self, columns):
         # GH#43476
@@ -258,7 +280,6 @@ class TestFillNA:
         expected["A"] = 0.0
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) object upcasting
     def test_fillna_dtype_conversion(self):
         # make sure that fillna on an empty frame works
         df = DataFrame(index=["A", "B", "C"], columns=[1, 2, 3, 4, 5])
@@ -276,7 +297,6 @@ class TestFillNA:
         expected = DataFrame("nan", index=range(3), columns=["A", "B"])
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) object upcasting
     @pytest.mark.parametrize("val", ["", 1, np.nan, 1.0])
     def test_fillna_dtype_conversion_equiv_replace(self, val):
         df = DataFrame({"A": [1, np.nan], "B": [1.0, 2.0]})
@@ -284,7 +304,6 @@ class TestFillNA:
         result = df.fillna(val)
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_invalid_test
     def test_fillna_datetime_columns(self):
         # GH#7095
         df = DataFrame(

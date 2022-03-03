@@ -12,12 +12,15 @@ from pandas import (
 
 def test_string_array(nullable_string_dtype, any_string_method):
     method_name, args, kwargs = any_string_method
-    if method_name == "decode":
-        pytest.skip("decode requires bytes.")
 
     data = ["a", "bb", np.nan, "ccc"]
     a = Series(data, dtype=object)
     b = Series(data, dtype=nullable_string_dtype)
+
+    if method_name == "decode":
+        with pytest.raises(TypeError, match="a bytes-like object is required"):
+            getattr(b.str, method_name)(*args, **kwargs)
+        return
 
     expected = getattr(a.str, method_name)(*args, **kwargs)
     result = getattr(b.str, method_name)(*args, **kwargs)

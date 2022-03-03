@@ -188,7 +188,7 @@ support for bz2 compression in the python 2 C-engine improved (:issue:`14874`).
 
    url = ('https://github.com/{repo}/raw/{branch}/{path}'
           .format(repo='pandas-dev/pandas',
-                  branch='master',
+                  branch='main',
                   path='pandas/tests/io/parser/data/salaries.csv.bz2'))
    # default, infer compression
    df = pd.read_csv(url, sep='\t', compression='infer')
@@ -328,7 +328,7 @@ more information about the data.
 You must enable this by setting the ``display.html.table_schema`` option to ``True``.
 
 .. _Table Schema: http://specs.frictionlessdata.io/json-table-schema/
-.. _nteract: http://nteract.io/
+.. _nteract: https://nteract.io/
 
 .. _whatsnew_0200.enhancements.scipy_sparse:
 

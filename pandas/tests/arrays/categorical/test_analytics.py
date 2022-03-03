@@ -29,20 +29,32 @@ class TestCategoricalAnalytics:
         with pytest.raises(TypeError, match=msg):
             agg_func()
 
-    def test_min_max_ordered(self):
+        ufunc = np.minimum if aggregation == "min" else np.maximum
+        with pytest.raises(TypeError, match=msg):
+            ufunc.reduce(cat)
+
+    def test_min_max_ordered(self, index_or_series_or_array):
         cat = Categorical(["a", "b", "c", "d"], ordered=True)
-        _min = cat.min()
-        _max = cat.max()
+        obj = index_or_series_or_array(cat)
+        _min = obj.min()
+        _max = obj.max()
         assert _min == "a"
         assert _max == "d"
+
+        assert np.minimum.reduce(obj) == "a"
+        assert np.maximum.reduce(obj) == "d"
+        # TODO: raises if we pass axis=0  (on Index and Categorical, not Series)
 
         cat = Categorical(
             ["a", "b", "c", "d"], categories=["d", "c", "b", "a"], ordered=True
         )
-        _min = cat.min()
-        _max = cat.max()
+        obj = index_or_series_or_array(cat)
+        _min = obj.min()
+        _max = obj.max()
         assert _min == "d"
         assert _max == "a"
+        assert np.minimum.reduce(obj) == "d"
+        assert np.maximum.reduce(obj) == "a"
 
     @pytest.mark.parametrize(
         "categories,expected",
@@ -147,7 +159,9 @@ class TestCategoricalAnalytics:
     )
     def test_mode(self, values, categories, exp_mode):
         s = Categorical(values, categories=categories, ordered=True)
-        res = s.mode()
+        msg = "Use Series.mode instead"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = s.mode()
         exp = Categorical(exp_mode, categories=categories, ordered=True)
         tm.assert_categorical_equal(res, exp)
 
@@ -349,3 +363,13 @@ class TestCategoricalAnalytics:
 
         with pytest.raises(ValueError, match=msg):
             cat.sort_values(inplace=value)
+
+    def test_quantile_empty(self):
+        # make sure we have correct itemsize on resulting codes
+        cat = Categorical(["A", "B"])
+        idx = Index([0.0, 0.5])
+        result = cat[:0]._quantile(idx, interpolation="linear")
+        assert result._codes.dtype == np.int8
+
+        expected = cat.take([-1, -1], allow_fill=True)
+        tm.assert_extension_array_equal(result, expected)

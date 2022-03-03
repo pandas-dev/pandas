@@ -29,7 +29,6 @@ def test_namespace():
         "NaT",
         "NaTType",
         "iNaT",
-        "is_null_datetimelike",
         "nat_strings",
         "OutOfBoundsDatetime",
         "OutOfBoundsTimedelta",
@@ -53,5 +52,6 @@ def test_namespace():
     ]
 
     expected = set(submodules + api)
-    names = [x for x in dir(tslibs) if not x.startswith("__")]
+    # exclude "ctime" bc it is not (yet) imported outside of tests
+    names = [x for x in dir(tslibs) if not x.startswith("__") and x != "ctime"]
     assert set(names) == expected

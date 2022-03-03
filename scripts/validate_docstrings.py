@@ -20,6 +20,7 @@ import doctest
 import importlib
 import io
 import json
+import os
 import pathlib
 import subprocess
 import sys
@@ -28,8 +29,9 @@ import tempfile
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy
+from numpydoc.docscrape import get_doc_object
 from numpydoc.validate import (
-    Docstring,
+    Validator,
     validate,
 )
 
@@ -133,7 +135,17 @@ def get_api_items(api_doc_fd):
         previous_line = line
 
 
-class PandasDocstring(Docstring):
+class PandasDocstring(Validator):
+    def __init__(self, func_name: str, doc_obj=None):
+        self.func_name = func_name
+        if doc_obj is None:
+            doc_obj = get_doc_object(Validator._load_obj(func_name))
+        super().__init__(doc_obj)
+
+    @property
+    def name(self):
+        return self.func_name
+
     @property
     def mentioned_private_classes(self):
         return [klass for klass in PRIVATE_CLASSES if klass in self.raw_doc]
@@ -145,10 +157,23 @@ class PandasDocstring(Docstring):
         runner = doctest.DocTestRunner(optionflags=flags)
         context = {"np": numpy, "pd": pandas}
         error_msgs = ""
+        current_dir = set(os.listdir())
         for test in finder.find(self.raw_doc, self.name, globs=context):
             f = io.StringIO()
             runner.run(test, out=f.write)
             error_msgs += f.getvalue()
+        leftovers = set(os.listdir()).difference(current_dir)
+        if leftovers:
+            for leftover in leftovers:
+                path = pathlib.Path(leftover).resolve()
+                if path.is_dir():
+                    path.rmdir()
+                elif path.is_file():
+                    path.unlink(missing_ok=True)
+            raise Exception(
+                f"The following files were leftover from the doctest: "
+                f"{leftovers}. Please use # doctest: +SKIP"
+            )
         return error_msgs
 
     @property
@@ -204,8 +229,10 @@ def pandas_validate(func_name: str):
     dict
         Information about the docstring and the errors found.
     """
-    doc = PandasDocstring(func_name)
-    result = validate(func_name)
+    func_obj = Validator._load_obj(func_name)
+    doc_obj = get_doc_object(func_obj)
+    doc = PandasDocstring(func_name, doc_obj)
+    result = validate(doc_obj)
 
     mentioned_errs = doc.mentioned_private_classes
     if mentioned_errs:

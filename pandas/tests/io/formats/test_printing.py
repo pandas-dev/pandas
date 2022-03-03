@@ -120,16 +120,11 @@ c        ff         いいい"""
 
 
 class TestTableSchemaRepr:
-    @classmethod
-    def setup_class(cls):
-        pytest.importorskip("IPython")
-
-        from IPython.core.interactiveshell import InteractiveShell
-
-        cls.display_formatter = InteractiveShell.instance().display_formatter
-
-    def test_publishes(self):
-
+    @pytest.mark.filterwarnings(
+        "ignore:.*signature may therefore change.*:FutureWarning"
+    )
+    def test_publishes(self, ip):
+        ipython = ip.instance(config=ip.config)
         df = pd.DataFrame({"A": [1, 2]})
         objects = [df["A"], df, df]  # dataframe / series
         expected_keys = [
@@ -140,13 +135,13 @@ class TestTableSchemaRepr:
         opt = pd.option_context("display.html.table_schema", True)
         for obj, expected in zip(objects, expected_keys):
             with opt:
-                formatted = self.display_formatter.format(obj)
+                formatted = ipython.display_formatter.format(obj)
             assert set(formatted[0].keys()) == expected
 
         with_latex = pd.option_context("display.latex.repr", True)
 
         with opt, with_latex:
-            formatted = self.display_formatter.format(obj)
+            formatted = ipython.display_formatter.format(obj)
 
         expected = {
             "text/plain",
@@ -156,7 +151,7 @@ class TestTableSchemaRepr:
         }
         assert set(formatted[0].keys()) == expected
 
-    def test_publishes_not_implemented(self):
+    def test_publishes_not_implemented(self, ip):
         # column MultiIndex
         # GH 15996
         midx = pd.MultiIndex.from_product([["A", "B"], ["a", "b", "c"]])
@@ -165,7 +160,7 @@ class TestTableSchemaRepr:
         opt = pd.option_context("display.html.table_schema", True)
 
         with opt:
-            formatted = self.display_formatter.format(df)
+            formatted = ip.instance(config=ip.config).display_formatter.format(df)
 
         expected = {"text/plain", "text/html"}
         assert set(formatted[0].keys()) == expected
@@ -184,9 +179,9 @@ class TestTableSchemaRepr:
 
         assert result is None
 
-    def test_enable_data_resource_formatter(self):
+    def test_enable_data_resource_formatter(self, ip):
         # GH 10491
-        formatters = self.display_formatter.formatters
+        formatters = ip.instance(config=ip.config).display_formatter.formatters
         mimetype = "application/vnd.dataresource+json"
 
         with pd.option_context("display.html.table_schema", True):
@@ -202,4 +197,4 @@ class TestTableSchemaRepr:
             assert "application/vnd.dataresource+json" in formatters
             assert formatters[mimetype].enabled
             # smoke test that it works
-            self.display_formatter.format(cf)
+            ip.instance(config=ip.config).display_formatter.format(cf)

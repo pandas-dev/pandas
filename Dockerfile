@@ -1,4 +1,4 @@
-FROM quay.io/condaforge/miniforge3
+FROM quay.io/condaforge/miniforge3:4.11.0-0
 
 # if you forked pandas, you can pass in your own GitHub username to use your fork
 # i.e. gh_username=myname
@@ -28,7 +28,7 @@ RUN mkdir "$pandas_home" \
     && git clone "https://github.com/$gh_username/pandas.git" "$pandas_home" \
     && cd "$pandas_home" \
     && git remote add upstream "https://github.com/pandas-dev/pandas.git" \
-    && git pull upstream master
+    && git pull upstream main
 
 # Because it is surprisingly difficult to activate a conda environment inside a DockerFile
 # (from personal experience and per https://github.com/ContinuumIO/docker-images/issues/89),
@@ -45,4 +45,4 @@ RUN . /opt/conda/etc/profile.d/conda.sh \
     && cd "$pandas_home" \
     && export \
     && python setup.py build_ext -j 4 \
-    && python -m pip install -e .
+    && python -m pip install --no-build-isolation -e .

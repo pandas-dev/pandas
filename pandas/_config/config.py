@@ -98,7 +98,7 @@ _reserved_keys: list[str] = ["all"]
 class OptionError(AttributeError, KeyError):
     """
     Exception for pandas.options, backwards compatible with KeyError
-    checks
+    checks.
     """
 
 
@@ -289,6 +289,8 @@ OptionError : if no such option exists
 
 Notes
 -----
+Please reference the :ref:`User Guide <options>` for more information.
+
 The available options with its descriptions:
 
 {opts_desc}
@@ -323,6 +325,8 @@ OptionError if no such option exists
 
 Notes
 -----
+Please reference the :ref:`User Guide <options>` for more information.
+
 The available options with its descriptions:
 
 {opts_desc}
@@ -333,7 +337,7 @@ describe_option(pat, _print_desc=False)
 
 Prints the description for one or more registered options.
 
-Call with not arguments to get a listing for all registered options.
+Call with no arguments to get a listing for all registered options.
 
 Available options:
 
@@ -355,6 +359,8 @@ is False
 
 Notes
 -----
+Please reference the :ref:`User Guide <options>` for more information.
+
 The available options with its descriptions:
 
 {opts_desc}
@@ -385,6 +391,8 @@ None
 
 Notes
 -----
+Please reference the :ref:`User Guide <options>` for more information.
+
 The available options with its descriptions:
 
 {opts_desc}
@@ -411,7 +419,7 @@ class option_context(ContextDecorator):
     Examples
     --------
     >>> with option_context('display.max_rows', 10, 'display.max_columns', 5):
-    ...     ...
+    ...     pass
     """
 
     def __init__(self, *args):
@@ -642,7 +650,6 @@ def _warn_if_deprecated(key: str) -> bool:
     d = _get_deprecated_option(key)
     if d:
         if d.msg:
-            print(d.msg)
             warnings.warn(d.msg, FutureWarning)
         else:
             msg = f"'{key}' is deprecated"
@@ -763,10 +770,12 @@ def config_prefix(prefix):
     set_option = wrap(set_option)
     get_option = wrap(get_option)
     register_option = wrap(register_option)
-    yield None
-    set_option = _set_option
-    get_option = _get_option
-    register_option = _register_option
+    try:
+        yield
+    finally:
+        set_option = _set_option
+        get_option = _get_option
+        register_option = _register_option
 
 
 # These factories and methods are handy for use as the validator

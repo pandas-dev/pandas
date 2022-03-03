@@ -1,7 +1,5 @@
-from itertools import (
-    chain,
-    product,
-)
+from itertools import chain
+import operator
 
 import numpy as np
 import pytest
@@ -22,20 +20,28 @@ import pandas._testing as tm
 from pandas.api.types import CategoricalDtype
 
 
+@pytest.fixture
+def ser():
+    return Series([1, 3, 4, 2, np.nan, 2, 1, 5, np.nan, 3])
+
+
+@pytest.fixture(
+    params=[
+        ["average", np.array([1.5, 5.5, 7.0, 3.5, np.nan, 3.5, 1.5, 8.0, np.nan, 5.5])],
+        ["min", np.array([1, 5, 7, 3, np.nan, 3, 1, 8, np.nan, 5])],
+        ["max", np.array([2, 6, 7, 4, np.nan, 4, 2, 8, np.nan, 6])],
+        ["first", np.array([1, 5, 7, 3, np.nan, 4, 2, 8, np.nan, 6])],
+        ["dense", np.array([1, 3, 4, 2, np.nan, 2, 1, 5, np.nan, 3])],
+    ]
+)
+def results(request):
+    return request.param
+
+
 class TestSeriesRank:
-    s = Series([1, 3, 4, 2, np.nan, 2, 1, 5, np.nan, 3])
-
-    results = {
-        "average": np.array([1.5, 5.5, 7.0, 3.5, np.nan, 3.5, 1.5, 8.0, np.nan, 5.5]),
-        "min": np.array([1, 5, 7, 3, np.nan, 3, 1, 8, np.nan, 5]),
-        "max": np.array([2, 6, 7, 4, np.nan, 4, 2, 8, np.nan, 6]),
-        "first": np.array([1, 5, 7, 3, np.nan, 4, 2, 8, np.nan, 6]),
-        "dense": np.array([1, 3, 4, 2, np.nan, 2, 1, 5, np.nan, 3]),
-    }
-
+    @td.skip_if_no_scipy
     def test_rank(self, datetime_series):
-        pytest.importorskip("scipy.stats.special")
-        rankdata = pytest.importorskip("scipy.stats.rankdata")
+        from scipy.stats import rankdata
 
         datetime_series[::2] = np.nan
         datetime_series[:10][::3] = 4.0
@@ -216,61 +222,49 @@ class TestSeriesRank:
         with pytest.raises(ValueError, match=msg):
             s.rank("average")
 
-    def test_rank_tie_methods(self):
-        s = self.s
-
-        def _check(s, expected, method="average"):
-            result = s.rank(method=method)
-            tm.assert_series_equal(result, Series(expected))
-
-        dtypes = [None, object]
-        disabled = {(object, "first")}
-        results = self.results
-
-        for method, dtype in product(results, dtypes):
-            if (dtype, method) in disabled:
-                continue
-            series = s if dtype is None else s.astype(dtype)
-            _check(series, results[method], method=method)
+    @pytest.mark.parametrize("dtype", [None, object])
+    def test_rank_tie_methods(self, ser, results, dtype):
+        method, exp = results
+        ser = ser if dtype is None else ser.astype(dtype)
+        result = ser.rank(method=method)
+        tm.assert_series_equal(result, Series(exp))
 
     @td.skip_if_no_scipy
     @pytest.mark.parametrize("ascending", [True, False])
     @pytest.mark.parametrize("method", ["average", "min", "max", "first", "dense"])
     @pytest.mark.parametrize("na_option", ["top", "bottom", "keep"])
-    def test_rank_tie_methods_on_infs_nans(self, method, na_option, ascending):
-        dtypes = [
+    @pytest.mark.parametrize(
+        "dtype, na_value, pos_inf, neg_inf",
+        [
             ("object", None, Infinity(), NegInfinity()),
             ("float64", np.nan, np.inf, -np.inf),
-        ]
+        ],
+    )
+    def test_rank_tie_methods_on_infs_nans(
+        self, method, na_option, ascending, dtype, na_value, pos_inf, neg_inf
+    ):
         chunk = 3
-        disabled = {("object", "first")}
 
-        def _check(s, method, na_option, ascending):
-            exp_ranks = {
-                "average": ([2, 2, 2], [5, 5, 5], [8, 8, 8]),
-                "min": ([1, 1, 1], [4, 4, 4], [7, 7, 7]),
-                "max": ([3, 3, 3], [6, 6, 6], [9, 9, 9]),
-                "first": ([1, 2, 3], [4, 5, 6], [7, 8, 9]),
-                "dense": ([1, 1, 1], [2, 2, 2], [3, 3, 3]),
-            }
-            ranks = exp_ranks[method]
-            if na_option == "top":
-                order = [ranks[1], ranks[0], ranks[2]]
-            elif na_option == "bottom":
-                order = [ranks[0], ranks[2], ranks[1]]
-            else:
-                order = [ranks[0], [np.nan] * chunk, ranks[1]]
-            expected = order if ascending else order[::-1]
-            expected = list(chain.from_iterable(expected))
-            result = s.rank(method=method, na_option=na_option, ascending=ascending)
-            tm.assert_series_equal(result, Series(expected, dtype="float64"))
-
-        for dtype, na_value, pos_inf, neg_inf in dtypes:
-            in_arr = [neg_inf] * chunk + [na_value] * chunk + [pos_inf] * chunk
-            iseries = Series(in_arr, dtype=dtype)
-            if (dtype, method) in disabled:
-                continue
-            _check(iseries, method, na_option, ascending)
+        in_arr = [neg_inf] * chunk + [na_value] * chunk + [pos_inf] * chunk
+        iseries = Series(in_arr, dtype=dtype)
+        exp_ranks = {
+            "average": ([2, 2, 2], [5, 5, 5], [8, 8, 8]),
+            "min": ([1, 1, 1], [4, 4, 4], [7, 7, 7]),
+            "max": ([3, 3, 3], [6, 6, 6], [9, 9, 9]),
+            "first": ([1, 2, 3], [4, 5, 6], [7, 8, 9]),
+            "dense": ([1, 1, 1], [2, 2, 2], [3, 3, 3]),
+        }
+        ranks = exp_ranks[method]
+        if na_option == "top":
+            order = [ranks[1], ranks[0], ranks[2]]
+        elif na_option == "bottom":
+            order = [ranks[0], ranks[2], ranks[1]]
+        else:
+            order = [ranks[0], [np.nan] * chunk, ranks[1]]
+        expected = order if ascending else order[::-1]
+        expected = list(chain.from_iterable(expected))
+        result = iseries.rank(method=method, na_option=na_option, ascending=ascending)
+        tm.assert_series_equal(result, Series(expected, dtype="float64"))
 
     def test_rank_desc_mix_nans_infs(self):
         # GH 19538
@@ -280,28 +274,35 @@ class TestSeriesRank:
         exp = Series([3, np.nan, 1, 4, 2], dtype="float64")
         tm.assert_series_equal(result, exp)
 
-    def test_rank_methods_series(self):
-        pytest.importorskip("scipy.stats.special")
-        rankdata = pytest.importorskip("scipy.stats.rankdata")
+    @td.skip_if_no_scipy
+    @pytest.mark.parametrize("method", ["average", "min", "max", "first", "dense"])
+    @pytest.mark.parametrize(
+        "op, value",
+        [
+            [operator.add, 0],
+            [operator.add, 1e6],
+            [operator.mul, 1e-6],
+        ],
+    )
+    def test_rank_methods_series(self, method, op, value):
+        from scipy.stats import rankdata
 
         xs = np.random.randn(9)
         xs = np.concatenate([xs[i:] for i in range(0, 9, 2)])  # add duplicates
         np.random.shuffle(xs)
 
         index = [chr(ord("a") + i) for i in range(len(xs))]
+        vals = op(xs, value)
+        ts = Series(vals, index=index)
+        result = ts.rank(method=method)
+        sprank = rankdata(vals, method if method != "first" else "ordinal")
+        expected = Series(sprank, index=index).astype("float64")
+        tm.assert_series_equal(result, expected)
 
-        for vals in [xs, xs + 1e6, xs * 1e-6]:
-            ts = Series(vals, index=index)
-
-            for m in ["average", "min", "max", "first", "dense"]:
-                result = ts.rank(method=m)
-                sprank = rankdata(vals, m if m != "first" else "ordinal")
-                expected = Series(sprank, index=index).astype("float64")
-                tm.assert_series_equal(result, expected)
-
-    def test_rank_dense_method(self):
-        dtypes = ["O", "f8", "i8"]
-        in_out = [
+    @pytest.mark.parametrize("dtype", ["O", "f8", "i8"])
+    @pytest.mark.parametrize(
+        "ser, exp",
+        [
             ([1], [1]),
             ([2], [1]),
             ([0], [1]),
@@ -310,43 +311,38 @@ class TestSeriesRank:
             ([4, 2, 1], [3, 2, 1]),
             ([1, 1, 5, 5, 3], [1, 1, 3, 3, 2]),
             ([-5, -4, -3, -2, -1], [1, 2, 3, 4, 5]),
-        ]
+        ],
+    )
+    def test_rank_dense_method(self, dtype, ser, exp):
+        s = Series(ser).astype(dtype)
+        result = s.rank(method="dense")
+        expected = Series(exp).astype(result.dtype)
+        tm.assert_series_equal(result, expected)
 
-        for ser, exp in in_out:
-            for dtype in dtypes:
-                s = Series(ser).astype(dtype)
-                result = s.rank(method="dense")
-                expected = Series(exp).astype(result.dtype)
-                tm.assert_series_equal(result, expected)
+    @pytest.mark.parametrize("dtype", ["O", "f8", "i8"])
+    def test_rank_descending(self, ser, results, dtype):
+        method, _ = results
+        if "i" in dtype:
+            s = ser.dropna()
+        else:
+            s = ser.astype(dtype)
 
-    def test_rank_descending(self):
-        dtypes = ["O", "f8", "i8"]
+        res = s.rank(ascending=False)
+        expected = (s.max() - s).rank()
+        tm.assert_series_equal(res, expected)
 
-        for dtype, method in product(dtypes, self.results):
-            if "i" in dtype:
-                s = self.s.dropna()
-            else:
-                s = self.s.astype(dtype)
+        expected = (s.max() - s).rank(method=method)
+        res2 = s.rank(method=method, ascending=False)
+        tm.assert_series_equal(res2, expected)
 
-            res = s.rank(ascending=False)
-            expected = (s.max() - s).rank()
-            tm.assert_series_equal(res, expected)
+    def test_rank_int(self, ser, results):
+        method, exp = results
+        s = ser.dropna().astype("i8")
 
-            if method == "first" and dtype == "O":
-                continue
-
-            expected = (s.max() - s).rank(method=method)
-            res2 = s.rank(method=method, ascending=False)
-            tm.assert_series_equal(res2, expected)
-
-    def test_rank_int(self):
-        s = self.s.dropna().astype("i8")
-
-        for method, res in self.results.items():
-            result = s.rank(method=method)
-            expected = Series(res).dropna()
-            expected.index = result.index
-            tm.assert_series_equal(result, expected)
+        result = s.rank(method=method)
+        expected = Series(exp).dropna()
+        expected.index = result.index
+        tm.assert_series_equal(result, expected)
 
     def test_rank_object_bug(self):
         # GH 13445
@@ -479,10 +475,10 @@ def test_rank_first_pct(dtype, ser, exp):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.single
+@pytest.mark.single_cpu
 @pytest.mark.high_memory
 def test_pct_max_many_rows():
     # GH 18271
-    s = Series(np.arange(2 ** 24 + 1))
+    s = Series(np.arange(2**24 + 1))
     result = s.rank(pct=True).max()
     assert result == 1

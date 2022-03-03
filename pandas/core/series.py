@@ -3,8 +3,6 @@ Data structure for 1-dimensional cross-sectional and time series data
 """
 from __future__ import annotations
 
-from io import StringIO
-from shutil import get_terminal_size
 from textwrap import dedent
 from typing import (
     IO,
@@ -56,6 +54,7 @@ from pandas.util._decorators import (
     deprecate_nonkeyword_arguments,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_ascending,
     validate_bool_kwarg,
@@ -63,10 +62,10 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.cast import (
+    LossySetitemError,
     convert_dtypes,
     maybe_box_native,
     maybe_cast_pointwise_result,
-    validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -91,7 +90,6 @@ from pandas.core.dtypes.missing import (
 from pandas.core import (
     algorithms,
     base,
-    generic,
     missing,
     nanops,
     ops,
@@ -126,7 +124,10 @@ from pandas.core.indexes.api import (
     ensure_index,
 )
 import pandas.core.indexes.base as ibase
-from pandas.core.indexing import check_bool_indexer
+from pandas.core.indexing import (
+    check_bool_indexer,
+    check_deprecated_indexers,
+)
 from pandas.core.internals import (
     SingleArrayManager,
     SingleBlockManager,
@@ -140,6 +141,11 @@ from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
 
 import pandas.io.formats.format as fmt
+from pandas.io.formats.info import (
+    INFO_DOCSTRING,
+    SeriesInfo,
+    series_sub_kwargs,
+)
 import pandas.plotting
 
 if TYPE_CHECKING:
@@ -193,7 +199,7 @@ def _coerce_method(converter):
 # Series class
 
 
-class Series(base.IndexOpsMixin, generic.NDFrame):
+class Series(base.IndexOpsMixin, NDFrame):
     """
     One-dimensional ndarray with axis labels (including time series).
 
@@ -292,11 +298,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     _name: Hashable
     _metadata: list[str] = ["name"]
-    _internal_names_set = {"index"} | generic.NDFrame._internal_names_set
+    _internal_names_set = {"index"} | NDFrame._internal_names_set
     _accessors = {"dt", "cat", "str", "sparse"}
     _hidden_attrs = (
         base.IndexOpsMixin._hidden_attrs
-        | generic.NDFrame._hidden_attrs
+        | NDFrame._hidden_attrs
         | frozenset(["compress", "ptp"])
     )
 
@@ -304,7 +310,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # error: Incompatible types in assignment (expression has type "property",
     # base class "IndexOpsMixin" defined the type as "Callable[[IndexOpsMixin], bool]")
     hasnans = property(  # type: ignore[assignment]
-        base.IndexOpsMixin.hasnans.func, doc=base.IndexOpsMixin.hasnans.__doc__
+        # error: "Callable[[IndexOpsMixin], bool]" has no attribute "fget"
+        base.IndexOpsMixin.hasnans.fget,  # type: ignore[attr-defined]
+        doc=base.IndexOpsMixin.hasnans.__doc__,
     )
     _mgr: SingleManager
     div: Callable[[Series, Any], Series]
@@ -331,7 +339,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ):
             # GH#33357 called with just the SingleBlockManager
             NDFrame.__init__(self, data)
-            self.name = name
+            if fastpath:
+                # e.g. from _box_col_values, skip validation of name
+                object.__setattr__(self, "_name", name)
+            else:
+                self.name = name
             return
 
         # we are called internally, so short-circuit
@@ -360,7 +372,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     "of 'float64' in a future version. Specify a dtype explicitly "
                     "to silence this warning.",
                     FutureWarning,
-                    stacklevel=2,
+                    stacklevel=find_stack_level(),
                 )
                 # uncomment the line below when removing the FutureWarning
                 # dtype = np.dtype(object)
@@ -445,9 +457,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 elif manager == "array":
                     data = SingleArrayManager.from_array(data, index)
 
-        generic.NDFrame.__init__(self, data)
-        self.name = name
-        self._set_axis(0, index, fastpath=True)
+        NDFrame.__init__(self, data)
+        if fastpath:
+            # skips validation of the name
+            object.__setattr__(self, "_name", name)
+        else:
+            self.name = name
+            self._set_axis(0, index)
 
     def _init_dict(
         self, data, index: Index | None = None, dtype: DtypeObj | None = None
@@ -510,11 +526,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # ----------------------------------------------------------------------
 
     @property
-    def _constructor(self) -> type[Series]:
+    def _constructor(self) -> Callable[..., Series]:
         return Series
 
     @property
-    def _constructor_expanddim(self) -> type[DataFrame]:
+    def _constructor_expanddim(self) -> Callable[..., DataFrame]:
         """
         Used when a manipulation result has one higher dimension as the
         original, such as Series.to_frame()
@@ -528,15 +544,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _can_hold_na(self) -> bool:
         return self._mgr._can_hold_na
 
-    def _set_axis(self, axis: int, labels, fastpath: bool = False) -> None:
+    def _set_axis(self, axis: int, labels) -> None:
         """
         Override generic, we want to set the _typ here.
 
         This is called from the cython code when we set the `index` attribute
         directly, e.g. `series.index = [1, 2, 3]`.
         """
-        if not fastpath:
-            labels = ensure_index(labels)
+        labels = ensure_index(labels)
 
         if labels._is_all_dates:
             deep_labels = labels
@@ -548,17 +563,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             ):
                 try:
                     labels = DatetimeIndex(labels)
-                    # need to set here because we changed the index
-                    if fastpath:
-                        self._mgr.set_axis(axis, labels)
                 except (tslibs.OutOfBoundsDatetime, ValueError):
                     # labels may exceeds datetime bounds,
                     # or not be a DatetimeIndex
                     pass
 
-        if not fastpath:
-            # The ensure_index call above ensures we have an Index object
-            self._mgr.set_axis(axis, labels)
+        # The ensure_index call above ensures we have an Index object
+        self._mgr.set_axis(axis, labels)
 
     # ndarray compatibility
     @property
@@ -801,9 +812,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         4      2
         dtype: int8
         """
-        return self._constructor(
-            self._values.view(dtype), index=self.index
-        ).__finalize__(self, method="view")
+        # self.array instead of self._values so we piggyback on PandasArray
+        #  implementation
+        res_values = self.array.view(dtype)
+        res_ser = self._constructor(res_values, index=self.index)
+        return res_ser.__finalize__(self, method="view")
 
     # ----------------------------------------------------------------------
     # NDArray Compat
@@ -879,14 +892,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # ----------------------------------------------------------------------
     # Indexing Methods
 
-    @Appender(generic.NDFrame.take.__doc__)
+    @Appender(NDFrame.take.__doc__)
     def take(self, indices, axis=0, is_copy=None, **kwargs) -> Series:
         if is_copy is not None:
             warnings.warn(
                 "is_copy is deprecated and will be removed in a future version. "
                 "'take' always returns a copy, so there is no need to specify this.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
         nv.validate_take((), kwargs)
 
@@ -928,6 +941,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self._get_values(slobj)
 
     def __getitem__(self, key):
+        check_deprecated_indexers(key)
         key = com.apply_if_callable(key, self)
 
         if key is Ellipsis:
@@ -951,7 +965,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
                 return result
 
-            except (KeyError, TypeError):
+            except (KeyError, TypeError, InvalidIndexError):
+                # InvalidIndexError for e.g. generator
+                #  see test_series_getitem_corner_generator
                 if isinstance(key, tuple) and isinstance(self.index, MultiIndex):
                     # We still have the corner case where a tuple is a key
                     # in the first level of our MultiIndex
@@ -1007,11 +1023,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # handle the dup indexing case GH#4246
         return self.loc[key]
 
-    def _get_values_tuple(self, key):
+    def _get_values_tuple(self, key: tuple):
         # mpl hackaround
         if com.any_none(*key):
-            result = self._get_values(key)
-            deprecate_ndim_indexing(result, stacklevel=5)
+            # mpl compat if we look up e.g. ser[:, np.newaxis];
+            #  see tests.series.timeseries.test_mpl_compat_hack
+            # the asarray is needed to avoid returning a 2D DatetimeArray
+            result = np.asarray(self._values[key])
+            deprecate_ndim_indexing(result, stacklevel=find_stack_level())
             return result
 
         if not isinstance(self.index, MultiIndex):
@@ -1023,15 +1042,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             self
         )
 
-    def _get_values(self, indexer):
-        try:
-            new_mgr = self._mgr.getitem_mgr(indexer)
-            return self._constructor(new_mgr).__finalize__(self)
-        except ValueError:
-            # mpl compat if we look up e.g. ser[:, np.newaxis];
-            #  see tests.series.timeseries.test_mpl_compat_hack
-            # the asarray is needed to avoid returning a 2D DatetimeArray
-            return np.asarray(self._values[indexer])
+    def _get_values(self, indexer: slice | npt.NDArray[np.bool_]) -> Series:
+        new_mgr = self._mgr.getitem_mgr(indexer)
+        return self._constructor(new_mgr).__finalize__(self)
 
     def _get_value(self, label, takeable: bool = False):
         """
@@ -1054,6 +1067,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self.index._get_values_for_loc(self, loc, label)
 
     def __setitem__(self, key, value) -> None:
+        check_deprecated_indexers(key)
         key = com.apply_if_callable(key, self)
         cacher_needs_updating = self._check_is_chained_assignment_possible()
 
@@ -1066,7 +1080,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         try:
             self._set_with_engine(key, value)
-        except (KeyError, ValueError):
+        except KeyError:
+            # We have a scalar (or for MultiIndex or object-dtype, scalar-like)
+            #  key that is not present in self.index.
             if is_integer(key) and self.index.inferred_type != "integer":
                 # positional setter
                 if not self.index._should_fallback_to_positional:
@@ -1078,17 +1094,24 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                         "Series. Use `series.iloc[an_int] = val` to treat the "
                         "key as positional.",
                         FutureWarning,
-                        stacklevel=2,
+                        stacklevel=find_stack_level(),
                     )
-                # this is equivalent to self._values[key] = value
-                self._mgr.setitem_inplace(key, value)
+                # can't use _mgr.setitem_inplace yet bc could have *both*
+                #  KeyError and then ValueError, xref GH#45070
+                self._set_values(key, value)
             else:
                 # GH#12862 adding a new key to the Series
                 self.loc[key] = value
 
-        except (InvalidIndexError, TypeError) as err:
+        except (TypeError, ValueError, LossySetitemError):
+            # The key was OK, but we cannot set the value losslessly
+            indexer = self.index.get_loc(key)
+            self._set_values(indexer, value)
+
+        except InvalidIndexError as err:
             if isinstance(key, tuple) and not isinstance(self.index, MultiIndex):
                 # cases with MultiIndex don't get here bc they raise KeyError
+                # e.g. test_basic_getitem_setitem_corner
                 raise KeyError(
                     "key of type tuple not found and not a MultiIndex"
                 ) from err
@@ -1096,9 +1119,26 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if com.is_bool_indexer(key):
                 key = check_bool_indexer(self.index, key)
                 key = np.asarray(key, dtype=bool)
+
+                if (
+                    is_list_like(value)
+                    and len(value) != len(self)
+                    and not isinstance(value, Series)
+                    and not is_object_dtype(self.dtype)
+                ):
+                    # Series will be reindexed to have matching length inside
+                    #  _where call below
+                    # GH#44265
+                    indexer = key.nonzero()[0]
+                    self._set_values(indexer, value)
+                    return
+
+                # otherwise with listlike other we interpret series[mask] = other
+                #  as series[mask] = other[mask]
                 try:
                     self._where(~key, value, inplace=True)
                 except InvalidIndexError:
+                    # test_where_dups
                     self.iloc[key] = value
                 return
 
@@ -1110,33 +1150,32 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def _set_with_engine(self, key, value) -> None:
         loc = self.index.get_loc(key)
-        # error: Argument 1 to "validate_numeric_casting" has incompatible type
-        # "Union[dtype, ExtensionDtype]"; expected "dtype"
-        validate_numeric_casting(self.dtype, value)  # type: ignore[arg-type]
+
         # this is equivalent to self._values[key] = value
         self._mgr.setitem_inplace(loc, value)
 
     def _set_with(self, key, value):
-        # other: fancy integer or otherwise
+        # We got here via exception-handling off of InvalidIndexError, so
+        #  key should always be listlike at this point.
         assert not isinstance(key, tuple)
 
-        if is_scalar(key):
-            key = [key]
-        elif is_iterator(key):
+        if is_iterator(key):
             # Without this, the call to infer_dtype will consume the generator
             key = list(key)
 
-        key_type = lib.infer_dtype(key, skipna=False)
+        if not self.index._should_fallback_to_positional:
+            # Regardless of the key type, we're treating it as labels
+            self._set_labels(key, value)
 
-        # Note: key_type == "boolean" should not occur because that
-        #  should be caught by the is_bool_indexer check in __setitem__
-        if key_type == "integer":
-            if not self.index._should_fallback_to_positional:
-                self._set_labels(key, value)
-            else:
-                self._set_values(key, value)
         else:
-            self.loc[key] = value
+            # Note: key_type == "boolean" should not occur because that
+            #  should be caught by the is_bool_indexer check in __setitem__
+            key_type = lib.infer_dtype(key, skipna=False)
+
+            if key_type == "integer":
+                self._set_values(key, value)
+            else:
+                self._set_labels(key, value)
 
     def _set_labels(self, key, value) -> None:
         key = com.asarray_tuplesafe(key)
@@ -1226,7 +1265,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return super()._check_is_chained_assignment_possible()
 
     def _maybe_update_cacher(
-        self, clear: bool = False, verify_is_copy: bool = True
+        self, clear: bool = False, verify_is_copy: bool = True, inplace: bool = False
     ) -> None:
         """
         See NDFrame._maybe_update_cacher.__doc__
@@ -1244,13 +1283,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 # GH#42530 self.name must be in ref.columns
                 # to ensure column still in dataframe
                 # otherwise, either self or ref has swapped in new arrays
-                ref._maybe_cache_changed(cacher[0], self)
+                ref._maybe_cache_changed(cacher[0], self, inplace=inplace)
             else:
                 # GH#33675 we have swapped in a new array, so parent
                 #  reference to self is now invalid
                 ref._item_cache.pop(cacher[0], None)
 
-        super()._maybe_update_cacher(clear=clear, verify_is_copy=verify_is_copy)
+        super()._maybe_update_cacher(
+            clear=clear, verify_is_copy=verify_is_copy, inplace=inplace
+        )
 
     # ----------------------------------------------------------------------
     # Unsorted
@@ -1319,7 +1360,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         )
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "level"])
-    def reset_index(self, level=None, drop=False, name=None, inplace=False):
+    def reset_index(
+        self,
+        level=None,
+        drop=False,
+        name=lib.no_default,
+        inplace=False,
+        allow_duplicates: bool = False,
+    ):
         """
         Generate a new DataFrame or Series with the index reset.
 
@@ -1341,6 +1389,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             when `drop` is True.
         inplace : bool, default False
             Modify the Series in place (do not create a new object).
+        allow_duplicates : bool, default False
+            Allow duplicate column labels to be created.
+
+            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -1439,8 +1491,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             if inplace:
                 self.index = new_index
-                # set name if it was passed, otherwise, keep the previous name
-                self.name = name or self.name
             else:
                 return self._constructor(
                     self._values.copy(), index=new_index
@@ -1450,8 +1500,18 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 "Cannot reset_index inplace on a Series to create a DataFrame"
             )
         else:
+            if name is lib.no_default:
+                # For backwards compatibility, keep columns as [0] instead of
+                #  [None] when self.name is None
+                if self.name is None:
+                    name = 0
+                else:
+                    name = self.name
+
             df = self.to_frame(name)
-            return df.reset_index(level=level, drop=drop)
+            return df.reset_index(
+                level=level, drop=drop, allow_duplicates=allow_duplicates
+            )
 
     # ----------------------------------------------------------------------
     # Rendering Methods
@@ -1460,29 +1520,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return a string representation for a particular Series.
         """
-        buf = StringIO("")
-        width, height = get_terminal_size()
-        max_rows = (
-            height
-            if get_option("display.max_rows") == 0
-            else get_option("display.max_rows")
-        )
-        min_rows = (
-            height
-            if get_option("display.max_rows") == 0
-            else get_option("display.min_rows")
-        )
-        show_dimensions = get_option("display.show_dimensions")
-
-        self.to_string(
-            buf=buf,
-            name=self.name,
-            dtype=self.dtype,
-            min_rows=min_rows,
-            max_rows=max_rows,
-            length=show_dimensions,
-        )
-        return buf.getvalue()
+        repr_params = fmt.get_series_repr_params()
+        return self.to_string(**repr_params)
 
     def to_string(
         self,
@@ -1563,7 +1602,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @doc(
         klass=_shared_doc_kwargs["klass"],
-        storage_options=generic._shared_docs["storage_options"],
+        storage_options=_shared_docs["storage_options"],
         examples=dedent(
             """Examples
             --------
@@ -1671,6 +1710,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @Appender(items.__doc__)
     def iteritems(self) -> Iterable[tuple[Hashable, Any]]:
+        warnings.warn(
+            "iteritems is deprecated and will be removed in a future version. "
+            "Use .items instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.items()
 
     # ----------------------------------------------------------------------
@@ -1720,13 +1765,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         into_c = com.standardize_mapping(into)
         return into_c((k, maybe_box_native(v)) for k, v in self.items())
 
-    def to_frame(self, name=None) -> DataFrame:
+    def to_frame(self, name: Hashable = lib.no_default) -> DataFrame:
         """
         Convert Series to DataFrame.
 
         Parameters
         ----------
-        name : object, default None
+        name : object, optional
             The passed name should substitute for the series name (if it has
             one).
 
@@ -1745,8 +1790,19 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         1    b
         2    c
         """
-        columns: Index
         if name is None:
+            warnings.warn(
+                "Explicitly passing `name=None` currently preserves the Series' name "
+                "or uses a default name of 0. This behaviour is deprecated, and in "
+                "the future `None` will be used as the name of the resulting "
+                "DataFrame column.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            name = lib.no_default
+
+        columns: Index
+        if name is lib.no_default:
             name = self.name
             if name is None:
                 # default to [0], same as we would get with DataFrame(self)
@@ -1757,7 +1813,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             columns = Index([name])
 
         mgr = self._mgr.to_2d_mgr(columns)
-        return self._constructor_expanddim(mgr)
+        df = self._constructor_expanddim(mgr)
+        return df.__finalize__(self, method="to_frame")
 
     def _set_name(self, name, inplace=False) -> Series:
         """
@@ -1828,7 +1885,7 @@ Wild       185.0
 Name: Max Speed, dtype: float64
 
 We can also choose to include `NA` in group keys or not by defining
-`dropna` parameter, the default setting is `True`:
+`dropna` parameter, the default setting is `True`.
 
 >>> ser = pd.Series([1, 2, 3, 3], index=["a", 'a', 'b', np.nan])
 >>> ser.groupby(level=0).sum()
@@ -1856,7 +1913,7 @@ NaN   20.0
 Name: Max Speed, dtype: float64
 """
     )
-    @Appender(generic._shared_docs["groupby"] % _shared_doc_kwargs)
+    @Appender(_shared_docs["groupby"] % _shared_doc_kwargs)
     def groupby(
         self,
         by=None,
@@ -1878,7 +1935,7 @@ Name: Max Speed, dtype: float64
                     "will be removed in a future version."
                 ),
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
         else:
             squeeze = False
@@ -1940,7 +1997,7 @@ Name: Max Speed, dtype: float64
                 "deprecated and will be removed in a future version. Use groupby "
                 "instead. ser.count(level=1) should use ser.groupby(level=1).count().",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
             if not isinstance(self.index, MultiIndex):
                 raise ValueError("Series.count level is only valid with a MultiIndex")
@@ -1960,12 +2017,14 @@ Name: Max Speed, dtype: float64
             lev = lev.insert(cnt, lev._na_value)
 
         obs = level_codes[notna(self._values)]
-        out = np.bincount(obs, minlength=len(lev) or None)
+        # Argument "minlength" to "bincount" has incompatible type "Optional[int]";
+        # expected "SupportsIndex"  [arg-type]
+        out = np.bincount(obs, minlength=len(lev) or None)  # type: ignore[arg-type]
         return self._constructor(out, index=lev, dtype="int64").__finalize__(
             self, method="count"
         )
 
-    def mode(self, dropna=True) -> Series:
+    def mode(self, dropna: bool = True) -> Series:
         """
         Return the mode(s) of the Series.
 
@@ -1984,7 +2043,16 @@ Name: Max Speed, dtype: float64
             Modes of the Series in sorted order.
         """
         # TODO: Add option for bins like value_counts()
-        return algorithms.mode(self, dropna=dropna)
+        values = self._values
+        if isinstance(values, np.ndarray):
+            res_values = algorithms.mode(values, dropna=dropna)
+        else:
+            res_values = values._mode(dropna=dropna)
+
+        # Ensure index is type stable (should always use int index)
+        return self._constructor(
+            res_values, index=range(len(res_values)), name=self.name
+        )
 
     def unique(self) -> ArrayLike:
         """
@@ -2498,6 +2566,14 @@ Name: Max Speed, dtype: float64
         DataFrame.corrwith : Compute pairwise correlation with another
             DataFrame or Series.
 
+        Notes
+        -----
+        Pearson, Kendall and Spearman correlation are currently computed using pairwise complete observations.
+
+        * `Pearson correlation coefficient <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_
+        * `Kendall rank correlation coefficient <https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient>`_
+        * `Spearman's rank correlation coefficient <https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient>`_
+
         Examples
         --------
         >>> def histogram_intersection(a, b):
@@ -2507,7 +2583,7 @@ Name: Max Speed, dtype: float64
         >>> s2 = pd.Series([.3, .6, .0, .1])
         >>> s1.corr(s2, method=histogram_intersection)
         0.3
-        """
+        """  # noqa:E501
         this, other = self.align(other, join="inner", copy=False)
         if len(this) == 0:
             return np.nan
@@ -2812,6 +2888,10 @@ Name: Max Speed, dtype: float64
         """
         Concatenate two or more Series.
 
+        .. deprecated:: 1.4.0
+            Use :func:`concat` instead. For further details see
+            :ref:`whatsnew_140.deprecations.frame_series_append`
+
         Parameters
         ----------
         to_append : Series or list/tuple of Series
@@ -2878,6 +2958,19 @@ Name: Max Speed, dtype: float64
         ...
         ValueError: Indexes have overlapping values: [0, 1, 2]
         """
+        warnings.warn(
+            "The series.append method is deprecated "
+            "and will be removed from pandas in a future version. "
+            "Use pandas.concat instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
+        return self._append(to_append, ignore_index, verify_integrity)
+
+    def _append(
+        self, to_append, ignore_index: bool = False, verify_integrity: bool = False
+    ):
         from pandas.core.reshape.concat import concat
 
         if isinstance(to_append, (list, tuple)):
@@ -2965,7 +3058,7 @@ Name: Max Speed, dtype: float64
         return out
 
     @doc(
-        generic._shared_docs["compare"],
+        _shared_docs["compare"],
         """
 Returns
 -------
@@ -3692,11 +3785,11 @@ Keep all original rows and also all original values
             Series of `n` elements:
 
             - ``first`` : return the first `n` occurrences in order
-                of appearance.
+              of appearance.
             - ``last`` : return the last `n` occurrences in reverse
-                order of appearance.
+              order of appearance.
             - ``all`` : keep all occurrences. This can result in a Series of
-                size larger than `n`.
+              size larger than `n`.
 
         Returns
         -------
@@ -3790,11 +3883,11 @@ Keep all original rows and also all original values
             Series of `n` elements:
 
             - ``first`` : return the first `n` occurrences in order
-                of appearance.
+              of appearance.
             - ``last`` : return the last `n` occurrences in reverse
-                order of appearance.
+              order of appearance.
             - ``all`` : keep all occurrences. This can result in a Series of
-                size larger than `n`.
+              size larger than `n`.
 
         Returns
         -------
@@ -3881,7 +3974,8 @@ Keep all original rows and also all original values
             Whether to copy underlying data."""
         ),
         examples=dedent(
-            """Examples
+            """\
+        Examples
         --------
         >>> s = pd.Series(
         ...     ["A", "B", "A", "C"],
@@ -4016,6 +4110,8 @@ Keep all original rows and also all original values
         result in a np.nan for that row. In addition, the ordering of elements in
         the output will be non-deterministic when exploding sets.
 
+        Reference :ref:`the user guide <reshaping.explode>` for more examples.
+
         Examples
         --------
         >>> s = pd.Series([[1, 2, 3], 'foo', [], [3, 4]])
@@ -4065,6 +4161,10 @@ Keep all original rows and also all original values
         DataFrame
             Unstacked Series.
 
+        Notes
+        -----
+        Reference :ref:`the user guide <reshaping.stacking>` for more examples.
+
         Examples
         --------
         >>> s = pd.Series([1, 2, 3, 4],
@@ -4096,7 +4196,7 @@ Keep all original rows and also all original values
 
     def map(self, arg, na_action=None) -> Series:
         """
-        Map values of Series according to input correspondence.
+        Map values of Series according to an input mapping or function.
 
         Used for substituting each value in a Series with another value,
         that may be derived from a function, a ``dict`` or
@@ -4169,7 +4269,7 @@ Keep all original rows and also all original values
         3  I am a rabbit
         dtype: object
         """
-        new_values = super()._map_values(arg, na_action=na_action)
+        new_values = self._map_values(arg, na_action=na_action)
         return self._constructor(new_values, index=self.index).__finalize__(
             self, method="map"
         )
@@ -4220,7 +4320,7 @@ Keep all original rows and also all original values
     )
 
     @doc(
-        generic._shared_docs["aggregate"],
+        _shared_docs["aggregate"],
         klass=_shared_doc_kwargs["klass"],
         axis=_shared_doc_kwargs["axis"],
         see_also=_agg_see_also_doc,
@@ -4396,8 +4496,11 @@ Keep all original rows and also all original values
         else:
             # dispatch to numpy arrays
             if numeric_only:
+                kwd_name = "numeric_only"
+                if name in ["any", "all"]:
+                    kwd_name = "bool_only"
                 raise NotImplementedError(
-                    f"Series.{name} does not implement numeric_only."
+                    f"Series.{name} does not implement {kwd_name}."
                 )
             with np.errstate(all="ignore"):
                 return op(delegate, skipna=skipna, **kwds)
@@ -4407,7 +4510,9 @@ Keep all original rows and also all original values
     ) -> Series:
         # Note: new_index is None iff indexer is None
         # if not None, indexer is np.intp
-        if indexer is None:
+        if indexer is None and (
+            new_index is None or new_index.names == self.index.names
+        ):
             if copy:
                 return self.copy()
             return self
@@ -4465,7 +4570,7 @@ Keep all original rows and also all original values
         inplace=False,
         level=None,
         errors="ignore",
-    ):
+    ) -> Series | None:
         """
         Alter Series index labels or name.
 
@@ -4525,8 +4630,12 @@ Keep all original rows and also all original values
         5    3
         dtype: int64
         """
+        if axis is not None:
+            # Make sure we raise if an invalid 'axis' is passed.
+            axis = self._get_axis_number(axis)
+
         if callable(index) or is_dict_like(index):
-            return super().rename(
+            return super()._rename(
                 index, copy=copy, inplace=inplace, level=level, errors=errors
             )
         else:
@@ -4575,7 +4684,7 @@ Keep all original rows and also all original values
         axis_description_sub="",
         see_also_sub="",
     )
-    @Appender(generic.NDFrame.set_axis.__doc__)
+    @Appender(NDFrame.set_axis.__doc__)
     def set_axis(self, labels, axis: Axis = 0, inplace: bool = False):
         return super().set_axis(labels, axis=axis, inplace=inplace)
 
@@ -4587,8 +4696,17 @@ Keep all original rows and also all original values
         optional_labels=_shared_doc_kwargs["optional_labels"],
         optional_axis=_shared_doc_kwargs["optional_axis"],
     )
-    def reindex(self, index=None, **kwargs):
-        return super().reindex(index=index, **kwargs)
+    def reindex(self, *args, **kwargs) -> Series:
+        if len(args) > 1:
+            raise TypeError("Only one positional argument ('index') is allowed")
+        if args:
+            (index,) = args
+            if "index" in kwargs:
+                raise TypeError(
+                    "'index' passed as both positional and keyword argument"
+                )
+            kwargs.update({"index": index})
+        return super().reindex(**kwargs)
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
     def drop(
@@ -4870,11 +4988,11 @@ Keep all original rows and also all original values
     def replace(
         self,
         to_replace=None,
-        value=None,
+        value=lib.no_default,
         inplace=False,
         limit=None,
         regex=False,
-        method="pad",
+        method: str | lib.NoDefault = lib.no_default,
     ):
         return super().replace(
             to_replace=to_replace,
@@ -4885,29 +5003,42 @@ Keep all original rows and also all original values
             method=method,
         )
 
+    @doc(INFO_DOCSTRING, **series_sub_kwargs)
+    def info(
+        self,
+        verbose: bool | None = None,
+        buf: IO[str] | None = None,
+        max_cols: int | None = None,
+        memory_usage: bool | str | None = None,
+        show_counts: bool = True,
+    ) -> None:
+        return SeriesInfo(self, memory_usage).render(
+            buf=buf,
+            max_cols=max_cols,
+            verbose=verbose,
+            show_counts=show_counts,
+        )
+
     def _replace_single(self, to_replace, method: str, inplace: bool, limit):
         """
         Replaces values in a Series using the fill method specified when no
         replacement value is given in the replace method
         """
 
-        orig_dtype = self.dtype
         result = self if inplace else self.copy()
-        fill_f = missing.get_fill_func(method)
 
-        mask = missing.mask_missing(result.values, to_replace)
-        values, _ = fill_f(result.values, limit=limit, mask=mask)
+        values = result._values
+        mask = missing.mask_missing(values, to_replace)
 
-        if values.dtype == orig_dtype and inplace:
-            return
-
-        result = self._constructor(values, index=self.index, dtype=self.dtype)
-        result = result.__finalize__(self)
+        if isinstance(values, ExtensionArray):
+            # dispatch to the EA's _pad_mask_inplace method
+            values._fill_mask_inplace(method, limit, mask)
+        else:
+            fill_f = missing.get_fill_func(method)
+            fill_f(values, limit=limit, mask=mask)
 
         if inplace:
-            self._update_inplace(result)
             return
-
         return result
 
     # error: Cannot determine type of 'shift'
@@ -5012,6 +5143,17 @@ Keep all original rows and also all original values
         5    False
         Name: animal, dtype: bool
 
+        To invert the boolean values, use the ``~`` operator:
+
+        >>> ~s.isin(['cow', 'lama'])
+        0    False
+        1    False
+        2    False
+        3     True
+        4    False
+        5     True
+        Name: animal, dtype: bool
+
         Passing a single string as ``s.isin('lama')`` will raise an error. Use
         a list of one element instead:
 
@@ -5111,7 +5253,7 @@ Keep all original rows and also all original values
                 "Boolean inputs to the `inclusive` argument are deprecated in "
                 "favour of `both` or `neither`.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
             if inclusive:
                 inclusive = "both"
@@ -5170,11 +5312,14 @@ Keep all original rows and also all original values
     # error: Cannot determine type of 'isna'
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
     def isna(self) -> Series:
-        return generic.NDFrame.isna(self)
+        return NDFrame.isna(self)
 
     # error: Cannot determine type of 'isna'
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
     def isnull(self) -> Series:
+        """
+        Series.isnull is an alias for Series.isna.
+        """
         return super().isnull()
 
     # error: Cannot determine type of 'notna'
@@ -5185,6 +5330,9 @@ Keep all original rows and also all original values
     # error: Cannot determine type of 'notna'
     @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
     def notnull(self) -> Series:
+        """
+        Series.notnull is an alias for Series.notna.
+        """
         return super().notnull()
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
@@ -5448,11 +5596,11 @@ Keep all original rows and also all original values
     def where(
         self,
         cond,
-        other=np.nan,
+        other=lib.no_default,
         inplace=False,
         axis=None,
         level=None,
-        errors="raise",
+        errors=lib.no_default,
         try_cast=lib.no_default,
     ):
         return super().where(cond, other, inplace, axis, level, errors, try_cast)
@@ -5467,7 +5615,7 @@ Keep all original rows and also all original values
         inplace=False,
         axis=None,
         level=None,
-        errors="raise",
+        errors=lib.no_default,
         try_cast=lib.no_default,
     ):
         return super().mask(cond, other, inplace, axis, level, errors, try_cast)
@@ -5475,7 +5623,6 @@ Keep all original rows and also all original values
     # ----------------------------------------------------------------------
     # Add index
     _AXIS_ORDERS = ["index"]
-    _AXIS_REVERSED = False
     _AXIS_LEN = len(_AXIS_ORDERS)
     _info_axis_number = 0
     _info_axis_name = "index"

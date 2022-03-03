@@ -298,10 +298,23 @@ class TestGetIndexer:
         expected = np.array([1, 1], dtype="intp")
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_get_indexer_nans_in_index_and_target(self):
+        # GH 45361
+        ci = CategoricalIndex([1, 2, np.nan, 3])
+        other1 = [2, 3, 4, np.nan]
+        res1 = ci.get_indexer(other1)
+        expected1 = np.array([1, 3, -1, 2], dtype=np.intp)
+        tm.assert_numpy_array_equal(res1, expected1)
+        other2 = [1, 4, 2, 3]
+        res2 = ci.get_indexer(other2)
+        expected2 = np.array([0, -1, 1, 3], dtype=np.intp)
+        tm.assert_numpy_array_equal(res2, expected2)
+
 
 class TestWhere:
-    @pytest.mark.parametrize("klass", [list, tuple, np.array, pd.Series])
-    def test_where(self, klass):
+    def test_where(self, listlike_box):
+        klass = listlike_box
+
         i = CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=False)
         cond = [True] * len(i)
         expected = i
@@ -324,7 +337,7 @@ class TestWhere:
         msg = "Cannot setitem on a Categorical with a new category"
         with pytest.raises(TypeError, match=msg):
             # Test the Categorical method directly
-            ci._data.where(mask, 2)
+            ci._data._where(mask, 2)
 
 
 class TestContains:

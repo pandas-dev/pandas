@@ -18,11 +18,13 @@ from pandas._typing import (
     JSONSerializable,
 )
 
+from pandas.core.dtypes.base import _registry as registry
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
+    is_extension_array_dtype,
     is_integer_dtype,
     is_numeric_dtype,
     is_period_dtype,
@@ -39,6 +41,8 @@ if TYPE_CHECKING:
     from pandas.core.indexes.multi import MultiIndex
 
 loads = json.loads
+
+TABLE_SCHEMA_VERSION = "1.4.0"
 
 
 def as_json_table_type(x: DtypeObj) -> str:
@@ -83,6 +87,8 @@ def as_json_table_type(x: DtypeObj) -> str:
         return "duration"
     elif is_categorical_dtype(x):
         return "any"
+    elif is_extension_array_dtype(x):
+        return "any"
     elif is_string_dtype(x):
         return "string"
     else:
@@ -103,11 +109,7 @@ def set_default_names(data):
 
     data = data.copy()
     if data.index.nlevels > 1:
-        names = [
-            name if name is not None else f"level_{i}"
-            for i, name in enumerate(data.index.names)
-        ]
-        data.index.names = names
+        data.index.names = com.fill_missing_names(data.index.names)
     else:
         data.index.name = data.index.name or "index"
     return data
@@ -134,6 +136,8 @@ def convert_pandas_type_to_json_field(arr):
         field["freq"] = dtype.freq.freqstr
     elif is_datetime64tz_dtype(dtype):
         field["tz"] = dtype.tz.zone
+    elif is_extension_array_dtype(dtype):
+        field["extDtype"] = dtype.name
     return field
 
 
@@ -199,6 +203,8 @@ def convert_json_field_to_pandas_type(field):
             return CategoricalDtype(
                 categories=field["constraints"]["enum"], ordered=field["ordered"]
             )
+        elif "extDtype" in field:
+            return registry.find(field["extDtype"])
         else:
             return "object"
 
@@ -225,7 +231,8 @@ def build_table_schema(
         level or levels if the index is unique.
     version : bool, default True
         Whether to include a field `pandas_version` with the version
-        of pandas that generated the schema.
+        of pandas that last revised the table schema. This version
+        can be different from the installed pandas version.
 
     Returns
     -------
@@ -257,7 +264,7 @@ def build_table_schema(
 {'name': 'B', 'type': 'string'}, \
 {'name': 'C', 'type': 'datetime'}], \
 'primaryKey': ['idx'], \
-'pandas_version': '0.20.0'}
+'pandas_version': '1.4.0'}
     """
     if index is True:
         data = set_default_names(data)
@@ -291,7 +298,7 @@ def build_table_schema(
         schema["primaryKey"] = primary_key
 
     if version:
-        schema["pandas_version"] = "0.20.0"
+        schema["pandas_version"] = TABLE_SCHEMA_VERSION
     return schema
 
 

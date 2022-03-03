@@ -226,8 +226,8 @@ class TestDataFrameValues:
 
 
 class TestPrivateValues:
-    def test_private_values_dt64tz(self, request):
-
+    @td.skip_array_manager_invalid_test
+    def test_private_values_dt64tz(self):
         dta = date_range("2000", periods=4, tz="US/Central")._data.reshape(-1, 1)
 
         df = DataFrame(dta, columns=["A"])

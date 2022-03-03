@@ -5,7 +5,6 @@ import json
 import locale
 import math
 import re
-import sys
 import time
 
 import dateutil
@@ -16,7 +15,6 @@ import pytz
 import pandas._libs.json as ujson
 from pandas.compat import (
     IS64,
-    PY310,
     is_platform_windows,
 )
 
@@ -254,14 +252,8 @@ class TestUltraJSONTests:
         [
             20,
             -1,
-            pytest.param(
-                "9",
-                marks=pytest.mark.xfail(PY310, reason="Failing on Python 3.10 GH41940"),
-            ),
-            pytest.param(
-                None,
-                marks=pytest.mark.xfail(PY310, reason="Failing on Python 3.10 GH41940"),
-            ),
+            "9",
+            None,
         ],
     )
     def test_invalid_double_precision(self, invalid_val):
@@ -269,7 +261,8 @@ class TestUltraJSONTests:
         expected_exception = ValueError if isinstance(invalid_val, int) else TypeError
         msg = (
             r"Invalid value '.*' for option 'double_precision', max is '15'|"
-            r"an integer is required \(got type "
+            r"an integer is required \(got type |"
+            r"object cannot be interpreted as an integer"
         )
         with pytest.raises(expected_exception, match=msg):
             ujson.encode(double_input, double_precision=invalid_val)
@@ -429,13 +422,13 @@ class TestUltraJSONTests:
         stamp = Timestamp(val)
 
         roundtrip = ujson.decode(ujson.encode(val, date_unit="s"))
-        assert roundtrip == stamp.value // 10 ** 9
+        assert roundtrip == stamp.value // 10**9
 
         roundtrip = ujson.decode(ujson.encode(val, date_unit="ms"))
-        assert roundtrip == stamp.value // 10 ** 6
+        assert roundtrip == stamp.value // 10**6
 
         roundtrip = ujson.decode(ujson.encode(val, date_unit="us"))
-        assert roundtrip == stamp.value // 10 ** 3
+        assert roundtrip == stamp.value // 10**3
 
         roundtrip = ujson.decode(ujson.encode(val, date_unit="ns"))
         assert roundtrip == stamp.value
@@ -599,24 +592,23 @@ class TestUltraJSONTests:
             np.array(long_input), ujson.decode(output, numpy=True, dtype=np.int64)
         )
 
-    def test_encode_long_conversion(self):
-        long_input = 9223372036854775807
+    @pytest.mark.parametrize("long_input", [9223372036854775807, 18446744073709551615])
+    def test_encode_long_conversion(self, long_input):
         output = ujson.encode(long_input)
 
         assert long_input == json.loads(output)
         assert output == json.dumps(long_input)
         assert long_input == ujson.decode(output)
 
-    @pytest.mark.parametrize("bigNum", [sys.maxsize + 1, -(sys.maxsize + 2)])
-    @pytest.mark.xfail(not IS64, reason="GH-35288")
+    @pytest.mark.parametrize("bigNum", [2**64, -(2**63) - 1])
     def test_dumps_ints_larger_than_maxsize(self, bigNum):
-        # GH34395
-        bigNum = sys.maxsize + 1
         encoding = ujson.encode(bigNum)
         assert str(bigNum) == encoding
 
-        # GH20599
-        with pytest.raises(ValueError, match="Value is too big"):
+        with pytest.raises(
+            ValueError,
+            match="Value is too big|Value is too small",
+        ):
             assert ujson.loads(encoding) == bigNum
 
     @pytest.mark.parametrize(
@@ -630,7 +622,7 @@ class TestUltraJSONTests:
         with pytest.raises(TypeError, match=msg):
             ujson.loads(None)
 
-    @pytest.mark.parametrize("val", [3590016419, 2 ** 31, 2 ** 32, (2 ** 32) - 1])
+    @pytest.mark.parametrize("val", [3590016419, 2**31, 2**32, (2**32) - 1])
     def test_decode_number_with_32bit_sign_bit(self, val):
         # Test that numbers that fit within 32 bits but would have the
         # sign bit set (2**31 <= x < 2**32) are decoded properly.
@@ -1005,9 +997,11 @@ class TestPandasJSONTests:
         }
         assert ujson.decode(ujson.encode(nested, **kwargs)) == exp
 
-    def test_dataframe_numpy_labelled(self, orient):
+    def test_dataframe_numpy_labelled(self, orient, request):
         if orient in ("split", "values"):
-            pytest.skip("Incompatible with labelled=True")
+            request.node.add_marker(
+                pytest.mark.xfail(reason=f"{orient} incompatible for labelled=True")
+            )
 
         df = DataFrame(
             [[1, 2, 3], [4, 5, 6]],
@@ -1162,11 +1156,12 @@ class TestPandasJSONTests:
     def test_decode_extreme_numbers(self, extreme_num):
         assert extreme_num == ujson.decode(str(extreme_num))
 
-    @pytest.mark.parametrize(
-        "too_extreme_num", ["9223372036854775808", "-90223372036854775809"]
-    )
+    @pytest.mark.parametrize("too_extreme_num", [f"{2**64}", f"{-2**63-1}"])
     def test_decode_too_extreme_numbers(self, too_extreme_num):
-        with pytest.raises(ValueError, match="Value is too big|Value is too small"):
+        with pytest.raises(
+            ValueError,
+            match="Value is too big|Value is too small",
+        ):
             ujson.decode(too_extreme_num)
 
     def test_decode_with_trailing_whitespaces(self):
@@ -1176,9 +1171,13 @@ class TestPandasJSONTests:
         with pytest.raises(ValueError, match="Trailing data"):
             ujson.decode("{}\n\t a")
 
-    def test_decode_array_with_big_int(self):
-        with pytest.raises(ValueError, match="Value is too big"):
-            ujson.loads("[18446098363113800555]")
+    @pytest.mark.parametrize("value", [f"{2**64}", f"{-2**63-1}"])
+    def test_decode_array_with_big_int(self, value):
+        with pytest.raises(
+            ValueError,
+            match="Value is too big|Value is too small",
+        ):
+            ujson.loads(value)
 
     @pytest.mark.parametrize(
         "float_number",

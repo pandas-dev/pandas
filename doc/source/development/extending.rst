@@ -231,7 +231,7 @@ Testing extension arrays
 We provide a test suite for ensuring that your extension arrays satisfy the expected
 behavior. To use the test suite, you must provide several pytest fixtures and inherit
 from the base test class. The required fixtures are found in
-https://github.com/pandas-dev/pandas/blob/master/pandas/tests/extension/conftest.py.
+https://github.com/pandas-dev/pandas/blob/main/pandas/tests/extension/conftest.py.
 
 To use a test, subclass it:
 
@@ -244,7 +244,7 @@ To use a test, subclass it:
        pass
 
 
-See https://github.com/pandas-dev/pandas/blob/master/pandas/tests/extension/base/__init__.py
+See https://github.com/pandas-dev/pandas/blob/main/pandas/tests/extension/base/__init__.py
 for a list of all the tests available.
 
 .. _extending.extension.arrow:
@@ -290,9 +290,9 @@ See more in the `Arrow documentation <https://arrow.apache.org/docs/python/exten
 Those methods have been implemented for the nullable integer and string extension
 dtypes included in pandas, and ensure roundtrip to pyarrow and the Parquet file format.
 
-.. _extension dtype dtypes: https://github.com/pandas-dev/pandas/blob/master/pandas/core/dtypes/dtypes.py
-.. _extension dtype source: https://github.com/pandas-dev/pandas/blob/master/pandas/core/dtypes/base.py
-.. _extension array source: https://github.com/pandas-dev/pandas/blob/master/pandas/core/arrays/base.py
+.. _extension dtype dtypes: https://github.com/pandas-dev/pandas/blob/main/pandas/core/dtypes/dtypes.py
+.. _extension dtype source: https://github.com/pandas-dev/pandas/blob/main/pandas/core/dtypes/base.py
+.. _extension array source: https://github.com/pandas-dev/pandas/blob/main/pandas/core/arrays/base.py
 
 .. _extending.subclassing-pandas:
 
@@ -468,7 +468,7 @@ This would be more or less equivalent to:
 The backend module can then use other visualization tools (Bokeh, Altair,...)
 to generate the plots.
 
-Libraries implementing the plotting backend should use `entry points <https://setuptools.readthedocs.io/en/latest/setuptools.html#dynamic-discovery-of-services-and-plugins>`__
+Libraries implementing the plotting backend should use `entry points <https://setuptools.pypa.io/en/latest/userguide/entry_point.html>`__
 to make their backend discoverable to pandas. The key is ``"pandas_plotting_backends"``. For example, pandas
 registers the default "matplotlib" backend as follows.
 
@@ -486,4 +486,4 @@ registers the default "matplotlib" backend as follows.
 
 
 More information on how to implement a third-party plotting backend can be found at
-https://github.com/pandas-dev/pandas/blob/master/pandas/plotting/__init__.py#L1.
+https://github.com/pandas-dev/pandas/blob/main/pandas/plotting/__init__.py#L1.

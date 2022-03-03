@@ -382,6 +382,7 @@ class BaseMethodsTests(BaseExtensionTests):
         self.assert_extension_array_equal(result, expected)
 
     def test_shift_zero_copies(self, data):
+        # GH#31502
         result = data.shift(0)
         assert result is not data
 
@@ -442,7 +443,8 @@ class BaseMethodsTests(BaseExtensionTests):
         cls = type(data)
         a, b = data[:2]
 
-        ser = pd.Series(cls._from_sequence([a, a, b, b], dtype=data.dtype))
+        orig = pd.Series(cls._from_sequence([a, a, b, b], dtype=data.dtype))
+        ser = orig.copy()
         cond = np.array([True, True, False, False])
 
         if as_frame:
@@ -458,7 +460,13 @@ class BaseMethodsTests(BaseExtensionTests):
             expected = expected.to_frame(name="a")
         self.assert_equal(result, expected)
 
+        ser.mask(~cond, inplace=True)
+        self.assert_equal(ser, expected)
+
         # array other
+        ser = orig.copy()
+        if as_frame:
+            ser = ser.to_frame(name="a")
         cond = np.array([True, False, True, True])
         other = cls._from_sequence([a, b, a, b], dtype=data.dtype)
         if as_frame:
@@ -469,6 +477,9 @@ class BaseMethodsTests(BaseExtensionTests):
         if as_frame:
             expected = expected.to_frame(name="a")
         self.assert_equal(result, expected)
+
+        ser.mask(~cond, other, inplace=True)
+        self.assert_equal(ser, expected)
 
     @pytest.mark.parametrize("repeats", [0, 1, 2, [1, 2, 3]])
     def test_repeat(self, data, repeats, as_series, use_numpy):
@@ -510,6 +521,48 @@ class BaseMethodsTests(BaseExtensionTests):
         result = data.delete([1, 3])
         expected = data._concat_same_type([data[[0]], data[[2]], data[4:]])
         self.assert_extension_array_equal(result, expected)
+
+    def test_insert(self, data):
+        # insert at the beginning
+        result = data[1:].insert(0, data[0])
+        self.assert_extension_array_equal(result, data)
+
+        result = data[1:].insert(-len(data[1:]), data[0])
+        self.assert_extension_array_equal(result, data)
+
+        # insert at the middle
+        result = data[:-1].insert(4, data[-1])
+
+        taker = np.arange(len(data))
+        taker[5:] = taker[4:-1]
+        taker[4] = len(data) - 1
+        expected = data.take(taker)
+        self.assert_extension_array_equal(result, expected)
+
+    def test_insert_invalid(self, data, invalid_scalar):
+        item = invalid_scalar
+
+        with pytest.raises((TypeError, ValueError)):
+            data.insert(0, item)
+
+        with pytest.raises((TypeError, ValueError)):
+            data.insert(4, item)
+
+        with pytest.raises((TypeError, ValueError)):
+            data.insert(len(data) - 1, item)
+
+    def test_insert_invalid_loc(self, data):
+        ub = len(data)
+
+        with pytest.raises(IndexError):
+            data.insert(ub + 1, data[0])
+
+        with pytest.raises(IndexError):
+            data.insert(-ub - 1, data[0])
+
+        with pytest.raises(TypeError):
+            # we expect TypeError here instead of IndexError to match np.insert
+            data.insert(1.5, data[0])
 
     @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
     def test_equals(self, data, na_value, as_series, box):

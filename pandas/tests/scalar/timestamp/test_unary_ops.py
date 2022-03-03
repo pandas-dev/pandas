@@ -1,6 +1,10 @@
 from datetime import datetime
 
 from dateutil.tz import gettz
+from hypothesis import (
+    given,
+    strategies as st,
+)
 import numpy as np
 import pytest
 import pytz
@@ -276,12 +280,12 @@ class TestTimestampUnaryOps:
         with pytest.raises(OverflowError, match=msg):
             Timestamp.max.ceil("s")
 
-    @pytest.mark.parametrize("n", range(100))
+    @given(val=st.integers(iNaT + 1, lib.i8max))
     @pytest.mark.parametrize(
         "method", [Timestamp.round, Timestamp.floor, Timestamp.ceil]
     )
-    def test_round_sanity(self, method, n):
-        val = np.random.randint(iNaT + 1, lib.i8max, dtype=np.int64)
+    def test_round_sanity(self, val, method):
+        val = np.int64(val)
         ts = Timestamp(val)
 
         def checker(res, ts, nanos):
@@ -490,10 +494,10 @@ class TestTimestampUnaryOps:
     # --------------------------------------------------------------
 
     @td.skip_if_windows
-    def test_timestamp(self):
+    def test_timestamp(self, fixed_now_ts):
         # GH#17329
         # tz-naive --> treat it as if it were UTC for purposes of timestamp()
-        ts = Timestamp.now()
+        ts = fixed_now_ts
         uts = ts.replace(tzinfo=utc)
         assert ts.timestamp() == uts.timestamp()
 

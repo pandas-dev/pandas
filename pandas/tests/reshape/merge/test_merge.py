@@ -118,7 +118,7 @@ def dfs_for_indicator():
 
 
 class TestMerge:
-    def setup_method(self, method):
+    def setup_method(self):
         # aggregate multiple columns
         self.df = DataFrame(
             {
@@ -308,21 +308,8 @@ class TestMerge:
 
         merged = merge(left, right, left_index=True, right_index=True, copy=False)
 
-        if using_array_manager:
-            # With ArrayManager, setting a column doesn't change the values inplace
-            # and thus does not propagate the changes to the original left/right
-            # dataframes -> need to check that no copy was made in a different way
-            # TODO(ArrayManager) we should be able to simplify this with a .loc
-            #  setitem test: merged.loc[0, "a"] = 10; assert left.loc[0, "a"] == 10
-            #  but this currently replaces the array (_setitem_with_indexer_split_path)
-            assert merged._mgr.arrays[0] is left._mgr.arrays[0]
-            assert merged._mgr.arrays[2] is right._mgr.arrays[0]
-        else:
-            merged["a"] = 6
-            assert (left["a"] == 6).all()
-
-            merged["d"] = "peekaboo"
-            assert (right["d"] == "peekaboo").all()
+        assert np.shares_memory(merged["a"]._values, left["a"]._values)
+        assert np.shares_memory(merged["d"]._values, right["d"]._values)
 
     def test_intelligently_handle_join_key(self):
         # #733, be a bit more 1337 about not returning unconsolidated DataFrame
@@ -610,7 +597,7 @@ class TestMerge:
         tm.assert_frame_equal(actual, expected)
 
     def test_merge_nosort(self):
-        # GH#2098, TODO: anything to do?
+        # GH#2098
 
         d = {
             "var1": np.random.randint(0, 10, size=10),
@@ -699,10 +686,12 @@ class TestMerge:
         # timedelta64 issues with join/merge
         # GH 5695
 
-        d = {"d": datetime(2013, 11, 5, 5, 56), "t": timedelta(0, 22500)}
+        d = DataFrame.from_dict(
+            {"d": [datetime(2013, 11, 5, 5, 56)], "t": [timedelta(0, 22500)]}
+        )
         df = DataFrame(columns=list("dt"))
-        df = df.append(d, ignore_index=True)
-        result = df.append(d, ignore_index=True)
+        df = concat([df, d], ignore_index=True)
+        result = concat([df, d], ignore_index=True)
         expected = DataFrame(
             {
                 "d": [datetime(2013, 11, 5, 5, 56), datetime(2013, 11, 5, 5, 56)],
@@ -1189,7 +1178,7 @@ class TestMerge:
         tm.assert_frame_equal(result, expected_3)
 
         # Dups on right
-        right_w_dups = right.append(DataFrame({"a": ["e"], "c": ["moo"]}, index=[4]))
+        right_w_dups = concat([right, DataFrame({"a": ["e"], "c": ["moo"]}, index=[4])])
         merge(
             left,
             right_w_dups,
@@ -1212,8 +1201,8 @@ class TestMerge:
             merge(left, right_w_dups, on="a", validate="one_to_one")
 
         # Dups on left
-        left_w_dups = left.append(
-            DataFrame({"a": ["a"], "c": ["cow"]}, index=[3]), sort=True
+        left_w_dups = concat(
+            [left, DataFrame({"a": ["a"], "c": ["cow"]}, index=[3])], sort=True
         )
         merge(
             left_w_dups,
@@ -1693,6 +1682,79 @@ class TestMergeDtypes:
         df2 = DataFrame({"A": [False, True], "C": [3, 4]})
         result = merge(df1, df2, how=how)
         expected = DataFrame(expected_data, columns=["A", "B", "C"])
+        tm.assert_frame_equal(result, expected)
+
+    def test_merge_ea_with_string(self, join_type, string_dtype):
+        # GH 43734 Avoid the use of `assign` with multi-index
+        df1 = DataFrame(
+            data={
+                ("lvl0", "lvl1-a"): ["1", "2", "3", "4", None],
+                ("lvl0", "lvl1-b"): ["4", "5", "6", "7", "8"],
+            },
+            dtype=pd.StringDtype(),
+        )
+        df1_copy = df1.copy()
+        df2 = DataFrame(
+            data={
+                ("lvl0", "lvl1-a"): ["1", "2", "3", pd.NA, "5"],
+                ("lvl0", "lvl1-c"): ["7", "8", "9", pd.NA, "11"],
+            },
+            dtype=string_dtype,
+        )
+        df2_copy = df2.copy()
+        merged = merge(left=df1, right=df2, on=[("lvl0", "lvl1-a")], how=join_type)
+
+        # No change in df1 and df2
+        tm.assert_frame_equal(df1, df1_copy)
+        tm.assert_frame_equal(df2, df2_copy)
+
+        # Check the expected types for the merged data frame
+        expected = Series(
+            [np.dtype("O"), pd.StringDtype(), np.dtype("O")],
+            index=MultiIndex.from_tuples(
+                [("lvl0", "lvl1-a"), ("lvl0", "lvl1-b"), ("lvl0", "lvl1-c")]
+            ),
+        )
+        tm.assert_series_equal(merged.dtypes, expected)
+
+    @pytest.mark.parametrize(
+        "left_empty, how, exp",
+        [
+            (False, "left", "left"),
+            (False, "right", "empty"),
+            (False, "inner", "empty"),
+            (False, "outer", "left"),
+            (False, "cross", "empty_cross"),
+            (True, "left", "empty"),
+            (True, "right", "right"),
+            (True, "inner", "empty"),
+            (True, "outer", "right"),
+            (True, "cross", "empty_cross"),
+        ],
+    )
+    def test_merge_empty(self, left_empty, how, exp):
+
+        left = DataFrame({"A": [2, 1], "B": [3, 4]})
+        right = DataFrame({"A": [1], "C": [5]}, dtype="int64")
+
+        if left_empty:
+            left = left.head(0)
+        else:
+            right = right.head(0)
+
+        result = left.merge(right, how=how)
+
+        if exp == "left":
+            expected = DataFrame({"A": [2, 1], "B": [3, 4], "C": [np.nan, np.nan]})
+        elif exp == "right":
+            expected = DataFrame({"B": [np.nan], "A": [1], "C": [5]})
+        elif exp == "empty":
+            expected = DataFrame(columns=["A", "B", "C"], dtype="int64")
+            if left_empty:
+                expected = expected[["B", "A", "C"]]
+        elif exp == "empty_cross":
+            expected = DataFrame(columns=["A_x", "B", "A_y", "C"], dtype="int64")
+
         tm.assert_frame_equal(result, expected)
 
 
@@ -2597,4 +2659,13 @@ def test_merge_outer_with_NaN(dtype):
         },
         dtype=dtype,
     )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_different_index_names():
+    # GH#45094
+    left = DataFrame({"a": [1]}, index=pd.Index([1], name="c"))
+    right = DataFrame({"a": [1]}, index=pd.Index([1], name="d"))
+    result = merge(left, right, left_on="c", right_on="d")
+    expected = DataFrame({"a_x": [1], "a_y": 1})
     tm.assert_frame_equal(result, expected)

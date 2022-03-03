@@ -27,6 +27,9 @@ center : bool, default None
     center passed from the top level rolling API
 closed : str, default None
     closed passed from the top level rolling API
+step : int, default None
+    step passed from the top level rolling API
+    .. versionadded:: 1.5
 win_type : str, default None
     win_type passed from the top level rolling API
 
@@ -62,6 +65,7 @@ class BaseIndexer:
         min_periods: int | None = None,
         center: bool | None = None,
         closed: str | None = None,
+        step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
 
         raise NotImplementedError
@@ -77,6 +81,7 @@ class FixedWindowIndexer(BaseIndexer):
         min_periods: int | None = None,
         center: bool | None = None,
         closed: str | None = None,
+        step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
 
         if center:
@@ -84,7 +89,7 @@ class FixedWindowIndexer(BaseIndexer):
         else:
             offset = 0
 
-        end = np.arange(1 + offset, num_values + 1 + offset, dtype="int64")
+        end = np.arange(1 + offset, num_values + 1 + offset, step, dtype="int64")
         start = end - self.window_size
         if closed in ["left", "both"]:
             start -= 1
@@ -107,6 +112,7 @@ class VariableWindowIndexer(BaseIndexer):
         min_periods: int | None = None,
         center: bool | None = None,
         closed: str | None = None,
+        step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
 
         # error: Argument 4 to "calculate_variable_window_bounds" has incompatible
@@ -124,7 +130,7 @@ class VariableWindowIndexer(BaseIndexer):
 
 
 class VariableOffsetWindowIndexer(BaseIndexer):
-    """Calculate window boundaries based on a non-fixed offset such as a BusinessDay"""
+    """Calculate window boundaries based on a non-fixed offset such as a BusinessDay."""
 
     def __init__(
         self,
@@ -145,7 +151,13 @@ class VariableOffsetWindowIndexer(BaseIndexer):
         min_periods: int | None = None,
         center: bool | None = None,
         closed: str | None = None,
+        step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
+
+        if step is not None:
+            raise NotImplementedError("step not implemented for variable offset window")
+        if num_values <= 0:
+            return np.empty(0, dtype="int64"), np.empty(0, dtype="int64")
 
         # if windows is variable, default is 'right', otherwise default is 'both'
         if closed is None:
@@ -215,6 +227,7 @@ class ExpandingIndexer(BaseIndexer):
         min_periods: int | None = None,
         center: bool | None = None,
         closed: str | None = None,
+        step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
 
         return (
@@ -256,6 +269,7 @@ class FixedForwardWindowIndexer(BaseIndexer):
         min_periods: int | None = None,
         center: bool | None = None,
         closed: str | None = None,
+        step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
 
         if center:
@@ -264,11 +278,13 @@ class FixedForwardWindowIndexer(BaseIndexer):
             raise ValueError(
                 "Forward-looking windows don't support setting the closed argument"
             )
+        if step is None:
+            step = 1
 
-        start = np.arange(num_values, dtype="int64")
-        end_s = start[: -self.window_size] + self.window_size
-        end_e = np.full(self.window_size, num_values, dtype="int64")
-        end = np.concatenate([end_s, end_e])
+        start = np.arange(0, num_values, step, dtype="int64")
+        end = start + self.window_size
+        if self.window_size:
+            end = np.clip(end, 0, num_values)
 
         return start, end
 
@@ -279,8 +295,8 @@ class GroupbyIndexer(BaseIndexer):
     def __init__(
         self,
         index_array: np.ndarray | None = None,
-        window_size: int = 0,
-        groupby_indicies: dict | None = None,
+        window_size: int | BaseIndexer = 0,
+        groupby_indices: dict | None = None,
         window_indexer: type[BaseIndexer] = BaseIndexer,
         indexer_kwargs: dict | None = None,
         **kwargs,
@@ -292,9 +308,9 @@ class GroupbyIndexer(BaseIndexer):
             np.ndarray of the index of the original object that we are performing
             a chained groupby operation over. This index has been pre-sorted relative to
             the groups
-        window_size : int
+        window_size : int or BaseIndexer
             window size during the windowing operation
-        groupby_indicies : dict or None
+        groupby_indices : dict or None
             dict of {group label: [positional index of rows belonging to the group]}
         window_indexer : BaseIndexer
             BaseIndexer class determining the start and end bounds of each group
@@ -303,11 +319,13 @@ class GroupbyIndexer(BaseIndexer):
         **kwargs :
             keyword arguments that will be available when get_window_bounds is called
         """
-        self.groupby_indicies = groupby_indicies or {}
+        self.groupby_indices = groupby_indices or {}
         self.window_indexer = window_indexer
-        self.indexer_kwargs = indexer_kwargs or {}
+        self.indexer_kwargs = indexer_kwargs.copy() if indexer_kwargs else {}
         super().__init__(
-            index_array, self.indexer_kwargs.pop("window_size", window_size), **kwargs
+            index_array=index_array,
+            window_size=self.indexer_kwargs.pop("window_size", window_size),
+            **kwargs,
         )
 
     @Appender(get_window_bounds_doc)
@@ -317,14 +335,16 @@ class GroupbyIndexer(BaseIndexer):
         min_periods: int | None = None,
         center: bool | None = None,
         closed: str | None = None,
+        step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
+
         # 1) For each group, get the indices that belong to the group
         # 2) Use the indices to calculate the start & end bounds of the window
         # 3) Append the window bounds in group order
         start_arrays = []
         end_arrays = []
-        window_indicies_start = 0
-        for key, indices in self.groupby_indicies.items():
+        window_indices_start = 0
+        for key, indices in self.groupby_indices.items():
             index_array: np.ndarray | None
 
             if self.index_array is not None:
@@ -337,22 +357,27 @@ class GroupbyIndexer(BaseIndexer):
                 **self.indexer_kwargs,
             )
             start, end = indexer.get_window_bounds(
-                len(indices), min_periods, center, closed
+                len(indices), min_periods, center, closed, step
             )
             start = start.astype(np.int64)
             end = end.astype(np.int64)
-            # Cannot use groupby_indicies as they might not be monotonic with the object
+            assert len(start) == len(
+                end
+            ), "these should be equal in length from get_window_bounds"
+            # Cannot use groupby_indices as they might not be monotonic with the object
             # we're rolling over
-            window_indicies = np.arange(
-                window_indicies_start, window_indicies_start + len(indices)
+            window_indices = np.arange(
+                window_indices_start, window_indices_start + len(indices)
             )
-            window_indicies_start += len(indices)
+            window_indices_start += len(indices)
             # Extend as we'll be slicing window like [start, end)
-            window_indicies = np.append(
-                window_indicies, [window_indicies[-1] + 1]
-            ).astype(np.int64)
-            start_arrays.append(window_indicies.take(ensure_platform_int(start)))
-            end_arrays.append(window_indicies.take(ensure_platform_int(end)))
+            window_indices = np.append(window_indices, [window_indices[-1] + 1]).astype(
+                np.int64, copy=False
+            )
+            start_arrays.append(window_indices.take(ensure_platform_int(start)))
+            end_arrays.append(window_indices.take(ensure_platform_int(end)))
+        if len(start_arrays) == 0:
+            return np.array([], dtype=np.int64), np.array([], dtype=np.int64)
         start = np.concatenate(start_arrays)
         end = np.concatenate(end_arrays)
         return start, end
@@ -368,6 +393,7 @@ class ExponentialMovingWindowIndexer(BaseIndexer):
         min_periods: int | None = None,
         center: bool | None = None,
         closed: str | None = None,
+        step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
 
         return np.array([0], dtype=np.int64), np.array([num_values], dtype=np.int64)

@@ -22,10 +22,10 @@ def test_is_scalar_indexer():
     assert not is_scalar_indexer(indexer[0], 2)
 
     indexer = (np.array([2]), 1)
-    assert is_scalar_indexer(indexer, 2)
+    assert not is_scalar_indexer(indexer, 2)
 
     indexer = (np.array([2]), np.array([3]))
-    assert is_scalar_indexer(indexer, 2)
+    assert not is_scalar_indexer(indexer, 2)
 
     indexer = (np.array([2]), np.array([3, 4]))
     assert not is_scalar_indexer(indexer, 2)

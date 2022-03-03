@@ -6,9 +6,8 @@ from numpy cimport (
 
 cpdef bint is_matching_na(object left, object right, bint nan_matches_none=*)
 
-cpdef bint checknull(object val)
-cpdef bint checknull_old(object val)
-cpdef ndarray[uint8_t] isnaobj(ndarray arr)
+cpdef bint checknull(object val, bint inf_as_na=*)
+cpdef ndarray[uint8_t] isnaobj(ndarray arr, bint inf_as_na=*)
 
 cdef bint is_null_datetime64(v)
 cdef bint is_null_timedelta64(v)
