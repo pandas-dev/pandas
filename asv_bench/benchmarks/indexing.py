@@ -301,13 +301,14 @@ class SortedAndUnsortedDatetimeIndexLoc:
     def setup(self):
         dti = date_range("2016-01-01", periods=10000, tz="US/Pacific")
         index = np.array(dti)
-        df = DataFrame(index=index, data={"a": 1})
-        df_sort = df.sort_index()
-        self.df = df
+        df_unsorted = DataFrame(index=index, data={"a": 1})
+        df_sort = df_unsorted.copy().sort_index()
+
+        self.df_unsorted = df_unsorted
         self.df_sort = df_sort
 
     def time_loc_unsorted(self):
-        self.df.loc["2016-6-11"]
+        self.df_unsorted.loc["2016-6-11"]
 
     def time_loc_sorted(self):
         self.df_sort.loc["2016-6-11"]
