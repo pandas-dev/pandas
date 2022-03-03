@@ -262,7 +262,6 @@ class TestDataFrameQuantile:
         )
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:In future versions of pandas, numeric_only")
     def test_quantile_datetime(self):
         df = DataFrame({"a": pd.to_datetime(["2010", "2011"]), "b": [0, 5]})
 
@@ -339,7 +338,6 @@ class TestDataFrameQuantile:
             with pytest.raises(ValueError, match=msg):
                 datetime_frame.quantile(invalid)
 
-    @pytest.mark.filterwarnings("ignore:In future versions of pandas, numeric_only")
     def test_quantile_box(self):
         df = DataFrame(
             {
@@ -463,7 +461,6 @@ class TestDataFrameQuantile:
         )
         tm.assert_frame_equal(res, exp)
 
-    @pytest.mark.filterwarnings("ignore:In future versions of pandas, numeric_only")
     def test_quantile_nan(self):
 
         # GH 14357 - float block where some cols have missing values
@@ -532,7 +529,6 @@ class TestDataFrameQuantile:
         )
         tm.assert_frame_equal(res, exp)
 
-    @pytest.mark.filterwarnings("ignore:In future versions of pandas, numeric_only")
     def test_quantile_empty_no_rows_floats(self):
 
         # floats
@@ -584,7 +580,6 @@ class TestDataFrameQuantile:
         exp = exp.astype(df["b"].dtype)
         tm.assert_series_equal(res, exp)
 
-    @pytest.mark.filterwarnings("ignore:In future versions of pandas, numeric_only")
     def test_quantile_empty_no_columns(self):
         # GH#23925 _get_numeric_data may drop all columns
         df = DataFrame(pd.date_range("1/1/18", periods=5))
