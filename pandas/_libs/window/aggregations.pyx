@@ -1323,13 +1323,13 @@ def roll_apply(object obj,
 
 def roll_weighted_sum(
     const float64_t[:] values, const float64_t[:] weights, int minp
-) -> np.ndaray:
+) -> np.ndarray:
     return _roll_weighted_sum_mean(values, weights, minp, avg=0)
 
 
 def roll_weighted_mean(
     const float64_t[:] values, const float64_t[:] weights, int minp
-) -> np.ndaray:
+) -> np.ndarray:
     return _roll_weighted_sum_mean(values, weights, minp, avg=1)
 
 
