@@ -3186,6 +3186,7 @@ class TestDatetime64Formatter:
         x = date_range("2018-01-01", periods=24, freq="H").to_numpy()
 
         def format_func(t):
+            t = pd.to_datetime(t)
             return t.strftime("%H-%m")
 
         formatter = fmt.Datetime64Formatter(x.reshape((4, 2, 3)), formatter=format_func)
@@ -3239,8 +3240,8 @@ class TestDatetime64TZFormatter:
         )
         result = formatter.get_result()
         assert len(result) == 4
-        assert result[0].strip() == "[[2018-01-01 00:00:00-08:00, 2018-01-01 01:00:..."
-        assert result[3].strip() == "[[2018-01-01 12:00:00-08:00, 2018-01-01 13:00:..."
+        assert result[0].strip() == "[[00-01 PST, 01-01 PST], [02-01 PST, 03-01 PST]]"
+        assert result[3].strip() == "[[12-01 PST, 13-01 PST], [14-01 PST, 15-01 PST]]"
 
 
 class TestNaTFormatting:

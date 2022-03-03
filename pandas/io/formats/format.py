@@ -1621,31 +1621,21 @@ class Datetime64Formatter(GenericArrayFormatter):
 
     def _format_strings(self) -> list[str]:
         """we by definition have DO NOT have a TZ"""
+
         values = self.values
-        values_shape = values.shape
-        values = values.ravel() if values.ndim > 1 else values
 
         if not isinstance(values, DatetimeIndex):
             values = DatetimeIndex(values)
 
         if self.formatter is not None and callable(self.formatter):
-            values = [self.formatter(x) for x in values]
+            fmt_values = np.frompyfunc(self.formatter, 1, 1)(values)
         else:
-            values = values._data._format_native_types(
+            fmt_values = values._data._format_native_types(
                 na_rep=self.nat_rep, date_format=self.date_format
             )
 
-        fmt_values = self._reshape_formatted_strings(values, values_shape)
-        return fmt_values
-
-    def _reshape_formatted_strings(self, values, values_shape):
-        if len(values_shape) > 1:
-            fmt_values = np.reshape(values, values_shape)
-            nested_formatter = GenericArrayFormatter(fmt_values)
-            fmt_values = nested_formatter.get_result()
-        else:
-            fmt_values = values
-
+        nested_formatter = GenericArrayFormatter(fmt_values)
+        fmt_values = nested_formatter.get_result()
         return list(fmt_values)
 
 
@@ -1824,18 +1814,15 @@ class Datetime64TZFormatter(Datetime64Formatter):
     def _format_strings(self) -> list[str]:
         """we by definition have a TZ"""
         values = self.values.astype(object)
-        values_shape = values.shape
-        values = values.ravel() if values.ndim > 1 else values
         ido = is_dates_only(values)
         formatter = self.formatter or get_format_datetime64(
             ido, date_format=self.date_format
         )
+        fmt_values = np.frompyfunc(formatter, 1, 1)(values)
 
-        if len(values_shape) == 1:
-            values = [formatter(x) for x in values]
-
-        fmt_values = self._reshape_formatted_strings(values, values_shape)
-        return fmt_values
+        nested_formatter = GenericArrayFormatter(fmt_values)
+        fmt_values = nested_formatter.get_result()
+        return list(fmt_values)
 
 
 class Timedelta64Formatter(GenericArrayFormatter):
