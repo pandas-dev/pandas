@@ -8,6 +8,5 @@ def calculate_variable_window_bounds(
     min_periods,
     center: bool,
     closed: str | None,
-    step: int | None,
     index: np.ndarray,  # const int64_t[:]
 ) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]]: ...
