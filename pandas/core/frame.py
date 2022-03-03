@@ -9837,9 +9837,9 @@ NaN 12.3   33.0
         axis = self._get_axis_number(axis)
         this = self._get_numeric_data()
 
-        # GH46174: when other is a Series object, we achieve a speedup over passing
-        # .corr() to .apply() by taking the columns as ndarrays and iterating over
-        # their transposition row-wise. Then we delegate the correlation coefficient
+        # GH46174: when other is a Series object and axis=0, we achieve a speedup over
+        # passing .corr() to .apply() by taking the columns as ndarrays and iterating
+        # over the transposition row-wise. Then we delegate the correlation coefficient
         # computation and null-masking to np.corrcoef and np.isnan respectively,
         # which are much faster. We exploit the fact that the Spearman correlation
         # of two vectors is equal to the Pearson correlation of their ranks to use
