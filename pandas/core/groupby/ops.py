@@ -434,10 +434,9 @@ class WrappedCythonOp:
         )
 
         dtype = self._get_result_dtype(orig_values.dtype)
-        assert res_values.dtype == dtype.type, (res_values.dtype, dtype)
         # TODO: avoid cast as res_values *should* already have the right
         #  dtype; last attempt ran into trouble on 32bit linux build
-        # res_values = res_values.astype(dtype.type, copy=False)
+        res_values = res_values.astype(dtype.type, copy=False)
 
         if self.kind != "aggregate":
             out_mask = mask
@@ -607,14 +606,6 @@ class WrappedCythonOp:
             # "rank" is the only member of cast_blocklist we get here
             res_dtype = self._get_result_dtype(orig_values.dtype)
             op_result = maybe_downcast_to_dtype(result, res_dtype)
-            if self.how == "first" and result_mask is not None and self.uses_mask():
-                # troubleshooting 32bit linux build
-                assert res_dtype == orig_values.dtype, (res_dtype, orig_values.dtype)
-                assert op_result.dtype == res_dtype, (
-                    op_result.dtype,
-                    res_dtype,
-                    result,
-                )
         else:
             op_result = result
 
