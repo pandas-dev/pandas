@@ -18,7 +18,6 @@ from io import StringIO
 import itertools
 from textwrap import dedent
 from typing import (
-    IO,
     TYPE_CHECKING,
     Any,
     Callable,
@@ -2717,7 +2716,7 @@ class DataFrame(NDFrame, OpsMixin):
     )
     def to_markdown(
         self,
-        buf: IO[str] | str | None = None,
+        buf: FilePath | WriteBuffer[str] | None = None,
         mode: str = "wt",
         index: bool = True,
         storage_options: StorageOptions = None,
