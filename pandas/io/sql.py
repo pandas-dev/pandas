@@ -872,9 +872,7 @@ class SQLTable(PandasObject):
         )
 
         cols_to_fetch = [self.table.c[key] for key in primary_keys]
-        # select_stmt = select(cols_to_fetch).where(
-        #     tuple_(*cols_to_fetch).in_(primary_key_values)
-        # )
+
         select_stmt = select(cols_to_fetch).where(
             and_(
                 col.in_(key[i] for key in primary_key_values)
