@@ -2395,17 +2395,18 @@ cdef class _Period(PeriodMixin):
     def fast_strftime(self, fmt_str: str) -> str:
         """A faster alternative to `strftime` using string formatting.
 
-        `fmt_str` should be created using `convert_period_format(fmt)`.
+        `fmt_str` should be created using `convert_strftime_format(fmt)`.
 
         See also `self.strftime`, that relies on `period_format`.
 
         Examples
         --------
 
+        >>> from pandas._libs.tslibs import convert_strftime_format
         >>> a = Period(freq='Q-JUL', year=2006, quarter=1)
         >>> a.strftime('%F-Q%q')
         '2006-Q1'
-        >>> fast_fmt = convert_period_format('%F-Q%q')
+        >>> fast_fmt = convert_strftime_format('%F-Q%q', target="period")
         >>> a.fast_strftime(fast_fmt)
         '2006-Q1'
         """
