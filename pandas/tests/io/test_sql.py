@@ -1015,7 +1015,7 @@ class PandasSQLTest:
         with pytest.raises(
             ValueError,
             match=(
-                f"on_row_conflict {on_row_conflict} can only be used with 'append'"
+                f"on_row_conflict {on_row_conflict} can only be used with 'append' "
                 "operations"
             ),
         ):

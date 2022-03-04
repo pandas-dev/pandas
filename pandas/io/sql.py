@@ -690,7 +690,7 @@ def to_sql(
     # on_row_conflict only used with append
     if if_exists != "append" and on_row_conflict in {"overwrite", "ignore"}:
         raise ValueError(
-            f"on_row_conflict {on_row_conflict} can only be used with 'append'"
+            f"on_row_conflict {on_row_conflict} can only be used with 'append' "
             "operations"
         )
 
