@@ -429,6 +429,8 @@ Groupby/resample/rolling
 - Bug in :meth:`.ExponentialMovingWindow.mean` with ``axis=1`` and ``engine='numba'`` when the :class:`DataFrame` has more columns than rows (:issue:`46086`)
 - Bug when using ``engine="numba"`` would return the same jitted function when modifying ``engine_kwargs`` (:issue:`46086`)
 - Bug in :meth:`.DataFrameGroupby.transform` fails when ``axis=1`` and ``func`` is ``"first"`` or ``"last"`` (:issue:`45986`)
+- Bug in :meth:`GroupBy.cummin` and :meth:`GroupBy.cummax` with nullable dtypes incorrectly altering the original data in place (:issue:`46220`)
+-
 
 Reshaping
 ^^^^^^^^^
