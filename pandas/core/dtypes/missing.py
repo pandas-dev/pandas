@@ -58,16 +58,15 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.inference import is_list_like
 
 if TYPE_CHECKING:
-    import numpy.typing as npt
-
     from pandas._typing import (
         NDFrame,
         NDFrameT,
         Scalar,
+        npt,
     )
 
     from pandas.core.arrays.base import ExtensionArray
-    from pandas.core.indexes.base import Index
+    from pandas.core.base import IndexOpsMixin
 
 
 isposinf_scalar = libmissing.isposinf_scalar
@@ -85,7 +84,9 @@ def isna(obj: Scalar) -> bool:
 
 
 @overload
-def isna(obj: Index | ExtensionArray | np.ndarray | list) -> npt.NDArray[np.bool_]:
+def isna(
+    obj: IndexOpsMixin | ExtensionArray | np.ndarray | list,
+) -> npt.NDArray[np.bool_]:
     ...
 
 
@@ -326,7 +327,9 @@ def notna(obj: Scalar) -> bool:
 
 
 @overload
-def notna(obj: Index | ExtensionArray | np.ndarray | list) -> npt.NDArray[np.bool_]:
+def notna(
+    obj: IndexOpsMixin | ExtensionArray | np.ndarray | list,
+) -> npt.NDArray[np.bool_]:
     ...
 
 
