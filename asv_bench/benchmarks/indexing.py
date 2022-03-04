@@ -305,11 +305,8 @@ class SortedAndUnsortedDatetimeIndexLoc:
         unsorted_index = index.copy()
         unsorted_index[10] = unsorted_index[20]
 
-        df_unsorted = DataFrame(index=unsorted_index, data={"a": 1})
-        df_sort = DataFrame(index=index, data={"a": 1})
-
-        self.df_unsorted = df_unsorted
-        self.df_sort = df_sort
+        self.df_unsorted = DataFrame(index=unsorted_index, data={"a": 1})
+        self.df_sort = DataFrame(index=index, data={"a": 1})
 
     def time_loc_unsorted(self):
         self.df_unsorted.loc["2016-6-11"]
