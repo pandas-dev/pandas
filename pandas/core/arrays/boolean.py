@@ -182,6 +182,7 @@ def coerce_to_array(
             values = values.copy()
     elif isinstance(values, np.ndarray) and is_numeric_dtype(values.dtype):
         mask_values = isna(values)
+        assert mask_values is not None
 
         values_bool = np.zeros(len(values), dtype=bool)
         values_bool[~mask_values] = values[~mask_values].astype(bool)
@@ -201,6 +202,7 @@ def coerce_to_array(
             raise TypeError("Need to pass bool-like values")
 
         mask_values = isna(values_object)
+        assert mask_values is not None
         values = np.zeros(len(values), dtype=bool)
         values[~mask_values] = values_object[~mask_values].astype(bool)
 

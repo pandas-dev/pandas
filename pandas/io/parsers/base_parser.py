@@ -31,6 +31,7 @@ from pandas._libs.tslibs import parsing
 from pandas._typing import (
     ArrayLike,
     DtypeArg,
+    Scalar,
 )
 from pandas.errors import (
     ParserError,
@@ -855,8 +856,9 @@ class ParserBase:
         data: list of array-likes containing the data column-wise.
         """
         if not self.index_col and len(columns) != len(data) and columns:
+            last_entry = cast(Scalar, data[-1])
             if len(columns) == len(data) - 1 and np.all(
-                (is_object_dtype(data[-1]) and data[-1] == "") | isna(data[-1])
+                (is_object_dtype(last_entry) and last_entry == "") | isna(last_entry)
             ):
                 return
             warnings.warn(
