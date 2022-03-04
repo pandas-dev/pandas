@@ -1459,7 +1459,8 @@ def group_min(
 cdef group_cummin_max(
     iu_64_floating_t[:, ::1] out,
     ndarray[iu_64_floating_t, ndim=2] values,
-    uint8_t[:, ::1] mask,
+    const uint8_t[:, ::1] mask,
+    uint8_t[:, ::1] result_mask,
     const intp_t[::1] labels,
     int ngroups,
     bint is_datetimelike,
@@ -1478,6 +1479,9 @@ cdef group_cummin_max(
     mask : np.ndarray[bool] or None
         If not None, indices represent missing values,
         otherwise the mask will not be used
+    result_mask : ndarray[bool, ndim=2], optional
+        If not None, these specify locations in the output that are NA.
+        Modified in-place.
     labels : np.ndarray[np.intp]
         Labels to group by.
     ngroups : int
@@ -1540,7 +1544,7 @@ cdef group_cummin_max(
 
                 if not skipna and na_possible and seen_na[lab, j]:
                     if uses_mask:
-                        mask[i, j] = 1   # FIXME: shouldn't alter inplace
+                        result_mask[i, j] = 1
                         # Set to 0 ensures that we are deterministic and can
                         #  downcast if appropriate
                         out[i, j] = 0
@@ -1577,19 +1581,21 @@ def group_cummin(
     const intp_t[::1] labels,
     int ngroups,
     bint is_datetimelike,
-    uint8_t[:, ::1] mask=None,
+    const uint8_t[:, ::1] mask=None,
+    uint8_t[:, ::1] result_mask=None,
     bint skipna=True,
 ) -> None:
     """See group_cummin_max.__doc__"""
     group_cummin_max(
-        out,
-        values,
-        mask,
-        labels,
-        ngroups,
-        is_datetimelike,
-        skipna,
-        compute_max=False
+        out=out,
+        values=values,
+        mask=mask,
+        result_mask=result_mask,
+        labels=labels,
+        ngroups=ngroups,
+        is_datetimelike=is_datetimelike,
+        skipna=skipna,
+        compute_max=False,
     )
 
 
@@ -1601,17 +1607,19 @@ def group_cummax(
     const intp_t[::1] labels,
     int ngroups,
     bint is_datetimelike,
-    uint8_t[:, ::1] mask=None,
+    const uint8_t[:, ::1] mask=None,
+    uint8_t[:, ::1] result_mask=None,
     bint skipna=True,
 ) -> None:
     """See group_cummin_max.__doc__"""
     group_cummin_max(
-        out,
-        values,
-        mask,
-        labels,
-        ngroups,
-        is_datetimelike,
-        skipna,
-        compute_max=True
+        out=out,
+        values=values,
+        mask=mask,
+        result_mask=result_mask,
+        labels=labels,
+        ngroups=ngroups,
+        is_datetimelike=is_datetimelike,
+        skipna=skipna,
+        compute_max=True,
     )
