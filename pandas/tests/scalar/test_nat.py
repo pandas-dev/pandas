@@ -190,7 +190,17 @@ def test_nat_iso_format(get_nat):
 @pytest.mark.parametrize(
     "klass,expected",
     [
-        (Timestamp, ["freqstr", "normalize", "to_julian_date", "to_period", "tz"]),
+        (
+            Timestamp,
+            [
+                "fast_strftime",
+                "freqstr",
+                "normalize",
+                "to_julian_date",
+                "to_period",
+                "tz"
+            ]
+        ),
         (
             Timedelta,
             [
