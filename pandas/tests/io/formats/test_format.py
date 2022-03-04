@@ -3354,18 +3354,15 @@ class TestDatetimeFastFormatter:
         assert old_style_best < new_style_best  # even better !
 
     def test_bad_strftime_directive(self):
-        """Test which kind of error is output in case of bad `date_format` directive."""
+        """Test what happens in case of bad `date_format` directive."""
 
-        # TODO make sure that it does not become very hard for users to understand
         x = Series(date_range("20130101 09:00:00", periods=5, freq="us"))
 
         # This does not raise any error, while %D is not a correct directive !
         x.dt.strftime(date_format="%Y-%M-%D___", fast_strftime=False)
 
-        # This raises a `TypeError: not enough arguments for format string`
-        with pytest.raises(TypeError):
-            x.dt.strftime(date_format="%Y-%M-%D___")
-        # TODO raise a more readable error ?
+        # We align with the same behaviour
+        x.dt.strftime(date_format="%Y-%M-%D___")
 
     @pytest.mark.parametrize("date_format", (
         # note: "%Y-%m-%d %H:%M:%S and "%Y-%m-%d %H:%M:%S.%f are always accelerated (hardcoded)
