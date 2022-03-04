@@ -204,11 +204,11 @@ class MultiIndexing:
     param_names = ["unique_levels"]
 
     def setup(self, unique_levels):
-        self.ndim = 2
+        self.nlevels = 2
         if unique_levels:
-            mi = MultiIndex.from_arrays([range(1000000)] * self.ndim)
+            mi = MultiIndex.from_arrays([range(1000000)] * self.nlevels)
         else:
-            mi = MultiIndex.from_product([range(1000)] * self.ndim)
+            mi = MultiIndex.from_product([range(1000)] * self.nlevels)
         self.df = DataFrame(np.random.randn(len(mi)), index=mi)
 
         self.tgt_slice = slice(200, 800)
@@ -232,27 +232,27 @@ class MultiIndexing:
     def time_loc_partial_key_scalar(self, unique_levels):
         self.df.loc[self.tgt_scalar, :]
 
-    def time_loc_partial_bool_indexer(self, unique_levels):
+    def time_loc_partial_key_bool_indexer(self, unique_levels):
         self.df.loc[self.tgt_bool_indexer, :]
 
     def time_loc_all_slices(self, unique_levels):
-        target = tuple([self.tgt_slice] * self.ndim)
+        target = tuple([self.tgt_slice] * self.nlevels)
         self.df.loc[target, :]
 
     def time_loc_all_null_slices(self, unique_levels):
-        target = tuple([self.tgt_null_slice] * self.ndim)
+        target = tuple([self.tgt_null_slice] * self.nlevels)
         self.df.loc[target, :]
 
     def time_loc_all_lists(self, unique_levels):
-        target = tuple([self.tgt_list] * self.ndim)
+        target = tuple([self.tgt_list] * self.nlevels)
         self.df.loc[target, :]
 
     def time_loc_all_scalars(self, unique_levels):
-        target = tuple([self.tgt_scalar] * self.ndim)
+        target = tuple([self.tgt_scalar] * self.nlevels)
         self.df.loc[target, :]
 
     def time_loc_all_bool_indexers(self, unique_levels):
-        target = tuple([self.tgt_bool_indexer] * self.ndim)
+        target = tuple([self.tgt_bool_indexer] * self.nlevels)
         self.df.loc[target, :]
 
     def time_loc_slice_plus_null_slice(self, unique_levels):
@@ -262,6 +262,18 @@ class MultiIndexing:
     def time_loc_null_slice_plus_slice(self, unique_levels):
         target = (self.tgt_null_slice, self.tgt_slice)
         self.df.loc[target, :]
+
+    def time_xs_level_0(self, unique_levels):
+        target = self.tgt_scalar
+        self.df.xs(target, level=0)
+
+    def time_xs_level_1(self, unique_levels):
+        target = self.tgt_scalar
+        self.df.xs(target, level=1)
+
+    def time_xs_full_key(self, unique_levels):
+        target = tuple([self.tgt_scalar] * self.nlevels)
+        self.df.xs(target)
 
 
 class IntervalIndexing:
