@@ -915,19 +915,22 @@ class PandasSQLTest:
         """
         assert self.pandasSQL.has_table(tbl_name)
         assert count_rows(self.conn, tbl_name) == 3
-        self.pandasSQL.to_sql(
-            pkey_frame,
-            tbl_name,
-            if_exists="append",
-            on_row_conflict="overwrite",
-            index=False,
-            method=method,
+        assert len(pkey_frame.index) == 4
+        assert (
+            self.pandasSQL.to_sql(
+                pkey_frame,
+                tbl_name,
+                if_exists="append",
+                on_row_conflict="overwrite",
+                index=False,
+                method=method,
+            )
+            == 4
         )
         assert count_rows(self.conn, tbl_name) == 5
         data_from_db = read_pkeys_from_database(self.conn, tbl_name, [1, 2])
         expected = sorted(["new_val1", "new_val2"])
         assert data_from_db == expected
-        assert len(pkey_frame.index) == 4
         self.drop_table(tbl_name)
 
     def _to_sql_on_row_conflict_ignore(self, method, tbl_name, pkey_frame):
@@ -947,13 +950,16 @@ class PandasSQLTest:
         data_from_db_before = read_pkeys_from_database(
             self.conn, tbl_name, duplicate_keys
         )
-        self.pandasSQL.to_sql(
-            pkey_frame,
-            tbl_name,
-            if_exists="append",
-            on_row_conflict="ignore",
-            index=False,
-            method=method,
+        assert (
+            self.pandasSQL.to_sql(
+                pkey_frame,
+                tbl_name,
+                if_exists="append",
+                on_row_conflict="ignore",
+                index=False,
+                method=method,
+            )
+            == 2
         )
         assert count_rows(self.conn, tbl_name) == 5
         data_from_db_after = read_pkeys_from_database(
@@ -984,13 +990,16 @@ class PandasSQLTest:
             index_pkey_table = pkey_frame.set_index("a")
         else:
             index_pkey_table = pkey_frame.set_index(["a", "b"])
-        self.pandasSQL.to_sql(
-            index_pkey_table,
-            tbl_name,
-            if_exists="append",
-            on_row_conflict="overwrite",
-            index=True,
-            method=method,
+        assert (
+            self.pandasSQL.to_sql(
+                index_pkey_table,
+                tbl_name,
+                if_exists="append",
+                on_row_conflict="overwrite",
+                index=True,
+                method=method,
+            )
+            == 4
         )
         assert count_rows(self.conn, tbl_name) == 5
         data_from_db = read_pkeys_from_database(self.conn, tbl_name, [1, 2])

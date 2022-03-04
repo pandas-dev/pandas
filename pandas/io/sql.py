@@ -1118,7 +1118,7 @@ class SQLTable(PandasObject):
         """
         if self.on_row_conflict == "overwrite":
             new_data, update_stmts = self._on_row_conflict_overwrite()
-            self._insert(
+            return self._insert(
                 data=new_data,
                 chunksize=chunksize,
                 method=method,
@@ -1160,8 +1160,11 @@ class SQLTable(PandasObject):
         total_inserted = 0
         with self.pd_sql.run_transaction() as conn:
             if len(other_stmts) > 0:
+                rows_executed = 0
                 for stmt in other_stmts:
-                    conn.execute(stmt)
+                    result = conn.execute(stmt)
+                    rows_executed += result.rowcount
+                total_inserted = rows_executed
 
             for i in range(chunks):
                 start_i = i * chunksize
