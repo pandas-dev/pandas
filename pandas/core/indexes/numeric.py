@@ -327,7 +327,7 @@ _num_index_shared_docs[
     None
 
     Methods
-    ----------
+    -------
     None
 
     See Also
