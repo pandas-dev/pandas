@@ -43,6 +43,7 @@ from pandas._libs.algos import (
 from pandas._libs.dtypes cimport (
     iu_64_floating_obj_t,
     iu_64_floating_t,
+    numeric_object_t,
     numeric_t,
 )
 from pandas._libs.missing cimport checknull
@@ -211,7 +212,7 @@ def group_cumsum(
     ndarray[numeric_t, ndim=2] values,
     const intp_t[::1] labels,
     int ngroups,
-    is_datetimelike,
+    bint is_datetimelike,
     bint skipna=True,
 ) -> None:
     """
@@ -238,13 +239,22 @@ def group_cumsum(
     """
     cdef:
         Py_ssize_t i, j, N, K, size
-        numeric_t val, y, t
+        numeric_t val, y, t, na_val
         numeric_t[:, ::1] accum, compensation
         intp_t lab
+        bint isna_entry, isna_prev = False
 
     N, K = (<object>values).shape
     accum = np.zeros((ngroups, K), dtype=np.asarray(values).dtype)
     compensation = np.zeros((ngroups, K), dtype=np.asarray(values).dtype)
+
+    if numeric_t == float32_t or numeric_t == float64_t:
+        na_val = NaN
+    elif numeric_t is int64_t and is_datetimelike:
+        na_val = NPY_NAT
+    else:
+        # Will not be used, but define to avoid unitialized warning.
+        na_val = 0
 
     with nogil:
         for i in range(N):
@@ -255,22 +265,30 @@ def group_cumsum(
             for j in range(K):
                 val = values[i, j]
 
-                # For floats, use Kahan summation to reduce floating-point
-                # error (https://en.wikipedia.org/wiki/Kahan_summation_algorithm)
-                if numeric_t == float32_t or numeric_t == float64_t:
-                    if val == val:
+                isna_entry = _treat_as_na(val, is_datetimelike)
+
+                if not skipna:
+                    isna_prev = _treat_as_na(accum[lab, j], is_datetimelike)
+                    if isna_prev:
+                        out[i, j] = na_val
+                        continue
+
+
+                if isna_entry:
+                    out[i, j] = na_val
+                    if not skipna:
+                        accum[lab, j] = na_val
+
+                else:
+                    # For floats, use Kahan summation to reduce floating-point
+                    # error (https://en.wikipedia.org/wiki/Kahan_summation_algorithm)
+                    if numeric_t == float32_t or numeric_t == float64_t:
                         y = val - compensation[lab, j]
                         t = accum[lab, j] + y
                         compensation[lab, j] = t - accum[lab, j] - y
-                        accum[lab, j] = t
-                        out[i, j] = t
                     else:
-                        out[i, j] = NaN
-                        if not skipna:
-                            accum[lab, j] = NaN
-                            break
-                else:
-                    t = val + accum[lab, j]
+                        t = val + accum[lab, j]
+
                     accum[lab, j] = t
                     out[i, j] = t
 
@@ -962,19 +980,19 @@ def group_quantile(
 # group_nth, group_last, group_rank
 # ----------------------------------------------------------------------
 
-cdef inline bint _treat_as_na(iu_64_floating_obj_t val, bint is_datetimelike) nogil:
-    if iu_64_floating_obj_t is object:
+cdef inline bint _treat_as_na(numeric_object_t val, bint is_datetimelike) nogil:
+    if numeric_object_t is object:
         # Should never be used, but we need to avoid the `val != val` below
         #  or else cython will raise about gil acquisition.
         raise NotImplementedError
 
-    elif iu_64_floating_obj_t is int64_t:
+    elif numeric_object_t is int64_t:
         return is_datetimelike and val == NPY_NAT
-    elif iu_64_floating_obj_t is uint64_t:
-        # There is no NA value for uint64
-        return False
-    else:
+    elif numeric_object_t is float32_t or numeric_object_t is float64_t:
         return val != val
+    else:
+        # non-datetimelike integer
+        return False
 
 
 # TODO(cython3): GH#31710 use memorviews once cython 0.30 is released so we can
