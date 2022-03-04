@@ -62,7 +62,7 @@ class NumericIndex(Index):
     None
 
     Methods
-    ----------
+    -------
     None
 
     See Also
