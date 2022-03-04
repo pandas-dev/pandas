@@ -594,7 +594,7 @@ def to_sql(
     con,
     schema: str | None = None,
     if_exists: str = "fail",
-    on_conflict: str | None = None,
+    on_row_conflict: str = "fail",
     index: bool = True,
     index_label=None,
     chunksize: int | None = None,
@@ -624,13 +624,14 @@ def to_sql(
         - fail: If table exists, do nothing.
         - replace: If table exists, drop it, recreate it, and insert data.
         - append: If table exists, insert data. Create if does not exist.
-    on_conflict : {None, 'do_nothing', 'do_update'}, optional
-        Determine insertion behaviour in case of a primary key clash.
-        - None: Do nothing to handle primary key clashes, will raise an Error.
-        - 'do_nothing': Ignore incoming rows with primary key clashes, and
-          insert only the incoming rows with non-conflicting primary keys
-        - 'do_update': Update existing rows in database with primary key clashes,
+    on_row_conflict : {'fail', 'overwrite', 'append'},
+        default: 'fail'
+        Determine insertion behavior in case of a primary key clash.
+        - 'fail': Do nothing to handle primary key clashes, will raise an Error.
+        - 'overwrite': Update existing rows in database with primary key clashes,
           and append the remaining rows with non-conflicting primary keys
+        - 'append': Ignore incoming rows with primary key clashes, and
+          insert only the incoming rows with non-conflicting primary keys
     index : bool, default True
         Write DataFrame index as a column.
     index_label : str or sequence, optional
@@ -684,13 +685,14 @@ def to_sql(
     if if_exists not in ("fail", "replace", "append"):
         raise ValueError(f"'{if_exists}' is not valid for if_exists")
 
-    if on_conflict:
-        # on_conflict argument is valid
-        if on_conflict not in ("do_update", "do_nothing"):
-            raise ValueError(f"'{on_conflict}' is not valid for on_conflict'")
-        # on_conflict only used with append
-        elif if_exists != "append":
-            raise ValueError("on_conflict can only be used with 'append' operations")
+    if on_row_conflict not in ("fail", "overwrite", "ignore"):
+        raise ValueError(f"'{on_row_conflict}' is not valid for on_row_conflict'")
+    # on_row_conflict only used with append
+    if if_exists != "append" and on_row_conflict in {"overwrite", "ignore"}:
+        raise ValueError(
+            f"on_row_conflict {on_row_conflict} can only be used with 'append'"
+            "operations"
+        )
 
     pandas_sql = pandasSQL_builder(con, schema=schema)
 
@@ -705,7 +707,7 @@ def to_sql(
         frame,
         name,
         if_exists=if_exists,
-        on_conflict=on_conflict,
+        on_row_conflict=on_row_conflict,
         index=index,
         index_label=index_label,
         schema=schema,
@@ -793,7 +795,7 @@ class SQLTable(PandasObject):
         frame=None,
         index=True,
         if_exists="fail",
-        on_conflict=None,
+        on_row_conflict="fail",
         prefix="pandas",
         index_label=None,
         schema=None,
@@ -807,7 +809,7 @@ class SQLTable(PandasObject):
         self.index = self._index_name(index, index_label)
         self.schema = schema
         self.if_exists = if_exists
-        self.on_conflict = on_conflict
+        self.on_row_conflict = on_row_conflict
         self.keys = keys
         self.dtype = dtype
 
@@ -949,13 +951,13 @@ class SQLTable(PandasObject):
             stmts.append(stmt)
         return stmts
 
-    def _on_conflict_do_update(self):
+    def _on_row_conflict_overwrite(self):
         """
         Generate update statements for rows with clashing primary key from database.
 
-        `on_conflict do_update` prioritizes incoming data, over existing data in the DB.
-        This method splits the incoming dataframe between rows with new and existing
-        primary key values.
+        `on_row_conflict overwrite` prioritizes incoming data, over existing data in
+        the DB. This method splits the incoming dataframe between rows with new and
+        existing primary key values.
         For existing values Update statements are generated, while new values are passed
         on to be inserted as usual.
 
@@ -976,11 +978,11 @@ class SQLTable(PandasObject):
 
         return new_data, update_stmts
 
-    def _on_conflict_do_nothing(self):
+    def _on_row_conflict_ignore(self):
         """
         Split incoming dataframe so that only rows with new primary keys are inserted
 
-        `on_conflict` set to `do_nothing` prioritizes existing data in the DB.
+        `on_row_conflict` set to `ignore` prioritizes existing data in the DB.
         This method identifies incoming records in the primary key columns
         which correspond to existing primary key constraints in the db table, and
         avoids them from being inserted.
@@ -1116,19 +1118,19 @@ class SQLTable(PandasObject):
         """
         Determines what data to pass to the underlying insert method.
         """
-        if self.on_conflict == "do_update":
-            new_data, update_stmts = self._on_conflict_do_update()
+        if self.on_row_conflict == "overwrite":
+            new_data, update_stmts = self._on_row_conflict_overwrite()
             self._insert(
                 data=new_data,
                 chunksize=chunksize,
                 method=method,
                 other_stmts=update_stmts,
             )
-        elif self.on_conflict == "do_nothing":
-            new_data = self._on_conflict_do_nothing()
-            self._insert(data=new_data, chunksize=chunksize, method=method)
+        elif self.on_row_conflict == "ignore":
+            new_data = self._on_row_conflict_ignore()
+            return self._insert(data=new_data, chunksize=chunksize, method=method)
         else:
-            self._insert(chunksize=chunksize, method=method)
+            return self._insert(chunksize=chunksize, method=method)
 
     def _insert(self, data=None, chunksize=None, method=None, other_stmts=[]):
         # set insert method
@@ -1488,7 +1490,7 @@ class PandasSQL(PandasObject):
         frame,
         name,
         if_exists="fail",
-        on_conflict=None,
+        on_row_conflict="fail",
         index=True,
         index_label=None,
         schema=None,
@@ -1809,7 +1811,7 @@ class SQLDatabase(PandasSQL):
         frame,
         name,
         if_exists="fail",
-        on_conflict=None,
+        on_row_conflict="fail",
         index=True,
         index_label=None,
         schema=None,
@@ -1845,7 +1847,7 @@ class SQLDatabase(PandasSQL):
             frame=frame,
             index=index,
             if_exists=if_exists,
-            on_conflict=on_conflict,
+            on_row_conflict=on_row_conflict,
             index_label=index_label,
             schema=schema,
             dtype=dtype,
@@ -1884,7 +1886,7 @@ class SQLDatabase(PandasSQL):
         frame,
         name,
         if_exists="fail",
-        on_conflict: str | None = None,
+        on_row_conflict="fail",
         index=True,
         index_label=None,
         schema=None,
@@ -1907,12 +1909,12 @@ class SQLDatabase(PandasSQL):
             - fail: If table exists, do nothing.
             - replace: If table exists, drop it, recreate it, and insert data.
             - append: If table exists, insert data. Create if does not exist.
-        on_conflict : {None, 'do_nothing', 'do_update'}, optional
-            Determine insertion behaviour in case of a primary key clash.
-            - None: Do nothing to handle primary key clashes, will raise an Error.
-            - 'do_nothing': Ignore incoming rows with primary key clashes, and
+        on_row_conflict : {'fail', 'ignore', 'overwrite'}
+            Determine insertion behavior in case of a primary key clash.
+            - 'fail': Do nothing to handle primary key clashes, will raise an Error.
+            - 'ignore': Ignore incoming rows with primary key clashes, and
             insert only the incoming rows with non-conflicting primary keys
-            - 'do_update': Update existing rows in database with primary key clashes,
+            - 'overwrite': Update existing rows in database with primary key clashes,
             and append the remaining rows with non-conflicting primary keys
         index : boolean, default True
             Write DataFrame index as a column.
@@ -1956,7 +1958,7 @@ class SQLDatabase(PandasSQL):
             frame=frame,
             name=name,
             if_exists=if_exists,
-            on_conflict=on_conflict,
+            on_row_conflict=on_row_conflict,
             index=index,
             index_label=index_label,
             schema=schema,
@@ -2337,7 +2339,7 @@ class SQLiteDatabase(PandasSQL):
         frame,
         name,
         if_exists="fail",
-        on_conflict: str | None = None,
+        on_row_conflict="fail",
         index=True,
         index_label=None,
         schema=None,
@@ -2358,12 +2360,12 @@ class SQLiteDatabase(PandasSQL):
             fail: If table exists, do nothing.
             replace: If table exists, drop it, recreate it, and insert data.
             append: If table exists, insert data. Create if it does not exist.
-        on_conflict : {None, 'do_nothing', 'do_update'}, optional
-            Determine insertion behaviour in case of a primary key clash.
-            - None: Do nothing to handle primary key clashes, will raise an Error.
-            - 'do_nothing': Ignore incoming rows with primary key clashes, and
+        on_row_conflict : {'fail', 'ignore', 'overwrite'}, optional
+            Determine insertion behavior in case of a primary key clash.
+            - 'fail: Do nothing to handle primary key clashes, will raise an Error.
+            - 'ignore': Ignore incoming rows with primary key clashes, and
             insert only the incoming rows with non-conflicting primary keys
-            - 'do_update': Update existing rows in database with primary key clashes,
+            - 'overwrite': Update existing rows in database with primary key clashes,
             and append the remaining rows with non-conflicting primary keys
         index : bool, default True
             Write DataFrame index as a column

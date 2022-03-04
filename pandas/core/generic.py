@@ -2773,6 +2773,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         con,
         schema=None,
         if_exists: str = "fail",
+        on_row_conflict: str = "fail",
         index: bool_t = True,
         index_label=None,
         chunksize=None,
@@ -2799,15 +2800,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         schema : str, optional
             Specify the schema (if database flavor supports this). If None, use
             default schema.
-        if_exists : {'fail', 'replace', 'append', 'upsert_overwrite', 'upsert_keep'},\
+        if_exists : {'fail', 'replace', 'append'},\
         default 'fail'
             How to behave if the table already exists.
 
             * fail: Raise a ValueError.
             * replace: Drop the table before inserting new values.
             * append: Insert new values to the existing table.
-            * upsert_overwrite: Overwrite matches in database with incoming data.
-            * upsert_keep: Keep matches in database instead of incoming data.
+
+        on_row_conflict : {'fail', 'overwrite', 'ignore'},\
+        default 'fail'
+            How to behave if a row already exists.
+
+            * fail: Raise ValueError.
+            * overwrite: Overwrite the row with the incoming data.
+            * ignore: Ignore new data and keep existing data.
 
         index : bool, default True
             Write DataFrame index as a column. Uses `index_label` as the column
@@ -2852,6 +2859,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ------
         ValueError
             When the table already exists and `if_exists` is 'fail' (the
+            default).
+        ValueError
+            When the row already exists and `on_row_conflict` is 'fail' (the
             default).
 
         See Also
@@ -2945,6 +2955,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             con,
             schema=schema,
             if_exists=if_exists,
+            on_row_conflict=on_row_conflict,
             index=index,
             index_label=index_label,
             chunksize=chunksize,

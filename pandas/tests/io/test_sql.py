@@ -902,162 +902,122 @@ class PandasSQLTest:
         self.drop_table("test_frame1")
         assert self.pandasSQL.to_sql(test_frame1.iloc[:0], "test_frame1") == 0
 
-    def _to_sql_on_conflict_update(self, method, tbl_name, pkey_frame):
+    def _to_sql_on_row_conflict_overwrite(self, method, tbl_name, pkey_frame):
         """
         GIVEN:
         - Original database table: 3 rows
         - new dataframe: 4 rows (2 duplicate keys)
         WHEN:
-        - on conflict update insert
+        - on row conflict overwrite
         THEN:
         - DB table len = 5
         - Conflicting primary keys in DB updated
         """
-        # Original table exists and as 3 rows
         assert self.pandasSQL.has_table(tbl_name)
         assert count_rows(self.conn, tbl_name) == 3
-        # Insert new dataframe
         self.pandasSQL.to_sql(
             pkey_frame,
             tbl_name,
             if_exists="append",
-            on_conflict="do_update",
+            on_row_conflict="overwrite",
             index=False,
             method=method,
         )
-        # Check table len correct
         assert count_rows(self.conn, tbl_name) == 5
-        # Check conflicting primary keys have been updated
-        # Get new values for conflicting keys
         data_from_db = read_pkeys_from_database(self.conn, tbl_name, [1, 2])
-        # duplicate_keys = [1, 2]
-        # duplicate_key_query = SQL_STRINGS["read_pkey_table"][self.flavor]
-        # duplicate_val = self._get_exec().execute(duplicate_key_query, duplicate_keys)
-        # data_from_db = sorted(val[0] for val in duplicate_val)
-
-        # Expected values from pkey_table_frame
         expected = sorted(["new_val1", "new_val2"])
         assert data_from_db == expected
-        # Finally, confirm that duplicate values are not removed from original df object
         assert len(pkey_frame.index) == 4
-        # Clean up
         self.drop_table(tbl_name)
 
-    def _to_sql_on_conflict_nothing(self, method, tbl_name, pkey_frame):
+    def _to_sql_on_row_conflict_ignore(self, method, tbl_name, pkey_frame):
         """
         GIVEN:
         - Original table: 3 rows
         - new dataframe: 4 rows (2 duplicate keys)
         WHEN:
-        - on conflict do nothing insert
+        - on row conflict: ignore
         THEN:
         - database table len = 5
         - conflicting keys in table not updated
         """
-        # Original table exists and has 3 rows
         assert self.pandasSQL.has_table(tbl_name)
         assert count_rows(self.conn, tbl_name) == 3
-        # Prepare SQL for reading duplicate keys
-        # duplicate_keys = [1, 2]
-        # duplicate_key_query = SQL_STRINGS["read_pkey_table"][self.flavor]
-        #  get conflicting pkey values before insert
-        # duplicate_val_before = self._get_exec().execute(
-        # duplicate_key_query, duplicate_keys
-        # )
-        # data_from_db_before = sorted(val[0] for val in duplicate_val_before)
         duplicate_keys = [1, 2]
         data_from_db_before = read_pkeys_from_database(
             self.conn, tbl_name, duplicate_keys
         )
-        # Insert new dataframe
         self.pandasSQL.to_sql(
             pkey_frame,
             tbl_name,
             if_exists="append",
-            on_conflict="do_nothing",
+            on_row_conflict="ignore",
             index=False,
             method=method,
         )
-        # Check table len correct
         assert count_rows(self.conn, tbl_name) == 5
-        # Get conflicting keys from DB after to_sql
-        # duplicate_val_after = self._get_exec().execute(
-        # duplicate_key_query, duplicate_keys
-        # )
-        # data_from_db_after = sorted(val[0] for val in duplicate_val_after)
         data_from_db_after = read_pkeys_from_database(
             self.conn, tbl_name, duplicate_keys
         )
-        # Get data from incoming df
         data_from_df = sorted(
             pkey_frame.loc[pkey_frame["a"].isin(duplicate_keys), "c"].tolist()
         )
-        # Check original DB values maintained for duplicate keys
         assert data_from_db_before == data_from_db_after
-        # Check DB values not equal to new values
         assert data_from_db_after != data_from_df
-        # Clean up
         self.drop_table(tbl_name)
 
-    def _test_to_sql_on_conflict_with_index(self, method, tbl_name, pkey_frame):
+    def _test_to_sql_on_row_conflict_with_index(self, method, tbl_name, pkey_frame):
         """
         GIVEN:
         - Original db table: 3 rows
         - New dataframe: 4 rows (2 duplicate keys), pkey as index
         WHEN:
         - inserting new data, noting the index column
-        - on conflict do update
+        - on row conflict overwrite
         THEN:
         - DB table len = 5
         - Conflicting primary keys in DB updated
         """
-        # Original table exists and as 3 rows
         assert self.pandasSQL.has_table(tbl_name)
         assert count_rows(self.conn, tbl_name) == 3
         if tbl_name == "pkey_table_single":
             index_pkey_table = pkey_frame.set_index("a")
         else:
             index_pkey_table = pkey_frame.set_index(["a", "b"])
-        # Insert new dataframe
         self.pandasSQL.to_sql(
             index_pkey_table,
             tbl_name,
             if_exists="append",
-            on_conflict="do_update",
+            on_row_conflict="overwrite",
             index=True,
             method=method,
         )
-        # Check table len correct
         assert count_rows(self.conn, tbl_name) == 5
-        # Check conflicting primary keys have been updated
-        # Get new values for conflicting keys
-        # duplicate_keys = [1, 2]
-        # duplicate_key_query = SQL_STRINGS["read_pkey_table"][self.flavor]
-        # duplicate_val = self._get_exec().execute(duplicate_key_query, duplicate_keys)
-        # data_from_db = sorted(val[0] for val in duplicate_val)
         data_from_db = read_pkeys_from_database(self.conn, tbl_name, [1, 2])
-        # Expected values from pkey_table_frame
         expected = sorted(["new_val1", "new_val2"])
         assert data_from_db == expected
-        # Finally, confirm that duplicate values are not removed from original df object
         assert len(pkey_frame.index) == 4
-        # Clean up
         self.drop_table(tbl_name)
 
-    def _to_sql_on_conflict_with_non_append(self, if_exists, on_conflict, pkey_frame):
+    def _to_sql_on_row_conflict_with_non_append(
+        self, if_exists, on_row_conflict, pkey_frame
+    ):
         """
         GIVEN:
         - to_sql is called
         WHEN:
-        - `on_conflict` is not null
+        - `on_row_conflict` is not fail
         - `if_exists` is set to a value other than `append`
         THEN:
         - ValueError is raised
         """
-        # Attempt insert
         assert if_exists != "append"
         with pytest.raises(
-            ValueError, match="on_conflict can only be used with 'append' operations"
+            ValueError,
+            match=(
+                f"on_row_conflict {on_row_conflict} can only be used with 'append'"
+                "operations"
+            ),
         ):
             # Insert new dataframe
             sql.to_sql(
@@ -1065,7 +1025,7 @@ class PandasSQLTest:
                 "some_table",
                 con=self.conn,
                 if_exists=if_exists,
-                on_conflict=on_conflict,
+                on_row_conflict=on_row_conflict,
                 index=False,
             )
 
@@ -1245,26 +1205,26 @@ class _TestSQLApi(PandasSQLTest):
         s2 = sql.read_sql_query("SELECT * FROM test_series", self.conn)
         tm.assert_frame_equal(s.to_frame(), s2)
 
-    def test_to_sql_invalid_on_conflict(self, pkey_frame):
-        msg = "'update' is not valid for on_conflict"
+    def test_to_sql_invalid_on_row_conflict(self, pkey_frame):
+        msg = "'notvalidvalue' is not valid for on_row_conflict"
         with pytest.raises(ValueError, match=msg):
             sql.to_sql(
                 pkey_frame,
                 "pkey_frame1",
                 self.conn,
                 if_exists="append",
-                on_conflict="update",
+                on_row_conflict="notvalidvalue",
             )
 
-    def test_to_sql_on_conflict_non_append(self, pkey_frame):
-        msg = "on_conflict can only be used with 'append' operations"
+    def test_to_sql_on_row_conflict_non_append(self, pkey_frame):
+        msg = "on_row_conflict overwrite can only be used with 'append' operations"
         with pytest.raises(ValueError, match=msg):
             sql.to_sql(
                 pkey_frame,
                 "pkey_frame1",
                 self.conn,
                 if_exists="replace",
-                on_conflict="do_update",
+                on_row_conflict="overwrite",
             )
 
     def test_roundtrip(self, test_frame1):
@@ -1996,40 +1956,29 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def test_to_sql_empty(self, test_frame1):
         self._to_sql_empty(test_frame1)
 
-    def test_to_sql_fail(self, test_frame1):
-        self._to_sql_fail(test_frame1)
-
-    def test_to_sql_replace(self, test_frame1):
-        self._to_sql_replace(test_frame1)
-
-    def test_to_sql_append(self, test_frame1):
-        self._to_sql_append(test_frame1)
-
-    def test_to_sql_method_multi(self, test_frame1):
-        self._to_sql(test_frame1, method="multi")
-
-    def test_to_sql_method_callable(self, test_frame1):
-        self._to_sql_method_callable(test_frame1)
+    @pytest.mark.parametrize("method", [None, "multi"])
+    @pytest.mark.parametrize("tbl_name", ["pkey_table_single", "pkey_table_comp"])
+    def test_to_sql_on_row_conflict_ignore(self, method, tbl_name, pkey_frame):
+        self._to_sql_on_row_conflict_ignore(method, tbl_name, pkey_frame)
 
     @pytest.mark.parametrize("method", [None, "multi"])
     @pytest.mark.parametrize("tbl_name", ["pkey_table_single", "pkey_table_comp"])
-    def test_to_sql_conflict_nothing(self, method, tbl_name, pkey_frame):
-        self._to_sql_on_conflict_nothing(method, tbl_name, pkey_frame)
+    def test_to_sql_row_conflict_overwrite(self, method, tbl_name, pkey_frame):
+        self._to_sql_on_row_conflict_overwrite(method, tbl_name, pkey_frame)
 
     @pytest.mark.parametrize("method", [None, "multi"])
     @pytest.mark.parametrize("tbl_name", ["pkey_table_single", "pkey_table_comp"])
-    def test_to_sql_conflict_update(self, method, tbl_name, pkey_frame):
-        self._to_sql_on_conflict_update(method, tbl_name, pkey_frame)
-
-    @pytest.mark.parametrize("method", [None, "multi"])
-    @pytest.mark.parametrize("tbl_name", ["pkey_table_single", "pkey_table_comp"])
-    def test_to_sql_on_conflict_with_index(self, method, tbl_name, pkey_frame):
-        self._test_to_sql_on_conflict_with_index(method, tbl_name, pkey_frame)
+    def test_to_sql_on_row_conflict_with_index(self, method, tbl_name, pkey_frame):
+        self._test_to_sql_on_row_conflict_with_index(method, tbl_name, pkey_frame)
 
     @pytest.mark.parametrize("if_exists", ["fail", "replace"])
-    @pytest.mark.parametrize("on_conflict", ["do_update", "do_nothing"])
-    def test_to_sql_conflict_with_non_append(self, if_exists, on_conflict, pkey_frame):
-        self._to_sql_on_conflict_with_non_append(if_exists, on_conflict, pkey_frame)
+    @pytest.mark.parametrize("on_row_conflict", ["ignore", "overwrite"])
+    def test_to_sql_row_conflict_with_non_append(
+        self, if_exists, on_row_conflict, pkey_frame
+    ):
+        self._to_sql_on_row_conflict_with_non_append(
+            if_exists, on_row_conflict, pkey_frame
+        )
 
     def test_create_table(self):
         from sqlalchemy import inspect
