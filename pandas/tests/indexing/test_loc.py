@@ -2168,6 +2168,87 @@ class TestLocCallable:
         exp.loc[["A", "C"], ["X"]] = -4
         tm.assert_frame_equal(res, exp)
 
+    def test_frame_loc_getitem_callable_two_params(self):
+        # GH#XXXXX
+        df = DataFrame({"A": [1, 2, 3, 4], "B": list("aabb"), "C": [1, 2, 3, 4]})
+
+        res = df.loc[lambda x, axis: x.axes[axis].isin([1, 2])]
+        tm.assert_frame_equal(res, df.loc[df.index.isin([1, 2])])
+
+        res = df.loc[lambda x, axis: x.axes[axis].isin([1, 2]), :]
+        tm.assert_frame_equal(res, df.loc[df.index.isin([1, 2])])
+
+        res = df.loc[:, lambda x, axis: x.axes[axis].isin(["A", "B"])]
+        tm.assert_frame_equal(res, df.loc[:, df.columns.isin(["A", "B"])])
+
+        res = df.loc[
+            lambda x, axis: x.axes[axis].isin([1, 2]),
+            lambda x, axis: x.axes[axis].isin(["A", "B"]),
+        ]
+        expected = df.loc[df.index.isin([1, 2]), df.columns.isin(["A", "B"])]
+        tm.assert_frame_equal(res, expected)
+
+    def test_frame_loc_setitem_callable_two_params(self):
+        # GH#XXXXX
+        df = DataFrame({"X": [1, 2, 3, 4], "Y": list("aabb")}, index=list("ABCD"))
+
+        res = df.copy()
+        res.loc[lambda x, axis: x.axes[axis].isin(["A", "C"])] = -20
+        exp = df.copy()
+        exp.loc[["A", "C"]] = -20
+        tm.assert_frame_equal(res, exp)
+
+        res = df.copy()
+        res.loc[lambda x, axis: x.axes[axis].isin(["A", "C"]), :] = 20
+        exp = df.copy()
+        exp.loc[["A", "C"], :] = 20
+        tm.assert_frame_equal(res, exp)
+
+        res = df.copy()
+        res.loc[
+            lambda x, axis: x.axes[axis].isin(["A", "C"]),
+            lambda x, axis: x.axes[axis].isin(["X"]),
+        ] = -1
+        exp = df.copy()
+        exp.loc[["A", "C"], "X"] = -1
+        tm.assert_frame_equal(res, exp)
+
+        res = df.copy()
+        res.loc[
+            lambda x, axis: x.axes[axis].isin(["A", "C"]),
+            lambda x, axis: x.axes[axis].isin(["X"]),
+        ] = [5, 10]
+        exp = df.copy()
+        exp.loc[["A", "C"], ["X"]] = [5, 10]
+        tm.assert_frame_equal(res, exp)
+
+        # mixture
+        res = df.copy()
+        res.loc[["A", "C"], lambda x, axis: x.axes[axis].isin(["X"])] = np.array(
+            [-1, -2]
+        )
+        exp = df.copy()
+        exp.loc[["A", "C"], "X"] = np.array([-1, -2])
+        tm.assert_frame_equal(res, exp)
+
+        res = df.copy()
+        res.loc[["A", "C"], lambda x, axis: x.axes[axis].isin(["X"])] = 10
+        exp = df.copy()
+        exp.loc[["A", "C"], ["X"]] = 10
+        tm.assert_frame_equal(res, exp)
+
+        res = df.copy()
+        res.loc[lambda x, axis: x.axes[axis].isin(["A", "C"]), "X"] = -2
+        exp = df.copy()
+        exp.loc[["A", "C"], "X"] = -2
+        tm.assert_frame_equal(res, exp)
+
+        res = df.copy()
+        res.loc[lambda x, axis: x.axes[axis].isin(["A", "C"]), ["X"]] = -4
+        exp = df.copy()
+        exp.loc[["A", "C"], ["X"]] = -4
+        tm.assert_frame_equal(res, exp)
+
 
 class TestPartialStringSlicing:
     def test_loc_getitem_partial_string_slicing_datetimeindex(self):

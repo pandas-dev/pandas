@@ -145,10 +145,17 @@ class IndexingMixin:
         - A list or array of integers, e.g. ``[4, 3, 0]``.
         - A slice object with ints, e.g. ``1:7``.
         - A boolean array.
-        - A ``callable`` function with one argument (the calling Series or
-          DataFrame) and that returns valid output for indexing (one of the above).
+        - A ``callable`` with one argument (the calling Series or
+          DataFrame) or two arguments (the calling Series or DataFrame and the axis)
+          and that returns valid output for indexing (one of the above).
           This is useful in method chains, when you don't have a reference to the
           calling object, but would like to base your selection on some value.
+
+          .. versionchanged:: 1.5
+
+            A callable can now take one or two arguments (the calling Series or
+            DataFrame and optionally the axis). Previously it could only take one
+            argument.
 
         ``.iloc`` will raise ``IndexError`` if a requested indexer is
         out-of-bounds, except *slice* indexers which allow out-of-bounds
@@ -291,8 +298,15 @@ class IndexingMixin:
         - An alignable boolean Series. The index of the key will be aligned before
           masking.
         - An alignable Index. The Index of the returned selection will be the input.
-        - A ``callable`` function with one argument (the calling Series or
-          DataFrame) and that returns valid output for indexing (one of the above)
+        - A ``callable`` with one argument (the calling Series or
+          DataFrame) or two arguments (the calling Series or DataFrame and the axis)
+          and that returns valid output for indexing (one of the above)
+
+          .. versionchanged:: 1.5
+
+            A callable can now take one or two arguments (the calling Series or
+            DataFrame and optionally the axis). Previously it could only take one
+            argument (the calling Series or DataFrame).
 
         See more at :ref:`Selection by Label <indexing.label>`.
 
@@ -789,9 +803,13 @@ class _LocationIndexer(NDFrameIndexerBase):
         check_deprecated_indexers(key)
         if isinstance(key, tuple):
             key = tuple(list(x) if is_iterator(x) else x for x in key)
-            key = tuple(com.apply_if_callable(x, self.obj) for x in key)
+            key = tuple(
+                com.apply_maybe_callable_with_axis(x, self.obj, axis)
+                for axis, x in enumerate(key)
+            )
         else:
-            key = com.apply_if_callable(key, self.obj)
+            axis = self.axis or 0
+            key = com.apply_maybe_callable_with_axis(key, self.obj, axis=axis)
         indexer = self._get_setitem_indexer(key)
         self._has_valid_setitem_indexer(key)
 
@@ -1036,15 +1054,17 @@ class _LocationIndexer(NDFrameIndexerBase):
         check_deprecated_indexers(key)
         if type(key) is tuple:
             key = tuple(list(x) if is_iterator(x) else x for x in key)
-            key = tuple(com.apply_if_callable(x, self.obj) for x in key)
+            key = tuple(
+                com.apply_maybe_callable_with_axis(x, self.obj, ax)
+                for ax, x in enumerate(key)
+            )
             if self._is_scalar_access(key):
                 return self.obj._get_value(*key, takeable=self._takeable)
             return self._getitem_tuple(key)
         else:
             # we by definition only have the 0th axis
             axis = self.axis or 0
-
-            maybe_callable = com.apply_if_callable(key, self.obj)
+            maybe_callable = com.apply_maybe_callable_with_axis(key, self.obj, axis)
             return self._getitem_axis(maybe_callable, axis=axis)
 
     def _is_scalar_access(self, key: tuple):

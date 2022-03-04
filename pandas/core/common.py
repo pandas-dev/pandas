@@ -361,6 +361,32 @@ def apply_if_callable(maybe_callable, obj, **kwargs):
     return maybe_callable
 
 
+def apply_maybe_callable_with_axis(maybe_callable, obj, axis: int):
+    """
+    Evaluate possibly callable input using obj and axis if it is callable,
+    otherwise return as it is.
+
+    Parameters
+    ----------
+    maybe_callable : possibly a callable
+    obj : NDFrame
+    axis : int
+    """
+    if not callable(maybe_callable):
+        return maybe_callable
+
+    sign = inspect.signature(maybe_callable)
+    len_parameters = len(sign.parameters)
+
+    if len_parameters == 1:
+        return maybe_callable(obj)
+    elif len_parameters == 2:
+        return maybe_callable(obj, axis)
+    else:
+        msg = f"callable must take 1 or 2 parameters, takes {len_parameters} parameters"
+        raise TypeError(msg)
+
+
 def standardize_mapping(into):
     """
     Helper function to standardize a supplied mapping.

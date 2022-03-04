@@ -1363,6 +1363,61 @@ class TestILocCallable:
         exp.iloc[[1, 3], [0]] = [-5, -5]
         tm.assert_frame_equal(res, exp)
 
+    def test_frame_iloc_getitem_callable_two_params(self):
+        # GH#XXXXX
+        df = DataFrame({"X": [1, 2, 3, 4], "Y": list("aabb")}, index=list("ABCD"))
+
+        # axis 0
+        res = df.iloc[lambda x, axis: x.axes[axis].get_indexer(["B", "D"])]
+        tm.assert_frame_equal(res, df.iloc[[1, 3]])
+
+        res = df.iloc[lambda x, axis: x.axes[axis].get_indexer(["B", "D"]), :]
+        tm.assert_frame_equal(res, df.iloc[[1, 3]])
+
+        # axis 1
+        res = df.iloc[:, lambda x, axis: x.axes[axis].get_loc("X")]
+        tm.assert_series_equal(res, df.iloc[:, 0])
+
+        # axis 0 & 1
+        res = df.iloc[
+            lambda x, axis: x.axes[axis].get_indexer(["B", "D"]),
+            lambda x, axis: x.axes[axis].get_loc("X"),
+        ]
+        tm.assert_series_equal(res, df.iloc[[1, 3], 0])
+
+    def test_frame_iloc_setitem_callable_two_params(self):
+        # GH#XXXXX
+        df = DataFrame({"X": [1, 2, 3, 4], "Y": list("aabb")}, index=list("ABCD"))
+
+        # return location
+        res = df.copy()
+        res.iloc[lambda x, axis: x.axes[axis].get_indexer(["B", "D"])] = 0
+        exp = df.copy()
+        exp.iloc[[1, 3]] = 0
+        tm.assert_frame_equal(res, exp)
+
+        res = df.copy()
+        res.iloc[lambda x, axis: x.axes[axis].get_indexer(["B", "D"]), :] = -1
+        exp = df.copy()
+        exp.iloc[[1, 3], :] = -1
+        tm.assert_frame_equal(res, exp)
+
+        res = df.copy()
+        res.iloc[
+            lambda x, axis: x.axes[axis].get_indexer(["B", "D"]),
+            lambda x, axis: x.axes[axis].get_indexer(["X"]),
+        ] = 5
+        exp = df.copy()
+        exp.iloc[[1, 3], 0] = 5
+        tm.assert_frame_equal(res, exp)
+
+        # mixture
+        res = df.copy()
+        res.iloc[[1, 3], lambda x, axis: x.axes[axis].get_indexer(["X"])] = -3
+        exp = df.copy()
+        exp.iloc[[1, 3], 0] = -3
+        tm.assert_frame_equal(res, exp)
+
 
 class TestILocSeries:
     def test_iloc(self):

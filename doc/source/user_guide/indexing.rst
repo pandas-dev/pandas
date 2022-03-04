@@ -60,7 +60,8 @@ of multi-axis indexing.
       index! See :ref:`Slicing with labels <indexing.slicing_with_labels>`
       and :ref:`Endpoints are inclusive <advanced.endpoints_are_inclusive>`.)
     * A boolean array (any ``NA`` values will be treated as ``False``).
-    * A ``callable`` function with one argument (the calling Series or DataFrame) and
+    * A ``callable`` with one argument (the calling Series or DataFrame)
+      or two arguments (the calling Series or DataFrame and the relevant axis) and
       that returns valid output for indexing (one of the above).
 
   See more at :ref:`Selection by Label <indexing.label>`.
@@ -76,7 +77,8 @@ of multi-axis indexing.
     * A list or array of integers ``[4, 3, 0]``.
     * A slice object with ints ``1:7``.
     * A boolean array (any ``NA`` values will be treated as ``False``).
-    * A ``callable`` function with one argument (the calling Series or DataFrame) and
+    * A ``callable`` function with one argument (the calling Series or DataFrame) or
+      two arguments (the calling Series or DataFrame and the axis )and
       that returns valid output for indexing (one of the above).
 
   See more at :ref:`Selection by Position <indexing.integer>`,
@@ -554,7 +556,13 @@ Selection by callable
 ---------------------
 
 ``.loc``, ``.iloc``, and also ``[]`` indexing can accept a ``callable`` as indexer.
-The ``callable`` must be a function with one argument (the calling Series or DataFrame) that returns valid output for indexing.
+The ``callable`` must be a function with one argument (the calling Series or DataFrame)
+or two arguments (the calling Series or DataFrame and the axis) that returns valid output for indexing.
+
+.. versionchanged:: 1.5
+
+  The callable can take two arguments (the calling Series or DataFrame and the axis).
+  Previously it could only take one argument.
 
 .. ipython:: python
 
@@ -570,6 +578,7 @@ The ``callable`` must be a function with one argument (the calling Series or Dat
 
    df1[lambda df: df.columns[0]]
 
+   df1.loc[:, lambda df, axis: df.axes[axis].isin(["B", "D"])]
 
 You can use callable indexing in ``Series``.
 

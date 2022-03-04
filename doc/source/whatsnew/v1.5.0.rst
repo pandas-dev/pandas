@@ -75,6 +75,21 @@ as seen in the following example.
                1 2021-01-02 08:00:00  4
                2 2021-01-02 16:00:00  5
 
+.. _whatsnew_140.enhancements.warning_lineno:
+
+.loc and .iloc can now take callables with two parameters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously, you could filter dataframes and Series using callables with one parameter
+(the calling DataFrame or Series). Now it is possible for the callable to have two
+parameters (the calling DataFrame or Series and the axis).
+
+.. code-block:: python
+
+    df = pd.DataFrame({"X": [1, 2, 3, 4], "Y": list("aabb")}, index=list("ABCD"))
+    df.loc[:, lambda x, axis: x.axes[axis].isin(['X'])]
+
+
 .. _whatsnew_150.enhancements.other:
 
 Other enhancements
