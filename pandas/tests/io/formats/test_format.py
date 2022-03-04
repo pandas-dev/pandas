@@ -3175,6 +3175,24 @@ class TestDatetimeIndexFormat:
         assert formatted[0] == "2003-01-01 12:00:00"
         assert formatted[1] == "NaT"
 
+    def test_datetime_tz(self):
+        # This timestamp is in 2013 in Europe/Paris but is 2012 in UTC
+        dt = pd.to_datetime(["2013-01-01 00:00:00+01:00"], utc=True)
+        # If tz is currently set as utc, we'll see 2012
+        assert dt.format()[0] == "2012-12-31 23:00:00+00:00"
+        # If tz is currently set as paris, we'll see 2013
+        dt = dt.tz_convert("Europe/Paris")
+        assert dt.format()[0] == "2013-01-01 00:00:00+01:00"
+
+    def test_datetime_tz_custom(self):
+        # This timestamp is in 2013 in Europe/Paris but is 2012 in UTC
+        dt = pd.to_datetime(["2013-01-01 00:00:00+01:00"], utc=True)
+        # If tz is currently set as utc, we'll see 2012
+        assert dt.format(date_format="%Y-%m-%d__foo__%H:%M:%S")[0] == "2012-12-31__foo__23:00:00"
+        # If tz is currently set as paris, we'll see 2013
+        dt = dt.tz_convert("Europe/Paris")
+        assert dt.format(date_format="%Y-%m-%d__foo__%H:%M:%S")[0] == "2013-01-01__foo__00:00:00"
+
     def test_date(self):
         formatted = pd.to_datetime([datetime(2003, 1, 1), NaT]).format()
         assert formatted[0] == "2003-01-01"

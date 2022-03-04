@@ -199,14 +199,19 @@ def format_array_from_datetime(
 
         elif fast_strftime:
 
-            dt64_to_dtstruct(val, &dts)
+            if tz is None:
+                dt64_to_dtstruct(val, &dts)
 
-            # Use string formatting for faster strftime
-            result[i] = str_format % dict(
-                year=dts.year, month=dts.month, day=dts.day, hour=dts.hour,
-                min=dts.min, sec=dts.sec, us=dts.us
-            )
+                # Use string formatting for faster strftime
+                result[i] = str_format % dict(
+                    year=dts.year, month=dts.month, day=dts.day, hour=dts.hour,
+                    min=dts.min, sec=dts.sec, us=dts.us
+                )
+            else:
+                ts = Timestamp(val, tz=tz)
 
+                # Use string formatting for faster strftime
+                result[i] = ts.fast_strftime(str_format)
         else:
 
             ts = Timestamp(val, tz=tz)

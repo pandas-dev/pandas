@@ -1195,6 +1195,25 @@ class Timestamp(_Timestamp):
         tz = maybe_get_tz(tz)
         return cls(datetime.fromtimestamp(ts, tz))
 
+    def fast_strftime(self, fmt_str: str) -> str:
+        """A faster alternative to `strftime` using string formatting.
+
+        `fmt_str` should be created using `convert_strftime_format(fmt)`.
+
+        See also `self.strftime`, that relies on `datetime.strftime`.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
+        >>> fmt = convert_strftime_format('%Y-%m-%d %X')
+        >>> ts.fast_strftime(fmt)
+        '2020-03-14 15:32:52'
+        """
+        return fmt_str % dict(
+            year=self.year, month=self.month, day=self.day, hour=self.hour,
+            min=self.minute, sec=self.second, us=self.microsecond
+        )
+
     def strftime(self, format):
         """
         Timestamp.strftime(format)
