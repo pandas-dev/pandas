@@ -198,7 +198,7 @@ def test_nat_iso_format(get_nat):
                 "normalize",
                 "to_julian_date",
                 "to_period",
-                "tz"
+                "tz",
             ]
         ),
         (

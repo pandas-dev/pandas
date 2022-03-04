@@ -3,8 +3,7 @@
 
 
 class UnsupportedStrFmtDirective(ValueError):
-    """The format contains a directive that is not supported in this context.
-    """
+    """The format contains a directive that is not supported in this context."""
 
 
 _COMMON_UNSUPPORTED = (
@@ -32,25 +31,28 @@ _COMMON_UNSUPPORTED = (
 
 
 _COMMON_MAP = {
-    "%d": ("day", "02d"),    # Day of the month as a zero-padded decimal number.
+    "%d": ("day", "02d"),  # Day of the month as a zero-padded decimal number.
     "%m": ("month", "02d"),  # Month as a zero-padded decimal number.
-    "%Y": ("year", "d"),     # Year with century as a decimal number.
-    "%H": ("hour", "02d"),   # Hour (24-hour clock) as a zero-padded decimal number.
-    "%M": ("min", "02d"),    # Minute as a zero-padded decimal number.
-    "%S": ("sec", "02d"),    # Second as a zero-padded decimal number.
+    "%Y": ("year", "d"),  # Year with century as a decimal number.
+    "%H": ("hour", "02d"),  # Hour (24-hour clock) as a zero-padded decimal number.
+    "%M": ("min", "02d"),  # Minute as a zero-padded decimal number.
+    "%S": ("sec", "02d"),  # Second as a zero-padded decimal number.
 }
 
 _DATETIME_MAP = {
-    "%f": ("us", "06d"),     # Microsecond as a decimal number, zero-padded to 6 digits.
+    "%f": ("us", "06d"),  # Microsecond as a decimal number, zero-padded to 6 digits.
 }
 
 _PERIOD_MAP = {
-    "%f": ("fyear", "02d"),  # 'Fiscal' year without century as zero-padded decimal number [00,99]
-    "%F": ("Fyear", "d"),    # 'Fiscal' year with century as a decimal number
-    "%q": ("q", "d"),        # Quarter as a decimal number [1,4]
-    "%l": ("ms", "03d"),     # Microsecond as a decimal number, zero-padded to 3 digits.
-    "%u": ("us", "06d"),     # Microsecond as a decimal number, zero-padded to 6 digits.
-    "%n": ("ns", "09d"),     # Microsecond as a decimal number, zero-padded to 9 digits.
+    "%f": (
+        "fyear",
+        "02d",
+    ),  # 'Fiscal' year without century as zero-padded decimal number [00,99]
+    "%F": ("Fyear", "d"),  # 'Fiscal' year with century as a decimal number
+    "%q": ("q", "d"),  # Quarter as a decimal number [1,4]
+    "%l": ("ms", "03d"),  # Microsecond as a decimal number, zero-padded to 3 digits.
+    "%u": ("us", "06d"),  # Microsecond as a decimal number, zero-padded to 6 digits.
+    "%n": ("ns", "09d"),  # Microsecond as a decimal number, zero-padded to 9 digits.
 }
 
 
@@ -153,7 +155,9 @@ def convert_strftime_format(
         for _map in directive_maps:
             for key, (_name, _fmt) in _map.items():
                 # for example replace "%d" by "{day:02d}" but with escaped { and }
-                strftime_fmt = strftime_fmt.replace(key, f"{esc_l}{_name}:{_fmt}{esc_r}")
+                strftime_fmt = strftime_fmt.replace(
+                    key, f"{esc_l}{_name}:{_fmt}{esc_r}"
+                )
 
         # Restore the %% into %
         strftime_fmt = strftime_fmt.replace(esc, "%")

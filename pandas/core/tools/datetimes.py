@@ -1316,8 +1316,13 @@ def fast_strftime(
     """
     # common dict used for formatting
     fmt_dct = dict(
-        year=dt.year, month=dt.month, day=dt.day, hour=dt.hour,
-        min=dt.minute, sec=dt.second, us=dt.microsecond
+        year=dt.year,
+        month=dt.month,
+        day=dt.day,
+        hour=dt.hour,
+        min=dt.minute,
+        sec=dt.second,
+        us=dt.microsecond,
     )
 
     # get the formatting template

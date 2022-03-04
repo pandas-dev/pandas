@@ -3188,10 +3188,16 @@ class TestDatetimeIndexFormat:
         # This timestamp is in 2013 in Europe/Paris but is 2012 in UTC
         dt = pd.to_datetime(["2013-01-01 00:00:00+01:00"], utc=True)
         # If tz is currently set as utc, we'll see 2012
-        assert dt.format(date_format="%Y-%m-%d__foo__%H:%M:%S")[0] == "2012-12-31__foo__23:00:00"
+        assert (
+            dt.format(date_format="%Y-%m-%d__foo__%H:%M:%S")[0]
+            == "2012-12-31__foo__23:00:00"
+        )
         # If tz is currently set as paris, we'll see 2013
         dt = dt.tz_convert("Europe/Paris")
-        assert dt.format(date_format="%Y-%m-%d__foo__%H:%M:%S")[0] == "2013-01-01__foo__00:00:00"
+        assert (
+            dt.format(date_format="%Y-%m-%d__foo__%H:%M:%S")[0]
+            == "2013-01-01__foo__00:00:00"
+        )
 
     def test_date(self):
         formatted = pd.to_datetime([datetime(2003, 1, 1), NaT]).format()
@@ -3279,12 +3285,15 @@ class TestDatetimeFastFormatter:
     kind of date/time objects.
     """
 
-    @pytest.mark.parametrize("strftime_format", (
-        "%Y-%m-%d %H:%M:%S",
-        "%Y%%Y",
-        "%Y{%Y}",
-        "%Y-%m-%dT%H:%M:%S.%fZ",
-    ))
+    @pytest.mark.parametrize(
+        "strftime_format",
+        (
+            "%Y-%m-%d %H:%M:%S",
+            "%Y%%Y",
+            "%Y{%Y}",
+            "%Y-%m-%dT%H:%M:%S.%fZ",
+        ),
+    )
     @pytest.mark.parametrize("new_style", (False, True))
     def test_fast_strftime_basic(self, strftime_format, new_style):
         """Test that formatting standard `datetime` objects with our utils works as good as strftime."""
@@ -3297,8 +3306,13 @@ class TestDatetimeFastFormatter:
 
         # common dict used for formatting
         fmt_dct = dict(
-            year=dt.year, month=dt.month, day=dt.day, hour=dt.hour,
-            min=dt.minute, sec=dt.second, us=dt.microsecond
+            year=dt.year,
+            month=dt.month,
+            day=dt.day,
+            hour=dt.hour,
+            min=dt.minute,
+            sec=dt.second,
+            us=dt.microsecond,
         )
 
         # get the formatting string
@@ -3315,11 +3329,14 @@ class TestDatetimeFastFormatter:
         res2 = fast_strftime(dt, strftime_format, new_style_fmt=new_style)
         assert res2 == res
 
-    @pytest.mark.parametrize("strftime_format", (
-        "%Y-%m-%d %H:%M:%S",
-        "%Y %Y",
-        "%Y-%m-%dT%H:%M:%S.%fZ",
-    ))
+    @pytest.mark.parametrize(
+        "strftime_format",
+        (
+            "%Y-%m-%d %H:%M:%S",
+            "%Y %Y",
+            "%Y-%m-%dT%H:%M:%S.%fZ",
+        ),
+    )
     def test_fast_strftime_perf(self, strftime_format):
         """Test that formatting standard `datetime` objects with our utils is faster than strftime."""
 
@@ -3332,8 +3349,13 @@ class TestDatetimeFastFormatter:
 
         # Perf comparison: confirm the results in https://stackoverflow.com/a/43495629/7262247
         fmt_dct = dict(
-            year=dt.year, month=dt.month, day=dt.day, hour=dt.hour,
-            min=dt.minute, sec=dt.second, us=dt.microsecond
+            year=dt.year,
+            month=dt.month,
+            day=dt.day,
+            hour=dt.hour,
+            min=dt.minute,
+            sec=dt.second,
+            us=dt.microsecond,
         )
 
         glob = globals()
@@ -3350,7 +3372,7 @@ class TestDatetimeFastFormatter:
             Timer("old_style_format % fmt_dct", globals=glob).repeat(7, 1000)
         )
         #   Out[5]: 0.0030
-        assert new_style_best < strftime_best   # much better
+        assert new_style_best < strftime_best  # much better
         assert old_style_best < new_style_best  # even better !
 
     def test_bad_strftime_directive(self):
@@ -3364,12 +3386,15 @@ class TestDatetimeFastFormatter:
         # We align with the same behaviour
         x.dt.strftime(date_format="%Y-%M-%D___")
 
-    @pytest.mark.parametrize("date_format", (
-        # note: "%Y-%m-%d %H:%M:%S and "%Y-%m-%d %H:%M:%S.%f are always accelerated (hardcoded)
-        "%Y-%m-%d__foo__%H:%M:%S",
-        "%Y %Y",
-        "%Y-%m-%dT%H:%M:%S.%fZ",
-    ))
+    @pytest.mark.parametrize(
+        "date_format",
+        (
+            # note: "%Y-%m-%d %H:%M:%S and "%Y-%m-%d %H:%M:%S.%f are always accelerated (hardcoded)
+            "%Y-%m-%d__foo__%H:%M:%S",
+            "%Y %Y",
+            "%Y-%m-%dT%H:%M:%S.%fZ",
+        ),
+    )
     def test_perf_datetime64_strftime(self, date_format):
         x = Series(date_range("20130101 09:00:00", periods=100, freq="min"))
         # res = x.dt.strftime(date_format=date_format)
@@ -3377,8 +3402,15 @@ class TestDatetimeFastFormatter:
 
         glob = globals()
         glob.update(locals())
-        fast_best = min(Timer("x.dt.strftime(date_format=date_format)", globals=glob).repeat(3, 100))
-        strftime_best = min(Timer("x.dt.strftime(date_format=date_format, fast_strftime=False)", globals=glob).repeat(3, 100))
+        fast_best = min(
+            Timer("x.dt.strftime(date_format=date_format)", globals=glob).repeat(3, 100)
+        )
+        strftime_best = min(
+            Timer(
+                "x.dt.strftime(date_format=date_format, fast_strftime=False)",
+                globals=glob,
+            ).repeat(3, 100)
+        )
         assert fast_best < strftime_best  # much better
 
         # How many alternative are worth doing here ?

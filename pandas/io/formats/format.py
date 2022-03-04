@@ -1634,8 +1634,9 @@ class Datetime64Formatter(GenericArrayFormatter):
             return [self.formatter(x) for x in values]
 
         fmt_values = values._data._format_native_types(
-            na_rep=self.nat_rep, date_format=self.date_format,
-            fast_strftime=self.fast_strftime
+            na_rep=self.nat_rep,
+            date_format=self.date_format,
+            fast_strftime=self.fast_strftime,
         )
         return fmt_values.tolist()
 
@@ -1780,8 +1781,13 @@ def _format_datetime64_dateonly(
         if str_date_fmt:
             # Faster, using string formatting
             return str_date_fmt % dict(
-                year=x.year, month=x.month, day=x.day, hour=x.hour,
-                min=x.min, sec=x.sec, us=x.us
+                year=x.year,
+                month=x.month,
+                day=x.day,
+                hour=x.hour,
+                min=x.min,
+                sec=x.sec,
+                us=x.us,
             )
         else:
             # Slower
@@ -1794,7 +1800,10 @@ def _format_datetime64_dateonly(
 
 
 def get_format_datetime64(
-    is_dates_only: bool, nat_rep: str = "NaT", date_format: str | None = None, fast_strftime : bool = True,
+    is_dates_only: bool,
+    nat_rep: str = "NaT",
+    date_format: str | None = None,
+    fast_strftime: bool = True,
 ) -> Callable:
     """Return a formatter callable taking a datetime64 as input and providing
     a string as output"""
@@ -1810,8 +1819,7 @@ def get_format_datetime64(
                 pass
 
         return lambda x: _format_datetime64_dateonly(
-            x, nat_rep=nat_rep, date_format=date_format,
-            str_date_fmt=str_date_fmt
+            x, nat_rep=nat_rep, date_format=date_format, str_date_fmt=str_date_fmt
         )
     else:
         return lambda x: _format_datetime64(x, nat_rep=nat_rep)
