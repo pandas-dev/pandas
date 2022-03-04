@@ -441,7 +441,7 @@ def tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
         return np.array([], dtype=np.int64)
 
     converted = _tz_convert_from_utc(vals, tz)
-    return np.array(converted, dtype=np.int64)
+    return np.asarray(converted, dtype=np.int64)
 
 
 @cython.boundscheck(False)
@@ -460,55 +460,46 @@ cdef const int64_t[:] _tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
     converted : ndarray[int64_t]
     """
     cdef:
-        int64_t[:] converted, deltas
+        int64_t[:] result, deltas
         Py_ssize_t i, n = len(vals)
-        int64_t val, delta
+        int64_t val, delta, local_val
         intp_t[:] pos
         ndarray[int64_t] trans
         str typ
+        bint use_utc = False, use_fixed = False, use_tzlocal = False
 
-    if is_utc(tz):
-        return vals
+    if is_utc(tz) or tz is None:
+        use_utc = True
     elif is_tzlocal(tz):
-        converted = np.empty(n, dtype=np.int64)
-        for i in range(n):
-            val = vals[i]
-            if val == NPY_NAT:
-                converted[i] = NPY_NAT
-            else:
-                converted[i] = _tz_convert_tzlocal_utc(val, tz, to_utc=False)
+        use_tzlocal = True
     else:
-        converted = np.empty(n, dtype=np.int64)
-
         trans, deltas, typ = get_dst_info(tz)
-
         if typ not in ["pytz", "dateutil"]:
-            # FixedOffset, we know len(deltas) == 1
+            # static/fixed; in this case we know that len(delta) == 1
+            use_fixed = True
             delta = deltas[0]
-
-            for i in range(n):
-                val = vals[i]
-                if val == NPY_NAT:
-                    converted[i] = val
-                else:
-                    converted[i] = val + delta
-
         else:
             pos = trans.searchsorted(vals, side="right") - 1
 
-            for i in range(n):
-                val = vals[i]
-                if val == NPY_NAT:
-                    converted[i] = val
-                else:
-                    if pos[i] < 0:
-                        # TODO: How is this reached?  Should we be checking for
-                        #  it elsewhere?
-                        raise ValueError("First time before start of DST info")
+    result = np.empty(n, dtype=np.int64)
+    for i in range(n):
+        val = vals[i]
+        if val == NPY_NAT:
+            result[i] = NPY_NAT
+            continue
 
-                    converted[i] = val + deltas[pos[i]]
+        if use_utc:
+            local_val = val
+        elif use_tzlocal:
+            local_val = _tz_convert_tzlocal_utc(val, tz, to_utc=False)
+        elif use_fixed:
+            local_val = val + delta
+        else:
+            local_val = val + deltas[pos[i]]
 
-    return converted
+        result[i] = local_val
+
+    return result
 
 
 # OSError may be thrown by tzlocal on windows at or close to 1970-01-01

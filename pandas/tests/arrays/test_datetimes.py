@@ -412,3 +412,13 @@ class TestDatetimeArray:
 
         roundtrip = expected.tz_localize("US/Pacific")
         tm.assert_datetime_array_equal(roundtrip, dta)
+
+    def test_tz_localize_utc_to_naive_copies(self):
+        dti = pd.date_range("1994-05-12", periods=12, tz="UTC")
+        dta = dti._data
+
+        res = dta.tz_localize(None)
+        assert not tm.shares_memory(res, dta)
+
+        res = dti.tz_localize(None)
+        assert not tm.shares_memory(res, dti)
