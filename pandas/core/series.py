@@ -521,11 +521,11 @@ class Series(base.IndexOpsMixin, NDFrame):
     # ----------------------------------------------------------------------
 
     @property
-    def _constructor(self) -> type[Series]:
+    def _constructor(self) -> Callable[..., Series]:
         return Series
 
     @property
-    def _constructor_expanddim(self) -> type[DataFrame]:
+    def _constructor_expanddim(self) -> Callable[..., DataFrame]:
         """
         Used when a manipulation result has one higher dimension as the
         original, such as Series.to_frame()
