@@ -41,7 +41,7 @@ def read_orc(
     DataFrame
 
     Notes
-    -------
+    -----
     Before using this function you should read the :ref:`user guide about ORC <io.orc>`
     and :ref:`install optional dependencies <install.warn_orc>`.
     """
