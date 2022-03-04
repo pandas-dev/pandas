@@ -205,7 +205,7 @@ def coerce_to_array(
         if inferred_dtype not in ("boolean", "empty") + integer_like:
             raise TypeError("Need to pass bool-like values")
 
-        mask_values = cast(npt.NDArray[np.bool_], isna(values_object))
+        mask_values = cast("npt.NDArray[np.bool_]", isna(values_object))
         values = np.zeros(len(values), dtype=bool)
         values[~mask_values] = values_object[~mask_values].astype(bool)
 
