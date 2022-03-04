@@ -2169,7 +2169,7 @@ class TestLocCallable:
         tm.assert_frame_equal(res, exp)
 
     def test_frame_loc_getitem_callable_two_params(self):
-        # GH#XXXXX
+        # GH#46226
         df = DataFrame({"A": [1, 2, 3, 4], "B": list("aabb"), "C": [1, 2, 3, 4]})
 
         res = df.loc[lambda x, axis: x.axes[axis].isin([1, 2])]
@@ -2189,7 +2189,7 @@ class TestLocCallable:
         tm.assert_frame_equal(res, expected)
 
     def test_frame_loc_setitem_callable_two_params(self):
-        # GH#XXXXX
+        # GH#46226
         df = DataFrame({"X": [1, 2, 3, 4], "Y": list("aabb")}, index=list("ABCD"))
 
         res = df.copy()

@@ -1364,7 +1364,7 @@ class TestILocCallable:
         tm.assert_frame_equal(res, exp)
 
     def test_frame_iloc_getitem_callable_two_params(self):
-        # GH#XXXXX
+        # GH#46226
         df = DataFrame({"X": [1, 2, 3, 4], "Y": list("aabb")}, index=list("ABCD"))
 
         # axis 0
@@ -1386,7 +1386,7 @@ class TestILocCallable:
         tm.assert_series_equal(res, df.iloc[[1, 3], 0])
 
     def test_frame_iloc_setitem_callable_two_params(self):
-        # GH#XXXXX
+        # GH#46226
         df = DataFrame({"X": [1, 2, 3, 4], "Y": list("aabb")}, index=list("ABCD"))
 
         # return location
