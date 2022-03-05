@@ -1405,7 +1405,11 @@ def test_null_group_str_transformer(
         # ngroup/cumcount always returns a Series as it counts the groups, not values
         expected = expected["B"].rename(None)
 
-    result = gb.transform(transformation_func, *args)
+    warn = FutureWarning if transformation_func in ("backfill", "pad") else None
+    msg = f"{transformation_func} is deprecated"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = gb.transform(transformation_func, *args)
+
     tm.assert_equal(result, expected)
 
 
@@ -1492,5 +1496,8 @@ def test_null_group_str_transformer_series(request, dropna, transformation_func)
         buffer.append(Series([np.nan], index=[3], dtype=dtype))
     expected = concat(buffer)
 
-    result = gb.transform(transformation_func, *args)
+    warn = FutureWarning if transformation_func in ("backfill", "pad") else None
+    msg = f"{transformation_func} is deprecated"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = gb.transform(transformation_func, *args)
     tm.assert_equal(result, expected)
