@@ -28,7 +28,7 @@ cdef class Localizer:
         int64_t delta
         str typ
 
-    cdef int64_t prepare1(self, int64_t utc_val)
+    cdef intp_t* prepare1(self, int64_t utc_val)
     cdef intp_t* prepare(self, const int64_t[:] stamps)
 
 

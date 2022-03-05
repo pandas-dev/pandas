@@ -399,25 +399,15 @@ cpdef int64_t tz_convert_from_utc_single(int64_t val, tzinfo tz):
     converted: int64
     """
     cdef:
-        int64_t delta
-        int64_t[:] deltas
-        ndarray[int64_t, ndim=1] trans
-        intp_t pos
+        intp_t* pos
         Localizer info = Localizer(tz)
 
     if val == NPY_NAT:
         return val
 
-    if info.use_utc:
-        return val
-    elif info.use_tzlocal:
-        return _tz_convert_tzlocal_utc(val, tz, to_utc=False)
-    elif info.use_fixed:
-        return val + info.delta
-    else:
-        trans, deltas, _ = get_dst_info(tz)
-        pos = trans.searchsorted(val, side="right") - 1
-        return val + deltas[pos]
+    pos = info.prepare1(val)
+
+    return utc_val_to_local_val(info, val, pos, 0)
 
 
 def tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
@@ -576,9 +566,13 @@ cdef class Localizer:
                 if typ == "pytz":
                     self.use_pytz = True
 
-    cdef int64_t prepare1(self, int64_t utc_val):
+    cdef intp_t* prepare1(self, int64_t utc_val):
+        cdef:
+            intp_t loc
+
         if self.use_dst:
-            return self.trans.searchsorted(utc_val, side="right") - 1
+            loc = self.trans.searchsorted(utc_val, side="right") - 1
+            return &loc
 
     cdef intp_t* prepare(self, const int64_t[:] stamps):
         if self.use_dst:

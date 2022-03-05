@@ -542,6 +542,7 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
         datetime dt
         ndarray[int64_t] trans
         int64_t[:] deltas
+        Py_ssize_t pos
 
     value = dtstruct_to_dt64(&dts)
     obj.dts = dts
@@ -562,7 +563,7 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
 
         if typ == 'dateutil':
             pos = trans.searchsorted(obj.value, side='right') - 1
-            obj.fold = _infer_tsobject_fold(obj, trans, deltas, pos)
+            obj.fold = _infer_tsobject_fold(obj.value, trans, deltas, pos)
 
     # Keep the converter same as PyDateTime's
     dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
@@ -732,32 +733,35 @@ cdef inline void _localize_tso(_TSObject obj, tzinfo tz):
         if is_fixed_offset(tz):
             # static/fixed tzinfo; in this case we know len(deltas) == 1
             # This can come back with `typ` of either "fixed" or None
-            dt64_to_dtstruct(obj.value + deltas[0], &obj.dts)
-        elif typ == 'pytz':
-            # i.e. treat_tz_as_pytz(tz)
-            pos = trans.searchsorted(obj.value, side='right') - 1
-            tz = tz._tzinfos[tz._transition_info[pos]]
-            dt64_to_dtstruct(obj.value + deltas[pos], &obj.dts)
-        elif typ == 'dateutil':
-            # i.e. treat_tz_as_dateutil(tz)
-            pos = trans.searchsorted(obj.value, side='right') - 1
-            dt64_to_dtstruct(obj.value + deltas[pos], &obj.dts)
-            # dateutil supports fold, so we infer fold from value
-            obj.fold = _infer_tsobject_fold(obj, trans, deltas, pos)
+            local_val = obj.value + deltas[0]
+
         else:
-            # Note: as of 2018-07-17 all tzinfo objects that are _not_
-            # either pytz or dateutil have is_fixed_offset(tz) == True,
-            # so this branch will never be reached.
-            pass
+            pos = trans.searchsorted(obj.value, side='right') - 1
+            local_val = obj.value + deltas[pos]
+
+            if typ == 'pytz':
+                # i.e. treat_tz_as_pytz(tz)
+                tz = tz._tzinfos[tz._transition_info[pos]]
+            elif typ == 'dateutil':
+                # i.e. treat_tz_as_dateutil(tz)
+                # dateutil supports fold, so we infer fold from value
+                obj.fold = _infer_tsobject_fold(obj.value, trans, deltas, pos)
+            else:
+                # Note: as of 2018-07-17 all tzinfo objects that are _not_
+                # either pytz or dateutil have is_fixed_offset(tz) == True,
+                # so this branch will never be reached.
+                pass
+
+        dt64_to_dtstruct(local_val, &obj.dts)
 
     obj.tzinfo = tz
 
 
 cdef inline bint _infer_tsobject_fold(
-    _TSObject obj,
+    int64_t value,
     const int64_t[:] trans,
     const int64_t[:] deltas,
-    intp_t pos,
+    Py_ssize_t pos,
 ):
     """
     Infer _TSObject fold property from value by assuming 0 and then setting
@@ -765,12 +769,13 @@ cdef inline bint _infer_tsobject_fold(
 
     Parameters
     ----------
+    val : int64_t
     obj : _TSObject
     trans : ndarray[int64_t]
         ndarray of offset transition points in nanoseconds since epoch.
     deltas : int64_t[:]
         array of offsets corresponding to transition points in trans.
-    pos : intp_t
+    pos : Py_ssize_t
         Position of the last transition point before taking fold into account.
 
     Returns
@@ -791,7 +796,7 @@ cdef inline bint _infer_tsobject_fold(
 
     if pos > 0:
         fold_delta = deltas[pos - 1] - deltas[pos]
-        if obj.value - fold_delta < trans[pos]:
+        if value - fold_delta < trans[pos]:
             fold = 1
 
     return fold
