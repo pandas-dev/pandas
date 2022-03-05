@@ -375,6 +375,8 @@ class WrappedCythonOp:
 
         elif isinstance(values.dtype, BaseMaskedDtype):
             new_dtype = self._get_result_dtype(values.dtype.numpy_dtype)
+            # Troubleshooting 32bit build
+            assert new_dtype == res_values.dtype, (new_dtype, res_values.dtype)
             # error: Incompatible types in assignment (expression has type
             # "BaseMaskedDtype", variable has type "StringDtype")
             dtype = BaseMaskedDtype.from_numpy_dtype(  # type: ignore[assignment]
@@ -426,6 +428,8 @@ class WrappedCythonOp:
         )
 
         new_dtype = self._get_result_dtype(orig_values.dtype.numpy_dtype)
+        # Troubleshooting 32bit build
+        assert new_dtype == res_values.dtype, (new_dtype, res_values.dtype)
         dtype = BaseMaskedDtype.from_numpy_dtype(new_dtype)
         # TODO: avoid cast as res_values *should* already have the right
         #  dtype; last attempt ran into trouble on 32bit linux build
