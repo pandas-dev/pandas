@@ -182,7 +182,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             return False
         return bool(array_equivalent(self._ndarray, other._ndarray))
 
-    def _from_factorized(cls, values, original):
+    def _from_factorized(self, values, original):
         assert values.dtype == original._ndarray.dtype
         return original._from_backing_data(values)
 
