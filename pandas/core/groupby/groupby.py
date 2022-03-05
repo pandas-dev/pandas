@@ -2236,7 +2236,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @Substitution(name="groupby")
-    @Appender(_common_see_also)
     def first(self, numeric_only: bool = False, min_count: int = -1):
         """
         Compute the first non-null entry of each column.
@@ -2255,6 +2254,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             First not non-null of values within each group.
 
+        See Also
+        --------
+        DataFrame.groupby : Apply a function groupby to each row or column of a
+            DataFrame.
+        DataFrame.core.groupby.GroupBy.last : Compute the last non-null entry of each
+            column.
+        DataFrame.core.groupby.GroupBy.nth : Take the nth row from each group.
+
         Examples
         --------
         >>> df = pd.DataFrame(dict(A=[1, 1, 3], B=[None, 5, 6], C=[1, 2, 3]))
@@ -2263,7 +2270,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         A
         1  5.0  1
         3  6.0  3
-
         """
 
         def first_compat(obj: NDFrameT, axis: int = 0):
@@ -2290,7 +2296,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @Substitution(name="groupby")
-    @Appender(_common_see_also)
     def last(self, numeric_only: bool = False, min_count: int = -1):
         """
         Compute the last non-null entry of each column.
@@ -2308,6 +2313,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         -------
         Series or DataFrame
             Last not non-null of values within each group.
+
+        See Also
+        --------
+        DataFrame.groupby : Apply a function groupby to each row or column of a
+            DataFrame.
+        DataFrame.core.groupby.GroupBy.first : Compute the first non-null entry of each
+            column.
+        DataFrame.core.groupby.GroupBy.nth : Take the nth row from each group.
 
         Examples
         --------
