@@ -1357,21 +1357,28 @@ def test_null_group_str_reducer(request, dropna, reduction_func):
     tm.assert_equal(result, expected)
 
 
-def test_null_group_str_transformer(request, dropna, transformation_func):
+def test_null_group_str_transformer(
+    request, using_array_manager, dropna, transformation_func
+):
     # GH 17093
-    if transformation_func == "tshift":
-        msg = "tshift requires timeseries"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
-    elif dropna and transformation_func in (
-        "backfill",
-        "bfill",
+    xfails_block = (
         "cummax",
         "cummin",
         "cumsum",
-        "ffill",
         "fillna",
-        "pad",
         "rank",
+        "backfill",
+        "ffill",
+        "bfill",
+        "pad",
+    )
+    xfails_array = ("cummax", "cummin", "cumsum", "fillna", "rank")
+    if transformation_func == "tshift":
+        msg = "tshift requires timeseries"
+        request.node.add_marker(pytest.mark.xfail(reason=msg))
+    elif dropna and (
+        (not using_array_manager and transformation_func in xfails_block)
+        or (using_array_manager and transformation_func in xfails_array)
     ):
         msg = "produces incorrect results when nans are present"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
