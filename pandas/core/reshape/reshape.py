@@ -185,7 +185,6 @@ class _Unstacker:
 
         self.group_index = comp_index
         self.mask = mask
-        self.unique_groups = obs_ids
         self.compressor = comp_index.searchsorted(np.arange(ngroups))
 
     @cache_readonly
