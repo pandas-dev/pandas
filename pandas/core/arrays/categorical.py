@@ -43,7 +43,6 @@ from pandas._typing import (
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
-    cache_readonly,
     deprecate_kwarg,
     deprecate_nonkeyword_arguments,
 )
@@ -562,13 +561,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             )
 
         return result
-
-    @cache_readonly
-    def itemsize(self) -> int:
-        """
-        return the size of a single category
-        """
-        return self.categories.itemsize
 
     def to_list(self):
         """
@@ -2312,12 +2304,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     def _values_for_factorize(self):
         return self._ndarray, -1
-
-    @classmethod
-    def _from_factorized(cls, uniques, original):
-        # ensure we have the same itemsize for codes
-        codes = coerce_indexer_dtype(uniques, original.dtype.categories)
-        return original._from_backing_data(codes)
 
     def _cast_quantile_result(self, res_values: np.ndarray) -> np.ndarray:
         # make sure we have correct itemsize for resulting codes
