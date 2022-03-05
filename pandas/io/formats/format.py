@@ -1634,8 +1634,10 @@ class Datetime64Formatter(GenericArrayFormatter):
                 na_rep=self.nat_rep, date_format=self.date_format
             )
 
-        nested_formatter = GenericArrayFormatter(np.array(fmt_values))
-        fmt_values = nested_formatter.get_result()
+        if fmt_values.ndim > 1:
+            nested_formatter = GenericArrayFormatter(fmt_values)
+            fmt_values = nested_formatter.get_result()
+
         return list(fmt_values)
 
 
