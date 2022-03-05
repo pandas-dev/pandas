@@ -313,7 +313,10 @@ cdef class _Timestamp(ABCTimestamp):
         return NotImplemented
 
     def __radd__(self, other):
-        return self.__add__(other)
+        # Have to duplicate checks to avoid infinite recursion due to NotImplemented
+        if is_any_td_scalar(other) or is_integer_object(other) or is_array(other):
+            return self.__add__(other)
+        return NotImplemented
 
     def __sub__(self, other):
 
@@ -377,7 +380,7 @@ cdef class _Timestamp(ABCTimestamp):
         return NotImplemented
 
     def __rsub__(self, other):
-        if is_datetime64_object(other):
+        if PyDateTime_Check(other) or is_datetime64_object(other):
             return type(self)(other) - self
         return NotImplemented
     # -----------------------------------------------------------------

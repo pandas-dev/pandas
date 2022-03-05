@@ -414,6 +414,15 @@ cdef class Interval(IntervalMixin):
             return Interval(y.left + self, y.right + self, closed=y.closed)
         return NotImplemented
 
+    def __radd__(self, y):
+        if (
+                isinstance(y, numbers.Number)
+                or PyDelta_Check(y)
+                or is_timedelta64_object(y)
+        ):
+            return self.__add__(y)
+        return NotImplemented
+
     def __sub__(self, y):
         if (
             isinstance(y, numbers.Number)
@@ -428,6 +437,11 @@ cdef class Interval(IntervalMixin):
             return Interval(self.left * y, self.right * y, closed=self.closed)
         elif isinstance(y, Interval) and isinstance(self, numbers.Number):
             return Interval(y.left * self, y.right * self, closed=y.closed)
+        return NotImplemented
+
+    def __rmul__(self, y):
+        if isinstance(y, numbers.Number):
+            return self.__mul__(y)
         return NotImplemented
 
     def __truediv__(self, y):
