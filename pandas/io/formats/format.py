@@ -1819,9 +1819,9 @@ class Datetime64TZFormatter(Datetime64Formatter):
             ido, date_format=self.date_format
         )
         fmt_values = np.frompyfunc(formatter, 1, 1)(values)
-
-        nested_formatter = GenericArrayFormatter(fmt_values)
-        fmt_values = nested_formatter.get_result()
+        if fmt_values.ndim > 1:
+            nested_formatter = GenericArrayFormatter(fmt_values)
+            fmt_values = nested_formatter.get_result()
         return list(fmt_values)
 
 
