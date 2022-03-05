@@ -316,7 +316,7 @@ class CSSToExcelConverter:
             return {"fgColor": self.color_to_excel(fill_color), "patternType": "solid"}
 
     def build_number_format(self, props: Mapping[str, str]) -> dict[str, str | None]:
-        return {"format_code": props.get("number-format")}
+        return {"format_code": props.get("number-format").replace("|", ";")}
 
     def build_font(
         self, props: Mapping[str, str]
