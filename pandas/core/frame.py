@@ -5884,7 +5884,8 @@ class DataFrame(NDFrame, OpsMixin):
         if not drop:
             to_insert: Iterable[tuple[Any, Any | None]]
 
-            names = self.index.get_default_index_names(names)
+            default = "index" if "index" not in self else "level_0"
+            names = self.index.get_default_index_names(names, default)
             if isinstance(self.index, MultiIndex):
                 to_insert = zip(self.index.levels, self.index.codes)
             else:
