@@ -541,7 +541,7 @@ class IndexOpsMixin(OpsMixin):
         if copy or na_value is not lib.no_default:
             result = result.copy()
             if na_value is not lib.no_default:
-                result[self.isna()] = na_value
+                result[np.asanyarray(self.isna())] = na_value
         return result
 
     @property
