@@ -31,13 +31,12 @@ from .offsets cimport BaseOffset
 from .period cimport get_period_ordinal
 from .timestamps cimport create_timestamp_from_ts
 from .timezones cimport (
-    Localizer,
     get_dst_info,
     is_tzlocal,
     is_utc,
 )
 from .tzconversion cimport (
-    tz_convert_utc_to_tzlocal,
+    Localizer,
     utc_val_to_local_val,
 )
 

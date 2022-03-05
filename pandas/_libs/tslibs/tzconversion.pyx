@@ -38,7 +38,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct,
 )
 from pandas._libs.tslibs.timezones cimport (
-    Localizer,
     get_dst_info,
     get_utcoffset,
     is_fixed_offset,
@@ -540,6 +539,51 @@ cdef int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz, bint to_utc=True,
         return val - delta
     else:
         return val + delta
+
+
+@cython.freelist(16)
+cdef class Localizer:
+    # cdef:
+    #    tzinfo tz
+    #    bint use_utc
+    #    bint use_fixed
+    #    bint use_tzlocal
+    #    bint use_pytz
+    #    bint use_dst
+    #    ndarray trans
+    #    int64_t[:] deltas
+    #    int64_t delta
+    #    str typ
+
+    def __cinit__(self, tzinfo tz):
+        self.tz = tz
+        if is_utc(tz) or tz is None:
+            self.use_utc = True
+        elif is_tzlocal(tz):
+            self.use_tzlocal = True
+        else:
+            trans, deltas, typ = get_dst_info(tz)
+            self.trans = trans
+            self.deltas = deltas
+            self.typ = typ
+
+            if typ not in ["pytz", "dateutil"]:
+                # static/fixed; in this case we know that len(delta) == 1
+                self.use_fixed = True
+                self.delta = deltas[0]
+            else:
+                self.use_dst = True
+                if typ == "pytz":
+                    self.use_pytz = True
+
+    cdef int64_t prepare1(self, int64_t utc_val):
+        if self.use_dst:
+            return self.trans.searchsorted(utc_val, side="right") - 1
+
+    cdef intp_t* prepare(self, const int64_t[:] stamps):
+        if self.use_dst:
+
+            return <intp_t*>cnp.PyArray_DATA(self.trans.searchsorted(stamps, side="right") - 1)
 
 
 # TODO: make this a Localizer method? would require moving tzlocal func
