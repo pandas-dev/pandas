@@ -781,10 +781,3 @@ def test_frame_astype_no_copy():
 
     assert result.a.dtype == pd.Int16Dtype()
     assert np.shares_memory(df.b.values, result.b.values)
-
-
-def test_frame_apply_np_array_return_type():
-    # GH 35517
-    df = DataFrame([["foo"]])
-    df = df.apply(lambda col: np.array("bar")).iloc[0]
-    assert isinstance(df, np.ndarray)
