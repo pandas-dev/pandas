@@ -802,9 +802,11 @@ class TestDataFramePlots(TestPlotBase):
 
         df = DataFrame(np.random.random((10, 3)) * 100, columns=["a", "b", "c"])
         ax = df.plot.scatter(x="a", y="b", c="c")
+        plot_norm = ax.collections[0].norm
         color_min_max = (df.c.min(), df.c.max())
         default_norm = mpl.colors.Normalize(*color_min_max)
-        assert all(df.c.apply(lambda x: ax.collections[0].norm(x) == default_norm(x)))
+        for value in df.c:
+            assert plot_norm(value) == default_norm(value)
 
     @pytest.mark.slow
     def test_plot_bar(self):
