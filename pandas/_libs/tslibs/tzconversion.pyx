@@ -441,7 +441,7 @@ def tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
         return np.array([], dtype=np.int64)
 
     converted = _tz_convert_from_utc(vals, tz)
-    return np.array(converted, dtype=np.int64)
+    return np.asarray(converted, dtype=np.int64)
 
 
 @cython.boundscheck(False)
