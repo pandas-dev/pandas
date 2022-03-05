@@ -406,3 +406,40 @@ def tz_standardize(tz: tzinfo) -> tzinfo:
     if treat_tz_as_pytz(tz):
         return pytz.timezone(str(tz))
     return tz
+
+
+cdef class Localizer:
+    # cdef:
+    #    tzinfo tz
+    #    bint use_utc
+    #    bint use_fixed
+    #    bint use_tzlocal
+    #    bint use_pytz
+    #    bint use_dst
+    #    ndarray trans
+    #    int64_t[:] deltas
+    #    int64_t delta
+    #    str typ
+
+    def __cinit__(self, tzinfo tz):
+        self.tz = tz
+        if is_utc(tz) or tz is None:
+            self.use_utc = True
+        elif is_tzlocal(tz):
+            self.use_tzlocal = True
+        else:
+            trans, deltas, typ = get_dst_info(tz)
+            self.trans = trans
+            self.deltas = deltas
+            self.typ = typ
+
+            if typ not in ["pytz", "dateutil"]:
+                # static/fixed; in this case we know that len(delta) == 1
+                self.use_fixed = True
+                self.delta = deltas[0]
+            else:
+                self.use_dst = True
+
+    cdef ndarray[int64_t] prepare(self, const int64_t[:] stamps):
+        if self.use_dst:
+            return self.trans.searchsorted(stamps, side="right") - 1

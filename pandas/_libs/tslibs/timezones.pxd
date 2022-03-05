@@ -3,6 +3,10 @@ from cpython.datetime cimport (
     timedelta,
     tzinfo,
 )
+from numpy cimport (
+    int64_t,
+    ndarray,
+)
 
 
 cdef tzinfo utc_pytz
@@ -20,3 +24,19 @@ cdef timedelta get_utcoffset(tzinfo tz, datetime obj)
 cdef bint is_fixed_offset(tzinfo tz)
 
 cdef object get_dst_info(tzinfo tz)
+
+
+cdef class Localizer:
+    cdef:
+        tzinfo tz
+        bint use_utc
+        bint use_fixed
+        bint use_tzlocal
+        bint use_dst
+        bint use_pytz
+        ndarray trans
+        int64_t[:] deltas
+        int64_t delta
+        str typ
+
+    cdef ndarray[int64_t] prepare(self, const int64_t[:] stamps)

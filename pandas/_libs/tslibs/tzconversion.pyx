@@ -38,6 +38,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct,
 )
 from pandas._libs.tslibs.timezones cimport (
+    Localizer,
     get_dst_info,
     get_utcoffset,
     is_fixed_offset,
@@ -566,3 +567,20 @@ cdef int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz, bint to_utc=True,
         return val - delta
     else:
         return val + delta
+
+
+# TODO: make this a Localizer method? would require moving tzlocal func
+cdef int64_t utc_val_to_local_val(Localizer info, int64_t utc_val, intp_t[:] pos, Py_ssize_t i):
+    cdef:
+        int64_t local_val
+
+    if info.use_utc:
+        local_val = utc_val
+    elif info.use_tzlocal:
+        local_val = _tz_convert_tzlocal_utc(utc_val, info.tz, to_utc=False)
+    elif info.use_fixed:
+        local_val = utc_val + info.delta
+    else:
+        local_val = utc_val + info.deltas[pos[i]]
+
+    return local_val
