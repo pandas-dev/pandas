@@ -1628,7 +1628,7 @@ class Datetime64Formatter(GenericArrayFormatter):
             values = DatetimeIndex(values)
 
         if self.formatter is not None and callable(self.formatter):
-            fmt_values = [self.formatter(x) for x in values]
+            fmt_values = np.array([self.formatter(x) for x in values])
         else:
             fmt_values = values._data._format_native_types(
                 na_rep=self.nat_rep, date_format=self.date_format
