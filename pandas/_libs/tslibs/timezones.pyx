@@ -3,6 +3,8 @@ from datetime import (
     timezone,
 )
 
+import cython
+
 from cpython.datetime cimport (
     datetime,
     timedelta,
@@ -411,6 +413,7 @@ def tz_standardize(tz: tzinfo) -> tzinfo:
     return tz
 
 
+@cython.freelist(16)
 cdef class Localizer:
     # cdef:
     #    tzinfo tz

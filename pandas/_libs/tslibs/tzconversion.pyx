@@ -466,6 +466,10 @@ cdef const int64_t[:] _tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
         intp_t* pos
         Localizer info = Localizer(tz)
 
+    if info.use_utc:
+        # fastpath
+        return vals.copy()
+
     converted = np.empty(n, dtype=np.int64)
 
     pos = info.prepare(vals)
