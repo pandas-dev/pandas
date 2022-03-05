@@ -745,7 +745,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         new_key = [slice(None)] * self.ndim
         # error: Invalid index type "Optional[Any]" for "List[slice]"; expected
         # type "SupportsIndex"
-        new_key[self.axis] = key  # type:ignore[index]
+        new_key[self.axis] = key  # type: ignore[index]
         return tuple(new_key)
 
     @final
