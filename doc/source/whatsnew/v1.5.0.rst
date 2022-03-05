@@ -393,6 +393,7 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
+- Bug in :meth:`Series.to_numpy` where multiindexed Series could not be converted to numpy arrays when an ``na_value`` was supplied (:issue:`45774`)
 - Bug in :class:`MultiIndex.equals` not commutative when only one side has extension array dtype (:issue:`46026`)
 -
 
