@@ -439,6 +439,8 @@ cdef class Localizer:
                 self.delta = deltas[0]
             else:
                 self.use_dst = True
+                if typ == "pytz":
+                    self.use_pytz = True
 
     cdef ndarray[int64_t] prepare(self, const int64_t[:] stamps):
         if self.use_dst:

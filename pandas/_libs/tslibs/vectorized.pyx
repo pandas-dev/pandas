@@ -124,17 +124,12 @@ def ints_to_pydatetime(
     """
     cdef:
         Py_ssize_t i, n = len(stamps)
-        ndarray[int64_t] trans
-        int64_t[:] deltas
         intp_t[:] pos
         npy_datetimestruct dts
-        object dt, new_tz
-        str typ
-        int64_t value, local_val, delta = NPY_NAT  # dummy for delta
+        object new_tz
+        int64_t value, local_val
         ndarray[object] result = np.empty(n, dtype=object)
         object (*func_create)(int64_t, npy_datetimestruct, tzinfo, object, bint)
-        bint use_utc = False, use_tzlocal = False, use_fixed = False
-        bint use_pytz = False
         Localizer info = Localizer(tz)
 
     if box == "date":
@@ -152,19 +147,7 @@ def ints_to_pydatetime(
             "box must be one of 'datetime', 'date', 'time' or 'timestamp'"
         )
 
-    if is_utc(tz) or tz is None:
-        use_utc = True
-    elif is_tzlocal(tz):
-        use_tzlocal = True
-    else:
-        trans, deltas, typ = get_dst_info(tz)
-        if typ not in ["pytz", "dateutil"]:
-            # static/fixed; in this case we know that len(delta) == 1
-            use_fixed = True
-            delta = deltas[0]
-        else:
-            pos = trans.searchsorted(stamps, side="right") - 1
-            use_pytz = typ == "pytz"
+    pos = info.prepare(stamps)
 
     for i in range(n):
         new_tz = tz
@@ -172,26 +155,16 @@ def ints_to_pydatetime(
 
         if value == NPY_NAT:
             result[i] = <object>NaT
-        else:
-            if info.use_utc:
-                local_val = value
-            elif info.use_tzlocal:
-                local_val = tz_convert_utc_to_tzlocal(value, tz)
-            elif info.use_fixed:
-                local_val = value + delta
-            elif not use_pytz:
-                # i.e. dateutil
-                # no zone-name change for dateutil tzs - dst etc
-                # represented in single object.
-                local_val = value + deltas[pos[i]]
-            else:
-                # pytz
-                # find right representation of dst etc in pytz timezone
-                new_tz = tz._tzinfos[tz._transition_info[pos[i]]]
-                local_val = value + deltas[pos[i]]
+            continue
 
-            dt64_to_dtstruct(local_val, &dts)
-            result[i] = func_create(value, dts, new_tz, freq, fold)
+        local_val = utc_val_to_local_val(info, value, pos, i)
+
+        if info.use_pytz:
+            # find right representation of dst etc in pytz timezone
+            new_tz = tz._tzinfos[tz._transition_info[pos[i]]]
+
+        dt64_to_dtstruct(local_val, &dts)
+        result[i] = func_create(value, dts, new_tz, freq, fold)
 
     return result
 
