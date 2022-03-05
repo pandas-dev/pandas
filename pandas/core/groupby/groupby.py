@@ -2307,12 +2307,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Returns
         -------
         Series or DataFrame
-            First not non-null of values within each group.
+            Last not non-null of values within each group.
 
         Examples
         --------
         >>> df = pd.DataFrame(dict(A=[1, 1, 3], B=[5, None, 6], C=[1, 2, 3]))
-        >>> df.groupby("A").first()
+        >>> df.groupby("A").last()
              B  C
         A
         1  5.0  2
