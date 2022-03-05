@@ -531,8 +531,7 @@ class Index(IndexOpsMixin, PandasObject):
         elif hasattr(data, "__array__"):
             return Index(np.asarray(data), dtype=dtype, copy=copy, name=name, **kwargs)
         else:
-
-            if tupleize_cols and is_list_like(data):
+            if tupleize_cols and is_list_like(data) and all(data):
                 # GH21470: convert iterable to list before determining if empty
                 if is_iterator(data):
                     data = list(data)

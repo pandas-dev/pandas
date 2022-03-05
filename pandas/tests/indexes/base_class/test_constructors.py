@@ -40,3 +40,13 @@ class TestIndexConstructor:
         msg = "could not convert string to float"
         with pytest.raises(ValueError, match=msg):
             Index(["a", "b", "c"], dtype=float)
+
+    def test_construct_empty_tuples(self):
+        # GH #45608
+        result = Index([()])
+        expected = Index([()], dtype="object")
+        tm.assert_index_equal(result, expected)
+
+        result = Index([(), None])
+        expected = Index([(), None], dtype="object")
+        tm.assert_index_equal(result, expected)
