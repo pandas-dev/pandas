@@ -5853,16 +5853,14 @@ class DataFrame(NDFrame, OpsMixin):
         lion           mammal   80.5     run
         monkey         mammal    NaN    jump
 
-        Using the `names` parameter, it is possible to choose a name for the
-        old index column:
+        Using the `names` parameter, choose a name for the index column:
 
         >>> df.reset_index(names='name')
-             name   class  max_speed
+            name   class  max_speed
         0  falcon    bird      389.0
         1  parrot    bird       24.0
         2    lion  mammal       80.5
         3  monkey  mammal        NaN
-
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         self._check_inplace_and_allows_duplicate_labels(inplace)
