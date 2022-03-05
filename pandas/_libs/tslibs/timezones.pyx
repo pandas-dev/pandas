@@ -26,7 +26,10 @@ UTC = pytz.utc
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport int64_t
+from numpy cimport (
+    int64_t,
+    intp_t,
+)
 
 cnp.import_array()
 
@@ -442,6 +445,11 @@ cdef class Localizer:
                 if typ == "pytz":
                     self.use_pytz = True
 
-    cdef ndarray[int64_t] prepare(self, const int64_t[:] stamps):
+    cdef int64_t prepare1(self, int64_t utc_val):
         if self.use_dst:
-            return self.trans.searchsorted(stamps, side="right") - 1
+            return self.trans.searchsorted(utc_val, side="right") - 1
+
+    cdef intp_t* prepare(self, const int64_t[:] stamps):
+        if self.use_dst:
+
+            return <intp_t*>cnp.PyArray_DATA(self.trans.searchsorted(stamps, side="right") - 1)

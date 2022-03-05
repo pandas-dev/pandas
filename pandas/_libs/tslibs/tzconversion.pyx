@@ -404,18 +404,17 @@ cpdef int64_t tz_convert_from_utc_single(int64_t val, tzinfo tz):
         int64_t[:] deltas
         ndarray[int64_t, ndim=1] trans
         intp_t pos
+        Localizer info = Localizer(tz)
 
     if val == NPY_NAT:
         return val
 
-    if is_utc(tz):
+    if info.use_utc:
         return val
-    elif is_tzlocal(tz):
+    elif info.use_tzlocal:
         return _tz_convert_tzlocal_utc(val, tz, to_utc=False)
-    elif is_fixed_offset(tz):
-        _, deltas, _ = get_dst_info(tz)
-        delta = deltas[0]
-        return val + delta
+    elif info.use_fixed:
+        return val + info.delta
     else:
         trans, deltas, _ = get_dst_info(tz)
         pos = trans.searchsorted(val, side="right") - 1
@@ -464,7 +463,7 @@ cdef const int64_t[:] _tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
         int64_t[:] converted
         Py_ssize_t i, n = len(vals)
         int64_t val
-        intp_t[:] pos
+        intp_t* pos
         Localizer info = Localizer(tz)
 
     converted = np.empty(n, dtype=np.int64)
@@ -540,7 +539,7 @@ cdef int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz, bint to_utc=True,
 
 
 # TODO: make this a Localizer method? would require moving tzlocal func
-cdef int64_t utc_val_to_local_val(Localizer info, int64_t utc_val, intp_t[:] pos, Py_ssize_t i):
+cdef int64_t utc_val_to_local_val(Localizer info, int64_t utc_val, intp_t* pos, Py_ssize_t i):
     cdef:
         int64_t local_val
 

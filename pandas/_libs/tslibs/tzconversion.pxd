@@ -16,4 +16,4 @@ cdef int64_t tz_localize_to_utc_single(
 ) except? -1
 
 
-cdef int64_t utc_val_to_local_val(Localizer info, int64_t utc_val, intp_t[:] pos, Py_ssize_t i)
+cdef int64_t utc_val_to_local_val(Localizer info, int64_t utc_val, intp_t* pos, Py_ssize_t i)

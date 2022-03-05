@@ -5,6 +5,7 @@ from cpython.datetime cimport (
 )
 from numpy cimport (
     int64_t,
+    intp_t,
     ndarray,
 )
 
@@ -39,4 +40,5 @@ cdef class Localizer:
         int64_t delta
         str typ
 
-    cdef ndarray[int64_t] prepare(self, const int64_t[:] stamps)
+    cdef int64_t prepare1(self, int64_t utc_val)
+    cdef intp_t* prepare(self, const int64_t[:] stamps)
