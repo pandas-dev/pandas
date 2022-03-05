@@ -26,7 +26,10 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.api.indexers import BaseIndexer
+from pandas.core.indexers.objects import VariableOffsetWindowIndexer
 from pandas.core.window import Rolling
+
+from pandas.tseries.offsets import BusinessDay
 
 
 def test_doc_string():
@@ -79,6 +82,37 @@ def test_invalid_constructor(frame_or_series, w):
     msg = "center must be a boolean"
     with pytest.raises(ValueError, match=msg):
         c(window=2, min_periods=1, center=w)
+
+
+@pytest.mark.parametrize(
+    "window",
+    [
+        timedelta(days=3),
+        Timedelta(days=3),
+        "3D",
+        VariableOffsetWindowIndexer(
+            index=date_range("2015-12-25", periods=5), offset=BusinessDay(1)
+        ),
+    ],
+)
+def test_freq_window_not_implemented(window):
+    # GH 15354
+    df = DataFrame(
+        np.arange(10),
+        index=date_range("2015-12-24", periods=10, freq="D"),
+    )
+    with pytest.raises(
+        NotImplementedError, match="step is not supported with frequency windows"
+    ):
+        df.rolling("3D", step=3)
+
+
+@pytest.mark.parametrize("agg", ["cov", "corr"])
+def test_step_not_implemented_for_cov_corr(agg):
+    # GH 15354
+    roll = DataFrame(range(2)).rolling(1, step=2)
+    with pytest.raises(NotImplementedError, match="step not implemented"):
+        getattr(roll, agg)()
 
 
 @pytest.mark.parametrize("window", [timedelta(days=3), Timedelta(days=3)])
@@ -300,7 +334,7 @@ def test_even_number_window_alignment():
     tm.assert_series_equal(result, expected)
 
 
-def test_closed_fixed_binary_col(center):
+def test_closed_fixed_binary_col(center, step):
     # GH 34315
     data = [0, 1, 1, 0, 0, 1, 0, 1]
     df = DataFrame(
@@ -317,9 +351,11 @@ def test_closed_fixed_binary_col(center):
         expected_data,
         columns=["binary_col"],
         index=date_range(start="2020-01-01", freq="min", periods=len(expected_data)),
-    )
+    )[::step]
 
-    rolling = df.rolling(window=len(df), closed="left", min_periods=1, center=center)
+    rolling = df.rolling(
+        window=len(df), closed="left", min_periods=1, center=center, step=step
+    )
     result = rolling.mean()
     tm.assert_frame_equal(result, expected)
 
@@ -1362,7 +1398,7 @@ def test_rolling_non_monotonic(method, expected):
     df = DataFrame({"values": np.arange(len(use_expanding)) ** 2})
 
     class CustomIndexer(BaseIndexer):
-        def get_window_bounds(self, num_values, min_periods, center, closed):
+        def get_window_bounds(self, num_values, min_periods, center, closed, step):
             start = np.empty(num_values, dtype=np.int64)
             end = np.empty(num_values, dtype=np.int64)
             for i in range(num_values):
@@ -1735,3 +1771,13 @@ def test_rolling_std_neg_sqrt():
 
     b = a.ewm(span=3).std()
     assert np.isfinite(b[2:]).all()
+
+
+def test_step_not_integer_raises():
+    with pytest.raises(ValueError, match="step must be an integer"):
+        DataFrame(range(2)).rolling(1, step="foo")
+
+
+def test_step_not_positive_raises():
+    with pytest.raises(ValueError, match="step must be >= 0"):
+        DataFrame(range(2)).rolling(1, step=-1)
