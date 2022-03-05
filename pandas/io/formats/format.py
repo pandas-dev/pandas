@@ -1628,13 +1628,13 @@ class Datetime64Formatter(GenericArrayFormatter):
             values = DatetimeIndex(values)
 
         if self.formatter is not None and callable(self.formatter):
-            fmt_values = np.frompyfunc(self.formatter, 1, 1)(values)
+            fmt_values = [self.formatter(x) for x in values]
         else:
             fmt_values = values._data._format_native_types(
                 na_rep=self.nat_rep, date_format=self.date_format
             )
 
-        nested_formatter = GenericArrayFormatter(fmt_values)
+        nested_formatter = GenericArrayFormatter(np.array(fmt_values))
         fmt_values = nested_formatter.get_result()
         return list(fmt_values)
 

@@ -3182,7 +3182,7 @@ class TestDatetime64Formatter:
         assert result[0].strip() == "[[2018-01-01 00:00:00]]"
         assert result[9].strip() == "[[2018-01-01 09:00:00]]"
 
-    def test_datetime64formatter_2d_array_format_func(self):
+    def test_datetime64formatter_3d_array_format_func(self):
         x = date_range("2018-01-01", periods=24, freq="H").to_numpy()
 
         def format_func(t):
