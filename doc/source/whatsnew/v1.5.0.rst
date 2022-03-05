@@ -304,6 +304,7 @@ Other Deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
+- Performance improvement in :meth:`DataFrame.corrwith` for column-wise (axis=0) Pearson and Spearman correlation when other is a :class:`Series` (:issue:`46174`)
 - Performance improvement in :meth:`.GroupBy.transform` for some user-defined DataFrame -> Series functions (:issue:`45387`)
 - Performance improvement in :meth:`DataFrame.duplicated` when subset consists of only one column (:issue:`45236`)
 - Performance improvement in :meth:`.GroupBy.diff` (:issue:`16706`)
@@ -312,9 +313,9 @@ Performance improvements
 - Performance improvement in :meth:`MultiIndex.get_locs` (:issue:`45681`, :issue:`46040`)
 - Performance improvement in :func:`merge` when left and/or right are empty (:issue:`45838`)
 - Performance improvement in :meth:`DataFrame.join` when left and/or right are empty (:issue:`46015`)
+- Performance improvement in :meth:`DataFrame.reindex` and :meth:`Series.reindex` when target is a :class:`MultiIndex` (:issue:`46235`)
 - Performance improvement in :func:`factorize` (:issue:`46109`)
 - Performance improvement in :class:`DataFrame` and :class:`Series` constructors for extension dtype scalars (:issue:`45854`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.bug_fixes:
@@ -421,6 +422,7 @@ I/O
 - Bug in :func:`read_parquet` when ``engine="pyarrow"`` which caused partial write to disk when column of unsupported datatype was passed (:issue:`44914`)
 - Bug in :func:`DataFrame.to_excel` and :class:`ExcelWriter` would raise when writing an empty DataFrame to a ``.ods`` file (:issue:`45793`)
 - Bug in Parquet roundtrip for Interval dtype with ``datetime64[ns]`` subtype (:issue:`45881`)
+- Bug in :func:`read_excel` when reading a ``.ods`` file with newlines between xml elements(:issue:`45598`)
 
 Period
 ^^^^^^
@@ -443,6 +445,9 @@ Groupby/resample/rolling
 - Bug in :meth:`.ExponentialMovingWindow.mean` with ``axis=1`` and ``engine='numba'`` when the :class:`DataFrame` has more columns than rows (:issue:`46086`)
 - Bug when using ``engine="numba"`` would return the same jitted function when modifying ``engine_kwargs`` (:issue:`46086`)
 - Bug in :meth:`.DataFrameGroupby.transform` fails when ``axis=1`` and ``func`` is ``"first"`` or ``"last"`` (:issue:`45986`)
+- Bug in :meth:`DataFrameGroupby.cumsum` with ``skipna=False`` giving incorrect results (:issue:`??`)
+- Bug in :meth:`.GroupBy.cumsum` with ``timedelta64[ns]`` dtype failing to recognize ``NaT`` as a null value (:issue:`??`)
+-
 
 Reshaping
 ^^^^^^^^^

@@ -550,14 +550,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return new_obj
 
     def _values_for_factorize(self):
-        # int64 instead of int ensures we have a "view" method
-        return self._ndarray, np.int64(iNaT)
-
-    @classmethod
-    def _from_factorized(
-        cls: type[DatetimeLikeArrayT], values, original: DatetimeLikeArrayT
-    ) -> DatetimeLikeArrayT:
-        return cls(values, dtype=original.dtype)
+        return self._ndarray, self._internal_fill_value
 
     # ------------------------------------------------------------------
     # Validation Methods
