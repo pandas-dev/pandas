@@ -242,7 +242,7 @@ I want to work with passenger data for which the age is known.
     age_no_na.head()
 
 The :meth:`~Series.notna` conditional function returns a ``True`` for each row the
-values are not an ``Null`` value. As such, this can be combined with the
+values are not a ``Null`` value. As such, this can be combined with the
 selection brackets ``[]`` to filter the data table.
 
 .. raw:: html
