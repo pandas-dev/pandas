@@ -66,7 +66,7 @@ if TYPE_CHECKING:
     )
 
     from pandas.core.arrays.base import ExtensionArray
-    from pandas.core.base import IndexOpsMixin
+    from pandas.core.indexes.base import Index
 
 
 isposinf_scalar = libmissing.isposinf_scalar
@@ -85,7 +85,7 @@ def isna(obj: Scalar) -> bool:
 
 @overload
 def isna(
-    obj: IndexOpsMixin | ExtensionArray | np.ndarray | list,
+    obj: Index | ExtensionArray | np.ndarray | list,
 ) -> npt.NDArray[np.bool_]:
     ...
 
@@ -328,7 +328,7 @@ def notna(obj: Scalar) -> bool:
 
 @overload
 def notna(
-    obj: IndexOpsMixin | ExtensionArray | np.ndarray | list,
+    obj: Index | ExtensionArray | np.ndarray | list,
 ) -> npt.NDArray[np.bool_]:
     ...
 

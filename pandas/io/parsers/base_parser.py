@@ -856,10 +856,11 @@ class ParserBase:
         data: list of array-likes containing the data column-wise.
         """
         if not self.index_col and len(columns) != len(data) and columns:
-            # without this cast mypy thinks that last_entry could still be an ndarray
-            last_entry = cast(Scalar, data[-1])
             if len(columns) == len(data) - 1 and np.all(
-                (is_object_dtype(last_entry) and last_entry == "") | isna(last_entry)
+                # error: No overload variant of "__ror__" of "ndarray" matches
+                # argument type "ExtensionArray"
+                (is_object_dtype(data[-1]) and data[-1] == "")
+                | isna(data[-1])  # type: ignore[operator]
             ):
                 return
             warnings.warn(
