@@ -579,7 +579,7 @@ cdef class Localizer:
 
             return <intp_t*>cnp.PyArray_DATA(self.trans.searchsorted(stamps, side="right") - 1)
 
-    cdef int64_t utc_val_to_local_val(self, int64_t utc_val, intp_t* pos, Py_ssize_t i):
+    cdef inline int64_t utc_val_to_local_val(self, int64_t utc_val, intp_t* pos, Py_ssize_t i):
         cdef:
             int64_t local_val
 
@@ -593,3 +593,25 @@ cdef class Localizer:
             local_val = utc_val + self.deltas[pos[i]]
 
         return local_val
+
+    # WTF both tests and perf seem sensitive to these two decorators,
+    #  but in a hard-to-reproduce manner.
+    #  In particular pandas/tests/indexes/datetimes/test_timezones.py
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
+    cdef bint is_date_array_normalized(self, const int64_t[:] stamps):
+        cdef:
+            Py_ssize_t i, n = len(stamps)
+            int64_t local_val
+            int64_t day_nanos = 24 * 3600 * 1_000_000_000
+            intp_t* pos
+
+        pos = self.prepare(stamps)
+
+        for i in range(n):
+            local_val = self.utc_val_to_local_val(stamps[i], pos, i)
+
+            if local_val % day_nanos != 0:
+                return False
+
+        return True
