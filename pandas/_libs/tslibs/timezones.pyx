@@ -3,8 +3,6 @@ from datetime import (
     timezone,
 )
 
-import cython
-
 from cpython.datetime cimport (
     datetime,
     timedelta,
