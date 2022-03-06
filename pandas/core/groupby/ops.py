@@ -424,14 +424,8 @@ class WrappedCythonOp:
             **kwargs,
         )
 
-        new_dtype = self._get_result_dtype(orig_values.dtype.numpy_dtype)
-        # Troubleshooting 32bit build
-        assert new_dtype == res_values.dtype, (new_dtype, res_values.dtype)
-        dtype = BaseMaskedDtype.from_numpy_dtype(new_dtype)
-        # TODO: avoid cast as res_values *should* already have the right
-        #  dtype; last attempt ran into trouble on 32bit linux build
-        res_values = res_values.astype(dtype.type, copy=False)
-
+        # res_values should already have the correct dtype, we just need to
+        #  wrap in a MaskedArray
         return orig_values._maybe_mask_result(res_values, result_mask)
 
     @final
