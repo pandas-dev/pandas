@@ -23,6 +23,7 @@ from typing import (
 import warnings
 
 import numpy as np
+import sqlalchemy
 
 import pandas._libs.lib as lib
 from pandas._typing import DtypeArg
@@ -852,7 +853,9 @@ class SQLTable(PandasObject):
         else:
             self._execute_create()
 
-    def _load_existing_pkeys(self, primary_keys, primary_key_values):
+    def _load_existing_pkeys(
+        self, primary_keys: list[str], primary_key_values: list[str]
+    ) -> list[str]:
         """
         Load existing primary keys from Database
 
@@ -883,7 +886,9 @@ class SQLTable(PandasObject):
         )
         return self.pd_sql.execute(select_stmt).fetchall()
 
-    def _split_incoming_data(self, primary_keys, keys_in_db):
+    def _split_incoming_data(
+        self, primary_keys: list[str], keys_in_db: list[str]
+    ) -> (DataFrame, DataFrame):
         """
         Split incoming dataframe based off whether primary key already exists in db.
 
@@ -910,7 +915,9 @@ class SQLTable(PandasObject):
         exists_mask = tmp_idx.isin(in_db_idx)
         return temp.loc[exists_mask], temp.loc[~exists_mask]
 
-    def _generate_update_statements(self, primary_keys, keys_in_db, rows_to_update):
+    def _generate_update_statements(
+        self, primary_keys: list[str], keys_in_db: list[str], rows_to_update: DataFrame
+    ) -> list[sqlalchemy.sql.dml.Update]:
         """
         Generate SQL Update statements for rows with existing primary keys
 
@@ -951,7 +958,7 @@ class SQLTable(PandasObject):
             stmts.append(stmt)
         return stmts
 
-    def _on_row_conflict_replace(self):
+    def _on_row_conflict_replace(self) -> (DataFrame, sqlalchemy.sql.dml.Update):
         """
         Generate update statements for rows with clashing primary key from database.
 
@@ -965,8 +972,8 @@ class SQLTable(PandasObject):
 
         Returns
         ----------
-        sqlalchemy.sql.dml.Delete
-            Delete statement to be executed against DB
+        tuple of Dataframe and list of sqlalchemy.sql.dml.Update
+            DataFrame of rows with new pkey, List of update queries
         """
         # Primary key data
         pk_cols, pk_values = self._get_primary_key_data()
@@ -975,7 +982,6 @@ class SQLTable(PandasObject):
         update_stmts = self._generate_update_statements(
             pk_cols, existing_keys, existing_data
         )
-
         return new_data, update_stmts
 
     def _on_row_conflict_ignore(self):
@@ -986,13 +992,19 @@ class SQLTable(PandasObject):
         This method identifies incoming records in the primary key columns
         which correspond to existing primary key constraints in the db table, and
         avoids them from being inserted.
+
+        Returns
+        ----------
+         Dataframe
+            DataFrame of rows with new pkey
+
         """
         pk_cols, pk_values = self._get_primary_key_data()
         existing_keys = self._load_existing_pkeys(pk_cols, pk_values)
         _, new_data = self._split_incoming_data(pk_cols, existing_keys)
         return new_data
 
-    def _get_primary_key_data(self):
+    def _get_primary_key_data(self) -> (list[str], list[str]):
         """
         Get primary keys from database, and yield dataframe columns with same names.
 
