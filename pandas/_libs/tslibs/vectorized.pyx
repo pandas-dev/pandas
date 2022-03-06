@@ -30,15 +30,7 @@ from .np_datetime cimport (
 from .offsets cimport BaseOffset
 from .period cimport get_period_ordinal
 from .timestamps cimport create_timestamp_from_ts
-from .timezones cimport (
-    get_dst_info,
-    is_tzlocal,
-    is_utc,
-)
-from .tzconversion cimport (
-    Localizer,
-    utc_val_to_local_val,
-)
+from .tzconversion cimport Localizer
 
 # -------------------------------------------------------------------------
 
@@ -156,7 +148,7 @@ def ints_to_pydatetime(
             result[i] = <object>NaT
             continue
 
-        local_val = utc_val_to_local_val(info, value, pos, i)
+        local_val = info.utc_val_to_local_val(value, pos, i)
 
         if info.use_pytz:
             # find right representation of dst etc in pytz timezone
@@ -212,7 +204,7 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None) -> Resolution:
         if stamps[i] == NPY_NAT:
             continue
 
-        local_val = utc_val_to_local_val(info, stamps[i], pos, i)
+        local_val = info.utc_val_to_local_val(stamps[i], pos, i)
 
         dt64_to_dtstruct(local_val, &dts)
         curr_reso = _reso_stamp(&dts)
@@ -255,7 +247,7 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
             result[i] = NPY_NAT
             continue
 
-        local_val = utc_val_to_local_val(info, stamps[i], pos, i)
+        local_val = info.utc_val_to_local_val(stamps[i], pos, i)
 
         result[i] = normalize_i8_stamp(local_val)
 
@@ -289,7 +281,7 @@ def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None) -> bool:
     pos = info.prepare(stamps)
 
     for i in range(n):
-        local_val = utc_val_to_local_val(info, stamps[i], pos, i)
+        local_val = info.utc_val_to_local_val(stamps[i], pos, i)
 
         if local_val % day_nanos != 0:
             return False
@@ -318,7 +310,7 @@ def dt64arr_to_periodarr(const int64_t[:] stamps, int freq, tzinfo tz):
             result[i] = NPY_NAT
             continue
 
-        local_val = utc_val_to_local_val(info, stamps[i], pos, i)
+        local_val = info.utc_val_to_local_val(stamps[i], pos, i)
 
         dt64_to_dtstruct(local_val, &dts)
         result[i] = get_period_ordinal(&dts, freq)

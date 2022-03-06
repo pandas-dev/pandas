@@ -407,7 +407,7 @@ cpdef int64_t tz_convert_from_utc_single(int64_t val, tzinfo tz):
 
     pos = info.prepare1(val)
 
-    return utc_val_to_local_val(info, val, pos, 0)
+    return info.utc_val_to_local_val(val, pos, 0)
 
 
 def tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
@@ -469,7 +469,7 @@ cdef const int64_t[:] _tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
             converted[i] = NPY_NAT
             continue
 
-        converted[i] = utc_val_to_local_val(info, val, pos, i)
+        converted[i] = info.utc_val_to_local_val(val, pos, i)
 
     return converted
 
@@ -579,19 +579,17 @@ cdef class Localizer:
 
             return <intp_t*>cnp.PyArray_DATA(self.trans.searchsorted(stamps, side="right") - 1)
 
+    cdef int64_t utc_val_to_local_val(self, int64_t utc_val, intp_t* pos, Py_ssize_t i):
+        cdef:
+            int64_t local_val
 
-# TODO: make this a Localizer method? would require moving tzlocal func
-cdef int64_t utc_val_to_local_val(Localizer info, int64_t utc_val, intp_t* pos, Py_ssize_t i):
-    cdef:
-        int64_t local_val
+        if self.use_utc:
+            local_val = utc_val
+        elif self.use_tzlocal:
+            local_val = _tz_convert_tzlocal_utc(utc_val, self.tz, to_utc=False)
+        elif self.use_fixed:
+            local_val = utc_val + self.delta
+        else:
+            local_val = utc_val + self.deltas[pos[i]]
 
-    if info.use_utc:
-        local_val = utc_val
-    elif info.use_tzlocal:
-        local_val = _tz_convert_tzlocal_utc(utc_val, info.tz, to_utc=False)
-    elif info.use_fixed:
-        local_val = utc_val + info.delta
-    else:
-        local_val = utc_val + info.deltas[pos[i]]
-
-    return local_val
+        return local_val

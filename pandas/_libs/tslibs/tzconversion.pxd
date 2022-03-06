@@ -30,6 +30,4 @@ cdef class Localizer:
 
     cdef intp_t* prepare1(self, int64_t utc_val)
     cdef intp_t* prepare(self, const int64_t[:] stamps)
-
-
-cdef int64_t utc_val_to_local_val(Localizer info, int64_t utc_val, intp_t* pos, Py_ssize_t i)
+    cdef int64_t utc_val_to_local_val(self, int64_t utc_val, intp_t* pos, Py_ssize_t i)
