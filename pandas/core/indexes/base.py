@@ -81,7 +81,6 @@ from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_object,
     ensure_platform_int,
-    is_array_like,
     is_bool_dtype,
     is_categorical_dtype,
     is_dtype_equal,
