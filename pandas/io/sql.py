@@ -619,19 +619,20 @@ def to_sql(
     schema : str, optional
         Name of SQL schema in database to write to (if database flavor
         supports this). If None, use default schema (default).
-    if_exists : {'fail', 'replace', 'append'},
-        default 'fail'.
+    if_exists : {'fail', 'replace', 'append'}, default 'fail'.
         - fail: If table exists, do nothing.
         - replace: If table exists, drop it, recreate it, and insert data.
         - append: If table exists, insert data. Create if does not exist.
-    on_row_conflict : {'fail', 'overwrite', 'append'},
-        default: 'fail'
+    on_row_conflict : {'fail', 'replace', 'append'}, default 'fail'
         Determine insertion behavior in case of a primary key clash.
         - 'fail': Do nothing to handle primary key clashes, will raise an Error.
-        - 'overwrite': Update existing rows in database with primary key clashes,
+        - 'replace': Update existing rows in database with primary key clashes,
           and append the remaining rows with non-conflicting primary keys
         - 'append': Ignore incoming rows with primary key clashes, and
           insert only the incoming rows with non-conflicting primary keys
+
+        .. versionadded:: 1.5.0
+
     index : bool, default True
         Write DataFrame index as a column.
     index_label : str or sequence, optional
@@ -685,10 +686,11 @@ def to_sql(
     if if_exists not in ("fail", "replace", "append"):
         raise ValueError(f"'{if_exists}' is not valid for if_exists")
 
-    if on_row_conflict not in ("fail", "overwrite", "ignore"):
+    if on_row_conflict not in ("fail", "replace", "ignore"):
         raise ValueError(f"'{on_row_conflict}' is not valid for on_row_conflict'")
-    # on_row_conflict only used with append
-    if if_exists != "append" and on_row_conflict in {"overwrite", "ignore"}:
+
+    if if_exists != "append" and on_row_conflict in {"replace", "ignore"}:
+        # on_row_conflict only used with append
         raise ValueError(
             f"on_row_conflict {on_row_conflict} can only be used with 'append' "
             "operations"
@@ -949,11 +951,11 @@ class SQLTable(PandasObject):
             stmts.append(stmt)
         return stmts
 
-    def _on_row_conflict_overwrite(self):
+    def _on_row_conflict_replace(self):
         """
         Generate update statements for rows with clashing primary key from database.
 
-        `on_row_conflict overwrite` prioritizes incoming data, over existing data in
+        `on_row_conflict replace` prioritizes incoming data, over existing data in
         the DB. This method splits the incoming dataframe between rows with new and
         existing primary key values.
         For existing values Update statements are generated, while new values are passed
@@ -1116,8 +1118,8 @@ class SQLTable(PandasObject):
         """
         Determines what data to pass to the underlying insert method.
         """
-        if self.on_row_conflict == "overwrite":
-            new_data, update_stmts = self._on_row_conflict_overwrite()
+        if self.on_row_conflict == "replace":
+            new_data, update_stmts = self._on_row_conflict_replace()
             return self._insert(
                 data=new_data,
                 chunksize=chunksize,
@@ -1905,17 +1907,16 @@ class SQLDatabase(PandasSQL):
         frame : DataFrame
         name : string
             Name of SQL table.
-        if_exists : {'fail', 'replace', 'append'},
-            default 'fail'.
+        if_exists : {'fail', 'replace', 'append'}, default 'fail'.
             - fail: If table exists, do nothing.
             - replace: If table exists, drop it, recreate it, and insert data.
             - append: If table exists, insert data. Create if does not exist.
-        on_row_conflict : {'fail', 'ignore', 'overwrite'}
+        on_row_conflict : {'fail', 'ignore', 'replace'}, default 'fail'.
             Determine insertion behavior in case of a primary key clash.
             - 'fail': Do nothing to handle primary key clashes, will raise an Error.
             - 'ignore': Ignore incoming rows with primary key clashes, and
             insert only the incoming rows with non-conflicting primary keys
-            - 'overwrite': Update existing rows in database with primary key clashes,
+            - 'replace': Update existing rows in database with primary key clashes,
             and append the remaining rows with non-conflicting primary keys
         index : boolean, default True
             Write DataFrame index as a column.
@@ -2361,12 +2362,12 @@ class SQLiteDatabase(PandasSQL):
             fail: If table exists, do nothing.
             replace: If table exists, drop it, recreate it, and insert data.
             append: If table exists, insert data. Create if it does not exist.
-        on_row_conflict : {'fail', 'ignore', 'overwrite'}, optional
+        on_row_conflict : {'fail', 'ignore', 'replace'}, default 'fail'
             Determine insertion behavior in case of a primary key clash.
             - 'fail: Do nothing to handle primary key clashes, will raise an Error.
             - 'ignore': Ignore incoming rows with primary key clashes, and
             insert only the incoming rows with non-conflicting primary keys
-            - 'overwrite': Update existing rows in database with primary key clashes,
+            - 'replace': Update existing rows in database with primary key clashes,
             and append the remaining rows with non-conflicting primary keys
         index : bool, default True
             Write DataFrame index as a column

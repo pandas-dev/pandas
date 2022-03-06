@@ -902,13 +902,13 @@ class PandasSQLTest:
         self.drop_table("test_frame1")
         assert self.pandasSQL.to_sql(test_frame1.iloc[:0], "test_frame1") == 0
 
-    def _to_sql_on_row_conflict_overwrite(self, method, tbl_name, pkey_frame):
+    def _to_sql_on_row_conflict_replace(self, method, tbl_name, pkey_frame):
         """
         GIVEN:
         - Original database table: 3 rows
         - new dataframe: 4 rows (2 duplicate keys)
         WHEN:
-        - on row conflict overwrite
+        - on row conflict replace
         THEN:
         - DB table len = 5
         - Conflicting primary keys in DB updated
@@ -921,7 +921,7 @@ class PandasSQLTest:
                 pkey_frame,
                 tbl_name,
                 if_exists="append",
-                on_row_conflict="overwrite",
+                on_row_conflict="replace",
                 index=False,
                 method=method,
             )
@@ -979,7 +979,7 @@ class PandasSQLTest:
         - New dataframe: 4 rows (2 duplicate keys), pkey as index
         WHEN:
         - inserting new data, noting the index column
-        - on row conflict overwrite
+        - on row conflict replace
         THEN:
         - DB table len = 5
         - Conflicting primary keys in DB updated
@@ -995,7 +995,7 @@ class PandasSQLTest:
                 index_pkey_table,
                 tbl_name,
                 if_exists="append",
-                on_row_conflict="overwrite",
+                on_row_conflict="replace",
                 index=True,
                 method=method,
             )
@@ -1226,14 +1226,14 @@ class _TestSQLApi(PandasSQLTest):
             )
 
     def test_to_sql_on_row_conflict_non_append(self, pkey_frame):
-        msg = "on_row_conflict overwrite can only be used with 'append' operations"
+        msg = "on_row_conflict replace can only be used with 'append' operations"
         with pytest.raises(ValueError, match=msg):
             sql.to_sql(
                 pkey_frame,
                 "pkey_frame1",
                 self.conn,
                 if_exists="replace",
-                on_row_conflict="overwrite",
+                on_row_conflict="replace",
             )
 
     def test_roundtrip(self, test_frame1):
@@ -1972,8 +1972,8 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     @pytest.mark.parametrize("method", [None, "multi"])
     @pytest.mark.parametrize("tbl_name", ["pkey_table_single", "pkey_table_comp"])
-    def test_to_sql_row_conflict_overwrite(self, method, tbl_name, pkey_frame):
-        self._to_sql_on_row_conflict_overwrite(method, tbl_name, pkey_frame)
+    def test_to_sql_row_conflict_replace(self, method, tbl_name, pkey_frame):
+        self._to_sql_on_row_conflict_replace(method, tbl_name, pkey_frame)
 
     @pytest.mark.parametrize("method", [None, "multi"])
     @pytest.mark.parametrize("tbl_name", ["pkey_table_single", "pkey_table_comp"])
@@ -1981,7 +1981,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         self._test_to_sql_on_row_conflict_with_index(method, tbl_name, pkey_frame)
 
     @pytest.mark.parametrize("if_exists", ["fail", "replace"])
-    @pytest.mark.parametrize("on_row_conflict", ["ignore", "overwrite"])
+    @pytest.mark.parametrize("on_row_conflict", ["ignore", "replace"])
     def test_to_sql_row_conflict_with_non_append(
         self, if_exists, on_row_conflict, pkey_frame
     ):

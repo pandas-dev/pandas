@@ -2800,21 +2800,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         schema : str, optional
             Specify the schema (if database flavor supports this). If None, use
             default schema.
-        if_exists : {'fail', 'replace', 'append'},\
-        default 'fail'
+        if_exists : {'fail', 'replace', 'append'}, default 'fail'
             How to behave if the table already exists.
 
             * fail: Raise a ValueError.
             * replace: Drop the table before inserting new values.
             * append: Insert new values to the existing table.
 
-        on_row_conflict : {'fail', 'overwrite', 'ignore'},\
-        default 'fail'
+        on_row_conflict : {'fail', 'replace', 'ignore'}, default 'fail'
             How to behave if a row already exists.
 
             * fail: Raise ValueError.
-            * overwrite: Overwrite the row with the incoming data.
+            * replace: Overwrite the row with the incoming data.
             * ignore: Ignore new data and keep existing data.
+
+            .. versionadded:: 1.5.0
 
         index : bool, default True
             Write DataFrame index as a column. Uses `index_label` as the column
