@@ -421,7 +421,7 @@ Plotting
 - Bug in :meth:`DataFrame.plot.box` that prevented labeling the x-axis (:issue:`45463`)
 - Bug in :meth:`DataFrame.boxplot` that prevented passing in ``xlabel`` and ``ylabel`` (:issue:`45463`)
 - Bug in :meth:`DataFrame.boxplot` that prevented specifying ``vert=False`` (:issue:`36918`)
-- Bug in :meth:`DataFrame.scatter` that prevented specifying ``norm`` (:issue:`45809`)
+- Bug in :meth:`DataFrame.plot.scatter` that prevented specifying ``norm`` (:issue:`45809`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
