@@ -1268,9 +1268,9 @@ def maybe_cast_to_datetime(
 
     if is_timedelta64_dtype(dtype):
         # TODO: _from_sequence would raise ValueError in cases where
-        #  ensure_nanosecond_dtype raises TypeError
+        #  _ensure_nanosecond_dtype raises TypeError
         dtype = cast(np.dtype, dtype)
-        dtype = ensure_nanosecond_dtype(dtype)
+        dtype = _ensure_nanosecond_dtype(dtype)
         res = TimedeltaArray._from_sequence(value, dtype=dtype)
         return res
 
@@ -1281,7 +1281,7 @@ def maybe_cast_to_datetime(
         vdtype = getattr(value, "dtype", None)
 
         if is_datetime64 or is_datetime64tz:
-            dtype = ensure_nanosecond_dtype(dtype)
+            dtype = _ensure_nanosecond_dtype(dtype)
 
             value = np.array(value, copy=False)
 
@@ -1399,14 +1399,14 @@ def sanitize_to_nanoseconds(values: np.ndarray, copy: bool = False) -> np.ndarra
     return values
 
 
-def ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
+def _ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
     """
     Convert dtypes with granularity less than nanosecond to nanosecond
 
-    >>> ensure_nanosecond_dtype(np.dtype("M8[s]"))
+    >>> _ensure_nanosecond_dtype(np.dtype("M8[s]"))
     dtype('<M8[ns]')
 
-    >>> ensure_nanosecond_dtype(np.dtype("m8[ps]"))
+    >>> _ensure_nanosecond_dtype(np.dtype("m8[ps]"))
     Traceback (most recent call last):
         ...
     TypeError: cannot convert timedeltalike to dtype [timedelta64[ps]]
