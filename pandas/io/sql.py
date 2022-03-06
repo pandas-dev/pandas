@@ -620,7 +620,7 @@ def to_sql(
     schema : str, optional
         Name of SQL schema in database to write to (if database flavor
         supports this). If None, use default schema (default).
-    if_exists : {'fail', 'replace', 'append'}, default 'fail'.
+    if_exists : {'fail', 'replace', 'append'}, default 'fail'
         - fail: If table exists, do nothing.
         - replace: If table exists, drop it, recreate it, and insert data.
         - append: If table exists, insert data. Create if does not exist.
@@ -1919,11 +1919,11 @@ class SQLDatabase(PandasSQL):
         frame : DataFrame
         name : string
             Name of SQL table.
-        if_exists : {'fail', 'replace', 'append'}, default 'fail'.
+        if_exists : {'fail', 'replace', 'append'}, default 'fail'
             - fail: If table exists, do nothing.
             - replace: If table exists, drop it, recreate it, and insert data.
             - append: If table exists, insert data. Create if does not exist.
-        on_row_conflict : {'fail', 'ignore', 'replace'}, default 'fail'.
+        on_row_conflict : {'fail', 'ignore', 'replace'}, default 'fail'
             Determine insertion behavior in case of a primary key clash.
             - 'fail': Do nothing to handle primary key clashes, will raise an Error.
             - 'ignore': Ignore incoming rows with primary key clashes, and
