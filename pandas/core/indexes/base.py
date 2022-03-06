@@ -531,7 +531,7 @@ class Index(IndexOpsMixin, PandasObject):
         elif hasattr(data, "__array__"):
             return Index(np.asarray(data), dtype=dtype, copy=copy, name=name, **kwargs)
         else:
-            if tupleize_cols and is_list_like(data) and all(data):
+            if tupleize_cols and is_list_like(data):
                 # GH21470: convert iterable to list before determining if empty
                 if is_iterator(data):
                     data = list(data)
@@ -541,9 +541,10 @@ class Index(IndexOpsMixin, PandasObject):
                     # 10697
                     from pandas.core.indexes.multi import MultiIndex
 
-                    return MultiIndex.from_tuples(
-                        data, names=name or kwargs.get("names")
-                    )
+                    if all(data):
+                        return MultiIndex.from_tuples(
+                            data, names=name or kwargs.get("names")
+                        )
             # other iterable of some kind
 
             subarr = com.asarray_tuplesafe(data, dtype=_dtype_obj)
