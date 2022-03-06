@@ -31,7 +31,6 @@ from pandas._libs.tslibs import parsing
 from pandas._typing import (
     ArrayLike,
     DtypeArg,
-    Scalar,
 )
 from pandas.errors import (
     ParserError,
