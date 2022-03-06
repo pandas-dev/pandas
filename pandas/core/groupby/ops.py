@@ -331,9 +331,9 @@ class WrappedCythonOp:
             **kwargs,
         )
 
-        if self.how in ["rank"]:
-            # i.e. how in WrappedCythonOp.cast_blocklist, since
-            #  other cast_blocklist methods dont go through cython_operation
+        if self.how in self.cast_blocklist:
+            # i.e. how in ["rank"], since other cast_blocklist methods dont go
+            #  through cython_operation
             return res_values
 
         return self._reconstruct_ea_result(values, res_values)
@@ -572,7 +572,14 @@ class WrappedCythonOp:
                     **kwargs,
                 )
             else:
-                func(result, values, comp_ids, ngroups, is_datetimelike, **kwargs)
+                func(
+                    out=result,
+                    values=values,
+                    labels=comp_ids,
+                    ngroups=ngroups,
+                    is_datetimelike=is_datetimelike,
+                    **kwargs,
+                )
 
         if self.kind == "aggregate":
             # i.e. counts is defined.  Locations where count<min_count
