@@ -406,9 +406,13 @@ class WrappedCythonOp:
         """
         orig_values = values
 
-        # Copy to ensure input and result masks don't end up shared
-        mask = values._mask.copy()
-        result_mask = np.zeros(ngroups, dtype=bool)
+        # libgroupby functions are responsible for NOT altering mask
+        mask = values._mask
+        if self.kind != "aggregate":
+            result_mask = mask.copy()
+        else:
+            result_mask = np.zeros(ngroups, dtype=bool)
+
         arr = values._data
 
         res_values = self._cython_op_ndim_compat(
@@ -427,12 +431,7 @@ class WrappedCythonOp:
         #  dtype; last attempt ran into trouble on 32bit linux build
         res_values = res_values.astype(dtype.type, copy=False)
 
-        if self.kind != "aggregate":
-            out_mask = mask
-        else:
-            out_mask = result_mask
-
-        return orig_values._maybe_mask_result(res_values, out_mask)
+        return orig_values._maybe_mask_result(res_values, result_mask)
 
     @final
     def _cython_op_ndim_compat(
@@ -568,6 +567,7 @@ class WrappedCythonOp:
                     ngroups=ngroups,
                     is_datetimelike=is_datetimelike,
                     mask=mask,
+                    result_mask=result_mask,
                     **kwargs,
                 )
             else:
