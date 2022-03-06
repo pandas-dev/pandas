@@ -367,6 +367,7 @@ class WrappedCythonOp:
         """
         Construct an ExtensionArray result from an ndarray result.
         """
+        dtype: BaseMaskedDtype | StringDtype
 
         if isinstance(values.dtype, StringDtype):
             dtype = values.dtype
@@ -375,21 +376,17 @@ class WrappedCythonOp:
 
         elif isinstance(values.dtype, BaseMaskedDtype):
             new_dtype = self._get_result_dtype(values.dtype.numpy_dtype)
-            # Troubleshooting 32bit build
-            assert new_dtype == res_values.dtype, (new_dtype, res_values.dtype)
+            dtype = BaseMaskedDtype.from_numpy_dtype(new_dtype)
             # error: Incompatible types in assignment (expression has type
-            # "BaseMaskedDtype", variable has type "StringDtype")
-            dtype = BaseMaskedDtype.from_numpy_dtype(  # type: ignore[assignment]
-                new_dtype
-            )
-            cls = dtype.construct_array_type()
+            # "Type[BaseMaskedArray]", variable has type "Type[BaseStringArray]")
+            cls = dtype.construct_array_type()  # type: ignore[assignment]
             return cls._from_sequence(res_values, dtype=dtype)
 
-        elif needs_i8_conversion(values.dtype):
-            assert res_values.dtype.kind != "f"  # just to be on the safe side
-            i8values = res_values.view("i8")
-            # error: Too many arguments for "ExtensionArray"
-            return type(values)(i8values, dtype=values.dtype)  # type: ignore[call-arg]
+        elif isinstance(values, (DatetimeArray, TimedeltaArray, PeriodArray)):
+            # In to_cython_values we took a view as M8[ns]
+            assert res_values.dtype == "M8[ns]"
+            res_values = res_values.view(values._ndarray.dtype)
+            return values._from_backing_data(res_values)
 
         raise NotImplementedError
 
