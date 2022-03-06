@@ -686,7 +686,7 @@ def asof_join_backward_on_X_by_Y(numeric_t[:] left_values,
                                  bint use_hashtable=True):
 
     cdef:
-        Py_ssize_t left_pos, right_pos, left_size, right_size, found_right_pos, check
+        Py_ssize_t left_pos, right_pos, left_size, right_size, found_right_pos
         ndarray[intp_t] left_indexer, right_indexer
         bint has_tolerance = False
         numeric_t tolerance_ = 0
@@ -763,7 +763,7 @@ def asof_join_forward_on_X_by_Y(numeric_t[:] left_values,
                                 bint use_hashtable=True):
 
     cdef:
-        Py_ssize_t left_pos, right_pos, left_size, right_size, found_right_pos, check
+        Py_ssize_t left_pos, right_pos, left_size, right_size, found_right_pos
         ndarray[intp_t] left_indexer, right_indexer
         bint has_tolerance = False
         numeric_t tolerance_ = 0
@@ -816,18 +816,15 @@ def asof_join_forward_on_X_by_Y(numeric_t[:] left_values,
             by_value = left_by_values[left_pos]
             found_right_pos = (hash_table.get_item(by_value)
                                if by_value in hash_table else -1)
-            right_indexer[left_pos] = found_right_pos
-            check = -1
         else:
-            found_right_pos = right_pos
-            check = right_size
-            right_indexer[left_pos] = (right_pos
-                                       if right_pos != right_size else -1)
+            found_right_pos = (right_pos
+                               if right_pos != right_size else -1)
 
         left_indexer[left_pos] = left_pos
+        right_indexer[left_pos] = found_right_pos
 
         # if needed, verify that tolerance is met
-        if has_tolerance and found_right_pos != check:
+        if has_tolerance and found_right_pos != -1:
             diff = right_values[found_right_pos] - left_values[left_pos]
             if diff > tolerance_:
                 right_indexer[left_pos] = -1
@@ -906,14 +903,30 @@ def asof_join_backward(numeric_t[:] left_values,
                        bint allow_exact_matches=True,
                        tolerance=None):
 
-    return asof_join_backward_on_X_by_Y(left_values, right_values, None, None, allow_exact_matches=allow_exact_matches, tolerance=tolerance, use_hashtable=False)
+    return asof_join_backward_on_X_by_Y(
+        left_values,
+        right_values,
+        None,
+        None,
+        allow_exact_matches=allow_exact_matches,
+        tolerance=tolerance,
+        use_hashtable=False,
+    )
 
 
 def asof_join_forward(numeric_t[:] left_values,
                       numeric_t[:] right_values,
                       bint allow_exact_matches=True,
                       tolerance=None):
-    return asof_join_forward_on_X_by_Y(left_values, right_values, None, None, allow_exact_matches=allow_exact_matches, tolerance=tolerance, use_hashtable=False)
+    return asof_join_forward_on_X_by_Y(
+        left_values,
+        right_values,
+        None,
+        None,
+        allow_exact_matches=allow_exact_matches,
+        tolerance=tolerance,
+        use_hashtable=False,
+    )
 
 
 def asof_join_nearest(numeric_t[:] left_values,
