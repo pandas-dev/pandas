@@ -135,5 +135,6 @@ class TestDataFrameDataTypes:
     def test_frame_apply_np_array_return_type(self):
         # GH 35517
         df = DataFrame([["foo"]])
-        df = df.apply(lambda col: np.array("bar")).iloc[0]
-        assert isinstance(df, np.ndarray)
+        result = df.apply(lambda col: np.array("bar"))
+        expected = Series(["bar"])
+        tm.assert_series_equal(result, expected)
