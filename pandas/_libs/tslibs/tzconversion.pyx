@@ -577,9 +577,13 @@ cdef class Localizer:
     cdef intp_t* prepare(self, const int64_t[:] stamps):
         if self.use_dst:
 
-            return <intp_t*>cnp.PyArray_DATA(self.trans.searchsorted(stamps, side="right") - 1)
+            return <intp_t*>cnp.PyArray_DATA(
+                self.trans.searchsorted(stamps, side="right") - 1
+            )
 
-    cdef inline int64_t utc_val_to_local_val(self, int64_t utc_val, intp_t* pos, Py_ssize_t i):
+    cdef inline int64_t utc_val_to_local_val(
+        self, int64_t utc_val, intp_t* pos, Py_ssize_t i
+    ):
         cdef:
             int64_t local_val
 
