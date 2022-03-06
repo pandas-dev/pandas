@@ -206,6 +206,10 @@ from pandas.io.formats.excel import CSSToExcelConverter
         ("white-space: normal", {"alignment": {"wrap_text": True}}),
         # NUMBER FORMAT
         ("number-format: 0%", {"number_format": {"format_code": "0%"}}),
+        (
+            "number-format: 0§[Red](0)§-§@;",
+            {"number_format": {"format_code": "0;[red](0);-;@"}},  # GH 46152
+        ),
     ],
 )
 def test_css_to_excel(css, expected):
