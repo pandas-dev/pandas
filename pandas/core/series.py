@@ -90,6 +90,7 @@ from pandas.core.dtypes.missing import (
 from pandas.core import (
     algorithms,
     base,
+    common as com,
     missing,
     nanops,
     ops,
@@ -99,7 +100,6 @@ from pandas.core.apply import SeriesApply
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
-import pandas.core.common as com
 from pandas.core.construction import (
     create_series_with_explicit_dtype,
     extract_array,
@@ -1239,7 +1239,6 @@ class Series(base.IndexOpsMixin, NDFrame):
         Reset the cacher.
         """
         if hasattr(self, "_cacher"):
-            # should only get here with self.ndim == 1
             del self._cacher
 
     def _set_as_cached(self, item, cacher) -> None:
