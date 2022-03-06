@@ -773,6 +773,13 @@ def _try_cast(
             #  special case.
             return maybe_cast_to_datetime(arr, dtype)
             # TODO: copy?
+        from pandas import IntervalDtype
+
+        if (
+            isinstance(dtype, IntervalDtype)
+            and np.isnan(np.array(arr).astype("float")).any()
+        ):
+            return np.array(arr)
 
         array_type = dtype.construct_array_type()._from_sequence
         subarr = array_type(arr, dtype=dtype, copy=copy)

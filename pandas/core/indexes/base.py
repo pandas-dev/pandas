@@ -1076,8 +1076,6 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(values, ExtensionArray):
             with rewrite_exception(type(values).__name__, type(self).__name__):
                 new_values = values.astype(dtype, copy=copy)
-        elif dtype == np.dtype("M8[ns]") and np.isnan(values).any():
-            new_values = values.astype(dtype, copy=copy)
         elif is_float_dtype(self.dtype) and needs_i8_conversion(dtype):
             # NB: this must come before the ExtensionDtype check below
             # TODO: this differs from Series behavior; can/should we align them?
