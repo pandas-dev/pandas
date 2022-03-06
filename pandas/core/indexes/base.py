@@ -81,6 +81,7 @@ from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_object,
     ensure_platform_int,
+    is_array_like,
     is_bool_dtype,
     is_categorical_dtype,
     is_dtype_equal,
@@ -1765,20 +1766,29 @@ class Index(IndexOpsMixin, PandasObject):
 
         return new_names
 
-    def get_default_index_names(self, names=None, default=None) -> Sequence[str]:
+    def get_default_index_names(self, names=None, default=str) -> Sequence[str]:
+        """
+        Get names of index.
+
+        Parameters
+        ----------
+        names : int, str or 1-dimensional list, default None
+            index names to set
+        default : str
+            default name of index
+
+        Raises
+        ------
+        TypeError if names not str or list-like
+        """
         from pandas.core.indexes.multi import MultiIndex
 
-        # if names is not None and not all(isinstance(name, str) for name in names):
-        #    raise ValueError("Names must be a string")
         if names is not None:
-            if isinstance(names, str):
+            if isinstance(names, str) or isinstance(names, int):
                 names = [names]
-            elif isinstance(names, list) and not all(
-                isinstance(name, str) for name in names
-            ):
-                raise ValueError("Names must be a string")
-            elif not (isinstance(names, list) and not isinstance(names, str)):
-                raise ValueError("Names must be a string or list")
+
+        if not isinstance(names, list) and names is not None:
+            raise ValueError("Index names must be int, str or 1-dimensional list")
 
         if not names:
             if isinstance(self, MultiIndex):
