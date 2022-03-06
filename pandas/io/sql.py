@@ -1072,7 +1072,7 @@ class SQLTable(PandasObject):
         result = conn.execute(stmt)
         return result.rowcount
 
-    def _get_index_formatted_dataframe(self):
+    def _get_index_formatted_dataframe(self) -> DataFrame:
         """
         Format index of incoming dataframe to be aligned with a database table.
 
