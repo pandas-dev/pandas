@@ -16,6 +16,7 @@ Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed regression in :meth:`DataFrame.drop` and :meth:`Series.drop` when :class:`Index` had extension dtype and duplicates (:issue:`45860`)
 - Fixed memory performance regression in :meth:`Series.fillna` when called on a :class:`DataFrame` column with ``inplace=True`` (:issue:`46149`)
+- Provided an alternative solution for passing custom Excel formats in :meth:`.Styler.to_excel`, which was a regression based on stricter CSS validation. Examples available in the documentation for :meth:`.Styler.format` (:issue:`46152`)
 -
 
 .. ---------------------------------------------------------------------------
