@@ -365,7 +365,6 @@ class BaseSetitemTests(BaseExtensionTests):
         #  https://github.com/pandas-dev/pandas/pull/44514#discussion_r754002410
         using_array_manager = isinstance(df._mgr, pd.core.internals.ArrayManager)
 
-        df = pd.DataFrame({"A": data})
         blk_data = df._mgr.arrays[0]
 
         orig = df.copy()

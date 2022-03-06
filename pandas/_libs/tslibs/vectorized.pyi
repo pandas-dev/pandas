@@ -30,7 +30,7 @@ def get_resolution(
 def ints_to_pydatetime(
     arr: npt.NDArray[np.int64],  # const int64_t[:}]
     tz: tzinfo | None = ...,
-    freq: str | BaseOffset | None = ...,
+    freq: BaseOffset | None = ...,
     fold: bool = ...,
     box: str = ...,
 ) -> npt.NDArray[np.object_]: ...

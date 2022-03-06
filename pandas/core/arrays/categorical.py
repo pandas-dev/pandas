@@ -49,10 +49,7 @@ from pandas.util._decorators import (
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
-from pandas.core.dtypes.cast import (
-    coerce_indexer_dtype,
-    maybe_cast_to_extension_array,
-)
+from pandas.core.dtypes.cast import coerce_indexer_dtype
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
@@ -64,7 +61,6 @@ from pandas.core.dtypes.common import (
     is_hashable,
     is_integer_dtype,
     is_list_like,
-    is_object_dtype,
     is_scalar,
     is_timedelta64_dtype,
     needs_i8_conversion,
@@ -2757,13 +2753,6 @@ def _get_codes_for_values(values, categories: Index) -> np.ndarray:
         flat = values.ravel()
         codes = _get_codes_for_values(flat, categories)
         return codes.reshape(values.shape)
-
-    if isinstance(categories.dtype, ExtensionDtype) and is_object_dtype(values):
-        # Support inferring the correct extension dtype from an array of
-        # scalar objects. e.g.
-        # Categorical(array[Period, Period], categories=PeriodIndex(...))
-        cls = categories.dtype.construct_array_type()
-        values = maybe_cast_to_extension_array(cls, values)
 
     codes = categories.get_indexer_for(values)
     return coerce_indexer_dtype(codes, categories)

@@ -757,7 +757,7 @@ cdef inline bint _infer_tsobject_fold(
     _TSObject obj,
     const int64_t[:] trans,
     const int64_t[:] deltas,
-    int32_t pos,
+    intp_t pos,
 ):
     """
     Infer _TSObject fold property from value by assuming 0 and then setting
@@ -770,7 +770,7 @@ cdef inline bint _infer_tsobject_fold(
         ndarray of offset transition points in nanoseconds since epoch.
     deltas : int64_t[:]
         array of offsets corresponding to transition points in trans.
-    pos : int32_t
+    pos : intp_t
         Position of the last transition point before taking fold into account.
 
     Returns
@@ -828,13 +828,7 @@ cpdef inline datetime localize_pydatetime(datetime dt, tzinfo tz):
         return dt
     elif isinstance(dt, ABCTimestamp):
         return dt.tz_localize(tz)
-    elif is_utc(tz):
-        return _localize_pydatetime(dt, tz)
-    try:
-        # datetime.replace with pytz may be incorrect result
-        return tz.localize(dt)
-    except AttributeError:
-        return dt.replace(tzinfo=tz)
+    return _localize_pydatetime(dt, tz)
 
 
 # ----------------------------------------------------------------------
