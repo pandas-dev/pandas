@@ -992,6 +992,10 @@ class StylerRenderer:
         -------
         self : Styler
 
+        See Also
+        --------
+        Styler.format_index: Format the text display value of index labels.
+
         Notes
         -----
         This method assigns a formatting function, ``formatter``, to each cell in the
@@ -1026,6 +1030,12 @@ class StylerRenderer:
           - ``styler.format.decimal``: default ".".
           - ``styler.format.thousands``: default None.
           - ``styler.format.escape``: default None.
+
+        .. warning::
+           `Styler.format` is ignored when using the output format `Styler.to_excel`,
+           since Excel and Python have inherrently different formatting structures.
+           However, it is possible to use the `number-format` pseudo CSS attribute
+           to force Excel permissible formatting. See examples.
 
         Examples
         --------
@@ -1094,6 +1104,19 @@ class StylerRenderer:
         1 & \textbf{\textasciitilde \space \textasciicircum } \\
         2 & \textbf{\$\%\#} \\
         \end{tabular}
+
+        Pandas defines a `number-format` pseudo CSS attribute instead of the `.format`
+        method to create `to_excel` permissible formatting. Note that semi-colons are
+        CSS protected characters but used as separators in Excel's format string.
+        Replace semi-colons with the section separator character (ASCII-245) when
+        defining the formatting here.
+
+        >>> df = pd.DataFrame({"A": [1, 0, -1]})
+        >>> pseudo_css = "number-format: 0§[Red](0)§-§@;"
+        >>> df.style.applymap(lambda v: css).to_excel("formatted_file.xlsx")
+        ...  # doctest: +SKIP
+
+        .. figure:: ../../_static/style/format_excel_css.png
         """
         if all(
             (
@@ -1200,6 +1223,10 @@ class StylerRenderer:
         -------
         self : Styler
 
+        See Also
+        --------
+        Styler.format: Format the text display value of data cells.
+
         Notes
         -----
         This method assigns a formatting function, ``formatter``, to each level label
@@ -1229,6 +1256,13 @@ class StylerRenderer:
         Since it is not possible to apply a generic function which will return an
         arbitrary set of column aliases, the argument ``rename`` provides the
         ability to automate this, across individual index levels if necessary.
+
+        .. warning::
+           `Styler.format_index` is ignored when using the output format
+           `Styler.to_excel`, since Excel and Python have inherrently different
+           formatting structures.
+           However, it is possible to use the `number-format` pseudo CSS attribute
+           to force Excel permissible formatting. See documentation for `Styler.format`.
 
         Examples
         --------
