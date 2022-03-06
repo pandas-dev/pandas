@@ -30,10 +30,6 @@ if [[ "$PATTERN" ]]; then
   PYTEST_CMD="$PYTEST_CMD -m \"$PATTERN\""
 fi
 
-if [[ $(uname) != "Linux"  && $(uname) != "Darwin" ]]; then
-    PYTEST_CMD="$PYTEST_CMD --ignore=pandas/tests/plotting/"
-fi
-
 echo $PYTEST_CMD
 sh -c "$PYTEST_CMD"
 

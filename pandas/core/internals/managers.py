@@ -597,7 +597,7 @@ class BaseBlockManager(DataManager):
     def reindex_indexer(
         self: T,
         new_axis: Index,
-        indexer,
+        indexer: npt.NDArray[np.intp] | None,
         axis: int,
         fill_value=None,
         allow_dups: bool = False,
@@ -610,7 +610,7 @@ class BaseBlockManager(DataManager):
         Parameters
         ----------
         new_axis : Index
-        indexer : ndarray of int64 or None
+        indexer : ndarray[intp] or None
         axis : int
         fill_value : object, default None
         allow_dups : bool, default False
