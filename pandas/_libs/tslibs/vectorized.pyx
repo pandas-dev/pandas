@@ -280,7 +280,15 @@ def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None) -> bool:
         intp_t* pos
         Localizer info = Localizer(tz)
 
-    return info.is_date_array_normalized(stamps)
+    pos = info.prepare(stamps)
+
+    for i in range(n):
+        local_val = info.utc_val_to_local_val(stamps[i], pos, i)
+
+        if local_val % day_nanos != 0:
+            return False
+
+    return True
 
 
 # -------------------------------------------------------------------------
