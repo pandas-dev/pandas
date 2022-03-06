@@ -1082,7 +1082,7 @@ class ScatterPlot(PlanePlot):
             bounds = np.linspace(0, n_cats, n_cats + 1)
             norm = colors.BoundaryNorm(bounds, cmap.N)
         else:
-            norm = None
+            norm = self.kwds.pop("norm", None)
         # plot colorbar if
         # 1. colormap is assigned, and
         # 2.`c` is a column containing only numeric values
