@@ -762,8 +762,9 @@ def test_reset_index_rename(float_frame):
     expected = Series(float_frame.index.values, name="new_name")
     tm.assert_series_equal(result["new_name"], expected)
 
-    with pytest.raises(ValueError, match="Names must be a string"):
-        float_frame.reset_index(names=1)
+    result = float_frame.reset_index(names=123)
+    expected = Series(float_frame.index.values, name=123)
+    tm.assert_series_equal(result[123], expected)
 
 
 def test_reset_index_rename_multiindex(float_frame):
@@ -779,5 +780,7 @@ def test_reset_index_rename_multiindex(float_frame):
     tm.assert_series_equal(result["first"], expected["new_first"], check_names=False)
     tm.assert_series_equal(result["second"], expected["new_second"], check_names=False)
 
-    with pytest.raises(ValueError, match="Names must be a string or list"):
+    with pytest.raises(
+        ValueError, match="Index names must be int, str or 1-dimensional list"
+    ):
         stacked_df.reset_index(names={"first": "new_first", "second": "new_second"})
