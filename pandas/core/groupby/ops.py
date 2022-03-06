@@ -16,7 +16,6 @@ from typing import (
     Iterator,
     Sequence,
     final,
-    overload,
 )
 
 import numpy as np
@@ -57,7 +56,6 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.missing import (
     isna,
     maybe_fill,
@@ -70,14 +68,8 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.arrays.boolean import BooleanDtype
-from pandas.core.arrays.floating import (
-    Float64Dtype,
-    FloatingDtype,
-)
-from pandas.core.arrays.integer import (
-    Int64Dtype,
-    IntegerDtype,
-)
+from pandas.core.arrays.floating import FloatingDtype
+from pandas.core.arrays.integer import IntegerDtype
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
@@ -277,28 +269,18 @@ class WrappedCythonOp:
                 out_dtype = "object"
         return np.dtype(out_dtype)
 
-    @overload
     def _get_result_dtype(self, dtype: np.dtype) -> np.dtype:
-        ...  # pragma: no cover
-
-    @overload
-    def _get_result_dtype(self, dtype: ExtensionDtype) -> ExtensionDtype:
-        ...  # pragma: no cover
-
-    # TODO: general case implementation overridable by EAs.
-    def _get_result_dtype(self, dtype: DtypeObj) -> DtypeObj:
         """
         Get the desired dtype of a result based on the
         input dtype and how it was computed.
 
         Parameters
         ----------
-        dtype : np.dtype or ExtensionDtype
-            Input dtype.
+        dtype : np.dtype
 
         Returns
         -------
-        np.dtype or ExtensionDtype
+        np.dtype
             The desired dtype of the result.
         """
         how = self.how
@@ -306,12 +288,8 @@ class WrappedCythonOp:
         if how in ["add", "cumsum", "sum", "prod"]:
             if dtype == np.dtype(bool):
                 return np.dtype(np.int64)
-            elif isinstance(dtype, (BooleanDtype, IntegerDtype)):
-                return Int64Dtype()
         elif how in ["mean", "median", "var"]:
-            if isinstance(dtype, (BooleanDtype, IntegerDtype)):
-                return Float64Dtype()
-            elif is_float_dtype(dtype) or is_complex_dtype(dtype):
+            if is_float_dtype(dtype) or is_complex_dtype(dtype):
                 return dtype
             elif is_numeric_dtype(dtype):
                 return np.dtype(np.float64)
@@ -390,8 +368,18 @@ class WrappedCythonOp:
         Construct an ExtensionArray result from an ndarray result.
         """
 
-        if isinstance(values.dtype, (BaseMaskedDtype, StringDtype)):
-            dtype = self._get_result_dtype(values.dtype)
+        if isinstance(values.dtype, StringDtype):
+            dtype = values.dtype
+            cls = dtype.construct_array_type()
+            return cls._from_sequence(res_values, dtype=dtype)
+
+        elif isinstance(values.dtype, BaseMaskedDtype):
+            new_dtype = self._get_result_dtype(values.dtype.numpy_dtype)
+            # error: Incompatible types in assignment (expression has type
+            # "BaseMaskedDtype", variable has type "StringDtype")
+            dtype = BaseMaskedDtype.from_numpy_dtype(  # type: ignore[assignment]
+                new_dtype
+            )
             cls = dtype.construct_array_type()
             return cls._from_sequence(res_values, dtype=dtype)
 
@@ -418,9 +406,13 @@ class WrappedCythonOp:
         """
         orig_values = values
 
-        # Copy to ensure input and result masks don't end up shared
-        mask = values._mask.copy()
-        result_mask = np.zeros(ngroups, dtype=bool)
+        # libgroupby functions are responsible for NOT altering mask
+        mask = values._mask
+        if self.kind != "aggregate":
+            result_mask = mask.copy()
+        else:
+            result_mask = np.zeros(ngroups, dtype=bool)
+
         arr = values._data
 
         res_values = self._cython_op_ndim_compat(
@@ -433,17 +425,13 @@ class WrappedCythonOp:
             **kwargs,
         )
 
-        dtype = self._get_result_dtype(orig_values.dtype)
+        new_dtype = self._get_result_dtype(orig_values.dtype.numpy_dtype)
+        dtype = BaseMaskedDtype.from_numpy_dtype(new_dtype)
         # TODO: avoid cast as res_values *should* already have the right
         #  dtype; last attempt ran into trouble on 32bit linux build
         res_values = res_values.astype(dtype.type, copy=False)
 
-        if self.kind != "aggregate":
-            out_mask = mask
-        else:
-            out_mask = result_mask
-
-        return orig_values._maybe_mask_result(res_values, out_mask)
+        return orig_values._maybe_mask_result(res_values, result_mask)
 
     @final
     def _cython_op_ndim_compat(
@@ -579,6 +567,7 @@ class WrappedCythonOp:
                     ngroups=ngroups,
                     is_datetimelike=is_datetimelike,
                     mask=mask,
+                    result_mask=result_mask,
                     **kwargs,
                 )
             else:
