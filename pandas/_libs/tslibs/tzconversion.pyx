@@ -452,6 +452,7 @@ cdef const int64_t[:] _tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
         int64_t[:] converted
         Py_ssize_t i, n = len(vals)
         int64_t val
+        ndarray[intp_t] pos_
         intp_t* pos
         Localizer info = Localizer(tz)
 
@@ -461,7 +462,8 @@ cdef const int64_t[:] _tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
 
     converted = np.empty(n, dtype=np.int64)
 
-    pos = info.prepare(vals)
+    pos_ = info.prepare(vals)
+    pos = <intp_t*>cnp.PyArray_DATA(pos_)
 
     for i in range(n):
         val = vals[i]
@@ -572,12 +574,11 @@ cdef class Localizer:
              return self.trans.searchsorted(utc_val, side="right") - 1
         return 0  # won't be used
 
-    cdef intp_t* prepare(self, const int64_t[:] stamps):
+    cdef ndarray[intp_t] prepare(self, const int64_t[:] stamps):
         if self.use_dst:
 
-            return <intp_t*>cnp.PyArray_DATA(
-                self.trans.searchsorted(stamps, side="right") - 1
-            )
+            return self.trans.searchsorted(stamps, side="right") - 1
+        return placeholder  # won't be used
 
     @cython.boundscheck(False)
     cdef inline int64_t utc_val_to_local_val(
@@ -596,3 +597,7 @@ cdef class Localizer:
             local_val = utc_val + self.deltas[pos[i]]
 
         return local_val
+
+
+# Placeholder to return from 'prepare'
+cdef ndarray placeholder = np.array([], dtype=np.intp)

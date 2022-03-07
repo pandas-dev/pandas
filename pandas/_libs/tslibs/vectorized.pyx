@@ -1,5 +1,6 @@
 import cython
 
+cimport numpy as cnp
 from cpython.datetime cimport (
     date,
     datetime,
@@ -14,6 +15,8 @@ from numpy cimport (
     intp_t,
     ndarray,
 )
+
+cnp.import_array()
 
 from .conversion cimport normalize_i8_stamp
 
@@ -115,6 +118,7 @@ def ints_to_pydatetime(
     """
     cdef:
         Py_ssize_t i, n = len(stamps)
+        ndarray[intp_t] pos_
         intp_t* pos
         npy_datetimestruct dts
         object new_tz
@@ -138,7 +142,8 @@ def ints_to_pydatetime(
             "box must be one of 'datetime', 'date', 'time' or 'timestamp'"
         )
 
-    pos = info.prepare(stamps)
+    pos_ = info.prepare(stamps)
+    pos = <intp_t*>cnp.PyArray_DATA(pos_)
 
     for i in range(n):
         new_tz = tz
@@ -196,11 +201,13 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None) -> Resolution:
         Py_ssize_t i, n = len(stamps)
         npy_datetimestruct dts
         int reso = RESO_DAY, curr_reso
+        ndarray[intp_t] pos_
         intp_t* pos
         int64_t local_val
         Localizer info = Localizer(tz)
 
-    pos = info.prepare(stamps)
+    pos_ = info.prepare(stamps)
+    pos = <intp_t*>cnp.PyArray_DATA(pos_)
 
     for i in range(n):
         if stamps[i] == NPY_NAT:
@@ -238,11 +245,13 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
     cdef:
         Py_ssize_t i, n = len(stamps)
         int64_t[:] result = np.empty(n, dtype=np.int64)
+        ndarray[intp_t] pos_
         intp_t* pos
         int64_t local_val
         Localizer info = Localizer(tz)
 
-    pos = info.prepare(stamps)
+    pos_ = info.prepare(stamps)
+    pos = <intp_t*>cnp.PyArray_DATA(pos_)
 
     for i in range(n):
         if stamps[i] == NPY_NAT:
@@ -277,10 +286,12 @@ def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None) -> bool:
         Py_ssize_t i, n = len(stamps)
         int64_t local_val
         int64_t day_nanos = 24 * 3600 * 1_000_000_000
+        ndarray[intp_t] pos_
         intp_t* pos
         Localizer info = Localizer(tz)
 
-    pos = info.prepare(stamps)
+    pos_ = info.prepare(stamps)
+    pos = <intp_t*>cnp.PyArray_DATA(pos_)
 
     for i in range(n):
         local_val = info.utc_val_to_local_val(stamps[i], pos, i)
@@ -300,12 +311,14 @@ def dt64arr_to_periodarr(const int64_t[:] stamps, int freq, tzinfo tz):
     cdef:
         Py_ssize_t i, n = len(stamps)
         int64_t[:] result = np.empty(n, dtype=np.int64)
+        ndarray[intp_t] pos_
         intp_t* pos
         npy_datetimestruct dts
         int64_t local_val
         Localizer info = Localizer(tz)
 
-    pos = info.prepare(stamps)
+    pos_ = info.prepare(stamps)
+    pos = <intp_t*>cnp.PyArray_DATA(pos_)
 
     for i in range(n):
         if stamps[i] == NPY_NAT:
