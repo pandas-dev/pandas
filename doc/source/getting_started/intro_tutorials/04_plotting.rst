@@ -88,7 +88,7 @@ method. Hence, the :meth:`~DataFrame.plot` method works on both ``Series`` and
     <ul class="task-bullet">
         <li>
 
-I want to visually compare the :math:`N0_2` values measured in London versus Paris.
+I want to visually compare the :math:`NO_2` values measured in London versus Paris.
 
 .. ipython:: python
 
