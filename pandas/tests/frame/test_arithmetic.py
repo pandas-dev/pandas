@@ -722,6 +722,116 @@ class TestFrameFlexArithmetic:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_frame_multiindex_operations(self):
+        # GH 43321
+        df = DataFrame(
+            {2010: [1, 2, 3], 2020: [3, 4, 5]},
+            index=MultiIndex.from_product(
+                [["a"], ["b"], [0, 1, 2]], names=["scen", "mod", "id"]
+            ),
+        )
+
+        series = Series(
+            [0.4],
+            index=MultiIndex.from_product([["b"], ["a"]], names=["mod", "scen"]),
+        )
+
+        expected = DataFrame(
+            {2010: [1.4, 2.4, 3.4], 2020: [3.4, 4.4, 5.4]},
+            index=MultiIndex.from_product(
+                [["a"], ["b"], [0, 1, 2]], names=["scen", "mod", "id"]
+            ),
+        )
+        result = df.add(series, axis=0)
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_frame_multiindex_operations_series_index_to_frame_index(self):
+        # GH 43321
+        df = DataFrame(
+            {2010: [1], 2020: [3]},
+            index=MultiIndex.from_product([["a"], ["b"]], names=["scen", "mod"]),
+        )
+
+        series = Series(
+            [10.0, 20.0, 30.0],
+            index=MultiIndex.from_product(
+                [["a"], ["b"], [0, 1, 2]], names=["scen", "mod", "id"]
+            ),
+        )
+
+        expected = DataFrame(
+            {2010: [11.0, 21, 31.0], 2020: [13.0, 23.0, 33.0]},
+            index=MultiIndex.from_product(
+                [["a"], ["b"], [0, 1, 2]], names=["scen", "mod", "id"]
+            ),
+        )
+        result = df.add(series, axis=0)
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_frame_multiindex_operations_no_align(self):
+        df = DataFrame(
+            {2010: [1, 2, 3], 2020: [3, 4, 5]},
+            index=MultiIndex.from_product(
+                [["a"], ["b"], [0, 1, 2]], names=["scen", "mod", "id"]
+            ),
+        )
+
+        series = Series(
+            [0.4],
+            index=MultiIndex.from_product([["c"], ["a"]], names=["mod", "scen"]),
+        )
+
+        expected = DataFrame(
+            {2010: np.nan, 2020: np.nan},
+            index=MultiIndex.from_tuples(
+                [
+                    ("a", "b", 0),
+                    ("a", "b", 1),
+                    ("a", "b", 2),
+                    ("a", "c", np.nan),
+                ],
+                names=["scen", "mod", "id"],
+            ),
+        )
+        result = df.add(series, axis=0)
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_frame_multiindex_operations_part_align(self):
+        df = DataFrame(
+            {2010: [1, 2, 3], 2020: [3, 4, 5]},
+            index=MultiIndex.from_tuples(
+                [
+                    ("a", "b", 0),
+                    ("a", "b", 1),
+                    ("a", "c", 2),
+                ],
+                names=["scen", "mod", "id"],
+            ),
+        )
+
+        series = Series(
+            [0.4],
+            index=MultiIndex.from_product([["b"], ["a"]], names=["mod", "scen"]),
+        )
+
+        expected = DataFrame(
+            {2010: [1.4, 2.4, np.nan], 2020: [3.4, 4.4, np.nan]},
+            index=MultiIndex.from_tuples(
+                [
+                    ("a", "b", 0),
+                    ("a", "b", 1),
+                    ("a", "c", 2),
+                ],
+                names=["scen", "mod", "id"],
+            ),
+        )
+        result = df.add(series, axis=0)
+
+        tm.assert_frame_equal(result, expected)
+
 
 class TestFrameArithmetic:
     def test_td64_op_nat_casting(self):
