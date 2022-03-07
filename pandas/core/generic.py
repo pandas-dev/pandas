@@ -8991,10 +8991,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         is_series = isinstance(self, ABCSeries)
 
+        if (not is_series and axis is None) or axis not in [None, 0, 1]:
+            raise ValueError("Must specify axis=0 or 1")
+
+        if is_series and axis == 1:
+            raise ValueError("cannot align series to a series other than axis 0")
+
         # series/series compat, other must always be a Series
-        if is_series:
-            if axis:
-                raise ValueError("cannot align series to a series other than axis 0")
+        if not axis:
 
             # equal
             if self.index.equals(other.index):
@@ -9004,26 +9008,38 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     other.index, how=join, level=level, return_indexers=True
                 )
 
-            left = self._reindex_indexer(join_index, lidx, copy)
+            if is_series:
+                left = self._reindex_indexer(join_index, lidx, copy)
+            elif lidx is None:
+                left = self.copy() if copy else self
+            else:
+                data = algos.take_nd(
+                    self.values,
+                    lidx,
+                    allow_fill=True,
+                    fill_value=None,
+                )
+
+                left = self._constructor(
+                    data=data, columns=self.columns, index=join_index
+                )
+
             right = other._reindex_indexer(join_index, ridx, copy)
 
         else:
+
             # one has > 1 ndim
             fdata = self._mgr
-            if axis in [0, 1]:
-                join_index = self.axes[axis]
-                lidx, ridx = None, None
-                if not join_index.equals(other.index):
-                    join_index, lidx, ridx = join_index.join(
-                        other.index, how=join, level=level, return_indexers=True
-                    )
+            join_index = self.axes[1]
+            lidx, ridx = None, None
+            if not join_index.equals(other.index):
+                join_index, lidx, ridx = join_index.join(
+                    other.index, how=join, level=level, return_indexers=True
+                )
 
-                if lidx is not None:
-                    bm_axis = self._get_block_manager_axis(axis)
-                    fdata = fdata.reindex_indexer(join_index, lidx, axis=bm_axis)
-
-            else:
-                raise ValueError("Must specify axis=0 or 1")
+            if lidx is not None:
+                bm_axis = self._get_block_manager_axis(1)
+                fdata = fdata.reindex_indexer(join_index, lidx, axis=bm_axis)
 
             if copy and fdata is self._mgr:
                 fdata = fdata.copy()
