@@ -1767,7 +1767,7 @@ def _format_datetime64_dateonly(
     nat_rep: str = "NaT",
     date_format: str | None = None,
 ) -> str:
-    if x is NaT or isinstance(x, NaTType):
+    if isinstance(x, NaTType):
         return nat_rep
 
     if date_format:

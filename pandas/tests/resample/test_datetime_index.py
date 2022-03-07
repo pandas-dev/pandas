@@ -1,17 +1,14 @@
 from datetime import datetime
 from functools import partial
 from io import StringIO
-from typing import (
-    List,
-    Union,
-)
+from typing import List
 
 import numpy as np
 import pytest
 import pytz
 
 from pandas._libs import lib
-from pandas._libs.tslibs import NaTType
+from pandas._typing import DatetimeNaTType
 from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
@@ -1291,7 +1288,7 @@ def test_resample_consistency():
     tm.assert_series_equal(s10_2, rl)
 
 
-dates1: List[Union[datetime, NaTType]] = [
+dates1: List[DatetimeNaTType] = [
     datetime(2014, 10, 1),
     datetime(2014, 9, 3),
     datetime(2014, 11, 5),
@@ -1300,7 +1297,7 @@ dates1: List[Union[datetime, NaTType]] = [
     datetime(2014, 7, 15),
 ]
 
-dates2: List[Union[datetime, NaTType]] = (
+dates2: List[DatetimeNaTType] = (
     dates1[:2] + [pd.NaT] + dates1[2:4] + [pd.NaT] + dates1[4:]
 )
 dates3 = [pd.NaT] + dates1 + [pd.NaT]  # type: ignore[operator]
