@@ -119,18 +119,19 @@ def ints_to_pydatetime(
     ndarray[object] of type specified by box
     """
     cdef:
-        Py_ssize_t i, n = len(stamps)
-        ndarray[int64_t] trans
+        Localizer info = Localizer(tz)
         int64_t[:] deltas
-        intp_t[:] pos
+        int64_t delta = info.delta
+        bint use_utc = info.use_utc, use_tzlocal = info.use_tzlocal, use_fixed = info.use_fixed
+        Py_ssize_t[:] pos
+        bint use_pytz = info.use_pytz
+
+        Py_ssize_t i, n = len(stamps)
         npy_datetimestruct dts
         object dt, new_tz
-        str typ
-        int64_t value, local_val, delta = NPY_NAT  # dummy for delta
+        int64_t value, local_val
         ndarray[object] result = np.empty(n, dtype=object)
         object (*func_create)(int64_t, npy_datetimestruct, tzinfo, object, bint)
-        bint use_utc = False, use_tzlocal = False, use_fixed = False
-        bint use_pytz = False
 
     if box == "date":
         assert (tz is None), "tz should be None when converting to date"
@@ -147,19 +148,9 @@ def ints_to_pydatetime(
             "box must be one of 'datetime', 'date', 'time' or 'timestamp'"
         )
 
-    if is_utc(tz) or tz is None:
-        use_utc = True
-    elif is_tzlocal(tz):
-        use_tzlocal = True
-    else:
-        trans, deltas, typ = get_dst_info(tz)
-        if typ not in ["pytz", "dateutil"]:
-            # static/fixed; in this case we know that len(delta) == 1
-            use_fixed = True
-            delta = deltas[0]
-        else:
-            pos = trans.searchsorted(stamps, side="right") - 1
-            use_pytz = typ == "pytz"
+    if info.use_dst:
+        deltas = info.deltas
+        pos = info.trans.searchsorted(stamps, side="right") - 1
 
     for i in range(n):
         new_tz = tz
@@ -222,27 +213,20 @@ cdef inline int _reso_stamp(npy_datetimestruct *dts):
 
 def get_resolution(const int64_t[:] stamps, tzinfo tz=None) -> Resolution:
     cdef:
+        Localizer info = Localizer(tz)
+        int64_t[:] deltas
+        int64_t delta = info.delta
+        bint use_utc = info.use_utc, use_tzlocal = info.use_tzlocal, use_fixed = info.use_fixed
+
+        Py_ssize_t[:] pos
         Py_ssize_t i, n = len(stamps)
         npy_datetimestruct dts
         int reso = RESO_DAY, curr_reso
-        ndarray[int64_t] trans
-        int64_t[:] deltas
-        intp_t[:] pos
-        int64_t local_val, delta = NPY_NAT
-        bint use_utc = False, use_tzlocal = False, use_fixed = False
+        int64_t local_val
 
-    if is_utc(tz) or tz is None:
-        use_utc = True
-    elif is_tzlocal(tz):
-        use_tzlocal = True
-    else:
-        trans, deltas, typ = get_dst_info(tz)
-        if typ not in ["pytz", "dateutil"]:
-            # static/fixed; in this case we know that len(delta) == 1
-            use_fixed = True
-            delta = deltas[0]
-        else:
-            pos = trans.searchsorted(stamps, side="right") - 1
+    if info.use_dst:
+        deltas = info.deltas
+        pos = info.trans.searchsorted(stamps, side="right") - 1
 
     for i in range(n):
         if stamps[i] == NPY_NAT:
@@ -285,27 +269,19 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
     result : int64 ndarray of converted of normalized nanosecond timestamps
     """
     cdef:
+        Localizer info = Localizer(tz)
+        int64_t[:] deltas
+        int64_t delta = info.delta
+        bint use_utc = info.use_utc, use_tzlocal = info.use_tzlocal, use_fixed = info.use_fixed
+
+        Py_ssize_t[:] pos
         Py_ssize_t i, n = len(stamps)
         int64_t[:] result = np.empty(n, dtype=np.int64)
-        ndarray[int64_t] trans
-        int64_t[:] deltas
-        str typ
-        Py_ssize_t[:] pos
-        int64_t local_val, delta = NPY_NAT
-        bint use_utc = False, use_tzlocal = False, use_fixed = False
+        int64_t local_val
 
-    if is_utc(tz) or tz is None:
-        use_utc = True
-    elif is_tzlocal(tz):
-        use_tzlocal = True
-    else:
-        trans, deltas, typ = get_dst_info(tz)
-        if typ not in ["pytz", "dateutil"]:
-            # static/fixed; in this case we know that len(delta) == 1
-            use_fixed = True
-            delta = deltas[0]
-        else:
-            pos = trans.searchsorted(stamps, side="right") - 1
+    if info.use_dst:
+        deltas = info.deltas
+        pos = info.trans.searchsorted(stamps, side="right") - 1
 
     for i in range(n):
         if stamps[i] == NPY_NAT:
@@ -344,27 +320,19 @@ def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None) -> bool:
     is_normalized : bool True if all stamps are normalized
     """
     cdef:
-        Py_ssize_t i, n = len(stamps)
-        ndarray[int64_t] trans
+        Localizer info = Localizer(tz)
         int64_t[:] deltas
-        intp_t[:] pos
-        int64_t local_val, delta = NPY_NAT
-        str typ
-        int64_t day_nanos = 24 * 3600 * 1_000_000_000
-        bint use_utc = False, use_tzlocal = False, use_fixed = False
+        int64_t delta = info.delta
+        bint use_utc = info.use_utc, use_tzlocal = info.use_tzlocal, use_fixed = info.use_fixed
 
-    if is_utc(tz) or tz is None:
-        use_utc = True
-    elif is_tzlocal(tz):
-        use_tzlocal = True
-    else:
-        trans, deltas, typ = get_dst_info(tz)
-        if typ not in ["pytz", "dateutil"]:
-            # static/fixed; in this case we know that len(delta) == 1
-            use_fixed = True
-            delta = deltas[0]
-        else:
-            pos = trans.searchsorted(stamps, side="right") - 1
+        Py_ssize_t[:] pos
+        Py_ssize_t i, n = len(stamps)
+        int64_t local_val
+        int64_t day_nanos = 24 * 3600 * 1_000_000_000
+
+    if info.use_dst:
+        deltas = info.deltas
+        pos = info.trans.searchsorted(stamps, side="right") - 1
 
     for i in range(n):
         if use_utc:
@@ -389,27 +357,20 @@ def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None) -> bool:
 @cython.boundscheck(False)
 def dt64arr_to_periodarr(const int64_t[:] stamps, int freq, tzinfo tz):
     cdef:
+        Localizer info = Localizer(tz)
+        int64_t[:] deltas
+        int64_t delta = info.delta
+        bint use_utc = info.use_utc, use_tzlocal = info.use_tzlocal, use_fixed = info.use_fixed
+
+        Py_ssize_t[:] pos
         Py_ssize_t i, n = len(stamps)
         int64_t[:] result = np.empty(n, dtype=np.int64)
-        ndarray[int64_t] trans
-        int64_t[:] deltas
-        Py_ssize_t[:] pos
         npy_datetimestruct dts
-        int64_t local_val, delta = NPY_NAT
-        bint use_utc = False, use_tzlocal = False, use_fixed = False
+        int64_t local_val
 
-    if is_utc(tz) or tz is None:
-        use_utc = True
-    elif is_tzlocal(tz):
-        use_tzlocal = True
-    else:
-        trans, deltas, typ = get_dst_info(tz)
-        if typ not in ["pytz", "dateutil"]:
-            # static/fixed; in this case we know that len(delta) == 1
-            use_fixed = True
-            delta = deltas[0]
-        else:
-            pos = trans.searchsorted(stamps, side="right") - 1
+    if info.use_dst:
+        deltas = info.deltas
+        pos = info.trans.searchsorted(stamps, side="right") - 1
 
     for i in range(n):
         if stamps[i] == NPY_NAT:
@@ -429,3 +390,41 @@ def dt64arr_to_periodarr(const int64_t[:] stamps, int freq, tzinfo tz):
         result[i] = get_period_ordinal(&dts, freq)
 
     return result.base  # .base to get underlying ndarray
+
+
+
+@cython.freelist(16)
+cdef class Localizer:
+    cdef:
+        tzinfo tz
+        bint use_utc
+        bint use_fixed
+        bint use_tzlocal
+        bint use_pytz
+        bint use_dst
+        ndarray trans
+        int64_t[:] deltas
+        int64_t delta
+        str typ
+
+    @cython.boundscheck(False)
+    def __cinit__(self, tzinfo tz):
+        self.tz = tz
+        if is_utc(tz) or tz is None:
+            self.use_utc = True
+        elif is_tzlocal(tz):
+            self.use_tzlocal = True
+        else:
+            trans, deltas, typ = get_dst_info(tz)
+            self.trans = trans
+            self.deltas = deltas
+            self.typ = typ
+
+            if typ not in ["pytz", "dateutil"]:
+                # static/fixed; in this case we know that len(delta) == 1
+                self.use_fixed = True
+                self.delta = deltas[0]
+            else:
+                self.use_dst = True
+                if typ == "pytz":
+                    self.use_pytz = True
