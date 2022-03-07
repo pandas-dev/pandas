@@ -250,6 +250,31 @@ cdef bint checknull_with_nat_and_na(object obj):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+def is_float_nan(values: ndarray) -> ndarray:
+    """
+    True for elements which correspond to a float nan
+
+    Returns
+    -------
+    ndarray[bool]
+    """
+    cdef:
+        ndarray[uint8_t] result
+        Py_ssize_t i, N
+        object val
+
+    N = len(values)
+    result = np.zeros(N, dtype=np.uint8)
+
+    for i in range(N):
+        val = values[i]
+        if util.is_nan(val):
+            result[i] = True
+    return result.view(bool)
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def is_numeric_na(values: ndarray) -> ndarray:
     """
     Check for NA values consistent with IntegerArray/FloatingArray.
@@ -287,7 +312,7 @@ def _create_binary_propagating_op(name, is_divmod=False):
     def method(self, other):
         if (other is C_NA or isinstance(other, str)
                 or isinstance(other, (numbers.Number, np.bool_))
-                or isinstance(other, np.ndarray) and not other.shape):
+                or util.is_array(other) and not other.shape):
             # Need the other.shape clause to handle NumPy scalars,
             # since we do a setitem on `out` below, which
             # won't work for NumPy scalars.
@@ -296,7 +321,7 @@ def _create_binary_propagating_op(name, is_divmod=False):
             else:
                 return NA
 
-        elif isinstance(other, np.ndarray):
+        elif util.is_array(other):
             out = np.empty(other.shape, dtype=object)
             out[:] = NA
 
@@ -408,7 +433,7 @@ class NAType(C_NAType):
                 return type(other)(1)
             else:
                 return NA
-        elif isinstance(other, np.ndarray):
+        elif util.is_array(other):
             return np.where(other == 0, other.dtype.type(1), NA)
 
         return NotImplemented
@@ -421,7 +446,7 @@ class NAType(C_NAType):
                 return other
             else:
                 return NA
-        elif isinstance(other, np.ndarray):
+        elif util.is_array(other):
             return np.where(other == 1, other, NA)
         return NotImplemented
 

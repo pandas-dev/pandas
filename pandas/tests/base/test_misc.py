@@ -84,6 +84,17 @@ def test_ndarray_compat_properties(index_or_series_obj):
     assert Series([1]).item() == 1
 
 
+def test_array_wrap_compat():
+    # Note: at time of dask 2022.01.0, this is still used by eg dask
+    # (https://github.com/dask/dask/issues/8580).
+    # This test is a small dummy ensuring coverage
+    orig = Series([1, 2, 3], dtype="int64", index=["a", "b", "c"])
+    with tm.assert_produces_warning(DeprecationWarning):
+        result = orig.__array_wrap__(np.array([2, 4, 6], dtype="int64"))
+    expected = orig * 2
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
 def test_memory_usage(index_or_series_obj):
     obj = index_or_series_obj
@@ -137,14 +148,23 @@ def test_memory_usage_components_narrow_series(dtype):
     assert total_usage == non_index_usage + index_usage
 
 
-def test_searchsorted(index_or_series_obj):
+def test_searchsorted(request, index_or_series_obj):
     # numpy.searchsorted calls obj.searchsorted under the hood.
     # See gh-12238
     obj = index_or_series_obj
 
     if isinstance(obj, pd.MultiIndex):
         # See gh-14833
-        pytest.skip("np.searchsorted doesn't work on pd.MultiIndex")
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="np.searchsorted doesn't work on pd.MultiIndex: GH 14833"
+            )
+        )
+    elif obj.dtype.kind == "c" and isinstance(obj, Index):
+        # TODO: Should Series cases also raise? Looks like they use numpy
+        #  comparison semantics https://github.com/numpy/numpy/issues/15981
+        mark = pytest.mark.xfail(reason="complex objects are not comparable")
+        request.node.add_marker(mark)
 
     max_obj = max(obj, default=0)
     index = np.searchsorted(obj, max_obj)

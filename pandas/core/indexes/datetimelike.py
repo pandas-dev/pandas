@@ -96,13 +96,9 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     hasnans = cast(
         bool,
         cache_readonly(
-            DatetimeLikeArrayMixin._hasnans.fget  # type: ignore[attr-defined]
+            DatetimeLikeArrayMixin._hasna.fget  # type: ignore[attr-defined]
         ),
     )
-
-    @property
-    def _is_all_dates(self) -> bool:
-        return True
 
     # ------------------------------------------------------------------------
 
@@ -150,8 +146,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         except (KeyError, TypeError, ValueError):
             return False
         return True
-
-    _can_hold_na = True
 
     def _convert_tolerance(self, tolerance, target):
         tolerance = np.asarray(to_timedelta(tolerance).to_numpy())
@@ -233,6 +227,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         return parsed, reso
 
     def _get_string_slice(self, key: str):
+        # overridden by TimedeltaIndex
         parsed, reso = self._parse_with_reso(key)
         try:
             return self._partial_date_slice(reso, parsed)

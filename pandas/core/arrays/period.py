@@ -163,6 +163,7 @@ class PeriodArray(dtl.DatelikeOps):
     __array_priority__ = 1000
     _typ = "periodarray"  # ABCPeriodArray
     _scalar_type = Period
+    _internal_fill_value = np.int64(iNaT)
     _recognized_scalars = (Period,)
     _is_recognized_dtype = is_period_dtype
     _infer_matches = ("period",)
@@ -548,7 +549,7 @@ class PeriodArray(dtl.DatelikeOps):
                 f"{type(self).__name__}._time_shift"
             )
         values = self.asi8 + periods * self.freq.n
-        if self._hasnans:
+        if self._hasna:
             values[self._isnan] = iNaT
         return type(self)(values, freq=self.freq)
 
@@ -605,7 +606,8 @@ class PeriodArray(dtl.DatelikeOps):
 
         freq = Period._maybe_convert_freq(freq)
 
-        base1 = self.freq._period_dtype_code
+        # error: "BaseOffset" has no attribute "_period_dtype_code"
+        base1 = self.freq._period_dtype_code  # type: ignore[attr-defined]
         base2 = freq._period_dtype_code
 
         asi8 = self.asi8
@@ -618,7 +620,7 @@ class PeriodArray(dtl.DatelikeOps):
 
         new_data = period_asfreq_arr(ordinal, base1, base2, end)
 
-        if self._hasnans:
+        if self._hasna:
             new_data[self._isnan] = iNaT
 
         return type(self)(new_data, freq=freq)
@@ -645,7 +647,7 @@ class PeriodArray(dtl.DatelikeOps):
         else:
             formatter = lambda dt: str(dt)
 
-        if self._hasnans:
+        if self._hasna:
             mask = self._isnan
             values[mask] = na_rep
             imask = ~mask
@@ -697,6 +699,12 @@ class PeriodArray(dtl.DatelikeOps):
             return result.view(self.dtype)  # type: ignore[return-value]
         return super().fillna(value=value, method=method, limit=limit)
 
+    # TODO: alternately could override _quantile like searchsorted
+    def _cast_quantile_result(self, res_values: np.ndarray) -> np.ndarray:
+        # quantile_with_mask may return float64 instead of int64, in which
+        #  case we need to cast back
+        return res_values.astype(np.int64, copy=False)
+
     # ------------------------------------------------------------------
     # Arithmetic Methods
 
@@ -710,9 +718,9 @@ class PeriodArray(dtl.DatelikeOps):
         self._check_compatible_with(other)
         asi8 = self.asi8
         new_data = asi8 - other.ordinal
-        new_data = np.array([self.freq * x for x in new_data])
+        new_data = np.array([self.freq.base * x for x in new_data])
 
-        if self._hasnans:
+        if self._hasna:
             new_data[self._isnan] = NaT
 
         return new_data
@@ -739,7 +747,7 @@ class PeriodArray(dtl.DatelikeOps):
         )
 
         new_values = np.array([self.freq.base * x for x in new_values])
-        if self._hasnans or other._hasnans:
+        if self._hasna or other._hasna:
             mask = self._isnan | other._isnan
             new_values[mask] = NaT
         return new_values
@@ -1042,7 +1050,9 @@ def period_array(
 
     if is_integer_dtype(arrdata.dtype):
         arr = arrdata.astype(np.int64, copy=False)
-        ordinals = libperiod.from_ordinals(arr, freq)
+        # error: Argument 2 to "from_ordinals" has incompatible type "Union[str,
+        # Tick, None]"; expected "Union[timedelta, BaseOffset, str]"
+        ordinals = libperiod.from_ordinals(arr, freq)  # type: ignore[arg-type]
         return PeriodArray(ordinals, dtype=dtype)
 
     data = ensure_object(arrdata)

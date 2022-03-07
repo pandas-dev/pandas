@@ -329,17 +329,17 @@ def ndarray_to_mgr(
         values = _prep_ndarray(values, copy=copy_on_sanitize)
 
     if dtype is not None and not is_dtype_equal(values.dtype, dtype):
-        shape = values.shape
-        flat = values.ravel()
-
         # GH#40110 see similar check inside sanitize_array
         rcf = not (is_integer_dtype(dtype) and values.dtype.kind == "f")
 
         values = sanitize_array(
-            flat, None, dtype=dtype, copy=copy_on_sanitize, raise_cast_failure=rcf
+            values,
+            None,
+            dtype=dtype,
+            copy=copy_on_sanitize,
+            raise_cast_failure=rcf,
+            allow_2d=True,
         )
-
-        values = values.reshape(shape)
 
     # _prep_ndarray ensures that values.ndim == 2 at this point
     index, columns = _get_axes(
@@ -464,7 +464,13 @@ def dict_to_mgr(
                 # GH#1783
                 nan_dtype = np.dtype("object")
                 val = construct_1d_arraylike_from_scalar(np.nan, len(index), nan_dtype)
-                arrays.loc[missing] = [val] * missing.sum()
+                nmissing = missing.sum()
+                if copy:
+                    rhs = [val] * nmissing
+                else:
+                    # GH#45369
+                    rhs = [val.copy() for _ in range(nmissing)]
+                arrays.loc[missing] = rhs
 
         arrays = list(arrays)
         columns = ensure_index(columns)

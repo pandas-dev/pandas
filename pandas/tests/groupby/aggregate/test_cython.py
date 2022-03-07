@@ -5,7 +5,10 @@ test cython .agg behavior
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import (
+    is_float_dtype,
+    is_integer_dtype,
+)
 
 import pandas as pd
 from pandas import (
@@ -368,6 +371,9 @@ def test_cython_agg_EA_known_dtypes(data, op_name, action, with_na):
     elif action == "large_int":
         # for any int/bool use Int64, for float preserve dtype
         if is_float_dtype(data.dtype):
+            expected_dtype = data.dtype
+        elif is_integer_dtype(data.dtype):
+            # match the numpy dtype we'd get with the non-nullable analogue
             expected_dtype = data.dtype
         else:
             expected_dtype = pd.Int64Dtype()

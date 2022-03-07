@@ -62,7 +62,7 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.cast import (
-    can_hold_element,
+    LossySetitemError,
     convert_dtypes,
     maybe_box_native,
     maybe_cast_pointwise_result,
@@ -90,6 +90,7 @@ from pandas.core.dtypes.missing import (
 from pandas.core import (
     algorithms,
     base,
+    common as com,
     missing,
     nanops,
     ops,
@@ -99,7 +100,6 @@ from pandas.core.apply import SeriesApply
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
-import pandas.core.common as com
 from pandas.core.construction import (
     create_series_with_explicit_dtype,
     extract_array,
@@ -458,8 +458,12 @@ class Series(base.IndexOpsMixin, NDFrame):
                     data = SingleArrayManager.from_array(data, index)
 
         NDFrame.__init__(self, data)
-        self.name = name
-        self._set_axis(0, index, fastpath=True)
+        if fastpath:
+            # skips validation of the name
+            object.__setattr__(self, "_name", name)
+        else:
+            self.name = name
+            self._set_axis(0, index)
 
     def _init_dict(
         self, data, index: Index | None = None, dtype: DtypeObj | None = None
@@ -522,11 +526,11 @@ class Series(base.IndexOpsMixin, NDFrame):
     # ----------------------------------------------------------------------
 
     @property
-    def _constructor(self) -> type[Series]:
+    def _constructor(self) -> Callable[..., Series]:
         return Series
 
     @property
-    def _constructor_expanddim(self) -> type[DataFrame]:
+    def _constructor_expanddim(self) -> Callable[..., DataFrame]:
         """
         Used when a manipulation result has one higher dimension as the
         original, such as Series.to_frame()
@@ -540,15 +544,14 @@ class Series(base.IndexOpsMixin, NDFrame):
     def _can_hold_na(self) -> bool:
         return self._mgr._can_hold_na
 
-    def _set_axis(self, axis: int, labels, fastpath: bool = False) -> None:
+    def _set_axis(self, axis: int, labels) -> None:
         """
         Override generic, we want to set the _typ here.
 
         This is called from the cython code when we set the `index` attribute
         directly, e.g. `series.index = [1, 2, 3]`.
         """
-        if not fastpath:
-            labels = ensure_index(labels)
+        labels = ensure_index(labels)
 
         if labels._is_all_dates:
             deep_labels = labels
@@ -560,17 +563,13 @@ class Series(base.IndexOpsMixin, NDFrame):
             ):
                 try:
                     labels = DatetimeIndex(labels)
-                    # need to set here because we changed the index
-                    if fastpath:
-                        self._mgr.set_axis(axis, labels)
                 except (tslibs.OutOfBoundsDatetime, ValueError):
                     # labels may exceeds datetime bounds,
                     # or not be a DatetimeIndex
                     pass
 
-        if not fastpath:
-            # The ensure_index call above ensures we have an Index object
-            self._mgr.set_axis(axis, labels)
+        # The ensure_index call above ensures we have an Index object
+        self._mgr.set_axis(axis, labels)
 
     # ndarray compatibility
     @property
@@ -1104,7 +1103,7 @@ class Series(base.IndexOpsMixin, NDFrame):
                 # GH#12862 adding a new key to the Series
                 self.loc[key] = value
 
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, LossySetitemError):
             # The key was OK, but we cannot set the value losslessly
             indexer = self.index.get_loc(key)
             self._set_values(indexer, value)
@@ -1151,23 +1150,16 @@ class Series(base.IndexOpsMixin, NDFrame):
 
     def _set_with_engine(self, key, value) -> None:
         loc = self.index.get_loc(key)
-        dtype = self.dtype
-        if isinstance(dtype, np.dtype) and dtype.kind not in ["m", "M"]:
-            # otherwise we have EA values, and this check will be done
-            #  via setitem_inplace
-            if not can_hold_element(self._values, value):
-                raise ValueError
 
         # this is equivalent to self._values[key] = value
         self._mgr.setitem_inplace(loc, value)
 
     def _set_with(self, key, value):
-        # other: fancy integer or otherwise
+        # We got here via exception-handling off of InvalidIndexError, so
+        #  key should always be listlike at this point.
         assert not isinstance(key, tuple)
 
-        if is_scalar(key):
-            key = [key]
-        elif is_iterator(key):
+        if is_iterator(key):
             # Without this, the call to infer_dtype will consume the generator
             key = list(key)
 
@@ -1247,7 +1239,6 @@ class Series(base.IndexOpsMixin, NDFrame):
         Reset the cacher.
         """
         if hasattr(self, "_cacher"):
-            # should only get here with self.ndim == 1
             del self._cacher
 
     def _set_as_cached(self, item, cacher) -> None:
@@ -1368,7 +1359,14 @@ class Series(base.IndexOpsMixin, NDFrame):
         )
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "level"])
-    def reset_index(self, level=None, drop=False, name=lib.no_default, inplace=False):
+    def reset_index(
+        self,
+        level=None,
+        drop=False,
+        name=lib.no_default,
+        inplace=False,
+        allow_duplicates: bool = False,
+    ):
         """
         Generate a new DataFrame or Series with the index reset.
 
@@ -1390,6 +1388,10 @@ class Series(base.IndexOpsMixin, NDFrame):
             when `drop` is True.
         inplace : bool, default False
             Modify the Series in place (do not create a new object).
+        allow_duplicates : bool, default False
+            Allow duplicate column labels to be created.
+
+            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -1506,7 +1508,9 @@ class Series(base.IndexOpsMixin, NDFrame):
                     name = self.name
 
             df = self.to_frame(name)
-            return df.reset_index(level=level, drop=drop)
+            return df.reset_index(
+                level=level, drop=drop, allow_duplicates=allow_duplicates
+            )
 
     # ----------------------------------------------------------------------
     # Rendering Methods
@@ -1766,7 +1770,7 @@ class Series(base.IndexOpsMixin, NDFrame):
 
         Parameters
         ----------
-        name : object, default None
+        name : object, optional
             The passed name should substitute for the series name (if it has
             one).
 
@@ -1785,6 +1789,17 @@ class Series(base.IndexOpsMixin, NDFrame):
         1    b
         2    c
         """
+        if name is None:
+            warnings.warn(
+                "Explicitly passing `name=None` currently preserves the Series' name "
+                "or uses a default name of 0. This behaviour is deprecated, and in "
+                "the future `None` will be used as the name of the resulting "
+                "DataFrame column.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            name = lib.no_default
+
         columns: Index
         if name is lib.no_default:
             name = self.name
@@ -1797,7 +1812,8 @@ class Series(base.IndexOpsMixin, NDFrame):
             columns = Index([name])
 
         mgr = self._mgr.to_2d_mgr(columns)
-        return self._constructor_expanddim(mgr)
+        df = self._constructor_expanddim(mgr)
+        return df.__finalize__(self, method="to_frame")
 
     def _set_name(self, name, inplace=False) -> Series:
         """
@@ -2549,6 +2565,14 @@ Name: Max Speed, dtype: float64
         DataFrame.corrwith : Compute pairwise correlation with another
             DataFrame or Series.
 
+        Notes
+        -----
+        Pearson, Kendall and Spearman correlation are currently computed using pairwise complete observations.
+
+        * `Pearson correlation coefficient <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_
+        * `Kendall rank correlation coefficient <https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient>`_
+        * `Spearman's rank correlation coefficient <https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient>`_
+
         Examples
         --------
         >>> def histogram_intersection(a, b):
@@ -2558,7 +2582,7 @@ Name: Max Speed, dtype: float64
         >>> s2 = pd.Series([.3, .6, .0, .1])
         >>> s1.corr(s2, method=histogram_intersection)
         0.3
-        """
+        """  # noqa:E501
         this, other = self.align(other, join="inner", copy=False)
         if len(this) == 0:
             return np.nan
@@ -2862,6 +2886,10 @@ Name: Max Speed, dtype: float64
     ):
         """
         Concatenate two or more Series.
+
+        .. deprecated:: 1.4.0
+            Use :func:`concat` instead. For further details see
+            :ref:`whatsnew_140.deprecations.frame_series_append`
 
         Parameters
         ----------
@@ -4081,6 +4109,8 @@ Keep all original rows and also all original values
         result in a np.nan for that row. In addition, the ordering of elements in
         the output will be non-deterministic when exploding sets.
 
+        Reference :ref:`the user guide <reshaping.explode>` for more examples.
+
         Examples
         --------
         >>> s = pd.Series([[1, 2, 3], 'foo', [], [3, 4]])
@@ -4129,6 +4159,10 @@ Keep all original rows and also all original values
         -------
         DataFrame
             Unstacked Series.
+
+        Notes
+        -----
+        Reference :ref:`the user guide <reshaping.stacking>` for more examples.
 
         Examples
         --------
@@ -4475,7 +4509,9 @@ Keep all original rows and also all original values
     ) -> Series:
         # Note: new_index is None iff indexer is None
         # if not None, indexer is np.intp
-        if indexer is None:
+        if indexer is None and (
+            new_index is None or new_index.names == self.index.names
+        ):
             if copy:
                 return self.copy()
             return self
@@ -4998,7 +5034,7 @@ Keep all original rows and also all original values
             values._fill_mask_inplace(method, limit, mask)
         else:
             fill_f = missing.get_fill_func(method)
-            values, _ = fill_f(values, limit=limit, mask=mask)
+            fill_f(values, limit=limit, mask=mask)
 
         if inplace:
             return

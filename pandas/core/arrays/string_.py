@@ -39,13 +39,13 @@ from pandas.core.dtypes.common import (
 from pandas.core import ops
 from pandas.core.array_algos import masked_reductions
 from pandas.core.arrays import (
+    ExtensionArray,
     FloatingArray,
     IntegerArray,
     PandasArray,
 )
-from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.floating import FloatingDtype
-from pandas.core.arrays.integer import _IntegerDtype
+from pandas.core.arrays.integer import IntegerDtype
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import isna
@@ -224,6 +224,10 @@ class StringDtype(ExtensionDtype):
 
 
 class BaseStringArray(ExtensionArray):
+    """
+    Mixin class for StringArray, ArrowStringArray.
+    """
+
     pass
 
 
@@ -319,8 +323,6 @@ class StringArray(BaseStringArray, PandasArray):
         super().__init__(values, copy=copy)
         if not isinstance(values, type(self)):
             self._validate()
-        # error: Incompatible types in assignment (expression has type "StringDtype",
-        # variable has type "PandasDtype")
         NDArrayBacked.__init__(self, self._ndarray, StringDtype(storage="python"))
 
     def _validate(self):
@@ -434,7 +436,7 @@ class StringArray(BaseStringArray, PandasArray):
                 return self.copy()
             return self
 
-        elif isinstance(dtype, _IntegerDtype):
+        elif isinstance(dtype, IntegerDtype):
             arr = self._ndarray.copy()
             mask = self.isna()
             arr[mask] = 0

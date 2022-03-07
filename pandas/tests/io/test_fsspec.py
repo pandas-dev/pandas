@@ -1,10 +1,8 @@
 import io
-import sys
 
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_windows
 from pandas.compat._optional import VERSIONS
 
 from pandas import (
@@ -155,17 +153,14 @@ def test_excel_options(fsspectest, extension):
 
 
 @td.skip_if_no("fastparquet")
-def test_to_parquet_new_file(monkeypatch, cleared_fs):
+def test_to_parquet_new_file(cleared_fs):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
     df1.to_parquet(
         "memory://test/test.csv", index=True, engine="fastparquet", compression=None
     )
 
 
-@td.skip_if_no("pyarrow")
-@pytest.mark.xfail(
-    is_platform_windows() and sys.version_info[:2] == (3, 8), reason="GH 45344"
-)
+@td.skip_if_no("pyarrow", min_version="2")
 def test_arrowparquet_options(fsspectest):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
     df = DataFrame({"a": [0]})
@@ -204,6 +199,7 @@ def test_fastparquet_options(fsspectest):
     assert fsspectest.test[0] == "parquet_read"
 
 
+@pytest.mark.single_cpu
 @td.skip_if_no("s3fs")
 def test_from_s3_csv(s3_resource, tips_file, s3so):
     tm.assert_equal(
@@ -220,6 +216,7 @@ def test_from_s3_csv(s3_resource, tips_file, s3so):
     )
 
 
+@pytest.mark.single_cpu
 @pytest.mark.parametrize("protocol", ["s3", "s3a", "s3n"])
 @td.skip_if_no("s3fs")
 def test_s3_protocols(s3_resource, tips_file, protocol, s3so):
@@ -229,6 +226,7 @@ def test_s3_protocols(s3_resource, tips_file, protocol, s3so):
     )
 
 
+@pytest.mark.single_cpu
 @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fastparquet
 @td.skip_if_no("s3fs")
 @td.skip_if_no("fastparquet")

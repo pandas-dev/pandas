@@ -595,7 +595,7 @@ class Apply(metaclass=abc.ABCMeta):
             for k, v in func.items():
                 if not is_aggregator(v):
                     # mypy can't realize v is not a list here
-                    new_func[k] = [v]  # type:ignore[list-item]
+                    new_func[k] = [v]  # type: ignore[list-item]
                 else:
                     new_func[k] = v
             func = new_func
@@ -996,7 +996,7 @@ class FrameColumnApply(FrameApply):
                 # GH#35462 re-pin mgr in case setitem changed it
                 ser._mgr = mgr
                 mgr.set_values(arr)
-                ser.name = name
+                object.__setattr__(ser, "_name", name)
                 yield ser
 
     @property

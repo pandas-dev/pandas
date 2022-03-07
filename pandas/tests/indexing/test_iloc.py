@@ -82,9 +82,7 @@ class TestiLocBaseIndependent:
 
         overwrite = isinstance(key, slice) and key == slice(None)
 
-        if overwrite or using_array_manager:
-            # TODO(ArrayManager) we always overwrite because ArrayManager takes
-            #  the "split" path, which still overwrites
+        if overwrite:
             # TODO: GH#39986 this probably shouldn't behave differently
             expected = DataFrame({0: cat})
             assert not np.shares_memory(df.values, orig_vals)
@@ -108,13 +106,13 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("box", [array, Series])
-    def test_iloc_setitem_ea_inplace(self, frame_or_series, box, using_array_manager):
+    def test_iloc_setitem_ea_inplace(self, frame_or_series, box):
         # GH#38952 Case with not setting a full column
         #  IntegerArray without NAs
         arr = array([1, 2, 3, 4])
         obj = frame_or_series(arr.to_numpy("i8"))
 
-        if frame_or_series is Series or not using_array_manager:
+        if frame_or_series is Series:
             values = obj.values
         else:
             values = obj[0].values
@@ -131,10 +129,7 @@ class TestiLocBaseIndependent:
         if frame_or_series is Series:
             assert obj.values is values
         else:
-            if using_array_manager:
-                assert obj[0].values is values
-            else:
-                assert obj.values.base is values.base and values.base is not None
+            assert np.shares_memory(obj[0].values, values)
 
     def test_is_scalar_access(self):
         # GH#32085 index with duplicates doesn't matter for _is_scalar_access
@@ -748,7 +743,7 @@ class TestiLocBaseIndependent:
 
         # the possibilities
         locs = np.arange(4)
-        nums = 2 ** locs
+        nums = 2**locs
         reps = [bin(num) for num in nums]
         df = DataFrame({"locs": locs, "nums": nums}, reps)
 
@@ -880,16 +875,19 @@ class TestiLocBaseIndependent:
         result = s.iloc[np.array(0)]
         assert result == 1
 
-    @pytest.mark.xfail(reason="https://github.com/pandas-dev/pandas/issues/33457")
+    @td.skip_array_manager_not_yet_implemented
     def test_iloc_setitem_categorical_updates_inplace(self):
         # Mixed dtype ensures we go through take_split_path in setitem_with_indexer
         cat = Categorical(["A", "B", "C"])
-        df = DataFrame({1: cat, 2: [1, 2, 3]})
+        df = DataFrame({1: cat, 2: [1, 2, 3]}, copy=False)
+
+        assert tm.shares_memory(df[1], cat)
 
         # This should modify our original values in-place
         df.iloc[:, 0] = cat[::-1]
+        assert tm.shares_memory(df[1], cat)
 
-        expected = Categorical(["C", "B", "A"])
+        expected = Categorical(["C", "B", "A"], categories=["A", "B", "C"])
         tm.assert_categorical_equal(cat, expected)
 
     def test_iloc_with_boolean_operation(self):
@@ -999,9 +997,6 @@ class TestiLocBaseIndependent:
         expected = df["data"].loc[[1, 3, 6]]
         tm.assert_series_equal(result, expected)
 
-    # TODO(ArrayManager) setting single item with an iterable doesn't work yet
-    # in the "split" path
-    @td.skip_array_manager_not_yet_implemented
     def test_iloc_assign_series_to_df_cell(self):
         # GH 37593
         df = DataFrame(columns=["a"], index=[0])
@@ -1224,8 +1219,6 @@ class TestILocErrors:
             # GH#32257 we let numpy do validation, get their exception
             float_frame.iloc[:, :, :] = 1
 
-    # TODO(ArrayManager) "split" path doesn't properly implement DataFrame indexer
-    @td.skip_array_manager_not_yet_implemented
     def test_iloc_frame_indexer(self):
         # GH#39004
         df = DataFrame({"a": [1, 2, 3]})

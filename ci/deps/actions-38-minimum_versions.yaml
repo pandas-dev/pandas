@@ -19,7 +19,7 @@ dependencies:
   - numpy=1.18.5
   - pytz=2020.1
 
-  # optional dependencies
+  # optional dependencies, markupsafe for jinja2
   - beautifulsoup4=4.8.2
   - blosc=1.20.1
   - bottleneck=1.3.1
@@ -29,17 +29,18 @@ dependencies:
   - gcsfs=0.6.0
   - jinja2=2.11
   - lxml=4.5.0
+  - markupsafe=2.0.1
   - matplotlib=3.3.2
   - numba=0.50.1
   - numexpr=2.7.1
-  - openpyxl=3.0.3
   - odfpy=1.4.1
+  - openpyxl=3.0.3
   - pandas-gbq=0.14.0
   - psycopg2=2.8.4
   - pymysql=0.10.1
   - pytables=3.6.1
   - pyarrow=1.0.1
-  - pyreadstat
+  - pyreadstat=1.1.0
   - pyxlsb=1.0.6
   - s3fs=0.4.0
   - scipy=1.4.1

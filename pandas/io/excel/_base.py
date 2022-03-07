@@ -119,12 +119,18 @@ index_col : int, list of int, default None
     those columns will be combined into a ``MultiIndex``.  If a
     subset of data is selected with ``usecols``, index_col
     is based on the subset.
-usecols : int, str, list-like, or callable default None
+
+    Missing values will be forward filled to allow roundtripping with
+    ``to_excel`` for ``merged_cells=True``. To avoid forward filling the
+    missing values use ``set_index`` after reading the data instead of
+    ``index_col``.
+usecols : str, list-like, or callable, default None
     * If None, then parse all columns.
     * If str, then indicates comma separated list of Excel column letters
       and column ranges (e.g. "A:E" or "A,C,E:F"). Ranges are inclusive of
       both sides.
-    * If list of int, then indicates list of column numbers to be parsed.
+    * If list of int, then indicates list of column numbers to be parsed
+      (0-indexed).
     * If list of string, then indicates list of column names to be parsed.
     * If callable, then evaluate each column name against it and parse the
       column if the callable returns ``True``.
@@ -137,7 +143,7 @@ squeeze : bool, default False
        Append ``.squeeze("columns")`` to the call to ``read_excel`` to squeeze
        the data.
 dtype : Type name or dict of column -> type, default None
-    Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
+    Data type for data or columns. E.g. {{'a': np.float64, 'b': np.int32}}
     Use `object` to preserve data as stored in Excel and not interpret dtype.
     If converters are specified, they will be applied INSTEAD
     of dtype conversion.
@@ -221,7 +227,7 @@ parse_dates : bool, list-like, or dict, default False
       each as a separate date column.
     * list of lists. e.g.  If [[1, 3]] -> combine columns 1 and 3 and parse as
       a single date column.
-    * dict, e.g. {'foo' : [1, 3]} -> parse columns 1, 3 as date and call
+    * dict, e.g. {{'foo' : [1, 3]}} -> parse columns 1, 3 as date and call
       result 'foo'
 
     If a column or index contains an unparsable date, the entire column or
@@ -271,13 +277,7 @@ mangle_dupe_cols : bool, default True
     Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
     'X'...'X'. Passing in False will cause data to be overwritten if there
     are duplicate names in the columns.
-storage_options : dict, optional
-    Extra options that make sense for a particular storage connection, e.g.
-    host, port, username, password, etc., if using a URL that will
-    be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
-    will be raised if providing this argument with a local path or
-    a file-like buffer. See the fsspec and backend storage implementation
-    docs for the set of allowed keys and values.
+{storage_options}
 
     .. versionadded:: 1.2.0
 
@@ -323,7 +323,7 @@ Index and header can be specified via the `index_col` and `header` arguments
 Column types are inferred but can be explicitly specified
 
 >>> pd.read_excel('tmp.xlsx', index_col=0,
-...               dtype={'Name': str, 'Value': float})  # doctest: +SKIP
+...               dtype={{'Name': str, 'Value': float}})  # doctest: +SKIP
        Name  Value
 0   string1    1.0
 1   string2    2.0
@@ -419,6 +419,7 @@ def read_excel(
     ...
 
 
+@doc(storage_options=_shared_docs["storage_options"])
 @deprecate_nonkeyword_arguments(allowed_args=["io", "sheet_name"], version="2.0")
 @Appender(_read_excel_doc)
 def read_excel(
@@ -534,11 +535,16 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         pass
 
     def close(self) -> None:
-        if hasattr(self, "book") and hasattr(self.book, "close"):
-            # pyxlsb: opens a TemporaryFile
-            # openpyxl: https://stackoverflow.com/questions/31416842/
-            #     openpyxl-does-not-close-excel-workbook-in-read-only-mode
-            self.book.close()
+        if hasattr(self, "book"):
+            if hasattr(self.book, "close"):
+                # pyxlsb: opens a TemporaryFile
+                # openpyxl: https://stackoverflow.com/questions/31416842/
+                #     openpyxl-does-not-close-excel-workbook-in-read-only-mode
+                self.book.close()
+            elif hasattr(self.book, "release_resources"):
+                # xlrd
+                # https://github.com/python-excel/xlrd/blob/2.0.1/xlrd/book.py#L548
+                self.book.release_resources()
         self.handles.close()
 
     @property
@@ -755,6 +761,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             return output[asheetname]
 
 
+@doc(storage_options=_shared_docs["storage_options"])
 class ExcelWriter(metaclass=abc.ABCMeta):
     """
     Class for writing DataFrame objects into excel sheets.
@@ -788,16 +795,13 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     datetime_format : str, default None
         Format string for datetime objects written into Excel files.
         (e.g. 'YYYY-MM-DD HH:MM:SS').
-    mode : {'w', 'a'}, default 'w'
+    mode : {{'w', 'a'}}, default 'w'
         File mode to use (write or append). Append does not work with fsspec URLs.
-    storage_options : dict, optional
-        Extra options that make sense for a particular storage connection, e.g.
-        host, port, username, password, etc., if using a URL that will
-        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://".
+    {storage_options}
 
         .. versionadded:: 1.2.0
 
-    if_sheet_exists : {'error', 'new', 'replace', 'overlay'}, default 'error'
+    if_sheet_exists : {{'error', 'new', 'replace', 'overlay'}}, default 'error'
         How to behave when trying to write to a sheet that already
         exists (append mode only).
 
@@ -830,18 +834,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
             Use engine_kwargs instead.
 
-    Attributes
-    ----------
-    None
-
-    Methods
-    -------
-    None
-
     Notes
     -----
-    None of the methods and properties are considered public.
-
     For compatibility with CSV writers, ExcelWriter serializes lists
     and dicts to strings before writing.
 
@@ -928,7 +922,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     >>> with pd.ExcelWriter(
     ...     "path_to_file.xlsx",
     ...     engine="xlsxwriter",
-    ...     engine_kwargs={"options": {"nan_inf_to_errors": True}}
+    ...     engine_kwargs={{"options": {{"nan_inf_to_errors": True}}}}
     ... ) as writer:
     ...     df.to_excel(writer)  # doctest: +SKIP
 
@@ -939,7 +933,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     ...     "path_to_file.xlsx",
     ...     engine="openpyxl",
     ...     mode="a",
-    ...     engine_kwargs={"keep_vba": True}
+    ...     engine_kwargs={{"keep_vba": True}}
     ... ) as writer:
     ...     df.to_excel(writer, sheet_name="Sheet2")  # doctest: +SKIP
     """
@@ -1028,7 +1022,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         return object.__new__(cls)
 
     # declare external properties you can count on
-    path = None
+    _path = None
 
     @property
     @abc.abstractmethod
@@ -1042,8 +1036,51 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         """Name of engine."""
         pass
 
+    @property
     @abc.abstractmethod
+    def sheets(self) -> dict[str, Any]:
+        """Mapping of sheet names to sheet objects."""
+        pass
+
+    @property
+    @abc.abstractmethod
+    def book(self):
+        """
+        Book instance. Class type will depend on the engine used.
+
+        This attribute can be used to access engine-specific features.
+        """
+        pass
+
     def write_cells(
+        self,
+        cells,
+        sheet_name: str | None = None,
+        startrow: int = 0,
+        startcol: int = 0,
+        freeze_panes: tuple[int, int] | None = None,
+    ) -> None:
+        """
+        Write given formatted cells into Excel an excel sheet
+
+        .. deprecated:: 1.5.0
+
+        Parameters
+        ----------
+        cells : generator
+            cell of formatted data to save to Excel sheet
+        sheet_name : str, default None
+            Name of Excel sheet, if None, then use self.cur_sheet
+        startrow : upper left cell row to dump data frame
+        startcol : upper left cell column to dump data frame
+        freeze_panes: int tuple of length 2
+            contains the bottom-most row and right-most column to freeze
+        """
+        self._deprecate("write_cells")
+        return self._write_cells(cells, sheet_name, startrow, startcol, freeze_panes)
+
+    @abc.abstractmethod
+    def _write_cells(
         self,
         cells,
         sheet_name: str | None = None,
@@ -1067,8 +1104,17 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         """
         pass
 
-    @abc.abstractmethod
     def save(self) -> None:
+        """
+        Save workbook to disk.
+
+        .. deprecated:: 1.5.0
+        """
+        self._deprecate("save")
+        return self._save()
+
+    @abc.abstractmethod
+    def _save(self) -> None:
         """
         Save workbook to disk.
         """
@@ -1099,26 +1145,25 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         mode = mode.replace("a", "r+")
 
         # cast ExcelWriter to avoid adding 'if self.handles is not None'
-        self.handles = IOHandles(
+        self._handles = IOHandles(
             cast(IO[bytes], path), compression={"compression": None}
         )
         if not isinstance(path, ExcelWriter):
-            self.handles = get_handle(
+            self._handles = get_handle(
                 path, mode, storage_options=storage_options, is_text=False
             )
-        self.sheets: dict[str, Any] = {}
-        self.cur_sheet = None
+        self._cur_sheet = None
 
         if date_format is None:
-            self.date_format = "YYYY-MM-DD"
+            self._date_format = "YYYY-MM-DD"
         else:
-            self.date_format = date_format
+            self._date_format = date_format
         if datetime_format is None:
-            self.datetime_format = "YYYY-MM-DD HH:MM:SS"
+            self._datetime_format = "YYYY-MM-DD HH:MM:SS"
         else:
-            self.datetime_format = datetime_format
+            self._datetime_format = datetime_format
 
-        self.mode = mode
+        self._mode = mode
 
         if if_sheet_exists not in (None, "error", "new", "replace", "overlay"):
             raise ValueError(
@@ -1129,16 +1174,78 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             raise ValueError("if_sheet_exists is only valid in append mode (mode='a')")
         if if_sheet_exists is None:
             if_sheet_exists = "error"
-        self.if_sheet_exists = if_sheet_exists
+        self._if_sheet_exists = if_sheet_exists
+
+    def _deprecate(self, attr: str):
+        """
+        Deprecate attribute or method for ExcelWriter.
+        """
+        warnings.warn(
+            f"{attr} is not part of the public API, usage can give in unexpected "
+            "results and will be removed in a future version",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
+    @property
+    def date_format(self) -> str:
+        """
+        Format string for dates written into Excel files (e.g. ‘YYYY-MM-DD’).
+        """
+        return self._date_format
+
+    @property
+    def datetime_format(self) -> str:
+        """
+        Format string for dates written into Excel files (e.g. ‘YYYY-MM-DD’).
+        """
+        return self._datetime_format
+
+    @property
+    def if_sheet_exists(self) -> str:
+        """
+        How to behave when writing to a sheet that already exists in append mode.
+        """
+        return self._if_sheet_exists
+
+    @property
+    def cur_sheet(self):
+        """
+        Current sheet for writing.
+
+        .. deprecated:: 1.5.0
+        """
+        self._deprecate("cur_sheet")
+        return self._cur_sheet
+
+    @property
+    def handles(self):
+        """
+        Handles to Excel sheets.
+
+        .. deprecated:: 1.5.0
+        """
+        self._deprecate("handles")
+        return self._handles
+
+    @property
+    def path(self):
+        """
+        Path to Excel file.
+
+        .. deprecated:: 1.5.0
+        """
+        self._deprecate("path")
+        return self._path
 
     def __fspath__(self):
-        return getattr(self.handles.handle, "name", "")
+        return getattr(self._handles.handle, "name", "")
 
     def _get_sheet_name(self, sheet_name: str | None) -> str:
         if sheet_name is None:
-            sheet_name = self.cur_sheet
+            sheet_name = self._cur_sheet
         if sheet_name is None:  # pragma: no cover
-            raise ValueError("Must pass explicit sheet_name or set cur_sheet property")
+            raise ValueError("Must pass explicit sheet_name or set _cur_sheet property")
         return sheet_name
 
     def _value_with_fmt(self, val) -> tuple[object, str | None]:
@@ -1164,9 +1271,9 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         elif is_bool(val):
             val = bool(val)
         elif isinstance(val, datetime.datetime):
-            fmt = self.datetime_format
+            fmt = self._datetime_format
         elif isinstance(val, datetime.date):
-            fmt = self.date_format
+            fmt = self._date_format
         elif isinstance(val, datetime.timedelta):
             val = val.total_seconds() / 86400
             fmt = "0"
@@ -1202,8 +1309,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     def close(self) -> None:
         """synonym for save, to make it more file-like"""
-        self.save()
-        self.handles.close()
+        self._save()
+        self._handles.close()
 
 
 XLS_SIGNATURES = (
@@ -1265,11 +1372,12 @@ def inspect_excel_format(
         elif not peek.startswith(ZIP_SIGNATURE):
             return None
 
-        zf = zipfile.ZipFile(stream)
-
-        # Workaround for some third party files that use forward slashes and
-        # lower case names.
-        component_names = [name.replace("\\", "/").lower() for name in zf.namelist()]
+        with zipfile.ZipFile(stream) as zf:
+            # Workaround for some third party files that use forward slashes and
+            # lower case names.
+            component_names = [
+                name.replace("\\", "/").lower() for name in zf.namelist()
+            ]
 
         if "xl/workbook.xml" in component_names:
             return "xlsx"

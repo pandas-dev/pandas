@@ -29,6 +29,7 @@ def duplicate_columns_frame():
 
 
 def test_info_empty():
+    # GH #45494
     df = DataFrame()
     buf = StringIO()
     df.info(buf=buf)
@@ -37,7 +38,7 @@ def test_info_empty():
         """\
         <class 'pandas.core.frame.DataFrame'>
         Index: 0 entries
-        Empty DataFrame"""
+        Empty DataFrame\n"""
     )
     assert result == expected
 

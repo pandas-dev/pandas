@@ -212,7 +212,7 @@ def _get_tol_from_less_precise(check_less_precise: bool | int) -> float:
             return 0.5e-5
     else:
         # Equivalent to setting checking_less_precise=<decimals>
-        return 0.5 * 10 ** -check_less_precise
+        return 0.5 * 10**-check_less_precise
 
 
 def _check_isinstance(left, right, cls):
@@ -848,8 +848,8 @@ def assert_extension_array_equal(
         left_na, right_na, obj="ExtensionArray NA mask", index_values=index_values
     )
 
-    left_valid = np.asarray(left[~left_na].astype(object))
-    right_valid = np.asarray(right[~right_na].astype(object))
+    left_valid = left[~left_na].to_numpy(dtype=object)
+    right_valid = right[~right_na].to_numpy(dtype=object)
     if check_exact:
         assert_numpy_array_equal(
             left_valid, right_valid, obj="ExtensionArray", index_values=index_values
@@ -1344,6 +1344,7 @@ def assert_frame_equal(
                 rtol=rtol,
                 atol=atol,
                 check_index=False,
+                check_flags=False,
             )
 
 

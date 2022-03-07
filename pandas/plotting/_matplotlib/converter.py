@@ -63,7 +63,7 @@ SEC_PER_MIN = 60.0
 SEC_PER_HOUR = SEC_PER_MIN * MIN_PER_HOUR
 SEC_PER_DAY = SEC_PER_HOUR * HOURS_PER_DAY
 
-MUSEC_PER_DAY = 10 ** 6 * SEC_PER_DAY
+MUSEC_PER_DAY = 10**6 * SEC_PER_DAY
 
 _mpl_units = {}  # Cache for units overwritten by us
 
@@ -141,7 +141,7 @@ def deregister():
 
 
 def _to_ordinalf(tm: pydt.time) -> float:
-    tot_sec = tm.hour * 3600 + tm.minute * 60 + tm.second + tm.microsecond / 10 ** 6
+    tot_sec = tm.hour * 3600 + tm.minute * 60 + tm.second + tm.microsecond / 10**6
     return tot_sec
 
 
@@ -207,7 +207,7 @@ class TimeFormatter(Formatter):
         """
         fmt = "%H:%M:%S.%f"
         s = int(x)
-        msus = round((x - s) * 10 ** 6)
+        msus = round((x - s) * 10**6)
         ms = msus // 1000
         us = msus % 1000
         m, s = divmod(s, 60)
@@ -531,7 +531,8 @@ def has_level_label(label_flags: np.ndarray, vmin: float) -> bool:
 
 
 def _daily_finder(vmin, vmax, freq: BaseOffset):
-    dtype_code = freq._period_dtype_code
+    # error: "BaseOffset" has no attribute "_period_dtype_code"
+    dtype_code = freq._period_dtype_code  # type: ignore[attr-defined]
 
     periodsperday = -1
 
@@ -895,7 +896,8 @@ def _annual_finder(vmin, vmax, freq):
 
 
 def get_finder(freq: BaseOffset):
-    dtype_code = freq._period_dtype_code
+    # error: "BaseOffset" has no attribute "_period_dtype_code"
+    dtype_code = freq._period_dtype_code  # type: ignore[attr-defined]
     fgroup = (dtype_code // 1000) * 1000
     fgroup = FreqGroup(fgroup)
 
@@ -1084,7 +1086,7 @@ class TimeSeries_TimedeltaFormatter(Formatter):
         """
         Convert seconds to 'D days HH:MM:SS.F'
         """
-        s, ns = divmod(x, 10 ** 9)
+        s, ns = divmod(x, 10**9)
         m, s = divmod(s, 60)
         h, m = divmod(m, 60)
         d, h = divmod(h, 24)
@@ -1098,7 +1100,7 @@ class TimeSeries_TimedeltaFormatter(Formatter):
 
     def __call__(self, x, pos=0) -> str:
         (vmin, vmax) = tuple(self.axis.get_view_interval())
-        n_decimals = int(np.ceil(np.log10(100 * 10 ** 9 / abs(vmax - vmin))))
+        n_decimals = int(np.ceil(np.log10(100 * 10**9 / abs(vmax - vmin))))
         if n_decimals > 9:
             n_decimals = 9
         return self.format_timedelta_ticks(x, pos, n_decimals)

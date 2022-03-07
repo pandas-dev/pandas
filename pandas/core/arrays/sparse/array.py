@@ -361,6 +361,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     _subtyp = "sparse_array"  # register ABCSparseArray
     _hidden_attrs = PandasObject._hidden_attrs | frozenset(["get_values"])
     _sparse_index: SparseIndex
+    _sparse_values: np.ndarray
+    _dtype: SparseDtype
 
     def __init__(
         self,
@@ -1264,6 +1266,19 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 return self
             else:
                 return self.copy()
+
+        future_dtype = pandas_dtype(dtype)
+        if not isinstance(future_dtype, SparseDtype):
+            # GH#34457
+            warnings.warn(
+                "The behavior of .astype from SparseDtype to a non-sparse dtype "
+                "is deprecated. In a future version, this will return a non-sparse "
+                "array with the requested dtype. To retain the old behavior, use "
+                "`obj.astype(SparseDtype(dtype))`",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
         dtype = self.dtype.update_dtype(dtype)
         subtype = pandas_dtype(dtype._subtype_with_str)
         sp_values = astype_nansafe(self.sp_values, subtype, copy=copy)
@@ -1342,7 +1357,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         # NB: may not preserve dtype, e.g. result may be Sparse[float64]
         #  while self is Sparse[int64]
         naive_implementation = np.where(mask, self, value)
-        result = type(self)._from_sequence(naive_implementation)
+        dtype = SparseDtype(naive_implementation.dtype, fill_value=self.fill_value)
+        result = type(self)._from_sequence(naive_implementation, dtype=dtype)
         return result
 
     # ------------------------------------------------------------------------

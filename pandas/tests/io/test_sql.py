@@ -58,7 +58,6 @@ from pandas.io.sql import (
     SQLAlchemyEngine,
     SQLDatabase,
     SQLiteDatabase,
-    _gt14,
     get_engine,
     pandasSQL_builder,
     read_sql_query,
@@ -369,7 +368,7 @@ def test_frame1():
 def test_frame3():
     columns = ["index", "A", "B"]
     data = [
-        ("2000-01-03 00:00:00", 2 ** 31 - 1, -1.987670),
+        ("2000-01-03 00:00:00", 2**31 - 1, -1.987670),
         ("2000-01-04 00:00:00", -29, -0.0412318367011),
         ("2000-01-05 00:00:00", 20000, 0.731167677815),
         ("2000-01-06 00:00:00", -290867, 1.56762092543),
@@ -385,10 +384,10 @@ def mysql_pymysql_engine(iris_path, types_data):
         "mysql+pymysql://root@localhost:3306/pandas",
         connect_args={"client_flag": pymysql.constants.CLIENT.MULTI_STATEMENTS},
     )
-    check_target = sqlalchemy.inspect(engine) if _gt14() else engine
-    if not check_target.has_table("iris"):
+    insp = sqlalchemy.inspect(engine)
+    if not insp.has_table("iris"):
         create_and_load_iris(engine, iris_path, "mysql")
-    if not check_target.has_table("types"):
+    if not insp.has_table("types"):
         for entry in types_data:
             entry.pop("DateColWithTz")
         create_and_load_types(engine, types_data, "mysql")
@@ -412,10 +411,10 @@ def postgresql_psycopg2_engine(iris_path, types_data):
     engine = sqlalchemy.create_engine(
         "postgresql+psycopg2://postgres:postgres@localhost:5432/pandas"
     )
-    check_target = sqlalchemy.inspect(engine) if _gt14() else engine
-    if not check_target.has_table("iris"):
+    insp = sqlalchemy.inspect(engine)
+    if not insp.has_table("iris"):
         create_and_load_iris(engine, iris_path, "postgresql")
-    if not check_target.has_table("types"):
+    if not insp.has_table("types"):
         create_and_load_types(engine, types_data, "postgresql")
     yield engine
     with engine.connect() as conn:
@@ -499,6 +498,7 @@ all_connectable = sqlalchemy_connectable + ["sqlite_buildin"]
 all_connectable_iris = sqlalchemy_connectable_iris + ["sqlite_buildin_iris"]
 
 
+@pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable)
 @pytest.mark.parametrize("method", [None, "multi"])
 def test_to_sql(conn, method, test_frame1, request):
@@ -509,6 +509,7 @@ def test_to_sql(conn, method, test_frame1, request):
     assert count_rows(conn, "test_frame") == len(test_frame1)
 
 
+@pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable)
 @pytest.mark.parametrize("mode, num_row_coef", [("replace", 1), ("append", 2)])
 def test_to_sql_exist(conn, mode, num_row_coef, test_frame1, request):
@@ -520,6 +521,7 @@ def test_to_sql_exist(conn, mode, num_row_coef, test_frame1, request):
     assert count_rows(conn, "test_frame") == num_row_coef * len(test_frame1)
 
 
+@pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable)
 def test_to_sql_exist_fail(conn, test_frame1, request):
     conn = request.getfixturevalue(conn)
@@ -532,6 +534,7 @@ def test_to_sql_exist_fail(conn, test_frame1, request):
         pandasSQL.to_sql(test_frame1, "test_frame", if_exists="fail")
 
 
+@pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable_iris)
 def test_read_iris(conn, request):
     conn = request.getfixturevalue(conn)
@@ -540,6 +543,7 @@ def test_read_iris(conn, request):
     check_iris_frame(iris_frame)
 
 
+@pytest.mark.db
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
 def test_to_sql_callable(conn, test_frame1, request):
     conn = request.getfixturevalue(conn)
@@ -558,6 +562,7 @@ def test_to_sql_callable(conn, test_frame1, request):
     assert count_rows(conn, "test_frame") == len(test_frame1)
 
 
+@pytest.mark.db
 @pytest.mark.parametrize("conn", mysql_connectable)
 def test_default_type_conversion(conn, request):
     conn = request.getfixturevalue(conn)
@@ -576,6 +581,7 @@ def test_default_type_conversion(conn, request):
     assert issubclass(df.BoolColWithNull.dtype.type, np.floating)
 
 
+@pytest.mark.db
 @pytest.mark.parametrize("conn", mysql_connectable)
 def test_read_procedure(conn, request):
     conn = request.getfixturevalue(conn)
@@ -612,6 +618,7 @@ def test_read_procedure(conn, request):
     tm.assert_frame_equal(df, res2)
 
 
+@pytest.mark.db
 @pytest.mark.parametrize("conn", postgresql_connectable)
 def test_copy_from_callable_insertion_method(conn, request):
     # GH 8953
@@ -1269,7 +1276,6 @@ class _TestSQLApi(PandasSQLTest):
         tm.assert_frame_equal(res, df)
 
 
-@pytest.mark.single
 @pytest.mark.skipif(not SQLALCHEMY_INSTALLED, reason="SQLAlchemy not installed")
 class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
     """
@@ -1450,8 +1456,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         )
 
         iris = iris_table_metadata(self.flavor)
-        iris_select = iris if _gt14() else [iris]
-        name_select = select(iris_select).where(iris.c.Name == bindparam("name"))
+        name_select = select(iris).where(iris.c.Name == bindparam("name"))
         iris_df = sql.read_sql(name_select, self.conn, params={"name": "Iris-setosa"})
         all_names = set(iris_df["Name"])
         assert all_names == {"Iris-setosa"}
@@ -1489,12 +1494,10 @@ class _EngineToConnMixin:
         self.pandasSQL = sql.SQLDatabase(self.__engine)
 
 
-@pytest.mark.single
 class TestSQLApiConn(_EngineToConnMixin, TestSQLApi):
     pass
 
 
-@pytest.mark.single
 class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
     """
     Test the public sqlite connection fallback API
@@ -1526,8 +1529,24 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
     @pytest.mark.skipif(SQLALCHEMY_INSTALLED, reason="SQLAlchemy is installed")
     def test_con_string_import_error(self):
         conn = "mysql://root@localhost/pandas"
-        with pytest.raises(ImportError, match="SQLAlchemy"):
+        msg = "Using URI string without sqlalchemy installed"
+        with pytest.raises(ImportError, match=msg):
             sql.read_sql("SELECT * FROM iris", conn)
+
+    @pytest.mark.skipif(SQLALCHEMY_INSTALLED, reason="SQLAlchemy is installed")
+    def test_con_unknown_dbapi2_class_does_not_error_without_sql_alchemy_installed(
+        self,
+    ):
+        class MockSqliteConnection:
+            def __init__(self, *args, **kwargs):
+                self.conn = sqlite3.Connection(*args, **kwargs)
+
+            def __getattr__(self, name):
+                return getattr(self.conn, name)
+
+        conn = MockSqliteConnection(":memory:")
+        with tm.assert_produces_warning(UserWarning):
+            sql.read_sql("SELECT 1", conn)
 
     def test_read_sql_delegate(self):
         iris_frame1 = sql.read_sql_query("SELECT * FROM iris", self.conn)
@@ -1624,46 +1643,33 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         self._to_sql_empty(test_frame1)
 
     def test_create_table(self):
+        from sqlalchemy import inspect
+
         temp_conn = self.connect()
         temp_frame = DataFrame(
             {"one": [1.0, 2.0, 3.0, 4.0], "two": [4.0, 3.0, 2.0, 1.0]}
         )
-
         pandasSQL = sql.SQLDatabase(temp_conn)
         assert pandasSQL.to_sql(temp_frame, "temp_frame") == 4
 
-        if _gt14():
-            from sqlalchemy import inspect
-
-            insp = inspect(temp_conn)
-            assert insp.has_table("temp_frame")
-        else:
-            assert temp_conn.has_table("temp_frame")
+        insp = inspect(temp_conn)
+        assert insp.has_table("temp_frame")
 
     def test_drop_table(self):
-        temp_conn = self.connect()
+        from sqlalchemy import inspect
 
+        temp_conn = self.connect()
         temp_frame = DataFrame(
             {"one": [1.0, 2.0, 3.0, 4.0], "two": [4.0, 3.0, 2.0, 1.0]}
         )
-
         pandasSQL = sql.SQLDatabase(temp_conn)
         assert pandasSQL.to_sql(temp_frame, "temp_frame") == 4
 
-        if _gt14():
-            from sqlalchemy import inspect
-
-            insp = inspect(temp_conn)
-            assert insp.has_table("temp_frame")
-        else:
-            assert temp_conn.has_table("temp_frame")
+        insp = inspect(temp_conn)
+        assert insp.has_table("temp_frame")
 
         pandasSQL.drop_table("temp_frame")
-
-        if _gt14():
-            assert not insp.has_table("temp_frame")
-        else:
-            assert not temp_conn.has_table("temp_frame")
+        assert not insp.has_table("temp_frame")
 
     def test_roundtrip(self, test_frame1):
         self._roundtrip(test_frame1)
@@ -1700,7 +1706,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     def test_bigint(self):
         # int64 should be converted to BigInteger, GH7433
-        df = DataFrame(data={"i64": [2 ** 62]})
+        df = DataFrame(data={"i64": [2**62]})
         assert df.to_sql("test_bigint", self.conn, index=False) == 1
         result = sql.read_sql_table("test_bigint", self.conn)
 
@@ -1942,7 +1948,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     def test_mixed_dtype_insert(self):
         # see GH6509
-        s1 = Series(2 ** 25 + 1, dtype=np.int32)
+        s1 = Series(2**25 + 1, dtype=np.int32)
         s2 = Series(0.0, dtype=np.float32)
         df = DataFrame({"s1": s1, "s2": s2})
 
@@ -2156,14 +2162,10 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             data.to_sql(name="test_foo_data", con=connection, if_exists="append")
 
         def baz(conn):
-            if _gt14():
-                # https://github.com/sqlalchemy/sqlalchemy/commit/
-                #  00b5c10846e800304caa86549ab9da373b42fa5d#r48323973
-                foo_data = foo(conn)
-                bar(conn, foo_data)
-            else:
-                foo_data = conn.run_callable(foo)
-                conn.run_callable(bar, foo_data)
+            # https://github.com/sqlalchemy/sqlalchemy/commit/
+            # 00b5c10846e800304caa86549ab9da373b42fa5d#r48323973
+            foo_data = foo(conn)
+            bar(conn, foo_data)
 
         def main(connectable):
             if isinstance(connectable, Engine):
@@ -2216,13 +2218,8 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         )
         from sqlalchemy.orm import (
             Session,
-            sessionmaker,
+            declarative_base,
         )
-
-        if _gt14():
-            from sqlalchemy.orm import declarative_base
-        else:
-            from sqlalchemy.ext.declarative import declarative_base
 
         test_data = "Hello, World!"
         expected = DataFrame({"spam": [test_data]})
@@ -2234,24 +2231,13 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             id = Column(Integer, primary_key=True)
             spam = Column(Unicode(30), nullable=False)
 
-        if _gt14():
-            with Session(self.conn) as session:
-                with session.begin():
-                    conn = session.connection()
-                    Temporary.__table__.create(conn)
-                    session.add(Temporary(spam=test_data))
-                    session.flush()
-                    df = sql.read_sql_query(sql=select(Temporary.spam), con=conn)
-        else:
-            Session = sessionmaker()
-            session = Session(bind=self.conn)
-            with session.transaction:
+        with Session(self.conn) as session:
+            with session.begin():
                 conn = session.connection()
                 Temporary.__table__.create(conn)
                 session.add(Temporary(spam=test_data))
                 session.flush()
-                df = sql.read_sql_query(sql=select([Temporary.spam]), con=conn)
-
+                df = sql.read_sql_query(sql=select(Temporary.spam), con=conn)
         tm.assert_frame_equal(df, expected)
 
     # -- SQL Engine tests (in the base class for now)
@@ -2349,12 +2335,10 @@ class _TestSQLiteAlchemy:
             Integer,
             String,
         )
-        from sqlalchemy.orm import sessionmaker
-
-        if _gt14():
-            from sqlalchemy.orm import declarative_base
-        else:
-            from sqlalchemy.ext.declarative import declarative_base
+        from sqlalchemy.orm import (
+            declarative_base,
+            sessionmaker,
+        )
 
         BaseModel = declarative_base()
 
@@ -2516,36 +2500,30 @@ class _TestPostgreSQLAlchemy:
             tm.assert_frame_equal(res1, res2)
 
 
-@pytest.mark.single
 @pytest.mark.db
 class TestMySQLAlchemy(_TestMySQLAlchemy, _TestSQLAlchemy):
     pass
 
 
-@pytest.mark.single
 @pytest.mark.db
 class TestMySQLAlchemyConn(_TestMySQLAlchemy, _TestSQLAlchemyConn):
     pass
 
 
-@pytest.mark.single
 @pytest.mark.db
 class TestPostgreSQLAlchemy(_TestPostgreSQLAlchemy, _TestSQLAlchemy):
     pass
 
 
-@pytest.mark.single
 @pytest.mark.db
 class TestPostgreSQLAlchemyConn(_TestPostgreSQLAlchemy, _TestSQLAlchemyConn):
     pass
 
 
-@pytest.mark.single
 class TestSQLiteAlchemy(_TestSQLiteAlchemy, _TestSQLAlchemy):
     pass
 
 
-@pytest.mark.single
 class TestSQLiteAlchemyConn(_TestSQLiteAlchemy, _TestSQLAlchemyConn):
     pass
 
@@ -2554,7 +2532,6 @@ class TestSQLiteAlchemyConn(_TestSQLiteAlchemy, _TestSQLAlchemyConn):
 # -- Test Sqlite / MySQL fallback
 
 
-@pytest.mark.single
 class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
     """
     Test the fallback mode against an in-memory sqlite database.

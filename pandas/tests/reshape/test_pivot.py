@@ -39,7 +39,7 @@ def interval_values(request, closed):
 
 
 class TestPivotTable:
-    def setup_method(self, method):
+    def setup_method(self):
         self.data = DataFrame(
             {
                 "A": [
@@ -1123,7 +1123,7 @@ class TestPivotTable:
             aggfunc="mean",
         )
 
-        assert pivoted.columns.is_monotonic
+        assert pivoted.columns.is_monotonic_increasing
 
     def test_pivot_complex_aggfunc(self):
         f = {"D": ["std"], "E": ["sum"]}
@@ -1758,7 +1758,7 @@ class TestPivotTable:
         table = df.pivot_table("x", "y", "z", dropna=observed, margins=True)
         tm.assert_frame_equal(table, expected)
 
-    def test_margins_casted_to_float(self, observed):
+    def test_margins_casted_to_float(self):
         # GH 24893
         df = DataFrame(
             {
@@ -2007,7 +2007,7 @@ class TestPivotTable:
         with monkeypatch.context() as m:
             m.setattr(reshape_lib, "_Unstacker", MockUnstacker)
             df = DataFrame(
-                {"ind1": np.arange(2 ** 16), "ind2": np.arange(2 ** 16), "count": 0}
+                {"ind1": np.arange(2**16), "ind2": np.arange(2**16), "count": 0}
             )
 
             msg = "The following operation may generate"

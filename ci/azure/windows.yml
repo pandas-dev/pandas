@@ -4,53 +4,44 @@ parameters:
 
 jobs:
 - job: ${{ parameters.name }}
+  timeoutInMinutes: 90
   pool:
     vmImage: ${{ parameters.vmImage }}
   strategy:
     matrix:
-      py38_np18_1:
-        ENV_FILE: ci/deps/azure-windows-38.yaml
+      py38:
+        ENV_FILE: ci/deps/actions-38.yaml
         CONDA_PY: "38"
-        PATTERN: "not slow"
-        PYTEST_WORKERS: 2  # GH-42236
-        PYTEST_TARGET: "pandas/tests/[a-h]*"
 
-      py38_np18_2:
-        ENV_FILE: ci/deps/azure-windows-38.yaml
-        CONDA_PY: "38"
-        PATTERN: "not slow"
-        PYTEST_WORKERS: 2  # GH-42236
-        PYTEST_TARGET: "pandas/tests/[i-z]*"
-
-      py39_1:
-        ENV_FILE: ci/deps/azure-windows-39.yaml
+      py39:
+        ENV_FILE: ci/deps/actions-39.yaml
         CONDA_PY: "39"
-        PATTERN: "not slow and not high_memory"
-        PYTEST_WORKERS: 2  # GH-42236
-        PYTEST_TARGET: "pandas/tests/[a-h]*"
 
-      py39_2:
-        ENV_FILE: ci/deps/azure-windows-39.yaml
-        CONDA_PY: "39"
-        PATTERN: "not slow and not high_memory"
-        PYTEST_WORKERS: 2  # GH-42236
-        PYTEST_TARGET: "pandas/tests/[i-z]*"
+      py310:
+        ENV_FILE: ci/deps/actions-310.yaml
+        CONDA_PY: "310"
 
   steps:
     - powershell: |
         Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
         Write-Host "##vso[task.prependpath]$HOME/miniconda3/bin"
       displayName: 'Add conda to PATH'
-    - script: conda update -q -n base conda
-      displayName: 'Update conda'
+    - bash: conda install -yv -c conda-forge -n base 'mamba>=0.21.2'
+      displayName: 'Install mamba'
 
     - bash: |
-        conda env create -q --file ci\\deps\\azure-windows-$(CONDA_PY).yaml
+        # See https://github.com/mamba-org/mamba/issues/1370
+        # See https://github.com/mamba-org/mamba/issues/633
+        C:\\Miniconda\\condabin\\mamba.bat create -n pandas-dev
+        C:\\Miniconda\\condabin\\mamba.bat env update -n pandas-dev --file ci\\deps\\actions-$(CONDA_PY).yaml
+        # TODO: GH#44980 https://github.com/pypa/setuptools/issues/2941
+        C:\\Miniconda\\condabin\\mamba.bat install -n pandas-dev 'setuptools<60'
+        C:\\Miniconda\\condabin\\mamba.bat list -n pandas-dev
       displayName: 'Create anaconda environment'
     - bash: |
         source activate pandas-dev
         conda list
-        python setup.py build_ext -q -j 4
+        python setup.py build_ext -q -j 2
         python -m pip install --no-build-isolation -e .
       displayName: 'Build'
     - bash: |
@@ -65,8 +56,3 @@ jobs:
         testResultsFiles: 'test-data.xml'
         testRunTitle: ${{ format('{0}-$(CONDA_PY)', parameters.name) }}
       displayName: 'Publish test results'
-
-    - bash: |
-        source activate pandas-dev
-        python ci/print_skipped.py
-      displayName: 'Print skipped tests'

@@ -46,6 +46,7 @@ from pandas._typing import (
     FilePath,
     IndexKeyFunc,
     IndexLabel,
+    IntervalClosedType,
     JSONSerializable,
     Level,
     Manager,
@@ -113,16 +114,17 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas.core import (
+    algorithms as algos,
     arraylike,
+    common as com,
     indexing,
     missing,
     nanops,
+    sample,
 )
-import pandas.core.algorithms as algos
 from pandas.core.array_algos.replace import should_use_regex
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import PandasObject
-import pandas.core.common as com
 from pandas.core.construction import (
     create_series_with_explicit_dtype,
     extract_array,
@@ -147,7 +149,6 @@ from pandas.core.internals.construction import mgr_to_mgr
 from pandas.core.missing import find_valid_index
 from pandas.core.ops import align_method_FRAME
 from pandas.core.reshape.concat import concat
-import pandas.core.sample as sample
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import get_indexer_indexer
 from pandas.core.window import (
@@ -284,22 +285,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             else:
                 mgr = mgr.astype(dtype=dtype)
         return mgr
-
-    @classmethod
-    def _from_mgr(cls, mgr: Manager):
-        """
-        Fastpath to create a new DataFrame/Series from just a BlockManager/ArrayManager.
-
-        Notes
-        -----
-        Skips setting `_flags` attribute; caller is responsible for doing so.
-        """
-        obj = cls.__new__(cls)
-        object.__setattr__(obj, "_is_copy", None)
-        object.__setattr__(obj, "_mgr", mgr)
-        object.__setattr__(obj, "_item_cache", {})
-        object.__setattr__(obj, "_attrs", {})
-        return obj
 
     def _as_manager(self: NDFrameT, typ: str, copy: bool_t = True) -> NDFrameT:
         """
@@ -459,7 +444,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # Construction
 
     @property
-    def _constructor(self: NDFrameT) -> type[NDFrameT]:
+    def _constructor(self: NDFrameT) -> Callable[..., NDFrameT]:
         """
         Used when a manipulation result has the same dimensions as the
         original.
@@ -794,17 +779,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if copy:
             new_values = new_values.copy()
 
-        # ignore needed because of NDFrame constructor is different than
-        # DataFrame/Series constructors.
         return self._constructor(
-            # error: Argument 1 to "NDFrame" has incompatible type "ndarray"; expected
-            # "Union[ArrayManager, BlockManager]"
-            # error: Argument 2 to "NDFrame" has incompatible type "*Generator[Index,
-            # None, None]"; expected "bool" [arg-type]
-            # error: Argument 2 to "NDFrame" has incompatible type "*Generator[Index,
-            # None, None]"; expected "Optional[Mapping[Hashable, Any]]"
-            new_values,  # type: ignore[arg-type]
-            *new_axes,  # type: ignore[arg-type]
+            new_values,
+            *new_axes,
         ).__finalize__(self, method="swapaxes")
 
     @final
@@ -1662,7 +1639,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     def __round__(self: NDFrameT, decimals: int = 0) -> NDFrameT:
-        return self.round(decimals)
+        return self.round(decimals).__finalize__(self, method="__round__")
 
     # -------------------------------------------------------------------------
     # Label or Level Combination Helpers
@@ -2067,6 +2044,43 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def __array__(self, dtype: npt.DTypeLike | None = None) -> np.ndarray:
         return np.asarray(self._values, dtype=dtype)
+
+    def __array_wrap__(
+        self,
+        result: np.ndarray,
+        context: tuple[Callable, tuple[Any, ...], int] | None = None,
+    ):
+        """
+        Gets called after a ufunc and other functions.
+
+        Parameters
+        ----------
+        result: np.ndarray
+            The result of the ufunc or other function called on the NumPy array
+            returned by __array__
+        context: tuple of (func, tuple, int)
+            This parameter is returned by ufuncs as a 3-element tuple: (name of the
+            ufunc, arguments of the ufunc, domain of the ufunc), but is not set by
+            other numpy functions.q
+
+        Notes
+        -----
+        Series implements __array_ufunc_ so this not called for ufunc on Series.
+        """
+        # Note: at time of dask 2022.01.0, this is still used by dask
+        warnings.warn(
+            "The __array_wrap__ method of DataFrame and Series will be removed in "
+            "a future version",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        res = lib.item_from_zerodim(result)
+        if is_scalar(res):
+            # e.g. we get here with np.ptp(series)
+            # ptp also requires the item_from_zerodim
+            return res
+        d = self._construct_axes_dict(self._AXIS_ORDERS, copy=False)
+        return self._constructor(res, **d).__finalize__(self, method="__array_wrap__")
 
     @final
     def __array_ufunc__(
@@ -4317,6 +4331,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 if errors == "raise" and labels_missing:
                     raise KeyError(f"{labels} not found in axis")
 
+            if is_extension_array_dtype(mask.dtype):
+                # GH#45860
+                mask = mask.to_numpy(dtype=bool)
+
             indexer = mask.nonzero()[0]
             new_axis = axis.take(indexer)
 
@@ -4350,7 +4368,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self._reset_cache()
         self._clear_item_cache()
         self._mgr = result._mgr
-        self._maybe_update_cacher(verify_is_copy=verify_is_copy)
+        self._maybe_update_cacher(verify_is_copy=verify_is_copy, inplace=True)
 
     @final
     def add_prefix(self: NDFrameT, prefix: str) -> NDFrameT:
@@ -5893,11 +5911,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # GH 19920: retain column metadata after concat
         result = concat(results, axis=1, copy=False)
         # GH#40810 retain subclass
-        # Incompatible types in assignment (expression has type "NDFrameT",
-        # variable has type "DataFrame")
-        # Argument 1 to "NDFrame" has incompatible type "DataFrame"; expected
-        # "Union[ArrayManager, SingleArrayManager, BlockManager, SingleBlockManager]"
-        result = self._constructor(result)  # type: ignore[arg-type,assignment]
+        # error: Incompatible types in assignment
+        # (expression has type "NDFrameT", variable has type "DataFrame")
+        result = self._constructor(result)  # type: ignore[assignment]
         result.columns = self.columns
         result = result.__finalize__(self, method="astype")
         # https://github.com/python/mypy/issues/8354
@@ -6423,7 +6439,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 axis=axis,
                 limit=limit,
                 inplace=inplace,
-                coerce=True,
                 downcast=downcast,
             )
         else:
@@ -6584,8 +6599,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             if isinstance(to_replace, (tuple, list)):
                 if isinstance(self, ABCDataFrame):
+                    from pandas import Series
+
                     result = self.apply(
-                        self._constructor_sliced._replace_single,
+                        Series._replace_single,
                         args=(to_replace, method, inplace, limit),
                     )
                     if inplace:
@@ -6846,9 +6863,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         similar names. These use the actual numerical values of the index.
         For more information on their behavior, see the
         `SciPy documentation
-        <https://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation>`__
-        and `SciPy tutorial
-        <https://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html>`__.
+        <https://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation>`__.
 
         Examples
         --------
@@ -7136,7 +7151,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if isinstance(where, str):
             where = Timestamp(where)
 
-        if not self.index.is_monotonic:
+        if not self.index.is_monotonic_increasing:
             raise ValueError("asof requires a sorted index")
 
         is_series = isinstance(self, ABCSeries)
@@ -7750,7 +7765,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         end_time,
         include_start: bool_t | lib.NoDefault = lib.no_default,
         include_end: bool_t | lib.NoDefault = lib.no_default,
-        inclusive: str | None = None,
+        inclusive: IntervalClosedType | None = None,
         axis=None,
     ) -> NDFrameT:
         """
@@ -7855,7 +7870,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             left = True if isinstance(include_start, lib.NoDefault) else include_start
             right = True if isinstance(include_end, lib.NoDefault) else include_end
 
-            inc_dict = {
+            inc_dict: dict[tuple[bool_t, bool_t], IntervalClosedType] = {
                 (True, True): "both",
                 (True, False): "left",
                 (False, True): "right",
@@ -8507,6 +8522,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3   spider          8.0
         4    snake          NaN
 
+        Ties are assigned the mean of the ranks (by default) for the group.
+
+        >>> s = pd.Series(range(5), index=list("abcde"))
+        >>> s["d"] = s["b"]
+        >>> s.rank()
+        a    1.0
+        b    2.5
+        c    4.0
+        d    2.5
+        e    5.0
+        dtype: float64
+
         The following example shows how the method behaves with the above
         parameters:
 
@@ -9112,11 +9139,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             # we are the same shape, so create an actual object for alignment
             else:
-                # error: Argument 1 to "NDFrame" has incompatible type "ndarray";
-                # expected "BlockManager"
-                other = self._constructor(
-                    other, **self._construct_axes_dict()  # type: ignore[arg-type]
-                )
+                other = self._constructor(other, **self._construct_axes_dict())
 
         if axis is None:
             axis = 0
@@ -10240,7 +10263,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         periods : int, default 1
             Periods to shift for forming percent change.
         fill_method : str, default 'pad'
-            How to handle NAs before computing percent changes.
+            How to handle NAs **before** computing percent changes.
         limit : int, default None
             The number of consecutive NAs to fill before stopping.
         freq : DateOffset, timedelta, or str, optional
@@ -10358,7 +10381,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # We want to restore the original index
             rs = rs.loc[~rs.index.duplicated()]
             rs = rs.reindex_like(data)
-        return rs
+        return rs.__finalize__(self, method="pct_change")
 
     @final
     def _agg_by_level(
@@ -11238,6 +11261,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         on: str | None = None,
         axis: Axis = 0,
         closed: str | None = None,
+        step: int | None = None,
         method: str = "single",
     ):
         axis = self._get_axis_number(axis)
@@ -11252,6 +11276,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 on=on,
                 axis=axis,
                 closed=closed,
+                step=step,
                 method=method,
             )
 
@@ -11264,6 +11289,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             on=on,
             axis=axis,
             closed=closed,
+            step=step,
             method=method,
         )
 
@@ -11419,7 +11445,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @doc(position="first", klass=_shared_doc_kwargs["klass"])
     def first_valid_index(self) -> Hashable | None:
         """
-        Return index for {position} non-NA value or None, if no NA value is found.
+        Return index for {position} non-NA value or None, if no non-NA value is found.
 
         Returns
         -------

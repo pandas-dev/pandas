@@ -56,6 +56,12 @@ class TestFactorize:
         if isinstance(obj, MultiIndex):
             constructor = MultiIndex.from_tuples
         expected_uniques = constructor(obj.unique())
+        if (
+            isinstance(obj, Index)
+            and expected_uniques.dtype == bool
+            and obj.dtype == object
+        ):
+            expected_uniques = expected_uniques.astype(object)
 
         if sort:
             expected_uniques = expected_uniques.sort_values()
@@ -266,20 +272,20 @@ class TestFactorize:
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
     def test_uint64_factorize(self, writable):
-        data = np.array([2 ** 64 - 1, 1, 2 ** 64 - 1], dtype=np.uint64)
+        data = np.array([2**64 - 1, 1, 2**64 - 1], dtype=np.uint64)
         data.setflags(write=writable)
         expected_codes = np.array([0, 1, 0], dtype=np.intp)
-        expected_uniques = np.array([2 ** 64 - 1, 1], dtype=np.uint64)
+        expected_uniques = np.array([2**64 - 1, 1], dtype=np.uint64)
 
         codes, uniques = algos.factorize(data)
         tm.assert_numpy_array_equal(codes, expected_codes)
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
     def test_int64_factorize(self, writable):
-        data = np.array([2 ** 63 - 1, -(2 ** 63), 2 ** 63 - 1], dtype=np.int64)
+        data = np.array([2**63 - 1, -(2**63), 2**63 - 1], dtype=np.int64)
         data.setflags(write=writable)
         expected_codes = np.array([0, 1, 0], dtype=np.intp)
-        expected_uniques = np.array([2 ** 63 - 1, -(2 ** 63)], dtype=np.int64)
+        expected_uniques = np.array([2**63 - 1, -(2**63)], dtype=np.int64)
 
         codes, uniques = algos.factorize(data)
         tm.assert_numpy_array_equal(codes, expected_codes)
@@ -354,7 +360,7 @@ class TestFactorize:
     def test_deprecate_order(self):
         # gh 19727 - check warning is raised for deprecated keyword, order.
         # Test not valid once order keyword is removed.
-        data = np.array([2 ** 63, 1, 2 ** 63], dtype=np.uint64)
+        data = np.array([2**63, 1, 2**63], dtype=np.uint64)
         with pytest.raises(TypeError, match="got an unexpected keyword"):
             algos.factorize(data, order=True)
         with tm.assert_produces_warning(False):
@@ -364,7 +370,7 @@ class TestFactorize:
         "data",
         [
             np.array([0, 1, 0], dtype="u8"),
-            np.array([-(2 ** 63), 1, -(2 ** 63)], dtype="i8"),
+            np.array([-(2**63), 1, -(2**63)], dtype="i8"),
             np.array(["__nan__", "foo", "__nan__"], dtype="object"),
         ],
     )
@@ -381,8 +387,8 @@ class TestFactorize:
         [
             (np.array([0, 1, 0, 2], dtype="u8"), 0),
             (np.array([1, 0, 1, 2], dtype="u8"), 1),
-            (np.array([-(2 ** 63), 1, -(2 ** 63), 0], dtype="i8"), -(2 ** 63)),
-            (np.array([1, -(2 ** 63), 1, 0], dtype="i8"), 1),
+            (np.array([-(2**63), 1, -(2**63), 0], dtype="i8"), -(2**63)),
+            (np.array([1, -(2**63), 1, 0], dtype="i8"), 1),
             (np.array(["a", "", "a", "b"], dtype=object), "a"),
             (np.array([(), ("a", 1), (), ("a", 2)], dtype=object), ()),
             (np.array([("a", 1), (), ("a", 1), ("a", 2)], dtype=object), ("a", 1)),
@@ -601,8 +607,8 @@ class TestUnique:
         assert result.dtype == expected.dtype
 
     def test_uint64_overflow(self):
-        s = Series([1, 2, 2 ** 63, 2 ** 63], dtype=np.uint64)
-        exp = np.array([1, 2, 2 ** 63], dtype=np.uint64)
+        s = Series([1, 2, 2**63, 2**63], dtype=np.uint64)
+        exp = np.array([1, 2, 2**63], dtype=np.uint64)
         tm.assert_numpy_array_equal(algos.unique(s), exp)
 
     def test_nan_in_object_array(self):
@@ -1240,7 +1246,7 @@ class TestValueCounts:
 
         tm.assert_series_equal(
             Series([True] * 3 + [False] * 2 + [None] * 5).value_counts(dropna=True),
-            Series([3, 2], index=[True, False]),
+            Series([3, 2], index=Index([True, False], dtype=object)),
         )
         tm.assert_series_equal(
             Series([True] * 5 + [False] * 3 + [None] * 2).value_counts(dropna=False),
@@ -1280,14 +1286,14 @@ class TestValueCounts:
         tm.assert_series_equal(result, expected)
 
     def test_value_counts_uint64(self):
-        arr = np.array([2 ** 63], dtype=np.uint64)
-        expected = Series([1], index=[2 ** 63])
+        arr = np.array([2**63], dtype=np.uint64)
+        expected = Series([1], index=[2**63])
         result = algos.value_counts(arr)
 
         tm.assert_series_equal(result, expected)
 
-        arr = np.array([-1, 2 ** 63], dtype=object)
-        expected = Series([1, 1], index=[-1, 2 ** 63])
+        arr = np.array([-1, 2**63], dtype=object)
+        expected = Series([1, 1], index=[-1, 2**63])
         result = algos.value_counts(arr)
 
         tm.assert_series_equal(result, expected)
@@ -1354,7 +1360,7 @@ class TestDuplicated:
             ),
             np.array(["a", "b", "a", "e", "c", "b", "d", "a", "e", "f"], dtype=object),
             np.array(
-                [1, 2 ** 63, 1, 3 ** 5, 10, 2 ** 63, 39, 1, 3 ** 5, 7], dtype=np.uint64
+                [1, 2**63, 1, 3**5, 10, 2**63, 39, 1, 3**5, 7], dtype=np.uint64
             ),
         ],
     )
@@ -1525,110 +1531,6 @@ class TestDuplicated:
 
 
 class TestHashTable:
-    def test_string_hashtable_set_item_signature(self):
-        # GH#30419 fix typing in StringHashTable.set_item to prevent segfault
-        tbl = ht.StringHashTable()
-
-        tbl.set_item("key", 1)
-        assert tbl.get_item("key") == 1
-
-        with pytest.raises(TypeError, match="'key' has incorrect type"):
-            # key arg typed as string, not object
-            tbl.set_item(4, 6)
-        with pytest.raises(TypeError, match="'val' has incorrect type"):
-            tbl.get_item(4)
-
-    def test_lookup_nan(self, writable):
-        xs = np.array([2.718, 3.14, np.nan, -7, 5, 2, 3])
-        # GH 21688 ensure we can deal with readonly memory views
-        xs.setflags(write=writable)
-        m = ht.Float64HashTable()
-        m.map_locations(xs)
-        tm.assert_numpy_array_equal(m.lookup(xs), np.arange(len(xs), dtype=np.intp))
-
-    def test_add_signed_zeros(self):
-        # GH 21866 inconsistent hash-function for float64
-        # default hash-function would lead to different hash-buckets
-        # for 0.0 and -0.0 if there are more than 2^30 hash-buckets
-        # but this would mean 16GB
-        N = 4  # 12 * 10**8 would trigger the error, if you have enough memory
-        m = ht.Float64HashTable(N)
-        m.set_item(0.0, 0)
-        m.set_item(-0.0, 0)
-        assert len(m) == 1  # 0.0 and -0.0 are equivalent
-
-    def test_add_different_nans(self):
-        # GH 21866 inconsistent hash-function for float64
-        # create different nans from bit-patterns:
-        NAN1 = struct.unpack("d", struct.pack("=Q", 0x7FF8000000000000))[0]
-        NAN2 = struct.unpack("d", struct.pack("=Q", 0x7FF8000000000001))[0]
-        assert NAN1 != NAN1
-        assert NAN2 != NAN2
-        # default hash function would lead to different hash-buckets
-        # for NAN1 and NAN2 even if there are only 4 buckets:
-        m = ht.Float64HashTable()
-        m.set_item(NAN1, 0)
-        m.set_item(NAN2, 0)
-        assert len(m) == 1  # NAN1 and NAN2 are equivalent
-
-    def test_lookup_overflow(self, writable):
-        xs = np.array([1, 2, 2 ** 63], dtype=np.uint64)
-        # GH 21688 ensure we can deal with readonly memory views
-        xs.setflags(write=writable)
-        m = ht.UInt64HashTable()
-        m.map_locations(xs)
-        tm.assert_numpy_array_equal(m.lookup(xs), np.arange(len(xs), dtype=np.intp))
-
-    def test_get_unique(self):
-        s = Series([1, 2, 2 ** 63, 2 ** 63], dtype=np.uint64)
-        exp = np.array([1, 2, 2 ** 63], dtype=np.uint64)
-        tm.assert_numpy_array_equal(s.unique(), exp)
-
-    @pytest.mark.parametrize("nvals", [0, 10])  # resizing to 0 is special case
-    @pytest.mark.parametrize(
-        "htable, uniques, dtype, safely_resizes",
-        [
-            (ht.PyObjectHashTable, ht.ObjectVector, "object", False),
-            (ht.StringHashTable, ht.ObjectVector, "object", True),
-            (ht.Float64HashTable, ht.Float64Vector, "float64", False),
-            (ht.Int64HashTable, ht.Int64Vector, "int64", False),
-            (ht.Int32HashTable, ht.Int32Vector, "int32", False),
-            (ht.UInt64HashTable, ht.UInt64Vector, "uint64", False),
-        ],
-    )
-    def test_vector_resize(
-        self, writable, htable, uniques, dtype, safely_resizes, nvals
-    ):
-        # Test for memory errors after internal vector
-        # reallocations (GH 7157)
-        vals = np.array(np.random.randn(1000), dtype=dtype)
-
-        # GH 21688 ensures we can deal with read-only memory views
-        vals.setflags(write=writable)
-
-        # initialise instances; cannot initialise in parametrization,
-        # as otherwise external views would be held on the array (which is
-        # one of the things this test is checking)
-        htable = htable()
-        uniques = uniques()
-
-        # get_labels may append to uniques
-        htable.get_labels(vals[:nvals], uniques, 0, -1)
-        # to_array() sets an external_view_exists flag on uniques.
-        tmp = uniques.to_array()
-        oldshape = tmp.shape
-
-        # subsequent get_labels() calls can no longer append to it
-        # (except for StringHashTables + ObjectVector)
-        if safely_resizes:
-            htable.get_labels(vals, uniques, 0, -1)
-        else:
-            with pytest.raises(ValueError, match="external reference.*"):
-                htable.get_labels(vals, uniques, 0, -1)
-
-        uniques.to_array()  # should not raise here
-        assert tmp.shape == oldshape
-
     @pytest.mark.parametrize(
         "htable, tm_dtype",
         [
@@ -1709,37 +1611,6 @@ class TestHashTable:
         expected_reconstruct = s_duplicated.dropna().values
         tm.assert_numpy_array_equal(result_reconstruct, expected_reconstruct)
 
-    @pytest.mark.parametrize(
-        "hashtable",
-        [
-            ht.PyObjectHashTable,
-            ht.StringHashTable,
-            ht.Float64HashTable,
-            ht.Int64HashTable,
-            ht.Int32HashTable,
-            ht.UInt64HashTable,
-        ],
-    )
-    def test_hashtable_large_sizehint(self, hashtable):
-        # GH#22729 smoketest for not raising when passing a large size_hint
-        size_hint = np.iinfo(np.uint32).max + 1
-        hashtable(size_hint=size_hint)
-
-
-def test_unique_label_indices():
-
-    a = np.random.randint(1, 1 << 10, 1 << 15).astype(np.intp)
-
-    left = ht.unique_label_indices(a)
-    right = np.unique(a, return_index=True)[1]
-
-    tm.assert_numpy_array_equal(left, right, check_dtype=False)
-
-    a[np.random.choice(len(a), 10)] = -1
-    left = ht.unique_label_indices(a)
-    right = np.unique(a, return_index=True)[1][1:]
-    tm.assert_numpy_array_equal(left, right, check_dtype=False)
-
 
 class TestRank:
     @td.skip_if_no_scipy
@@ -1777,7 +1648,7 @@ class TestRank:
     def test_uint64_overflow(self, dtype):
         exp = np.array([1, 2], dtype=np.float64)
 
-        s = Series([1, 2 ** 63], dtype=dtype)
+        s = Series([1, 2**63], dtype=dtype)
         tm.assert_numpy_array_equal(algos.rank(s), exp)
 
     def test_too_many_ndims(self):
@@ -1787,15 +1658,15 @@ class TestRank:
         with pytest.raises(TypeError, match=msg):
             algos.rank(arr)
 
-    @pytest.mark.single
+    @pytest.mark.single_cpu
     @pytest.mark.high_memory
     def test_pct_max_many_rows(self):
         # GH 18271
-        values = np.arange(2 ** 24 + 1)
+        values = np.arange(2**24 + 1)
         result = algos.rank(values, pct=True).max()
         assert result == 1
 
-        values = np.arange(2 ** 25 + 2).reshape(2 ** 24 + 1, 2)
+        values = np.arange(2**25 + 2).reshape(2**24 + 1, 2)
         result = algos.rank(values, pct=True).max()
         assert result == 1
 
@@ -2361,13 +2232,13 @@ class TestMode:
         tm.assert_series_equal(ser.mode(), exp)
 
     def test_uint64_overflow(self):
-        exp = Series([2 ** 63], dtype=np.uint64)
-        ser = Series([1, 2 ** 63, 2 ** 63], dtype=np.uint64)
+        exp = Series([2**63], dtype=np.uint64)
+        ser = Series([1, 2**63, 2**63], dtype=np.uint64)
         tm.assert_numpy_array_equal(algos.mode(ser.values), exp.values)
         tm.assert_series_equal(ser.mode(), exp)
 
-        exp = Series([1, 2 ** 63], dtype=np.uint64)
-        ser = Series([1, 2 ** 63], dtype=np.uint64)
+        exp = Series([1, 2**63], dtype=np.uint64)
+        ser = Series([1, 2**63], dtype=np.uint64)
         tm.assert_numpy_array_equal(algos.mode(ser.values), exp.values)
         tm.assert_series_equal(ser.mode(), exp)
 
