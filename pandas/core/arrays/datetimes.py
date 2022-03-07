@@ -254,7 +254,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     _dtype: np.dtype | DatetimeTZDtype
     _freq = None
 
-    def __init__(self, values, dtype=DT64NS_DTYPE, freq=None, copy: bool = False) -> None:
+    def __init__(
+        self, values, dtype=DT64NS_DTYPE, freq=None, copy: bool = False
+    ) -> None:
         values = extract_array(values, extract_numpy=True)
         if isinstance(values, IntegerArray):
             values = values.to_numpy("int64", na_value=iNaT)
