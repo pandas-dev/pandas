@@ -120,12 +120,6 @@ class HashTable:
     # TODO: `item` type is subclass-specific
     def get_item(self, item): ...  # TODO: return type?
     def set_item(self, item) -> None: ...
-    # FIXME: we don't actually have this for StringHashTable or ObjectHashTable?
-    def map(
-        self,
-        keys: np.ndarray,  # np.ndarray[subclass-specific]
-        values: np.ndarray,  # const int64_t[:]
-    ) -> None: ...
     def map_locations(
         self,
         values: np.ndarray,  # np.ndarray[subclass-specific]
@@ -177,11 +171,16 @@ class Float64HashTable(HashTable): ...
 class Float32HashTable(HashTable): ...
 
 class Int64HashTable(HashTable):
-    # Only Int64HashTable has get_labels_groupby
+    # Only Int64HashTable has get_labels_groupby, map_keys_to_values
     def get_labels_groupby(
         self,
-        values: np.ndarray,  # const int64_t[:]
+        values: npt.NDArray[np.int64],  # const int64_t[:]
     ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.int64],]: ...
+    def map_keys_to_values(
+        self,
+        keys: npt.NDArray[np.int64],
+        values: npt.NDArray[np.int64],  # const int64_t[:]
+    ) -> None: ...
 
 class Int32HashTable(HashTable): ...
 class Int16HashTable(HashTable): ...

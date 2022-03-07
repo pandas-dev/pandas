@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 import re
-import subprocess
+import sys
 from typing import (
     Sequence,
     Type,
@@ -159,15 +159,9 @@ def _assert_caught_no_extra_warnings(
                 if any(msg in str(actual_warning.message) for msg in unclosed_ssl):
                     continue
                 # GH 44844: Matplotlib leaves font files open during the entire process
-                # Don't make CI flaky if ResourceWarning raised due to these open files.
-                try:
-                    lsof = subprocess.check_output(
-                        ["lsof", "-d", "0-25", "-F", "n"]
-                    ).decode("utf-8")
-                except (subprocess.CalledProcessError, FileNotFoundError):
-                    # FileNotFoundError for Windows
-                    lsof = ""
-                if re.search(r"\.ttf|\.ttc|\.otf", lsof):
+                # upon import. Don't make CI flaky if ResourceWarning raised
+                # due to these open files.
+                if any("matplotlib" in mod for mod in sys.modules):
                     continue
 
             extra_warnings.append(

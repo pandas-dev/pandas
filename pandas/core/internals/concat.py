@@ -27,7 +27,6 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
-    is_1d_only_ea_obj,
     is_datetime64tz_dtype,
     is_dtype_equal,
 )
@@ -369,6 +368,8 @@ def _get_mgr_concatenation_plan(mgr: BlockManager):
 
         if not unit_no_ax0_reindexing:
             # create block from subset of columns
+            # Note: Blocks with only 1 column will always have unit_no_ax0_reindexing,
+            #  so we will never get here with ExtensionBlock.
             blk = blk.getitem_block(ax0_blk_indexer)
 
         # Assertions disabled for performance
@@ -457,7 +458,7 @@ def _concatenate_join_units(join_units: list[JoinUnit], copy: bool) -> ArrayLike
             else:
                 concat_values = concat_values.copy()
 
-    elif any(is_1d_only_ea_obj(t) for t in to_concat):
+    elif any(is_1d_only_ea_dtype(t.dtype) for t in to_concat):
         # TODO(EA2D): special case not needed if all EAs used HybridBlocks
         # NB: we are still assuming here that Hybrid blocks have shape (1, N)
         # concatting with at least one EA means we are concatting a single column
@@ -466,7 +467,9 @@ def _concatenate_join_units(join_units: list[JoinUnit], copy: bool) -> ArrayLike
         # error: No overload variant of "__getitem__" of "ExtensionArray" matches
         # argument type "Tuple[int, slice]"
         to_concat = [
-            t if is_1d_only_ea_obj(t) else t[0, :]  # type: ignore[call-overload]
+            t
+            if is_1d_only_ea_dtype(t.dtype)
+            else t[0, :]  # type: ignore[call-overload]
             for t in to_concat
         ]
         concat_values = concat_compat(to_concat, axis=0, ea_compat_axis=True)

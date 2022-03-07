@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import numbers
-
 import numpy as np
 
 from pandas._libs import lib
@@ -63,6 +61,7 @@ class PandasArray(
     __array_priority__ = 1000
     _ndarray: np.ndarray
     _dtype: PandasDtype
+    _internal_fill_value = np.nan
 
     # ------------------------------------------------------------------------
     # Constructors
@@ -110,10 +109,6 @@ class PandasArray(
             result = result.copy()
         return cls(result)
 
-    @classmethod
-    def _from_factorized(cls, values, original) -> PandasArray:
-        return cls(values)
-
     def _from_backing_data(self, arr: np.ndarray) -> PandasArray:
         return type(self)(arr)
 
@@ -130,8 +125,6 @@ class PandasArray(
     def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
         return np.asarray(self._ndarray, dtype=dtype)
 
-    _HANDLED_TYPES = (np.ndarray, numbers.Number)
-
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # Lightly modified version of
         # https://numpy.org/doc/stable/reference/generated/numpy.lib.mixins.NDArrayOperatorsMixin.html
@@ -144,6 +137,12 @@ class PandasArray(
         )
         if result is not NotImplemented:
             return result
+
+        if "out" in kwargs:
+            # e.g. test_ufunc_unary
+            return arraylike.dispatch_ufunc_with_out(
+                self, ufunc, method, *inputs, **kwargs
+            )
 
         if method == "reduce":
             result = arraylike.dispatch_reduction_ufunc(

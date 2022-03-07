@@ -53,7 +53,6 @@ Excel
 
 .. autosummary::
    :toctree: api/
-   :template: autosummary/class_without_autosummary.rst
 
    ExcelWriter
 
@@ -135,7 +134,7 @@ HDFStore: PyTables (HDF5)
 
 .. warning::
 
-   One can store a subclass of ``DataFrame`` or ``Series`` to HDF5,
+   One can store a subclass of :class:`DataFrame` or :class:`Series` to HDF5,
    but the type of the subclass is lost upon storing.
 
 Feather

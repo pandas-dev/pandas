@@ -218,6 +218,7 @@ def decimal_number_check(parser, numeric_decimal, thousands, float_precision):
         pytest.skip("Skip test if no thousands sep is defined and sep is in value")
     df = parser.read_csv(
         StringIO(value),
+        float_precision=float_precision,
         sep="|",
         thousands=thousands,
         decimal=",",

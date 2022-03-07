@@ -72,6 +72,20 @@ def safe_import(mod_name: str, min_version: str | None = None):
             message=".*decorator is deprecated since Python 3.8.*",
         )
 
+        # fastparquet import accesses pd.Int64Index
+        warnings.filterwarnings(
+            "ignore",
+            category=FutureWarning,
+            module="fastparquet",
+            message=".*Int64Index.*",
+        )
+
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message="distutils Version classes are deprecated.*",
+        )
+
         try:
             mod = __import__(mod_name)
         except ImportError:
@@ -252,7 +266,8 @@ def file_leak_context():
     ContextManager analogue to check_file_leaks.
     """
     psutil = safe_import("psutil")
-    if not psutil:
+    if not psutil or is_platform_windows():
+        # Checking for file leaks can hang on Windows CI
         yield
     else:
         proc = psutil.Process()

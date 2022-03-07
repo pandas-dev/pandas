@@ -376,35 +376,35 @@ class TestPeriodIndex:
         expected = ts.to_timestamp(how="start").resample("A-DEC").mean()
         tm.assert_series_equal(result, expected)
 
-    def test_resample_to_quarterly(self, simple_period_range_series):
-        for month in MONTHS:
-            ts = simple_period_range_series("1990", "1992", freq=f"A-{month}")
-            quar_ts = ts.resample(f"Q-{month}").ffill()
+    @pytest.mark.parametrize("month", MONTHS)
+    def test_resample_to_quarterly(self, simple_period_range_series, month):
+        ts = simple_period_range_series("1990", "1992", freq=f"A-{month}")
+        quar_ts = ts.resample(f"Q-{month}").ffill()
 
-            stamps = ts.to_timestamp("D", how="start")
-            qdates = period_range(
-                ts.index[0].asfreq("D", "start"),
-                ts.index[-1].asfreq("D", "end"),
-                freq=f"Q-{month}",
-            )
+        stamps = ts.to_timestamp("D", how="start")
+        qdates = period_range(
+            ts.index[0].asfreq("D", "start"),
+            ts.index[-1].asfreq("D", "end"),
+            freq=f"Q-{month}",
+        )
 
-            expected = stamps.reindex(qdates.to_timestamp("D", "s"), method="ffill")
-            expected.index = qdates
+        expected = stamps.reindex(qdates.to_timestamp("D", "s"), method="ffill")
+        expected.index = qdates
 
-            tm.assert_series_equal(quar_ts, expected)
+        tm.assert_series_equal(quar_ts, expected)
 
+    @pytest.mark.parametrize("how", ["start", "end"])
+    def test_resample_to_quarterly_start_end(self, simple_period_range_series, how):
         # conforms, but different month
         ts = simple_period_range_series("1990", "1992", freq="A-JUN")
+        result = ts.resample("Q-MAR", convention=how).ffill()
+        expected = ts.asfreq("Q-MAR", how=how)
+        expected = expected.reindex(result.index, method="ffill")
 
-        for how in ["start", "end"]:
-            result = ts.resample("Q-MAR", convention=how).ffill()
-            expected = ts.asfreq("Q-MAR", how=how)
-            expected = expected.reindex(result.index, method="ffill")
+        # .to_timestamp('D')
+        # expected = expected.resample('Q-MAR').ffill()
 
-            # .to_timestamp('D')
-            # expected = expected.resample('Q-MAR').ffill()
-
-            tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_resample_fill_missing(self):
         rng = PeriodIndex([2000, 2005, 2007, 2009], freq="A")
@@ -611,44 +611,44 @@ class TestPeriodIndex:
         assert res1.index[0] == Timestamp("20000103")
         assert res1.index[0] == res2.index[0]
 
-    # def test_monthly_convention_span(self):
-    #     rng = period_range('2000-01', periods=3, freq='M')
-    #     ts = Series(np.arange(3), index=rng)
+    @pytest.mark.xfail(reason="Commented out for more than 3 years. Should this work?")
+    def test_monthly_convention_span(self):
+        rng = period_range("2000-01", periods=3, freq="M")
+        ts = Series(np.arange(3), index=rng)
 
-    #     # hacky way to get same thing
-    #     exp_index = period_range('2000-01-01', '2000-03-31', freq='D')
-    #     expected = ts.asfreq('D', how='end').reindex(exp_index)
-    #     expected = expected.fillna(method='bfill')
+        # hacky way to get same thing
+        exp_index = period_range("2000-01-01", "2000-03-31", freq="D")
+        expected = ts.asfreq("D", how="end").reindex(exp_index)
+        expected = expected.fillna(method="bfill")
 
-    #     result = ts.resample('D', convention='span').mean()
+        result = ts.resample("D").mean()
 
-    #     tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
-    def test_default_right_closed_label(self):
-        end_freq = ["D", "Q", "M", "D"]
-        end_types = ["M", "A", "Q", "W"]
+    @pytest.mark.parametrize(
+        "from_freq, to_freq", [("D", "M"), ("Q", "A"), ("M", "Q"), ("D", "W")]
+    )
+    def test_default_right_closed_label(self, from_freq, to_freq):
+        idx = date_range(start="8/15/2012", periods=100, freq=from_freq)
+        df = DataFrame(np.random.randn(len(idx), 2), idx)
 
-        for from_freq, to_freq in zip(end_freq, end_types):
-            idx = date_range(start="8/15/2012", periods=100, freq=from_freq)
-            df = DataFrame(np.random.randn(len(idx), 2), idx)
+        resampled = df.resample(to_freq).mean()
+        tm.assert_frame_equal(
+            resampled, df.resample(to_freq, closed="right", label="right").mean()
+        )
 
-            resampled = df.resample(to_freq).mean()
-            tm.assert_frame_equal(
-                resampled, df.resample(to_freq, closed="right", label="right").mean()
-            )
+    @pytest.mark.parametrize(
+        "from_freq, to_freq",
+        [("D", "MS"), ("Q", "AS"), ("M", "QS"), ("H", "D"), ("T", "H")],
+    )
+    def test_default_left_closed_label(self, from_freq, to_freq):
+        idx = date_range(start="8/15/2012", periods=100, freq=from_freq)
+        df = DataFrame(np.random.randn(len(idx), 2), idx)
 
-    def test_default_left_closed_label(self):
-        others = ["MS", "AS", "QS", "D", "H"]
-        others_freq = ["D", "Q", "M", "H", "T"]
-
-        for from_freq, to_freq in zip(others_freq, others):
-            idx = date_range(start="8/15/2012", periods=100, freq=from_freq)
-            df = DataFrame(np.random.randn(len(idx), 2), idx)
-
-            resampled = df.resample(to_freq).mean()
-            tm.assert_frame_equal(
-                resampled, df.resample(to_freq, closed="left", label="left").mean()
-            )
+        resampled = df.resample(to_freq).mean()
+        tm.assert_frame_equal(
+            resampled, df.resample(to_freq, closed="left", label="left").mean()
+        )
 
     def test_all_values_single_bin(self):
         # 2070

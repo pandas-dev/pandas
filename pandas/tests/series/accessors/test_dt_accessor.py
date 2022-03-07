@@ -477,7 +477,7 @@ class TestSeriesDatetimeValues:
             name = name.capitalize()
             assert ser.dt.day_name(locale=time_locale)[day] == name
             assert ser.dt.day_name(locale=None)[day] == eng_name
-        ser = ser.append(Series([pd.NaT]))
+        ser = pd.concat([ser, Series([pd.NaT])])
         assert np.isnan(ser.dt.day_name(locale=time_locale).iloc[-1])
 
         ser = Series(date_range(freq="M", start="2012", end="2013"))
@@ -499,7 +499,7 @@ class TestSeriesDatetimeValues:
 
             assert result == expected
 
-        ser = ser.append(Series([pd.NaT]))
+        ser = pd.concat([ser, Series([pd.NaT])])
         assert np.isnan(ser.dt.month_name(locale=time_locale).iloc[-1])
 
     def test_strftime(self):

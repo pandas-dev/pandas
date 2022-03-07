@@ -7,7 +7,7 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.cast import astype_nansafe
+from pandas.core.dtypes.astype import astype_nansafe
 import pandas.core.dtypes.common as com
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -562,12 +562,14 @@ def test_is_bool_dtype():
     assert not com.is_bool_dtype(int)
     assert not com.is_bool_dtype(str)
     assert not com.is_bool_dtype(pd.Series([1, 2]))
+    assert not com.is_bool_dtype(pd.Series(["a", "b"], dtype="category"))
     assert not com.is_bool_dtype(np.array(["a", "b"]))
     assert not com.is_bool_dtype(pd.Index(["a", "b"]))
     assert not com.is_bool_dtype("Int64")
 
     assert com.is_bool_dtype(bool)
     assert com.is_bool_dtype(np.bool_)
+    assert com.is_bool_dtype(pd.Series([True, False], dtype="category"))
     assert com.is_bool_dtype(np.array([True, False]))
     assert com.is_bool_dtype(pd.Index([True, False]))
 
@@ -743,9 +745,7 @@ def test_astype_nansafe(val, typ):
 
     msg = "Cannot convert NaT values to integer"
     with pytest.raises(ValueError, match=msg):
-        with tm.assert_produces_warning(FutureWarning):
-            # datetimelike astype(int64) deprecated
-            astype_nansafe(arr, dtype=typ)
+        astype_nansafe(arr, dtype=typ)
 
 
 def test_astype_nansafe_copy_false(any_int_numpy_dtype):

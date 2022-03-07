@@ -34,7 +34,7 @@ exclude = '''
 [tool.pytest.ini_options]
 # sync minversion with pyproject.toml & install.rst
 minversion =  "6.0"
-addopts = "--strict-data-files --strict-markers --capture=no --durations=30 --junitxml=test-data.xml"
+addopts = "--strict-data-files --strict-markers --strict-config --capture=no --durations=30 --junitxml=test-data.xml"
 xfail_strict = true
 testpaths = "pandas"
 doctest_optionflags = [
@@ -48,7 +48,7 @@ filterwarnings = [
 ]
 junit_family = "xunit2"
 markers = [
-  "single: mark a test as single cpu only",
+  "single_cpu: mark a test that should run on a single cpu only",
   "slow: mark a test as slow",
   "network: mark a test as network",
   "db: tests requiring a database (mysql or postgres)",
@@ -149,7 +149,7 @@ skip = "pandas/__init__.py"
 
 [tool.pyright]
 pythonVersion = "3.8"
-typeCheckingMode = "strict"
+typeCheckingMode = "basic"
 include = ["pandas", "typings"]
 exclude = ["pandas/tests", "pandas/io/clipboard", "pandas/util/version"]
 reportGeneralTypeIssues = false
@@ -159,6 +159,7 @@ reportImportCycles = false
 reportIncompatibleMethodOverride = false
 reportIncompatibleVariableOverride = false
 reportMissingModuleSource = false
+reportMissingParameterType = false
 reportMissingTypeArgument = false
 reportMissingTypeStubs = false
 reportOptionalCall = false

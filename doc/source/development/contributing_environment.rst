@@ -26,14 +26,28 @@ with a full pandas development environment.
 
 **Docker Commands**
 
-Pass your GitHub username in the ``DockerFile`` to use your own fork::
+Build the Docker image::
 
     # Build the image pandas-yourname-env
     docker build --tag pandas-yourname-env .
-    # Run a container and bind your local forked repo, pandas-yourname, to the container
-    docker run -it --rm -v path-to-pandas-yourname:/home/pandas-yourname pandas-yourname-env
+    # Or build the image by passing your GitHub username to use your own fork
+    docker build --build-arg gh_username=yourname --tag pandas-yourname-env .
 
-Even easier, you can integrate Docker with the following IDEs:
+Run Container::
+
+    # Run a container and bind your local repo to the container
+    docker run -it -w /home/pandas --rm -v path-to-local-pandas-repo:/home/pandas pandas-yourname-env
+
+.. note::
+    If you bind your local repo for the first time, you have to build the C extensions afterwards.
+    Run the following command inside the container::
+
+        python setup.py build_ext -j 4
+
+    You need to rebuild the C extensions anytime the Cython code in ``pandas/_libs`` changes.
+    This most frequently occurs when changing or merging branches.
+
+*Even easier, you can integrate Docker with the following IDEs:*
 
 **Visual Studio Code**
 
@@ -46,11 +60,6 @@ See https://code.visualstudio.com/docs/remote/containers for details.
 Enable Docker support and use the Services tool window to build and manage images as well as
 run and interact with containers.
 See https://www.jetbrains.com/help/pycharm/docker.html for details.
-
-Note that you might need to rebuild the C extensions if/when you merge with upstream/master using::
-
-    python setup.py build_ext -j 4
-
 
 Creating an environment without Docker
 ---------------------------------------
@@ -82,7 +91,7 @@ You will need `Build Tools for Visual Studio 2019
 	In the installer, select the "C++ build tools" workload.
 
 You can install the necessary components on the commandline using
-`vs_buildtools.exe <https://aka.ms/vs/16/release/vs_buildtools.exe>`_:
+`vs_buildtools.exe <https://download.visualstudio.microsoft.com/download/pr/9a26f37e-6001-429b-a5db-c5455b93953c/460d80ab276046de2455a4115cc4e2f1e6529c9e6cb99501844ecafd16c619c4/vs_BuildTools.exe>`_:
 
 .. code::
 
@@ -138,8 +147,8 @@ Creating a Python environment
 
 Now create an isolated pandas development environment:
 
-* Install either `Anaconda <https://www.anaconda.com/download/>`_, `miniconda
-  <https://conda.io/miniconda.html>`_, or `miniforge <https://github.com/conda-forge/miniforge>`_
+* Install either `Anaconda <https://www.anaconda.com/products/individual>`_, `miniconda
+  <https://docs.conda.io/en/latest/miniconda.html>`_, or `miniforge <https://github.com/conda-forge/miniforge>`_
 * Make sure your conda is up to date (``conda update conda``)
 * Make sure that you have :any:`cloned the repository <contributing.forking>`
 * ``cd`` to the pandas source directory
@@ -181,7 +190,7 @@ To return to your root environment::
 
       conda deactivate
 
-See the full conda docs `here <https://conda.pydata.org/docs>`__.
+See the full conda docs `here <https://conda.io/projects/conda/en/latest/>`__.
 
 
 Creating a Python environment (pip)
@@ -222,7 +231,7 @@ Consult the docs for setting up pyenv `here <https://github.com/pyenv/pyenv>`__.
    pyenv virtualenv <version> <name-to-give-it>
 
    # For instance:
-   pyenv virtualenv 3.7.6 pandas-dev
+   pyenv virtualenv 3.9.10 pandas-dev
 
    # Activate the virtualenv
    pyenv activate pandas-dev
@@ -238,7 +247,7 @@ Consult the docs for setting up pyenv `here <https://github.com/pyenv/pyenv>`__.
 
 Below is a brief overview on how to set-up a virtual environment with Powershell
 under Windows. For details please refer to the
-`official virtualenv user guide <https://virtualenv.pypa.io/en/stable/userguide/#activate-script>`__
+`official virtualenv user guide <https://virtualenv.pypa.io/en/latest/user_guide.html#activators>`__
 
 Use an ENV_DIR of your choice. We'll use ~\\virtualenvs\\pandas-dev where
 '~' is the folder pointed to by either $env:USERPROFILE (Powershell) or

@@ -35,7 +35,7 @@ Westminster* in respectively Paris, Antwerp and London.
 .. raw:: html
 
                         </p>
-                    <a href="https://github.com/pandas-dev/pandas/tree/master/doc/data/air_quality_no2_long.csv" class="btn btn-dark btn-sm">To raw data</a>
+                    <a href="https://github.com/pandas-dev/pandas/tree/main/doc/data/air_quality_no2_long.csv" class="btn btn-dark btn-sm">To raw data</a>
                 </div>
             </div>
 

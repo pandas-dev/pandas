@@ -141,160 +141,57 @@ def assert_stat_op_calc(
             tm.assert_series_equal(r1, expected)
 
 
-def assert_stat_op_api(opname, float_frame, float_string_frame, has_numeric_only=True):
-    """
-    Check that API for operator opname works as advertised on frame
-
-    Parameters
-    ----------
-    opname : str
-        Name of the operator to test on frame
-    float_frame : DataFrame
-        DataFrame with columns of type float
-    float_string_frame : DataFrame
-        DataFrame with both float and string columns
-    has_numeric_only : bool, default False
-        Whether the method "opname" has the kwarg "numeric_only"
-    """
-    # make sure works on mixed-type frame
-    getattr(float_string_frame, opname)(axis=0)
-    getattr(float_string_frame, opname)(axis=1)
-
-    if has_numeric_only:
-        getattr(float_string_frame, opname)(axis=0, numeric_only=True)
-        getattr(float_string_frame, opname)(axis=1, numeric_only=True)
-        getattr(float_frame, opname)(axis=0, numeric_only=False)
-        getattr(float_frame, opname)(axis=1, numeric_only=False)
-
-
-def assert_bool_op_calc(opname, alternative, frame, has_skipna=True):
-    """
-    Check that bool operator opname works as advertised on frame
-
-    Parameters
-    ----------
-    opname : str
-        Name of the operator to test on frame
-    alternative : function
-        Function that opname is tested against; i.e. "frame.opname()" should
-        equal "alternative(frame)".
-    frame : DataFrame
-        The object that the tests are executed on
-    has_skipna : bool, default True
-        Whether the method "opname" has the kwarg "skip_na"
-    """
-    f = getattr(frame, opname)
-
-    if has_skipna:
-
-        def skipna_wrapper(x):
-            nona = x.dropna().values
-            return alternative(nona)
-
-        def wrapper(x):
-            return alternative(x.values)
-
-        result0 = f(axis=0, skipna=False)
-        result1 = f(axis=1, skipna=False)
-
-        tm.assert_series_equal(result0, frame.apply(wrapper))
-        tm.assert_series_equal(result1, frame.apply(wrapper, axis=1))
-    else:
-        skipna_wrapper = alternative
-        wrapper = alternative
-
-    result0 = f(axis=0)
-    result1 = f(axis=1)
-
-    tm.assert_series_equal(result0, frame.apply(skipna_wrapper))
-    tm.assert_series_equal(
-        result1, frame.apply(skipna_wrapper, axis=1), check_dtype=False
-    )
-
-    # bad axis
-    with pytest.raises(ValueError, match="No axis named 2"):
-        f(axis=2)
-
-    # all NA case
-    if has_skipna:
-        all_na = frame * np.NaN
-        r0 = getattr(all_na, opname)(axis=0)
-        r1 = getattr(all_na, opname)(axis=1)
-        if opname == "any":
-            assert not r0.any()
-            assert not r1.any()
-        else:
-            assert r0.all()
-            assert r1.all()
-
-
-def assert_bool_op_api(
-    opname, bool_frame_with_na, float_string_frame, has_bool_only=False
-):
-    """
-    Check that API for boolean operator opname works as advertised on frame
-
-    Parameters
-    ----------
-    opname : str
-        Name of the operator to test on frame
-    float_frame : DataFrame
-        DataFrame with columns of type float
-    float_string_frame : DataFrame
-        DataFrame with both float and string columns
-    has_bool_only : bool, default False
-        Whether the method "opname" has the kwarg "bool_only"
-    """
-    # make sure op works on mixed-type frame
-    mixed = float_string_frame
-    mixed["_bool_"] = np.random.randn(len(mixed)) > 0.5
-
-    getattr(mixed, opname)(axis=0)
-    getattr(mixed, opname)(axis=1)
-
-    if has_bool_only:
-        getattr(mixed, opname)(axis=0, bool_only=True)
-        getattr(mixed, opname)(axis=1, bool_only=True)
-        getattr(bool_frame_with_na, opname)(axis=0, bool_only=False)
-        getattr(bool_frame_with_na, opname)(axis=1, bool_only=False)
-
-
 class TestDataFrameAnalytics:
 
     # ---------------------------------------------------------------------
     # Reductions
+    @pytest.mark.filterwarnings("ignore:Dropping of nuisance:FutureWarning")
+    @pytest.mark.parametrize("axis", [0, 1])
+    @pytest.mark.parametrize(
+        "opname",
+        [
+            "count",
+            "sum",
+            "mean",
+            "product",
+            "median",
+            "min",
+            "max",
+            "nunique",
+            "mad",
+            "var",
+            "std",
+            "sem",
+            pytest.param("skew", marks=td.skip_if_no_scipy),
+            pytest.param("kurt", marks=td.skip_if_no_scipy),
+        ],
+    )
+    def test_stat_op_api_float_string_frame(self, float_string_frame, axis, opname):
+        getattr(float_string_frame, opname)(axis=axis)
+        if opname not in ("nunique", "mad"):
+            getattr(float_string_frame, opname)(axis=axis, numeric_only=True)
 
     @pytest.mark.filterwarnings("ignore:Dropping of nuisance:FutureWarning")
-    def test_stat_op_api(self, float_frame, float_string_frame):
-        assert_stat_op_api("count", float_frame, float_string_frame)
-        assert_stat_op_api("sum", float_frame, float_string_frame)
-
-        assert_stat_op_api(
-            "nunique", float_frame, float_string_frame, has_numeric_only=False
-        )
-        assert_stat_op_api("mean", float_frame, float_string_frame)
-        assert_stat_op_api("product", float_frame, float_string_frame)
-        assert_stat_op_api("median", float_frame, float_string_frame)
-        assert_stat_op_api("min", float_frame, float_string_frame)
-        assert_stat_op_api("max", float_frame, float_string_frame)
-        assert_stat_op_api(
-            "mad", float_frame, float_string_frame, has_numeric_only=False
-        )
-        assert_stat_op_api("var", float_frame, float_string_frame)
-        assert_stat_op_api("std", float_frame, float_string_frame)
-        assert_stat_op_api("sem", float_frame, float_string_frame)
-        assert_stat_op_api("median", float_frame, float_string_frame)
-
-        try:
-            from scipy.stats import (  # noqa:F401
-                kurtosis,
-                skew,
-            )
-
-            assert_stat_op_api("skew", float_frame, float_string_frame)
-            assert_stat_op_api("kurt", float_frame, float_string_frame)
-        except ImportError:
-            pass
+    @pytest.mark.parametrize("axis", [0, 1])
+    @pytest.mark.parametrize(
+        "opname",
+        [
+            "count",
+            "sum",
+            "mean",
+            "product",
+            "median",
+            "min",
+            "max",
+            "var",
+            "std",
+            "sem",
+            pytest.param("skew", marks=td.skip_if_no_scipy),
+            pytest.param("kurt", marks=td.skip_if_no_scipy),
+        ],
+    )
+    def test_stat_op_api_float_frame(self, float_frame, axis, opname):
+        getattr(float_frame, opname)(axis=axis, numeric_only=False)
 
     def test_stat_op_calc(self, float_frame_with_na, mixed_float_frame):
         def count(s):
@@ -314,20 +211,6 @@ class TestDataFrameAnalytics:
 
         def sem(x):
             return np.std(x, ddof=1) / np.sqrt(len(x))
-
-        def skewness(x):
-            from scipy.stats import skew  # noqa:F811
-
-            if len(x) < 3:
-                return np.nan
-            return skew(x, bias=False)
-
-        def kurt(x):
-            from scipy.stats import kurtosis  # noqa:F811
-
-            if len(x) < 4:
-                return np.nan
-            return kurtosis(x, bias=False)
 
         assert_stat_op_calc(
             "nunique",
@@ -371,16 +254,24 @@ class TestDataFrameAnalytics:
             check_dates=True,
         )
 
-        try:
-            from scipy import (  # noqa:F401
-                kurtosis,
-                skew,
-            )
+    @td.skip_if_no_scipy
+    def test_stat_op_calc_skew_kurtosis(self, float_frame_with_na):
+        def skewness(x):
+            from scipy.stats import skew
 
-            assert_stat_op_calc("skew", skewness, float_frame_with_na)
-            assert_stat_op_calc("kurt", kurt, float_frame_with_na)
-        except ImportError:
-            pass
+            if len(x) < 3:
+                return np.nan
+            return skew(x, bias=False)
+
+        def kurt(x):
+            from scipy.stats import kurtosis
+
+            if len(x) < 4:
+                return np.nan
+            return kurtosis(x, bias=False)
+
+        assert_stat_op_calc("skew", skewness, float_frame_with_na)
+        assert_stat_op_calc("kurt", kurt, float_frame_with_na)
 
     # TODO: Ensure warning isn't emitted in the first place
     # ignore mean of empty slice and all-NaN
@@ -399,32 +290,37 @@ class TestDataFrameAnalytics:
     @pytest.mark.parametrize(
         "method", ["sum", "mean", "prod", "var", "std", "skew", "min", "max"]
     )
-    def test_stat_operators_attempt_obj_array(self, method):
+    @pytest.mark.parametrize(
+        "df",
+        [
+            DataFrame(
+                {
+                    "a": [
+                        -0.00049987540199591344,
+                        -0.0016467257772919831,
+                        0.00067695870775883013,
+                    ],
+                    "b": [-0, -0, 0.0],
+                    "c": [
+                        0.00031111847529610595,
+                        0.0014902627951905339,
+                        -0.00094099200035979691,
+                    ],
+                },
+                index=["foo", "bar", "baz"],
+                dtype="O",
+            ),
+            DataFrame({0: [np.nan, 2], 1: [np.nan, 3], 2: [np.nan, 4]}, dtype=object),
+        ],
+    )
+    def test_stat_operators_attempt_obj_array(self, method, df):
         # GH#676
-        data = {
-            "a": [
-                -0.00049987540199591344,
-                -0.0016467257772919831,
-                0.00067695870775883013,
-            ],
-            "b": [-0, -0, 0.0],
-            "c": [
-                0.00031111847529610595,
-                0.0014902627951905339,
-                -0.00094099200035979691,
-            ],
-        }
-        df1 = DataFrame(data, index=["foo", "bar", "baz"], dtype="O")
+        assert df.values.dtype == np.object_
+        result = getattr(df, method)(1)
+        expected = getattr(df.astype("f8"), method)(1)
 
-        df2 = DataFrame({0: [np.nan, 2], 1: [np.nan, 3], 2: [np.nan, 4]}, dtype=object)
-
-        for df in [df1, df2]:
-            assert df.values.dtype == np.object_
-            result = getattr(df, method)(1)
-            expected = getattr(df.astype("f8"), method)(1)
-
-            if method in ["sum", "prod"]:
-                tm.assert_series_equal(result, expected)
+        if method in ["sum", "prod"]:
+            tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("op", ["mean", "std", "var", "skew", "kurt", "sem"])
     def test_mixed_ops(self, op):
@@ -784,11 +680,7 @@ class TestDataFrameAnalytics:
     def test_std_timedelta64_skipna_false(self):
         # GH#37392
         tdi = pd.timedelta_range("1 Day", periods=10)
-        df = DataFrame({"A": tdi, "B": tdi})
-        # Copy is needed for ArrayManager case, otherwise setting df.iloc
-        #  below edits tdi, alterting both df['A'] and df['B']
-        #  FIXME: passing copy=True to constructor does not fix this
-        df = df.copy()
+        df = DataFrame({"A": tdi, "B": tdi}, copy=True)
         df.iloc[-2, -1] = pd.NaT
 
         result = df.std(skipna=False)
@@ -983,32 +875,36 @@ class TestDataFrameAnalytics:
     # ----------------------------------------------------------------------
     # Index of max / min
 
-    def test_idxmin(self, float_frame, int_frame):
+    @pytest.mark.parametrize("skipna", [True, False])
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_idxmin(self, float_frame, int_frame, skipna, axis):
         frame = float_frame
         frame.iloc[5:10] = np.nan
         frame.iloc[15:20, -2:] = np.nan
-        for skipna in [True, False]:
-            for axis in [0, 1]:
-                for df in [frame, int_frame]:
-                    result = df.idxmin(axis=axis, skipna=skipna)
-                    expected = df.apply(Series.idxmin, axis=axis, skipna=skipna)
-                    tm.assert_series_equal(result, expected)
+        for df in [frame, int_frame]:
+            result = df.idxmin(axis=axis, skipna=skipna)
+            expected = df.apply(Series.idxmin, axis=axis, skipna=skipna)
+            tm.assert_series_equal(result, expected)
 
+    def test_idxmin_axis_2(self, float_frame):
+        frame = float_frame
         msg = "No axis named 2 for object type DataFrame"
         with pytest.raises(ValueError, match=msg):
             frame.idxmin(axis=2)
 
-    def test_idxmax(self, float_frame, int_frame):
+    @pytest.mark.parametrize("skipna", [True, False])
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_idxmax(self, float_frame, int_frame, skipna, axis):
         frame = float_frame
         frame.iloc[5:10] = np.nan
         frame.iloc[15:20, -2:] = np.nan
-        for skipna in [True, False]:
-            for axis in [0, 1]:
-                for df in [frame, int_frame]:
-                    result = df.idxmax(axis=axis, skipna=skipna)
-                    expected = df.apply(Series.idxmax, axis=axis, skipna=skipna)
-                    tm.assert_series_equal(result, expected)
+        for df in [frame, int_frame]:
+            result = df.idxmax(axis=axis, skipna=skipna)
+            expected = df.apply(Series.idxmax, axis=axis, skipna=skipna)
+            tm.assert_series_equal(result, expected)
 
+    def test_idxmax_axis_2(self, float_frame):
+        frame = float_frame
         msg = "No axis named 2 for object type DataFrame"
         with pytest.raises(ValueError, match=msg):
             frame.idxmax(axis=2)
@@ -1069,17 +965,13 @@ class TestDataFrameAnalytics:
         result = getattr(df, op)()
         expected = DataFrame(
             {"value": expected_value},
-            index=Index([100, 200], name="ID"),
+            index=Index([100, 200], name="ID", dtype="Int64"),
         )
         tm.assert_frame_equal(result, expected)
 
     def test_idxmax_dt64_multicolumn_axis1(self):
         dti = date_range("2016-01-01", periods=3)
-        df = DataFrame({3: dti, 4: dti[::-1]})
-        # FIXME: copy needed for ArrayManager, otherwise setting with iloc
-        #  below also sets df.iloc[-1, 1]; passing copy=True to DataFrame
-        #  does not solve this.
-        df = df.copy()
+        df = DataFrame({3: dti, 4: dti[::-1]}, copy=True)
         df.iloc[0, 0] = pd.NaT
 
         df._consolidate_inplace()
@@ -1096,17 +988,63 @@ class TestDataFrameAnalytics:
     # Logical reductions
 
     @pytest.mark.parametrize("opname", ["any", "all"])
-    def test_any_all(self, opname, bool_frame_with_na, float_string_frame):
-        assert_bool_op_api(
-            opname, bool_frame_with_na, float_string_frame, has_bool_only=True
-        )
+    @pytest.mark.parametrize("axis", [0, 1])
+    @pytest.mark.parametrize("bool_only", [False, True])
+    def test_any_all_mixed_float(self, opname, axis, bool_only, float_string_frame):
+        # make sure op works on mixed-type frame
+        mixed = float_string_frame
+        mixed["_bool_"] = np.random.randn(len(mixed)) > 0.5
+
+        getattr(mixed, opname)(axis=axis, bool_only=bool_only)
+
+    @pytest.mark.parametrize("opname", ["any", "all"])
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_any_all_bool_with_na(self, opname, axis, bool_frame_with_na):
+        getattr(bool_frame_with_na, opname)(axis=axis, bool_only=False)
 
     @pytest.mark.parametrize("opname", ["any", "all"])
     def test_any_all_bool_frame(self, opname, bool_frame_with_na):
         # GH#12863: numpy gives back non-boolean data for object type
         # so fill NaNs to compare with pandas behavior
-        df = bool_frame_with_na.fillna(True)
-        assert_bool_op_calc(opname, getattr(np, opname), df, has_skipna=True)
+        frame = bool_frame_with_na.fillna(True)
+        alternative = getattr(np, opname)
+        f = getattr(frame, opname)
+
+        def skipna_wrapper(x):
+            nona = x.dropna().values
+            return alternative(nona)
+
+        def wrapper(x):
+            return alternative(x.values)
+
+        result0 = f(axis=0, skipna=False)
+        result1 = f(axis=1, skipna=False)
+
+        tm.assert_series_equal(result0, frame.apply(wrapper))
+        tm.assert_series_equal(result1, frame.apply(wrapper, axis=1))
+
+        result0 = f(axis=0)
+        result1 = f(axis=1)
+
+        tm.assert_series_equal(result0, frame.apply(skipna_wrapper))
+        tm.assert_series_equal(
+            result1, frame.apply(skipna_wrapper, axis=1), check_dtype=False
+        )
+
+        # bad axis
+        with pytest.raises(ValueError, match="No axis named 2"):
+            f(axis=2)
+
+        # all NA case
+        all_na = frame * np.NaN
+        r0 = getattr(all_na, opname)(axis=0)
+        r1 = getattr(all_na, opname)(axis=1)
+        if opname == "any":
+            assert not r0.any()
+            assert not r1.any()
+        else:
+            assert r0.all()
+            assert r1.all()
 
     def test_any_all_extra(self):
         df = DataFrame(
@@ -1281,6 +1219,8 @@ class TestDataFrameAnalytics:
         assert result is False
 
     def test_any_all_object_bool_only(self):
+        msg = "object-dtype columns with all-bool values"
+
         df = DataFrame({"A": ["foo", 2], "B": [True, False]}).astype(object)
         df._consolidate_inplace()
         df["C"] = Series([True, True])
@@ -1290,29 +1230,36 @@ class TestDataFrameAnalytics:
 
         # The underlying bug is in DataFrame._get_bool_data, so we check
         #  that while we're here
-        res = df._get_bool_data()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = df._get_bool_data()
         expected = df[["B", "C"]]
         tm.assert_frame_equal(res, expected)
 
-        res = df.all(bool_only=True, axis=0)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = df.all(bool_only=True, axis=0)
         expected = Series([False, True], index=["B", "C"])
         tm.assert_series_equal(res, expected)
 
         # operating on a subset of columns should not produce a _larger_ Series
-        res = df[["B", "C"]].all(bool_only=True, axis=0)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = df[["B", "C"]].all(bool_only=True, axis=0)
         tm.assert_series_equal(res, expected)
 
-        assert not df.all(bool_only=True, axis=None)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert not df.all(bool_only=True, axis=None)
 
-        res = df.any(bool_only=True, axis=0)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = df.any(bool_only=True, axis=0)
         expected = Series([True, True], index=["B", "C"])
         tm.assert_series_equal(res, expected)
 
         # operating on a subset of columns should not produce a _larger_ Series
-        res = df[["B", "C"]].any(bool_only=True, axis=0)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = df[["B", "C"]].any(bool_only=True, axis=0)
         tm.assert_series_equal(res, expected)
 
-        assert df.any(bool_only=True, axis=None)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert df.any(bool_only=True, axis=None)
 
     @pytest.mark.parametrize("method", ["any", "all"])
     def test_any_all_level_axis_none_raises(self, method):
@@ -1490,9 +1437,15 @@ class TestDataFrameReductions:
         with tm.assert_produces_warning(FutureWarning, match="level"):
             getattr(obj, reduction_functions)(level=0)
 
-    def test_reductions_skipna_none_raises(self, frame_or_series, reduction_functions):
-        if reduction_functions in ["count", "mad"]:
-            pytest.skip("Count does not accept skipna. Mad needs a deprecation cycle.")
+    def test_reductions_skipna_none_raises(
+        self, request, frame_or_series, reduction_functions
+    ):
+        if reduction_functions == "count":
+            request.node.add_marker(
+                pytest.mark.xfail(reason="Count does not accept skipna")
+            )
+        elif reduction_functions == "mad":
+            pytest.skip("Mad needs a deprecation cycle: GH 11787")
         obj = frame_or_series([1, 2, 3])
         msg = 'For argument "skipna" expected type bool, received type NoneType.'
         with pytest.raises(ValueError, match=msg):
@@ -1725,6 +1678,7 @@ def test_mad_nullable_integer_all_na(any_signed_int_ea_dtype):
     result = df2.mad()
     expected = df.mad()
     expected[1] = pd.NA
+    expected = expected.astype("Float64")
     tm.assert_series_equal(result, expected)
 
 
@@ -1765,3 +1719,20 @@ def test_prod_sum_min_count_mixed_object():
     msg = re.escape("unsupported operand type(s) for +: 'int' and 'str'")
     with pytest.raises(TypeError, match=msg):
         df.sum(axis=0, min_count=1, numeric_only=False)
+
+
+@pytest.mark.parametrize("method", ["min", "max", "mean", "median", "skew", "kurt"])
+def test_reduction_axis_none_deprecation(method):
+    # GH#21597 deprecate axis=None defaulting to axis=0 so that we can change it
+    #  to reducing over all axes.
+
+    df = DataFrame(np.random.randn(4, 4))
+    meth = getattr(df, method)
+
+    msg = f"scalar {method} over the entire DataFrame"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        res = meth(axis=None)
+    with tm.assert_produces_warning(None):
+        expected = meth()
+    tm.assert_series_equal(res, expected)
+    tm.assert_series_equal(res, meth(axis=0))

@@ -5,10 +5,7 @@ ExtensionArrays.
 import datetime
 from functools import partial
 import operator
-from typing import (
-    Any,
-    cast,
-)
+from typing import Any
 
 import numpy as np
 
@@ -94,8 +91,6 @@ def _masked_arith_op(x: np.ndarray, y, op):
     assert isinstance(x, np.ndarray), type(x)
     if isinstance(y, np.ndarray):
         dtype = find_common_type([x.dtype, y.dtype])
-        # x and y are both ndarrays -> common_dtype is np.dtype
-        dtype = cast(np.dtype, dtype)
         result = np.empty(x.size, dtype=dtype)
 
         if len(x) != len(y):
@@ -224,7 +219,9 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
         # (https://github.com/pandas-dev/pandas/issues/41165)
         _bool_arith_check(op, left, right)
 
-        res_values = _na_arithmetic_op(left, right, op)
+        # error: Argument 1 to "_na_arithmetic_op" has incompatible type
+        # "Union[ExtensionArray, ndarray[Any, Any]]"; expected "ndarray[Any, Any]"
+        res_values = _na_arithmetic_op(left, right, op)  # type: ignore[arg-type]
 
     return res_values
 

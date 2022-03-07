@@ -14,6 +14,11 @@ import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
 
+# geopandas, xarray, fsspec, fastparquet all produce these
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:distutils Version classes are deprecated.*:DeprecationWarning"
+)
+
 
 def import_module(name):
     # we *only* want to skip if the module is truly not available
@@ -46,6 +51,31 @@ def test_dask(df):
         ddf = dd.from_pandas(df, npartitions=3)
         assert ddf.A is not None
         assert ddf.compute() is not None
+    finally:
+        pd.set_option("compute.use_numexpr", olduse)
+
+
+@pytest.mark.filterwarnings("ignore:.*64Index is deprecated:FutureWarning")
+@pytest.mark.filterwarnings("ignore:The __array_wrap__:DeprecationWarning")
+def test_dask_ufunc():
+    # At the time of dask 2022.01.0, dask is still directly using __array_wrap__
+    # for some ufuncs (https://github.com/dask/dask/issues/8580).
+
+    # dask sets "compute.use_numexpr" to False, so catch the current value
+    # and ensure to reset it afterwards to avoid impacting other tests
+    olduse = pd.get_option("compute.use_numexpr")
+
+    try:
+        dask = import_module("dask")  # noqa:F841
+        import dask.array as da
+        import dask.dataframe as dd
+
+        s = pd.Series([1.5, 2.3, 3.7, 4.0])
+        ds = dd.from_pandas(s, npartitions=2)
+
+        result = da.fix(ds).compute()
+        expected = np.fix(s)
+        tm.assert_series_equal(result, expected)
     finally:
         pd.set_option("compute.use_numexpr", olduse)
 
@@ -94,6 +124,7 @@ def test_oo_optimized_datetime_index_unpickle():
     )
 
 
+@pytest.mark.network
 @tm.network
 # Cython import warning
 @pytest.mark.filterwarnings("ignore:pandas.util.testing is deprecated")
@@ -102,6 +133,10 @@ def test_oo_optimized_datetime_index_unpickle():
 @pytest.mark.filterwarnings(
     # patsy needs to update their imports
     "ignore:Using or importing the ABCs from 'collections:DeprecationWarning"
+)
+@pytest.mark.filterwarnings(
+    # numpy 1.22
+    "ignore:`np.MachAr` is deprecated.*:DeprecationWarning"
 )
 def test_statsmodels():
 
@@ -115,7 +150,7 @@ def test_statsmodels():
 
 # Cython import warning
 @pytest.mark.filterwarnings("ignore:can't:ImportWarning")
-def test_scikit_learn(df):
+def test_scikit_learn():
 
     sklearn = import_module("sklearn")  # noqa:F841
     from sklearn import (
@@ -130,6 +165,7 @@ def test_scikit_learn(df):
 
 
 # Cython import warning and traitlets
+@pytest.mark.network
 @tm.network
 @pytest.mark.filterwarnings("ignore")
 def test_seaborn():
@@ -139,17 +175,19 @@ def test_seaborn():
     seaborn.stripplot(x="day", y="total_bill", data=tips)
 
 
-def test_pandas_gbq(df):
-
+def test_pandas_gbq():
+    # Older versions import from non-public, non-existent pandas funcs
+    pytest.importorskip("pandas_gbq", minversion="0.10.0")
     pandas_gbq = import_module("pandas_gbq")  # noqa:F841
 
 
+@pytest.mark.network
+@tm.network
 @pytest.mark.xfail(
     raises=ValueError,
     reason="The Quandl API key must be provided either through the api_key "
     "variable or through the environmental variable QUANDL_API_KEY",
 )
-@tm.network
 def test_pandas_datareader():
 
     pandas_datareader = import_module("pandas_datareader")

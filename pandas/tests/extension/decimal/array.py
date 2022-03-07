@@ -25,6 +25,7 @@ from pandas.api.types import (
     is_list_like,
     is_scalar,
 )
+from pandas.core import arraylike
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import (
     ExtensionArray,
@@ -118,8 +119,27 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         ):
             return NotImplemented
 
+        result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
+            self, ufunc, method, *inputs, **kwargs
+        )
+        if result is not NotImplemented:
+            # e.g. test_array_ufunc_series_scalar_other
+            return result
+
+        if "out" in kwargs:
+            return arraylike.dispatch_ufunc_with_out(
+                self, ufunc, method, *inputs, **kwargs
+            )
+
         inputs = tuple(x._data if isinstance(x, DecimalArray) else x for x in inputs)
         result = getattr(ufunc, method)(*inputs, **kwargs)
+
+        if method == "reduce":
+            result = arraylike.dispatch_reduction_ufunc(
+                self, ufunc, method, *inputs, **kwargs
+            )
+            if result is not NotImplemented:
+                return result
 
         def reconstruct(x):
             if isinstance(x, (decimal.Decimal, numbers.Number)):
