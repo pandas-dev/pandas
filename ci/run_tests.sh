@@ -45,4 +45,11 @@ if [[ "$PANDAS_DATA_MANAGER" != "array" ]]; then
 
     echo $PYTEST_AM_CMD
     sh -c "$PYTEST_AM_CMD"
+    ret=$?
+    if [ "$ret" = 5 ]; then
+      # Okay if no tests are collected here e.g. downstream tests
+      echo "No tests collected. Exiting with 0 (instead of 5)."
+      exit 0
+    fi
+    exit "$ret"
 fi
