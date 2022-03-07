@@ -21,10 +21,6 @@ from pandas._libs.tslibs import (
     NaT,
     iNaT,
 )
-from pandas._typing import (
-    ArrayLike,
-    DtypeObj,
-)
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
@@ -61,6 +57,7 @@ from pandas.core.dtypes.inference import is_list_like
 if TYPE_CHECKING:
     from pandas._typing import (
         ArrayLike,
+        DtypeObj,
         NDFrame,
         NDFrameT,
         Scalar,
