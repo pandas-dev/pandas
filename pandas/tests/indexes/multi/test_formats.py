@@ -8,7 +8,6 @@ from pandas import (
     Index,
     MultiIndex,
 )
-import pandas._testing as tm
 
 
 def test_format(idx):
@@ -27,12 +26,9 @@ def test_format_sparse_config(idx):
     warn_filters = warnings.filters
     warnings.filterwarnings("ignore", category=FutureWarning, module=".*format")
     # GH1538
-    pd.set_option("display.multi_sparse", False)
-
-    result = idx.format()
+    with pd.option_context("display.multi_sparse", False):
+        result = idx.format()
     assert result[1] == "foo  two"
-
-    tm.reset_display_options()
 
     warnings.filters = warn_filters
 

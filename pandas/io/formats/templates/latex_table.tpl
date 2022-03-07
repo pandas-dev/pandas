@@ -41,6 +41,10 @@
 {% for c in row %}{% if not loop.first %} & {% endif %}
   {%- if c.type == 'th' %}{{parse_header(c, multirow_align, multicol_align, False, convert_css)}}{% else %}{{parse_cell(c.cellstyle, c.display_value, convert_css)}}{% endif %}
 {%- endfor %} \\
+{% if clines and clines[loop.index] | length > 0 %}
+  {%- for cline in clines[loop.index] %}{% if not loop.first %} {% endif %}{{ cline }}{% endfor %}
+
+{% endif %}
 {% endfor %}
 {% set bottomrule = parse_table(table_styles, 'bottomrule') %}
 {% if bottomrule is not none %}

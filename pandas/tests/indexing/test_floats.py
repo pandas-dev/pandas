@@ -240,13 +240,13 @@ class TestFloatIndexers:
         if indexer_sli is tm.iloc:
             msg = (
                 "cannot do positional indexing "
-                fr"on {type(index).__name__} with these indexers \[(3|4)\.0\] of "
+                rf"on {type(index).__name__} with these indexers \[(3|4)\.0\] of "
                 "type float"
             )
         else:
             msg = (
                 "cannot do slice indexing "
-                fr"on {type(index).__name__} with these indexers "
+                rf"on {type(index).__name__} with these indexers "
                 r"\[(3|4)(\.0)?\] "
                 r"of type (float|int)"
             )
@@ -306,7 +306,7 @@ class TestFloatIndexers:
             # positional indexing
             msg = (
                 "cannot do slice indexing "
-                fr"on {type(index).__name__} with these indexers \[-6\.0\] of "
+                rf"on {type(index).__name__} with these indexers \[-6\.0\] of "
                 "type float"
             )
             with pytest.raises(TypeError, match=msg):
@@ -330,7 +330,7 @@ class TestFloatIndexers:
                 # positional indexing
                 msg = (
                     "cannot do slice indexing "
-                    fr"on {type(index).__name__} with these indexers \[(2|3)\.5\] of "
+                    rf"on {type(index).__name__} with these indexers \[(2|3)\.5\] of "
                     "type float"
                 )
                 with pytest.raises(TypeError, match=msg):
@@ -343,14 +343,15 @@ class TestFloatIndexers:
         """
         s = Series(range(2, 6), index=range(2, 6))
 
-        result = s[2:4]
+        with tm.assert_produces_warning(FutureWarning, match="label-based"):
+            result = s[2:4]
         expected = s.iloc[2:4]
         tm.assert_series_equal(result, expected)
 
         klass = RangeIndex
         msg = (
             "cannot do (slice|positional) indexing "
-            fr"on {klass.__name__} with these indexers \[(2|4)\.0\] of "
+            rf"on {klass.__name__} with these indexers \[(2|4)\.0\] of "
             "type float"
         )
         with pytest.raises(TypeError, match=msg):
@@ -376,7 +377,7 @@ class TestFloatIndexers:
             # positional indexing
             msg = (
                 "cannot do slice indexing "
-                fr"on {type(index).__name__} with these indexers \[(0|1)\.0\] of "
+                rf"on {type(index).__name__} with these indexers \[(0|1)\.0\] of "
                 "type float"
             )
             with pytest.raises(TypeError, match=msg):
@@ -391,7 +392,7 @@ class TestFloatIndexers:
         # positional indexing
         msg = (
             "cannot do slice indexing "
-            fr"on {type(index).__name__} with these indexers \[-10\.0\] of "
+            rf"on {type(index).__name__} with these indexers \[-10\.0\] of "
             "type float"
         )
         with pytest.raises(TypeError, match=msg):
@@ -410,7 +411,7 @@ class TestFloatIndexers:
             # positional indexing
             msg = (
                 "cannot do slice indexing "
-                fr"on {type(index).__name__} with these indexers \[0\.5\] of "
+                rf"on {type(index).__name__} with these indexers \[0\.5\] of "
                 "type float"
             )
             with pytest.raises(TypeError, match=msg):
@@ -434,7 +435,7 @@ class TestFloatIndexers:
         # positional indexing
         msg = (
             "cannot do slice indexing "
-            fr"on {type(index).__name__} with these indexers \[(3|4)\.0\] of "
+            rf"on {type(index).__name__} with these indexers \[(3|4)\.0\] of "
             "type float"
         )
         with pytest.raises(TypeError, match=msg):

@@ -3,17 +3,19 @@ name: sdist
 on:
   push:
     branches:
-      - master
-      - 1.3.x
+      - main
+      - 1.4.x
   pull_request:
     branches:
-      - master
-      - 1.3.x
+      - main
+      - 1.4.x
+    types: [labeled, opened, synchronize, reopened]
     paths-ignore:
       - "doc/**"
 
 jobs:
   build:
+    if: ${{ github.event.label.name == 'Build' || contains(github.event.pull_request.labels.*.name, 'Build') || github.event_name == 'push'}}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     defaults:

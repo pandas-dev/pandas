@@ -9,9 +9,9 @@ import pandas._testing as tm
 from pandas.core.tools.datetimes import to_time as to_time_alias
 from pandas.core.tools.times import to_time
 
-fails_on_zh_cn = pytest.mark.xfail(
-    locale.getlocale()[0] == "zh_CN",
-    reason="fail on a CI build with LC_ALL=zh_CN.utf8",
+fails_on_non_english = pytest.mark.xfail(
+    locale.getlocale()[0] in ("zh_CN", "it_IT"),
+    reason="fail on a CI build with LC_ALL=zh_CN.utf8/it_IT.utf8",
 )
 
 
@@ -21,12 +21,12 @@ class TestToTime:
         [
             "14:15",
             "1415",
-            pytest.param("2:15pm", marks=fails_on_zh_cn),
-            pytest.param("0215pm", marks=fails_on_zh_cn),
+            pytest.param("2:15pm", marks=fails_on_non_english),
+            pytest.param("0215pm", marks=fails_on_non_english),
             "14:15:00",
             "141500",
-            pytest.param("2:15:00pm", marks=fails_on_zh_cn),
-            pytest.param("021500pm", marks=fails_on_zh_cn),
+            pytest.param("2:15:00pm", marks=fails_on_non_english),
+            pytest.param("021500pm", marks=fails_on_non_english),
             time(14, 15),
         ],
     )

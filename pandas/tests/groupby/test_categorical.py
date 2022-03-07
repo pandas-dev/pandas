@@ -81,7 +81,7 @@ def test_apply_use_categorical_name(df):
     assert result.index.names[0] == "C"
 
 
-def test_basic():
+def test_basic():  # TODO: split this test
 
     cats = Categorical(
         ["a", "a", "a", "b", "b", "b", "c", "c", "c"],
@@ -142,9 +142,24 @@ def test_basic():
         df.a.groupby(c, observed=False).transform(lambda xs: np.sum(xs)), df["a"]
     )
     tm.assert_frame_equal(df.groupby(c, observed=False).transform(sum), df[["a"]])
-    tm.assert_frame_equal(
-        df.groupby(c, observed=False).transform(lambda xs: np.max(xs)), df[["a"]]
-    )
+
+    gbc = df.groupby(c, observed=False)
+    with tm.assert_produces_warning(
+        FutureWarning, match="scalar max", check_stacklevel=False
+    ):
+        # stacklevel is thrown off (i think) bc the stack goes through numpy C code
+        result = gbc.transform(lambda xs: np.max(xs))
+    tm.assert_frame_equal(result, df[["a"]])
+
+    with tm.assert_produces_warning(None):
+        result2 = gbc.transform(lambda xs: np.max(xs, axis=0))
+        result3 = gbc.transform(max)
+        result4 = gbc.transform(np.maximum.reduce)
+        result5 = gbc.transform(lambda xs: np.maximum.reduce(xs))
+    tm.assert_frame_equal(result2, df[["a"]], check_dtype=False)
+    tm.assert_frame_equal(result3, df[["a"]], check_dtype=False)
+    tm.assert_frame_equal(result4, df[["a"]])
+    tm.assert_frame_equal(result5, df[["a"]])
 
     # Filter
     tm.assert_series_equal(df.a.groupby(c, observed=False).filter(np.all), df["a"])
@@ -256,7 +271,7 @@ def test_sorting_with_different_categoricals():
     index = ["low", "med", "high", "low", "med", "high"]
     index = Categorical(index, categories=["low", "med", "high"], ordered=True)
     index = [["A", "A", "A", "B", "B", "B"], CategoricalIndex(index)]
-    index = MultiIndex.from_arrays(index, names=["group", None])
+    index = MultiIndex.from_arrays(index, names=["group", "dose"])
     expected = Series([2] * 6, index=index, name="dose")
     tm.assert_series_equal(result, expected)
 
@@ -1432,7 +1447,7 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_true(reduction_fun
 
 @pytest.mark.parametrize("observed", [False, None])
 def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
-    reduction_func, observed, request
+    reduction_func, observed
 ):
     # GH 23865
     # GH 27075
@@ -1764,3 +1779,36 @@ def test_groupby_last_first_preserve_categoricaldtype(func):
         Categorical([1, 2, 3]), name="b", index=Index([1, 2, 3], name="a")
     )
     tm.assert_series_equal(expected, result)
+
+
+def test_groupby_categorical_observed_nunique():
+    # GH#45128
+    df = DataFrame({"a": [1, 2], "b": [1, 2], "c": [10, 11]})
+    df = df.astype(dtype={"a": "category", "b": "category"})
+    result = df.groupby(["a", "b"], observed=True).nunique()["c"]
+    expected = Series(
+        [1, 1],
+        index=MultiIndex.from_arrays(
+            [CategoricalIndex([1, 2], name="a"), CategoricalIndex([1, 2], name="b")]
+        ),
+        name="c",
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_groupby_categorical_aggregate_functions():
+    # GH#37275
+    dtype = pd.CategoricalDtype(categories=["small", "big"], ordered=True)
+    df = DataFrame(
+        [[1, "small"], [1, "big"], [2, "small"]], columns=["grp", "description"]
+    ).astype({"description": dtype})
+
+    result = df.groupby("grp")["description"].max()
+    expected = Series(
+        ["big", "small"],
+        index=Index([1, 2], name="grp"),
+        name="description",
+        dtype=pd.CategoricalDtype(categories=["small", "big"], ordered=True),
+    )
+
+    tm.assert_series_equal(result, expected)

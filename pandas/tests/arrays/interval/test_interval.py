@@ -76,13 +76,19 @@ class TestMethods:
         ],
     )
     def test_where_raises(self, other):
+        # GH#45768 The IntervalArray methods raises; the Series method coerces
         ser = pd.Series(IntervalArray.from_breaks([1, 2, 3, 4], closed="left"))
+        mask = np.array([True, False, True])
         match = "'value.closed' is 'right', expected 'left'."
         with pytest.raises(ValueError, match=match):
-            ser.where([True, False, True], other=other)
+            ser.array._where(mask, other)
+
+        res = ser.where(mask, other=other)
+        expected = ser.astype(object).where(mask, other)
+        tm.assert_series_equal(res, expected)
 
     def test_shift(self):
-        # https://github.com/pandas-dev/pandas/issues/31495
+        # https://github.com/pandas-dev/pandas/issues/31495, GH#22428, GH#31502
         a = IntervalArray.from_breaks([1, 2, 3])
         result = a.shift()
         # int -> float
@@ -90,6 +96,7 @@ class TestMethods:
         tm.assert_interval_array_equal(result, expected)
 
     def test_shift_datetime(self):
+        # GH#31502, GH#31504
         a = IntervalArray.from_breaks(date_range("2000", periods=4))
         result = a.shift(2)
         expected = a.take([-1, -1, 0], allow_fill=True)
@@ -113,7 +120,9 @@ class TestSetitem:
                 result[0] = pd.NaT
         if result.dtype.subtype.kind in ["i", "u"]:
             msg = "Cannot set float NaN to integer-backed IntervalArray"
-            with pytest.raises(ValueError, match=msg):
+            # GH#45484 TypeError, not ValueError, matches what we get with
+            # non-NA un-holdable value.
+            with pytest.raises(TypeError, match=msg):
                 result[0] = np.NaN
             return
 
@@ -367,3 +376,23 @@ def test_arrow_table_roundtrip_without_metadata(breaks):
     result = table.to_pandas()
     assert isinstance(result["a"].dtype, pd.IntervalDtype)
     tm.assert_frame_equal(result, df)
+
+
+@pyarrow_skip
+def test_from_arrow_from_raw_struct_array():
+    # in case pyarrow lost the Interval extension type (eg on parquet roundtrip
+    # with datetime64[ns] subtype, see GH-45881), still allow conversion
+    # from arrow to IntervalArray
+    import pyarrow as pa
+
+    arr = pa.array([{"left": 0, "right": 1}, {"left": 1, "right": 2}])
+    dtype = pd.IntervalDtype(np.dtype("int64"), closed="neither")
+
+    result = dtype.__from_arrow__(arr)
+    expected = IntervalArray.from_breaks(
+        np.array([0, 1, 2], dtype="int64"), closed="neither"
+    )
+    tm.assert_extension_array_equal(result, expected)
+
+    result = dtype.__from_arrow__(pa.chunked_array([arr]))
+    tm.assert_extension_array_equal(result, expected)

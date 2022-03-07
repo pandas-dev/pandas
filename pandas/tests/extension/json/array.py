@@ -33,6 +33,7 @@ from pandas._typing import type_t
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
+    is_bool_dtype,
     is_list_like,
     pandas_dtype,
 )
@@ -42,7 +43,6 @@ from pandas.api.extensions import (
     ExtensionArray,
     ExtensionDtype,
 )
-from pandas.api.types import is_bool_dtype
 from pandas.core.indexers import unpack_tuple_and_ellipses
 
 
@@ -145,6 +145,9 @@ class JSONArray(ExtensionArray):
     def __array__(self, dtype=None):
         if dtype is None:
             dtype = object
+        if dtype == object:
+            # on py38 builds it looks like numpy is inferring to a non-1D array
+            return construct_1d_object_array_from_listlike(list(self))
         return np.asarray(self.data, dtype=dtype)
 
     @property

@@ -5,6 +5,11 @@ from itertools import product
 import numpy as np
 import pytest
 
+from pandas.compat import (
+    is_ci_environment,
+    is_platform_windows,
+)
+
 from pandas import (
     DataFrame,
     MultiIndex,
@@ -17,7 +22,7 @@ import pandas._testing as tm
 from pandas.core.algorithms import safe_sort
 import pandas.core.common as com
 from pandas.core.sorting import (
-    decons_group_index,
+    _decons_group_index,
     get_group_index,
     is_int64_overflow_possible,
     lexsort_indexer,
@@ -384,7 +389,7 @@ class TestMerge:
 )
 def test_decons(codes_list, shape):
     group_index = get_group_index(codes_list, shape, sort=True, xnull=True)
-    codes_list2 = decons_group_index(group_index, shape)
+    codes_list2 = _decons_group_index(group_index, shape)
 
     for a, b in zip(codes_list, codes_list2):
         tm.assert_numpy_array_equal(a, b)
@@ -424,6 +429,11 @@ class TestSafeSort:
         tm.assert_numpy_array_equal(result, expected)
         tm.assert_numpy_array_equal(result_codes, expected_codes)
 
+    @pytest.mark.skipif(
+        is_platform_windows() and is_ci_environment(),
+        reason="In CI environment can crash thread with: "
+        "Windows fatal exception: access violation",
+    )
     @pytest.mark.parametrize("na_sentinel", [-1, 99])
     def test_codes_out_of_bound(self, na_sentinel):
         values = [3, 1, 2, 0, 4]

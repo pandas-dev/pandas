@@ -12,6 +12,11 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
     && apt-get -y install --no-install-recommends apt-utils dialog 2>&1 \
     #
+    # Install tzdata and configure timezone (fix for tests which try to read from "/etc/localtime")
+    && apt-get -y install tzdata \
+    && ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime \
+    && dpkg-reconfigure -f noninteractive tzdata \
+    #
     # Verify git, process tools, lsb-release (common in install instructions for CLIs) installed
     && apt-get -y install git iproute2 procps iproute2 lsb-release \
     #
@@ -28,7 +33,7 @@ RUN mkdir "$pandas_home" \
     && git clone "https://github.com/$gh_username/pandas.git" "$pandas_home" \
     && cd "$pandas_home" \
     && git remote add upstream "https://github.com/pandas-dev/pandas.git" \
-    && git pull upstream master
+    && git pull upstream main
 
 # Because it is surprisingly difficult to activate a conda environment inside a DockerFile
 # (from personal experience and per https://github.com/ContinuumIO/docker-images/issues/89),
@@ -45,4 +50,4 @@ RUN . /opt/conda/etc/profile.d/conda.sh \
     && cd "$pandas_home" \
     && export \
     && python setup.py build_ext -j 4 \
-    && python -m pip install -e .
+    && python -m pip install --no-build-isolation -e .

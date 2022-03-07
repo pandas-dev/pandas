@@ -22,13 +22,10 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
-from pandas.core.arrays import (
-    BooleanArray,
-    FloatingArray,
-    IntegerArray,
-)
+from pandas.core.arrays import BooleanArray
 from pandas.core.base import SpecificationError
 import pandas.core.common as com
+from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
 
 
 def test_repr():
@@ -716,11 +713,8 @@ def test_ops_not_as_index(reduction_func):
     # GH 10355, 21090
     # Using as_index=False should not modify grouped column
 
-    if reduction_func in ("corrwith",):
-        pytest.skip("Test not applicable")
-
-    if reduction_func in ("nth", "ngroup"):
-        pytest.skip("Skip until behavior is determined (GH #5755)")
+    if reduction_func in ("corrwith", "nth", "ngroup"):
+        pytest.skip(f"GH 5755: Test not applicable for {reduction_func}")
 
     df = DataFrame(np.random.randint(0, 5, size=(100, 2)), columns=["a", "b"])
     expected = getattr(df.groupby("a"), reduction_func)()
@@ -824,7 +818,7 @@ def test_groupby_as_index_corner(df, ts):
         df.groupby(lambda x: x.lower(), as_index=False, axis=1)
 
 
-def test_groupby_multiple_key(df):
+def test_groupby_multiple_key():
     df = tm.makeTimeDataFrame()
     grouped = df.groupby([lambda x: x.year, lambda x: x.month, lambda x: x.day])
     agged = grouped.sum()
@@ -1053,15 +1047,14 @@ def test_groupby_complex_numbers():
     )
     expected = DataFrame(
         np.array([1, 1, 1], dtype=np.int64),
-        index=Index([(1 + 1j), (1 + 2j), (1 + 0j)], dtype="object", name="b"),
+        index=Index([(1 + 1j), (1 + 2j), (1 + 0j)], name="b"),
         columns=Index(["a"], dtype="object"),
     )
     result = df.groupby("b", sort=False).count()
     tm.assert_frame_equal(result, expected)
 
     # Sorted by the magnitude of the complex numbers
-    # Complex Index dtype is cast to object
-    expected.index = Index([(1 + 0j), (1 + 1j), (1 + 2j)], dtype="object", name="b")
+    expected.index = Index([(1 + 0j), (1 + 1j), (1 + 2j)], name="b")
     result = df.groupby("b", sort=True).count()
     tm.assert_frame_equal(result, expected)
 
@@ -1820,6 +1813,18 @@ def test_pivot_table_values_key_error():
         pd.array([0], dtype="Float64"),
         pd.array([False], dtype="boolean"),
     ],
+    ids=[
+        "bool",
+        "int",
+        "float",
+        "str",
+        "cat",
+        "dt64",
+        "dt64tz",
+        "Int64",
+        "Float64",
+        "boolean",
+    ],
 )
 @pytest.mark.parametrize("method", ["attr", "agg", "apply"])
 @pytest.mark.parametrize(
@@ -1874,15 +1879,6 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
     ):
         mark = pytest.mark.xfail(
             raises=AssertionError, match="(DataFrame|Series) are different"
-        )
-        request.node.add_marker(mark)
-    elif (
-        isinstance(values, (IntegerArray, FloatingArray))
-        and op == "mad"
-        and isinstance(columns, list)
-    ):
-        mark = pytest.mark.xfail(
-            raises=TypeError, match="can only perform ops with numeric values"
         )
         request.node.add_marker(mark)
 
@@ -2268,8 +2264,9 @@ def test_groupby_duplicate_index():
 @pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
 def test_dup_labels_output_shape(groupby_func, idx):
     if groupby_func in {"size", "ngroup", "cumcount"}:
-        pytest.skip("Not applicable")
-
+        pytest.skip(f"Not applicable for {groupby_func}")
+    # TODO(2.0) Remove after pad/backfill deprecation enforced
+    groupby_func = maybe_normalize_deprecated_kernels(groupby_func)
     df = DataFrame([[1, 1]], columns=idx)
     grp_by = df.groupby([0])
 
@@ -2471,6 +2468,40 @@ def test_groupby_numerical_stability_cumsum():
     tm.assert_frame_equal(result, expected, check_exact=True)
 
 
+def test_groupby_cumsum_skipna_false():
+    # GH#46216 don't propagate np.nan above the diagonal
+    arr = np.random.randn(5, 5)
+    df = DataFrame(arr)
+    for i in range(5):
+        df.iloc[i, i] = np.nan
+
+    df["A"] = 1
+    gb = df.groupby("A")
+
+    res = gb.cumsum(skipna=False)
+
+    expected = df[[0, 1, 2, 3, 4]].cumsum(skipna=False)
+    tm.assert_frame_equal(res, expected)
+
+
+def test_groupby_cumsum_timedelta64():
+    # GH#46216 don't ignore is_datetimelike in libgroupby.group_cumsum
+    dti = date_range("2016-01-01", periods=5)
+    ser = Series(dti) - dti[0]
+    ser[2] = pd.NaT
+
+    df = DataFrame({"A": 1, "B": ser})
+    gb = df.groupby("A")
+
+    res = gb.cumsum(numeric_only=False, skipna=True)
+    exp = DataFrame({"B": [ser[0], ser[1], pd.NaT, ser[4], ser[4] * 2]})
+    tm.assert_frame_equal(res, exp)
+
+    res = gb.cumsum(numeric_only=False, skipna=False)
+    exp = DataFrame({"B": [ser[0], ser[1], pd.NaT, pd.NaT, pd.NaT]})
+    tm.assert_frame_equal(res, exp)
+
+
 def test_groupby_mean_duplicate_index(rand_series_with_duplicate_datetimeindex):
     dups = rand_series_with_duplicate_datetimeindex
     result = dups.groupby(level=0).mean()
@@ -2614,3 +2645,12 @@ def test_rolling_wrong_param_min_period():
     result_error_msg = r"__init__\(\) got an unexpected keyword argument 'min_period'"
     with pytest.raises(TypeError, match=result_error_msg):
         test_df.groupby("name")["val"].rolling(window=2, min_period=1).sum()
+
+
+def test_pad_backfill_deprecation():
+    # GH 33396
+    s = Series([1, 2, 3])
+    with tm.assert_produces_warning(FutureWarning, match="backfill"):
+        s.groupby(level=0).backfill()
+    with tm.assert_produces_warning(FutureWarning, match="pad"):
+        s.groupby(level=0).pad()

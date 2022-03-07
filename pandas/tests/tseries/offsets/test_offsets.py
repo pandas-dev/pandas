@@ -537,7 +537,7 @@ class TestCommon(Base):
 
 
 class TestDateOffset(Base):
-    def setup_method(self, method):
+    def setup_method(self):
         self.d = Timestamp(datetime(2008, 1, 2))
         _offset_map.clear()
 
@@ -622,7 +622,7 @@ def test_get_offset_legacy():
 
 
 class TestOffsetAliases:
-    def setup_method(self, method):
+    def setup_method(self):
         _offset_map.clear()
 
     def test_alias_equality(self):
@@ -854,3 +854,13 @@ def test_dateoffset_misc():
     oset.freqstr
 
     assert not offsets.DateOffset(months=2) == 2
+
+
+@pytest.mark.parametrize("n", [-1, 1, 3])
+def test_construct_int_arg_no_kwargs_assumed_days(n):
+    # GH 45890, 45643
+    offset = DateOffset(n)
+    assert offset._offset == timedelta(1)
+    result = Timestamp(2022, 1, 2) + offset
+    expected = Timestamp(2022, 1, 2 + n)
+    assert result == expected

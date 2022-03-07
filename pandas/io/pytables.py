@@ -19,6 +19,7 @@ from typing import (
     Any,
     Callable,
     Hashable,
+    Literal,
     Sequence,
     cast,
 )
@@ -40,6 +41,7 @@ from pandas._typing import (
     ArrayLike,
     DtypeArg,
     Shape,
+    npt,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
@@ -272,7 +274,7 @@ def to_hdf(
     min_itemsize: int | dict[str, int] | None = None,
     nan_rep=None,
     dropna: bool | None = None,
-    data_columns: bool | list[str] | None = None,
+    data_columns: Literal[True] | list[str] | None = None,
     errors: str = "strict",
     encoding: str = "UTF-8",
 ) -> None:
@@ -691,7 +693,17 @@ class HDFStore:
         for g in self.groups():
             yield g._v_pathname, g
 
-    iteritems = items
+    def iteritems(self):
+        """
+        iterate on key->group
+        """
+        warnings.warn(
+            "iteritems is deprecated and will be removed in a future version. "
+            "Use .items instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        yield from self.items()
 
     def open(self, mode: str = "a", **kwargs):
         """
@@ -1078,7 +1090,7 @@ class HDFStore:
         complevel: int | None = None,
         min_itemsize: int | dict[str, int] | None = None,
         nan_rep=None,
-        data_columns: list[str] | None = None,
+        data_columns: Literal[True] | list[str] | None = None,
         encoding=None,
         errors: str = "strict",
         track_times: bool = True,
@@ -1102,7 +1114,7 @@ class HDFStore:
                 subsets of the data.
         append : bool, default False
             This will force Table format, append the input data to the existing.
-        data_columns : list, default None
+        data_columns : list of columns or True, default None
             List of columns to create as data columns, or True to use all columns.
             See `here
             <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
@@ -1208,7 +1220,7 @@ class HDFStore:
         chunksize=None,
         expectedrows=None,
         dropna: bool | None = None,
-        data_columns: list[str] | None = None,
+        data_columns: Literal[True] | list[str] | None = None,
         encoding=None,
         errors: str = "strict",
     ):
@@ -2029,10 +2041,10 @@ class IndexCol:
             map(pprint_thing, (self.name, self.cname, self.axis, self.pos, self.kind))
         )
         return ",".join(
-            (
+            [
                 f"{key}->{value}"
                 for key, value in zip(["name", "cname", "axis", "pos", "kind"], temp)
-            )
+            ]
         )
 
     def __eq__(self, other: Any) -> bool:
@@ -2330,10 +2342,10 @@ class DataCol(IndexCol):
             )
         )
         return ",".join(
-            (
+            [
                 f"{key}->{value}"
                 for key, value in zip(["name", "cname", "dtype", "kind", "shape"], temp)
-            )
+            ]
         )
 
     def __eq__(self, other: Any) -> bool:
@@ -3263,8 +3275,7 @@ class Table(Fixed):
     values_axes   : a list of the columns which comprise the data of this
         table
     data_columns  : a list of the columns that we are allowing indexing
-        (these become single columns in values_axes), or True to force all
-        columns
+        (these become single columns in values_axes)
     nan_rep       : the string to use for nan representations for string
         objects
     levels        : the names of levels
@@ -4399,7 +4410,7 @@ class AppendableTable(Table):
         self,
         rows: np.ndarray,
         indexes: list[np.ndarray],
-        mask: np.ndarray | None,
+        mask: npt.NDArray[np.bool_] | None,
         values: list[np.ndarray],
     ):
         """

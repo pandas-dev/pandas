@@ -29,6 +29,10 @@ def test_value_counts(index_or_series_obj):
     if isinstance(obj, pd.MultiIndex):
         expected.index = Index(expected.index)
 
+    if not isinstance(result.dtype, np.dtype):
+        # i.e IntegerDtype
+        expected = expected.astype("Int64")
+
     # TODO(GH#32514): Order of entries with the same count is inconsistent
     #  on CI (gh-32449)
     if obj.duplicated().any():
@@ -68,6 +72,10 @@ def test_value_counts_null(null_obj, index_or_series_obj):
         #  Order of entries with the same count is inconsistent on CI (gh-32449)
         expected = expected.sort_index()
         result = result.sort_index()
+
+    if not isinstance(result.dtype, np.dtype):
+        # i.e IntegerDtype
+        expected = expected.astype("Int64")
     tm.assert_series_equal(result, expected)
 
     expected[null_obj] = 3
@@ -276,7 +284,7 @@ def test_value_counts_with_nan(dropna, index_or_series):
     obj = klass(values)
     res = obj.value_counts(dropna=dropna)
     if dropna is True:
-        expected = Series([1], index=[True])
+        expected = Series([1], index=Index([True], dtype=obj.dtype))
     else:
         expected = Series([1, 1, 1], index=[True, pd.NA, np.nan])
     tm.assert_series_equal(res, expected)

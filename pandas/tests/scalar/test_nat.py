@@ -110,9 +110,11 @@ def test_identity(klass, value):
 
 @pytest.mark.parametrize("klass", [Timestamp, Timedelta, Period])
 @pytest.mark.parametrize("value", ["", "nat", "NAT", None, np.nan])
-def test_equality(klass, value):
+def test_equality(klass, value, request):
     if klass is Period and value == "":
-        pytest.skip("Period cannot parse empty string")
+        request.node.add_marker(
+            pytest.mark.xfail(reason="Period cannot parse empty string")
+        )
 
     assert klass(value).value == iNaT
 
@@ -718,3 +720,8 @@ def test_pickle():
     # GH#4606
     p = tm.round_trip_pickle(NaT)
     assert p is NaT
+
+
+def test_freq_deprecated():
+    with tm.assert_produces_warning(FutureWarning, match="deprecated"):
+        NaT.freq
