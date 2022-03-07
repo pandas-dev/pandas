@@ -769,9 +769,7 @@ class IndexOpsMixin(OpsMixin):
 
         Enables various performance speedups.
         """
-        # error: Item "bool" of "Union[bool, ndarray[Any, dtype[bool_]], NDFrame]"
-        # has no attribute "any"
-        return bool(isna(self).any())  # type: ignore[union-attr]
+        return bool(isna(self).any())
 
     def isna(self):
         return isna(self._values)
