@@ -29,6 +29,15 @@ Bug fixes
 
 .. ---------------------------------------------------------------------------
 
+.. _whatsnew_141.plotting:
+
+Plotting
+^^^^^^^^
+- The function :meth:`DataFrame.scatter` now accepts ``color`` as an alias for ``c`` and ``size`` as an alias for ``s`` for consistency to other plotting functions (:issue:`44670`, :issue:`44856`)
+-
+
+.. ---------------------------------------------------------------------------
+
 .. _whatsnew_141.other:
 
 

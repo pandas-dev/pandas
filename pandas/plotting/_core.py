@@ -1602,8 +1602,7 @@ class PlotAccessor(PandasObject):
             The column name or column position to be used as vertical
             coordinates for each point.
         s : str, scalar or array-like, optional
-            The size of each point. ``size`` is also accepted as an alternate keyword
-            argument for ``s`` for consistency with other methods. Possible values are:
+            The size of each point. Possible values are:
 
             - A string with the name of the column to be used for marker's size.
 
@@ -1615,9 +1614,13 @@ class PlotAccessor(PandasObject):
 
               .. versionchanged:: 1.1.0
 
+        size : str, int or array-like, optional
+                The color of each point. Alias for `s`.
+                `s` and `size` aren't allowed at the same time.
+                .. versionadded:: 1.4.1
+
         c : str, int or array-like, optional
-            The color of each point. ``color`` is also accepted as an alternate keyword
-            argument for ``c`` for consistency with other methods. Possible values are:
+            The color of each point. Possible values are:
 
             - A single color string referred to by name, RGB or RGBA code,
               for instance 'red' or '#a98d19'.
@@ -1629,6 +1632,11 @@ class PlotAccessor(PandasObject):
 
             - A column name or position whose values will be used to color the
               marker points according to a colormap.
+
+        color : str, int or array-like, optional
+                The color of each point. Alias for `c`.
+                `c` and `color` aren't allowed at the same time.
+                .. versionadded:: 1.4.1
 
         **kwargs
             Keyword arguments to pass on to :meth:`DataFrame.plot`.
