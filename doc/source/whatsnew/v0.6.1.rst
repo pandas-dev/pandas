@@ -6,8 +6,8 @@ Version 0.6.1 (December 13, 2011)
 
 New features
 ~~~~~~~~~~~~
-- Can :ref:`append single rows <merging.append.row>` (as Series) to a DataFrame
-- Add Spearman and Kendall rank :ref:`correlation <computation.correlation>`
+- Can append single rows (as Series) to a DataFrame
+- Add Spearman and Kendall rank correlation
   options to Series.corr and DataFrame.corr (:issue:`428`)
 - :ref:`Added <indexing.basics.get_value>` ``get_value`` and ``set_value`` methods to
   Series, DataFrame, and Panel for very low-overhead access (>2x faster in many
@@ -19,7 +19,7 @@ New features
 - Implement new :ref:`SparseArray <sparse.array>` and ``SparseList``
   data structures. SparseSeries now derives from SparseArray (:issue:`463`)
 - :ref:`Better console printing options <basics.console_output>` (:issue:`453`)
-- Implement fast :ref:`data ranking <computation.ranking>` for Series and
+- Implement fast data ranking for Series and
   DataFrame, fast versions of scipy.stats.rankdata (:issue:`428`)
 - Implement ``DataFrame.from_items`` alternate
   constructor (:issue:`444`)

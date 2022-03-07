@@ -11,7 +11,6 @@ from typing import (
     Hashable,
     Literal,
     Sequence,
-    Union,
     cast,
     final,
 )
@@ -30,7 +29,6 @@ from pandas._typing import (
     ArrayLike,
     DtypeObj,
     IndexLabel,
-    Scalar,
     TakeIndexer,
     npt,
 )
@@ -63,7 +61,11 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
 )
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.dtypes import PandasDtype
+from pandas.core.dtypes.dtypes import (
+    BaseMaskedDtype,
+    ExtensionDtype,
+    PandasDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDatetimeArray,
     ABCExtensionArray,
@@ -100,12 +102,9 @@ if TYPE_CHECKING:
         Series,
     )
     from pandas.core.arrays import (
-        DatetimeArray,
+        BaseMaskedArray,
         ExtensionArray,
-        TimedeltaArray,
     )
-
-_shared_docs: dict[str, str] = {}
 
 
 # --------------- #
@@ -119,7 +118,7 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
     This will coerce:
     - ints -> int64
     - uint -> uint64
-    - bool -> uint64 (TODO this should be uint8)
+    - bool -> uint8
     - datetimelike -> i8
     - datetime64tz -> i8 (in local tz)
     - categorical -> codes
@@ -137,21 +136,31 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
         # extract_array would raise
         values = extract_array(values, extract_numpy=True)
 
-    # we check some simple dtypes first
     if is_object_dtype(values.dtype):
         return ensure_object(np.asarray(values))
+
+    elif isinstance(values.dtype, BaseMaskedDtype):
+        # i.e. BooleanArray, FloatingArray, IntegerArray
+        values = cast("BaseMaskedArray", values)
+        if not values._hasna:
+            # No pd.NAs -> We can avoid an object-dtype cast (and copy) GH#41816
+            #  recurse to avoid re-implementing logic for eg bool->uint8
+            return _ensure_data(values._data)
+        return np.asarray(values)
+
+    elif is_categorical_dtype(values.dtype):
+        # NB: cases that go through here should NOT be using _reconstruct_data
+        #  on the back-end.
+        values = cast("Categorical", values)
+        return values.codes
 
     elif is_bool_dtype(values.dtype):
         if isinstance(values, np.ndarray):
             # i.e. actually dtype == np.dtype("bool")
             return np.asarray(values).view("uint8")
         else:
-            # i.e. all-bool Categorical, BooleanArray
-            try:
-                return np.asarray(values).astype("uint8", copy=False)
-            except (TypeError, ValueError):
-                # GH#42107 we have pd.NAs present
-                return np.asarray(values)
+            # e.g. Sparse[bool, False]  # TODO: no test cases get here
+            return np.asarray(values).astype("uint8", copy=False)
 
     elif is_integer_dtype(values.dtype):
         return np.asarray(values)
@@ -166,10 +175,7 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
         return np.asarray(values)
 
     elif is_complex_dtype(values.dtype):
-        # Incompatible return value type (got "Tuple[Union[Any, ExtensionArray,
-        # ndarray[Any, Any]], Union[Any, ExtensionDtype]]", expected
-        # "Tuple[ndarray[Any, Any], Union[dtype[Any], ExtensionDtype]]")
-        return values  # type: ignore[return-value]
+        return cast(np.ndarray, values)
 
     # datetimelike
     elif needs_i8_conversion(values.dtype):
@@ -178,11 +184,6 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
         npvalues = values.view("i8")
         npvalues = cast(np.ndarray, npvalues)
         return npvalues
-
-    elif is_categorical_dtype(values.dtype):
-        values = cast("Categorical", values)
-        values = values.codes
-        return values
 
     # we have failed, return object
     values = np.asarray(values, dtype=object)
@@ -210,19 +211,13 @@ def _reconstruct_data(
         return values
 
     if not isinstance(dtype, np.dtype):
-        # i.e. ExtensionDtype
+        # i.e. ExtensionDtype; note we have ruled out above the possibility
+        #  that values.dtype == dtype
         cls = dtype.construct_array_type()
-        if isinstance(values, cls) and values.dtype == dtype:
-            return values
 
         values = cls._from_sequence(values, dtype=dtype)
-    elif is_bool_dtype(dtype):
-        values = values.astype(dtype, copy=False)
 
-        # we only support object dtypes bool Index
-        if isinstance(original, ABCIndex):
-            values = values.astype(object, copy=False)
-    elif dtype is not None:
+    else:
         if is_datetime64_dtype(dtype):
             dtype = np.dtype("datetime64[ns]")
         elif is_timedelta64_dtype(dtype):
@@ -285,27 +280,6 @@ def _get_hashtable_algo(values: np.ndarray):
     return htable, values
 
 
-def _get_values_for_rank(values: ArrayLike) -> np.ndarray:
-    if is_categorical_dtype(values):
-        values = cast("Categorical", values)._values_for_rank()
-
-    values = _ensure_data(values)
-    if values.dtype.kind in ["i", "u", "f"]:
-        # rank_t includes only object, int64, uint64, float64
-        dtype = values.dtype.kind + "8"
-        values = values.astype(dtype, copy=False)
-    return values
-
-
-def get_data_algo(values: ArrayLike):
-    values = _get_values_for_rank(values)
-
-    ndtype = _check_object_for_strings(values)
-    htable = _hashtables.get(ndtype, _hashtables["object"])
-
-    return htable, values
-
-
 def _check_object_for_strings(values: np.ndarray) -> str:
     """
     Check if we can use string hashtable instead of object hashtable.
@@ -336,8 +310,9 @@ def _check_object_for_strings(values: np.ndarray) -> str:
 
 def unique(values):
     """
-    Hash table-based unique. Uniques are returned in order
-    of appearance. This does NOT sort.
+    Return unique values based on a hash table.
+
+    Uniques are returned in order of appearance. This does NOT sort.
 
     Significantly faster than numpy.unique for long enough sequences.
     Includes NA values.
@@ -494,7 +469,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
     elif needs_i8_conversion(values.dtype):
         return isin(comps, values.astype(object))
 
-    elif is_extension_array_dtype(values.dtype):
+    elif isinstance(values.dtype, ExtensionDtype):
         return isin(np.asarray(comps), np.asarray(values))
 
     # GH16012
@@ -513,19 +488,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
             f = np.in1d
 
     else:
-        # error: List item 0 has incompatible type "Union[Any, dtype[Any],
-        # ExtensionDtype]"; expected "Union[dtype[Any], None, type, _SupportsDType, str,
-        # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any,
-        # Any]]"
-        # error: List item 1 has incompatible type "Union[Any, ExtensionDtype]";
-        # expected "Union[dtype[Any], None, type, _SupportsDType, str, Tuple[Any,
-        # Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]"
-        # error: List item 1 has incompatible type "Union[dtype[Any], ExtensionDtype]";
-        # expected "Union[dtype[Any], None, type, _SupportsDType, str, Tuple[Any,
-        # Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]"
-        common = np.find_common_type(
-            [values.dtype, comps.dtype], []  # type: ignore[list-item]
-        )
+        common = np.find_common_type([values.dtype, comps.dtype], [])
         values = values.astype(common, copy=False)
         comps = comps.astype(common, copy=False)
         f = htable.ismember
@@ -538,7 +501,7 @@ def factorize_array(
     na_sentinel: int = -1,
     size_hint: int | None = None,
     na_value=None,
-    mask: np.ndarray | None = None,
+    mask: npt.NDArray[np.bool_] | None = None,
 ) -> tuple[npt.NDArray[np.intp], np.ndarray]:
     """
     Factorize a numpy array to codes and uniques.
@@ -566,12 +529,23 @@ def factorize_array(
     codes : ndarray[np.intp]
     uniques : ndarray
     """
-    hash_klass, values = get_data_algo(values)
+    original = values
+    if values.dtype.kind in ["m", "M"]:
+        # _get_hashtable_algo will cast dt64/td64 to i8 via _ensure_data, so we
+        #  need to do the same to na_value. We are assuming here that the passed
+        #  na_value is an appropriately-typed NaT.
+        # e.g. test_where_datetimelike_categorical
+        na_value = iNaT
+
+    hash_klass, values = _get_hashtable_algo(values)
 
     table = hash_klass(size_hint or len(values))
     uniques, codes = table.factorize(
         values, na_sentinel=na_sentinel, na_value=na_value, mask=mask
     )
+
+    # re-cast e.g. i8->dt64/td64, uint8->bool
+    uniques = _reconstruct_data(uniques, original.dtype, original)
 
     codes = ensure_platform_int(codes)
     return codes, uniques
@@ -642,6 +616,10 @@ def factorize(
     --------
     cut : Discretize continuous-valued array.
     unique : Find the unique value in an array.
+
+    Notes
+    -----
+    Reference :ref:`the user guide <reshaping.factorize>` for more examples.
 
     Examples
     --------
@@ -743,33 +721,18 @@ def factorize(
         isinstance(values, (ABCDatetimeArray, ABCTimedeltaArray))
         and values.freq is not None
     ):
+        # The presence of 'freq' means we can fast-path sorting and know there
+        #  aren't NAs
         codes, uniques = values.factorize(sort=sort)
-        if isinstance(original, ABCIndex):
-            uniques = original._shallow_copy(uniques, name=None)
-        elif isinstance(original, ABCSeries):
-            from pandas import Index
-
-            uniques = Index(uniques)
-        return codes, uniques
+        return _re_wrap_factorize(original, uniques, codes)
 
     if not isinstance(values.dtype, np.dtype):
         # i.e. ExtensionDtype
         codes, uniques = values.factorize(na_sentinel=na_sentinel)
-        dtype = original.dtype
     else:
-        dtype = values.dtype
-        values = _ensure_data(values)
-        na_value: Scalar
-
-        if original.dtype.kind in ["m", "M"]:
-            # Note: factorize_array will cast NaT bc it has a __int__
-            #  method, but will not cast the more-correct dtype.type("nat")
-            na_value = iNaT
-        else:
-            na_value = None
-
+        values = np.asarray(values)  # convert DTA/TDA/MultiIndex
         codes, uniques = factorize_array(
-            values, na_sentinel=na_sentinel, size_hint=size_hint, na_value=na_value
+            values, na_sentinel=na_sentinel, size_hint=size_hint
         )
 
     if sort and len(uniques) > 0:
@@ -785,15 +748,17 @@ def factorize(
         uniques = np.append(uniques, [na_value])
         codes = np.where(code_is_na, len(uniques) - 1, codes)
 
-    uniques = _reconstruct_data(uniques, dtype, original)
+    uniques = _reconstruct_data(uniques, original.dtype, original)
 
-    # return original tenor
+    return _re_wrap_factorize(original, uniques, codes)
+
+
+def _re_wrap_factorize(original, uniques, codes: np.ndarray):
+    """
+    Wrap factorize results in Series or Index depending on original type.
+    """
     if isinstance(original, ABCIndex):
-        if original.dtype.kind in ["m", "M"] and isinstance(uniques, np.ndarray):
-            original._data = cast(
-                "Union[DatetimeArray, TimedeltaArray]", original._data
-            )
-            uniques = type(original._data)._simple_new(uniques, dtype=original.dtype)
+        uniques = ensure_wrapped_if_datetimelike(uniques)
         uniques = original._shallow_copy(uniques, name=None)
     elif isinstance(original, ABCSeries):
         from pandas import Index
@@ -833,7 +798,10 @@ def value_counts(
     -------
     Series
     """
-    from pandas.core.series import Series
+    from pandas import (
+        Index,
+        Series,
+    )
 
     name = getattr(values, "name", None)
 
@@ -869,9 +837,16 @@ def value_counts(
             counts = result._values
 
         else:
+            values = _ensure_arraylike(values)
             keys, counts = value_counts_arraylike(values, dropna)
 
-            result = Series(counts, index=keys, name=name)
+            # For backwards compatibility, we let Index do its normal type
+            #  inference, _except_ for if if infers from object to bool.
+            idx = Index._with_infer(keys)
+            if idx.dtype == bool and keys.dtype == object:
+                idx = idx.astype(object)
+
+            result = Series(counts, index=idx, name=name)
 
     if sort:
         result = result.sort_values(ascending=ascending)
@@ -883,31 +858,29 @@ def value_counts(
 
 
 # Called once from SparseArray, otherwise could be private
-def value_counts_arraylike(values, dropna: bool):
+def value_counts_arraylike(values: np.ndarray, dropna: bool):
     """
     Parameters
     ----------
-    values : arraylike
+    values : np.ndarray
     dropna : bool
 
     Returns
     -------
-    uniques : np.ndarray or ExtensionArray
-    counts : np.ndarray
+    uniques : np.ndarray
+    counts : np.ndarray[np.int64]
     """
-    values = _ensure_arraylike(values)
     original = values
     values = _ensure_data(values)
 
-    # TODO: handle uint8
     keys, counts = htable.value_count(values, dropna)
 
     if needs_i8_conversion(original.dtype):
         # datetime, timedelta, or period
 
         if dropna:
-            msk = keys != iNaT
-            keys, counts = keys[msk], counts[msk]
+            mask = keys != iNaT
+            keys, counts = keys[mask], counts[mask]
 
     res_keys = _reconstruct_data(keys, original.dtype, original)
     return res_keys, counts
@@ -938,7 +911,7 @@ def duplicated(
     return htable.duplicated(values, keep=keep)
 
 
-def mode(values, dropna: bool = True) -> Series:
+def mode(values: ArrayLike, dropna: bool = True) -> ArrayLike:
     """
     Returns the mode(s) of an array.
 
@@ -951,27 +924,16 @@ def mode(values, dropna: bool = True) -> Series:
 
     Returns
     -------
-    mode : Series
+    np.ndarray or ExtensionArray
     """
-    from pandas import Series
-    from pandas.core.indexes.api import default_index
-
     values = _ensure_arraylike(values)
     original = values
 
-    # categorical is a fast-path
-    if is_categorical_dtype(values.dtype):
-        if isinstance(values, Series):
-            # TODO: should we be passing `name` below?
-            return Series(values._values.mode(dropna=dropna), name=values.name)
-        return values.mode(dropna=dropna)
-
     if needs_i8_conversion(values.dtype):
-        if dropna:
-            mask = values.isna()
-            values = values[~mask]
-        modes = mode(values.view("i8"))
-        return modes.view(original.dtype)
+        # Got here with ndarray; dispatch to DatetimeArray/TimedeltaArray.
+        values = ensure_wrapped_if_datetimelike(values)
+        values = cast("ExtensionArray", values)
+        return values._mode(dropna=dropna)
 
     values = _ensure_data(values)
 
@@ -982,8 +944,7 @@ def mode(values, dropna: bool = True) -> Series:
         warn(f"Unable to sort modes: {err}")
 
     result = _reconstruct_data(npresult, original.dtype, original)
-    # Ensure index is type stable (should always use int index)
-    return Series(result, index=default_index(len(result)))
+    return result
 
 
 def rank(
@@ -993,13 +954,13 @@ def rank(
     na_option: str = "keep",
     ascending: bool = True,
     pct: bool = False,
-) -> np.ndarray:
+) -> npt.NDArray[np.float64]:
     """
     Rank the values along a given axis.
 
     Parameters
     ----------
-    values : array-like
+    values : np.ndarray or ExtensionArray
         Array whose values will be ranked. The number of dimensions in this
         array must not exceed 2.
     axis : int, default 0
@@ -1018,7 +979,8 @@ def rank(
         (e.g. 1, 2, 3) or in percentile form (e.g. 0.333..., 0.666..., 1).
     """
     is_datetimelike = needs_i8_conversion(values.dtype)
-    values = _get_values_for_rank(values)
+    values = _ensure_data(values)
+
     if values.ndim == 1:
         ranks = algos.rank_1d(
             values,
@@ -1045,7 +1007,7 @@ def rank(
 
 
 def checked_add_with_arr(
-    arr: np.ndarray,
+    arr: npt.NDArray[np.int64],
     b,
     arr_mask: npt.NDArray[np.bool_] | None = None,
     b_mask: npt.NDArray[np.bool_] | None = None,
@@ -1060,7 +1022,7 @@ def checked_add_with_arr(
 
     Parameters
     ----------
-    arr : array addend.
+    arr : np.ndarray[int64] addend.
     b : array or scalar addend.
     arr_mask : np.ndarray[bool] or None, default None
         array indicating which elements to exclude from checking
@@ -1093,7 +1055,12 @@ def checked_add_with_arr(
     elif arr_mask is not None:
         not_nan = np.logical_not(arr_mask)
     elif b_mask is not None:
-        not_nan = np.logical_not(b2_mask)
+        # Argument 1 to "__call__" of "_UFunc_Nin1_Nout1" has incompatible type
+        # "Optional[ndarray[Any, dtype[bool_]]]"; expected
+        # "Union[_SupportsArray[dtype[Any]], _NestedSequence[_SupportsArray[dtype[An
+        # y]]], bool, int, float, complex, str, bytes, _NestedSequence[Union[bool,
+        # int, float, complex, str, bytes]]]"  [arg-type]
+        not_nan = np.logical_not(b2_mask)  # type: ignore[arg-type]
     else:
         not_nan = np.empty(arr.shape, dtype=bool)
         not_nan.fill(True)
@@ -1191,18 +1158,6 @@ class SelectNSeries(SelectN):
 
         dropped = self.obj.dropna()
         nan_index = self.obj.drop(dropped.index)
-
-        if is_extension_array_dtype(dropped.dtype):
-            # GH#41816 bc we have dropped NAs above, MaskedArrays can use the
-            #  numpy logic.
-            from pandas.core.arrays import BaseMaskedArray
-
-            arr = dropped._values
-            if isinstance(arr, BaseMaskedArray):
-                ser = type(dropped)(arr._data, index=dropped.index, name=dropped.name)
-
-                result = type(self)(ser, n=self.n, keep=self.keep).compute(method)
-                return result.astype(arr.dtype)
 
         # slow method
         if n >= len(self.obj):
@@ -1422,20 +1377,20 @@ def take(
 
     Examples
     --------
-    >>> from pandas.api.extensions import take
+    >>> import pandas as pd
 
     With the default ``allow_fill=False``, negative numbers indicate
     positional indices from the right.
 
-    >>> take(np.array([10, 20, 30]), [0, 0, -1])
+    >>> pd.api.extensions.take(np.array([10, 20, 30]), [0, 0, -1])
     array([10, 10, 30])
 
     Setting ``allow_fill=True`` will place `fill_value` in those positions.
 
-    >>> take(np.array([10, 20, 30]), [0, 0, -1], allow_fill=True)
+    >>> pd.api.extensions.take(np.array([10, 20, 30]), [0, 0, -1], allow_fill=True)
     array([10., 10., nan])
 
-    >>> take(np.array([10, 20, 30]), [0, 0, -1], allow_fill=True,
+    >>> pd.api.extensions.take(np.array([10, 20, 30]), [0, 0, -1], allow_fill=True,
     ...      fill_value=-10)
     array([ 10,  10, -10])
     """
@@ -1770,7 +1725,7 @@ def safe_sort(
 
     if sorter is None:
         # mixed types
-        hash_klass, values = get_data_algo(values)
+        hash_klass, values = _get_hashtable_algo(values)
         t = hash_klass(len(values))
         t.map_locations(values)
         sorter = ensure_platform_int(t.lookup(ordered))

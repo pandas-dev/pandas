@@ -83,7 +83,8 @@ AnyArrayLike = Union[ArrayLike, "Index", "Series"]
 PythonScalar = Union[str, int, float, bool]
 DatetimeLikeScalar = Union["Period", "Timestamp", "Timedelta"]
 PandasScalar = Union["Period", "Timestamp", "Timedelta", "Interval"]
-Scalar = Union[PythonScalar, PandasScalar]
+Scalar = Union[PythonScalar, PandasScalar, np.datetime64, np.timedelta64, datetime]
+IntStrT = TypeVar("IntStrT", int, str)
 
 
 # timestamp and timedelta convertible types
@@ -127,6 +128,14 @@ AstypeArg = Union["ExtensionDtype", "npt.DTypeLike"]
 # DtypeArg specifies all allowable dtypes in a functions its dtype argument
 DtypeArg = Union[Dtype, Dict[Hashable, Dtype]]
 DtypeObj = Union[np.dtype, "ExtensionDtype"]
+
+# converters
+ConvertersArg = Dict[Hashable, Callable[[Dtype], Dtype]]
+
+# parse_dates
+ParseDatesArg = Union[
+    bool, List[Hashable], List[List[Hashable]], Dict[Hashable, List[Hashable]]
+]
 
 # For functions like rename that convert one label to another
 Renamer = Union[Mapping[Hashable, Any], Callable[[Hashable], Hashable]]
@@ -242,8 +251,9 @@ StorageOptions = Optional[Dict[str, Any]]
 
 # compression keywords and compression
 CompressionDict = Dict[str, Any]
-CompressionOptions = Optional[Union[str, CompressionDict]]
-
+CompressionOptions = Optional[
+    Union[Literal["infer", "gzip", "bz2", "zip", "xz", "zstd"], CompressionDict]
+]
 
 # types in DataFrameFormatter
 FormattersType = Union[
@@ -288,3 +298,13 @@ else:
 
 # Windowing rank methods
 WindowingRankType = Literal["average", "min", "max"]
+
+# read_csv engines
+CSVEngine = Literal["c", "python", "pyarrow", "python-fwf"]
+
+# read_xml parsers
+XMLParsers = Literal["lxml", "etree"]
+
+# Interval closed type
+
+IntervalClosedType = Literal["left", "right", "both", "neither"]

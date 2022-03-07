@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import numbers
-
 import numpy as np
 
 from pandas._libs import lib
@@ -18,6 +16,7 @@ from pandas.core.dtypes.dtypes import PandasDtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import (
+    arraylike,
     nanops,
     ops,
 )
@@ -62,6 +61,7 @@ class PandasArray(
     __array_priority__ = 1000
     _ndarray: np.ndarray
     _dtype: PandasDtype
+    _internal_fill_value = np.nan
 
     # ------------------------------------------------------------------------
     # Constructors
@@ -109,10 +109,6 @@ class PandasArray(
             result = result.copy()
         return cls(result)
 
-    @classmethod
-    def _from_factorized(cls, values, original) -> PandasArray:
-        return cls(values)
-
     def _from_backing_data(self, arr: np.ndarray) -> PandasArray:
         return type(self)(arr)
 
@@ -129,8 +125,6 @@ class PandasArray(
     def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
         return np.asarray(self._ndarray, dtype=dtype)
 
-    _HANDLED_TYPES = (np.ndarray, numbers.Number)
-
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # Lightly modified version of
         # https://numpy.org/doc/stable/reference/generated/numpy.lib.mixins.NDArrayOperatorsMixin.html
@@ -144,6 +138,20 @@ class PandasArray(
         if result is not NotImplemented:
             return result
 
+        if "out" in kwargs:
+            # e.g. test_ufunc_unary
+            return arraylike.dispatch_ufunc_with_out(
+                self, ufunc, method, *inputs, **kwargs
+            )
+
+        if method == "reduce":
+            result = arraylike.dispatch_reduction_ufunc(
+                self, ufunc, method, *inputs, **kwargs
+            )
+            if result is not NotImplemented:
+                # e.g. tests.series.test_ufunc.TestNumpyReductions
+                return result
+
         # Defer to the implementation of the ufunc on unwrapped values.
         inputs = tuple(x._ndarray if isinstance(x, PandasArray) else x for x in inputs)
         if out:
@@ -153,13 +161,8 @@ class PandasArray(
         result = getattr(ufunc, method)(*inputs, **kwargs)
 
         if ufunc.nout > 1:
-            # multiple return values
-            if not lib.is_scalar(result[0]):
-                # re-box array-like results
-                return tuple(type(self)(x) for x in result)
-            else:
-                # but not scalar reductions
-                return result
+            # multiple return values; re-box array-like results
+            return tuple(type(self)(x) for x in result)
         elif method == "at":
             # no return value
             return None
@@ -171,11 +174,8 @@ class PandasArray(
             # e.g. test_np_max_nested_tuples
             return result
         else:
-            # one return value
-            if not lib.is_scalar(result):
-                # re-box array-like results, but not scalar reductions
-                result = type(self)(result)
-            return result
+            # one return value; re-box array-like results
+            return type(self)(result)
 
     # ------------------------------------------------------------------------
     # Pandas ExtensionArray Interface

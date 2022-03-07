@@ -400,7 +400,7 @@ class Grouper:
                         raise ValueError(f"The level {level} is not valid")
 
         # possibly sort
-        if (self.sort or sort) and not ax.is_monotonic:
+        if (self.sort or sort) and not ax.is_monotonic_increasing:
             # use stable sort to support first, last, nth
             # TODO: why does putting na_position="first" fix datetimelike cases?
             indexer = self.indexer = ax.array.argsort(
@@ -459,7 +459,7 @@ class Grouping:
       * groups : dict of {group -> label_list}
     """
 
-    _codes: np.ndarray | None = None
+    _codes: npt.NDArray[np.signedinteger] | None = None
     _group_index: Index | None = None
     _passed_categorical: bool
     _all_grouper: Categorical | None
@@ -614,7 +614,7 @@ class Grouping:
         return values._reverse_indexer()
 
     @property
-    def codes(self) -> np.ndarray:
+    def codes(self) -> npt.NDArray[np.signedinteger]:
         if self._codes is not None:
             # _codes is set in __init__ for MultiIndex cases
             return self._codes
@@ -657,7 +657,7 @@ class Grouping:
         return Index._with_infer(uniques, name=self.name)
 
     @cache_readonly
-    def _codes_and_uniques(self) -> tuple[np.ndarray, ArrayLike]:
+    def _codes_and_uniques(self) -> tuple[npt.NDArray[np.signedinteger], ArrayLike]:
         if self._passed_categorical:
             # we make a CategoricalIndex out of the cat grouper
             # preserving the categories / ordered attributes
@@ -680,7 +680,7 @@ class Grouping:
         elif isinstance(self.grouping_vector, ops.BaseGrouper):
             # we have a list of groupers
             codes = self.grouping_vector.codes_info
-            uniques = self.grouping_vector.result_arraylike
+            uniques = self.grouping_vector.result_index._values
         else:
             # GH35667, replace dropna=False with na_sentinel=None
             if not self._dropna:
@@ -800,7 +800,7 @@ def get_grouper(
 
     # what are we after, exactly?
     any_callable = any(callable(g) or isinstance(g, dict) for g in keys)
-    any_groupers = any(isinstance(g, Grouper) for g in keys)
+    any_groupers = any(isinstance(g, (Grouper, Grouping)) for g in keys)
     any_arraylike = any(
         isinstance(g, (list, tuple, Series, Index, np.ndarray)) for g in keys
     )
@@ -887,12 +887,6 @@ def get_grouper(
         else:
             in_axis = False
 
-        if is_categorical_dtype(gpr) and len(gpr) != obj.shape[axis]:
-            raise ValueError(
-                f"Length of grouper ({len(gpr)}) and axis ({obj.shape[axis]}) "
-                "must be same length"
-            )
-
         # create the Grouping
         # allow us to passing the actual Grouping as the gpr
         ping = (
@@ -938,7 +932,7 @@ def _convert_grouper(axis: Index, grouper):
             return grouper.reindex(axis)._values
     elif isinstance(grouper, MultiIndex):
         return grouper._values
-    elif isinstance(grouper, (list, tuple, Series, Index, np.ndarray)):
+    elif isinstance(grouper, (list, tuple, Index, Categorical, np.ndarray)):
         if len(grouper) != len(axis):
             raise ValueError("Grouper and axis must be same length")
 

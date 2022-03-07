@@ -63,3 +63,9 @@ class TestBase(Base):
         with pytest.raises(ValueError, match="multi-dimensional indexing not allowed"):
             with tm.assert_produces_warning(FutureWarning):
                 idx[:, None]
+        with pytest.raises(ValueError, match="multi-dimensional indexing not allowed"):
+            # GH#44051
+            idx[True]
+        with pytest.raises(ValueError, match="multi-dimensional indexing not allowed"):
+            # GH#44051
+            idx[False]

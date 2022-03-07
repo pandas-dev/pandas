@@ -2102,18 +2102,13 @@ The ``period`` dtype can be used in ``.astype(...)``. It allows one to change th
    # change monthly freq to daily freq
    pi.astype("period[D]")
 
+   # convert to DatetimeIndex
+   pi.astype("datetime64[ns]")
+
    # convert to PeriodIndex
    dti = pd.date_range("2011-01-01", freq="M", periods=3)
    dti
    dti.astype("period[M]")
-
-.. deprecated:: 1.4.0
-    Converting PeriodIndex to DatetimeIndex with ``.astype(...)`` is deprecated and will raise in a future version. Use ``obj.to_timestamp(how).tz_localize(dtype.tz)`` instead.
-
-.. ipython:: python
-
-    # convert to DatetimeIndex
-    pi.to_timestamp(how="start")
 
 PeriodIndex partial string indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -2424,7 +2419,7 @@ you can use the ``tz_convert`` method.
 
     For ``pytz`` time zones, it is incorrect to pass a time zone object directly into
     the ``datetime.datetime`` constructor
-    (e.g., ``datetime.datetime(2011, 1, 1, tz=pytz.timezone('US/Eastern'))``.
+    (e.g., ``datetime.datetime(2011, 1, 1, tzinfo=pytz.timezone('US/Eastern'))``.
     Instead, the datetime needs to be localized using the ``localize`` method
     on the ``pytz`` time zone object.
 

@@ -101,6 +101,10 @@ class TestGetitem(base.BaseGetitemTests):
         self.assert_extension_array_equal(result, expected)
 
 
+class TestIndex(base.BaseIndexTests):
+    pass
+
+
 class TestMissing(base.BaseMissingTests):
     pass
 
@@ -147,9 +151,6 @@ class TestMethods(base.BaseMethodsTests):
             expected = vcs_ex.sort_index()
 
         tm.assert_series_equal(result, expected)
-
-    def test_value_counts_with_normalize(self, data):
-        return super().test_value_counts_with_normalize(data)
 
 
 class TestCasting(base.BaseCastingTests):

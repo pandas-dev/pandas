@@ -51,7 +51,7 @@ class TestGetLoc:
         lev = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
         dti = pd.date_range("2016-01-01", periods=100)
 
-        mi = pd.MultiIndex.from_product([lev, range(10 ** 3), dti])
+        mi = pd.MultiIndex.from_product([lev, range(10**3), dti])
         oidx = mi.to_flat_index()
 
         loc = len(oidx) // 2
@@ -76,3 +76,11 @@ class TestGetLoc:
         # we don't match at all on mismatched NA
         with pytest.raises(KeyError, match="NaT"):
             idx.get_loc(NaT)
+
+
+def test_getitem_boolean_ea_indexer():
+    # GH#45806
+    ser = pd.Series([True, False, pd.NA], dtype="boolean")
+    result = ser.index[ser]
+    expected = Index([0])
+    tm.assert_index_equal(result, expected)

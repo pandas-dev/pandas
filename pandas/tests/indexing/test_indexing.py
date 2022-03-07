@@ -7,8 +7,6 @@ import weakref
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
@@ -26,6 +24,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.api import Float64Index
+from pandas.core.indexing import IndexingError
 from pandas.tests.indexing.common import _mklbl
 from pandas.tests.indexing.test_floats import gen_obj
 
@@ -68,7 +67,8 @@ class TestFancy:
 
         msg = "Must have equal len keys and value when setting with an iterable"
         with pytest.raises(ValueError, match=msg):
-            df[2:5] = np.arange(1, 4) * 1j
+            with tm.assert_produces_warning(FutureWarning, match="label-based"):
+                df[2:5] = np.arange(1, 4) * 1j
 
     def test_getitem_ndarray_3d(
         self, index, frame_or_series, indexer_sli, using_array_manager
@@ -99,6 +99,13 @@ class TestFancy:
             msgs.append("Data must be 1-dimensional")
         if len(index) == 0 or isinstance(index, pd.MultiIndex):
             msgs.append("positional indexers are out-of-bounds")
+        if type(index) is Index and not isinstance(index._values, np.ndarray):
+            # e.g. Int64
+            msgs.append("values must be a 1D array")
+
+            # string[pyarrow]
+            msgs.append("only handle 1-dimensional arrays")
+
         msg = "|".join(msgs)
 
         potential_errors = (IndexError, ValueError, NotImplementedError)
@@ -496,9 +503,6 @@ class TestFancy:
         df.loc[df["A"] == 0, ["A", "B"]] = df["D"]
         tm.assert_frame_equal(df, expected)
 
-    # TODO(ArrayManager) setting single item with an iterable doesn't work yet
-    # in the "split" path
-    @td.skip_array_manager_not_yet_implemented
     def test_setitem_list(self):
 
         # GH 6043
@@ -697,23 +701,23 @@ class TestMisc:
         right_iloc["jolie"] = ["@2", -26.0, -18.0, -10.0, "@18"]
         run_tests(df, rhs, right_loc, right_iloc)
 
-    def test_str_label_slicing_with_negative_step(self):
+    @pytest.mark.parametrize(
+        "idx", [_mklbl("A", 20), np.arange(20) + 100, np.linspace(100, 150, 20)]
+    )
+    def test_str_label_slicing_with_negative_step(self, idx):
         SLC = pd.IndexSlice
 
-        for idx in [_mklbl("A", 20), np.arange(20) + 100, np.linspace(100, 150, 20)]:
-            idx = Index(idx)
-            ser = Series(np.arange(20), index=idx)
-            tm.assert_indexing_slices_equivalent(ser, SLC[idx[9] :: -1], SLC[9::-1])
-            tm.assert_indexing_slices_equivalent(ser, SLC[: idx[9] : -1], SLC[:8:-1])
-            tm.assert_indexing_slices_equivalent(
-                ser, SLC[idx[13] : idx[9] : -1], SLC[13:8:-1]
-            )
-            tm.assert_indexing_slices_equivalent(
-                ser, SLC[idx[9] : idx[13] : -1], SLC[:0]
-            )
+        idx = Index(idx)
+        ser = Series(np.arange(20), index=idx)
+        tm.assert_indexing_slices_equivalent(ser, SLC[idx[9] :: -1], SLC[9::-1])
+        tm.assert_indexing_slices_equivalent(ser, SLC[: idx[9] : -1], SLC[:8:-1])
+        tm.assert_indexing_slices_equivalent(
+            ser, SLC[idx[13] : idx[9] : -1], SLC[13:8:-1]
+        )
+        tm.assert_indexing_slices_equivalent(ser, SLC[idx[9] : idx[13] : -1], SLC[:0])
 
-    def test_slice_with_zero_step_raises(self, indexer_sl, frame_or_series):
-        obj = frame_or_series(np.arange(20), index=_mklbl("A", 20))
+    def test_slice_with_zero_step_raises(self, index, indexer_sl, frame_or_series):
+        obj = frame_or_series(np.arange(len(index)), index=index)
         with pytest.raises(ValueError, match="slice step cannot be zero"):
             indexer_sl(obj)[::0]
 
@@ -978,3 +982,31 @@ def test_extension_array_cross_section_converts():
 
     result = df.iloc[0]
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "ser, keys",
+    [(Series([10]), (0, 0)), (Series([1, 2, 3], index=list("abc")), (0, 1))],
+)
+def test_ser_tup_indexer_exceeds_dimensions(ser, keys, indexer_li):
+    # GH#13831
+    exp_err, exp_msg = IndexingError, "Too many indexers"
+    with pytest.raises(exp_err, match=exp_msg):
+        indexer_li(ser)[keys]
+
+    if indexer_li == tm.iloc:
+        # For iloc.__setitem__ we let numpy handle the error reporting.
+        exp_err, exp_msg = IndexError, "too many indices for array"
+
+    with pytest.raises(exp_err, match=exp_msg):
+        indexer_li(ser)[keys] = 0
+
+
+def test_ser_list_indexer_exceeds_dimensions(indexer_li):
+    # GH#13831
+    # Make sure an exception is raised when a tuple exceeds the dimension of the series,
+    # but not list when a list is used.
+    ser = Series([10])
+    res = indexer_li(ser)[[0, 0]]
+    exp = Series([10, 10], index=Index([0, 0]))
+    tm.assert_series_equal(res, exp)

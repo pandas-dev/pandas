@@ -6,10 +6,12 @@ import time
 import pytest
 
 from pandas.compat import (
+    is_ci_environment,
     is_platform_arm,
     is_platform_mac,
     is_platform_windows,
 )
+import pandas.util._test_decorators as td
 
 import pandas._testing as tm
 
@@ -41,7 +43,7 @@ def feather_file(datapath):
 
 @pytest.fixture
 def s3so(worker_id):
-    if os.environ.get("PANDAS_CI", "0") == "1":
+    if is_ci_environment():
         url = "http://localhost:5000/"
     else:
         worker_id = "5" if worker_id == "master" else worker_id.lstrip("gw")
@@ -65,7 +67,7 @@ def s3_base(worker_id):
         # see https://github.com/spulec/moto/issues/1924 & 1952
         os.environ.setdefault("AWS_ACCESS_KEY_ID", "foobar_key")
         os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "foobar_secret")
-        if os.environ.get("PANDAS_CI", "0") == "1":
+        if is_ci_environment():
             if is_platform_arm() or is_platform_mac() or is_platform_windows():
                 # NOT RUN on Windows/MacOS/ARM, only Ubuntu
                 # - subprocess in CI can cause timeouts
@@ -113,7 +115,7 @@ def s3_base(worker_id):
                 proc.terminate()
 
 
-@pytest.fixture()
+@pytest.fixture
 def s3_resource(s3_base, tips_file, jsonl_file, feather_file):
     """
     Sets up S3 bucket with contents
@@ -184,3 +186,29 @@ def s3_resource(s3_base, tips_file, jsonl_file, feather_file):
     while cli.list_buckets()["Buckets"] and timeout > 0:
         time.sleep(0.1)
         timeout -= 0.1
+
+
+_compression_formats_params = [
+    (".no_compress", None),
+    ("", None),
+    (".gz", "gzip"),
+    (".GZ", "gzip"),
+    (".bz2", "bz2"),
+    (".BZ2", "bz2"),
+    (".zip", "zip"),
+    (".ZIP", "zip"),
+    (".xz", "xz"),
+    (".XZ", "xz"),
+    pytest.param((".zst", "zstd"), marks=td.skip_if_no("zstandard")),
+    pytest.param((".ZST", "zstd"), marks=td.skip_if_no("zstandard")),
+]
+
+
+@pytest.fixture(params=_compression_formats_params[1:])
+def compression_format(request):
+    return request.param
+
+
+@pytest.fixture(params=_compression_formats_params)
+def compression_ext(request):
+    return request.param[0]

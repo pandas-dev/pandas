@@ -123,6 +123,22 @@ def scatter_matrix(
 
         >>> df = pd.DataFrame(np.random.randn(1000, 4), columns=['A','B','C','D'])
         >>> pd.plotting.scatter_matrix(df, alpha=0.2)
+        array([[<AxesSubplot:xlabel='A', ylabel='A'>,
+            <AxesSubplot:xlabel='B', ylabel='A'>,
+            <AxesSubplot:xlabel='C', ylabel='A'>,
+            <AxesSubplot:xlabel='D', ylabel='A'>],
+           [<AxesSubplot:xlabel='A', ylabel='B'>,
+            <AxesSubplot:xlabel='B', ylabel='B'>,
+            <AxesSubplot:xlabel='C', ylabel='B'>,
+            <AxesSubplot:xlabel='D', ylabel='B'>],
+           [<AxesSubplot:xlabel='A', ylabel='C'>,
+            <AxesSubplot:xlabel='B', ylabel='C'>,
+            <AxesSubplot:xlabel='C', ylabel='C'>,
+            <AxesSubplot:xlabel='D', ylabel='C'>],
+           [<AxesSubplot:xlabel='A', ylabel='D'>,
+            <AxesSubplot:xlabel='B', ylabel='D'>,
+            <AxesSubplot:xlabel='C', ylabel='D'>,
+            <AxesSubplot:xlabel='D', ylabel='D'>]], dtype=object)
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.scatter_matrix(
@@ -208,6 +224,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
         ...     }
         ... )
         >>> pd.plotting.radviz(df, 'Category')
+        <AxesSubplot:xlabel='y(t)', ylabel='y(t + 1)'>
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.radviz(
@@ -263,9 +280,10 @@ def andrews_curves(
 
         >>> df = pd.read_csv(
         ...     'https://raw.github.com/pandas-dev/'
-        ...     'pandas/master/pandas/tests/io/data/csv/iris.csv'
+        ...     'pandas/main/pandas/tests/io/data/csv/iris.csv'
         ... )
         >>> pd.plotting.andrews_curves(df, 'Name')
+        <AxesSubplot:title={'center':'width'}>
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.andrews_curves(
@@ -325,6 +343,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
 
         >>> s = pd.Series(np.random.uniform(size=100))
         >>> pd.plotting.bootstrap_plot(s)
+        <Figure size 640x480 with 6 Axes>
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.bootstrap_plot(
@@ -387,11 +406,12 @@ def parallel_coordinates(
 
         >>> df = pd.read_csv(
         ...     'https://raw.github.com/pandas-dev/'
-        ...     'pandas/master/pandas/tests/io/data/csv/iris.csv'
+        ...     'pandas/main/pandas/tests/io/data/csv/iris.csv'
         ... )
         >>> pd.plotting.parallel_coordinates(
         ...     df, 'Name', color=('#556270', '#4ECDC4', '#C7F464')
         ... )
+        <AxesSubplot:xlabel='y(t)', ylabel='y(t + 1)'>
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.parallel_coordinates(
@@ -440,6 +460,7 @@ def lag_plot(series, lag=1, ax=None, **kwds):
         >>> x = np.cumsum(np.random.normal(loc=1, scale=5, size=50))
         >>> s = pd.Series(x)
         >>> s.plot()
+        <AxesSubplot:xlabel='Midrange'>
 
     A lag plot with ``lag=1`` returns
 
@@ -447,6 +468,7 @@ def lag_plot(series, lag=1, ax=None, **kwds):
         :context: close-figs
 
         >>> pd.plotting.lag_plot(s, lag=1)
+        <AxesSubplot:xlabel='y(t)', ylabel='y(t + 1)'>
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.lag_plot(series=series, lag=lag, ax=ax, **kwds)
@@ -480,6 +502,7 @@ def autocorrelation_plot(series, ax=None, **kwargs):
         >>> spacing = np.linspace(-9 * np.pi, 9 * np.pi, num=1000)
         >>> s = pd.Series(0.7 * np.random.rand(1000) + 0.3 * np.sin(spacing))
         >>> pd.plotting.autocorrelation_plot(s)
+        <AxesSubplot:title={'center':'width'}, xlabel='Lag', ylabel='Autocorrelation'>
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.autocorrelation_plot(series=series, ax=ax, **kwargs)

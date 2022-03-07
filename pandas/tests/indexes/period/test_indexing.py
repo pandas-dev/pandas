@@ -144,7 +144,7 @@ class TestGetItem:
         result = ts[24:]
         tm.assert_series_equal(exp, result)
 
-        ts = ts[10:].append(ts[10:])
+        ts = pd.concat([ts[10:], ts[10:]])
         msg = "left slice bound for non-unique label: '2008'"
         with pytest.raises(KeyError, match=msg):
             ts[slice("2008", "2009")]

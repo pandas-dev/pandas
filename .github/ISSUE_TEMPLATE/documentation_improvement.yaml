@@ -6,10 +6,11 @@ labels: [Docs, Needs Triage]
 body:
   - type: checkboxes
     attributes:
+      label: Pandas version checks
       options:
         - label: >
             I have checked that the issue still exists on the latest versions of the docs
-            on `master` [here](https://pandas.pydata.org/docs/dev/)
+            on `main` [here](https://pandas.pydata.org/docs/dev/)
           required: true
   - type: textarea
     id: location

@@ -4,12 +4,16 @@ from io import (
     BytesIO,
     StringIO,
 )
+from lzma import LZMAError
 import os
 from urllib.error import HTTPError
+from zipfile import BadZipFile
 
 import numpy as np
 import pytest
 
+from pandas.compat import is_ci_environment
+from pandas.compat._optional import import_optional_dependency
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame
@@ -251,10 +255,17 @@ def test_parser_consistency_file(datapath):
     tm.assert_frame_equal(df_file_lxml, df_file_etree)
 
 
-@tm.network
+@pytest.mark.network
 @pytest.mark.slow
 @td.skip_if_no("lxml")
-def test_parser_consistency_url(datapath):
+@tm.network(
+    url=(
+        "https://data.cityofchicago.org/api/views/"
+        "8pix-ypme/rows.xml?accessType=DOWNLOAD"
+    ),
+    check_before_test=True,
+)
+def test_parser_consistency_url():
     url = (
         "https://data.cityofchicago.org/api/views/"
         "8pix-ypme/rows.xml?accessType=DOWNLOAD"
@@ -398,7 +409,11 @@ def test_wrong_file_path_etree():
         read_xml(filename, parser="etree")
 
 
-@tm.network
+@pytest.mark.network
+@tm.network(
+    url="https://www.w3schools.com/xml/books.xml",
+    check_before_test=True,
+)
 @td.skip_if_no("lxml")
 def test_url():
     url = "https://www.w3schools.com/xml/books.xml"
@@ -418,7 +433,8 @@ def test_url():
     tm.assert_frame_equal(df_url, df_expected)
 
 
-@tm.network
+@pytest.mark.network
+@tm.network(url="https://www.w3schools.com/xml/python.xml", check_before_test=True)
 def test_wrong_url(parser):
     with pytest.raises(HTTPError, match=("HTTP Error 404: Not Found")):
         url = "https://www.w3schools.com/xml/python.xml"
@@ -681,9 +697,7 @@ def test_names_option_wrong_type(datapath, parser):
     filename = datapath("io", "data", "xml", "books.xml")
 
     with pytest.raises(TypeError, match=("is not a valid type for names")):
-        read_xml(
-            filename, names="Col1, Col2, Col3", parser=parser  # type: ignore[arg-type]
-        )
+        read_xml(filename, names="Col1, Col2, Col3", parser=parser)
 
 
 # ENCODING
@@ -728,6 +742,32 @@ def test_parser_consistency_with_encoding(datapath):
     tm.assert_frame_equal(df_lxml, df_etree)
 
 
+@td.skip_if_no("lxml")
+def test_wrong_encoding_for_lxml():
+    # GH#45133
+    data = """<data>
+  <row>
+    <a>c</a>
+  </row>
+</data>
+"""
+    with pytest.raises(TypeError, match="encoding None"):
+        read_xml(StringIO(data), parser="lxml", encoding=None)
+
+
+def test_none_encoding_etree():
+    # GH#45133
+    data = """<data>
+  <row>
+    <a>c</a>
+  </row>
+</data>
+"""
+    result = read_xml(StringIO(data), parser="etree", encoding=None)
+    expected = DataFrame({"a": ["c"]})
+    tm.assert_frame_equal(result, expected)
+
+
 # PARSER
 
 
@@ -766,6 +806,19 @@ def test_stylesheet_file(datapath):
     )
 
     tm.assert_frame_equal(df_kml, df_style)
+
+
+def test_read_xml_passing_as_positional_deprecated(datapath, parser):
+    # GH#45133
+    kml = datapath("io", "data", "xml", "cta_rail_lines.kml")
+
+    with tm.assert_produces_warning(FutureWarning, match="keyword-only"):
+        read_xml(
+            kml,
+            ".//k:Placemark",
+            namespaces={"k": "http://www.opengis.net/kml/2.2"},
+            parser=parser,
+        )
 
 
 @td.skip_if_no("lxml")
@@ -953,7 +1006,7 @@ def test_stylesheet_file_close(datapath, mode):
 
 
 @td.skip_if_no("lxml")
-def test_stylesheet_with_etree(datapath):
+def test_stylesheet_with_etree():
     kml = os.path.join("data", "xml", "cta_rail_lines.kml")
     xsl = os.path.join("data", "xml", "flatten_doc.xsl")
 
@@ -976,8 +1029,11 @@ def test_empty_stylesheet(val):
         read_xml(kml, stylesheet=val)
 
 
-@tm.network
+@pytest.mark.network
 @td.skip_if_no("lxml")
+@tm.network(
+    url="https://www.w3schools.com/xml/cdcatalog_with_xsl.xml", check_before_test=True
+)
 def test_online_stylesheet():
     xml = "https://www.w3schools.com/xml/cdcatalog_with_xsl.xml"
     xsl = "https://www.w3schools.com/xml/cdcatalog.xsl"
@@ -1014,59 +1070,43 @@ def test_online_stylesheet():
 # COMPRESSION
 
 
-@pytest.mark.parametrize("comp", ["bz2", "gzip", "xz", "zip"])
-def test_compression_read(parser, comp):
+def test_compression_read(parser, compression_only):
     with tm.ensure_clean() as path:
-        geom_df.to_xml(path, index=False, parser=parser, compression=comp)
+        geom_df.to_xml(path, index=False, parser=parser, compression=compression_only)
 
-        xml_df = read_xml(path, parser=parser, compression=comp)
+        xml_df = read_xml(path, parser=parser, compression=compression_only)
 
     tm.assert_frame_equal(xml_df, geom_df)
 
 
-@pytest.mark.parametrize("comp", ["gzip", "xz", "zip"])
-def test_wrong_compression_bz2(parser, comp):
-    with tm.ensure_clean() as path:
-        geom_df.to_xml(path, parser=parser, compression=comp)
+def test_wrong_compression(parser, compression, compression_only):
+    actual_compression = compression
+    attempted_compression = compression_only
 
-        with pytest.raises(OSError, match="Invalid data stream"):
-            read_xml(path, parser=parser, compression="bz2")
+    if actual_compression == attempted_compression:
+        return
 
-
-@pytest.mark.parametrize("comp", ["bz2", "xz", "zip"])
-def test_wrong_compression_gz(parser, comp):
-    with tm.ensure_clean() as path:
-        geom_df.to_xml(path, parser=parser, compression=comp)
-
-        with pytest.raises(OSError, match="Not a gzipped file"):
-            read_xml(path, parser=parser, compression="gzip")
-
-
-@pytest.mark.parametrize("comp", ["bz2", "gzip", "zip"])
-def test_wrong_compression_xz(parser, comp):
-    lzma = pytest.importorskip("lzma")
+    errors = {
+        "bz2": (OSError, "Invalid data stream"),
+        "gzip": (OSError, "Not a gzipped file"),
+        "zip": (BadZipFile, "File is not a zip file"),
+    }
+    zstd = import_optional_dependency("zstandard", errors="ignore")
+    if zstd is not None:
+        errors["zstd"] = (zstd.ZstdError, "Unknown frame descriptor")
+    lzma = import_optional_dependency("lzma", errors="ignore")
+    if lzma is not None:
+        errors["xz"] = (LZMAError, "Input format not supported by decoder")
+    error_cls, error_str = errors[attempted_compression]
 
     with tm.ensure_clean() as path:
-        geom_df.to_xml(path, parser=parser, compression=comp)
+        geom_df.to_xml(path, parser=parser, compression=actual_compression)
 
-        with pytest.raises(
-            lzma.LZMAError, match="Input format not supported by decoder"
-        ):
-            read_xml(path, parser=parser, compression="xz")
+        with pytest.raises(error_cls, match=error_str):
+            read_xml(path, parser=parser, compression=attempted_compression)
 
 
-@pytest.mark.parametrize("comp", ["bz2", "gzip", "xz"])
-def test_wrong_compression_zip(parser, comp):
-    from zipfile import BadZipFile
-
-    with tm.ensure_clean() as path:
-        geom_df.to_xml(path, parser=parser, compression=comp)
-
-        with pytest.raises(BadZipFile, match="File is not a zip file"):
-            read_xml(path, parser=parser, compression="zip")
-
-
-def test_unsuported_compression(datapath, parser):
+def test_unsuported_compression(parser):
     with pytest.raises(ValueError, match="Unrecognized compression type"):
         with tm.ensure_clean() as path:
             read_xml(path, parser=parser, compression="7z")
@@ -1075,9 +1115,14 @@ def test_unsuported_compression(datapath, parser):
 # STORAGE OPTIONS
 
 
-@tm.network
+@pytest.mark.network
 @td.skip_if_no("s3fs")
 @td.skip_if_no("lxml")
+@pytest.mark.skipif(
+    is_ci_environment(),
+    reason="2022.1.17: Hanging on the CI min versions build.",
+)
+@tm.network
 def test_s3_parser_consistency():
     # Python Software Foundation (2019 IRS-990 RETURN)
     s3 = "s3://irs-form-990/201923199349319487_public.xml"

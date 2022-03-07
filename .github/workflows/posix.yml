@@ -3,17 +3,16 @@ name: Posix
 on:
   push:
     branches:
-      - master
-      - 1.3.x
+      - main
+      - 1.4.x
   pull_request:
     branches:
-      - master
-      - 1.3.x
+      - main
+      - 1.4.x
     paths-ignore:
       - "doc/**"
 
 env:
-  PYTEST_WORKERS: "auto"
   PANDAS_CI: 1
 
 jobs:
@@ -22,34 +21,96 @@ jobs:
     defaults:
       run:
         shell: bash -l {0}
+    timeout-minutes: 120
     strategy:
       matrix:
-        settings: [
-          [actions-38-minimum_versions.yaml, "not slow and not network and not clipboard", "", "", "", "", ""],
-          [actions-38-locale_slow.yaml, "slow", "language-pack-it xsel", "it_IT.utf8", "it_IT.utf8", "", ""],
-          [actions-38.yaml, "not slow and not clipboard", "", "", "", "", ""],
-          [actions-38-slow.yaml, "slow", "", "", "", "", ""],
-          [actions-38-locale.yaml, "not slow and not network", "language-pack-zh-hans xsel", "zh_CN.utf8", "zh_CN.utf8", "", ""],
-          [actions-39-slow.yaml, "slow", "", "", "", "", ""],
-          [actions-39-numpydev.yaml, "not slow and not network", "xsel", "", "", "deprecate", "-W error"],
-          [actions-39.yaml, "not slow and not clipboard", "", "", "", "", ""]
-        ]
+        env_file: [actions-38.yaml, actions-39.yaml, actions-310.yaml]
+        pattern: ["not single_cpu", "single_cpu"]
+        # Don't test pyarrow v2/3: Causes timeouts in read_csv engine
+        # even if tests are skipped/xfailed
+        pyarrow_version: ["5", "7"]
+        include:
+          - env_file: actions-38-downstream_compat.yaml
+            pattern: "not slow and not network and not single_cpu"
+            pytest_target: "pandas/tests/test_downstream.py"
+            name: "Downstream Compat"
+          - env_file: actions-38-minimum_versions.yaml
+            pattern: "not slow and not network and not single_cpu"
+            name: "Minimum Versions"
+          - env_file: actions-38.yaml
+            pattern: "not slow and not network and not single_cpu"
+            extra_apt: "language-pack-it"
+            lang: "it_IT.utf8"
+            lc_all: "it_IT.utf8"
+            name: "Locale: it_IT.utf8"
+          - env_file: actions-38.yaml
+            pattern: "not slow and not network and not single_cpu"
+            extra_apt: "language-pack-zh-hans"
+            lang: "zh_CN.utf8"
+            lc_all: "zh_CN.utf8"
+            name: "Locale: zh_CN.utf8"
+          - env_file: actions-38.yaml
+            pattern: "not slow and not network and not single_cpu"
+            pandas_data_manager: "array"
+            name: "Data Manager"
+          - env_file: actions-pypy-38.yaml
+            pattern: "not slow and not network and not single_cpu"
+            test_args: "--max-worker-restart 0"
+            name: "Pypy"
+          - env_file: actions-310-numpydev.yaml
+            pattern: "not slow and not network and not single_cpu"
+            pandas_testing_mode: "deprecate"
+            test_args: "-W error"
+            name: "Numpy Dev"
       fail-fast: false
+    name: ${{ matrix.name || format('{0} pyarrow={1} {2}', matrix.env_file, matrix.pyarrow_version, matrix.pattern) }}
     env:
-      COVERAGE: true
-      ENV_FILE: ci/deps/${{ matrix.settings[0] }}
-      PATTERN: ${{ matrix.settings[1] }}
-      EXTRA_APT: ${{ matrix.settings[2] }}
-      LANG: ${{ matrix.settings[3] }}
-      LC_ALL: ${{ matrix.settings[4] }}
-      PANDAS_TESTING_MODE: ${{ matrix.settings[5] }}
-      TEST_ARGS: ${{ matrix.settings[6] }}
-      PYTEST_TARGET:  pandas
+      ENV_FILE: ci/deps/${{ matrix.env_file }}
+      PATTERN: ${{ matrix.pattern }}
+      EXTRA_APT: ${{ matrix.extra_apt || '' }}
+      LANG: ${{ matrix.lang || '' }}
+      LC_ALL: ${{ matrix.lc_all || '' }}
+      PANDAS_TESTING_MODE: ${{ matrix.pandas_testing_mode || '' }}
+      PANDAS_DATA_MANAGER: ${{ matrix.pandas_data_manager || 'block' }}
+      TEST_ARGS: ${{ matrix.test_args || '' }}
+      PYTEST_WORKERS: ${{ contains(matrix.pattern, 'not single_cpu') && 'auto' || '1' }}
+      PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
+      IS_PYPY: ${{ contains(matrix.env_file, 'pypy') }}
+      # TODO: re-enable coverage on pypy, its slow
+      COVERAGE: ${{ !contains(matrix.env_file, 'pypy') }}
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.settings[0] }}
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.env_file }}-${{ matrix.pattern }}-${{ matrix.pyarrow_version || '' }}-${{ matrix.extra_apt || '' }}-${{ matrix.pandas_data_manager || '' }}
       cancel-in-progress: true
+
     services:
+      mysql:
+        image: mysql
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: pandas
+        options: >-
+          --health-cmd "mysqladmin ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 3306:3306
+
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: pandas
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
       moto:
         image: motoserver/moto
         env:
@@ -74,34 +135,54 @@ jobs:
           hashFiles('${{ env.ENV_FILE }}') }}
 
     - name: Extra installs
-      run: sudo apt-get update && sudo apt-get install -y libc6-dev-i386 ${{ env.EXTRA_APT }}
+      # xsel for clipboard tests
+      run: sudo apt-get update && sudo apt-get install -y libc6-dev-i386 xsel ${{ env.EXTRA_APT }}
 
     - uses: conda-incubator/setup-miniconda@v2
       with:
+        mamba-version: "*"
+        channels: conda-forge
         activate-environment: pandas-dev
         channel-priority: flexible
         environment-file: ${{ env.ENV_FILE }}
         use-only-tar-bz2: true
+      if: ${{ env.IS_PYPY == 'false' }} # No pypy3.8 support
+
+    - name: Upgrade Arrow version
+      run: conda install -n pandas-dev -c conda-forge --no-update-deps pyarrow=${{ matrix.pyarrow_version }}
+      if: ${{ matrix.pyarrow_version }}
+
+    - name: Setup PyPy
+      uses: actions/setup-python@v2
+      with:
+        python-version: "pypy-3.8"
+      if: ${{ env.IS_PYPY == 'true' }}
+
+    - name: Setup PyPy dependencies
+      shell: bash
+      run: |
+        # TODO: re-enable cov, its slowing the tests down though
+        pip install Cython numpy python-dateutil pytz pytest>=6.0 pytest-xdist>=1.31.0 hypothesis>=5.5.3
+      if: ${{ env.IS_PYPY == 'true' }}
 
     - name: Build Pandas
       uses: ./.github/actions/build_pandas
 
     - name: Test
       run: ci/run_tests.sh
+      # TODO: Don't continue on error for PyPy
+      continue-on-error: ${{ env.IS_PYPY == 'true' }}
       if: always()
 
     - name: Build Version
       run: pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
 
     - name: Publish test results
-      uses: actions/upload-artifact@master
+      uses: actions/upload-artifact@v2
       with:
         name: Test results
         path: test-data.xml
       if: failure()
-
-    - name: Print skipped tests
-      run: python ci/print_skipped.py
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v2

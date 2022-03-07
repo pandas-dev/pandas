@@ -19,6 +19,11 @@ def as_index(request):
     return request.param
 
 
+@pytest.fixture(params=[True, False])
+def dropna(request):
+    return request.param
+
+
 @pytest.fixture
 def mframe(multiindex_dataframe_random_data):
     return multiindex_dataframe_random_data
@@ -173,4 +178,22 @@ def nogil(request):
 @pytest.fixture(params=[True])
 def nopython(request):
     """nopython keyword argument for numba.jit"""
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        ("mean", {}),
+        ("var", {"ddof": 1}),
+        ("var", {"ddof": 0}),
+        ("std", {"ddof": 1}),
+        ("std", {"ddof": 0}),
+        ("sum", {}),
+        ("min", {}),
+        ("max", {}),
+    ],
+    ids=["mean", "var_1", "var_0", "std_1", "std_0", "sum", "min", "max"],
+)
+def numba_supported_reductions(request):
+    """reductions supported with engine='numba'"""
     return request.param

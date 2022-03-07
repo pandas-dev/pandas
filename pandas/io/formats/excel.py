@@ -38,8 +38,8 @@ from pandas import (
     MultiIndex,
     PeriodIndex,
 )
-from pandas.core import generic
 import pandas.core.common as com
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.formats._color_data import CSS4_COLORS
 from pandas.io.formats.css import (
@@ -85,7 +85,9 @@ class CssExcelCell(ExcelCell):
         **kwargs,
     ):
         if css_styles and css_converter:
-            css = ";".join(a + ":" + str(v) for (a, v) in css_styles[css_row, css_col])
+            css = ";".join(
+                [a + ":" + str(v) for (a, v) in css_styles[css_row, css_col]]
+            )
             style = css_converter(css)
 
         return super().__init__(row=row, col=col, val=val, style=style, **kwargs)
@@ -235,13 +237,14 @@ class CSSToExcelConverter:
                 "style": self._border_style(
                     props.get(f"border-{side}-style"),
                     props.get(f"border-{side}-width"),
+                    self.color_to_excel(props.get(f"border-{side}-color")),
                 ),
                 "color": self.color_to_excel(props.get(f"border-{side}-color")),
             }
             for side in ["top", "right", "bottom", "left"]
         }
 
-    def _border_style(self, style: str | None, width: str | None):
+    def _border_style(self, style: str | None, width: str | None, color: str | None):
         # convert styles and widths to openxml, one of:
         #       'dashDot'
         #       'dashDotDot'
@@ -256,14 +259,20 @@ class CSSToExcelConverter:
         #       'slantDashDot'
         #       'thick'
         #       'thin'
+        if width is None and style is None and color is None:
+            # Return None will remove "border" from style dictionary
+            return None
+
         if width is None and style is None:
-            return None
+            # Return "none" will keep "border" in style dictionary
+            return "none"
+
         if style == "none" or style == "hidden":
-            return None
+            return "none"
 
         width_name = self._get_width_name(width)
         if width_name is None:
-            return None
+            return "none"
 
         if style in (None, "groove", "ridge", "inset", "outset", "solid"):
             # not handled
@@ -307,7 +316,9 @@ class CSSToExcelConverter:
             return {"fgColor": self.color_to_excel(fill_color), "patternType": "solid"}
 
     def build_number_format(self, props: Mapping[str, str]) -> dict[str, str | None]:
-        return {"format_code": props.get("number-format")}
+        fc = props.get("number-format")
+        fc = fc.replace("§", ";") if isinstance(fc, str) else fc
+        return {"format_code": fc}
 
     def build_font(
         self, props: Mapping[str, str]
@@ -467,8 +478,8 @@ class ExcelFormatter:
         This is only called for body cells.
     """
 
-    max_rows = 2 ** 20
-    max_cols = 2 ** 14
+    max_rows = 2**20
+    max_cols = 2**14
 
     def __init__(
         self,
@@ -649,20 +660,21 @@ class ExcelFormatter:
                 )
 
     def _format_header(self) -> Iterable[ExcelCell]:
+        gen: Iterable[ExcelCell]
+
         if isinstance(self.columns, MultiIndex):
             gen = self._format_header_mi()
         else:
             gen = self._format_header_regular()
 
-        gen2 = ()
+        gen2: Iterable[ExcelCell] = ()
+
         if self.df.index.names:
             row = [x if x is not None else "" for x in self.df.index.names] + [
                 ""
             ] * len(self.columns)
             if reduce(lambda x, y: x and y, map(lambda x: x != "", row)):
-                # error: Incompatible types in assignment (expression has type
-                # "Generator[ExcelCell, None, None]", variable has type "Tuple[]")
-                gen2 = (  # type: ignore[assignment]
+                gen2 = (
                     ExcelCell(self.rowcounter, colindex, val, self.header_style)
                     for colindex, val in enumerate(row)
                 )
@@ -828,7 +840,7 @@ class ExcelFormatter:
             cell.val = self._format_value(cell.val)
             yield cell
 
-    @doc(storage_options=generic._shared_docs["storage_options"])
+    @doc(storage_options=_shared_docs["storage_options"])
     def write(
         self,
         writer,
@@ -887,7 +899,7 @@ class ExcelFormatter:
             need_save = True
 
         try:
-            writer.write_cells(
+            writer._write_cells(
                 formatted_cells,
                 sheet_name,
                 startrow=startrow,

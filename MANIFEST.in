@@ -36,6 +36,7 @@ global-exclude *.xpt
 global-exclude *.cpt
 global-exclude *.xz
 global-exclude *.zip
+global-exclude *.zst
 global-exclude *~
 global-exclude .DS_Store
 global-exclude .git*

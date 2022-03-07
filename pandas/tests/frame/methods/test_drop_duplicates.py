@@ -7,6 +7,7 @@ import pytest
 from pandas import (
     DataFrame,
     NaT,
+    concat,
 )
 import pandas._testing as tm
 
@@ -111,7 +112,7 @@ def test_drop_duplicates():
 
     # GH 11864
     df = DataFrame([i] * 9 for i in range(16))
-    df = df.append([[1] + [0] * 8], ignore_index=True)
+    df = concat([df, DataFrame([[1] + [0] * 8])], ignore_index=True)
 
     for keep in ["first", "last", False]:
         assert df.duplicated(keep=keep).sum() == 0

@@ -16,7 +16,7 @@ class TestReorderLevels:
             names=["L0", "L1", "L2"],
         )
         df = DataFrame({"A": np.arange(6), "B": np.arange(6)}, index=index)
-        obj = df if frame_or_series is DataFrame else df["A"]
+        obj = tm.get_obj(df, frame_or_series)
 
         # no change, position
         result = obj.reorder_levels([0, 1, 2])
@@ -34,7 +34,7 @@ class TestReorderLevels:
             names=["L1", "L2", "L0"],
         )
         expected = DataFrame({"A": np.arange(6), "B": np.arange(6)}, index=e_idx)
-        expected = expected if frame_or_series is DataFrame else expected["A"]
+        expected = tm.get_obj(expected, frame_or_series)
         tm.assert_equal(result, expected)
 
         result = obj.reorder_levels([0, 0, 0])
@@ -44,7 +44,7 @@ class TestReorderLevels:
             names=["L0", "L0", "L0"],
         )
         expected = DataFrame({"A": np.arange(6), "B": np.arange(6)}, index=e_idx)
-        expected = expected if frame_or_series is DataFrame else expected["A"]
+        expected = tm.get_obj(expected, frame_or_series)
         tm.assert_equal(result, expected)
 
         result = obj.reorder_levels(["L0", "L0", "L0"])

@@ -21,7 +21,6 @@ from pandas import (
     Index,
     IntervalIndex,
     MultiIndex,
-    NumericIndex,
     PeriodIndex,
     RangeIndex,
     Series,
@@ -32,8 +31,10 @@ import pandas._testing as tm
 from pandas.core.api import (  # noqa:F401
     Float64Index,
     Int64Index,
+    NumericIndex,
     UInt64Index,
 )
+from pandas.core.arrays import BaseMaskedArray
 
 
 class Base:
@@ -215,6 +216,8 @@ class Base:
             # RangeIndex cannot be initialized from data
             # MultiIndex and CategoricalIndex are tested separately
             return
+        elif index.dtype == object and index.inferred_type == "boolean":
+            init_kwargs["dtype"] = index.dtype
 
         index_type = type(index)
         result = index_type(index.values, copy=True, **init_kwargs)
@@ -232,6 +235,28 @@ class Base:
         elif isinstance(index, IntervalIndex):
             # checked in test_interval.py
             pass
+        elif type(index) is Index and not isinstance(index.dtype, np.dtype):
+            result = index_type(index.values, copy=False, **init_kwargs)
+            tm.assert_index_equal(result, index)
+
+            if isinstance(index._values, BaseMaskedArray):
+                assert np.shares_memory(index._values._data, result._values._data)
+                tm.assert_numpy_array_equal(
+                    index._values._data, result._values._data, check_same="same"
+                )
+                assert np.shares_memory(index._values._mask, result._values._mask)
+                tm.assert_numpy_array_equal(
+                    index._values._mask, result._values._mask, check_same="same"
+                )
+            elif index.dtype == "string[python]":
+                assert np.shares_memory(index._values._ndarray, result._values._ndarray)
+                tm.assert_numpy_array_equal(
+                    index._values._ndarray, result._values._ndarray, check_same="same"
+                )
+            elif index.dtype == "string[pyarrow]":
+                assert tm.shares_memory(result._values, index._values)
+            else:
+                raise NotImplementedError(index.dtype)
         else:
             result = index_type(index.values, copy=False, **init_kwargs)
             tm.assert_numpy_array_equal(index.values, result.values, check_same="same")
@@ -251,7 +276,10 @@ class Base:
 
         # RangeIndex, IntervalIndex
         # don't have engines
-        if not isinstance(index, (RangeIndex, IntervalIndex)):
+        # Index[EA] has engine but it does not have a Hashtable .mapping
+        if not isinstance(index, (RangeIndex, IntervalIndex)) and not (
+            type(index) is Index and not isinstance(index.dtype, np.dtype)
+        ):
             assert result2 > result
 
         if index.inferred_type == "object":
@@ -396,15 +424,19 @@ class Base:
             #  fails for IntervalIndex
             return
 
+        is_ea_idx = type(index) is Index and not isinstance(index.dtype, np.dtype)
+
         assert index.equals(index)
         assert index.equals(index.copy())
-        assert index.equals(index.astype(object))
+        if not is_ea_idx:
+            # doesn't hold for e.g. IntegerDtype
+            assert index.equals(index.astype(object))
 
         assert not index.equals(list(index))
         assert not index.equals(np.array(index))
 
         # Cannot pass in non-int64 dtype to RangeIndex
-        if not isinstance(index, RangeIndex):
+        if not isinstance(index, RangeIndex) and not is_ea_idx:
             same_values = Index(index, dtype=object)
             assert index.equals(same_values)
             assert same_values.equals(index)
@@ -492,6 +524,9 @@ class Base:
         # GH 11343
         if len(index) == 0:
             return
+        elif index.dtype == bool:
+            # can't hold NAs
+            return
         elif isinstance(index, NumericIndex) and is_integer_dtype(index.dtype):
             return
         elif isinstance(index, MultiIndex):
@@ -515,6 +550,11 @@ class Base:
             values[1] = np.nan
 
             idx = type(index)(values)
+
+            msg = "does not support 'downcast'"
+            with pytest.raises(NotImplementedError, match=msg):
+                # For now at least, we only raise if there are NAs present
+                idx.fillna(idx[0], downcast="infer")
 
             expected = np.array([False] * len(idx), dtype=bool)
             expected[1] = True
@@ -665,6 +705,21 @@ class Base:
 
         assert isinstance(res, np.ndarray), type(res)
 
+        if not isinstance(idx, RangeIndex):
+            # GH#44051 RangeIndex already raises
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                res = idx[True]
+            assert isinstance(res, np.ndarray), type(res)
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                res = idx[False]
+            assert isinstance(res, np.ndarray), type(res)
+        else:
+            msg = "only integers, slices"
+            with pytest.raises(IndexError, match=msg):
+                idx[True]
+            with pytest.raises(IndexError, match=msg):
+                idx[False]
+
     def test_copy_shares_cache(self, simple_index):
         # GH32898, GH36840
         idx = simple_index
@@ -719,6 +774,30 @@ class Base:
 
         alt = index.take(list(range(N)) * 2)
         tm.assert_index_equal(result, alt, check_exact=True)
+
+    def test_inv(self, simple_index):
+        idx = simple_index
+
+        if idx.dtype.kind in ["i", "u"]:
+            res = ~idx
+            expected = Index(~idx.values, name=idx.name)
+            tm.assert_index_equal(res, expected)
+
+            # check that we are matching Series behavior
+            res2 = ~Series(idx)
+            # TODO(2.0): once we preserve dtype, check_dtype can be True
+            tm.assert_series_equal(res2, Series(expected), check_dtype=False)
+        else:
+            if idx.dtype.kind == "f":
+                msg = "ufunc 'invert' not supported for the input types"
+            else:
+                msg = "bad operand"
+            with pytest.raises(TypeError, match=msg):
+                ~idx
+
+            # check that we get the same behavior with Series
+            with pytest.raises(TypeError, match=msg):
+                ~Series(idx)
 
 
 class NumericBase(Base):
@@ -818,6 +897,6 @@ class NumericBase(Base):
     def test_invalid_dtype(self, invalid_dtype):
         # GH 29539
         dtype = invalid_dtype
-        msg = fr"Incorrect `dtype` passed: expected \w+(?: \w+)?, received {dtype}"
+        msg = rf"Incorrect `dtype` passed: expected \w+(?: \w+)?, received {dtype}"
         with pytest.raises(ValueError, match=msg):
             self._index_cls([1, 2, 3], dtype=dtype)

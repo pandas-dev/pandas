@@ -3,14 +3,13 @@ from __future__ import annotations
 from contextlib import contextmanager
 import os
 from pathlib import Path
-import random
 from shutil import rmtree
-import string
 import tempfile
 from typing import (
     IO,
     Any,
 )
+import uuid
 
 import numpy as np
 
@@ -29,7 +28,7 @@ def decompress_file(path, compression):
     path : str
         The path where the file is read from.
 
-    compression : {'gzip', 'bz2', 'zip', 'xz', None}
+    compression : {'gzip', 'bz2', 'zip', 'xz', 'zstd', None}
         Name of the decompression to use
 
     Returns
@@ -54,13 +53,13 @@ def set_timezone(tz: str):
     --------
     >>> from datetime import datetime
     >>> from dateutil.tz import tzlocal
-    >>> tzlocal().tzname(datetime.now())
+    >>> tzlocal().tzname(datetime(2021, 1, 1))  # doctest: +SKIP
     'IST'
 
     >>> with set_timezone('US/Eastern'):
-    ...     tzlocal().tzname(datetime.now())
+    ...     tzlocal().tzname(datetime(2021, 1, 1))
     ...
-    'EDT'
+    'EST'
     """
     import os
     import time
@@ -107,9 +106,7 @@ def ensure_clean(filename=None, return_filelike: bool = False, **kwargs: Any):
 
     if filename is None:
         filename = ""
-    filename = (
-        "".join(random.choices(string.ascii_letters + string.digits, k=30)) + filename
-    )
+    filename = str(uuid.uuid4()) + filename
     path = folder / filename
 
     path.touch()

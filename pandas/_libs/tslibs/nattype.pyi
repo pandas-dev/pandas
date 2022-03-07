@@ -1,6 +1,7 @@
 from datetime import (
     datetime,
     timedelta,
+    tzinfo as _tzinfo,
 )
 from typing import Any
 
@@ -12,12 +13,14 @@ NaT: NaTType
 iNaT: int
 nat_strings: set[str]
 
+def is_null_datetimelike(val: object, inat_is_null: bool = ...) -> bool: ...
+
 class NaTType(datetime):
     value: np.int64
     def asm8(self) -> np.datetime64: ...
     def to_datetime64(self) -> np.datetime64: ...
     def to_numpy(
-        self, dtype=..., copy: bool = ...
+        self, dtype: np.dtype | str | None = ..., copy: bool = ...
     ) -> np.datetime64 | np.timedelta64: ...
     @property
     def is_leap_year(self) -> bool: ...
@@ -69,7 +72,20 @@ class NaTType(datetime):
     def ceil(self) -> NaTType: ...
     def tz_convert(self) -> NaTType: ...
     def tz_localize(self) -> NaTType: ...
-    def replace(self, *args, **kwargs) -> NaTType: ...
+    # error: Signature of "replace" incompatible with supertype "datetime"
+    def replace(  # type: ignore[override]
+        self,
+        year: int | None = ...,
+        month: int | None = ...,
+        day: int | None = ...,
+        hour: int | None = ...,
+        minute: int | None = ...,
+        second: int | None = ...,
+        microsecond: int | None = ...,
+        nanosecond: int | None = ...,
+        tzinfo: _tzinfo | None = ...,
+        fold: int | None = ...,
+    ) -> NaTType: ...
     # error: Return type "float" of "year" incompatible with return
     # type "int" in supertype "date"
     @property

@@ -35,9 +35,6 @@ def load_reduce(self):
     args = stack.pop()
     func = stack[-1]
 
-    if len(args) and type(args[0]) is type:
-        n = args[0].__name__  # noqa
-
     try:
         stack[-1] = func(*args)
         return
@@ -197,8 +194,8 @@ _class_locations_map = {
 # our Unpickler sub-class to override methods and some dispatcher
 # functions for compat and uses a non-public class of the pickle module.
 
-# error: Name 'pkl._Unpickler' is not defined
-class Unpickler(pkl._Unpickler):  # type: ignore[name-defined]
+
+class Unpickler(pkl._Unpickler):
     def find_class(self, module, name):
         # override superclass
         key = (module, name)
@@ -269,7 +266,8 @@ def load(fh, encoding: str | None = None, is_verbose: bool = False):
             up = Unpickler(fh, encoding=encoding)
         else:
             up = Unpickler(fh)
-        up.is_verbose = is_verbose
+        # "Unpickler" has no attribute "is_verbose"  [attr-defined]
+        up.is_verbose = is_verbose  # type: ignore[attr-defined]
 
         return up.load()
     except (ValueError, TypeError):

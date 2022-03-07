@@ -15,17 +15,17 @@ from pandas._typing import (
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
-from pandas.core import generic
 from pandas.core.api import (
     DataFrame,
     Int64Index,
     RangeIndex,
 )
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import get_handle
 
 
-@doc(storage_options=generic._shared_docs["storage_options"])
+@doc(storage_options=_shared_docs["storage_options"])
 def to_feather(
     df: DataFrame,
     path: FilePath | WriteBuffer[bytes],
@@ -93,7 +93,7 @@ def to_feather(
         feather.write_feather(df, handles.handle, **kwargs)
 
 
-@doc(storage_options=generic._shared_docs["storage_options"])
+@doc(storage_options=_shared_docs["storage_options"])
 def read_feather(
     path: FilePath | ReadBuffer[bytes],
     columns: Sequence[Hashable] | None = None,

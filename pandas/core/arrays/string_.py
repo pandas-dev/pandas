@@ -39,13 +39,13 @@ from pandas.core.dtypes.common import (
 from pandas.core import ops
 from pandas.core.array_algos import masked_reductions
 from pandas.core.arrays import (
+    ExtensionArray,
     FloatingArray,
     IntegerArray,
     PandasArray,
 )
-from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.floating import FloatingDtype
-from pandas.core.arrays.integer import _IntegerDtype
+from pandas.core.arrays.integer import IntegerDtype
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import isna
@@ -224,6 +224,10 @@ class StringDtype(ExtensionDtype):
 
 
 class BaseStringArray(ExtensionArray):
+    """
+    Mixin class for StringArray, ArrowStringArray.
+    """
+
     pass
 
 
@@ -246,10 +250,17 @@ class StringArray(BaseStringArray, PandasArray):
         .. warning::
 
            Currently, this expects an object-dtype ndarray
-           where the elements are Python strings or :attr:`pandas.NA`.
+           where the elements are Python strings
+           or nan-likes (``None``, ``np.nan``, ``NA``).
            This may change without warning in the future. Use
            :meth:`pandas.array` with ``dtype="string"`` for a stable way of
            creating a `StringArray` from any sequence.
+
+        .. versionchanged:: 1.5.0
+
+           StringArray now accepts array-likes containing
+           nan-likes(``None``, ``np.nan``) for the ``values`` parameter
+           in addition to strings and :attr:`pandas.NA`
 
     copy : bool, default False
         Whether to copy the array of data.
@@ -310,11 +321,9 @@ class StringArray(BaseStringArray, PandasArray):
         values = extract_array(values)
 
         super().__init__(values, copy=copy)
-        # error: Incompatible types in assignment (expression has type "StringDtype",
-        # variable has type "PandasDtype")
-        NDArrayBacked.__init__(self, self._ndarray, StringDtype(storage="python"))
         if not isinstance(values, type(self)):
             self._validate()
+        NDArrayBacked.__init__(self, self._ndarray, StringDtype(storage="python"))
 
     def _validate(self):
         """Validate that we only store NA or strings."""
@@ -325,6 +334,12 @@ class StringArray(BaseStringArray, PandasArray):
                 "StringArray requires a sequence of strings or pandas.NA. Got "
                 f"'{self._ndarray.dtype}' dtype instead."
             )
+        # Check to see if need to convert Na values to pd.NA
+        if self._ndarray.ndim > 2:
+            # Ravel if ndims > 2 b/c no cythonized version available
+            lib.convert_nans_to_NA(self._ndarray.ravel("K"))
+        else:
+            lib.convert_nans_to_NA(self._ndarray)
 
     @classmethod
     def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy=False):
@@ -413,7 +428,7 @@ class StringArray(BaseStringArray, PandasArray):
 
         super().__setitem__(key, value)
 
-    def astype(self, dtype, copy=True):
+    def astype(self, dtype, copy: bool = True):
         dtype = pandas_dtype(dtype)
 
         if is_dtype_equal(dtype, self.dtype):
@@ -421,7 +436,7 @@ class StringArray(BaseStringArray, PandasArray):
                 return self.copy()
             return self
 
-        elif isinstance(dtype, _IntegerDtype):
+        elif isinstance(dtype, IntegerDtype):
             arr = self._ndarray.copy()
             mask = self.isna()
             arr[mask] = 0
@@ -470,7 +485,9 @@ class StringArray(BaseStringArray, PandasArray):
     def value_counts(self, dropna: bool = True):
         from pandas import value_counts
 
-        return value_counts(self._ndarray, dropna=dropna).astype("Int64")
+        result = value_counts(self._ndarray, dropna=dropna).astype("Int64")
+        result.index = result.index.astype(self.dtype)
+        return result
 
     def memory_usage(self, deep: bool = False) -> int:
         result = self._ndarray.nbytes
@@ -512,7 +529,9 @@ class StringArray(BaseStringArray, PandasArray):
 
     # ------------------------------------------------------------------------
     # String methods interface
-    _str_na_value = StringDtype.na_value
+    # error: Incompatible types in assignment (expression has type "NAType",
+    # base class "PandasArray" defined the type as "float")
+    _str_na_value = StringDtype.na_value  # type: ignore[assignment]
 
     def _str_map(
         self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
@@ -543,12 +562,10 @@ class StringArray(BaseStringArray, PandasArray):
                 mask.view("uint8"),
                 convert=False,
                 na_value=na_value,
-                # error: Value of type variable "_DTypeScalar" of "dtype" cannot be
-                # "object"
                 # error: Argument 1 to "dtype" has incompatible type
                 # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected
                 # "Type[object]"
-                dtype=np.dtype(dtype),  # type: ignore[type-var,arg-type]
+                dtype=np.dtype(dtype),  # type: ignore[arg-type]
             )
 
             if not na_value_is_na:

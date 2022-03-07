@@ -4,8 +4,6 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas.compat import np_array_datetime64_compat
-
 import pandas as pd
 from pandas import (
     DatetimeIndex,
@@ -30,6 +28,10 @@ def test_value_counts(index_or_series_obj):
     expected.index = expected.index.astype(obj.dtype)
     if isinstance(obj, pd.MultiIndex):
         expected.index = Index(expected.index)
+
+    if not isinstance(result.dtype, np.dtype):
+        # i.e IntegerDtype
+        expected = expected.astype("Int64")
 
     # TODO(GH#32514): Order of entries with the same count is inconsistent
     #  on CI (gh-32449)
@@ -70,6 +72,10 @@ def test_value_counts_null(null_obj, index_or_series_obj):
         #  Order of entries with the same count is inconsistent on CI (gh-32449)
         expected = expected.sort_index()
         result = result.sort_index()
+
+    if not isinstance(result.dtype, np.dtype):
+        # i.e IntegerDtype
+        expected = expected.astype("Int64")
     tm.assert_series_equal(result, expected)
 
     expected[null_obj] = 3
@@ -212,7 +218,7 @@ def test_value_counts_datetime64(index_or_series):
     expected_s = Series([3, 2, 1], index=idx)
     tm.assert_series_equal(s.value_counts(), expected_s)
 
-    expected = np_array_datetime64_compat(
+    expected = np.array(
         ["2010-01-01 00:00:00", "2009-01-01 00:00:00", "2008-09-09 00:00:00"],
         dtype="datetime64[ns]",
     )
@@ -278,7 +284,7 @@ def test_value_counts_with_nan(dropna, index_or_series):
     obj = klass(values)
     res = obj.value_counts(dropna=dropna)
     if dropna is True:
-        expected = Series([1], index=[True])
+        expected = Series([1], index=Index([True], dtype=obj.dtype))
     else:
         expected = Series([1, 1, 1], index=[True, pd.NA, np.nan])
     tm.assert_series_equal(res, expected)

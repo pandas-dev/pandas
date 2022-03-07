@@ -55,7 +55,7 @@ def asof_join_backward_on_X_by_Y(
     left_by_values: np.ndarray,  # by_t[:]
     right_by_values: np.ndarray,  # by_t[:]
     allow_exact_matches: bool = ...,
-    tolerance=...,
+    tolerance: np.number | int | float | None = ...,
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]: ...
 def asof_join_forward_on_X_by_Y(
     left_values: np.ndarray,  # asof_t[:]
@@ -63,7 +63,7 @@ def asof_join_forward_on_X_by_Y(
     left_by_values: np.ndarray,  # by_t[:]
     right_by_values: np.ndarray,  # by_t[:]
     allow_exact_matches: bool = ...,
-    tolerance=...,
+    tolerance: np.number | int | float | None = ...,
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]: ...
 def asof_join_nearest_on_X_by_Y(
     left_values: np.ndarray,  # asof_t[:]
@@ -71,23 +71,23 @@ def asof_join_nearest_on_X_by_Y(
     left_by_values: np.ndarray,  # by_t[:]
     right_by_values: np.ndarray,  # by_t[:]
     allow_exact_matches: bool = ...,
-    tolerance=...,
+    tolerance: np.number | int | float | None = ...,
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]: ...
 def asof_join_backward(
     left_values: np.ndarray,  # asof_t[:]
     right_values: np.ndarray,  # asof_t[:]
     allow_exact_matches: bool = ...,
-    tolerance=...,
+    tolerance: np.number | int | float | None = ...,
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]: ...
 def asof_join_forward(
     left_values: np.ndarray,  # asof_t[:]
     right_values: np.ndarray,  # asof_t[:]
     allow_exact_matches: bool = ...,
-    tolerance=...,
+    tolerance: np.number | int | float | None = ...,
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]: ...
 def asof_join_nearest(
     left_values: np.ndarray,  # asof_t[:]
     right_values: np.ndarray,  # asof_t[:]
     allow_exact_matches: bool = ...,
-    tolerance=...,
+    tolerance: np.number | int | float | None = ...,
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]: ...

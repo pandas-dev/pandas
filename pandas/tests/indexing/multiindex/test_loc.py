@@ -339,8 +339,11 @@ class TestMultiIndexLoc:
             convert_nested_indexer(indexer_type, k)
             for indexer_type, k in zip(types, keys)
         )
-
-        result = df.loc[indexer, "Data"]
+        if indexer_type_1 is set or indexer_type_2 is set:
+            with tm.assert_produces_warning(FutureWarning):
+                result = df.loc[indexer, "Data"]
+        else:
+            result = df.loc[indexer, "Data"]
         expected = Series(
             [1, 2, 4, 5], name="Data", index=MultiIndex.from_product(keys)
         )
@@ -398,6 +401,18 @@ class TestMultiIndexLoc:
         df = pd.concat([ser1, ser2.reindex(ser1.index)], axis=1)
         result = df.loc["2011-01-01":"2011-01-02"]
         tm.assert_frame_equal(result, expected)
+
+    def test_loc_no_second_level_index(self):
+        # GH#43599
+        df = DataFrame(
+            index=MultiIndex.from_product([list("ab"), list("cd"), list("e")]),
+            columns=["Val"],
+        )
+        res = df.loc[np.s_[:, "c", :]]
+        expected = DataFrame(
+            index=MultiIndex.from_product([list("ab"), list("e")]), columns=["Val"]
+        )
+        tm.assert_frame_equal(res, expected)
 
 
 @pytest.mark.parametrize(

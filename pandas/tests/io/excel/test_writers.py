@@ -18,8 +18,7 @@ from pandas import (
     DataFrame,
     Index,
     MultiIndex,
-    get_option,
-    set_option,
+    option_context,
 )
 import pandas._testing as tm
 
@@ -53,10 +52,8 @@ def set_engine(engine, ext):
     the test it rolls back said change to the global option.
     """
     option_name = f"io.excel.{ext.strip('.')}.writer"
-    prev_engine = get_option(option_name)
-    set_option(option_name, engine)
-    yield
-    set_option(option_name, prev_engine)  # Roll back option change
+    with option_context(option_name, engine):
+        yield
 
 
 @pytest.mark.parametrize(
@@ -207,14 +204,18 @@ class TestRoundTrip:
     @pytest.mark.parametrize("c_idx_levels", [1, 3])
     @pytest.mark.parametrize("r_idx_levels", [1, 3])
     def test_excel_multindex_roundtrip(
-        self, ext, c_idx_names, r_idx_names, c_idx_levels, r_idx_levels
+        self, ext, c_idx_names, r_idx_names, c_idx_levels, r_idx_levels, request
     ):
         # see gh-4679
         with tm.ensure_clean(ext) as pth:
-            if c_idx_levels == 1 and c_idx_names:
-                pytest.skip(
-                    "Column index name cannot be serialized unless it's a MultiIndex"
+            if (c_idx_levels == 1 and c_idx_names) and not (
+                r_idx_levels == 3 and not r_idx_names
+            ):
+                mark = pytest.mark.xfail(
+                    reason="Column index name cannot be serialized unless "
+                    "it's a MultiIndex"
                 )
+                request.node.add_marker(mark)
 
             # Empty name case current read in as
             # unnamed levels, not Nones.
@@ -334,8 +335,8 @@ class TestExcelWriter:
     def test_excel_sheet_size(self, path):
 
         # GH 26080
-        breaking_row_count = 2 ** 20 + 1
-        breaking_col_count = 2 ** 14 + 1
+        breaking_row_count = 2**20 + 1
+        breaking_col_count = 2**14 + 1
         # purposely using two arrays to prevent memory issues while testing
         row_arr = np.zeros(shape=(breaking_row_count, 1))
         col_arr = np.zeros(shape=(1, breaking_col_count))
@@ -349,7 +350,7 @@ class TestExcelWriter:
         with pytest.raises(ValueError, match=msg):
             col_df.to_excel(path)
 
-    def test_excel_sheet_by_name_raise(self, path, engine):
+    def test_excel_sheet_by_name_raise(self, path):
         gt = DataFrame(np.random.randn(10, 2))
         gt.to_excel(path)
 
@@ -648,7 +649,7 @@ class TestExcelWriter:
 
         tm.assert_frame_equal(tsframe, recons)
 
-    def test_excel_date_datetime_format(self, engine, ext, path):
+    def test_excel_date_datetime_format(self, ext, path):
         # see gh-4133
         #
         # Excel output format strings
@@ -865,7 +866,7 @@ class TestExcelWriter:
             result = pd.read_excel(filename, sheet_name="TestSheet", index_col=0)
             tm.assert_frame_equal(result, df)
 
-    def test_to_excel_unicode_filename(self, ext, path):
+    def test_to_excel_unicode_filename(self, ext):
         with tm.ensure_clean("\u0192u." + ext) as filename:
             try:
                 f = open(filename, "wb")
@@ -1188,7 +1189,7 @@ class TestExcelWriter:
         result = tm.round_trip_localpath(writer, reader, path=f"foo{ext}")
         tm.assert_frame_equal(result, df)
 
-    def test_merged_cell_custom_objects(self, merge_cells, path):
+    def test_merged_cell_custom_objects(self, path):
         # see GH-27006
         mi = MultiIndex.from_tuples(
             [
@@ -1243,6 +1244,47 @@ class TestExcelWriter:
             with pytest.raises(ValueError, match=re.escape(msg)):
                 ExcelWriter(f, if_sheet_exists="replace")
 
+    def test_excel_writer_empty_frame(self, engine, ext):
+        # GH#45793
+        with tm.ensure_clean(ext) as path:
+            with ExcelWriter(path, engine=engine) as writer:
+                DataFrame().to_excel(writer)
+            result = pd.read_excel(path)
+            expected = DataFrame()
+            tm.assert_frame_equal(result, expected)
+
+    def test_to_excel_empty_frame(self, engine, ext):
+        # GH#45793
+        with tm.ensure_clean(ext) as path:
+            DataFrame().to_excel(path, engine=engine)
+            result = pd.read_excel(path)
+            expected = DataFrame()
+            tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("attr", ["cur_sheet", "handles", "path"])
+    def test_deprecated_attr(self, engine, ext, attr):
+        # GH#45572
+        with tm.ensure_clean(ext) as path:
+            with ExcelWriter(path) as writer:
+                msg = f"{attr} is not part of the public API"
+                with tm.assert_produces_warning(FutureWarning, match=msg):
+                    getattr(writer, attr)
+                # Some engines raise if nothing is written
+                DataFrame().to_excel(writer)
+
+    @pytest.mark.parametrize(
+        "attr, args", [("save", ()), ("write_cells", ([], "test"))]
+    )
+    def test_deprecated_method(self, engine, ext, attr, args):
+        # GH#45572
+        with tm.ensure_clean(ext) as path:
+            with ExcelWriter(path) as writer:
+                msg = f"{attr} is not part of the public API"
+                # Some engines raise if nothing is written
+                DataFrame().to_excel(writer)
+                with tm.assert_produces_warning(FutureWarning, match=msg):
+                    getattr(writer, attr)(*args)
+
 
 class TestExcelWriterEngineTests:
     @pytest.mark.parametrize(
@@ -1267,39 +1309,48 @@ class TestExcelWriterEngineTests:
             ExcelWriter("nothing")
 
     def test_register_writer(self):
-        # some awkward mocking to test out dispatch and such actually works
-        called_save = []
-        called_write_cells = []
-
         class DummyClass(ExcelWriter):
             called_save = False
             called_write_cells = False
+            called_sheets = False
             supported_extensions = ["xlsx", "xls"]
             engine = "dummy"
 
-            def save(self):
-                called_save.append(True)
+            def book(self):
+                pass
 
-            def write_cells(self, *args, **kwargs):
-                called_write_cells.append(True)
+            def _save(self):
+                type(self).called_save = True
 
-        def check_called(func):
-            func()
-            assert len(called_save) >= 1
-            assert len(called_write_cells) >= 1
-            del called_save[:]
-            del called_write_cells[:]
+            def _write_cells(self, *args, **kwargs):
+                type(self).called_write_cells = True
 
-        with pd.option_context("io.excel.xlsx.writer", "dummy"):
+            @property
+            def sheets(self):
+                type(self).called_sheets = True
+
+            @classmethod
+            def assert_called_and_reset(cls):
+                assert cls.called_save
+                assert cls.called_write_cells
+                assert not cls.called_sheets
+                cls.called_save = False
+                cls.called_write_cells = False
+
+        register_writer(DummyClass)
+
+        with option_context("io.excel.xlsx.writer", "dummy"):
             path = "something.xlsx"
             with tm.ensure_clean(path) as filepath:
-                register_writer(DummyClass)
                 with ExcelWriter(filepath) as writer:
                     assert isinstance(writer, DummyClass)
                 df = tm.makeCustomDataframe(1, 1)
-                check_called(lambda: df.to_excel(filepath))
-            with tm.ensure_clean("something.xls") as filepath:
-                check_called(lambda: df.to_excel(filepath, engine="dummy"))
+                df.to_excel(filepath)
+            DummyClass.assert_called_and_reset()
+
+        with tm.ensure_clean("something.xls") as filepath:
+            df.to_excel(filepath, engine="dummy")
+        DummyClass.assert_called_and_reset()
 
     @pytest.mark.parametrize(
         "ext",

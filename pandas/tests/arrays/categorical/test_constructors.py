@@ -511,6 +511,15 @@ class TestCategoricalConstructors:
 
         tm.assert_categorical_equal(result, expected)
 
+    def test_from_codes_nullable_int_categories(self, any_numeric_ea_dtype):
+        # GH#39649
+        cats = pd.array(range(5), dtype=any_numeric_ea_dtype)
+        codes = np.random.randint(5, size=3)
+        dtype = CategoricalDtype(cats)
+        arr = Categorical.from_codes(codes, dtype=dtype)
+        assert arr.categories.dtype == cats.dtype
+        tm.assert_index_equal(arr.categories, Index(cats))
+
     def test_from_codes_empty(self):
         cat = ["a", "b", "c"]
         result = Categorical.from_codes([], categories=cat)
@@ -667,7 +676,6 @@ class TestCategoricalConstructors:
         cat = Categorical([0, 1, 2], ordered=ordered)
         assert cat.ordered == bool(ordered)
 
-    @pytest.mark.xfail(reason="Imaginary values not supported in Categorical")
     def test_constructor_imaginary(self):
         values = [1, 2, 3 + 1j]
         c1 = Categorical(values)
@@ -726,7 +734,8 @@ class TestCategoricalConstructors:
         # GH:
         arr = pd.arrays.StringArray._from_sequence([nulls_fixture] * 2)
         result = Categorical(arr)
-        expected = Categorical(Series([pd.NA, pd.NA], dtype="object"))
+        assert arr.dtype == result.categories.dtype
+        expected = Categorical(Series([pd.NA, pd.NA], dtype=arr.dtype))
         tm.assert_categorical_equal(result, expected)
 
     def test_from_sequence_copy(self):

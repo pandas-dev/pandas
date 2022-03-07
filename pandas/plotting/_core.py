@@ -338,7 +338,7 @@ by ``df.boxplot()`` or indicating the columns to be used:
     >>> np.random.seed(1234)
     >>> df = pd.DataFrame(np.random.randn(10, 4),
     ...                   columns=['Col1', 'Col2', 'Col3', 'Col4'])
-    >>> boxplot = df.boxplot(column=['Col1', 'Col2', 'Col3'])
+    >>> boxplot = df.boxplot(column=['Col1', 'Col2', 'Col3'])  # doctest: +SKIP
 
 Boxplots of variables distributions grouped by the values of a third
 variable can be created using the option ``by``. For instance:
@@ -381,7 +381,7 @@ or changing the fontsize (i.e. ``fontsize=15``):
 .. plot::
     :context: close-figs
 
-    >>> boxplot = df.boxplot(grid=False, rot=45, fontsize=15)
+    >>> boxplot = df.boxplot(grid=False, rot=45, fontsize=15)  # doctest: +SKIP
 
 The parameter ``return_type`` can be used to select the type of element
 returned by `boxplot`.  When ``return_type='axes'`` is selected,
@@ -591,14 +591,14 @@ def boxplot_frame_groupby(
         >>> data = np.random.randn(len(index),4)
         >>> df = pd.DataFrame(data, columns=list('ABCD'), index=index)
         >>> grouped = df.groupby(level='lvl1')
-        >>> grouped.boxplot(rot=45, fontsize=12, figsize=(8,10))
+        >>> grouped.boxplot(rot=45, fontsize=12, figsize=(8,10))  # doctest: +SKIP
 
     The ``subplots=False`` option shows the boxplots in a single figure.
 
     .. plot::
         :context: close-figs
 
-        >>> grouped.boxplot(subplots=False, rot=45, fontsize=12)
+        >>> grouped.boxplot(subplots=False, rot=45, fontsize=12)  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend(backend)
     return plot_backend.boxplot_frame_groupby(
@@ -987,6 +987,7 @@ class PlotAccessor(PandasObject):
 
             >>> s = pd.Series([1, 3, 2])
             >>> s.plot.line()
+            <AxesSubplot:ylabel='Density'>
 
         .. plot::
             :context: close-figs
@@ -1370,7 +1371,7 @@ class PlotAccessor(PandasObject):
             `ind` number of equally spaced points are used.
         **kwargs
             Additional keyword arguments are documented in
-            :meth:`pandas.%(this-datatype)s.plot`.
+            :meth:`DataFrame.plot`.
 
         Returns
         -------
@@ -1814,12 +1815,19 @@ def _load_backend(backend: str) -> types.ModuleType:
     found_backend = False
 
     eps = entry_points()
-    if "pandas_plotting_backends" in eps:
-        for entry_point in eps["pandas_plotting_backends"]:
-            found_backend = entry_point.name == backend
-            if found_backend:
-                module = entry_point.load()
-                break
+    key = "pandas_plotting_backends"
+    # entry_points lost dict API ~ PY 3.10
+    # https://github.com/python/importlib_metadata/issues/298
+    if hasattr(eps, "select"):
+        # error: "Dict[str, Tuple[EntryPoint, ...]]" has no attribute "select"
+        entry = eps.select(group=key)  # type: ignore[attr-defined]
+    else:
+        entry = eps.get(key, ())
+    for entry_point in entry:
+        found_backend = entry_point.name == backend
+        if found_backend:
+            module = entry_point.load()
+            break
 
     if not found_backend:
         # Fall back to unregistered, module name approach.

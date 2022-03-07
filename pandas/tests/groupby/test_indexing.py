@@ -2,6 +2,7 @@
 
 import random
 
+import numpy as np
 import pytest
 
 import pandas as pd
@@ -285,3 +286,47 @@ def test_column_axis(column_group_df):
     expected = column_group_df.iloc[:, [1, 3]]
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_columns_on_iter():
+    # GitHub issue #44821
+    df = pd.DataFrame({k: range(10) for k in "ABC"})
+
+    # Group-by and select columns
+    cols = ["A", "B"]
+    for _, dg in df.groupby(df.A < 4)[cols]:
+        tm.assert_index_equal(dg.columns, pd.Index(cols))
+        assert "C" not in dg.columns
+
+
+@pytest.mark.parametrize("func", [list, pd.Index, pd.Series, np.array])
+def test_groupby_duplicated_columns(func):
+    # GH#44924
+    df = pd.DataFrame(
+        {
+            "A": [1, 2],
+            "B": [3, 3],
+            "C": ["G", "G"],
+        }
+    )
+    result = df.groupby("C")[func(["A", "B", "A"])].mean()
+    expected = pd.DataFrame(
+        [[1.5, 3.0, 1.5]], columns=["A", "B", "A"], index=pd.Index(["G"], name="C")
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_get_nonexisting_groups():
+    # GH#32492
+    df = pd.DataFrame(
+        data={
+            "A": ["a1", "a2", None],
+            "B": ["b1", "b2", "b1"],
+            "val": [1, 2, 3],
+        }
+    )
+    grps = df.groupby(by=["A", "B"])
+
+    msg = "('a2', 'b1')"
+    with pytest.raises(KeyError, match=msg):
+        grps.get_group(("a2", "b1"))

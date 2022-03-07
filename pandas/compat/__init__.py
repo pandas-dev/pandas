@@ -7,14 +7,13 @@ Cross-compatible functions for different versions of Python.
 Other items:
 * platform checker
 """
+import os
 import platform
 import sys
 
 from pandas._typing import F
 from pandas.compat.numpy import (
     is_numpy_dev,
-    np_array_datetime64_compat,
-    np_datetime64_compat,
     np_version_under1p19,
     np_version_under1p20,
 )
@@ -28,7 +27,7 @@ from pandas.compat.pyarrow import (
 PY39 = sys.version_info >= (3, 9)
 PY310 = sys.version_info >= (3, 10)
 PYPY = platform.python_implementation() == "PyPy"
-IS64 = sys.maxsize > 2 ** 32
+IS64 = sys.maxsize > 2**32
 
 
 def set_function_name(f: F, name: str, cls) -> F:
@@ -91,7 +90,7 @@ def is_platform_mac() -> bool:
 
 def is_platform_arm() -> bool:
     """
-    Checking if he running platform use ARM architecture.
+    Checking if the running platform use ARM architecture.
 
     Returns
     -------
@@ -101,6 +100,19 @@ def is_platform_arm() -> bool:
     return platform.machine() in ("arm64", "aarch64") or platform.machine().startswith(
         "armv"
     )
+
+
+def is_ci_environment() -> bool:
+    """
+    Checking if running in a continuous integration environment by checking
+    the PANDAS_CI environment variable.
+
+    Returns
+    -------
+    bool
+        True if the running in a continuous integration environment.
+    """
+    return os.environ.get("PANDAS_CI", "0") == "1"
 
 
 def get_lzma_file():
@@ -130,8 +142,6 @@ def get_lzma_file():
 
 __all__ = [
     "is_numpy_dev",
-    "np_array_datetime64_compat",
-    "np_datetime64_compat",
     "np_version_under1p19",
     "np_version_under1p20",
     "pa_version_under1p01",

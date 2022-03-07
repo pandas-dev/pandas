@@ -134,6 +134,10 @@ class TestSetitem(base.BaseSetitemTests):
         super().test_setitem_preserves_views(data)
 
 
+class TestIndex(base.BaseIndexTests):
+    pass
+
+
 class TestMissing(base.BaseMissingTests):
     pass
 
@@ -186,7 +190,8 @@ class TestPrinting(base.BasePrintingTests):
 
 
 class TestGroupBy(base.BaseGroupbyTests):
-    pass
+    def test_groupby_extension_transform(self, data_for_grouping, request):
+        super().test_groupby_extension_transform(data_for_grouping)
 
 
 class Test2DCompat(base.Dim2CompatTests):

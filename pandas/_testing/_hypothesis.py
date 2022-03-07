@@ -44,6 +44,10 @@ OPTIONAL_LISTS = st.lists(
     min_size=3,
 )
 
+OPTIONAL_ONE_OF_ALL = st.one_of(
+    OPTIONAL_DICTS, OPTIONAL_FLOATS, OPTIONAL_INTS, OPTIONAL_LISTS, OPTIONAL_TEXT
+)
+
 if is_platform_windows():
     DATETIME_NO_TZ = st.datetimes(min_value=datetime(1900, 1, 1))
 else:

@@ -38,10 +38,11 @@ import pandas.tseries.offsets as offsets
         [lambda x: np.var(x, ddof=0), "var", {"ddof": 0}],
     ],
 )
-def test_series(series, compare_func, roll_func, kwargs):
-    result = getattr(series.rolling(50), roll_func)(**kwargs)
+def test_series(series, compare_func, roll_func, kwargs, step):
+    result = getattr(series.rolling(50, step=step), roll_func)(**kwargs)
     assert isinstance(result, Series)
-    tm.assert_almost_equal(result.iloc[-1], compare_func(series[-50:]))
+    end = range(0, len(series), step or 1)[-1] + 1
+    tm.assert_almost_equal(result.iloc[-1], compare_func(series[end - 50 : end]))
 
 
 @pytest.mark.parametrize(
@@ -64,12 +65,13 @@ def test_series(series, compare_func, roll_func, kwargs):
         [lambda x: np.var(x, ddof=0), "var", {"ddof": 0}],
     ],
 )
-def test_frame(raw, frame, compare_func, roll_func, kwargs):
-    result = getattr(frame.rolling(50), roll_func)(**kwargs)
+def test_frame(raw, frame, compare_func, roll_func, kwargs, step):
+    result = getattr(frame.rolling(50, step=step), roll_func)(**kwargs)
     assert isinstance(result, DataFrame)
+    end = range(0, len(frame), step or 1)[-1] + 1
     tm.assert_series_equal(
         result.iloc[-1, :],
-        frame.iloc[-50:, :].apply(compare_func, axis=0, raw=raw),
+        frame.iloc[end - 50 : end, :].apply(compare_func, axis=0, raw=raw),
         check_names=False,
     )
 
@@ -200,13 +202,13 @@ def test_nans_count():
     ],
 )
 @pytest.mark.parametrize("minp", [0, 99, 100])
-def test_min_periods(series, minp, roll_func, kwargs):
-    result = getattr(series.rolling(len(series) + 1, min_periods=minp), roll_func)(
-        **kwargs
-    )
-    expected = getattr(series.rolling(len(series), min_periods=minp), roll_func)(
-        **kwargs
-    )
+def test_min_periods(series, minp, roll_func, kwargs, step):
+    result = getattr(
+        series.rolling(len(series) + 1, min_periods=minp, step=step), roll_func
+    )(**kwargs)
+    expected = getattr(
+        series.rolling(len(series), min_periods=minp, step=step), roll_func
+    )(**kwargs)
     nan_mask = isna(result)
     tm.assert_series_equal(nan_mask, isna(expected))
 
@@ -214,9 +216,9 @@ def test_min_periods(series, minp, roll_func, kwargs):
     tm.assert_almost_equal(result[nan_mask], expected[nan_mask])
 
 
-def test_min_periods_count(series):
-    result = series.rolling(len(series) + 1, min_periods=0).count()
-    expected = series.rolling(len(series), min_periods=0).count()
+def test_min_periods_count(series, step):
+    result = series.rolling(len(series) + 1, min_periods=0, step=step).count()
+    expected = series.rolling(len(series), min_periods=0, step=step).count()
     nan_mask = isna(result)
     tm.assert_series_equal(nan_mask, isna(expected))
 
@@ -247,9 +249,13 @@ def test_center(roll_func, kwargs, minp):
     result = getattr(obj.rolling(20, min_periods=minp, center=True), roll_func)(
         **kwargs
     )
-    expected = getattr(
-        concat([obj, Series([np.NaN] * 9)]).rolling(20, min_periods=minp), roll_func
-    )(**kwargs)[9:].reset_index(drop=True)
+    expected = (
+        getattr(
+            concat([obj, Series([np.NaN] * 9)]).rolling(20, min_periods=minp), roll_func
+        )(**kwargs)
+        .iloc[9:]
+        .reset_index(drop=True)
+    )
     tm.assert_series_equal(result, expected)
 
 
@@ -360,7 +366,7 @@ def test_rolling_functions_window_non_shrinkage(f):
     tm.assert_frame_equal(df_result, df_expected)
 
 
-def test_rolling_max_gh6297():
+def test_rolling_max_gh6297(step):
     """Replicate result expected in GH #6297"""
     indices = [datetime(1975, 1, i) for i in range(1, 6)]
     # So that we can have 2 datapoints on one of the days
@@ -374,12 +380,12 @@ def test_rolling_max_gh6297():
     expected = Series(
         [1.0, 2.0, 6.0, 4.0, 5.0],
         index=DatetimeIndex([datetime(1975, 1, i, 0) for i in range(1, 6)], freq="D"),
-    )
-    x = series.resample("D").max().rolling(window=1).max()
+    )[::step]
+    x = series.resample("D").max().rolling(window=1, step=step).max()
     tm.assert_series_equal(expected, x)
 
 
-def test_rolling_max_resample():
+def test_rolling_max_resample(step):
 
     indices = [datetime(1975, 1, i) for i in range(1, 6)]
     # So that we can have 3 datapoints on last day (4, 10, and 20)
@@ -395,16 +401,16 @@ def test_rolling_max_resample():
     expected = Series(
         [0.0, 1.0, 2.0, 3.0, 20.0],
         index=DatetimeIndex([datetime(1975, 1, i, 0) for i in range(1, 6)], freq="D"),
-    )
-    x = series.resample("D").max().rolling(window=1).max()
+    )[::step]
+    x = series.resample("D").max().rolling(window=1, step=step).max()
     tm.assert_series_equal(expected, x)
 
     # Now specify median (10.0)
     expected = Series(
         [0.0, 1.0, 2.0, 3.0, 10.0],
         index=DatetimeIndex([datetime(1975, 1, i, 0) for i in range(1, 6)], freq="D"),
-    )
-    x = series.resample("D").median().rolling(window=1).max()
+    )[::step]
+    x = series.resample("D").median().rolling(window=1, step=step).max()
     tm.assert_series_equal(expected, x)
 
     # Now specify mean (4+10+20)/3
@@ -412,12 +418,12 @@ def test_rolling_max_resample():
     expected = Series(
         [0.0, 1.0, 2.0, 3.0, v],
         index=DatetimeIndex([datetime(1975, 1, i, 0) for i in range(1, 6)], freq="D"),
-    )
-    x = series.resample("D").mean().rolling(window=1).max()
+    )[::step]
+    x = series.resample("D").mean().rolling(window=1, step=step).max()
     tm.assert_series_equal(expected, x)
 
 
-def test_rolling_min_resample():
+def test_rolling_min_resample(step):
 
     indices = [datetime(1975, 1, i) for i in range(1, 6)]
     # So that we can have 3 datapoints on last day (4, 10, and 20)
@@ -433,8 +439,8 @@ def test_rolling_min_resample():
     expected = Series(
         [0.0, 1.0, 2.0, 3.0, 4.0],
         index=DatetimeIndex([datetime(1975, 1, i, 0) for i in range(1, 6)], freq="D"),
-    )
-    r = series.resample("D").min().rolling(window=1)
+    )[::step]
+    r = series.resample("D").min().rolling(window=1, step=step)
     tm.assert_series_equal(expected, r.min())
 
 

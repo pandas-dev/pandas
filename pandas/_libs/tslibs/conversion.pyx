@@ -227,12 +227,7 @@ def ensure_datetime64ns(arr: ndarray, copy: bool = True):
         dtype = arr.dtype
         arr = arr.astype(dtype.newbyteorder("<"))
 
-    ivalues = arr.view(np.int64).ravel("K")
-
-    result = np.empty_like(arr, dtype=DT64NS_DTYPE)
-    iresult = result.ravel("K").view(np.int64)
-
-    if len(iresult) == 0:
+    if arr.size == 0:
         result = arr.view(DT64NS_DTYPE)
         if copy:
             result = result.copy()
@@ -245,17 +240,23 @@ def ensure_datetime64ns(arr: ndarray, copy: bool = True):
         raise ValueError("datetime64/timedelta64 must have a unit specified")
 
     if unit == NPY_FR_ns:
+        # Check this before allocating result for perf, might save some memory
         if copy:
-            arr = arr.copy()
-        result = arr
-    else:
-        for i in range(n):
-            if ivalues[i] != NPY_NAT:
-                pandas_datetime_to_datetimestruct(ivalues[i], unit, &dts)
-                iresult[i] = dtstruct_to_dt64(&dts)
-                check_dts_bounds(&dts)
-            else:
-                iresult[i] = NPY_NAT
+            return arr.copy()
+        return arr
+
+    ivalues = arr.view(np.int64).ravel("K")
+
+    result = np.empty_like(arr, dtype=DT64NS_DTYPE)
+    iresult = result.ravel("K").view(np.int64)
+
+    for i in range(n):
+        if ivalues[i] != NPY_NAT:
+            pandas_datetime_to_datetimestruct(ivalues[i], unit, &dts)
+            iresult[i] = dtstruct_to_dt64(&dts)
+            check_dts_bounds(&dts)
+        else:
+            iresult[i] = NPY_NAT
 
     return result
 
@@ -756,7 +757,7 @@ cdef inline bint _infer_tsobject_fold(
     _TSObject obj,
     const int64_t[:] trans,
     const int64_t[:] deltas,
-    int32_t pos,
+    intp_t pos,
 ):
     """
     Infer _TSObject fold property from value by assuming 0 and then setting
@@ -769,7 +770,7 @@ cdef inline bint _infer_tsobject_fold(
         ndarray of offset transition points in nanoseconds since epoch.
     deltas : int64_t[:]
         array of offsets corresponding to transition points in trans.
-    pos : int32_t
+    pos : intp_t
         Position of the last transition point before taking fold into account.
 
     Returns
@@ -827,13 +828,7 @@ cpdef inline datetime localize_pydatetime(datetime dt, tzinfo tz):
         return dt
     elif isinstance(dt, ABCTimestamp):
         return dt.tz_localize(tz)
-    elif is_utc(tz):
-        return _localize_pydatetime(dt, tz)
-    try:
-        # datetime.replace with pytz may be incorrect result
-        return tz.localize(dt)
-    except AttributeError:
-        return dt.replace(tzinfo=tz)
+    return _localize_pydatetime(dt, tz)
 
 
 # ----------------------------------------------------------------------

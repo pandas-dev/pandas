@@ -16,16 +16,15 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.computation.check import NUMEXPR_INSTALLED
 
-PARSERS = "python", "pandas"
-ENGINES = "python", pytest.param("numexpr", marks=td.skip_if_no_ne)
 
-
-@pytest.fixture(params=PARSERS, ids=lambda x: x)
+@pytest.fixture(params=["python", "pandas"], ids=lambda x: x)
 def parser(request):
     return request.param
 
 
-@pytest.fixture(params=ENGINES, ids=lambda x: x)
+@pytest.fixture(
+    params=["python", pytest.param("numexpr", marks=td.skip_if_no_ne)], ids=lambda x: x
+)
 def engine(request):
     return request.param
 
@@ -36,7 +35,7 @@ def skip_if_no_pandas_parser(parser):
 
 
 class TestCompat:
-    def setup_method(self, method):
+    def setup_method(self):
         self.df = DataFrame({"A": [1, 2, 3]})
         self.expected1 = self.df[self.df.A > 0]
         self.expected2 = self.df.A + 1
@@ -164,6 +163,17 @@ class TestDataFrameEval:
         dict2 = {"b": 2}
         assert df.eval("a + b", resolvers=[dict1, dict2]) == dict1["a"] + dict2["b"]
         assert pd.eval("a + b", resolvers=[dict1, dict2]) == dict1["a"] + dict2["b"]
+
+    def test_eval_resolvers_combined(self):
+        # GH 34966
+        df = DataFrame(np.random.randn(10, 2), columns=list("ab"))
+        dict1 = {"c": 2}
+
+        # Both input and default index/column resolvers should be usable
+        result = df.eval("a + b * c", resolvers=[dict1])
+
+        expected = df["a"] + df["b"] * dict1["c"]
+        tm.assert_series_equal(result, expected)
 
     def test_eval_object_dtype_binop(self):
         # GH#24883
@@ -704,16 +714,15 @@ class TestDataFrameQueryNumExprPandas:
         expected = df.loc[df.index[df.index > 5]]
         tm.assert_frame_equal(result, expected)
 
-    def test_inf(self):
+    @pytest.mark.parametrize("op, f", [["==", operator.eq], ["!=", operator.ne]])
+    def test_inf(self, op, f):
         n = 10
         df = DataFrame({"a": np.random.rand(n), "b": np.random.rand(n)})
         df.loc[::2, 0] = np.inf
-        d = {"==": operator.eq, "!=": operator.ne}
-        for op, f in d.items():
-            q = f"a {op} inf"
-            expected = df[f(df.a, np.inf)]
-            result = df.query(q, engine=self.engine, parser=self.parser)
-            tm.assert_frame_equal(result, expected)
+        q = f"a {op} inf"
+        expected = df[f(df.a, np.inf)]
+        result = df.query(q, engine=self.engine, parser=self.parser)
+        tm.assert_frame_equal(result, expected)
 
     def test_check_tz_aware_index_query(self, tz_aware_fixture):
         # https://github.com/pandas-dev/pandas/issues/29463
@@ -1043,18 +1052,24 @@ class TestDataFrameQueryStrings:
         expec = df[df.a == "test & test"]
         tm.assert_frame_equal(res, expec)
 
-    def test_query_lex_compare_strings(self, parser, engine):
+    @pytest.mark.parametrize(
+        "op, func",
+        [
+            ["<", operator.lt],
+            [">", operator.gt],
+            ["<=", operator.le],
+            [">=", operator.ge],
+        ],
+    )
+    def test_query_lex_compare_strings(self, parser, engine, op, func):
 
         a = Series(np.random.choice(list("abcde"), 20))
         b = Series(np.arange(a.size))
         df = DataFrame({"X": a, "Y": b})
 
-        ops = {"<": operator.lt, ">": operator.gt, "<=": operator.le, ">=": operator.ge}
-
-        for op, func in ops.items():
-            res = df.query(f'X {op} "d"', engine=engine, parser=parser)
-            expected = df[func(df.X, "d")]
-            tm.assert_frame_equal(res, expected)
+        res = df.query(f'X {op} "d"', engine=engine, parser=parser)
+        expected = df[func(df.X, "d")]
+        tm.assert_frame_equal(res, expected)
 
     def test_query_single_element_booleans(self, parser, engine):
         columns = "bid", "bidsize", "ask", "asksize"
@@ -1079,10 +1094,10 @@ class TestDataFrameQueryStrings:
 
 
 class TestDataFrameEvalWithFrame:
-    def setup_method(self, method):
+    def setup_method(self):
         self.frame = DataFrame(np.random.randn(10, 3), columns=list("abc"))
 
-    def teardown_method(self, method):
+    def teardown_method(self):
         del self.frame
 
     def test_simple_expr(self, parser, engine):

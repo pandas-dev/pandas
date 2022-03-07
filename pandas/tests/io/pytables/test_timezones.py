@@ -304,7 +304,7 @@ def test_store_timezone(setup_path):
         tm.assert_frame_equal(result, df)
 
 
-def test_legacy_datetimetz_object(datapath, setup_path):
+def test_legacy_datetimetz_object(datapath):
     # legacy from < 0.17.0
     # 8260
     expected = DataFrame(
@@ -356,7 +356,7 @@ def test_read_with_where_tz_aware_index(setup_path):
         tm.assert_frame_equal(result, expected)
 
 
-def test_py2_created_with_datetimez(datapath, setup_path):
+def test_py2_created_with_datetimez(datapath):
     # The test HDF5 file was created in Python 2, but could not be read in
     # Python 3.
     #
