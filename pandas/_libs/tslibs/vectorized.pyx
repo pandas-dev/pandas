@@ -37,6 +37,44 @@ from .timezones cimport (
 )
 from .tzconversion cimport tz_convert_utc_to_tzlocal
 
+
+@cython.freelist(16)
+cdef class Localizer:
+    cdef readonly:
+        tzinfo tz
+        bint use_utc
+        bint use_fixed
+        bint use_tzlocal
+        bint use_pytz
+        bint use_dst
+        ndarray trans
+        int64_t[:] deltas
+        int64_t delta
+        str typ
+
+    @cython.boundscheck(False)
+    def __cinit__(self, tzinfo tz):
+        self.tz = tz
+        if is_utc(tz) or tz is None:
+            self.use_utc = True
+        elif is_tzlocal(tz):
+            self.use_tzlocal = True
+        else:
+            trans, deltas, typ = get_dst_info(tz)
+            self.trans = trans
+            self.deltas = deltas
+            self.typ = typ
+
+            if typ not in ["pytz", "dateutil"]:
+                # static/fixed; in this case we know that len(delta) == 1
+                self.use_fixed = True
+                self.delta = deltas[0]
+            else:
+                self.use_dst = True
+                if typ == "pytz":
+                    self.use_pytz = True
+
+
 # -------------------------------------------------------------------------
 
 cdef inline object create_datetime_from_ts(
@@ -379,41 +417,3 @@ def dt64arr_to_periodarr(const int64_t[:] stamps, int freq, tzinfo tz):
         result[i] = get_period_ordinal(&dts, freq)
 
     return result.base  # .base to get underlying ndarray
-
-
-
-@cython.freelist(16)
-cdef class Localizer:
-    cdef:
-        tzinfo tz
-        bint use_utc
-        bint use_fixed
-        bint use_tzlocal
-        bint use_pytz
-        bint use_dst
-        ndarray trans
-        int64_t[:] deltas
-        int64_t delta
-        str typ
-
-    @cython.boundscheck(False)
-    def __cinit__(self, tzinfo tz):
-        self.tz = tz
-        if is_utc(tz) or tz is None:
-            self.use_utc = True
-        elif is_tzlocal(tz):
-            self.use_tzlocal = True
-        else:
-            trans, deltas, typ = get_dst_info(tz)
-            self.trans = trans
-            self.deltas = deltas
-            self.typ = typ
-
-            if typ not in ["pytz", "dateutil"]:
-                # static/fixed; in this case we know that len(delta) == 1
-                self.use_fixed = True
-                self.delta = deltas[0]
-            else:
-                self.use_dst = True
-                if typ == "pytz":
-                    self.use_pytz = True
