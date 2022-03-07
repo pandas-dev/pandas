@@ -2469,7 +2469,7 @@ def test_groupby_numerical_stability_cumsum():
 
 
 def test_groupby_cumsum_skipna_false():
-    # don't propagate np.nan above the diagonal
+    # GH#46216 don't propagate np.nan above the diagonal
     arr = np.random.randn(5, 5)
     df = DataFrame(arr)
     for i in range(5):
@@ -2485,7 +2485,7 @@ def test_groupby_cumsum_skipna_false():
 
 
 def test_groupby_cumsum_timedelta64():
-    # don't ignore is_datetimelike in libgroupby.group_cumsum
+    # GH#46216 don't ignore is_datetimelike in libgroupby.group_cumsum
     dti = date_range("2016-01-01", periods=5)
     ser = Series(dti) - dti[0]
     ser[2] = pd.NaT
