@@ -60,7 +60,7 @@ at the left side of the assignment.
     </ul>
 
 .. note::
-    The calculation of the values is done **element_wise**. This
+    The calculation of the values is done **element-wise**. This
     means all values in the given column are multiplied by the value 1.882
     at once. You do not need to use a loop to iterate each of the rows!
 
@@ -90,7 +90,7 @@ values in each row*.
     </ul>
 
 Also other mathematical operators (``+``, ``-``, ``\*``, ``/``) or
-logical operators (``<``, ``>``, ``=``,…) work element wise. The latter was already
+logical operators (``<``, ``>``, ``=``,…) work element-wise. The latter was already
 used in the :ref:`subset data tutorial <10min_tut_03_subset>` to filter
 rows of a table using a conditional expression.
 
