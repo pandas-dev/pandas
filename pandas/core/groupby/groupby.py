@@ -1646,6 +1646,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             out = algorithms.take_nd(result._values, ids)
             output = obj._constructor(out, index=obj.index, name=obj.name)
         else:
+            # GH#46209
             # Don't convert indices: negative indices need to give rise
             # to null values in the result
             output = result._take(ids, axis=self.axis, convert_indices=False)
