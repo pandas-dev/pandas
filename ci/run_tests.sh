@@ -35,7 +35,7 @@ sh -c "$PYTEST_CMD"
 
 if [[ "$PANDAS_DATA_MANAGER" != "array" ]]; then
     # The ArrayManager tests should have already been run by PYTEST_CMD if PANDAS_DATA_MANAGER was already set to array
-    PYTEST_AM_CMD="PANDAS_DATA_MANAGER=array pytest -n $PYTEST_WORKERS  --dist=loadfile $TEST_ARGS $COVERAGE pandas"
+    PYTEST_AM_CMD="PANDAS_DATA_MANAGER=array pytest -n $PYTEST_WORKERS --dist=loadfile $TEST_ARGS $COVERAGE $PYTEST_TARGET"
 
     if [[ "$PATTERN" ]]; then
       PYTEST_AM_CMD="$PYTEST_AM_CMD -m \"$PATTERN and arraymanager\""
