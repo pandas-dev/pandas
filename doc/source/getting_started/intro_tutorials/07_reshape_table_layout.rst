@@ -360,11 +360,11 @@ Conversion from wide to long format with :func:`pandas.melt` is explained in the
     <div class="shadow gs-callout gs-callout-remember">
         <h4>REMEMBER</h4>
 
--  Sorting by one or more columns is supported by ``sort_values``
+-  Sorting by one or more columns is supported by ``sort_values``.
 -  The ``pivot`` function is purely restructuring of the data,
-   ``pivot_table`` supports aggregations
+   ``pivot_table`` supports aggregations.
 -  The reverse of ``pivot`` (long to wide format) is ``melt`` (wide to
-   long format)
+   long format).
 
 .. raw:: html
 

@@ -41,7 +41,7 @@ How to create new columns derived from existing columns?
     <ul class="task-bullet">
         <li>
 
-I want to express the :math:`NO_2` concentration of the station in London in mg/m\ :math:`^3`
+I want to express the :math:`NO_2` concentration of the station in London in mg/m\ :math:`^3`.
 
 (*If we assume temperature of 25 degrees Celsius and pressure of 1013
 hPa, the conversion factor is 1.882*)
@@ -72,7 +72,7 @@ at the left side of the assignment.
     <ul class="task-bullet">
         <li>
 
-I want to check the ratio of the values in Paris versus Antwerp and save the result in a new column
+I want to check the ratio of the values in Paris versus Antwerp and save the result in a new column.
 
 .. ipython:: python
 
@@ -101,7 +101,7 @@ If you need more advanced logic, you can use arbitrary Python code via :meth:`~D
     <ul class="task-bullet">
         <li>
 
-I want to rename the data columns to the corresponding station identifiers used by openAQ
+I want to rename the data columns to the corresponding station identifiers used by openAQ.
 
 .. ipython:: python
 

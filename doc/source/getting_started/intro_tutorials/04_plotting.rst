@@ -214,9 +214,9 @@ This strategy is applied in the previous example:
     <div class="shadow gs-callout gs-callout-remember">
         <h4>REMEMBER</h4>
 
--  The ``.plot.*`` methods are applicable on both Series and DataFrames
+-  The ``.plot.*`` methods are applicable on both Series and DataFrames.
 -  By default, each of the columns is plotted as a different element
-   (line, boxplot,…)
+   (line, boxplot,…).
 -  Any plot created by pandas is a Matplotlib object.
 
 .. raw:: html

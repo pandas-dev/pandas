@@ -265,10 +265,10 @@ The user guide has a dedicated section on ``value_counts`` , see page on :ref:`d
     <div class="shadow gs-callout gs-callout-remember">
         <h4>REMEMBER</h4>
 
--  Aggregation statistics can be calculated on entire columns or rows
--  ``groupby`` provides the power of the *split-apply-combine* pattern
+-  Aggregation statistics can be calculated on entire columns or rows.
+-  ``groupby`` provides the power of the *split-apply-combine* pattern.
 -  ``value_counts`` is a convenient shortcut to count the number of
-   entries in each category of a variable
+   entries in each category of a variable.
 
 .. raw:: html
 
