@@ -1210,10 +1210,20 @@ class Timestamp(_Timestamp):
         >>> ts.fast_strftime(fmt)
         '2020-03-14T15:32:52'
         """
-        return fmt_str % dict(
-            year=self.year, month=self.month, day=self.day, hour=self.hour,
-            min=self.minute, sec=self.second, us=self.microsecond
-        )
+        y = self.year
+        h = self.hour
+        return fmt_str % {
+            "year": y,
+            "shortyear": y % 100,
+            "month": self.month,
+            "day": self.day,
+            "hour": h,
+            "hour12": 12 if h in (0, 12) else (h % 12),
+            "ampm": "PM" if (h // 12) else "AM",
+            "min": self.minute,
+            "sec": self.second,
+            "us": self.microsecond,
+        }
 
     def strftime(self, format):
         """

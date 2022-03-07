@@ -128,7 +128,7 @@ def format_array_from_datetime(
     np.ndarray[object]
     """
     cdef:
-        int64_t val, ns, N = len(values)
+        int64_t val, ns, y, h, N = len(values)
         ndarray[int64_t] consider_values
         bint show_ms = False, show_us = False, show_ns = False
         bint basic_format = False
@@ -203,10 +203,20 @@ def format_array_from_datetime(
                 dt64_to_dtstruct(val, &dts)
 
                 # Use string formatting for faster strftime
-                result[i] = str_format % dict(
-                    year=dts.year, month=dts.month, day=dts.day, hour=dts.hour,
-                    min=dts.min, sec=dts.sec, us=dts.us
-                )
+                y = dts.year
+                h = dts.hour
+                result[i] = str_format % {
+                    "year": y,
+                    "shortyear": y % 100,
+                    "month": dts.month,
+                    "day": dts.day,
+                    "hour": dts.hour,
+                    "hour12": 12 if h in (0, 12) else (h % 12),
+                    "ampm": "PM" if (h // 12) else "AM",
+                    "min": dts.min,
+                    "sec": dts.sec,
+                    "us": dts.us,
+                }
             else:
                 ts = Timestamp(val, tz=tz)
 

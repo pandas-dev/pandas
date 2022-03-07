@@ -7,20 +7,16 @@ class UnsupportedStrFmtDirective(ValueError):
 
 
 _COMMON_UNSUPPORTED = (
-    # All of these below are names and therefore are not in the numpy or datetime attr representation
+    # 1- Names not in the numpy or datetime attr representation
     "%a",  # Weekday as locale’s abbreviated name.
     "%A",  # Weekday as locale’s full name.
     "%w",  # Weekday as a decimal number, where 0 is Sunday and 6 is Saturday.
     "%b",  # Month as locale’s abbreviated name.
     "%B",  # Month as locale’s full name.
-    # TODO All of those below can probably be derived easily from the numbers on the instance
-    "%y",  # Year without century as a zero-padded decimal number.  >> year % 100
-    "%I",  # Hour (12-hour clock) as a zero-padded decimal number. >> hour % 12
-    "%p",  # Locale’s equivalent of either AM or PM.  >> "pm" if (hour // 12) else "am"
-    # TODO Below Time offset and timezone information ... but may be hard
-    "%z",  # UTC offset in the form ±HHMM[SS[.ffffff]] (empty string if the object is naive).
-    "%Z",  # Time zone name (empty string if the object is naive).
-    # We do not want to enter into these below, we do not want to re-create the datetime implementation
+    # 2- TODO Below Time offset and timezone information ... but may be hard
+    "%z",  # UTC offset in the form ±HHMM[SS[.ffffff]] ("" if tz naive).
+    "%Z",  # Time zone name ("" if tz naive).
+    # 3- Probably too complex ones for now
     "%j",  # Day of the year as a zero-padded decimal number.
     "%U",  # Week number of the year (Sunday as the first day of the week) as a zero-padded decimal number. All days in a new year preceding the first Sunday are considered to be in week 0.
     "%W",  # Week number of the year (Monday as the first day of the week) as a zero-padded decimal number. All days in a new year preceding the first Monday are considered to be in week 0.
@@ -34,13 +30,16 @@ _COMMON_MAP = {
     "%d": ("day", "02d"),  # Day of the month as a zero-padded decimal number.
     "%m": ("month", "02d"),  # Month as a zero-padded decimal number.
     "%Y": ("year", "d"),  # Year with century as a decimal number.
-    "%H": ("hour", "02d"),  # Hour (24-hour clock) as a zero-padded decimal number.
+    "%y": ("shortyear", "02d"),  # Year without century as 0-padded decimal nb.
+    "%H": ("hour", "02d"),  # Hour (24-hour clock) as 0-padded decimal number.
+    "%I": ("hour12", "02d"),  # Hour (12-hour clock) as a 0-padded decimal nb.
+    "%p": ("ampm", "s"),  # Locale’s equivalent of either AM or PM.
     "%M": ("min", "02d"),  # Minute as a zero-padded decimal number.
     "%S": ("sec", "02d"),  # Second as a zero-padded decimal number.
 }
 
 _DATETIME_MAP = {
-    "%f": ("us", "06d"),  # Microsecond as a decimal number, zero-padded to 6 digits.
+    "%f": ("us", "06d"),  # Microsecond as decimal number, 0-padded to 6 digits
 }
 
 _PERIOD_MAP = {
@@ -50,9 +49,9 @@ _PERIOD_MAP = {
     ),  # 'Fiscal' year without century as zero-padded decimal number [00,99]
     "%F": ("Fyear", "d"),  # 'Fiscal' year with century as a decimal number
     "%q": ("q", "d"),  # Quarter as a decimal number [1,4]
-    "%l": ("ms", "03d"),  # Microsecond as a decimal number, zero-padded to 3 digits.
-    "%u": ("us", "06d"),  # Microsecond as a decimal number, zero-padded to 6 digits.
-    "%n": ("ns", "09d"),  # Microsecond as a decimal number, zero-padded to 9 digits.
+    "%l": ("ms", "03d"),  # Millisecond as decimal number, 0-padded 3 digits
+    "%u": ("us", "06d"),  # Microsecond as decimal number, 0-padded 6 digits
+    "%n": ("ns", "09d"),  # Nanosecond as decimal number, 0-padded 9 digits
 }
 
 

@@ -3169,6 +3169,58 @@ class TestNaTFormatting:
         assert str(NaT) == "NaT"
 
 
+class TestPeriodIndexFormat:
+
+    def test_period(self):
+        p = pd.PeriodIndex([datetime(2003, 1, 1, 12), None], freq='H')
+        formatted = p.format()
+        assert formatted[0] == "2003-01-01 12:00"  # default: minutes not shown
+        assert formatted[1] == "NaT"
+
+        p = pd.period_range("2003-01-01 12:01:01.123456789", periods=2,
+                            freq="n")
+        formatted = p.format()
+        assert formatted[0] == '2003-01-01 12:01:01.123456789'
+        assert formatted[1] == '2003-01-01 12:01:01.123456790'
+
+    @pytest.mark.parametrize("fast_strftime", (False, True))
+    def test_period_custom(self, fast_strftime):
+        # GH46252
+        p = pd.period_range("2003-01-01 12:01:01.123", periods=2, freq="l")
+        formatted = p.format(date_format="%y %I:%M:%S%p (ms=%l us=%u ns=%n)",
+                             fast_strftime=fast_strftime)
+        assert formatted[0] == "03 12:01:01PM (ms=123 us=123000 ns=123000000)"
+        assert formatted[1] == "03 12:01:01PM (ms=124 us=124000 ns=124000000)"
+
+        p = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="n")
+        formatted = p.format(date_format="%y %I:%M:%S%p (ms=%l us=%u ns=%n)",
+                             fast_strftime=fast_strftime)
+        assert formatted[0] == "03 12:01:01PM (ms=123 us=123456 ns=123456789)"
+        assert formatted[1] == "03 12:01:01PM (ms=123 us=123456 ns=123456790)"
+
+        p = pd.period_range("2003-01-01 12:01:01.123456", periods=2, freq="u")
+        formatted = p.format(date_format="%y %I:%M:%S%p (ms=%l us=%u ns=%n)",
+                             fast_strftime=fast_strftime)
+        assert formatted[0] == "03 12:01:01PM (ms=123 us=123456 ns=123456000)"
+        assert formatted[1] == "03 12:01:01PM (ms=123 us=123457 ns=123457000)"
+
+    def test_period_tz(self):
+        """Test formatting periods created from a datetime with timezone"""
+
+        # This timestamp is in 2013 in Europe/Paris but is 2012 in UTC
+        dt = pd.to_datetime(["2013-01-01 00:00:00+01:00"], utc=True)
+
+        # Converting to a period looses the timezone information
+        # Since tz is currently set as utc, we'll see 2012
+        p = dt.to_period(freq="H")
+        assert p.format()[0] == "2012-12-31 23:00"
+
+        # If tz is currently set as paris before conversion, we'll see 2013
+        dt = dt.tz_convert("Europe/Paris")
+        p = dt.to_period(freq="H")
+        assert p.format()[0] == "2013-01-01 00:00"
+
+
 class TestDatetimeIndexFormat:
     def test_datetime(self):
         formatted = pd.to_datetime([datetime(2003, 1, 1, 12), NaT]).format()

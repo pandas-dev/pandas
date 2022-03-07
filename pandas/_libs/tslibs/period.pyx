@@ -1251,19 +1251,19 @@ cdef str _period_fast_strftime(int64_t value, int freq):
         # fmt = b'%Y-%m-%d %H:%M:%S.%l'
         return (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
                 f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}"
-                f".{(value % 1_000):03d}")
+                f".{(dts.us // 1_000):03d}")
 
     elif freq_group == FR_US:
         # fmt = b'%Y-%m-%d %H:%M:%S.%u'
         return (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
                 f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}"
-                f".{(value % 1_000_000):06d}")
+                f".{(dts.us):06d}")
 
     elif freq_group == FR_NS:
         # fmt = b'%Y-%m-%d %H:%M:%S.%n'
         return (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
                 f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}"
-                f".{(value % 1_000_000_000):09d}")
+                f".{((dts.us * 1000) + (dts.ps // 1000)):09d}")
 
     else:
         raise ValueError(f"Unknown freq: {freq}")
@@ -1323,11 +1323,11 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt):
             elif i == 2:  # %F, 'Fiscal' year with a century
                 repl = str(dts.year)
             elif i == 3:  # %l, milliseconds
-                repl = f"{(value % 1_000):03d}"
+                repl = f"{(dts.us // 1_000):03d}"
             elif i == 4:  # %u, microseconds
-                repl = f"{(value % 1_000_000):06d}"
+                repl = f"{(dts.us):06d}"
             elif i == 5:  # %n, nanoseconds
-                repl = f"{(value % 1_000_000_000):09d}"
+                repl = f"{((dts.us * 1000) + (dts.ps // 1000)):09d}"
 
             result = result.replace(str_extra_fmts[i], repl)
 
@@ -2418,7 +2418,7 @@ cdef class _Period(PeriodMixin):
 
         cdef:
             npy_datetimestruct dts, dts2
-            int quarter
+            int quarter, y, h
 
         # Fill dts with all fields
         get_date_info(value, freq, &dts)
@@ -2427,12 +2427,25 @@ cdef class _Period(PeriodMixin):
         quarter = get_yq(value, freq, &dts2)
 
         # Finally use the string template
-        return fmt_str % dict(
-            year=dts.year, month=dts.month, day=dts.day, hour=dts.hour,
-            min=dts.min, sec=dts.sec,
-            ms=dts.us // 1000, us=dts.us, ns=dts.us * 1000,
-            q=quarter, Fyear=dts2.year, fyear=dts2.year % 100
-        )
+        y = dts.year
+        h = dts.hour
+        return fmt_str % {
+            "year": y,
+            "shortyear": y % 100,
+            "month": dts.month,
+            "day": dts.day,
+            "hour": h,
+            "hour12": 12 if h in (0, 12) else (h % 12),
+            "ampm": "PM" if (h // 12) else "AM",
+            "min": dts.min,
+            "sec": dts.sec,
+            "ms": dts.us // 1000,
+            "us": dts.us,
+            "ns": (dts.us * 1000) + (dts.ps // 1000),
+            "q": quarter,
+            "Fyear": dts2.year,
+            "fyear": dts2.year % 100,
+        }
 
     def strftime(self, fmt: str) -> str:
         r"""

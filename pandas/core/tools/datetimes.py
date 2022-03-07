@@ -1315,15 +1315,20 @@ def fast_strftime(
        `datetime.strftime`.
     """
     # common dict used for formatting
-    fmt_dct = dict(
-        year=dt.year,
-        month=dt.month,
-        day=dt.day,
-        hour=dt.hour,
-        min=dt.minute,
-        sec=dt.second,
-        us=dt.microsecond,
-    )
+    y = dt.year
+    h = dt.hour
+    fmt_dct = {
+        "year": y,
+        "shortyear": y % 100,
+        "month": dt.month,
+        "day": dt.day,
+        "hour": h,
+        "hour12": 12 if h in (0, 12) else (h % 12),
+        "ampm": "PM" if (h // 12) else "AM",
+        "min": dt.minute,
+        "sec": dt.second,
+        "us": dt.microsecond,
+    }
 
     # get the formatting template
     fmt_str = convert_strftime_format(fmt, new_style_fmt=new_style_fmt)
