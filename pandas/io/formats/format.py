@@ -1767,6 +1767,8 @@ def _format_datetime64(x: NaTType | Timestamp, nat_rep: str = "NaT") -> str:
     if x is NaT:
         return nat_rep
 
+    # Note: this seems to rely on datetime.datetime.__str__ = isoformat
+    # so it already uses string templating rather than strftime (faster).
     return str(x)
 
 
@@ -1782,15 +1784,7 @@ def _format_datetime64_dateonly(
     if date_format:
         if str_date_fmt:
             # Faster, using string formatting
-            return str_date_fmt % dict(
-                year=x.year,
-                month=x.month,
-                day=x.day,
-                hour=x.hour,
-                min=x.min,
-                sec=x.sec,
-                us=x.us,
-            )
+            return x.fast_strftime(str_date_fmt)
         else:
             # Slower
             return x.strftime(date_format)
@@ -1798,6 +1792,8 @@ def _format_datetime64_dateonly(
         # error: Item "NaTType" of "Union[NaTType, Any]" has no attribute "_date_repr"
         #  The underlying problem here is that mypy doesn't understand that NaT
         #  is a singleton, so that the check above excludes it here.
+        #
+        # Note: this relies on string templating (faster than strftime)
         return x._date_repr  # type: ignore[union-attr]
 
 
@@ -1821,9 +1817,11 @@ def get_format_datetime64(
                 pass
 
         return lambda x: _format_datetime64_dateonly(
-            x, nat_rep=nat_rep, date_format=date_format, str_date_fmt=str_date_fmt
+            x, nat_rep=nat_rep, date_format=date_format,
+            str_date_fmt=str_date_fmt
         )
     else:
+        # Relies on datetime.str, which is fast already
         return lambda x: _format_datetime64(x, nat_rep=nat_rep)
 
 
@@ -1869,6 +1867,7 @@ class Timedelta64Formatter(GenericArrayFormatter):
         self.box = box
 
     def _format_strings(self) -> list[str]:
+        # Note: `get_format_timedelta64` uses fast formatting
         formatter = self.formatter or get_format_timedelta64(
             self.values, nat_rep=self.nat_rep, box=self.box
         )
@@ -1912,6 +1911,8 @@ def get_format_timedelta64(
 
         if not isinstance(x, Timedelta):
             x = Timedelta(x)
+
+        # Note: this does not use strftime but string formatting (faster)
         result = x._repr_base(format=format)
         if box:
             result = f"'{result}'"
