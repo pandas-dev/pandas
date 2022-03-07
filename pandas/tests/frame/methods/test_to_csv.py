@@ -993,13 +993,16 @@ class TestDataFrameToCSV:
             with tm.decompress_file(filename, compression) as fh:
                 tm.assert_frame_equal(df, read_csv(fh, index_col=0, encoding=encoding))
 
-    def test_to_csv_date_format(self, datetime_frame):
+    @pytest.mark.parametrize("fast_strftime", (True, False))
+    def test_to_csv_date_format(self, datetime_frame, fast_strftime):
         with tm.ensure_clean("__tmp_to_csv_date_format__") as path:
             dt_index = datetime_frame.index
             datetime_frame = DataFrame(
                 {"A": dt_index, "B": dt_index.shift(1)}, index=dt_index
             )
-            datetime_frame.to_csv(path, date_format="%Y%m%d")
+            datetime_frame.to_csv(
+                path, date_format="%Y%m%d", fast_strftime=fast_strftime
+            )
 
             # Check that the data was put in the specified format
             test = read_csv(path, index_col=0)
@@ -1013,7 +1016,9 @@ class TestDataFrameToCSV:
 
             tm.assert_frame_equal(test, datetime_frame_int)
 
-            datetime_frame.to_csv(path, date_format="%Y-%m-%d")
+            datetime_frame.to_csv(
+                path, date_format="%Y-%m-%d", fast_strftime=fast_strftime
+            )
 
             # Check that the data was put in the specified format
             test = read_csv(path, index_col=0)
@@ -1028,7 +1033,9 @@ class TestDataFrameToCSV:
 
             # Check that columns get converted
             datetime_frame_columns = datetime_frame.T
-            datetime_frame_columns.to_csv(path, date_format="%Y%m%d")
+            datetime_frame_columns.to_csv(
+                path, date_format="%Y%m%d", fast_strftime=fast_strftime
+            )
 
             test = read_csv(path, index_col=0)
 
@@ -1047,14 +1054,15 @@ class TestDataFrameToCSV:
                 ["NaT"] * 10 + ["2000-01-01", "1/1/2000", "1-1-2000"]
             )
             nat_frame = DataFrame({"A": nat_index}, index=nat_index)
-            nat_frame.to_csv(path, date_format="%Y-%m-%d")
+            nat_frame.to_csv(path, date_format="%Y-%m-%d", fast_strftime=fast_strftime)
 
             test = read_csv(path, parse_dates=[0, 1], index_col=0)
 
             tm.assert_frame_equal(test, nat_frame)
 
+    @pytest.mark.parametrize("fast_strftime", (True, False))
     @pytest.mark.parametrize("td", [pd.Timedelta(0), pd.Timedelta("10s")])
-    def test_to_csv_with_dst_transitions(self, td):
+    def test_to_csv_with_dst_transitions(self, td, fast_strftime):
 
         with tm.ensure_clean("csv_date_format_with_dst") as path:
             # make sure we are not failing on transitions
@@ -1069,7 +1077,7 @@ class TestDataFrameToCSV:
             i = i._with_freq(None)  # freq is not preserved by read_csv
             time_range = np.array(range(len(i)), dtype="int64")
             df = DataFrame({"A": time_range}, index=i)
-            df.to_csv(path, index=True)
+            df.to_csv(path, index=True, fast_strftime=fast_strftime)
             # we have to reconvert the index as we
             # don't parse the tz's
             result = read_csv(path, index_col=0)

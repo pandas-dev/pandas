@@ -1146,6 +1146,7 @@ class DataFrameRenderer:
         lineterminator: str | None = None,
         chunksize: int | None = None,
         date_format: str | None = None,
+        fast_strftime: bool = True,
         doublequote: bool = True,
         escapechar: str | None = None,
         errors: str = "strict",
@@ -1176,6 +1177,7 @@ class DataFrameRenderer:
             chunksize=chunksize,
             quotechar=quotechar,
             date_format=date_format,
+            fast_strftime=fast_strftime,
             doublequote=doublequote,
             escapechar=escapechar,
             storage_options=storage_options,
@@ -1836,6 +1838,7 @@ def get_format_datetime64_from_values(
 
     ido = is_dates_only(values)
     if ido:
+        # only dates and no timezone: provide a default format
         return date_format or "%Y-%m-%d"
     return date_format
 
