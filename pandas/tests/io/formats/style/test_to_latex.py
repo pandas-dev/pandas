@@ -990,3 +990,45 @@ def test_clines_multiindex(clines, expected, env):
     styler.hide(level=1)
     result = styler.to_latex(clines=clines, environment=env)
     assert expected in result
+
+
+def test_col_format_len(styler):
+    # gh 46037
+    result = styler.to_latex(environment="longtable", column_format="lrr{10cm}")
+    expected = r"\multicolumn{4}{r}{Continued on next page} \\"
+    assert expected in result
+
+
+def test_concat(styler):
+    result = styler.concat(styler.data.agg(["sum"]).style).to_latex()
+    expected = dedent(
+        """\
+    \\begin{tabular}{lrrl}
+     & A & B & C \\\\
+    0 & 0 & -0.61 & ab \\\\
+    1 & 1 & -1.22 & cd \\\\
+    sum & 1 & -1.830000 & abcd \\\\
+    \\end{tabular}
+    """
+    )
+    assert result == expected
+
+
+def test_concat_recursion():
+    # tests hidden row recursion and applied styles
+    styler1 = DataFrame([[1], [9]]).style.hide([1]).highlight_min(color="red")
+    styler2 = DataFrame([[9], [2]]).style.hide([0]).highlight_min(color="green")
+    styler3 = DataFrame([[3], [9]]).style.hide([1]).highlight_min(color="blue")
+
+    result = styler1.concat(styler2.concat(styler3)).to_latex(convert_css=True)
+    expected = dedent(
+        """\
+    \\begin{tabular}{lr}
+     & 0 \\\\
+    0 & {\\cellcolor{red}} 1 \\\\
+    1 & {\\cellcolor{green}} 2 \\\\
+    0 & {\\cellcolor{blue}} 3 \\\\
+    \\end{tabular}
+    """
+    )
+    assert result == expected

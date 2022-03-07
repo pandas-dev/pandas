@@ -47,6 +47,29 @@ class GetLoc:
             self.mi_small.get_loc((99, "A", "A"))
 
 
+class GetLocs:
+    def setup(self):
+        self.mi_large = MultiIndex.from_product(
+            [np.arange(1000), np.arange(20), list(string.ascii_letters)],
+            names=["one", "two", "three"],
+        )
+        self.mi_med = MultiIndex.from_product(
+            [np.arange(1000), np.arange(10), list("A")], names=["one", "two", "three"]
+        )
+        self.mi_small = MultiIndex.from_product(
+            [np.arange(100), list("A"), list("A")], names=["one", "two", "three"]
+        )
+
+    def time_large_get_locs(self):
+        self.mi_large.get_locs([999, 19, "Z"])
+
+    def time_med_get_locs(self):
+        self.mi_med.get_locs([999, 9, "A"])
+
+    def time_small_get_locs(self):
+        self.mi_small.get_locs([99, "A", "A"])
+
+
 class Duplicates:
     def setup(self):
         size = 65536
@@ -203,7 +226,7 @@ class SetOperations:
     param_names = ["index_structure", "dtype", "method"]
 
     def setup(self, index_structure, dtype, method):
-        N = 10 ** 5
+        N = 10**5
         level1 = range(1000)
 
         level2 = date_range(start="1/1/2000", periods=N // 1000)

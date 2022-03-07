@@ -15,11 +15,13 @@ import numpy as np
 
 from pandas._libs import (
     NaT,
+    algos as libalgos,
     lib,
 )
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
+    npt,
 )
 from pandas.util._validators import validate_bool_kwarg
 
@@ -382,6 +384,11 @@ class BaseArrayManager(DataManager):
         )
 
     def fillna(self: T, value, limit, inplace: bool, downcast) -> T:
+
+        if limit is not None:
+            # Do this validation even if we go through one of the no-op paths
+            limit = libalgos.validate_limit(None, limit=limit)
+
         return self.apply_with_block(
             "fillna", value=value, limit=limit, inplace=inplace, downcast=downcast
         )
@@ -562,7 +569,7 @@ class BaseArrayManager(DataManager):
     def _reindex_indexer(
         self: T,
         new_axis,
-        indexer,
+        indexer: npt.NDArray[np.intp] | None,
         axis: int,
         fill_value=None,
         allow_dups: bool = False,
@@ -573,7 +580,7 @@ class BaseArrayManager(DataManager):
         Parameters
         ----------
         new_axis : Index
-        indexer : ndarray of int64 or None
+        indexer : ndarray[intp] or None
         axis : int
         fill_value : object, default None
         allow_dups : bool, default False

@@ -261,34 +261,32 @@ a,b,c
         assert (result[1] == exp[1]).all()
         assert (result[2] == exp[2]).all()
 
-    def test_cr_delimited(self):
-        def _test(text, **kwargs):
-            nice_text = text.replace("\r", "\r\n")
-            result = TextReader(StringIO(text), **kwargs).read()
-            expected = TextReader(StringIO(nice_text), **kwargs).read()
-            assert_array_dicts_equal(result, expected)
-
-        data = "a,b,c\r1,2,3\r4,5,6\r7,8,9\r10,11,12"
-        _test(data, delimiter=",")
-
-        data = "a  b  c\r1  2  3\r4  5  6\r7  8  9\r10  11  12"
-        _test(data, delim_whitespace=True)
-
-        data = "a,b,c\r1,2,3\r4,5,6\r,88,9\r10,11,12"
-        _test(data, delimiter=",")
-
-        sample = (
-            "A,B,C,D,E,F,G,H,I,J,K,L,M,N,O\r"
-            "AAAAA,BBBBB,0,0,0,0,0,0,0,0,0,0,0,0,0\r"
-            ",BBBBB,0,0,0,0,0,0,0,0,0,0,0,0,0"
-        )
-        _test(sample, delimiter=",")
-
-        data = "A  B  C\r  2  3\r4  5  6"
-        _test(data, delim_whitespace=True)
-
-        data = "A B C\r2 3\r4 5 6"
-        _test(data, delim_whitespace=True)
+    @pytest.mark.parametrize(
+        "text, kwargs",
+        [
+            ("a,b,c\r1,2,3\r4,5,6\r7,8,9\r10,11,12", {"delimiter": ","}),
+            (
+                "a  b  c\r1  2  3\r4  5  6\r7  8  9\r10  11  12",
+                {"delim_whitespace": True},
+            ),
+            ("a,b,c\r1,2,3\r4,5,6\r,88,9\r10,11,12", {"delimiter": ","}),
+            (
+                (
+                    "A,B,C,D,E,F,G,H,I,J,K,L,M,N,O\r"
+                    "AAAAA,BBBBB,0,0,0,0,0,0,0,0,0,0,0,0,0\r"
+                    ",BBBBB,0,0,0,0,0,0,0,0,0,0,0,0,0"
+                ),
+                {"delimiter": ","},
+            ),
+            ("A  B  C\r  2  3\r4  5  6", {"delim_whitespace": True}),
+            ("A B C\r2 3\r4 5 6", {"delim_whitespace": True}),
+        ],
+    )
+    def test_cr_delimited(self, text, kwargs):
+        nice_text = text.replace("\r", "\r\n")
+        result = TextReader(StringIO(text), **kwargs).read()
+        expected = TextReader(StringIO(nice_text), **kwargs).read()
+        assert_array_dicts_equal(result, expected)
 
     def test_empty_field_eof(self):
         data = "a,b,c\n1,2,3\n4,,"

@@ -1481,7 +1481,9 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
 
     @doc(Index._get_grouper_for_level)
-    def _get_grouper_for_level(self, mapper, *, level):
+    def _get_grouper_for_level(
+        self, mapper, *, level=None
+    ) -> tuple[Index, npt.NDArray[np.signedinteger] | None, Index | None]:
         indexer = self.codes[level]
         level_index = self.levels[level]
 
@@ -1840,10 +1842,6 @@ class MultiIndex(Index):
               dtype='object')
         """
         return Index(self._values, tupleize_cols=False)
-
-    @property
-    def _is_all_dates(self) -> bool:
-        return False
 
     def is_lexsorted(self) -> bool:
         warnings.warn(
@@ -2766,7 +2764,7 @@ class MultiIndex(Index):
             if lab not in lev and not isna(lab):
                 # short circuit
                 try:
-                    loc = lev.searchsorted(lab, side=side)
+                    loc = algos.searchsorted(lev, lab, side=side)
                 except TypeError as err:
                     # non-comparable e.g. test_slice_locs_with_type_mismatch
                     raise TypeError(f"Level type mismatch: {lab}") from err
@@ -2775,7 +2773,7 @@ class MultiIndex(Index):
                     raise TypeError(f"Level type mismatch: {lab}")
                 if side == "right" and loc >= 0:
                     loc -= 1
-                return start + section.searchsorted(loc, side=side)
+                return start + algos.searchsorted(section, loc, side=side)
 
             idx = self._get_loc_single_level_index(lev, lab)
             if isinstance(idx, slice) and k < n - 1:
@@ -2784,13 +2782,21 @@ class MultiIndex(Index):
                 start = idx.start
                 end = idx.stop
             elif k < n - 1:
-                end = start + section.searchsorted(idx, side="right")
-                start = start + section.searchsorted(idx, side="left")
+                # error: Incompatible types in assignment (expression has type
+                # "Union[ndarray[Any, dtype[signedinteger[Any]]]
+                end = start + algos.searchsorted(  # type: ignore[assignment]
+                    section, idx, side="right"
+                )
+                # error: Incompatible types in assignment (expression has type
+                # "Union[ndarray[Any, dtype[signedinteger[Any]]]
+                start = start + algos.searchsorted(  # type: ignore[assignment]
+                    section, idx, side="left"
+                )
             elif isinstance(idx, slice):
                 idx = idx.start
-                return start + section.searchsorted(idx, side=side)
+                return start + algos.searchsorted(section, idx, side=side)
             else:
-                return start + section.searchsorted(idx, side=side)
+                return start + algos.searchsorted(section, idx, side=side)
 
     def _get_loc_single_level_index(self, level_index: Index, key: Hashable) -> int:
         """
@@ -2999,6 +3005,10 @@ class MultiIndex(Index):
 
         # different name to distinguish from maybe_droplevels
         def maybe_mi_droplevels(indexer, levels):
+            """
+            If level does not exist or all levels were dropped, the exception
+            has to be handled outside.
+            """
             new_index = self[indexer]
 
             for i in sorted(levels, reverse=True):
@@ -3132,7 +3142,12 @@ class MultiIndex(Index):
                     # e.g. test_partial_string_timestamp_multiindex
                     return indexer, self[indexer]
 
-            return indexer, maybe_mi_droplevels(indexer, [level])
+            try:
+                result_index = maybe_mi_droplevels(indexer, [level])
+            except ValueError:
+                result_index = self[indexer]
+
+            return indexer, result_index
 
     def _get_level_indexer(
         self, key, level: int = 0, indexer: Int64Index | None = None
@@ -3219,8 +3234,8 @@ class MultiIndex(Index):
                 return convert_indexer(start, stop + 1, step)
             else:
                 # sorted, so can return slice object -> view
-                i = level_codes.searchsorted(start, side="left")
-                j = level_codes.searchsorted(stop, side="right")
+                i = algos.searchsorted(level_codes, start, side="left")
+                j = algos.searchsorted(level_codes, stop, side="right")
                 return slice(i, j, step)
 
         else:
@@ -3243,12 +3258,12 @@ class MultiIndex(Index):
 
             if isinstance(idx, slice):
                 # e.g. test_partial_string_timestamp_multiindex
-                start = level_codes.searchsorted(idx.start, side="left")
+                start = algos.searchsorted(level_codes, idx.start, side="left")
                 # NB: "left" here bc of slice semantics
-                end = level_codes.searchsorted(idx.stop, side="left")
+                end = algos.searchsorted(level_codes, idx.stop, side="left")
             else:
-                start = level_codes.searchsorted(idx, side="left")
-                end = level_codes.searchsorted(idx, side="right")
+                start = algos.searchsorted(level_codes, idx, side="left")
+                end = algos.searchsorted(level_codes, idx, side="right")
 
             if start == end:
                 # The label is present in self.levels[level] but unused:
@@ -3299,10 +3314,10 @@ class MultiIndex(Index):
             )
 
         n = len(self)
-        # indexer is the list of all positions that we want to take; we
-        #  start with it being everything and narrow it down as we look at each
-        #  entry in `seq`
-        indexer = Index(np.arange(n))
+        # indexer is the list of all positions that we want to take; it
+        #  is created on the first entry in seq and narrowed down as we
+        #  look at remaining entries
+        indexer = None
 
         if any(x is Ellipsis for x in seq):
             raise NotImplementedError(
@@ -3325,7 +3340,9 @@ class MultiIndex(Index):
                 r = r.nonzero()[0]
             return Int64Index(r)
 
-        def _update_indexer(idxr: Index, indexer: Index) -> Index:
+        def _update_indexer(idxr: Index, indexer: Index | None) -> Index:
+            if indexer is None:
+                return idxr
             indexer_intersection = indexer.intersection(idxr)
             if indexer_intersection.empty and not idxr.empty and not indexer.empty:
                 raise KeyError(seq)
@@ -3410,7 +3427,8 @@ class MultiIndex(Index):
 
             elif com.is_null_slice(k):
                 # empty slice
-                pass
+                if indexer is None:
+                    indexer = Index(np.arange(n))
 
             elif isinstance(k, slice):
 
@@ -3602,6 +3620,10 @@ class MultiIndex(Index):
             if not isinstance(self_values, np.ndarray):
                 # i.e. ExtensionArray
                 if not self_values.equals(other_values):
+                    return False
+            elif not isinstance(other_values, np.ndarray):
+                # i.e. other is ExtensionArray
+                if not other_values.equals(self_values):
                     return False
             else:
                 if not array_equivalent(self_values, other_values):

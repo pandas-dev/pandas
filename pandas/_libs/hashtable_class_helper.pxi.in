@@ -435,6 +435,7 @@ cdef class {{name}}HashTable(HashTable):
         }
 
     cpdef get_item(self, {{dtype}}_t val):
+        # Used in core.sorting, IndexEngine.get_loc
         cdef:
             khiter_t k
             {{c_type}} cval
@@ -446,6 +447,7 @@ cdef class {{name}}HashTable(HashTable):
             raise KeyError(val)
 
     cpdef set_item(self, {{dtype}}_t key, Py_ssize_t val):
+        # Used in libjoin
         cdef:
             khiter_t k
             int ret = 0
@@ -457,8 +459,13 @@ cdef class {{name}}HashTable(HashTable):
         else:
             raise KeyError(key)
 
+    {{if dtype == "int64" }}
+    # We only use this for int64, can reduce build size and make .pyi
+    #  more accurate by only implementing it for int64
     @cython.boundscheck(False)
-    def map(self, const {{dtype}}_t[:] keys, const int64_t[:] values) -> None:
+    def map_keys_to_values(
+        self, const {{dtype}}_t[:] keys, const int64_t[:] values
+    ) -> None:
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
@@ -470,9 +477,11 @@ cdef class {{name}}HashTable(HashTable):
                 key = {{to_c_type}}(keys[i])
                 k = kh_put_{{dtype}}(self.table, key, &ret)
                 self.table.vals[k] = <Py_ssize_t>values[i]
+    {{endif}}
 
     @cython.boundscheck(False)
     def map_locations(self, const {{dtype}}_t[:] values) -> None:
+        # Used in libindex, safe_sort
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
@@ -488,6 +497,7 @@ cdef class {{name}}HashTable(HashTable):
     @cython.boundscheck(False)
     def lookup(self, const {{dtype}}_t[:] values) -> ndarray:
         # -> np.ndarray[np.intp]
+        # Used in safe_sort, IndexEngine.get_indexer
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0

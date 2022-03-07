@@ -187,6 +187,10 @@ from pandas.io.formats.excel import CSSToExcelConverter
             "border-top-style: solid; border-top-color: #06c",
             {"border": {"top": {"style": "medium", "color": "0066CC"}}},
         ),
+        (
+            "border-top-color: blue",
+            {"border": {"top": {"color": "0000FF", "style": "none"}}},
+        ),
         # ALIGNMENT
         # - horizontal
         ("text-align: center", {"alignment": {"horizontal": "center"}}),
@@ -206,6 +210,10 @@ from pandas.io.formats.excel import CSSToExcelConverter
         ("white-space: normal", {"alignment": {"wrap_text": True}}),
         # NUMBER FORMAT
         ("number-format: 0%", {"number_format": {"format_code": "0%"}}),
+        (
+            "number-format: 0§[Red](0)§-§@;",
+            {"number_format": {"format_code": "0;[red](0);-;@"}},  # GH 46152
+        ),
     ],
 )
 def test_css_to_excel(css, expected):
@@ -288,7 +296,8 @@ def test_css_to_excel_good_colors(input_color, output_color):
     expected["font"] = {"color": output_color}
 
     expected["border"] = {
-        k: {"color": output_color} for k in ("top", "right", "bottom", "left")
+        k: {"color": output_color, "style": "none"}
+        for k in ("top", "right", "bottom", "left")
     }
 
     with tm.assert_produces_warning(None):

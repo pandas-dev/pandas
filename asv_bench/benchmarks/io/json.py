@@ -109,7 +109,7 @@ class ToJSON(BaseIO):
     param_names = ["orient", "frame"]
 
     def setup(self, orient, frame):
-        N = 10 ** 5
+        N = 10**5
         ncols = 5
         index = date_range("20000101", periods=N, freq="H")
         timedeltas = timedelta_range(start=1, periods=N, freq="s")
@@ -193,7 +193,7 @@ class ToJSONISO(BaseIO):
     param_names = ["orient"]
 
     def setup(self, orient):
-        N = 10 ** 5
+        N = 10**5
         index = date_range("20000101", periods=N, freq="H")
         timedeltas = timedelta_range(start=1, periods=N, freq="s")
         datetimes = date_range(start=1, periods=N, freq="s")
@@ -216,7 +216,7 @@ class ToJSONLines(BaseIO):
     fname = "__test__.json"
 
     def setup(self):
-        N = 10 ** 5
+        N = 10**5
         ncols = 5
         index = date_range("20000101", periods=N, freq="H")
         timedeltas = timedelta_range(start=1, periods=N, freq="s")
