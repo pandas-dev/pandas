@@ -3461,7 +3461,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def diff(self, periods: int = 1, axis: int = 0) -> Series | DataFrame:
+    def diff(self, periods: int = 1, axis: int = 0) -> NDFrameT:
         """
         First discrete difference of element.
 
