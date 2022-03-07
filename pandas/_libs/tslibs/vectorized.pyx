@@ -121,10 +121,7 @@ def ints_to_pydatetime(
     cdef:
         Localizer info = Localizer(tz)
         int64_t[:] deltas
-        int64_t delta = info.delta
-        bint use_utc = info.use_utc, use_tzlocal = info.use_tzlocal, use_fixed = info.use_fixed
         Py_ssize_t[:] pos
-        bint use_pytz = info.use_pytz
 
         Py_ssize_t i, n = len(stamps)
         npy_datetimestruct dts
@@ -159,17 +156,17 @@ def ints_to_pydatetime(
         if value == NPY_NAT:
             result[i] = <object>NaT
         else:
-            if use_utc:
+            if info.use_utc:
                 local_val = value
-            elif use_tzlocal:
+            elif info.use_tzlocal:
                 local_val = tz_convert_utc_to_tzlocal(value, tz)
-            elif use_fixed:
-                local_val = value + delta
-            elif not use_pytz:
+            elif info.use_fixed:
+                local_val = value + info.delta
+            elif not info.use_pytz:
                 # i.e. dateutil
                 # no zone-name change for dateutil tzs - dst etc
                 # represented in single object.
-                local_val = value + deltas[pos[i]]
+                local_val = value + info.deltas[pos[i]]
             else:
                 # pytz
                 # find right representation of dst etc in pytz timezone
@@ -215,8 +212,6 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None) -> Resolution:
     cdef:
         Localizer info = Localizer(tz)
         int64_t[:] deltas
-        int64_t delta = info.delta
-        bint use_utc = info.use_utc, use_tzlocal = info.use_tzlocal, use_fixed = info.use_fixed
 
         Py_ssize_t[:] pos
         Py_ssize_t i, n = len(stamps)
@@ -232,12 +227,12 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None) -> Resolution:
         if stamps[i] == NPY_NAT:
             continue
 
-        if use_utc:
+        if info.use_utc:
             local_val = stamps[i]
-        elif use_tzlocal:
+        elif info.use_tzlocal:
             local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
-        elif use_fixed:
-            local_val = stamps[i] + delta
+        elif info.use_fixed:
+            local_val = stamps[i] + info.delta
         else:
             local_val = stamps[i] + deltas[pos[i]]
 
@@ -271,8 +266,6 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
     cdef:
         Localizer info = Localizer(tz)
         int64_t[:] deltas
-        int64_t delta = info.delta
-        bint use_utc = info.use_utc, use_tzlocal = info.use_tzlocal, use_fixed = info.use_fixed
 
         Py_ssize_t[:] pos
         Py_ssize_t i, n = len(stamps)
@@ -288,12 +281,12 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
             result[i] = NPY_NAT
             continue
 
-        if use_utc:
+        if info.use_utc:
             local_val = stamps[i]
-        elif use_tzlocal:
+        elif info.use_tzlocal:
             local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
-        elif use_fixed:
-            local_val = stamps[i] + delta
+        elif info.use_fixed:
+            local_val = stamps[i] + info.delta
         else:
             local_val = stamps[i] + deltas[pos[i]]
 
@@ -322,8 +315,6 @@ def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None) -> bool:
     cdef:
         Localizer info = Localizer(tz)
         int64_t[:] deltas
-        int64_t delta = info.delta
-        bint use_utc = info.use_utc, use_tzlocal = info.use_tzlocal, use_fixed = info.use_fixed
 
         Py_ssize_t[:] pos
         Py_ssize_t i, n = len(stamps)
@@ -335,12 +326,12 @@ def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None) -> bool:
         pos = info.trans.searchsorted(stamps, side="right") - 1
 
     for i in range(n):
-        if use_utc:
+        if info.use_utc:
             local_val = stamps[i]
-        elif use_tzlocal:
+        elif info.use_tzlocal:
             local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
-        elif use_fixed:
-            local_val = stamps[i] + delta
+        elif info.use_fixed:
+            local_val = stamps[i] + info.delta
         else:
             local_val = stamps[i] + deltas[pos[i]]
 
@@ -359,8 +350,6 @@ def dt64arr_to_periodarr(const int64_t[:] stamps, int freq, tzinfo tz):
     cdef:
         Localizer info = Localizer(tz)
         int64_t[:] deltas
-        int64_t delta = info.delta
-        bint use_utc = info.use_utc, use_tzlocal = info.use_tzlocal, use_fixed = info.use_fixed
 
         Py_ssize_t[:] pos
         Py_ssize_t i, n = len(stamps)
@@ -377,12 +366,12 @@ def dt64arr_to_periodarr(const int64_t[:] stamps, int freq, tzinfo tz):
             result[i] = NPY_NAT
             continue
 
-        if use_utc:
+        if info.use_utc:
             local_val = stamps[i]
-        elif use_tzlocal:
+        elif info.use_tzlocal:
             local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
-        elif use_fixed:
-            local_val = stamps[i] + delta
+        elif info.use_fixed:
+            local_val = stamps[i] + info.delta
         else:
             local_val = stamps[i] + deltas[pos[i]]
 
