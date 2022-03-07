@@ -59,13 +59,13 @@ from pandas.core.dtypes.inference import is_list_like
 
 if TYPE_CHECKING:
     from pandas._typing import (
+        ArrayLike,
         NDFrame,
         NDFrameT,
         Scalar,
         npt,
     )
 
-    from pandas.core.arrays.base import ExtensionArray
     from pandas.core.indexes.base import Index
 
 
@@ -85,7 +85,7 @@ def isna(obj: Scalar) -> bool:
 
 @overload
 def isna(
-    obj: Index | ExtensionArray | np.ndarray | list,
+    obj: ArrayLike | Index | list,
 ) -> npt.NDArray[np.bool_]:
     ...
 
@@ -328,7 +328,7 @@ def notna(obj: Scalar) -> bool:
 
 @overload
 def notna(
-    obj: Index | ExtensionArray | np.ndarray | list,
+    obj: ArrayLike | Index | list,
 ) -> npt.NDArray[np.bool_]:
     ...
 
