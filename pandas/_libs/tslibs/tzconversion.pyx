@@ -545,6 +545,7 @@ cdef class Localizer:
     #    int64_t delta
     #    str typ
 
+    @cython.boundscheck(False)
     def __cinit__(self, tzinfo tz):
         self.tz = tz
         if is_utc(tz) or tz is None:
@@ -581,6 +582,7 @@ cdef class Localizer:
                 self.trans.searchsorted(stamps, side="right") - 1
             )
 
+    @cython.boundscheck(False)
     cdef inline int64_t utc_val_to_local_val(
         self, int64_t utc_val, intp_t* pos, Py_ssize_t i
     ):

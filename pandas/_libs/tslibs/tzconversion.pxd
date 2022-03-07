@@ -24,7 +24,7 @@ cdef class Localizer:
         bint use_dst
         bint use_pytz
         ndarray trans
-        int64_t[:] deltas
+        int64_t[::1] deltas
         int64_t delta
         str typ
 
