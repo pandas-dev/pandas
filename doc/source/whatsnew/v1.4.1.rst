@@ -14,6 +14,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
+- Regression in :meth:`Series.mask` with ``inplace=True`` and ``PeriodDtype`` and an incompatible ``other`` coercing to a common dtype instead of raising (:issue:`45546`)
 - Regression in :func:`.assert_frame_equal` not respecting ``check_flags=False`` (:issue:`45554`)
 - Regression in :meth:`DataFrame.loc` raising ``ValueError`` when indexing (getting values) on a :class:`MultiIndex` with one level (:issue:`45779`)
 - Regression in :meth:`Series.fillna` with ``downcast=False`` incorrectly downcasting ``object`` dtype (:issue:`45603`)
