@@ -19,6 +19,7 @@ import numpy as np
 
 from pandas._config import get_option
 
+from pandas._libs import lib
 from pandas._typing import (
     Axis,
     FilePath,
@@ -270,6 +271,101 @@ class Styler(StylerRenderer):
             decimal=decimal,
             thousands=thousands,
         )
+
+    def concat(self, other: Styler) -> Styler:
+        """
+        Append another Styler to combine the output into a single table.
+
+        .. versionadded:: 1.5.0
+
+        Parameters
+        ----------
+        other : Styler
+            The other Styler object which has already been styled and formatted. The
+            data for this Styler must have the same columns as the original, and the
+            number of index levels must also be the same to render correctly.
+
+        Returns
+        -------
+        self : Styler
+
+        Notes
+        -----
+        The purpose of this method is to extend existing styled dataframes with other
+        metrics that may be useful but may not conform to the original's structure.
+        For example adding a sub total row, or displaying metrics such as means,
+        variance or counts.
+
+        Styles that are applied using the ``apply``, ``applymap``, ``apply_index``
+        and ``applymap_index``, and formatting applied with ``format`` and
+        ``format_index`` will be preserved.
+
+        .. warning::
+            Only the output methods ``to_html``, ``to_string`` and ``to_latex``
+            currently work with concatenated Stylers.
+
+            Other output methods, including ``to_excel``, **do not** work with
+            concatenated Stylers.
+
+        The following should be noted:
+
+          - ``table_styles``, ``table_attributes``, ``caption`` and ``uuid`` are all
+            inherited from the original Styler and not ``other``.
+          - hidden columns and hidden index levels will be inherited from the
+            original Styler
+
+        A common use case is to concatenate user defined functions with
+        ``DataFrame.agg`` or with described statistics via ``DataFrame.describe``.
+        See examples.
+
+        Examples
+        --------
+        A common use case is adding totals rows, or otherwise, via methods calculated
+        in ``DataFrame.agg``.
+
+        >>> df = DataFrame([[4, 6], [1, 9], [3, 4], [5, 5], [9,6]],
+        ...                columns=["Mike", "Jim"],
+        ...                index=["Mon", "Tue", "Wed", "Thurs", "Fri"])
+        >>> styler = df.style.concat(df.agg(["sum"]).style)  # doctest: +SKIP
+
+        .. figure:: ../../_static/style/footer_simple.png
+
+        Since the concatenated object is a Styler the existing functionality can be
+        used to conditionally format it as well as the original.
+
+        >>> descriptors = df.agg(["sum", "mean", lambda s: s.dtype])
+        >>> descriptors.index = ["Total", "Average", "dtype"]
+        >>> other = (descriptors.style
+        ...          .highlight_max(axis=1, subset=(["Total", "Average"], slice(None)))
+        ...          .format(subset=("Average", slice(None)), precision=2, decimal=",")
+        ...          .applymap(lambda v: "font-weight: bold;"))
+        >>> styler = (df.style
+        ...             .highlight_max(color="salmon")
+        ...             .set_table_styles([{"selector": ".foot_row0",
+        ...                                 "props": "border-top: 1px solid black;"}]))
+        >>> styler.concat(other)  # doctest: +SKIP
+
+        .. figure:: ../../_static/style/footer_extended.png
+
+        When ``other`` has fewer index levels than the original Styler it is possible
+        to extend the index in ``other``, with placeholder levels.
+
+        >>> df = DataFrame([[1], [2]], index=pd.MultiIndex.from_product([[0], [1, 2]]))
+        >>> descriptors = df.agg(["sum"])
+        >>> descriptors.index = pd.MultiIndex.from_product([[""], descriptors.index])
+        >>> df.style.concat(descriptors.style)  # doctest: +SKIP
+        """
+        if not isinstance(other, Styler):
+            raise TypeError("`other` must be of type `Styler`")
+        if not self.data.columns.equals(other.data.columns):
+            raise ValueError("`other.data` must have same columns as `Styler.data`")
+        if not self.data.index.nlevels == other.data.index.nlevels:
+            raise ValueError(
+                "number of index levels must be same in `other` "
+                "as in `Styler`. See documentation for suggestions."
+            )
+        self.concatenated = other
+        return self
 
     def _repr_html_(self) -> str | None:
         """
@@ -1405,6 +1501,7 @@ class Styler(StylerRenderer):
           - cell_context (cell css classes)
           - ctx (cell css styles)
           - caption
+          - concatenated stylers
 
         Non-data dependent attributes [copied and exported]:
           - css
@@ -1435,6 +1532,7 @@ class Styler(StylerRenderer):
         ]
         deep = [  # nested lists or dicts
             "css",
+            "concatenated",
             "_display_funcs",
             "_display_funcs_index",
             "_display_funcs_columns",
@@ -2348,11 +2446,13 @@ class Styler(StylerRenderer):
                                "col_heading": "col_heading",
                                "index_name": "index_name",
                                "col": "col",
+                               "row": "row",
                                "col_trim": "col_trim",
                                "row_trim": "row_trim",
                                "level": "level",
                                "data": "data",
-                               "blank": "blank}
+                               "blank": "blank",
+                               "foot": "foot"}
 
         Examples
         --------
@@ -2590,6 +2690,13 @@ class Styler(StylerRenderer):
 
         Notes
         -----
+        .. warning::
+           This method only works with the output methods ``to_html``, ``to_string``
+           and ``to_latex``.
+
+           Other output methods, including ``to_excel``, ignore this hiding method
+           and will display all data.
+
         This method has multiple functionality depending upon the combination
         of the ``subset``, ``level`` and ``names`` arguments (see examples). The
         ``axis`` argument is used only to control whether the method is applied to row
@@ -3097,19 +3204,23 @@ class Styler(StylerRenderer):
 
         return self
 
-    @Substitution(subset=subset, props=props)
+    @Substitution(subset=subset, props=props, color=color)
     def highlight_null(
         self,
-        null_color: str = "red",
+        color: str | None = None,
         subset: Subset | None = None,
         props: str | None = None,
+        null_color=lib.no_default,
     ) -> Styler:
         """
         Highlight missing values with a style.
 
         Parameters
         ----------
-        null_color : str, default 'red'
+        %(color)s
+
+            .. versionadded:: 1.5.0
+
         %(subset)s
 
             .. versionadded:: 1.1.0
@@ -3117,6 +3228,13 @@ class Styler(StylerRenderer):
         %(props)s
 
             .. versionadded:: 1.3.0
+
+        null_color : str, default None
+            The background color for highlighting.
+
+            .. deprecated:: 1.5.0
+               Use ``color`` instead. If ``color`` is given ``null_color`` is
+               not used.
 
         Returns
         -------
@@ -3133,8 +3251,19 @@ class Styler(StylerRenderer):
         def f(data: DataFrame, props: str) -> np.ndarray:
             return np.where(pd.isna(data).to_numpy(), props, "")
 
+        if null_color != lib.no_default:
+            warnings.warn(
+                "`null_color` is deprecated: use `color` instead",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
+        if color is None and null_color == lib.no_default:
+            color = "red"
+        elif color is None and null_color != lib.no_default:
+            color = null_color
         if props is None:
-            props = f"background-color: {null_color};"
+            props = f"background-color: {color};"
         return self.apply(f, axis=None, subset=subset, props=props)
 
     @Substitution(subset=subset, color=color, props=props)
@@ -3466,7 +3595,7 @@ class Styler(StylerRenderer):
         # mypy doesn't like dynamically-defined classes
         # error: Variable "cls" is not valid as a type
         # error: Invalid base class "cls"
-        class MyStyler(cls):  # type:ignore[valid-type,misc]
+        class MyStyler(cls):  # type: ignore[valid-type,misc]
             env = jinja2.Environment(loader=loader)
             if html_table:
                 template_html_table = env.get_template(html_table)
@@ -3725,14 +3854,10 @@ def _highlight_between(
     Return an array of css props based on condition of data values within given range.
     """
     if np.iterable(left) and not isinstance(left, str):
-        left = _validate_apply_axis_arg(
-            left, "left", None, data  # type: ignore[arg-type]
-        )
+        left = _validate_apply_axis_arg(left, "left", None, data)
 
     if np.iterable(right) and not isinstance(right, str):
-        right = _validate_apply_axis_arg(
-            right, "right", None, data  # type: ignore[arg-type]
-        )
+        right = _validate_apply_axis_arg(right, "right", None, data)
 
     # get ops with correct boundary attribution
     if inclusive == "both":

@@ -56,7 +56,7 @@ def group_add(
     values: np.ndarray,  # ndarray[complexfloating_t, ndim=2]
     labels: np.ndarray,  # const intp_t[:]
     min_count: int = ...,
-    datetimelike: bool = ...,
+    is_datetimelike: bool = ...,
 ) -> None: ...
 def group_prod(
     out: np.ndarray,  # floating[:, ::1]
@@ -104,6 +104,8 @@ def group_last(
     counts: np.ndarray,  # int64_t[::1]
     values: np.ndarray,  # ndarray[rank_t, ndim=2]
     labels: np.ndarray,  # const int64_t[:]
+    mask: npt.NDArray[np.bool_] | None,
+    result_mask: npt.NDArray[np.bool_] | None,
     min_count: int = ...,  # Py_ssize_t
 ) -> None: ...
 def group_nth(
@@ -111,6 +113,8 @@ def group_nth(
     counts: np.ndarray,  # int64_t[::1]
     values: np.ndarray,  # ndarray[rank_t, ndim=2]
     labels: np.ndarray,  # const int64_t[:]
+    mask: npt.NDArray[np.bool_] | None,
+    result_mask: npt.NDArray[np.bool_] | None,
     min_count: int = ...,  # int64_t
     rank: int = ...,  # int64_t
 ) -> None: ...

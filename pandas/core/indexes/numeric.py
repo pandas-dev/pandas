@@ -62,7 +62,7 @@ class NumericIndex(Index):
     None
 
     Methods
-    ----------
+    -------
     None
 
     See Also
@@ -101,6 +101,8 @@ class NumericIndex(Index):
         np.dtype(np.uint64): libindex.UInt64Engine,
         np.dtype(np.float32): libindex.Float32Engine,
         np.dtype(np.float64): libindex.Float64Engine,
+        np.dtype(np.complex64): libindex.Complex64Engine,
+        np.dtype(np.complex128): libindex.Complex128Engine,
     }
 
     @property
@@ -115,6 +117,7 @@ class NumericIndex(Index):
             "i": "integer",
             "u": "integer",
             "f": "floating",
+            "c": "complex",
         }[self.dtype.kind]
 
     def __new__(cls, data=None, dtype: Dtype | None = None, copy=False, name=None):
@@ -324,7 +327,7 @@ _num_index_shared_docs[
     None
 
     Methods
-    ----------
+    -------
     None
 
     See Also

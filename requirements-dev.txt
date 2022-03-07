@@ -18,7 +18,7 @@ pycodestyle
 pyupgrade
 gitpython
 gitdb
-numpydoc < 1.2
+numpydoc
 pandas-dev-flaker==0.4.0
 pydata-sphinx-theme
 pytest-cython

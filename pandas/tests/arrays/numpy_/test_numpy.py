@@ -298,3 +298,14 @@ def test_setitem_preserves_views():
     arr[-1] = 2.5
     view1[-1] = 5
     assert arr[-1] == 5
+
+
+@pytest.mark.parametrize("dtype", [np.int64, np.uint64])
+def test_quantile_empty(dtype):
+    # we should get back np.nans, not -1s
+    arr = PandasArray(np.array([], dtype=dtype))
+    idx = pd.Index([0.0, 0.5])
+
+    result = arr._quantile(idx, interpolation="linear")
+    expected = PandasArray(np.array([np.nan, np.nan]))
+    tm.assert_extension_array_equal(result, expected)

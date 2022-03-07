@@ -505,7 +505,7 @@ class Index(IndexOpsMixin, PandasObject):
             if data.dtype.kind in ["i", "u", "f"]:
                 # maybe coerce to a sub-class
                 arr = data
-            elif data.dtype.kind == "b":
+            elif data.dtype.kind in ["b", "c"]:
                 # No special subclass, and Index._ensure_array won't do this
                 #  for us.
                 arr = np.asarray(data)
@@ -636,7 +636,9 @@ class Index(IndexOpsMixin, PandasObject):
             # NB: assuming away MultiIndex
             return Index
 
-        elif issubclass(dtype.type, (str, bool, np.bool_)):
+        elif issubclass(
+            dtype.type, (str, bool, np.bool_, complex, np.complex64, np.complex128)
+        ):
             return Index
 
         raise NotImplementedError(dtype)
@@ -881,10 +883,14 @@ class Index(IndexOpsMixin, PandasObject):
         # `self` is not passed into the lambda.
         if target_values.dtype == bool:
             return libindex.BoolEngine(target_values)
+        elif target_values.dtype == np.complex64:
+            return libindex.Complex64Engine(target_values)
+        elif target_values.dtype == np.complex128:
+            return libindex.Complex128Engine(target_values)
 
         # error: Argument 1 to "ExtensionEngine" has incompatible type
         # "ndarray[Any, Any]"; expected "ExtensionArray"
-        return self._engine_type(target_values)  # type:ignore[arg-type]
+        return self._engine_type(target_values)  # type: ignore[arg-type]
 
     @final
     @cache_readonly
@@ -2181,7 +2187,9 @@ class Index(IndexOpsMixin, PandasObject):
                 verify_integrity=False,
             )
 
-    def _get_grouper_for_level(self, mapper, *, level=None):
+    def _get_grouper_for_level(
+        self, mapper, *, level=None
+    ) -> tuple[Index, npt.NDArray[np.signedinteger] | None, Index | None]:
         """
         Get index grouper corresponding to an index level
 
@@ -3914,7 +3922,6 @@ class Index(IndexOpsMixin, PandasObject):
         elif method == "nearest":
             indexer = self._get_nearest_indexer(target, limit, tolerance)
         else:
-            tgt_values = target._get_engine_target()
             if target._is_multi and self._is_multi:
                 engine = self._engine
                 # error: Item "IndexEngine" of "Union[IndexEngine, ExtensionEngine]"
@@ -3922,11 +3929,10 @@ class Index(IndexOpsMixin, PandasObject):
                 tgt_values = engine._extract_level_codes(  # type: ignore[union-attr]
                     target
                 )
+            else:
+                tgt_values = target._get_engine_target()
 
-            # error: Argument 1 to "get_indexer" of "IndexEngine" has incompatible
-            # type "Union[ExtensionArray, ndarray[Any, Any]]"; expected
-            # "ndarray[Any, Any]"
-            indexer = self._engine.get_indexer(tgt_values)  # type:ignore[arg-type]
+            indexer = self._engine.get_indexer(tgt_values)
 
         return ensure_platform_int(indexer)
 
@@ -4536,15 +4542,25 @@ class Index(IndexOpsMixin, PandasObject):
         if level is not None and (self._is_multi or other._is_multi):
             return self._join_level(other, level, how=how)
 
-        if len(other) == 0 and how in ("left", "outer"):
-            join_index = self._view()
-            rindexer = np.repeat(np.intp(-1), len(join_index))
-            return join_index, None, rindexer
+        if len(other) == 0:
+            if how in ("left", "outer"):
+                join_index = self._view()
+                rindexer = np.broadcast_to(np.intp(-1), len(join_index))
+                return join_index, None, rindexer
+            elif how in ("right", "inner", "cross"):
+                join_index = other._view()
+                lindexer = np.array([])
+                return join_index, lindexer, None
 
-        if len(self) == 0 and how in ("right", "outer"):
-            join_index = other._view()
-            lindexer = np.repeat(np.intp(-1), len(join_index))
-            return join_index, lindexer, None
+        if len(self) == 0:
+            if how in ("right", "outer"):
+                join_index = other._view()
+                lindexer = np.broadcast_to(np.intp(-1), len(join_index))
+                return join_index, lindexer, None
+            elif how in ("left", "inner", "cross"):
+                join_index = self._view()
+                rindexer = np.array([])
+                return join_index, None, rindexer
 
         if self._join_precedence < other._join_precedence:
             how = {"right": "left", "left": "right"}.get(how, how)
@@ -5220,7 +5236,10 @@ class Index(IndexOpsMixin, PandasObject):
             #  takes 166 µs + 2.1 ms and cuts the ndarray.__getitem__
             #  time below from 3.8 ms to 496 µs
             # if we already have ndarray[bool], the overhead is 1.4 µs or .25%
-            key = np.asarray(key, dtype=bool)
+            if is_extension_array_dtype(getattr(key, "dtype", None)):
+                key = key.to_numpy(dtype=bool, na_value=False)
+            else:
+                key = np.asarray(key, dtype=bool)
 
         result = getitem(key)
         # Because we ruled out integer above, we always get an arraylike here
@@ -5529,7 +5548,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self[loc]
 
-    def asof_locs(self, where: Index, mask: np.ndarray) -> npt.NDArray[np.intp]:
+    def asof_locs(
+        self, where: Index, mask: npt.NDArray[np.bool_]
+    ) -> npt.NDArray[np.intp]:
         """
         Return the locations (indices) of labels in the index.
 
@@ -6162,9 +6183,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         dtype = find_common_type([self.dtype, target_dtype])
         dtype = common_dtype_categorical_compat([self, target], dtype)
-
-        if dtype.kind == "c":
-            dtype = _dtype_obj
         return dtype
 
     @final
@@ -7147,7 +7165,7 @@ def ensure_index_from_sequences(sequences, names=None) -> Index:
     if len(sequences) == 1:
         if names is not None:
             names = names[0]
-        return Index(sequences[0], name=names)
+        return Index._with_infer(sequences[0], name=names)
     else:
         return MultiIndex.from_arrays(sequences, names=names)
 
@@ -7308,8 +7326,6 @@ def _maybe_cast_data_without_dtype(
             FutureWarning,
             stacklevel=3,
         )
-    if result.dtype.kind in ["c"]:
-        return subarr
     result = ensure_wrapped_if_datetimelike(result)
     return result
 

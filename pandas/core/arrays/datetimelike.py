@@ -130,6 +130,7 @@ if TYPE_CHECKING:
 
     from pandas.core.arrays import (
         DatetimeArray,
+        PeriodArray,
         TimedeltaArray,
     )
 
@@ -446,6 +447,36 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             if is_unsigned_integer_dtype(dtype):
                 # Again, we ignore int32 vs. int64
                 values = values.view("uint64")
+                if dtype != np.uint64:
+                    # GH#45034
+                    warnings.warn(
+                        f"The behavior of .astype from {self.dtype} to {dtype} is "
+                        "deprecated. In a future version, this astype will return "
+                        "exactly the specified dtype instead of uint64, and will "
+                        "raise if that conversion overflows.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
+                elif (self.asi8 < 0).any():
+                    # GH#45034
+                    warnings.warn(
+                        f"The behavior of .astype from {self.dtype} to {dtype} is "
+                        "deprecated. In a future version, this astype will "
+                        "raise if the conversion overflows, as it did in this "
+                        "case with negative int64 values.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
+            elif dtype != np.int64:
+                # GH#45034
+                warnings.warn(
+                    f"The behavior of .astype from {self.dtype} to {dtype} is "
+                    "deprecated. In a future version, this astype will return "
+                    "exactly the specified dtype instead of int64, and will "
+                    "raise if that conversion overflows.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
 
             if copy:
                 values = values.copy()
@@ -519,14 +550,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return new_obj
 
     def _values_for_factorize(self):
-        # int64 instead of int ensures we have a "view" method
-        return self._ndarray, np.int64(iNaT)
-
-    @classmethod
-    def _from_factorized(
-        cls: type[DatetimeLikeArrayT], values, original: DatetimeLikeArrayT
-    ) -> DatetimeLikeArrayT:
-        return cls(values, dtype=original.dtype)
+        return self._ndarray, self._internal_fill_value
 
     # ------------------------------------------------------------------
     # Validation Methods
@@ -1295,7 +1319,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         elif is_integer_dtype(other_dtype):
             if not is_period_dtype(self.dtype):
                 raise integer_op_not_supported(self)
-            result = self._addsub_int_array(other, operator.add)
+            result = cast("PeriodArray", self)._addsub_int_array(other, operator.add)
         else:
             # Includes Categorical, other ExtensionArrays
             # For PeriodDtype, if self is a TimedeltaArray and other is a
@@ -1355,7 +1379,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         elif is_integer_dtype(other_dtype):
             if not is_period_dtype(self.dtype):
                 raise integer_op_not_supported(self)
-            result = self._addsub_int_array(other, operator.sub)
+            result = cast("PeriodArray", self)._addsub_int_array(other, operator.sub)
         else:
             # Includes ExtensionArrays, float_dtype
             return NotImplemented
