@@ -1238,6 +1238,7 @@ def group_nth(
                     if nobs[i, j] < min_count:
                         if uses_mask:
                             result_mask[i, j] = True
+                            out[i, j] = 0
                         elif iu_64_floating_obj_t is int64_t:
                             # TODO: only if datetimelike?
                             out[i, j] = NPY_NAT
