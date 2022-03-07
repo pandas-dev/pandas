@@ -45,6 +45,7 @@ if [[ "$PANDAS_DATA_MANAGER" != "array" ]]; then
 
     echo $PYTEST_AM_CMD
     sh -c "$PYTEST_AM_CMD"
+    echo $?
     ret=$?
     if [ "$ret" = 5 ]; then
       # Okay if no tests are collected here e.g. downstream tests
