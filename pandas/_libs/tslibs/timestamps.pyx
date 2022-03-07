@@ -1206,9 +1206,9 @@ class Timestamp(_Timestamp):
         --------
         >>> from pandas._libs.tslibs import convert_strftime_format
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
-        >>> fmt = convert_strftime_format('%Y-%m-%d %X')
+        >>> fmt = convert_strftime_format('%Y-%m-%dT%H:%M:%S')
         >>> ts.fast_strftime(fmt)
-        '2020-03-14 15:32:52'
+        '2020-03-14T15:32:52'
         """
         return fmt_str % dict(
             year=self.year, month=self.month, day=self.day, hour=self.hour,
