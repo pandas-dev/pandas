@@ -619,7 +619,7 @@ class Grouping:
             # _codes is set in __init__ for MultiIndex cases
             return self._codes
 
-        return self._codes_and_uniques[0]
+        return self._factorize[0]
 
     @cache_readonly
     def group_arraylike(self) -> ArrayLike:
@@ -635,7 +635,7 @@ class Grouping:
             # retain dtype for categories, including unobserved ones
             return self.result_index._values
 
-        return self._codes_and_uniques[1]
+        return self._factorize[1]
 
     @cache_readonly
     def result_index(self) -> Index:
@@ -653,11 +653,12 @@ class Grouping:
             # _group_index is set in __init__ for MultiIndex cases
             return self._group_index
 
-        uniques = self._codes_and_uniques[1]
+        uniques = self._factorize[1]
         return Index._with_infer(uniques, name=self.name)
 
     @cache_readonly
-    def _codes_and_uniques(self) -> tuple[npt.NDArray[np.signedinteger], ArrayLike]:
+    def _factorize(self) -> tuple[npt.NDArray[np.signedinteger], ArrayLike]:
+        """Analogous to core.algorithms.factorize"""
         if self._passed_categorical:
             # we make a CategoricalIndex out of the cat grouper
             # preserving the categories / ordered attributes

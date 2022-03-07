@@ -878,7 +878,7 @@ class BaseGrouper:
 
     @cache_readonly
     def group_info(self) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
-        comp_ids, obs_group_ids = self._get_compressed_codes()
+        comp_ids, obs_group_ids = self._factorize()
 
         ngroups = len(obs_group_ids)
         comp_ids = ensure_platform_int(comp_ids)
@@ -899,10 +899,10 @@ class BaseGrouper:
         return ids
 
     @final
-    def _get_compressed_codes(
+    def _factorize(
         self,
     ) -> tuple[npt.NDArray[np.signedinteger], npt.NDArray[np.intp]]:
-        # The first returned ndarray may have any signed integer dtype
+        """Analogous to core.algorithms.factorize"""
         if len(self.groupings) > 1:
             group_index = get_group_index(self.codes, self.shape, sort=True, xnull=True)
             return compress_group_index(group_index, sort=self._sort)
