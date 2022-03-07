@@ -18,8 +18,12 @@ _COMMON_UNSUPPORTED = (
     "%Z",  # Time zone name ("" if tz naive).
     # 3- Probably too complex ones for now
     "%j",  # Day of the year as a zero-padded decimal number.
-    "%U",  # Week number of the year (Sunday as the first day of the week) as a zero-padded decimal number. All days in a new year preceding the first Sunday are considered to be in week 0.
-    "%W",  # Week number of the year (Monday as the first day of the week) as a zero-padded decimal number. All days in a new year preceding the first Monday are considered to be in week 0.
+    "%U",  # Week number of the year (Sunday as the first day of the week) as
+    # a zero-padded decimal number. All days in a new year preceding the first
+    # Sunday are considered to be in week 0.
+    "%W",  # Week number of the year (Monday as the first day of the week) as
+    # a zero-padded decimal number. All days in a new year preceding the first
+    # Monday are considered to be in week 0.
     "%c",  # Locale’s appropriate date and time representation.
     "%x",  # Locale’s appropriate date representation.
     "%X",  # Locale’s appropriate time representation.
@@ -133,12 +137,12 @@ def convert_strftime_format(
     elif target == "period":
         directive_maps = (_COMMON_MAP, _PERIOD_MAP)
     else:
-        raise ValueError(f"Invalid target: {target!r}")
+        raise ValueError(f"Invalid target: {repr(target)}")
 
     # Raise if unsupported directive found in `strftime_fmt`
     for key in _COMMON_UNSUPPORTED:
         if key in strftime_fmt:
-            raise UnsupportedStrFmtDirective(f"Unsupported directive: {key!r}")
+            raise UnsupportedStrFmtDirective(f"Unsupported directive: '{key}'")
 
     # Mapping between strftime and string formatting, according to both styles
     if new_style_fmt:

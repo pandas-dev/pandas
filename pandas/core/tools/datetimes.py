@@ -1279,10 +1279,8 @@ def fast_strftime(
 ) -> str:
     """A faster version of `datetime.strftime` using python string formatting.
 
-    Note: this is used in tests, not in the pandas API.
-    TODO since this makes especially a lot of sense for arrays, maybe this should work on arrays.
-
-    Returns a string representing the date and time, controlled by an explicit format string.
+    Returns a string representing the date and time, controlled by an explicit
+    format string using named attributes of `dt`.
     For a complete list of formatting directives, see
     `strftime() and strptime() Behavior <https://docs.python.org/3/library/datetime.html#strftime-strptime-behavior>`_.
 
@@ -1304,15 +1302,15 @@ def fast_strftime(
     Raises
     ------
     UnsupportedStrFmtDirective
-        Raised when the received `strftime_fmt` format contains a directive for which the output
-        can not currently be created using string formatting.
+        Raised when the received `strftime_fmt` format contains a directive for
+        which the output can not currently be created using string formatting.
 
     See Also
     --------
-    - `strftime format codes reference <https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes>`_
-    - `Stackoverflow post <https://stackoverflow.com/a/43495629/7262247>`_ explaining
-       how old-style formatting is faster than new-style formatting, itself faster than
-       `datetime.strftime`.
+    - `strftime format codes reference <https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes>`_  # noqa
+    - `Stackoverflow post <https://stackoverflow.com/a/43495629/7262247>`_
+       explaining how old-style formatting is faster than new-style formatting,
+       itself faster than `datetime.strftime`.
     """
     # common dict used for formatting
     y = dt.year

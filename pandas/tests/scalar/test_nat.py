@@ -199,7 +199,7 @@ def test_nat_iso_format(get_nat):
                 "to_julian_date",
                 "to_period",
                 "tz",
-            ]
+            ],
         ),
         (
             Timedelta,

@@ -3239,16 +3239,28 @@ class TestDatetimeIndexFormat:
     def test_datetime_tz_custom(self):
         # This timestamp is in 2013 in Europe/Paris but is 2012 in UTC
         dt = pd.to_datetime(["2013-01-01 00:00:00+01:00"], utc=True)
+
         # If tz is currently set as utc, we'll see 2012
         assert (
             dt.format(date_format="%Y-%m-%d__foo__%H:%M:%S")[0]
             == "2012-12-31__foo__23:00:00"
         )
+        # same with fancy format
+        assert (
+                dt.format(date_format="20%y-%m-%d__foo__%I:%M:%S%p")[0]
+                == "2012-12-31__foo__11:00:00PM"
+        )
+
         # If tz is currently set as paris, we'll see 2013
         dt = dt.tz_convert("Europe/Paris")
         assert (
             dt.format(date_format="%Y-%m-%d__foo__%H:%M:%S")[0]
             == "2013-01-01__foo__00:00:00"
+        )
+        # same with fancy format
+        assert (
+                dt.format(date_format="20%y-%m-%d__foo__%I:%M:%S%p")[0]
+                == "2013-01-01__foo__12:00:00AM"
         )
 
     def test_date(self):
@@ -3396,10 +3408,13 @@ class TestDatetimeFastFormatter:
         dt = datetime.now()
 
         # pre-compute the formats
-        new_style_format = convert_strftime_format(strftime_format, new_style_fmt=True)
+        new_style_format = convert_strftime_format(
+            strftime_format, new_style_fmt=True
+        )
         old_style_format = convert_strftime_format(strftime_format)
 
-        # Perf comparison: confirm the results in https://stackoverflow.com/a/43495629/7262247
+        # Perf comparison: confirm the results
+        # from https://stackoverflow.com/a/43495629/7262247
         fmt_dct = dict(
             year=dt.year,
             month=dt.month,
@@ -3417,7 +3432,8 @@ class TestDatetimeFastFormatter:
         )
         #   Out[3]: 0.0062
         new_style_best = min(
-            Timer("new_style_format.format(**fmt_dct)", globals=glob).repeat(7, 1000)
+            Timer("new_style_format.format(**fmt_dct)", globals=glob)
+                .repeat(7, 1000)
         )
         #   Out[4]: 0.0036
         old_style_best = min(
