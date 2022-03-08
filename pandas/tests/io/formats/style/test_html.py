@@ -804,3 +804,24 @@ def test_multiple_rendered_links():
     for link in links:
         assert href.format(link) in result
     assert href.format("text") not in result
+
+
+def test_concat(styler):
+    other = styler.data.agg(["mean"]).style
+    styler.concat(other).set_uuid("X")
+    result = styler.to_html()
+    expected = dedent(
+        """\
+    <tr>
+      <th id="T_X_level0_row1" class="row_heading level0 row1" >b</th>
+      <td id="T_X_row1_col0" class="data row1 col0" >2.690000</td>
+    </tr>
+    <tr>
+      <th id="T_X_level0_foot_row0" class="foot_row_heading level0 foot_row0" >mean</th>
+      <td id="T_X_foot_row0_col0" class="foot_data foot_row0 col0" >2.650000</td>
+    </tr>
+  </tbody>
+</table>
+    """
+    )
+    assert expected in result
