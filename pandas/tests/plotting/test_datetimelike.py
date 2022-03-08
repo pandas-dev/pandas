@@ -558,7 +558,7 @@ class TestTSPlot(TestPlotBase):
         # non-ts
         idx = [0, 1, 2, 5, 7, 9, 12, 15, 20]
         ser = Series(np.random.randn(len(idx)), idx)
-        ser[2:5] = np.nan
+        ser.iloc[2:5] = np.nan
         _, ax = self.plt.subplots()
         ser.plot(ax=ax)
         lines = ax.get_lines()
@@ -573,7 +573,7 @@ class TestTSPlot(TestPlotBase):
 
     def test_gap_upsample(self):
         low = tm.makeTimeSeries()
-        low[5:25] = np.nan
+        low.iloc[5:25] = np.nan
         _, ax = self.plt.subplots()
         low.plot(ax=ax)
 
