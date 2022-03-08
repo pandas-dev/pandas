@@ -101,7 +101,7 @@ If you need more advanced logic, you can use arbitrary Python code via :meth:`~D
     <ul class="task-bullet">
         <li>
 
-I want to rename the data columns to the corresponding station identifiers used by openAQ.
+I want to rename the data columns to the corresponding station identifiers used by `OpenAQ <https://openaq.org/>`__.
 
 .. ipython:: python
 

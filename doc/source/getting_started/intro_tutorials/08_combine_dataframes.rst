@@ -24,7 +24,7 @@
                         <p class="card-text">
 
 For this tutorial, air quality data about :math:`NO_2` is used, made available by
-`openaq <https://openaq.org>`__ and downloaded using the
+`OpenAQ <https://openaq.org>`__ and downloaded using the
 `py-openaq <http://dhhagan.github.io/py-openaq/index.html>`__ package.
 
 The ``air_quality_no2_long.csv`` data set provides :math:`NO_2`
@@ -59,7 +59,7 @@ Westminster* in respectively Paris, Antwerp and London.
 
 For this tutorial, air quality data about Particulate
 matter less than 2.5 micrometers is used, made available by
-`openaq <https://openaq.org>`__ and downloaded using the
+`OpenAQ <https://openaq.org>`__ and downloaded using the
 `py-openaq <http://dhhagan.github.io/py-openaq/index.html>`__ package.
 
 The ``air_quality_pm25_long.csv`` data set provides :math:`PM_{25}`
