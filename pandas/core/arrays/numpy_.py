@@ -66,7 +66,7 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # Constructors
 
-    def __init__(self, values: np.ndarray | PandasArray, copy: bool = False):
+    def __init__(self, values: np.ndarray | PandasArray, copy: bool = False) -> None:
         if isinstance(values, type(self)):
             values = values._ndarray
         if not isinstance(values, np.ndarray):
@@ -108,10 +108,6 @@ class PandasArray(
         if copy and result is scalars:
             result = result.copy()
         return cls(result)
-
-    @classmethod
-    def _from_factorized(cls, values, original) -> PandasArray:
-        return original._from_backing_data(values)
 
     def _from_backing_data(self, arr: np.ndarray) -> PandasArray:
         return type(self)(arr)

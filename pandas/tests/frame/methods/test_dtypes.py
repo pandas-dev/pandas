@@ -131,3 +131,10 @@ class TestDataFrameDataTypes:
             index=list("ABCD"),
         )
         tm.assert_series_equal(result, expected)
+
+    def test_frame_apply_np_array_return_type(self):
+        # GH 35517
+        df = DataFrame([["foo"]])
+        result = df.apply(lambda col: np.array("bar"))
+        expected = Series(["bar"])
+        tm.assert_series_equal(result, expected)
