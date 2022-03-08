@@ -306,6 +306,7 @@ Performance improvements
 
 Bug fixes
 ~~~~~~~~~
+- Fixed bug in window rolling when centering with axis=1 (:issue:`46135`)
 
 Categorical
 ^^^^^^^^^^^
