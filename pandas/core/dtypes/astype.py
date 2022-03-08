@@ -143,10 +143,7 @@ def astype_nansafe(
         # then coerce to a proper dtype and recall astype_nansafe
 
         if is_datetime64_dtype(dtype):
-            from pandas import to_datetime
-
-            datetime_values = to_datetime(arr.ravel()).values.reshape(arr.shape)
-            return datetime_values
+            return arr.astype(dtype)
 
         elif is_timedelta64_dtype(dtype):
             # bc we know arr.dtype == object, this is equivalent to
