@@ -4535,25 +4535,24 @@ class DataFrame(NDFrame, OpsMixin):
 
         If you want to assign a column based on multiple conditions, you can
         pass a multiple conditions dict with as follows:
+
         >>> df = pd.DataFrame({'a': [1, 2, 3]})
         >>> df
-            a
-        0	1
-        1	2
-        2	3
+           a
+        0  1
+        1  2
+        2  3
         >>> df.assign(
-        ... a_status={
-        ...     "less than 2": lambda x: x < 2,
-        ...     "equals 2": lambda x: x == 2,
-        ...     "bigger than 2": lambda x: x > 2,
-        ... }
-        )
-            a	a_status
-        0	1	less than 2
-        1	2	equals 2
-        2	3	bigger than 2
-
-
+        ...     a_status={
+        ...             "less than 2": lambda x: x.a < 2,
+        ...             "equals 2": lambda x: x.a == 2,
+        ...             "bigger than 2": lambda x: x.a > 2,
+        ...     }
+        ... )
+           a       a_status
+        0  1    less than 2
+        1  2       equals 2
+        2  3  bigger than 2
         """
         data = self.copy()
 
