@@ -541,12 +541,6 @@ class MultiIndex(Index):
                     (2, 'blue')],
                    names=['number', 'color'])
         """
-        tuples = list(tuples)
-        if not all(tuples):
-            _dtype_obj = np.dtype("object")
-            subarr = com.asarray_tuplesafe(tuples, dtype=_dtype_obj)
-            return Index(subarr, dtype=_dtype_obj)
-
         if not is_list_like(tuples):
             raise TypeError("Input must be a list / sequence of tuple-likes.")
         elif is_iterator(tuples):
@@ -568,6 +562,13 @@ class MultiIndex(Index):
         else:
             arrs = zip(*tuples)
             arrays = cast(List[Sequence[Hashable]], arrs)
+
+        tuples = list(tuples)
+
+        if not all(tuples):
+            _dtype_obj = np.dtype("object")
+            subarr = com.asarray_tuplesafe(tuples, dtype=_dtype_obj)
+            return Index(subarr, dtype=_dtype_obj)
 
         return cls.from_arrays(arrays, sortorder=sortorder, names=names)
 
