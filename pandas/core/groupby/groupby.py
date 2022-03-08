@@ -2252,7 +2252,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Returns
         -------
         Series or DataFrame
-            First not non-null of values within each group.
+            First non-null of values within each group.
 
         See Also
         --------
@@ -2312,7 +2312,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Returns
         -------
         Series or DataFrame
-            Last not non-null of values within each group.
+            Last non-null of values within each group.
 
         See Also
         --------
@@ -2330,7 +2330,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         A
         1  5.0  2
         3  6.0  3
-
         """
 
         def last_compat(obj: NDFrameT, axis: int = 0):
