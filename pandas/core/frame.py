@@ -10604,11 +10604,11 @@ NaN 12.3   33.0
         --------
         >>> df = pd.DataFrame(np.array([[1, 1], [2, 10], [3, 100], [4, 100]]),
         ...                   columns=['a', 'b'])
-        >>> df.quantile(.1, numeric_only=True)
+        >>> df.quantile(.1)
         a    1.3
         b    3.7
         Name: 0.1, dtype: float64
-        >>> df.quantile([.1, .5], numeric_only=True)
+        >>> df.quantile([.1, .5])
                a     b
         0.1  1.3   3.7
         0.5  2.5  55.0
