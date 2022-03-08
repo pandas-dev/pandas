@@ -1232,6 +1232,9 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
 
     Since 0 is a bit weird, we suggest avoiding its use.
 
+    Besides, adding a DateOffsets specified by the singular form of the date
+    component can be used to replace certain component of the timestamp.
+
     Parameters
     ----------
     n : int, default 1
@@ -1286,6 +1289,9 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     Timestamp('2017-03-01 09:10:11')
     >>> ts + DateOffset(day=31)
     Timestamp('2017-01-31 09:10:11')
+
+    >>> ts + pd.DateOffset(hour=8)
+    Timestamp('2017-01-01 08:10:11')
     """
     def __setattr__(self, name, value):
         raise AttributeError("DateOffset objects are immutable.")

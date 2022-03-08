@@ -853,9 +853,6 @@ savings time. However, all :class:`DateOffset` subclasses that are an hour or sm
 The basic :class:`DateOffset` acts similar to ``dateutil.relativedelta`` (`relativedelta documentation`_)
 that shifts a date time by the corresponding calendar duration specified. The
 arithmetic operator (``+``) can be used to perform the shift.
-Multiplication (*) and subtraction are also supported. Besides arithmetic operations,
-basic :class:`DateOffset` can also be specified to replace certain component of the
-timestamp.
 
 .. ipython:: python
 
@@ -871,8 +868,7 @@ timestamp.
    two_business_days = 2 * pd.offsets.BDay()
    friday + two_business_days
    (friday + two_business_days).day_name()
-   # Replaces "hour" component on ts
-   ts + pd.DateOffset(hour=8)
+
 
 Most ``DateOffsets`` have associated frequencies strings, or offset aliases, that can be passed
 into ``freq`` keyword arguments. The available date offsets and associated frequency strings can be found below:
