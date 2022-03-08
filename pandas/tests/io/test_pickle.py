@@ -441,7 +441,7 @@ def test_pickle_generalurl_read(monkeypatch, mockurl):
             if "gzip" in path:
                 self.headers = {"Content-Encoding": "gzip"}
             else:
-                self.headers = {"Content-Encoding": None}
+                self.headers = {"Content-Encoding": ""}
 
         def __enter__(self):
             return self
