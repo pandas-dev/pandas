@@ -17,7 +17,10 @@ import tarfile
 import numpy as np
 import pytest
 
-from pandas.compat import IS64
+from pandas.compat import (
+    IS64,
+    is_ci_environment,
+)
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 
@@ -556,6 +559,7 @@ def test_read_tarfile(c_parser_only, csv_dir_path, tar_suffix):
 
 
 @pytest.mark.single_cpu
+@pytest.mark.skipif(is_ci_environment(), reason="Too memory intensive for CI.")
 def test_bytes_exceed_2gb(c_parser_only):
     # see gh-16798
     #
