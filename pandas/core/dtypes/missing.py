@@ -7,7 +7,6 @@ from decimal import Decimal
 from functools import partial
 from typing import (
     TYPE_CHECKING,
-    Literal,
     overload,
 )
 
@@ -64,7 +63,7 @@ if TYPE_CHECKING:
         npt,
     )
 
-    from pandas.core.base import IndexOpsMixin
+    from pandas.core.indexes.base import Index
 
 
 isposinf_scalar = libmissing.isposinf_scalar
@@ -77,27 +76,24 @@ _dtype_str = np.dtype(str)
 
 
 @overload
-def isna(obj: Scalar) -> bool:  # type: ignore[misc]
+def isna(obj: Scalar) -> bool:
     ...
 
 
 @overload
-def isna(obj: ArrayLike | list) -> npt.NDArray[np.bool_]:  # type: ignore[misc]
+def isna(
+    obj: ArrayLike | Index | list,
+) -> npt.NDArray[np.bool_]:
     ...
 
 
 @overload
-def isna(obj: NDFrameT) -> NDFrameT:  # type: ignore[misc]
+def isna(obj: NDFrameT) -> NDFrameT:
     ...
 
 
 @overload
-def isna(obj: IndexOpsMixin) -> npt.NDArray[np.bool_]:  # type: ignore[misc]
-    ...
-
-
-@overload
-def isna(obj: object) -> Literal[False]:
+def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
     ...
 
 
@@ -323,27 +319,24 @@ def _isna_string_dtype(values: np.ndarray, inf_as_na: bool) -> npt.NDArray[np.bo
 
 
 @overload
-def notna(obj: Scalar) -> bool:  # type: ignore[misc]
+def notna(obj: Scalar) -> bool:
     ...
 
 
 @overload
-def notna(obj: ArrayLike | list) -> npt.NDArray[np.bool_]:  # type: ignore[misc]
+def notna(
+    obj: ArrayLike | Index | list,
+) -> npt.NDArray[np.bool_]:
     ...
 
 
 @overload
-def notna(obj: NDFrameT) -> NDFrameT:  # type: ignore[misc]
+def notna(obj: NDFrameT) -> NDFrameT:
     ...
 
 
 @overload
-def notna(obj: IndexOpsMixin) -> npt.NDArray[np.bool_]:  # type: ignore[misc]
-    ...
-
-
-@overload
-def notna(obj: object) -> Literal[False]:
+def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
     ...
 
 

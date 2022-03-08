@@ -391,8 +391,9 @@ class ExponentialMovingWindow(BaseWindow):
                 raise ValueError(
                     "halflife must be a string or datetime.timedelta object"
                 )
-            # error: "Literal[False]" has no attribute "any"
-            if isna(self.times).any():  # type: ignore[attr-defined]
+            # error: Item "bool" of "Union[bool, ndarray[Any, dtype[bool_]], NDFrame]"
+            # has no attribute "any"
+            if isna(self.times).any():  # type: ignore[union-attr]
                 raise ValueError("Cannot convert NaT values to integer")
             self._deltas = _calculate_deltas(self.times, self.halflife)
             # Halflife is no longer applicable when calculating COM
