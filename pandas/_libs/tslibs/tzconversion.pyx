@@ -513,12 +513,13 @@ cdef const int64_t[:] _tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
 
 # OSError may be thrown by tzlocal on windows at or close to 1970-01-01
 #  see https://github.com/pandas-dev/pandas/pull/37591#issuecomment-720628241
-cdef inline int64_t _tzlocal_get_offset_components(int64_t val, tzinfo tz,
-                                                   bint to_utc,
-                                                   bint *fold=NULL) except? -1:
+cdef int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz, bint to_utc=True,
+                                     bint* fold=NULL) except? -1:
     """
-    Calculate offset in nanoseconds needed to convert the i8 representation of
-    a datetime from a tzlocal timezone to UTC, or vice-versa.
+    Convert the i8 representation of a datetime from a tzlocal timezone to
+    UTC, or vice-versa.
+
+    Private, not intended for use outside of tslibs.conversion
 
     Parameters
     ----------
@@ -529,10 +530,11 @@ cdef inline int64_t _tzlocal_get_offset_components(int64_t val, tzinfo tz,
     fold : bint*, default NULL
         pointer to fold: whether datetime ends up in a fold or not
         after adjustment
+        Only passed with to_utc=False.
 
     Returns
     -------
-    delta : int64_t
+    result : int64_t
 
     Notes
     -----
@@ -553,45 +555,12 @@ cdef inline int64_t _tzlocal_get_offset_components(int64_t val, tzinfo tz,
         dt = dt.replace(tzinfo=tzutc())
         dt = dt.astimezone(tz)
 
-    if fold is not NULL:
-        fold[0] = dt.fold
+        if fold is not NULL:
+            # NB: fold is only passed with to_utc=False
+            fold[0] = dt.fold
 
     td = tz.utcoffset(dt)
-    return int(td.total_seconds() * 1_000_000_000)
-
-
-# OSError may be thrown by tzlocal on windows at or close to 1970-01-01
-#  see https://github.com/pandas-dev/pandas/pull/37591#issuecomment-720628241
-cdef int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz, bint to_utc=True,
-                                     bint* fold=NULL) except? -1:
-    """
-    Convert the i8 representation of a datetime from a tzlocal timezone to
-    UTC, or vice-versa.
-
-    Private, not intended for use outside of tslibs.conversion
-
-    Parameters
-    ----------
-    val : int64_t
-    tz : tzinfo
-    to_utc : bint
-        True if converting tzlocal _to_ UTC, False if going the other direction
-    fold : bint*
-        pointer to fold: whether datetime ends up in a fold or not
-        after adjustment
-
-    Returns
-    -------
-    result : int64_t
-
-    Notes
-    -----
-    Sets fold by pointer
-    """
-    cdef:
-        int64_t delta
-
-    delta = _tzlocal_get_offset_components(val, tz, to_utc, fold)
+    delta = int(td.total_seconds() * 1_000_000_000)
 
     if to_utc:
         return val - delta

@@ -3922,7 +3922,6 @@ class Index(IndexOpsMixin, PandasObject):
         elif method == "nearest":
             indexer = self._get_nearest_indexer(target, limit, tolerance)
         else:
-            tgt_values = target._get_engine_target()
             if target._is_multi and self._is_multi:
                 engine = self._engine
                 # error: Item "IndexEngine" of "Union[IndexEngine, ExtensionEngine]"
@@ -3930,11 +3929,10 @@ class Index(IndexOpsMixin, PandasObject):
                 tgt_values = engine._extract_level_codes(  # type: ignore[union-attr]
                     target
                 )
+            else:
+                tgt_values = target._get_engine_target()
 
-            # error: Argument 1 to "get_indexer" of "IndexEngine" has incompatible
-            # type "Union[ExtensionArray, ndarray[Any, Any]]"; expected
-            # "ndarray[Any, Any]"
-            indexer = self._engine.get_indexer(tgt_values)  # type: ignore[arg-type]
+            indexer = self._engine.get_indexer(tgt_values)
 
         return ensure_platform_int(indexer)
 
