@@ -27,7 +27,7 @@ from .np_datetime cimport (
     dt64_to_dtstruct,
     npy_datetimestruct,
 )
-from .offsets cimport to_offset
+from .offsets cimport BaseOffset
 from .period cimport get_period_ordinal
 from .timestamps cimport create_timestamp_from_ts
 from .timezones cimport (
@@ -87,7 +87,7 @@ cdef inline object create_time_from_ts(
 def ints_to_pydatetime(
     const int64_t[:] stamps,
     tzinfo tz=None,
-    object freq=None,
+    BaseOffset freq=None,
     bint fold=False,
     str box="datetime"
 ) -> np.ndarray:
@@ -99,7 +99,7 @@ def ints_to_pydatetime(
     stamps : array of i8
     tz : str, optional
          convert to this timezone
-    freq : str/Offset, optional
+    freq : BaseOffset, optional
          freq to convert
     fold : bint, default is 0
         Due to daylight saving time, one wall clock time can occur twice
@@ -138,9 +138,6 @@ def ints_to_pydatetime(
         func_create = create_date_from_ts
     elif box == "timestamp":
         func_create = create_timestamp_from_ts
-
-        if isinstance(freq, str):
-            freq = to_offset(freq)
     elif box == "time":
         func_create = create_time_from_ts
     elif box == "datetime":
@@ -311,7 +308,6 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
             pos = trans.searchsorted(stamps, side="right") - 1
 
     for i in range(n):
-        # TODO: reinstate nogil for use_utc case?
         if stamps[i] == NPY_NAT:
             result[i] = NPY_NAT
             continue
@@ -393,7 +389,7 @@ def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None) -> bool:
 @cython.boundscheck(False)
 def dt64arr_to_periodarr(const int64_t[:] stamps, int freq, tzinfo tz):
     cdef:
-        Py_ssize_t n = len(stamps)
+        Py_ssize_t i, n = len(stamps)
         int64_t[:] result = np.empty(n, dtype=np.int64)
         ndarray[int64_t] trans
         int64_t[:] deltas
@@ -416,7 +412,6 @@ def dt64arr_to_periodarr(const int64_t[:] stamps, int freq, tzinfo tz):
             pos = trans.searchsorted(stamps, side="right") - 1
 
     for i in range(n):
-        # TODO: reinstate nogil for use_utc case?
         if stamps[i] == NPY_NAT:
             result[i] = NPY_NAT
             continue

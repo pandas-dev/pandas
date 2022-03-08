@@ -787,6 +787,27 @@ class TestDataFramePlots(TestPlotBase):
         ax = df.plot.scatter(x="a", y="b", s="c")
         tm.assert_numpy_array_equal(df["c"].values, right=ax.collections[0].get_sizes())
 
+    def test_plot_scatter_with_norm(self):
+        # added while fixing GH 45809
+        import matplotlib as mpl
+
+        df = DataFrame(np.random.random((10, 3)) * 100, columns=["a", "b", "c"])
+        norm = mpl.colors.LogNorm()
+        ax = df.plot.scatter(x="a", y="b", c="c", norm=norm)
+        assert ax.collections[0].norm is norm
+
+    def test_plot_scatter_without_norm(self):
+        # added while fixing GH 45809
+        import matplotlib as mpl
+
+        df = DataFrame(np.random.random((10, 3)) * 100, columns=["a", "b", "c"])
+        ax = df.plot.scatter(x="a", y="b", c="c")
+        plot_norm = ax.collections[0].norm
+        color_min_max = (df.c.min(), df.c.max())
+        default_norm = mpl.colors.Normalize(*color_min_max)
+        for value in df.c:
+            assert plot_norm(value) == default_norm(value)
+
     @pytest.mark.slow
     def test_plot_bar(self):
         df = DataFrame(
