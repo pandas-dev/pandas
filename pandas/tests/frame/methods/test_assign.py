@@ -82,3 +82,31 @@ class TestAssign:
         result = df.assign(C=lambda df: df.A, D=lambda df: df["A"] + df["C"])
         expected = DataFrame([[1, 3, 1, 2], [2, 4, 2, 4]], columns=list("ABCD"))
         tm.assert_frame_equal(result, expected)
+
+    def test_assign_mutilple_conditions_lambda(self):
+        df = DataFrame({"A": [1, 2, 3]})
+
+        # conditions cover all cases
+        result = df.assign(
+            A_status={
+                "less than 2": lambda x: x < 2,
+                "equals 2": lambda x: x == 2,
+                "bigger than 2": lambda x: x > 2,
+            }
+        )
+        expected = DataFrame(
+            {"A": [1, 2, 3], "A_status": ["less than 2", "equals 2", "bigger than 2"]}
+        )
+        tm.assert_frame_equal(result, expected)
+
+        # conditions do not cover all cases
+        result = df.assign(
+            A_status={
+                "less than 2": lambda x: x < 2,
+                "equals 2": lambda x: x == 2,
+            }
+        )
+        expected = DataFrame(
+            {"A": [1, 2, 3], "A_status": ["less than 2", "equals 2", None]}
+        )
+        tm.assert_frame_equal(result, expected)
