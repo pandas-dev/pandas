@@ -119,6 +119,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_iterator,
     is_list_like,
+    is_numeric_dtype,
     is_object_dtype,
     is_scalar,
     is_sequence,
@@ -10628,8 +10629,8 @@ NaN 12.3   33.0
         """
         validate_percentile(q)
         axis = self._get_axis_number(axis)
-
-        if numeric_only is no_default:
+        any_not_numeric = any(not is_numeric_dtype(x) for x in self.dtypes)
+        if numeric_only is no_default and any_not_numeric:
             warnings.warn(
                 "In future versions of pandas, numeric_only will be set to "
                 "False by default, and the datetime/timedelta columns will "
