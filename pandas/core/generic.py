@@ -9012,18 +9012,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             if is_series:
                 left = self._reindex_indexer(join_index, lidx, copy)
-            elif lidx is None:
+            elif lidx is None or join_index is None:
                 left = self.copy() if copy else self
             else:
-                data = algos.take_nd(
-                    self.values,
-                    lidx,
-                    allow_fill=True,
-                    fill_value=None,
-                )
-
                 left = self._constructor(
-                    data=data, columns=self.columns, index=join_index
+                    self._mgr.reindex_indexer(join_index, lidx, axis=1, copy=copy)
                 )
 
             right = other._reindex_indexer(join_index, ridx, copy)
