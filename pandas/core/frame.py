@@ -5855,8 +5855,15 @@ class DataFrame(NDFrame, OpsMixin):
 
         Using the `names` parameter, choose a name for the index column:
 
+        >>> df = pd.DataFrame([('bird', 389.0),
+        ...                    ('bird', 24.0),
+        ...                    ('mammal', 80.5),
+        ...                    ('mammal', np.nan)],
+        ...                   index=['falcon', 'parrot', 'lion', 'monkey'],
+        ...                   columns=('class', 'max_speed'))
+
         >>> df.reset_index(names='name')
-            name   class  max_speed
+             name   class  max_speed
         0  falcon    bird      389.0
         1  parrot    bird       24.0
         2    lion  mammal       80.5
