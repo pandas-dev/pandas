@@ -7,6 +7,7 @@ from itertools import islice
 from typing import (
     TYPE_CHECKING,
     Callable,
+    Dict,
     Hashable,
     List,
     Tuple,
@@ -79,7 +80,10 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 if TYPE_CHECKING:
     from pandas._libs.tslibs.nattype import NaTType
 
-    from pandas import Series
+    from pandas import (
+        DataFrame,
+        Series,
+    )
 
 # ---------------------------------------------------------------------
 # types used in annotations
@@ -89,6 +93,7 @@ Scalar = Union[int, float, str]
 DatetimeScalar = Union[Scalar, datetime]
 
 DatetimeScalarOrArrayConvertible = Union[DatetimeScalar, ArrayConvertible]
+DictConvertible = Union[Dict[str, List], "DataFrame"]
 start_caching_at = 50
 
 
@@ -646,7 +651,7 @@ def to_datetime(
 
 @overload
 def to_datetime(
-    arg: Series,
+    arg: Series | DictConvertible,
     errors: str = ...,
     dayfirst: bool = ...,
     yearfirst: bool = ...,
@@ -663,7 +668,7 @@ def to_datetime(
 
 @overload
 def to_datetime(
-    arg: list | tuple | np.ndarray,
+    arg: list | tuple | np.ndarray | Index | ExtensionArray,
     errors: str = ...,
     dayfirst: bool = ...,
     yearfirst: bool = ...,
@@ -679,7 +684,7 @@ def to_datetime(
 
 
 def to_datetime(
-    arg: DatetimeScalarOrArrayConvertible,
+    arg: DatetimeScalarOrArrayConvertible | DictConvertible,
     errors: str = "raise",
     dayfirst: bool = False,
     yearfirst: bool = False,
@@ -1067,10 +1072,10 @@ def to_datetime(
             # "Union[float, str, datetime, List[Any], Tuple[Any, ...], ExtensionArray,
             # ndarray[Any, Any], Series]"; expected "Union[List[Any], Tuple[Any, ...],
             # Union[Union[ExtensionArray, ndarray[Any, Any]], Index, Series], Series]"
-            arg = cast(
+            argc = cast(
                 Union[list, tuple, ExtensionArray, np.ndarray, "Series", Index], arg
             )
-            cache_array = _maybe_cache(arg, format, cache, convert_listlike)
+            cache_array = _maybe_cache(argc, format, cache, convert_listlike)
         except OutOfBoundsDatetime:
             # caching attempts to create a DatetimeIndex, which may raise
             # an OOB. If that's the desired behavior, then just reraise...
@@ -1081,9 +1086,9 @@ def to_datetime(
 
             cache_array = Series([], dtype=object)  # just an empty array
         if not cache_array.empty:
-            result = _convert_and_box_cache(arg, cache_array)
+            result = _convert_and_box_cache(argc, cache_array)
         else:
-            result = convert_listlike(arg, format)
+            result = convert_listlike(argc, format)
     else:
         result = convert_listlike(np.array([arg]), format)[0]
         if isinstance(arg, bool) and isinstance(result, np.bool_):
