@@ -92,6 +92,12 @@ def isna(obj: NDFrameT) -> NDFrameT:
     ...
 
 
+# handle unions
+@overload
+def isna(obj: NDFrameT | ArrayLike | Index | list) -> NDFrameT | npt.NDArray[np.bool_]:
+    ...
+
+
 @overload
 def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
     ...
@@ -332,6 +338,12 @@ def notna(
 
 @overload
 def notna(obj: NDFrameT) -> NDFrameT:
+    ...
+
+
+# handle unions
+@overload
+def notna(obj: NDFrameT | ArrayLike | Index | list) -> NDFrameT | npt.NDArray[np.bool_]:
     ...
 
 

@@ -3,7 +3,10 @@ from __future__ import annotations
 import datetime
 from functools import partial
 from textwrap import dedent
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    cast,
+)
 import warnings
 
 import numpy as np
@@ -380,20 +383,17 @@ class ExponentialMovingWindow(BaseWindow):
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
-                self.times = self._selected_obj[self.times]
+                # self.times cannot be str anymore
+                self.times = cast(Series, self._selected_obj[self.times])
             if not is_datetime64_ns_dtype(self.times):
                 raise ValueError("times must be datetime64[ns] dtype.")
-            # error: Argument 1 to "len" has incompatible type "Union[str, ndarray,
-            # NDFrameT, None]"; expected "Sized"
-            if len(self.times) != len(obj):  # type: ignore[arg-type]
+            if len(self.times) != len(obj):
                 raise ValueError("times must be the same length as the object.")
             if not isinstance(self.halflife, (str, datetime.timedelta)):
                 raise ValueError(
                     "halflife must be a string or datetime.timedelta object"
                 )
-            # error: Item "bool" of "Union[bool, ndarray[Any, dtype[bool_]], NDFrame]"
-            # has no attribute "any"
-            if isna(self.times).any():  # type: ignore[union-attr]
+            if isna(self.times).any():
                 raise ValueError("Cannot convert NaT values to integer")
             self._deltas = _calculate_deltas(self.times, self.halflife)
             # Halflife is no longer applicable when calculating COM
