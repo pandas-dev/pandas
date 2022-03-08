@@ -179,7 +179,7 @@ class ArrowExtensionArray(OpsMixin, _ArrowExtensionArray):
 
 
 class ArrowBoolArray(ArrowExtensionArray):
-    def __init__(self, values):
+    def __init__(self, values) -> None:
         if not isinstance(values, pa.ChunkedArray):
             raise ValueError
 
@@ -189,7 +189,7 @@ class ArrowBoolArray(ArrowExtensionArray):
 
 
 class ArrowStringArray(ArrowExtensionArray):
-    def __init__(self, values):
+    def __init__(self, values) -> None:
         if not isinstance(values, pa.ChunkedArray):
             raise ValueError
 
