@@ -13,6 +13,7 @@ VERSIONS = {
     "bs4": "4.8.2",
     "blosc": "1.20.1",
     "bottleneck": "1.3.1",
+    "brotli": "0.7.0",
     "fastparquet": "0.4.0",
     "fsspec": "0.7.4",
     "html5lib": "1.1",
@@ -34,6 +35,7 @@ VERSIONS = {
     "pyxlsb": "1.0.6",
     "s3fs": "0.4.0",
     "scipy": "1.4.1",
+    "snappy": "1.1.8",
     "sqlalchemy": "1.4.0",
     "tables": "3.6.1",
     "tabulate": "0.8.7",
@@ -50,6 +52,7 @@ VERSIONS = {
 INSTALL_MAPPING = {
     "bs4": "beautifulsoup4",
     "bottleneck": "Bottleneck",
+    "brotli": "brotlipy",
     "lxml.etree": "lxml",
     "odf": "odfpy",
     "pandas_gbq": "pandas-gbq",
