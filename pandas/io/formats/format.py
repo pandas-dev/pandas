@@ -1767,16 +1767,13 @@ def _format_datetime64_dateonly(
     nat_rep: str = "NaT",
     date_format: str | None = None,
 ) -> str:
-    if x is NaT:
+    if isinstance(x, NaTType):
         return nat_rep
 
     if date_format:
         return x.strftime(date_format)
     else:
-        # error: Item "NaTType" of "Union[NaTType, Any]" has no attribute "_date_repr"
-        #  The underlying problem here is that mypy doesn't understand that NaT
-        #  is a singleton, so that the check above excludes it here.
-        return x._date_repr  # type: ignore[union-attr]
+        return x._date_repr
 
 
 def get_format_datetime64(

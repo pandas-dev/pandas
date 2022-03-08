@@ -7,12 +7,12 @@ from typing import (
 )
 
 import numpy as np
+import numpy.typing as npt
 
 from pandas._libs.tslibs import (
     NaTType,
     Tick,
 )
-from pandas._typing import npt
 
 _S = TypeVar("_S", bound=timedelta)
 
@@ -26,21 +26,22 @@ def array_to_timedelta64(
     errors: str = ...,
 ) -> np.ndarray: ...  # np.ndarray[m8ns]
 def parse_timedelta_unit(unit: str | None) -> str: ...
-def delta_to_nanoseconds(delta: Tick | np.timedelta64 | timedelta | int) -> int: ...
+def delta_to_nanoseconds(delta: np.timedelta64 | timedelta | Tick) -> int: ...
 
 class Timedelta(timedelta):
     min: ClassVar[Timedelta]
     max: ClassVar[Timedelta]
     resolution: ClassVar[Timedelta]
     value: int  # np.int64
-
-    # error: "__new__" must return a class instance (got "Union[Timedelta, NaTType]")
-    def __new__(  # type: ignore[misc]
+    def __new__(
         cls: Type[_S],
         value=...,
         unit: str = ...,
         **kwargs: int | float | np.integer | np.floating,
-    ) -> _S | NaTType: ...
+    ) -> _S: ...
+    # GH 46171
+    # While Timedelta can return pd.NaT, having the constructor return
+    # a Union with NaTType makes things awkward for users of pandas
     @property
     def days(self) -> int: ...
     @property
