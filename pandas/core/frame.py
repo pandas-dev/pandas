@@ -4468,13 +4468,25 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        **kwargs : dict of {str: callable or Series}
+        **kwargs : dict of {str: callable or Series or dict}
             The column names are keywords. If the values are
             callable, they are computed on the DataFrame and
-            assigned to the new columns. The callable must not
-            change input DataFrame (though pandas doesn't check it).
-            If the values are not callable, (e.g. a Series, scalar, or array),
-            they are simply assigned.
+            assigned to the new columns.
+
+            The value can also be a multiple condition dict that
+            contains the desired values to be assigned as keys
+            and bool Series, array-like, or callable as values
+            (see examples). If the value to the multiple condition
+            dict is callable, it is computed on the DataFrame
+            and should return boolean Series or array. Cases not
+            covered will be assigned with `None`. This is based on
+            `np.select`.
+
+            All callables must not change input DataFrame (though pandas
+            doesn't check it).
+
+            If the values are not callable or not dict, (e.g. a Series,
+            scalar, or array), they are simply assigned.
 
         Returns
         -------
@@ -4520,11 +4532,37 @@ class DataFrame(NDFrame, OpsMixin):
                   temp_c  temp_f  temp_k
         Portland    17.0    62.6  290.15
         Berkeley    25.0    77.0  298.15
+
+        If you want to assign a column based on multiple conditions, you can
+        pass a multiple conditions dict with as follows:
+        >>> df = pd.DataFrame({'a': [1, 2, 3]})
+        >>> df
+            a
+        0	1
+        1	2
+        2	3
+        >>> df.assign(
+        ... a_status={
+        ...     "less than 2": lambda x: x < 2,
+        ...     "equals 2": lambda x: x == 2,
+        ...     "bigger than 2": lambda x: x > 2,
+        ... }
+        )
+            a	a_status
+        0	1	less than 2
+        1	2	equals 2
+        2	3	bigger than 2
+
+
         """
         data = self.copy()
 
         for k, v in kwargs.items():
-            data[k] = com.apply_if_callable(v, data)
+            data[k] = (
+                np.select([i(data) for i in v.values()], v.keys(), default=None)
+                if isinstance(v, dict)
+                else com.apply_if_callable(v, data)
+            )
         return data
 
     def _sanitize_column(self, value) -> ArrayLike:
