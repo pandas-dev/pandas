@@ -209,7 +209,7 @@ Plot the typical :math:`NO_2` pattern during the day of our time series of all s
     air_quality.groupby(air_quality["datetime"].dt.hour)["value"].mean().plot(
         kind='bar', rot=0, ax=axs
     )
-    plt.xlabel("Hour of the day");  # custom x label using matplotlib
+    plt.xlabel("Hour of the day");  # custom x label using Matplotlib
     @savefig 09_bar_chart.png
     plt.ylabel("$NO_2 (µg/m^3)$");
 
