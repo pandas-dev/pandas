@@ -62,7 +62,7 @@ INSTALL_MAPPING = {
 }
 
 
-def get_version(module: types.ModuleType) -> str | None:
+def get_version(module: types.ModuleType) -> str:
     version = getattr(module, "__version__", None)
     if version is None:
         # xlrd uses a capitalized attribute name
@@ -71,7 +71,7 @@ def get_version(module: types.ModuleType) -> str | None:
     if version is None:
         if module.__name__ == "brotli":
             # brotli doesn't contain attributes to confirm it's version
-            return None
+            return ""
         raise ImportError(f"Can't determine version for {module.__name__}")
     if module.__name__ == "psycopg2":
         # psycopg2 appends " (dt dec pq3 ext lo64)" to it's version
@@ -147,7 +147,7 @@ def import_optional_dependency(
     minimum_version = min_version if min_version is not None else VERSIONS.get(parent)
     if minimum_version:
         version = get_version(module_to_get)
-        if version is not None and Version(version) < Version(minimum_version):
+        if version and Version(version) < Version(minimum_version):
             msg = (
                 f"Pandas requires version '{minimum_version}' or newer of '{parent}' "
                 f"(version '{version}' currently installed)."
