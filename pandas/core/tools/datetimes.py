@@ -645,7 +645,7 @@ def to_datetime(
     infer_datetime_format: bool = ...,
     origin=...,
     cache: bool = ...,
-) -> Timestamp | NaTType:
+) -> Timestamp:
     ...
 
 
