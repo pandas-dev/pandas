@@ -90,7 +90,7 @@ values in each row*.
     </ul>
 
 Also other mathematical operators (``+``, ``-``, ``\*``, ``/``) or
-logical operators (``<``, ``>``, ``=``,…) work element-wise. The latter was already
+logical operators (``<``, ``>``, ``==``,…) work element-wise. The latter was already
 used in the :ref:`subset data tutorial <10min_tut_03_subset>` to filter
 rows of a table using a conditional expression.
 
