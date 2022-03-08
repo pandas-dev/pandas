@@ -3931,10 +3931,7 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 tgt_values = target._get_engine_target()
 
-            # error: Argument 1 to "get_indexer" of "IndexEngine" has incompatible
-            # type "Union[ExtensionArray, ndarray[Any, Any]]"; expected
-            # "ndarray[Any, Any]"
-            indexer = self._engine.get_indexer(tgt_values)  # type: ignore[arg-type]
+            indexer = self._engine.get_indexer(tgt_values)
 
         return ensure_platform_int(indexer)
 

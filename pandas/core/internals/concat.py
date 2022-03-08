@@ -212,6 +212,8 @@ def concatenate_managers(
     for placement, join_units in concat_plan:
         unit = join_units[0]
         blk = unit.block
+        # Assertion disabled for performance
+        # assert len(join_units) == len(mgrs_indexers)
 
         if len(join_units) == 1:
             values = blk.values
@@ -329,14 +331,10 @@ def _get_mgr_concatenation_plan(mgr: BlockManager):
     plan : list of (BlockPlacement, JoinUnit) tuples
 
     """
-    # Calculate post-reindex shape , save for item axis which will be separate
-    # for each block anyway.
-    mgr_shape_list = list(mgr.shape)
-    mgr_shape = tuple(mgr_shape_list)
 
     if mgr.is_single_block:
         blk = mgr.blocks[0]
-        return [(blk.mgr_locs, JoinUnit(blk, mgr_shape))]
+        return [(blk.mgr_locs, JoinUnit(blk))]
 
     blknos = mgr.blknos
     blklocs = mgr.blklocs
@@ -344,12 +342,9 @@ def _get_mgr_concatenation_plan(mgr: BlockManager):
     plan = []
     for blkno, placements in libinternals.get_blkno_placements(blknos, group=False):
 
-        assert placements.is_slice_like
-        assert blkno != -1
-
-        shape_list = list(mgr_shape)
-        shape_list[0] = len(placements)
-        shape = tuple(shape_list)
+        # Assertions disabled for performance; these should always hold
+        # assert placements.is_slice_like
+        # assert blkno != -1
 
         blk = mgr.blocks[blkno]
         ax0_blk_indexer = blklocs[placements.indexer]
@@ -379,8 +374,7 @@ def _get_mgr_concatenation_plan(mgr: BlockManager):
 
         # Assertions disabled for performance
         # assert blk._mgr_locs.as_slice == placements.as_slice
-        # assert blk.shape[0] == shape[0]
-        unit = JoinUnit(blk, shape)
+        unit = JoinUnit(blk)
 
         plan.append((placements, unit))
 
@@ -388,10 +382,8 @@ def _get_mgr_concatenation_plan(mgr: BlockManager):
 
 
 class JoinUnit:
-    def __init__(self, block: Block, shape: Shape):
-        # Passing shape explicitly is required for cases when block is None.
+    def __init__(self, block: Block):
         self.block = block
-        self.shape = shape
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}({repr(self.block)})"
@@ -404,22 +396,11 @@ class JoinUnit:
         return False
 
     def get_reindexed_values(self, empty_dtype: DtypeObj) -> ArrayLike:
-        values: ArrayLike
-
         if self.is_na:
-            return make_na_array(empty_dtype, self.shape)
+            return make_na_array(empty_dtype, self.block.shape)
 
         else:
-
-            if not self.block._can_consolidate:
-                # preserve these for validation in concat_compat
-                return self.block.values
-
-            # No dtype upcasting is done here, it will be performed during
-            # concatenation itself.
-            values = self.block.values
-
-        return values
+            return self.block.values
 
 
 def make_na_array(dtype: DtypeObj, shape: Shape) -> ArrayLike:
@@ -558,6 +539,9 @@ def _is_uniform_join_units(join_units: list[JoinUnit]) -> bool:
     first = join_units[0].block
     if first.dtype.kind == "V":
         return False
+    elif len(join_units) == 1:
+        # only use this path when there is something to concatenate
+        return False
     return (
         # exclude cases where a) ju.block is None or b) we have e.g. Int64+int64
         all(type(ju.block) is type(first) for ju in join_units)
@@ -570,13 +554,8 @@ def _is_uniform_join_units(join_units: list[JoinUnit]) -> bool:
             or ju.block.dtype.kind in ["b", "i", "u"]
             for ju in join_units
         )
-        and
-        # no blocks that would get missing values (can lead to type upcasts)
-        # unless we're an extension dtype.
-        all(not ju.is_na or ju.block.is_extension for ju in join_units)
-        and
-        # only use this path when there is something to concatenate
-        len(join_units) > 1
+        # this also precludes any blocks with dtype.kind == "V", since
+        #  we excluded that case for `first` above.
     )
 
 
@@ -598,10 +577,7 @@ def _trim_join_unit(join_unit: JoinUnit, length: int) -> JoinUnit:
     extra_block = join_unit.block.getitem_block(slice(length, None))
     join_unit.block = join_unit.block.getitem_block(slice(length))
 
-    extra_shape = (join_unit.shape[0] - length,) + join_unit.shape[1:]
-    join_unit.shape = (length,) + join_unit.shape[1:]
-
-    return JoinUnit(block=extra_block, shape=extra_shape)
+    return JoinUnit(block=extra_block)
 
 
 def _combine_concat_plans(plans):
