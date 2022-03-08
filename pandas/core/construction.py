@@ -775,8 +775,8 @@ def _try_cast(
             # TODO: copy?
         from pandas import IntervalDtype
 
-        if isinstance(dtype, IntervalDtype) and isna(arr).any():
-            return np.array(arr).astype(IntervalDtype)
+        if isinstance(dtype, IntervalDtype) and isna(arr).all():
+            return np.asarray(arr).astype(IntervalDtype, copy=False)
 
         array_type = dtype.construct_array_type()._from_sequence
         subarr = array_type(arr, dtype=dtype, copy=copy)
