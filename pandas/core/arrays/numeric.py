@@ -222,7 +222,7 @@ class NumericArray(BaseMaskedArray):
 
     def __init__(
         self, values: np.ndarray, mask: npt.NDArray[np.bool_], copy: bool = False
-    ):
+    ) -> None:
         checker = self._dtype_cls._checker
         if not (isinstance(values, np.ndarray) and checker(values.dtype)):
             descr = (
