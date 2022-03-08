@@ -783,7 +783,7 @@ class PlotAccessor(PandasObject):
     _kind_aliases = {"density": "kde"}
     _all_kinds = _common_kinds + _series_kinds + _dataframe_kinds
 
-    def __init__(self, data):
+    def __init__(self, data) -> None:
         self._parent = data
 
     @staticmethod
