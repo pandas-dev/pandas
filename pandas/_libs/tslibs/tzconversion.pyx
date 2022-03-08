@@ -462,7 +462,7 @@ cdef const int64_t[:] _tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
     """
     cdef:
         int64_t[::1] converted, deltas
-        Py_ssize_t i, n = vals.shape[0]#len(vals)
+        Py_ssize_t i, n = vals.shape[0]
         int64_t val, delta
         intp_t[:] pos
         ndarray[int64_t] trans
