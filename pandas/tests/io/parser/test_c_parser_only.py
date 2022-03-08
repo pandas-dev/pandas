@@ -555,7 +555,7 @@ def test_read_tarfile(c_parser_only, csv_dir_path, tar_suffix):
         tm.assert_frame_equal(out, expected)
 
 
-@pytest.mark.high_memory
+@pytest.mark.single_cpu
 def test_bytes_exceed_2gb(c_parser_only):
     # see gh-16798
     #
@@ -563,7 +563,7 @@ def test_bytes_exceed_2gb(c_parser_only):
     parser = c_parser_only
 
     if parser.low_memory:
-        pytest.skip("not a high_memory test")
+        pytest.skip("not a low_memory test")
 
     csv = StringIO("strings\n" + "\n".join(["x" * (1 << 20) for _ in range(2100)]))
     df = parser.read_csv(csv)

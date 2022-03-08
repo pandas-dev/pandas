@@ -106,7 +106,6 @@ def pytest_collection_modifyitems(items, config):
     only_slow = config.getoption("--only-slow")
     skip_network = config.getoption("--skip-network")
     skip_db = config.getoption("--skip-db")
-    run_high_memory = config.getoption("--run-high-memory")
 
     marks = [
         (pytest.mark.slow, "slow", skip_slow, "--skip-slow"),
@@ -138,13 +137,6 @@ def pytest_collection_modifyitems(items, config):
 
         if only_slow and "slow" not in item.keywords:
             item.add_marker(pytest.mark.skip("skipping due to --only-slow"))
-
-        if "high_memory" in item.keywords and not run_high_memory:
-            item.add_marker(
-                pytest.mark.skip(
-                    "skipping high memory test since --run-high-memory was not set"
-                )
-            )
 
 
 # Hypothesis
