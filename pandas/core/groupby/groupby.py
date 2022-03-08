@@ -924,7 +924,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # as are not passed directly but in the grouper
             f = getattr(self._obj_with_exclusions, name)
             if not isinstance(f, types.MethodType):
-                return self.apply(lambda self: getattr(self, name))
+                #  error: Incompatible return value type
+                # (got "NDFrameT", expected "Callable[..., Any]")  [return-value]
+                return cast(Callable, self.apply(lambda self: getattr(self, name)))
 
         f = getattr(type(self._obj_with_exclusions), name)
         sig = inspect.signature(f)
@@ -1350,7 +1352,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             input="dataframe", examples=_apply_docs["dataframe_examples"]
         )
     )
-    def apply(self, func, *args, **kwargs):
+    def apply(self, func, *args, **kwargs) -> NDFrameT:
 
         func = com.is_builtin_func(func)
 
@@ -1410,7 +1412,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         f: Callable,
         data: DataFrame | Series,
         not_indexed_same: bool | None = None,
-    ) -> DataFrame | Series:
+    ) -> NDFrameT:
         """
         Apply function f in python space
 
@@ -1646,7 +1648,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             out = algorithms.take_nd(result._values, ids)
             output = obj._constructor(out, index=obj.index, name=obj.name)
         else:
-            output = result.take(ids, axis=self.axis)
+            # GH#46209
+            # Don't convert indices: negative indices need to give rise
+            # to null values in the result
+            output = result._take(ids, axis=self.axis, convert_indices=False)
             output = output.set_axis(obj._get_axis(self.axis), axis=self.axis)
         return output
 
@@ -1699,9 +1704,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         else:
             out = np.repeat(out[np.r_[run[1:], True]], rep) - out
 
+        if self.grouper.has_dropped_na:
+            out = np.where(ids == -1, np.nan, out.astype(np.float64, copy=False))
+        else:
+            out = out.astype(np.int64, copy=False)
+
         rev = np.empty(count, dtype=np.intp)
         rev[sorter] = np.arange(count, dtype=np.intp)
-        return out[rev].astype(np.int64, copy=False)
+        return out[rev]
 
     # -----------------------------------------------------------------
 
@@ -1804,7 +1814,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def count(self) -> Series | DataFrame:
+    def count(self) -> NDFrameT:
         """
         Compute count of group, excluding missing values.
 
@@ -3455,6 +3465,47 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             allow_dups=True,
         )
         return res
+
+    @final
+    @Substitution(name="groupby")
+    @Appender(_common_see_also)
+    def diff(self, periods: int = 1, axis: int = 0) -> NDFrameT:
+        """
+        First discrete difference of element.
+
+        Calculates the difference of each element compared with another
+        element in the group (default is element in previous row).
+
+        Parameters
+        ----------
+        periods : int, default 1
+            Periods to shift for calculating difference, accepts negative values.
+        axis : axis to shift, default 0
+            Take difference over rows (0) or columns (1).
+
+        Returns
+        -------
+        Series or DataFrame
+            First differences.
+        """
+        if axis != 0:
+            return self.apply(lambda x: x.diff(periods=periods, axis=axis))
+
+        obj = self._obj_with_exclusions
+        shifted = self.shift(periods=periods, axis=axis)
+
+        # GH45562 - to retain existing behavior and match behavior of Series.diff(),
+        # int8 and int16 are coerced to float32 rather than float64.
+        dtypes_to_f32 = ["int8", "int16"]
+        if obj.ndim == 1:
+            if obj.dtype in dtypes_to_f32:
+                shifted = shifted.astype("float32")
+        else:
+            to_coerce = [c for c, dtype in obj.dtypes.items() if dtype in dtypes_to_f32]
+            if len(to_coerce):
+                shifted = shifted.astype({c: "float32" for c in to_coerce})
+
+        return obj - shifted
 
     @final
     @Substitution(name="groupby")
