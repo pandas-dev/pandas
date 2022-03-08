@@ -531,6 +531,7 @@ class Index(IndexOpsMixin, PandasObject):
         elif hasattr(data, "__array__"):
             return Index(np.asarray(data), dtype=dtype, copy=copy, name=name, **kwargs)
         else:
+
             if tupleize_cols and is_list_like(data):
                 # GH21470: convert iterable to list before determining if empty
                 if is_iterator(data):
@@ -541,10 +542,9 @@ class Index(IndexOpsMixin, PandasObject):
                     # 10697
                     from pandas.core.indexes.multi import MultiIndex
 
-                    if all(data):
-                        return MultiIndex.from_tuples(
-                            data, names=name or kwargs.get("names")
-                        )
+                    return MultiIndex.from_tuples(
+                        data, names=name or kwargs.get("names")
+                    )
             # other iterable of some kind
 
             subarr = com.asarray_tuplesafe(data, dtype=_dtype_obj)
@@ -3932,10 +3932,7 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 tgt_values = target._get_engine_target()
 
-            # error: Argument 1 to "get_indexer" of "IndexEngine" has incompatible
-            # type "Union[ExtensionArray, ndarray[Any, Any]]"; expected
-            # "ndarray[Any, Any]"
-            indexer = self._engine.get_indexer(tgt_values)  # type: ignore[arg-type]
+            indexer = self._engine.get_indexer(tgt_values)
 
         return ensure_platform_int(indexer)
 
