@@ -48,7 +48,7 @@ class AbstractEngine(metaclass=abc.ABCMeta):
 
     has_neg_frac = False
 
-    def __init__(self, expr):
+    def __init__(self, expr) -> None:
         self.expr = expr
         self.aligned_axes = None
         self.result_type = None

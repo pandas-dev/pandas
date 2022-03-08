@@ -48,7 +48,7 @@ class PyTablesScope(_scope.Scope):
         global_dict=None,
         local_dict=None,
         queryables: dict[str, Any] | None = None,
-    ):
+    ) -> None:
         super().__init__(level + 1, global_dict=global_dict, local_dict=local_dict)
         self.queryables = queryables or {}
 
@@ -63,7 +63,7 @@ class Term(ops.Term):
             klass = Constant
         return object.__new__(klass)
 
-    def __init__(self, name, env: PyTablesScope, side=None, encoding=None):
+    def __init__(self, name, env: PyTablesScope, side=None, encoding=None) -> None:
         super().__init__(name, env, side=side, encoding=encoding)
 
     def _resolve_name(self):
@@ -87,7 +87,7 @@ class Term(ops.Term):
 
 
 class Constant(Term):
-    def __init__(self, value, env: PyTablesScope, side=None, encoding=None):
+    def __init__(self, value, env: PyTablesScope, side=None, encoding=None) -> None:
         assert isinstance(env, PyTablesScope), type(env)
         super().__init__(value, env, side=side, encoding=encoding)
 
@@ -103,7 +103,7 @@ class BinOp(ops.BinOp):
     queryables: dict[str, Any]
     condition: str | None
 
-    def __init__(self, op: str, lhs, rhs, queryables: dict[str, Any], encoding):
+    def __init__(self, op: str, lhs, rhs, queryables: dict[str, Any], encoding) -> None:
         super().__init__(op, lhs, rhs)
         self.queryables = queryables
         self.encoding = encoding
@@ -407,7 +407,7 @@ class PyTablesExprVisitor(BaseExprVisitor):
     const_type = Constant
     term_type = Term
 
-    def __init__(self, env, engine, parser, **kwargs):
+    def __init__(self, env, engine, parser, **kwargs) -> None:
         super().__init__(env, engine, parser)
         for bin_op in self.binary_ops:
             bin_node = self.binary_op_nodes_map[bin_op]
@@ -552,7 +552,7 @@ class PyTablesExpr(expr.Expr):
         queryables: dict[str, Any] | None = None,
         encoding=None,
         scope_level: int = 0,
-    ):
+    ) -> None:
 
         where = _validate_where(where)
 
@@ -624,7 +624,7 @@ class PyTablesExpr(expr.Expr):
 class TermValue:
     """hold a term value the we use to construct a condition/filter"""
 
-    def __init__(self, value, converted, kind: str):
+    def __init__(self, value, converted, kind: str) -> None:
         assert isinstance(kind, str), kind
         self.value = value
         self.converted = converted
