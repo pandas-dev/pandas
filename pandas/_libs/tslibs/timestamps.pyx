@@ -282,8 +282,10 @@ cdef class _Timestamp(ABCTimestamp):
         return other.tzinfo is None
 
     def __add__(self, other):
-        cdef:
-            int64_t nanos = 0
+        # TODO: There is a Cython 3 bug where self.values + nanos
+        # would silently overflow if this is defined
+        #cdef:
+        #    int64_t nanos = 0
 
         if is_any_td_scalar(other):
             nanos = delta_to_nanoseconds(other)
@@ -344,6 +346,7 @@ cdef class _Timestamp(ABCTimestamp):
                 and (PyDateTime_Check(other) or is_datetime64_object(other))):
             # both_timestamps is to determine whether Timedelta(self - other)
             # should raise the OOB error, or fall back returning a timedelta.
+            # TODO: Cython 3: clean out the bits that moved to __rsub__
             both_timestamps = (isinstance(other, _Timestamp) and
                                isinstance(self, _Timestamp))
             if isinstance(self, _Timestamp):
@@ -380,7 +383,14 @@ cdef class _Timestamp(ABCTimestamp):
         return NotImplemented
 
     def __rsub__(self, other):
-        if PyDateTime_Check(other) or is_datetime64_object(other):
+        if PyDateTime_Check(other):
+            try:
+                return type(self)(other) - self
+            except (OverflowError, OutOfBoundsDatetime) as err:
+                # We get here in stata tests, fall back to stdlib datetime
+                #  method and return stdlib timedelta object
+                pass
+        elif is_datetime64_object(other):
             return type(self)(other) - self
         return NotImplemented
     # -----------------------------------------------------------------
