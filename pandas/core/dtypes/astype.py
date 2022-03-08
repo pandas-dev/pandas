@@ -146,16 +146,7 @@ def astype_nansafe(
             from pandas import to_datetime
 
             datetime_values = to_datetime(arr.ravel()).values.reshape(arr.shape)
-
-            if dtype == "<M8[D]":
-                datetime_values = np.datetime_as_string(datetime_values, unit="D")
-                datetime_values = datetime_values.astype(dtype)
-
-            return astype_nansafe(
-                datetime_values,
-                dtype,
-                copy=copy,
-            )
+            return datetime_values
 
         elif is_timedelta64_dtype(dtype):
             # bc we know arr.dtype == object, this is equivalent to
