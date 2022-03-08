@@ -141,7 +141,7 @@ class ArrowStringArray(
     Length: 4, dtype: string
     """
 
-    def __init__(self, values):
+    def __init__(self, values) -> None:
         self._dtype = StringDtype(storage="pyarrow")
         if isinstance(values, pa.Array):
             self._data = pa.chunked_array([values])
