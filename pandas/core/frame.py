@@ -595,7 +595,7 @@ class DataFrame(NDFrame, OpsMixin):
         columns: Axes | None = None,
         dtype: Dtype | None = None,
         copy: bool | None = None,
-    ):
+    ) -> None:
 
         if data is None:
             data = {}
