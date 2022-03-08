@@ -367,7 +367,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         dtype: Dtype | None = None,
         fastpath: bool = False,
         copy: bool = True,
-    ):
+    ) -> None:
 
         dtype = CategoricalDtype._from_values_or_dtype(
             values, categories, ordered, dtype
@@ -2704,7 +2704,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     Categories (3, object): ['a', 'b', 'c']
     """
 
-    def __init__(self, data):
+    def __init__(self, data) -> None:
         self._validate(data)
         self._parent = data.values
         self._index = data.index

@@ -532,7 +532,7 @@ class ArrowExtensionArray(ExtensionArray):
 
     _data: pa.ChunkedArray
 
-    def __init__(self, values: pa.ChunkedArray):
+    def __init__(self, values: pa.ChunkedArray) -> None:
         self._data = values
 
     def __arrow_array__(self, type=None):

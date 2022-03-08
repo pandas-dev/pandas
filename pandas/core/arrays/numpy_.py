@@ -66,7 +66,7 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # Constructors
 
-    def __init__(self, values: np.ndarray | PandasArray, copy: bool = False):
+    def __init__(self, values: np.ndarray | PandasArray, copy: bool = False) -> None:
         if isinstance(values, type(self)):
             values = values._ndarray
         if not isinstance(values, np.ndarray):

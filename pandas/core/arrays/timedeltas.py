@@ -182,7 +182,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     def __init__(
         self, values, dtype=TD64NS_DTYPE, freq=lib.no_default, copy: bool = False
-    ):
+    ) -> None:
         values = extract_array(values, extract_numpy=True)
         if isinstance(values, IntegerArray):
             values = values.to_numpy("int64", na_value=tslibs.iNaT)

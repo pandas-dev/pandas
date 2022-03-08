@@ -201,7 +201,7 @@ class PeriodArray(dtl.DatelikeOps):
 
     def __init__(
         self, values, dtype: Dtype | None = None, freq=None, copy: bool = False
-    ):
+    ) -> None:
         freq = validate_dtype_freq(dtype, freq)
 
         if freq is not None:

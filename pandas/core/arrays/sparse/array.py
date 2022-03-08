@@ -373,7 +373,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         kind: SparseIndexKind = "integer",
         dtype: Dtype | None = None,
         copy: bool = False,
-    ):
+    ) -> None:
 
         if fill_value is None and isinstance(dtype, SparseDtype):
             fill_value = dtype.fill_value
