@@ -497,7 +497,9 @@ def read_excel(
 
 
 class BaseExcelReader(metaclass=abc.ABCMeta):
-    def __init__(self, filepath_or_buffer, storage_options: StorageOptions = None) -> None:
+    def __init__(
+        self, filepath_or_buffer, storage_options: StorageOptions = None
+    ) -> None:
         # First argument can also be bytes, so create a buffer
         if isinstance(filepath_or_buffer, bytes):
             filepath_or_buffer = BytesIO(filepath_or_buffer)
