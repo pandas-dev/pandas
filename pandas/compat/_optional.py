@@ -143,7 +143,7 @@ def import_optional_dependency(
         module_to_get = module
     minimum_version = min_version if min_version is not None else VERSIONS.get(parent)
     # brotli doesn't contain module info to confirm it's version
-    if minimum_version and module_to_get != "brotli":
+    if minimum_version and name != "brotli":
         version = get_version(module_to_get)
         if Version(version) < Version(minimum_version):
             msg = (
