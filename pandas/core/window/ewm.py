@@ -384,7 +384,7 @@ class ExponentialMovingWindow(BaseWindow):
                     stacklevel=find_stack_level(),
                 )
                 # self.times cannot be str anymore
-                self.times = cast(Series, self._selected_obj[self.times])
+                self.times = cast("Series", self._selected_obj[self.times])
             if not is_datetime64_ns_dtype(self.times):
                 raise ValueError("times must be datetime64[ns] dtype.")
             if len(self.times) != len(obj):
