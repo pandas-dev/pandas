@@ -74,6 +74,14 @@ def quantile_with_mask(
 
     Quantile is computed along axis=1.
     """
+    assert values.shape == mask.shape
+    if values.ndim == 1:
+        # unsqueeze, operate, re-squeeze
+        values = np.atleast_2d(values)
+        mask = np.atleast_2d(mask)
+        res_values = quantile_with_mask(values, mask, fill_value, qs, interpolation)
+        return res_values[0]
+
     assert values.ndim == 2
 
     is_empty = values.shape[1] == 0

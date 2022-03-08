@@ -181,9 +181,20 @@ def test_highlight_between_inclusive(styler, inclusive, expected):
 )
 def test_highlight_quantile(styler, kwargs):
     expected = {
+        (0, 1): [("background-color", "yellow")],
         (2, 0): [("background-color", "yellow")],
         (2, 1): [("background-color", "yellow")],
     }
+    if styler.data.dtypes["B"] != "Int64":
+        expected.pop((0, 1))
+    else:
+        if kwargs.get("axis", -1) is None:
+            expected.pop((0, 1))
+        elif kwargs.get("q_left", -1) == 0:
+            expected.pop((0, 1))
+        elif "subset" in kwargs:
+            expected.pop((0, 1))
+
     result = styler.highlight_quantile(**kwargs)._compute().ctx
     assert result == expected
 
