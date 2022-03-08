@@ -37,8 +37,9 @@ public functions related to data types in pandas.
    resampling
    style
    plotting
-   general_utility_functions
+   options
    extensions
+   testing
 
 .. This is to prevent warnings in the doc build. We don't want to encourage
 .. these methods.

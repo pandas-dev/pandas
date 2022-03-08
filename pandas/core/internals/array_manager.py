@@ -21,6 +21,7 @@ from pandas._libs import (
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
+    npt,
 )
 from pandas.util._validators import validate_bool_kwarg
 
@@ -568,7 +569,7 @@ class BaseArrayManager(DataManager):
     def _reindex_indexer(
         self: T,
         new_axis,
-        indexer,
+        indexer: npt.NDArray[np.intp] | None,
         axis: int,
         fill_value=None,
         allow_dups: bool = False,
@@ -579,7 +580,7 @@ class BaseArrayManager(DataManager):
         Parameters
         ----------
         new_axis : Index
-        indexer : ndarray of int64 or None
+        indexer : ndarray[intp] or None
         axis : int
         fill_value : object, default None
         allow_dups : bool, default False
@@ -639,7 +640,13 @@ class BaseArrayManager(DataManager):
 
         return type(self)(new_arrays, new_axes, verify_integrity=False)
 
-    def take(self: T, indexer, axis: int = 1, verify: bool = True) -> T:
+    def take(
+        self: T,
+        indexer,
+        axis: int = 1,
+        verify: bool = True,
+        convert_indices: bool = True,
+    ) -> T:
         """
         Take items along any axis.
         """
@@ -655,7 +662,8 @@ class BaseArrayManager(DataManager):
             raise ValueError("indexer should be 1-dimensional")
 
         n = self.shape_proper[axis]
-        indexer = maybe_convert_indices(indexer, n, verify=verify)
+        if convert_indices:
+            indexer = maybe_convert_indices(indexer, n, verify=verify)
 
         new_labels = self._axes[axis].take(indexer)
         return self._reindex_indexer(

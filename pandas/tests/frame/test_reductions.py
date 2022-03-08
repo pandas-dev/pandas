@@ -1219,6 +1219,8 @@ class TestDataFrameAnalytics:
         assert result is False
 
     def test_any_all_object_bool_only(self):
+        msg = "object-dtype columns with all-bool values"
+
         df = DataFrame({"A": ["foo", 2], "B": [True, False]}).astype(object)
         df._consolidate_inplace()
         df["C"] = Series([True, True])
@@ -1228,29 +1230,36 @@ class TestDataFrameAnalytics:
 
         # The underlying bug is in DataFrame._get_bool_data, so we check
         #  that while we're here
-        res = df._get_bool_data()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = df._get_bool_data()
         expected = df[["B", "C"]]
         tm.assert_frame_equal(res, expected)
 
-        res = df.all(bool_only=True, axis=0)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = df.all(bool_only=True, axis=0)
         expected = Series([False, True], index=["B", "C"])
         tm.assert_series_equal(res, expected)
 
         # operating on a subset of columns should not produce a _larger_ Series
-        res = df[["B", "C"]].all(bool_only=True, axis=0)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = df[["B", "C"]].all(bool_only=True, axis=0)
         tm.assert_series_equal(res, expected)
 
-        assert not df.all(bool_only=True, axis=None)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert not df.all(bool_only=True, axis=None)
 
-        res = df.any(bool_only=True, axis=0)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = df.any(bool_only=True, axis=0)
         expected = Series([True, True], index=["B", "C"])
         tm.assert_series_equal(res, expected)
 
         # operating on a subset of columns should not produce a _larger_ Series
-        res = df[["B", "C"]].any(bool_only=True, axis=0)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = df[["B", "C"]].any(bool_only=True, axis=0)
         tm.assert_series_equal(res, expected)
 
-        assert df.any(bool_only=True, axis=None)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert df.any(bool_only=True, axis=None)
 
     @pytest.mark.parametrize("method", ["any", "all"])
     def test_any_all_level_axis_none_raises(self, method):

@@ -35,6 +35,7 @@ if TYPE_CHECKING:
     import numpy.typing as npt
 
     from pandas._libs import (
+        NaTType,
         Period,
         Timedelta,
         Timestamp,
@@ -83,7 +84,7 @@ AnyArrayLike = Union[ArrayLike, "Index", "Series"]
 PythonScalar = Union[str, int, float, bool]
 DatetimeLikeScalar = Union["Period", "Timestamp", "Timedelta"]
 PandasScalar = Union["Period", "Timestamp", "Timedelta", "Interval"]
-Scalar = Union[PythonScalar, PandasScalar]
+Scalar = Union[PythonScalar, PandasScalar, np.datetime64, np.timedelta64, datetime]
 IntStrT = TypeVar("IntStrT", int, str)
 
 
@@ -304,3 +305,11 @@ CSVEngine = Literal["c", "python", "pyarrow", "python-fwf"]
 
 # read_xml parsers
 XMLParsers = Literal["lxml", "etree"]
+
+# Interval closed type
+
+IntervalClosedType = Literal["left", "right", "both", "neither"]
+
+# datetime and NaTType
+
+DatetimeNaTType = Union[datetime, "NaTType"]

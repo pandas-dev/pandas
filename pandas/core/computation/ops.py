@@ -70,7 +70,7 @@ class UndefinedVariableError(NameError):
     NameError subclass for local variables.
     """
 
-    def __init__(self, name: str, is_local: bool | None = None):
+    def __init__(self, name: str, is_local: bool | None = None) -> None:
         base_msg = f"{repr(name)} is not defined"
         if is_local:
             msg = f"local variable {base_msg}"
@@ -88,7 +88,7 @@ class Term:
 
     is_local: bool
 
-    def __init__(self, name, env, side=None, encoding=None):
+    def __init__(self, name, env, side=None, encoding=None) -> None:
         # name is a str for Term, but may be something else for subclasses
         self._name = name
         self.env = env
@@ -189,7 +189,7 @@ class Term:
 
 
 class Constant(Term):
-    def __init__(self, value, env, side=None, encoding=None):
+    def __init__(self, value, env, side=None, encoding=None) -> None:
         super().__init__(value, env, side=side, encoding=encoding)
 
     def _resolve_name(self):
@@ -215,7 +215,7 @@ class Op:
 
     op: str
 
-    def __init__(self, op: str, operands: Iterable[Term | Op], encoding=None):
+    def __init__(self, op: str, operands: Iterable[Term | Op], encoding=None) -> None:
         self.op = _bool_op_map.get(op, op)
         self.operands = operands
         self.encoding = encoding
@@ -375,7 +375,7 @@ class BinOp(Op):
     rhs : Term or Op
     """
 
-    def __init__(self, op: str, lhs, rhs):
+    def __init__(self, op: str, lhs, rhs) -> None:
         super().__init__(op, (lhs, rhs))
         self.lhs = lhs
         self.rhs = rhs
@@ -530,7 +530,7 @@ class Div(BinOp):
         The Terms or Ops in the ``/`` expression.
     """
 
-    def __init__(self, lhs, rhs):
+    def __init__(self, lhs, rhs) -> None:
         super().__init__("/", lhs, rhs)
 
         if not isnumeric(lhs.return_type) or not isnumeric(rhs.return_type):
@@ -566,7 +566,7 @@ class UnaryOp(Op):
         * If no function associated with the passed operator token is found.
     """
 
-    def __init__(self, op: str, operand):
+    def __init__(self, op: str, operand) -> None:
         super().__init__(op, (operand,))
         self.operand = operand
 
@@ -598,7 +598,7 @@ class UnaryOp(Op):
 
 
 class MathCall(Op):
-    def __init__(self, func, args):
+    def __init__(self, func, args) -> None:
         super().__init__(func.name, args)
         self.func = func
 
@@ -614,7 +614,7 @@ class MathCall(Op):
 
 
 class FuncNode:
-    def __init__(self, name: str):
+    def __init__(self, name: str) -> None:
         if name not in MATHOPS:
             raise ValueError(f'"{name}" is not a supported function')
         self.name = name

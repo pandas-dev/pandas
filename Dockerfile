@@ -1,4 +1,4 @@
-FROM quay.io/condaforge/miniforge3:4.11.0-0
+FROM quay.io/condaforge/miniforge3
 
 # if you forked pandas, you can pass in your own GitHub username to use your fork
 # i.e. gh_username=myname
@@ -11,6 +11,11 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Configure apt and install packages
 RUN apt-get update \
     && apt-get -y install --no-install-recommends apt-utils dialog 2>&1 \
+    #
+    # Install tzdata and configure timezone (fix for tests which try to read from "/etc/localtime")
+    && apt-get -y install tzdata \
+    && ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime \
+    && dpkg-reconfigure -f noninteractive tzdata \
     #
     # Verify git, process tools, lsb-release (common in install instructions for CLIs) installed
     && apt-get -y install git iproute2 procps iproute2 lsb-release \

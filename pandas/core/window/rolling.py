@@ -14,6 +14,7 @@ from typing import (
     Any,
     Callable,
     Hashable,
+    Sized,
 )
 import warnings
 
@@ -73,7 +74,7 @@ from pandas.core.indexes.api import (
 )
 from pandas.core.reshape.concat import concat
 from pandas.core.util.numba_ import (
-    NUMBA_FUNC_CACHE,
+    get_jit_arguments,
     maybe_use_numba,
 )
 from pandas.core.window.common import (
@@ -126,6 +127,7 @@ class BaseWindow(SelectionMixin):
         axis: Axis = 0,
         on: str | Index | None = None,
         closed: str | None = None,
+        step: int | None = None,
         method: str = "single",
         *,
         selection=None,
@@ -133,6 +135,7 @@ class BaseWindow(SelectionMixin):
         self.obj = obj
         self.on = on
         self.closed = closed
+        self.step = step
         self.window = window
         self.min_periods = min_periods
         self.center = center
@@ -226,6 +229,11 @@ class BaseWindow(SelectionMixin):
                 )
         if self.method not in ["table", "single"]:
             raise ValueError("method must be 'table' or 'single")
+        if self.step is not None:
+            if not is_integer(self.step):
+                raise ValueError("step must be an integer")
+            elif self.step < 0:
+                raise ValueError("step must be >= 0")
 
     def _check_window_bounds(
         self, start: np.ndarray, end: np.ndarray, num_vals: int
@@ -235,11 +243,22 @@ class BaseWindow(SelectionMixin):
                 f"start ({len(start)}) and end ({len(end)}) bounds must be the "
                 f"same length"
             )
-        elif len(start) != num_vals:
+        elif len(start) != (num_vals + (self.step or 1) - 1) // (self.step or 1):
             raise ValueError(
                 f"start and end bounds ({len(start)}) must be the same length "
-                f"as the object ({num_vals})"
+                f"as the object ({num_vals}) divided by the step ({self.step}) "
+                f"if given and rounded up"
             )
+
+    def _slice_axis_for_step(self, index: Index, result: Sized | None = None) -> Index:
+        """
+        Slices the index for a given result and the preset step.
+        """
+        return (
+            index
+            if result is None or len(result) == len(index)
+            else index[:: self.step]
+        )
 
     def _create_data(self, obj: NDFrameT) -> NDFrameT:
         """
@@ -324,6 +343,7 @@ class BaseWindow(SelectionMixin):
             min_periods=self.min_periods,
             center=self.center,
             closed=self.closed,
+            step=self.step,
         )
         self._check_window_bounds(start, end, len(obj))
 
@@ -429,7 +449,8 @@ class BaseWindow(SelectionMixin):
             raise DataError("No numeric types to aggregate") from err
 
         result = homogeneous_func(values)
-        return obj._constructor(result, index=obj.index, name=obj.name)
+        index = self._slice_axis_for_step(obj.index, result)
+        return obj._constructor(result, index=index, name=obj.name)
 
     def _apply_blockwise(
         self, homogeneous_func: Callable[..., ArrayLike], name: str | None = None
@@ -466,9 +487,12 @@ class BaseWindow(SelectionMixin):
                 res_values.append(res)
                 taker.append(i)
 
+        index = self._slice_axis_for_step(
+            obj.index, res_values[0] if len(res_values) > 0 else None
+        )
         df = type(obj)._from_arrays(
             res_values,
-            index=obj.index,
+            index=index,
             columns=obj.columns.take(taker),
             verify_integrity=False,
         )
@@ -503,7 +527,13 @@ class BaseWindow(SelectionMixin):
         values = values.T if self.axis == 1 else values
         result = homogeneous_func(values)
         result = result.T if self.axis == 1 else result
-        out = obj._constructor(result, index=obj.index, columns=obj.columns)
+        index = self._slice_axis_for_step(obj.index, result)
+        columns = (
+            obj.columns
+            if result.shape[1] == len(obj.columns)
+            else obj.columns[:: self.step]
+        )
+        out = obj._constructor(result, index=index, columns=columns)
 
         return self._resolve_output(out, obj)
 
@@ -530,7 +560,6 @@ class BaseWindow(SelectionMixin):
         self,
         func: Callable[..., Any],
         name: str | None = None,
-        numba_cache_key: tuple[Callable, str] | None = None,
         numba_args: tuple[Any, ...] = (),
         **kwargs,
     ):
@@ -543,8 +572,6 @@ class BaseWindow(SelectionMixin):
         ----------
         func : callable function to apply
         name : str,
-        numba_cache_key : tuple
-            caching key to be used to store a compiled numba func
         numba_args : tuple
             args to be passed when func is a numba func
         **kwargs
@@ -573,6 +600,7 @@ class BaseWindow(SelectionMixin):
                     min_periods=min_periods,
                     center=self.center,
                     closed=self.closed,
+                    step=self.step,
                 )
                 self._check_window_bounds(start, end, len(x))
 
@@ -580,9 +608,6 @@ class BaseWindow(SelectionMixin):
 
             with np.errstate(all="ignore"):
                 result = calc(values)
-
-            if numba_cache_key is not None:
-                NUMBA_FUNC_CACHE[numba_cache_key] = func
 
             return result
 
@@ -594,7 +619,6 @@ class BaseWindow(SelectionMixin):
     def _numba_apply(
         self,
         func: Callable[..., Any],
-        numba_cache_key_str: str,
         engine_kwargs: dict[str, bool] | None = None,
         *func_args,
     ):
@@ -615,20 +639,22 @@ class BaseWindow(SelectionMixin):
             min_periods=min_periods,
             center=self.center,
             closed=self.closed,
+            step=self.step,
         )
         self._check_window_bounds(start, end, len(values))
         aggregator = executor.generate_shared_aggregator(
-            func, engine_kwargs, numba_cache_key_str
+            func, **get_jit_arguments(engine_kwargs)
         )
         result = aggregator(values, start, end, min_periods, *func_args)
-        NUMBA_FUNC_CACHE[(func, numba_cache_key_str)] = aggregator
         result = result.T if self.axis == 1 else result
+        index = self._slice_axis_for_step(obj.index, result)
         if obj.ndim == 1:
             result = result.squeeze()
-            out = obj._constructor(result, index=obj.index, name=obj.name)
+            out = obj._constructor(result, index=index, name=obj.name)
             return out
         else:
-            out = obj._constructor(result, index=obj.index, columns=obj.columns)
+            columns = self._slice_axis_for_step(obj.columns, result.T)
+            out = obj._constructor(result, index=index, columns=columns)
             return self._resolve_output(out, obj)
 
     def aggregate(self, func, *args, **kwargs):
@@ -667,20 +693,21 @@ class BaseWindowGroupby(BaseWindow):
         # groupby.<agg_func>, but unexpected to users in
         # groupby.rolling.<agg_func>
         obj = obj.drop(columns=self._grouper.names, errors="ignore")
+        # GH 15354
+        if kwargs.get("step") is not None:
+            raise NotImplementedError("step not implemented for groupby")
         super().__init__(obj, *args, **kwargs)
 
     def _apply(
         self,
         func: Callable[..., Any],
         name: str | None = None,
-        numba_cache_key: tuple[Callable, str] | None = None,
         numba_args: tuple[Any, ...] = (),
         **kwargs,
     ) -> DataFrame | Series:
         result = super()._apply(
             func,
             name,
-            numba_cache_key,
             numba_args,
             **kwargs,
         )
@@ -837,12 +864,6 @@ class BaseWindowGroupby(BaseWindow):
             subset = self.obj.set_index(self._on)
         return super()._gotitem(key, ndim, subset=subset)
 
-    def _validate_monotonic(self):
-        """
-        Validate that "on" is monotonic; already validated at a higher level.
-        """
-        pass
-
 
 class Window(BaseWindow):
     """
@@ -864,8 +885,8 @@ class Window(BaseWindow):
 
         If a BaseIndexer subclass, the window boundaries
         based on the defined ``get_window_bounds`` method. Additional rolling
-        keyword arguments, namely ``min_periods``, ``center``, and
-        ``closed`` will be passed to ``get_window_bounds``.
+        keyword arguments, namely ``min_periods``, ``center``, ``closed`` and
+        ``step`` will be passed to ``get_window_bounds``.
 
     min_periods : int, default None
         Minimum number of observations in window required to have a value;
@@ -918,6 +939,14 @@ class Window(BaseWindow):
         .. versionchanged:: 1.2.0
 
             The closed parameter with fixed windows is now supported.
+
+    step : int, default None
+
+        ..versionadded:: 1.5.0
+
+        Evaluate the window at every ``step`` result, equivalent to slicing as
+        ``[::step]``. ``window`` must be an integer. Using a step argument other
+        than None or 1 will produce a result with a different shape than the input.
 
     method : str {'single', 'table'}, default 'single'
 
@@ -1037,6 +1066,17 @@ class Window(BaseWindow):
     3  3.0
     4  6.0
 
+    **step**
+
+    Rolling sum with a window length of 2 observations, minimum of 1 observation to
+    calculate a value, and a step of 2.
+
+    >>> df.rolling(2, min_periods=1, step=2).sum()
+         B
+    0  0.0
+    2  3.0
+    4  4.0
+
     **win_type**
 
     Rolling sum with a window length of 2, using the Scipy ``'gaussian'``
@@ -1059,6 +1099,7 @@ class Window(BaseWindow):
         "axis",
         "on",
         "closed",
+        "step",
         "method",
     ]
 
@@ -1101,7 +1142,6 @@ class Window(BaseWindow):
         self,
         func: Callable[[np.ndarray, int, int], np.ndarray],
         name: str | None = None,
-        numba_cache_key: tuple[Callable, str] | None = None,
         numba_args: tuple[Any, ...] = (),
         **kwargs,
     ):
@@ -1114,8 +1154,6 @@ class Window(BaseWindow):
         ----------
         func : callable function to apply
         name : str,
-        use_numba_cache : tuple
-            unused
         numba_args : tuple
             unused
         **kwargs
@@ -1151,7 +1189,7 @@ class Window(BaseWindow):
 
             return result
 
-        return self._apply_blockwise(homogeneous_func, name)
+        return self._apply_blockwise(homogeneous_func, name)[:: self.step]
 
     @doc(
         _shared_docs["aggregate"],
@@ -1294,23 +1332,19 @@ class RollingAndExpandingMixin(BaseWindow):
         if not is_bool(raw):
             raise ValueError("raw parameter must be `True` or `False`")
 
-        numba_cache_key = None
         numba_args: tuple[Any, ...] = ()
         if maybe_use_numba(engine):
             if raw is False:
                 raise ValueError("raw must be `True` when using the numba engine")
-            caller_name = type(self).__name__
             numba_args = args
             if self.method == "single":
                 apply_func = generate_numba_apply_func(
-                    kwargs, func, engine_kwargs, caller_name
+                    func, **get_jit_arguments(engine_kwargs, kwargs)
                 )
-                numba_cache_key = (func, f"{caller_name}_apply_single")
             else:
                 apply_func = generate_numba_table_func(
-                    kwargs, func, engine_kwargs, f"{caller_name}_apply"
+                    func, **get_jit_arguments(engine_kwargs, kwargs)
                 )
-                numba_cache_key = (func, f"{caller_name}_apply_table")
         elif engine in ("cython", None):
             if engine_kwargs is not None:
                 raise ValueError("cython engine does not accept engine_kwargs")
@@ -1320,7 +1354,6 @@ class RollingAndExpandingMixin(BaseWindow):
 
         return self._apply(
             apply_func,
-            numba_cache_key=numba_cache_key,
             numba_args=numba_args,
         )
 
@@ -1369,7 +1402,7 @@ class RollingAndExpandingMixin(BaseWindow):
             else:
                 from pandas.core._numba.kernels import sliding_sum
 
-                return self._numba_apply(sliding_sum, "rolling_sum", engine_kwargs)
+                return self._numba_apply(sliding_sum, engine_kwargs)
         window_func = window_aggregations.roll_sum
         return self._apply(window_func, name="sum", **kwargs)
 
@@ -1393,9 +1426,7 @@ class RollingAndExpandingMixin(BaseWindow):
             else:
                 from pandas.core._numba.kernels import sliding_min_max
 
-                return self._numba_apply(
-                    sliding_min_max, "rolling_max", engine_kwargs, True
-                )
+                return self._numba_apply(sliding_min_max, engine_kwargs, True)
         window_func = window_aggregations.roll_max
         return self._apply(window_func, name="max", **kwargs)
 
@@ -1419,9 +1450,7 @@ class RollingAndExpandingMixin(BaseWindow):
             else:
                 from pandas.core._numba.kernels import sliding_min_max
 
-                return self._numba_apply(
-                    sliding_min_max, "rolling_min", engine_kwargs, False
-                )
+                return self._numba_apply(sliding_min_max, engine_kwargs, False)
         window_func = window_aggregations.roll_min
         return self._apply(window_func, name="min", **kwargs)
 
@@ -1445,7 +1474,7 @@ class RollingAndExpandingMixin(BaseWindow):
             else:
                 from pandas.core._numba.kernels import sliding_mean
 
-                return self._numba_apply(sliding_mean, "rolling_mean", engine_kwargs)
+                return self._numba_apply(sliding_mean, engine_kwargs)
         window_func = window_aggregations.roll_mean
         return self._apply(window_func, name="mean", **kwargs)
 
@@ -1485,9 +1514,7 @@ class RollingAndExpandingMixin(BaseWindow):
             else:
                 from pandas.core._numba.kernels import sliding_var
 
-                return zsqrt(
-                    self._numba_apply(sliding_var, "rolling_std", engine_kwargs, ddof)
-                )
+                return zsqrt(self._numba_apply(sliding_var, engine_kwargs, ddof))
         window_func = window_aggregations.roll_var
 
         def zsqrt_func(values, begin, end, min_periods):
@@ -1514,9 +1541,7 @@ class RollingAndExpandingMixin(BaseWindow):
             else:
                 from pandas.core._numba.kernels import sliding_var
 
-                return self._numba_apply(
-                    sliding_var, "rolling_var", engine_kwargs, ddof
-                )
+                return self._numba_apply(sliding_var, engine_kwargs, ddof)
         window_func = partial(window_aggregations.roll_var, ddof=ddof)
         return self._apply(
             window_func,
@@ -1580,6 +1605,9 @@ class RollingAndExpandingMixin(BaseWindow):
         ddof: int = 1,
         **kwargs,
     ):
+        if self.step is not None:
+            raise NotImplementedError("step not implemented for cov")
+
         from pandas import Series
 
         def cov_func(x, y):
@@ -1596,6 +1624,7 @@ class RollingAndExpandingMixin(BaseWindow):
                 min_periods=min_periods,
                 center=self.center,
                 closed=self.closed,
+                step=self.step,
             )
             self._check_window_bounds(start, end, len(x_array))
 
@@ -1620,6 +1649,8 @@ class RollingAndExpandingMixin(BaseWindow):
         ddof: int = 1,
         **kwargs,
     ):
+        if self.step is not None:
+            raise NotImplementedError("step not implemented for corr")
 
         from pandas import Series
 
@@ -1637,6 +1668,7 @@ class RollingAndExpandingMixin(BaseWindow):
                 min_periods=min_periods,
                 center=self.center,
                 closed=self.closed,
+                step=self.step,
             )
             self._check_window_bounds(start, end, len(x_array))
 
@@ -1675,6 +1707,7 @@ class Rolling(RollingAndExpandingMixin):
         "axis",
         "on",
         "closed",
+        "step",
         "method",
     ]
 
@@ -1687,7 +1720,7 @@ class Rolling(RollingAndExpandingMixin):
             or isinstance(self._on, (DatetimeIndex, TimedeltaIndex, PeriodIndex))
         ) and isinstance(self.window, (str, BaseOffset, timedelta)):
 
-            self._validate_monotonic()
+            self._validate_datetimelike_monotonic()
 
             # this will raise ValueError on non-fixed freqs
             try:
@@ -1698,32 +1731,49 @@ class Rolling(RollingAndExpandingMixin):
                     "compatible with a datetimelike index"
                 ) from err
             if isinstance(self._on, PeriodIndex):
-                self._win_freq_i8 = freq.nanos / (self._on.freq.nanos / self._on.freq.n)
+                # error: Incompatible types in assignment (expression has type "float",
+                # variable has type "None")
+                self._win_freq_i8 = freq.nanos / (  # type: ignore[assignment]
+                    self._on.freq.nanos / self._on.freq.n
+                )
             else:
-                self._win_freq_i8 = freq.nanos
+                # error: Incompatible types in assignment (expression has type "int",
+                # variable has type "None")
+                self._win_freq_i8 = freq.nanos  # type: ignore[assignment]
 
             # min_periods must be an integer
             if self.min_periods is None:
                 self.min_periods = 1
 
+            if self.step is not None:
+                raise NotImplementedError(
+                    "step is not supported with frequency windows"
+                )
+
         elif isinstance(self.window, BaseIndexer):
             # Passed BaseIndexer subclass should handle all other rolling kwargs
-            return
+            pass
         elif not is_integer(self.window) or self.window < 0:
             raise ValueError("window must be an integer 0 or greater")
 
-    def _validate_monotonic(self):
+    def _validate_datetimelike_monotonic(self):
         """
-        Validate monotonic (increasing or decreasing).
+        Validate self._on is monotonic (increasing or decreasing) and has
+        no NaT values for frequency windows.
         """
+        if self._on.hasnans:
+            self._raise_monotonic_error("values must not have NaT")
         if not (self._on.is_monotonic_increasing or self._on.is_monotonic_decreasing):
-            self._raise_monotonic_error()
+            self._raise_monotonic_error("values must be monotonic")
 
-    def _raise_monotonic_error(self):
-        formatted = self.on
-        if self.on is None:
-            formatted = "index"
-        raise ValueError(f"{formatted} must be monotonic")
+    def _raise_monotonic_error(self, msg: str):
+        on = self.on
+        if on is None:
+            if self.axis == 0:
+                on = "index"
+            else:
+                on = "column"
+        raise ValueError(f"{on} {msg}")
 
     @doc(
         _shared_docs["aggregate"],
@@ -2630,13 +2680,3 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
             indexer_kwargs=indexer_kwargs,
         )
         return window_indexer
-
-    def _validate_monotonic(self):
-        """
-        Validate that on is monotonic;
-        """
-        if (
-            not (self._on.is_monotonic_increasing or self._on.is_monotonic_decreasing)
-            or self._on.hasnans
-        ):
-            self._raise_monotonic_error()

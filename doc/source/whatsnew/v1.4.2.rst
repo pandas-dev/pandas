@@ -15,6 +15,8 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed regression in :meth:`DataFrame.drop` and :meth:`Series.drop` when :class:`Index` had extension dtype and duplicates (:issue:`45860`)
+- Fixed memory performance regression in :meth:`Series.fillna` when called on a :class:`DataFrame` column with ``inplace=True`` (:issue:`46149`)
+- Provided an alternative solution for passing custom Excel formats in :meth:`.Styler.to_excel`, which was a regression based on stricter CSS validation. Examples available in the documentation for :meth:`.Styler.format` (:issue:`46152`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -23,7 +25,8 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Fix some cases for subclasses that define their ``_constructor`` properties as general callables (:issue:`46018`)
+- Fixed "longtable" formatting in :meth:`.Styler.to_latex` when ``column_format`` is given in extended format (:issue:`46037`)
 -
 
 .. ---------------------------------------------------------------------------
