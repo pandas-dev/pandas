@@ -838,10 +838,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return np.searchsorted(diff, 2) + 1
 
     def unique(self: SparseArrayT) -> SparseArrayT:
-        uniques = list(algos.unique(self.sp_values))
+        uniques = algos.unique(self.sp_values)
         fill_loc = self._first_fill_value_loc()
         if fill_loc >= 0:
-            uniques.insert(fill_loc, self.fill_value)
+            uniques = np.insert(uniques, fill_loc, self.fill_value)
         return type(self)._from_sequence(uniques, dtype=self.dtype)
 
     def _values_for_factorize(self):
@@ -1350,8 +1350,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         arr : NumPy array
         """
         return np.asarray(self, dtype=self.sp_values.dtype)
-
-    _internal_get_values = to_dense
 
     def _where(self, mask, value):
         # NB: may not preserve dtype, e.g. result may be Sparse[float64]
