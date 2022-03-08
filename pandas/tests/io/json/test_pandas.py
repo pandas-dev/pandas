@@ -1817,7 +1817,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
     def test_to_json_series_of_objects(self):
         class _TestObject:
-            def __init__(self, a, b, _c, d) -> None
+            def __init__(self, a, b, _c, d) -> None:
                 self.a = a
                 self.b = b
                 self._c = _c
