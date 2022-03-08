@@ -35,6 +35,7 @@ if TYPE_CHECKING:
     import numpy.typing as npt
 
     from pandas._libs import (
+        NaTType,
         Period,
         Timedelta,
         Timestamp,
@@ -308,3 +309,7 @@ XMLParsers = Literal["lxml", "etree"]
 # Interval closed type
 
 IntervalClosedType = Literal["left", "right", "both", "neither"]
+
+# datetime and NaTType
+
+DatetimeNaTType = Union[datetime, "NaTType"]
