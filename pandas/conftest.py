@@ -447,7 +447,7 @@ def dict_subclass():
     """
 
     class TestSubDict(dict):
-        def __init__(self, *args, **kwargs):
+        def __init__(self, *args, **kwargs) -> None:
             dict.__init__(self, *args, **kwargs)
 
     return TestSubDict
@@ -460,7 +460,7 @@ def non_dict_mapping_subclass():
     """
 
     class TestNonDictMapping(abc.Mapping):
-        def __init__(self, underlying_dict):
+        def __init__(self, underlying_dict) -> None:
             self._data = underlying_dict
 
         def __getitem__(self, key):
@@ -1709,7 +1709,7 @@ def fsspectest():
         protocol = "testmem"
         test = [None]
 
-        def __init__(self, **kwargs):
+        def __init__(self, **kwargs) -> None:
             self.test[0] = kwargs.pop("test", None)
             super().__init__(**kwargs)
 
