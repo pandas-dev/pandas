@@ -21,7 +21,8 @@ Styler
 
   - New method :meth:`.Styler.to_string` for alternative customisable output methods (:issue:`44502`)
   - Added the ability to render ``border`` and ``border-{side}`` CSS properties in Excel (:issue:`42276`)
-  - Added a new method :meth:`.Styler.concat` which allows adding customised footer rows to visualise additional calculations on the data, e.g. totals and counts etc. (:issue:`43875`)
+  - Added a new method :meth:`.Styler.concat` which allows adding customised footer rows to visualise additional calculations on the data, e.g. totals and counts etc. (:issue:`43875`, :issue:`46186`)
+  - :meth:`.Styler.highlight_null` now accepts ``color`` consistently with other builtin methods and deprecates ``null_color`` although this remains backwards compatible (:issue:`45907`)
 
 .. _whatsnew_150.enhancements.enhancement2:
 
@@ -81,17 +82,32 @@ did not have the same index as the input.
 
 .. code-block:: ipython
 
+    In [3]: df.groupby('a', dropna=True).transform(lambda x: x.sum())
+    Out[3]:
+       b
+    0  5
+    1  5
+
     In [3]: df.groupby('a', dropna=True).transform(lambda x: x)
     Out[3]:
        b
     0  2
     1  3
 
+    In [3]: df.groupby('a', dropna=True).transform('sum')
+    Out[3]:
+       b
+    0  5
+    1  5
+    2  5
+
 *New behavior*:
 
 .. ipython:: python
 
+    df.groupby('a', dropna=True).transform(lambda x: x.sum())
     df.groupby('a', dropna=True).transform(lambda x: x)
+    df.groupby('a', dropna=True).transform('sum')
 
 .. _whatsnew_150.notable_bug_fixes.notable_bug_fix2:
 
@@ -317,6 +333,7 @@ Other Deprecations
 - Deprecated the behavior of :meth:`Series.fillna` and :meth:`DataFrame.fillna` with ``timedelta64[ns]`` dtype and incompatible fill value; in a future version this will cast to a common dtype (usually object) instead of raising, matching the behavior of other dtypes (:issue:`45746`)
 - Deprecated the ``warn`` parameter in :func:`infer_freq` (:issue:`45947`)
 - Deprecated allowing non-keyword arguments in :meth:`ExtensionArray.argsort` (:issue:`46134`)
+- Deprecated treating all-bool ``object``-dtype columns as bool-like in :meth:`DataFrame.any` and :meth:`DataFrame.all` with ``bool_only=True``, explicitly cast to bool instead (:issue:`46188`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -324,6 +341,7 @@ Other Deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
+- Performance improvement in :meth:`DataFrame.corrwith` for column-wise (axis=0) Pearson and Spearman correlation when other is a :class:`Series` (:issue:`46174`)
 - Performance improvement in :meth:`.GroupBy.transform` for some user-defined DataFrame -> Series functions (:issue:`45387`)
 - Performance improvement in :meth:`DataFrame.duplicated` when subset consists of only one column (:issue:`45236`)
 - Performance improvement in :meth:`.GroupBy.diff` (:issue:`16706`)
@@ -332,8 +350,9 @@ Performance improvements
 - Performance improvement in :meth:`MultiIndex.get_locs` (:issue:`45681`, :issue:`46040`)
 - Performance improvement in :func:`merge` when left and/or right are empty (:issue:`45838`)
 - Performance improvement in :meth:`DataFrame.join` when left and/or right are empty (:issue:`46015`)
+- Performance improvement in :meth:`DataFrame.reindex` and :meth:`Series.reindex` when target is a :class:`MultiIndex` (:issue:`46235`)
+- Performance improvement in :func:`factorize` (:issue:`46109`)
 - Performance improvement in :class:`DataFrame` and :class:`Series` constructors for extension dtype scalars (:issue:`45854`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.bug_fixes:
@@ -426,6 +445,7 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
+- Bug in :meth:`Series.to_numpy` where multiindexed Series could not be converted to numpy arrays when an ``na_value`` was supplied (:issue:`45774`)
 - Bug in :class:`MultiIndex.equals` not commutative when only one side has extension array dtype (:issue:`46026`)
 -
 
@@ -440,6 +460,7 @@ I/O
 - Bug in :func:`read_parquet` when ``engine="pyarrow"`` which caused partial write to disk when column of unsupported datatype was passed (:issue:`44914`)
 - Bug in :func:`DataFrame.to_excel` and :class:`ExcelWriter` would raise when writing an empty DataFrame to a ``.ods`` file (:issue:`45793`)
 - Bug in Parquet roundtrip for Interval dtype with ``datetime64[ns]`` subtype (:issue:`45881`)
+- Bug in :func:`read_excel` when reading a ``.ods`` file with newlines between xml elements(:issue:`45598`)
 
 Period
 ^^^^^^
@@ -452,7 +473,7 @@ Plotting
 - Bug in :meth:`DataFrame.plot.box` that prevented labeling the x-axis (:issue:`45463`)
 - Bug in :meth:`DataFrame.boxplot` that prevented passing in ``xlabel`` and ``ylabel`` (:issue:`45463`)
 - Bug in :meth:`DataFrame.boxplot` that prevented specifying ``vert=False`` (:issue:`36918`)
--
+- Bug in :meth:`DataFrame.plot.scatter` that prevented specifying ``norm`` (:issue:`45809`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -462,11 +483,16 @@ Groupby/resample/rolling
 - Bug in :meth:`.ExponentialMovingWindow.mean` with ``axis=1`` and ``engine='numba'`` when the :class:`DataFrame` has more columns than rows (:issue:`46086`)
 - Bug when using ``engine="numba"`` would return the same jitted function when modifying ``engine_kwargs`` (:issue:`46086`)
 - Bug in :meth:`.DataFrameGroupby.transform` fails when ``axis=1`` and ``func`` is ``"first"`` or ``"last"`` (:issue:`45986`)
+- Bug in :meth:`DataFrameGroupby.cumsum` with ``skipna=False`` giving incorrect results (:issue:`46216`)
+- Bug in :meth:`.GroupBy.cumsum` with ``timedelta64[ns]`` dtype failing to recognize ``NaT`` as a null value (:issue:`46216`)
+- Bug in :meth:`GroupBy.cummin` and :meth:`GroupBy.cummax` with nullable dtypes incorrectly altering the original data in place (:issue:`46220`)
+-
 
 Reshaping
 ^^^^^^^^^
 - Bug in :func:`concat` between a :class:`Series` with integer dtype and another with :class:`CategoricalDtype` with integer categories and containing ``NaN`` values casting to object dtype instead of ``float64`` (:issue:`45359`)
 - Bug in :func:`get_dummies` that selected object and categorical dtypes but not string (:issue:`44965`)
+- Bug in :meth:`DataFrame.align` when aligning a :class:`MultiIndex` to a :class:`Series` with another :class:`MultiIndex` (:issue:`46001`)
 -
 
 Sparse
