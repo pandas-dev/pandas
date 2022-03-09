@@ -130,7 +130,7 @@ defined column(s). The index will follow the row order.
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-More details about sorting of tables is provided in the using guide section on :ref:`sorting data <basics.sorting>`.
+More details about sorting of tables is provided in the user guide section on :ref:`sorting data <basics.sorting>`.
 
 .. raw:: html
 
@@ -142,7 +142,7 @@ Long to wide table format
 Let’s use a small subset of the air quality data set. We focus on
 :math:`NO_2` data and only use the first two measurements of each
 location (i.e. the head of each group). The subset of data will be
-called ``no2_subset``
+called ``no2_subset``.
 
 .. ipython:: python
 
@@ -163,7 +163,7 @@ called ``no2_subset``
     <ul class="task-bullet">
         <li>
 
-I want the values for the three stations as separate columns next to each other
+I want the values for the three stations as separate columns next to each other.
 
 .. ipython:: python
 
@@ -177,7 +177,7 @@ for each index/column combination is required.
         </li>
     </ul>
 
-As pandas support plotting of multiple columns (see :ref:`plotting tutorial <10min_tut_04_plotting>`) out of the box, the conversion from
+As pandas supports plotting of multiple columns (see :ref:`plotting tutorial <10min_tut_04_plotting>`) out of the box, the conversion from
 *long* to *wide* table format enables the plotting of the different time
 series at the same time:
 
@@ -216,7 +216,7 @@ Pivot table
     <ul class="task-bullet">
         <li>
 
-I want the mean concentrations for :math:`NO_2` and :math:`PM_{2.5}` in each of the stations in table form
+I want the mean concentrations for :math:`NO_2` and :math:`PM_{2.5}` in each of the stations in table form.
 
 .. ipython:: python
 
@@ -226,7 +226,7 @@ I want the mean concentrations for :math:`NO_2` and :math:`PM_{2.5}` in each of 
 
 In the case of :meth:`~DataFrame.pivot`, the data is only rearranged. When multiple
 values need to be aggregated (in this specific case, the values on
-different time steps) :meth:`~DataFrame.pivot_table` can be used, providing an
+different time steps), :meth:`~DataFrame.pivot_table` can be used, providing an
 aggregation function (e.g. mean) on how to combine these values.
 
 .. raw:: html
@@ -298,7 +298,7 @@ section:
     <ul class="task-bullet">
         <li>
 
-I want to collect all air quality :math:`NO_2` measurements in a single column (long format)
+I want to collect all air quality :math:`NO_2` measurements in a single column (long format).
 
 .. ipython:: python
 
