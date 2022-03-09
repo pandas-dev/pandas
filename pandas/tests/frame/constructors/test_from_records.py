@@ -194,7 +194,7 @@ class TestFromRecords:
 
     def test_from_records_non_tuple(self):
         class Record:
-            def __init__(self, *args):
+            def __init__(self, *args) -> None:
                 self.args = args
 
             def __getitem__(self, i):
