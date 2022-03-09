@@ -319,7 +319,7 @@ def test_python_engine_file_no_next(python_parser_only):
     parser = python_parser_only
 
     class NoNextBuffer:
-        def __init__(self, csv_data):
+        def __init__(self, csv_data) -> None:
             self.data = csv_data
 
         def __iter__(self):
