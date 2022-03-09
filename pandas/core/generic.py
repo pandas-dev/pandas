@@ -2956,7 +2956,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     )
     def to_pickle(
         self,
-        path,
+        path: FilePath | WriteBuffer[bytes],
         compression: CompressionOptions = "infer",
         protocol: int = pickle.HIGHEST_PROTOCOL,
         storage_options: StorageOptions = None,
@@ -2966,8 +2966,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        path : str
-            File path where the pickled object will be stored.
+        path : str, path object, or file-like object
+            String, path object (implementing ``os.PathLike[str]``), or file-like
+            object implementing a binary ``write()`` function. File path where
+            the pickled object will be stored.
         {compression_options}
         protocol : int
             Int which indicates which protocol should be used by the pickler,
