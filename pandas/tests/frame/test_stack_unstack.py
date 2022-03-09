@@ -1861,7 +1861,7 @@ Thu,Lunch,Yes,51.51,17"""
         # GH 26314: Change ValueError to PerformanceWarning
 
         class MockUnstacker(reshape_lib._Unstacker):
-            def __init__(self, *args, **kwargs):
+            def __init__(self, *args, **kwargs) -> None:
                 # __init__ will raise the warning
                 super().__init__(*args, **kwargs)
                 raise Exception("Don't compute final result.")
