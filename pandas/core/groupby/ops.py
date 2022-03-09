@@ -16,7 +16,6 @@ from typing import (
     Iterator,
     Sequence,
     final,
-    overload,
 )
 
 import numpy as np
@@ -57,7 +56,6 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.missing import (
     isna,
     maybe_fill,
@@ -70,14 +68,8 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.arrays.boolean import BooleanDtype
-from pandas.core.arrays.floating import (
-    Float64Dtype,
-    FloatingDtype,
-)
-from pandas.core.arrays.integer import (
-    Int64Dtype,
-    IntegerDtype,
-)
+from pandas.core.arrays.floating import FloatingDtype
+from pandas.core.arrays.integer import IntegerDtype
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
@@ -123,14 +115,14 @@ class WrappedCythonOp:
             "min": "group_min",
             "max": "group_max",
             "mean": "group_mean",
-            "median": "group_median",
+            "median": "group_median_float64",
             "var": "group_var",
             "first": "group_nth",
             "last": "group_last",
             "ohlc": "group_ohlc",
         },
         "transform": {
-            "cumprod": "group_cumprod",
+            "cumprod": "group_cumprod_float64",
             "cumsum": "group_cumsum",
             "cummin": "group_cummin",
             "cummax": "group_cummax",
@@ -138,7 +130,9 @@ class WrappedCythonOp:
         },
     }
 
-    _MASKED_CYTHON_FUNCTIONS = {"cummin", "cummax", "min", "max"}
+    # "group_any" and "group_all" are also support masks, but don't go
+    #  through WrappedCythonOp
+    _MASKED_CYTHON_FUNCTIONS = {"cummin", "cummax", "min", "max", "last", "first"}
 
     _cython_arity = {"ohlc": 4}  # OHLC
 
@@ -159,52 +153,54 @@ class WrappedCythonOp:
         if is_numeric:
             return f
         elif dtype == object:
-            if "object" not in f.__signatures__:
+            if how in ["median", "cumprod"]:
+                # no fused types -> no __signatures__
+                raise NotImplementedError(
+                    f"function is not implemented for this dtype: "
+                    f"[how->{how},dtype->{dtype_str}]"
+                )
+            elif "object" not in f.__signatures__:
                 # raise NotImplementedError here rather than TypeError later
                 raise NotImplementedError(
                     f"function is not implemented for this dtype: "
                     f"[how->{how},dtype->{dtype_str}]"
                 )
             return f
+        else:
+            raise NotImplementedError(
+                "This should not be reached. Please report a bug at "
+                "github.com/pandas-dev/pandas/",
+                dtype,
+            )
 
-    def get_cython_func_and_vals(self, values: np.ndarray, is_numeric: bool):
+    def _get_cython_vals(self, values: np.ndarray) -> np.ndarray:
         """
-        Find the appropriate cython function, casting if necessary.
+        Cast numeric dtypes to float64 for functions that only support that.
 
         Parameters
         ----------
         values : np.ndarray
-        is_numeric : bool
 
         Returns
         -------
-        func : callable
         values : np.ndarray
         """
         how = self.how
-        kind = self.kind
 
         if how in ["median", "cumprod"]:
             # these two only have float64 implementations
-            if is_numeric:
-                values = ensure_float64(values)
-            else:
-                raise NotImplementedError(
-                    f"function is not implemented for this dtype: "
-                    f"[how->{how},dtype->{values.dtype.name}]"
-                )
-            func = getattr(libgroupby, f"group_{how}_float64")
-            return func, values
+            # We should only get here with is_numeric, as non-numeric cases
+            #  should raise in _get_cython_function
+            values = ensure_float64(values)
 
-        func = self._get_cython_function(kind, how, values.dtype, is_numeric)
-
-        if values.dtype.kind in ["i", "u"]:
+        elif values.dtype.kind in ["i", "u"]:
             if how in ["add", "var", "prod", "mean", "ohlc"]:
                 # result may still include NaN, so we have to cast
                 values = ensure_float64(values)
 
-        return func, values
+        return values
 
+    # TODO: general case implementation overridable by EAs.
     def _disallow_invalid_ops(self, dtype: DtypeObj, is_numeric: bool = False):
         """
         Check if we can do this operation with our cython functions.
@@ -233,6 +229,7 @@ class WrappedCythonOp:
             #  are not setup for dim transforming
             raise NotImplementedError(f"{dtype} dtype not supported")
         elif is_datetime64_any_dtype(dtype):
+            # TODO: same for period_dtype?  no for these methods with Period
             # we raise NotImplemented if this is an invalid operation
             #  entirely, e.g. adding datetimes
             if how in ["add", "prod", "cumsum", "cumprod"]:
@@ -260,7 +257,7 @@ class WrappedCythonOp:
             out_shape = (ngroups,) + values.shape[1:]
         return out_shape
 
-    def get_out_dtype(self, dtype: np.dtype) -> np.dtype:
+    def _get_out_dtype(self, dtype: np.dtype) -> np.dtype:
         how = self.how
 
         if how == "rank":
@@ -272,27 +269,18 @@ class WrappedCythonOp:
                 out_dtype = "object"
         return np.dtype(out_dtype)
 
-    @overload
     def _get_result_dtype(self, dtype: np.dtype) -> np.dtype:
-        ...  # pragma: no cover
-
-    @overload
-    def _get_result_dtype(self, dtype: ExtensionDtype) -> ExtensionDtype:
-        ...  # pragma: no cover
-
-    def _get_result_dtype(self, dtype: DtypeObj) -> DtypeObj:
         """
         Get the desired dtype of a result based on the
         input dtype and how it was computed.
 
         Parameters
         ----------
-        dtype : np.dtype or ExtensionDtype
-            Input dtype.
+        dtype : np.dtype
 
         Returns
         -------
-        np.dtype or ExtensionDtype
+        np.dtype
             The desired dtype of the result.
         """
         how = self.how
@@ -300,12 +288,8 @@ class WrappedCythonOp:
         if how in ["add", "cumsum", "sum", "prod"]:
             if dtype == np.dtype(bool):
                 return np.dtype(np.int64)
-            elif isinstance(dtype, (BooleanDtype, IntegerDtype)):
-                return Int64Dtype()
         elif how in ["mean", "median", "var"]:
-            if isinstance(dtype, (BooleanDtype, IntegerDtype)):
-                return Float64Dtype()
-            elif is_float_dtype(dtype) or is_complex_dtype(dtype):
+            if is_float_dtype(dtype) or is_complex_dtype(dtype):
                 return dtype
             elif is_numeric_dtype(dtype):
                 return np.dtype(np.float64)
@@ -327,7 +311,6 @@ class WrappedCythonOp:
         If we have an ExtensionArray, unwrap, call _cython_operation, and
         re-wrap if appropriate.
         """
-        # TODO: general case implementation overridable by EAs.
         if isinstance(values, BaseMaskedArray) and self.uses_mask():
             return self._masked_ea_wrap_cython_operation(
                 values,
@@ -337,6 +320,27 @@ class WrappedCythonOp:
                 **kwargs,
             )
 
+        npvalues = self._ea_to_cython_values(values)
+
+        res_values = self._cython_op_ndim_compat(
+            npvalues,
+            min_count=min_count,
+            ngroups=ngroups,
+            comp_ids=comp_ids,
+            mask=None,
+            **kwargs,
+        )
+
+        if self.how in self.cast_blocklist:
+            # i.e. how in ["rank"], since other cast_blocklist methods dont go
+            #  through cython_operation
+            return res_values
+
+        return self._reconstruct_ea_result(values, res_values)
+
+    # TODO: general case implementation overridable by EAs.
+    def _ea_to_cython_values(self, values: ExtensionArray) -> np.ndarray:
+        # GH#43682
         if isinstance(values, (DatetimeArray, PeriodArray, TimedeltaArray)):
             # All of the functions implemented here are ordinal, so we can
             #  operate on the tz-naive equivalents
@@ -354,39 +358,35 @@ class WrappedCythonOp:
             raise NotImplementedError(
                 f"function is not implemented for this dtype: {values.dtype}"
             )
+        return npvalues
 
-        res_values = self._cython_op_ndim_compat(
-            npvalues,
-            min_count=min_count,
-            ngroups=ngroups,
-            comp_ids=comp_ids,
-            mask=None,
-            **kwargs,
-        )
-
-        if self.how in ["rank"]:
-            # i.e. how in WrappedCythonOp.cast_blocklist, since
-            #  other cast_blocklist methods dont go through cython_operation
-            return res_values
-
-        return self._reconstruct_ea_result(values, res_values)
-
-    def _reconstruct_ea_result(self, values, res_values):
+    # TODO: general case implementation overridable by EAs.
+    def _reconstruct_ea_result(
+        self, values: ExtensionArray, res_values: np.ndarray
+    ) -> ExtensionArray:
         """
         Construct an ExtensionArray result from an ndarray result.
         """
-        # TODO: allow EAs to override this logic
+        dtype: BaseMaskedDtype | StringDtype
 
-        if isinstance(
-            values.dtype, (BooleanDtype, IntegerDtype, FloatingDtype, StringDtype)
-        ):
-            dtype = self._get_result_dtype(values.dtype)
+        if isinstance(values.dtype, StringDtype):
+            dtype = values.dtype
             cls = dtype.construct_array_type()
             return cls._from_sequence(res_values, dtype=dtype)
 
-        elif needs_i8_conversion(values.dtype):
-            i8values = res_values.view("i8")
-            return type(values)(i8values, dtype=values.dtype)
+        elif isinstance(values.dtype, BaseMaskedDtype):
+            new_dtype = self._get_result_dtype(values.dtype.numpy_dtype)
+            dtype = BaseMaskedDtype.from_numpy_dtype(new_dtype)
+            # error: Incompatible types in assignment (expression has type
+            # "Type[BaseMaskedArray]", variable has type "Type[BaseStringArray]")
+            cls = dtype.construct_array_type()  # type: ignore[assignment]
+            return cls._from_sequence(res_values, dtype=dtype)
+
+        elif isinstance(values, (DatetimeArray, TimedeltaArray, PeriodArray)):
+            # In to_cython_values we took a view as M8[ns]
+            assert res_values.dtype == "M8[ns]"
+            res_values = res_values.view(values._ndarray.dtype)
+            return values._from_backing_data(res_values)
 
         raise NotImplementedError
 
@@ -405,9 +405,13 @@ class WrappedCythonOp:
         """
         orig_values = values
 
-        # Copy to ensure input and result masks don't end up shared
-        mask = values._mask.copy()
-        result_mask = np.zeros(ngroups, dtype=bool)
+        # libgroupby functions are responsible for NOT altering mask
+        mask = values._mask
+        if self.kind != "aggregate":
+            result_mask = mask.copy()
+        else:
+            result_mask = np.zeros(ngroups, dtype=bool)
+
         arr = values._data
 
         res_values = self._cython_op_ndim_compat(
@@ -420,14 +424,9 @@ class WrappedCythonOp:
             **kwargs,
         )
 
-        dtype = self._get_result_dtype(orig_values.dtype)
-        assert isinstance(dtype, BaseMaskedDtype)
-        cls = dtype.construct_array_type()
-
-        if self.kind != "aggregate":
-            return cls(res_values.astype(dtype.type, copy=False), mask)
-        else:
-            return cls(res_values.astype(dtype.type, copy=False), result_mask)
+        # res_values should already have the correct dtype, we just need to
+        #  wrap in a MaskedArray
+        return orig_values._maybe_mask_result(res_values, result_mask)
 
     @final
     def _cython_op_ndim_compat(
@@ -437,8 +436,8 @@ class WrappedCythonOp:
         min_count: int,
         ngroups: int,
         comp_ids: np.ndarray,
-        mask: np.ndarray | None = None,
-        result_mask: np.ndarray | None = None,
+        mask: npt.NDArray[np.bool_] | None = None,
+        result_mask: npt.NDArray[np.bool_] | None = None,
         **kwargs,
     ) -> np.ndarray:
         if values.ndim == 1:
@@ -481,8 +480,8 @@ class WrappedCythonOp:
         min_count: int,
         ngroups: int,
         comp_ids: np.ndarray,
-        mask: np.ndarray | None,
-        result_mask: np.ndarray | None,
+        mask: npt.NDArray[np.bool_] | None,
+        result_mask: npt.NDArray[np.bool_] | None,
         **kwargs,
     ) -> np.ndarray:  # np.ndarray[ndim=2]
         orig_values = values
@@ -513,32 +512,43 @@ class WrappedCythonOp:
                 result_mask = result_mask.T
 
         out_shape = self._get_output_shape(ngroups, values)
-        func, values = self.get_cython_func_and_vals(values, is_numeric)
-        out_dtype = self.get_out_dtype(values.dtype)
+        func = self._get_cython_function(self.kind, self.how, values.dtype, is_numeric)
+        values = self._get_cython_vals(values)
+        out_dtype = self._get_out_dtype(values.dtype)
 
         result = maybe_fill(np.empty(out_shape, dtype=out_dtype))
         if self.kind == "aggregate":
             counts = np.zeros(ngroups, dtype=np.int64)
             if self.how in ["min", "max", "mean"]:
                 func(
-                    result,
-                    counts,
-                    values,
-                    comp_ids,
-                    min_count,
+                    out=result,
+                    counts=counts,
+                    values=values,
+                    labels=comp_ids,
+                    min_count=min_count,
                     mask=mask,
                     result_mask=result_mask,
                     is_datetimelike=is_datetimelike,
                 )
+            elif self.how in ["first", "last"]:
+                func(
+                    out=result,
+                    counts=counts,
+                    values=values,
+                    labels=comp_ids,
+                    min_count=min_count,
+                    mask=mask,
+                    result_mask=result_mask,
+                )
             elif self.how in ["add"]:
                 # We support datetimelike
                 func(
-                    result,
-                    counts,
-                    values,
-                    comp_ids,
-                    min_count,
-                    datetimelike=is_datetimelike,
+                    out=result,
+                    counts=counts,
+                    values=values,
+                    labels=comp_ids,
+                    min_count=min_count,
+                    is_datetimelike=is_datetimelike,
                 )
             else:
                 func(result, counts, values, comp_ids, min_count)
@@ -546,16 +556,24 @@ class WrappedCythonOp:
             # TODO: min_count
             if self.uses_mask():
                 func(
-                    result,
-                    values,
-                    comp_ids,
-                    ngroups,
-                    is_datetimelike,
+                    out=result,
+                    values=values,
+                    labels=comp_ids,
+                    ngroups=ngroups,
+                    is_datetimelike=is_datetimelike,
                     mask=mask,
+                    result_mask=result_mask,
                     **kwargs,
                 )
             else:
-                func(result, values, comp_ids, ngroups, is_datetimelike, **kwargs)
+                func(
+                    out=result,
+                    values=values,
+                    labels=comp_ids,
+                    ngroups=ngroups,
+                    is_datetimelike=is_datetimelike,
+                    **kwargs,
+                )
 
         if self.kind == "aggregate":
             # i.e. counts is defined.  Locations where count<min_count
@@ -565,9 +583,12 @@ class WrappedCythonOp:
                 cutoff = max(1, min_count)
                 empty_groups = counts < cutoff
                 if empty_groups.any():
-                    # Note: this conversion could be lossy, see GH#40767
-                    result = result.astype("float64")
-                    result[empty_groups] = np.nan
+                    if result_mask is not None and self.uses_mask():
+                        assert result_mask[empty_groups].all()
+                    else:
+                        # Note: this conversion could be lossy, see GH#40767
+                        result = result.astype("float64")
+                        result[empty_groups] = np.nan
 
         result = result.T
 
@@ -784,8 +805,32 @@ class BaseGrouper:
         return get_indexer_dict(codes_list, keys)
 
     @final
+    def result_ilocs(self) -> npt.NDArray[np.intp]:
+        """
+        Get the original integer locations of result_index in the input.
+        """
+        # Original indices are where group_index would go via sorting.
+        # But when dropna is true, we need to remove null values while accounting for
+        # any gaps that then occur because of them.
+        group_index = get_group_index(self.codes, self.shape, sort=False, xnull=True)
+
+        if self.has_dropped_na:
+            mask = np.where(group_index >= 0)
+            # Count how many gaps are caused by previous null values for each position
+            null_gaps = np.cumsum(group_index == -1)[mask]
+            group_index = group_index[mask]
+
+        result = get_group_index_sorter(group_index, self.ngroups)
+
+        if self.has_dropped_na:
+            # Shift by the number of prior null gaps
+            result += np.take(null_gaps, result)
+
+        return result
+
+    @final
     @property
-    def codes(self) -> list[np.ndarray]:
+    def codes(self) -> list[npt.NDArray[np.signedinteger]]:
         return [ping.codes for ping in self.groupings]
 
     @property
@@ -825,6 +870,14 @@ class BaseGrouper:
         # return if my group orderings are monotonic
         return Index(self.group_info[0]).is_monotonic_increasing
 
+    @final
+    @cache_readonly
+    def has_dropped_na(self) -> bool:
+        """
+        Whether grouper has null value(s) that are dropped.
+        """
+        return bool((self.group_info[0] < 0).any())
+
     @cache_readonly
     def group_info(self) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
         comp_ids, obs_group_ids = self._get_compressed_codes()
@@ -848,11 +901,14 @@ class BaseGrouper:
         return ids
 
     @final
-    def _get_compressed_codes(self) -> tuple[np.ndarray, npt.NDArray[np.intp]]:
+    def _get_compressed_codes(
+        self,
+    ) -> tuple[npt.NDArray[np.signedinteger], npt.NDArray[np.intp]]:
         # The first returned ndarray may have any signed integer dtype
         if len(self.groupings) > 1:
             group_index = get_group_index(self.codes, self.shape, sort=True, xnull=True)
             return compress_group_index(group_index, sort=self._sort)
+            # FIXME: compress_group_index's second return value is int64, not intp
 
         ping = self.groupings[0]
         return ping.codes, np.arange(len(ping.group_index), dtype=np.intp)
@@ -863,25 +919,10 @@ class BaseGrouper:
         return len(self.result_index)
 
     @property
-    def reconstructed_codes(self) -> list[np.ndarray]:
+    def reconstructed_codes(self) -> list[npt.NDArray[np.intp]]:
         codes = self.codes
         ids, obs_ids, _ = self.group_info
         return decons_obs_group_ids(ids, obs_ids, self.shape, codes, xnull=True)
-
-    @final
-    @cache_readonly
-    def result_arraylike(self) -> ArrayLike:
-        """
-        Analogous to result_index, but returning an ndarray/ExtensionArray
-        allowing us to retain ExtensionDtypes not supported by Index.
-        """
-        # TODO(ExtensionIndex): once Index supports arbitrary EAs, this can
-        #  be removed in favor of result_index
-        if len(self.groupings) == 1:
-            return self.groupings[0].group_arraylike
-
-        # result_index is MultiIndex
-        return self.result_index._values
 
     @cache_readonly
     def result_index(self) -> Index:
@@ -1147,7 +1188,7 @@ class BinGrouper(BaseGrouper):
         return [np.r_[0, np.flatnonzero(self.bins[1:] != self.bins[:-1]) + 1]]
 
     @cache_readonly
-    def result_index(self):
+    def result_index(self) -> Index:
         if len(self.binlabels) != 0 and isna(self.binlabels[0]):
             return self.binlabels[1:]
 

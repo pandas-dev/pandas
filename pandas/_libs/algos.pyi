@@ -61,52 +61,39 @@ def nancorr_spearman(
 
 # ----------------------------------------------------------------------
 
-# ctypedef fused algos_t:
-#    float64_t
-#    float32_t
-#    object
-#    int64_t
-#    int32_t
-#    int16_t
-#    int8_t
-#    uint64_t
-#    uint32_t
-#    uint16_t
-#    uint8_t
-
 def validate_limit(nobs: int | None, limit=...) -> int: ...
 def pad(
-    old: np.ndarray,  # ndarray[algos_t]
-    new: np.ndarray,  # ndarray[algos_t]
+    old: np.ndarray,  # ndarray[numeric_object_t]
+    new: np.ndarray,  # ndarray[numeric_object_t]
     limit=...,
 ) -> npt.NDArray[np.intp]: ...  # np.ndarray[np.intp, ndim=1]
 def pad_inplace(
-    values: np.ndarray,  # algos_t[:]
+    values: np.ndarray,  # numeric_object_t[:]
     mask: np.ndarray,  # uint8_t[:]
     limit=...,
 ) -> None: ...
 def pad_2d_inplace(
-    values: np.ndarray,  # algos_t[:, :]
+    values: np.ndarray,  # numeric_object_t[:, :]
     mask: np.ndarray,  # const uint8_t[:, :]
     limit=...,
 ) -> None: ...
 def backfill(
-    old: np.ndarray,  # ndarray[algos_t]
-    new: np.ndarray,  # ndarray[algos_t]
+    old: np.ndarray,  # ndarray[numeric_object_t]
+    new: np.ndarray,  # ndarray[numeric_object_t]
     limit=...,
 ) -> npt.NDArray[np.intp]: ...  # np.ndarray[np.intp, ndim=1]
 def backfill_inplace(
-    values: np.ndarray,  # algos_t[:]
+    values: np.ndarray,  # numeric_object_t[:]
     mask: np.ndarray,  # uint8_t[:]
     limit=...,
 ) -> None: ...
 def backfill_2d_inplace(
-    values: np.ndarray,  # algos_t[:, :]
+    values: np.ndarray,  # numeric_object_t[:, :]
     mask: np.ndarray,  # const uint8_t[:, :]
     limit=...,
 ) -> None: ...
 def is_monotonic(
-    arr: np.ndarray,  # ndarray[algos_t, ndim=1]
+    arr: np.ndarray,  # ndarray[numeric_object_t, ndim=1]
     timelike: bool,
 ) -> tuple[bool, bool, bool]: ...
 
@@ -114,14 +101,8 @@ def is_monotonic(
 # rank_1d, rank_2d
 # ----------------------------------------------------------------------
 
-# ctypedef fused rank_t:
-#    object
-#    float64_t
-#    uint64_t
-#    int64_t
-
 def rank_1d(
-    values: np.ndarray,  # ndarray[rank_t, ndim=1]
+    values: np.ndarray,  # ndarray[numeric_object_t, ndim=1]
     labels: np.ndarray | None = ...,  # const int64_t[:]=None
     is_datetimelike: bool = ...,
     ties_method=...,
@@ -130,7 +111,7 @@ def rank_1d(
     na_option=...,
 ) -> np.ndarray: ...  # np.ndarray[float64_t, ndim=1]
 def rank_2d(
-    in_arr: np.ndarray,  # ndarray[rank_t, ndim=2]
+    in_arr: np.ndarray,  # ndarray[numeric_object_t, ndim=2]
     axis: int = ...,
     is_datetimelike: bool = ...,
     ties_method=...,
