@@ -41,7 +41,7 @@ def switch_numexpr_min_elements(request):
 
 
 class DummyElement:
-    def __init__(self, value, dtype):
+    def __init__(self, value, dtype) -> None:
         self.value = value
         self.dtype = np.dtype(dtype)
 
