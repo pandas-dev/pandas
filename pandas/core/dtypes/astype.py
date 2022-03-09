@@ -150,11 +150,7 @@ def astype_nansafe(
                 dtype
             )
 
-            return astype_nansafe(
-                datetime_values,
-                dtype,
-                copy=copy,
-            )
+            return datetime_values
 
         elif is_timedelta64_dtype(dtype):
             # bc we know arr.dtype == object, this is equivalent to
