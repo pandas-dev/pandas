@@ -1072,7 +1072,7 @@ def read_xml(
         The nodes or attributes to retrieve in iterparsing of XML document
         as a dict with key being the name of repeating element and value being
         list of elements or attribute names that are descendants of the repeated
-        element. Note: If this option is used, it will replace xpath parsing
+        element. Note: If this option is used, it will replace ``xpath`` parsing
         and unlike xpath, descendants do not need to relate to each other but can
         exist any where in document under the repeating element. This memory-
         efficient method should be used for very large XML files (500MB, 1GB, or 5GB+).

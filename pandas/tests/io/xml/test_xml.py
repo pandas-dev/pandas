@@ -14,7 +14,10 @@ import pytest
 
 from pandas.compat import is_ci_environment
 from pandas.compat._optional import import_optional_dependency
-from pandas.errors import ParserError
+from pandas.errors import (
+    EmptyDataError,
+    ParserError,
+)
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame
@@ -663,6 +666,11 @@ def test_none_namespace_prefix(key):
 def test_file_elems_and_attrs(datapath, parser):
     filename = datapath("io", "data", "xml", "books.xml")
     df_file = read_xml(filename, parser=parser)
+    df_iter = read_xml(
+        filename,
+        parser=parser,
+        iterparse={"book": ["category", "title", "author", "year", "price"]},
+    )
     df_expected = DataFrame(
         {
             "category": ["cooking", "children", "web"],
@@ -674,6 +682,7 @@ def test_file_elems_and_attrs(datapath, parser):
     )
 
     tm.assert_frame_equal(df_file, df_expected)
+    tm.assert_frame_equal(df_iter, df_expected)
 
 
 def test_file_only_attrs(datapath, parser):
@@ -741,7 +750,13 @@ def test_attribute_centric_xml():
     df_lxml = read_xml(xml, xpath=".//station")
     df_etree = read_xml(xml, xpath=".//station", parser="etree")
 
+    df_iter_lx = read_xml_iterparse(xml, iterparse={"station": ["Name", "coords"]})
+    df_iter_et = read_xml_iterparse(
+        xml, parser="etree", iterparse={"station": ["Name", "coords"]}
+    )
+
     tm.assert_frame_equal(df_lxml, df_etree)
+    tm.assert_frame_equal(df_iter_lx, df_iter_et)
 
 
 # NAMES
@@ -834,7 +849,7 @@ def test_parser_consistency_with_encoding(datapath):
     )
     df_iter_etree = read_xml(
         filename,
-        parser="lxml",
+        parser="etree",
         encoding="ISO-8859-1",
         iterparse={"row": ["rank", "malename", "femalename"]},
     )
@@ -1270,6 +1285,16 @@ def test_no_result(datapath, parser):
             filename,
             parser=parser,
             iterparse={"node": ["attr1", "elem1", "elem2", "elem3"]},
+        )
+
+
+def test_empty_data(datapath, parser):
+    filename = datapath("io", "data", "xml", "books.xml")
+    with pytest.raises(EmptyDataError, match="No columns to parse from file"):
+        read_xml(
+            filename,
+            parser=parser,
+            iterparse={"book": ["attr1", "elem1", "elem2", "elem3"]},
         )
 
 
