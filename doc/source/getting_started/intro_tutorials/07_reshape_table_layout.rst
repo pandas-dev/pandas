@@ -117,7 +117,7 @@ I want to sort the Titanic data according to the cabin class and age in descendi
 
     titanic.sort_values(by=['Pclass', 'Age'], ascending=False).head()
 
-With :meth:`Series.sort_values`, the rows in the table are sorted according to the
+With :meth:`DataFrame.sort_values`, the rows in the table are sorted according to the
 defined column(s). The index will follow the row order.
 
 .. raw:: html
@@ -235,8 +235,8 @@ aggregation function (e.g. mean) on how to combine these values.
     </ul>
 
 Pivot table is a well known concept in spreadsheet software. When
-interested in summary columns for each variable separately as well, put
-the ``margin`` parameter to ``True``:
+interested in the row/column margins (subtotals) for each variable, set
+the ``margins`` parameter to ``True``:
 
 .. ipython:: python
 
