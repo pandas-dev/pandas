@@ -466,9 +466,10 @@ class ParserBase:
         if not isinstance(mapping, dict):
             return mapping
         clean = {}
+        # for mypy
+        assert self.orig_names is not None
+
         for col, v in mapping.items():
-            # for mypy
-            assert self.orig_names is not None
             if isinstance(col, int) and col not in self.orig_names:
                 col = self.orig_names[col]
             clean[col] = v

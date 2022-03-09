@@ -417,8 +417,9 @@ def ensure_dtype_objs(
     dtype objects.
     """
     if isinstance(dtype, defaultdict):
-        default_dtype = pandas_dtype(dtype.default_factory())
-        dtype_converted = defaultdict(lambda: default_dtype)
+        # "None" not callable  [misc]
+        default_dtype = pandas_dtype(dtype.default_factory())  # type: ignore[misc]
+        dtype_converted: defaultdict = defaultdict(lambda: default_dtype)
         for key in dtype.keys():
             dtype_converted[key] = pandas_dtype(dtype[key])
         return dtype_converted
