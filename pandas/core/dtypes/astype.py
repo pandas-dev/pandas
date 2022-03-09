@@ -146,8 +146,9 @@ def astype_nansafe(
             from pandas import to_datetime
 
             datetime_values = to_datetime(arr.ravel()).values.reshape(arr.shape)
-            datetime_values = np.datetime_as_string(datetime_values, unit="s")
-            datetime_values = datetime_values.astype(dtype)
+            datetime_values = np.datetime_as_string(datetime_values, unit="s").astype(
+                dtype
+            )
 
             return astype_nansafe(
                 datetime_values,
