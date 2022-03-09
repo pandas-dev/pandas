@@ -263,12 +263,6 @@ def test_alignment_deprecation_many_inputs(request):
     )
 
     if np_version_gte1p22:
-        mark = pytest.mark.xfail(
-            reason="ufunc 'my_ufunc' did not contain a loop with signature matching "
-            "types",
-        )
-        request.node.add_marker(mark)
-
         mark = pytest.mark.filterwarnings(
             "ignore:`np.MachAr` is deprecated.*:DeprecationWarning"
         )
