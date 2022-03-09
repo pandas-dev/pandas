@@ -160,7 +160,7 @@ class Holiday:
         start_date=None,
         end_date=None,
         days_of_week=None,
-    ):
+    ) -> None:
         """
         Parameters
         ----------
@@ -393,7 +393,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
     end_date = Timestamp(datetime(2200, 12, 31))
     _cache = None
 
-    def __init__(self, name=None, rules=None):
+    def __init__(self, name=None, rules=None) -> None:
         """
         Initializes holiday object with a given set a rules.  Normally
         classes just have the rules defined within them.

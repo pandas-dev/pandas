@@ -209,7 +209,7 @@ class _FrequencyInferer:
     Not sure if I can avoid the state machine here
     """
 
-    def __init__(self, index, warn: bool = True):
+    def __init__(self, index, warn: bool = True) -> None:
         self.index = index
         self.i8values = index.asi8
 

@@ -186,7 +186,7 @@ class AbstractMethodError(NotImplementedError):
     while keeping compatibility with Python 2 and Python 3.
     """
 
-    def __init__(self, class_instance, methodtype="method"):
+    def __init__(self, class_instance, methodtype="method") -> None:
         types = {"method", "classmethod", "staticmethod", "property"}
         if methodtype not in types:
             raise ValueError(
