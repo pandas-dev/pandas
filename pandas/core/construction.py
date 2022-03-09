@@ -27,7 +27,6 @@ from pandas._typing import (
 from pandas.errors import IntCastingNaNError
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes import IntervalDtype
 from pandas.core.dtypes.base import (
     ExtensionDtype,
     _registry as registry,
@@ -53,6 +52,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
+    IntervalDtype,
     PandasDtype,
 )
 from pandas.core.dtypes.generic import (
