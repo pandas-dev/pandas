@@ -27,6 +27,7 @@ from pandas._typing import (
 from pandas.errors import IntCastingNaNError
 from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes import IntervalDtype
 from pandas.core.dtypes.base import (
     ExtensionDtype,
     _registry as registry,
@@ -773,7 +774,6 @@ def _try_cast(
             #  special case.
             return maybe_cast_to_datetime(arr, dtype)
             # TODO: copy?
-        from pandas import IntervalDtype
 
         if isinstance(dtype, IntervalDtype) and isna(arr).all():
             return np.asarray(arr).astype(IntervalDtype, copy=False)
