@@ -7,10 +7,10 @@ from itertools import islice
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Dict,
     Hashable,
     List,
     Tuple,
+    TypedDict,
     Union,
     cast,
     overload,
@@ -88,12 +88,34 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------
 # types used in annotations
 
-ArrayConvertible = Union[List, Tuple, AnyArrayLike, "Series"]
+ArrayConvertible = Union[List, Tuple, AnyArrayLike]
 Scalar = Union[int, float, str]
 DatetimeScalar = Union[Scalar, datetime]
 
 DatetimeScalarOrArrayConvertible = Union[DatetimeScalar, ArrayConvertible]
-DictConvertible = Union[Dict[str, List], "DataFrame"]
+
+DatetimeDictArg = Union[List[Scalar], Tuple[Scalar, ...], AnyArrayLike]
+
+
+class YearMonthDayDict(TypedDict, total=True):
+    year: DatetimeDictArg
+    month: DatetimeDictArg
+    day: DatetimeDictArg
+
+
+class FulldatetimeDict(YearMonthDayDict, total=False):
+    hour: DatetimeDictArg
+    hours: DatetimeDictArg
+    minute: DatetimeDictArg
+    minutes: DatetimeDictArg
+    second: DatetimeDictArg
+    seconds: DatetimeDictArg
+    ms: DatetimeDictArg
+    us: DatetimeDictArg
+    ns: DatetimeDictArg
+
+
+DictConvertible = Union[FulldatetimeDict, "DataFrame"]
 start_caching_at = 50
 
 
