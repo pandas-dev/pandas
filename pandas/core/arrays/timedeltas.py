@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    cast,
+)
 
 import numpy as np
 
@@ -127,6 +130,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     _typ = "timedeltaarray"
     _scalar_type = Timedelta
+    _internal_fill_value = np.timedelta64("NaT", "ns")
     _recognized_scalars = (timedelta, np.timedelta64, Tick)
     _is_recognized_dtype = is_timedelta64_dtype
     _infer_matches = ("timedelta", "timedelta64")
@@ -178,7 +182,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     def __init__(
         self, values, dtype=TD64NS_DTYPE, freq=lib.no_default, copy: bool = False
-    ):
+    ) -> None:
         values = extract_array(values, extract_numpy=True)
         if isinstance(values, IntegerArray):
             values = values.to_numpy("int64", na_value=tslibs.iNaT)
@@ -534,7 +538,9 @@ class TimedeltaArray(dtl.TimelikeOps):
 
         if isinstance(other, self._recognized_scalars):
             other = Timedelta(other)
-            if other is NaT:
+            # mypy assumes that __new__ returns an instance of the class
+            # github.com/python/mypy/issues/1020
+            if cast("Timedelta | NaTType", other) is NaT:
                 # specifically timedelta64-NaT
                 result = np.empty(self.shape, dtype=np.float64)
                 result.fill(np.nan)
@@ -568,8 +574,8 @@ class TimedeltaArray(dtl.TimelikeOps):
             #  on NaT
             srav = self.ravel()
             orav = other.ravel()
-            result = [srav[n] / orav[n] for n in range(len(srav))]
-            result = np.array(result).reshape(self.shape)
+            result_list = [srav[n] / orav[n] for n in range(len(srav))]
+            result = np.array(result_list).reshape(self.shape)
 
             # We need to do dtype inference in order to keep DataFrame ops
             #  behavior consistent with Series behavior
@@ -583,7 +589,10 @@ class TimedeltaArray(dtl.TimelikeOps):
                 # GH#39750 this occurs when result is all-NaT, in which case
                 #  we want to interpret these NaTs as td64.
                 #  We construct an all-td64NaT result.
-                result = self * np.nan
+                # error: Incompatible types in assignment (expression has type
+                # "TimedeltaArray", variable has type "ndarray[Any,
+                # dtype[floating[_64Bit]]]")
+                result = self * np.nan  # type: ignore[assignment]
 
             return result
 
@@ -596,7 +605,9 @@ class TimedeltaArray(dtl.TimelikeOps):
         # X / timedelta is defined only for timedelta-like X
         if isinstance(other, self._recognized_scalars):
             other = Timedelta(other)
-            if other is NaT:
+            # mypy assumes that __new__ returns an instance of the class
+            # github.com/python/mypy/issues/1020
+            if cast("Timedelta | NaTType", other) is NaT:
                 # specifically timedelta64-NaT
                 result = np.empty(self.shape, dtype=np.float64)
                 result.fill(np.nan)
@@ -625,8 +636,8 @@ class TimedeltaArray(dtl.TimelikeOps):
             # Note: unlike in __truediv__, we do not _need_ to do type
             #  inference on the result.  It does not raise, a numeric array
             #  is returned.  GH#23829
-            result = [other[n] / self[n] for n in range(len(self))]
-            return np.array(result)
+            result_list = [other[n] / self[n] for n in range(len(self))]
+            return np.array(result_list)
 
         else:
             raise TypeError(
@@ -639,15 +650,16 @@ class TimedeltaArray(dtl.TimelikeOps):
         if is_scalar(other):
             if isinstance(other, self._recognized_scalars):
                 other = Timedelta(other)
-                if other is NaT:
+                # mypy assumes that __new__ returns an instance of the class
+                # github.com/python/mypy/issues/1020
+                if cast("Timedelta | NaTType", other) is NaT:
                     # treat this specifically as timedelta-NaT
                     result = np.empty(self.shape, dtype=np.float64)
                     result.fill(np.nan)
                     return result
 
                 # dispatch to Timedelta implementation
-                result = other.__rfloordiv__(self._ndarray)
-                return result
+                return other.__rfloordiv__(self._ndarray)
 
             # at this point we should only have numeric scalars; anything
             #  else will raise
@@ -715,15 +727,16 @@ class TimedeltaArray(dtl.TimelikeOps):
         if is_scalar(other):
             if isinstance(other, self._recognized_scalars):
                 other = Timedelta(other)
-                if other is NaT:
+                # mypy assumes that __new__ returns an instance of the class
+                # github.com/python/mypy/issues/1020
+                if cast("Timedelta | NaTType", other) is NaT:
                     # treat this specifically as timedelta-NaT
                     result = np.empty(self.shape, dtype=np.float64)
                     result.fill(np.nan)
                     return result
 
                 # dispatch to Timedelta implementation
-                result = other.__floordiv__(self._ndarray)
-                return result
+                return other.__floordiv__(self._ndarray)
 
             raise TypeError(
                 f"Cannot divide {type(other).__name__} by {type(self).__name__}"

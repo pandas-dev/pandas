@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 
 import numpy as np
@@ -6,7 +8,7 @@ import pyarrow
 from pandas.core.arrays.interval import VALID_CLOSED
 
 
-def pyarrow_array_to_numpy_and_mask(arr, dtype):
+def pyarrow_array_to_numpy_and_mask(arr, dtype: np.dtype):
     """
     Convert a primitive pyarrow.Array to a numpy array and boolean mask based
     on the buffers of the Array.
@@ -46,7 +48,7 @@ def pyarrow_array_to_numpy_and_mask(arr, dtype):
 
 
 class ArrowPeriodType(pyarrow.ExtensionType):
-    def __init__(self, freq):
+    def __init__(self, freq) -> None:
         # attributes need to be set first before calling
         # super init (as that calls serialize)
         self._freq = freq
@@ -86,7 +88,7 @@ pyarrow.register_extension_type(_period_type)
 
 
 class ArrowIntervalType(pyarrow.ExtensionType):
-    def __init__(self, subtype, closed):
+    def __init__(self, subtype, closed) -> None:
         # attributes need to be set first before calling
         # super init (as that calls serialize)
         assert closed in VALID_CLOSED

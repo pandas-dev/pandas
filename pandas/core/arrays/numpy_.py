@@ -61,11 +61,12 @@ class PandasArray(
     __array_priority__ = 1000
     _ndarray: np.ndarray
     _dtype: PandasDtype
+    _internal_fill_value = np.nan
 
     # ------------------------------------------------------------------------
     # Constructors
 
-    def __init__(self, values: np.ndarray | PandasArray, copy: bool = False):
+    def __init__(self, values: np.ndarray | PandasArray, copy: bool = False) -> None:
         if isinstance(values, type(self)):
             values = values._ndarray
         if not isinstance(values, np.ndarray):
@@ -107,10 +108,6 @@ class PandasArray(
         if copy and result is scalars:
             result = result.copy()
         return cls(result)
-
-    @classmethod
-    def _from_factorized(cls, values, original) -> PandasArray:
-        return cls(values)
 
     def _from_backing_data(self, arr: np.ndarray) -> PandasArray:
         return type(self)(arr)

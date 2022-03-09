@@ -27,6 +27,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_dtype_equal,
+    is_integer_dtype,
     is_object_dtype,
     is_timedelta64_dtype,
     pandas_dtype,
@@ -133,7 +134,7 @@ def astype_nansafe(
 
         raise TypeError(f"cannot astype a timedelta from [{arr.dtype}] to [{dtype}]")
 
-    elif np.issubdtype(arr.dtype, np.floating) and np.issubdtype(dtype, np.integer):
+    elif np.issubdtype(arr.dtype, np.floating) and is_integer_dtype(dtype):
         return _astype_float_to_int_nansafe(arr, dtype, copy)
 
     elif is_object_dtype(arr.dtype):
