@@ -706,6 +706,11 @@ class MultiIndex(Index):
                 vals = cast("CategoricalIndex", vals)
                 vals = vals._data._internal_get_values()
 
+            if isinstance(vals, ABCDatetimeIndex):
+                # set freq to None to match self._get_level_values
+                vals = vals.copy()
+                vals.freq = None
+
             if isinstance(vals.dtype, ExtensionDtype) or isinstance(
                 vals, (ABCDatetimeIndex, ABCTimedeltaIndex)
             ):
