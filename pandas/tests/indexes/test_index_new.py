@@ -352,7 +352,7 @@ class TestIndexConstructorUnwrapping:
         # it should be possible to convert any object that satisfies the numpy
         # ndarray interface directly into an Index
         class ArrayLike:
-            def __init__(self, array):
+            def __init__(self, array) -> None:
                 self.array = array
 
             def __array__(self, dtype=None) -> np.ndarray:

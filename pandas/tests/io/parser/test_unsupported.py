@@ -114,7 +114,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
     def test_python_engine_file_no_iter(self, python_engine):
         # see gh-16530
         class NoNextBuffer:
-            def __init__(self, csv_data):
+            def __init__(self, csv_data) -> None:
                 self.data = csv_data
 
             def __next__(self):

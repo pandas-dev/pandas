@@ -1072,7 +1072,7 @@ class TestiLocBaseIndependent:
     def test_iloc_setitem_custom_object(self):
         # iloc with an object
         class TO:
-            def __init__(self, value):
+            def __init__(self, value) -> None:
                 self.value = value
 
             def __str__(self) -> str:

@@ -40,7 +40,7 @@ class ArrowTimestampUSDtype(ExtensionDtype):
 
 
 class ArrowTimestampUSArray(ArrowExtensionArray):
-    def __init__(self, values):
+    def __init__(self, values) -> None:
         if not isinstance(values, pa.ChunkedArray):
             raise ValueError
 

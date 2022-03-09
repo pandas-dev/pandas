@@ -14,7 +14,7 @@ class DummyDtype(dtypes.ExtensionDtype):
 
 
 class DummyArray(ExtensionArray):
-    def __init__(self, data):
+    def __init__(self, data) -> None:
         self.data = data
 
     def __array__(self, dtype):

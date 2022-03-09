@@ -1243,7 +1243,7 @@ class TestReadHtml:
         # Issue #17975
 
         class MockFile:
-            def __init__(self, data):
+            def __init__(self, data) -> None:
                 self.data = data
                 self.at_end = False
 

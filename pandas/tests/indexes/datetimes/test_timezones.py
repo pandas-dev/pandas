@@ -40,7 +40,7 @@ import pandas._testing as tm
 class FixedOffset(tzinfo):
     """Fixed offset in minutes east from UTC."""
 
-    def __init__(self, offset, name):
+    def __init__(self, offset, name) -> None:
         self.__offset = timedelta(minutes=offset)
         self.__name = name
 

@@ -660,7 +660,7 @@ class TestUltraJSONTests:
 
     def test_default_handler(self):
         class _TestObject:
-            def __init__(self, val):
+            def __init__(self, val) -> None:
                 self.val = val
 
             @property
@@ -714,7 +714,7 @@ class TestUltraJSONTests:
 
     def test_encode_object(self):
         class _TestObject:
-            def __init__(self, a, b, _c, d):
+            def __init__(self, a, b, _c, d) -> None:
                 self.a = a
                 self.b = b
                 self._c = _c

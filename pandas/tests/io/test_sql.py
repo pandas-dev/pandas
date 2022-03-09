@@ -1538,7 +1538,7 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
         self,
     ):
         class MockSqliteConnection:
-            def __init__(self, *args, **kwargs):
+            def __init__(self, *args, **kwargs) -> None:
                 self.conn = sqlite3.Connection(*args, **kwargs)
 
             def __getattr__(self, name):

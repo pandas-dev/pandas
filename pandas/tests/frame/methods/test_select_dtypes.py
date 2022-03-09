@@ -15,7 +15,7 @@ from pandas.core.arrays import ExtensionArray
 class DummyDtype(ExtensionDtype):
     type = int
 
-    def __init__(self, numeric):
+    def __init__(self, numeric) -> None:
         self._numeric = numeric
 
     @property
@@ -28,7 +28,7 @@ class DummyDtype(ExtensionDtype):
 
 
 class DummyArray(ExtensionArray):
-    def __init__(self, data, dtype):
+    def __init__(self, data, dtype) -> None:
         self.data = data
         self._dtype = dtype
 

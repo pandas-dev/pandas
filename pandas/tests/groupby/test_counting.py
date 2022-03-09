@@ -364,7 +364,7 @@ def test_count_uses_size_on_exception():
         pass
 
     class RaisingObject:
-        def __init__(self, msg="I will raise inside Cython"):
+        def __init__(self, msg="I will raise inside Cython") -> None:
             super().__init__()
             self.msg = msg
 

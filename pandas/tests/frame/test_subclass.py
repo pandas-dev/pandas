@@ -42,7 +42,7 @@ class TestDataFrameSubclassing:
             custom plotting functions.
             """
 
-            def __init__(self, *args, **kw):
+            def __init__(self, *args, **kw) -> None:
                 super().__init__(*args, **kw)
 
             @property

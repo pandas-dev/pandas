@@ -585,7 +585,7 @@ class TestPandasContainer:
         # GH14256: failing column caused segfaults, if it is not the last one
 
         class BinaryThing:
-            def __init__(self, hexed):
+            def __init__(self, hexed) -> None:
                 self.hexed = hexed
                 self.binary = bytes.fromhex(hexed)
 
@@ -1817,7 +1817,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
     def test_to_json_series_of_objects(self):
         class _TestObject:
-            def __init__(self, a, b, _c, d):
+            def __init__(self, a, b, _c, d) -> None:
                 self.a = a
                 self.b = b
                 self._c = _c

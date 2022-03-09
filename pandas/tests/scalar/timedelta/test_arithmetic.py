@@ -988,7 +988,7 @@ class TestTimedeltaComparison:
         """
 
         class CustomClass:
-            def __init__(self, cmp_result=None):
+            def __init__(self, cmp_result=None) -> None:
                 self.cmp_result = cmp_result
 
             def generic_result(self):

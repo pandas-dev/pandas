@@ -358,7 +358,7 @@ class TestDataFrameToRecords:
     def test_to_records_dict_like(self):
         # see GH#18146
         class DictLike:
-            def __init__(self, **kwargs):
+            def __init__(self, **kwargs) -> None:
                 self.d = kwargs.copy()
 
             def __getitem__(self, key):

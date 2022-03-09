@@ -595,7 +595,7 @@ class TestSetIndexCustomLabelType:
         # GH#24969
 
         class Thing:
-            def __init__(self, name, color):
+            def __init__(self, name, color) -> None:
                 self.name = name
                 self.color = color
 
@@ -673,7 +673,7 @@ class TestSetIndexCustomLabelType:
 
         # purposefully inherit from something unhashable
         class Thing(set):
-            def __init__(self, name, color):
+            def __init__(self, name, color) -> None:
                 self.name = name
                 self.color = color
 
