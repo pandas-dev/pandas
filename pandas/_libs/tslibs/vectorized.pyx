@@ -7,6 +7,7 @@ from cpython.datetime cimport (
     tzinfo,
 )
 
+cimport numpy as cnp
 import numpy as np
 
 from numpy cimport (
@@ -14,6 +15,7 @@ from numpy cimport (
     intp_t,
     ndarray,
 )
+cnp.import_array()
 
 from .conversion cimport normalize_i8_stamp
 
@@ -37,8 +39,13 @@ from .timezones cimport (
 )
 from .tzconversion cimport tz_convert_utc_to_tzlocal
 
+cdef const int64_t[::1] _deltas_placeholder = np.array([], dtype=np.int64)
+
+ctypedef int64_t (*localizer_func)(Localizer, int64_t, intp_t*, intp_t)
+
 
 @cython.freelist(16)
+@cython.final
 cdef class Localizer:
     cdef readonly:
         tzinfo tz
@@ -48,17 +55,32 @@ cdef class Localizer:
         bint use_pytz
         bint use_dst
         ndarray trans
-        const int64_t[:] deltas
+        const int64_t[::1] deltas
         int64_t delta
         str typ
 
+    # TODO: report cython bug; this declaration works if on its own line
+    #  but raises at compile-time if included in the 'cdef readonly'
+    #  declarations above.
+    # cdef int64_t (*func)(Localizer, int64_t, intp_t*, intp_t)
+    # cdef localizer_func func
+
+    @cython.initializedcheck(False)
     @cython.boundscheck(False)
     def __cinit__(self, tzinfo tz):
         self.tz = tz
+        self.use_utc = self.use_tzlocal = self.use_fixed = self.use_dst = self.use_pytz = False
+        self.delta = -1  # placeholder
+        self.deltas = _deltas_placeholder
+
         if is_utc(tz) or tz is None:
             self.use_utc = True
+            # self.func = self.func_use_utc
+
         elif is_tzlocal(tz):
             self.use_tzlocal = True
+            # self.func = self.func_use_tzlocal
+
         else:
             trans, deltas, typ = get_dst_info(tz)
             self.trans = trans
@@ -69,10 +91,24 @@ cdef class Localizer:
                 # static/fixed; in this case we know that len(delta) == 1
                 self.use_fixed = True
                 self.delta = deltas[0]
+                # self.func = self.func_use_fixed
             else:
                 self.use_dst = True
+                # self.func = self.func_use_dst
                 if typ == "pytz":
                     self.use_pytz = True
+
+    cdef int64_t func_use_utc(self, int64_t utc_val, intp_t* pos, intp_t i):
+        return utc_val
+
+    cdef int64_t func_use_tzlocal(self, int64_t utc_val, intp_t* pos, intp_t i):
+        return tz_convert_utc_to_tzlocal(utc_val, self.tz)
+
+    cdef int64_t func_use_fixed(self, int64_t utc_val, intp_t* pos, intp_t i):
+        return utc_val + self.delta
+
+    cdef int64_t func_use_dst(self, int64_t utc_val, intp_t* pos, intp_t i):
+        return utc_val + self.deltas[pos[i]]
 
 
 # -------------------------------------------------------------------------
@@ -120,6 +156,7 @@ cdef inline object create_time_from_ts(
     return time(dts.hour, dts.min, dts.sec, dts.us, tz, fold=fold)
 
 
+#@cython.initializedcheck(False)
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def ints_to_pydatetime(
@@ -158,13 +195,13 @@ def ints_to_pydatetime(
     """
     cdef:
         Localizer info = Localizer(tz)
-        const int64_t[:] deltas
-        Py_ssize_t[:] pos
-
+        const int64_t[::1] deltas = info.deltas
+        int64_t value, local_val, delta = info.delta
+        intp_t* pos
         Py_ssize_t i, n = len(stamps)
         npy_datetimestruct dts
-        object dt, new_tz
-        int64_t value, local_val, delta
+
+        tzinfo new_tz
         ndarray[object] result = np.empty(n, dtype=object)
         object (*func_create)(int64_t, npy_datetimestruct, tzinfo, object, bint)
 
@@ -184,10 +221,7 @@ def ints_to_pydatetime(
         )
 
     if info.use_dst:
-        deltas = info.deltas
-        pos = info.trans.searchsorted(stamps, side="right") - 1
-    elif info.use_fixed:
-        delta = info.delta
+        pos = <intp_t*>cnp.PyArray_DATA(info.trans.searchsorted(stamps, side="right") - 1)
 
     for i in range(n):
         new_tz = tz
@@ -251,19 +285,16 @@ cdef inline int _reso_stamp(npy_datetimestruct *dts):
 def get_resolution(const int64_t[:] stamps, tzinfo tz=None) -> Resolution:
     cdef:
         Localizer info = Localizer(tz)
-        const int64_t[:] deltas
-
-        Py_ssize_t[:] pos
+        const int64_t[::1] deltas = info.deltas
+        int64_t local_val, delta = info.delta
+        intp_t* pos
         Py_ssize_t i, n = len(stamps)
         npy_datetimestruct dts
+
         int reso = RESO_DAY, curr_reso
-        int64_t local_val, delta
 
     if info.use_dst:
-        deltas = info.deltas
-        pos = info.trans.searchsorted(stamps, side="right") - 1
-    elif info.use_fixed:
-        delta = info.delta
+        pos = <intp_t*>cnp.PyArray_DATA(info.trans.searchsorted(stamps, side="right") - 1)
 
     for i in range(n):
         if stamps[i] == NPY_NAT:
@@ -288,6 +319,7 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None) -> Resolution:
 
 # -------------------------------------------------------------------------
 
+#@cython.initializedcheck(False)
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo tz):
@@ -307,18 +339,15 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
     """
     cdef:
         Localizer info = Localizer(tz)
-        const int64_t[:] deltas
-
-        Py_ssize_t[:] pos
+        const int64_t[::1] deltas = info.deltas
+        int64_t local_val, delta = info.delta
+        intp_t* pos
         Py_ssize_t i, n = len(stamps)
+
         int64_t[:] result = np.empty(n, dtype=np.int64)
-        int64_t local_val, delta
 
     if info.use_dst:
-        deltas = info.deltas
-        pos = info.trans.searchsorted(stamps, side="right") - 1
-    elif info.use_fixed:
-        delta = info.delta
+        pos = <intp_t*>cnp.PyArray_DATA(info.trans.searchsorted(stamps, side="right") - 1)
 
     for i in range(n):
         if stamps[i] == NPY_NAT:
@@ -339,6 +368,7 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
     return result.base  # `.base` to access underlying ndarray
 
 
+#@cython.initializedcheck(False)
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None) -> bool:
@@ -358,18 +388,15 @@ def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None) -> bool:
     """
     cdef:
         Localizer info = Localizer(tz)
-        const int64_t[:] deltas
-
-        Py_ssize_t[:] pos
+        const int64_t[::1] deltas = info.deltas
+        int64_t local_val, delta = info.delta
+        intp_t* pos
         Py_ssize_t i, n = len(stamps)
-        int64_t local_val, delta
+
         int64_t day_nanos = 24 * 3600 * 1_000_000_000
 
     if info.use_dst:
-        deltas = info.deltas
-        pos = info.trans.searchsorted(stamps, side="right") - 1
-    elif info.use_fixed:
-        delta = info.delta
+        pos = <intp_t*>cnp.PyArray_DATA(info.trans.searchsorted(stamps, side="right") - 1)
 
     for i in range(n):
         if info.use_utc:
@@ -390,24 +417,22 @@ def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None) -> bool:
 # -------------------------------------------------------------------------
 
 
+@cython.initializedcheck(False)
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def dt64arr_to_periodarr(const int64_t[:] stamps, int freq, tzinfo tz):
     cdef:
         Localizer info = Localizer(tz)
-        const int64_t[:] deltas
-
-        Py_ssize_t[:] pos
+        const int64_t[::1] deltas = info.deltas
+        int64_t local_val, delta = info.delta
+        intp_t* pos
         Py_ssize_t i, n = len(stamps)
-        int64_t[:] result = np.empty(n, dtype=np.int64)
         npy_datetimestruct dts
-        int64_t local_val, delta
+
+        int64_t[:] result = np.empty(n, dtype=np.int64)
 
     if info.use_dst:
-        deltas = info.deltas
-        pos = info.trans.searchsorted(stamps, side="right") - 1
-    elif info.use_fixed:
-        delta = info.delta
+        pos = <intp_t*>cnp.PyArray_DATA(info.trans.searchsorted(stamps, side="right") - 1)
 
     for i in range(n):
         if stamps[i] == NPY_NAT:
