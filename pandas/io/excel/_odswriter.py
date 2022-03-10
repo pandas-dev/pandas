@@ -196,7 +196,8 @@ class ODSWriter(ExcelWriter):
                 TableCell(valuetype="date", datevalue=value, attributes=attributes),
             )
         elif isinstance(val, datetime.date):
-            value = val.strftime("%Y-%m-%d")
+            # value = val.strftime("%Y-%m-%d")  (slower)
+            value = f"{val.year}-{val.month:02d}-{val.day:02d}"  # faster
             pvalue = val.strftime("%x")
             return (
                 pvalue,
