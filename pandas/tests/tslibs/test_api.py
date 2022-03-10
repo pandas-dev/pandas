@@ -52,6 +52,7 @@ def test_namespace():
         "tz_convert_from_utc_single",
         "to_offset",
         "tz_compare",
+        "get_local_ampm",
     ]
 
     expected = set(submodules + api)
