@@ -15,17 +15,14 @@ cdef class ABCTimestamp(datetime):
     pass
 
 
-cdef:
-    # Use strftime to get the locale-specific version of am and pm
-    # we will use these when formatting datetime as string
-    str AM_LOCAL = time(1).strftime("%p")
-    str PM_LOCAL = time(13).strftime("%p")
-
-
 def get_local_ampm():
-    """Return the am and pm strings used in the current locale
+    """Return the am and pm strings used in the current locale.
 
-    Note that the considered locale is the one active at module import time.
+    We will use these when formatting datetime as string using string templates, which
+    is faster than strftime when executed on arrays. The strftime directive where we
+    need these is `%p`.
+
+    Note that the considered locale is the one active when this function is called
+    (not at cython compilation time).
     """
-    global AM_LOCAL, PM_LOCAL
-    return AM_LOCAL, PM_LOCAL
+    return time(1).strftime("%p"), time(13).strftime("%p")

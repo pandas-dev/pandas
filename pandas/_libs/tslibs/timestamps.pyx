@@ -46,11 +46,8 @@ from cpython.object cimport (
 PyDateTime_IMPORT
 
 from pandas._libs.tslibs cimport ccalendar
-from pandas._libs.tslibs.base cimport (
-    AM_LOCAL,
-    PM_LOCAL,
-    ABCTimestamp,
-)
+from pandas._libs.tslibs.base import get_local_ampm
+from pandas._libs.tslibs.base cimport ABCTimestamp
 from pandas._libs.tslibs.conversion cimport (
     _TSObject,
     convert_datetime_to_tsobject,
@@ -114,6 +111,8 @@ from pandas._libs.tslibs.tzconversion cimport (
 # Constants
 _zero_time = time(0, 0)
 _no_input = object()
+AM_LOCAL, PM_LOCAL = get_local_ampm()
+"""Get the locale-specific versions of am and pm strings."""
 
 # ----------------------------------------------------------------------
 

@@ -46,10 +46,7 @@ from pandas._libs.util cimport (
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.parsing import parse_datetime_string
 
-from pandas._libs.tslibs.base cimport (
-    AM_LOCAL,
-    PM_LOCAL,
-)
+from pandas._libs.tslibs.base import get_local_ampm
 from pandas._libs.tslibs.conversion cimport (
     _TSObject,
     cast_from_unit,
@@ -74,6 +71,10 @@ from pandas._libs.tslibs.timestamps import Timestamp
 
 from pandas._libs.missing cimport checknull_with_nat_and_na
 from pandas._libs.tslibs.tzconversion cimport tz_localize_to_utc_single
+
+
+AM_LOCAL, PM_LOCAL = get_local_ampm()
+"""Get the locale-specific versions of am and pm strings."""
 
 
 def _test_parse_iso8601(ts: str):

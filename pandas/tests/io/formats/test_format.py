@@ -1,7 +1,10 @@
 """
 Test output formatting for Series/DataFrame, including to_string & reprs
 """
-from datetime import datetime
+from datetime import (
+    datetime,
+    time,
+)
 from io import StringIO
 import itertools
 from operator import methodcaller
@@ -3183,6 +3186,16 @@ class TestPeriodIndexFormat:
         formatted = p.format()
         assert formatted[0] == "2003-01-01 12:01:01.123456789"
         assert formatted[1] == "2003-01-01 12:01:01.123456790"
+
+    def test_period_locale(self):
+        """Test that `get_local_ampm` relies on runtime locale, not compile-time one
+
+        If this test fails, all tests using %p format strftime will fail when
+        the runtime locale is different from the compile-time one.
+        """
+        AM_LOCAL, PM_LOCAL = get_local_ampm()
+        assert AM_LOCAL == time(1).strftime("%p")
+        assert PM_LOCAL == time(13).strftime("%p")
 
     @pytest.mark.parametrize("fast_strftime", (False, True))
     def test_period_custom(self, fast_strftime):
