@@ -2235,8 +2235,43 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
 
     @final
-    @doc(_groupby_agg_method_template, fname="first", no=False, mc=-1)
+    @Substitution(name="groupby")
     def first(self, numeric_only: bool = False, min_count: int = -1):
+        """
+        Compute the first non-null entry of each column.
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only float, int, boolean columns. If None, will attempt to use
+            everything, then use only numeric data.
+        min_count : int, default -1
+            The required number of valid values to perform the operation. If fewer
+            than ``min_count`` non-NA values are present the result will be NA.
+
+        Returns
+        -------
+        Series or DataFrame
+            First non-null of values within each group.
+
+        See Also
+        --------
+        DataFrame.groupby : Apply a function groupby to each row or column of a
+            DataFrame.
+        DataFrame.core.groupby.GroupBy.last : Compute the last non-null entry of each
+            column.
+        DataFrame.core.groupby.GroupBy.nth : Take the nth row from each group.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(dict(A=[1, 1, 3], B=[None, 5, 6], C=[1, 2, 3]))
+        >>> df.groupby("A").first()
+             B  C
+        A
+        1  5.0  1
+        3  6.0  3
+        """
+
         def first_compat(obj: NDFrameT, axis: int = 0):
             def first(x: Series):
                 """Helper function for first item that isn't NA."""
@@ -2260,8 +2295,43 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    @doc(_groupby_agg_method_template, fname="last", no=False, mc=-1)
+    @Substitution(name="groupby")
     def last(self, numeric_only: bool = False, min_count: int = -1):
+        """
+        Compute the last non-null entry of each column.
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only float, int, boolean columns. If None, will attempt to use
+            everything, then use only numeric data.
+        min_count : int, default -1
+            The required number of valid values to perform the operation. If fewer
+            than ``min_count`` non-NA values are present the result will be NA.
+
+        Returns
+        -------
+        Series or DataFrame
+            Last non-null of values within each group.
+
+        See Also
+        --------
+        DataFrame.groupby : Apply a function groupby to each row or column of a
+            DataFrame.
+        DataFrame.core.groupby.GroupBy.first : Compute the first non-null entry of each
+            column.
+        DataFrame.core.groupby.GroupBy.nth : Take the nth row from each group.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(dict(A=[1, 1, 3], B=[5, None, 6], C=[1, 2, 3]))
+        >>> df.groupby("A").last()
+             B  C
+        A
+        1  5.0  2
+        3  6.0  3
+        """
+
         def last_compat(obj: NDFrameT, axis: int = 0):
             def last(x: Series):
                 """Helper function for last item that isn't NA."""
