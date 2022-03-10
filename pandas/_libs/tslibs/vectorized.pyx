@@ -230,26 +230,23 @@ def ints_to_pydatetime(
 
         if value == NPY_NAT:
             result[i] = <object>NaT
-        else:
-            if info.use_utc:
-                local_val = value
-            elif info.use_tzlocal:
-                local_val = tz_convert_utc_to_tzlocal(value, tz)
-            elif info.use_fixed:
-                local_val = value + delta
-            elif not info.use_pytz:
-                # i.e. dateutil
-                # no zone-name change for dateutil tzs - dst etc
-                # represented in single object.
-                local_val = value + deltas[pos[i]]
-            else:
-                # pytz
-                # find right representation of dst etc in pytz timezone
-                new_tz = tz._tzinfos[tz._transition_info[pos[i]]]
-                local_val = value + deltas[pos[i]]
+            continue
 
-            dt64_to_dtstruct(local_val, &dts)
-            result[i] = func_create(value, dts, new_tz, freq, fold)
+        if info.use_utc:
+            local_val = value
+        elif info.use_tzlocal:
+            local_val = tz_convert_utc_to_tzlocal(value, tz)
+        elif info.use_fixed:
+            local_val = value + delta
+        else:
+            local_val = value + deltas[pos[i]]
+
+        if info.use_pytz:
+            # find right representation of dst etc in pytz timezone
+            new_tz = tz._tzinfos[tz._transition_info[pos[i]]]
+
+        dt64_to_dtstruct(local_val, &dts)
+        result[i] = func_create(value, dts, new_tz, freq, fold)
 
     return result
 
