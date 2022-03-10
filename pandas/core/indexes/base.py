@@ -1765,7 +1765,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return new_names
 
-    def get_default_index_names(self, names=None, default=str) -> Sequence[str]:
+    def get_default_index_names(self, names=None, default=None) -> Sequence[str]:
         """
         Get names of index.
 
