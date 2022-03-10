@@ -1637,7 +1637,7 @@ class Datetime64Formatter(GenericArrayFormatter):
             nested_formatter = GenericArrayFormatter(fmt_values)
             return list(nested_formatter.get_result())
 
-        return fmt_values
+        return list(fmt_values)
 
 
 class ExtensionArrayFormatter(GenericArrayFormatter):
@@ -1821,7 +1821,7 @@ class Datetime64TZFormatter(Datetime64Formatter):
             nested_formatter = GenericArrayFormatter(fmt_values)
             return list(nested_formatter.get_result())
 
-        return fmt_values
+        return list(fmt_values)
 
 
 class Timedelta64Formatter(GenericArrayFormatter):
