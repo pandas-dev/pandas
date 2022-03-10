@@ -147,11 +147,10 @@ def astype_nansafe(
 
             dtype = np.dtype("M8[ns]")
 
-            return astype_nansafe(
-                to_datetime(arr.ravel()).values.reshape(arr.shape),
-                dtype,
-                copy=copy,
-            )
+            datetime_values = to_datetime(arr.ravel()).values.reshape(arr.shape)
+            datetime_values = datetime_values.astype(dtype)
+
+            return datetime_values
 
         elif is_timedelta64_dtype(dtype):
             # bc we know arr.dtype == object, this is equivalent to
