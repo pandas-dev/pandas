@@ -1362,6 +1362,9 @@ class TextFileReader(abc.Iterator):
 
     Passed dialect overrides any of the related parser options
 
+    Only __enter__, __exit__ and __next__ are public. All other
+    attributes are considered private and can change.
+
     """
 
     def __init__(
