@@ -1635,9 +1635,9 @@ class Datetime64Formatter(GenericArrayFormatter):
 
         if fmt_values.ndim > 1:
             nested_formatter = GenericArrayFormatter(fmt_values)
-            fmt_values = nested_formatter.get_result()
+            fmt_values = list(nested_formatter.get_result())
 
-        return list(fmt_values)
+        return fmt_values
 
 
 class ExtensionArrayFormatter(GenericArrayFormatter):
@@ -1819,8 +1819,8 @@ class Datetime64TZFormatter(Datetime64Formatter):
         fmt_values = np.frompyfunc(formatter, 1, 1)(values)
         if fmt_values.ndim > 1:
             nested_formatter = GenericArrayFormatter(fmt_values)
-            fmt_values = nested_formatter.get_result()
-        return list(fmt_values)
+            fmt_values = list(nested_formatter.get_result())
+        return fmt_values
 
 
 class Timedelta64Formatter(GenericArrayFormatter):
