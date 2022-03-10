@@ -122,10 +122,6 @@ cdef:
         INT32_MIN = -2_147_483_648LL
 
 
-AM_LOCAL, PM_LOCAL = get_local_ampm()
-"""Get the locale-specific versions of am and pm strings."""
-
-
 ctypedef struct asfreq_info:
     int64_t intraday_conversion_factor
     int is_end
@@ -2415,8 +2411,6 @@ cdef class _Period(PeriodMixin):
         >>> a.fast_strftime(fast_fmt)
         '2006-Q1'
         """
-        global AM_LOCAL, PM_LOCAL
-
         freq = self._dtype._dtype_code
         value = self.ordinal
 
@@ -2443,7 +2437,7 @@ cdef class _Period(PeriodMixin):
             "day": dts.day,
             "hour": h,
             "hour12": 12 if h in (0, 12) else (h % 12),
-            "ampm": PM_LOCAL if (h // 12) else AM_LOCAL,
+            "ampm": Period._PM_LOCAL if (h // 12) else Period._AM_LOCAL,
             "min": dts.min,
             "sec": dts.sec,
             "ms": dts.us // 1000,
@@ -2625,6 +2619,8 @@ class Period(_Period):
     second : int, default 0
         Second value of the period.
     """
+
+    _AM_LOCAL, _PM_LOCAL = get_local_ampm()
 
     def __new__(cls, value=None, freq=None, ordinal=None,
                 year=None, month=None, quarter=None, day=None,

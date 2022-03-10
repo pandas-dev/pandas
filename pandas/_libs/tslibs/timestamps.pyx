@@ -111,9 +111,6 @@ from pandas._libs.tslibs.tzconversion cimport (
 # Constants
 _zero_time = time(0, 0)
 _no_input = object()
-AM_LOCAL, PM_LOCAL = get_local_ampm()
-"""Get the locale-specific versions of am and pm strings."""
-
 # ----------------------------------------------------------------------
 
 
@@ -1065,6 +1062,8 @@ class Timestamp(_Timestamp):
     Timestamp('2017-01-01 12:00:00')
     """
 
+    _AM_LOCAL, _PM_LOCAL = get_local_ampm()
+
     @classmethod
     def fromordinal(cls, ordinal, freq=None, tz=None):
         """
@@ -1213,8 +1212,6 @@ class Timestamp(_Timestamp):
         >>> ts.fast_strftime(fmt)
         '2020-03-14T15:32:52'
         """
-        global AM_LOCAL, PM_LOCAL
-
         y = self.year
         h = self.hour
         return fmt_str % {
@@ -1224,7 +1221,7 @@ class Timestamp(_Timestamp):
             "day": self.day,
             "hour": h,
             "hour12": 12 if h in (0, 12) else (h % 12),
-            "ampm": PM_LOCAL if (h // 12) else AM_LOCAL,
+            "ampm": Timestamp._PM_LOCAL if (h // 12) else Timestamp._AM_LOCAL,
             "min": self.minute,
             "sec": self.second,
             "us": self.microsecond,
