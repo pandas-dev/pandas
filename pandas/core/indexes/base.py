@@ -542,9 +542,13 @@ class Index(IndexOpsMixin, PandasObject):
                     # 10697
                     from pandas.core.indexes.multi import MultiIndex
 
+                    if not all(data):
+                        subarr = com.asarray_tuplesafe(data, dtype=_dtype_obj)
+                        return Index(subarr, dtype=dtype)
                     return MultiIndex.from_tuples(
                         data, names=name or kwargs.get("names")
                     )
+
             # other iterable of some kind
 
             subarr = com.asarray_tuplesafe(data, dtype=_dtype_obj)
