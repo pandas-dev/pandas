@@ -3387,7 +3387,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         lineterminator: str | None = None,
         chunksize: int | None = None,
         date_format: str | None = None,
-        fast_strftime: bool = True,
+        fast_strftime: bool_t = True,
         doublequote: bool_t = True,
         escapechar: str | None = None,
         decimal: str = ".",
