@@ -40,7 +40,7 @@ class CompatValidator:
         fname=None,
         method: str | None = None,
         max_fname_arg_count=None,
-    ):
+    ) -> None:
         self.fname = fname
         self.method = method
         self.defaults = defaults
