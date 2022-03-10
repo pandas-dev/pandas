@@ -1601,8 +1601,8 @@ class DatelikeOps(DatetimeLikeArrayMixin):
         date_format : str
             Date format string (e.g. "%%Y-%%m-%%d").
 
-        fast_strftime : boolean, default: True
-            if `True` (default) and the format permits it, a faster formatting
+        fast_strftime : bool, default True
+            If `True` (default) and the format permits it, a faster formatting
             method will be used. See `convert_strftime_format`.
 
             .. versionadded:: 1.5.0
