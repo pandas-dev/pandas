@@ -3223,22 +3223,23 @@ class TestPeriodIndexFormat:
         formatted = p.format(
             date_format="%y %I:%M:%S%p (ms=%l us=%u ns=%n)", fast_strftime=fast_strftime
         )
-        assert formatted[0] == "03 12:01:01PM (ms=123 us=123000 ns=123000000)"
-        assert formatted[1] == "03 12:01:01PM (ms=124 us=124000 ns=124000000)"
+        AM_LOCAL, PM_LOCAL = get_local_ampm()
+        assert formatted[0] == f"03 12:01:01{PM_LOCAL} (ms=123 us=123000 ns=123000000)"
+        assert formatted[1] == f"03 12:01:01{PM_LOCAL} (ms=124 us=124000 ns=124000000)"
 
         p = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="n")
         formatted = p.format(
             date_format="%y %I:%M:%S%p (ms=%l us=%u ns=%n)", fast_strftime=fast_strftime
         )
-        assert formatted[0] == "03 12:01:01PM (ms=123 us=123456 ns=123456789)"
-        assert formatted[1] == "03 12:01:01PM (ms=123 us=123456 ns=123456790)"
+        assert formatted[0] == f"03 12:01:01{PM_LOCAL} (ms=123 us=123456 ns=123456789)"
+        assert formatted[1] == f"03 12:01:01{PM_LOCAL} (ms=123 us=123456 ns=123456790)"
 
         p = pd.period_range("2003-01-01 12:01:01.123456", periods=2, freq="u")
         formatted = p.format(
             date_format="%y %I:%M:%S%p (ms=%l us=%u ns=%n)", fast_strftime=fast_strftime
         )
-        assert formatted[0] == "03 12:01:01PM (ms=123 us=123456 ns=123456000)"
-        assert formatted[1] == "03 12:01:01PM (ms=123 us=123457 ns=123457000)"
+        assert formatted[0] == f"03 12:01:01{PM_LOCAL} (ms=123 us=123456 ns=123456000)"
+        assert formatted[1] == f"03 12:01:01{PM_LOCAL} (ms=123 us=123457 ns=123457000)"
 
     def test_period_tz(self):
         """Test formatting periods created from a datetime with timezone"""
@@ -3275,6 +3276,8 @@ class TestDatetimeIndexFormat:
         assert dt.format()[0] == "2013-01-01 00:00:00+01:00"
 
     def test_datetime_tz_custom(self):
+        AM_LOCAL, PM_LOCAL = get_local_ampm()
+
         # This timestamp is in 2013 in Europe/Paris but is 2012 in UTC
         dt = pd.to_datetime(["2013-01-01 00:00:00+01:00"], utc=True)
 
@@ -3286,7 +3289,7 @@ class TestDatetimeIndexFormat:
         # same with fancy format
         assert (
             dt.format(date_format="20%y-%m-%d__foo__%I:%M:%S%p")[0]
-            == "2012-12-31__foo__11:00:00PM"
+            == f"2012-12-31__foo__11:00:00{PM_LOCAL}"
         )
 
         # If tz is currently set as paris, we'll see 2013
@@ -3298,7 +3301,7 @@ class TestDatetimeIndexFormat:
         # same with fancy format
         assert (
             dt.format(date_format="20%y-%m-%d__foo__%I:%M:%S%p")[0]
-            == "2013-01-01__foo__12:00:00AM"
+            == f"2013-01-01__foo__12:00:00{AM_LOCAL}"
         )
 
     def test_date(self):
