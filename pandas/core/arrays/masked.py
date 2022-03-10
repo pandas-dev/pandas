@@ -626,10 +626,21 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if other is libmissing.NA:
             result = np.ones_like(self._data)
             if self.dtype.kind == "b":
-                if op_name in {"floordiv", "rfloordiv", "mod", "rmod", "pow", "rpow"}:
+                if op_name in {
+                    "floordiv",
+                    "rfloordiv",
+                    "pow",
+                    "rpow",
+                    "truediv",
+                    "rtruediv",
+                }:
+                    # GH#41165 Try to match non-masked Series behavior
+                    #  This is still imperfect GH#46043
+                    raise NotImplementedError(
+                        f"operator '{op_name}' not implemented for bool dtypes"
+                    )
+                elif op_name in {"mod", "rmod"}:
                     dtype = "int8"
-                elif op_name in {"truediv", "rtruediv"}:
-                    dtype = "float64"
                 else:
                     dtype = "bool"
                 result = result.astype(dtype)
@@ -644,12 +655,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if self.dtype.kind in ["i", "u"] and op_name in ["floordiv", "mod"]:
                 # TODO(GH#30188) ATM we don't match the behavior of non-masked
                 #  types with respect to floordiv-by-zero
-                pd_op = op
-
-            elif self.dtype.kind == "b" and (
-                "div" in op_name or "pow" in op_name or "mod" in op_name
-            ):
-                # TODO(GH#41165): should these be disallowed?
                 pd_op = op
 
             with np.errstate(all="ignore"):
@@ -674,6 +679,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             mask = np.where((self._data == 0) & ~self._mask, False, mask)
 
         return self._maybe_mask_result(result, mask)
+
+    _logical_method = _arith_method
 
     def _cmp_method(self, other, op) -> BooleanArray:
         from pandas.core.arrays import BooleanArray
@@ -867,8 +874,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         codes, uniques = factorize_array(arr, na_sentinel=na_sentinel, mask=mask)
 
-        # the hashtables don't handle all different types of bits
-        uniques = uniques.astype(self.dtype.numpy_dtype, copy=False)
+        # check that factorize_array correctly preserves dtype.
+        assert uniques.dtype == self.dtype.numpy_dtype, (uniques.dtype, self.dtype)
+
         uniques_ea = type(self)(uniques, np.zeros(len(uniques), dtype=bool))
         return codes, uniques_ea
 
