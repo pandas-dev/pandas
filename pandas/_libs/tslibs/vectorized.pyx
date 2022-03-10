@@ -27,7 +27,7 @@ from .np_datetime cimport (
     dt64_to_dtstruct,
     npy_datetimestruct,
 )
-from .offsets cimport to_offset
+from .offsets cimport BaseOffset
 from .period cimport get_period_ordinal
 from .timestamps cimport create_timestamp_from_ts
 from .timezones cimport (
@@ -85,9 +85,9 @@ cdef inline object create_time_from_ts(
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def ints_to_pydatetime(
-    const int64_t[:] arr,
+    const int64_t[:] stamps,
     tzinfo tz=None,
-    object freq=None,
+    BaseOffset freq=None,
     bint fold=False,
     str box="datetime"
 ) -> np.ndarray:
@@ -96,10 +96,10 @@ def ints_to_pydatetime(
 
     Parameters
     ----------
-    arr : array of i8
+    stamps : array of i8
     tz : str, optional
          convert to this timezone
-    freq : str/Offset, optional
+    freq : BaseOffset, optional
          freq to convert
     fold : bint, default is 0
         Due to daylight saving time, one wall clock time can occur twice
@@ -119,14 +119,14 @@ def ints_to_pydatetime(
     ndarray[object] of type specified by box
     """
     cdef:
-        Py_ssize_t i, n = len(arr)
+        Py_ssize_t i, n = len(stamps)
         ndarray[int64_t] trans
         int64_t[:] deltas
         intp_t[:] pos
         npy_datetimestruct dts
         object dt, new_tz
         str typ
-        int64_t value, local_value, delta = NPY_NAT  # dummy for delta
+        int64_t value, local_val, delta = NPY_NAT  # dummy for delta
         ndarray[object] result = np.empty(n, dtype=object)
         object (*func_create)(int64_t, npy_datetimestruct, tzinfo, object, bint)
         bint use_utc = False, use_tzlocal = False, use_fixed = False
@@ -138,9 +138,6 @@ def ints_to_pydatetime(
         func_create = create_date_from_ts
     elif box == "timestamp":
         func_create = create_timestamp_from_ts
-
-        if isinstance(freq, str):
-            freq = to_offset(freq)
     elif box == "time":
         func_create = create_time_from_ts
     elif box == "datetime":
@@ -161,34 +158,34 @@ def ints_to_pydatetime(
             use_fixed = True
             delta = deltas[0]
         else:
-            pos = trans.searchsorted(arr, side="right") - 1
+            pos = trans.searchsorted(stamps, side="right") - 1
             use_pytz = typ == "pytz"
 
     for i in range(n):
         new_tz = tz
-        value = arr[i]
+        value = stamps[i]
 
         if value == NPY_NAT:
             result[i] = <object>NaT
         else:
             if use_utc:
-                local_value = value
+                local_val = value
             elif use_tzlocal:
-                local_value = tz_convert_utc_to_tzlocal(value, tz)
+                local_val = tz_convert_utc_to_tzlocal(value, tz)
             elif use_fixed:
-                local_value = value + delta
+                local_val = value + delta
             elif not use_pytz:
                 # i.e. dateutil
                 # no zone-name change for dateutil tzs - dst etc
                 # represented in single object.
-                local_value = value + deltas[pos[i]]
+                local_val = value + deltas[pos[i]]
             else:
                 # pytz
                 # find right representation of dst etc in pytz timezone
                 new_tz = tz._tzinfos[tz._transition_info[pos[i]]]
-                local_value = value + deltas[pos[i]]
+                local_val = value + deltas[pos[i]]
 
-            dt64_to_dtstruct(local_value, &dts)
+            dt64_to_dtstruct(local_val, &dts)
             result[i] = func_create(value, dts, new_tz, freq, fold)
 
     return result
@@ -311,7 +308,6 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
             pos = trans.searchsorted(stamps, side="right") - 1
 
     for i in range(n):
-        # TODO: reinstate nogil for use_utc case?
         if stamps[i] == NPY_NAT:
             result[i] = NPY_NAT
             continue
@@ -393,7 +389,7 @@ def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None) -> bool:
 @cython.boundscheck(False)
 def dt64arr_to_periodarr(const int64_t[:] stamps, int freq, tzinfo tz):
     cdef:
-        Py_ssize_t n = len(stamps)
+        Py_ssize_t i, n = len(stamps)
         int64_t[:] result = np.empty(n, dtype=np.int64)
         ndarray[int64_t] trans
         int64_t[:] deltas
@@ -416,7 +412,6 @@ def dt64arr_to_periodarr(const int64_t[:] stamps, int freq, tzinfo tz):
             pos = trans.searchsorted(stamps, side="right") - 1
 
     for i in range(n):
-        # TODO: reinstate nogil for use_utc case?
         if stamps[i] == NPY_NAT:
             result[i] = NPY_NAT
             continue

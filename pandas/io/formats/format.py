@@ -1778,7 +1778,7 @@ def _format_datetime64_dateonly(
     date_format: str | None = None,
     str_date_fmt: str | None = None,
 ) -> str:
-    if x is NaT:
+    if isinstance(x, NaTType):
         return nat_rep
 
     if date_format:
@@ -1794,7 +1794,7 @@ def _format_datetime64_dateonly(
         #  is a singleton, so that the check above excludes it here.
         #
         # Note: this relies on string templating (faster than strftime)
-        return x._date_repr  # type: ignore[union-attr]
+        return x._date_repr
 
 
 def get_format_datetime64(
