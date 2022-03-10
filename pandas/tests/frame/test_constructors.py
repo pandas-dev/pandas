@@ -1363,7 +1363,7 @@ class TestDataFrameConstructors:
         # collections.Sequence like
 
         class DummyContainer(abc.Sequence):
-            def __init__(self, lst):
+            def __init__(self, lst) -> None:
                 self._lst = lst
 
             def __getitem__(self, n):
