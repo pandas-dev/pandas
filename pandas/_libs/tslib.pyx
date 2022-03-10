@@ -73,6 +73,10 @@ from pandas._libs.missing cimport checknull_with_nat_and_na
 from pandas._libs.tslibs.tzconversion cimport tz_localize_to_utc_single
 
 
+AM_LOCAL, PM_LOCAL = get_local_ampm()
+"""Get the locale-specific versions of am and pm strings."""
+
+
 def _test_parse_iso8601(ts: str):
     """
     TESTING ONLY: Parse string into Timestamp using iso8601 parser. Used
@@ -128,6 +132,7 @@ def format_array_from_datetime(
     -------
     np.ndarray[object]
     """
+    global AM_LOCAL, PM_LOCAL
     cdef:
         int64_t val, ns, y, h, N = len(values)
         ndarray[int64_t] consider_values
@@ -136,8 +141,6 @@ def format_array_from_datetime(
         ndarray[object] result = np.empty(N, dtype=object)
         object ts, res
         npy_datetimestruct dts
-        str AM_LOCAL = Timestamp._AM_LOCAL
-        str PM_LOCAL = Timestamp._PM_LOCAL
 
     if na_rep is None:
         na_rep = 'NaT'
