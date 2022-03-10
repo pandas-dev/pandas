@@ -37,6 +37,7 @@ from pandas import (
     Index,
     MultiIndex,
     NaT,
+    Period,
     Series,
     Timestamp,
     date_range,
@@ -3193,9 +3194,27 @@ class TestPeriodIndexFormat:
         If this test fails, all tests using %p format strftime will fail when
         the runtime locale is different from the compile-time one.
         """
+        # Make sure the function is ok
         AM_LOCAL, PM_LOCAL = get_local_ampm()
         assert AM_LOCAL == time(1).strftime("%p")
         assert PM_LOCAL == time(13).strftime("%p")
+
+        # Now what about the classes ?
+        # Timestamp
+        am_ts = Timestamp(2020, 1, 1, 1)
+        assert AM_LOCAL == am_ts.strftime("%p")
+        assert AM_LOCAL == am_ts.fast_strftime("%(ampm)s")
+        pm_ts = Timestamp(2020, 1, 1, 13)
+        assert PM_LOCAL == pm_ts.strftime("%p")
+        assert PM_LOCAL == pm_ts.fast_strftime("%(ampm)s")
+
+        # Period
+        am_per = Period("2018-03-11 01:00", freq="H")
+        assert AM_LOCAL == am_per.strftime("%p")
+        assert AM_LOCAL == am_per.fast_strftime("%(ampm)s")
+        pm_per = Period("2018-03-11 13:00", freq="H")
+        assert PM_LOCAL == pm_per.strftime("%p")
+        assert PM_LOCAL == pm_ts.fast_strftime("%(ampm)s")
 
     @pytest.mark.parametrize("fast_strftime", (False, True))
     def test_period_custom(self, fast_strftime):
