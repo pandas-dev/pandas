@@ -18,7 +18,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._libs.tslibs import convert_strftime_format
+from pandas._libs.tslibs import convert_strftime_format, get_local_ampm
 from pandas.compat import (
     IS64,
     is_platform_windows,
@@ -3170,37 +3170,38 @@ class TestNaTFormatting:
 
 
 class TestPeriodIndexFormat:
-
     def test_period(self):
-        p = pd.PeriodIndex([datetime(2003, 1, 1, 12), None], freq='H')
+        p = pd.PeriodIndex([datetime(2003, 1, 1, 12), None], freq="H")
         formatted = p.format()
         assert formatted[0] == "2003-01-01 12:00"  # default: minutes not shown
         assert formatted[1] == "NaT"
 
-        p = pd.period_range("2003-01-01 12:01:01.123456789", periods=2,
-                            freq="n")
+        p = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="n")
         formatted = p.format()
-        assert formatted[0] == '2003-01-01 12:01:01.123456789'
-        assert formatted[1] == '2003-01-01 12:01:01.123456790'
+        assert formatted[0] == "2003-01-01 12:01:01.123456789"
+        assert formatted[1] == "2003-01-01 12:01:01.123456790"
 
     @pytest.mark.parametrize("fast_strftime", (False, True))
     def test_period_custom(self, fast_strftime):
         # GH46252
         p = pd.period_range("2003-01-01 12:01:01.123", periods=2, freq="l")
-        formatted = p.format(date_format="%y %I:%M:%S%p (ms=%l us=%u ns=%n)",
-                             fast_strftime=fast_strftime)
+        formatted = p.format(
+            date_format="%y %I:%M:%S%p (ms=%l us=%u ns=%n)", fast_strftime=fast_strftime
+        )
         assert formatted[0] == "03 12:01:01PM (ms=123 us=123000 ns=123000000)"
         assert formatted[1] == "03 12:01:01PM (ms=124 us=124000 ns=124000000)"
 
         p = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="n")
-        formatted = p.format(date_format="%y %I:%M:%S%p (ms=%l us=%u ns=%n)",
-                             fast_strftime=fast_strftime)
+        formatted = p.format(
+            date_format="%y %I:%M:%S%p (ms=%l us=%u ns=%n)", fast_strftime=fast_strftime
+        )
         assert formatted[0] == "03 12:01:01PM (ms=123 us=123456 ns=123456789)"
         assert formatted[1] == "03 12:01:01PM (ms=123 us=123456 ns=123456790)"
 
         p = pd.period_range("2003-01-01 12:01:01.123456", periods=2, freq="u")
-        formatted = p.format(date_format="%y %I:%M:%S%p (ms=%l us=%u ns=%n)",
-                             fast_strftime=fast_strftime)
+        formatted = p.format(
+            date_format="%y %I:%M:%S%p (ms=%l us=%u ns=%n)", fast_strftime=fast_strftime
+        )
         assert formatted[0] == "03 12:01:01PM (ms=123 us=123456 ns=123456000)"
         assert formatted[1] == "03 12:01:01PM (ms=123 us=123457 ns=123457000)"
 
@@ -3247,8 +3248,8 @@ class TestDatetimeIndexFormat:
         )
         # same with fancy format
         assert (
-                dt.format(date_format="20%y-%m-%d__foo__%I:%M:%S%p")[0]
-                == "2012-12-31__foo__11:00:00PM"
+            dt.format(date_format="20%y-%m-%d__foo__%I:%M:%S%p")[0]
+            == "2012-12-31__foo__11:00:00PM"
         )
 
         # If tz is currently set as paris, we'll see 2013
@@ -3259,8 +3260,8 @@ class TestDatetimeIndexFormat:
         )
         # same with fancy format
         assert (
-                dt.format(date_format="20%y-%m-%d__foo__%I:%M:%S%p")[0]
-                == "2013-01-01__foo__12:00:00AM"
+            dt.format(date_format="20%y-%m-%d__foo__%I:%M:%S%p")[0]
+            == "2013-01-01__foo__12:00:00AM"
         )
 
     def test_date(self):
@@ -3360,7 +3361,10 @@ class TestDatetimeFastFormatter:
     )
     @pytest.mark.parametrize("new_style", (False, True))
     def test_fast_strftime_basic(self, strftime_format, new_style):
-        """Test that formatting standard `datetime` objects with our utils works as good as strftime."""
+        """
+        Test that formatting standard `datetime` objects with our utils works
+        as good as strftime.
+        """
 
         # create a datetime instance
         dt = datetime.now()
@@ -3368,19 +3372,29 @@ class TestDatetimeFastFormatter:
         # strftime
         strftime_res = dt.strftime(strftime_format)
 
+        # Get the locale-specific versions of am and pm strings.
+        AM_LOCAL, PM_LOCAL = get_local_ampm()
+
         # common dict used for formatting
-        fmt_dct = dict(
-            year=dt.year,
-            month=dt.month,
-            day=dt.day,
-            hour=dt.hour,
-            min=dt.minute,
-            sec=dt.second,
-            us=dt.microsecond,
-        )
+        fmt_dct = {
+            "year": dt.year,
+            "shortyear": dt.year % 100,
+            "month": dt.month,
+            "day": dt.day,
+            "hour": dt.hour,
+            "hour12": 12 if dt.hour in (0, 12) else (dt.hour % 12),
+            "ampm": PM_LOCAL if (dt.hour // 12) else AM_LOCAL,
+            "min": dt.minute,
+            "sec": dt.second,
+            "us": dt.microsecond,
+        }
 
         # get the formatting string
-        style_format = convert_strftime_format(strftime_format, new_style_fmt=new_style)
+        # fmt: off
+        style_format = convert_strftime_format(
+            strftime_format, new_style_fmt=new_style
+        )
+        # fmt: on
 
         # apply it and check the output
         if new_style:
@@ -3392,56 +3406,6 @@ class TestDatetimeFastFormatter:
         # fast_strftime is a shortcut function for the above
         res2 = fast_strftime(dt, strftime_format, new_style_fmt=new_style)
         assert res2 == res
-
-    @pytest.mark.parametrize(
-        "strftime_format",
-        (
-            "%Y-%m-%d %H:%M:%S",
-            "%Y %Y",
-            "%Y-%m-%dT%H:%M:%S.%fZ",
-        ),
-    )
-    def test_fast_strftime_perf(self, strftime_format):
-        """Test that formatting standard `datetime` objects with our utils is faster than strftime."""
-
-        # create a datetime instance
-        dt = datetime.now()
-
-        # pre-compute the formats
-        new_style_format = convert_strftime_format(
-            strftime_format, new_style_fmt=True
-        )
-        old_style_format = convert_strftime_format(strftime_format)
-
-        # Perf comparison: confirm the results
-        # from https://stackoverflow.com/a/43495629/7262247
-        fmt_dct = dict(
-            year=dt.year,
-            month=dt.month,
-            day=dt.day,
-            hour=dt.hour,
-            min=dt.minute,
-            sec=dt.second,
-            us=dt.microsecond,
-        )
-
-        glob = globals()
-        glob.update(locals())
-        strftime_best = min(
-            Timer("dt.strftime(strftime_format)", globals=glob).repeat(7, 1000)
-        )
-        #   Out[3]: 0.0062
-        new_style_best = min(
-            Timer("new_style_format.format(**fmt_dct)", globals=glob)
-                .repeat(7, 1000)
-        )
-        #   Out[4]: 0.0036
-        old_style_best = min(
-            Timer("old_style_format % fmt_dct", globals=glob).repeat(7, 1000)
-        )
-        #   Out[5]: 0.0030
-        assert new_style_best < strftime_best  # much better
-        assert old_style_best < new_style_best  # even better !
 
     def test_bad_strftime_directive(self):
         """Test what happens in case of bad `date_format` directive."""
