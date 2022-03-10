@@ -9,42 +9,76 @@ jobs:
     vmImage: ${{ parameters.vmImage }}
   strategy:
     matrix:
-      py38:
-        ENV_FILE: ci/deps/actions-38.yaml
-        CONDA_PY: "38"
+      # py38:
+      #   ENV_FILE: ci/deps/actions-38.yaml
+      #   CONDA_PY: "38"
 
-      py39:
-        ENV_FILE: ci/deps/actions-39.yaml
-        CONDA_PY: "39"
+      # py39:
+      #   ENV_FILE: ci/deps/actions-39.yaml
+      #   CONDA_PY: "39"
 
       py310:
         ENV_FILE: ci/deps/actions-310.yaml
         CONDA_PY: "310"
 
   steps:
-    - script: echo '##vso[task.prependpath]$(HOME)/miniconda3/bin'
-      displayName: 'Set conda path'
+    - displayName: 'Set conda path'
+      script: echo '##vso[task.prependpath]$(HOME)/miniconda3/bin'
 
-    - script: rm /usr/local/miniconda/pkgs/cache/*.json
-      displayName: 'Workaround for mamba-org/mamba#488'
+    - displayName: 'Workaround for mamba-org/mamba#488'
+      script: rm /usr/local/miniconda/pkgs/cache/*.json
 
-    - script: ci/setup_env.sh
-      displayName: 'Setup environment and build pandas'
+    - displayName: 'Setup environment and build pandas'
+      script: |
+        echo $PATH
+        sccache_version=v0.2.15
+        sccache_archive_name=sccache-$sccache_version-x86_64-apple-darwin
+        curl -L https://github.com/mozilla/sccache/releases/download/$sccache_version/$sccache_archive_name.tar.gz \
+          | tar xzf - -O $sccache_archive_name/sccache > /usr/local/bin/sccache
+        chmod +x /usr/local/bin/sccache
+        SCCACHE_IDLE_TIMEOUT=999999 sccache --start-server
+        sccache -s
+        sccache -z
+        # conda config --set ssl_verify false
+        # conda config --set quiet true --set always_yes true --set changeps1 false
+        conda install -y -c conda-forge -n base 'mamba>=0.22' pip
+        echo "mamba env update --file=${ENV_FILE}"
+        # See https://github.com/mamba-org/mamba/issues/633
+        mamba create -q -n pandas-dev
+        # TODO: GH#44980 https://github.com/pypa/setuptools/issues/2941
+        echo '  - setuptools <60' >> ${ENV_FILE}
+        if [[ "$(uname)" == Darwin ]]; then
+          # From pyarrow on MacOS
+          # ImportError: 2): Library not loaded: @rpath/libssl.1.1.dylib
+          # Referenced from: /Users/runner/miniconda3/envs/pandas-dev/lib/libthrift.0.13.0.dylib
+          # Reason: image not found
+          sed -i 's/^  - pyarrow$/  - pyarrow=6/' ${ENV_FILE}
+        fi
+        time mamba env update -n pandas-dev --file="${ENV_FILE}"
+        echo Have qt?
+        conda list -f qt --json
+        echo Have pandas?
+        pip list | grep pandas
+        echo "Build extensions"
+        time DISTUTILS_C_COMPILER_LAUNCHER=sccache python setup.py build_ext -q -j3
+        echo "Install pandas"
+        time python -m pip install --no-build-isolation -e .
+        sccache -s
 
-    - script: |
+    - displayName: 'Test'
+      script: |
         conda run -n pandas-dev --no-capture-output ci/run_tests.sh
-      displayName: 'Test'
 
-    - script: |
+    - displayName: 'Build versions'
+      script: |
         pushd /tmp
         conda run -n pandas-dev python -c "import pandas; pandas.show_versions()"
         popd
-      displayName: 'Build versions'
 
-    - task: PublishTestResults@2
+    - displayName: 'Publish test results'
+      task: PublishTestResults@2
       condition: succeededOrFailed()
       inputs:
         failTaskOnFailedTests: true
         testResultsFiles: 'test-data.xml'
         testRunTitle: ${{ format('{0}-$(CONDA_PY)', parameters.name) }}
-      displayName: 'Publish test results'
