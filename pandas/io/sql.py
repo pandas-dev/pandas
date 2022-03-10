@@ -1838,7 +1838,10 @@ class SQLiteTable(SQLTable):
             if dt.tzinfo is None:
                 # This is faster than strftime
                 return "%02d:%02d:%02d.%06d" % (
-                    dt.hour, dt.minute, dt.second, dt.microsecond
+                    dt.hour,
+                    dt.minute,
+                    dt.second,
+                    dt.microsecond,
                 )
             else:
                 return dt.strftime("%H:%M:%S.%f")

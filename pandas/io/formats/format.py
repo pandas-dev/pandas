@@ -1817,8 +1817,7 @@ def get_format_datetime64(
                 pass
 
         return lambda x: _format_datetime64_dateonly(
-            x, nat_rep=nat_rep, date_format=date_format,
-            str_date_fmt=str_date_fmt
+            x, nat_rep=nat_rep, date_format=date_format, str_date_fmt=str_date_fmt
         )
     else:
         # Relies on datetime.str, which is fast already

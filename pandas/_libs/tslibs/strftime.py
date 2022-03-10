@@ -95,33 +95,36 @@ def convert_strftime_format(
     Parameters
     ----------
     strftime_fmt : str
-        The strftime format string specification, e.g. `"%Y-%m-%d %H:%M:%S"`. Note
-        that not all directives are eligible to successful usage of string formatting.
-        Unsupported directives will lead to an `UnsupportedStrFmtDirective` being raised.
+        The strftime format string specification, e.g. `"%Y-%m-%d %H:%M:%S"`.
+        Note that not all directives are eligible to successful usage of string
+        formatting. Unsupported directives will lead to an
+        `UnsupportedStrFmtDirective` being raised.
     target : { "datetime", "date", "time", "period" }, default: "datetime"
         The kind of data that will be formatted using this template.
     new_style_fmt : bool, default: False
         Whether the output string should be new-style
         e.g. "{year}-{month:02d}-{day:02d} {hour:02d}:{min:02d}:{sec:02d}"
-        or old-style e.g. "%(year)s-%(month)02d-%(day)02d %(hour)02d:%(min)02d:%(sec)02d"
+        or old-style
+        e.g. "%(year)s-%(month)02d-%(day)02d %(hour)02d:%(min)02d:%(sec)02d"
 
     Returns
     -------
     fmt_out : str
-        A string that may be used to format a `datetime` variable. The style of this string
-        is either old-style or new-style depending on `new_style_formatting`.
+        A string that may be used to format a `datetime` variable. The style of
+        this string is either old-style or new-style depending on
+        `new_style_formatting`.
         For old-style, it may be used as `fmt_out % fmt_dct`.
         For new-style, it may be used as `fmt_out.format(**fmt_dct)`
 
     Raises
     ------
     UnsupportedStrFmtDirective
-        Raised when the received `strftime_fmt` format contains a directive for which the output
-        can not currently be created using string formatting.
+        Raised when the received `strftime_fmt` format contains a directive for
+        which the output can not currently be created using string formatting.
 
     See Also
     --------
-    `strftime format codes reference <https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes>`_
+    `strftime format codes reference <https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes>`_  # noqa
 
     `Stackoverflow post <https://stackoverflow.com/a/43495629/7262247>`_
     explaining how old-style formatting is faster than new-style formatting,
@@ -157,7 +160,7 @@ def convert_strftime_format(
         # Create the output by replacing all directives
         for _map in directive_maps:
             for key, (_name, _fmt) in _map.items():
-                # for example replace "%d" by "{day:02d}" but with escaped { and }
+                # for example replace "%d" by "{day:02d}" but with escaped { }
                 strftime_fmt = strftime_fmt.replace(
                     key, f"{esc_l}{_name}:{_fmt}{esc_r}"
                 )
@@ -181,7 +184,9 @@ def convert_strftime_format(
         for _map in directive_maps:
             for key, (_name, _fmt) in _map.items():
                 # for example replace "%d" by "%(day)02d" but with escaped %
-                strftime_fmt = strftime_fmt.replace(key, f"{esc}({_name}){_fmt}")
+                strftime_fmt = strftime_fmt.replace(
+                    key, f"{esc}({_name}){_fmt}"
+                )
 
         # Escape remaining percent signs
         strftime_fmt = strftime_fmt.replace("%", "%%")
