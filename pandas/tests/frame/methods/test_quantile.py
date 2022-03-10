@@ -14,10 +14,18 @@ import pandas._testing as tm
 
 
 class TestDataFrameQuantile:
-    def test_numeric_only_default_false_warning(self):
+    @pytest.mark.parametrize(
+        "non_num_col",
+        [
+            pd.date_range("2014-01-01", periods=3, freq="m"),
+            ["a", "b", "c"],
+            [DataFrame, Series, Timestamp],
+        ],
+    )
+    def test_numeric_only_default_false_warning(self, non_num_col):
         # GH #7308
         df = DataFrame({"A": [1, 2, 3], "B": [2, 3, 4]})
-        df["C"] = pd.date_range("2014-01-01", periods=3, freq="m")
+        df["C"] = non_num_col
 
         expected = Series(
             [2.0, 3.0],
