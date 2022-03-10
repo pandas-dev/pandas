@@ -43,10 +43,10 @@ from pandas._libs.util cimport (
     is_integer_object,
 )
 
+from pandas._libs.tslibs.base import get_local_ampm
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.parsing import parse_datetime_string
 
-from pandas._libs.tslibs.base import get_local_ampm
 from pandas._libs.tslibs.conversion cimport (
     _TSObject,
     cast_from_unit,
