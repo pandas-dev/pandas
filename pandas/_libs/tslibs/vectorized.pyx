@@ -1,5 +1,6 @@
 import cython
 
+cimport numpy as cnp
 from cpython.datetime cimport (
     date,
     datetime,
@@ -7,7 +8,6 @@ from cpython.datetime cimport (
     tzinfo,
 )
 
-cimport numpy as cnp
 import numpy as np
 
 from numpy cimport (
@@ -15,6 +15,7 @@ from numpy cimport (
     intp_t,
     ndarray,
 )
+
 cnp.import_array()
 
 from .conversion cimport normalize_i8_stamp
@@ -38,6 +39,7 @@ from .timezones cimport (
     is_utc,
 )
 from .tzconversion cimport tz_convert_utc_to_tzlocal
+
 
 cdef const int64_t[::1] _deltas_placeholder = np.array([], dtype=np.int64)
 
@@ -156,7 +158,6 @@ cdef inline object create_time_from_ts(
     return time(dts.hour, dts.min, dts.sec, dts.us, tz, fold=fold)
 
 
-#@cython.initializedcheck(False)
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def ints_to_pydatetime(
@@ -319,7 +320,6 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None) -> Resolution:
 
 # -------------------------------------------------------------------------
 
-#@cython.initializedcheck(False)
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo tz):
@@ -368,7 +368,6 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
     return result.base  # `.base` to access underlying ndarray
 
 
-#@cython.initializedcheck(False)
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None) -> bool:
@@ -417,7 +416,6 @@ def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None) -> bool:
 # -------------------------------------------------------------------------
 
 
-@cython.initializedcheck(False)
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def dt64arr_to_periodarr(const int64_t[:] stamps, int freq, tzinfo tz):
