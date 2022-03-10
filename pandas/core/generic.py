@@ -3058,6 +3058,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
           - Windows : none
           - macOS : none
 
+        This method uses the `clipboard_set` utility function. See examples how to
+        use this to render general output formats.
+
         Examples
         --------
         Copy the contents of a DataFrame to the clipboard.
@@ -3078,6 +3081,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ... # A,B,C
         ... # 1,2,3
         ... # 4,5,6
+
+        Using the `clipboard_set` method with any string output format.
+
+        >>> from pandas.io.clipboard import clipboard_set
+        >>> html = df.style.to_html()
+        >>> clipboard_set(html)  # doctest: +SKIP
         """
         from pandas.io import clipboards
 
