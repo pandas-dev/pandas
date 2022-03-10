@@ -34,7 +34,7 @@ class TestDataFrameQuantile:
         )
         with tm.assert_produces_warning(FutureWarning, match="numeric_only"):
             result = df.quantile(0.5)
-            tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "df,expected",
