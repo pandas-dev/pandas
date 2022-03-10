@@ -60,7 +60,6 @@ cdef extern from "src/datetime/np_datetime.h":
                                            npy_datetimestruct *d) nogil
 
 cimport pandas._libs.tslibs.util as util
-
 from pandas._libs.tslibs.base cimport (
     AM_LOCAL,
     PM_LOCAL,

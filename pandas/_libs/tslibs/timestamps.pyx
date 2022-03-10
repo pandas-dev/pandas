@@ -47,9 +47,9 @@ PyDateTime_IMPORT
 
 from pandas._libs.tslibs cimport ccalendar
 from pandas._libs.tslibs.base cimport (
-    ABCTimestamp,
     AM_LOCAL,
     PM_LOCAL,
+    ABCTimestamp,
 )
 from pandas._libs.tslibs.conversion cimport (
     _TSObject,

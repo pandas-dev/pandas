@@ -5,7 +5,10 @@ in order to allow for fast isinstance checks without circular dependency issues.
 This is analogous to core.dtypes.generic.
 """
 
-from cpython.datetime cimport datetime, time
+from cpython.datetime cimport (
+    datetime,
+    time,
+)
 
 
 cdef class ABCTimestamp(datetime):

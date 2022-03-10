@@ -25,11 +25,11 @@ from pandas._libs.tslibs import (
     Timestamp,
     conversion,
     convert_strftime_format,
+    get_local_ampm,
     iNaT,
     nat_strings,
     parsing,
     timezones,
-    get_local_ampm
 )
 from pandas._libs.tslibs.parsing import (  # noqa:F401
     DateParseError,
