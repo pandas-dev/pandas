@@ -297,6 +297,7 @@ Other Deprecations
 - Deprecated the ``warn`` parameter in :func:`infer_freq` (:issue:`45947`)
 - Deprecated allowing non-keyword arguments in :meth:`ExtensionArray.argsort` (:issue:`46134`)
 - Deprecated treating all-bool ``object``-dtype columns as bool-like in :meth:`DataFrame.any` and :meth:`DataFrame.all` with ``bool_only=True``, explicitly cast to bool instead (:issue:`46188`)
+- Deprecated ``auth_local_webserver = False`` in :func:`read_gbq` and :meth:`DataFrame.to_gbq`. The `copy-paste flow has been deprecated <https://developers.googleblog.com/2022/02/making-oauth-flows-safer.html?m=1#disallowed-oob>`_ by Google and is planned to stop working in October 2022.
 -
 
 .. ---------------------------------------------------------------------------

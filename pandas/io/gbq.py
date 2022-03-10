@@ -29,7 +29,7 @@ def read_gbq(
     index_col: str | None = None,
     col_order: list[str] | None = None,
     reauth: bool = False,
-    auth_local_webserver: bool = False,
+    auth_local_webserver: bool = True,
     dialect: str | None = None,
     location: str | None = None,
     configuration: dict[str, Any] | None = None,
@@ -63,7 +63,7 @@ def read_gbq(
     reauth : bool, default False
         Force Google BigQuery to re-authenticate the user. This is useful
         if multiple accounts are used.
-    auth_local_webserver : bool, default False
+    auth_local_webserver : bool, default True
         Use the `local webserver flow`_ instead of the `console flow`_
         when getting user credentials.
 
@@ -202,7 +202,7 @@ def to_gbq(
     chunksize: int | None = None,
     reauth: bool = False,
     if_exists: str = "fail",
-    auth_local_webserver: bool = False,
+    auth_local_webserver: bool = True,
     table_schema: list[dict[str, str]] | None = None,
     location: str | None = None,
     progress_bar: bool = True,

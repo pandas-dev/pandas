@@ -1974,7 +1974,7 @@ class DataFrame(NDFrame, OpsMixin):
         chunksize: int | None = None,
         reauth: bool = False,
         if_exists: str = "fail",
-        auth_local_webserver: bool = False,
+        auth_local_webserver: bool = True,
         table_schema: list[dict[str, str]] | None = None,
         location: str | None = None,
         progress_bar: bool = True,
@@ -2012,7 +2012,7 @@ class DataFrame(NDFrame, OpsMixin):
                 If table exists, drop it, recreate it, and insert data.
             ``'append'``
                 If table exists, insert data. Create if does not exist.
-        auth_local_webserver : bool, default False
+        auth_local_webserver : bool, default True
             Use the `local webserver flow`_ instead of the `console flow`_
             when getting user credentials.
 
