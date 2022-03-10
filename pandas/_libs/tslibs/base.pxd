@@ -5,5 +5,5 @@ cdef class ABCTimestamp(datetime):
     pass
 
 
-cdef bytes AM_LOCAL
-cdef bytes PM_LOCAL
+cdef str AM_LOCAL
+cdef str PM_LOCAL
