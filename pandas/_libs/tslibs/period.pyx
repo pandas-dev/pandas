@@ -61,6 +61,11 @@ cdef extern from "src/datetime/np_datetime.h":
 
 cimport pandas._libs.tslibs.util as util
 
+from pandas._libs.tslibs.base cimport (
+    AM_LOCAL,
+    PM_LOCAL,
+)
+
 from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas._libs.tslibs.timestamps import Timestamp
 
@@ -2410,6 +2415,8 @@ cdef class _Period(PeriodMixin):
         >>> a.fast_strftime(fast_fmt)
         '2006-Q1'
         """
+        global AM_LOCAL, PM_LOCAL
+
         freq = self._dtype._dtype_code
         value = self.ordinal
 
@@ -2436,7 +2443,7 @@ cdef class _Period(PeriodMixin):
             "day": dts.day,
             "hour": h,
             "hour12": 12 if h in (0, 12) else (h % 12),
-            "ampm": "PM" if (h // 12) else "AM",
+            "ampm": PM_LOCAL if (h // 12) else AM_LOCAL,
             "min": dts.min,
             "sec": dts.sec,
             "ms": dts.us // 1000,

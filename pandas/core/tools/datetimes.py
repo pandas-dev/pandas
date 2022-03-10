@@ -29,6 +29,7 @@ from pandas._libs.tslibs import (
     nat_strings,
     parsing,
     timezones,
+    get_local_ampm
 )
 from pandas._libs.tslibs.parsing import (  # noqa:F401
     DateParseError,
@@ -1272,6 +1273,10 @@ def to_time(arg, format=None, infer_time_format=False, errors="raise"):
     return to_time(arg, format, infer_time_format, errors)
 
 
+AM_LOCAL, PM_LOCAL = get_local_ampm()
+"""Get the locale-specific versions of am and pm strings."""
+
+
 def fast_strftime(
     dt: datetime,
     fmt: str,
@@ -1322,7 +1327,7 @@ def fast_strftime(
         "day": dt.day,
         "hour": h,
         "hour12": 12 if h in (0, 12) else (h % 12),
-        "ampm": "PM" if (h // 12) else "AM",
+        "ampm": PM_LOCAL if (h // 12) else AM_LOCAL,
         "min": dt.minute,
         "sec": dt.second,
         "us": dt.microsecond,

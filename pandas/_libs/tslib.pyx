@@ -46,6 +46,10 @@ from pandas._libs.util cimport (
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.parsing import parse_datetime_string
 
+from pandas._libs.tslibs.base cimport (
+    AM_LOCAL,
+    PM_LOCAL,
+)
 from pandas._libs.tslibs.conversion cimport (
     _TSObject,
     cast_from_unit,
@@ -127,6 +131,7 @@ def format_array_from_datetime(
     -------
     np.ndarray[object]
     """
+    global AM_LOCAL, PM_LOCAL
     cdef:
         int64_t val, ns, y, h, N = len(values)
         ndarray[int64_t] consider_values
@@ -212,7 +217,7 @@ def format_array_from_datetime(
                     "day": dts.day,
                     "hour": dts.hour,
                     "hour12": 12 if h in (0, 12) else (h % 12),
-                    "ampm": "PM" if (h // 12) else "AM",
+                    "ampm": PM_LOCAL if (h // 12) else AM_LOCAL,
                     "min": dts.min,
                     "sec": dts.sec,
                     "us": dts.us,

@@ -46,7 +46,11 @@ from cpython.object cimport (
 PyDateTime_IMPORT
 
 from pandas._libs.tslibs cimport ccalendar
-from pandas._libs.tslibs.base cimport ABCTimestamp
+from pandas._libs.tslibs.base cimport (
+    ABCTimestamp,
+    AM_LOCAL,
+    PM_LOCAL,
+)
 from pandas._libs.tslibs.conversion cimport (
     _TSObject,
     convert_datetime_to_tsobject,
@@ -1210,6 +1214,8 @@ class Timestamp(_Timestamp):
         >>> ts.fast_strftime(fmt)
         '2020-03-14T15:32:52'
         """
+        global AM_LOCAL, PM_LOCAL
+
         y = self.year
         h = self.hour
         return fmt_str % {
@@ -1219,7 +1225,7 @@ class Timestamp(_Timestamp):
             "day": self.day,
             "hour": h,
             "hour12": 12 if h in (0, 12) else (h % 12),
-            "ampm": "PM" if (h // 12) else "AM",
+            "ampm": PM_LOCAL if (h // 12) else AM_LOCAL,
             "min": self.minute,
             "sec": self.second,
             "us": self.microsecond,
