@@ -57,7 +57,7 @@ jobs:
     - name: Upload sdist artifact
       uses: actions/upload-artifact@v3
       with:
-        name: ${{ github.sha }}-${{matrix.python-version}}-sdist.gz
+        name: ${{matrix.python-version}}-sdist.gz
         path: dist/*.gz
 
     - uses: conda-incubator/setup-miniconda@v2
