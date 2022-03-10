@@ -3216,12 +3216,18 @@ class TestPeriodIndexFormat:
 
         # Converting to a period looses the timezone information
         # Since tz is currently set as utc, we'll see 2012
-        p = dt.to_period(freq="H")
+        with pytest.warns(UserWarning) as record:
+            p = dt.to_period(freq="H")
+        assert len(record) == 1
+        assert "will drop timezone information" in record[0].message.args[0]
         assert p.format()[0] == "2012-12-31 23:00"
 
         # If tz is currently set as paris before conversion, we'll see 2013
         dt = dt.tz_convert("Europe/Paris")
-        p = dt.to_period(freq="H")
+        with pytest.warns(UserWarning) as record:
+            p = dt.to_period(freq="H")
+        assert len(record) == 1
+        assert "will drop timezone information" in record[0].message.args[0]
         assert p.format()[0] == "2013-01-01 00:00"
 
 
