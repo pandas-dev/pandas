@@ -659,7 +659,12 @@ class TestSeriesReplace:
         assert ints.replace(1, 9).dtype == ints.dtype
         assert ints.replace({1: 9.0}).dtype == ints.dtype
         assert ints.replace(1, 9.0).dtype == ints.dtype
-        # FIXME: ints.replace({1: 9.5}) raises bc of incorrect _can_hold_element
+
+        # nullable (for now) raises instead of casting
+        with pytest.raises(TypeError, match="Invalid value"):
+            ints.replace({1: 9.5})
+        with pytest.raises(TypeError, match="Invalid value"):
+            ints.replace(1, 9.5)
 
     @pytest.mark.parametrize("regex", [False, True])
     def test_replace_regex_dtype_series(self, regex):
