@@ -52,7 +52,7 @@ cdef int64_t tz_localize_to_utc_single(
     """See tz_localize_to_utc.__doc__"""
     cdef:
         int64_t delta
-        int64_t[:] deltas
+        int64_t[::1] deltas
 
     if val == NPY_NAT:
         return val
@@ -115,9 +115,10 @@ timedelta-like}
     localized : ndarray[int64_t]
     """
     cdef:
-        int64_t[:] deltas, idx_shifted, idx_shifted_left, idx_shifted_right
+        int64_t[::1] deltas
+        int64_t[:] idx_shifted, idx_shifted_left, idx_shifted_right
         ndarray[uint8_t, cast=True] ambiguous_array, both_nat, both_eq
-        Py_ssize_t i, idx, pos, ntrans, n = len(vals)
+        Py_ssize_t i, idx, pos, ntrans, n = vals.shape[0]
         Py_ssize_t delta_idx_offset, delta_idx, pos_left, pos_right
         int64_t *tdata
         int64_t v, left, right, val, v_left, v_right, new_local, remaining_mins
@@ -184,7 +185,7 @@ timedelta-like}
     trans, deltas, _ = get_dst_info(tz)
 
     tdata = <int64_t*>cnp.PyArray_DATA(trans)
-    ntrans = len(trans)
+    ntrans = trans.shape[0]
 
     # Determine whether each date lies left of the DST transition (store in
     # result_a) or right of the DST transition (store in result_b)
@@ -400,7 +401,7 @@ cpdef int64_t tz_convert_from_utc_single(int64_t val, tzinfo tz):
     """
     cdef:
         int64_t delta
-        int64_t[:] deltas
+        int64_t[::1] deltas
         ndarray[int64_t, ndim=1] trans
         intp_t pos
 
@@ -437,11 +438,11 @@ def tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
     cdef:
         const int64_t[:] converted
 
-    if len(vals) == 0:
+    if vals.shape[0] == 0:
         return np.array([], dtype=np.int64)
 
     converted = _tz_convert_from_utc(vals, tz)
-    return np.array(converted, dtype=np.int64)
+    return np.asarray(converted, dtype=np.int64)
 
 
 @cython.boundscheck(False)
@@ -460,53 +461,48 @@ cdef const int64_t[:] _tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
     converted : ndarray[int64_t]
     """
     cdef:
-        int64_t[:] converted, deltas
-        Py_ssize_t i, n = len(vals)
-        int64_t val, delta
+        int64_t[::1] converted, deltas
+        Py_ssize_t i, n = vals.shape[0]
+        int64_t val, delta = 0  # avoid not-initialized-warning
         intp_t[:] pos
         ndarray[int64_t] trans
         str typ
+        bint use_tzlocal = False, use_fixed = False, use_utc = True
 
     if is_utc(tz):
-        return vals
-    elif is_tzlocal(tz):
-        converted = np.empty(n, dtype=np.int64)
-        for i in range(n):
-            val = vals[i]
-            if val == NPY_NAT:
-                converted[i] = NPY_NAT
-            else:
-                converted[i] = _tz_convert_tzlocal_utc(val, tz, to_utc=False)
-    else:
-        converted = np.empty(n, dtype=np.int64)
+        # Much faster than going through the "standard" pattern below
+        return vals.copy()
 
+    if is_utc(tz) or tz is None:
+        use_utc = True
+    elif is_tzlocal(tz):
+        use_tzlocal = True
+    else:
         trans, deltas, typ = get_dst_info(tz)
 
         if typ not in ["pytz", "dateutil"]:
             # FixedOffset, we know len(deltas) == 1
             delta = deltas[0]
-
-            for i in range(n):
-                val = vals[i]
-                if val == NPY_NAT:
-                    converted[i] = val
-                else:
-                    converted[i] = val + delta
-
+            use_fixed = True
         else:
             pos = trans.searchsorted(vals, side="right") - 1
 
-            for i in range(n):
-                val = vals[i]
-                if val == NPY_NAT:
-                    converted[i] = val
-                else:
-                    if pos[i] < 0:
-                        # TODO: How is this reached?  Should we be checking for
-                        #  it elsewhere?
-                        raise ValueError("First time before start of DST info")
+    converted = np.empty(n, dtype=np.int64)
 
-                    converted[i] = val + deltas[pos[i]]
+    for i in range(n):
+        val = vals[i]
+        if val == NPY_NAT:
+            converted[i] = NPY_NAT
+            continue
+
+        # The pattern used in vectorized.pyx checks for use_utc here,
+        #  but we handle that case above.
+        if use_tzlocal:
+            converted[i] = _tz_convert_tzlocal_utc(val, tz, to_utc=False)
+        elif use_fixed:
+            converted[i] = val + delta
+        else:
+            converted[i] = val + deltas[pos[i]]
 
     return converted
 
@@ -547,8 +543,10 @@ cdef int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz, bint to_utc=True,
         timedelta td
 
     dt64_to_dtstruct(val, &dts)
+
     dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                   dts.min, dts.sec, dts.us)
+
     # tz.utcoffset only makes sense if datetime
     # is _wall time_, so if val is a UTC timestamp convert to wall time
     if not to_utc:
