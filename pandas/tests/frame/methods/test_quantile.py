@@ -19,13 +19,14 @@ class TestDataFrameQuantile:
         df = DataFrame({"A": [1, 2, 3], "B": [2, 3, 4]})
         df["C"] = pd.date_range("2014-01-01", periods=3, freq="m")
 
-        df_expected_num_only_true = Series(
+        expected = Series(
             [2.0, 3.0],
             index=["A", "B"],
             name=0.5,
         )
         with tm.assert_produces_warning(FutureWarning, match="numeric_only"):
-            tm.assert_series_equal(df.quantile(0.5), df_expected_num_only_true)
+            result = df.quantile(0.5)
+            tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "df,expected",
