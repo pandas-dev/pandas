@@ -22,7 +22,10 @@ from pandas._libs import (
 from pandas._libs.hashtable import unique_label_indices
 from pandas._typing import (
     IndexKeyFunc,
+    Level,
+    NaPosition,
     Shape,
+    SortKind,
     npt,
 )
 
@@ -47,10 +50,10 @@ if TYPE_CHECKING:
 
 def get_indexer_indexer(
     target: Index,
-    level: str | int | list[str] | list[int],
+    level: Level | list[Level] | None,
     ascending: Sequence[bool | int] | bool | int,
-    kind: str,
-    na_position: str,
+    kind: SortKind,
+    na_position: NaPosition,
     sort_remaining: bool,
     key: IndexKeyFunc,
 ) -> npt.NDArray[np.intp] | None:
@@ -92,8 +95,13 @@ def get_indexer_indexer(
         ):
             return None
 
+        # error: Argument "ascending" to "nargsort" has incompatible type
+        # "Union[Sequence[Union[bool, int]], bool, int]"; expected "bool"
         indexer = nargsort(
-            target, kind=kind, ascending=ascending, na_position=na_position
+            target,
+            kind=kind,
+            ascending=ascending,  # type: ignore[arg-type]
+            na_position=na_position,
         )
     return indexer
 

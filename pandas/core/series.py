@@ -39,7 +39,10 @@ from pandas._typing import (
     DtypeObj,
     FillnaOptions,
     IndexKeyFunc,
+    Level,
+    NaPosition,
     SingleManager,
+    SortKind,
     StorageOptions,
     TimedeltaConvertibleTypes,
     TimestampConvertibleTypes,
@@ -3571,15 +3574,66 @@ Keep all original rows and also all original values
         else:
             return result.__finalize__(self, method="sort_values")
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
+    # error: Signature of "sort_index" incompatible with supertype "NDFrame"
+    @overload  # type: ignore[override]
     def sort_index(
         self,
-        axis=0,
-        level=None,
+        *,
+        axis: Literal[0] = ...,
+        level: Level | None = ...,
+        ascending: bool | int | Sequence[bool | int] = ...,
+        inplace: Literal[True],
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
+        sort_remaining: bool = ...,
+        ignore_index: bool = ...,
+        key: IndexKeyFunc = ...,
+    ) -> None:
+        ...
+
+    @overload
+    def sort_index(
+        self,
+        *,
+        axis: Literal[0] = ...,
+        level: Level | None = ...,
+        ascending: bool | int | Sequence[bool | int] = ...,
+        inplace: Literal[False] = ...,
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
+        sort_remaining: bool = ...,
+        ignore_index: bool = ...,
+        key: IndexKeyFunc = ...,
+    ) -> Series:
+        ...
+
+    @overload
+    def sort_index(
+        self,
+        *,
+        axis: Literal[0] = ...,
+        level: Level | None = ...,
+        ascending: bool | int | Sequence[bool | int] = ...,
+        inplace: bool = ...,
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
+        sort_remaining: bool = ...,
+        ignore_index: bool = ...,
+        key: IndexKeyFunc = ...,
+    ) -> Series | None:
+        ...
+
+    # error: Argument 1 of "sort_index" is incompatible with supertype "NDFrame";
+    # supertype defines the argument type as "Union[str, int]"
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
+    def sort_index(  # type: ignore[override]
+        self,
+        axis: Literal[0] = 0,
+        level: Level | None = None,
         ascending: bool | int | Sequence[bool | int] = True,
         inplace: bool = False,
-        kind: str = "quicksort",
-        na_position: str = "last",
+        kind: SortKind = "quicksort",
+        na_position: NaPosition = "last",
         sort_remaining: bool = True,
         ignore_index: bool = False,
         key: IndexKeyFunc = None,
@@ -3720,15 +3774,15 @@ Keep all original rows and also all original values
         """
 
         return super().sort_index(
-            axis,
-            level,
-            ascending,
-            inplace,
-            kind,
-            na_position,
-            sort_remaining,
-            ignore_index,
-            key,
+            axis=axis,
+            level=level,
+            ascending=ascending,
+            inplace=inplace,
+            kind=kind,
+            na_position=na_position,
+            sort_remaining=sort_remaining,
+            ignore_index=ignore_index,
+            key=key,
         )
 
     def argsort(self, axis=0, kind="quicksort", order=None) -> Series:

@@ -50,9 +50,11 @@ from pandas._typing import (
     JSONSerializable,
     Level,
     Manager,
+    NaPosition,
     NDFrameT,
     RandomState,
     Renamer,
+    SortKind,
     StorageOptions,
     T,
     TimedeltaConvertibleTypes,
@@ -4672,18 +4674,66 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         raise AbstractMethodError(self)
 
+    @overload
     def sort_index(
         self,
-        axis=0,
-        level=None,
+        *,
+        axis: Axis = ...,
+        level: Level | None = ...,
+        ascending: bool_t | int | Sequence[bool_t | int] = ...,
+        inplace: Literal[True],
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
+        sort_remaining: bool_t = ...,
+        ignore_index: bool_t = ...,
+        key: IndexKeyFunc = ...,
+    ) -> None:
+        ...
+
+    @overload
+    def sort_index(
+        self: NDFrameT,
+        *,
+        axis: Axis = ...,
+        level: Level | None = ...,
+        ascending: bool_t | int | Sequence[bool_t | int] = ...,
+        inplace: Literal[False] = ...,
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
+        sort_remaining: bool_t = ...,
+        ignore_index: bool_t = ...,
+        key: IndexKeyFunc = ...,
+    ) -> NDFrameT:
+        ...
+
+    @overload
+    def sort_index(
+        self: NDFrameT,
+        *,
+        axis: Axis = ...,
+        level: Level | None = ...,
+        ascending: bool_t | int | Sequence[bool_t | int] = ...,
+        inplace: bool_t = ...,
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
+        sort_remaining: bool_t = ...,
+        ignore_index: bool_t = ...,
+        key: IndexKeyFunc = ...,
+    ) -> NDFrameT | None:
+        ...
+
+    def sort_index(
+        self: NDFrameT,
+        axis: Axis = 0,
+        level: Level | None = None,
         ascending: bool_t | int | Sequence[bool_t | int] = True,
         inplace: bool_t = False,
-        kind: str = "quicksort",
-        na_position: str = "last",
+        kind: SortKind = "quicksort",
+        na_position: NaPosition = "last",
         sort_remaining: bool_t = True,
         ignore_index: bool_t = False,
         key: IndexKeyFunc = None,
-    ):
+    ) -> NDFrameT | None:
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         axis = self._get_axis_number(axis)
@@ -4704,7 +4754,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if ignore_index:
                 result.index = default_index(len(self))
             if inplace:
-                return
+                return None
             else:
                 return result
 

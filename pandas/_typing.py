@@ -307,9 +307,11 @@ CSVEngine = Literal["c", "python", "pyarrow", "python-fwf"]
 XMLParsers = Literal["lxml", "etree"]
 
 # Interval closed type
-
 IntervalClosedType = Literal["left", "right", "both", "neither"]
 
 # datetime and NaTType
-
 DatetimeNaTType = Union[datetime, "NaTType"]
+
+# sort_index
+SortKind = Literal["quicksort", "mergesort", "heapsort", "stable"]
+NaPosition = Literal["first", "last"]
