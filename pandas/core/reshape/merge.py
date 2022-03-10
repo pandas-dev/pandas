@@ -2219,6 +2219,13 @@ def _factorize_keys(
         # "_values_for_factorize"
         rk, _ = rk._values_for_factorize()  # type: ignore[union-attr]
 
+    elif is_integer_dtype(lk.dtype) and is_integer_dtype(rk.dtype):
+        if isinstance(lk, ExtensionArray):
+            lk, _ = lk._values_for_factorize()
+
+        if isinstance(rk, ExtensionArray):
+            rk, _ = rk._values_for_factorize()
+
     klass: type[libhashtable.Factorizer] | type[libhashtable.Int64Factorizer]
     if is_integer_dtype(lk.dtype) and is_integer_dtype(rk.dtype):
         # GH#23917 TODO: needs tests for case where lk is integer-dtype

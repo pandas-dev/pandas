@@ -2669,3 +2669,19 @@ def test_merge_different_index_names():
     result = merge(left, right, left_on="c", right_on="d")
     expected = DataFrame({"a_x": [1], "a_y": 1})
     tm.assert_frame_equal(result, expected)
+
+
+def test_merge_int_ea_and_non_ea():
+    # GH#46178
+    left = DataFrame({"a": [1, 1, 3, pd.NA]}, dtype="Int64")
+    right = DataFrame({"b": ["a", "b"]}, index=pd.Index([1, 3], name="a"))
+
+    result = left.merge(right, left_on="a", right_index=True)
+    expected = DataFrame({"a": [1, 1, 3], "b": ["a", "a", "b"]})
+    expected["a"] = expected["a"].astype("Int64")
+    tm.assert_frame_equal(result, expected)
+
+    result = right.merge(left, right_on="a", left_index=True)
+    expected = DataFrame({"b": ["a", "a", "b"], "a": [1, 1, 3]})
+    expected["a"] = expected["a"].astype("Int64")
+    tm.assert_frame_equal(result, expected)
