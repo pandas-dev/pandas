@@ -184,9 +184,7 @@ def convert_strftime_format(
         for _map in directive_maps:
             for key, (_name, _fmt) in _map.items():
                 # for example replace "%d" by "%(day)02d" but with escaped %
-                strftime_fmt = strftime_fmt.replace(
-                    key, f"{esc}({_name}){_fmt}"
-                )
+                strftime_fmt = strftime_fmt.replace(key, f"{esc}({_name}){_fmt}")
 
         # Escape remaining percent signs
         strftime_fmt = strftime_fmt.replace("%", "%%")

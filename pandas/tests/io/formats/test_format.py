@@ -18,7 +18,10 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._libs.tslibs import convert_strftime_format, get_local_ampm
+from pandas._libs.tslibs import (
+    convert_strftime_format,
+    get_local_ampm,
+)
 from pandas.compat import (
     IS64,
     is_platform_windows,
@@ -3421,7 +3424,8 @@ class TestDatetimeFastFormatter:
     @pytest.mark.parametrize(
         "date_format",
         (
-            # note: "%Y-%m-%d %H:%M:%S and "%Y-%m-%d %H:%M:%S.%f are always accelerated (hardcoded)
+            # note: "%Y-%m-%d %H:%M:%S and "%Y-%m-%d %H:%M:%S.%f
+            # are always accelerated (hardcoded)
             "%Y-%m-%d__foo__%H:%M:%S",
             "%Y %Y",
             "%Y-%m-%dT%H:%M:%S.%fZ",
