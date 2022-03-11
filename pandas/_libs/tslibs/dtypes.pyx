@@ -50,6 +50,25 @@ cdef class PeriodDtypeBase:
         code = offset._period_dtype_code
         return cls(code)
 
+    cpdef int _get_to_timestamp_base(self):
+        """
+        Return frequency code group used for base of to_timestamp against
+        frequency code.
+
+        Return day freq code against longer freq than day.
+        Return second freq code against hour between second.
+
+        Returns
+        -------
+        int
+        """
+        base = <c_FreqGroup>self._dtype_code
+        if base < FR_BUS:
+            return FR_DAY
+        elif FR_HR <= base <= FR_SEC:
+            return FR_SEC
+        return base
+
 
 _period_code_map = {
     # Annual freqs with various fiscal year ends.
