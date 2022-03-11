@@ -62,17 +62,18 @@ jobs:
 
     - script: mkdir -p $(Pipeline.Workspace)/conda_pkgs
       displayName: Create Conda pkgs directory
-      condition: eq(variables.CONDA_CACHE_RESTORED, 'true')
+      condition: ne(variables.CONDA_CACHE_RESTORED, 'true')
 
     - script: echo '##vso[task.prependpath]/usr/local/miniconda/condabin'
       displayName: 'Set conda path'
 
     - script: |
         set -eux
+        ls -lh
         export CONDA_PKGS_DIRS=$(Pipeline.Workspace)/conda_pkgs
-        conda install -y -c conda-forge -n base 'mamba>=0.22' pip
+        time conda install -y -c conda-forge -n base 'mamba>=0.22' pip
         # See https://github.com/mamba-org/mamba/issues/633
-        mamba create -q -n pandas-dev
+        time mamba create -q -n pandas-dev
         # TODO: GH#44980 https://github.com/pypa/setuptools/issues/2941
         echo '  - setuptools <60' >> ${ENV_FILE}
         if [ "$(uname)" == Darwin ]; then
@@ -116,3 +117,4 @@ jobs:
         find $(Pipeline.Workspace)/conda_pkgs -maxdepth 1 -type d -iname '*-*-*_*' | xargs rm -r
         ls $(Pipeline.Workspace)/conda_pkgs
       displayName: 'Reduce Conda cache size'
+      condition: ne(variables.CONDA_CACHE_RESTORED, 'true')
