@@ -1110,6 +1110,14 @@ class TestIndex(Base):
         assert result.levels[0].dtype.type == np.int64
         assert result.levels[1].dtype.type == np.float64
 
+    def test_reindex_ignoring_level(self):
+        # GH#35132
+        idx = Index([1, 2, 3], name="x")
+        idx2 = Index([1, 2, 3, 4], name="x")
+        expected = Index([1, 2, 3, 4], name="x")
+        result, _ = idx.reindex(idx2, level="x")
+        tm.assert_index_equal(result, expected)
+
     def test_groupby(self):
         index = Index(range(5))
         result = index.groupby(np.array([1, 1, 2, 2, 2]))
