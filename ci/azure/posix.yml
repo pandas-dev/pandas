@@ -84,9 +84,8 @@ jobs:
 
     - script: |
         set -eux
-        conda run --no-capture-output -n mamba-env mamba install -n pandas-dev pip -y
-        conda run --no-capture-output -n pandas-dev which python
         conda run --no-capture-output -n pandas-dev python --version
+        conda run --no-capture-output -n pandas-dev python3 --version
         time DISTUTILS_C_COMPILER_LAUNCHER=sccache conda run --no-capture-output -n pandas-dev python setup.py build_ext -v -j3
         time conda run --no-capture-output -n pandas-dev python -m pip install --force-reinstall --no-build-isolation -e .
         sccache -s
