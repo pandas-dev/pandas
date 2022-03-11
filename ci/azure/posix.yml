@@ -22,15 +22,6 @@ jobs:
         CONDA_PY: "310"
 
   steps:
-    - task: Cache@2
-      inputs:
-        key: mamba-0
-        restoreKeys: |
-          mamba-restore-0
-        path: /usr/local/miniconda/envs/mamba
-        cacheHitVar: CONDA_MAMBA_ENV_CACHE_RESTORED
-      displayName: Conda Mamba env cache
-
     - script: |
         set -eux
         ls -lh
@@ -43,5 +34,5 @@ jobs:
       condition: ne(variables.CONDA_MAMBA_ENV_CACHE_RESTORED, 'true')
 
     - script: |
-        conda run --no-capture-output -n mamba mamba --help
+        conda run --no-capture-output -n mamba mamba info
       displayName: Mamba help
