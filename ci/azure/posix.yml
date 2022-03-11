@@ -22,7 +22,7 @@ jobs:
         CONDA_PY: "310"
 
   steps:
-    - script: rm /usr/local/miniconda/pkgs/cache/*.json
+    - script: rm -r /usr/local/miniconda/pkgs/cache
       displayName: 'Workaround for mamba-org/mamba#488'
 
     - task: Cache@2
