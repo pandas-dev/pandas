@@ -45,7 +45,7 @@ jobs:
         sccache -z
       displayName: Setup Sccache
 
-    - script: ls -lh $(Pipeline.Workspace)/conda_pkgs
+    - script: ls -lh $(Pipeline.Workspace)/conda_pkgs || true
       displayName: 'List packages'
 
     - script: conda env list
