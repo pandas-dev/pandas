@@ -56,25 +56,25 @@ jobs:
     - script: conda env list
       displayName: 'conda list'
 
-    # - task: Cache@2
-    #   inputs:
-    #     key: conda-11
-    #     restoreKeys: |
-    #       conda-restore-11
-    #     path: $(Pipeline.Workspace)/conda_pkgs
-    #     cacheHitVar: CONDA_CACHE_RESTORED
-    #   displayName: Conda download cache
+    - task: Cache@2
+      inputs:
+        key: conda-11
+        restoreKeys: |
+          conda-restore-11
+        path: $(Pipeline.Workspace)/conda_pkgs
+        cacheHitVar: CONDA_CACHE_RESTORED
+      displayName: Conda download cache
 
-    # - script: mkdir -p $(Pipeline.Workspace)/conda_pkgs
-    #   displayName: Create Conda pkgs directory
-    #   condition: ne(variables.CONDA_CACHE_RESTORED, 'true')
+    - script: mkdir -p $(Pipeline.Workspace)/conda_pkgs
+      displayName: Create Conda pkgs directory
+      condition: ne(variables.CONDA_CACHE_RESTORED, 'true')
 
     - script: echo '##vso[task.prependpath]/usr/local/miniconda/condabin'
       displayName: 'Set conda path'
 
     - script: |
         set -eux
-        # export CONDA_PKGS_DIRS=$(Pipeline.Workspace)/conda_pkgs
+        export CONDA_PKGS_DIRS=$(Pipeline.Workspace)/conda_pkgs
 
         # TODO: GH#44980 https://github.com/pypa/setuptools/issues/2941
         echo '  - setuptools <60' >> ${ENV_FILE}
@@ -98,8 +98,8 @@ jobs:
         conda list -n pandas-dev -f pandas --json
         conda run --no-capture-output -n pandas-dev pip list | grep pandas
         set -e
-        time DISTUTILS_C_COMPILER_LAUNCHER=sccache conda run --no-capture-output -n pandas-dev python setup.py build_ext -v -j3
-        time conda run --no-capture-output -n pandas-dev python -m pip install --force-reinstall --no-build-isolation -e .
+        #time DISTUTILS_C_COMPILER_LAUNCHER=sccache conda run --no-capture-output -n pandas-dev python setup.py build_ext -v -j3
+        #time conda run --no-capture-output -n pandas-dev python -m pip install --force-reinstall --no-build-isolation -e .
         sccache -s
       displayName: 'Setup environment and build pandas'
 
