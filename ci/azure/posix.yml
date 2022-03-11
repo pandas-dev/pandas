@@ -47,9 +47,9 @@ jobs:
 
     - task: Cache@2
       inputs:
-        key: conda-0
+        key: conda-1
         restoreKeys: |
-          conda-restore-0
+          conda-restore-1
         path: /usr/local/miniconda
         pattern: |
           *.conda
