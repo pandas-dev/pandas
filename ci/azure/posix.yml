@@ -50,10 +50,10 @@ jobs:
 
     - task: Cache@2
       inputs:
-        key: conda-8
+        key: conda-9
         restoreKeys: |
-          conda-restore-8
-        path: ~/conda_pkgs
+          conda-restore-9
+        path: $(HOME)/conda_pkgs
       displayName: Conda download cache
 
     - script: echo '##vso[task.prependpath]/usr/local/miniconda/condabin'
@@ -63,13 +63,13 @@ jobs:
       displayName: 'conda list'
 
     - script: |
-        mkdir -p ~/conda_pkgs
-        export CONDA_PKGS_DIR=~/conda_pkgs
+        mkdir -p $(HOME)/conda_pkgs
+        export CONDA_PKGS_DIR=$(HOME)/conda_pkgs
         conda install -c conda-forge -n base werkzeug -y
       displayName: test
 
 #     - script: |
-#         export CONDA_PKGS_DIR=~/conda_pkgs
+#         export CONDA_PKGS_DIR=$(HOME)/conda_pkgs
 #         set -eux
 #         conda install -y -c conda-forge -n base 'mamba>=0.22' pip
 #         env | grep pkg
@@ -115,6 +115,6 @@ jobs:
 #       displayName: 'Publish test results'
 
     - script: |
-        find ~/conda_pkgs -maxdepth 1 -type d -iname '*-*-*_*' | xargs rm -r
-        ls ~/conda_pkgs
+        find $(HOME)/conda_pkgs -maxdepth 1 -type d -iname '*-*-*_*' | xargs rm -r
+        ls $(HOME)/conda_pkgs
       displayName: 'Reduce Conda cache size'
