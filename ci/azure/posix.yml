@@ -118,5 +118,7 @@ jobs:
 #         testRunTitle: ${{ format('{0}-$(CONDA_PY)', parameters.name) }}
 #       displayName: 'Publish test results'
 
-    - script: find /usr/local/miniconda/pkgs -maxdepth 1 -type d -iname '*-*-*_*' | xargs rm -r
+    - script: |
+        find /usr/local/miniconda/pkgs -maxdepth 1 -type d -iname '*-*-*_*' | xargs rm -r
+        ls /usr/local/miniconda/pkgs
       displayName: 'Reduce Conda cache size'
