@@ -3192,7 +3192,7 @@ class TestPeriodIndexFormat:
         assert formatted[0] == "2003-01-01 12:01:01.123456789"
         assert formatted[1] == "2003-01-01 12:01:01.123456790"
 
-    def test_period_locale(self, overridden_locale):
+    def test_period_locale(self):
         """Test that `convert_strftime_format` relies on runtime locale
 
         If this test fails, all tests using %p format strftime will fail when
@@ -3223,7 +3223,7 @@ class TestPeriodIndexFormat:
         assert pm_local == pm_ts.fast_strftime(str_tmp, loc_s)
 
     @pytest.mark.parametrize("fast_strftime", (False, True))
-    def test_period_custom(self, fast_strftime, overridden_locale):
+    def test_period_custom(self, fast_strftime):
         # GH46252
         # fmt: off
 
@@ -3277,14 +3277,14 @@ class TestPeriodIndexFormat:
         assert p.format()[0] == "2013-01-01 00:00"
 
 
-@pytest.fixture(params=["fr_FR", "zh_CN", "it_IT"])
-def overridden_locale(request):
-    """A fixture used to change the locale temporarily"""
-    old = locale.setlocale(locale.LC_ALL)
-    target = request.param
-    locale.setlocale(locale.LC_ALL, target)
-    yield target
-    locale.setlocale(locale.LC_ALL, old)
+# @pytest.fixture(params=["fr_FR", "zh_CN", "it_IT"])
+# def overridden_locale(request):
+#     """A fixture used to change the locale temporarily"""
+#     old = locale.setlocale(locale.LC_ALL)
+#     target = request.param
+#     locale.setlocale(locale.LC_ALL, target)
+#     yield target
+#     locale.setlocale(locale.LC_ALL, old)
 
 
 class TestDatetimeIndexFormat:
