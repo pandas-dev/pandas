@@ -37,7 +37,7 @@
 
 This tutorial uses air quality data about :math:`NO_2` and Particulate matter less than 2.5
 micrometers, made available by
-`openaq <https://openaq.org>`__ and using the
+`OpenAQ <https://openaq.org>`__ and using the
 `py-openaq <http://dhhagan.github.io/py-openaq/index.html>`__ package.
 The ``air_quality_long.csv`` data set provides :math:`NO_2` and
 :math:`PM_{25}` values for the measurement stations *FR04014*, *BETR801*
@@ -283,7 +283,7 @@ Wide to long format
 ~~~~~~~~~~~~~~~~~~~
 
 Starting again from the wide format table created in the previous
-section:
+section, we add a new index to the ``DataFrame`` with :meth:`~DataFrame.reset_index`.
 
 .. ipython:: python
 
