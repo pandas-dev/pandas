@@ -102,7 +102,7 @@ Concatenating objects
     <ul class="task-bullet">
         <li>
 
-I want to combine the measurements of :math:`NO_2` and :math:`PM_{25}`, two tables with a similar structure, in a single table
+I want to combine the measurements of :math:`NO_2` and :math:`PM_{25}`, two tables with a similar structure, in a single table.
 
 .. ipython:: python
 
@@ -149,16 +149,13 @@ origin of the table (either ``no2`` from table ``air_quality_no2`` or
 
 In this specific example, the ``parameter`` column provided by the data
 ensures that each of the original tables can be identified. This is not
-always the case. the ``concat`` function provides a convenient solution
+always the case. The ``concat`` function provides a convenient solution
 with the ``keys`` argument, adding an additional (hierarchical) row
 index. For example:
 
 .. ipython:: python
 
     air_quality_ = pd.concat([air_quality_pm25, air_quality_no2], keys=["PM25", "NO2"])
-
-.. ipython:: python
-
     air_quality_.head()
 
 .. note::
@@ -254,7 +251,7 @@ supports multiple join options similar to database-style operations.
     <ul class="task-bullet">
         <li>
 
-Add the parameter full description and name, provided by the parameters metadata table, to the measurements table
+Add the parameters' full description and name, provided by the parameters metadata table, to the measurements table.
 
 .. warning::
     The air quality parameters metadata are stored in a data file
