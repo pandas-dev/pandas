@@ -11,6 +11,15 @@ cdef extern from *:
     object char_to_string(const char* data)
 
 
+cdef extern from *:
+    object PyUnicode_DecodeLocale(const char *str, const char *errors)
+
+
+cdef inline object char_to_string_locale(const char* data):
+    """As opposed to PyUnicode_FromString, use the locale to decode."""
+    return PyUnicode_DecodeLocale(data, NULL)
+
+
 cdef extern from "Python.h":
     # Note: importing extern-style allows us to declare these as nogil
     # functions, whereas `from cpython cimport` does not.

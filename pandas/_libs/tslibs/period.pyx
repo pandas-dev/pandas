@@ -1303,7 +1303,7 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt):
     # Execute c_strftime to process the usual datetime directives
     formatted = c_strftime(&dts, <char*>fmt)
 
-    result = util.char_to_string(formatted)
+    result = util.char_to_string_locale(formatted)
     free(formatted)
 
     # Now fill the placeholders corresponding to our additional directives
