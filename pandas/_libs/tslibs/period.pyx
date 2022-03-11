@@ -1545,25 +1545,6 @@ class IncompatibleFrequency(ValueError):
 cdef class PeriodMixin:
     # Methods shared between Period and PeriodArray
 
-    cpdef int _get_to_timestamp_base(self):
-        """
-        Return frequency code group used for base of to_timestamp against
-        frequency code.
-
-        Return day freq code against longer freq than day.
-        Return second freq code against hour between second.
-
-        Returns
-        -------
-        int
-        """
-        base = self._dtype._dtype_code
-        if base < FR_BUS:
-            return FR_DAY
-        elif FR_HR <= base <= FR_SEC:
-            return FR_SEC
-        return base
-
     @property
     def start_time(self) -> Timestamp:
         """
@@ -1861,7 +1842,7 @@ cdef class _Period(PeriodMixin):
             return endpoint - Timedelta(1, 'ns')
 
         if freq is None:
-            freq = self._get_to_timestamp_base()
+            freq = self._dtype._get_to_timestamp_base()
             base = freq
         else:
             freq = self._maybe_convert_freq(freq)
