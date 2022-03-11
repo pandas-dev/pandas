@@ -1,6 +1,5 @@
 import cython
 
-cimport numpy as cnp
 from cpython.datetime cimport (
     date,
     datetime,
@@ -9,7 +8,7 @@ from cpython.datetime cimport (
 )
 
 import numpy as np
-
+cimport numpy as cnp
 from numpy cimport (
     int64_t,
     intp_t,
@@ -43,8 +42,6 @@ from .tzconversion cimport tz_convert_utc_to_tzlocal
 
 cdef const int64_t[::1] _deltas_placeholder = np.array([], dtype=np.int64)
 
-ctypedef int64_t (*localizer_func)(Localizer, int64_t, intp_t*, intp_t)
-
 
 @cython.freelist(16)
 @cython.final
@@ -57,12 +54,6 @@ cdef class Localizer:
         int64_t delta
         str typ
 
-    # TODO: report cython bug; this declaration works if on its own line
-    #  but raises at compile-time if included in the 'cdef readonly'
-    #  declarations above.
-    # cdef int64_t (*func)(Localizer, int64_t, intp_t*, intp_t)
-    # cdef localizer_func func
-
     @cython.initializedcheck(False)
     @cython.boundscheck(False)
     def __cinit__(self, tzinfo tz):
@@ -73,11 +64,9 @@ cdef class Localizer:
 
         if is_utc(tz) or tz is None:
             self.use_utc = True
-            # self.func = self.func_use_utc
 
         elif is_tzlocal(tz):
             self.use_tzlocal = True
-            # self.func = self.func_use_tzlocal
 
         else:
             trans, deltas, typ = get_dst_info(tz)
@@ -89,24 +78,10 @@ cdef class Localizer:
                 # static/fixed; in this case we know that len(delta) == 1
                 self.use_fixed = True
                 self.delta = deltas[0]
-                # self.func = self.func_use_fixed
             else:
                 self.use_dst = True
-                # self.func = self.func_use_dst
                 if typ == "pytz":
                     self.use_pytz = True
-
-    cdef int64_t func_use_utc(self, int64_t utc_val, intp_t* pos, intp_t i):
-        return utc_val
-
-    cdef int64_t func_use_tzlocal(self, int64_t utc_val, intp_t* pos, intp_t i):
-        return tz_convert_utc_to_tzlocal(utc_val, self.tz)
-
-    cdef int64_t func_use_fixed(self, int64_t utc_val, intp_t* pos, intp_t i):
-        return utc_val + self.delta
-
-    cdef int64_t func_use_dst(self, int64_t utc_val, intp_t* pos, intp_t i):
-        return utc_val + self.deltas[pos[i]]
 
 
 # -------------------------------------------------------------------------
@@ -233,7 +208,7 @@ def ints_to_pydatetime(
         elif info.use_tzlocal:
             local_val = tz_convert_utc_to_tzlocal(value, tz)
         elif info.use_fixed:
-            local_val = value + delta
+            local_val = value + info.delta
         else:
             local_val = value + info.deltas[pos[i]]
 
@@ -301,7 +276,7 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None) -> Resolution:
         elif info.use_fixed:
             local_val = stamps[i] + info.delta
         else:
-            local_val = stamps[i] + deltas[pos[i]]
+            local_val = stamps[i] + info.deltas[pos[i]]
 
         dt64_to_dtstruct(local_val, &dts)
         curr_reso = _reso_stamp(&dts)
@@ -352,7 +327,7 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
         elif info.use_tzlocal:
             local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
         elif info.use_fixed:
-            local_val = stamps[i] + delta
+            local_val = stamps[i] + info.delta
         else:
             local_val = stamps[i] + info.deltas[pos[i]]
 
@@ -398,7 +373,7 @@ def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None) -> bool:
         elif info.use_fixed:
             local_val = stamps[i] + info.delta
         else:
-            local_val = stamps[i] + deltas[pos[i]]
+            local_val = stamps[i] + info.deltas[pos[i]]
 
         if local_val % day_nanos != 0:
             return False
@@ -435,7 +410,7 @@ def dt64arr_to_periodarr(const int64_t[:] stamps, int freq, tzinfo tz):
         elif info.use_tzlocal:
             local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
         elif info.use_fixed:
-            local_val = stamps[i] + delta
+            local_val = stamps[i] + info.delta
         else:
             local_val = stamps[i] + info.deltas[pos[i]]
 
