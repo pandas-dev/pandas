@@ -30,7 +30,7 @@ jobs:
         key: sccache-0
         restoreKeys: |
           sccache-restore-0
-        path: $(HOME)/.sccache
+        path: $(Pipeline.Workspace)/.sccache
       displayName: Sccache cache
 
     - script: |
@@ -40,61 +40,59 @@ jobs:
         curl -L https://github.com/mozilla/sccache/releases/download/$sccache_version/$sccache_archive_name.tar.gz \
           | tar xzf - -O $sccache_archive_name/sccache > /usr/local/bin/sccache
         chmod +x /usr/local/bin/sccache
-        SCCACHE_IDLE_TIMEOUT=999999 SCCACHE_DIR=$(HOME)/.sccache sccache --start-server
+        SCCACHE_IDLE_TIMEOUT=999999 SCCACHE_DIR=$(Pipeline.Workspace)/.sccache sccache --start-server
         sccache -s
         sccache -z
       displayName: Setup Sccache
 
-    - script: ls -lh /usr/local/miniconda/pkgs
+    - script: ls -lh $(Pipeline.Workspace)/conda_pkgs
       displayName: 'List packages'
-
-    - task: Cache@2
-      inputs:
-        key: conda-10
-        restoreKeys: |
-          conda-restore-10
-        path: $(HOME)/conda_pkgs
-      displayName: Conda download cache
-
-    - script: echo '##vso[task.prependpath]/usr/local/miniconda/condabin'
-      displayName: 'Set conda path'
 
     - script: conda env list
       displayName: 'conda list'
 
-    - script: |
-        mkdir -p $(HOME)/conda_pkgs
-        export CONDA_PKGS_DIRS=$(HOME)/conda_pkgs
-        conda install -c conda-forge -n base werkzeug -y
-      displayName: test
+    - task: Cache@2
+      inputs:
+        key: conda-11
+        restoreKeys: |
+          conda-restore-11
+        path: $(Pipeline.Workspace)/conda_pkgs
+        cacheHitVar: CONDA_CACHE_RESTORED
+      displayName: Conda download cache
 
-#     - script: |
-#         export CONDA_PKGS_DIRS=$(HOME)/conda_pkgs
-#         set -eux
-#         conda install -y -c conda-forge -n base 'mamba>=0.22' pip
-#         env | grep pkg
-#         # See https://github.com/mamba-org/mamba/issues/633
-#         mamba create -q -n pandas-dev
-#         # TODO: GH#44980 https://github.com/pypa/setuptools/issues/2941
-#         echo '  - setuptools <60' >> ${ENV_FILE}
-#         if [ "$(uname)" == Darwin ]; then
-#           # From pyarrow on MacOS
-#           # ImportError: 2): Library not loaded: @rpath/libssl.1.1.dylib
-#           # Referenced from: /Users/runner/miniconda3/envs/pandas-dev/lib/libthrift.0.13.0.dylib
-#           # Reason: image not found
-#           sed -i'' -e 's/^  - pyarrow$/  - pyarrow=6/' ${ENV_FILE}
-#         fi
-#         time mamba env update -n pandas-dev --file="${ENV_FILE}"
-#         set +e
-#         echo Have qt?
-#         mamba list -n pandas-dev -f qt --json
-#         echo Have pandas?
-#         mamba run --no-capture-output -n pandas-dev pip list | grep pandas
-#         set -e
-#         time DISTUTILS_C_COMPILER_LAUNCHER=sccache mamba run --no-capture-output -n pandas-dev python setup.py build_ext -v -j3
-#         time mamba run --no-capture-output -n pandas-dev python -m pip install --no-build-isolation -e .
-#         sccache -s
-#       displayName: 'Setup environment and build pandas'
+    - script: mkdir -p $(Pipeline.Workspace)/conda_pkgs
+      displayName: Create Conda pkgs directory
+      condition: eq(variables.CONDA_CACHE_RESTORED, 'true')
+
+    - script: echo '##vso[task.prependpath]/usr/local/miniconda/condabin'
+      displayName: 'Set conda path'
+
+    - script: |
+        set -eux
+        export CONDA_PKGS_DIRS=$(Pipeline.Workspace)/conda_pkgs
+        conda install -y -c conda-forge -n base 'mamba>=0.22' pip
+        # See https://github.com/mamba-org/mamba/issues/633
+        mamba create -q -n pandas-dev
+        # TODO: GH#44980 https://github.com/pypa/setuptools/issues/2941
+        echo '  - setuptools <60' >> ${ENV_FILE}
+        if [ "$(uname)" == Darwin ]; then
+          # From pyarrow on MacOS
+          # ImportError: 2): Library not loaded: @rpath/libssl.1.1.dylib
+          # Referenced from: /Users/runner/miniconda3/envs/pandas-dev/lib/libthrift.0.13.0.dylib
+          # Reason: image not found
+          sed -i'' -e 's/^  - pyarrow$/  - pyarrow=6/' ${ENV_FILE}
+        fi
+        time mamba env update -n pandas-dev --file="${ENV_FILE}"
+        set +e
+        echo Have qt?
+        mamba list -n pandas-dev -f qt --json
+        echo Have pandas?
+        mamba run --no-capture-output -n pandas-dev pip list | grep pandas
+        set -e
+        time DISTUTILS_C_COMPILER_LAUNCHER=sccache mamba run --no-capture-output -n pandas-dev python setup.py build_ext -v -j3
+        time mamba run --no-capture-output -n pandas-dev python -m pip install --no-build-isolation -e .
+        sccache -s
+      displayName: 'Setup environment and build pandas'
 
 #     - script: |
 #         mamba run --no-capture-output -n pandas-dev ci/run_tests.sh
@@ -115,6 +113,6 @@ jobs:
 #       displayName: 'Publish test results'
 
     - script: |
-        find $(HOME)/conda_pkgs -maxdepth 1 -type d -iname '*-*-*_*' | xargs rm -r
-        ls $(HOME)/conda_pkgs
+        find $(Pipeline.Workspace)/conda_pkgs -maxdepth 1 -type d -iname '*-*-*_*' | xargs rm -r
+        ls $(Pipeline.Workspace)/conda_pkgs
       displayName: 'Reduce Conda cache size'
