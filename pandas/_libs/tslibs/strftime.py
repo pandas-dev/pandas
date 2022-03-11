@@ -1,9 +1,11 @@
 """Strftime-related classes and functions.
 """
-import locale
-
 from datetime import time
-from typing import Tuple, Dict
+import locale
+from typing import (
+    Dict,
+    Tuple,
+)
 
 
 class UnsupportedStrFmtDirective(ValueError):
@@ -88,8 +90,7 @@ class LocaleSpecificDtStrings:
 
     def __repr__(self):
         attrs = ", ".join(
-            f"{k}={repr(getattr(self, k))}"
-            for k in type(self).__slots__
+            [f"{k}={repr(getattr(self, k))}" for k in type(self).__slots__]
         )
         return f"{type(self).__name__}({attrs})"
 
@@ -101,7 +102,7 @@ class LocaleSpecificDtStrings:
         )
 
 
-_locale_specifics: Dict[str, LocaleSpecificDtStrings] = dict()
+_locale_specifics: Dict[str, LocaleSpecificDtStrings] = {}
 
 
 def get_current_locale_specific_string() -> LocaleSpecificDtStrings:
