@@ -28,7 +28,7 @@ jobs:
         restoreKeys: |
           sccache-restore-0
         path: $(HOME)/.sccache
-      displayName: Restore Sccache cache
+      displayName: Sccache cache
 
     - script: |
         set -eux
@@ -52,7 +52,7 @@ jobs:
           conda-restore-4
         path: /usr/local/miniconda/pkgs
         pattern: /usr/local/miniconda/pkgs/*.tar.bz2
-      displayName: Restore Conda package cache
+      displayName: Conda download cache
 
     - script: |
         ls -lh /usr/local/miniconda/pkgs
