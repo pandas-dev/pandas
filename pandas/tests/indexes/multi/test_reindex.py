@@ -42,9 +42,6 @@ def test_reindex_level(idx):
     with pytest.raises(TypeError, match="Fill method not supported"):
         idx.reindex(idx, method="pad", level="second")
 
-    with pytest.raises(TypeError, match="Fill method not supported"):
-        index.reindex(index, method="bfill", level="first")
-
 
 def test_reindex_preserves_names_when_target_is_list_or_ndarray(idx):
     # GH6552
