@@ -45,18 +45,18 @@ jobs:
     - script: ls -lh /usr/local/miniconda/pkgs
       displayName: 'List packages'
 
-    # - task: Cache@2
-    #   inputs:
-    #     key: conda-0
-    #     restoreKeys: |
-    #       conda-restore-0
-    #     pattern: |
-    #       /usr/local/miniconda/pkgs/*.conda
-    #       /usr/local/miniconda/pkgs/*.tar.bz2
-    #   displayName: Restore Conda package cache
+    - task: Cache@2
+      inputs:
+        key: conda-0
+        restoreKeys: |
+          conda-restore-0
+        pattern: |
+          /usr/local/miniconda/pkgs/*.conda
+          /usr/local/miniconda/pkgs/*.tar.bz2
+      displayName: Restore Conda package cache
 
-    # - script: ls -lh /usr/local/miniconda/pkgs
-    #   displayName: 'List packages'
+    - script: ls -lh /usr/local/miniconda/pkgs
+      displayName: 'List packages'
 
     - script: echo '##vso[task.prependpath]/usr/local/miniconda/condabin'
       displayName: 'Set conda path'
