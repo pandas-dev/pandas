@@ -690,7 +690,7 @@ def to_datetime(
 
 @overload
 def to_datetime(
-    arg: list | tuple | np.ndarray | Index | ExtensionArray,
+    arg: list | tuple | Index | ArrayLike,
     errors: str = ...,
     dayfirst: bool = ...,
     yearfirst: bool = ...,
