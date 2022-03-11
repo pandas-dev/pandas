@@ -3058,8 +3058,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
           - Windows : none
           - macOS : none
 
-        This method uses the `clipboard_set` utility function. See examples how to
-        use this to render general output formats.
+        This method uses the processes developed for the package `pyperclip`. A
+        solution to render any output string format is given in the examples.
 
         Examples
         --------
@@ -3082,11 +3082,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ... # 1,2,3
         ... # 4,5,6
 
-        Using the `clipboard_set` method with any string output format.
+        Using the original `pyperclip` package for any string output format.
 
-        >>> from pandas.io.clipboard import clipboard_set
-        >>> html = df.style.to_html()
-        >>> clipboard_set(html)  # doctest: +SKIP
+        .. code-block:: python
+
+           import pyperclip
+           html = df.style.to_html()
+           pyperclip.copy(html)
         """
         from pandas.io import clipboards
 
