@@ -12,6 +12,7 @@ jobs:
     if: startsWith(github.event.comment.body, '@github-actions pre-commit')
     runs-on: ubuntu-latest
     steps:
+      - run: false
       - uses: actions/checkout@v2
       - uses: r-lib/actions/pr-fetch@v2
         with:

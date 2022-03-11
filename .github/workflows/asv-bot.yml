@@ -27,6 +27,7 @@ jobs:
       cancel-in-progress: false
 
     steps:
+      - run: false
       - name: Checkout
         uses: actions/checkout@v2
         with:

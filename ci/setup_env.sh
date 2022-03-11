@@ -14,6 +14,8 @@ fi
 
 
 MINICONDA_DIR=/usr/local/miniconda
+find /usr | grep miniconda | head
+find /home | grep miniconda | head
 if [ -e $MINICONDA_DIR ] && [ "$BITS32" != yes ]; then
     echo "Found Miniconda installation at $MINICONDA_DIR"
 else
@@ -34,12 +36,12 @@ else
       exit 1
     fi
     echo "Downloading $CONDA_URL"
-    wget -q $CONDA_URL -O miniconda.sh
+    time wget -q $CONDA_URL -O miniconda.sh
     chmod +x miniconda.sh
 
     MINICONDA_DIR="$HOME/miniconda3"
     rm -rf $MINICONDA_DIR
-    ./miniconda.sh -b -p $MINICONDA_DIR
+    time ./miniconda.sh -b -p $MINICONDA_DIR
 fi
 export PATH=$MINICONDA_DIR/bin:$PATH
 
@@ -51,7 +53,6 @@ echo
 echo "update conda"
 conda config --set ssl_verify false
 conda config --set quiet true --set always_yes true --set changeps1 false
-# TODO: GH#44980 https://github.com/pypa/setuptools/issues/2941
 conda install -y -c conda-forge -n base 'mamba>=0.21.2' pip
 
 echo "conda info -a"

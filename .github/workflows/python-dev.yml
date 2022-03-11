@@ -45,6 +45,7 @@ jobs:
       cancel-in-progress: true
 
     steps:
+    - run: false
     - uses: actions/checkout@v2
       with:
         fetch-depth: 0

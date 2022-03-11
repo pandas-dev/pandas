@@ -11,6 +11,7 @@ jobs:
     name: Autoupdate pre-commit config
     runs-on: ubuntu-latest
     steps:
+      - run: false
       - name: Set up Python
         uses: actions/setup-python@v2
       - name: Cache multiple paths
