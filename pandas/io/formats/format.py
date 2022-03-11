@@ -1808,7 +1808,7 @@ def get_format_datetime64(
     a string as output"""
 
     if is_dates_only:
-        str_date_fmt = None
+        str_date_fmt = loc_s = None
         if date_format is not None and fast_strftime:
             try:
                 # Try to get the string formatting template for this format
