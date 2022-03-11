@@ -1463,6 +1463,7 @@ def test_null_group_str_reducer_series(request, dropna, reduction_func):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
 def test_null_group_str_transformer_series(request, dropna, transformation_func):
     # GH 17093
     if transformation_func == "tshift":

@@ -284,7 +284,7 @@ class TestNumpyReductions:
             obj = box(values)
 
         if isinstance(values, pd.core.arrays.SparseArray) and box is not pd.Index:
-            mark = pytest.mark.xfail(reason="SparseArray has no 'mul'")
+            mark = pytest.mark.xfail(reason="SparseArray has no 'prod'")
             request.node.add_marker(mark)
 
         if values.dtype.kind in "iuf":

@@ -127,10 +127,6 @@ class TestSparseArray:
         res = arr.to_dense()
         tm.assert_numpy_array_equal(res, vals)
 
-        res2 = arr._internal_get_values()
-
-        tm.assert_numpy_array_equal(res2, vals)
-
     @pytest.mark.parametrize("fix", ["arr", "zarr"])
     def test_pickle(self, fix, request):
         obj = request.getfixturevalue(fix)

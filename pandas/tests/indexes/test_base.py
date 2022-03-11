@@ -540,11 +540,6 @@ class TestIndex(Base):
         elif not index.is_unique:
             # Cannot map duplicated index
             return
-        if index.dtype == np.complex64 and not isinstance(mapper(index, index), Series):
-            mark = pytest.mark.xfail(
-                reason="maybe_downcast_to_dtype doesn't handle complex"
-            )
-            request.node.add_marker(mark)
 
         rng = np.arange(len(index), 0, -1)
 

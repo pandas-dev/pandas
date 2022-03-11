@@ -1095,7 +1095,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     _sub_datetime_arraylike = _sub_datetimelike_scalar
 
-    def _sub_period(self, other):
+    def _sub_period(self, other: Period):
         # Overridden by PeriodArray
         raise TypeError(f"cannot subtract Period from a {type(self).__name__}")
 

@@ -707,11 +707,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     # ------------------------------------------------------------------
     # Arithmetic Methods
 
-    def _sub_datelike(self, other):
-        assert other is not NaT
-        return NotImplemented
-
-    def _sub_period(self, other):
+    def _sub_period(self, other: Period):
         # If the operation is well-defined, we return an object-Index
         # of DateOffsets.  Null entries are filled with pd.NaT
         self._check_compatible_with(other)
