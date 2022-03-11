@@ -238,7 +238,7 @@ def test_binary_ufunc_drops_series_name(ufunc, sparse, arrays_for_binary_ufunc):
 
 def test_object_series_ok():
     class Dummy:
-        def __init__(self, value):
+        def __init__(self, value) -> None:
             self.value = value
 
         def __add__(self, other):
@@ -413,7 +413,7 @@ def test_binary_ufunc_other_types(type_):
 
 def test_object_dtype_ok():
     class Thing:
-        def __init__(self, value):
+        def __init__(self, value) -> None:
             self.value = value
 
         def __add__(self, other):
