@@ -3225,6 +3225,7 @@ class TestPeriodIndexFormat:
     @pytest.mark.parametrize("fast_strftime", (False, True))
     def test_period_custom(self, fast_strftime, overridden_locale):
         # GH46252
+        # fmt: off
 
         # Get locale-specific reference
         am_local, pm_local = get_local_am_pm()
@@ -3255,6 +3256,7 @@ class TestPeriodIndexFormat:
         )
         assert formatted[0] == f"03 12:01:01{pm_local} (ms=123 us=123456 ns=123456789)"
         assert formatted[1] == f"03 12:01:01{pm_local} (ms=123 us=123456 ns=123456790)"
+        # fmt: on
 
     def test_period_tz(self):
         """Test formatting periods created from a datetime with timezone"""
