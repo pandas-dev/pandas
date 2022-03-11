@@ -70,7 +70,7 @@ jobs:
     - script: conda env list
       displayName: 'conda list'
 
-    - script: conda install -n base werkzeug
+    - script: conda install -c conda-forge -n base werkzeug
       displayName: test
 
 #     - script: rm /usr/local/miniconda/pkgs/cache/*.json
