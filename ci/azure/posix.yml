@@ -63,6 +63,7 @@ jobs:
       displayName: 'conda list'
 
     - script: |
+        mkdir -p ~/conda_pkgs
         export CONDA_PKGS_DIR=~/conda_pkgs
         conda install -c conda-forge -n base werkzeug -y
       displayName: test
