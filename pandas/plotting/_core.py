@@ -1769,7 +1769,7 @@ def _load_backend(backend: str) -> types.ModuleType:
     ----------
     backend : str
         The identifier for the backend. Either an entrypoint item registered
-        with pkg_resources, "matplotlib", or a module name.
+        with importlib.metadata, "matplotlib", or a module name.
 
     Returns
     -------

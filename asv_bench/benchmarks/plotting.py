@@ -1,9 +1,14 @@
-import importlib
+import contextlib
+import importlib.machinery
+import importlib.util
+import os
+import pathlib
 import sys
+import tempfile
+from unittest import mock
 
 import matplotlib
 import numpy as np
-import pkg_resources
 
 from pandas import (
     DataFrame,
@@ -111,22 +116,49 @@ class BackendLoading:
     warmup_time = 0
 
     def setup(self):
-        dist = pkg_resources.get_distribution("pandas")
-        spec = importlib.machinery.ModuleSpec("my_backend", None)
-        mod = importlib.util.module_from_spec(spec)
+        mod = importlib.util.module_from_spec(
+            importlib.machinery.ModuleSpec("pandas_dummy_backend", None)
+        )
         mod.plot = lambda *args, **kwargs: 1
 
-        backends = pkg_resources.get_entry_map("pandas")
-        my_entrypoint = pkg_resources.EntryPoint(
-            "pandas_plotting_backend", mod.__name__, dist=dist
-        )
-        backends["pandas_plotting_backends"][mod.__name__] = my_entrypoint
-        for i in range(10):
-            backends["pandas_plotting_backends"][str(i)] = my_entrypoint
-        sys.modules["my_backend"] = mod
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(
+                mock.patch.dict(sys.modules, {"pandas_dummy_backend": mod})
+            )
+            tmp_path = pathlib.Path(stack.enter_context(tempfile.TemporaryDirectory()))
+
+            sys.path.insert(0, os.fsdecode(tmp_path))
+            stack.callback(sys.path.remove, os.fsdecode(tmp_path))
+
+            dist_info = tmp_path / "my_backend-0.0.0.dist-info"
+            dist_info.mkdir()
+            (dist_info / "entry_points.txt").write_bytes(
+                b"[pandas_plotting_backends]\n"
+                b"my_ep_backend = pandas_dummy_backend\n"
+                b"my_ep_backend0 = pandas_dummy_backend\n"
+                b"my_ep_backend1 = pandas_dummy_backend\n"
+                b"my_ep_backend2 = pandas_dummy_backend\n"
+                b"my_ep_backend3 = pandas_dummy_backend\n"
+                b"my_ep_backend4 = pandas_dummy_backend\n"
+                b"my_ep_backend5 = pandas_dummy_backend\n"
+                b"my_ep_backend6 = pandas_dummy_backend\n"
+                b"my_ep_backend7 = pandas_dummy_backend\n"
+                b"my_ep_backend8 = pandas_dummy_backend\n"
+                b"my_ep_backend9 = pandas_dummy_backend\n"
+            )
+            self.stack = stack.pop_all()
+
+    def teardown(self):
+        self.stack.close()
 
     def time_get_plot_backend(self):
-        _get_plot_backend("my_backend")
+        # finds the first my_ep_backend
+        _get_plot_backend("my_ep_backend")
+
+    def time_get_plot_backend_fallback(self):
+        # iterates through all the my_ep_backend[0-9] before falling back
+        # to importlib.import_module
+        _get_plot_backend("pandas_dummy_backend")
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
