@@ -89,7 +89,7 @@ jobs:
 
         # See https://github.com/mamba-org/mamba/issues/633
         conda create -y -n pandas-dev
-        time conda run --no-capture-output -n mamba-env mamba env update -y -n pandas-dev --file="${ENV_FILE}"
+        time conda run --no-capture-output -n mamba-env mamba env update -n pandas-dev --file="${ENV_FILE}"
 
         set +e
         echo Have qt?
