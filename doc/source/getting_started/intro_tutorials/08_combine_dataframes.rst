@@ -110,7 +110,7 @@ I want to combine the measurements of :math:`NO_2` and :math:`PM_{25}`, two tabl
     air_quality.head()
 
 The :func:`~pandas.concat` function performs concatenation operations of multiple
-tables along one of the axis (row-wise or column-wise).
+tables along one of the axes (row-wise or column-wise).
 
 .. raw:: html
 
