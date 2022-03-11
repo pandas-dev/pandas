@@ -2311,7 +2311,7 @@ class MultiIndex(Index):
         See Also
         --------
         Series.swaplevel : Swap levels i and j in a MultiIndex.
-        Dataframe.swaplevel : Swap levels i and j in a MultiIndex on a
+        DataFrame.swaplevel : Swap levels i and j in a MultiIndex on a
             particular axis.
 
         Examples
