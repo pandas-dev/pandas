@@ -235,7 +235,7 @@ def ints_to_pydatetime(
         elif info.use_fixed:
             local_val = value + delta
         else:
-            local_val = value + deltas[pos[i]]
+            local_val = value + info.deltas[pos[i]]
 
         if info.use_pytz:
             # find right representation of dst etc in pytz timezone
@@ -299,7 +299,7 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None) -> Resolution:
         elif info.use_tzlocal:
             local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
         elif info.use_fixed:
-            local_val = stamps[i] + delta
+            local_val = stamps[i] + info.delta
         else:
             local_val = stamps[i] + deltas[pos[i]]
 
@@ -354,7 +354,7 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
         elif info.use_fixed:
             local_val = stamps[i] + delta
         else:
-            local_val = stamps[i] + deltas[pos[i]]
+            local_val = stamps[i] + info.deltas[pos[i]]
 
         result[i] = normalize_i8_stamp(local_val)
 
@@ -396,7 +396,7 @@ def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None) -> bool:
         elif info.use_tzlocal:
             local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
         elif info.use_fixed:
-            local_val = stamps[i] + delta
+            local_val = stamps[i] + info.delta
         else:
             local_val = stamps[i] + deltas[pos[i]]
 
@@ -437,7 +437,7 @@ def dt64arr_to_periodarr(const int64_t[:] stamps, int freq, tzinfo tz):
         elif info.use_fixed:
             local_val = stamps[i] + delta
         else:
-            local_val = stamps[i] + deltas[pos[i]]
+            local_val = stamps[i] + info.deltas[pos[i]]
 
         dt64_to_dtstruct(local_val, &dts)
         result[i] = get_period_ordinal(&dts, freq)
