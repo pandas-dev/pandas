@@ -51,11 +51,7 @@ ctypedef int64_t (*localizer_func)(Localizer, int64_t, intp_t*, intp_t)
 cdef class Localizer:
     cdef readonly:
         tzinfo tz
-        bint use_utc
-        bint use_fixed
-        bint use_tzlocal
-        bint use_pytz
-        bint use_dst
+        bint use_utc, use_fixed, use_tzlocal, use_dst, use_pytz
         ndarray trans
         const int64_t[::1] deltas
         int64_t delta
