@@ -836,7 +836,7 @@ class TestPeriodProperties:
 
     @pytest.mark.parametrize("bound, offset", [(Timestamp.min, -1), (Timestamp.max, 1)])
     @pytest.mark.parametrize("period_property", ["start_time", "end_time"])
-    def test_outter_bounds_start_and_end_time(self, bound, offset, period_property):
+    def test_outer_bounds_start_and_end_time(self, bound, offset, period_property):
         # GH #13346
         period = TestPeriodProperties._period_constructor(bound, offset)
         with pytest.raises(OutOfBoundsDatetime, match="Out of bounds nanosecond"):

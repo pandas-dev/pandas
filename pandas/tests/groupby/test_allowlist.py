@@ -419,7 +419,7 @@ def test_all_methods_categorized(mframe):
     # new public method?
     if new_names:
         msg = f"""
-There are uncatgeorized methods defined on the Grouper class:
+There are uncategorized methods defined on the Grouper class:
 {new_names}.
 
 Was a new method recently added?
