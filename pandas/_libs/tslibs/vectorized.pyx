@@ -167,8 +167,7 @@ def ints_to_pydatetime(
     """
     cdef:
         Localizer info = Localizer(tz)
-        const int64_t[::1] deltas = info.deltas
-        int64_t value, local_val, delta = info.delta
+        int64_t value, local_val
         intp_t* pos
         Py_ssize_t i, n = len(stamps)
         npy_datetimestruct dts
@@ -254,8 +253,7 @@ cdef inline int _reso_stamp(npy_datetimestruct *dts):
 def get_resolution(const int64_t[:] stamps, tzinfo tz=None) -> Resolution:
     cdef:
         Localizer info = Localizer(tz)
-        const int64_t[::1] deltas = info.deltas
-        int64_t local_val, delta = info.delta
+        int64_t local_val
         intp_t* pos
         Py_ssize_t i, n = len(stamps)
         npy_datetimestruct dts
@@ -307,8 +305,7 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
     """
     cdef:
         Localizer info = Localizer(tz)
-        const int64_t[::1] deltas = info.deltas
-        int64_t local_val, delta = info.delta
+        int64_t local_val
         intp_t* pos
         Py_ssize_t i, n = len(stamps)
 
@@ -355,8 +352,7 @@ def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None) -> bool:
     """
     cdef:
         Localizer info = Localizer(tz)
-        const int64_t[::1] deltas = info.deltas
-        int64_t local_val, delta = info.delta
+        int64_t local_val
         intp_t* pos
         Py_ssize_t i, n = len(stamps)
 
@@ -389,8 +385,7 @@ def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None) -> bool:
 def dt64arr_to_periodarr(const int64_t[:] stamps, int freq, tzinfo tz):
     cdef:
         Localizer info = Localizer(tz)
-        const int64_t[::1] deltas = info.deltas
-        int64_t local_val, delta = info.delta
+        int64_t local_val
         intp_t* pos
         Py_ssize_t i, n = len(stamps)
         npy_datetimestruct dts
