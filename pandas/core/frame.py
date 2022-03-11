@@ -5707,7 +5707,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_level: Hashable = 0,
         col_fill: Hashable = "",
         allow_duplicates: bool | lib.NoDefault = lib.no_default,
-        names: Hashable | Sequence[Hashable] = None,
+        names: Hashable | Sequence[Hashable] | None = None,
     ) -> DataFrame | None:
         """
         Reset the index, or a level of it.
