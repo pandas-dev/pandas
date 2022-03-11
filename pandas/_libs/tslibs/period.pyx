@@ -61,7 +61,6 @@ cdef extern from "src/datetime/np_datetime.h":
 
 cimport pandas._libs.tslibs.util as util
 
-from pandas._libs.tslibs.base import get_local_ampm
 from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas._libs.tslibs.timestamps import Timestamp
 
@@ -2393,10 +2392,10 @@ cdef class _Period(PeriodMixin):
         object_state = None, self.freq, self.ordinal
         return (Period, object_state)
 
-    def fast_strftime(self, fmt_str: str) -> str:
+    def fast_strftime(self, fmt_str: str, loc_s: object) -> str:
         """A faster alternative to `strftime` using string formatting.
 
-        `fmt_str` should be created using `convert_strftime_format(fmt)`.
+        `fmt_str` and `loc_s` should be created using `convert_strftime_format(fmt)`.
 
         See also `self.strftime`, that relies on `period_format`.
 
@@ -2407,8 +2406,8 @@ cdef class _Period(PeriodMixin):
         >>> a = Period(freq='Q-JUL', year=2006, quarter=1)
         >>> a.strftime('%F-Q%q')
         '2006-Q1'
-        >>> fast_fmt = convert_strftime_format('%F-Q%q', target="period")
-        >>> a.fast_strftime(fast_fmt)
+        >>> fast_fmt, loc_s = convert_strftime_format('%F-Q%q', target="period")
+        >>> a.fast_strftime(fast_fmt, loc_s)
         '2006-Q1'
         """
         freq = self._dtype._dtype_code
@@ -2437,7 +2436,7 @@ cdef class _Period(PeriodMixin):
             "day": dts.day,
             "hour": h,
             "hour12": 12 if h in (0, 12) else (h % 12),
-            "ampm": Period._PM_LOCAL if (h // 12) else Period._AM_LOCAL,
+            "ampm": loc_s.pm if (h // 12) else loc_s.am,
             "min": dts.min,
             "sec": dts.sec,
             "ms": dts.us // 1000,
@@ -2619,8 +2618,6 @@ class Period(_Period):
     second : int, default 0
         Second value of the period.
     """
-
-    _AM_LOCAL, _PM_LOCAL = get_local_ampm()
 
     def __new__(cls, value=None, freq=None, ordinal=None,
                 year=None, month=None, quarter=None, day=None,

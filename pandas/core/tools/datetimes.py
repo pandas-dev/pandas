@@ -25,7 +25,6 @@ from pandas._libs.tslibs import (
     Timestamp,
     conversion,
     convert_strftime_format,
-    get_local_ampm,
     iNaT,
     nat_strings,
     parsing,
@@ -1282,13 +1281,10 @@ def to_time(arg, format=None, infer_time_format=False, errors="raise"):
     return to_time(arg, format, infer_time_format, errors)
 
 
-AM_LOCAL, PM_LOCAL = get_local_ampm()
-"""Get the locale-specific versions of am and pm strings."""
-
-
 def fast_strftime(
     dt: datetime,
     fmt: str,
+    loc_s: LocalizedDtStrings,
     new_style_fmt: bool = False,
 ) -> str:
     """A faster version of `datetime.strftime` using python string formatting.
@@ -1329,6 +1325,10 @@ def fast_strftime(
     # common dict used for formatting
     y = dt.year
     h = dt.hour
+
+    # get the formatting template
+    fmt_str, loc_s = convert_strftime_format(fmt, new_style_fmt=new_style_fmt)
+
     fmt_dct = {
         "year": y,
         "shortyear": y % 100,
@@ -1336,14 +1336,11 @@ def fast_strftime(
         "day": dt.day,
         "hour": h,
         "hour12": 12 if h in (0, 12) else (h % 12),
-        "ampm": PM_LOCAL if (h // 12) else AM_LOCAL,
+        "ampm": loc_s.pm if (h // 12) else loc_s.am,
         "min": dt.minute,
         "sec": dt.second,
         "us": dt.microsecond,
     }
-
-    # get the formatting template
-    fmt_str = convert_strftime_format(fmt, new_style_fmt=new_style_fmt)
 
     # execute
     return fmt_str.format(**fmt_dct) if new_style_fmt else (fmt_str % fmt_dct)

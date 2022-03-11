@@ -1,6 +1,5 @@
 __all__ = [
     "dtypes",
-    "get_local_ampm",
     "localize_pydatetime",
     "NaT",
     "NaTType",
@@ -30,7 +29,6 @@ __all__ = [
 ]
 
 from pandas._libs.tslibs import dtypes
-from pandas._libs.tslibs.base import get_local_ampm
 from pandas._libs.tslibs.conversion import (
     OutOfBoundsTimedelta,
     localize_pydatetime,

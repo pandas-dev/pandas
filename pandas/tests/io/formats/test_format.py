@@ -7,6 +7,7 @@ from datetime import (
 )
 from io import StringIO
 import itertools
+import locale
 from operator import methodcaller
 import os
 from pathlib import Path
@@ -21,10 +22,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._libs.tslibs import (
-    convert_strftime_format,
-    get_local_ampm,
-)
+from pandas._libs.tslibs import convert_strftime_format
 from pandas.compat import (
     IS64,
     is_platform_windows,
@@ -37,7 +35,6 @@ from pandas import (
     Index,
     MultiIndex,
     NaT,
-    Period,
     Series,
     Timestamp,
     date_range,
@@ -54,6 +51,13 @@ import pandas.io.formats.format as fmt
 import pandas.io.formats.printing as printing
 
 use_32bit_repr = is_platform_windows() or not IS64
+
+
+def get_local_am_pm():
+    """Return the AM and PM strings returned by strftime in current locale"""
+    am_local = time(1).strftime("%p")
+    pm_local = time(13).strftime("%p")
+    return am_local, pm_local
 
 
 @pytest.fixture(params=["string", "pathlike", "buffer"])
@@ -3188,58 +3192,69 @@ class TestPeriodIndexFormat:
         assert formatted[0] == "2003-01-01 12:01:01.123456789"
         assert formatted[1] == "2003-01-01 12:01:01.123456790"
 
-    def test_period_locale(self):
-        """Test that `get_local_ampm` relies on runtime locale, not compile-time one
+    def test_period_locale(self, overridden_locale):
+        """Test that `convert_strftime_format` relies on runtime locale
 
         If this test fails, all tests using %p format strftime will fail when
         the runtime locale is different from the compile-time one.
         """
-        # Make sure the function is ok
-        AM_LOCAL, PM_LOCAL = get_local_ampm()
-        assert AM_LOCAL == time(1).strftime("%p")
-        assert PM_LOCAL == time(13).strftime("%p")
+        # Get locale-specific reference
+        am_local, pm_local = get_local_am_pm()
+
+        # Use the function
+        str_tmp, loc_s = convert_strftime_format("%p")
+        assert str_tmp == "%(ampm)s"
 
         # Now what about the classes ?
         # Timestamp
         am_ts = Timestamp(2020, 1, 1, 1)
-        assert AM_LOCAL == am_ts.strftime("%p")
-        assert AM_LOCAL == am_ts.fast_strftime("%(ampm)s")
+        assert am_local == am_ts.strftime("%p")
+        assert am_local == am_ts.fast_strftime(str_tmp, loc_s)
         pm_ts = Timestamp(2020, 1, 1, 13)
-        assert PM_LOCAL == pm_ts.strftime("%p")
-        assert PM_LOCAL == pm_ts.fast_strftime("%(ampm)s")
+        assert pm_local == pm_ts.strftime("%p")
+        assert pm_local == pm_ts.fast_strftime(str_tmp, loc_s)
 
         # Period
-        am_per = Period("2018-03-11 01:00", freq="H")
-        assert AM_LOCAL == am_per.strftime("%p")
-        assert AM_LOCAL == am_per.fast_strftime("%(ampm)s")
-        pm_per = Period("2018-03-11 13:00", freq="H")
-        assert PM_LOCAL == pm_per.strftime("%p")
-        assert PM_LOCAL == pm_ts.fast_strftime("%(ampm)s")
+        am_per = pd.Period("2018-03-11 01:00", freq="H")
+        assert am_local == am_per.strftime("%p")
+        assert am_local == am_per.fast_strftime(str_tmp, loc_s)
+        pm_per = pd.Period("2018-03-11 13:00", freq="H")
+        assert pm_local == pm_per.strftime("%p")
+        assert pm_local == pm_ts.fast_strftime(str_tmp, loc_s)
 
     @pytest.mark.parametrize("fast_strftime", (False, True))
-    def test_period_custom(self, fast_strftime):
+    def test_period_custom(self, fast_strftime, overridden_locale):
         # GH46252
+
+        # Get locale-specific reference
+        am_local, pm_local = get_local_am_pm()
+
+        # 3 digits
         p = pd.period_range("2003-01-01 12:01:01.123", periods=2, freq="l")
         formatted = p.format(
-            date_format="%y %I:%M:%S%p (ms=%l us=%u ns=%n)", fast_strftime=fast_strftime
+            date_format="%y %I:%M:%S%p (ms=%l us=%u ns=%n)",
+            fast_strftime=fast_strftime
         )
-        AM_LOCAL, PM_LOCAL = get_local_ampm()
-        assert formatted[0] == f"03 12:01:01{PM_LOCAL} (ms=123 us=123000 ns=123000000)"
-        assert formatted[1] == f"03 12:01:01{PM_LOCAL} (ms=124 us=124000 ns=124000000)"
+        assert formatted[0] == f"03 12:01:01{pm_local} (ms=123 us=123000 ns=123000000)"
+        assert formatted[1] == f"03 12:01:01{pm_local} (ms=124 us=124000 ns=124000000)"
 
-        p = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="n")
-        formatted = p.format(
-            date_format="%y %I:%M:%S%p (ms=%l us=%u ns=%n)", fast_strftime=fast_strftime
-        )
-        assert formatted[0] == f"03 12:01:01{PM_LOCAL} (ms=123 us=123456 ns=123456789)"
-        assert formatted[1] == f"03 12:01:01{PM_LOCAL} (ms=123 us=123456 ns=123456790)"
-
+        # 6 digits
         p = pd.period_range("2003-01-01 12:01:01.123456", periods=2, freq="u")
         formatted = p.format(
-            date_format="%y %I:%M:%S%p (ms=%l us=%u ns=%n)", fast_strftime=fast_strftime
+            date_format="%y %I:%M:%S%p (ms=%l us=%u ns=%n)",
+            fast_strftime=fast_strftime
         )
-        assert formatted[0] == f"03 12:01:01{PM_LOCAL} (ms=123 us=123456 ns=123456000)"
-        assert formatted[1] == f"03 12:01:01{PM_LOCAL} (ms=123 us=123457 ns=123457000)"
+        assert formatted[0] == f"03 12:01:01{pm_local} (ms=123 us=123456 ns=123456000)"
+        assert formatted[1] == f"03 12:01:01{pm_local} (ms=123 us=123457 ns=123457000)"
+
+        # 9 digits
+        p = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="n")
+        formatted = p.format(
+            date_format="%y %I:%M:%S%p (ms=%l us=%u ns=%n)",
+            fast_strftime=fast_strftime
+        )
+        assert formatted[0] == f"03 12:01:01{pm_local} (ms=123 us=123456 ns=123456789)"
+        assert formatted[1] == f"03 12:01:01{pm_local} (ms=123 us=123456 ns=123456790)"
 
     def test_period_tz(self):
         """Test formatting periods created from a datetime with timezone"""
@@ -3260,6 +3275,16 @@ class TestPeriodIndexFormat:
         assert p.format()[0] == "2013-01-01 00:00"
 
 
+@pytest.fixture(params=["fr_FR", "zh_CN", "it_IT"])
+def overridden_locale(request):
+    """A fixture used to change the locale temporarily"""
+    old = locale.setlocale(locale.LC_ALL)
+    target = request.param
+    locale.setlocale(locale.LC_ALL, target)
+    yield target
+    locale.setlocale(locale.LC_ALL, old)
+
+
 class TestDatetimeIndexFormat:
     def test_datetime(self):
         formatted = pd.to_datetime([datetime(2003, 1, 1, 12), NaT]).format()
@@ -3276,7 +3301,8 @@ class TestDatetimeIndexFormat:
         assert dt.format()[0] == "2013-01-01 00:00:00+01:00"
 
     def test_datetime_tz_custom(self):
-        AM_LOCAL, PM_LOCAL = get_local_ampm()
+        # Get locale-specific reference
+        am_local, pm_local = get_local_am_pm()
 
         # This timestamp is in 2013 in Europe/Paris but is 2012 in UTC
         dt = pd.to_datetime(["2013-01-01 00:00:00+01:00"], utc=True)
@@ -3289,7 +3315,7 @@ class TestDatetimeIndexFormat:
         # same with fancy format
         assert (
             dt.format(date_format="20%y-%m-%d__foo__%I:%M:%S%p")[0]
-            == f"2012-12-31__foo__11:00:00{PM_LOCAL}"
+            == f"2012-12-31__foo__11:00:00{pm_local}"
         )
 
         # If tz is currently set as paris, we'll see 2013
@@ -3301,7 +3327,7 @@ class TestDatetimeIndexFormat:
         # same with fancy format
         assert (
             dt.format(date_format="20%y-%m-%d__foo__%I:%M:%S%p")[0]
-            == f"2013-01-01__foo__12:00:00{AM_LOCAL}"
+            == f"2013-01-01__foo__12:00:00{am_local}"
         )
 
     def test_date(self):
@@ -3412,8 +3438,12 @@ class TestDatetimeFastFormatter:
         # strftime
         strftime_res = dt.strftime(strftime_format)
 
-        # Get the locale-specific versions of am and pm strings.
-        AM_LOCAL, PM_LOCAL = get_local_ampm()
+        # get the formatting string
+        # fmt: off
+        style_format, loc_s = convert_strftime_format(
+            strftime_format, new_style_fmt=new_style
+        )
+        # fmt: on
 
         # common dict used for formatting
         fmt_dct = {
@@ -3423,18 +3453,11 @@ class TestDatetimeFastFormatter:
             "day": dt.day,
             "hour": dt.hour,
             "hour12": 12 if dt.hour in (0, 12) else (dt.hour % 12),
-            "ampm": PM_LOCAL if (dt.hour // 12) else AM_LOCAL,
+            "ampm": loc_s.pm if (dt.hour // 12) else loc_s.am,
             "min": dt.minute,
             "sec": dt.second,
             "us": dt.microsecond,
         }
-
-        # get the formatting string
-        # fmt: off
-        style_format = convert_strftime_format(
-            strftime_format, new_style_fmt=new_style
-        )
-        # fmt: on
 
         # apply it and check the output
         if new_style:
@@ -3444,7 +3467,7 @@ class TestDatetimeFastFormatter:
         assert res == strftime_res
 
         # fast_strftime is a shortcut function for the above
-        res2 = fast_strftime(dt, strftime_format, new_style_fmt=new_style)
+        res2 = fast_strftime(dt, strftime_format, loc_s=loc_s, new_style_fmt=new_style)
         assert res2 == res
 
     def test_bad_strftime_directive(self):

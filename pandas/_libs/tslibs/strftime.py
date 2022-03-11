@@ -1,5 +1,9 @@
 """Strftime-related classes and functions.
 """
+import locale
+
+from datetime import time
+from typing import Tuple, Dict
 
 
 class UnsupportedStrFmtDirective(ValueError):
@@ -59,11 +63,72 @@ _PERIOD_MAP = {
 }
 
 
+class LocaleSpecificDtStrings:
+    """A container for date/time strings used in a specific locale.
+
+    We will use these when formatting datetime as string using string templates, which
+    is faster than strftime when executed on arrays.
+
+    `get_current_locale_specific_string()` is the recommended way to get an instance,
+    as it provides caching.
+
+    Attributes
+    ----------
+    am : str
+        Used in the %p strftime directive. Locale’s equivalent of AM.
+    pm : str
+        Used in the %p strftime directive. Locale’s equivalent of PM.
+    """
+
+    __slots__ = ("am", "pm")
+
+    def __init__(self, am: str, pm: str):
+        self.am = am
+        self.pm = pm
+
+    def __repr__(self):
+        attrs = ", ".join(
+            f"{k}={repr(getattr(self, k))}"
+            for k in type(self).__slots__
+        )
+        return f"{type(self).__name__}({attrs})"
+
+    @classmethod
+    def get_current(cls):
+        return LocaleSpecificDtStrings(
+            am=time(1).strftime("%p"),
+            pm=time(13).strftime("%p"),
+        )
+
+
+_locale_specifics: Dict[str, LocaleSpecificDtStrings] = dict()
+
+
+def get_current_locale_specific_string() -> LocaleSpecificDtStrings:
+    """Return a `LocaleSpecificDtStrings` for the current locale.
+
+    This function caches results in the `_locale_specifics` dict.
+    """
+    global _locale_specifics
+
+    # Get current locale
+    current_locale = locale.setlocale(locale.LC_ALL)
+
+    try:
+        # Any entry in cache for current locale ?
+        return _locale_specifics[current_locale]
+    except KeyError:
+        # Create it using current locale, and cache it
+        o = LocaleSpecificDtStrings.get_current()
+        _locale_specifics[current_locale] = o
+        return o
+
+
 def convert_strftime_format(
     strftime_fmt: str,
     target: str = "datetime",
     new_style_fmt: bool = False,
-) -> str:
+) -> Tuple[str, LocaleSpecificDtStrings]:
     """Convert a strftime formatting string into a formatting template string.
 
     The set of supported directives varies according to the `target`.
@@ -115,6 +180,10 @@ def convert_strftime_format(
         `new_style_formatting`.
         For old-style, it may be used as `fmt_out % fmt_dct`.
         For new-style, it may be used as `fmt_out.format(**fmt_dct)`
+    loc_s : LocaleSpecificDtStrings
+        An object containing the locale-specific strings needed for some of the
+        directives. For example loc_s.am and loc_s.pm should be used to fill the "ampm"
+        part of the template, induced by directive %p.
 
     Raises
     ------
@@ -192,4 +261,4 @@ def convert_strftime_format(
         # Finally replace our placeholder
         strftime_fmt = strftime_fmt.replace(esc, "%")
 
-    return strftime_fmt
+    return strftime_fmt, get_current_locale_specific_string()

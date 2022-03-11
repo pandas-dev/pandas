@@ -652,14 +652,15 @@ class PeriodArray(dtl.DatelikeOps):
             if fast_strftime:
                 try:
                     # Try to get the string formatting template for this format
-                    str_format = convert_strftime_format(date_format, target="period")
+                    str_format, loc_s = convert_strftime_format(date_format,
+                                                                target="period")
                 except UnsupportedStrFmtDirective:
                     # Unsupported directive: fallback to standard `strftime`
                     fast_strftime = False
 
             if fast_strftime:
                 # Faster: python old-style string formatting
-                formatter = lambda p: p.fast_strftime(str_format)
+                formatter = lambda p: p.fast_strftime(str_format, loc_s)
             else:
                 # Slower: strftime
                 formatter = lambda p: p.strftime(date_format)

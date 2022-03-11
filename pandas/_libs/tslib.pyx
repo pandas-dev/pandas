@@ -43,7 +43,6 @@ from pandas._libs.util cimport (
     is_integer_object,
 )
 
-from pandas._libs.tslibs.base import get_local_ampm
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.parsing import parse_datetime_string
 
@@ -136,8 +135,7 @@ def format_array_from_datetime(
         ndarray[object] result = np.empty(N, dtype=object)
         object ts, res
         npy_datetimestruct dts
-        str AM_LOCAL = Timestamp._AM_LOCAL
-        str PM_LOCAL = Timestamp._PM_LOCAL
+        object str_format, loc_s
 
     if na_rep is None:
         na_rep = 'NaT'
@@ -174,7 +172,7 @@ def format_array_from_datetime(
         else:
             try:
                 # Try to get the string formatting template for this format
-                str_format = convert_strftime_format(format)
+                str_format, loc_s = convert_strftime_format(format)
             except UnsupportedStrFmtDirective:
                 # Unsupported directive: fallback to standard `strftime`
                 fast_strftime = False
@@ -215,7 +213,7 @@ def format_array_from_datetime(
                     "day": dts.day,
                     "hour": dts.hour,
                     "hour12": 12 if h in (0, 12) else (h % 12),
-                    "ampm": PM_LOCAL if (h // 12) else AM_LOCAL,
+                    "ampm": loc_s.pm if (h // 12) else loc_s.am,
                     "min": dts.min,
                     "sec": dts.sec,
                     "us": dts.us,
@@ -224,7 +222,7 @@ def format_array_from_datetime(
                 ts = Timestamp(val, tz=tz)
 
                 # Use string formatting for faster strftime
-                result[i] = ts.fast_strftime(str_format)
+                result[i] = ts.fast_strftime(str_format, loc_s)
         else:
 
             ts = Timestamp(val, tz=tz)

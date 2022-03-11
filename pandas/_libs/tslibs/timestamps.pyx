@@ -46,7 +46,6 @@ from cpython.object cimport (
 PyDateTime_IMPORT
 
 from pandas._libs.tslibs cimport ccalendar
-from pandas._libs.tslibs.base import get_local_ampm
 from pandas._libs.tslibs.base cimport ABCTimestamp
 from pandas._libs.tslibs.conversion cimport (
     _TSObject,
@@ -1062,8 +1061,6 @@ class Timestamp(_Timestamp):
     Timestamp('2017-01-01 12:00:00')
     """
 
-    _AM_LOCAL, _PM_LOCAL = get_local_ampm()
-
     @classmethod
     def fromordinal(cls, ordinal, freq=None, tz=None):
         """
@@ -1197,10 +1194,10 @@ class Timestamp(_Timestamp):
         tz = maybe_get_tz(tz)
         return cls(datetime.fromtimestamp(ts, tz))
 
-    def fast_strftime(self, fmt_str: str) -> str:
+    def fast_strftime(self, fmt_str: str, loc_s: object) -> str:
         """A faster alternative to `strftime` using string formatting.
 
-        `fmt_str` should be created using `convert_strftime_format(fmt)`.
+        `fmt_str` and `loc_s` should be created using `convert_strftime_format(fmt)`.
 
         See also `self.strftime`, that relies on `datetime.strftime`.
 
@@ -1208,8 +1205,8 @@ class Timestamp(_Timestamp):
         --------
         >>> from pandas._libs.tslibs import convert_strftime_format
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
-        >>> fmt = convert_strftime_format('%Y-%m-%dT%H:%M:%S')
-        >>> ts.fast_strftime(fmt)
+        >>> fmt, loc_s = convert_strftime_format('%Y-%m-%dT%H:%M:%S')
+        >>> ts.fast_strftime(fmt, loc_s)
         '2020-03-14T15:32:52'
         """
         y = self.year
@@ -1221,7 +1218,7 @@ class Timestamp(_Timestamp):
             "day": self.day,
             "hour": h,
             "hour12": 12 if h in (0, 12) else (h % 12),
-            "ampm": Timestamp._PM_LOCAL if (h // 12) else Timestamp._AM_LOCAL,
+            "ampm": loc_s.pm if (h // 12) else loc_s.am,
             "min": self.minute,
             "sec": self.second,
             "us": self.microsecond,
