@@ -680,3 +680,10 @@ def test_float_precision_options(c_parser_only):
 
     with pytest.raises(ValueError, match=msg):
         parser.read_csv(StringIO(s), float_precision="junk")
+
+
+def test_invalid_file_inputs(c_parser_only):
+    # GH#45957
+    parser = c_parser_only
+    with pytest.raises(ValueError, match="Invalid"):
+        parser.read_csv([])
