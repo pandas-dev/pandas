@@ -54,6 +54,12 @@ jobs:
         pip list
         python setup.py sdist --formats=gztar
 
+    - name: Upload sdist artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{matrix.python-version}}-sdist.gz
+        path: dist/*.gz
+
     - uses: conda-incubator/setup-miniconda@v2
       with:
         activate-environment: pandas-sdist
