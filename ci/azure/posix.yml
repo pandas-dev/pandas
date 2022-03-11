@@ -22,6 +22,9 @@ jobs:
         CONDA_PY: "310"
 
   steps:
+    - script: rm /usr/local/miniconda/pkgs/cache/*.json
+      displayName: 'Workaround for mamba-org/mamba#488'
+
     - task: Cache@2
       inputs:
         key: sccache-0
@@ -69,9 +72,6 @@ jobs:
 
     - script: conda install -c conda-forge -n base werkzeug -y
       displayName: test
-
-#     - script: rm /usr/local/miniconda/pkgs/cache/*.json
-#       displayName: 'Workaround for mamba-org/mamba#488'
 
 #     - script: |
 #         set -eux
