@@ -42,4 +42,4 @@ jobs:
 
     - script: |
         conda run --no-capture-output -n mamba mamba --help
-      display: Mamba help
+      displayName: Mamba help
