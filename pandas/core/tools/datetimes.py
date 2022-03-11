@@ -1284,7 +1284,6 @@ def to_time(arg, format=None, infer_time_format=False, errors="raise"):
 def fast_strftime(
     dt: datetime,
     fmt: str,
-    loc_s: LocalizedDtStrings,
     new_style_fmt: bool = False,
 ) -> str:
     """A faster version of `datetime.strftime` using python string formatting.

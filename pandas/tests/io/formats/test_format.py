@@ -3467,7 +3467,8 @@ class TestDatetimeFastFormatter:
         assert res == strftime_res
 
         # fast_strftime is a shortcut function for the above
-        res2 = fast_strftime(dt, strftime_format, loc_s=loc_s, new_style_fmt=new_style)
+        # but it would actually only be fast if it could receive lists :)
+        res2 = fast_strftime(dt, strftime_format, new_style_fmt=new_style)
         assert res2 == res
 
     def test_bad_strftime_directive(self):
