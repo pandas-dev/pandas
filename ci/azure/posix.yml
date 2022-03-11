@@ -47,13 +47,11 @@ jobs:
 
     - task: Cache@2
       inputs:
-        key: conda-3
+        key: conda-4
         restoreKeys: |
-          conda-restore-3
+          conda-restore-4
         path: /usr/local/miniconda/pkgs
-        pattern: |
-          **/*.conda
-          **/*.tar.bz2
+        pattern: /usr/local/miniconda/pkgs/*.tar.bz2
       displayName: Restore Conda package cache
 
     - script: |
