@@ -477,11 +477,11 @@ cdef const int64_t[:] _tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
     """
     cdef:
         int64_t[::1] converted, deltas
-        Py_ssize_t i, ntrans, n = vals.shape[0]
+        Py_ssize_t i, ntrans = -1, n = vals.shape[0]
         int64_t val, delta = 0  # avoid not-initialized-warning
         intp_t pos
         ndarray[int64_t] trans
-        int64_t* tdata
+        int64_t* tdata = NULL
         str typ
         bint use_tzlocal = False, use_fixed = False, use_utc = True
 
