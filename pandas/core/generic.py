@@ -3058,6 +3058,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
           - Windows : none
           - macOS : none
 
+        This method uses the processes developed for the package `pyperclip`. A
+        solution to render any output string format is given in the examples.
+
         Examples
         --------
         Copy the contents of a DataFrame to the clipboard.
@@ -3078,6 +3081,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ... # A,B,C
         ... # 1,2,3
         ... # 4,5,6
+
+        Using the original `pyperclip` package for any string output format.
+
+        .. code-block:: python
+
+           import pyperclip
+           html = df.style.to_html()
+           pyperclip.copy(html)
         """
         from pandas.io import clipboards
 
