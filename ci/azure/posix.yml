@@ -56,18 +56,18 @@ jobs:
     - script: conda env list
       displayName: 'conda list'
 
-    - task: Cache@2
-      inputs:
-        key: conda-11
-        restoreKeys: |
-          conda-restore-11
-        path: $(Pipeline.Workspace)/conda_pkgs
-        cacheHitVar: CONDA_CACHE_RESTORED
-      displayName: Conda download cache
+    # - task: Cache@2
+    #   inputs:
+    #     key: conda-11
+    #     restoreKeys: |
+    #       conda-restore-11
+    #     path: $(Pipeline.Workspace)/conda_pkgs
+    #     cacheHitVar: CONDA_CACHE_RESTORED
+    #   displayName: Conda download cache
 
-    - script: mkdir -p $(Pipeline.Workspace)/conda_pkgs
-      displayName: Create Conda pkgs directory
-      condition: ne(variables.CONDA_CACHE_RESTORED, 'true')
+    # - script: mkdir -p $(Pipeline.Workspace)/conda_pkgs
+    #   displayName: Create Conda pkgs directory
+    #   condition: ne(variables.CONDA_CACHE_RESTORED, 'true')
 
     - script: echo '##vso[task.prependpath]/usr/local/miniconda/condabin'
       displayName: 'Set conda path'
@@ -76,7 +76,7 @@ jobs:
         set -eux
         ls -lh
         ls -lh $(Pipeline.Workspace)
-        export CONDA_PKGS_DIRS=$(Pipeline.Workspace)/conda_pkgs
+        # export CONDA_PKGS_DIRS=$(Pipeline.Workspace)/conda_pkgs
 
         # TODO: GH#44980 https://github.com/pypa/setuptools/issues/2941
         echo '  - setuptools <60' >> ${ENV_FILE}
@@ -90,28 +90,28 @@ jobs:
         fi
 
         # See https://github.com/mamba-org/mamba/issues/633
-        time conda run --no-capture-output -n mamba-env mamba create -n pandas-dev
+        conda create -n pandas-dev
         time conda run --no-capture-output -n mamba-env mamba env update -n pandas-dev --file="${ENV_FILE}"
 
         set +e
         echo Have qt?
-        conda run -n mamba-env mamba list -n pandas-dev -f qt --json
+        conda list -n pandas-dev -f qt --json
         echo Have pandas?
-        conda run -n mamba-env mamba list -n pandas-dev -f pandas --json
-        conda run -n mamba-env mamba run --no-capture-output -n pandas-dev pip list | grep pandas
+        conda list -n pandas-dev -f pandas --json
+        conda run --no-capture-output -n pandas-dev pip list | grep pandas
         set -e
-        time DISTUTILS_C_COMPILER_LAUNCHER=sccache mamba run --no-capture-output -n pandas-dev python setup.py build_ext -v -j3
-        time mamba run --no-capture-output -n pandas-dev python -m pip install --force-reinstall --no-build-isolation -e .
+        time DISTUTILS_C_COMPILER_LAUNCHER=sccache conda run --no-capture-output -n pandas-dev python setup.py build_ext -v -j3
+        time conda run --no-capture-output -n pandas-dev python -m pip install --force-reinstall --no-build-isolation -e .
         sccache -s
       displayName: 'Setup environment and build pandas'
 
 #     - script: |
-#         mamba run --no-capture-output -n pandas-dev ci/run_tests.sh
+#         conda run --no-capture-output -n pandas-dev ci/run_tests.sh
 #       displayName: 'Test'
 
 #     - script: |
 #         pushd /tmp
-#         mamba run --no-capture-output -n pandas-dev python -c "import pandas; pandas.show_versions()"
+#         conda run --no-capture-output -n pandas-dev python -c "import pandas; pandas.show_versions()"
 #         popd
 #       displayName: 'Build versions'
 
