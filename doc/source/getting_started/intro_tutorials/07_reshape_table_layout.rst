@@ -319,7 +319,7 @@ will *melt* all columns NOT mentioned in ``id_vars`` together into two
 columns: A column with the column header names and a column with the
 values itself. The latter column gets by default the name ``value``.
 
-The :func:`pandas.melt` method can be defined in more detail:
+The parameters passed to :func:`pandas.melt` can be defined in more detail:
 
 .. ipython:: python
 
@@ -331,9 +331,9 @@ The :func:`pandas.melt` method can be defined in more detail:
     )
     no_2.head()
 
-The result in the same, but in more detail defined:
+The additional parameters have the following effects:
 
--  ``value_vars`` defines explicitly which columns to *melt* together
+-  ``value_vars`` defines which columns to *melt* together
 -  ``value_name`` provides a custom column name for the values column
    instead of the default column name ``value``
 -  ``var_name`` provides a custom column name for the column collecting
