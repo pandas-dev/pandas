@@ -228,7 +228,7 @@ class RNGContext:
         np.random.randn()
     """
 
-    def __init__(self, seed):
+    def __init__(self, seed) -> None:
         self.seed = seed
 
     def __enter__(self):
