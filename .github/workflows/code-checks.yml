@@ -22,6 +22,7 @@ jobs:
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-pre-commit
       cancel-in-progress: true
     steps:
+    - run: false
     - name: Checkout
       uses: actions/checkout@v2
 
@@ -46,6 +47,7 @@ jobs:
       cancel-in-progress: true
 
     steps:
+    - run: false
     - name: Checkout
       uses: actions/checkout@v2
       with:
@@ -101,6 +103,7 @@ jobs:
       cancel-in-progress: true
 
     steps:
+    - run: false
     - name: Checkout
       uses: actions/checkout@v2
       with:
@@ -144,6 +147,7 @@ jobs:
       cancel-in-progress: true
 
     steps:
+      - run: false
       - name: Clean up dangling images
         run: docker image prune -f
 

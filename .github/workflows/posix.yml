@@ -84,43 +84,9 @@ jobs:
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.env_file }}-${{ matrix.pattern }}-${{ matrix.pyarrow_version || '' }}-${{ matrix.extra_apt || '' }}-${{ matrix.pandas_data_manager || '' }}
       cancel-in-progress: true
 
-    services:
-      mysql:
-        image: mysql
-        env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: yes
-          MYSQL_DATABASE: pandas
-        options: >-
-          --health-cmd "mysqladmin ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 3306:3306
-
-      postgres:
-        image: postgres
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: pandas
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
-      moto:
-        image: motoserver/moto
-        env:
-          AWS_ACCESS_KEY_ID: foobar_key
-          AWS_SECRET_ACCESS_KEY: foobar_secret
-        ports:
-          - 5000:5000
 
     steps:
+    - run: false
     - name: Checkout
       uses: actions/checkout@v2
       with:
