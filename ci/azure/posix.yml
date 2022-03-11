@@ -71,7 +71,7 @@ jobs:
       displayName: 'conda list'
 
     - script: conda install -n base werkzeug
-      display: test
+      displayName: test
 
 #     - script: rm /usr/local/miniconda/pkgs/cache/*.json
 #       displayName: 'Workaround for mamba-org/mamba#488'
