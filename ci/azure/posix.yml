@@ -28,11 +28,11 @@ jobs:
         ls -lh $(Pipeline.Workspace)
         export CONDA_PKGS_DIRS=$(Pipeline.Workspace)/conda_pkgs
         # See https://github.com/mamba-org/mamba/issues/633
-        time conda create -y -n mamba
-        time conda install -y -n mamba -c conda-forge 'mamba>=0.22'
+        #time conda create -y -n mamba
+        time conda install -y -n base -c conda-forge 'mamba>=0.22'
       displayName: Install Mamba
       condition: ne(variables.CONDA_MAMBA_ENV_CACHE_RESTORED, 'true')
 
     - script: |
-        conda run --no-capture-output -n mamba mamba info
+        conda run --no-capture-output -n base mamba info
       displayName: Mamba help
