@@ -12,10 +12,10 @@ from pandas._libs.tslibs.np_datetime cimport npy_datetimestruct
 
 
 cdef class _TSObject:
-    cdef:
+    cdef readonly:
         npy_datetimestruct dts      # npy_datetimestruct
         int64_t value               # numpy dt64
-        object tzinfo
+        tzinfo tzinfo
         bint fold
 
 
