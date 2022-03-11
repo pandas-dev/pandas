@@ -42,64 +42,72 @@ jobs:
         sccache -z
       displayName: Setup Sccache
 
-    - task: Cache@2
-      inputs:
-        key: conda-0
-        restoreKeys: |
-          conda-restore-0
-        pattern: /usr/local/miniconda/pkgs/*.tar.bz2
-      displayName: Restore Conda package cache
-
     - script: ls -lh /usr/local/miniconda/pkgs
       displayName: 'List packages'
+
+    # - task: Cache@2
+    #   inputs:
+    #     key: conda-0
+    #     restoreKeys: |
+    #       conda-restore-0
+    #     pattern: |
+    #       /usr/local/miniconda/pkgs/*.conda
+    #       /usr/local/miniconda/pkgs/*.tar.bz2
+    #   displayName: Restore Conda package cache
+
+    # - script: ls -lh /usr/local/miniconda/pkgs
+    #   displayName: 'List packages'
 
     - script: echo '##vso[task.prependpath]/usr/local/miniconda/condabin'
       displayName: 'Set conda path'
 
-    - script: rm /usr/local/miniconda/pkgs/cache/*.json
-      displayName: 'Workaround for mamba-org/mamba#488'
+    - script: conda env list
+      displayName: 'conda list'
 
-    - script: |
-        set -eux
-        conda install -y -c conda-forge -n base 'mamba>=0.22' pip
-        env | grep pkg
-        # See https://github.com/mamba-org/mamba/issues/633
-        mamba create -q -n pandas-dev
-        # TODO: GH#44980 https://github.com/pypa/setuptools/issues/2941
-        echo '  - setuptools <60' >> ${ENV_FILE}
-        if [ "$(uname)" == Darwin ]; then
-          # From pyarrow on MacOS
-          # ImportError: 2): Library not loaded: @rpath/libssl.1.1.dylib
-          # Referenced from: /Users/runner/miniconda3/envs/pandas-dev/lib/libthrift.0.13.0.dylib
-          # Reason: image not found
-          sed -i'' -e 's/^  - pyarrow$/  - pyarrow=6/' ${ENV_FILE}
-        fi
-        time mamba env update -n pandas-dev --file="${ENV_FILE}"
-        set +e
-        echo Have qt?
-        mamba list -n pandas-dev -f qt --json
-        echo Have pandas?
-        mamba run --no-capture-output -n pandas-dev pip list | grep pandas
-        set -e
-        time DISTUTILS_C_COMPILER_LAUNCHER=sccache mamba run --no-capture-output -n pandas-dev python setup.py build_ext -v -j3
-        time mamba run --no-capture-output -n pandas-dev python -m pip install --no-build-isolation -e .
-        sccache -s
-      displayName: 'Setup environment and build pandas'
+#     - script: rm /usr/local/miniconda/pkgs/cache/*.json
+#       displayName: 'Workaround for mamba-org/mamba#488'
 
-    - script: |
-        mamba run --no-capture-output -n pandas-dev ci/run_tests.sh
-      displayName: 'Test'
+#     - script: |
+#         set -eux
+#         conda install -y -c conda-forge -n base 'mamba>=0.22' pip
+#         env | grep pkg
+#         # See https://github.com/mamba-org/mamba/issues/633
+#         mamba create -q -n pandas-dev
+#         # TODO: GH#44980 https://github.com/pypa/setuptools/issues/2941
+#         echo '  - setuptools <60' >> ${ENV_FILE}
+#         if [ "$(uname)" == Darwin ]; then
+#           # From pyarrow on MacOS
+#           # ImportError: 2): Library not loaded: @rpath/libssl.1.1.dylib
+#           # Referenced from: /Users/runner/miniconda3/envs/pandas-dev/lib/libthrift.0.13.0.dylib
+#           # Reason: image not found
+#           sed -i'' -e 's/^  - pyarrow$/  - pyarrow=6/' ${ENV_FILE}
+#         fi
+#         time mamba env update -n pandas-dev --file="${ENV_FILE}"
+#         set +e
+#         echo Have qt?
+#         mamba list -n pandas-dev -f qt --json
+#         echo Have pandas?
+#         mamba run --no-capture-output -n pandas-dev pip list | grep pandas
+#         set -e
+#         time DISTUTILS_C_COMPILER_LAUNCHER=sccache mamba run --no-capture-output -n pandas-dev python setup.py build_ext -v -j3
+#         time mamba run --no-capture-output -n pandas-dev python -m pip install --no-build-isolation -e .
+#         sccache -s
+#       displayName: 'Setup environment and build pandas'
 
-    - script: |
-        pushd /tmp
-        mamba run --no-capture-output -n pandas-dev python -c "import pandas; pandas.show_versions()"
-        popd
-      displayName: 'Build versions'
+#     - script: |
+#         mamba run --no-capture-output -n pandas-dev ci/run_tests.sh
+#       displayName: 'Test'
 
-    - task: PublishTestResults@2
-      condition: succeededOrFailed()
-      inputs:
-        failTaskOnFailedTests: true
-        testResultsFiles: 'test-data.xml'
-        testRunTitle: ${{ format('{0}-$(CONDA_PY)', parameters.name) }}
-      displayName: 'Publish test results'
+#     - script: |
+#         pushd /tmp
+#         mamba run --no-capture-output -n pandas-dev python -c "import pandas; pandas.show_versions()"
+#         popd
+#       displayName: 'Build versions'
+
+#     - task: PublishTestResults@2
+#       condition: succeededOrFailed()
+#       inputs:
+#         failTaskOnFailedTests: true
+#         testResultsFiles: 'test-data.xml'
+#         testRunTitle: ${{ format('{0}-$(CONDA_PY)', parameters.name) }}
+#       displayName: 'Publish test results'
