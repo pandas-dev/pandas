@@ -3258,7 +3258,7 @@ class MultiIndex(Index):
                 raise KeyError(key)
             return slice(start, end)
 
-    def get_locs(self, seq) -> npt.NDArray[np.intp]:
+    def get_locs(self, seq):
         """
         Get location for a sequence of labels.
 
