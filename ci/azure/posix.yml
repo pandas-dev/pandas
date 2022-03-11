@@ -47,9 +47,9 @@ jobs:
 
     - task: Cache@2
       inputs:
-        key: conda-5
+        key: conda-6
         restoreKeys: |
-          conda-restore-5
+          conda-restore-6
         path: /usr/local/miniconda/pkgs
       displayName: Conda download cache
 
@@ -118,5 +118,5 @@ jobs:
 #         testRunTitle: ${{ format('{0}-$(CONDA_PY)', parameters.name) }}
 #       displayName: 'Publish test results'
 
-    - script: conda clean -yf
+    - script: conda clean -yp
       displayName: 'Reduce Conda cache size'
