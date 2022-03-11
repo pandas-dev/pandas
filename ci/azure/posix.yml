@@ -47,10 +47,10 @@ jobs:
 
     - task: Cache@2
       inputs:
-        key: conda-2
+        key: conda-3
         restoreKeys: |
-          conda-restore-2
-        path: /usr/local/miniconda
+          conda-restore-3
+        path: /usr/local/miniconda/pkgs
         pattern: |
           **/*.conda
           **/*.tar.bz2
