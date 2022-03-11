@@ -52,8 +52,8 @@ jobs:
           conda-restore-1
         path: /usr/local/miniconda
         pattern: |
-          *.conda
-          *.tar.bz2
+          **/*.conda
+          **/*.tar.bz2
       displayName: Restore Conda package cache
 
     - script: |
