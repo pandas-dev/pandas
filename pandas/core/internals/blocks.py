@@ -623,6 +623,7 @@ class Block(PandasObject):
                         mask=mask[i],
                     )
                 )
+            return blocks
 
     @final
     def _replace_regex(
