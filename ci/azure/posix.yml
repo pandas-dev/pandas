@@ -43,7 +43,7 @@ jobs:
         fi
 
         # See https://github.com/mamba-org/mamba/issues/633
-        time micromamba create -f "$ENV_FILE"
+        time micromamba create -y -f "$ENV_FILE"
 
         set +e
         echo Have qt?
