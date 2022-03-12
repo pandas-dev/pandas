@@ -69,6 +69,7 @@ from pandas._libs.tslibs.nattype cimport (
     checknull_with_nat,
 )
 from pandas._libs.tslibs.tzconversion cimport (
+    bisect_right_i8,
     tz_convert_utc_to_tzlocal,
     tz_localize_to_utc_single,
 )
@@ -536,6 +537,7 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
         int64_t value  # numpy dt64
         datetime dt
         ndarray[int64_t] trans
+        int64_t* tdata
         int64_t[::1] deltas
 
     value = dtstruct_to_dt64(&dts)
@@ -556,7 +558,8 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
         trans, deltas, typ = get_dst_info(tz)
 
         if typ == 'dateutil':
-            pos = trans.searchsorted(obj.value, side='right') - 1
+            tdata = <int64_t*>cnp.PyArray_DATA(trans)
+            pos = bisect_right_i8(tdata, obj.value, trans.shape[0]) - 1
             obj.fold = _infer_tsobject_fold(obj, trans, deltas, pos)
 
     # Keep the converter same as PyDateTime's
@@ -708,7 +711,8 @@ cdef inline void _localize_tso(_TSObject obj, tzinfo tz):
         ndarray[int64_t] trans
         int64_t[::1] deltas
         int64_t local_val
-        Py_ssize_t pos
+        int64_t* tdata
+        Py_ssize_t pos, ntrans
         str typ
 
     assert obj.tzinfo is None
@@ -723,17 +727,20 @@ cdef inline void _localize_tso(_TSObject obj, tzinfo tz):
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
         trans, deltas, typ = get_dst_info(tz)
+        ntrans = trans.shape[0]
 
         if typ == "pytz":
             # i.e. treat_tz_as_pytz(tz)
-            pos = trans.searchsorted(obj.value, side="right") - 1
+            tdata = <int64_t*>cnp.PyArray_DATA(trans)
+            pos = bisect_right_i8(tdata, obj.value, ntrans) - 1
             local_val = obj.value + deltas[pos]
 
             # find right representation of dst etc in pytz timezone
             tz = tz._tzinfos[tz._transition_info[pos]]
         elif typ == "dateutil":
             # i.e. treat_tz_as_dateutil(tz)
-            pos = trans.searchsorted(obj.value, side="right") - 1
+            tdata = <int64_t*>cnp.PyArray_DATA(trans)
+            pos = bisect_right_i8(tdata, obj.value, ntrans) - 1
             local_val = obj.value + deltas[pos]
 
             # dateutil supports fold, so we infer fold from value
