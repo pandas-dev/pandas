@@ -185,6 +185,23 @@ class SpecificationError(Exception):
     pass
 
 
+class ReadOnlyNanDefaultDict:
+    """
+    Mimics the missing functionality of defaultdict(lambda: np.nan, dictionary_object) without copying the data.
+
+    Used for IndexOpsMixin._map_values when a non-default-dictionary is provided as a mapping.
+    """
+
+    def __init__(self, data):
+        self._data = data
+
+    def __getitem__(self, item):
+        return self._data.__getitem__(item)
+
+    def __missing__(self, key):
+        return np.nan
+
+
 class SelectionMixin(Generic[NDFrameT]):
     """
     mixin implementing the selection & aggregation interface on a group-like
@@ -830,8 +847,10 @@ class IndexOpsMixin(OpsMixin):
                 # behavior for missing values in a dictionary mapping is
                 # to map them to np.nan, it is safe to convert the
                 # dictionary to a defaultdict which returns np.nan for
-                # missing keys for efficiency (GH #46248).
-                dict_with_default = defaultdict(lambda: np.nan, mapper)
+                # missing keys for efficiency (GH #46248). For even better
+                # performance, ReadOnlyNanDefaultDict provides the
+                # necessary functionality, without copying the dictionary.
+                dict_with_default = ReadOnlyNanDefaultDict(mapper)
 
             mapper = lambda x: dict_with_default[x]
 
