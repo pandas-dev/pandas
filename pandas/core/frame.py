@@ -26,6 +26,7 @@ from typing import (
     Iterator,
     Literal,
     Sequence,
+    TypeVar,
     cast,
     overload,
 )
@@ -221,6 +222,8 @@ if TYPE_CHECKING:
     from pandas.core.resample import Resampler
 
     from pandas.io.formats.style import Styler
+
+    DataFrameT = TypeVar("DataFrameT", bound="DataFrame")
 
 # ---------------------------------------------------------------------
 # Docstring templates
@@ -6446,7 +6449,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     @overload
     def sort_index(
-        self,
+        self: DataFrameT,
         *,
         axis: Axis = ...,
         level: Level | None = ...,
@@ -6457,12 +6460,12 @@ class DataFrame(NDFrame, OpsMixin):
         sort_remaining: bool = ...,
         ignore_index: bool = ...,
         key: IndexKeyFunc = ...,
-    ) -> DataFrame:
+    ) -> DataFrameT:
         ...
 
     @overload
     def sort_index(
-        self,
+        self: DataFrameT,
         *,
         axis: Axis = ...,
         level: Level | None = ...,
@@ -6473,13 +6476,13 @@ class DataFrame(NDFrame, OpsMixin):
         sort_remaining: bool = ...,
         ignore_index: bool = ...,
         key: IndexKeyFunc = ...,
-    ) -> DataFrame | None:
+    ) -> DataFrameT | None:
         ...
 
     # error: Signature of "sort_index" incompatible with supertype "NDFrame"
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def sort_index(  # type: ignore[override]
-        self,
+        self: DataFrameT,
         axis: Axis = 0,
         level: Level | None = None,
         ascending: bool | int | Sequence[bool | int] = True,
@@ -6489,7 +6492,7 @@ class DataFrame(NDFrame, OpsMixin):
         sort_remaining: bool = True,
         ignore_index: bool = False,
         key: IndexKeyFunc = None,
-    ) -> DataFrame | None:
+    ) -> DataFrameT | None:
         """
         Sort object by labels (along an axis).
 

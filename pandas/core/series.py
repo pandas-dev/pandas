@@ -13,6 +13,7 @@ from typing import (
     Iterable,
     Literal,
     Sequence,
+    TypeVar,
     Union,
     cast,
     overload,
@@ -161,6 +162,8 @@ if TYPE_CHECKING:
     from pandas.core.frame import DataFrame
     from pandas.core.groupby.generic import SeriesGroupBy
     from pandas.core.resample import Resampler
+
+    SeriesT = TypeVar("SeriesT", bound="Series")
 
 __all__ = ["Series"]
 
@@ -3597,7 +3600,7 @@ Keep all original rows and also all original values
 
     @overload
     def sort_index(
-        self,
+        self: SeriesT,
         *,
         axis: Literal[0] = ...,
         level: Level | None = ...,
@@ -3608,12 +3611,12 @@ Keep all original rows and also all original values
         sort_remaining: bool = ...,
         ignore_index: bool = ...,
         key: IndexKeyFunc = ...,
-    ) -> Series:
+    ) -> SeriesT:
         ...
 
     @overload
     def sort_index(
-        self,
+        self: SeriesT,
         *,
         axis: Literal[0] = ...,
         level: Level | None = ...,
@@ -3624,14 +3627,14 @@ Keep all original rows and also all original values
         sort_remaining: bool = ...,
         ignore_index: bool = ...,
         key: IndexKeyFunc = ...,
-    ) -> Series | None:
+    ) -> SeriesT | None:
         ...
 
     # error: Argument 1 of "sort_index" is incompatible with supertype "NDFrame";
     # supertype defines the argument type as "Union[str, int]"
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def sort_index(  # type: ignore[override]
-        self,
+        self: SeriesT,
         axis: Literal[0] = 0,
         level: Level | None = None,
         ascending: bool | int | Sequence[bool | int] = True,
@@ -3641,7 +3644,7 @@ Keep all original rows and also all original values
         sort_remaining: bool = True,
         ignore_index: bool = False,
         key: IndexKeyFunc = None,
-    ):
+    ) -> SeriesT | None:
         """
         Sort Series by index labels.
 
