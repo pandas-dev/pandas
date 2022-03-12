@@ -38,13 +38,6 @@ jobs:
 
     - script: |
         set -eux
-        cat ~/.bash_profile
-        source ~/.bash_profile
-        conda activate mamba-env
-      displayName: Install Mamba
-
-    - script: |
-        set -eux
 
         # TODO: GH#44980 https://github.com/pypa/setuptools/issues/2941
         echo '  - setuptools <60' >> ${ENV_FILE}
@@ -61,12 +54,13 @@ jobs:
         conda create -y -n pandas-dev
         time conda run --no-capture-output -n mamba-env mamba env update -n pandas-dev --file="${ENV_FILE}"
 
+        source ~/.bash_profile && conda activate pandas-dev
         set +e
         echo Have qt?
-        conda list -n pandas-dev -f qt --json
+        conda list -f qt --json
         echo Have pandas?
-        conda list -n pandas-dev -f pandas --json
-        conda run --no-capture-output -n pandas-dev pip list | grep pandas
+        conda list -f pandas --json
+        conda run --no-capture-output pip list | grep pandas
         set -e
       displayName: 'Setup Conda environment'
 
@@ -92,10 +86,13 @@ jobs:
 
     - script: |
         set -eux
-        conda run --no-capture-output -n pandas-dev python --version
-        conda run --no-capture-output -n pandas-dev python3 --version
-        time DISTUTILS_C_COMPILER_LAUNCHER=sccache conda run --no-capture-output -n pandas-dev python3 setup.py build_ext -v -j3
-        time conda run --no-capture-output -n pandas-dev python3 -m pip install --force-reinstall --no-build-isolation -e .
+        source ~/.bash_profile && conda activate pandas-dev
+        which python
+        which python3
+        python --version
+        python3 --version
+        time DISTUTILS_C_COMPILER_LAUNCHER=sccache python setup.py build_ext -v -j3
+        time python -m pip install --force-reinstall --no-build-isolation -e .
         sccache -s
       displayName: 'Build pandas'
 
