@@ -58,7 +58,8 @@ cdef class Localizer:
     @cython.boundscheck(False)
     def __cinit__(self, tzinfo tz):
         self.tz = tz
-        self.use_utc = self.use_tzlocal = self.use_fixed = self.use_dst = self.use_pytz = False
+        self.use_utc = self.use_tzlocal = self.use_fixed = False
+        self.use_dst = self.use_pytz = False
         self.delta = -1  # placeholder
         self.deltas = _deltas_placeholder
 
@@ -171,7 +172,6 @@ def ints_to_pydatetime(
         intp_t* pos
         Py_ssize_t i, n = len(stamps)
         npy_datetimestruct dts
-
         tzinfo new_tz
         ndarray[object] result = np.empty(n, dtype=object)
         object (*func_create)(int64_t, npy_datetimestruct, tzinfo, object, bint)
@@ -257,7 +257,6 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None) -> Resolution:
         intp_t* pos
         Py_ssize_t i, n = len(stamps)
         npy_datetimestruct dts
-
         int reso = RESO_DAY, curr_reso
 
     if info.use_dst:
@@ -308,7 +307,6 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
         int64_t local_val
         intp_t* pos
         Py_ssize_t i, n = len(stamps)
-
         int64_t[:] result = np.empty(n, dtype=np.int64)
 
     if info.use_dst:
@@ -355,7 +353,6 @@ def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None) -> bool:
         int64_t local_val
         intp_t* pos
         Py_ssize_t i, n = len(stamps)
-
         int64_t day_nanos = 24 * 3600 * 1_000_000_000
 
     if info.use_dst:
@@ -389,7 +386,6 @@ def dt64arr_to_periodarr(const int64_t[:] stamps, int freq, tzinfo tz):
         intp_t* pos
         Py_ssize_t i, n = len(stamps)
         npy_datetimestruct dts
-
         int64_t[:] result = np.empty(n, dtype=np.int64)
 
     if info.use_dst:
