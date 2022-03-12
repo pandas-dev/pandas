@@ -565,9 +565,7 @@ class MultiIndex(Index):
 
         if not all(tuples):
             _dtype_obj = np.dtype("object")
-            subarr = com.asarray_tuplesafe(tuples, dtype=_dtype_obj)
-            dtype = subarr.dtype
-            return Index(subarr, dtype=dtype)
+            arrays = com.asarray_tuplesafe(tuples, dtype=_dtype_obj)
 
         return cls.from_arrays(arrays, sortorder=sortorder, names=names)
 
