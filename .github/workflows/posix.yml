@@ -25,7 +25,7 @@ jobs:
     strategy:
       matrix:
         env_file: [actions-38.yaml] #, actions-39.yaml, actions-310.yaml]
-        pattern: ["not single_cpu", "single_cpu"]
+        pattern: ["not single_cpu"] #, "single_cpu"]
         # Don't test pyarrow v2/3: Causes timeouts in read_csv engine
         # even if tests are skipped/xfailed
         pyarrow_version: ["5"] #, "7"]
@@ -133,7 +133,7 @@ jobs:
       with:
         environment-file: ${{ env.ENV_FILE }}
         extra-specs: |
-          ${{ matrix.pyarrow_version && 'pyarrow=' matrix.pyarrow_version }}
+          ${{ matrix.pyarrow_version && 'pyarrow=' + matrix.pyarrow_version }}
         cache-env: true
       if: ${{ env.IS_PYPY == 'false' }} # No pypy3.8 support
 
