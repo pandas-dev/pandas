@@ -183,24 +183,6 @@ class SpecificationError(Exception):
     pass
 
 
-class ReadOnlyNanDefaultDict:
-    """
-    Mimics the missing functionality defaultdict without copying the data.
-
-    Used for IndexOpsMixin._map_values when a non-default-dictionary is
-    provided as a mapping.
-    """
-
-    def __init__(self, data):
-        self._data = data
-
-    def __getitem__(self, item):
-        return self._data.__getitem__(item)
-
-    def __missing__(self, key):
-        return np.nan
-
-
 class SelectionMixin(Generic[NDFrameT]):
     """
     mixin implementing the selection & aggregation interface on a group-like
@@ -837,10 +819,11 @@ class IndexOpsMixin(OpsMixin):
         # as we know that we are not going to have to yield
         # python types
         if is_dict_like(mapper):
+            dict_with_default = mapper
             if isinstance(mapper, dict) and hasattr(mapper, "__missing__"):
                 # If a dictionary subclass defines a default value method,
                 # convert mapper to a lookup function (GH #15999).
-                dict_with_default = mapper
+                mapper = lambda x: dict_with_default[x]
             else:
                 # Dictionary does not have a default. Since the default
                 # behavior for missing values in a dictionary mapping is
@@ -849,9 +832,7 @@ class IndexOpsMixin(OpsMixin):
                 # missing keys for efficiency (GH #46248). For even better
                 # performance, ReadOnlyNanDefaultDict provides the
                 # necessary functionality, without copying the dictionary.
-                dict_with_default = ReadOnlyNanDefaultDict(mapper)
-
-            mapper = lambda x: dict_with_default[x]
+                mapper = lambda x: dict_with_default.get(x, np.nan)
 
         if isinstance(mapper, ABCSeries):
             # Since values were input this means we came from either
@@ -867,7 +848,6 @@ class IndexOpsMixin(OpsMixin):
 
             indexer = mapper.index.get_indexer(values)
             new_values = algorithms.take_nd(mapper._values, indexer)
-
             return new_values
 
         # we must convert to python types
