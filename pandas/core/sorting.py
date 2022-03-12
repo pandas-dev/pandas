@@ -41,6 +41,7 @@ from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
     from pandas import MultiIndex
+    from pandas.core.arrays import ExtensionArray
     from pandas.core.indexes.base import Index
 
 
@@ -52,7 +53,7 @@ def get_indexer_indexer(
     na_position: str,
     sort_remaining: bool,
     key: IndexKeyFunc,
-) -> np.ndarray | None:
+) -> npt.NDArray[np.intp] | None:
     """
     Helper method that return the indexer according to input parameters for
     the sort_index method of DataFrame and Series.
@@ -69,7 +70,7 @@ def get_indexer_indexer(
 
     Returns
     -------
-    Optional[ndarray]
+    Optional[ndarray[intp]]
         The indexer for the new index.
     """
 
@@ -215,7 +216,7 @@ def get_compressed_ids(
     return compress_group_index(ids, sort=True)
 
 
-def is_int64_overflow_possible(shape) -> bool:
+def is_int64_overflow_possible(shape: Shape) -> bool:
     the_prod = 1
     for x in shape:
         the_prod *= int(x)
@@ -223,7 +224,9 @@ def is_int64_overflow_possible(shape) -> bool:
     return the_prod >= lib.i8max
 
 
-def decons_group_index(comp_labels, shape):
+def _decons_group_index(
+    comp_labels: npt.NDArray[np.intp], shape: Shape
+) -> list[npt.NDArray[np.intp]]:
     # reconstruct labels
     if is_int64_overflow_possible(shape):
         # at some point group indices are factorized,
@@ -232,7 +235,7 @@ def decons_group_index(comp_labels, shape):
 
     label_list = []
     factor = 1
-    y = 0
+    y = np.array(0)
     x = comp_labels
     for i in reversed(range(len(shape))):
         labels = (x - y) % (factor * shape[i]) // factor
@@ -244,24 +247,32 @@ def decons_group_index(comp_labels, shape):
 
 
 def decons_obs_group_ids(
-    comp_ids: npt.NDArray[np.intp], obs_ids, shape, labels, xnull: bool
-):
+    comp_ids: npt.NDArray[np.intp],
+    obs_ids: npt.NDArray[np.intp],
+    shape: Shape,
+    labels: Sequence[npt.NDArray[np.signedinteger]],
+    xnull: bool,
+) -> list[npt.NDArray[np.intp]]:
     """
     Reconstruct labels from observed group ids.
 
     Parameters
     ----------
     comp_ids : np.ndarray[np.intp]
+    obs_ids: np.ndarray[np.intp]
+    shape : tuple[int]
+    labels : Sequence[np.ndarray[np.signedinteger]]
     xnull : bool
         If nulls are excluded; i.e. -1 labels are passed through.
     """
     if not xnull:
-        lift = np.fromiter(((a == -1).any() for a in labels), dtype="i8")
-        shape = np.asarray(shape, dtype="i8") + lift
+        lift = np.fromiter(((a == -1).any() for a in labels), dtype=np.intp)
+        arr_shape = np.asarray(shape, dtype=np.intp) + lift
+        shape = tuple(arr_shape)
 
     if not is_int64_overflow_possible(shape):
         # obs ids are deconstructable! take the fast route!
-        out = decons_group_index(obs_ids, shape)
+        out = _decons_group_index(obs_ids, shape)
         return out if xnull or not lift.any() else [x - y for x, y in zip(out, lift)]
 
     indexer = unique_label_indices(comp_ids)
@@ -428,7 +439,7 @@ def nargsort(
     return ensure_platform_int(indexer)
 
 
-def nargminmax(values, method: str, axis: int = 0):
+def nargminmax(values: ExtensionArray, method: str, axis: int = 0):
     """
     Implementation of np.argmin/argmax but for ExtensionArray and which
     handles missing values.
@@ -447,21 +458,21 @@ def nargminmax(values, method: str, axis: int = 0):
     func = np.argmax if method == "argmax" else np.argmin
 
     mask = np.asarray(isna(values))
-    values = values._values_for_argsort()
+    arr_values = values._values_for_argsort()
 
-    if values.ndim > 1:
+    if arr_values.ndim > 1:
         if mask.any():
             if axis == 1:
-                zipped = zip(values, mask)
+                zipped = zip(arr_values, mask)
             else:
-                zipped = zip(values.T, mask.T)
+                zipped = zip(arr_values.T, mask.T)
             return np.array([_nanargminmax(v, m, func) for v, m in zipped])
-        return func(values, axis=axis)
+        return func(arr_values, axis=axis)
 
-    return _nanargminmax(values, mask, func)
+    return _nanargminmax(arr_values, mask, func)
 
 
-def _nanargminmax(values, mask, func) -> int:
+def _nanargminmax(values: np.ndarray, mask: npt.NDArray[np.bool_], func) -> int:
     """
     See nanargminmax.__doc__.
     """
@@ -576,7 +587,7 @@ def get_flattened_list(
     arrays: DefaultDict[int, list[int]] = defaultdict(list)
     for labs, level in zip(labels, levels):
         table = hashtable.Int64HashTable(ngroups)
-        table.map(comp_ids, labs.astype(np.int64, copy=False))
+        table.map_keys_to_values(comp_ids, labs.astype(np.int64, copy=False))
         for i in range(ngroups):
             arrays[i].append(level[table.get_item(i)])
     return [tuple(array) for array in arrays.values()]
@@ -591,9 +602,9 @@ def get_indexer_dict(
     dict:
         Labels mapped to indexers.
     """
-    shape = [len(x) for x in keys]
+    shape = tuple(len(x) for x in keys)
 
-    group_index = get_group_index(label_list, tuple(shape), sort=True, xnull=True)
+    group_index = get_group_index(label_list, shape, sort=True, xnull=True)
     if np.all(group_index == -1):
         # Short-circuit, lib.indices_fast will return the same
         return {}

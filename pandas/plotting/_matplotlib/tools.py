@@ -388,12 +388,8 @@ def handle_shared_axes(
     sharey: bool,
 ):
     if nplots > 1:
-        if compat.mpl_ge_3_2_0():
-            row_num = lambda x: x.get_subplotspec().rowspan.start
-            col_num = lambda x: x.get_subplotspec().colspan.start
-        else:
-            row_num = lambda x: x.rowNum
-            col_num = lambda x: x.colNum
+        row_num = lambda x: x.get_subplotspec().rowspan.start
+        col_num = lambda x: x.get_subplotspec().colspan.start
 
         if compat.mpl_ge_3_4_0():
             is_first_col = lambda x: x.get_subplotspec().is_first_col()

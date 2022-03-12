@@ -27,7 +27,7 @@ class BaseMethodsTests(BaseExtensionTests):
     def test_value_counts(self, all_data, dropna):
         all_data = all_data[:10]
         if dropna:
-            other = np.array(all_data[~all_data.isna()])
+            other = all_data[~all_data.isna()]
         else:
             other = all_data
 

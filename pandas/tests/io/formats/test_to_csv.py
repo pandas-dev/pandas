@@ -46,7 +46,7 @@ class TestToCSV:
             with open(path) as f:
                 assert f.read() == expected2
 
-    def test_to_csv_defualt_encoding(self):
+    def test_to_csv_default_encoding(self):
         # GH17097
         df = DataFrame({"col": ["AAAAA", "ÄÄÄÄÄ", "ßßßßß", "聞聞聞聞聞"]})
 
@@ -314,6 +314,26 @@ $1$,$2$
         )
         ser = ser.astype("category")
         assert ser.to_csv(index=False, date_format="%Y-%m-%d") == expected
+
+    def test_to_csv_float_ea_float_format(self):
+        # GH#45991
+        df = DataFrame({"a": [1.1, 2.02, pd.NA, 6.000006], "b": "c"})
+        df["a"] = df["a"].astype("Float64")
+        result = df.to_csv(index=False, float_format="%.5f")
+        expected = tm.convert_rows_list_to_csv_str(
+            ["a,b", "1.10000,c", "2.02000,c", ",c", "6.00001,c"]
+        )
+        assert result == expected
+
+    def test_to_csv_float_ea_no_float_format(self):
+        # GH#45991
+        df = DataFrame({"a": [1.1, 2.02, pd.NA, 6.000006], "b": "c"})
+        df["a"] = df["a"].astype("Float64")
+        result = df.to_csv(index=False)
+        expected = tm.convert_rows_list_to_csv_str(
+            ["a,b", "1.1,c", "2.02,c", ",c", "6.000006,c"]
+        )
+        assert result == expected
 
     def test_to_csv_multi_index(self):
         # see gh-6618
