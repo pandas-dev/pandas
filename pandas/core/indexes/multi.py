@@ -564,8 +564,7 @@ class MultiIndex(Index):
             arrays = cast(List[Sequence[Hashable]], arrs)
 
         if not all(tuples):
-            _dtype_obj = np.dtype("object")
-            arrays = com.asarray_tuplesafe(np.array(tuples), dtype=_dtype_obj)
+            return cls.from_arrays(tuples, sortorder=sortorder, names=names)
 
         return cls.from_arrays(arrays, sortorder=sortorder, names=names)
 
