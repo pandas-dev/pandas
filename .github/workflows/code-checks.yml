@@ -52,7 +52,7 @@ jobs:
       with:
         fetch-depth: 0
 
-    - uses: mamba-org/provision-with-micromamba
+    - uses: mamba-org/provision-with-micromamba@main
       with:
         environment-file: ${{ env.ENV_FILE }}
         cache-env: true
