@@ -2956,7 +2956,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     )
     def to_pickle(
         self,
-        path,
+        path: FilePath | WriteBuffer[bytes],
         compression: CompressionOptions = "infer",
         protocol: int = pickle.HIGHEST_PROTOCOL,
         storage_options: StorageOptions = None,
@@ -2966,8 +2966,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        path : str
-            File path where the pickled object will be stored.
+        path : str, path object, or file-like object
+            String, path object (implementing ``os.PathLike[str]``), or file-like
+            object implementing a binary ``write()`` function. File path where
+            the pickled object will be stored.
         {compression_options}
         protocol : int
             Int which indicates which protocol should be used by the pickler,
@@ -3056,6 +3058,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
           - Windows : none
           - macOS : none
 
+        This method uses the processes developed for the package `pyperclip`. A
+        solution to render any output string format is given in the examples.
+
         Examples
         --------
         Copy the contents of a DataFrame to the clipboard.
@@ -3076,6 +3081,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ... # A,B,C
         ... # 1,2,3
         ... # 4,5,6
+
+        Using the original `pyperclip` package for any string output format.
+
+        .. code-block:: python
+
+           import pyperclip
+           html = df.style.to_html()
+           pyperclip.copy(html)
         """
         from pandas.io import clipboards
 
@@ -9010,18 +9023,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             if is_series:
                 left = self._reindex_indexer(join_index, lidx, copy)
-            elif lidx is None:
+            elif lidx is None or join_index is None:
                 left = self.copy() if copy else self
             else:
-                data = algos.take_nd(
-                    self.values,
-                    lidx,
-                    allow_fill=True,
-                    fill_value=None,
-                )
-
                 left = self._constructor(
-                    data=data, columns=self.columns, index=join_index
+                    self._mgr.reindex_indexer(join_index, lidx, axis=1, copy=copy)
                 )
 
             right = other._reindex_indexer(join_index, ridx, copy)

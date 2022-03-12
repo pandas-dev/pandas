@@ -436,7 +436,7 @@ class StylerRenderer:
             Looping variables from outer scope
         max_cols : int
             Permissible number of columns
-        col_lenths :
+        col_lengths :
             c
 
         Returns

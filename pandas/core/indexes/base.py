@@ -4358,7 +4358,9 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             target = ensure_index(target)
 
-        if level is not None:
+        if level is not None and (
+            isinstance(self, ABCMultiIndex) or isinstance(target, ABCMultiIndex)
+        ):
             if method is not None:
                 raise TypeError("Fill method not supported if level passed")
 
