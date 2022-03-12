@@ -31,10 +31,17 @@ jobs:
         set -eux
         # Set Conda path
         echo '##vso[task.prependpath]/usr/local/miniconda/condabin'
+        ls /usr/local/miniconda/condabin
         # Workaround for mamba-org/mamba#488
         rm -f /usr/local/miniconda/pkgs/cache/*.json
         # Installing Mamba to a fresh env is much faster (5 min vs. 1 min)
         conda create -y -n mamba-env -c conda-forge 'mamba>=0.22'
+        echo 1
+        ls /usr/local/miniconda/condabin
+        echo 2
+        ls /usr/local/miniconda/bin
+        echo 3
+        ls /usr/local/miniconda/envs/mamba-env/bin
       displayName: Setup Conda and Mamba
 
     - script: |
