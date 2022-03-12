@@ -549,9 +549,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         new_obj._freq = self.freq
         return new_obj
 
-    def _values_for_factorize(self):
-        return self._ndarray, self._internal_fill_value
-
     # ------------------------------------------------------------------
     # Validation Methods
     # TODO: try to de-duplicate these, ensure identical behavior

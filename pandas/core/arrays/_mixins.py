@@ -190,6 +190,9 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     def _values_for_argsort(self) -> np.ndarray:
         return self._ndarray
 
+    def _values_for_factorize(self):
+        return self._ndarray, self._internal_fill_value
+
     # Signature of "argmin" incompatible with supertype "ExtensionArray"
     def argmin(self, axis: int = 0, skipna: bool = True):  # type: ignore[override]
         # override base class by adding axis keyword
