@@ -1542,3 +1542,10 @@ class TestDataFrameReplaceRegex:
         expected_df2 = DataFrame({"A": [1], "B": ["1"]})
         result_df2 = df2.replace(to_replace="0", value=1, regex=regex)
         tm.assert_frame_equal(result_df2, expected_df2)
+
+    def test_replace_with_value_also_being_replaced(self):
+        # GH46306
+        df = DataFrame({"A": [0, 1, 2], "B": [1, 0, 2]})
+        result = df.replace({0: 1, 1: np.nan})
+        expected = DataFrame({"A": [1, np.nan, 2], "B": [np.nan, 1, 2]})
+        tm.assert_frame_equal(result, expected)
