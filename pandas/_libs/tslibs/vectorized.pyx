@@ -86,7 +86,7 @@ def ints_to_pydatetime(
         Py_ssize_t i, ntrans =- 1, n = len(stamps)
         ndarray[int64_t] trans
         int64_t[::1] deltas
-        int64_t* tdata
+        int64_t* tdata = NULL
         intp_t pos
         npy_datetimestruct dts
         object dt, new_tz
@@ -201,7 +201,7 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None) -> Resolution:
         int reso = RESO_DAY, curr_reso
         ndarray[int64_t] trans
         int64_t[::1] deltas
-        int64_t* tdata
+        int64_t* tdata = NULL
         intp_t pos
         int64_t local_val, delta = NPY_NAT
         bint use_utc = False, use_tzlocal = False, use_fixed = False
@@ -266,7 +266,7 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
         int64_t[:] result = np.empty(n, dtype=np.int64)
         ndarray[int64_t] trans
         int64_t[::1] deltas
-        int64_t* tdata
+        int64_t* tdata = NULL
         str typ
         Py_ssize_t pos
         int64_t local_val, delta = NPY_NAT
@@ -327,7 +327,7 @@ def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None) -> bool:
         Py_ssize_t i, ntrans =- 1, n = len(stamps)
         ndarray[int64_t] trans
         int64_t[::1] deltas
-        int64_t* tdata
+        int64_t* tdata = NULL
         intp_t pos
         int64_t local_val, delta = NPY_NAT
         str typ
@@ -376,7 +376,7 @@ def dt64arr_to_periodarr(const int64_t[:] stamps, int freq, tzinfo tz):
         int64_t[:] result = np.empty(n, dtype=np.int64)
         ndarray[int64_t] trans
         int64_t[::1] deltas
-        int64_t* tdata
+        int64_t* tdata = NULL
         intp_t pos
         npy_datetimestruct dts
         int64_t local_val, delta = NPY_NAT
