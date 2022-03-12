@@ -45,6 +45,7 @@ from .tzconversion cimport (
 
 # -------------------------------------------------------------------------
 
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def ints_to_pydatetime(
@@ -150,7 +151,7 @@ def ints_to_pydatetime(
         dt64_to_dtstruct(local_val, &dts)
 
         if use_ts:
-            result[i] = create_timestamp_from_ts(local_val, dts, new_tz, freq, fold)
+            result[i] = create_timestamp_from_ts(value, dts, new_tz, freq, fold)
         elif use_pydt:
             result[i] = datetime(
                 dts.year, dts.month, dts.day, dts.hour, dts.min, dts.sec, dts.us,
@@ -160,7 +161,6 @@ def ints_to_pydatetime(
             result[i] = date(dts.year, dts.month, dts.day)
         else:
             result[i] = time(dts.hour, dts.min, dts.sec, dts.us, new_tz, fold=fold)
-
 
     return result
 
