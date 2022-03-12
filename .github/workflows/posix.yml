@@ -133,7 +133,7 @@ jobs:
       with:
         environment-file: ${{ env.ENV_FILE }}
         extra-specs: |
-          ${{ matrix.pyarrow_version && 'pyarrow=' + matrix.pyarrow_version }}
+          ${{ matrix.pyarrow_version && format('pyarrow={0}', matrix.pyarrow_version }}
         cache-env: true
       if: ${{ env.IS_PYPY == 'false' }} # No pypy3.8 support
 
