@@ -24,7 +24,7 @@ cdef enum c_FreqGroup:
 
 
 cdef enum c_Resolution:
-    # Mirros Resolution in the .pyx file
+    # Mirrors Resolution in the .pyx file
     RESO_NS = 0
     RESO_US = 1
     RESO_MS = 2
