@@ -620,7 +620,7 @@ class Block(PandasObject):
                         to_replace=to_replace,
                         value=value,
                         inplace=True,
-                        mask=mask[i],
+                        mask=mask[i : i + 1],
                     )
                 )
             return blocks
