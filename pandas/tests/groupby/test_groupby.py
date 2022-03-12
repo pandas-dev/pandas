@@ -18,7 +18,6 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
-    concat,
     date_range,
     to_datetime,
     util,
@@ -2671,7 +2670,7 @@ def test_groupby_agg_general_dtypes():
     groupby1 = df1.groupby("B").sum()
     groupby2 = df2.groupby("B").sum()
 
-    df_conc = concat([groupby1, groupby2], axis=0)
+    df_conc = pd.concat([groupby1, groupby2], axis=0)
 
     result = df_conc.groupby(level=0).sum()
     expected = df.groupby(level=0).sum()
