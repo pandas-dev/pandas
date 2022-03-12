@@ -1849,9 +1849,12 @@ class Datetime64TZFormatter(Datetime64Formatter):
     def _format_strings(self) -> list[str]:
         """we by definition have a TZ"""
         values = self.values.astype(object)
-        ido = is_dates_only(values)
+        # When there is a timezone `is_dates_only` always returns `False` since dates
+        # are not universal dates but 00:00:00 timestamps in the given timezone.
+        assert not is_dates_only(values)
         formatter = self.formatter or get_format_datetime64(
-            ido, date_format=self.date_format, fast_strftime=self.fast_strftime
+            is_dates_only=False, date_format=self.date_format,
+            fast_strftime=self.fast_strftime
         )
         fmt_values = [formatter(x) for x in values]
 
