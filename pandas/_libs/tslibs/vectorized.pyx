@@ -191,16 +191,12 @@ def ints_to_pydatetime(
 # -------------------------------------------------------------------------
 
 cdef:
-    int RESO_NS = 0
-    int RESO_US = 1
-    int RESO_MS = 2
-    int RESO_SEC = 3
-    int RESO_MIN = 4
-    int RESO_HR = 5
-    int RESO_DAY = 6
-    int RESO_MTH = 7
-    int RESO_QTR = 8
-    int RESO_YR = 9
+    int RESO_US = Resolution.RESO_US.value
+    int RESO_MS = Resolution.RESO_MS.value
+    int RESO_SEC = Resolution.RESO_SEC.value
+    int RESO_MIN = Resolution.RESO_MIN.value
+    int RESO_HR = Resolution.RESO_HR.value
+    int RESO_DAY = Resolution.RESO_DAY.value
 
 
 cdef inline int _reso_stamp(npy_datetimestruct *dts):
