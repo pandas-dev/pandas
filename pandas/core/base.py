@@ -4,6 +4,7 @@ Base and utility classes for pandas objects.
 
 from __future__ import annotations
 
+from collections import defaultdict
 import textwrap
 from typing import (
     TYPE_CHECKING,
@@ -824,20 +825,15 @@ class IndexOpsMixin(OpsMixin):
                 # If a dictionary subclass defines a default value method,
                 # convert mapper to a lookup function (GH #15999).
                 dict_with_default = mapper
-                mapper = lambda x: dict_with_default[x]
             else:
-                # Dictionary does not have a default. Thus it's safe to
-                # convert to an Series for efficiency.
-                # we specify the keys here to handle the
-                # possibility that they are tuples
+                # Dictionary does not have a default. Since the default
+                # behavior for missing values in a dictionary mapping is
+                # to map them to np.nan, it is safe to convert the
+                # dictionary to a defaultdict which returns np.nan for
+                # missing keys for efficiency (GH #46248).
+                dict_with_default = defaultdict(lambda: np.nan, mapper)
 
-                # The return value of mapping with an empty mapper is
-                # expected to be pd.Series(np.nan, ...). As np.nan is
-                # of dtype float64 the return value of this method should
-                # be float64 as well
-                mapper = create_series_with_explicit_dtype(
-                    mapper, dtype_if_empty=np.float64
-                )
+            mapper = lambda x: dict_with_default[x]
 
         if isinstance(mapper, ABCSeries):
             # Since values were input this means we came from either
