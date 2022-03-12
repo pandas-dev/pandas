@@ -24,8 +24,7 @@ jobs:
   steps:
     - script: |
         set -eux
-        micromamba_url="$(bash -c 'x=$(uname)-$(uname -m) x=${x,,} x=${x//darwin/osx} x=${x//_x86/}; echo https://micromamba.snakepit.net/api/micromamba/$x/latest')"
-        curl -sL "$micromamba_url" | bunzip2 | tar xOf - bin/micromamba > /usr/local/bin/micromamba
+        curl -sL https://micromamba.snakepit.net/api/micromamba/osx-64/latest | bunzip2 | tar xOf - bin/micromamba > /usr/local/bin/micromamba
         chmod +x /usr/local/bin/micromamba
       displayName: Install Micromamba
 
