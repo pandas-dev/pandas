@@ -563,6 +563,12 @@ class MultiIndex(Index):
             arrs = zip(*tuples)
             arrays = cast(List[Sequence[Hashable]], arrs)
 
+        if not all(tuples):
+            _dtype_obj = np.dtype("object")
+            subarr = com.asarray_tuplesafe(tuples, dtype=_dtype_obj)
+            dtype = subarr.dtype
+            return Index(subarr, dtype=dtype)
+
         return cls.from_arrays(arrays, sortorder=sortorder, names=names)
 
     @classmethod
