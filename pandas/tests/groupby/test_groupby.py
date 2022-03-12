@@ -18,8 +18,10 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
+    concat,
     date_range,
     to_datetime,
+    util,
 )
 import pandas._testing as tm
 from pandas.core.arrays import BooleanArray
@@ -2654,3 +2656,24 @@ def test_pad_backfill_deprecation():
         s.groupby(level=0).backfill()
     with tm.assert_produces_warning(FutureWarning, match="pad"):
         s.groupby(level=0).pad()
+
+
+def test_groupby_agg_general_dtypes():
+    # GH 44132
+    df = util.testing.makeMixedDataFrame()
+    df = df.to_numpy()
+    df = DataFrame(df)
+    df.columns = ["A", "B", "C", "D"]
+    df = df.set_index("B")
+
+    df1, df2 = df.iloc[:2], df.iloc[2:]
+
+    groupby1 = df1.groupby("B").sum()
+    groupby2 = df2.groupby("B").sum()
+
+    df_conc = concat([groupby1, groupby2], axis=0)
+
+    result = df_conc.groupby(level=0).sum()
+    expected = df.groupby(level=0).sum()
+
+    tm.assert_frame_equal(result, expected)
