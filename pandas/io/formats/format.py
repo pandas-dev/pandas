@@ -1853,8 +1853,9 @@ class Datetime64TZFormatter(Datetime64Formatter):
         # are not universal dates but 00:00:00 timestamps in the given timezone.
         assert not is_dates_only(values)
         formatter = self.formatter or get_format_datetime64(
-            is_dates_only=False, date_format=self.date_format,
-            fast_strftime=self.fast_strftime
+            is_dates_only=False,
+            date_format=self.date_format,
+            fast_strftime=self.fast_strftime,
         )
         fmt_values = [formatter(x) for x in values]
 
