@@ -35,7 +35,6 @@ jobs:
         rm -f /usr/local/miniconda/pkgs/cache/*.json
         # Installing Mamba to a fresh env is much faster (5 min vs. 1 min)
         conda create -y -n mamba-env -c conda-forge 'mamba>=0.22'
-        conda init bash
       displayName: Setup Conda and Mamba
 
     - script: |
