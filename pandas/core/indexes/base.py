@@ -545,7 +545,6 @@ class Index(IndexOpsMixin, PandasObject):
                     return MultiIndex.from_tuples(
                         data, names=name or kwargs.get("names")
                     )
-
             # other iterable of some kind
 
             subarr = com.asarray_tuplesafe(data, dtype=_dtype_obj)
