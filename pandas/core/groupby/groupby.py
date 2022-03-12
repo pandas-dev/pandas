@@ -1489,6 +1489,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 numeric_only=numeric_only,
                 min_count=min_count,
             )
+            dtypes = self.dtypes
+            for column in result.columns:
+                result[column] = result[column].astype(dtypes[column].dtype)
+
             return result.__finalize__(self.obj, method="groupby")
 
     def _agg_py_fallback(
