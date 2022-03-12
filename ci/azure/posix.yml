@@ -79,7 +79,7 @@ jobs:
         time micromamba run -n pandas-dev which python
         time micromamba run -n pandas-dev python --version
         time DISTUTILS_C_COMPILER_LAUNCHER=sccache micromamba run -n pandas-dev python setup.py build_ext -v -j3
-        time micromamba run -n pandas-dev python -m pip install --force-reinstall --no-build-isolation -v -e .
+        time micromamba run -n pandas-dev python -m pip install --no-build-isolation -v -e .
         sccache -s
       displayName: 'Build pandas'
 
