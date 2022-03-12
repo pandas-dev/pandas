@@ -7,7 +7,6 @@ from datetime import (
 )
 from io import StringIO
 import itertools
-import locale
 from operator import methodcaller
 import os
 from pathlib import Path
