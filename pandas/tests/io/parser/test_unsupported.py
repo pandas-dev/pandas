@@ -189,3 +189,13 @@ def test_close_file_handle_on_invalide_usecols(all_parsers):
                 parser.read_csv(fname, usecols=["col1", "col2", "col3"])
         # unlink fails on windows if file handles still point to it
         os.unlink(fname)
+
+
+def test_invalid_file_inputs(all_parsers):
+    # GH#45957
+    parser = all_parsers
+    if parser.engine == "python":
+        pytest.skip("Python engine supports lists.")
+
+    with pytest.raises(ValueError, match="Invalid"):
+        parser.read_csv([])
