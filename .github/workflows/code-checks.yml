@@ -52,20 +52,10 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Cache conda
-      uses: actions/cache@v2
+    - uses: mamba-org/provision-with-micromamba
       with:
-        path: ~/conda_pkgs_dir
-        key: ${{ runner.os }}-conda-${{ hashFiles('${{ env.ENV_FILE }}') }}
-
-    - uses: conda-incubator/setup-miniconda@v2
-      with:
-        mamba-version: "*"
-        channels: conda-forge
-        activate-environment: pandas-dev
-        channel-priority: strict
         environment-file: ${{ env.ENV_FILE }}
-        use-only-tar-bz2: true
+        cache-env: true
 
     - name: Install node.js (for pyright)
       uses: actions/setup-node@v2
@@ -118,20 +108,10 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Cache conda
-      uses: actions/cache@v2
+    - uses: mamba-org/provision-with-micromamba
       with:
-        path: ~/conda_pkgs_dir
-        key: ${{ runner.os }}-conda-${{ hashFiles('${{ env.ENV_FILE }}') }}
-
-    - uses: conda-incubator/setup-miniconda@v2
-      with:
-        mamba-version: "*"
-        channels: conda-forge
-        activate-environment: pandas-dev
-        channel-priority: strict
         environment-file: ${{ env.ENV_FILE }}
-        use-only-tar-bz2: true
+        cache-env: true
 
     - name: Build Pandas
       id: build
