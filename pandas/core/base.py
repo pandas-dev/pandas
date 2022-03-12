@@ -813,7 +813,7 @@ class IndexOpsMixin(OpsMixin):
         return func(skipna=skipna, **kwds)
 
     @final
-    def _map_values(self, mapper, na_action=None):
+    def _map_values(self, mapper, na_action: Literal["ignore"] | None = None):
         """
         An internal function that maps values using the input
         correspondence (which can be a dict, Series, or function).
