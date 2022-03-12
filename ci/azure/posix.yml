@@ -38,6 +38,8 @@ jobs:
 
     - script: |
         set -eux
+        cat ~/.bash_profile
+        source ~/.bash_profile
         conda activate mamba-env
       displayName: Install Mamba
 
