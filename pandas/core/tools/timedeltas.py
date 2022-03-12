@@ -32,11 +32,15 @@ from pandas.core.arrays.timedeltas import sequence_to_td64ns
 if TYPE_CHECKING:
     from pandas._libs.tslibs.timedeltas import UnitChoices
     from pandas._typing import (
-        AnyArrayLike,
+        ArrayLike,
         DateTimeErrorChoices,
     )
 
-    from pandas import Series
+    from pandas import (
+        Index,
+        Series,
+        TimeDeltaIndex,
+    )
 
 
 @overload
@@ -50,18 +54,36 @@ def to_timedelta(
 
 @overload
 def to_timedelta(
-    arg: list | tuple | range | AnyArrayLike,
+    arg: Series,
     unit: UnitChoices | None = ...,
     errors: DateTimeErrorChoices = ...,
 ) -> Series:
     ...
 
 
+@overload
 def to_timedelta(
-    arg: str | int | float | timedelta | list | tuple | range | AnyArrayLike,
+    arg: list | tuple | range | ArrayLike | Index,
+    unit: UnitChoices | None = ...,
+    errors: DateTimeErrorChoices = ...,
+) -> TimeDeltaIndex:
+    ...
+
+
+def to_timedelta(
+    arg: str
+    | int
+    | float
+    | timedelta
+    | list
+    | tuple
+    | range
+    | ArrayLike
+    | Index
+    | Series,
     unit: UnitChoices | None = None,
     errors: DateTimeErrorChoices = "raise",
-) -> Timedelta | Series:
+) -> Timedelta | TimeDeltaIndex | Series:
     """
     Convert argument to timedelta.
 
