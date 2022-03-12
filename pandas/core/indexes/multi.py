@@ -563,8 +563,9 @@ class MultiIndex(Index):
             arrs = zip(*tuples)
             arrays = cast(List[Sequence[Hashable]], arrs)
 
-        if not all(tuples):
-            return cls.from_arrays(tuples, sortorder=sortorder, names=names)
+        if tuples and all(isinstance(e, tuple) for e in tuples):
+            if not all(tuples):
+                return cls.from_arrays(tuples, sortorder=sortorder, names=names)
 
         return cls.from_arrays(arrays, sortorder=sortorder, names=names)
 
