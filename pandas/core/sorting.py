@@ -9,6 +9,7 @@ from typing import (
     Hashable,
     Iterable,
     Sequence,
+    cast,
 )
 import warnings
 
@@ -51,7 +52,7 @@ if TYPE_CHECKING:
 def get_indexer_indexer(
     target: Index,
     level: Level | list[Level] | None,
-    ascending: Sequence[bool | int] | bool | int,
+    ascending: Sequence[bool] | bool,
     kind: SortKind,
     na_position: NaPosition,
     sort_remaining: bool,
@@ -95,12 +96,11 @@ def get_indexer_indexer(
         ):
             return None
 
-        # error: Argument "ascending" to "nargsort" has incompatible type
-        # "Union[Sequence[Union[bool, int]], bool, int]"; expected "bool"
+        # ascending can only be a Sequence for MultiIndex
         indexer = nargsort(
             target,
             kind=kind,
-            ascending=ascending,  # type: ignore[arg-type]
+            ascending=cast(bool, ascending),
             na_position=na_position,
         )
     return indexer
