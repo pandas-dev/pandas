@@ -4,7 +4,6 @@ Base and utility classes for pandas objects.
 
 from __future__ import annotations
 
-from collections import defaultdict
 import textwrap
 from typing import (
     TYPE_CHECKING,
@@ -70,7 +69,6 @@ from pandas.core.algorithms import (
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
 from pandas.core.construction import (
-    create_series_with_explicit_dtype,
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
@@ -187,9 +185,10 @@ class SpecificationError(Exception):
 
 class ReadOnlyNanDefaultDict:
     """
-    Mimics the missing functionality of defaultdict(lambda: np.nan, dictionary_object) without copying the data.
+    Mimics the missing functionality defaultdict without copying the data.
 
-    Used for IndexOpsMixin._map_values when a non-default-dictionary is provided as a mapping.
+    Used for IndexOpsMixin._map_values when a non-default-dictionary is
+    provided as a mapping.
     """
 
     def __init__(self, data):
