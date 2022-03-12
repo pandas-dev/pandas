@@ -50,7 +50,7 @@ jobs:
         micromamba list -n pandas-dev -f qt --json
         echo Have pandas?
         micromamba list -n pandas-dev -f pandas --json
-        micromamba run -a '' -n pandas-dev pip list | grep pandas
+        micromamba run -n pandas-dev pip list | grep pandas
         set -e
       displayName: 'Setup Conda environment'
 
@@ -76,10 +76,10 @@ jobs:
 
     - script: |
         set -eux
-        time micromamba run -a '' -n pandas-dev which python
-        time micromamba run -a '' -n pandas-dev python --version
-        time DISTUTILS_C_COMPILER_LAUNCHER=sccache micromamba run -a '' -n pandas-dev python setup.py build_ext -v -j3
-        time micromamba run -a '' -n pandas-dev python -m pip install --force-reinstall --no-build-isolation -v -e .
+        time micromamba run -n pandas-dev which python
+        time micromamba run -n pandas-dev python --version
+        time DISTUTILS_C_COMPILER_LAUNCHER=sccache micromamba run -n pandas-dev python setup.py build_ext -v -j3
+        time micromamba run -n pandas-dev python -m pip install --force-reinstall --no-build-isolation -v -e .
         sccache -s
       displayName: 'Build pandas'
 
