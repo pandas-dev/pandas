@@ -2003,7 +2003,14 @@ class _iLocIndexer(_LocationIndexer):
                 # We will ignore the existing dtypes instead of using
                 #  internals.concat logic
                 df = value.to_frame().T
-                df.index = Index([indexer], name=self.obj.index.name)
+
+                idx = self.obj.index
+                if isinstance(idx, MultiIndex):
+                    name = idx.names
+                else:
+                    name = idx.name
+
+                df.index = Index([indexer], name=name)
                 if not has_dtype:
                     # i.e. if we already had a Series or ndarray, keep that
                     #  dtype.  But if we had a list or dict, then do inference
