@@ -1489,10 +1489,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 numeric_only=numeric_only,
                 min_count=min_count,
             )
-            dtypes = self.dtypes
-            for column in result.columns:
-                result[column] = result[column].astype(dtypes[column].dtype)
-
             return result.__finalize__(self.obj, method="groupby")
 
     def _agg_py_fallback(
@@ -1583,6 +1579,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             res.index = self.grouper.result_index
             return self._reindex_output(res)
         else:
+            dtypes = self.dtypes
+            for column in res.columns:
+                res[column] = res[column].astype(dtypes[column].dtype)
             return res
 
     def _cython_transform(
