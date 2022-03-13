@@ -1579,9 +1579,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             res.index = self.grouper.result_index
             return self._reindex_output(res)
         else:
-            dtypes = self.dtypes
-            for column in res.columns:
-                res[column] = res[column].astype(dtypes[column].dtype)
             return res
 
     def _cython_transform(
@@ -2181,6 +2178,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     alias="add",
                     npfunc=np.sum,
                 )
+                if isinstance(result, DataFrame):
+                    dtypes = self.dtypes
+                    for column in result.columns:
+                        result[column] = result[column].astype(dtypes[column].dtype)
 
             return self._reindex_output(result, fill_value=0)
 
