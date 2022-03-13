@@ -20,7 +20,6 @@ def test_interval_array_equal(kwargs):
 def test_interval_array_equal_closed_mismatch():
     kwargs = {"start": 0, "periods": 5}
     arr1 = interval_range(inclusive="left", **kwargs).values
-    arr1 = interval_range(inclusive="left", **kwargs).values
     arr2 = interval_range(inclusive="right", **kwargs).values
 
     msg = """\
