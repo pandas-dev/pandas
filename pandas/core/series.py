@@ -13,7 +13,6 @@ from typing import (
     Iterable,
     Literal,
     Sequence,
-    TypeVar,
     Union,
     cast,
     overload,
@@ -42,6 +41,7 @@ from pandas._typing import (
     IndexKeyFunc,
     Level,
     NaPosition,
+    SeriesT,
     SingleManager,
     SortKind,
     StorageOptions,
@@ -162,8 +162,6 @@ if TYPE_CHECKING:
     from pandas.core.frame import DataFrame
     from pandas.core.groupby.generic import SeriesGroupBy
     from pandas.core.resample import Resampler
-
-    SeriesT = TypeVar("SeriesT", bound="Series")
 
 __all__ = ["Series"]
 

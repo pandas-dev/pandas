@@ -26,7 +26,6 @@ from typing import (
     Iterator,
     Literal,
     Sequence,
-    TypeVar,
     cast,
     overload,
 )
@@ -52,6 +51,7 @@ from pandas._typing import (
     Axis,
     ColspaceArgType,
     CompressionOptions,
+    DataFrameT,
     Dtype,
     DtypeObj,
     FilePath,
@@ -222,8 +222,6 @@ if TYPE_CHECKING:
     from pandas.core.resample import Resampler
 
     from pandas.io.formats.style import Styler
-
-    DataFrameT = TypeVar("DataFrameT", bound="DataFrame")
 
 # ---------------------------------------------------------------------
 # Docstring templates
