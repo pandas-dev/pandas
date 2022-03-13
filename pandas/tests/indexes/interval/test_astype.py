@@ -133,7 +133,7 @@ class TestFloatSubtype(AstypeTests):
     """Tests specific to IntervalIndex with float subtype"""
 
     indexes = [
-        interval_range(-10.0, 10.0, closed="neither"),
+        interval_range(-10.0, 10.0, inclusive="neither"),
         IntervalIndex.from_arrays(
             [-1.5, np.nan, 0.0, 0.0, 1.5], [-0.5, np.nan, 1.0, 1.0, 3.0], closed="both"
         ),
@@ -161,6 +161,7 @@ class TestFloatSubtype(AstypeTests):
     @pytest.mark.parametrize("subtype", ["int64", "uint64"])
     def test_subtype_integer_with_non_integer_borders(self, subtype):
         index = interval_range(0.0, 3.0, freq=0.25)
+
         dtype = IntervalDtype(subtype, "right")
         result = index.astype(dtype)
         expected = IntervalIndex.from_arrays(
@@ -191,10 +192,10 @@ class TestDatetimelikeSubtype(AstypeTests):
     """Tests specific to IntervalIndex with datetime-like subtype"""
 
     indexes = [
-        interval_range(Timestamp("2018-01-01"), periods=10, closed="neither"),
+        interval_range(Timestamp("2018-01-01"), periods=10, inclusive="neither"),
         interval_range(Timestamp("2018-01-01"), periods=10).insert(2, NaT),
         interval_range(Timestamp("2018-01-01", tz="US/Eastern"), periods=10),
-        interval_range(Timedelta("0 days"), periods=10, closed="both"),
+        interval_range(Timedelta("0 days"), periods=10, inclusive="both"),
         interval_range(Timedelta("0 days"), periods=10).insert(2, NaT),
     ]
 

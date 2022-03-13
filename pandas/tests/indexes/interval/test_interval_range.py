@@ -34,25 +34,25 @@ class TestIntervalRange:
 
         # defined from start/end/freq
         result = interval_range(
-            start=start, end=end, freq=freq, name=name, closed=closed
+            start=start, end=end, freq=freq, name=name, inclusive=closed
         )
         tm.assert_index_equal(result, expected)
 
         # defined from start/periods/freq
         result = interval_range(
-            start=start, periods=periods, freq=freq, name=name, closed=closed
+            start=start, periods=periods, freq=freq, name=name, inclusive=closed
         )
         tm.assert_index_equal(result, expected)
 
         # defined from end/periods/freq
         result = interval_range(
-            end=end, periods=periods, freq=freq, name=name, closed=closed
+            end=end, periods=periods, freq=freq, name=name, inclusive=closed
         )
         tm.assert_index_equal(result, expected)
 
         # GH 20976: linspace behavior defined from start/end/periods
         result = interval_range(
-            start=start, end=end, periods=periods, name=name, closed=closed
+            start=start, end=end, periods=periods, name=name, inclusive=closed
         )
         tm.assert_index_equal(result, expected)
 
@@ -67,19 +67,19 @@ class TestIntervalRange:
 
         # defined from start/end/freq
         result = interval_range(
-            start=start, end=end, freq=freq, name=name, closed=closed
+            start=start, end=end, freq=freq, name=name, inclusive=closed
         )
         tm.assert_index_equal(result, expected)
 
         # defined from start/periods/freq
         result = interval_range(
-            start=start, periods=periods, freq=freq, name=name, closed=closed
+            start=start, periods=periods, freq=freq, name=name, inclusive=closed
         )
         tm.assert_index_equal(result, expected)
 
         # defined from end/periods/freq
         result = interval_range(
-            end=end, periods=periods, freq=freq, name=name, closed=closed
+            end=end, periods=periods, freq=freq, name=name, inclusive=closed
         )
         tm.assert_index_equal(result, expected)
 
@@ -88,7 +88,7 @@ class TestIntervalRange:
             # matches expected only for non-anchored offsets and tz naive
             # (anchored/DST transitions cause unequal spacing in expected)
             result = interval_range(
-                start=start, end=end, periods=periods, name=name, closed=closed
+                start=start, end=end, periods=periods, name=name, inclusive=closed
             )
             tm.assert_index_equal(result, expected)
 
@@ -102,25 +102,25 @@ class TestIntervalRange:
 
         # defined from start/end/freq
         result = interval_range(
-            start=start, end=end, freq=freq, name=name, closed=closed
+            start=start, end=end, freq=freq, name=name, inclusive=closed
         )
         tm.assert_index_equal(result, expected)
 
         # defined from start/periods/freq
         result = interval_range(
-            start=start, periods=periods, freq=freq, name=name, closed=closed
+            start=start, periods=periods, freq=freq, name=name, inclusive=closed
         )
         tm.assert_index_equal(result, expected)
 
         # defined from end/periods/freq
         result = interval_range(
-            end=end, periods=periods, freq=freq, name=name, closed=closed
+            end=end, periods=periods, freq=freq, name=name, inclusive=closed
         )
         tm.assert_index_equal(result, expected)
 
         # GH 20976: linspace behavior defined from start/end/periods
         result = interval_range(
-            start=start, end=end, periods=periods, name=name, closed=closed
+            start=start, end=end, periods=periods, name=name, inclusive=closed
         )
         tm.assert_index_equal(result, expected)
 
