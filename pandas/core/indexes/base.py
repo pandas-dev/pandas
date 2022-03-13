@@ -97,6 +97,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_signed_integer_dtype,
+    is_string_dtype,
     is_unsigned_integer_dtype,
     needs_i8_conversion,
     pandas_dtype,
@@ -5310,7 +5311,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         https://github.com/pandas-dev/pandas/issues/19764
         """
-        if self.is_object() or self.is_categorical():
+        if self.is_object() or is_string_dtype(self.dtype) or self.is_categorical():
             return name in self
         return False
 
