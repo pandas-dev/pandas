@@ -3578,12 +3578,11 @@ Keep all original rows and also all original values
         else:
             return result.__finalize__(self, method="sort_values")
 
-    # error: Signature of "sort_index" incompatible with supertype "NDFrame"
-    @overload  # type: ignore[override]
+    @overload
     def sort_index(
         self,
         *,
-        axis: Literal[0] = ...,
+        axis: Axis = ...,
         level: Level | None = ...,
         ascending: bool | Sequence[bool] = ...,
         inplace: Literal[True],
@@ -3599,7 +3598,7 @@ Keep all original rows and also all original values
     def sort_index(
         self,
         *,
-        axis: Literal[0] = ...,
+        axis: Axis = ...,
         level: Level | None = ...,
         ascending: bool | Sequence[bool] = ...,
         inplace: Literal[False] = ...,
@@ -3615,7 +3614,7 @@ Keep all original rows and also all original values
     def sort_index(
         self,
         *,
-        axis: Literal[0] = ...,
+        axis: Axis = ...,
         level: Level | None = ...,
         ascending: bool | Sequence[bool] = ...,
         inplace: bool = ...,
@@ -3627,12 +3626,11 @@ Keep all original rows and also all original values
     ) -> Series | None:
         ...
 
-    # error: Argument 1 of "sort_index" is incompatible with supertype "NDFrame";
-    # supertype defines the argument type as "Union[str, int]"
+    # error: Signature of "sort_index" incompatible with supertype "NDFrame"
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def sort_index(  # type: ignore[override]
         self,
-        axis: Literal[0] = 0,
+        axis: Axis = 0,
         level: Level | None = None,
         ascending: bool | Sequence[bool] = True,
         inplace: bool = False,
