@@ -612,9 +612,18 @@ class Block(PandasObject):
 
         else:
             # split so that we only upcast where necessary
-            return self.split_and_operate(
-                type(self).replace, to_replace, value, inplace=True
-            )
+            blocks = []
+            for i, nb in enumerate(self._split()):
+                blocks.extend(
+                    type(self).replace(
+                        nb,
+                        to_replace=to_replace,
+                        value=value,
+                        inplace=True,
+                        mask=mask[i : i + 1],
+                    )
+                )
+            return blocks
 
     @final
     def _replace_regex(

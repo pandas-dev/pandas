@@ -190,7 +190,7 @@ cdef ismember_{{dtype}}(const {{dtype}}_t[:] arr, const {{dtype}}_t[:] values):
 
     Returns
     -------
-    boolean ndarry len of (arr)
+    boolean ndarray len of (arr)
     """
     cdef:
         Py_ssize_t i, n
