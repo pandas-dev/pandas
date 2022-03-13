@@ -443,7 +443,7 @@ class IntervalIndex(ExtensionIndex):
 
         Intervals that share closed endpoints overlap:
 
-        >>> index = pd.interval_range(0, 3, closed='both')
+        >>> index = pd.interval_range(0, 3, inclusive='both')
         >>> index
         IntervalIndex([[0, 1], [1, 2], [2, 3]],
               dtype='interval[int64, both]')
@@ -452,7 +452,7 @@ class IntervalIndex(ExtensionIndex):
 
         Intervals that only have an open endpoint in common do not overlap:
 
-        >>> index = pd.interval_range(0, 3, closed='left')
+        >>> index = pd.interval_range(0, 3, inclusive='left')
         >>> index
         IntervalIndex([[0, 1), [1, 2), [2, 3)],
               dtype='interval[int64, left]')
