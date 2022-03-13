@@ -954,7 +954,7 @@ def interval_range(
     periods=None,
     freq=None,
     name: Hashable = None,
-    closed: IntervalClosedType = "right",
+    inclusive: IntervalClosedType = "right",
 ) -> IntervalIndex:
     """
     Return a fixed frequency IntervalIndex.
@@ -973,7 +973,7 @@ def interval_range(
         for numeric and 'D' for datetime-like.
     name : str, default None
         Name of the resulting IntervalIndex.
-    closed : {'left', 'right', 'both', 'neither'}, default 'right'
+    inclusive : {'left', 'right', 'both', 'neither'}, default 'right'
         Whether the intervals are closed on the left-side, right-side, both
         or neither.
 
@@ -1035,10 +1035,10 @@ def interval_range(
     IntervalIndex([(0.0, 1.5], (1.5, 3.0], (3.0, 4.5], (4.5, 6.0]],
               dtype='interval[float64, right]')
 
-    The ``closed`` parameter specifies which endpoints of the individual
+    The ``inclusive`` parameter specifies which endpoints of the individual
     intervals within the ``IntervalIndex`` are closed.
 
-    >>> pd.interval_range(end=5, periods=4, closed='both')
+    >>> pd.interval_range(end=5, periods=4, inclusive='both')
     IntervalIndex([[1, 2], [2, 3], [3, 4], [4, 5]],
                   dtype='interval[int64, both]')
     """
@@ -1118,4 +1118,4 @@ def interval_range(
         else:
             breaks = timedelta_range(start=start, end=end, periods=periods, freq=freq)
 
-    return IntervalIndex.from_breaks(breaks, name=name, closed=closed)
+    return IntervalIndex.from_breaks(breaks, name=name, closed=inclusive)
