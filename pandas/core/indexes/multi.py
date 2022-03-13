@@ -707,7 +707,10 @@ class MultiIndex(Index):
                 vals = vals._data._internal_get_values()
 
             if isinstance(vals, ABCDatetimeIndex):
-                # set freq to None to match self._get_level_values
+                # TODO: this can be removed after Timestamp.freq is removed
+                # The astype(object) below does not remove the freq from
+                # the underlying Timestamps so we remove it here to to match
+                # the behavior of self._get_level_values
                 vals = vals.copy()
                 vals.freq = None
 
