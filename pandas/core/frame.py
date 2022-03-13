@@ -51,7 +51,6 @@ from pandas._typing import (
     Axis,
     ColspaceArgType,
     CompressionOptions,
-    DataFrameT,
     Dtype,
     DtypeObj,
     FilePath,
@@ -6447,7 +6446,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     @overload
     def sort_index(
-        self: DataFrameT,
+        self,
         *,
         axis: Axis = ...,
         level: Level | None = ...,
@@ -6458,12 +6457,12 @@ class DataFrame(NDFrame, OpsMixin):
         sort_remaining: bool = ...,
         ignore_index: bool = ...,
         key: IndexKeyFunc = ...,
-    ) -> DataFrameT:
+    ) -> DataFrame:
         ...
 
     @overload
     def sort_index(
-        self: DataFrameT,
+        self,
         *,
         axis: Axis = ...,
         level: Level | None = ...,
@@ -6474,13 +6473,13 @@ class DataFrame(NDFrame, OpsMixin):
         sort_remaining: bool = ...,
         ignore_index: bool = ...,
         key: IndexKeyFunc = ...,
-    ) -> DataFrameT | None:
+    ) -> DataFrame | None:
         ...
 
     # error: Signature of "sort_index" incompatible with supertype "NDFrame"
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def sort_index(  # type: ignore[override]
-        self: DataFrameT,
+        self,
         axis: Axis = 0,
         level: Level | None = None,
         ascending: bool | Sequence[bool] = True,
@@ -6490,7 +6489,7 @@ class DataFrame(NDFrame, OpsMixin):
         sort_remaining: bool = True,
         ignore_index: bool = False,
         key: IndexKeyFunc = None,
-    ) -> DataFrameT | None:
+    ) -> DataFrame | None:
         """
         Sort object by labels (along an axis).
 

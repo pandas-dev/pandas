@@ -103,9 +103,6 @@ Timezone = Union[str, tzinfo]
 # Series is passed into a function, a Series is always returned and if a DataFrame is
 # passed in, a DataFrame is always returned.
 NDFrameT = TypeVar("NDFrameT", bound="NDFrame")
-# and for sub-types of DataFrame/Series
-DataFrameT = TypeVar("DataFrameT", bound="DataFrame")
-SeriesT = TypeVar("SeriesT", bound="Series")
 
 Axis = Union[str, int]
 IndexLabel = Union[Hashable, Sequence[Hashable]]

@@ -41,7 +41,6 @@ from pandas._typing import (
     IndexKeyFunc,
     Level,
     NaPosition,
-    SeriesT,
     SingleManager,
     SortKind,
     StorageOptions,
@@ -3598,7 +3597,7 @@ Keep all original rows and also all original values
 
     @overload
     def sort_index(
-        self: SeriesT,
+        self,
         *,
         axis: Literal[0] = ...,
         level: Level | None = ...,
@@ -3609,12 +3608,12 @@ Keep all original rows and also all original values
         sort_remaining: bool = ...,
         ignore_index: bool = ...,
         key: IndexKeyFunc = ...,
-    ) -> SeriesT:
+    ) -> Series:
         ...
 
     @overload
     def sort_index(
-        self: SeriesT,
+        self,
         *,
         axis: Literal[0] = ...,
         level: Level | None = ...,
@@ -3625,14 +3624,14 @@ Keep all original rows and also all original values
         sort_remaining: bool = ...,
         ignore_index: bool = ...,
         key: IndexKeyFunc = ...,
-    ) -> SeriesT | None:
+    ) -> Series | None:
         ...
 
     # error: Argument 1 of "sort_index" is incompatible with supertype "NDFrame";
     # supertype defines the argument type as "Union[str, int]"
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def sort_index(  # type: ignore[override]
-        self: SeriesT,
+        self,
         axis: Literal[0] = 0,
         level: Level | None = None,
         ascending: bool | Sequence[bool] = True,
@@ -3642,7 +3641,7 @@ Keep all original rows and also all original values
         sort_remaining: bool = True,
         ignore_index: bool = False,
         key: IndexKeyFunc = None,
-    ) -> SeriesT | None:
+    ) -> Series | None:
         """
         Sort Series by index labels.
 
