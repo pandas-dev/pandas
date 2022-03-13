@@ -8,7 +8,6 @@ import sys
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_mac
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -197,13 +196,6 @@ def test_pandas_datareader():
 
 # importing from pandas, Cython import warning
 @pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
-@pytest.mark.xfail(
-    is_platform_mac(),
-    raises=ImportError,
-    reason="ImportError: the 'read_file' function requires the 'fiona' package, "
-    "but it is not installed or does not import correctly",
-    strict=False,
-)
 def test_geopandas():
 
     geopandas = import_module("geopandas")

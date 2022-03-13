@@ -116,9 +116,8 @@ timedelta-like}
     """
     cdef:
         int64_t[::1] deltas
-        int64_t[:] idx_shifted, idx_shifted_left, idx_shifted_right
         ndarray[uint8_t, cast=True] ambiguous_array, both_nat, both_eq
-        Py_ssize_t i, idx, pos, ntrans, n = vals.shape[0]
+        Py_ssize_t i, isl, isr, idx, pos, ntrans, n = vals.shape[0]
         Py_ssize_t delta_idx_offset, delta_idx, pos_left, pos_right
         int64_t *tdata
         int64_t v, left, right, val, v_left, v_right, new_local, remaining_mins
@@ -194,21 +193,28 @@ timedelta-like}
     result_a[:] = NPY_NAT
     result_b[:] = NPY_NAT
 
-    idx_shifted_left = (np.maximum(0, trans.searchsorted(
-        vals - DAY_NANOS, side='right') - 1)).astype(np.int64)
-
-    idx_shifted_right = (np.maximum(0, trans.searchsorted(
-        vals + DAY_NANOS, side='right') - 1)).astype(np.int64)
-
     for i in range(n):
         val = vals[i]
-        v_left = val - deltas[idx_shifted_left[i]]
+        if val == NPY_NAT:
+            continue
+
+        # TODO: be careful of overflow in val-DAY_NANOS
+        isl = bisect_right_i8(tdata, val - DAY_NANOS, ntrans) - 1
+        if isl < 0:
+            isl = 0
+
+        v_left = val - deltas[isl]
         pos_left = bisect_right_i8(tdata, v_left, ntrans) - 1
         # timestamp falls to the left side of the DST transition
         if v_left + deltas[pos_left] == val:
             result_a[i] = v_left
 
-        v_right = val - deltas[idx_shifted_right[i]]
+        # TODO: be careful of overflow in val+DAY_NANOS
+        isr = bisect_right_i8(tdata, val + DAY_NANOS, ntrans) - 1
+        if isr < 0:
+            isr = 0
+
+        v_right = val - deltas[isr]
         pos_right = bisect_right_i8(tdata, v_right, ntrans) - 1
         # timestamp falls to the right side of the DST transition
         if v_right + deltas[pos_right] == val:
@@ -309,7 +315,9 @@ timedelta-like}
                     # Subtract 1 since the beginning hour is _inclusive_ of
                     # nonexistent times
                     new_local = val - remaining_mins - 1
-                delta_idx = trans.searchsorted(new_local, side='right')
+
+                delta_idx = bisect_right_i8(tdata, new_local, ntrans)
+
                 # Shift the delta_idx by if the UTC offset of
                 # the target tz is greater than 0 and we're moving forward
                 # or vice versa
@@ -333,17 +341,22 @@ timedelta-like}
 
 cdef inline Py_ssize_t bisect_right_i8(int64_t *data,
                                        int64_t val, Py_ssize_t n):
+    # Caller is responsible for checking n > 0
+    # This looks very similar to local_search_right in the ndarray.searchsorted
+    #  implementation.
     cdef:
         Py_ssize_t pivot, left = 0, right = n
-
-    assert n >= 1
 
     # edge cases
     if val > data[n - 1]:
         return n
 
-    if val < data[0]:
-        return 0
+    # Caller is responsible for ensuring 'val >= data[0]'. This is
+    #  ensured by the fact that 'data' comes from get_dst_info where data[0]
+    #  is *always* NPY_NAT+1. If that ever changes, we will need to restore
+    #  the following disabled check.
+    # if val < data[0]:
+    #    return 0
 
     while left < right:
         pivot = left + (right - left) // 2
@@ -403,6 +416,7 @@ cpdef int64_t tz_convert_from_utc_single(int64_t val, tzinfo tz):
         int64_t delta
         int64_t[::1] deltas
         ndarray[int64_t, ndim=1] trans
+        int64_t* tdata
         intp_t pos
 
     if val == NPY_NAT:
@@ -418,7 +432,8 @@ cpdef int64_t tz_convert_from_utc_single(int64_t val, tzinfo tz):
         return val + delta
     else:
         trans, deltas, _ = get_dst_info(tz)
-        pos = trans.searchsorted(val, side="right") - 1
+        tdata = <int64_t*>cnp.PyArray_DATA(trans)
+        pos = bisect_right_i8(tdata, val, trans.shape[0]) - 1
         return val + deltas[pos]
 
 
@@ -462,10 +477,11 @@ cdef const int64_t[:] _tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
     """
     cdef:
         int64_t[::1] converted, deltas
-        Py_ssize_t i, n = vals.shape[0]
+        Py_ssize_t i, ntrans = -1, n = vals.shape[0]
         int64_t val, delta = 0  # avoid not-initialized-warning
-        intp_t[:] pos
+        intp_t pos
         ndarray[int64_t] trans
+        int64_t* tdata = NULL
         str typ
         bint use_tzlocal = False, use_fixed = False, use_utc = True
 
@@ -479,13 +495,14 @@ cdef const int64_t[:] _tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
         use_tzlocal = True
     else:
         trans, deltas, typ = get_dst_info(tz)
+        ntrans = trans.shape[0]
 
         if typ not in ["pytz", "dateutil"]:
             # FixedOffset, we know len(deltas) == 1
             delta = deltas[0]
             use_fixed = True
         else:
-            pos = trans.searchsorted(vals, side="right") - 1
+            tdata = <int64_t*>cnp.PyArray_DATA(trans)
 
     converted = np.empty(n, dtype=np.int64)
 
@@ -502,7 +519,8 @@ cdef const int64_t[:] _tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
         elif use_fixed:
             converted[i] = val + delta
         else:
-            converted[i] = val + deltas[pos[i]]
+            pos = bisect_right_i8(tdata, val, ntrans) - 1
+            converted[i] = val + deltas[pos]
 
     return converted
 
