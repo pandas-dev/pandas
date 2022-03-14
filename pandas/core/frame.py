@@ -5634,6 +5634,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
         allow_duplicates: bool | lib.NoDefault = ...,
+        names: Hashable | Sequence[Hashable] = None,
     ) -> DataFrame:
         ...
 
@@ -5646,6 +5647,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
         allow_duplicates: bool | lib.NoDefault = ...,
+        names: Hashable | Sequence[Hashable] = None,
     ) -> None:
         ...
 
@@ -5658,6 +5660,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
         allow_duplicates: bool | lib.NoDefault = ...,
+        names: Hashable | Sequence[Hashable] = None,
     ) -> None:
         ...
 
@@ -5670,6 +5673,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
         allow_duplicates: bool | lib.NoDefault = ...,
+        names: Hashable | Sequence[Hashable] = None,
     ) -> None:
         ...
 
@@ -5681,6 +5685,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
         allow_duplicates: bool | lib.NoDefault = ...,
+        names: Hashable | Sequence[Hashable] = None,
     ) -> None:
         ...
 
@@ -5693,6 +5698,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
         allow_duplicates: bool | lib.NoDefault = ...,
+        names: Hashable | Sequence[Hashable] = None,
     ) -> DataFrame | None:
         ...
 
@@ -5705,6 +5711,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_level: Hashable = 0,
         col_fill: Hashable = "",
         allow_duplicates: bool | lib.NoDefault = lib.no_default,
+        names: Hashable | Sequence[Hashable] = None,
     ) -> DataFrame | None:
         """
         Reset the index, or a level of it.
@@ -5870,12 +5877,12 @@ class DataFrame(NDFrame, OpsMixin):
 
         if not drop:
             to_insert: Iterable[tuple[Any, Any | None]]
+
+            default = "index" if "index" not in self else "level_0"
+            names = self.index.get_default_index_names(names, default)
             if isinstance(self.index, MultiIndex):
-                names = com.fill_missing_names(self.index.names)
                 to_insert = zip(self.index.levels, self.index.codes)
             else:
-                default = "index" if "index" not in self else "level_0"
-                names = [default] if self.index.name is None else [self.index.name]
                 to_insert = ((self.index, None),)
 
             multi_col = isinstance(self.columns, MultiIndex)
