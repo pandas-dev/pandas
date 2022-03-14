@@ -441,7 +441,7 @@ cdef class BaseOffset:
     def __add__(self, other):
         if not isinstance(self, BaseOffset):
             # cython semantics; this is __radd__
-            # TODO: (Cython 3.0) remove this, this moved to __radd__
+            # TODO(cython3): remove this, this moved to __radd__
             return other.__add__(self)
 
         elif util.is_array(other) and other.dtype == object:
@@ -503,7 +503,7 @@ cdef class BaseOffset:
             return type(self)(n=other * self.n, normalize=self.normalize,
                               **self.kwds)
         elif not isinstance(self, BaseOffset):
-            # TODO: (Cython 3) remove this, this moved to __rmul__
+            # TODO(cython3): remove this, this moved to __rmul__
             # cython semantics, this is __rmul__
             return other.__mul__(self)
         return NotImplemented
@@ -913,9 +913,6 @@ cdef class Tick(SingleConstructorOffset):
         return BaseOffset.__mul__(self, other)
 
     def __rmul__(self, other):
-        # We land here because the other object doesn't know how to mul
-        # offset. We can call our own mul method since order of operations
-        # doesn't matter.
         return self.__mul__(other)
 
     def __truediv__(self, other):
@@ -933,7 +930,7 @@ cdef class Tick(SingleConstructorOffset):
     def __add__(self, other):
         if not isinstance(self, Tick):
             # cython semantics; this is __radd__
-            # TODO: (Cython 3.0) remove this, this moved to __radd__
+            # TODO(cython3): remove this, this moved to __radd__
             return other.__add__(self)
 
         if isinstance(other, Tick):
@@ -951,9 +948,6 @@ cdef class Tick(SingleConstructorOffset):
                 f"the add operation between {self} and {other} will overflow"
             ) from err
     def __radd__(self, other):
-        # We land here because the other object doesn't know how to add
-        # offset. We can call our own add method since order of operations
-        # doesn't matter.
         return self.__add__(other)
 
     def _apply(self, other):

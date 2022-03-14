@@ -154,7 +154,7 @@ cdef class _NaT(datetime):
 
     def __add__(self, other):
         if self is not c_NaT:
-            # TODO: Cython 3, remove this it moved to __radd__
+            # TODO(cython3): remove this it moved to __radd__
             # cython __radd__ semantics
             self, other = other, self
 
@@ -192,7 +192,7 @@ cdef class _NaT(datetime):
 
         if self is not c_NaT:
             # cython __rsub__ semantics
-            # TODO: Cython 3, remove __rsub__ logic from here
+            # TODO(cython3): remove __rsub__ logic from here
             self, other = other, self
             is_rsub = True
 

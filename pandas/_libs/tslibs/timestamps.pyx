@@ -310,7 +310,7 @@ cdef class _Timestamp(ABCTimestamp):
 
         elif not isinstance(self, _Timestamp):
             # cython semantics, args have been switched and this is __radd__
-            # TODO: Cython 3, remove this it moved to __radd__
+            # TODO(cython3): remove this it moved to __radd__
             return other.__add__(self)
         return NotImplemented
 
@@ -346,7 +346,7 @@ cdef class _Timestamp(ABCTimestamp):
                 and (PyDateTime_Check(other) or is_datetime64_object(other))):
             # both_timestamps is to determine whether Timedelta(self - other)
             # should raise the OOB error, or fall back returning a timedelta.
-            # TODO: Cython 3: clean out the bits that moved to __rsub__
+            # TODO(cython3): clean out the bits that moved to __rsub__
             both_timestamps = (isinstance(other, _Timestamp) and
                                isinstance(self, _Timestamp))
             if isinstance(self, _Timestamp):
@@ -377,7 +377,7 @@ cdef class _Timestamp(ABCTimestamp):
         elif is_datetime64_object(self):
             # GH#28286 cython semantics for __rsub__, `other` is actually
             #  the Timestamp
-            # TODO: Cython 3 remove this, this moved to __rsub__
+            # TODO(cython3): remove this, this moved to __rsub__
             return type(other)(self) - other
 
         return NotImplemented
