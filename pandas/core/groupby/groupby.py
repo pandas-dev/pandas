@@ -2178,6 +2178,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     alias="add",
                     npfunc=np.sum,
                 )
+
                 if isinstance(result, DataFrame):
                     try:
                         dtypes = self.dtypes
