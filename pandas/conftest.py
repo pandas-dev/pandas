@@ -106,7 +106,6 @@ def pytest_collection_modifyitems(items, config):
     only_slow = config.getoption("--only-slow")
     skip_network = config.getoption("--skip-network")
     skip_db = config.getoption("--skip-db")
-    run_high_memory = config.getoption("--run-high-memory")
 
     marks = [
         (pytest.mark.slow, "slow", skip_slow, "--skip-slow"),
@@ -138,13 +137,6 @@ def pytest_collection_modifyitems(items, config):
 
         if only_slow and "slow" not in item.keywords:
             item.add_marker(pytest.mark.skip("skipping due to --only-slow"))
-
-        if "high_memory" in item.keywords and not run_high_memory:
-            item.add_marker(
-                pytest.mark.skip(
-                    "skipping high memory test since --run-high-memory was not set"
-                )
-            )
 
 
 # Hypothesis
@@ -447,7 +439,7 @@ def dict_subclass():
     """
 
     class TestSubDict(dict):
-        def __init__(self, *args, **kwargs):
+        def __init__(self, *args, **kwargs) -> None:
             dict.__init__(self, *args, **kwargs)
 
     return TestSubDict
@@ -460,7 +452,7 @@ def non_dict_mapping_subclass():
     """
 
     class TestNonDictMapping(abc.Mapping):
-        def __init__(self, underlying_dict):
+        def __init__(self, underlying_dict) -> None:
             self._data = underlying_dict
 
         def __getitem__(self, key):
@@ -1709,7 +1701,7 @@ def fsspectest():
         protocol = "testmem"
         test = [None]
 
-        def __init__(self, **kwargs):
+        def __init__(self, **kwargs) -> None:
             self.test[0] = kwargs.pop("test", None)
             super().__init__(**kwargs)
 
