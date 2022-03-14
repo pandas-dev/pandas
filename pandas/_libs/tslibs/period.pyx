@@ -1236,6 +1236,8 @@ cdef list extra_fmts = [(b"%q", b"^`AB`^"),
 cdef list str_extra_fmts = ["^`AB`^", "^`CD`^", "^`EF`^",
                             "^`GH`^", "^`IJ`^", "^`KL`^"]
 
+cdef inline int idx_first_nonfiscal_fmt = 3
+
 cdef str _period_strftime(int64_t value, int freq, bytes fmt):
     cdef:
         Py_ssize_t i
@@ -1243,7 +1245,7 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt):
         char *formatted
         bytes pat, brepl
         list found_pat = [False] * len(extra_fmts)
-        int quarter
+        int quarter, us, ps
         str result, repl
 
     get_date_info(value, freq, &dts)
@@ -1263,23 +1265,33 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt):
     result = util.char_to_string(formatted)
     free(formatted)
 
+    # Now we will fill the placeholders corresponding to our additional directives
+    # First prepare the contents
+    if any(found_pat[idx_first_nonfiscal_fmt:]):
+        # Save these to local vars as dts can be modified by get_yq below
+        us = dts.us
+        ps = dts.ps
+    if any(found_pat[0:idx_first_nonfiscal_fmt]):
+        # Note: this modifies `dts` in-place so that year becomes fiscal year
+        # However it looses the us and ps
+        quarter = get_yq(value, freq, &dts)
+
+    # Now do the filling per se
     for i in range(len(extra_fmts)):
         if found_pat[i]:
 
-            quarter = get_yq(value, freq, &dts)
-
-            if i == 0:
-                repl = str(quarter)
-            elif i == 1:  # %f, 2-digit year
+            if i == 0:  # %q, 1-digit quarter.
+                repl = f"{quarter}"
+            elif i == 1:  # %f, 2-digit 'Fiscal' year
                 repl = f"{(dts.year % 100):02d}"
-            elif i == 2:
+            elif i == 2:  # %F, 'Fiscal' year with a century
                 repl = str(dts.year)
-            elif i == 3:
-                repl = f"{(value % 1_000):03d}"
-            elif i == 4:
-                repl = f"{(value % 1_000_000):06d}"
-            elif i == 5:
-                repl = f"{(value % 1_000_000_000):09d}"
+            elif i == 3:  # %l, milliseconds
+                repl = f"{(us // 1_000):03d}"
+            elif i == 4:  # %u, microseconds
+                repl = f"{(us):06d}"
+            elif i == 5:  # %n, nanoseconds
+                repl = f"{((us * 1000) + (ps // 1000)):09d}"
 
             result = result.replace(str_extra_fmts[i], repl)
 
@@ -2332,7 +2344,8 @@ cdef class _Period(PeriodMixin):
         containing one or several directives.  The method recognizes the same
         directives as the :func:`time.strftime` function of the standard Python
         distribution, as well as the specific additional directives ``%f``,
-        ``%F``, ``%q``. (formatting & docs originally from scikits.timeries).
+        ``%F``, ``%q``, ``%l``, ``%u``, ``%n``.
+        (formatting & docs originally from scikits.timeries).
 
         +-----------+--------------------------------+-------+
         | Directive | Meaning                        | Notes |
@@ -2379,10 +2392,19 @@ cdef class _Period(PeriodMixin):
         |           | AM or PM.                      |       |
         +-----------+--------------------------------+-------+
         | ``%q``    | Quarter as a decimal number    |       |
-        |           | [01,04]                        |       |
+        |           | [1,4]                          |       |
         +-----------+--------------------------------+-------+
         | ``%S``    | Second as a decimal number     | \(4)  |
         |           | [00,61].                       |       |
+        +-----------+--------------------------------+-------+
+        | ``%l``    | Millisecond as a decimal number|       |
+        |           | [000,999].                     |       |
+        +-----------+--------------------------------+-------+
+        | ``%u``    | Microsecond as a decimal number|       |
+        |           | [000000,999999].               |       |
+        +-----------+--------------------------------+-------+
+        | ``%n``    | Nanosecond as a decimal number |       |
+        |           | [000000000,999999999].         |       |
         +-----------+--------------------------------+-------+
         | ``%U``    | Week number of the year        | \(5)  |
         |           | (Sunday as the first day of    |       |
