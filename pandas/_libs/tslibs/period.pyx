@@ -1243,10 +1243,13 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt):
         char *formatted
         bytes pat, brepl
         list found_pat = [False] * len(extra_fmts)
-        int year, quarter
+        int quarter
         str result, repl
 
     get_date_info(value, freq, &dts)
+
+    # Find our additional directives in the pattern and replace them with
+    # placeholders that are not processed by c_strftime
     for i in range(len(extra_fmts)):
         pat = extra_fmts[i][0]
         brepl = extra_fmts[i][1]
@@ -1254,6 +1257,7 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt):
             fmt = fmt.replace(pat, brepl)
             found_pat[i] = True
 
+    # Execute c_strftime to process the usual datetime directives
     formatted = c_strftime(&dts, <char*>fmt)
 
     result = util.char_to_string(formatted)
