@@ -81,6 +81,7 @@ Components = collections.namedtuple(
     ],
 )
 
+# This should be kept consistent with UnitChoices in pandas/_libs/tslibs/timedeltas.pyi
 cdef dict timedelta_abbrevs = {
     "Y": "Y",
     "y": "Y",

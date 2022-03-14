@@ -15,8 +15,8 @@ from pandas._libs.tslibs import (
 )
 from pandas._typing import npt
 
-# Copied from pandas/_libs/tslibs/timedeltas.pyx
-
+# This should be kept consistent with the keys in the dict timedelta_abbrevs
+# in pandas/_libs/tslibs/timedeltas.pyx
 UnitChoices = Literal[
     "Y",
     "y",
