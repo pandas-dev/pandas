@@ -3180,16 +3180,18 @@ class TestPeriodIndexFormat:
     def test_period(self):
         """Basic test for period formatting with default format."""
         p = pd.PeriodIndex([datetime(2003, 1, 1, 12), None], freq="H")
-        # format is equivalent to strftime(None)
+        # default formatting
         formatted = p.format()
-        assert formatted[0] == p[0].strftime(None)
         assert formatted[0] == "2003-01-01 12:00"  # default: minutes not shown
         assert formatted[1] == "NaT"
+        # format is equivalent to strftime(None)...
+        assert formatted[0] == p.strftime(None)[0]
+        assert p.strftime(None)[1] is np.nan  # ...except for NaTs
 
+        # Same test with nanoseconds freq
         p = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="n")
-        # format is equivalent to strftime(None)
         formatted = p.format()
-        assert formatted[0] == p[0].strftime(None)
+        assert (formatted == p.strftime(None)).all()
         assert formatted[0] == "2003-01-01 12:01:01.123456789"
         assert formatted[1] == "2003-01-01 12:01:01.123456790"
 

@@ -1266,15 +1266,17 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt):
     free(formatted)
 
     # Now we will fill the placeholders corresponding to our additional directives
+
     # First prepare the contents
-    if any(found_pat[idx_first_nonfiscal_fmt:]):
-        # Save these to local vars as dts can be modified by get_yq below
-        us = dts.us
-        ps = dts.ps
+    # Save these to local vars as dts can be modified by get_yq below
+    us = dts.us
+    ps = dts.ps
     if any(found_pat[0:idx_first_nonfiscal_fmt]):
         # Note: this modifies `dts` in-place so that year becomes fiscal year
         # However it looses the us and ps
         quarter = get_yq(value, freq, &dts)
+    else:
+        quarter = 0
 
     # Now do the filling per se
     for i in range(len(extra_fmts)):
