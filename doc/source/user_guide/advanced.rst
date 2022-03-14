@@ -1087,9 +1087,9 @@ are closed on.  Intervals are closed on the right side by default.
 
 .. ipython:: python
 
-   pd.interval_range(start=0, end=4, closed="both")
+   pd.interval_range(start=0, end=4, inclusive="both")
 
-   pd.interval_range(start=0, end=4, closed="neither")
+   pd.interval_range(start=0, end=4, inclusive="neither")
 
 Specifying ``start``, ``end``, and ``periods`` will generate a range of evenly spaced
 intervals from ``start`` to ``end`` inclusively, with ``periods`` number of elements
