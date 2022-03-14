@@ -2179,13 +2179,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     npfunc=np.sum,
                 )
 
-                if isinstance(result, DataFrame):
-                    try:
-                        dtypes = self.dtypes
-                        for column in result.columns:
-                            result[column] = result[column].astype(dtypes[column].dtype)
-                    except:
-                        pass
+            if isinstance(result, DataFrame):
+                try:
+                    dtypes = self.dtypes
+                    for column in result.columns:
+                        result[column] = result[column].astype(dtypes[column].dtype)
+                except:
+                    return self._reindex_output(result, fill_value=0)
 
             return self._reindex_output(result, fill_value=0)
 
