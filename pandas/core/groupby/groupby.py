@@ -2184,8 +2184,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     dtypes = self.dtypes
                     for column in result.columns:
                         result[column] = result[column].astype(dtypes[column].dtype)
-                except:
-                    return self._reindex_output(result, fill_value=0)
+                except Exception:
+                    pass
 
             return self._reindex_output(result, fill_value=0)
 
