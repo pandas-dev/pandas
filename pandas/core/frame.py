@@ -5634,7 +5634,6 @@ class DataFrame(NDFrame, OpsMixin):
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
         allow_duplicates: bool | lib.NoDefault = ...,
-        names: Hashable | Sequence[Hashable] = None,
     ) -> DataFrame:
         ...
 
@@ -5647,7 +5646,6 @@ class DataFrame(NDFrame, OpsMixin):
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
         allow_duplicates: bool | lib.NoDefault = ...,
-        names: Hashable | Sequence[Hashable] = None,
     ) -> None:
         ...
 
@@ -5660,7 +5658,6 @@ class DataFrame(NDFrame, OpsMixin):
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
         allow_duplicates: bool | lib.NoDefault = ...,
-        names: Hashable | Sequence[Hashable] = None,
     ) -> None:
         ...
 
@@ -5673,7 +5670,6 @@ class DataFrame(NDFrame, OpsMixin):
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
         allow_duplicates: bool | lib.NoDefault = ...,
-        names: Hashable | Sequence[Hashable] = None,
     ) -> None:
         ...
 
@@ -5685,7 +5681,6 @@ class DataFrame(NDFrame, OpsMixin):
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
         allow_duplicates: bool | lib.NoDefault = ...,
-        names: Hashable | Sequence[Hashable] = None,
     ) -> None:
         ...
 
@@ -5698,7 +5693,6 @@ class DataFrame(NDFrame, OpsMixin):
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
         allow_duplicates: bool | lib.NoDefault = ...,
-        names: Hashable | Sequence[Hashable] = None,
     ) -> DataFrame | None:
         ...
 
@@ -5711,13 +5705,14 @@ class DataFrame(NDFrame, OpsMixin):
         col_level: Hashable = 0,
         col_fill: Hashable = "",
         allow_duplicates: bool | lib.NoDefault = lib.no_default,
-        names: Hashable | Sequence[Hashable] | None = None,
     ) -> DataFrame | None:
         """
         Reset the index, or a level of it.
+
         Reset the index of the DataFrame, and use the default one instead.
         If the DataFrame has a MultiIndex, this method can remove one or more
         levels.
+
         Parameters
         ----------
         level : int, str, tuple, or list, default None
@@ -5737,16 +5732,20 @@ class DataFrame(NDFrame, OpsMixin):
             levels are named. If None then the index name is repeated.
         allow_duplicates : bool, optional, default lib.no_default
             Allow duplicate column labels to be created.
+
             .. versionadded:: 1.5.0
+
         Returns
         -------
         DataFrame or None
             DataFrame with the new index or None if ``inplace=True``.
+
         See Also
         --------
         DataFrame.set_index : Opposite of reset_index.
         DataFrame.reindex : Change to new indices or expand indices.
         DataFrame.reindex_like : Change to same indices as other DataFrame.
+
         Examples
         --------
         >>> df = pd.DataFrame([('bird', 389.0),
@@ -5761,23 +5760,29 @@ class DataFrame(NDFrame, OpsMixin):
         parrot    bird       24.0
         lion    mammal       80.5
         monkey  mammal        NaN
+
         When we reset the index, the old index is added as a column, and a
         new sequential index is used:
+
         >>> df.reset_index()
             index   class  max_speed
         0  falcon    bird      389.0
         1  parrot    bird       24.0
         2    lion  mammal       80.5
         3  monkey  mammal        NaN
+
         We can use the `drop` parameter to avoid the old index being added as
         a column:
+
         >>> df.reset_index(drop=True)
             class  max_speed
         0    bird      389.0
         1    bird       24.0
         2  mammal       80.5
         3  mammal        NaN
+
         You can also use `reset_index` with `MultiIndex`.
+
         >>> index = pd.MultiIndex.from_tuples([('bird', 'falcon'),
         ...                                    ('bird', 'parrot'),
         ...                                    ('mammal', 'lion'),
@@ -5799,7 +5804,9 @@ class DataFrame(NDFrame, OpsMixin):
                parrot   24.0     fly
         mammal lion     80.5     run
                monkey    NaN    jump
+
         If the index has multiple levels, we can reset a subset of them:
+
         >>> df.reset_index(level='class')
                  class  speed species
                           max    type
@@ -5808,8 +5815,10 @@ class DataFrame(NDFrame, OpsMixin):
         parrot    bird   24.0     fly
         lion    mammal   80.5     run
         monkey  mammal    NaN    jump
+
         If we are not dropping the index, by default, it is placed in the top
         level. We can place it in another level:
+
         >>> df.reset_index(level='class', col_level=1)
                         speed species
                  class    max    type
@@ -5818,8 +5827,10 @@ class DataFrame(NDFrame, OpsMixin):
         parrot    bird   24.0     fly
         lion    mammal   80.5     run
         monkey  mammal    NaN    jump
+
         When the index is inserted under another level, we can specify under
         which one with the parameter `col_fill`:
+
         >>> df.reset_index(level='class', col_level=1, col_fill='species')
                       species  speed species
                         class    max    type
@@ -5828,7 +5839,9 @@ class DataFrame(NDFrame, OpsMixin):
         parrot           bird   24.0     fly
         lion           mammal   80.5     run
         monkey         mammal    NaN    jump
+
         If we specify a nonexistent level for `col_fill`, it is created:
+
         >>> df.reset_index(level='class', col_level=1, col_fill='genus')
                         genus  speed species
                         class    max    type
@@ -5857,12 +5870,12 @@ class DataFrame(NDFrame, OpsMixin):
 
         if not drop:
             to_insert: Iterable[tuple[Any, Any | None]]
-
-            default = "index" if "index" not in self else "level_0"
-            names = self.index.get_default_index_names(names, default)
             if isinstance(self.index, MultiIndex):
+                names = com.fill_missing_names(self.index.names)
                 to_insert = zip(self.index.levels, self.index.codes)
             else:
+                default = "index" if "index" not in self else "level_0"
+                names = [default] if self.index.name is None else [self.index.name]
                 to_insert = ((self.index, None),)
 
             multi_col = isinstance(self.columns, MultiIndex)
