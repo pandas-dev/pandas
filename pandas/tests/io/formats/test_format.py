@@ -49,13 +49,6 @@ import pandas.io.formats.printing as printing
 use_32bit_repr = is_platform_windows() or not IS64
 
 
-def get_local_am_pm():
-    """Return the AM and PM strings returned by strftime in current locale"""
-    am_local = time(1).strftime("%p")
-    pm_local = time(13).strftime("%p")
-    return am_local, pm_local
-
-
 @pytest.fixture(params=["string", "pathlike", "buffer"])
 def filepath_or_buffer_id(request):
     """
@@ -3198,26 +3191,23 @@ class TestPeriodIndexFormat:
     def test_period_custom(self):
         # GH46252
 
-        # Get locale-specific reference
-        am_local, pm_local = get_local_am_pm()
-
         # 3 digits
         p = pd.period_range("2003-01-01 12:01:01.123", periods=2, freq="l")
-        formatted = p.format(date_format="%y %I:%M:%S%p (ms=%l us=%u ns=%n)")
-        assert formatted[0] == f"03 12:01:01{pm_local} (ms=123 us=123000 ns=123000000)"
-        assert formatted[1] == f"03 12:01:01{pm_local} (ms=124 us=124000 ns=124000000)"
+        formatted = p.format(date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)")
+        assert formatted[0] == "03 12:01:01 (ms=123 us=123000 ns=123000000)"
+        assert formatted[1] == "03 12:01:01 (ms=124 us=124000 ns=124000000)"
 
         # 6 digits
         p = pd.period_range("2003-01-01 12:01:01.123456", periods=2, freq="u")
-        formatted = p.format(date_format="%y %I:%M:%S%p (ms=%l us=%u ns=%n)")
-        assert formatted[0] == f"03 12:01:01{pm_local} (ms=123 us=123456 ns=123456000)"
-        assert formatted[1] == f"03 12:01:01{pm_local} (ms=123 us=123457 ns=123457000)"
+        formatted = p.format(date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)")
+        assert formatted[0] == "03 12:01:01 (ms=123 us=123456 ns=123456000)"
+        assert formatted[1] == "03 12:01:01 (ms=123 us=123457 ns=123457000)"
 
         # 9 digits
         p = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="n")
-        formatted = p.format(date_format="%y %I:%M:%S%p (ms=%l us=%u ns=%n)")
-        assert formatted[0] == f"03 12:01:01{pm_local} (ms=123 us=123456 ns=123456789)"
-        assert formatted[1] == f"03 12:01:01{pm_local} (ms=123 us=123456 ns=123456790)"
+        formatted = p.format(date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)")
+        assert formatted[0] == "03 12:01:01 (ms=123 us=123456 ns=123456789)"
+        assert formatted[1] == "03 12:01:01 (ms=123 us=123456 ns=123456790)"
 
     def test_period_tz(self):
         """Test formatting periods created from a datetime with timezone."""
