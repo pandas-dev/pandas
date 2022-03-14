@@ -39,7 +39,7 @@ if TYPE_CHECKING:
     from pandas import (
         Index,
         Series,
-        TimeDeltaIndex,
+        TimedeltaIndex,
     )
 
 
@@ -66,7 +66,7 @@ def to_timedelta(
     arg: list | tuple | range | ArrayLike | Index,
     unit: UnitChoices | None = ...,
     errors: DateTimeErrorChoices = ...,
-) -> TimeDeltaIndex:
+) -> TimedeltaIndex:
     ...
 
 
@@ -83,7 +83,7 @@ def to_timedelta(
     | Series,
     unit: UnitChoices | None = None,
     errors: DateTimeErrorChoices = "raise",
-) -> Timedelta | TimeDeltaIndex | Series:
+) -> Timedelta | TimedeltaIndex | Series:
     """
     Convert argument to timedelta.
 
