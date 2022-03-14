@@ -5741,6 +5741,12 @@ class DataFrame(NDFrame, OpsMixin):
             Allow duplicate column labels to be created.
 
             .. versionadded:: 1.5.0
+        names : int, str or 1-dimensional list, default None
+            Using the given string, rename the DataFrame column which contains the
+            index data. If the DataFrame has a MultiIndex, this has to be a list or
+            tuple with length equal to the number of levels.
+
+            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -5857,6 +5863,20 @@ class DataFrame(NDFrame, OpsMixin):
         parrot           bird   24.0     fly
         lion           mammal   80.5     run
         monkey         mammal    NaN    jump
+
+        Using the `names` parameter, choose a name for the index column:
+        >>> df = pd.DataFrame([('bird', 389.0),
+        ...                     ('bird', 24.0),
+        ...                     ('mammal', 80.5),
+        ...                     ('mammal', np.nan)],
+        ...                     index=['falcon', 'parrot', 'lion', 'monkey'],
+        ...                     columns=('class', 'max_speed'))
+        >>> df.reset_index(names='name')
+            name   class  max_speed
+        0  falcon    bird      389.0
+        1  parrot    bird       24.0
+        2    lion  mammal       80.5
+        3  monkey  mammal        NaN
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         self._check_inplace_and_allows_duplicate_labels(inplace)
