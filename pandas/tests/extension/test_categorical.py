@@ -149,11 +149,7 @@ class TestIndex(base.BaseIndexTests):
 
 
 class TestMissing(base.BaseMissingTests):
-    def test_fillna_limit_pad(self, data_missing):
-        super().test_fillna_limit_pad(data_missing)
-
-    def test_fillna_limit_backfill(self, data_missing):
-        super().test_fillna_limit_backfill(data_missing)
+    pass
 
 
 class TestReduce(base.BaseNoReduceTests):
@@ -181,9 +177,6 @@ class TestMethods(base.BaseMethodsTests):
         result = s1.combine(val, lambda x1, x2: x1 + x2)
         expected = pd.Series([a + val for a in list(orig_data1)])
         self.assert_series_equal(result, expected)
-
-    def test_fillna_length_mismatch(self, data_missing):
-        super().test_fillna_length_mismatch(data_missing)
 
 
 class TestCasting(base.BaseCastingTests):
