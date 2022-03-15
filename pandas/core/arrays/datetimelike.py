@@ -130,6 +130,7 @@ if TYPE_CHECKING:
 
     from pandas.core.arrays import (
         DatetimeArray,
+        PeriodArray,
         TimedeltaArray,
     )
 
@@ -168,7 +169,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     def _can_hold_na(self) -> bool:
         return True
 
-    def __init__(self, data, dtype: Dtype | None = None, freq=None, copy=False):
+    def __init__(self, data, dtype: Dtype | None = None, freq=None, copy=False) -> None:
         raise AbstractMethodError(self)
 
     @property
@@ -547,16 +548,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         new_obj = super().copy(order=order)  # type: ignore[call-arg]
         new_obj._freq = self.freq
         return new_obj
-
-    def _values_for_factorize(self):
-        # int64 instead of int ensures we have a "view" method
-        return self._ndarray, np.int64(iNaT)
-
-    @classmethod
-    def _from_factorized(
-        cls: type[DatetimeLikeArrayT], values, original: DatetimeLikeArrayT
-    ) -> DatetimeLikeArrayT:
-        return cls(values, dtype=original.dtype)
 
     # ------------------------------------------------------------------
     # Validation Methods
@@ -1101,7 +1092,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     _sub_datetime_arraylike = _sub_datetimelike_scalar
 
-    def _sub_period(self, other):
+    def _sub_period(self, other: Period):
         # Overridden by PeriodArray
         raise TypeError(f"cannot subtract Period from a {type(self).__name__}")
 
@@ -1325,7 +1316,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         elif is_integer_dtype(other_dtype):
             if not is_period_dtype(self.dtype):
                 raise integer_op_not_supported(self)
-            result = self._addsub_int_array(other, operator.add)
+            result = cast("PeriodArray", self)._addsub_int_array(other, operator.add)
         else:
             # Includes Categorical, other ExtensionArrays
             # For PeriodDtype, if self is a TimedeltaArray and other is a
@@ -1385,7 +1376,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         elif is_integer_dtype(other_dtype):
             if not is_period_dtype(self.dtype):
                 raise integer_op_not_supported(self)
-            result = self._addsub_int_array(other, operator.sub)
+            result = cast("PeriodArray", self)._addsub_int_array(other, operator.sub)
         else:
             # Includes ExtensionArrays, float_dtype
             return NotImplemented

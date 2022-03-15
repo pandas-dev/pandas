@@ -97,6 +97,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_signed_integer_dtype,
+    is_string_dtype,
     is_unsigned_integer_dtype,
     needs_i8_conversion,
     pandas_dtype,
@@ -890,7 +891,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         # error: Argument 1 to "ExtensionEngine" has incompatible type
         # "ndarray[Any, Any]"; expected "ExtensionArray"
-        return self._engine_type(target_values)  # type:ignore[arg-type]
+        return self._engine_type(target_values)  # type: ignore[arg-type]
 
     @final
     @cache_readonly
@@ -2187,7 +2188,9 @@ class Index(IndexOpsMixin, PandasObject):
                 verify_integrity=False,
             )
 
-    def _get_grouper_for_level(self, mapper, *, level=None):
+    def _get_grouper_for_level(
+        self, mapper, *, level=None
+    ) -> tuple[Index, npt.NDArray[np.signedinteger] | None, Index | None]:
         """
         Get index grouper corresponding to an index level
 
@@ -3920,7 +3923,6 @@ class Index(IndexOpsMixin, PandasObject):
         elif method == "nearest":
             indexer = self._get_nearest_indexer(target, limit, tolerance)
         else:
-            tgt_values = target._get_engine_target()
             if target._is_multi and self._is_multi:
                 engine = self._engine
                 # error: Item "IndexEngine" of "Union[IndexEngine, ExtensionEngine]"
@@ -3928,11 +3930,10 @@ class Index(IndexOpsMixin, PandasObject):
                 tgt_values = engine._extract_level_codes(  # type: ignore[union-attr]
                     target
                 )
+            else:
+                tgt_values = target._get_engine_target()
 
-            # error: Argument 1 to "get_indexer" of "IndexEngine" has incompatible
-            # type "Union[ExtensionArray, ndarray[Any, Any]]"; expected
-            # "ndarray[Any, Any]"
-            indexer = self._engine.get_indexer(tgt_values)  # type:ignore[arg-type]
+            indexer = self._engine.get_indexer(tgt_values)
 
         return ensure_platform_int(indexer)
 
@@ -4354,7 +4355,9 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             target = ensure_index(target)
 
-        if level is not None:
+        if level is not None and (
+            isinstance(self, ABCMultiIndex) or isinstance(target, ABCMultiIndex)
+        ):
             if method is not None:
                 raise TypeError("Fill method not supported if level passed")
 
@@ -5274,7 +5277,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         https://github.com/pandas-dev/pandas/issues/19764
         """
-        if self.is_object() or self.is_categorical():
+        if self.is_object() or is_string_dtype(self.dtype) or self.is_categorical():
             return name in self
         return False
 
@@ -7165,7 +7168,7 @@ def ensure_index_from_sequences(sequences, names=None) -> Index:
     if len(sequences) == 1:
         if names is not None:
             names = names[0]
-        return Index(sequences[0], name=names)
+        return Index._with_infer(sequences[0], name=names)
     else:
         return MultiIndex.from_arrays(sequences, names=names)
 

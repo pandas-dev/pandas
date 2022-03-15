@@ -60,7 +60,7 @@ class _XMLFrameParser:
         The XPath expression to parse required set of nodes for
         migration to `Data Frame`. `etree` supports limited XPath.
 
-    namespacess : dict
+    namespaces : dict
         The namespaces defined in XML document (`xmlns:namespace='URI')
         as dicts with key being namespace and value the URI.
 

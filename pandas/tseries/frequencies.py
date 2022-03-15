@@ -21,6 +21,7 @@ from pandas._libs.tslibs.fields import (
     month_position_check,
 )
 from pandas._libs.tslibs.offsets import (  # noqa:F401
+    BaseOffset,
     DateOffset,
     Day,
     _get_offset,
@@ -103,7 +104,7 @@ def get_period_alias(offset_str: str) -> str | None:
     return _offset_to_period_map.get(offset_str, None)
 
 
-def get_offset(name: str) -> DateOffset:
+def get_offset(name: str) -> BaseOffset:
     """
     Return DateOffset object associated with rule name.
 
@@ -208,7 +209,7 @@ class _FrequencyInferer:
     Not sure if I can avoid the state machine here
     """
 
-    def __init__(self, index, warn: bool = True):
+    def __init__(self, index, warn: bool = True) -> None:
         self.index = index
         self.i8values = index.asi8
 

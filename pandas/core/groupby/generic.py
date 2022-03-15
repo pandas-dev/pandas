@@ -240,7 +240,7 @@ class SeriesGroupBy(GroupBy[Series]):
             input="series", examples=_apply_docs["series_examples"]
         )
     )
-    def apply(self, func, *args, **kwargs):
+    def apply(self, func, *args, **kwargs) -> Series:
         return super().apply(func, *args, **kwargs)
 
     @doc(_agg_template, examples=_agg_examples_doc, klass="Series")

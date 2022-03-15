@@ -4,6 +4,8 @@ Tests for the following offsets:
 - CustomBusinessMonthBegin
 - CustomBusinessMonthEnd
 """
+from __future__ import annotations
+
 from datetime import (
     date,
     datetime,
@@ -17,6 +19,7 @@ from pandas._libs.tslibs.offsets import (
     CBMonthBegin,
     CBMonthEnd,
     CDay,
+    _CustomBusinessMonth,
 )
 
 from pandas import (
@@ -66,7 +69,7 @@ class CustomBusinessMonthBase:
 
 
 class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
-    _offset = CBMonthBegin
+    _offset: type[_CustomBusinessMonth] = CBMonthBegin
 
     def test_different_normalize_equals(self):
         # GH#21404 changed __eq__ to return False when `normalize` does not match
@@ -256,7 +259,7 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
 
 
 class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
-    _offset = CBMonthEnd
+    _offset: type[_CustomBusinessMonth] = CBMonthEnd
 
     def test_different_normalize_equals(self):
         # GH#21404 changed __eq__ to return False when `normalize` does not match
