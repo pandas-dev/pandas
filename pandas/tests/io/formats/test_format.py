@@ -1,10 +1,7 @@
 """
 Test output formatting for Series/DataFrame, including to_string & reprs
 """
-from datetime import (
-    datetime,
-    time,
-)
+from datetime import datetime
 from io import StringIO
 import itertools
 from operator import methodcaller
