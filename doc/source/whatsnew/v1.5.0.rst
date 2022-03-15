@@ -54,14 +54,19 @@ Notable bug fixes
 
 These are bug fixes that might have notable behavior changes.
 
+Styler
+^^^^^^
+
+- Fixed bug in :class:`CSSToExcelConverter` leading to ``TypeError`` when border color provided without border style for ``xlsxwriter`` engine (:issue:`42276`)
+
 .. _whatsnew_150.notable_bug_fixes.groupby_transform_dropna:
 
-Using ``dropna=True`` with ``groupby`` transformers
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Using ``dropna=True`` with ``groupby`` transforms
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A transformer is a function whose result has the same size as its input. When the
+A transform is an operation whose result has the same size as its input. When the
 result is a :class:`DataFrame` or :class:`Series`, it is also required that the
-index of the result is equal to that of the input. In pandas 1.4, using
+index of the result matches that of the input. In pandas 1.4, using
 :meth:`.DataFrameGroupBy.transform` or :meth:`.SeriesGroupBy.transform` with null
 values in the groups and ``dropna=True`` gave incorrect results. Demonstrated by the
 examples below, the incorrect results either contained incorrect values, or the result
@@ -109,59 +114,6 @@ did not have the same index as the input.
     df.groupby('a', dropna=True).transform(lambda x: x.sum())
     df.groupby('a', dropna=True).transform('ffill')
     df.groupby('a', dropna=True).transform(lambda x: x)
-
-Styler
-^^^^^^
-
-- Fixed bug in :class:`CSSToExcelConverter` leading to ``TypeError`` when border color provided without border style for ``xlsxwriter`` engine (:issue:`42276`)
-
-.. _whatsnew_150.notable_bug_fixes.groupby_transform_dropna:
-
-Using ``dropna=True`` with ``groupby`` transforms
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-A transform is an operation whose result has the same size as its input. When the
-result is a :class:`DataFrame` or :class:`Series`, it is also required that the
-index of the result matches that of the input. In pandas 1.4, using
-:meth:`.DataFrameGroupBy.transform` or :meth:`.SeriesGroupBy.transform` with null
-values in the groups and ``dropna=True`` gave incorrect results. Demonstrated by the
-examples below, the incorrect results either contained incorrect values, or the result
-did not have the same index as the input.
-
-.. ipython:: python
-
-    df = pd.DataFrame({'a': [1, 1, np.nan], 'b': [2, 3, 4]})
-
-*Old behavior*:
-
-.. code-block:: ipython
-
-    In [3]: df.groupby('a', dropna=True).transform(lambda x: x.sum())
-    Out[3]:
-       b
-    0  5
-    1  5
-
-    In [3]: df.groupby('a', dropna=True).transform(lambda x: x)
-    Out[3]:
-       b
-    0  2
-    1  3
-
-    In [3]: df.groupby('a', dropna=True).transform('sum')
-    Out[3]:
-       b
-    0  5
-    1  5
-    2  5
-
-*New behavior*:
-
-.. ipython:: python
-
-    df.groupby('a', dropna=True).transform(lambda x: x.sum())
-    df.groupby('a', dropna=True).transform(lambda x: x)
-    df.groupby('a', dropna=True).transform('sum')
 
 .. _whatsnew_150.notable_bug_fixes.notable_bug_fix2:
 

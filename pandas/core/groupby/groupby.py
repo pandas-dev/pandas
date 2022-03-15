@@ -953,7 +953,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             result = self._python_apply_general(curried, self._obj_with_exclusions)
 
-            # TODO: Are there other cases where the name attribute is set incorrectly?
             if result.ndim == 1 and self.obj.ndim == 1 and result.name != self.obj.name:
                 # apply sets the name on each group as the key; if there is one
                 # group this name will come through on Series results
@@ -2623,8 +2622,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 if isinstance(values, np.ndarray):
                     dtype = values.dtype
                     if self.grouper.has_dropped_na:
-                        #  ...unless there are any dropped null groups,
-                        #  these give rise to nan in the result
+                        # dropped null groups give rise to nan in the result
                         dtype = ensure_dtype_can_hold_na(values.dtype)
                     out = np.empty(values.shape, dtype=dtype)
                 else:
