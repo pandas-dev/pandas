@@ -54,6 +54,8 @@ Notable bug fixes
 
 These are bug fixes that might have notable behavior changes.
 
+.. _whatsnew_150.notable_bug_fixes.notable_bug_fix1:
+
 Styler
 ^^^^^^
 
