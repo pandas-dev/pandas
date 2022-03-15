@@ -1332,6 +1332,16 @@ class TestReaders:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_read_boolean_column_with_blanks(self, read_ext):
+        # GH 45903
+        result = pd.read_excel(
+            "boolean_with_blanks" + read_ext, dtype={"var1": "boolean"}
+        )
+        expected = DataFrame(
+            [[True], [False], [None], [True]], columns=["var1"], dtype="boolean"
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 class TestExcelFileRead:
     @pytest.fixture(autouse=True)

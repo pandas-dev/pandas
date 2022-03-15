@@ -781,7 +781,7 @@ class ParserBase:
             try:
                 if is_bool_dtype(cast_type):
                     return array_type._from_sequence_of_strings(
-                        values,
+                        values.astype(str),
                         dtype=cast_type,
                         true_values=self.true_values,
                         false_values=self.false_values,

@@ -294,6 +294,7 @@ class BooleanArray(BaseMaskedArray):
     # Fill values used for any/all
     _truthy_value = True
     _falsey_value = False
+    _NONE_VALUES = {"nan", "NaN", "None", "NA", "null", "NULL"}
     _TRUE_VALUES = {"True", "TRUE", "true", "1", "1.0"}
     _FALSE_VALUES = {"False", "FALSE", "false", "0", "0.0"}
 
@@ -326,8 +327,8 @@ class BooleanArray(BaseMaskedArray):
         false_values_union = cls._FALSE_VALUES.union(false_values or [])
 
         def map_string(s):
-            if isna(s):
-                return s
+            if isna(s) or s in cls._NONE_VALUES:
+                return None
             elif s in true_values_union:
                 return True
             elif s in false_values_union:
