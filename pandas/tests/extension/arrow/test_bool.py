@@ -1,6 +1,11 @@
 import numpy as np
 import pytest
 
+from pandas.compat import (
+    is_ci_environment,
+    is_platform_windows,
+)
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.types import is_bool_dtype
@@ -91,6 +96,10 @@ class TestReduce(base.BaseNoReduceTests):
         pass
 
 
+@pytest.mark.skipif(
+    is_ci_environment() and is_platform_windows(),
+    reason="Causes stack overflow on Windows CI",
+)
 class TestReduceBoolean(base.BaseBooleanReduceTests):
     pass
 
