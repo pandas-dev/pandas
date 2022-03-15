@@ -208,10 +208,9 @@ class TestConstructors(BaseNumPyTests, base.BaseConstructorsTests):
 
 
 class TestDtype(BaseNumPyTests, base.BaseDtypeTests):
-    @pytest.mark.skip(reason="Incorrect expected.")
-    # we unsurprisingly clash with a NumPy name.
+    @pytest.mark.skip(reason="PandasArray expectedly clashes with a NumPy name.")
     def test_check_dtype(self, data):
-        pass
+        super().test_check_dtype(data)
 
 
 class TestGetitem(BaseNumPyTests, base.BaseGetitemTests):
@@ -345,11 +344,6 @@ class TestMissing(BaseNumPyTests, base.BaseMissingTests):
 
 
 class TestReshaping(BaseNumPyTests, base.BaseReshapingTests):
-    @pytest.mark.skip(reason="Incorrect expected.")
-    def test_merge(self, data, na_value):
-        # Fails creating expected (key column becomes a PandasDtype because)
-        super().test_merge(data, na_value)
-
     @pytest.mark.parametrize(
         "in_frame",
         [

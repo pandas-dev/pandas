@@ -124,7 +124,7 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
             result = data.__add__(other)
             assert result is NotImplemented
         else:
-            raise pytest.skip(f"{type(data).__name__} does not implement add")
+            pytest.skip(f"{type(data).__name__} does not implement add")
 
 
 class BaseComparisonOpsTests(BaseOpsUtil):
