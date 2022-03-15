@@ -41,12 +41,9 @@ class TestIndexConstructor:
         with pytest.raises(ValueError, match=msg):
             Index(["a", "b", "c"], dtype=float)
 
-    def test_construct_empty_tuples(self):
+    @pytest.mark.parametrize("tuple_list", [[()], [(), ()]])
+    def test_construct_empty_tuples(self, tuple_list):
         # GH #45608
-        result = Index([()])
-        expected = Index([()], dtype="object")
-        tm.assert_index_equal(result, expected)
-
-        result = Index([(), None])
-        expected = Index([(), None], dtype="object")
+        result = Index(tuple_list)
+        expected = MultiIndex.from_tuples(tuple_list)
         tm.assert_index_equal(result, expected)
