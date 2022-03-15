@@ -104,7 +104,7 @@ def _field_accessor(name: str, docstring=None):
     return property(f)
 
 
-class PeriodArray(dtl.DatelikeOps):
+class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     """
     Pandas ExtensionArray for storing Period data.
 
@@ -500,7 +500,7 @@ class PeriodArray(dtl.DatelikeOps):
                 return (self + self.freq).to_timestamp(how="start") - adjust
 
         if freq is None:
-            freq = self._get_to_timestamp_base()
+            freq = self._dtype._get_to_timestamp_base()
             base = freq
         else:
             freq = Period._maybe_convert_freq(freq)
@@ -606,8 +606,7 @@ class PeriodArray(dtl.DatelikeOps):
 
         freq = Period._maybe_convert_freq(freq)
 
-        # error: "BaseOffset" has no attribute "_period_dtype_code"
-        base1 = self.freq._period_dtype_code  # type: ignore[attr-defined]
+        base1 = self._dtype._dtype_code
         base2 = freq._period_dtype_code
 
         asi8 = self.asi8
@@ -708,11 +707,7 @@ class PeriodArray(dtl.DatelikeOps):
     # ------------------------------------------------------------------
     # Arithmetic Methods
 
-    def _sub_datelike(self, other):
-        assert other is not NaT
-        return NotImplemented
-
-    def _sub_period(self, other):
+    def _sub_period(self, other: Period):
         # If the operation is well-defined, we return an object-Index
         # of DateOffsets.  Null entries are filled with pd.NaT
         self._check_compatible_with(other)
@@ -883,56 +878,6 @@ class PeriodArray(dtl.DatelikeOps):
             return delta
 
         raise raise_on_incompatible(self, other)
-
-    # ------------------------------------------------------------------
-    # TODO: See if we can re-share this with Period
-
-    def _get_to_timestamp_base(self) -> int:
-        """
-        Return frequency code group used for base of to_timestamp against
-        frequency code.
-
-        Return day freq code against longer freq than day.
-        Return second freq code against hour between second.
-
-        Returns
-        -------
-        int
-        """
-        base = self._dtype._dtype_code
-        if base < FreqGroup.FR_BUS.value:
-            return FreqGroup.FR_DAY.value
-        elif FreqGroup.FR_HR.value <= base <= FreqGroup.FR_SEC.value:
-            return FreqGroup.FR_SEC.value
-        return base
-
-    @property
-    def start_time(self) -> DatetimeArray:
-        return self.to_timestamp(how="start")
-
-    @property
-    def end_time(self) -> DatetimeArray:
-        return self.to_timestamp(how="end")
-
-    def _require_matching_freq(self, other, base: bool = False) -> None:
-        # See also arrays.period.raise_on_incompatible
-        if isinstance(other, BaseOffset):
-            other_freq = other
-        else:
-            other_freq = other.freq
-
-        if base:
-            condition = self.freq.base != other_freq.base
-        else:
-            condition = self.freq != other_freq
-
-        if condition:
-            msg = DIFFERENT_FREQ.format(
-                cls=type(self).__name__,
-                own_freq=self.freqstr,
-                other_freq=other_freq.freqstr,
-            )
-            raise IncompatibleFrequency(msg)
 
 
 def raise_on_incompatible(left, right):
