@@ -1713,10 +1713,10 @@ def format_percentiles(
 
     percentiles = 100 * percentiles
 
-    int_idx = np.isclose(percentiles.astype(int), percentiles)
+    int_idx = np.isclose(percentiles.round(), percentiles)
 
     if np.all(int_idx):
-        out = percentiles.astype(int).astype(str)
+        out = percentiles.round().astype(int).astype(str)
         return [i + "%" for i in out]
 
     unique_pcts = np.unique(percentiles)
@@ -1729,7 +1729,7 @@ def format_percentiles(
     ).astype(int)
     prec = max(1, prec)
     out = np.empty_like(percentiles, dtype=object)
-    out[int_idx] = percentiles[int_idx].astype(int).astype(str)
+    out[int_idx] = percentiles[int_idx].round().astype(int).astype(str)
 
     out[~int_idx] = percentiles[~int_idx].round(prec).astype(str)
     return [i + "%" for i in out]
