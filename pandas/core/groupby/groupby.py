@@ -3135,7 +3135,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             comp_ids = self.grouper.group_info[0]
             if self.grouper.has_dropped_na:
                 comp_ids = np.where(comp_ids == -1, np.nan, comp_ids)
-            result = self._obj_1d_constructor(comp_ids, index, dtype=np.int64)
+                dtype = np.float64
+            else:
+                dtype = np.int64
+            result = self._obj_1d_constructor(comp_ids, index, dtype=dtype)
             if not ascending:
                 result = self.ngroups - 1 - result
             return result

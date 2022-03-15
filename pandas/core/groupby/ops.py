@@ -105,7 +105,7 @@ class WrappedCythonOp:
     #  back to the original dtype.
     cast_blocklist = frozenset(["rank", "count", "size", "idxmin", "idxmax"])
 
-    def __init__(self, grouper, kind: str, how: str):
+    def __init__(self, grouper: BaseGrouper, kind: str, how: str):
         self.grouper = grouper
         self.kind = kind
         self.how = how
