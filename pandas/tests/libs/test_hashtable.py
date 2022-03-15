@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 
 from pandas._libs import hashtable as ht
-from pandas.compat import is_platform_arm
 
 import pandas as pd
 import pandas._testing as tm
@@ -253,8 +252,7 @@ class TestHashTableUnsorted:
                 "uint64",
                 False,
                 marks=pytest.mark.xfail(
-                    is_platform_arm(),
-                    reason="Sometimes doesn't raise on ARM.",
+                    reason="Sometimes doesn't raise.",
                     strict=False,
                 ),
             ),
