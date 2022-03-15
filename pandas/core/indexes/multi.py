@@ -489,10 +489,11 @@ class MultiIndex(Index):
         codes, levels = factorize_from_iterables(arrays)
 
         if all(isinstance(e, tuple) for e in arrays):
-            codes = [np.array([i for i in range(len(arrays))])]
-            _dtype_obj = np.dtype("object")
-            subarr = com.asarray_tuplesafe(arrays, dtype=_dtype_obj)
-            levels = [Index(subarr)]
+            if not all(arrays):
+                codes = [[i for i in range(len(arrays))]]
+                _dtype_obj = np.dtype("object")
+                subarr = com.asarray_tuplesafe(arrays, dtype=_dtype_obj)
+                levels = [Index(subarr)]
 
         if names is lib.no_default:
             names = [getattr(arr, "name", None) for arr in arrays]
