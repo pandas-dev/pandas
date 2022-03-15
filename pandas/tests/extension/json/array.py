@@ -67,7 +67,7 @@ class JSONArray(ExtensionArray):
     dtype = JSONDtype()
     __array_priority__ = 1000
 
-    def __init__(self, values, dtype=None, copy=False):
+    def __init__(self, values, dtype=None, copy=False) -> None:
         for val in values:
             if not isinstance(val, self.dtype.type):
                 raise TypeError("All values must be of type " + str(self.dtype.type))
