@@ -1323,8 +1323,11 @@ def test_null_group_lambda_self(sort, dropna):
     tm.assert_frame_equal(result, expected)
 
 
-def test_null_group_str_reducer(dropna, reduction_func):
+def test_null_group_str_reducer(request, dropna, reduction_func):
     # GH 17093
+    if reduction_func == "corrwith":
+        msg = "incorrectly raises"
+        request.node.add_marker(pytest.mark.xfail(reason=msg))
     index = [1, 2, 3, 4]  # test transform preserves non-standard index
     df = DataFrame({"A": [1, 1, np.nan, np.nan], "B": [1, 2, 2, 3]}, index=index)
     gb = df.groupby("A", dropna=dropna)
