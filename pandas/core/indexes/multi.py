@@ -342,9 +342,7 @@ class MultiIndex(Index):
         if verify_integrity:
             new_codes = result._verify_integrity()
             result._codes = new_codes
-
         result._reset_identity()
-
         return result
 
     def _validate_codes(self, level: list, code: list):
@@ -487,6 +485,13 @@ class MultiIndex(Index):
                 raise ValueError("all arrays must be same length")
 
         codes, levels = factorize_from_iterables(arrays)
+
+        if all(isinstance(e, tuple) for e in arrays):
+            codes = [np.array([i for i in range(len(arrays))])]
+            _dtype_obj = np.dtype("object")
+            subarr = com.asarray_tuplesafe(arrays, dtype=_dtype_obj)
+            levels = [Index(subarr)]
+
         if names is lib.no_default:
             names = [getattr(arr, "name", None) for arr in arrays]
 
