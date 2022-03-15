@@ -246,7 +246,16 @@ class TestHashTableUnsorted:
             (ht.Float64HashTable, ht.Float64Vector, "float64", False),
             (ht.Int64HashTable, ht.Int64Vector, "int64", False),
             (ht.Int32HashTable, ht.Int32Vector, "int32", False),
-            (ht.UInt64HashTable, ht.UInt64Vector, "uint64", False),
+            pytest.param(
+                ht.UInt64HashTable,
+                ht.UInt64Vector,
+                "uint64",
+                False,
+                marks=pytest.mark.xfail(
+                    reason="Sometimes doesn't raise.",
+                    strict=False,
+                ),
+            ),
         ],
     )
     def test_vector_resize(
