@@ -259,14 +259,13 @@ def test_rolling_forward_cov_corr(func, expected):
         ["left", [0.0, 0.0, 1.0, 2.0, 5.0, 9.0, 5.0, 6.0, 7.0, 8.0]],
     ],
 )
-@pytest.mark.parametrize("step", [None])
-def test_non_fixed_variable_window_indexer(closed, expected_data, step):
+def test_non_fixed_variable_window_indexer(closed, expected_data):
     index = date_range("2020", periods=10)
     df = DataFrame(range(10), index=index)
     offset = BusinessDay(1)
     indexer = VariableOffsetWindowIndexer(index=index, offset=offset)
-    result = df.rolling(indexer, closed=closed, step=step).sum()
-    expected = DataFrame(expected_data, index=index)[::step]
+    result = df.rolling(indexer, closed=closed).sum()
+    expected = DataFrame(expected_data, index=index)
     tm.assert_frame_equal(result, expected)
 
 

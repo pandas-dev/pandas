@@ -107,7 +107,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     def __init__(
         self, values: np.ndarray, mask: npt.NDArray[np.bool_], copy: bool = False
-    ):
+    ) -> None:
         # values is supposed to already be validated in the subclass
         if not (isinstance(mask, np.ndarray) and mask.dtype == np.bool_):
             raise TypeError(
@@ -874,8 +874,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         codes, uniques = factorize_array(arr, na_sentinel=na_sentinel, mask=mask)
 
-        # the hashtables don't handle all different types of bits
-        uniques = uniques.astype(self.dtype.numpy_dtype, copy=False)
+        # check that factorize_array correctly preserves dtype.
+        assert uniques.dtype == self.dtype.numpy_dtype, (uniques.dtype, self.dtype)
+
         uniques_ea = type(self)(uniques, np.zeros(len(uniques), dtype=bool))
         return codes, uniques_ea
 

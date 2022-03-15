@@ -394,8 +394,6 @@ def test_transform_transformation_func(request, transformation_func):
         def mock_op(x):
             nonlocal counter
             counter += 1
-            print(x)
-            print("counter:", counter)
             return Series(counter, index=x.index)
 
     elif transformation_func == "tshift":
@@ -1157,8 +1155,6 @@ def test_transform_agg_by_name(request, reduction_func, obj):
         tm.assert_index_equal(result.columns, obj.columns)
 
     # verify that values were broadcasted across each group
-    print(obj)
-    print(result)
     assert len(set(DataFrame(result).iloc[-3:, -1])) == 1
 
 
