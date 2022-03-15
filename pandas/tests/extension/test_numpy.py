@@ -208,8 +208,14 @@ class TestConstructors(BaseNumPyTests, base.BaseConstructorsTests):
 
 
 class TestDtype(BaseNumPyTests, base.BaseDtypeTests):
-    @pytest.mark.skip(reason="PandasArray expectedly clashes with a NumPy name.")
-    def test_check_dtype(self, data):
+    def test_check_dtype(self, data, request):
+        if data.dtype.numpy_dtype == "object":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"PandasArray expectedly clashes with a "
+                    f"NumPy name: {data.dtype.numpy_dtype}"
+                )
+            )
         super().test_check_dtype(data)
 
 
