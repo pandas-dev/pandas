@@ -233,6 +233,10 @@ class Series(base.IndexOpsMixin, NDFrame):
     copy : bool, default False
         Copy input data. Only affects Series or 1d ndarray input. See examples.
 
+    Notes
+    -----
+    Please reference the :ref:`User Guide <basics.series>` for more information.
+
     Examples
     --------
     Constructing Series from a dictionary with an Index specified

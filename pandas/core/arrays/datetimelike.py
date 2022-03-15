@@ -549,9 +549,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         new_obj._freq = self.freq
         return new_obj
 
-    def _values_for_factorize(self):
-        return self._ndarray, self._internal_fill_value
-
     # ------------------------------------------------------------------
     # Validation Methods
     # TODO: try to de-duplicate these, ensure identical behavior
@@ -1095,7 +1092,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     _sub_datetime_arraylike = _sub_datetimelike_scalar
 
-    def _sub_period(self, other):
+    def _sub_period(self, other: Period):
         # Overridden by PeriodArray
         raise TypeError(f"cannot subtract Period from a {type(self).__name__}")
 
