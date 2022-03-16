@@ -38,14 +38,14 @@ dependencies:
   - odfpy
   - pandas-gbq
   - psycopg2
-  - pymysql
-  - pytables
   - pyarrow
+  - pymysql
   - pyreadstat
+  - pytables
+  - python-snappy
   - pyxlsb
   - s3fs
   - scipy
-  - snappy
   - sqlalchemy
   - tabulate
   - xarray
