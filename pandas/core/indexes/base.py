@@ -6663,7 +6663,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         # GH 16785: If start and end happen to be date strings with UTC offsets
         # attempt to parse and check that the offsets are the same
-        if isinstance(start, (str, datetime)) and isinstance(end, (str, datetime)):
+        if (self.is_type_compatible("datetime") and
+            isinstance(start, (str, datetime)) and isinstance(end, (str, datetime)):
             try:
                 ts_start = Timestamp(start)
                 ts_end = Timestamp(end)
