@@ -956,7 +956,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if freqstr is None:
             return None
         try:
-            return Resolution.get_reso_from_freq(freqstr)
+            return Resolution.get_reso_from_freqstr(freqstr)
         except KeyError:
             return None
 
@@ -1316,7 +1316,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         elif is_integer_dtype(other_dtype):
             if not is_period_dtype(self.dtype):
                 raise integer_op_not_supported(self)
-            result = cast("PeriodArray", self)._addsub_int_array(other, operator.add)
+            result = cast("PeriodArray", self)._addsub_int_array_or_scalar(
+                other, operator.add
+            )
         else:
             # Includes Categorical, other ExtensionArrays
             # For PeriodDtype, if self is a TimedeltaArray and other is a
@@ -1376,7 +1378,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         elif is_integer_dtype(other_dtype):
             if not is_period_dtype(self.dtype):
                 raise integer_op_not_supported(self)
-            result = cast("PeriodArray", self)._addsub_int_array(other, operator.sub)
+            result = cast("PeriodArray", self)._addsub_int_array_or_scalar(
+                other, operator.sub
+            )
         else:
             # Includes ExtensionArrays, float_dtype
             return NotImplemented

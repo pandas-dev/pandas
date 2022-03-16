@@ -42,10 +42,10 @@ dependencies:
   - pytables
   - pyarrow
   - pyreadstat
+  - python-snappy
   - pyxlsb
   - s3fs
   - scipy
-  - snappy
   - sqlalchemy
   - tabulate
   - xarray

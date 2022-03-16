@@ -9,6 +9,7 @@ dependencies:
   - pytest-cov
   - pytest-xdist>=1.31
   - hypothesis>=5.5.3
+  - pytest-asyncio
 
   # pandas dependencies
   - python-dateutil
