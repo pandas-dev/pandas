@@ -1401,7 +1401,7 @@ class ExtensionArray:
 
     # ------------------------------------------------------------------------
     # Non-Optimized Default Methods; in the case of the private methods here,
-    #  these are not guaranteeed to be stable across pandas versions.
+    #  these are not guaranteed to be stable across pandas versions.
 
     def tolist(self) -> list:
         """
