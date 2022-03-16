@@ -42,7 +42,7 @@ if TYPE_CHECKING:
 class HistPlot(LinePlot):
     _kind = "hist"
 
-    def __init__(self, data, bins=10, bottom=0, **kwargs):
+    def __init__(self, data, bins=10, bottom=0, **kwargs) -> None:
         self.bins = bins  # use mpl default
         self.bottom = bottom
         # Do not call LinePlot.__init__ which may fill nan
@@ -170,7 +170,7 @@ class KdePlot(HistPlot):
     _kind = "kde"
     orientation = "vertical"
 
-    def __init__(self, data, bw_method=None, ind=None, **kwargs):
+    def __init__(self, data, bw_method=None, ind=None, **kwargs) -> None:
         MPLPlot.__init__(self, data, **kwargs)
         self.bw_method = bw_method
         self.ind = ind
