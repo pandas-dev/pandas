@@ -555,6 +555,8 @@ class Block(PandasObject):
         to_replace,
         value,
         inplace: bool = False,
+        # conversion is done at the end if we're called from replace_list
+        convert: bool = True,
         # mask may be pre-computed if we're called from replace_list
         mask: npt.NDArray[np.bool_] | None = None,
     ) -> list[Block]:
@@ -573,6 +575,7 @@ class Block(PandasObject):
         if isinstance(values, Categorical):
             # TODO: avoid special-casing
             blk = self if inplace else self.copy()
+            # TODO: should we pass convert here? moot point if special casing avoided.
             blk.values._replace(to_replace=to_replace, value=value, inplace=True)
             return [blk]
 
@@ -593,7 +596,7 @@ class Block(PandasObject):
         elif self._can_hold_element(value):
             blk = self if inplace else self.copy()
             putmask_inplace(blk.values, mask, value)
-            if not (self.is_object and value is None):
+            if convert and not (self.is_object and value is None):
                 # if the user *explicitly* gave None, we keep None, otherwise
                 #  may downcast to NaN
                 blocks = blk.convert(numeric=False, copy=False)
@@ -607,6 +610,7 @@ class Block(PandasObject):
                 to_replace=to_replace,
                 value=value,
                 inplace=True,
+                convert=convert,
                 mask=mask,
             )
 
@@ -620,6 +624,7 @@ class Block(PandasObject):
                         to_replace=to_replace,
                         value=value,
                         inplace=True,
+                        convert=convert,
                         mask=mask[i : i + 1],
                     )
                 )
@@ -631,8 +636,10 @@ class Block(PandasObject):
         to_replace,
         value,
         inplace: bool = False,
+        # conversion is done at the end if we're called from replace_list
         convert: bool = True,
-        mask=None,
+        # mask may be pre-computed if we're called from replace_list
+        mask: npt.NDArray[np.bool_] | None = None,
     ) -> list[Block]:
         """
         Replace elements by the given value.
@@ -665,7 +672,10 @@ class Block(PandasObject):
         replace_regex(new_values, rx, value, mask)
 
         block = self.make_block(new_values)
-        return block.convert(numeric=False, copy=False)
+        if convert:
+            return block.convert(numeric=False, copy=False)
+        else:
+            return [block]
 
     @final
     def replace_list(
@@ -708,13 +718,14 @@ class Block(PandasObject):
         masks = [extract_bool_array(x) for x in masks]  # type: ignore[arg-type]
 
         rb = [self if inplace else self.copy()]
-        for i, (src, dest) in enumerate(pairs):
+        for i, (to_replace, value) in enumerate(pairs):
+            use_regex = should_use_regex(regex, to_replace)
             convert = i == src_len  # only convert once at the end
             new_rb: list[Block] = []
 
-            # GH-39338: _replace_coerce can split a block into
-            # single-column blocks, so track the index so we know
-            # where to index into the mask
+            # GH-39338: Block.replace and Block._replace_regex can split a block
+            # into single-column blocks, so track the index so we know where to
+            # index into the mask
             for blk_num, blk in enumerate(rb):
                 if len(rb) == 1:
                     m = masks[i]
@@ -723,12 +734,13 @@ class Block(PandasObject):
                     assert not isinstance(mib, bool)
                     m = mib[blk_num : blk_num + 1]
 
-                result = blk._replace_coerce(
-                    to_replace=src,
-                    value=dest,
-                    mask=m,
+                func = blk._replace_regex if use_regex else blk.replace
+                result = func(
+                    to_replace=to_replace,
+                    value=value,
                     inplace=inplace,
-                    regex=regex,
+                    convert=False,
+                    mask=m,
                 )
                 if convert and blk.is_object and not all(x is None for x in dest_list):
                     # GH#44498 avoid unwanted cast-back
@@ -738,49 +750,6 @@ class Block(PandasObject):
                 new_rb.extend(result)
             rb = new_rb
         return rb
-
-    @final
-    def _replace_coerce(
-        self,
-        to_replace,
-        value,
-        mask: npt.NDArray[np.bool_],
-        inplace: bool = True,
-        regex: bool = False,
-    ) -> list[Block]:
-        """
-        Replace value corresponding to the given boolean array with another
-        value.
-
-        Parameters
-        ----------
-        to_replace : object or pattern
-            Scalar to replace or regular expression to match.
-        value : object
-            Replacement object.
-        mask : np.ndarray[bool]
-            True indicate corresponding element is ignored.
-        inplace : bool, default True
-            Perform inplace modification.
-        regex : bool, default False
-            If true, perform regular expression substitution.
-
-        Returns
-        -------
-        List[Block]
-        """
-        if should_use_regex(regex, to_replace):
-            return self._replace_regex(
-                to_replace,
-                value,
-                inplace=inplace,
-                convert=False,
-                mask=mask,
-            )
-        else:
-            return self.replace(
-                to_replace=to_replace, value=value, inplace=inplace, mask=mask
-            )
 
     # ---------------------------------------------------------------------
     # 2D Methods - Shared by NumpyBlock and NDArrayBackedExtensionBlock
