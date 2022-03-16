@@ -39,6 +39,7 @@ from pandas._libs.tslibs.strptime import array_strptime
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
+    DateTimeErrorChoices,
     Timezone,
 )
 from pandas.util._exceptions import find_stack_level
@@ -79,6 +80,7 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 
 if TYPE_CHECKING:
     from pandas._libs.tslibs.nattype import NaTType
+    from pandas._libs.tslibs.timedeltas import UnitChoices
 
     from pandas import (
         DataFrame,
@@ -657,7 +659,7 @@ def _adjust_to_origin(arg, origin, unit):
 @overload
 def to_datetime(
     arg: DatetimeScalar,
-    errors: str = ...,
+    errors: DateTimeErrorChoices = ...,
     dayfirst: bool = ...,
     yearfirst: bool = ...,
     utc: bool | None = ...,
@@ -674,7 +676,7 @@ def to_datetime(
 @overload
 def to_datetime(
     arg: Series | DictConvertible,
-    errors: str = ...,
+    errors: DateTimeErrorChoices = ...,
     dayfirst: bool = ...,
     yearfirst: bool = ...,
     utc: bool | None = ...,
@@ -691,7 +693,7 @@ def to_datetime(
 @overload
 def to_datetime(
     arg: list | tuple | Index | ArrayLike,
-    errors: str = ...,
+    errors: DateTimeErrorChoices = ...,
     dayfirst: bool = ...,
     yearfirst: bool = ...,
     utc: bool | None = ...,
@@ -707,7 +709,7 @@ def to_datetime(
 
 def to_datetime(
     arg: DatetimeScalarOrArrayConvertible | DictConvertible,
-    errors: str = "raise",
+    errors: DateTimeErrorChoices = "raise",
     dayfirst: bool = False,
     yearfirst: bool = False,
     utc: bool | None = None,
@@ -1148,7 +1150,7 @@ _unit_map = {
 }
 
 
-def _assemble_from_unit_mappings(arg, errors, tz):
+def _assemble_from_unit_mappings(arg, errors: DateTimeErrorChoices, tz):
     """
     assemble the unit specified fields from the arg (DataFrame)
     Return a Series for actual parsing
@@ -1228,7 +1230,8 @@ def _assemble_from_unit_mappings(arg, errors, tz):
     except (TypeError, ValueError) as err:
         raise ValueError(f"cannot assemble the datetimes: {err}") from err
 
-    for u in ["h", "m", "s", "ms", "us", "ns"]:
+    units: list[UnitChoices] = ["h", "m", "s", "ms", "us", "ns"]
+    for u in units:
         value = unit_rev.get(u)
         if value is not None and value in arg:
             try:
