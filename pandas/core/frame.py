@@ -5741,7 +5741,7 @@ class DataFrame(NDFrame, OpsMixin):
             Allow duplicate column labels to be created.
 
             .. versionadded:: 1.5.0
-        
+
         names : int, str or 1-dimensional list, default None
             Using the given string, rename the DataFrame column which contains the
             index data. If the DataFrame has a MultiIndex, this has to be a list or
@@ -5901,6 +5901,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             default = "index" if "index" not in self else "level_0"
             names = self.index.get_default_index_names(names, default)
+
             if isinstance(self.index, MultiIndex):
                 to_insert = zip(self.index.levels, self.index.codes)
             else:
