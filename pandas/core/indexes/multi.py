@@ -490,7 +490,7 @@ class MultiIndex(Index):
 
         if all(isinstance(e, tuple) for e in arrays):
             if not all(arrays):
-                codes = [[0 for _ in range(len(arrays))]]
+                codes = [np.array([0 for _ in range(len(arrays))])]
                 _dtype_obj = np.dtype("object")
                 subarr = com.asarray_tuplesafe(arrays, dtype=_dtype_obj)
                 levels = [Index(subarr)]
