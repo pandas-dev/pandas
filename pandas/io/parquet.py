@@ -144,7 +144,7 @@ class BaseImpl:
 
 
 class PyArrowImpl(BaseImpl):
-    def __init__(self):
+    def __init__(self) -> None:
         import_optional_dependency(
             "pyarrow", extra="pyarrow is required for parquet support."
         )
@@ -256,7 +256,7 @@ class PyArrowImpl(BaseImpl):
 
 
 class FastParquetImpl(BaseImpl):
-    def __init__(self):
+    def __init__(self) -> None:
         # since pandas is a dependency of fastparquet
         # we need to import on first use
         fastparquet = import_optional_dependency(

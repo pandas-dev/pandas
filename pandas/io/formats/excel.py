@@ -62,7 +62,7 @@ class ExcelCell:
         style=None,
         mergestart: int | None = None,
         mergeend: int | None = None,
-    ):
+    ) -> None:
         self.row = row
         self.col = col
         self.val = val
@@ -83,7 +83,7 @@ class CssExcelCell(ExcelCell):
         css_col: int,
         css_converter: Callable | None,
         **kwargs,
-    ):
+    ) -> None:
         if css_styles and css_converter:
             css = ";".join(
                 [a + ":" + str(v) for (a, v) in css_styles[css_row, css_col]]
@@ -158,7 +158,7 @@ class CSSToExcelConverter:
     #     without monkey-patching.
     inherited: dict[str, str] | None
 
-    def __init__(self, inherited: str | None = None):
+    def __init__(self, inherited: str | None = None) -> None:
         if inherited is not None:
             self.inherited = self.compute_css(inherited)
         else:
@@ -493,7 +493,7 @@ class ExcelFormatter:
         merge_cells: bool = False,
         inf_rep: str = "inf",
         style_converter: Callable | None = None,
-    ):
+    ) -> None:
         self.rowcounter = 0
         self.na_rep = na_rep
         if not isinstance(df, DataFrame):

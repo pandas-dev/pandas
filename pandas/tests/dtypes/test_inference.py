@@ -17,6 +17,7 @@ from io import StringIO
 import itertools
 from numbers import Number
 import re
+import sys
 
 import numpy as np
 import pytest
@@ -91,7 +92,7 @@ class MockNumpyLikeArray:
     a scalar (`is_scalar(np.array(1)) == False`), but it is not list-like either.
     """
 
-    def __init__(self, values):
+    def __init__(self, values) -> None:
         self._values = values
 
     def __iter__(self):
@@ -205,8 +206,14 @@ def test_is_list_like_recursion():
         inference.is_list_like([])
         foo()
 
-    with tm.external_error_raised(RecursionError):
-        foo()
+    rec_limit = sys.getrecursionlimit()
+    try:
+        # Limit to avoid stack overflow on Windows CI
+        sys.setrecursionlimit(100)
+        with tm.external_error_raised(RecursionError):
+            foo()
+    finally:
+        sys.setrecursionlimit(rec_limit)
 
 
 def test_is_list_like_iter_is_none():
@@ -323,7 +330,7 @@ def test_is_dict_like_fails(ll):
 @pytest.mark.parametrize("has_contains", [True, False])
 def test_is_dict_like_duck_type(has_keys, has_getitem, has_contains):
     class DictLike:
-        def __init__(self, d):
+        def __init__(self, d) -> None:
             self.d = d
 
         if has_keys:
@@ -1937,7 +1944,7 @@ class TestIsScalar:
         #  subclasses are.
 
         class Numeric(Number):
-            def __init__(self, value):
+            def __init__(self, value) -> None:
                 self.value = value
 
             def __int__(self):

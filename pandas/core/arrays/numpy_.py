@@ -189,8 +189,12 @@ class PandasArray(
             fill_value = self.dtype.na_value
         return fill_value
 
-    def _values_for_factorize(self) -> tuple[np.ndarray, int]:
-        return self._ndarray, -1
+    def _values_for_factorize(self) -> tuple[np.ndarray, float | None]:
+        if self.dtype.kind in ["i", "u", "b"]:
+            fv = None
+        else:
+            fv = np.nan
+        return self._ndarray, fv
 
     # ------------------------------------------------------------------------
     # Reductions
