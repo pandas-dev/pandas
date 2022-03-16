@@ -597,7 +597,7 @@ class BaseBlockManager(DataManager):
     def reindex_indexer(
         self: T,
         new_axis: Index,
-        indexer,
+        indexer: npt.NDArray[np.intp] | None,
         axis: int,
         fill_value=None,
         allow_dups: bool = False,
@@ -610,7 +610,7 @@ class BaseBlockManager(DataManager):
         Parameters
         ----------
         new_axis : Index
-        indexer : ndarray of int64 or None
+        indexer : ndarray[intp] or None
         axis : int
         fill_value : object, default None
         allow_dups : bool, default False
@@ -829,7 +829,13 @@ class BaseBlockManager(DataManager):
         block_values.fill(fill_value)
         return new_block_2d(block_values, placement=placement)
 
-    def take(self: T, indexer, axis: int = 1, verify: bool = True) -> T:
+    def take(
+        self: T,
+        indexer,
+        axis: int = 1,
+        verify: bool = True,
+        convert_indices: bool = True,
+    ) -> T:
         """
         Take items along any axis.
 
@@ -838,6 +844,8 @@ class BaseBlockManager(DataManager):
         verify : bool, default True
             Check that all entries are between 0 and len(self) - 1, inclusive.
             Pass verify=False if this check has been done by the caller.
+        convert_indices : bool, default True
+            Whether to attempt to convert indices to positive values.
 
         Returns
         -------
@@ -851,7 +859,8 @@ class BaseBlockManager(DataManager):
         )
 
         n = self.shape[axis]
-        indexer = maybe_convert_indices(indexer, n, verify=verify)
+        if convert_indices:
+            indexer = maybe_convert_indices(indexer, n, verify=verify)
 
         new_labels = self.axes[axis].take(indexer)
         return self.reindex_indexer(

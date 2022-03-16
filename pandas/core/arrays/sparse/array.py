@@ -361,6 +361,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     _subtyp = "sparse_array"  # register ABCSparseArray
     _hidden_attrs = PandasObject._hidden_attrs | frozenset(["get_values"])
     _sparse_index: SparseIndex
+    _sparse_values: np.ndarray
+    _dtype: SparseDtype
 
     def __init__(
         self,
@@ -371,7 +373,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         kind: SparseIndexKind = "integer",
         dtype: Dtype | None = None,
         copy: bool = False,
-    ):
+    ) -> None:
 
         if fill_value is None and isinstance(dtype, SparseDtype):
             fill_value = dtype.fill_value
@@ -836,10 +838,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return np.searchsorted(diff, 2) + 1
 
     def unique(self: SparseArrayT) -> SparseArrayT:
-        uniques = list(algos.unique(self.sp_values))
+        uniques = algos.unique(self.sp_values)
         fill_loc = self._first_fill_value_loc()
         if fill_loc >= 0:
-            uniques.insert(fill_loc, self.fill_value)
+            uniques = np.insert(uniques, fill_loc, self.fill_value)
         return type(self)._from_sequence(uniques, dtype=self.dtype)
 
     def _values_for_factorize(self):
@@ -1348,8 +1350,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         arr : NumPy array
         """
         return np.asarray(self, dtype=self.sp_values.dtype)
-
-    _internal_get_values = to_dense
 
     def _where(self, mask, value):
         # NB: may not preserve dtype, e.g. result may be Sparse[float64]

@@ -43,7 +43,7 @@ if TYPE_CHECKING:
     from pandas import Index
 
 
-def check_value_size(value, mask: np.ndarray, length: int):
+def check_value_size(value, mask: npt.NDArray[np.bool_], length: int):
     """
     Validate the size of the values passed to ExtensionArray.fillna.
     """

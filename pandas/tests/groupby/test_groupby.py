@@ -2468,6 +2468,40 @@ def test_groupby_numerical_stability_cumsum():
     tm.assert_frame_equal(result, expected, check_exact=True)
 
 
+def test_groupby_cumsum_skipna_false():
+    # GH#46216 don't propagate np.nan above the diagonal
+    arr = np.random.randn(5, 5)
+    df = DataFrame(arr)
+    for i in range(5):
+        df.iloc[i, i] = np.nan
+
+    df["A"] = 1
+    gb = df.groupby("A")
+
+    res = gb.cumsum(skipna=False)
+
+    expected = df[[0, 1, 2, 3, 4]].cumsum(skipna=False)
+    tm.assert_frame_equal(res, expected)
+
+
+def test_groupby_cumsum_timedelta64():
+    # GH#46216 don't ignore is_datetimelike in libgroupby.group_cumsum
+    dti = date_range("2016-01-01", periods=5)
+    ser = Series(dti) - dti[0]
+    ser[2] = pd.NaT
+
+    df = DataFrame({"A": 1, "B": ser})
+    gb = df.groupby("A")
+
+    res = gb.cumsum(numeric_only=False, skipna=True)
+    exp = DataFrame({"B": [ser[0], ser[1], pd.NaT, ser[4], ser[4] * 2]})
+    tm.assert_frame_equal(res, exp)
+
+    res = gb.cumsum(numeric_only=False, skipna=False)
+    exp = DataFrame({"B": [ser[0], ser[1], pd.NaT, pd.NaT, pd.NaT]})
+    tm.assert_frame_equal(res, exp)
+
+
 def test_groupby_mean_duplicate_index(rand_series_with_duplicate_datetimeindex):
     dups = rand_series_with_duplicate_datetimeindex
     result = dups.groupby(level=0).mean()

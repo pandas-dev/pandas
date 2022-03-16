@@ -698,17 +698,29 @@ class MultiIndex(Index):
         values = []
 
         for i in range(self.nlevels):
-            vals = self._get_level_values(i)
+            index = self.levels[i]
+            codes = self.codes[i]
+
+            vals = index
             if is_categorical_dtype(vals.dtype):
                 vals = cast("CategoricalIndex", vals)
                 vals = vals._data._internal_get_values()
+
+            if isinstance(vals, ABCDatetimeIndex):
+                # TODO: this can be removed after Timestamp.freq is removed
+                # The astype(object) below does not remove the freq from
+                # the underlying Timestamps so we remove it here to to match
+                # the behavior of self._get_level_values
+                vals = vals.copy()
+                vals.freq = None
+
             if isinstance(vals.dtype, ExtensionDtype) or isinstance(
                 vals, (ABCDatetimeIndex, ABCTimedeltaIndex)
             ):
                 vals = vals.astype(object)
-            # error: Incompatible types in assignment (expression has type "ndarray",
-            # variable has type "Index")
-            vals = np.array(vals, copy=False)  # type: ignore[assignment]
+
+            vals = np.array(vals, copy=False)
+            vals = algos.take_nd(vals, codes, fill_value=index._na_value)
             values.append(vals)
 
         arr = lib.fast_zip(values)
@@ -1088,9 +1100,7 @@ class MultiIndex(Index):
         # equivalent to sorting lexicographically the codes themselves. Notice
         # that each level needs to be shifted by the number of bits needed to
         # represent the _previous_ ones:
-        offsets = np.concatenate([lev_bits[1:], [0]]).astype(  # type: ignore[arg-type]
-            "uint64"
-        )
+        offsets = np.concatenate([lev_bits[1:], [0]]).astype("uint64")
 
         # Check the total number of bits needed for our representation:
         if lev_bits[0] > 64:
@@ -1481,7 +1491,9 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
 
     @doc(Index._get_grouper_for_level)
-    def _get_grouper_for_level(self, mapper, *, level):
+    def _get_grouper_for_level(
+        self, mapper, *, level=None
+    ) -> tuple[Index, npt.NDArray[np.signedinteger] | None, Index | None]:
         indexer = self.codes[level]
         level_index = self.levels[level]
 
@@ -2311,7 +2323,7 @@ class MultiIndex(Index):
         See Also
         --------
         Series.swaplevel : Swap levels i and j in a MultiIndex.
-        Dataframe.swaplevel : Swap levels i and j in a MultiIndex on a
+        DataFrame.swaplevel : Swap levels i and j in a MultiIndex on a
             particular axis.
 
         Examples
@@ -2762,7 +2774,7 @@ class MultiIndex(Index):
             if lab not in lev and not isna(lab):
                 # short circuit
                 try:
-                    loc = lev.searchsorted(lab, side=side)
+                    loc = algos.searchsorted(lev, lab, side=side)
                 except TypeError as err:
                     # non-comparable e.g. test_slice_locs_with_type_mismatch
                     raise TypeError(f"Level type mismatch: {lab}") from err
@@ -2771,7 +2783,7 @@ class MultiIndex(Index):
                     raise TypeError(f"Level type mismatch: {lab}")
                 if side == "right" and loc >= 0:
                     loc -= 1
-                return start + section.searchsorted(loc, side=side)
+                return start + algos.searchsorted(section, loc, side=side)
 
             idx = self._get_loc_single_level_index(lev, lab)
             if isinstance(idx, slice) and k < n - 1:
@@ -2780,13 +2792,21 @@ class MultiIndex(Index):
                 start = idx.start
                 end = idx.stop
             elif k < n - 1:
-                end = start + section.searchsorted(idx, side="right")
-                start = start + section.searchsorted(idx, side="left")
+                # error: Incompatible types in assignment (expression has type
+                # "Union[ndarray[Any, dtype[signedinteger[Any]]]
+                end = start + algos.searchsorted(  # type: ignore[assignment]
+                    section, idx, side="right"
+                )
+                # error: Incompatible types in assignment (expression has type
+                # "Union[ndarray[Any, dtype[signedinteger[Any]]]
+                start = start + algos.searchsorted(  # type: ignore[assignment]
+                    section, idx, side="left"
+                )
             elif isinstance(idx, slice):
                 idx = idx.start
-                return start + section.searchsorted(idx, side=side)
+                return start + algos.searchsorted(section, idx, side=side)
             else:
-                return start + section.searchsorted(idx, side=side)
+                return start + algos.searchsorted(section, idx, side=side)
 
     def _get_loc_single_level_index(self, level_index: Index, key: Hashable) -> int:
         """
@@ -3154,9 +3174,6 @@ class MultiIndex(Index):
             # given the inputs and the codes/indexer, compute an indexer set
             # if we have a provided indexer, then this need not consider
             # the entire labels set
-            if step is not None and step < 0:
-                # Switch elements for negative step size
-                start, stop = stop - 1, start - 1
             r = np.arange(start, stop, step)
 
             if indexer is not None and len(indexer) != len(codes):
@@ -3188,19 +3205,25 @@ class MultiIndex(Index):
         if isinstance(key, slice):
             # handle a slice, returning a slice if we can
             # otherwise a boolean indexer
+            step = key.step
+            is_negative_step = step is not None and step < 0
 
             try:
                 if key.start is not None:
                     start = level_index.get_loc(key.start)
+                elif is_negative_step:
+                    start = len(level_index) - 1
                 else:
                     start = 0
+
                 if key.stop is not None:
                     stop = level_index.get_loc(key.stop)
+                elif is_negative_step:
+                    stop = 0
                 elif isinstance(start, slice):
                     stop = len(level_index)
                 else:
                     stop = len(level_index) - 1
-                step = key.step
             except KeyError:
 
                 # we have a partial slice (like looking up a partial date
@@ -3220,8 +3243,9 @@ class MultiIndex(Index):
             elif level > 0 or self._lexsort_depth == 0 or step is not None:
                 # need to have like semantics here to right
                 # searching as when we are using a slice
-                # so include the stop+1 (so we include stop)
-                return convert_indexer(start, stop + 1, step)
+                # so adjust the stop by 1 (so we include stop)
+                stop = (stop - 1) if is_negative_step else (stop + 1)
+                return convert_indexer(start, stop, step)
             else:
                 # sorted, so can return slice object -> view
                 i = algos.searchsorted(level_codes, start, side="left")
@@ -3512,7 +3536,8 @@ class MultiIndex(Index):
 
                 new_order = key_order_map[self.codes[i][indexer]]
             elif isinstance(k, slice) and k.step is not None and k.step < 0:
-                new_order = np.arange(n)[k][indexer]
+                # flip order for negative step
+                new_order = np.arange(n)[::-1][indexer]
             elif isinstance(k, slice) and k.start is None and k.stop is None:
                 # slice(None) should not determine order GH#31330
                 new_order = np.ones((n,))[indexer]
@@ -3610,6 +3635,10 @@ class MultiIndex(Index):
             if not isinstance(self_values, np.ndarray):
                 # i.e. ExtensionArray
                 if not self_values.equals(other_values):
+                    return False
+            elif not isinstance(other_values, np.ndarray):
+                # i.e. other is ExtensionArray
+                if not other_values.equals(self_values):
                     return False
             else:
                 if not array_equivalent(self_values, other_values):

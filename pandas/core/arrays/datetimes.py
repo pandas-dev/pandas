@@ -191,6 +191,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
     _typ = "datetimearray"
     _scalar_type = Timestamp
+    _internal_fill_value = np.datetime64("NaT", "ns")
     _recognized_scalars = (datetime, np.datetime64)
     _is_recognized_dtype = is_datetime64_any_dtype
     _infer_matches = ("datetime", "datetime64", "date")
@@ -253,7 +254,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     _dtype: np.dtype | DatetimeTZDtype
     _freq = None
 
-    def __init__(self, values, dtype=DT64NS_DTYPE, freq=None, copy: bool = False):
+    def __init__(
+        self, values, dtype=DT64NS_DTYPE, freq=None, copy: bool = False
+    ) -> None:
         values = extract_array(values, extract_numpy=True)
         if isinstance(values, IntegerArray):
             values = values.to_numpy("int64", na_value=iNaT)
@@ -774,7 +777,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     def _sub_datetimelike_scalar(self, other):
         # subtract a datetime from myself, yielding a ndarray[timedelta64[ns]]
         assert isinstance(other, (datetime, np.datetime64))
-        assert other is not NaT
+        # error: Non-overlapping identity check (left operand type: "Union[datetime,
+        # datetime64]", right operand type: "NaTType")  [comparison-overlap]
+        assert other is not NaT  # type: ignore[comparison-overlap]
         other = Timestamp(other)
         # error: Non-overlapping identity check (left operand type: "Timestamp",
         # right operand type: "NaTType")

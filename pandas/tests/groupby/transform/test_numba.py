@@ -9,7 +9,6 @@ from pandas import (
     option_context,
 )
 import pandas._testing as tm
-from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 
 
 @td.skip_if_no("numba")
@@ -30,8 +29,8 @@ def test_correct_function_signature():
 
 @td.skip_if_no("numba")
 def test_check_nopython_kwargs():
-    def incorrect_function(x, **kwargs):
-        return x + 1
+    def incorrect_function(values, index):
+        return values + 1
 
     data = DataFrame(
         {"key": ["a", "a", "b", "b", "a"], "data": [1.0, 2.0, 3.0, 4.0, 5.0]},
@@ -103,14 +102,10 @@ def test_cache(jit, pandas_obj, nogil, parallel, nopython):
     result = grouped.transform(func_1, engine="numba", engine_kwargs=engine_kwargs)
     expected = grouped.transform(lambda x: x + 1, engine="cython")
     tm.assert_equal(result, expected)
-    # func_1 should be in the cache now
-    assert (func_1, "groupby_transform") in NUMBA_FUNC_CACHE
 
-    # Add func_2 to the cache
     result = grouped.transform(func_2, engine="numba", engine_kwargs=engine_kwargs)
     expected = grouped.transform(lambda x: x * 5, engine="cython")
     tm.assert_equal(result, expected)
-    assert (func_2, "groupby_transform") in NUMBA_FUNC_CACHE
 
     # Retest func_1 which should use the cache
     result = grouped.transform(func_1, engine="numba", engine_kwargs=engine_kwargs)
@@ -175,4 +170,32 @@ def test_index_data_correctly_passed():
     df = DataFrame({"group": ["A", "A", "B"], "v": [4, 5, 6]}, index=[-1, -2, -3])
     result = df.groupby("group").transform(f, engine="numba")
     expected = DataFrame([-4.0, -3.0, -2.0], columns=["v"], index=[-1, -2, -3])
+    tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("numba")
+def test_engine_kwargs_not_cached():
+    # If the user passes a different set of engine_kwargs don't return the same
+    # jitted function
+    nogil = True
+    parallel = False
+    nopython = True
+
+    def func_kwargs(values, index):
+        return nogil + parallel + nopython
+
+    engine_kwargs = {"nopython": nopython, "nogil": nogil, "parallel": parallel}
+    df = DataFrame({"value": [0, 0, 0]})
+    result = df.groupby(level=0).transform(
+        func_kwargs, engine="numba", engine_kwargs=engine_kwargs
+    )
+    expected = DataFrame({"value": [2.0, 2.0, 2.0]})
+    tm.assert_frame_equal(result, expected)
+
+    nogil = False
+    engine_kwargs = {"nopython": nopython, "nogil": nogil, "parallel": parallel}
+    result = df.groupby(level=0).transform(
+        func_kwargs, engine="numba", engine_kwargs=engine_kwargs
+    )
+    expected = DataFrame({"value": [1.0, 1.0, 1.0]})
     tm.assert_frame_equal(result, expected)

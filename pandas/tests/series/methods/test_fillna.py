@@ -851,6 +851,24 @@ class TestSeriesFillNA:
         expected = Series([1, 2, 3, 0], dtype=float)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "input, input_fillna, expected_data, expected_categories",
+        [
+            (["A", "B", None, "A"], "B", ["A", "B", "B", "A"], ["A", "B"]),
+            (["A", "B", np.nan, "A"], "B", ["A", "B", "B", "A"], ["A", "B"]),
+        ],
+    )
+    def test_fillna_categorical_accept_same_type(
+        self, input, input_fillna, expected_data, expected_categories
+    ):
+        # GH32414
+        cat = Categorical(input)
+        ser = Series(cat).fillna(input_fillna)
+        filled = cat.fillna(ser)
+        result = cat.fillna(filled)
+        expected = Categorical(expected_data, categories=expected_categories)
+        tm.assert_categorical_equal(result, expected)
+
 
 class TestFillnaPad:
     def test_fillna_bug(self):

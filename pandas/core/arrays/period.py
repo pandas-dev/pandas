@@ -104,7 +104,7 @@ def _field_accessor(name: str, docstring=None):
     return property(f)
 
 
-class PeriodArray(dtl.DatelikeOps):
+class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     """
     Pandas ExtensionArray for storing Period data.
 
@@ -163,6 +163,7 @@ class PeriodArray(dtl.DatelikeOps):
     __array_priority__ = 1000
     _typ = "periodarray"  # ABCPeriodArray
     _scalar_type = Period
+    _internal_fill_value = np.int64(iNaT)
     _recognized_scalars = (Period,)
     _is_recognized_dtype = is_period_dtype
     _infer_matches = ("period",)
@@ -200,7 +201,7 @@ class PeriodArray(dtl.DatelikeOps):
 
     def __init__(
         self, values, dtype: Dtype | None = None, freq=None, copy: bool = False
-    ):
+    ) -> None:
         freq = validate_dtype_freq(dtype, freq)
 
         if freq is not None:
@@ -499,7 +500,7 @@ class PeriodArray(dtl.DatelikeOps):
                 return (self + self.freq).to_timestamp(how="start") - adjust
 
         if freq is None:
-            freq = self._get_to_timestamp_base()
+            freq = self._dtype._get_to_timestamp_base()
             base = freq
         else:
             freq = Period._maybe_convert_freq(freq)
@@ -605,7 +606,7 @@ class PeriodArray(dtl.DatelikeOps):
 
         freq = Period._maybe_convert_freq(freq)
 
-        base1 = self.freq._period_dtype_code
+        base1 = self._dtype._dtype_code
         base2 = freq._period_dtype_code
 
         asi8 = self.asi8
@@ -697,14 +698,16 @@ class PeriodArray(dtl.DatelikeOps):
             return result.view(self.dtype)  # type: ignore[return-value]
         return super().fillna(value=value, method=method, limit=limit)
 
+    # TODO: alternately could override _quantile like searchsorted
+    def _cast_quantile_result(self, res_values: np.ndarray) -> np.ndarray:
+        # quantile_with_mask may return float64 instead of int64, in which
+        #  case we need to cast back
+        return res_values.astype(np.int64, copy=False)
+
     # ------------------------------------------------------------------
     # Arithmetic Methods
 
-    def _sub_datelike(self, other):
-        assert other is not NaT
-        return NotImplemented
-
-    def _sub_period(self, other):
+    def _sub_period(self, other: Period):
         # If the operation is well-defined, we return an object-Index
         # of DateOffsets.  Null entries are filled with pd.NaT
         self._check_compatible_with(other)
@@ -876,56 +879,6 @@ class PeriodArray(dtl.DatelikeOps):
 
         raise raise_on_incompatible(self, other)
 
-    # ------------------------------------------------------------------
-    # TODO: See if we can re-share this with Period
-
-    def _get_to_timestamp_base(self) -> int:
-        """
-        Return frequency code group used for base of to_timestamp against
-        frequency code.
-
-        Return day freq code against longer freq than day.
-        Return second freq code against hour between second.
-
-        Returns
-        -------
-        int
-        """
-        base = self._dtype._dtype_code
-        if base < FreqGroup.FR_BUS.value:
-            return FreqGroup.FR_DAY.value
-        elif FreqGroup.FR_HR.value <= base <= FreqGroup.FR_SEC.value:
-            return FreqGroup.FR_SEC.value
-        return base
-
-    @property
-    def start_time(self) -> DatetimeArray:
-        return self.to_timestamp(how="start")
-
-    @property
-    def end_time(self) -> DatetimeArray:
-        return self.to_timestamp(how="end")
-
-    def _require_matching_freq(self, other, base: bool = False) -> None:
-        # See also arrays.period.raise_on_incompatible
-        if isinstance(other, BaseOffset):
-            other_freq = other
-        else:
-            other_freq = other.freq
-
-        if base:
-            condition = self.freq.base != other_freq.base
-        else:
-            condition = self.freq != other_freq
-
-        if condition:
-            msg = DIFFERENT_FREQ.format(
-                cls=type(self).__name__,
-                own_freq=self.freqstr,
-                other_freq=other_freq.freqstr,
-            )
-            raise IncompatibleFrequency(msg)
-
 
 def raise_on_incompatible(left, right):
     """
@@ -1042,7 +995,9 @@ def period_array(
 
     if is_integer_dtype(arrdata.dtype):
         arr = arrdata.astype(np.int64, copy=False)
-        ordinals = libperiod.from_ordinals(arr, freq)
+        # error: Argument 2 to "from_ordinals" has incompatible type "Union[str,
+        # Tick, None]"; expected "Union[timedelta, BaseOffset, str]"
+        ordinals = libperiod.from_ordinals(arr, freq)  # type: ignore[arg-type]
         return PeriodArray(ordinals, dtype=dtype)
 
     data = ensure_object(arrdata)

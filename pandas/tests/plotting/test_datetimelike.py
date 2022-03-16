@@ -41,23 +41,21 @@ from pandas.tests.plotting.common import TestPlotBase
 
 from pandas.tseries.offsets import WeekOfMonth
 
-pytestmark = pytest.mark.slow
-
 
 @td.skip_if_no_mpl
 class TestTSPlot(TestPlotBase):
+    @pytest.mark.filterwarnings("ignore::UserWarning")
     def test_ts_plot_with_tz(self, tz_aware_fixture):
         # GH2877, GH17173, GH31205, GH31580
         tz = tz_aware_fixture
         index = date_range("1/1/2011", periods=2, freq="H", tz=tz)
         ts = Series([188.5, 328.25], index=index)
-        with tm.assert_produces_warning(None):
-            _check_plot_works(ts.plot)
-            ax = ts.plot()
-            xdata = list(ax.get_lines())[0].get_xdata()
-            # Check first and last points' labels are correct
-            assert (xdata[0].hour, xdata[0].minute) == (0, 0)
-            assert (xdata[-1].hour, xdata[-1].minute) == (1, 0)
+        _check_plot_works(ts.plot)
+        ax = ts.plot()
+        xdata = list(ax.get_lines())[0].get_xdata()
+        # Check first and last points' labels are correct
+        assert (xdata[0].hour, xdata[0].minute) == (0, 0)
+        assert (xdata[-1].hour, xdata[-1].minute) == (1, 0)
 
     def test_fontsize_set_correctly(self):
         # For issue #8765
@@ -497,6 +495,7 @@ class TestTSPlot(TestPlotBase):
 
         assert rs == xp
 
+    @pytest.mark.slow
     def test_finder_minutely(self):
         nminutes = 50 * 24 * 60
         rng = date_range("1/1/1999", freq="Min", periods=nminutes)
@@ -523,7 +522,7 @@ class TestTSPlot(TestPlotBase):
 
     def test_gaps(self):
         ts = tm.makeTimeSeries()
-        ts[5:25] = np.nan
+        ts.iloc[5:25] = np.nan
         _, ax = self.plt.subplots()
         ts.plot(ax=ax)
         lines = ax.get_lines()
@@ -541,7 +540,7 @@ class TestTSPlot(TestPlotBase):
         # irregular
         ts = tm.makeTimeSeries()
         ts = ts[[0, 1, 2, 5, 7, 9, 12, 15, 20]]
-        ts[2:5] = np.nan
+        ts.iloc[2:5] = np.nan
         _, ax = self.plt.subplots()
         ax = ts.plot(ax=ax)
         lines = ax.get_lines()
@@ -559,7 +558,7 @@ class TestTSPlot(TestPlotBase):
         # non-ts
         idx = [0, 1, 2, 5, 7, 9, 12, 15, 20]
         ser = Series(np.random.randn(len(idx)), idx)
-        ser[2:5] = np.nan
+        ser.iloc[2:5] = np.nan
         _, ax = self.plt.subplots()
         ser.plot(ax=ax)
         lines = ax.get_lines()
@@ -574,7 +573,7 @@ class TestTSPlot(TestPlotBase):
 
     def test_gap_upsample(self):
         low = tm.makeTimeSeries()
-        low[5:25] = np.nan
+        low.iloc[5:25] = np.nan
         _, ax = self.plt.subplots()
         low.plot(ax=ax)
 

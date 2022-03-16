@@ -10,8 +10,9 @@ from typing import (
     Hashable,
     List,
     Tuple,
-    TypeVar,
+    TypedDict,
     Union,
+    cast,
     overload,
 )
 import warnings
@@ -66,6 +67,7 @@ from pandas.arrays import (
 )
 from pandas.core import algorithms
 from pandas.core.algorithms import unique
+from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.datetimes import (
     maybe_convert_dtype,
     objects_to_datetime64ns,
@@ -78,15 +80,42 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 if TYPE_CHECKING:
     from pandas._libs.tslibs.nattype import NaTType
 
-    from pandas import Series
+    from pandas import (
+        DataFrame,
+        Series,
+    )
 
 # ---------------------------------------------------------------------
 # types used in annotations
 
-ArrayConvertible = Union[List, Tuple, AnyArrayLike, "Series"]
+ArrayConvertible = Union[List, Tuple, AnyArrayLike]
 Scalar = Union[int, float, str]
-DatetimeScalar = TypeVar("DatetimeScalar", Scalar, datetime)
+DatetimeScalar = Union[Scalar, datetime]
+
 DatetimeScalarOrArrayConvertible = Union[DatetimeScalar, ArrayConvertible]
+
+DatetimeDictArg = Union[List[Scalar], Tuple[Scalar, ...], AnyArrayLike]
+
+
+class YearMonthDayDict(TypedDict, total=True):
+    year: DatetimeDictArg
+    month: DatetimeDictArg
+    day: DatetimeDictArg
+
+
+class FulldatetimeDict(YearMonthDayDict, total=False):
+    hour: DatetimeDictArg
+    hours: DatetimeDictArg
+    minute: DatetimeDictArg
+    minutes: DatetimeDictArg
+    second: DatetimeDictArg
+    seconds: DatetimeDictArg
+    ms: DatetimeDictArg
+    us: DatetimeDictArg
+    ns: DatetimeDictArg
+
+
+DictConvertible = Union[FulldatetimeDict, "DataFrame"]
 start_caching_at = 50
 
 
@@ -638,13 +667,13 @@ def to_datetime(
     infer_datetime_format: bool = ...,
     origin=...,
     cache: bool = ...,
-) -> DatetimeScalar | NaTType:
+) -> Timestamp:
     ...
 
 
 @overload
 def to_datetime(
-    arg: Series,
+    arg: Series | DictConvertible,
     errors: str = ...,
     dayfirst: bool = ...,
     yearfirst: bool = ...,
@@ -661,7 +690,7 @@ def to_datetime(
 
 @overload
 def to_datetime(
-    arg: list | tuple | np.ndarray,
+    arg: list | tuple | Index | ArrayLike,
     errors: str = ...,
     dayfirst: bool = ...,
     yearfirst: bool = ...,
@@ -677,7 +706,7 @@ def to_datetime(
 
 
 def to_datetime(
-    arg: DatetimeScalarOrArrayConvertible,
+    arg: DatetimeScalarOrArrayConvertible | DictConvertible,
     errors: str = "raise",
     dayfirst: bool = False,
     yearfirst: bool = False,
@@ -765,8 +794,8 @@ def to_datetime(
     unit : str, default 'ns'
         The unit of the arg (D,s,ms,us,ns) denote the unit, which is an
         integer or float number. This will be based off the origin.
-        Example, with ``unit='ms'`` and ``origin='unix'`` (the default), this
-        would calculate the number of milliseconds to the unix epoch start.
+        Example, with ``unit='ms'`` and ``origin='unix'``, this would calculate
+        the number of milliseconds to the unix epoch start.
     infer_datetime_format : bool, default False
         If :const:`True` and no `format` is given, attempt to infer the format
         of the datetime strings based on the first non-NaN element,
@@ -1061,7 +1090,14 @@ def to_datetime(
             result = convert_listlike(arg, format, name=arg.name)
     elif is_list_like(arg):
         try:
-            cache_array = _maybe_cache(arg, format, cache, convert_listlike)
+            # error: Argument 1 to "_maybe_cache" has incompatible type
+            # "Union[float, str, datetime, List[Any], Tuple[Any, ...], ExtensionArray,
+            # ndarray[Any, Any], Series]"; expected "Union[List[Any], Tuple[Any, ...],
+            # Union[Union[ExtensionArray, ndarray[Any, Any]], Index, Series], Series]"
+            argc = cast(
+                Union[list, tuple, ExtensionArray, np.ndarray, "Series", Index], arg
+            )
+            cache_array = _maybe_cache(argc, format, cache, convert_listlike)
         except OutOfBoundsDatetime:
             # caching attempts to create a DatetimeIndex, which may raise
             # an OOB. If that's the desired behavior, then just reraise...
@@ -1072,9 +1108,9 @@ def to_datetime(
 
             cache_array = Series([], dtype=object)  # just an empty array
         if not cache_array.empty:
-            result = _convert_and_box_cache(arg, cache_array)
+            result = _convert_and_box_cache(argc, cache_array)
         else:
-            result = convert_listlike(arg, format)
+            result = convert_listlike(argc, format)
     else:
         result = convert_listlike(np.array([arg]), format)[0]
         if isinstance(arg, bool) and isinstance(result, np.bool_):
