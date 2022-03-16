@@ -57,7 +57,6 @@ cdef class Localizer:
         Py_ssize_t ntrans
         const int64_t[::1] deltas
         int64_t delta
-        str typ
 
     @cython.initializedcheck(False)
     @cython.boundscheck(False)
@@ -80,9 +79,8 @@ cdef class Localizer:
             self.trans = trans
             self.ntrans = trans.shape[0]
             self.deltas = deltas
-            self.typ = typ
 
-            if typ not in ["pytz", "dateutil"]:
+            if typ != "pytz" and typ != "dateutil":
                 # static/fixed; in this case we know that len(delta) == 1
                 self.use_fixed = True
                 self.delta = deltas[0]
