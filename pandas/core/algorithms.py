@@ -1098,7 +1098,7 @@ def checked_add_with_arr(
 
 
 class SelectN:
-    def __init__(self, obj, n: int, keep: str):
+    def __init__(self, obj, n: int, keep: str) -> None:
         self.obj = obj
         self.n = n
         self.keep = keep
@@ -1218,7 +1218,7 @@ class SelectNFrame(SelectN):
     nordered : DataFrame
     """
 
-    def __init__(self, obj: DataFrame, n: int, keep: str, columns: IndexLabel):
+    def __init__(self, obj: DataFrame, n: int, keep: str, columns: IndexLabel) -> None:
         super().__init__(obj, n, keep)
         if not is_list_like(columns) or isinstance(columns, tuple):
             columns = [columns]
