@@ -245,7 +245,7 @@ class GroupByIndexingMixin:
 
 @doc(GroupByIndexingMixin._positional_selector)
 class GroupByPositionalSelector:
-    def __init__(self, groupby_object: groupby.GroupBy):
+    def __init__(self, groupby_object: groupby.GroupBy) -> None:
         self.groupby_object = groupby_object
 
     def __getitem__(self, arg: PositionalIndexer | tuple) -> DataFrame | Series:
@@ -289,7 +289,7 @@ class GroupByNthSelector:
     Dynamically substituted for GroupBy.nth to enable both call and index
     """
 
-    def __init__(self, groupby_object: groupby.GroupBy):
+    def __init__(self, groupby_object: groupby.GroupBy) -> None:
         self.groupby_object = groupby_object
 
     def __call__(

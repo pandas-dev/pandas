@@ -94,48 +94,6 @@ cdef class Localizer:
 
 # -------------------------------------------------------------------------
 
-cdef inline object create_datetime_from_ts(
-    int64_t value,
-    npy_datetimestruct dts,
-    tzinfo tz,
-    object freq,
-    bint fold,
-):
-    """
-    Convenience routine to construct a datetime.datetime from its parts.
-    """
-    return datetime(
-        dts.year, dts.month, dts.day, dts.hour, dts.min, dts.sec, dts.us,
-        tz, fold=fold,
-    )
-
-
-cdef inline object create_date_from_ts(
-    int64_t value,
-    npy_datetimestruct dts,
-    tzinfo tz,
-    object freq,
-    bint fold
-):
-    """
-    Convenience routine to construct a datetime.date from its parts.
-    """
-    # GH#25057 add fold argument to match other func_create signatures
-    return date(dts.year, dts.month, dts.day)
-
-
-cdef inline object create_time_from_ts(
-    int64_t value,
-    npy_datetimestruct dts,
-    tzinfo tz,
-    object freq,
-    bint fold
-):
-    """
-    Convenience routine to construct a datetime.time from its parts.
-    """
-    return time(dts.hour, dts.min, dts.sec, dts.us, tz, fold=fold)
-
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -175,25 +133,24 @@ def ints_to_pydatetime(
     """
     cdef:
         Localizer info = Localizer(tz)
-        int64_t value, local_val
-        Py_ssize_t pos
-        int64_t* tdata
-        Py_ssize_t i, n = len(stamps)
+        Py_ssize_t pos, i, n = len(stamps)
+        int64_t* tdata = NULL
+        int64_t local_val
         npy_datetimestruct dts
+        int64_t value
         tzinfo new_tz
         ndarray[object] result = np.empty(n, dtype=object)
-        object (*func_create)(int64_t, npy_datetimestruct, tzinfo, object, bint)
+        bint use_date = False, use_time = False, use_ts = False, use_pydt = False
 
     if box == "date":
         assert (tz is None), "tz should be None when converting to date"
-
-        func_create = create_date_from_ts
+        use_date = True
     elif box == "timestamp":
-        func_create = create_timestamp_from_ts
+        use_ts = True
     elif box == "time":
-        func_create = create_time_from_ts
+        use_time = True
     elif box == "datetime":
-        func_create = create_datetime_from_ts
+        use_pydt = True
     else:
         raise ValueError(
             "box must be one of 'datetime', 'date', 'time' or 'timestamp'"
@@ -225,7 +182,18 @@ def ints_to_pydatetime(
                 new_tz = tz._tzinfos[tz._transition_info[pos]]
 
         dt64_to_dtstruct(local_val, &dts)
-        result[i] = func_create(value, dts, new_tz, freq, fold)
+
+        if use_ts:
+            result[i] = create_timestamp_from_ts(value, dts, new_tz, freq, fold)
+        elif use_pydt:
+            result[i] = datetime(
+                dts.year, dts.month, dts.day, dts.hour, dts.min, dts.sec, dts.us,
+                new_tz, fold=fold,
+            )
+        elif use_date:
+            result[i] = date(dts.year, dts.month, dts.day)
+        else:
+            result[i] = time(dts.hour, dts.min, dts.sec, dts.us, new_tz, fold=fold)
 
     return result
 
@@ -233,16 +201,12 @@ def ints_to_pydatetime(
 # -------------------------------------------------------------------------
 
 cdef:
-    int RESO_NS = 0
-    int RESO_US = 1
-    int RESO_MS = 2
-    int RESO_SEC = 3
-    int RESO_MIN = 4
-    int RESO_HR = 5
-    int RESO_DAY = 6
-    int RESO_MTH = 7
-    int RESO_QTR = 8
-    int RESO_YR = 9
+    int RESO_US = Resolution.RESO_US.value
+    int RESO_MS = Resolution.RESO_MS.value
+    int RESO_SEC = Resolution.RESO_SEC.value
+    int RESO_MIN = Resolution.RESO_MIN.value
+    int RESO_HR = Resolution.RESO_HR.value
+    int RESO_DAY = Resolution.RESO_DAY.value
 
 
 cdef inline int _reso_stamp(npy_datetimestruct *dts):
@@ -262,10 +226,9 @@ cdef inline int _reso_stamp(npy_datetimestruct *dts):
 def get_resolution(const int64_t[:] stamps, tzinfo tz=None) -> Resolution:
     cdef:
         Localizer info = Localizer(tz)
+        Py_ssize_t pos, i, n = len(stamps)
+        int64_t* tdata = NULL
         int64_t local_val
-        Py_ssize_t pos
-        int64_t* tdata
-        Py_ssize_t i, n = len(stamps)
         npy_datetimestruct dts
         int reso = RESO_DAY, curr_reso
 
@@ -315,10 +278,9 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
     """
     cdef:
         Localizer info = Localizer(tz)
+        Py_ssize_t pos, i, n = len(stamps)
+        int64_t* tdata = NULL
         int64_t local_val
-        Py_ssize_t pos
-        int64_t* tdata
-        Py_ssize_t i, n = len(stamps)
         int64_t[:] result = np.empty(n, dtype=np.int64)
 
     if info.use_dst:
@@ -363,11 +325,10 @@ def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None) -> bool:
     """
     cdef:
         Localizer info = Localizer(tz)
+        Py_ssize_t pos, i, n = len(stamps)
+        int64_t* tdata = NULL
         int64_t local_val
-        Py_ssize_t pos
-        Py_ssize_t i, n = len(stamps)
         int64_t day_nanos = 24 * 3600 * 1_000_000_000
-        int64_t* tdata
 
     if info.use_dst:
         tdata = <int64_t*>cnp.PyArray_DATA(info.trans)
@@ -397,11 +358,10 @@ def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None) -> bool:
 def dt64arr_to_periodarr(const int64_t[:] stamps, int freq, tzinfo tz):
     cdef:
         Localizer info = Localizer(tz)
+        Py_ssize_t pos, i, n = len(stamps)
+        int64_t* tdata = NULL
         int64_t local_val
-        Py_ssize_t pos
-        Py_ssize_t i, n = len(stamps)
         npy_datetimestruct dts
-        int64_t* tdata
         int64_t[:] result = np.empty(n, dtype=np.int64)
 
     if info.use_dst:
