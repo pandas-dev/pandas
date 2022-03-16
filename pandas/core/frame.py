@@ -5866,6 +5866,7 @@ class DataFrame(NDFrame, OpsMixin):
         monkey         mammal    NaN    jump
 
         Using the `names` parameter, choose a name for the index column:
+
         >>> df = pd.DataFrame([('bird', 389.0),
         ...                     ('bird', 24.0),
         ...                     ('mammal', 80.5),
