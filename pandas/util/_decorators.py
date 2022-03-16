@@ -435,7 +435,7 @@ class Substitution:
         "%s %s wrote the Raven"
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         if args and kwargs:
             raise AssertionError("Only positional or keyword args are allowed")
 
@@ -475,7 +475,7 @@ class Appender:
 
     addendum: str | None
 
-    def __init__(self, addendum: str | None, join: str = "", indents: int = 0):
+    def __init__(self, addendum: str | None, join: str = "", indents: int = 0) -> None:
         if indents > 0:
             self.addendum = indent(addendum, indents=indents)
         else:

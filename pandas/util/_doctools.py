@@ -16,7 +16,7 @@ class TablePlotter:
         cell_width: float = 0.37,
         cell_height: float = 0.25,
         font_size: float = 7.5,
-    ):
+    ) -> None:
         self.cell_width = cell_width
         self.cell_height = cell_height
         self.font_size = font_size
