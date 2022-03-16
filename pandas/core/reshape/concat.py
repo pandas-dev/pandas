@@ -377,7 +377,7 @@ class _Concatenator:
         verify_integrity: bool = False,
         copy: bool = True,
         sort=False,
-    ):
+    ) -> None:
         if isinstance(objs, (ABCSeries, ABCDataFrame, str)):
             raise TypeError(
                 "first argument must be an iterable of pandas "

@@ -1,7 +1,13 @@
+from pandas._libs.tslibs.np_datetime cimport NPY_DATETIMEUNIT
+
+
+cdef str npy_unit_to_abbrev(NPY_DATETIMEUNIT unit)
+cdef NPY_DATETIMEUNIT freq_group_code_to_npy_unit(int freq) nogil
+
 cdef dict attrname_to_abbrevs
 
 cdef enum c_FreqGroup:
-    # Mirrors FreqGroup in the .pxy file
+    # Mirrors FreqGroup in the .pyx file
     FR_ANN = 1000
     FR_QTR = 2000
     FR_MTH = 3000
@@ -15,6 +21,20 @@ cdef enum c_FreqGroup:
     FR_US = 11000
     FR_NS = 12000
     FR_UND = -10000  # undefined
+
+
+cdef enum c_Resolution:
+    # Mirrors Resolution in the .pyx file
+    RESO_NS = 0
+    RESO_US = 1
+    RESO_MS = 2
+    RESO_SEC = 3
+    RESO_MIN = 4
+    RESO_HR = 5
+    RESO_DAY = 6
+    RESO_MTH = 7
+    RESO_QTR = 8
+    RESO_YR = 9
 
 
 cdef enum PeriodDtypeCode:

@@ -146,7 +146,7 @@ class Writer(ABC):
         index: bool,
         default_handler: Callable[[Any], JSONSerializable] | None = None,
         indent: int = 0,
-    ):
+    ) -> None:
         self.obj = obj
 
         if orient is None:
@@ -246,7 +246,7 @@ class JSONTableWriter(FrameWriter):
         index: bool,
         default_handler: Callable[[Any], JSONSerializable] | None = None,
         indent: int = 0,
-    ):
+    ) -> None:
         """
         Adds a `schema` attribute with the Table Schema, resets
         the index (can't do in caller, because the schema inference needs
@@ -640,7 +640,7 @@ class JsonReader(abc.Iterator):
         nrows: int | None,
         storage_options: StorageOptions = None,
         encoding_errors: str | None = "strict",
-    ):
+    ) -> None:
 
         self.orient = orient
         self.typ = typ
@@ -834,7 +834,7 @@ class Parser:
         numpy=False,
         precise_float=False,
         date_unit=None,
-    ):
+    ) -> None:
         self.json = json
 
         if orient is None:
