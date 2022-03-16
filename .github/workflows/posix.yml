@@ -75,6 +75,7 @@ jobs:
       TEST_ARGS: ${{ matrix.test_args || '' }}
       PYTEST_WORKERS: ${{ contains(matrix.pattern, 'not single_cpu') && 'auto' || '1' }}
       PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
+      IS_PYPY: ${{ !contains(matrix.env_file, 'pypy') }}
       # TODO: re-enable coverage on pypy, its slow
       COVERAGE: ${{ !contains(matrix.env_file, 'pypy') }}
     concurrency:
@@ -145,7 +146,6 @@ jobs:
         channel-priority: flexible
         environment-file: ${{ env.ENV_FILE }}
         use-only-tar-bz2: true
-      if: ${{ env.IS_PYPY == 'false' }} # No pypy3.8 support
 
     - name: Upgrade Arrow version
       run: conda install -n pandas-dev -c conda-forge --no-update-deps pyarrow=${{ matrix.pyarrow_version }}
