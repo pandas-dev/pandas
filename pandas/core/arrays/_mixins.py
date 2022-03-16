@@ -190,6 +190,9 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     def _values_for_argsort(self) -> np.ndarray:
         return self._ndarray
 
+    def _values_for_factorize(self):
+        return self._ndarray, self._internal_fill_value
+
     # Signature of "argmin" incompatible with supertype "ExtensionArray"
     def argmin(self, axis: int = 0, skipna: bool = True):  # type: ignore[override]
         # override base class by adding axis keyword
@@ -222,10 +225,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             raise ValueError("to_concat must have the same dtype (tz)", dtypes)
 
         new_values = [x._ndarray for x in to_concat]
-        new_values = np.concatenate(new_values, axis=axis)
-        # error: Argument 1 to "_from_backing_data" of "NDArrayBackedExtensionArray" has
-        # incompatible type "List[ndarray]"; expected "ndarray"
-        return to_concat[0]._from_backing_data(new_values)  # type: ignore[arg-type]
+        new_arr = np.concatenate(new_values, axis=axis)
+        return to_concat[0]._from_backing_data(new_arr)
 
     @doc(ExtensionArray.searchsorted)
     def searchsorted(
