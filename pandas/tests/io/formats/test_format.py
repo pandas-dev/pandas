@@ -3167,26 +3167,26 @@ class TestNaTFormatting:
 
 
 class TestPeriodIndexFormat:
-    def test_period(self):
-        """Basic test for period formatting with default format."""
-        p = pd.PeriodIndex([datetime(2003, 1, 1, 12), None], freq="H")
-        # default formatting
-        formatted = p.format()
+    def test_period_format_and_strftime_default(self):
+        per = pd.PeriodIndex([datetime(2003, 1, 1, 12), None], freq="H")
+
+        # Default formatting
+        formatted = per.format()
         assert formatted[0] == "2003-01-01 12:00"  # default: minutes not shown
         assert formatted[1] == "NaT"
         # format is equivalent to strftime(None)...
-        assert formatted[0] == p.strftime(None)[0]
-        assert p.strftime(None)[1] is np.nan  # ...except for NaTs
+        assert formatted[0] == per.strftime(None)[0]
+        assert per.strftime(None)[1] is np.nan  # ...except for NaTs
 
         # Same test with nanoseconds freq
-        p = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="n")
-        formatted = p.format()
-        assert (formatted == p.strftime(None)).all()
+        per = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="n")
+        formatted = per.format()
+        assert (formatted == per.strftime(None)).all()
         assert formatted[0] == "2003-01-01 12:01:01.123456789"
         assert formatted[1] == "2003-01-01 12:01:01.123456790"
 
     def test_period_custom(self):
-        # GH46252
+        # GH#46252 custom formatting directives %l (ms) and %u (us)
 
         # 3 digits
         p = pd.period_range("2003-01-01 12:01:01.123", periods=2, freq="l")
@@ -3207,7 +3207,7 @@ class TestPeriodIndexFormat:
         assert formatted[1] == "03 12:01:01 (ms=123 us=123456 ns=123456790)"
 
     def test_period_tz(self):
-        """Test formatting periods created from a datetime with timezone."""
+        # Formatting periods created from a datetime with timezone.
 
         # This timestamp is in 2013 in Europe/Paris but is 2012 in UTC
         dt = pd.to_datetime(["2013-01-01 00:00:00+01:00"], utc=True)
