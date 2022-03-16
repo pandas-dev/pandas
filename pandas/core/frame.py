@@ -5741,6 +5741,7 @@ class DataFrame(NDFrame, OpsMixin):
             Allow duplicate column labels to be created.
 
             .. versionadded:: 1.5.0
+        
         names : int, str or 1-dimensional list, default None
             Using the given string, rename the DataFrame column which contains the
             index data. If the DataFrame has a MultiIndex, this has to be a list or
