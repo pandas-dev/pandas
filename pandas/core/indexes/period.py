@@ -272,7 +272,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     def values(self) -> np.ndarray:
         return np.asarray(self, dtype=object)
 
-    def _maybe_convert_timedelta(self, other):
+    def _maybe_convert_timedelta(self, other) -> int | npt.NDArray[np.int64]:
         """
         Convert timedelta-like input to an integer multiple of self.freq
 

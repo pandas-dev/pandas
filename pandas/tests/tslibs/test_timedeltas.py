@@ -30,9 +30,6 @@ from pandas import (
             24 * 3600e9 + 111,
         ),  # GH43764
         (offsets.Nano(125), 125),
-        (1, 1),
-        (np.int64(2), 2),
-        (np.int32(3), 3),
     ],
 )
 def test_delta_to_nanoseconds(obj, expected):
@@ -45,6 +42,15 @@ def test_delta_to_nanoseconds_error():
 
     with pytest.raises(TypeError, match="<class 'numpy.ndarray'>"):
         delta_to_nanoseconds(obj)
+
+    with pytest.raises(TypeError, match="float"):
+        delta_to_nanoseconds(1.5)
+    with pytest.raises(TypeError, match="int"):
+        delta_to_nanoseconds(1)
+    with pytest.raises(TypeError, match="int"):
+        delta_to_nanoseconds(np.int64(2))
+    with pytest.raises(TypeError, match="int"):
+        delta_to_nanoseconds(np.int32(3))
 
 
 def test_huge_nanoseconds_overflow():

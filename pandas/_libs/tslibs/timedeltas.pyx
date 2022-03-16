@@ -174,11 +174,11 @@ cpdef int64_t delta_to_nanoseconds(delta) except? -1:
     if is_tick_object(delta):
         return delta.nanos
     if isinstance(delta, _Timedelta):
-        delta = delta.value
+        return delta.value
+
     if is_timedelta64_object(delta):
         return get_timedelta64_value(ensure_td64ns(delta))
-    if is_integer_object(delta):
-        return delta
+
     if PyDelta_Check(delta):
         try:
             return (
