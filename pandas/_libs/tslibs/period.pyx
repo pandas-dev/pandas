@@ -1237,8 +1237,6 @@ cdef list extra_fmts = [(b"%q", b"^`AB`^"),
 cdef list str_extra_fmts = ["^`AB`^", "^`CD`^", "^`EF`^",
                             "^`GH`^", "^`IJ`^", "^`KL`^"]
 
-cdef inline int idx_first_nonfiscal_fmt = 3
-
 cdef str _period_strftime(int64_t value, int freq, bytes fmt):
     cdef:
         Py_ssize_t i
@@ -1273,7 +1271,7 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt):
     # Save these to local vars as dts can be modified by get_yq below
     us = dts.us
     ps = dts.ps
-    if any(found_pat[0:idx_first_nonfiscal_fmt]):
+    if any(found_pat[0:3]):
         # Note: this modifies `dts` in-place so that year becomes fiscal year
         # However it looses the us and ps
         quarter = get_yq(value, freq, &dts)
