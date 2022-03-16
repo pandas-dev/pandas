@@ -327,7 +327,7 @@ class TestPeriodConverter:
 
         rs = self.pc.convert(
             np.array(
-                ["2012-01-01 00:00:00+0000", "2012-01-02 00:00:00+0000"],
+                ["2012-01-01 00:00:00", "2012-01-02 00:00:00"],
                 dtype="datetime64[ns]",
             ),
             None,

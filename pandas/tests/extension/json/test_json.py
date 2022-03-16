@@ -156,10 +156,10 @@ class TestInterface(BaseJSON, base.BaseInterfaceTests):
 
 
 class TestConstructors(BaseJSON, base.BaseConstructorsTests):
-    @pytest.mark.skip(reason="not implemented constructor from dtype")
+    @pytest.mark.xfail(reason="not implemented constructor from dtype")
     def test_from_dtype(self, data):
         # construct from our dtype & string dtype
-        pass
+        super(self).test_from_dtype(data)
 
     @pytest.mark.xfail(reason="RecursionError, GH-33900")
     def test_series_constructor_no_data_with_index(self, dtype, na_value):
