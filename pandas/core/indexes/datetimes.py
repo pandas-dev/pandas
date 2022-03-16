@@ -573,8 +573,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         lower, upper: pd.Timestamp
         """
-        grp = reso.freq_group
-        per = Period(parsed, freq=grp.value)
+        per = Period(parsed, freq=reso.attr_abbrev)
         start, end = per.start_time, per.end_time
 
         # GH 24076

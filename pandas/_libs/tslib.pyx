@@ -243,7 +243,7 @@ def array_with_unit_to_datetime(
             )
         return result, tz
 
-    m, p = precision_from_unit(unit)
+    m, _ = precision_from_unit(unit)
 
     if is_raise:
         # try a quick conversion to i8/f8
