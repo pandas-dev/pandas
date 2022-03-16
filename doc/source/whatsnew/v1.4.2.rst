@@ -30,7 +30,7 @@ Bug fixes
 ~~~~~~~~~
 - Fix some cases for subclasses that define their ``_constructor`` properties as general callables (:issue:`46018`)
 - Fixed "longtable" formatting in :meth:`.Styler.to_latex` when ``column_format`` is given in extended format (:issue:`46037`)
--
+- Fixed a case where the format of printing percentiles in not correct for the describe function in ``format.py`` (:issue:`46362`)
 
 .. ---------------------------------------------------------------------------
 
