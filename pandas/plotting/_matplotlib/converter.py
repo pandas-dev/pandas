@@ -184,7 +184,7 @@ class TimeConverter(units.ConversionInterface):
 
 # time formatter
 class TimeFormatter(Formatter):
-    def __init__(self, locs):
+    def __init__(self, locs) -> None:
         self.locs = locs
 
     def __call__(self, x, pos=0) -> str:
@@ -339,7 +339,7 @@ class DatetimeConverter(dates.DateConverter):
 
 
 class PandasAutoDateFormatter(dates.AutoDateFormatter):
-    def __init__(self, locator, tz=None, defaultfmt="%Y-%m-%d"):
+    def __init__(self, locator, tz=None, defaultfmt="%Y-%m-%d") -> None:
         dates.AutoDateFormatter.__init__(self, locator, tz, defaultfmt)
 
 
@@ -371,7 +371,7 @@ class MilliSecondLocator(dates.DateLocator):
 
     UNIT = 1.0 / (24 * 3600 * 1000)
 
-    def __init__(self, tz):
+    def __init__(self, tz) -> None:
         dates.DateLocator.__init__(self, tz)
         self._interval = 1.0
 
@@ -941,7 +941,7 @@ class TimeSeries_DateLocator(Locator):
         month=1,
         day=1,
         plot_obj=None,
-    ):
+    ) -> None:
         freq = to_offset(freq)
         self.freq = freq
         self.base = base
@@ -1025,7 +1025,7 @@ class TimeSeries_DateFormatter(Formatter):
         minor_locator: bool = False,
         dynamic_mode: bool = True,
         plot_obj=None,
-    ):
+    ) -> None:
         freq = to_offset(freq)
         self.format = None
         self.freq = freq

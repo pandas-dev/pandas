@@ -521,7 +521,7 @@ class _Options(dict):
     _ALIASES = {"x_compat": "xaxis.compat"}
     _DEFAULT_KEYS = ["xaxis.compat"]
 
-    def __init__(self, deprecated=False):
+    def __init__(self, deprecated=False) -> None:
         self._deprecated = deprecated
         super().__setitem__("xaxis.compat", False)
 
