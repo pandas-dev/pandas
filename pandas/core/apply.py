@@ -113,7 +113,7 @@ class Apply(metaclass=abc.ABCMeta):
         result_type: str | None,
         args,
         kwargs,
-    ):
+    ) -> None:
         self.obj = obj
         self.raw = raw
         self.args = args or ()
@@ -1053,7 +1053,7 @@ class SeriesApply(NDFrameApply):
         convert_dtype: bool,
         args,
         kwargs,
-    ):
+    ) -> None:
         self.convert_dtype = convert_dtype
 
         super().__init__(
@@ -1157,7 +1157,7 @@ class GroupByApply(Apply):
         func: AggFuncType,
         args,
         kwargs,
-    ):
+    ) -> None:
         kwargs = kwargs.copy()
         self.axis = obj.obj._get_axis_number(kwargs.get("axis", 0))
         super().__init__(
@@ -1186,7 +1186,7 @@ class ResamplerWindowApply(Apply):
         func: AggFuncType,
         args,
         kwargs,
-    ):
+    ) -> None:
         super().__init__(
             obj,
             func,

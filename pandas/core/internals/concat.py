@@ -382,7 +382,7 @@ def _get_mgr_concatenation_plan(mgr: BlockManager):
 
 
 class JoinUnit:
-    def __init__(self, block: Block):
+    def __init__(self, block: Block) -> None:
         self.block = block
 
     def __repr__(self) -> str:

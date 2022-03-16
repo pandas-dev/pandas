@@ -333,7 +333,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         name=None,
         copy: bool = False,
         fastpath: bool = False,
-    ):
+    ) -> None:
 
         if (
             isinstance(data, (SingleBlockManager, SingleArrayManager))

@@ -146,7 +146,7 @@ class BaseBlockManager(DataManager):
     _known_consolidated: bool
     _is_consolidated: bool
 
-    def __init__(self, blocks, axes, verify_integrity: bool = True):
+    def __init__(self, blocks, axes, verify_integrity: bool = True) -> None:
         raise NotImplementedError
 
     @classmethod
@@ -886,7 +886,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         blocks: Sequence[Block],
         axes: Sequence[Index],
         verify_integrity: bool = True,
-    ):
+    ) -> None:
 
         if verify_integrity:
             # Assertion disabled for performance
@@ -1676,7 +1676,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         axis: Index,
         verify_integrity: bool = False,
         fastpath=lib.no_default,
-    ):
+    ) -> None:
         # Assertions disabled for performance
         # assert isinstance(block, Block), type(block)
         # assert isinstance(axis, Index), type(axis)

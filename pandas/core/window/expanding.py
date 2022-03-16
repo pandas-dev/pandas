@@ -128,7 +128,7 @@ class Expanding(RollingAndExpandingMixin):
         axis: Axis = 0,
         method: str = "single",
         selection=None,
-    ):
+    ) -> None:
         super().__init__(
             obj=obj,
             min_periods=min_periods,

@@ -72,7 +72,7 @@ set_use_bottleneck(get_option("compute.use_bottleneck"))
 
 
 class disallow:
-    def __init__(self, *dtypes: Dtype):
+    def __init__(self, *dtypes: Dtype) -> None:
         super().__init__()
         self.dtypes = tuple(pandas_dtype(dtype).type for dtype in dtypes)
 
@@ -104,7 +104,7 @@ class disallow:
 
 
 class bottleneck_switch:
-    def __init__(self, name=None, **kwargs):
+    def __init__(self, name=None, **kwargs) -> None:
         self.name = name
         self.kwargs = kwargs
 

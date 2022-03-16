@@ -131,7 +131,7 @@ class BaseWindow(SelectionMixin):
         method: str = "single",
         *,
         selection=None,
-    ):
+    ) -> None:
         self.obj = obj
         self.on = on
         self.closed = closed
@@ -682,7 +682,7 @@ class BaseWindowGroupby(BaseWindow):
         _grouper: BaseGrouper,
         _as_index: bool = True,
         **kwargs,
-    ):
+    ) -> None:
         from pandas.core.groupby.ops import BaseGrouper
 
         if not isinstance(_grouper, BaseGrouper):

@@ -44,7 +44,7 @@ class Flags:
 
     _keys = {"allows_duplicate_labels"}
 
-    def __init__(self, obj, *, allows_duplicate_labels):
+    def __init__(self, obj, *, allows_duplicate_labels) -> None:
         self._allows_duplicate_labels = allows_duplicate_labels
         self._obj = weakref.ref(obj)
 

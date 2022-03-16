@@ -625,7 +625,7 @@ class _MergeOperation:
         copy: bool = True,
         indicator: bool = False,
         validate: str | None = None,
-    ):
+    ) -> None:
         _left = _validate_operand(left)
         _right = _validate_operand(right)
         self.left = self.orig_left = _left
@@ -1633,7 +1633,7 @@ class _OrderedMerge(_MergeOperation):
         copy: bool = True,
         fill_method: str | None = None,
         how: str = "outer",
-    ):
+    ) -> None:
 
         self.fill_method = fill_method
         _MergeOperation.__init__(
@@ -1741,7 +1741,7 @@ class _AsOfMerge(_OrderedMerge):
         tolerance=None,
         allow_exact_matches: bool = True,
         direction: str = "backward",
-    ):
+    ) -> None:
 
         self.by = by
         self.left_by = left_by

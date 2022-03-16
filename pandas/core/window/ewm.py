@@ -349,7 +349,7 @@ class ExponentialMovingWindow(BaseWindow):
         method: str = "single",
         *,
         selection=None,
-    ):
+    ) -> None:
         super().__init__(
             obj=obj,
             min_periods=1 if min_periods is None else max(int(min_periods), 1),
@@ -832,7 +832,7 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
 
     _attributes = ExponentialMovingWindow._attributes + BaseWindowGroupby._attributes
 
-    def __init__(self, obj, *args, _grouper=None, **kwargs):
+    def __init__(self, obj, *args, _grouper=None, **kwargs) -> None:
         super().__init__(obj, *args, _grouper=_grouper, **kwargs)
 
         if not obj.empty and self.times is not None:
@@ -875,7 +875,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         engine_kwargs: dict[str, bool] | None = None,
         *,
         selection=None,
-    ):
+    ) -> None:
         if times is not None:
             raise NotImplementedError(
                 "times is not implemented with online operations."

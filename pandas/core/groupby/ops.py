@@ -104,7 +104,7 @@ class WrappedCythonOp:
     #  back to the original dtype.
     cast_blocklist = frozenset(["rank", "count", "size", "idxmin", "idxmax"])
 
-    def __init__(self, kind: str, how: str):
+    def __init__(self, kind: str, how: str) -> None:
         self.kind = kind
         self.how = how
 
@@ -687,7 +687,7 @@ class BaseGrouper:
         mutated: bool = False,
         indexer: npt.NDArray[np.intp] | None = None,
         dropna: bool = True,
-    ):
+    ) -> None:
         assert isinstance(axis, Index), axis
 
         self.axis = axis
@@ -1091,7 +1091,7 @@ class BinGrouper(BaseGrouper):
         binlabels,
         mutated: bool = False,
         indexer=None,
-    ):
+    ) -> None:
         self.bins = ensure_int64(bins)
         self.binlabels = ensure_index(binlabels)
         self.mutated = mutated
@@ -1237,7 +1237,7 @@ class DataSplitter(Generic[NDFrameT]):
         labels: npt.NDArray[np.intp],
         ngroups: int,
         axis: int = 0,
-    ):
+    ) -> None:
         self.data = data
         self.labels = ensure_platform_int(labels)  # _should_ already be np.intp
         self.ngroups = ngroups
