@@ -40,7 +40,7 @@ class XlwtWriter(ExcelWriter):
         if_sheet_exists: str | None = None,
         engine_kwargs: dict[str, Any] | None = None,
         **kwargs,
-    ):
+    ) -> None:
         # Use the xlwt module as the Excel writer.
         import xlwt
 

@@ -497,7 +497,9 @@ def read_excel(
 
 
 class BaseExcelReader(metaclass=abc.ABCMeta):
-    def __init__(self, filepath_or_buffer, storage_options: StorageOptions = None):
+    def __init__(
+        self, filepath_or_buffer, storage_options: StorageOptions = None
+    ) -> None:
         # First argument can also be bytes, so create a buffer
         if isinstance(filepath_or_buffer, bytes):
             filepath_or_buffer = BytesIO(filepath_or_buffer)
@@ -1131,7 +1133,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         if_sheet_exists: str | None = None,
         engine_kwargs: dict[str, Any] | None = None,
         **kwargs,
-    ):
+    ) -> None:
         # validate that this engine can handle the extension
         if isinstance(path, str):
             ext = os.path.splitext(path)[-1]
@@ -1454,7 +1456,7 @@ class ExcelFile:
         path_or_buffer,
         engine: str | None = None,
         storage_options: StorageOptions = None,
-    ):
+    ) -> None:
         if engine is not None and engine not in self._engines:
             raise ValueError(f"Unknown engine: {engine}")
 

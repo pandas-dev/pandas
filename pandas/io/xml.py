@@ -137,7 +137,7 @@ class _XMLFrameParser:
         stylesheet: FilePath | ReadBuffer[bytes] | ReadBuffer[str] | None,
         compression: CompressionOptions,
         storage_options: StorageOptions,
-    ):
+    ) -> None:
         self.path_or_buffer = path_or_buffer
         self.xpath = xpath
         self.namespaces = namespaces

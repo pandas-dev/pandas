@@ -779,7 +779,7 @@ class SQLTable(PandasObject):
         schema=None,
         keys=None,
         dtype: DtypeArg | None = None,
-    ):
+    ) -> None:
         self.name = name
         self.pd_sql = pandas_sql_engine
         self.prefix = prefix
@@ -1284,7 +1284,7 @@ class BaseEngine:
 
 
 class SQLAlchemyEngine(BaseEngine):
-    def __init__(self):
+    def __init__(self) -> None:
         import_optional_dependency(
             "sqlalchemy", extra="sqlalchemy is required for SQL support."
         )
@@ -1365,7 +1365,7 @@ class SQLDatabase(PandasSQL):
 
     """
 
-    def __init__(self, engine, schema: str | None = None):
+    def __init__(self, engine, schema: str | None = None) -> None:
         from sqlalchemy.schema import MetaData
 
         self.connectable = engine
@@ -1826,7 +1826,7 @@ class SQLiteTable(SQLTable):
     Instead of a table variable just use the Create Table statement.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         # GH 8341
         # register an adapter callable for datetime.time object
         import sqlite3
@@ -1971,7 +1971,7 @@ class SQLiteDatabase(PandasSQL):
 
     """
 
-    def __init__(self, con):
+    def __init__(self, con) -> None:
         self.con = con
 
     @contextmanager
