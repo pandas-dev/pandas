@@ -62,12 +62,14 @@ jobs:
           # Test lowest supported pyarrow
           - env_file: actions-38.yaml
             pattern: "not single_cpu"
+            pyarrow_version: 5
             name: "Min Pyarrow"
           - env_file: actions-38.yaml
             pattern: "single_cpu"
+            pyarrow_version: 5
             name: "Min Pyarrow (single)"
       fail-fast: false
-    name: ${{ matrix.name || format('{0} pyarrow={1} {2}', matrix.env_file, matrix.pyarrow_version, matrix.pattern) }}
+    name: ${{ matrix.name || format('{0} {2}', matrix.env_file, matrix.pyarrow_version, matrix.pattern) }}
     env:
       ENV_FILE: ci/deps/${{ matrix.env_file }}
       PATTERN: ${{ matrix.pattern }}
