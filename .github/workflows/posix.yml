@@ -75,7 +75,6 @@ jobs:
       TEST_ARGS: ${{ matrix.test_args || '' }}
       PYTEST_WORKERS: ${{ contains(matrix.pattern, 'not single_cpu') && 'auto' || '1' }}
       PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
-      IS_PYPY: ${{ contains(matrix.env_file, 'pypy') }}
       # TODO: re-enable coverage on pypy, its slow
       COVERAGE: ${{ !contains(matrix.env_file, 'pypy') }}
     concurrency:
@@ -151,19 +150,6 @@ jobs:
     - name: Upgrade Arrow version
       run: conda install -n pandas-dev -c conda-forge --no-update-deps pyarrow=${{ matrix.pyarrow_version }}
       if: ${{ matrix.pyarrow_version }}
-
-    - name: Setup PyPy
-      uses: actions/setup-python@v2
-      with:
-        python-version: "pypy-3.8"
-      if: ${{ env.IS_PYPY == 'true' }}
-
-    - name: Setup PyPy dependencies
-      shell: bash
-      run: |
-        # TODO: re-enable cov, its slowing the tests down though
-        pip install Cython numpy python-dateutil pytz pytest>=6.0 pytest-xdist>=1.31.0 hypothesis>=5.5.3
-      if: ${{ env.IS_PYPY == 'true' }}
 
     - name: Build Pandas
       uses: ./.github/actions/build_pandas
