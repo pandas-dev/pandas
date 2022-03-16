@@ -9,6 +9,7 @@ from cpython.object cimport (
     PyObject_RichCompareBool,
 )
 from numpy cimport (
+    int32_t,
     int64_t,
     ndarray,
 )
@@ -1245,7 +1246,8 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt):
         char *formatted
         bytes pat, brepl
         list found_pat = [False] * len(extra_fmts)
-        int quarter, us, ps
+        int quarter
+        int32_t us, ps
         str result, repl
 
     get_date_info(value, freq, &dts)
