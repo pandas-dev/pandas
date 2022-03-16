@@ -44,7 +44,7 @@ class BoxPlot(LinePlot):
         ax: Axes
         lines: dict[str, list[Line2D]]
 
-    def __init__(self, data, return_type="axes", **kwargs):
+    def __init__(self, data, return_type="axes", **kwargs) -> None:
         # Do not call LinePlot.__init__ which may fill nan
         if return_type not in self._valid_return_types:
             raise ValueError("return_type must be {None, 'axes', 'dict', 'both'}")

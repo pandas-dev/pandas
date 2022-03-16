@@ -99,13 +99,15 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     _internal_fill_value: Scalar
     # our underlying data and mask are each ndarrays
     _data: np.ndarray
-    _mask: np.ndarray
+    _mask: npt.NDArray[np.bool_]
 
     # Fill values used for any/all
     _truthy_value = Scalar  # bool(_truthy_value) = True
     _falsey_value = Scalar  # bool(_falsey_value) = False
 
-    def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
+    def __init__(
+        self, values: np.ndarray, mask: npt.NDArray[np.bool_], copy: bool = False
+    ) -> None:
         # values is supposed to already be validated in the subclass
         if not (isinstance(mask, np.ndarray) and mask.dtype == np.bool_):
             raise TypeError(
@@ -174,12 +176,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if mask.any():
             if method is not None:
                 func = missing.get_fill_func(method, ndim=self.ndim)
-                new_values, new_mask = func(
-                    self._data.copy().T,
-                    limit=limit,
-                    mask=mask.copy().T,
-                )
-                return type(self)(new_values.T, new_mask.view(np.bool_).T)
+                npvalues = self._data.copy().T
+                new_mask = mask.copy().T
+                func(npvalues, limit=limit, mask=new_mask)
+                return type(self)(npvalues.T, new_mask.T)
             else:
                 # fill with value
                 new_values = self.copy()
@@ -336,7 +336,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         self,
         dtype: npt.DTypeLike | None = None,
         copy: bool = False,
-        na_value: Scalar = lib.no_default,
+        na_value: Scalar | lib.NoDefault | libmissing.NAType = lib.no_default,
     ) -> np.ndarray:
         """
         Convert to a NumPy Array.
@@ -626,10 +626,21 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if other is libmissing.NA:
             result = np.ones_like(self._data)
             if self.dtype.kind == "b":
-                if op_name in {"floordiv", "rfloordiv", "mod", "rmod", "pow", "rpow"}:
+                if op_name in {
+                    "floordiv",
+                    "rfloordiv",
+                    "pow",
+                    "rpow",
+                    "truediv",
+                    "rtruediv",
+                }:
+                    # GH#41165 Try to match non-masked Series behavior
+                    #  This is still imperfect GH#46043
+                    raise NotImplementedError(
+                        f"operator '{op_name}' not implemented for bool dtypes"
+                    )
+                elif op_name in {"mod", "rmod"}:
                     dtype = "int8"
-                elif op_name in {"truediv", "rtruediv"}:
-                    dtype = "float64"
                 else:
                     dtype = "bool"
                 result = result.astype(dtype)
@@ -644,12 +655,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if self.dtype.kind in ["i", "u"] and op_name in ["floordiv", "mod"]:
                 # TODO(GH#30188) ATM we don't match the behavior of non-masked
                 #  types with respect to floordiv-by-zero
-                pd_op = op
-
-            elif self.dtype.kind == "b" and (
-                "div" in op_name or "pow" in op_name or "mod" in op_name
-            ):
-                # TODO(GH#41165): should these be disallowed?
                 pd_op = op
 
             with np.errstate(all="ignore"):
@@ -674,6 +679,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             mask = np.where((self._data == 0) & ~self._mask, False, mask)
 
         return self._maybe_mask_result(result, mask)
+
+    _logical_method = _arith_method
 
     def _cmp_method(self, other, op) -> BooleanArray:
         from pandas.core.arrays import BooleanArray
@@ -867,8 +874,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         codes, uniques = factorize_array(arr, na_sentinel=na_sentinel, mask=mask)
 
-        # the hashtables don't handle all different types of bits
-        uniques = uniques.astype(self.dtype.numpy_dtype, copy=False)
+        # check that factorize_array correctly preserves dtype.
+        assert uniques.dtype == self.dtype.numpy_dtype, (uniques.dtype, self.dtype)
+
         uniques_ea = type(self)(uniques, np.zeros(len(uniques), dtype=bool))
         return codes, uniques_ea
 

@@ -50,16 +50,20 @@ def test_union_different_types(index_flat, index_flat2, request):
     if (
         not idx1.is_unique
         and not idx2.is_unique
-        and not idx2.is_monotonic_decreasing
         and idx1.dtype.kind == "i"
         and idx2.dtype.kind == "b"
     ) or (
         not idx2.is_unique
         and not idx1.is_unique
-        and not idx1.is_monotonic_decreasing
         and idx2.dtype.kind == "i"
         and idx1.dtype.kind == "b"
     ):
+        # Each condition had idx[1|2].is_monotonic_decreasing
+        # but failed when e.g.
+        # idx1 = Index(
+        # [True, True, True, True, True, True, True, True, False, False], dtype='bool'
+        # )
+        # idx2 = Int64Index([0, 0, 1, 1, 2, 2], dtype='int64')
         mark = pytest.mark.xfail(
             reason="GH#44000 True==1", raises=ValueError, strict=False
         )

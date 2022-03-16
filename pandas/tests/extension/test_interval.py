@@ -121,9 +121,9 @@ class TestReduce(base.BaseNoReduceTests):
 
 
 class TestMethods(BaseInterval, base.BaseMethodsTests):
-    @pytest.mark.skip(reason="addition is not defined for intervals")
+    @pytest.mark.xfail(reason="addition is not defined for intervals")
     def test_combine_add(self, data_repeated):
-        pass
+        super().test_combine_add(data_repeated)
 
     @pytest.mark.xfail(
         reason="Raises with incorrect message bc it disallows *all* listlikes "
@@ -134,29 +134,31 @@ class TestMethods(BaseInterval, base.BaseMethodsTests):
 
 
 class TestMissing(BaseInterval, base.BaseMissingTests):
-    # Index.fillna only accepts scalar `value`, so we have to skip all
+    # Index.fillna only accepts scalar `value`, so we have to xfail all
     # non-scalar fill tests.
-    unsupported_fill = pytest.mark.skip("Unsupported fillna option.")
+    unsupported_fill = pytest.mark.xfail(
+        reason="Unsupported fillna option for Interval."
+    )
 
     @unsupported_fill
     def test_fillna_limit_pad(self):
-        pass
+        super().test_fillna_limit_pad()
 
     @unsupported_fill
     def test_fillna_series_method(self):
-        pass
+        super().test_fillna_series_method()
 
     @unsupported_fill
     def test_fillna_limit_backfill(self):
-        pass
+        super().test_fillna_limit_backfill()
 
     @unsupported_fill
     def test_fillna_no_op_returns_copy(self):
-        pass
+        super().test_fillna_no_op_returns_copy()
 
     @unsupported_fill
     def test_fillna_series(self):
-        pass
+        super().test_fillna_series()
 
     def test_fillna_non_scalar_raises(self, data_missing):
         msg = "can only insert Interval objects and NA into an IntervalArray"
@@ -173,9 +175,9 @@ class TestSetitem(BaseInterval, base.BaseSetitemTests):
 
 
 class TestPrinting(BaseInterval, base.BasePrintingTests):
-    @pytest.mark.skip(reason="custom repr")
+    @pytest.mark.xfail(reason="Interval has custom repr")
     def test_array_repr(self, data, size):
-        pass
+        super().test_array_repr()
 
 
 class TestParsing(BaseInterval, base.BaseParsingTests):

@@ -9,11 +9,13 @@ on:
     branches:
       - main
       - 1.4.x
+    types: [labeled, opened, synchronize, reopened]
     paths-ignore:
       - "doc/**"
 
 jobs:
   build:
+    if: ${{ github.event.label.name == 'Build' || contains(github.event.pull_request.labels.*.name, 'Build') || github.event_name == 'push'}}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     defaults:
@@ -51,6 +53,12 @@ jobs:
       run: |
         pip list
         python setup.py sdist --formats=gztar
+
+    - name: Upload sdist artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{matrix.python-version}}-sdist.gz
+        path: dist/*.gz
 
     - uses: conda-incubator/setup-miniconda@v2
       with:

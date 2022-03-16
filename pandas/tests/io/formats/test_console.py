@@ -12,7 +12,7 @@ class MockEncoding:
     side effect should be an exception that will be raised.
     """
 
-    def __init__(self, encoding):
+    def __init__(self, encoding) -> None:
         super().__init__()
         self.val = encoding
 

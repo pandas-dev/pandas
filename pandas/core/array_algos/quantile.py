@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import numpy as np
 
-from pandas._libs import lib
 from pandas._typing import (
     ArrayLike,
     Scalar,
@@ -104,7 +103,7 @@ def _nanpercentile_1d(
     mask: npt.NDArray[np.bool_],
     qs: npt.NDArray[np.float64],
     na_value: Scalar,
-    interpolation,
+    interpolation: str,
 ) -> Scalar | np.ndarray:
     """
     Wrapper for np.percentile that skips missing values, specialized to
@@ -128,9 +127,19 @@ def _nanpercentile_1d(
     values = values[~mask]
 
     if len(values) == 0:
-        return np.array([na_value] * len(qs), dtype=values.dtype)
+        # Can't pass dtype=values.dtype here bc we might have na_value=np.nan
+        #  with values.dtype=int64 see test_quantile_empty
+        # equiv: 'np.array([na_value] * len(qs))' but much faster
+        return np.full(len(qs), na_value)
 
-    return np.percentile(values, qs, **{np_percentile_argname: interpolation})
+    return np.percentile(
+        values,
+        qs,
+        # error: No overload variant of "percentile" matches argument types
+        # "ndarray[Any, Any]", "ndarray[Any, dtype[floating[_64Bit]]]",
+        # "int", "Dict[str, str]"
+        **{np_percentile_argname: interpolation},  # type: ignore[call-overload]
+    )
 
 
 def _nanpercentile(
@@ -139,7 +148,7 @@ def _nanpercentile(
     *,
     na_value,
     mask: npt.NDArray[np.bool_],
-    interpolation,
+    interpolation: str,
 ):
     """
     Wrapper for np.percentile that skips missing values.
@@ -173,7 +182,7 @@ def _nanpercentile(
         #  have float result at this point, not i8
         return result.astype(values.dtype)
 
-    if not lib.is_scalar(mask) and mask.any():
+    if mask.any():
         # Caller is responsible for ensuring mask shape match
         assert mask.shape == values.shape
         result = [
@@ -184,5 +193,11 @@ def _nanpercentile(
         return result
     else:
         return np.percentile(
-            values, qs, axis=1, **{np_percentile_argname: interpolation}
+            values,
+            qs,
+            axis=1,
+            # error: No overload variant of "percentile" matches argument types
+            # "ndarray[Any, Any]", "ndarray[Any, dtype[floating[_64Bit]]]",
+            # "int", "Dict[str, str]"
+            **{np_percentile_argname: interpolation},  # type: ignore[call-overload]
         )
