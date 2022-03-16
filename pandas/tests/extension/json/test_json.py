@@ -1,5 +1,6 @@
 import collections
 import operator
+import sys
 
 import pytest
 
@@ -155,20 +156,32 @@ class TestInterface(BaseJSON, base.BaseInterfaceTests):
 
 
 class TestConstructors(BaseJSON, base.BaseConstructorsTests):
-    @pytest.mark.skip(reason="not implemented constructor from dtype")
+    @pytest.mark.xfail(reason="not implemented constructor from dtype")
     def test_from_dtype(self, data):
         # construct from our dtype & string dtype
-        pass
+        super(self).test_from_dtype(data)
 
     @pytest.mark.xfail(reason="RecursionError, GH-33900")
     def test_series_constructor_no_data_with_index(self, dtype, na_value):
         # RecursionError: maximum recursion depth exceeded in comparison
-        super().test_series_constructor_no_data_with_index(dtype, na_value)
+        rec_limit = sys.getrecursionlimit()
+        try:
+            # Limit to avoid stack overflow on Windows CI
+            sys.setrecursionlimit(100)
+            super().test_series_constructor_no_data_with_index(dtype, na_value)
+        finally:
+            sys.setrecursionlimit(rec_limit)
 
     @pytest.mark.xfail(reason="RecursionError, GH-33900")
     def test_series_constructor_scalar_na_with_index(self, dtype, na_value):
         # RecursionError: maximum recursion depth exceeded in comparison
-        super().test_series_constructor_scalar_na_with_index(dtype, na_value)
+        rec_limit = sys.getrecursionlimit()
+        try:
+            # Limit to avoid stack overflow on Windows CI
+            sys.setrecursionlimit(100)
+            super().test_series_constructor_scalar_na_with_index(dtype, na_value)
+        finally:
+            sys.setrecursionlimit(rec_limit)
 
     @pytest.mark.xfail(reason="collection as scalar, GH-33901")
     def test_series_constructor_scalar_with_index(self, data, dtype):

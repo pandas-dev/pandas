@@ -171,7 +171,7 @@ class StringMethods(NoNewAttributesMixin):
     # * cat
     # * extractall
 
-    def __init__(self, data):
+    def __init__(self, data) -> None:
         from pandas.core.arrays.string_ import StringDtype
 
         self._inferred_dtype = self._validate(data)
