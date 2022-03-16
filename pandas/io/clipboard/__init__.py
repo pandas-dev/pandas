@@ -93,7 +93,7 @@ class PyperclipException(RuntimeError):
 
 
 class PyperclipWindowsException(PyperclipException):
-    def __init__(self, message):
+    def __init__(self, message) -> None:
         message += f" ({ctypes.WinError()})"
         super().__init__(message)
 
@@ -305,7 +305,7 @@ def init_no_clipboard():
 
 # Windows-related clipboard functions:
 class CheckedCall:
-    def __init__(self, f):
+    def __init__(self, f) -> None:
         super().__setattr__("f", f)
 
     def __call__(self, *args):

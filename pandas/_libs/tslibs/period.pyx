@@ -95,6 +95,7 @@ from pandas._libs.tslibs.dtypes cimport (
     FR_WK,
     PeriodDtypeBase,
     attrname_to_abbrevs,
+    freq_group_code_to_npy_unit,
 )
 from pandas._libs.tslibs.parsing cimport quarter_to_myear
 
@@ -689,8 +690,7 @@ cdef char* c_strftime(npy_datetimestruct *dts, char *fmt):
 # Conversion between date_info and npy_datetimestruct
 
 cdef inline int get_freq_group(int freq) nogil:
-    # Note: this is equivalent to libfrequencies.get_freq_group, specialized
-    #  to integer argument.
+    # See also FreqGroup.get_freq_group
     return (freq // 1000) * 1000
 
 
@@ -806,34 +806,8 @@ cdef int64_t get_period_ordinal(npy_datetimestruct *dts, int freq) nogil:
         unix_date = npy_datetimestruct_to_datetime(NPY_FR_D, dts)
         return DtoB(dts, 0, unix_date)
 
-    unit = get_unit(freq)
+    unit = freq_group_code_to_npy_unit(freq)
     return npy_datetimestruct_to_datetime(unit, dts)
-
-
-cdef NPY_DATETIMEUNIT get_unit(int freq) nogil:
-    """
-    Convert the freq to the corresponding NPY_DATETIMEUNIT to pass
-    to npy_datetimestruct_to_datetime.
-    """
-    if freq == FR_MTH:
-        return NPY_DATETIMEUNIT.NPY_FR_M
-    elif freq == FR_DAY:
-        return NPY_DATETIMEUNIT.NPY_FR_D
-    elif freq == FR_HR:
-        return NPY_DATETIMEUNIT.NPY_FR_h
-    elif freq == FR_MIN:
-        return NPY_DATETIMEUNIT.NPY_FR_m
-    elif freq == FR_SEC:
-        return NPY_DATETIMEUNIT.NPY_FR_s
-    elif freq == FR_MS:
-        return NPY_DATETIMEUNIT.NPY_FR_ms
-    elif freq == FR_US:
-        return NPY_DATETIMEUNIT.NPY_FR_us
-    elif freq == FR_NS:
-        return NPY_DATETIMEUNIT.NPY_FR_ns
-    elif freq == FR_UND:
-        # Default to Day
-        return NPY_DATETIMEUNIT.NPY_FR_D
 
 
 cdef void get_date_info(int64_t ordinal, int freq, npy_datetimestruct *dts) nogil:
@@ -1649,7 +1623,7 @@ cdef class _Period(PeriodMixin):
         if isinstance(freq, int):
             # We already have a dtype code
             dtype = PeriodDtypeBase(freq)
-            freq = dtype.date_offset
+            freq = dtype._freqstr
 
         freq = to_offset(freq)
 

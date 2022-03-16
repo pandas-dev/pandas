@@ -989,13 +989,18 @@ cdef inline bint _treat_as_na(numeric_object_t val, bint is_datetimelike) nogil:
         return False
 
 
-cdef numeric_t _get_min_or_max(numeric_t val, bint compute_max):
+cdef numeric_t _get_min_or_max(numeric_t val, bint compute_max, bint is_datetimelike):
     """
     Find either the min or the max supported by numeric_t; 'val' is a placeholder
     to effectively make numeric_t an argument.
     """
     if numeric_t is int64_t:
-        return -_int64_max if compute_max else util.INT64_MAX
+        if compute_max and is_datetimelike:
+            return -_int64_max
+        # Note(jbrockmendel) 2022-03-15 for reasons unknown, using util.INT64_MIN
+        #  instead of NPY_NAT here causes build warnings and failure in
+        #  test_cummax_i8_at_implementation_bound
+        return NPY_NAT if compute_max else util.INT64_MAX
     elif numeric_t is int32_t:
         return util.INT32_MIN if compute_max else util.INT32_MAX
     elif numeric_t is int16_t:
@@ -1395,7 +1400,7 @@ cdef group_min_max(
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
 
     group_min_or_max = np.empty_like(out)
-    group_min_or_max[:] = _get_min_or_max(<iu_64_floating_t>0, compute_max)
+    group_min_or_max[:] = _get_min_or_max(<iu_64_floating_t>0, compute_max, is_datetimelike)
 
     if iu_64_floating_t is int64_t:
         # TODO: only if is_datetimelike?
@@ -1564,7 +1569,7 @@ cdef group_cummin_max(
         bint isna_entry
 
     accum = np.empty((ngroups, (<object>values).shape[1]), dtype=values.dtype)
-    accum[:] = _get_min_or_max(<iu_64_floating_t>0, compute_max)
+    accum[:] = _get_min_or_max(<iu_64_floating_t>0, compute_max, is_datetimelike)
 
     na_val = _get_na_val(<iu_64_floating_t>0, is_datetimelike)
 
