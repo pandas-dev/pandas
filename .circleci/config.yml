@@ -10,6 +10,7 @@ jobs:
       PYTEST_WORKERS: auto
       PATTERN: "not slow and not network and not clipboard and not arm_slow"
       PYTEST_TARGET: "pandas"
+      PANDAS_CI: "1"
     steps:
       - checkout
       - run: ci/setup_env.sh
