@@ -45,7 +45,7 @@ class BaseIndexer:
 
     def __init__(
         self, index_array: np.ndarray | None = None, window_size: int = 0, **kwargs
-    ):
+    ) -> None:
         """
         Parameters
         ----------
@@ -139,7 +139,7 @@ class VariableOffsetWindowIndexer(BaseIndexer):
         index=None,
         offset=None,
         **kwargs,
-    ):
+    ) -> None:
         super().__init__(index_array, window_size, **kwargs)
         self.index = index
         self.offset = offset
@@ -300,7 +300,7 @@ class GroupbyIndexer(BaseIndexer):
         window_indexer: type[BaseIndexer] = BaseIndexer,
         indexer_kwargs: dict | None = None,
         **kwargs,
-    ):
+    ) -> None:
         """
         Parameters
         ----------
