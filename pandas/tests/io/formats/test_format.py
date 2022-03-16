@@ -3262,6 +3262,11 @@ def test_format_percentiles():
     expected = ["0%", "50%", "2.0%", "50%", "66.67%", "99.99%"]
     assert result == expected
 
+    # Issue #46362
+    result = fmt.format_percentiles([0.281,0.57,0.58,0.29])
+    expected = ['28.1%', '57%', '58%', '29%']
+    assert result == expected
+
     msg = r"percentiles should all be in the interval \[0,1\]"
     with pytest.raises(ValueError, match=msg):
         fmt.format_percentiles([0.1, np.nan, 0.5])
