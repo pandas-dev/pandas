@@ -17,6 +17,7 @@ from io import StringIO
 import itertools
 from numbers import Number
 import re
+import sys
 
 import numpy as np
 import pytest
@@ -205,8 +206,14 @@ def test_is_list_like_recursion():
         inference.is_list_like([])
         foo()
 
-    with tm.external_error_raised(RecursionError):
-        foo()
+    rec_limit = sys.getrecursionlimit()
+    try:
+        # Limit to avoid stack overflow on Windows CI
+        sys.setrecursionlimit(100)
+        with tm.external_error_raised(RecursionError):
+            foo()
+    finally:
+        sys.setrecursionlimit(rec_limit)
 
 
 def test_is_list_like_iter_is_none():

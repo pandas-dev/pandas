@@ -313,3 +313,4 @@ IntervalClosedType = Literal["left", "right", "both", "neither"]
 # datetime and NaTType
 
 DatetimeNaTType = Union[datetime, "NaTType"]
+DateTimeErrorChoices = Literal["ignore", "raise", "coerce"]

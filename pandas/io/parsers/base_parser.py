@@ -80,7 +80,7 @@ class ParserBase:
     _implicit_index: bool = False
     _first_chunk: bool
 
-    def __init__(self, kwds):
+    def __init__(self, kwds) -> None:
 
         self.names = kwds.get("names")
         self.orig_names: list | None = None
