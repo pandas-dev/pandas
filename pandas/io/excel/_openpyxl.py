@@ -50,7 +50,7 @@ class OpenpyxlWriter(ExcelWriter):
         if_sheet_exists: str | None = None,
         engine_kwargs: dict[str, Any] | None = None,
         **kwargs,
-    ):
+    ) -> None:
         # Use the openpyxl module as the Excel writer.
         from openpyxl.workbook import Workbook
 

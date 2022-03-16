@@ -66,7 +66,7 @@ class CSVFormatter:
         doublequote: bool = True,
         escapechar: str | None = None,
         storage_options: StorageOptions = None,
-    ):
+    ) -> None:
         self.fmt = formatter
 
         self.obj = self.fmt.frame

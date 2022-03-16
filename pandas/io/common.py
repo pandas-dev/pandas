@@ -872,7 +872,7 @@ class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore[misc]
         mode: str,
         archive_name: str | None = None,
         **kwargs,
-    ):
+    ) -> None:
         mode = mode.replace("b", "")
         self.archive_name = archive_name
         self.multiple_write_buffer: StringIO | BytesIO | None = None
@@ -944,7 +944,7 @@ class _MMapWrapper(abc.Iterator):
         encoding: str = "utf-8",
         errors: str = "strict",
         decode: bool = True,
-    ):
+    ) -> None:
         self.encoding = encoding
         self.errors = errors
         self.decoder = codecs.getincrementaldecoder(encoding)(errors=errors)
@@ -999,7 +999,7 @@ class _IOWrapper:
     # methods, e.g., tempfile.SpooledTemporaryFile.
     # If a buffer does not have the above "-able" methods, we simple assume they are
     # seek/read/writ-able.
-    def __init__(self, buffer: BaseBuffer):
+    def __init__(self, buffer: BaseBuffer) -> None:
         self.buffer = buffer
 
     def __getattr__(self, name: str):
@@ -1026,7 +1026,7 @@ class _IOWrapper:
 class _BytesIOWrapper:
     # Wrapper that wraps a StringIO buffer and reads bytes from it
     # Created for compat with pyarrow read_csv
-    def __init__(self, buffer: StringIO | TextIOBase, encoding: str = "utf-8"):
+    def __init__(self, buffer: StringIO | TextIOBase, encoding: str = "utf-8") -> None:
         self.buffer = buffer
         self.encoding = encoding
         # Because a character can be represented by more than 1 byte,

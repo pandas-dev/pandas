@@ -39,7 +39,7 @@ class ODSWriter(ExcelWriter):
         if_sheet_exists: str | None = None,
         engine_kwargs: dict[str, Any] | None = None,
         **kwargs,
-    ):
+    ) -> None:
         from odf.opendocument import OpenDocumentSpreadsheet
 
         if mode == "a":

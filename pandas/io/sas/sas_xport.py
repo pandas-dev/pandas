@@ -256,7 +256,7 @@ class XportReader(ReaderBase, abc.Iterator):
         index=None,
         encoding: str | None = "ISO-8859-1",
         chunksize=None,
-    ):
+    ) -> None:
 
         self._encoding = encoding
         self._lines_read = 0

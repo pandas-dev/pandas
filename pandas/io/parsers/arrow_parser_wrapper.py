@@ -15,7 +15,7 @@ class ArrowParserWrapper(ParserBase):
     Wrapper for the pyarrow engine for read_csv()
     """
 
-    def __init__(self, src: ReadBuffer[bytes], **kwds):
+    def __init__(self, src: ReadBuffer[bytes], **kwds) -> None:
         super().__init__(kwds)
         self.kwds = kwds
         self.src = src

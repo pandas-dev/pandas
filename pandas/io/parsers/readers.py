@@ -1369,7 +1369,7 @@ class TextFileReader(abc.Iterator):
         f: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str] | list,
         engine: CSVEngine | None = None,
         **kwds,
-    ):
+    ) -> None:
         if engine is not None:
             engine_specified = True
         else:

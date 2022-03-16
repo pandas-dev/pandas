@@ -92,7 +92,7 @@ class _SubheaderPointer:
     compression: int
     ptype: int
 
-    def __init__(self, offset: int, length: int, compression: int, ptype: int):
+    def __init__(self, offset: int, length: int, compression: int, ptype: int) -> None:
         self.offset = offset
         self.length = length
         self.compression = compression
@@ -116,7 +116,7 @@ class _Column:
         format: str | bytes,
         ctype: bytes,
         length: int,
-    ):
+    ) -> None:
         self.col_id = col_id
         self.name = name
         self.label = label
@@ -168,7 +168,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         encoding=None,
         convert_text=True,
         convert_header_text=True,
-    ):
+    ) -> None:
 
         self.index = index
         self.convert_dates = convert_dates

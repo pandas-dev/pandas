@@ -663,7 +663,7 @@ class StataValueLabel:
         Encoding to use for value labels.
     """
 
-    def __init__(self, catarray: Series, encoding: str = "latin-1"):
+    def __init__(self, catarray: Series, encoding: str = "latin-1") -> None:
 
         if encoding not in ("latin-1", "utf-8"):
             raise ValueError("Only latin-1 and utf-8 are supported.")
@@ -792,7 +792,7 @@ class StataNonCatValueLabel(StataValueLabel):
         labname: str,
         value_labels: dict[float | int, str],
         encoding: Literal["latin-1", "utf-8"] = "latin-1",
-    ):
+    ) -> None:
 
         if encoding not in ("latin-1", "utf-8"):
             raise ValueError("Only latin-1 and utf-8 are supported.")
@@ -879,7 +879,7 @@ class StataMissingValue:
         "float64": struct.unpack("<d", float64_base)[0],
     }
 
-    def __init__(self, value: int | float):
+    def __init__(self, value: int | float) -> None:
         self._value = value
         # Conversion to int to avoid hash issues on 32 bit platforms #8968
         value = int(value) if value < 2147483648 else float(value)
@@ -940,7 +940,7 @@ class StataMissingValue:
 
 
 class StataParser:
-    def __init__(self):
+    def __init__(self) -> None:
 
         # type          code.
         # --------------------
@@ -1117,7 +1117,7 @@ class StataReader(StataParser, abc.Iterator):
         chunksize: int | None = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
-    ):
+    ) -> None:
         super().__init__()
         self.col_sizes: list[int] = []
 
@@ -2265,7 +2265,7 @@ class StataWriter(StataParser):
         storage_options: StorageOptions = None,
         *,
         value_labels: dict[Hashable, dict[float | int, str]] | None = None,
-    ):
+    ) -> None:
         super().__init__()
         self.data = data
         self._convert_dates = {} if convert_dates is None else convert_dates
@@ -2943,7 +2943,7 @@ class StataStrLWriter:
         columns: Sequence[str],
         version: int = 117,
         byteorder: str | None = None,
-    ):
+    ) -> None:
         if version not in (117, 118, 119):
             raise ValueError("Only dta versions 117, 118 and 119 supported")
         self._dta_ver = version
@@ -3195,7 +3195,7 @@ class StataWriter117(StataWriter):
         storage_options: StorageOptions = None,
         *,
         value_labels: dict[Hashable, dict[float | int, str]] | None = None,
-    ):
+    ) -> None:
         # Copy to new list since convert_strl might be modified later
         self._convert_strl: list[Hashable] = []
         if convert_strl is not None:
@@ -3592,7 +3592,7 @@ class StataWriterUTF8(StataWriter117):
         storage_options: StorageOptions = None,
         *,
         value_labels: dict[Hashable, dict[float | int, str]] | None = None,
-    ):
+    ) -> None:
         if version is None:
             version = 118 if data.shape[1] <= 32767 else 119
         elif version not in (118, 119):
