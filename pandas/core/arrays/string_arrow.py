@@ -482,8 +482,8 @@ class ArrowStringArray(
             elif n > 0:
                 submask = mask[start:stop]
                 if not pa_version_under5p0:
-                    if c_value is None:
-                        chunk = pc.if_else(submask, c_value, chunk)
+                    if c_value is None or isna(np.array(c_value)).all():
+                        chunk = pc.if_else(submask, None, chunk)
                     else:
                         chunk = pc.replace_with_mask(chunk, submask, c_value)
                 else:
