@@ -487,7 +487,6 @@ class MultiIndex(Index):
                 raise ValueError("all arrays must be same length")
 
         codes, levels = factorize_from_iterables(arrays)
-
         if names is lib.no_default:
             names = [getattr(arr, "name", None) for arr in arrays]
 
