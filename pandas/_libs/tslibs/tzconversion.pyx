@@ -116,20 +116,18 @@ timedelta-like}
     """
     cdef:
         int64_t[::1] deltas
-        ndarray[uint8_t, cast=True] ambiguous_array, both_nat, both_eq
+        ndarray[uint8_t, cast=True] ambiguous_array
         Py_ssize_t i, isl, isr, idx, pos, ntrans, n = vals.shape[0]
         Py_ssize_t delta_idx_offset, delta_idx, pos_left, pos_right
         int64_t *tdata
         int64_t v, left, right, val, v_left, v_right, new_local, remaining_mins
         int64_t first_delta
         int64_t shift_delta = 0
-        ndarray[int64_t] trans, result, result_a, result_b, dst_hours, delta
-        ndarray trans_idx, grp, a_idx, b_idx, one_diff
+        ndarray[int64_t] trans, result, result_a, result_b, dst_hours
         npy_datetimestruct dts
         bint infer_dst = False, is_dst = False, fill = False
         bint shift_forward = False, shift_backward = False
         bint fill_nonexist = False
-        list trans_grp
         str stamp
 
     # Vectorized version of DstTzInfo.localize
@@ -223,49 +221,7 @@ timedelta-like}
     # silence false-positive compiler warning
     dst_hours = np.empty(0, dtype=np.int64)
     if infer_dst:
-        dst_hours = np.empty(n, dtype=np.int64)
-        dst_hours[:] = NPY_NAT
-
-        # Get the ambiguous hours (given the above, these are the hours
-        # where result_a != result_b and neither of them are NAT)
-        both_nat = np.logical_and(result_a != NPY_NAT, result_b != NPY_NAT)
-        both_eq = result_a == result_b
-        trans_idx = np.squeeze(np.nonzero(np.logical_and(both_nat, ~both_eq)))
-        if trans_idx.size == 1:
-            stamp = _render_tstamp(vals[trans_idx])
-            raise pytz.AmbiguousTimeError(
-                f"Cannot infer dst time from {stamp} as there "
-                f"are no repeated times")
-        # Split the array into contiguous chunks (where the difference between
-        # indices is 1).  These are effectively dst transitions in different
-        # years which is useful for checking that there is not an ambiguous
-        # transition in an individual year.
-        if trans_idx.size > 0:
-            one_diff = np.where(np.diff(trans_idx) != 1)[0] + 1
-            trans_grp = np.array_split(trans_idx, one_diff)
-
-            # Iterate through each day, if there are no hours where the
-            # delta is negative (indicates a repeat of hour) the switch
-            # cannot be inferred
-            for grp in trans_grp:
-
-                delta = np.diff(result_a[grp])
-                if grp.size == 1 or np.all(delta > 0):
-                    stamp = _render_tstamp(vals[grp[0]])
-                    raise pytz.AmbiguousTimeError(stamp)
-
-                # Find the index for the switch and pull from a for dst and b
-                # for standard
-                switch_idx = (delta <= 0).nonzero()[0]
-                if switch_idx.size > 1:
-                    raise pytz.AmbiguousTimeError(
-                        f"There are {switch_idx.size} dst switches when "
-                        f"there should only be 1.")
-                switch_idx = switch_idx[0] + 1
-                # Pull the only index and adjust
-                a_idx = grp[:switch_idx]
-                b_idx = grp[switch_idx:]
-                dst_hours[grp] = np.hstack((result_a[a_idx], result_b[b_idx]))
+        dst_hours = _get_dst_hours(vals, result_a, result_b)
 
     for i in range(n):
         val = vals[i]
@@ -373,6 +329,70 @@ cdef inline str _render_tstamp(int64_t val):
     """ Helper function to render exception messages"""
     from pandas._libs.tslibs.timestamps import Timestamp
     return str(Timestamp(val))
+
+
+cdef ndarray[int64_t] _get_dst_hours(
+    # vals only needed here to potential render an exception message
+    ndarray[int64_t] vals,
+    ndarray[int64_t] result_a,
+    ndarray[int64_t] result_b,
+):
+    cdef:
+        Py_ssize_t n = vals.shape[0]
+        ndarray[uint8_t, cast=True] both_nat, both_eq
+        ndarray[int64_t] delta, dst_hours
+        ndarray trans_idx, grp, a_idx, b_idx, one_diff
+        list trans_grp
+
+    dst_hours = np.empty(n, dtype=np.int64)
+    dst_hours[:] = NPY_NAT
+
+    # Get the ambiguous hours (given the above, these are the hours
+    # where result_a != result_b and neither of them are NAT)
+    both_nat = np.logical_and(result_a != NPY_NAT, result_b != NPY_NAT)
+    both_eq = result_a == result_b
+    trans_idx = np.squeeze(np.nonzero(np.logical_and(both_nat, ~both_eq)))
+    if trans_idx.size == 1:
+        stamp = _render_tstamp(vals[trans_idx])
+        raise pytz.AmbiguousTimeError(
+            f"Cannot infer dst time from {stamp} as there "
+            "are no repeated times"
+        )
+
+    # Split the array into contiguous chunks (where the difference between
+    # indices is 1).  These are effectively dst transitions in different
+    # years which is useful for checking that there is not an ambiguous
+    # transition in an individual year.
+    if trans_idx.size > 0:
+        one_diff = np.where(np.diff(trans_idx) != 1)[0] + 1
+        trans_grp = np.array_split(trans_idx, one_diff)
+
+        # Iterate through each day, if there are no hours where the
+        # delta is negative (indicates a repeat of hour) the switch
+        # cannot be inferred
+        for grp in trans_grp:
+
+            delta = np.diff(result_a[grp])
+            if grp.size == 1 or np.all(delta > 0):
+                stamp = _render_tstamp(vals[grp[0]])
+                raise pytz.AmbiguousTimeError(stamp)
+
+            # Find the index for the switch and pull from a for dst and b
+            # for standard
+            switch_idx = (delta <= 0).nonzero()[0]
+            if switch_idx.size > 1:
+                raise pytz.AmbiguousTimeError(
+                    f"There are {switch_idx.size} dst switches when "
+                    "there should only be 1."
+                )
+
+            switch_idx = switch_idx[0] + 1  # TODO: declare type for switch_idx
+            # Pull the only index and adjust
+            a_idx = grp[:switch_idx]
+            b_idx = grp[switch_idx:]
+            dst_hours[grp] = np.hstack((result_a[a_idx], result_b[b_idx]))
+
+    return dst_hours
 
 
 # ----------------------------------------------------------------------
