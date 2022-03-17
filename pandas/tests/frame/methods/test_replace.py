@@ -676,6 +676,20 @@ class TestDataFrameReplace:
         result = df.replace(to_replace, value).astype(dtype=dtype)
         tm.assert_frame_equal(result, expected)
 
+    def test_replace_NA_with_None(self):
+        # gh-45601
+        df = DataFrame({"value": [42, None]}).astype({"value": "Int64"})
+        result = df.replace({pd.NA: None})
+        expected = DataFrame({"value": [42, None]}, dtype=object)
+        tm.assert_frame_equal(result, expected)
+
+    def test_replace_NAT_with_None(self):
+        # gh-45836
+        df = DataFrame([pd.NaT, pd.NaT])
+        result = df.replace({pd.NaT: None, np.NaN: None})
+        expected = DataFrame([None, None])
+        tm.assert_frame_equal(result, expected)
+
     def test_replace_value_is_none(self, datetime_frame):
         orig_value = datetime_frame.iloc[0, 0]
         orig2 = datetime_frame.iloc[1, 0]
