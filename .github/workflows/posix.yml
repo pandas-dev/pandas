@@ -52,9 +52,9 @@ jobs:
           - env_file: actions-38.yaml
             pattern: "not slow and not network and not single_cpu"
             extra_apt: "language-pack-zh-hans"
-            lang: "zh_CN.GB2312"
-            lc_all: "zh_CN.GB2312"
-            name: "Locale: zh_CN.GB2312"
+            lang: "zh_CN.gb2312"
+            lc_all: "zh_CN.gb2312"
+            name: "Locale: zh_CN.gb2312"
           - env_file: actions-38.yaml
             pattern: "not slow and not network and not single_cpu"
             pandas_data_manager: "array"
