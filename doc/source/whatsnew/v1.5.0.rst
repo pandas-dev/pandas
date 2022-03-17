@@ -202,7 +202,7 @@ Other API changes
   ``auth_local_webserver = False`` `"out of band" (copy-paste) flow
   <https://developers.googleblog.com/2022/02/making-oauth-flows-safer.html?m=1#disallowed-oob>`_.
   The ``auth_local_webserver = False`` option is planned to stop working in
-  October 2022.
+  October 2022. (:issue:`46312`)
 -
 
 .. ---------------------------------------------------------------------------

@@ -73,6 +73,12 @@ def read_gbq(
             https://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_console
 
         *New in version 0.2.0 of pandas-gbq*.
+
+        .. versionchanged:: 1.5.0
+           Default value is changed to ``True``. Google has deprecated the
+           ``auth_local_webserver = False`` `"out of band" (copy-paste)
+           flow
+           <https://developers.googleblog.com/2022/02/making-oauth-flows-safer.html?m=1#disallowed-oob>`_.
     dialect : str, default 'legacy'
         Note: The default value is changing to 'standard' in a future version.
 
