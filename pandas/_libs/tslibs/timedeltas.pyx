@@ -36,6 +36,7 @@ from pandas._libs.tslibs.conversion cimport (
     cast_from_unit,
     precision_from_unit,
 )
+from pandas._libs.tslibs.dtypes cimport npy_unit_to_abbrev
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
     c_NaT as NaT,
@@ -81,6 +82,7 @@ Components = collections.namedtuple(
     ],
 )
 
+# This should be kept consistent with UnitChoices in pandas/_libs/tslibs/timedeltas.pyi
 cdef dict timedelta_abbrevs = {
     "Y": "Y",
     "y": "Y",
@@ -173,11 +175,11 @@ cpdef int64_t delta_to_nanoseconds(delta) except? -1:
     if is_tick_object(delta):
         return delta.nanos
     if isinstance(delta, _Timedelta):
-        delta = delta.value
+        return delta.value
+
     if is_timedelta64_object(delta):
         return get_timedelta64_value(ensure_td64ns(delta))
-    if is_integer_object(delta):
-        return delta
+
     if PyDelta_Check(delta):
         try:
             return (
@@ -190,32 +192,6 @@ cpdef int64_t delta_to_nanoseconds(delta) except? -1:
             raise OutOfBoundsTimedelta(*err.args) from err
 
     raise TypeError(type(delta))
-
-
-cdef str npy_unit_to_abbrev(NPY_DATETIMEUNIT unit):
-    if unit == NPY_DATETIMEUNIT.NPY_FR_ns or unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
-        # generic -> default to nanoseconds
-        return "ns"
-    elif unit == NPY_DATETIMEUNIT.NPY_FR_us:
-        return "us"
-    elif unit == NPY_DATETIMEUNIT.NPY_FR_ms:
-        return "ms"
-    elif unit == NPY_DATETIMEUNIT.NPY_FR_s:
-        return "s"
-    elif unit == NPY_DATETIMEUNIT.NPY_FR_m:
-        return "m"
-    elif unit == NPY_DATETIMEUNIT.NPY_FR_h:
-        return "h"
-    elif unit == NPY_DATETIMEUNIT.NPY_FR_D:
-        return "D"
-    elif unit == NPY_DATETIMEUNIT.NPY_FR_W:
-        return "W"
-    elif unit == NPY_DATETIMEUNIT.NPY_FR_M:
-        return "M"
-    elif unit == NPY_DATETIMEUNIT.NPY_FR_Y:
-        return "Y"
-    else:
-        raise NotImplementedError(unit)
 
 
 @cython.overflowcheck(True)

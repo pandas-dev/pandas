@@ -106,7 +106,7 @@ class NDFrameDescriberAbstract(ABC):
         Whether to treat datetime dtypes as numeric.
     """
 
-    def __init__(self, obj: DataFrame | Series, datetime_is_numeric: bool):
+    def __init__(self, obj: DataFrame | Series, datetime_is_numeric: bool) -> None:
         self.obj = obj
         self.datetime_is_numeric = datetime_is_numeric
 
@@ -156,7 +156,7 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
         include: str | Sequence[str] | None,
         exclude: str | Sequence[str] | None,
         datetime_is_numeric: bool,
-    ):
+    ) -> None:
         self.include = include
         self.exclude = exclude
 
