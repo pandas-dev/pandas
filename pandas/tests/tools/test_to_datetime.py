@@ -315,7 +315,7 @@ class TestTimeConversionFormats:
     def test_to_datetime_format_time(self, cache, value, format, dt):
         assert to_datetime(value, format=format, cache=cache) == dt
 
-    @td.skip_if_has_locale
+    @td.skip_if_not_us_locale
     def test_to_datetime_with_non_exact(self, cache):
         # GH 10834
         # 8904
@@ -1738,7 +1738,7 @@ class TestToDatetimeMisc:
         result_ignore = to_datetime(ser, errors="ignore", cache=cache)
         tm.assert_series_equal(result_ignore, ser)
 
-    @td.skip_if_has_locale
+    @td.skip_if_not_us_locale
     def test_to_datetime_with_apply(self, cache):
         # this is only locale tested with US/None locales
         # GH 5195
@@ -1748,7 +1748,7 @@ class TestToDatetimeMisc:
         result = td.apply(to_datetime, format="%b %y", cache=cache)
         tm.assert_series_equal(result, expected)
 
-    @td.skip_if_has_locale
+    @td.skip_if_not_us_locale
     def test_to_datetime_with_apply_with_empty_str(self, cache):
         # this is only locale tested with US/None locales
         # GH 5195

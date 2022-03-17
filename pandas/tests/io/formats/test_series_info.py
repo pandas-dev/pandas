@@ -116,7 +116,7 @@ def test_info_shows_dtypes():
         assert name in res
 
 
-@pytest.mark.skipif(PYPY, reason="on PyPy deep=True doesn't change result")
+@pytest.mark.xfail(PYPY, reason="on PyPy deep=True doesn't change result")
 def test_info_memory_usage_deep_not_pypy():
     s_with_object_index = Series({"a": [1]}, index=["foo"])
     assert s_with_object_index.memory_usage(
@@ -127,7 +127,7 @@ def test_info_memory_usage_deep_not_pypy():
     assert s_object.memory_usage(deep=True) > s_object.memory_usage()
 
 
-@pytest.mark.skipif(not PYPY, reason="on PyPy deep=True does not change result")
+@pytest.mark.xfail(not PYPY, reason="on PyPy deep=True does not change result")
 def test_info_memory_usage_deep_pypy():
     s_with_object_index = Series({"a": [1]}, index=["foo"])
     assert s_with_object_index.memory_usage(

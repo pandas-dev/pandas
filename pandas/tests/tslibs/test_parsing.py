@@ -183,7 +183,7 @@ def test_guess_datetime_format_with_dayfirst(dayfirst, expected):
     assert result == expected
 
 
-@td.skip_if_has_locale
+@td.skip_if_not_us_locale
 @pytest.mark.parametrize(
     "string,fmt",
     [

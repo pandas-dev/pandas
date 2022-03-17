@@ -91,7 +91,7 @@ def test_zip_error_invalid_zip(parser_and_data):
 
 @skip_pyarrow
 @pytest.mark.parametrize("filename", [None, "test.{ext}"])
-def test_compression(parser_and_data, compression_only, buffer, filename):
+def test_compression(request, parser_and_data, compression_only, buffer, filename):
     parser, data, expected = parser_and_data
     compress_type = compression_only
 
@@ -99,7 +99,11 @@ def test_compression(parser_and_data, compression_only, buffer, filename):
     filename = filename if filename is None else filename.format(ext=ext)
 
     if filename and buffer:
-        pytest.skip("Cannot deduce compression from buffer of compressed data.")
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="Cannot deduce compression from buffer of compressed data."
+            )
+        )
 
     with tm.ensure_clean(filename=filename) as path:
         tm.write_to_compressed(compress_type, path, data)

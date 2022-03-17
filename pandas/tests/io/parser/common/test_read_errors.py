@@ -241,11 +241,16 @@ def test_null_byte_char(all_parsers):
 
 
 @td.check_file_leaks
-def test_open_file(all_parsers):
+def test_open_file(request, all_parsers):
     # GH 39024
     parser = all_parsers
     if parser.engine == "c":
-        pytest.skip("'c' engine does not support sep=None with delim_whitespace=False")
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason=f"{parser.engine} engine does not support sep=None "
+                f"with delim_whitespace=False"
+            )
+        )
 
     with tm.ensure_clean() as path:
         file = Path(path)

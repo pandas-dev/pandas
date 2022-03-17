@@ -115,12 +115,6 @@ def _skip_if_no_mpl():
         return True
 
 
-def _skip_if_has_locale():
-    lang, _ = locale.getlocale()
-    if lang is not None:
-        return True
-
-
 def _skip_if_not_us_locale():
     lang, _ = locale.getlocale()
     if lang != "en_US":
@@ -198,9 +192,6 @@ skip_if_no_mpl = pytest.mark.skipif(
 skip_if_mpl = pytest.mark.skipif(not _skip_if_no_mpl(), reason="matplotlib is present")
 skip_if_32bit = pytest.mark.skipif(not IS64, reason="skipping for 32 bit")
 skip_if_windows = pytest.mark.skipif(is_platform_windows(), reason="Running on Windows")
-skip_if_has_locale = pytest.mark.skipif(
-    _skip_if_has_locale(), reason=f"Specific locale is set {locale.getlocale()[0]}"
-)
 skip_if_not_us_locale = pytest.mark.skipif(
     _skip_if_not_us_locale(), reason=f"Specific locale is set {locale.getlocale()[0]}"
 )
