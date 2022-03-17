@@ -488,13 +488,6 @@ class MultiIndex(Index):
 
         codes, levels = factorize_from_iterables(arrays)
 
-        if all(isinstance(e, tuple) for e in arrays):
-            if not all(arrays):
-                codes = [np.array([0 for _ in range(len(arrays))])]
-                _dtype_obj = np.dtype("object")
-                subarr = com.asarray_tuplesafe(arrays, dtype=_dtype_obj)
-                levels = [Index(subarr)]
-
         if names is lib.no_default:
             names = [getattr(arr, "name", None) for arr in arrays]
 
@@ -573,8 +566,18 @@ class MultiIndex(Index):
 
         if all(isinstance(e, tuple) for e in tuples):
             if not all(tuples):
-                return cls.from_arrays(tuples, sortorder=sortorder, names=names)
+                codes = [np.array([0 for _ in range(len(arrays))])]
+                _dtype_obj = np.dtype("object")
+                subarr = com.asarray_tuplesafe(arrays, dtype=_dtype_obj)
+                levels = [Index(subarr)]
 
+                return cls(
+                    levels=levels,
+                    codes=codes,
+                    sortorder=sortorder,
+                    names=names,
+                    verify_integrity=False,
+                )
         return cls.from_arrays(arrays, sortorder=sortorder, names=names)
 
     @classmethod
