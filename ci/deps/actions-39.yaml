@@ -38,13 +38,13 @@ dependencies:
   - pandas-gbq
   - psycopg2
   - pymysql
-  - pytables
   - pyarrow
   - pyreadstat
+  - pytables
+  - python-snappy
   - pyxlsb
   - s3fs
   - scipy
-  - snappy
   - sqlalchemy
   - tabulate
   - xarray
