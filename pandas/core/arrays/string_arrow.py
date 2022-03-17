@@ -40,6 +40,7 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_integer,
     is_integer_dtype,
+    is_list_like,
     is_object_dtype,
     is_scalar,
     is_string_dtype,
@@ -362,6 +363,12 @@ class ArrowStringArray(
         None
         """
         key = check_array_indexer(self, key)
+
+        if is_list_like(key):
+            key = np.asarray(key)
+            if len(key) == 1:
+                key = key[0]
+
         value_is_scalar = is_scalar(value)
 
         # NA -> None
@@ -371,8 +378,12 @@ class ArrowStringArray(
             elif not isinstance(value, str):
                 raise ValueError("Scalar must be NA or str")
         else:
-            value = np.asarray(value)
-            value[isna(value)] = None
+            value = np.asarray(value, dtype=object)
+            for i, v in enumerate(value):
+                if isna(v):
+                    value[i] = None
+                elif not isinstance(v, str):
+                    raise ValueError("Scalar must be NA or str")
 
         # reorder values to align with the mask positions
         if is_bool_dtype(key):
@@ -382,6 +393,8 @@ class ArrowStringArray(
                 value = value[::-1]
         else:
             if not value_is_scalar:
+                if is_scalar(key):
+                    raise ValueError("Length of indexer and values mismatch")
                 key = np.asarray(key)
                 if len(key) != len(value):
                     raise ValueError("Length of indexer and values mismatch")
@@ -402,25 +415,28 @@ class ArrowStringArray(
                 if key < 0:
                     key += len(self)
             else:
+                key = np.asarray(key)
                 key[key < 0] += len(self)
                 if not value_is_scalar:
                     value = value[np.argsort(key)]
 
         # fast path
         if is_integer(key) and value_is_scalar and self._data.num_chunks == 1:
+            idx = int(key)  # type: ignore[arg-type]
             chunk = pa.concat_arrays(
                 [
-                    self._data.chunks[0][:key],
+                    self._data.chunks[0][:idx],
                     pa.array([value], type=pa.string()),
-                    self._data.chunks[0][key + 1 :],
+                    self._data.chunks[0][idx + 1 :],
                 ]
             )
             self._data = pa.chunked_array([chunk])
             return
 
         # create mask for positions to set
+        mask: npt.NDArray[np.bool_]
         if is_bool_dtype(key):
-            mask = key
+            mask = key  # type: ignore[assignment]
         else:
             mask = np.zeros(len(self), dtype=np.bool_)
             mask[key] = True
@@ -443,7 +459,7 @@ class ArrowStringArray(
                 new_data.append(chunk)
                 continue
 
-            n = np.searchsorted(indices, np.intp(stop), side="left")
+            n = int(np.searchsorted(indices, stop, side="left"))
             c_indices, indices = indices[:n], indices[n:]
 
             if value_is_scalar:
@@ -466,11 +482,14 @@ class ArrowStringArray(
             elif n > 0:
                 submask = mask[start:stop]
                 if not pa_version_under5p0:
-                    chunk = pc.replace_with_mask(chunk, submask, c_value)
+                    if c_value is None:
+                        chunk = pc.if_else(submask, c_value, chunk)
+                    else:
+                        chunk = pc.replace_with_mask(chunk, submask, c_value)
                 else:
-                    # The replace_with_mask compute function was added in
-                    # version 5.0. For prior versions we implement our own
-                    # by converting to numpy and back.
+                    # The pyarrow compute functions were added in
+                    # version 5.0. For prior versions we implement
+                    # our own by converting to numpy and back.
                     chunk = chunk.to_numpy(zero_copy_only=False)
                     chunk[submask] = c_value
                     chunk = pa.array(chunk, type=pa.string())

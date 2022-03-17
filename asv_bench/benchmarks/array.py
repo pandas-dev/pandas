@@ -1,5 +1,4 @@
 import numpy as np
-import pyarrow as pa
 
 import pandas as pd
 
@@ -50,6 +49,10 @@ class ArrowStringArray:
     param_names = ["multiple_chunks"]
 
     def setup(self, multiple_chunks):
+        try:
+            import pyarrow as pa
+        except ImportError:
+            raise NotImplementedError
         strings = tm.rands_array(3, 10_000)
         if multiple_chunks:
             chunks = [strings[i : i + 100] for i in range(0, len(strings), 100)]
