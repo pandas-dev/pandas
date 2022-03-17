@@ -31,8 +31,7 @@ dependencies:
   - jinja2
   - lxml
   - matplotlib
-  # TODO: uncomment after numba supports py310
-  #- numba
+  - numba
   - numexpr
   - openpyxl
   - odfpy
@@ -40,7 +39,8 @@ dependencies:
   - psycopg2
   - pymysql
   - pytables
-  - pyarrow
+  # Workaround mamba bug that installs pyarrow 2.0
+  - pyarrow>2
   - pyreadstat
   - python-snappy
   - pyxlsb
