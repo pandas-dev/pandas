@@ -411,6 +411,6 @@ Compression
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
 brotli                    0.7.0              Brotli compression
-snappy                    1.1.8              Snappy compression
+python-snappy             0.6.0              Snappy compression
 Zstandard                 0.15.2             Zstandard compression
 ========================= ================== =============================================================
