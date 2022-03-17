@@ -2,9 +2,13 @@
 Test output formatting for Series/DataFrame, including to_string & reprs
 """
 
-from datetime import datetime
+from datetime import (
+    datetime,
+    time,
+)
 from io import StringIO
 import itertools
+import locale
 from operator import methodcaller
 import os
 from pathlib import Path
@@ -45,6 +49,13 @@ import pandas.io.formats.format as fmt
 import pandas.io.formats.printing as printing
 
 use_32bit_repr = is_platform_windows() or not IS64
+
+
+def get_local_am_pm():
+    """Return the AM and PM strings returned by strftime in current locale."""
+    am_local = time(1).strftime("%p")
+    pm_local = time(13).strftime("%p")
+    return am_local, pm_local
 
 
 @pytest.fixture(params=["string", "pathlike", "buffer"])
@@ -3165,6 +3176,41 @@ class TestNaTFormatting:
 
     def test_str(self):
         assert str(NaT) == "NaT"
+
+
+class TestPeriodIndexFormat:
+    def test_period_custom_locale(self, overridden_locale):
+        # GH#46319 locale-specific formatting directive leads to non-utf8 str result
+
+        # Get locale-specific reference
+        am_local, pm_local = get_local_am_pm()
+
+        # Scalar
+        per = pd.Period("2018-03-11 13:00", freq="H")
+        assert per.strftime("%p") == pm_local
+
+        # Index
+        per = pd.period_range("2003-01-01 01:00:00", periods=2, freq="12h")
+        formatted = per.format(date_format="%y %I:%M:%S%p")
+        assert formatted[0] == f"03 01:00:00{am_local}"
+        assert formatted[1] == f"03 01:00:00{pm_local}"
+
+
+@pytest.fixture(params=[None, "fr_FR", "zh_CN"])
+def overridden_locale(request):
+    """A fixture used to temporarily change the locale"""
+    old = locale.setlocale(locale.LC_ALL)
+    target = request.param
+    if target is None:
+        yield old
+    else:
+        try:
+            locale.setlocale(locale.LC_ALL, target)
+        except locale.Error as e:
+            pytest.skip(f"Skipping as locale cannot be set. {type(e).__name__}: {e}")
+        else:
+            yield target
+            locale.setlocale(locale.LC_ALL, old)
 
 
 class TestDatetimeIndexFormat:
