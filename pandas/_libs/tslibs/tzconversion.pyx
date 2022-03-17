@@ -115,7 +115,7 @@ timedelta-like}
     localized : ndarray[int64_t]
     """
     cdef:
-        int64_t[::1] deltas
+        const int64_t[::1] deltas
         ndarray[uint8_t, cast=True] ambiguous_array
         Py_ssize_t i, isl, isr, idx, pos, ntrans, n = vals.shape[0]
         Py_ssize_t delta_idx_offset, delta_idx, pos_left, pos_right
@@ -223,6 +223,19 @@ timedelta-like}
     if infer_dst:
         dst_hours = _get_dst_hours(vals, result_a, result_b)
 
+    # Pre-compute delta_idx_offset that will be used if we go down non-existent
+    #  paths.
+    # Shift the delta_idx by if the UTC offset of
+    # the target tz is greater than 0 and we're moving forward
+    # or vice versa
+    first_delta = deltas[0]
+    if (shift_forward or shift_delta > 0) and first_delta > 0:
+        delta_idx_offset = 1
+    elif (shift_backward or shift_delta < 0) and first_delta < 0:
+        delta_idx_offset = 1
+    else:
+        delta_idx_offset = 0
+
     for i in range(n):
         val = vals[i]
         left = result_a[i]
@@ -246,7 +259,8 @@ timedelta-like}
                     stamp = _render_tstamp(val)
                     raise pytz.AmbiguousTimeError(
                         f"Cannot infer dst time from {stamp}, try using the "
-                        f"'ambiguous' argument")
+                        "'ambiguous' argument"
+                    )
         elif left != NPY_NAT:
             result[i] = left
         elif right != NPY_NAT:
@@ -261,7 +275,7 @@ timedelta-like}
                     # time
                     if -1 < shift_delta + remaining_mins < HOUR_NANOS:
                         raise ValueError(
-                            f"The provided timedelta will relocalize on a "
+                            "The provided timedelta will relocalize on a "
                             f"nonexistent time: {nonexistent}"
                         )
                     new_local = val + shift_delta
@@ -274,16 +288,6 @@ timedelta-like}
 
                 delta_idx = bisect_right_i8(tdata, new_local, ntrans)
 
-                # Shift the delta_idx by if the UTC offset of
-                # the target tz is greater than 0 and we're moving forward
-                # or vice versa
-                first_delta = deltas[0]
-                if (shift_forward or shift_delta > 0) and first_delta > 0:
-                    delta_idx_offset = 1
-                elif (shift_backward or shift_delta < 0) and first_delta < 0:
-                    delta_idx_offset = 1
-                else:
-                    delta_idx_offset = 0
                 delta_idx = delta_idx - delta_idx_offset
                 result[i] = new_local - deltas[delta_idx]
             elif fill_nonexist:
