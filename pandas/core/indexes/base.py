@@ -46,6 +46,7 @@ from pandas._typing import (
     Dtype,
     DtypeObj,
     F,
+    IgnoreRaise,
     Shape,
     npt,
 )
@@ -6810,7 +6811,7 @@ class Index(IndexOpsMixin, PandasObject):
         # TODO(2.0) can use Index instead of self._constructor
         return self._constructor._with_infer(new_values, name=self.name)
 
-    def drop(self, labels, errors: str_t = "raise") -> Index:
+    def drop(self, labels, errors: IgnoreRaise = "raise") -> Index:
         """
         Make new Index with passed list of labels deleted.
 

@@ -58,6 +58,7 @@ from pandas._typing import (
     FloatFormatType,
     FormattersType,
     Frequency,
+    IgnoreRaise,
     IndexKeyFunc,
     IndexLabel,
     Level,
@@ -4831,17 +4832,60 @@ class DataFrame(NDFrame, OpsMixin):
         kwargs.pop("labels", None)
         return super().reindex(**kwargs)
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
+    @overload
     def drop(
         self,
-        labels=None,
+        labels: Hashable | list[Hashable] = ...,
+        *,
+        axis: Axis = ...,
+        index: Hashable | list[Hashable] = ...,
+        columns: Hashable | list[Hashable] = ...,
+        level: Level | None = ...,
+        inplace: Literal[True],
+        errors: IgnoreRaise = ...,
+    ) -> None:
+        ...
+
+    @overload
+    def drop(
+        self,
+        labels: Hashable | list[Hashable] = ...,
+        *,
+        axis: Axis = ...,
+        index: Hashable | list[Hashable] = ...,
+        columns: Hashable | list[Hashable] = ...,
+        level: Level | None = ...,
+        inplace: Literal[False] = ...,
+        errors: IgnoreRaise = ...,
+    ) -> DataFrame:
+        ...
+
+    @overload
+    def drop(
+        self,
+        labels: Hashable | list[Hashable] = ...,
+        *,
+        axis: Axis = ...,
+        index: Hashable | list[Hashable] = ...,
+        columns: Hashable | list[Hashable] = ...,
+        level: Level | None = ...,
+        inplace: bool = ...,
+        errors: IgnoreRaise = ...,
+    ) -> DataFrame | None:
+        ...
+
+    # error: Signature of "drop" incompatible with supertype "NDFrame"
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
+    def drop(  # type: ignore[override]
+        self,
+        labels: Hashable | list[Hashable] = None,
         axis: Axis = 0,
-        index=None,
-        columns=None,
+        index: Hashable | list[Hashable] = None,
+        columns: Hashable | list[Hashable] = None,
         level: Level | None = None,
         inplace: bool = False,
-        errors: str = "raise",
-    ):
+        errors: IgnoreRaise = "raise",
+    ) -> DataFrame | None:
         """
         Drop specified labels from rows or columns.
 
@@ -11187,7 +11231,7 @@ NaN 12.3   33.0
         inplace=False,
         axis=None,
         level=None,
-        errors="raise",
+        errors: IgnoreRaise = "raise",
         try_cast=lib.no_default,
     ):
         return super().where(cond, other, inplace, axis, level, errors, try_cast)
@@ -11202,7 +11246,7 @@ NaN 12.3   33.0
         inplace=False,
         axis=None,
         level=None,
-        errors="raise",
+        errors: IgnoreRaise = "raise",
         try_cast=lib.no_default,
     ):
         return super().mask(cond, other, inplace, axis, level, errors, try_cast)

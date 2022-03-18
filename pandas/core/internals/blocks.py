@@ -27,6 +27,7 @@ from pandas._typing import (
     ArrayLike,
     DtypeObj,
     F,
+    IgnoreRaise,
     Shape,
     npt,
 )
@@ -501,7 +502,9 @@ class Block(PandasObject):
         return self.values.dtype
 
     @final
-    def astype(self, dtype: DtypeObj, copy: bool = False, errors: str = "raise"):
+    def astype(
+        self, dtype: DtypeObj, copy: bool = False, errors: IgnoreRaise = "raise"
+    ):
         """
         Coerce to the new dtype.
 
