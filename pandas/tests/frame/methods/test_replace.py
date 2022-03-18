@@ -661,21 +661,6 @@ class TestDataFrameReplace:
         result = df.replace({"col": {-1: "-", 1: "a", 4: "b"}})
         tm.assert_frame_equal(expected, result)
 
-    def test_replace_numpy_nan(self, nulls_fixture):
-        # GH#45725 ensure numpy.nan can be replaced with all other null types
-        to_replace = np.nan
-        value = nulls_fixture
-        dtype = object
-        df = DataFrame({"A": [to_replace]}, dtype=dtype)
-        expected = DataFrame({"A": [value]}, dtype=dtype)
-
-        result = df.replace({to_replace: value}).astype(dtype=dtype)
-        tm.assert_frame_equal(result, expected)
-
-        # same thing but different calling convention
-        result = df.replace(to_replace, value).astype(dtype=dtype)
-        tm.assert_frame_equal(result, expected)
-
     def test_replace_NA_with_None(self):
         # gh-45601
         df = DataFrame({"value": [42, None]}).astype({"value": "Int64"})
