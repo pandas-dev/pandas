@@ -4,19 +4,52 @@ channels:
 dependencies:
   - python=3.8
 
-  # tools
-  - cython>=0.29.24
+  # test dependencies
+  - cython=0.29.24
   - pytest>=6.0
+  - pytest-cov
   - pytest-xdist>=1.31
   - hypothesis>=5.5.3
+  - psutil
   - pytest-asyncio
+  - boto3
 
-  # pandas dependencies
-  - botocore>=1.11
-  - flask
-  - moto
-  - numpy
+  # required dependencies
   - python-dateutil
+  - numpy
   - pytz
+
+  # optional dependencies
+  - beautifulsoup4
+  - blosc
+  - bottleneck
+  - brotlipy
+  - fastparquet
+  - fsspec
+  - html5lib
+  - gcsfs
+  - jinja2
+  - lxml
+  - matplotlib
+  - numba
+  - numexpr
+  - openpyxl
+  - odfpy
+  - pandas-gbq
+  - psycopg2
+  - pyarrow
+  - pymysql
+  # Not provided on ARM
+  #- pyreadstat
+  - pytables
+  - python-snappy
+  - pyxlsb
+  - s3fs
+  - scipy
+  - sqlalchemy
+  - tabulate
+  - xarray
+  - xlrd
+  - xlsxwriter
+  - xlwt
   - zstandard
-  - pip
