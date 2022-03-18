@@ -19,6 +19,9 @@ from cpython.object cimport (
 
 PyDateTime_IMPORT
 
+cimport numpy as cnp
+
+cnp.import_array()
 from numpy cimport int64_t
 
 from pandas._libs.tslibs.util cimport get_c_string_buf_and_size
@@ -41,6 +44,8 @@ cdef extern from "src/datetime/np_datetime.h":
                                              ) nogil
 
     npy_datetimestruct _NS_MIN_DTS, _NS_MAX_DTS
+
+    PyArray_DatetimeMetaData get_datetime_metadata_from_dtype(cnp.PyArray_Descr *dtype);
 
 cdef extern from "src/datetime/np_datetime_strings.h":
     int parse_iso_8601_datetime(const char *str, int len, int want_exc,
@@ -73,6 +78,22 @@ cdef inline NPY_DATETIMEUNIT get_datetime64_unit(object obj) nogil:
     returns the unit part of the dtype for a numpy datetime64 object.
     """
     return <NPY_DATETIMEUNIT>(<PyDatetimeScalarObject*>obj).obmeta.base
+
+
+cdef NPY_DATETIMEUNIT get_unit_from_dtype(cnp.dtype dtype):
+    # NB: caller is responsible for ensuring this is *some* datetime64 or
+    #  timedelta64 dtype, otherwise we can segfault
+    cdef:
+        cnp.PyArray_Descr* descr = <cnp.PyArray_Descr*>dtype
+        PyArray_DatetimeMetaData meta
+    meta = get_datetime_metadata_from_dtype(descr)
+    return meta.base
+
+
+def py_get_unit_from_dtype(dtype):
+    # for testing get_unit_from_dtype; adds 896 bytes to the .so file.
+    return get_unit_from_dtype(dtype)
+
 
 # ----------------------------------------------------------------------
 # Comparison

@@ -75,5 +75,12 @@ int cmp_npy_datetimestruct(const npy_datetimestruct *a,
 void
 add_minutes_to_datetimestruct(npy_datetimestruct *dts, int minutes);
 
+/*
+ * This function returns the DateTimeMetaData
+ * contained within the provided datetime dtype.
+ */
+PyArray_DatetimeMetaData get_datetime_metadata_from_dtype(
+        PyArray_Descr *dtype);
+
 
 #endif  // PANDAS__LIBS_TSLIBS_SRC_DATETIME_NP_DATETIME_H_
