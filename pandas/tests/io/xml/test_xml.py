@@ -14,11 +14,16 @@ import pytest
 
 from pandas.compat import is_ci_environment
 from pandas.compat._optional import import_optional_dependency
+from pandas.errors import (
+    EmptyDataError,
+    ParserError,
+)
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame
 import pandas._testing as tm
 
+from pandas.io.common import get_handle
 from pandas.io.xml import read_xml
 
 """
@@ -243,6 +248,21 @@ def parser(request):
     return request.param
 
 
+def read_xml_iterparse(data, **kwargs):
+    with tm.ensure_clean() as path:
+        with open(path, "w") as f:
+            f.write(data)
+        return read_xml(path, **kwargs)
+
+
+def read_xml_iterparse_comp(comp_path, compression_only, **kwargs):
+    with get_handle(comp_path, "r", compression=compression_only) as handles:
+        with tm.ensure_clean() as path:
+            with open(path, "w") as f:
+                f.write(handles.handle.read())
+            return read_xml(path, **kwargs)
+
+
 # FILE / URL
 
 
@@ -252,12 +272,24 @@ def test_parser_consistency_file(datapath):
     df_file_lxml = read_xml(filename, parser="lxml")
     df_file_etree = read_xml(filename, parser="etree")
 
+    df_iter_lxml = read_xml(
+        filename,
+        parser="lxml",
+        iterparse={"book": ["category", "title", "year", "author", "price"]},
+    )
+    df_iter_etree = read_xml(
+        filename,
+        parser="etree",
+        iterparse={"book": ["category", "title", "year", "author", "price"]},
+    )
+
     tm.assert_frame_equal(df_file_lxml, df_file_etree)
+    tm.assert_frame_equal(df_file_lxml, df_iter_lxml)
+    tm.assert_frame_equal(df_iter_lxml, df_iter_etree)
 
 
 @pytest.mark.network
 @pytest.mark.slow
-@td.skip_if_no("lxml")
 @tm.network(
     url=(
         "https://data.cityofchicago.org/api/views/"
@@ -265,15 +297,47 @@ def test_parser_consistency_file(datapath):
     ),
     check_before_test=True,
 )
-def test_parser_consistency_url():
+def test_parser_consistency_url(parser):
     url = (
         "https://data.cityofchicago.org/api/views/"
         "8pix-ypme/rows.xml?accessType=DOWNLOAD"
     )
-    df_url_lxml = read_xml(url, xpath=".//row/row", parser="lxml")
-    df_url_etree = read_xml(url, xpath=".//row/row", parser="etree")
 
-    tm.assert_frame_equal(df_url_lxml, df_url_etree)
+    with tm.ensure_clean(filename="cta.xml") as path:
+        (read_xml(url, xpath=".//row/row", parser=parser).to_xml(path, index=False))
+
+        df_xpath = read_xml(path, parser=parser)
+        df_iter = read_xml(
+            path,
+            parser=parser,
+            iterparse={
+                "row": [
+                    "_id",
+                    "_uuid",
+                    "_position",
+                    "_address",
+                    "stop_id",
+                    "direction_id",
+                    "stop_name",
+                    "station_name",
+                    "station_descriptive_name",
+                    "map_id",
+                    "ada",
+                    "red",
+                    "blue",
+                    "g",
+                    "brn",
+                    "p",
+                    "pexp",
+                    "y",
+                    "pnk",
+                    "o",
+                    "location",
+                ]
+            },
+        )
+
+    tm.assert_frame_equal(df_xpath, df_iter)
 
 
 def test_file_like(datapath, parser, mode):
@@ -479,6 +543,12 @@ def test_default_namespace(parser):
         parser=parser,
     )
 
+    df_iter = read_xml_iterparse(
+        xml_default_nmsp,
+        parser=parser,
+        iterparse={"row": ["shape", "degrees", "sides"]},
+    )
+
     df_expected = DataFrame(
         {
             "shape": ["square", "circle", "triangle"],
@@ -488,6 +558,7 @@ def test_default_namespace(parser):
     )
 
     tm.assert_frame_equal(df_nmsp, df_expected)
+    tm.assert_frame_equal(df_iter, df_expected)
 
 
 def test_prefix_namespace(parser):
@@ -497,6 +568,9 @@ def test_prefix_namespace(parser):
         namespaces={"doc": "http://example.com"},
         parser=parser,
     )
+    df_iter = read_xml_iterparse(
+        xml_prefix_nmsp, parser=parser, iterparse={"row": ["shape", "degrees", "sides"]}
+    )
 
     df_expected = DataFrame(
         {
@@ -507,6 +581,7 @@ def test_prefix_namespace(parser):
     )
 
     tm.assert_frame_equal(df_nmsp, df_expected)
+    tm.assert_frame_equal(df_iter, df_expected)
 
 
 @td.skip_if_no("lxml")
@@ -591,6 +666,11 @@ def test_none_namespace_prefix(key):
 def test_file_elems_and_attrs(datapath, parser):
     filename = datapath("io", "data", "xml", "books.xml")
     df_file = read_xml(filename, parser=parser)
+    df_iter = read_xml(
+        filename,
+        parser=parser,
+        iterparse={"book": ["category", "title", "author", "year", "price"]},
+    )
     df_expected = DataFrame(
         {
             "category": ["cooking", "children", "web"],
@@ -602,19 +682,27 @@ def test_file_elems_and_attrs(datapath, parser):
     )
 
     tm.assert_frame_equal(df_file, df_expected)
+    tm.assert_frame_equal(df_iter, df_expected)
 
 
 def test_file_only_attrs(datapath, parser):
     filename = datapath("io", "data", "xml", "books.xml")
     df_file = read_xml(filename, attrs_only=True, parser=parser)
+    df_iter = read_xml(filename, parser=parser, iterparse={"book": ["category"]})
     df_expected = DataFrame({"category": ["cooking", "children", "web"]})
 
     tm.assert_frame_equal(df_file, df_expected)
+    tm.assert_frame_equal(df_iter, df_expected)
 
 
 def test_file_only_elems(datapath, parser):
     filename = datapath("io", "data", "xml", "books.xml")
     df_file = read_xml(filename, elems_only=True, parser=parser)
+    df_iter = read_xml(
+        filename,
+        parser=parser,
+        iterparse={"book": ["title", "author", "year", "price"]},
+    )
     df_expected = DataFrame(
         {
             "title": ["Everyday Italian", "Harry Potter", "Learning XML"],
@@ -625,6 +713,7 @@ def test_file_only_elems(datapath, parser):
     )
 
     tm.assert_frame_equal(df_file, df_expected)
+    tm.assert_frame_equal(df_iter, df_expected)
 
 
 def test_elem_and_attrs_only(datapath, parser):
@@ -661,7 +750,13 @@ def test_attribute_centric_xml():
     df_lxml = read_xml(xml, xpath=".//station")
     df_etree = read_xml(xml, xpath=".//station", parser="etree")
 
+    df_iter_lx = read_xml_iterparse(xml, iterparse={"station": ["Name", "coords"]})
+    df_iter_et = read_xml_iterparse(
+        xml, parser="etree", iterparse={"station": ["Name", "coords"]}
+    )
+
     tm.assert_frame_equal(df_lxml, df_etree)
+    tm.assert_frame_equal(df_iter_lx, df_iter_et)
 
 
 # NAMES
@@ -671,6 +766,12 @@ def test_names_option_output(datapath, parser):
     filename = datapath("io", "data", "xml", "books.xml")
     df_file = read_xml(
         filename, names=["Col1", "Col2", "Col3", "Col4", "Col5"], parser=parser
+    )
+    df_iter = read_xml(
+        filename,
+        parser=parser,
+        names=["Col1", "Col2", "Col3", "Col4", "Col5"],
+        iterparse={"book": ["category", "title", "author", "year", "price"]},
     )
 
     df_expected = DataFrame(
@@ -684,6 +785,7 @@ def test_names_option_output(datapath, parser):
     )
 
     tm.assert_frame_equal(df_file, df_expected)
+    tm.assert_frame_equal(df_iter, df_expected)
 
 
 def test_names_option_wrong_length(datapath, parser):
@@ -736,10 +838,25 @@ def test_ascii_encoding(datapath, parser):
 @td.skip_if_no("lxml")
 def test_parser_consistency_with_encoding(datapath):
     filename = datapath("io", "data", "xml", "baby_names.xml")
-    df_lxml = read_xml(filename, parser="lxml", encoding="ISO-8859-1")
-    df_etree = read_xml(filename, parser="etree", encoding="iso-8859-1")
+    df_xpath_lxml = read_xml(filename, parser="lxml", encoding="ISO-8859-1")
+    df_xpath_etree = read_xml(filename, parser="etree", encoding="iso-8859-1")
 
-    tm.assert_frame_equal(df_lxml, df_etree)
+    df_iter_lxml = read_xml(
+        filename,
+        parser="lxml",
+        encoding="ISO-8859-1",
+        iterparse={"row": ["rank", "malename", "femalename"]},
+    )
+    df_iter_etree = read_xml(
+        filename,
+        parser="etree",
+        encoding="ISO-8859-1",
+        iterparse={"row": ["rank", "malename", "femalename"]},
+    )
+
+    tm.assert_frame_equal(df_xpath_lxml, df_xpath_etree)
+    tm.assert_frame_equal(df_xpath_etree, df_iter_etree)
+    tm.assert_frame_equal(df_iter_lxml, df_iter_etree)
 
 
 @td.skip_if_no("lxml")
@@ -805,7 +922,22 @@ def test_stylesheet_file(datapath):
         stylesheet=xsl,
     )
 
+    df_iter = read_xml(
+        kml,
+        iterparse={
+            "Placemark": [
+                "id",
+                "name",
+                "styleUrl",
+                "extrude",
+                "altitudeMode",
+                "coordinates",
+            ]
+        },
+    )
+
     tm.assert_frame_equal(df_kml, df_style)
+    tm.assert_frame_equal(df_kml, df_iter)
 
 
 def test_read_xml_passing_as_positional_deprecated(datapath, parser):
@@ -1029,6 +1161,143 @@ def test_empty_stylesheet(val):
         read_xml(kml, stylesheet=val)
 
 
+# ITERPARSE
+
+
+def test_string_error(parser):
+    with pytest.raises(
+        ParserError, match=("iterparse is designed for large XML files")
+    ):
+        read_xml(
+            xml_default_nmsp,
+            parser=parser,
+            iterparse={"row": ["shape", "degrees", "sides", "date"]},
+        )
+
+
+def test_file_like_error(datapath, parser, mode):
+    filename = datapath("io", "data", "xml", "books.xml")
+    with pytest.raises(
+        ParserError, match=("iterparse is designed for large XML files")
+    ):
+        with open(filename) as f:
+            read_xml(
+                f,
+                parser=parser,
+                iterparse={"book": ["category", "title", "year", "author", "price"]},
+            )
+
+
+@pytest.mark.network
+@tm.network(url="https://www.w3schools.com/xml/books.xml", check_before_test=True)
+def test_url_path_error(parser):
+    url = "https://www.w3schools.com/xml/books.xml"
+    with pytest.raises(
+        ParserError, match=("iterparse is designed for large XML files")
+    ):
+        read_xml(
+            url,
+            parser=parser,
+            iterparse={"row": ["shape", "degrees", "sides", "date"]},
+        )
+
+
+def test_compression_error(parser, compression_only):
+    with tm.ensure_clean(filename="geom_xml.zip") as path:
+        geom_df.to_xml(path, parser=parser, compression=compression_only)
+
+        with pytest.raises(
+            ParserError, match=("iterparse is designed for large XML files")
+        ):
+            read_xml(
+                path,
+                parser=parser,
+                iterparse={"row": ["shape", "degrees", "sides", "date"]},
+                compression=compression_only,
+            )
+
+
+def test_wrong_dict_type(datapath, parser):
+    filename = datapath("io", "data", "xml", "books.xml")
+    with pytest.raises(TypeError, match="list is not a valid type for iterparse"):
+        read_xml(
+            filename,
+            parser=parser,
+            iterparse=["category", "title", "year", "author", "price"],
+        )
+
+
+def test_wrong_dict_value(datapath, parser):
+    filename = datapath("io", "data", "xml", "books.xml")
+    with pytest.raises(
+        TypeError, match="<class 'str'> is not a valid type for value in iterparse"
+    ):
+        read_xml(filename, parser=parser, iterparse={"book": "category"})
+
+
+def test_bad_xml(datapath, parser):
+    bad_xml = """\
+<?xml version='1.0' encoding='utf-8'?>
+  <row>
+    <shape>square</shape>
+    <degrees>00360</degrees>
+    <sides>4.0</sides>
+    <date>2020-01-01</date>
+   </row>
+  <row>
+    <shape>circle</shape>
+    <degrees>00360</degrees>
+    <sides/>
+    <date>2021-01-01</date>
+  </row>
+  <row>
+    <shape>triangle</shape>
+    <degrees>00180</degrees>
+    <sides>3.0</sides>
+    <date>2022-01-01</date>
+  </row>
+"""
+    with tm.ensure_clean(filename="bad.xml") as path:
+        with open(path, "w") as f:
+            f.write(bad_xml)
+
+        with pytest.raises(
+            SyntaxError,
+            match=(
+                "Extra content at the end of the document|"
+                "junk after document element"
+            ),
+        ):
+            read_xml(
+                path,
+                parser=parser,
+                parse_dates=["date"],
+                iterparse={"row": ["shape", "degrees", "sides", "date"]},
+            )
+
+
+def test_no_result(datapath, parser):
+    filename = datapath("io", "data", "xml", "books.xml")
+    with pytest.raises(
+        ParserError, match="No result from selected items in iterparse."
+    ):
+        read_xml(
+            filename,
+            parser=parser,
+            iterparse={"node": ["attr1", "elem1", "elem2", "elem3"]},
+        )
+
+
+def test_empty_data(datapath, parser):
+    filename = datapath("io", "data", "xml", "books.xml")
+    with pytest.raises(EmptyDataError, match="No columns to parse from file"):
+        read_xml(
+            filename,
+            parser=parser,
+            iterparse={"book": ["attr1", "elem1", "elem2", "elem3"]},
+        )
+
+
 @pytest.mark.network
 @td.skip_if_no("lxml")
 @tm.network(
@@ -1071,12 +1340,23 @@ def test_online_stylesheet():
 
 
 def test_compression_read(parser, compression_only):
-    with tm.ensure_clean() as path:
-        geom_df.to_xml(path, index=False, parser=parser, compression=compression_only)
+    with tm.ensure_clean() as comp_path:
+        geom_df.to_xml(
+            comp_path, index=False, parser=parser, compression=compression_only
+        )
 
-        xml_df = read_xml(path, parser=parser, compression=compression_only)
+        df_xpath = read_xml(comp_path, parser=parser, compression=compression_only)
 
-    tm.assert_frame_equal(xml_df, geom_df)
+        df_iter = read_xml_iterparse_comp(
+            comp_path,
+            compression_only,
+            parser=parser,
+            iterparse={"row": ["shape", "degrees", "sides"]},
+            compression=compression_only,
+        )
+
+    tm.assert_frame_equal(df_xpath, geom_df)
+    tm.assert_frame_equal(df_iter, geom_df)
 
 
 def test_wrong_compression(parser, compression, compression_only):
