@@ -43,6 +43,7 @@ from pandas._libs.tslibs.timezones cimport (
     is_fixed_offset,
     is_tzlocal,
     is_utc,
+    is_zoneinfo,
 )
 
 
@@ -60,8 +61,8 @@ cdef int64_t tz_localize_to_utc_single(
     elif is_utc(tz) or tz is None:
         return val
 
-    elif is_tzlocal(tz):
-        return _tz_convert_tzlocal_utc(val, tz, to_utc=True)
+    elif is_tzlocal(tz) or is_zoneinfo(tz):
+        return _tz_localize_using_tzinfo_api(val, tz, to_utc=True)
 
     elif is_fixed_offset(tz):
         # TODO: in this case we should be able to use get_utcoffset,
@@ -136,13 +137,13 @@ timedelta-like}
 
     result = np.empty(n, dtype=np.int64)
 
-    if is_tzlocal(tz):
+    if is_tzlocal(tz) or is_zoneinfo(tz):
         for i in range(n):
             v = vals[i]
             if v == NPY_NAT:
                 result[i] = NPY_NAT
             else:
-                result[i] = _tz_convert_tzlocal_utc(v, tz, to_utc=True)
+                result[i] = _tz_localize_using_tzinfo_api(v, tz, to_utc=True)
         return result
 
     # silence false-positive compiler warning
@@ -402,7 +403,7 @@ cdef ndarray[int64_t] _get_dst_hours(
 # ----------------------------------------------------------------------
 # Timezone Conversion
 
-cdef int64_t tz_convert_utc_to_tzlocal(
+cdef int64_t tz_convert_utc_to_tz(
     int64_t utc_val, tzinfo tz, bint* fold=NULL
 ) except? -1:
     """
@@ -418,7 +419,7 @@ cdef int64_t tz_convert_utc_to_tzlocal(
     -------
     local_val : int64_t
     """
-    return _tz_convert_tzlocal_utc(utc_val, tz, to_utc=False, fold=fold)
+    return _tz_localize_using_tzinfo_api(utc_val, tz, to_utc=False, fold=fold)
 
 
 cpdef int64_t tz_convert_from_utc_single(int64_t val, tzinfo tz):
@@ -448,8 +449,8 @@ cpdef int64_t tz_convert_from_utc_single(int64_t val, tzinfo tz):
 
     if is_utc(tz):
         return val
-    elif is_tzlocal(tz):
-        return _tz_convert_tzlocal_utc(val, tz, to_utc=False)
+    elif is_tzlocal(tz) or is_zoneinfo(tz):
+        return _tz_localize_using_tzinfo_api(val, tz, to_utc=False)
     elif is_fixed_offset(tz):
         _, deltas, _ = get_dst_info(tz)
         delta = deltas[0]
@@ -515,7 +516,7 @@ cdef const int64_t[:] _tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
 
     if is_utc(tz) or tz is None:
         use_utc = True
-    elif is_tzlocal(tz):
+    elif is_tzlocal(tz) or is_zoneinfo(tz):
         use_tzlocal = True
     else:
         trans, deltas, typ = get_dst_info(tz)
@@ -539,7 +540,7 @@ cdef const int64_t[:] _tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
         # The pattern used in vectorized.pyx checks for use_utc here,
         #  but we handle that case above.
         if use_tzlocal:
-            converted[i] = _tz_convert_tzlocal_utc(val, tz, to_utc=False)
+            converted[i] = _tz_localize_using_tzinfo_api(val, tz, to_utc=False)
         elif use_fixed:
             converted[i] = val + delta
         else:
@@ -551,11 +552,12 @@ cdef const int64_t[:] _tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
 
 # OSError may be thrown by tzlocal on windows at or close to 1970-01-01
 #  see https://github.com/pandas-dev/pandas/pull/37591#issuecomment-720628241
-cdef int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz, bint to_utc=True,
-                                     bint* fold=NULL) except? -1:
+cdef int64_t _tz_localize_using_tzinfo_api(
+    int64_t val, tzinfo tz, bint to_utc=True, bint* fold=NULL
+) except? -1:
     """
-    Convert the i8 representation of a datetime from a tzlocal timezone to
-    UTC, or vice-versa.
+    Convert the i8 representation of a datetime from a general-case timezone to
+    UTC, or vice-versa using the datetime/tzinfo API.
 
     Private, not intended for use outside of tslibs.conversion
 
@@ -564,10 +566,10 @@ cdef int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz, bint to_utc=True,
     val : int64_t
     tz : tzinfo
     to_utc : bint
-        True if converting tzlocal _to_ UTC, False if going the other direction
+        True if converting _to_ UTC, False if going the other direction.
     fold : bint*, default NULL
         pointer to fold: whether datetime ends up in a fold or not
-        after adjustment
+        after adjustment.
         Only passed with to_utc=False.
 
     Returns

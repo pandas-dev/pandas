@@ -30,6 +30,7 @@ from datetime import (
 from decimal import Decimal
 import operator
 import os
+import zoneinfo
 
 from dateutil.tz import (
     tzlocal,
@@ -1165,6 +1166,7 @@ TIMEZONES = [
     timezone.utc,
     timezone(timedelta(hours=1)),
     timezone(timedelta(hours=-1), name="foo"),
+    zoneinfo.ZoneInfo("US/Pacific"),
 ]
 TIMEZONE_IDS = [repr(i) for i in TIMEZONES]
 

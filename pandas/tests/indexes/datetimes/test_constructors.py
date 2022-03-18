@@ -5,6 +5,7 @@ from datetime import (
 )
 from functools import partial
 from operator import attrgetter
+import zoneinfo
 
 import dateutil
 import numpy as np
@@ -1128,7 +1129,9 @@ def test_timestamp_constructor_retain_fold(tz, fold):
     assert result == expected
 
 
-@pytest.mark.parametrize("tz", ["dateutil/Europe/London"])
+@pytest.mark.parametrize(
+    "tz", ["dateutil/Europe/London", zoneinfo.ZoneInfo("Europe/London")]
+)
 @pytest.mark.parametrize(
     "ts_input,fold_out",
     [

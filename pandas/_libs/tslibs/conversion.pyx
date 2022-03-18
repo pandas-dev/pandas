@@ -51,6 +51,7 @@ from pandas._libs.tslibs.timezones cimport (
     is_fixed_offset,
     is_tzlocal,
     is_utc,
+    is_zoneinfo,
     maybe_get_tz,
     tz_compare,
     utc_pytz as UTC,
@@ -71,7 +72,7 @@ from pandas._libs.tslibs.nattype cimport (
 )
 from pandas._libs.tslibs.tzconversion cimport (
     bisect_right_i8,
-    tz_convert_utc_to_tzlocal,
+    tz_convert_utc_to_tz,
     tz_localize_to_utc_single,
 )
 
@@ -555,8 +556,8 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
     # see PEP 495 https://www.python.org/dev/peps/pep-0495/#the-fold-attribute
     if is_utc(tz):
         pass
-    elif is_tzlocal(tz):
-        tz_convert_utc_to_tzlocal(obj.value, tz, &obj.fold)
+    elif is_tzlocal(tz) or is_zoneinfo(tz):
+        tz_convert_utc_to_tz(obj.value, tz, &obj.fold)
     else:
         trans, deltas, typ = get_dst_info(tz)
 
@@ -724,8 +725,8 @@ cdef inline void _localize_tso(_TSObject obj, tzinfo tz):
         pass
     elif obj.value == NPY_NAT:
         pass
-    elif is_tzlocal(tz):
-        local_val = tz_convert_utc_to_tzlocal(obj.value, tz, &obj.fold)
+    elif is_tzlocal(tz) or is_zoneinfo(tz):
+        local_val = tz_convert_utc_to_tz(obj.value, tz, &obj.fold)
         dt64_to_dtstruct(local_val, &obj.dts)
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct

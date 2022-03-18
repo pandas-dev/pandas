@@ -2,6 +2,7 @@ from datetime import (
     timedelta,
     timezone,
 )
+from zoneinfo import ZoneInfo
 
 from cpython.datetime cimport (
     datetime,
@@ -41,7 +42,7 @@ cdef int64_t NPY_NAT = get_nat()
 cdef tzinfo utc_stdlib = timezone.utc
 cdef tzinfo utc_pytz = UTC
 cdef tzinfo utc_dateutil_str = dateutil_gettz("UTC")  # NB: *not* the same as tzutc()
-
+cdef tzinfo utc_zoneinfo = ZoneInfo("UTC")
 
 # ----------------------------------------------------------------------
 
@@ -51,7 +52,13 @@ cpdef inline bint is_utc(tzinfo tz):
         or tz is utc_stdlib
         or isinstance(tz, _dateutil_tzutc)
         or tz is utc_dateutil_str
+        # NB: we are assuming the user does not clear zoneinfo cache
+        or tz is utc_zoneinfo
     )
+
+
+cdef inline bint is_zoneinfo(tzinfo tz):
+    return isinstance(tz, ZoneInfo)
 
 
 cdef inline bint is_tzlocal(tzinfo tz):
@@ -210,6 +217,8 @@ cdef inline bint is_fixed_offset(tzinfo tz):
             return 1
         else:
             return 0
+    elif is_zoneinfo(tz):
+        return False
     # This also implicitly accepts datetime.timezone objects which are
     # considered fixed
     return 1
@@ -264,6 +273,8 @@ cdef object get_dst_info(tzinfo tz):
         # e.g. pytz.FixedOffset, matplotlib.dates._UTC,
         # psycopg2.tz.FixedOffsetTimezone
         num = int(get_utcoffset(tz, None).total_seconds()) * 1_000_000_000
+        # If we have e.g. ZoneInfo here, the get_utcoffset call will return None,
+        #  so the total_seconds() call will raise AttributeError.
         return (np.array([NPY_NAT + 1], dtype=np.int64),
                 np.array([num], dtype=np.int64),
                 "unknown")
@@ -291,13 +302,13 @@ cdef object get_dst_info(tzinfo tz):
                 # deltas
                 deltas = np.array([v.offset for v in (
                     tz._ttinfo_before,) + tz._trans_idx], dtype='i8')
-                deltas *= 1000000000
+                deltas *= 1_000_000_000
                 typ = 'dateutil'
 
             elif is_fixed_offset(tz):
                 trans = np.array([NPY_NAT + 1], dtype=np.int64)
                 deltas = np.array([tz._ttinfo_std.offset],
-                                  dtype='i8') * 1000000000
+                                  dtype='i8') * 1_000_000_000
                 typ = 'fixed'
             else:
                 # 2018-07-12 this is not reached in the tests, and this case
