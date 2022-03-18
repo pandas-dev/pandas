@@ -91,7 +91,7 @@ class StylerRenderer:
         caption: str | tuple | None = None,
         cell_ids: bool = True,
         precision: int | None = None,
-    ):
+    ) -> None:
 
         # validate ordered args
         if isinstance(data, Series):
@@ -436,7 +436,7 @@ class StylerRenderer:
             Looping variables from outer scope
         max_cols : int
             Permissible number of columns
-        col_lenths :
+        col_lengths :
             c
 
         Returns
@@ -1875,7 +1875,7 @@ class Tooltips:
         ],
         css_name: str = "pd-t",
         tooltips: DataFrame = DataFrame(),
-    ):
+    ) -> None:
         self.class_name = css_name
         self.class_properties = css_props
         self.tt_data = tooltips

@@ -759,10 +759,6 @@ class SetitemCastingEquivalents:
         self._check_inplace(is_inplace, orig, arr, obj)
 
     def test_index_where(self, obj, key, expected, val):
-        if obj.dtype.kind == "c" or expected.dtype.kind == "c":
-            # TODO(Index[complex]): Should become unreachable
-            pytest.skip("test not applicable for this dtype")
-
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
 
@@ -770,10 +766,6 @@ class SetitemCastingEquivalents:
         tm.assert_index_equal(res, Index(expected, dtype=expected.dtype))
 
     def test_index_putmask(self, obj, key, expected, val):
-        if obj.dtype.kind == "c" or expected.dtype.kind == "c":
-            # TODO(Index[complex]): Should become unreachable
-            pytest.skip("test not applicable for this dtype")
-
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
 
