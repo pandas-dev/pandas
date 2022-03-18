@@ -146,12 +146,11 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame(
             {
                 "A": [1, 2, 3, 4, 5],
-                "B": [1.0, 2.0, 3.0, 4.0, 5.0],
-                "C": [7, 5, np.nan, 3, 2],
+                "B": [1, 2, 3, 4, 5],
+                "C": np.array([7, 5, np.nan, 3, 2], dtype=object),
                 "D": pd.to_datetime(dates, format="%Y").view("i8"),
                 "E": pd.to_datetime(dates, format="%Y", utc=True).view("i8"),
-            },
-            dtype=np.int64,
+            }
         )
 
         _check_plot_works(df.plot, x="A", y="B")
@@ -786,6 +785,27 @@ class TestDataFramePlots(TestPlotBase):
 
         ax = df.plot.scatter(x="a", y="b", s="c")
         tm.assert_numpy_array_equal(df["c"].values, right=ax.collections[0].get_sizes())
+
+    def test_plot_scatter_with_norm(self):
+        # added while fixing GH 45809
+        import matplotlib as mpl
+
+        df = DataFrame(np.random.random((10, 3)) * 100, columns=["a", "b", "c"])
+        norm = mpl.colors.LogNorm()
+        ax = df.plot.scatter(x="a", y="b", c="c", norm=norm)
+        assert ax.collections[0].norm is norm
+
+    def test_plot_scatter_without_norm(self):
+        # added while fixing GH 45809
+        import matplotlib as mpl
+
+        df = DataFrame(np.random.random((10, 3)) * 100, columns=["a", "b", "c"])
+        ax = df.plot.scatter(x="a", y="b", c="c")
+        plot_norm = ax.collections[0].norm
+        color_min_max = (df.c.min(), df.c.max())
+        default_norm = mpl.colors.Normalize(*color_min_max)
+        for value in df.c:
+            assert plot_norm(value) == default_norm(value)
 
     @pytest.mark.slow
     def test_plot_bar(self):

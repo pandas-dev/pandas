@@ -9,6 +9,7 @@ from cpython.object cimport (
     PyObject_RichCompareBool,
 )
 from numpy cimport (
+    int32_t,
     int64_t,
     ndarray,
 )
@@ -95,6 +96,7 @@ from pandas._libs.tslibs.dtypes cimport (
     FR_WK,
     PeriodDtypeBase,
     attrname_to_abbrevs,
+    freq_group_code_to_npy_unit,
 )
 from pandas._libs.tslibs.parsing cimport quarter_to_myear
 
@@ -689,8 +691,7 @@ cdef char* c_strftime(npy_datetimestruct *dts, char *fmt):
 # Conversion between date_info and npy_datetimestruct
 
 cdef inline int get_freq_group(int freq) nogil:
-    # Note: this is equivalent to libfrequencies.get_freq_group, specialized
-    #  to integer argument.
+    # See also FreqGroup.get_freq_group
     return (freq // 1000) * 1000
 
 
@@ -806,34 +807,8 @@ cdef int64_t get_period_ordinal(npy_datetimestruct *dts, int freq) nogil:
         unix_date = npy_datetimestruct_to_datetime(NPY_FR_D, dts)
         return DtoB(dts, 0, unix_date)
 
-    unit = get_unit(freq)
+    unit = freq_group_code_to_npy_unit(freq)
     return npy_datetimestruct_to_datetime(unit, dts)
-
-
-cdef NPY_DATETIMEUNIT get_unit(int freq) nogil:
-    """
-    Convert the freq to the corresponding NPY_DATETIMEUNIT to pass
-    to npy_datetimestruct_to_datetime.
-    """
-    if freq == FR_MTH:
-        return NPY_DATETIMEUNIT.NPY_FR_M
-    elif freq == FR_DAY:
-        return NPY_DATETIMEUNIT.NPY_FR_D
-    elif freq == FR_HR:
-        return NPY_DATETIMEUNIT.NPY_FR_h
-    elif freq == FR_MIN:
-        return NPY_DATETIMEUNIT.NPY_FR_m
-    elif freq == FR_SEC:
-        return NPY_DATETIMEUNIT.NPY_FR_s
-    elif freq == FR_MS:
-        return NPY_DATETIMEUNIT.NPY_FR_ms
-    elif freq == FR_US:
-        return NPY_DATETIMEUNIT.NPY_FR_us
-    elif freq == FR_NS:
-        return NPY_DATETIMEUNIT.NPY_FR_ns
-    elif freq == FR_UND:
-        # Default to Day
-        return NPY_DATETIMEUNIT.NPY_FR_D
 
 
 cdef void get_date_info(int64_t ordinal, int freq, npy_datetimestruct *dts) nogil:
@@ -1243,10 +1218,14 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt):
         char *formatted
         bytes pat, brepl
         list found_pat = [False] * len(extra_fmts)
-        int year, quarter
+        int quarter
+        int32_t us, ps
         str result, repl
 
     get_date_info(value, freq, &dts)
+
+    # Find our additional directives in the pattern and replace them with
+    # placeholders that are not processed by c_strftime
     for i in range(len(extra_fmts)):
         pat = extra_fmts[i][0]
         brepl = extra_fmts[i][1]
@@ -1254,28 +1233,41 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt):
             fmt = fmt.replace(pat, brepl)
             found_pat[i] = True
 
+    # Execute c_strftime to process the usual datetime directives
     formatted = c_strftime(&dts, <char*>fmt)
 
     result = util.char_to_string(formatted)
     free(formatted)
 
+    # Now we will fill the placeholders corresponding to our additional directives
+
+    # First prepare the contents
+    # Save these to local vars as dts can be modified by get_yq below
+    us = dts.us
+    ps = dts.ps
+    if any(found_pat[0:3]):
+        # Note: this modifies `dts` in-place so that year becomes fiscal year
+        # However it looses the us and ps
+        quarter = get_yq(value, freq, &dts)
+    else:
+        quarter = 0
+
+    # Now do the filling per se
     for i in range(len(extra_fmts)):
         if found_pat[i]:
 
-            quarter = get_yq(value, freq, &dts)
-
-            if i == 0:
-                repl = str(quarter)
-            elif i == 1:  # %f, 2-digit year
+            if i == 0:  # %q, 1-digit quarter.
+                repl = f"{quarter}"
+            elif i == 1:  # %f, 2-digit 'Fiscal' year
                 repl = f"{(dts.year % 100):02d}"
-            elif i == 2:
+            elif i == 2:  # %F, 'Fiscal' year with a century
                 repl = str(dts.year)
-            elif i == 3:
-                repl = f"{(value % 1_000):03d}"
-            elif i == 4:
-                repl = f"{(value % 1_000_000):06d}"
-            elif i == 5:
-                repl = f"{(value % 1_000_000_000):09d}"
+            elif i == 3:  # %l, milliseconds
+                repl = f"{(us // 1_000):03d}"
+            elif i == 4:  # %u, microseconds
+                repl = f"{(us):06d}"
+            elif i == 5:  # %n, nanoseconds
+                repl = f"{((us * 1000) + (ps // 1000)):09d}"
 
             result = result.replace(str_extra_fmts[i], repl)
 
@@ -1545,25 +1537,6 @@ class IncompatibleFrequency(ValueError):
 cdef class PeriodMixin:
     # Methods shared between Period and PeriodArray
 
-    cpdef int _get_to_timestamp_base(self):
-        """
-        Return frequency code group used for base of to_timestamp against
-        frequency code.
-
-        Return day freq code against longer freq than day.
-        Return second freq code against hour between second.
-
-        Returns
-        -------
-        int
-        """
-        base = self._dtype._dtype_code
-        if base < FR_BUS:
-            return FR_DAY
-        elif FR_HR <= base <= FR_SEC:
-            return FR_SEC
-        return base
-
     @property
     def start_time(self) -> Timestamp:
         """
@@ -1668,7 +1641,7 @@ cdef class _Period(PeriodMixin):
         if isinstance(freq, int):
             # We already have a dtype code
             dtype = PeriodDtypeBase(freq)
-            freq = dtype.date_offset
+            freq = dtype._freqstr
 
         freq = to_offset(freq)
 
@@ -1861,7 +1834,7 @@ cdef class _Period(PeriodMixin):
             return endpoint - Timedelta(1, 'ns')
 
         if freq is None:
-            freq = self._get_to_timestamp_base()
+            freq = self._dtype._get_to_timestamp_base()
             base = freq
         else:
             freq = self._maybe_convert_freq(freq)
@@ -2347,7 +2320,8 @@ cdef class _Period(PeriodMixin):
         containing one or several directives.  The method recognizes the same
         directives as the :func:`time.strftime` function of the standard Python
         distribution, as well as the specific additional directives ``%f``,
-        ``%F``, ``%q``. (formatting & docs originally from scikits.timeries).
+        ``%F``, ``%q``, ``%l``, ``%u``, ``%n``.
+        (formatting & docs originally from scikits.timeries).
 
         +-----------+--------------------------------+-------+
         | Directive | Meaning                        | Notes |
@@ -2394,10 +2368,19 @@ cdef class _Period(PeriodMixin):
         |           | AM or PM.                      |       |
         +-----------+--------------------------------+-------+
         | ``%q``    | Quarter as a decimal number    |       |
-        |           | [01,04]                        |       |
+        |           | [1,4]                          |       |
         +-----------+--------------------------------+-------+
         | ``%S``    | Second as a decimal number     | \(4)  |
         |           | [00,61].                       |       |
+        +-----------+--------------------------------+-------+
+        | ``%l``    | Millisecond as a decimal number|       |
+        |           | [000,999].                     |       |
+        +-----------+--------------------------------+-------+
+        | ``%u``    | Microsecond as a decimal number|       |
+        |           | [000000,999999].               |       |
+        +-----------+--------------------------------+-------+
+        | ``%n``    | Nanosecond as a decimal number |       |
+        |           | [000000000,999999999].         |       |
         +-----------+--------------------------------+-------+
         | ``%U``    | Week number of the year        | \(5)  |
         |           | (Sunday as the first day of    |       |

@@ -39,7 +39,10 @@ from pandas._typing import (
     DtypeObj,
     FillnaOptions,
     IndexKeyFunc,
+    Level,
+    NaPosition,
     SingleManager,
+    SortKind,
     StorageOptions,
     TimedeltaConvertibleTypes,
     TimestampConvertibleTypes,
@@ -90,6 +93,7 @@ from pandas.core.dtypes.missing import (
 from pandas.core import (
     algorithms,
     base,
+    common as com,
     missing,
     nanops,
     ops,
@@ -99,7 +103,6 @@ from pandas.core.apply import SeriesApply
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
-import pandas.core.common as com
 from pandas.core.construction import (
     create_series_with_explicit_dtype,
     extract_array,
@@ -233,6 +236,10 @@ class Series(base.IndexOpsMixin, NDFrame):
     copy : bool, default False
         Copy input data. Only affects Series or 1d ndarray input. See examples.
 
+    Notes
+    -----
+    Please reference the :ref:`User Guide <basics.series>` for more information.
+
     Examples
     --------
     Constructing Series from a dictionary with an Index specified
@@ -329,7 +336,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         name=None,
         copy: bool = False,
         fastpath: bool = False,
-    ):
+    ) -> None:
 
         if (
             isinstance(data, (SingleBlockManager, SingleArrayManager))
@@ -1239,7 +1246,6 @@ class Series(base.IndexOpsMixin, NDFrame):
         Reset the cacher.
         """
         if hasattr(self, "_cacher"):
-            # should only get here with self.ndim == 1
             del self._cacher
 
     def _set_as_cached(self, item, cacher) -> None:
@@ -3572,19 +3578,68 @@ Keep all original rows and also all original values
         else:
             return result.__finalize__(self, method="sort_values")
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
+    @overload
     def sort_index(
         self,
-        axis=0,
-        level=None,
-        ascending: bool | int | Sequence[bool | int] = True,
+        *,
+        axis: Axis = ...,
+        level: Level | None = ...,
+        ascending: bool | Sequence[bool] = ...,
+        inplace: Literal[True],
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
+        sort_remaining: bool = ...,
+        ignore_index: bool = ...,
+        key: IndexKeyFunc = ...,
+    ) -> None:
+        ...
+
+    @overload
+    def sort_index(
+        self,
+        *,
+        axis: Axis = ...,
+        level: Level | None = ...,
+        ascending: bool | Sequence[bool] = ...,
+        inplace: Literal[False] = ...,
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
+        sort_remaining: bool = ...,
+        ignore_index: bool = ...,
+        key: IndexKeyFunc = ...,
+    ) -> Series:
+        ...
+
+    @overload
+    def sort_index(
+        self,
+        *,
+        axis: Axis = ...,
+        level: Level | None = ...,
+        ascending: bool | Sequence[bool] = ...,
+        inplace: bool = ...,
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
+        sort_remaining: bool = ...,
+        ignore_index: bool = ...,
+        key: IndexKeyFunc = ...,
+    ) -> Series | None:
+        ...
+
+    # error: Signature of "sort_index" incompatible with supertype "NDFrame"
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
+    def sort_index(  # type: ignore[override]
+        self,
+        axis: Axis = 0,
+        level: Level | None = None,
+        ascending: bool | Sequence[bool] = True,
         inplace: bool = False,
-        kind: str = "quicksort",
-        na_position: str = "last",
+        kind: SortKind = "quicksort",
+        na_position: NaPosition = "last",
         sort_remaining: bool = True,
         ignore_index: bool = False,
         key: IndexKeyFunc = None,
-    ):
+    ) -> Series | None:
         """
         Sort Series by index labels.
 
@@ -3721,15 +3776,15 @@ Keep all original rows and also all original values
         """
 
         return super().sort_index(
-            axis,
-            level,
-            ascending,
-            inplace,
-            kind,
-            na_position,
-            sort_remaining,
-            ignore_index,
-            key,
+            axis=axis,
+            level=level,
+            ascending=ascending,
+            inplace=inplace,
+            kind=kind,
+            na_position=na_position,
+            sort_remaining=sort_remaining,
+            ignore_index=ignore_index,
+            key=key,
         )
 
     def argsort(self, axis=0, kind="quicksort", order=None) -> Series:

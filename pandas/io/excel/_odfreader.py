@@ -41,7 +41,7 @@ class ODFReader(BaseExcelReader):
         self,
         filepath_or_buffer: FilePath | ReadBuffer[bytes],
         storage_options: StorageOptions = None,
-    ):
+    ) -> None:
         import_optional_dependency("odf")
         super().__init__(filepath_or_buffer, storage_options=storage_options)
 
@@ -112,7 +112,11 @@ class ODFReader(BaseExcelReader):
         table: list[list[Scalar | NaTType]] = []
 
         for sheet_row in sheet_rows:
-            sheet_cells = [x for x in sheet_row.childNodes if x.qname in cell_names]
+            sheet_cells = [
+                x
+                for x in sheet_row.childNodes
+                if hasattr(x, "qname") and x.qname in cell_names
+            ]
             empty_cells = 0
             table_row: list[Scalar | NaTType] = []
 
@@ -210,9 +214,7 @@ class ODFReader(BaseExcelReader):
             cell_value = cell.attributes.get((OFFICENS, "date-value"))
             return pd.to_datetime(cell_value)
         elif cell_type == "time":
-            # cast needed because `pd.to_datetime can return NaTType,
-            # but we know this is a valid time
-            stamp = cast(pd.Timestamp, pd.to_datetime(str(cell)))
+            stamp = pd.to_datetime(str(cell))
             # cast needed here because Scalar doesn't include datetime.time
             return cast(Scalar, stamp.time())
         else:
@@ -243,5 +245,5 @@ class ODFReader(BaseExcelReader):
                     # https://github.com/pandas-dev/pandas/pull/36175#discussion_r484639704
                     value.append(self._get_cell_string_value(fragment))
             else:
-                value.append(str(fragment))
+                value.append(str(fragment).strip("\n"))
         return "".join(value)

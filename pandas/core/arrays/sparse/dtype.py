@@ -81,7 +81,7 @@ class SparseDtype(ExtensionDtype):
     # hash(nan) is (sometimes?) 0.
     _metadata = ("_dtype", "_fill_value", "_is_na_fill_value")
 
-    def __init__(self, dtype: Dtype = np.float64, fill_value: Any = None):
+    def __init__(self, dtype: Dtype = np.float64, fill_value: Any = None) -> None:
 
         if isinstance(dtype, type(self)):
             if fill_value is None:
@@ -354,7 +354,9 @@ class SparseDtype(ExtensionDtype):
             if not isinstance(dtype, np.dtype):
                 raise TypeError("sparse arrays of extension dtypes not supported")
 
-            fill_value = astype_nansafe(np.array(self.fill_value), dtype).item()
+            fvarr = astype_nansafe(np.array(self.fill_value), dtype)
+            # NB: not fv_0d.item(), as that casts dt64->int
+            fill_value = fvarr[0]
             dtype = cls(dtype, fill_value=fill_value)
 
         return dtype

@@ -26,7 +26,7 @@ from pandas.tests.extension import base
 
 def split_array(arr):
     if arr.dtype.storage != "pyarrow":
-        pytest.skip("chunked array n/a")
+        pytest.skip("only applicable for pyarrow chunked array n/a")
 
     def _split_array(arr):
         import pyarrow as pa
@@ -156,13 +156,9 @@ class TestNoReduce(base.BaseNoReduceTests):
 
 
 class TestMethods(base.BaseMethodsTests):
-    @pytest.mark.skip(reason="returns nullable")
-    def test_value_counts(self, all_data, dropna):
-        return super().test_value_counts(all_data, dropna)
-
-    @pytest.mark.skip(reason="returns nullable")
+    @pytest.mark.xfail(reason="returns nullable: GH 44692")
     def test_value_counts_with_normalize(self, data):
-        pass
+        super().test_value_counts_with_normalize(data)
 
 
 class TestCasting(base.BaseCastingTests):
