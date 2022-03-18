@@ -361,6 +361,7 @@ def dt64arr_to_periodarr(const int64_t[:] stamps, int freq, tzinfo tz):
         int64_t local_val
         npy_datetimestruct dts
         int64_t[:] result = np.empty(n, dtype=np.int64)
+        bint use_utc=info.use_utc, use_tzlocal=info.use_tzlocal, use_fixed=info.use_fixed
 
     if info.use_dst:
         tdata = <int64_t*>cnp.PyArray_DATA(info.trans)
@@ -370,11 +371,11 @@ def dt64arr_to_periodarr(const int64_t[:] stamps, int freq, tzinfo tz):
             result[i] = NPY_NAT
             continue
 
-        if info.use_utc:
+        if use_utc:
             local_val = stamps[i]
-        elif info.use_tzlocal:
+        elif use_tzlocal:
             local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
-        elif info.use_fixed:
+        elif use_fixed:
             local_val = stamps[i] + info.delta
         else:
             pos = bisect_right_i8(tdata, stamps[i], info.ntrans) - 1
