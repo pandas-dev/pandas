@@ -47,9 +47,9 @@ jobs:
             pattern: "not slow and not network and not single_cpu"
             extra_apt: "language-pack-zh-hans"
             extra_loc: "zh_CN"
-            lang: "zh_CN.utf-8"
-            lc_all: "zh_CN.utf-8"
-            name: "Locale: zh_CN.utf-8"
+            lang: "zh_CN.utf8"
+            lc_all: "zh_CN.utf8"
+            name: "Locale: zh_CN.utf8"
 #          - env_file: actions-38.yaml
 #            pattern: "not slow and not network and not single_cpu"
 #            pandas_data_manager: "array"
@@ -142,7 +142,7 @@ jobs:
 
     - name: Generate locales
       run: |
-        sudo locale-gen en_EN ${{ env.EXTRA_LOC }}
+        sudo locale-gen ${{ env.EXTRA_LOC }}
       # less /usr/share/i18n/SUPPORTED
       # sudo update-locale LANG=${LANG}
 
