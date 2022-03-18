@@ -332,8 +332,11 @@ class ArrowStringArray(
         else:
             return NotImplemented
 
-        # TODO(ARROW-9429): Add a .to_numpy() to ChunkedArray
-        return BooleanArray._from_sequence(result.to_pandas().values)
+        if pa_version_under2p0:
+            result = result.to_pandas().values
+        else:
+            result = result.to_numpy()
+        return BooleanArray._from_sequence(result)
 
     def insert(self, loc: int, item):
         if not isinstance(item, str) and item is not libmissing.NA:
