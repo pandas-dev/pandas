@@ -37,7 +37,7 @@
 
 This tutorial uses air quality data about :math:`NO_2` and Particulate matter less than 2.5
 micrometers, made available by
-`openaq <https://openaq.org>`__ and using the
+`OpenAQ <https://openaq.org>`__ and using the
 `py-openaq <http://dhhagan.github.io/py-openaq/index.html>`__ package.
 The ``air_quality_long.csv`` data set provides :math:`NO_2` and
 :math:`PM_{25}` values for the measurement stations *FR04014*, *BETR801*
@@ -117,7 +117,7 @@ I want to sort the Titanic data according to the cabin class and age in descendi
 
     titanic.sort_values(by=['Pclass', 'Age'], ascending=False).head()
 
-With :meth:`Series.sort_values`, the rows in the table are sorted according to the
+With :meth:`DataFrame.sort_values`, the rows in the table are sorted according to the
 defined column(s). The index will follow the row order.
 
 .. raw:: html
@@ -130,7 +130,7 @@ defined column(s). The index will follow the row order.
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-More details about sorting of tables is provided in the using guide section on :ref:`sorting data <basics.sorting>`.
+More details about sorting of tables is provided in the user guide section on :ref:`sorting data <basics.sorting>`.
 
 .. raw:: html
 
@@ -142,7 +142,7 @@ Long to wide table format
 Let’s use a small subset of the air quality data set. We focus on
 :math:`NO_2` data and only use the first two measurements of each
 location (i.e. the head of each group). The subset of data will be
-called ``no2_subset``
+called ``no2_subset``.
 
 .. ipython:: python
 
@@ -163,7 +163,7 @@ called ``no2_subset``
     <ul class="task-bullet">
         <li>
 
-I want the values for the three stations as separate columns next to each other
+I want the values for the three stations as separate columns next to each other.
 
 .. ipython:: python
 
@@ -177,7 +177,7 @@ for each index/column combination is required.
         </li>
     </ul>
 
-As pandas support plotting of multiple columns (see :ref:`plotting tutorial <10min_tut_04_plotting>`) out of the box, the conversion from
+As pandas supports plotting of multiple columns (see :ref:`plotting tutorial <10min_tut_04_plotting>`) out of the box, the conversion from
 *long* to *wide* table format enables the plotting of the different time
 series at the same time:
 
@@ -216,7 +216,7 @@ Pivot table
     <ul class="task-bullet">
         <li>
 
-I want the mean concentrations for :math:`NO_2` and :math:`PM_{2.5}` in each of the stations in table form
+I want the mean concentrations for :math:`NO_2` and :math:`PM_{2.5}` in each of the stations in table form.
 
 .. ipython:: python
 
@@ -226,7 +226,7 @@ I want the mean concentrations for :math:`NO_2` and :math:`PM_{2.5}` in each of 
 
 In the case of :meth:`~DataFrame.pivot`, the data is only rearranged. When multiple
 values need to be aggregated (in this specific case, the values on
-different time steps) :meth:`~DataFrame.pivot_table` can be used, providing an
+different time steps), :meth:`~DataFrame.pivot_table` can be used, providing an
 aggregation function (e.g. mean) on how to combine these values.
 
 .. raw:: html
@@ -235,8 +235,8 @@ aggregation function (e.g. mean) on how to combine these values.
     </ul>
 
 Pivot table is a well known concept in spreadsheet software. When
-interested in summary columns for each variable separately as well, put
-the ``margin`` parameter to ``True``:
+interested in the row/column margins (subtotals) for each variable, set
+the ``margins`` parameter to ``True``:
 
 .. ipython:: python
 
@@ -283,7 +283,7 @@ Wide to long format
 ~~~~~~~~~~~~~~~~~~~
 
 Starting again from the wide format table created in the previous
-section:
+section, we add a new index to the ``DataFrame`` with :meth:`~DataFrame.reset_index`.
 
 .. ipython:: python
 
@@ -298,7 +298,7 @@ section:
     <ul class="task-bullet">
         <li>
 
-I want to collect all air quality :math:`NO_2` measurements in a single column (long format)
+I want to collect all air quality :math:`NO_2` measurements in a single column (long format).
 
 .. ipython:: python
 
@@ -319,7 +319,7 @@ will *melt* all columns NOT mentioned in ``id_vars`` together into two
 columns: A column with the column header names and a column with the
 values itself. The latter column gets by default the name ``value``.
 
-The :func:`pandas.melt` method can be defined in more detail:
+The parameters passed to :func:`pandas.melt` can be defined in more detail:
 
 .. ipython:: python
 
@@ -331,9 +331,9 @@ The :func:`pandas.melt` method can be defined in more detail:
     )
     no_2.head()
 
-The result in the same, but in more detail defined:
+The additional parameters have the following effects:
 
--  ``value_vars`` defines explicitly which columns to *melt* together
+-  ``value_vars`` defines which columns to *melt* together
 -  ``value_name`` provides a custom column name for the values column
    instead of the default column name ``value``
 -  ``var_name`` provides a custom column name for the column collecting
@@ -360,11 +360,11 @@ Conversion from wide to long format with :func:`pandas.melt` is explained in the
     <div class="shadow gs-callout gs-callout-remember">
         <h4>REMEMBER</h4>
 
--  Sorting by one or more columns is supported by ``sort_values``
+-  Sorting by one or more columns is supported by ``sort_values``.
 -  The ``pivot`` function is purely restructuring of the data,
-   ``pivot_table`` supports aggregations
+   ``pivot_table`` supports aggregations.
 -  The reverse of ``pivot`` (long to wide format) is ``melt`` (wide to
-   long format)
+   long format).
 
 .. raw:: html
 

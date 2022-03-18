@@ -74,7 +74,7 @@ What is the median age and ticket fare price of the Titanic passengers?
     titanic[["Age", "Fare"]].median()
 
 The statistic applied to multiple columns of a ``DataFrame`` (the selection of two columns
-return a ``DataFrame``, see the :ref:`subset data tutorial <10min_tut_03_subset>`) is calculated for each numeric column.
+returns a ``DataFrame``, see the :ref:`subset data tutorial <10min_tut_03_subset>`) is calculated for each numeric column.
 
 .. raw:: html
 
@@ -82,7 +82,7 @@ return a ``DataFrame``, see the :ref:`subset data tutorial <10min_tut_03_subset>
     </ul>
 
 The aggregating statistic can be calculated for multiple columns at the
-same time. Remember the ``describe`` function from :ref:`first tutorial <10min_tut_01_tableoriented>`?
+same time. Remember the ``describe`` function from the :ref:`first tutorial <10min_tut_01_tableoriented>`?
 
 .. ipython:: python
 
@@ -161,7 +161,7 @@ columns:
     titanic.groupby("Sex").mean()
 
 It does not make much sense to get the average value of the ``Pclass``.
-if we are only interested in the average age for each gender, the
+If we are only interested in the average age for each gender, the
 selection of columns (rectangular brackets ``[]`` as usual) is supported
 on the grouped data as well:
 
@@ -254,7 +254,7 @@ within each group:
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-The user guide has a dedicated section on ``value_counts`` , see page on :ref:`discretization <basics.discretization>`.
+The user guide has a dedicated section on ``value_counts`` , see the page on :ref:`discretization <basics.discretization>`.
 
 .. raw:: html
 
@@ -265,10 +265,10 @@ The user guide has a dedicated section on ``value_counts`` , see page on :ref:`d
     <div class="shadow gs-callout gs-callout-remember">
         <h4>REMEMBER</h4>
 
--  Aggregation statistics can be calculated on entire columns or rows
--  ``groupby`` provides the power of the *split-apply-combine* pattern
+-  Aggregation statistics can be calculated on entire columns or rows.
+-  ``groupby`` provides the power of the *split-apply-combine* pattern.
 -  ``value_counts`` is a convenient shortcut to count the number of
-   entries in each category of a variable
+   entries in each category of a variable.
 
 .. raw:: html
 

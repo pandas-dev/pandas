@@ -88,7 +88,7 @@ method. Hence, the :meth:`~DataFrame.plot` method works on both ``Series`` and
     <ul class="task-bullet">
         <li>
 
-I want to visually compare the :math:`N0_2` values measured in London versus Paris.
+I want to visually compare the :math:`NO_2` values measured in London versus Paris.
 
 .. ipython:: python
 
@@ -197,26 +197,26 @@ I want to further customize, extend or save the resulting plot.
     </ul>
 
 Each of the plot objects created by pandas is a
-`matplotlib <https://matplotlib.org/>`__ object. As Matplotlib provides
+`Matplotlib <https://matplotlib.org/>`__ object. As Matplotlib provides
 plenty of options to customize plots, making the link between pandas and
-Matplotlib explicit enables all the power of matplotlib to the plot.
+Matplotlib explicit enables all the power of Matplotlib to the plot.
 This strategy is applied in the previous example:
 
 ::
 
-   fig, axs = plt.subplots(figsize=(12, 4))        # Create an empty matplotlib Figure and Axes
+   fig, axs = plt.subplots(figsize=(12, 4))        # Create an empty Matplotlib Figure and Axes
    air_quality.plot.area(ax=axs)                   # Use pandas to put the area plot on the prepared Figure/Axes
-   axs.set_ylabel("NO$_2$ concentration")          # Do any matplotlib customization you like
-   fig.savefig("no2_concentrations.png")           # Save the Figure/Axes using the existing matplotlib method.
+   axs.set_ylabel("NO$_2$ concentration")          # Do any Matplotlib customization you like
+   fig.savefig("no2_concentrations.png")           # Save the Figure/Axes using the existing Matplotlib method.
 
 .. raw:: html
 
     <div class="shadow gs-callout gs-callout-remember">
         <h4>REMEMBER</h4>
 
--  The ``.plot.*`` methods are applicable on both Series and DataFrames
+-  The ``.plot.*`` methods are applicable on both Series and DataFrames.
 -  By default, each of the columns is plotted as a different element
-   (line, boxplot,…)
+   (line, boxplot,…).
 -  Any plot created by pandas is a Matplotlib object.
 
 .. raw:: html
