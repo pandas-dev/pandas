@@ -1,7 +1,6 @@
 """
 Test output formatting for Series/DataFrame, including to_string & reprs
 """
-
 from datetime import datetime
 from io import StringIO
 import itertools
@@ -3165,6 +3164,65 @@ class TestNaTFormatting:
 
     def test_str(self):
         assert str(NaT) == "NaT"
+
+
+class TestPeriodIndexFormat:
+    def test_period_format_and_strftime_default(self):
+        per = pd.PeriodIndex([datetime(2003, 1, 1, 12), None], freq="H")
+
+        # Default formatting
+        formatted = per.format()
+        assert formatted[0] == "2003-01-01 12:00"  # default: minutes not shown
+        assert formatted[1] == "NaT"
+        # format is equivalent to strftime(None)...
+        assert formatted[0] == per.strftime(None)[0]
+        assert per.strftime(None)[1] is np.nan  # ...except for NaTs
+
+        # Same test with nanoseconds freq
+        per = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="n")
+        formatted = per.format()
+        assert (formatted == per.strftime(None)).all()
+        assert formatted[0] == "2003-01-01 12:01:01.123456789"
+        assert formatted[1] == "2003-01-01 12:01:01.123456790"
+
+    def test_period_custom(self):
+        # GH#46252 custom formatting directives %l (ms) and %u (us)
+
+        # 3 digits
+        per = pd.period_range("2003-01-01 12:01:01.123", periods=2, freq="l")
+        formatted = per.format(date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)")
+        assert formatted[0] == "03 12:01:01 (ms=123 us=123000 ns=123000000)"
+        assert formatted[1] == "03 12:01:01 (ms=124 us=124000 ns=124000000)"
+
+        # 6 digits
+        per = pd.period_range("2003-01-01 12:01:01.123456", periods=2, freq="u")
+        formatted = per.format(date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)")
+        assert formatted[0] == "03 12:01:01 (ms=123 us=123456 ns=123456000)"
+        assert formatted[1] == "03 12:01:01 (ms=123 us=123457 ns=123457000)"
+
+        # 9 digits
+        per = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="n")
+        formatted = per.format(date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)")
+        assert formatted[0] == "03 12:01:01 (ms=123 us=123456 ns=123456789)"
+        assert formatted[1] == "03 12:01:01 (ms=123 us=123456 ns=123456790)"
+
+    def test_period_tz(self):
+        # Formatting periods created from a datetime with timezone.
+
+        # This timestamp is in 2013 in Europe/Paris but is 2012 in UTC
+        dt = pd.to_datetime(["2013-01-01 00:00:00+01:00"], utc=True)
+
+        # Converting to a period looses the timezone information
+        # Since tz is currently set as utc, we'll see 2012
+        with tm.assert_produces_warning(UserWarning, match="will drop timezone"):
+            per = dt.to_period(freq="H")
+        assert per.format()[0] == "2012-12-31 23:00"
+
+        # If tz is currently set as paris before conversion, we'll see 2013
+        dt = dt.tz_convert("Europe/Paris")
+        with tm.assert_produces_warning(UserWarning, match="will drop timezone"):
+            per = dt.to_period(freq="H")
+        assert per.format()[0] == "2013-01-01 00:00"
 
 
 class TestDatetimeIndexFormat:

@@ -642,17 +642,17 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         values = self.astype(object)
 
         if date_format:
-            formatter = lambda dt: dt.strftime(date_format)
+            formatter = lambda per: per.strftime(date_format)
         else:
-            formatter = lambda dt: str(dt)
+            formatter = lambda per: str(per)
 
         if self._hasna:
             mask = self._isnan
             values[mask] = na_rep
             imask = ~mask
-            values[imask] = np.array([formatter(dt) for dt in values[imask]])
+            values[imask] = np.array([formatter(per) for per in values[imask]])
         else:
-            values = np.array([formatter(dt) for dt in values])
+            values = np.array([formatter(per) for per in values])
         return values
 
     # ------------------------------------------------------------------
