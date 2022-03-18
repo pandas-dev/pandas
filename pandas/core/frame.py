@@ -119,6 +119,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_iterator,
     is_list_like,
+    is_numeric_dtype,
     is_object_dtype,
     is_scalar,
     is_sequence,
@@ -10568,7 +10569,7 @@ NaN 12.3   33.0
         self,
         q=0.5,
         axis: Axis = 0,
-        numeric_only: bool = True,
+        numeric_only: bool | lib.NoDefault = no_default,
         interpolation: str = "linear",
     ):
         """
@@ -10638,6 +10639,17 @@ NaN 12.3   33.0
         """
         validate_percentile(q)
         axis = self._get_axis_number(axis)
+        any_not_numeric = any(not is_numeric_dtype(x) for x in self.dtypes)
+        if numeric_only is no_default and any_not_numeric:
+            warnings.warn(
+                "In future versions of pandas, numeric_only will be set to "
+                "False by default, and the datetime/timedelta columns will "
+                "be considered in the results. To not consider these columns"
+                "specify numeric_only=True.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            numeric_only = True
 
         if not is_list_like(q):
             # BlockManager.quantile expects listlike, so we wrap and unwrap here
