@@ -457,8 +457,8 @@ class ArrowStringArray(
         self, indices: npt.NDArray[np.intp]
     ) -> list[npt.NDArray[np.intp]]:
         """
-        Convert a list of indices for self into a list of tuples each containing
-        the indices within each chunk of the chunked array.
+        Convert indices for self into a list of ndarrays each containing
+        the indices *within* each chunk of the chunked array.
         """
         # indices must be sorted
         chunk_indices = []
