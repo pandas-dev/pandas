@@ -91,7 +91,7 @@ class StylerRenderer:
         caption: str | tuple | None = None,
         cell_ids: bool = True,
         precision: int | None = None,
-    ):
+    ) -> None:
 
         # validate ordered args
         if isinstance(data, Series):
@@ -158,7 +158,10 @@ class StylerRenderer:
         blank: str = "",
     ):
         """
-        Computes and applies styles and then generates the general render dicts
+        Computes and applies styles and then generates the general render dicts.
+
+        Also extends the `ctx` and `ctx_index` attributes with those of concatenated
+        stylers for use within `_translate_latex`
         """
         self._compute()
         dx = None
@@ -172,11 +175,17 @@ class StylerRenderer:
                 "row": f"{self.css['foot']}_{self.css['row']}",
                 "foot": self.css["foot"],
             }
-            dx, _ = self.concatenated._render(
+            dx = self.concatenated._render(
                 sparse_index, sparse_columns, max_rows, max_cols, blank
             )
+
+            for (r, c), v in self.concatenated.ctx.items():
+                self.ctx[(r + len(self.index), c)] = v
+            for (r, c), v in self.concatenated.ctx_index.items():
+                self.ctx_index[(r + len(self.index), c)] = v
+
         d = self._translate(sparse_index, sparse_columns, max_rows, max_cols, blank, dx)
-        return d, dx
+        return d
 
     def _render_html(
         self,
@@ -190,7 +199,7 @@ class StylerRenderer:
         Renders the ``Styler`` including all applied styles to HTML.
         Generates a dict with necessary kwargs passed to jinja2 template.
         """
-        d, _ = self._render(sparse_index, sparse_columns, max_rows, max_cols, "&nbsp;")
+        d = self._render(sparse_index, sparse_columns, max_rows, max_cols, "&nbsp;")
         d.update(kwargs)
         return self.template_html.render(
             **d,
@@ -204,7 +213,7 @@ class StylerRenderer:
         """
         Render a Styler in latex format
         """
-        d, _ = self._render(sparse_index, sparse_columns, None, None)
+        d = self._render(sparse_index, sparse_columns, None, None)
         self._translate_latex(d, clines=clines)
         self.template_latex.globals["parse_wrap"] = _parse_latex_table_wrapping
         self.template_latex.globals["parse_table"] = _parse_latex_table_styles
@@ -224,7 +233,7 @@ class StylerRenderer:
         """
         Render a Styler in string format
         """
-        d, _ = self._render(sparse_index, sparse_columns, max_rows, max_cols)
+        d = self._render(sparse_index, sparse_columns, max_rows, max_cols)
         d.update(kwargs)
         return self.template_string.render(**d)
 
@@ -427,7 +436,7 @@ class StylerRenderer:
             Looping variables from outer scope
         max_cols : int
             Permissible number of columns
-        col_lenths :
+        col_lengths :
             c
 
         Returns
@@ -840,11 +849,24 @@ class StylerRenderer:
             ]
             for r, row in enumerate(d["head"])
         ]
+
+        def concatenated_visible_rows(obj, n, row_indices):
+            """
+            Extract all visible row indices recursively from concatenated stylers.
+            """
+            row_indices.extend(
+                [r + n for r in range(len(obj.index)) if r not in obj.hidden_rows]
+            )
+            return (
+                row_indices
+                if obj.concatenated is None
+                else concatenated_visible_rows(
+                    obj.concatenated, n + len(obj.index), row_indices
+                )
+            )
+
         body = []
-        for r, row in zip(
-            [r for r in range(len(self.data.index)) if r not in self.hidden_rows],
-            d["body"],
-        ):
+        for r, row in zip(concatenated_visible_rows(self, 0, []), d["body"]):
             # note: cannot enumerate d["body"] because rows were dropped if hidden
             # during _translate_body so must zip to acquire the true r-index associated
             # with the ctx obj which contains the cell styles.
@@ -970,6 +992,10 @@ class StylerRenderer:
         -------
         self : Styler
 
+        See Also
+        --------
+        Styler.format_index: Format the text display value of index labels.
+
         Notes
         -----
         This method assigns a formatting function, ``formatter``, to each cell in the
@@ -1004,6 +1030,12 @@ class StylerRenderer:
           - ``styler.format.decimal``: default ".".
           - ``styler.format.thousands``: default None.
           - ``styler.format.escape``: default None.
+
+        .. warning::
+           `Styler.format` is ignored when using the output format `Styler.to_excel`,
+           since Excel and Python have inherrently different formatting structures.
+           However, it is possible to use the `number-format` pseudo CSS attribute
+           to force Excel permissible formatting. See examples.
 
         Examples
         --------
@@ -1072,6 +1104,19 @@ class StylerRenderer:
         1 & \textbf{\textasciitilde \space \textasciicircum } \\
         2 & \textbf{\$\%\#} \\
         \end{tabular}
+
+        Pandas defines a `number-format` pseudo CSS attribute instead of the `.format`
+        method to create `to_excel` permissible formatting. Note that semi-colons are
+        CSS protected characters but used as separators in Excel's format string.
+        Replace semi-colons with the section separator character (ASCII-245) when
+        defining the formatting here.
+
+        >>> df = pd.DataFrame({"A": [1, 0, -1]})
+        >>> pseudo_css = "number-format: 0§[Red](0)§-§@;"
+        >>> df.style.applymap(lambda v: css).to_excel("formatted_file.xlsx")
+        ...  # doctest: +SKIP
+
+        .. figure:: ../../_static/style/format_excel_css.png
         """
         if all(
             (
@@ -1163,6 +1208,10 @@ class StylerRenderer:
         -------
         self : Styler
 
+        See Also
+        --------
+        Styler.format: Format the text display value of data cells.
+
         Notes
         -----
         This method assigns a formatting function, ``formatter``, to each level label
@@ -1188,6 +1237,13 @@ class StylerRenderer:
 
         When using a ``formatter`` string the dtypes must be compatible, otherwise a
         `ValueError` will be raised.
+
+        .. warning::
+           `Styler.format_index` is ignored when using the output format
+           `Styler.to_excel`, since Excel and Python have inherrently different
+           formatting structures.
+           However, it is possible to use the `number-format` pseudo CSS attribute
+           to force Excel permissible formatting. See documentation for `Styler.format`.
 
         Examples
         --------
@@ -1733,7 +1789,7 @@ class Tooltips:
         ],
         css_name: str = "pd-t",
         tooltips: DataFrame = DataFrame(),
-    ):
+    ) -> None:
         self.class_name = css_name
         self.class_properties = css_props
         self.tt_data = tooltips

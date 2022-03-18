@@ -783,7 +783,7 @@ class PlotAccessor(PandasObject):
     _kind_aliases = {"density": "kde"}
     _all_kinds = _common_kinds + _series_kinds + _dataframe_kinds
 
-    def __init__(self, data):
+    def __init__(self, data) -> None:
         self._parent = data
 
     @staticmethod
@@ -1769,7 +1769,7 @@ def _load_backend(backend: str) -> types.ModuleType:
     ----------
     backend : str
         The identifier for the backend. Either an entrypoint item registered
-        with pkg_resources, "matplotlib", or a module name.
+        with importlib.metadata, "matplotlib", or a module name.
 
     Returns
     -------

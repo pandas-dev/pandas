@@ -19,6 +19,7 @@ import numpy as np
 
 from pandas._config import get_option
 
+from pandas._libs import lib
 from pandas._typing import (
     Axis,
     FilePath,
@@ -240,7 +241,7 @@ class Styler(StylerRenderer):
         thousands: str | None = None,
         escape: str | None = None,
         formatter: ExtFormatter | None = None,
-    ):
+    ) -> None:
         super().__init__(
             data=data,
             uuid=uuid,
@@ -281,7 +282,8 @@ class Styler(StylerRenderer):
         ----------
         other : Styler
             The other Styler object which has already been styled and formatted. The
-            data for this Styler must have the same columns as the original.
+            data for this Styler must have the same columns as the original, and the
+            number of index levels must also be the same to render correctly.
 
         Returns
         -------
@@ -299,10 +301,10 @@ class Styler(StylerRenderer):
         ``format_index`` will be preserved.
 
         .. warning::
-            Only the output methods ``to_html`` and ``to_string`` currently work with
-            concatenated Stylers.
+            Only the output methods ``to_html``, ``to_string`` and ``to_latex``
+            currently work with concatenated Stylers.
 
-            The output methods ``to_latex`` and ``to_excel`` **do not** work with
+            Other output methods, including ``to_excel``, **do not** work with
             concatenated Stylers.
 
         The following should be noted:
@@ -344,11 +346,24 @@ class Styler(StylerRenderer):
         >>> styler.concat(other)  # doctest: +SKIP
 
         .. figure:: ../../_static/style/footer_extended.png
+
+        When ``other`` has fewer index levels than the original Styler it is possible
+        to extend the index in ``other``, with placeholder levels.
+
+        >>> df = DataFrame([[1], [2]], index=pd.MultiIndex.from_product([[0], [1, 2]]))
+        >>> descriptors = df.agg(["sum"])
+        >>> descriptors.index = pd.MultiIndex.from_product([[""], descriptors.index])
+        >>> df.style.concat(descriptors.style)  # doctest: +SKIP
         """
         if not isinstance(other, Styler):
             raise TypeError("`other` must be of type `Styler`")
         if not self.data.columns.equals(other.data.columns):
             raise ValueError("`other.data` must have same columns as `Styler.data`")
+        if not self.data.index.nlevels == other.data.index.nlevels:
+            raise ValueError(
+                "number of index levels must be same in `other` "
+                "as in `Styler`. See documentation for suggestions."
+            )
         self.concatenated = other
         return self
 
@@ -2675,6 +2690,13 @@ class Styler(StylerRenderer):
 
         Notes
         -----
+        .. warning::
+           This method only works with the output methods ``to_html``, ``to_string``
+           and ``to_latex``.
+
+           Other output methods, including ``to_excel``, ignore this hiding method
+           and will display all data.
+
         This method has multiple functionality depending upon the combination
         of the ``subset``, ``level`` and ``names`` arguments (see examples). The
         ``axis`` argument is used only to control whether the method is applied to row
@@ -3182,19 +3204,23 @@ class Styler(StylerRenderer):
 
         return self
 
-    @Substitution(subset=subset, props=props)
+    @Substitution(subset=subset, props=props, color=color)
     def highlight_null(
         self,
-        null_color: str = "red",
+        color: str | None = None,
         subset: Subset | None = None,
         props: str | None = None,
+        null_color=lib.no_default,
     ) -> Styler:
         """
         Highlight missing values with a style.
 
         Parameters
         ----------
-        null_color : str, default 'red'
+        %(color)s
+
+            .. versionadded:: 1.5.0
+
         %(subset)s
 
             .. versionadded:: 1.1.0
@@ -3202,6 +3228,13 @@ class Styler(StylerRenderer):
         %(props)s
 
             .. versionadded:: 1.3.0
+
+        null_color : str, default None
+            The background color for highlighting.
+
+            .. deprecated:: 1.5.0
+               Use ``color`` instead. If ``color`` is given ``null_color`` is
+               not used.
 
         Returns
         -------
@@ -3218,8 +3251,19 @@ class Styler(StylerRenderer):
         def f(data: DataFrame, props: str) -> np.ndarray:
             return np.where(pd.isna(data).to_numpy(), props, "")
 
+        if null_color != lib.no_default:
+            warnings.warn(
+                "`null_color` is deprecated: use `color` instead",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
+        if color is None and null_color == lib.no_default:
+            color = "red"
+        elif color is None and null_color != lib.no_default:
+            color = null_color
         if props is None:
-            props = f"background-color: {null_color};"
+            props = f"background-color: {color};"
         return self.apply(f, axis=None, subset=subset, props=props)
 
     @Substitution(subset=subset, color=color, props=props)
@@ -3379,7 +3423,7 @@ class Styler(StylerRenderer):
 
         .. figure:: ../../_static/style/hbetw_basic.png
 
-        Using a range input sequnce along an ``axis``, in this case setting a ``left``
+        Using a range input sequence along an ``axis``, in this case setting a ``left``
         and ``right`` for each column individually
 
         >>> df.style.highlight_between(left=[1.4, 2.4, 3.4], right=[1.6, 2.6, 3.6],
@@ -3551,7 +3595,7 @@ class Styler(StylerRenderer):
         # mypy doesn't like dynamically-defined classes
         # error: Variable "cls" is not valid as a type
         # error: Invalid base class "cls"
-        class MyStyler(cls):  # type:ignore[valid-type,misc]
+        class MyStyler(cls):  # type: ignore[valid-type,misc]
             env = jinja2.Environment(loader=loader)
             if html_table:
                 template_html_table = env.get_template(html_table)
@@ -3831,14 +3875,22 @@ def _highlight_between(
         )
 
     g_left = (
-        ops[0](data, left)
+        # error: Argument 2 to "ge" has incompatible type "Union[str, float,
+        # Period, Timedelta, Interval[Any], datetime64, timedelta64, datetime,
+        # Sequence[Any], ndarray[Any, Any], NDFrame]"; expected "Union
+        # [SupportsDunderLE, SupportsDunderGE, SupportsDunderGT, SupportsDunderLT]"
+        ops[0](data, left)  # type: ignore[arg-type]
         if left is not None
         else np.full(data.shape, True, dtype=bool)
     )
     if isinstance(g_left, (DataFrame, Series)):
         g_left = g_left.where(pd.notna(g_left), False)
     l_right = (
-        ops[1](data, right)
+        # error: Argument 2 to "le" has incompatible type "Union[str, float,
+        # Period, Timedelta, Interval[Any], datetime64, timedelta64, datetime,
+        # Sequence[Any], ndarray[Any, Any], NDFrame]"; expected "Union
+        # [SupportsDunderLE, SupportsDunderGE, SupportsDunderGT, SupportsDunderLT]"
+        ops[1](data, right)  # type: ignore[arg-type]
         if right is not None
         else np.full(data.shape, True, dtype=bool)
     )

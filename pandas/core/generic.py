@@ -50,9 +50,11 @@ from pandas._typing import (
     JSONSerializable,
     Level,
     Manager,
+    NaPosition,
     NDFrameT,
     RandomState,
     Renamer,
+    SortKind,
     StorageOptions,
     T,
     TimedeltaConvertibleTypes,
@@ -114,16 +116,17 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas.core import (
+    algorithms as algos,
     arraylike,
+    common as com,
     indexing,
     missing,
     nanops,
+    sample,
 )
-import pandas.core.algorithms as algos
 from pandas.core.array_algos.replace import should_use_regex
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import PandasObject
-import pandas.core.common as com
 from pandas.core.construction import (
     create_series_with_explicit_dtype,
     extract_array,
@@ -148,7 +151,6 @@ from pandas.core.internals.construction import mgr_to_mgr
 from pandas.core.missing import find_valid_index
 from pandas.core.ops import align_method_FRAME
 from pandas.core.reshape.concat import concat
-import pandas.core.sample as sample
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import get_indexer_indexer
 from pandas.core.window import (
@@ -243,7 +245,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         data: Manager,
         copy: bool_t = False,
         attrs: Mapping[Hashable, Any] | None = None,
-    ):
+    ) -> None:
         # copy kwarg is retained for mypy compat, is not used
 
         object.__setattr__(self, "_is_copy", None)
@@ -1479,9 +1481,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def __neg__(self):
         def blk_func(values: ArrayLike):
             if is_bool_dtype(values.dtype):
-                return operator.inv(values)
+                # error: Argument 1 to "inv" has incompatible type "Union
+                # [ExtensionArray, ndarray[Any, Any]]"; expected
+                # "_SupportsInversion[ndarray[Any, dtype[bool_]]]"
+                return operator.inv(values)  # type: ignore[arg-type]
             else:
-                return operator.neg(values)
+                # error: Argument 1 to "neg" has incompatible type "Union
+                # [ExtensionArray, ndarray[Any, Any]]"; expected
+                # "_SupportsNeg[ndarray[Any, dtype[Any]]]"
+                return operator.neg(values)  # type: ignore[arg-type]
 
         new_data = self._mgr.apply(blk_func)
         res = self._constructor(new_data)
@@ -1493,7 +1501,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if is_bool_dtype(values.dtype):
                 return values.copy()
             else:
-                return operator.pos(values)
+                # error: Argument 1 to "pos" has incompatible type "Union
+                # [ExtensionArray, ndarray[Any, Any]]"; expected
+                # "_SupportsPos[ndarray[Any, dtype[Any]]]"
+                return operator.pos(values)  # type: ignore[arg-type]
 
         new_data = self._mgr.apply(blk_func)
         res = self._constructor(new_data)
@@ -2956,7 +2967,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     )
     def to_pickle(
         self,
-        path,
+        path: FilePath | WriteBuffer[bytes],
         compression: CompressionOptions = "infer",
         protocol: int = pickle.HIGHEST_PROTOCOL,
         storage_options: StorageOptions = None,
@@ -2966,8 +2977,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        path : str
-            File path where the pickled object will be stored.
+        path : str, path object, or file-like object
+            String, path object (implementing ``os.PathLike[str]``), or file-like
+            object implementing a binary ``write()`` function. File path where
+            the pickled object will be stored.
         {compression_options}
         protocol : int
             Int which indicates which protocol should be used by the pickler,
@@ -3056,6 +3069,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
           - Windows : none
           - macOS : none
 
+        This method uses the processes developed for the package `pyperclip`. A
+        solution to render any output string format is given in the examples.
+
         Examples
         --------
         Copy the contents of a DataFrame to the clipboard.
@@ -3076,6 +3092,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ... # A,B,C
         ... # 1,2,3
         ... # 4,5,6
+
+        Using the original `pyperclip` package for any string output format.
+
+        .. code-block:: python
+
+           import pyperclip
+           html = df.style.to_html()
+           pyperclip.copy(html)
         """
         from pandas.io import clipboards
 
@@ -3693,10 +3717,26 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         nv.validate_take((), kwargs)
 
+        return self._take(indices, axis)
+
+    def _take(
+        self: NDFrameT,
+        indices,
+        axis=0,
+        convert_indices: bool_t = True,
+    ) -> NDFrameT:
+        """
+        Internal version of the `take` allowing specification of additional args.
+
+        See the docstring of `take` for full explanation of the parameters.
+        """
         self._consolidate_inplace()
 
         new_data = self._mgr.take(
-            indices, axis=self._get_block_manager_axis(axis), verify=True
+            indices,
+            axis=self._get_block_manager_axis(axis),
+            verify=True,
+            convert_indices=convert_indices,
         )
         return self._constructor(new_data).__finalize__(self, method="take")
 
@@ -3708,7 +3748,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         See the docstring of `take` for full explanation of the parameters.
         """
-        result = self.take(indices=indices, axis=axis)
+        result = self._take(indices=indices, axis=axis)
         # Maybe set copy if we didn't actually change the index.
         if not result._get_axis(axis).equals(self._get_axis(axis)):
             result._set_is_copy(self)
@@ -4368,7 +4408,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self._reset_cache()
         self._clear_item_cache()
         self._mgr = result._mgr
-        self._maybe_update_cacher(verify_is_copy=verify_is_copy)
+        self._maybe_update_cacher(verify_is_copy=verify_is_copy, inplace=True)
 
     @final
     def add_prefix(self: NDFrameT, prefix: str) -> NDFrameT:
@@ -4654,18 +4694,66 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         raise AbstractMethodError(self)
 
+    @overload
     def sort_index(
         self,
-        axis=0,
-        level=None,
-        ascending: bool_t | int | Sequence[bool_t | int] = True,
+        *,
+        axis: Axis = ...,
+        level: Level | None = ...,
+        ascending: bool_t | Sequence[bool_t] = ...,
+        inplace: Literal[True],
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
+        sort_remaining: bool_t = ...,
+        ignore_index: bool_t = ...,
+        key: IndexKeyFunc = ...,
+    ) -> None:
+        ...
+
+    @overload
+    def sort_index(
+        self: NDFrameT,
+        *,
+        axis: Axis = ...,
+        level: Level | None = ...,
+        ascending: bool_t | Sequence[bool_t] = ...,
+        inplace: Literal[False] = ...,
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
+        sort_remaining: bool_t = ...,
+        ignore_index: bool_t = ...,
+        key: IndexKeyFunc = ...,
+    ) -> NDFrameT:
+        ...
+
+    @overload
+    def sort_index(
+        self: NDFrameT,
+        *,
+        axis: Axis = ...,
+        level: Level | None = ...,
+        ascending: bool_t | Sequence[bool_t] = ...,
+        inplace: bool_t = ...,
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
+        sort_remaining: bool_t = ...,
+        ignore_index: bool_t = ...,
+        key: IndexKeyFunc = ...,
+    ) -> NDFrameT | None:
+        ...
+
+    def sort_index(
+        self: NDFrameT,
+        axis: Axis = 0,
+        level: Level | None = None,
+        ascending: bool_t | Sequence[bool_t] = True,
         inplace: bool_t = False,
-        kind: str = "quicksort",
-        na_position: str = "last",
+        kind: SortKind = "quicksort",
+        na_position: NaPosition = "last",
         sort_remaining: bool_t = True,
         ignore_index: bool_t = False,
         key: IndexKeyFunc = None,
-    ):
+    ) -> NDFrameT | None:
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         axis = self._get_axis_number(axis)
@@ -4686,7 +4774,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if ignore_index:
                 result.index = default_index(len(self))
             if inplace:
-                return
+                return None
             else:
                 return result
 
@@ -8522,6 +8610,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3   spider          8.0
         4    snake          NaN
 
+        Ties are assigned the mean of the ranks (by default) for the group.
+
+        >>> s = pd.Series(range(5), index=list("abcde"))
+        >>> s["d"] = s["b"]
+        >>> s.rank()
+        a    1.0
+        b    2.5
+        c    4.0
+        d    2.5
+        e    5.0
+        dtype: float64
+
         The following example shows how the method behaves with the above
         parameters:
 
@@ -8963,10 +9063,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         is_series = isinstance(self, ABCSeries)
 
+        if (not is_series and axis is None) or axis not in [None, 0, 1]:
+            raise ValueError("Must specify axis=0 or 1")
+
+        if is_series and axis == 1:
+            raise ValueError("cannot align series to a series other than axis 0")
+
         # series/series compat, other must always be a Series
-        if is_series:
-            if axis:
-                raise ValueError("cannot align series to a series other than axis 0")
+        if not axis:
 
             # equal
             if self.index.equals(other.index):
@@ -8976,26 +9080,31 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     other.index, how=join, level=level, return_indexers=True
                 )
 
-            left = self._reindex_indexer(join_index, lidx, copy)
+            if is_series:
+                left = self._reindex_indexer(join_index, lidx, copy)
+            elif lidx is None or join_index is None:
+                left = self.copy() if copy else self
+            else:
+                left = self._constructor(
+                    self._mgr.reindex_indexer(join_index, lidx, axis=1, copy=copy)
+                )
+
             right = other._reindex_indexer(join_index, ridx, copy)
 
         else:
+
             # one has > 1 ndim
             fdata = self._mgr
-            if axis in [0, 1]:
-                join_index = self.axes[axis]
-                lidx, ridx = None, None
-                if not join_index.equals(other.index):
-                    join_index, lidx, ridx = join_index.join(
-                        other.index, how=join, level=level, return_indexers=True
-                    )
+            join_index = self.axes[1]
+            lidx, ridx = None, None
+            if not join_index.equals(other.index):
+                join_index, lidx, ridx = join_index.join(
+                    other.index, how=join, level=level, return_indexers=True
+                )
 
-                if lidx is not None:
-                    bm_axis = self._get_block_manager_axis(axis)
-                    fdata = fdata.reindex_indexer(join_index, lidx, axis=bm_axis)
-
-            else:
-                raise ValueError("Must specify axis=0 or 1")
+            if lidx is not None:
+                bm_axis = self._get_block_manager_axis(1)
+                fdata = fdata.reindex_indexer(join_index, lidx, axis=bm_axis)
 
             if copy and fdata is self._mgr:
                 fdata = fdata.copy()
@@ -10251,7 +10360,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         periods : int, default 1
             Periods to shift for forming percent change.
         fill_method : str, default 'pad'
-            How to handle NAs before computing percent changes.
+            How to handle NAs **before** computing percent changes.
         limit : int, default None
             The number of consecutive NAs to fill before stopping.
         freq : DateOffset, timedelta, or str, optional
@@ -11249,6 +11358,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         on: str | None = None,
         axis: Axis = 0,
         closed: str | None = None,
+        step: int | None = None,
         method: str = "single",
     ):
         axis = self._get_axis_number(axis)
@@ -11263,6 +11373,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 on=on,
                 axis=axis,
                 closed=closed,
+                step=step,
                 method=method,
             )
 
@@ -11275,6 +11386,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             on=on,
             axis=axis,
             closed=closed,
+            step=step,
             method=method,
         )
 

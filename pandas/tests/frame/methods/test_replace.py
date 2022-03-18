@@ -661,21 +661,6 @@ class TestDataFrameReplace:
         result = df.replace({"col": {-1: "-", 1: "a", 4: "b"}})
         tm.assert_frame_equal(expected, result)
 
-    def test_replace_numpy_nan(self, nulls_fixture):
-        # GH#45725 ensure numpy.nan can be replaced with all other null types
-        to_replace = np.nan
-        value = nulls_fixture
-        dtype = object
-        df = DataFrame({"A": [to_replace]}, dtype=dtype)
-        expected = DataFrame({"A": [value]}, dtype=dtype)
-
-        result = df.replace({to_replace: value}).astype(dtype=dtype)
-        tm.assert_frame_equal(result, expected)
-
-        # same thing but different calling convention
-        result = df.replace(to_replace, value).astype(dtype=dtype)
-        tm.assert_frame_equal(result, expected)
-
     def test_replace_value_is_none(self, datetime_frame):
         orig_value = datetime_frame.iloc[0, 0]
         orig2 = datetime_frame.iloc[1, 0]
@@ -1542,3 +1527,10 @@ class TestDataFrameReplaceRegex:
         expected_df2 = DataFrame({"A": [1], "B": ["1"]})
         result_df2 = df2.replace(to_replace="0", value=1, regex=regex)
         tm.assert_frame_equal(result_df2, expected_df2)
+
+    def test_replace_with_value_also_being_replaced(self):
+        # GH46306
+        df = DataFrame({"A": [0, 1, 2], "B": [1, 0, 2]})
+        result = df.replace({0: 1, 1: np.nan})
+        expected = DataFrame({"A": [1, np.nan, 2], "B": [np.nan, 1, 2]})
+        tm.assert_frame_equal(result, expected)

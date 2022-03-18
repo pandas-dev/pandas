@@ -533,7 +533,7 @@ class GroupByPlot(PandasObject):
     Class implementing the .plot attribute for groupby objects.
     """
 
-    def __init__(self, groupby: GroupBy):
+    def __init__(self, groupby: GroupBy) -> None:
         self._groupby = groupby
 
     def __call__(self, *args, **kwargs):
@@ -854,7 +854,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         observed: bool = False,
         mutated: bool = False,
         dropna: bool = True,
-    ):
+    ) -> None:
 
         self._selection = selection
 
@@ -924,7 +924,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # as are not passed directly but in the grouper
             f = getattr(self._obj_with_exclusions, name)
             if not isinstance(f, types.MethodType):
-                return self.apply(lambda self: getattr(self, name))
+                #  error: Incompatible return value type
+                # (got "NDFrameT", expected "Callable[..., Any]")  [return-value]
+                return cast(Callable, self.apply(lambda self: getattr(self, name)))
 
         f = getattr(type(self._obj_with_exclusions), name)
         sig = inspect.signature(f)
@@ -1350,7 +1352,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             input="dataframe", examples=_apply_docs["dataframe_examples"]
         )
     )
-    def apply(self, func, *args, **kwargs):
+    def apply(self, func, *args, **kwargs) -> NDFrameT:
 
         func = com.is_builtin_func(func)
 
@@ -1410,7 +1412,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         f: Callable,
         data: DataFrame | Series,
         not_indexed_same: bool | None = None,
-    ) -> DataFrame | Series:
+    ) -> NDFrameT:
         """
         Apply function f in python space
 
@@ -1646,7 +1648,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             out = algorithms.take_nd(result._values, ids)
             output = obj._constructor(out, index=obj.index, name=obj.name)
         else:
-            output = result.take(ids, axis=self.axis)
+            # GH#46209
+            # Don't convert indices: negative indices need to give rise
+            # to null values in the result
+            output = result._take(ids, axis=self.axis, convert_indices=False)
             output = output.set_axis(obj._get_axis(self.axis), axis=self.axis)
         return output
 
@@ -1699,9 +1704,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         else:
             out = np.repeat(out[np.r_[run[1:], True]], rep) - out
 
+        if self.grouper.has_dropped_na:
+            out = np.where(ids == -1, np.nan, out.astype(np.float64, copy=False))
+        else:
+            out = out.astype(np.int64, copy=False)
+
         rev = np.empty(count, dtype=np.intp)
         rev[sorter] = np.arange(count, dtype=np.intp)
-        return out[rev].astype(np.int64, copy=False)
+        return out[rev]
 
     # -----------------------------------------------------------------
 
@@ -1804,7 +1814,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def count(self) -> Series | DataFrame:
+    def count(self) -> NDFrameT:
         """
         Compute count of group, excluding missing values.
 
@@ -2225,8 +2235,43 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
 
     @final
-    @doc(_groupby_agg_method_template, fname="first", no=False, mc=-1)
+    @Substitution(name="groupby")
     def first(self, numeric_only: bool = False, min_count: int = -1):
+        """
+        Compute the first non-null entry of each column.
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only float, int, boolean columns. If None, will attempt to use
+            everything, then use only numeric data.
+        min_count : int, default -1
+            The required number of valid values to perform the operation. If fewer
+            than ``min_count`` non-NA values are present the result will be NA.
+
+        Returns
+        -------
+        Series or DataFrame
+            First non-null of values within each group.
+
+        See Also
+        --------
+        DataFrame.groupby : Apply a function groupby to each row or column of a
+            DataFrame.
+        DataFrame.core.groupby.GroupBy.last : Compute the last non-null entry of each
+            column.
+        DataFrame.core.groupby.GroupBy.nth : Take the nth row from each group.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(dict(A=[1, 1, 3], B=[None, 5, 6], C=[1, 2, 3]))
+        >>> df.groupby("A").first()
+             B  C
+        A
+        1  5.0  1
+        3  6.0  3
+        """
+
         def first_compat(obj: NDFrameT, axis: int = 0):
             def first(x: Series):
                 """Helper function for first item that isn't NA."""
@@ -2250,8 +2295,43 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    @doc(_groupby_agg_method_template, fname="last", no=False, mc=-1)
+    @Substitution(name="groupby")
     def last(self, numeric_only: bool = False, min_count: int = -1):
+        """
+        Compute the last non-null entry of each column.
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only float, int, boolean columns. If None, will attempt to use
+            everything, then use only numeric data.
+        min_count : int, default -1
+            The required number of valid values to perform the operation. If fewer
+            than ``min_count`` non-NA values are present the result will be NA.
+
+        Returns
+        -------
+        Series or DataFrame
+            Last non-null of values within each group.
+
+        See Also
+        --------
+        DataFrame.groupby : Apply a function groupby to each row or column of a
+            DataFrame.
+        DataFrame.core.groupby.GroupBy.first : Compute the first non-null entry of each
+            column.
+        DataFrame.core.groupby.GroupBy.nth : Take the nth row from each group.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(dict(A=[1, 1, 3], B=[5, None, 6], C=[1, 2, 3]))
+        >>> df.groupby("A").last()
+             B  C
+        A
+        1  5.0  2
+        3  6.0  3
+        """
+
         def last_compat(obj: NDFrameT, axis: int = 0):
             def last(x: Series):
                 """Helper function for last item that isn't NA."""
@@ -3459,7 +3539,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def diff(self, periods: int = 1, axis: int = 0) -> Series | DataFrame:
+    def diff(self, periods: int = 1, axis: int = 0) -> NDFrameT:
         """
         First discrete difference of element.
 

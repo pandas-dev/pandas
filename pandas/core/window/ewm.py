@@ -3,7 +3,10 @@ from __future__ import annotations
 import datetime
 from functools import partial
 from textwrap import dedent
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    cast,
+)
 import warnings
 
 import numpy as np
@@ -349,7 +352,7 @@ class ExponentialMovingWindow(BaseWindow):
         method: str = "single",
         *,
         selection=None,
-    ):
+    ) -> None:
         super().__init__(
             obj=obj,
             min_periods=1 if min_periods is None else max(int(min_periods), 1),
@@ -380,12 +383,11 @@ class ExponentialMovingWindow(BaseWindow):
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
-                self.times = self._selected_obj[self.times]
+                # self.times cannot be str anymore
+                self.times = cast("Series", self._selected_obj[self.times])
             if not is_datetime64_ns_dtype(self.times):
                 raise ValueError("times must be datetime64[ns] dtype.")
-            # error: Argument 1 to "len" has incompatible type "Union[str, ndarray,
-            # NDFrameT, None]"; expected "Sized"
-            if len(self.times) != len(obj):  # type: ignore[arg-type]
+            if len(self.times) != len(obj):
                 raise ValueError("times must be the same length as the object.")
             if not isinstance(self.halflife, (str, datetime.timedelta)):
                 raise ValueError(
@@ -732,6 +734,7 @@ class ExponentialMovingWindow(BaseWindow):
                 min_periods=min_periods,
                 center=self.center,
                 closed=self.closed,
+                step=self.step,
             )
             result = window_aggregations.ewmcov(
                 x_array,
@@ -798,6 +801,7 @@ class ExponentialMovingWindow(BaseWindow):
                 min_periods=min_periods,
                 center=self.center,
                 closed=self.closed,
+                step=self.step,
             )
 
             def _cov(X, Y):
@@ -830,7 +834,7 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
 
     _attributes = ExponentialMovingWindow._attributes + BaseWindowGroupby._attributes
 
-    def __init__(self, obj, *args, _grouper=None, **kwargs):
+    def __init__(self, obj, *args, _grouper=None, **kwargs) -> None:
         super().__init__(obj, *args, _grouper=_grouper, **kwargs)
 
         if not obj.empty and self.times is not None:
@@ -873,7 +877,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         engine_kwargs: dict[str, bool] | None = None,
         *,
         selection=None,
-    ):
+    ) -> None:
         if times is not None:
             raise NotImplementedError(
                 "times is not implemented with online operations."

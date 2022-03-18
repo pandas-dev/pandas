@@ -174,27 +174,27 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         return type(self)._simple_new(arr, name=self.name)
 
     @doc(PeriodArray.to_timestamp)
-    def to_timestamp(self, freq=None, how="start") -> DatetimeIndex:
+    def to_timestamp(self, freq=None, how: str = "start") -> DatetimeIndex:
         arr = self._data.to_timestamp(freq, how)
         return DatetimeIndex._simple_new(arr, name=self.name)
 
     # https://github.com/python/mypy/issues/1362
     # error: Decorated property not supported
-    @property  # type:ignore[misc]
+    @property  # type: ignore[misc]
     @doc(PeriodArray.hour.fget)
     def hour(self) -> Int64Index:
         return Int64Index(self._data.hour, name=self.name)
 
     # https://github.com/python/mypy/issues/1362
     # error: Decorated property not supported
-    @property  # type:ignore[misc]
+    @property  # type: ignore[misc]
     @doc(PeriodArray.minute.fget)
     def minute(self) -> Int64Index:
         return Int64Index(self._data.minute, name=self.name)
 
     # https://github.com/python/mypy/issues/1362
     # error: Decorated property not supported
-    @property  # type:ignore[misc]
+    @property  # type: ignore[misc]
     @doc(PeriodArray.second.fget)
     def second(self) -> Int64Index:
         return Int64Index(self._data.second, name=self.name)
@@ -272,7 +272,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     def values(self) -> np.ndarray:
         return np.asarray(self, dtype=object)
 
-    def _maybe_convert_timedelta(self, other):
+    def _maybe_convert_timedelta(self, other) -> int | npt.NDArray[np.int64]:
         """
         Convert timedelta-like input to an integer multiple of self.freq
 
@@ -446,8 +446,9 @@ class PeriodIndex(DatetimeIndexOpsMixin):
                     # TODO: pass if method is not None, like DTI does?
                     raise KeyError(key) from err
 
-            if reso == self.dtype.resolution:
-                # the reso < self.dtype.resolution case goes through _get_string_slice
+            if reso == self.dtype._resolution_obj:
+                # the reso < self.dtype._resolution_obj case goes
+                #  through _get_string_slice
                 key = Period(parsed, freq=self.freq)
                 loc = self.get_loc(key, method=method, tolerance=tolerance)
                 # Recursing instead of falling through matters for the exception
@@ -495,14 +496,13 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         return super()._maybe_cast_slice_bound(label, side, kind=kind)
 
     def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
-        grp = reso.freq_group
-        iv = Period(parsed, freq=grp.value)
+        iv = Period(parsed, freq=reso.attr_abbrev)
         return (iv.asfreq(self.freq, how="start"), iv.asfreq(self.freq, how="end"))
 
     def _can_partial_date_slice(self, reso: Resolution) -> bool:
         assert isinstance(reso, Resolution), (type(reso), reso)
         # e.g. test_getitem_setitem_periodindex
-        return reso > self.dtype.resolution
+        return reso > self.dtype._resolution_obj
 
 
 def period_range(

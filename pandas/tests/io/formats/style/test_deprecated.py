@@ -163,3 +163,8 @@ def test_precision(df):
 def test_render(df):
     with tm.assert_produces_warning(FutureWarning):
         df.style.render()
+
+
+def test_null_color(df):
+    with tm.assert_produces_warning(FutureWarning):
+        df.style.highlight_null(null_color="blue")
