@@ -44,6 +44,7 @@ Other enhancements
 - Implemented a complex-dtype :class:`Index`, passing a complex-dtype array-like to ``pd.Index`` will now retain complex dtype instead of casting to ``object`` (:issue:`45845`)
 - Improved error message in :class:`~pandas.core.window.Rolling` when ``window`` is a frequency and ``NaT`` is in the rolling axis (:issue:`46087`)
 - :class:`Series` and :class:`DataFrame` with ``IntegerDtype`` now supports bitwise operations (:issue:`34463`)
+- Add ``milliseconds`` field support for :class:`~pandas.DateOffset` (:issue:`43371`)
 -
 
 .. ---------------------------------------------------------------------------
