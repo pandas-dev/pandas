@@ -1978,7 +1978,7 @@ class DataFrame(NDFrame, OpsMixin):
         chunksize: int | None = None,
         reauth: bool = False,
         if_exists: str = "fail",
-        auth_local_webserver: bool = False,
+        auth_local_webserver: bool = True,
         table_schema: list[dict[str, str]] | None = None,
         location: str | None = None,
         progress_bar: bool = True,
@@ -2016,7 +2016,7 @@ class DataFrame(NDFrame, OpsMixin):
                 If table exists, drop it, recreate it, and insert data.
             ``'append'``
                 If table exists, insert data. Create if does not exist.
-        auth_local_webserver : bool, default False
+        auth_local_webserver : bool, default True
             Use the `local webserver flow`_ instead of the `console flow`_
             when getting user credentials.
 
@@ -2026,6 +2026,12 @@ class DataFrame(NDFrame, OpsMixin):
                 https://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_console
 
             *New in version 0.2.0 of pandas-gbq*.
+
+            .. versionchanged:: 1.5.0
+               Default value is changed to ``True``. Google has deprecated the
+               ``auth_local_webserver = False`` `"out of band" (copy-paste)
+               flow
+               <https://developers.googleblog.com/2022/02/making-oauth-flows-safer.html?m=1#disallowed-oob>`_.
         table_schema : list of dicts, optional
             List of BigQuery table fields to which according DataFrame
             columns conform to, e.g. ``[{'name': 'col1', 'type':

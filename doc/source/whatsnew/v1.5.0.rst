@@ -196,7 +196,13 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
--
+
+- BigQuery I/O methods :func:`read_gbq` and :meth:`DataFrame.to_gbq` default to
+  ``auth_local_webserver = True``. Google has deprecated the
+  ``auth_local_webserver = False`` `"out of band" (copy-paste) flow
+  <https://developers.googleblog.com/2022/02/making-oauth-flows-safer.html?m=1#disallowed-oob>`_.
+  The ``auth_local_webserver = False`` option is planned to stop working in
+  October 2022. (:issue:`46312`)
 -
 
 .. ---------------------------------------------------------------------------
