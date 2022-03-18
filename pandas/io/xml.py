@@ -1130,6 +1130,10 @@ def read_xml(
     exceptions due to issues with XML document, ``xpath``, or other
     parameters.
 
+    See the :ref:`read_xml documentation in the IO section of the docs
+    <io.read_xml>` for more information in using this method to parse XML
+    files to DataFrames.
+
     Examples
     --------
     >>> xml = '''<?xml version='1.0' encoding='utf-8'?>
