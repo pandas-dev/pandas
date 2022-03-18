@@ -1296,7 +1296,6 @@ generated/pandas.Timedelta.components,../reference/api/pandas.Timedelta.componen
 generated/pandas.Timedelta.days,../reference/api/pandas.Timedelta.days
 generated/pandas.Timedelta.delta,../reference/api/pandas.Timedelta.delta
 generated/pandas.Timedelta.floor,../reference/api/pandas.Timedelta.floor
-generated/pandas.Timedelta.freq,../reference/api/pandas.Timedelta.freq
 generated/pandas.Timedelta,../reference/api/pandas.Timedelta
 generated/pandas.TimedeltaIndex.ceil,../reference/api/pandas.TimedeltaIndex.ceil
 generated/pandas.TimedeltaIndex.components,../reference/api/pandas.TimedeltaIndex.components
