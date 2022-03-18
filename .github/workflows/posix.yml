@@ -24,50 +24,52 @@ jobs:
     timeout-minutes: 120
     strategy:
       matrix:
-        env_file: [actions-38.yaml, actions-39.yaml, actions-310.yaml]
-        pattern: ["not single_cpu", "single_cpu"]
+        env_file: [actions-38.yaml]  #, actions-39.yaml, actions-310.yaml]
+        pattern: ["not single_cpu"]  #, "single_cpu"]
         # Don't test pyarrow v2/3: Causes timeouts in read_csv engine
         # even if tests are skipped/xfailed
-        pyarrow_version: ["5", "7"]
+        pyarrow_version: ["5"]  # , "7"]
         include:
-          - env_file: actions-38-downstream_compat.yaml
-            pattern: "not slow and not network and not single_cpu"
-            pytest_target: "pandas/tests/test_downstream.py"
-            name: "Downstream Compat"
-          - env_file: actions-38-minimum_versions.yaml
-            pattern: "not slow and not network and not single_cpu"
-            name: "Minimum Versions"
-          - env_file: actions-38.yaml
-            pattern: "not slow and not network and not single_cpu"
-            extra_apt: "language-pack-it"
-            lang: "it_IT.utf8"
-            lc_all: "it_IT.utf8"
-            name: "Locale: it_IT.utf8"
+#          - env_file: actions-38-downstream_compat.yaml
+#            pattern: "not slow and not network and not single_cpu"
+#            pytest_target: "pandas/tests/test_downstream.py"
+#            name: "Downstream Compat"
+#          - env_file: actions-38-minimum_versions.yaml
+#            pattern: "not slow and not network and not single_cpu"
+#            name: "Minimum Versions"
+#          - env_file: actions-38.yaml
+#            pattern: "not slow and not network and not single_cpu"
+#            extra_apt: "language-pack-it"
+#            lang: "it_IT.utf8"
+#            lc_all: "it_IT.utf8"
+#            name: "Locale: it_IT.utf8"
           - env_file: actions-38.yaml
             pattern: "not slow and not network and not single_cpu"
             extra_apt: "language-pack-zh-hans"
-            lang: "zh_CN"
-            lc_all: "zh_CN"
-            name: "Locale: zh_CN (gb2312)"
-          - env_file: actions-38.yaml
-            pattern: "not slow and not network and not single_cpu"
-            pandas_data_manager: "array"
-            name: "Data Manager"
-          - env_file: actions-pypy-38.yaml
-            pattern: "not slow and not network and not single_cpu"
-            test_args: "--max-worker-restart 0"
-            name: "Pypy"
-          - env_file: actions-310-numpydev.yaml
-            pattern: "not slow and not network and not single_cpu"
-            pandas_testing_mode: "deprecate"
-            test_args: "-W error"
-            name: "Numpy Dev"
+            extra_loc: "zh_CN"
+            lang: "zh_CN.utf-8"
+            lc_all: "zh_CN.utf-8"
+            name: "Locale: zh_CN.utf-8"
+#          - env_file: actions-38.yaml
+#            pattern: "not slow and not network and not single_cpu"
+#            pandas_data_manager: "array"
+#            name: "Data Manager"
+#          - env_file: actions-pypy-38.yaml
+#            pattern: "not slow and not network and not single_cpu"
+#            test_args: "--max-worker-restart 0"
+#            name: "Pypy"
+#          - env_file: actions-310-numpydev.yaml
+#            pattern: "not slow and not network and not single_cpu"
+#            pandas_testing_mode: "deprecate"
+#            test_args: "-W error"
+#            name: "Numpy Dev"
       fail-fast: false
     name: ${{ matrix.name || format('{0} pyarrow={1} {2}', matrix.env_file, matrix.pyarrow_version, matrix.pattern) }}
     env:
       ENV_FILE: ci/deps/${{ matrix.env_file }}
       PATTERN: ${{ matrix.pattern }}
       EXTRA_APT: ${{ matrix.extra_apt || '' }}
+      EXTRA_LOC: ${{ matrix.extra_loc || '' }}
       LANG: ${{ matrix.lang || '' }}
       LC_ALL: ${{ matrix.lc_all || '' }}
       PANDAS_TESTING_MODE: ${{ matrix.pandas_testing_mode || '' }}
@@ -138,10 +140,10 @@ jobs:
       # xsel for clipboard tests
       run: sudo apt-get update && sudo apt-get install -y libc6-dev-i386 xsel ${{ env.EXTRA_APT }}
 
-    - name: Generate the locale
+    - name: Generate locales
       run: |
-        less /usr/share/i18n/SUPPORTED
-        sudo locale-gen ${LANG}
+        sudo locale-gen en_EN ${{ env.EXTRA_LOC }}
+      # less /usr/share/i18n/SUPPORTED
       # sudo update-locale LANG=${LANG}
 
     - uses: conda-incubator/setup-miniconda@v2
