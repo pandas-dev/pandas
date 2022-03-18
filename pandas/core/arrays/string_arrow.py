@@ -40,7 +40,6 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_integer,
     is_integer_dtype,
-    is_list_like,
     is_object_dtype,
     is_scalar,
     is_string_dtype,
@@ -363,140 +362,125 @@ class ArrowStringArray(
         None
         """
         key = check_array_indexer(self, key)
+        indices = self._key_to_indices(key)
 
-        if is_list_like(key):
-            key = np.asarray(key)
-            if len(key) == 1:
-                key = key[0]
-
-        value_is_scalar = is_scalar(value)
-
-        # NA -> None
-        if value_is_scalar:
+        if is_scalar(value):
             if isna(value):
                 value = None
             elif not isinstance(value, str):
                 raise ValueError("Scalar must be NA or str")
+            value = np.broadcast_to(value, len(indices))
         else:
-            value = np.asarray(value, dtype=object)
+            value = np.array(value, dtype=object, copy=True)
             for i, v in enumerate(value):
                 if isna(v):
                     value[i] = None
                 elif not isinstance(v, str):
                     raise ValueError("Scalar must be NA or str")
 
-        # reorder values to align with the mask positions
-        if is_bool_dtype(key):
-            pass
-        elif isinstance(key, slice):
-            if not value_is_scalar and key.step is not None and key.step < 0:
-                value = value[::-1]
-        else:
-            if not value_is_scalar:
-                if is_scalar(key):
-                    raise ValueError("Length of indexer and values mismatch")
-                key = np.asarray(key)
-                if len(key) != len(value):
-                    raise ValueError("Length of indexer and values mismatch")
+        if len(indices) != len(value):
+            raise ValueError("Length of indexer and values mismatch")
 
-            if np.any(key < -len(self)):
-                min_key = np.asarray(key).min()
-                raise IndexError(
-                    f"index {min_key} is out of bounds for array of length {len(self)}"
-                )
-            if np.any(key >= len(self)):
-                max_key = np.asarray(key).max()
-                raise IndexError(
-                    f"index {max_key} is out of bounds for array of length {len(self)}"
-                )
+        argsort = np.argsort(indices)
+        indices = indices[argsort]
+        value = value[argsort]
 
-            # convert negative indices to positive before sorting
-            if is_integer(key):
-                if key < 0:
-                    key += len(self)
-            else:
-                key = np.asarray(key)
-                key[key < 0] += len(self)
-                if not value_is_scalar:
-                    value = value[np.argsort(key)]
+        self._data = self._set_via_chunk_iteration(indices=indices, value=value)
 
-        # fast path
-        if is_integer(key) and value_is_scalar and self._data.num_chunks == 1:
-            idx = int(key)  # type: ignore[arg-type]
-            chunk = pa.concat_arrays(
-                [
-                    self._data.chunks[0][:idx],
-                    pa.array([value], type=pa.string()),
-                    self._data.chunks[0][idx + 1 :],
-                ]
-            )
-            self._data = pa.chunked_array([chunk])
-            return
-
-        # create mask for positions to set
-        mask: npt.NDArray[np.bool_]
-        if is_bool_dtype(key):
-            mask = key  # type: ignore[assignment]
-        else:
-            mask = np.zeros(len(self), dtype=np.bool_)
-            mask[key] = True
-
-        if not value_is_scalar:
-            if len(value) != np.sum(mask):
+    def _key_to_indices(self, key: int | slice | np.ndarray) -> npt.NDArray[np.intp]:
+        """Convert indexing key for self to positional indices."""
+        if isinstance(key, slice):
+            indices = np.arange(len(self))[key]
+        elif is_bool_dtype(key):
+            key = np.asarray(key)
+            if len(key) != len(self):
                 raise ValueError("Length of indexer and values mismatch")
+            indices = key.nonzero()[0]
+        else:
+            key_arr = np.array([key]) if is_integer(key) else np.asarray(key)
+            indices = np.arange(len(self))[key_arr]
+        return indices
 
-        indices = mask.nonzero()[0]
+    def _set_via_chunk_iteration(
+        self, indices: npt.NDArray[np.intp], value: npt.NDArray[Any]
+    ) -> pa.ChunkedArray:
+        """
+        Loop through the array chunks and set the new values while
+        leaving the chunking layout unchanged.
+        """
 
-        # loop through the array chunks and set the new values while
-        # leaving the chunking layout unchanged
-        start = stop = 0
+        chunk_indices = self._within_chunk_indices(indices)
         new_data = []
 
-        for chunk in self._data.iterchunks():
-            start, stop = stop, stop + len(chunk)
+        for i, chunk in enumerate(self._data.iterchunks()):
 
-            if len(indices) == 0 or indices[0] >= stop:
-                new_data.append(chunk)
-                continue
-
-            n = int(np.searchsorted(indices, stop, side="left"))
-            c_indices, indices = indices[:n], indices[n:]
-
-            if value_is_scalar:
-                c_value = value
-            else:
-                c_value, value = value[:n], value[n:]
+            c_ind = chunk_indices[i]
+            n = len(c_ind)
+            c_value, value = value[:n], value[n:]
 
             if n == 1:
                 # fast path
-                idx = c_indices[0] - start
-                v = [c_value] if value_is_scalar else c_value
-                chunk = pa.concat_arrays(
-                    [
-                        chunk[:idx],
-                        pa.array(v, type=pa.string()),
-                        chunk[idx + 1 :],
-                    ]
-                )
-
+                chunk = self._set_single_index_in_chunk(chunk, c_ind[0], c_value[0])
             elif n > 0:
-                submask = mask[start:stop]
+                mask = np.zeros(len(chunk), dtype=np.bool_)
+                mask[c_ind] = True
                 if not pa_version_under5p0:
                     if c_value is None or isna(np.array(c_value)).all():
-                        chunk = pc.if_else(submask, None, chunk)
+                        chunk = pc.if_else(mask, None, chunk)
                     else:
-                        chunk = pc.replace_with_mask(chunk, submask, c_value)
+                        chunk = pc.replace_with_mask(chunk, mask, c_value)
                 else:
                     # The pyarrow compute functions were added in
                     # version 5.0. For prior versions we implement
                     # our own by converting to numpy and back.
                     chunk = chunk.to_numpy(zero_copy_only=False)
-                    chunk[submask] = c_value
+                    chunk[mask] = c_value
                     chunk = pa.array(chunk, type=pa.string())
 
             new_data.append(chunk)
 
-        self._data = pa.chunked_array(new_data)
+        return pa.chunked_array(new_data)
+
+    @staticmethod
+    def _set_single_index_in_chunk(chunk: pa.Array, index: int, value: Any) -> pa.Array:
+        """Set a single position in a pyarrow array."""
+        assert is_scalar(value)
+        return pa.concat_arrays(
+            [
+                chunk[:index],
+                pa.array([value], type=pa.string()),
+                chunk[index + 1 :],
+            ]
+        )
+
+    def _within_chunk_indices(
+        self, indices: npt.NDArray[np.intp]
+    ) -> list[npt.NDArray[np.intp]]:
+        """
+        Convert a list of indices for self into a list of tuples each containing
+        the indices within each chunk of the chunked array.
+        """
+        # indices must be sorted
+        chunk_indices = []
+        for start, stop in self._chunk_ranges():
+            if len(indices) == 0 or indices[0] >= stop:
+                c_ind = np.array([], dtype=np.intp)
+            else:
+                n = int(np.searchsorted(indices, stop, side="left"))
+                c_ind = indices[:n] - start
+                indices = indices[n:]
+            chunk_indices.append(c_ind)
+        return chunk_indices
+
+    def _chunk_ranges(self) -> list[tuple]:
+        """
+        Return a list of tuples each containing the left (inclusive)
+        and right (exclusive) bounds of each chunk.
+        """
+        lengths = [len(c) for c in self._data.iterchunks()]
+        stops = np.cumsum(lengths)
+        starts = np.concatenate([[0], stops[:-1]])
+        return list(zip(starts, stops))
 
     def take(
         self,
