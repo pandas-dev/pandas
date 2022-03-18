@@ -119,6 +119,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_iterator,
     is_list_like,
+    is_numeric_dtype,
     is_object_dtype,
     is_scalar,
     is_sequence,
@@ -1978,7 +1979,7 @@ class DataFrame(NDFrame, OpsMixin):
         chunksize: int | None = None,
         reauth: bool = False,
         if_exists: str = "fail",
-        auth_local_webserver: bool = False,
+        auth_local_webserver: bool = True,
         table_schema: list[dict[str, str]] | None = None,
         location: str | None = None,
         progress_bar: bool = True,
@@ -2016,7 +2017,7 @@ class DataFrame(NDFrame, OpsMixin):
                 If table exists, drop it, recreate it, and insert data.
             ``'append'``
                 If table exists, insert data. Create if does not exist.
-        auth_local_webserver : bool, default False
+        auth_local_webserver : bool, default True
             Use the `local webserver flow`_ instead of the `console flow`_
             when getting user credentials.
 
@@ -2026,6 +2027,12 @@ class DataFrame(NDFrame, OpsMixin):
                 https://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_console
 
             *New in version 0.2.0 of pandas-gbq*.
+
+            .. versionchanged:: 1.5.0
+               Default value is changed to ``True``. Google has deprecated the
+               ``auth_local_webserver = False`` `"out of band" (copy-paste)
+               flow
+               <https://developers.googleblog.com/2022/02/making-oauth-flows-safer.html?m=1#disallowed-oob>`_.
         table_schema : list of dicts, optional
             List of BigQuery table fields to which according DataFrame
             columns conform to, e.g. ``[{'name': 'col1', 'type':
@@ -10592,7 +10599,7 @@ NaN 12.3   33.0
         self,
         q=0.5,
         axis: Axis = 0,
-        numeric_only: bool = True,
+        numeric_only: bool | lib.NoDefault = no_default,
         interpolation: str = "linear",
     ):
         """
@@ -10662,6 +10669,17 @@ NaN 12.3   33.0
         """
         validate_percentile(q)
         axis = self._get_axis_number(axis)
+        any_not_numeric = any(not is_numeric_dtype(x) for x in self.dtypes)
+        if numeric_only is no_default and any_not_numeric:
+            warnings.warn(
+                "In future versions of pandas, numeric_only will be set to "
+                "False by default, and the datetime/timedelta columns will "
+                "be considered in the results. To not consider these columns"
+                "specify numeric_only=True.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            numeric_only = True
 
         if not is_list_like(q):
             # BlockManager.quantile expects listlike, so we wrap and unwrap here
