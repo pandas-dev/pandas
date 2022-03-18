@@ -35,7 +35,7 @@ VERSIONS = {
     "pyxlsb": "1.0.6",
     "s3fs": "0.4.0",
     "scipy": "1.4.1",
-    "snappy": "1.1.8",
+    "snappy": "0.6.0",
     "sqlalchemy": "1.4.0",
     "tables": "3.6.1",
     "tabulate": "0.8.7",
@@ -53,12 +53,13 @@ INSTALL_MAPPING = {
     "bs4": "beautifulsoup4",
     "bottleneck": "Bottleneck",
     "brotli": "brotlipy",
+    "jinja2": "Jinja2",
     "lxml.etree": "lxml",
     "odf": "odfpy",
     "pandas_gbq": "pandas-gbq",
-    "tables": "pytables",
+    "snappy": "python-snappy",
     "sqlalchemy": "SQLAlchemy",
-    "jinja2": "Jinja2",
+    "tables": "pytables",
 }
 
 
@@ -71,6 +72,10 @@ def get_version(module: types.ModuleType) -> str:
     if version is None:
         if module.__name__ == "brotli":
             # brotli doesn't contain attributes to confirm it's version
+            return ""
+        if module.__name__ == "snappy":
+            # snappy doesn't contain attributes to confirm it's version
+            # See https://github.com/andrix/python-snappy/pull/119
             return ""
         raise ImportError(f"Can't determine version for {module.__name__}")
     if module.__name__ == "psycopg2":
