@@ -241,7 +241,7 @@ class Styler(StylerRenderer):
         thousands: str | None = None,
         escape: str | None = None,
         formatter: ExtFormatter | None = None,
-    ):
+    ) -> None:
         super().__init__(
             data=data,
             uuid=uuid,
@@ -3875,14 +3875,22 @@ def _highlight_between(
         )
 
     g_left = (
-        ops[0](data, left)
+        # error: Argument 2 to "ge" has incompatible type "Union[str, float,
+        # Period, Timedelta, Interval[Any], datetime64, timedelta64, datetime,
+        # Sequence[Any], ndarray[Any, Any], NDFrame]"; expected "Union
+        # [SupportsDunderLE, SupportsDunderGE, SupportsDunderGT, SupportsDunderLT]"
+        ops[0](data, left)  # type: ignore[arg-type]
         if left is not None
         else np.full(data.shape, True, dtype=bool)
     )
     if isinstance(g_left, (DataFrame, Series)):
         g_left = g_left.where(pd.notna(g_left), False)
     l_right = (
-        ops[1](data, right)
+        # error: Argument 2 to "le" has incompatible type "Union[str, float,
+        # Period, Timedelta, Interval[Any], datetime64, timedelta64, datetime,
+        # Sequence[Any], ndarray[Any, Any], NDFrame]"; expected "Union
+        # [SupportsDunderLE, SupportsDunderGE, SupportsDunderGT, SupportsDunderLT]"
+        ops[1](data, right)  # type: ignore[arg-type]
         if right is not None
         else np.full(data.shape, True, dtype=bool)
     )

@@ -148,6 +148,7 @@ from pandas.core.arrays.datetimes import (
     validate_tz_from_dtype,
 )
 from pandas.core.arrays.sparse import SparseDtype
+from pandas.core.arrays.string_ import StringArray
 from pandas.core.base import (
     IndexOpsMixin,
     PandasObject,
@@ -4087,7 +4088,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         op = operator.lt if self.is_monotonic_increasing else operator.le
         indexer = np.where(
-            op(left_distances, right_distances) | (right_indexer == -1),
+            # error: Argument 1&2 has incompatible type "Union[ExtensionArray,
+            # ndarray[Any, Any]]"; expected "Union[SupportsDunderLE,
+            # SupportsDunderGE, SupportsDunderGT, SupportsDunderLT]"
+            op(left_distances, right_distances)  # type: ignore[arg-type]
+            | (right_indexer == -1),
             left_indexer,
             right_indexer,
         )
@@ -5033,7 +5038,11 @@ class Index(IndexOpsMixin, PandasObject):
         Get the ndarray or ExtensionArray that we can pass to the IndexEngine
         constructor.
         """
-        return self._values
+        vals = self._values
+        if isinstance(vals, StringArray):
+            # GH#45652 much more performant than ExtensionEngine
+            return vals._ndarray
+        return vals
 
     def _from_join_target(self, result: np.ndarray) -> ArrayLike:
         """

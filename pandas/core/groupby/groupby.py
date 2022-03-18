@@ -534,7 +534,7 @@ class GroupByPlot(PandasObject):
     Class implementing the .plot attribute for groupby objects.
     """
 
-    def __init__(self, groupby: GroupBy):
+    def __init__(self, groupby: GroupBy) -> None:
         self._groupby = groupby
 
     def __call__(self, *args, **kwargs):
@@ -855,7 +855,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         observed: bool = False,
         mutated: bool = False,
         dropna: bool = True,
-    ):
+    ) -> None:
 
         self._selection = selection
 
