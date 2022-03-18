@@ -44,6 +44,7 @@ Other enhancements
 - Implemented a complex-dtype :class:`Index`, passing a complex-dtype array-like to ``pd.Index`` will now retain complex dtype instead of casting to ``object`` (:issue:`45845`)
 - Improved error message in :class:`~pandas.core.window.Rolling` when ``window`` is a frequency and ``NaT`` is in the rolling axis (:issue:`46087`)
 - :class:`Series` and :class:`DataFrame` with ``IntegerDtype`` now supports bitwise operations (:issue:`34463`)
+- Add ``milliseconds`` field support for :class:`~pandas.DateOffset` (:issue:`43371`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -213,7 +214,7 @@ If installed, we now require:
 +-----------------+-----------------+----------+---------+
 | Package         | Minimum Version | Required | Changed |
 +=================+=================+==========+=========+
-| mypy (dev)      | 0.931           |          |    X    |
+| mypy (dev)      | 0.941           |          |    X    |
 +-----------------+-----------------+----------+---------+
 
 
@@ -233,7 +234,13 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
--
+
+- BigQuery I/O methods :func:`read_gbq` and :meth:`DataFrame.to_gbq` default to
+  ``auth_local_webserver = True``. Google has deprecated the
+  ``auth_local_webserver = False`` `"out of band" (copy-paste) flow
+  <https://developers.googleblog.com/2022/02/making-oauth-flows-safer.html?m=1#disallowed-oob>`_.
+  The ``auth_local_webserver = False`` option is planned to stop working in
+  October 2022. (:issue:`46312`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -334,6 +341,7 @@ Other Deprecations
 - Deprecated the ``warn`` parameter in :func:`infer_freq` (:issue:`45947`)
 - Deprecated allowing non-keyword arguments in :meth:`ExtensionArray.argsort` (:issue:`46134`)
 - Deprecated treating all-bool ``object``-dtype columns as bool-like in :meth:`DataFrame.any` and :meth:`DataFrame.all` with ``bool_only=True``, explicitly cast to bool instead (:issue:`46188`)
+- Deprecated behavior of method :meth:`DataFrame.quantile`, attribute ``numeric_only`` will default False. Including datetime/timedelta columns in the result (:issue:`7308`).
 -
 
 .. ---------------------------------------------------------------------------
@@ -347,11 +355,12 @@ Performance improvements
 - Performance improvement in :meth:`.GroupBy.diff` (:issue:`16706`)
 - Performance improvement in :meth:`.GroupBy.transform` when broadcasting values for user-defined functions (:issue:`45708`)
 - Performance improvement in :meth:`.GroupBy.transform` for user-defined functions when only a single group exists (:issue:`44977`)
-- Performance improvement in :meth:`MultiIndex.get_locs` (:issue:`45681`, :issue:`46040`)
+- Performance improvement in :meth:`DataFrame.loc` and :meth:`Series.loc` for tuple-based indexing of a :class:`MultiIndex` (:issue:`45681`, :issue:`46040`, :issue:`46330`)
 - Performance improvement in :attr:`MultiIndex.values` when the MultiIndex contains levels of type DatetimeIndex, TimedeltaIndex or ExtensionDtypes (:issue:`46288`)
 - Performance improvement in :func:`merge` when left and/or right are empty (:issue:`45838`)
 - Performance improvement in :meth:`DataFrame.join` when left and/or right are empty (:issue:`46015`)
 - Performance improvement in :meth:`DataFrame.reindex` and :meth:`Series.reindex` when target is a :class:`MultiIndex` (:issue:`46235`)
+- Performance improvement when setting values in a pyarrow backed string array (:issue:`46400`)
 - Performance improvement in :func:`factorize` (:issue:`46109`)
 - Performance improvement in :class:`DataFrame` and :class:`Series` constructors for extension dtype scalars (:issue:`45854`)
 
@@ -471,6 +480,7 @@ I/O
 Period
 ^^^^^^
 - Bug in subtraction of :class:`Period` from :class:`PeriodArray` returning wrong results (:issue:`45999`)
+- Bug in :meth:`Period.strftime` and :meth:`PeriodIndex.strftime`, directives ``%l`` and ``%u`` were giving wrong results (:issue:`46252`)
 -
 
 Plotting
@@ -500,6 +510,7 @@ Reshaping
 - Bug in :func:`concat` between a :class:`Series` with integer dtype and another with :class:`CategoricalDtype` with integer categories and containing ``NaN`` values casting to object dtype instead of ``float64`` (:issue:`45359`)
 - Bug in :func:`get_dummies` that selected object and categorical dtypes but not string (:issue:`44965`)
 - Bug in :meth:`DataFrame.align` when aligning a :class:`MultiIndex` to a :class:`Series` with another :class:`MultiIndex` (:issue:`46001`)
+- Bug in concanenation with ``IntegerDtype``, or ``FloatingDtype`` arrays where the resulting dtype did not mirror the behavior of the non-nullable dtypes (:issue:`46379`)
 -
 
 Sparse

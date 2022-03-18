@@ -94,7 +94,8 @@ class PyperclipException(RuntimeError):
 
 class PyperclipWindowsException(PyperclipException):
     def __init__(self, message) -> None:
-        message += f" ({ctypes.WinError()})"
+        # attr only exists on Windows, so typing fails on other platforms
+        message += f" ({ctypes.WinError()})"  # type: ignore[attr-defined]
         super().__init__(message)
 
 

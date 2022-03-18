@@ -1593,6 +1593,14 @@ class DatelikeOps(DatetimeLikeArrayMixin):
         of the string format can be found in `python string format
         doc <%(URL)s>`__.
 
+        Formats supported by the C `strftime` API but not by the python string format
+        doc (such as `"%%R"`, `"%%r"`) are not officially supported and should be
+        preferably replaced with their supported equivalents (such as `"%%H:%%M"`,
+        `"%%I:%%M:%%S %%p"`).
+
+        Note that `PeriodIndex` support additional directives, detailed in
+        `Period.strftime`.
+
         Parameters
         ----------
         date_format : str
@@ -1609,6 +1617,8 @@ class DatelikeOps(DatetimeLikeArrayMixin):
         DatetimeIndex.normalize : Return DatetimeIndex with times to midnight.
         DatetimeIndex.round : Round the DatetimeIndex to the specified freq.
         DatetimeIndex.floor : Floor the DatetimeIndex to the specified freq.
+        Timestamp.strftime : Format a single Timestamp.
+        Period.strftime : Format a single Period.
 
         Examples
         --------
