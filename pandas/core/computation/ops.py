@@ -580,7 +580,8 @@ class UnaryOp(Op):
 
     def __call__(self, env):
         operand = self.operand(env)
-        return self.func(operand)
+        # error: Cannot call function of unknown type
+        return self.func(operand)  # type: ignore[operator]
 
     def __repr__(self) -> str:
         return pprint_thing(f"{self.op}({self.operand})")
