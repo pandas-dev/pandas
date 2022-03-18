@@ -185,7 +185,6 @@ Properties
    Timedelta.components
    Timedelta.days
    Timedelta.delta
-   Timedelta.freq
    Timedelta.is_populated
    Timedelta.max
    Timedelta.microseconds
