@@ -23,6 +23,7 @@ from pandas._typing import (
 from pandas.errors import IntCastingNaNError
 from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes import cast
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetime64tz_dtype,
@@ -145,17 +146,15 @@ def astype_nansafe(
         if is_datetime64_dtype(dtype):
             from pandas import to_datetime
 
-            datetime_values = to_datetime(arr.ravel()).values.reshape(arr.shape)
-
-            if dtype == "<M8[D]":
-                dtype = np.dtype("M8[ns]")
-                datetime_values = datetime_values.astype(dtype)
+            if dtype != "datetime64":
+                dtype = cast._ensure_nanosecond_dtype(dtype)
 
             return astype_nansafe(
-                datetime_values,
+                to_datetime(arr.ravel()).values.reshape(arr.shape),
                 dtype,
                 copy=copy,
             )
+
         elif is_timedelta64_dtype(dtype):
             # bc we know arr.dtype == object, this is equivalent to
             #  `np.asarray(to_timedelta(arr))`, but using a lower-level API that
