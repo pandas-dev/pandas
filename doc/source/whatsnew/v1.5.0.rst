@@ -96,7 +96,8 @@ did not have the same index as the input.
     0  5
     1  5
 
-    In [3]: df.groupby('a', dropna=True).transform('ffill')
+    In [3]: # The value in the last row is np.nan interpreted as an integer
+            df.groupby('a', dropna=True).transform('ffill')
     Out[3]:
                          b
     0                    2

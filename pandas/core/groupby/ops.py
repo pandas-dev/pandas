@@ -37,7 +37,6 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import (
-    ensure_dtype_can_hold_na,
     maybe_cast_pointwise_result,
     maybe_downcast_to_dtype,
 )
@@ -99,16 +98,25 @@ from pandas.core.sorting import (
 class WrappedCythonOp:
     """
     Dispatch logic for functions defined in _libs.groupby
+
+    Parameters
+    ----------
+    kind: str
+        Whether the operation is an aggregate or transform.
+    how: str
+        Operation name, e.g. "mean".
+    has_dropped_na: bool
+        True precisely when dropna=True and the grouper contains a null value.
     """
 
     # Functions for which we do _not_ attempt to cast the cython result
     #  back to the original dtype.
     cast_blocklist = frozenset(["rank", "count", "size", "idxmin", "idxmax"])
 
-    def __init__(self, grouper: BaseGrouper, kind: str, how: str) -> None:
-        self.grouper = grouper
+    def __init__(self, kind: str, how: str, has_dropped_na: bool) -> None:
         self.kind = kind
         self.how = how
+        self.has_dropped_na = has_dropped_na
 
     _CYTHON_FUNCTIONS = {
         "aggregate": {
@@ -197,7 +205,7 @@ class WrappedCythonOp:
 
         elif values.dtype.kind in ["i", "u"]:
             if how in ["add", "var", "prod", "mean", "ohlc"] or (
-                self.kind == "transform" and self.grouper.has_dropped_na
+                self.kind == "transform" and self.has_dropped_na
             ):
                 # result may still include NaN, so we have to cast
                 values = ensure_float64(values)
@@ -263,9 +271,6 @@ class WrappedCythonOp:
 
     def _get_out_dtype(self, dtype: np.dtype) -> np.dtype:
         how = self.how
-
-        if self.kind == "transform" and self.grouper.has_dropped_na:
-            dtype = ensure_dtype_can_hold_na(dtype)
 
         if how == "rank":
             out_dtype = "float64"
@@ -469,11 +474,6 @@ class WrappedCythonOp:
             # otherwise we have OHLC
             return res.T
 
-        if self.kind == "transform" and self.grouper.has_dropped_na:
-            mask = comp_ids == -1
-            # make mask 2d
-            mask = mask[None, :]
-
         return self._call_cython_op(
             values,
             min_count=min_count,
@@ -594,7 +594,7 @@ class WrappedCythonOp:
 
         result = result.T
 
-        if self.how == "rank" and self.grouper.has_dropped_na:
+        if self.how == "rank" and self.has_dropped_na:
             # TODO: Wouldn't need this if group_rank supported mask
             result = np.where(comp_ids < 0, np.nan, result)
 
@@ -975,7 +975,7 @@ class BaseGrouper:
         """
         assert kind in ["transform", "aggregate"]
 
-        cy_op = WrappedCythonOp(grouper=self, kind=kind, how=how)
+        cy_op = WrappedCythonOp(kind=kind, how=how, has_dropped_na=self.has_dropped_na)
 
         ids, _, _ = self.group_info
         ngroups = self.ngroups
