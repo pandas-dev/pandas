@@ -519,7 +519,7 @@ class WrappedCythonOp:
         result = maybe_fill(np.empty(out_shape, dtype=out_dtype))
         if self.kind == "aggregate":
             counts = np.zeros(ngroups, dtype=np.int64)
-            if self.how in ["min", "max", "mean"]:
+            if self.how in ["min", "max", "mean", "last", "first"]:
                 func(
                     out=result,
                     counts=counts,
@@ -529,16 +529,6 @@ class WrappedCythonOp:
                     mask=mask,
                     result_mask=result_mask,
                     is_datetimelike=is_datetimelike,
-                )
-            elif self.how in ["first", "last"]:
-                func(
-                    out=result,
-                    counts=counts,
-                    values=values,
-                    labels=comp_ids,
-                    min_count=min_count,
-                    mask=mask,
-                    result_mask=result_mask,
                 )
             elif self.how in ["add"]:
                 # We support datetimelike
