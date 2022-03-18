@@ -76,10 +76,10 @@ void
 add_minutes_to_datetimestruct(npy_datetimestruct *dts, int minutes);
 
 /*
- * This function returns a pointer to the DateTimeMetaData
+ * This function returns the DateTimeMetaData
  * contained within the provided datetime dtype.
  */
-PyArray_DatetimeMetaData* get_datetime_metadata_from_dtype(
+PyArray_DatetimeMetaData get_datetime_metadata_from_dtype(
         PyArray_Descr *dtype);
 
 

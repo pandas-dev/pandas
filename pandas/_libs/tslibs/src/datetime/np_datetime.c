@@ -776,13 +776,7 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
  *
  * Copied near-verbatim from numpy/core/src/multiarray/datetime.c
  */
-PyArray_DatetimeMetaData *
+PyArray_DatetimeMetaData
 get_datetime_metadata_from_dtype(PyArray_Descr *dtype) {
-    if (!PyDataType_ISDATETIME(dtype)) {
-        PyErr_SetString(PyExc_TypeError,
-                "cannot get datetime metadata from non-datetime type");
-        return NULL;
-    }
-
-    return &(((PyArray_DatetimeDTypeMetaData *)dtype->c_metadata)->meta);
+    return (((PyArray_DatetimeDTypeMetaData *)dtype->c_metadata)->meta);
 }

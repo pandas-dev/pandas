@@ -45,7 +45,7 @@ cdef extern from "src/datetime/np_datetime.h":
 
     npy_datetimestruct _NS_MIN_DTS, _NS_MAX_DTS
 
-    PyArray_DatetimeMetaData* get_datetime_metadata_from_dtype(cnp.PyArray_Descr *dtype);
+    PyArray_DatetimeMetaData get_datetime_metadata_from_dtype(cnp.PyArray_Descr *dtype);
 
 cdef extern from "src/datetime/np_datetime_strings.h":
     int parse_iso_8601_datetime(const char *str, int len, int want_exc,
@@ -85,7 +85,7 @@ cdef NPY_DATETIMEUNIT get_unit_from_dtype(cnp.dtype dtype):
     #  timedelta64 dtype, otherwise we can segfault
     cdef:
         cnp.PyArray_Descr* descr = <cnp.PyArray_Descr*>dtype
-        PyArray_DatetimeMetaData* meta
+        PyArray_DatetimeMetaData meta
     meta = get_datetime_metadata_from_dtype(descr)
     return meta.base
 
