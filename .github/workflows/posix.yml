@@ -138,6 +138,12 @@ jobs:
       # xsel for clipboard tests
       run: sudo apt-get update && sudo apt-get install -y libc6-dev-i386 xsel ${{ env.EXTRA_APT }}
 
+    - name: Generate the locale
+      run: |
+        less /usr/share/i18n/SUPPORTED
+        sudo locale-gen ${LANG}
+      # sudo update-locale LANG=${LANG}
+
     - uses: conda-incubator/setup-miniconda@v2
       with:
         mamba-version: "*"

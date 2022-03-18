@@ -10,18 +10,6 @@ runs:
         conda list
       shell: bash -l {0}
 
-    - name: Switching (possibly gen) the locale
-      run: |
-        less /usr/share/i18n/SUPPORTED
-        sudo locale-gen ${LANG}
-        sudo update-locale LANG=${LANG}
-      shell: bash -l {0}
-
-    - name: Locale test with date print
-      run: |
-        date
-      shell: bash -l {0}
-
     - name: Build Pandas
       run: |
         python setup.py build_ext -j 2
