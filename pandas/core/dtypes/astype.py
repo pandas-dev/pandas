@@ -154,7 +154,6 @@ def astype_nansafe(
                 dtype,
                 copy=copy,
             )
-
         elif is_timedelta64_dtype(dtype):
             # bc we know arr.dtype == object, this is equivalent to
             #  `np.asarray(to_timedelta(arr))`, but using a lower-level API that
