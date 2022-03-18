@@ -6,7 +6,7 @@ from cpython.datetime cimport (
     PyDateTime_GET_DAY,
     PyDateTime_GET_MONTH,
     PyDateTime_GET_YEAR,
-    PyDateTime_IMPORT,
+    import_datetime,
 )
 from cpython.object cimport (
     Py_EQ,
@@ -17,7 +17,7 @@ from cpython.object cimport (
     Py_NE,
 )
 
-PyDateTime_IMPORT
+import_datetime()
 
 from numpy cimport int64_t
 
@@ -27,13 +27,6 @@ from pandas._libs.tslibs.util cimport get_c_string_buf_and_size
 cdef extern from "src/datetime/np_datetime.h":
     int cmp_npy_datetimestruct(npy_datetimestruct *a,
                                npy_datetimestruct *b)
-
-    npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
-                                                npy_datetimestruct *d) nogil
-
-    void pandas_datetime_to_datetimestruct(npy_datetime val,
-                                           NPY_DATETIMEUNIT fr,
-                                           npy_datetimestruct *result) nogil
 
     void pandas_timedelta_to_timedeltastruct(npy_timedelta val,
                                              NPY_DATETIMEUNIT fr,

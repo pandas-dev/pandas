@@ -22,12 +22,12 @@ cnp.import_array()
 
 from cpython.datetime cimport (
     PyDateTime_Check,
-    PyDateTime_IMPORT,
     PyDelta_Check,
+    import_datetime,
     timedelta,
 )
 
-PyDateTime_IMPORT
+import_datetime()
 
 
 cimport pandas._libs.tslibs.util as util
@@ -826,7 +826,6 @@ cdef _to_py_int_float(v):
 cdef class _Timedelta(timedelta):
     # cdef readonly:
     #    int64_t value      # nanoseconds
-    #    object freq        # frequency reference
     #    bint is_populated  # are my components populated
     #    int64_t _d, _h, _m, _s, _ms, _us, _ns
 
