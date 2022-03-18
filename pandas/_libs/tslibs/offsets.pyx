@@ -307,8 +307,9 @@ cdef _validate_business_time(t_input):
 
 _relativedelta_kwds = {"years", "months", "weeks", "days", "year", "month",
                        "day", "weekday", "hour", "minute", "second",
-                       "microsecond", "nanosecond", "nanoseconds", "hours",
-                       "minutes", "seconds", "microseconds"}
+                       "microsecond", "millisecond", "nanosecond",
+                       "nanoseconds", "hours", "minutes", "seconds",
+                       "milliseconds", "microseconds"}
 
 
 cdef _determine_offset(kwds):
@@ -323,11 +324,19 @@ cdef _determine_offset(kwds):
 
     _kwds_use_relativedelta = ('years', 'months', 'weeks', 'days',
                                'year', 'month', 'week', 'day', 'weekday',
-                               'hour', 'minute', 'second', 'microsecond')
+                               'hour', 'minute', 'second', 'microsecond',
+                               'millisecond')
 
     use_relativedelta = False
     if len(kwds_no_nanos) > 0:
         if any(k in _kwds_use_relativedelta for k in kwds_no_nanos):
+            if "millisecond" in kwds_no_nanos:
+                raise NotImplementedError(
+                    "Using DateOffset to replace `millisecond` component in "
+                    "datetime object is not supported. Use "
+                    "`microsecond=timestamp.microsecond % 1000 + ms * 1000` "
+                    "instead."
+                )
             offset = relativedelta(**kwds_no_nanos)
             use_relativedelta = True
         else:
@@ -1223,6 +1232,9 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
 
     Since 0 is a bit weird, we suggest avoiding its use.
 
+    Besides, adding a DateOffsets specified by the singular form of the date
+    component can be used to replace certain component of the timestamp.
+
     Parameters
     ----------
     n : int, default 1
@@ -1243,6 +1255,7 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
         - hours
         - minutes
         - seconds
+        - milliseconds
         - microseconds
         - nanoseconds
 
@@ -1274,6 +1287,11 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     >>> ts = pd.Timestamp('2017-01-01 09:10:11')
     >>> ts + DateOffset(months=2)
     Timestamp('2017-03-01 09:10:11')
+    >>> ts + DateOffset(day=31)
+    Timestamp('2017-01-31 09:10:11')
+
+    >>> ts + pd.DateOffset(hour=8)
+    Timestamp('2017-01-01 08:10:11')
     """
     def __setattr__(self, name, value):
         raise AttributeError("DateOffset objects are immutable.")
