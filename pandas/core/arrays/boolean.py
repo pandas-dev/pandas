@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import numbers
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    cast,
+)
 
 import numpy as np
 
@@ -30,6 +33,8 @@ from pandas.core.arrays.masked import (
 
 if TYPE_CHECKING:
     import pyarrow
+
+    from pandas._typing import npt
 
 
 @register_extension_dtype
@@ -188,7 +193,9 @@ def coerce_to_array(
         if inferred_dtype not in ("boolean", "empty") + integer_like:
             raise TypeError("Need to pass bool-like values")
 
-        mask_values = isna(values_object)
+        # mypy does not narrow the type of mask_values to npt.NDArray[np.bool_]
+        # within this branch, it assumes it can also be None
+        mask_values = cast("npt.NDArray[np.bool_]", isna(values_object))
         values = np.zeros(len(values), dtype=bool)
         values[~mask_values] = values_object[~mask_values].astype(bool)
 
