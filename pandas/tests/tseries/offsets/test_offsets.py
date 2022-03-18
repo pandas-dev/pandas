@@ -563,9 +563,9 @@ class TestDateOffset(Base):
         assert DateOffset(2) == 2 * DateOffset(1)
         assert DateOffset(2) == DateOffset(1) * 2
 
-    @pytest.mark.parametrize("relativedelta_kwd", list(liboffsets._relativedelta_kwds))
-    def test_constructor(self, relativedelta_kwd, request):
-        if relativedelta_kwd == "millisecond":
+    @pytest.mark.parametrize("kwd", sorted(liboffsets._relativedelta_kwds))
+    def test_constructor(self, kwd, request):
+        if kwd == "millisecond":
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=NotImplementedError,
@@ -573,9 +573,9 @@ class TestDateOffset(Base):
                     "yet supported.",
                 )
             )
-        offset = DateOffset(**{relativedelta_kwd: 2})
-        assert offset.kwds == {relativedelta_kwd: 2}
-        assert getattr(offset, relativedelta_kwd) == 2
+        offset = DateOffset(**{kwd: 2})
+        assert offset.kwds == {kwd: 2}
+        assert getattr(offset, kwd) == 2
 
     def test_default_constructor(self):
         assert (self.d + DateOffset(2)) == datetime(2008, 1, 4)
