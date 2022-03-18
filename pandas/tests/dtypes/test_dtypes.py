@@ -1107,3 +1107,15 @@ def test_compare_complex_dtypes():
 
     with pytest.raises(TypeError, match=msg):
         df.lt(df.astype(object))
+
+
+def test_categorical_of_booleans_is_boolean():
+    # https://github.com/pandas-dev/pandas/issues/46313
+    df = pd.DataFrame(
+        {"int_cat": [1, 2, 3], "bool_cat": [True, False, False]}, dtype="category"
+    )
+    value = df["bool_cat"].cat.categories.dtype
+    expected = np.dtype(np.bool_)
+    not_expected = np.dtype(np.object_)
+    assert value is expected
+    assert value is not not_expected
