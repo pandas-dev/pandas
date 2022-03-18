@@ -389,7 +389,9 @@ def parallel_coordinates(
             raise ValueError("Length of xticks must match number of columns")
         x = xticks
     else:
-        x = list(range(ncols))
+        # error: Incompatible types in assignment (expression has type "List[int]",
+        # variable has type "Index")
+        x = list(range(ncols))  # type: ignore[assignment]
 
     if ax is None:
         ax = plt.gca()
