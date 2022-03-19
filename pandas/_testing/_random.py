@@ -14,12 +14,12 @@ RANDU_CHARS = np.array(
 )
 
 
-def rands_array(nchars, size, dtype="O"):
+def rands_array(nchars, size, dtype="O", replace=True):
     """
     Generate an array of byte strings.
     """
     retval = (
-        np.random.choice(RANDS_CHARS, size=nchars * np.prod(size))
+        np.random.choice(RANDS_CHARS, size=nchars * np.prod(size), replace=replace)
         .view((np.str_, nchars))
         .reshape(size)
     )
