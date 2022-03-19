@@ -27,6 +27,7 @@ if TYPE_CHECKING:
 
     from pandas import (
         DataFrame,
+        Index,
         Series,
     )
 
@@ -378,6 +379,7 @@ def parallel_coordinates(
     ncols = len(df.columns)
 
     # determine values to use for xticks
+    x: list[int] | Index
     if use_columns is True:
         if not np.all(np.isreal(list(df.columns))):
             raise ValueError("Columns must be numeric to be used as xticks")
@@ -389,9 +391,7 @@ def parallel_coordinates(
             raise ValueError("Length of xticks must match number of columns")
         x = xticks
     else:
-        # error: Incompatible types in assignment (expression has type "List[int]",
-        # variable has type "Index")
-        x = list(range(ncols))  # type: ignore[assignment]
+        x = list(range(ncols))
 
     if ax is None:
         ax = plt.gca()
