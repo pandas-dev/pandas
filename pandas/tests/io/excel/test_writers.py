@@ -1087,7 +1087,7 @@ class TestExcelWriter:
         result = pd.read_excel(path, comment="#")
         tm.assert_frame_equal(result, expected)
 
-    def test_datetimes(self, path):
+    def test_datetimes(self, path, request):
 
         # Test writing and reading datetimes. For issue #9139. (xref #9185)
         datetimes = [
@@ -1107,9 +1107,12 @@ class TestExcelWriter:
         write_frame = DataFrame({"A": datetimes})
         write_frame.to_excel(path, "Sheet1")
         if path.endswith("xlsx") or path.endswith("xlsm"):
-            pytest.skip(
-                "Defaults to openpyxl and fails with floating point error on "
-                "datetimes; may be fixed on newer versions of openpyxl - GH #38644"
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="Defaults to openpyxl and fails with "
+                    "floating point error on datetimes; may be fixed on "
+                    "newer versions of openpyxl - GH #38644"
+                )
             )
         read_frame = pd.read_excel(path, sheet_name="Sheet1", header=0)
 
