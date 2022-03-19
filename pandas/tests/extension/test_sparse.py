@@ -54,7 +54,7 @@ def data(request):
 
 
 @pytest.fixture
-def data_for_twos(request):
+def data_for_twos():
     return SparseArray(np.ones(100) * 2)
 
 
@@ -293,14 +293,6 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
 
 
 class TestMethods(BaseSparseTests, base.BaseMethodsTests):
-    @pytest.mark.parametrize("ascending", [True, False])
-    def test_sort_values_frame(self, data_for_sorting, ascending):
-        msg = "will store that array directly"
-        with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=False
-        ):
-            super().test_sort_values_frame(data_for_sorting, ascending)
-
     def test_combine_le(self, data_repeated):
         # We return a Series[SparseArray].__le__ returns a
         # Series[Sparse[bool]]
@@ -453,7 +445,7 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
             # arith ops call on dtype.fill_value so that the sparsity
             # is maintained. Combine can't be called on a dtype in
             # general, so we can't make the expected. This is tested elsewhere
-            raise pytest.skip("Incorrected expected from Series.combine")
+            pytest.skip("Incorrected expected from Series.combine and tested elsewhere")
 
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         self._skip_if_different_combine(data)

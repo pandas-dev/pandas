@@ -265,7 +265,7 @@ class TestInsertIndexCoercion(CoercionBase):
         "insert_value",
         [pd.Timestamp("2012-01-01"), pd.Timestamp("2012-01-01", tz="Asia/Tokyo"), 1],
     )
-    def test_insert_index_datetimes(self, request, fill_val, exp_dtype, insert_value):
+    def test_insert_index_datetimes(self, fill_val, exp_dtype, insert_value):
 
         obj = pd.DatetimeIndex(
             ["2011-01-01", "2011-01-02", "2011-01-03", "2011-01-04"], tz=fill_val.tz
@@ -433,9 +433,6 @@ class TestWhereCoercion(CoercionBase):
     )
     def test_where_int64(self, index_or_series, fill_val, exp_dtype, request):
         klass = index_or_series
-        if klass is pd.Index and exp_dtype is np.complex128:
-            mark = pytest.mark.xfail(reason="Complex Index not supported")
-            request.node.add_marker(mark)
 
         obj = klass([1, 2, 3, 4])
         assert obj.dtype == np.int64
@@ -447,9 +444,6 @@ class TestWhereCoercion(CoercionBase):
     )
     def test_where_float64(self, index_or_series, fill_val, exp_dtype, request):
         klass = index_or_series
-        if klass is pd.Index and exp_dtype is np.complex128:
-            mark = pytest.mark.xfail(reason="Complex Index not supported")
-            request.node.add_marker(mark)
 
         obj = klass([1.1, 2.2, 3.3, 4.4])
         assert obj.dtype == np.float64
@@ -464,9 +458,9 @@ class TestWhereCoercion(CoercionBase):
             (True, object),
         ],
     )
-    def test_where_series_complex128(self, fill_val, exp_dtype):
-        klass = pd.Series  # TODO: use index_or_series once we have Index[complex]
-        obj = klass([1 + 1j, 2 + 2j, 3 + 3j, 4 + 4j])
+    def test_where_complex128(self, index_or_series, fill_val, exp_dtype):
+        klass = index_or_series
+        obj = klass([1 + 1j, 2 + 2j, 3 + 3j, 4 + 4j], dtype=np.complex128)
         assert obj.dtype == np.complex128
         self._run_test(obj, fill_val, klass, exp_dtype)
 
@@ -608,11 +602,6 @@ class TestFillnaSeriesCoercion(CoercionBase):
         assert obj.dtype == np.float64
 
         exp = klass([1.1, fill_val, 3.3, 4.4])
-        # float + complex -> we don't support a complex Index
-        # complex for Series,
-        # object for Index
-        if fill_dtype == np.complex128 and klass == pd.Index:
-            fill_dtype = object
         self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
 
     @pytest.mark.parametrize(
@@ -624,16 +613,12 @@ class TestFillnaSeriesCoercion(CoercionBase):
             (True, object),
         ],
     )
-    def test_fillna_complex128(self, index_or_series, fill_val, fill_dtype, request):
+    def test_fillna_complex128(self, index_or_series, fill_val, fill_dtype):
         klass = index_or_series
-        if klass is pd.Index:
-            mark = pytest.mark.xfail(reason="No Index[complex]")
-            request.node.add_marker(mark)
-
         obj = klass([1 + 1j, np.nan, 3 + 3j, 4 + 4j], dtype=np.complex128)
         assert obj.dtype == np.complex128
 
-        exp = klass([1 + 1j, fill_val, 3 + 3j, 4 + 4j], dtype=fill_dtype)
+        exp = klass([1 + 1j, fill_val, 3 + 3j, 4 + 4j])
         self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
 
     @pytest.mark.parametrize(
@@ -709,6 +694,30 @@ class TestFillnaSeriesCoercion(CoercionBase):
         with tm.assert_produces_warning(warn, match="mismatched timezone"):
             self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
 
+    @pytest.mark.parametrize(
+        "fill_val",
+        [
+            1,
+            1.1,
+            1 + 1j,
+            True,
+            pd.Interval(1, 2, closed="left"),
+            pd.Timestamp("2012-01-01", tz="US/Eastern"),
+            pd.Timestamp("2012-01-01"),
+            pd.Timedelta(days=1),
+            pd.Period("2016-01-01", "D"),
+        ],
+    )
+    def test_fillna_interval(self, index_or_series, fill_val):
+        ii = pd.interval_range(1.0, 5.0, closed="right").insert(1, np.nan)
+        assert isinstance(ii.dtype, pd.IntervalDtype)
+        obj = index_or_series(ii)
+
+        exp = index_or_series([ii[0], fill_val, ii[2], ii[3], ii[4]], dtype=object)
+
+        fill_dtype = object
+        self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
+
     @pytest.mark.xfail(reason="Test not implemented")
     def test_fillna_series_int64(self):
         raise NotImplementedError
@@ -729,9 +738,30 @@ class TestFillnaSeriesCoercion(CoercionBase):
     def test_fillna_series_timedelta64(self):
         raise NotImplementedError
 
-    @pytest.mark.xfail(reason="Test not implemented")
-    def test_fillna_series_period(self):
-        raise NotImplementedError
+    @pytest.mark.parametrize(
+        "fill_val",
+        [
+            1,
+            1.1,
+            1 + 1j,
+            True,
+            pd.Interval(1, 2, closed="left"),
+            pd.Timestamp("2012-01-01", tz="US/Eastern"),
+            pd.Timestamp("2012-01-01"),
+            pd.Timedelta(days=1),
+            pd.Period("2016-01-01", "W"),
+        ],
+    )
+    def test_fillna_series_period(self, index_or_series, fill_val):
+
+        pi = pd.period_range("2016-01-01", periods=4, freq="D").insert(1, pd.NaT)
+        assert isinstance(pi.dtype, pd.PeriodDtype)
+        obj = index_or_series(pi)
+
+        exp = index_or_series([pi[0], fill_val, pi[2], pi[3], pi[4]], dtype=object)
+
+        fill_dtype = object
+        self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
 
     @pytest.mark.xfail(reason="Test not implemented")
     def test_fillna_index_timedelta64(self):

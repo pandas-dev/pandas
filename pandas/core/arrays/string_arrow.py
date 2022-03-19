@@ -6,7 +6,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Union,
-    cast,
     overload,
 )
 
@@ -31,6 +30,7 @@ from pandas.compat import (
     pa_version_under2p0,
     pa_version_under3p0,
     pa_version_under4p0,
+    pa_version_under5p0,
 )
 from pandas.util._decorators import doc
 
@@ -48,6 +48,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.arraylike import OpsMixin
+from pandas.core.arrays._mixins import ArrowExtensionArray
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.boolean import BooleanDtype
 from pandas.core.arrays.integer import Int64Dtype
@@ -94,7 +95,9 @@ def _chk_pyarrow_available() -> None:
 # fallback for the ones that pyarrow doesn't yet support
 
 
-class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
+class ArrowStringArray(
+    OpsMixin, ArrowExtensionArray, BaseStringArray, ObjectStringArrayMixin
+):
     """
     Extension array for string data in a ``pyarrow.ChunkedArray``.
 
@@ -138,7 +141,7 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
     Length: 4, dtype: string
     """
 
-    def __init__(self, values):
+    def __init__(self, values) -> None:
         self._dtype = StringDtype(storage="pyarrow")
         if isinstance(values, pa.Array):
             self._data = pa.chunked_array([values])
@@ -191,10 +194,6 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
         """Correctly construct numpy arrays when passed to `np.asarray()`."""
         return self.to_numpy(dtype=dtype)
 
-    def __arrow_array__(self, type=None):
-        """Convert myself to a pyarrow Array or ChunkedArray."""
-        return self._data
-
     def to_numpy(
         self,
         dtype: npt.DTypeLike | None = None,
@@ -216,16 +215,6 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
             result[mask] = na_value
         return result
 
-    def __len__(self) -> int:
-        """
-        Length of this array.
-
-        Returns
-        -------
-        length : int
-        """
-        return len(self._data)
-
     @doc(ExtensionArray.factorize)
     def factorize(self, na_sentinel: int = -1) -> tuple[np.ndarray, ExtensionArray]:
         encoded = self._data.dictionary_encode()
@@ -242,25 +231,6 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
             uniques = type(self)(pa.array([], type=encoded.type.value_type))
 
         return indices.values, uniques
-
-    @classmethod
-    def _concat_same_type(cls, to_concat) -> ArrowStringArray:
-        """
-        Concatenate multiple ArrowStringArray.
-
-        Parameters
-        ----------
-        to_concat : sequence of ArrowStringArray
-
-        Returns
-        -------
-        ArrowStringArray
-        """
-        return cls(
-            pa.chunked_array(
-                [array for ea in to_concat for array in ea._data.iterchunks()]
-            )
-        )
 
     @overload
     def __getitem__(self, item: ScalarIndexer) -> ArrowStringScalarOrNAT:
@@ -342,34 +312,6 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
         else:
             return scalar
 
-    @property
-    def nbytes(self) -> int:
-        """
-        The number of bytes needed to store this object in memory.
-        """
-        return self._data.nbytes
-
-    def isna(self) -> np.ndarray:
-        """
-        Boolean NumPy array indicating if each value is missing.
-
-        This should return a 1-D array the same length as 'self'.
-        """
-        # TODO: Implement .to_numpy for ChunkedArray
-        return self._data.is_null().to_pandas().values
-
-    def copy(self) -> ArrowStringArray:
-        """
-        Return a shallow copy of the array.
-
-        Underlying ChunkedArray is immutable, so a deep copy is unnecessary.
-
-        Returns
-        -------
-        ArrowStringArray
-        """
-        return type(self)(self._data)
-
     def _cmp_method(self, other, op):
         from pandas.arrays import BooleanArray
 
@@ -390,8 +332,11 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
         else:
             return NotImplemented
 
-        # TODO(ARROW-9429): Add a .to_numpy() to ChunkedArray
-        return BooleanArray._from_sequence(result.to_pandas().values)
+        if pa_version_under2p0:
+            result = result.to_pandas().values
+        else:
+            result = result.to_numpy()
+        return BooleanArray._from_sequence(result)
 
     def insert(self, loc: int, item):
         if not isinstance(item, str) and item is not libmissing.NA:
@@ -420,49 +365,125 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
         None
         """
         key = check_array_indexer(self, key)
+        indices = self._key_to_indices(key)
 
-        if is_integer(key):
-            key = cast(int, key)
-
-            if not is_scalar(value):
-                raise ValueError("Must pass scalars with scalar indexer")
-            elif isna(value):
+        if is_scalar(value):
+            if isna(value):
                 value = None
             elif not isinstance(value, str):
                 raise ValueError("Scalar must be NA or str")
-
-            # Slice data and insert in-between
-            new_data = [
-                *self._data[0:key].chunks,
-                pa.array([value], type=pa.string()),
-                *self._data[(key + 1) :].chunks,
-            ]
-            self._data = pa.chunked_array(new_data)
+            value = np.broadcast_to(value, len(indices))
         else:
-            # Convert to integer indices and iteratively assign.
-            # TODO: Make a faster variant of this in Arrow upstream.
-            #       This is probably extremely slow.
+            value = np.array(value, dtype=object, copy=True)
+            for i, v in enumerate(value):
+                if isna(v):
+                    value[i] = None
+                elif not isinstance(v, str):
+                    raise ValueError("Scalar must be NA or str")
 
-            # Convert all possible input key types to an array of integers
-            if isinstance(key, slice):
-                key_array = np.array(range(len(self))[key])
-            elif is_bool_dtype(key):
-                # TODO(ARROW-9430): Directly support setitem(booleans)
-                key_array = np.argwhere(key).flatten()
-            else:
-                # TODO(ARROW-9431): Directly support setitem(integers)
-                key_array = np.asanyarray(key)
+        if len(indices) != len(value):
+            raise ValueError("Length of indexer and values mismatch")
 
-            if is_scalar(value):
-                value = np.broadcast_to(value, len(key_array))
-            else:
-                value = np.asarray(value)
+        argsort = np.argsort(indices)
+        indices = indices[argsort]
+        value = value[argsort]
 
-            if len(key_array) != len(value):
+        self._data = self._set_via_chunk_iteration(indices=indices, value=value)
+
+    def _key_to_indices(self, key: int | slice | np.ndarray) -> npt.NDArray[np.intp]:
+        """Convert indexing key for self to positional indices."""
+        if isinstance(key, slice):
+            indices = np.arange(len(self))[key]
+        elif is_bool_dtype(key):
+            key = np.asarray(key)
+            if len(key) != len(self):
                 raise ValueError("Length of indexer and values mismatch")
+            indices = key.nonzero()[0]
+        else:
+            key_arr = np.array([key]) if is_integer(key) else np.asarray(key)
+            indices = np.arange(len(self))[key_arr]
+        return indices
 
-            for k, v in zip(key_array, value):
-                self[k] = v
+    def _set_via_chunk_iteration(
+        self, indices: npt.NDArray[np.intp], value: npt.NDArray[Any]
+    ) -> pa.ChunkedArray:
+        """
+        Loop through the array chunks and set the new values while
+        leaving the chunking layout unchanged.
+        """
+
+        chunk_indices = self._within_chunk_indices(indices)
+        new_data = []
+
+        for i, chunk in enumerate(self._data.iterchunks()):
+
+            c_ind = chunk_indices[i]
+            n = len(c_ind)
+            c_value, value = value[:n], value[n:]
+
+            if n == 1:
+                # fast path
+                chunk = self._set_single_index_in_chunk(chunk, c_ind[0], c_value[0])
+            elif n > 0:
+                mask = np.zeros(len(chunk), dtype=np.bool_)
+                mask[c_ind] = True
+                if not pa_version_under5p0:
+                    if c_value is None or isna(np.array(c_value)).all():
+                        chunk = pc.if_else(mask, None, chunk)
+                    else:
+                        chunk = pc.replace_with_mask(chunk, mask, c_value)
+                else:
+                    # The pyarrow compute functions were added in
+                    # version 5.0. For prior versions we implement
+                    # our own by converting to numpy and back.
+                    chunk = chunk.to_numpy(zero_copy_only=False)
+                    chunk[mask] = c_value
+                    chunk = pa.array(chunk, type=pa.string())
+
+            new_data.append(chunk)
+
+        return pa.chunked_array(new_data)
+
+    @staticmethod
+    def _set_single_index_in_chunk(chunk: pa.Array, index: int, value: Any) -> pa.Array:
+        """Set a single position in a pyarrow array."""
+        assert is_scalar(value)
+        return pa.concat_arrays(
+            [
+                chunk[:index],
+                pa.array([value], type=pa.string()),
+                chunk[index + 1 :],
+            ]
+        )
+
+    def _within_chunk_indices(
+        self, indices: npt.NDArray[np.intp]
+    ) -> list[npt.NDArray[np.intp]]:
+        """
+        Convert indices for self into a list of ndarrays each containing
+        the indices *within* each chunk of the chunked array.
+        """
+        # indices must be sorted
+        chunk_indices = []
+        for start, stop in self._chunk_ranges():
+            if len(indices) == 0 or indices[0] >= stop:
+                c_ind = np.array([], dtype=np.intp)
+            else:
+                n = int(np.searchsorted(indices, stop, side="left"))
+                c_ind = indices[:n] - start
+                indices = indices[n:]
+            chunk_indices.append(c_ind)
+        return chunk_indices
+
+    def _chunk_ranges(self) -> list[tuple]:
+        """
+        Return a list of tuples each containing the left (inclusive)
+        and right (exclusive) bounds of each chunk.
+        """
+        lengths = [len(c) for c in self._data.iterchunks()]
+        stops = np.cumsum(lengths)
+        starts = np.concatenate([[0], stops[:-1]])
+        return list(zip(starts, stops))
 
     def take(
         self,
@@ -762,7 +783,7 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
         return type(self)(result)
 
     def _str_match(
-        self, pat: str, case: bool = True, flags: int = 0, na: Scalar = None
+        self, pat: str, case: bool = True, flags: int = 0, na: Scalar | None = None
     ):
         if pa_version_under4p0:
             return super()._str_match(pat, case, flags, na)
@@ -771,7 +792,9 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
             pat = "^" + pat
         return self._str_contains(pat, case, flags, na, regex=True)
 
-    def _str_fullmatch(self, pat, case: bool = True, flags: int = 0, na: Scalar = None):
+    def _str_fullmatch(
+        self, pat, case: bool = True, flags: int = 0, na: Scalar | None = None
+    ):
         if pa_version_under4p0:
             return super()._str_fullmatch(pat, case, flags, na)
 

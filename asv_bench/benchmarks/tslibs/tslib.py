@@ -41,7 +41,7 @@ _tzs = [
     gettz("Asia/Tokyo"),
     tzlocal_obj,
 ]
-_sizes = [0, 1, 100, 10 ** 4, 10 ** 6]
+_sizes = [0, 1, 100, 10**4, 10**6]
 
 
 class TimeIntsToPydatetime:
@@ -57,7 +57,7 @@ class TimeIntsToPydatetime:
         if box == "date" and tz is not None:
             # tz is ignored, so avoid running redundant benchmarks
             raise NotImplementedError  # skip benchmark
-        if size == 10 ** 6 and tz is _tzs[-1]:
+        if size == 10**6 and tz is _tzs[-1]:
             # This is cumbersomely-slow, so skip to trim runtime
             raise NotImplementedError  # skip benchmark
 

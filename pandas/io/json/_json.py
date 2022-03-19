@@ -146,7 +146,7 @@ class Writer(ABC):
         index: bool,
         default_handler: Callable[[Any], JSONSerializable] | None = None,
         indent: int = 0,
-    ):
+    ) -> None:
         self.obj = obj
 
         if orient is None:
@@ -246,7 +246,7 @@ class JSONTableWriter(FrameWriter):
         index: bool,
         default_handler: Callable[[Any], JSONSerializable] | None = None,
         indent: int = 0,
-    ):
+    ) -> None:
         """
         Adds a `schema` attribute with the Table Schema, resets
         the index (can't do in caller, because the schema inference needs
@@ -640,7 +640,7 @@ class JsonReader(abc.Iterator):
         nrows: int | None,
         storage_options: StorageOptions = None,
         encoding_errors: str | None = "strict",
-    ):
+    ) -> None:
 
         self.orient = orient
         self.typ = typ
@@ -724,7 +724,7 @@ class JsonReader(abc.Iterator):
         Combines a list of JSON objects into one JSON object.
         """
         return (
-            f'[{",".join((line for line in (line.strip() for line in lines) if line))}]'
+            f'[{",".join([line for line in (line.strip() for line in lines) if line])}]'
         )
 
     def read(self):
@@ -834,7 +834,7 @@ class Parser:
         numpy=False,
         precise_float=False,
         date_unit=None,
-    ):
+    ) -> None:
         self.json = json
 
         if orient is None:
@@ -1067,7 +1067,7 @@ class SeriesParser(Parser):
             #  gets multiple values for keyword argument "dtype_if_empty
             self.obj = create_series_with_explicit_dtype(
                 *data, dtype_if_empty=object
-            )  # type:ignore[misc]
+            )  # type: ignore[misc]
         else:
             self.obj = create_series_with_explicit_dtype(data, dtype_if_empty=object)
 

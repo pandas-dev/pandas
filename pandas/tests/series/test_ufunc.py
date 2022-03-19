@@ -10,11 +10,9 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.arrays import SparseArray
 
-UNARY_UFUNCS = [np.positive, np.floor, np.exp]
 BINARY_UFUNCS = [np.add, np.logaddexp]  # dunder op
 SPARSE = [True, False]
 SPARSE_IDS = ["sparse", "dense"]
-SHUFFLE = [True, False]
 
 
 @pytest.fixture
@@ -29,7 +27,7 @@ def arrays_for_binary_ufunc():
     return a1, a2
 
 
-@pytest.mark.parametrize("ufunc", UNARY_UFUNCS)
+@pytest.mark.parametrize("ufunc", [np.positive, np.floor, np.exp])
 @pytest.mark.parametrize("sparse", SPARSE, ids=SPARSE_IDS)
 def test_unary_ufunc(ufunc, sparse):
     # Test that ufunc(pd.Series) == pd.Series(ufunc)
@@ -174,11 +172,9 @@ def test_binary_ufunc_scalar(ufunc, sparse, flip, arrays_for_binary_ufunc):
 
 @pytest.mark.parametrize("ufunc", [np.divmod])  # TODO: np.modf, np.frexp
 @pytest.mark.parametrize("sparse", SPARSE, ids=SPARSE_IDS)
-@pytest.mark.parametrize("shuffle", SHUFFLE)
+@pytest.mark.parametrize("shuffle", [True, False])
 @pytest.mark.filterwarnings("ignore:divide by zero:RuntimeWarning")
-def test_multiple_output_binary_ufuncs(
-    ufunc, sparse, shuffle, arrays_for_binary_ufunc, request
-):
+def test_multiple_output_binary_ufuncs(ufunc, sparse, shuffle, arrays_for_binary_ufunc):
     # Test that
     #  the same conditions from binary_ufunc_scalar apply to
     #  ufuncs with multiple outputs.
@@ -242,7 +238,7 @@ def test_binary_ufunc_drops_series_name(ufunc, sparse, arrays_for_binary_ufunc):
 
 def test_object_series_ok():
     class Dummy:
-        def __init__(self, value):
+        def __init__(self, value) -> None:
             self.value = value
 
         def __add__(self, other):
@@ -288,7 +284,7 @@ class TestNumpyReductions:
             obj = box(values)
 
         if isinstance(values, pd.core.arrays.SparseArray) and box is not pd.Index:
-            mark = pytest.mark.xfail(reason="SparseArray has no 'mul'")
+            mark = pytest.mark.xfail(reason="SparseArray has no 'prod'")
             request.node.add_marker(mark)
 
         if values.dtype.kind in "iuf":
@@ -417,7 +413,7 @@ def test_binary_ufunc_other_types(type_):
 
 def test_object_dtype_ok():
     class Thing:
-        def __init__(self, value):
+        def __init__(self, value) -> None:
             self.value = value
 
         def __add__(self, other):

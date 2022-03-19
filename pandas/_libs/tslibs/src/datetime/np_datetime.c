@@ -768,3 +768,15 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
                             "invalid base unit");
     }
 }
+
+
+/*
+ * This function returns a pointer to the DateTimeMetaData
+ * contained within the provided datetime dtype.
+ *
+ * Copied near-verbatim from numpy/core/src/multiarray/datetime.c
+ */
+PyArray_DatetimeMetaData
+get_datetime_metadata_from_dtype(PyArray_Descr *dtype) {
+    return (((PyArray_DatetimeDTypeMetaData *)dtype->c_metadata)->meta);
+}

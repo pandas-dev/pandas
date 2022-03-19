@@ -128,10 +128,12 @@ cdef class IndexEngine:
         self._np_type = values.dtype.type
 
     def __contains__(self, val: object) -> bool:
-        # We assume before we get here:
-        #  - val is hashable
-        self._ensure_mapping_populated()
-        return val in self.mapping
+        hash(val)
+        try:
+            self.get_loc(val)
+        except KeyError:
+            return False
+        return True
 
     cpdef get_loc(self, object val):
         # -> Py_ssize_t | slice | ndarray[bool]
@@ -141,7 +143,7 @@ cdef class IndexEngine:
         if is_definitely_invalid_key(val):
             raise TypeError(f"'{val}' is an invalid key")
 
-        self._check_type(val)
+        val = self._check_type(val)
 
         if self.over_size_threshold and self.is_monotonic_increasing:
             if not self.is_unique:
@@ -270,6 +272,7 @@ cdef class IndexEngine:
 
     cdef _check_type(self, object val):
         hash(val)
+        return val
 
     @property
     def is_mapping_populated(self) -> bool:
@@ -799,6 +802,13 @@ cdef class BaseMultiIndexCodesEngine:
 include "index_class_helper.pxi"
 
 
+cdef class BoolEngine(UInt8Engine):
+    cdef _check_type(self, object val):
+        if not util.is_bool_object(val):
+            raise KeyError(val)
+        return <uint8_t>val
+
+
 @cython.internal
 @cython.freelist(32)
 cdef class SharedEngine:
@@ -1056,7 +1066,7 @@ cdef class ExtensionEngine(SharedEngine):
         try:
             return self.values == val
         except TypeError:
-            # e.g. if __eq__ returns a BooleanArray instead of ndarry[bool]
+            # e.g. if __eq__ returns a BooleanArray instead of ndarray[bool]
             try:
                 return (self.values == val).to_numpy(dtype=bool, na_value=False)
             except (TypeError, AttributeError) as err:

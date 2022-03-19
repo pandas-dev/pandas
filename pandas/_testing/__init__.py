@@ -305,7 +305,7 @@ def makeUnicodeIndex(k=10, name=None):
 
 def makeCategoricalIndex(k=10, n=3, name=None, **kwargs):
     """make a length k index or n categories"""
-    x = rands_array(nchars=4, size=n)
+    x = rands_array(nchars=4, size=n, replace=False)
     return CategoricalIndex(
         Categorical.from_codes(np.arange(k) % n, categories=x), name=name, **kwargs
     )
@@ -803,11 +803,16 @@ class SubclassedSeries(Series):
 
     @property
     def _constructor(self):
-        return SubclassedSeries
+        # For testing, those properties return a generic callable, and not
+        # the actual class. In this case that is equivalent, but it is to
+        # ensure we don't rely on the property returning a class
+        # See https://github.com/pandas-dev/pandas/pull/46018 and
+        # https://github.com/pandas-dev/pandas/issues/32638 and linked issues
+        return lambda *args, **kwargs: SubclassedSeries(*args, **kwargs)
 
     @property
     def _constructor_expanddim(self):
-        return SubclassedDataFrame
+        return lambda *args, **kwargs: SubclassedDataFrame(*args, **kwargs)
 
 
 class SubclassedDataFrame(DataFrame):
@@ -815,11 +820,11 @@ class SubclassedDataFrame(DataFrame):
 
     @property
     def _constructor(self):
-        return SubclassedDataFrame
+        return lambda *args, **kwargs: SubclassedDataFrame(*args, **kwargs)
 
     @property
     def _constructor_sliced(self):
-        return SubclassedSeries
+        return lambda *args, **kwargs: SubclassedSeries(*args, **kwargs)
 
 
 class SubclassedCategorical(Categorical):

@@ -62,7 +62,7 @@ from pandas import (
     to_timedelta,
 )
 from pandas.core.arrays.boolean import BooleanDtype
-from pandas.core.arrays.integer import _IntegerDtype
+from pandas.core.arrays.integer import IntegerDtype
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.base import Index
 from pandas.core.series import Series
@@ -585,7 +585,7 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
 
     for col in data:
         # Cast from unsupported types to supported types
-        is_nullable_int = isinstance(data[col].dtype, (_IntegerDtype, BooleanDtype))
+        is_nullable_int = isinstance(data[col].dtype, (IntegerDtype, BooleanDtype))
         orig = data[col]
         # We need to find orig_missing before altering data below
         orig_missing = orig.isna()
@@ -593,7 +593,7 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
             missing_loc = data[col].isna()
             if missing_loc.any():
                 # Replace with always safe value
-                fv = 0 if isinstance(data[col].dtype, _IntegerDtype) else False
+                fv = 0 if isinstance(data[col].dtype, IntegerDtype) else False
                 data.loc[missing_loc, col] = fv
             # Replace with NumPy-compatible column
             data[col] = data[col].astype(data[col].dtype.numpy_dtype)
@@ -606,7 +606,7 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
                 else:
                     dtype = c_data[2]
                 if c_data[2] == np.int64:  # Warn if necessary
-                    if data[col].max() >= 2 ** 53:
+                    if data[col].max() >= 2**53:
                         ws = precision_loss_doc.format("uint64", "float64")
 
                 data[col] = data[col].astype(dtype)
@@ -623,7 +623,7 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
                 data[col] = data[col].astype(np.int32)
             else:
                 data[col] = data[col].astype(np.float64)
-                if data[col].max() >= 2 ** 53 or data[col].min() <= -(2 ** 53):
+                if data[col].max() >= 2**53 or data[col].min() <= -(2**53):
                     ws = precision_loss_doc.format("int64", "float64")
         elif dtype in (np.float32, np.float64):
             if np.isinf(data[col]).any():
@@ -663,7 +663,7 @@ class StataValueLabel:
         Encoding to use for value labels.
     """
 
-    def __init__(self, catarray: Series, encoding: str = "latin-1"):
+    def __init__(self, catarray: Series, encoding: str = "latin-1") -> None:
 
         if encoding not in ("latin-1", "utf-8"):
             raise ValueError("Only latin-1 and utf-8 are supported.")
@@ -792,7 +792,7 @@ class StataNonCatValueLabel(StataValueLabel):
         labname: str,
         value_labels: dict[float | int, str],
         encoding: Literal["latin-1", "utf-8"] = "latin-1",
-    ):
+    ) -> None:
 
         if encoding not in ("latin-1", "utf-8"):
             raise ValueError("Only latin-1 and utf-8 are supported.")
@@ -879,7 +879,7 @@ class StataMissingValue:
         "float64": struct.unpack("<d", float64_base)[0],
     }
 
-    def __init__(self, value: int | float):
+    def __init__(self, value: int | float) -> None:
         self._value = value
         # Conversion to int to avoid hash issues on 32 bit platforms #8968
         value = int(value) if value < 2147483648 else float(value)
@@ -940,7 +940,7 @@ class StataMissingValue:
 
 
 class StataParser:
-    def __init__(self):
+    def __init__(self) -> None:
 
         # type          code.
         # --------------------
@@ -1117,7 +1117,7 @@ class StataReader(StataParser, abc.Iterator):
         chunksize: int | None = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
-    ):
+    ) -> None:
         super().__init__()
         self.col_sizes: list[int] = []
 
@@ -2265,7 +2265,7 @@ class StataWriter(StataParser):
         storage_options: StorageOptions = None,
         *,
         value_labels: dict[Hashable, dict[float | int, str]] | None = None,
-    ):
+    ) -> None:
         super().__init__()
         self.data = data
         self._convert_dates = {} if convert_dates is None else convert_dates
@@ -2943,7 +2943,7 @@ class StataStrLWriter:
         columns: Sequence[str],
         version: int = 117,
         byteorder: str | None = None,
-    ):
+    ) -> None:
         if version not in (117, 118, 119):
             raise ValueError("Only dta versions 117, 118 and 119 supported")
         self._dta_ver = version
@@ -3195,7 +3195,7 @@ class StataWriter117(StataWriter):
         storage_options: StorageOptions = None,
         *,
         value_labels: dict[Hashable, dict[float | int, str]] | None = None,
-    ):
+    ) -> None:
         # Copy to new list since convert_strl might be modified later
         self._convert_strl: list[Hashable] = []
         if convert_strl is not None:
@@ -3592,7 +3592,7 @@ class StataWriterUTF8(StataWriter117):
         storage_options: StorageOptions = None,
         *,
         value_labels: dict[Hashable, dict[float | int, str]] | None = None,
-    ):
+    ) -> None:
         if version is None:
             version = 118 if data.shape[1] <= 32767 else 119
         elif version not in (118, 119):

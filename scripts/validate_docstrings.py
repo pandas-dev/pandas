@@ -29,8 +29,9 @@ import tempfile
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy
+from numpydoc.docscrape import get_doc_object
 from numpydoc.validate import (
-    Docstring,
+    Validator,
     validate,
 )
 
@@ -134,7 +135,17 @@ def get_api_items(api_doc_fd):
         previous_line = line
 
 
-class PandasDocstring(Docstring):
+class PandasDocstring(Validator):
+    def __init__(self, func_name: str, doc_obj=None) -> None:
+        self.func_name = func_name
+        if doc_obj is None:
+            doc_obj = get_doc_object(Validator._load_obj(func_name))
+        super().__init__(doc_obj)
+
+    @property
+    def name(self):
+        return self.func_name
+
     @property
     def mentioned_private_classes(self):
         return [klass for klass in PRIVATE_CLASSES if klass in self.raw_doc]
@@ -218,8 +229,10 @@ def pandas_validate(func_name: str):
     dict
         Information about the docstring and the errors found.
     """
-    doc = PandasDocstring(func_name)
-    result = validate(func_name)
+    func_obj = Validator._load_obj(func_name)
+    doc_obj = get_doc_object(func_obj)
+    doc = PandasDocstring(func_name, doc_obj)
+    result = validate(doc_obj)
 
     mentioned_errs = doc.mentioned_private_classes
     if mentioned_errs:

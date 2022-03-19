@@ -801,31 +801,6 @@ class TestSeriesConstructors:
         obj = frame_or_series(list(arr), dtype="i8")
         tm.assert_equal(obj, expected)
 
-    @td.skip_if_no("dask")
-    def test_construct_dask_float_array_int_dtype_match_ndarray(self):
-        # GH#40110 make sure we treat a float-dtype dask array with the same
-        #  rules we would for an ndarray
-        import dask.dataframe as dd
-
-        arr = np.array([1, 2.5, 3])
-        darr = dd.from_array(arr)
-
-        res = Series(darr)
-        expected = Series(arr)
-        tm.assert_series_equal(res, expected)
-
-        res = Series(darr, dtype="i8")
-        expected = Series(arr, dtype="i8")
-        tm.assert_series_equal(res, expected)
-
-        msg = "In a future version, passing float-dtype values containing NaN"
-        arr[2] = np.nan
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = Series(darr, dtype="i8")
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = Series(arr, dtype="i8")
-        tm.assert_series_equal(res, expected)
-
     def test_constructor_coerce_float_fail(self, any_int_numpy_dtype):
         # see gh-15832
         # Updated: make sure we treat this list the same as we would treat
@@ -1676,28 +1651,28 @@ class TestSeriesConstructors:
 
     def test_constructor_range_overflows(self):
         # GH#30173 range objects that overflow int64
-        rng = range(2 ** 63, 2 ** 63 + 4)
+        rng = range(2**63, 2**63 + 4)
         ser = Series(rng)
         expected = Series(list(rng))
         tm.assert_series_equal(ser, expected)
         assert list(ser) == list(rng)
         assert ser.dtype == np.uint64
 
-        rng2 = range(2 ** 63 + 4, 2 ** 63, -1)
+        rng2 = range(2**63 + 4, 2**63, -1)
         ser2 = Series(rng2)
         expected2 = Series(list(rng2))
         tm.assert_series_equal(ser2, expected2)
         assert list(ser2) == list(rng2)
         assert ser2.dtype == np.uint64
 
-        rng3 = range(-(2 ** 63), -(2 ** 63) - 4, -1)
+        rng3 = range(-(2**63), -(2**63) - 4, -1)
         ser3 = Series(rng3)
         expected3 = Series(list(rng3))
         tm.assert_series_equal(ser3, expected3)
         assert list(ser3) == list(rng3)
         assert ser3.dtype == object
 
-        rng4 = range(2 ** 73, 2 ** 73 + 4)
+        rng4 = range(2**73, 2**73 + 4)
         ser4 = Series(rng4)
         expected4 = Series(list(rng4))
         tm.assert_series_equal(ser4, expected4)
@@ -1989,9 +1964,7 @@ def test_numpy_array(input_dict, expected):
     tm.assert_numpy_array_equal(result, expected)
 
 
-@pytest.mark.skipif(
-    not np_version_under1p19, reason="check failure on numpy below 1.19"
-)
+@pytest.mark.xfail(not np_version_under1p19, reason="check failure on numpy below 1.19")
 def test_numpy_array_np_v1p19():
     with pytest.raises(KeyError, match="0"):
         np.array([Series({1: 1})])

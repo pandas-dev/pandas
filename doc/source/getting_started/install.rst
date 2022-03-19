@@ -20,7 +20,7 @@ Instructions for installing from source,
 Python version support
 ----------------------
 
-Officially Python 3.8, and 3.9.
+Officially Python 3.8, 3.9 and 3.10.
 
 Installing pandas
 -----------------
@@ -410,5 +410,7 @@ Compression
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-Zstandard                                    Zstandard compression
+brotli                    0.7.0              Brotli compression
+python-snappy             0.6.0              Snappy compression
+Zstandard                 0.15.2             Zstandard compression
 ========================= ================== =============================================================

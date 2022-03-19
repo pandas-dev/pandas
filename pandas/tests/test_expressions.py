@@ -47,10 +47,10 @@ _array_mixed2 = _mixed2["D"].values.copy()
 
 @pytest.mark.skipif(not expr.USE_NUMEXPR, reason="not using numexpr")
 class TestExpressions:
-    def setup_method(self, method):
+    def setup_method(self):
         self._MIN_ELEMENTS = expr._MIN_ELEMENTS
 
-    def teardown_method(self, method):
+    def teardown_method(self):
         expr._MIN_ELEMENTS = self._MIN_ELEMENTS
 
     @staticmethod

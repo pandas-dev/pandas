@@ -24,7 +24,7 @@ def test_groupby_preserves_subclass(obj, groupby_func):
     # GH28330 -- preserve subclass through groupby operations
 
     if isinstance(obj, Series) and groupby_func in {"corrwith"}:
-        pytest.skip("Not applicable")
+        pytest.skip(f"Not applicable for Series and {groupby_func}")
     # TODO(2.0) Remove after pad/backfill deprecation enforced
     groupby_func = maybe_normalize_deprecated_kernels(groupby_func)
     grouped = obj.groupby(np.arange(0, 10))
@@ -46,7 +46,7 @@ def test_groupby_preserves_subclass(obj, groupby_func):
     # Reduction or transformation kernels should preserve type
     slices = {"ngroup", "cumcount", "size"}
     if isinstance(obj, DataFrame) and groupby_func in slices:
-        assert isinstance(result1, obj._constructor_sliced)
+        assert isinstance(result1, tm.SubclassedSeries)
     else:
         assert isinstance(result1, type(obj))
 

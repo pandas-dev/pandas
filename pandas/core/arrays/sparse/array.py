@@ -361,6 +361,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     _subtyp = "sparse_array"  # register ABCSparseArray
     _hidden_attrs = PandasObject._hidden_attrs | frozenset(["get_values"])
     _sparse_index: SparseIndex
+    _sparse_values: np.ndarray
+    _dtype: SparseDtype
 
     def __init__(
         self,
@@ -371,7 +373,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         kind: SparseIndexKind = "integer",
         dtype: Dtype | None = None,
         copy: bool = False,
-    ):
+    ) -> None:
 
         if fill_value is None and isinstance(dtype, SparseDtype):
             fill_value = dtype.fill_value
@@ -772,8 +774,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         elif method is not None:
             msg = "fillna with 'method' requires high memory usage."
             warnings.warn(msg, PerformanceWarning)
-            # Need type annotation for "new_values"  [var-annotated]
-            new_values = np.asarray(self)  # type: ignore[var-annotated]
+            new_values = np.asarray(self)
             # interpolate_2d modifies new_values inplace
             interpolate_2d(new_values, method=method, limit=limit)
             return type(self)(new_values, fill_value=self.fill_value)
@@ -836,10 +837,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return np.searchsorted(diff, 2) + 1
 
     def unique(self: SparseArrayT) -> SparseArrayT:
-        uniques = list(algos.unique(self.sp_values))
+        uniques = algos.unique(self.sp_values)
         fill_loc = self._first_fill_value_loc()
         if fill_loc >= 0:
-            uniques.insert(fill_loc, self.fill_value)
+            uniques = np.insert(uniques, fill_loc, self.fill_value)
         return type(self)._from_sequence(uniques, dtype=self.dtype)
 
     def _values_for_factorize(self):
@@ -1349,13 +1350,12 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         """
         return np.asarray(self, dtype=self.sp_values.dtype)
 
-    _internal_get_values = to_dense
-
     def _where(self, mask, value):
         # NB: may not preserve dtype, e.g. result may be Sparse[float64]
         #  while self is Sparse[int64]
         naive_implementation = np.where(mask, self, value)
-        result = type(self)._from_sequence(naive_implementation)
+        dtype = SparseDtype(naive_implementation.dtype, fill_value=self.fill_value)
+        result = type(self)._from_sequence(naive_implementation, dtype=dtype)
         return result
 
     # ------------------------------------------------------------------------

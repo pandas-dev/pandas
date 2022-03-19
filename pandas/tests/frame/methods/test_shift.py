@@ -92,17 +92,17 @@ class TestDataFrameShift:
         expected = ts.astype(float).shift(1)
         tm.assert_equal(shifted, expected)
 
-    def test_shift_32bit_take(self, frame_or_series):
+    @pytest.mark.parametrize("dtype", ["int32", "int64"])
+    def test_shift_32bit_take(self, frame_or_series, dtype):
         # 32-bit taking
         # GH#8129
         index = date_range("2000-01-01", periods=5)
-        for dtype in ["int32", "int64"]:
-            arr = np.arange(5, dtype=dtype)
-            s1 = frame_or_series(arr, index=index)
-            p = arr[1]
-            result = s1.shift(periods=p)
-            expected = frame_or_series([np.nan, 0, 1, 2, 3], index=index)
-            tm.assert_equal(result, expected)
+        arr = np.arange(5, dtype=dtype)
+        s1 = frame_or_series(arr, index=index)
+        p = arr[1]
+        result = s1.shift(periods=p)
+        expected = frame_or_series([np.nan, 0, 1, 2, 3], index=index)
+        tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("periods", [1, 2, 3, 4])
     def test_shift_preserve_freqstr(self, periods, frame_or_series):
@@ -141,11 +141,15 @@ class TestDataFrameShift:
         tm.assert_equal(res, exp)
         assert tm.get_dtype(res) == "datetime64[ns, US/Eastern]"
 
-        for ex in [10, -10, 20, -20]:
-            res = obj.shift(ex)
-            exp = frame_or_series([NaT] * 10, dtype="datetime64[ns, US/Eastern]")
-            tm.assert_equal(res, exp)
-            assert tm.get_dtype(res) == "datetime64[ns, US/Eastern]"
+    @pytest.mark.parametrize("ex", [10, -10, 20, -20])
+    def test_shift_dst_beyond(self, frame_or_series, ex):
+        # GH#13926
+        dates = date_range("2016-11-06", freq="H", periods=10, tz="US/Eastern")
+        obj = frame_or_series(dates)
+        res = obj.shift(ex)
+        exp = frame_or_series([NaT] * 10, dtype="datetime64[ns, US/Eastern]")
+        tm.assert_equal(res, exp)
+        assert tm.get_dtype(res) == "datetime64[ns, US/Eastern]"
 
     def test_shift_by_zero(self, datetime_frame, frame_or_series):
         # shift by 0
@@ -611,14 +615,8 @@ class TestDataFrameShift:
     )
     # TODO(2.0): remove filtering
     @pytest.mark.filterwarnings("ignore:Index.ravel.*:FutureWarning")
-    def test_shift_dt64values_axis1_invalid_fill(
-        self, vals, as_cat, using_array_manager, request
-    ):
+    def test_shift_dt64values_axis1_invalid_fill(self, vals, as_cat):
         # GH#44564
-        if using_array_manager:
-            mark = pytest.mark.xfail(raises=NotImplementedError)
-            request.node.add_marker(mark)
-
         ser = Series(vals)
         if as_cat:
             ser = ser.astype("category")
@@ -665,7 +663,6 @@ class TestDataFrameShift:
         )
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented
     def test_shift_axis1_many_periods(self):
         # GH#44978 periods > len(columns)
         df = DataFrame(np.random.rand(5, 3))

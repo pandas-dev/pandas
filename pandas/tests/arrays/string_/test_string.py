@@ -523,7 +523,7 @@ def test_memory_usage(dtype):
     # GH 33963
 
     if dtype.storage == "pyarrow":
-        pytest.skip("not applicable")
+        pytest.skip(f"not applicable for {dtype.storage}")
 
     series = pd.Series(["a", "b", "c"], dtype=dtype)
 
@@ -554,7 +554,7 @@ def test_to_numpy_na_value(dtype, nulls_fixture):
     tm.assert_numpy_array_equal(result, expected)
 
 
-def test_isin(dtype, request, fixed_now_ts):
+def test_isin(dtype, fixed_now_ts):
     s = pd.Series(["a", "b", None], dtype=dtype)
 
     result = s.isin(["a", "c"])

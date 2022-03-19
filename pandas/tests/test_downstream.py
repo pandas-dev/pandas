@@ -11,7 +11,10 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 
 # geopandas, xarray, fsspec, fastparquet all produce these
@@ -70,7 +73,7 @@ def test_dask_ufunc():
         import dask.array as da
         import dask.dataframe as dd
 
-        s = pd.Series([1.5, 2.3, 3.7, 4.0])
+        s = Series([1.5, 2.3, 3.7, 4.0])
         ds = dd.from_pandas(s, npartitions=2)
 
         result = da.fix(ds).compute()
@@ -78,6 +81,32 @@ def test_dask_ufunc():
         tm.assert_series_equal(result, expected)
     finally:
         pd.set_option("compute.use_numexpr", olduse)
+
+
+@td.skip_if_no("dask")
+def test_construct_dask_float_array_int_dtype_match_ndarray():
+    # GH#40110 make sure we treat a float-dtype dask array with the same
+    #  rules we would for an ndarray
+    import dask.dataframe as dd
+
+    arr = np.array([1, 2.5, 3])
+    darr = dd.from_array(arr)
+
+    res = Series(darr)
+    expected = Series(arr)
+    tm.assert_series_equal(res, expected)
+
+    res = Series(darr, dtype="i8")
+    expected = Series(arr, dtype="i8")
+    tm.assert_series_equal(res, expected)
+
+    msg = "In a future version, passing float-dtype values containing NaN"
+    arr[2] = np.nan
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        res = Series(darr, dtype="i8")
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = Series(arr, dtype="i8")
+    tm.assert_series_equal(res, expected)
 
 
 def test_xarray(df):
@@ -124,6 +153,7 @@ def test_oo_optimized_datetime_index_unpickle():
     )
 
 
+@pytest.mark.network
 @tm.network
 # Cython import warning
 @pytest.mark.filterwarnings("ignore:pandas.util.testing is deprecated")
@@ -149,7 +179,7 @@ def test_statsmodels():
 
 # Cython import warning
 @pytest.mark.filterwarnings("ignore:can't:ImportWarning")
-def test_scikit_learn(df):
+def test_scikit_learn():
 
     sklearn = import_module("sklearn")  # noqa:F841
     from sklearn import (
@@ -164,6 +194,7 @@ def test_scikit_learn(df):
 
 
 # Cython import warning and traitlets
+@pytest.mark.network
 @tm.network
 @pytest.mark.filterwarnings("ignore")
 def test_seaborn():
@@ -173,17 +204,19 @@ def test_seaborn():
     seaborn.stripplot(x="day", y="total_bill", data=tips)
 
 
-def test_pandas_gbq(df):
-
+def test_pandas_gbq():
+    # Older versions import from non-public, non-existent pandas funcs
+    pytest.importorskip("pandas_gbq", minversion="0.10.0")
     pandas_gbq = import_module("pandas_gbq")  # noqa:F841
 
 
+@pytest.mark.network
+@tm.network
 @pytest.mark.xfail(
     raises=ValueError,
     reason="The Quandl API key must be provided either through the api_key "
     "variable or through the environmental variable QUANDL_API_KEY",
 )
-@tm.network
 def test_pandas_datareader():
 
     pandas_datareader = import_module("pandas_datareader")
@@ -220,7 +253,7 @@ def test_torch_frame_construction(using_array_manager):
     if not using_array_manager:
         assert np.shares_memory(df, val_tensor)
 
-    ser = pd.Series(val_tensor[0])
+    ser = Series(val_tensor[0])
     assert np.shares_memory(ser, val_tensor)
 
 

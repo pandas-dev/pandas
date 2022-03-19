@@ -74,7 +74,7 @@ class TestIndexConstructorInference:
             index = Index(vals)
 
         assert type(index) is Index
-        assert index.dtype == object
+        assert index.dtype == bool
 
     def test_constructor_categorical_to_object(self):
         # GH#32167 Categorical data and dtype=object should return object-dtype
@@ -352,7 +352,7 @@ class TestIndexConstructorUnwrapping:
         # it should be possible to convert any object that satisfies the numpy
         # ndarray interface directly into an Index
         class ArrayLike:
-            def __init__(self, array):
+            def __init__(self, array) -> None:
                 self.array = array
 
             def __array__(self, dtype=None) -> np.ndarray:

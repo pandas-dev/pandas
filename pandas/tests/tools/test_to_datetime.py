@@ -315,7 +315,7 @@ class TestTimeConversionFormats:
     def test_to_datetime_format_time(self, cache, value, format, dt):
         assert to_datetime(value, format=format, cache=cache) == dt
 
-    @td.skip_if_has_locale
+    @td.skip_if_not_us_locale
     def test_to_datetime_with_non_exact(self, cache):
         # GH 10834
         # 8904
@@ -1001,7 +1001,7 @@ class TestToDatetime:
     @pytest.mark.parametrize("constructor", [list, tuple, np.array, Index, deque])
     def test_to_datetime_cache(self, utc, format, constructor):
         date = "20130101 00:00:00"
-        test_dates = [date] * 10 ** 5
+        test_dates = [date] * 10**5
         data = constructor(test_dates)
 
         result = to_datetime(data, utc=utc, format=format, cache=True)
@@ -1019,7 +1019,7 @@ class TestToDatetime:
     @pytest.mark.parametrize("format", ["%Y%m%d %H:%M:%S", None])
     def test_to_datetime_cache_series(self, utc, format):
         date = "20130101 00:00:00"
-        test_dates = [date] * 10 ** 5
+        test_dates = [date] * 10**5
         data = Series(test_dates)
         result = to_datetime(data, utc=utc, format=format, cache=True)
         expected = to_datetime(data, utc=utc, format=format, cache=False)
@@ -1065,6 +1065,33 @@ class TestToDatetime:
             dtype="datetime64[ns]",
         )
         tm.assert_series_equal(result_series, expected_series)
+
+    @pytest.mark.parametrize("cache", [True, False])
+    @pytest.mark.parametrize(
+        ("input", "expected"),
+        (
+            (
+                Series([NaT] * 20 + [None] * 20, dtype="object"),  # type: ignore[list-item] # noqa: E501
+                Series([NaT] * 40, dtype="datetime64[ns]"),
+            ),
+            (
+                Series([NaT] * 60 + [None] * 60, dtype="object"),  # type: ignore[list-item] # noqa: E501
+                Series([NaT] * 120, dtype="datetime64[ns]"),
+            ),
+            (Series([None] * 20), Series([NaT] * 20, dtype="datetime64[ns]")),
+            (Series([None] * 60), Series([NaT] * 60, dtype="datetime64[ns]")),
+            (Series([""] * 20), Series([NaT] * 20, dtype="datetime64[ns]")),
+            (Series([""] * 60), Series([NaT] * 60, dtype="datetime64[ns]")),
+            (Series([pd.NA] * 20), Series([NaT] * 20, dtype="datetime64[ns]")),
+            (Series([pd.NA] * 60), Series([NaT] * 60, dtype="datetime64[ns]")),
+            (Series([np.NaN] * 20), Series([NaT] * 20, dtype="datetime64[ns]")),
+            (Series([np.NaN] * 60), Series([NaT] * 60, dtype="datetime64[ns]")),
+        ),
+    )
+    def test_to_datetime_converts_null_like_to_nat(self, cache, input, expected):
+        # GH35888
+        result = to_datetime(input, cache=cache)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "date, format",
@@ -1711,7 +1738,7 @@ class TestToDatetimeMisc:
         result_ignore = to_datetime(ser, errors="ignore", cache=cache)
         tm.assert_series_equal(result_ignore, ser)
 
-    @td.skip_if_has_locale
+    @td.skip_if_not_us_locale
     def test_to_datetime_with_apply(self, cache):
         # this is only locale tested with US/None locales
         # GH 5195
@@ -1721,7 +1748,7 @@ class TestToDatetimeMisc:
         result = td.apply(to_datetime, format="%b %y", cache=cache)
         tm.assert_series_equal(result, expected)
 
-    @td.skip_if_has_locale
+    @td.skip_if_not_us_locale
     def test_to_datetime_with_apply_with_empty_str(self, cache):
         # this is only locale tested with US/None locales
         # GH 5195
@@ -2643,7 +2670,7 @@ class TestShouldCache:
 
 def test_nullable_integer_to_datetime():
     # Test for #30050
-    ser = Series([1, 2, None, 2 ** 61, None])
+    ser = Series([1, 2, None, 2**61, None])
     ser = ser.astype("Int64")
     ser_copy = ser.copy()
 

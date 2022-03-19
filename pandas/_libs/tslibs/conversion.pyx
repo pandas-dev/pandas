@@ -18,13 +18,13 @@ import pytz
 from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
-    PyDateTime_IMPORT,
     datetime,
+    import_datetime,
     time,
     tzinfo,
 )
 
-PyDateTime_IMPORT
+import_datetime()
 
 from pandas._libs.tslibs.base cimport ABCTimestamp
 from pandas._libs.tslibs.np_datetime cimport (
@@ -36,6 +36,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     dtstruct_to_dt64,
     get_datetime64_unit,
     get_datetime64_value,
+    get_unit_from_dtype,
     npy_datetime,
     npy_datetimestruct,
     pandas_datetime_to_datetimestruct,
@@ -69,6 +70,7 @@ from pandas._libs.tslibs.nattype cimport (
     checknull_with_nat,
 )
 from pandas._libs.tslibs.tzconversion cimport (
+    bisect_right_i8,
     tz_convert_utc_to_tzlocal,
     tz_localize_to_utc_single,
 )
@@ -233,7 +235,9 @@ def ensure_datetime64ns(arr: ndarray, copy: bool = True):
             result = result.copy()
         return result
 
-    unit = get_datetime64_unit(arr.flat[0])
+    if arr.dtype.kind != "M":
+        raise TypeError("ensure_datetime64ns arr must have datetime64 dtype")
+    unit = get_unit_from_dtype(arr.dtype)
     if unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
         # without raising explicitly here, we end up with a SystemError
         # built-in function ensure_datetime64ns returned a result with an error
@@ -370,17 +374,12 @@ cdef class _TSObject:
     # cdef:
     #    npy_datetimestruct dts      # npy_datetimestruct
     #    int64_t value               # numpy dt64
-    #    object tzinfo
+    #    tzinfo tzinfo
     #    bint fold
 
     def __cinit__(self):
         # GH 25057. As per PEP 495, set fold to 0 by default
         self.fold = 0
-
-    @property
-    def value(self):
-        # This is needed in order for `value` to be accessible in lib.pyx
-        return self.value
 
 
 cdef convert_to_tsobject(object ts, tzinfo tz, str unit,
@@ -541,7 +540,8 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
         int64_t value  # numpy dt64
         datetime dt
         ndarray[int64_t] trans
-        int64_t[:] deltas
+        int64_t* tdata
+        int64_t[::1] deltas
 
     value = dtstruct_to_dt64(&dts)
     obj.dts = dts
@@ -561,7 +561,8 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
         trans, deltas, typ = get_dst_info(tz)
 
         if typ == 'dateutil':
-            pos = trans.searchsorted(obj.value, side='right') - 1
+            tdata = <int64_t*>cnp.PyArray_DATA(trans)
+            pos = bisect_right_i8(tdata, obj.value, trans.shape[0]) - 1
             obj.fold = _infer_tsobject_fold(obj, trans, deltas, pos)
 
     # Keep the converter same as PyDateTime's
@@ -711,9 +712,10 @@ cdef inline void _localize_tso(_TSObject obj, tzinfo tz):
     """
     cdef:
         ndarray[int64_t] trans
-        int64_t[:] deltas
+        int64_t[::1] deltas
         int64_t local_val
-        Py_ssize_t pos
+        int64_t* tdata
+        Py_ssize_t pos, ntrans
         str typ
 
     assert obj.tzinfo is None
@@ -728,27 +730,31 @@ cdef inline void _localize_tso(_TSObject obj, tzinfo tz):
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
         trans, deltas, typ = get_dst_info(tz)
+        ntrans = trans.shape[0]
 
-        if is_fixed_offset(tz):
-            # static/fixed tzinfo; in this case we know len(deltas) == 1
-            # This can come back with `typ` of either "fixed" or None
-            dt64_to_dtstruct(obj.value + deltas[0], &obj.dts)
-        elif typ == 'pytz':
+        if typ == "pytz":
             # i.e. treat_tz_as_pytz(tz)
-            pos = trans.searchsorted(obj.value, side='right') - 1
+            tdata = <int64_t*>cnp.PyArray_DATA(trans)
+            pos = bisect_right_i8(tdata, obj.value, ntrans) - 1
+            local_val = obj.value + deltas[pos]
+
+            # find right representation of dst etc in pytz timezone
             tz = tz._tzinfos[tz._transition_info[pos]]
-            dt64_to_dtstruct(obj.value + deltas[pos], &obj.dts)
-        elif typ == 'dateutil':
+        elif typ == "dateutil":
             # i.e. treat_tz_as_dateutil(tz)
-            pos = trans.searchsorted(obj.value, side='right') - 1
-            dt64_to_dtstruct(obj.value + deltas[pos], &obj.dts)
+            tdata = <int64_t*>cnp.PyArray_DATA(trans)
+            pos = bisect_right_i8(tdata, obj.value, ntrans) - 1
+            local_val = obj.value + deltas[pos]
+
             # dateutil supports fold, so we infer fold from value
             obj.fold = _infer_tsobject_fold(obj, trans, deltas, pos)
         else:
-            # Note: as of 2018-07-17 all tzinfo objects that are _not_
-            # either pytz or dateutil have is_fixed_offset(tz) == True,
-            # so this branch will never be reached.
-            pass
+            # All other cases have len(deltas) == 1. As of 2018-07-17
+            #  (and 2022-03-07), all test cases that get here have
+            #  is_fixed_offset(tz).
+            local_val = obj.value + deltas[0]
+
+        dt64_to_dtstruct(local_val, &obj.dts)
 
     obj.tzinfo = tz
 
@@ -757,7 +763,7 @@ cdef inline bint _infer_tsobject_fold(
     _TSObject obj,
     const int64_t[:] trans,
     const int64_t[:] deltas,
-    int32_t pos,
+    intp_t pos,
 ):
     """
     Infer _TSObject fold property from value by assuming 0 and then setting
@@ -770,7 +776,7 @@ cdef inline bint _infer_tsobject_fold(
         ndarray of offset transition points in nanoseconds since epoch.
     deltas : int64_t[:]
         array of offsets corresponding to transition points in trans.
-    pos : int32_t
+    pos : intp_t
         Position of the last transition point before taking fold into account.
 
     Returns
@@ -828,13 +834,7 @@ cpdef inline datetime localize_pydatetime(datetime dt, tzinfo tz):
         return dt
     elif isinstance(dt, ABCTimestamp):
         return dt.tz_localize(tz)
-    elif is_utc(tz):
-        return _localize_pydatetime(dt, tz)
-    try:
-        # datetime.replace with pytz may be incorrect result
-        return tz.localize(dt)
-    except AttributeError:
-        return dt.replace(tzinfo=tz)
+    return _localize_pydatetime(dt, tz)
 
 
 # ----------------------------------------------------------------------

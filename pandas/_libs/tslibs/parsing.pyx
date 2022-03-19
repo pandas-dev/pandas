@@ -17,7 +17,6 @@ from cpython.datetime cimport (
     tzinfo,
 )
 from cpython.object cimport PyObject_Str
-from cpython.version cimport PY_VERSION_HEX
 
 import_datetime()
 
@@ -196,11 +195,9 @@ cdef inline object _parse_delimited_date(str date_string, bint dayfirst):
                 ),
                 stacklevel=4,
             )
-        if PY_VERSION_HEX >= 0x03060100:
-            # In Python <= 3.6.0 there is no range checking for invalid dates
-            # in C api, thus we call faster C version for 3.6.1 or newer
-            return datetime_new(year, month, day, 0, 0, 0, 0, None), reso
-        return datetime(year, month, day, 0, 0, 0, 0, None), reso
+        # In Python <= 3.6.0 there is no range checking for invalid dates
+        # in C api, thus we call faster C version for 3.6.1 or newer
+        return datetime_new(year, month, day, 0, 0, 0, 0, None), reso
 
     raise DateParseError(f"Invalid date specified ({month}/{day})")
 
@@ -291,7 +288,7 @@ def parse_datetime_string(
     return dt
 
 
-def parse_time_string(arg: str, freq=None, dayfirst=None, yearfirst=None):
+def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     """
     Try hard to parse datetime string, leveraging dateutil plus some extra
     goodies like quarter recognition.
@@ -312,6 +309,16 @@ def parse_time_string(arg: str, freq=None, dayfirst=None, yearfirst=None):
     str
         Describing resolution of parsed string.
     """
+    if type(arg) is not str:
+        # GH#45580 np.str_ satisfies isinstance(obj, str) but if we annotate
+        #  arg as "str" this raises here
+        if not isinstance(arg, np.str_):
+            raise TypeError(
+                "Argument 'arg' has incorrect type "
+                f"(expected str, got {type(arg).__name__})"
+            )
+        arg = str(arg)
+
     if is_offset_object(freq):
         freq = freq.rule_code
 
@@ -563,7 +570,9 @@ cdef dateutil_parse(
     """ lifted from dateutil to get resolution"""
 
     cdef:
-        object res, attr, ret, tzdata
+        str attr
+        datetime ret
+        object res, tzdata
         object reso = None
         dict repl = {}
 
@@ -627,7 +636,7 @@ def try_parse_dates(
 ) -> np.ndarray:
     cdef:
         Py_ssize_t i, n
-        object[:] result
+        object[::1] result
 
     n = len(values)
     result = np.empty(n, dtype='O')
@@ -671,7 +680,7 @@ def try_parse_date_and_time(
 ) -> np.ndarray:
     cdef:
         Py_ssize_t i, n
-        object[:] result
+        object[::1] result
 
     n = len(dates)
     # TODO(cython3): Use len instead of `shape[0]`
@@ -709,7 +718,7 @@ def try_parse_year_month_day(
 ) -> np.ndarray:
     cdef:
         Py_ssize_t i, n
-        object[:] result
+        object[::1] result
 
     n = len(years)
     # TODO(cython3): Use len instead of `shape[0]`
@@ -732,7 +741,7 @@ def try_parse_datetime_components(object[:] years,
 
     cdef:
         Py_ssize_t i, n
-        object[:] result
+        object[::1] result
         int secs
         double float_secs
         double micros
@@ -1085,7 +1094,7 @@ def concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True) -> np.ndar
         object[::1] iters_view
         flatiter it
         cnp.ndarray[object] result
-        object[:] result_view
+        object[::1] result_view
 
     if col_count == 0:
         return np.zeros(0, dtype=object)

@@ -46,9 +46,14 @@ def test_mutability(index):
         index[0] = index[0]
 
 
-def test_map_identity_mapping(index):
+def test_map_identity_mapping(index, request):
     # GH#12766
+
     result = index.map(lambda x: x)
+    if index.dtype == object and result.dtype == bool:
+        assert (index == result).all()
+        # TODO: could work that into the 'exact="equiv"'?
+        return  # FIXME: doesn't belong in this file anymore!
     tm.assert_index_equal(result, index, exact="equiv")
 
 

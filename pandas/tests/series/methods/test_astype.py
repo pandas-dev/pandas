@@ -135,8 +135,8 @@ class TestAstype:
             request.node.add_marker(mark)
 
         msg = (
-            fr"The '{dtype.__name__}' dtype has no unit\. "
-            fr"Please pass in '{dtype.__name__}\[ns\]' instead."
+            rf"The '{dtype.__name__}' dtype has no unit\. "
+            rf"Please pass in '{dtype.__name__}\[ns\]' instead."
         )
         with pytest.raises(ValueError, match=msg):
             ser.astype(dtype)
@@ -381,7 +381,12 @@ class TestAstype:
     )
     def test_astype_ea_to_datetimetzdtype(self, dtype):
         # GH37553
-        result = Series([4, 0, 9], dtype=dtype).astype(DatetimeTZDtype(tz="US/Pacific"))
+        ser = Series([4, 0, 9], dtype=dtype)
+        warn = FutureWarning if ser.dtype.kind == "f" else None
+        msg = "with a timezone-aware dtype and floating-dtype data"
+        with tm.assert_produces_warning(warn, match=msg):
+            result = ser.astype(DatetimeTZDtype(tz="US/Pacific"))
+
         expected = Series(
             {
                 0: Timestamp("1969-12-31 16:00:00.000000004-08:00", tz="US/Pacific"),
@@ -595,3 +600,9 @@ class TestAstypeCategorical:
         exp = Series(Categorical(lst, categories=list("abcdef"), ordered=True))
         res = ser.astype(CategoricalDtype(list("abcdef"), ordered=True))
         tm.assert_series_equal(res, exp)
+
+    def test_astype_timedelta64_with_np_nan(self):
+        # GH45798
+        result = Series([Timedelta(1), np.nan], dtype="timedelta64[ns]")
+        expected = Series([Timedelta(1), NaT], dtype="timedelta64[ns]")
+        tm.assert_series_equal(result, expected)
