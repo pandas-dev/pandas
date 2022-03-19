@@ -46,10 +46,13 @@ jobs:
           - env_file: actions-38.yaml
             pattern: "not slow and not network and not single_cpu"
             extra_apt: "language-pack-zh-hans"
-            extra_loc: "zh_CN"
+            # Use the utf8 version as the default, it has no bad side-effect.
             lang: "zh_CN.utf8"
             lc_all: "zh_CN.utf8"
-            name: "Locale: zh_CN.utf8"
+            # Also install zh_CN (its encoding is gb2312) but do not activate it.
+            # It will be temporarily activated during tests with locale.setlocale
+            extra_loc: "zh_CN"
+            name: "Locale: zh_CN.utf8 + extra zh_CN (gb2312)"
           - env_file: actions-38.yaml
             pattern: "not slow and not network and not single_cpu"
             pandas_data_manager: "array"
@@ -141,10 +144,9 @@ jobs:
       run: sudo apt-get update && sudo apt-get install -y libc6-dev-i386 xsel ${{ env.EXTRA_APT }}
 
     - name: Generate extra locales
+      # These extra locales will be available for locale.setlocale() calls in tests
       run: |
         sudo locale-gen ${{ env.EXTRA_LOC }}
-      # less /usr/share/i18n/SUPPORTED
-      # sudo update-locale LANG=${LANG}
       if: ${{ env.EXTRA_LOC != '' }}
 
     - uses: conda-incubator/setup-miniconda@v2
