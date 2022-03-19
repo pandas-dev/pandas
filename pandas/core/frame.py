@@ -5883,11 +5883,11 @@ class DataFrame(NDFrame, OpsMixin):
         ...                     index=['falcon', 'parrot', 'lion', 'monkey'],
         ...                     columns=('class', 'max_speed'))
         >>> df.reset_index(names='name')
-	     name   class  max_speed
-	0  falcon    bird      389.0
-	1  parrot    bird       24.0
-	2    lion  mammal       80.5
-	3  monkey  mammal        NaN
+             name   class  max_speed
+        0  falcon    bird      389.0
+        1  parrot    bird       24.0
+        2    lion  mammal       80.5
+        3  monkey  mammal        NaN
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         self._check_inplace_and_allows_duplicate_labels(inplace)
