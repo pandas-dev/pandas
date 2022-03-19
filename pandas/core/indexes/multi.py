@@ -563,9 +563,8 @@ class MultiIndex(Index):
             arrays = cast(List[Sequence[Hashable]], arrs)
 
         if all((isinstance(e, tuple) and not e) for e in tuples):
-            codes = [np.array([0 for _ in range(len(arrays))])]
+            codes = [np.zeros(len(arrays))]
             levels = [Index(com.asarray_tuplesafe(arrays, dtype=np.dtype("object")))]
-
             return cls(
                 levels=levels,
                 codes=codes,
