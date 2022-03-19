@@ -503,7 +503,7 @@ cdef class {{name}}HashTable(HashTable):
             int ret = 0
             {{c_type}} val
             khiter_t k
-            intp_t[:] locs = np.empty(n, dtype=np.intp)
+            intp_t[::1] locs = np.empty(n, dtype=np.intp)
 
         with nogil:
             for i in range(n):
@@ -561,7 +561,7 @@ cdef class {{name}}HashTable(HashTable):
         """
         cdef:
             Py_ssize_t i, idx, count = count_prior, n = len(values)
-            intp_t[:] labels
+            intp_t[::1] labels
             int ret = 0
             {{c_type}} val, na_value2
             khiter_t k
@@ -710,7 +710,7 @@ cdef class {{name}}HashTable(HashTable):
         # tuple[np.ndarray[np.intp], np.ndarray[{{dtype}}]]
         cdef:
             Py_ssize_t i, n = len(values)
-            intp_t[:] labels
+            intp_t[::1] labels
             Py_ssize_t idx, count = 0
             int ret = 0
             {{c_type}} val
@@ -848,7 +848,7 @@ cdef class StringHashTable(HashTable):
             object val
             const char *v
             khiter_t k
-            intp_t[:] locs = np.empty(n, dtype=np.intp)
+            intp_t[::1] locs = np.empty(n, dtype=np.intp)
 
         # these by-definition *must* be strings
         vecs = <const char **>malloc(n * sizeof(char *))
@@ -946,8 +946,8 @@ cdef class StringHashTable(HashTable):
         """
         cdef:
             Py_ssize_t i, idx, count = count_prior, n = len(values)
-            intp_t[:] labels
-            int64_t[:] uindexer
+            intp_t[::1] labels
+            int64_t[::1] uindexer
             int ret = 0
             object val
             const char *v
@@ -1168,7 +1168,7 @@ cdef class PyObjectHashTable(HashTable):
             int ret = 0
             object val
             khiter_t k
-            intp_t[:] locs = np.empty(n, dtype=np.intp)
+            intp_t[::1] locs = np.empty(n, dtype=np.intp)
 
         for i in range(n):
             val = values[i]
@@ -1223,7 +1223,7 @@ cdef class PyObjectHashTable(HashTable):
         """
         cdef:
             Py_ssize_t i, idx, count = count_prior, n = len(values)
-            intp_t[:] labels
+            intp_t[::1] labels
             int ret = 0
             object val
             khiter_t k

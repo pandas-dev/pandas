@@ -5,11 +5,11 @@ from operator import (
 )
 
 from cpython.datetime cimport (
-    PyDateTime_IMPORT,
     PyDelta_Check,
+    import_datetime,
 )
 
-PyDateTime_IMPORT
+import_datetime()
 
 from cpython.object cimport (
     Py_EQ,

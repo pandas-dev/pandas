@@ -165,7 +165,7 @@ class FreqGroup(Enum):
     FR_MS = c_FreqGroup.FR_MS
     FR_US = c_FreqGroup.FR_US
     FR_NS = c_FreqGroup.FR_NS
-    FR_UND = -c_FreqGroup.FR_UND  # undefined
+    FR_UND = c_FreqGroup.FR_UND  # undefined
 
     @staticmethod
     def from_period_dtype_code(code: int) -> "FreqGroup":

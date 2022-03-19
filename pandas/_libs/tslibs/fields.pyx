@@ -152,7 +152,7 @@ def get_date_name_field(const int64_t[:] dtindex, str field, object locale=None)
         if locale is None:
             names = np.array(DAYS_FULL, dtype=np.object_)
         else:
-            names = np.array(get_locale_names('f_weekday', locale),
+            names = np.array(_get_locale_names('f_weekday', locale),
                              dtype=np.object_)
         for i in range(count):
             if dtindex[i] == NPY_NAT:
@@ -167,7 +167,7 @@ def get_date_name_field(const int64_t[:] dtindex, str field, object locale=None)
         if locale is None:
             names = np.array(MONTHS_FULL, dtype=np.object_)
         else:
-            names = np.array(get_locale_names('f_month', locale),
+            names = np.array(_get_locale_names('f_month', locale),
                              dtype=np.object_)
         for i in range(count):
             if dtindex[i] == NPY_NAT:
@@ -574,7 +574,7 @@ def build_isocalendar_sarray(const int64_t[:] dtindex):
     return out
 
 
-def get_locale_names(name_type: str, locale: object = None):
+def _get_locale_names(name_type: str, locale: object = None):
     """
     Returns an array of localized day or month names.
 
@@ -650,7 +650,7 @@ class RoundTo:
         return 4
 
 
-cdef inline ndarray[int64_t] _floor_int64(int64_t[:] values, int64_t unit):
+cdef inline ndarray[int64_t] _floor_int64(const int64_t[:] values, int64_t unit):
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[int64_t] result = np.empty(n, dtype="i8")
@@ -668,7 +668,7 @@ cdef inline ndarray[int64_t] _floor_int64(int64_t[:] values, int64_t unit):
     return result
 
 
-cdef inline ndarray[int64_t] _ceil_int64(int64_t[:] values, int64_t unit):
+cdef inline ndarray[int64_t] _ceil_int64(const int64_t[:] values, int64_t unit):
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[int64_t] result = np.empty(n, dtype="i8")

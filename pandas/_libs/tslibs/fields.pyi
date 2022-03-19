@@ -22,7 +22,7 @@ def get_date_field(
     field: str,
 ) -> npt.NDArray[np.int32]: ...
 def get_timedelta_field(
-    tdindex: np.ndarray,  # const int64_t[:]
+    tdindex: npt.NDArray[np.int64],  # const int64_t[:]
     field: str,
 ) -> npt.NDArray[np.int32]: ...
 def isleapyear_arr(
@@ -31,7 +31,7 @@ def isleapyear_arr(
 def build_isocalendar_sarray(
     dtindex: npt.NDArray[np.int64],  # const int64_t[:]
 ) -> np.ndarray: ...
-def get_locale_names(name_type: str, locale: str | None = ...): ...
+def _get_locale_names(name_type: str, locale: str | None = ...): ...
 
 class RoundTo:
     @property

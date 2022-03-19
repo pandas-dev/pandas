@@ -3,11 +3,13 @@ import warnings
 from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
-    PyDateTime_IMPORT,
     PyDelta_Check,
     datetime,
+    import_datetime,
     timedelta,
 )
+
+import_datetime()
 from cpython.object cimport (
     Py_EQ,
     Py_GE,
@@ -17,10 +19,6 @@ from cpython.object cimport (
     Py_NE,
     PyObject_RichCompare,
 )
-
-PyDateTime_IMPORT
-
-from cpython.version cimport PY_MINOR_VERSION
 
 import numpy as np
 
@@ -42,14 +40,6 @@ cdef set c_nat_strings = nat_strings
 
 cdef int64_t NPY_NAT = util.get_nat()
 iNaT = NPY_NAT  # python-visible constant
-
-cdef bint _nat_scalar_rules[6]
-_nat_scalar_rules[Py_EQ] = False
-_nat_scalar_rules[Py_NE] = True
-_nat_scalar_rules[Py_LT] = False
-_nat_scalar_rules[Py_LE] = False
-_nat_scalar_rules[Py_GT] = False
-_nat_scalar_rules[Py_GE] = False
 
 # ----------------------------------------------------------------------
 
@@ -107,7 +97,6 @@ def __nat_unpickle(*args):
 cdef class _NaT(datetime):
     # cdef readonly:
     #    int64_t value
-    #    object freq
 
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
@@ -115,16 +104,16 @@ cdef class _NaT(datetime):
     def __richcmp__(_NaT self, object other, int op):
         if util.is_datetime64_object(other) or PyDateTime_Check(other):
             # We treat NaT as datetime-like for this comparison
-            return _nat_scalar_rules[op]
+            return op == Py_NE
 
         elif util.is_timedelta64_object(other) or PyDelta_Check(other):
             # We treat NaT as timedelta-like for this comparison
-            return _nat_scalar_rules[op]
+            return op == Py_NE
 
         elif util.is_array(other):
             if other.dtype.kind in "mM":
                 result = np.empty(other.shape, dtype=np.bool_)
-                result.fill(_nat_scalar_rules[op])
+                result.fill(op == Py_NE)
             elif other.dtype.kind == "O":
                 result = np.array([PyObject_RichCompare(self, x, op) for x in other])
             elif op == Py_EQ:
@@ -510,8 +499,7 @@ class NaTType(_NaT):
     utcoffset = _make_error_func("utcoffset", datetime)
 
     # "fromisocalendar" was introduced in 3.8
-    if PY_MINOR_VERSION >= 8:
-        fromisocalendar = _make_error_func("fromisocalendar", datetime)
+    fromisocalendar = _make_error_func("fromisocalendar", datetime)
 
     # ----------------------------------------------------------------------
     # The remaining methods have docstrings copy/pasted from the analogous

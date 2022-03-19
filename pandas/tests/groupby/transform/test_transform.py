@@ -1357,6 +1357,7 @@ def test_null_group_str_reducer(request, dropna, reduction_func):
     tm.assert_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
 def test_null_group_str_transformer(
     request, using_array_manager, dropna, transformation_func
 ):

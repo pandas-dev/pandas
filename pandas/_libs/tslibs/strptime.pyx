@@ -72,8 +72,8 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, errors='
     cdef:
         Py_ssize_t i, n = len(values)
         npy_datetimestruct dts
-        int64_t[:] iresult
-        object[:] result_timezone
+        int64_t[::1] iresult
+        object[::1] result_timezone
         int year, month, day, minute, hour, second, weekday, julian
         int week_of_year, week_of_year_start, parse_code, ordinal
         int iso_week, iso_year

@@ -36,13 +36,13 @@ import cython
 from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
-    PyDateTime_IMPORT,
     PyDelta_Check,
     datetime,
+    import_datetime,
 )
 
 # import datetime C API
-PyDateTime_IMPORT
+import_datetime()
 
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
@@ -62,7 +62,6 @@ cdef extern from "src/datetime/np_datetime.h":
 
 cimport pandas._libs.tslibs.util as util
 
-from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas._libs.tslibs.timestamps import Timestamp
 
 from pandas._libs.tslibs.ccalendar cimport (
@@ -104,7 +103,6 @@ from pandas._libs.tslibs.parsing import parse_time_string
 
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
-    _nat_scalar_rules,
     c_NaT as NaT,
     c_nat_strings as nat_strings,
     checknull_with_nat,
@@ -1673,7 +1671,7 @@ cdef class _Period(PeriodMixin):
                 self._require_matching_freq(other)
             return PyObject_RichCompareBool(self.ordinal, other.ordinal, op)
         elif other is NaT:
-            return _nat_scalar_rules[op]
+            return op == Py_NE
         elif util.is_array(other):
             # GH#44285
             if cnp.PyArray_IsZeroDim(other):
@@ -1828,10 +1826,10 @@ cdef class _Period(PeriodMixin):
         if end:
             if freq == "B" or self.freq == "B":
                 # roll forward to ensure we land on B date
-                adjust = Timedelta(1, "D") - Timedelta(1, "ns")
+                adjust = np.timedelta64(1, "D") - np.timedelta64(1, "ns")
                 return self.to_timestamp(how="start") + adjust
             endpoint = (self + self.freq).to_timestamp(how='start')
-            return endpoint - Timedelta(1, 'ns')
+            return endpoint - np.timedelta64(1, "ns")
 
         if freq is None:
             freq = self._dtype._get_to_timestamp_base()

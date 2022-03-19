@@ -89,7 +89,7 @@ def ints_to_pydatetime(
         int64_t* tdata = NULL
         intp_t pos
         npy_datetimestruct dts
-        object dt, new_tz
+        tzinfo new_tz
         str typ
         int64_t value, local_val, delta = NPY_NAT  # dummy for delta
         ndarray[object] result = np.empty(n, dtype=object)
@@ -190,6 +190,8 @@ cdef inline int _reso_stamp(npy_datetimestruct *dts):
     return RESO_DAY
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def get_resolution(const int64_t[:] stamps, tzinfo tz=None) -> Resolution:
     cdef:
         Py_ssize_t i, ntrans=-1, n = len(stamps)
@@ -259,7 +261,7 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
     """
     cdef:
         Py_ssize_t i, ntrans =- 1, n = len(stamps)
-        int64_t[:] result = np.empty(n, dtype=np.int64)
+        int64_t[::1] result = np.empty(n, dtype=np.int64)
         ndarray[int64_t] trans
         int64_t[::1] deltas
         int64_t* tdata = NULL
@@ -369,7 +371,7 @@ def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None) -> bool:
 def dt64arr_to_periodarr(const int64_t[:] stamps, int freq, tzinfo tz):
     cdef:
         Py_ssize_t i, ntrans =- 1, n = len(stamps)
-        int64_t[:] result = np.empty(n, dtype=np.int64)
+        int64_t[::1] result = np.empty(n, dtype=np.int64)
         ndarray[int64_t] trans
         int64_t[::1] deltas
         int64_t* tdata = NULL

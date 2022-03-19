@@ -25,10 +25,10 @@ cnp.import_array()
 from cpython.datetime cimport (  # alias bc `tzinfo` is a kwarg below
     PyDate_Check,
     PyDateTime_Check,
-    PyDateTime_IMPORT,
     PyDelta_Check,
     PyTZInfo_Check,
     datetime,
+    import_datetime,
     time,
     tzinfo as tzinfo_type,
 )
@@ -43,7 +43,7 @@ from cpython.object cimport (
     PyObject_RichCompareBool,
 )
 
-PyDateTime_IMPORT
+import_datetime()
 
 from pandas._libs.tslibs cimport ccalendar
 from pandas._libs.tslibs.base cimport ABCTimestamp

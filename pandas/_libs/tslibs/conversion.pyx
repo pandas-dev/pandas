@@ -18,13 +18,13 @@ import pytz
 from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
-    PyDateTime_IMPORT,
     datetime,
+    import_datetime,
     time,
     tzinfo,
 )
 
-PyDateTime_IMPORT
+import_datetime()
 
 from pandas._libs.tslibs.base cimport ABCTimestamp
 from pandas._libs.tslibs.np_datetime cimport (

@@ -5,13 +5,13 @@ import cython
 from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
-    PyDateTime_IMPORT,
     datetime,
+    import_datetime,
     tzinfo,
 )
 
 # import datetime C API
-PyDateTime_IMPORT
+import_datetime()
 
 
 cimport numpy as cnp
@@ -63,7 +63,6 @@ from pandas._libs.tslibs.timestamps cimport _Timestamp
 from pandas._libs.tslibs.timestamps import Timestamp
 
 # Note: this is the only non-tslibs intra-pandas dependency here
-
 from pandas._libs.missing cimport checknull_with_nat_and_na
 from pandas._libs.tslibs.tzconversion cimport tz_localize_to_utc_single
 

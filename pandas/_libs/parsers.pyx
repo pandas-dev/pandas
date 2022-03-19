@@ -1457,7 +1457,7 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
         const char *word = NULL
 
         int64_t NA = -1
-        int64_t[:] codes
+        int64_t[::1] codes
         int64_t current_category = 0
 
         char *errors = "strict"
