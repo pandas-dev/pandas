@@ -133,10 +133,10 @@ class Timestamp(datetime):
     def utcoffset(self) -> timedelta | None: ...
     def tzname(self) -> str | None: ...
     def dst(self) -> timedelta | None: ...
-    def __le__(self, other: datetime) -> bool: ...  # type: ignore
-    def __lt__(self, other: datetime) -> bool: ...  # type: ignore
-    def __ge__(self, other: datetime) -> bool: ...  # type: ignore
-    def __gt__(self, other: datetime) -> bool: ...  # type: ignore
+    def __le__(self, other: datetime) -> bool: ...  # type: ignore[override]
+    def __lt__(self, other: datetime) -> bool: ...  # type: ignore[override]
+    def __ge__(self, other: datetime) -> bool: ...  # type: ignore[override]
+    def __gt__(self, other: datetime) -> bool: ...  # type: ignore[override]
     # error: Signature of "__add__" incompatible with supertype "date"/"datetime"
     @overload  # type: ignore[override]
     def __add__(self, other: np.ndarray) -> np.ndarray: ...
@@ -145,7 +145,7 @@ class Timestamp(datetime):
         self: _DatetimeT, other: timedelta | np.timedelta64 | Tick
     ) -> _DatetimeT: ...
     def __radd__(self: _DatetimeT, other: timedelta) -> _DatetimeT: ...
-    @overload  # type: ignore
+    @overload  # type: ignore[override]
     def __sub__(self, other: datetime) -> Timedelta: ...
     @overload
     def __sub__(
