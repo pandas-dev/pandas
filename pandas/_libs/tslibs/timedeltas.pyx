@@ -834,6 +834,7 @@ cdef class _Timedelta(timedelta):
 
     @property
     def freq(self):
+        # GH#46430
         warnings.warn(
             "Timedelta.freq is deprecated and will be removed in a future version",
             FutureWarning,
@@ -842,6 +843,7 @@ cdef class _Timedelta(timedelta):
 
     @property
     def is_populated(self):
+        # GH#46430
         warnings.warn(
             "Timedelta.is_populated is deprecated and will be removed in a future version",
             FutureWarning,

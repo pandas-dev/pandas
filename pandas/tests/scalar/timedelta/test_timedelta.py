@@ -662,6 +662,7 @@ def test_timedelta_attribute_precision():
 
 
 def test_freq_deprecated():
+    # GH#46430
     td = Timedelta(123456546, unit="ns")
     with tm.assert_produces_warning(FutureWarning, match="Timedelta.freq"):
         td.freq
@@ -671,6 +672,7 @@ def test_freq_deprecated():
 
 
 def test_is_populated_deprecated():
+    # GH#46430
     td = Timedelta(123456546, unit="ns")
     with tm.assert_produces_warning(FutureWarning, match="Timedelta.is_populated"):
         td.is_populated
