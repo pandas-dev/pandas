@@ -30,10 +30,10 @@ jobs:
         # even if tests are skipped/xfailed
         pyarrow_version: ["5"]  # , "7"]
         include:
-#          - env_file: actions-38-downstream_compat.yaml
-#            pattern: "not slow and not network and not single_cpu"
-#            pytest_target: "pandas/tests/test_downstream.py"
-#            name: "Downstream Compat"
+          - env_file: actions-38-downstream_compat.yaml
+            pattern: "not slow and not network and not single_cpu"
+            pytest_target: "pandas/tests/test_downstream.py"
+            name: "Downstream Compat"
 #          - env_file: actions-38-minimum_versions.yaml
 #            pattern: "not slow and not network and not single_cpu"
 #            name: "Minimum Versions"
@@ -145,6 +145,7 @@ jobs:
         sudo locale-gen ${{ env.EXTRA_LOC }}
       # less /usr/share/i18n/SUPPORTED
       # sudo update-locale LANG=${LANG}
+      if: ${{ env.EXTRA_LOC != '' }}
 
     - uses: conda-incubator/setup-miniconda@v2
       with:
