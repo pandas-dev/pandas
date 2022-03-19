@@ -826,12 +826,19 @@ cdef _to_py_int_float(v):
 cdef class _Timedelta(timedelta):
     # cdef readonly:
     #    int64_t value      # nanoseconds
-    #    object freq        # frequency reference
     #    bint is_populated  # are my components populated
     #    int64_t _d, _h, _m, _s, _ms, _us, _ns
 
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
+
+    @property
+    def freq(self):
+        warnings.warn(
+            "Timedelta.freq is deprecated and will be removed in a future version",
+            FutureWarning,
+            stacklevel=1,
+        )
 
     def __hash__(_Timedelta self):
         if self._has_ns():

@@ -659,3 +659,12 @@ def test_timedelta_attribute_precision():
     result += td.nanoseconds
     expected = td.value
     assert result == expected
+
+
+def test_freq_deprecated():
+    td = Timedelta(123456546, unit="ns")
+    with tm.assert_produces_warning(FutureWarning, match="Timedelta.freq"):
+        td.freq
+
+    with pytest.raises(AttributeError, match="is not writable"):
+        td.freq = offsets.Day()
