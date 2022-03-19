@@ -44,6 +44,9 @@ from pandas._typing import (
     DtypeArg,
     DtypeObj,
     FilePath,
+    HashableT,
+    HashableTa,
+    HashableTb,
     IgnoreRaise,
     IndexKeyFunc,
     IndexLabel,
@@ -974,10 +977,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def _rename(
         self: NDFrameT,
-        mapper: Renamer | None = None,
+        mapper: Renamer[HashableT] | None = None,
         *,
-        index: Renamer | None = None,
-        columns: Renamer | None = None,
+        index: Renamer[HashableTa] | None = None,
+        columns: Renamer[HashableTb] | None = None,
         axis: Axis | None = None,
         copy: bool_t = True,
         inplace: bool_t = False,
@@ -1110,9 +1113,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             # use the mapper argument
             if axis and self._get_axis_number(axis) == 1:
-                columns = mapper
+                # error: Incompatible types in assignment (expression has type
+                # "Optional[Union[Mapping[HashableT, Hashable], Callable[
+                # [HashableT], Hashable]]]", variable has type "Optional[Union[
+                # Mapping[HashableTb, Hashable], Callable[[HashableTb], Hashable
+                # ]]]")
+                columns = mapper  # type: ignore[assignment]
             else:
-                index = mapper
+                # error: Incompatible types in assignment (expression has type
+                # "Optional[Union[Mapping[HashableT, Hashable], Callable[[
+                # HashableT], Hashable]]]", variable has type "Optional[Union[
+                # Mapping[HashableTa, Hashable], Callable[[HashableTa], Hashable
+                # ]]]")
+                index = mapper  # type: ignore[assignment]
 
         self._check_inplace_and_allows_duplicate_labels(inplace)
         result = self if inplace else self.copy(deep=copy)

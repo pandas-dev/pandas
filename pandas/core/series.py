@@ -38,10 +38,12 @@ from pandas._typing import (
     Dtype,
     DtypeObj,
     FillnaOptions,
+    HashableT,
     IgnoreRaise,
     IndexKeyFunc,
     Level,
     NaPosition,
+    Renamer,
     SingleManager,
     SortKind,
     StorageOptions,
@@ -4617,15 +4619,54 @@ Keep all original rows and also all original values
             broadcast_axis=broadcast_axis,
         )
 
+    @overload
     def rename(
         self,
-        index=None,
+        index: Renamer[HashableT] | Hashable | None = ...,
         *,
-        axis=None,
-        copy=True,
-        inplace=False,
-        level=None,
-        errors="ignore",
+        axis: Axis | None = ...,
+        copy: bool = ...,
+        inplace: Literal[True],
+        level: Level | None = ...,
+        errors: IgnoreRaise = ...,
+    ) -> None:
+        ...
+
+    @overload
+    def rename(
+        self,
+        index: Renamer[HashableT] | Hashable | None = ...,
+        *,
+        axis: Axis | None = ...,
+        copy: bool = ...,
+        inplace: Literal[False] = ...,
+        level: Level | None = ...,
+        errors: IgnoreRaise = ...,
+    ) -> Series:
+        ...
+
+    @overload
+    def rename(
+        self,
+        index: Renamer[HashableT] | Hashable | None = ...,
+        *,
+        axis: Axis | None = ...,
+        copy: bool = ...,
+        inplace: bool = ...,
+        level: Level | None = ...,
+        errors: IgnoreRaise = ...,
+    ) -> Series | None:
+        ...
+
+    def rename(
+        self,
+        index: Renamer[HashableT] | Hashable | None = None,
+        *,
+        axis: Axis | None = None,
+        copy: bool = True,
+        inplace: bool = False,
+        level: Level | None = None,
+        errors: IgnoreRaise = "ignore",
     ) -> Series | None:
         """
         Alter Series index labels or name.
@@ -4691,8 +4732,16 @@ Keep all original rows and also all original values
             axis = self._get_axis_number(axis)
 
         if callable(index) or is_dict_like(index):
+            # error: Argument 1 to "_rename" of "NDFrame" has incompatible type
+            # "Union[Union[Mapping[Hashable, Any], Callable[[Hashable], Hashable]],
+            # Hashable, None]"; expected "Union[Mapping[Hashable, Any],
+            # Callable[[Hashable], Hashable], None]"
             return super()._rename(
-                index, copy=copy, inplace=inplace, level=level, errors=errors
+                index,  # type: ignore[arg-type]
+                copy=copy,
+                inplace=inplace,
+                level=level,
+                errors=errors,
             )
         else:
             return self._set_name(index, inplace=inplace)

@@ -58,6 +58,9 @@ from pandas._typing import (
     FloatFormatType,
     FormattersType,
     Frequency,
+    HashableT,
+    HashableTa,
+    HashableTb,
     IgnoreRaise,
     IndexKeyFunc,
     IndexLabel,
@@ -5030,17 +5033,62 @@ class DataFrame(NDFrame, OpsMixin):
             errors=errors,
         )
 
+    @overload
     def rename(
         self,
-        mapper: Renamer | None = None,
+        mapper: Renamer[HashableT] | None = ...,
         *,
-        index: Renamer | None = None,
-        columns: Renamer | None = None,
+        index: Renamer[HashableTa] | None = ...,
+        columns: Renamer[HashableTb] | None = ...,
+        axis: Axis | None = ...,
+        copy: bool = ...,
+        inplace: Literal[True],
+        level: Level | None = ...,
+        errors: IgnoreRaise = ...,
+    ) -> None:
+        ...
+
+    @overload
+    def rename(
+        self,
+        mapper: Renamer[HashableT] | None = ...,
+        *,
+        index: Renamer[HashableTa] | None = ...,
+        columns: Renamer[HashableTb] | None = ...,
+        axis: Axis | None = ...,
+        copy: bool = ...,
+        inplace: Literal[False] = ...,
+        level: Level | None = ...,
+        errors: IgnoreRaise = ...,
+    ) -> DataFrame:
+        ...
+
+    @overload
+    def rename(
+        self,
+        mapper: Renamer[HashableT] | None = ...,
+        *,
+        index: Renamer[HashableTa] | None = ...,
+        columns: Renamer[HashableTb] | None = ...,
+        axis: Axis | None = ...,
+        copy: bool = ...,
+        inplace: bool = ...,
+        level: Level | None = ...,
+        errors: IgnoreRaise = ...,
+    ) -> DataFrame | None:
+        ...
+
+    def rename(
+        self,
+        mapper: Renamer[HashableT] | None = None,
+        *,
+        index: Renamer[HashableTa] | None = None,
+        columns: Renamer[HashableTb] | None = None,
         axis: Axis | None = None,
         copy: bool = True,
         inplace: bool = False,
         level: Level | None = None,
-        errors: str = "ignore",
+        errors: IgnoreRaise = "ignore",
     ) -> DataFrame | None:
         """
         Alter axes labels.
