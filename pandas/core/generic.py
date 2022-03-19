@@ -4274,7 +4274,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @overload
     def drop(
-        self: NDFrameT,
+        self,
         labels: Hashable | list[Hashable] = ...,
         *,
         axis: Axis = ...,
