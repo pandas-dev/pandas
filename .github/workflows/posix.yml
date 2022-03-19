@@ -162,7 +162,7 @@ jobs:
       shell: bash
       run: |
         # TODO: re-enable cov, its slowing the tests down though
-        pip install Cython numpy python-dateutil pytz pytest>=6.0 pytest-xdist>=1.31.0 hypothesis>=5.5.3
+        pip install Cython numpy python-dateutil pytz pytest>=6.0 pytest-xdist>=1.31.0 pytest-asyncio hypothesis>=5.5.3
       if: ${{ env.IS_PYPY == 'true' }}
 
     - name: Build Pandas
