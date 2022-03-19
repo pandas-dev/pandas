@@ -21,6 +21,7 @@ from pandas import (
     option_context,
 )
 import pandas._testing as tm
+from pandas.util.version import Version
 
 from pandas.io.excel import (
     ExcelFile,
@@ -1088,7 +1089,7 @@ class TestExcelWriter:
         tm.assert_frame_equal(result, expected)
 
     def test_datetimes(self, path, request):
-
+        openpyxl = pytest.importorskip("openpyxl")
         # Test writing and reading datetimes. For issue #9139. (xref #9185)
         datetimes = [
             datetime(2013, 1, 13, 1, 2, 3),
@@ -1106,7 +1107,11 @@ class TestExcelWriter:
 
         write_frame = DataFrame({"A": datetimes})
         write_frame.to_excel(path, "Sheet1")
-        if path.endswith("xlsx") or path.endswith("xlsm"):
+        if (
+            path.endswith("xlsx")
+            or path.endswith("xlsm")
+            and Version(openpyxl.__version__) > Version("3.0.6")
+        ):
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason="Defaults to openpyxl and fails with "
