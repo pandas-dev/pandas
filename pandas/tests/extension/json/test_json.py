@@ -4,6 +4,8 @@ import sys
 
 import pytest
 
+from pandas.compat import PY310
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.tests.extension import base
@@ -267,7 +269,7 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
     def test_combine_add(self, data_repeated):
         super().test_combine_add(data_repeated)
 
-    @pytest.mark.xfail(reason="combine for JSONArray not supported")
+    @pytest.mark.xfail(not PY310, reason="combine for JSONArray not supported")
     def test_combine_first(self, data):
         super().test_combine_first(data)
 

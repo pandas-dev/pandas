@@ -1107,11 +1107,9 @@ class TestExcelWriter:
 
         write_frame = DataFrame({"A": datetimes})
         write_frame.to_excel(path, "Sheet1")
-        if (
-            path.endswith("xlsx")
-            or path.endswith("xlsm")
-            and Version(openpyxl.__version__) > Version("3.0.6")
-        ):
+        if (path.endswith("xlsx") or path.endswith("xlsm")) and Version(
+            openpyxl.__version__
+        ) > Version("3.0.6"):
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason="Defaults to openpyxl and fails with "
