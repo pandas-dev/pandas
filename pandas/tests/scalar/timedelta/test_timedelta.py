@@ -668,3 +668,12 @@ def test_freq_deprecated():
 
     with pytest.raises(AttributeError, match="is not writable"):
         td.freq = offsets.Day()
+
+
+def test_is_populated_deprecated():
+    td = Timedelta(123456546, unit="ns")
+    with tm.assert_produces_warning(FutureWarning, match="Timedelta.is_populated"):
+        td.is_populated
+
+    with pytest.raises(AttributeError, match="is not writable"):
+        td.is_populated = 1

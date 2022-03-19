@@ -826,7 +826,7 @@ cdef _to_py_int_float(v):
 cdef class _Timedelta(timedelta):
     # cdef readonly:
     #    int64_t value      # nanoseconds
-    #    bint is_populated  # are my components populated
+    #    bint _is_populated  # are my components populated
     #    int64_t _d, _h, _m, _s, _ms, _us, _ns
 
     # higher than np.ndarray and np.matrix
@@ -839,6 +839,15 @@ cdef class _Timedelta(timedelta):
             FutureWarning,
             stacklevel=1,
         )
+
+    @property
+    def is_populated(self):
+        warnings.warn(
+            "Timedelta.is_populated is deprecated and will be removed in a future version",
+            FutureWarning,
+            stacklevel=1,
+        )
+        return self._is_populated
 
     def __hash__(_Timedelta self):
         if self._has_ns():
@@ -888,7 +897,7 @@ cdef class _Timedelta(timedelta):
         """
         compute the components
         """
-        if self.is_populated:
+        if self._is_populated:
             return
 
         cdef:
@@ -905,7 +914,7 @@ cdef class _Timedelta(timedelta):
         self._seconds = tds.seconds
         self._microseconds = tds.microseconds
 
-        self.is_populated = 1
+        self._is_populated = 1
 
     cpdef timedelta to_pytimedelta(_Timedelta self):
         """
@@ -1396,7 +1405,7 @@ class Timedelta(_Timedelta):
         # make timedelta happy
         td_base = _Timedelta.__new__(cls, microseconds=int(value) // 1000)
         td_base.value = value
-        td_base.is_populated = 0
+        td_base._is_populated = 0
         return td_base
 
     def __setstate__(self, state):
