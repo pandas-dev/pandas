@@ -1237,8 +1237,7 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt):
     formatted = c_strftime(&dts, <char*>fmt)
 
     # Decode result according to current locale
-    # TODO use char_to_string_locale once the CI is able to reproduce the issue
-    result = util.char_to_string(formatted)
+    result = util.char_to_string_locale(formatted)
     free(formatted)
 
     # Now we will fill the placeholders corresponding to our additional directives
