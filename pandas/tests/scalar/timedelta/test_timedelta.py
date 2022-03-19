@@ -665,7 +665,9 @@ def test_freq_deprecated():
     # GH#46430
     td = Timedelta(123456546, unit="ns")
     with tm.assert_produces_warning(FutureWarning, match="Timedelta.freq"):
-        td.freq
+        freq = td.freq
+
+    assert freq is None
 
     with pytest.raises(AttributeError, match="is not writable"):
         td.freq = offsets.Day()

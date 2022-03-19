@@ -833,16 +833,17 @@ cdef class _Timedelta(timedelta):
     __array_priority__ = 100
 
     @property
-    def freq(self):
+    def freq(self) -> None:
         # GH#46430
         warnings.warn(
             "Timedelta.freq is deprecated and will be removed in a future version",
             FutureWarning,
             stacklevel=1,
         )
+        return None
 
     @property
-    def is_populated(self):
+    def is_populated(self) -> bool:
         # GH#46430
         warnings.warn(
             "Timedelta.is_populated is deprecated and will be removed in a future version",
