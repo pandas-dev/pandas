@@ -5,14 +5,14 @@ import cython
 from cython import Py_ssize_t
 
 from cpython.datetime cimport (
-    PyDateTime_IMPORT,
     PyDelta_Check,
     datetime,
+    import_datetime,
     timedelta,
     tzinfo,
 )
 
-PyDateTime_IMPORT
+import_datetime()
 
 from dateutil.tz import tzutc
 import numpy as np
