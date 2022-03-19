@@ -20,6 +20,7 @@ dependencies:
   - python-dateutil=2.8.1
   - numpy=1.18.5
   - pytz=2020.1
+  - backports.zoneinfo
 
   # optional dependencies, markupsafe for jinja2
   - beautifulsoup4=4.8.2

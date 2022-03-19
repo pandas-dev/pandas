@@ -1167,6 +1167,7 @@ TIMEZONES = [
     timezone(timedelta(hours=1)),
     timezone(timedelta(hours=-1), name="foo"),
     zoneinfo.ZoneInfo("US/Pacific"),
+    zoneinfo.ZoneInfo("UTC"),
 ]
 TIMEZONE_IDS = [repr(i) for i in TIMEZONES]
 
@@ -1193,7 +1194,9 @@ def tz_aware_fixture(request):
 tz_aware_fixture2 = tz_aware_fixture
 
 
-@pytest.fixture(params=["utc", "dateutil/UTC", utc, tzutc(), timezone.utc])
+@pytest.fixture(
+    params=["utc", "dateutil/UTC", utc, tzutc(), timezone.utc, zoneinfo.ZoneInfo("UTC")]
+)
 def utc_fixture(request):
     """
     Fixture to provide variants of UTC timezone strings and tzinfo objects.

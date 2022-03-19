@@ -19,6 +19,7 @@ dependencies:
   - python-dateutil
   - numpy
   - pytz
+  - backports.zoneinfo
 
   # optional dependencies
   - beautifulsoup4
