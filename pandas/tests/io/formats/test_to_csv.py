@@ -1,11 +1,8 @@
-from cmath import exp
 import io
 import os
 from pathlib import Path
 import sys
-from unittest import result
 from zipfile import ZipFile
-from html5lib import serialize
 
 import numpy as np
 import pytest
@@ -18,9 +15,6 @@ from pandas import (
 import pandas._testing as tm
 
 import pandas.io.common as icom
-from pandas._libs.interval import Interval
-
-from pandas.conftest import index
 
 
 class TestToCSV:
