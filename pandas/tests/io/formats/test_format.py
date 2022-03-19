@@ -3252,23 +3252,6 @@ class TestPeriodIndexFormat:
         assert formatted[1] == f"03 01:00:00{pm_local}"
 
 
-@pytest.fixture(params=[None, "fr_FR", "zh_CN"])
-def overridden_locale(request):
-    """A fixture used to temporarily change the locale"""
-    old = locale.setlocale(locale.LC_ALL)
-    target = request.param
-    if target is None:
-        yield old
-    else:
-        try:
-            locale.setlocale(locale.LC_ALL, target)
-        except locale.Error as e:
-            pytest.skip(f"Skipping as locale cannot be set. {type(e).__name__}: {e}")
-        else:
-            yield target
-            locale.setlocale(locale.LC_ALL, old)
-
-
 class TestDatetimeIndexFormat:
     def test_datetime(self):
         formatted = pd.to_datetime([datetime(2003, 1, 1, 12), NaT]).format()
