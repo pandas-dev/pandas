@@ -18,3 +18,4 @@ dependencies:
   - numpy
   - python-dateutil
   - pytz
+  - backports.zoneinfo
