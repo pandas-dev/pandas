@@ -2,7 +2,7 @@ from cpython.datetime cimport tzinfo
 from numpy cimport int64_t
 
 
-cdef int64_t tz_convert_utc_to_tzlocal(
+cdef int64_t localize_tzinfo_api(
     int64_t utc_val, tzinfo tz, bint* fold=*
 ) except? -1
 cpdef int64_t tz_convert_from_utc_single(int64_t val, tzinfo tz)

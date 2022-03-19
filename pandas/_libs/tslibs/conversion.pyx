@@ -71,7 +71,7 @@ from pandas._libs.tslibs.nattype cimport (
 )
 from pandas._libs.tslibs.tzconversion cimport (
     bisect_right_i8,
-    tz_convert_utc_to_tzlocal,
+    localize_tzinfo_api,
     tz_localize_to_utc_single,
 )
 
@@ -556,7 +556,7 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
     if is_utc(tz):
         pass
     elif is_tzlocal(tz):
-        tz_convert_utc_to_tzlocal(obj.value, tz, &obj.fold)
+        localize_tzinfo_api(obj.value, tz, &obj.fold)
     else:
         trans, deltas, typ = get_dst_info(tz)
 
@@ -725,7 +725,7 @@ cdef inline void _localize_tso(_TSObject obj, tzinfo tz):
     elif obj.value == NPY_NAT:
         pass
     elif is_tzlocal(tz):
-        local_val = tz_convert_utc_to_tzlocal(obj.value, tz, &obj.fold)
+        local_val = obj.value + localize_tzinfo_api(obj.value, tz, &obj.fold)
         dt64_to_dtstruct(local_val, &obj.dts)
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
