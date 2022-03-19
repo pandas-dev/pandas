@@ -5871,7 +5871,7 @@ class DataFrame(NDFrame, OpsMixin):
         parrot           bird   24.0     fly
         lion           mammal   80.5     run
         monkey         mammal    NaN    jump
-
+        
         Using the `names` parameter, choose a name for the index column:
 
         >>> df = pd.DataFrame([('bird', 389.0),
