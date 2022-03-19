@@ -18,13 +18,13 @@ import pytz
 from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
-    PyDateTime_IMPORT,
     datetime,
+    import_datetime,
     time,
     tzinfo,
 )
 
-PyDateTime_IMPORT
+import_datetime()
 
 from pandas._libs.tslibs.base cimport ABCTimestamp
 from pandas._libs.tslibs.np_datetime cimport (
@@ -36,6 +36,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     dtstruct_to_dt64,
     get_datetime64_unit,
     get_datetime64_value,
+    get_unit_from_dtype,
     npy_datetime,
     npy_datetimestruct,
     pandas_datetime_to_datetimestruct,
@@ -234,7 +235,9 @@ def ensure_datetime64ns(arr: ndarray, copy: bool = True):
             result = result.copy()
         return result
 
-    unit = get_datetime64_unit(arr.flat[0])
+    if arr.dtype.kind != "M":
+        raise TypeError("ensure_datetime64ns arr must have datetime64 dtype")
+    unit = get_unit_from_dtype(arr.dtype)
     if unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
         # without raising explicitly here, we end up with a SystemError
         # built-in function ensure_datetime64ns returned a result with an error
