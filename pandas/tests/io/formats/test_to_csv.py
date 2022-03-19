@@ -1,8 +1,11 @@
+from cmath import exp
 import io
 import os
 from pathlib import Path
 import sys
+from unittest import result
 from zipfile import ZipFile
+from html5lib import serialize
 
 import numpy as np
 import pytest
@@ -15,6 +18,9 @@ from pandas import (
 import pandas._testing as tm
 
 import pandas.io.common as icom
+from pandas._libs.interval import Interval
+
+from pandas.conftest import index
 
 
 class TestToCSV:
@@ -314,6 +320,15 @@ $1$,$2$
         )
         ser = ser.astype("category")
         assert ser.to_csv(index=False, date_format="%Y-%m-%d") == expected
+
+    def test_to_cvs_interval_format_in_categorical(self):
+        # GH#46297
+        df = pd.DataFrame(index=[0], columns=["a"])
+        df.at[0, "a"] = pd.Interval(pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-02"))
+        df["a"] = df["a"].astype("category") 
+        result = df.to_csv(index=False, date_format="%Y-%m-%d")
+        expected = tm.convert_rows_list_to_csv_str(['a','"(2020-01-01, 2020-01-02]"'])
+        assert result == expected
 
     def test_to_csv_float_ea_float_format(self):
         # GH#45991

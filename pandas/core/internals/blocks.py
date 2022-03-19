@@ -2263,7 +2263,8 @@ def to_native_types(
         values = algos.take_nd(
             values.categories._values,
             ensure_platform_int(values._codes),
-            fill_value=na_rep,
+            # GH#46297 remove fill_value=na_rep,
+            # categorical interval allow excecute to_cvs
         )
 
     values = ensure_wrapped_if_datetimelike(values)
