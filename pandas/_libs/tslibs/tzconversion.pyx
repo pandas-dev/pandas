@@ -193,6 +193,8 @@ timedelta-like}
     result_b[:] = NPY_NAT
 
     for i in range(n):
+        # This loops resembles the "Find the two best possibilities" block
+        #  in pytz's DstTZInfo.localize method.
         val = vals[i]
         if val == NPY_NAT:
             continue
