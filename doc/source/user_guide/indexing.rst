@@ -1553,9 +1553,7 @@ Index objects
 -------------
 
 The pandas :class:`~pandas.Index` class and its subclasses can be viewed as
-implementing an *ordered multiset*. Duplicates are allowed. However, if you try
-to convert an :class:`~pandas.Index` object with duplicate entries into a
-``set``, an exception will be raised.
+implementing an *ordered multiset*. Duplicates are allowed. 
 
 :class:`~pandas.Index` also provides the infrastructure necessary for
 lookups, data alignment, and reindexing. The easiest way to create an
