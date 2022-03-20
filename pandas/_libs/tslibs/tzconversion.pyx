@@ -339,27 +339,38 @@ cdef inline str _render_tstamp(int64_t val):
 
 cdef ndarray[int64_t] _get_dst_hours(
     # vals only needed here to potential render an exception message
-    ndarray[int64_t] vals,
+    const int64_t[:] vals,
     ndarray[int64_t] result_a,
     ndarray[int64_t] result_b,
 ):
     cdef:
-        Py_ssize_t n = vals.shape[0]
+        Py_ssize_t i, n = vals.shape[0]
         ndarray[uint8_t, cast=True] both_nat, both_eq
         ndarray[int64_t] delta, dst_hours
-        ndarray trans_idx, grp, a_idx, b_idx, one_diff
+        ndarray grp, a_idx, b_idx, one_diff
         list trans_grp
+        ndarray[intp_t] switch_idxs, trans_idx
+        intp_t switch_idx
+        int64_t left, right
 
     dst_hours = np.empty(n, dtype=np.int64)
     dst_hours[:] = NPY_NAT
 
-    # Get the ambiguous hours (given the above, these are the hours
-    # where result_a != result_b and neither of them are NAT)
-    both_nat = np.logical_and(result_a != NPY_NAT, result_b != NPY_NAT)
-    both_eq = result_a == result_b
-    trans_idx = np.squeeze(np.nonzero(np.logical_and(both_nat, ~both_eq)))
+    mismatch = np.zeros(n, dtype=bool)
+
+    for i in range(n):
+        left = result_a[i]
+        right = result_b[i]
+
+        # Get the ambiguous hours (given the above, these are the hours
+        # where result_a != result_b and neither of them are NAT)
+        if left != right and left != NPY_NAT and right != NPY_NAT:
+            mismatch[i] = 1
+
+    trans_idx = mismatch.nonzero()[0]
+
     if trans_idx.size == 1:
-        stamp = _render_tstamp(vals[trans_idx])
+        stamp = _render_tstamp(vals[trans_idx[0]])
         raise pytz.AmbiguousTimeError(
             f"Cannot infer dst time from {stamp} as there "
             "are no repeated times"
@@ -385,14 +396,14 @@ cdef ndarray[int64_t] _get_dst_hours(
 
             # Find the index for the switch and pull from a for dst and b
             # for standard
-            switch_idx = (delta <= 0).nonzero()[0]
-            if switch_idx.size > 1:
+            switch_idxs = (delta <= 0).nonzero()[0]
+            if switch_idxs.size > 1:
                 raise pytz.AmbiguousTimeError(
                     f"There are {switch_idx.size} dst switches when "
                     "there should only be 1."
                 )
 
-            switch_idx = switch_idx[0] + 1  # TODO: declare type for switch_idx
+            switch_idx = switch_idxs[0] + 1
             # Pull the only index and adjust
             a_idx = grp[:switch_idx]
             b_idx = grp[switch_idx:]
