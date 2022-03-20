@@ -1219,23 +1219,18 @@ def overridden_locale(request):
     If a locale cannot be set (because it is not available on the host)
     the test is skipped.
     """
-    old = locale.setlocale(locale.LC_ALL)
     target = request.param
     if target is None:
-        # Current locale - don't change
-        yield old
+        # Use current locale for this test.
+        yield locale.setlocale(locale.LC_ALL)
     else:
-        try:
-            # Try changing the locale.
-            locale.setlocale(locale.LC_ALL, target)
-        except locale.Error as e:
-            # Not available on this host. Skip test.
-            pytest.skip(f"Skipping as locale cannot be set. {type(e).__name__}: {e}")
+        if tm.can_set_locale(target, locale.LC_ALL):
+            # Change locale temporarily for this test.
+            with tm.set_locale(target, locale.LC_ALL):
+                yield target
         else:
-            # Run test with the temporary local
-            yield target
-            # Set back to normal
-            locale.setlocale(locale.LC_ALL, old)
+            # Not available on this host. Skip test.
+            pytest.skip(f"Skipping as locale {repr(locale)} cannot be set on host.")
 
 
 # ----------------------------------------------------------------
