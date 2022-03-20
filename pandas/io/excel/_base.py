@@ -1293,12 +1293,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         """
         if ext.startswith("."):
             ext = ext[1:]
-        # error: "Callable[[ExcelWriter], Any]" has no attribute "__iter__" (not
-        #  iterable)
-        if not any(
-            ext in extension
-            for extension in cls.supported_extensions  # type: ignore[attr-defined]
-        ):
+        if not any(ext in extension for extension in cls._supported_extensions):
             raise ValueError(f"Invalid extension for engine '{cls.engine}': '{ext}'")
         else:
             return True
