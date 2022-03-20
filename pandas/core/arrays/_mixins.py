@@ -4,6 +4,7 @@ from functools import wraps
 from typing import (
     TYPE_CHECKING,
     Any,
+    Iterator,
     Literal,
     Sequence,
     TypeVar,
@@ -707,14 +708,14 @@ class ArrowExtensionArray(ExtensionArray):
             if is_scalar(value):
                 c_value = value
             else:
-                c_value, value = value[:n], value[n:]
+                c_value, value = value[:n], value[n:]  # type: ignore[index]
             new_data[i] = self._replace_with_indices(new_data[i], c_ind, c_value)
 
         return pa.chunked_array(new_data)
 
     def _indices_to_chunk_indices(
         self, indices: npt.NDArray[np.intp]
-    ) -> list[npt.NDArray[np.intp]]:
+    ) -> Iterator[npt.NDArray[np.intp]]:
         """
         Convert *sorted* indices for self into a list of ndarrays
         each containing the indices *within* each chunk of the
@@ -727,22 +728,20 @@ class ArrowExtensionArray(ExtensionArray):
 
         Returns
         -------
-        list[npt.NDArray[np.intp]]
+        Generator yielding positional indices for each chunk
 
         Notes
         -----
         Assumes that indices is sorted. Caller is responsible for sorting.
         """
-        chunk_indices = []
         for start, stop in self._chunk_positional_ranges():
             if len(indices) == 0 or stop <= indices[0]:
-                c_ind = np.array([], dtype=np.intp)
+                yield np.array([], dtype=np.intp)
             else:
                 n = int(np.searchsorted(indices, stop, side="left"))
                 c_ind = indices[:n] - start
                 indices = indices[n:]
-            chunk_indices.append(c_ind)
-        return chunk_indices
+                yield c_ind
 
     def _chunk_positional_ranges(self) -> tuple[tuple[int, int], ...]:
         """
@@ -814,7 +813,7 @@ class ArrowExtensionArray(ExtensionArray):
             arr[mask] = value
             return pa.array(arr, type=chunk.type)
 
-        if value is None or (not is_scalar(value) and isna(value).all()):
+        if value is None or (not is_scalar(value) and np.all(isna(value))):
             return pc.if_else(mask, None, chunk)
 
         return pc.replace_with_mask(chunk, mask, value)
