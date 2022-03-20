@@ -261,31 +261,6 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None) -> Resolution:
 
 # -------------------------------------------------------------------------
 
-'''
-When using info.use_utc checks inside the loop...
-+     2.40±0.06ms       3.96±0.2ms     1.65  tslibs.normalize.Normalize.time_normalize_i8_timestamps(1000000, datetime.timezone(datetime.timedelta(seconds=3600)))
-+        30.6±2μs         48.3±1μs     1.58  tslibs.normalize.Normalize.time_normalize_i8_timestamps(10000, datetime.timezone(datetime.timedelta(seconds=3600)))
-+     3.56±0.08ms       5.24±0.4ms     1.47  tslibs.normalize.Normalize.time_normalize_i8_timestamps(1000000, tzfile('/usr/share/zoneinfo/Asia/Tokyo'))
-+        39.5±2μs         57.5±3μs     1.46  tslibs.normalize.Normalize.time_normalize_i8_timestamps(10000, tzfile('/usr/share/zoneinfo/Asia/Tokyo'))
-
-With info.use_utc checked just once...
-+        30.3±2μs       38.7±0.8μs     1.27  tslibs.normalize.Normalize.time_normalize_i8_timestamps(10000, datetime.timezone(datetime.timedelta(seconds=3600)))
-+        447±10ns         552±30ns     1.24  tslibs.normalize.Normalize.time_is_date_array_normalized(1, datetime.timezone.utc)
-+      3.63±0.1ms       4.46±0.2ms     1.23  tslibs.normalize.Normalize.time_normalize_i8_timestamps(1000000, tzfile('/usr/share/zoneinfo/Asia/Tokyo'))
-+     2.05±0.02μs       2.49±0.2μs     1.21  tslibs.normalize.Normalize.time_is_date_array_normalized(100, tzfile('/usr/share/zoneinfo/Asia/Tokyo'))
-+      2.55±0.2ms      3.09±0.07ms     1.21  tslibs.normalize.Normalize.time_normalize_i8_timestamps(1000000, datetime.timezone(datetime.timedelta(seconds=3600)))
-+        528±10ns         630±10ns     1.19  tslibs.normalize.Normalize.time_is_date_array_normalized(1, tzlocal())
-
-With info.use_utc checked just once... (re-run)
-+        29.7±1μs       37.7±0.7μs     1.27  tslibs.normalize.Normalize.time_normalize_i8_timestamps(10000, datetime.timezone(datetime.timedelta(seconds=3600)))
-+         518±9ns         640±10ns     1.24  tslibs.normalize.Normalize.time_is_date_array_normalized(0, tzlocal())
-+      40.1±0.8μs         46.7±1μs     1.17  tslibs.normalize.Normalize.time_normalize_i8_timestamps(10000, tzfile('/usr/share/zoneinfo/Asia/Tokyo'))
-+        515±10ns         578±10ns     1.12  tslibs.normalize.Normalize.time_is_date_array_normalized(0, None)
-+      9.15±0.2ms       10.1±0.4ms     1.11  tslibs.normalize.Normalize.time_is_date_array_normalized(1000000, tzfile('/usr/share/zoneinfo/Asia/Tokyo'))
--      8.27±0.3ms       7.11±0.2ms     0.86  tslibs.normalize.Normalize.time_is_date_array_normalized(1000000, datetime.timezone.utc)
--        90.2±7μs         70.4±2μs     0.78  tslibs.normalize.Normalize.time_is_date_array_normalized(10000, None)
-
-'''
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -306,10 +281,9 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
     """
     cdef:
         Localizer info = Localizer(tz)
-        int64_t utc_val, local_val, delta=info.delta
+        int64_t utc_val, local_val
         Py_ssize_t pos, i, n = stamps.shape[0]
         int64_t* tdata = NULL
-        bint use_utc=info.use_utc,use_tzlocal=info.use_tzlocal,use_fixed=info.use_fixed
 
         int64_t[::1] result = np.empty(n, dtype=np.int64)
 
@@ -322,12 +296,12 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
             result[i] = NPY_NAT
             continue
 
-        if use_utc:
+        if info.use_utc:
             local_val = utc_val
-        elif use_tzlocal:
+        elif info.use_tzlocal:
             local_val = utc_val + localize_tzinfo_api(utc_val, tz)
-        elif use_fixed:
-            local_val = utc_val + delta
+        elif info.use_fixed:
+            local_val = utc_val + info.delta
         else:
             pos = bisect_right_i8(tdata, utc_val, info.ntrans) - 1
             local_val = utc_val + info.deltas[pos]
