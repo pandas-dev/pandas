@@ -181,12 +181,12 @@ class _HtmlFrameParser:
     displayed_only : bool
         Whether or not items with "display:none" should be ignored
 
-    .. versionadded:: 1.5.0
-
-    extract_links : "all"/"header"/"body"/"footer" or None
+    extract_links : {None, "all", "header", "body", "footer"}
         Table elements in the specified section(s) with <a> tags will have their
         href extracted. Note that specifying "header" will result in a
         :class:`~pandas.MultiIndex`.
+
+    .. versionadded:: 1.5.0
 
     Attributes
     ----------
@@ -206,12 +206,12 @@ class _HtmlFrameParser:
     displayed_only : bool
         Whether or not items with "display:none" should be ignored
 
-    .. versionadded:: 1.5.0
-
-    extract_links : "all"/"header"/"body"/"footer" or None, default None
+    extract_links : {None, "all", "header", "body", "footer"}
         Table elements in the specified section(s) with <a> tags will have their
         href extracted. Note that specifying "header" will result in a
         :class:`~pandas.MultiIndex`.
+
+    .. versionadded:: 1.5.0
 
     Notes
     -----
@@ -1112,12 +1112,12 @@ def read_html(
     displayed_only : bool, default True
         Whether elements with "display: none" should be parsed.
 
-    .. versionadded:: 1.5.0
-
-    extract_links : "all"/"header"/"body"/"footer" or None, default None
+    extract_links : {None, "all", "header", "body", "footer"}
         Table elements in the specified section(s) with <a> tags will have their
         href extracted. Note that specifying "header" will result in a
         :class:`~pandas.MultiIndex`.
+
+    .. versionadded:: 1.5.0
 
     Returns
     -------
