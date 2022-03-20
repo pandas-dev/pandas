@@ -4,7 +4,6 @@ from functools import wraps
 from typing import (
     TYPE_CHECKING,
     Any,
-    Iterator,
     Literal,
     Sequence,
     TypeVar,
@@ -696,65 +695,33 @@ class ArrowExtensionArray(ExtensionArray):
         """
         Loop through the array chunks and set the new values while
         leaving the chunking layout unchanged.
-        """
-        chunk_indices = self._indices_to_chunk_indices(indices)
-        new_data = list(self._data.iterchunks())
-
-        for i, c_ind in enumerate(chunk_indices):
-            n = len(c_ind)
-            if n == 0:
-                continue
-            c_value, value = value[:n], value[n:]
-            new_data[i] = self._replace_with_indices(new_data[i], c_ind, c_value)
-
-        return pa.chunked_array(new_data)
-
-    def _indices_to_chunk_indices(
-        self, indices: npt.NDArray[np.intp]
-    ) -> Iterator[npt.NDArray[np.intp]]:
-        """
-        Convert *sorted* indices for self into a list of ndarrays
-        each containing the indices *within* each chunk of the
-        underlying ChunkedArray.
 
         Parameters
         ----------
         indices : npt.NDArray[np.intp]
             Position indices for the underlying ChunkedArray.
 
-        Returns
-        -------
-        Generator yielding positional indices for each chunk
+        value : ExtensionDtype.type, Sequence[ExtensionDtype.type], or object
+            value or values to be set of ``key``.
 
         Notes
         -----
         Assumes that indices is sorted. Caller is responsible for sorting.
         """
-        for start, stop in self._chunk_positional_ranges():
+        new_data = []
+        stop = 0
+        for chunk in self._data.iterchunks():
+            start, stop = stop, stop + len(chunk)
             if len(indices) == 0 or stop <= indices[0]:
-                yield np.array([], dtype=np.intp)
+                new_data.append(chunk)
             else:
                 n = int(np.searchsorted(indices, stop, side="left"))
                 c_ind = indices[:n] - start
                 indices = indices[n:]
-                yield c_ind
-
-    def _chunk_positional_ranges(self) -> tuple[tuple[int, int], ...]:
-        """
-        Return a tuple of tuples each containing the left (inclusive)
-        and right (exclusive) positional bounds of each chunk's values
-        within the underlying ChunkedArray.
-
-        Returns
-        -------
-        tuple[tuple]
-        """
-        ranges = []
-        stop = 0
-        for c in self._data.iterchunks():
-            start, stop = stop, stop + len(c)
-            ranges.append((start, stop))
-        return tuple(ranges)
+                n = len(c_ind)
+                c_value, value = value[:n], value[n:]
+                new_data.append(self._replace_with_indices(chunk, c_ind, c_value))
+        return pa.chunked_array(new_data)
 
     @classmethod
     def _replace_with_indices(
