@@ -5876,18 +5876,13 @@ class DataFrame(NDFrame, OpsMixin):
 
         Using the `names` parameter, choose a name for the index column:
 
-        >>> df = pd.DataFrame([('bird', 389.0),
-        ...                     ('bird', 24.0),
-        ...                     ('mammal', 80.5),
-        ...                     ('mammal', np.nan)],
-        ...                     index=['falcon', 'parrot', 'lion', 'monkey'],
-        ...                     columns=('class', 'max_speed'))
-        >>> df.reset_index(names='name')
-             name   class  max_speed
-        0  falcon    bird      389.0
-        1  parrot    bird       24.0
-        2    lion  mammal       80.5
-        3  monkey  mammal        NaN
+        >>> df.reset_index(names=['classes', 'names'])
+        classes   names  speed species
+                            max    type
+        0    bird  falcon  389.0     fly
+        1    bird  parrot   24.0     fly
+        2  mammal    lion   80.5     run
+        3  mammal  monkey    NaN    jump
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         self._check_inplace_and_allows_duplicate_labels(inplace)
