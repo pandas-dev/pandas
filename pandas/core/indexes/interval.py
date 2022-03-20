@@ -11,6 +11,7 @@ from typing import (
     Hashable,
     Literal,
 )
+import warnings
 
 import numpy as np
 
@@ -954,7 +955,8 @@ def interval_range(
     periods=None,
     freq=None,
     name: Hashable = None,
-    inclusive: IntervalClosedType = "right",
+    closed: lib.NoDefault = lib.no_default,
+    inclusive: str | None = None,
 ) -> IntervalIndex:
     """
     Return a fixed frequency IntervalIndex.
@@ -1050,6 +1052,27 @@ def interval_range(
     IntervalIndex([[1, 2], [2, 3], [3, 4], [4, 5]],
                   dtype='interval[int64, both]')
     """
+    if inclusive is not None and not isinstance(closed, lib.NoDefault):
+        raise ValueError(
+            "Deprecated argument `closed` cannot be passed "
+            "if argument `inclusive` is not None"
+        )
+    elif not isinstance(closed, lib.NoDefault):
+        warnings.warn(
+            "Argument `closed` is deprecated in favor of `inclusive`.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        if closed is None:
+            inclusive = "both"
+        elif closed in ("both", "neither", "left", "right"):
+            inclusive = closed
+        else:
+            raise ValueError(
+                "Argument `closed` has to be either 'both', 'neither', 'left', 'right',"
+                "or 'both'"
+            )
+
     start = maybe_box_datetimelike(start)
     end = maybe_box_datetimelike(end)
     endpoint = start if start is not None else end
