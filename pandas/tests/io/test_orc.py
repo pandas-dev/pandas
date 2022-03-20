@@ -227,6 +227,9 @@ def test_orc_reader_snappy_compressed(dirpath):
 
 
 def test_orc_roundtrip(dirpath):
+    # GH44554
+    # PyArrow gained ORC write support with the current argument order
+    pytest.importorskip("pyarrow", minversion="7.0.0")
     data = {
         "boolean1": np.array([False, True], dtype="bool"),
         "byte1": np.array([1, 100], dtype="int8"),

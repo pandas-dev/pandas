@@ -2919,8 +2919,7 @@ class DataFrame(NDFrame, OpsMixin):
             when writing a partitioned dataset. By file-like object,
             we refer to objects with a write() method, such as a file handle
             (e.g. via builtin open function). If path is None,
-            a bytes object is returned. Note that currently the pyarrow
-            engine doesn't work with io.BytesIO.
+            a bytes object is returned.
         engine : {{'pyarrow'}}, default 'pyarrow'
             ORC library to use, or library itself, checked with 'pyarrow' name
             and version >= 5.0.0

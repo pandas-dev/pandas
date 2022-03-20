@@ -76,8 +76,7 @@ def to_orc(
         when writing a partitioned dataset. By file-like object,
         we refer to objects with a write() method, such as a file handle
         (e.g. via builtin open function). If path is None,
-        a bytes object is returned. Note that currently the pyarrow
-        engine doesn't work with io.BytesIO.
+        a bytes object is returned.
     engine : {{'pyarrow'}}, default 'pyarrow'
         Parquet library to use, or library it self, checked with 'pyarrow' name
         and version >= 5.0.0
@@ -100,7 +99,7 @@ def to_orc(
 
     if engine != "pyarrow":
         raise ValueError(f"engine must be 'pyarrow'")
-    engine = import_optional_dependency(engine, min_version="5.0.0")
+    engine = import_optional_dependency(engine, min_version="4.0.1")
 
     if hasattr(path, "write"):
         engine.orc.write_table(
@@ -112,9 +111,9 @@ def to_orc(
             engine.orc.write_table(
                 engine.Table.from_pandas(df, preserve_index=index), stream, **kwargs
             )
-            orc_bytes = stream.getvalue().to_pybytes()
+            orc_bytes = stream.getvalue()
             if path is None:
-                return orc_bytes
+                return orc_bytes.to_pybytes()
             # allows writing to any (fsspec) URL
             with get_handle(path, "wb", is_text=False) as handles:
                 handles.handle.write(orc_bytes)
