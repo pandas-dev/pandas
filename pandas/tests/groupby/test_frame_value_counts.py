@@ -308,35 +308,35 @@ def test_data_frame_value_counts_dropna(
     tm.assert_series_equal(result_frame_groupby, expected)
 
 
-@pytest.mark.parametrize("as_index", [False, True])
+@pytest.mark.parametrize("as_index", [True, False])
 @pytest.mark.parametrize(
     "observed, expected_index",
     [
         (
             False,
             [
-                ("FR", "male", "low"),
-                ("FR", "female", "high"),
-                ("FR", "male", "medium"),
-                ("FR", "female", "low"),
-                ("FR", "female", "medium"),
-                ("FR", "male", "high"),
-                ("US", "female", "high"),
-                ("US", "male", "low"),
-                ("US", "female", "low"),
-                ("US", "female", "medium"),
-                ("US", "male", "high"),
-                ("US", "male", "medium"),
+                ("FR", "high", "female"),
+                ("FR", "high", "male"),
+                ("FR", "low", "male"),
+                ("FR", "low", "female"),
+                ("FR", "medium", "male"),
+                ("FR", "medium", "female"),
+                ("US", "high", "female"),
+                ("US", "high", "male"),
+                ("US", "low", "male"),
+                ("US", "low", "female"),
+                ("US", "medium", "female"),
+                ("US", "medium", "male"),
             ],
         ),
         (
             True,
             [
-                ("FR", "male", "low"),
-                ("FR", "female", "high"),
-                ("FR", "male", "medium"),
-                ("US", "female", "high"),
-                ("US", "male", "low"),
+                ("FR", "high", "female"),
+                ("FR", "low", "male"),
+                ("FR", "medium", "male"),
+                ("US", "high", "female"),
+                ("US", "low", "male"),
             ],
         ),
     ],
@@ -344,19 +344,25 @@ def test_data_frame_value_counts_dropna(
 @pytest.mark.parametrize(
     "normalize, expected_data",
     [
-        (False, np.array([2, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0], dtype=np.int64)),
+        (False, np.array([1, 0, 2, 0, 1, 0, 1, 0, 1, 0, 0, 0], dtype=np.int64)),
         (
             True,
-            np.array([0.5, 0.25, 0.25, 0.0, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0]),
+            # NaN values corresponds to non-observed groups
+            np.array(
+                [1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, np.nan, np.nan]
+            ),
         ),
     ],
 )
-def test_categorical(
+def test_categorical_groupers(
     education_df, as_index, observed, expected_index, normalize, expected_data
 ):
-    # Test categorical data whether or not observed
-    gp = education_df.astype("category").groupby(
-        "country", as_index=as_index, observed=observed
+    education_df = education_df.copy()
+    education_df["country"] = education_df["country"].astype("category")
+    education_df["education"] = education_df["education"].astype("category")
+
+    gp = education_df.groupby(
+        ["country", "education"], as_index=as_index, observed=observed
     )
     result = gp.value_counts(normalize=normalize)
 
@@ -364,10 +370,68 @@ def test_categorical(
         data=expected_data[expected_data > 0.0] if observed else expected_data,
         index=MultiIndex.from_tuples(
             expected_index,
+            names=["country", "education", "gender"],
+        ),
+    )
+    for i in range(2):
+        expected_series.index = expected_series.index.set_levels(
+            CategoricalIndex(expected_series.index.levels[i]), level=i
+        )
+
+    if as_index:
+        tm.assert_series_equal(result, expected_series)
+    else:
+        expected = expected_series.reset_index(
+            name="proportion" if normalize else "count"
+        )
+        tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("as_index", [False, True])
+@pytest.mark.parametrize("observed", [False, True])
+@pytest.mark.parametrize(
+    "normalize, expected_data",
+    [
+        (False, np.array([2, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0], dtype=np.int64)),
+        (
+            True,
+            # NaN values corresponds to non-observed groups
+            np.array([0.5, 0.25, 0.25, 0.0, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0]),
+        ),
+    ],
+)
+def test_categorical_values(education_df, as_index, observed, normalize, expected_data):
+    # Test non-observed categories are included in the result,
+    # regardless of `observed`
+    education_df = education_df.copy()
+    education_df["gender"] = education_df["gender"].astype("category")
+    education_df["education"] = education_df["education"].astype("category")
+
+    gp = education_df.groupby("country", as_index=as_index, observed=observed)
+    result = gp.value_counts(normalize=normalize)
+
+    expected_index = [
+        ("FR", "male", "low"),
+        ("FR", "female", "high"),
+        ("FR", "male", "medium"),
+        ("FR", "female", "low"),
+        ("FR", "female", "medium"),
+        ("FR", "male", "high"),
+        ("US", "female", "high"),
+        ("US", "male", "low"),
+        ("US", "female", "low"),
+        ("US", "female", "medium"),
+        ("US", "male", "high"),
+        ("US", "male", "medium"),
+    ]
+    expected_series = Series(
+        data=expected_data,
+        index=MultiIndex.from_tuples(
+            expected_index,
             names=["country", "gender", "education"],
         ),
     )
-    for i in range(3):
+    for i in range(1, 3):
         expected_series.index = expected_series.index.set_levels(
             CategoricalIndex(expected_series.index.levels[i]), level=i
         )

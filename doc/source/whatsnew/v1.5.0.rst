@@ -811,9 +811,9 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
-- Bug in :meth:`.Categorical.view` not accepting integer dtypes (:issue:`25464`)
-- Bug in :meth:`.CategoricalIndex.union` when the index's categories are integer-dtype and the index contains ``NaN`` values incorrectly raising instead of casting to ``float64`` (:issue:`45362`)
--
+- Bug in :meth:`Categorical.view` not accepting integer dtypes (:issue:`25464`)
+- Bug in :meth:`CategoricalIndex.union` when the index's categories are integer-dtype and the index contains ``NaN`` values incorrectly raising instead of casting to ``float64`` (:issue:`45362`)
+- Bug in :meth:`DataFrameGroupBy.value_counts` includes non-observed categories of non-grouping columns regardless of ``observed`` (:issue:`46357`)
 
 Datetimelike
 ^^^^^^^^^^^^
