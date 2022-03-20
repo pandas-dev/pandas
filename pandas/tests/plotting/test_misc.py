@@ -8,6 +8,7 @@ import pandas.util._test_decorators as td
 from pandas import (
     DataFrame,
     Series,
+    Timestamp,
 )
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
@@ -549,3 +550,15 @@ class TestDataFramePlots(TestPlotBase):
         assert not plots[0][0].xaxis.get_label().get_visible()
         assert plots[0][1].xaxis.get_label().get_visible()
         assert not plots[0][2].xaxis.get_label().get_visible()
+
+    def test_plot_bar_axis_units_timestamp_conversion(self):
+        # GH 38736
+        # Ensure string x-axis from the second plot will not be converted to datetime
+        # due to axis data from first plot
+        df = DataFrame(
+            [1.0],
+            index=[Timestamp("2022-02-22 22:22:22")],
+        )
+        _check_plot_works(df.plot)
+        s = Series({"A": 1.0})
+        _check_plot_works(s.plot.bar)
