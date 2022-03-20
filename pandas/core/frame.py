@@ -5877,8 +5877,8 @@ class DataFrame(NDFrame, OpsMixin):
         Using the `names` parameter, choose a name for the index column:
 
         >>> df.reset_index(names=['classes', 'names'])
-        classes   names  speed species
-                            max    type
+          classes   names  speed species
+                             max    type
         0    bird  falcon  389.0     fly
         1    bird  parrot   24.0     fly
         2  mammal    lion   80.5     run
