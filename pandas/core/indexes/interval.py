@@ -956,7 +956,7 @@ def interval_range(
     freq=None,
     name: Hashable = None,
     closed: lib.NoDefault = lib.no_default,
-    inclusive: str | None = None,
+    inclusive: str = "both",
 ) -> IntervalIndex:
     """
     Return a fixed frequency IntervalIndex.
