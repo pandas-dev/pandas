@@ -1348,3 +1348,21 @@ class TestReadHtml:
         )
 
         tm.assert_frame_equal(result, expected)
+
+    def test_extract_links_bad(self):
+        html = """
+          <table>
+            <tr>
+              <th><a href="https://en.wiktionary.org/wiki/linkless">Linkless</a></th>
+            </tr>
+            <tr>
+              <td><a href="https://en.wikipedia.org/">Wikipedia</a></td>
+            </tr>
+          </table>
+        """
+        msg = (
+            "`extract_links` must be one of "
+            '{None, "header", "footer", "body", "all"}, got "incorrect"'
+        )
+        with pytest.raises(ValueError, match=msg):
+            read_html(html, extract_links="incorrect")

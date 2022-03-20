@@ -237,7 +237,7 @@ class _HtmlFrameParser:
         attrs: dict[str, str] | None,
         encoding: str,
         displayed_only: bool,
-        extract_links: Literal["all", "header", "body", "footer", None],
+        extract_links: Literal[None, "header", "footer", "body", "all"],
     ):
         self.io = io
         self.match = match
@@ -476,7 +476,7 @@ class _HtmlFrameParser:
         return header, body, footer
 
     def _expand_colspan_rowspan(
-        self, rows, section: Literal["header", "body", "footer"]
+        self, rows, section: Literal["header", "footer", "body"]
     ):
         """
         Given a list of <tr>s, return a list of text rows.
@@ -1017,7 +1017,7 @@ def read_html(
     na_values=None,
     keep_default_na: bool = True,
     displayed_only: bool = True,
-    extract_links: Literal["all", "header", "body", "footer", None] = None,
+    extract_links: Literal[None, "header", "footer", "body", "all"] = None,
 ) -> list[DataFrame]:
     r"""
     Read HTML tables into a ``list`` of ``DataFrame`` objects.
@@ -1166,6 +1166,12 @@ def read_html(
         raise ValueError(
             "cannot skip rows starting from the end of the "
             "data (you passed a negative value)"
+        )
+    if extract_links not in [None, "header", "footer", "body", "all"]:
+        raise ValueError(
+            "`extract_links` must be one of "
+            '{None, "header", "footer", "body", "all"}, got '
+            f'"{extract_links}"'
         )
     validate_header_arg(header)
 
