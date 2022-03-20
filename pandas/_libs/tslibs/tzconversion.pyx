@@ -15,7 +15,6 @@ from cpython.datetime cimport (
 
 import_datetime()
 
-from dateutil.tz import tzutc
 import numpy as np
 import pytz
 
@@ -345,11 +344,10 @@ cdef ndarray[int64_t] _get_dst_hours(
 ):
     cdef:
         Py_ssize_t i, n = vals.shape[0]
-        ndarray[uint8_t, cast=True] both_nat, both_eq
+        ndarray[uint8_t, cast=True] mismatch
         ndarray[int64_t] delta, dst_hours
-        ndarray grp, a_idx, b_idx, one_diff
+        ndarray[intp_t] switch_idxs, trans_idx, grp, a_idx, b_idx, one_diff
         list trans_grp
-        ndarray[intp_t] switch_idxs, trans_idx
         intp_t switch_idx
         int64_t left, right
 
