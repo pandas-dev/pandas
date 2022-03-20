@@ -50,7 +50,7 @@ cdef const int64_t[::1] _deltas_placeholder = np.array([], dtype=np.int64)
 @cython.freelist(16)
 @cython.final
 cdef class Localizer:
-    cdef readonly:
+    cdef:
         tzinfo tz
         bint use_utc, use_fixed, use_tzlocal, use_dst, use_pytz
         ndarray trans
