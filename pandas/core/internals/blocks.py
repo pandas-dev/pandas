@@ -570,7 +570,6 @@ class Block(PandasObject):
         #  go through replace_list
 
         values = self.values
-        value = self._standardize_fill_value(value)  # GH#45725
 
         if isinstance(values, Categorical):
             # TODO: avoid special-casing
@@ -750,6 +749,56 @@ class Block(PandasObject):
                 new_rb.extend(result)
             rb = new_rb
         return rb
+
+    @final
+    def _replace_coerce(
+        self,
+        to_replace,
+        value,
+        mask: npt.NDArray[np.bool_],
+        inplace: bool = True,
+        regex: bool = False,
+    ) -> list[Block]:
+        """
+        Replace value corresponding to the given boolean array with another
+        value.
+
+        Parameters
+        ----------
+        to_replace : object or pattern
+            Scalar to replace or regular expression to match.
+        value : object
+            Replacement object.
+        mask : np.ndarray[bool]
+            True indicate corresponding element is ignored.
+        inplace : bool, default True
+            Perform inplace modification.
+        regex : bool, default False
+            If true, perform regular expression substitution.
+
+        Returns
+        -------
+        List[Block]
+        """
+        if should_use_regex(regex, to_replace):
+            return self._replace_regex(
+                to_replace,
+                value,
+                inplace=inplace,
+                convert=False,
+                mask=mask,
+            )
+        else:
+            if value is None:
+                # gh-45601, gh-45836
+                nb = self.astype(np.dtype(object), copy=False)
+                if nb is self and not inplace:
+                    nb = nb.copy()
+                putmask_inplace(nb.values, mask, value)
+                return [nb]
+            return self.replace(
+                to_replace=to_replace, value=value, inplace=inplace, mask=mask
+            )
 
     # ---------------------------------------------------------------------
     # 2D Methods - Shared by NumpyBlock and NDArrayBackedExtensionBlock

@@ -1,3 +1,4 @@
+cimport numpy as cnp
 from cpython.datetime cimport (
     date,
     datetime,
@@ -8,6 +9,7 @@ from numpy cimport (
 )
 
 
+# TODO(cython3): most of these can be cimported directly from numpy
 cdef extern from "numpy/ndarrayobject.h":
     ctypedef int64_t npy_timedelta
     ctypedef int64_t npy_datetime
@@ -59,6 +61,9 @@ cdef extern from "src/datetime/np_datetime.h":
                                            NPY_DATETIMEUNIT fr,
                                            npy_datetimestruct *result) nogil
 
+    npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
+                                                npy_datetimestruct *d) nogil
+
 
 cdef bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1
 
@@ -79,3 +84,5 @@ cdef NPY_DATETIMEUNIT get_datetime64_unit(object obj) nogil
 cdef int _string_to_dts(str val, npy_datetimestruct* dts,
                         int* out_local, int* out_tzoffset,
                         bint want_exc) except? -1
+
+cdef NPY_DATETIMEUNIT get_unit_from_dtype(cnp.dtype dtype)
