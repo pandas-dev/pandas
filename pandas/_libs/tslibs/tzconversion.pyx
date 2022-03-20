@@ -399,7 +399,7 @@ cdef ndarray[int64_t] _get_dst_hours(
             switch_idxs = (delta <= 0).nonzero()[0]
             if switch_idxs.size > 1:
                 raise pytz.AmbiguousTimeError(
-                    f"There are {switch_idx.size} dst switches when "
+                    f"There are {switch_idxs.size} dst switches when "
                     "there should only be 1."
                 )
 
