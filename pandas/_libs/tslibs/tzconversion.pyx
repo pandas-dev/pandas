@@ -39,7 +39,6 @@ from pandas._libs.tslibs.np_datetime cimport (
 )
 from pandas._libs.tslibs.timezones cimport (
     get_dst_info,
-    get_utcoffset,
     is_fixed_offset,
     is_tzlocal,
     is_utc,
