@@ -675,6 +675,13 @@ class TestDataFrameReplace:
         expected = DataFrame([None, None])
         tm.assert_frame_equal(result, expected)
 
+    def test_replace_float_nan_with_pd_NA(self):
+        # gh-45725
+        df = DataFrame([np.nan, np.nan], dtype=float)
+        result = df.replace({np.nan: pd.NA})
+        expected = DataFrame([pd.NA, pd.NA], dtype=object)
+        tm.assert_frame_equal(result, expected)
+
     def test_replace_value_is_none(self, datetime_frame):
         orig_value = datetime_frame.iloc[0, 0]
         orig2 = datetime_frame.iloc[1, 0]

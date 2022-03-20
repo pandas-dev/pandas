@@ -1454,7 +1454,7 @@ def _ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
 
 # TODO: other value-dependent functions to standardize here include
 #  dtypes.concat.cast_to_common_type and Index._find_common_type_compat
-def find_result_type(left: ArrayLike, right: Any) -> DtypeObj:
+def find_result_type(left: ArrayLike, right: Any, strict_na: bool = False) -> DtypeObj:
     """
     Find the type/dtype for a the result of an operation between these objects.
 
@@ -1466,6 +1466,7 @@ def find_result_type(left: ArrayLike, right: Any) -> DtypeObj:
     ----------
     left : np.ndarray or ExtensionArray
     right : Any
+    strict_na: bool
 
     Returns
     -------
@@ -1491,7 +1492,7 @@ def find_result_type(left: ArrayLike, right: Any) -> DtypeObj:
 
         new_dtype = np.result_type(left, right)
 
-    elif is_valid_na_for_dtype(right, left.dtype):
+    elif not strict_na and is_valid_na_for_dtype(right, left.dtype):
         # e.g. IntervalDtype[int] and None/np.nan
         new_dtype = ensure_dtype_can_hold_na(left.dtype)
 

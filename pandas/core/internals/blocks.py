@@ -436,7 +436,7 @@ class Block(PandasObject):
     # Up/Down-casting
 
     @final
-    def coerce_to_target_dtype(self, other) -> Block:
+    def coerce_to_target_dtype(self, other, strict_na: bool = False) -> Block:
         """
         coerce the current block to a dtype compat for other
         we will return a block, possibly object, and not raise
@@ -444,7 +444,7 @@ class Block(PandasObject):
         we can also safely try to coerce to the same dtype
         and will receive the same block
         """
-        new_dtype = find_result_type(self.values, other)
+        new_dtype = find_result_type(self.values, other, strict_na=strict_na)
 
         return self.astype(new_dtype, copy=False)
 
@@ -601,7 +601,7 @@ class Block(PandasObject):
             return blocks
 
         elif self.ndim == 1 or self.shape[0] == 1:
-            blk = self.coerce_to_target_dtype(value)
+            blk = self.coerce_to_target_dtype(value, strict_na=True)
             return blk.replace(
                 to_replace=to_replace,
                 value=value,
