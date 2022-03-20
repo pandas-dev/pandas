@@ -20,6 +20,7 @@ from pandas.core.dtypes.common import (
     is_float,
     is_float_dtype,
     is_hashable,
+    is_int,
     is_int64_dtype,
     is_integer,
     is_integer_dtype,

@@ -60,7 +60,7 @@ cdef extern from "numpy/arrayobject.h":
 
     ctypedef class numpy.dtype [object PyArray_Descr]:
         # Use PyDataType_* macros when possible, however there are no macros
-        # for accessing some of the fields, so some are defined. Please
+        # for accessing some fields, so some are defined. Please
         # ask on cython-dev if you need more.
         cdef:
             int type_num
@@ -223,7 +223,7 @@ def is_scalar(val: object) -> bool:
 
 cdef inline int64_t get_itemsize(object val):
     """
-    Get the itemsize of a NumPy scalar, -1 if not a NumPy scalar.
+    Get the item size of a NumPy scalar, -1 if not a NumPy scalar.
 
     Parameters
     ----------
