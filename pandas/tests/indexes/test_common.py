@@ -460,7 +460,9 @@ def test_sort_values_with_missing(index_with_missing, na_position, request):
 
     if isinstance(index_with_missing, CategoricalIndex):
         request.node.add_marker(
-            pytest.mark.xfail(reason="missing value sorting order not well-defined")
+            pytest.mark.xfail(
+                reason="missing value sorting order not well-defined", strict=False
+            )
         )
 
     missing_count = np.sum(index_with_missing.isna())
