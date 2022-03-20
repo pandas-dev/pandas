@@ -8,15 +8,15 @@ import cython
 from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
-    PyDateTime_IMPORT,
     PyDelta_Check,
     date,
     datetime,
+    import_datetime,
     time as dt_time,
     timedelta,
 )
 
-PyDateTime_IMPORT
+import_datetime()
 
 from dateutil.easter import easter
 from dateutil.relativedelta import relativedelta
@@ -2392,7 +2392,7 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
             int64_t[:] i8other = dtarr.view("i8")
             Py_ssize_t i, count = len(i8other)
             int64_t val
-            int64_t[:] out = np.empty(count, dtype="i8")
+            int64_t[::1] out = np.empty(count, dtype="i8")
             npy_datetimestruct dts
             int months, to_day, nadj, n = self.n
             int days_in_month, day, anchor_dom = self.day_of_month
@@ -2577,7 +2577,7 @@ cdef class Week(SingleConstructorOffset):
         cdef:
             Py_ssize_t i, count = len(i8other)
             int64_t val
-            int64_t[:] out = np.empty(count, dtype="i8")
+            int64_t[::1] out = np.empty(count, dtype="i8")
             npy_datetimestruct dts
             int wday, days, weeks, n = self.n
             int anchor_weekday = self.weekday
@@ -3774,7 +3774,7 @@ cdef shift_quarters(
     """
     cdef:
         Py_ssize_t count = len(dtindex)
-        int64_t[:] out = np.empty(count, dtype="int64")
+        int64_t[::1] out = np.empty(count, dtype="int64")
 
     if day_opt not in ["start", "end", "business_start", "business_end"]:
         raise ValueError("day must be None, 'start', 'end', "
@@ -3800,7 +3800,7 @@ def shift_months(const int64_t[:] dtindex, int months, object day_opt=None):
         Py_ssize_t i
         npy_datetimestruct dts
         int count = len(dtindex)
-        int64_t[:] out = np.empty(count, dtype="int64")
+        int64_t[::1] out = np.empty(count, dtype="int64")
 
     if day_opt is None:
         with nogil:
@@ -3827,7 +3827,7 @@ def shift_months(const int64_t[:] dtindex, int months, object day_opt=None):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline void _shift_months(const int64_t[:] dtindex,
-                               int64_t[:] out,
+                               int64_t[::1] out,
                                Py_ssize_t count,
                                int months,
                                str day_opt) nogil:
@@ -3859,7 +3859,7 @@ cdef inline void _shift_months(const int64_t[:] dtindex,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline void _shift_quarters(const int64_t[:] dtindex,
-                                 int64_t[:] out,
+                                 int64_t[::1] out,
                                  Py_ssize_t count,
                                  int quarters,
                                  int q1start_month,
@@ -3906,7 +3906,7 @@ cdef ndarray[int64_t] _shift_bdays(const int64_t[:] i8other, int periods):
     """
     cdef:
         Py_ssize_t i, n = len(i8other)
-        int64_t[:] result = np.empty(n, dtype="i8")
+        int64_t[::1] result = np.empty(n, dtype="i8")
         int64_t val, res
         int wday, nadj, days
         npy_datetimestruct dts

@@ -9,6 +9,7 @@ from numpy cimport (
 )
 
 
+# TODO(cython3): most of these can be cimported directly from numpy
 cdef extern from "numpy/ndarrayobject.h":
     ctypedef int64_t npy_timedelta
     ctypedef int64_t npy_datetime
@@ -59,6 +60,9 @@ cdef extern from "src/datetime/np_datetime.h":
     void pandas_datetime_to_datetimestruct(npy_datetime val,
                                            NPY_DATETIMEUNIT fr,
                                            npy_datetimestruct *result) nogil
+
+    npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
+                                                npy_datetimestruct *d) nogil
 
 
 cdef bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1
