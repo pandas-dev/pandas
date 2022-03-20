@@ -5793,10 +5793,10 @@ class DataFrame(NDFrame, OpsMixin):
         1  parrot    bird       24.0
         2    lion  mammal       80.5
         3  monkey  mammal        NaN
-        
+
         Using the `names` parameter, it is possible to choose a name for
         the old index column:
-        
+
         >>> df.reset_index(names='name')
              name   class  max_speed
         0  falcon    bird      389.0
