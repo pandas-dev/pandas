@@ -1207,6 +1207,8 @@ utc_fixture2 = utc_fixture
     params=[
         pytest.param(None, id=str(locale.getlocale())),
         "it_IT.utf8",
+        "it_IT",
+        "zh_CN.utf8",
         "zh_CN",
     ]
 )
