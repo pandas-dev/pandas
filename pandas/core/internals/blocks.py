@@ -795,7 +795,11 @@ class Block(PandasObject):
                 putmask_inplace(nb.values, mask, value)
                 return [nb]
             return self.replace(
-                to_replace=to_replace, value=value, inplace=inplace, mask=mask
+                to_replace=to_replace,
+                value=value,
+                inplace=inplace,
+                convert=False,
+                mask=mask,
             )
 
     # ---------------------------------------------------------------------
