@@ -282,3 +282,12 @@ class TestCatAccessor:
         # values should not be coerced to NaN
         assert list(df["Sex"]) == ["female", "male", "male"]
         assert list(df["Survived"]) == ["Yes", "No", "Yes"]
+
+    def test_categorical_of_booleans_is_boolean(self):
+        # https://github.com/pandas-dev/pandas/issues/46313
+        df = DataFrame(
+            {"int_cat": [1, 2, 3], "bool_cat": [True, False, False]}, dtype="category"
+        )
+        value = df["bool_cat"].cat.categories.dtype
+        expected = np.dtype(np.bool_)
+        assert value is expected
