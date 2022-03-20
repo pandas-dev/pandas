@@ -5793,6 +5793,16 @@ class DataFrame(NDFrame, OpsMixin):
         1  parrot    bird       24.0
         2    lion  mammal       80.5
         3  monkey  mammal        NaN
+        
+        Using the `names` parameter, it is possible to choose a name for
+        the old index column:
+        
+        >>> df.reset_index(names='name')
+             name   class  max_speed
+        0  falcon    bird      389.0
+        1  parrot    bird       24.0
+        2    lion  mammal       80.5
+        3  monkey  mammal        NaN
 
         We can use the `drop` parameter to avoid the old index being added as
         a column:
@@ -5873,16 +5883,6 @@ class DataFrame(NDFrame, OpsMixin):
         parrot           bird   24.0     fly
         lion           mammal   80.5     run
         monkey         mammal    NaN    jump
-
-        Using the `names` parameter, choose a name for the index column:
-
-        >>> df.reset_index(names=['classes', 'names'])
-          classes   names  speed species
-                             max    type
-        0    bird  falcon  389.0     fly
-        1    bird  parrot   24.0     fly
-        2  mammal    lion   80.5     run
-        3  mammal  monkey    NaN    jump
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         self._check_inplace_and_allows_duplicate_labels(inplace)
