@@ -342,6 +342,7 @@ Other Deprecations
 - Deprecated allowing non-keyword arguments in :meth:`ExtensionArray.argsort` (:issue:`46134`)
 - Deprecated treating all-bool ``object``-dtype columns as bool-like in :meth:`DataFrame.any` and :meth:`DataFrame.all` with ``bool_only=True``, explicitly cast to bool instead (:issue:`46188`)
 - Deprecated behavior of method :meth:`DataFrame.quantile`, attribute ``numeric_only`` will default False. Including datetime/timedelta columns in the result (:issue:`7308`).
+- Deprecated :attr:`Timedelta.freq` and :attr:`Timedelta.is_populated` (:issue:`46430`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -503,6 +504,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.GroupBy.cumsum` with ``timedelta64[ns]`` dtype failing to recognize ``NaT`` as a null value (:issue:`46216`)
 - Bug in :meth:`GroupBy.cummin` and :meth:`GroupBy.cummax` with nullable dtypes incorrectly altering the original data in place (:issue:`46220`)
 - Bug in :meth:`GroupBy.cummax` with ``int64`` dtype with leading value being the smallest possible int64 (:issue:`46382`)
+- Bug in :meth:`GroupBy.max` with empty groups and ``uint64`` dtype incorrectly raising ``RuntimeError`` (:issue:`46408`)
 -
 
 Reshaping
