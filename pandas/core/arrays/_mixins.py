@@ -22,7 +22,6 @@ from pandas._typing import (
     F,
     PositionalIndexer2D,
     PositionalIndexerTuple,
-    Scalar,
     ScalarIndexer,
     SequenceIndexer,
     Shape,
@@ -650,7 +649,7 @@ class ArrowExtensionArray(ExtensionArray):
         indices = indices[argsort]
 
         if is_scalar(value):
-            pass
+            value = np.broadcast_to(value, len(self))
         elif len(indices) != len(value):
             raise ValueError("Length of indexer and values mismatch")
         else:
@@ -692,7 +691,7 @@ class ArrowExtensionArray(ExtensionArray):
         raise NotImplementedError()
 
     def _set_via_chunk_iteration(
-        self, indices: npt.NDArray[np.intp], value: Scalar | npt.NDArray[Any]
+        self, indices: npt.NDArray[np.intp], value: npt.NDArray[Any]
     ) -> pa.ChunkedArray:
         """
         Loop through the array chunks and set the new values while
@@ -705,10 +704,7 @@ class ArrowExtensionArray(ExtensionArray):
             n = len(c_ind)
             if n == 0:
                 continue
-            if is_scalar(value):
-                c_value = value
-            else:
-                c_value, value = value[:n], value[n:]  # type: ignore[index]
+            c_value, value = value[:n], value[n:]
             new_data[i] = self._replace_with_indices(new_data[i], c_ind, c_value)
 
         return pa.chunked_array(new_data)
@@ -765,7 +761,7 @@ class ArrowExtensionArray(ExtensionArray):
         cls,
         chunk: pa.Array,
         indices: npt.NDArray[np.intp],
-        value: Scalar | npt.NDArray[Any],
+        value: npt.NDArray[Any],
     ) -> pa.Array:
         """
         Replace items selected with a set of positional indices.
@@ -777,7 +773,7 @@ class ArrowExtensionArray(ExtensionArray):
         ----------
         chunk : pa.Array
         indices : npt.NDArray[np.intp]
-        value : Scalar | npt.NDArray[Any]
+        value : npt.NDArray[Any]
             Replacement value(s).
 
         Returns
@@ -793,8 +789,6 @@ class ArrowExtensionArray(ExtensionArray):
 
         if (stop - start) == (n - 1):
             # fast path for a contiguous set of indices
-            if is_scalar(value):
-                value = np.broadcast_to(value, len(indices))
             arrays = [
                 chunk[:start],
                 pa.array(value, type=chunk.type),
@@ -813,7 +807,7 @@ class ArrowExtensionArray(ExtensionArray):
             arr[mask] = value
             return pa.array(arr, type=chunk.type)
 
-        if value is None or (not is_scalar(value) and np.all(isna(value))):
+        if isna(value).all():
             return pc.if_else(mask, None, chunk)
 
         return pc.replace_with_mask(chunk, mask, value)
