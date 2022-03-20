@@ -2,7 +2,12 @@ from datetime import (
     timedelta,
     timezone,
 )
-from zoneinfo import ZoneInfo
+
+try:
+    # py39+
+    from zoneinfo import ZoneInfo
+except ImportError:
+    ZoneInfo = None
 
 from cpython.datetime cimport (
     datetime,
@@ -42,9 +47,26 @@ cdef int64_t NPY_NAT = get_nat()
 cdef tzinfo utc_stdlib = timezone.utc
 cdef tzinfo utc_pytz = UTC
 cdef tzinfo utc_dateutil_str = dateutil_gettz("UTC")  # NB: *not* the same as tzutc()
-cdef tzinfo utc_zoneinfo = ZoneInfo("UTC")
+
+cdef tzinfo utc_zoneinfo = None
+
 
 # ----------------------------------------------------------------------
+
+cdef inline bint is_utc_zoneinfo(tzinfo tz):
+    # https://github.com/pandas-dev/pandas/pull/46425#discussion_r830633025
+    if tz is None:
+        return False
+
+    global utc_zoneinfo
+    if utc_zoneinfo is None:
+        try:
+            utc_zoneinfo = ZoneInfo("UTC")
+        except ZoneInfoNotFoundError:
+            return False
+
+    return tz is utc_zoneinfo
+
 
 cpdef inline bint is_utc(tzinfo tz):
     return (
@@ -52,12 +74,13 @@ cpdef inline bint is_utc(tzinfo tz):
         or tz is utc_stdlib
         or isinstance(tz, _dateutil_tzutc)
         or tz is utc_dateutil_str
-        # NB: we are assuming the user does not clear zoneinfo cache
-        or tz is utc_zoneinfo
+        or is_utc_zoneinfo(tz)
     )
 
 
 cdef inline bint is_zoneinfo(tzinfo tz):
+    if ZoneInfo is None:
+        return False
     return isinstance(tz, ZoneInfo)
 
 
@@ -218,7 +241,7 @@ cdef inline bint is_fixed_offset(tzinfo tz):
         else:
             return 0
     elif is_zoneinfo(tz):
-        return False
+        return 0
     # This also implicitly accepts datetime.timezone objects which are
     # considered fixed
     return 1
