@@ -261,6 +261,14 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None) -> Resolution:
 
 # -------------------------------------------------------------------------
 
+'''
+When using info.use_utc checks inside the loop...
++     2.40±0.06ms       3.96±0.2ms     1.65  tslibs.normalize.Normalize.time_normalize_i8_timestamps(1000000, datetime.timezone(datetime.timedelta(seconds=3600)))
++        30.6±2μs         48.3±1μs     1.58  tslibs.normalize.Normalize.time_normalize_i8_timestamps(10000, datetime.timezone(datetime.timedelta(seconds=3600)))
++     3.56±0.08ms       5.24±0.4ms     1.47  tslibs.normalize.Normalize.time_normalize_i8_timestamps(1000000, tzfile('/usr/share/zoneinfo/Asia/Tokyo'))
++        39.5±2μs         57.5±3μs     1.46  tslibs.normalize.Normalize.time_normalize_i8_timestamps(10000, tzfile('/usr/share/zoneinfo/Asia/Tokyo'))
+'''
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo tz):
@@ -283,6 +291,7 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
         int64_t utc_val, local_val
         Py_ssize_t pos, i, n = stamps.shape[0]
         int64_t* tdata = NULL
+        bint use_utc=info.use_utc,use_tzlocal=info.use_tzlocal,use_fixed=info.use_fixed
 
         int64_t[::1] result = np.empty(n, dtype=np.int64)
 
@@ -295,11 +304,11 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
             result[i] = NPY_NAT
             continue
 
-        if info.use_utc:
+        if use_utc:
             local_val = utc_val
-        elif info.use_tzlocal:
+        elif use_tzlocal:
             local_val = utc_val + localize_tzinfo_api(utc_val, tz)
-        elif info.use_fixed:
+        elif use_fixed:
             local_val = utc_val + info.delta
         else:
             pos = bisect_right_i8(tdata, utc_val, info.ntrans) - 1
