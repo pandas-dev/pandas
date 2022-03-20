@@ -718,13 +718,12 @@ class Block(PandasObject):
 
         rb = [self if inplace else self.copy()]
         for i, (to_replace, value) in enumerate(pairs):
-            use_regex = should_use_regex(regex, to_replace)
             convert = i == src_len  # only convert once at the end
             new_rb: list[Block] = []
 
-            # GH-39338: Block.replace and Block._replace_regex can split a block
-            # into single-column blocks, so track the index so we know where to
-            # index into the mask
+            # GH-39338: _replace_coerce can split a block into
+            # single-column blocks, so track the index so we know
+            # where to index into the mask
             for blk_num, blk in enumerate(rb):
                 if len(rb) == 1:
                     m = masks[i]
@@ -733,13 +732,12 @@ class Block(PandasObject):
                     assert not isinstance(mib, bool)
                     m = mib[blk_num : blk_num + 1]
 
-                func = blk._replace_regex if use_regex else blk.replace
-                result = func(
+                result = blk._replace_coerce(
                     to_replace=to_replace,
                     value=value,
-                    inplace=inplace,
-                    convert=False,
                     mask=m,
+                    inplace=inplace,
+                    regex=regex,
                 )
                 if convert and blk.is_object and not all(x is None for x in dest_list):
                     # GH#44498 avoid unwanted cast-back
