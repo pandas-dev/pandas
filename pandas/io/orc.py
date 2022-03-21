@@ -1,7 +1,6 @@
 """ orc compat """
 from __future__ import annotations
 
-from tempfile import gettempdir
 from typing import (
     TYPE_CHECKING,
     Literal,
@@ -79,7 +78,7 @@ def to_orc(
         a bytes object is returned.
     engine : {{'pyarrow'}}, default 'pyarrow'
         Parquet library to use, or library it self, checked with 'pyarrow' name
-        and version >= 5.0.0
+        and version >= 7.0.0
     index : bool, default None
         If ``True``, include the dataframe's index(es) in the file output. If
         ``False``, they will not be written to the file.
@@ -98,22 +97,9 @@ def to_orc(
         index = df.index.names[0] is not None
 
     if engine != "pyarrow":
-        raise ValueError(f"engine must be 'pyarrow'")
-    engine = import_optional_dependency(engine, min_version="4.0.1")
+        raise ValueError("engine must be 'pyarrow'")
+    engine = import_optional_dependency(engine, min_version="7.0.0")
 
-    if hasattr(path, "write"):
-        engine.orc.write_table(
-            engine.Table.from_pandas(df, preserve_index=index), path, **kwargs
-        )
-    else:
-        # to bytes: pyarrow auto closes buffers hence we read a pyarrow buffer
-        with engine.BufferOutputStream() as stream:  # if that is possible
-            engine.orc.write_table(
-                engine.Table.from_pandas(df, preserve_index=index), stream, **kwargs
-            )
-            orc_bytes = stream.getvalue()
-            if path is None:
-                return orc_bytes.to_pybytes()
-            # allows writing to any (fsspec) URL
-            with get_handle(path, "wb", is_text=False) as handles:
-                handles.handle.write(orc_bytes)
+    engine.orc.write_table(
+        engine.Table.from_pandas(df, preserve_index=index), path, **kwargs
+    )
