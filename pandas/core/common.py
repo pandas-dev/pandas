@@ -250,7 +250,9 @@ def asarray_tuplesafe(values, dtype: NpDtype | None = None) -> np.ndarray:
     return result
 
 
-def index_labels_to_array(labels, dtype: NpDtype | None = None) -> np.ndarray:
+def index_labels_to_array(
+    labels: np.ndarray | Iterable, dtype: NpDtype | None = None
+) -> np.ndarray:
     """
     Transform label or iterable of labels to array, for use in Index.
 
