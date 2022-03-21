@@ -3235,7 +3235,7 @@ class TestPeriodIndexFormat:
         assert per.format()[0] == "2013-01-01 00:00"
 
     def test_period_custom_locale(self, overridden_locale):
-        # GH#46319 locale-specific formatting directive leads to non-utf8 str result
+        # GH#46319 locale-specific directive leads to non-utf8 c strftime char* result
 
         # Get locale-specific reference
         am_local, pm_local = get_local_am_pm()
