@@ -32,7 +32,6 @@ from pandas._typing import (
 from pandas.compat import (
     pa_version_under1p01,
     pa_version_under2p0,
-    pa_version_under3p0,
     pa_version_under5p0,
 )
 from pandas.errors import AbstractMethodError
@@ -86,8 +85,6 @@ if TYPE_CHECKING:
         NumpySorter,
         NumpyValueArrayLike,
     )
-
-    from pandas import Series
 
 
 def ravel_compat(meth: F) -> F:
@@ -547,7 +544,6 @@ class ArrowExtensionArray(ExtensionArray):
     """
 
     _data: pa.ChunkedArray
-    _pa_dtype: pa.DataType()
 
     def __init__(self, values: pa.ChunkedArray) -> None:
         self._data = values
@@ -602,70 +598,6 @@ class ArrowExtensionArray(ExtensionArray):
         type(self)
         """
         return type(self)(self._data)
-
-    def isin(self, values):
-        if pa_version_under2p0:
-            return super().isin(values)
-
-        value_set = [
-            pa_scalar.as_py()
-            for pa_scalar in [pa.scalar(value, from_pandas=True) for value in values]
-            if pa_scalar.type in (self._pa_dtype, pa.null())
-        ]
-
-        # for an empty value_set pyarrow 3.0.0 segfaults and pyarrow 2.0.0 returns True
-        # for null values, so we short-circuit to return all False array.
-        if not len(value_set):
-            return np.zeros(len(self), dtype=bool)
-
-        kwargs = {}
-        if pa_version_under3p0:
-            # in pyarrow 2.0.0 skip_null is ignored but is a required keyword and raises
-            # with unexpected keyword argument in pyarrow 3.0.0+
-            kwargs["skip_null"] = True
-
-        result = pc.is_in(self._data, value_set=pa.array(value_set), **kwargs)
-        # pyarrow 2.0.0 returned nulls, so we explicily specify dtype to convert nulls
-        # to False
-        return np.array(result, dtype=np.bool_)
-
-    def value_counts(self, dropna: bool = True) -> Series:
-        """
-        Return a Series containing counts of each unique value.
-
-        Parameters
-        ----------
-        dropna : bool, default True
-            Don't include counts of missing values.
-
-        Returns
-        -------
-        counts : Series
-
-        See Also
-        --------
-        Series.value_counts
-        """
-        from pandas import (
-            Index,
-            Series,
-        )
-
-        vc = self._data.value_counts()
-
-        values = vc.field(0)
-        counts = vc.field(1)
-        if dropna and self._data.null_count > 0:
-            mask = values.is_valid()
-            values = values.filter(mask)
-            counts = counts.filter(mask)
-
-        # No missing values so we can adhere to the interface and return a numpy array.
-        counts = np.array(counts)
-
-        index = Index(type(self)(values))
-
-        return Series(counts, index=index).astype("Int64")
 
     @classmethod
     def _concat_same_type(
