@@ -5751,13 +5751,6 @@ class DataFrame(NDFrame, OpsMixin):
 
             .. versionadded:: 1.5.0
 
-        names : int, str or 1-dimensional list, default None
-            Using the given string, rename the DataFrame column which contains the
-            index data. If the DataFrame has a MultiIndex, this has to be a list or
-            tuple with length equal to the number of levels.
-
-            .. versionadded:: 1.5.0
-
         Returns
         -------
         DataFrame or None
@@ -5789,6 +5782,16 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> df.reset_index()
             index   class  max_speed
+        0  falcon    bird      389.0
+        1  parrot    bird       24.0
+        2    lion  mammal       80.5
+        3  monkey  mammal        NaN
+
+        Using the `names` parameter, it is possible to choose a name for
+        the old index column:
+
+        >>> df.reset_index(names='name')
+             name   class  max_speed
         0  falcon    bird      389.0
         1  parrot    bird       24.0
         2    lion  mammal       80.5
