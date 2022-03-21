@@ -1207,9 +1207,9 @@ utc_fixture2 = utc_fixture
     params=[
         pytest.param(None, id=str(locale.getlocale())),
         "it_IT.utf8",
-        "it_IT",
+        "it_IT",  # Note: encoding will be 'ISO8859-1'
         "zh_CN.utf8",
-        "zh_CN",
+        "zh_CN",  # Note: encoding will be 'gb2312'
     ]
 )
 def overridden_locale(request):
