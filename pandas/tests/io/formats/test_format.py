@@ -3246,9 +3246,9 @@ class TestPeriodIndexFormat:
 
         # Index
         per = pd.period_range("2003-01-01 01:00:00", periods=2, freq="12h")
-        formatted = per.format(date_format="%y %I:%M:%S%p")
-        assert formatted[0] == f"03 01:00:00{am_local}"
-        assert formatted[1] == f"03 01:00:00{pm_local}"
+        formatted = per.format(date_format="%y é %I:%M:%S%p")
+        assert formatted[0] == f"03 é 01:00:00{am_local}"
+        assert formatted[1] == f"03 é 01:00:00{pm_local}"
 
 
 class TestDatetimeIndexFormat:
