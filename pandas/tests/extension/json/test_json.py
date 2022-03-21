@@ -267,7 +267,11 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
     def test_combine_add(self, data_repeated):
         super().test_combine_add(data_repeated)
 
-    @pytest.mark.xfail(reason="combine for JSONArray not supported")
+    @pytest.mark.xfail(
+        reason="combine for JSONArray not supported - "
+        "may pass depending on random data",
+        strict=False,
+    )
     def test_combine_first(self, data):
         super().test_combine_first(data)
 
