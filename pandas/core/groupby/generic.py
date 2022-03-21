@@ -1701,20 +1701,25 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                         f"Keys {clashing} in subset cannot be in "
                         "the groupby column keys"
                     )
-                key_names = subset
-            else:
-                key_names = set(self._selected_obj.columns) - set(in_axis_names)
 
             if isinstance(self._selected_obj, Series):
                 name = self._selected_obj.name
                 keys = [] if name in in_axis_names else [self._selected_obj]
             else:
-                keys = [
-                    # Can't use .values because the column label needs to be preserved
-                    self._selected_obj.iloc[:, idx]
-                    for idx, name in enumerate(self._selected_obj.columns)
-                    if name in key_names
-                ]
+                if subset:
+                    keys = [
+                        self._selected_obj.iloc[:, idx]
+                        for idx, name in enumerate(self._selected_obj.columns)
+                        if name in subset
+                    ]
+                else:
+                    keys = [
+                        # Can't use .values because the column label needs to
+                        # be preserved
+                        self._selected_obj.iloc[:, idx]
+                        for idx, name in enumerate(self._selected_obj.columns)
+                        if name not in in_axis_names
+                    ]
 
             groupings = list(self.grouper.groupings)
             for key in keys:
