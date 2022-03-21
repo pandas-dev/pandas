@@ -3239,13 +3239,13 @@ class TestPeriodIndexFormat:
 
         # Scalar
         per = pd.Period("2018-03-11 13:00", freq="H")
-        assert per.strftime("%y é") == "03 é"
+        assert per.strftime("%y é") == "18 é"
 
         # Index
         per = pd.period_range("2003-01-01 01:00:00", periods=2, freq="12h")
         formatted = per.format(date_format="%y é")
-        assert formatted[0] == f"03 é"
-        assert formatted[1] == f"03 é"
+        assert formatted[0] == "03 é"
+        assert formatted[1] == "03 é"
 
     def test_period_custom_locale_directive(self, overridden_locale):
         # GH#46319 locale-specific directive leads to non-utf8 c strftime char* result
