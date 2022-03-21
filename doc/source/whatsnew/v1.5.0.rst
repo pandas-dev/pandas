@@ -109,7 +109,7 @@ did not have the same index as the input.
     df.groupby('a', dropna=True).transform(lambda x: x)
     df.groupby('a', dropna=True).transform('sum')
 
-.. _whatsnew_150.notable_bug_fixes.visualization
+.. _whatsnew_150.notable_bug_fixes.visualization:
 
 Styler
 ^^^^^^
