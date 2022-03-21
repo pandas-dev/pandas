@@ -327,6 +327,16 @@ class TestDatetimeIndexTimezones:
     # -------------------------------------------------------------
     # DatetimeIndex.tz_localize
 
+    def test_tz_localize_utc_copies(self):
+        times = ["2015-03-08 01:00", "2015-03-08 02:00", "2015-03-08 03:00"]
+        index = DatetimeIndex(times)
+
+        res = index.tz_localize("UTC")
+        assert not tm.shares_memory(res, index)
+
+        res2 = index._data.tz_localize("UTC")
+        assert not tm.shares_memory(index._data, res2)
+
     def test_dti_tz_localize_nonexistent_raise_coerce(self):
         # GH#13057
         times = ["2015-03-08 01:00", "2015-03-08 02:00", "2015-03-08 03:00"]
