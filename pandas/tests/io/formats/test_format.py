@@ -3234,7 +3234,20 @@ class TestPeriodIndexFormat:
             per = dt.to_period(freq="H")
         assert per.format()[0] == "2013-01-01 00:00"
 
-    def test_period_custom_locale(self, overridden_locale):
+    def test_period_non_utf8_fmt(self, overridden_locale):
+        # GH#46319 non-utf8 input format string leads to wrong output
+
+        # Scalar
+        per = pd.Period("2018-03-11 13:00", freq="H")
+        assert per.strftime("%y é") == "03 é"
+
+        # Index
+        per = pd.period_range("2003-01-01 01:00:00", periods=2, freq="12h")
+        formatted = per.format(date_format="%y é")
+        assert formatted[0] == f"03 é"
+        assert formatted[1] == f"03 é"
+
+    def test_period_custom_locale_directive(self, overridden_locale):
         # GH#46319 locale-specific directive leads to non-utf8 c strftime char* result
 
         # Get locale-specific reference
@@ -3246,9 +3259,9 @@ class TestPeriodIndexFormat:
 
         # Index
         per = pd.period_range("2003-01-01 01:00:00", periods=2, freq="12h")
-        formatted = per.format(date_format="%y é %I:%M:%S%p")
-        assert formatted[0] == f"03 é 01:00:00{am_local}"
-        assert formatted[1] == f"03 é 01:00:00{pm_local}"
+        formatted = per.format(date_format="%y %I:%M:%S%p")
+        assert formatted[0] == f"03 01:00:00{am_local}"
+        assert formatted[1] == f"03 01:00:00{pm_local}"
 
 
 class TestDatetimeIndexFormat:
