@@ -2922,7 +2922,7 @@ class DataFrame(NDFrame, OpsMixin):
             a bytes object is returned.
         engine : {{'pyarrow'}}, default 'pyarrow'
             ORC library to use, or library itself, checked with 'pyarrow' name
-            and version >= 5.0.0
+            and version >= 7.0.0
         index : bool, default None
             If ``True``, include the dataframe's index(es) in the file output. If
             ``False``, they will not be written to the file.
@@ -2952,7 +2952,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame(data={{'col1': [1, 2], 'col2': [3, 4]}})
+        >>> df = pd.DataFrame(data={'col1': [1, 2], 'col2': [3, 4]})
         >>> df.to_orc('df.orc')  # doctest: +SKIP
         >>> pd.read_orc('df.orc')  # doctest: +SKIP
            col1  col2
