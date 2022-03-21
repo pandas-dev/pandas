@@ -5,6 +5,7 @@ from datetime import (
 
 try:
     # py39+
+    import zoneinfo
     from zoneinfo import ZoneInfo
 except ImportError:
     ZoneInfo = None
@@ -62,7 +63,7 @@ cdef inline bint is_utc_zoneinfo(tzinfo tz):
     if utc_zoneinfo is None:
         try:
             utc_zoneinfo = ZoneInfo("UTC")
-        except ZoneInfoNotFoundError:
+        except zoneinfo.ZoneInfoNotFoundError:
             return False
 
     return tz is utc_zoneinfo

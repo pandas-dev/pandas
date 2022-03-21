@@ -5,7 +5,6 @@ from datetime import (
 )
 from functools import partial
 from operator import attrgetter
-import zoneinfo
 
 import dateutil
 import numpy as np
@@ -16,6 +15,7 @@ from pandas._libs.tslibs import (
     OutOfBoundsDatetime,
     conversion,
 )
+from pandas.compat import PY39
 
 import pandas as pd
 from pandas import (
@@ -31,6 +31,9 @@ from pandas.core.arrays import (
     DatetimeArray,
     period_array,
 )
+
+if PY39:
+    import zoneinfo
 
 
 class TestDatetimeIndex:
@@ -1129,9 +1132,12 @@ def test_timestamp_constructor_retain_fold(tz, fold):
     assert result == expected
 
 
-@pytest.mark.parametrize(
-    "tz", ["dateutil/Europe/London", zoneinfo.ZoneInfo("Europe/London")]
-)
+_tzs = ["dateutil/Europe/London"]
+if PY39:
+    _tzs = ["dateutil/Europe/London", zoneinfo.ZoneInfo("Europe/London")]
+
+
+@pytest.mark.parametrize("tz", _tzs)
 @pytest.mark.parametrize(
     "ts_input,fold_out",
     [
