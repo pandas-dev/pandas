@@ -163,6 +163,14 @@ cdef inline void td64_to_tdstruct(int64_t td64,
     return
 
 
+# just exposed for testing at the moment
+def py_td64_to_tdstruct(int64_t td64, NPY_DATETIMEUNIT unit):
+    cdef:
+        pandas_timedeltastruct tds
+    pandas_timedelta_to_timedeltastruct(td64, unit, &tds)
+    return tds  # <- returned as a dict to python
+
+
 cdef inline int64_t pydatetime_to_dt64(datetime val,
                                        npy_datetimestruct *dts):
     """
