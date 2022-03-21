@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Callable  # noqa: PDF001
 import re
 from typing import (
-    TYPE_CHECKING,
     Any,
     Union,
     overload,
@@ -75,10 +74,6 @@ if not pa_version_under1p01:
         "le": pc.less_equal,
         "ge": pc.greater_equal,
     }
-
-
-if TYPE_CHECKING:
-    from pandas import Series
 
 ArrowStringScalarOrNAT = Union[str, libmissing.NAType]
 
@@ -480,44 +475,6 @@ class ArrowStringArray(
         # pyarrow 2.0.0 returned nulls, so we explicily specify dtype to convert nulls
         # to False
         return np.array(result, dtype=np.bool_)
-
-    def value_counts(self, dropna: bool = True) -> Series:
-        """
-        Return a Series containing counts of each unique value.
-
-        Parameters
-        ----------
-        dropna : bool, default True
-            Don't include counts of missing values.
-
-        Returns
-        -------
-        counts : Series
-
-        See Also
-        --------
-        Series.value_counts
-        """
-        from pandas import (
-            Index,
-            Series,
-        )
-
-        vc = self._data.value_counts()
-
-        values = vc.field(0)
-        counts = vc.field(1)
-        if dropna and self._data.null_count > 0:
-            mask = values.is_valid()
-            values = values.filter(mask)
-            counts = counts.filter(mask)
-
-        # No missing values so we can adhere to the interface and return a numpy array.
-        counts = np.array(counts)
-
-        index = Index(type(self)(values))
-
-        return Series(counts, index=index).astype("Int64")
 
     def astype(self, dtype, copy: bool = True):
         dtype = pandas_dtype(dtype)
