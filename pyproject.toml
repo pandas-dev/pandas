@@ -56,6 +56,7 @@ markers = [
   "arm_slow: mark a test as slow for arm64 architecture",
   "arraymanager: mark a test to run with ArrayManager enabled",
 ]
+asyncio_mode = "strict"
 
 [tool.mypy]
 # Import discovery
@@ -96,6 +97,7 @@ warn_unreachable = false # GH#27396
 # Suppressing errors
 show_none_errors = true
 ignore_errors = false
+enable_error_code = "ignore-without-code"
 # Miscellaneous strictness flags
 allow_untyped_globals = false
 allow_redefinition = false

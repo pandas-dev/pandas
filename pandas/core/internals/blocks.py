@@ -568,7 +568,6 @@ class Block(PandasObject):
         #  go through replace_list
 
         values = self.values
-        value = self._standardize_fill_value(value)  # GH#45725
 
         if isinstance(values, Categorical):
             # TODO: avoid special-casing
@@ -778,6 +777,13 @@ class Block(PandasObject):
                 mask=mask,
             )
         else:
+            if value is None:
+                # gh-45601, gh-45836
+                nb = self.astype(np.dtype(object), copy=False)
+                if nb is self and not inplace:
+                    nb = nb.copy()
+                putmask_inplace(nb.values, mask, value)
+                return [nb]
             return self.replace(
                 to_replace=to_replace, value=value, inplace=inplace, mask=mask
             )
