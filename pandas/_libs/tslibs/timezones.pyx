@@ -8,6 +8,7 @@ try:
     import zoneinfo
     from zoneinfo import ZoneInfo
 except ImportError:
+    zoneinfo = None
     ZoneInfo = None
 
 from cpython.datetime cimport (
@@ -56,7 +57,7 @@ cdef tzinfo utc_zoneinfo = None
 
 cdef inline bint is_utc_zoneinfo(tzinfo tz):
     # https://github.com/pandas-dev/pandas/pull/46425#discussion_r830633025
-    if tz is None:
+    if tz is None or zoneinfo is None:
         return False
 
     global utc_zoneinfo
