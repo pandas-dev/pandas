@@ -1313,7 +1313,7 @@ class TestExcelWriterEngineTests:
             called_save = False
             called_write_cells = False
             called_sheets = False
-            _supported_extensions = ["xlsx", "xls"]
+            _supported_extensions = ("xlsx", "xls")
             _engine = "dummy"
 
             def book(self):

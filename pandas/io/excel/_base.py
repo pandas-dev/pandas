@@ -963,7 +963,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     # ExcelWriter.
 
     _engine: str
-    _supported_extensions: tuple[str, ...] | list[str]
+    _supported_extensions: tuple[str, ...]
 
     def __new__(
         cls,
@@ -1030,7 +1030,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     _path = None
 
     @property
-    def supported_extensions(self) -> tuple[str, ...] | list[str]:
+    def supported_extensions(self) -> tuple[str, ...]:
         """Extensions that writer engine supports."""
         return self._supported_extensions
 
