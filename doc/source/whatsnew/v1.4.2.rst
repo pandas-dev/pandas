@@ -31,7 +31,7 @@ Bug fixes
 ~~~~~~~~~
 - Fix some cases for subclasses that define their ``_constructor`` properties as general callables (:issue:`46018`)
 - Fixed "longtable" formatting in :meth:`.Styler.to_latex` when ``column_format`` is given in extended format (:issue:`46037`)
--
+- Fix incorrect hyperlink rendering when the url contains colon or other special characters (:issue:`46389`)
 
 .. ---------------------------------------------------------------------------
 
