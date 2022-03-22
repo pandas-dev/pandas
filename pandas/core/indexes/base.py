@@ -1772,6 +1772,21 @@ class Index(IndexOpsMixin, PandasObject):
     def get_default_index_names(
         self, names: Hashable | Sequence[Hashable] | None = None, default=None
     ) -> list[Hashable]:
+        """
+        Get names of index.
+
+        Parameters
+        ----------
+        names : int, str or 1-dimensional list, default None
+            index names to set
+        default : str
+            default name of index
+
+        Raises
+        ------
+        TypeError
+            if names not str or list-like
+        """
         from pandas.core.indexes.multi import MultiIndex
 
         if names is not None:
