@@ -21,7 +21,9 @@ cnp.import_array()
 from .conversion cimport normalize_i8_stamp
 
 from .dtypes import Resolution
+
 from .ccalendar cimport DAY_NANOS
+from .dtypes cimport c_Resolution
 from .nattype cimport (
     NPY_NAT,
     c_NaT as NaT,
@@ -169,27 +171,19 @@ def ints_to_pydatetime(
 
 # -------------------------------------------------------------------------
 
-cdef:
-    int RESO_US = Resolution.RESO_US.value
-    int RESO_MS = Resolution.RESO_MS.value
-    int RESO_SEC = Resolution.RESO_SEC.value
-    int RESO_MIN = Resolution.RESO_MIN.value
-    int RESO_HR = Resolution.RESO_HR.value
-    int RESO_DAY = Resolution.RESO_DAY.value
 
-
-cdef inline int _reso_stamp(npy_datetimestruct *dts):
+cdef inline c_Resolution _reso_stamp(npy_datetimestruct *dts):
     if dts.us != 0:
         if dts.us % 1000 == 0:
-            return RESO_MS
-        return RESO_US
+            return c_Resolution.RESO_MS
+        return c_Resolution.RESO_US
     elif dts.sec != 0:
-        return RESO_SEC
+        return c_Resolution.RESO_SEC
     elif dts.min != 0:
-        return RESO_MIN
+        return c_Resolution.RESO_MIN
     elif dts.hour != 0:
-        return RESO_HR
-    return RESO_DAY
+        return c_Resolution.RESO_HR
+    return c_Resolution.RESO_DAY
 
 
 @cython.wraparound(False)
@@ -206,7 +200,7 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None) -> Resolution:
         str typ
 
         npy_datetimestruct dts
-        int reso = RESO_DAY, curr_reso
+        c_Resolution reso = c_Resolution.RESO_DAY, curr_reso
 
     if is_utc(tz) or tz is None:
         use_utc = True
