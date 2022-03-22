@@ -9,7 +9,6 @@ from typing import (
     Any,
     Callable,
     Hashable,
-    Iterable,
     Literal,
     Sequence,
     TypeVar,
@@ -47,7 +46,6 @@ from pandas._typing import (
     Dtype,
     DtypeObj,
     F,
-    IgnoreRaise,
     Shape,
     npt,
 )
@@ -1784,7 +1782,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         Raises
         ------
-        TypeError if names not str or list-like
+        TypeError
+            if names not str or list-like
+
         """
         from pandas.core.indexes.multi import MultiIndex
 
@@ -6846,11 +6846,7 @@ class Index(IndexOpsMixin, PandasObject):
         # TODO(2.0) can use Index instead of self._constructor
         return self._constructor._with_infer(new_values, name=self.name)
 
-    def drop(
-        self,
-        labels: Index | np.ndarray | Iterable[Hashable],
-        errors: IgnoreRaise = "raise",
-    ) -> Index:
+    def drop(self, labels, errors: str_t = "raise") -> Index:
         """
         Make new Index with passed list of labels deleted.
 
