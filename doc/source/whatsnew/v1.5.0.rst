@@ -39,6 +39,7 @@ Other enhancements
 - :meth:`to_numeric` now preserves float64 arrays when downcasting would generate values not representable in float32 (:issue:`43693`)
 - :meth:`Series.reset_index` and :meth:`DataFrame.reset_index` now support the argument ``allow_duplicates`` (:issue:`44410`)
 - :meth:`.GroupBy.min` and :meth:`.GroupBy.max` now supports `Numba <https://numba.pydata.org/>`_ execution with the ``engine`` keyword (:issue:`45428`)
+- :func:`read_csv` now supports ``defaultdict`` as a ``dtype`` parameter (:issue:`41574`)
 - :meth:`DataFrame.rolling` and :meth:`Series.rolling` now support a ``step`` parameter with fixed-length windows (:issue:`15354`)
 - Implemented a ``bool``-dtype :class:`Index`, passing a bool-dtype array-like to ``pd.Index`` will now retain ``bool`` dtype instead of casting to ``object`` (:issue:`45061`)
 - Implemented a complex-dtype :class:`Index`, passing a complex-dtype array-like to ``pd.Index`` will now retain complex dtype instead of casting to ``object`` (:issue:`45845`)
