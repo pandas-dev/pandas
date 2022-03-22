@@ -51,8 +51,13 @@ def _compare_local_to_utc(tz_didx, naive_didx):
 
 
 def test_tz_localize_to_utc_copies():
+    # GH#46460
     arr = np.arange(5, dtype="i8")
     result = tzconversion.tz_convert_from_utc(arr, tz=UTC)
+    tm.assert_numpy_array_equal(result, arr)
+    assert not np.shares_memory(arr, result)
+
+    result = tzconversion.tz_convert_from_utc(arr, tz=None)
     tm.assert_numpy_array_equal(result, arr)
     assert not np.shares_memory(arr, result)
 
