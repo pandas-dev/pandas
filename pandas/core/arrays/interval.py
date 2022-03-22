@@ -7,6 +7,7 @@ from operator import (
 )
 import textwrap
 from typing import (
+    TYPE_CHECKING,
     Sequence,
     TypeVar,
     Union,
@@ -92,6 +93,10 @@ from pandas.core.ops import (
     invalid_comparison,
     unpack_zerodim_and_defer,
 )
+
+if TYPE_CHECKING:
+    from pandas import Index
+
 
 IntervalArrayT = TypeVar("IntervalArrayT", bound="IntervalArray")
 IntervalOrNA = Union[Interval, float]
@@ -1230,7 +1235,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return Index(self._right, copy=False)
 
     @property
-    def length(self):
+    def length(self) -> Index:
         """
         Return an Index with entries denoting the length of each Interval in
         the IntervalArray.
@@ -1238,7 +1243,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return self.right - self.left
 
     @property
-    def mid(self):
+    def mid(self) -> Index:
         """
         Return the midpoint of each Interval in the IntervalArray as an Index.
         """

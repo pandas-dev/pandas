@@ -32,8 +32,6 @@ class _LengthDescriptor:
     def __get__(
         self, instance: Interval[_OrderableTimesT], owner: Any
     ) -> Timedelta: ...
-    @overload
-    def __get__(self, instance: IntervalTree, owner: Any) -> np.ndarray: ...
 
 class _MidDescriptor:
     @overload
@@ -42,8 +40,6 @@ class _MidDescriptor:
     def __get__(
         self, instance: Interval[_OrderableTimesT], owner: Any
     ) -> _OrderableTimesT: ...
-    @overload
-    def __get__(self, instance: IntervalTree, owner: Any) -> np.ndarray: ...
 
 class IntervalMixin:
     @property
@@ -54,8 +50,6 @@ class IntervalMixin:
     def open_left(self) -> bool: ...
     @property
     def open_right(self) -> bool: ...
-    mid: _MidDescriptor
-    length: _LengthDescriptor
     @property
     def is_empty(self) -> bool: ...
     def _check_closed_matches(self, other: IntervalMixin, name: str = ...) -> None: ...
@@ -67,6 +61,8 @@ class Interval(IntervalMixin, Generic[_OrderableT]):
     def right(self: Interval[_OrderableT]) -> _OrderableT: ...
     @property
     def closed(self) -> IntervalClosedType: ...
+    mid: _MidDescriptor
+    length: _LengthDescriptor
     def __init__(
         self,
         left: _OrderableT,
@@ -162,6 +158,10 @@ class IntervalTree(IntervalMixin):
         closed: IntervalClosedType = ...,
         leaf_size: int = ...,
     ): ...
+    @property
+    def mid(self) -> np.ndarray: ...
+    @property
+    def length(self) -> np.ndarray: ...
     def get_indexer(self, target) -> npt.NDArray[np.intp]: ...
     def get_indexer_non_unique(
         self, target
