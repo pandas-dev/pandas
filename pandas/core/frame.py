@@ -5802,7 +5802,7 @@ class DataFrame(NDFrame, OpsMixin):
             tuple with length equal to the number of levels.
 
             .. versionadded:: 1.5.0
-            s
+
         Returns
         -------
         DataFrame or None
