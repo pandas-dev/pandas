@@ -281,15 +281,18 @@ cdef class _Timestamp(ABCTimestamp):
             return other.tzinfo is not None
         return other.tzinfo is None
 
+    @cython.overflowcheck(True)
     def __add__(self, other):
-        # TODO: There is a Cython 3 bug where self.values + nanos
-        # would silently overflow if this is defined
-        #cdef:
-        #    int64_t nanos = 0
+        cdef:
+           int64_t nanos = 0
 
         if is_any_td_scalar(other):
             nanos = delta_to_nanoseconds(other)
-            result = type(self)(self.value + nanos, tz=self.tzinfo)
+            try:
+                result = type(self)(self.value + nanos, tz=self.tzinfo)
+            except OverflowError:
+                # Use Python ints
+                result = type(self)(int(self.value) + int(nanos), tz=self.tzinfo)
             if result is not NaT:
                 result._set_freq(self._freq)  # avoid warning in constructor
             return result
