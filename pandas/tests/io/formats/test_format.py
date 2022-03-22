@@ -3234,8 +3234,8 @@ class TestPeriodIndexFormat:
             per = dt.to_period(freq="H")
         assert per.format()[0] == "2013-01-01 00:00"
 
-    def test_period_non_utf8_fmt(self, overridden_locale):
-        # GH#46319 non-utf8 input format string leads to wrong output
+    def test_period_non_ascii_fmt(self, overridden_locale):
+        # GH#46468 non-ascii char in input format string leads to wrong output
 
         # Scalar
         per = pd.Period("2018-03-11 13:00", freq="H")
