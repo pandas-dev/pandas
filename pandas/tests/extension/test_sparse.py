@@ -266,10 +266,10 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
         with tm.assert_produces_warning(PerformanceWarning):
             super().test_fillna_limit_backfill(data_missing)
 
-    @pytest.mark.skip(reason="Unsupported")
+    @pytest.mark.xfail(reason="Unsupported")
     def test_fillna_series(self):
         # this one looks doable.
-        pass
+        super(self).test_fillna_series()
 
     def test_fillna_frame(self, data_missing):
         # Have to override to specify that fill_value will change.
@@ -337,9 +337,9 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         assert ser._values is not result._values
         assert ser._values.to_dense() is arr.to_dense()
 
-    @pytest.mark.skip(reason="Not Applicable")
+    @pytest.mark.xfail(reason="Not Applicable")
     def test_fillna_length_mismatch(self, data_missing):
-        pass
+        super().test_fillna_length_mismatch(data_missing)
 
     def test_where_series(self, data, na_value):
         assert data[0] != data[1]
