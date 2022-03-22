@@ -98,15 +98,25 @@ from pandas.core.sorting import (
 class WrappedCythonOp:
     """
     Dispatch logic for functions defined in _libs.groupby
+
+    Parameters
+    ----------
+    kind: str
+        Whether the operation is an aggregate or transform.
+    how: str
+        Operation name, e.g. "mean".
+    has_dropped_na: bool
+        True precisely when dropna=True and the grouper contains a null value.
     """
 
     # Functions for which we do _not_ attempt to cast the cython result
     #  back to the original dtype.
     cast_blocklist = frozenset(["rank", "count", "size", "idxmin", "idxmax"])
 
-    def __init__(self, kind: str, how: str) -> None:
+    def __init__(self, kind: str, how: str, has_dropped_na: bool) -> None:
         self.kind = kind
         self.how = how
+        self.has_dropped_na = has_dropped_na
 
     _CYTHON_FUNCTIONS = {
         "aggregate": {
@@ -194,7 +204,9 @@ class WrappedCythonOp:
             values = ensure_float64(values)
 
         elif values.dtype.kind in ["i", "u"]:
-            if how in ["add", "var", "prod", "mean", "ohlc"]:
+            if how in ["add", "var", "prod", "mean", "ohlc"] or (
+                self.kind == "transform" and self.has_dropped_na
+            ):
                 # result may still include NaN, so we have to cast
                 values = ensure_float64(values)
 
@@ -582,6 +594,10 @@ class WrappedCythonOp:
 
         result = result.T
 
+        if self.how == "rank" and self.has_dropped_na:
+            # TODO: Wouldn't need this if group_rank supported mask
+            result = np.where(comp_ids < 0, np.nan, result)
+
         if self.how not in self.cast_blocklist:
             # e.g. if we are int64 and need to restore to datetime64/timedelta64
             # "rank" is the only member of cast_blocklist we get here
@@ -959,7 +975,7 @@ class BaseGrouper:
         """
         assert kind in ["transform", "aggregate"]
 
-        cy_op = WrappedCythonOp(kind=kind, how=how)
+        cy_op = WrappedCythonOp(kind=kind, how=how, has_dropped_na=self.has_dropped_na)
 
         ids, _, _ = self.group_info
         ngroups = self.ngroups

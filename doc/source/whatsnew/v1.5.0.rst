@@ -83,32 +83,44 @@ did not have the same index as the input.
 
 .. code-block:: ipython
 
-    In [3]: df.groupby('a', dropna=True).transform(lambda x: x.sum())
-    Out[3]:
-       b
-    0  5
-    1  5
-
-    In [3]: df.groupby('a', dropna=True).transform(lambda x: x)
-    Out[3]:
-       b
-    0  2
-    1  3
-
-    In [3]: df.groupby('a', dropna=True).transform('sum')
+    In [3]: # Value in the last row should be np.nan
+            df.groupby('a', dropna=True).transform('sum')
     Out[3]:
        b
     0  5
     1  5
     2  5
 
+    In [3]: # Should have one additional row with the value np.nan
+            df.groupby('a', dropna=True).transform(lambda x: x.sum())
+    Out[3]:
+       b
+    0  5
+    1  5
+
+    In [3]: # The value in the last row is np.nan interpreted as an integer
+            df.groupby('a', dropna=True).transform('ffill')
+    Out[3]:
+                         b
+    0                    2
+    1                    3
+    2 -9223372036854775808
+
+    In [3]: # Should have one additional row with the value np.nan
+            df.groupby('a', dropna=True).transform(lambda x: x)
+    Out[3]:
+       b
+    0  2
+    1  3
+
 *New behavior*:
 
 .. ipython:: python
 
-    df.groupby('a', dropna=True).transform(lambda x: x.sum())
-    df.groupby('a', dropna=True).transform(lambda x: x)
     df.groupby('a', dropna=True).transform('sum')
+    df.groupby('a', dropna=True).transform(lambda x: x.sum())
+    df.groupby('a', dropna=True).transform('ffill')
+    df.groupby('a', dropna=True).transform(lambda x: x)
 
 .. _whatsnew_150.notable_bug_fixes.visualization:
 
