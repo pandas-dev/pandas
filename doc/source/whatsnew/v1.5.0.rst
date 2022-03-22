@@ -46,7 +46,6 @@ Other enhancements
 - :class:`Series` and :class:`DataFrame` with ``IntegerDtype`` now supports bitwise operations (:issue:`34463`)
 - Add ``milliseconds`` field support for :class:`~pandas.DateOffset` (:issue:`43371`)
 - :meth:`DataFrame.reset_index` now accepts a ``names`` argument which renames the index names (:issue:`6878`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.notable_bug_fixes:
@@ -110,13 +109,6 @@ did not have the same index as the input.
     df.groupby('a', dropna=True).transform(lambda x: x.sum())
     df.groupby('a', dropna=True).transform(lambda x: x)
     df.groupby('a', dropna=True).transform('sum')
-
-.. _whatsnew_150.notable_bug_fixes.visualization:
-
-Styler
-^^^^^^
-
-- Fix showing "None" as ylabel in :meth:`Series.plot` when not setting ylabel (:issue:`46129`)
 
 .. _whatsnew_150.notable_bug_fixes.notable_bug_fix2:
 
@@ -350,7 +342,6 @@ Other Deprecations
 - Deprecated allowing non-keyword arguments in :meth:`ExtensionArray.argsort` (:issue:`46134`)
 - Deprecated treating all-bool ``object``-dtype columns as bool-like in :meth:`DataFrame.any` and :meth:`DataFrame.all` with ``bool_only=True``, explicitly cast to bool instead (:issue:`46188`)
 - Deprecated behavior of method :meth:`DataFrame.quantile`, attribute ``numeric_only`` will default False. Including datetime/timedelta columns in the result (:issue:`7308`).
-- Deprecated :attr:`Timedelta.freq` and :attr:`Timedelta.is_populated` (:issue:`46430`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -512,7 +503,6 @@ Groupby/resample/rolling
 - Bug in :meth:`.GroupBy.cumsum` with ``timedelta64[ns]`` dtype failing to recognize ``NaT`` as a null value (:issue:`46216`)
 - Bug in :meth:`GroupBy.cummin` and :meth:`GroupBy.cummax` with nullable dtypes incorrectly altering the original data in place (:issue:`46220`)
 - Bug in :meth:`GroupBy.cummax` with ``int64`` dtype with leading value being the smallest possible int64 (:issue:`46382`)
-- Bug in :meth:`GroupBy.max` with empty groups and ``uint64`` dtype incorrectly raising ``RuntimeError`` (:issue:`46408`)
 -
 
 Reshaping
