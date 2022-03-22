@@ -430,7 +430,7 @@ class Registry:
     These are tried in order.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.dtypes: list[type_t[ExtensionDtype]] = []
 
     def register(self, dtype: type_t[ExtensionDtype]) -> None:
