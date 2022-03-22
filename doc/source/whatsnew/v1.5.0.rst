@@ -110,6 +110,13 @@ did not have the same index as the input.
     df.groupby('a', dropna=True).transform(lambda x: x)
     df.groupby('a', dropna=True).transform('sum')
 
+.. _whatsnew_150.notable_bug_fixes.visualization:
+
+Styler
+^^^^^^
+
+- Fix showing "None" as ylabel in :meth:`Series.plot` when not setting ylabel (:issue:`46129`)
+
 .. _whatsnew_150.notable_bug_fixes.notable_bug_fix2:
 
 notable_bug_fix2
