@@ -25,8 +25,8 @@ from pandas.io.formats.excel import ExcelCell
 
 
 class ODSWriter(ExcelWriter):
-    engine = "odf"
-    supported_extensions = (".ods",)
+    _engine = "odf"
+    _supported_extensions = (".ods",)
 
     def __init__(
         self,

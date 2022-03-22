@@ -169,8 +169,8 @@ class _XlsxStyler:
 
 
 class XlsxWriter(ExcelWriter):
-    engine = "xlsxwriter"
-    supported_extensions = (".xlsx",)
+    _engine = "xlsxwriter"
+    _supported_extensions = (".xlsx",)
 
     def __init__(
         self,
