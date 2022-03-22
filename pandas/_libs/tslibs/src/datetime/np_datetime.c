@@ -682,8 +682,8 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
     npy_int64 sfrac;
     npy_int64 ifrac;
     int sign;
-    npy_int64 PER_DAY;
-    npy_int64 PER_SEC;
+    npy_int64 per_day;
+    npy_int64 per_sec;
 
     /* Initialize the output to all zeros */
     memset(out, 0, sizeof(pandas_timedeltastruct));
@@ -691,14 +691,14 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
     switch (base) {
         case NPY_FR_ns:
 
-        PER_DAY = 86400000000000LL;
-        PER_SEC = 1000LL * 1000LL * 1000LL;
+        per_day = 86400000000000LL;
+        per_sec = 1000LL * 1000LL * 1000LL;
 
         // put frac in seconds
-        if (td < 0 && td % PER_SEC != 0)
-            frac = td / PER_SEC - 1;
+        if (td < 0 && td % per_sec != 0)
+            frac = td / per_sec - 1;
         else
-            frac = td / PER_SEC;
+            frac = td / per_sec;
 
         if (frac < 0) {
             sign = -1;
@@ -742,12 +742,12 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
         }
 
         sfrac = (out->hrs * 3600LL + out->min * 60LL
-                 + out->sec) * PER_SEC;
+                 + out->sec) * per_sec;
 
         if (sign < 0)
             out->days = -out->days;
 
-        ifrac = td - (out->days * PER_DAY + sfrac);
+        ifrac = td - (out->days * per_day + sfrac);
 
         if (ifrac != 0) {
             out->ms = ifrac / (1000LL * 1000LL);
@@ -760,22 +760,18 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
             out->us = 0;
             out->ns = 0;
         }
-
-        out->seconds = out->hrs * 3600 + out->min * 60 + out->sec;
-        out->microseconds = out->ms * 1000 + out->us;
-        out->nanoseconds = out->ns;
         break;
 
         case NPY_FR_us:
 
-        PER_DAY = 86400000000LL;
-        PER_SEC = 1000LL * 1000LL;
+        per_day = 86400000000LL;
+        per_sec = 1000LL * 1000LL;
 
         // put frac in seconds
-        if (td < 0 && td % PER_SEC != 0)
-            frac = td / PER_SEC - 1;
+        if (td < 0 && td % per_sec != 0)
+            frac = td / per_sec - 1;
         else
-            frac = td / PER_SEC;
+            frac = td / per_sec;
 
         if (frac < 0) {
             sign = -1;
@@ -819,12 +815,12 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
         }
 
         sfrac = (out->hrs * 3600LL + out->min * 60LL
-                 + out->sec) * PER_SEC;
+                 + out->sec) * per_sec;
 
         if (sign < 0)
             out->days = -out->days;
 
-        ifrac = td - (out->days * PER_DAY + sfrac);
+        ifrac = td - (out->days * per_day + sfrac);
 
         if (ifrac != 0) {
             out->ms = ifrac / 1000LL;
@@ -841,14 +837,14 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
 
         case NPY_FR_ms:
 
-        PER_DAY = 86400000LL;
-        PER_SEC = 1000LL;
+        per_day = 86400000LL;
+        per_sec = 1000LL;
 
         // put frac in seconds
-        if (td < 0 && td % PER_SEC != 0)
-            frac = td / PER_SEC - 1;
+        if (td < 0 && td % per_sec != 0)
+            frac = td / per_sec - 1;
         else
-            frac = td / PER_SEC;
+            frac = td / per_sec;
 
         if (frac < 0) {
             sign = -1;
@@ -892,12 +888,12 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
         }
 
         sfrac = (out->hrs * 3600LL + out->min * 60LL
-                 + out->sec) * PER_SEC;
+                 + out->sec) * per_sec;
 
         if (sign < 0)
             out->days = -out->days;
 
-        ifrac = td - (out->days * PER_DAY + sfrac);
+        ifrac = td - (out->days * per_day + sfrac);
 
         if (ifrac != 0) {
             out->ms = ifrac;
@@ -911,16 +907,16 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
         break;
 
         case NPY_FR_s:
-        // special case where we can simplify many expressions bc PER_SEC=1
+        // special case where we can simplify many expressions bc per_sec=1
 
-        PER_DAY = 86400000LL;
-        PER_SEC = 1L;
+        per_day = 86400000LL;
+        per_sec = 1L;
 
         // put frac in seconds
-        if (td < 0 && td % PER_SEC != 0)
-            frac = td / PER_SEC - 1;
+        if (td < 0 && td % per_sec != 0)
+            frac = td / per_sec - 1;
         else
-            frac = td / PER_SEC;
+            frac = td / per_sec;
 
         if (frac < 0) {
             sign = -1;
@@ -964,12 +960,12 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
         }
 
         sfrac = (out->hrs * 3600LL + out->min * 60LL
-                 + out->sec) * PER_SEC;
+                 + out->sec) * per_sec;
 
         if (sign < 0)
             out->days = -out->days;
 
-        ifrac = td - (out->days * PER_DAY + sfrac);
+        ifrac = td - (out->days * per_day + sfrac);
 
         if (ifrac != 0) {
             out->ms = 0;
