@@ -830,6 +830,18 @@ def test_cummax(dtypes_for_minmax):
     tm.assert_series_equal(result, expected)
 
 
+def test_cummax_i8_at_implementation_bound():
+    # the minimum value used to be treated as NPY_NAT+1 instead of NPY_NAT
+    #  for int64 dtype GH#46382
+    ser = Series([pd.NaT.value + n for n in range(5)])
+    df = DataFrame({"A": 1, "B": ser, "C": ser.view("M8[ns]")})
+    gb = df.groupby("A")
+
+    res = gb.cummax()
+    exp = df[["B", "C"]]
+    tm.assert_frame_equal(res, exp)
+
+
 @pytest.mark.parametrize("method", ["cummin", "cummax"])
 @pytest.mark.parametrize("dtype", ["float", "Int64", "Float64"])
 @pytest.mark.parametrize(

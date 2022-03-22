@@ -192,31 +192,39 @@ def test_delimiter_with_usecols_and_parse_dates(all_parsers):
 
 
 @pytest.mark.parametrize("thousands", ["_", None])
-def test_decimal_and_exponential(python_parser_only, numeric_decimal, thousands):
+def test_decimal_and_exponential(
+    request, python_parser_only, numeric_decimal, thousands
+):
     # GH#31920
-    decimal_number_check(python_parser_only, numeric_decimal, thousands, None)
+    decimal_number_check(request, python_parser_only, numeric_decimal, thousands, None)
 
 
 @pytest.mark.parametrize("thousands", ["_", None])
 @pytest.mark.parametrize("float_precision", [None, "legacy", "high", "round_trip"])
 def test_1000_sep_decimal_float_precision(
-    c_parser_only, numeric_decimal, float_precision, thousands
+    request, c_parser_only, numeric_decimal, float_precision, thousands
 ):
     # test decimal and thousand sep handling in across 'float_precision'
     # parsers
-    decimal_number_check(c_parser_only, numeric_decimal, thousands, float_precision)
+    decimal_number_check(
+        request, c_parser_only, numeric_decimal, thousands, float_precision
+    )
     text, value = numeric_decimal
     text = " " + text + " "
     if isinstance(value, str):  # the negative cases (parse as text)
         value = " " + value + " "
-    decimal_number_check(c_parser_only, (text, value), thousands, float_precision)
+    decimal_number_check(
+        request, c_parser_only, (text, value), thousands, float_precision
+    )
 
 
-def decimal_number_check(parser, numeric_decimal, thousands, float_precision):
+def decimal_number_check(request, parser, numeric_decimal, thousands, float_precision):
     # GH#31920
     value = numeric_decimal[0]
-    if thousands is None and "_" in value:
-        pytest.skip("Skip test if no thousands sep is defined and sep is in value")
+    if thousands is None and value in ("1_,", "1_234,56", "1_234,56e0"):
+        request.node.add_marker(
+            pytest.mark.xfail(reason=f"thousands={thousands} and sep is in {value}")
+        )
     df = parser.read_csv(
         StringIO(value),
         float_precision=float_precision,

@@ -9,6 +9,7 @@ from typing import (
     Any,
     Callable,
     Hashable,
+    Iterable,
     Literal,
     Sequence,
     TypeVar,
@@ -46,6 +47,7 @@ from pandas._typing import (
     Dtype,
     DtypeObj,
     F,
+    IgnoreRaise,
     Shape,
     npt,
 )
@@ -97,6 +99,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_signed_integer_dtype,
+    is_string_dtype,
     is_unsigned_integer_dtype,
     needs_i8_conversion,
     pandas_dtype,
@@ -147,6 +150,7 @@ from pandas.core.arrays.datetimes import (
     validate_tz_from_dtype,
 )
 from pandas.core.arrays.sparse import SparseDtype
+from pandas.core.arrays.string_ import StringArray
 from pandas.core.base import (
     IndexOpsMixin,
     PandasObject,
@@ -4086,7 +4090,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         op = operator.lt if self.is_monotonic_increasing else operator.le
         indexer = np.where(
-            op(left_distances, right_distances) | (right_indexer == -1),
+            # error: Argument 1&2 has incompatible type "Union[ExtensionArray,
+            # ndarray[Any, Any]]"; expected "Union[SupportsDunderLE,
+            # SupportsDunderGE, SupportsDunderGT, SupportsDunderLT]"
+            op(left_distances, right_distances)  # type: ignore[arg-type]
+            | (right_indexer == -1),
             left_indexer,
             right_indexer,
         )
@@ -4354,7 +4362,9 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             target = ensure_index(target)
 
-        if level is not None:
+        if level is not None and (
+            isinstance(self, ABCMultiIndex) or isinstance(target, ABCMultiIndex)
+        ):
             if method is not None:
                 raise TypeError("Fill method not supported if level passed")
 
@@ -5030,7 +5040,11 @@ class Index(IndexOpsMixin, PandasObject):
         Get the ndarray or ExtensionArray that we can pass to the IndexEngine
         constructor.
         """
-        return self._values
+        vals = self._values
+        if isinstance(vals, StringArray):
+            # GH#45652 much more performant than ExtensionEngine
+            return vals._ndarray
+        return vals
 
     def _from_join_target(self, result: np.ndarray) -> ArrayLike:
         """
@@ -5274,7 +5288,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         https://github.com/pandas-dev/pandas/issues/19764
         """
-        if self.is_object() or self.is_categorical():
+        if self.is_object() or is_string_dtype(self.dtype) or self.is_categorical():
             return name in self
         return False
 
@@ -6798,7 +6812,11 @@ class Index(IndexOpsMixin, PandasObject):
         # TODO(2.0) can use Index instead of self._constructor
         return self._constructor._with_infer(new_values, name=self.name)
 
-    def drop(self, labels, errors: str_t = "raise") -> Index:
+    def drop(
+        self,
+        labels: Index | np.ndarray | Iterable[Hashable],
+        errors: IgnoreRaise = "raise",
+    ) -> Index:
         """
         Make new Index with passed list of labels deleted.
 

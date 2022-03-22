@@ -129,7 +129,7 @@ class BaseArrayManager(DataManager):
         arrays: list[np.ndarray | ExtensionArray],
         axes: list[Index],
         verify_integrity: bool = True,
-    ):
+    ) -> None:
         raise NotImplementedError
 
     def make_empty(self: T, axes=None) -> T:
@@ -710,7 +710,7 @@ class ArrayManager(BaseArrayManager):
         arrays: list[np.ndarray | ExtensionArray],
         axes: list[Index],
         verify_integrity: bool = True,
-    ):
+    ) -> None:
         # Note: we are storing the axes in "_axes" in the (row, columns) order
         # which contrasts the order how it is stored in BlockManager
         self._axes = axes
@@ -1182,7 +1182,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         arrays: list[np.ndarray | ExtensionArray],
         axes: list[Index],
         verify_integrity: bool = True,
-    ):
+    ) -> None:
         self._axes = axes
         self.arrays = arrays
 
@@ -1347,7 +1347,7 @@ class NullArrayProxy:
 
     ndim = 1
 
-    def __init__(self, n: int):
+    def __init__(self, n: int) -> None:
         self.n = n
 
     @property

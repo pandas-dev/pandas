@@ -801,31 +801,6 @@ class TestSeriesConstructors:
         obj = frame_or_series(list(arr), dtype="i8")
         tm.assert_equal(obj, expected)
 
-    @td.skip_if_no("dask")
-    def test_construct_dask_float_array_int_dtype_match_ndarray(self):
-        # GH#40110 make sure we treat a float-dtype dask array with the same
-        #  rules we would for an ndarray
-        import dask.dataframe as dd
-
-        arr = np.array([1, 2.5, 3])
-        darr = dd.from_array(arr)
-
-        res = Series(darr)
-        expected = Series(arr)
-        tm.assert_series_equal(res, expected)
-
-        res = Series(darr, dtype="i8")
-        expected = Series(arr, dtype="i8")
-        tm.assert_series_equal(res, expected)
-
-        msg = "In a future version, passing float-dtype values containing NaN"
-        arr[2] = np.nan
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = Series(darr, dtype="i8")
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = Series(arr, dtype="i8")
-        tm.assert_series_equal(res, expected)
-
     def test_constructor_coerce_float_fail(self, any_int_numpy_dtype):
         # see gh-15832
         # Updated: make sure we treat this list the same as we would treat
@@ -1989,9 +1964,7 @@ def test_numpy_array(input_dict, expected):
     tm.assert_numpy_array_equal(result, expected)
 
 
-@pytest.mark.skipif(
-    not np_version_under1p19, reason="check failure on numpy below 1.19"
-)
+@pytest.mark.xfail(not np_version_under1p19, reason="check failure on numpy below 1.19")
 def test_numpy_array_np_v1p19():
     with pytest.raises(KeyError, match="0"):
         np.array([Series({1: 1})])
