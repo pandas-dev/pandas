@@ -1014,6 +1014,11 @@ cdef class _Timedelta(timedelta):
         >>> td.delta
         42
         """
+        warnings.warn(
+            "Timedelta.delta is deprecated and will be removed in a future version.",
+            FutureWarning,
+            stacklevel=1,
+        )
         return self.value
 
     @property

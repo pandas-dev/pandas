@@ -681,3 +681,9 @@ def test_is_populated_deprecated():
 
     with pytest.raises(AttributeError, match="is not writable"):
         td.is_populated = 1
+
+
+def test_delta_deprecated():
+    td = Timedelta(123456546, unit="ns")
+    with tm.assert_produces_warning(FutureWarning, match="Timedelta.delta is"):
+        td.delta
