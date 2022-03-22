@@ -1774,12 +1774,14 @@ class Index(IndexOpsMixin, PandasObject):
     ) -> list[Hashable]:
         """
         Get names of index.
+
         Parameters
         ----------
         names : int, str or 1-dimensional list, default None
             index names to set
         default : str
             default name of index
+
         Raises
         ------
         TypeError
