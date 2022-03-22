@@ -72,7 +72,6 @@ from pandas._libs.tslibs.nattype cimport (
 )
 from pandas._libs.tslibs.tzconversion cimport (
     Localizer,
-    bisect_right_i8,
     tz_localize_to_utc_single,
 )
 
@@ -507,9 +506,6 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
         _TSObject obj = _TSObject()
         int64_t value  # numpy dt64
         datetime dt
-        ndarray[int64_t] trans
-        int64_t* tdata
-        int64_t[::1] deltas
 
     value = dtstruct_to_dt64(&dts)
     obj.dts = dts
@@ -674,8 +670,6 @@ cdef inline void _localize_tso(_TSObject obj, tzinfo tz):
     cdef:
         Localizer info = Localizer(tz)
         int64_t local_val
-        int64_t* tdata
-        Py_ssize_t pos
 
     assert obj.tzinfo is None
 
