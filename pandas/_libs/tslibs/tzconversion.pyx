@@ -604,6 +604,7 @@ cdef class Localizer:
         self.ntrans = -1  # placeholder
         self.delta = -1   # placeholder
         self.deltas = _deltas_placeholder
+        self.tdata = NULL
 
         if is_utc(tz) or tz is None:
             self.use_utc = True
@@ -614,6 +615,7 @@ cdef class Localizer:
         else:
             trans, deltas, typ = get_dst_info(tz)
             self.trans = trans
+            self.tdata = <int64_t*>cnp.PyArray_DATA(trans)
             self.ntrans = trans.shape[0]
             self.deltas = deltas
 
@@ -632,7 +634,6 @@ cdef class Localizer:
         cdef:
             int64_t local_val
             Py_ssize_t pos
-            int64_t* tdata
 
         if self.use_utc:
             local_val = utc_val
@@ -641,9 +642,7 @@ cdef class Localizer:
         elif self.use_fixed:
             local_val = utc_val + self.delta
         else:
-            # TODO: extract tdata just once at __cinit__
-            tdata = <int64_t*>cnp.PyArray_DATA(self.trans)
-            pos = bisect_right_i8(tdata, utc_val, self.ntrans) - 1
+            pos = bisect_right_i8(self.tdata, utc_val, self.ntrans) - 1
             local_val = utc_val + self.deltas[pos]
 
             if fold is not NULL:
@@ -662,12 +661,9 @@ cdef class Localizer:
         # Caller is responsible for checking self.use_pytz
         cdef:
             Py_ssize_t pos
-            int64_t* tdata
             tzinfo tz
 
-        # TODO: extract tdata just once at __cinit__
-        tdata = <int64_t*>cnp.PyArray_DATA(self.trans)
-        pos = bisect_right_i8(tdata, utc_val, self.ntrans) - 1
+        pos = bisect_right_i8(self.tdata, utc_val, self.ntrans) - 1
 
         # find right representation of dst etc in pytz timezone
         tz = self.tz
