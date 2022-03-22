@@ -5284,6 +5284,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         For negative values of `n`, this function returns all rows except
         the last `n` rows, equivalent to ``df[:-n]``.
 
+        If n is larger than the number of rows, this function returns all rows.
+
         Parameters
         ----------
         n : int, default 5
@@ -5356,6 +5358,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         For negative values of `n`, this function returns all rows except
         the first `n` rows, equivalent to ``df[n:]``.
+
+        If n is larger than the number of rows, this function returns all rows.
 
         Parameters
         ----------
