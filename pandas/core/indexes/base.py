@@ -9,6 +9,7 @@ from typing import (
     Any,
     Callable,
     Hashable,
+    Iterable,
     Literal,
     Sequence,
     TypeVar,
@@ -46,6 +47,7 @@ from pandas._typing import (
     Dtype,
     DtypeObj,
     F,
+    IgnoreRaise,
     Shape,
     npt,
 )
@@ -97,6 +99,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_signed_integer_dtype,
+    is_string_dtype,
     is_unsigned_integer_dtype,
     needs_i8_conversion,
     pandas_dtype,
@@ -147,6 +150,7 @@ from pandas.core.arrays.datetimes import (
     validate_tz_from_dtype,
 )
 from pandas.core.arrays.sparse import SparseDtype
+from pandas.core.arrays.string_ import StringArray
 from pandas.core.base import (
     IndexOpsMixin,
     PandasObject,
@@ -890,7 +894,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         # error: Argument 1 to "ExtensionEngine" has incompatible type
         # "ndarray[Any, Any]"; expected "ExtensionArray"
-        return self._engine_type(target_values)  # type:ignore[arg-type]
+        return self._engine_type(target_values)  # type: ignore[arg-type]
 
     @final
     @cache_readonly
@@ -2187,7 +2191,9 @@ class Index(IndexOpsMixin, PandasObject):
                 verify_integrity=False,
             )
 
-    def _get_grouper_for_level(self, mapper, *, level=None):
+    def _get_grouper_for_level(
+        self, mapper, *, level=None
+    ) -> tuple[Index, npt.NDArray[np.signedinteger] | None, Index | None]:
         """
         Get index grouper corresponding to an index level
 
@@ -3920,7 +3926,6 @@ class Index(IndexOpsMixin, PandasObject):
         elif method == "nearest":
             indexer = self._get_nearest_indexer(target, limit, tolerance)
         else:
-            tgt_values = target._get_engine_target()
             if target._is_multi and self._is_multi:
                 engine = self._engine
                 # error: Item "IndexEngine" of "Union[IndexEngine, ExtensionEngine]"
@@ -3928,11 +3933,10 @@ class Index(IndexOpsMixin, PandasObject):
                 tgt_values = engine._extract_level_codes(  # type: ignore[union-attr]
                     target
                 )
+            else:
+                tgt_values = target._get_engine_target()
 
-            # error: Argument 1 to "get_indexer" of "IndexEngine" has incompatible
-            # type "Union[ExtensionArray, ndarray[Any, Any]]"; expected
-            # "ndarray[Any, Any]"
-            indexer = self._engine.get_indexer(tgt_values)  # type:ignore[arg-type]
+            indexer = self._engine.get_indexer(tgt_values)
 
         return ensure_platform_int(indexer)
 
@@ -4086,7 +4090,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         op = operator.lt if self.is_monotonic_increasing else operator.le
         indexer = np.where(
-            op(left_distances, right_distances) | (right_indexer == -1),
+            # error: Argument 1&2 has incompatible type "Union[ExtensionArray,
+            # ndarray[Any, Any]]"; expected "Union[SupportsDunderLE,
+            # SupportsDunderGE, SupportsDunderGT, SupportsDunderLT]"
+            op(left_distances, right_distances)  # type: ignore[arg-type]
+            | (right_indexer == -1),
             left_indexer,
             right_indexer,
         )
@@ -4354,7 +4362,9 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             target = ensure_index(target)
 
-        if level is not None:
+        if level is not None and (
+            isinstance(self, ABCMultiIndex) or isinstance(target, ABCMultiIndex)
+        ):
             if method is not None:
                 raise TypeError("Fill method not supported if level passed")
 
@@ -4542,15 +4552,25 @@ class Index(IndexOpsMixin, PandasObject):
         if level is not None and (self._is_multi or other._is_multi):
             return self._join_level(other, level, how=how)
 
-        if len(other) == 0 and how in ("left", "outer"):
-            join_index = self._view()
-            rindexer = np.repeat(np.intp(-1), len(join_index))
-            return join_index, None, rindexer
+        if len(other) == 0:
+            if how in ("left", "outer"):
+                join_index = self._view()
+                rindexer = np.broadcast_to(np.intp(-1), len(join_index))
+                return join_index, None, rindexer
+            elif how in ("right", "inner", "cross"):
+                join_index = other._view()
+                lindexer = np.array([])
+                return join_index, lindexer, None
 
-        if len(self) == 0 and how in ("right", "outer"):
-            join_index = other._view()
-            lindexer = np.repeat(np.intp(-1), len(join_index))
-            return join_index, lindexer, None
+        if len(self) == 0:
+            if how in ("right", "outer"):
+                join_index = other._view()
+                lindexer = np.broadcast_to(np.intp(-1), len(join_index))
+                return join_index, lindexer, None
+            elif how in ("left", "inner", "cross"):
+                join_index = self._view()
+                rindexer = np.array([])
+                return join_index, None, rindexer
 
         if self._join_precedence < other._join_precedence:
             how = {"right": "left", "left": "right"}.get(how, how)
@@ -5020,7 +5040,11 @@ class Index(IndexOpsMixin, PandasObject):
         Get the ndarray or ExtensionArray that we can pass to the IndexEngine
         constructor.
         """
-        return self._values
+        vals = self._values
+        if isinstance(vals, StringArray):
+            # GH#45652 much more performant than ExtensionEngine
+            return vals._ndarray
+        return vals
 
     def _from_join_target(self, result: np.ndarray) -> ArrayLike:
         """
@@ -5264,7 +5288,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         https://github.com/pandas-dev/pandas/issues/19764
         """
-        if self.is_object() or self.is_categorical():
+        if self.is_object() or is_string_dtype(self.dtype) or self.is_categorical():
             return name in self
         return False
 
@@ -5538,7 +5562,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self[loc]
 
-    def asof_locs(self, where: Index, mask: np.ndarray) -> npt.NDArray[np.intp]:
+    def asof_locs(
+        self, where: Index, mask: npt.NDArray[np.bool_]
+    ) -> npt.NDArray[np.intp]:
         """
         Return the locations (indices) of labels in the index.
 
@@ -6786,7 +6812,11 @@ class Index(IndexOpsMixin, PandasObject):
         # TODO(2.0) can use Index instead of self._constructor
         return self._constructor._with_infer(new_values, name=self.name)
 
-    def drop(self, labels, errors: str_t = "raise") -> Index:
+    def drop(
+        self,
+        labels: Index | np.ndarray | Iterable[Hashable],
+        errors: IgnoreRaise = "raise",
+    ) -> Index:
         """
         Make new Index with passed list of labels deleted.
 
@@ -7153,7 +7183,7 @@ def ensure_index_from_sequences(sequences, names=None) -> Index:
     if len(sequences) == 1:
         if names is not None:
             names = names[0]
-        return Index(sequences[0], name=names)
+        return Index._with_infer(sequences[0], name=names)
     else:
         return MultiIndex.from_arrays(sequences, names=names)
 

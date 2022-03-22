@@ -187,7 +187,7 @@ class RemoveCategories:
 class Rank:
     def setup(self):
         N = 10**5
-        ncats = 100
+        ncats = 15
 
         self.s_str = pd.Series(tm.makeCategoricalIndex(N, ncats)).astype(str)
         self.s_str_cat = pd.Series(self.s_str, dtype="category")

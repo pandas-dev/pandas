@@ -6,7 +6,7 @@ from cpython.datetime cimport (
     PyDateTime_GET_DAY,
     PyDateTime_GET_MONTH,
     PyDateTime_GET_YEAR,
-    PyDateTime_IMPORT,
+    import_datetime,
 )
 from cpython.object cimport (
     Py_EQ,
@@ -17,8 +17,11 @@ from cpython.object cimport (
     Py_NE,
 )
 
-PyDateTime_IMPORT
+import_datetime()
 
+cimport numpy as cnp
+
+cnp.import_array()
 from numpy cimport int64_t
 
 from pandas._libs.tslibs.util cimport get_c_string_buf_and_size
@@ -28,19 +31,14 @@ cdef extern from "src/datetime/np_datetime.h":
     int cmp_npy_datetimestruct(npy_datetimestruct *a,
                                npy_datetimestruct *b)
 
-    npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
-                                                npy_datetimestruct *d) nogil
-
-    void pandas_datetime_to_datetimestruct(npy_datetime val,
-                                           NPY_DATETIMEUNIT fr,
-                                           npy_datetimestruct *result) nogil
-
     void pandas_timedelta_to_timedeltastruct(npy_timedelta val,
                                              NPY_DATETIMEUNIT fr,
                                              pandas_timedeltastruct *result
                                              ) nogil
 
     npy_datetimestruct _NS_MIN_DTS, _NS_MAX_DTS
+
+    PyArray_DatetimeMetaData get_datetime_metadata_from_dtype(cnp.PyArray_Descr *dtype);
 
 cdef extern from "src/datetime/np_datetime_strings.h":
     int parse_iso_8601_datetime(const char *str, int len, int want_exc,
@@ -74,6 +72,22 @@ cdef inline NPY_DATETIMEUNIT get_datetime64_unit(object obj) nogil:
     """
     return <NPY_DATETIMEUNIT>(<PyDatetimeScalarObject*>obj).obmeta.base
 
+
+cdef NPY_DATETIMEUNIT get_unit_from_dtype(cnp.dtype dtype):
+    # NB: caller is responsible for ensuring this is *some* datetime64 or
+    #  timedelta64 dtype, otherwise we can segfault
+    cdef:
+        cnp.PyArray_Descr* descr = <cnp.PyArray_Descr*>dtype
+        PyArray_DatetimeMetaData meta
+    meta = get_datetime_metadata_from_dtype(descr)
+    return meta.base
+
+
+def py_get_unit_from_dtype(dtype):
+    # for testing get_unit_from_dtype; adds 896 bytes to the .so file.
+    return get_unit_from_dtype(dtype)
+
+
 # ----------------------------------------------------------------------
 # Comparison
 
@@ -98,6 +112,10 @@ cdef inline bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1:
 
 
 class OutOfBoundsDatetime(ValueError):
+    """
+    Raised when the datetime is outside the range that
+    can be represented.
+    """
     pass
 
 

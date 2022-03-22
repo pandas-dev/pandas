@@ -41,6 +41,7 @@ from pandas._typing import (
     ArrayLike,
     DtypeArg,
     Shape,
+    npt,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
@@ -564,7 +565,7 @@ class HDFStore:
         complib=None,
         fletcher32: bool = False,
         **kwargs,
-    ):
+    ) -> None:
 
         if "format" in kwargs:
             raise ValueError("format is not a defined argument for HDFStore")
@@ -1879,7 +1880,7 @@ class TableIterator:
         iterator: bool = False,
         chunksize: int | None = None,
         auto_close: bool = False,
-    ):
+    ) -> None:
         self.store = store
         self.s = s
         self.func = func
@@ -1992,7 +1993,7 @@ class IndexCol:
         table=None,
         meta=None,
         metadata=None,
-    ):
+    ) -> None:
 
         if not isinstance(name, str):
             raise ValueError("`name` must be a str.")
@@ -2309,7 +2310,7 @@ class DataCol(IndexCol):
         metadata=None,
         dtype: DtypeArg | None = None,
         data=None,
-    ):
+    ) -> None:
         super().__init__(
             name=name,
             values=values,
@@ -2624,7 +2625,7 @@ class Fixed:
         group: Node,
         encoding: str = "UTF-8",
         errors: str = "strict",
-    ):
+    ) -> None:
         assert isinstance(parent, HDFStore), type(parent)
         assert _table_mod is not None  # needed for mypy
         assert isinstance(group, _table_mod.Node), type(group)
@@ -3306,7 +3307,7 @@ class Table(Fixed):
         data_columns=None,
         info=None,
         nan_rep=None,
-    ):
+    ) -> None:
         super().__init__(parent, group, encoding=encoding, errors=errors)
         self.index_axes = index_axes or []
         self.non_index_axes = non_index_axes or []
@@ -4409,7 +4410,7 @@ class AppendableTable(Table):
         self,
         rows: np.ndarray,
         indexes: list[np.ndarray],
-        mask: np.ndarray | None,
+        mask: npt.NDArray[np.bool_] | None,
         values: list[np.ndarray],
     ):
         """
@@ -5209,7 +5210,7 @@ class Selection:
         where=None,
         start: int | None = None,
         stop: int | None = None,
-    ):
+    ) -> None:
         self.table = table
         self.where = where
         self.start = start

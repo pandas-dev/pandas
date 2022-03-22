@@ -80,7 +80,7 @@ class ParserBase:
     _implicit_index: bool = False
     _first_chunk: bool
 
-    def __init__(self, kwds):
+    def __init__(self, kwds) -> None:
 
         self.names = kwds.get("names")
         self.orig_names: list | None = None
@@ -103,6 +103,7 @@ class ParserBase:
         self.keep_default_na = kwds.get("keep_default_na", True)
 
         self.dtype = copy(kwds.get("dtype", None))
+        self.converters = kwds.get("converters")
 
         self.true_values = kwds.get("true_values")
         self.false_values = kwds.get("false_values")
@@ -476,6 +477,7 @@ class ParserBase:
     @final
     def _agg_index(self, index, try_parse_dates: bool = True) -> Index:
         arrays = []
+        converters = self._clean_mapping(self.converters)
 
         for i, arr in enumerate(index):
 
@@ -500,10 +502,17 @@ class ParserBase:
             clean_dtypes = self._clean_mapping(self.dtype)
 
             cast_type = None
-            if isinstance(clean_dtypes, dict) and self.index_names is not None:
-                cast_type = clean_dtypes.get(self.index_names[i], None)
+            index_converter = False
+            if self.index_names is not None:
+                if isinstance(clean_dtypes, dict):
+                    cast_type = clean_dtypes.get(self.index_names[i], None)
 
-            try_num_bool = not (cast_type and is_string_dtype(cast_type))
+                if isinstance(converters, dict):
+                    index_converter = converters.get(self.index_names[i]) is not None
+
+            try_num_bool = not (
+                cast_type and is_string_dtype(cast_type) or index_converter
+            )
 
             arr, _ = self._infer_types(
                 arr, col_na_values | col_na_fvalues, try_num_bool
@@ -846,9 +855,11 @@ class ParserBase:
         data: list of array-likes containing the data column-wise.
         """
         if not self.index_col and len(columns) != len(data) and columns:
-            if len(columns) == len(data) - 1 and np.all(
-                (is_object_dtype(data[-1]) and data[-1] == "") | isna(data[-1])
-            ):
+            empty_str = is_object_dtype(data[-1]) and data[-1] == ""
+            # error: No overload variant of "__ror__" of "ndarray" matches
+            # argument type "ExtensionArray"
+            empty_str_or_na = empty_str | isna(data[-1])  # type: ignore[operator]
+            if len(columns) == len(data) - 1 and np.all(empty_str_or_na):
                 return
             warnings.warn(
                 "Length of header or names does not match length of data. This leads "

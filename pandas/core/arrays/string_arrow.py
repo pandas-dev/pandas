@@ -6,7 +6,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Union,
-    cast,
     overload,
 )
 
@@ -48,6 +47,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.arraylike import OpsMixin
+from pandas.core.arrays._mixins import ArrowExtensionArray
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.boolean import BooleanDtype
 from pandas.core.arrays.integer import Int64Dtype
@@ -94,7 +94,9 @@ def _chk_pyarrow_available() -> None:
 # fallback for the ones that pyarrow doesn't yet support
 
 
-class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
+class ArrowStringArray(
+    OpsMixin, ArrowExtensionArray, BaseStringArray, ObjectStringArrayMixin
+):
     """
     Extension array for string data in a ``pyarrow.ChunkedArray``.
 
@@ -138,7 +140,7 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
     Length: 4, dtype: string
     """
 
-    def __init__(self, values):
+    def __init__(self, values) -> None:
         self._dtype = StringDtype(storage="pyarrow")
         if isinstance(values, pa.Array):
             self._data = pa.chunked_array([values])
@@ -191,10 +193,6 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
         """Correctly construct numpy arrays when passed to `np.asarray()`."""
         return self.to_numpy(dtype=dtype)
 
-    def __arrow_array__(self, type=None):
-        """Convert myself to a pyarrow Array or ChunkedArray."""
-        return self._data
-
     def to_numpy(
         self,
         dtype: npt.DTypeLike | None = None,
@@ -216,16 +214,6 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
             result[mask] = na_value
         return result
 
-    def __len__(self) -> int:
-        """
-        Length of this array.
-
-        Returns
-        -------
-        length : int
-        """
-        return len(self._data)
-
     @doc(ExtensionArray.factorize)
     def factorize(self, na_sentinel: int = -1) -> tuple[np.ndarray, ExtensionArray]:
         encoded = self._data.dictionary_encode()
@@ -242,25 +230,6 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
             uniques = type(self)(pa.array([], type=encoded.type.value_type))
 
         return indices.values, uniques
-
-    @classmethod
-    def _concat_same_type(cls, to_concat) -> ArrowStringArray:
-        """
-        Concatenate multiple ArrowStringArray.
-
-        Parameters
-        ----------
-        to_concat : sequence of ArrowStringArray
-
-        Returns
-        -------
-        ArrowStringArray
-        """
-        return cls(
-            pa.chunked_array(
-                [array for ea in to_concat for array in ea._data.iterchunks()]
-            )
-        )
 
     @overload
     def __getitem__(self, item: ScalarIndexer) -> ArrowStringScalarOrNAT:
@@ -342,34 +311,6 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
         else:
             return scalar
 
-    @property
-    def nbytes(self) -> int:
-        """
-        The number of bytes needed to store this object in memory.
-        """
-        return self._data.nbytes
-
-    def isna(self) -> np.ndarray:
-        """
-        Boolean NumPy array indicating if each value is missing.
-
-        This should return a 1-D array the same length as 'self'.
-        """
-        # TODO: Implement .to_numpy for ChunkedArray
-        return self._data.is_null().to_pandas().values
-
-    def copy(self) -> ArrowStringArray:
-        """
-        Return a shallow copy of the array.
-
-        Underlying ChunkedArray is immutable, so a deep copy is unnecessary.
-
-        Returns
-        -------
-        ArrowStringArray
-        """
-        return type(self)(self._data)
-
     def _cmp_method(self, other, op):
         from pandas.arrays import BooleanArray
 
@@ -390,79 +331,31 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
         else:
             return NotImplemented
 
-        # TODO(ARROW-9429): Add a .to_numpy() to ChunkedArray
-        return BooleanArray._from_sequence(result.to_pandas().values)
+        if pa_version_under2p0:
+            result = result.to_pandas().values
+        else:
+            result = result.to_numpy()
+        return BooleanArray._from_sequence(result)
 
     def insert(self, loc: int, item):
         if not isinstance(item, str) and item is not libmissing.NA:
             raise TypeError("Scalar must be NA or str")
         return super().insert(loc, item)
 
-    def __setitem__(self, key: int | slice | np.ndarray, value: Any) -> None:
-        """Set one or more values inplace.
-
-        Parameters
-        ----------
-        key : int, ndarray, or slice
-            When called from, e.g. ``Series.__setitem__``, ``key`` will be
-            one of
-
-            * scalar int
-            * ndarray of integers.
-            * boolean ndarray
-            * slice object
-
-        value : ExtensionDtype.type, Sequence[ExtensionDtype.type], or object
-            value or values to be set of ``key``.
-
-        Returns
-        -------
-        None
-        """
-        key = check_array_indexer(self, key)
-
-        if is_integer(key):
-            key = cast(int, key)
-
-            if not is_scalar(value):
-                raise ValueError("Must pass scalars with scalar indexer")
-            elif isna(value):
+    def _maybe_convert_setitem_value(self, value):
+        """Maybe convert value to be pyarrow compatible."""
+        if is_scalar(value):
+            if isna(value):
                 value = None
             elif not isinstance(value, str):
                 raise ValueError("Scalar must be NA or str")
-
-            # Slice data and insert in-between
-            new_data = [
-                *self._data[0:key].chunks,
-                pa.array([value], type=pa.string()),
-                *self._data[(key + 1) :].chunks,
-            ]
-            self._data = pa.chunked_array(new_data)
         else:
-            # Convert to integer indices and iteratively assign.
-            # TODO: Make a faster variant of this in Arrow upstream.
-            #       This is probably extremely slow.
-
-            # Convert all possible input key types to an array of integers
-            if isinstance(key, slice):
-                key_array = np.array(range(len(self))[key])
-            elif is_bool_dtype(key):
-                # TODO(ARROW-9430): Directly support setitem(booleans)
-                key_array = np.argwhere(key).flatten()
-            else:
-                # TODO(ARROW-9431): Directly support setitem(integers)
-                key_array = np.asanyarray(key)
-
-            if is_scalar(value):
-                value = np.broadcast_to(value, len(key_array))
-            else:
-                value = np.asarray(value)
-
-            if len(key_array) != len(value):
-                raise ValueError("Length of indexer and values mismatch")
-
-            for k, v in zip(key_array, value):
-                self[k] = v
+            value = np.array(value, dtype=object, copy=True)
+            value[isna(value)] = None
+            for v in value:
+                if not (v is None or isinstance(v, str)):
+                    raise ValueError("Scalar must be NA or str")
+        return value
 
     def take(
         self,
@@ -762,7 +655,7 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
         return type(self)(result)
 
     def _str_match(
-        self, pat: str, case: bool = True, flags: int = 0, na: Scalar = None
+        self, pat: str, case: bool = True, flags: int = 0, na: Scalar | None = None
     ):
         if pa_version_under4p0:
             return super()._str_match(pat, case, flags, na)
@@ -771,7 +664,9 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
             pat = "^" + pat
         return self._str_contains(pat, case, flags, na, regex=True)
 
-    def _str_fullmatch(self, pat, case: bool = True, flags: int = 0, na: Scalar = None):
+    def _str_fullmatch(
+        self, pat, case: bool = True, flags: int = 0, na: Scalar | None = None
+    ):
         if pa_version_under4p0:
             return super()._str_fullmatch(pat, case, flags, na)
 

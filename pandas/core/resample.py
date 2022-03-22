@@ -152,7 +152,7 @@ class Resampler(BaseGroupBy, PandasObject):
         group_keys: bool | lib.NoDefault = lib.no_default,
         selection=None,
         **kwargs,
-    ):
+    ) -> None:
         self.groupby = groupby
         self.keys = None
         self.sort = True
@@ -1064,7 +1064,7 @@ class _GroupByMixin(PandasObject):
     _attributes: list[str]  # in practice the same as Resampler._attributes
     _selection: IndexLabel | None = None
 
-    def __init__(self, obj, parent=None, groupby=None, **kwargs):
+    def __init__(self, obj, parent=None, groupby=None, **kwargs) -> None:
         # reached via ._gotitem and _get_resampler_for_grouping
 
         if parent is None:
@@ -1483,7 +1483,7 @@ class TimeGrouper(Grouper):
         offset: TimedeltaConvertibleTypes | None = None,
         group_keys: bool | lib.NoDefault = True,
         **kwargs,
-    ):
+    ) -> None:
         # Check for correctness of the keyword arguments which would
         # otherwise silently use the default if misspelled
         if label not in {None, "left", "right"}:

@@ -33,11 +33,10 @@ from pandas.tests.plotting.common import (
 from pandas.io.formats.printing import pprint_thing
 import pandas.plotting as plotting
 
-pytestmark = pytest.mark.slow
-
 
 @td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
+    @pytest.mark.slow
     def test_plot(self):
         df = tm.makeTimeDataFrame()
         _check_plot_works(df.plot, grid=False)
@@ -147,12 +146,11 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame(
             {
                 "A": [1, 2, 3, 4, 5],
-                "B": [1.0, 2.0, 3.0, 4.0, 5.0],
-                "C": [7, 5, np.nan, 3, 2],
+                "B": [1, 2, 3, 4, 5],
+                "C": np.array([7, 5, np.nan, 3, 2], dtype=object),
                 "D": pd.to_datetime(dates, format="%Y").view("i8"),
                 "E": pd.to_datetime(dates, format="%Y", utc=True).view("i8"),
-            },
-            dtype=np.int64,
+            }
         )
 
         _check_plot_works(df.plot, x="A", y="B")
@@ -163,6 +161,7 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df[["A", "D"]].plot, x="A", y="D")
         _check_plot_works(df[["A", "E"]].plot, x="A", y="E")
 
+    @pytest.mark.slow
     def test_integer_array_plot(self):
         # GH 25587
         arr = pd.array([1, 2, 3, 4], dtype="UInt32")
@@ -787,6 +786,28 @@ class TestDataFramePlots(TestPlotBase):
         ax = df.plot.scatter(x="a", y="b", s="c")
         tm.assert_numpy_array_equal(df["c"].values, right=ax.collections[0].get_sizes())
 
+    def test_plot_scatter_with_norm(self):
+        # added while fixing GH 45809
+        import matplotlib as mpl
+
+        df = DataFrame(np.random.random((10, 3)) * 100, columns=["a", "b", "c"])
+        norm = mpl.colors.LogNorm()
+        ax = df.plot.scatter(x="a", y="b", c="c", norm=norm)
+        assert ax.collections[0].norm is norm
+
+    def test_plot_scatter_without_norm(self):
+        # added while fixing GH 45809
+        import matplotlib as mpl
+
+        df = DataFrame(np.random.random((10, 3)) * 100, columns=["a", "b", "c"])
+        ax = df.plot.scatter(x="a", y="b", c="c")
+        plot_norm = ax.collections[0].norm
+        color_min_max = (df.c.min(), df.c.max())
+        default_norm = mpl.colors.Normalize(*color_min_max)
+        for value in df.c:
+            assert plot_norm(value) == default_norm(value)
+
+    @pytest.mark.slow
     def test_plot_bar(self):
         df = DataFrame(
             np.random.randn(6, 4),
@@ -1167,7 +1188,7 @@ class TestDataFramePlots(TestPlotBase):
         assert ax.get_legend() is None
 
         ax = s.plot(legend=True)
-        assert ax.get_legend().get_texts()[0].get_text() == "None"
+        assert ax.get_legend().get_texts()[0].get_text() == ""
 
     @pytest.mark.parametrize(
         "props, expected",
@@ -1416,6 +1437,7 @@ class TestDataFramePlots(TestPlotBase):
             expected_labels = base_expected[:i] + base_expected[i + 1 :]
             assert result_labels == expected_labels
 
+    @pytest.mark.slow
     def test_errorbar_plot(self):
         d = {"x": np.arange(12), "y": np.arange(12, 0, -1)}
         df = DataFrame(d)
@@ -1462,6 +1484,7 @@ class TestDataFramePlots(TestPlotBase):
         with tm.external_error_raised(TypeError):
             df.plot(yerr=df_err)
 
+    @pytest.mark.slow
     @pytest.mark.parametrize("kind", ["line", "bar", "barh"])
     def test_errorbar_plot_different_kinds(self, kind):
         d = {"x": np.arange(12), "y": np.arange(12, 0, -1)}
@@ -1513,6 +1536,7 @@ class TestDataFramePlots(TestPlotBase):
         ax = _check_plot_works(df.plot, y=0, yerr=1)
         self._check_has_errorbars(ax, xerr=0, yerr=1)
 
+    @pytest.mark.slow
     def test_errorbar_with_partial_columns(self):
         df = DataFrame(np.random.randn(10, 3))
         df_err = DataFrame(np.random.randn(10, 2), columns=[0, 2])
