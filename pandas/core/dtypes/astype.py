@@ -19,6 +19,7 @@ from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
+    IgnoreRaise,
 )
 from pandas.errors import IntCastingNaNError
 from pandas.util._exceptions import find_stack_level
@@ -235,7 +236,7 @@ def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> Arra
 
 
 def astype_array_safe(
-    values: ArrayLike, dtype, copy: bool = False, errors: str = "raise"
+    values: ArrayLike, dtype, copy: bool = False, errors: IgnoreRaise = "raise"
 ) -> ArrayLike:
     """
     Cast array (ndarray or ExtensionArray) to the new dtype.
