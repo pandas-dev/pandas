@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import numbers
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    cast,
+)
 
 import numpy as np
 
@@ -30,6 +33,8 @@ from pandas.core.arrays.masked import (
 
 if TYPE_CHECKING:
     import pyarrow
+
+    from pandas._typing import npt
 
 
 @register_extension_dtype
@@ -137,18 +142,6 @@ class BooleanDtype(BaseMaskedDtype):
         else:
             return BooleanArray._concat_same_type(results)
 
-    def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
-        # Handle only boolean + np.bool_ -> boolean, since other cases like
-        # Int64 + boolean -> Int64 will be handled by the other type
-        if all(
-            isinstance(t, BooleanDtype)
-            or (isinstance(t, np.dtype) and (np.issubdtype(t, np.bool_)))
-            for t in dtypes
-        ):
-            return BooleanDtype()
-        else:
-            return None
-
 
 def coerce_to_array(
     values, mask=None, copy: bool = False
@@ -200,7 +193,9 @@ def coerce_to_array(
         if inferred_dtype not in ("boolean", "empty") + integer_like:
             raise TypeError("Need to pass bool-like values")
 
-        mask_values = isna(values_object)
+        # mypy does not narrow the type of mask_values to npt.NDArray[np.bool_]
+        # within this branch, it assumes it can also be None
+        mask_values = cast("npt.NDArray[np.bool_]", isna(values_object))
         values = np.zeros(len(values), dtype=bool)
         values[~mask_values] = values_object[~mask_values].astype(bool)
 
