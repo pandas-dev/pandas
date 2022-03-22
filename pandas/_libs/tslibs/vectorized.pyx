@@ -35,10 +35,7 @@ from .np_datetime cimport (
 from .offsets cimport BaseOffset
 from .period cimport get_period_ordinal
 from .timestamps cimport create_timestamp_from_ts
-from .tzconversion cimport (
-    Localizer,
-    bisect_right_i8,
-)
+from .tzconversion cimport Localizer
 
 # -------------------------------------------------------------------------
 
@@ -82,8 +79,6 @@ def ints_to_pydatetime(
     cdef:
         Localizer info = Localizer(tz)
         Py_ssize_t i, n = stamps.shape[0]
-        int64_t* tdata = NULL
-        intp_t pos
         int64_t utc_val, local_val
 
         npy_datetimestruct dts
