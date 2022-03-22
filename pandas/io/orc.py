@@ -1,6 +1,7 @@
 """ orc compat """
 from __future__ import annotations
 
+import io
 from typing import (
     TYPE_CHECKING,
     Literal,
@@ -100,6 +101,14 @@ def to_orc(
         raise ValueError("engine must be 'pyarrow'")
     engine = import_optional_dependency(engine, min_version="7.0.0")
 
+    path_or_buf: FilePath | WriteBuffer[bytes] = io.BytesIO() if path is None else path
     engine.orc.write_table(
-        engine.Table.from_pandas(df, preserve_index=index), path, **kwargs
+        engine.Table.from_pandas(df, preserve_index=index), path_or_buf, **kwargs
     )
+
+    if path is None:
+        assert isinstance(path_or_buf, io.BytesIO)
+        return path_or_buf.getvalue()
+    else:
+        return None
+
