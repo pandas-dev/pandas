@@ -32,8 +32,6 @@ class _LengthDescriptor:
     def __get__(
         self, instance: Interval[_OrderableTimesT], owner: Any
     ) -> Timedelta: ...
-    @overload
-    def __get__(self, instance: IntervalTree, owner: Any) -> np.ndarray: ...
 
 class _MidDescriptor:
     @overload
@@ -42,8 +40,6 @@ class _MidDescriptor:
     def __get__(
         self, instance: Interval[_OrderableTimesT], owner: Any
     ) -> _OrderableTimesT: ...
-    @overload
-    def __get__(self, instance: IntervalTree, owner: Any) -> np.ndarray: ...
 
 class IntervalMixin:
     @property
@@ -162,8 +158,10 @@ class IntervalTree(IntervalMixin):
         closed: IntervalClosedType = ...,
         leaf_size: int = ...,
     ): ...
-    mid: _MidDescriptor
-    length: _LengthDescriptor
+    @property
+    def mid(self) -> np.ndarray: ...
+    @property
+    def length(self) -> np.ndarray: ...
     def get_indexer(self, target) -> npt.NDArray[np.intp]: ...
     def get_indexer_non_unique(
         self, target
