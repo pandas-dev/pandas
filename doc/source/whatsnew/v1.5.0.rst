@@ -350,7 +350,7 @@ Other Deprecations
 - Deprecated treating all-bool ``object``-dtype columns as bool-like in :meth:`DataFrame.any` and :meth:`DataFrame.all` with ``bool_only=True``, explicitly cast to bool instead (:issue:`46188`)
 - Deprecated behavior of method :meth:`DataFrame.quantile`, attribute ``numeric_only`` will default False. Including datetime/timedelta columns in the result (:issue:`7308`).
 - Deprecated :attr:`Timedelta.freq` and :attr:`Timedelta.is_populated` (:issue:`46430`)
-- Deprecated :attr:`Timedelta.delta` (:issue:`??`)
+- Deprecated :attr:`Timedelta.delta` (:issue:`46476`)
 -
 
 .. ---------------------------------------------------------------------------

@@ -684,6 +684,7 @@ def test_is_populated_deprecated():
 
 
 def test_delta_deprecated():
+    # GH#46476
     td = Timedelta(123456546, unit="ns")
     with tm.assert_produces_warning(FutureWarning, match="Timedelta.delta is"):
         td.delta
