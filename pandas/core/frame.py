@@ -2906,15 +2906,15 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         path: FilePath | WriteBuffer[bytes] | None = None,
         engine: Literal["pyarrow"] = "pyarrow",
-        index: bool = None,
+        index: bool | None = None,
         **kwargs,
-    ) -> bytes:
+    ) -> bytes | None:
         """
         Write a DataFrame to the ORC format.
         Parameters
         ----------
         df : DataFrame
-        path : str or file-like object, default None
+        path : str, file-like object or None, default None
             If a string, it will be used as Root Directory path
             when writing a partitioned dataset. By file-like object,
             we refer to objects with a write() method, such as a file handle
@@ -2923,7 +2923,7 @@ class DataFrame(NDFrame, OpsMixin):
         engine : {{'pyarrow'}}, default 'pyarrow'
             ORC library to use, or library itself, checked with 'pyarrow' name
             and version >= 7.0.0
-        index : bool, default None
+        index : bool, optional
             If ``True``, include the dataframe's index(es) in the file output. If
             ``False``, they will not be written to the file.
             If ``None``, similar to ``infer`` the dataframe's index(es)
