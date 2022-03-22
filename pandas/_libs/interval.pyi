@@ -162,6 +162,8 @@ class IntervalTree(IntervalMixin):
         closed: IntervalClosedType = ...,
         leaf_size: int = ...,
     ): ...
+    mid: _MidDescriptor
+    length: _LengthDescriptor
     def get_indexer(self, target) -> npt.NDArray[np.intp]: ...
     def get_indexer_non_unique(
         self, target
