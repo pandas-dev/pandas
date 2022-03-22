@@ -268,7 +268,10 @@ def is_iterator(obj: object) -> bool:
     >>> is_iterator(1)
     False
     """
-    return PyIter_Check(obj)
+    IF UNAME_SYSNAME.startswith("CYGWIN"):
+        return isinstance(obj, abc.Iterator)
+    ELSE:
+        return PyIter_Check(obj)
 
 
 def item_from_zerodim(val: object) -> object:
