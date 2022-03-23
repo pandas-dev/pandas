@@ -504,7 +504,7 @@ Period
 ^^^^^^
 - Bug in subtraction of :class:`Period` from :class:`PeriodArray` returning wrong results (:issue:`45999`)
 - Bug in :meth:`Period.strftime` and :meth:`PeriodIndex.strftime`, directives ``%l`` and ``%u`` were giving wrong results (:issue:`46252`)
-- Bug in :meth:`Period.strftime` and :meth:`PeriodIndex.strftime`, Unicode decoding error when a locale-specific directive is used (:issue:`46319`)
+- Bug in :meth:`Period.strftime` and :meth:`PeriodIndex.strftime`, raising `UnicodeDecodeError` when a locale-specific directive was passed (:issue:`46319`)
 -
 
 Plotting
