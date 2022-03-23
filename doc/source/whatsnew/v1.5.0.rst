@@ -85,6 +85,7 @@ Other enhancements
 - :meth:`to_numeric` now preserves float64 arrays when downcasting would generate values not representable in float32 (:issue:`43693`)
 - :meth:`Series.reset_index` and :meth:`DataFrame.reset_index` now support the argument ``allow_duplicates`` (:issue:`44410`)
 - :meth:`.GroupBy.min` and :meth:`.GroupBy.max` now supports `Numba <https://numba.pydata.org/>`_ execution with the ``engine`` keyword (:issue:`45428`)
+- :func:`read_csv` now supports ``defaultdict`` as a ``dtype`` parameter (:issue:`41574`)
 - :meth:`DataFrame.rolling` and :meth:`Series.rolling` now support a ``step`` parameter with fixed-length windows (:issue:`15354`)
 - Implemented a ``bool``-dtype :class:`Index`, passing a bool-dtype array-like to ``pd.Index`` will now retain ``bool`` dtype instead of casting to ``object`` (:issue:`45061`)
 - Implemented a complex-dtype :class:`Index`, passing a complex-dtype array-like to ``pd.Index`` will now retain complex dtype instead of casting to ``object`` (:issue:`45845`)
@@ -129,32 +130,44 @@ did not have the same index as the input.
 
 .. code-block:: ipython
 
-    In [3]: df.groupby('a', dropna=True).transform(lambda x: x.sum())
-    Out[3]:
-       b
-    0  5
-    1  5
-
-    In [3]: df.groupby('a', dropna=True).transform(lambda x: x)
-    Out[3]:
-       b
-    0  2
-    1  3
-
-    In [3]: df.groupby('a', dropna=True).transform('sum')
+    In [3]: # Value in the last row should be np.nan
+            df.groupby('a', dropna=True).transform('sum')
     Out[3]:
        b
     0  5
     1  5
     2  5
 
+    In [3]: # Should have one additional row with the value np.nan
+            df.groupby('a', dropna=True).transform(lambda x: x.sum())
+    Out[3]:
+       b
+    0  5
+    1  5
+
+    In [3]: # The value in the last row is np.nan interpreted as an integer
+            df.groupby('a', dropna=True).transform('ffill')
+    Out[3]:
+                         b
+    0                    2
+    1                    3
+    2 -9223372036854775808
+
+    In [3]: # Should have one additional row with the value np.nan
+            df.groupby('a', dropna=True).transform(lambda x: x)
+    Out[3]:
+       b
+    0  2
+    1  3
+
 *New behavior*:
 
 .. ipython:: python
 
-    df.groupby('a', dropna=True).transform(lambda x: x.sum())
-    df.groupby('a', dropna=True).transform(lambda x: x)
     df.groupby('a', dropna=True).transform('sum')
+    df.groupby('a', dropna=True).transform(lambda x: x.sum())
+    df.groupby('a', dropna=True).transform('ffill')
+    df.groupby('a', dropna=True).transform(lambda x: x)
 
 .. _whatsnew_150.notable_bug_fixes.visualization:
 
@@ -413,6 +426,7 @@ Other Deprecations
 - Deprecated treating all-bool ``object``-dtype columns as bool-like in :meth:`DataFrame.any` and :meth:`DataFrame.all` with ``bool_only=True``, explicitly cast to bool instead (:issue:`46188`)
 - Deprecated behavior of method :meth:`DataFrame.quantile`, attribute ``numeric_only`` will default False. Including datetime/timedelta columns in the result (:issue:`7308`).
 - Deprecated :attr:`Timedelta.freq` and :attr:`Timedelta.is_populated` (:issue:`46430`)
+- Deprecated :attr:`Timedelta.delta` (:issue:`46476`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -454,6 +468,7 @@ Datetimelike
 - Bug in :class:`Timestamp` construction when passing datetime components as positional arguments and ``tzinfo`` as a keyword argument incorrectly raising (:issue:`31929`)
 - Bug in :meth:`Index.astype` when casting from object dtype to ``timedelta64[ns]`` dtype incorrectly casting ``np.datetime64("NaT")`` values to ``np.timedelta64("NaT")`` instead of raising (:issue:`45722`)
 - Bug in :meth:`SeriesGroupBy.value_counts` index when passing categorical column (:issue:`44324`)
+- Bug in :meth:`DatetimeIndex.tz_localize` localizing to UTC failing to make a copy of the underlying data (:issue:`46460`)
 -
 
 Timedelta

@@ -62,6 +62,7 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.cast import ensure_dtype_can_hold_na
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_dtype,
@@ -951,9 +952,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 return self.apply(curried)
 
             is_transform = name in base.transformation_kernels
-            return self._python_apply_general(
+            result = self._python_apply_general(
                 curried, self._obj_with_exclusions, is_transform=is_transform
             )
+
+            if self.grouper.has_dropped_na and is_transform:
+                # result will have dropped rows due to nans, fill with null
+                # and ensure index is ordered same as the input
+                result = self._set_result_index_ordered(result)
+            return result
 
         wrapper.__name__ = name
         return wrapper
@@ -2665,7 +2672,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 #  then there will be no -1s in indexer, so we can use
                 #  the original dtype (no need to ensure_dtype_can_hold_na)
                 if isinstance(values, np.ndarray):
-                    out = np.empty(values.shape, dtype=values.dtype)
+                    dtype = values.dtype
+                    if self.grouper.has_dropped_na:
+                        # dropped null groups give rise to nan in the result
+                        dtype = ensure_dtype_can_hold_na(values.dtype)
+                    out = np.empty(values.shape, dtype=dtype)
                 else:
                     out = type(values)._empty(values.shape, dtype=values.dtype)
 
@@ -3171,9 +3182,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         with self._group_selection_context():
             index = self._selected_obj.index
-            result = self._obj_1d_constructor(
-                self.grouper.group_info[0], index, dtype=np.int64
-            )
+            comp_ids = self.grouper.group_info[0]
+
+            dtype: type
+            if self.grouper.has_dropped_na:
+                comp_ids = np.where(comp_ids == -1, np.nan, comp_ids)
+                dtype = np.float64
+            else:
+                dtype = np.int64
+
+            result = self._obj_1d_constructor(comp_ids, index, dtype=dtype)
             if not ascending:
                 result = self.ngroups - 1 - result
             return result
