@@ -1778,9 +1778,9 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         names : int, str or 1-dimensional list, default None
-            index names to set
+            Index names to set.
         default : str
-            default name of index
+            Default name of index.
 
         Raises
         ------
