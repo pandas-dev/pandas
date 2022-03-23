@@ -1,4 +1,4 @@
-Title: what we learn on the Pandas grant
+Title: What we learn on the Pandas grant
 Date: 2022-03-23
 
 # What we learn on the Pandas grant
