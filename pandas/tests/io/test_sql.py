@@ -1719,7 +1719,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # MySQL SHOULD be converted.
         assert issubclass(df.DateCol.dtype.type, np.datetime64)
 
-    def test_datetime_with_timezone(self):
+    def test_datetime_with_timezone(self, request):
         # edge case that converts postgresql datetime with time zone types
         # to datetime64[ns,psycopg2.tz.FixedOffsetTimezone..], which is ok
         # but should be more natural, so coerce to datetime64[ns] for now
@@ -1760,7 +1760,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # GH11216
         df = read_sql_query("select * from types", self.conn)
         if not hasattr(df, "DateColWithTz"):
-            pytest.skip("no column with datetime with time zone")
+            request.node.add_marker(
+                pytest.mark.xfail(reason="no column with datetime with time zone")
+            )
 
         # this is parsed on Travis (linux), but not on macosx for some reason
         # even with the same versions of psycopg2 & sqlalchemy, possibly a
@@ -1772,7 +1774,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             "select * from types", self.conn, parse_dates=["DateColWithTz"]
         )
         if not hasattr(df, "DateColWithTz"):
-            pytest.skip("no column with datetime with time zone")
+            request.node.add_marker(
+                pytest.mark.xfail(reason="no column with datetime with time zone")
+            )
         col = df.DateColWithTz
         assert is_datetime64tz_dtype(col.dtype)
         assert str(col.dt.tz) == "UTC"
@@ -2275,8 +2279,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
 
 class _TestSQLAlchemyConn(_EngineToConnMixin, _TestSQLAlchemy):
+    @pytest.mark.xfail(reason="Nested transactions rollbacks don't work with Pandas")
     def test_transactions(self):
-        pytest.skip("Nested transactions rollbacks don't work with Pandas")
+        super().test_transactions()
 
 
 class _TestSQLiteAlchemy:

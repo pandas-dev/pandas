@@ -4,6 +4,7 @@ from functools import wraps
 from typing import (
     TYPE_CHECKING,
     Any,
+    Iterator,
     Literal,
     Sequence,
     TypeVar,
@@ -28,7 +29,11 @@ from pandas._typing import (
     npt,
     type_t,
 )
-from pandas.compat import pa_version_under2p0
+from pandas.compat import (
+    pa_version_under1p01,
+    pa_version_under2p0,
+    pa_version_under5p0,
+)
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 from pandas.util._validators import (
@@ -38,7 +43,10 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.common import (
+    is_bool_dtype,
     is_dtype_equal,
+    is_integer,
+    is_scalar,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -46,7 +54,10 @@ from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
     PeriodDtype,
 )
-from pandas.core.dtypes.missing import array_equivalent
+from pandas.core.dtypes.missing import (
+    array_equivalent,
+    isna,
+)
 
 from pandas.core import missing
 from pandas.core.algorithms import (
@@ -65,10 +76,11 @@ NDArrayBackedExtensionArrayT = TypeVar(
     "NDArrayBackedExtensionArrayT", bound="NDArrayBackedExtensionArray"
 )
 
-if TYPE_CHECKING:
-
+if not pa_version_under1p01:
     import pyarrow as pa
+    import pyarrow.compute as pc
 
+if TYPE_CHECKING:
     from pandas._typing import (
         NumpySorter,
         NumpyValueArrayLike,
@@ -607,3 +619,195 @@ class ArrowExtensionArray(ExtensionArray):
         chunks = [array for ea in to_concat for array in ea._data.iterchunks()]
         arr = pa.chunked_array(chunks)
         return cls(arr)
+
+    def __setitem__(self, key: int | slice | np.ndarray, value: Any) -> None:
+        """Set one or more values inplace.
+
+        Parameters
+        ----------
+        key : int, ndarray, or slice
+            When called from, e.g. ``Series.__setitem__``, ``key`` will be
+            one of
+
+            * scalar int
+            * ndarray of integers.
+            * boolean ndarray
+            * slice object
+
+        value : ExtensionDtype.type, Sequence[ExtensionDtype.type], or object
+            value or values to be set of ``key``.
+
+        Returns
+        -------
+        None
+        """
+        key = check_array_indexer(self, key)
+        indices = self._indexing_key_to_indices(key)
+        value = self._maybe_convert_setitem_value(value)
+
+        argsort = np.argsort(indices)
+        indices = indices[argsort]
+
+        if is_scalar(value):
+            value = np.broadcast_to(value, len(self))
+        elif len(indices) != len(value):
+            raise ValueError("Length of indexer and values mismatch")
+        else:
+            value = np.asarray(value)[argsort]
+
+        self._data = self._set_via_chunk_iteration(indices=indices, value=value)
+
+    def _indexing_key_to_indices(
+        self, key: int | slice | np.ndarray
+    ) -> npt.NDArray[np.intp]:
+        """
+        Convert indexing key for self into positional indices.
+
+        Parameters
+        ----------
+        key : int | slice | np.ndarray
+
+        Returns
+        -------
+        npt.NDArray[np.intp]
+        """
+        n = len(self)
+        if isinstance(key, slice):
+            indices = np.arange(n)[key]
+        elif is_integer(key):
+            indices = np.arange(n)[[key]]  # type: ignore[index]
+        elif is_bool_dtype(key):
+            key = np.asarray(key)
+            if len(key) != n:
+                raise ValueError("Length of indexer and values mismatch")
+            indices = key.nonzero()[0]
+        else:
+            key = np.asarray(key)
+            indices = np.arange(n)[key]
+        return indices
+
+    def _maybe_convert_setitem_value(self, value):
+        """Maybe convert value to be pyarrow compatible."""
+        raise NotImplementedError()
+
+    def _set_via_chunk_iteration(
+        self, indices: npt.NDArray[np.intp], value: npt.NDArray[Any]
+    ) -> pa.ChunkedArray:
+        """
+        Loop through the array chunks and set the new values while
+        leaving the chunking layout unchanged.
+        """
+        chunk_indices = self._indices_to_chunk_indices(indices)
+        new_data = list(self._data.iterchunks())
+
+        for i, c_ind in enumerate(chunk_indices):
+            n = len(c_ind)
+            if n == 0:
+                continue
+            c_value, value = value[:n], value[n:]
+            new_data[i] = self._replace_with_indices(new_data[i], c_ind, c_value)
+
+        return pa.chunked_array(new_data)
+
+    def _indices_to_chunk_indices(
+        self, indices: npt.NDArray[np.intp]
+    ) -> Iterator[npt.NDArray[np.intp]]:
+        """
+        Convert *sorted* indices for self into a list of ndarrays
+        each containing the indices *within* each chunk of the
+        underlying ChunkedArray.
+
+        Parameters
+        ----------
+        indices : npt.NDArray[np.intp]
+            Position indices for the underlying ChunkedArray.
+
+        Returns
+        -------
+        Generator yielding positional indices for each chunk
+
+        Notes
+        -----
+        Assumes that indices is sorted. Caller is responsible for sorting.
+        """
+        for start, stop in self._chunk_positional_ranges():
+            if len(indices) == 0 or stop <= indices[0]:
+                yield np.array([], dtype=np.intp)
+            else:
+                n = int(np.searchsorted(indices, stop, side="left"))
+                c_ind = indices[:n] - start
+                indices = indices[n:]
+                yield c_ind
+
+    def _chunk_positional_ranges(self) -> tuple[tuple[int, int], ...]:
+        """
+        Return a tuple of tuples each containing the left (inclusive)
+        and right (exclusive) positional bounds of each chunk's values
+        within the underlying ChunkedArray.
+
+        Returns
+        -------
+        tuple[tuple]
+        """
+        ranges = []
+        stop = 0
+        for c in self._data.iterchunks():
+            start, stop = stop, stop + len(c)
+            ranges.append((start, stop))
+        return tuple(ranges)
+
+    @classmethod
+    def _replace_with_indices(
+        cls,
+        chunk: pa.Array,
+        indices: npt.NDArray[np.intp],
+        value: npt.NDArray[Any],
+    ) -> pa.Array:
+        """
+        Replace items selected with a set of positional indices.
+
+        Analogous to pyarrow.compute.replace_with_mask, except that replacement
+        positions are identified via indices rather than a mask.
+
+        Parameters
+        ----------
+        chunk : pa.Array
+        indices : npt.NDArray[np.intp]
+        value : npt.NDArray[Any]
+            Replacement value(s).
+
+        Returns
+        -------
+        pa.Array
+        """
+        n = len(indices)
+
+        if n == 0:
+            return chunk
+
+        start, stop = indices[[0, -1]]
+
+        if (stop - start) == (n - 1):
+            # fast path for a contiguous set of indices
+            arrays = [
+                chunk[:start],
+                pa.array(value, type=chunk.type),
+                chunk[stop + 1 :],
+            ]
+            arrays = [arr for arr in arrays if len(arr)]
+            if len(arrays) == 1:
+                return arrays[0]
+            return pa.concat_arrays(arrays)
+
+        mask = np.zeros(len(chunk), dtype=np.bool_)
+        mask[indices] = True
+
+        if pa_version_under5p0:
+            arr = chunk.to_numpy(zero_copy_only=False)
+            arr[mask] = value
+            return pa.array(arr, type=chunk.type)
+
+        if isna(value).all():
+            return pc.if_else(mask, None, chunk)
+
+        return pc.replace_with_mask(chunk, mask, value)

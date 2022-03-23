@@ -297,6 +297,9 @@ if TYPE_CHECKING:
 else:
     TakeIndexer = Any
 
+# Shared by functions such as drop and astype
+IgnoreRaise = Literal["ignore", "raise"]
+
 # Windowing rank methods
 WindowingRankType = Literal["average", "min", "max"]
 
@@ -307,10 +310,12 @@ CSVEngine = Literal["c", "python", "pyarrow", "python-fwf"]
 XMLParsers = Literal["lxml", "etree"]
 
 # Interval closed type
-
 IntervalClosedType = Literal["left", "right", "both", "neither"]
 
 # datetime and NaTType
-
 DatetimeNaTType = Union[datetime, "NaTType"]
-DateTimeErrorChoices = Literal["ignore", "raise", "coerce"]
+DateTimeErrorChoices = Union[IgnoreRaise, Literal["coerce"]]
+
+# sort_index
+SortKind = Literal["quicksort", "mergesort", "heapsort", "stable"]
+NaPosition = Literal["first", "last"]
