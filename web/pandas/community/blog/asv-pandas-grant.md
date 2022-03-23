@@ -71,7 +71,7 @@ others, and reinforce the knowledge acquired to contribute to open source. Most
 new contributors were able to learn and create new pull-requests and had them
 merged which was one of the greatest achievements.
 
-### Conclusion 
+### Conclusion
 In conclusion, we learned a lot from this experience from the code part,
 the workflow on the open-source projects, how to be resilient in difficult
 moments, and also encouraging more women and people from our local
