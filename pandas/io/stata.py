@@ -572,7 +572,13 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
     """
     ws = ""
     # original, if small, if large
-    conversion_data = (
+    conversion_data: tuple[
+        tuple[type, type, type],
+        tuple[type, type, type],
+        tuple[type, type, type],
+        tuple[type, type, type],
+        tuple[type, type, type],
+    ] = (
         (np.bool_, np.int8, np.int8),
         (np.uint8, np.int8, np.int16),
         (np.uint16, np.int16, np.int32),
@@ -600,8 +606,7 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
         dtype = data[col].dtype
         for c_data in conversion_data:
             if dtype == c_data[0]:
-                # Value of type variable "_IntType" of "iinfo" cannot be "object"
-                if data[col].max() <= np.iinfo(c_data[1]).max:  # type: ignore[type-var]
+                if data[col].max() <= np.iinfo(c_data[1]).max:
                     dtype = c_data[1]
                 else:
                     dtype = c_data[2]
@@ -967,7 +972,7 @@ class StataParser:
                 (255, np.dtype(np.float64)),
             ]
         )
-        self.DTYPE_MAP_XML = {
+        self.DTYPE_MAP_XML: dict[int, np.dtype] = {
             32768: np.dtype(np.uint8),  # Keys to GSO
             65526: np.dtype(np.float64),
             65527: np.dtype(np.float32),
@@ -975,9 +980,7 @@ class StataParser:
             65529: np.dtype(np.int16),
             65530: np.dtype(np.int8),
         }
-        # error: Argument 1 to "list" has incompatible type "str";
-        #  expected "Iterable[int]"  [arg-type]
-        self.TYPE_MAP = list(range(251)) + list("bhlfd")  # type: ignore[arg-type]
+        self.TYPE_MAP = list(tuple(range(251)) + tuple("bhlfd"))
         self.TYPE_MAP_XML = {
             # Not really a Q, unclear how to handle byteswap
             32768: "Q",
@@ -1296,9 +1299,7 @@ class StataReader(StataParser, abc.Iterator):
             if typ <= 2045:
                 return str(typ)
             try:
-                # error: Incompatible return value type (got "Type[number]", expected
-                # "Union[str, dtype]")
-                return self.DTYPE_MAP_XML[typ]  # type: ignore[return-value]
+                return self.DTYPE_MAP_XML[typ]
             except KeyError as err:
                 raise ValueError(f"cannot convert stata dtype [{typ}]") from err
 
