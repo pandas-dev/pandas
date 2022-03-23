@@ -85,7 +85,9 @@ cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
     {{endif}}
 
     # collect counts in the order corresponding to result_keys:
-    cdef int64_t[:] result_counts = np.empty(table.size, dtype=np.int64)
+    cdef:
+        int64_t[::1] result_counts = np.empty(table.size, dtype=np.int64)
+
     for i in range(table.size):
         {{if dtype == 'object'}}
         k = kh_get_{{ttype}}(table, result_keys.data[i])
@@ -366,7 +368,7 @@ def mode(ndarray[htfunc_t] values, bint dropna):
         ndarray[htfunc_t] keys
         ndarray[htfunc_t] modes
 
-        int64_t[:] counts
+        int64_t[::1] counts
         int64_t count, max_count = -1
         Py_ssize_t nkeys, k, j = 0
 

@@ -11,8 +11,7 @@ cdef bint is_any_td_scalar(object obj)
 cdef class _Timedelta(timedelta):
     cdef readonly:
         int64_t value      # nanoseconds
-        object freq        # frequency reference
-        bint is_populated  # are my components populated
+        bint _is_populated  # are my components populated
         int64_t _d, _h, _m, _s, _ms, _us, _ns
 
     cpdef timedelta to_pytimedelta(_Timedelta self)

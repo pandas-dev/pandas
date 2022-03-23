@@ -18,13 +18,13 @@ import pytz
 from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
-    PyDateTime_IMPORT,
     datetime,
+    import_datetime,
     time,
     tzinfo,
 )
 
-PyDateTime_IMPORT
+import_datetime()
 
 from pandas._libs.tslibs.base cimport ABCTimestamp
 from pandas._libs.tslibs.np_datetime cimport (
@@ -36,6 +36,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     dtstruct_to_dt64,
     get_datetime64_unit,
     get_datetime64_value,
+    get_unit_from_dtype,
     npy_datetime,
     npy_datetimestruct,
     pandas_datetime_to_datetimestruct,
@@ -70,7 +71,7 @@ from pandas._libs.tslibs.nattype cimport (
 )
 from pandas._libs.tslibs.tzconversion cimport (
     bisect_right_i8,
-    tz_convert_utc_to_tzlocal,
+    localize_tzinfo_api,
     tz_localize_to_utc_single,
 )
 
@@ -234,7 +235,9 @@ def ensure_datetime64ns(arr: ndarray, copy: bool = True):
             result = result.copy()
         return result
 
-    unit = get_datetime64_unit(arr.flat[0])
+    if arr.dtype.kind != "M":
+        raise TypeError("ensure_datetime64ns arr must have datetime64 dtype")
+    unit = get_unit_from_dtype(arr.dtype)
     if unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
         # without raising explicitly here, we end up with a SystemError
         # built-in function ensure_datetime64ns returned a result with an error
@@ -553,7 +556,7 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
     if is_utc(tz):
         pass
     elif is_tzlocal(tz):
-        tz_convert_utc_to_tzlocal(obj.value, tz, &obj.fold)
+        localize_tzinfo_api(obj.value, tz, &obj.fold)
     else:
         trans, deltas, typ = get_dst_info(tz)
 
@@ -722,7 +725,7 @@ cdef inline void _localize_tso(_TSObject obj, tzinfo tz):
     elif obj.value == NPY_NAT:
         pass
     elif is_tzlocal(tz):
-        local_val = tz_convert_utc_to_tzlocal(obj.value, tz, &obj.fold)
+        local_val = obj.value + localize_tzinfo_api(obj.value, tz, &obj.fold)
         dt64_to_dtstruct(local_val, &obj.dts)
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
