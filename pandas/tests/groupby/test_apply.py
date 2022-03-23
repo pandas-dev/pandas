@@ -1251,7 +1251,7 @@ def test_apply_nonmonotonic_float_index(arg, idx):
 
 @pytest.mark.parametrize("args, kwargs", [([True], {}), ([], {"numeric_only": True})])
 def test_apply_str_with_args(df, args, kwargs):
-    # GH#??
+    # GH#46479
     gb = df.groupby("A")
     result = gb.apply("sum", *args, **kwargs)
     expected = gb.sum(numeric_only=True)
