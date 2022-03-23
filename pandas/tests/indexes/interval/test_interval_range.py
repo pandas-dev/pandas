@@ -163,7 +163,9 @@ class TestIntervalRange:
             breaks = [0.5, 2.0, 3.5, 5.0, 6.5]
         expected = IntervalIndex.from_breaks(breaks)
 
-        result = interval_range(start=start, end=end, periods=4, freq=freq)
+        result = interval_range(
+            start=start, end=end, periods=4, freq=freq, inclusive="right"
+        )
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -184,7 +186,7 @@ class TestIntervalRange:
     def test_linspace_dst_transition(self, start, mid, end):
         # GH 20976: linspace behavior defined from start/end/periods
         # accounts for the hour gained/lost during DST transition
-        result = interval_range(start=start, end=end, periods=2)
+        result = interval_range(start=start, end=end, periods=2, inclusive="right")
         expected = IntervalIndex.from_breaks([start, mid, end])
         tm.assert_index_equal(result, expected)
 

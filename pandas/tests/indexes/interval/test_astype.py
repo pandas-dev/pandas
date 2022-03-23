@@ -117,7 +117,7 @@ class TestIntSubtype(AstypeTests):
     @pytest.mark.xfail(reason="GH#15832")
     def test_subtype_integer_errors(self):
         # int64 -> uint64 fails with negative values
-        index = interval_range(-10, 10)
+        index = interval_range(-10, 10, inclusive="right")
         dtype = IntervalDtype("uint64", "right")
 
         # Until we decide what the exception message _should_ be, we
@@ -170,7 +170,7 @@ class TestFloatSubtype(AstypeTests):
 
     def test_subtype_integer_errors(self):
         # float64 -> uint64 fails with negative values
-        index = interval_range(-10.0, 10.0)
+        index = interval_range(-10.0, 10.0, inclusive="right")
         dtype = IntervalDtype("uint64", "right")
         msg = re.escape(
             "Cannot convert interval[float64, right] to interval[uint64, right]; "

@@ -1064,7 +1064,7 @@ def interval_range(
             stacklevel=2,
         )
         if closed is None:
-            inclusive = "right"
+            inclusive = "both"
         elif closed in ("both", "neither", "left", "right"):
             inclusive = closed
         else:
