@@ -281,7 +281,7 @@ class Grouper:
         axis: int = 0,
         sort: bool = False,
         dropna: bool = True,
-    ):
+    ) -> None:
         self.key = key
         self.level = level
         self.freq = freq
@@ -475,7 +475,7 @@ class Grouping:
         observed: bool = False,
         in_axis: bool = False,
         dropna: bool = True,
-    ):
+    ) -> None:
         self.level = level
         self._orig_grouper = grouper
         self.grouping_vector = _convert_grouper(index, grouper)

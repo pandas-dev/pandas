@@ -129,7 +129,7 @@ class BaseArrayManager(DataManager):
         arrays: list[np.ndarray | ExtensionArray],
         axes: list[Index],
         verify_integrity: bool = True,
-    ):
+    ) -> None:
         raise NotImplementedError
 
     def make_empty(self: T, axes=None) -> T:
@@ -640,7 +640,13 @@ class BaseArrayManager(DataManager):
 
         return type(self)(new_arrays, new_axes, verify_integrity=False)
 
-    def take(self: T, indexer, axis: int = 1, verify: bool = True) -> T:
+    def take(
+        self: T,
+        indexer,
+        axis: int = 1,
+        verify: bool = True,
+        convert_indices: bool = True,
+    ) -> T:
         """
         Take items along any axis.
         """
@@ -656,7 +662,8 @@ class BaseArrayManager(DataManager):
             raise ValueError("indexer should be 1-dimensional")
 
         n = self.shape_proper[axis]
-        indexer = maybe_convert_indices(indexer, n, verify=verify)
+        if convert_indices:
+            indexer = maybe_convert_indices(indexer, n, verify=verify)
 
         new_labels = self._axes[axis].take(indexer)
         return self._reindex_indexer(
@@ -703,7 +710,7 @@ class ArrayManager(BaseArrayManager):
         arrays: list[np.ndarray | ExtensionArray],
         axes: list[Index],
         verify_integrity: bool = True,
-    ):
+    ) -> None:
         # Note: we are storing the axes in "_axes" in the (row, columns) order
         # which contrasts the order how it is stored in BlockManager
         self._axes = axes
@@ -1175,7 +1182,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         arrays: list[np.ndarray | ExtensionArray],
         axes: list[Index],
         verify_integrity: bool = True,
-    ):
+    ) -> None:
         self._axes = axes
         self.arrays = arrays
 
@@ -1340,7 +1347,7 @@ class NullArrayProxy:
 
     ndim = 1
 
-    def __init__(self, n: int):
+    def __init__(self, n: int) -> None:
         self.n = n
 
     @property
