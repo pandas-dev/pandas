@@ -1087,7 +1087,7 @@ are closed on.  Intervals are closed on the right side by default.
 
 .. ipython:: python
 
-   pd.interval_range(start=0, end=4, inclusive="both")
+   pd.interval_range(start=0, end=4, inclusive="bot")
 
    pd.interval_range(start=0, end=4, inclusive="neither")
 
