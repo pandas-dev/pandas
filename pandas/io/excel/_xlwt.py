@@ -25,8 +25,8 @@ if TYPE_CHECKING:
 
 
 class XlwtWriter(ExcelWriter):
-    engine = "xlwt"
-    supported_extensions = (".xls",)
+    _engine = "xlwt"
+    _supported_extensions = (".xls",)
 
     def __init__(
         self,
