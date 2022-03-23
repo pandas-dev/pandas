@@ -8,7 +8,7 @@ Date: 2022-03-23
 We want to share with you our experience working on **Small development**
 **grants: ASV improvements + Docstrings and diversity** provided by
 [Pandas](https://pandas.pydata.org/) core team and [NumFOCUS](https://numfocus.org/).
-This grant was focusing on two aspects: the first one is to improve the 
+This grant was focusing on two aspects: the first one is to improve the
 [asv](https://asv.readthedocs.io/en/stable/) library, a tool used by benchmarking 
 Python packages and used by[Pandas](https://pandas.pydata.org/speed/pandas/),
 and the second one is to encourage more underrepresented groups to contribute
@@ -27,7 +27,7 @@ running the Pyladies meetups in our communities (PyLadies Kampala, PyLadies Colo
 At the beginning of the grant, we started from the basics. We noticed that our
 skills in managing Git and GitHub could be improved. For example, we had some
 troubles with the git workflow, so we had to read and practice more about it.
-One of the useful resources was the explanation from Marc about 
+One of the useful resources was the explanation from Marc about
 [how to make an open-source contribution](https://tubedu.org/w/kjnHEg72j76StmSFmjzbnE),
 which we invite you to take a look at.
 
