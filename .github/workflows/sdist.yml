@@ -60,23 +60,27 @@ jobs:
         name: ${{ matrix.python-version }}-sdist.gz
         path: dist/*.gz
 
-    - name: Set up Conda env with Python ${{ matrix.python-version }}, NumPy ${{ matrix.numpy-version }}
-      # TODO: Change this when https://github.com/mamba-org/provision-with-micromamba/pull/45 is merged
-      uses: jonashaag/provision-with-micromamba@cache-failure
-      with:
-        environment-file: false
-        environment-name: pandas-sdist
-        channels: conda-forge
-        extra-specs: |
-          python=${{ matrix.python-version }}
-          setuptools<60
-          numpy=${{ matrix.numpy-version }}
-        cache-env: true
+    - name: Create environment.yml with Python ${{ matrix.python-version }}, NumPy ${{ matrix.numpy-version }}
+      run: |
+        cat >> tmp_environment.yml <<EOF
+          name: pandas-sdist
+          channels:
+            - conda-forge
+          dependencies:
+            - python=${{ matrix.python-version }}
+            - setuptools<60
+            - numpy=${{ matrix.numpy-version }}
+        EOF
 
-    - name: Set up sccache
-      uses: ./.github/actions/setup-sccache
+    - name: Install Conda enviroment
+      uses: conda-incubator/setup-miniconda@v2
       with:
-        extra-cache-key: ${{ matrix.python-version }}
+        activate-environment: pandas-sdist
+        environment-file: tmp_environment.yml
+        channel-priority: strict
+        channels: conda-forge
+        mamba-version: "0.22"
+        use-mamba: true
 
     - name: Install pandas from sdist
       run: |
@@ -84,7 +88,7 @@ jobs:
         # Double check that we have the expected NumPy
         pip list
         pip list | egrep -i "numpy.+${{ matrix.numpy-version }}"
-        time DISTUTILS_C_COMPILER_LAUNCHER=sccache python -m pip install -v dist/*.gz
+        time python -m pip install -v dist/*.gz
 
     - name: Build Version
       run: |

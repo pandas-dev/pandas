@@ -5,10 +5,10 @@ runs:
   steps:
     - name: Environment Detail
       run: |
-        if which micromamba; then
-          micromamba info
-          micromamba list
-          micromamba info | grep -Ei 'environment.+:' | grep -qEiv 'environment.+:.+none'
+        if which mamba; then
+          mamba info
+          mamba list
+          mamba info | grep -Ei 'environment.+:' | grep -qEiv 'environment.+:.+none'
         fi
         if which pip; then
           pip list
@@ -16,21 +16,11 @@ runs:
         python --version
       shell: bash -el {0}
 
-    - name: Get Python version
-      id: get-python-version
-      run: python3 -c "import platform as p; print(f'::set-output name=version::{p.python_implementation()}-{p.python_version()}')"
-      shell: bash -el {0}
-
-    - name: Set up sccache
-      uses: ./.github/actions/setup-sccache
-      with:
-        extra-cache-key: ${{ steps.get-python-version.outputs.version }}
-
     - name: Build Pandas
       run: |
         which python
         which pip
-        time DISTUTILS_C_COMPILER_LAUNCHER=sccache python setup.py build_ext -v -j 2
+        time python setup.py build_ext -v -j 2
         pip install -v -e . --no-build-isolation --no-use-pep517 --no-index
       shell: bash -el {0}
 

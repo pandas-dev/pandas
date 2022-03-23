@@ -22,19 +22,27 @@ runs:
       shell: bash
       if: ${{ inputs.pyarrow-version }}
 
+    - name: Set Python version in ${{ inputs.environment-file }} to ${{ inputs.python-version }}
+      run: |
+        echo "  - python=${{ inputs.pyarrow-version }}" >> ${{ inputs.environment-file }}
+        cat ${{ inputs.environment-file }}
+      shell: bash
+      if: ${{ inputs.python-version }}
+
     - name: Pin setuptools (GH#44980)
       run: |
         echo '  - setuptools <60' >> ${{ inputs.environment-file }}
       shell: bash
 
     - name: Install ${{ inputs.environment-file }} (Python ${{ inputs.python-version }})
-      uses: mamba-org/provision-with-micromamba@main
+      uses: conda-incubator/setup-miniconda@v2
       with:
-        environment-name: ${{ inputs.environment-name }}
+        activate-environment: ${{ inputs.environment-name }}
         environment-file: ${{ inputs.environment-file }}
-        extra-specs: |
-          ${{ inputs.python-version && format('python={0}', inputs.python-version) }}
-        cache-env: true
+        channel-priority: strict
+        channels: conda-forge
+        mamba-version: "0.22"
+        use-mamba: true
       if: ${{ inputs.is-pypy == 'false' }} # No pypy3.8 support
 
     - name: Setup PyPy
