@@ -78,7 +78,7 @@ else:
 zoneinfo = None
 if pd.compat.PY39:
     # Import "zoneinfo" could not be resolved (reportMissingImports)
-    import zoneinfo  # type: ignore
+    import zoneinfo  # type: ignore[no-redef]
 
 # Until https://github.com/numpy/numpy/issues/19078 is sorted out, just suppress
 suppress_npdev_promotion_warning = pytest.mark.filterwarnings(
