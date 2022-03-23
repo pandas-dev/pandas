@@ -37,8 +37,8 @@ dependencies:
   - odfpy
   - pandas-gbq
   - psycopg2
-  # Workaround mamba bug that installs pyarrow 2.0
-  - pyarrow>2
+  # Installed separately since mamba doesn't get latest version properly
+  #- pyarrow
   - pymysql
   - pyreadstat
   - pytables

@@ -39,8 +39,8 @@ dependencies:
   - psycopg2
   - pymysql
   - pytables
-  # Workaround mamba bug that installs pyarrow 2.0
-  - pyarrow>2
+  # Installed separately since mamba doesn't get latest version properly
+  #- pyarrow
   - pyreadstat
   - python-snappy
   - pyxlsb

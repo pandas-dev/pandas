@@ -59,7 +59,7 @@ jobs:
             pandas_testing_mode: "deprecate"
             test_args: "-W error"
             name: "Numpy Dev"
-          # Test lowest supported pyarrow
+          # Test lowest & highest supported pyarrow
           # Don't test pyarrow v2/3: Causes timeouts in read_csv engine
           # even if tests are skipped/xfailed
           - env_file: actions-38.yaml
@@ -70,6 +70,14 @@ jobs:
             pattern: "single_cpu"
             pyarrow_version: 5
             name: "Min Pyarrow (single)"
+          - env_file: actions-38.yaml
+            pattern: "not single_cpu"
+            pyarrow_version: 7
+            name: "Latest Pyarrow"
+          - env_file: actions-38.yaml
+            pattern: "single_cpu"
+            pyarrow_version: 7
+            name: "Latest Pyarrow (single)"
       fail-fast: false
     name: ${{ matrix.name || format('{0} {1}', matrix.env_file, matrix.pattern) }}
     env:
