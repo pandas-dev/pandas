@@ -524,11 +524,21 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
     # see PEP 495 https://www.python.org/dev/peps/pep-0495/#the-fold-attribute
     if is_utc(tz):
         pass
+    elif is_tzlocal(tz):
+        localize_tzinfo_api(obj.value, tz, &obj.fold)
     else:
-        # TODO: are we doing unnecessary work for pytz/fixed case? can we
-        #  use the local_val returned from this call to make some
-        #  of the rest of the function unnecessary?
-        tz_convert_from_utc_single(obj.value, tz, &obj.fold)
+        trans, deltas, typ = get_dst_info(tz)
+
+        if typ == 'dateutil':
+            tdata = <int64_t*>cnp.PyArray_DATA(trans)
+            pos = bisect_right_i8(tdata, obj.value, trans.shape[0]) - 1
+            obj.fold = infer_dateutil_fold(obj.value, trans, deltas, pos)
+
+    #else:
+    #    # TODO: are we doing unnecessary work for pytz/fixed case? can we
+    #    #  use the local_val returned from this call to make some
+    #    #  of the rest of the function unnecessary?
+    #    tz_convert_from_utc_single(obj.value, tz, &obj.fold)
 
     # Keep the converter same as PyDateTime's
     dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
