@@ -84,7 +84,7 @@ jobs:
 
     - name: Install pandas from sdist
       run: |
-        micromamba info
+        mamba info
         # Double check that we have the expected NumPy
         pip list
         pip list | egrep -i "numpy.+${{ matrix.numpy-version }}"
