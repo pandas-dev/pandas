@@ -459,29 +459,7 @@ cpdef int64_t tz_convert_from_utc_single(int64_t utc_val, tzinfo tz):
     -------
     converted: int64
     """
-    cdef:
-        int64_t delta
-        int64_t[::1] deltas
-        ndarray[int64_t, ndim=1] trans
-        int64_t* tdata
-        intp_t pos
-
-    if utc_val == NPY_NAT:
-        return utc_val
-
-    if is_utc(tz):
-        return utc_val
-    elif is_tzlocal(tz):
-        return utc_val + _tz_localize_using_tzinfo_api(utc_val, tz, to_utc=False)
-    elif is_fixed_offset(tz):
-        _, deltas, _ = get_dst_info(tz)
-        delta = deltas[0]
-        return utc_val + delta
-    else:
-        trans, deltas, _ = get_dst_info(tz)
-        tdata = <int64_t*>cnp.PyArray_DATA(trans)
-        pos = bisect_right_i8(tdata, utc_val, trans.shape[0]) - 1
-        return utc_val + deltas[pos]
+    return _tz_convert_from_utc(<int64_t[:1]>&utc_val, tz)[0]
 
 
 def tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
@@ -523,34 +501,13 @@ cdef const int64_t[:] _tz_convert_from_utc(const int64_t[:] stamps, tzinfo tz):
     converted : ndarray[int64_t]
     """
     cdef:
-        Py_ssize_t i, ntrans = -1, n = stamps.shape[0]
-        ndarray[int64_t] trans
-        int64_t[::1] deltas
-        int64_t* tdata = NULL
-        intp_t pos
-        int64_t utc_val, local_val, delta = NPY_NAT
-        bint use_utc = False, use_tzlocal = False, use_fixed = False
-        str typ
-
+        Localizer info = Localizer(tz)
+        Py_ssize_t i, n = stamps.shape[0]
         int64_t[::1] result
 
     if is_utc(tz) or tz is None:
         # Much faster than going through the "standard" pattern below
         return stamps.copy()
-
-    if is_utc(tz) or tz is None:
-        use_utc = True
-    elif is_tzlocal(tz):
-        use_tzlocal = True
-    else:
-        trans, deltas, typ = get_dst_info(tz)
-        ntrans = trans.shape[0]
-        if typ not in ["pytz", "dateutil"]:
-            # static/fixed; in this case we know that len(delta) == 1
-            use_fixed = True
-            delta = deltas[0]
-        else:
-            tdata = <int64_t*>cnp.PyArray_DATA(trans)
 
     result = np.empty(n, dtype=np.int64)
 
@@ -560,17 +517,7 @@ cdef const int64_t[:] _tz_convert_from_utc(const int64_t[:] stamps, tzinfo tz):
             result[i] = NPY_NAT
             continue
 
-        # The pattern used in vectorized.pyx checks for use_utc here,
-        #  but we handle that case above.
-        if use_tzlocal:
-            local_val = utc_val + _tz_localize_using_tzinfo_api(utc_val, tz, to_utc=False)
-        elif use_fixed:
-            local_val = utc_val + delta
-        else:
-            pos = bisect_right_i8(tdata, utc_val, ntrans) - 1
-            local_val = utc_val + deltas[pos]
-
-        result[i] = local_val
+        result[i] = info.utc_val_to_local_val(utc_val)
 
     return result
 
@@ -632,3 +579,141 @@ cdef int64_t _tz_localize_using_tzinfo_api(
     td = tz.utcoffset(dt)
     delta = int(td.total_seconds() * 1_000_000_000)
     return delta
+
+
+cdef const int64_t[::1] _deltas_placeholder = np.array([], dtype=np.int64)
+
+
+@cython.freelist(16)
+@cython.final
+cdef class Localizer:
+    # cdef readonly:
+    #    tzinfo tz
+    #    bint use_utc, use_fixed, use_tzlocal, use_dst, use_pytz
+    #    ndarray trans
+    #    Py_ssize_t ntrans
+    #    const int64_t[::1] deltas
+    #    int64_t delta
+
+    @cython.initializedcheck(False)
+    @cython.boundscheck(False)
+    def __cinit__(self, tzinfo tz):
+        self.tz = tz
+        self.use_utc = self.use_tzlocal = self.use_fixed = False
+        self.use_dst = self.use_pytz = self.use_dateutil = False
+        self.ntrans = -1  # placeholder
+        self.delta = -1   # placeholder
+        self.deltas = _deltas_placeholder
+
+        if is_utc(tz) or tz is None:
+            self.use_utc = True
+
+        elif is_tzlocal(tz):
+            self.use_tzlocal = True
+
+        else:
+            trans, deltas, typ = get_dst_info(tz)
+            self.trans = trans
+            self.ntrans = trans.shape[0]
+            self.deltas = deltas
+
+            if typ != "pytz" and typ != "dateutil":
+                # static/fixed; in this case we know that len(delta) == 1
+                self.use_fixed = True
+                self.delta = deltas[0]
+            else:
+                self.use_dst = True
+                if typ == "pytz":
+                    self.use_pytz = True
+                else:
+                    self.use_dateutil = True
+
+    cdef inline int64_t utc_val_to_local_val(self, int64_t utc_val, bint* fold=NULL):
+        cdef:
+            int64_t local_val
+            Py_ssize_t pos
+            int64_t* tdata
+
+        if self.use_utc:
+            local_val = utc_val
+        elif self.use_tzlocal:
+            local_val = utc_val + localize_tzinfo_api(utc_val, self.tz, fold=fold)
+        elif self.use_fixed:
+            local_val = utc_val + self.delta
+        else:
+            # TODO: extract tdata just once at __cinit__
+            tdata = <int64_t*>cnp.PyArray_DATA(self.trans)
+            pos = bisect_right_i8(tdata, utc_val, self.ntrans) - 1
+            local_val = utc_val + self.deltas[pos]
+
+            if fold is not NULL:
+                if self.use_dateutil:
+                    fold[0] = _infer_tsobject_fold(utc_val, self.trans, self.deltas, pos)
+
+            # Very best case we'd be able to set this by pointer the same way
+            #  we do with `fold`
+            # if self.use_pytz:
+            #    # find right representation of dst etc in pytz timezone
+            #    new_tz[0] = self.tz._tzinfos[self.tz._transition_info[pos]]
+        return local_val
+
+    # See commented-out code at the end of utc_val_to_local_val
+    cdef tzinfo adjust_pytz_tzinfo(self, int64_t utc_val):
+        # Caller is responsible for checking self.use_pytz
+        cdef:
+            Py_ssize_t pos
+            int64_t* tdata
+            tzinfo tz
+
+        # TODO: extract tdata just once at __cinit__
+        tdata = <int64_t*>cnp.PyArray_DATA(self.trans)
+        pos = bisect_right_i8(tdata, utc_val, self.ntrans) - 1
+
+        # find right representation of dst etc in pytz timezone
+        tz = self.tz
+        tz = tz._tzinfos[tz._transition_info[pos]]
+        return tz
+
+
+cdef inline bint _infer_tsobject_fold(
+    int64_t value,
+    const int64_t[::1] trans,
+    const int64_t[::1] deltas,
+    intp_t pos,
+):
+    """
+    Infer _TSObject fold property from value by assuming 0 and then setting
+    to 1 if necessary.
+
+    Parameters
+    ----------
+    value : int64_t
+    trans : ndarray[int64_t]
+        ndarray of offset transition points in nanoseconds since epoch.
+    deltas : int64_t[:]
+        array of offsets corresponding to transition points in trans.
+    pos : intp_t
+        Position of the last transition point before taking fold into account.
+
+    Returns
+    -------
+    bint
+        Due to daylight saving time, one wall clock time can occur twice
+        when shifting from summer to winter time; fold describes whether the
+        datetime-like corresponds  to the first (0) or the second time (1)
+        the wall clock hits the ambiguous time
+
+    References
+    ----------
+    .. [1] "PEP 495 - Local Time Disambiguation"
+           https://www.python.org/dev/peps/pep-0495/#the-fold-attribute
+    """
+    cdef:
+        bint fold = 0
+
+    if pos > 0:
+        fold_delta = deltas[pos - 1] - deltas[pos]
+        if value - fold_delta < trans[pos]:
+            fold = 1
+
+    return fold

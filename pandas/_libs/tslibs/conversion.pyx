@@ -71,8 +71,8 @@ from pandas._libs.tslibs.nattype cimport (
     checknull_with_nat,
 )
 from pandas._libs.tslibs.tzconversion cimport (
+    Localizer,
     bisect_right_i8,
-    localize_tzinfo_api,
     tz_localize_to_utc_single,
 )
 
@@ -503,6 +503,7 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
     obj : _TSObject
     """
     cdef:
+        Localizer info = Localizer(tz)
         _TSObject obj = _TSObject()
         int64_t value  # numpy dt64
         datetime dt
@@ -522,15 +523,8 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
     # see PEP 495 https://www.python.org/dev/peps/pep-0495/#the-fold-attribute
     if is_utc(tz):
         pass
-    elif is_tzlocal(tz):
-        localize_tzinfo_api(obj.value, tz, &obj.fold)
     else:
-        trans, deltas, typ = get_dst_info(tz)
-
-        if typ == 'dateutil':
-            tdata = <int64_t*>cnp.PyArray_DATA(trans)
-            pos = bisect_right_i8(tdata, obj.value, trans.shape[0]) - 1
-            obj.fold = _infer_tsobject_fold(obj, trans, deltas, pos)
+        info.utc_val_to_local_val(obj.value, fold=&obj.fold)
 
     # Keep the converter same as PyDateTime's
     dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
@@ -678,12 +672,10 @@ cdef inline void _localize_tso(_TSObject obj, tzinfo tz):
     Sets obj.tzinfo inplace, alters obj.dts inplace.
     """
     cdef:
-        ndarray[int64_t] trans
-        int64_t[::1] deltas
+        Localizer info = Localizer(tz)
         int64_t local_val
         int64_t* tdata
-        Py_ssize_t pos, ntrans
-        str typ
+        Py_ssize_t pos
 
     assert obj.tzinfo is None
 
@@ -691,83 +683,17 @@ cdef inline void _localize_tso(_TSObject obj, tzinfo tz):
         pass
     elif obj.value == NPY_NAT:
         pass
-    elif is_tzlocal(tz):
-        local_val = obj.value + localize_tzinfo_api(obj.value, tz, &obj.fold)
-        dt64_to_dtstruct(local_val, &obj.dts)
     else:
-        # Adjust datetime64 timestamp, recompute datetimestruct
-        trans, deltas, typ = get_dst_info(tz)
-        ntrans = trans.shape[0]
+        local_val = info.utc_val_to_local_val(obj.value, &obj.fold)
 
-        if typ == "pytz":
-            # i.e. treat_tz_as_pytz(tz)
-            tdata = <int64_t*>cnp.PyArray_DATA(trans)
-            pos = bisect_right_i8(tdata, obj.value, ntrans) - 1
-            local_val = obj.value + deltas[pos]
-
+        if info.use_pytz:
             # find right representation of dst etc in pytz timezone
-            tz = tz._tzinfos[tz._transition_info[pos]]
-        elif typ == "dateutil":
-            # i.e. treat_tz_as_dateutil(tz)
-            tdata = <int64_t*>cnp.PyArray_DATA(trans)
-            pos = bisect_right_i8(tdata, obj.value, ntrans) - 1
-            local_val = obj.value + deltas[pos]
-
-            # dateutil supports fold, so we infer fold from value
-            obj.fold = _infer_tsobject_fold(obj, trans, deltas, pos)
-        else:
-            # All other cases have len(deltas) == 1. As of 2018-07-17
-            #  (and 2022-03-07), all test cases that get here have
-            #  is_fixed_offset(tz).
-            local_val = obj.value + deltas[0]
+            tz = info.adjust_pytz_tzinfo(obj.value)
 
         dt64_to_dtstruct(local_val, &obj.dts)
 
     obj.tzinfo = tz
 
-
-cdef inline bint _infer_tsobject_fold(
-    _TSObject obj,
-    const int64_t[:] trans,
-    const int64_t[:] deltas,
-    intp_t pos,
-):
-    """
-    Infer _TSObject fold property from value by assuming 0 and then setting
-    to 1 if necessary.
-
-    Parameters
-    ----------
-    obj : _TSObject
-    trans : ndarray[int64_t]
-        ndarray of offset transition points in nanoseconds since epoch.
-    deltas : int64_t[:]
-        array of offsets corresponding to transition points in trans.
-    pos : intp_t
-        Position of the last transition point before taking fold into account.
-
-    Returns
-    -------
-    bint
-        Due to daylight saving time, one wall clock time can occur twice
-        when shifting from summer to winter time; fold describes whether the
-        datetime-like corresponds  to the first (0) or the second time (1)
-        the wall clock hits the ambiguous time
-
-    References
-    ----------
-    .. [1] "PEP 495 - Local Time Disambiguation"
-           https://www.python.org/dev/peps/pep-0495/#the-fold-attribute
-    """
-    cdef:
-        bint fold = 0
-
-    if pos > 0:
-        fold_delta = deltas[pos - 1] - deltas[pos]
-        if obj.value - fold_delta < trans[pos]:
-            fold = 1
-
-    return fold
 
 cdef inline datetime _localize_pydatetime(datetime dt, tzinfo tz):
     """
