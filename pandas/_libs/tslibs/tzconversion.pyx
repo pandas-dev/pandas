@@ -481,6 +481,10 @@ def tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
     if vals.shape[0] == 0:
         return np.array([], dtype=np.int64)
 
+    if is_utc(tz) or tz is None:
+        # in some asvs up to 60x faster than going through _tz_convert_from_utc
+        return vals.base.copy()
+
     converted = _tz_convert_from_utc(vals, tz)
     return np.asarray(converted, dtype=np.int64)
 
