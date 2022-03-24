@@ -5,14 +5,12 @@ runs:
   steps:
     - name: Environment Detail
       run: |
-        if which mamba; then
+        if which mamba 2>/dev/null; then
           mamba info
           mamba list
           mamba info | grep -Ei 'environment.+:' | grep -qEiv 'environment.+:.+none'
         fi
-        if which pip; then
-          pip list
-        fi
+        pip list
         python --version
       shell: bash -el {0}
 
