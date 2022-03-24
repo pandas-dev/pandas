@@ -534,7 +534,7 @@ cdef const int64_t[:] _tz_convert_from_utc(const int64_t[:] stamps, tzinfo tz):
 
         int64_t[::1] result
 
-    if is_utc(tz):
+    if is_utc(tz) or tz is None:
         # Much faster than going through the "standard" pattern below
         return stamps.copy()
 
