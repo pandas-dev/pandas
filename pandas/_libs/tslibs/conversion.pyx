@@ -525,6 +525,9 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
     if is_utc(tz):
         pass
     else:
+        # TODO: are we doing unnecessary work for pytz/fixed case? can we
+        #  use the local_val returned from this call to make some
+        #  of the rest of the function unnecessary?
         tz_convert_from_utc_single(obj.value, tz, &obj.fold)
 
     # Keep the converter same as PyDateTime's
@@ -677,6 +680,7 @@ cdef inline void _localize_tso(_TSObject obj, tzinfo tz):
         int64_t[::1] deltas
         int64_t local_val
         int64_t* tdata
+        intp_t outpos = -1
         Py_ssize_t pos, ntrans
         str typ
 
@@ -686,35 +690,12 @@ cdef inline void _localize_tso(_TSObject obj, tzinfo tz):
         pass
     elif obj.value == NPY_NAT:
         pass
-    elif is_tzlocal(tz):
-        local_val = obj.value + localize_tzinfo_api(obj.value, tz, &obj.fold)
-        dt64_to_dtstruct(local_val, &obj.dts)
     else:
-        # Adjust datetime64 timestamp, recompute datetimestruct
-        trans, deltas, typ = get_dst_info(tz)
-        ntrans = trans.shape[0]
+        local_val = tz_convert_from_utc_single(obj.value, tz, &obj.fold, &outpos)
 
-        if typ == "pytz":
-            # i.e. treat_tz_as_pytz(tz)
-            tdata = <int64_t*>cnp.PyArray_DATA(trans)
-            pos = bisect_right_i8(tdata, obj.value, ntrans) - 1
-            local_val = obj.value + deltas[pos]
-
-            # find right representation of dst etc in pytz timezone
-            tz = tz._tzinfos[tz._transition_info[pos]]
-        elif typ == "dateutil":
-            # i.e. treat_tz_as_dateutil(tz)
-            tdata = <int64_t*>cnp.PyArray_DATA(trans)
-            pos = bisect_right_i8(tdata, obj.value, ntrans) - 1
-            local_val = obj.value + deltas[pos]
-
-            # dateutil supports fold, so we infer fold from value
-            obj.fold = infer_dateutil_fold(obj.value, trans, deltas, pos)
-        else:
-            # All other cases have len(deltas) == 1. As of 2018-07-17
-            #  (and 2022-03-07), all test cases that get here have
-            #  is_fixed_offset(tz).
-            local_val = obj.value + deltas[0]
+        if outpos != -1:
+            # infer we went through a pytz path
+            tz = tz._tzinfos[tz._transition_info[outpos]]
 
         dt64_to_dtstruct(local_val, &obj.dts)
 
