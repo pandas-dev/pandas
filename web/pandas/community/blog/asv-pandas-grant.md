@@ -43,7 +43,7 @@ make connections and links that will lead you to these opportunities.
 At the beginning of the grant, we started from the basics. We noticed that
 we could improve our skills in managing Git and GitHub. For example, we had
 some troubles with the git workflow, so we had to read and practice more
-about it. One of the valuable resources was the explanation from Marc about 
+about it. One of the valuable resources was the explanation from Marc about
 [how to make an open-source contribution](https://tubedu.org/w/kjnHEg72j76StmSFmjzbnE),
 which we invite you to take a look at it.
 
