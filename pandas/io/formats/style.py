@@ -26,6 +26,7 @@ from pandas._typing import (
     IndexLabel,
     Level,
     Scalar,
+    StorageOptions,
     WriteBuffer,
 )
 from pandas.compat._optional import import_optional_dependency
@@ -46,6 +47,7 @@ from pandas.core.frame import (
     Series,
 )
 from pandas.core.generic import NDFrame
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.formats.format import save_to_buffer
 
@@ -542,7 +544,11 @@ class Styler(StylerRenderer):
 
         return self
 
-    @doc(NDFrame.to_excel, klass="Styler")
+    @doc(
+        NDFrame.to_excel,
+        klass="Styler",
+        storage_options=_shared_docs["storage_options"],
+    )
     def to_excel(
         self,
         excel_writer,
@@ -561,6 +567,7 @@ class Styler(StylerRenderer):
         inf_rep: str = "inf",
         verbose: bool = True,
         freeze_panes: tuple[int, int] | None = None,
+        storage_options: StorageOptions = None,
     ) -> None:
 
         from pandas.io.formats.excel import ExcelFormatter
@@ -583,6 +590,7 @@ class Styler(StylerRenderer):
             startcol=startcol,
             freeze_panes=freeze_panes,
             engine=engine,
+            storage_options=storage_options,
         )
 
     def to_latex(
