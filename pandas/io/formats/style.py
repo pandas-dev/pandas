@@ -46,7 +46,6 @@ from pandas.core.frame import (
     Series,
 )
 from pandas.core.generic import NDFrame
-from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.formats.format import save_to_buffer
 
@@ -543,10 +542,7 @@ class Styler(StylerRenderer):
 
         return self
 
-    @doc(
-        NDFrame.to_excel,
-        klass="Styler"
-    )
+    @doc(NDFrame.to_excel, klass="Styler")
     def to_excel(
         self,
         excel_writer,
