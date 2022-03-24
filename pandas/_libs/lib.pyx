@@ -9,9 +9,9 @@ from cython import Py_ssize_t
 from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
-    PyDateTime_IMPORT,
     PyDelta_Check,
     PyTime_Check,
+    import_datetime,
 )
 from cpython.iterator cimport PyIter_Check
 from cpython.number cimport PyNumber_Check
@@ -27,7 +27,7 @@ from cpython.tuple cimport (
 )
 from cython cimport floating
 
-PyDateTime_IMPORT
+import_datetime()
 
 import numpy as np
 
@@ -2470,8 +2470,8 @@ def maybe_convert_objects(ndarray[object] objects,
         ndarray[int64_t] ints
         ndarray[uint64_t] uints
         ndarray[uint8_t] bools
-        int64_t[:]  idatetimes
-        int64_t[:] itimedeltas
+        int64_t[::1]  idatetimes
+        int64_t[::1] itimedeltas
         Seen seen = Seen()
         object val
         float64_t fval, fnan = np.nan

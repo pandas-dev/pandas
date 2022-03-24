@@ -179,7 +179,7 @@ class TestSeriesPlots(TestPlotBase):
         self.plt.close()
         _, ax = self.plt.subplots()
         ax = s.plot(legend=True, ax=ax)
-        self._check_legend_labels(ax, labels=["None"])
+        self._check_legend_labels(ax, labels=[""])
         self.plt.close()
         # get name from index
         s.name = "NAME"
