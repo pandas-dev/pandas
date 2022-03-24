@@ -544,8 +544,19 @@ class MultiIndex(Index):
             raise TypeError("Input must be a list / sequence of tuple-likes.")
         elif is_iterator(tuples):
             tuples = list(tuples)
-        tuples = cast(Collection[Tuple[Hashable, ...]], tuples)
 
+        if len(tuples) and all((isinstance(e, tuple) and not e) for e in tuples):
+            codes = [np.zeros(len(tuples))]
+            levels = [Index(com.asarray_tuplesafe(tuples, dtype=np.dtype("object")))]
+            return cls(
+                levels=levels,
+                codes=codes,
+                sortorder=sortorder,
+                names=names,
+                verify_integrity=False,
+            )
+
+        tuples = cast(Collection[Tuple[Hashable, ...]], tuples)
         arrays: list[Sequence[Hashable]]
         if len(tuples) == 0:
             if names is None:
@@ -561,17 +572,6 @@ class MultiIndex(Index):
         else:
             arrs = zip(*tuples)
             arrays = cast(List[Sequence[Hashable]], arrs)
-
-        if all((isinstance(e, tuple) and not e) for e in tuples):
-            codes = [np.zeros(len(tuples))]
-            levels = [Index(com.asarray_tuplesafe(tuples, dtype=np.dtype("object")))]
-            return cls(
-                levels=levels,
-                codes=codes,
-                sortorder=sortorder,
-                names=names,
-                verify_integrity=False,
-            )
 
         return cls.from_arrays(arrays, sortorder=sortorder, names=names)
 
