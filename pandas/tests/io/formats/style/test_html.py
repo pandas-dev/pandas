@@ -778,8 +778,20 @@ def test_hiding_index_columns_multiindex_trimming():
         ("no scheme, no top-level: www.web", False, "www.web"),
         ("https scheme: https://www.web.com", True, "https://www.web.com"),
         ("ftp scheme: ftp://www.web", True, "ftp://www.web"),
+        ("ftps scheme: ftps://www.web", True, "ftps://www.web"),
         ("subdirectories: www.web.com/directory", True, "www.web.com/directory"),
         ("Multiple domains: www.1.2.3.4", True, "www.1.2.3.4"),
+        ("with port: http://web.com:80", True, "http://web.com:80"),
+        (
+            "full net_loc scheme: http://user:pass@web.com",
+            True,
+            "http://user:pass@web.com",
+        ),
+        (
+            "with valid special chars: http://web.com/,.':;~!@#$*()[]",
+            True,
+            "http://web.com/,.':;~!@#$*()[]",
+        ),
     ],
 )
 def test_rendered_links(type, text, exp, found):
