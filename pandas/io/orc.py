@@ -62,6 +62,7 @@ def read_orc(
 def to_orc(
     df: DataFrame,
     path: FilePath | WriteBuffer[bytes] | None = None,
+    *,
     engine: Literal["pyarrow"] = "pyarrow",
     index: bool | None = None,
     **kwargs,
@@ -109,6 +110,5 @@ def to_orc(
     if path is None:
         assert isinstance(path_or_buf, io.BytesIO)
         return path_or_buf.getvalue()
-    else:
-        return None
+    return None
 
