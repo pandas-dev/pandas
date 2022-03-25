@@ -284,7 +284,7 @@ cdef class _Timestamp(ABCTimestamp):
     @cython.overflowcheck(True)
     def __add__(self, other):
         cdef:
-           int64_t nanos = 0
+            int64_t nanos = 0
 
         if is_any_td_scalar(other):
             nanos = delta_to_nanoseconds(other)
@@ -292,6 +292,7 @@ cdef class _Timestamp(ABCTimestamp):
                 result = type(self)(self.value + nanos, tz=self.tzinfo)
             except OverflowError:
                 # Use Python ints
+                # Hit in test_tdi_add_overflow
                 result = type(self)(int(self.value) + int(nanos), tz=self.tzinfo)
             if result is not NaT:
                 result._set_freq(self._freq)  # avoid warning in constructor

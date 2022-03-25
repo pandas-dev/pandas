@@ -471,7 +471,7 @@ cdef class BaseOffset:
             return type(self)(self.n - other.n, normalize=self.normalize,
                               **self.kwds)
         elif not isinstance(self, BaseOffset):
-            # TODO(Cython 3): remove, this moved to __rsub__
+            # TODO(cython3): remove, this moved to __rsub__
             # cython semantics, this is __rsub__
             return (-other).__add__(self)
         else:
