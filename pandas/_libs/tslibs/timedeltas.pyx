@@ -22,12 +22,12 @@ cnp.import_array()
 
 from cpython.datetime cimport (
     PyDateTime_Check,
-    PyDateTime_IMPORT,
     PyDelta_Check,
+    import_datetime,
     timedelta,
 )
 
-PyDateTime_IMPORT
+import_datetime()
 
 
 cimport pandas._libs.tslibs.util as util
@@ -826,12 +826,31 @@ cdef _to_py_int_float(v):
 cdef class _Timedelta(timedelta):
     # cdef readonly:
     #    int64_t value      # nanoseconds
-    #    object freq        # frequency reference
-    #    bint is_populated  # are my components populated
+    #    bint _is_populated  # are my components populated
     #    int64_t _d, _h, _m, _s, _ms, _us, _ns
 
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
+
+    @property
+    def freq(self) -> None:
+        # GH#46430
+        warnings.warn(
+            "Timedelta.freq is deprecated and will be removed in a future version",
+            FutureWarning,
+            stacklevel=1,
+        )
+        return None
+
+    @property
+    def is_populated(self) -> bool:
+        # GH#46430
+        warnings.warn(
+            "Timedelta.is_populated is deprecated and will be removed in a future version",
+            FutureWarning,
+            stacklevel=1,
+        )
+        return self._is_populated
 
     def __hash__(_Timedelta self):
         if self._has_ns():
@@ -881,7 +900,7 @@ cdef class _Timedelta(timedelta):
         """
         compute the components
         """
-        if self.is_populated:
+        if self._is_populated:
             return
 
         cdef:
@@ -898,7 +917,7 @@ cdef class _Timedelta(timedelta):
         self._seconds = tds.seconds
         self._microseconds = tds.microseconds
 
-        self.is_populated = 1
+        self._is_populated = 1
 
     cpdef timedelta to_pytimedelta(_Timedelta self):
         """
@@ -995,6 +1014,12 @@ cdef class _Timedelta(timedelta):
         >>> td.delta
         42
         """
+        # Deprecated GH#46476
+        warnings.warn(
+            "Timedelta.delta is deprecated and will be removed in a future version.",
+            FutureWarning,
+            stacklevel=1,
+        )
         return self.value
 
     @property
@@ -1389,7 +1414,7 @@ class Timedelta(_Timedelta):
         # make timedelta happy
         td_base = _Timedelta.__new__(cls, microseconds=int(value) // 1000)
         td_base.value = value
-        td_base.is_populated = 0
+        td_base._is_populated = 0
         return td_base
 
     def __setstate__(self, state):

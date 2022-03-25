@@ -168,6 +168,10 @@ def test_transform_axis_1(request, transformation_func):
     # TODO(2.0) Remove after pad/backfill deprecation enforced
     transformation_func = maybe_normalize_deprecated_kernels(transformation_func)
 
+    if transformation_func == "ngroup":
+        msg = "ngroup fails with axis=1: #45986"
+        request.node.add_marker(pytest.mark.xfail(reason=msg))
+
     warn = None
     if transformation_func == "tshift":
         warn = FutureWarning
@@ -383,6 +387,15 @@ def test_transform_transformation_func(request, transformation_func):
     elif transformation_func == "fillna":
         test_op = lambda x: x.transform("fillna", value=0)
         mock_op = lambda x: x.fillna(value=0)
+    elif transformation_func == "ngroup":
+        test_op = lambda x: x.transform("ngroup")
+        counter = -1
+
+        def mock_op(x):
+            nonlocal counter
+            counter += 1
+            return Series(counter, index=x.index)
+
     elif transformation_func == "tshift":
         msg = (
             "Current behavior of groupby.tshift is inconsistent with other "
@@ -394,10 +407,14 @@ def test_transform_transformation_func(request, transformation_func):
         mock_op = lambda x: getattr(x, transformation_func)()
 
     result = test_op(df.groupby("A"))
-    groups = [df[["B"]].iloc[:4], df[["B"]].iloc[4:6], df[["B"]].iloc[6:]]
-    expected = concat([mock_op(g) for g in groups])
+    # pass the group in same order as iterating `for ... in df.groupby(...)`
+    # but reorder to match df's index since this is a transform
+    groups = [df[["B"]].iloc[4:6], df[["B"]].iloc[6:], df[["B"]].iloc[:4]]
+    expected = concat([mock_op(g) for g in groups]).sort_index()
+    # sort_index does not preserve the freq
+    expected = expected.set_axis(df.index)
 
-    if transformation_func == "cumcount":
+    if transformation_func in ("cumcount", "ngroup"):
         tm.assert_series_equal(result, expected)
     else:
         tm.assert_frame_equal(result, expected)
@@ -1122,10 +1139,6 @@ def test_transform_agg_by_name(request, reduction_func, obj):
     func = reduction_func
     g = obj.groupby(np.repeat([0, 1], 3))
 
-    if func == "ngroup":  # GH#27468
-        request.node.add_marker(
-            pytest.mark.xfail(reason="TODO: g.transform('ngroup') doesn't work")
-        )
     if func == "corrwith" and isinstance(obj, Series):  # GH#32293
         request.node.add_marker(
             pytest.mark.xfail(reason="TODO: implement SeriesGroupBy.corrwith")
@@ -1137,8 +1150,8 @@ def test_transform_agg_by_name(request, reduction_func, obj):
     # this is the *definition* of a transformation
     tm.assert_index_equal(result.index, obj.index)
 
-    if func != "size" and obj.ndim == 2:
-        # size returns a Series, unlike other transforms
+    if func not in ("ngroup", "size") and obj.ndim == 2:
+        # size/ngroup return a Series, unlike other transforms
         tm.assert_index_equal(result.columns, obj.columns)
 
     # verify that values were broadcasted across each group
@@ -1312,7 +1325,7 @@ def test_null_group_lambda_self(sort, dropna):
 
 def test_null_group_str_reducer(request, dropna, reduction_func):
     # GH 17093
-    if reduction_func in ("corrwith", "ngroup"):
+    if reduction_func == "corrwith":
         msg = "incorrectly raises"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
     index = [1, 2, 3, 4]  # test transform preserves non-standard index
@@ -1357,30 +1370,11 @@ def test_null_group_str_reducer(request, dropna, reduction_func):
     tm.assert_equal(result, expected)
 
 
-def test_null_group_str_transformer(
-    request, using_array_manager, dropna, transformation_func
-):
+@pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
+def test_null_group_str_transformer(request, dropna, transformation_func):
     # GH 17093
-    xfails_block = (
-        "cummax",
-        "cummin",
-        "cumsum",
-        "fillna",
-        "rank",
-        "backfill",
-        "ffill",
-        "bfill",
-        "pad",
-    )
-    xfails_array = ("cummax", "cummin", "cumsum", "fillna", "rank")
     if transformation_func == "tshift":
         msg = "tshift requires timeseries"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
-    elif dropna and (
-        (not using_array_manager and transformation_func in xfails_block)
-        or (using_array_manager and transformation_func in xfails_array)
-    ):
-        msg = "produces incorrect results when nans are present"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
     args = (0,) if transformation_func == "fillna" else ()
     df = DataFrame({"A": [1, 1, np.nan], "B": [1, 2, 2]}, index=[1, 2, 3])
@@ -1417,10 +1411,6 @@ def test_null_group_str_reducer_series(request, dropna, reduction_func):
     # GH 17093
     if reduction_func == "corrwith":
         msg = "corrwith not implemented for SeriesGroupBy"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
-
-    if reduction_func == "ngroup":
-        msg = "ngroup fails"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
 
     # GH 17093
@@ -1469,15 +1459,6 @@ def test_null_group_str_transformer_series(request, dropna, transformation_func)
     if transformation_func == "tshift":
         msg = "tshift requires timeseries"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
-    elif dropna and transformation_func in (
-        "cummax",
-        "cummin",
-        "cumsum",
-        "fillna",
-        "rank",
-    ):
-        msg = "produces incorrect results when nans are present"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
     args = (0,) if transformation_func == "fillna" else ()
     ser = Series([1, 2, 2], index=[1, 2, 3])
     gb = ser.groupby([1, 1, np.nan], dropna=dropna)
@@ -1501,4 +1482,10 @@ def test_null_group_str_transformer_series(request, dropna, transformation_func)
     msg = f"{transformation_func} is deprecated"
     with tm.assert_produces_warning(warn, match=msg):
         result = gb.transform(transformation_func, *args)
-    tm.assert_equal(result, expected)
+    if dropna and transformation_func == "fillna":
+        # GH#46369 - result name is the group; remove this block when fixed.
+        tm.assert_equal(result, expected, check_names=False)
+        # This should be None
+        assert result.name == 1.0
+    else:
+        tm.assert_equal(result, expected)

@@ -6,13 +6,13 @@ python-dateutil>=2.8.1
 pytz
 asv < 0.5.0
 cython>=0.29.24
-black==21.5b2
+black==22.1.0
 cpplint
 flake8==4.0.1
 flake8-bugbear==21.3.2
 flake8-comprehensions==3.7.0
 isort>=5.2.1
-mypy==0.931
+mypy==0.941
 pre-commit>=2.9.2
 pycodestyle
 pyupgrade

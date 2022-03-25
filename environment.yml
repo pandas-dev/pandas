@@ -18,13 +18,13 @@ dependencies:
   - cython>=0.29.24
 
   # code checks
-  - black=21.5b2
+  - black=22.1.0
   - cpplint
   - flake8=4.0.1
   - flake8-bugbear=21.3.2  # used by flake8, find likely bugs
   - flake8-comprehensions=3.7.0  # used by flake8, linting of unnecessary comprehensions
   - isort>=5.2.1  # check that imports are in the right order
-  - mypy=0.931
+  - mypy=0.941
   - pre-commit>=2.9.2
   - pycodestyle  # used by flake8
   - pyupgrade
