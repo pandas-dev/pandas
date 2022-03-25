@@ -960,7 +960,10 @@ class Series(base.IndexOpsMixin, NDFrame):
             key = unpack_1tuple(key)
 
         if is_integer(key) and self.index._should_fallback_to_positional:
-            return self._values[key]
+            try:
+                return self._values[key]
+            except IndexError:
+                return np.nan
 
         elif key_is_scalar:
             return self._get_value(key)
