@@ -1781,3 +1781,103 @@ def test_step_not_integer_raises():
 def test_step_not_positive_raises():
     with pytest.raises(ValueError, match="step must be >= 0"):
         DataFrame(range(2)).rolling(1, step=-1)
+
+
+@pytest.mark.parametrize(
+    ["values", "window", "min_periods", "expected"],
+    [
+        [
+            np.array([20, 10, 10, np.inf, 1, 1, 2, 3]),
+            3,
+            1,
+            np.array(
+                [
+                    np.nan,
+                    50.0,
+                    33.33333333333333,
+                    0.0,
+                    40.5,
+                    0.0,
+                    0.3333333333333333,
+                    1.0,
+                ]
+            ),
+        ],
+        [
+            np.array([20, 10, 10, np.nan, 10, 1, 2, 3]),
+            3,
+            1,
+            np.array(
+                [
+                    np.nan,
+                    50.0,
+                    33.33333333333333,
+                    0.0,
+                    0.0,
+                    40.5,
+                    24.333333333333332,
+                    1.0,
+                ]
+            ),
+        ],
+        [
+            np.array([np.nan, 5, 6, 7, 5, 5, 5]),
+            3,
+            3,
+            np.array([np.nan, np.nan, np.nan, 1.0, 1.0, 1.3333333333333335, 0.0]),
+        ],
+        [
+            np.array([5, 7, 7, 7, np.nan, np.inf, 4, 3, 3, 3]),
+            3,
+            3,
+            np.array(
+                [
+                    np.nan,
+                    np.nan,
+                    1.3333333333333335,
+                    0.0,
+                    np.nan,
+                    np.nan,
+                    np.nan,
+                    np.nan,
+                    0.33333333333333337,
+                    0.0,
+                ]
+            ),
+        ],
+        [
+            np.array([5, 7, 7, 7, np.nan, np.inf, 7, 3, 3, 3]),
+            3,
+            3,
+            np.array(
+                [
+                    np.nan,
+                    np.nan,
+                    1.3333333333333335,
+                    0.0,
+                    np.nan,
+                    np.nan,
+                    np.nan,
+                    np.nan,
+                    5.333333333333333,
+                    0.0,
+                ]
+            ),
+        ],
+    ],
+)
+def test_rolling_var_same_value_count_logic(values, window, min_periods, expected):
+    # GH 42064
+
+    sr = Series(values)
+    result_var = sr.rolling(window, min_periods=min_periods).var()
+    # 1. result should be close to correct value
+    # non-zero values can still differ slightly as the result of online algorithm
+    assert np.isclose(result_var, expected, equal_nan=True).all()
+    # 2. zeros should be exactly the same since the new algo takes effect here
+    assert (result_var[expected == 0] == 0).all()
+
+    # std should also pass as it's just a sqrt of var
+    result_std = sr.rolling(window, min_periods=min_periods).std()
+    assert np.isclose(result_std, np.sqrt(expected), equal_nan=True).all()
+    assert (result_std[expected == 0] == 0).all()

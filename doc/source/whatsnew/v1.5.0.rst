@@ -46,6 +46,7 @@ Other enhancements
 - Improved error message in :class:`~pandas.core.window.Rolling` when ``window`` is a frequency and ``NaT`` is in the rolling axis (:issue:`46087`)
 - :class:`Series` and :class:`DataFrame` with ``IntegerDtype`` now supports bitwise operations (:issue:`34463`)
 - Add ``milliseconds`` field support for :class:`~pandas.DateOffset` (:issue:`43371`)
+- :meth:`DataFrame.rolling.var`, :meth:`DataFrame.rolling.std`, :meth:`Series.rolling.var`, :meth:`Series.rolling.std` now generate correct result 0 for window containing same values (:issue:`42064`)
 -
 
 .. ---------------------------------------------------------------------------
