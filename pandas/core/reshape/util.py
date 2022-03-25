@@ -55,7 +55,7 @@ def cartesian_product(X):
     return [tile_compat(np.repeat(x, b[i]), np.product(a[i])) for i, x in enumerate(X)]
 
 
-def tile_compat(arr:NumpyIndexT, num: int) -> NumpyIndexT:
+def tile_compat(arr: NumpyIndexT, num: int) -> NumpyIndexT:
     """
     Index compat for np.tile.
 
