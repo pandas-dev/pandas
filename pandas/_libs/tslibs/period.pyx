@@ -1736,13 +1736,12 @@ cdef class _Period(PeriodMixin):
         return NotImplemented
 
     def __radd__(self, other):
-        if other is NaT:
-            return NaT
         return self.__add__(other)
 
     def __sub__(self, other):
         if not is_period_object(self):
             # cython semantics; this is like a call to __rsub__
+            # TODO(cython3): remove this
             if self is NaT:
                 return NaT
             return NotImplemented
