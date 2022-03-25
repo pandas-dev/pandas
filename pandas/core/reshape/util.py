@@ -1,8 +1,9 @@
 import numpy as np
 
+from pandas._typing import NumpyIndexT
+
 from pandas.core.dtypes.common import is_list_like
 
-from pandas._typing import NumpyIndexT
 
 def cartesian_product(X):
     """
