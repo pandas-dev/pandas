@@ -258,8 +258,6 @@ INFO_DOCSTRING = dedent(
 
     Parameters
     ----------
-    data : {klass}
-        {klass} to print information about.
     verbose : bool, optional
         Whether to print the full summary. By default, the setting in
         ``pandas.options.display.max_info_columns`` is followed.
