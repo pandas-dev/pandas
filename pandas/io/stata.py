@@ -62,7 +62,7 @@ from pandas import (
     to_timedelta,
 )
 from pandas.core.arrays.boolean import BooleanDtype
-from pandas.core.arrays.integer import _IntegerDtype
+from pandas.core.arrays.integer import IntegerDtype
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.base import Index
 from pandas.core.series import Series
@@ -572,7 +572,13 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
     """
     ws = ""
     # original, if small, if large
-    conversion_data = (
+    conversion_data: tuple[
+        tuple[type, type, type],
+        tuple[type, type, type],
+        tuple[type, type, type],
+        tuple[type, type, type],
+        tuple[type, type, type],
+    ] = (
         (np.bool_, np.int8, np.int8),
         (np.uint8, np.int8, np.int16),
         (np.uint16, np.int16, np.int32),
@@ -585,7 +591,7 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
 
     for col in data:
         # Cast from unsupported types to supported types
-        is_nullable_int = isinstance(data[col].dtype, (_IntegerDtype, BooleanDtype))
+        is_nullable_int = isinstance(data[col].dtype, (IntegerDtype, BooleanDtype))
         orig = data[col]
         # We need to find orig_missing before altering data below
         orig_missing = orig.isna()
@@ -593,15 +599,14 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
             missing_loc = data[col].isna()
             if missing_loc.any():
                 # Replace with always safe value
-                fv = 0 if isinstance(data[col].dtype, _IntegerDtype) else False
+                fv = 0 if isinstance(data[col].dtype, IntegerDtype) else False
                 data.loc[missing_loc, col] = fv
             # Replace with NumPy-compatible column
             data[col] = data[col].astype(data[col].dtype.numpy_dtype)
         dtype = data[col].dtype
         for c_data in conversion_data:
             if dtype == c_data[0]:
-                # Value of type variable "_IntType" of "iinfo" cannot be "object"
-                if data[col].max() <= np.iinfo(c_data[1]).max:  # type: ignore[type-var]
+                if data[col].max() <= np.iinfo(c_data[1]).max:
                     dtype = c_data[1]
                 else:
                     dtype = c_data[2]
@@ -663,7 +668,7 @@ class StataValueLabel:
         Encoding to use for value labels.
     """
 
-    def __init__(self, catarray: Series, encoding: str = "latin-1"):
+    def __init__(self, catarray: Series, encoding: str = "latin-1") -> None:
 
         if encoding not in ("latin-1", "utf-8"):
             raise ValueError("Only latin-1 and utf-8 are supported.")
@@ -792,7 +797,7 @@ class StataNonCatValueLabel(StataValueLabel):
         labname: str,
         value_labels: dict[float | int, str],
         encoding: Literal["latin-1", "utf-8"] = "latin-1",
-    ):
+    ) -> None:
 
         if encoding not in ("latin-1", "utf-8"):
             raise ValueError("Only latin-1 and utf-8 are supported.")
@@ -879,7 +884,7 @@ class StataMissingValue:
         "float64": struct.unpack("<d", float64_base)[0],
     }
 
-    def __init__(self, value: int | float):
+    def __init__(self, value: int | float) -> None:
         self._value = value
         # Conversion to int to avoid hash issues on 32 bit platforms #8968
         value = int(value) if value < 2147483648 else float(value)
@@ -940,7 +945,7 @@ class StataMissingValue:
 
 
 class StataParser:
-    def __init__(self):
+    def __init__(self) -> None:
 
         # type          code.
         # --------------------
@@ -967,7 +972,7 @@ class StataParser:
                 (255, np.dtype(np.float64)),
             ]
         )
-        self.DTYPE_MAP_XML = {
+        self.DTYPE_MAP_XML: dict[int, np.dtype] = {
             32768: np.dtype(np.uint8),  # Keys to GSO
             65526: np.dtype(np.float64),
             65527: np.dtype(np.float32),
@@ -975,9 +980,7 @@ class StataParser:
             65529: np.dtype(np.int16),
             65530: np.dtype(np.int8),
         }
-        # error: Argument 1 to "list" has incompatible type "str";
-        #  expected "Iterable[int]"  [arg-type]
-        self.TYPE_MAP = list(range(251)) + list("bhlfd")  # type: ignore[arg-type]
+        self.TYPE_MAP = list(tuple(range(251)) + tuple("bhlfd"))
         self.TYPE_MAP_XML = {
             # Not really a Q, unclear how to handle byteswap
             32768: "Q",
@@ -1117,7 +1120,7 @@ class StataReader(StataParser, abc.Iterator):
         chunksize: int | None = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
-    ):
+    ) -> None:
         super().__init__()
         self.col_sizes: list[int] = []
 
@@ -1296,9 +1299,7 @@ class StataReader(StataParser, abc.Iterator):
             if typ <= 2045:
                 return str(typ)
             try:
-                # error: Incompatible return value type (got "Type[number]", expected
-                # "Union[str, dtype]")
-                return self.DTYPE_MAP_XML[typ]  # type: ignore[return-value]
+                return self.DTYPE_MAP_XML[typ]
             except KeyError as err:
                 raise ValueError(f"cannot convert stata dtype [{typ}]") from err
 
@@ -2265,7 +2266,7 @@ class StataWriter(StataParser):
         storage_options: StorageOptions = None,
         *,
         value_labels: dict[Hashable, dict[float | int, str]] | None = None,
-    ):
+    ) -> None:
         super().__init__()
         self.data = data
         self._convert_dates = {} if convert_dates is None else convert_dates
@@ -2943,7 +2944,7 @@ class StataStrLWriter:
         columns: Sequence[str],
         version: int = 117,
         byteorder: str | None = None,
-    ):
+    ) -> None:
         if version not in (117, 118, 119):
             raise ValueError("Only dta versions 117, 118 and 119 supported")
         self._dta_ver = version
@@ -3195,7 +3196,7 @@ class StataWriter117(StataWriter):
         storage_options: StorageOptions = None,
         *,
         value_labels: dict[Hashable, dict[float | int, str]] | None = None,
-    ):
+    ) -> None:
         # Copy to new list since convert_strl might be modified later
         self._convert_strl: list[Hashable] = []
         if convert_strl is not None:
@@ -3592,7 +3593,7 @@ class StataWriterUTF8(StataWriter117):
         storage_options: StorageOptions = None,
         *,
         value_labels: dict[Hashable, dict[float | int, str]] | None = None,
-    ):
+    ) -> None:
         if version is None:
             version = 118 if data.shape[1] <= 32767 else 119
         elif version not in (118, 119):

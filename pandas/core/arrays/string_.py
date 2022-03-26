@@ -39,13 +39,13 @@ from pandas.core.dtypes.common import (
 from pandas.core import ops
 from pandas.core.array_algos import masked_reductions
 from pandas.core.arrays import (
+    ExtensionArray,
     FloatingArray,
     IntegerArray,
-    PandasArray,
 )
-from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.floating import FloatingDtype
-from pandas.core.arrays.integer import _IntegerDtype
+from pandas.core.arrays.integer import IntegerDtype
+from pandas.core.arrays.numpy_ import PandasArray
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import isna
@@ -97,7 +97,7 @@ class StringDtype(ExtensionDtype):
     na_value = libmissing.NA
     _metadata = ("storage",)
 
-    def __init__(self, storage=None):
+    def __init__(self, storage=None) -> None:
         if storage is None:
             storage = get_option("mode.string_storage")
         if storage not in {"python", "pyarrow"}:
@@ -224,6 +224,10 @@ class StringDtype(ExtensionDtype):
 
 
 class BaseStringArray(ExtensionArray):
+    """
+    Mixin class for StringArray, ArrowStringArray.
+    """
+
     pass
 
 
@@ -313,7 +317,7 @@ class StringArray(BaseStringArray, PandasArray):
     # undo the PandasArray hack
     _typ = "extension"
 
-    def __init__(self, values, copy=False):
+    def __init__(self, values, copy=False) -> None:
         values = extract_array(values)
 
         super().__init__(values, copy=copy)
@@ -432,7 +436,7 @@ class StringArray(BaseStringArray, PandasArray):
                 return self.copy()
             return self
 
-        elif isinstance(dtype, _IntegerDtype):
+        elif isinstance(dtype, IntegerDtype):
             arr = self._ndarray.copy()
             mask = self.isna()
             arr[mask] = 0

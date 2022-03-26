@@ -764,7 +764,13 @@ class TestReaders:
             pd.read_excel(bad_stream)
 
     @pytest.mark.network
-    @tm.network
+    @tm.network(
+        url=(
+            "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
+            "pandas/tests/io/data/excel/test1.xlsx"
+        ),
+        check_before_test=True,
+    )
     def test_read_from_http_url(self, read_ext):
         url = (
             "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
@@ -775,6 +781,7 @@ class TestReaders:
         tm.assert_frame_equal(url_table, local_table)
 
     @td.skip_if_not_us_locale
+    @pytest.mark.single_cpu
     def test_read_from_s3_url(self, read_ext, s3_resource, s3so):
         # Bucket "pandas-test" created in tests/io/conftest.py
         with open("test1" + read_ext, "rb") as f:
@@ -786,6 +793,7 @@ class TestReaders:
         local_table = pd.read_excel("test1" + read_ext)
         tm.assert_frame_equal(url_table, local_table)
 
+    @pytest.mark.single_cpu
     def test_read_from_s3_object(self, read_ext, s3_resource, s3so):
         # GH 38788
         # Bucket "pandas-test" created in tests/io/conftest.py

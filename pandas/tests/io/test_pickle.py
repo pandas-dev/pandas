@@ -21,6 +21,7 @@ import os
 from pathlib import Path
 import pickle
 import shutil
+import uuid
 from warnings import (
     catch_warnings,
     filterwarnings,
@@ -248,7 +249,7 @@ def test_legacy_sparse_warning(datapath, typ):
 
 @pytest.fixture
 def get_random_path():
-    return f"__{tm.rands(10)}__.pickle"
+    return f"__{uuid.uuid4()}__.pickle"
 
 
 class TestCompression:
@@ -435,12 +436,12 @@ def test_pickle_generalurl_read(monkeypatch, mockurl):
             pickle.dump(obj, fh, protocol=-1)
 
     class MockReadResponse:
-        def __init__(self, path):
+        def __init__(self, path) -> None:
             self.file = open(path, "rb")
             if "gzip" in path:
                 self.headers = {"Content-Encoding": "gzip"}
             else:
-                self.headers = {"Content-Encoding": None}
+                self.headers = {"Content-Encoding": ""}
 
         def __enter__(self):
             return self
@@ -477,7 +478,7 @@ def test_pickle_fsspec_roundtrip():
 
 
 class MyTz(datetime.tzinfo):
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
 
