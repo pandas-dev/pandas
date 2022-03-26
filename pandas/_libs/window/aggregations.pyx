@@ -278,7 +278,7 @@ def roll_mean(const float64_t[:] values, ndarray[int64_t] start,
 
 
 cdef inline float64_t calc_var(int64_t minp, int ddof, float64_t nobs,
-                               float64_t ssqdm_x, Py_ssize_t num_consecutive_same_value) nogil:
+                               float64_t ssqdm_x, int64_t num_consecutive_same_value) nogil:
     cdef:
         float64_t result
 
@@ -298,7 +298,7 @@ cdef inline float64_t calc_var(int64_t minp, int ddof, float64_t nobs,
 
 cdef inline void add_var(float64_t val, float64_t *nobs, float64_t *mean_x,
                          float64_t *ssqdm_x, float64_t *compensation,
-                         Py_ssize_t *num_consecutive_same_value, float64_t *prev_value) nogil:
+                         int64_t *num_consecutive_same_value, float64_t *prev_value) nogil:
     """ add a value from the var calc """
     cdef:
         float64_t delta, prev_mean, y, t
@@ -363,8 +363,8 @@ def roll_var(const float64_t[:] values, ndarray[int64_t] start,
     cdef:
         float64_t mean_x, ssqdm_x, nobs, compensation_add,
         float64_t compensation_remove, prev_value
-        int64_t s, e
-        Py_ssize_t i, j, N = len(start), num_consecutive_same_value
+        int64_t s, e, num_consecutive_same_value
+        Py_ssize_t i, j, N = len(start)
         ndarray[float64_t] output
         bint is_monotonic_increasing_bounds
 
