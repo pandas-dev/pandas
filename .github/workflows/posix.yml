@@ -65,18 +65,18 @@ jobs:
           - env_file: actions-38.yaml
             pattern: "not single_cpu"
             pyarrow_version: 5
-            name: "Min Pyarrow"
+            name: "Pyarrow 5"
           - env_file: actions-38.yaml
             pattern: "single_cpu"
             pyarrow_version: 5
-            name: "Min Pyarrow (single)"
+            name: "Pyarrow 5 (single)"
           - env_file: actions-38.yaml
             pattern: "not single_cpu"
-            pyarrow_version: 7
+            pyarrow_version: latest
             name: "Latest Pyarrow"
           - env_file: actions-38.yaml
             pattern: "single_cpu"
-            pyarrow_version: 7
+            pyarrow_version: latest
             name: "Latest Pyarrow (single)"
       fail-fast: false
     name: ${{ matrix.name || format('{0} {1}', matrix.env_file, matrix.pattern) }}
@@ -165,7 +165,13 @@ jobs:
       if: ${{ env.IS_PYPY == 'false' }} # No pypy3.8 support
 
     - name: Upgrade Arrow version
-      run: conda install -n pandas-dev -c conda-forge --no-update-deps pyarrow=${{ matrix.pyarrow_version }}
+      run: |
+        conda remove --force pyarrow
+        if [[ ${{matrix.pyarrow_version}} == 'latest' ]]; then
+          conda install -n pandas-dev -c conda-forge --no-update-deps pyarrow
+        else
+          conda install -n pandas-dev -c conda-forge --no-update-deps pyarrow=${{ matrix.pyarrow_version }}
+        fi
       if: ${{ matrix.pyarrow_version }}
 
     - name: Setup PyPy
