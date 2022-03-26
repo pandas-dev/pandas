@@ -1794,12 +1794,12 @@ def test_step_not_positive_raises():
                 [
                     np.nan,
                     50.0,
-                    33.33333333333333,
+                    33.333333333333336,
                     0.0,
-                    40.5,
+                    40.500000000000014,
                     0.0,
-                    0.3333333333333333,
-                    1.0,
+                    0.3333333333333405,
+                    1.000000000000007,
                 ]
             ),
         ],
@@ -1811,12 +1811,12 @@ def test_step_not_positive_raises():
                 [
                     np.nan,
                     50.0,
-                    33.33333333333333,
+                    33.333333333333336,
                     0.0,
                     0.0,
-                    40.5,
-                    24.333333333333332,
-                    1.0,
+                    40.500000000000014,
+                    24.33333333333334,
+                    1.000000000000004,
                 ]
             ),
         ],
@@ -1868,16 +1868,18 @@ def test_step_not_positive_raises():
 )
 def test_rolling_var_same_value_count_logic(values, window, min_periods, expected):
     # GH 42064
+    expected = Series(expected)
 
     sr = Series(values)
     result_var = sr.rolling(window, min_periods=min_periods).var()
     # 1. result should be close to correct value
-    # non-zero values can still differ slightly as the result of online algorithm
-    assert np.isclose(result_var, expected, equal_nan=True).all()
+    # non-zero values can still differ slightly from "truth"
+    # as the result of online algorithm
+    tm.assert_series_equal(result_var, expected, check_exact=True)
     # 2. zeros should be exactly the same since the new algo takes effect here
-    assert (result_var[expected == 0] == 0).all()
+    tm.assert_series_equal(expected == 0, result_var == 0)
 
     # std should also pass as it's just a sqrt of var
     result_std = sr.rolling(window, min_periods=min_periods).std()
-    assert np.isclose(result_std, np.sqrt(expected), equal_nan=True).all()
-    assert (result_std[expected == 0] == 0).all()
+    tm.assert_series_equal(result_std, np.sqrt(expected), check_exact=True)
+    tm.assert_series_equal(expected == 0, result_std == 0)
