@@ -172,7 +172,7 @@ going forward, to ensure that your data pipeline doesn't introduce duplicates.
    >>> deduplicated = raw.groupby(level=0).first()  # remove duplicates
    >>> deduplicated.flags.allows_duplicate_labels = False  # disallow going forward
 
-Setting ``allows_duplicate_labels=True`` on a ``Series`` or ``DataFrame`` with duplicate
+Setting ``allows_duplicate_labels=False`` on a ``Series`` or ``DataFrame`` with duplicate
 labels or performing an operation that introduces duplicate labels on a ``Series`` or
 ``DataFrame`` that disallows duplicates will raise an
 :class:`errors.DuplicateLabelError`.
