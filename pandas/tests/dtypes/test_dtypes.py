@@ -568,7 +568,7 @@ class TestIntervalDtype(Base):
         "subtype", ["interval[int64]", "Interval[int64]", "int64", np.dtype("int64")]
     )
     def test_construction(self, subtype):
-        i = IntervalDtype(subtype, closed="right")
+        i = IntervalDtype(subtype, inclusive="right")
         assert i.subtype == np.dtype("int64")
         assert is_interval_dtype(i)
 
@@ -579,10 +579,10 @@ class TestIntervalDtype(Base):
         # GH#38394
         dtype = IntervalDtype(subtype)
 
-        assert dtype.closed is None
+        assert dtype.inclusive is None
 
     def test_closed_mismatch(self):
-        msg = "'closed' keyword does not match value specified in dtype string"
+        msg = "'inclusive' keyword does not match value specified in dtype string"
         with pytest.raises(ValueError, match=msg):
             IntervalDtype("interval[int64, left]", "right")
 
@@ -624,12 +624,12 @@ class TestIntervalDtype(Base):
         # GH#37933
         dtype = IntervalDtype(np.float64, "left")
 
-        msg = "dtype.closed and 'closed' do not match"
+        msg = "dtype.inclusive and 'inclusive' do not match"
         with pytest.raises(ValueError, match=msg):
-            IntervalDtype(dtype, closed="both")
+            IntervalDtype(dtype, inclusive="both")
 
     def test_closed_invalid(self):
-        with pytest.raises(ValueError, match="closed must be one of"):
+        with pytest.raises(ValueError, match="inclusive must be one of"):
             IntervalDtype(np.float64, "foo")
 
     def test_construction_from_string(self, dtype):
@@ -729,8 +729,8 @@ class TestIntervalDtype(Base):
     )
     def test_equality_generic(self, subtype):
         # GH 18980
-        closed = "right" if subtype is not None else None
-        dtype = IntervalDtype(subtype, closed=closed)
+        inclusive = "right" if subtype is not None else None
+        dtype = IntervalDtype(subtype, inclusive=inclusive)
         assert is_dtype_equal(dtype, "interval")
         assert is_dtype_equal(dtype, IntervalDtype())
 
@@ -748,9 +748,9 @@ class TestIntervalDtype(Base):
     )
     def test_name_repr(self, subtype):
         # GH 18980
-        closed = "right" if subtype is not None else None
-        dtype = IntervalDtype(subtype, closed=closed)
-        expected = f"interval[{subtype}, {closed}]"
+        inclusive = "right" if subtype is not None else None
+        dtype = IntervalDtype(subtype, inclusive=inclusive)
+        expected = f"interval[{subtype}, {inclusive}]"
         assert str(dtype) == expected
         assert dtype.name == "interval"
 

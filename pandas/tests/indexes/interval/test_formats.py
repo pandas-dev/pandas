@@ -65,7 +65,7 @@ class TestIntervalIndexRendering:
         assert result == expected
 
     @pytest.mark.parametrize(
-        "tuples, closed, expected_data",
+        "tuples, inclusive, expected_data",
         [
             ([(0, 1), (1, 2), (2, 3)], "left", ["[0, 1)", "[1, 2)", "[2, 3)"]),
             (
@@ -97,9 +97,9 @@ class TestIntervalIndexRendering:
             ),
         ],
     )
-    def test_to_native_types(self, tuples, closed, expected_data):
+    def test_to_native_types(self, tuples, inclusive, expected_data):
         # GH 28210
-        index = IntervalIndex.from_tuples(tuples, closed=closed)
+        index = IntervalIndex.from_tuples(tuples, inclusive=inclusive)
         result = index._format_native_types()
         expected = np.array(expected_data)
         tm.assert_numpy_array_equal(result, expected)

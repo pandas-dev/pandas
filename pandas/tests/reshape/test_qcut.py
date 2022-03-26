@@ -198,7 +198,7 @@ def test_single_quantile(data, start, end, length, labels):
     result = qcut(ser, 1, labels=labels)
 
     if labels is None:
-        intervals = IntervalIndex([Interval(start, end)] * length, closed="right")
+        intervals = IntervalIndex([Interval(start, end)] * length, inclusive="right")
         expected = Series(intervals).astype(CDT(ordered=True))
     else:
         expected = Series([0] * length, dtype=np.intp)

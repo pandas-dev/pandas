@@ -61,7 +61,7 @@ def test_no_right():
     data = np.array([0.2, 1.4, 2.5, 6.2, 9.7, 2.1, 2.575])
     result, bins = cut(data, 4, right=False, retbins=True)
 
-    intervals = IntervalIndex.from_breaks(bins.round(3), closed="left")
+    intervals = IntervalIndex.from_breaks(bins.round(3), inclusive="left")
     intervals = intervals.take([0, 0, 0, 2, 3, 0, 1])
     expected = Categorical(intervals, ordered=True)
 
@@ -232,7 +232,7 @@ def test_labels(right, breaks, closed):
     arr = np.tile(np.arange(0, 1.01, 0.1), 4)
 
     result, bins = cut(arr, 4, retbins=True, right=right)
-    ex_levels = IntervalIndex.from_breaks(breaks, closed=closed)
+    ex_levels = IntervalIndex.from_breaks(breaks, inclusive=closed)
     tm.assert_index_equal(result.categories, ex_levels)
 
 
@@ -355,7 +355,7 @@ def test_cut_return_intervals():
     exp_bins[0] -= 0.008
 
     expected = Series(
-        IntervalIndex.from_breaks(exp_bins, closed="right").take(
+        IntervalIndex.from_breaks(exp_bins, inclusive="right").take(
             [0, 0, 0, 1, 1, 1, 2, 2, 2]
         )
     ).astype(CDT(ordered=True))
@@ -368,7 +368,7 @@ def test_series_ret_bins():
     result, bins = cut(ser, 2, retbins=True)
 
     expected = Series(
-        IntervalIndex.from_breaks([-0.003, 1.5, 3], closed="right").repeat(2)
+        IntervalIndex.from_breaks([-0.003, 1.5, 3], inclusive="right").repeat(2)
     ).astype(CDT(ordered=True))
     tm.assert_series_equal(result, expected)
 
@@ -685,8 +685,8 @@ def test_cut_no_warnings():
 def test_cut_with_duplicated_index_lowest_included():
     # GH 42185
     expected = Series(
-        [Interval(-0.001, 2, closed="right")] * 3
-        + [Interval(2, 4, closed="right"), Interval(-0.001, 2, closed="right")],
+        [Interval(-0.001, 2, inclusive="right")] * 3
+        + [Interval(2, 4, inclusive="right"), Interval(-0.001, 2, inclusive="right")],
         index=[0, 1, 2, 3, 0],
         dtype="category",
     ).cat.as_ordered()
@@ -706,16 +706,16 @@ def test_cut_with_nonexact_categorical_indices():
 
     index = pd.CategoricalIndex(
         [
-            Interval(-0.099, 9.9, closed="right"),
-            Interval(9.9, 19.8, closed="right"),
-            Interval(19.8, 29.7, closed="right"),
-            Interval(29.7, 39.6, closed="right"),
-            Interval(39.6, 49.5, closed="right"),
-            Interval(49.5, 59.4, closed="right"),
-            Interval(59.4, 69.3, closed="right"),
-            Interval(69.3, 79.2, closed="right"),
-            Interval(79.2, 89.1, closed="right"),
-            Interval(89.1, 99, closed="right"),
+            Interval(-0.099, 9.9, inclusive="right"),
+            Interval(9.9, 19.8, inclusive="right"),
+            Interval(19.8, 29.7, inclusive="right"),
+            Interval(29.7, 39.6, inclusive="right"),
+            Interval(39.6, 49.5, inclusive="right"),
+            Interval(49.5, 59.4, inclusive="right"),
+            Interval(59.4, 69.3, inclusive="right"),
+            Interval(69.3, 79.2, inclusive="right"),
+            Interval(79.2, 89.1, inclusive="right"),
+            Interval(89.1, 99, inclusive="right"),
         ],
         ordered=True,
     )

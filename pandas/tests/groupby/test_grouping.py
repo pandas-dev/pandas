@@ -792,7 +792,7 @@ class TestGetGroup:
         expected = DataFrame([3, 1], index=[0, 1])
         tm.assert_frame_equal(result, expected)
 
-        msg = r"Interval\(10, 15, closed='right'\)"
+        msg = r"Interval\(10, 15, inclusive='right'\)"
         with pytest.raises(KeyError, match=msg):
             g.get_group(pd.Interval(10, 15))
 

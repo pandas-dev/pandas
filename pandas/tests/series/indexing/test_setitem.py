@@ -1348,7 +1348,7 @@ class TestCoercionTimedelta64(CoercionTest):
 
 
 @pytest.mark.parametrize(
-    "val", ["foo", Period("2016", freq="Y"), Interval(1, 2, closed="both")]
+    "val", ["foo", Period("2016", freq="Y"), Interval(1, 2, inclusive="both")]
 )
 @pytest.mark.parametrize("exp_dtype", [object])
 class TestPeriodIntervalCoercion(CoercionTest):

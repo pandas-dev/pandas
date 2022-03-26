@@ -30,7 +30,7 @@ class TestIntervalRange:
     def test_constructor_numeric(self, closed, name, freq, periods):
         start, end = 0, 100
         breaks = np.arange(101, step=freq)
-        expected = IntervalIndex.from_breaks(breaks, name=name, closed=closed)
+        expected = IntervalIndex.from_breaks(breaks, name=name, inclusive=closed)
 
         # defined from start/end/freq
         result = interval_range(
@@ -63,7 +63,7 @@ class TestIntervalRange:
     def test_constructor_timestamp(self, closed, name, freq, periods, tz):
         start, end = Timestamp("20180101", tz=tz), Timestamp("20181231", tz=tz)
         breaks = date_range(start=start, end=end, freq=freq)
-        expected = IntervalIndex.from_breaks(breaks, name=name, closed=closed)
+        expected = IntervalIndex.from_breaks(breaks, name=name, inclusive=closed)
 
         # defined from start/end/freq
         result = interval_range(
@@ -98,7 +98,7 @@ class TestIntervalRange:
     def test_constructor_timedelta(self, closed, name, freq, periods):
         start, end = Timedelta("0 days"), Timedelta("100 days")
         breaks = timedelta_range(start=start, end=end, freq=freq)
-        expected = IntervalIndex.from_breaks(breaks, name=name, closed=closed)
+        expected = IntervalIndex.from_breaks(breaks, name=name, inclusive=closed)
 
         # defined from start/end/freq
         result = interval_range(
