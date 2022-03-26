@@ -104,7 +104,7 @@ Timezone = Union[str, tzinfo]
 # passed in, a DataFrame is always returned.
 NDFrameT = TypeVar("NDFrameT", bound="NDFrame")
 
-NumpyIndexT = TypeVar("NumpyIndexT", np.ndarray, Index)
+NumpyIndexT = TypeVar("NumpyIndexT", np.ndarray, "Index")
 
 Axis = Union[str, int]
 IndexLabel = Union[Hashable, Sequence[Hashable]]
