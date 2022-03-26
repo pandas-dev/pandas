@@ -560,7 +560,7 @@ def _format_labels(
     bins, precision: int, right: bool = True, include_lowest: bool = False, dtype=None
 ):
     """based on the dtype, return our labels"""
-    closed = "right" if right else "left"
+    inclusive = "right" if right else "left"
 
     formatter: Callable[[Any], Timestamp] | Callable[[Any], Timedelta]
 
@@ -583,7 +583,7 @@ def _format_labels(
         # adjust lhs of first interval by precision to account for being right closed
         breaks[0] = adjust(breaks[0])
 
-    return IntervalIndex.from_breaks(breaks, closed=closed)
+    return IntervalIndex.from_breaks(breaks, inclusive=inclusive)
 
 
 def _preprocess_for_cut(x):
