@@ -485,7 +485,7 @@ MultiIndex
 - Bug in :meth:`DataFrame.loc` raising when slicing a :class:`MultiIndex` with a negative step size and slicing a non-int labeled index level (:issue:`46156`)
 - Bug in :meth:`Series.to_numpy` where multiindexed Series could not be converted to numpy arrays when an ``na_value`` was supplied (:issue:`45774`)
 - Bug in :class:`MultiIndex.equals` not commutative when only one side has extension array dtype (:issue:`46026`)
-- bug in :meth:`MultiIndex.from_tuples` cannot construct Index of empty tuples (:issue:`45608`)
+- Bug in :meth:`MultiIndex.from_tuples` cannot construct Index of empty tuples (:issue:`45608`)
 
 I/O
 ^^^
