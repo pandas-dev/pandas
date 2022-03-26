@@ -1363,10 +1363,19 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         func = com.is_builtin_func(func)
 
-        # this is needed so we don't try and wrap strings. If we could
-        # resolve functions to their callable functions prior, this
-        # wouldn't be needed
-        if args or kwargs:
+        if isinstance(func, str):
+            if hasattr(self, func):
+                res = getattr(self, func)
+                if callable(res):
+                    return res(*args, **kwargs)
+                elif args or kwargs:
+                    raise ValueError(f"Cannot pass arguments to property {func}")
+                return res
+
+            else:
+                raise TypeError(f"apply func should be callable, not '{func}'")
+
+        elif args or kwargs:
             if callable(func):
 
                 @wraps(func)
@@ -1382,15 +1391,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 raise ValueError(
                     "func must be a callable if args or kwargs are supplied"
                 )
-        elif isinstance(func, str):
-            if hasattr(self, func):
-                res = getattr(self, func)
-                if callable(res):
-                    return res()
-                return res
-
-            else:
-                raise TypeError(f"apply func should be callable, not '{func}'")
         else:
 
             f = func
