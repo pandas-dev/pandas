@@ -86,7 +86,7 @@ class TestEngine:
                 [
                     [5, 7, 7, 7, np.nan, np.inf, 4, 3, 3, 3],
                     [5, 7, 7, 7, np.nan, np.inf, 7, 3, 3, 3],
-                    [np.nan, np.nan, 5, 6, 7, 5, 5, 5],
+                    [np.nan, np.nan, 5, 6, 7, 5, 5, 5, 5, 5],
                 ]
             ).T,
             Series(range(5), name="foo"),
