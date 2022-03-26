@@ -60,14 +60,14 @@ class Interval(IntervalMixin, Generic[_OrderableT]):
     @property
     def right(self: Interval[_OrderableT]) -> _OrderableT: ...
     @property
-    def closed(self) -> IntervalClosedType: ...
+    def inclusive(self) -> IntervalClosedType: ...
     mid: _MidDescriptor
     length: _LengthDescriptor
     def __init__(
         self,
         left: _OrderableT,
         right: _OrderableT,
-        closed: IntervalClosedType = ...,
+        inclusive: IntervalClosedType = ...,
     ): ...
     def __hash__(self) -> int: ...
     @overload
@@ -155,7 +155,7 @@ class IntervalTree(IntervalMixin):
         self,
         left: np.ndarray,
         right: np.ndarray,
-        closed: IntervalClosedType = ...,
+        inclusive: IntervalClosedType = ...,
         leaf_size: int = ...,
     ): ...
     @property
