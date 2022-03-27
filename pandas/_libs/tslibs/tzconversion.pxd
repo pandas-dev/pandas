@@ -8,7 +8,7 @@ from numpy cimport (
 cdef int64_t localize_tzinfo_api(
     int64_t utc_val, tzinfo tz, bint* fold=*
 ) except? -1
-cdef int64_t tz_convert_from_utc_single(int64_t utc_val, tzinfo tz, bint* fold=?, intp_t* outpos=?)
+cdef int64_t tz_convert_from_utc_single(int64_t utc_val, tzinfo tz, bint* fold=?, Py_ssize_t* outpos=?)
 cdef int64_t tz_localize_to_utc_single(
     int64_t val, tzinfo tz, object ambiguous=*, object nonexistent=*
 ) except? -1

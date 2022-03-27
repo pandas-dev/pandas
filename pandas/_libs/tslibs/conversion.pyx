@@ -534,12 +534,6 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
             pos = bisect_right_i8(tdata, obj.value, trans.shape[0]) - 1
             obj.fold = infer_dateutil_fold(obj.value, trans, deltas, pos)
 
-    #else:
-    #    # TODO: are we doing unnecessary work for pytz/fixed case? can we
-    #    #  use the local_val returned from this call to make some
-    #    #  of the rest of the function unnecessary?
-    #    tz_convert_from_utc_single(obj.value, tz, &obj.fold)
-
     # Keep the converter same as PyDateTime's
     dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
                   obj.dts.hour, obj.dts.min, obj.dts.sec,
@@ -690,8 +684,7 @@ cdef inline void _localize_tso(_TSObject obj, tzinfo tz):
         int64_t[::1] deltas
         int64_t local_val
         int64_t* tdata
-        intp_t outpos = -1
-        Py_ssize_t pos, ntrans
+        Py_ssize_t pos, ntrans, outpos = -1
         str typ
 
     assert obj.tzinfo is None

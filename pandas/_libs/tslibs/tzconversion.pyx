@@ -450,7 +450,12 @@ def py_tz_convert_from_utc_single(int64_t utc_val, tzinfo tz):
     return tz_convert_from_utc_single(utc_val, tz)
 
 
-cdef int64_t tz_convert_from_utc_single(int64_t utc_val, tzinfo tz, bint* fold=NULL, intp_t* outpos=NULL):
+cdef int64_t tz_convert_from_utc_single(
+    int64_t utc_val,
+    tzinfo tz,
+    bint* fold=NULL,
+    Py_ssize_t* outpos=NULL,
+):
     """
     Convert the val (in i8) from UTC to tz
 
@@ -461,7 +466,7 @@ cdef int64_t tz_convert_from_utc_single(int64_t utc_val, tzinfo tz, bint* fold=N
     utc_val : int64
     tz : tzinfo
     fold : bint*, default NULL
-    outpos : intp_t*, default NULL
+    outpos : Py_ssize_t*, default NULL
 
     Returns
     -------
@@ -495,6 +500,8 @@ cdef int64_t tz_convert_from_utc_single(int64_t utc_val, tzinfo tz, bint* fold=N
         elif typ == "pytz":
             pos = bisect_right_i8(tdata, utc_val, trans.shape[0]) - 1
 
+            # We need to get 'pos' back to the caller so it can pick the
+            #  correct "standardized" tzinfo objecg.
             if outpos is not NULL:
                 outpos[0] = pos
             return utc_val + deltas[pos]
