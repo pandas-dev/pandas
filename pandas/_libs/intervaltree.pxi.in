@@ -3,7 +3,9 @@ Template for intervaltree
 
 WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
+import warnings
 
+from pandas._libs import lib
 from pandas._libs.algos import is_monotonic
 
 ctypedef fused int_scalar_t:
@@ -38,7 +40,7 @@ cdef class IntervalTree(IntervalMixin):
         object _is_overlapping, _left_sorter, _right_sorter
         Py_ssize_t _na_count
 
-    def __init__(self, left, right, inclusive='right', leaf_size=100):
+    def __init__(self, left, right, closed : lib.NoDefault = lib.no_default, inclusive: str | None = None, leaf_size=100):
         """
         Parameters
         ----------
@@ -53,6 +55,29 @@ cdef class IntervalTree(IntervalMixin):
             to brute-force search. Tune this parameter to optimize query
             performance.
         """
+        if inclusive is not None and not isinstance(closed, lib.NoDefault):
+            raise ValueError(
+                "Deprecated argument `closed` cannot be passed "
+                "if argument `inclusive` is not None"
+            )
+        elif not isinstance(closed, lib.NoDefault):
+            warnings.warn(
+                "Argument `closed` is deprecated in favor of `inclusive`.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            if closed is None:
+                inclusive = "both"
+            elif closed in ("both", "neither", "left", "right"):
+                inclusive = closed
+            else:
+                raise ValueError(
+                    "Argument `closed` has to be either 'both', 'neither', 'left', 'right',"
+                    "or 'both'"
+                )
+        elif inclusive is None:
+            inclusive = "both"
+
         if inclusive not in ['left', 'right', 'both', 'neither']:
             raise ValueError("invalid option for 'inclusive': %s" % inclusive)
 

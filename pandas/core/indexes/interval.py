@@ -11,6 +11,7 @@ from typing import (
     Hashable,
     Literal,
 )
+import warnings
 
 import numpy as np
 
@@ -211,12 +212,36 @@ class IntervalIndex(ExtensionIndex):
     def __new__(
         cls,
         data,
+        closed: lib.NoDefault = lib.no_default,
         inclusive=None,
         dtype: Dtype | None = None,
         copy: bool = False,
         name: Hashable = None,
         verify_integrity: bool = True,
     ) -> IntervalIndex:
+
+        if inclusive is not None and not isinstance(closed, lib.NoDefault):
+            raise ValueError(
+                "Deprecated argument `closed` cannot be passed "
+                "if argument `inclusive` is not None"
+            )
+        elif not isinstance(closed, lib.NoDefault):
+            warnings.warn(
+                "Argument `closed` is deprecated in favor of `inclusive`.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            if closed is None:
+                inclusive = "both"
+            elif closed in ("both", "neither", "left", "right"):
+                inclusive = closed
+            else:
+                raise ValueError(
+                    "Argument `closed` has to be either 'both', 'neither', 'left', 'right',"
+                    "or 'both'"
+                )
+        elif inclusive is None:
+            inclusive = "both"
 
         name = maybe_extract_name(name, data, cls)
 
@@ -250,11 +275,36 @@ class IntervalIndex(ExtensionIndex):
     def from_breaks(
         cls,
         breaks,
-        inclusive: str = "right",
+        closed: lib.NoDefault = lib.no_default,
+        inclusive: str = None,
         name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> IntervalIndex:
+
+        if inclusive is not None and not isinstance(closed, lib.NoDefault):
+            raise ValueError(
+                "Deprecated argument `closed` cannot be passed "
+                "if argument `inclusive` is not None"
+            )
+        elif not isinstance(closed, lib.NoDefault):
+            warnings.warn(
+                "Argument `closed` is deprecated in favor of `inclusive`.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            if closed is None:
+                inclusive = "both"
+            elif closed in ("both", "neither", "left", "right"):
+                inclusive = closed
+            else:
+                raise ValueError(
+                    "Argument `closed` has to be either 'both', 'neither', 'left', 'right',"
+                    "or 'both'"
+                )
+        elif inclusive is None:
+            inclusive = "both"
+
         with rewrite_exception("IntervalArray", cls.__name__):
             array = IntervalArray.from_breaks(
                 breaks, inclusive=inclusive, copy=copy, dtype=dtype
@@ -281,11 +331,36 @@ class IntervalIndex(ExtensionIndex):
         cls,
         left,
         right,
-        inclusive: str = "right",
+        closed: lib.NoDefault = lib.no_default,
+        inclusive: str = None,
         name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> IntervalIndex:
+
+        if inclusive is not None and not isinstance(closed, lib.NoDefault):
+            raise ValueError(
+                "Deprecated argument `closed` cannot be passed "
+                "if argument `inclusive` is not None"
+            )
+        elif not isinstance(closed, lib.NoDefault):
+            warnings.warn(
+                "Argument `closed` is deprecated in favor of `inclusive`.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            if closed is None:
+                inclusive = "both"
+            elif closed in ("both", "neither", "left", "right"):
+                inclusive = closed
+            else:
+                raise ValueError(
+                    "Argument `closed` has to be either 'both', 'neither', 'left', 'right',"
+                    "or 'both'"
+                )
+        elif inclusive is None:
+            inclusive = "both"
+
         with rewrite_exception("IntervalArray", cls.__name__):
             array = IntervalArray.from_arrays(
                 left, right, inclusive, copy=copy, dtype=dtype
@@ -311,11 +386,36 @@ class IntervalIndex(ExtensionIndex):
     def from_tuples(
         cls,
         data,
-        inclusive: str = "right",
+        closed: lib.NoDefault = lib.no_default,
+        inclusive: str = None,
         name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> IntervalIndex:
+
+        if inclusive is not None and not isinstance(closed, lib.NoDefault):
+            raise ValueError(
+                "Deprecated argument `closed` cannot be passed "
+                "if argument `inclusive` is not None"
+            )
+        elif not isinstance(closed, lib.NoDefault):
+            warnings.warn(
+                "Argument `closed` is deprecated in favor of `inclusive`.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            if closed is None:
+                inclusive = "both"
+            elif closed in ("both", "neither", "left", "right"):
+                inclusive = closed
+            else:
+                raise ValueError(
+                    "Argument `closed` has to be either 'both', 'neither', 'left', 'right',"
+                    "or 'both'"
+                )
+        elif inclusive is None:
+            inclusive = "both"
+
         with rewrite_exception("IntervalArray", cls.__name__):
             arr = IntervalArray.from_tuples(
                 data, inclusive=inclusive, copy=copy, dtype=dtype

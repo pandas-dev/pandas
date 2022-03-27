@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import json
+import warnings
 
 import numpy as np
 import pyarrow
+
+from pandas._libs import lib
 
 from pandas.core.arrays.interval import VALID_CLOSED
 
@@ -88,9 +91,36 @@ pyarrow.register_extension_type(_period_type)
 
 
 class ArrowIntervalType(pyarrow.ExtensionType):
-    def __init__(self, subtype, inclusive) -> None:
+    def __init__(
+        self,
+        subtype,
+        closed: lib.NoDefault = lib.no_default,
+        inclusive: str | None = None,
+    ) -> None:
         # attributes need to be set first before calling
         # super init (as that calls serialize)
+        if inclusive is not None and not isinstance(closed, lib.NoDefault):
+            raise ValueError(
+                "Deprecated argument `closed` cannot be passed "
+                "if argument `inclusive` is not None"
+            )
+        elif not isinstance(closed, lib.NoDefault):
+            warnings.warn(
+                "Argument `closed` is deprecated in favor of `inclusive`.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            if closed is None:
+                inclusive = "both"
+            elif closed in ("both", "neither", "left", "right"):
+                inclusive = closed
+            else:
+                raise ValueError(
+                    "Argument `closed` has to be either 'both', 'neither', 'left', 'right',"
+                    "or 'both'"
+                )
+        elif inclusive is None:
+            inclusive = "both"
         assert inclusive in VALID_CLOSED
         self._closed = inclusive
         if not isinstance(subtype, pyarrow.DataType):

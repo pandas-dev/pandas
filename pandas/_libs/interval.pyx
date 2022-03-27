@@ -40,7 +40,9 @@ from numpy cimport (
 
 cnp.import_array()
 
+import warnings
 
+from pandas._libs import lib
 from pandas._libs cimport util
 from pandas._libs.hashtable cimport Int64Vector
 from pandas._libs.tslibs.timedeltas cimport _Timedelta
@@ -52,7 +54,7 @@ from pandas._libs.tslibs.util cimport (
     is_timedelta64_object,
 )
 
-VALID_CLOSED = frozenset(['left', 'right', 'both', 'neither'])
+VALID_CLOSED = frozenset(['both', 'neither', 'left', 'right'])
 
 
 cdef class IntervalMixin:
@@ -222,9 +224,17 @@ cdef class Interval(IntervalMixin):
         Left bound for the interval.
     right : orderable scalar
         Right bound for the interval.
-    inclusive : {'right', 'left', 'both', 'neither'}, default 'right'
+    closed : {'right', 'left', 'both', 'neither'}, default 'right'
         Whether the interval is closed on the left-side, right-side, both or
         neither. See the Notes for more detailed explanation.
+
+        .. deprecated:: 1.5.0
+
+    inclusive : {'both', 'neither', 'left', 'right'}, default 'both'
+        Whether the interval is closed on the left-side, right-side, both or
+        neither. See the Notes for more detailed explanation.
+
+        .. versionadded:: 1.5.0
 
     See Also
     --------
@@ -255,7 +265,7 @@ cdef class Interval(IntervalMixin):
     --------
     It is possible to build Intervals of different types, like numeric ones:
 
-    >>> iv = pd.Interval(left=0, right=5)
+    >>> iv = pd.Interval(left=0, right=5, inclusive='right')
     >>> iv
     Interval(0, 5, inclusive='right')
 
@@ -318,12 +328,35 @@ cdef class Interval(IntervalMixin):
     neither.
     """
 
-    def __init__(self, left, right, str inclusive='right'):
+    def __init__(self, left, right, closed : lib.NoDefault = lib.no_default, inclusive: str | None = None):
         # note: it is faster to just do these checks than to use a special
         # constructor (__cinit__/__new__) to avoid them
 
         self._validate_endpoint(left)
         self._validate_endpoint(right)
+
+        if inclusive is not None and not isinstance(closed, lib.NoDefault):
+            raise ValueError(
+                "Deprecated argument `closed` cannot be passed "
+                "if argument `inclusive` is not None"
+            )
+        elif not isinstance(closed, lib.NoDefault):
+            warnings.warn(
+                "Argument `closed` is deprecated in favor of `inclusive`.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            if closed is None:
+                inclusive = "both"
+            elif closed in ("both", "neither", "left", "right"):
+                inclusive = closed
+            else:
+                raise ValueError(
+                    "Argument `closed` has to be either 'both', 'neither', 'left', 'right',"
+                    "or 'both'"
+                )
+        elif inclusive is None:
+            inclusive = "both"
 
         if inclusive not in VALID_CLOSED:
             raise ValueError(f"invalid option for 'inclusive': {inclusive}")

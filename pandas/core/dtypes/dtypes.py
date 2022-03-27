@@ -10,11 +10,15 @@ from typing import (
     MutableMapping,
     cast,
 )
+import warnings
 
 import numpy as np
 import pytz
 
-from pandas._libs import missing as libmissing
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
 from pandas._libs.interval import Interval
 from pandas._libs.properties import cache_readonly
 from pandas._libs.tslibs import (
@@ -1057,11 +1061,39 @@ class IntervalDtype(PandasExtensionDtype):
     )
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
 
-    def __new__(cls, subtype=None, inclusive: str_type | None = None):
+    def __new__(
+        cls,
+        subtype=None,
+        closed: lib.NoDefault = lib.no_default,
+        inclusive: str | None = None,
+    ):
         from pandas.core.dtypes.common import (
             is_string_dtype,
             pandas_dtype,
         )
+
+        if inclusive is not None and not isinstance(closed, lib.NoDefault):
+            raise ValueError(
+                "Deprecated argument `closed` cannot be passed "
+                "if argument `inclusive` is not None"
+            )
+        elif not isinstance(closed, lib.NoDefault):
+            warnings.warn(
+                "Argument `closed` is deprecated in favor of `inclusive`.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            if closed is None:
+                inclusive = "both"
+            elif closed in ("both", "neither", "left", "right"):
+                inclusive = closed
+            else:
+                raise ValueError(
+                    "Argument `closed` has to be either 'both', 'neither', 'left', 'right',"
+                    "or 'both'"
+                )
+        elif inclusive is None:
+            inclusive = "both"
 
         if inclusive is not None and inclusive not in {
             "right",
