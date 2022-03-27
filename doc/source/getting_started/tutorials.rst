@@ -75,6 +75,16 @@ Excel charts with pandas, vincent and xlsxwriter
 
 *  `Using Pandas and XlsxWriter to create Excel charts <https://pandas-xlsxwriter-charts.readthedocs.io/>`_
 
+Joyful pandas
+-------------
+
+A tutorial written in Chinese by Yuanhao Geng. It covers the basic operations
+for NumPy and pandas, 4 main data manipulation methods (including indexing, groupby, reshaping
+and concatenation) and 4 main data types (including missing data, string data, categorical
+data and time series data). At the end of each chapter, corresponding exercises are posted.
+All the datasets and related materials can be found in the GitHub repository
+`datawhalechina/joyful-pandas <https://github.com/datawhalechina/joyful-pandas>`_.
+
 Video tutorials
 ---------------
 
