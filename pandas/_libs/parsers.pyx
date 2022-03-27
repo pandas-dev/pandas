@@ -1,6 +1,7 @@
 # Copyright (c) 2012, Lambda Foundry, Inc.
 # See LICENSE for the license
 from base64 import decode
+from collections import defaultdict
 from csv import (
     QUOTE_MINIMAL,
     QUOTE_NONE,
@@ -964,6 +965,8 @@ cdef class TextReader:
 
         results = {}
         nused = 0
+        is_default_dict_dtype = isinstance(self.dtype, defaultdict)
+
         for i in range(self.table_width):
             if i < self.leading_cols:
                 # Pass through leading columns always
@@ -994,6 +997,8 @@ cdef class TextReader:
                         col_dtype = self.dtype[name]
                     elif i in self.dtype:
                         col_dtype = self.dtype[i]
+                    elif is_default_dict_dtype:
+                        col_dtype = self.dtype[name]
                 else:
                     if self.dtype.names:
                         # structured array
@@ -1457,7 +1462,7 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
         const char *word = NULL
 
         int64_t NA = -1
-        int64_t[:] codes
+        int64_t[::1] codes
         int64_t current_category = 0
 
         char *errors = "strict"

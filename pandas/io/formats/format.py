@@ -206,7 +206,7 @@ class CategoricalFormatter:
         length: bool = True,
         na_rep: str = "NaN",
         footer: bool = True,
-    ):
+    ) -> None:
         self.categorical = categorical
         self.buf = buf if buf is not None else StringIO("")
         self.na_rep = na_rep
@@ -276,7 +276,7 @@ class SeriesFormatter:
         dtype: bool = True,
         max_rows: int | None = None,
         min_rows: int | None = None,
-    ):
+    ) -> None:
         self.series = series
         self.buf = buf if buf is not None else StringIO()
         self.name = name
@@ -423,7 +423,7 @@ class SeriesFormatter:
 
 
 class TextAdjustment:
-    def __init__(self):
+    def __init__(self) -> None:
         self.encoding = get_option("display.encoding")
 
     def len(self, text: str) -> int:
@@ -437,7 +437,7 @@ class TextAdjustment:
 
 
 class EastAsianTextAdjustment(TextAdjustment):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         if get_option("display.unicode.ambiguous_as_wide"):
             self.ambiguous_width = 2
@@ -580,7 +580,7 @@ class DataFrameFormatter:
         decimal: str = ".",
         bold_rows: bool = False,
         escape: bool = True,
-    ):
+    ) -> None:
         self.frame = frame
         self.columns = self._initialize_columns(columns)
         self.col_space = self._initialize_colspace(col_space)
@@ -1019,7 +1019,7 @@ class DataFrameRenderer:
         Formatter with the formatting options.
     """
 
-    def __init__(self, fmt: DataFrameFormatter):
+    def __init__(self, fmt: DataFrameFormatter) -> None:
         self.fmt = fmt
 
     def to_latex(
@@ -1336,7 +1336,7 @@ class GenericArrayFormatter:
         quoting: int | None = None,
         fixed_width: bool = True,
         leading_space: bool | None = True,
-    ):
+    ) -> None:
         self.values = values
         self.digits = digits
         self.na_rep = na_rep
@@ -1429,7 +1429,7 @@ class GenericArrayFormatter:
 
 
 class FloatArrayFormatter(GenericArrayFormatter):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         # float_format is expected to be a string
@@ -1619,7 +1619,7 @@ class Datetime64Formatter(GenericArrayFormatter):
         date_format: None = None,
         fast_strftime: bool = True,
         **kwargs,
-    ):
+    ) -> None:
         super().__init__(values, **kwargs)
         self.nat_rep = nat_rep
         self.date_format = date_format
@@ -1869,7 +1869,7 @@ class Timedelta64Formatter(GenericArrayFormatter):
         nat_rep: str = "NaT",
         box: bool = False,
         **kwargs,
-    ):
+    ) -> None:
         super().__init__(values, **kwargs)
         self.nat_rep = nat_rep
         self.box = box
@@ -2072,7 +2072,9 @@ class EngFormatter:
         24: "Y",
     }
 
-    def __init__(self, accuracy: int | None = None, use_eng_prefix: bool = False):
+    def __init__(
+        self, accuracy: int | None = None, use_eng_prefix: bool = False
+    ) -> None:
         self.accuracy = accuracy
         self.use_eng_prefix = use_eng_prefix
 

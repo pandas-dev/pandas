@@ -44,15 +44,18 @@ from pandas._typing import (
     DtypeArg,
     DtypeObj,
     FilePath,
+    IgnoreRaise,
     IndexKeyFunc,
     IndexLabel,
     IntervalClosedType,
     JSONSerializable,
     Level,
     Manager,
+    NaPosition,
     NDFrameT,
     RandomState,
     Renamer,
+    SortKind,
     StorageOptions,
     T,
     TimedeltaConvertibleTypes,
@@ -69,6 +72,7 @@ from pandas.errors import (
 )
 from pandas.util._decorators import (
     deprecate_kwarg,
+    deprecate_nonkeyword_arguments,
     doc,
     rewrite_axis_style_signature,
 )
@@ -243,7 +247,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         data: Manager,
         copy: bool_t = False,
         attrs: Mapping[Hashable, Any] | None = None,
-    ):
+    ) -> None:
         # copy kwarg is retained for mypy compat, is not used
 
         object.__setattr__(self, "_is_copy", None)
@@ -1479,9 +1483,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def __neg__(self):
         def blk_func(values: ArrayLike):
             if is_bool_dtype(values.dtype):
-                return operator.inv(values)
+                # error: Argument 1 to "inv" has incompatible type "Union
+                # [ExtensionArray, ndarray[Any, Any]]"; expected
+                # "_SupportsInversion[ndarray[Any, dtype[bool_]]]"
+                return operator.inv(values)  # type: ignore[arg-type]
             else:
-                return operator.neg(values)
+                # error: Argument 1 to "neg" has incompatible type "Union
+                # [ExtensionArray, ndarray[Any, Any]]"; expected
+                # "_SupportsNeg[ndarray[Any, dtype[Any]]]"
+                return operator.neg(values)  # type: ignore[arg-type]
 
         new_data = self._mgr.apply(blk_func)
         res = self._constructor(new_data)
@@ -1493,7 +1503,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if is_bool_dtype(values.dtype):
                 return values.copy()
             else:
-                return operator.pos(values)
+                # error: Argument 1 to "pos" has incompatible type "Union
+                # [ExtensionArray, ndarray[Any, Any]]"; expected
+                # "_SupportsPos[ndarray[Any, dtype[Any]]]"
+                return operator.pos(values)  # type: ignore[arg-type]
 
         new_data = self._mgr.apply(blk_func)
         res = self._constructor(new_data)
@@ -4267,16 +4280,59 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         return self.reindex(**d)
 
+    @overload
     def drop(
         self,
-        labels=None,
-        axis=0,
-        index=None,
-        columns=None,
-        level=None,
+        labels: Hashable | list[Hashable] = ...,
+        *,
+        axis: Axis = ...,
+        index: Hashable | list[Hashable] = ...,
+        columns: Hashable | list[Hashable] = ...,
+        level: Level | None = ...,
+        inplace: Literal[True],
+        errors: IgnoreRaise = ...,
+    ) -> None:
+        ...
+
+    @overload
+    def drop(
+        self: NDFrameT,
+        labels: Hashable | list[Hashable] = ...,
+        *,
+        axis: Axis = ...,
+        index: Hashable | list[Hashable] = ...,
+        columns: Hashable | list[Hashable] = ...,
+        level: Level | None = ...,
+        inplace: Literal[False] = ...,
+        errors: IgnoreRaise = ...,
+    ) -> NDFrameT:
+        ...
+
+    @overload
+    def drop(
+        self: NDFrameT,
+        labels: Hashable | list[Hashable] = ...,
+        *,
+        axis: Axis = ...,
+        index: Hashable | list[Hashable] = ...,
+        columns: Hashable | list[Hashable] = ...,
+        level: Level | None = ...,
+        inplace: bool_t = ...,
+        errors: IgnoreRaise = ...,
+    ) -> NDFrameT | None:
+        ...
+
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
+    def drop(
+        self: NDFrameT,
+        labels: Hashable | list[Hashable] = None,
+        axis: Axis = 0,
+        index: Hashable | list[Hashable] = None,
+        columns: Hashable | list[Hashable] = None,
+        level: Level | None = None,
         inplace: bool_t = False,
-        errors: str = "raise",
-    ):
+        errors: IgnoreRaise = "raise",
+    ) -> NDFrameT | None:
 
         inplace = validate_bool_kwarg(inplace, "inplace")
 
@@ -4309,7 +4365,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         labels,
         axis,
         level=None,
-        errors: str = "raise",
+        errors: IgnoreRaise = "raise",
         only_slice: bool_t = False,
     ) -> NDFrameT:
         """
@@ -4691,18 +4747,66 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         raise AbstractMethodError(self)
 
+    @overload
     def sort_index(
         self,
-        axis=0,
-        level=None,
-        ascending: bool_t | int | Sequence[bool_t | int] = True,
+        *,
+        axis: Axis = ...,
+        level: Level | None = ...,
+        ascending: bool_t | Sequence[bool_t] = ...,
+        inplace: Literal[True],
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
+        sort_remaining: bool_t = ...,
+        ignore_index: bool_t = ...,
+        key: IndexKeyFunc = ...,
+    ) -> None:
+        ...
+
+    @overload
+    def sort_index(
+        self: NDFrameT,
+        *,
+        axis: Axis = ...,
+        level: Level | None = ...,
+        ascending: bool_t | Sequence[bool_t] = ...,
+        inplace: Literal[False] = ...,
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
+        sort_remaining: bool_t = ...,
+        ignore_index: bool_t = ...,
+        key: IndexKeyFunc = ...,
+    ) -> NDFrameT:
+        ...
+
+    @overload
+    def sort_index(
+        self: NDFrameT,
+        *,
+        axis: Axis = ...,
+        level: Level | None = ...,
+        ascending: bool_t | Sequence[bool_t] = ...,
+        inplace: bool_t = ...,
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
+        sort_remaining: bool_t = ...,
+        ignore_index: bool_t = ...,
+        key: IndexKeyFunc = ...,
+    ) -> NDFrameT | None:
+        ...
+
+    def sort_index(
+        self: NDFrameT,
+        axis: Axis = 0,
+        level: Level | None = None,
+        ascending: bool_t | Sequence[bool_t] = True,
         inplace: bool_t = False,
-        kind: str = "quicksort",
-        na_position: str = "last",
+        kind: SortKind = "quicksort",
+        na_position: NaPosition = "last",
         sort_remaining: bool_t = True,
         ignore_index: bool_t = False,
         key: IndexKeyFunc = None,
-    ):
+    ) -> NDFrameT | None:
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         axis = self._get_axis_number(axis)
@@ -4723,7 +4827,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if ignore_index:
                 result.index = default_index(len(self))
             if inplace:
-                return
+                return None
             else:
                 return result
 
@@ -5188,6 +5292,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         For negative values of `n`, this function returns all rows except
         the last `n` rows, equivalent to ``df[:-n]``.
 
+        If n is larger than the number of rows, this function returns all rows.
+
         Parameters
         ----------
         n : int, default 5
@@ -5260,6 +5366,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         For negative values of `n`, this function returns all rows except
         the first `n` rows, equivalent to ``df[n:]``.
+
+        If n is larger than the number of rows, this function returns all rows.
 
         Parameters
         ----------
@@ -5775,7 +5883,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self._constructor_sliced(data, index=self._info_axis, dtype=np.object_)
 
     def astype(
-        self: NDFrameT, dtype, copy: bool_t = True, errors: str = "raise"
+        self: NDFrameT, dtype, copy: bool_t = True, errors: IgnoreRaise = "raise"
     ) -> NDFrameT:
         """
         Cast a pandas object to a specified dtype ``dtype``.
@@ -9088,7 +9196,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace=False,
         axis=None,
         level=None,
-        errors="raise",
+        errors: IgnoreRaise = "raise",
     ):
         """
         Equivalent to public method `where`, except that `other` is not
@@ -9227,7 +9335,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace=False,
         axis=None,
         level=None,
-        errors="raise",
+        errors: IgnoreRaise = "raise",
         try_cast=lib.no_default,
     ):
         """
@@ -9380,7 +9488,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace=False,
         axis=None,
         level=None,
-        errors="raise",
+        errors: IgnoreRaise = "raise",
         try_cast=lib.no_default,
     ):
 

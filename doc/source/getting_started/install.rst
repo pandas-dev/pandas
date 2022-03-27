@@ -276,7 +276,7 @@ Computation
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-SciPy                     1.14.1             Miscellaneous statistical functions
+SciPy                     1.4.1              Miscellaneous statistical functions
 numba                     0.50.1             Alternative execution engine for rolling operations
                                              (see :ref:`Enhancing Performance <enhancingperf.numba>`)
 xarray                    0.15.1             pandas-like API for N-dimensional data
@@ -411,6 +411,6 @@ Compression
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
 brotli                    0.7.0              Brotli compression
-snappy                    1.1.8              Snappy compression
+python-snappy             0.6.0              Snappy compression
 Zstandard                 0.15.2             Zstandard compression
 ========================= ================== =============================================================

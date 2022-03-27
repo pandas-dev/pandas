@@ -18,24 +18,26 @@ import pytz
 from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
-    PyDateTime_IMPORT,
     datetime,
+    import_datetime,
     time,
     tzinfo,
 )
 
-PyDateTime_IMPORT
+import_datetime()
 
 from pandas._libs.tslibs.base cimport ABCTimestamp
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
     _string_to_dts,
+    astype_overflowsafe,
     check_dts_bounds,
     dt64_to_dtstruct,
     dtstruct_to_dt64,
     get_datetime64_unit,
     get_datetime64_value,
+    get_unit_from_dtype,
     npy_datetime,
     npy_datetimestruct,
     pandas_datetime_to_datetimestruct,
@@ -70,7 +72,7 @@ from pandas._libs.tslibs.nattype cimport (
 )
 from pandas._libs.tslibs.tzconversion cimport (
     bisect_right_i8,
-    tz_convert_utc_to_tzlocal,
+    localize_tzinfo_api,
     tz_localize_to_utc_single,
 )
 
@@ -214,52 +216,20 @@ def ensure_datetime64ns(arr: ndarray, copy: bool = True):
     -------
     ndarray with dtype datetime64[ns]
     """
-    cdef:
-        Py_ssize_t i, n = arr.size
-        const int64_t[:] ivalues
-        int64_t[:] iresult
-        NPY_DATETIMEUNIT unit
-        npy_datetimestruct dts
-
-    shape = (<object>arr).shape
-
     if (<object>arr).dtype.byteorder == ">":
         # GH#29684 we incorrectly get OutOfBoundsDatetime if we dont swap
         dtype = arr.dtype
         arr = arr.astype(dtype.newbyteorder("<"))
 
     if arr.size == 0:
+        # Fastpath; doesn't matter but we have old tests for result.base
+        #  being arr.
         result = arr.view(DT64NS_DTYPE)
         if copy:
             result = result.copy()
         return result
 
-    unit = get_datetime64_unit(arr.flat[0])
-    if unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
-        # without raising explicitly here, we end up with a SystemError
-        # built-in function ensure_datetime64ns returned a result with an error
-        raise ValueError("datetime64/timedelta64 must have a unit specified")
-
-    if unit == NPY_FR_ns:
-        # Check this before allocating result for perf, might save some memory
-        if copy:
-            return arr.copy()
-        return arr
-
-    ivalues = arr.view(np.int64).ravel("K")
-
-    result = np.empty_like(arr, dtype=DT64NS_DTYPE)
-    iresult = result.ravel("K").view(np.int64)
-
-    for i in range(n):
-        if ivalues[i] != NPY_NAT:
-            pandas_datetime_to_datetimestruct(ivalues[i], unit, &dts)
-            iresult[i] = dtstruct_to_dt64(&dts)
-            check_dts_bounds(&dts)
-        else:
-            iresult[i] = NPY_NAT
-
-    return result
+    return astype_overflowsafe(arr, DT64NS_DTYPE, copy=copy)
 
 
 def ensure_timedelta64ns(arr: ndarray, copy: bool = True):
@@ -553,7 +523,7 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
     if is_utc(tz):
         pass
     elif is_tzlocal(tz):
-        tz_convert_utc_to_tzlocal(obj.value, tz, &obj.fold)
+        localize_tzinfo_api(obj.value, tz, &obj.fold)
     else:
         trans, deltas, typ = get_dst_info(tz)
 
@@ -722,7 +692,7 @@ cdef inline void _localize_tso(_TSObject obj, tzinfo tz):
     elif obj.value == NPY_NAT:
         pass
     elif is_tzlocal(tz):
-        local_val = tz_convert_utc_to_tzlocal(obj.value, tz, &obj.fold)
+        local_val = obj.value + localize_tzinfo_api(obj.value, tz, &obj.fold)
         dt64_to_dtstruct(local_val, &obj.dts)
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct

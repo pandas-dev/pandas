@@ -2,6 +2,7 @@
 Tests dtype specification during parsing
 for all of the parsers defined in parsers.py
 """
+from collections import defaultdict
 from io import StringIO
 
 import numpy as np
@@ -191,31 +192,39 @@ def test_delimiter_with_usecols_and_parse_dates(all_parsers):
 
 
 @pytest.mark.parametrize("thousands", ["_", None])
-def test_decimal_and_exponential(python_parser_only, numeric_decimal, thousands):
+def test_decimal_and_exponential(
+    request, python_parser_only, numeric_decimal, thousands
+):
     # GH#31920
-    decimal_number_check(python_parser_only, numeric_decimal, thousands, None)
+    decimal_number_check(request, python_parser_only, numeric_decimal, thousands, None)
 
 
 @pytest.mark.parametrize("thousands", ["_", None])
 @pytest.mark.parametrize("float_precision", [None, "legacy", "high", "round_trip"])
 def test_1000_sep_decimal_float_precision(
-    c_parser_only, numeric_decimal, float_precision, thousands
+    request, c_parser_only, numeric_decimal, float_precision, thousands
 ):
     # test decimal and thousand sep handling in across 'float_precision'
     # parsers
-    decimal_number_check(c_parser_only, numeric_decimal, thousands, float_precision)
+    decimal_number_check(
+        request, c_parser_only, numeric_decimal, thousands, float_precision
+    )
     text, value = numeric_decimal
     text = " " + text + " "
     if isinstance(value, str):  # the negative cases (parse as text)
         value = " " + value + " "
-    decimal_number_check(c_parser_only, (text, value), thousands, float_precision)
+    decimal_number_check(
+        request, c_parser_only, (text, value), thousands, float_precision
+    )
 
 
-def decimal_number_check(parser, numeric_decimal, thousands, float_precision):
+def decimal_number_check(request, parser, numeric_decimal, thousands, float_precision):
     # GH#31920
     value = numeric_decimal[0]
-    if thousands is None and "_" in value:
-        pytest.skip("Skip test if no thousands sep is defined and sep is in value")
+    if thousands is None and value in ("1_,", "1_234,56", "1_234,56e0"):
+        request.node.add_marker(
+            pytest.mark.xfail(reason=f"thousands={thousands} and sep is in {value}")
+        )
     df = parser.read_csv(
         StringIO(value),
         float_precision=float_precision,
@@ -335,3 +344,40 @@ def test_nullable_int_dtype(all_parsers, any_int_ea_dtype):
     )
     actual = parser.read_csv(StringIO(data), dtype=dtype)
     tm.assert_frame_equal(actual, expected)
+
+
+@pytest.mark.parametrize("default", ["float", "float64"])
+def test_dtypes_defaultdict(all_parsers, default):
+    # GH#41574
+    data = """a,b
+1,2
+"""
+    dtype = defaultdict(lambda: default, a="int64")
+    parser = all_parsers
+    result = parser.read_csv(StringIO(data), dtype=dtype)
+    expected = DataFrame({"a": [1], "b": 2.0})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dtypes_defaultdict_mangle_dup_cols(all_parsers):
+    # GH#41574
+    data = """a,b,a,b,b.1
+1,2,3,4,5
+"""
+    dtype = defaultdict(lambda: "float64", a="int64")
+    dtype["b.1"] = "int64"
+    parser = all_parsers
+    result = parser.read_csv(StringIO(data), dtype=dtype)
+    expected = DataFrame({"a": [1], "b": [2.0], "a.1": [3], "b.2": [4.0], "b.1": [5]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dtypes_defaultdict_invalid(all_parsers):
+    # GH#41574
+    data = """a,b
+1,2
+"""
+    dtype = defaultdict(lambda: "invalid_dtype", a="int64")
+    parser = all_parsers
+    with pytest.raises(TypeError, match="not understood"):
+        parser.read_csv(StringIO(data), dtype=dtype)

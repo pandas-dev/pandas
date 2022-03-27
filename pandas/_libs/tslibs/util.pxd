@@ -23,7 +23,6 @@ cdef inline object char_to_string_locale(const char* data):
 cdef extern from "Python.h":
     # Note: importing extern-style allows us to declare these as nogil
     # functions, whereas `from cpython cimport` does not.
-    bint PyUnicode_Check(object obj) nogil
     bint PyBool_Check(object obj) nogil
     bint PyFloat_Check(object obj) nogil
     bint PyComplex_Check(object obj) nogil

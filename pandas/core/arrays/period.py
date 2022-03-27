@@ -660,23 +660,22 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
             if fast_strftime:
                 # Faster: python old-style string formatting
-                formatter = lambda p: p.fast_strftime(str_format, loc_s)
+                formatter = lambda per: per.fast_strftime(str_format, loc_s)
             else:
                 # Slower: strftime
-                formatter = lambda p: p.strftime(date_format)
+                formatter = lambda per: per.strftime(date_format)
         else:
             # Uses `_Period.str>format_period` that is faster than strftime too
-            formatter = lambda p: str(p)
+            formatter = lambda per: str(per)
 
         # Apply the formatter to all values in the array, possibly with a mask
         if self._hasna:
             mask = self._isnan
             values[mask] = na_rep
             imask = ~mask
-            values[imask] = np.array([formatter(p) for p in values[imask]])
+            values[imask] = np.array([formatter(per) for per in values[imask]])
         else:
-            values = np.array([formatter(p) for p in values])
-
+            values = np.array([formatter(per) for per in values])
         return values
 
     # ------------------------------------------------------------------
@@ -771,8 +770,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             new_values[mask] = NaT
         return new_values
 
-    def _addsub_int_array(
-        self, other: np.ndarray, op: Callable[[Any, Any], Any]
+    def _addsub_int_array_or_scalar(
+        self, other: np.ndarray | int, op: Callable[[Any, Any], Any]
     ) -> PeriodArray:
         """
         Add or subtract array of integers; equivalent to applying
@@ -780,7 +779,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
         Parameters
         ----------
-        other : np.ndarray[integer-dtype]
+        other : np.ndarray[int64] or int
         op : {operator.add, operator.sub}
 
         Returns
@@ -799,12 +798,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         assert not isinstance(other, Tick)
 
         self._require_matching_freq(other, base=True)
-
-        # Note: when calling parent class's _add_timedeltalike_scalar,
-        #  it will call delta_to_nanoseconds(delta).  Because delta here
-        #  is an integer, delta_to_nanoseconds will return it unchanged.
-        result = super()._add_timedeltalike_scalar(other.n)
-        return type(self)(result, freq=self.freq)
+        return self._addsub_int_array_or_scalar(other.n, operator.add)
 
     def _add_timedeltalike_scalar(self, other):
         """
@@ -824,10 +818,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             # special handling for np.timedelta64("NaT"), avoid calling
             #  _check_timedeltalike_freq_compat as that would raise TypeError
             other = self._check_timedeltalike_freq_compat(other)
+            other = np.timedelta64(other, "ns")
 
-        # Note: when calling parent class's _add_timedeltalike_scalar,
-        #  it will call delta_to_nanoseconds(delta).  Because delta here
-        #  is an integer, delta_to_nanoseconds will return it unchanged.
         return super()._add_timedeltalike_scalar(other)
 
     def _add_timedelta_arraylike(self, other):
@@ -852,7 +844,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             # all-NaT TimedeltaIndex is equivalent to a single scalar td64 NaT
             return self + np.timedelta64("NaT")
 
-        ordinals = self._addsub_int_array(delta, operator.add).asi8
+        ordinals = self._addsub_int_array_or_scalar(delta, operator.add).asi8
         return type(self)(ordinals, dtype=self.dtype)
 
     def _check_timedeltalike_freq_compat(self, other):

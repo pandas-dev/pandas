@@ -92,15 +92,11 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     freqstr: str | None
     _resolution_obj: Resolution
 
-    # error: "Callable[[Any], Any]" has no attribute "fget"
-    hasnans = cast(
-        bool,
-        cache_readonly(
-            DatetimeLikeArrayMixin._hasna.fget  # type: ignore[attr-defined]
-        ),
-    )
-
     # ------------------------------------------------------------------------
+
+    @cache_readonly
+    def hasnans(self) -> bool:
+        return self._data._hasna
 
     def equals(self, other: Any) -> bool:
         """

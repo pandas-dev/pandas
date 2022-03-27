@@ -6,7 +6,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Union,
-    cast,
     overload,
 )
 
@@ -332,79 +331,31 @@ class ArrowStringArray(
         else:
             return NotImplemented
 
-        # TODO(ARROW-9429): Add a .to_numpy() to ChunkedArray
-        return BooleanArray._from_sequence(result.to_pandas().values)
+        if pa_version_under2p0:
+            result = result.to_pandas().values
+        else:
+            result = result.to_numpy()
+        return BooleanArray._from_sequence(result)
 
     def insert(self, loc: int, item):
         if not isinstance(item, str) and item is not libmissing.NA:
             raise TypeError("Scalar must be NA or str")
         return super().insert(loc, item)
 
-    def __setitem__(self, key: int | slice | np.ndarray, value: Any) -> None:
-        """Set one or more values inplace.
-
-        Parameters
-        ----------
-        key : int, ndarray, or slice
-            When called from, e.g. ``Series.__setitem__``, ``key`` will be
-            one of
-
-            * scalar int
-            * ndarray of integers.
-            * boolean ndarray
-            * slice object
-
-        value : ExtensionDtype.type, Sequence[ExtensionDtype.type], or object
-            value or values to be set of ``key``.
-
-        Returns
-        -------
-        None
-        """
-        key = check_array_indexer(self, key)
-
-        if is_integer(key):
-            key = cast(int, key)
-
-            if not is_scalar(value):
-                raise ValueError("Must pass scalars with scalar indexer")
-            elif isna(value):
+    def _maybe_convert_setitem_value(self, value):
+        """Maybe convert value to be pyarrow compatible."""
+        if is_scalar(value):
+            if isna(value):
                 value = None
             elif not isinstance(value, str):
                 raise ValueError("Scalar must be NA or str")
-
-            # Slice data and insert in-between
-            new_data = [
-                *self._data[0:key].chunks,
-                pa.array([value], type=pa.string()),
-                *self._data[(key + 1) :].chunks,
-            ]
-            self._data = pa.chunked_array(new_data)
         else:
-            # Convert to integer indices and iteratively assign.
-            # TODO: Make a faster variant of this in Arrow upstream.
-            #       This is probably extremely slow.
-
-            # Convert all possible input key types to an array of integers
-            if isinstance(key, slice):
-                key_array = np.array(range(len(self))[key])
-            elif is_bool_dtype(key):
-                # TODO(ARROW-9430): Directly support setitem(booleans)
-                key_array = np.argwhere(key).flatten()
-            else:
-                # TODO(ARROW-9431): Directly support setitem(integers)
-                key_array = np.asanyarray(key)
-
-            if is_scalar(value):
-                value = np.broadcast_to(value, len(key_array))
-            else:
-                value = np.asarray(value)
-
-            if len(key_array) != len(value):
-                raise ValueError("Length of indexer and values mismatch")
-
-            for k, v in zip(key_array, value):
-                self[k] = v
+            value = np.array(value, dtype=object, copy=True)
+            value[isna(value)] = None
+            for v in value:
+                if not (v is None or isinstance(v, str)):
+                    raise ValueError("Scalar must be NA or str")
+        return value
 
     def take(
         self,
