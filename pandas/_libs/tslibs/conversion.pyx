@@ -31,6 +31,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
     _string_to_dts,
+    astype_overflowsafe,
     check_dts_bounds,
     dt64_to_dtstruct,
     dtstruct_to_dt64,
@@ -71,6 +72,7 @@ from pandas._libs.tslibs.nattype cimport (
 )
 from pandas._libs.tslibs.tzconversion cimport (
     bisect_right_i8,
+    infer_datetuil_fold,
     localize_tzinfo_api,
     tz_localize_to_utc_single,
 )
@@ -215,54 +217,20 @@ def ensure_datetime64ns(arr: ndarray, copy: bool = True):
     -------
     ndarray with dtype datetime64[ns]
     """
-    cdef:
-        Py_ssize_t i, n = arr.size
-        const int64_t[:] ivalues
-        int64_t[:] iresult
-        NPY_DATETIMEUNIT unit
-        npy_datetimestruct dts
-
-    shape = (<object>arr).shape
-
     if (<object>arr).dtype.byteorder == ">":
         # GH#29684 we incorrectly get OutOfBoundsDatetime if we dont swap
         dtype = arr.dtype
         arr = arr.astype(dtype.newbyteorder("<"))
 
     if arr.size == 0:
+        # Fastpath; doesn't matter but we have old tests for result.base
+        #  being arr.
         result = arr.view(DT64NS_DTYPE)
         if copy:
             result = result.copy()
         return result
 
-    if arr.dtype.kind != "M":
-        raise TypeError("ensure_datetime64ns arr must have datetime64 dtype")
-    unit = get_unit_from_dtype(arr.dtype)
-    if unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
-        # without raising explicitly here, we end up with a SystemError
-        # built-in function ensure_datetime64ns returned a result with an error
-        raise ValueError("datetime64/timedelta64 must have a unit specified")
-
-    if unit == NPY_FR_ns:
-        # Check this before allocating result for perf, might save some memory
-        if copy:
-            return arr.copy()
-        return arr
-
-    ivalues = arr.view(np.int64).ravel("K")
-
-    result = np.empty_like(arr, dtype=DT64NS_DTYPE)
-    iresult = result.ravel("K").view(np.int64)
-
-    for i in range(n):
-        if ivalues[i] != NPY_NAT:
-            pandas_datetime_to_datetimestruct(ivalues[i], unit, &dts)
-            iresult[i] = dtstruct_to_dt64(&dts)
-            check_dts_bounds(&dts)
-        else:
-            iresult[i] = NPY_NAT
-
-    return result
+    return astype_overflowsafe(arr, DT64NS_DTYPE, copy=copy)
 
 
 def ensure_timedelta64ns(arr: ndarray, copy: bool = True):
@@ -563,7 +531,7 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
         if typ == 'dateutil':
             tdata = <int64_t*>cnp.PyArray_DATA(trans)
             pos = bisect_right_i8(tdata, obj.value, trans.shape[0]) - 1
-            obj.fold = _infer_tsobject_fold(obj, trans, deltas, pos)
+            obj.fold = infer_datetuil_fold(obj.value, trans, deltas, pos)
 
     # Keep the converter same as PyDateTime's
     dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
@@ -747,7 +715,7 @@ cdef inline void _localize_tso(_TSObject obj, tzinfo tz):
             local_val = obj.value + deltas[pos]
 
             # dateutil supports fold, so we infer fold from value
-            obj.fold = _infer_tsobject_fold(obj, trans, deltas, pos)
+            obj.fold = infer_datetuil_fold(obj.value, trans, deltas, pos)
         else:
             # All other cases have len(deltas) == 1. As of 2018-07-17
             #  (and 2022-03-07), all test cases that get here have
@@ -758,49 +726,6 @@ cdef inline void _localize_tso(_TSObject obj, tzinfo tz):
 
     obj.tzinfo = tz
 
-
-cdef inline bint _infer_tsobject_fold(
-    _TSObject obj,
-    const int64_t[:] trans,
-    const int64_t[:] deltas,
-    intp_t pos,
-):
-    """
-    Infer _TSObject fold property from value by assuming 0 and then setting
-    to 1 if necessary.
-
-    Parameters
-    ----------
-    obj : _TSObject
-    trans : ndarray[int64_t]
-        ndarray of offset transition points in nanoseconds since epoch.
-    deltas : int64_t[:]
-        array of offsets corresponding to transition points in trans.
-    pos : intp_t
-        Position of the last transition point before taking fold into account.
-
-    Returns
-    -------
-    bint
-        Due to daylight saving time, one wall clock time can occur twice
-        when shifting from summer to winter time; fold describes whether the
-        datetime-like corresponds  to the first (0) or the second time (1)
-        the wall clock hits the ambiguous time
-
-    References
-    ----------
-    .. [1] "PEP 495 - Local Time Disambiguation"
-           https://www.python.org/dev/peps/pep-0495/#the-fold-attribute
-    """
-    cdef:
-        bint fold = 0
-
-    if pos > 0:
-        fold_delta = deltas[pos - 1] - deltas[pos]
-        if obj.value - fold_delta < trans[pos]:
-            fold = 1
-
-    return fold
 
 cdef inline datetime _localize_pydatetime(datetime dt, tzinfo tz):
     """
@@ -835,24 +760,3 @@ cpdef inline datetime localize_pydatetime(datetime dt, tzinfo tz):
     elif isinstance(dt, ABCTimestamp):
         return dt.tz_localize(tz)
     return _localize_pydatetime(dt, tz)
-
-
-# ----------------------------------------------------------------------
-# Normalization
-
-@cython.cdivision(False)
-cdef inline int64_t normalize_i8_stamp(int64_t local_val) nogil:
-    """
-    Round the localized nanosecond timestamp down to the previous midnight.
-
-    Parameters
-    ----------
-    local_val : int64_t
-
-    Returns
-    -------
-    int64_t
-    """
-    cdef:
-        int64_t day_nanos = 24 * 3600 * 1_000_000_000
-    return local_val - (local_val % day_nanos)
