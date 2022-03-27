@@ -1491,7 +1491,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                     raise TypeError(
                         "Not supported to convert IntervalArray to type with "
                         f"different 'subtype' ({self.dtype.subtype} vs {type.subtype}) "
-                        f"and 'inclusive' ({self.inclusive} vs {type.inclusive}) " 
+                        f"and 'inclusive' ({self.inclusive} vs {type.inclusive}) "
                         f"attributes"
                     )
             else:
