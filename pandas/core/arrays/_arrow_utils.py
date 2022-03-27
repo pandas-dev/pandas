@@ -116,8 +116,8 @@ class ArrowIntervalType(pyarrow.ExtensionType):
                 inclusive = closed
             else:
                 raise ValueError(
-                    "Argument `closed` has to be either 'both', 'neither', 'left', 'right',"
-                    "or 'both'"
+                    "Argument `closed` has to be either" 
+                    "'both', 'neither', 'left' or 'right'"
                 )
         elif inclusive is None:
             inclusive = "both"
