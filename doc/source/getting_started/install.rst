@@ -225,7 +225,7 @@ installed), make sure you have `pytest
 
     = 1 failed, 146194 passed, 7402 skipped, 1367 xfailed, 5 xpassed, 197 warnings, 10 errors in 1090.16s (0:18:10) =
 
-This is just an example of what information is shown.You might see a slightly different result as what is shown above.
+This is just an example of what information is shown. You might see a slightly different result as what is shown above.
 
 .. _install.dependencies:
 
