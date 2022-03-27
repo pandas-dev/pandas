@@ -1,4 +1,3 @@
-
 """ define the IntervalIndex """
 from __future__ import annotations
 
@@ -238,7 +237,7 @@ class IntervalIndex(ExtensionIndex):
                 inclusive = closed
             else:
                 raise ValueError(
-                    "Argument `closed` has to be either" 
+                    "Argument `closed` has to be either"
                     "'both', 'neither', 'left' or 'right'"
                 )
         elif inclusive is None:
@@ -300,7 +299,7 @@ class IntervalIndex(ExtensionIndex):
                 inclusive = closed
             else:
                 raise ValueError(
-                    "Argument `closed` has to be either" 
+                    "Argument `closed` has to be either"
                     "'both', 'neither', 'left' or 'right'"
                 )
         elif inclusive is None:
@@ -356,7 +355,7 @@ class IntervalIndex(ExtensionIndex):
                 inclusive = closed
             else:
                 raise ValueError(
-                    "Argument `closed` has to be either" 
+                    "Argument `closed` has to be either"
                     "'both', 'neither', 'left' or 'right'"
                 )
         elif inclusive is None:
@@ -411,7 +410,7 @@ class IntervalIndex(ExtensionIndex):
                 inclusive = closed
             else:
                 raise ValueError(
-                    "Argument `closed` has to be either" 
+                    "Argument `closed` has to be either"
                     "'both', 'neither', 'left' or 'right'"
                 )
         elif inclusive is None:

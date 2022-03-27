@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import json
@@ -117,7 +116,7 @@ class ArrowIntervalType(pyarrow.ExtensionType):
                 inclusive = closed
             else:
                 raise ValueError(
-                    "Argument `closed` has to be either" 
+                    "Argument `closed` has to be either"
                     "'both', 'neither', 'left' or 'right'"
                 )
         elif inclusive is None:

@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import operator
@@ -242,7 +241,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 inclusive = closed
             else:
                 raise ValueError(
-                    "Argument `closed` has to be either" 
+                    "Argument `closed` has to be either"
                     "'both', 'neither', 'left' or 'right'"
                 )
         elif inclusive is None:
@@ -313,7 +312,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 inclusive = closed
             else:
                 raise ValueError(
-                    "Argument `closed` has to be either" 
+                    "Argument `closed` has to be either"
                     "'both', 'neither', 'left' or 'right'"
                 )
         elif inclusive is None:
