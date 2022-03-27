@@ -1052,7 +1052,10 @@ class IntervalDtype(PandasExtensionDtype):
         "inclusive",
     )
     _match = re.compile(
-        r"(I|i)nterval\[(?P<subtype>[^,]+)(, (?P<inclusive>(right|left|both|neither)))?\]"
+        r"""
+            (I|i)nterval\[(?P<subtype>[^,]+)
+            (, (?P<inclusive>(right|left|both|neither)))?\]
+        """
     )
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
 
