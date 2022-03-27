@@ -3401,7 +3401,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         float_format: str | None = None,
         columns: Sequence[Hashable] | None = None,
         header: bool_t | list[str] = True,
-        index: bool_t = True,
+        index: bool_t = False,
         index_label: IndexLabel | None = None,
         mode: str = "w",
         encoding: str | None = None,
