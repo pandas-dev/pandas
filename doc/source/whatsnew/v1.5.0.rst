@@ -47,7 +47,7 @@ Other enhancements
 - :class:`Series` and :class:`DataFrame` with ``IntegerDtype`` now supports bitwise operations (:issue:`34463`)
 - Add ``milliseconds`` field support for :class:`~pandas.DateOffset` (:issue:`43371`)
 - :meth:`DataFrame.reset_index` now accepts a ``names`` argument which renames the index names (:issue:`6878`)
-- :class:`Index` now contains ``get_default_index_names`` method to get names of index for DataFrame (:issue:`6878`)
+- :class:`Index` now contains ``_get_default_index_names`` method to get names of index for DataFrame (:issue:`6878`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.notable_bug_fixes:

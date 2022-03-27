@@ -1769,7 +1769,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return new_names
 
-    def get_default_index_names(
+    def _get_default_index_names(
         self, names: Hashable | Sequence[Hashable] | None = None, default=None
     ) -> list[Hashable]:
         """
