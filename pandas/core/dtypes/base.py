@@ -1,9 +1,9 @@
 """
 Extend pandas with custom array types.
 """
-
 from __future__ import annotations
 
+import re
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -14,6 +14,7 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs import missing as libmissing
 from pandas._libs.hashtable import object_hash
 from pandas._typing import (
     DtypeObj,
@@ -389,6 +390,61 @@ class ExtensionDtype:
         Can arrays of this dtype hold NA values?
         """
         return True
+
+
+class StorageExtensionDtype(ExtensionDtype):
+    """ExtensionDtype that may be backed by more than one implementation."""
+
+    name: str
+    na_value = libmissing.NA
+    _metadata = ("storage",)
+
+    def __init__(self, storage=None) -> None:
+        self.storage = storage
+
+    @classmethod
+    def construct_from_string(cls, string: str):
+        """
+        Construct a StorageExtensionDtype from a string.
+
+        Parameters
+        ----------
+        string : str
+            The type of StorageExtensionDtype to construct. String is assumed to match:
+                * self.name, where the default storage will be selected
+                * __repr__, where the storage option in the brackets will be selected
+
+        Raise
+        -----
+        TypeError
+            If the string is not a valid option.
+        """
+        if not isinstance(string, str):
+            raise TypeError(
+                f"'construct_from_string' expects a string, got {type(string)}"
+            )
+        if string == cls.name:
+            return cls()
+        storage_search = re.search(r"\[.*?]", string)
+        if storage_search:
+            return cls(storage=storage_search.group(0)[1:-1])
+        else:
+            raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
+
+    def __repr__(self):
+        return f"{self.name}[{self.storage}]"
+
+    def __str__(self):
+        return self.name
+
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, self.type) and other == self.name:
+            return True
+        return super().__eq__(other)
+
+    def __hash__(self) -> int:
+        # custom __eq__ so have to override __hash__
+        return super().__hash__()
 
 
 def register_extension_dtype(cls: type_t[ExtensionDtypeT]) -> type_t[ExtensionDtypeT]:
