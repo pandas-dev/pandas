@@ -1069,8 +1069,8 @@ def interval_range(
             inclusive = closed
         else:
             raise ValueError(
-                "Argument `closed` has to be either 'both', 'neither', 'left', 'right',"
-                "or 'both'"
+                "Argument `closed` has to be either" 
+                "'both', 'neither', 'left' or 'right'"
             )
 
     start = maybe_box_datetimelike(start)
