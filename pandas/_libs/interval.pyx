@@ -352,7 +352,7 @@ cdef class Interval(IntervalMixin):
                 inclusive = closed
             else:
                 raise ValueError(
-                    "Argument `closed` has to be either" 
+                    "Argument `closed` has to be either"
                     "'both', 'neither', 'left' or 'right'"
                 )
         elif inclusive is None:
