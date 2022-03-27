@@ -27,6 +27,7 @@ if TYPE_CHECKING:
 
     from pandas import (
         DataFrame,
+        Index,
         Series,
     )
 
@@ -378,6 +379,7 @@ def parallel_coordinates(
     ncols = len(df.columns)
 
     # determine values to use for xticks
+    x: list[int] | Index
     if use_columns is True:
         if not np.all(np.isreal(list(df.columns))):
             raise ValueError("Columns must be numeric to be used as xticks")
