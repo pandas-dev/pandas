@@ -1051,7 +1051,6 @@ class IntervalDtype(PandasExtensionDtype):
         "subtype",
         "inclusive",
     )
-
     MATCH_PATTERN = r"""
         (I|i)nterval\[(?P<subtype>[^,]+)(,
         (?P<inclusive>(right|left|both|neither)))?\]
