@@ -1,7 +1,7 @@
-Title: What we learn on the Pandas grant
+Title: What we learned on the Pandas Grant
 Date: 2022-03-23
 
-# What we learn on the Pandas grant
+# What we learned on the Pandas Grant
 *By Dorothy Kabarozi B. and Lucy Jimenez*
 
 We want to share our experience working on **Improvements to the**
@@ -33,7 +33,7 @@ It all happened through Marc Garcia; he had put out a call on Twitter
 to mentor ladies from diverse backgrounds. Dorothy got to be part of the
 Pandas mentorship group. At the same time, Lucy was co-organizer of the
 SciPy Latam conference, and it is from here she met Marc, who was the
-speaker at that conference, and through this mutual connection, they were
+speaker at that conference, and through this mutual connection, we were
 able to learn about this benchmarks grant.
 
 In brief, by attending conferences, meetups, and social media, you can
@@ -76,7 +76,7 @@ look at the work in Open Source projects.
 We also built a strong teamwork partnership. We helped each other a lot as
 we had numerous one-on-one calls to understand the tasks better. We always
 looked for ways to support each other from the technical side and encouraged
-when needed. For us, it was professional and human growth.
+each other when needed. For us, it was professional and human growth.
 
 ### Running an Open Source Software Sprint
 The knowledge and experience acquired in this process allowed us to
