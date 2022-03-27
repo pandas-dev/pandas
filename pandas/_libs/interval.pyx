@@ -188,7 +188,7 @@ cdef class IntervalMixin:
 
     def _check_closed_matches(self, other, name='other'):
         """
-        Check if the closed attribute of `other` matches.
+        Check if the inclusive attribute of `other` matches.
 
         Note that 'left' and 'right' are considered different from 'both'.
 

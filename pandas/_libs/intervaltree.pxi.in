@@ -47,9 +47,18 @@ cdef class IntervalTree(IntervalMixin):
         left, right : np.ndarray[ndim=1]
             Left and right bounds for each interval. Assumed to contain no
             NaNs.
-        inclusive : {'left', 'right', 'both', 'neither'}, optional
+        closed : {'left', 'right', 'both', 'neither'}, optional
             Whether the intervals are closed on the left-side, right-side, both
             or neither. Defaults to 'right'.
+
+            .. deprecated:: 1.5.0
+
+        inclusive : {"both", "neither", "left", "right"}, optional
+            Whether the intervals are closed on the left-side, right-side, both
+            or neither. Defaults to 'right'.
+
+            .. versionadded:: 1.5.0
+
         leaf_size : int, optional
             Parameter that controls when the tree switches from creating nodes
             to brute-force search. Tune this parameter to optimize query
