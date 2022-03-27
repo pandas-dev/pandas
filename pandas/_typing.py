@@ -74,14 +74,6 @@ else:
     npt: Any = None
 
 
-# Functions that take Dict/Mapping/List/Sequence/Callable can be tricky to type:
-# - keys of Dict and Mapping do not accept sub-classes
-# - items of List and Sequence do not accept sub-classes
-# - input argument to Callable cannot be sub-classes
-# If you want to allow any type and it's sub-classes in the above cases, you can
-# use TypeVar("AllowsSubclasses", bound=class)
-HashableT = TypeVar("HashableT", bound=Hashable)
-
 # array-like
 
 ArrayLike = Union["ExtensionArray", np.ndarray]
@@ -113,7 +105,7 @@ Timezone = Union[str, tzinfo]
 NDFrameT = TypeVar("NDFrameT", bound="NDFrame")
 
 Axis = Union[str, int]
-IndexLabel = Union[Hashable, Sequence[HashableT]]
+IndexLabel = Union[Hashable, Sequence[Hashable]]
 Level = Union[Hashable, int]
 Shape = Tuple[int, ...]
 Suffixes = Tuple[Optional[str], Optional[str]]
@@ -135,19 +127,19 @@ NpDtype = Union[str, np.dtype, type_t[Union[str, float, int, complex, bool, obje
 Dtype = Union["ExtensionDtype", NpDtype]
 AstypeArg = Union["ExtensionDtype", "npt.DTypeLike"]
 # DtypeArg specifies all allowable dtypes in a functions its dtype argument
-DtypeArg = Union[Dtype, Dict[HashableT, Dtype]]
+DtypeArg = Union[Dtype, Dict[Hashable, Dtype]]
 DtypeObj = Union[np.dtype, "ExtensionDtype"]
 
 # converters
-ConvertersArg = Dict[HashableT, Callable[[Dtype], Dtype]]
+ConvertersArg = Dict[Hashable, Callable[[Dtype], Dtype]]
 
 # parse_dates
 ParseDatesArg = Union[
-    bool, List[HashableT], List[List[HashableT]], Dict[HashableT, List[Hashable]]
+    bool, List[Hashable], List[List[Hashable]], Dict[Hashable, List[Hashable]]
 ]
 
 # For functions like rename that convert one label to another
-Renamer = Union[Mapping[HashableT, Any], Callable[[HashableT], Hashable]]
+Renamer = Union[Mapping[Hashable, Any], Callable[[Hashable], Hashable]]
 
 # to maintain type information across generic functions and parametrization
 T = TypeVar("T")
@@ -164,7 +156,7 @@ IndexKeyFunc = Optional[Callable[["Index"], Union["Index", AnyArrayLike]]]
 
 # types of `func` kwarg for DataFrame.aggregate and Series.aggregate
 AggFuncTypeBase = Union[Callable, str]
-AggFuncTypeDict = Dict[HashableT, Union[AggFuncTypeBase, List[AggFuncTypeBase]]]
+AggFuncTypeDict = Dict[Hashable, Union[AggFuncTypeBase, List[AggFuncTypeBase]]]
 AggFuncType = Union[
     AggFuncTypeBase,
     List[AggFuncTypeBase],
@@ -268,10 +260,10 @@ CompressionOptions = Optional[
 FormattersType = Union[
     List[Callable], Tuple[Callable, ...], Mapping[Union[str, int], Callable]
 ]
-ColspaceType = Mapping[HashableT, Union[str, int]]
+ColspaceType = Mapping[Hashable, Union[str, int]]
 FloatFormatType = Union[str, Callable, "EngFormatter"]
 ColspaceArgType = Union[
-    str, int, Sequence[Union[str, int]], Mapping[HashableT, Union[str, int]]
+    str, int, Sequence[Union[str, int]], Mapping[Hashable, Union[str, int]]
 ]
 
 # Arguments for fillna()
