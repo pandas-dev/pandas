@@ -1083,7 +1083,7 @@ of :ref:`frequency aliases <timeseries.offset_aliases>` with datetime-like inter
    pd.interval_range(start=pd.Timedelta("0 days"), periods=3, freq="9H")
 
 Additionally, the ``inclusive`` parameter can be used to specify which side(s) the intervals
-are closed on.  Intervals are closed on the right side by default.
+are closed on.  Intervals are closed on the both side by default.
 
 .. ipython:: python
 
