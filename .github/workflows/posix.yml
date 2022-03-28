@@ -121,12 +121,12 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
 
     - name: Cache conda
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       env:
         CACHE_NUMBER: 0
       with:
@@ -138,7 +138,7 @@ jobs:
       # xsel for clipboard tests
       run: sudo apt-get update && sudo apt-get install -y libc6-dev-i386 xsel ${{ env.EXTRA_APT }}
 
-    - uses: conda-incubator/setup-miniconda@v2
+    - uses: conda-incubator/setup-miniconda@v2.1.1
       with:
         mamba-version: "*"
         channels: conda-forge
@@ -153,7 +153,7 @@ jobs:
       if: ${{ matrix.pyarrow_version }}
 
     - name: Setup PyPy
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v3
       with:
         python-version: "pypy-3.8"
       if: ${{ env.IS_PYPY == 'true' }}
@@ -178,7 +178,7 @@ jobs:
       run: pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
 
     - name: Publish test results
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: Test results
         path: test-data.xml
