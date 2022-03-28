@@ -45,12 +45,12 @@ jobs:
       cancel-in-progress: true
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         fetch-depth: 0
 
     - name: Set up Python Dev Version
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v3
       with:
         python-version: '3.11-dev'
 
@@ -79,7 +79,7 @@ jobs:
         ci/run_tests.sh
 
     - name: Publish test results
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: Test results
         path: test-data.xml
