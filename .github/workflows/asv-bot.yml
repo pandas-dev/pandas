@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        shell: bash -l {0}
+        shell: bash -el {0}
 
     concurrency:
       # Set concurrency to prevent abuse(full runs are ~5.5 hours !!!)
