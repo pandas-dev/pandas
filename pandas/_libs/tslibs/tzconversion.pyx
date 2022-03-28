@@ -663,7 +663,7 @@ cdef int64_t _tz_localize_using_tzinfo_api(
     return delta
 
 
-# NB: this relies on dateutil internals and is subject to change.
+# NB: relies on dateutil internals, subject to change.
 cdef bint infer_dateutil_fold(
     int64_t value,
     const int64_t[::1] trans,

@@ -15,7 +15,6 @@ cdef int64_t tz_localize_to_utc_single(
 
 cdef Py_ssize_t bisect_right_i8(int64_t *data, int64_t val, Py_ssize_t n)
 
-
 cdef bint infer_dateutil_fold(
     int64_t value,
     const int64_t[::1] trans,

@@ -738,24 +738,3 @@ cpdef inline datetime localize_pydatetime(datetime dt, tzinfo tz):
     elif isinstance(dt, ABCTimestamp):
         return dt.tz_localize(tz)
     return _localize_pydatetime(dt, tz)
-
-
-# ----------------------------------------------------------------------
-# Normalization
-
-@cython.cdivision(False)
-cdef inline int64_t normalize_i8_stamp(int64_t local_val) nogil:
-    """
-    Round the localized nanosecond timestamp down to the previous midnight.
-
-    Parameters
-    ----------
-    local_val : int64_t
-
-    Returns
-    -------
-    int64_t
-    """
-    cdef:
-        int64_t day_nanos = 24 * 3600 * 1_000_000_000
-    return local_val - (local_val % day_nanos)
