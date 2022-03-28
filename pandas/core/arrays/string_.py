@@ -140,7 +140,18 @@ class StringDtype(StorageExtensionDtype):
         TypeError
             If the string is not a valid option.
         """
-        return super().construct_from_string(string)
+        if not isinstance(string, str):
+            raise TypeError(
+                f"'construct_from_string' expects a string, got {type(string)}"
+            )
+        if string == "string":
+            return cls()
+        elif string == "string[python]":
+            return cls(storage="python")
+        elif string == "string[pyarrow]":
+            return cls(storage="pyarrow")
+        else:
+            raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
 
     # https://github.com/pandas-dev/pandas/issues/36126
     # error: Signature of "construct_array_type" incompatible with supertype
