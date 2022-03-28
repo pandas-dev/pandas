@@ -329,21 +329,21 @@ class TestMultiIndexConcat:
         [["x", "y", "x"]],
     )
     def test_concat_with_key_not_unique(
-        self, keys: list,
+        self,
+        keys: list,
     ):
         # GitHub #46519
-        df1 = DataFrame({'name': [1]})
-        df2 = DataFrame({'name': [2]})
+        df1 = DataFrame({"name": [1]})
+        df2 = DataFrame({"name": [2]})
         df3 = DataFrame({"name": [3]})
-        df_a = pd.concat([df1, df2, df3], keys=keys)
-        out_a = df_a.loc[("x", 0), :]
+        df_a = concat([df1, df2, df3], keys=keys)
+        with tm.assert_produces_warning(PerformanceWarning):
+            out_a = df_a.loc[("x", 0), :]
 
-        df_b = pd.DataFrame(
-            {
-                "name": [1, 2, 3]
-            },
-            index=Index([("x", 0), ("y", 0), ("x", 0)])
+        df_b = DataFrame(
+            {"name": [1, 2, 3]}, index=Index([("x", 0), ("y", 0), ("x", 0)])
         )
-        out_b = df_b.loc[("x", 0)]
+        with tm.assert_produces_warning(PerformanceWarning):
+            out_b = df_b.loc[("x", 0)]
 
         tm.assert_frame_equal(out_a, out_b)
