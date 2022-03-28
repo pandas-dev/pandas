@@ -534,7 +534,7 @@ cdef const int64_t[:] _tz_convert_from_utc(const int64_t[:] stamps, tzinfo tz):
 
         int64_t[::1] result
 
-    if is_utc(tz):
+    if is_utc(tz) or tz is None:
         # Much faster than going through the "standard" pattern below
         return stamps.copy()
 
@@ -632,3 +632,48 @@ cdef int64_t _tz_localize_using_tzinfo_api(
     td = tz.utcoffset(dt)
     delta = int(td.total_seconds() * 1_000_000_000)
     return delta
+
+
+# NB: relies on dateutil internals, subject to change.
+cdef bint infer_datetuil_fold(
+    int64_t value,
+    const int64_t[::1] trans,
+    const int64_t[::1] deltas,
+    intp_t pos,
+):
+    """
+    Infer _TSObject fold property from value by assuming 0 and then setting
+    to 1 if necessary.
+
+    Parameters
+    ----------
+    value : int64_t
+    trans : ndarray[int64_t]
+        ndarray of offset transition points in nanoseconds since epoch.
+    deltas : int64_t[:]
+        array of offsets corresponding to transition points in trans.
+    pos : intp_t
+        Position of the last transition point before taking fold into account.
+
+    Returns
+    -------
+    bint
+        Due to daylight saving time, one wall clock time can occur twice
+        when shifting from summer to winter time; fold describes whether the
+        datetime-like corresponds  to the first (0) or the second time (1)
+        the wall clock hits the ambiguous time
+
+    References
+    ----------
+    .. [1] "PEP 495 - Local Time Disambiguation"
+           https://www.python.org/dev/peps/pep-0495/#the-fold-attribute
+    """
+    cdef:
+        bint fold = 0
+
+    if pos > 0:
+        fold_delta = deltas[pos - 1] - deltas[pos]
+        if value - fold_delta < trans[pos]:
+            fold = 1
+
+    return fold
