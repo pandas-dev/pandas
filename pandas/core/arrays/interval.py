@@ -244,8 +244,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                     "Argument `closed` has to be either"
                     "'both', 'neither', 'left' or 'right'"
                 )
-        elif inclusive is None:
-            inclusive = "both"
 
         data = extract_array(data, extract_numpy=True)
 
@@ -276,7 +274,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return cls._simple_new(
             left,
             right,
-            inclusive,
+            inclusive=inclusive,
             copy=copy,
             dtype=dtype,
             verify_integrity=verify_integrity,
@@ -315,13 +313,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                     "Argument `closed` has to be either"
                     "'both', 'neither', 'left' or 'right'"
                 )
-        elif inclusive is None:
-            inclusive = "both"
 
         if inclusive is None and isinstance(dtype, IntervalDtype):
             inclusive = dtype.inclusive
 
-        inclusive = inclusive or "right"
+        inclusive = inclusive or "both"
+
         left = ensure_index(left, copy=copy)
         right = ensure_index(right, copy=copy)
 
@@ -336,7 +333,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             else:
                 msg = f"dtype must be an IntervalDtype, got {dtype}"
                 raise TypeError(msg)
-
             if dtype.inclusive is None:
                 # possibly loading an old pickle
                 dtype = IntervalDtype(dtype.subtype, inclusive)
@@ -542,7 +538,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         cls: type[IntervalArrayT],
         left,
         right,
-        inclusive="right",
+        inclusive="both",
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> IntervalArrayT:
@@ -550,7 +546,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         right = _maybe_convert_platform_interval(right)
 
         return cls._simple_new(
-            left, right, inclusive, copy=copy, dtype=dtype, verify_integrity=True
+            left,
+            right,
+            inclusive=inclusive,
+            copy=copy,
+            dtype=dtype,
+            verify_integrity=True,
         )
 
     _interval_shared_docs["from_tuples"] = textwrap.dedent(
@@ -722,7 +723,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             # scalar
             if is_scalar(left) and isna(left):
                 return self._fill_value
-            return Interval(left, right, self.inclusive)
+            return Interval(left, right, inclusive=self.inclusive)
         if np.ndim(left) > 1:
             # GH#30588 multi-dimensional indexer disallowed
             raise ValueError("multi-dimensional indexing not allowed")
@@ -1493,7 +1494,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             if mask[i]:
                 result[i] = np.nan
             else:
-                result[i] = Interval(left[i], right[i], inclusive)
+                result[i] = Interval(left[i], right[i], inclusive=inclusive)
         return result
 
     def __arrow_array__(self, type=None):

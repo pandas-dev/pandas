@@ -240,8 +240,6 @@ class IntervalIndex(ExtensionIndex):
                     "Argument `closed` has to be either"
                     "'both', 'neither', 'left' or 'right'"
                 )
-        elif inclusive is None:
-            inclusive = "both"
 
         name = maybe_extract_name(name, data, cls)
 
