@@ -69,7 +69,7 @@ dependencies:
   - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.31
-  - pytest-asyncio
+  - pytest-asyncio>=0.17
   - pytest-instafail
 
   # downstream tests
