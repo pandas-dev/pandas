@@ -658,6 +658,8 @@ def test_non_unique_index():
     )
     result = df.groupby([df.index, "A"]).value.rank(ascending=True, pct=True)
     expected = Series(
-        [1.0] * 4, index=[pd.Timestamp("20170101", tz="US/Eastern")] * 4, name="value"
+        [1.0, 1.0, 1.0, np.nan],
+        index=[pd.Timestamp("20170101", tz="US/Eastern")] * 4,
+        name="value",
     )
     tm.assert_series_equal(result, expected)
