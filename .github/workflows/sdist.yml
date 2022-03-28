@@ -18,7 +18,7 @@ jobs:
     timeout-minutes: 60
     defaults:
       run:
-        shell: bash -l {0}
+        shell: bash -el {0}
 
     strategy:
       fail-fast: false

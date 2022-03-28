@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        shell: bash -l {0}
+        shell: bash -el {0}
     timeout-minutes: 120
     strategy:
       matrix:
@@ -159,7 +159,6 @@ jobs:
       if: ${{ env.IS_PYPY == 'true' }}
 
     - name: Setup PyPy dependencies
-      shell: bash
       run: |
         # TODO: re-enable cov, its slowing the tests down though
         pip install Cython numpy python-dateutil pytz pytest>=6.0 pytest-xdist>=1.31.0 pytest-asyncio>=0.17 hypothesis>=5.5.3
