@@ -16,7 +16,8 @@ dependencies:
   - pytz
   - pip
   - pip:
-    - cython==0.29.24 # GH#34014
+    #- cython # TODO: don't install from master after Cython 3.0.0a11 is released
+    - "git+https://github.com/cython/cython.git@master"
     - "--extra-index-url https://pypi.anaconda.org/scipy-wheels-nightly/simple"
     - "--pre"
     - "numpy"
