@@ -5,8 +5,8 @@ runs:
   steps:
     - name: Setting conda path
       run: echo "${HOME}/miniconda3/bin" >> $GITHUB_PATH
-      shell: bash -l {0}
+      shell: bash -el {0}
 
     - name: Setup environment and build pandas
       run: ci/setup_env.sh
-      shell: bash -l {0}
+      shell: bash -el {0}

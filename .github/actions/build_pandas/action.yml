@@ -8,10 +8,10 @@ runs:
       run: |
         conda info
         conda list
-      shell: bash -l {0}
+      shell: bash -el {0}
 
     - name: Build Pandas
       run: |
         python setup.py build_ext -j 2
         python -m pip install -e . --no-build-isolation --no-use-pep517 --no-index
-      shell: bash -l {0}
+      shell: bash -el {0}
