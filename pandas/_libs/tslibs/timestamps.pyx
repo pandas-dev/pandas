@@ -51,7 +51,6 @@ from pandas._libs.tslibs.conversion cimport (
     _TSObject,
     convert_datetime_to_tsobject,
     convert_to_tsobject,
-    normalize_i8_stamp,
 )
 from pandas._libs.tslibs.util cimport (
     is_array,
@@ -2116,3 +2115,23 @@ cdef int64_t _NS_LOWER_BOUND = NPY_NAT + 1
 Timestamp.min = Timestamp(_NS_LOWER_BOUND)
 Timestamp.max = Timestamp(_NS_UPPER_BOUND)
 Timestamp.resolution = Timedelta(nanoseconds=1)  # GH#21336, GH#21365
+
+
+# ----------------------------------------------------------------------
+# Scalar analogues to functions in vectorized.pyx
+
+
+@cython.cdivision(False)
+cdef inline int64_t normalize_i8_stamp(int64_t local_val) nogil:
+    """
+    Round the localized nanosecond timestamp down to the previous midnight.
+
+    Parameters
+    ----------
+    local_val : int64_t
+
+    Returns
+    -------
+    int64_t
+    """
+    return local_val - (local_val % ccalendar.DAY_NANOS)
