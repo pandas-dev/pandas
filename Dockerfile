@@ -3,7 +3,7 @@ FROM quay.io/condaforge/miniforge3
 # if you forked pandas, you can pass in your own GitHub username to use your fork
 # i.e. gh_username=myname
 ARG gh_username=bwozniak27
-ARG pandas_home="/home/pandas"
+ARG pandas_home="/home/pandas_container"
 
 # Avoid warnings by switching to noninteractive
 ENV DEBIAN_FRONTEND=noninteractive
