@@ -9,7 +9,7 @@ dependencies:
   - pytz
 
   # benchmarks
-  - asv<=0.5.0 # 2022-02-08: v0.5.0 > leads to ASV checks running > 3 hours on CI
+  - asv # 2022-02-08: v0.5.0 > leads to ASV checks running > 3 hours on CI
 
   # building
   # The compiler packages are meta-packages and install the correct compiler (activation) packages on the respective platforms.
@@ -118,7 +118,7 @@ dependencies:
   - sqlalchemy  # pandas.read_sql, DataFrame.to_sql
   - xarray<0.19  # DataFrame.to_xarray
   - cftime  # Needed for downstream xarray.CFTimeIndex test
-  
+
   # pyreadstat  # pandas.read_spss
   - tabulate>=0.8.3  # DataFrame.to_markdown
   - natsort  # DataFrame.sort_values
