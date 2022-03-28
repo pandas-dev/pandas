@@ -546,6 +546,18 @@ class MultiIndex(Index):
             tuples = list(tuples)
         tuples = cast(Collection[Tuple[Hashable, ...]], tuples)
 
+        # handling the empty tuple cases
+        if len(tuples) and all(isinstance(e, tuple) and not e for e in tuples):
+            codes = [np.zeros(len(tuples))]
+            levels = [Index(com.asarray_tuplesafe(tuples, dtype=np.dtype("object")))]
+            return cls(
+                levels=levels,
+                codes=codes,
+                sortorder=sortorder,
+                names=names,
+                verify_integrity=False,
+            )
+
         arrays: list[Sequence[Hashable]]
         if len(tuples) == 0:
             if names is None:
