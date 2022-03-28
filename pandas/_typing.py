@@ -76,8 +76,8 @@ else:
 
 # Functions that take Dict/Mapping/List/Sequence/Callable as arguments can be
 # tricky to type:
-# - keys of Dict and Mapping cannot be sub-classes
-# - elements of List and Sequence cannot be sub-classes
+# - keys of Dict and Mapping cannot be sub-classes (Mapping allows them for values)
+# - elements of List cannot be sub-classes (Sequence does)
 # - input arguments of Callable cannot be sub-classes
 # If you want to allow any type and it's sub-classes in the above cases, you can
 # use TypeVar("AllowsSubclasses", bound=class); List[AllowsSubclasses]
@@ -114,7 +114,7 @@ Timezone = Union[str, tzinfo]
 NDFrameT = TypeVar("NDFrameT", bound="NDFrame")
 
 Axis = Union[str, int]
-IndexLabel = Union[Hashable, Sequence[HashableT]]
+IndexLabel = Union[Hashable, Sequence[Hashable]]
 Level = Union[Hashable, int]
 Shape = Tuple[int, ...]
 Suffixes = Tuple[Optional[str], Optional[str]]
