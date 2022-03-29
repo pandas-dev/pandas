@@ -2281,6 +2281,13 @@ def to_native_types(
             results_converted.append(result.astype(object, copy=False))
         return np.vstack(results_converted)
 
+    elif isinstance(values, (PeriodArray, IntervalArray)):
+        # GH46297
+        values = np.array(values, dtype="object")
+        mask = isna(values)
+        values[mask] = na_rep
+        return values
+
     elif values.dtype.kind == "f" and not is_sparse(values):
         # see GH#13418: no special formatting is desired at the
         # output (important for appropriate 'quoting' behaviour),

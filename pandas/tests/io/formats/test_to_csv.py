@@ -315,6 +315,17 @@ $1$,$2$
         ser = ser.astype("category")
         assert ser.to_csv(index=False, date_format="%Y-%m-%d") == expected
 
+    def test_to_cvs_interval_format_in_categorical(self):
+        # GH#46297
+        df = DataFrame(index=[0], columns=["a"])
+        df.at[0, "a"] = pd.Interval(
+            pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-02")
+        )
+        df["a"] = df["a"].astype("category")
+        result = df.to_csv(index=False, date_format="%Y-%m-%d")
+        expected = tm.convert_rows_list_to_csv_str(["a", '"(2020-01-01, 2020-01-02]"'])
+        assert result == expected
+
     def test_to_csv_float_ea_float_format(self):
         # GH#45991
         df = DataFrame({"a": [1.1, 2.02, pd.NA, 6.000006], "b": "c"})

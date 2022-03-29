@@ -22,6 +22,7 @@ from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_1d_only_ea_obj,
+    is_interval_dtype,
 )
 from pandas.core.dtypes.missing import na_value_for_dtype
 
@@ -110,6 +111,11 @@ def take_nd(
             return arr.take(
                 indexer, fill_value=fill_value, allow_fill=allow_fill, axis=axis
             )
+        if arr.dtype.kind in "O" and is_interval_dtype(arr):
+            # i.e. Interval
+            # GH46297 Special case for IntervalArray take,
+            # which allow_fill is False since it will not contain -1 values
+            return arr.take(indexer, fill_value=fill_value, allow_fill=False, axis=axis)
 
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
 
