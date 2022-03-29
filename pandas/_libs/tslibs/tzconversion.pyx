@@ -455,7 +455,7 @@ cdef int64_t tz_convert_from_utc_single(
     tzinfo tz,
     bint* fold=NULL,
     Py_ssize_t* outpos=NULL,
-):
+) except? -1:
     """
     Convert the val (in i8) from UTC to tz
 
