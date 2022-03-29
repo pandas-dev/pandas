@@ -14,8 +14,8 @@ on:
       - "doc/**"
 
 jobs:
-  build:
-    if: ${{ github.event.label.name == 'Build' || contains(github.event.pull_request.labels.*.name, 'Build') || github.event_name == 'push'}}
+  sdist:
+    #if: ${{ github.event.label.name == 'Build' || contains(github.event.pull_request.labels.*.name, 'Build') || github.event_name == 'push'}}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     defaults:
@@ -26,6 +26,8 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.8", "3.9", "3.10"]
+    name: sdist Python ${{ matrix.python-version }}
+
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{matrix.python-version}}-sdist
@@ -36,8 +38,8 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Set up Python
-      uses: actions/setup-python@v3
+    - name: Set up Python ${{ matrix.python-version }} and install dependencies
+      uses: ./.github/actions/setup-python
       with:
         python-version: ${{ matrix.python-version }}
 
