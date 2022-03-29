@@ -456,9 +456,13 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             endpoint_tz = start.tz if start is not None else end.tz
 
             if tz is not None and endpoint_tz is None:
-                i8values = tzconversion.tz_localize_to_utc(
-                    i8values, tz, ambiguous=ambiguous, nonexistent=nonexistent
-                )
+
+                if not timezones.is_utc(tz):
+                    # short-circuit tz_localize_to_utc which would make
+                    #  an unnecessary copy with UTC but be a no-op.
+                    i8values = tzconversion.tz_localize_to_utc(
+                        i8values, tz, ambiguous=ambiguous, nonexistent=nonexistent
+                    )
 
                 # i8values is localized datetime64 array -> have to convert
                 # start/end as well to compare
@@ -2126,6 +2130,8 @@ def _sequence_to_dt64ns(
         if tz is not None:
             # Convert tz-naive to UTC
             tz = timezones.maybe_get_tz(tz)
+            # TODO: if tz is UTC, are there situations where we *don't* want a
+            #  copy?  tz_localize_to_utc always makes one.
             data = tzconversion.tz_localize_to_utc(
                 data.view("i8"), tz, ambiguous=ambiguous
             )
