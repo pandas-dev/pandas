@@ -9,6 +9,7 @@ from pandas import (
     Series,
     concat,
 )
+from pandas.errors import PerformanceWarning
 import pandas._testing as tm
 
 
