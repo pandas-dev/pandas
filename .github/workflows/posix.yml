@@ -162,8 +162,7 @@ jobs:
       shell: bash
       run: |
         # TODO: re-enable cov, its slowing the tests down though
-        # TODO: Unpin Cython, the new Cython 0.29.26 is causing compilation errors
-        pip install Cython==0.29.25 numpy python-dateutil pytz pytest>=6.0 pytest-xdist>=1.31.0 hypothesis>=5.5.3
+        pip install Cython numpy python-dateutil pytz pytest>=6.0 pytest-xdist>=1.31.0 pytest-asyncio>=0.17 hypothesis>=5.5.3
       if: ${{ env.IS_PYPY == 'true' }}
 
     - name: Build Pandas

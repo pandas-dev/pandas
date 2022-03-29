@@ -504,7 +504,7 @@ def test_memory_usage(dtype):
     # GH 33963
 
     if dtype.storage == "pyarrow":
-        pytest.skip("not applicable")
+        pytest.skip(f"not applicable for {dtype.storage}")
 
     series = pd.Series(["a", "b", "c"], dtype=dtype)
 
