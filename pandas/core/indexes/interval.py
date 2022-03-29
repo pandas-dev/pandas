@@ -956,7 +956,7 @@ def interval_range(
     freq=None,
     name: Hashable = None,
     closed: lib.NoDefault = lib.no_default,
-    inclusive: str = "both",
+    inclusive: IntervalClosedType | None = None,
 ) -> IntervalIndex:
     """
     Return a fixed frequency IntervalIndex.
@@ -1072,6 +1072,8 @@ def interval_range(
                 "Argument `closed` has to be either"
                 "'both', 'neither', 'left' or 'right'"
             )
+    elif inclusive is None:
+        inclusive = "both"
 
     start = maybe_box_datetimelike(start)
     end = maybe_box_datetimelike(end)
