@@ -331,7 +331,7 @@ class TestMultiIndexConcat:
         df1 = DataFrame({"name": [1]})
         df2 = DataFrame({"name": [2]})
         df3 = DataFrame({"name": [3]})
-        df_a = concat([df1, df2, df3], keys=[["x", "y", "x"]])
+        df_a = concat([df1, df2, df3], keys=["x", "y", "x"])
         with tm.assert_produces_warning(PerformanceWarning):
             out_a = df_a.loc[("x", 0), :]
 
@@ -346,7 +346,7 @@ class TestMultiIndexConcat:
         df1 = DataFrame({"name": ["a", "a", "b"]})
         df2 = DataFrame({"name": ["a", "b"]})
         df3 = DataFrame({"name": ["c", "d"]})
-        df_a = concat([df1, df2, df3], keys=[["x", "y", "x"]])
+        df_a = concat([df1, df2, df3], keys=["x", "y", "x"])
         with tm.assert_produces_warning(PerformanceWarning):
             out_a = df_a.loc[("x", 0), :]
 
