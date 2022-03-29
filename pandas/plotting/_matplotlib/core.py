@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-from collections import (
-    Counter,
-    Iterable,
-)
+from collections import Counter
 from typing import (
     TYPE_CHECKING,
     Hashable,
+    Iterable,
     Sequence,
 )
 import warnings
