@@ -1794,7 +1794,7 @@ class Index(IndexOpsMixin, PandasObject):
                 names = [names]
 
         if not isinstance(names, list) and names is not None:
-            raise ValueError("Index names must be int, str or 1-dimensional list")
+            raise ValueError("Index names must be str or 1-dimensional list")
 
         if not names:
             if isinstance(self, MultiIndex):
