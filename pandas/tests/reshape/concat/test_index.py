@@ -348,3 +348,23 @@ class TestMultiIndexConcat:
             out_b = df_b.loc[("x", 0)]
 
         tm.assert_frame_equal(out_a, out_b)
+
+        df1 = DataFrame({"name": ["a", "a", "b"]})
+        df2 = DataFrame({"name": ["a", "b"]})
+        df3 = DataFrame({"name": ["c", "d"]})
+        df_a = concat([df1, df2, df3], keys=keys)
+        with tm.assert_produces_warning(PerformanceWarning):
+            out_a = df_a.loc[("x", 0), :]
+
+        df_b = DataFrame(
+            {
+                "a": ["x", "x", "x", "y", "y", "x", "x"],
+                "b": [0, 1, 2, 0, 1, 0, 1],
+                "name": list("aababcd"),
+            }
+        ).set_index(["a", "b"])
+        df_b.index.names = [None, None]
+        with tm.assert_produces_warning(PerformanceWarning):
+            out_b = df_b.loc[("x", 0), :]
+
+        tm.assert_frame_equal(out_a, out_b)
