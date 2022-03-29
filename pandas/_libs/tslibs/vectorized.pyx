@@ -32,10 +32,7 @@ from .np_datetime cimport (
 )
 from .offsets cimport BaseOffset
 from .period cimport get_period_ordinal
-from .timestamps cimport (
-    create_timestamp_from_ts,
-    normalize_i8_stamp,
-)
+from .timestamps cimport create_timestamp_from_ts
 from .timezones cimport (
     get_dst_info,
     is_tzlocal,
@@ -258,6 +255,7 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None) -> Resolution:
 # -------------------------------------------------------------------------
 
 
+@cdivision(False)
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo tz):
@@ -302,7 +300,7 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
             pos = bisect_right_i8(tdata, utc_val, info.ntrans) - 1
             local_val = utc_val + info.deltas[pos]
 
-        result[i] = normalize_i8_stamp(local_val)
+        result[i] = local_val - (local_val % DAY_NANOS)
 
     return result.base  # `.base` to access underlying ndarray
 
