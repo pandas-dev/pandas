@@ -1867,7 +1867,18 @@ def test_step_not_positive_raises():
     ],
 )
 def test_rolling_var_same_value_count_logic(values, window, min_periods, expected):
-    # GH 42064
+    """
+    For GH 42064.
+
+    With new algo implemented, result will be set to .0 in rolling var
+    if sufficient amount of consecutively same values are found.
+
+    Below, use `assert_series_equal` twice to check for equality,
+    because `check_exact=True` will fail in 32-bit tests due to
+    precision loss.
+
+    """
+
     expected = Series(expected)
 
     sr = Series(values)
