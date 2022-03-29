@@ -255,7 +255,7 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None) -> Resolution:
 # -------------------------------------------------------------------------
 
 
-@cdivision(False)
+@cython.cdivision(False)
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo tz):
