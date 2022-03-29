@@ -349,9 +349,8 @@ class FastParquetImpl(BaseImpl):
             )
             path = handles.handle
 
-        parquet_file = self.api.ParquetFile(path, **parquet_kwargs)
-
         try:
+            parquet_file = self.api.ParquetFile(path, **parquet_kwargs)
             return parquet_file.to_pandas(columns=columns, **kwargs)
         finally:
             if handles is not None:
