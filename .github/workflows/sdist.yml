@@ -12,6 +12,8 @@ on:
     types: [labeled, opened, synchronize, reopened]
     paths-ignore:
       - "doc/**"
+      - 'azure-pipelines.yml'
+      - 'ci/azure/**'
 
 jobs:
   build:

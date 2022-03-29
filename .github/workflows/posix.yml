@@ -11,6 +11,8 @@ on:
       - 1.4.x
     paths-ignore:
       - "doc/**"
+      - 'azure-pipelines.yml'
+      - 'ci/azure/**'
 
 env:
   PANDAS_CI: 1

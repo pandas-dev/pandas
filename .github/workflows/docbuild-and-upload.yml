@@ -9,6 +9,9 @@ on:
     branches:
       - main
       - 1.4.x
+    paths-ignore:
+      - 'azure-pipelines.yml'
+      - 'ci/azure/**'
 
 env:
   ENV_FILE: environment.yml
