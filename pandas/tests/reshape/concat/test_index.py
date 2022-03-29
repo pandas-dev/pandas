@@ -326,10 +326,7 @@ class TestMultiIndexConcat:
         )
         tm.assert_frame_equal(result_df, expected_df)
 
-    def test_concat_with_key_not_unique(
-        self,
-        keys: list,
-    ):
+    def test_concat_with_key_not_unique(self):
         # GitHub #46519
         df1 = DataFrame({"name": [1]})
         df2 = DataFrame({"name": [2]})
