@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import PerformanceWarning
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -9,7 +11,6 @@ from pandas import (
     Series,
     concat,
 )
-from pandas.errors import PerformanceWarning
 import pandas._testing as tm
 
 
