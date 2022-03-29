@@ -709,6 +709,10 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
         else:
             levels = [ensure_index(x) for x in levels]
 
+    for level in levels:
+        if not level.is_unique:
+            raise ValueError(f"Level values not unique: {level.tolist()}")
+            
     if not all_indexes_same(indexes) or not all(level.is_unique for level in levels):
         codes_list = []
 
