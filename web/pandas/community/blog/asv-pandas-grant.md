@@ -2,7 +2,7 @@ Title: What we learned on the Pandas Grant
 Date: 2022-03-23
 
 # What we learned on the Pandas Grant
-*By Dorothy Kabarozi B. and Lucy Jimenez*
+*By Dorothy Kabarozi B. and Lucy Jiménez*
 
 We want to share our experience working on **Improvements to the**
 **ASV benchmarking framework and diversity efforts** sponsored by
@@ -127,7 +127,7 @@ If you liked this post, you can connect with us through these channels:
 * [Twitter](https://twitter.com/kizdorothy)
 * [LinkedIn](https://www.linkedin.com/in/dorothy-kabarozi/)
 
-*Lucy Jimenez*
+*Lucy Jiménez*
 * [GitHub](https://github.com/LucyJimenez)
 * [Twitter](https://twitter.com/JimenezLucyJ)
 * [LinkedIn](https://www.linkedin.com/in/lucy-j/)
