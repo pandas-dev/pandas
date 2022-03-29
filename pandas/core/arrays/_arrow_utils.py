@@ -94,8 +94,8 @@ class ArrowIntervalType(pyarrow.ExtensionType):
     def __init__(
         self,
         subtype,
-        closed: lib.NoDefault = lib.no_default,
         inclusive: str | None = None,
+        closed: lib.NoDefault = lib.no_default,
     ) -> None:
         # attributes need to be set first before calling
         # super init (as that calls serialize)
@@ -119,8 +119,6 @@ class ArrowIntervalType(pyarrow.ExtensionType):
                     "Argument `closed` has to be either"
                     "'both', 'neither', 'left' or 'right'"
                 )
-        elif inclusive is None:
-            inclusive = "both"
         assert inclusive in VALID_CLOSED
         self._closed = inclusive
         if not isinstance(subtype, pyarrow.DataType):

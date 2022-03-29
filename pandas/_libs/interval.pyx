@@ -328,7 +328,7 @@ cdef class Interval(IntervalMixin):
     neither.
     """
 
-    def __init__(self, left, right, closed : lib.NoDefault = lib.no_default, inclusive: str | None = None):
+    def __init__(self, left, right, inclusive: str | None = None, closed: lib.NoDefault = lib.no_default):
         # note: it is faster to just do these checks than to use a special
         # constructor (__cinit__/__new__) to avoid them
 

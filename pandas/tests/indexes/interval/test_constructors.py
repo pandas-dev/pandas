@@ -53,7 +53,7 @@ class ConstructorTests:
     )
     def test_constructor(self, constructor, breaks, closed, name):
         result_kwargs = self.get_kwargs_from_breaks(breaks, closed)
-        result = constructor(inclusive=closed, name=name, **result_kwargs)
+        result = constructor(name=name, **result_kwargs)
 
         assert result.inclusive == closed
         assert result.name == name
@@ -103,20 +103,19 @@ class ConstructorTests:
 
         iv_dtype = IntervalDtype(breaks.dtype)
 
-        result_kwargs = self.get_kwargs_from_breaks(breaks)
+        result_kwargs = self.get_kwargs_from_breaks(breaks, inclusive="left")
 
         for dtype in (iv_dtype, str(iv_dtype)):
             with tm.assert_produces_warning(warn):
-
-                result = constructor(dtype=dtype, inclusive="left", **result_kwargs)
+                result = constructor(dtype=dtype, **result_kwargs)
             assert result.dtype.inclusive == "left"
 
     @pytest.mark.filterwarnings("ignore:Passing keywords other:FutureWarning")
     @pytest.mark.parametrize("breaks", [[np.nan] * 2, [np.nan] * 4, [np.nan] * 50])
     def test_constructor_nan(self, constructor, breaks, closed):
         # GH 18421
-        result_kwargs = self.get_kwargs_from_breaks(breaks)
-        result = constructor(inclusive=closed, **result_kwargs)
+        result_kwargs = self.get_kwargs_from_breaks(breaks, inclusive=closed)
+        result = constructor(**result_kwargs)
 
         expected_subtype = np.float64
         expected_values = np.array(breaks[:-1], dtype=object)
@@ -138,8 +137,8 @@ class ConstructorTests:
     )
     def test_constructor_empty(self, constructor, breaks, closed):
         # GH 18421
-        result_kwargs = self.get_kwargs_from_breaks(breaks)
-        result = constructor(inclusive=closed, **result_kwargs)
+        result_kwargs = self.get_kwargs_from_breaks(breaks, inclusive=closed)
+        result = constructor(**result_kwargs)
 
         expected_values = np.array([], dtype=object)
         expected_subtype = getattr(breaks, "dtype", np.int64)
@@ -172,7 +171,7 @@ class ConstructorTests:
         # GH 21243/21253
 
         breaks = np.arange(10, dtype="int64")
-        expected = IntervalIndex.from_breaks(breaks)
+        expected = IntervalIndex.from_breaks(breaks, inclusive="right")
 
         cat_breaks = cat_constructor(breaks)
         result_kwargs = self.get_kwargs_from_breaks(cat_breaks)
@@ -181,12 +180,12 @@ class ConstructorTests:
 
     def test_generic_errors(self, constructor):
         # filler input data to be used when supplying invalid kwargs
-        filler = self.get_kwargs_from_breaks(range(10))
+        filler = self.get_kwargs_from_breaks(range(10), inclusive="invalid")
 
         # invalid inclusive
         msg = "inclusive must be one of 'right', 'left', 'both', 'neither'"
         with pytest.raises(ValueError, match=msg):
-            constructor(inclusive="invalid", **filler)
+            constructor(**filler)
 
         # unsupported dtype
         msg = "dtype must be an IntervalDtype, got int64"
@@ -224,7 +223,7 @@ class TestFromArrays(ConstructorTests):
         converts intervals in breaks format to a dictionary of kwargs to
         specific to the format expected by IntervalIndex.from_arrays
         """
-        return {"left": breaks[:-1], "right": breaks[1:]}
+        return {"left": breaks[:-1], "right": breaks[1:], "inclusive": inclusive}
 
     def test_constructor_errors(self):
         # GH 19016: categorical data
@@ -273,7 +272,7 @@ class TestFromBreaks(ConstructorTests):
         converts intervals in breaks format to a dictionary of kwargs to
         specific to the format expected by IntervalIndex.from_breaks
         """
-        return {"breaks": breaks}
+        return {"breaks": breaks, "inclusive": inclusive}
 
     def test_constructor_errors(self):
         # GH 19016: categorical data
@@ -312,14 +311,14 @@ class TestFromTuples(ConstructorTests):
         specific to the format expected by IntervalIndex.from_tuples
         """
         if len(breaks) == 0:
-            return {"data": breaks}
+            return {"data": breaks, "inclusive": inclusive}
 
         tuples = list(zip(breaks[:-1], breaks[1:]))
         if isinstance(breaks, (list, tuple)):
-            return {"data": tuples}
+            return {"data": tuples, "inclusive": inclusive}
         elif is_categorical_dtype(breaks):
-            return {"data": breaks._constructor(tuples)}
-        return {"data": com.asarray_tuplesafe(tuples)}
+            return {"data": breaks._constructor(tuples), "inclusive": inclusive}
+        return {"data": com.asarray_tuplesafe(tuples), "inclusive": inclusive}
 
     def test_constructor_errors(self):
         # non-tuple
@@ -362,18 +361,17 @@ class TestClassConstructors(ConstructorTests):
         specific to the format expected by the IntervalIndex/Index constructors
         """
         if len(breaks) == 0:
-            return {"data": breaks}
-
+            return {"data": breaks, "inclusive": inclusive}
         ivs = [
             Interval(left, right, inclusive) if notna(left) else left
             for left, right in zip(breaks[:-1], breaks[1:])
         ]
 
         if isinstance(breaks, list):
-            return {"data": ivs}
+            return {"data": ivs, "inclusive": inclusive}
         elif is_categorical_dtype(breaks):
-            return {"data": breaks._constructor(ivs)}
-        return {"data": np.array(ivs, dtype=object)}
+            return {"data": breaks._constructor(ivs), "inclusive": inclusive}
+        return {"data": np.array(ivs, dtype=object), "inclusive": inclusive}
 
     def test_generic_errors(self, constructor):
         """

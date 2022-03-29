@@ -1064,8 +1064,8 @@ class IntervalDtype(PandasExtensionDtype):
     def __new__(
         cls,
         subtype=None,
-        closed: lib.NoDefault = lib.no_default,
         inclusive: str | None = None,
+        closed: lib.NoDefault = lib.no_default,
     ):
         from pandas.core.dtypes.common import (
             is_string_dtype,
@@ -1092,8 +1092,6 @@ class IntervalDtype(PandasExtensionDtype):
                     "Argument `closed` has to be either"
                     "'both', 'neither', 'left' or 'right'"
                 )
-        elif inclusive is None:
-            inclusive = "both"
 
         if inclusive is not None and inclusive not in {
             "right",
