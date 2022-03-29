@@ -37,6 +37,7 @@ from pandas._libs.tslibs.timedeltas import (
 from pandas._typing import (
     DtypeObj,
     NpDtype,
+    npt,
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._validators import validate_endpoints
@@ -431,7 +432,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     @dtl.ravel_compat
     def _format_native_types(
         self, *, na_rep="NaT", date_format=None, **kwargs
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.object_]:
         from pandas.io.formats.format import get_format_timedelta64
 
         formatter = get_format_timedelta64(self._ndarray, na_rep)

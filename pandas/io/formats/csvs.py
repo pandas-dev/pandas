@@ -73,7 +73,7 @@ class CSVFormatter:
 
         self.filepath_or_buffer = path_or_buf
         self.encoding = encoding
-        self.compression = compression
+        self.compression: CompressionOptions = compression
         self.mode = mode
         self.storage_options = storage_options
 
