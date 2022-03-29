@@ -1511,7 +1511,9 @@ class Index(IndexOpsMixin, PandasObject):
             values = values[slicer]
         return values._format_native_types(**kwargs)
 
-    def _format_native_types(self, *, na_rep="", quoting=None, **kwargs):
+    def _format_native_types(
+        self, *, na_rep="", quoting=None, **kwargs
+    ) -> npt.NDArray[np.object_]:
         """
         Actually format specific types of the index.
         """
