@@ -546,6 +546,18 @@ class MultiIndex(Index):
             tuples = list(tuples)
         tuples = cast(Collection[Tuple[Hashable, ...]], tuples)
 
+        # handling the empty tuple cases
+        if len(tuples) and all(isinstance(e, tuple) and not e for e in tuples):
+            codes = [np.zeros(len(tuples))]
+            levels = [Index(com.asarray_tuplesafe(tuples, dtype=np.dtype("object")))]
+            return cls(
+                levels=levels,
+                codes=codes,
+                sortorder=sortorder,
+                names=names,
+                verify_integrity=False,
+            )
+
         arrays: list[Sequence[Hashable]]
         if len(tuples) == 0:
             if names is None:
@@ -1294,7 +1306,9 @@ class MultiIndex(Index):
         formatter_funcs = [level._formatter_func for level in self.levels]
         return tuple(func(val) for func, val in zip(formatter_funcs, tup))
 
-    def _format_native_types(self, *, na_rep="nan", **kwargs):
+    def _format_native_types(
+        self, *, na_rep="nan", **kwargs
+    ) -> npt.NDArray[np.object_]:
         new_levels = []
         new_codes = []
 
