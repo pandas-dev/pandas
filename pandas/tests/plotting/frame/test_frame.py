@@ -146,12 +146,11 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame(
             {
                 "A": [1, 2, 3, 4, 5],
-                "B": [1.0, 2.0, 3.0, 4.0, 5.0],
-                "C": [7, 5, np.nan, 3, 2],
+                "B": [1, 2, 3, 4, 5],
+                "C": np.array([7, 5, np.nan, 3, 2], dtype=object),
                 "D": pd.to_datetime(dates, format="%Y").view("i8"),
                 "E": pd.to_datetime(dates, format="%Y", utc=True).view("i8"),
-            },
-            dtype=np.int64,
+            }
         )
 
         _check_plot_works(df.plot, x="A", y="B")
@@ -1189,7 +1188,7 @@ class TestDataFramePlots(TestPlotBase):
         assert ax.get_legend() is None
 
         ax = s.plot(legend=True)
-        assert ax.get_legend().get_texts()[0].get_text() == "None"
+        assert ax.get_legend().get_texts()[0].get_text() == ""
 
     @pytest.mark.parametrize(
         "props, expected",

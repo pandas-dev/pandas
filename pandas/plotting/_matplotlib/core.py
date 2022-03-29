@@ -131,7 +131,7 @@ class MPLPlot:
         include_bool=False,
         column: IndexLabel | None = None,
         **kwds,
-    ):
+    ) -> None:
 
         import matplotlib.pyplot as plt
 
@@ -555,7 +555,7 @@ class MPLPlot:
         if isinstance(data, ABCSeries):
             label = self.label
             if label is None and data.name is None:
-                label = "None"
+                label = ""
             if label is None:
                 # We'll end up with columns of [0] instead of [None]
                 data = data.to_frame()
@@ -1095,7 +1095,7 @@ class PlanePlot(MPLPlot):
 
     _layout_type = "single"
 
-    def __init__(self, data, x, y, **kwargs):
+    def __init__(self, data, x, y, **kwargs) -> None:
         MPLPlot.__init__(self, data, **kwargs)
         if x is None or y is None:
             raise ValueError(self._kind + " requires an x and y column")
@@ -1148,7 +1148,7 @@ class PlanePlot(MPLPlot):
 class ScatterPlot(PlanePlot):
     _kind = "scatter"
 
-    def __init__(self, data, x, y, s=None, c=None, **kwargs):
+    def __init__(self, data, x, y, s=None, c=None, **kwargs) -> None:
         if s is None:
             # hide the matplotlib default for size, in case we want to change
             # the handling of this argument later
@@ -1236,7 +1236,7 @@ class ScatterPlot(PlanePlot):
 class HexBinPlot(PlanePlot):
     _kind = "hexbin"
 
-    def __init__(self, data, x, y, C=None, **kwargs):
+    def __init__(self, data, x, y, C=None, **kwargs) -> None:
         super().__init__(data, x, y, **kwargs)
         if is_integer(C) and not self.data.columns.holds_integer():
             C = self.data.columns[C]
@@ -1268,7 +1268,7 @@ class LinePlot(MPLPlot):
     _default_rot = 0
     orientation = "vertical"
 
-    def __init__(self, data, **kwargs):
+    def __init__(self, data, **kwargs) -> None:
         from pandas.plotting import plot_params
 
         MPLPlot.__init__(self, data, **kwargs)
@@ -1460,7 +1460,7 @@ class LinePlot(MPLPlot):
 class AreaPlot(LinePlot):
     _kind = "area"
 
-    def __init__(self, data, **kwargs):
+    def __init__(self, data, **kwargs) -> None:
         kwargs.setdefault("stacked", True)
         data = data.fillna(value=0)
         LinePlot.__init__(self, data, **kwargs)
@@ -1535,7 +1535,7 @@ class BarPlot(MPLPlot):
     _default_rot = 90
     orientation = "vertical"
 
-    def __init__(self, data, **kwargs):
+    def __init__(self, data, **kwargs) -> None:
         # we have to treat a series differently than a
         # 1-column DataFrame w.r.t. color handling
         self._is_series = isinstance(data, ABCSeries)
@@ -1717,7 +1717,7 @@ class PiePlot(MPLPlot):
     _kind = "pie"
     _layout_type = "horizontal"
 
-    def __init__(self, data, kind=None, **kwargs):
+    def __init__(self, data, kind=None, **kwargs) -> None:
         data = data.fillna(value=0)
         if (data < 0).any().any():
             raise ValueError(f"{self._kind} plot doesn't allow negative values")

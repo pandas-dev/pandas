@@ -50,7 +50,7 @@ repos:
         - flake8==4.0.1
         - flake8-comprehensions==3.7.0
         - flake8-bugbear==21.3.2
-        - pandas-dev-flaker==0.4.0
+        - pandas-dev-flaker==0.5.0
 -   repo: https://github.com/PyCQA/isort
     rev: 5.10.1
     hooks:
@@ -85,7 +85,7 @@ repos:
         types: [python]
         stages: [manual]
         # note: keep version in sync with .github/workflows/code-checks.yml
-        additional_dependencies: ['pyright@1.1.212']
+        additional_dependencies: ['pyright@1.1.230']
 -   repo: local
     hooks:
     -   id: flake8-rst

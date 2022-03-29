@@ -35,6 +35,7 @@ if TYPE_CHECKING:
     import numpy.typing as npt
 
     from pandas._libs import (
+        NaTType,
         Period,
         Timedelta,
         Timestamp,
@@ -102,6 +103,8 @@ Timezone = Union[str, tzinfo]
 # Series is passed into a function, a Series is always returned and if a DataFrame is
 # passed in, a DataFrame is always returned.
 NDFrameT = TypeVar("NDFrameT", bound="NDFrame")
+
+NumpyIndexT = TypeVar("NumpyIndexT", np.ndarray, "Index")
 
 Axis = Union[str, int]
 IndexLabel = Union[Hashable, Sequence[Hashable]]
@@ -296,6 +299,9 @@ if TYPE_CHECKING:
 else:
     TakeIndexer = Any
 
+# Shared by functions such as drop and astype
+IgnoreRaise = Literal["ignore", "raise"]
+
 # Windowing rank methods
 WindowingRankType = Literal["average", "min", "max"]
 
@@ -306,5 +312,12 @@ CSVEngine = Literal["c", "python", "pyarrow", "python-fwf"]
 XMLParsers = Literal["lxml", "etree"]
 
 # Interval closed type
-
 IntervalClosedType = Literal["left", "right", "both", "neither"]
+
+# datetime and NaTType
+DatetimeNaTType = Union[datetime, "NaTType"]
+DateTimeErrorChoices = Union[IgnoreRaise, Literal["coerce"]]
+
+# sort_index
+SortKind = Literal["quicksort", "mergesort", "heapsort", "stable"]
+NaPosition = Literal["first", "last"]

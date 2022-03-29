@@ -367,7 +367,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         dtype: Dtype | None = None,
         fastpath: bool = False,
         copy: bool = True,
-    ):
+    ) -> None:
 
         dtype = CategoricalDtype._from_values_or_dtype(
             values, categories, ordered, dtype
@@ -2298,9 +2298,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         unique_codes = unique1d(self.codes)
         return self._from_backing_data(unique_codes)
 
-    def _values_for_factorize(self):
-        return self._ndarray, -1
-
     def _cast_quantile_result(self, res_values: np.ndarray) -> np.ndarray:
         # make sure we have correct itemsize for resulting codes
         res_values = coerce_indexer_dtype(res_values, self.dtype.categories)
@@ -2704,7 +2701,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     Categories (3, object): ['a', 'b', 'c']
     """
 
-    def __init__(self, data):
+    def __init__(self, data) -> None:
         self._validate(data)
         self._parent = data.values
         self._index = data.index

@@ -18,13 +18,13 @@ dependencies:
   - cython>=0.29.24
 
   # code checks
-  - black=21.5b2
+  - black=22.1.0
   - cpplint
   - flake8=4.0.1
   - flake8-bugbear=21.3.2  # used by flake8, find likely bugs
   - flake8-comprehensions=3.7.0  # used by flake8, linting of unnecessary comprehensions
   - isort>=5.2.1  # check that imports are in the right order
-  - mypy=0.931
+  - mypy=0.941
   - pre-commit>=2.9.2
   - pycodestyle  # used by flake8
   - pyupgrade
@@ -33,7 +33,7 @@ dependencies:
   - gitpython  # obtain contributors from git for whatsnew
   - gitdb
   - numpydoc
-  - pandas-dev-flaker=0.4.0
+  - pandas-dev-flaker=0.5.0
   - pydata-sphinx-theme
   - pytest-cython
   - sphinx
@@ -69,7 +69,7 @@ dependencies:
   - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.31
-  - pytest-asyncio
+  - pytest-asyncio>=0.17
   - pytest-instafail
 
   # downstream tests
@@ -86,7 +86,7 @@ dependencies:
   - bottleneck>=1.3.1
   - ipykernel
   - ipython>=7.11.1
-  - jinja2  # pandas.Styler
+  - jinja2<=3.0.3  # pandas.Styler
   - matplotlib>=3.3.2  # pandas.plotting, Series.plot, DataFrame.plot
   - numexpr>=2.7.1
   - scipy>=1.4.1
