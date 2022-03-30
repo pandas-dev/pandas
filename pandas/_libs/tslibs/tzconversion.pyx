@@ -444,7 +444,18 @@ cdef int64_t localize_tzinfo_api(
     return _tz_localize_using_tzinfo_api(utc_val, tz, to_utc=False, fold=fold)
 
 
-cpdef int64_t tz_convert_from_utc_single(int64_t utc_val, tzinfo tz):
+def py_tz_convert_from_utc_single(int64_t utc_val, tzinfo tz):
+    # The 'bint* fold=NULL' in tz_convert_from_utc_single means we cannot
+    #  make it cdef, so this is version exposed for testing from python.
+    return tz_convert_from_utc_single(utc_val, tz)
+
+
+cdef int64_t tz_convert_from_utc_single(
+    int64_t utc_val,
+    tzinfo tz,
+    bint* fold=NULL,
+    Py_ssize_t* outpos=NULL,
+) except? -1:
     """
     Convert the val (in i8) from UTC to tz
 
@@ -454,6 +465,8 @@ cpdef int64_t tz_convert_from_utc_single(int64_t utc_val, tzinfo tz):
     ----------
     utc_val : int64
     tz : tzinfo
+    fold : bint*, default NULL
+    outpos : Py_ssize_t*, default NULL
 
     Returns
     -------
@@ -473,15 +486,31 @@ cpdef int64_t tz_convert_from_utc_single(int64_t utc_val, tzinfo tz):
         return utc_val
     elif is_tzlocal(tz):
         return utc_val + _tz_localize_using_tzinfo_api(utc_val, tz, to_utc=False)
-    elif is_fixed_offset(tz):
-        _, deltas, _ = get_dst_info(tz)
-        delta = deltas[0]
-        return utc_val + delta
     else:
-        trans, deltas, _ = get_dst_info(tz)
+        trans, deltas, typ = get_dst_info(tz)
         tdata = <int64_t*>cnp.PyArray_DATA(trans)
-        pos = bisect_right_i8(tdata, utc_val, trans.shape[0]) - 1
-        return utc_val + deltas[pos]
+
+        if typ == "dateutil":
+            pos = bisect_right_i8(tdata, utc_val, trans.shape[0]) - 1
+
+            if fold is not NULL:
+                fold[0] = infer_dateutil_fold(utc_val, trans, deltas, pos)
+            return utc_val + deltas[pos]
+
+        elif typ == "pytz":
+            pos = bisect_right_i8(tdata, utc_val, trans.shape[0]) - 1
+
+            # We need to get 'pos' back to the caller so it can pick the
+            #  correct "standardized" tzinfo objecg.
+            if outpos is not NULL:
+                outpos[0] = pos
+            return utc_val + deltas[pos]
+
+        else:
+            # All other cases have len(deltas) == 1. As of 2018-07-17
+            #  (and 2022-03-07), all test cases that get here have
+            #  is_fixed_offset(tz).
+            return utc_val + deltas[0]
 
 
 def tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
@@ -635,7 +664,7 @@ cdef int64_t _tz_localize_using_tzinfo_api(
 
 
 # NB: relies on dateutil internals, subject to change.
-cdef bint infer_datetuil_fold(
+cdef bint infer_dateutil_fold(
     int64_t value,
     const int64_t[::1] trans,
     const int64_t[::1] deltas,
