@@ -1157,11 +1157,8 @@ class TestParquetFastParquet(Base):
                 read_parquet(path, engine="fastparquet", use_nullable_dtypes=True)
 
     def test_close_file_handle_on_read_error(self):
-        df = pd.DataFrame({"a": [1, 2]})
-        with tm.ensure_clean() as path:
-            df.to_parquet(path)
-            with open(path, 'r+b') as f:
-                f.seek(16)
-                f.write(b'breakit')
+        with tm.ensure_clean("test.parquet") as path:
+            pathlib.Path(path).write_bytes(b"breakit")
             with pytest.raises(Exception):  # Not important which exception
                 read_parquet(path, engine="fastparquet")
+            pathlib.Path(path).unlink(missing_ok=False)  # This raises an error on Windows if the file is still open
