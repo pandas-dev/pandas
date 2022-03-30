@@ -1155,3 +1155,13 @@ class TestParquetFastParquet(Base):
             df.to_parquet(path)
             with pytest.raises(ValueError, match="not supported for the fastparquet"):
                 read_parquet(path, engine="fastparquet", use_nullable_dtypes=True)
+
+    def test_close_file_handle_on_read_error(self):
+        df = pd.DataFrame({"a": [1, 2]})
+        with tm.ensure_clean() as path:
+            df.to_parquet(path)
+            with open(path, 'r+b') as f:
+                f.seek(16)
+                f.write(b'breakit')
+            with pytest.raises(Exception):  # Not important which exception
+                read_parquet(path, engine="fastparquet")
