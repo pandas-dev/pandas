@@ -94,6 +94,31 @@ def test_groupby_resample_on_api():
     tm.assert_frame_equal(result, expected)
 
 
+def test_resample_group_keys():
+    df = DataFrame({"A": 1, "B": 2}, index=date_range("2000", periods=10))
+    g = df.resample("5D")
+    expected = df.copy()
+    with tm.assert_produces_warning(FutureWarning, match="Not prepending group keys"):
+        result = g.apply(lambda x: x)
+    tm.assert_frame_equal(result, expected)
+
+    # no warning
+    g = df.resample("5D", group_keys=False)
+    with tm.assert_produces_warning(None):
+        result = g.apply(lambda x: x)
+    tm.assert_frame_equal(result, expected)
+
+    # no warning, group keys
+    expected.index = pd.MultiIndex.from_arrays(
+        [pd.to_datetime(["2000-01-01", "2000-01-06"]).repeat(5), expected.index]
+    )
+
+    g = df.resample("5D", group_keys=True)
+    with tm.assert_produces_warning(None):
+        result = g.apply(lambda x: x)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_pipe(test_frame):
     # GH17905
 
@@ -275,7 +300,10 @@ def test_fillna():
 
 @pytest.mark.parametrize(
     "func",
-    [lambda x: x.resample("20min"), lambda x: x.groupby(pd.Grouper(freq="20min"))],
+    [
+        lambda x: x.resample("20min", group_keys=False),
+        lambda x: x.groupby(pd.Grouper(freq="20min"), group_keys=False),
+    ],
     ids=["resample", "groupby"],
 )
 def test_apply_without_aggregation(func):
@@ -283,6 +311,12 @@ def test_apply_without_aggregation(func):
     t = func(test_series)
     result = t.apply(lambda x: x)
     tm.assert_series_equal(result, test_series)
+
+
+def test_apply_without_aggregation2():
+    grouped = test_series.to_frame(name="foo").resample("20min", group_keys=False)
+    result = grouped["foo"].apply(lambda x: x)
+    tm.assert_series_equal(result, test_series.rename("foo"))
 
 
 def test_agg_consistency():
