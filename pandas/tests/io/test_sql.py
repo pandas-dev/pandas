@@ -369,7 +369,7 @@ def test_frame1():
 def test_frame3():
     columns = ["index", "A", "B"]
     data = [
-        ("2000-01-03 00:00:00", 2 ** 31 - 1, -1.987670),
+        ("2000-01-03 00:00:00", 2**31 - 1, -1.987670),
         ("2000-01-04 00:00:00", -29, -0.0412318367011),
         ("2000-01-05 00:00:00", 20000, 0.731167677815),
         ("2000-01-06 00:00:00", -290867, 1.56762092543),
@@ -1721,7 +1721,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     def test_bigint(self):
         # int64 should be converted to BigInteger, GH7433
-        df = DataFrame(data={"i64": [2 ** 62]})
+        df = DataFrame(data={"i64": [2**62]})
         assert df.to_sql("test_bigint", self.conn, index=False) == 1
         result = sql.read_sql_table("test_bigint", self.conn)
 
@@ -1963,7 +1963,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     def test_mixed_dtype_insert(self):
         # see GH6509
-        s1 = Series(2 ** 25 + 1, dtype=np.int32)
+        s1 = Series(2**25 + 1, dtype=np.int32)
         s2 = Series(0.0, dtype=np.float32)
         df = DataFrame({"s1": s1, "s2": s2})
 

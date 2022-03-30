@@ -32,7 +32,7 @@ class ToFrame:
     param_names = ["dtype", "name"]
 
     def setup(self, dtype, name):
-        arr = np.arange(10 ** 5)
+        arr = np.arange(10**5)
         ser = Series(arr, dtype=dtype)
         self.ser = ser
 
@@ -61,7 +61,7 @@ class Dropna:
     param_names = ["dtype"]
 
     def setup(self, dtype):
-        N = 10 ** 6
+        N = 10**6
         data = {
             "int": np.random.randint(1, 10, N),
             "datetime": date_range("2000-01-01", freq="S", periods=N),
@@ -94,7 +94,7 @@ class SearchSorted:
     param_names = ["dtype"]
 
     def setup(self, dtype):
-        N = 10 ** 5
+        N = 10**5
         data = np.array([1] * N + [2] * N + [3] * N).astype(dtype)
         self.s = Series(data)
 
@@ -130,7 +130,7 @@ class Map:
 
 
 class Clip:
-    params = [50, 1000, 10 ** 5]
+    params = [50, 1000, 10**5]
     param_names = ["n"]
 
     def setup(self, n):
@@ -142,7 +142,7 @@ class Clip:
 
 class ValueCounts:
 
-    params = [[10 ** 3, 10 ** 4, 10 ** 5], ["int", "uint", "float", "object"]]
+    params = [[10**3, 10**4, 10**5], ["int", "uint", "float", "object"]]
     param_names = ["N", "dtype"]
 
     def setup(self, N, dtype):
@@ -154,7 +154,7 @@ class ValueCounts:
 
 class ValueCountsObjectDropNAFalse:
 
-    params = [10 ** 3, 10 ** 4, 10 ** 5]
+    params = [10**3, 10**4, 10**5]
     param_names = ["N"]
 
     def setup(self, N):
@@ -166,7 +166,7 @@ class ValueCountsObjectDropNAFalse:
 
 class Mode:
 
-    params = [[10 ** 3, 10 ** 4, 10 ** 5], ["int", "uint", "float", "object"]]
+    params = [[10**3, 10**4, 10**5], ["int", "uint", "float", "object"]]
     param_names = ["N", "dtype"]
 
     def setup(self, N, dtype):
@@ -178,7 +178,7 @@ class Mode:
 
 class ModeObjectDropNAFalse:
 
-    params = [10 ** 3, 10 ** 4, 10 ** 5]
+    params = [10**3, 10**4, 10**5]
     param_names = ["N"]
 
     def setup(self, N):
@@ -199,7 +199,7 @@ class Dir:
 class SeriesGetattr:
     # https://github.com/pandas-dev/pandas/issues/19764
     def setup(self):
-        self.s = Series(1, index=date_range("2012-01-01", freq="s", periods=10 ** 6))
+        self.s = Series(1, index=date_range("2012-01-01", freq="s", periods=10**6))
 
     def time_series_datetimeindex_repr(self):
         getattr(self.s, "a", None)
@@ -207,7 +207,7 @@ class SeriesGetattr:
 
 class All:
 
-    params = [[10 ** 3, 10 ** 6], ["fast", "slow"], ["bool", "boolean"]]
+    params = [[10**3, 10**6], ["fast", "slow"], ["bool", "boolean"]]
     param_names = ["N", "case", "dtype"]
 
     def setup(self, N, case, dtype):
@@ -220,7 +220,7 @@ class All:
 
 class Any:
 
-    params = [[10 ** 3, 10 ** 6], ["fast", "slow"], ["bool", "boolean"]]
+    params = [[10**3, 10**6], ["fast", "slow"], ["bool", "boolean"]]
     param_names = ["N", "case", "dtype"]
 
     def setup(self, N, case, dtype):
@@ -248,7 +248,7 @@ class NanOps:
             "kurt",
             "prod",
         ],
-        [10 ** 3, 10 ** 6],
+        [10**3, 10**6],
         ["int8", "int32", "int64", "float64", "Int64", "boolean"],
     ]
     param_names = ["func", "N", "dtype"]

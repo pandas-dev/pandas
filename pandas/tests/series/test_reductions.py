@@ -94,7 +94,7 @@ def test_validate_any_all_out_keepdims_raises(kwargs, func):
     msg = (
         f"the '{param}' parameter is not "
         "supported in the pandas "
-        fr"implementation of {name}\(\)"
+        rf"implementation of {name}\(\)"
     )
     with pytest.raises(ValueError, match=msg):
         func(ser, **kwargs)

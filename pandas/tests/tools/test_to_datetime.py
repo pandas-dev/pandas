@@ -982,7 +982,7 @@ class TestToDatetime:
     @pytest.mark.parametrize("constructor", [list, tuple, np.array, Index, deque])
     def test_to_datetime_cache(self, utc, format, constructor):
         date = "20130101 00:00:00"
-        test_dates = [date] * 10 ** 5
+        test_dates = [date] * 10**5
         data = constructor(test_dates)
 
         result = to_datetime(data, utc=utc, format=format, cache=True)
@@ -1000,7 +1000,7 @@ class TestToDatetime:
     @pytest.mark.parametrize("format", ["%Y%m%d %H:%M:%S", None])
     def test_to_datetime_cache_series(self, utc, format):
         date = "20130101 00:00:00"
-        test_dates = [date] * 10 ** 5
+        test_dates = [date] * 10**5
         data = Series(test_dates)
         result = to_datetime(data, utc=utc, format=format, cache=True)
         expected = to_datetime(data, utc=utc, format=format, cache=False)
@@ -2624,7 +2624,7 @@ class TestShouldCache:
 
 def test_nullable_integer_to_datetime():
     # Test for #30050
-    ser = Series([1, 2, None, 2 ** 61, None])
+    ser = Series([1, 2, None, 2**61, None])
     ser = ser.astype("Int64")
     ser_copy = ser.copy()
 

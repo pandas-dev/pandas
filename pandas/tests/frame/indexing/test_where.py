@@ -721,7 +721,7 @@ class TestDataFrameIndexingWhere:
         # GH#45135, analogue to GH#44181 for Period don't raise on no-op
         # For td64/dt64/dt64tz we already don't raise, but also are
         #  checking that we don't unnecessarily upcast to object.
-        ser = Series(np.arange(3) * 10 ** 9, dtype=np.int64).view(dtype)
+        ser = Series(np.arange(3) * 10**9, dtype=np.int64).view(dtype)
         df = ser.to_frame()
         mask = np.array([False, False, False])
 
@@ -761,9 +761,9 @@ def test_where_int_downcasting_deprecated(using_array_manager):
     msg = "Downcasting integer-dtype"
     warn = FutureWarning if not using_array_manager else None
     with tm.assert_produces_warning(warn, match=msg):
-        res = df.where(mask, 2 ** 17)
+        res = df.where(mask, 2**17)
 
-    expected = DataFrame({0: arr[:, 0], 1: np.array([2 ** 17] * 3, dtype=np.int32)})
+    expected = DataFrame({0: arr[:, 0], 1: np.array([2**17] * 3, dtype=np.int32)})
     tm.assert_frame_equal(res, expected)
 
 

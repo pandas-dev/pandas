@@ -477,9 +477,9 @@ class TestStata:
             tm.assert_frame_equal(written_and_read_again.set_index("index"), formatted)
 
     def test_read_write_dta13(self):
-        s1 = Series(2 ** 9, dtype=np.int16)
-        s2 = Series(2 ** 17, dtype=np.int32)
-        s3 = Series(2 ** 33, dtype=np.int64)
+        s1 = Series(2**9, dtype=np.int16)
+        s2 = Series(2**17, dtype=np.int32)
+        s3 = Series(2**33, dtype=np.int64)
         original = DataFrame({"int16": s1, "int32": s2, "int64": s3})
         original.index.name = "index"
 
@@ -610,8 +610,8 @@ class TestStata:
     def test_large_value_conversion(self):
         s0 = Series([1, 99], dtype=np.int8)
         s1 = Series([1, 127], dtype=np.int8)
-        s2 = Series([1, 2 ** 15 - 1], dtype=np.int16)
-        s3 = Series([1, 2 ** 63 - 1], dtype=np.int64)
+        s2 = Series([1, 2**15 - 1], dtype=np.int16)
+        s3 = Series([1, 2**63 - 1], dtype=np.int64)
         original = DataFrame({"s0": s0, "s1": s1, "s2": s2, "s3": s3})
         original.index.name = "index"
         with tm.ensure_clean() as path:
@@ -699,10 +699,10 @@ class TestStata:
         s0 = Series([0, 1, True], dtype=np.bool_)
         s1 = Series([0, 1, 100], dtype=np.uint8)
         s2 = Series([0, 1, 255], dtype=np.uint8)
-        s3 = Series([0, 1, 2 ** 15 - 100], dtype=np.uint16)
-        s4 = Series([0, 1, 2 ** 16 - 1], dtype=np.uint16)
-        s5 = Series([0, 1, 2 ** 31 - 100], dtype=np.uint32)
-        s6 = Series([0, 1, 2 ** 32 - 1], dtype=np.uint32)
+        s3 = Series([0, 1, 2**15 - 100], dtype=np.uint16)
+        s4 = Series([0, 1, 2**16 - 1], dtype=np.uint16)
+        s5 = Series([0, 1, 2**31 - 100], dtype=np.uint32)
+        s6 = Series([0, 1, 2**32 - 1], dtype=np.uint32)
 
         original = DataFrame(
             {"s0": s0, "s1": s1, "s2": s2, "s3": s3, "s4": s4, "s5": s5, "s6": s6}
@@ -1999,7 +1999,7 @@ def test_iterator_value_labels():
 
 def test_precision_loss():
     df = DataFrame(
-        [[sum(2 ** i for i in range(60)), sum(2 ** i for i in range(52))]],
+        [[sum(2**i for i in range(60)), sum(2**i for i in range(52))]],
         columns=["big", "little"],
     )
     with tm.ensure_clean() as path:

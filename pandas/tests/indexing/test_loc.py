@@ -1307,11 +1307,11 @@ class TestLocBaseIndependent:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "val,expected", [(2 ** 63 - 1, Series([1])), (2 ** 63, Series([2]))]
+        "val,expected", [(2**63 - 1, Series([1])), (2**63, Series([2]))]
     )
     def test_loc_getitem_uint64_scalar(self, val, expected):
         # see GH#19399
-        df = DataFrame([1, 2], index=[2 ** 63 - 1, 2 ** 63])
+        df = DataFrame([1, 2], index=[2**63 - 1, 2**63])
         result = df.loc[val]
 
         expected.name = val
@@ -1825,9 +1825,9 @@ class TestLocSetitemWithExpansion:
     @pytest.mark.slow
     def test_loc_setitem_with_expansion_large_dataframe(self):
         # GH#10692
-        result = DataFrame({"x": range(10 ** 6)}, dtype="int64")
+        result = DataFrame({"x": range(10**6)}, dtype="int64")
         result.loc[len(result)] = len(result) + 1
-        expected = DataFrame({"x": range(10 ** 6 + 1)}, dtype="int64")
+        expected = DataFrame({"x": range(10**6 + 1)}, dtype="int64")
         tm.assert_frame_equal(result, expected)
 
     def test_loc_setitem_empty_series(self):
@@ -2735,10 +2735,10 @@ def test_loc_getitem_nullable_index_with_duplicates():
 
 
 class TestLocSeries:
-    @pytest.mark.parametrize("val,expected", [(2 ** 63 - 1, 3), (2 ** 63, 4)])
+    @pytest.mark.parametrize("val,expected", [(2**63 - 1, 3), (2**63, 4)])
     def test_loc_uint64(self, val, expected):
         # see GH#19399
-        ser = Series({2 ** 63 - 1: 3, 2 ** 63: 4})
+        ser = Series({2**63 - 1: 3, 2**63: 4})
         assert ser.loc[val] == expected
 
     def test_loc_getitem(self, string_series, datetime_series):

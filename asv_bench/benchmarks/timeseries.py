@@ -131,7 +131,7 @@ class Iteration:
     param_names = ["time_index"]
 
     def setup(self, time_index):
-        N = 10 ** 6
+        N = 10**6
         if time_index is timedelta_range:
             self.idx = time_index(start=0, freq="T", periods=N)
         else:
@@ -247,7 +247,7 @@ class SortIndex:
     param_names = ["monotonic"]
 
     def setup(self, monotonic):
-        N = 10 ** 5
+        N = 10**5
         idx = date_range(start="1/1/2000", periods=N, freq="s")
         self.s = Series(np.random.randn(N), index=idx)
         if not monotonic:

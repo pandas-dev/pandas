@@ -398,7 +398,7 @@ class TestDataFrameConstructors:
 
     def test_constructor_overflow_int64(self):
         # see gh-14881
-        values = np.array([2 ** 64 - i for i in range(1, 10)], dtype=np.uint64)
+        values = np.array([2**64 - i for i in range(1, 10)], dtype=np.uint64)
 
         result = DataFrame({"a": values})
         assert result["a"].dtype == np.uint64
@@ -420,12 +420,12 @@ class TestDataFrameConstructors:
     @pytest.mark.parametrize(
         "values",
         [
-            np.array([2 ** 64], dtype=object),
-            np.array([2 ** 65]),
-            [2 ** 64 + 1],
-            np.array([-(2 ** 63) - 4], dtype=object),
-            np.array([-(2 ** 64) - 1]),
-            [-(2 ** 65) - 2],
+            np.array([2**64], dtype=object),
+            np.array([2**65]),
+            [2**64 + 1],
+            np.array([-(2**63) - 4], dtype=object),
+            np.array([-(2**64) - 1]),
+            [-(2**65) - 2],
         ],
     )
     def test_constructor_int_overflow(self, values):
@@ -2082,7 +2082,7 @@ class TestDataFrameConstructors:
         tm.assert_series_equal(result, expected)
 
         # overflow issue? (we always expected int64 upcasting here)
-        df = DataFrame({"a": [2 ** 31, 2 ** 31 + 1]})
+        df = DataFrame({"a": [2**31, 2**31 + 1]})
         assert df.dtypes.iloc[0] == np.dtype("int64")
 
         # GH #2751 (construction with no index specified), make sure we cast to

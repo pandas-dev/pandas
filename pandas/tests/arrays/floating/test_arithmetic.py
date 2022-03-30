@@ -51,19 +51,19 @@ def test_divide_by_zero(dtype, zero, negative):
 
 def test_pow_scalar(dtype):
     a = pd.array([-1, 0, 1, None, 2], dtype=dtype)
-    result = a ** 0
+    result = a**0
     expected = pd.array([1, 1, 1, 1, 1], dtype=dtype)
     tm.assert_extension_array_equal(result, expected)
 
-    result = a ** 1
+    result = a**1
     expected = pd.array([-1, 0, 1, None, 2], dtype=dtype)
     tm.assert_extension_array_equal(result, expected)
 
-    result = a ** pd.NA
+    result = a**pd.NA
     expected = pd.array([None, None, 1, None, None], dtype=dtype)
     tm.assert_extension_array_equal(result, expected)
 
-    result = a ** np.nan
+    result = a**np.nan
     # TODO np.nan should be converted to pd.NA / missing before operation?
     expected = FloatingArray(
         np.array([np.nan, np.nan, 1, np.nan, np.nan], dtype=dtype.numpy_dtype),
@@ -74,19 +74,19 @@ def test_pow_scalar(dtype):
     # reversed
     a = a[1:]  # Can't raise integers to negative powers.
 
-    result = 0 ** a
+    result = 0**a
     expected = pd.array([1, 0, None, 0], dtype=dtype)
     tm.assert_extension_array_equal(result, expected)
 
-    result = 1 ** a
+    result = 1**a
     expected = pd.array([1, 1, 1, 1], dtype=dtype)
     tm.assert_extension_array_equal(result, expected)
 
-    result = pd.NA ** a
+    result = pd.NA**a
     expected = pd.array([1, None, None, None], dtype=dtype)
     tm.assert_extension_array_equal(result, expected)
 
-    result = np.nan ** a
+    result = np.nan**a
     expected = FloatingArray(
         np.array([1, np.nan, np.nan, np.nan], dtype=dtype.numpy_dtype), mask=a._mask
     )
@@ -96,7 +96,7 @@ def test_pow_scalar(dtype):
 def test_pow_array(dtype):
     a = pd.array([0, 0, 0, 1, 1, 1, None, None, None], dtype=dtype)
     b = pd.array([0, 1, None, 0, 1, None, 0, 1, None], dtype=dtype)
-    result = a ** b
+    result = a**b
     expected = pd.array([1, 0, None, 1, 1, 1, 1, None, None], dtype=dtype)
     tm.assert_extension_array_equal(result, expected)
 
