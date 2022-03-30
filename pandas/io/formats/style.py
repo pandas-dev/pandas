@@ -19,6 +19,7 @@ import numpy as np
 
 from pandas._config import get_option
 
+from pandas._libs import lib
 from pandas._typing import (
     Axis,
     FilePath,
@@ -240,7 +241,7 @@ class Styler(StylerRenderer):
         thousands: str | None = None,
         escape: str | None = None,
         formatter: ExtFormatter | None = None,
-    ):
+    ) -> None:
         super().__init__(
             data=data,
             uuid=uuid,
@@ -2597,11 +2598,11 @@ class Styler(StylerRenderer):
         Styler.hide: Hide the entire index / columns, or specific rows / columns.
         """
         warnings.warn(
-            "this method is deprecated in favour of `Styler.hide(axis='index')`",
+            'this method is deprecated in favour of `Styler.hide(axis="index")`',
             FutureWarning,
             stacklevel=find_stack_level(),
         )
-        return self.hide(axis=0, level=level, subset=subset, names=names)
+        return self.hide(axis="index", level=level, subset=subset, names=names)
 
     def hide_columns(
         self,
@@ -2650,11 +2651,11 @@ class Styler(StylerRenderer):
         Styler.hide: Hide the entire index / columns, or specific rows / columns.
         """
         warnings.warn(
-            "this method is deprecated in favour of `Styler.hide(axis='columns')`",
+            'this method is deprecated in favour of `Styler.hide(axis="columns")`',
             FutureWarning,
             stacklevel=find_stack_level(),
         )
-        return self.hide(axis=1, level=level, subset=subset, names=names)
+        return self.hide(axis="columns", level=level, subset=subset, names=names)
 
     def hide(
         self,
@@ -2689,6 +2690,13 @@ class Styler(StylerRenderer):
 
         Notes
         -----
+        .. warning::
+           This method only works with the output methods ``to_html``, ``to_string``
+           and ``to_latex``.
+
+           Other output methods, including ``to_excel``, ignore this hiding method
+           and will display all data.
+
         This method has multiple functionality depending upon the combination
         of the ``subset``, ``level`` and ``names`` arguments (see examples). The
         ``axis`` argument is used only to control whether the method is applied to row
@@ -3196,19 +3204,23 @@ class Styler(StylerRenderer):
 
         return self
 
-    @Substitution(subset=subset, props=props)
+    @Substitution(subset=subset, props=props, color=color)
     def highlight_null(
         self,
-        null_color: str = "red",
+        color: str | None = None,
         subset: Subset | None = None,
         props: str | None = None,
+        null_color=lib.no_default,
     ) -> Styler:
         """
         Highlight missing values with a style.
 
         Parameters
         ----------
-        null_color : str, default 'red'
+        %(color)s
+
+            .. versionadded:: 1.5.0
+
         %(subset)s
 
             .. versionadded:: 1.1.0
@@ -3216,6 +3228,13 @@ class Styler(StylerRenderer):
         %(props)s
 
             .. versionadded:: 1.3.0
+
+        null_color : str, default None
+            The background color for highlighting.
+
+            .. deprecated:: 1.5.0
+               Use ``color`` instead. If ``color`` is given ``null_color`` is
+               not used.
 
         Returns
         -------
@@ -3232,8 +3251,19 @@ class Styler(StylerRenderer):
         def f(data: DataFrame, props: str) -> np.ndarray:
             return np.where(pd.isna(data).to_numpy(), props, "")
 
+        if null_color != lib.no_default:
+            warnings.warn(
+                "`null_color` is deprecated: use `color` instead",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
+        if color is None and null_color == lib.no_default:
+            color = "red"
+        elif color is None and null_color != lib.no_default:
+            color = null_color
         if props is None:
-            props = f"background-color: {null_color};"
+            props = f"background-color: {color};"
         return self.apply(f, axis=None, subset=subset, props=props)
 
     @Substitution(subset=subset, color=color, props=props)
@@ -3393,7 +3423,7 @@ class Styler(StylerRenderer):
 
         .. figure:: ../../_static/style/hbetw_basic.png
 
-        Using a range input sequnce along an ``axis``, in this case setting a ``left``
+        Using a range input sequence along an ``axis``, in this case setting a ``left``
         and ``right`` for each column individually
 
         >>> df.style.highlight_between(left=[1.4, 2.4, 3.4], right=[1.6, 2.6, 3.6],
@@ -3845,14 +3875,22 @@ def _highlight_between(
         )
 
     g_left = (
-        ops[0](data, left)
+        # error: Argument 2 to "ge" has incompatible type "Union[str, float,
+        # Period, Timedelta, Interval[Any], datetime64, timedelta64, datetime,
+        # Sequence[Any], ndarray[Any, Any], NDFrame]"; expected "Union
+        # [SupportsDunderLE, SupportsDunderGE, SupportsDunderGT, SupportsDunderLT]"
+        ops[0](data, left)  # type: ignore[arg-type]
         if left is not None
         else np.full(data.shape, True, dtype=bool)
     )
     if isinstance(g_left, (DataFrame, Series)):
         g_left = g_left.where(pd.notna(g_left), False)
     l_right = (
-        ops[1](data, right)
+        # error: Argument 2 to "le" has incompatible type "Union[str, float,
+        # Period, Timedelta, Interval[Any], datetime64, timedelta64, datetime,
+        # Sequence[Any], ndarray[Any, Any], NDFrame]"; expected "Union
+        # [SupportsDunderLE, SupportsDunderGE, SupportsDunderGT, SupportsDunderLT]"
+        ops[1](data, right)  # type: ignore[arg-type]
         if right is not None
         else np.full(data.shape, True, dtype=bool)
     )

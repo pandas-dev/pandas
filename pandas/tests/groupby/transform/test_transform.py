@@ -67,7 +67,7 @@ def test_transform():
     )
     key = ["one", "two", "one", "two", "one"]
     result = people.groupby(key).transform(demean).groupby(key).mean()
-    expected = people.groupby(key).apply(demean).groupby(key).mean()
+    expected = people.groupby(key, group_keys=False).apply(demean).groupby(key).mean()
     tm.assert_frame_equal(result, expected)
 
     # GH 8430
@@ -168,6 +168,10 @@ def test_transform_axis_1(request, transformation_func):
     # TODO(2.0) Remove after pad/backfill deprecation enforced
     transformation_func = maybe_normalize_deprecated_kernels(transformation_func)
 
+    if transformation_func == "ngroup":
+        msg = "ngroup fails with axis=1: #45986"
+        request.node.add_marker(pytest.mark.xfail(reason=msg))
+
     warn = None
     if transformation_func == "tshift":
         warn = FutureWarning
@@ -224,26 +228,26 @@ def test_transform_axis_ts(tsframe):
     )
     # monotonic
     ts = tso
-    grouped = ts.groupby(lambda x: x.weekday())
+    grouped = ts.groupby(lambda x: x.weekday(), group_keys=False)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: x - x.mean())
     tm.assert_frame_equal(result, expected)
 
     ts = ts.T
-    grouped = ts.groupby(lambda x: x.weekday(), axis=1)
+    grouped = ts.groupby(lambda x: x.weekday(), axis=1, group_keys=False)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: (x.T - x.mean(1)).T)
     tm.assert_frame_equal(result, expected)
 
     # non-monotonic
     ts = tso.iloc[[1, 0] + list(range(2, len(base)))]
-    grouped = ts.groupby(lambda x: x.weekday())
+    grouped = ts.groupby(lambda x: x.weekday(), group_keys=False)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: x - x.mean())
     tm.assert_frame_equal(result, expected)
 
     ts = ts.T
-    grouped = ts.groupby(lambda x: x.weekday(), axis=1)
+    grouped = ts.groupby(lambda x: x.weekday(), axis=1, group_keys=False)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: (x.T - x.mean(1)).T)
     tm.assert_frame_equal(result, expected)
@@ -383,6 +387,15 @@ def test_transform_transformation_func(request, transformation_func):
     elif transformation_func == "fillna":
         test_op = lambda x: x.transform("fillna", value=0)
         mock_op = lambda x: x.fillna(value=0)
+    elif transformation_func == "ngroup":
+        test_op = lambda x: x.transform("ngroup")
+        counter = -1
+
+        def mock_op(x):
+            nonlocal counter
+            counter += 1
+            return Series(counter, index=x.index)
+
     elif transformation_func == "tshift":
         msg = (
             "Current behavior of groupby.tshift is inconsistent with other "
@@ -394,10 +407,14 @@ def test_transform_transformation_func(request, transformation_func):
         mock_op = lambda x: getattr(x, transformation_func)()
 
     result = test_op(df.groupby("A"))
-    groups = [df[["B"]].iloc[:4], df[["B"]].iloc[4:6], df[["B"]].iloc[6:]]
-    expected = concat([mock_op(g) for g in groups])
+    # pass the group in same order as iterating `for ... in df.groupby(...)`
+    # but reorder to match df's index since this is a transform
+    groups = [df[["B"]].iloc[4:6], df[["B"]].iloc[6:], df[["B"]].iloc[:4]]
+    expected = concat([mock_op(g) for g in groups]).sort_index()
+    # sort_index does not preserve the freq
+    expected = expected.set_axis(df.index)
 
-    if transformation_func == "cumcount":
+    if transformation_func in ("cumcount", "ngroup"):
         tm.assert_series_equal(result, expected)
     else:
         tm.assert_frame_equal(result, expected)
@@ -736,7 +753,7 @@ def test_cython_transform_frame(op, args, targop):
         ]:  # {"by": 'string_missing'}]:
             # {"by": ['int','string']}]:
 
-            gb = df.groupby(**gb_target)
+            gb = df.groupby(group_keys=False, **gb_target)
             # allowlisted methods set the selection before applying
             # bit a of hack to make sure the cythonized shift
             # is equivalent to pre 0.17.1 behavior
@@ -1122,10 +1139,6 @@ def test_transform_agg_by_name(request, reduction_func, obj):
     func = reduction_func
     g = obj.groupby(np.repeat([0, 1], 3))
 
-    if func == "ngroup":  # GH#27468
-        request.node.add_marker(
-            pytest.mark.xfail(reason="TODO: g.transform('ngroup') doesn't work")
-        )
     if func == "corrwith" and isinstance(obj, Series):  # GH#32293
         request.node.add_marker(
             pytest.mark.xfail(reason="TODO: implement SeriesGroupBy.corrwith")
@@ -1137,8 +1150,8 @@ def test_transform_agg_by_name(request, reduction_func, obj):
     # this is the *definition* of a transformation
     tm.assert_index_equal(result.index, obj.index)
 
-    if func != "size" and obj.ndim == 2:
-        # size returns a Series, unlike other transforms
+    if func not in ("ngroup", "size") and obj.ndim == 2:
+        # size/ngroup return a Series, unlike other transforms
         tm.assert_index_equal(result.columns, obj.columns)
 
     # verify that values were broadcasted across each group
@@ -1308,3 +1321,171 @@ def test_null_group_lambda_self(sort, dropna):
     gb = df.groupby("A", dropna=dropna, sort=sort)
     result = gb.transform(lambda x: x)
     tm.assert_frame_equal(result, expected)
+
+
+def test_null_group_str_reducer(request, dropna, reduction_func):
+    # GH 17093
+    if reduction_func == "corrwith":
+        msg = "incorrectly raises"
+        request.node.add_marker(pytest.mark.xfail(reason=msg))
+    index = [1, 2, 3, 4]  # test transform preserves non-standard index
+    df = DataFrame({"A": [1, 1, np.nan, np.nan], "B": [1, 2, 2, 3]}, index=index)
+    gb = df.groupby("A", dropna=dropna)
+
+    if reduction_func == "corrwith":
+        args = (df["B"],)
+    elif reduction_func == "nth":
+        args = (0,)
+    else:
+        args = ()
+
+    # Manually handle reducers that don't fit the generic pattern
+    # Set expected with dropna=False, then replace if necessary
+    if reduction_func == "first":
+        expected = DataFrame({"B": [1, 1, 2, 2]}, index=index)
+    elif reduction_func == "last":
+        expected = DataFrame({"B": [2, 2, 3, 3]}, index=index)
+    elif reduction_func == "nth":
+        expected = DataFrame({"B": [1, 1, 2, 2]}, index=index)
+    elif reduction_func == "size":
+        expected = Series([2, 2, 2, 2], index=index)
+    elif reduction_func == "corrwith":
+        expected = DataFrame({"B": [1.0, 1.0, 1.0, 1.0]}, index=index)
+    else:
+        expected_gb = df.groupby("A", dropna=False)
+        buffer = []
+        for idx, group in expected_gb:
+            res = getattr(group["B"], reduction_func)()
+            buffer.append(Series(res, index=group.index))
+        expected = concat(buffer).to_frame("B")
+    if dropna:
+        dtype = object if reduction_func in ("any", "all") else float
+        expected = expected.astype(dtype)
+        if expected.ndim == 2:
+            expected.iloc[[2, 3], 0] = np.nan
+        else:
+            expected.iloc[[2, 3]] = np.nan
+
+    result = gb.transform(reduction_func, *args)
+    tm.assert_equal(result, expected)
+
+
+@pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
+def test_null_group_str_transformer(request, dropna, transformation_func):
+    # GH 17093
+    if transformation_func == "tshift":
+        msg = "tshift requires timeseries"
+        request.node.add_marker(pytest.mark.xfail(reason=msg))
+    args = (0,) if transformation_func == "fillna" else ()
+    df = DataFrame({"A": [1, 1, np.nan], "B": [1, 2, 2]}, index=[1, 2, 3])
+    gb = df.groupby("A", dropna=dropna)
+
+    buffer = []
+    for k, (idx, group) in enumerate(gb):
+        if transformation_func == "cumcount":
+            # DataFrame has no cumcount method
+            res = DataFrame({"B": range(len(group))}, index=group.index)
+        elif transformation_func == "ngroup":
+            res = DataFrame(len(group) * [k], index=group.index, columns=["B"])
+        else:
+            res = getattr(group[["B"]], transformation_func)(*args)
+        buffer.append(res)
+    if dropna:
+        dtype = object if transformation_func in ("any", "all") else None
+        buffer.append(DataFrame([[np.nan]], index=[3], dtype=dtype, columns=["B"]))
+    expected = concat(buffer)
+
+    if transformation_func in ("cumcount", "ngroup"):
+        # ngroup/cumcount always returns a Series as it counts the groups, not values
+        expected = expected["B"].rename(None)
+
+    warn = FutureWarning if transformation_func in ("backfill", "pad") else None
+    msg = f"{transformation_func} is deprecated"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = gb.transform(transformation_func, *args)
+
+    tm.assert_equal(result, expected)
+
+
+def test_null_group_str_reducer_series(request, dropna, reduction_func):
+    # GH 17093
+    if reduction_func == "corrwith":
+        msg = "corrwith not implemented for SeriesGroupBy"
+        request.node.add_marker(pytest.mark.xfail(reason=msg))
+
+    # GH 17093
+    index = [1, 2, 3, 4]  # test transform preserves non-standard index
+    ser = Series([1, 2, 2, 3], index=index)
+    gb = ser.groupby([1, 1, np.nan, np.nan], dropna=dropna)
+
+    if reduction_func == "corrwith":
+        args = (ser,)
+    elif reduction_func == "nth":
+        args = (0,)
+    else:
+        args = ()
+
+    # Manually handle reducers that don't fit the generic pattern
+    # Set expected with dropna=False, then replace if necessary
+    if reduction_func == "first":
+        expected = Series([1, 1, 2, 2], index=index)
+    elif reduction_func == "last":
+        expected = Series([2, 2, 3, 3], index=index)
+    elif reduction_func == "nth":
+        expected = Series([1, 1, 2, 2], index=index)
+    elif reduction_func == "size":
+        expected = Series([2, 2, 2, 2], index=index)
+    elif reduction_func == "corrwith":
+        expected = Series([1, 1, 2, 2], index=index)
+    else:
+        expected_gb = ser.groupby([1, 1, np.nan, np.nan], dropna=False)
+        buffer = []
+        for idx, group in expected_gb:
+            res = getattr(group, reduction_func)()
+            buffer.append(Series(res, index=group.index))
+        expected = concat(buffer)
+    if dropna:
+        dtype = object if reduction_func in ("any", "all") else float
+        expected = expected.astype(dtype)
+        expected.iloc[[2, 3]] = np.nan
+
+    result = gb.transform(reduction_func, *args)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
+def test_null_group_str_transformer_series(request, dropna, transformation_func):
+    # GH 17093
+    if transformation_func == "tshift":
+        msg = "tshift requires timeseries"
+        request.node.add_marker(pytest.mark.xfail(reason=msg))
+    args = (0,) if transformation_func == "fillna" else ()
+    ser = Series([1, 2, 2], index=[1, 2, 3])
+    gb = ser.groupby([1, 1, np.nan], dropna=dropna)
+
+    buffer = []
+    for k, (idx, group) in enumerate(gb):
+        if transformation_func == "cumcount":
+            # Series has no cumcount method
+            res = Series(range(len(group)), index=group.index)
+        elif transformation_func == "ngroup":
+            res = Series(k, index=group.index)
+        else:
+            res = getattr(group, transformation_func)(*args)
+        buffer.append(res)
+    if dropna:
+        dtype = object if transformation_func in ("any", "all") else None
+        buffer.append(Series([np.nan], index=[3], dtype=dtype))
+    expected = concat(buffer)
+
+    warn = FutureWarning if transformation_func in ("backfill", "pad") else None
+    msg = f"{transformation_func} is deprecated"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = gb.transform(transformation_func, *args)
+    if dropna and transformation_func == "fillna":
+        # GH#46369 - result name is the group; remove this block when fixed.
+        tm.assert_equal(result, expected, check_names=False)
+        # This should be None
+        assert result.name == 1.0
+    else:
+        tm.assert_equal(result, expected)

@@ -169,8 +169,8 @@ class _XlsxStyler:
 
 
 class XlsxWriter(ExcelWriter):
-    engine = "xlsxwriter"
-    supported_extensions = (".xlsx",)
+    _engine = "xlsxwriter"
+    _supported_extensions = (".xlsx",)
 
     def __init__(
         self,
@@ -183,7 +183,7 @@ class XlsxWriter(ExcelWriter):
         if_sheet_exists: str | None = None,
         engine_kwargs: dict[str, Any] | None = None,
         **kwargs,
-    ):
+    ) -> None:
         # Use the xlsxwriter module as the Excel writer.
         from xlsxwriter import Workbook
 

@@ -45,7 +45,7 @@ class DocBuilder:
         single_doc=None,
         verbosity=0,
         warnings_are_errors=False,
-    ):
+    ) -> None:
         self.num_jobs = num_jobs
         self.include_api = include_api
         self.whatsnew = whatsnew

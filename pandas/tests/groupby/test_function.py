@@ -545,7 +545,7 @@ def test_groupby_cumprod():
     df = DataFrame({"key": ["b"] * 10, "value": 2})
 
     actual = df.groupby("key")["value"].cumprod()
-    expected = df.groupby("key")["value"].apply(lambda x: x.cumprod())
+    expected = df.groupby("key", group_keys=False)["value"].apply(lambda x: x.cumprod())
     expected.name = "value"
     tm.assert_series_equal(actual, expected)
 
@@ -554,7 +554,7 @@ def test_groupby_cumprod():
     # if overflows, groupby product casts to float
     # while numpy passes back invalid values
     df["value"] = df["value"].astype(float)
-    expected = df.groupby("key")["value"].apply(lambda x: x.cumprod())
+    expected = df.groupby("key", group_keys=False)["value"].apply(lambda x: x.cumprod())
     expected.name = "value"
     tm.assert_series_equal(actual, expected)
 
@@ -734,7 +734,7 @@ def test_cummin(dtypes_for_minmax):
     expected = DataFrame({"B": expected_mins}).astype(dtype)
     result = df.groupby("A").cummin()
     tm.assert_frame_equal(result, expected)
-    result = df.groupby("A").B.apply(lambda x: x.cummin()).to_frame()
+    result = df.groupby("A", group_keys=False).B.apply(lambda x: x.cummin()).to_frame()
     tm.assert_frame_equal(result, expected)
 
     # Test w/ min value for dtype
@@ -744,7 +744,9 @@ def test_cummin(dtypes_for_minmax):
     expected.loc[[1, 5], "B"] = min_val + 1  # should not be rounded to min_val
     result = df.groupby("A").cummin()
     tm.assert_frame_equal(result, expected, check_exact=True)
-    expected = df.groupby("A").B.apply(lambda x: x.cummin()).to_frame()
+    expected = (
+        df.groupby("A", group_keys=False).B.apply(lambda x: x.cummin()).to_frame()
+    )
     tm.assert_frame_equal(result, expected, check_exact=True)
 
     # Test nan in some values
@@ -752,7 +754,9 @@ def test_cummin(dtypes_for_minmax):
     expected = DataFrame({"B": [np.nan, 4, np.nan, 2, np.nan, 3, np.nan, 1]})
     result = base_df.groupby("A").cummin()
     tm.assert_frame_equal(result, expected)
-    expected = base_df.groupby("A").B.apply(lambda x: x.cummin()).to_frame()
+    expected = (
+        base_df.groupby("A", group_keys=False).B.apply(lambda x: x.cummin()).to_frame()
+    )
     tm.assert_frame_equal(result, expected)
 
     # GH 15561
@@ -797,7 +801,7 @@ def test_cummax(dtypes_for_minmax):
     expected = DataFrame({"B": expected_maxs}).astype(dtype)
     result = df.groupby("A").cummax()
     tm.assert_frame_equal(result, expected)
-    result = df.groupby("A").B.apply(lambda x: x.cummax()).to_frame()
+    result = df.groupby("A", group_keys=False).B.apply(lambda x: x.cummax()).to_frame()
     tm.assert_frame_equal(result, expected)
 
     # Test w/ max value for dtype
@@ -805,7 +809,9 @@ def test_cummax(dtypes_for_minmax):
     expected.loc[[2, 3, 6, 7], "B"] = max_val
     result = df.groupby("A").cummax()
     tm.assert_frame_equal(result, expected)
-    expected = df.groupby("A").B.apply(lambda x: x.cummax()).to_frame()
+    expected = (
+        df.groupby("A", group_keys=False).B.apply(lambda x: x.cummax()).to_frame()
+    )
     tm.assert_frame_equal(result, expected)
 
     # Test nan in some values
@@ -813,7 +819,9 @@ def test_cummax(dtypes_for_minmax):
     expected = DataFrame({"B": [np.nan, 4, np.nan, 4, np.nan, 3, np.nan, 3]})
     result = base_df.groupby("A").cummax()
     tm.assert_frame_equal(result, expected)
-    expected = base_df.groupby("A").B.apply(lambda x: x.cummax()).to_frame()
+    expected = (
+        base_df.groupby("A", group_keys=False).B.apply(lambda x: x.cummax()).to_frame()
+    )
     tm.assert_frame_equal(result, expected)
 
     # GH 15561
@@ -830,6 +838,18 @@ def test_cummax(dtypes_for_minmax):
     tm.assert_series_equal(result, expected)
 
 
+def test_cummax_i8_at_implementation_bound():
+    # the minimum value used to be treated as NPY_NAT+1 instead of NPY_NAT
+    #  for int64 dtype GH#46382
+    ser = Series([pd.NaT.value + n for n in range(5)])
+    df = DataFrame({"A": 1, "B": ser, "C": ser.view("M8[ns]")})
+    gb = df.groupby("A")
+
+    res = gb.cummax()
+    exp = df[["B", "C"]]
+    tm.assert_frame_equal(res, exp)
+
+
 @pytest.mark.parametrize("method", ["cummin", "cummax"])
 @pytest.mark.parametrize("dtype", ["float", "Int64", "Float64"])
 @pytest.mark.parametrize(
@@ -843,10 +863,14 @@ def test_cummax(dtypes_for_minmax):
 def test_cummin_max_skipna(method, dtype, groups, expected_data):
     # GH-34047
     df = DataFrame({"a": Series([1, None, 2], dtype=dtype)})
+    orig = df.copy()
     gb = df.groupby(groups)["a"]
 
     result = getattr(gb, method)(skipna=False)
     expected = Series(expected_data, dtype=dtype, name="a")
+
+    # check we didn't accidentally alter df
+    tm.assert_frame_equal(df, orig)
 
     tm.assert_series_equal(result, expected)
 
@@ -999,6 +1023,11 @@ def test_frame_describe_multikey(tsframe):
     groupedT = tsframe.groupby({"A": 0, "B": 0, "C": 1, "D": 1}, axis=1)
     result = groupedT.describe()
     expected = tsframe.describe().T
+    # reverting the change from https://github.com/pandas-dev/pandas/pull/35441/
+    expected.index = MultiIndex(
+        levels=[[0, 1], expected.index],
+        codes=[[0, 0, 1, 1], range(len(expected.index))],
+    )
     tm.assert_frame_equal(result, expected)
 
 

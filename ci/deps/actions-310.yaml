@@ -11,6 +11,8 @@ dependencies:
   - pytest-xdist>=1.31
   - hypothesis>=5.5.3
   - psutil
+  - pytest-asyncio>=0.17
+  - boto3
 
   # required dependencies
   - python-dateutil
@@ -21,6 +23,7 @@ dependencies:
   - beautifulsoup4
   - blosc
   - bottleneck
+  - brotlipy
   - fastparquet
   - fsspec
   - html5lib
@@ -39,6 +42,7 @@ dependencies:
   - pytables
   - pyarrow
   - pyreadstat
+  - python-snappy
   - pyxlsb
   - s3fs
   - scipy

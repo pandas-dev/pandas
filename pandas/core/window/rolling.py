@@ -131,7 +131,7 @@ class BaseWindow(SelectionMixin):
         method: str = "single",
         *,
         selection=None,
-    ):
+    ) -> None:
         self.obj = obj
         self.on = on
         self.closed = closed
@@ -229,6 +229,11 @@ class BaseWindow(SelectionMixin):
                 )
         if self.method not in ["table", "single"]:
             raise ValueError("method must be 'table' or 'single")
+        if self.step is not None:
+            if not is_integer(self.step):
+                raise ValueError("step must be an integer")
+            elif self.step < 0:
+                raise ValueError("step must be >= 0")
 
     def _check_window_bounds(
         self, start: np.ndarray, end: np.ndarray, num_vals: int
@@ -238,16 +243,14 @@ class BaseWindow(SelectionMixin):
                 f"start ({len(start)}) and end ({len(end)}) bounds must be the "
                 f"same length"
             )
-        elif not isinstance(self._get_window_indexer(), GroupbyIndexer) and len(
-            start
-        ) != (num_vals + (self.step or 1) - 1) // (self.step or 1):
+        elif len(start) != (num_vals + (self.step or 1) - 1) // (self.step or 1):
             raise ValueError(
                 f"start and end bounds ({len(start)}) must be the same length "
                 f"as the object ({num_vals}) divided by the step ({self.step}) "
                 f"if given and rounded up"
             )
 
-    def _slice_index(self, index: Index, result: Sized | None = None) -> Index:
+    def _slice_axis_for_step(self, index: Index, result: Sized | None = None) -> Index:
         """
         Slices the index for a given result and the preset step.
         """
@@ -446,7 +449,7 @@ class BaseWindow(SelectionMixin):
             raise DataError("No numeric types to aggregate") from err
 
         result = homogeneous_func(values)
-        index = self._slice_index(obj.index, result)
+        index = self._slice_axis_for_step(obj.index, result)
         return obj._constructor(result, index=index, name=obj.name)
 
     def _apply_blockwise(
@@ -484,7 +487,7 @@ class BaseWindow(SelectionMixin):
                 res_values.append(res)
                 taker.append(i)
 
-        index = self._slice_index(
+        index = self._slice_axis_for_step(
             obj.index, res_values[0] if len(res_values) > 0 else None
         )
         df = type(obj)._from_arrays(
@@ -524,7 +527,7 @@ class BaseWindow(SelectionMixin):
         values = values.T if self.axis == 1 else values
         result = homogeneous_func(values)
         result = result.T if self.axis == 1 else result
-        index = self._slice_index(obj.index, result)
+        index = self._slice_axis_for_step(obj.index, result)
         columns = (
             obj.columns
             if result.shape[1] == len(obj.columns)
@@ -644,13 +647,13 @@ class BaseWindow(SelectionMixin):
         )
         result = aggregator(values, start, end, min_periods, *func_args)
         result = result.T if self.axis == 1 else result
-        index = self._slice_index(obj.index, result)
+        index = self._slice_axis_for_step(obj.index, result)
         if obj.ndim == 1:
             result = result.squeeze()
             out = obj._constructor(result, index=index, name=obj.name)
             return out
         else:
-            columns = self._slice_index(obj.columns, result.T)
+            columns = self._slice_axis_for_step(obj.columns, result.T)
             out = obj._constructor(result, index=index, columns=columns)
             return self._resolve_output(out, obj)
 
@@ -679,7 +682,7 @@ class BaseWindowGroupby(BaseWindow):
         _grouper: BaseGrouper,
         _as_index: bool = True,
         **kwargs,
-    ):
+    ) -> None:
         from pandas.core.groupby.ops import BaseGrouper
 
         if not isinstance(_grouper, BaseGrouper):
@@ -692,7 +695,7 @@ class BaseWindowGroupby(BaseWindow):
         obj = obj.drop(columns=self._grouper.names, errors="ignore")
         # GH 15354
         if kwargs.get("step") is not None:
-            raise NotImplementedError("step not implemented for rolling groupby")
+            raise NotImplementedError("step not implemented for groupby")
         super().__init__(obj, *args, **kwargs)
 
     def _apply(
@@ -938,14 +941,12 @@ class Window(BaseWindow):
             The closed parameter with fixed windows is now supported.
 
     step : int, default None
-        When supported, applies ``[::step]`` to the resulting sequence of windows, in a
-        computationally efficient manner. Currently supported only with fixed-length
-        window indexers. Note that using a step argument other than None or 1 will
-        produce a result with a different shape than the input.
 
-        ..versionadded:: 1.5
+        ..versionadded:: 1.5.0
 
-            The step parameter is only supported with fixed windows.
+        Evaluate the window at every ``step`` result, equivalent to slicing as
+        ``[::step]``. ``window`` must be an integer. Using a step argument other
+        than None or 1 will produce a result with a different shape than the input.
 
     method : str {'single', 'table'}, default 'single'
 
@@ -1605,9 +1606,7 @@ class RollingAndExpandingMixin(BaseWindow):
         **kwargs,
     ):
         if self.step is not None:
-            raise NotImplementedError(
-                "step not implemented for rolling and expanding cov"
-            )
+            raise NotImplementedError("step not implemented for cov")
 
         from pandas import Series
 
@@ -1650,11 +1649,8 @@ class RollingAndExpandingMixin(BaseWindow):
         ddof: int = 1,
         **kwargs,
     ):
-
         if self.step is not None:
-            raise NotImplementedError(
-                "step not implemented for rolling and expanding corr"
-            )
+            raise NotImplementedError("step not implemented for corr")
 
         from pandas import Series
 
@@ -1749,24 +1745,16 @@ class Rolling(RollingAndExpandingMixin):
             if self.min_periods is None:
                 self.min_periods = 1
 
+            if self.step is not None:
+                raise NotImplementedError(
+                    "step is not supported with frequency windows"
+                )
+
         elif isinstance(self.window, BaseIndexer):
             # Passed BaseIndexer subclass should handle all other rolling kwargs
             pass
         elif not is_integer(self.window) or self.window < 0:
             raise ValueError("window must be an integer 0 or greater")
-        # GH 15354:
-        # validate window indexer parameters do not raise in get_window_bounds
-        # this cannot be done in BaseWindow._validate because there _get_window_indexer
-        # would erroneously create a fixed window given a window argument like "1s" due
-        # to _win_freq_i8 not being set
-        indexer = self._get_window_indexer()
-        indexer.get_window_bounds(
-            num_values=0,
-            min_periods=self.min_periods,
-            center=self.center,
-            closed=self.closed,
-            step=self.step,
-        )
 
     def _validate_datetimelike_monotonic(self):
         """
