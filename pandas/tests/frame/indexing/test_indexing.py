@@ -1281,6 +1281,18 @@ class TestDataFrameIndexing:
         expected = DataFrame({"b": [1]}, index=Index([0], name="a"))
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_expand_empty_frame_keep_midx_names(self):
+        # GH#46317
+        df = DataFrame(
+            columns=["d"], index=MultiIndex.from_tuples([], names=["a", "b", "c"])
+        )
+        df.loc[(1, 2, 3)] = "foo"
+        expected = DataFrame(
+            {"d": ["foo"]},
+            index=MultiIndex.from_tuples([(1, 2, 3)], names=["a", "b", "c"]),
+        )
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameIndexingUInt64:
     def test_setitem(self, uint64_frame):

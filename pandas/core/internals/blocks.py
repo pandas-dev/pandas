@@ -27,6 +27,7 @@ from pandas._typing import (
     ArrayLike,
     DtypeObj,
     F,
+    IgnoreRaise,
     Shape,
     npt,
 )
@@ -87,7 +88,6 @@ from pandas.core.array_algos.replace import (
     replace_regex,
     should_use_regex,
 )
-from pandas.core.array_algos.take import take_nd
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays import (
     Categorical,
@@ -502,7 +502,9 @@ class Block(PandasObject):
         return self.values.dtype
 
     @final
-    def astype(self, dtype: DtypeObj, copy: bool = False, errors: str = "raise"):
+    def astype(
+        self, dtype: DtypeObj, copy: bool = False, errors: IgnoreRaise = "raise"
+    ):
         """
         Coerce to the new dtype.
 
@@ -569,7 +571,6 @@ class Block(PandasObject):
         #  go through replace_list
 
         values = self.values
-        value = self._standardize_fill_value(value)  # GH#45725
 
         if isinstance(values, Categorical):
             # TODO: avoid special-casing
@@ -613,9 +614,18 @@ class Block(PandasObject):
 
         else:
             # split so that we only upcast where necessary
-            return self.split_and_operate(
-                type(self).replace, to_replace, value, inplace=True
-            )
+            blocks = []
+            for i, nb in enumerate(self._split()):
+                blocks.extend(
+                    type(self).replace(
+                        nb,
+                        to_replace=to_replace,
+                        value=value,
+                        inplace=True,
+                        mask=mask[i : i + 1],
+                    )
+                )
+            return blocks
 
     @final
     def _replace_regex(
@@ -736,7 +746,7 @@ class Block(PandasObject):
         self,
         to_replace,
         value,
-        mask: np.ndarray,
+        mask: npt.NDArray[np.bool_],
         inplace: bool = True,
         regex: bool = False,
     ) -> list[Block]:
@@ -770,6 +780,13 @@ class Block(PandasObject):
                 mask=mask,
             )
         else:
+            if value is None:
+                # gh-45601, gh-45836
+                nb = self.astype(np.dtype(object), copy=False)
+                if nb is self and not inplace:
+                    nb = nb.copy()
+                putmask_inplace(nb.values, mask, value)
+                return [nb]
             return self.replace(
                 to_replace=to_replace, value=value, inplace=inplace, mask=mask
             )
@@ -827,19 +844,14 @@ class Block(PandasObject):
 
     def take_nd(
         self,
-        indexer,
+        indexer: npt.NDArray[np.intp],
         axis: int,
         new_mgr_locs: BlockPlacement | None = None,
         fill_value=lib.no_default,
     ) -> Block:
         """
-        Take values according to indexer and return them as a block.bb
-
+        Take values according to indexer and return them as a block.
         """
-        # algos.take_nd dispatches for DatetimeTZBlock, CategoricalBlock
-        # so need to preserve types
-        # sparse is treated like an ndarray, but needs .get_values() shaping
-
         values = self.values
 
         if fill_value is lib.no_default:
@@ -848,6 +860,7 @@ class Block(PandasObject):
         else:
             allow_fill = True
 
+        # Note: algos.take_nd has upcast logic similar to coerce_to_target_dtype
         new_values = algos.take_nd(
             values, indexer, axis=axis, allow_fill=allow_fill, fill_value=fill_value
         )
@@ -1641,21 +1654,9 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             return self.values
 
     def set_inplace(self, locs, values: ArrayLike) -> None:
-        # NB: This is a misnomer, is supposed to be inplace but is not,
-        #  see GH#33457
         # When an ndarray, we should have locs.tolist() == [0]
         # When a BlockPlacement we should have list(locs) == [0]
-
-        # error: Incompatible types in assignment (expression has type
-        # "Union[ExtensionArray, ndarray[Any, Any]]", variable has type
-        # "ExtensionArray")
-        self.values = values  # type: ignore[assignment]
-        try:
-            # TODO(GH33457) this can be removed
-            self._cache.clear()
-        except AttributeError:
-            # _cache not yet initialized
-            pass
+        self.values[:] = values
 
     def _maybe_squeeze_arg(self, arg):
         """
@@ -1727,7 +1728,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
 
     def take_nd(
         self,
-        indexer,
+        indexer: npt.NDArray[np.intp],
         axis: int = 0,
         new_mgr_locs: BlockPlacement | None = None,
         fill_value=lib.no_default,
@@ -2259,7 +2260,7 @@ def to_native_types(
     """convert to our native types format"""
     if isinstance(values, Categorical):
         # GH#40754 Convert categorical datetimes to datetime array
-        values = take_nd(
+        values = algos.take_nd(
             values.categories._values,
             ensure_platform_int(values._codes),
             fill_value=na_rep,

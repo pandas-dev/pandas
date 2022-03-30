@@ -625,7 +625,7 @@ class _MergeOperation:
         copy: bool = True,
         indicator: bool = False,
         validate: str | None = None,
-    ):
+    ) -> None:
         _left = _validate_operand(left)
         _right = _validate_operand(right)
         self.left = self.orig_left = _left
@@ -1633,7 +1633,7 @@ class _OrderedMerge(_MergeOperation):
         copy: bool = True,
         fill_method: str | None = None,
         how: str = "outer",
-    ):
+    ) -> None:
 
         self.fill_method = fill_method
         _MergeOperation.__init__(
@@ -1741,7 +1741,7 @@ class _AsOfMerge(_OrderedMerge):
         tolerance=None,
         allow_exact_matches: bool = True,
         direction: str = "backward",
-    ):
+    ) -> None:
 
         self.by = by
         self.left_by = left_by
@@ -2276,14 +2276,13 @@ def _factorize_keys(
 
 
 def _sort_labels(
-    uniques: np.ndarray, left: np.ndarray, right: np.ndarray
+    uniques: np.ndarray, left: npt.NDArray[np.intp], right: npt.NDArray[np.intp]
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
 
     llength = len(left)
     labels = np.concatenate([left, right])
 
     _, new_labels = algos.safe_sort(uniques, labels, na_sentinel=-1)
-    assert new_labels.dtype == np.intp
     new_left, new_right = new_labels[:llength], new_labels[llength:]
 
     return new_left, new_right

@@ -497,7 +497,9 @@ def read_excel(
 
 
 class BaseExcelReader(metaclass=abc.ABCMeta):
-    def __init__(self, filepath_or_buffer, storage_options: StorageOptions = None):
+    def __init__(
+        self, filepath_or_buffer, storage_options: StorageOptions = None
+    ) -> None:
         # First argument can also be bytes, so create a buffer
         if isinstance(filepath_or_buffer, bytes):
             filepath_or_buffer = BytesIO(filepath_or_buffer)
@@ -943,9 +945,9 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     # - Mandatory
     #   - ``write_cells(self, cells, sheet_name=None, startrow=0, startcol=0)``
     #     --> called to write additional DataFrames to disk
-    #   - ``supported_extensions`` (tuple of supported extensions), used to
+    #   - ``_supported_extensions`` (tuple of supported extensions), used to
     #      check that engine supports the given extension.
-    #   - ``engine`` - string that gives the engine name. Necessary to
+    #   - ``_engine`` - string that gives the engine name. Necessary to
     #     instantiate class directly and bypass ``ExcelWriterMeta`` engine
     #     lookup.
     #   - ``save(self)`` --> called to save file to disk
@@ -959,6 +961,10 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     # You also need to register the class with ``register_writer()``.
     # Technically, ExcelWriter implementations don't need to subclass
     # ExcelWriter.
+
+    _engine: str
+    _supported_extensions: tuple[str, ...]
+
     def __new__(
         cls,
         path: FilePath | WriteExcelBuffer | ExcelWriter,
@@ -981,7 +987,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             )
 
         # only switch class if generic(ExcelWriter)
-
         if cls is ExcelWriter:
             if engine is None or (isinstance(engine, str) and engine == "auto"):
                 if isinstance(path, str):
@@ -1025,16 +1030,14 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     _path = None
 
     @property
-    @abc.abstractmethod
-    def supported_extensions(self) -> tuple[str, ...] | list[str]:
+    def supported_extensions(self) -> tuple[str, ...]:
         """Extensions that writer engine supports."""
-        pass
+        return self._supported_extensions
 
     @property
-    @abc.abstractmethod
     def engine(self) -> str:
         """Name of engine."""
-        pass
+        return self._engine
 
     @property
     @abc.abstractmethod
@@ -1131,7 +1134,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         if_sheet_exists: str | None = None,
         engine_kwargs: dict[str, Any] | None = None,
         **kwargs,
-    ):
+    ) -> None:
         # validate that this engine can handle the extension
         if isinstance(path, str):
             ext = os.path.splitext(path)[-1]
@@ -1290,12 +1293,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         """
         if ext.startswith("."):
             ext = ext[1:]
-        # error: "Callable[[ExcelWriter], Any]" has no attribute "__iter__" (not
-        #  iterable)
-        if not any(
-            ext in extension
-            for extension in cls.supported_extensions  # type: ignore[attr-defined]
-        ):
+        if not any(ext in extension for extension in cls._supported_extensions):
             raise ValueError(f"Invalid extension for engine '{cls.engine}': '{ext}'")
         else:
             return True
@@ -1454,7 +1452,7 @@ class ExcelFile:
         path_or_buffer,
         engine: str | None = None,
         storage_options: StorageOptions = None,
-    ):
+    ) -> None:
         if engine is not None and engine not in self._engines:
             raise ValueError(f"Unknown engine: {engine}")
 
