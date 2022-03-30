@@ -21,7 +21,7 @@ Fixed regressions
 - Fixed regression in :meth:`DataFrame.replace` when a replacement value was also a target for replacement (:issue:`46306`)
 - Fixed regression in :meth:`DataFrame.replace` when the replacement value was explicitly ``None`` when passed in a dictionary to ``to_replace`` (:issue:`45601`, :issue:`45836`)
 - Fixed regression when setting values with :meth:`DataFrame.loc` losing :class:`MultiIndex` names if :class:`DataFrame`  was empty before (:issue:`46317`)
--
+- Fixed regression when rendering boolean datatype columns with :meth:`.Styler` (:issue:`46384`)
 
 .. ---------------------------------------------------------------------------
 
