@@ -1764,8 +1764,16 @@ class Rolling(RollingAndExpandingMixin):
         if self._on.hasnans:
             self._raise_monotonic_error("values must not have NaT")
         if not (self._on.is_monotonic_increasing or self._on.is_monotonic_decreasing):
-            on = "index" if self.on is None else self.on
-            raise ValueError(f"{on} must be monotonic.")
+            self._raise_monotonic_error("values must be monotonic")
+
+    def _raise_monotonic_error(self, msg: str):
+        on = self.on
+        if on is None:
+            if self.axis == 0:
+                on = "index"
+            else:
+                on = "column"
+        raise ValueError(f"{on} {msg}")
 
     @doc(
         _shared_docs["aggregate"],
@@ -2678,14 +2686,14 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         Validate that each group in self._on is monotonic
         """
         # GH 46061
-        on = "index" if self.on is None else self.on
         if self._on.hasnans:
-            raise ValueError(f"{on} must not have any NaT values.")
+            self._raise_monotonic_error("values must not have NaT")
         for group_indices in self._grouper.indices.values():
             group_on = self._on.take(group_indices)
             if not (
                 group_on.is_monotonic_increasing or group_on.is_monotonic_decreasing
             ):
+                on = "index" if self.on is None else self.on
                 raise ValueError(
                     f"Each group within {on} must be monotonic. "
                     f"Sort the values in {on} first."
