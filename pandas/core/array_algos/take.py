@@ -112,10 +112,8 @@ def take_nd(
                 indexer, fill_value=fill_value, allow_fill=allow_fill, axis=axis
             )
         if arr.dtype.kind in "O" and is_interval_dtype(arr):
-            # i.e. Interval
-            # GH46297 Special case for IntervalArray take,
-            # which allow_fill is False since it will not contain -1 values
-            return arr.take(indexer, fill_value=fill_value, allow_fill=False, axis=axis)
+            # # GH46297 Interval
+            return arr.take(indexer, allow_fill=allow_fill)
 
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
 
