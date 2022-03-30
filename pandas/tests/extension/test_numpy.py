@@ -227,16 +227,7 @@ class TestGetitem(BaseNumPyTests, base.BaseGetitemTests):
 
 
 class TestGroupby(BaseNumPyTests, base.BaseGroupbyTests):
-    def test_groupby_extension_apply(
-        self, data_for_grouping, groupby_apply_op, request
-    ):
-        dummy = groupby_apply_op([None])
-        if (
-            isinstance(dummy, pd.Series)
-            and data_for_grouping.dtype.numpy_dtype == object
-        ):
-            mark = pytest.mark.xfail(reason="raises in MultiIndex construction")
-            request.node.add_marker(mark)
+    def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):
         super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
 
 

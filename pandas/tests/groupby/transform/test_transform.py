@@ -67,7 +67,7 @@ def test_transform():
     )
     key = ["one", "two", "one", "two", "one"]
     result = people.groupby(key).transform(demean).groupby(key).mean()
-    expected = people.groupby(key).apply(demean).groupby(key).mean()
+    expected = people.groupby(key, group_keys=False).apply(demean).groupby(key).mean()
     tm.assert_frame_equal(result, expected)
 
     # GH 8430
@@ -228,26 +228,26 @@ def test_transform_axis_ts(tsframe):
     )
     # monotonic
     ts = tso
-    grouped = ts.groupby(lambda x: x.weekday())
+    grouped = ts.groupby(lambda x: x.weekday(), group_keys=False)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: x - x.mean())
     tm.assert_frame_equal(result, expected)
 
     ts = ts.T
-    grouped = ts.groupby(lambda x: x.weekday(), axis=1)
+    grouped = ts.groupby(lambda x: x.weekday(), axis=1, group_keys=False)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: (x.T - x.mean(1)).T)
     tm.assert_frame_equal(result, expected)
 
     # non-monotonic
     ts = tso.iloc[[1, 0] + list(range(2, len(base)))]
-    grouped = ts.groupby(lambda x: x.weekday())
+    grouped = ts.groupby(lambda x: x.weekday(), group_keys=False)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: x - x.mean())
     tm.assert_frame_equal(result, expected)
 
     ts = ts.T
-    grouped = ts.groupby(lambda x: x.weekday(), axis=1)
+    grouped = ts.groupby(lambda x: x.weekday(), axis=1, group_keys=False)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: (x.T - x.mean(1)).T)
     tm.assert_frame_equal(result, expected)
@@ -753,7 +753,7 @@ def test_cython_transform_frame(op, args, targop):
         ]:  # {"by": 'string_missing'}]:
             # {"by": ['int','string']}]:
 
-            gb = df.groupby(**gb_target)
+            gb = df.groupby(group_keys=False, **gb_target)
             # allowlisted methods set the selection before applying
             # bit a of hack to make sure the cythonized shift
             # is equivalent to pre 0.17.1 behavior
