@@ -3,7 +3,7 @@ import ctypes
 
 from typing import Tuple, Any
 
-from .dataframe_protocol import (
+from pandas.core.exchange.dataframe_protocol import (
     Buffer,
     Column,
     ColumnNullType,

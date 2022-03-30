@@ -1,3 +1,7 @@
+"""
+A verbatim copy (vendored) of the spec from https://github.com/data-apis/dataframe-api
+"""
+
 from typing import Tuple, Optional, Dict, Any, Iterable, Sequence, TypedDict
 import enum
 from abc import ABC, abstractmethod

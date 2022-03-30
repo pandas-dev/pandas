@@ -204,8 +204,6 @@ from pandas.core.sorting import (
     nargsort,
 )
 
-from pandas.api.exchange.dataframe_protocol import DataFrame as DataFrameXchg
-
 from pandas.io.common import get_handle
 from pandas.io.formats import (
     console,
@@ -223,7 +221,7 @@ if TYPE_CHECKING:
     from pandas.core.groupby.generic import DataFrameGroupBy
     from pandas.core.internals import SingleDataManager
     from pandas.core.resample import Resampler
-
+    from pandas.core.exchange.dataframe_protocol import DataFrame as DataFrameXchg
     from pandas.io.formats.style import Styler
 
 # ---------------------------------------------------------------------
@@ -814,8 +812,9 @@ class DataFrame(NDFrame, OpsMixin):
         NDFrame.__init__(self, mgr)
 
     # ----------------------------------------------------------------------
-    def __dataframe__(self, nan_as_null : bool = False,
-                  allow_copy : bool = True) -> DataFrameXchg:
+    def __dataframe__(
+        self, nan_as_null: bool = False, allow_copy: bool = True
+    ) -> DataFrameXchg:
         """
         Return the dataframe exchange object implementing the exchange protocol.
 
@@ -825,7 +824,8 @@ class DataFrame(NDFrame, OpsMixin):
         https://data-apis.org/dataframe-protocol/latest/index.html
         """
 
-        from pandas.api.exchange.implementation import _PandasDataFrameXchg
+        from pandas.core.exchange.implementation import _PandasDataFrameXchg
+
         return _PandasDataFrameXchg(self, nan_as_null, allow_copy)
 
     # ----------------------------------------------------------------------
