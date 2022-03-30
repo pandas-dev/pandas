@@ -2686,4 +2686,7 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
             if not (
                 group_on.is_monotonic_increasing or group_on.is_monotonic_decreasing
             ):
-                raise ValueError(f"Each group within {on} must be monotonic.")
+                raise ValueError(
+                    f"Each group within {on} must be monotonic. "
+                    f"Sort the values in {on} first."
+                )
