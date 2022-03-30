@@ -263,7 +263,7 @@ class IntervalIndex(ExtensionIndex):
                 """\
         Examples
         --------
-        >>> pd.IntervalIndex.from_breaks([0, 1, 2, 3])
+        >>> pd.IntervalIndex.from_breaks([0, 1, 2, 3], "right")
         IntervalIndex([(0, 1], (1, 2], (2, 3]],
                       dtype='interval[int64, right]')
         """
@@ -318,7 +318,7 @@ class IntervalIndex(ExtensionIndex):
                 """\
         Examples
         --------
-        >>> pd.IntervalIndex.from_arrays([0, 1, 2], [1, 2, 3])
+        >>> pd.IntervalIndex.from_arrays([0, 1, 2], [1, 2, 3], "right")
         IntervalIndex([(0, 1], (1, 2], (2, 3]],
                       dtype='interval[int64, right]')
         """
@@ -374,7 +374,7 @@ class IntervalIndex(ExtensionIndex):
                 """\
         Examples
         --------
-        >>> pd.IntervalIndex.from_tuples([(0, 1), (1, 2)])
+        >>> pd.IntervalIndex.from_tuples([(0, 1), (1, 2)], "right")
         IntervalIndex([(0, 1], (1, 2]],
                        dtype='interval[int64, right]')
         """
@@ -534,7 +534,7 @@ class IntervalIndex(ExtensionIndex):
 
         Examples
         --------
-        >>> index = pd.IntervalIndex.from_tuples([(0, 2), (1, 3), (4, 5)])
+        >>> index = pd.IntervalIndex.from_tuples([(0, 2), (1, 3), (4, 5)], "right")
         >>> index
         IntervalIndex([(0, 2], (1, 3], (4, 5]],
               dtype='interval[int64, right]')
@@ -699,7 +699,7 @@ class IntervalIndex(ExtensionIndex):
         Examples
         --------
         >>> i1, i2 = pd.Interval(0, 1), pd.Interval(1, 2)
-        >>> index = pd.IntervalIndex([i1, i2])
+        >>> index = pd.IntervalIndex([i1, i2], "right")
         >>> index.get_loc(1)
         0
 
@@ -712,13 +712,13 @@ class IntervalIndex(ExtensionIndex):
         relevant intervals.
 
         >>> i3 = pd.Interval(0, 2)
-        >>> overlapping_index = pd.IntervalIndex([i1, i2, i3])
+        >>> overlapping_index = pd.IntervalIndex([i1, i2, i3], "right")
         >>> overlapping_index.get_loc(0.5)
         array([ True, False,  True])
 
         Only exact matches will be returned if an interval is provided.
 
-        >>> index.get_loc(pd.Interval(0, 1))
+        >>> index.get_loc(pd.Interval(0, 1, "right"))
         0
         """
         self._check_indexing_method(method)
