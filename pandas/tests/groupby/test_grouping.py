@@ -162,10 +162,10 @@ class TestGrouping:
         ]:
 
             df.index = index(len(df))
-            df.groupby(list("abcde")).apply(lambda x: x)
+            df.groupby(list("abcde"), group_keys=False).apply(lambda x: x)
 
             df.index = list(reversed(df.index.tolist()))
-            df.groupby(list("abcde")).apply(lambda x: x)
+            df.groupby(list("abcde"), group_keys=False).apply(lambda x: x)
 
     def test_grouper_multilevel_freq(self):
 
@@ -669,7 +669,7 @@ class TestGrouping:
         # (not testing other agg fns, because they return
         # different index objects.
         df = DataFrame({1: [], 2: []})
-        g = df.groupby(1)
+        g = df.groupby(1, group_keys=False)
         result = getattr(g[2], func)(lambda x: x)
         tm.assert_series_equal(result, expected)
 

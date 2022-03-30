@@ -342,10 +342,15 @@ Now every group is evaluated only a single time.
 
 *New behavior*:
 
-.. ipython:: python
+.. code-block:: python
 
-    df.groupby("a").apply(func)
-
+   In [3]: df.groupby('a').apply(func)
+   x
+   y
+   Out[3]:
+      a  b
+   0  x  1
+   1  y  2
 
 Concatenating sparse values
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
