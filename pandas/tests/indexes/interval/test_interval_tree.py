@@ -42,7 +42,7 @@ def leaf_size(request):
 )
 def tree(request, leaf_size):
     left = request.param
-    return IntervalTree(left, left + 2, leaf_size=leaf_size)
+    return IntervalTree(left, left + 2, leaf_size=leaf_size, inclusive="right")
 
 
 class TestIntervalTree:

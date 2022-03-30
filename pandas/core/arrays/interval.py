@@ -1136,7 +1136,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def _validate_listlike(self, value):
         # list-like of intervals
         try:
-            array = IntervalArray(value)
+            array = IntervalArray(value, inclusive="right")
             self._check_closed_matches(array, name="value")
             value_left, value_right = array.left, array.right
         except TypeError as err:

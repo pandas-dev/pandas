@@ -28,7 +28,7 @@ def name(request):
 
 
 class TestIntervalIndex:
-    index = IntervalIndex.from_arrays([0, 1], [1, 2])
+    index = IntervalIndex.from_arrays([0, 1], [1, 2], "right")
 
     def create_index(self, inclusive="right"):
         return IntervalIndex.from_breaks(range(11), inclusive=inclusive)
@@ -477,7 +477,7 @@ class TestIntervalIndex:
 
     def test_contains_method(self):
         # can select values that are IN the range of a value
-        i = IntervalIndex.from_arrays([0, 1], [1, 2])
+        i = IntervalIndex.from_arrays([0, 1], [1, 2], "right")
 
         expected = np.array([False, False], dtype="bool")
         actual = i.contains(0)
@@ -547,14 +547,14 @@ class TestIntervalIndex:
             tm.assert_numpy_array_equal(result, expected)
 
     def test_comparison(self):
-        actual = Interval(0, 1) < self.index
+        actual = Interval(0, 1, "right") < self.index
         expected = np.array([False, True])
         tm.assert_numpy_array_equal(actual, expected)
 
-        actual = Interval(0.5, 1.5) < self.index
+        actual = Interval(0.5, 1.5, "right") < self.index
         expected = np.array([False, True])
         tm.assert_numpy_array_equal(actual, expected)
-        actual = self.index > Interval(0.5, 1.5)
+        actual = self.index > Interval(0.5, 1.5, "right")
         tm.assert_numpy_array_equal(actual, expected)
 
         actual = self.index == self.index
@@ -654,7 +654,7 @@ class TestIntervalIndex:
     def test_datetime(self, tz):
         start = Timestamp("2000-01-01", tz=tz)
         dates = date_range(start=start, periods=10)
-        index = IntervalIndex.from_breaks(dates)
+        index = IntervalIndex.from_breaks(dates, "right")
 
         # test mid
         start = Timestamp("2000-01-01T12:00", tz=tz)
@@ -666,10 +666,10 @@ class TestIntervalIndex:
         assert Timestamp("2000-01-01T12", tz=tz) not in index
         assert Timestamp("2000-01-02", tz=tz) not in index
         iv_true = Interval(
-            Timestamp("2000-01-02", tz=tz), Timestamp("2000-01-03", tz=tz)
+            Timestamp("2000-01-02", tz=tz), Timestamp("2000-01-03", tz=tz), "right"
         )
         iv_false = Interval(
-            Timestamp("1999-12-31", tz=tz), Timestamp("2000-01-01", tz=tz)
+            Timestamp("1999-12-31", tz=tz), Timestamp("2000-01-01", tz=tz), "right"
         )
         assert iv_true in index
         assert iv_false not in index

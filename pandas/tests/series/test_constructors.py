@@ -1182,7 +1182,7 @@ class TestSeriesConstructors:
     )
     def test_constructor_infer_interval(self, data_constructor):
         # GH 23563: consistent closed results in interval dtype
-        data = [Interval(0, 1), Interval(0, 2), None]
+        data = [Interval(0, 1, "right"), Interval(0, 2, "right"), None]
         result = Series(data_constructor(data))
         expected = Series(IntervalArray(data))
         assert result.dtype == "interval[float64, right]"

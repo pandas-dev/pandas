@@ -161,7 +161,7 @@ class TestIntervalRange:
             breaks = [0.5, 1.5, 2.5, 3.5, 4.5]
         else:
             breaks = [0.5, 2.0, 3.5, 5.0, 6.5]
-        expected = IntervalIndex.from_breaks(breaks)
+        expected = IntervalIndex.from_breaks(breaks, "right")
 
         result = interval_range(start=start, end=end, periods=4, freq=freq)
         tm.assert_index_equal(result, expected)
@@ -185,7 +185,7 @@ class TestIntervalRange:
         # GH 20976: linspace behavior defined from start/end/periods
         # accounts for the hour gained/lost during DST transition
         result = interval_range(start=start, end=end, periods=2)
-        expected = IntervalIndex.from_breaks([start, mid, end])
+        expected = IntervalIndex.from_breaks([start, mid, end], "right")
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("freq", [2, 2.0])
@@ -334,7 +334,7 @@ class TestIntervalRange:
         # invalid end
         msg = r"end must be numeric or datetime-like, got \(0, 1\]"
         with pytest.raises(ValueError, match=msg):
-            interval_range(end=Interval(0, 1), periods=10)
+            interval_range(end=Interval(0, 1, "right"), periods=10)
 
         # invalid freq for datetime-like
         msg = "freq must be numeric or convertible to DateOffset, got foo"

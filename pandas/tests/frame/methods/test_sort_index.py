@@ -726,7 +726,11 @@ class TestDataFrameSortIndex:
         [
             pytest.param(["a", "b", "c"], id="str"),
             pytest.param(
-                [pd.Interval(0, 1), pd.Interval(1, 2), pd.Interval(2, 3)],
+                [
+                    pd.Interval(0, 1, "right"),
+                    pd.Interval(1, 2, "right"),
+                    pd.Interval(2, 3, "right"),
+                ],
                 id="pd.Interval",
             ),
         ],

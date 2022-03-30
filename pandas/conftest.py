@@ -562,7 +562,7 @@ indices_dict = {
     "bool-object": tm.makeBoolIndex(10).astype(object),
     "bool-dtype": Index(np.random.randn(10) < 0),
     "categorical": tm.makeCategoricalIndex(100),
-    "interval": tm.makeIntervalIndex(100),
+    "interval": tm.makeIntervalIndex(100, inclusive="right"),
     "empty": Index([]),
     "tuples": MultiIndex.from_tuples(zip(["foo", "bar", "baz"], [1, 2, 3])),
     "mi-with-dt64tz-level": _create_mi_with_dt64tz_level(),

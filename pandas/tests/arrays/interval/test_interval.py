@@ -135,7 +135,7 @@ class TestSetitem:
         tm.assert_extension_array_equal(result, expected)
 
     def test_setitem_mismatched_closed(self):
-        arr = IntervalArray.from_breaks(range(4))
+        arr = IntervalArray.from_breaks(range(4), inclusive="right")
         orig = arr.copy()
         other = arr.set_closed("both")
 
