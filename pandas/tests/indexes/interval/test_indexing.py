@@ -285,7 +285,7 @@ class TestGetIndexer:
     )
     def test_get_indexer_categorical(self, target, ordered):
         # GH 30063: categorical and non-categorical results should be consistent
-        index = IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)])
+        index = IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)], inclusive="right")
         categorical_target = CategoricalIndex(target, ordered=ordered)
 
         result = index.get_indexer(categorical_target)
@@ -294,7 +294,7 @@ class TestGetIndexer:
 
     def test_get_indexer_categorical_with_nans(self):
         # GH#41934 nans in both index and in target
-        ii = IntervalIndex.from_breaks(range(5))
+        ii = IntervalIndex.from_breaks(range(5), inclusive="right")
         ii2 = ii.append(IntervalIndex([np.nan]))
         ci2 = CategoricalIndex(ii2)
 
@@ -447,7 +447,7 @@ class TestSliceLocs:
         assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == (2, 2)
 
         # unsorted duplicates
-        index = IntervalIndex.from_tuples([(0, 2), (2, 4), (0, 2)])
+        index = IntervalIndex.from_tuples([(0, 2), (2, 4), (0, 2)], "right")
 
         with pytest.raises(
             KeyError,
@@ -456,7 +456,7 @@ class TestSliceLocs:
                 "Interval(0, 2, inclusive='right')\""
             ),
         ):
-            index.slice_locs(start=Interval(0, 2), end=Interval(2, 4))
+            index.slice_locs(start=Interval(0, 2, "right"), end=Interval(2, 4, "right"))
 
         with pytest.raises(
             KeyError,
@@ -465,18 +465,9 @@ class TestSliceLocs:
                 "Interval(0, 2, inclusive='right')\""
             ),
         ):
-            index.slice_locs(start=Interval(0, 2))
+            index.slice_locs(start=Interval(0, 2, "right"))
 
-        assert index.slice_locs(end=Interval(2, 4)) == (0, 2)
-
-        with pytest.raises(
-            KeyError,
-            match=re.escape(
-                '"Cannot get right slice bound for non-unique label: '
-                "Interval(0, 2, inclusive='right')\""
-            ),
-        ):
-            index.slice_locs(end=Interval(0, 2))
+        assert index.slice_locs(end=Interval(2, 4, "right")) == (0, 2)
 
         with pytest.raises(
             KeyError,
@@ -485,7 +476,16 @@ class TestSliceLocs:
                 "Interval(0, 2, inclusive='right')\""
             ),
         ):
-            index.slice_locs(start=Interval(2, 4), end=Interval(0, 2))
+            index.slice_locs(end=Interval(0, 2, "right"))
+
+        with pytest.raises(
+            KeyError,
+            match=re.escape(
+                '"Cannot get right slice bound for non-unique label: '
+                "Interval(0, 2, inclusive='right')\""
+            ),
+        ):
+            index.slice_locs(start=Interval(2, 4, "right"), end=Interval(0, 2, "right"))
 
         # another unsorted duplicates
         index = IntervalIndex.from_tuples([(0, 2), (0, 2), (2, 4), (1, 3)])
@@ -499,7 +499,7 @@ class TestSliceLocs:
     def test_slice_locs_with_ints_and_floats_succeeds(self):
 
         # increasing non-overlapping
-        index = IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)])
+        index = IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)], inclusive="right")
 
         assert index.slice_locs(0, 1) == (0, 1)
         assert index.slice_locs(0, 2) == (0, 2)
@@ -509,7 +509,7 @@ class TestSliceLocs:
         assert index.slice_locs(0, 4) == (0, 3)
 
         # decreasing non-overlapping
-        index = IntervalIndex.from_tuples([(3, 4), (1, 2), (0, 1)])
+        index = IntervalIndex.from_tuples([(3, 4), (1, 2), (0, 1)], inclusive="right")
         assert index.slice_locs(0, 1) == (3, 3)
         assert index.slice_locs(0, 2) == (3, 2)
         assert index.slice_locs(0, 3) == (3, 1)
@@ -530,7 +530,7 @@ class TestSliceLocs:
     )
     def test_slice_locs_with_ints_and_floats_errors(self, tuples, query):
         start, stop = query
-        index = IntervalIndex.from_tuples(tuples)
+        index = IntervalIndex.from_tuples(tuples, inclusive="right")
         with pytest.raises(
             KeyError,
             match=(
