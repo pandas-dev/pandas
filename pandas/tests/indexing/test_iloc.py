@@ -747,7 +747,7 @@ class TestiLocBaseIndependent:
 
         # the possibilities
         locs = np.arange(4)
-        nums = 2 ** locs
+        nums = 2**locs
         reps = [bin(num) for num in nums]
         df = DataFrame({"locs": locs, "nums": nums}, reps)
 

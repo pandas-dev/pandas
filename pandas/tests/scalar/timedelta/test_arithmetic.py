@@ -427,9 +427,9 @@ class TestTimedeltaMultiplicationDivision:
         # truediv
         td = Timedelta("1 days 2 hours 3 ns")
         result = td / np.timedelta64(1, "D")
-        assert result == td.value / (86400 * 10 ** 9)
+        assert result == td.value / (86400 * 10**9)
         result = td / np.timedelta64(1, "s")
-        assert result == td.value / 10 ** 9
+        assert result == td.value / 10**9
         result = td / np.timedelta64(1, "ns")
         assert result == td.value
 
@@ -694,7 +694,7 @@ class TestTimedeltaMultiplicationDivision:
 
     def test_td_rfloordiv_intarray(self):
         # deprecated GH#19761, enforced GH#29797
-        ints = np.array([1349654400, 1349740800, 1349827200, 1349913600]) * 10 ** 9
+        ints = np.array([1349654400, 1349740800, 1349827200, 1349913600]) * 10**9
 
         msg = "Invalid dtype"
         with pytest.raises(TypeError, match=msg):

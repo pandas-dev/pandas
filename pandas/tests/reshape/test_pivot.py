@@ -2004,7 +2004,7 @@ class TestPivotTable:
         with monkeypatch.context() as m:
             m.setattr(reshape_lib, "_Unstacker", MockUnstacker)
             df = DataFrame(
-                {"ind1": np.arange(2 ** 16), "ind2": np.arange(2 ** 16), "count": 0}
+                {"ind1": np.arange(2**16), "ind2": np.arange(2**16), "count": 0}
             )
 
             msg = "The following operation may generate"

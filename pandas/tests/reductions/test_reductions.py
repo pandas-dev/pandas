@@ -210,8 +210,8 @@ class TestIndexReductions:
         [
             (0, 400, 3),
             (500, 0, -6),
-            (-(10 ** 6), 10 ** 6, 4),
-            (10 ** 6, -(10 ** 6), -4),
+            (-(10**6), 10**6, 4),
+            (10**6, -(10**6), -4),
             (0, 10, 20),
         ],
     )
@@ -1451,16 +1451,16 @@ class TestSeriesMode:
 
     @pytest.mark.parametrize(
         "dropna, expected1, expected2",
-        [(True, [2 ** 63], [1, 2 ** 63]), (False, [2 ** 63], [1, 2 ** 63])],
+        [(True, [2**63], [1, 2**63]), (False, [2**63], [1, 2**63])],
     )
     def test_mode_intoverflow(self, dropna, expected1, expected2):
         # Test for uint64 overflow.
-        s = Series([1, 2 ** 63, 2 ** 63], dtype=np.uint64)
+        s = Series([1, 2**63, 2**63], dtype=np.uint64)
         result = s.mode(dropna)
         expected1 = Series(expected1, dtype=np.uint64)
         tm.assert_series_equal(result, expected1)
 
-        s = Series([1, 2 ** 63], dtype=np.uint64)
+        s = Series([1, 2**63], dtype=np.uint64)
         result = s.mode(dropna)
         expected2 = Series(expected2, dtype=np.uint64)
         tm.assert_series_equal(result, expected2)

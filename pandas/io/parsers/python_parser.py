@@ -158,12 +158,12 @@ class PythonParser(ParserBase):
 
         decimal = re.escape(self.decimal)
         if self.thousands is None:
-            regex = fr"^[\-\+]?[0-9]*({decimal}[0-9]*)?([0-9]?(E|e)\-?[0-9]+)?$"
+            regex = rf"^[\-\+]?[0-9]*({decimal}[0-9]*)?([0-9]?(E|e)\-?[0-9]+)?$"
         else:
             thousands = re.escape(self.thousands)
             regex = (
-                fr"^[\-\+]?([0-9]+{thousands}|[0-9])*({decimal}[0-9]*)?"
-                fr"([0-9]?(E|e)\-?[0-9]+)?$"
+                rf"^[\-\+]?([0-9]+{thousands}|[0-9])*({decimal}[0-9]*)?"
+                rf"([0-9]?(E|e)\-?[0-9]+)?$"
             )
         self.num = re.compile(regex)
 
@@ -1209,7 +1209,7 @@ class FixedWidthReader(abc.Iterator):
         self, infer_nrows: int = 100, skiprows: set[int] | None = None
     ) -> list[tuple[int, int]]:
         # Regex escape the delimiters
-        delimiters = "".join([fr"\{x}" for x in self.delimiter])
+        delimiters = "".join([rf"\{x}" for x in self.delimiter])
         pattern = re.compile(f"([^{delimiters}]+)")
         rows = self.get_rows(infer_nrows, skiprows)
         if not rows:

@@ -1275,7 +1275,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         expected = '{"0":{"articleId":' + str(bigNum) + "}}"
         assert json == expected
 
-    @pytest.mark.parametrize("bigNum", [-(2 ** 63) - 1, 2 ** 64])
+    @pytest.mark.parametrize("bigNum", [-(2**63) - 1, 2**64])
     def test_read_json_large_numbers(self, bigNum):
         # GH20599, 26068
         json = StringIO('{"articleId":' + str(bigNum) + "}")

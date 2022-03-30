@@ -41,7 +41,7 @@ class TestResetIndex:
 
     def test_set_reset(self):
 
-        idx = Index([2 ** 63, 2 ** 63 + 5, 2 ** 63 + 10], name="foo")
+        idx = Index([2**63, 2**63 + 5, 2**63 + 10], name="foo")
 
         # set/reset
         df = DataFrame({"A": [0, 1, 2]}, index=idx)
@@ -232,7 +232,7 @@ class TestResetIndex:
     def test_reset_index_right_dtype(self):
         time = np.arange(0.0, 10, np.sqrt(2) / 2)
         s1 = Series(
-            (9.81 * time ** 2) / 2, index=Index(time, name="time"), name="speed"
+            (9.81 * time**2) / 2, index=Index(time, name="time"), name="speed"
         )
         df = DataFrame(s1)
 

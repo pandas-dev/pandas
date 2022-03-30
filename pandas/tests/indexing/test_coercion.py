@@ -114,7 +114,7 @@ class TestSetitemCoercion(CoercionBase):
         self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
 
     @pytest.mark.parametrize(
-        "val,exp_dtype", [(np.int32(1), np.int8), (np.int16(2 ** 9), np.int16)]
+        "val,exp_dtype", [(np.int32(1), np.int8), (np.int16(2**9), np.int16)]
     )
     def test_setitem_series_int8(self, val, exp_dtype):
         obj = pd.Series([1, 2, 3, 4], dtype=np.int8)

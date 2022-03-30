@@ -870,13 +870,13 @@ class TestFrameArithmetic:
         _test_op(df, lambda x, y: y - x)
         _test_op(df, lambda x, y: y * x)
         _test_op(df, lambda x, y: y / x)
-        _test_op(df, lambda x, y: y ** x)
+        _test_op(df, lambda x, y: y**x)
 
         _test_op(df, lambda x, y: x + y)
         _test_op(df, lambda x, y: x - y)
         _test_op(df, lambda x, y: x * y)
         _test_op(df, lambda x, y: x / y)
-        _test_op(df, lambda x, y: x ** y)
+        _test_op(df, lambda x, y: x**y)
 
     @pytest.mark.parametrize(
         "values", [[1, 2], (1, 2), np.array([1, 2]), range(1, 3), deque([1, 2])]
@@ -949,9 +949,9 @@ class TestFrameArithmetic:
         [
             (1, "i8"),
             (1.0, "f8"),
-            (2 ** 63, "f8"),
+            (2**63, "f8"),
             (1j, "complex128"),
-            (2 ** 63, "complex128"),
+            (2**63, "complex128"),
             (True, "bool"),
             (np.timedelta64(20, "ns"), "<m8[ns]"),
             (np.datetime64(20, "ns"), "<M8[ns]"),
@@ -1766,7 +1766,7 @@ def test_pow_with_realignment():
     left = DataFrame({"A": [0, 1, 2]})
     right = DataFrame(index=[0, 1, 2])
 
-    result = left ** right
+    result = left**right
     expected = DataFrame({"A": [np.nan, 1.0, np.nan]})
     tm.assert_frame_equal(result, expected)
 
@@ -1778,7 +1778,7 @@ def test_pow_nan_with_zero():
 
     expected = DataFrame({"A": [1.0, 1.0, 1.0]})
 
-    result = left ** right
+    result = left**right
     tm.assert_frame_equal(result, expected)
 
     result = left["A"] ** right["A"]

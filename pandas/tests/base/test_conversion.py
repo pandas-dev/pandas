@@ -199,7 +199,7 @@ class TestToIterable:
             "datetime64[ns]",
         ),
         (
-            pd.TimedeltaIndex([10 ** 10]),
+            pd.TimedeltaIndex([10**10]),
             TimedeltaArray,
             "m8[ns]",
         ),

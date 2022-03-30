@@ -338,8 +338,8 @@ class TestExcelWriter:
     def test_excel_sheet_size(self, path):
 
         # GH 26080
-        breaking_row_count = 2 ** 20 + 1
-        breaking_col_count = 2 ** 14 + 1
+        breaking_row_count = 2**20 + 1
+        breaking_col_count = 2**14 + 1
         # purposely using two arrays to prevent memory issues while testing
         row_arr = np.zeros(shape=(breaking_row_count, 1))
         col_arr = np.zeros(shape=(1, breaking_col_count))

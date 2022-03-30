@@ -1058,7 +1058,7 @@ class TestSetitemRangeIntoIntegerSeries(SetitemCastingEquivalents):
     [
         np.array([2.0, 3.0]),
         np.array([2.5, 3.5]),
-        np.array([2 ** 65, 2 ** 65 + 1], dtype=np.float64),  # all ints, but can't cast
+        np.array([2**65, 2**65 + 1], dtype=np.float64),  # all ints, but can't cast
     ],
 )
 class TestSetitemFloatNDarrayIntoIntegerSeries(SetitemCastingEquivalents):
@@ -1117,7 +1117,7 @@ class TestSetitemIntoIntegerSeriesNeedsUpcast(SetitemCastingEquivalents):
         super().test_mask_key(obj, key, expected, val, indexer_sli)
 
 
-@pytest.mark.parametrize("val", [2 ** 33 + 1.0, 2 ** 33 + 1.1, 2 ** 62])
+@pytest.mark.parametrize("val", [2**33 + 1.0, 2**33 + 1.1, 2**62])
 class TestSmallIntegerSetitemUpcast(SetitemCastingEquivalents):
     # https://github.com/pandas-dev/pandas/issues/39584#issuecomment-941212124
     @pytest.fixture
@@ -1134,9 +1134,9 @@ class TestSmallIntegerSetitemUpcast(SetitemCastingEquivalents):
 
     @pytest.fixture
     def expected(self, val):
-        if val == 2 ** 62:
+        if val == 2**62:
             return Series([val, 2, 3], dtype="i8")
-        elif val == 2 ** 33 + 1.1:
+        elif val == 2**33 + 1.1:
             return Series([val, 2, 3], dtype="f8")
         else:
             return Series([val, 2, 3], dtype="i8")

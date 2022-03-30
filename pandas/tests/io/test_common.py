@@ -195,23 +195,23 @@ Look,a snake,🐍"""
         pytest.importorskip(module)
 
         path = os.path.join(HERE, "data", "does_not_exist." + fn_ext)
-        msg1 = fr"File (b')?.+does_not_exist\.{fn_ext}'? does not exist"
-        msg2 = fr"\[Errno 2\] No such file or directory: '.+does_not_exist\.{fn_ext}'"
+        msg1 = rf"File (b')?.+does_not_exist\.{fn_ext}'? does not exist"
+        msg2 = rf"\[Errno 2\] No such file or directory: '.+does_not_exist\.{fn_ext}'"
         msg3 = "Expected object or value"
         msg4 = "path_or_buf needs to be a string file path or file-like"
         msg5 = (
-            fr"\[Errno 2\] File .+does_not_exist\.{fn_ext} does not exist: "
-            fr"'.+does_not_exist\.{fn_ext}'"
+            rf"\[Errno 2\] File .+does_not_exist\.{fn_ext} does not exist: "
+            rf"'.+does_not_exist\.{fn_ext}'"
         )
-        msg6 = fr"\[Errno 2\] 没有那个文件或目录: '.+does_not_exist\.{fn_ext}'"
+        msg6 = rf"\[Errno 2\] 没有那个文件或目录: '.+does_not_exist\.{fn_ext}'"
         msg7 = (
-            fr"\[Errno 2\] File o directory non esistente: '.+does_not_exist\.{fn_ext}'"
+            rf"\[Errno 2\] File o directory non esistente: '.+does_not_exist\.{fn_ext}'"
         )
-        msg8 = fr"Failed to open local file.+does_not_exist\.{fn_ext}"
+        msg8 = rf"Failed to open local file.+does_not_exist\.{fn_ext}"
 
         with pytest.raises(
             error_class,
-            match=fr"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8})",
+            match=rf"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8})",
         ):
             reader(path)
 
@@ -265,23 +265,23 @@ Look,a snake,🐍"""
         path = os.path.join("~", "does_not_exist." + fn_ext)
         monkeypatch.setattr(icom, "_expand_user", lambda x: os.path.join("foo", x))
 
-        msg1 = fr"File (b')?.+does_not_exist\.{fn_ext}'? does not exist"
-        msg2 = fr"\[Errno 2\] No such file or directory: '.+does_not_exist\.{fn_ext}'"
+        msg1 = rf"File (b')?.+does_not_exist\.{fn_ext}'? does not exist"
+        msg2 = rf"\[Errno 2\] No such file or directory: '.+does_not_exist\.{fn_ext}'"
         msg3 = "Unexpected character found when decoding 'false'"
         msg4 = "path_or_buf needs to be a string file path or file-like"
         msg5 = (
-            fr"\[Errno 2\] File .+does_not_exist\.{fn_ext} does not exist: "
-            fr"'.+does_not_exist\.{fn_ext}'"
+            rf"\[Errno 2\] File .+does_not_exist\.{fn_ext} does not exist: "
+            rf"'.+does_not_exist\.{fn_ext}'"
         )
-        msg6 = fr"\[Errno 2\] 没有那个文件或目录: '.+does_not_exist\.{fn_ext}'"
+        msg6 = rf"\[Errno 2\] 没有那个文件或目录: '.+does_not_exist\.{fn_ext}'"
         msg7 = (
-            fr"\[Errno 2\] File o directory non esistente: '.+does_not_exist\.{fn_ext}'"
+            rf"\[Errno 2\] File o directory non esistente: '.+does_not_exist\.{fn_ext}'"
         )
-        msg8 = fr"Failed to open local file.+does_not_exist\.{fn_ext}"
+        msg8 = rf"Failed to open local file.+does_not_exist\.{fn_ext}"
 
         with pytest.raises(
             error_class,
-            match=fr"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8})",
+            match=rf"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8})",
         ):
             reader(path)
 
