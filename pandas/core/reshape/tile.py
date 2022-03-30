@@ -230,7 +230,7 @@ def cut(
     is to the left of the first bin (which is closed on the right), and 1.5
     falls between two bins.
 
-    >>> bins = pd.IntervalIndex.from_tuples([(0, 1), (2, 3), (4, 5)])
+    >>> bins = pd.IntervalIndex.from_tuples([(0, 1), (2, 3), (4, 5)], inclusive="right")
     >>> pd.cut([0, 0.5, 1.5, 2.5, 4.5], bins)
     [NaN, (0.0, 1.0], NaN, (2.0, 3.0], (4.0, 5.0]]
     Categories (3, interval[int64, right]): [(0, 1] < (2, 3] < (4, 5]]
