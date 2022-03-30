@@ -2,5 +2,7 @@
 
 set -e
 
-python setup.py build_ext --inplace -j2
+python setup.py build_ext --inplace -j4
+
+/etc/init.d/postgresql start
 python -m pytest pandas/tests/io/test_sql.py
