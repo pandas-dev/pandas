@@ -5,6 +5,8 @@ Tests for the following offsets:
 - MonthBegin
 - MonthEnd
 """
+from __future__ import annotations
+
 from datetime import datetime
 
 import pytest
@@ -13,8 +15,10 @@ from pandas._libs.tslibs import Timestamp
 from pandas._libs.tslibs.offsets import (
     MonthBegin,
     MonthEnd,
+    MonthOffset,
     SemiMonthBegin,
     SemiMonthEnd,
+    SemiMonthOffset,
 )
 
 from pandas import (
@@ -31,7 +35,7 @@ from pandas.tests.tseries.offsets.common import (
 
 
 class TestSemiMonthEnd(Base):
-    _offset = SemiMonthEnd
+    _offset: type[SemiMonthOffset] = SemiMonthEnd
     offset1 = _offset()
     offset2 = _offset(2)
 
@@ -295,7 +299,7 @@ class TestSemiMonthEnd(Base):
 
 
 class TestSemiMonthBegin(Base):
-    _offset = SemiMonthBegin
+    _offset: type[SemiMonthOffset] = SemiMonthBegin
     offset1 = _offset()
     offset2 = _offset(2)
 
@@ -535,7 +539,7 @@ class TestSemiMonthBegin(Base):
 
 
 class TestMonthBegin(Base):
-    _offset = MonthBegin
+    _offset: type[MonthOffset] = MonthBegin
 
     offset_cases = []
     # NOTE: I'm not entirely happy with the logic here for Begin -ss
@@ -600,7 +604,7 @@ class TestMonthBegin(Base):
 
 
 class TestMonthEnd(Base):
-    _offset = MonthEnd
+    _offset: type[MonthOffset] = MonthEnd
 
     def test_day_of_month(self):
         dt = datetime(2007, 1, 1)

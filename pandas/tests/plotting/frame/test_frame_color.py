@@ -15,26 +15,9 @@ from pandas.tests.plotting.common import (
     _check_plot_works,
 )
 
-pytestmark = pytest.mark.slow
-
 
 @td.skip_if_no_mpl
 class TestDataFrameColor(TestPlotBase):
-    def setup_method(self, method):
-        TestPlotBase.setup_method(self, method)
-        import matplotlib as mpl
-
-        mpl.rcdefaults()
-
-        self.tdf = tm.makeTimeDataFrame()
-        self.hexbin_df = DataFrame(
-            {
-                "A": np.random.uniform(size=20),
-                "B": np.random.uniform(size=20),
-                "C": np.arange(20) + np.random.uniform(size=20),
-            }
-        )
-
     def test_mpl2_color_cycle_str(self):
         # GH 15516
         df = DataFrame(np.random.randn(10, 3), columns=["a", "b", "c"])
@@ -621,12 +604,24 @@ class TestDataFrameColor(TestPlotBase):
         self._check_colors(ax.get_lines(), linecolors=expected)
 
     def test_no_color_bar(self):
-        df = self.hexbin_df
+        df = DataFrame(
+            {
+                "A": np.random.uniform(size=20),
+                "B": np.random.uniform(size=20),
+                "C": np.arange(20) + np.random.uniform(size=20),
+            }
+        )
         ax = df.plot.hexbin(x="A", y="B", colorbar=None)
         assert ax.collections[0].colorbar is None
 
     def test_mixing_cmap_and_colormap_raises(self):
-        df = self.hexbin_df
+        df = DataFrame(
+            {
+                "A": np.random.uniform(size=20),
+                "B": np.random.uniform(size=20),
+                "C": np.arange(20) + np.random.uniform(size=20),
+            }
+        )
         msg = "Only specify one of `cmap` and `colormap`"
         with pytest.raises(TypeError, match=msg):
             df.plot.hexbin(x="A", y="B", cmap="YlGn", colormap="BuGn")

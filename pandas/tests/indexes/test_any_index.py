@@ -48,11 +48,6 @@ def test_mutability(index):
 
 def test_map_identity_mapping(index, request):
     # GH#12766
-    if index.dtype == np.complex64:
-        mark = pytest.mark.xfail(
-            reason="maybe_downcast_to_dtype doesn't handle complex"
-        )
-        request.node.add_marker(mark)
 
     result = index.map(lambda x: x)
     if index.dtype == object and result.dtype == bool:
