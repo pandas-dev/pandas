@@ -1,0 +1,9 @@
+services:
+  db-testing:
+    build:
+      context: .
+      dockerfile: ci/docker/pandas-db-test.dockerfile
+    volumes:
+      - .:/pandas
+    command: /pandas/ci/scripts/run-db-tests.sh
+    
