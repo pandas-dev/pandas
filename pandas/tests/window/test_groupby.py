@@ -683,7 +683,7 @@ class TestRolling:
         )
         if key == "index":
             df = df.set_index("a")
-        with pytest.raises(ValueError, match=f"{key} must not have any NaT values"):
+        with pytest.raises(ValueError, match=f"{key} values must not have NaT"):
             df.groupby("c").rolling("60min", **rollings)
 
     @pytest.mark.parametrize("group_keys", [True, False])
