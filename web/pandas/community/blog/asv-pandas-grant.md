@@ -27,9 +27,9 @@ Even when we come from different backgrounds, Dorothy from systems
 engineering and Lucy from computational chemistry, we have always been
 interested in participating and contributing to open source software
 projects. For that reason, we have been running the PyLadies meetups in
-our communities ([PyLadies Kampala](https://twitter.com/pyladieskla?s=11),
+our communities ([PyLadies Kampala](https://twitter.com/pyladieskla),
 [PyLadies Colombia](https://bit.ly/sprint-asv)) and have always been on
-the lookout for any opportunities that led us to be mentored contribute.
+the lookout for any opportunities that lead us to contribute.
 
 It all happened through Marc Garcia; he had put out a call ​through a post
 on social media to mentor ladies from diverse backgrounds. Dorothy got to
@@ -87,7 +87,7 @@ each other when needed. For us, it was professional and human growth.
 The knowledge and experience acquired in this process allowed us to
 organize two virtual sprints. The events were carried out in the company
 of local PyLadies communities; the first one was on February 26th with
-[PyLadies Kampala](https://twitter.com/pyladieskla?s=11) and on March 21
+[PyLadies Kampala](https://twitter.com/pyladieskla) and on March 21
 with [PyLadies Colombia](https://bit.ly/sprint-asv).
 
 While organizing these events, we learned how to organize and conduct a
