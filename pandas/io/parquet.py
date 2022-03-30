@@ -349,13 +349,12 @@ class FastParquetImpl(BaseImpl):
             )
             path = handles.handle
 
-        parquet_file = self.api.ParquetFile(path, **parquet_kwargs)
-
-        result = parquet_file.to_pandas(columns=columns, **kwargs)
-
-        if handles is not None:
-            handles.close()
-        return result
+        try:
+            parquet_file = self.api.ParquetFile(path, **parquet_kwargs)
+            return parquet_file.to_pandas(columns=columns, **kwargs)
+        finally:
+            if handles is not None:
+                handles.close()
 
 
 @doc(storage_options=_shared_docs["storage_options"])
