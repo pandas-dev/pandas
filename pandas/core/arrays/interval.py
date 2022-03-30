@@ -190,7 +190,7 @@ for more.
     A new ``IntervalArray`` can be constructed directly from an array-like of
     ``Interval`` objects:
 
-    >>> pd.arrays.IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)])
+    >>> pd.arrays.IntervalArray([pd.Interval(0, 1, "right"), pd.Interval(1, 5, "right")])
     <IntervalArray>
     [(0, 1], (1, 5]]
     Length: 2, dtype: interval[int64, right]
@@ -449,7 +449,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 """\
         Examples
         --------
-        >>> pd.arrays.IntervalArray.from_breaks([0, 1, 2, 3])
+        >>> pd.arrays.IntervalArray.from_breaks([0, 1, 2, 3], "right")
         <IntervalArray>
         [(0, 1], (1, 2], (2, 3]]
         Length: 3, dtype: interval[int64, right]
@@ -460,7 +460,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def from_breaks(
         cls: type[IntervalArrayT],
         breaks,
-        inclusive="right",
+        inclusive="both",
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> IntervalArrayT:
@@ -526,7 +526,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             "klass": "IntervalArray",
             "examples": textwrap.dedent(
                 """\
-        >>> pd.arrays.IntervalArray.from_arrays([0, 1, 2], [1, 2, 3])
+        >>> pd.arrays.IntervalArray.from_arrays([0, 1, 2], [1, 2, 3], inclusive="right")
         <IntervalArray>
         [(0, 1], (1, 2], (2, 3]]
         Length: 3, dtype: interval[int64, right]
@@ -595,7 +595,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 """\
         Examples
         --------
-        >>> pd.arrays.IntervalArray.from_tuples([(0, 1), (1, 2)])
+        >>> pd.arrays.IntervalArray.from_tuples([(0, 1), (1, 2)], inclusive="right")
         <IntervalArray>
         [(0, 1], (1, 2]]
         Length: 2, dtype: interval[int64, right]
@@ -606,7 +606,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def from_tuples(
         cls: type[IntervalArrayT],
         data,
-        inclusive="right",
+        inclusive="both",
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> IntervalArrayT:
@@ -1353,7 +1353,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             "examples": textwrap.dedent(
                 """\
         >>> data = [(0, 1), (1, 3), (2, 4)]
-        >>> intervals = pd.arrays.IntervalArray.from_tuples(data)
+        >>> intervals = pd.arrays.IntervalArray.from_tuples(data, "right")
         >>> intervals
         <IntervalArray>
         [(0, 1], (1, 3], (2, 4]]
@@ -1415,7 +1415,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 """\
         Examples
         --------
-        >>> index = pd.arrays.IntervalArray.from_breaks(range(4))
+        >>> index = pd.arrays.IntervalArray.from_breaks(range(4), "right")
         >>> index
         <IntervalArray>
         [(0, 1], (1, 2], (2, 3]]
@@ -1669,7 +1669,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             "klass": "IntervalArray",
             "examples": textwrap.dedent(
                 """\
-        >>> intervals = pd.arrays.IntervalArray.from_tuples([(0, 1), (1, 3), (2, 4)])
+        >>> intervals = pd.arrays.IntervalArray.from_tuples([(0, 1), (1, 3), (2, 4)], "right")
         >>> intervals
         <IntervalArray>
         [(0, 1], (1, 3], (2, 4]]
