@@ -1910,7 +1910,7 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
 
         shifted = shift_month(other, months, "start")
         to_day = self._get_offset_day(shifted)
-        return shift_day(shifted, to_day - shifted.day)
+        return _shift_day(shifted, to_day - shifted.day)
 
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
@@ -3132,7 +3132,7 @@ cdef class FY5253Quarter(FY5253Mixin):
             qtr_lens = self.get_weeks(norm)
 
             # check that qtr_lens is consistent with self._offset addition
-            end = shift_day(start, days=7 * sum(qtr_lens))
+            end = _shift_day(start, days=7 * sum(qtr_lens))
             assert self._offset.is_on_offset(end), (start, end, qtr_lens)
 
             tdelta = norm - start
@@ -3173,7 +3173,7 @@ cdef class FY5253Quarter(FY5253Mixin):
         # Note: we always have 0 <= n < 4
         weeks = sum(qtr_lens[:n])
         if weeks:
-            res = shift_day(res, days=weeks * 7)
+            res = _shift_day(res, days=weeks * 7)
 
         return res
 
@@ -3210,7 +3210,7 @@ cdef class FY5253Quarter(FY5253Mixin):
 
         current = next_year_end
         for qtr_len in qtr_lens:
-            current = shift_day(current, days=qtr_len * 7)
+            current = _shift_day(current, days=qtr_len * 7)
             if dt == current:
                 return True
         return False
@@ -3729,7 +3729,7 @@ cpdef to_offset(freq):
 # ----------------------------------------------------------------------
 # RelativeDelta Arithmetic
 
-def shift_day(other: datetime, days: int) -> datetime:
+cdef datetime _shift_day(datetime other, int days):
     """
     Increment the datetime `other` by the given number of days, retaining
     the time-portion of the datetime.  For tz-naive datetimes this is
@@ -3915,6 +3915,8 @@ cdef inline void _shift_quarters(const int64_t[:] dtindex,
         out[i] = dtstruct_to_dt64(&dts)
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef ndarray[int64_t] _shift_bdays(const int64_t[:] i8other, int periods):
     """
     Implementation of BusinessDay.apply_offset.

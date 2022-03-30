@@ -34,11 +34,6 @@ cdef extern from "src/datetime/np_datetime.h":
     int cmp_npy_datetimestruct(npy_datetimestruct *a,
                                npy_datetimestruct *b)
 
-    void pandas_timedelta_to_timedeltastruct(npy_timedelta val,
-                                             NPY_DATETIMEUNIT fr,
-                                             pandas_timedeltastruct *result
-                                             ) nogil
-
     # AS, FS, PS versions exist but are not imported because they are not used.
     npy_datetimestruct _NS_MIN_DTS, _NS_MAX_DTS
     npy_datetimestruct _US_MIN_DTS, _US_MAX_DTS
