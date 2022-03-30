@@ -46,6 +46,7 @@ Other enhancements
 - Improved error message in :class:`~pandas.core.window.Rolling` when ``window`` is a frequency and ``NaT`` is in the rolling axis (:issue:`46087`)
 - :class:`Series` and :class:`DataFrame` with ``IntegerDtype`` now supports bitwise operations (:issue:`34463`)
 - Add ``milliseconds`` field support for :class:`~pandas.DateOffset` (:issue:`43371`)
+- :meth:`DataFrame.reset_index` now accepts a ``names`` argument which renames the index names (:issue:`6878`)
 - :meth:`DataFrame.rolling.var`, :meth:`DataFrame.rolling.std`, :meth:`Series.rolling.var`, :meth:`Series.rolling.std` now generate correct result 0 for window containing same values (:issue:`42064`)
 -
 
@@ -486,7 +487,7 @@ MultiIndex
 - Bug in :meth:`DataFrame.loc` raising when slicing a :class:`MultiIndex` with a negative step size and slicing a non-int labeled index level (:issue:`46156`)
 - Bug in :meth:`Series.to_numpy` where multiindexed Series could not be converted to numpy arrays when an ``na_value`` was supplied (:issue:`45774`)
 - Bug in :class:`MultiIndex.equals` not commutative when only one side has extension array dtype (:issue:`46026`)
--
+- Bug in :meth:`MultiIndex.from_tuples` cannot construct Index of empty tuples (:issue:`45608`)
 
 I/O
 ^^^
