@@ -105,7 +105,7 @@ class TestRolling:
         ],
     )
     def test_rolling(self, f, roll_frame):
-        g = roll_frame.groupby("A")
+        g = roll_frame.groupby("A", group_keys=False)
         r = g.rolling(window=4)
 
         result = getattr(r, f)()
@@ -119,7 +119,7 @@ class TestRolling:
 
     @pytest.mark.parametrize("f", ["std", "var"])
     def test_rolling_ddof(self, f, roll_frame):
-        g = roll_frame.groupby("A")
+        g = roll_frame.groupby("A", group_keys=False)
         r = g.rolling(window=4)
 
         result = getattr(r, f)(ddof=1)
@@ -135,7 +135,7 @@ class TestRolling:
         "interpolation", ["linear", "lower", "higher", "midpoint", "nearest"]
     )
     def test_rolling_quantile(self, interpolation, roll_frame):
-        g = roll_frame.groupby("A")
+        g = roll_frame.groupby("A", group_keys=False)
         r = g.rolling(window=4)
 
         result = r.quantile(0.4, interpolation=interpolation)
@@ -240,7 +240,7 @@ class TestRolling:
         tm.assert_frame_equal(result, expected)
 
     def test_rolling_apply(self, raw, roll_frame):
-        g = roll_frame.groupby("A")
+        g = roll_frame.groupby("A", group_keys=False)
         r = g.rolling(window=4)
 
         # reduction
@@ -787,7 +787,7 @@ class TestRolling:
 
     def test_groupby_rolling_object_doesnt_affect_groupby_apply(self, roll_frame):
         # GH 39732
-        g = roll_frame.groupby("A")
+        g = roll_frame.groupby("A", group_keys=False)
         expected = g.apply(lambda x: x.rolling(4).sum()).index
         _ = g.rolling(window=4)
         result = g.apply(lambda x: x.rolling(4).sum()).index
@@ -1013,7 +1013,7 @@ class TestExpanding:
         "f", ["sum", "mean", "min", "max", "count", "kurt", "skew"]
     )
     def test_expanding(self, f):
-        g = self.frame.groupby("A")
+        g = self.frame.groupby("A", group_keys=False)
         r = g.expanding()
 
         result = getattr(r, f)()
@@ -1027,7 +1027,7 @@ class TestExpanding:
 
     @pytest.mark.parametrize("f", ["std", "var"])
     def test_expanding_ddof(self, f):
-        g = self.frame.groupby("A")
+        g = self.frame.groupby("A", group_keys=False)
         r = g.expanding()
 
         result = getattr(r, f)(ddof=0)
@@ -1043,7 +1043,7 @@ class TestExpanding:
         "interpolation", ["linear", "lower", "higher", "midpoint", "nearest"]
     )
     def test_expanding_quantile(self, interpolation):
-        g = self.frame.groupby("A")
+        g = self.frame.groupby("A", group_keys=False)
         r = g.expanding()
 
         result = r.quantile(0.4, interpolation=interpolation)
@@ -1086,7 +1086,7 @@ class TestExpanding:
         tm.assert_series_equal(result, expected)
 
     def test_expanding_apply(self, raw):
-        g = self.frame.groupby("A")
+        g = self.frame.groupby("A", group_keys=False)
         r = g.expanding()
 
         # reduction
@@ -1129,12 +1129,10 @@ class TestEWM:
 
         with tm.assert_produces_warning(FutureWarning, match="nuisance"):
             # GH#42738
-            expected = df.groupby("A").apply(
+            expected = df.groupby("A", group_keys=True).apply(
                 lambda x: getattr(x.ewm(com=1.0), method)()
             )
-
-        # There may be a bug in the above statement; not returning the correct index
-        tm.assert_frame_equal(result.reset_index(drop=True), expected)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "method, expected_data",
@@ -1206,13 +1204,10 @@ class TestEWM:
         with tm.assert_produces_warning(FutureWarning, match="nuisance"):
             # GH#42738
             result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
-            expected = (
-                times_frame.groupby("A")
-                .apply(lambda x: x.ewm(halflife=halflife, times="C").mean())
-                .iloc[[0, 3, 6, 9, 1, 4, 7, 2, 5, 8]]
-                .reset_index(drop=True)
+            expected = times_frame.groupby("A", group_keys=True).apply(
+                lambda x: x.ewm(halflife=halflife, times="C").mean()
             )
-        tm.assert_frame_equal(result.reset_index(drop=True), expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_times_array(self, times_frame):
         # GH 40951
