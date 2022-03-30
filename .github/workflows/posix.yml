@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        shell: bash -l {0}
+        shell: bash -el {0}
     timeout-minutes: 120
     strategy:
       matrix:
@@ -30,38 +30,38 @@ jobs:
         # even if tests are skipped/xfailed
         pyarrow_version: ["5", "7"]
         include:
-          - env_file: actions-38-downstream_compat.yaml
+          - name: "Downstream Compat"
+            env_file: actions-38-downstream_compat.yaml
             pattern: "not slow and not network and not single_cpu"
             pytest_target: "pandas/tests/test_downstream.py"
-            name: "Downstream Compat"
-          - env_file: actions-38-minimum_versions.yaml
+          - name: "Minimum Versions"
+            env_file: actions-38-minimum_versions.yaml
             pattern: "not slow and not network and not single_cpu"
-            name: "Minimum Versions"
-          - env_file: actions-38.yaml
+          - name: "Locale: it_IT.utf8"
+            env_file: actions-38.yaml
             pattern: "not slow and not network and not single_cpu"
             extra_apt: "language-pack-it"
             lang: "it_IT.utf8"
             lc_all: "it_IT.utf8"
-            name: "Locale: it_IT.utf8"
-          - env_file: actions-38.yaml
+          - name: "Locale: zh_CN.utf8"
+            env_file: actions-38.yaml
             pattern: "not slow and not network and not single_cpu"
             extra_apt: "language-pack-zh-hans"
             lang: "zh_CN.utf8"
             lc_all: "zh_CN.utf8"
-            name: "Locale: zh_CN.utf8"
-          - env_file: actions-38.yaml
+          - name: "Data Manager"
+            env_file: actions-38.yaml
             pattern: "not slow and not network and not single_cpu"
             pandas_data_manager: "array"
-            name: "Data Manager"
-          - env_file: actions-pypy-38.yaml
+          - name: "Pypy"
+            env_file: actions-pypy-38.yaml
             pattern: "not slow and not network and not single_cpu"
             test_args: "--max-worker-restart 0"
-            name: "Pypy"
-          - env_file: actions-310-numpydev.yaml
+          - name: "Numpy Dev"
+            env_file: actions-310-numpydev.yaml
             pattern: "not slow and not network and not single_cpu"
             pandas_testing_mode: "deprecate"
             test_args: "-W error"
-            name: "Numpy Dev"
       fail-fast: false
     name: ${{ matrix.name || format('{0} pyarrow={1} {2}', matrix.env_file, matrix.pyarrow_version, matrix.pattern) }}
     env:
@@ -121,12 +121,12 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
 
     - name: Cache conda
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       env:
         CACHE_NUMBER: 0
       with:
@@ -138,7 +138,7 @@ jobs:
       # xsel for clipboard tests
       run: sudo apt-get update && sudo apt-get install -y libc6-dev-i386 xsel ${{ env.EXTRA_APT }}
 
-    - uses: conda-incubator/setup-miniconda@v2
+    - uses: conda-incubator/setup-miniconda@v2.1.1
       with:
         mamba-version: "*"
         channels: conda-forge
@@ -153,16 +153,15 @@ jobs:
       if: ${{ matrix.pyarrow_version }}
 
     - name: Setup PyPy
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v3
       with:
         python-version: "pypy-3.8"
       if: ${{ env.IS_PYPY == 'true' }}
 
     - name: Setup PyPy dependencies
-      shell: bash
       run: |
         # TODO: re-enable cov, its slowing the tests down though
-        pip install Cython numpy python-dateutil pytz pytest>=6.0 pytest-xdist>=1.31.0 pytest-asyncio hypothesis>=5.5.3
+        pip install Cython numpy python-dateutil pytz pytest>=6.0 pytest-xdist>=1.31.0 pytest-asyncio>=0.17 hypothesis>=5.5.3
       if: ${{ env.IS_PYPY == 'true' }}
 
     - name: Build Pandas
@@ -178,7 +177,7 @@ jobs:
       run: pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
 
     - name: Publish test results
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: Test results
         path: test-data.xml

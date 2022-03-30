@@ -16,7 +16,7 @@ repos:
         pass_filenames: true
         require_serial: false
 -   repo: https://github.com/python/black
-    rev: 22.1.0
+    rev: 22.3.0
     hooks:
     -   id: black
 -   repo: https://github.com/codespell-project/codespell
@@ -33,7 +33,7 @@ repos:
         exclude: \.txt$
     -   id: trailing-whitespace
 -   repo: https://github.com/cpplint/cpplint
-    rev: 1.5.5
+    rev: 1.6.0
     hooks:
     -   id: cpplint
         # We don't lint all C files because we don't want to lint any that are built
@@ -50,13 +50,13 @@ repos:
         - flake8==4.0.1
         - flake8-comprehensions==3.7.0
         - flake8-bugbear==21.3.2
-        - pandas-dev-flaker==0.4.0
+        - pandas-dev-flaker==0.5.0
 -   repo: https://github.com/PyCQA/isort
     rev: 5.10.1
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.31.0
+    rev: v2.31.1
     hooks:
     -   id: pyupgrade
         args: [--py38-plus]

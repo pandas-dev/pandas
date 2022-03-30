@@ -65,8 +65,6 @@ cdef int64_t tz_localize_to_utc_single(
         return val - _tz_localize_using_tzinfo_api(val, tz, to_utc=True)
 
     elif is_fixed_offset(tz):
-        # TODO: in this case we should be able to use get_utcoffset,
-        #  that returns None for e.g. 'dateutil//usr/share/zoneinfo/Etc/GMT-9'
         _, deltas, _ = get_dst_info(tz)
         delta = deltas[0]
         return val - delta
@@ -122,9 +120,10 @@ timedelta-like}
         Py_ssize_t delta_idx_offset, delta_idx, pos_left, pos_right
         int64_t *tdata
         int64_t v, left, right, val, v_left, v_right, new_local, remaining_mins
-        int64_t first_delta
+        int64_t first_delta, delta
         int64_t shift_delta = 0
-        ndarray[int64_t] trans, result, result_a, result_b, dst_hours
+        ndarray[int64_t] trans, result_a, result_b, dst_hours
+        int64_t[::1] result
         npy_datetimestruct dts
         bint infer_dst = False, is_dst = False, fill = False
         bint shift_forward = False, shift_backward = False
@@ -133,7 +132,7 @@ timedelta-like}
 
     # Vectorized version of DstTzInfo.localize
     if is_utc(tz) or tz is None:
-        return vals
+        return vals.copy()
 
     result = np.empty(n, dtype=np.int64)
 
@@ -144,7 +143,18 @@ timedelta-like}
                 result[i] = NPY_NAT
             else:
                 result[i] = v - _tz_localize_using_tzinfo_api(v, tz, to_utc=True)
-        return result
+        return result.base  # to return underlying ndarray
+
+    elif is_fixed_offset(tz):
+        _, deltas, _ = get_dst_info(tz)
+        delta = deltas[0]
+        for i in range(n):
+            v = vals[i]
+            if v == NPY_NAT:
+                result[i] = NPY_NAT
+            else:
+                result[i] = v - delta
+        return result.base  # to return underlying ndarray
 
     # silence false-positive compiler warning
     ambiguous_array = np.empty(0, dtype=bool)
@@ -299,7 +309,7 @@ timedelta-like}
                 stamp = _render_tstamp(val)
                 raise pytz.NonExistentTimeError(stamp)
 
-    return result
+    return result.base  # .base to get underlying ndarray
 
 
 cdef inline Py_ssize_t bisect_right_i8(int64_t *data,
@@ -435,7 +445,18 @@ cdef int64_t localize_tzinfo_api(
     return _tz_localize_using_tzinfo_api(utc_val, tz, to_utc=False, fold=fold)
 
 
-cpdef int64_t tz_convert_from_utc_single(int64_t utc_val, tzinfo tz):
+def py_tz_convert_from_utc_single(int64_t utc_val, tzinfo tz):
+    # The 'bint* fold=NULL' in tz_convert_from_utc_single means we cannot
+    #  make it cdef, so this is version exposed for testing from python.
+    return tz_convert_from_utc_single(utc_val, tz)
+
+
+cdef int64_t tz_convert_from_utc_single(
+    int64_t utc_val,
+    tzinfo tz,
+    bint* fold=NULL,
+    Py_ssize_t* outpos=NULL,
+) except? -1:
     """
     Convert the val (in i8) from UTC to tz
 
@@ -445,6 +466,8 @@ cpdef int64_t tz_convert_from_utc_single(int64_t utc_val, tzinfo tz):
     ----------
     utc_val : int64
     tz : tzinfo
+    fold : bint*, default NULL
+    outpos : Py_ssize_t*, default NULL
 
     Returns
     -------
@@ -464,15 +487,31 @@ cpdef int64_t tz_convert_from_utc_single(int64_t utc_val, tzinfo tz):
         return utc_val
     elif is_tzlocal(tz) or is_zoneinfo(tz):
         return utc_val + _tz_localize_using_tzinfo_api(utc_val, tz, to_utc=False)
-    elif is_fixed_offset(tz):
-        _, deltas, _ = get_dst_info(tz)
-        delta = deltas[0]
-        return utc_val + delta
     else:
-        trans, deltas, _ = get_dst_info(tz)
+        trans, deltas, typ = get_dst_info(tz)
         tdata = <int64_t*>cnp.PyArray_DATA(trans)
-        pos = bisect_right_i8(tdata, utc_val, trans.shape[0]) - 1
-        return utc_val + deltas[pos]
+
+        if typ == "dateutil":
+            pos = bisect_right_i8(tdata, utc_val, trans.shape[0]) - 1
+
+            if fold is not NULL:
+                fold[0] = infer_dateutil_fold(utc_val, trans, deltas, pos)
+            return utc_val + deltas[pos]
+
+        elif typ == "pytz":
+            pos = bisect_right_i8(tdata, utc_val, trans.shape[0]) - 1
+
+            # We need to get 'pos' back to the caller so it can pick the
+            #  correct "standardized" tzinfo objecg.
+            if outpos is not NULL:
+                outpos[0] = pos
+            return utc_val + deltas[pos]
+
+        else:
+            # All other cases have len(deltas) == 1. As of 2018-07-17
+            #  (and 2022-03-07), all test cases that get here have
+            #  is_fixed_offset(tz).
+            return utc_val + deltas[0]
 
 
 def tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
@@ -623,3 +662,48 @@ cdef int64_t _tz_localize_using_tzinfo_api(
     td = tz.utcoffset(dt)
     delta = int(td.total_seconds() * 1_000_000_000)
     return delta
+
+
+# NB: relies on dateutil internals, subject to change.
+cdef bint infer_dateutil_fold(
+    int64_t value,
+    const int64_t[::1] trans,
+    const int64_t[::1] deltas,
+    intp_t pos,
+):
+    """
+    Infer _TSObject fold property from value by assuming 0 and then setting
+    to 1 if necessary.
+
+    Parameters
+    ----------
+    value : int64_t
+    trans : ndarray[int64_t]
+        ndarray of offset transition points in nanoseconds since epoch.
+    deltas : int64_t[:]
+        array of offsets corresponding to transition points in trans.
+    pos : intp_t
+        Position of the last transition point before taking fold into account.
+
+    Returns
+    -------
+    bint
+        Due to daylight saving time, one wall clock time can occur twice
+        when shifting from summer to winter time; fold describes whether the
+        datetime-like corresponds  to the first (0) or the second time (1)
+        the wall clock hits the ambiguous time
+
+    References
+    ----------
+    .. [1] "PEP 495 - Local Time Disambiguation"
+           https://www.python.org/dev/peps/pep-0495/#the-fold-attribute
+    """
+    cdef:
+        bint fold = 0
+
+    if pos > 0:
+        fold_delta = deltas[pos - 1] - deltas[pos]
+        if value - fold_delta < trans[pos]:
+            fold = 1
+
+    return fold

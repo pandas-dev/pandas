@@ -18,8 +18,6 @@ from numpy cimport (
 
 cnp.import_array()
 
-from .conversion cimport normalize_i8_stamp
-
 from .dtypes import Resolution
 
 from .ccalendar cimport DAY_NANOS
@@ -34,7 +32,10 @@ from .np_datetime cimport (
 )
 from .offsets cimport BaseOffset
 from .period cimport get_period_ordinal
-from .timestamps cimport create_timestamp_from_ts
+from .timestamps cimport (
+    create_timestamp_from_ts,
+    normalize_i8_stamp,
+)
 from .timezones cimport (
     get_dst_info,
     is_tzlocal,
