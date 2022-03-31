@@ -818,7 +818,10 @@ class BaseGrouper:
         # Original indices are where group_index would go via sorting.
         # But when dropna is true, we need to remove null values while accounting for
         # any gaps that then occur because of them.
-        group_index = get_group_index(self.codes, self.shape, sort=False, xnull=True)
+        group_index = get_group_index(
+            self.codes, self.shape, sort=self._sort, xnull=True
+        )
+        group_index, _ = compress_group_index(group_index, sort=self._sort)
 
         if self.has_dropped_na:
             mask = np.where(group_index >= 0)
