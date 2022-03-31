@@ -1,16 +1,28 @@
-from pandas.core.exchange.dataframe_protocol import (
-    Column,
-    DtypeKind,
-    Buffer,
-    ColumnNullType,
+from functools import cached_property
+from typing import (
+    Any,
+    Tuple,
+)
+
+import numpy as np
+
+import pandas as pd
+from pandas.api.types import (
+    is_categorical_dtype,
+    is_string_dtype,
 )
 from pandas.core.exchange.buffer import PandasBuffer
-from pandas.core.exchange.utils import ArrowCTypes, Endianness, dtype_to_arrow_c_fmt
-from pandas.api.types import is_categorical_dtype, is_string_dtype
-import pandas as pd
-import numpy as np
-from typing import Tuple, Any
-from functools import cached_property
+from pandas.core.exchange.dataframe_protocol import (
+    Buffer,
+    Column,
+    ColumnNullType,
+    DtypeKind,
+)
+from pandas.core.exchange.utils import (
+    ArrowCTypes,
+    Endianness,
+    dtype_to_arrow_c_fmt,
+)
 
 _NP_KINDS = {
     "i": DtypeKind.INT,

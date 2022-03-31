@@ -2,9 +2,20 @@
 A verbatim copy (vendored) of the spec from https://github.com/data-apis/dataframe-api
 """
 
-from typing import Tuple, Optional, Dict, Any, Iterable, Sequence, TypedDict
+from abc import (
+    ABC,
+    abstractmethod,
+)
 import enum
-from abc import ABC, abstractmethod
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    Optional,
+    Sequence,
+    Tuple,
+    TypedDict,
+)
 
 
 class DlpackDeviceType(enum.IntEnum):

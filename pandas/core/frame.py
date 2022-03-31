@@ -218,10 +218,11 @@ import pandas.plotting
 
 if TYPE_CHECKING:
 
+    from pandas.core.exchange.dataframe_protocol import DataFrame as DataFrameXchg
     from pandas.core.groupby.generic import DataFrameGroupBy
     from pandas.core.internals import SingleDataManager
     from pandas.core.resample import Resampler
-    from pandas.core.exchange.dataframe_protocol import DataFrame as DataFrameXchg
+
     from pandas.io.formats.style import Styler
 
 # ---------------------------------------------------------------------

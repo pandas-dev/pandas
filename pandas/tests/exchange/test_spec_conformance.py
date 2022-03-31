@@ -1,9 +1,10 @@
 """
 A verbatim copy (vendored) of the spec tests from https://github.com/data-apis/dataframe-api
 """
-import pytest
-import math
 import ctypes
+import math
+
+import pytest
 
 
 @pytest.mark.parametrize(

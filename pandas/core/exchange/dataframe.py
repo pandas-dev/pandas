@@ -1,7 +1,8 @@
-from pandas.core.exchange.dataframe_protocol import DataFrame as DataFrameXchg
-from pandas.core.exchange.column import PandasColumn
-import pandas as pd
 import collections.abc
+
+import pandas as pd
+from pandas.core.exchange.column import PandasColumn
+from pandas.core.exchange.dataframe_protocol import DataFrame as DataFrameXchg
 
 
 class PandasDataFrameXchg(DataFrameXchg):

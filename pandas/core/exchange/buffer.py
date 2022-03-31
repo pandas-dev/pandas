@@ -1,6 +1,11 @@
-from pandas.core.exchange.dataframe_protocol import Buffer, DlpackDeviceType
-import numpy as np
 from typing import Tuple
+
+import numpy as np
+
+from pandas.core.exchange.dataframe_protocol import (
+    Buffer,
+    DlpackDeviceType,
+)
 
 
 class PandasBuffer(Buffer):

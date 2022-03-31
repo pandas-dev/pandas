@@ -1,11 +1,15 @@
-import pandas as pd
-import numpy as np
-import pytest
 import random
 
-from pandas.testing import assert_frame_equal
-from pandas.core.exchange.dataframe_protocol import DtypeKind, ColumnNullType
+import numpy as np
+import pytest
+
+import pandas as pd
+from pandas.core.exchange.dataframe_protocol import (
+    ColumnNullType,
+    DtypeKind,
+)
 from pandas.core.exchange.from_dataframe import from_dataframe
+from pandas.testing import assert_frame_equal
 
 test_data_categorical = {
     "ordered": pd.Categorical(list("testdata") * 30, ordered=True),
@@ -15,21 +19,21 @@ test_data_categorical = {
 NCOLS, NROWS = 100, 200
 
 int_data = {
-    "col{}".format(int((i - NCOLS / 2) % NCOLS + 1)): [
+    f"col{int((i - NCOLS / 2) % NCOLS + 1)}": [
         random.randint(0, 100) for _ in range(NROWS)
     ]
     for i in range(NCOLS)
 }
 
 bool_data = {
-    "col{}".format(int((i - NCOLS / 2) % NCOLS + 1)): [
+    f"col{int((i - NCOLS / 2) % NCOLS + 1)}": [
         random.choice([True, False]) for _ in range(NROWS)
     ]
     for i in range(NCOLS)
 }
 
 float_data = {
-    "col{}".format(int((i - NCOLS / 2) % NCOLS + 1)): [
+    f"col{int((i - NCOLS / 2) % NCOLS + 1)}": [
         random.random() for _ in range(NROWS)
     ]
     for i in range(NCOLS)

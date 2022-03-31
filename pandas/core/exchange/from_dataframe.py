@@ -1,16 +1,26 @@
+import ctypes
+import re
+from typing import (
+    Any,
+    Optional,
+    Tuple,
+    Union,
+)
+
+import numpy as np
+
+import pandas as pd
 from pandas.core.exchange.dataframe_protocol import (
     Buffer,
     Column,
+    ColumnNullType,
     DataFrame,
     DtypeKind,
-    ColumnNullType,
 )
-from pandas.core.exchange.utils import ArrowCTypes, Endianness
-import numpy as np
-import pandas as pd
-import ctypes
-import re
-from typing import Tuple, Optional, Any, Union
+from pandas.core.exchange.utils import (
+    ArrowCTypes,
+    Endianness,
+)
 
 _NP_DTYPES = {
     DtypeKind.INT: {8: np.int8, 16: np.int16, 32: np.int32, 64: np.int64},

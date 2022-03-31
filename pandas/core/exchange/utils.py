@@ -2,9 +2,11 @@
 Utility functions and objects for implementing the exchange API.
 """
 
-import pandas as pd
 import re
+
 import numpy as np
+
+import pandas as pd
 from pandas.api.types import is_datetime64_dtype
 
 
