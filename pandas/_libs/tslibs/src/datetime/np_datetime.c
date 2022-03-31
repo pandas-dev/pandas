@@ -712,7 +712,8 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
     npy_int64 sfrac;
     npy_int64 ifrac;
     int sign;
-    npy_int64 DAY_NS = 86400000000000LL;
+    npy_int64 per_day;
+    npy_int64 per_sec;
 
     /* Initialize the output to all zeros */
     memset(out, 0, sizeof(pandas_timedeltastruct));
@@ -720,11 +721,14 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
     switch (base) {
         case NPY_FR_ns:
 
+        per_day = 86400000000000LL;
+        per_sec = 1000LL * 1000LL * 1000LL;
+
         // put frac in seconds
-        if (td < 0 && td % (1000LL * 1000LL * 1000LL) != 0)
-            frac = td / (1000LL * 1000LL * 1000LL) - 1;
+        if (td < 0 && td % per_sec != 0)
+            frac = td / per_sec - 1;
         else
-            frac = td / (1000LL * 1000LL * 1000LL);
+            frac = td / per_sec;
 
         if (frac < 0) {
             sign = -1;
@@ -768,12 +772,12 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
         }
 
         sfrac = (out->hrs * 3600LL + out->min * 60LL
-                 + out->sec) * (1000LL * 1000LL * 1000LL);
+                 + out->sec) * per_sec;
 
         if (sign < 0)
             out->days = -out->days;
 
-        ifrac = td - (out->days * DAY_NS + sfrac);
+        ifrac = td - (out->days * per_day + sfrac);
 
         if (ifrac != 0) {
             out->ms = ifrac / (1000LL * 1000LL);
@@ -786,10 +790,222 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
             out->us = 0;
             out->ns = 0;
         }
+        break;
 
-        out->seconds = out->hrs * 3600 + out->min * 60 + out->sec;
-        out->microseconds = out->ms * 1000 + out->us;
-        out->nanoseconds = out->ns;
+        case NPY_FR_us:
+
+        per_day = 86400000000LL;
+        per_sec = 1000LL * 1000LL;
+
+        // put frac in seconds
+        if (td < 0 && td % per_sec != 0)
+            frac = td / per_sec - 1;
+        else
+            frac = td / per_sec;
+
+        if (frac < 0) {
+            sign = -1;
+
+            // even fraction
+            if ((-frac % 86400LL) != 0) {
+              out->days = -frac / 86400LL + 1;
+              frac += 86400LL * out->days;
+            } else {
+              frac = -frac;
+            }
+        } else {
+            sign = 1;
+            out->days = 0;
+        }
+
+        if (frac >= 86400) {
+            out->days += frac / 86400LL;
+            frac -= out->days * 86400LL;
+        }
+
+        if (frac >= 3600) {
+            out->hrs = frac / 3600LL;
+            frac -= out->hrs * 3600LL;
+        } else {
+            out->hrs = 0;
+        }
+
+        if (frac >= 60) {
+            out->min = frac / 60LL;
+            frac -= out->min * 60LL;
+        } else {
+            out->min = 0;
+        }
+
+        if (frac >= 0) {
+            out->sec = frac;
+            frac -= out->sec;
+        } else {
+            out->sec = 0;
+        }
+
+        sfrac = (out->hrs * 3600LL + out->min * 60LL
+                 + out->sec) * per_sec;
+
+        if (sign < 0)
+            out->days = -out->days;
+
+        ifrac = td - (out->days * per_day + sfrac);
+
+        if (ifrac != 0) {
+            out->ms = ifrac / 1000LL;
+            ifrac -= out->ms * 1000LL;
+            out->us = ifrac / 1L;
+            ifrac -= out->us * 1L;
+            out->ns = ifrac;
+        } else {
+            out->ms = 0;
+            out->us = 0;
+            out->ns = 0;
+        }
+        break;
+
+        case NPY_FR_ms:
+
+        per_day = 86400000LL;
+        per_sec = 1000LL;
+
+        // put frac in seconds
+        if (td < 0 && td % per_sec != 0)
+            frac = td / per_sec - 1;
+        else
+            frac = td / per_sec;
+
+        if (frac < 0) {
+            sign = -1;
+
+            // even fraction
+            if ((-frac % 86400LL) != 0) {
+              out->days = -frac / 86400LL + 1;
+              frac += 86400LL * out->days;
+            } else {
+              frac = -frac;
+            }
+        } else {
+            sign = 1;
+            out->days = 0;
+        }
+
+        if (frac >= 86400) {
+            out->days += frac / 86400LL;
+            frac -= out->days * 86400LL;
+        }
+
+        if (frac >= 3600) {
+            out->hrs = frac / 3600LL;
+            frac -= out->hrs * 3600LL;
+        } else {
+            out->hrs = 0;
+        }
+
+        if (frac >= 60) {
+            out->min = frac / 60LL;
+            frac -= out->min * 60LL;
+        } else {
+            out->min = 0;
+        }
+
+        if (frac >= 0) {
+            out->sec = frac;
+            frac -= out->sec;
+        } else {
+            out->sec = 0;
+        }
+
+        sfrac = (out->hrs * 3600LL + out->min * 60LL
+                 + out->sec) * per_sec;
+
+        if (sign < 0)
+            out->days = -out->days;
+
+        ifrac = td - (out->days * per_day + sfrac);
+
+        if (ifrac != 0) {
+            out->ms = ifrac;
+            out->us = 0;
+            out->ns = 0;
+        } else {
+            out->ms = 0;
+            out->us = 0;
+            out->ns = 0;
+        }
+        break;
+
+        case NPY_FR_s:
+        // special case where we can simplify many expressions bc per_sec=1
+
+        per_day = 86400000LL;
+        per_sec = 1L;
+
+        // put frac in seconds
+        if (td < 0 && td % per_sec != 0)
+            frac = td / per_sec - 1;
+        else
+            frac = td / per_sec;
+
+        if (frac < 0) {
+            sign = -1;
+
+            // even fraction
+            if ((-frac % 86400LL) != 0) {
+              out->days = -frac / 86400LL + 1;
+              frac += 86400LL * out->days;
+            } else {
+              frac = -frac;
+            }
+        } else {
+            sign = 1;
+            out->days = 0;
+        }
+
+        if (frac >= 86400) {
+            out->days += frac / 86400LL;
+            frac -= out->days * 86400LL;
+        }
+
+        if (frac >= 3600) {
+            out->hrs = frac / 3600LL;
+            frac -= out->hrs * 3600LL;
+        } else {
+            out->hrs = 0;
+        }
+
+        if (frac >= 60) {
+            out->min = frac / 60LL;
+            frac -= out->min * 60LL;
+        } else {
+            out->min = 0;
+        }
+
+        if (frac >= 0) {
+            out->sec = frac;
+            frac -= out->sec;
+        } else {
+            out->sec = 0;
+        }
+
+        sfrac = (out->hrs * 3600LL + out->min * 60LL
+                 + out->sec) * per_sec;
+
+        if (sign < 0)
+            out->days = -out->days;
+
+        ifrac = td - (out->days * per_day + sfrac);
+
+        if (ifrac != 0) {
+            out->ms = 0;
+            out->us = 0;
+            out->ns = 0;
+        } else {
+            out->ms = 0;
+            out->us = 0;
+            out->ns = 0;
+        }
         break;
 
         default:
@@ -797,6 +1013,10 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
                             "NumPy timedelta metadata is corrupted with "
                             "invalid base unit");
     }
+
+    out->seconds = out->hrs * 3600 + out->min * 60 + out->sec;
+    out->microseconds = out->ms * 1000 + out->us;
+    out->nanoseconds = out->ns;
 }
 
 
