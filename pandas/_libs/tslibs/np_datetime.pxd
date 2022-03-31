@@ -66,6 +66,10 @@ cdef extern from "src/datetime/np_datetime.h":
     npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
                                                 npy_datetimestruct *d) nogil
 
+    void pandas_timedelta_to_timedeltastruct(npy_timedelta val,
+                                             NPY_DATETIMEUNIT fr,
+                                             pandas_timedeltastruct *result
+                                             ) nogil
 
 cdef bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1
 
@@ -94,3 +98,5 @@ cpdef cnp.ndarray astype_overflowsafe(
     cnp.dtype dtype,  # ndarray[datetime64[anyunit]]
     bint copy=*,
 )
+
+cdef bint cmp_dtstructs(npy_datetimestruct* left, npy_datetimestruct* right, int op)
