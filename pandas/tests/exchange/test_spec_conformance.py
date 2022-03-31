@@ -1,5 +1,6 @@
 """
-A verbatim copy (vendored) of the spec tests from https://github.com/data-apis/dataframe-api
+A verbatim copy (vendored) of the spec tests.
+Taken from https://github.com/data-apis/dataframe-api
 """
 import ctypes
 import math
@@ -64,7 +65,7 @@ def test_noncategorical(df_from_dict):
     df = df_from_dict({"a": [1, 2, 3]})
     dfX = df.__dataframe__()
     colX = dfX.get_column_by_name("a")
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=".*categorical.*"):
         colX.describe_categorical
 
 

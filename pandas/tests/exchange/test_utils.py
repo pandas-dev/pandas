@@ -4,11 +4,13 @@ import pytest
 import pandas as pd
 from pandas.core.exchange.utils import dtype_to_arrow_c_fmt
 
-
 # TODO: use ArrowSchema to get reference C-string.
-# At the time, there is no way to access ArrowSchema holding a type format string from python.
-# The only way to 'touch' it is to export the structure to a C-pointer:
-# https://github.com/apache/arrow/blob/5680d209fd870f99134e2d7299b47acd90fabb8e/python/pyarrow/types.pxi#L230-L239
+# At the time, there is no way to access ArrowSchema holding a type format string
+# from python. The only way to access it is to export the structure to a C-pointer,
+# see DataType._export_to_c() method defined in
+# https://github.com/apache/arrow/blob/master/python/pyarrow/types.pxi
+
+
 @pytest.mark.parametrize(
     "pandas_dtype, c_string",
     [

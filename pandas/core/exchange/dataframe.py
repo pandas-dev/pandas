@@ -1,4 +1,4 @@
-import collections.abc
+from collections import abc
 
 import pandas as pd
 from pandas.core.exchange.column import PandasColumn
@@ -63,7 +63,7 @@ class PandasDataFrameXchg(DataFrameXchg):
         ]
 
     def select_columns(self, indices):
-        if not isinstance(indices, collections.abc.Sequence):
+        if not isinstance(indices, abc.Sequence):
             raise ValueError("`indices` is not a sequence")
         if not isinstance(indices, list):
             indices = list(indices)
@@ -73,7 +73,7 @@ class PandasDataFrameXchg(DataFrameXchg):
         )
 
     def select_columns_by_name(self, names):
-        if not isinstance(names, collections.abc.Sequence):
+        if not isinstance(names, abc.Sequence):
             raise ValueError("`names` is not a sequence")
         if not isinstance(names, list):
             names = list(names)

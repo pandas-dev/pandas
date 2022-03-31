@@ -109,7 +109,8 @@ class CategoricalDescription(TypedDict):
     is_ordered: bool
     # whether a dictionary-style mapping of categorical values to other objects exists
     is_dictionary: bool
-    # Python-level only (e.g. ``{int: str}``). None if not a dictionary-style categorical.
+    # Python-level only (e.g. ``{int: str}``).
+    # None if not a dictionary-style categorical.
     mapping: Optional[dict]
 
 

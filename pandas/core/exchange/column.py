@@ -13,7 +13,6 @@ from pandas.api.types import (
 )
 from pandas.core.exchange.buffer import PandasBuffer
 from pandas.core.exchange.dataframe_protocol import (
-    Buffer,
     Column,
     ColumnNullType,
     DtypeKind,
@@ -21,6 +20,7 @@ from pandas.core.exchange.dataframe_protocol import (
 from pandas.core.exchange.utils import (
     ArrowCTypes,
     Endianness,
+    NoBufferPresent,
     dtype_to_arrow_c_fmt,
 )
 
@@ -142,8 +142,7 @@ class PandasColumn(Column):
         """
         if not self.dtype[0] == DtypeKind.CATEGORICAL:
             raise TypeError(
-                "`describe_categorical only works on a column with "
-                "categorical dtype!"
+                "describe_categorical only works on a column with categorical dtype!"
             )
 
         return {
@@ -222,12 +221,12 @@ class PandasColumn(Column):
         buffers["data"] = self._get_data_buffer()
         try:
             buffers["validity"] = self._get_validity_buffer()
-        except:
+        except NoBufferPresent:
             buffers["validity"] = None
 
         try:
             buffers["offsets"] = self._get_offsets_buffer()
-        except:
+        except NoBufferPresent:
             buffers["offsets"] = None
 
         return buffers
@@ -260,7 +259,8 @@ class PandasColumn(Column):
                 if isinstance(obj, str):
                     b.extend(obj.encode(encoding="utf-8"))
 
-            # Convert the byte array to a Pandas "buffer" using a NumPy array as the backing store
+            # Convert the byte array to a Pandas "buffer" using
+            # a NumPy array as the backing store
             buffer = PandasBuffer(np.frombuffer(b, dtype="uint8"))
 
             # Define the dtype for the returned buffer
@@ -279,12 +279,13 @@ class PandasColumn(Column):
         """
         Return the buffer containing the mask values indicating missing data and
         the buffer's associated dtype.
-        Raises RuntimeError if null representation is not a bit or byte mask.
+        Raises NoBufferPresent if null representation is not a bit or byte mask.
         """
         null, invalid = self.describe_null
 
         if self.dtype[0] == DtypeKind.STRING:
-            # For now, have the mask array be comprised of bytes, rather than a bit array
+            # For now, use byte array as the mask.
+            # TODO: maybe store as bit array to save space?..
             buf = self._col.to_numpy()
             mask = []
 
@@ -293,7 +294,8 @@ class PandasColumn(Column):
 
             mask = [valid if isinstance(obj, str) else invalid for obj in buf]
 
-            # Convert the mask array to a Pandas "buffer" using a NumPy array as the backing store
+            # Convert the mask array to a Pandas "buffer" using
+            # a NumPy array as the backing store
             buffer = PandasBuffer(np.asarray(mask, dtype="uint8"))
 
             # Define the dtype of the returned buffer
@@ -301,20 +303,21 @@ class PandasColumn(Column):
 
             return buffer, dtype
 
-        if null == 0:
+        if null == ColumnNullType.NON_NULLABLE:
             msg = "This column is non-nullable so does not have a mask"
-        elif null == 1:
+        elif null == ColumnNullType.USE_NAN:
             msg = "This column uses NaN as null so does not have a separate mask"
         else:
+            # TODO: implement for other bit/byte masks?
             raise NotImplementedError("See self.describe_null")
 
-        raise RuntimeError(msg)
+        raise NoBufferPresent(msg)
 
     def _get_offsets_buffer(self) -> Tuple[PandasBuffer, Any]:
         """
         Return the buffer containing the offset values for variable-size binary
         data (e.g., variable-length strings) and the buffer's associated dtype.
-        Raises RuntimeError if the data buffer does not have an associated
+        Raises NoBufferPresent if the data buffer does not have an associated
         offsets buffer.
         """
         if self.dtype[0] == DtypeKind.STRING:
@@ -323,17 +326,21 @@ class PandasColumn(Column):
             ptr = 0
             offsets = [ptr] + [None] * len(values)
             for i, v in enumerate(values):
-                # For missing values (in this case, `np.nan` values), we don't increment the pointer)
+                # For missing values (in this case, `np.nan` values)
+                # we don't increment the pointer
                 if isinstance(v, str):
                     b = v.encode(encoding="utf-8")
                     ptr += len(b)
 
                 offsets[i + 1] = ptr
 
-            # Convert the list of offsets to a NumPy array of signed 64-bit integers (note: Arrow allows the offsets array to be either `int32` or `int64`; here, we default to the latter)
+            # Convert the list of offsets to a NumPy array of signed 64-bit integers
+            # (note: Arrow allows the offsets array to be either `int32` or `int64`;
+            # here, we default to the latter)
             buf = np.asarray(offsets, dtype="int64")
 
-            # Convert the offsets to a Pandas "buffer" using the NumPy array as the backing store
+            # Convert the offsets to a Pandas "buffer" using
+            # the NumPy array as the backing store
             buffer = PandasBuffer(buf)
 
             # Assemble the buffer dtype info
@@ -344,8 +351,9 @@ class PandasColumn(Column):
                 Endianness.NATIVE,
             )  # note: currently only support native endianness
         else:
-            raise RuntimeError(
-                "This column has a fixed-length dtype so does not have an offsets buffer"
+            raise NoBufferPresent(
+                "This column has a fixed-length dtype so "
+                "it does not have an offsets buffer"
             )
 
         return buffer, dtype

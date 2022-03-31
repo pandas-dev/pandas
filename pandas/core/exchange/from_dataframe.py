@@ -14,7 +14,7 @@ from pandas.core.exchange.dataframe_protocol import (
     Buffer,
     Column,
     ColumnNullType,
-    DataFrame,
+    DataFrame as DataFrameXchg,
     DtypeKind,
 )
 from pandas.core.exchange.utils import (
@@ -40,13 +40,13 @@ def from_dataframe(df, allow_copy=True):
     return _from_dataframe(df.__dataframe__(allow_copy=allow_copy))
 
 
-def _from_dataframe(df: DataFrame, allow_copy=True):
+def _from_dataframe(df: DataFrameXchg, allow_copy=True):
     """
-    Build a ``pd.DataFrame`` from an object supporting the DataFrame exchange protocol, i.e. `__dataframe__` method.
+    Build a ``pd.DataFrame`` from the DataFrame exchange object.
 
     Parameters
     ----------
-    df : DataFrame
+    df : DataFrameXchg
         Object supporting the exchange protocol, i.e. `__dataframe__` method.
     n_chunks : int, optional
         Number of chunks to split `df`.
@@ -76,13 +76,13 @@ def _from_dataframe(df: DataFrame, allow_copy=True):
     return pandas_df
 
 
-def protocol_df_chunk_to_pandas(df):
+def protocol_df_chunk_to_pandas(df: DataFrameXchg) -> pd.DataFrame:
     """
     Convert exchange protocol chunk to ``pd.DataFrame``.
 
     Parameters
     ----------
-    df : DataFrame
+    df : DataFrameXchg
 
     Returns
     -------
@@ -90,7 +90,7 @@ def protocol_df_chunk_to_pandas(df):
     """
     # We need a dict of columns here, with each column being a NumPy array (at
     # least for now, deal with non-NumPy dtypes later).
-    columns = dict()
+    columns = {}
     buffers = []  # hold on to buffers, keeps memory alive
     for name in df.column_names():
         if not isinstance(name, str):
@@ -124,7 +124,9 @@ def protocol_df_chunk_to_pandas(df):
 
 def primitive_column_to_ndarray(col: Column) -> Tuple[np.ndarray, Any]:
     """
-    Convert a column holding one of the primitive dtypes (int, uint, float or bool) to a NumPy array.
+    Convert a column holding one of the primitive dtypes to a NumPy array.
+
+    A primitive type is one of: int, uint, float, bool.
 
     Parameters
     ----------
@@ -133,7 +135,8 @@ def primitive_column_to_ndarray(col: Column) -> Tuple[np.ndarray, Any]:
     Returns
     -------
     tuple
-        Tuple of np.ndarray holding the data and the memory owner object that keeps the memory alive.
+        Tuple of np.ndarray holding the data and the memory owner object
+        that keeps the memory alive.
     """
     buffers = col.get_buffers()
 
@@ -155,7 +158,8 @@ def categorical_column_to_series(col: Column) -> Tuple[pd.Series, Any]:
     Returns
     -------
     tuple
-        Tuple of pd.Series holding the data and the memory owner object that keeps the memory alive.
+        Tuple of pd.Series holding the data and the memory owner object
+        that keeps the memory alive.
     """
     ordered, is_dict, mapping = col.describe_categorical.values()
 
@@ -168,7 +172,8 @@ def categorical_column_to_series(col: Column) -> Tuple[pd.Series, Any]:
     codes_buff, codes_dtype = buffers["data"]
     codes = buffer_to_ndarray(codes_buff, codes_dtype, col.offset, col.size)
 
-    # Doing module in order to not get ``IndexError`` for out-of-bounds sentinel values in `codes`
+    # Doing module in order to not get ``IndexError`` for
+    # out-of-bounds sentinel values in `codes`
     values = categories[codes % len(categories)]
 
     cat = pd.Categorical(values, categories=categories, ordered=ordered)
@@ -189,7 +194,8 @@ def string_column_to_ndarray(col: Column) -> Tuple[np.ndarray, Any]:
     Returns
     -------
     tuple
-        Tuple of np.ndarray holding the data and the memory owner object that keeps the memory alive.
+        Tuple of np.ndarray holding the data and the memory owner object
+        that keeps the memory alive.
     """
     null_kind, sentinel_val = col.describe_null
 
@@ -206,11 +212,11 @@ def string_column_to_ndarray(col: Column) -> Tuple[np.ndarray, Any]:
 
     # Retrieve the data buffer containing the UTF-8 code units
     data_buff, protocol_data_dtype = buffers["data"]
-    # We're going to reinterpret the buffer as uint8, so making sure we can do it safely
+    # We're going to reinterpret the buffer as uint8, so make sure we can do it safely
     assert protocol_data_dtype[1] == 8  # bitwidth == 8
     assert protocol_data_dtype[2] == ArrowCTypes.STRING  # format_str == utf-8
-    # Convert the buffers to NumPy arrays, in order to go from STRING to an equivalent ndarray,
-    # we claim that the buffer is uint8 (i.e., a byte array)
+    # Convert the buffers to NumPy arrays. In order to go from STRING to
+    # an equivalent ndarray, we claim that the buffer is uint8 (i.e., a byte array)
     data_dtype = (
         DtypeKind.UINT,
         8,
@@ -220,7 +226,8 @@ def string_column_to_ndarray(col: Column) -> Tuple[np.ndarray, Any]:
     # Specify zero offset as we don't want to chunk the string data
     data = buffer_to_ndarray(data_buff, data_dtype, offset=0, length=col.size)
 
-    # Retrieve the offsets buffer containing the index offsets demarcating the beginning and end of each string
+    # Retrieve the offsets buffer containing the index offsets demarcating
+    # the beginning and the ending of each string
     offset_buff, offset_dtype = buffers["offsets"]
     # Offsets buffer contains start-stop positions of strings in the data buffer,
     # meaning that it has more elements than in the data buffer, do `col.size + 1` here
@@ -269,8 +276,9 @@ def parse_datetime_format_str(format_str, data):
         if tz != "":
             raise NotImplementedError("Timezones are not supported yet")
         if unit != "s":
-            # the format string describes only a first letter of the unit, add one extra
-            # letter to make the unit in numpy-style: 'm' -> 'ms', 'u' -> 'us', 'n' -> 'ns'
+            # the format string describes only a first letter of the unit, so
+            # add one extra letter to convert the unit to numpy-style:
+            # 'm' -> 'ms', 'u' -> 'us', 'n' -> 'ns'
             unit += "s"
         data = data.astype(f"datetime64[{unit}]")
         return data
@@ -303,7 +311,8 @@ def datetime_column_to_ndarray(col: Column) -> Tuple[np.ndarray, Any]:
     Returns
     -------
     tuple
-        Tuple of np.ndarray holding the data and the memory owner object that keeps the memory alive.
+        Tuple of np.ndarray holding the data and the memory owner object
+        that keeps the memory alive.
     """
     buffers = col.get_buffers()
 
@@ -354,14 +363,15 @@ def buffer_to_ndarray(
 
     Notes
     -----
-    The returned array doesn't own the memory. A user of the function must keep the memory
-    owner object alive as long as the returned NumPy array is being used.
+    The returned array doesn't own the memory. The caller of this function is
+    responsible for keeping the memory owner object alive as long as
+    the returned NumPy array is being used.
     """
     kind, bit_width, _, _ = dtype
 
     column_dtype = _NP_DTYPES.get(kind, {}).get(bit_width, None)
     if column_dtype is None:
-        raise NotImplementedError(f"Convertion for {dtype} is not yet supported.")
+        raise NotImplementedError(f"Conversion for {dtype} is not yet supported.")
 
     # TODO: No DLPack yet, so need to construct a new ndarray from the data pointer
     # and size in the buffer plus the dtype on the column. Use DLPack as NumPy supports
@@ -406,7 +416,7 @@ def bitmask_to_bool_ndarray(
 
     bool_mask = np.zeros(mask_length, dtype=bool)
 
-    # Proccessing the first byte separately as it has its own offset
+    # Processing the first byte separately as it has its own offset
     val = bitmask[0]
     mask_idx = 0
     bits_in_first_byte = min(8 - first_byte_offset, mask_length)
@@ -483,8 +493,9 @@ def set_nulls(
         try:
             data[null_pos] = None
         except TypeError:
-            # TypeError happens if the `data` dtype appears to be non-nullable in numpy notation
-            # (bool, int, uint), if such happens, cast the `data` to nullable float dtype.
+            # TypeError happens if the `data` dtype appears to be non-nullable
+            # in numpy notation (bool, int, uint). If this happens,
+            # cast the `data` to nullable float dtype.
             data = data.astype(float)
             data[null_pos] = None
 
