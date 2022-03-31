@@ -4533,7 +4533,7 @@ class Index(IndexOpsMixin, PandasObject):
     @overload
     def join(
         self,
-        other,
+        other: Index,
         *,
         how: str_t = ...,
         level: Level = ...,
@@ -4545,7 +4545,7 @@ class Index(IndexOpsMixin, PandasObject):
     @overload
     def join(
         self,
-        other,
+        other: Index,
         *,
         how: str_t = ...,
         level: Level = ...,
@@ -4557,7 +4557,7 @@ class Index(IndexOpsMixin, PandasObject):
     @overload
     def join(
         self,
-        other,
+        other: Index,
         *,
         how: str_t = ...,
         level: Level = ...,
@@ -4571,7 +4571,7 @@ class Index(IndexOpsMixin, PandasObject):
     @_maybe_return_indexers
     def join(
         self,
-        other,
+        other: Index,
         how: str_t = "left",
         level: Level = None,
         return_indexers: bool = False,
