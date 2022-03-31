@@ -93,6 +93,15 @@ class ColumnBuffers(TypedDict):
     offsets: Optional[Tuple["Buffer", Any]]
 
 
+class CategoricalDescription(TypedDict):
+    # whether the ordering of dictionary indices is semantically meaningful
+    is_ordered: bool
+    # whether a dictionary-style mapping of categorical values to other objects exists
+    is_dictionary: bool
+    # Python-level only (e.g. ``{int: str}``). None if not a dictionary-style categorical.
+    mapping: Optional[dict]
+
+
 class Buffer(ABC):
     """
     Data in the buffer is guaranteed to be contiguous in memory.
@@ -250,7 +259,7 @@ class Column(ABC):
 
     @property
     @abstractmethod
-    def describe_categorical(self) -> Tuple[bool, bool, Optional[dict]]:
+    def describe_categorical(self) -> CategoricalDescription:
         """
         If the dtype is categorical, there are two options:
         - There are only values in the data buffer.
@@ -258,7 +267,7 @@ class Column(ABC):
 
         Raises TypeError if the dtype is not categorical
 
-        Returns the description on how to interpret the data buffer:
+        Returns the dictionary with description on how to interpret the data buffer:
             - "is_ordered" : bool, whether the ordering of dictionary indices is
                              semantically meaningful.
             - "is_dictionary" : bool, whether a dictionary-style mapping of
@@ -366,6 +375,11 @@ class DataFrame(ABC):
     """
 
     version = 0  # version of the protocol
+
+    @abstractmethod
+    def __dataframe__(self, nan_as_null: bool = False, allow_copy: bool = True):
+        """Construct a new exchange object, potentially changing the parameters."""
+        pass
 
     @property
     @abstractmethod
