@@ -819,10 +819,27 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Return the dataframe exchange object implementing the exchange protocol.
 
+        Parameters
+        ----------
+        nan_as_null : bool, default False
+            Whether to tell the DataFrame to overwrite null values in the data
+            with ``NaN`` (or ``NaT``).
+        allow_copy : bool, default True
+            Whether to allow memory copying when exporting. If set to False
+            it would cause non-zero-copy exports to fail.
+
+        Returns
+        -------
+        DataFrame exchange object
+            The object which consuming library can use to ingress the dataframe.
+
         Notes
         -----
         Details on the exchange protocol:
         https://data-apis.org/dataframe-protocol/latest/index.html
+
+        `nan_as_null` currently has no effect; once support for nullable extension
+        dtypes is added, this value should be propagated to columns.
         """
 
         from pandas.core.exchange.dataframe import PandasDataFrameXchg
