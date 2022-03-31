@@ -1,4 +1,4 @@
-from pandas.core.exchange.dataframe_protocol import Buffer, DlpackDeviceType, DtypeKind
+from pandas.core.exchange.dataframe_protocol import Buffer, DlpackDeviceType
 import numpy as np
 from typing import Tuple
 

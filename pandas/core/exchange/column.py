@@ -4,7 +4,7 @@ from pandas.core.exchange.dataframe_protocol import (
     Buffer,
     ColumnNullType,
 )
-from pandas.core.exchange.buffer import PandasBuffer, buffer_to_ndarray
+from pandas.core.exchange.buffer import PandasBuffer
 from pandas.core.exchange.utils import ArrowCTypes, Endianness, dtype_to_arrow_c_fmt
 from pandas.api.types import is_categorical_dtype, is_string_dtype
 import pandas as pd

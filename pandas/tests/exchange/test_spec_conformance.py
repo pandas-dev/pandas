@@ -74,9 +74,9 @@ def test_categorical(df_from_dict):
     )
 
     colX = df.__dataframe__().get_column_by_name("weekday")
-    is_ordered, is_dictionary, _ = colX.describe_categorical
-    assert isinstance(is_ordered, bool)
-    assert isinstance(is_dictionary, bool)
+    categorical = colX.describe_categorical
+    assert isinstance(categorical["is_ordered"], bool)
+    assert isinstance(categorical["is_dictionary"], bool)
 
 
 def test_dataframe(df_from_dict):
@@ -134,7 +134,7 @@ def test_buffer(df_from_dict):
 
     assert dataBuf.bufsize > 0
     assert dataBuf.ptr != 0
-    device, _ = dataBuf.__dlpack_device__
+    device, _ = dataBuf.__dlpack_device__()
 
     assert dataDtype[0] == 0
 
