@@ -135,7 +135,7 @@ from pandas.tests.extension.decimal import (
         (
             [pd.Interval(1, 2, "right"), pd.Interval(3, 4, "right")],
             "interval",
-            IntervalArray.from_tuples([(1, 2), (3, 4)]),
+            IntervalArray.from_tuples([(1, 2), (3, 4)], "right"),
         ),
         # Sparse
         ([0, 1], "Sparse[int64]", SparseArray([0, 1], dtype="int64")),
