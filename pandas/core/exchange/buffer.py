@@ -1,15 +1,6 @@
 from pandas.core.exchange.dataframe_protocol import Buffer, DlpackDeviceType, DtypeKind
 import numpy as np
 from typing import Tuple
-import ctypes
-
-
-_NP_DTYPES = {
-    DtypeKind.INT: {8: np.int8, 16: np.int16, 32: np.int32, 64: np.int64},
-    DtypeKind.UINT: {8: np.uint8, 16: np.uint16, 32: np.uint32, 64: np.uint64},
-    DtypeKind.FLOAT: {32: np.float32, 64: np.float64},
-    DtypeKind.BOOL: {8: bool},
-}
 
 
 class PandasBuffer(Buffer):
@@ -74,25 +65,3 @@ class PandasBuffer(Buffer):
             )
             + ")"
         )
-
-
-def buffer_to_ndarray(_buffer: Buffer, _dtype) -> np.ndarray:
-    # Handle the dtype
-    kind = _dtype[0]
-    bitwidth = _dtype[1]
-    if kind not in _NP_DTYPES:
-        raise RuntimeError(f"Unsupported data type: {kind}")
-
-    column_dtype = _NP_DTYPES[kind][bitwidth]
-
-    # No DLPack yet, so need to construct a new ndarray from the data pointer
-    # and size in the buffer plus the dtype on the column
-    ctypes_type = np.ctypeslib.as_ctypes_type(column_dtype)
-    data_pointer = ctypes.cast(_buffer.ptr, ctypes.POINTER(ctypes_type))
-
-    # NOTE: `x` does not own its memory, so the caller of this function must
-    #       either make a copy or hold on to a reference of the column or
-    #       buffer! (not done yet, this is pretty awful ...)
-    x = np.ctypeslib.as_array(data_pointer, shape=(_buffer.bufsize // (bitwidth // 8),))
-
-    return x

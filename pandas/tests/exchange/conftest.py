@@ -1,6 +1,6 @@
 import pytest
 import pandas as pd
-from pandas.core.exchange.implementation import _from_dataframe
+from pandas.core.exchange.from_dataframe import _from_dataframe
 
 
 @pytest.fixture(scope="package")
