@@ -33,6 +33,7 @@ Bug fixes
 - Fixed "longtable" formatting in :meth:`.Styler.to_latex` when ``column_format`` is given in extended format (:issue:`46037`)
 - Fixed incorrect rendering in :meth:`.Styler.format` with ``hyperlinks="html"`` when the url contains a colon or other special characters (:issue:`46389`)
 - Improved error message in :class:`~pandas.core.window.Rolling` when ``window`` is a frequency and ``NaT`` is in the rolling axis (:issue:`46087`)
+- Fixed :meth:`Groupby.rolling` with a frequency window that would raise a ``ValueError`` even if the datetimes within each group were monotonic (:issue:`46061`)
 
 .. ---------------------------------------------------------------------------
 
