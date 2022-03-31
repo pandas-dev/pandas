@@ -824,9 +824,9 @@ class DataFrame(NDFrame, OpsMixin):
         https://data-apis.org/dataframe-protocol/latest/index.html
         """
 
-        from pandas.core.exchange.implementation import _PandasDataFrameXchg
+        from pandas.core.exchange.implementation import PandasDataFrameXchg
 
-        return _PandasDataFrameXchg(self, nan_as_null, allow_copy)
+        return PandasDataFrameXchg(self, nan_as_null, allow_copy)
 
     # ----------------------------------------------------------------------
 
