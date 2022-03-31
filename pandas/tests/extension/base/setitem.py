@@ -3,6 +3,7 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core.arrays import IntervalArray
 from pandas.tests.extension.base.base import BaseExtensionTests
 
 
@@ -69,10 +70,17 @@ class BaseSetitemTests(BaseExtensionTests):
         self.assert_series_equal(ser, original)
 
     def test_setitem_empty_indexer(self, data, box_in_series):
+        data_dtype = type(data)
+
         if box_in_series:
             data = pd.Series(data)
         original = data.copy()
-        data[np.array([], dtype=int)] = []
+
+        if data_dtype == IntervalArray:
+            data[np.array([], dtype=int)] = IntervalArray([], "right")
+        else:
+            data[np.array([], dtype=int)] = []
+
         self.assert_equal(data, original)
 
     def test_setitem_sequence_broadcasts(self, data, box_in_series):
