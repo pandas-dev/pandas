@@ -72,7 +72,6 @@ def test_dataframe(data):
 
     df2 = df.__dataframe__()
 
-    assert df2._allow_copy is True
     assert df2.num_columns() == NCOLS
     assert df2.num_rows() == NROWS
 
@@ -146,24 +145,6 @@ def test_mixed_missing():
 
     for col_name in df.columns:
         assert df2.get_column_by_name(col_name).null_count == 2
-
-
-def test_select_columns_error():
-    df = pd.DataFrame(int_data)
-
-    df2 = df.__dataframe__()
-
-    with pytest.raises(ValueError, match="is not a sequence"):
-        df2.select_columns(np.array([0, 2]))
-
-
-def test_select_columns_by_name_error():
-    df = pd.DataFrame(int_data)
-
-    df2 = df.__dataframe__()
-
-    with pytest.raises(ValueError, match="is not a sequence"):
-        df2.select_columns_by_name(np.array(["col33", "col35"]))
 
 
 def test_string():

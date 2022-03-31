@@ -2,6 +2,8 @@ import ctypes
 import re
 from typing import (
     Any,
+    Dict,
+    List,
     Optional,
     Tuple,
     Union,
@@ -22,7 +24,7 @@ from pandas.core.exchange.utils import (
     Endianness,
 )
 
-_NP_DTYPES = {
+_NP_DTYPES: Dict[DtypeKind, Dict[int, Any]] = {
     DtypeKind.INT: {8: np.int8, 16: np.int16, 32: np.int32, 64: np.int64},
     DtypeKind.UINT: {8: np.uint8, 16: np.uint16, 32: np.uint32, 64: np.uint64},
     DtypeKind.FLOAT: {32: np.float32, 64: np.float64},
@@ -90,7 +92,7 @@ def protocol_df_chunk_to_pandas(df: DataFrameXchg) -> pd.DataFrame:
     """
     # We need a dict of columns here, with each column being a NumPy array (at
     # least for now, deal with non-NumPy dtypes later).
-    columns = {}
+    columns: Dict[str, Any] = {}
     buffers = []  # hold on to buffers, keeps memory alive
     for name in df.column_names():
         if not isinstance(name, str):
@@ -161,12 +163,14 @@ def categorical_column_to_series(col: Column) -> Tuple[pd.Series, Any]:
         Tuple of pd.Series holding the data and the memory owner object
         that keeps the memory alive.
     """
-    ordered, is_dict, mapping = col.describe_categorical.values()
+    categorical = col.describe_categorical
 
-    if not is_dict:
+    if not categorical["is_dictionary"]:
         raise NotImplementedError("Non-dictionary categoricals not supported yet")
 
-    categories = np.array(tuple(mapping.values()))
+    mapping = categorical["mapping"]
+    assert isinstance(mapping, dict), "Categorical mapping must be a dict"
+    categories = np.array(tuple(mapping[k] for k in sorted(mapping)))
     buffers = col.get_buffers()
 
     codes_buff, codes_dtype = buffers["data"]
@@ -176,7 +180,9 @@ def categorical_column_to_series(col: Column) -> Tuple[pd.Series, Any]:
     # out-of-bounds sentinel values in `codes`
     values = categories[codes % len(categories)]
 
-    cat = pd.Categorical(values, categories=categories, ordered=ordered)
+    cat = pd.Categorical(
+        values, categories=categories, ordered=categorical["is_ordered"]
+    )
     data = pd.Series(cat)
 
     data = set_nulls(data, col, buffers["validity"])
@@ -210,6 +216,7 @@ def string_column_to_ndarray(col: Column) -> Tuple[np.ndarray, Any]:
 
     buffers = col.get_buffers()
 
+    assert buffers["offsets"], "String buffers must contain offsets"
     # Retrieve the data buffer containing the UTF-8 code units
     data_buff, protocol_data_dtype = buffers["data"]
     # We're going to reinterpret the buffer as uint8, so make sure we can do it safely
@@ -238,13 +245,14 @@ def string_column_to_ndarray(col: Column) -> Tuple[np.ndarray, Any]:
 
     null_pos = None
     if null_kind in (ColumnNullType.USE_BITMASK, ColumnNullType.USE_BYTEMASK):
+        assert buffers["validity"], "Validity buffers cannot be empty for masks"
         valid_buff, valid_dtype = buffers["validity"]
         null_pos = buffer_to_ndarray(valid_buff, valid_dtype, col.offset, col.size)
         if sentinel_val == 0:
             null_pos = ~null_pos
 
     # Assemble the strings from the code units
-    str_list = [None] * col.size
+    str_list: List[Union[None, float, str]] = [None] * col.size
     for i in range(col.size):
         # Check for missing values
         if null_pos is not None and null_pos[i]:
@@ -448,7 +456,7 @@ def bitmask_to_bool_ndarray(
 def set_nulls(
     data: Union[np.ndarray, pd.Series],
     col: Column,
-    validity: Tuple[Buffer, Tuple[DtypeKind, int, str, str]],
+    validity: Optional[Tuple[Buffer, Tuple[DtypeKind, int, str, str]]],
     allow_modify_inplace: bool = True,
 ):
     """
@@ -478,6 +486,7 @@ def set_nulls(
     if null_kind == ColumnNullType.USE_SENTINEL:
         null_pos = data == sentinel_val
     elif null_kind in (ColumnNullType.USE_BITMASK, ColumnNullType.USE_BYTEMASK):
+        assert validity, "Expected to have a validity buffer for the mask"
         valid_buff, valid_dtype = validity
         null_pos = buffer_to_ndarray(valid_buff, valid_dtype, col.offset, col.size)
         if sentinel_val == 0:

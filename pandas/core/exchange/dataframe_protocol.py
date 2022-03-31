@@ -216,7 +216,7 @@ class Column(ABC):
 
     @property
     @abstractmethod
-    def size(self) -> Optional[int]:
+    def size(self) -> int:
         """
         Size of the column, in elements.
 

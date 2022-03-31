@@ -1,4 +1,7 @@
-from typing import Tuple
+from typing import (
+    Optional,
+    Tuple,
+)
 
 import numpy as np
 
@@ -52,7 +55,7 @@ class PandasBuffer(Buffer):
         """
         raise NotImplementedError("__dlpack__")
 
-    def __dlpack_device__(self) -> Tuple[DlpackDeviceType, int]:
+    def __dlpack_device__(self) -> Tuple[DlpackDeviceType, Optional[int]]:
         """
         Device type and device ID for where the data in the buffer resides.
         """

@@ -14,6 +14,7 @@ from pandas.api.types import (
 from pandas.core.exchange.buffer import PandasBuffer
 from pandas.core.exchange.dataframe_protocol import (
     Column,
+    ColumnBuffers,
     ColumnNullType,
     DtypeKind,
 )
@@ -223,17 +224,21 @@ class PandasColumn(Column):
                          if the data buffer does not have an associated offsets
                          buffer.
         """
-        buffers = {}
-        buffers["data"] = self._get_data_buffer()
+        buffers: ColumnBuffers = {
+            "data": self._get_data_buffer(),
+            "validity": None,
+            "offsets": None,
+        }
+
         try:
             buffers["validity"] = self._get_validity_buffer()
         except NoBufferPresent:
-            buffers["validity"] = None
+            pass
 
         try:
             buffers["offsets"] = self._get_offsets_buffer()
         except NoBufferPresent:
-            buffers["offsets"] = None
+            pass
 
         return buffers
 
@@ -328,7 +333,7 @@ class PandasColumn(Column):
             # For each string, we need to manually determine the next offset
             values = self._col.to_numpy()
             ptr = 0
-            offsets = [ptr] + [None] * len(values)
+            offsets = [ptr] + [0] * len(values)
             for i, v in enumerate(values):
                 # For missing values (in this case, `np.nan` values)
                 # we don't increment the pointer
