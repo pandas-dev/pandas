@@ -2,15 +2,13 @@
 Utility functions and objects for implementing the exchange API.
 """
 
-import enum
 import pandas as pd
 import re
 import numpy as np
 from pandas.api.types import is_datetime64_dtype
 
 
-@enum.unique
-class ArrowCTypes(enum.Enum):
+class ArrowCTypes:
     """
     Enum for Apache Arrow C type format strings.
 
