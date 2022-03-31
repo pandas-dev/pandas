@@ -153,10 +153,8 @@ def test_select_columns_error():
 
     df2 = df.__dataframe__()
 
-    # with pytest.raises(ValueError):
-    assert from_dataframe(df2.select_columns(np.array([0, 2]))) == from_dataframe(
-        df2.select_columns_by_name(("col33", "col35"))
-    )
+    with pytest.raises(ValueError, match="is not a sequence"):
+        df2.select_columns(np.array([0, 2]))
 
 
 def test_select_columns_by_name_error():
@@ -164,10 +162,8 @@ def test_select_columns_by_name_error():
 
     df2 = df.__dataframe__()
 
-    # with pytest.raises(ValueError):
-    assert from_dataframe(
+    with pytest.raises(ValueError, match="is not a sequence"):
         df2.select_columns_by_name(np.array(["col33", "col35"]))
-    ) == from_dataframe(df2.select_columns((0, 2)))
 
 
 def test_string():

@@ -47,6 +47,12 @@ _NULL_DESCRIPTION = {
     DtypeKind.STRING: (ColumnNullType.USE_BYTEMASK, 0),
 }
 
+_NO_VALIDITY_BUFFER = {
+    ColumnNullType.NON_NULLABLE: "This column is non-nullable",
+    ColumnNullType.USE_NAN: "This column uses NaN as null",
+    ColumnNullType.USE_SENTINEL: "This column uses a sentinel value",
+}
+
 
 class PandasColumn(Column):
     """
@@ -303,11 +309,9 @@ class PandasColumn(Column):
 
             return buffer, dtype
 
-        if null == ColumnNullType.NON_NULLABLE:
-            msg = "This column is non-nullable so does not have a mask"
-        elif null == ColumnNullType.USE_NAN:
-            msg = "This column uses NaN as null so does not have a separate mask"
-        else:
+        try:
+            msg = _NO_VALIDITY_BUFFER[null] + " so does not have a separate mask"
+        except KeyError:
             # TODO: implement for other bit/byte masks?
             raise NotImplementedError("See self.describe_null")
 
