@@ -95,6 +95,28 @@ def py_get_unit_from_dtype(dtype):
 # Comparison
 
 
+cdef bint cmp_dtstructs(
+    npy_datetimestruct* left, npy_datetimestruct* right, int op
+):
+    cdef:
+        int cmp_res
+
+    cmp_res = cmp_npy_datetimestruct(left, right)
+    if op == Py_EQ:
+        return cmp_res == 0
+    if op == Py_NE:
+        return cmp_res != 0
+    if op == Py_GT:
+        return cmp_res == 1
+    if op == Py_LT:
+        return cmp_res == -1
+    if op == Py_GE:
+        return cmp_res == 1 or cmp_res == 0
+    else:
+        # i.e. op == Py_LE
+        return cmp_res == -1 or cmp_res == 0
+
+
 cdef inline bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1:
     """
     cmp_scalar is a more performant version of PyObject_RichCompare
@@ -119,6 +141,15 @@ class OutOfBoundsDatetime(ValueError):
     Raised when the datetime is outside the range that
     can be represented.
     """
+    pass
+
+
+class OutOfBoundsTimedelta(ValueError):
+    """
+    Raised when encountering a timedelta value that cannot be represented
+    as a timedelta64[ns].
+    """
+    # Timedelta analogue to OutOfBoundsDatetime
     pass
 
 
@@ -182,6 +213,14 @@ cdef inline void td64_to_tdstruct(int64_t td64,
     with the by-far-most-common frequency NPY_FR_ns"""
     pandas_timedelta_to_timedeltastruct(td64, NPY_FR_ns, out)
     return
+
+
+# just exposed for testing at the moment
+def py_td64_to_tdstruct(int64_t td64, NPY_DATETIMEUNIT unit):
+    cdef:
+        pandas_timedeltastruct tds
+    pandas_timedelta_to_timedeltastruct(td64, unit, &tds)
+    return tds  # <- returned as a dict to python
 
 
 cdef inline int64_t pydatetime_to_dt64(datetime val,
