@@ -3,7 +3,7 @@ FROM quay.io/condaforge/miniforge3
 # if you forked pandas, you can pass in your own GitHub username to use your fork
 # i.e. gh_username=myname
 ARG gh_username=bwozniak27
-ARG pandas_home="/home/pandas_container"
+ARG pandas_home="/home/pandas"
 
 # Avoid warnings by switching to noninteractive
 ENV DEBIAN_FRONTEND=noninteractive
@@ -33,8 +33,7 @@ RUN mkdir "$pandas_home" \
     && git clone "https://github.com/$gh_username/pandas.git" "$pandas_home" \
     && cd "$pandas_home" \
     && git remote add upstream "https://github.com/pandas-dev/pandas.git" \
-    && git pull upstream main \
-    && git checkout join-valueError
+    && git pull upstream main
 
 # Because it is surprisingly difficult to activate a conda environment inside a DockerFile
 # (from personal experience and per https://github.com/ContinuumIO/docker-images/issues/89),

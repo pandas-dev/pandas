@@ -9,7 +9,7 @@ dependencies:
   - pytz
 
   # benchmarks
-  # asv # 2022-02-08: v0.5.0 > leads to ASV checks running > 3 hours on CI
+  - asv < 0.5.0  # 2022-02-08: v0.5.0 > leads to ASV checks running > 3 hours on CI
 
   # building
   # The compiler packages are meta-packages and install the correct compiler (activation) packages on the respective platforms.
@@ -18,7 +18,7 @@ dependencies:
   - cython>=0.29.24
 
   # code checks
-  - black=22.1.0
+  - black=22.3.0
   - cpplint
   - flake8=4.0.1
   - flake8-bugbear=21.3.2  # used by flake8, find likely bugs
@@ -33,7 +33,7 @@ dependencies:
   - gitpython  # obtain contributors from git for whatsnew
   - gitdb
   - numpydoc
-  - pandas-dev-flaker=0.4.0
+  - pandas-dev-flaker=0.5.0
   - pydata-sphinx-theme
   - pytest-cython
   - sphinx
@@ -69,7 +69,7 @@ dependencies:
   - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.31
-  - pytest-asyncio
+  - pytest-asyncio>=0.17
   - pytest-instafail
 
   # downstream tests
@@ -118,7 +118,6 @@ dependencies:
   - sqlalchemy  # pandas.read_sql, DataFrame.to_sql
   - xarray<0.19  # DataFrame.to_xarray
   - cftime  # Needed for downstream xarray.CFTimeIndex test
-
-  # pyreadstat  # pandas.read_spss
+  - pyreadstat  # pandas.read_spss
   - tabulate>=0.8.3  # DataFrame.to_markdown
   - natsort  # DataFrame.sort_values
