@@ -7885,6 +7885,27 @@ a
 a   13.0   13.0
 b   12.3  123.0
 NaN 12.3   33.0
+
+When using ``.apply()``, use ``group_keys`` to include or exclude the group keys.
+The ``group_keys`` argument defaults to ``True`` (include).
+
+>>> df = pd.DataFrame({'Animal': ['Falcon', 'Falcon',
+...                               'Parrot', 'Parrot'],
+...                    'Max Speed': [380., 370., 24., 26.]})
+>>> df.groupby("Animal", group_keys=True).apply(lambda x: x)
+          Animal  Max Speed
+Animal
+Falcon 0  Falcon      380.0
+       1  Falcon      370.0
+Parrot 2  Parrot       24.0
+       3  Parrot       26.0
+
+>>> df.groupby("Animal", group_keys=False).apply(lambda x: x)
+   Animal  Max Speed
+0  Falcon      380.0
+1  Falcon      370.0
+2  Parrot       24.0
+3  Parrot       26.0
 """
     )
     @Appender(_shared_docs["groupby"] % _shared_doc_kwargs)
@@ -7895,7 +7916,7 @@ NaN 12.3   33.0
         level: Level | None = None,
         as_index: bool = True,
         sort: bool = True,
-        group_keys: bool = True,
+        group_keys: bool | lib.NoDefault = no_default,
         squeeze: bool | lib.NoDefault = no_default,
         observed: bool = False,
         dropna: bool = True,
@@ -10840,6 +10861,7 @@ NaN 12.3   33.0
         level=None,
         origin: str | TimestampConvertibleTypes = "start_day",
         offset: TimedeltaConvertibleTypes | None = None,
+        group_keys: bool | lib.NoDefault = no_default,
     ) -> Resampler:
         return super().resample(
             rule=rule,
@@ -10854,6 +10876,7 @@ NaN 12.3   33.0
             level=level,
             origin=origin,
             offset=offset,
+            group_keys=group_keys,
         )
 
     def to_timestamp(
