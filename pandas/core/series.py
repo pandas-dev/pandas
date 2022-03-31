@@ -38,7 +38,6 @@ from pandas._typing import (
     Dtype,
     DtypeObj,
     FillnaOptions,
-    HashableT,
     IgnoreRaise,
     IndexKeyFunc,
     Level,
@@ -4622,7 +4621,7 @@ Keep all original rows and also all original values
     @overload
     def rename(
         self,
-        index: Renamer[HashableT] | Hashable | None = ...,
+        index: Renamer | Hashable | None = ...,
         *,
         axis: Axis | None = ...,
         copy: bool = ...,
@@ -4635,7 +4634,7 @@ Keep all original rows and also all original values
     @overload
     def rename(
         self,
-        index: Renamer[HashableT] | Hashable | None = ...,
+        index: Renamer | Hashable | None = ...,
         *,
         axis: Axis | None = ...,
         copy: bool = ...,
@@ -4648,7 +4647,7 @@ Keep all original rows and also all original values
     @overload
     def rename(
         self,
-        index: Renamer[HashableT] | Hashable | None = ...,
+        index: Renamer | Hashable | None = ...,
         *,
         axis: Axis | None = ...,
         copy: bool = ...,
@@ -4660,7 +4659,7 @@ Keep all original rows and also all original values
 
     def rename(
         self,
-        index: Renamer[HashableT] | Hashable | None = None,
+        index: Renamer | Hashable | None = None,
         *,
         axis: Axis | None = None,
         copy: bool = True,

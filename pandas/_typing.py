@@ -141,10 +141,7 @@ ParseDatesArg = Union[
 ]
 
 # For functions like rename that convert one label to another
-HashableT = TypeVar("HashableT", bound=Hashable)
-HashableTa = TypeVar("HashableTa", bound=Hashable)
-HashableTb = TypeVar("HashableTb", bound=Hashable)
-Renamer = Union[Mapping[HashableT, Hashable], Callable[[HashableT], Hashable]]
+Renamer = Union[Mapping[Any, Hashable], Callable[[Any], Hashable]]
 
 # to maintain type information across generic functions and parametrization
 T = TypeVar("T")

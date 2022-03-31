@@ -522,8 +522,7 @@ def _json_normalize(
     result = DataFrame(records)
 
     if record_prefix is not None:
-        rename_fun: Callable[[Hashable], str] = lambda x: f"{record_prefix}{x}"
-        result = result.rename(columns=rename_fun)
+        result = result.rename(columns=lambda x: f"{record_prefix}{x}")
 
     # Data types, a problem
     for k, v in meta_vals.items():

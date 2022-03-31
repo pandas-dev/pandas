@@ -58,9 +58,6 @@ from pandas._typing import (
     FloatFormatType,
     FormattersType,
     Frequency,
-    HashableT,
-    HashableTa,
-    HashableTb,
     IgnoreRaise,
     IndexKeyFunc,
     IndexLabel,
@@ -5036,10 +5033,10 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def rename(
         self,
-        mapper: Renamer[HashableT] | None = ...,
+        mapper: Renamer | None = ...,
         *,
-        index: Renamer[HashableTa] | None = ...,
-        columns: Renamer[HashableTb] | None = ...,
+        index: Renamer | None = ...,
+        columns: Renamer | None = ...,
         axis: Axis | None = ...,
         copy: bool = ...,
         inplace: Literal[True],
@@ -5051,10 +5048,10 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def rename(
         self,
-        mapper: Renamer[HashableT] | None = ...,
+        mapper: Renamer | None = ...,
         *,
-        index: Renamer[HashableTa] | None = ...,
-        columns: Renamer[HashableTb] | None = ...,
+        index: Renamer | None = ...,
+        columns: Renamer | None = ...,
         axis: Axis | None = ...,
         copy: bool = ...,
         inplace: Literal[False] = ...,
@@ -5066,10 +5063,10 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def rename(
         self,
-        mapper: Renamer[HashableT] | None = ...,
+        mapper: Renamer | None = ...,
         *,
-        index: Renamer[HashableTa] | None = ...,
-        columns: Renamer[HashableTb] | None = ...,
+        index: Renamer | None = ...,
+        columns: Renamer | None = ...,
         axis: Axis | None = ...,
         copy: bool = ...,
         inplace: bool = ...,
@@ -5080,10 +5077,10 @@ class DataFrame(NDFrame, OpsMixin):
 
     def rename(
         self,
-        mapper: Renamer[HashableT] | None = None,
+        mapper: Renamer | None = None,
         *,
-        index: Renamer[HashableTa] | None = None,
-        columns: Renamer[HashableTb] | None = None,
+        index: Renamer | None = None,
+        columns: Renamer | None = None,
         axis: Axis | None = None,
         copy: bool = True,
         inplace: bool = False,
