@@ -58,10 +58,10 @@ def test_categorical_dtype(data):
     assert col.describe_categorical == {
         "is_ordered": data[1],
         "is_dictionary": True,
-        "mapping": {4: "s", 2: "d", 3: "e", 1: "t"},
+        "mapping": {0: "a", 1: "d", 2: "e", 3: "s", 4: "t"},
     }
 
-    assert assert_frame_equal(df, from_dataframe(df.__dataframe__()))
+    assert_frame_equal(df, from_dataframe(df.__dataframe__()))
 
 
 @pytest.mark.parametrize("data", [int_data, float_data, bool_data])
@@ -76,13 +76,12 @@ def test_dataframe(data):
 
     assert list(df2.column_names()) == list(data.keys())
 
-    assert assert_frame_equal(
-        from_dataframe(df2.select_columns((0, 2))),
-        from_dataframe(df2.select_columns_by_name(("col33", "col35"))),
-    )
-    assert assert_frame_equal(
-        from_dataframe(df2.select_columns((0, 2))),
-        from_dataframe(df2.select_columns_by_name(("col33", "col35"))),
+    indices = (0, 2)
+    names = tuple(list(data.keys())[idx] for idx in indices)
+
+    assert_frame_equal(
+        from_dataframe(df2.select_columns(indices)),
+        from_dataframe(df2.select_columns_by_name(names)),
     )
 
 
@@ -96,10 +95,6 @@ def test_missing_from_masked():
     )
 
     df2 = df.__dataframe__()
-
-    # for col_name in df.columns:
-    # assert convert_column_to_array(df2.get_column_by_name(col_name) == df[col_name].tolist()
-    # assert df[col_name].dtype == convert_column_to_array(df2.get_column_by_name(col_name)).dtype
 
     rng = np.random.RandomState(42)
     dict_null = {col: rng.randint(low=0, high=len(df)) for col in df.columns}

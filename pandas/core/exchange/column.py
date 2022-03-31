@@ -137,7 +137,7 @@ class PandasColumn(Column):
         return {
             "is_ordered": self._col.cat.ordered,
             "is_dictionary": True,
-            "mapping": dict(zip(self._col.cat.codes, self._col.cat.categories)),
+            "mapping": dict(enumerate(self._col.cat.categories)),
         }
 
     @property
