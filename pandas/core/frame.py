@@ -819,8 +819,8 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Return the dataframe exchange object implementing the exchange protocol.
 
-        See Also
-        --------
+        Notes
+        -----
         Details on the exchange protocol:
         https://data-apis.org/dataframe-protocol/latest/index.html
         """
