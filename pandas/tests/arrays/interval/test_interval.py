@@ -135,7 +135,7 @@ class TestSetitem:
         tm.assert_extension_array_equal(result, expected)
 
     def test_setitem_mismatched_closed(self):
-        arr = IntervalArray.from_breaks(range(4), inclusive="right")
+        arr = IntervalArray.from_breaks(range(4), "right")
         orig = arr.copy()
         other = arr.set_closed("both")
 
@@ -156,13 +156,13 @@ class TestSetitem:
             arr[:] = other[::-1].astype("category")
 
         # empty list should be no-op
-        arr[:0] = []
+        arr[:0] = IntervalArray.from_breaks([], "right")
         tm.assert_interval_array_equal(arr, orig)
 
 
 def test_repr():
     # GH 25022
-    arr = IntervalArray.from_tuples([(0, 1), (1, 2)])
+    arr = IntervalArray.from_tuples([(0, 1), (1, 2)], "right")
     result = repr(arr)
     expected = (
         "<IntervalArray>\n"

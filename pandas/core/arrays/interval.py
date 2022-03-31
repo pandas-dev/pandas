@@ -190,7 +190,8 @@ for more.
     A new ``IntervalArray`` can be constructed directly from an array-like of
     ``Interval`` objects:
 
-    >>> pd.arrays.IntervalArray([pd.Interval(0, 1, "right"), pd.Interval(1, 5, "right")])
+    >>> pd.arrays.IntervalArray([pd.Interval(0, 1, "right"),
+    ...                          pd.Interval(1, 5, "right")])
     <IntervalArray>
     [(0, 1], (1, 5]]
     Length: 2, dtype: interval[int64, right]
@@ -1052,7 +1053,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             from pandas import Index
 
             fill_value = Index(self._left, copy=False)._na_value
-            empty = IntervalArray.from_breaks([fill_value] * (empty_len + 1))
+            empty = IntervalArray.from_breaks([fill_value] * (empty_len + 1), "right")
         else:
             empty = self._from_sequence([fill_value] * empty_len)
 
@@ -1136,7 +1137,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def _validate_listlike(self, value):
         # list-like of intervals
         try:
-            array = IntervalArray(value, inclusive="right")
+            array = IntervalArray(value)
             self._check_closed_matches(array, name="value")
             value_left, value_right = array.left, array.right
         except TypeError as err:
@@ -1669,7 +1670,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             "klass": "IntervalArray",
             "examples": textwrap.dedent(
                 """\
-        >>> intervals = pd.arrays.IntervalArray.from_tuples([(0, 1), (1, 3), (2, 4)], "right")
+        >>> intervals = pd.arrays.IntervalArray.from_tuples([(0, 1), (1, 3), (2, 4)]
+        ...                                                 , "right")
         >>> intervals
         <IntervalArray>
         [(0, 1], (1, 3], (2, 4]]

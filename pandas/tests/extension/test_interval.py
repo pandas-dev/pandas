@@ -31,8 +31,7 @@ def make_data():
     left_array = np.random.uniform(size=N).cumsum()
     right_array = left_array + np.random.uniform(size=N)
     return [
-        Interval(left, right, inclusive="right")
-        for left, right in zip(left_array, right_array)
+        Interval(left, right, "right") for left, right in zip(left_array, right_array)
     ]
 
 
