@@ -19,6 +19,7 @@ Instead of splitting it was decided to define sections here:
 """
 # pyright: reportUntypedFunctionDecorator = false
 
+
 from collections import abc
 from datetime import (
     date,
