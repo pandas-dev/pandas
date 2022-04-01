@@ -1,5 +1,5 @@
 Title: Write up of the NumFOCUS grant to improve pandas benchmarks and diversity
-Date: 2022-03-30
+Date: 2022-04-01
 
 # Write up of the NumFOCUS grant to improve pandas benchmarks and diversity
 
@@ -28,8 +28,8 @@ engineering and Lucy from computational chemistry, we have always been
 interested in participating and contributing to open source software
 projects. For that reason, we have been running the PyLadies meetups in
 our communities ([PyLadies Kampala](https://twitter.com/pyladieskla),
-[PyLadies Colombia](https://bit.ly/sprint-asv)) and have always been on
-the lookout for any opportunities that lead us to contribute.
+[PyLadies Colombia](https://twitter.com/pyladies_co)) and have always
+been on the lookout for any opportunities that lead us to contribute.
 
 It all happened through Marc Garcia; he had put out a call ​through a post
 on social media to mentor ladies from diverse backgrounds. Dorothy got to
