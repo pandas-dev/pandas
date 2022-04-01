@@ -11,10 +11,6 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-from pandas._testing.asserters import (
-    assert_equal,
-    assert_series_equal,
-)
 
 
 @pytest.mark.parametrize("agg_func", ["any", "all"])
@@ -74,7 +70,7 @@ def test_any_non_keyword_deprecation():
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = df.any("index", None)
     expected = Series({"A": True, "B": True, "C": False})
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     s = Series([False, False, False])
     msg = (
@@ -84,7 +80,7 @@ def test_any_non_keyword_deprecation():
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = s.any("index")
     expected = False
-    assert_equal(result, expected)
+    tm.assert_equal(result, expected)
 
 
 @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
