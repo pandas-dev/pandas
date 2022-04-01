@@ -541,7 +541,7 @@ class IndexOpsMixin(OpsMixin):
         if copy or na_value is not lib.no_default:
             result = result.copy()
             if na_value is not lib.no_default:
-                result[self.isna()] = na_value
+                result[np.asanyarray(self.isna())] = na_value
         return result
 
     @property
@@ -769,7 +769,9 @@ class IndexOpsMixin(OpsMixin):
 
         Enables various performance speedups.
         """
-        return bool(isna(self).any())
+        # error: Item "bool" of "Union[bool, ndarray[Any, dtype[bool_]], NDFrame]"
+        # has no attribute "any"
+        return bool(isna(self).any())  # type: ignore[union-attr]
 
     def isna(self):
         return isna(self._values)

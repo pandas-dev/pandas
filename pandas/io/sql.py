@@ -25,7 +25,10 @@ import warnings
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import DtypeArg
+from pandas._typing import (
+    DateTimeErrorChoices,
+    DtypeArg,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
 from pandas.util._exceptions import find_stack_level
@@ -86,7 +89,7 @@ def _handle_date_column(
         # read_sql like functions.
         # Format can take on custom to_datetime argument values such as
         # {"errors": "coerce"} or {"dayfirst": True}
-        error = format.pop("errors", None) or "ignore"
+        error: DateTimeErrorChoices = format.pop("errors", None) or "ignore"
         return to_datetime(col, errors=error, **format)
     else:
         # Allow passing of formatting string for integers
@@ -779,7 +782,7 @@ class SQLTable(PandasObject):
         schema=None,
         keys=None,
         dtype: DtypeArg | None = None,
-    ):
+    ) -> None:
         self.name = name
         self.pd_sql = pandas_sql_engine
         self.prefix = prefix
@@ -1284,7 +1287,7 @@ class BaseEngine:
 
 
 class SQLAlchemyEngine(BaseEngine):
-    def __init__(self):
+    def __init__(self) -> None:
         import_optional_dependency(
             "sqlalchemy", extra="sqlalchemy is required for SQL support."
         )
@@ -1365,7 +1368,7 @@ class SQLDatabase(PandasSQL):
 
     """
 
-    def __init__(self, engine, schema: str | None = None):
+    def __init__(self, engine, schema: str | None = None) -> None:
         from sqlalchemy.schema import MetaData
 
         self.connectable = engine
@@ -1826,7 +1829,7 @@ class SQLiteTable(SQLTable):
     Instead of a table variable just use the Create Table statement.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         # GH 8341
         # register an adapter callable for datetime.time object
         import sqlite3
@@ -1971,7 +1974,7 @@ class SQLiteDatabase(PandasSQL):
 
     """
 
-    def __init__(self, con):
+    def __init__(self, con) -> None:
         self.con = con
 
     @contextmanager

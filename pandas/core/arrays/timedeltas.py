@@ -37,6 +37,7 @@ from pandas._libs.tslibs.timedeltas import (
 from pandas._typing import (
     DtypeObj,
     NpDtype,
+    npt,
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._validators import validate_endpoints
@@ -182,7 +183,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     def __init__(
         self, values, dtype=TD64NS_DTYPE, freq=lib.no_default, copy: bool = False
-    ):
+    ) -> None:
         values = extract_array(values, extract_numpy=True)
         if isinstance(values, IntegerArray):
             values = values.to_numpy("int64", na_value=tslibs.iNaT)
@@ -431,7 +432,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     @dtl.ravel_compat
     def _format_native_types(
         self, *, na_rep="NaT", date_format=None, **kwargs
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.object_]:
         from pandas.io.formats.format import get_format_timedelta64
 
         formatter = get_format_timedelta64(self._ndarray, na_rep)
@@ -1023,6 +1024,7 @@ def sequence_to_td64ns(
         # cast the unit, multiply base/frac separately
         # to avoid precision issues from float -> int
         mask = np.isnan(data)
+        # The next few lines are effectively a vectorized 'cast_from_unit'
         m, p = precision_from_unit(unit or "ns")
         base = data.astype(np.int64)
         frac = data - base

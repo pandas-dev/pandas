@@ -168,6 +168,12 @@ dtype : Type name or dict of column -> type, optional
     to preserve and not interpret dtype.
     If converters are specified, they will be applied INSTEAD
     of dtype conversion.
+
+    .. versionadded:: 1.5.0
+
+        Support for defaultdict was added. Specify a defaultdict as input where
+        the default determines the dtype of the columns which are not explicitly
+        listed.
 engine : {{'c', 'python', 'pyarrow'}}, optional
     Parser engine to use. The C and pyarrow engines are faster, while the python engine
     is currently more feature-complete. Multithreading is currently only supported by
@@ -1369,7 +1375,7 @@ class TextFileReader(abc.Iterator):
         f: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str] | list,
         engine: CSVEngine | None = None,
         **kwds,
-    ):
+    ) -> None:
         if engine is not None:
             engine_specified = True
         else:
@@ -1709,6 +1715,10 @@ class TextFileReader(abc.Iterator):
             )
             assert self.handles is not None
             f = self.handles.handle
+
+        elif engine != "python":
+            msg = f"Invalid file path or buffer object type: {type(f)}"
+            raise ValueError(msg)
 
         try:
             return mapping[engine](f, **self.options)

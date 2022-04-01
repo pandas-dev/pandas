@@ -758,12 +758,48 @@ class TestMultiIndexSlicers:
         expected = ymd.reindex(s.index[5:])
         tm.assert_frame_equal(result, expected)
 
-    def test_loc_slice_negative_stepsize(self):
+    @pytest.mark.parametrize(
+        "dtype, loc, iloc",
+        [
+            # dtype = int, step = -1
+            ("int", slice(None, None, -1), slice(None, None, -1)),
+            ("int", slice(3, None, -1), slice(3, None, -1)),
+            ("int", slice(None, 1, -1), slice(None, 0, -1)),
+            ("int", slice(3, 1, -1), slice(3, 0, -1)),
+            # dtype = int, step = -2
+            ("int", slice(None, None, -2), slice(None, None, -2)),
+            ("int", slice(3, None, -2), slice(3, None, -2)),
+            ("int", slice(None, 1, -2), slice(None, 0, -2)),
+            ("int", slice(3, 1, -2), slice(3, 0, -2)),
+            # dtype = str, step = -1
+            ("str", slice(None, None, -1), slice(None, None, -1)),
+            ("str", slice("d", None, -1), slice(3, None, -1)),
+            ("str", slice(None, "b", -1), slice(None, 0, -1)),
+            ("str", slice("d", "b", -1), slice(3, 0, -1)),
+            # dtype = str, step = -2
+            ("str", slice(None, None, -2), slice(None, None, -2)),
+            ("str", slice("d", None, -2), slice(3, None, -2)),
+            ("str", slice(None, "b", -2), slice(None, 0, -2)),
+            ("str", slice("d", "b", -2), slice(3, 0, -2)),
+        ],
+    )
+    def test_loc_slice_negative_stepsize(self, dtype, loc, iloc):
         # GH#38071
-        mi = MultiIndex.from_product([["a", "b"], [0, 1]])
-        df = DataFrame([[1, 2], [3, 4], [5, 6], [7, 8]], index=mi)
-        result = df.loc[("a", slice(None, None, -1)), :]
-        expected = DataFrame(
-            [[3, 4], [1, 2]], index=MultiIndex.from_tuples([("a", 1), ("a", 0)])
-        )
-        tm.assert_frame_equal(result, expected)
+        labels = {
+            "str": list("abcde"),
+            "int": range(5),
+        }[dtype]
+
+        mi = MultiIndex.from_arrays([labels] * 2)
+        df = DataFrame(1.0, index=mi, columns=["A"])
+
+        SLC = pd.IndexSlice
+
+        expected = df.iloc[iloc, :]
+        result_get_loc = df.loc[SLC[loc], :]
+        result_get_locs_level_0 = df.loc[SLC[loc, :], :]
+        result_get_locs_level_1 = df.loc[SLC[:, loc], :]
+
+        tm.assert_frame_equal(result_get_loc, expected)
+        tm.assert_frame_equal(result_get_locs_level_0, expected)
+        tm.assert_frame_equal(result_get_locs_level_1, expected)

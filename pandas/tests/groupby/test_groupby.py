@@ -44,7 +44,7 @@ def test_basic(dtype):
     np.random.shuffle(index)
     data = data.reindex(index)
 
-    grouped = data.groupby(lambda x: x // 3)
+    grouped = data.groupby(lambda x: x // 3, group_keys=False)
 
     for k, v in grouped:
         assert len(v) == 3
@@ -637,7 +637,9 @@ def test_as_index_select_column():
     expected = Series([2, 4], name="B")
     tm.assert_series_equal(result, expected)
 
-    result = df.groupby("A", as_index=False)["B"].apply(lambda x: x.cumsum())
+    result = df.groupby("A", as_index=False, group_keys=True)["B"].apply(
+        lambda x: x.cumsum()
+    )
     expected = Series(
         [2, 6, 6], name="B", index=MultiIndex.from_tuples([(0, 0), (0, 1), (1, 2)])
     )
@@ -1472,7 +1474,7 @@ def test_dont_clobber_name_column():
         {"key": ["a", "a", "a", "b", "b", "b"], "name": ["foo", "bar", "baz"] * 2}
     )
 
-    result = df.groupby("key").apply(lambda x: x)
+    result = df.groupby("key", group_keys=False).apply(lambda x: x)
     tm.assert_frame_equal(result, df)
 
 
@@ -1544,7 +1546,7 @@ def test_set_group_name(df, grouper):
     def foo(x):
         return freduce(x)
 
-    grouped = df.groupby(grouper)
+    grouped = df.groupby(grouper, group_keys=False)
 
     # make sure all these work
     grouped.apply(f)
@@ -1690,13 +1692,15 @@ def test_groupby_multiindex_not_lexsorted():
 
     for level in [0, 1, [0, 1]]:
         for sort in [False, True]:
-            result = df.groupby(level=level, sort=sort).apply(DataFrame.drop_duplicates)
+            result = df.groupby(level=level, sort=sort, group_keys=False).apply(
+                DataFrame.drop_duplicates
+            )
             expected = df
             tm.assert_frame_equal(expected, result)
 
             result = (
                 df.sort_index()
-                .groupby(level=level, sort=sort)
+                .groupby(level=level, sort=sort, group_keys=False)
                 .apply(DataFrame.drop_duplicates)
             )
             expected = df.sort_index()
@@ -1911,7 +1915,7 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
 
     df = df.iloc[:0]
 
-    gb = df.groupby(keys)[columns]
+    gb = df.groupby(keys, group_keys=False)[columns]
 
     def get_result():
         if method == "attr":
@@ -2032,7 +2036,7 @@ def test_empty_groupby_apply_nonunique_columns():
     df = DataFrame(np.random.randn(0, 4))
     df[3] = df[3].astype(np.int64)
     df.columns = [0, 1, 2, 0]
-    gb = df.groupby(df[1])
+    gb = df.groupby(df[1], group_keys=False)
     res = gb.apply(lambda x: x)
     assert (res.dtypes == df.dtypes).all()
 
@@ -2466,6 +2470,40 @@ def test_groupby_numerical_stability_cumsum():
     )
     expected = DataFrame({"a": exp_data, "b": exp_data})
     tm.assert_frame_equal(result, expected, check_exact=True)
+
+
+def test_groupby_cumsum_skipna_false():
+    # GH#46216 don't propagate np.nan above the diagonal
+    arr = np.random.randn(5, 5)
+    df = DataFrame(arr)
+    for i in range(5):
+        df.iloc[i, i] = np.nan
+
+    df["A"] = 1
+    gb = df.groupby("A")
+
+    res = gb.cumsum(skipna=False)
+
+    expected = df[[0, 1, 2, 3, 4]].cumsum(skipna=False)
+    tm.assert_frame_equal(res, expected)
+
+
+def test_groupby_cumsum_timedelta64():
+    # GH#46216 don't ignore is_datetimelike in libgroupby.group_cumsum
+    dti = date_range("2016-01-01", periods=5)
+    ser = Series(dti) - dti[0]
+    ser[2] = pd.NaT
+
+    df = DataFrame({"A": 1, "B": ser})
+    gb = df.groupby("A")
+
+    res = gb.cumsum(numeric_only=False, skipna=True)
+    exp = DataFrame({"B": [ser[0], ser[1], pd.NaT, ser[4], ser[4] * 2]})
+    tm.assert_frame_equal(res, exp)
+
+    res = gb.cumsum(numeric_only=False, skipna=False)
+    exp = DataFrame({"B": [ser[0], ser[1], pd.NaT, pd.NaT, pd.NaT]})
+    tm.assert_frame_equal(res, exp)
 
 
 def test_groupby_mean_duplicate_index(rand_series_with_duplicate_datetimeindex):
