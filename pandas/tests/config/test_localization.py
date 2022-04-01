@@ -15,7 +15,7 @@ from pandas.compat import is_platform_windows
 import pandas as pd
 
 _all_locales = get_locales() or []
-_current_locale = locale.getlocale()
+_current_locale = locale.setlocale(locale.LC_ALL)  # getlocale() is wrong, see GH#46595
 
 # Don't run any of these tests if we are on Windows or have no locales.
 pytestmark = pytest.mark.skipif(
@@ -95,7 +95,8 @@ def test_set_locale(lang, enc):
             assert normalized_locale == new_locale
 
     # Once we exit the "with" statement, locale should be back to what it was.
-    current_locale = locale.getlocale()
+    # current_locale = locale.getlocale() is wrong, see GH#46595
+    current_locale = locale.setlocale(locale.LC_ALL)
     assert current_locale == _current_locale
 
 
