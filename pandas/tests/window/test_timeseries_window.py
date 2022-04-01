@@ -5,6 +5,7 @@ from pandas import (
     DataFrame,
     Index,
     MultiIndex,
+    NaT,
     Series,
     Timestamp,
     date_range,
@@ -134,7 +135,7 @@ class TestRollingTS:
 
         assert not df.index.is_monotonic
 
-        msg = "index must be monotonic"
+        msg = "index values must be monotonic"
         with pytest.raises(ValueError, match=msg):
             df.rolling("2s").sum()
 
@@ -757,3 +758,12 @@ class TestRollingTS:
             {"column": [0.0, 1.0, 3.0, 6.0, 10.0, 15.0]}, index=df.index
         )
         tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("msg, axis", [["column", 1], ["index", 0]])
+def test_nat_axis_error(msg, axis):
+    idx = [Timestamp("2020"), NaT]
+    kwargs = {"columns" if axis == 1 else "index": idx}
+    df = DataFrame(np.eye(2), **kwargs)
+    with pytest.raises(ValueError, match=f"{msg} values must not have NaT"):
+        df.rolling("D", axis=axis).mean()
