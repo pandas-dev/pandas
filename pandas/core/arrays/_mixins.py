@@ -4,7 +4,6 @@ from functools import wraps
 from typing import (
     TYPE_CHECKING,
     Any,
-    Iterator,
     Literal,
     Sequence,
     TypeVar,
@@ -43,6 +42,7 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.common import (
+    is_array_like,
     is_bool_dtype,
     is_dtype_equal,
     is_integer,
@@ -69,7 +69,10 @@ from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.construction import extract_array
-from pandas.core.indexers import check_array_indexer
+from pandas.core.indexers import (
+    check_array_indexer,
+    validate_indices,
+)
 from pandas.core.sorting import nargminmax
 
 NDArrayBackedExtensionArrayT = TypeVar(
@@ -85,6 +88,8 @@ if TYPE_CHECKING:
         NumpySorter,
         NumpyValueArrayLike,
     )
+
+    from pandas import Series
 
 
 def ravel_compat(meth: F) -> F:
@@ -599,6 +604,159 @@ class ArrowExtensionArray(ExtensionArray):
         """
         return type(self)(self._data)
 
+    @doc(ExtensionArray.factorize)
+    def factorize(self, na_sentinel: int = -1) -> tuple[np.ndarray, ExtensionArray]:
+        encoded = self._data.dictionary_encode()
+        indices = pa.chunked_array(
+            [c.indices for c in encoded.chunks], type=encoded.type.index_type
+        ).to_pandas()
+        if indices.dtype.kind == "f":
+            indices[np.isnan(indices)] = na_sentinel
+        indices = indices.astype(np.int64, copy=False)
+
+        if encoded.num_chunks:
+            uniques = type(self)(encoded.chunk(0).dictionary)
+        else:
+            uniques = type(self)(pa.array([], type=encoded.type.value_type))
+
+        return indices.values, uniques
+
+    def take(
+        self,
+        indices: TakeIndexer,
+        allow_fill: bool = False,
+        fill_value: Any = None,
+    ):
+        """
+        Take elements from an array.
+
+        Parameters
+        ----------
+        indices : sequence of int or one-dimensional np.ndarray of int
+            Indices to be taken.
+        allow_fill : bool, default False
+            How to handle negative values in `indices`.
+
+            * False: negative values in `indices` indicate positional indices
+              from the right (the default). This is similar to
+              :func:`numpy.take`.
+
+            * True: negative values in `indices` indicate
+              missing values. These values are set to `fill_value`. Any other
+              other negative values raise a ``ValueError``.
+
+        fill_value : any, optional
+            Fill value to use for NA-indices when `allow_fill` is True.
+            This may be ``None``, in which case the default NA value for
+            the type, ``self.dtype.na_value``, is used.
+
+            For many ExtensionArrays, there will be two representations of
+            `fill_value`: a user-facing "boxed" scalar, and a low-level
+            physical NA value. `fill_value` should be the user-facing version,
+            and the implementation should handle translating that to the
+            physical version for processing the take if necessary.
+
+        Returns
+        -------
+        ExtensionArray
+
+        Raises
+        ------
+        IndexError
+            When the indices are out of bounds for the array.
+        ValueError
+            When `indices` contains negative values other than ``-1``
+            and `allow_fill` is True.
+
+        See Also
+        --------
+        numpy.take
+        api.extensions.take
+
+        Notes
+        -----
+        ExtensionArray.take is called by ``Series.__getitem__``, ``.loc``,
+        ``iloc``, when `indices` is a sequence of values. Additionally,
+        it's called by :meth:`Series.reindex`, or any other method
+        that causes realignment, with a `fill_value`.
+        """
+        # TODO: Remove once we got rid of the (indices < 0) check
+        if not is_array_like(indices):
+            indices_array = np.asanyarray(indices)
+        else:
+            # error: Incompatible types in assignment (expression has type
+            # "Sequence[int]", variable has type "ndarray")
+            indices_array = indices  # type: ignore[assignment]
+
+        if len(self._data) == 0 and (indices_array >= 0).any():
+            raise IndexError("cannot do a non-empty take")
+        if indices_array.size > 0 and indices_array.max() >= len(self._data):
+            raise IndexError("out of bounds value in 'indices'.")
+
+        if allow_fill:
+            fill_mask = indices_array < 0
+            if fill_mask.any():
+                validate_indices(indices_array, len(self._data))
+                # TODO(ARROW-9433): Treat negative indices as NULL
+                indices_array = pa.array(indices_array, mask=fill_mask)
+                result = self._data.take(indices_array)
+                if isna(fill_value):
+                    return type(self)(result)
+                # TODO: ArrowNotImplementedError: Function fill_null has no
+                # kernel matching input types (array[string], scalar[string])
+                result = type(self)(result)
+                result[fill_mask] = fill_value
+                return result
+                # return type(self)(pc.fill_null(result, pa.scalar(fill_value)))
+            else:
+                # Nothing to fill
+                return type(self)(self._data.take(indices))
+        else:  # allow_fill=False
+            # TODO(ARROW-9432): Treat negative indices as indices from the right.
+            if (indices_array < 0).any():
+                # Don't modify in-place
+                indices_array = np.copy(indices_array)
+                indices_array[indices_array < 0] += len(self._data)
+            return type(self)(self._data.take(indices_array))
+
+    def value_counts(self, dropna: bool = True) -> Series:
+        """
+        Return a Series containing counts of each unique value.
+
+        Parameters
+        ----------
+        dropna : bool, default True
+            Don't include counts of missing values.
+
+        Returns
+        -------
+        counts : Series
+
+        See Also
+        --------
+        Series.value_counts
+        """
+        from pandas import (
+            Index,
+            Series,
+        )
+
+        vc = self._data.value_counts()
+
+        values = vc.field(0)
+        counts = vc.field(1)
+        if dropna and self._data.null_count > 0:
+            mask = values.is_valid()
+            values = values.filter(mask)
+            counts = counts.filter(mask)
+
+        # No missing values so we can adhere to the interface and return a numpy array.
+        counts = np.array(counts)
+
+        index = Index(type(self)(values))
+
+        return Series(counts, index=index).astype("Int64")
+
     @classmethod
     def _concat_same_type(
         cls: type[ArrowExtensionArrayT], to_concat
@@ -696,65 +854,33 @@ class ArrowExtensionArray(ExtensionArray):
         """
         Loop through the array chunks and set the new values while
         leaving the chunking layout unchanged.
-        """
-        chunk_indices = self._indices_to_chunk_indices(indices)
-        new_data = list(self._data.iterchunks())
-
-        for i, c_ind in enumerate(chunk_indices):
-            n = len(c_ind)
-            if n == 0:
-                continue
-            c_value, value = value[:n], value[n:]
-            new_data[i] = self._replace_with_indices(new_data[i], c_ind, c_value)
-
-        return pa.chunked_array(new_data)
-
-    def _indices_to_chunk_indices(
-        self, indices: npt.NDArray[np.intp]
-    ) -> Iterator[npt.NDArray[np.intp]]:
-        """
-        Convert *sorted* indices for self into a list of ndarrays
-        each containing the indices *within* each chunk of the
-        underlying ChunkedArray.
 
         Parameters
         ----------
         indices : npt.NDArray[np.intp]
             Position indices for the underlying ChunkedArray.
 
-        Returns
-        -------
-        Generator yielding positional indices for each chunk
+        value : ExtensionDtype.type, Sequence[ExtensionDtype.type], or object
+            value or values to be set of ``key``.
 
         Notes
         -----
         Assumes that indices is sorted. Caller is responsible for sorting.
         """
-        for start, stop in self._chunk_positional_ranges():
+        new_data = []
+        stop = 0
+        for chunk in self._data.iterchunks():
+            start, stop = stop, stop + len(chunk)
             if len(indices) == 0 or stop <= indices[0]:
-                yield np.array([], dtype=np.intp)
+                new_data.append(chunk)
             else:
                 n = int(np.searchsorted(indices, stop, side="left"))
                 c_ind = indices[:n] - start
                 indices = indices[n:]
-                yield c_ind
-
-    def _chunk_positional_ranges(self) -> tuple[tuple[int, int], ...]:
-        """
-        Return a tuple of tuples each containing the left (inclusive)
-        and right (exclusive) positional bounds of each chunk's values
-        within the underlying ChunkedArray.
-
-        Returns
-        -------
-        tuple[tuple]
-        """
-        ranges = []
-        stop = 0
-        for c in self._data.iterchunks():
-            start, stop = stop, stop + len(c)
-            ranges.append((start, stop))
-        return tuple(ranges)
+                n = len(c_ind)
+                c_value, value = value[:n], value[n:]
+                new_data.append(self._replace_with_indices(chunk, c_ind, c_value))
+        return pa.chunked_array(new_data)
 
     @classmethod
     def _replace_with_indices(
