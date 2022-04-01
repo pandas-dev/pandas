@@ -336,7 +336,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         self,
         dtype: npt.DTypeLike | None = None,
         copy: bool = False,
-        na_value: Scalar | lib.NoDefault | libmissing.NAType = lib.no_default,
+        na_value: object = lib.no_default,
     ) -> np.ndarray:
         """
         Convert to a NumPy Array.

@@ -500,7 +500,7 @@ def factorize_array(
     values: np.ndarray,
     na_sentinel: int = -1,
     size_hint: int | None = None,
-    na_value=None,
+    na_value: object = None,
     mask: npt.NDArray[np.bool_] | None = None,
 ) -> tuple[npt.NDArray[np.intp], np.ndarray]:
     """
