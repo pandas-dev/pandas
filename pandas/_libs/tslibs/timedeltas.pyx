@@ -51,6 +51,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     pandas_timedeltastruct,
     td64_to_tdstruct,
 )
+from pandas._libs.tslibs.np_datetime import OutOfBoundsTimedelta
 from pandas._libs.tslibs.offsets cimport is_tick_object
 from pandas._libs.tslibs.util cimport (
     is_array,
@@ -188,7 +189,6 @@ cpdef int64_t delta_to_nanoseconds(delta) except? -1:
                 + delta.microseconds
             ) * 1000
         except OverflowError as err:
-            from pandas._libs.tslibs.conversion import OutOfBoundsTimedelta
             raise OutOfBoundsTimedelta(*err.args) from err
 
     raise TypeError(type(delta))
@@ -226,7 +226,6 @@ cdef object ensure_td64ns(object ts):
             # NB: cython#1381 this cannot be *=
             td64_value = td64_value * mult
         except OverflowError as err:
-            from pandas._libs.tslibs.conversion import OutOfBoundsTimedelta
             raise OutOfBoundsTimedelta(ts) from err
 
         return np.timedelta64(td64_value, "ns")

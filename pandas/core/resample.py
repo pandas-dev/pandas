@@ -149,6 +149,7 @@ class Resampler(BaseGroupBy, PandasObject):
         axis: int = 0,
         kind=None,
         *,
+        group_keys: bool | lib.NoDefault = lib.no_default,
         selection=None,
         **kwargs,
     ) -> None:
@@ -158,7 +159,7 @@ class Resampler(BaseGroupBy, PandasObject):
         self.axis = axis
         self.kind = kind
         self.squeeze = False
-        self.group_keys = True
+        self.group_keys = group_keys
         self.as_index = True
 
         self.groupby._set_grouper(self._convert_obj(obj), sort=True)
@@ -409,7 +410,9 @@ class Resampler(BaseGroupBy, PandasObject):
         grouper = self.grouper
         if subset is None:
             subset = self.obj
-        grouped = get_groupby(subset, by=None, grouper=grouper, axis=self.axis)
+        grouped = get_groupby(
+            subset, by=None, grouper=grouper, axis=self.axis, group_keys=self.group_keys
+        )
 
         # try the key selection
         try:
@@ -424,8 +427,9 @@ class Resampler(BaseGroupBy, PandasObject):
         grouper = self.grouper
 
         obj = self._selected_obj
-
-        grouped = get_groupby(obj, by=None, grouper=grouper, axis=self.axis)
+        grouped = get_groupby(
+            obj, by=None, grouper=grouper, axis=self.axis, group_keys=self.group_keys
+        )
 
         try:
             if isinstance(obj, ABCDataFrame) and callable(how):
@@ -1477,6 +1481,7 @@ class TimeGrouper(Grouper):
         base: int | None = None,
         origin: str | TimestampConvertibleTypes = "start_day",
         offset: TimedeltaConvertibleTypes | None = None,
+        group_keys: bool | lib.NoDefault = True,
         **kwargs,
     ) -> None:
         # Check for correctness of the keyword arguments which would
@@ -1525,6 +1530,7 @@ class TimeGrouper(Grouper):
         self.how = how
         self.fill_method = fill_method
         self.limit = limit
+        self.group_keys = group_keys
 
         if origin in ("epoch", "start", "start_day", "end", "end_day"):
             self.origin = origin
@@ -1590,11 +1596,17 @@ class TimeGrouper(Grouper):
 
         ax = self.ax
         if isinstance(ax, DatetimeIndex):
-            return DatetimeIndexResampler(obj, groupby=self, kind=kind, axis=self.axis)
+            return DatetimeIndexResampler(
+                obj, groupby=self, kind=kind, axis=self.axis, group_keys=self.group_keys
+            )
         elif isinstance(ax, PeriodIndex) or kind == "period":
-            return PeriodIndexResampler(obj, groupby=self, kind=kind, axis=self.axis)
+            return PeriodIndexResampler(
+                obj, groupby=self, kind=kind, axis=self.axis, group_keys=self.group_keys
+            )
         elif isinstance(ax, TimedeltaIndex):
-            return TimedeltaIndexResampler(obj, groupby=self, axis=self.axis)
+            return TimedeltaIndexResampler(
+                obj, groupby=self, axis=self.axis, group_keys=self.group_keys
+            )
 
         raise TypeError(
             "Only valid with DatetimeIndex, "
