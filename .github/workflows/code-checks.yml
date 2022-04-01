@@ -141,6 +141,7 @@ jobs:
       run: |
         cd asv_bench
         # TODO add `--durations` when we start using asv >= 0.5 (#46598)
+        asv machine --yes
         asv run --quick --dry-run --python=same | sed "/failed$/ s/^/##[error]/" | tee benchmarks.log
         if grep "failed" benchmarks.log > /dev/null ; then
             exit 1
