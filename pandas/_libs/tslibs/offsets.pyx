@@ -450,6 +450,7 @@ cdef class BaseOffset:
     def __add__(self, other):
         if not isinstance(self, BaseOffset):
             # cython semantics; this is __radd__
+            # TODO(cython3): remove this, this moved to __radd__
             return other.__add__(self)
 
         elif util.is_array(other) and other.dtype == object:
@@ -460,6 +461,9 @@ cdef class BaseOffset:
         except ApplyTypeError:
             return NotImplemented
 
+    def __radd__(self, other):
+        return self.__add__(other)
+
     def __sub__(self, other):
         if PyDateTime_Check(other):
             raise TypeError('Cannot subtract datetime from offset.')
@@ -467,11 +471,15 @@ cdef class BaseOffset:
             return type(self)(self.n - other.n, normalize=self.normalize,
                               **self.kwds)
         elif not isinstance(self, BaseOffset):
+            # TODO(cython3): remove, this moved to __rsub__
             # cython semantics, this is __rsub__
             return (-other).__add__(self)
         else:
             # e.g. PeriodIndex
             return NotImplemented
+
+    def __rsub__(self, other):
+        return (-self).__add__(other)
 
     def __call__(self, other):
         warnings.warn(
@@ -499,9 +507,13 @@ cdef class BaseOffset:
             return type(self)(n=other * self.n, normalize=self.normalize,
                               **self.kwds)
         elif not isinstance(self, BaseOffset):
+            # TODO(cython3): remove this, this moved to __rmul__
             # cython semantics, this is __rmul__
             return other.__mul__(self)
         return NotImplemented
+
+    def __rmul__(self, other):
+        return self.__mul__(other)
 
     def __neg__(self):
         # Note: we are deferring directly to __mul__ instead of __rmul__, as
@@ -887,6 +899,7 @@ cdef class Tick(SingleConstructorOffset):
 
     def __mul__(self, other):
         if not isinstance(self, Tick):
+            # TODO(cython3), remove this, this moved to __rmul__
             # cython semantics, this is __rmul__
             return other.__mul__(self)
         if is_float_object(other):
@@ -900,6 +913,9 @@ cdef class Tick(SingleConstructorOffset):
             return new_self * other
         return BaseOffset.__mul__(self, other)
 
+    def __rmul__(self, other):
+        return self.__mul__(other)
+
     def __truediv__(self, other):
         if not isinstance(self, Tick):
             # cython semantics mean the args are sometimes swapped
@@ -908,9 +924,14 @@ cdef class Tick(SingleConstructorOffset):
             result = self.delta.__truediv__(other)
         return _wrap_timedelta_result(result)
 
+    def __rtruediv__(self, other):
+        result = self.delta.__rtruediv__(other)
+        return _wrap_timedelta_result(result)
+
     def __add__(self, other):
         if not isinstance(self, Tick):
             # cython semantics; this is __radd__
+            # TODO(cython3): remove this, this moved to __radd__
             return other.__add__(self)
 
         if isinstance(other, Tick):
@@ -927,6 +948,9 @@ cdef class Tick(SingleConstructorOffset):
             raise OverflowError(
                 f"the add operation between {self} and {other} will overflow"
             ) from err
+
+    def __radd__(self, other):
+        return self.__add__(other)
 
     def _apply(self, other):
         # Timestamp can handle tz and nano sec, thus no need to use apply_wraps
