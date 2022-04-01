@@ -1391,6 +1391,10 @@ class SQLDatabase(PandasSQL):
         chunksize : int, default 0
             Specify the number of rows in each batch to be written at a time.
             By default, all rows will be written at once.
+        
+        Returns
+        -------
+        Results Iterable
         """
         if chunksize > 0:
             # See: https://pythonspeed.com/articles/pandas-sql-chunking/
