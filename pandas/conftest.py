@@ -28,7 +28,6 @@ from datetime import (
     timezone,
 )
 from decimal import Decimal
-import locale
 import operator
 import os
 
@@ -1201,36 +1200,6 @@ def utc_fixture(request):
 
 
 utc_fixture2 = utc_fixture
-
-
-@pytest.fixture(
-    params=[
-        pytest.param(None, id=str(locale.getlocale())),
-        "it_IT.utf8",
-        "it_IT",  # Note: encoding will be 'ISO8859-1'
-        "zh_CN.utf8",
-        "zh_CN",  # Note: encoding will be 'gb2312'
-    ]
-)
-def overridden_locale(request):
-    """
-    Fixture to temporarily change the locale.
-
-    If a locale cannot be set (because it is not available on the host)
-    the test is skipped.
-    """
-    target = request.param
-    if target is None:
-        # Use current locale for this test.
-        yield locale.setlocale(locale.LC_ALL)
-    else:
-        if tm.can_set_locale(target, locale.LC_ALL):
-            # Change locale temporarily for this test.
-            with tm.set_locale(target, locale.LC_ALL):
-                yield target
-        else:
-            # Not available on this host. Skip test.
-            pytest.skip(f"Skipping as locale {repr(locale)} cannot be set on host.")
 
 
 # ----------------------------------------------------------------

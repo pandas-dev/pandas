@@ -1,12 +1,14 @@
 """
 Test output formatting for Series/DataFrame, including to_string & reprs
 """
+from contextlib import nullcontext
 from datetime import (
     datetime,
     time,
 )
 from io import StringIO
 import itertools
+import locale
 from operator import methodcaller
 import os
 from pathlib import Path
@@ -3234,34 +3236,66 @@ class TestPeriodIndexFormat:
             per = dt.to_period(freq="H")
         assert per.format()[0] == "2013-01-01 00:00"
 
-    def test_period_non_ascii_fmt(self, overridden_locale):
+    @pytest.mark.parametrize(
+        "locale_str",
+        [
+            pytest.param(None, id=str(locale.getlocale())),
+            "it_IT.utf8",
+            "it_IT",  # Note: encoding will be 'ISO8859-1'
+            "zh_CN.utf8",
+            "zh_CN",  # Note: encoding will be 'gb2312'
+        ],
+    )
+    def test_period_non_ascii_fmt(self, locale_str):
         # GH#46468 non-ascii char in input format string leads to wrong output
 
-        # Scalar
-        per = pd.Period("2018-03-11 13:00", freq="H")
-        assert per.strftime("%y é") == "18 é"
+        # Skip if locale cannot be set
+        if locale_str is not None and not tm.can_set_locale(locale_str, locale.LC_ALL):
+            pytest.skip(f"Skipping as locale '{locale_str}' cannot be set on host.")
 
-        # Index
-        per = pd.period_range("2003-01-01 01:00:00", periods=2, freq="12h")
-        formatted = per.format(date_format="%y é")
-        assert formatted[0] == "03 é"
-        assert formatted[1] == "03 é"
+        # Change locale temporarily for this test.
+        with tm.set_locale(locale_str, locale.LC_ALL) if locale_str else nullcontext():
+            # Scalar
+            per = pd.Period("2018-03-11 13:00", freq="H")
+            assert per.strftime("%y é") == "18 é"
 
-    def test_period_custom_locale_directive(self, overridden_locale):
+            # Index
+            per = pd.period_range("2003-01-01 01:00:00", periods=2, freq="12h")
+            formatted = per.format(date_format="%y é")
+            assert formatted[0] == "03 é"
+            assert formatted[1] == "03 é"
+
+    @pytest.mark.parametrize(
+        "locale_str",
+        [
+            pytest.param(None, id=str(locale.getlocale())),
+            "it_IT.utf8",
+            "it_IT",  # Note: encoding will be 'ISO8859-1'
+            "zh_CN.utf8",
+            "zh_CN",  # Note: encoding will be 'gb2312'
+        ],
+    )
+    def test_period_custom_locale_directive(self, locale_str):
         # GH#46319 locale-specific directive leads to non-utf8 c strftime char* result
 
-        # Get locale-specific reference
-        am_local, pm_local = get_local_am_pm()
+        # Skip if locale cannot be set
+        if locale_str is not None and not tm.can_set_locale(locale_str, locale.LC_ALL):
+            pytest.skip(f"Skipping as locale '{locale_str}' cannot be set on host.")
 
-        # Scalar
-        per = pd.Period("2018-03-11 13:00", freq="H")
-        assert per.strftime("%p") == pm_local
+        # Change locale temporarily for this test.
+        with tm.set_locale(locale_str, locale.LC_ALL) if locale_str else nullcontext():
+            # Get locale-specific reference
+            am_local, pm_local = get_local_am_pm()
 
-        # Index
-        per = pd.period_range("2003-01-01 01:00:00", periods=2, freq="12h")
-        formatted = per.format(date_format="%y %I:%M:%S%p")
-        assert formatted[0] == f"03 01:00:00{am_local}"
-        assert formatted[1] == f"03 01:00:00{pm_local}"
+            # Scalar
+            per = pd.Period("2018-03-11 13:00", freq="H")
+            assert per.strftime("%p") == pm_local
+
+            # Index
+            per = pd.period_range("2003-01-01 01:00:00", periods=2, freq="12h")
+            formatted = per.format(date_format="%y %I:%M:%S%p")
+            assert formatted[0] == f"03 01:00:00{am_local}"
+            assert formatted[1] == f"03 01:00:00{pm_local}"
 
 
 class TestDatetimeIndexFormat:
