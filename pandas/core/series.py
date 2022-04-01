@@ -4731,10 +4731,10 @@ Keep all original rows and also all original values
             axis = self._get_axis_number(axis)
 
         if callable(index) or is_dict_like(index):
-            # error: Argument 1 to "_rename" of "NDFrame" has incompatible type
-            # "Union[Union[Mapping[Hashable, Any], Callable[[Hashable], Hashable]],
-            # Hashable, None]"; expected "Union[Mapping[Hashable, Any],
-            # Callable[[Hashable], Hashable], None]"
+            # error: Argument 1 to "_rename" of "NDFrame" has incompatible
+            # type "Union[Union[Mapping[Any, Hashable], Callable[[Any],
+            # Hashable]], Hashable, None]"; expected "Union[Mapping[Any,
+            # Hashable], Callable[[Any], Hashable], None]"
             return super()._rename(
                 index,  # type: ignore[arg-type]
                 copy=copy,
