@@ -1203,6 +1203,9 @@ def test_rolling_var_numerical_issues(func, third_value, values):
     result = getattr(ds.rolling(2), func)()
     expected = Series([np.nan] + values)
     tm.assert_series_equal(result, expected)
+    # GH 42064
+    # new `roll_var` will output 0.0 correctly
+    tm.assert_series_equal(result == 0, expected == 0)
 
 
 def test_timeoffset_as_window_parameter_for_corr():
@@ -1521,6 +1524,9 @@ def test_rolling_var_floating_artifact_precision():
     result = s.rolling(3).var()
     expected = Series([np.nan, np.nan, 4 / 3, 0])
     tm.assert_series_equal(result, expected, atol=1.0e-15, rtol=1.0e-15)
+    # GH 42064
+    # new `roll_var` will output 0.0 correctly
+    tm.assert_series_equal(result == 0, expected == 0)
 
 
 def test_rolling_std_small_values():
