@@ -382,6 +382,13 @@ class StringArray(BaseStringArray, PandasArray):
         arr[mask] = -1
         return arr, -1
 
+    @classmethod
+    def _from_factorized(cls, values, original):
+        assert values.dtype == original._ndarray.dtype
+        # When dropna (i.e. ignore_na) is False, can get -1 from nulls
+        values[values == -1] = None
+        return original._from_backing_data(values)
+
     def __setitem__(self, key, value):
         value = extract_array(value, extract_numpy=True)
         if isinstance(value, type(self)):

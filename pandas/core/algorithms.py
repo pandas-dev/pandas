@@ -502,6 +502,7 @@ def factorize_array(
     size_hint: int | None = None,
     na_value=None,
     mask: npt.NDArray[np.bool_] | None = None,
+    dropna: bool = True,
 ) -> tuple[npt.NDArray[np.intp], np.ndarray]:
     """
     Factorize a numpy array to codes and uniques.
@@ -523,6 +524,11 @@ def factorize_array(
         If not None, the mask is used as indicator for missing values
         (True = missing, False = valid) instead of `na_value` or
         condition "val != val".
+    dropna: bool, default True
+        Whether null values will appear in uniques. When False, null values
+        will receive a nonnegative code instead of na_sentinel.
+
+        ..versionadded:: 1.5.0
 
     Returns
     -------
@@ -541,7 +547,11 @@ def factorize_array(
 
     table = hash_klass(size_hint or len(values))
     uniques, codes = table.factorize(
-        values, na_sentinel=na_sentinel, na_value=na_value, mask=mask
+        values,
+        na_sentinel=na_sentinel,
+        na_value=na_value,
+        mask=mask,
+        ignore_na=dropna,
     )
 
     # re-cast e.g. i8->dt64/td64, uint8->bool
@@ -728,11 +738,19 @@ def factorize(
 
     if not isinstance(values.dtype, np.dtype):
         # i.e. ExtensionDtype
-        codes, uniques = values.factorize(na_sentinel=na_sentinel)
+        # TODO: pass ignore_na=dropna. When sort is True we ignore_na here and append
+        #       on the end because safe_sort does not handle null values in uniques
+        codes, uniques = values.factorize(
+            na_sentinel=na_sentinel, dropna=dropna or sort
+        )
     else:
         values = np.asarray(values)  # convert DTA/TDA/MultiIndex
+        # TODO: pass ignore_na=dropna; see above
         codes, uniques = factorize_array(
-            values, na_sentinel=na_sentinel, size_hint=size_hint
+            values,
+            na_sentinel=na_sentinel,
+            size_hint=size_hint,
+            dropna=dropna or sort,
         )
 
     if sort and len(uniques) > 0:
@@ -740,13 +758,15 @@ def factorize(
             uniques, codes, na_sentinel=na_sentinel, assume_unique=True, verify=False
         )
 
-    code_is_na = codes == na_sentinel
-    if not dropna and code_is_na.any():
-        # na_value is set based on the dtype of uniques, and compat set to False is
-        # because we do not want na_value to be 0 for integers
-        na_value = na_value_for_dtype(uniques.dtype, compat=False)
-        uniques = np.append(uniques, [na_value])
-        codes = np.where(code_is_na, len(uniques) - 1, codes)
+    if not dropna and sort:
+        # TODO: Can remove if we pass ignore_na=dropna; see above
+        code_is_na = codes == na_sentinel
+        if code_is_na.any():
+            # na_value is set based on the dtype of uniques, and compat set to False is
+            # because we do not want na_value to be 0 for integers
+            na_value = na_value_for_dtype(uniques.dtype, compat=False)
+            uniques = np.append(uniques, [na_value])
+            codes = np.where(code_is_na, len(uniques) - 1, codes)
 
     uniques = _reconstruct_data(uniques, original.dtype, original)
 

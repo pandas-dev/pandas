@@ -96,6 +96,7 @@ Other enhancements
 - :meth:`pd.concat` now raises when ``levels`` contains duplicate values (:issue:`46653`)
 - Added ``numeric_only`` argument to :meth:`DataFrame.corr`, :meth:`DataFrame.corrwith`, and :meth:`DataFrame.cov` (:issue:`46560`)
 - A :class:`errors.PerformanceWarning` is now thrown when using ``string[pyarrow]`` dtype with methods that don't dispatch to ``pyarrow.compute`` methods (:issue:`42613`)
+- The method :meth:`.ExtensionArray.factorize` has gained the argument ``dropna`` for determining how null values are to be treated. (:issue:`46601`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.notable_bug_fixes:
@@ -605,6 +606,7 @@ Groupby/resample/rolling
 - Bug in :meth:`SeriesGroupBy.apply` would incorrectly name its result when there was a unique group (:issue:`46369`)
 - Bug in :meth:`.Rolling.var` would segfault calculating weighted variance when window size was larger than data size (:issue:`46760`)
 - Bug in :meth:`Grouper.__repr__` where ``dropna`` was not included. Now it is (:issue:`46754`)
+- Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby` with ``dropna=False`` and ``sort=False`` would put any null groups at the end instead the order that they are encountered (:issue:`46584`)
 
 Reshaping
 ^^^^^^^^^

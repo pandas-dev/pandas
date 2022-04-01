@@ -868,16 +868,38 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self._data.searchsorted(value, side=side, sorter=sorter)
 
     @doc(ExtensionArray.factorize)
-    def factorize(self, na_sentinel: int = -1) -> tuple[np.ndarray, ExtensionArray]:
+    def factorize(
+        self, na_sentinel: int = -1, dropna: bool = True
+    ) -> tuple[np.ndarray, ExtensionArray]:
         arr = self._data
         mask = self._mask
 
-        codes, uniques = factorize_array(arr, na_sentinel=na_sentinel, mask=mask)
+        codes, uniques = factorize_array(
+            arr, na_sentinel=na_sentinel, mask=mask, dropna=True
+        )
 
         # check that factorize_array correctly preserves dtype.
         assert uniques.dtype == self.dtype.numpy_dtype, (uniques.dtype, self.dtype)
 
-        uniques_ea = type(self)(uniques, np.zeros(len(uniques), dtype=bool))
+        # Make room for a null value if we're not ignoring it and it exists
+        size = len(uniques) if dropna or not mask.any() else len(uniques) + 1
+        uniques_mask = np.zeros(size, dtype=bool)
+        if not dropna:
+            na_index = mask.argmax()
+            if mask[na_index]:
+                # Insert na with the proper code
+                na_code = 0 if na_index == 0 else codes[:na_index].argmax() + 1
+                if na_sentinel < 0:
+                    # codes can never equal na_sentinel and be >= na_code
+                    codes[codes >= na_code] += 1
+                else:
+                    codes[(codes >= na_code) & (codes != na_sentinel)] += 1
+                codes[codes == na_sentinel] = na_code
+                # dummy value for uniques; not used since uniques_mask will be True
+                uniques = np.insert(uniques, na_code, 0)
+                uniques_mask[na_code] = True
+        uniques_ea = type(self)(uniques, uniques_mask)
+
         return codes, uniques_ea
 
     @doc(ExtensionArray._values_for_argsort)

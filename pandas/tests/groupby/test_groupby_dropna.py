@@ -348,3 +348,52 @@ def test_groupby_nan_included():
         tm.assert_numpy_array_equal(result_values, expected_values)
     assert np.isnan(list(result.keys())[2])
     assert list(result.keys())[0:2] == ["g1", "g2"]
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        pd.Series([2, np.nan, 1, 2]),
+        pd.Series([2, np.nan, 1, 2], dtype="UInt8"),
+        pd.Series([2, np.nan, 1, 2], dtype="Int8"),
+        pd.Series([2, np.nan, 1, 2], dtype="UInt16"),
+        pd.Series([2, np.nan, 1, 2], dtype="Int16"),
+        pd.Series([2, np.nan, 1, 2], dtype="UInt32"),
+        pd.Series([2, np.nan, 1, 2], dtype="Int32"),
+        pd.Series([2, np.nan, 1, 2], dtype="UInt64"),
+        pd.Series([2, np.nan, 1, 2], dtype="Int64"),
+        pd.Series([2, np.nan, 1, 2], dtype="Float32"),
+        pd.Series([2, np.nan, 1, 2], dtype="Int64"),
+        pd.Series([2, np.nan, 1, 2], dtype="Float64"),
+        pd.Series(["y", None, "x", "y"], dtype="category"),
+        pd.Series(["y", pd.NA, "x", "y"], dtype="string"),
+        pd.Series(["y", pd.NA, "x", "y"], dtype="string[pyarrow]"),
+        pd.Series(
+            ["2016-01-01", np.datetime64("NaT"), "2017-01-01", "2016-01-01"],
+            dtype="datetime64[ns]",
+        ),
+        pd.Series(
+            [
+                pd.Period("2012-02-01", freq="D"),
+                pd.NA,
+                pd.Period("2012-01-01", freq="D"),
+                pd.Period("2012-02-01", freq="D"),
+            ]
+        ),
+        pd.Series(pd.arrays.SparseArray([2, np.nan, 1, 2])),
+    ],
+)
+@pytest.mark.parametrize("test_series", [True, False])
+def test_no_sort_keep_na(key, test_series):
+    df = pd.DataFrame({"key": key, "a": [1, 2, 3, 4]})
+    gb = df.groupby("key", dropna=False, sort=False)
+    if test_series:
+        gb = gb["a"]
+    result = gb.sum()
+    expected = pd.DataFrame({"a": [5, 2, 3]}, index=key[:-1].rename("key"))
+    if test_series:
+        expected = expected["a"]
+    if expected.index.is_categorical():
+        # TODO: Slicing reorders categories?
+        expected.index = expected.index.reorder_categories(["y", "x"])
+    tm.assert_equal(result, expected)

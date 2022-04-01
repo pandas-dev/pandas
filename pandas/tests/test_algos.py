@@ -436,13 +436,13 @@ class TestFactorize:
         [
             (
                 ["a", None, "b", "a"],
-                np.array([0, 2, 1, 0], dtype=np.dtype("intp")),
-                np.array(["a", "b", np.nan], dtype=object),
+                np.array([0, 1, 2, 0], dtype=np.dtype("intp")),
+                np.array(["a", None, "b"], dtype=object),
             ),
             (
                 ["a", np.nan, "b", "a"],
-                np.array([0, 2, 1, 0], dtype=np.dtype("intp")),
-                np.array(["a", "b", np.nan], dtype=object),
+                np.array([0, 1, 2, 0], dtype=np.dtype("intp")),
+                np.array(["a", np.nan, "b"], dtype=object),
             ),
         ],
     )
@@ -459,13 +459,13 @@ class TestFactorize:
         [
             (
                 [1, None, 1, 2],
-                np.array([0, 2, 0, 1], dtype=np.dtype("intp")),
-                np.array([1, 2, np.nan], dtype="O"),
+                np.array([0, 1, 0, 2], dtype=np.dtype("intp")),
+                np.array([1, None, 2], dtype="O"),
             ),
             (
                 [1, np.nan, 1, 2],
-                np.array([0, 2, 0, 1], dtype=np.dtype("intp")),
-                np.array([1, 2, np.nan], dtype=np.float64),
+                np.array([0, 1, 0, 2], dtype=np.dtype("intp")),
+                np.array([1, np.nan, 2], dtype=np.float64),
             ),
         ],
     )

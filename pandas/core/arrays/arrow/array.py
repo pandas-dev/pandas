@@ -105,8 +105,11 @@ class ArrowExtensionArray(ExtensionArray):
         return type(self)(self._data)
 
     @doc(ExtensionArray.factorize)
-    def factorize(self, na_sentinel: int = -1) -> tuple[np.ndarray, ExtensionArray]:
-        encoded = self._data.dictionary_encode()
+    def factorize(
+        self, na_sentinel: int = -1, dropna=True
+    ) -> tuple[np.ndarray, ExtensionArray]:
+        null_encoding = "mask" if dropna else "encode"
+        encoded = self._data.dictionary_encode(null_encoding=null_encoding)
         indices = pa.chunked_array(
             [c.indices for c in encoded.chunks], type=encoded.type.index_type
         ).to_pandas()

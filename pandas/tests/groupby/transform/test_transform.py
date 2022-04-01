@@ -1311,12 +1311,8 @@ def test_transform_cumcount():
 
 
 @pytest.mark.parametrize("keys", [["A1"], ["A1", "A2"]])
-def test_null_group_lambda_self(request, sort, dropna, keys):
+def test_null_group_lambda_self(sort, dropna, keys):
     # GH 17093
-    if not sort and not dropna:
-        msg = "GH#46584: null values get sorted when sort=False"
-        request.node.add_marker(pytest.mark.xfail(reason=msg, strict=False))
-
     size = 50
     nulls1 = np.random.choice([False, True], size)
     nulls2 = np.random.choice([False, True], size)

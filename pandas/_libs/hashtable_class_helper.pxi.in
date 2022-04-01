@@ -658,7 +658,7 @@ cdef class {{name}}HashTable(HashTable):
                             return_inverse=return_inverse)
 
     def factorize(self, const {{dtype}}_t[:] values, Py_ssize_t na_sentinel=-1,
-                  object na_value=None, object mask=None):
+                  object na_value=None, object mask=None, ignore_na=True):
         """
         Calculate unique values and labels (no sorting!)
 
@@ -690,7 +690,7 @@ cdef class {{name}}HashTable(HashTable):
         """
         uniques_vector = {{name}}Vector()
         return self._unique(values, uniques_vector, na_sentinel=na_sentinel,
-                            na_value=na_value, ignore_na=True, mask=mask,
+                            na_value=na_value, ignore_na=ignore_na, mask=mask,
                             return_inverse=True)
 
     def get_labels(self, const {{dtype}}_t[:] values, {{name}}Vector uniques,
@@ -1037,7 +1037,7 @@ cdef class StringHashTable(HashTable):
                             return_inverse=return_inverse)
 
     def factorize(self, ndarray[object] values, Py_ssize_t na_sentinel=-1,
-                  object na_value=None, object mask=None):
+                  object na_value=None, object mask=None, ignore_na=True):
         """
         Calculate unique values and labels (no sorting!)
 
@@ -1067,7 +1067,7 @@ cdef class StringHashTable(HashTable):
         """
         uniques_vector = ObjectVector()
         return self._unique(values, uniques_vector, na_sentinel=na_sentinel,
-                            na_value=na_value, ignore_na=True,
+                            na_value=na_value, ignore_na=ignore_na,
                             return_inverse=True)
 
     def get_labels(self, ndarray[object] values, ObjectVector uniques,
@@ -1290,7 +1290,7 @@ cdef class PyObjectHashTable(HashTable):
                             return_inverse=return_inverse)
 
     def factorize(self, ndarray[object] values, Py_ssize_t na_sentinel=-1,
-                  object na_value=None, object mask=None):
+                  object na_value=None, object mask=None, ignore_na=True):
         """
         Calculate unique values and labels (no sorting!)
 
@@ -1320,7 +1320,7 @@ cdef class PyObjectHashTable(HashTable):
         """
         uniques_vector = ObjectVector()
         return self._unique(values, uniques_vector, na_sentinel=na_sentinel,
-                            na_value=na_value, ignore_na=True,
+                            na_value=na_value, ignore_na=ignore_na,
                             return_inverse=True)
 
     def get_labels(self, ndarray[object] values, ObjectVector uniques,

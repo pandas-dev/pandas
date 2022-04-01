@@ -1002,7 +1002,9 @@ class ExtensionArray:
         """
         return self.astype(object), np.nan
 
-    def factorize(self, na_sentinel: int = -1) -> tuple[np.ndarray, ExtensionArray]:
+    def factorize(
+        self, na_sentinel: int = -1, dropna: bool = True
+    ) -> tuple[np.ndarray, ExtensionArray]:
         """
         Encode the extension array as an enumerated type.
 
@@ -1010,6 +1012,11 @@ class ExtensionArray:
         ----------
         na_sentinel : int, default -1
             Value to use in the `codes` array to indicate missing values.
+        dropna: bool, default True
+            Whether null values will appear in uniques. When False, null values
+            will receive a nonnegative code instead of na_sentinel.
+
+            ..versionadded:: 1.5.0
 
         Returns
         -------
@@ -1044,7 +1051,7 @@ class ExtensionArray:
         arr, na_value = self._values_for_factorize()
 
         codes, uniques = factorize_array(
-            arr, na_sentinel=na_sentinel, na_value=na_value
+            arr, na_sentinel=na_sentinel, na_value=na_value, dropna=dropna
         )
 
         uniques_ea = self._from_factorized(uniques, self)
