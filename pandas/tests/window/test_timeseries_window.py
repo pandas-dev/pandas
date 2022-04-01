@@ -5,10 +5,10 @@ from pandas import (
     DataFrame,
     Index,
     MultiIndex,
+    NaT,
     Series,
     Timestamp,
     date_range,
-    to_datetime,
 )
 import pandas._testing as tm
 
@@ -134,7 +134,7 @@ class TestRollingTS:
 
         assert not df.index.is_monotonic
 
-        msg = "index must be monotonic"
+        msg = "index values must be monotonic"
         with pytest.raises(ValueError, match=msg):
             df.rolling("2s").sum()
 
@@ -643,65 +643,6 @@ class TestRollingTS:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_groupby_monotonic(self):
-
-        # GH 15130
-        # we don't need to validate monotonicity when grouping
-
-        # GH 43909 we should raise an error here to match
-        # behaviour of non-groupby rolling.
-
-        data = [
-            ["David", "1/1/2015", 100],
-            ["David", "1/5/2015", 500],
-            ["David", "5/30/2015", 50],
-            ["David", "7/25/2015", 50],
-            ["Ryan", "1/4/2014", 100],
-            ["Ryan", "1/19/2015", 500],
-            ["Ryan", "3/31/2016", 50],
-            ["Joe", "7/1/2015", 100],
-            ["Joe", "9/9/2015", 500],
-            ["Joe", "10/15/2015", 50],
-        ]
-
-        df = DataFrame(data=data, columns=["name", "date", "amount"])
-        df["date"] = to_datetime(df["date"])
-        df = df.sort_values("date")
-
-        expected = (
-            df.set_index("date")
-            .groupby("name")
-            .apply(lambda x: x.rolling("180D")["amount"].sum())
-        )
-        result = df.groupby("name").rolling("180D", on="date")["amount"].sum()
-        tm.assert_series_equal(result, expected)
-
-    def test_non_monotonic_raises(self):
-        # GH 13966 (similar to #15130, closed by #15175)
-
-        # superseded by 43909
-
-        dates = date_range(start="2016-01-01 09:30:00", periods=20, freq="s")
-        df = DataFrame(
-            {
-                "A": [1] * 20 + [2] * 12 + [3] * 8,
-                "B": np.concatenate((dates, dates)),
-                "C": np.arange(40),
-            }
-        )
-
-        expected = (
-            df.set_index("B").groupby("A").apply(lambda x: x.rolling("4s")["C"].mean())
-        )
-        with pytest.raises(ValueError, match=r".* must be monotonic"):
-            df.groupby("A").rolling(
-                "4s", on="B"
-            ).C.mean()  # should raise for non-monotonic t series
-
-        df2 = df.sort_values("B")
-        result = df2.groupby("A").rolling("4s", on="B").C.mean()
-        tm.assert_series_equal(result, expected)
-
     def test_rolling_cov_offset(self):
         # GH16058
 
@@ -757,3 +698,12 @@ class TestRollingTS:
             {"column": [0.0, 1.0, 3.0, 6.0, 10.0, 15.0]}, index=df.index
         )
         tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("msg, axis", [["column", 1], ["index", 0]])
+def test_nat_axis_error(msg, axis):
+    idx = [Timestamp("2020"), NaT]
+    kwargs = {"columns" if axis == 1 else "index": idx}
+    df = DataFrame(np.eye(2), **kwargs)
+    with pytest.raises(ValueError, match=f"{msg} values must not have NaT"):
+        df.rolling("D", axis=axis).mean()

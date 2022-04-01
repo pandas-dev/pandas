@@ -837,12 +837,6 @@ class BaseWindowGroupby(BaseWindow):
             subset = self.obj.set_index(self._on)
         return super()._gotitem(key, ndim, subset=subset)
 
-    def _validate_monotonic(self):
-        """
-        Validate that "on" is monotonic; already validated at a higher level.
-        """
-        pass
-
 
 class Window(BaseWindow):
     """
@@ -1687,7 +1681,7 @@ class Rolling(RollingAndExpandingMixin):
             or isinstance(self._on, (DatetimeIndex, TimedeltaIndex, PeriodIndex))
         ) and isinstance(self.window, (str, BaseOffset, timedelta)):
 
-            self._validate_monotonic()
+            self._validate_datetimelike_monotonic()
 
             # this will raise ValueError on non-fixed freqs
             try:
@@ -1712,18 +1706,24 @@ class Rolling(RollingAndExpandingMixin):
         elif not is_integer(self.window) or self.window < 0:
             raise ValueError("window must be an integer 0 or greater")
 
-    def _validate_monotonic(self):
+    def _validate_datetimelike_monotonic(self):
         """
-        Validate monotonic (increasing or decreasing).
+        Validate self._on is monotonic (increasing or decreasing) and has
+        no NaT values for frequency windows.
         """
+        if self._on.hasnans:
+            self._raise_monotonic_error("values must not have NaT")
         if not (self._on.is_monotonic_increasing or self._on.is_monotonic_decreasing):
-            self._raise_monotonic_error()
+            self._raise_monotonic_error("values must be monotonic")
 
-    def _raise_monotonic_error(self):
-        formatted = self.on
-        if self.on is None:
-            formatted = "index"
-        raise ValueError(f"{formatted} must be monotonic")
+    def _raise_monotonic_error(self, msg: str):
+        on = self.on
+        if on is None:
+            if self.axis == 0:
+                on = "index"
+            else:
+                on = "column"
+        raise ValueError(f"{on} {msg}")
 
     @doc(
         _shared_docs["aggregate"],
@@ -2631,12 +2631,20 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         )
         return window_indexer
 
-    def _validate_monotonic(self):
+    def _validate_datetimelike_monotonic(self):
         """
-        Validate that on is monotonic;
+        Validate that each group in self._on is monotonic
         """
-        if (
-            not (self._on.is_monotonic_increasing or self._on.is_monotonic_decreasing)
-            or self._on.hasnans
-        ):
-            self._raise_monotonic_error()
+        # GH 46061
+        if self._on.hasnans:
+            self._raise_monotonic_error("values must not have NaT")
+        for group_indices in self._grouper.indices.values():
+            group_on = self._on.take(group_indices)
+            if not (
+                group_on.is_monotonic_increasing or group_on.is_monotonic_decreasing
+            ):
+                on = "index" if self.on is None else self.on
+                raise ValueError(
+                    f"Each group within {on} must be monotonic. "
+                    f"Sort the values in {on} first."
+                )

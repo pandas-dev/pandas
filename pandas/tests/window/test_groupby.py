@@ -651,7 +651,7 @@ class TestRolling:
         )
         if key == "index":
             df = df.set_index("a")
-        with pytest.raises(ValueError, match=f"{key} must be monotonic"):
+        with pytest.raises(ValueError, match=f"{key} values must not have NaT"):
             df.groupby("c").rolling("60min", **rollings)
 
     @pytest.mark.parametrize("group_keys", [True, False])
@@ -894,6 +894,83 @@ class TestRolling:
             ),
         )
         tm.assert_series_equal(result, expected)
+
+    def test_groupby_rolling_non_monotonic(self):
+        # GH 43909
+
+        shuffled = [3, 0, 1, 2]
+        sec = 1_000
+        df = DataFrame(
+            [{"t": Timestamp(2 * x * sec), "x": x + 1, "c": 42} for x in shuffled]
+        )
+        with pytest.raises(ValueError, match=r".* must be monotonic"):
+            df.groupby("c").rolling(on="t", window="3s")
+
+    def test_groupby_monotonic(self):
+
+        # GH 15130
+        # we don't need to validate monotonicity when grouping
+
+        # GH 43909 we should raise an error here to match
+        # behaviour of non-groupby rolling.
+
+        data = [
+            ["David", "1/1/2015", 100],
+            ["David", "1/5/2015", 500],
+            ["David", "5/30/2015", 50],
+            ["David", "7/25/2015", 50],
+            ["Ryan", "1/4/2014", 100],
+            ["Ryan", "1/19/2015", 500],
+            ["Ryan", "3/31/2016", 50],
+            ["Joe", "7/1/2015", 100],
+            ["Joe", "9/9/2015", 500],
+            ["Joe", "10/15/2015", 50],
+        ]
+
+        df = DataFrame(data=data, columns=["name", "date", "amount"])
+        df["date"] = to_datetime(df["date"])
+        df = df.sort_values("date")
+
+        expected = (
+            df.set_index("date")
+            .groupby("name")
+            .apply(lambda x: x.rolling("180D")["amount"].sum())
+        )
+        result = df.groupby("name").rolling("180D", on="date")["amount"].sum()
+        tm.assert_series_equal(result, expected)
+
+    def test_datelike_on_monotonic_within_each_group(self):
+        # GH 13966 (similar to #15130, closed by #15175)
+
+        # superseded by 43909
+        # GH 46061: OK if the on is monotonic relative to each each group
+
+        dates = date_range(start="2016-01-01 09:30:00", periods=20, freq="s")
+        df = DataFrame(
+            {
+                "A": [1] * 20 + [2] * 12 + [3] * 8,
+                "B": np.concatenate((dates, dates)),
+                "C": np.arange(40),
+            }
+        )
+
+        expected = (
+            df.set_index("B").groupby("A").apply(lambda x: x.rolling("4s")["C"].mean())
+        )
+        result = df.groupby("A").rolling("4s", on="B").C.mean()
+        tm.assert_series_equal(result, expected)
+
+    def test_datelike_on_not_monotonic_within_each_group(self):
+        # GH 46061
+        df = DataFrame(
+            {
+                "A": [1] * 3 + [2] * 3,
+                "B": [Timestamp(year, 1, 1) for year in [2020, 2021, 2019]] * 2,
+                "C": range(6),
+            }
+        )
+        with pytest.raises(ValueError, match="Each group within B must be monotonic."):
+            df.groupby("A").rolling("365D", on="B")
 
 
 class TestExpanding:
