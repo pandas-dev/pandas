@@ -381,7 +381,7 @@ def mysql_pymysql_engine(iris_path, types_data):
     sqlalchemy = pytest.importorskip("sqlalchemy")
     pymysql = pytest.importorskip("pymysql")
     engine = sqlalchemy.create_engine(
-        "mysql+pymysql://root@localhost:3306/pandas",
+        "mysql+pymysql://root@mysql-db:3306/pandas",
         connect_args={"client_flag": pymysql.constants.CLIENT.MULTI_STATEMENTS},
     )
     insp = sqlalchemy.inspect(engine)
@@ -409,7 +409,7 @@ def postgresql_psycopg2_engine(iris_path, types_data):
     sqlalchemy = pytest.importorskip("sqlalchemy")
     pytest.importorskip("psycopg2")
     engine = sqlalchemy.create_engine(
-        "postgresql+psycopg2://postgres:postgres@localhost:5432/pandas"
+        "postgresql+psycopg2://postgres:postgres@postgres-db:5432/pandas"
     )
     insp = sqlalchemy.inspect(engine)
     if not insp.has_table("iris"):
@@ -1528,7 +1528,7 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
 
     @pytest.mark.skipif(SQLALCHEMY_INSTALLED, reason="SQLAlchemy is installed")
     def test_con_string_import_error(self):
-        conn = "mysql://root@localhost/pandas"
+        conn = "mysql://root@mysql-db/pandas"
         msg = "Using URI string without sqlalchemy installed"
         with pytest.raises(ImportError, match=msg):
             sql.read_sql("SELECT * FROM iris", conn)
@@ -2382,7 +2382,7 @@ class _TestMySQLAlchemy:
     @classmethod
     def connect(cls):
         return sqlalchemy.create_engine(
-            f"mysql+{cls.driver}://root@localhost:{cls.port}/pandas",
+            f"mysql+{cls.driver}://root@mysql-db:{cls.port}/pandas",
             connect_args=cls.connect_args,
         )
 
@@ -2408,7 +2408,7 @@ class _TestPostgreSQLAlchemy:
     @classmethod
     def connect(cls):
         return sqlalchemy.create_engine(
-            f"postgresql+{cls.driver}://postgres:postgres@localhost:{cls.port}/pandas"
+            f"postgresql+{cls.driver}://postgres:postgres@postgres-db:{cls.port}/pandas"
         )
 
     @classmethod

@@ -1,9 +1,21 @@
 services:
-  db-testing:
+  testing:
     build:
       context: .
       dockerfile: ci/docker/pandas-db-test.dockerfile
     volumes:
       - .:/pandas
     command: /pandas/ci/scripts/run-db-tests.sh
-    
+
+  postgres-db:
+    image: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: pandas
+
+  mysql-db:
+    image: mysql
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: yes
+      MYSQL_DATABASE: pandas
