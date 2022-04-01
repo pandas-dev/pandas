@@ -37,7 +37,7 @@ jobs:
           - name: "Minimum Versions"
             env_file: actions-38-minimum_versions.yaml
             pattern: "not slow and not network and not single_cpu"
-          - name: "Locale: it_IT.utf8"
+          - name: "Locale: it_IT"
             env_file: actions-38.yaml
             pattern: "not slow and not network and not single_cpu"
             extra_apt: "language-pack-it"
@@ -47,7 +47,7 @@ jobs:
             # Also install it_IT (its encoding is ISO8859-1) but do not activate it.
             # It will be temporarily activated during tests with locale.setlocale
             extra_loc: "it_IT"
-          - name: "Locale: zh_CN.utf8"
+          - name: "Locale: zh_CN"
             env_file: actions-38.yaml
             pattern: "not slow and not network and not single_cpu"
             extra_apt: "language-pack-zh-hans"
