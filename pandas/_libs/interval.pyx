@@ -455,7 +455,7 @@ cdef class Interval(IntervalMixin):
                 or PyDelta_Check(other)
                 or is_timedelta64_object(other)
         ):
-            return Interval(self.left + other, self.right + other, closed=self.inclusive)
+            return Interval(self.left + other, self.right + other, inclusive=self.inclusive)
         return NotImplemented
 
     def __sub__(self, y):
@@ -479,7 +479,7 @@ cdef class Interval(IntervalMixin):
 
     def __rmul__(self, other):
         if isinstance(other, numbers.Number):
-            return Interval(self.left * other, self.right * other, closed=self.closed)
+            return Interval(self.left * other, self.right * other, inclusive=self.closed)
         return NotImplemented
 
     def __truediv__(self, y):
