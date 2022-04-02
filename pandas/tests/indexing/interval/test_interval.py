@@ -40,7 +40,7 @@ class TestIntervalIndex:
         if direction == "decreasing":
             tpls = tpls[::-1]
 
-        idx = IntervalIndex.from_tuples(tpls, closed=closed)
+        idx = IntervalIndex.from_tuples(tpls, inclusive=closed)
         ser = Series(list("abc"), idx)
 
         for key, expected in zip(idx.left, ser):

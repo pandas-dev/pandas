@@ -212,7 +212,7 @@ class IntervalIndex(ExtensionIndex):
     def __new__(
         cls,
         data,
-        inclusive: str = None,
+        inclusive=None,
         closed: lib.NoDefault = lib.no_default,
         dtype: Dtype | None = None,
         copy: bool = False,
@@ -273,7 +273,7 @@ class IntervalIndex(ExtensionIndex):
     def from_breaks(
         cls,
         breaks,
-        inclusive: str = None,
+        inclusive=None,
         closed: lib.NoDefault = lib.no_default,
         name: Hashable = None,
         copy: bool = False,
@@ -329,7 +329,7 @@ class IntervalIndex(ExtensionIndex):
         cls,
         left,
         right,
-        inclusive: str = None,
+        inclusive=None,
         closed: lib.NoDefault = lib.no_default,
         name: Hashable = None,
         copy: bool = False,
@@ -384,7 +384,7 @@ class IntervalIndex(ExtensionIndex):
     def from_tuples(
         cls,
         data,
-        inclusive: str = None,
+        inclusive=None,
         closed: lib.NoDefault = lib.no_default,
         name: Hashable = None,
         copy: bool = False,

@@ -455,7 +455,7 @@ cdef class Interval(IntervalMixin):
                 or PyDelta_Check(other)
                 or is_timedelta64_object(other)
         ):
-            return Interval(self.left + other, self.right + other, closed=self.closed)
+            return Interval(self.left + other, self.right + other, closed=self.inclusive)
         return NotImplemented
 
     def __sub__(self, y):
