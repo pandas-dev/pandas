@@ -113,6 +113,28 @@ class TestReadHtml:
     def banklist_data(self, datapath):
         return datapath("io", "data", "html", "banklist.html")
 
+    @pytest.fixture
+    def gh_13141_data(self):
+        return """
+          <table>
+            <tr>
+              <th>HTTP</th>
+              <th>FTP</th>
+              <th><a href="https://en.wiktionary.org/wiki/linkless">Linkless</a></th>
+            </tr>
+            <tr>
+              <td><a href="https://en.wikipedia.org/">Wikipedia</a></td>
+              <td><a href="ftp://ftp.us.debian.org/">Debian</a></td>
+              <td>Linkless</td>
+            </tr>
+            <tfoot>
+              <tr>
+                <td><a href="https://en.wikipedia.org/wiki/Page_footer">Footer</a></td>
+              </tr>
+            </tfoot>
+          </table>
+          """
+
     @pytest.fixture(autouse=True, scope="function")
     def set_defaults(self, flavor):
         self.read_html = partial(read_html, flavor=flavor)
@@ -1287,24 +1309,83 @@ class TestReadHtml:
         df2 = self.read_html(file_path)[0]
         tm.assert_frame_equal(df1, df2)
 
-    def test_extract_links_body(self):
+    def test_extract_links(self, gh_13141_data):
         # GH 13141:
         # read_html argument to interpret hyperlinks as links (not merely text)
         result = self.read_html(
-            """
-          <table>
-            <tr>
-              <th>HTTP</th>
-              <th>FTP</th>
-              <th><a href="https://en.wiktionary.org/wiki/linkless">None</a></th>
-            </tr>
-            <tr>
-              <td><a href="https://en.wikipedia.org/">Wikipedia</a></td>
-              <td><a href="ftp://ftp.us.debian.org/">Debian</a></td>
-              <td>Linkless</td>
-            </tr>
-          </table>
-          """,
+            gh_13141_data,
+            extract_links="all",
+        )[0]
+
+        expected = DataFrame(
+            [
+                [
+                    ("Wikipedia", "https://en.wikipedia.org/"),
+                    ("Debian", "ftp://ftp.us.debian.org/"),
+                    ("Linkless",),
+                ],
+                [("Footer", "https://en.wikipedia.org/wiki/Page_footer"), None, None],
+            ],
+            columns=(
+                ("HTTP", np.nan),
+                ("FTP", np.nan),
+                ("Linkless", "https://en.wiktionary.org/wiki/linkless"),
+            ),
+        )
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_extract_links_header(self, gh_13141_data):
+        result = self.read_html(
+            gh_13141_data,
+            extract_links="header",
+        )[0]
+
+        expected = DataFrame(
+            [
+                [
+                    "Wikipedia",
+                    "Debian",
+                    "Linkless",
+                ],
+                ["Footer", None, None],
+            ],
+            columns=(
+                ("HTTP", np.nan),
+                ("FTP", np.nan),
+                ("Linkless", "https://en.wiktionary.org/wiki/linkless"),
+            ),
+        )
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_extract_links_footer(self, gh_13141_data):
+        result = self.read_html(
+            gh_13141_data,
+            extract_links="footer",
+        )[0]
+
+        expected = DataFrame(
+            [
+                [
+                    "Wikipedia",
+                    "Debian",
+                    "Linkless",
+                ],
+                [("Footer", "https://en.wikipedia.org/wiki/Page_footer"), None, None],
+            ],
+            columns=(
+                "HTTP",
+                "FTP",
+                "Linkless",
+            ),
+        )
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_extract_links_body(self, gh_13141_data):
+        result = self.read_html(
+            gh_13141_data,
             extract_links="body",
         )[0]
 
@@ -1314,37 +1395,14 @@ class TestReadHtml:
                     ("Wikipedia", "https://en.wikipedia.org/"),
                     ("Debian", "ftp://ftp.us.debian.org/"),
                     ("Linkless",),
-                ]
+                ],
+                ["Footer", None, None],
             ],
             columns=(
                 "HTTP",
                 "FTP",
-                "None",
+                "Linkless",
             ),
-        )
-
-        tm.assert_frame_equal(result, expected)
-
-    def test_extract_links_header(self):
-        # GH 13141:
-        # read_html argument to interpret hyperlinks as links (not merely text)
-        result = self.read_html(
-            """
-          <table>
-            <tr>
-              <th><a href="https://en.wiktionary.org/wiki/linkless">Linkless</a></th>
-            </tr>
-            <tr>
-              <td><a href="https://en.wikipedia.org/">Wikipedia</a></td>
-            </tr>
-          </table>
-          """,
-            extract_links="header",
-        )[0]
-
-        expected = DataFrame(
-            [["Wikipedia"]],
-            columns=(("Linkless", "https://en.wiktionary.org/wiki/linkless"),),
         )
 
         tm.assert_frame_equal(result, expected)
