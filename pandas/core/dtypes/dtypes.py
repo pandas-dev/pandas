@@ -1064,7 +1064,7 @@ class IntervalDtype(PandasExtensionDtype):
     def __new__(
         cls,
         subtype=None,
-        inclusive: str | None = None,
+        inclusive: str_type | None = None,
         closed: lib.NoDefault = lib.no_default,
     ):
         from pandas.core.dtypes.common import (

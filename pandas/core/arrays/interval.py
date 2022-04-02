@@ -286,7 +286,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         cls: type[IntervalArrayT],
         left,
         right,
-        inclusive: str | None = None,
+        inclusive=None,
         closed: lib.NoDefault = lib.no_default,
         copy: bool = False,
         dtype: Dtype | None = None,
