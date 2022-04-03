@@ -246,16 +246,7 @@ class TestHashTableUnsorted:
             (ht.Float64HashTable, ht.Float64Vector, "float64", False),
             (ht.Int64HashTable, ht.Int64Vector, "int64", False),
             (ht.Int32HashTable, ht.Int32Vector, "int32", False),
-            pytest.param(
-                ht.UInt64HashTable,
-                ht.UInt64Vector,
-                "uint64",
-                False,
-                marks=pytest.mark.xfail(
-                    reason="Sometimes doesn't raise.",
-                    strict=False,
-                ),
-            ),
+            (ht.UInt64HashTable, ht.UInt64Vector, "uint64", False),
         ],
     )
     def test_vector_resize(
@@ -263,7 +254,9 @@ class TestHashTableUnsorted:
     ):
         # Test for memory errors after internal vector
         # reallocations (GH 7157)
-        vals = np.array(np.random.randn(1000), dtype=dtype)
+        # Changed from using np.random.rand to range
+        # which could cause flaky CI failures when safely_resizes=False
+        vals = np.array(range(1000), dtype=dtype)
 
         # GH 21688 ensures we can deal with read-only memory views
         vals.setflags(write=writable)
