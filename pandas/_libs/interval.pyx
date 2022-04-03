@@ -479,7 +479,7 @@ cdef class Interval(IntervalMixin):
 
     def __rmul__(self, other):
         if isinstance(other, numbers.Number):
-            return Interval(self.left * other, self.right * other, inclusive=self.closed)
+            return Interval(self.left * other, self.right * other, inclusive=self.inclusive)
         return NotImplemented
 
     def __truediv__(self, y):
