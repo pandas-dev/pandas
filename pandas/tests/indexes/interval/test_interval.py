@@ -895,6 +895,39 @@ class TestIntervalIndex:
         year_2017_index = IntervalIndex([year_2017])
         assert not year_2017_index._is_all_dates
 
+    def test_interval_index_error_and_warning(self):
+        # GH 40245
+        msg = (
+            "Deprecated argument `closed` cannot "
+            "be passed if argument `inclusive` is not None"
+        )
+        with pytest.raises(ValueError, match=msg):
+            IntervalIndex.from_breaks(range(11), closed="both", inclusive="both")
+
+        with pytest.raises(ValueError, match=msg):
+            IntervalIndex.from_arrays([0, 1], [1, 2], closed="both", inclusive="both")
+
+        with pytest.raises(ValueError, match=msg):
+            IntervalIndex.from_tuples(
+                [(0, 1), (0.5, 1.5)], closed="both", inclusive="both"
+            )
+
+        msg = "Argument `closed` is deprecated in favor of `inclusive`"
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            IntervalIndex.from_breaks(range(11), closed="both")
+
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            IntervalIndex.from_arrays([0, 1], [1, 2], closed="both")
+
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            IntervalIndex.from_tuples([(0, 1), (0.5, 1.5)], closed="both")
+
 
 def test_dir():
     # GH#27571 dir(interval_index) should not raise

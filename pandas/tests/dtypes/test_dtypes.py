@@ -812,6 +812,21 @@ class TestIntervalDtype(Base):
 
         tm.round_trip_pickle(dtype)
 
+    def test_interval_dtype_error_and_warning(self):
+        # GH 40245
+        msg = (
+            "Deprecated argument `closed` cannot "
+            "be passed if argument `inclusive` is not None"
+        )
+        with pytest.raises(ValueError, match=msg):
+            IntervalDtype("int64", closed="right", inclusive="right")
+
+        msg = "Argument `closed` is deprecated in favor of `inclusive`"
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            IntervalDtype("int64", closed="right")
+
 
 class TestCategoricalDtypeParametrized:
     @pytest.mark.parametrize(

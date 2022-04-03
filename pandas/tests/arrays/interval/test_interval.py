@@ -396,3 +396,36 @@ def test_from_arrow_from_raw_struct_array():
 
     result = dtype.__from_arrow__(pa.chunked_array([arr]))
     tm.assert_extension_array_equal(result, expected)
+
+
+def test_interval_error_and_warning():
+    # GH 40245
+    msg = (
+        "Deprecated argument `closed` cannot "
+        "be passed if argument `inclusive` is not None"
+    )
+    with pytest.raises(ValueError, match=msg):
+        Interval(0, 1, closed="both", inclusive="both")
+
+    msg = "Argument `closed` is deprecated in favor of `inclusive`"
+    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
+        Interval(0, 1, closed="both")
+
+
+@pyarrow_skip
+def test_arrow_interval_type_error_and_warning():
+    # GH 40245
+    import pyarrow as pa
+
+    from pandas.core.arrays.arrow._arrow_utils import ArrowIntervalType
+
+    msg = (
+        "Deprecated argument `closed` cannot "
+        "be passed if argument `inclusive` is not None"
+    )
+    with pytest.raises(ValueError, match=msg):
+        ArrowIntervalType(pa.int64(), closed="both", inclusive="both")
+
+    msg = "Argument `closed` is deprecated in favor of `inclusive`"
+    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
+        ArrowIntervalType(pa.int64(), closed="both")
