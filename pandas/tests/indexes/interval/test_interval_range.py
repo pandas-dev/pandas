@@ -355,3 +355,17 @@ class TestIntervalRange:
         msg = "Start and end cannot both be tz-aware with different timezones"
         with pytest.raises(TypeError, match=msg):
             interval_range(start=start, end=end)
+
+    def test_interval_range_error_and_warning(self):
+        # GH 40245
+
+        msg = (
+            "Deprecated argument `closed` cannot "
+            "be passed if argument `inclusive` is not None"
+        )
+        with pytest.raises(ValueError, match=msg):
+            interval_range(end=5, periods=4, closed="both", inclusive="both")
+
+        msg = "Argument `closed` is deprecated in favor of `inclusive`"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            interval_range(end=5, periods=4, closed="right")
