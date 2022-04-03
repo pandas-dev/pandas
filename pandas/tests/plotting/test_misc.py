@@ -8,6 +8,7 @@ import pandas.util._test_decorators as td
 from pandas import (
     DataFrame,
     Series,
+    Timestamp,
 )
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
@@ -16,8 +17,6 @@ from pandas.tests.plotting.common import (
 )
 
 import pandas.plotting as plotting
-
-pytestmark = pytest.mark.slow
 
 
 @td.skip_if_mpl
@@ -137,6 +136,7 @@ class TestDataFramePlots(TestPlotBase):
         self._check_text_labels(axes0_labels, expected)
         self._check_ticks_props(axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
 
+    @pytest.mark.slow
     def test_andrews_curves(self, iris):
         from matplotlib import cm
 
@@ -213,6 +213,7 @@ class TestDataFramePlots(TestPlotBase):
         handles, labels = ax.get_legend_handles_labels()
         self._check_colors(handles, linecolors=colors)
 
+    @pytest.mark.slow
     def test_parallel_coordinates(self, iris):
         from matplotlib import cm
 
@@ -549,3 +550,15 @@ class TestDataFramePlots(TestPlotBase):
         assert not plots[0][0].xaxis.get_label().get_visible()
         assert plots[0][1].xaxis.get_label().get_visible()
         assert not plots[0][2].xaxis.get_label().get_visible()
+
+    def test_plot_bar_axis_units_timestamp_conversion(self):
+        # GH 38736
+        # Ensure string x-axis from the second plot will not be converted to datetime
+        # due to axis data from first plot
+        df = DataFrame(
+            [1.0],
+            index=[Timestamp("2022-02-22 22:22:22")],
+        )
+        _check_plot_works(df.plot)
+        s = Series({"A": 1.0})
+        _check_plot_works(s.plot.bar)

@@ -21,7 +21,7 @@ class PyxlsbReader(BaseExcelReader):
         self,
         filepath_or_buffer: FilePath | ReadBuffer[bytes],
         storage_options: StorageOptions = None,
-    ):
+    ) -> None:
         """
         Reader using pyxlsb engine.
 

@@ -191,6 +191,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
     _typ = "datetimearray"
     _scalar_type = Timestamp
+    _internal_fill_value = np.datetime64("NaT", "ns")
     _recognized_scalars = (datetime, np.datetime64)
     _is_recognized_dtype = is_datetime64_any_dtype
     _infer_matches = ("datetime", "datetime64", "date")
@@ -253,7 +254,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     _dtype: np.dtype | DatetimeTZDtype
     _freq = None
 
-    def __init__(self, values, dtype=DT64NS_DTYPE, freq=None, copy: bool = False):
+    def __init__(
+        self, values, dtype=DT64NS_DTYPE, freq=None, copy: bool = False
+    ) -> None:
         values = extract_array(values, extract_numpy=True)
         if isinstance(values, IntegerArray):
             values = values.to_numpy("int64", na_value=iNaT)
@@ -453,9 +456,13 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             endpoint_tz = start.tz if start is not None else end.tz
 
             if tz is not None and endpoint_tz is None:
-                i8values = tzconversion.tz_localize_to_utc(
-                    i8values, tz, ambiguous=ambiguous, nonexistent=nonexistent
-                )
+
+                if not timezones.is_utc(tz):
+                    # short-circuit tz_localize_to_utc which would make
+                    #  an unnecessary copy with UTC but be a no-op.
+                    i8values = tzconversion.tz_localize_to_utc(
+                        i8values, tz, ambiguous=ambiguous, nonexistent=nonexistent
+                    )
 
                 # i8values is localized datetime64 array -> have to convert
                 # start/end as well to compare
@@ -774,7 +781,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     def _sub_datetimelike_scalar(self, other):
         # subtract a datetime from myself, yielding a ndarray[timedelta64[ns]]
         assert isinstance(other, (datetime, np.datetime64))
-        assert other is not NaT
+        # error: Non-overlapping identity check (left operand type: "Union[datetime,
+        # datetime64]", right operand type: "NaTType")  [comparison-overlap]
+        assert other is not NaT  # type: ignore[comparison-overlap]
         other = Timestamp(other)
         # error: Non-overlapping identity check (left operand type: "Timestamp",
         # right operand type: "NaTType")
@@ -1997,10 +2006,10 @@ def sequence_to_datetimes(data, require_iso8601: bool = False) -> DatetimeArray:
 def _sequence_to_dt64ns(
     data,
     dtype=None,
-    copy=False,
+    copy: bool = False,
     tz=None,
-    dayfirst=False,
-    yearfirst=False,
+    dayfirst: bool = False,
+    yearfirst: bool = False,
     ambiguous="raise",
     *,
     allow_mixed: bool = False,
@@ -2121,6 +2130,8 @@ def _sequence_to_dt64ns(
         if tz is not None:
             # Convert tz-naive to UTC
             tz = timezones.maybe_get_tz(tz)
+            # TODO: if tz is UTC, are there situations where we *don't* want a
+            #  copy?  tz_localize_to_utc always makes one.
             data = tzconversion.tz_localize_to_utc(
                 data.view("i8"), tz, ambiguous=ambiguous
             )

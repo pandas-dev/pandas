@@ -33,6 +33,7 @@ from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas._typing import (
     Dtype,
     DtypeObj,
+    IntervalClosedType,
     npt,
 )
 from pandas.util._decorators import (
@@ -572,8 +573,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         lower, upper: pd.Timestamp
         """
-        grp = reso.freq_group
-        per = Period(parsed, freq=grp.value)
+        per = Period(parsed, freq=reso.attr_abbrev)
         start, end = per.start_time, per.end_time
 
         # GH 24076
@@ -884,8 +884,8 @@ def date_range(
     tz=None,
     normalize: bool = False,
     name: Hashable = None,
-    closed: str | None | lib.NoDefault = lib.no_default,
-    inclusive: str | None = None,
+    closed: Literal["left", "right"] | None | lib.NoDefault = lib.no_default,
+    inclusive: IntervalClosedType | None = None,
     **kwargs,
 ) -> DatetimeIndex:
     """
@@ -1091,7 +1091,7 @@ def bdate_range(
     weekmask=None,
     holidays=None,
     closed: lib.NoDefault = lib.no_default,
-    inclusive: str | None = None,
+    inclusive: IntervalClosedType | None = None,
     **kwargs,
 ) -> DatetimeIndex:
     """

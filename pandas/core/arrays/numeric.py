@@ -17,6 +17,7 @@ from pandas._libs import (
 from pandas._typing import (
     Dtype,
     DtypeObj,
+    npt,
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
@@ -69,7 +70,9 @@ class NumericDtype(BaseMaskedDtype):
         """
         import pyarrow
 
-        from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
+        from pandas.core.arrays.arrow._arrow_utils import (
+            pyarrow_array_to_numpy_and_mask,
+        )
 
         array_class = self.construct_array_type()
 
@@ -95,7 +98,7 @@ class NumericDtype(BaseMaskedDtype):
 
         results = []
         for arr in chunks:
-            data, mask = pyarrow_array_to_numpy_and_mask(arr, dtype=self.type)
+            data, mask = pyarrow_array_to_numpy_and_mask(arr, dtype=self.numpy_dtype)
             num_arr = array_class(data.copy(), ~mask, copy=False)
             results.append(num_arr)
 
@@ -219,7 +222,9 @@ class NumericArray(BaseMaskedArray):
 
     _dtype_cls: type[NumericDtype]
 
-    def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
+    def __init__(
+        self, values: np.ndarray, mask: npt.NDArray[np.bool_], copy: bool = False
+    ) -> None:
         checker = self._dtype_cls._checker
         if not (isinstance(values, np.ndarray) and checker(values.dtype)):
             descr = (

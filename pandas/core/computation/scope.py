@@ -113,7 +113,7 @@ class Scope:
 
     def __init__(
         self, level: int, global_dict=None, local_dict=None, resolvers=(), target=None
-    ):
+    ) -> None:
         self.level = level + 1
 
         # shallow copy because we don't want to keep filling this up with what

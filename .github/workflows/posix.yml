@@ -20,36 +20,50 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        shell: bash -l {0}
+        shell: bash -el {0}
     timeout-minutes: 120
     strategy:
       matrix:
         env_file: [actions-38.yaml, actions-39.yaml, actions-310.yaml]
         pattern: ["not single_cpu", "single_cpu"]
+        # Don't test pyarrow v2/3: Causes timeouts in read_csv engine
+        # even if tests are skipped/xfailed
+        pyarrow_version: ["5", "7"]
         include:
-          - env_file: actions-38-downstream_compat.yaml
+          - name: "Downstream Compat"
+            env_file: actions-38-downstream_compat.yaml
             pattern: "not slow and not network and not single_cpu"
             pytest_target: "pandas/tests/test_downstream.py"
-          - env_file: actions-38-minimum_versions.yaml
+          - name: "Minimum Versions"
+            env_file: actions-38-minimum_versions.yaml
             pattern: "not slow and not network and not single_cpu"
-          - env_file: actions-38.yaml
+          - name: "Locale: it_IT.utf8"
+            env_file: actions-38.yaml
             pattern: "not slow and not network and not single_cpu"
             extra_apt: "language-pack-it"
             lang: "it_IT.utf8"
             lc_all: "it_IT.utf8"
-          - env_file: actions-38.yaml
+          - name: "Locale: zh_CN.utf8"
+            env_file: actions-38.yaml
             pattern: "not slow and not network and not single_cpu"
             extra_apt: "language-pack-zh-hans"
             lang: "zh_CN.utf8"
             lc_all: "zh_CN.utf8"
-          - env_file: actions-pypy-38.yaml
+          - name: "Data Manager"
+            env_file: actions-38.yaml
+            pattern: "not slow and not network and not single_cpu"
+            pandas_data_manager: "array"
+          - name: "Pypy"
+            env_file: actions-pypy-38.yaml
             pattern: "not slow and not network and not single_cpu"
             test_args: "--max-worker-restart 0"
-          - env_file: actions-310-numpydev.yaml
+          - name: "Numpy Dev"
+            env_file: actions-310-numpydev.yaml
             pattern: "not slow and not network and not single_cpu"
             pandas_testing_mode: "deprecate"
             test_args: "-W error"
       fail-fast: false
+    name: ${{ matrix.name || format('{0} pyarrow={1} {2}', matrix.env_file, matrix.pyarrow_version, matrix.pattern) }}
     env:
       ENV_FILE: ci/deps/${{ matrix.env_file }}
       PATTERN: ${{ matrix.pattern }}
@@ -57,6 +71,7 @@ jobs:
       LANG: ${{ matrix.lang || '' }}
       LC_ALL: ${{ matrix.lc_all || '' }}
       PANDAS_TESTING_MODE: ${{ matrix.pandas_testing_mode || '' }}
+      PANDAS_DATA_MANAGER: ${{ matrix.pandas_data_manager || 'block' }}
       TEST_ARGS: ${{ matrix.test_args || '' }}
       PYTEST_WORKERS: ${{ contains(matrix.pattern, 'not single_cpu') && 'auto' || '1' }}
       PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
@@ -65,7 +80,7 @@ jobs:
       COVERAGE: ${{ !contains(matrix.env_file, 'pypy') }}
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.env_file }}-${{ matrix.pattern }}-${{ matrix.extra_apt || '' }}
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.env_file }}-${{ matrix.pattern }}-${{ matrix.pyarrow_version || '' }}-${{ matrix.extra_apt || '' }}-${{ matrix.pandas_data_manager || '' }}
       cancel-in-progress: true
 
     services:
@@ -106,12 +121,12 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
 
     - name: Cache conda
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       env:
         CACHE_NUMBER: 0
       with:
@@ -123,7 +138,7 @@ jobs:
       # xsel for clipboard tests
       run: sudo apt-get update && sudo apt-get install -y libc6-dev-i386 xsel ${{ env.EXTRA_APT }}
 
-    - uses: conda-incubator/setup-miniconda@v2
+    - uses: conda-incubator/setup-miniconda@v2.1.1
       with:
         mamba-version: "*"
         channels: conda-forge
@@ -133,17 +148,20 @@ jobs:
         use-only-tar-bz2: true
       if: ${{ env.IS_PYPY == 'false' }} # No pypy3.8 support
 
+    - name: Upgrade Arrow version
+      run: conda install -n pandas-dev -c conda-forge --no-update-deps pyarrow=${{ matrix.pyarrow_version }}
+      if: ${{ matrix.pyarrow_version }}
+
     - name: Setup PyPy
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v3
       with:
         python-version: "pypy-3.8"
       if: ${{ env.IS_PYPY == 'true' }}
 
     - name: Setup PyPy dependencies
-      shell: bash
       run: |
         # TODO: re-enable cov, its slowing the tests down though
-        pip install Cython numpy python-dateutil pytz pytest>=6.0 pytest-xdist>=1.31.0 hypothesis>=5.5.3
+        pip install Cython numpy python-dateutil pytz pytest>=6.0 pytest-xdist>=1.31.0 pytest-asyncio>=0.17 hypothesis>=5.5.3
       if: ${{ env.IS_PYPY == 'true' }}
 
     - name: Build Pandas
@@ -159,7 +177,7 @@ jobs:
       run: pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
 
     - name: Publish test results
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: Test results
         path: test-data.xml

@@ -928,15 +928,18 @@ class TestParquetPyArrow(Base):
         with pd.option_context("string_storage", string_storage):
             check_round_trip(df, pa, expected=df.astype(f"string[{string_storage}]"))
 
-    @td.skip_if_no("pyarrow")
+    @td.skip_if_no("pyarrow", min_version="2.0.0")
     def test_additional_extension_types(self, pa):
         # test additional ExtensionArrays that are supported through the
         # __arrow_array__ protocol + by defining a custom ExtensionType
         df = pd.DataFrame(
             {
-                # Arrow does not yet support struct in writing to Parquet (ARROW-1644)
-                # "c": pd.arrays.IntervalArray.from_tuples([(0, 1), (1, 2), (3, 4)]),
+                "c": pd.IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)]),
                 "d": pd.period_range("2012-01-01", periods=3, freq="D"),
+                # GH-45881 issue with interval with datetime64[ns] subtype
+                "e": pd.IntervalIndex.from_breaks(
+                    pd.date_range("2012-01-01", periods=4, freq="D")
+                ),
             }
         )
         check_round_trip(df, pa)
@@ -1152,3 +1155,11 @@ class TestParquetFastParquet(Base):
             df.to_parquet(path)
             with pytest.raises(ValueError, match="not supported for the fastparquet"):
                 read_parquet(path, engine="fastparquet", use_nullable_dtypes=True)
+
+    def test_close_file_handle_on_read_error(self):
+        with tm.ensure_clean("test.parquet") as path:
+            pathlib.Path(path).write_bytes(b"breakit")
+            with pytest.raises(Exception, match=""):  # Not important which exception
+                read_parquet(path, engine="fastparquet")
+            # The next line raises an error on Windows if the file is still open
+            pathlib.Path(path).unlink(missing_ok=False)

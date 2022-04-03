@@ -869,6 +869,7 @@ arithmetic operator (``+``) can be used to perform the shift.
    friday + two_business_days
    (friday + two_business_days).day_name()
 
+
 Most ``DateOffsets`` have associated frequencies strings, or offset aliases, that can be passed
 into ``freq`` keyword arguments. The available date offsets and associated frequency strings can be found below:
 

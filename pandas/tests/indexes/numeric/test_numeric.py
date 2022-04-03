@@ -205,7 +205,7 @@ class TestFloatNumericIndex(NumericBase):
     def test_lookups_datetimelike_values(self, vals, dtype):
 
         # If we have datetime64 or timedelta64 values, make sure they are
-        #  wrappped correctly  GH#31163
+        #  wrapped correctly  GH#31163
         ser = Series(vals, index=range(3, 6))
         ser.index = ser.index.astype(dtype)
 

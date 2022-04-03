@@ -248,10 +248,18 @@ _all_methods = [
         marks=not_implemented_mark,
     ),
     pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("quantile")),
+        (
+            pd.DataFrame,
+            frame_data,
+            operator.methodcaller("quantile", numeric_only=True),
+        ),
     ),
     pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("quantile", q=[0.25, 0.75])),
+        (
+            pd.DataFrame,
+            frame_data,
+            operator.methodcaller("quantile", q=[0.25, 0.75], numeric_only=True),
+        ),
     ),
     pytest.param(
         (
@@ -306,7 +314,6 @@ _all_methods = [
     (pd.Series, [1], round),
     (pd.DataFrame, frame_data, operator.methodcaller("take", [0, 0])),
     (pd.DataFrame, frame_mi_data, operator.methodcaller("xs", "a")),
-    (pd.DataFrame, frame_data, operator.methodcaller("xs", 0)),
     (pd.Series, (1, mi), operator.methodcaller("xs", "a")),
     (pd.DataFrame, frame_data, operator.methodcaller("get", "A")),
     (
@@ -771,39 +778,3 @@ def test_finalize_frame_series_name():
     df = pd.DataFrame({"name": [1, 2]})
     result = pd.Series([1, 2]).__finalize__(df)
     assert result.name is None
-
-
-@pytest.mark.parametrize(
-    "locindexer",
-    [
-        lambda x: x.iloc[0],  # returns Series
-        lambda x: x.iloc[:-1],
-        lambda x: x.iloc[[0, 1]],
-        lambda x: x.iloc[[True, True, False]],
-        lambda x: x.loc["idxA"],  # returns Series
-        lambda x: x.loc[["idxA", "idxB"]],
-        lambda x: x.loc[slice("idxA", "idxB")],
-        lambda x: x.loc[[True, True, False]],
-        lambda x: x.loc[
-            pd.Series(
-                data=[True, True, False, True], index=["idxA", "idxB", "idxC", "idxD"]
-            )
-        ],
-        lambda x: x.loc[pd.Index(data=["idxA", "idxC"])],
-    ],
-)
-def test_finalize_locators(locindexer):
-    df = pd.DataFrame(
-        {"A": [1, 2, 3], "B": [3, 4, 5], "C": [7, 8, 9]}, index=["idxA", "idxB", "idxC"]
-    )
-    df.attrs["A"] = 1
-    result = locindexer(df)
-    assert result.attrs == {"A": 1}
-
-
-@pytest.mark.parametrize("iterator", ["iterrows", "items"])
-def test_finalize_iterators(iterator):
-    df = pd.DataFrame({"A": [1]})
-    df.attrs["A"] = 1
-    for _, row in getattr(df, iterator)():
-        assert row.attrs == {"A": 1}

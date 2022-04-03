@@ -783,7 +783,7 @@ class PlotAccessor(PandasObject):
     _kind_aliases = {"density": "kde"}
     _all_kinds = _common_kinds + _series_kinds + _dataframe_kinds
 
-    def __init__(self, data):
+    def __init__(self, data) -> None:
         self._parent = data
 
     @staticmethod
@@ -1769,7 +1769,7 @@ def _load_backend(backend: str) -> types.ModuleType:
     ----------
     backend : str
         The identifier for the backend. Either an entrypoint item registered
-        with pkg_resources, "matplotlib", or a module name.
+        with importlib.metadata, "matplotlib", or a module name.
 
     Returns
     -------
@@ -1793,12 +1793,19 @@ def _load_backend(backend: str) -> types.ModuleType:
     found_backend = False
 
     eps = entry_points()
-    if "pandas_plotting_backends" in eps:
-        for entry_point in eps["pandas_plotting_backends"]:
-            found_backend = entry_point.name == backend
-            if found_backend:
-                module = entry_point.load()
-                break
+    key = "pandas_plotting_backends"
+    # entry_points lost dict API ~ PY 3.10
+    # https://github.com/python/importlib_metadata/issues/298
+    if hasattr(eps, "select"):
+        # error: "Dict[str, Tuple[EntryPoint, ...]]" has no attribute "select"
+        entry = eps.select(group=key)  # type: ignore[attr-defined]
+    else:
+        entry = eps.get(key, ())
+    for entry_point in entry:
+        found_backend = entry_point.name == backend
+        if found_backend:
+            module = entry_point.load()
+            break
 
     if not found_backend:
         # Fall back to unregistered, module name approach.
