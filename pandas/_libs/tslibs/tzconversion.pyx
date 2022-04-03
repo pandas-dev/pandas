@@ -610,7 +610,7 @@ cdef int64_t _tz_localize_using_tzinfo_api(
     int64_t val, tzinfo tz, bint to_utc=True, bint* fold=NULL
 ) except? -1:
     """
-    Convert the i8 representation of a datetime from a general-cast timezone to
+    Convert the i8 representation of a datetime from a general-case timezone to
     UTC, or vice-versa using the datetime/tzinfo API.
 
     Private, not intended for use outside of tslibs.tzconversion.

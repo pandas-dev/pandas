@@ -15,4 +15,5 @@ cdef class _Timedelta(timedelta):
         int64_t _d, _h, _m, _s, _ms, _us, _ns
 
     cpdef timedelta to_pytimedelta(_Timedelta self)
-    cpdef bint _has_ns(self)
+    cdef bint _has_ns(self)
+    cdef _ensure_components(_Timedelta self)

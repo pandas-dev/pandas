@@ -2006,10 +2006,10 @@ def sequence_to_datetimes(data, require_iso8601: bool = False) -> DatetimeArray:
 def _sequence_to_dt64ns(
     data,
     dtype=None,
-    copy=False,
+    copy: bool = False,
     tz=None,
-    dayfirst=False,
-    yearfirst=False,
+    dayfirst: bool = False,
+    yearfirst: bool = False,
     ambiguous="raise",
     *,
     allow_mixed: bool = False,

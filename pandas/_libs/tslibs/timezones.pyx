@@ -230,10 +230,10 @@ cdef object _get_utc_trans_times_from_dateutil_tz(tzinfo tz):
     return new_trans
 
 
-cdef int64_t[:] unbox_utcoffsets(object transinfo):
+cdef int64_t[::1] unbox_utcoffsets(object transinfo):
     cdef:
         Py_ssize_t i, sz
-        int64_t[:] arr
+        int64_t[::1] arr
 
     sz = len(transinfo)
     arr = np.empty(sz, dtype='i8')
