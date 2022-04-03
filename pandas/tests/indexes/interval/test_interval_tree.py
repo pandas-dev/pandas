@@ -198,12 +198,12 @@ class TestIntervalTree:
             "be passed if argument `inclusive` is not None"
         )
         with pytest.raises(ValueError, match=msg):
-            left, right = np.arange(101, dtype="int64"), [np.iinfo(np.int64).max] * 101
+            left, right = np.arange(10), [np.iinfo(np.int64).max] * 10
             IntervalTree(left, right, closed="both", inclusive="both")
 
         msg = "Argument `closed` is deprecated in favor of `inclusive`"
         with tm.assert_produces_warning(
             FutureWarning, match=msg, check_stacklevel=False
         ):
-            left, right = np.arange(101, dtype="int64"), [np.iinfo(np.int64).max] * 101
+            left, right = np.arange(10), [np.iinfo(np.int64).max] * 10
             IntervalTree(left, right, closed="both")
