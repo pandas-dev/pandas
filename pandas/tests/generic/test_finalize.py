@@ -154,10 +154,7 @@ _all_methods = [
         operator.methodcaller("pivot_table", columns="A", aggfunc=["mean", "sum"]),
     ),
     (pd.DataFrame, frame_data, operator.methodcaller("stack")),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("explode", "A")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("explode", "A")),
     (pd.DataFrame, frame_mi_data, operator.methodcaller("unstack")),
     pytest.param(
         (
