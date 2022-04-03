@@ -248,7 +248,7 @@ pyarrow_skip = td.skip_if_no("pyarrow")
 def test_arrow_extension_type():
     import pyarrow as pa
 
-    from pandas.core.arrays._arrow_utils import ArrowIntervalType
+    from pandas.core.arrays.arrow._arrow_utils import ArrowIntervalType
 
     p1 = ArrowIntervalType(pa.int64(), "left")
     p2 = ArrowIntervalType(pa.int64(), "left")
@@ -265,7 +265,7 @@ def test_arrow_extension_type():
 def test_arrow_array():
     import pyarrow as pa
 
-    from pandas.core.arrays._arrow_utils import ArrowIntervalType
+    from pandas.core.arrays.arrow._arrow_utils import ArrowIntervalType
 
     intervals = pd.interval_range(1, 5, freq=1).array
 
@@ -295,7 +295,7 @@ def test_arrow_array():
 def test_arrow_array_missing():
     import pyarrow as pa
 
-    from pandas.core.arrays._arrow_utils import ArrowIntervalType
+    from pandas.core.arrays.arrow._arrow_utils import ArrowIntervalType
 
     arr = IntervalArray.from_breaks([0.0, 1.0, 2.0, 3.0])
     arr[1] = None
@@ -330,7 +330,7 @@ def test_arrow_array_missing():
 def test_arrow_table_roundtrip(breaks):
     import pyarrow as pa
 
-    from pandas.core.arrays._arrow_utils import ArrowIntervalType
+    from pandas.core.arrays.arrow._arrow_utils import ArrowIntervalType
 
     arr = IntervalArray.from_breaks(breaks)
     arr[1] = None

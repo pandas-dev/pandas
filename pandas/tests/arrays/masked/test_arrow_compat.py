@@ -6,7 +6,7 @@ import pandas._testing as tm
 
 pa = pytest.importorskip("pyarrow", minversion="1.0.1")
 
-from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
+from pandas.core.arrays.arrow._arrow_utils import pyarrow_array_to_numpy_and_mask
 
 arrays = [pd.array([1, 2, 3, None], dtype=dtype) for dtype in tm.ALL_INT_EA_DTYPES]
 arrays += [pd.array([0.1, 0.2, 0.3, None], dtype=dtype) for dtype in tm.FLOAT_EA_DTYPES]

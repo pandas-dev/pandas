@@ -70,7 +70,9 @@ class NumericDtype(BaseMaskedDtype):
         """
         import pyarrow
 
-        from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
+        from pandas.core.arrays.arrow._arrow_utils import (
+            pyarrow_array_to_numpy_and_mask,
+        )
 
         array_class = self.construct_array_type()
 
