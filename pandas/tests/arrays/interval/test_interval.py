@@ -412,6 +412,20 @@ def test_interval_error_and_warning():
         Interval(0, 1, closed="both")
 
 
+def test_interval_array_error_and_warning():
+    # GH 40245
+    msg = (
+        "Deprecated argument `closed` cannot "
+        "be passed if argument `inclusive` is not None"
+    )
+    with pytest.raises(ValueError, match=msg):
+        IntervalArray([Interval(0, 1), Interval(1, 5)], closed="both", inclusive="both")
+
+    msg = "Argument `closed` is deprecated in favor of `inclusive`"
+    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
+        IntervalArray([Interval(0, 1), Interval(1, 5)], closed="both")
+
+
 @pyarrow_skip
 def test_arrow_interval_type_error_and_warning():
     # GH 40245
