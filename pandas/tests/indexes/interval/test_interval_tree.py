@@ -199,7 +199,7 @@ class TestIntervalTree:
         )
         with pytest.raises(ValueError, match=msg):
             left, right = np.arange(101, dtype="int64"), [np.iinfo(np.int64).max] * 101
-            IntervalTree(left, right, inclusive="both", inclusive="both")
+            IntervalTree(left, right, inclusive="both")
 
         msg = "Argument `closed` is deprecated in favor of `inclusive`"
         with tm.assert_produces_warning(
