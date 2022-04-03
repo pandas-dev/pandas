@@ -9489,6 +9489,11 @@ NaN 12.3   33.0
                     "Joining multiple DataFrames only supported for joining on index"
                 )
 
+            if rsuffix or lsuffix:
+                raise ValueError(
+                    "Suffixes not supported when joining multiple DataFrames"
+                )
+
             frames = [self] + list(other)
 
             can_concat = all(df.index.is_unique for df in frames)
