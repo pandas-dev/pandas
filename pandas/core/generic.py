@@ -6594,6 +6594,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         regex=False,
         method=lib.no_default,
     ):
+        if isinstance(value, (type(None))):
+            # GH46606, if passing value=None
+            # the type of value is class 'NoneType'
+            # but the lib.no_default is enum 'NoDefault'
+            value = lib.no_default
+
         if not (
             is_scalar(to_replace)
             or is_re_compilable(to_replace)
