@@ -293,9 +293,9 @@ DECODE_NAN:
     if (*(offset++) != 'a') goto SET_NAN_ERROR;
     if (*(offset++) != 'N') goto SET_NAN_ERROR;
 
-    ds->lastType = JT_NULL;
+    ds->lastType = JT_NAN;
     ds->start = offset;
-    return ds->dec->newNull(ds->prv);
+    return ds->dec->newNaN(ds->prv);
 
 SET_NAN_ERROR:
     return SetError(ds, -1, "Unexpected character found when decoding 'NaN'");

@@ -459,6 +459,8 @@ JSOBJ Object_newFalse(void *prv) { Py_RETURN_FALSE; }
 
 JSOBJ Object_newNull(void *prv) { Py_RETURN_NONE; }
 
+JSOBJ Object_newNaN(void *prv) { return PyFloat_FromDouble(Py_NAN); }
+
 JSOBJ Object_newPosInf(void *prv) { return PyFloat_FromDouble(Py_HUGE_VAL); }
 
 JSOBJ Object_newNegInf(void *prv) { return PyFloat_FromDouble(-Py_HUGE_VAL); }

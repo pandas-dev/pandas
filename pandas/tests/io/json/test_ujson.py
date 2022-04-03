@@ -417,6 +417,9 @@ class TestUltraJSONTests:
     def test_encode_as_null(self, decoded_input):
         assert ujson.encode(decoded_input) == "null", "Expected null"
 
+    def test_decode_nan(self, decoded_input):
+        assert math.isnan(ujson.dumps("[NaN]")[0])
+
     def test_datetime_units(self):
         val = datetime.datetime(2013, 8, 17, 21, 17, 12, 215504)
         stamp = Timestamp(val)
