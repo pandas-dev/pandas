@@ -1320,3 +1320,15 @@ def test_apply_str_with_args(df, args, kwargs):
     result = gb.apply("sum", *args, **kwargs)
     expected = gb.sum(numeric_only=True)
     tm.assert_frame_equal(result, expected)
+
+
+def test_result_name_when_one_group():
+    # GH 46369
+    names = ("some_name", None)
+
+    for name in names:
+        ser = Series([0, 1], name=name)
+        result = ser.groupby(["a", "a"]).apply(lambda x: x).name
+        expected = name
+
+        assert result == expected
