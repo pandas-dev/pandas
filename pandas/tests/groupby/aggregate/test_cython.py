@@ -214,7 +214,7 @@ def test_cython_agg_empty_buckets_nanops(observed):
     result = df.groupby(pd.cut(df["a"], grps), observed=observed)._cython_agg_general(
         "add", alt=None, numeric_only=True
     )
-    intervals = pd.interval_range(0, 20, freq=5)
+    intervals = pd.interval_range(0, 20, freq=5, inclusive="right")
     expected = DataFrame(
         {"a": [0, 0, 36, 0]},
         index=pd.CategoricalIndex(intervals, name="a", ordered=True),

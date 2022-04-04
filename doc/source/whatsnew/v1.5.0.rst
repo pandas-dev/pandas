@@ -426,6 +426,7 @@ Other Deprecations
 - Deprecated behavior of method :meth:`DataFrame.quantile`, attribute ``numeric_only`` will default False. Including datetime/timedelta columns in the result (:issue:`7308`).
 - Deprecated :attr:`Timedelta.freq` and :attr:`Timedelta.is_populated` (:issue:`46430`)
 - Deprecated :attr:`Timedelta.delta` (:issue:`46476`)
+- Deprecated the ``closed`` argument in :meth:`interval_range` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
 -
 
 .. ---------------------------------------------------------------------------

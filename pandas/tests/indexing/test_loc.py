@@ -1508,12 +1508,12 @@ class TestLocBaseIndependent:
 
     def test_loc_getitem_interval_index2(self):
         # GH#19977
-        index = pd.interval_range(start=0, periods=3, closed="both")
+        index = pd.interval_range(start=0, periods=3, inclusive="both")
         df = DataFrame(
             [[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=index, columns=["A", "B", "C"]
         )
 
-        index_exp = pd.interval_range(start=0, periods=2, freq=1, closed="both")
+        index_exp = pd.interval_range(start=0, periods=2, freq=1, inclusive="both")
         expected = Series([1, 4], index=index_exp, name="A")
         result = df.loc[1, "A"]
         tm.assert_series_equal(result, expected)
