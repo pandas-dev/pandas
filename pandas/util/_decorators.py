@@ -261,6 +261,7 @@ def deprecate_nonkeyword_arguments(
     version: str | None,
     allowed_args: list[str] | None = None,
     stacklevel: int = 2,
+    name: str | None = None,
 ) -> Callable[[F], F]:
     """
     Decorator to deprecate a use of non-keyword arguments of a function.
@@ -294,9 +295,12 @@ def deprecate_nonkeyword_arguments(
             allow_args = spec.args[: -len(spec.defaults)]
 
         num_allow_args = len(allow_args)
+        nonlocal name
+        if name is None:
+            name = func.__qualname__
         msg = (
             f"{future_version_msg(version)} all arguments of "
-            f"{func.__qualname__}{{arguments}} will be keyword-only."
+            f"{name}{{arguments}} will be keyword-only."
         )
 
         @wraps(func)

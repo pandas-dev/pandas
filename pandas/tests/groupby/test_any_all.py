@@ -65,7 +65,7 @@ def test_any_non_keyword_deprecation():
     df = DataFrame({"A": [1, 2], "B": [0, 2], "C": [0, 0]})
     msg = (
         "In a future version of pandas all arguments of "
-        "NDFrame.any will be keyword-only."
+        "DataFrame.any and Series.any will be keyword-only."
     )
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = df.any("index", None)
@@ -75,7 +75,7 @@ def test_any_non_keyword_deprecation():
     s = Series([False, False, False])
     msg = (
         "In a future version of pandas all arguments of "
-        "NDFrame.any will be keyword-only."
+        "DataFrame.any and Series.any will be keyword-only."
     )
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = s.any("index")

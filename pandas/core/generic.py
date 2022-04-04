@@ -10933,7 +10933,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis_descr, name1, name2 = _doc_params(cls)
 
         @deprecate_nonkeyword_arguments(
-            version=None, allowed_args=["self"], stacklevel=2
+            version=None,
+            allowed_args=["self"],
+            stacklevel=2,
+            name="DataFrame.any and Series.any",
         )
         @doc(
             _bool_doc,
