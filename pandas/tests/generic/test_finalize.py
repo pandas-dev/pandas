@@ -265,7 +265,7 @@ _all_methods = [
         (
             pd.DataFrame,
             ({"A": [pd.Timedelta(days=1), pd.Timedelta(days=2)]},),
-            operator.methodcaller("quantile"),
+            operator.methodcaller("quantile", numeric_only=False),
         ),
     ),
     (
@@ -746,7 +746,7 @@ def test_categorical_accessor(method):
 )
 def test_groupby_finalize(obj, method):
     obj.attrs = {"a": 1}
-    result = method(obj.groupby([0, 0]))
+    result = method(obj.groupby([0, 0], group_keys=False))
     assert result.attrs == {"a": 1}
 
 
