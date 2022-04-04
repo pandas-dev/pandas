@@ -10510,7 +10510,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             filter_type="bool",
         )
 
-    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def any(
         self,
         axis: Axis = 0,
@@ -10933,6 +10932,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         axis_descr, name1, name2 = _doc_params(cls)
 
+        @deprecate_nonkeyword_arguments(
+            version=None, allowed_args=["self"], stacklevel=2
+        )
         @doc(
             _bool_doc,
             desc=_any_desc,
