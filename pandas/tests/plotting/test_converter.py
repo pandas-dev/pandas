@@ -43,9 +43,6 @@ pytest.importorskip("matplotlib.pyplot")
 dates = pytest.importorskip("matplotlib.dates")
 
 
-pytestmark = pytest.mark.slow
-
-
 def test_registry_mpl_resets():
     # Check that Matplotlib converters are properly reset (see issue #27481)
     code = (
@@ -330,7 +327,7 @@ class TestPeriodConverter:
 
         rs = self.pc.convert(
             np.array(
-                ["2012-01-01 00:00:00+0000", "2012-01-02 00:00:00+0000"],
+                ["2012-01-01 00:00:00", "2012-01-02 00:00:00"],
                 dtype="datetime64[ns]",
             ),
             None,

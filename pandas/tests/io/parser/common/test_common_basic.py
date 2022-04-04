@@ -41,7 +41,7 @@ def test_override_set_noconvert_columns():
     # Usecols needs to be sorted in _set_noconvert_columns based
     # on the test_usecols_with_parse_dates test from test_usecols.py
     class MyTextFileReader(TextFileReader):
-        def __init__(self):
+        def __init__(self) -> None:
             self._currow = 0
             self.squeeze = False
 

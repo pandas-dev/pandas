@@ -298,3 +298,27 @@ def test_setitem_preserves_views():
     arr[-1] = 2.5
     view1[-1] = 5
     assert arr[-1] == 5
+
+
+@pytest.mark.parametrize("dtype", [np.int64, np.uint64])
+def test_quantile_empty(dtype):
+    # we should get back np.nans, not -1s
+    arr = PandasArray(np.array([], dtype=dtype))
+    idx = pd.Index([0.0, 0.5])
+
+    result = arr._quantile(idx, interpolation="linear")
+    expected = PandasArray(np.array([np.nan, np.nan]))
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_factorize_unsigned():
+    # don't raise when calling factorize on unsigned int PandasArray
+    arr = np.array([1, 2, 3], dtype=np.uint64)
+    obj = PandasArray(arr)
+
+    res_codes, res_unique = obj.factorize()
+    exp_codes, exp_unique = pd.factorize(arr)
+
+    tm.assert_numpy_array_equal(res_codes, exp_codes)
+
+    tm.assert_extension_array_equal(res_unique, PandasArray(exp_unique))

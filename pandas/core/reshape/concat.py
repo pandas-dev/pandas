@@ -6,6 +6,7 @@ from __future__ import annotations
 from collections import abc
 from typing import (
     TYPE_CHECKING,
+    Callable,
     Hashable,
     Iterable,
     Literal,
@@ -17,7 +18,10 @@ import warnings
 
 import numpy as np
 
-from pandas._typing import Axis
+from pandas._typing import (
+    Axis,
+    HashableT,
+)
 from pandas.util._decorators import (
     cache_readonly,
     deprecate_nonkeyword_arguments,
@@ -61,7 +65,7 @@ if TYPE_CHECKING:
 
 @overload
 def concat(
-    objs: Iterable[DataFrame] | Mapping[Hashable, DataFrame],
+    objs: Iterable[DataFrame] | Mapping[HashableT, DataFrame],
     axis: Literal[0, "index"] = ...,
     join: str = ...,
     ignore_index: bool = ...,
@@ -77,7 +81,7 @@ def concat(
 
 @overload
 def concat(
-    objs: Iterable[Series] | Mapping[Hashable, Series],
+    objs: Iterable[Series] | Mapping[HashableT, Series],
     axis: Literal[0, "index"] = ...,
     join: str = ...,
     ignore_index: bool = ...,
@@ -93,7 +97,7 @@ def concat(
 
 @overload
 def concat(
-    objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
+    objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
     axis: Literal[0, "index"] = ...,
     join: str = ...,
     ignore_index: bool = ...,
@@ -109,7 +113,7 @@ def concat(
 
 @overload
 def concat(
-    objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
+    objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
     axis: Literal[1, "columns"],
     join: str = ...,
     ignore_index: bool = ...,
@@ -125,7 +129,7 @@ def concat(
 
 @overload
 def concat(
-    objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
+    objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
     axis: Axis = ...,
     join: str = ...,
     ignore_index: bool = ...,
@@ -141,7 +145,7 @@ def concat(
 
 @deprecate_nonkeyword_arguments(version=None, allowed_args=["objs"])
 def concat(
-    objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
+    objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
     axis: Axis = 0,
     join: str = "outer",
     ignore_index: bool = False,
@@ -366,7 +370,7 @@ class _Concatenator:
 
     def __init__(
         self,
-        objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
+        objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
         axis=0,
         join: str = "outer",
         keys=None,
@@ -376,7 +380,7 @@ class _Concatenator:
         verify_integrity: bool = False,
         copy: bool = True,
         sort=False,
-    ):
+    ) -> None:
         if isinstance(objs, (ABCSeries, ABCDataFrame, str)):
             raise TypeError(
                 "first argument must be an iterable of pandas "
@@ -467,7 +471,9 @@ class _Concatenator:
 
         # Standardize axis parameter to int
         if isinstance(sample, ABCSeries):
-            axis = sample._constructor_expanddim._get_axis_number(axis)
+            from pandas import DataFrame
+
+            axis = DataFrame._get_axis_number(axis)
         else:
             axis = sample._get_axis_number(axis)
 
@@ -539,7 +545,7 @@ class _Concatenator:
         self.new_axes = self._get_new_axes()
 
     def get_result(self):
-        cons: type[DataFrame | Series]
+        cons: Callable[..., DataFrame | Series]
         sample: DataFrame | Series
 
         # series only

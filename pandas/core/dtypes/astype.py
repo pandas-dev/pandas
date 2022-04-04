@@ -19,6 +19,7 @@ from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
+    IgnoreRaise,
 )
 from pandas.errors import IntCastingNaNError
 from pandas.util._exceptions import find_stack_level
@@ -27,6 +28,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_dtype_equal,
+    is_integer_dtype,
     is_object_dtype,
     is_timedelta64_dtype,
     pandas_dtype,
@@ -133,7 +135,7 @@ def astype_nansafe(
 
         raise TypeError(f"cannot astype a timedelta from [{arr.dtype}] to [{dtype}]")
 
-    elif np.issubdtype(arr.dtype, np.floating) and np.issubdtype(dtype, np.integer):
+    elif np.issubdtype(arr.dtype, np.floating) and is_integer_dtype(dtype):
         return _astype_float_to_int_nansafe(arr, dtype, copy)
 
     elif is_object_dtype(arr.dtype):
@@ -234,7 +236,7 @@ def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> Arra
 
 
 def astype_array_safe(
-    values: ArrayLike, dtype, copy: bool = False, errors: str = "raise"
+    values: ArrayLike, dtype, copy: bool = False, errors: IgnoreRaise = "raise"
 ) -> ArrayLike:
     """
     Cast array (ndarray or ExtensionArray) to the new dtype.

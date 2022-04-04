@@ -240,7 +240,7 @@ class SeriesGroupBy(GroupBy[Series]):
             input="series", examples=_apply_docs["series_examples"]
         )
     )
-    def apply(self, func, *args, **kwargs):
+    def apply(self, func, *args, **kwargs) -> Series:
         return super().apply(func, *args, **kwargs)
 
     @doc(_agg_template, examples=_agg_examples_doc, klass="Series")
@@ -357,6 +357,7 @@ class SeriesGroupBy(GroupBy[Series]):
         data: Series,
         values: list[Any],
         not_indexed_same: bool = False,
+        override_group_keys: bool = False,
     ) -> DataFrame | Series:
         """
         Wrap the output of SeriesGroupBy.apply into the expected result.
@@ -395,7 +396,11 @@ class SeriesGroupBy(GroupBy[Series]):
             res_ser.name = self.obj.name
             return res_ser
         elif isinstance(values[0], (Series, DataFrame)):
-            return self._concat_objects(values, not_indexed_same=not_indexed_same)
+            return self._concat_objects(
+                values,
+                not_indexed_same=not_indexed_same,
+                override_group_keys=override_group_keys,
+            )
         else:
             # GH #6265 #24880
             result = self.obj._constructor(
@@ -471,9 +476,6 @@ class SeriesGroupBy(GroupBy[Series]):
 
         result.name = self.obj.name
         return result
-
-    def _can_use_transform_fast(self, func: str, result) -> bool:
-        return True
 
     def filter(self, func, dropna: bool = True, *args, **kwargs):
         """
@@ -986,7 +988,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return res_df
 
     def _wrap_applied_output(
-        self, data: DataFrame, values: list, not_indexed_same: bool = False
+        self,
+        data: DataFrame,
+        values: list,
+        not_indexed_same: bool = False,
+        override_group_keys: bool = False,
     ):
 
         if len(values) == 0:
@@ -1003,7 +1009,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             # GH9684 - All values are None, return an empty frame.
             return self.obj._constructor()
         elif isinstance(first_not_none, DataFrame):
-            return self._concat_objects(values, not_indexed_same=not_indexed_same)
+            return self._concat_objects(
+                values,
+                not_indexed_same=not_indexed_same,
+                override_group_keys=override_group_keys,
+            )
 
         key_index = self.grouper.result_index if self.as_index else None
 
@@ -1029,7 +1039,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         else:
             # values are Series
             return self._wrap_applied_output_series(
-                values, not_indexed_same, first_not_none, key_index
+                values,
+                not_indexed_same,
+                first_not_none,
+                key_index,
+                override_group_keys,
             )
 
     def _wrap_applied_output_series(
@@ -1038,6 +1052,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         not_indexed_same: bool,
         first_not_none,
         key_index,
+        override_group_keys: bool,
     ) -> DataFrame | Series:
         # this is to silence a DeprecationWarning
         # TODO(2.0): Remove when default dtype of empty Series is object
@@ -1061,7 +1076,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # if any of the sub-series are not indexed the same
                 # OR we don't have a multi-index and we have only a
                 # single values
-                return self._concat_objects(values, not_indexed_same=not_indexed_same)
+                return self._concat_objects(
+                    values,
+                    not_indexed_same=not_indexed_same,
+                    override_group_keys=override_group_keys,
+                )
 
             # still a series
             # path added as of GH 5545
@@ -1072,7 +1091,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         if not all_indexed_same:
             # GH 8467
-            return self._concat_objects(values, not_indexed_same=True)
+            return self._concat_objects(
+                values,
+                not_indexed_same=True,
+                override_group_keys=override_group_keys,
+            )
 
         # Combine values
         # vstack+constructor is faster than concat and handles MI-columns
@@ -1182,12 +1205,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
         return self._transform(
             func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
-        )
-
-    def _can_use_transform_fast(self, func: str, result) -> bool:
-        return func == "size" or (
-            isinstance(result, DataFrame)
-            and result.columns.equals(self._obj_with_exclusions.columns)
         )
 
     def _define_paths(self, func, *args, **kwargs):

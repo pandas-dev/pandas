@@ -194,7 +194,7 @@ class TestIntervalIndex:
             tm.assert_index_equal(result, expected)
 
         # GH 19016: incompatible dtypes -> cast to object
-        other = interval_range(Timestamp("20180101"), periods=9, closed=closed)
+        other = interval_range(Timestamp("20180101"), periods=9, inclusive=closed)
         expected = getattr(index.astype(object), op_name)(other, sort=sort)
         if op_name == "difference":
             expected = index
