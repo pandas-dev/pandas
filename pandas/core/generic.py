@@ -10935,7 +10935,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         @deprecate_nonkeyword_arguments(
             version=None,
             allowed_args=["self"],
-            stacklevel=find_stack_level(),
             name="DataFrame.any and Series.any",
         )
         @doc(
