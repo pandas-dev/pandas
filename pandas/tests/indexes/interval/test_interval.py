@@ -167,10 +167,10 @@ class TestIntervalIndex:
     @pytest.mark.parametrize(
         "data",
         [
-            interval_range(0, periods=10, closed="neither"),
-            interval_range(1.7, periods=8, freq=2.5, closed="both"),
-            interval_range(Timestamp("20170101"), periods=12, closed="left"),
-            interval_range(Timedelta("1 day"), periods=6, closed="right"),
+            interval_range(0, periods=10, inclusive="neither"),
+            interval_range(1.7, periods=8, freq=2.5, inclusive="both"),
+            interval_range(Timestamp("20170101"), periods=12, inclusive="left"),
+            interval_range(Timedelta("1 day"), periods=6, inclusive="right"),
         ],
     )
     def test_insert(self, data):
@@ -868,9 +868,9 @@ class TestIntervalIndex:
     @pytest.mark.parametrize("new_closed", ["left", "right", "both", "neither"])
     def test_set_closed(self, name, closed, new_closed):
         # GH 21670
-        index = interval_range(0, 5, closed=closed, name=name)
+        index = interval_range(0, 5, inclusive=closed, name=name)
         result = index.set_closed(new_closed)
-        expected = interval_range(0, 5, closed=new_closed, name=name)
+        expected = interval_range(0, 5, inclusive=new_closed, name=name)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("bad_closed", ["foo", 10, "LEFT", True, False])
