@@ -141,7 +141,7 @@ jobs:
       run: |
         cd asv_bench
         asv machine --yes
-        asv run --quick --dry-run --strict --durations --python=same
+        asv run --quick --dry-run --strict --durations=30 --python=same
 
   build_docker_dev_environment:
     name: Build Docker Dev Environment
