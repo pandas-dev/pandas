@@ -555,7 +555,7 @@ Styler
 
 Other
 ^^^^^
-- Bug in `DataFrame.join` with a list when using suffixes to join DataFrames with duplicate column names (:issue:`46396`)
+- Bug in :meth:`DataFrame.join` with a list when using suffixes to join DataFrames with duplicate column names (:issue:`46396`)
 
 .. ***DO NOT USE THIS SECTION***
 
