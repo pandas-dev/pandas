@@ -73,6 +73,7 @@ if TYPE_CHECKING:
 else:
     npt: Any = None
 
+HashableT = TypeVar("HashableT", bound=Hashable)
 
 # array-like
 
