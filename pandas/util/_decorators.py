@@ -295,12 +295,9 @@ def deprecate_nonkeyword_arguments(
             allow_args = spec.args[: -len(spec.defaults)]
 
         num_allow_args = len(allow_args)
-        nonlocal name
-        if name is None:
-            name = func.__qualname__
         msg = (
             f"{future_version_msg(version)} all arguments of "
-            f"{name}{{arguments}} will be keyword-only."
+            f"{name or func.__qualname__}{{arguments}} will be keyword-only."
         )
 
         @wraps(func)
