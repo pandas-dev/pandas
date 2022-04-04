@@ -8,6 +8,8 @@ from pandas._libs import (
 )
 from pandas.errors import InvalidIndexError
 
+from pandas.core.dtypes.common import is_dtype_equal
+
 from pandas.core.indexes.base import (
     Index,
     _new_Index,
@@ -63,6 +65,7 @@ __all__ = [
     "union_indexes",
     "get_unanimous_names",
     "all_indexes_same",
+    "default_index",
 ]
 
 
@@ -146,7 +149,7 @@ def _get_combined_index(
         for other in indexes[1:]:
             index = index.intersection(other)
     else:
-        index = union_indexes(indexes, sort=sort)
+        index = union_indexes(indexes, sort=False)
         index = ensure_index(index)
 
     if sort:
@@ -162,7 +165,7 @@ def _get_combined_index(
     return index
 
 
-def union_indexes(indexes, sort: bool = True) -> Index:
+def union_indexes(indexes, sort: bool | None = True) -> Index:
     """
     Return the union of indexes.
 
@@ -212,14 +215,41 @@ def union_indexes(indexes, sort: bool = True) -> Index:
 
     if kind == "special":
         result = indexes[0]
+        first = result
 
-        if hasattr(result, "union_many"):
-            # DatetimeIndex
-            return result.union_many(indexes[1:])
-        else:
-            for other in indexes[1:]:
-                result = result.union(other)
-            return result
+        dtis = [x for x in indexes if isinstance(x, DatetimeIndex)]
+        dti_tzs = [x for x in dtis if x.tz is not None]
+        if len(dti_tzs) not in [0, len(dtis)]:
+            # TODO: this behavior is not tested (so may not be desired),
+            #  but is kept in order to keep behavior the same when
+            #  deprecating union_many
+            # test_frame_from_dict_with_mixed_indexes
+            raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
+
+        if len(dtis) == len(indexes):
+            sort = True
+            if not all(is_dtype_equal(x.dtype, first.dtype) for x in indexes):
+                # i.e. timezones mismatch
+                # TODO(2.0): once deprecation is enforced, this union will
+                #  cast to UTC automatically.
+                indexes = [x.tz_convert("UTC") for x in indexes]
+
+            result = indexes[0]
+
+        elif len(dtis) > 1:
+            # If we have mixed timezones, our casting behavior may depend on
+            #  the order of indexes, which we don't want.
+            sort = False
+
+            # TODO: what about Categorical[dt64]?
+            # test_frame_from_dict_with_mixed_indexes
+            indexes = [x.astype(object, copy=False) for x in indexes]
+            result = indexes[0]
+
+        for other in indexes[1:]:
+            result = result.union(other, sort=None if sort else False)
+        return result
+
     elif kind == "array":
         index = indexes[0]
         if not all(index.equals(other) for other in indexes[1:]):
@@ -287,3 +317,8 @@ def all_indexes_same(indexes) -> bool:
     itr = iter(indexes)
     first = next(itr)
     return all(first.equals(index) for index in itr)
+
+
+def default_index(n: int) -> RangeIndex:
+    rng = range(0, n)
+    return RangeIndex._simple_new(rng, name=None)

@@ -12,6 +12,7 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
+from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
 from pandas.tests.apply.common import (
     frame_transform_kernels,
     series_transform_kernels,
@@ -26,7 +27,7 @@ from pandas.tests.apply.common import (
         pytest.param([1], {}, id="axis_from_args"),
         pytest.param([], {"axis": 1}, id="axis_from_kwds"),
         pytest.param([], {"numeric_only": True}, id="optional_kwds"),
-        pytest.param([1, None], {"numeric_only": True}, id="args_and_kwds"),
+        pytest.param([1, True], {"numeric_only": True}, id="args_and_kwds"),
     ],
 )
 @pytest.mark.parametrize("how", ["agg", "apply"])
@@ -44,17 +45,16 @@ def test_apply_with_string_funcs(request, float_frame, func, args, kwds, how):
     tm.assert_series_equal(result, expected)
 
 
-def test_with_string_args(datetime_series):
-
-    for arg in ["sum", "mean", "min", "max", "std"]:
-        result = datetime_series.apply(arg)
-        expected = getattr(datetime_series, arg)()
-        assert result == expected
+@pytest.mark.parametrize("arg", ["sum", "mean", "min", "max", "std"])
+def test_with_string_args(datetime_series, arg):
+    result = datetime_series.apply(arg)
+    expected = getattr(datetime_series, arg)()
+    assert result == expected
 
 
 @pytest.mark.parametrize("op", ["mean", "median", "std", "var"])
 @pytest.mark.parametrize("how", ["agg", "apply"])
-def test_apply_np_reducer(float_frame, op, how):
+def test_apply_np_reducer(op, how):
     # GH 39116
     float_frame = DataFrame({"a": [1, 2], "b": [3, 4]})
     result = getattr(float_frame, how)(op)
@@ -72,8 +72,17 @@ def test_apply_np_reducer(float_frame, op, how):
 @pytest.mark.parametrize("how", ["transform", "apply"])
 def test_apply_np_transformer(float_frame, op, how):
     # GH 39116
-    result = getattr(float_frame, how)(op)
-    expected = getattr(np, op)(float_frame)
+
+    # float_frame will _usually_ have negative values, which will
+    #  trigger the warning here, but let's put one in just to be sure
+    float_frame.iloc[0, 0] = -1.0
+    warn = None
+    if op in ["log", "sqrt"]:
+        warn = RuntimeWarning
+
+    with tm.assert_produces_warning(warn):
+        result = getattr(float_frame, how)(op)
+        expected = getattr(np, op)(float_frame)
     tm.assert_frame_equal(result, expected)
 
 
@@ -234,9 +243,14 @@ def test_agg_cython_table_transform_frame(df, func, expected, axis):
 
 
 @pytest.mark.parametrize("op", series_transform_kernels)
-def test_transform_groupby_kernel_series(string_series, op):
+def test_transform_groupby_kernel_series(request, string_series, op):
     # GH 35964
-
+    if op == "ngroup":
+        request.node.add_marker(
+            pytest.mark.xfail(raises=ValueError, reason="ngroup not valid for NDFrame")
+        )
+    # TODO(2.0) Remove after pad/backfill deprecation enforced
+    op = maybe_normalize_deprecated_kernels(op)
     args = [0.0] if op == "fillna" else []
     ones = np.ones(string_series.shape[0])
     expected = string_series.groupby(ones).transform(op, *args)
@@ -245,17 +259,16 @@ def test_transform_groupby_kernel_series(string_series, op):
 
 
 @pytest.mark.parametrize("op", frame_transform_kernels)
-def test_transform_groupby_kernel_frame(
-    axis, float_frame, op, using_array_manager, request
-):
-    # GH 35964
-    if using_array_manager and op == "pct_change" and axis in (1, "columns"):
-        # TODO(ArrayManager) shift with axis=1
+def test_transform_groupby_kernel_frame(request, axis, float_frame, op):
+    # TODO(2.0) Remove after pad/backfill deprecation enforced
+    op = maybe_normalize_deprecated_kernels(op)
+
+    if op == "ngroup":
         request.node.add_marker(
-            pytest.mark.xfail(
-                reason="shift axis=1 not yet implemented for ArrayManager"
-            )
+            pytest.mark.xfail(raises=ValueError, reason="ngroup not valid for NDFrame")
         )
+
+    # GH 35964
 
     args = [0.0] if op == "fillna" else []
     if axis == 0 or axis == "index":

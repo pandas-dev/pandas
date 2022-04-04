@@ -3,11 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable  # noqa: PDF001
 import re
 from typing import (
-    TYPE_CHECKING,
-    Any,
-    Sequence,
     Union,
-    cast,
     overload,
 )
 
@@ -27,17 +23,13 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat import (
-    pa_version_under1p0,
+    pa_version_under1p01,
     pa_version_under2p0,
     pa_version_under3p0,
     pa_version_under4p0,
 )
-from pandas.util._decorators import doc
-from pandas.util._validators import validate_fillna_kwargs
 
-from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
-    is_array_like,
     is_bool_dtype,
     is_dtype_equal,
     is_integer,
@@ -49,9 +41,8 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import missing
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays.base import ExtensionArray
+from pandas.core.arrays.arrow import ArrowExtensionArray
 from pandas.core.arrays.boolean import BooleanDtype
 from pandas.core.arrays.integer import Int64Dtype
 from pandas.core.arrays.numeric import NumericDtype
@@ -61,14 +52,11 @@ from pandas.core.arrays.string_ import (
 )
 from pandas.core.indexers import (
     check_array_indexer,
-    validate_indices,
+    unpack_tuple_and_ellipses,
 )
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
-# PyArrow backed StringArrays are available starting at 1.0.0, but this
-# file is imported from even if pyarrow is < 1.0.0, before pyarrow.compute
-# and its compute functions existed. GH38801
-if not pa_version_under1p0:
+if not pa_version_under1p01:
     import pyarrow as pa
     import pyarrow.compute as pc
 
@@ -81,15 +69,11 @@ if not pa_version_under1p0:
         "ge": pc.greater_equal,
     }
 
-
-if TYPE_CHECKING:
-    from pandas import Series
-
 ArrowStringScalarOrNAT = Union[str, libmissing.NAType]
 
 
 def _chk_pyarrow_available() -> None:
-    if pa_version_under1p0:
+    if pa_version_under1p01:
         msg = "pyarrow>=1.0.0 is required for PyArrow backed StringArray."
         raise ImportError(msg)
 
@@ -99,7 +83,9 @@ def _chk_pyarrow_available() -> None:
 # fallback for the ones that pyarrow doesn't yet support
 
 
-class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
+class ArrowStringArray(
+    OpsMixin, ArrowExtensionArray, BaseStringArray, ObjectStringArrayMixin
+):
     """
     Extension array for string data in a ``pyarrow.ChunkedArray``.
 
@@ -143,7 +129,7 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
     Length: 4, dtype: string
     """
 
-    def __init__(self, values):
+    def __init__(self, values) -> None:
         self._dtype = StringDtype(storage="pyarrow")
         if isinstance(values, pa.Array):
             self._data = pa.chunked_array([values])
@@ -196,10 +182,6 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
         """Correctly construct numpy arrays when passed to `np.asarray()`."""
         return self.to_numpy(dtype=dtype)
 
-    def __arrow_array__(self, type=None):
-        """Convert myself to a pyarrow Array or ChunkedArray."""
-        return self._data
-
     def to_numpy(
         self,
         dtype: npt.DTypeLike | None = None,
@@ -220,52 +202,6 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
             mask = self.isna()
             result[mask] = na_value
         return result
-
-    def __len__(self) -> int:
-        """
-        Length of this array.
-
-        Returns
-        -------
-        length : int
-        """
-        return len(self._data)
-
-    @doc(ExtensionArray.factorize)
-    def factorize(self, na_sentinel: int = -1) -> tuple[np.ndarray, ExtensionArray]:
-        encoded = self._data.dictionary_encode()
-        indices = pa.chunked_array(
-            [c.indices for c in encoded.chunks], type=encoded.type.index_type
-        ).to_pandas()
-        if indices.dtype.kind == "f":
-            indices[np.isnan(indices)] = na_sentinel
-        indices = indices.astype(np.int64, copy=False)
-
-        if encoded.num_chunks:
-            uniques = type(self)(encoded.chunk(0).dictionary)
-        else:
-            uniques = type(self)(pa.array([], type=encoded.type.value_type))
-
-        return indices.values, uniques
-
-    @classmethod
-    def _concat_same_type(cls, to_concat) -> ArrowStringArray:
-        """
-        Concatenate multiple ArrowStringArray.
-
-        Parameters
-        ----------
-        to_concat : sequence of ArrowStringArray
-
-        Returns
-        -------
-        ArrowStringArray
-        """
-        return cls(
-            pa.chunked_array(
-                [array for ea in to_concat for array in ea._data.iterchunks()]
-            )
-        )
 
     @overload
     def __getitem__(self, item: ScalarIndexer) -> ArrowStringScalarOrNAT:
@@ -307,9 +243,7 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
             if not len(item):
                 return type(self)(pa.chunked_array([], type=pa.string()))
             elif is_integer_dtype(item.dtype):
-                # error: Argument 1 to "take" of "ArrowStringArray" has incompatible
-                # type "ndarray"; expected "Sequence[int]"
-                return self.take(item)  # type: ignore[arg-type]
+                return self.take(item)
             elif is_bool_dtype(item.dtype):
                 return type(self)(self._data.filter(item))
             else:
@@ -318,15 +252,22 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
                     "boolean arrays are valid indices."
                 )
         elif isinstance(item, tuple):
-            # possibly unpack arr[..., n] to arr[n]
-            if len(item) == 1:
-                item = item[0]
-            elif len(item) == 2:
-                if item[0] is Ellipsis:
-                    item = item[1]
-                elif item[1] is Ellipsis:
-                    item = item[0]
+            item = unpack_tuple_and_ellipses(item)
 
+        # error: Non-overlapping identity check (left operand type:
+        # "Union[Union[int, integer[Any]], Union[slice, List[int],
+        # ndarray[Any, Any]]]", right operand type: "ellipsis")
+        if item is Ellipsis:  # type: ignore[comparison-overlap]
+            # TODO: should be handled by pyarrow?
+            item = slice(None)
+
+        if is_scalar(item) and not is_integer(item):
+            # e.g. "foo" or 2.5
+            # exception message copied from numpy
+            raise IndexError(
+                r"only integers, slices (`:`), ellipsis (`...`), numpy.newaxis "
+                r"(`None`) and integer or boolean arrays are valid indices"
+            )
         # We are not an array indexer, so maybe e.g. a slice or integer
         # indexer. We dispatch to pyarrow.
         value = self._data[item]
@@ -342,94 +283,13 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
         else:
             return scalar
 
-    def fillna(self, value=None, method=None, limit=None):
-        """
-        Fill NA/NaN values using the specified method.
-
-        Parameters
-        ----------
-        value : scalar, array-like
-            If a scalar value is passed it is used to fill all missing values.
-            Alternatively, an array-like 'value' can be given. It's expected
-            that the array-like have the same length as 'self'.
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-            Method to use for filling holes in reindexed Series
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap.
-        limit : int, default None
-            If method is specified, this is the maximum number of consecutive
-            NaN values to forward/backward fill. In other words, if there is
-            a gap with more than this number of consecutive NaNs, it will only
-            be partially filled. If method is not specified, this is the
-            maximum number of entries along the entire axis where NaNs will be
-            filled.
-
-        Returns
-        -------
-        ExtensionArray
-            With NA/NaN filled.
-        """
-        value, method = validate_fillna_kwargs(value, method)
-
-        mask = self.isna()
-        value = missing.check_value_size(value, mask, len(self))
-
-        if mask.any():
-            if method is not None:
-                func = missing.get_fill_func(method)
-                new_values, _ = func(
-                    self.to_numpy("object"),
-                    limit=limit,
-                    mask=mask,
-                )
-                new_values = self._from_sequence(new_values)
-            else:
-                # fill with value
-                new_values = self.copy()
-                new_values[mask] = value
-        else:
-            new_values = self.copy()
-        return new_values
-
-    def _reduce(self, name: str, skipna: bool = True, **kwargs):
-        if name in ["min", "max"]:
-            return getattr(self, name)(skipna=skipna)
-
-        raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
-
-    @property
-    def nbytes(self) -> int:
-        """
-        The number of bytes needed to store this object in memory.
-        """
-        return self._data.nbytes
-
-    def isna(self) -> np.ndarray:
-        """
-        Boolean NumPy array indicating if each value is missing.
-
-        This should return a 1-D array the same length as 'self'.
-        """
-        # TODO: Implement .to_numpy for ChunkedArray
-        return self._data.is_null().to_pandas().values
-
-    def copy(self) -> ArrowStringArray:
-        """
-        Return a shallow copy of the array.
-
-        Returns
-        -------
-        ArrowStringArray
-        """
-        return type(self)(self._data)
-
     def _cmp_method(self, other, op):
         from pandas.arrays import BooleanArray
 
         pc_func = ARROW_CMP_FUNCS[op.__name__]
         if isinstance(other, ArrowStringArray):
             result = pc_func(self._data, other._data)
-        elif isinstance(other, np.ndarray):
+        elif isinstance(other, (np.ndarray, list)):
             result = pc_func(self._data, other)
         elif is_scalar(other):
             try:
@@ -443,169 +303,31 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
         else:
             return NotImplemented
 
-        # TODO(ARROW-9429): Add a .to_numpy() to ChunkedArray
-        return BooleanArray._from_sequence(result.to_pandas().values)
+        if pa_version_under2p0:
+            result = result.to_pandas().values
+        else:
+            result = result.to_numpy()
+        return BooleanArray._from_sequence(result)
 
-    def __setitem__(self, key: int | slice | np.ndarray, value: Any) -> None:
-        """Set one or more values inplace.
+    def insert(self, loc: int, item):
+        if not isinstance(item, str) and item is not libmissing.NA:
+            raise TypeError("Scalar must be NA or str")
+        return super().insert(loc, item)
 
-        Parameters
-        ----------
-        key : int, ndarray, or slice
-            When called from, e.g. ``Series.__setitem__``, ``key`` will be
-            one of
-
-            * scalar int
-            * ndarray of integers.
-            * boolean ndarray
-            * slice object
-
-        value : ExtensionDtype.type, Sequence[ExtensionDtype.type], or object
-            value or values to be set of ``key``.
-
-        Returns
-        -------
-        None
-        """
-        key = check_array_indexer(self, key)
-
-        if is_integer(key):
-            key = cast(int, key)
-
-            if not is_scalar(value):
-                raise ValueError("Must pass scalars with scalar indexer")
-            elif isna(value):
+    def _maybe_convert_setitem_value(self, value):
+        """Maybe convert value to be pyarrow compatible."""
+        if is_scalar(value):
+            if isna(value):
                 value = None
             elif not isinstance(value, str):
                 raise ValueError("Scalar must be NA or str")
-
-            # Slice data and insert in-between
-            new_data = [
-                *self._data[0:key].chunks,
-                pa.array([value], type=pa.string()),
-                *self._data[(key + 1) :].chunks,
-            ]
-            self._data = pa.chunked_array(new_data)
         else:
-            # Convert to integer indices and iteratively assign.
-            # TODO: Make a faster variant of this in Arrow upstream.
-            #       This is probably extremely slow.
-
-            # Convert all possible input key types to an array of integers
-            if isinstance(key, slice):
-                key_array = np.array(range(len(self))[key])
-            elif is_bool_dtype(key):
-                # TODO(ARROW-9430): Directly support setitem(booleans)
-                key_array = np.argwhere(key).flatten()
-            else:
-                # TODO(ARROW-9431): Directly support setitem(integers)
-                key_array = np.asanyarray(key)
-
-            if is_scalar(value):
-                value = np.broadcast_to(value, len(key_array))
-            else:
-                value = np.asarray(value)
-
-            if len(key_array) != len(value):
-                raise ValueError("Length of indexer and values mismatch")
-
-            for k, v in zip(key_array, value):
-                self[k] = v
-
-    def take(
-        self, indices: Sequence[int], allow_fill: bool = False, fill_value: Any = None
-    ):
-        """
-        Take elements from an array.
-
-        Parameters
-        ----------
-        indices : sequence of int
-            Indices to be taken.
-        allow_fill : bool, default False
-            How to handle negative values in `indices`.
-
-            * False: negative values in `indices` indicate positional indices
-              from the right (the default). This is similar to
-              :func:`numpy.take`.
-
-            * True: negative values in `indices` indicate
-              missing values. These values are set to `fill_value`. Any other
-              other negative values raise a ``ValueError``.
-
-        fill_value : any, optional
-            Fill value to use for NA-indices when `allow_fill` is True.
-            This may be ``None``, in which case the default NA value for
-            the type, ``self.dtype.na_value``, is used.
-
-            For many ExtensionArrays, there will be two representations of
-            `fill_value`: a user-facing "boxed" scalar, and a low-level
-            physical NA value. `fill_value` should be the user-facing version,
-            and the implementation should handle translating that to the
-            physical version for processing the take if necessary.
-
-        Returns
-        -------
-        ExtensionArray
-
-        Raises
-        ------
-        IndexError
-            When the indices are out of bounds for the array.
-        ValueError
-            When `indices` contains negative values other than ``-1``
-            and `allow_fill` is True.
-
-        See Also
-        --------
-        numpy.take
-        api.extensions.take
-
-        Notes
-        -----
-        ExtensionArray.take is called by ``Series.__getitem__``, ``.loc``,
-        ``iloc``, when `indices` is a sequence of values. Additionally,
-        it's called by :meth:`Series.reindex`, or any other method
-        that causes realignment, with a `fill_value`.
-        """
-        # TODO: Remove once we got rid of the (indices < 0) check
-        if not is_array_like(indices):
-            indices_array = np.asanyarray(indices)
-        else:
-            # error: Incompatible types in assignment (expression has type
-            # "Sequence[int]", variable has type "ndarray")
-            indices_array = indices  # type: ignore[assignment]
-
-        if len(self._data) == 0 and (indices_array >= 0).any():
-            raise IndexError("cannot do a non-empty take")
-        if indices_array.size > 0 and indices_array.max() >= len(self._data):
-            raise IndexError("out of bounds value in 'indices'.")
-
-        if allow_fill:
-            fill_mask = indices_array < 0
-            if fill_mask.any():
-                validate_indices(indices_array, len(self._data))
-                # TODO(ARROW-9433): Treat negative indices as NULL
-                indices_array = pa.array(indices_array, mask=fill_mask)
-                result = self._data.take(indices_array)
-                if isna(fill_value):
-                    return type(self)(result)
-                # TODO: ArrowNotImplementedError: Function fill_null has no
-                # kernel matching input types (array[string], scalar[string])
-                result = type(self)(result)
-                result[fill_mask] = fill_value
-                return result
-                # return type(self)(pc.fill_null(result, pa.scalar(fill_value)))
-            else:
-                # Nothing to fill
-                return type(self)(self._data.take(indices))
-        else:  # allow_fill=False
-            # TODO(ARROW-9432): Treat negative indices as indices from the right.
-            if (indices_array < 0).any():
-                # Don't modify in-place
-                indices_array = np.copy(indices_array)
-                indices_array[indices_array < 0] += len(self._data)
-            return type(self)(self._data.take(indices_array))
+            value = np.array(value, dtype=object, copy=True)
+            value[isna(value)] = None
+            for v in value:
+                if not (v is None or isinstance(v, str)):
+                    raise ValueError("Scalar must be NA or str")
+        return value
 
     def isin(self, values):
         if pa_version_under2p0:
@@ -633,46 +355,7 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
         # to False
         return np.array(result, dtype=np.bool_)
 
-    def value_counts(self, dropna: bool = True) -> Series:
-        """
-        Return a Series containing counts of each unique value.
-
-        Parameters
-        ----------
-        dropna : bool, default True
-            Don't include counts of missing values.
-
-        Returns
-        -------
-        counts : Series
-
-        See Also
-        --------
-        Series.value_counts
-        """
-        from pandas import (
-            Index,
-            Series,
-        )
-
-        vc = self._data.value_counts()
-
-        values = vc.field(0)
-        counts = vc.field(1)
-        if dropna and self._data.null_count > 0:
-            mask = values.is_valid()
-            values = values.filter(mask)
-            counts = counts.filter(mask)
-
-        # No missing values so we can adhere to the interface and return a numpy array.
-        counts = np.array(counts)
-
-        # Index cannot hold ExtensionArrays yet
-        index = Index(type(self)(values)).astype(object)
-
-        return Series(counts, index=index).astype("Int64")
-
-    def astype(self, dtype, copy=True):
+    def astype(self, dtype, copy: bool = True):
         dtype = pandas_dtype(dtype)
 
         if is_dtype_equal(dtype, self.dtype):
@@ -684,11 +367,7 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
             data = self._data.cast(pa.from_numpy_dtype(dtype.numpy_dtype))
             return dtype.__from_arrow__(data)
 
-        elif isinstance(dtype, ExtensionDtype):
-            cls = dtype.construct_array_type()
-            return cls._from_sequence(self, dtype=dtype, copy=copy)
-
-        return super().astype(dtype, copy)
+        return super().astype(dtype, copy=copy)
 
     # ------------------------------------------------------------------------
     # String methods interface
@@ -731,12 +410,10 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
                 mask.view("uint8"),
                 convert=False,
                 na_value=na_value,
-                # error: Value of type variable "_DTypeScalar" of "dtype" cannot be
-                # "object"
                 # error: Argument 1 to "dtype" has incompatible type
                 # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected
                 # "Type[object]"
-                dtype=np.dtype(dtype),  # type: ignore[type-var,arg-type]
+                dtype=np.dtype(dtype),  # type: ignore[arg-type]
             )
 
             if not na_value_is_na:
@@ -814,7 +491,7 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
         return type(self)(result)
 
     def _str_match(
-        self, pat: str, case: bool = True, flags: int = 0, na: Scalar = None
+        self, pat: str, case: bool = True, flags: int = 0, na: Scalar | None = None
     ):
         if pa_version_under4p0:
             return super()._str_match(pat, case, flags, na)
@@ -823,7 +500,9 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
             pat = "^" + pat
         return self._str_contains(pat, case, flags, na, regex=True)
 
-    def _str_fullmatch(self, pat, case: bool = True, flags: int = 0, na: Scalar = None):
+    def _str_fullmatch(
+        self, pat, case: bool = True, flags: int = 0, na: Scalar | None = None
+    ):
         if pa_version_under4p0:
             return super()._str_fullmatch(pat, case, flags, na)
 

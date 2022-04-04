@@ -50,7 +50,7 @@ def data():
     """Length-100 array for this type.
 
     * data[0] and data[1] should both be non missing
-    * data[0] and data[1] should not gbe equal
+    * data[0] and data[1] should not be equal
     """
     return Categorical(make_data())
 
@@ -86,7 +86,7 @@ class TestDtype(base.BaseDtypeTests):
 
 
 class TestInterface(base.BaseInterfaceTests):
-    @pytest.mark.skip(reason="Memory usage doesn't match")
+    @pytest.mark.xfail(reason="Memory usage doesn't match")
     def test_memory_usage(self, data):
         # Is this deliberate?
         super().test_memory_usage(data)
@@ -144,14 +144,12 @@ class TestSetitem(base.BaseSetitemTests):
     pass
 
 
-class TestMissing(base.BaseMissingTests):
-    @pytest.mark.skip(reason="Not implemented")
-    def test_fillna_limit_pad(self, data_missing):
-        super().test_fillna_limit_pad(data_missing)
+class TestIndex(base.BaseIndexTests):
+    pass
 
-    @pytest.mark.skip(reason="Not implemented")
-    def test_fillna_limit_backfill(self, data_missing):
-        super().test_fillna_limit_backfill(data_missing)
+
+class TestMissing(base.BaseMissingTests):
+    pass
 
 
 class TestReduce(base.BaseNoReduceTests):
@@ -159,7 +157,7 @@ class TestReduce(base.BaseNoReduceTests):
 
 
 class TestMethods(base.BaseMethodsTests):
-    @pytest.mark.skip(reason="Unobserved categories included")
+    @pytest.mark.xfail(reason="Unobserved categories included")
     def test_value_counts(self, all_data, dropna):
         return super().test_value_counts(all_data, dropna)
 
@@ -179,10 +177,6 @@ class TestMethods(base.BaseMethodsTests):
         result = s1.combine(val, lambda x1, x2: x1 + x2)
         expected = pd.Series([a + val for a in list(orig_data1)])
         self.assert_series_equal(result, expected)
-
-    @pytest.mark.skip(reason="Not Applicable")
-    def test_fillna_length_mismatch(self, data_missing):
-        super().test_fillna_length_mismatch(data_missing)
 
 
 class TestCasting(base.BaseCastingTests):
@@ -270,8 +264,8 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
-    def _compare_other(self, s, data, op_name, other):
-        op = self.get_op_from_name(op_name)
+    def _compare_other(self, s, data, op, other):
+        op_name = f"__{op.__name__}__"
         if op_name == "__eq__":
             result = op(s, other)
             expected = s.combine(other, lambda x, y: x == y)
@@ -303,3 +297,14 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
 
 class TestParsing(base.BaseParsingTests):
     pass
+
+
+class Test2DCompat(base.NDArrayBacked2DTests):
+    def test_repr_2d(self, data):
+        # Categorical __repr__ doesn't include "Categorical", so we need
+        #  to special-case
+        res = repr(data.reshape(1, -1))
+        assert res.count("\nCategories") == 1
+
+        res = repr(data.reshape(-1, 1))
+        assert res.count("\nCategories") == 1

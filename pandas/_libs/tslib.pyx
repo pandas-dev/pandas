@@ -1,15 +1,17 @@
+import warnings
+
 import cython
 
 from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
-    PyDateTime_IMPORT,
     datetime,
+    import_datetime,
     tzinfo,
 )
 
 # import datetime C API
-PyDateTime_IMPORT
+import_datetime()
 
 
 cimport numpy as cnp
@@ -61,7 +63,6 @@ from pandas._libs.tslibs.timestamps cimport _Timestamp
 from pandas._libs.tslibs.timestamps import Timestamp
 
 # Note: this is the only non-tslibs intra-pandas dependency here
-
 from pandas._libs.missing cimport checknull_with_nat_and_na
 from pandas._libs.tslibs.tzconversion cimport tz_localize_to_utc_single
 
@@ -217,7 +218,7 @@ def array_with_unit_to_datetime(
     """
     cdef:
         Py_ssize_t i, j, n=len(values)
-        int64_t m
+        int64_t mult
         int prec = 0
         ndarray[float64_t] fvalues
         bint is_ignore = errors=='ignore'
@@ -241,7 +242,7 @@ def array_with_unit_to_datetime(
             )
         return result, tz
 
-    m, p = precision_from_unit(unit)
+    mult, _ = precision_from_unit(unit)
 
     if is_raise:
         # try a quick conversion to i8/f8
@@ -253,7 +254,7 @@ def array_with_unit_to_datetime(
             # fill missing values by comparing to NPY_NAT
             mask = iresult == NPY_NAT
             iresult[mask] = 0
-            fvalues = iresult.astype("f8") * m
+            fvalues = iresult.astype("f8") * mult
             need_to_iterate = False
 
         if not need_to_iterate:
@@ -264,10 +265,10 @@ def array_with_unit_to_datetime(
                 raise OutOfBoundsDatetime(f"cannot convert input with unit '{unit}'")
 
             if values.dtype.kind in ["i", "u"]:
-                result = (iresult * m).astype("M8[ns]")
+                result = (iresult * mult).astype("M8[ns]")
 
             elif values.dtype.kind == "f":
-                fresult = (values * m).astype("f8")
+                fresult = (values * mult).astype("f8")
                 fresult[mask] = 0
                 if prec:
                     fresult = round(fresult, prec)
@@ -504,6 +505,9 @@ cpdef array_to_datetime(
                 elif isinstance(val, str):
                     # string
                     seen_string = True
+                    if type(val) is not str:
+                        # GH#32264 np.str_ object
+                        val = str(val)
 
                     if len(val) == 0 or val in nat_strings:
                         iresult[i] = NPY_NAT
@@ -516,7 +520,7 @@ cpdef array_to_datetime(
                     if string_to_dts_failed:
                         # An error at this point is a _parsing_ error
                         # specifically _not_ OutOfBoundsDatetime
-                        if _parse_today_now(val, &iresult[i]):
+                        if _parse_today_now(val, &iresult[i], utc):
                             continue
                         elif require_iso8601:
                             # if requiring iso8601 strings, skip trying
@@ -733,6 +737,10 @@ cdef _array_to_datetime_object(
             # GH 25978. No need to parse NaT-like or datetime-like vals
             oresult[i] = val
         elif isinstance(val, str):
+            if type(val) is not str:
+                # GH#32264 np.str_ objects
+                val = str(val)
+
             if len(val) == 0 or val in nat_strings:
                 oresult[i] = 'NaT'
                 continue
@@ -755,14 +763,23 @@ cdef _array_to_datetime_object(
     return oresult, None
 
 
-cdef inline bint _parse_today_now(str val, int64_t* iresult):
+cdef inline bint _parse_today_now(str val, int64_t* iresult, bint utc):
     # We delay this check for as long as possible
     # because it catches relatively rare cases
-    if val == 'now':
-        # Note: this is *not* the same as Timestamp('now')
+    if val == "now":
         iresult[0] = Timestamp.utcnow().value
+        if not utc:
+            # GH#18705 make sure to_datetime("now") matches Timestamp("now")
+            warnings.warn(
+                "The parsing of 'now' in pd.to_datetime without `utc=True` is "
+                "deprecated. In a future version, this will match Timestamp('now') "
+                "and Timestamp.now()",
+                FutureWarning,
+                stacklevel=1,
+            )
+
         return True
-    elif val == 'today':
+    elif val == "today":
         iresult[0] = Timestamp.today().value
         return True
     return False

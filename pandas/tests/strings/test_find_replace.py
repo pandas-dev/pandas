@@ -878,10 +878,7 @@ def test_translate(index_or_series, any_string_dtype):
     expected = index_or_series(
         ["cdedefg", "cdee", "edddfg", "edefggg"], dtype=any_string_dtype
     )
-    if index_or_series is Series:
-        tm.assert_series_equal(result, expected)
-    else:
-        tm.assert_index_equal(result, expected)
+    tm.assert_equal(result, expected)
 
 
 def test_translate_mixed_object():
@@ -922,7 +919,7 @@ def test_flags_kwarg(any_string_dtype):
     result = data.str.count(pat, flags=re.IGNORECASE)
     assert result[0] == 1
 
-    msg = "This pattern has match groups"
+    msg = "has match groups"
     with tm.assert_produces_warning(UserWarning, match=msg):
         result = data.str.contains(pat, flags=re.IGNORECASE)
     assert result[0]

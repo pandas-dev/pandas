@@ -23,7 +23,7 @@ a_ = np.array
 
 
 class TestJoin:
-    def setup_method(self, method):
+    def setup_method(self):
         # aggregate multiple columns
         self.df = DataFrame(
             {
@@ -346,7 +346,7 @@ class TestJoin:
         tm.assert_frame_equal(joined, expected)
         assert joined.index.names == index1.names
 
-    def test_join_inner_multiindex(self):
+    def test_join_inner_multiindex(self, lexsorted_two_level_string_multiindex):
         key1 = ["bar", "bar", "bar", "foo", "foo", "baz", "baz", "qux", "qux", "snap"]
         key2 = [
             "two",
@@ -364,11 +364,7 @@ class TestJoin:
         data = np.random.randn(len(key1))
         data = DataFrame({"key1": key1, "key2": key2, "data": data})
 
-        index = MultiIndex(
-            levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
-            codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-            names=["first", "second"],
-        )
+        index = lexsorted_two_level_string_multiindex
         to_join = DataFrame(
             np.random.randn(10, 3), index=index, columns=["j_one", "j_two", "j_three"]
         )
@@ -405,7 +401,7 @@ class TestJoin:
         expected = expected.drop(["first", "second"], axis=1)
         expected.index = joined.index
 
-        assert joined.index.is_monotonic
+        assert joined.index.is_monotonic_increasing
         tm.assert_frame_equal(joined, expected)
 
         # _assert_same_contents(expected, expected2.loc[:, expected.columns])
@@ -630,7 +626,7 @@ class TestJoin:
         dta = x.merge(y, left_index=True, right_index=True).merge(
             z, left_index=True, right_index=True, how="outer"
         )
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             dta = dta.merge(w, left_index=True, right_index=True)
         expected = concat([x, y, z, w], axis=1)
         expected.columns = ["x_x", "y_x", "x_y", "y_y", "x_x", "y_x", "x_y", "y_y"]
@@ -884,4 +880,45 @@ def test_join_multiindex_not_alphabetical_categorical(categories, values):
             "value_right": [3, 4],
         }
     ).set_index(["first", "second"])
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "left_empty, how, exp",
+    [
+        (False, "left", "left"),
+        (False, "right", "empty"),
+        (False, "inner", "empty"),
+        (False, "outer", "left"),
+        (False, "cross", "empty"),
+        (True, "left", "empty"),
+        (True, "right", "right"),
+        (True, "inner", "empty"),
+        (True, "outer", "right"),
+        (True, "cross", "empty"),
+    ],
+)
+def test_join_empty(left_empty, how, exp):
+
+    left = DataFrame({"A": [2, 1], "B": [3, 4]}, dtype="int64").set_index("A")
+    right = DataFrame({"A": [1], "C": [5]}, dtype="int64").set_index("A")
+
+    if left_empty:
+        left = left.head(0)
+    else:
+        right = right.head(0)
+
+    result = left.join(right, how=how)
+
+    if exp == "left":
+        expected = DataFrame({"A": [2, 1], "B": [3, 4], "C": [np.nan, np.nan]})
+        expected = expected.set_index("A")
+    elif exp == "right":
+        expected = DataFrame({"B": [np.nan], "A": [1], "C": [5]})
+        expected = expected.set_index("A")
+    elif exp == "empty":
+        expected = DataFrame(index=Index([]), columns=["B", "C"], dtype="int64")
+        if how != "cross":
+            expected = expected.rename_axis("A")
+
     tm.assert_frame_equal(result, expected)

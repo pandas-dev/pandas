@@ -9,16 +9,25 @@ from typing import (
     final,
 )
 
+import numpy as np
+
 from pandas._typing import (
+    ArrayLike,
     DtypeObj,
     Shape,
 )
 from pandas.errors import AbstractMethodError
 
-from pandas.core.dtypes.cast import find_common_type
+from pandas.core.dtypes.cast import (
+    find_common_type,
+    np_can_hold_element,
+)
 
 from pandas.core.base import PandasObject
-from pandas.core.indexes.api import Index
+from pandas.core.indexes.api import (
+    Index,
+    default_index,
+)
 
 T = TypeVar("T", bound="DataManager")
 
@@ -70,7 +79,6 @@ class DataManager(PandasObject):
         fill_value=None,
         allow_dups: bool = False,
         copy: bool = True,
-        consolidate: bool = True,
         only_slice: bool = False,
     ) -> T:
         raise AbstractMethodError(self)
@@ -81,7 +89,6 @@ class DataManager(PandasObject):
         new_index: Index,
         axis: int,
         fill_value=None,
-        consolidate: bool = True,
         only_slice: bool = False,
     ) -> T:
         """
@@ -95,7 +102,6 @@ class DataManager(PandasObject):
             axis=axis,
             fill_value=fill_value,
             copy=False,
-            consolidate=consolidate,
             only_slice=only_slice,
         )
 
@@ -153,10 +159,11 @@ class SingleDataManager(DataManager):
 
     @final
     @property
-    def array(self):
+    def array(self) -> ArrayLike:
         """
         Quick access to the backing array of the Block or SingleArrayManager.
         """
+        # error: "SingleDataManager" has no attribute "arrays"; maybe "array"
         return self.arrays[0]  # type: ignore[attr-defined]
 
     def setitem_inplace(self, indexer, value) -> None:
@@ -169,7 +176,32 @@ class SingleDataManager(DataManager):
         in place, not returning a new Manager (and Block), and thus never changing
         the dtype.
         """
-        self.array[indexer] = value
+        arr = self.array
+
+        # EAs will do this validation in their own __setitem__ methods.
+        if isinstance(arr, np.ndarray):
+            # Note: checking for ndarray instead of np.dtype means we exclude
+            #  dt64/td64, which do their own validation.
+            value = np_can_hold_element(arr.dtype, value)
+
+        arr[indexer] = value
+
+    def grouped_reduce(self, func, ignore_failures: bool = False):
+        """
+        ignore_failures : bool, default False
+            Not used; for compatibility with ArrayManager/BlockManager.
+        """
+
+        arr = self.array
+        res = func(arr)
+        index = default_index(len(res))
+
+        mgr = type(self).from_array(res, index)
+        return mgr
+
+    @classmethod
+    def from_array(cls, arr: ArrayLike, index: Index):
+        raise AbstractMethodError(cls)
 
 
 def interleaved_dtype(dtypes: list[DtypeObj]) -> DtypeObj | None:

@@ -14,6 +14,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.offsets import (
     FY5253,
+    BaseOffset,
     BusinessHour,
     CustomBusinessHour,
     DateOffset,
@@ -28,7 +29,7 @@ from pandas.compat import IS64
 def assert_offset_equal(offset, base, expected):
     actual = offset + base
     actual_swapped = base + offset
-    actual_apply = offset.apply(base)
+    actual_apply = offset._apply(base)
     try:
         assert actual == expected
         assert actual_swapped == expected
@@ -59,7 +60,7 @@ class WeekDay:
 
 
 class Base:
-    _offset: type[DateOffset] | None = None
+    _offset: type[BaseOffset] | None = None
     d = Timestamp(datetime(2008, 1, 2))
 
     timezones = [
@@ -155,7 +156,7 @@ class Base:
             # i.e. skip for TestCommon and YQM subclasses that do not have
             # offset2 attr
             return
-        assert self.d - self.offset2 == (-self.offset2).apply(self.d)
+        assert self.d - self.offset2 == (-self.offset2)._apply(self.d)
 
     def test_radd(self):
         if self._offset is None or not hasattr(self, "offset2"):

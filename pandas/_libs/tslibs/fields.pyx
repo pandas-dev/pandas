@@ -152,7 +152,7 @@ def get_date_name_field(const int64_t[:] dtindex, str field, object locale=None)
         if locale is None:
             names = np.array(DAYS_FULL, dtype=np.object_)
         else:
-            names = np.array(get_locale_names('f_weekday', locale),
+            names = np.array(_get_locale_names('f_weekday', locale),
                              dtype=np.object_)
         for i in range(count):
             if dtindex[i] == NPY_NAT:
@@ -167,7 +167,7 @@ def get_date_name_field(const int64_t[:] dtindex, str field, object locale=None)
         if locale is None:
             names = np.array(MONTHS_FULL, dtype=np.object_)
         else:
-            names = np.array(get_locale_names('f_month', locale),
+            names = np.array(_get_locale_names('f_month', locale),
                              dtype=np.object_)
         for i in range(count):
             if dtindex[i] == NPY_NAT:
@@ -198,7 +198,7 @@ cdef inline bint _is_on_month(int month, int compare_month, int modby) nogil:
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def get_start_end_field(const int64_t[:] dtindex, str field,
-                        object freqstr=None, int month_kw=12):
+                        str freqstr=None, int month_kw=12):
     """
     Given an int64-based datetime index return array of indicators
     of whether timestamps are at the start/end of the month/quarter/year
@@ -487,28 +487,6 @@ def get_timedelta_field(const int64_t[:] tdindex, str field):
                 out[i] = tds.days
         return out
 
-    elif field == 'h':
-        with nogil:
-            for i in range(count):
-                if tdindex[i] == NPY_NAT:
-                    out[i] = -1
-                    continue
-
-                td64_to_tdstruct(tdindex[i], &tds)
-                out[i] = tds.hrs
-        return out
-
-    elif field == 's':
-        with nogil:
-            for i in range(count):
-                if tdindex[i] == NPY_NAT:
-                    out[i] = -1
-                    continue
-
-                td64_to_tdstruct(tdindex[i], &tds)
-                out[i] = tds.sec
-        return out
-
     elif field == 'seconds':
         with nogil:
             for i in range(count):
@@ -520,17 +498,6 @@ def get_timedelta_field(const int64_t[:] tdindex, str field):
                 out[i] = tds.seconds
         return out
 
-    elif field == 'ms':
-        with nogil:
-            for i in range(count):
-                if tdindex[i] == NPY_NAT:
-                    out[i] = -1
-                    continue
-
-                td64_to_tdstruct(tdindex[i], &tds)
-                out[i] = tds.ms
-        return out
-
     elif field == 'microseconds':
         with nogil:
             for i in range(count):
@@ -540,28 +507,6 @@ def get_timedelta_field(const int64_t[:] tdindex, str field):
 
                 td64_to_tdstruct(tdindex[i], &tds)
                 out[i] = tds.microseconds
-        return out
-
-    elif field == 'us':
-        with nogil:
-            for i in range(count):
-                if tdindex[i] == NPY_NAT:
-                    out[i] = -1
-                    continue
-
-                td64_to_tdstruct(tdindex[i], &tds)
-                out[i] = tds.us
-        return out
-
-    elif field == 'ns':
-        with nogil:
-            for i in range(count):
-                if tdindex[i] == NPY_NAT:
-                    out[i] = -1
-                    continue
-
-                td64_to_tdstruct(tdindex[i], &tds)
-                out[i] = tds.ns
         return out
 
     elif field == 'nanoseconds':
@@ -629,7 +574,7 @@ def build_isocalendar_sarray(const int64_t[:] dtindex):
     return out
 
 
-def get_locale_names(name_type: str, locale: object = None):
+def _get_locale_names(name_type: str, locale: object = None):
     """
     Returns an array of localized day or month names.
 
@@ -705,7 +650,7 @@ class RoundTo:
         return 4
 
 
-cdef inline ndarray[int64_t] _floor_int64(int64_t[:] values, int64_t unit):
+cdef inline ndarray[int64_t] _floor_int64(const int64_t[:] values, int64_t unit):
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[int64_t] result = np.empty(n, dtype="i8")
@@ -723,7 +668,7 @@ cdef inline ndarray[int64_t] _floor_int64(int64_t[:] values, int64_t unit):
     return result
 
 
-cdef inline ndarray[int64_t] _ceil_int64(int64_t[:] values, int64_t unit):
+cdef inline ndarray[int64_t] _ceil_int64(const int64_t[:] values, int64_t unit):
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[int64_t] result = np.empty(n, dtype="i8")

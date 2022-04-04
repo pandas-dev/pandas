@@ -1,7 +1,5 @@
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas.core.dtypes.dtypes import PeriodDtype
 
 import pandas as pd
@@ -11,12 +9,11 @@ from pandas.core.arrays import (
     period_array,
 )
 
-pyarrow_skip = td.skip_if_no("pyarrow", min_version="0.17.0")
+pa = pytest.importorskip("pyarrow", minversion="1.0.1")
 
 
-@pyarrow_skip
 def test_arrow_extension_type():
-    from pandas.core.arrays._arrow_utils import ArrowPeriodType
+    from pandas.core.arrays.arrow._arrow_utils import ArrowPeriodType
 
     p1 = ArrowPeriodType("D")
     p2 = ArrowPeriodType("D")
@@ -29,7 +26,6 @@ def test_arrow_extension_type():
     assert not hash(p1) == hash(p3)
 
 
-@pyarrow_skip
 @pytest.mark.parametrize(
     "data, freq",
     [
@@ -38,9 +34,7 @@ def test_arrow_extension_type():
     ],
 )
 def test_arrow_array(data, freq):
-    import pyarrow as pa
-
-    from pandas.core.arrays._arrow_utils import ArrowPeriodType
+    from pandas.core.arrays.arrow._arrow_utils import ArrowPeriodType
 
     periods = period_array(data, freq=freq)
     result = pa.array(periods)
@@ -62,11 +56,8 @@ def test_arrow_array(data, freq):
         pa.array(periods, type=ArrowPeriodType("T"))
 
 
-@pyarrow_skip
 def test_arrow_array_missing():
-    import pyarrow as pa
-
-    from pandas.core.arrays._arrow_utils import ArrowPeriodType
+    from pandas.core.arrays.arrow._arrow_utils import ArrowPeriodType
 
     arr = PeriodArray([1, 2, 3], freq="D")
     arr[1] = pd.NaT
@@ -78,11 +69,8 @@ def test_arrow_array_missing():
     assert result.storage.equals(expected)
 
 
-@pyarrow_skip
 def test_arrow_table_roundtrip():
-    import pyarrow as pa
-
-    from pandas.core.arrays._arrow_utils import ArrowPeriodType
+    from pandas.core.arrays.arrow._arrow_utils import ArrowPeriodType
 
     arr = PeriodArray([1, 2, 3], freq="D")
     arr[1] = pd.NaT
@@ -100,12 +88,10 @@ def test_arrow_table_roundtrip():
     tm.assert_frame_equal(result, expected)
 
 
-@pyarrow_skip
 def test_arrow_load_from_zero_chunks():
     # GH-41040
-    import pyarrow as pa
 
-    from pandas.core.arrays._arrow_utils import ArrowPeriodType
+    from pandas.core.arrays.arrow._arrow_utils import ArrowPeriodType
 
     arr = PeriodArray([], freq="D")
     df = pd.DataFrame({"a": arr})
@@ -120,10 +106,7 @@ def test_arrow_load_from_zero_chunks():
     tm.assert_frame_equal(result, df)
 
 
-@pyarrow_skip
 def test_arrow_table_roundtrip_without_metadata():
-    import pyarrow as pa
-
     arr = PeriodArray([1, 2, 3], freq="H")
     arr[1] = pd.NaT
     df = pd.DataFrame({"a": arr})

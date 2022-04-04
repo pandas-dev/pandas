@@ -5,7 +5,10 @@ test cython .agg behavior
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import (
+    is_float_dtype,
+    is_integer_dtype,
+)
 
 import pandas as pd
 from pandas import (
@@ -97,7 +100,7 @@ def test_cython_agg_nothing_to_agg():
 
     frame = DataFrame({"a": np.random.randint(0, 5, 50), "b": ["foo", "bar"] * 25})
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning):
         result = frame[["b"]].groupby(frame["a"]).mean()
     expected = DataFrame([], index=frame["a"].sort_values().drop_duplicates())
     tm.assert_frame_equal(result, expected)
@@ -211,7 +214,7 @@ def test_cython_agg_empty_buckets_nanops(observed):
     result = df.groupby(pd.cut(df["a"], grps), observed=observed)._cython_agg_general(
         "add", alt=None, numeric_only=True
     )
-    intervals = pd.interval_range(0, 20, freq=5)
+    intervals = pd.interval_range(0, 20, freq=5, inclusive="right")
     expected = DataFrame(
         {"a": [0, 0, 36, 0]},
         index=pd.CategoricalIndex(intervals, name="a", ordered=True),
@@ -368,6 +371,9 @@ def test_cython_agg_EA_known_dtypes(data, op_name, action, with_na):
     elif action == "large_int":
         # for any int/bool use Int64, for float preserve dtype
         if is_float_dtype(data.dtype):
+            expected_dtype = data.dtype
+        elif is_integer_dtype(data.dtype):
+            # match the numpy dtype we'd get with the non-nullable analogue
             expected_dtype = data.dtype
         else:
             expected_dtype = pd.Int64Dtype()

@@ -33,10 +33,7 @@ class TestFromRecords:
         arrdata = [np.array([datetime(2005, 3, 1, 0, 0), None])]
         dtypes = [("EXPIRY", "<M8[ns]")]
 
-        try:
-            recarray = np.core.records.fromarrays(arrdata, dtype=dtypes)
-        except (ValueError):
-            pytest.skip("known failure of numpy rec array creation")
+        recarray = np.core.records.fromarrays(arrdata, dtype=dtypes)
 
         result = DataFrame.from_records(recarray)
         tm.assert_frame_equal(result, expected)
@@ -197,7 +194,7 @@ class TestFromRecords:
 
     def test_from_records_non_tuple(self):
         class Record:
-            def __init__(self, *args):
+            def __init__(self, *args) -> None:
                 self.args = args
 
             def __getitem__(self, i):

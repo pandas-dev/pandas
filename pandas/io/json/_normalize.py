@@ -16,7 +16,10 @@ from typing import (
 import numpy as np
 
 from pandas._libs.writers import convert_json_to_lines
-from pandas._typing import Scalar
+from pandas._typing import (
+    IgnoreRaise,
+    Scalar,
+)
 from pandas.util._decorators import deprecate
 
 import pandas as pd
@@ -148,8 +151,9 @@ def _normalise_json(
             _normalise_json(
                 data=value,
                 # to avoid adding the separator to the start of every key
+                # GH#43831 avoid adding key if key_string blank
                 key_string=new_key
-                if new_key[len(separator) - 1] != separator
+                if new_key[: len(separator)] != separator
                 else new_key[len(separator) :],
                 normalized_dict=normalized_dict,
                 separator=separator,
@@ -243,7 +247,7 @@ def _json_normalize(
     meta: str | list[str | list[str]] | None = None,
     meta_prefix: str | None = None,
     record_prefix: str | None = None,
-    errors: str = "raise",
+    errors: IgnoreRaise = "raise",
     sep: str = ".",
     max_level: int | None = None,
 ) -> DataFrame:
@@ -388,6 +392,8 @@ def _json_normalize(
         try:
             if isinstance(spec, list):
                 for field in spec:
+                    if result is None:
+                        raise KeyError(field)
                     result = result[field]
             else:
                 result = result[spec]

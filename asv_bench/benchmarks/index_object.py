@@ -25,7 +25,7 @@ class SetOperations:
     param_names = ["dtype", "method"]
 
     def setup(self, dtype, method):
-        N = 10 ** 5
+        N = 10**5
         dates_left = date_range("1/1/2000", periods=N, freq="T")
         fmt = "%Y-%m-%d %H:%M:%S"
         date_str_left = Index(dates_left.strftime(fmt))
@@ -46,7 +46,7 @@ class SetOperations:
 
 class SetDisjoint:
     def setup(self):
-        N = 10 ** 5
+        N = 10**5
         B = N + 20000
         self.datetime_left = DatetimeIndex(range(N))
         self.datetime_right = DatetimeIndex(range(N, B))
@@ -57,8 +57,8 @@ class SetDisjoint:
 
 class Range:
     def setup(self):
-        self.idx_inc = RangeIndex(start=0, stop=10 ** 6, step=3)
-        self.idx_dec = RangeIndex(start=10 ** 6, stop=-1, step=-3)
+        self.idx_inc = RangeIndex(start=0, stop=10**6, step=3)
+        self.idx_dec = RangeIndex(start=10**6, stop=-1, step=-3)
 
     def time_max(self):
         self.idx_inc.max()
@@ -85,6 +85,12 @@ class Range:
     def time_iter_dec(self):
         for _ in self.idx_dec:
             pass
+
+    def time_sort_values_asc(self):
+        self.idx_inc.sort_values()
+
+    def time_sort_values_des(self):
+        self.idx_inc.sort_values(ascending=False)
 
 
 class IndexEquals:
@@ -133,7 +139,7 @@ class Indexing:
     param_names = ["dtype"]
 
     def setup(self, dtype):
-        N = 10 ** 6
+        N = 10**6
         self.idx = getattr(tm, f"make{dtype}Index")(N)
         self.array_mask = (np.arange(N) % 3) == 0
         self.series_mask = Series(self.array_mask)
@@ -186,7 +192,7 @@ class Float64IndexMethod:
 
 class IntervalIndexMethod:
     # GH 24813
-    params = [10 ** 3, 10 ** 5]
+    params = [10**3, 10**5]
 
     def setup(self, N):
         left = np.append(np.arange(N), np.array(0))

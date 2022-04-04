@@ -11,13 +11,21 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
+from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.generic import ABCNDFrame
+
+from pandas.core import roperator
 from pandas.core.construction import extract_array
-from pandas.core.ops import (
-    maybe_dispatch_ufunc_to_dunder_op,
-    roperator,
-)
 from pandas.core.ops.common import unpack_zerodim_and_defer
+
+REDUCTION_ALIASES = {
+    "maximum": "max",
+    "minimum": "min",
+    "add": "sum",
+    "multiply": "prod",
+}
 
 
 class OpsMixin:
@@ -210,7 +218,7 @@ def _maybe_fallback(ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any):
                 "or align manually (eg 'df1, df2 = df1.align(df2)') before passing to "
                 "the ufunc to obtain the future behaviour and silence this warning.",
                 FutureWarning,
-                stacklevel=4,
+                stacklevel=find_stack_level(),
             )
 
             # keep the first dataframe of the inputs, other DataFrame/Series is
@@ -244,6 +252,8 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
 
     cls = type(self)
 
+    kwargs = _standardize_out_kwarg(**kwargs)
+
     # for backwards compatibility check and potentially fallback for non-aligned frames
     result = _maybe_fallback(ufunc, method, *inputs, **kwargs)
     if result is not NotImplemented:
@@ -255,12 +265,7 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         return result
 
     # Determine if we should defer.
-
-    # error: "Type[ndarray]" has no attribute "__array_ufunc__"
-    no_defer = (
-        np.ndarray.__array_ufunc__,  # type: ignore[attr-defined]
-        cls.__array_ufunc__,
-    )
+    no_defer = (np.ndarray.__array_ufunc__, cls.__array_ufunc__)
 
     for item in inputs:
         higher_priority = (
@@ -316,8 +321,16 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         reconstruct_kwargs = {}
 
     def reconstruct(result):
+        if ufunc.nout > 1:
+            # np.modf, np.frexp, np.divmod
+            return tuple(_reconstruct(x) for x in result)
+
+        return _reconstruct(result)
+
+    def _reconstruct(result):
         if lib.is_scalar(result):
             return result
+
         if result.ndim != self.ndim:
             if method == "outer":
                 if self.ndim == 2:
@@ -329,12 +342,14 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
                         "Consider explicitly converting the DataFrame "
                         "to an array with '.to_numpy()' first."
                     )
-                    warnings.warn(msg.format(ufunc), FutureWarning, stacklevel=4)
+                    warnings.warn(
+                        msg.format(ufunc), FutureWarning, stacklevel=find_stack_level()
+                    )
                     return result
                 raise NotImplementedError
             return result
         if isinstance(result, BlockManager):
-            # we went through BlockManager.apply
+            # we went through BlockManager.apply e.g. np.sqrt
             result = self._constructor(result, **reconstruct_kwargs, copy=False)
         else:
             # we converted an array, lost our axes
@@ -349,6 +364,20 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
             result = result.__finalize__(self)
         return result
 
+    if "out" in kwargs:
+        # e.g. test_multiindex_get_loc
+        result = dispatch_ufunc_with_out(self, ufunc, method, *inputs, **kwargs)
+        return reconstruct(result)
+
+    if method == "reduce":
+        # e.g. test.series.test_ufunc.test_reduce
+        result = dispatch_reduction_ufunc(self, ufunc, method, *inputs, **kwargs)
+        if result is not NotImplemented:
+            return result
+
+    # We still get here with kwargs `axis` for e.g. np.maximum.accumulate
+    #  and `dtype` and `keepdims` for np.ptp
+
     if self.ndim > 1 and (len(inputs) > 1 or ufunc.nout > 1):
         # Just give up on preserving types in the complex case.
         # In theory we could preserve them for them.
@@ -356,7 +385,11 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         #   returned a Tuple[BlockManager].
         # * len(inputs) > 1 is doable when we know that we have
         #   aligned blocks / dtypes.
+
+        # e.g. my_ufunc, modf, logaddexp, heaviside, subtract, add
         inputs = tuple(np.asarray(x) for x in inputs)
+        # Note: we can't use default_array_ufunc here bc reindexing means
+        #  that `self` may not be among `inputs`
         result = getattr(ufunc, method)(*inputs, **kwargs)
     elif self.ndim == 1:
         # ufunc(series, ...)
@@ -373,10 +406,123 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         else:
             # otherwise specific ufunc methods (eg np.<ufunc>.accumulate(..))
             # Those can have an axis keyword and thus can't be called block-by-block
-            result = getattr(ufunc, method)(np.asarray(inputs[0]), **kwargs)
+            result = default_array_ufunc(inputs[0], ufunc, method, *inputs, **kwargs)
+            # e.g. np.negative (only one reached), with "where" and "out" in kwargs
 
-    if ufunc.nout > 1:
-        result = tuple(reconstruct(x) for x in result)
-    else:
-        result = reconstruct(result)
+    result = reconstruct(result)
     return result
+
+
+def _standardize_out_kwarg(**kwargs) -> dict:
+    """
+    If kwargs contain "out1" and "out2", replace that with a tuple "out"
+
+    np.divmod, np.modf, np.frexp can have either `out=(out1, out2)` or
+    `out1=out1, out2=out2)`
+    """
+    if "out" not in kwargs and "out1" in kwargs and "out2" in kwargs:
+        out1 = kwargs.pop("out1")
+        out2 = kwargs.pop("out2")
+        out = (out1, out2)
+        kwargs["out"] = out
+    return kwargs
+
+
+def dispatch_ufunc_with_out(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+    """
+    If we have an `out` keyword, then call the ufunc without `out` and then
+    set the result into the given `out`.
+    """
+
+    # Note: we assume _standardize_out_kwarg has already been called.
+    out = kwargs.pop("out")
+    where = kwargs.pop("where", None)
+
+    result = getattr(ufunc, method)(*inputs, **kwargs)
+
+    if result is NotImplemented:
+        return NotImplemented
+
+    if isinstance(result, tuple):
+        # i.e. np.divmod, np.modf, np.frexp
+        if not isinstance(out, tuple) or len(out) != len(result):
+            raise NotImplementedError
+
+        for arr, res in zip(out, result):
+            _assign_where(arr, res, where)
+
+        return out
+
+    if isinstance(out, tuple):
+        if len(out) == 1:
+            out = out[0]
+        else:
+            raise NotImplementedError
+
+    _assign_where(out, result, where)
+    return out
+
+
+def _assign_where(out, result, where) -> None:
+    """
+    Set a ufunc result into 'out', masking with a 'where' argument if necessary.
+    """
+    if where is None:
+        # no 'where' arg passed to ufunc
+        out[:] = result
+    else:
+        np.putmask(out, where, result)
+
+
+def default_array_ufunc(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+    """
+    Fallback to the behavior we would get if we did not define __array_ufunc__.
+
+    Notes
+    -----
+    We are assuming that `self` is among `inputs`.
+    """
+    if not any(x is self for x in inputs):
+        raise NotImplementedError
+
+    new_inputs = [x if x is not self else np.asarray(x) for x in inputs]
+
+    return getattr(ufunc, method)(*new_inputs, **kwargs)
+
+
+def dispatch_reduction_ufunc(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+    """
+    Dispatch ufunc reductions to self's reduction methods.
+    """
+    assert method == "reduce"
+
+    if len(inputs) != 1 or inputs[0] is not self:
+        return NotImplemented
+
+    if ufunc.__name__ not in REDUCTION_ALIASES:
+        return NotImplemented
+
+    method_name = REDUCTION_ALIASES[ufunc.__name__]
+
+    # NB: we are assuming that min/max represent minimum/maximum methods,
+    #  which would not be accurate for e.g. Timestamp.min
+    if not hasattr(self, method_name):
+        return NotImplemented
+
+    if self.ndim > 1:
+        if isinstance(self, ABCNDFrame):
+            # TODO: test cases where this doesn't hold, i.e. 2D DTA/TDA
+            kwargs["numeric_only"] = False
+
+        if "axis" not in kwargs:
+            # For DataFrame reductions we don't want the default axis=0
+            # Note: np.min is not a ufunc, but uses array_function_dispatch,
+            #  so calls DataFrame.min (without ever getting here) with the np.min
+            #  default of axis=None, which DataFrame.min catches and changes to axis=0.
+            # np.minimum.reduce(df) gets here bc axis is not in kwargs,
+            #  so we set axis=0 to match the behaviorof np.minimum.reduce(df.values)
+            kwargs["axis"] = 0
+
+    # By default, numpy's reductions do not skip NaNs, so we have to
+    #  pass skipna=False
+    return getattr(self, method_name)(skipna=False, **kwargs)

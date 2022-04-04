@@ -100,7 +100,7 @@ class TestGroupBy:
             expected = DataFrame(
                 {"Quantity": 0},
                 index=date_range(
-                    "20130901", "20131205", freq="5D", name="Date", closed="left"
+                    "20130901", "20131205", freq="5D", name="Date", inclusive="left"
                 ),
             )
             expected.iloc[[0, 6, 18], 0] = np.array([24, 6, 9], dtype="int64")
@@ -593,7 +593,7 @@ class TestGroupBy:
 4,2000-01-01 16:50:00,America/New_York"""
 
         df = pd.read_csv(StringIO(data), header=None, names=["value", "date", "tz"])
-        result = df.groupby("tz").date.apply(
+        result = df.groupby("tz", group_keys=False).date.apply(
             lambda x: pd.to_datetime(x).dt.tz_localize(x.name)
         )
 

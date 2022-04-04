@@ -50,7 +50,6 @@ Implementation
 
 from __future__ import annotations
 
-from collections import namedtuple
 from contextlib import (
     ContextDecorator,
     contextmanager,
@@ -60,14 +59,28 @@ from typing import (
     Any,
     Callable,
     Iterable,
+    NamedTuple,
     cast,
 )
 import warnings
 
 from pandas._typing import F
 
-DeprecatedOption = namedtuple("DeprecatedOption", "key msg rkey removal_ver")
-RegisteredOption = namedtuple("RegisteredOption", "key defval doc validator cb")
+
+class DeprecatedOption(NamedTuple):
+    key: str
+    msg: str | None
+    rkey: str | None
+    removal_ver: str | None
+
+
+class RegisteredOption(NamedTuple):
+    key: str
+    defval: object
+    doc: str
+    validator: Callable[[object], Any] | None
+    cb: Callable[[str], Any] | None
+
 
 # holds deprecated option metadata
 _deprecated_options: dict[str, DeprecatedOption] = {}
@@ -85,7 +98,7 @@ _reserved_keys: list[str] = ["all"]
 class OptionError(AttributeError, KeyError):
     """
     Exception for pandas.options, backwards compatible with KeyError
-    checks
+    checks.
     """
 
 
@@ -191,7 +204,7 @@ def get_default_val(pat: str):
 class DictWrapper:
     """provide attribute-style access to a nested dict"""
 
-    def __init__(self, d: dict[str, Any], prefix: str = ""):
+    def __init__(self, d: dict[str, Any], prefix: str = "") -> None:
         object.__setattr__(self, "d", d)
         object.__setattr__(self, "prefix", prefix)
 
@@ -235,7 +248,7 @@ class DictWrapper:
 
 
 class CallableDynamicDoc:
-    def __init__(self, func, doc_tmpl):
+    def __init__(self, func, doc_tmpl) -> None:
         self.__doc_tmpl__ = doc_tmpl
         self.__func__ = func
 
@@ -276,6 +289,8 @@ OptionError : if no such option exists
 
 Notes
 -----
+Please reference the :ref:`User Guide <options>` for more information.
+
 The available options with its descriptions:
 
 {opts_desc}
@@ -310,6 +325,8 @@ OptionError if no such option exists
 
 Notes
 -----
+Please reference the :ref:`User Guide <options>` for more information.
+
 The available options with its descriptions:
 
 {opts_desc}
@@ -320,7 +337,7 @@ describe_option(pat, _print_desc=False)
 
 Prints the description for one or more registered options.
 
-Call with not arguments to get a listing for all registered options.
+Call with no arguments to get a listing for all registered options.
 
 Available options:
 
@@ -342,6 +359,8 @@ is False
 
 Notes
 -----
+Please reference the :ref:`User Guide <options>` for more information.
+
 The available options with its descriptions:
 
 {opts_desc}
@@ -372,6 +391,8 @@ None
 
 Notes
 -----
+Please reference the :ref:`User Guide <options>` for more information.
+
 The available options with its descriptions:
 
 {opts_desc}
@@ -398,10 +419,10 @@ class option_context(ContextDecorator):
     Examples
     --------
     >>> with option_context('display.max_rows', 10, 'display.max_columns', 5):
-    ...     ...
+    ...     pass
     """
 
-    def __init__(self, *args):
+    def __init__(self, *args) -> None:
         if len(args) % 2 != 0 or len(args) < 2:
             raise ValueError(
                 "Need to invoke as option_context(pat, val, [(pat, val), ...])."
@@ -425,7 +446,7 @@ def register_option(
     key: str,
     defval: object,
     doc: str = "",
-    validator: Callable[[Any], Any] | None = None,
+    validator: Callable[[object], Any] | None = None,
     cb: Callable[[str], Any] | None = None,
 ) -> None:
     """
@@ -497,7 +518,10 @@ def register_option(
 
 
 def deprecate_option(
-    key: str, msg: str | None = None, rkey: str | None = None, removal_ver=None
+    key: str,
+    msg: str | None = None,
+    rkey: str | None = None,
+    removal_ver: str | None = None,
 ) -> None:
     """
     Mark option `key` as deprecated, if code attempts to access this option,
@@ -523,7 +547,7 @@ def deprecate_option(
         re-routed to `rkey` including set/get/reset.
         rkey must be a fully-qualified option name (e.g "x.y.z.rkey").
         used by the default message if no `msg` is specified.
-    removal_ver : optional
+    removal_ver : str, optional
         Specifies the version in which this option will
         be removed. used by the default message if no `msg` is specified.
 
@@ -626,7 +650,6 @@ def _warn_if_deprecated(key: str) -> bool:
     d = _get_deprecated_option(key)
     if d:
         if d.msg:
-            print(d.msg)
             warnings.warn(d.msg, FutureWarning)
         else:
             msg = f"'{key}' is deprecated"
@@ -747,10 +770,12 @@ def config_prefix(prefix):
     set_option = wrap(set_option)
     get_option = wrap(get_option)
     register_option = wrap(register_option)
-    yield None
-    set_option = _set_option
-    get_option = _get_option
-    register_option = _register_option
+    try:
+        yield
+    finally:
+        set_option = _set_option
+        get_option = _get_option
+        register_option = _register_option
 
 
 # These factories and methods are handy for use as the validator
@@ -823,7 +848,7 @@ def is_one_of_factory(legal_values) -> Callable[[Any], None]:
     return inner
 
 
-def is_nonnegative_int(value: int | None) -> None:
+def is_nonnegative_int(value: object) -> None:
     """
     Verify that value is None or a positive int.
 

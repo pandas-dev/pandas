@@ -40,7 +40,7 @@ import pandas._testing as tm
 class FixedOffset(tzinfo):
     """Fixed offset in minutes east from UTC."""
 
-    def __init__(self, offset, name):
+    def __init__(self, offset, name) -> None:
         self.__offset = timedelta(minutes=offset)
         self.__name = name
 
@@ -326,6 +326,17 @@ class TestDatetimeIndexTimezones:
 
     # -------------------------------------------------------------
     # DatetimeIndex.tz_localize
+
+    def test_tz_localize_utc_copies(self, utc_fixture):
+        # GH#46460
+        times = ["2015-03-08 01:00", "2015-03-08 02:00", "2015-03-08 03:00"]
+        index = DatetimeIndex(times)
+
+        res = index.tz_localize(utc_fixture)
+        assert not tm.shares_memory(res, index)
+
+        res2 = index._data.tz_localize(utc_fixture)
+        assert not tm.shares_memory(index._data, res2)
 
     def test_dti_tz_localize_nonexistent_raise_coerce(self):
         # GH#13057
@@ -1140,7 +1151,9 @@ class TestDatetimeIndexTimezones:
         tm.assert_numpy_array_equal(converted.asi8, ex_vals)
         assert converted.tz is pytz.utc
 
-    def test_dti_union_aware(self):
+    # Note: not difference, as there is no symmetry requirement there
+    @pytest.mark.parametrize("setop", ["union", "intersection", "symmetric_difference"])
+    def test_dti_setop_aware(self, setop):
         # non-overlapping
         rng = date_range("2012-11-15 00:00:00", periods=6, freq="H", tz="US/Central")
 
@@ -1148,12 +1161,13 @@ class TestDatetimeIndexTimezones:
 
         with tm.assert_produces_warning(FutureWarning):
             # # GH#39328 will cast both to UTC
-            result = rng.union(rng2)
+            result = getattr(rng, setop)(rng2)
 
-        expected = rng.astype("O").union(rng2.astype("O"))
+        expected = getattr(rng.astype("O"), setop)(rng2.astype("O"))
         tm.assert_index_equal(result, expected)
-        assert result[0].tz.zone == "US/Central"
-        assert result[-1].tz.zone == "US/Eastern"
+        if len(result):
+            assert result[0].tz.zone == "US/Central"
+            assert result[-1].tz.zone == "US/Eastern"
 
     def test_dti_union_mixed(self):
         # GH 21671

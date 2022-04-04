@@ -45,10 +45,10 @@ from pandas import (
     notna,
     to_datetime,
 )
-from pandas.core import generic
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.generic import NDFrame
 from pandas.core.reshape.concat import concat
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import (
     IOHandles,
@@ -67,8 +67,6 @@ from pandas.io.parsers.readers import validate_integer
 
 loads = json.loads
 dumps = json.dumps
-
-TABLE_SCHEMA_VERSION = "0.20.0"
 
 
 # interface to/from
@@ -148,7 +146,7 @@ class Writer(ABC):
         index: bool,
         default_handler: Callable[[Any], JSONSerializable] | None = None,
         indent: int = 0,
-    ):
+    ) -> None:
         self.obj = obj
 
         if orient is None:
@@ -248,7 +246,7 @@ class JSONTableWriter(FrameWriter):
         index: bool,
         default_handler: Callable[[Any], JSONSerializable] | None = None,
         indent: int = 0,
-    ):
+    ) -> None:
         """
         Adds a `schema` attribute with the Table Schema, resets
         the index (can't do in caller, because the schema inference needs
@@ -314,7 +312,10 @@ class JSONTableWriter(FrameWriter):
         return {"schema": self.schema, "data": self.obj}
 
 
-@doc(storage_options=generic._shared_docs["storage_options"])
+@doc(
+    storage_options=_shared_docs["storage_options"],
+    decompression_options=_shared_docs["decompression_options"] % "path_or_buf",
+)
 @deprecate_kwarg(old_arg_name="numpy", new_arg_name=None)
 @deprecate_nonkeyword_arguments(
     version="2.0", allowed_args=["path_or_buf"], stacklevel=3
@@ -475,12 +476,9 @@ def read_json(
 
            ``JsonReader`` is a context manager.
 
-    compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
-        For on-the-fly decompression of on-disk data. If 'infer', then use
-        gzip, bz2, zip or xz if path_or_buf is a string ending in
-        '.gz', '.bz2', '.zip', or 'xz', respectively, and no decompression
-        otherwise. If using 'zip', the ZIP file must contain only one data
-        file to be read in. Set to None for no decompression.
+    {decompression_options}
+
+        .. versionchanged:: 1.4.0 Zstandard support.
 
     nrows : int, optional
         The number of lines from the line-delimited jsonfile that has to be read.
@@ -502,6 +500,7 @@ def read_json(
     --------
     DataFrame.to_json : Convert a DataFrame to a JSON string.
     Series.to_json : Convert a Series to a JSON string.
+    json_normalize : Normalize semi-structured JSON data into a flat table.
 
     Notes
     -----
@@ -564,7 +563,7 @@ def read_json(
 {{"name":"col 1","type":"string"}},\
 {{"name":"col 2","type":"string"}}],\
 "primaryKey":["index"],\
-"pandas_version":"0.20.0"}},\
+"pandas_version":"1.4.0"}},\
 "data":[\
 {{"index":"row 1","col 1":"a","col 2":"b"}},\
 {{"index":"row 2","col 1":"c","col 2":"d"}}]\
@@ -641,7 +640,7 @@ class JsonReader(abc.Iterator):
         nrows: int | None,
         storage_options: StorageOptions = None,
         encoding_errors: str | None = "strict",
-    ):
+    ) -> None:
 
         self.orient = orient
         self.typ = typ
@@ -660,7 +659,7 @@ class JsonReader(abc.Iterator):
         self.nrows_seen = 0
         self.nrows = nrows
         self.encoding_errors = encoding_errors
-        self.handles: IOHandles | None = None
+        self.handles: IOHandles[str] | None = None
 
         if self.chunksize is not None:
             self.chunksize = validate_integer("chunksize", self.chunksize, 1)
@@ -725,7 +724,7 @@ class JsonReader(abc.Iterator):
         Combines a list of JSON objects into one JSON object.
         """
         return (
-            f'[{",".join((line for line in (line.strip() for line in lines) if line))}]'
+            f'[{",".join([line for line in (line.strip() for line in lines) if line])}]'
         )
 
     def read(self):
@@ -835,7 +834,7 @@ class Parser:
         numpy=False,
         precise_float=False,
         date_unit=None,
-    ):
+    ) -> None:
         self.json = json
 
         if orient is None:
@@ -875,11 +874,8 @@ class Parser:
 
     def parse(self):
 
-        # try numpy
-        numpy = self.numpy
-        if numpy:
+        if self.numpy:
             self._parse_numpy()
-
         else:
             self._parse_no_numpy()
 
@@ -915,7 +911,9 @@ class Parser:
     def _try_convert_types(self):
         raise AbstractMethodError(self)
 
-    def _try_convert_data(self, name, data, use_dtypes=True, convert_dates=True):
+    def _try_convert_data(
+        self, name, data, use_dtypes: bool = True, convert_dates: bool = True
+    ):
         """
         Try to parse a ndarray like into a column by inferring dtype.
         """
@@ -940,10 +938,6 @@ class Parser:
                 )
                 if dtype is not None:
                     try:
-                        # error: Argument 1 to "dtype" has incompatible type
-                        # "Union[ExtensionDtype, str, dtype[Any], Type[object]]";
-                        # expected "Type[Any]"
-                        dtype = np.dtype(dtype)  # type: ignore[arg-type]
                         return data.astype(dtype), True
                     except (TypeError, ValueError):
                         return data, False
@@ -1073,7 +1067,7 @@ class SeriesParser(Parser):
             #  gets multiple values for keyword argument "dtype_if_empty
             self.obj = create_series_with_explicit_dtype(
                 *data, dtype_if_empty=object
-            )  # type:ignore[misc]
+            )  # type: ignore[misc]
         else:
             self.obj = create_series_with_explicit_dtype(data, dtype_if_empty=object)
 

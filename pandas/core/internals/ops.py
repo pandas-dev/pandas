@@ -1,21 +1,27 @@
 from __future__ import annotations
 
-from collections import namedtuple
 from typing import (
     TYPE_CHECKING,
     Iterator,
+    NamedTuple,
 )
 
 from pandas._typing import ArrayLike
 
 if TYPE_CHECKING:
+    from pandas._libs.internals import BlockPlacement
+
     from pandas.core.internals.blocks import Block
     from pandas.core.internals.managers import BlockManager
 
 
-BlockPairInfo = namedtuple(
-    "BlockPairInfo", ["lvals", "rvals", "locs", "left_ea", "right_ea", "rblk"]
-)
+class BlockPairInfo(NamedTuple):
+    lvals: ArrayLike
+    rvals: ArrayLike
+    locs: BlockPlacement
+    left_ea: bool
+    right_ea: bool
+    rblk: Block
 
 
 def _iter_block_pairs(
@@ -119,9 +125,7 @@ def _get_same_shape_values(
         # argument type "Tuple[Union[ndarray, slice], slice]"
         lvals = lvals[rblk.mgr_locs.indexer, :]  # type: ignore[call-overload]
         assert lvals.shape[0] == 1, lvals.shape
-        # error: No overload variant of "__getitem__" of "ExtensionArray" matches
-        # argument type "Tuple[int, slice]"
-        lvals = lvals[0, :]  # type: ignore[call-overload]
+        lvals = lvals[0, :]
     else:
         # lvals are 1D, rvals are 2D
         assert rvals.shape[0] == 1, rvals.shape

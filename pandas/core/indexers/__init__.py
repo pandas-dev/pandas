@@ -11,6 +11,7 @@ from pandas.core.indexers.utils import (
     length_of_indexer,
     maybe_convert_indices,
     unpack_1tuple,
+    unpack_tuple_and_ellipses,
     validate_indices,
 )
 
@@ -28,4 +29,5 @@ __all__ = [
     "unpack_1tuple",
     "check_key_length",
     "check_array_indexer",
+    "unpack_tuple_and_ellipses",
 ]

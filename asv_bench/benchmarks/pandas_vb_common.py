@@ -17,7 +17,7 @@ for imp in ["pandas._libs.lib", "pandas.lib"]:
 try:
     import pandas._testing as tm
 except ImportError:
-    import pandas.util.testing as tm  # noqa
+    import pandas.util.testing as tm  # noqa:F401
 
 
 numeric_dtypes = [

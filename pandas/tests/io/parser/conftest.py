@@ -82,14 +82,14 @@ def csv1(datapath):
     return os.path.join(datapath("io", "data", "csv"), "test1.csv")
 
 
-_cParserHighMemory = CParserHighMemory()
-_cParserLowMemory = CParserLowMemory()
-_pythonParser = PythonParser()
-_pyarrowParser = PyArrowParser()
+_cParserHighMemory = CParserHighMemory
+_cParserLowMemory = CParserLowMemory
+_pythonParser = PythonParser
+_pyarrowParser = PyArrowParser
 
 _py_parsers_only = [_pythonParser]
 _c_parsers_only = [_cParserHighMemory, _cParserLowMemory]
-_pyarrow_parsers_only = [_pyarrowParser]
+_pyarrow_parsers_only = [pytest.param(_pyarrowParser, marks=pytest.mark.single_cpu)]
 
 _all_parsers = [*_c_parsers_only, *_py_parsers_only, *_pyarrow_parsers_only]
 
@@ -105,13 +105,15 @@ def all_parsers(request):
     """
     Fixture all of the CSV parsers.
     """
-    if request.param.engine == "pyarrow":
+    parser = request.param()
+    if parser.engine == "pyarrow":
         pytest.importorskip("pyarrow", VERSIONS["pyarrow"])
-        # Try setting num cpus to 1 to avoid hangs?
+        # Try finding a way to disable threads all together
+        # for more stable CI runs
         import pyarrow
 
         pyarrow.set_cpu_count(1)
-    return request.param
+    return parser
 
 
 @pytest.fixture(params=_c_parsers_only, ids=_c_parser_ids)
@@ -119,7 +121,7 @@ def c_parser_only(request):
     """
     Fixture all of the CSV parsers using the C engine.
     """
-    return request.param
+    return request.param()
 
 
 @pytest.fixture(params=_py_parsers_only, ids=_py_parser_ids)
@@ -127,7 +129,7 @@ def python_parser_only(request):
     """
     Fixture all of the CSV parsers using the Python engine.
     """
-    return request.param
+    return request.param()
 
 
 @pytest.fixture(params=_pyarrow_parsers_only, ids=_pyarrow_parsers_ids)
@@ -135,7 +137,7 @@ def pyarrow_parser_only(request):
     """
     Fixture all of the CSV parsers using the Pyarrow engine.
     """
-    return request.param
+    return request.param()
 
 
 def _get_all_parser_float_precision_combinations():
@@ -146,8 +148,14 @@ def _get_all_parser_float_precision_combinations():
     params = []
     ids = []
     for parser, parser_id in zip(_all_parsers, _all_parser_ids):
+        if hasattr(parser, "values"):
+            # Wrapped in pytest.param, get the actual parser back
+            parser = parser.values[0]
         for precision in parser.float_precision_choices:
-            params.append((parser, precision))
+            # Re-wrap in pytest.param for pyarrow
+            mark = pytest.mark.single_cpu if parser.engine == "pyarrow" else ()
+            param = pytest.param((parser(), precision), marks=mark)
+            params.append(param)
             ids.append(f"{parser_id}-{precision}")
 
     return {"params": params, "ids": ids}

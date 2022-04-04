@@ -8,8 +8,6 @@ from functools import partial
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -45,13 +43,15 @@ def test_agg_api():
         return arr.max() - arr.min()
 
     with tm.assert_produces_warning(
-        FutureWarning, match="Dropping invalid", check_stacklevel=False
+        FutureWarning,
+        match=r"\['key2'\] did not aggregate successfully",
     ):
         expected = grouped.agg([peak_to_peak])
     expected.columns = ["data1", "data2"]
 
     with tm.assert_produces_warning(
-        FutureWarning, match="Dropping invalid", check_stacklevel=False
+        FutureWarning,
+        match=r"\['key2'\] did not aggregate successfully",
     ):
         result = grouped.agg(peak_to_peak)
     tm.assert_frame_equal(result, expected)
@@ -422,7 +422,6 @@ def test_agg_callables():
         tm.assert_frame_equal(result, expected)
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) columns with ndarrays
 def test_agg_over_numpy_arrays():
     # GH 3788
     df = DataFrame(

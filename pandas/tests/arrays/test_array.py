@@ -10,7 +10,6 @@ from pandas.core.dtypes.base import _registry as registry
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.extensions import register_extension_dtype
-from pandas.api.types import is_scalar
 from pandas.arrays import (
     BooleanArray,
     DatetimeArray,
@@ -50,6 +49,19 @@ from pandas.tests.extension.decimal import (
         ),
         # String alias passes through to NumPy
         ([1, 2], "float32", PandasArray(np.array([1, 2], dtype="float32"))),
+        ([1, 2], "int64", PandasArray(np.array([1, 2], dtype=np.int64))),
+        # GH#44715 FloatingArray does not support float16, so fall back to PandasArray
+        (
+            np.array([1, 2], dtype=np.float16),
+            None,
+            PandasArray(np.array([1, 2], dtype=np.float16)),
+        ),
+        # idempotency with e.g. pd.array(pd.array([1, 2], dtype="int64"))
+        (
+            PandasArray(np.array([1, 2], dtype=np.int32)),
+            None,
+            PandasArray(np.array([1, 2], dtype=np.int32)),
+        ),
         # Period alias
         (
             [pd.Period("2000", "D"), pd.Period("2001", "D")],
@@ -171,15 +183,15 @@ def test_array_copy():
     a = np.array([1, 2])
     # default is to copy
     b = pd.array(a, dtype=a.dtype)
-    assert np.shares_memory(a, b._ndarray) is False
+    assert not tm.shares_memory(a, b)
 
     # copy=True
     b = pd.array(a, dtype=a.dtype, copy=True)
-    assert np.shares_memory(a, b._ndarray) is False
+    assert not tm.shares_memory(a, b)
 
     # copy=False
     b = pd.array(a, dtype=a.dtype, copy=False)
-    assert np.shares_memory(a, b._ndarray) is True
+    assert tm.shares_memory(a, b)
 
 
 cet = pytz.timezone("CET")
@@ -378,61 +390,3 @@ def test_array_not_registered(registry_without_decimal):
     result = pd.array(data, dtype=DecimalDtype)
     expected = DecimalArray._from_sequence(data)
     tm.assert_equal(result, expected)
-
-
-class TestArrayAnalytics:
-    def test_searchsorted(self, string_dtype):
-        arr = pd.array(["a", "b", "c"], dtype=string_dtype)
-
-        result = arr.searchsorted("a", side="left")
-        assert is_scalar(result)
-        assert result == 0
-
-        result = arr.searchsorted("a", side="right")
-        assert is_scalar(result)
-        assert result == 1
-
-    def test_searchsorted_numeric_dtypes_scalar(self, any_real_numpy_dtype):
-        arr = pd.array([1, 3, 90], dtype=any_real_numpy_dtype)
-        result = arr.searchsorted(30)
-        assert is_scalar(result)
-        assert result == 2
-
-        result = arr.searchsorted([30])
-        expected = np.array([2], dtype=np.intp)
-        tm.assert_numpy_array_equal(result, expected)
-
-    def test_searchsorted_numeric_dtypes_vector(self, any_real_numpy_dtype):
-        arr = pd.array([1, 3, 90], dtype=any_real_numpy_dtype)
-        result = arr.searchsorted([2, 30])
-        expected = np.array([1, 2], dtype=np.intp)
-        tm.assert_numpy_array_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "arr, val",
-        [
-            [
-                pd.date_range("20120101", periods=10, freq="2D"),
-                pd.Timestamp("20120102"),
-            ],
-            [
-                pd.date_range("20120101", periods=10, freq="2D", tz="Asia/Hong_Kong"),
-                pd.Timestamp("20120102", tz="Asia/Hong_Kong"),
-            ],
-            [
-                pd.timedelta_range(start="1 day", end="10 days", periods=10),
-                pd.Timedelta("2 days"),
-            ],
-        ],
-    )
-    def test_search_sorted_datetime64_scalar(self, arr, val):
-        arr = pd.array(arr)
-        result = arr.searchsorted(val)
-        assert is_scalar(result)
-        assert result == 1
-
-    def test_searchsorted_sorter(self, any_real_numpy_dtype):
-        arr = pd.array([3, 1, 2], dtype=any_real_numpy_dtype)
-        result = arr.searchsorted([0, 3], sorter=np.argsort(arr))
-        expected = np.array([0, 2], dtype=np.intp)
-        tm.assert_numpy_array_equal(result, expected)

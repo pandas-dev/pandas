@@ -30,21 +30,18 @@ class TestPDApi(Base):
     ignored = ["tests", "locale", "conftest"]
 
     # top-level sub-packages
-    lib = [
+    public_lib = [
         "api",
         "arrays",
-        "compat",
-        "core",
-        "errors",
-        "pandas",
-        "plotting",
+        "options",
         "test",
         "testing",
-        "tseries",
-        "util",
-        "options",
+        "errors",
+        "plotting",
         "io",
+        "tseries",
     ]
+    private_lib = ["compat", "core", "pandas", "util"]
 
     # these are already deprecated; awaiting removal
     deprecated_modules: list[str] = ["np", "datetime"]
@@ -68,7 +65,6 @@ class TestPDApi(Base):
         "Index",
         "Int64Index",
         "MultiIndex",
-        "NumericIndex",
         "Period",
         "PeriodIndex",
         "RangeIndex",
@@ -191,12 +187,9 @@ class TestPDApi(Base):
     # private modules in pandas namespace
     private_modules = [
         "_config",
-        "_hashtable",
-        "_lib",
         "_libs",
         "_is_numpy_dev",
         "_testing",
-        "_tslib",
         "_typing",
         "_version",
     ]
@@ -204,7 +197,8 @@ class TestPDApi(Base):
     def test_api(self):
 
         checkthese = (
-            self.lib
+            self.public_lib
+            + self.private_lib
             + self.misc
             + self.modules
             + self.classes
@@ -216,6 +210,26 @@ class TestPDApi(Base):
             + self.private_modules
         )
         self.check(namespace=pd, expected=checkthese, ignored=self.ignored)
+
+    def test_api_all(self):
+        expected = set(
+            self.public_lib
+            + self.misc
+            + self.modules
+            + self.classes
+            + self.funcs
+            + self.funcs_option
+            + self.funcs_read
+            + self.funcs_json
+            + self.funcs_to
+        ) - set(self.deprecated_classes)
+        actual = set(pd.__all__)
+
+        extraneous = actual - expected
+        assert not extraneous
+
+        missing = expected - actual
+        assert not missing
 
     def test_depr(self):
         deprecated_list = (

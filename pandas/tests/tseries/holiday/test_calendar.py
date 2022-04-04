@@ -50,7 +50,7 @@ def test_calendar_caching():
     # see gh-9552.
 
     class TestCalendar(AbstractHolidayCalendar):
-        def __init__(self, name=None, rules=None):
+        def __init__(self, name=None, rules=None) -> None:
             super().__init__(name=name, rules=rules)
 
     jan1 = TestCalendar(rules=[Holiday("jan1", year=2015, month=1, day=1)])
@@ -85,7 +85,7 @@ def test_calendar_observance_dates():
 
 def test_rule_from_name():
     us_fed_cal = get_calendar("USFederalHolidayCalendar")
-    assert us_fed_cal.rule_from_name("Thanksgiving") == USThanksgivingDay
+    assert us_fed_cal.rule_from_name("Thanksgiving Day") == USThanksgivingDay
 
 
 def test_calendar_2031():

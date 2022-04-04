@@ -44,12 +44,14 @@ __all__ = [
 def __getattr__(name: str):
     import warnings
 
+    from pandas.util._exceptions import find_stack_level
+
     if name == "CategoricalBlock":
         warnings.warn(
             "CategoricalBlock is deprecated and will be removed in a future version. "
             "Use ExtensionBlock instead.",
             DeprecationWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         from pandas.core.internals.blocks import CategoricalBlock
 

@@ -30,9 +30,9 @@ class TestDataFrameToXArray:
             }
         )
 
-    def test_to_xarray_index_types(self, index, df):
-        if isinstance(index, MultiIndex):
-            pytest.skip("MultiIndex is tested separately")
+    def test_to_xarray_index_types(self, index_flat, df):
+        index = index_flat
+        # MultiIndex is tested in test_to_xarray_with_multiindex
         if len(index) == 0:
             pytest.skip("Test doesn't make sense for empty index")
 
@@ -86,9 +86,9 @@ class TestDataFrameToXArray:
 
 @td.skip_if_no("xarray")
 class TestSeriesToXArray:
-    def test_to_xarray_index_types(self, index):
-        if isinstance(index, MultiIndex):
-            pytest.skip("MultiIndex is tested separately")
+    def test_to_xarray_index_types(self, index_flat):
+        index = index_flat
+        # MultiIndex is tested in test_to_xarray_with_multiindex
 
         from xarray import DataArray
 

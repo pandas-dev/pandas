@@ -237,59 +237,6 @@ Similarly, we could index before the concatenation:
    p.plot([df1, df4], result, labels=["df1", "df4"], vertical=False);
    plt.close("all");
 
-.. _merging.concatenation:
-
-Concatenating using ``append``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-A useful shortcut to :func:`~pandas.concat` are the :meth:`~DataFrame.append`
-instance methods on ``Series`` and ``DataFrame``. These methods actually predated
-``concat``. They concatenate along ``axis=0``, namely the index:
-
-.. ipython:: python
-
-   result = df1.append(df2)
-
-.. ipython:: python
-   :suppress:
-
-   @savefig merging_append1.png
-   p.plot([df1, df2], result, labels=["df1", "df2"], vertical=True);
-   plt.close("all");
-
-In the case of ``DataFrame``, the indexes must be disjoint but the columns do not
-need to be:
-
-.. ipython:: python
-
-   result = df1.append(df4, sort=False)
-
-.. ipython:: python
-   :suppress:
-
-   @savefig merging_append2.png
-   p.plot([df1, df4], result, labels=["df1", "df4"], vertical=True);
-   plt.close("all");
-
-``append`` may take multiple objects to concatenate:
-
-.. ipython:: python
-
-   result = df1.append([df2, df3])
-
-.. ipython:: python
-   :suppress:
-
-   @savefig merging_append3.png
-   p.plot([df1, df2, df3], result, labels=["df1", "df2", "df3"], vertical=True);
-   plt.close("all");
-
-.. note::
-
-   Unlike the :py:meth:`~list.append` method, which appends to the original list
-   and returns ``None``, :meth:`~DataFrame.append`  here **does not** modify
-   ``df1`` and returns its copy with ``df2`` appended.
-
 .. _merging.ignore_index:
 
 Ignoring indexes on the concatenation axis
@@ -306,19 +253,6 @@ do this, use the ``ignore_index`` argument:
    :suppress:
 
    @savefig merging_concat_ignore_index.png
-   p.plot([df1, df4], result, labels=["df1", "df4"], vertical=True);
-   plt.close("all");
-
-This is also a valid argument to :meth:`DataFrame.append`:
-
-.. ipython:: python
-
-   result = df1.append(df4, ignore_index=True, sort=False)
-
-.. ipython:: python
-   :suppress:
-
-   @savefig merging_append_ignore_index.png
    p.plot([df1, df4], result, labels=["df1", "df4"], vertical=True);
    plt.close("all");
 
@@ -473,14 +407,13 @@ like GroupBy where the order of a categorical variable is meaningful.
 Appending rows to a DataFrame
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-While not especially efficient (since a new object must be created), you can
-append a single row to a ``DataFrame`` by passing a ``Series`` or dict to
-``append``, which returns a new ``DataFrame`` as above.
+If you have a series that you want to append as a single row to a ``DataFrame``, you can convert the row into a
+``DataFrame`` and use ``concat``
 
 .. ipython:: python
 
    s2 = pd.Series(["X0", "X1", "X2", "X3"], index=["A", "B", "C", "D"])
-   result = df1.append(s2, ignore_index=True)
+   result = pd.concat([df1, s2.to_frame().T], ignore_index=True)
 
 .. ipython:: python
    :suppress:
@@ -492,20 +425,6 @@ append a single row to a ``DataFrame`` by passing a ``Series`` or dict to
 You should use ``ignore_index`` with this method to instruct DataFrame to
 discard its index. If you wish to preserve the index, you should construct an
 appropriately-indexed DataFrame and append or concatenate those objects.
-
-You can also pass a list of dicts or Series:
-
-.. ipython:: python
-
-   dicts = [{"A": 1, "B": 2, "C": 3, "X": 4}, {"A": 5, "B": 6, "C": 7, "Y": 8}]
-   result = df1.append(dicts, ignore_index=True, sort=False)
-
-.. ipython:: python
-   :suppress:
-
-   @savefig merging_append_dits.png
-   p.plot([df1, pd.DataFrame(dicts)], result, labels=["df1", "dicts"], vertical=True);
-   plt.close("all");
 
 .. _merging.join:
 
@@ -562,7 +481,7 @@ all standard database join operations between ``DataFrame`` or named ``Series`` 
   (hierarchical), the number of levels must match the number of join keys
   from the right DataFrame or Series.
 * ``right_index``: Same usage as ``left_index`` for the right DataFrame or Series
-* ``how``: One of ``'left'``, ``'right'``, ``'outer'``, ``'inner'``. Defaults
+* ``how``: One of ``'left'``, ``'right'``, ``'outer'``, ``'inner'``, ``'cross'``. Defaults
   to ``inner``. See below for more detailed description of each method.
 * ``sort``: Sort the result DataFrame by the join keys in lexicographical
   order. Defaults to ``True``, setting to ``False`` will improve performance
@@ -707,6 +626,7 @@ either the left or right tables, the values in the joined table will be
     ``right``, ``RIGHT OUTER JOIN``, Use keys from right frame only
     ``outer``, ``FULL OUTER JOIN``, Use union of keys from both frames
     ``inner``, ``INNER JOIN``, Use intersection of keys from both frames
+    ``cross``, ``CROSS JOIN``, Create the cartesian product of rows of both frames
 
 .. ipython:: python
 
@@ -748,6 +668,17 @@ either the left or right tables, the values in the joined table will be
    :suppress:
 
    @savefig merging_merge_on_key_inner.png
+   p.plot([left, right], result, labels=["left", "right"], vertical=False);
+   plt.close("all");
+
+.. ipython:: python
+
+   result = pd.merge(left, right, how="cross")
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_merge_cross.png
    p.plot([left, right], result, labels=["left", "right"], vertical=False);
    plt.close("all");
 

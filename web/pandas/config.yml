@@ -112,26 +112,21 @@ sponsors:
     url: https://numfocus.org/
     logo: /static/img/partners/numfocus.svg
     kind: numfocus
-  - name: "Anaconda"
-    url: https://www.anaconda.com/
-    logo: /static/img/partners/anaconda.svg
-    kind: partner
-    description: "Tom Augspurger, Brock Mendel"
   - name: "Two Sigma"
     url: https://www.twosigma.com/
     logo: /static/img/partners/two_sigma.svg
     kind: partner
     description: "Phillip Cloud, Jeff Reback"
-  - name: "RStudio"
-    url: https://www.rstudio.com/
-    logo: /static/img/partners/r_studio.svg
-    kind: partner
-    description: "Wes McKinney"
   - name: "Ursa Labs"
     url: https://ursalabs.org/
     logo: /static/img/partners/ursa_labs.svg
     kind: partner
     description: "Wes McKinney, Joris Van den Bossche"
+  - name: "d-fine GmbH"
+    url: https://www.d-fine.com/en/
+    logo: /static/img/partners/dfine.svg
+    kind: partner
+    description: "Patrick Hoefler"
   - name: "Tidelift"
     url: https://tidelift.com
     logo: /static/img/partners/tidelift.svg
@@ -153,3 +148,12 @@ sponsors:
   - name: "Paris-Saclay Center for Data Science"
     url: https://www.datascience-paris-saclay.fr/
     kind: partner
+  - name: "Anaconda"
+    url: https://www.anaconda.com/
+    logo: /static/img/partners/anaconda.svg
+    kind: partner
+  - name: "RStudio"
+    url: https://www.rstudio.com/
+    logo: /static/img/partners/r_studio.svg
+    kind: partner
+    description: "Wes McKinney"

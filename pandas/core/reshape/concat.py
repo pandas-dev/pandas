@@ -6,6 +6,7 @@ from __future__ import annotations
 from collections import abc
 from typing import (
     TYPE_CHECKING,
+    Callable,
     Hashable,
     Iterable,
     Literal,
@@ -13,20 +14,26 @@ from typing import (
     cast,
     overload,
 )
+import warnings
 
 import numpy as np
 
-from pandas._typing import Axis
+from pandas._typing import (
+    Axis,
+    HashableT,
+)
 from pandas.util._decorators import (
     cache_readonly,
     deprecate_nonkeyword_arguments,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
+from pandas.core.dtypes.inference import is_bool
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays.categorical import (
@@ -38,11 +45,11 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
     all_indexes_same,
+    default_index,
     ensure_index,
     get_objs_combined_axis,
     get_unanimous_names,
 )
-import pandas.core.indexes.base as ibase
 from pandas.core.internals import concatenate_managers
 
 if TYPE_CHECKING:
@@ -58,7 +65,7 @@ if TYPE_CHECKING:
 
 @overload
 def concat(
-    objs: Iterable[DataFrame] | Mapping[Hashable, DataFrame],
+    objs: Iterable[DataFrame] | Mapping[HashableT, DataFrame],
     axis: Literal[0, "index"] = ...,
     join: str = ...,
     ignore_index: bool = ...,
@@ -74,7 +81,7 @@ def concat(
 
 @overload
 def concat(
-    objs: Iterable[Series] | Mapping[Hashable, Series],
+    objs: Iterable[Series] | Mapping[HashableT, Series],
     axis: Literal[0, "index"] = ...,
     join: str = ...,
     ignore_index: bool = ...,
@@ -90,7 +97,7 @@ def concat(
 
 @overload
 def concat(
-    objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
+    objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
     axis: Literal[0, "index"] = ...,
     join: str = ...,
     ignore_index: bool = ...,
@@ -106,7 +113,7 @@ def concat(
 
 @overload
 def concat(
-    objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
+    objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
     axis: Literal[1, "columns"],
     join: str = ...,
     ignore_index: bool = ...,
@@ -122,23 +129,23 @@ def concat(
 
 @overload
 def concat(
-    objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
+    objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
     axis: Axis = ...,
     join: str = ...,
     ignore_index: bool = ...,
-    keys=None,
-    levels=None,
-    names=None,
-    verify_integrity: bool = False,
-    sort: bool = False,
-    copy: bool = True,
+    keys=...,
+    levels=...,
+    names=...,
+    verify_integrity: bool = ...,
+    sort: bool = ...,
+    copy: bool = ...,
 ) -> DataFrame | Series:
     ...
 
 
 @deprecate_nonkeyword_arguments(version=None, allowed_args=["objs"])
 def concat(
-    objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
+    objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
     axis: Axis = 0,
     join: str = "outer",
     ignore_index: bool = False,
@@ -363,7 +370,7 @@ class _Concatenator:
 
     def __init__(
         self,
-        objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
+        objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
         axis=0,
         join: str = "outer",
         keys=None,
@@ -373,7 +380,7 @@ class _Concatenator:
         verify_integrity: bool = False,
         copy: bool = True,
         sort=False,
-    ):
+    ) -> None:
         if isinstance(objs, (ABCSeries, ABCDataFrame, str)):
             raise TypeError(
                 "first argument must be an iterable of pandas "
@@ -464,7 +471,9 @@ class _Concatenator:
 
         # Standardize axis parameter to int
         if isinstance(sample, ABCSeries):
-            axis = sample._constructor_expanddim._get_axis_number(axis)
+            from pandas import DataFrame
+
+            axis = DataFrame._get_axis_number(axis)
         else:
             axis = sample._get_axis_number(axis)
 
@@ -519,6 +528,14 @@ class _Concatenator:
         self.keys = keys
         self.names = names or getattr(keys, "names", None)
         self.levels = levels
+
+        if not is_bool(sort):
+            warnings.warn(
+                "Passing non boolean values for sort is deprecated and "
+                "will error in a future version!",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         self.sort = sort
 
         self.ignore_index = ignore_index
@@ -528,7 +545,7 @@ class _Concatenator:
         self.new_axes = self._get_new_axes()
 
     def get_result(self):
-        cons: type[DataFrame | Series]
+        cons: Callable[..., DataFrame | Series]
         sample: DataFrame | Series
 
         # series only
@@ -619,7 +636,7 @@ class _Concatenator:
             if self.bm_axis == 0:
                 indexes = [x.index for x in self.objs]
             elif self.ignore_index:
-                idx = ibase.default_index(len(self.objs))
+                idx = default_index(len(self.objs))
                 return idx
             elif self.keys is None:
                 names: list[Hashable] = [None] * len(self.objs)
@@ -640,14 +657,14 @@ class _Concatenator:
                 if has_names:
                     return Index(names)
                 else:
-                    return ibase.default_index(len(self.objs))
+                    return default_index(len(self.objs))
             else:
                 return ensure_index(self.keys).set_names(self.names)
         else:
             indexes = [x.axes[self.axis] for x in self.objs]
 
         if self.ignore_index:
-            idx = ibase.default_index(sum(len(i) for i in indexes))
+            idx = default_index(sum(len(i) for i in indexes))
             return idx
 
         if self.keys is None:
@@ -695,7 +712,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
         else:
             levels = [ensure_index(x) for x in levels]
 
-    if not all_indexes_same(indexes):
+    if not all_indexes_same(indexes) or not all(level.is_unique for level in levels):
         codes_list = []
 
         # things are potentially different sizes, so compute the exact codes

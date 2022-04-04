@@ -1,9 +1,11 @@
 import numpy as np
+import pytest
 
 from pandas._libs import groupby as libgroupby
 from pandas._libs.groupby import (
     group_cumprod_float64,
     group_cumsum,
+    group_mean,
     group_var,
 )
 
@@ -110,13 +112,13 @@ class TestGroupVarFloat64(GroupVarTestMixin):
 
         out = np.array([[np.nan]], dtype=self.dtype)
         counts = np.array([0], dtype="int64")
-        values = (prng.rand(10 ** 6) + 10 ** 12).astype(self.dtype)
-        values.shape = (10 ** 6, 1)
-        labels = np.zeros(10 ** 6, dtype="intp")
+        values = (prng.rand(10**6) + 10**12).astype(self.dtype)
+        values.shape = (10**6, 1)
+        labels = np.zeros(10**6, dtype="intp")
 
         self.algo(out, counts, values, labels)
 
-        assert counts[0] == 10 ** 6
+        assert counts[0] == 10**6
         tm.assert_almost_equal(out[0, 0], 1.0 / 12, rtol=0.5e-3)
 
 
@@ -128,35 +130,32 @@ class TestGroupVarFloat32(GroupVarTestMixin):
     rtol = 1e-2
 
 
-def test_group_ohlc():
-    def _check(dtype):
-        obj = np.array(np.random.randn(20), dtype=dtype)
+@pytest.mark.parametrize("dtype", ["float32", "float64"])
+def test_group_ohlc(dtype):
+    obj = np.array(np.random.randn(20), dtype=dtype)
 
-        bins = np.array([6, 12, 20])
-        out = np.zeros((3, 4), dtype)
-        counts = np.zeros(len(out), dtype=np.int64)
-        labels = ensure_platform_int(np.repeat(np.arange(3), np.diff(np.r_[0, bins])))
+    bins = np.array([6, 12, 20])
+    out = np.zeros((3, 4), dtype)
+    counts = np.zeros(len(out), dtype=np.int64)
+    labels = ensure_platform_int(np.repeat(np.arange(3), np.diff(np.r_[0, bins])))
 
-        func = libgroupby.group_ohlc
-        func(out, counts, obj[:, None], labels)
+    func = libgroupby.group_ohlc
+    func(out, counts, obj[:, None], labels)
 
-        def _ohlc(group):
-            if isna(group).all():
-                return np.repeat(np.nan, 4)
-            return [group[0], group.max(), group.min(), group[-1]]
+    def _ohlc(group):
+        if isna(group).all():
+            return np.repeat(np.nan, 4)
+        return [group[0], group.max(), group.min(), group[-1]]
 
-        expected = np.array([_ohlc(obj[:6]), _ohlc(obj[6:12]), _ohlc(obj[12:])])
+    expected = np.array([_ohlc(obj[:6]), _ohlc(obj[6:12]), _ohlc(obj[12:])])
 
-        tm.assert_almost_equal(out, expected)
-        tm.assert_numpy_array_equal(counts, np.array([6, 6, 8], dtype=np.int64))
+    tm.assert_almost_equal(out, expected)
+    tm.assert_numpy_array_equal(counts, np.array([6, 6, 8], dtype=np.int64))
 
-        obj[:6] = np.nan
-        func(out, counts, obj[:, None], labels)
-        expected[0] = np.nan
-        tm.assert_almost_equal(out, expected)
-
-    _check("float32")
-    _check("float64")
+    obj[:6] = np.nan
+    func(out, counts, obj[:, None], labels)
+    expected[0] = np.nan
+    tm.assert_almost_equal(out, expected)
 
 
 def _check_cython_group_transform_cumulative(pd_op, np_op, dtype):
@@ -234,3 +233,51 @@ def test_cython_group_transform_algos():
         ]
     )
     tm.assert_numpy_array_equal(actual[:, 0].view("m8[ns]"), expected)
+
+
+def test_cython_group_mean_datetimelike():
+    actual = np.zeros(shape=(1, 1), dtype="float64")
+    counts = np.array([0], dtype="int64")
+    data = (
+        np.array(
+            [np.timedelta64(2, "ns"), np.timedelta64(4, "ns"), np.timedelta64("NaT")],
+            dtype="m8[ns]",
+        )[:, None]
+        .view("int64")
+        .astype("float64")
+    )
+    labels = np.zeros(len(data), dtype=np.intp)
+
+    group_mean(actual, counts, data, labels, is_datetimelike=True)
+
+    tm.assert_numpy_array_equal(actual[:, 0], np.array([3], dtype="float64"))
+
+
+def test_cython_group_mean_wrong_min_count():
+    actual = np.zeros(shape=(1, 1), dtype="float64")
+    counts = np.zeros(1, dtype="int64")
+    data = np.zeros(1, dtype="float64")[:, None]
+    labels = np.zeros(1, dtype=np.intp)
+
+    with pytest.raises(AssertionError, match="min_count"):
+        group_mean(actual, counts, data, labels, is_datetimelike=True, min_count=0)
+
+
+def test_cython_group_mean_not_datetimelike_but_has_NaT_values():
+    actual = np.zeros(shape=(1, 1), dtype="float64")
+    counts = np.array([0], dtype="int64")
+    data = (
+        np.array(
+            [np.timedelta64("NaT"), np.timedelta64("NaT")],
+            dtype="m8[ns]",
+        )[:, None]
+        .view("int64")
+        .astype("float64")
+    )
+    labels = np.zeros(len(data), dtype=np.intp)
+
+    group_mean(actual, counts, data, labels, is_datetimelike=False)
+
+    tm.assert_numpy_array_equal(
+        actual[:, 0], np.array(np.divide(np.add(data[0], data[1]), 2), dtype="float64")
+    )

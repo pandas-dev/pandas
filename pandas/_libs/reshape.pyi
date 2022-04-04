@@ -1,6 +1,6 @@
 import numpy as np
 
-import pandas._tying as npt
+from pandas._typing import npt
 
 def unstack(
     values: np.ndarray,  # reshape_t[:, :]

@@ -1,12 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas import (
+import pandas._testing as tm
+from pandas.core.indexes.api import (
     Index,
     Int64Index,
     UInt64Index,
 )
-import pandas._testing as tm
 
 
 class TestJoinInt64Index:
@@ -198,13 +198,13 @@ class TestJoinUInt64Index:
     @pytest.fixture
     def index_large(self):
         # large values used in TestUInt64Index where no compat needed with Int64/Float64
-        large = [2 ** 63, 2 ** 63 + 10, 2 ** 63 + 15, 2 ** 63 + 20, 2 ** 63 + 25]
+        large = [2**63, 2**63 + 10, 2**63 + 15, 2**63 + 20, 2**63 + 25]
         return UInt64Index(large)
 
     def test_join_inner(self, index_large):
-        other = UInt64Index(2 ** 63 + np.array([7, 12, 25, 1, 2, 10], dtype="uint64"))
+        other = UInt64Index(2**63 + np.array([7, 12, 25, 1, 2, 10], dtype="uint64"))
         other_mono = UInt64Index(
-            2 ** 63 + np.array([1, 2, 7, 10, 12, 25], dtype="uint64")
+            2**63 + np.array([1, 2, 7, 10, 12, 25], dtype="uint64")
         )
 
         # not monotonic
@@ -216,7 +216,7 @@ class TestJoinUInt64Index:
         lidx = lidx.take(ind)
         ridx = ridx.take(ind)
 
-        eres = UInt64Index(2 ** 63 + np.array([10, 25], dtype="uint64"))
+        eres = UInt64Index(2**63 + np.array([10, 25], dtype="uint64"))
         elidx = np.array([1, 4], dtype=np.intp)
         eridx = np.array([5, 2], dtype=np.intp)
 
@@ -242,9 +242,9 @@ class TestJoinUInt64Index:
         tm.assert_numpy_array_equal(ridx, eridx)
 
     def test_join_left(self, index_large):
-        other = UInt64Index(2 ** 63 + np.array([7, 12, 25, 1, 2, 10], dtype="uint64"))
+        other = UInt64Index(2**63 + np.array([7, 12, 25, 1, 2, 10], dtype="uint64"))
         other_mono = UInt64Index(
-            2 ** 63 + np.array([1, 2, 7, 10, 12, 25], dtype="uint64")
+            2**63 + np.array([1, 2, 7, 10, 12, 25], dtype="uint64")
         )
 
         # not monotonic
@@ -267,12 +267,12 @@ class TestJoinUInt64Index:
         tm.assert_numpy_array_equal(ridx, eridx)
 
         # non-unique
-        idx = UInt64Index(2 ** 63 + np.array([1, 1, 2, 5], dtype="uint64"))
-        idx2 = UInt64Index(2 ** 63 + np.array([1, 2, 5, 7, 9], dtype="uint64"))
+        idx = UInt64Index(2**63 + np.array([1, 1, 2, 5], dtype="uint64"))
+        idx2 = UInt64Index(2**63 + np.array([1, 2, 5, 7, 9], dtype="uint64"))
         res, lidx, ridx = idx2.join(idx, how="left", return_indexers=True)
 
         # 1 is in idx2, so it should be x2
-        eres = UInt64Index(2 ** 63 + np.array([1, 1, 2, 5, 7, 9], dtype="uint64"))
+        eres = UInt64Index(2**63 + np.array([1, 1, 2, 5, 7, 9], dtype="uint64"))
         eridx = np.array([0, 1, 2, 3, -1, -1], dtype=np.intp)
         elidx = np.array([0, 0, 1, 2, 3, 4], dtype=np.intp)
 
@@ -281,9 +281,9 @@ class TestJoinUInt64Index:
         tm.assert_numpy_array_equal(ridx, eridx)
 
     def test_join_right(self, index_large):
-        other = UInt64Index(2 ** 63 + np.array([7, 12, 25, 1, 2, 10], dtype="uint64"))
+        other = UInt64Index(2**63 + np.array([7, 12, 25, 1, 2, 10], dtype="uint64"))
         other_mono = UInt64Index(
-            2 ** 63 + np.array([1, 2, 7, 10, 12, 25], dtype="uint64")
+            2**63 + np.array([1, 2, 7, 10, 12, 25], dtype="uint64")
         )
 
         # not monotonic
@@ -309,12 +309,12 @@ class TestJoinUInt64Index:
         assert ridx is None
 
         # non-unique
-        idx = UInt64Index(2 ** 63 + np.array([1, 1, 2, 5], dtype="uint64"))
-        idx2 = UInt64Index(2 ** 63 + np.array([1, 2, 5, 7, 9], dtype="uint64"))
+        idx = UInt64Index(2**63 + np.array([1, 1, 2, 5], dtype="uint64"))
+        idx2 = UInt64Index(2**63 + np.array([1, 2, 5, 7, 9], dtype="uint64"))
         res, lidx, ridx = idx.join(idx2, how="right", return_indexers=True)
 
         # 1 is in idx2, so it should be x2
-        eres = UInt64Index(2 ** 63 + np.array([1, 1, 2, 5, 7, 9], dtype="uint64"))
+        eres = UInt64Index(2**63 + np.array([1, 1, 2, 5, 7, 9], dtype="uint64"))
         elidx = np.array([0, 1, 2, 3, -1, -1], dtype=np.intp)
         eridx = np.array([0, 0, 1, 2, 3, 4], dtype=np.intp)
 
@@ -324,20 +324,20 @@ class TestJoinUInt64Index:
 
     def test_join_non_int_index(self, index_large):
         other = Index(
-            2 ** 63 + np.array([1, 5, 7, 10, 20], dtype="uint64"), dtype=object
+            2**63 + np.array([1, 5, 7, 10, 20], dtype="uint64"), dtype=object
         )
 
         outer = index_large.join(other, how="outer")
         outer2 = other.join(index_large, how="outer")
         expected = Index(
-            2 ** 63 + np.array([0, 1, 5, 7, 10, 15, 20, 25], dtype="uint64")
+            2**63 + np.array([0, 1, 5, 7, 10, 15, 20, 25], dtype="uint64")
         )
         tm.assert_index_equal(outer, outer2)
         tm.assert_index_equal(outer, expected)
 
         inner = index_large.join(other, how="inner")
         inner2 = other.join(index_large, how="inner")
-        expected = Index(2 ** 63 + np.array([10, 20], dtype="uint64"))
+        expected = Index(2**63 + np.array([10, 20], dtype="uint64"))
         tm.assert_index_equal(inner, inner2)
         tm.assert_index_equal(inner, expected)
 
@@ -354,9 +354,9 @@ class TestJoinUInt64Index:
         tm.assert_index_equal(right2, index_large.astype(object))
 
     def test_join_outer(self, index_large):
-        other = UInt64Index(2 ** 63 + np.array([7, 12, 25, 1, 2, 10], dtype="uint64"))
+        other = UInt64Index(2**63 + np.array([7, 12, 25, 1, 2, 10], dtype="uint64"))
         other_mono = UInt64Index(
-            2 ** 63 + np.array([1, 2, 7, 10, 12, 25], dtype="uint64")
+            2**63 + np.array([1, 2, 7, 10, 12, 25], dtype="uint64")
         )
 
         # not monotonic
@@ -366,7 +366,7 @@ class TestJoinUInt64Index:
         tm.assert_index_equal(res, noidx_res)
 
         eres = UInt64Index(
-            2 ** 63 + np.array([0, 1, 2, 7, 10, 12, 15, 20, 25], dtype="uint64")
+            2**63 + np.array([0, 1, 2, 7, 10, 12, 15, 20, 25], dtype="uint64")
         )
         elidx = np.array([0, -1, -1, -1, 1, -1, 2, 3, 4], dtype=np.intp)
         eridx = np.array([-1, 3, 4, 0, 5, 1, -1, -1, 2], dtype=np.intp)

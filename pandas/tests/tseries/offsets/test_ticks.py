@@ -10,8 +10,6 @@ from hypothesis import (
     assume,
     example,
     given,
-    settings,
-    strategies as st,
 )
 import numpy as np
 import pytest
@@ -23,6 +21,7 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
+from pandas._testing._hypothesis import INT_NEG_999_TO_POS_999
 from pandas.tests.tseries.offsets.common import assert_offset_equal
 
 from pandas.tseries import offsets
@@ -45,7 +44,7 @@ tick_classes = [Hour, Minute, Second, Milli, Micro, Nano]
 
 
 def test_apply_ticks():
-    result = offsets.Hour(3).apply(offsets.Hour(4))
+    result = offsets.Hour(3)._apply(offsets.Hour(4))
     exp = offsets.Hour(7)
     assert result == exp
 
@@ -62,11 +61,10 @@ def test_delta_to_tick():
 
 
 @pytest.mark.parametrize("cls", tick_classes)
-@settings(deadline=None)  # GH 24641
 @example(n=2, m=3)
 @example(n=800, m=300)
 @example(n=1000, m=5)
-@given(n=st.integers(-999, 999), m=st.integers(-999, 999))
+@given(n=INT_NEG_999_TO_POS_999, m=INT_NEG_999_TO_POS_999)
 def test_tick_add_sub(cls, n, m):
     # For all Tick subclasses and all integers n, m, we should have
     # tick(n) + tick(m) == tick(n+m)
@@ -76,7 +74,7 @@ def test_tick_add_sub(cls, n, m):
     expected = cls(n + m)
 
     assert left + right == expected
-    assert left.apply(right) == expected
+    assert left._apply(right) == expected
 
     expected = cls(n - m)
     assert left - right == expected
@@ -84,9 +82,8 @@ def test_tick_add_sub(cls, n, m):
 
 @pytest.mark.arm_slow
 @pytest.mark.parametrize("cls", tick_classes)
-@settings(deadline=None)
 @example(n=2, m=3)
-@given(n=st.integers(-999, 999), m=st.integers(-999, 999))
+@given(n=INT_NEG_999_TO_POS_999, m=INT_NEG_999_TO_POS_999)
 def test_tick_equality(cls, n, m):
     assume(m != n)
     # tick == tock iff tick.n == tock.n
@@ -230,9 +227,16 @@ def test_Nanosecond():
 )
 def test_tick_addition(kls, expected):
     offset = kls(3)
-    result = offset + Timedelta(hours=2)
-    assert isinstance(result, Timedelta)
-    assert result == expected
+    td = Timedelta(hours=2)
+
+    for other in [td, td.to_pytimedelta(), td.to_timedelta64()]:
+        result = offset + other
+        assert isinstance(result, Timedelta)
+        assert result == expected
+
+        result = other + offset
+        assert isinstance(result, Timedelta)
+        assert result == expected
 
 
 @pytest.mark.parametrize("cls", tick_classes)

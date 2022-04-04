@@ -34,7 +34,7 @@ class Factorize:
     param_names = ["unique", "sort", "dtype"]
 
     def setup(self, unique, sort, dtype):
-        N = 10 ** 5
+        N = 10**5
         string_index = tm.makeStringIndex(N)
         string_arrow = None
         if dtype == "string[pyarrow]":
@@ -44,9 +44,9 @@ class Factorize:
                 raise NotImplementedError
 
         data = {
-            "int": pd.Int64Index(np.arange(N)),
-            "uint": pd.UInt64Index(np.arange(N)),
-            "float": pd.Float64Index(np.random.randn(N)),
+            "int": pd.Index(np.arange(N), dtype="int64"),
+            "uint": pd.Index(np.arange(N), dtype="uint64"),
+            "float": pd.Index(np.random.randn(N), dtype="float64"),
             "object": string_index,
             "datetime64[ns]": pd.date_range("2011-01-01", freq="H", periods=N),
             "datetime64[ns, tz]": pd.date_range(
@@ -74,11 +74,11 @@ class Duplicated:
     param_names = ["unique", "keep", "dtype"]
 
     def setup(self, unique, keep, dtype):
-        N = 10 ** 5
+        N = 10**5
         data = {
-            "int": pd.Int64Index(np.arange(N)),
-            "uint": pd.UInt64Index(np.arange(N)),
-            "float": pd.Float64Index(np.random.randn(N)),
+            "int": pd.Index(np.arange(N), dtype="int64"),
+            "uint": pd.Index(np.arange(N), dtype="uint64"),
+            "float": pd.Index(np.random.randn(N), dtype="float64"),
             "string": tm.makeStringIndex(N),
             "datetime64[ns]": pd.date_range("2011-01-01", freq="H", periods=N),
             "datetime64[ns, tz]": pd.date_range(
@@ -97,7 +97,7 @@ class Duplicated:
 
 class Hashing:
     def setup_cache(self):
-        N = 10 ** 5
+        N = 10**5
 
         df = pd.DataFrame(
             {
@@ -145,7 +145,7 @@ class Quantile:
     param_names = ["quantile", "interpolation", "dtype"]
 
     def setup(self, quantile, interpolation, dtype):
-        N = 10 ** 5
+        N = 10**5
         data = {
             "int": np.arange(N),
             "uint": np.arange(N).astype(np.uint64),
@@ -158,7 +158,7 @@ class Quantile:
 
 
 class SortIntegerArray:
-    params = [10 ** 3, 10 ** 5]
+    params = [10**3, 10**5]
 
     def setup(self, N):
         data = np.arange(N, dtype=float)

@@ -313,9 +313,11 @@ class TestExtensionTake:
         result = algos.take(arr, [], allow_fill=allow_fill)
         tm.assert_numpy_array_equal(arr, result)
 
-        msg = (
-            "cannot do a non-empty take from an empty axes.|"
-            "indices are out-of-bounds"
+        msg = "|".join(
+            [
+                "cannot do a non-empty take from an empty axes.",
+                "indices are out-of-bounds",
+            ]
         )
         with pytest.raises(IndexError, match=msg):
             algos.take(arr, [0], allow_fill=allow_fill)

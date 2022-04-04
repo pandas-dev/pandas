@@ -11,8 +11,6 @@ import pandas._testing as tm
 
 
 class TestBetween:
-
-    # TODO: redundant with test_between_datetime_values?
     def test_between(self):
         series = Series(date_range("1/1/2000", periods=10))
         left, right = series[[2, 7]]
@@ -21,7 +19,7 @@ class TestBetween:
         expected = (series >= left) & (series <= right)
         tm.assert_series_equal(result, expected)
 
-    def test_between_datetime_values(self):
+    def test_between_datetime_object_dtype(self):
         ser = Series(bdate_range("1/1/2000", periods=20).astype(object))
         ser[::2] = np.nan
 

@@ -89,7 +89,7 @@ Getting values from an object with multi-axes selection uses the following
 notation (using ``.loc`` as an example, but the following applies to ``.iloc`` as
 well). Any of the axes accessors may be the null slice ``:``. Axes left out of
 the specification are assumed to be ``:``, e.g. ``p.loc['a']`` is equivalent to
-``p.loc['a', :, :]``.
+``p.loc['a', :]``.
 
 .. csv-table::
     :header: "Object Type", "Indexers"
@@ -996,6 +996,15 @@ a list of items you want to check for.
    values = {'ids': ['a', 'b'], 'vals': [1, 3]}
 
    df.isin(values)
+
+To return the DataFrame of booleans where the values are *not* in the original DataFrame,
+use the ``~`` operator:
+
+.. ipython:: python
+
+   values = {'ids': ['a', 'b'], 'vals': [1, 3]}
+
+   ~df.isin(values)
 
 Combine DataFrame's ``isin`` with the ``any()`` and ``all()`` methods to
 quickly select subsets of your data that meet a given criteria.

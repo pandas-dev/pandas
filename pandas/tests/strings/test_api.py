@@ -71,7 +71,6 @@ def test_api_per_method(
     inferred_dtype, values = any_allowed_skipna_inferred_dtype
     method_name, args, kwargs = any_string_method
 
-    # TODO: get rid of these xfails
     reason = None
     if box is Index and values.size == 0:
         if method_name in ["partition", "rpartition"] and kwargs.get("expand", True):

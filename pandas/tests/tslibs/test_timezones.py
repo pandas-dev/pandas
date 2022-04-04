@@ -23,9 +23,6 @@ def test_is_utc(utc_fixture):
 
 @pytest.mark.parametrize("tz_name", list(pytz.common_timezones))
 def test_cache_keys_are_distinct_for_pytz_vs_dateutil(tz_name):
-    if tz_name == "UTC":
-        pytest.skip("UTC: special case in dateutil")
-
     tz_p = timezones.maybe_get_tz(tz_name)
     tz_d = timezones.maybe_get_tz("dateutil/" + tz_name)
 
@@ -143,7 +140,7 @@ def test_maybe_get_tz_invalid_types():
 
     msg = "<class 'pandas._libs.tslibs.timestamps.Timestamp'>"
     with pytest.raises(TypeError, match=msg):
-        timezones.maybe_get_tz(Timestamp.now("UTC"))
+        timezones.maybe_get_tz(Timestamp("2021-01-01", tz="UTC"))
 
 
 def test_maybe_get_tz_offset_only():
