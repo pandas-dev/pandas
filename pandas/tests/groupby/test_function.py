@@ -1234,7 +1234,7 @@ def test_groupby_empty_dataset():
     # GH#41575
     df = DataFrame(columns=["A", "B", "C"])
     result = df.groupby("A").B.describe()
-    expected_index = Index([], dtype="object", name="A")
+    expected_index = DataFrame(columns=["A", "B", "C"])
     expected = Series([], name="B", dtype=np.object_, index=expected_index)
 
     tm.assert_series_equal(result, expected)
