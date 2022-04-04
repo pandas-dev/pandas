@@ -12,7 +12,7 @@ runs:
       run: |
         # Drop cache at least once per month
         month_today="$(date '+%Y-%m')"
-        cat requirements.txt - <<< "# $month_today"
+        cat > requirements.txt ci/deps/pip-requirements.txt - <<< "# $month_today"
       shell: bash -el {0}
 
     - name: Set up Python
