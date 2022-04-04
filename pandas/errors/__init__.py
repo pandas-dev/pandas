@@ -7,6 +7,8 @@ from pandas._config.config import OptionError  # noqa:F401
 from pandas._libs.tslibs import (  # noqa:F401
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
+    OutOfBoundsTimedeltahhh,
+    
 )
 
 
