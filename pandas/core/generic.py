@@ -10619,6 +10619,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             filter_type="bool",
         )
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def any(
         self,
         axis: Axis = 0,
