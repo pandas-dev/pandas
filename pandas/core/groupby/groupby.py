@@ -1466,6 +1466,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             data after applying f
         """
         values, mutated = self.grouper.apply(f, data, self.axis)
+        if len(data) == 0:
+            if values[0].ndim == 1:
+                return DataFrame(columns=values[0].index)
+            else:
+                return DataFrame(
+                    columns=MultiIndex.from_product(
+                        [values[0].columns, values[0].index]
+                    )
+                )
+
         if not_indexed_same is None:
             not_indexed_same = mutated or self.mutated
         override_group_keys = False
@@ -2458,7 +2468,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 self._selected_obj,
                 not_indexed_same=True,
             )
-            if self.axis == 1:
+            if len(result) == 0:
+                return result
+            elif self.axis == 1:
                 return result.T
             return result.unstack()
 
