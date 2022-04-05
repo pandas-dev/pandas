@@ -117,7 +117,7 @@ class TestIntSubtype(AstypeTests):
     @pytest.mark.xfail(reason="GH#15832")
     def test_subtype_integer_errors(self):
         # int64 -> uint64 fails with negative values
-        index = interval_range(-10, 10)
+        index = interval_range(-10, 10, inclusive="right")
         dtype = IntervalDtype("uint64", "right")
 
         # Until we decide what the exception message _should_ be, we
@@ -133,7 +133,7 @@ class TestFloatSubtype(AstypeTests):
     """Tests specific to IntervalIndex with float subtype"""
 
     indexes = [
-        interval_range(-10.0, 10.0, closed="neither"),
+        interval_range(-10.0, 10.0, inclusive="neither"),
         IntervalIndex.from_arrays(
             [-1.5, np.nan, 0.0, 0.0, 1.5], [-0.5, np.nan, 1.0, 1.0, 3.0], closed="both"
         ),
@@ -170,7 +170,7 @@ class TestFloatSubtype(AstypeTests):
 
     def test_subtype_integer_errors(self):
         # float64 -> uint64 fails with negative values
-        index = interval_range(-10.0, 10.0)
+        index = interval_range(-10.0, 10.0, inclusive="right")
         dtype = IntervalDtype("uint64", "right")
         msg = re.escape(
             "Cannot convert interval[float64, right] to interval[uint64, right]; "
@@ -191,10 +191,10 @@ class TestDatetimelikeSubtype(AstypeTests):
     """Tests specific to IntervalIndex with datetime-like subtype"""
 
     indexes = [
-        interval_range(Timestamp("2018-01-01"), periods=10, closed="neither"),
+        interval_range(Timestamp("2018-01-01"), periods=10, inclusive="neither"),
         interval_range(Timestamp("2018-01-01"), periods=10).insert(2, NaT),
         interval_range(Timestamp("2018-01-01", tz="US/Eastern"), periods=10),
-        interval_range(Timedelta("0 days"), periods=10, closed="both"),
+        interval_range(Timedelta("0 days"), periods=10, inclusive="both"),
         interval_range(Timedelta("0 days"), periods=10).insert(2, NaT),
     ]
 
