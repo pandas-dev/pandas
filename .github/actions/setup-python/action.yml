@@ -7,20 +7,11 @@ inputs:
 runs:
   using: composite
   steps:
-    # TODO: GH#44980 https://github.com/pypa/setuptools/issues/2941
-    - name: Create temporary requirements.txt
-      run: |
-        # Drop cache at least once per month
-        month_today="$(date '+%Y-%m')"
-        cat > requirements.txt ci/deps/pip-requirements.txt - <<< "# $month_today"
-      shell: bash -el {0}
-
     - name: Set up Python
       uses: actions/setup-python@v3
       with:
         python-version: ${{ inputs.python-version }}
         architecture: ${{ inputs.architecture }}
-        cache: pip
 
     - name: Fix $PATH on macOS
       run: |
@@ -35,9 +26,6 @@ runs:
 
     - name: Install dependencies
       run: |
-        cat requirements.txt
-        # TODO https://github.com/numpy/numpy/issues/21196
-        bits32=$(python -c 'import sys; print(int(sys.maxsize > 2**32))')
-        NPY_DISABLE_SVML=$bits32 pip install -r requirements.txt
+        pip install -r ci/deps/pip-requirements.txt
         pip list
       shell: bash -el {0}
