@@ -14,14 +14,14 @@ from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 from pandas.compat import is_platform_windows
 
 from pandas import (
+    DataFrame,
     DatetimeIndex,
     Index,
     Series,
+    Timedelta,
     Timestamp,
     date_range,
     period_range,
-    DataFrame,
-    Timedelta
 )
 import pandas._testing as tm
 from pandas.core.tools.datetimes import to_datetime
@@ -510,12 +510,15 @@ def test_infer_freq_warn_deprecated():
     with tm.assert_produces_warning(FutureWarning):
         frequencies.infer_freq(date_range(2022, periods=3), warn=False)
 
+
 def test_no_overflow_of_freq_and_time_in_dataframe():
     # GH 35665
     # https://github.com/pandas-dev/pandas/issues/35665
-    df = DataFrame({'string_one':['2132131SSS'], 'time': [Timedelta('0 days 00:00:00.990000')]})
+    df = DataFrame(
+        {"string_one": ["2132131SSS"], "time": [Timedelta("0 days 00:00:00.990000")]}
+    )
     try:
-        for _, row in df.iterrows():
-            row
+        for _ in df.iterrows():
+            pass
     except OverflowError:
-        assert False, 'Regression, see GH 35665'
+        assert False, "Regression, see GH 35665"
