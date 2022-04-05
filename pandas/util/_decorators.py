@@ -283,7 +283,7 @@ def deprecate_nonkeyword_arguments(
     stacklevel : int, default=2
         The stack level for warnings.warn
 
-    name: str, optional
+    name : str, optional
         The specific name of the function to show in the warning
         message. If None, then the Qualified name of the function
         is used.
