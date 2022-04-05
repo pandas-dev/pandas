@@ -1710,6 +1710,7 @@ cdef class _Period(PeriodMixin):
     def __add__(self, other):
         if not is_period_object(self):
             # cython semantics; this is analogous to a call to __radd__
+            # TODO(cython3): remove this
             if self is NaT:
                 return NaT
             return other.__add__(self)
@@ -1734,9 +1735,13 @@ cdef class _Period(PeriodMixin):
 
         return NotImplemented
 
+    def __radd__(self, other):
+        return self.__add__(other)
+
     def __sub__(self, other):
         if not is_period_object(self):
             # cython semantics; this is like a call to __rsub__
+            # TODO(cython3): remove this
             if self is NaT:
                 return NaT
             return NotImplemented
@@ -1758,6 +1763,11 @@ cdef class _Period(PeriodMixin):
         elif other is NaT:
             return NaT
 
+        return NotImplemented
+
+    def __rsub__(self, other):
+        if other is NaT:
+            return NaT
         return NotImplemented
 
     def asfreq(self, freq, how='E') -> "Period":

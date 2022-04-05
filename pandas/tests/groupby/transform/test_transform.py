@@ -67,7 +67,7 @@ def test_transform():
     )
     key = ["one", "two", "one", "two", "one"]
     result = people.groupby(key).transform(demean).groupby(key).mean()
-    expected = people.groupby(key).apply(demean).groupby(key).mean()
+    expected = people.groupby(key, group_keys=False).apply(demean).groupby(key).mean()
     tm.assert_frame_equal(result, expected)
 
     # GH 8430
@@ -228,26 +228,26 @@ def test_transform_axis_ts(tsframe):
     )
     # monotonic
     ts = tso
-    grouped = ts.groupby(lambda x: x.weekday())
+    grouped = ts.groupby(lambda x: x.weekday(), group_keys=False)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: x - x.mean())
     tm.assert_frame_equal(result, expected)
 
     ts = ts.T
-    grouped = ts.groupby(lambda x: x.weekday(), axis=1)
+    grouped = ts.groupby(lambda x: x.weekday(), axis=1, group_keys=False)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: (x.T - x.mean(1)).T)
     tm.assert_frame_equal(result, expected)
 
     # non-monotonic
     ts = tso.iloc[[1, 0] + list(range(2, len(base)))]
-    grouped = ts.groupby(lambda x: x.weekday())
+    grouped = ts.groupby(lambda x: x.weekday(), group_keys=False)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: x - x.mean())
     tm.assert_frame_equal(result, expected)
 
     ts = ts.T
-    grouped = ts.groupby(lambda x: x.weekday(), axis=1)
+    grouped = ts.groupby(lambda x: x.weekday(), axis=1, group_keys=False)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: (x.T - x.mean(1)).T)
     tm.assert_frame_equal(result, expected)
@@ -753,7 +753,7 @@ def test_cython_transform_frame(op, args, targop):
         ]:  # {"by": 'string_missing'}]:
             # {"by": ['int','string']}]:
 
-            gb = df.groupby(**gb_target)
+            gb = df.groupby(group_keys=False, **gb_target)
             # allowlisted methods set the selection before applying
             # bit a of hack to make sure the cythonized shift
             # is equivalent to pre 0.17.1 behavior
@@ -1303,23 +1303,34 @@ def test_transform_cumcount():
     tm.assert_series_equal(result, expected)
 
 
-def test_null_group_lambda_self(sort, dropna):
+@pytest.mark.parametrize("keys", [["A1"], ["A1", "A2"]])
+def test_null_group_lambda_self(request, sort, dropna, keys):
     # GH 17093
-    np.random.seed(0)
-    keys = np.random.randint(0, 5, size=50).astype(float)
-    nulls = np.random.choice([0, 1], keys.shape).astype(bool)
-    keys[nulls] = np.nan
-    values = np.random.randint(0, 5, size=keys.shape)
-    df = DataFrame({"A": keys, "B": values})
+    if not sort and not dropna:
+        msg = "GH#46584: null values get sorted when sort=False"
+        request.node.add_marker(pytest.mark.xfail(reason=msg, strict=False))
+
+    size = 50
+    nulls1 = np.random.choice([False, True], size)
+    nulls2 = np.random.choice([False, True], size)
+    # Whether a group contains a null value or not
+    nulls_grouper = nulls1 if len(keys) == 1 else nulls1 | nulls2
+
+    a1 = np.random.randint(0, 5, size=size).astype(float)
+    a1[nulls1] = np.nan
+    a2 = np.random.randint(0, 5, size=size).astype(float)
+    a2[nulls2] = np.nan
+    values = np.random.randint(0, 5, size=a1.shape)
+    df = DataFrame({"A1": a1, "A2": a2, "B": values})
 
     expected_values = values
-    if dropna and nulls.any():
+    if dropna and nulls_grouper.any():
         expected_values = expected_values.astype(float)
-        expected_values[nulls] = np.nan
+        expected_values[nulls_grouper] = np.nan
     expected = DataFrame(expected_values, columns=["B"])
 
-    gb = df.groupby("A", dropna=dropna, sort=sort)
-    result = gb.transform(lambda x: x)
+    gb = df.groupby(keys, dropna=dropna, sort=sort)
+    result = gb[["B"]].transform(lambda x: x)
     tm.assert_frame_equal(result, expected)
 
 

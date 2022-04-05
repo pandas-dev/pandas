@@ -984,117 +984,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         level: Level | None = None,
         errors: str = "ignore",
     ) -> NDFrameT | None:
-        """
-        Alter axes input function or functions. Function / dict values must be
-        unique (1-to-1). Labels not contained in a dict / Series will be left
-        as-is. Extra labels listed don't throw an error. Alternatively, change
-        ``Series.name`` with a scalar value (Series only).
+        # called by Series.rename and DataFrame.rename
 
-        Parameters
-        ----------
-        %(axes)s : scalar, list-like, dict-like or function, optional
-            Scalar or list-like will alter the ``Series.name`` attribute,
-            and raise on DataFrame.
-            dict-like or functions are transformations to apply to
-            that axis' values
-        copy : bool, default True
-            Also copy underlying data.
-        inplace : bool, default False
-            Whether to return a new {klass}. If True then value of copy is
-            ignored.
-        level : int or level name, default None
-            In case of a MultiIndex, only rename labels in the specified
-            level.
-        errors : {'ignore', 'raise'}, default 'ignore'
-            If 'raise', raise a `KeyError` when a dict-like `mapper`, `index`,
-            or `columns` contains labels that are not present in the Index
-            being transformed.
-            If 'ignore', existing keys will be renamed and extra keys will be
-            ignored.
-
-        Returns
-        -------
-        renamed : {klass} (new object)
-
-        Raises
-        ------
-        KeyError
-            If any of the labels is not found in the selected axis and
-            "errors='raise'".
-
-        See Also
-        --------
-        NDFrame.rename_axis
-
-        Examples
-        --------
-        >>> s = pd.Series([1, 2, 3])
-        >>> s
-        0    1
-        1    2
-        2    3
-        dtype: int64
-        >>> s.rename("my_name") # scalar, changes Series.name
-        0    1
-        1    2
-        2    3
-        Name: my_name, dtype: int64
-        >>> s.rename(lambda x: x ** 2)  # function, changes labels
-        0    1
-        1    2
-        4    3
-        dtype: int64
-        >>> s.rename({1: 3, 2: 5})  # mapping, changes labels
-        0    1
-        3    2
-        5    3
-        dtype: int64
-
-        Since ``DataFrame`` doesn't have a ``.name`` attribute,
-        only mapping-type arguments are allowed.
-
-        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-        >>> df.rename(2)
-        Traceback (most recent call last):
-        ...
-        TypeError: 'int' object is not callable
-
-        ``DataFrame.rename`` supports two calling conventions
-
-        * ``(index=index_mapper, columns=columns_mapper, ...)``
-        * ``(mapper, axis={'index', 'columns'}, ...)``
-
-        We *highly* recommend using keyword arguments to clarify your
-        intent.
-
-        >>> df.rename(index=str, columns={"A": "a", "B": "c"})
-           a  c
-        0  1  4
-        1  2  5
-        2  3  6
-
-        >>> df.rename(index=str, columns={"A": "a", "C": "c"})
-           a  B
-        0  1  4
-        1  2  5
-        2  3  6
-
-        Using axis-style parameters
-
-        >>> df.rename(str.lower, axis='columns')
-           a  b
-        0  1  4
-        1  2  5
-        2  3  6
-
-        >>> df.rename({1: 2, 2: 4}, axis='index')
-           A  B
-        0  1  4
-        2  2  5
-        4  3  6
-
-        See the :ref:`user guide <basics.rename>` for more.
-        """
         if mapper is None and index is None and columns is None:
             raise TypeError("must pass an index to rename")
 
@@ -8041,6 +7932,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         level=None,
         origin: str | TimestampConvertibleTypes = "start_day",
         offset: TimedeltaConvertibleTypes | None = None,
+        group_keys: bool_t | lib.NoDefault = lib.no_default,
     ) -> Resampler:
         """
         Resample time-series data.
@@ -8114,6 +8006,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             An offset timedelta added to the origin.
 
             .. versionadded:: 1.1.0
+
+        group_keys : bool, optional
+            Whether to include the group keys in the result index when using
+            ``.apply()`` on the resampled object. Not specifying ``group_keys``
+            will retain values-dependent behavior from pandas 1.4
+            and earlier (see :ref:`pandas 1.5.0 Release notes
+            <whatsnew_150.enhancements.resample_group_keys>`
+            for examples). In a future version of pandas, the behavior will
+            default to the same as specifying ``group_keys=False``.
+
+            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -8454,6 +8357,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             level=level,
             origin=origin,
             offset=offset,
+            group_keys=group_keys,
         )
 
     @final
