@@ -168,6 +168,12 @@ dtype : Type name or dict of column -> type, optional
     to preserve and not interpret dtype.
     If converters are specified, they will be applied INSTEAD
     of dtype conversion.
+
+    .. versionadded:: 1.5.0
+
+        Support for defaultdict was added. Specify a defaultdict as input where
+        the default determines the dtype of the columns which are not explicitly
+        listed.
 engine : {{'c', 'python', 'pyarrow'}}, optional
     Parser engine to use. The C and pyarrow engines are faster, while the python engine
     is currently more feature-complete. Multithreading is currently only supported by

@@ -5,13 +5,13 @@ import cython
 from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
-    PyDateTime_IMPORT,
     datetime,
+    import_datetime,
     tzinfo,
 )
 
 # import datetime C API
-PyDateTime_IMPORT
+import_datetime()
 
 
 cimport numpy as cnp
@@ -63,7 +63,6 @@ from pandas._libs.tslibs.timestamps cimport _Timestamp
 from pandas._libs.tslibs.timestamps import Timestamp
 
 # Note: this is the only non-tslibs intra-pandas dependency here
-
 from pandas._libs.missing cimport checknull_with_nat_and_na
 from pandas._libs.tslibs.tzconversion cimport tz_localize_to_utc_single
 
@@ -219,7 +218,7 @@ def array_with_unit_to_datetime(
     """
     cdef:
         Py_ssize_t i, j, n=len(values)
-        int64_t m
+        int64_t mult
         int prec = 0
         ndarray[float64_t] fvalues
         bint is_ignore = errors=='ignore'
@@ -243,7 +242,7 @@ def array_with_unit_to_datetime(
             )
         return result, tz
 
-    m, _ = precision_from_unit(unit)
+    mult, _ = precision_from_unit(unit)
 
     if is_raise:
         # try a quick conversion to i8/f8
@@ -255,7 +254,7 @@ def array_with_unit_to_datetime(
             # fill missing values by comparing to NPY_NAT
             mask = iresult == NPY_NAT
             iresult[mask] = 0
-            fvalues = iresult.astype("f8") * m
+            fvalues = iresult.astype("f8") * mult
             need_to_iterate = False
 
         if not need_to_iterate:
@@ -266,10 +265,10 @@ def array_with_unit_to_datetime(
                 raise OutOfBoundsDatetime(f"cannot convert input with unit '{unit}'")
 
             if values.dtype.kind in ["i", "u"]:
-                result = (iresult * m).astype("M8[ns]")
+                result = (iresult * mult).astype("M8[ns]")
 
             elif values.dtype.kind == "f":
-                fresult = (values * m).astype("f8")
+                fresult = (values * mult).astype("f8")
                 fresult[mask] = 0
                 if prec:
                     fresult = round(fresult, prec)

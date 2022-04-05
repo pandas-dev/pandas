@@ -276,7 +276,7 @@ class NumericIndex(Index):
 
     def _format_native_types(
         self, *, na_rep="", float_format=None, decimal=".", quoting=None, **kwargs
-    ):
+    ) -> npt.NDArray[np.object_]:
         from pandas.io.formats.format import FloatArrayFormatter
 
         if is_float_dtype(self.dtype):

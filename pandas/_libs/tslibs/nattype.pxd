@@ -4,7 +4,6 @@ from numpy cimport int64_t
 
 cdef int64_t NPY_NAT
 
-cdef bint _nat_scalar_rules[6]
 cdef set c_nat_strings
 
 cdef class _NaT(datetime):
