@@ -6073,7 +6073,7 @@ class DataFrame(NDFrame, OpsMixin):
     def dropna(
         self,
         axis: Axis = 0,
-        how: str = "any",
+        how: str=None,
         thresh=None,
         subset: IndexLabel = None,
         inplace: bool = False,
@@ -6106,7 +6106,7 @@ class DataFrame(NDFrame, OpsMixin):
             * 'all' : If all values are NA, drop that row or column.
 
         thresh : int, optional
-            Require that many non-NA values.
+            Require that many non-NA values. Cannot be combined with how.
         subset : column label or sequence of labels, optional
             Labels along other axis to consider, e.g. if you are dropping rows
             these would be a list of columns to include.
@@ -6181,6 +6181,12 @@ class DataFrame(NDFrame, OpsMixin):
              name        toy       born
         1  Batman  Batmobile 1940-04-25
         """
+        if (how is not None) and (thresh is not None):
+            raise ValueError(f"You cannot set both the how and thresh arguments at the same time.")
+
+        if how is None:
+            how = 'any'
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         if isinstance(axis, (tuple, list)):
             # GH20987
