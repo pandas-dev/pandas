@@ -722,7 +722,6 @@ Other Deprecations
 - Deprecated :meth:`DateOffset.apply`, use ``offset + other`` instead (:issue:`44522`)
 - Deprecated parameter ``names`` in :meth:`Index.copy` (:issue:`44916`)
 - A deprecation warning is now shown for :meth:`DataFrame.to_latex` indicating the arguments signature may change and emulate more the arguments to :meth:`.Styler.to_latex` in future versions (:issue:`44411`)
-- Deprecated passing arguments as positional in :meth:`DataFrame.any` and :meth:`Series.any` (:issue:`44802`)
 - Deprecated behavior of :func:`concat` between objects with bool-dtype and numeric-dtypes; in a future version these will cast to object dtype instead of coercing bools to numeric values (:issue:`39817`)
 - Deprecated :meth:`Categorical.replace`, use :meth:`Series.replace` instead (:issue:`44929`)
 - Deprecated passing ``set`` or ``dict`` as indexer for :meth:`DataFrame.loc.__setitem__`, :meth:`DataFrame.loc.__getitem__`, :meth:`Series.loc.__setitem__`, :meth:`Series.loc.__getitem__`, :meth:`DataFrame.__getitem__`, :meth:`Series.__getitem__` and :meth:`Series.__setitem__` (:issue:`42825`)
