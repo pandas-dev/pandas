@@ -1486,6 +1486,13 @@ class TestDataFrameReplace:
         tm.assert_equal(result, expected)
 
 
+    def test_replace_value_none(self):
+    #GH46606
+        df = DataFrame(dict(a=[1,2,3], b=[1,2,3]))
+        result = df.replace({1:5}, value=None)
+        expected = DataFrame(dict(a=[5,2,3], b=[1,2,3]))
+        tm.assert_frame_equal(result, expected)
+
 class TestDataFrameReplaceRegex:
     @pytest.mark.parametrize(
         "data",
