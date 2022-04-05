@@ -708,7 +708,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
             names = [None]
 
         if levels is None:
-            levels = [ensure_index(keys)]
+            levels = [ensure_index(keys).unique()]
         else:
             levels = [ensure_index(x) for x in levels]
 
