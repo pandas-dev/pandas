@@ -1090,3 +1090,32 @@ def test_nanops_independent_of_mask_param(operation):
     median_expected = operation(s)
     median_result = operation(s, mask=mask)
     assert median_expected == median_result
+
+
+@pytest.mark.parametrize("min_count", [-1, 0])
+def test_check_below_min_count__negative_or_zero_min_count(min_count):
+    # GH35227
+    result = nanops.check_below_min_count((21, 37), None, min_count)
+    expected_result = False
+    assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    "mask", [None, np.array([False, False, True]), np.array([True] + 9 * [False])]
+)
+@pytest.mark.parametrize("min_count, expected_result", [(1, False), (101, True)])
+def test_check_below_min_count__positive_min_count(mask, min_count, expected_result):
+    # GH35227
+    shape = (10, 10)
+    result = nanops.check_below_min_count(shape, mask, min_count)
+    assert result == expected_result
+
+
+@td.skip_if_windows
+@td.skip_if_32bit
+@pytest.mark.parametrize("min_count, expected_result", [(1, False), (2812191852, True)])
+def test_check_below_min_count__large_shape(min_count, expected_result):
+    # GH35227 large shape used to show that the issue is fixed
+    shape = (2244367, 1253)
+    result = nanops.check_below_min_count(shape, mask=None, min_count=min_count)
+    assert result == expected_result
