@@ -194,7 +194,7 @@ def scalar_binop(object[:] values, object val, object op) -> ndarray:
     """
     cdef:
         Py_ssize_t i, n = len(values)
-        object[:] result
+        object[::1] result
         object x
 
     result = np.empty(n, dtype=object)
@@ -231,7 +231,7 @@ def vec_binop(object[:] left, object[:] right, object op) -> ndarray:
     """
     cdef:
         Py_ssize_t i, n = len(left)
-        object[:] result
+        object[::1] result
 
     if n != <Py_ssize_t>len(right):
         raise ValueError(f'Arrays were different lengths: {n} vs {len(right)}')

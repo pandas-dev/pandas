@@ -97,6 +97,7 @@ warn_unreachable = false # GH#27396
 # Suppressing errors
 show_none_errors = true
 ignore_errors = false
+enable_error_code = "ignore-without-code"
 # Miscellaneous strictness flags
 allow_untyped_globals = false
 allow_redefinition = false

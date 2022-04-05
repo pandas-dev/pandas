@@ -24,10 +24,10 @@ jobs:
       cancel-in-progress: true
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Install Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v3
       with:
         python-version: '3.9.7'
 
@@ -39,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        shell: bash -l {0}
+        shell: bash -el {0}
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
@@ -48,17 +48,17 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
 
     - name: Cache conda
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/conda_pkgs_dir
         key: ${{ runner.os }}-conda-${{ hashFiles('${{ env.ENV_FILE }}') }}
 
-    - uses: conda-incubator/setup-miniconda@v2
+    - uses: conda-incubator/setup-miniconda@v2.1.1
       with:
         mamba-version: "*"
         channels: conda-forge
@@ -68,7 +68,7 @@ jobs:
         use-only-tar-bz2: true
 
     - name: Install node.js (for pyright)
-      uses: actions/setup-node@v2
+      uses: actions/setup-node@v3
       with:
         node-version: "16"
 
@@ -105,7 +105,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        shell: bash -l {0}
+        shell: bash -el {0}
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
@@ -114,17 +114,17 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
 
     - name: Cache conda
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/conda_pkgs_dir
         key: ${{ runner.os }}-conda-${{ hashFiles('${{ env.ENV_FILE }}') }}
 
-    - uses: conda-incubator/setup-miniconda@v2
+    - uses: conda-incubator/setup-miniconda@v2.1.1
       with:
         mamba-version: "*"
         channels: conda-forge
@@ -140,29 +140,19 @@ jobs:
     - name: Run ASV benchmarks
       run: |
         cd asv_bench
-        asv check -E existing
-        git remote add upstream https://github.com/pandas-dev/pandas.git
-        git fetch upstream
         asv machine --yes
-        asv dev | sed "/failed$/ s/^/##[error]/" | tee benchmarks.log
+        # TODO add `--durations` when we start using asv >= 0.5 (#46598)
+        asv run --quick --dry-run --python=same | sed "/failed$/ s/^/##[error]/" | tee benchmarks.log
         if grep "failed" benchmarks.log > /dev/null ; then
             exit 1
         fi
-      if: ${{ steps.build.outcome == 'success' }}
-
-    - name: Publish benchmarks artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: Benchmarks log
-        path: asv_bench/benchmarks.log
-      if: failure()
 
   build_docker_dev_environment:
     name: Build Docker Dev Environment
     runs-on: ubuntu-latest
     defaults:
       run:
-        shell: bash -l {0}
+        shell: bash -el {0}
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
@@ -174,7 +164,7 @@ jobs:
         run: docker image prune -f
 
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 

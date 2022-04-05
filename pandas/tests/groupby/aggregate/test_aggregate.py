@@ -133,7 +133,7 @@ def test_groupby_aggregation_multi_level_column():
 
 def test_agg_apply_corner(ts, tsframe):
     # nothing to group, all NA
-    grouped = ts.groupby(ts * np.nan)
+    grouped = ts.groupby(ts * np.nan, group_keys=False)
     assert ts.dtype == np.float64
 
     # groupby float64 values results in Float64Index
@@ -143,7 +143,7 @@ def test_agg_apply_corner(ts, tsframe):
     tm.assert_series_equal(grouped.apply(np.sum), exp, check_index_type=False)
 
     # DataFrame
-    grouped = tsframe.groupby(tsframe["A"] * np.nan)
+    grouped = tsframe.groupby(tsframe["A"] * np.nan, group_keys=False)
     exp_df = DataFrame(
         columns=tsframe.columns,
         dtype=float,
@@ -914,7 +914,7 @@ def test_groupby_aggregate_empty_key_empty_return():
 def test_groupby_aggregate_empty_with_multiindex_frame():
     # GH 39178
     df = DataFrame(columns=["a", "b", "c"])
-    result = df.groupby(["a", "b"]).agg(d=("c", list))
+    result = df.groupby(["a", "b"], group_keys=False).agg(d=("c", list))
     expected = DataFrame(
         columns=["d"], index=MultiIndex([[], []], [[], []], names=["a", "b"])
     )

@@ -22,12 +22,12 @@ cnp.import_array()
 
 from cpython.datetime cimport (
     PyDateTime_Check,
-    PyDateTime_IMPORT,
     PyDelta_Check,
+    import_datetime,
     timedelta,
 )
 
-PyDateTime_IMPORT
+import_datetime()
 
 
 cimport pandas._libs.tslibs.util as util
@@ -51,6 +51,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     pandas_timedeltastruct,
     td64_to_tdstruct,
 )
+from pandas._libs.tslibs.np_datetime import OutOfBoundsTimedelta
 from pandas._libs.tslibs.offsets cimport is_tick_object
 from pandas._libs.tslibs.util cimport (
     is_array,
@@ -153,7 +154,7 @@ def ints_to_pytimedelta(const int64_t[:] arr, box=False):
     cdef:
         Py_ssize_t i, n = len(arr)
         int64_t value
-        object[:] result = np.empty(n, dtype=object)
+        object[::1] result = np.empty(n, dtype=object)
 
     for i in range(n):
 
@@ -188,7 +189,6 @@ cpdef int64_t delta_to_nanoseconds(delta) except? -1:
                 + delta.microseconds
             ) * 1000
         except OverflowError as err:
-            from pandas._libs.tslibs.conversion import OutOfBoundsTimedelta
             raise OutOfBoundsTimedelta(*err.args) from err
 
     raise TypeError(type(delta))
@@ -226,7 +226,6 @@ cdef object ensure_td64ns(object ts):
             # NB: cython#1381 this cannot be *=
             td64_value = td64_value * mult
         except OverflowError as err:
-            from pandas._libs.tslibs.conversion import OutOfBoundsTimedelta
             raise OutOfBoundsTimedelta(ts) from err
 
         return np.timedelta64(td64_value, "ns")
@@ -826,12 +825,31 @@ cdef _to_py_int_float(v):
 cdef class _Timedelta(timedelta):
     # cdef readonly:
     #    int64_t value      # nanoseconds
-    #    object freq        # frequency reference
-    #    bint is_populated  # are my components populated
+    #    bint _is_populated  # are my components populated
     #    int64_t _d, _h, _m, _s, _ms, _us, _ns
 
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
+
+    @property
+    def freq(self) -> None:
+        # GH#46430
+        warnings.warn(
+            "Timedelta.freq is deprecated and will be removed in a future version",
+            FutureWarning,
+            stacklevel=1,
+        )
+        return None
+
+    @property
+    def is_populated(self) -> bool:
+        # GH#46430
+        warnings.warn(
+            "Timedelta.is_populated is deprecated and will be removed in a future version",
+            FutureWarning,
+            stacklevel=1,
+        )
+        return self._is_populated
 
     def __hash__(_Timedelta self):
         if self._has_ns():
@@ -874,14 +892,14 @@ cdef class _Timedelta(timedelta):
 
         return cmp_scalar(self.value, ots.value, op)
 
-    cpdef bint _has_ns(self):
+    cdef bint _has_ns(self):
         return self.value % 1000 != 0
 
-    def _ensure_components(_Timedelta self):
+    cdef _ensure_components(_Timedelta self):
         """
         compute the components
         """
-        if self.is_populated:
+        if self._is_populated:
             return
 
         cdef:
@@ -898,7 +916,7 @@ cdef class _Timedelta(timedelta):
         self._seconds = tds.seconds
         self._microseconds = tds.microseconds
 
-        self.is_populated = 1
+        self._is_populated = 1
 
     cpdef timedelta to_pytimedelta(_Timedelta self):
         """
@@ -995,6 +1013,12 @@ cdef class _Timedelta(timedelta):
         >>> td.delta
         42
         """
+        # Deprecated GH#46476
+        warnings.warn(
+            "Timedelta.delta is deprecated and will be removed in a future version.",
+            FutureWarning,
+            stacklevel=1,
+        )
         return self.value
 
     @property
@@ -1136,7 +1160,10 @@ cdef class _Timedelta(timedelta):
         converted : string of a Timedelta
 
         """
-        cdef object sign, seconds_pretty, subs, fmt, comp_dict
+        cdef:
+            str sign, fmt
+            dict comp_dict
+            object subs
 
         self._ensure_components()
 
@@ -1389,7 +1416,7 @@ class Timedelta(_Timedelta):
         # make timedelta happy
         td_base = _Timedelta.__new__(cls, microseconds=int(value) // 1000)
         td_base.value = value
-        td_base.is_populated = 0
+        td_base._is_populated = 0
         return td_base
 
     def __setstate__(self, state):

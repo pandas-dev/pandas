@@ -139,6 +139,10 @@ def test_transform_bad_dtype(op, frame_or_series, request):
                 raises=ValueError, reason="GH 40418: rank does not raise a TypeError"
             )
         )
+    elif op == "ngroup":
+        request.node.add_marker(
+            pytest.mark.xfail(raises=ValueError, reason="ngroup not valid for NDFrame")
+        )
 
     obj = DataFrame({"A": 3 * [object]})  # DataFrame that will fail on most transforms
     obj = tm.get_obj(obj, frame_or_series)
@@ -157,8 +161,13 @@ def test_transform_bad_dtype(op, frame_or_series, request):
 
 
 @pytest.mark.parametrize("op", frame_kernels_raise)
-def test_transform_partial_failure_typeerror(op):
+def test_transform_partial_failure_typeerror(request, op):
     # GH 35964
+
+    if op == "ngroup":
+        request.node.add_marker(
+            pytest.mark.xfail(raises=ValueError, reason="ngroup not valid for NDFrame")
+        )
 
     # Using object makes most transform kernels fail
     df = DataFrame({"A": 3 * [object], "B": [1, 2, 3]})

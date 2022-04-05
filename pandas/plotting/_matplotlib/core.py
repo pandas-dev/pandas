@@ -458,7 +458,7 @@ class MPLPlot:
         if isinstance(data, ABCSeries):
             label = self.label
             if label is None and data.name is None:
-                label = "None"
+                label = ""
             if label is None:
                 # We'll end up with columns of [0] instead of [None]
                 data = data.to_frame()

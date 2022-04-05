@@ -28,7 +28,6 @@ from pandas._typing import (
     npt,
     type_t,
 )
-from pandas.compat import pa_version_under2p0
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 from pandas.util._validators import (
@@ -66,9 +65,6 @@ NDArrayBackedExtensionArrayT = TypeVar(
 )
 
 if TYPE_CHECKING:
-
-    import pyarrow as pa
-
     from pandas._typing import (
         NumpySorter,
         NumpyValueArrayLike,
@@ -521,89 +517,3 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         arr = cls._from_sequence([], dtype=dtype)
         backing = np.empty(shape, dtype=arr._ndarray.dtype)
         return arr._from_backing_data(backing)
-
-
-ArrowExtensionArrayT = TypeVar("ArrowExtensionArrayT", bound="ArrowExtensionArray")
-
-
-class ArrowExtensionArray(ExtensionArray):
-    """
-    Base class for ExtensionArray backed by Arrow array.
-    """
-
-    _data: pa.ChunkedArray
-
-    def __init__(self, values: pa.ChunkedArray) -> None:
-        self._data = values
-
-    def __arrow_array__(self, type=None):
-        """Convert myself to a pyarrow Array or ChunkedArray."""
-        return self._data
-
-    def equals(self, other) -> bool:
-        if not isinstance(other, ArrowExtensionArray):
-            return False
-        # I'm told that pyarrow makes __eq__ behave like pandas' equals;
-        #  TODO: is this documented somewhere?
-        return self._data == other._data
-
-    @property
-    def nbytes(self) -> int:
-        """
-        The number of bytes needed to store this object in memory.
-        """
-        return self._data.nbytes
-
-    def __len__(self) -> int:
-        """
-        Length of this array.
-
-        Returns
-        -------
-        length : int
-        """
-        return len(self._data)
-
-    def isna(self) -> npt.NDArray[np.bool_]:
-        """
-        Boolean NumPy array indicating if each value is missing.
-
-        This should return a 1-D array the same length as 'self'.
-        """
-        if pa_version_under2p0:
-            return self._data.is_null().to_pandas().values
-        else:
-            return self._data.is_null().to_numpy()
-
-    def copy(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
-        """
-        Return a shallow copy of the array.
-
-        Underlying ChunkedArray is immutable, so a deep copy is unnecessary.
-
-        Returns
-        -------
-        type(self)
-        """
-        return type(self)(self._data)
-
-    @classmethod
-    def _concat_same_type(
-        cls: type[ArrowExtensionArrayT], to_concat
-    ) -> ArrowExtensionArrayT:
-        """
-        Concatenate multiple ArrowExtensionArrays.
-
-        Parameters
-        ----------
-        to_concat : sequence of ArrowExtensionArrays
-
-        Returns
-        -------
-        ArrowExtensionArray
-        """
-        import pyarrow as pa
-
-        chunks = [array for ea in to_concat for array in ea._data.iterchunks()]
-        arr = pa.chunked_array(chunks)
-        return cls(arr)
