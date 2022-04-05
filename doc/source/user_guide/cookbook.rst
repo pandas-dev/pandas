@@ -423,7 +423,7 @@ Fill forward a reversed timeseries
    )
    df.loc[df.index[3], "A"] = np.nan
    df
-   df.reindex(df.index[::-1]).ffill()
+   df.bfill()
 
 `cumsum reset at NaN values
 <https://stackoverflow.com/questions/18196811/cumsum-reset-at-nan>`__
