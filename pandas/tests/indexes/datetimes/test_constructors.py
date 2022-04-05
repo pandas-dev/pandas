@@ -88,10 +88,21 @@ class TestDatetimeIndex:
     def test_categorical_preserves_freq(self):
         # GH33830 freq retention in categorical
         dti = pd.date_range('2016-01-01', periods=5)
+        
         expected = dti.freq
 
         cat = pd.Categorical(dti)
         result = cat.categories.freq
+
+        assert expected == result
+    
+    def test_value_counts_preserves_freq(self):
+        # GH33830 freq retention in value_counts
+        dti = pd.date_range('2016-01-01', periods=5)
+        
+        expected = dti.freq
+
+        result = dti.value_counts().index.freq
 
         assert expected == result
 
