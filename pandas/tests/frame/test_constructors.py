@@ -89,6 +89,21 @@ class TestDataFrameConstructors:
             # GH#44724 big performance hit if we de-consolidate
             assert len(df._mgr.blocks) == 1
 
+    def test_no_overflow_of_freq_and_time_in_dataframe(self):
+        # GH 35665
+        # https://github.com/pandas-dev/pandas/issues/35665
+        df = DataFrame(
+            {
+                "string_one": ["2132131SSS"],
+                "time": [Timedelta("0 days 00:00:00.990000")],
+            }
+        )
+        try:
+            for _, row in df.iterrows():
+                row
+        except OverflowError:
+            assert False, "Regression, see GH 35665"
+
     def test_constructor_dict_with_tzaware_scalar(self):
         # GH#42505
         dt = Timestamp("2019-11-03 01:00:00-0700").tz_convert("America/Los_Angeles")
