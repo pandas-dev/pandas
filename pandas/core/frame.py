@@ -6073,7 +6073,7 @@ class DataFrame(NDFrame, OpsMixin):
     def dropna(
         self,
         axis: Axis = 0,
-        how: str = None,
+        how: str | None = None,
         thresh=None,
         subset: IndexLabel = None,
         inplace: bool = False,
@@ -6182,11 +6182,13 @@ class DataFrame(NDFrame, OpsMixin):
         1  Batman  Batmobile 1940-04-25
         """
         if (how is not None) and (thresh is not None):
-            raise ValueError(f"You cannot set both the how and thresh"
-                             f" arguments at the same time.")
+            raise ValueError(
+                "You cannot set both the how and thresh arguments at the same time."
+            )
 
+        # default value for how
         if how is None:
-            how = 'any'
+            how = "any"
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         if isinstance(axis, (tuple, list)):
