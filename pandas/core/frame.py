@@ -8629,7 +8629,7 @@ Parrot 2  Parrot       24.0
             result.index = self.index.take(result.index)
         result = result.reindex(columns=self.columns, copy=False)
 
-        return result
+        return result.__finalize__(self, method="explode")
 
     def unstack(self, level: Level = -1, fill_value=None):
         """
