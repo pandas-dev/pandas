@@ -12,6 +12,7 @@ from io import (
 )
 import mmap
 import os
+from sys import byteorder
 import tarfile
 
 import numpy as np
@@ -29,6 +30,9 @@ from pandas import (
     concat,
 )
 import pandas._testing as tm
+
+
+endian = {"little": "<", "big": ">"}[byteorder]
 
 
 @pytest.mark.parametrize(
@@ -144,9 +148,9 @@ nan 2
             "the dtype timedelta64 is not supported for parsing",
             {"dtype": {"A": "timedelta64", "B": "float64"}},
         ),
-        ("the dtype <U8 is not supported for parsing", {"dtype": {"A": "U8"}}),
+        (f"the dtype {endian}U8 is not supported for parsing", {"dtype": {"A": "U8"}}),
     ],
-    ids=["dt64-0", "dt64-1", "td64", "<U8"],
+    ids=["dt64-0", "dt64-1", "td64", f"{endian}U8"],
 )
 def test_unsupported_dtype(c_parser_only, match, kwargs):
     parser = c_parser_only

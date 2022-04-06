@@ -1,3 +1,5 @@
+from sys import byteorder
+
 import numpy as np
 import pytest
 
@@ -283,7 +285,8 @@ def test_to_numpy_na_raises(dtype):
 
 def test_astype_str():
     a = pd.array([1, 2, None], dtype="Int64")
-    expected = np.array(["1", "2", "<NA>"], dtype="<U21")
+    endian = {"little": "<", "big": ">"}[byteorder]
+    expected = np.array(["1", "2", "<NA>"], dtype=f"{endian}U21")
 
     tm.assert_numpy_array_equal(a.astype(str), expected)
     tm.assert_numpy_array_equal(a.astype("str"), expected)
