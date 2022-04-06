@@ -6222,8 +6222,6 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             if how is not None:
                 raise ValueError(f"invalid how option: {how}")
-            else:
-                raise TypeError("must specify how or thresh")
 
         if np.all(mask):
             result = self.copy()
