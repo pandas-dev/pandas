@@ -60,7 +60,7 @@ dependencies:
   - cftime
   - dask
   - ipython
-  - geopandas
+  - geopandas-base
   - seaborn
   - scikit-learn
   - statsmodels

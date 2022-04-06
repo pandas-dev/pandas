@@ -8,7 +8,6 @@ import sys
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -224,20 +223,13 @@ def test_pandas_datareader():
     pandas_datareader.DataReader("F", "quandl", "2017-01-01", "2017-02-01")
 
 
-# importing from pandas, Cython import warning
-@pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
-@pytest.mark.xfail(
-    is_platform_windows(),
-    raises=ImportError,
-    reason="ImportError: the 'read_file' function requires the 'fiona' package, "
-    "but it is not installed or does not import correctly",
-    strict=False,
-)
 def test_geopandas():
 
     geopandas = import_module("geopandas")
-    fp = geopandas.datasets.get_path("naturalearth_lowres")
-    assert geopandas.read_file(fp) is not None
+    gdf = geopandas.GeoDataFrame(
+        {"col": [1, 2, 3], "geometry": geopandas.points_from_xy([1, 2, 3], [1, 2, 3])}
+    )
+    assert gdf[["col", "geometry"]].geometry.x.equals(Series([1.0, 2.0, 3.0]))
 
 
 # Cython import warning
