@@ -376,7 +376,7 @@ class TestMultiIndexConcat:
         # keyword levels should be unique
         df1 = DataFrame({"A": [1]}, index=["x"])
         df2 = DataFrame({"A": [1]}, index=["y"])
-        msg = "Level values not unique: \['x', 'y', 'y'\]"
+        msg = r"Level values not unique: \['x', 'y', 'y'\]"
         with pytest.raises(ValueError, match=msg):
             concat([df1, df2], keys=["x", "y"], levels=[["x", "y", "y"]])
 
