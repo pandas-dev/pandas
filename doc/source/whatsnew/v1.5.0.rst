@@ -536,7 +536,8 @@ Reshaping
 - Bug in :func:`get_dummies` that selected object and categorical dtypes but not string (:issue:`44965`)
 - Bug in :meth:`DataFrame.align` when aligning a :class:`MultiIndex` to a :class:`Series` with another :class:`MultiIndex` (:issue:`46001`)
 - Bug in concanenation with ``IntegerDtype``, or ``FloatingDtype`` arrays where the resulting dtype did not mirror the behavior of the non-nullable dtypes (:issue:`46379`)
--
+- Bug in :meth:`DataFrame.join` with a list when using suffixes to join DataFrames with duplicate column names (:issue:`46396`)
+- 
 
 Sparse
 ^^^^^^
@@ -555,7 +556,6 @@ Styler
 
 Other
 ^^^^^
-- Bug in :meth:`DataFrame.join` with a list when using suffixes to join DataFrames with duplicate column names (:issue:`46396`)
 
 .. ***DO NOT USE THIS SECTION***
 
