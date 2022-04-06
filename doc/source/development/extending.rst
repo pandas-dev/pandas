@@ -140,29 +140,81 @@ and comments contain guidance for properly implementing the interface.
 For ExtensionArrays backed by a single NumPy array, the
 :class:`~pandas.api.extensions.NDArrayBackedExtensionArray` class can save you
 some effort. It contains a private property ``_ndarray`` with the backing NumPy
-array and implements the extension array interface. Implement the ``_box_func``
-method to convert from array values to the type you wish to expose to users.
-Implement the ``_validate_scalar`` method to convert from an object to a value
-which can be stored in the NumPy array.
+array and implements the extension array interface.
+
+Implement the following:
+
+``_box_func``
+  Convert from array values to the type you wish to expose to users.
+
+``_internal_fill_value``
+   Scalar used to denote ``NA`` value inside our ``self._ndarray``, e.g. ``-1``
+   for ``Categorical``, ``iNaT`` for ``Period``.
+
+``_validate_scalar``
+  Convert from an object to a value which can be stored in the NumPy array.
+
+``_validate_setitem_value``
+  Convert a value or values for use in setting a value or values in the backing
+  NumPy array.
+
+``_validate_searchsorted_value``
+  Convert a value for use in searching for a value in the backing NumPy array.
+
+.. code-block:: python
+
+    class DateArray(NDArrayBackedExtensionArray):
+        _internal_fill_value = numpy.datetime64("NaT")
+
+        def __init__(self, values):
+            backing_array_dtype = "<M8[ns]"
+            super().__init__(values=values, dtype=backing_array_dtype)
+
+        def _box_func(self, value):
+            if pandas.isna(x):
+                return pandas.NaT
+            return x.astype("datetime64[us]").item().date()
+
+        def _validate_scalar(self, scalar):
+            if pandas.isna(scalar):
+                return numpy.datetime64("NaT")
+            elif isinstance(scalar, datetime.date):
+                return pandas.Timestamp(
+                    year=scalar.year, month=scalar.month, day=scalar.day
+                ).to_datetime64()
+            else:
+                raise TypeError("Invalid value type", scalar)
+
+        def _validate_setitem_value(self, value):
+            if pandas.api.types.is_list_like(value):
+                return [self._validate_scalar(v) for v in value]
+            return self._validate_scalar(value)
+
+        def _validate_searchsorted_value(self, value):
+            return self._validate_setitem_value(value)
+
+
+To support 2D arrays, use the ``_from_backing_data`` helper function when a
+method is called on multi-dimensional data.
 
 .. code-block:: python
 
     class CustomArray(NDArrayBackedExtensionArray):
-        def __init__(self, values):
-            backing_array_dtype = "int64"
-            super().__init__(values=values, dtype=backing_array_dtype)
 
-        def _box_func(self, value):
-            scalar = CustomObject(value)
-            return scalar
+        ...
 
-        def _validate_scalar(self, scalar):
-            if not isinstance(scalar, CustomObject):
-                raise TypeError("can't convert scalar of this type")
-            return scalar.convert_to_int64()
+        def min(self, *, axis: Optional[int] = None, skipna: bool = True, **kwargs):
+            pandas.compat.numpy.function.validate_minnumpy_validate_min((), kwargs)
+            result = pandas.core.nanops.nanmin(
+                values=self._ndarray, axis=axis, mask=self.isna(), skipna=skipna
+            )
+            if axis is None or self.ndim == 1:
+                return self._box_func(result)
+            return self._from_backing_data(result)
 
-Optionally, subclass :class:`pandas.tests.extension.base.NDArrayBacked2DTests`
-in your test suite to validate your implementation.
+
+Subclass the tests in :mod:`pandas.tests.extension.base` in your test suite to
+validate your implementation.
 
 .. code-block:: python
 
@@ -172,6 +224,15 @@ in your test suite to validate your implementation.
 
 
     class Test2DCompat(base.NDArrayBacked2DTests):
+        pass
+
+
+    class TestComparisonOps(base.BaseComparisonOpsTests):
+        pass
+
+    ...
+
+    class TestSetitem(base.BaseSetitemTests):
         pass
 
 
