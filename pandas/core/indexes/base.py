@@ -4371,8 +4371,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Series.reindex
-        DataFrame.reindex
+        Series.reindex : Return only specified index labels of Series.
+        DataFrame.reindex : Change to new indices or expand indices.
 
         Examples
         --------
