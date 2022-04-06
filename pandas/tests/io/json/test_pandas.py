@@ -1326,6 +1326,16 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         expected = DataFrame(1.404366e21, index=["articleId"], columns=[0])
         tm.assert_frame_equal(result, expected)
 
+    def test_read_json_nans(self, nulls_fixture, request):
+        # GH 46627
+        json = StringIO('[NaN, {}, null, 1]')
+        result = read_json(json)
+        assert result.iloc[0, 0] is not None  # used to return None here
+        assert np.isnan(result.iloc[0, 0])
+        assert result.iloc[1, 0] == {}
+        assert result.iloc[2, 0] is None
+        assert result.iloc[3, 0] == 1
+
     def test_to_jsonl(self):
         # GH9180
         df = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
