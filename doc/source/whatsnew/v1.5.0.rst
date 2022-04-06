@@ -93,7 +93,7 @@ Other enhancements
 - Add ``milliseconds`` field support for :class:`~pandas.DateOffset` (:issue:`43371`)
 - :meth:`DataFrame.reset_index` now accepts a ``names`` argument which renames the index names (:issue:`6878`)
 - :meth:`pd.concat` now raises when levels is given but keys is None (:issue:`46653`)
-- :meth:`pd.concat` now raises when levels duplicated (:issue:`46653`)
+- :meth:`pd.concat` now raises when ``levels`` contains duplicate values (:issue:`46653`)
 -
 
 .. ---------------------------------------------------------------------------
