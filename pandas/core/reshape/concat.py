@@ -669,7 +669,7 @@ class _Concatenator:
 
         if self.keys is None:
             if self.levels is not None:
-                raise ValueError("levels supported only when keys not None")
+                raise ValueError("levels supported only when keys is not None")
             concat_axis = _concat_indexes(indexes)
         else:
             concat_axis = _make_concat_multiindex(
