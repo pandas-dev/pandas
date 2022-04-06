@@ -6182,7 +6182,7 @@ class DataFrame(NDFrame, OpsMixin):
         1  Batman  Batmobile 1940-04-25
         """
         if (how is not None) and (thresh is not None):
-            raise ValueError(
+            raise TypeError(
                 "You cannot set both the how and thresh arguments at the same time."
             )
 

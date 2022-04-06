@@ -276,8 +276,8 @@ class TestDataFrameMissingData:
         # GH46575
         df = DataFrame([1, 2, pd.NA])
         msg = "You cannot set both the how and thresh arguments at the same time"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             df.dropna(how="all", thresh=2)
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             df.dropna(how="any", thresh=2)
