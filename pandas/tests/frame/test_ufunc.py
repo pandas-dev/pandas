@@ -81,7 +81,7 @@ def test_binary_input_dispatch_binop(dtype):
         ),
     ],
 )
-def test_ufunc_passes_args(func, arg, expected, request):
+def test_ufunc_passes_args(func, arg, expected):
     # GH#40662
     arr = np.array([[1, 2], [3, 4]])
     df = pd.DataFrame(arr)
@@ -263,12 +263,6 @@ def test_alignment_deprecation_many_inputs(request):
     )
 
     if np_version_gte1p22:
-        mark = pytest.mark.xfail(
-            reason="ufunc 'my_ufunc' did not contain a loop with signature matching "
-            "types",
-        )
-        request.node.add_marker(mark)
-
         mark = pytest.mark.filterwarnings(
             "ignore:`np.MachAr` is deprecated.*:DeprecationWarning"
         )

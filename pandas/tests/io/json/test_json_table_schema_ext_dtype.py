@@ -30,7 +30,7 @@ from pandas.io.json._table_schema import (
 
 
 class TestBuildSchema:
-    def setup_method(self, method):
+    def setup_method(self):
         self.da = DateArray([dt.date(2021, 10, 10)])
         self.dc = DecimalArray([decimal.Decimal(10)])
         self.sa = array(["pandas"], dtype="string")
@@ -117,7 +117,7 @@ class TestTableSchemaType:
 
 
 class TestTableOrient:
-    def setup_method(self, method):
+    def setup_method(self):
         self.da = DateArray([dt.date(2021, 10, 10)])
         self.dc = DecimalArray([decimal.Decimal(10)])
         self.sa = array(["pandas"], dtype="string")

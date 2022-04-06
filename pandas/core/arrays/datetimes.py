@@ -37,7 +37,10 @@ from pandas._libs.tslibs import (
     tzconversion,
 )
 from pandas._typing import npt
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    OutOfBoundsDatetime,
+    PerformanceWarning,
+)
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_inclusive
 
@@ -188,6 +191,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
     _typ = "datetimearray"
     _scalar_type = Timestamp
+    _internal_fill_value = np.datetime64("NaT", "ns")
     _recognized_scalars = (datetime, np.datetime64)
     _is_recognized_dtype = is_datetime64_any_dtype
     _infer_matches = ("datetime", "datetime64", "date")
@@ -250,7 +254,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     _dtype: np.dtype | DatetimeTZDtype
     _freq = None
 
-    def __init__(self, values, dtype=DT64NS_DTYPE, freq=None, copy: bool = False):
+    def __init__(
+        self, values, dtype=DT64NS_DTYPE, freq=None, copy: bool = False
+    ) -> None:
         values = extract_array(values, extract_numpy=True)
         if isinstance(values, IntegerArray):
             values = values.to_numpy("int64", na_value=iNaT)
@@ -450,9 +456,13 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             endpoint_tz = start.tz if start is not None else end.tz
 
             if tz is not None and endpoint_tz is None:
-                i8values = tzconversion.tz_localize_to_utc(
-                    i8values, tz, ambiguous=ambiguous, nonexistent=nonexistent
-                )
+
+                if not timezones.is_utc(tz):
+                    # short-circuit tz_localize_to_utc which would make
+                    #  an unnecessary copy with UTC but be a no-op.
+                    i8values = tzconversion.tz_localize_to_utc(
+                        i8values, tz, ambiguous=ambiguous, nonexistent=nonexistent
+                    )
 
                 # i8values is localized datetime64 array -> have to convert
                 # start/end as well to compare
@@ -771,7 +781,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     def _sub_datetimelike_scalar(self, other):
         # subtract a datetime from myself, yielding a ndarray[timedelta64[ns]]
         assert isinstance(other, (datetime, np.datetime64))
-        assert other is not NaT
+        # error: Non-overlapping identity check (left operand type: "Union[datetime,
+        # datetime64]", right operand type: "NaTType")  [comparison-overlap]
+        assert other is not NaT  # type: ignore[comparison-overlap]
         other = Timestamp(other)
         # error: Non-overlapping identity check (left operand type: "Timestamp",
         # right operand type: "NaTType")
@@ -1923,8 +1935,8 @@ default 'raise'
                 self.hour
                 + self.minute / 60
                 + self.second / 3600
-                + self.microsecond / 3600 / 10 ** 6
-                + self.nanosecond / 3600 / 10 ** 9
+                + self.microsecond / 3600 / 10**6
+                + self.nanosecond / 3600 / 10**9
             )
             / 24
         )
@@ -1994,10 +2006,10 @@ def sequence_to_datetimes(data, require_iso8601: bool = False) -> DatetimeArray:
 def _sequence_to_dt64ns(
     data,
     dtype=None,
-    copy=False,
+    copy: bool = False,
     tz=None,
-    dayfirst=False,
-    yearfirst=False,
+    dayfirst: bool = False,
+    yearfirst: bool = False,
     ambiguous="raise",
     *,
     allow_mixed: bool = False,
@@ -2063,7 +2075,7 @@ def _sequence_to_dt64ns(
         inferred_freq = data.freq
 
     # By this point we are assured to have either a numpy array or Index
-    data, copy = maybe_convert_dtype(data, copy)
+    data, copy = maybe_convert_dtype(data, copy, tz=tz)
     data_dtype = getattr(data, "dtype", None)
 
     if (
@@ -2118,6 +2130,8 @@ def _sequence_to_dt64ns(
         if tz is not None:
             # Convert tz-naive to UTC
             tz = timezones.maybe_get_tz(tz)
+            # TODO: if tz is UTC, are there situations where we *don't* want a
+            #  copy?  tz_localize_to_utc always makes one.
             data = tzconversion.tz_localize_to_utc(
                 data.view("i8"), tz, ambiguous=ambiguous
             )
@@ -2215,6 +2229,9 @@ def objects_to_datetime64ns(
             return values.view("i8"), tz_parsed
         except (ValueError, TypeError):
             raise err
+    except OverflowError as err:
+        # Exception is raised when a part of date is greater than 32 bit signed int
+        raise OutOfBoundsDatetime("Out of bounds nanosecond timestamp") from err
 
     if tz_parsed is not None:
         # We can take a shortcut since the datetime64 numpy array
@@ -2240,7 +2257,7 @@ def objects_to_datetime64ns(
         raise TypeError(result)
 
 
-def maybe_convert_dtype(data, copy: bool):
+def maybe_convert_dtype(data, copy: bool, tz: tzinfo | None = None):
     """
     Convert data based on dtype conventions, issuing deprecation warnings
     or errors where appropriate.
@@ -2249,6 +2266,7 @@ def maybe_convert_dtype(data, copy: bool):
     ----------
     data : np.ndarray or pd.Index
     copy : bool
+    tz : tzinfo or None, default None
 
     Returns
     -------
@@ -2268,8 +2286,23 @@ def maybe_convert_dtype(data, copy: bool):
         #  as wall-times instead of UTC timestamps.
         data = data.astype(DT64NS_DTYPE)
         copy = False
-        # TODO: deprecate this behavior to instead treat symmetrically
-        #  with integer dtypes.  See discussion in GH#23675
+        if (
+            tz is not None
+            and len(data) > 0
+            and not timezones.is_utc(timezones.maybe_get_tz(tz))
+        ):
+            # GH#23675, GH#45573 deprecate to treat symmetrically with integer dtypes
+            warnings.warn(
+                "The behavior of DatetimeArray._from_sequence with a timezone-aware "
+                "dtype and floating-dtype data is deprecated. In a future version, "
+                "this data will be interpreted as nanosecond UTC timestamps "
+                "instead of wall-times, matching the behavior with integer dtypes. "
+                "To retain the old behavior, explicitly cast to 'datetime64[ns]' "
+                "before passing the data to pandas. To get the future behavior, "
+                "first cast to 'int64'.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
     elif is_timedelta64_dtype(data.dtype) or is_bool_dtype(data.dtype):
         # GH#29794 enforcing deprecation introduced in GH#23539
@@ -2289,7 +2322,6 @@ def maybe_convert_dtype(data, copy: bool):
         copy = False
 
     elif is_extension_array_dtype(data.dtype) and not is_datetime64tz_dtype(data.dtype):
-        # Includes categorical
         # TODO: We have no tests for these
         data = np.array(data, dtype=np.object_)
         copy = False

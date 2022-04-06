@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import (
     Categorical,
     DataFrame,
@@ -17,6 +19,19 @@ from pandas.tests.frame.common import _check_mixed_float
 
 
 class TestFillNA:
+    @td.skip_array_manager_not_yet_implemented
+    def test_fillna_on_column_view(self):
+        # GH#46149 avoid unnecessary copies
+        arr = np.full((40, 50), np.nan)
+        df = DataFrame(arr)
+
+        df[0].fillna(-1, inplace=True)
+        assert (arr[:, 0] == -1).all()
+
+        # i.e. we didn't create a new 49-column block
+        assert len(df._mgr.arrays) == 1
+        assert np.shares_memory(df.values, arr)
+
     def test_fillna_datetime(self, datetime_frame):
         tf = datetime_frame
         tf.loc[tf.index[:5], "A"] = np.nan
@@ -243,6 +258,31 @@ class TestFillNA:
         result = df.fillna({"a": 0}, downcast="infer")
         expected = DataFrame({"a": [1, 0]})
         tm.assert_frame_equal(result, expected)
+
+    def test_fillna_downcast_false(self, frame_or_series):
+        # GH#45603 preserve object dtype with downcast=False
+        obj = frame_or_series([1, 2, 3], dtype="object")
+        result = obj.fillna("", downcast=False)
+        tm.assert_equal(result, obj)
+
+    def test_fillna_downcast_noop(self, frame_or_series):
+        # GH#45423
+        # Two relevant paths:
+        #  1) not _can_hold_na (e.g. integer)
+        #  2) _can_hold_na + noop + not can_hold_element
+
+        obj = frame_or_series([1, 2, 3], dtype=np.int64)
+        res = obj.fillna("foo", downcast=np.dtype(np.int32))
+        expected = obj.astype(np.int32)
+        tm.assert_equal(res, expected)
+
+        obj2 = obj.astype(np.float64)
+        res2 = obj2.fillna("foo", downcast="infer")
+        expected2 = obj  # get back int64
+        tm.assert_equal(res2, expected2)
+
+        res3 = obj2.fillna("foo", downcast=np.dtype(np.int32))
+        tm.assert_equal(res3, expected)
 
     @pytest.mark.parametrize("columns", [["A", "A", "B"], ["A", "A"]])
     def test_fillna_dictlike_value_duplicate_colnames(self, columns):

@@ -51,11 +51,8 @@ class TestPandasDelegate:
             pass
 
     class Delegate(PandasDelegate, PandasObject):
-        def __init__(self, obj):
+        def __init__(self, obj) -> None:
             self.obj = obj
-
-    def setup_method(self, method):
-        pass
 
     def test_invalid_delegation(self):
         # these show that in order for the delegation to work

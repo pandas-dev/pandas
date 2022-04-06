@@ -469,7 +469,7 @@ def test_maximums(styler_mi, rows, cols):
     assert (">2</td>" in result) is not cols  # first trimmed horizontal element
 
 
-def test_replaced_css_class_names(styler_mi):
+def test_replaced_css_class_names():
     css = {
         "row_heading": "ROWHEAD",
         # "col_heading": "COLHEAD",
@@ -778,8 +778,20 @@ def test_hiding_index_columns_multiindex_trimming():
         ("no scheme, no top-level: www.web", False, "www.web"),
         ("https scheme: https://www.web.com", True, "https://www.web.com"),
         ("ftp scheme: ftp://www.web", True, "ftp://www.web"),
+        ("ftps scheme: ftps://www.web", True, "ftps://www.web"),
         ("subdirectories: www.web.com/directory", True, "www.web.com/directory"),
         ("Multiple domains: www.1.2.3.4", True, "www.1.2.3.4"),
+        ("with port: http://web.com:80", True, "http://web.com:80"),
+        (
+            "full net_loc scheme: http://user:pass@web.com",
+            True,
+            "http://user:pass@web.com",
+        ),
+        (
+            "with valid special chars: http://web.com/,.':;~!@#$*()[]",
+            True,
+            "http://web.com/,.':;~!@#$*()[]",
+        ),
     ],
 )
 def test_rendered_links(type, text, exp, found):
@@ -804,3 +816,24 @@ def test_multiple_rendered_links():
     for link in links:
         assert href.format(link) in result
     assert href.format("text") not in result
+
+
+def test_concat(styler):
+    other = styler.data.agg(["mean"]).style
+    styler.concat(other).set_uuid("X")
+    result = styler.to_html()
+    expected = dedent(
+        """\
+    <tr>
+      <th id="T_X_level0_row1" class="row_heading level0 row1" >b</th>
+      <td id="T_X_row1_col0" class="data row1 col0" >2.690000</td>
+    </tr>
+    <tr>
+      <th id="T_X_level0_foot_row0" class="foot_row_heading level0 foot_row0" >mean</th>
+      <td id="T_X_foot_row0_col0" class="foot_data foot_row0 col0" >2.650000</td>
+    </tr>
+  </tbody>
+</table>
+    """
+    )
+    assert expected in result

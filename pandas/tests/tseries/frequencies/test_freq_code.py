@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from pandas._libs.tslibs import (
@@ -17,7 +18,7 @@ def test_get_to_timestamp_base(freqstr, exp_freqstr):
     per = Period._from_ordinal(1, off)
     exp_code = to_offset(exp_freqstr)._period_dtype_code
 
-    result_code = per._get_to_timestamp_base()
+    result_code = per._dtype._get_to_timestamp_base()
     assert result_code == exp_code
 
 
@@ -37,12 +38,12 @@ def test_get_to_timestamp_base(freqstr, exp_freqstr):
     ],
 )
 def test_get_attrname_from_abbrev(freqstr, expected):
-    assert Resolution.get_reso_from_freq(freqstr).attrname == expected
+    assert Resolution.get_reso_from_freqstr(freqstr).attrname == expected
 
 
 @pytest.mark.parametrize("freq", ["D", "H", "T", "S", "L", "U", "N"])
 def test_get_freq_roundtrip2(freq):
-    obj = Resolution.get_reso_from_freq(freq)
+    obj = Resolution.get_reso_from_freqstr(freq)
     result = _attrname_to_abbrevs[obj.attrname]
     assert freq == result
 
@@ -78,3 +79,19 @@ def test_cat(args):
 
     with pytest.raises(ValueError, match=msg):
         to_offset(str(args[0]) + args[1])
+
+
+@pytest.mark.parametrize(
+    "freqstr,expected",
+    [
+        ("1H", "2021-01-01T09:00:00"),
+        ("1D", "2021-01-02T08:00:00"),
+        ("1W", "2021-01-03T08:00:00"),
+        ("1M", "2021-01-31T08:00:00"),
+        ("1Y", "2021-12-31T08:00:00"),
+    ],
+)
+def test_compatibility(freqstr, expected):
+    ts_np = np.datetime64("2021-01-01T08:00:00.00")
+    do = to_offset(freqstr)
+    assert ts_np + do == np.datetime64(expected)

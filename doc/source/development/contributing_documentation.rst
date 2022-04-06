@@ -89,16 +89,6 @@ Some other important things to know about the docs:
   ``doc/source/reference``, else Sphinx
   will emit a warning.
 
-.. note::
-
-    The ``.rst`` files are used to automatically generate Markdown and HTML versions
-    of the docs. For this reason, please do not edit ``CONTRIBUTING.md`` directly,
-    but instead make any changes to ``doc/source/development/contributing.rst``. Then, to
-    generate ``CONTRIBUTING.md``, use `pandoc <https://johnmacfarlane.net/pandoc/>`_
-    with the following command::
-
-      pandoc doc/source/development/contributing.rst -t markdown_github > CONTRIBUTING.md
-
 The utility script ``scripts/validate_docstrings.py`` can be used to get a csv
 summary of the API documentation. And also validate common errors in the docstring
 of a specific class, function or method. The summary also compares the list of

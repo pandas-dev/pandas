@@ -9,9 +9,9 @@ from cython import Py_ssize_t
 from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
-    PyDateTime_IMPORT,
     PyDelta_Check,
     PyTime_Check,
+    import_datetime,
 )
 from cpython.iterator cimport PyIter_Check
 from cpython.number cimport PyNumber_Check
@@ -27,7 +27,7 @@ from cpython.tuple cimport (
 )
 from cython cimport floating
 
-PyDateTime_IMPORT
+import_datetime()
 
 import numpy as np
 
@@ -647,26 +647,6 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
             raise
     return True
 
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def astype_intsafe(ndarray[object] arr, cnp.dtype new_dtype) -> ndarray:
-    cdef:
-        Py_ssize_t i, n = len(arr)
-        object val
-        bint is_datelike
-        ndarray result
-
-    is_datelike = new_dtype == 'm8[ns]'
-    result = np.empty(n, dtype=new_dtype)
-    for i in range(n):
-        val = arr[i]
-        if is_datelike and checknull(val):
-            result[i] = NPY_NAT
-        else:
-            result[i] = val
-
-    return result
 
 ctypedef fused ndarr_object:
     ndarray[object, ndim=1]
@@ -2490,8 +2470,8 @@ def maybe_convert_objects(ndarray[object] objects,
         ndarray[int64_t] ints
         ndarray[uint64_t] uints
         ndarray[uint8_t] bools
-        int64_t[:]  idatetimes
-        int64_t[:] itimedeltas
+        int64_t[::1]  idatetimes
+        int64_t[::1] itimedeltas
         Seen seen = Seen()
         object val
         float64_t fval, fnan = np.nan

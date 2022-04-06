@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from typing import (
     Hashable,
     Mapping,
@@ -42,7 +43,7 @@ class CParserWrapper(ParserBase):
     low_memory: bool
     _reader: parsers.TextReader
 
-    def __init__(self, src: ReadCsvBuffer[str], **kwds):
+    def __init__(self, src: ReadCsvBuffer[str], **kwds) -> None:
         super().__init__(kwds)
         self.kwds = kwds
         kwds = kwds.copy()
@@ -172,7 +173,6 @@ class CParserWrapper(ParserBase):
                     self.names,  # type: ignore[has-type]
                     # error: Cannot determine type of 'index_col'
                     self.index_col,  # type: ignore[has-type]
-                    self.unnamed_cols,
                 )
 
                 if self.index_names is None:
@@ -220,6 +220,8 @@ class CParserWrapper(ParserBase):
         Sequence[Hashable] | MultiIndex,
         Mapping[Hashable, ArrayLike],
     ]:
+        index: Index | MultiIndex | None
+        column_names: Sequence[Hashable] | MultiIndex
         try:
             if self.low_memory:
                 chunks = self._reader.read_low_memory(nrows)
@@ -284,7 +286,12 @@ class CParserWrapper(ParserBase):
             data_tups = sorted(data.items())
             data = {k: v for k, (i, v) in zip(names, data_tups)}
 
-            names, date_data = self._do_date_conversions(names, data)
+            column_names, date_data = self._do_date_conversions(names, data)
+
+            # maybe create a mi on the columns
+            column_names = self._maybe_make_multi_index_columns(
+                column_names, self.col_names
+            )
 
         else:
             # rename dict keys
@@ -308,12 +315,9 @@ class CParserWrapper(ParserBase):
             data = {k: v for k, (i, v) in zip(names, data_tups)}
 
             names, date_data = self._do_date_conversions(names, data)
-            index, names = self._make_index(date_data, alldata, names)
+            index, column_names = self._make_index(date_data, alldata, names)
 
-        # maybe create a mi on the columns
-        conv_names = self._maybe_make_multi_index_columns(names, self.col_names)
-
-        return index, conv_names, date_data
+        return index, column_names, date_data
 
     def _filter_usecols(self, names: Sequence[Hashable]) -> Sequence[Hashable]:
         # hackish
@@ -330,7 +334,7 @@ class CParserWrapper(ParserBase):
 
         if self._reader.leading_cols == 0 and self.index_col is not None:
             (idx_names, names, self.index_col) = self._clean_index_names(
-                names, self.index_col, self.unnamed_cols
+                names, self.index_col
             )
 
         return names, idx_names
@@ -412,7 +416,14 @@ def ensure_dtype_objs(
     Ensure we have either None, a dtype object, or a dictionary mapping to
     dtype objects.
     """
-    if isinstance(dtype, dict):
+    if isinstance(dtype, defaultdict):
+        # "None" not callable  [misc]
+        default_dtype = pandas_dtype(dtype.default_factory())  # type: ignore[misc]
+        dtype_converted: defaultdict = defaultdict(lambda: default_dtype)
+        for key in dtype.keys():
+            dtype_converted[key] = pandas_dtype(dtype[key])
+        return dtype_converted
+    elif isinstance(dtype, dict):
         return {k: pandas_dtype(dtype[k]) for k in dtype}
     elif dtype is not None:
         return pandas_dtype(dtype)

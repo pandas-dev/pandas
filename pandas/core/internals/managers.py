@@ -14,6 +14,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import (
+    algos as libalgos,
     internals as libinternals,
     lib,
 )
@@ -36,7 +37,6 @@ from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
     is_dtype_equal,
     is_list_like,
-    needs_i8_conversion,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
@@ -146,7 +146,7 @@ class BaseBlockManager(DataManager):
     _known_consolidated: bool
     _is_consolidated: bool
 
-    def __init__(self, blocks, axes, verify_integrity: bool = True):
+    def __init__(self, blocks, axes, verify_integrity: bool = True) -> None:
         raise NotImplementedError
 
     @classmethod
@@ -366,53 +366,14 @@ class BaseBlockManager(DataManager):
         if fill_value is lib.no_default:
             fill_value = None
 
-        if (
-            axis == 0
-            and self.ndim == 2
-            and (
-                self.nblocks > 1
-                or (
-                    # If we only have one block and we know that we can't
-                    #  keep the same dtype (i.e. the _can_hold_element check)
-                    #  then we can go through the reindex_indexer path
-                    #  (and avoid casting logic in the Block method).
-                    #  The exception to this (until 2.0) is datetimelike
-                    #  dtypes with integers, which cast.
-                    not self.blocks[0]._can_hold_element(fill_value)
-                    # TODO(2.0): remove special case for integer-with-datetimelike
-                    #  once deprecation is enforced
-                    and not (
-                        lib.is_integer(fill_value)
-                        and needs_i8_conversion(self.blocks[0].dtype)
-                    )
-                )
-            )
-        ):
-            # GH#35488 we need to watch out for multi-block cases
-            # We only get here with fill_value not-lib.no_default
-            ncols = self.shape[0]
-            nper = abs(periods)
-            nper = min(nper, ncols)
-            if periods > 0:
-                indexer = np.array(
-                    [-1] * nper + list(range(ncols - periods)), dtype=np.intp
-                )
-            else:
-                indexer = np.array(
-                    list(range(nper, ncols)) + [-1] * nper, dtype=np.intp
-                )
-            result = self.reindex_indexer(
-                self.items,
-                indexer,
-                axis=0,
-                fill_value=fill_value,
-                allow_dups=True,
-            )
-            return result
-
         return self.apply("shift", periods=periods, axis=axis, fill_value=fill_value)
 
     def fillna(self: T, value, limit, inplace: bool, downcast) -> T:
+
+        if limit is not None:
+            # Do this validation even if we go through one of the no-op paths
+            limit = libalgos.validate_limit(None, limit=limit)
+
         return self.apply(
             "fillna", value=value, limit=limit, inplace=inplace, downcast=downcast
         )
@@ -636,7 +597,7 @@ class BaseBlockManager(DataManager):
     def reindex_indexer(
         self: T,
         new_axis: Index,
-        indexer,
+        indexer: npt.NDArray[np.intp] | None,
         axis: int,
         fill_value=None,
         allow_dups: bool = False,
@@ -649,7 +610,7 @@ class BaseBlockManager(DataManager):
         Parameters
         ----------
         new_axis : Index
-        indexer : ndarray of int64 or None
+        indexer : ndarray[intp] or None
         axis : int
         fill_value : object, default None
         allow_dups : bool, default False
@@ -868,7 +829,13 @@ class BaseBlockManager(DataManager):
         block_values.fill(fill_value)
         return new_block_2d(block_values, placement=placement)
 
-    def take(self: T, indexer, axis: int = 1, verify: bool = True) -> T:
+    def take(
+        self: T,
+        indexer,
+        axis: int = 1,
+        verify: bool = True,
+        convert_indices: bool = True,
+    ) -> T:
         """
         Take items along any axis.
 
@@ -877,6 +844,8 @@ class BaseBlockManager(DataManager):
         verify : bool, default True
             Check that all entries are between 0 and len(self) - 1, inclusive.
             Pass verify=False if this check has been done by the caller.
+        convert_indices : bool, default True
+            Whether to attempt to convert indices to positive values.
 
         Returns
         -------
@@ -890,7 +859,8 @@ class BaseBlockManager(DataManager):
         )
 
         n = self.shape[axis]
-        indexer = maybe_convert_indices(indexer, n, verify=verify)
+        if convert_indices:
+            indexer = maybe_convert_indices(indexer, n, verify=verify)
 
         new_labels = self.axes[axis].take(indexer)
         return self.reindex_indexer(
@@ -916,7 +886,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         blocks: Sequence[Block],
         axes: Sequence[Index],
         verify_integrity: bool = True,
-    ):
+    ) -> None:
 
         if verify_integrity:
             # Assertion disabled for performance
@@ -1133,8 +1103,12 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 if len(val_locs) == len(blk.mgr_locs):
                     removed_blknos.append(blkno_l)
                 else:
-                    blk.delete(blk_locs)
-                    self._blklocs[blk.mgr_locs.indexer] = np.arange(len(blk))
+                    nb = blk.delete(blk_locs)
+                    blocks_tup = (
+                        self.blocks[:blkno_l] + (nb,) + self.blocks[blkno_l + 1 :]
+                    )
+                    self.blocks = blocks_tup
+                    self._blklocs[nb.mgr_locs.indexer] = np.arange(len(nb))
 
         if len(removed_blknos):
             # Remove blocks & update blknos accordingly
@@ -1702,7 +1676,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         axis: Index,
         verify_integrity: bool = False,
         fastpath=lib.no_default,
-    ):
+    ) -> None:
         # Assertions disabled for performance
         # assert isinstance(block, Block), type(block)
         # assert isinstance(axis, Index), type(axis)
@@ -1869,8 +1843,10 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
 
         Ensures that self.blocks doesn't become empty.
         """
-        self._block.delete(indexer)
+        nb = self._block.delete(indexer)
+        self.blocks = (nb,)
         self.axes[0] = self.axes[0].delete(indexer)
+        self._cache.clear()
         return self
 
     def fast_xs(self, loc):

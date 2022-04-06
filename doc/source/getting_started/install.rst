@@ -20,7 +20,7 @@ Instructions for installing from source,
 Python version support
 ----------------------
 
-Officially Python 3.8, and 3.9.
+Officially Python 3.8, 3.9 and 3.10.
 
 Installing pandas
 -----------------
@@ -204,17 +204,28 @@ installed), make sure you have `pytest
 ::
 
     >>> pd.test()
-    running: pytest --skip-slow --skip-network C:\Users\TP\Anaconda3\envs\py36\lib\site-packages\pandas
-    ============================= test session starts =============================
-    platform win32 -- Python 3.6.2, pytest-3.6.0, py-1.4.34, pluggy-0.4.0
-    rootdir: C:\Users\TP\Documents\Python\pandasdev\pandas, inifile: setup.cfg
-    collected 12145 items / 3 skipped
+    running: pytest --skip-slow --skip-network --skip-db /home/user/anaconda3/lib/python3.9/site-packages/pandas
 
-    ..................................................................S......
-    ........S................................................................
-    .........................................................................
+    ============================= test session starts ==============================
+    platform linux -- Python 3.9.7, pytest-6.2.5, py-1.11.0, pluggy-1.0.0
+    rootdir: /home/user
+    plugins: dash-1.19.0, anyio-3.5.0, hypothesis-6.29.3
+    collected 154975 items / 4 skipped / 154971 selected
+    ........................................................................ [  0%]
+    ........................................................................ [ 99%]
+    .......................................                                  [100%]
 
-    ==================== 12130 passed, 12 skipped in 368.339 seconds =====================
+    ==================================== ERRORS ====================================
+
+    =================================== FAILURES ===================================
+
+    =============================== warnings summary ===============================
+
+    =========================== short test summary info ============================
+
+    = 1 failed, 146194 passed, 7402 skipped, 1367 xfailed, 5 xpassed, 197 warnings, 10 errors in 1090.16s (0:18:10) =
+
+This is just an example of what information is shown. You might see a slightly different result as what is shown above.
 
 .. _install.dependencies:
 
@@ -276,7 +287,7 @@ Computation
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-SciPy                     1.14.1             Miscellaneous statistical functions
+SciPy                     1.4.1              Miscellaneous statistical functions
 numba                     0.50.1             Alternative execution engine for rolling operations
                                              (see :ref:`Enhancing Performance <enhancingperf.numba>`)
 xarray                    0.15.1             pandas-like API for N-dimensional data
@@ -410,5 +421,7 @@ Compression
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-Zstandard                                    Zstandard compression
+brotli                    0.7.0              Brotli compression
+python-snappy             0.6.0              Snappy compression
+Zstandard                 0.15.2             Zstandard compression
 ========================= ================== =============================================================

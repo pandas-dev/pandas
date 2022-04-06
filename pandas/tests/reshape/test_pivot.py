@@ -39,7 +39,7 @@ def interval_values(request, closed):
 
 
 class TestPivotTable:
-    def setup_method(self, method):
+    def setup_method(self):
         self.data = DataFrame(
             {
                 "A": [
@@ -1758,7 +1758,7 @@ class TestPivotTable:
         table = df.pivot_table("x", "y", "z", dropna=observed, margins=True)
         tm.assert_frame_equal(table, expected)
 
-    def test_margins_casted_to_float(self, observed):
+    def test_margins_casted_to_float(self):
         # GH 24893
         df = DataFrame(
             {
@@ -1999,7 +1999,7 @@ class TestPivotTable:
         # GH 20601
         # GH 26314: Change ValueError to PerformanceWarning
         class MockUnstacker(reshape_lib._Unstacker):
-            def __init__(self, *args, **kwargs):
+            def __init__(self, *args, **kwargs) -> None:
                 # __init__ will raise the warning
                 super().__init__(*args, **kwargs)
                 raise Exception("Don't compute final result.")
@@ -2007,7 +2007,7 @@ class TestPivotTable:
         with monkeypatch.context() as m:
             m.setattr(reshape_lib, "_Unstacker", MockUnstacker)
             df = DataFrame(
-                {"ind1": np.arange(2 ** 16), "ind2": np.arange(2 ** 16), "count": 0}
+                {"ind1": np.arange(2**16), "ind2": np.arange(2**16), "count": 0}
             )
 
             msg = "The following operation may generate"

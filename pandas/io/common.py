@@ -251,7 +251,10 @@ def is_fsspec_url(url: FilePath | BaseBuffer) -> bool:
     )
 
 
-@doc(compression_options=_shared_docs["compression_options"] % "filepath_or_buffer")
+@doc(
+    storage_options=_shared_docs["storage_options"],
+    compression_options=_shared_docs["compression_options"] % "filepath_or_buffer",
+)
 def _get_filepath_or_buffer(
     filepath_or_buffer: FilePath | BaseBuffer,
     encoding: str = "utf-8",
@@ -274,13 +277,7 @@ def _get_filepath_or_buffer(
     encoding : the encoding to use to decode bytes, default is 'utf-8'
     mode : str, optional
 
-    storage_options : dict, optional
-        Extra options that make sense for a particular storage connection, e.g.
-        host, port, username, password, etc., if using a URL that will
-        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
-        will be raised if providing this argument with a local path or
-        a file-like buffer. See the fsspec and backend storage implementation
-        docs for the set of allowed keys and values
+    {storage_options}
 
         .. versionadded:: 1.2.0
 
@@ -568,7 +565,7 @@ def check_parent_directory(path: Path | str) -> None:
     """
     parent = Path(path).parent
     if not parent.is_dir():
-        raise OSError(fr"Cannot save file into a non-existent directory: '{parent}'")
+        raise OSError(rf"Cannot save file into a non-existent directory: '{parent}'")
 
 
 @overload
@@ -875,7 +872,7 @@ class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore[misc]
         mode: str,
         archive_name: str | None = None,
         **kwargs,
-    ):
+    ) -> None:
         mode = mode.replace("b", "")
         self.archive_name = archive_name
         self.multiple_write_buffer: StringIO | BytesIO | None = None
@@ -947,7 +944,7 @@ class _MMapWrapper(abc.Iterator):
         encoding: str = "utf-8",
         errors: str = "strict",
         decode: bool = True,
-    ):
+    ) -> None:
         self.encoding = encoding
         self.errors = errors
         self.decoder = codecs.getincrementaldecoder(encoding)(errors=errors)
@@ -1002,7 +999,7 @@ class _IOWrapper:
     # methods, e.g., tempfile.SpooledTemporaryFile.
     # If a buffer does not have the above "-able" methods, we simple assume they are
     # seek/read/writ-able.
-    def __init__(self, buffer: BaseBuffer):
+    def __init__(self, buffer: BaseBuffer) -> None:
         self.buffer = buffer
 
     def __getattr__(self, name: str):
@@ -1029,7 +1026,7 @@ class _IOWrapper:
 class _BytesIOWrapper:
     # Wrapper that wraps a StringIO buffer and reads bytes from it
     # Created for compat with pyarrow read_csv
-    def __init__(self, buffer: StringIO | TextIOBase, encoding: str = "utf-8"):
+    def __init__(self, buffer: StringIO | TextIOBase, encoding: str = "utf-8") -> None:
         self.buffer = buffer
         self.encoding = encoding
         # Because a character can be represented by more than 1 byte,

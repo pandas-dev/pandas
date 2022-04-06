@@ -1,6 +1,8 @@
 """
 Tests for offsets.BusinessHour
 """
+from __future__ import annotations
+
 from datetime import (
     datetime,
     time as dt_time,
@@ -30,9 +32,9 @@ from pandas.tests.tseries.offsets.common import (
 
 
 class TestBusinessHour(Base):
-    _offset = BusinessHour
+    _offset: type[BusinessHour] = BusinessHour
 
-    def setup_method(self, method):
+    def setup_method(self):
         self.d = datetime(2014, 7, 1, 10, 00)
 
         self.offset1 = BusinessHour()

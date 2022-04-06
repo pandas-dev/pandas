@@ -722,9 +722,7 @@ class TestTimeSeriesArithmetic:
 class TestNamePreservation:
     @pytest.mark.parametrize("box", [list, tuple, np.array, Index, Series, pd.array])
     @pytest.mark.parametrize("flex", [True, False])
-    def test_series_ops_name_retention(
-        self, request, flex, box, names, all_binary_operators
-    ):
+    def test_series_ops_name_retention(self, flex, box, names, all_binary_operators):
         # GH#33930 consistent name renteiton
         op = all_binary_operators
 
@@ -825,11 +823,13 @@ class TestInplaceOperations:
         tm.assert_series_equal(ser1, expected)
 
 
-def test_none_comparison(series_with_simple_index):
+def test_none_comparison(request, series_with_simple_index):
     series = series_with_simple_index
 
     if len(series) < 1:
-        pytest.skip("Test doesn't make sense on empty data")
+        request.node.add_marker(
+            pytest.mark.xfail(reason="Test doesn't make sense on empty data")
+        )
 
     # bug brought up by #1079
     # changed from TypeError in 0.17.0
@@ -887,8 +887,8 @@ def test_series_varied_multiindex_alignment():
     expected = Series(
         [1000, 2001, 3002, 4003],
         index=pd.MultiIndex.from_tuples(
-            [("a", "x", 1), ("a", "x", 2), ("a", "y", 1), ("a", "y", 2)],
-            names=["ab", "xy", "num"],
+            [("x", 1, "a"), ("x", 2, "a"), ("y", 1, "a"), ("y", 2, "a")],
+            names=["xy", "num", "ab"],
         ),
     )
     tm.assert_series_equal(result, expected)

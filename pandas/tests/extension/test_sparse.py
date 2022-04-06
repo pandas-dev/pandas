@@ -54,7 +54,7 @@ def data(request):
 
 
 @pytest.fixture
-def data_for_twos(request):
+def data_for_twos():
     return SparseArray(np.ones(100) * 2)
 
 
@@ -266,10 +266,10 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
         with tm.assert_produces_warning(PerformanceWarning):
             super().test_fillna_limit_backfill(data_missing)
 
-    @pytest.mark.skip(reason="Unsupported")
+    @pytest.mark.xfail(reason="Unsupported")
     def test_fillna_series(self):
         # this one looks doable.
-        pass
+        super(self).test_fillna_series()
 
     def test_fillna_frame(self, data_missing):
         # Have to override to specify that fill_value will change.
@@ -293,14 +293,6 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
 
 
 class TestMethods(BaseSparseTests, base.BaseMethodsTests):
-    @pytest.mark.parametrize("ascending", [True, False])
-    def test_sort_values_frame(self, data_for_sorting, ascending):
-        msg = "will store that array directly"
-        with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=False
-        ):
-            super().test_sort_values_frame(data_for_sorting, ascending)
-
     def test_combine_le(self, data_repeated):
         # We return a Series[SparseArray].__le__ returns a
         # Series[Sparse[bool]]
@@ -345,9 +337,9 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         assert ser._values is not result._values
         assert ser._values.to_dense() is arr.to_dense()
 
-    @pytest.mark.skip(reason="Not Applicable")
+    @pytest.mark.xfail(reason="Not Applicable")
     def test_fillna_length_mismatch(self, data_missing):
-        pass
+        super().test_fillna_length_mismatch(data_missing)
 
     def test_where_series(self, data, na_value):
         assert data[0] != data[1]
@@ -453,7 +445,7 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
             # arith ops call on dtype.fill_value so that the sparsity
             # is maintained. Combine can't be called on a dtype in
             # general, so we can't make the expected. This is tested elsewhere
-            raise pytest.skip("Incorrected expected from Series.combine")
+            pytest.skip("Incorrected expected from Series.combine and tested elsewhere")
 
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         self._skip_if_different_combine(data)
