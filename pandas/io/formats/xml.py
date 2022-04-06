@@ -62,7 +62,7 @@ class BaseXMLFormatter:
     elem_cols : list
         List of columns to write as children in row element.
 
-    namespacess : dict
+    namespaces : dict
         The namespaces to define in XML document as dicts with key
         being namespace and value the URI.
 
@@ -485,9 +485,9 @@ class LxmlXMLFormatter(BaseXMLFormatter):
 
     def convert_empty_str_key(self) -> None:
         """
-        Replace zero-lengh string in `namespaces`.
+        Replace zero-length string in `namespaces`.
 
-        This method will replce '' with None to align to `lxml`
+        This method will replace '' with None to align to `lxml`
         requirement that empty string prefixes are not allowed.
         """
 

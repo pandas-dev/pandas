@@ -379,6 +379,13 @@ def maybe_downcast_numeric(
         if np.allclose(new_result, result, equal_nan=True, rtol=0.0, atol=atol):
             return new_result
 
+    elif dtype.kind == result.dtype.kind == "c":
+        new_result = result.astype(dtype)
+
+        if array_equivalent(new_result, result):
+            # TODO: use tolerance like we do for float?
+            return new_result
+
     return result
 
 

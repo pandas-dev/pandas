@@ -210,7 +210,7 @@ class TestDataFrameRound:
 
     def test_round_interval_category_columns(self):
         # GH#30063
-        columns = pd.CategoricalIndex(pd.interval_range(0, 2))
+        columns = pd.CategoricalIndex(pd.interval_range(0, 2, inclusive="right"))
         df = DataFrame([[0.66, 1.1], [0.3, 0.25]], columns=columns)
 
         result = df.round()

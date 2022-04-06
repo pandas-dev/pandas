@@ -181,7 +181,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     _metadata = ("categories", "ordered")
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
 
-    def __init__(self, categories=None, ordered: Ordered = False):
+    def __init__(self, categories=None, ordered: Ordered = False) -> None:
         self._finalize(categories, ordered, fastpath=False)
 
     @classmethod
@@ -672,7 +672,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
     _match = re.compile(r"(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
 
-    def __init__(self, unit: str_type | DatetimeTZDtype = "ns", tz=None):
+    def __init__(self, unit: str_type | DatetimeTZDtype = "ns", tz=None) -> None:
         if isinstance(unit, DatetimeTZDtype):
             # error: "str" has no attribute "tz"
             unit, tz = unit.unit, unit.tz  # type: ignore[attr-defined]
@@ -997,7 +997,9 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
         import pyarrow
 
         from pandas.core.arrays import PeriodArray
-        from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
+        from pandas.core.arrays.arrow._arrow_utils import (
+            pyarrow_array_to_numpy_and_mask,
+        )
 
         if isinstance(array, pyarrow.Array):
             chunks = [array]
@@ -1303,7 +1305,7 @@ class PandasDtype(ExtensionDtype):
 
     _metadata = ("_dtype",)
 
-    def __init__(self, dtype: npt.DTypeLike | PandasDtype | None):
+    def __init__(self, dtype: npt.DTypeLike | PandasDtype | None) -> None:
         if isinstance(dtype, PandasDtype):
             # make constructor univalent
             dtype = dtype.numpy_dtype
@@ -1437,3 +1439,22 @@ class BaseMaskedDtype(ExtensionDtype):
             return FLOAT_STR_TO_DTYPE[dtype.name]
         else:
             raise NotImplementedError(dtype)
+
+    def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
+        # We unwrap any masked dtypes, find the common dtype we would use
+        #  for that, then re-mask the result.
+        from pandas.core.dtypes.cast import find_common_type
+
+        new_dtype = find_common_type(
+            [
+                dtype.numpy_dtype if isinstance(dtype, BaseMaskedDtype) else dtype
+                for dtype in dtypes
+            ]
+        )
+        if not isinstance(new_dtype, np.dtype):
+            # If we ever support e.g. Masked[DatetimeArray] then this will change
+            return None
+        try:
+            return type(self).from_numpy_dtype(new_dtype)
+        except (KeyError, NotImplementedError):
+            return None

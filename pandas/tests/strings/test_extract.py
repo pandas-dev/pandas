@@ -174,13 +174,13 @@ def test_extract_expand_capture_groups(any_string_dtype):
     tm.assert_frame_equal(result, expected)
 
 
-def test_extract_expand_capture_groups_index(index, any_string_dtype):
+def test_extract_expand_capture_groups_index(request, index, any_string_dtype):
     # https://github.com/pandas-dev/pandas/issues/6348
     # not passing index to the extractor
     data = ["A1", "B2", "C"]
 
     if len(index) < len(data):
-        pytest.skip("Index too short")
+        request.node.add_marker(pytest.mark.xfail(reason="Index too short."))
 
     index = index[: len(data)]
     s = Series(data, index=index, dtype=any_string_dtype)
