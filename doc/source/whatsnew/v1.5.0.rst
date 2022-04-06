@@ -532,6 +532,7 @@ Indexing
 - Bug in :meth:`CategoricalIndex.get_indexer` when index contains ``NaN`` values, resulting in elements that are in target but not present in the index to be mapped to the index of the NaN element, instead of -1 (:issue:`45361`)
 - Bug in setting large integer values into :class:`Series` with ``float32`` or ``float16`` dtype incorrectly altering these values instead of coercing to ``float64`` dtype (:issue:`45844`)
 - Bug in :meth:`Series.asof` and :meth:`DataFrame.asof` incorrectly casting bool-dtype results to ``float64`` dtype (:issue:`16063`)
+- Bug in :meth:`DataFrame.nsmallest` led to wrong results when ``np.nan`` in the sorting column (:issue:`46589`)
 -
 
 Missing
