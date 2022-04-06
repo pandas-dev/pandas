@@ -889,6 +889,38 @@ class TestIntervalIndex:
         year_2017_index = IntervalIndex([year_2017])
         assert not year_2017_index._is_all_dates
 
+    def test_IntervalIndex_get_indexer_non_unique(self):
+        # GH30178
+        int_inx = interval_range(Timestamp("2018-01-02"), freq="3D", periods=3)
+
+        target = IntervalIndex(
+            [
+                Interval(
+                    Timestamp("2018-01-02"),
+                    Timestamp("2018-01-05"),
+                    closed="both",
+                ),
+                Interval(
+                    Timestamp("2018-01-05"),
+                    Timestamp("2018-01-08"),
+                    closed="both",
+                ),
+                Interval(
+                    Timestamp("2018-01-08"),
+                    Timestamp("2018-01-11"),
+                    closed="both",
+                ),
+            ]
+        )
+
+        actual1 = int_inx.get_indexer_non_unique(target)
+        actual2 = int_inx.get_indexer_non_unique(pd.array(target))
+        actual3 = int_inx.get_indexer_non_unique(list(target))
+        expected = (np.array([0, 1, 2], dtype=np.int64), np.array([], dtype=np.int64))
+
+        for actual in [actual1, actual2, actual3]:
+            tm.assert_equal(actual, expected)
+
 
 def test_dir():
     # GH#27571 dir(interval_index) should not raise
