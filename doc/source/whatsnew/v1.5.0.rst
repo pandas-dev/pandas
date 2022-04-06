@@ -618,6 +618,11 @@ Styler
 - Bug when attempting to apply styling functions to an empty DataFrame subset (:issue:`45313`)
 -
 
+Metadata
+^^^^^^^^
+- Fixed metadata propagation in :meth:`DataFrame.explode` (:issue:`28283`)
+-
+
 Other
 ^^^^^
 
