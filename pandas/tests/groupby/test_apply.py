@@ -1322,13 +1322,11 @@ def test_apply_str_with_args(df, args, kwargs):
     tm.assert_frame_equal(result, expected)
 
 
-def test_result_name_when_one_group():
+@pytest.mark.parametrize("name", ["some_name", None])
+def test_result_name_when_one_group(name):
     # GH 46369
-    names = ("some_name", None)
+    ser = Series([1, 2], name=name)
+    result = ser.groupby(["a", "a"], group_keys=False).apply(lambda x: x)
+    expected = Series([1, 2], name=name)
 
-    for name in names:
-        ser = Series([0, 1], name=name)
-        result = ser.groupby(["a", "a"]).apply(lambda x: x).name
-        expected = name
-
-        assert result == expected
+    tm.assert_series_equal(result, expected)
