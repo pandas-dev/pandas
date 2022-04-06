@@ -167,10 +167,10 @@ class TestIntervalIndex:
     @pytest.mark.parametrize(
         "data",
         [
-            interval_range(0, periods=10, inclusive="neither"),
-            interval_range(1.7, periods=8, freq=2.5, inclusive="both"),
-            interval_range(Timestamp("20170101"), periods=12, inclusive="left"),
-            interval_range(Timedelta("1 day"), periods=6, inclusive="right"),
+            interval_range(0, periods=10, closed="neither"),
+            interval_range(1.7, periods=8, freq=2.5, closed="both"),
+            interval_range(Timestamp("20170101"), periods=12, closed="left"),
+            interval_range(Timedelta("1 day"), periods=6, closed="right"),
         ],
     )
     def test_insert(self, data):
@@ -868,9 +868,9 @@ class TestIntervalIndex:
     @pytest.mark.parametrize("new_closed", ["left", "right", "both", "neither"])
     def test_set_closed(self, name, closed, new_closed):
         # GH 21670
-        index = interval_range(0, 5, inclusive=closed, name=name)
+        index = interval_range(0, 5, closed=closed, name=name)
         result = index.set_closed(new_closed)
-        expected = interval_range(0, 5, inclusive=new_closed, name=name)
+        expected = interval_range(0, 5, closed=new_closed, name=name)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("bad_closed", ["foo", 10, "LEFT", True, False])
@@ -888,6 +888,38 @@ class TestIntervalIndex:
         )
         year_2017_index = IntervalIndex([year_2017])
         assert not year_2017_index._is_all_dates
+
+    def test_IntervalIndex_get_indexer_non_unique(self):
+        # GH30178
+        int_inx = interval_range(Timestamp("2018-01-02"), freq="3D", periods=3)
+
+        target = IntervalIndex(
+            [
+                Interval(
+                    Timestamp("2018-01-02"),
+                    Timestamp("2018-01-05"),
+                    closed="both",
+                ),
+                Interval(
+                    Timestamp("2018-01-05"),
+                    Timestamp("2018-01-08"),
+                    closed="both",
+                ),
+                Interval(
+                    Timestamp("2018-01-08"),
+                    Timestamp("2018-01-11"),
+                    closed="both",
+                ),
+            ]
+        )
+
+        actual1 = int_inx.get_indexer_non_unique(target)
+        actual2 = int_inx.get_indexer_non_unique(pd.array(target))
+        actual3 = int_inx.get_indexer_non_unique(list(target))
+        expected = (np.array([0, 1, 2], dtype=np.int64), np.array([], dtype=np.int64))
+
+        for actual in [actual1, actual2, actual3]:
+            tm.assert_equal(actual, expected)
 
 
 def test_dir():
