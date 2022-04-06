@@ -512,6 +512,7 @@ PyObject *JSONToObj(PyObject *self, PyObject *args, PyObject *kwargs) {
     JSONObjectDecoder dec = {
         Object_newString, Object_objectAddKey,  Object_arrayAddItem,
         Object_newTrue,   Object_newFalse,      Object_newNull,
+        Object_newNaN,
         Object_newPosInf, Object_newNegInf,     Object_newObject,
         Object_endObject,     Object_newArray,  Object_endArray,
         Object_newInteger,    Object_newLong,   Object_newUnsignedLong,
