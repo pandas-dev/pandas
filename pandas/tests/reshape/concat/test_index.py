@@ -371,3 +371,24 @@ class TestMultiIndexConcat:
             out_b = df_b.loc[("x", 0), :]
 
         tm.assert_frame_equal(out_a, out_b)
+
+    def test_concat_with_duplicated_levels(self):
+        # keyword levels should be unique
+        df1 = DataFrame({"A": [1]}, index=["x"])
+        df2 = DataFrame({"A": [1]}, index=["y"])
+        msg = "Level values not unique: \['x', 'y', 'y'\]"
+        with pytest.raises(ValueError, match=msg):
+            concat([df1, df2], keys=["x", "y"], levels=[["x", "y", "y"]])
+
+    def test_concat_with_levels_with_none_keys(self):
+        df1 = DataFrame({"A": [1]}, index=["x"])
+        df2 = DataFrame({"A": [1]}, index=["y"])
+        msg = "levels supported only when keys not None"
+        with pytest.raises(ValueError, match=msg):
+            concat([df1, df2], levels=[["x", "y"]])
+
+        df1 = DataFrame({"A": [1]}, index=["x"])
+        df2 = DataFrame({"A": [1]}, index=["y"])
+        msg = "levels supported only when keys not None"
+        with pytest.raises(ValueError, match=msg):
+            concat([df1, df2], levels=[["x", "y", "y"]])
