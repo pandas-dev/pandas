@@ -432,7 +432,7 @@ read_fwf : Read a table of fixed-width formatted lines into DataFrame.
 
 Examples
 --------
->>> pd.{func_name}('data.csv')  # doctest: +SKIP
+>>> df = pd.{func_name}('data.csv')  # doctest: +SKIP
 """
 )
 
