@@ -24,7 +24,7 @@ from pandas.api.extensions import (
 )
 from pandas.api.types import is_scalar
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays._mixins import ArrowExtensionArray as _ArrowExtensionArray
+from pandas.core.arrays.arrow import ArrowExtensionArray as _ArrowExtensionArray
 from pandas.core.construction import extract_array
 
 
@@ -179,7 +179,7 @@ class ArrowExtensionArray(OpsMixin, _ArrowExtensionArray):
 
 
 class ArrowBoolArray(ArrowExtensionArray):
-    def __init__(self, values):
+    def __init__(self, values) -> None:
         if not isinstance(values, pa.ChunkedArray):
             raise ValueError
 
@@ -189,7 +189,7 @@ class ArrowBoolArray(ArrowExtensionArray):
 
 
 class ArrowStringArray(ArrowExtensionArray):
-    def __init__(self, values):
+    def __init__(self, values) -> None:
         if not isinstance(values, pa.ChunkedArray):
             raise ValueError
 

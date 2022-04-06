@@ -66,14 +66,14 @@ class CSVFormatter:
         doublequote: bool = True,
         escapechar: str | None = None,
         storage_options: StorageOptions = None,
-    ):
+    ) -> None:
         self.fmt = formatter
 
         self.obj = self.fmt.frame
 
         self.filepath_or_buffer = path_or_buf
         self.encoding = encoding
-        self.compression = compression
+        self.compression: CompressionOptions = compression
         self.mode = mode
         self.storage_options = storage_options
 

@@ -823,11 +823,13 @@ class TestInplaceOperations:
         tm.assert_series_equal(ser1, expected)
 
 
-def test_none_comparison(series_with_simple_index):
+def test_none_comparison(request, series_with_simple_index):
     series = series_with_simple_index
 
     if len(series) < 1:
-        pytest.skip("Test doesn't make sense on empty data")
+        request.node.add_marker(
+            pytest.mark.xfail(reason="Test doesn't make sense on empty data")
+        )
 
     # bug brought up by #1079
     # changed from TypeError in 0.17.0
