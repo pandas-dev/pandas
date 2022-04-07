@@ -281,3 +281,6 @@ class TestDataFrameMissingData:
 
         with pytest.raises(TypeError, match=msg):
             df.dropna(how="any", thresh=2)
+
+        with pytest.raises(TypeError, match=msg):
+            df.dropna(how=None, thresh=None)
