@@ -8,6 +8,7 @@ import operator
 import os
 import re
 import string
+from sys import byteorder
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -167,6 +168,8 @@ NARROW_NP_DTYPES = [
     np.uint16,
     np.uint32,
 ]
+
+ENDIAN = {"little": "<", "big": ">"}[byteorder]
 
 NULL_OBJECTS = [None, np.nan, pd.NaT, float("nan"), pd.NA, Decimal("NaN")]
 NP_NAT_OBJECTS = [

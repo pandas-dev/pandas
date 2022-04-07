@@ -144,9 +144,12 @@ nan 2
             "the dtype timedelta64 is not supported for parsing",
             {"dtype": {"A": "timedelta64", "B": "float64"}},
         ),
-        ("the dtype <U8 is not supported for parsing", {"dtype": {"A": "U8"}}),
+        (
+            f"the dtype {tm.ENDIAN}U8 is not supported for parsing",
+            {"dtype": {"A": "U8"}},
+        ),
     ],
-    ids=["dt64-0", "dt64-1", "td64", "<U8"],
+    ids=["dt64-0", "dt64-1", "td64", f"{tm.ENDIAN}U8"],
 )
 def test_unsupported_dtype(c_parser_only, match, kwargs):
     parser = c_parser_only
