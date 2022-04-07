@@ -82,6 +82,7 @@ from pandas._libs.tslibs.np_datetime cimport (
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
 from pandas._libs.tslibs.offsets cimport (
+    BaseOffset,
     is_offset_object,
     to_offset,
 )
@@ -113,9 +114,9 @@ _no_input = object()
 # ----------------------------------------------------------------------
 
 
-cdef inline object create_timestamp_from_ts(int64_t value,
-                                            npy_datetimestruct dts,
-                                            tzinfo tz, object freq, bint fold):
+cdef inline _Timestamp create_timestamp_from_ts(int64_t value,
+                                                npy_datetimestruct dts,
+                                                tzinfo tz, BaseOffset freq, bint fold):
     """ convenience routine to construct a Timestamp from its parts """
     cdef _Timestamp ts_base
     ts_base = _Timestamp.__new__(Timestamp, dts.year, dts.month,

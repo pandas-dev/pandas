@@ -6,17 +6,18 @@ from numpy cimport int64_t
 
 from pandas._libs.tslibs.base cimport ABCTimestamp
 from pandas._libs.tslibs.np_datetime cimport npy_datetimestruct
+from pandas._libs.tslibs.offsets cimport BaseOffset
 
 
-cdef object create_timestamp_from_ts(int64_t value,
-                                     npy_datetimestruct dts,
-                                     tzinfo tz, object freq, bint fold)
+cdef _Timestamp create_timestamp_from_ts(int64_t value,
+                                         npy_datetimestruct dts,
+                                         tzinfo tz, BaseOffset freq, bint fold)
 
 
 cdef class _Timestamp(ABCTimestamp):
     cdef readonly:
         int64_t value, nanosecond
-        object _freq
+        BaseOffset _freq
 
     cdef bint _get_start_end_field(self, str field, freq)
     cdef _get_date_name_field(self, str field, object locale)
