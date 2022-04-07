@@ -9764,6 +9764,7 @@ Parrot 2  Parrot       24.0
         self,
         method: str | Callable[[np.ndarray, np.ndarray], float] = "pearson",
         min_periods: int = 1,
+        numeric_only: bool = True,
     ) -> DataFrame:
         """
         Compute pairwise correlation of columns, excluding NA/null values.
@@ -9784,6 +9785,10 @@ Parrot 2  Parrot       24.0
             Minimum number of observations required per pair of columns
             to have a valid result. Currently only available for Pearson
             and Spearman correlation.
+        numeric_only : bool, default True
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -9823,10 +9828,13 @@ Parrot 2  Parrot       24.0
         dogs   1.0   NaN
         cats   NaN   1.0
         """  # noqa:E501
-        numeric_df = self._get_numeric_data()
-        cols = numeric_df.columns
+        if numeric_only:
+            data = self._get_numeric_data()
+        else:
+            data = self
+        cols = data.columns
         idx = cols.copy()
-        mat = numeric_df.to_numpy(dtype=float, na_value=np.nan, copy=False)
+        mat = data.to_numpy(dtype=float, na_value=np.nan, copy=False)
 
         if method == "pearson":
             correl = libalgos.nancorr(mat, minp=min_periods)
@@ -9981,7 +9989,14 @@ Parrot 2  Parrot       24.0
 
         return self._constructor(base_cov, index=idx, columns=cols)
 
-    def corrwith(self, other, axis: Axis = 0, drop=False, method="pearson") -> Series:
+    def corrwith(
+        self,
+        other,
+        axis: Axis = 0,
+        drop=False,
+        method="pearson",
+        numeric_only: bool = True,
+    ) -> Series:
         """
         Compute pairwise correlation.
 
@@ -10007,6 +10022,11 @@ Parrot 2  Parrot       24.0
             * spearman : Spearman rank correlation
             * callable: callable with input two 1d ndarrays
                 and returning a float.
+
+        numeric_only : bool, default True
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -10039,7 +10059,10 @@ Parrot 2  Parrot       24.0
         dtype: float64
         """  # noqa:E501
         axis = self._get_axis_number(axis)
-        this = self._get_numeric_data()
+        if numeric_only:
+            this = self._get_numeric_data()
+        else:
+            this = self
 
         # GH46174: when other is a Series object and axis=0, we achieve a speedup over
         # passing .corr() to .apply() by taking the columns as ndarrays and iterating
@@ -10052,19 +10075,23 @@ Parrot 2  Parrot       24.0
         if isinstance(other, Series):
             if axis == 0 and method in ["pearson", "spearman"]:
                 corrs = {}
-                numeric_cols = self.select_dtypes(include=np.number).columns
-                ndf = self[numeric_cols].values.transpose()
+                if numeric_only:
+                    cols = self.select_dtypes(include=np.number).columns
+                    ndf = self[cols].values.transpose()
+                else:
+                    cols = self.columns
+                    ndf = self.values.transpose()
                 k = other.values
                 if method == "pearson":
                     for i, r in enumerate(ndf):
                         nonnull_mask = ~np.isnan(r) & ~np.isnan(k)
-                        corrs[numeric_cols[i]] = np.corrcoef(
-                            r[nonnull_mask], k[nonnull_mask]
-                        )[0, 1]
+                        corrs[cols[i]] = np.corrcoef(r[nonnull_mask], k[nonnull_mask])[
+                            0, 1
+                        ]
                 else:
                     for i, r in enumerate(ndf):
                         nonnull_mask = ~np.isnan(r) & ~np.isnan(k)
-                        corrs[numeric_cols[i]] = np.corrcoef(
+                        corrs[cols[i]] = np.corrcoef(
                             r[nonnull_mask].argsort().argsort(),
                             k[nonnull_mask].argsort().argsort(),
                         )[0, 1]

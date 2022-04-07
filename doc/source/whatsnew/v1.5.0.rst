@@ -94,7 +94,7 @@ Other enhancements
 - :meth:`DataFrame.reset_index` now accepts a ``names`` argument which renames the index names (:issue:`6878`)
 - :meth:`pd.concat` now raises when ``levels`` is given but ``keys`` is None (:issue:`46653`)
 - :meth:`pd.concat` now raises when ``levels`` contains duplicate values (:issue:`46653`)
--
+- Added ``numeric_only`` argument to :meth:`DataFrame.corr` and :meth:`DataFrame.corrwith` (:issue:`46560`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.notable_bug_fixes:
