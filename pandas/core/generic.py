@@ -6702,21 +6702,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                 # {'A': NA} -> 0
                 elif not is_list_like(value):
-                    print(to_replace)
-                    if to_replace in self.values:
-                        # to_replace = {to_replace.values(): value}
-                        print(f"to_replace: {to_replace}")
-                        #     mapping = {
-                        #     col: (to_replace[col], value[col])
-                        #     for col in to_replace.keys()
-                        #     if col in value and col in self
-                        # }
-                        return self.replace(to_replace, value, inplace, regex)
-
                     # GH46004
                     if value is None or not value:
                         to_rep, value = list(zip(*to_replace.items()))
-
                         return self.replace(to_rep, value, inplace, regex)
 
                     # Operate column-wise
