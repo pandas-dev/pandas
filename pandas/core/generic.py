@@ -7224,7 +7224,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if not isinstance(where, Index):
             where = Index(where) if is_list else Index([where])
 
-        nulls = self.isna() if is_series else self[subset].isna().any(1)
+        nulls = self.isna() if is_series else self[subset].isna().any(axis=1)
         if nulls.all():
             if is_series:
                 self = cast("Series", self)
