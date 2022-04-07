@@ -6186,7 +6186,6 @@ class DataFrame(NDFrame, OpsMixin):
                 "You cannot set both the how and thresh arguments at the same time."
             )
 
-        # default value for how
         if how is None:
             how = "any"
 
