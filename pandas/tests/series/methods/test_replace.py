@@ -557,6 +557,14 @@ class TestSeriesReplace:
         exp = pd.Series(["CC", "CC", "CC-REPL", "DD", "CC", "", pd.NA], dtype="string")
         tm.assert_series_equal(result, exp)
 
+    def test_replace_dictlike_value_None(self):
+        # GH46004
+        ser = pd.Series([1, 2, 3, 4])
+        result = ser.replace(to_replace={3: 33}, value=None)
+
+        exp = pd.Series([1, 2, 33, 4])
+        tm.assert_series_equal(result, exp)
+
     @pytest.mark.parametrize(
         "dtype, input_data, to_replace, expected_data",
         [

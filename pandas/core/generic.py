@@ -6594,11 +6594,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         regex=False,
         method=lib.no_default,
     ):
-        if isinstance(value, (type(None))):
-            # GH46606, if passing value=None
-            # the type of value is class 'NoneType'
-            # but the lib.no_default is enum 'NoDefault'
-            value = lib.no_default
 
         if not (
             is_scalar(to_replace)
@@ -6707,6 +6702,23 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                 # {'A': NA} -> 0
                 elif not is_list_like(value):
+                    print(to_replace)
+                    if to_replace in self.values:
+                        # to_replace = {to_replace.values(): value}
+                        print(f"to_replace: {to_replace}")
+                        #     mapping = {
+                        #     col: (to_replace[col], value[col])
+                        #     for col in to_replace.keys()
+                        #     if col in value and col in self
+                        # }
+                        return self.replace(to_replace, value, inplace, regex)
+
+                    # GH46004
+                    if value is None or not value:
+                        to_rep, value = list(zip(*to_replace.items()))
+
+                        return self.replace(to_rep, value, inplace, regex)
+
                     # Operate column-wise
                     if self.ndim == 1:
                         raise ValueError(
