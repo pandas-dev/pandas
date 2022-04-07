@@ -650,7 +650,7 @@ def test_copy_from_callable_insertion_method(conn, request):
 
 
 class MixInBase:
-    def teardown_method(self, method):
+    def teardown_method(self):
         # if setup fails, there may not be a connection to close.
         if hasattr(self, "conn"):
             for tbl in self._get_all_tables():
