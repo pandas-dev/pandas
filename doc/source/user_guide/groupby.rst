@@ -539,19 +539,19 @@ Some common aggregating functions are tabulated below:
     :widths: 20, 80
     :delim: ;
 
-	:meth:`~pd.core.groupby.DataFrameGroupBy.mean`;Compute mean of groups
-	:meth:`~pd.core.groupby.DataFrameGroupBy.sum`;Compute sum of group values
-	:meth:`~pd.core.groupby.DataFrameGroupBy.size`;Compute group sizes
-	:meth:`~pd.core.groupby.DataFrameGroupBy.count`;Compute count of group
-	:meth:`~pd.core.groupby.DataFrameGroupBy.std`;Standard deviation of groups
-	:meth:`~pd.core.groupby.DataFrameGroupBy.var`;Compute variance of groups
-	:meth:`~pd.core.groupby.DataFrameGroupBy.sem`;Standard error of the mean of groups
-	:meth:`~pd.core.groupby.DataFrameGroupBy.describe`;Generates descriptive statistics
-	:meth:`~pd.core.groupby.DataFrameGroupBy.first`;Compute first of group values
-	:meth:`~pd.core.groupby.DataFrameGroupBy.last`;Compute last of group values
-	:meth:`~pd.core.groupby.DataFrameGroupBy.nth`;Take nth value, or a subset if n is a list
-	:meth:`~pd.core.groupby.DataFrameGroupBy.min`;Compute min of group values
-	:meth:`~pd.core.groupby.DataFrameGroupBy.max`;Compute max of group values
+        :meth:`~pd.core.groupby.DataFrameGroupBy.mean`;Compute mean of groups
+        :meth:`~pd.core.groupby.DataFrameGroupBy.sum`;Compute sum of group values
+        :meth:`~pd.core.groupby.DataFrameGroupBy.size`;Compute group sizes
+        :meth:`~pd.core.groupby.DataFrameGroupBy.count`;Compute count of group
+        :meth:`~pd.core.groupby.DataFrameGroupBy.std`;Standard deviation of groups
+        :meth:`~pd.core.groupby.DataFrameGroupBy.var`;Compute variance of groups
+        :meth:`~pd.core.groupby.DataFrameGroupBy.sem`;Standard error of the mean of groups
+        :meth:`~pd.core.groupby.DataFrameGroupBy.describe`;Generates descriptive statistics
+        :meth:`~pd.core.groupby.DataFrameGroupBy.first`;Compute first of group values
+        :meth:`~pd.core.groupby.DataFrameGroupBy.last`;Compute last of group values
+        :meth:`~pd.core.groupby.DataFrameGroupBy.nth`;Take nth value, or a subset if n is a list
+        :meth:`~pd.core.groupby.DataFrameGroupBy.min`;Compute min of group values
+        :meth:`~pd.core.groupby.DataFrameGroupBy.max`;Compute max of group values
 
 
 The aggregating functions above will exclude NA values. Any function which
