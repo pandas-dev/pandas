@@ -1,5 +1,3 @@
-from sys import byteorder
-
 import numpy as np
 import pytest
 
@@ -275,8 +273,7 @@ def test_to_numpy(box):
 
     arr = con([True, False, None], dtype="boolean")
     result = arr.to_numpy(dtype="str")
-    endian = {"little": "<", "big": ">"}[byteorder]
-    expected = np.array([True, False, pd.NA], dtype=f"{endian}U5")
+    expected = np.array([True, False, pd.NA], dtype=f"{tm.ENDIAN}U5")
     tm.assert_numpy_array_equal(result, expected)
 
     # no missing values -> can convert to bool, otherwise raises

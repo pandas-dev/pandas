@@ -1,5 +1,3 @@
-from sys import byteorder
-
 import numpy as np
 import pytest
 
@@ -22,8 +20,7 @@ def test_astype():
     tm.assert_numpy_array_equal(result, expected)
 
     result = arr.astype("str")
-    endian = {"little": "<", "big": ">"}[byteorder]
-    expected = np.array(["True", "False", "<NA>"], dtype=f"{endian}U5")
+    expected = np.array(["True", "False", "<NA>"], dtype=f"{tm.ENDIAN}U5")
     tm.assert_numpy_array_equal(result, expected)
 
     # no missing values

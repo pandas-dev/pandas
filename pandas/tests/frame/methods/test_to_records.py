@@ -1,5 +1,4 @@
 from collections import abc
-from sys import byteorder
 
 import numpy as np
 import pytest
@@ -13,9 +12,6 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-
-
-endian = {"little": "<", "big": ">"}[byteorder]
 
 
 class TestDataFrameToRecords:
@@ -156,9 +152,9 @@ class TestDataFrameToRecords:
                 np.rec.array(
                     [(0, 1, 0.2, "a"), (1, 2, 1.5, "bc")],
                     dtype=[
-                        ("index", f"{endian}i8"),
-                        ("A", f"{endian}i8"),
-                        ("B", f"{endian}f8"),
+                        ("index", f"{tm.ENDIAN}i8"),
+                        ("A", f"{tm.ENDIAN}i8"),
+                        ("B", f"{tm.ENDIAN}f8"),
                         ("C", "O"),
                     ],
                 ),
@@ -169,35 +165,35 @@ class TestDataFrameToRecords:
                 np.rec.array(
                     [(0, 1, 0.2, "a"), (1, 2, 1.5, "bc")],
                     dtype=[
-                        ("index", f"{endian}i8"),
-                        ("A", f"{endian}i8"),
-                        ("B", f"{endian}f8"),
+                        ("index", f"{tm.ENDIAN}i8"),
+                        ("A", f"{tm.ENDIAN}i8"),
+                        ("B", f"{tm.ENDIAN}f8"),
                         ("C", "O"),
                     ],
                 ),
             ),
             # Column dtype applied across the board. Index unaffected.
             (
-                {"column_dtypes": f"{endian}U4"},
+                {"column_dtypes": f"{tm.ENDIAN}U4"},
                 np.rec.array(
                     [("0", "1", "0.2", "a"), ("1", "2", "1.5", "bc")],
                     dtype=[
-                        ("index", f"{endian}i8"),
-                        ("A", f"{endian}U4"),
-                        ("B", f"{endian}U4"),
-                        ("C", f"{endian}U4"),
+                        ("index", f"{tm.ENDIAN}i8"),
+                        ("A", f"{tm.ENDIAN}U4"),
+                        ("B", f"{tm.ENDIAN}U4"),
+                        ("C", f"{tm.ENDIAN}U4"),
                     ],
                 ),
             ),
             # Index dtype applied across the board. Columns unaffected.
             (
-                {"index_dtypes": f"{endian}U1"},
+                {"index_dtypes": f"{tm.ENDIAN}U1"},
                 np.rec.array(
                     [("0", 1, 0.2, "a"), ("1", 2, 1.5, "bc")],
                     dtype=[
-                        ("index", f"{endian}U1"),
-                        ("A", f"{endian}i8"),
-                        ("B", f"{endian}f8"),
+                        ("index", f"{tm.ENDIAN}U1"),
+                        ("A", f"{tm.ENDIAN}i8"),
+                        ("B", f"{tm.ENDIAN}f8"),
                         ("C", "O"),
                     ],
                 ),
@@ -208,10 +204,10 @@ class TestDataFrameToRecords:
                 np.rec.array(
                     [("0", "1", "0.2", "a"), ("1", "2", "1.5", "bc")],
                     dtype=[
-                        ("index", f"{endian}i8"),
-                        ("A", f"{endian}U"),
-                        ("B", f"{endian}U"),
-                        ("C", f"{endian}U"),
+                        ("index", f"{tm.ENDIAN}i8"),
+                        ("A", f"{tm.ENDIAN}U"),
+                        ("B", f"{tm.ENDIAN}U"),
+                        ("C", f"{tm.ENDIAN}U"),
                     ],
                 ),
             ),
@@ -221,23 +217,29 @@ class TestDataFrameToRecords:
                 np.rec.array(
                     [("0", "1", "0.2", "a"), ("1", "2", "1.5", "bc")],
                     dtype=[
-                        ("index", f"{endian}i8"),
-                        ("A", f"{endian}U"),
-                        ("B", f"{endian}U"),
-                        ("C", f"{endian}U"),
+                        ("index", f"{tm.ENDIAN}i8"),
+                        ("A", f"{tm.ENDIAN}U"),
+                        ("B", f"{tm.ENDIAN}U"),
+                        ("C", f"{tm.ENDIAN}U"),
                     ],
                 ),
             ),
             # Pass in a dictionary (name-only).
             (
-                {"column_dtypes": {"A": np.int8, "B": np.float32, "C": f"{endian}U2"}},
+                {
+                    "column_dtypes": {
+                        "A": np.int8,
+                        "B": np.float32,
+                        "C": f"{tm.ENDIAN}U2",
+                    }
+                },
                 np.rec.array(
                     [("0", "1", "0.2", "a"), ("1", "2", "1.5", "bc")],
                     dtype=[
-                        ("index", f"{endian}i8"),
+                        ("index", f"{tm.ENDIAN}i8"),
                         ("A", "i1"),
-                        ("B", f"{endian}f4"),
-                        ("C", f"{endian}U2"),
+                        ("B", f"{tm.ENDIAN}f4"),
+                        ("C", f"{tm.ENDIAN}U2"),
                     ],
                 ),
             ),
@@ -248,18 +250,22 @@ class TestDataFrameToRecords:
                     [(0, 1, 0.2, "a"), (1, 2, 1.5, "bc")],
                     dtype=[
                         ("index", "i2"),
-                        ("A", f"{endian}i8"),
-                        ("B", f"{endian}f8"),
+                        ("A", f"{tm.ENDIAN}i8"),
+                        ("B", f"{tm.ENDIAN}f8"),
                         ("C", "O"),
                     ],
                 ),
             ),
             # Ignore index mappings if index is not True.
             (
-                {"index": False, "index_dtypes": f"{endian}U2"},
+                {"index": False, "index_dtypes": f"{tm.ENDIAN}U2"},
                 np.rec.array(
                     [(1, 0.2, "a"), (2, 1.5, "bc")],
-                    dtype=[("A", f"{endian}i8"), ("B", f"{endian}f8"), ("C", "O")],
+                    dtype=[
+                        ("A", f"{tm.ENDIAN}i8"),
+                        ("B", f"{tm.ENDIAN}f8"),
+                        ("C", "O"),
+                    ],
                 ),
             ),
             # Non-existent names / indices in mapping should not error.
@@ -269,8 +275,8 @@ class TestDataFrameToRecords:
                     [(0, 1, 0.2, "a"), (1, 2, 1.5, "bc")],
                     dtype=[
                         ("index", "i2"),
-                        ("A", f"{endian}i8"),
-                        ("B", f"{endian}f8"),
+                        ("A", f"{tm.ENDIAN}i8"),
+                        ("B", f"{tm.ENDIAN}f8"),
                         ("C", "O"),
                     ],
                 ),
@@ -281,9 +287,9 @@ class TestDataFrameToRecords:
                 np.rec.array(
                     [("0", "1", "0.2", "a"), ("1", "2", "1.5", "bc")],
                     dtype=[
-                        ("index", f"{endian}i8"),
+                        ("index", f"{tm.ENDIAN}i8"),
                         ("A", "i1"),
-                        ("B", f"{endian}f4"),
+                        ("B", f"{tm.ENDIAN}f4"),
                         ("C", "O"),
                     ],
                 ),
@@ -294,9 +300,9 @@ class TestDataFrameToRecords:
                 np.rec.array(
                     [("0", "1", "0.2", "a"), ("1", "2", "1.5", "bc")],
                     dtype=[
-                        ("index", f"{endian}i8"),
+                        ("index", f"{tm.ENDIAN}i8"),
                         ("A", "i1"),
-                        ("B", f"{endian}f4"),
+                        ("B", f"{tm.ENDIAN}f4"),
                         ("C", "O"),
                     ],
                 ),
@@ -305,14 +311,14 @@ class TestDataFrameToRecords:
             (
                 {
                     "column_dtypes": {"A": np.int8, "B": np.float32},
-                    "index_dtypes": f"{endian}U2",
+                    "index_dtypes": f"{tm.ENDIAN}U2",
                 },
                 np.rec.array(
                     [("0", "1", "0.2", "a"), ("1", "2", "1.5", "bc")],
                     dtype=[
-                        ("index", f"{endian}U2"),
+                        ("index", f"{tm.ENDIAN}U2"),
                         ("A", "i1"),
-                        ("B", f"{endian}f4"),
+                        ("B", f"{tm.ENDIAN}f4"),
                         ("C", "O"),
                     ],
                 ),
@@ -363,7 +369,11 @@ class TestDataFrameToRecords:
                 {"column_dtypes": "float64", "index_dtypes": {0: "int32", 1: "int8"}},
                 np.rec.array(
                     [(1, 2, 3.0), (4, 5, 6.0), (7, 8, 9.0)],
-                    dtype=[("a", f"{endian}i4"), ("b", "i1"), ("c", f"{endian}f8")],
+                    dtype=[
+                        ("a", f"{tm.ENDIAN}i4"),
+                        ("b", "i1"),
+                        ("c", f"{tm.ENDIAN}f8"),
+                    ],
                 ),
             ),
             # MultiIndex in the columns.
@@ -375,16 +385,16 @@ class TestDataFrameToRecords:
                     ),
                 ),
                 {
-                    "column_dtypes": {0: f"{endian}U1", 2: "float32"},
+                    "column_dtypes": {0: f"{tm.ENDIAN}U1", 2: "float32"},
                     "index_dtypes": "float32",
                 },
                 np.rec.array(
                     [(0.0, "1", 2, 3.0), (1.0, "4", 5, 6.0), (2.0, "7", 8, 9.0)],
                     dtype=[
-                        ("index", f"{endian}f4"),
-                        ("('a', 'd')", f"{endian}U1"),
-                        ("('b', 'e')", f"{endian}i8"),
-                        ("('c', 'f')", f"{endian}f4"),
+                        ("index", f"{tm.ENDIAN}f4"),
+                        ("('a', 'd')", f"{tm.ENDIAN}U1"),
+                        ("('b', 'e')", f"{tm.ENDIAN}i8"),
+                        ("('c', 'f')", f"{tm.ENDIAN}f4"),
                     ],
                 ),
             ),
@@ -401,7 +411,7 @@ class TestDataFrameToRecords:
                 ),
                 {
                     "column_dtypes": "float64",
-                    "index_dtypes": {0: f"{endian}U2", 1: "int8"},
+                    "index_dtypes": {0: f"{tm.ENDIAN}U2", 1: "int8"},
                 },
                 np.rec.array(
                     [
@@ -410,11 +420,11 @@ class TestDataFrameToRecords:
                         ("f", -6, 7, 8, 9.0),
                     ],
                     dtype=[
-                        ("c", f"{endian}U2"),
+                        ("c", f"{tm.ENDIAN}U2"),
                         ("d", "i1"),
-                        ("('a', 'd')", f"{endian}f8"),
-                        ("('b', 'e')", f"{endian}f8"),
-                        ("('c', 'f')", f"{endian}f8"),
+                        ("('a', 'd')", f"{tm.ENDIAN}f8"),
+                        ("('b', 'e')", f"{tm.ENDIAN}f8"),
+                        ("('c', 'f')", f"{tm.ENDIAN}f8"),
                     ],
                 ),
             ),
@@ -444,16 +454,16 @@ class TestDataFrameToRecords:
 
         dtype_mappings = {
             "column_dtypes": DictLike(**{"A": np.int8, "B": np.float32}),
-            "index_dtypes": f"{endian}U2",
+            "index_dtypes": f"{tm.ENDIAN}U2",
         }
 
         result = df.to_records(**dtype_mappings)
         expected = np.rec.array(
             [("0", "1", "0.2", "a"), ("1", "2", "1.5", "bc")],
             dtype=[
-                ("index", f"{endian}U2"),
+                ("index", f"{tm.ENDIAN}U2"),
                 ("A", "i1"),
-                ("B", f"{endian}f4"),
+                ("B", f"{tm.ENDIAN}f4"),
                 ("C", "O"),
             ],
         )

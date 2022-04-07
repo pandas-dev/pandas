@@ -2,7 +2,6 @@ from datetime import (
     time,
     timedelta,
 )
-from sys import byteorder
 
 import numpy as np
 import pytest
@@ -198,9 +197,9 @@ class TestTimedeltas:
         timedelta_NaT = np.timedelta64("NaT")
 
         actual = to_timedelta(Series(["00:00:01", np.nan]))
-        endian = {"little": "<", "big": ">"}[byteorder]
         expected = Series(
-            [np.timedelta64(1000000000, "ns"), timedelta_NaT], dtype=f"{endian}m8[ns]"
+            [np.timedelta64(1000000000, "ns"), timedelta_NaT],
+            dtype=f"{tm.ENDIAN}m8[ns]",
         )
         tm.assert_series_equal(actual, expected)
 
