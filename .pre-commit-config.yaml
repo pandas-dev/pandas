@@ -71,7 +71,7 @@ repos:
         types: [text]  # overwrite types: [rst]
         types_or: [python, rst]
 -   repo: https://github.com/sphinx-contrib/sphinx-lint
-    rev: main
+    rev: v0.2
     hooks:
     - id: sphinx-lint
 -   repo: https://github.com/asottile/yesqa
