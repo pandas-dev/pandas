@@ -223,7 +223,7 @@ In some cases you may be tempted to use ``cast`` from the typing module when you
            ...
        else:  # Reasonably only str objects would reach this but...
            obj = cast(str, obj)  # Mypy complains without this!
-	   return obj.upper()
+           return obj.upper()
 
 The limitation here is that while a human can reasonably understand that ``is_number`` would catch the ``int`` and ``float`` types mypy cannot make that same inference just yet (see `mypy #5206 <https://github.com/python/mypy/issues/5206>`_. While the above works, the use of ``cast`` is **strongly discouraged**. Where applicable a refactor of the code to appease static analysis is preferable
 
