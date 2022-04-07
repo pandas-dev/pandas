@@ -540,7 +540,7 @@ Pandas-Genomics provides extension types, extension arrays, and extension access
 `Pint-Pandas`_
 ~~~~~~~~~~~~~~
 
-``Pint-Pandas <https://github.com/hgrecco/pint-pandas>`` provides an extension type for
+`Pint-Pandas <https://github.com/hgrecco/pint-pandas>`_ provides an extension type for
 storing numeric arrays with units. These arrays can be stored inside pandas'
 Series and DataFrame. Operations between Series and DataFrame columns which
 use pint's extension array are then units aware.
@@ -548,7 +548,7 @@ use pint's extension array are then units aware.
 `Text Extensions for Pandas`_
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``Text Extensions for Pandas <https://ibm.biz/text-extensions-for-pandas>``
+`Text Extensions for Pandas <https://ibm.biz/text-extensions-for-pandas>`_
 provides extension types to cover common data structures for representing natural language
 data, plus library integrations that convert the outputs of popular natural language
 processing libraries into Pandas DataFrames.

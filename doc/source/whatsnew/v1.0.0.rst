@@ -525,7 +525,7 @@ Use :meth:`arrays.IntegerArray.to_numpy` with an explicit ``na_value`` instead.
 
    a.to_numpy(dtype="float", na_value=np.nan)
 
-**Reductions can return ``pd.NA``**
+**Reductions can return** ``pd.NA``
 
 When performing a reduction such as a sum with ``skipna=False``, the result
 will now be ``pd.NA`` instead of ``np.nan`` in presence of missing values

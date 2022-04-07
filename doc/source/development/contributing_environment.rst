@@ -85,10 +85,10 @@ You will need `Build Tools for Visual Studio 2019
 <https://visualstudio.microsoft.com/downloads/>`_.
 
 .. warning::
-	You DO NOT need to install Visual Studio 2019.
-	You only need "Build Tools for Visual Studio 2019" found by
-	scrolling down to "All downloads" -> "Tools for Visual Studio 2019".
-	In the installer, select the "C++ build tools" workload.
+        You DO NOT need to install Visual Studio 2019.
+        You only need "Build Tools for Visual Studio 2019" found by
+        scrolling down to "All downloads" -> "Tools for Visual Studio 2019".
+        In the installer, select the "C++ build tools" workload.
 
 You can install the necessary components on the commandline using
 `vs_buildtools.exe <https://download.visualstudio.microsoft.com/download/pr/9a26f37e-6001-429b-a5db-c5455b93953c/460d80ab276046de2455a4115cc4e2f1e6529c9e6cb99501844ecafd16c619c4/vs_BuildTools.exe>`_:

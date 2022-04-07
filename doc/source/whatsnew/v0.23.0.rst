@@ -1126,7 +1126,7 @@ Removal of prior version deprecations/changes
 - The ``Panel`` class has dropped the ``to_long`` and ``toLong`` methods (:issue:`19077`)
 - The options ``display.line_with`` and ``display.height`` are removed in favor of ``display.width`` and ``display.max_rows`` respectively (:issue:`4391`, :issue:`19107`)
 - The ``labels`` attribute of the ``Categorical`` class has been removed in favor of :attr:`Categorical.codes` (:issue:`7768`)
-- The ``flavor`` parameter have been removed from func:`to_sql` method (:issue:`13611`)
+- The ``flavor`` parameter have been removed from :func:`to_sql` method (:issue:`13611`)
 - The modules ``pandas.tools.hashing`` and ``pandas.util.hashing`` have been removed (:issue:`16223`)
 - The top-level functions ``pd.rolling_*``, ``pd.expanding_*`` and ``pd.ewm*`` have been removed (Deprecated since v0.18).
   Instead, use the DataFrame/Series methods :attr:`~DataFrame.rolling`, :attr:`~DataFrame.expanding` and :attr:`~DataFrame.ewm` (:issue:`18723`)

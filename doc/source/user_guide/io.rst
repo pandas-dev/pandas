@@ -5695,9 +5695,9 @@ for an explanation of how the database connection is handled.
 
 .. warning::
 
-	When you open a connection to a database you are also responsible for closing it.
-	Side effects of leaving a connection open may include locking the database or
-	other breaking behaviour.
+        When you open a connection to a database you are also responsible for closing it.
+        Side effects of leaving a connection open may include locking the database or
+        other breaking behaviour.
 
 Writing DataFrames
 ''''''''''''''''''
