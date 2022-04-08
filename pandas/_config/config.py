@@ -58,13 +58,17 @@ import re
 from typing import (
     Any,
     Callable,
+    Generic,
     Iterable,
     NamedTuple,
     cast,
 )
 import warnings
 
-from pandas._typing import F
+from pandas._typing import (
+    F,
+    T,
+)
 
 
 class DeprecatedOption(NamedTuple):
@@ -247,16 +251,17 @@ class DictWrapper:
 # of options, and option descriptions.
 
 
-class CallableDynamicDoc:
-    def __init__(self, func, doc_tmpl) -> None:
+class CallableDynamicDoc(Generic[T]):
+    def __init__(self, func: Callable[..., T], doc_tmpl: str) -> None:
         self.__doc_tmpl__ = doc_tmpl
         self.__func__ = func
 
-    def __call__(self, *args, **kwds):
+    def __call__(self, *args, **kwds) -> T:
         return self.__func__(*args, **kwds)
 
+    # error: Signature of "__doc__" incompatible with supertype "object"
     @property
-    def __doc__(self):
+    def __doc__(self) -> str:  # type: ignore[override]
         opts_desc = _describe_option("all", _print_desc=False)
         opts_list = pp_options_list(list(_registered_options.keys()))
         return self.__doc_tmpl__.format(opts_desc=opts_desc, opts_list=opts_list)
