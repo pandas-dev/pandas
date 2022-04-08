@@ -43,7 +43,8 @@ from pandas._libs.tslibs.nattype cimport (
     c_nat_strings as nat_strings,
     checknull_with_nat,
 )
-from pandas._libs.tslibs.np_datetime cimport (
+
+from .np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
     cmp_dtstructs,
