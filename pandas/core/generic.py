@@ -10881,6 +10881,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         {desc}
 
+        .. deprecated:: 1.5.0
+            mad is deprecated.
+
         Parameters
         ----------
         axis : {axis_descr}
@@ -10897,6 +10900,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         {see_also}\
         {examples}
         """
+        msg = (
+            "The 'mad' method is deprecated "
+            "and will be removed in a future version. "
+        )
+        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+
         if not is_bool(skipna):
             warnings.warn(
                 "Passing None for skipna is deprecated and will raise in a future"
