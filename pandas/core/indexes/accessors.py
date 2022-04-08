@@ -243,7 +243,7 @@ class DatetimeProperties(Properties):
 
     def isocalendar(self):
         """
-        Returns a DataFrame with the year, week, and day calculated according to
+        Return a DataFrame with the year, week, and day calculated according to
         the ISO 8601 standard.
 
         .. versionadded:: 1.1.0
@@ -251,7 +251,7 @@ class DatetimeProperties(Properties):
         Returns
         -------
         DataFrame
-            with columns year, week and day
+            With columns year, week and day.
 
         See Also
         --------
