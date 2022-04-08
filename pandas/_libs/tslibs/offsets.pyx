@@ -84,7 +84,7 @@ from .timedeltas import (
     is_any_td_scalar,
 )
 
-from .timestamps cimport _Timestamp
+from .base cimport ABCTimestamp as _Timestamp
 
 from .timestamps import Timestamp
 
