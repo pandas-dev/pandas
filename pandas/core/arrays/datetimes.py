@@ -484,17 +484,21 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 #  to overflow and cast to e.g. f8, but if it does we need to cast
                 i8values = i8values.astype("i8")
 
+        # Apply `inclusive` rules
         if start == end:
+            # Particular case where we act iff `inclusive="neither"`
+            # cf. GH #43394
             if not left_inclusive and not right_inclusive:
                 i8values = i8values[1:-1]
-        else:
+        elif len(i8values):
             start_i8 = Timestamp(start).value
             end_i8 = Timestamp(end).value
-            if not left_inclusive or not right_inclusive:
-                if not left_inclusive and len(i8values) and i8values[0] == start_i8:
-                    i8values = i8values[1:]
-                if not right_inclusive and len(i8values) and i8values[-1] == end_i8:
-                    i8values = i8values[:-1]
+            _left, _right = None, None
+            if not left_inclusive and (i8values[0] == start_i8 or start is None):
+                _left = 1
+            if not right_inclusive and (i8values[-1] == end_i8 or end is None):
+                _right = -1
+            i8values = i8values[_left:_right]
 
         dt64_values = i8values.view("datetime64[ns]")
         dtype = tz_to_dtype(tz)
