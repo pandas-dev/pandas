@@ -1354,7 +1354,8 @@ def read_fwf(
                         len_index = 1
                     else:
                         len_index = len(index_col)
-            if len(names) + len_index != len(colspecs):
+            if kwds.get("usecols") is None and len(names) + len_index != len(colspecs):
+                # If usecols is used colspec may be longer than names
                 raise ValueError("Length of colspecs must match length of names")
 
     kwds["colspecs"] = colspecs
