@@ -8717,7 +8717,7 @@ Parrot 2  Parrot       24.0
             value_name=value_name,
             col_level=col_level,
             ignore_index=ignore_index,
-        )
+        ).__finalize__(self, method="melt")
 
     # ----------------------------------------------------------------------
     # Time series-related
@@ -9574,6 +9574,11 @@ Parrot 2  Parrot       24.0
             if on is not None:
                 raise ValueError(
                     "Joining multiple DataFrames only supported for joining on index"
+                )
+
+            if rsuffix or lsuffix:
+                raise ValueError(
+                    "Suffixes not supported when joining multiple DataFrames"
                 )
 
             frames = [self] + list(other)

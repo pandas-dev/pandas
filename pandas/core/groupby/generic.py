@@ -1658,13 +1658,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ... })
 
         >>> df
-            gender 	education 	country
-        0 	male 	low 	    US
-        1 	male 	medium 	    FR
-        2 	female 	high 	    US
-        3 	male 	low 	    FR
-        4 	female 	high 	    FR
-        5 	male 	low 	    FR
+                gender  education   country
+        0       male    low         US
+        1       male    medium      FR
+        2       female  high        US
+        3       male    low         FR
+        4       female  high        FR
+        5       male    low         FR
 
         >>> df.groupby('gender').value_counts()
         gender  education  country
