@@ -243,8 +243,7 @@ class DatetimeProperties(Properties):
 
     def isocalendar(self):
         """
-        Return a DataFrame with the year, week, and day calculated according to
-        the ISO 8601 standard.
+        Calculate year, week, and day according to the ISO 8601 standard.
 
         .. versionadded:: 1.1.0
 
@@ -277,12 +276,13 @@ class DatetimeProperties(Properties):
     @property
     def weekofyear(self):
         """
-        The week ordinal of the year.
+        The week ordinal of the year according to the ISO 8601 standard.
 
         .. deprecated:: 1.1.0
 
-        Series.dt.weekofyear and Series.dt.week have been deprecated.
-        Please use Series.dt.isocalendar().week instead.
+        Series.dt.weekofyear and Series.dt.week have been deprecated.  Please
+        call :func:`Series.dt.isocalendar` and access the ``week`` column
+        instead.
         """
         warnings.warn(
             "Series.dt.weekofyear and Series.dt.week have been deprecated. "
