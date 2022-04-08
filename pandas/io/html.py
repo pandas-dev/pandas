@@ -577,7 +577,7 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
                 for elem in table.find_all(style=re.compile(r"display:\s*none")):
                     elem.decompose()
 
-            if table not in unique_tables and table.find(text=match) is not None:
+            if table not in unique_tables and table.find(string=match) is not None:
                 result.append(table)
             unique_tables.add(table)
 
