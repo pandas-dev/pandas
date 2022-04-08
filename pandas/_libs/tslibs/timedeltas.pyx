@@ -51,10 +51,11 @@ from pandas._libs.tslibs.np_datetime cimport (
     get_datetime64_unit,
     get_timedelta64_value,
     npy_datetimestruct,
-    pandas_datetime_to_datetimestruct,
     pandas_timedelta_to_timedeltastruct,
     pandas_timedeltastruct,
 )
+
+from .np_datetime cimport pandas_datetime_to_datetimestruct
 
 from pandas._libs.tslibs.np_datetime import OutOfBoundsTimedelta
 
