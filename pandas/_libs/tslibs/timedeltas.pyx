@@ -43,8 +43,7 @@ from pandas._libs.tslibs.nattype cimport (
     c_nat_strings as nat_strings,
     checknull_with_nat,
 )
-
-from .np_datetime cimport (  # pandas_datetime_to_datetimestruct,
+from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
     cmp_dtstructs,
@@ -52,6 +51,7 @@ from .np_datetime cimport (  # pandas_datetime_to_datetimestruct,
     get_datetime64_unit,
     get_timedelta64_value,
     npy_datetimestruct,
+    pandas_datetime_to_datetimestruct,
     pandas_timedelta_to_timedeltastruct,
     pandas_timedeltastruct,
 )
@@ -960,10 +960,9 @@ cdef class _Timedelta(timedelta):
             npy_datetimestruct dts_self
             npy_datetimestruct dts_other
 
-        raise NotImplementedError
         # dispatch to the datetimestruct utils instead of writing new ones!
-        #pandas_datetime_to_datetimestruct(self.value, self._reso, &dts_self)
-        #pandas_datetime_to_datetimestruct(other.value, other._reso, &dts_other)
+        pandas_datetime_to_datetimestruct(self.value, self._reso, &dts_self)
+        pandas_datetime_to_datetimestruct(other.value, other._reso, &dts_other)
         return cmp_dtstructs(&dts_self,  &dts_other, op)
 
     cdef bint _has_ns(self):
