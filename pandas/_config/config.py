@@ -128,7 +128,7 @@ def _get_single_key(pat: str, silent: bool) -> str:
     return key
 
 
-def _get_option(pat: str, silent: bool = False):
+def _get_option(pat: str, silent: bool = False) -> Any:
     key = _get_single_key(pat, silent)
 
     # walk the nested dict
@@ -168,7 +168,7 @@ def _set_option(*args, **kwargs) -> None:
                 o.cb(key)
 
 
-def _describe_option(pat: str = "", _print_desc: bool = True):
+def _describe_option(pat: str = "", _print_desc: bool = True) -> str | None:
 
     keys = _select_options(pat)
     if len(keys) == 0:
@@ -178,8 +178,8 @@ def _describe_option(pat: str = "", _print_desc: bool = True):
 
     if _print_desc:
         print(s)
-    else:
-        return s
+        return None
+    return s
 
 
 def _reset_option(pat: str, silent: bool = False) -> None:
