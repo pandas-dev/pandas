@@ -6703,7 +6703,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 # {'A': NA} -> 0
                 elif not is_list_like(value):
                     # GH46004
-                    if value is None or not value:
+                    if value is None:
                         to_rep, value = list(zip(*to_replace.items()))
                         return self.replace(to_rep, value, inplace, regex)
 
