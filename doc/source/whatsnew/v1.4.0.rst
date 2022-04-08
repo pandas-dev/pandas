@@ -826,7 +826,7 @@ Datetimelike
 - Bug in :meth:`Timestamp.to_pydatetime` failing to retain the ``fold`` attribute (:issue:`45087`)
 - Bug in :meth:`Series.mode` with ``DatetimeTZDtype`` incorrectly returning timezone-naive and ``PeriodDtype`` incorrectly raising (:issue:`41927`)
 - Fixed regression in :meth:`~Series.reindex` raising an error when using an incompatible fill value with a datetime-like dtype (or not raising a deprecation warning for using a ``datetime.date`` as fill value) (:issue:`42921`)
-- Bug in :class:`DateOffset`` addition with :class:`Timestamp` where ``offset.nanoseconds`` would not be included in the result (:issue:`43968`, :issue:`36589`)
+- Bug in :class:`DateOffset` addition with :class:`Timestamp` where ``offset.nanoseconds`` would not be included in the result (:issue:`43968`, :issue:`36589`)
 - Bug in :meth:`Timestamp.fromtimestamp` not supporting the ``tz`` argument (:issue:`45083`)
 - Bug in :class:`DataFrame` construction from dict of :class:`Series` with mismatched index dtypes sometimes raising depending on the ordering of the passed dict (:issue:`44091`)
 - Bug in :class:`Timestamp` hashing during some DST transitions caused a segmentation fault (:issue:`33931` and :issue:`40817`)

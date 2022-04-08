@@ -92,6 +92,9 @@ Other enhancements
 - :class:`Series` and :class:`DataFrame` with ``IntegerDtype`` now supports bitwise operations (:issue:`34463`)
 - Add ``milliseconds`` field support for :class:`~pandas.DateOffset` (:issue:`43371`)
 - :meth:`DataFrame.reset_index` now accepts a ``names`` argument which renames the index names (:issue:`6878`)
+- :meth:`pd.concat` now raises when ``levels`` is given but ``keys`` is None (:issue:`46653`)
+- :meth:`pd.concat` now raises when ``levels`` contains duplicate values (:issue:`46653`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.notable_bug_fixes:
@@ -577,6 +580,7 @@ Plotting
 - Bug in :meth:`DataFrame.boxplot` that prevented passing in ``xlabel`` and ``ylabel`` (:issue:`45463`)
 - Bug in :meth:`DataFrame.boxplot` that prevented specifying ``vert=False`` (:issue:`36918`)
 - Bug in :meth:`DataFrame.plot.scatter` that prevented specifying ``norm`` (:issue:`45809`)
+- The function :meth:`DataFrame.plot.scatter` now accepts ``color`` as an alias for ``c`` and ``size`` as an alias for ``s`` for consistency to other plotting functions (:issue:`44670`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -600,6 +604,8 @@ Reshaping
 - Bug in :func:`get_dummies` that selected object and categorical dtypes but not string (:issue:`44965`)
 - Bug in :meth:`DataFrame.align` when aligning a :class:`MultiIndex` to a :class:`Series` with another :class:`MultiIndex` (:issue:`46001`)
 - Bug in concanenation with ``IntegerDtype``, or ``FloatingDtype`` arrays where the resulting dtype did not mirror the behavior of the non-nullable dtypes (:issue:`46379`)
+- Bug in :func:`concat` with identical key leads to error when indexing :class:`MultiIndex` (:issue:`46519`)
+- Bug in :meth:`DataFrame.join` with a list when using suffixes to join DataFrames with duplicate column names (:issue:`46396`)
 -
 
 Sparse
@@ -615,6 +621,12 @@ ExtensionArray
 Styler
 ^^^^^^
 - Bug when attempting to apply styling functions to an empty DataFrame subset (:issue:`45313`)
+-
+
+Metadata
+^^^^^^^^
+- Fixed metadata propagation in :meth:`DataFrame.melt` (:issue:`28283`)
+- Fixed metadata propagation in :meth:`DataFrame.explode` (:issue:`28283`)
 -
 
 Other
