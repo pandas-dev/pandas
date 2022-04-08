@@ -57,6 +57,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_object_dtype,
     is_scalar,
+    is_signed_integer_dtype,
     is_timedelta64_dtype,
     needs_i8_conversion,
 )
@@ -446,7 +447,11 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
         )
 
     if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
-        values = _ensure_arraylike(list(values))
+        if not is_signed_integer_dtype(comps):
+            # GH#46485 Use object to avoid upcast to float64 later
+            values = construct_1d_object_array_from_listlike(list(values))
+        else:
+            values = _ensure_arraylike(list(values))
     elif isinstance(values, ABCMultiIndex):
         # Avoid raising in extract_array
         values = np.array(values)
