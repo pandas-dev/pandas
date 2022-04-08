@@ -360,8 +360,8 @@ class TestIntervalRange:
         # GH 40245
 
         msg = (
-            "Deprecated argument `closed` cannot "
-            "be passed if argument `inclusive` is not None"
+            "Deprecated argument `closed` cannot be passed if argument `inclusive` "
+            "has also been passed."
         )
         with pytest.raises(ValueError, match=msg):
             interval_range(end=5, periods=4, closed="both", inclusive="both")

@@ -336,7 +336,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         self,
         dtype: npt.DTypeLike | None = None,
         copy: bool = False,
-        na_value: Scalar | lib.NoDefault | libmissing.NAType = lib.no_default,
+        na_value: Scalar | libmissing.NAType = lib.no_default,
     ) -> np.ndarray:
         """
         Convert to a NumPy Array.
@@ -454,7 +454,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             eacls = dtype.construct_array_type()
             return eacls._from_sequence(self, dtype=dtype, copy=copy)
 
-        na_value: float | np.datetime64 | lib.NoDefault
+        na_value: float | np.datetime64
 
         # coerce
         if is_float_dtype(dtype):

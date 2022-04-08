@@ -21,11 +21,7 @@ from pandas._typing import (
 # placeholder until we can specify np.ndarray[object, ndim=2]
 ndarray_obj_2d = np.ndarray
 
-from enum import Enum
-
-class NoDefault(Enum): ...
-
-no_default: NoDefault
+no_default: Any
 
 i8max: int
 u8max: int

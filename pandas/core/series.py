@@ -1929,8 +1929,8 @@ Name: Max Speed, dtype: float64
         level=None,
         as_index: bool = True,
         sort: bool = True,
-        group_keys: bool | lib.NoDefault = no_default,
-        squeeze: bool | lib.NoDefault = no_default,
+        group_keys: bool = no_default,
+        squeeze: bool = no_default,
         observed: bool = False,
         dropna: bool = True,
     ) -> SeriesGroupBy:
@@ -1952,8 +1952,6 @@ Name: Max Speed, dtype: float64
             raise TypeError("You have to supply one of 'by' and 'level'")
         axis = self._get_axis_number(axis)
 
-        # error: Argument "squeeze" to "SeriesGroupBy" has incompatible type
-        # "Union[bool, NoDefault]"; expected "bool"
         return SeriesGroupBy(
             obj=self,
             keys=by,
@@ -1962,7 +1960,7 @@ Name: Max Speed, dtype: float64
             as_index=as_index,
             sort=sort,
             group_keys=group_keys,
-            squeeze=squeeze,  # type: ignore[arg-type]
+            squeeze=squeeze,
             observed=observed,
             dropna=dropna,
         )
@@ -5140,7 +5138,7 @@ Keep all original rows and also all original values
         inplace=False,
         limit=None,
         regex=False,
-        method: str | lib.NoDefault = lib.no_default,
+        method: str = lib.no_default,
     ):
         return super().replace(
             to_replace=to_replace,
@@ -5609,7 +5607,7 @@ Keep all original rows and also all original values
         level=None,
         origin: str | TimestampConvertibleTypes = "start_day",
         offset: TimedeltaConvertibleTypes | None = None,
-        group_keys: bool | lib.NoDefault = no_default,
+        group_keys: bool = no_default,
     ) -> Resampler:
         return super().resample(
             rule=rule,

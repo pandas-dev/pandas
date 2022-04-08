@@ -41,6 +41,7 @@ from pandas.util._decorators import (
     doc,
 )
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import validate_endpoints
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
@@ -884,8 +885,8 @@ def date_range(
     tz=None,
     normalize: bool = False,
     name: Hashable = None,
-    closed: Literal["left", "right"] | None | lib.NoDefault = lib.no_default,
-    inclusive: IntervalClosedType | None = None,
+    closed: Literal["left", "right"] | None = lib.no_default,
+    inclusive: IntervalClosedType = lib.no_default,
     **kwargs,
 ) -> DatetimeIndex:
     """
@@ -1042,26 +1043,22 @@ def date_range(
     DatetimeIndex(['2017-01-02', '2017-01-03', '2017-01-04'],
                   dtype='datetime64[ns]', freq='D')
     """
-    if inclusive is not None and not isinstance(closed, lib.NoDefault):
+    if inclusive is not lib.no_default and closed is not lib.no_default:
         raise ValueError(
             "Deprecated argument `closed` cannot be passed"
             "if argument `inclusive` is not None"
         )
-    elif not isinstance(closed, lib.NoDefault):
+    elif closed is not lib.no_default:
         warnings.warn(
             "Argument `closed` is deprecated in favor of `inclusive`.",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
-        if closed is None:
-            inclusive = "both"
-        elif closed in ("left", "right"):
-            inclusive = closed
-        else:
-            raise ValueError(
-                "Argument `closed` has to be either 'left', 'right' or None"
-            )
-    elif inclusive is None:
+        validate_endpoints(closed)
+        inclusive = "both" if closed is None else closed
+    elif inclusive is lib.no_default:
+        # On removal of closed arg the default for inclusive can be specified in
+        # the function signature
         inclusive = "both"
 
     if freq is None and com.any_none(periods, start, end):
@@ -1090,8 +1087,8 @@ def bdate_range(
     name: Hashable = None,
     weekmask=None,
     holidays=None,
-    closed: lib.NoDefault = lib.no_default,
-    inclusive: IntervalClosedType | None = None,
+    closed: Literal["left", "right"] | None = lib.no_default,
+    inclusive: IntervalClosedType = lib.no_default,
     **kwargs,
 ) -> DatetimeIndex:
     """

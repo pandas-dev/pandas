@@ -584,7 +584,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
     axis: int
     grouper: ops.BaseGrouper
-    group_keys: bool | lib.NoDefault
+    group_keys: bool
 
     @final
     def __len__(self) -> int:
@@ -850,7 +850,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         selection: IndexLabel | None = None,
         as_index: bool = True,
         sort: bool = True,
-        group_keys: bool | lib.NoDefault = True,
+        group_keys: bool = True,
         squeeze: bool = False,
         observed: bool = False,
         mutated: bool = False,
@@ -1223,7 +1223,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     ):
         raise AbstractMethodError(self)
 
-    def _resolve_numeric_only(self, numeric_only: bool | lib.NoDefault) -> bool:
+    def _resolve_numeric_only(self, numeric_only: bool) -> bool:
         """
         Determine subclass-specific default value for 'numeric_only'.
 
@@ -1258,9 +1258,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             else:
                 numeric_only = False
 
-        # error: Incompatible return value type (got "Union[bool, NoDefault]",
-        # expected "bool")
-        return numeric_only  # type: ignore[return-value]
+        return numeric_only
 
     # -----------------------------------------------------------------
     # numba
@@ -1922,7 +1920,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @Substitution(see_also=_common_see_also)
     def mean(
         self,
-        numeric_only: bool | lib.NoDefault = lib.no_default,
+        numeric_only: bool = lib.no_default,
         engine: str = "cython",
         engine_kwargs: dict[str, bool] | None = None,
     ):
@@ -2007,7 +2005,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def median(self, numeric_only: bool | lib.NoDefault = lib.no_default):
+    def median(self, numeric_only: bool = lib.no_default):
         """
         Compute median of groups, excluding missing values.
 
@@ -2212,7 +2210,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @doc(_groupby_agg_method_template, fname="sum", no=True, mc=0)
     def sum(
         self,
-        numeric_only: bool | lib.NoDefault = lib.no_default,
+        numeric_only: bool = lib.no_default,
         min_count: int = 0,
         engine: str | None = None,
         engine_kwargs: dict[str, bool] | None = None,
@@ -2242,9 +2240,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @doc(_groupby_agg_method_template, fname="prod", no=True, mc=0)
-    def prod(
-        self, numeric_only: bool | lib.NoDefault = lib.no_default, min_count: int = 0
-    ):
+    def prod(self, numeric_only: bool = lib.no_default, min_count: int = 0):
         numeric_only = self._resolve_numeric_only(numeric_only)
 
         return self._agg_general(
@@ -3430,7 +3426,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self,
         base_func: Callable,
         cython_dtype: np.dtype,
-        numeric_only: bool | lib.NoDefault = lib.no_default,
+        numeric_only: bool = lib.no_default,
         needs_counts: bool = False,
         needs_nullable: bool = False,
         needs_mask: bool = False,
@@ -4035,7 +4031,7 @@ def get_groupby(
     selection=None,
     as_index: bool = True,
     sort: bool = True,
-    group_keys: bool | lib.NoDefault = True,
+    group_keys: bool = True,
     squeeze: bool = False,
     observed: bool = False,
     mutated: bool = False,

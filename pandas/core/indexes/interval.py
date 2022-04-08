@@ -957,8 +957,8 @@ def interval_range(
     periods=None,
     freq=None,
     name: Hashable = None,
-    closed: lib.NoDefault = lib.no_default,
-    inclusive: IntervalClosedType | None = None,
+    closed: IntervalClosedType = lib.no_default,
+    inclusive: IntervalClosedType = lib.no_default,
 ) -> IntervalIndex:
     """
     Return a fixed frequency IntervalIndex.
@@ -1054,28 +1054,32 @@ def interval_range(
     IntervalIndex([[1, 2], [2, 3], [3, 4], [4, 5]],
                   dtype='interval[int64, both]')
     """
-    if inclusive is not None and not isinstance(closed, lib.NoDefault):
+    if inclusive is not lib.no_default and closed is not lib.no_default:
         raise ValueError(
             "Deprecated argument `closed` cannot be passed "
-            "if argument `inclusive` is not None"
+            "if argument `inclusive` has also been passed."
         )
-    elif not isinstance(closed, lib.NoDefault):
+    elif closed is not lib.no_default:
         warnings.warn(
             "Argument `closed` is deprecated in favor of `inclusive`.",
             FutureWarning,
             stacklevel=2,
         )
-        if closed is None:
-            inclusive = "both"
-        elif closed in ("both", "neither", "left", "right"):
-            inclusive = closed
-        else:
+        if closed not in ("both", "neither", "left", "right"):
             raise ValueError(
-                "Argument `closed` has to be either"
+                "Argument `closed` has to be either "
                 "'both', 'neither', 'left' or 'right'"
             )
-    elif inclusive is None:
+        inclusive = closed
+    elif inclusive is lib.no_default:
+        # On removal of closed arg the default for inclusive can be specified in
+        # the function signature
         inclusive = "both"
+    elif inclusive not in ("both", "neither", "left", "right"):
+        raise ValueError(
+            "Argument `inclusive` has to be either "
+            "'both', 'neither', 'left' or 'right'"
+        )
 
     start = maybe_box_datetimelike(start)
     end = maybe_box_datetimelike(end)

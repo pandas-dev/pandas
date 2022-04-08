@@ -468,7 +468,7 @@ def validate_endpoints(closed: str | None) -> tuple[bool, bool]:
     return left_closed, right_closed
 
 
-def validate_inclusive(inclusive: str | None) -> tuple[bool, bool]:
+def validate_inclusive(inclusive: str) -> tuple[bool, bool]:
     """
     Check that the `inclusive` argument is among {"both", "neither", "left", "right"}.
 
@@ -478,7 +478,7 @@ def validate_inclusive(inclusive: str | None) -> tuple[bool, bool]:
 
     Returns
     -------
-    left_right_inclusive : tuple[bool, bool]
+    tuple[bool, bool]
 
     Raises
     ------

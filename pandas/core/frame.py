@@ -4406,7 +4406,7 @@ class DataFrame(NDFrame, OpsMixin):
         loc: int,
         column: Hashable,
         value: Scalar | AnyArrayLike,
-        allow_duplicates: bool | lib.NoDefault = lib.no_default,
+        allow_duplicates: bool = lib.no_default,
     ) -> None:
         """
         Insert column into DataFrame at specified location.
@@ -5391,7 +5391,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: bool = False,
         limit=None,
         regex: bool = False,
-        method: str | lib.NoDefault = lib.no_default,
+        method: str = lib.no_default,
     ):
         return super().replace(
             to_replace=to_replace,
@@ -5728,7 +5728,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: Literal[False] = ...,
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
-        allow_duplicates: bool | lib.NoDefault = ...,
+        allow_duplicates: bool = ...,
         names: Hashable | Sequence[Hashable] = None,
     ) -> DataFrame:
         ...
@@ -5741,7 +5741,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: Literal[True],
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
-        allow_duplicates: bool | lib.NoDefault = ...,
+        allow_duplicates: bool = ...,
         names: Hashable | Sequence[Hashable] = None,
     ) -> None:
         ...
@@ -5754,7 +5754,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: Literal[True],
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
-        allow_duplicates: bool | lib.NoDefault = ...,
+        allow_duplicates: bool = ...,
         names: Hashable | Sequence[Hashable] = None,
     ) -> None:
         ...
@@ -5767,7 +5767,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: Literal[True],
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
-        allow_duplicates: bool | lib.NoDefault = ...,
+        allow_duplicates: bool = ...,
         names: Hashable | Sequence[Hashable] = None,
     ) -> None:
         ...
@@ -5779,7 +5779,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: Literal[True],
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
-        allow_duplicates: bool | lib.NoDefault = ...,
+        allow_duplicates: bool = ...,
         names: Hashable | Sequence[Hashable] = None,
     ) -> None:
         ...
@@ -5792,7 +5792,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: bool = ...,
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
-        allow_duplicates: bool | lib.NoDefault = ...,
+        allow_duplicates: bool = ...,
         names: Hashable | Sequence[Hashable] = None,
     ) -> DataFrame | None:
         ...
@@ -5805,7 +5805,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: bool = False,
         col_level: Hashable = 0,
         col_fill: Hashable = "",
-        allow_duplicates: bool | lib.NoDefault = lib.no_default,
+        allow_duplicates: bool = lib.no_default,
         names: Hashable | Sequence[Hashable] = None,
     ) -> DataFrame | None:
         """
@@ -7961,8 +7961,8 @@ Parrot 2  Parrot       24.0
         level: Level | None = None,
         as_index: bool = True,
         sort: bool = True,
-        group_keys: bool | lib.NoDefault = no_default,
-        squeeze: bool | lib.NoDefault = no_default,
+        group_keys: bool = no_default,
+        squeeze: bool = no_default,
         observed: bool = False,
         dropna: bool = True,
     ) -> DataFrameGroupBy:
@@ -7984,9 +7984,6 @@ Parrot 2  Parrot       24.0
             raise TypeError("You have to supply one of 'by' and 'level'")
         axis = self._get_axis_number(axis)
 
-        # https://github.com/python/mypy/issues/7642
-        # error: Argument "squeeze" to "DataFrameGroupBy" has incompatible type
-        # "Union[bool, NoDefault]"; expected "bool"
         return DataFrameGroupBy(
             obj=self,
             keys=by,
@@ -7995,7 +7992,7 @@ Parrot 2  Parrot       24.0
             as_index=as_index,
             sort=sort,
             group_keys=group_keys,
-            squeeze=squeeze,  # type: ignore[arg-type]
+            squeeze=squeeze,
             observed=observed,
             dropna=dropna,
         )
@@ -10752,7 +10749,7 @@ Parrot 2  Parrot       24.0
         self,
         q=0.5,
         axis: Axis = 0,
-        numeric_only: bool | lib.NoDefault = no_default,
+        numeric_only: bool = no_default,
         interpolation: str = "linear",
     ):
         """
@@ -10906,7 +10903,7 @@ Parrot 2  Parrot       24.0
         level=None,
         origin: str | TimestampConvertibleTypes = "start_day",
         offset: TimedeltaConvertibleTypes | None = None,
-        group_keys: bool | lib.NoDefault = no_default,
+        group_keys: bool = no_default,
     ) -> Resampler:
         return super().resample(
             rule=rule,

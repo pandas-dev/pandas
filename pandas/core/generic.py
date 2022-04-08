@@ -7791,9 +7791,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self: NDFrameT,
         start_time,
         end_time,
-        include_start: bool_t | lib.NoDefault = lib.no_default,
-        include_end: bool_t | lib.NoDefault = lib.no_default,
-        inclusive: IntervalClosedType | None = None,
+        include_start: bool_t = lib.no_default,
+        include_end: bool_t = lib.no_default,
+        inclusive: IntervalClosedType = lib.no_default,
         axis=None,
     ) -> NDFrameT:
         """
@@ -7877,11 +7877,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if not isinstance(index, DatetimeIndex):
             raise TypeError("Index must be DatetimeIndex")
 
-        old_include_arg_used = (include_start != lib.no_default) or (
-            include_end != lib.no_default
+        old_include_arg_used = (include_start is not lib.no_default) or (
+            include_end is not lib.no_default
         )
 
-        if old_include_arg_used and inclusive is not None:
+        if old_include_arg_used and inclusive is not lib.no_default:
             raise ValueError(
                 "Deprecated arguments `include_start` and `include_end` "
                 "cannot be passed if `inclusive` has been given."
@@ -7895,8 +7895,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
-            left = True if isinstance(include_start, lib.NoDefault) else include_start
-            right = True if isinstance(include_end, lib.NoDefault) else include_end
+            left = True if include_start is lib.no_default else include_start
+            right = True if include_end is lib.no_default else include_end
 
             inc_dict: dict[tuple[bool_t, bool_t], IntervalClosedType] = {
                 (True, True): "both",
@@ -7905,8 +7905,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 (False, False): "neither",
             }
             inclusive = inc_dict[(left, right)]
-        elif inclusive is None:
-            # On arg removal inclusive can default to "both"
+        elif inclusive is lib.no_default:
+            # On removal of include_start and include_end the default for
+            # inclusive can be specified in the function signature
             inclusive = "both"
         left_inclusive, right_inclusive = validate_inclusive(inclusive)
         indexer = index.indexer_between_time(
@@ -7932,7 +7933,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         level=None,
         origin: str | TimestampConvertibleTypes = "start_day",
         offset: TimedeltaConvertibleTypes | None = None,
-        group_keys: bool_t | lib.NoDefault = lib.no_default,
+        group_keys: bool_t = lib.no_default,
     ) -> Resampler:
         """
         Resample time-series data.
@@ -8502,7 +8503,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self: NDFrameT,
         axis=0,
         method: str = "average",
-        numeric_only: bool_t | None | lib.NoDefault = lib.no_default,
+        numeric_only: bool_t | None = lib.no_default,
         na_option: str = "keep",
         ascending: bool_t = True,
         pct: bool_t = False,
@@ -10658,7 +10659,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         name: str,
         func,
-        axis: Axis | None | lib.NoDefault = None,
+        axis: Axis | None = None,
         skipna: bool_t = True,
         level: Level | None = None,
         numeric_only: bool_t | None = None,
@@ -10686,7 +10687,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if axis is None:
             axis = self._stat_axis_number
-        axis = cast(Axis, axis)
         if level is not None:
             warnings.warn(
                 "Using the level keyword in DataFrame and Series aggregations is "
@@ -10704,7 +10704,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def min(
         self,
-        axis: Axis | None | lib.NoDefault = lib.no_default,
+        axis: Axis | None = lib.no_default,
         skipna: bool_t = True,
         level: Level | None = None,
         numeric_only: bool_t | None = None,
@@ -10722,7 +10722,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def max(
         self,
-        axis: Axis | None | lib.NoDefault = lib.no_default,
+        axis: Axis | None = lib.no_default,
         skipna: bool_t = True,
         level: Level | None = None,
         numeric_only: bool_t | None = None,
@@ -10740,7 +10740,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def mean(
         self,
-        axis: Axis | None | lib.NoDefault = lib.no_default,
+        axis: Axis | None = lib.no_default,
         skipna: bool_t = True,
         level: Level | None = None,
         numeric_only: bool_t | None = None,
@@ -10752,7 +10752,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def median(
         self,
-        axis: Axis | None | lib.NoDefault = lib.no_default,
+        axis: Axis | None = lib.no_default,
         skipna: bool_t = True,
         level: Level | None = None,
         numeric_only: bool_t | None = None,
@@ -10764,7 +10764,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def skew(
         self,
-        axis: Axis | None | lib.NoDefault = lib.no_default,
+        axis: Axis | None = lib.no_default,
         skipna: bool_t = True,
         level: Level | None = None,
         numeric_only: bool_t | None = None,
@@ -10776,7 +10776,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def kurt(
         self,
-        axis: Axis | None | lib.NoDefault = lib.no_default,
+        axis: Axis | None = lib.no_default,
         skipna: bool_t = True,
         level: Level | None = None,
         numeric_only: bool_t | None = None,
@@ -11170,7 +11170,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         def mean(
             self,
-            axis: int | None | lib.NoDefault = lib.no_default,
+            axis: int | None = lib.no_default,
             skipna=True,
             level=None,
             numeric_only=None,
@@ -11192,7 +11192,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         def skew(
             self,
-            axis: int | None | lib.NoDefault = lib.no_default,
+            axis: int | None = lib.no_default,
             skipna=True,
             level=None,
             numeric_only=None,
@@ -11217,7 +11217,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         def kurt(
             self,
-            axis: Axis | None | lib.NoDefault = lib.no_default,
+            axis: Axis | None = lib.no_default,
             skipna=True,
             level=None,
             numeric_only=None,
@@ -11240,7 +11240,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         def median(
             self,
-            axis: int | None | lib.NoDefault = lib.no_default,
+            axis: int | None = lib.no_default,
             skipna=True,
             level=None,
             numeric_only=None,
@@ -11265,7 +11265,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         def max(
             self,
-            axis: int | None | lib.NoDefault = lib.no_default,
+            axis: int | None = lib.no_default,
             skipna=True,
             level=None,
             numeric_only=None,
@@ -11290,7 +11290,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         def min(
             self,
-            axis: int | None | lib.NoDefault = lib.no_default,
+            axis: int | None = lib.no_default,
             skipna=True,
             level=None,
             numeric_only=None,
