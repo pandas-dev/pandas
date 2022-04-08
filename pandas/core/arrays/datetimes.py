@@ -1328,15 +1328,14 @@ default 'raise'
 
     def isocalendar(self) -> DataFrame:
         """
-        Returns a DataFrame with the year, week, and day calculated according to
-        the ISO 8601 standard.
+        Calculate year, week, and day according to the ISO 8601 standard.
 
         .. versionadded:: 1.1.0
 
         Returns
         -------
         DataFrame
-            with columns year, week and day
+            With columns year, week and day.
 
         See Also
         --------
