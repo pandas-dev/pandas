@@ -23,7 +23,7 @@ def add_mean(
     compensation: float,
     num_consecutive_same_value: int,
     prev_value: float,
-) -> tuple[int, float, int, float, float, float]:
+) -> tuple[int, float, int, float, int, float]:
     if not np.isnan(val):
         nobs += 1
         y = val - compensation

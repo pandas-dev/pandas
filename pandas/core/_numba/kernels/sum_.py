@@ -22,7 +22,7 @@ def add_sum(
     compensation: float,
     num_consecutive_same_value: int,
     prev_value: float,
-) -> tuple[int, float, float, float, float]:
+) -> tuple[int, float, float, int, float]:
     if not np.isnan(val):
         nobs += 1
         y = val - compensation
