@@ -1094,20 +1094,18 @@ class TestDataFrameQueryStrings:
 
 
 class TestDataFrameEvalWithFrame:
-    def setup_method(self):
-        self.frame = DataFrame(np.random.randn(10, 3), columns=list("abc"))
+    @pytest.fixture
+    def frame(self):
+        return DataFrame(np.random.randn(10, 3), columns=list("abc"))
 
-    def teardown_method(self):
-        del self.frame
-
-    def test_simple_expr(self, parser, engine):
-        res = self.frame.eval("a + b", engine=engine, parser=parser)
-        expect = self.frame.a + self.frame.b
+    def test_simple_expr(self, frame, parser, engine):
+        res = frame.eval("a + b", engine=engine, parser=parser)
+        expect = frame.a + frame.b
         tm.assert_series_equal(res, expect)
 
-    def test_bool_arith_expr(self, parser, engine):
-        res = self.frame.eval("a[a < 1] + b", engine=engine, parser=parser)
-        expect = self.frame.a[self.frame.a < 1] + self.frame.b
+    def test_bool_arith_expr(self, frame, parser, engine):
+        res = frame.eval("a[a < 1] + b", engine=engine, parser=parser)
+        expect = frame.a[frame.a < 1] + frame.b
         tm.assert_series_equal(res, expect)
 
     @pytest.mark.parametrize("op", ["+", "-", "*", "/"])

@@ -15,66 +15,65 @@ from pandas import (
 import pandas._testing as tm
 
 
+@pytest.fixture
+def df():
+    df = DataFrame(
+        {
+            "A": [
+                "foo",
+                "foo",
+                "foo",
+                "foo",
+                "bar",
+                "bar",
+                "bar",
+                "bar",
+                "foo",
+                "foo",
+                "foo",
+            ],
+            "B": [
+                "one",
+                "one",
+                "one",
+                "two",
+                "one",
+                "one",
+                "one",
+                "two",
+                "two",
+                "two",
+                "one",
+            ],
+            "C": [
+                "dull",
+                "dull",
+                "shiny",
+                "dull",
+                "dull",
+                "shiny",
+                "shiny",
+                "dull",
+                "shiny",
+                "shiny",
+                "shiny",
+            ],
+            "D": np.random.randn(11),
+            "E": np.random.randn(11),
+            "F": np.random.randn(11),
+        }
+    )
+
+    return pd.concat([df, df], ignore_index=True)
+
+
 class TestCrosstab:
-    def setup_method(self):
-        df = DataFrame(
-            {
-                "A": [
-                    "foo",
-                    "foo",
-                    "foo",
-                    "foo",
-                    "bar",
-                    "bar",
-                    "bar",
-                    "bar",
-                    "foo",
-                    "foo",
-                    "foo",
-                ],
-                "B": [
-                    "one",
-                    "one",
-                    "one",
-                    "two",
-                    "one",
-                    "one",
-                    "one",
-                    "two",
-                    "two",
-                    "two",
-                    "one",
-                ],
-                "C": [
-                    "dull",
-                    "dull",
-                    "shiny",
-                    "dull",
-                    "dull",
-                    "shiny",
-                    "shiny",
-                    "dull",
-                    "shiny",
-                    "shiny",
-                    "shiny",
-                ],
-                "D": np.random.randn(11),
-                "E": np.random.randn(11),
-                "F": np.random.randn(11),
-            }
-        )
-
-        self.df = pd.concat([df, df], ignore_index=True)
-
-    def test_crosstab_single(self):
-        df = self.df
+    def test_crosstab_single(self, df):
         result = crosstab(df["A"], df["C"])
         expected = df.groupby(["A", "C"]).size().unstack()
         tm.assert_frame_equal(result, expected.fillna(0).astype(np.int64))
 
-    def test_crosstab_multiple(self):
-        df = self.df
-
+    def test_crosstab_multiple(self, df):
         result = crosstab(df["A"], [df["B"], df["C"]])
         expected = df.groupby(["A", "B", "C"]).size()
         expected = expected.unstack("B").unstack("C").fillna(0).astype(np.int64)

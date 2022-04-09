@@ -19,8 +19,6 @@ from pandas.tests.reshape.merge.test_merge import (
     get_test_data,
 )
 
-a_ = np.array
-
 
 class TestJoin:
     def setup_method(self):
