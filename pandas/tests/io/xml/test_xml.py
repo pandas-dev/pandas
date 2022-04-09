@@ -1370,6 +1370,7 @@ def test_wrong_compression(parser, compression, compression_only):
         "bz2": (OSError, "Invalid data stream"),
         "gzip": (OSError, "Not a gzipped file"),
         "zip": (BadZipFile, "File is not a zip file"),
+        "tar": (BadZipFile, "File is not a zip file"),
     }
     zstd = import_optional_dependency("zstandard", errors="ignore")
     if zstd is not None:
