@@ -14,10 +14,6 @@ import pandas._testing as tm
 import pandas.io.common as icom
 
 
-def flip(my_dict: dict):
-    return {value: key for key, value in my_dict.items()}
-
-
 @pytest.mark.parametrize(
     "obj",
     [
@@ -83,7 +79,7 @@ def test_dataframe_compression_defaults_to_infer(
 ):
     # GH22004
     input = pd.DataFrame([[1.0, 0, -4], [3.4, 5, 2]], columns=["X", "Y", "Z"])
-    extension = flip(icom._extension_to_compression)[compression_only]
+    extension = icom._extension_to_compression[compression_only]
     with tm.ensure_clean("compressed" + extension) as path:
         getattr(input, write_method)(path, **write_kwargs)
         output = read_method(path, compression=compression_only)
@@ -103,7 +99,7 @@ def test_series_compression_defaults_to_infer(
 ):
     # GH22004
     input = pd.Series([0, 5, -2, 10], name="X")
-    extension = flip(icom._extension_to_compression)[compression_only]
+    extension = icom._extension_to_compression[compression_only]
     with tm.ensure_clean("compressed" + extension) as path:
         getattr(input, write_method)(path, **write_kwargs)
         if "squeeze" in read_kwargs:
