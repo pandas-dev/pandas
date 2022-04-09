@@ -498,6 +498,7 @@ Conversion
 - Bug in :meth:`Series.astype` and :meth:`DataFrame.astype` from floating dtype to unsigned integer dtype failing to raise in the presence of negative values (:issue:`45151`)
 - Bug in :func:`array` with ``FloatingDtype`` and values containing float-castable strings incorrectly raising (:issue:`45424`)
 - Bug when comparing string and datetime64ns objects causing ``OverflowError`` exception. (:issue:`45506`)
+- Bug in metaclass of generic abstract dtypes causing :meth:`DataFrame.apply` and :meth:`Series.apply` to raise for the built-in function ``type``
 
 Strings
 ^^^^^^^
