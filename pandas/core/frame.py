@@ -9873,7 +9873,12 @@ Parrot 2  Parrot       24.0
 
         return self._constructor(correl, index=idx, columns=cols)
 
-    def cov(self, min_periods: int | None = None, ddof: int | None = 1) -> DataFrame:
+    def cov(
+        self,
+        min_periods: int | None = None,
+        ddof: int | None = 1,
+        numeric_only: bool = True,
+    ) -> DataFrame:
         """
         Compute pairwise covariance of columns, excluding NA/null values.
 
@@ -9903,6 +9908,11 @@ Parrot 2  Parrot       24.0
             is ``N - ddof``, where ``N`` represents the number of elements.
 
             .. versionadded:: 1.1.0
+
+        numeric_only : bool, default True
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -9972,10 +9982,13 @@ Parrot 2  Parrot       24.0
         b       NaN  1.248003  0.191417
         c -0.150812  0.191417  0.895202
         """
-        numeric_df = self._get_numeric_data()
-        cols = numeric_df.columns
+        if numeric_only:
+            data = self._get_numeric_data()
+        else:
+            data = self
+        cols = data.columns
         idx = cols.copy()
-        mat = numeric_df.to_numpy(dtype=float, na_value=np.nan, copy=False)
+        mat = data.to_numpy(dtype=float, na_value=np.nan, copy=False)
 
         if notna(mat).all():
             if min_periods is not None and min_periods > len(mat):

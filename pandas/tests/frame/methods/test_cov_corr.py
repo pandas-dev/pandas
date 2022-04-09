@@ -83,6 +83,20 @@ class TestDataFrameCov:
         expected = DataFrame(arr, columns=["a", "b"], index=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("numeric_only", [True, False])
+    def test_cov_numeric_only(self, numeric_only):
+        # when dtypes of pandas series are different
+        # then ndarray will have dtype=object,
+        # so it need to be properly handled
+        df = DataFrame({"a": [1, 0], "c": ["x", "y"]})
+        expected = DataFrame(0.5, index=["a"], columns=["a"])
+        if numeric_only:
+            result = df.cov(numeric_only=numeric_only)
+            tm.assert_frame_equal(result, expected)
+        else:
+            with pytest.raises(ValueError, match="could not convert string to float"):
+                df.cov(numeric_only=numeric_only)
+
 
 class TestDataFrameCorr:
     # DataFrame.corr(), as opposed to DataFrame.corrwith
