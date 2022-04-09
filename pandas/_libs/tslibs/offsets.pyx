@@ -72,19 +72,14 @@ from pandas._libs.tslibs.np_datetime cimport (
 from pandas._libs.tslibs.tzconversion cimport tz_convert_from_utc_single
 
 from .dtypes cimport PeriodDtypeCode
-
-#from .timedeltas cimport (
-#    delta_to_nanoseconds,
-#    is_any_td_scalar,
-#)
-
-from .timedeltas import (
-    Timedelta,
+from .timedeltas cimport (
     delta_to_nanoseconds,
     is_any_td_scalar,
 )
 
-from .base cimport ABCTimestamp as _Timestamp
+from .timedeltas import Timedelta
+
+from .timestamps cimport _Timestamp
 
 from .timestamps import Timestamp
 
