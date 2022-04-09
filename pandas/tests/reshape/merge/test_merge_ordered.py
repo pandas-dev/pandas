@@ -76,19 +76,24 @@ class TestMergeOrdered:
 
         assert isinstance(result, NotADataFrame)
 
-    @pytest.mark.parametrize("df_seq, pattern", [
+    @pytest.mark.parametrize(
+        "df_seq, pattern",
+        [
             ((), "[Nn]o objects"),
             ([], "[Nn]o objects"),
             ({}, "[Nn]o objects"),
             ([None], "objects.*None"),
             ([None, None], "objects.*None"),
-    ])
+        ],
+    )
     def test_empty_sequence_concat(self, df_seq, pattern):
         # GH 9157
         with pytest.raises(ValueError, match=pattern):
             pd.concat(df_seq)
 
-    @pytest.mark.parametrize("arg", [[DataFrame()], [None, DataFrame()], [DataFrame(), None]])
+    @pytest.mark.parametrize(
+        "arg", [[DataFrame()], [None, DataFrame()], [DataFrame(), None]]
+    )
     def test_empty_sequence_concat_ok(self, arg):
         pd.concat(arg)
 

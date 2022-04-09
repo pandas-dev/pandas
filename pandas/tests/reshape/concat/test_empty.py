@@ -129,8 +129,13 @@ class TestEmptyConcat:
         result = concat([Series(dtype=dtype), Series(dtype=dtype)])
         assert result.dtype == dtype
 
-    @pytest.mark.parametrize("dtype", map(np.dtype, ["float64", "int8", "uint8", "bool", "m8[ns]", "M8[ns]"]))
-    @pytest.mark.parametrize("dtype2", map(np.dtype, ["float64", "int8", "uint8", "bool", "m8[ns]", "M8[ns]"]))
+    @pytest.mark.parametrize(
+        "dtype", map(np.dtype, ["float64", "int8", "uint8", "bool", "m8[ns]", "M8[ns]"])
+    )
+    @pytest.mark.parametrize(
+        "dtype2",
+        map(np.dtype, ["float64", "int8", "uint8", "bool", "m8[ns]", "M8[ns]"]),
+    )
     def test_concat_empty_series_dtypes_roundtrips(self, dtype, dtype2):
 
         # round-tripping with self & like self
