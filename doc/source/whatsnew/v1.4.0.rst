@@ -199,29 +199,6 @@ library to produce a tight representation of :class:`DataFrame` objects
 
 .. _whatsnew_140.enhancements.other:
 
-Reading directly from TAR archives
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-I/O methods like :func:`read_csv` or :meth:`DataFrame.to_json` now allow reading and writing
-directly on TAR archives (:issue:`44787`).
-
-.. code-block:: python
-
-   df = pd.read_csv("./movement.tar.gz")
-   # ...
-   df.to_csv("./out.tar.gz")
-
-This supports ``.tar``, ``.tar.gz``, ``.tar.bz`` and ``.tar.xz2`` archives.
-The used compression method is inferred from the filename.
-If the compression method cannot be inferred, use the ``compression`` argument:
-
-.. code-block:: python
-
-   df = pd.read_csv(some_file_obj, compression={"method": "tar", "mode": "r:gz"}) # noqa F821
-
-(``mode`` being one of ``tarfile.open``'s modes: https://docs.python.org/3/library/tarfile.html#tarfile.open)
-
-
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - :meth:`concat` will preserve the ``attrs`` when it is the same for all objects and discard the ``attrs`` when they are different (:issue:`41828`)
