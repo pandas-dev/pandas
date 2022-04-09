@@ -178,6 +178,7 @@ def test_regression_allowlist_methods(raw_frame, op, level, axis, skipna, sort):
     # GH6944
     # GH 17537
     # explicitly test the allowlist methods
+    warn = FutureWarning if op == "mad" else None
 
     if axis == 0:
         frame = raw_frame
@@ -186,7 +187,8 @@ def test_regression_allowlist_methods(raw_frame, op, level, axis, skipna, sort):
 
     if op in AGG_FUNCTIONS_WITH_SKIPNA:
         grouped = frame.groupby(level=level, axis=axis, sort=sort)
-        result = getattr(grouped, op)(skipna=skipna)
+        with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
+            result = getattr(grouped, op)(skipna=skipna)
         with tm.assert_produces_warning(FutureWarning):
             expected = getattr(frame, op)(level=level, axis=axis, skipna=skipna)
         if sort:

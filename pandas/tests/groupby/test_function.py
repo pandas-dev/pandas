@@ -321,11 +321,17 @@ class TestGroupByNonCythonPaths:
         # mad
         expected = DataFrame([[0], [np.nan]], columns=["B"], index=[1, 3])
         expected.index.name = "A"
-        result = gb.mad()
+        with tm.assert_produces_warning(
+            FutureWarning, match="The 'mad' method is deprecated"
+        ):
+            result = gb.mad()
         tm.assert_frame_equal(result, expected)
 
         expected = DataFrame([[1, 0.0], [3, np.nan]], columns=["A", "B"], index=[0, 1])
-        result = gni.mad()
+        with tm.assert_produces_warning(
+            FutureWarning, match="The 'mad' method is deprecated"
+        ):
+            result = gni.mad()
         tm.assert_frame_equal(result, expected)
 
     def test_describe(self, df, gb, gni):

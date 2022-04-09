@@ -203,13 +203,17 @@ def test_transform_axis_1_reducer(request, reduction_func):
     ):
         marker = pytest.mark.xfail(reason="transform incorrectly fails - GH#45986")
         request.node.add_marker(marker)
+    warn = FutureWarning if reduction_func == "mad" else None
+
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
-    result = df.groupby([0, 0, 1], axis=1).transform(reduction_func)
+    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
+        result = df.groupby([0, 0, 1], axis=1).transform(reduction_func)
     if reduction_func == "size":
         # size doesn't behave in the same manner; hardcode expected result
         expected = DataFrame(2 * [[2, 2, 1]], index=df.index, columns=df.columns)
     else:
-        expected = df.T.groupby([0, 0, 1]).transform(reduction_func).T
+        with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
+            expected = df.T.groupby([0, 0, 1]).transform(reduction_func).T
     tm.assert_equal(result, expected)
 
 
@@ -1137,6 +1141,8 @@ def test_transform_invalid_name_raises():
 )
 def test_transform_agg_by_name(request, reduction_func, obj):
     func = reduction_func
+    warn = FutureWarning if func == "mad" else None
+
     g = obj.groupby(np.repeat([0, 1], 3))
 
     if func == "corrwith" and isinstance(obj, Series):  # GH#32293
@@ -1145,7 +1151,8 @@ def test_transform_agg_by_name(request, reduction_func, obj):
         )
 
     args = {"nth": [0], "quantile": [0.5], "corrwith": [obj]}.get(func, [])
-    result = g.transform(func, *args)
+    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
+        result = g.transform(func, *args)
 
     # this is the *definition* of a transformation
     tm.assert_index_equal(result.index, obj.index)
@@ -1339,6 +1346,8 @@ def test_null_group_str_reducer(request, dropna, reduction_func):
     if reduction_func == "corrwith":
         msg = "incorrectly raises"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
+    warn = FutureWarning if reduction_func == "mad" else None
+
     index = [1, 2, 3, 4]  # test transform preserves non-standard index
     df = DataFrame({"A": [1, 1, np.nan, np.nan], "B": [1, 2, 2, 3]}, index=index)
     gb = df.groupby("A", dropna=dropna)
@@ -1366,7 +1375,10 @@ def test_null_group_str_reducer(request, dropna, reduction_func):
         expected_gb = df.groupby("A", dropna=False)
         buffer = []
         for idx, group in expected_gb:
-            res = getattr(group["B"], reduction_func)()
+            with tm.assert_produces_warning(
+                warn, match="The 'mad' method is deprecated"
+            ):
+                res = getattr(group["B"], reduction_func)()
             buffer.append(Series(res, index=group.index))
         expected = concat(buffer).to_frame("B")
     if dropna:
@@ -1377,7 +1389,8 @@ def test_null_group_str_reducer(request, dropna, reduction_func):
         else:
             expected.iloc[[2, 3]] = np.nan
 
-    result = gb.transform(reduction_func, *args)
+    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
+        result = gb.transform(reduction_func, *args)
     tm.assert_equal(result, expected)
 
 
@@ -1423,6 +1436,7 @@ def test_null_group_str_reducer_series(request, dropna, reduction_func):
     if reduction_func == "corrwith":
         msg = "corrwith not implemented for SeriesGroupBy"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
+    warn = FutureWarning if reduction_func == "mad" else None
 
     # GH 17093
     index = [1, 2, 3, 4]  # test transform preserves non-standard index
@@ -1452,7 +1466,10 @@ def test_null_group_str_reducer_series(request, dropna, reduction_func):
         expected_gb = ser.groupby([1, 1, np.nan, np.nan], dropna=False)
         buffer = []
         for idx, group in expected_gb:
-            res = getattr(group, reduction_func)()
+            with tm.assert_produces_warning(
+                warn, match="The 'mad' method is deprecated"
+            ):
+                res = getattr(group, reduction_func)()
             buffer.append(Series(res, index=group.index))
         expected = concat(buffer)
     if dropna:
@@ -1460,7 +1477,8 @@ def test_null_group_str_reducer_series(request, dropna, reduction_func):
         expected = expected.astype(dtype)
         expected.iloc[[2, 3]] = np.nan
 
-    result = gb.transform(reduction_func, *args)
+    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
+        result = gb.transform(reduction_func, *args)
     tm.assert_series_equal(result, expected)
 
 

@@ -1325,11 +1325,13 @@ def test_groupby_aggregate_directory(reduction_func):
     # GH#32793
     if reduction_func in ["corrwith", "nth"]:
         return None
+    warn = FutureWarning if reduction_func == "mad" else None
 
     obj = DataFrame([[0, 1], [0, np.nan]])
 
-    result_reduced_series = obj.groupby(0).agg(reduction_func)
-    result_reduced_frame = obj.groupby(0).agg({1: reduction_func})
+    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
+        result_reduced_series = obj.groupby(0).agg(reduction_func)
+        result_reduced_frame = obj.groupby(0).agg({1: reduction_func})
 
     if reduction_func in ["size", "ngroup"]:
         # names are different: None / 1
