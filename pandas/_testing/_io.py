@@ -4,8 +4,8 @@ import bz2
 from functools import wraps
 import gzip
 import io
-import tarfile
 import socket
+import tarfile
 from typing import (
     TYPE_CHECKING,
     Any,
