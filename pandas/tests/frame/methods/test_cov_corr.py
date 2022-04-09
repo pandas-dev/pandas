@@ -83,6 +83,20 @@ class TestDataFrameCov:
         expected = DataFrame(arr, columns=["a", "b"], index=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("numeric_only", [True, False])
+    def test_cov_numeric_only(self, numeric_only):
+        # when dtypes of pandas series are different
+        # then ndarray will have dtype=object,
+        # so it need to be properly handled
+        df = DataFrame({"a": [1, 0], "c": ["x", "y"]})
+        expected = DataFrame(0.5, index=["a"], columns=["a"])
+        if numeric_only:
+            result = df.cov(numeric_only=numeric_only)
+            tm.assert_frame_equal(result, expected)
+        else:
+            with pytest.raises(ValueError, match="could not convert string to float"):
+                df.cov(numeric_only=numeric_only)
+
 
 class TestDataFrameCorr:
     # DataFrame.corr(), as opposed to DataFrame.corrwith
@@ -235,6 +249,22 @@ class TestDataFrameCorr:
         )
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_if_no_scipy
+    @pytest.mark.parametrize("meth", ["pearson", "kendall", "spearman"])
+    @pytest.mark.parametrize("numeric_only", [True, False])
+    def test_corr_numeric_only(self, meth, numeric_only):
+        # when dtypes of pandas series are different
+        # then ndarray will have dtype=object,
+        # so it need to be properly handled
+        df = DataFrame({"a": [1, 0], "b": [1, 0], "c": ["x", "y"]})
+        expected = DataFrame(np.ones((2, 2)), index=["a", "b"], columns=["a", "b"])
+        if numeric_only:
+            result = df.corr(meth, numeric_only=numeric_only)
+            tm.assert_frame_equal(result, expected)
+        else:
+            with pytest.raises(ValueError, match="could not convert string to float"):
+                df.corr(meth, numeric_only=numeric_only)
+
 
 class TestDataFrameCorrWith:
     def test_corrwith(self, datetime_frame):
@@ -300,16 +330,21 @@ class TestDataFrameCorrWith:
         tm.assert_almost_equal(c1, c2)
         assert c1 < 1
 
-    def test_corrwith_mixed_dtypes(self):
+    @pytest.mark.parametrize("numeric_only", [True, False])
+    def test_corrwith_mixed_dtypes(self, numeric_only):
         # GH#18570
         df = DataFrame(
             {"a": [1, 4, 3, 2], "b": [4, 6, 7, 3], "c": ["a", "b", "c", "d"]}
         )
         s = Series([0, 6, 7, 3])
-        result = df.corrwith(s)
-        corrs = [df["a"].corr(s), df["b"].corr(s)]
-        expected = Series(data=corrs, index=["a", "b"])
-        tm.assert_series_equal(result, expected)
+        if numeric_only:
+            result = df.corrwith(s, numeric_only=numeric_only)
+            corrs = [df["a"].corr(s), df["b"].corr(s)]
+            expected = Series(data=corrs, index=["a", "b"])
+            tm.assert_series_equal(result, expected)
+        else:
+            with pytest.raises(TypeError, match="not supported for the input types"):
+                df.corrwith(s, numeric_only=numeric_only)
 
     def test_corrwith_index_intersection(self):
         df1 = DataFrame(np.random.random(size=(10, 2)), columns=["a", "b"])
