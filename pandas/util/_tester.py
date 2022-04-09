@@ -1,24 +1,29 @@
 """
 Entrypoint for testing from the top-level namespace.
 """
+from __future__ import annotations
+
 import os
 import sys
+
+from pandas.compat._optional import import_optional_dependency
 
 PKG = os.path.dirname(os.path.dirname(__file__))
 
 
-def test(extra_args=None):
+def test(extra_args: list[str] | None = None):
     """
     Run the pandas test suite using pytest.
+
+    By default, runs with the marks --skip-slow, --skip-network, --skip-db
+
+    Parameters
+    ----------
+    extra_args : list[str], default None
+        Extra marks to run the tests.
     """
-    try:
-        import pytest
-    except ImportError as err:
-        raise ImportError("Need pytest>=5.0.1 to run tests") from err
-    try:
-        import hypothesis  # noqa:F401
-    except ImportError as err:
-        raise ImportError("Need hypothesis>=3.58 to run tests") from err
+    pytest = import_optional_dependency("pytest")
+    import_optional_dependency("hypothesis")
     cmd = ["--skip-slow", "--skip-network", "--skip-db"]
     if extra_args:
         if not isinstance(extra_args, list):
