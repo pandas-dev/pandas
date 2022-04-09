@@ -188,7 +188,7 @@ class TestIntervalRange:
         # accounts for the hour gained/lost during DST transition
         result = interval_range(start=start, end=end, periods=2, inclusive="right")
         expected = IntervalIndex.from_breaks([start, mid, end], "right")
-        
+
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("freq", [2, 2.0])
