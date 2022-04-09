@@ -20,7 +20,7 @@ gitpython
 gitdb
 numpydoc
 pandas-dev-flaker==0.5.0
-pydata-sphinx-theme
+pydata-sphinx-theme==0.8.0
 pytest-cython
 sphinx
 sphinx-panels
@@ -28,7 +28,7 @@ types-python-dateutil
 types-PyMySQL
 types-pytz
 types-setuptools
-nbconvert>=5.4.1
+nbconvert>=6.4.5
 nbsphinx
 pandoc
 dask
@@ -58,7 +58,7 @@ blosc
 bottleneck>=1.3.1
 ipykernel
 ipython>=7.11.1
-jinja2<=3.0.3
+jinja2
 matplotlib>=3.3.2
 numexpr>=2.7.1
 scipy>=1.4.1

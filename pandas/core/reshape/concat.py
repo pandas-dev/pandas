@@ -668,6 +668,8 @@ class _Concatenator:
             return idx
 
         if self.keys is None:
+            if self.levels is not None:
+                raise ValueError("levels supported only when keys is not None")
             concat_axis = _concat_indexes(indexes)
         else:
             concat_axis = _make_concat_multiindex(
@@ -708,9 +710,13 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
             names = [None]
 
         if levels is None:
-            levels = [ensure_index(keys)]
+            levels = [ensure_index(keys).unique()]
         else:
             levels = [ensure_index(x) for x in levels]
+
+    for level in levels:
+        if not level.is_unique:
+            raise ValueError(f"Level values not unique: {level.tolist()}")
 
     if not all_indexes_same(indexes) or not all(level.is_unique for level in levels):
         codes_list = []
