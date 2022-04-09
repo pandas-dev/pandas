@@ -566,7 +566,7 @@ I/O
 - Bug in Parquet roundtrip for Interval dtype with ``datetime64[ns]`` subtype (:issue:`45881`)
 - Bug in :func:`read_excel` when reading a ``.ods`` file with newlines between xml elements (:issue:`45598`)
 - Bug in :func:`read_parquet` when ``engine="fastparquet"`` where the file was not closed on error (:issue:`46555`)
-- :func:`read_json` now raises ``FileNotFoundError`` (previously ``ValueError``) when input is a string ending in one of ``.json``, ``.json.gz``, ``.json.bz2`` but no such file exists. (:issue:`29102`)
+- :func:`read_json` now raises ``FileNotFoundError`` (previously ``ValueError``) when input is a string ending in ``.json``, ``.json.gz``, ``.json.bz2``, etc. but no such file exists. (:issue:`29102`)
 
 Period
 ^^^^^^
