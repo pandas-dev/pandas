@@ -464,7 +464,9 @@ _extension_to_compression = {
     ".zst": "zstd",
 }
 _supported_compressions = set(_extension_to_compression.values())
-_compression_to_extension = {value: key for key, value in _extension_to_compression.items()}
+_compression_to_extension = {
+    value: key for key, value in _extension_to_compression.items()
+}
 
 
 def get_compression_method(
@@ -767,7 +769,7 @@ def get_handle(
                 handle = _BytesTarFile.open(name=handle, **compression_args)
             else:
                 handle = _BytesTarFile.open(fileobj=handle, **compression_args)
-            if handle.mode == "r": # type: ignore[arg-type]
+            if handle.mode == "r":  # type: ignore[arg-type]
                 handles.append(handle)
                 files = handle.getnames()
                 if len(files) == 1:
