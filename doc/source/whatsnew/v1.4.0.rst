@@ -202,7 +202,7 @@ library to produce a tight representation of :class:`DataFrame` objects
 Reading directly from TAR archives
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-I/O methods like :function:`read_csv` or :meth:`DataFrame.to_json` now allow reading and writing
+I/O methods like :func:`read_csv` or :meth:`DataFrame.to_json` now allow reading and writing
 directly on TAR archives (:issue:`44787`).
 
 .. code-block:: python
