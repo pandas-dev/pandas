@@ -135,7 +135,9 @@ def assert_stat_op_calc(
     # all NA case
     if has_skipna:
         all_na = frame * np.NaN
-        with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
+        with tm.assert_produces_warning(
+            warn, match="The 'mad' method is deprecated", raise_on_extra_warnings=False
+        ):
             r0 = getattr(all_na, opname)(axis=0)
             r1 = getattr(all_na, opname)(axis=1)
         if opname in ["sum", "prod"]:
