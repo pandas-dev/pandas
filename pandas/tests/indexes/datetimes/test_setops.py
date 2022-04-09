@@ -418,7 +418,7 @@ class TestDatetimeIndexSetOps:
 
 class TestBusinessDatetimeIndex:
     def test_union(self, sort):
-        rng = date_range(START, END)
+        rng = bdate_range(START, END)
         # overlapping
         left = rng[:10]
         right = rng[5:10]
