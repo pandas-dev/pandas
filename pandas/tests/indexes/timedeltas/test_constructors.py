@@ -51,7 +51,7 @@ class TestTimedeltaIndex:
         # GH#23539
         # fast-path for inferring a frequency if the passed data already
         #  has one
-        tdi = timedelta_range("1 second", periods=10 ** 7, freq="1s")
+        tdi = timedelta_range("1 second", periods=10**7, freq="1s")
 
         result = TimedeltaIndex(tdi, freq="infer")
         assert result.freq == tdi.freq

@@ -92,7 +92,7 @@ class _SubheaderPointer:
     compression: int
     ptype: int
 
-    def __init__(self, offset: int, length: int, compression: int, ptype: int):
+    def __init__(self, offset: int, length: int, compression: int, ptype: int) -> None:
         self.offset = offset
         self.length = length
         self.compression = compression
@@ -116,7 +116,7 @@ class _Column:
         format: str | bytes,
         ctype: bytes,
         length: int,
-    ):
+    ) -> None:
         self.col_id = col_id
         self.name = name
         self.label = label
@@ -168,7 +168,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         encoding=None,
         convert_text=True,
         convert_header_text=True,
-    ):
+    ) -> None:
 
         self.index = index
         self.convert_dates = convert_dates
@@ -798,8 +798,8 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
             name = self.column_names[j]
 
             if self._column_types[j] == b"d":
-                rslt[name] = self._byte_chunk[jb, :].view(dtype=self.byte_order + "d")
-                rslt[name] = pd.Series(rslt[name], dtype=np.float64, index=ix)
+                col_arr = self._byte_chunk[jb, :].view(dtype=self.byte_order + "d")
+                rslt[name] = pd.Series(col_arr, dtype=np.float64, index=ix)
                 if self.convert_dates:
                     if self.column_formats[j] in const.sas_date_formats:
                         rslt[name] = _convert_datetimes(rslt[name], "d")

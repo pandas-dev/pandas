@@ -661,6 +661,20 @@ class TestDataFrameReplace:
         result = df.replace({"col": {-1: "-", 1: "a", 4: "b"}})
         tm.assert_frame_equal(expected, result)
 
+    def test_replace_NA_with_None(self):
+        # gh-45601
+        df = DataFrame({"value": [42, None]}).astype({"value": "Int64"})
+        result = df.replace({pd.NA: None})
+        expected = DataFrame({"value": [42, None]}, dtype=object)
+        tm.assert_frame_equal(result, expected)
+
+    def test_replace_NAT_with_None(self):
+        # gh-45836
+        df = DataFrame([pd.NaT, pd.NaT])
+        result = df.replace({pd.NaT: None, np.NaN: None})
+        expected = DataFrame([None, None])
+        tm.assert_frame_equal(result, expected)
+
     def test_replace_value_is_none(self, datetime_frame):
         orig_value = datetime_frame.iloc[0, 0]
         orig2 = datetime_frame.iloc[1, 0]
@@ -752,6 +766,13 @@ class TestDataFrameReplace:
                 "foo",
                 "bar",
                 DataFrame({"dt": [datetime(3017, 12, 20)], "str": ["bar"]}),
+            ),
+            # GH 36782
+            (
+                DataFrame({"dt": [datetime(2920, 10, 1)]}),
+                datetime(2920, 10, 1),
+                datetime(2020, 10, 1),
+                DataFrame({"dt": [datetime(2020, 10, 1)]}),
             ),
             (
                 DataFrame(
@@ -869,6 +890,7 @@ class TestDataFrameReplace:
         tm.assert_frame_equal(result, expected)
 
     def test_replace_limit(self):
+        # TODO
         pass
 
     def test_replace_dict_no_regex(self):
@@ -1519,3 +1541,10 @@ class TestDataFrameReplaceRegex:
         expected_df2 = DataFrame({"A": [1], "B": ["1"]})
         result_df2 = df2.replace(to_replace="0", value=1, regex=regex)
         tm.assert_frame_equal(result_df2, expected_df2)
+
+    def test_replace_with_value_also_being_replaced(self):
+        # GH46306
+        df = DataFrame({"A": [0, 1, 2], "B": [1, 0, 2]})
+        result = df.replace({0: 1, 1: np.nan})
+        expected = DataFrame({"A": [1, np.nan, 2], "B": [np.nan, 1, 2]})
+        tm.assert_frame_equal(result, expected)

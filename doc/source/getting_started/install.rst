@@ -12,7 +12,7 @@ cross platform distribution for data analysis and scientific computing.
 This is the recommended installation method for most users.
 
 Instructions for installing from source,
-`PyPI <https://pypi.org/project/pandas>`__, `ActivePython <https://www.activestate.com/products/python/downloads/>`__, various Linux distributions, or a
+`PyPI <https://pypi.org/project/pandas>`__, `ActivePython <https://www.activestate.com/products/python/>`__, various Linux distributions, or a
 `development version <https://github.com/pandas-dev/pandas>`__ are also provided.
 
 .. _install.version:
@@ -20,7 +20,7 @@ Instructions for installing from source,
 Python version support
 ----------------------
 
-Officially Python 3.8, and 3.9.
+Officially Python 3.8, 3.9 and 3.10.
 
 Installing pandas
 -----------------
@@ -70,18 +70,18 @@ and involves downloading the installer which is a few hundred megabytes in size.
 
 If you want to have more control on which packages, or have a limited internet
 bandwidth, then installing pandas with
-`Miniconda <https://conda.pydata.org/miniconda.html>`__ may be a better solution.
+`Miniconda <https://docs.conda.io/en/latest/miniconda.html>`__ may be a better solution.
 
-`Conda <https://conda.pydata.org/docs/>`__ is the package manager that the
+`Conda <https://conda.io/en/latest/>`__ is the package manager that the
 `Anaconda <https://docs.continuum.io/anaconda/>`__ distribution is built upon.
 It is a package manager that is both cross-platform and language agnostic
 (it can play a similar role to a pip and virtualenv combination).
 
 `Miniconda <https://conda.pydata.org/miniconda.html>`__ allows you to create a
 minimal self contained Python installation, and then use the
-`Conda <https://conda.pydata.org/docs/>`__ command to install additional packages.
+`Conda <https://conda.io/en/latest/>`__ command to install additional packages.
 
-First you will need `Conda <https://conda.pydata.org/docs/>`__ to be installed and
+First you will need `Conda <https://conda.io/en/latest/>`__ to be installed and
 downloading and running the `Miniconda
 <https://conda.pydata.org/miniconda.html>`__
 will do this for you. The installer
@@ -143,8 +143,8 @@ Installing with ActivePython
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Installation instructions for
-`ActivePython <https://www.activestate.com/activepython>`__ can be found
-`here <https://www.activestate.com/activepython/downloads>`__. Versions
+`ActivePython <https://www.activestate.com/products/python/>`__ can be found
+`here <https://www.activestate.com/products/python/>`__. Versions
 2.7, 3.5 and 3.6 include pandas.
 
 Installing using your Linux distribution's package manager.
@@ -158,10 +158,10 @@ The commands in this table will install pandas for Python 3 from your distributi
 
 
     Debian, stable, `official Debian repository <https://packages.debian.org/search?keywords=pandas&searchon=names&suite=all&section=all>`__ , ``sudo apt-get install python3-pandas``
-    Debian & Ubuntu, unstable (latest packages), `NeuroDebian <http://neuro.debian.net/index.html#how-to-use-this-repository>`__ , ``sudo apt-get install python3-pandas``
+    Debian & Ubuntu, unstable (latest packages), `NeuroDebian <https://neuro.debian.net/index.html#how-to-use-this-repository>`__ , ``sudo apt-get install python3-pandas``
     Ubuntu, stable, `official Ubuntu repository <https://packages.ubuntu.com/search?keywords=pandas&searchon=names&suite=all&section=all>`__ , ``sudo apt-get install python3-pandas``
     OpenSuse, stable, `OpenSuse Repository  <https://software.opensuse.org/package/python-pandas?search_term=pandas>`__ , ``zypper in python3-pandas``
-    Fedora, stable, `official Fedora repository  <https://admin.fedoraproject.org/pkgdb/package/rpms/python-pandas/>`__ , ``dnf install python3-pandas``
+    Fedora, stable, `official Fedora repository  <https://src.fedoraproject.org/rpms/python-pandas>`__ , ``dnf install python3-pandas``
     Centos/RHEL, stable, `EPEL repository <https://admin.fedoraproject.org/pkgdb/package/rpms/python-pandas/>`__ , ``yum install python3-pandas``
 
 **However**, the packages in the linux package managers are often a few versions behind, so
@@ -199,22 +199,33 @@ the code base as of this writing. To run it on your machine to verify that
 everything is working (and that you have all of the dependencies, soft and hard,
 installed), make sure you have `pytest
 <https://docs.pytest.org/en/latest/>`__ >= 6.0 and `Hypothesis
-<https://hypothesis.readthedocs.io/>`__ >= 3.58, then run:
+<https://hypothesis.readthedocs.io/en/latest/>`__ >= 3.58, then run:
 
 ::
 
     >>> pd.test()
-    running: pytest --skip-slow --skip-network C:\Users\TP\Anaconda3\envs\py36\lib\site-packages\pandas
-    ============================= test session starts =============================
-    platform win32 -- Python 3.6.2, pytest-3.6.0, py-1.4.34, pluggy-0.4.0
-    rootdir: C:\Users\TP\Documents\Python\pandasdev\pandas, inifile: setup.cfg
-    collected 12145 items / 3 skipped
+    running: pytest --skip-slow --skip-network --skip-db /home/user/anaconda3/lib/python3.9/site-packages/pandas
 
-    ..................................................................S......
-    ........S................................................................
-    .........................................................................
+    ============================= test session starts ==============================
+    platform linux -- Python 3.9.7, pytest-6.2.5, py-1.11.0, pluggy-1.0.0
+    rootdir: /home/user
+    plugins: dash-1.19.0, anyio-3.5.0, hypothesis-6.29.3
+    collected 154975 items / 4 skipped / 154971 selected
+    ........................................................................ [  0%]
+    ........................................................................ [ 99%]
+    .......................................                                  [100%]
 
-    ==================== 12130 passed, 12 skipped in 368.339 seconds =====================
+    ==================================== ERRORS ====================================
+
+    =================================== FAILURES ===================================
+
+    =============================== warnings summary ===============================
+
+    =========================== short test summary info ============================
+
+    = 1 failed, 146194 passed, 7402 skipped, 1367 xfailed, 5 xpassed, 197 warnings, 10 errors in 1090.16s (0:18:10) =
+
+This is just an example of what information is shown. You might see a slightly different result as what is shown above.
 
 .. _install.dependencies:
 
@@ -276,7 +287,7 @@ Computation
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-SciPy                     1.14.1             Miscellaneous statistical functions
+SciPy                     1.4.1              Miscellaneous statistical functions
 numba                     0.50.1             Alternative execution engine for rolling operations
                                              (see :ref:`Enhancing Performance <enhancingperf.numba>`)
 xarray                    0.15.1             pandas-like API for N-dimensional data
@@ -291,7 +302,7 @@ Dependency                Minimum Version    Notes
 xlrd                      2.0.1              Reading Excel
 xlwt                      1.3.0              Writing Excel
 xlsxwriter                1.2.2              Writing Excel
-openpyxl                  3.0.2              Reading / writing for xlsx files
+openpyxl                  3.0.3              Reading / writing for xlsx files
 pyxlsb                    1.0.6              Reading for xlsb files
 ========================= ================== =============================================================
 
@@ -361,7 +372,7 @@ blosc                     1.20.1             Compression for HDF5
 zlib                                         Compression for HDF5
 fastparquet               0.4.0              Parquet reading / writing
 pyarrow                   1.0.1              Parquet, ORC, and feather reading / writing
-pyreadstat                                   SPSS files (.sav) reading
+pyreadstat                1.1.0              SPSS files (.sav) reading
 ========================= ================== =============================================================
 
 .. _install.warn_orc:
@@ -410,5 +421,7 @@ Compression
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-Zstandard                                    Zstandard compression
+brotli                    0.7.0              Brotli compression
+python-snappy             0.6.0              Snappy compression
+Zstandard                 0.15.2             Zstandard compression
 ========================= ================== =============================================================

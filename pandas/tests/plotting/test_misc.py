@@ -8,6 +8,7 @@ import pandas.util._test_decorators as td
 from pandas import (
     DataFrame,
     Series,
+    Timestamp,
 )
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
@@ -16,8 +17,6 @@ from pandas.tests.plotting.common import (
 )
 
 import pandas.plotting as plotting
-
-pytestmark = pytest.mark.slow
 
 
 @td.skip_if_mpl
@@ -65,36 +64,30 @@ def test_get_accessor_args():
 
 @td.skip_if_no_mpl
 class TestSeriesPlots(TestPlotBase):
-    def setup_method(self, method):
-        TestPlotBase.setup_method(self, method)
-        import matplotlib as mpl
-
-        mpl.rcdefaults()
-
-        self.ts = tm.makeTimeSeries()
-        self.ts.name = "ts"
-
     def test_autocorrelation_plot(self):
         from pandas.plotting import autocorrelation_plot
 
+        ser = tm.makeTimeSeries(name="ts")
         # Ensure no UserWarning when making plot
         with tm.assert_produces_warning(None):
-            _check_plot_works(autocorrelation_plot, series=self.ts)
-            _check_plot_works(autocorrelation_plot, series=self.ts.values)
+            _check_plot_works(autocorrelation_plot, series=ser)
+            _check_plot_works(autocorrelation_plot, series=ser.values)
 
-            ax = autocorrelation_plot(self.ts, label="Test")
+            ax = autocorrelation_plot(ser, label="Test")
         self._check_legend_labels(ax, labels=["Test"])
 
-    def test_lag_plot(self):
+    @pytest.mark.parametrize("kwargs", [{}, {"lag": 5}])
+    def test_lag_plot(self, kwargs):
         from pandas.plotting import lag_plot
 
-        _check_plot_works(lag_plot, series=self.ts)
-        _check_plot_works(lag_plot, series=self.ts, lag=5)
+        ser = tm.makeTimeSeries(name="ts")
+        _check_plot_works(lag_plot, series=ser, **kwargs)
 
     def test_bootstrap_plot(self):
         from pandas.plotting import bootstrap_plot
 
-        _check_plot_works(bootstrap_plot, series=self.ts, size=10)
+        ser = tm.makeTimeSeries(name="ts")
+        _check_plot_works(bootstrap_plot, series=ser, size=10)
 
 
 @td.skip_if_no_mpl
@@ -102,8 +95,6 @@ class TestDataFramePlots(TestPlotBase):
     @td.skip_if_no_scipy
     @pytest.mark.parametrize("pass_axis", [False, True])
     def test_scatter_matrix_axis(self, pass_axis):
-        from pandas.plotting._matplotlib.compat import mpl_ge_3_0_0
-
         scatter_matrix = plotting.scatter_matrix
 
         ax = None
@@ -114,9 +105,7 @@ class TestDataFramePlots(TestPlotBase):
             df = DataFrame(np.random.randn(100, 3))
 
         # we are plotting multiples on a sub-plot
-        with tm.assert_produces_warning(
-            UserWarning, raise_on_extra_warnings=mpl_ge_3_0_0()
-        ):
+        with tm.assert_produces_warning(UserWarning, raise_on_extra_warnings=True):
             axes = _check_plot_works(
                 scatter_matrix,
                 filterwarnings="always",
@@ -147,6 +136,7 @@ class TestDataFramePlots(TestPlotBase):
         self._check_text_labels(axes0_labels, expected)
         self._check_ticks_props(axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
 
+    @pytest.mark.slow
     def test_andrews_curves(self, iris):
         from matplotlib import cm
 
@@ -223,6 +213,7 @@ class TestDataFramePlots(TestPlotBase):
         handles, labels = ax.get_legend_handles_labels()
         self._check_colors(handles, linecolors=colors)
 
+    @pytest.mark.slow
     def test_parallel_coordinates(self, iris):
         from matplotlib import cm
 
@@ -559,3 +550,15 @@ class TestDataFramePlots(TestPlotBase):
         assert not plots[0][0].xaxis.get_label().get_visible()
         assert plots[0][1].xaxis.get_label().get_visible()
         assert not plots[0][2].xaxis.get_label().get_visible()
+
+    def test_plot_bar_axis_units_timestamp_conversion(self):
+        # GH 38736
+        # Ensure string x-axis from the second plot will not be converted to datetime
+        # due to axis data from first plot
+        df = DataFrame(
+            [1.0],
+            index=[Timestamp("2022-02-22 22:22:22")],
+        )
+        _check_plot_works(df.plot)
+        s = Series({"A": 1.0})
+        _check_plot_works(s.plot.bar)

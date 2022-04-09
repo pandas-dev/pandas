@@ -18,13 +18,13 @@ dependencies:
   - cython>=0.29.24
 
   # code checks
-  - black=21.5b2
+  - black=22.3.0
   - cpplint
   - flake8=4.0.1
   - flake8-bugbear=21.3.2  # used by flake8, find likely bugs
   - flake8-comprehensions=3.7.0  # used by flake8, linting of unnecessary comprehensions
   - isort>=5.2.1  # check that imports are in the right order
-  - mypy=0.930
+  - mypy=0.941
   - pre-commit>=2.9.2
   - pycodestyle  # used by flake8
   - pyupgrade
@@ -32,16 +32,19 @@ dependencies:
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
   - gitdb
+  - numpydoc
+  - pandas-dev-flaker=0.5.0
+  - pydata-sphinx-theme=0.8.0
+  - pytest-cython
   - sphinx
   - sphinx-panels
-  - numpydoc < 1.2  # 2021-02-09 1.2dev breaking CI
   - types-python-dateutil
   - types-PyMySQL
   - types-pytz
   - types-setuptools
 
   # documentation (jupyter notebooks)
-  - nbconvert>=5.4.1
+  - nbconvert>=6.4.5
   - nbsphinx
   - pandoc
 
@@ -66,7 +69,7 @@ dependencies:
   - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.31
-  - pytest-asyncio
+  - pytest-asyncio>=0.17
   - pytest-instafail
 
   # downstream tests
@@ -77,7 +80,6 @@ dependencies:
   - ipywidgets
   - nbformat
   - notebook>=6.0.3
-  - pip
 
   # optional
   - blosc
@@ -119,10 +121,3 @@ dependencies:
   - pyreadstat  # pandas.read_spss
   - tabulate>=0.8.3  # DataFrame.to_markdown
   - natsort  # DataFrame.sort_values
-  - pip:
-      #issue with building environment in conda on windows. Issue: https://github.com/pandas-dev/pandas/issues/45123
-      #issue with pydata-sphix-theme on windows. Issue: https://github.com/pydata/pydata-sphinx-theme/issues/523
-      #using previous stable version as workaround
-    - git+https://github.com/pydata/pydata-sphinx-theme.git@41764f5
-    - pandas-dev-flaker==0.2.0
-    - pytest-cython

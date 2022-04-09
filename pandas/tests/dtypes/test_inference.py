@@ -17,6 +17,7 @@ from io import StringIO
 import itertools
 from numbers import Number
 import re
+import sys
 
 import numpy as np
 import pytest
@@ -91,7 +92,7 @@ class MockNumpyLikeArray:
     a scalar (`is_scalar(np.array(1)) == False`), but it is not list-like either.
     """
 
-    def __init__(self, values):
+    def __init__(self, values) -> None:
         self._values = values
 
     def __iter__(self):
@@ -205,8 +206,14 @@ def test_is_list_like_recursion():
         inference.is_list_like([])
         foo()
 
-    with tm.external_error_raised(RecursionError):
-        foo()
+    rec_limit = sys.getrecursionlimit()
+    try:
+        # Limit to avoid stack overflow on Windows CI
+        sys.setrecursionlimit(100)
+        with tm.external_error_raised(RecursionError):
+            foo()
+    finally:
+        sys.setrecursionlimit(rec_limit)
 
 
 def test_is_list_like_iter_is_none():
@@ -323,7 +330,7 @@ def test_is_dict_like_fails(ll):
 @pytest.mark.parametrize("has_contains", [True, False])
 def test_is_dict_like_duck_type(has_keys, has_getitem, has_contains):
     class DictLike:
-        def __init__(self, d):
+        def __init__(self, d) -> None:
             self.d = d
 
         if has_keys:
@@ -594,25 +601,25 @@ class TestInference:
         tm.assert_numpy_array_equal(result, np.array([np.nan, 1.0, np.nan]))
 
     def test_convert_numeric_uint64(self):
-        arr = np.array([2 ** 63], dtype=object)
-        exp = np.array([2 ** 63], dtype=np.uint64)
+        arr = np.array([2**63], dtype=object)
+        exp = np.array([2**63], dtype=np.uint64)
         tm.assert_numpy_array_equal(lib.maybe_convert_numeric(arr, set())[0], exp)
 
-        arr = np.array([str(2 ** 63)], dtype=object)
-        exp = np.array([2 ** 63], dtype=np.uint64)
+        arr = np.array([str(2**63)], dtype=object)
+        exp = np.array([2**63], dtype=np.uint64)
         tm.assert_numpy_array_equal(lib.maybe_convert_numeric(arr, set())[0], exp)
 
-        arr = np.array([np.uint64(2 ** 63)], dtype=object)
-        exp = np.array([2 ** 63], dtype=np.uint64)
+        arr = np.array([np.uint64(2**63)], dtype=object)
+        exp = np.array([2**63], dtype=np.uint64)
         tm.assert_numpy_array_equal(lib.maybe_convert_numeric(arr, set())[0], exp)
 
     @pytest.mark.parametrize(
         "arr",
         [
-            np.array([2 ** 63, np.nan], dtype=object),
-            np.array([str(2 ** 63), np.nan], dtype=object),
-            np.array([np.nan, 2 ** 63], dtype=object),
-            np.array([np.nan, str(2 ** 63)], dtype=object),
+            np.array([2**63, np.nan], dtype=object),
+            np.array([str(2**63), np.nan], dtype=object),
+            np.array([np.nan, 2**63], dtype=object),
+            np.array([np.nan, str(2**63)], dtype=object),
         ],
     )
     def test_convert_numeric_uint64_nan(self, coerce, arr):
@@ -624,11 +631,11 @@ class TestInference:
     def test_convert_numeric_uint64_nan_values(
         self, coerce, convert_to_masked_nullable
     ):
-        arr = np.array([2 ** 63, 2 ** 63 + 1], dtype=object)
-        na_values = {2 ** 63}
+        arr = np.array([2**63, 2**63 + 1], dtype=object)
+        na_values = {2**63}
 
         expected = (
-            np.array([np.nan, 2 ** 63 + 1], dtype=float) if coerce else arr.copy()
+            np.array([np.nan, 2**63 + 1], dtype=float) if coerce else arr.copy()
         )
         result = lib.maybe_convert_numeric(
             arr,
@@ -638,7 +645,7 @@ class TestInference:
         )
         if convert_to_masked_nullable and coerce:
             expected = IntegerArray(
-                np.array([0, 2 ** 63 + 1], dtype="u8"),
+                np.array([0, 2**63 + 1], dtype="u8"),
                 np.array([True, False], dtype="bool"),
             )
             result = IntegerArray(*result)
@@ -649,12 +656,12 @@ class TestInference:
     @pytest.mark.parametrize(
         "case",
         [
-            np.array([2 ** 63, -1], dtype=object),
-            np.array([str(2 ** 63), -1], dtype=object),
-            np.array([str(2 ** 63), str(-1)], dtype=object),
-            np.array([-1, 2 ** 63], dtype=object),
-            np.array([-1, str(2 ** 63)], dtype=object),
-            np.array([str(-1), str(2 ** 63)], dtype=object),
+            np.array([2**63, -1], dtype=object),
+            np.array([str(2**63), -1], dtype=object),
+            np.array([str(2**63), str(-1)], dtype=object),
+            np.array([-1, 2**63], dtype=object),
+            np.array([-1, str(2**63)], dtype=object),
+            np.array([str(-1), str(2**63)], dtype=object),
         ],
     )
     @pytest.mark.parametrize("convert_to_masked_nullable", [True, False])
@@ -686,7 +693,7 @@ class TestInference:
             result = result[0]
         assert np.isnan(result)
 
-    @pytest.mark.parametrize("value", [-(2 ** 63) - 1, 2 ** 64])
+    @pytest.mark.parametrize("value", [-(2**63) - 1, 2**64])
     def test_convert_int_overflow(self, value):
         # see gh-18584
         arr = np.array([value], dtype=object)
@@ -695,23 +702,23 @@ class TestInference:
 
     def test_maybe_convert_objects_uint64(self):
         # see gh-4471
-        arr = np.array([2 ** 63], dtype=object)
-        exp = np.array([2 ** 63], dtype=np.uint64)
+        arr = np.array([2**63], dtype=object)
+        exp = np.array([2**63], dtype=np.uint64)
         tm.assert_numpy_array_equal(lib.maybe_convert_objects(arr), exp)
 
         # NumPy bug: can't compare uint64 to int64, as that
         # results in both casting to float64, so we should
         # make sure that this function is robust against it
-        arr = np.array([np.uint64(2 ** 63)], dtype=object)
-        exp = np.array([2 ** 63], dtype=np.uint64)
+        arr = np.array([np.uint64(2**63)], dtype=object)
+        exp = np.array([2**63], dtype=np.uint64)
         tm.assert_numpy_array_equal(lib.maybe_convert_objects(arr), exp)
 
         arr = np.array([2, -1], dtype=object)
         exp = np.array([2, -1], dtype=np.int64)
         tm.assert_numpy_array_equal(lib.maybe_convert_objects(arr), exp)
 
-        arr = np.array([2 ** 63, -1], dtype=object)
-        exp = np.array([2 ** 63, -1], dtype=object)
+        arr = np.array([2**63, -1], dtype=object)
+        exp = np.array([2**63, -1], dtype=object)
         tm.assert_numpy_array_equal(lib.maybe_convert_objects(arr), exp)
 
     def test_maybe_convert_objects_datetime(self):
@@ -1134,9 +1141,19 @@ class TestTypeInference:
         # This could also return "string" or "mixed-string"
         assert result == "mixed"
 
+        # even though we use skipna, we are only skipping those NAs that are
+        #  considered matching by is_string_array
         arr = ["a", np.nan, "c"]
         result = lib.infer_dtype(arr, skipna=True)
         assert result == "string"
+
+        arr = ["a", pd.NA, "c"]
+        result = lib.infer_dtype(arr, skipna=True)
+        assert result == "string"
+
+        arr = ["a", pd.NaT, "c"]
+        result = lib.infer_dtype(arr, skipna=True)
+        assert result == "mixed"
 
         arr = ["a", "c"]
         result = lib.infer_dtype(arr, skipna=False)
@@ -1534,7 +1551,9 @@ class TestTypeInference:
         assert not lib.is_integer_array(np.array([1, 2.0]))
 
     def test_is_string_array(self):
-
+        # We should only be accepting pd.NA, np.nan,
+        # other floating point nans e.g. float('nan')]
+        # when skipna is True.
         assert lib.is_string_array(np.array(["foo", "bar"]))
         assert not lib.is_string_array(
             np.array(["foo", "bar", pd.NA], dtype=object), skipna=False
@@ -1542,11 +1561,30 @@ class TestTypeInference:
         assert lib.is_string_array(
             np.array(["foo", "bar", pd.NA], dtype=object), skipna=True
         )
-        # NaN is not valid for string array, just NA
-        assert not lib.is_string_array(
+        # we allow NaN/None in the StringArray constructor, so its allowed here
+        assert lib.is_string_array(
+            np.array(["foo", "bar", None], dtype=object), skipna=True
+        )
+        assert lib.is_string_array(
             np.array(["foo", "bar", np.nan], dtype=object), skipna=True
         )
+        # But not e.g. datetimelike or Decimal NAs
+        assert not lib.is_string_array(
+            np.array(["foo", "bar", pd.NaT], dtype=object), skipna=True
+        )
+        assert not lib.is_string_array(
+            np.array(["foo", "bar", np.datetime64("NaT")], dtype=object), skipna=True
+        )
+        assert not lib.is_string_array(
+            np.array(["foo", "bar", Decimal("NaN")], dtype=object), skipna=True
+        )
 
+        assert not lib.is_string_array(
+            np.array(["foo", "bar", None], dtype=object), skipna=False
+        )
+        assert not lib.is_string_array(
+            np.array(["foo", "bar", np.nan], dtype=object), skipna=False
+        )
         assert not lib.is_string_array(np.array([1, 2]))
 
     def test_to_object_array_tuples(self):
@@ -1795,12 +1833,13 @@ class TestNumberScalar:
         assert not is_datetime64tz_dtype(ts)
         assert is_datetime64tz_dtype(tsa)
 
-        for tz in ["US/Eastern", "UTC"]:
-            dtype = f"datetime64[ns, {tz}]"
-            assert not is_datetime64_dtype(dtype)
-            assert is_datetime64tz_dtype(dtype)
-            assert is_datetime64_ns_dtype(dtype)
-            assert is_datetime64_any_dtype(dtype)
+    @pytest.mark.parametrize("tz", ["US/Eastern", "UTC"])
+    def test_is_datetime_dtypes_with_tz(self, tz):
+        dtype = f"datetime64[ns, {tz}]"
+        assert not is_datetime64_dtype(dtype)
+        assert is_datetime64tz_dtype(dtype)
+        assert is_datetime64_ns_dtype(dtype)
+        assert is_datetime64_any_dtype(dtype)
 
     def test_is_timedelta(self):
         assert is_timedelta64_dtype("timedelta64")
@@ -1859,26 +1898,24 @@ class TestIsScalar:
         assert is_scalar(np.datetime64("2014-01-01"))
         assert is_scalar(np.timedelta64(1, "h"))
 
-    def test_is_scalar_numpy_zerodim_arrays(self):
-        for zerodim in [
+    @pytest.mark.parametrize(
+        "zerodim",
+        [
             np.array(1),
             np.array("foobar"),
             np.array(np.datetime64("2014-01-01")),
             np.array(np.timedelta64(1, "h")),
             np.array(np.datetime64("NaT")),
-        ]:
-            assert not is_scalar(zerodim)
-            assert is_scalar(lib.item_from_zerodim(zerodim))
+        ],
+    )
+    def test_is_scalar_numpy_zerodim_arrays(self, zerodim):
+        assert not is_scalar(zerodim)
+        assert is_scalar(lib.item_from_zerodim(zerodim))
 
-    @pytest.mark.filterwarnings("ignore::PendingDeprecationWarning")
-    def test_is_scalar_numpy_arrays(self):
-        for a in [
-            np.array([]),
-            np.array([[]]),
-            np.matrix("1; 2"),
-        ]:
-            assert not is_scalar(a)
-            assert not is_scalar(MockNumpyLikeArray(a))
+    @pytest.mark.parametrize("arr", [np.array([]), np.array([[]])])
+    def test_is_scalar_numpy_arrays(self, arr):
+        assert not is_scalar(arr)
+        assert not is_scalar(MockNumpyLikeArray(arr))
 
     def test_is_scalar_pandas_scalars(self):
         assert is_scalar(Timestamp("2014-01-01"))
@@ -1907,7 +1944,7 @@ class TestIsScalar:
         #  subclasses are.
 
         class Numeric(Number):
-            def __init__(self, value):
+            def __init__(self, value) -> None:
                 self.value = value
 
             def __int__(self):
@@ -1917,10 +1954,10 @@ class TestIsScalar:
         assert is_scalar(num)
 
 
-def test_datetimeindex_from_empty_datetime64_array():
-    for unit in ["ms", "us", "ns"]:
-        idx = DatetimeIndex(np.array([], dtype=f"datetime64[{unit}]"))
-        assert len(idx) == 0
+@pytest.mark.parametrize("unit", ["ms", "us", "ns"])
+def test_datetimeindex_from_empty_datetime64_array(unit):
+    idx = DatetimeIndex(np.array([], dtype=f"datetime64[{unit}]"))
+    assert len(idx) == 0
 
 
 def test_nan_to_nat_conversions():

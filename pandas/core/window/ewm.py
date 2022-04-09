@@ -3,7 +3,10 @@ from __future__ import annotations
 import datetime
 from functools import partial
 from textwrap import dedent
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    cast,
+)
 import warnings
 
 import numpy as np
@@ -32,7 +35,10 @@ from pandas.core.indexers.objects import (
     ExponentialMovingWindowIndexer,
     GroupbyIndexer,
 )
-from pandas.core.util.numba_ import maybe_use_numba
+from pandas.core.util.numba_ import (
+    get_jit_arguments,
+    maybe_use_numba,
+)
 from pandas.core.window.common import zsqrt
 from pandas.core.window.doc import (
     _shared_docs,
@@ -346,7 +352,7 @@ class ExponentialMovingWindow(BaseWindow):
         method: str = "single",
         *,
         selection=None,
-    ):
+    ) -> None:
         super().__init__(
             obj=obj,
             min_periods=1 if min_periods is None else max(int(min_periods), 1),
@@ -377,12 +383,11 @@ class ExponentialMovingWindow(BaseWindow):
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
-                self.times = self._selected_obj[self.times]
+                # self.times cannot be str anymore
+                self.times = cast("Series", self._selected_obj[self.times])
             if not is_datetime64_ns_dtype(self.times):
                 raise ValueError("times must be datetime64[ns] dtype.")
-            # error: Argument 1 to "len" has incompatible type "Union[str, ndarray,
-            # NDFrameT, None]"; expected "Sized"
-            if len(self.times) != len(obj):  # type: ignore[arg-type]
+            if len(self.times) != len(obj):
                 raise ValueError("times must be the same length as the object.")
             if not isinstance(self.halflife, (str, datetime.timedelta)):
                 raise ValueError(
@@ -406,7 +411,9 @@ class ExponentialMovingWindow(BaseWindow):
                     "times is not None."
                 )
             # Without times, points are equally spaced
-            self._deltas = np.ones(max(len(self.obj) - 1, 0), dtype=np.float64)
+            self._deltas = np.ones(
+                max(self.obj.shape[self.axis] - 1, 0), dtype=np.float64
+            )
             self._com = get_center_of_mass(
                 # error: Argument 3 to "get_center_of_mass" has incompatible type
                 # "Union[float, Any, None, timedelta64, signedinteger[_64Bit]]";
@@ -527,22 +534,17 @@ class ExponentialMovingWindow(BaseWindow):
         if maybe_use_numba(engine):
             if self.method == "single":
                 func = generate_numba_ewm_func
-                numba_cache_key = (lambda x: x, "ewm_mean")
             else:
                 func = generate_numba_ewm_table_func
-                numba_cache_key = (lambda x: x, "ewm_mean_table")
             ewm_func = func(
-                engine_kwargs=engine_kwargs,
+                **get_jit_arguments(engine_kwargs),
                 com=self._com,
                 adjust=self.adjust,
                 ignore_na=self.ignore_na,
-                deltas=self._deltas,
+                deltas=tuple(self._deltas),
                 normalize=True,
             )
-            return self._apply(
-                ewm_func,
-                numba_cache_key=numba_cache_key,
-            )
+            return self._apply(ewm_func)
         elif engine in ("cython", None):
             if engine_kwargs is not None:
                 raise ValueError("cython engine does not accept engine_kwargs")
@@ -583,22 +585,17 @@ class ExponentialMovingWindow(BaseWindow):
         if maybe_use_numba(engine):
             if self.method == "single":
                 func = generate_numba_ewm_func
-                numba_cache_key = (lambda x: x, "ewm_sum")
             else:
                 func = generate_numba_ewm_table_func
-                numba_cache_key = (lambda x: x, "ewm_sum_table")
             ewm_func = func(
-                engine_kwargs=engine_kwargs,
+                **get_jit_arguments(engine_kwargs),
                 com=self._com,
                 adjust=self.adjust,
                 ignore_na=self.ignore_na,
-                deltas=self._deltas,
+                deltas=tuple(self._deltas),
                 normalize=False,
             )
-            return self._apply(
-                ewm_func,
-                numba_cache_key=numba_cache_key,
-            )
+            return self._apply(ewm_func)
         elif engine in ("cython", None):
             if engine_kwargs is not None:
                 raise ValueError("cython engine does not accept engine_kwargs")
@@ -737,6 +734,7 @@ class ExponentialMovingWindow(BaseWindow):
                 min_periods=min_periods,
                 center=self.center,
                 closed=self.closed,
+                step=self.step,
             )
             result = window_aggregations.ewmcov(
                 x_array,
@@ -803,6 +801,7 @@ class ExponentialMovingWindow(BaseWindow):
                 min_periods=min_periods,
                 center=self.center,
                 closed=self.closed,
+                step=self.step,
             )
 
             def _cov(X, Y):
@@ -835,7 +834,7 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
 
     _attributes = ExponentialMovingWindow._attributes + BaseWindowGroupby._attributes
 
-    def __init__(self, obj, *args, _grouper=None, **kwargs):
+    def __init__(self, obj, *args, _grouper=None, **kwargs) -> None:
         super().__init__(obj, *args, _grouper=_grouper, **kwargs)
 
         if not obj.empty and self.times is not None:
@@ -878,7 +877,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         engine_kwargs: dict[str, bool] | None = None,
         *,
         selection=None,
-    ):
+    ) -> None:
         if times is not None:
             raise NotImplementedError(
                 "times is not implemented with online operations."
@@ -1011,7 +1010,9 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
             else:
                 result_kwargs["name"] = self._selected_obj.name
             np_array = self._selected_obj.astype(np.float64).to_numpy()
-        ewma_func = generate_online_numba_ewma_func(self.engine_kwargs)
+        ewma_func = generate_online_numba_ewma_func(
+            **get_jit_arguments(self.engine_kwargs)
+        )
         result = self._mean.run_ewm(
             np_array if is_frame else np_array[:, np.newaxis],
             update_deltas,

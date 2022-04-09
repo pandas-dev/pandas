@@ -1,0 +1,24 @@
+name: pandas-dev
+channels:
+  - defaults
+dependencies:
+  - python=3.10
+
+  # tools
+  - pytest>=6.0
+  - pytest-cov
+  - pytest-xdist>=1.31
+  - hypothesis>=5.5.3
+  - pytest-asyncio>=0.17
+
+  # pandas dependencies
+  - python-dateutil
+  - pytz
+  - pip
+  - pip:
+    #- cython # TODO: don't install from master after Cython 3.0.0a11 is released
+    - "git+https://github.com/cython/cython.git@master"
+    - "--extra-index-url https://pypi.anaconda.org/scipy-wheels-nightly/simple"
+    - "--pre"
+    - "numpy"
+    - "scipy"

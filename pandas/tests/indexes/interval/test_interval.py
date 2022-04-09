@@ -167,10 +167,10 @@ class TestIntervalIndex:
     @pytest.mark.parametrize(
         "data",
         [
-            interval_range(0, periods=10, closed="neither"),
-            interval_range(1.7, periods=8, freq=2.5, closed="both"),
-            interval_range(Timestamp("20170101"), periods=12, closed="left"),
-            interval_range(Timedelta("1 day"), periods=6, closed="right"),
+            interval_range(0, periods=10, inclusive="neither"),
+            interval_range(1.7, periods=8, freq=2.5, inclusive="both"),
+            interval_range(Timestamp("20170101"), periods=12, inclusive="left"),
+            interval_range(Timedelta("1 day"), periods=6, inclusive="right"),
         ],
     )
     def test_insert(self, data):
@@ -259,70 +259,70 @@ class TestIntervalIndex:
     def test_monotonic(self, closed):
         # increasing non-overlapping
         idx = IntervalIndex.from_tuples([(0, 1), (2, 3), (4, 5)], closed=closed)
-        assert idx.is_monotonic is True
+        assert idx.is_monotonic_increasing is True
         assert idx._is_strictly_monotonic_increasing is True
         assert idx.is_monotonic_decreasing is False
         assert idx._is_strictly_monotonic_decreasing is False
 
         # decreasing non-overlapping
         idx = IntervalIndex.from_tuples([(4, 5), (2, 3), (1, 2)], closed=closed)
-        assert idx.is_monotonic is False
+        assert idx.is_monotonic_increasing is False
         assert idx._is_strictly_monotonic_increasing is False
         assert idx.is_monotonic_decreasing is True
         assert idx._is_strictly_monotonic_decreasing is True
 
         # unordered non-overlapping
         idx = IntervalIndex.from_tuples([(0, 1), (4, 5), (2, 3)], closed=closed)
-        assert idx.is_monotonic is False
+        assert idx.is_monotonic_increasing is False
         assert idx._is_strictly_monotonic_increasing is False
         assert idx.is_monotonic_decreasing is False
         assert idx._is_strictly_monotonic_decreasing is False
 
         # increasing overlapping
         idx = IntervalIndex.from_tuples([(0, 2), (0.5, 2.5), (1, 3)], closed=closed)
-        assert idx.is_monotonic is True
+        assert idx.is_monotonic_increasing is True
         assert idx._is_strictly_monotonic_increasing is True
         assert idx.is_monotonic_decreasing is False
         assert idx._is_strictly_monotonic_decreasing is False
 
         # decreasing overlapping
         idx = IntervalIndex.from_tuples([(1, 3), (0.5, 2.5), (0, 2)], closed=closed)
-        assert idx.is_monotonic is False
+        assert idx.is_monotonic_increasing is False
         assert idx._is_strictly_monotonic_increasing is False
         assert idx.is_monotonic_decreasing is True
         assert idx._is_strictly_monotonic_decreasing is True
 
         # unordered overlapping
         idx = IntervalIndex.from_tuples([(0.5, 2.5), (0, 2), (1, 3)], closed=closed)
-        assert idx.is_monotonic is False
+        assert idx.is_monotonic_increasing is False
         assert idx._is_strictly_monotonic_increasing is False
         assert idx.is_monotonic_decreasing is False
         assert idx._is_strictly_monotonic_decreasing is False
 
         # increasing overlapping shared endpoints
         idx = IntervalIndex.from_tuples([(1, 2), (1, 3), (2, 3)], closed=closed)
-        assert idx.is_monotonic is True
+        assert idx.is_monotonic_increasing is True
         assert idx._is_strictly_monotonic_increasing is True
         assert idx.is_monotonic_decreasing is False
         assert idx._is_strictly_monotonic_decreasing is False
 
         # decreasing overlapping shared endpoints
         idx = IntervalIndex.from_tuples([(2, 3), (1, 3), (1, 2)], closed=closed)
-        assert idx.is_monotonic is False
+        assert idx.is_monotonic_increasing is False
         assert idx._is_strictly_monotonic_increasing is False
         assert idx.is_monotonic_decreasing is True
         assert idx._is_strictly_monotonic_decreasing is True
 
         # stationary
         idx = IntervalIndex.from_tuples([(0, 1), (0, 1)], closed=closed)
-        assert idx.is_monotonic is True
+        assert idx.is_monotonic_increasing is True
         assert idx._is_strictly_monotonic_increasing is False
         assert idx.is_monotonic_decreasing is True
         assert idx._is_strictly_monotonic_decreasing is False
 
         # empty
         idx = IntervalIndex([], closed=closed)
-        assert idx.is_monotonic is True
+        assert idx.is_monotonic_increasing is True
         assert idx._is_strictly_monotonic_increasing is True
         assert idx.is_monotonic_decreasing is True
         assert idx._is_strictly_monotonic_decreasing is True
@@ -331,7 +331,7 @@ class TestIntervalIndex:
         # GH#41831
         index = IntervalIndex([np.nan, np.nan])
 
-        assert not index.is_monotonic
+        assert not index.is_monotonic_increasing
         assert not index._is_strictly_monotonic_increasing
         assert not index.is_monotonic_increasing
         assert not index._is_strictly_monotonic_decreasing
@@ -868,9 +868,9 @@ class TestIntervalIndex:
     @pytest.mark.parametrize("new_closed", ["left", "right", "both", "neither"])
     def test_set_closed(self, name, closed, new_closed):
         # GH 21670
-        index = interval_range(0, 5, closed=closed, name=name)
+        index = interval_range(0, 5, inclusive=closed, name=name)
         result = index.set_closed(new_closed)
-        expected = interval_range(0, 5, closed=new_closed, name=name)
+        expected = interval_range(0, 5, inclusive=new_closed, name=name)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("bad_closed", ["foo", 10, "LEFT", True, False])

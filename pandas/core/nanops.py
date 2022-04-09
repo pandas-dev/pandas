@@ -72,7 +72,7 @@ set_use_bottleneck(get_option("compute.use_bottleneck"))
 
 
 class disallow:
-    def __init__(self, *dtypes: Dtype):
+    def __init__(self, *dtypes: Dtype) -> None:
         super().__init__()
         self.dtypes = tuple(pandas_dtype(dtype).type for dtype in dtypes)
 
@@ -104,7 +104,7 @@ class disallow:
 
 
 class bottleneck_switch:
-    def __init__(self, name=None, **kwargs):
+    def __init__(self, name=None, **kwargs) -> None:
         self.name = name
         self.kwargs = kwargs
 
@@ -1202,7 +1202,7 @@ def nanskew(
     adjusted = values - mean
     if skipna and mask is not None:
         np.putmask(adjusted, mask, 0)
-    adjusted2 = adjusted ** 2
+    adjusted2 = adjusted**2
     adjusted3 = adjusted2 * adjusted
     m2 = adjusted2.sum(axis, dtype=np.float64)
     m3 = adjusted3.sum(axis, dtype=np.float64)
@@ -1215,7 +1215,7 @@ def nanskew(
     m3 = _zero_out_fperr(m3)
 
     with np.errstate(invalid="ignore", divide="ignore"):
-        result = (count * (count - 1) ** 0.5 / (count - 2)) * (m3 / m2 ** 1.5)
+        result = (count * (count - 1) ** 0.5 / (count - 2)) * (m3 / m2**1.5)
 
     dtype = values.dtype
     if is_float_dtype(dtype):
@@ -1290,15 +1290,15 @@ def nankurt(
     adjusted = values - mean
     if skipna and mask is not None:
         np.putmask(adjusted, mask, 0)
-    adjusted2 = adjusted ** 2
-    adjusted4 = adjusted2 ** 2
+    adjusted2 = adjusted**2
+    adjusted4 = adjusted2**2
     m2 = adjusted2.sum(axis, dtype=np.float64)
     m4 = adjusted4.sum(axis, dtype=np.float64)
 
     with np.errstate(invalid="ignore", divide="ignore"):
         adj = 3 * (count - 1) ** 2 / ((count - 2) * (count - 3))
         numerator = count * (count + 1) * (count - 1) * m4
-        denominator = (count - 2) * (count - 3) * m2 ** 2
+        denominator = (count - 2) * (count - 3) * m2**2
 
     # floating point error
     #

@@ -40,7 +40,7 @@ class ArrowTimestampUSDtype(ExtensionDtype):
 
 
 class ArrowTimestampUSArray(ArrowExtensionArray):
-    def __init__(self, values):
+    def __init__(self, values) -> None:
         if not isinstance(values, pa.ChunkedArray):
             raise ValueError
 
@@ -51,10 +51,7 @@ class ArrowTimestampUSArray(ArrowExtensionArray):
 
 def test_constructor_extensionblock():
     # GH 34986
-    pd.DataFrame(
-        {
-            "timestamp": ArrowTimestampUSArray.from_scalars(
-                [None, datetime.datetime(2010, 9, 8, 7, 6, 5, 4)]
-            )
-        }
+    arr = ArrowTimestampUSArray._from_sequence(
+        [None, datetime.datetime(2010, 9, 8, 7, 6, 5, 4)]
     )
+    pd.DataFrame({"timestamp": arr})

@@ -1,6 +1,8 @@
 """
 Tests for offsets.BDay
 """
+from __future__ import annotations
+
 from datetime import (
     date,
     datetime,
@@ -26,15 +28,14 @@ from pandas.tests.tseries.offsets.common import (
     assert_is_on_offset,
     assert_offset_equal,
 )
-from pandas.tests.tseries.offsets.test_offsets import _ApplyCases
 
 from pandas.tseries import offsets as offsets
 
 
 class TestBusinessDay(Base):
-    _offset = BDay
+    _offset: type[BDay] = BDay
 
-    def setup_method(self, method):
+    def setup_method(self):
         self.d = datetime(2008, 1, 1)
         self.nd = np.datetime64("2008-01-01 00:00:00")
 
@@ -136,7 +137,7 @@ class TestBusinessDay(Base):
         for offset, d, expected in tests:
             assert_is_on_offset(offset, d, expected)
 
-    apply_cases: _ApplyCases = [
+    apply_cases: list[tuple[int, dict[datetime, datetime]]] = [
         (
             1,
             {

@@ -25,7 +25,10 @@ import warnings
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import DtypeArg
+from pandas._typing import (
+    DateTimeErrorChoices,
+    DtypeArg,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
 from pandas.util._exceptions import find_stack_level
@@ -46,7 +49,6 @@ from pandas.core.api import (
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.tools.datetimes import to_datetime
-from pandas.util.version import Version
 
 
 class DatabaseError(OSError):
@@ -55,16 +57,6 @@ class DatabaseError(OSError):
 
 # -----------------------------------------------------------------------------
 # -- Helper functions
-
-
-def _gt14() -> bool:
-    """
-    Check if sqlalchemy.__version__ is at least 1.4.0, when several
-    deprecations were made.
-    """
-    import sqlalchemy
-
-    return Version(sqlalchemy.__version__) >= Version("1.4.0")
 
 
 def _convert_params(sql, params):
@@ -97,7 +89,7 @@ def _handle_date_column(
         # read_sql like functions.
         # Format can take on custom to_datetime argument values such as
         # {"errors": "coerce"} or {"dayfirst": True}
-        error = format.pop("errors", None) or "ignore"
+        error: DateTimeErrorChoices = format.pop("errors", None) or "ignore"
         return to_datetime(col, errors=error, **format)
     else:
         # Allow passing of formatting string for integers
@@ -742,22 +734,29 @@ def pandasSQL_builder(con, schema: str | None = None):
     provided parameters.
     """
     import sqlite3
+    import warnings
 
     if isinstance(con, sqlite3.Connection) or con is None:
         return SQLiteDatabase(con)
 
-    sqlalchemy = import_optional_dependency("sqlalchemy")
+    sqlalchemy = import_optional_dependency("sqlalchemy", errors="ignore")
 
     if isinstance(con, str):
-        con = sqlalchemy.create_engine(con)
+        if sqlalchemy is None:
+            raise ImportError("Using URI string without sqlalchemy installed.")
+        else:
+            con = sqlalchemy.create_engine(con)
 
-    if isinstance(con, sqlalchemy.engine.Connectable):
+    if sqlalchemy is not None and isinstance(con, sqlalchemy.engine.Connectable):
         return SQLDatabase(con, schema=schema)
 
-    raise ValueError(
-        "pandas only support SQLAlchemy connectable(engine/connection) or"
-        "database string URI or sqlite3 DBAPI2 connection"
+    warnings.warn(
+        "pandas only supports SQLAlchemy connectable (engine/connection) or "
+        "database string URI or sqlite3 DBAPI2 connection. "
+        "Other DBAPI2 objects are not tested. Please consider using SQLAlchemy.",
+        UserWarning,
     )
+    return SQLiteDatabase(con)
 
 
 class SQLTable(PandasObject):
@@ -783,7 +782,7 @@ class SQLTable(PandasObject):
         schema=None,
         keys=None,
         dtype: DtypeArg | None = None,
-    ):
+    ) -> None:
         self.name = name
         self.pd_sql = pandas_sql_engine
         self.prefix = prefix
@@ -814,10 +813,7 @@ class SQLTable(PandasObject):
 
     def _execute_create(self):
         # Inserting table into database, add to MetaData object
-        if _gt14():
-            self.table = self.table.to_metadata(self.pd_sql.meta)
-        else:
-            self.table = self.table.tometadata(self.pd_sql.meta)
+        self.table = self.table.to_metadata(self.pd_sql.meta)
         self.table.create(bind=self.pd_sql.connectable)
 
     def create(self):
@@ -986,10 +982,9 @@ class SQLTable(PandasObject):
             if self.index is not None:
                 for idx in self.index[::-1]:
                     cols.insert(0, self.table.c[idx])
-            sql_select = select(*cols) if _gt14() else select(cols)
+            sql_select = select(*cols)
         else:
-            sql_select = select(self.table) if _gt14() else self.table.select()
-
+            sql_select = select(self.table)
         result = self.pd_sql.execute(sql_select)
         column_names = result.keys()
 
@@ -1292,7 +1287,7 @@ class BaseEngine:
 
 
 class SQLAlchemyEngine(BaseEngine):
-    def __init__(self):
+    def __init__(self) -> None:
         import_optional_dependency(
             "sqlalchemy", extra="sqlalchemy is required for SQL support."
         )
@@ -1373,12 +1368,11 @@ class SQLDatabase(PandasSQL):
 
     """
 
-    def __init__(self, engine, schema: str | None = None):
+    def __init__(self, engine, schema: str | None = None) -> None:
         from sqlalchemy.schema import MetaData
 
         self.connectable = engine
         self.meta = MetaData(schema=schema)
-        self.meta.reflect(bind=engine)
 
     @contextmanager
     def run_transaction(self):
@@ -1634,19 +1628,11 @@ class SQLDatabase(PandasSQL):
         if not name.isdigit() and not name.islower():
             # check for potentially case sensitivity issues (GH7815)
             # Only check when name is not a number and name is not lower case
-            engine = self.connectable.engine
-            with self.connectable.connect() as conn:
-                if _gt14():
-                    from sqlalchemy import inspect
+            from sqlalchemy import inspect
 
-                    insp = inspect(conn)
-                    table_names = insp.get_table_names(
-                        schema=schema or self.meta.schema
-                    )
-                else:
-                    table_names = engine.table_names(
-                        schema=schema or self.meta.schema, connection=conn
-                    )
+            with self.connectable.connect() as conn:
+                insp = inspect(conn)
+                table_names = insp.get_table_names(schema=schema or self.meta.schema)
             if name not in table_names:
                 msg = (
                     f"The provided table name '{name}' is not found exactly as "
@@ -1750,30 +1736,24 @@ class SQLDatabase(PandasSQL):
         return self.meta.tables
 
     def has_table(self, name: str, schema: str | None = None):
-        if _gt14():
-            from sqlalchemy import inspect
+        from sqlalchemy import inspect
 
-            insp = inspect(self.connectable)
-            return insp.has_table(name, schema or self.meta.schema)
-        else:
-            return self.connectable.run_callable(
-                self.connectable.dialect.has_table, name, schema or self.meta.schema
-            )
+        insp = inspect(self.connectable)
+        return insp.has_table(name, schema or self.meta.schema)
 
     def get_table(self, table_name: str, schema: str | None = None):
+        from sqlalchemy import (
+            Numeric,
+            Table,
+        )
+
         schema = schema or self.meta.schema
-        if schema:
-            tbl = self.meta.tables.get(".".join([schema, table_name]))
-        else:
-            tbl = self.meta.tables.get(table_name)
-
-        # Avoid casting double-precision floats into decimals
-        from sqlalchemy import Numeric
-
+        tbl = Table(
+            table_name, self.meta, autoload_with=self.connectable, schema=schema
+        )
         for column in tbl.columns:
             if isinstance(column.type, Numeric):
                 column.type.asdecimal = False
-
         return tbl
 
     def drop_table(self, table_name: str, schema: str | None = None):
@@ -1849,7 +1829,7 @@ class SQLiteTable(SQLTable):
     Instead of a table variable just use the Create Table statement.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         # GH 8341
         # register an adapter callable for datetime.time object
         import sqlite3
@@ -1994,7 +1974,7 @@ class SQLiteDatabase(PandasSQL):
 
     """
 
-    def __init__(self, con):
+    def __init__(self, con) -> None:
         self.con = con
 
     @contextmanager

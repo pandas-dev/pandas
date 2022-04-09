@@ -5,11 +5,17 @@
 from __future__ import annotations
 
 import io
-from typing import Sequence
+from typing import (
+    Any,
+    Sequence,
+)
 
 from pandas._typing import (
     CompressionOptions,
+    ConvertersArg,
+    DtypeArg,
     FilePath,
+    ParseDatesArg,
     ReadBuffer,
     StorageOptions,
     XMLParsers,
@@ -32,6 +38,7 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.io.common import (
     file_exists,
     get_handle,
+    infer_compression,
     is_fsspec_url,
     is_url,
     stringify_path,
@@ -39,7 +46,10 @@ from pandas.io.common import (
 from pandas.io.parsers import TextParser
 
 
-@doc(decompression_options=_shared_docs["decompression_options"] % "path_or_buffer")
+@doc(
+    storage_options=_shared_docs["storage_options"],
+    decompression_options=_shared_docs["decompression_options"] % "path_or_buffer",
+)
 class _XMLFrameParser:
     """
     Internal subclass to parse XML into DataFrames.
@@ -54,7 +64,7 @@ class _XMLFrameParser:
         The XPath expression to parse required set of nodes for
         migration to `Data Frame`. `etree` supports limited XPath.
 
-    namespacess : dict
+    namespaces : dict
         The namespaces defined in XML document (`xmlns:namespace='URI')
         as dicts with key being namespace and value the URI.
 
@@ -67,6 +77,23 @@ class _XMLFrameParser:
     names : list
         Column names for Data Frame of parsed XML data.
 
+    dtype : dict
+        Data type for data or columns. E.g. {{'a': np.float64,
+        'b': np.int32, 'c': 'Int64'}}
+
+        .. versionadded:: 1.5.0
+
+    converters : dict, optional
+        Dict of functions for converting values in certain columns. Keys can
+        either be integers or column labels.
+
+        .. versionadded:: 1.5.0
+
+    parse_dates : bool or list of int or names or list of lists or dict
+        Converts either index or select columns to datetimes
+
+        .. versionadded:: 1.5.0
+
     encoding : str
         Encoding of xml object or document.
 
@@ -74,13 +101,18 @@ class _XMLFrameParser:
         URL, file, file-like object, or a raw string containing XSLT,
         `etree` does not support XSLT but retained for consistency.
 
+    iterparse : dict, optional
+        Dict with row element as key and list of descendant elements
+        and/or attributes as value to be retrieved in iterparsing of
+        XML document.
+
+        .. versionadded:: 1.5.0
+
     {decompression_options}
 
         .. versionchanged:: 1.4.0 Zstandard support.
 
-    storage_options : dict, optional
-        Extra options that make sense for a particular storage connection,
-        e.g. host, port, username, password, etc.,
+    {storage_options}
 
     See also
     --------
@@ -92,6 +124,7 @@ class _XMLFrameParser:
     To subclass this class effectively you must override the following methods:`
         * :func:`parse_data`
         * :func:`_parse_nodes`
+        * :func:`_iterparse_nodes`
         * :func:`_parse_doc`
         * :func:`_validate_names`
         * :func:`_validate_path`
@@ -109,19 +142,27 @@ class _XMLFrameParser:
         elems_only: bool,
         attrs_only: bool,
         names: Sequence[str] | None,
+        dtype: DtypeArg | None,
+        converters: ConvertersArg | None,
+        parse_dates: ParseDatesArg | None,
         encoding: str | None,
         stylesheet: FilePath | ReadBuffer[bytes] | ReadBuffer[str] | None,
+        iterparse: dict[str, list[str]] | None,
         compression: CompressionOptions,
         storage_options: StorageOptions,
-    ):
+    ) -> None:
         self.path_or_buffer = path_or_buffer
         self.xpath = xpath
         self.namespaces = namespaces
         self.elems_only = elems_only
         self.attrs_only = attrs_only
         self.names = names
+        self.dtype = dtype
+        self.converters = converters
+        self.parse_dates = parse_dates
         self.encoding = encoding
         self.stylesheet = stylesheet
+        self.iterparse = iterparse
         self.is_style = None
         self.compression = compression
         self.storage_options = storage_options
@@ -151,9 +192,34 @@ class _XMLFrameParser:
 
         Notes
         -----
-        Namespace URIs will be removed from return node values.Also,
+        Namespace URIs will be removed from return node values. Also,
         elements with missing children or attributes compared to siblings
-        will have optional keys filled withi None values.
+        will have optional keys filled with None values.
+        """
+
+        raise AbstractMethodError(self)
+
+    def _iterparse_nodes(self) -> list[dict[str, str | None]]:
+        """
+        Iterparse xml nodes.
+
+        This method will read in local disk, decompressed XML files for elements
+        and underlying descendants using iterparse, a method to iterate through
+        an XML tree without holding entire XML tree in memory.
+
+        Raises
+        ------
+        TypeError
+            * If `iterparse` is not a dict or its dict value is not list-like.
+        ParserError
+            * If `path_or_buffer` is not a physical, decompressed file on disk.
+            * If no data is returned from selected items in `iterparse`.
+
+        Notes
+        -----
+        Namespace URIs will be removed from return node values. Also,
+        elements with missing children or attributes in submitted list
+        will have optional keys filled with None values.
         """
 
         raise AbstractMethodError(self)
@@ -213,12 +279,17 @@ class _EtreeFrameParser(_XMLFrameParser):
                 "To use stylesheet, you need lxml installed and selected as parser."
             )
 
-        self.xml_doc = XML(self._parse_doc(self.path_or_buffer))
+        if self.iterparse is None:
+            self.xml_doc = XML(self._parse_doc(self.path_or_buffer))
+            self._validate_path()
 
-        self._validate_path()
         self._validate_names()
 
-        return self._parse_nodes()
+        xml_dicts: list[dict[str, str | None]] = (
+            self._parse_nodes() if self.iterparse is None else self._iterparse_nodes()
+        )
+
+        return xml_dicts
 
     def _parse_nodes(self) -> list[dict[str, str | None]]:
         elems = self.xml_doc.findall(self.xpath, namespaces=self.namespaces)
@@ -304,6 +375,67 @@ class _EtreeFrameParser(_XMLFrameParser):
 
         return dicts
 
+    def _iterparse_nodes(self) -> list[dict[str, str | None]]:
+        from xml.etree.ElementTree import iterparse
+
+        dicts: list[dict[str, str | None]] = []
+        row: dict[str, str | None] | None = None
+
+        if not isinstance(self.iterparse, dict):
+            raise TypeError(
+                f"{type(self.iterparse).__name__} is not a valid type for iterparse"
+            )
+
+        row_node = next(iter(self.iterparse.keys())) if self.iterparse else ""
+        if not is_list_like(self.iterparse[row_node]):
+            raise TypeError(
+                f"{type(self.iterparse[row_node])} is not a valid type "
+                "for value in iterparse"
+            )
+
+        if (
+            not isinstance(self.path_or_buffer, str)
+            or is_url(self.path_or_buffer)
+            or is_fsspec_url(self.path_or_buffer)
+            or self.path_or_buffer.startswith(("<?xml", "<"))
+            or infer_compression(self.path_or_buffer, "infer") is not None
+        ):
+            raise ParserError(
+                "iterparse is designed for large XML files that are fully extracted on "
+                "local disk and not as compressed files or online sources."
+            )
+
+        for event, elem in iterparse(self.path_or_buffer, events=("start", "end")):
+            curr_elem = elem.tag.split("}")[1] if "}" in elem.tag else elem.tag
+
+            if event == "start":
+                if curr_elem == row_node:
+                    row = {}
+
+            if row is not None:
+                for col in self.iterparse[row_node]:
+                    if curr_elem == col:
+                        row[col] = elem.text.strip() if elem.text else None
+                    if col in elem.attrib:
+                        row[col] = elem.attrib[col]
+
+            if event == "end":
+                if curr_elem == row_node and row is not None:
+                    dicts.append(row)
+                    row = None
+                elem.clear()
+
+        if dicts == []:
+            raise ParserError("No result from selected items in iterparse.")
+
+        keys = list(dict.fromkeys([k for d in dicts for k in d.keys()]))
+        dicts = [{k: d[k] if k in d.keys() else None for k in keys} for d in dicts]
+
+        if self.names:
+            dicts = [{nm: v for nm, v in zip(self.names, d.values())} for d in dicts]
+
+        return dicts
+
     def _validate_path(self) -> None:
         """
         Notes
@@ -334,9 +466,14 @@ class _EtreeFrameParser(_XMLFrameParser):
             )
 
     def _validate_names(self) -> None:
+        children: list[Any]
+
         if self.names:
-            parent = self.xml_doc.find(self.xpath, namespaces=self.namespaces)
-            children = parent.findall("*") if parent else []
+            if self.iterparse:
+                children = self.iterparse[next(iter(self.iterparse))]
+            else:
+                parent = self.xml_doc.find(self.xpath, namespaces=self.namespaces)
+                children = parent.findall("*") if parent else []
 
             if is_list_like(self.names):
                 if len(self.names) < len(children):
@@ -386,16 +523,22 @@ class _LxmlFrameParser(_XMLFrameParser):
         """
         from lxml.etree import XML
 
-        self.xml_doc = XML(self._parse_doc(self.path_or_buffer))
+        if self.iterparse is None:
+            self.xml_doc = XML(self._parse_doc(self.path_or_buffer))
 
-        if self.stylesheet is not None:
-            self.xsl_doc = XML(self._parse_doc(self.stylesheet))
-            self.xml_doc = XML(self._transform_doc())
+            if self.stylesheet:
+                self.xsl_doc = XML(self._parse_doc(self.stylesheet))
+                self.xml_doc = XML(self._transform_doc())
 
-        self._validate_path()
+            self._validate_path()
+
         self._validate_names()
 
-        return self._parse_nodes()
+        xml_dicts: list[dict[str, str | None]] = (
+            self._parse_nodes() if self.iterparse is None else self._iterparse_nodes()
+        )
+
+        return xml_dicts
 
     def _parse_nodes(self) -> list[dict[str, str | None]]:
         elems = self.xml_doc.xpath(self.xpath, namespaces=self.namespaces)
@@ -480,6 +623,70 @@ class _LxmlFrameParser(_XMLFrameParser):
 
         return dicts
 
+    def _iterparse_nodes(self) -> list[dict[str, str | None]]:
+        from lxml.etree import iterparse
+
+        dicts: list[dict[str, str | None]] = []
+        row: dict[str, str | None] | None = None
+
+        if not isinstance(self.iterparse, dict):
+            raise TypeError(
+                f"{type(self.iterparse).__name__} is not a valid type for iterparse"
+            )
+
+        row_node = next(iter(self.iterparse.keys())) if self.iterparse else ""
+        if not is_list_like(self.iterparse[row_node]):
+            raise TypeError(
+                f"{type(self.iterparse[row_node])} is not a valid type "
+                "for value in iterparse"
+            )
+
+        if (
+            not isinstance(self.path_or_buffer, str)
+            or is_url(self.path_or_buffer)
+            or is_fsspec_url(self.path_or_buffer)
+            or self.path_or_buffer.startswith(("<?xml", "<"))
+            or infer_compression(self.path_or_buffer, "infer") is not None
+        ):
+            raise ParserError(
+                "iterparse is designed for large XML files that are fully extracted on "
+                "local disk and not as compressed files or online sources."
+            )
+
+        for event, elem in iterparse(self.path_or_buffer, events=("start", "end")):
+            curr_elem = elem.tag.split("}")[1] if "}" in elem.tag else elem.tag
+
+            if event == "start":
+                if curr_elem == row_node:
+                    row = {}
+
+            if row is not None:
+                for col in self.iterparse[row_node]:
+                    if curr_elem == col:
+                        row[col] = elem.text.strip() if elem.text else None
+                    if col in elem.attrib:
+                        row[col] = elem.attrib[col]
+
+            if event == "end":
+                if curr_elem == row_node and row is not None:
+                    dicts.append(row)
+                    row = None
+
+                elem.clear()
+                while elem.getprevious() is not None:
+                    del elem.getparent()[0]
+
+        if dicts == []:
+            raise ParserError("No result from selected items in iterparse.")
+
+        keys = list(dict.fromkeys([k for d in dicts for k in d.keys()]))
+        dicts = [{k: d[k] if k in d.keys() else None for k in keys} for d in dicts]
+
+        if self.names:
+            dicts = [{nm: v for nm, v in zip(self.names, d.values())} for d in dicts]
+
+        return dicts
+
     def _validate_path(self) -> None:
 
         msg = (
@@ -501,21 +708,15 @@ class _LxmlFrameParser(_XMLFrameParser):
             raise ValueError(msg)
 
     def _validate_names(self) -> None:
-        """
-        Validate names.
+        children: list[Any]
 
-        This method will check if names is a list and aligns with
-        length of parse nodes.
-
-        Raises
-        ------
-        ValueError
-            * If value is not a list and less then length of nodes.
-        """
         if self.names:
-            children = self.xml_doc.xpath(
-                self.xpath + "[1]/*", namespaces=self.namespaces
-            )
+            if self.iterparse:
+                children = self.iterparse[next(iter(self.iterparse))]
+            else:
+                children = self.xml_doc.xpath(
+                    self.xpath + "[1]/*", namespaces=self.namespaces
+                )
 
             if is_list_like(self.names):
                 if len(self.names) < len(children):
@@ -671,9 +872,13 @@ def _parse(
     elems_only: bool,
     attrs_only: bool,
     names: Sequence[str] | None,
+    dtype: DtypeArg | None,
+    converters: ConvertersArg | None,
+    parse_dates: ParseDatesArg | None,
     encoding: str | None,
     parser: XMLParsers,
     stylesheet: FilePath | ReadBuffer[bytes] | ReadBuffer[str] | None,
+    iterparse: dict[str, list[str]] | None,
     compression: CompressionOptions,
     storage_options: StorageOptions,
     **kwargs,
@@ -706,8 +911,12 @@ def _parse(
                 elems_only,
                 attrs_only,
                 names,
+                dtype,
+                converters,
+                parse_dates,
                 encoding,
                 stylesheet,
+                iterparse,
                 compression,
                 storage_options,
             )
@@ -722,8 +931,12 @@ def _parse(
             elems_only,
             attrs_only,
             names,
+            dtype,
+            converters,
+            parse_dates,
             encoding,
             stylesheet,
+            iterparse,
             compression,
             storage_options,
         )
@@ -732,7 +945,13 @@ def _parse(
 
     data_dicts = p.parse_data()
 
-    return _data_to_frame(data=data_dicts, **kwargs)
+    return _data_to_frame(
+        data=data_dicts,
+        dtype=dtype,
+        converters=converters,
+        parse_dates=parse_dates,
+        **kwargs,
+    )
 
 
 @deprecate_nonkeyword_arguments(
@@ -749,10 +968,14 @@ def read_xml(
     elems_only: bool = False,
     attrs_only: bool = False,
     names: Sequence[str] | None = None,
+    dtype: DtypeArg | None = None,
+    converters: ConvertersArg | None = None,
+    parse_dates: ParseDatesArg | None = None,
     # encoding can not be None for lxml and StringIO input
     encoding: str | None = "utf-8",
     parser: XMLParsers = "lxml",
     stylesheet: FilePath | ReadBuffer[bytes] | ReadBuffer[str] | None = None,
+    iterparse: dict[str, list[str]] | None = None,
     compression: CompressionOptions = "infer",
     storage_options: StorageOptions = None,
 ) -> DataFrame:
@@ -799,6 +1022,35 @@ def read_xml(
         Column names for DataFrame of parsed XML data. Use this parameter to
         rename original element names and distinguish same named elements.
 
+    dtype : Type name or dict of column -> type, optional
+        Data type for data or columns. E.g. {{'a': np.float64, 'b': np.int32,
+        'c': 'Int64'}}
+        Use `str` or `object` together with suitable `na_values` settings
+        to preserve and not interpret dtype.
+        If converters are specified, they will be applied INSTEAD
+        of dtype conversion.
+
+        .. versionadded:: 1.5.0
+
+    converters : dict, optional
+        Dict of functions for converting values in certain columns. Keys can either
+        be integers or column labels.
+
+        .. versionadded:: 1.5.0
+
+    parse_dates : bool or list of int or names or list of lists or dict, default False
+        Identifiers to parse index or columns to datetime. The behavior is as follows:
+
+        * boolean. If True -> try parsing the index.
+        * list of int or names. e.g. If [1, 2, 3] -> try parsing columns 1, 2, 3
+          each as a separate date column.
+        * list of lists. e.g.  If [[1, 3]] -> combine columns 1 and 3 and parse as
+          a single date column.
+        * dict, e.g. {{'foo' : [1, 3]}} -> parse columns 1, 3 as date and call
+          result 'foo'
+
+        .. versionadded:: 1.5.0
+
     encoding : str, optional, default 'utf-8'
         Encoding of XML document.
 
@@ -815,6 +1067,20 @@ def read_xml(
         reference nodes of transformed XML document generated after XSLT
         transformation and not the original XML document. Only XSLT 1.0
         scripts and not later versions is currently supported.
+
+    iterparse : dict, optional
+        The nodes or attributes to retrieve in iterparsing of XML document
+        as a dict with key being the name of repeating element and value being
+        list of elements or attribute names that are descendants of the repeated
+        element. Note: If this option is used, it will replace ``xpath`` parsing
+        and unlike xpath, descendants do not need to relate to each other but can
+        exist any where in document under the repeating element. This memory-
+        efficient method should be used for very large XML files (500MB, 1GB, or 5GB+).
+        For example, ::
+
+            iterparse = {{"row_element": ["child_elem", "attr", "grandchild_elem"]}}
+
+        .. versionadded:: 1.5.0
 
     {decompression_options}
 
@@ -863,6 +1129,10 @@ def read_xml(
     This function will *always* return a single :class:`DataFrame` or raise
     exceptions due to issues with XML document, ``xpath``, or other
     parameters.
+
+    See the :ref:`read_xml documentation in the IO section of the docs
+    <io.read_xml>` for more information in using this method to parse XML
+    files to DataFrames.
 
     Examples
     --------
@@ -942,9 +1212,13 @@ def read_xml(
         elems_only=elems_only,
         attrs_only=attrs_only,
         names=names,
+        dtype=dtype,
+        converters=converters,
+        parse_dates=parse_dates,
         encoding=encoding,
         parser=parser,
         stylesheet=stylesheet,
+        iterparse=iterparse,
         compression=compression,
         storage_options=storage_options,
     )

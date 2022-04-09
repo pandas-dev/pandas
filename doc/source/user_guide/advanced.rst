@@ -1082,14 +1082,14 @@ of :ref:`frequency aliases <timeseries.offset_aliases>` with datetime-like inter
 
    pd.interval_range(start=pd.Timedelta("0 days"), periods=3, freq="9H")
 
-Additionally, the ``closed`` parameter can be used to specify which side(s) the intervals
-are closed on.  Intervals are closed on the right side by default.
+Additionally, the ``inclusive`` parameter can be used to specify which side(s) the intervals
+are closed on.  Intervals are closed on the both side by default.
 
 .. ipython:: python
 
-   pd.interval_range(start=0, end=4, closed="both")
+   pd.interval_range(start=0, end=4, inclusive="both")
 
-   pd.interval_range(start=0, end=4, closed="neither")
+   pd.interval_range(start=0, end=4, inclusive="neither")
 
 Specifying ``start``, ``end``, and ``periods`` will generate a range of evenly spaced
 intervals from ``start`` to ``end`` inclusively, with ``periods`` number of elements
@@ -1246,5 +1246,5 @@ This is because the (re)indexing operations above silently inserts ``NaNs`` and 
 changes accordingly.  This can cause some issues when using ``numpy`` ``ufuncs``
 such as ``numpy.logical_and``.
 
-See the `this old issue <https://github.com/pydata/pandas/issues/2388>`__ for a more
+See the :issue:`2388` for a more
 detailed discussion.

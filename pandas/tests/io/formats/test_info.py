@@ -29,6 +29,7 @@ def duplicate_columns_frame():
 
 
 def test_info_empty():
+    # GH #45494
     df = DataFrame()
     buf = StringIO()
     df.info(buf=buf)
@@ -37,7 +38,7 @@ def test_info_empty():
         """\
         <class 'pandas.core.frame.DataFrame'>
         Index: 0 entries
-        Empty DataFrame"""
+        Empty DataFrame\n"""
     )
     assert result == expected
 
@@ -387,7 +388,7 @@ def test_info_memory_usage_deep_not_pypy():
     assert df_object.memory_usage(deep=True).sum() > df_object.memory_usage().sum()
 
 
-@pytest.mark.skipif(not PYPY, reason="on PyPy deep=True does not change result")
+@pytest.mark.xfail(not PYPY, reason="on PyPy deep=True does not change result")
 def test_info_memory_usage_deep_pypy():
     df_with_object_index = DataFrame({"a": [1]}, index=["foo"])
     assert (

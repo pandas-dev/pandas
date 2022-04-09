@@ -57,6 +57,7 @@ from pandas._typing import (
     StorageOptions,
     WriteBuffer,
 )
+from pandas.util._decorators import deprecate_kwarg
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -203,7 +204,7 @@ class CategoricalFormatter:
         length: bool = True,
         na_rep: str = "NaN",
         footer: bool = True,
-    ):
+    ) -> None:
         self.categorical = categorical
         self.buf = buf if buf is not None else StringIO("")
         self.na_rep = na_rep
@@ -273,7 +274,7 @@ class SeriesFormatter:
         dtype: bool = True,
         max_rows: int | None = None,
         min_rows: int | None = None,
-    ):
+    ) -> None:
         self.series = series
         self.buf = buf if buf is not None else StringIO()
         self.name = name
@@ -420,7 +421,7 @@ class SeriesFormatter:
 
 
 class TextAdjustment:
-    def __init__(self):
+    def __init__(self) -> None:
         self.encoding = get_option("display.encoding")
 
     def len(self, text: str) -> int:
@@ -434,7 +435,7 @@ class TextAdjustment:
 
 
 class EastAsianTextAdjustment(TextAdjustment):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         if get_option("display.unicode.ambiguous_as_wide"):
             self.ambiguous_width = 2
@@ -577,7 +578,7 @@ class DataFrameFormatter:
         decimal: str = ".",
         bold_rows: bool = False,
         escape: bool = True,
-    ):
+    ) -> None:
         self.frame = frame
         self.columns = self._initialize_columns(columns)
         self.col_space = self._initialize_colspace(col_space)
@@ -1016,7 +1017,7 @@ class DataFrameRenderer:
         Formatter with the formatting options.
     """
 
-    def __init__(self, fmt: DataFrameFormatter):
+    def __init__(self, fmt: DataFrameFormatter) -> None:
         self.fmt = fmt
 
     def to_latex(
@@ -1128,6 +1129,7 @@ class DataFrameRenderer:
         string = string_formatter.to_string()
         return save_to_buffer(string, buf=buf, encoding=encoding)
 
+    @deprecate_kwarg(old_arg_name="line_terminator", new_arg_name="lineterminator")
     def to_csv(
         self,
         path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
@@ -1139,7 +1141,7 @@ class DataFrameRenderer:
         compression: CompressionOptions = "infer",
         quoting: int | None = None,
         quotechar: str = '"',
-        line_terminator: str | None = None,
+        lineterminator: str | None = None,
         chunksize: int | None = None,
         date_format: str | None = None,
         doublequote: bool = True,
@@ -1160,7 +1162,7 @@ class DataFrameRenderer:
 
         csv_formatter = CSVFormatter(
             path_or_buf=path_or_buf,
-            line_terminator=line_terminator,
+            lineterminator=lineterminator,
             sep=sep,
             encoding=encoding,
             errors=errors,
@@ -1330,7 +1332,7 @@ class GenericArrayFormatter:
         quoting: int | None = None,
         fixed_width: bool = True,
         leading_space: bool | None = True,
-    ):
+    ) -> None:
         self.values = values
         self.digits = digits
         self.na_rep = na_rep
@@ -1423,7 +1425,7 @@ class GenericArrayFormatter:
 
 
 class FloatArrayFormatter(GenericArrayFormatter):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         # float_format is expected to be a string
@@ -1612,7 +1614,7 @@ class Datetime64Formatter(GenericArrayFormatter):
         nat_rep: str = "NaT",
         date_format: None = None,
         **kwargs,
-    ):
+    ) -> None:
         super().__init__(values, **kwargs)
         self.nat_rep = nat_rep
         self.date_format = date_format
@@ -1744,7 +1746,7 @@ def is_dates_only(values: np.ndarray | DatetimeArray | Index | DatetimeIndex) ->
 
     values_int = values.asi8
     consider_values = values_int != iNaT
-    one_day_nanos = 86400 * 10 ** 9
+    one_day_nanos = 86400 * 10**9
     even_days = (
         np.logical_and(consider_values, values_int % int(one_day_nanos) != 0).sum() == 0
     )
@@ -1765,16 +1767,13 @@ def _format_datetime64_dateonly(
     nat_rep: str = "NaT",
     date_format: str | None = None,
 ) -> str:
-    if x is NaT:
+    if isinstance(x, NaTType):
         return nat_rep
 
     if date_format:
         return x.strftime(date_format)
     else:
-        # error: Item "NaTType" of "Union[NaTType, Any]" has no attribute "_date_repr"
-        #  The underlying problem here is that mypy doesn't understand that NaT
-        #  is a singleton, so that the check above excludes it here.
-        return x._date_repr  # type: ignore[union-attr]
+        return x._date_repr
 
 
 def get_format_datetime64(
@@ -1824,7 +1823,7 @@ class Timedelta64Formatter(GenericArrayFormatter):
         nat_rep: str = "NaT",
         box: bool = False,
         **kwargs,
-    ):
+    ) -> None:
         super().__init__(values, **kwargs)
         self.nat_rep = nat_rep
         self.box = box
@@ -1851,7 +1850,7 @@ def get_format_timedelta64(
 
     consider_values = values_int != iNaT
 
-    one_day_nanos = 86400 * 10 ** 9
+    one_day_nanos = 86400 * 10**9
     # error: Unsupported operand types for % ("ExtensionArray" and "int")
     not_midnight = values_int % one_day_nanos != 0  # type: ignore[operator]
     # error: Argument 1 to "__call__" of "ufunc" has incompatible type
@@ -1962,7 +1961,7 @@ def _trim_zeros_float(
     necessary.
     """
     trimmed = str_floats
-    number_regex = re.compile(fr"^\s*[\+-]?[0-9]+\{decimal}[0-9]*$")
+    number_regex = re.compile(rf"^\s*[\+-]?[0-9]+\{decimal}[0-9]*$")
 
     def is_number_with_decimal(x):
         return re.match(number_regex, x) is not None
@@ -2024,7 +2023,9 @@ class EngFormatter:
         24: "Y",
     }
 
-    def __init__(self, accuracy: int | None = None, use_eng_prefix: bool = False):
+    def __init__(
+        self, accuracy: int | None = None, use_eng_prefix: bool = False
+    ) -> None:
         self.accuracy = accuracy
         self.use_eng_prefix = use_eng_prefix
 
@@ -2079,7 +2080,7 @@ class EngFormatter:
             else:
                 prefix = f"E+{int_pow10:02d}"
 
-        mant = sign * dnum / (10 ** pow10)
+        mant = sign * dnum / (10**pow10)
 
         if self.accuracy is None:  # pragma: no cover
             format_str = "{mant: g}{prefix}"

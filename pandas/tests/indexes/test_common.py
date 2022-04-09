@@ -10,10 +10,7 @@ import pytest
 
 from pandas.compat import IS64
 
-from pandas.core.dtypes.common import (
-    is_integer_dtype,
-    needs_i8_conversion,
-)
+from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
 from pandas import (
@@ -91,7 +88,9 @@ class TestCommon:
 
     def test_constructor_unwraps_index(self, index_flat):
         a = index_flat
-        b = type(a)(a)
+        # Passing dtype is necessary for Index([True, False], dtype=object)
+        #  case.
+        b = type(a)(a, dtype=a.dtype)
         tm.assert_equal(a._data, b._data)
 
     def test_to_flat_index(self, index_flat):
@@ -198,8 +197,8 @@ class TestCommon:
             index.unique(level=3)
 
         msg = (
-            fr"Requested level \(wrong\) does not match index name "
-            fr"\({re.escape(index.name.__repr__())}\)"
+            rf"Requested level \(wrong\) does not match index name "
+            rf"\({re.escape(index.name.__repr__())}\)"
         )
         with pytest.raises(KeyError, match=msg):
             index.unique(level="wrong")
@@ -383,16 +382,17 @@ class TestCommon:
             index.name = "idx"
 
         warn = None
-        if dtype in ["int64", "uint64"]:
-            if needs_i8_conversion(index.dtype):
-                warn = FutureWarning
-        elif (
+        if (
             isinstance(index, DatetimeIndex)
             and index.tz is not None
             and dtype == "datetime64[ns]"
         ):
             # This astype is deprecated in favor of tz_localize
             warn = FutureWarning
+        elif index.dtype.kind == "c" and dtype in ["float64", "int64", "uint64"]:
+            # imaginary components discarded
+            warn = np.ComplexWarning
+
         try:
             # Some of these conversions cannot succeed so we use a try / except
             with tm.assert_produces_warning(warn):
@@ -432,6 +432,9 @@ class TestCommon:
             return
         elif isinstance(index, NumericIndex) and is_integer_dtype(index.dtype):
             return
+        elif index.dtype == bool:
+            # values[1] = np.nan below casts to True!
+            return
 
         values[1] = np.nan
 
@@ -451,12 +454,16 @@ def test_sort_values_invalid_na_position(index_with_missing, na_position):
 
 
 @pytest.mark.parametrize("na_position", ["first", "last"])
-def test_sort_values_with_missing(index_with_missing, na_position):
+def test_sort_values_with_missing(index_with_missing, na_position, request):
     # GH 35584. Test that sort_values works with missing values,
     # sort non-missing and place missing according to na_position
 
     if isinstance(index_with_missing, CategoricalIndex):
-        pytest.skip("missing value sorting order not well-defined")
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="missing value sorting order not well-defined", strict=False
+            )
+        )
 
     missing_count = np.sum(index_with_missing.isna())
     not_na_vals = index_with_missing[index_with_missing.notna()].values

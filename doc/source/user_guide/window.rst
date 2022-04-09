@@ -287,7 +287,7 @@ and we want to use an expanding window where ``use_expanding`` is ``True`` other
    3     3.0
    4    10.0
 
-You can view other examples of ``BaseIndexer`` subclasses `here <https://github.com/pandas-dev/pandas/blob/master/pandas/core/window/indexers.py>`__
+You can view other examples of ``BaseIndexer`` subclasses `here <https://github.com/pandas-dev/pandas/blob/main/pandas/core/indexers/objects.py>`__
 
 .. versionadded:: 1.1
 
@@ -427,10 +427,16 @@ can even be omitted:
 .. note::
 
     Missing values are ignored and each entry is computed using the pairwise
-    complete observations.  Please see the :ref:`covariance section
-    <computation.covariance>` for :ref:`caveats
-    <computation.covariance.caveats>` associated with this method of
-    calculating covariance and correlation matrices.
+    complete observations.
+
+    Assuming the missing data are missing at random this results in an estimate
+    for the covariance matrix which is unbiased. However, for many applications
+    this estimate may not be acceptable because the estimated covariance matrix
+    is not guaranteed to be positive semi-definite. This could lead to
+    estimated correlations having absolute values which are greater than one,
+    and/or a non-invertible covariance matrix. See `Estimation of covariance
+    matrices <https://en.wikipedia.org/w/index.php?title=Estimation_of_covariance_matrices>`_
+    for more details.
 
 .. ipython:: python
 
@@ -618,13 +624,13 @@ average of ``3, NaN, 5`` would be calculated as
 
 .. math::
 
-	\frac{(1-\alpha)^2 \cdot 3 + 1 \cdot 5}{(1-\alpha)^2 + 1}.
+        \frac{(1-\alpha)^2 \cdot 3 + 1 \cdot 5}{(1-\alpha)^2 + 1}.
 
 Whereas if ``ignore_na=True``, the weighted average would be calculated as
 
 .. math::
 
-	\frac{(1-\alpha) \cdot 3 + 1 \cdot 5}{(1-\alpha) + 1}.
+        \frac{(1-\alpha) \cdot 3 + 1 \cdot 5}{(1-\alpha) + 1}.
 
 The :meth:`~Ewm.var`, :meth:`~Ewm.std`, and :meth:`~Ewm.cov` functions have a ``bias`` argument,
 specifying whether the result should contain biased or unbiased statistics.

@@ -5,7 +5,7 @@ Based on code from Jack Cushman (github.com/jcushman/xport).
 
 The file format is defined here:
 
-https://support.sas.com/techsup/technote/ts140.pdf
+https://support.sas.com/content/dam/SAS/support/en/technical-papers/record-layout-of-a-sas-version-5-or-6-data-set-in-sas-transport-xport-format.pdf
 """
 from __future__ import annotations
 
@@ -17,6 +17,7 @@ import warnings
 import numpy as np
 
 from pandas._typing import (
+    DatetimeNaTType,
     FilePath,
     ReadBuffer,
 )
@@ -139,7 +140,7 @@ A DataFrame.
 """
 
 
-def _parse_date(datestr: str) -> datetime:
+def _parse_date(datestr: str) -> DatetimeNaTType:
     """Given a date in xport format, return Python date."""
     try:
         # e.g. "16FEB11:10:07:55"
@@ -255,7 +256,7 @@ class XportReader(ReaderBase, abc.Iterator):
         index=None,
         encoding: str | None = "ISO-8859-1",
         chunksize=None,
-    ):
+    ) -> None:
 
         self._encoding = encoding
         self._lines_read = 0

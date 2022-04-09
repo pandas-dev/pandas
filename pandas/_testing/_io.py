@@ -5,6 +5,7 @@ from functools import wraps
 import gzip
 import io
 import tarfile
+import socket
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -30,8 +31,6 @@ if TYPE_CHECKING:
         DataFrame,
         Series,
     )
-
-_RAISE_NETWORK_ERROR_DEFAULT = False
 
 # skip tests on exceptions with these messages
 _network_error_messages = (
@@ -72,10 +71,18 @@ _network_errno_vals = (
 
 
 def _get_default_network_errors():
-    # Lazy import for http.client because it imports many things from the stdlib
+    # Lazy import for http.client & urllib.error
+    # because it imports many things from the stdlib
     import http.client
+    import urllib.error
 
-    return (OSError, http.client.HTTPException, TimeoutError)
+    return (
+        OSError,
+        http.client.HTTPException,
+        TimeoutError,
+        urllib.error.URLError,
+        socket.timeout,
+    )
 
 
 def optional_args(decorator):
@@ -110,7 +117,7 @@ def optional_args(decorator):
 def network(
     t,
     url="https://www.google.com",
-    raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
+    raise_on_error=False,
     check_before_test=False,
     error_classes=None,
     skip_errnos=_network_errno_vals,
@@ -165,8 +172,8 @@ def network(
     Tests decorated with @network will fail if it's possible to make a network
     connection to another URL (defaults to google.com)::
 
-      >>> from pandas import _testing as ts
-      >>> @ts.network
+      >>> from pandas import _testing as tm
+      >>> @tm.network
       ... def test_network():
       ...     with pd.io.common.urlopen("rabbit://bonanza.com"):
       ...         pass
@@ -177,10 +184,10 @@ def network(
 
       You can specify alternative URLs::
 
-        >>> @ts.network("https://www.yahoo.com")
+        >>> @tm.network("https://www.yahoo.com")
         ... def test_something_with_yahoo():
         ...    raise OSError("Failure Message")
-        >>> test_something_with_yahoo()
+        >>> test_something_with_yahoo()  # doctest: +SKIP
         Traceback (most recent call last):
             ...
         OSError: Failure Message
@@ -188,7 +195,7 @@ def network(
     If you set check_before_test, it will check the url first and not run the
     test on failure::
 
-        >>> @ts.network("failing://url.blaher", check_before_test=True)
+        >>> @tm.network("failing://url.blaher", check_before_test=True)
         ... def test_something():
         ...     print("I ran!")
         ...     raise ValueError("Failure")
@@ -198,7 +205,7 @@ def network(
 
     Errors not related to networking will always be raised.
     """
-    from pytest import skip
+    import pytest
 
     if error_classes is None:
         error_classes = _get_default_network_errors()
@@ -212,7 +219,9 @@ def network(
             and not raise_on_error
             and not can_connect(url, error_classes)
         ):
-            skip()
+            pytest.skip(
+                f"May not have network connectivity because cannot connect to {url}"
+            )
         try:
             return t(*args, **kwargs)
         except Exception as err:
@@ -222,22 +231,21 @@ def network(
                 errno = getattr(err.reason, "errno", None)  # type: ignore[attr-defined]
 
             if errno in skip_errnos:
-                skip(f"Skipping test due to known errno and error {err}")
+                pytest.skip(f"Skipping test due to known errno and error {err}")
 
             e_str = str(err)
 
             if any(m.lower() in e_str.lower() for m in _skip_on_messages):
-                skip(
+                pytest.skip(
                     f"Skipping test because exception message is known and error {err}"
                 )
 
-            if not isinstance(err, error_classes):
-                raise
-
-            if raise_on_error or can_connect(url, error_classes):
+            if not isinstance(err, error_classes) or raise_on_error:
                 raise
             else:
-                skip(f"Skipping test due to lack of connectivity and error {err}")
+                pytest.skip(
+                    f"Skipping test due to lack of connectivity and error {err}"
+                )
 
     return wrapper
 
@@ -265,8 +273,10 @@ def can_connect(url, error_classes=None):
         error_classes = _get_default_network_errors()
 
     try:
-        with urlopen(url):
-            pass
+        with urlopen(url, timeout=20) as response:
+            # Timeout just in case rate-limiting is applied
+            if response.status != 200:
+                return False
     except error_classes:
         return False
     else:

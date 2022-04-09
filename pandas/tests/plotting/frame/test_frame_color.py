@@ -15,26 +15,9 @@ from pandas.tests.plotting.common import (
     _check_plot_works,
 )
 
-pytestmark = pytest.mark.slow
-
 
 @td.skip_if_no_mpl
 class TestDataFrameColor(TestPlotBase):
-    def setup_method(self, method):
-        TestPlotBase.setup_method(self, method)
-        import matplotlib as mpl
-
-        mpl.rcdefaults()
-
-        self.tdf = tm.makeTimeDataFrame()
-        self.hexbin_df = DataFrame(
-            {
-                "A": np.random.uniform(size=20),
-                "B": np.random.uniform(size=20),
-                "C": np.arange(20) + np.random.uniform(size=20),
-            }
-        )
-
     def test_mpl2_color_cycle_str(self):
         # GH 15516
         df = DataFrame(np.random.randn(10, 3), columns=["a", "b", "c"])
@@ -213,14 +196,15 @@ class TestDataFrameColor(TestPlotBase):
         assert np.isclose(parent_distance, colorbar_distance, atol=1e-7).all()
 
     @pytest.mark.parametrize("cmap", [None, "Greys"])
-    def test_scatter_with_c_column_name_with_colors(self, cmap):
+    @pytest.mark.parametrize("kw", ["c", "color"])
+    def test_scatter_with_c_column_name_with_colors(self, cmap, kw):
         # https://github.com/pandas-dev/pandas/issues/34316
         df = DataFrame(
             [[5.1, 3.5], [4.9, 3.0], [7.0, 3.2], [6.4, 3.2], [5.9, 3.0]],
             columns=["length", "width"],
         )
         df["species"] = ["r", "r", "g", "g", "b"]
-        ax = df.plot.scatter(x=0, y=1, c="species", cmap=cmap)
+        ax = df.plot.scatter(x=0, y=1, cmap=cmap, **{kw: "species"})
         assert ax.collections[0].colorbar is None
 
     def test_scatter_colors(self):
@@ -621,12 +605,24 @@ class TestDataFrameColor(TestPlotBase):
         self._check_colors(ax.get_lines(), linecolors=expected)
 
     def test_no_color_bar(self):
-        df = self.hexbin_df
+        df = DataFrame(
+            {
+                "A": np.random.uniform(size=20),
+                "B": np.random.uniform(size=20),
+                "C": np.arange(20) + np.random.uniform(size=20),
+            }
+        )
         ax = df.plot.hexbin(x="A", y="B", colorbar=None)
         assert ax.collections[0].colorbar is None
 
     def test_mixing_cmap_and_colormap_raises(self):
-        df = self.hexbin_df
+        df = DataFrame(
+            {
+                "A": np.random.uniform(size=20),
+                "B": np.random.uniform(size=20),
+                "C": np.arange(20) + np.random.uniform(size=20),
+            }
+        )
         msg = "Only specify one of `cmap` and `colormap`"
         with pytest.raises(TypeError, match=msg):
             df.plot.hexbin(x="A", y="B", cmap="YlGn", colormap="BuGn")

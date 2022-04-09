@@ -1,7 +1,6 @@
 """
 Test output formatting for Series/DataFrame, including to_string & reprs
 """
-
 from datetime import datetime
 from io import StringIO
 import itertools
@@ -1146,19 +1145,17 @@ class TestDataFrameFormatting:
         ):
             max_cols = get_option("display.max_columns")
             df = DataFrame(tm.rands_array(25, size=(10, max_cols - 1)))
-            set_option("display.expand_frame_repr", False)
-            rep_str = repr(df)
+            with option_context("display.expand_frame_repr", False):
+                rep_str = repr(df)
 
             assert f"10 rows x {max_cols - 1} columns" in rep_str
-            set_option("display.expand_frame_repr", True)
-            wide_repr = repr(df)
+            with option_context("display.expand_frame_repr", True):
+                wide_repr = repr(df)
             assert rep_str != wide_repr
 
             with option_context("display.width", 120):
                 wider_repr = repr(df)
                 assert len(wider_repr) < len(wide_repr)
-
-        reset_option("display.expand_frame_repr")
 
     def test_wide_repr_wide_columns(self):
         with option_context("mode.sim_interactive", True, "display.max_columns", 20):
@@ -1174,11 +1171,10 @@ class TestDataFrameFormatting:
             max_cols = get_option("display.max_columns")
             df = DataFrame(tm.rands_array(25, size=(10, max_cols - 1)))
             df.index.name = "DataFrame Index"
-            set_option("display.expand_frame_repr", False)
-
-            rep_str = repr(df)
-            set_option("display.expand_frame_repr", True)
-            wide_repr = repr(df)
+            with option_context("display.expand_frame_repr", False):
+                rep_str = repr(df)
+            with option_context("display.expand_frame_repr", True):
+                wide_repr = repr(df)
             assert rep_str != wide_repr
 
             with option_context("display.width", 150):
@@ -1188,18 +1184,16 @@ class TestDataFrameFormatting:
             for line in wide_repr.splitlines()[1::13]:
                 assert "DataFrame Index" in line
 
-        reset_option("display.expand_frame_repr")
-
     def test_wide_repr_multiindex(self):
         with option_context("mode.sim_interactive", True, "display.max_columns", 20):
             midx = MultiIndex.from_arrays(tm.rands_array(5, size=(2, 10)))
             max_cols = get_option("display.max_columns")
             df = DataFrame(tm.rands_array(25, size=(10, max_cols - 1)), index=midx)
             df.index.names = ["Level 0", "Level 1"]
-            set_option("display.expand_frame_repr", False)
-            rep_str = repr(df)
-            set_option("display.expand_frame_repr", True)
-            wide_repr = repr(df)
+            with option_context("display.expand_frame_repr", False):
+                rep_str = repr(df)
+            with option_context("display.expand_frame_repr", True):
+                wide_repr = repr(df)
             assert rep_str != wide_repr
 
             with option_context("display.width", 150):
@@ -1208,8 +1202,6 @@ class TestDataFrameFormatting:
 
             for line in wide_repr.splitlines()[1::13]:
                 assert "Level 0 Level 1" in line
-
-        reset_option("display.expand_frame_repr")
 
     def test_wide_repr_multiindex_cols(self):
         with option_context("mode.sim_interactive", True, "display.max_columns", 20):
@@ -1220,33 +1212,29 @@ class TestDataFrameFormatting:
                 tm.rands_array(25, (10, max_cols - 1)), index=midx, columns=mcols
             )
             df.index.names = ["Level 0", "Level 1"]
-            set_option("display.expand_frame_repr", False)
-            rep_str = repr(df)
-            set_option("display.expand_frame_repr", True)
-            wide_repr = repr(df)
+            with option_context("display.expand_frame_repr", False):
+                rep_str = repr(df)
+            with option_context("display.expand_frame_repr", True):
+                wide_repr = repr(df)
             assert rep_str != wide_repr
 
         with option_context("display.width", 150, "display.max_columns", 20):
             wider_repr = repr(df)
             assert len(wider_repr) < len(wide_repr)
 
-        reset_option("display.expand_frame_repr")
-
     def test_wide_repr_unicode(self):
         with option_context("mode.sim_interactive", True, "display.max_columns", 20):
             max_cols = 20
             df = DataFrame(tm.rands_array(25, size=(10, max_cols - 1)))
-            set_option("display.expand_frame_repr", False)
-            rep_str = repr(df)
-            set_option("display.expand_frame_repr", True)
-            wide_repr = repr(df)
+            with option_context("display.expand_frame_repr", False):
+                rep_str = repr(df)
+            with option_context("display.expand_frame_repr", True):
+                wide_repr = repr(df)
             assert rep_str != wide_repr
 
             with option_context("display.width", 150):
                 wider_repr = repr(df)
                 assert len(wider_repr) < len(wide_repr)
-
-        reset_option("display.expand_frame_repr")
 
     def test_wide_repr_wide_long_columns(self):
         with option_context("mode.sim_interactive", True):
@@ -2122,7 +2110,7 @@ def gen_series_formatting():
 
 
 class TestSeriesFormatting:
-    def setup_method(self, method):
+    def setup_method(self):
         self.ts = tm.makeTimeSeries()
 
     def test_repr_unicode(self):
@@ -2874,6 +2862,25 @@ class TestFloatArrayFormatter:
             expected_output = "0     840\n1    4200\ndtype: float64"
             assert str(s) == expected_output
 
+    @pytest.mark.parametrize(
+        "value,expected",
+        [
+            ([9.4444], "   0\n0  9"),
+            ([0.49], "       0\n0  5e-01"),
+            ([10.9999], "    0\n0  11"),
+            ([9.5444, 9.6], "    0\n0  10\n1  10"),
+            ([0.46, 0.78, -9.9999], "       0\n0  5e-01\n1  8e-01\n2 -1e+01"),
+        ],
+    )
+    def test_set_option_precision(self, value, expected):
+        # Issue #30122
+        # Precision was incorrectly shown
+
+        with option_context("display.precision", 0):
+
+            df_value = DataFrame(value)
+            assert str(df_value) == expected
+
     def test_output_significant_digits(self):
         # Issue #9764
 
@@ -3157,6 +3164,65 @@ class TestNaTFormatting:
 
     def test_str(self):
         assert str(NaT) == "NaT"
+
+
+class TestPeriodIndexFormat:
+    def test_period_format_and_strftime_default(self):
+        per = pd.PeriodIndex([datetime(2003, 1, 1, 12), None], freq="H")
+
+        # Default formatting
+        formatted = per.format()
+        assert formatted[0] == "2003-01-01 12:00"  # default: minutes not shown
+        assert formatted[1] == "NaT"
+        # format is equivalent to strftime(None)...
+        assert formatted[0] == per.strftime(None)[0]
+        assert per.strftime(None)[1] is np.nan  # ...except for NaTs
+
+        # Same test with nanoseconds freq
+        per = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="n")
+        formatted = per.format()
+        assert (formatted == per.strftime(None)).all()
+        assert formatted[0] == "2003-01-01 12:01:01.123456789"
+        assert formatted[1] == "2003-01-01 12:01:01.123456790"
+
+    def test_period_custom(self):
+        # GH#46252 custom formatting directives %l (ms) and %u (us)
+
+        # 3 digits
+        per = pd.period_range("2003-01-01 12:01:01.123", periods=2, freq="l")
+        formatted = per.format(date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)")
+        assert formatted[0] == "03 12:01:01 (ms=123 us=123000 ns=123000000)"
+        assert formatted[1] == "03 12:01:01 (ms=124 us=124000 ns=124000000)"
+
+        # 6 digits
+        per = pd.period_range("2003-01-01 12:01:01.123456", periods=2, freq="u")
+        formatted = per.format(date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)")
+        assert formatted[0] == "03 12:01:01 (ms=123 us=123456 ns=123456000)"
+        assert formatted[1] == "03 12:01:01 (ms=123 us=123457 ns=123457000)"
+
+        # 9 digits
+        per = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="n")
+        formatted = per.format(date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)")
+        assert formatted[0] == "03 12:01:01 (ms=123 us=123456 ns=123456789)"
+        assert formatted[1] == "03 12:01:01 (ms=123 us=123456 ns=123456790)"
+
+    def test_period_tz(self):
+        # Formatting periods created from a datetime with timezone.
+
+        # This timestamp is in 2013 in Europe/Paris but is 2012 in UTC
+        dt = pd.to_datetime(["2013-01-01 00:00:00+01:00"], utc=True)
+
+        # Converting to a period looses the timezone information
+        # Since tz is currently set as utc, we'll see 2012
+        with tm.assert_produces_warning(UserWarning, match="will drop timezone"):
+            per = dt.to_period(freq="H")
+        assert per.format()[0] == "2012-12-31 23:00"
+
+        # If tz is currently set as paris before conversion, we'll see 2013
+        dt = dt.tz_convert("Europe/Paris")
+        with tm.assert_produces_warning(UserWarning, match="will drop timezone"):
+            per = dt.to_period(freq="H")
+        assert per.format()[0] == "2013-01-01 00:00"
 
 
 class TestDatetimeIndexFormat:

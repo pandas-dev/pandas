@@ -17,7 +17,7 @@ from pandas.core.arrays.sparse.dtype import SparseDtype
 class BaseAccessor:
     _validation_msg = "Can only use the '.sparse' accessor with Sparse data."
 
-    def __init__(self, data=None):
+    def __init__(self, data=None) -> None:
         self._parent = data
         self._validate(data)
 
@@ -339,7 +339,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
             dtype = dtype.subtype
 
         cols, rows, data = [], [], []
-        for col, (_, ser) in enumerate(self._parent.iteritems()):
+        for col, (_, ser) in enumerate(self._parent.items()):
             sp_arr = ser.array
             if sp_arr.fill_value != 0:
                 raise ValueError("fill value must be 0 when converting to COO matrix")

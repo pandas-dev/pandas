@@ -96,7 +96,7 @@ by : mapping, function, label, or list of labels
     will be used to determine the groups (the Series' values are first
     aligned; see ``.align()`` method). If a list or ndarray of length
     equal to the selected axis is passed (see the `groupby user guide
-    <https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#splitting-an-object-into-groups>`),
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#splitting-an-object-into-groups>`_),
     the values are used as-is to determine the groups. A label or list
     of labels may be passed to group by the columns in ``self``.
     Notice that a tuple is interpreted as a (single) key.
@@ -113,8 +113,17 @@ sort : bool, default True
     Sort group keys. Get better performance by turning this off.
     Note this does not influence the order of observations within each
     group. Groupby preserves the order of rows within each group.
-group_keys : bool, default True
+group_keys : bool, optional
     When calling apply, add group keys to index to identify pieces.
+    By default group keys are not included when the result's index
+    (and column) labels match the inputs, and are included otherwise.
+
+    .. versionchanged:: 1.5.0
+
+       Warns that `group_keys` will no longer be ignored when the
+       result from ``apply`` is a like-indexed Series or DataFrame.
+       Specify ``group_keys`` explicitly to include the group keys or
+       not.
 squeeze : bool, default False
     Reduce the dimensionality of the return type if possible,
     otherwise return a consistent type.
@@ -195,6 +204,10 @@ DataFrame.pivot : Return reshaped DataFrame organized
 DataFrame.explode : Explode a DataFrame from list-like
         columns to long format.
 
+Notes
+-----
+Reference :ref:`the user guide <reshaping.melt>` for more examples.
+
 Examples
 --------
 >>> df = pd.DataFrame({'A': {0: 'a', 1: 'b', 2: 'c'},
@@ -267,9 +280,7 @@ If you have multi-index columns:
 _shared_docs[
     "transform"
 ] = """
-Call ``func`` on self producing a {klass} with transformed values.
-
-Produced {klass} will have same axis length as self.
+Call ``func`` on self producing a {klass} with the same axis shape as self.
 
 Parameters
 ----------
@@ -398,9 +409,12 @@ _shared_docs[
 ] = """storage_options : dict, optional
     Extra options that make sense for a particular storage connection, e.g.
     host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
-    are forwarded to ``urllib`` as header options. For other URLs (e.g.
-    starting with "s3://", and "gcs://") the key-value pairs are forwarded to
-    ``fsspec``. Please see ``fsspec`` and ``urllib`` for more details."""
+    are forwarded to ``urllib.request.Request`` as header options. For other
+    URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+    forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+    details, and for more examples on storage options refer `here
+    <https://pandas.pydata.org/docs/user_guide/io.html?
+    highlight=storage_options#reading-writing-remote-files>`_."""
 
 _shared_docs[
     "compression_options"

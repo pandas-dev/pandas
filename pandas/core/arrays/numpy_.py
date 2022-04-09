@@ -61,11 +61,12 @@ class PandasArray(
     __array_priority__ = 1000
     _ndarray: np.ndarray
     _dtype: PandasDtype
+    _internal_fill_value = np.nan
 
     # ------------------------------------------------------------------------
     # Constructors
 
-    def __init__(self, values: np.ndarray | PandasArray, copy: bool = False):
+    def __init__(self, values: np.ndarray | PandasArray, copy: bool = False) -> None:
         if isinstance(values, type(self)):
             values = values._ndarray
         if not isinstance(values, np.ndarray):
@@ -108,10 +109,6 @@ class PandasArray(
             result = result.copy()
         return cls(result)
 
-    @classmethod
-    def _from_factorized(cls, values, original) -> PandasArray:
-        return cls(values)
-
     def _from_backing_data(self, arr: np.ndarray) -> PandasArray:
         return type(self)(arr)
 
@@ -140,6 +137,12 @@ class PandasArray(
         )
         if result is not NotImplemented:
             return result
+
+        if "out" in kwargs:
+            # e.g. test_ufunc_unary
+            return arraylike.dispatch_ufunc_with_out(
+                self, ufunc, method, *inputs, **kwargs
+            )
 
         if method == "reduce":
             result = arraylike.dispatch_reduction_ufunc(
@@ -186,8 +189,12 @@ class PandasArray(
             fill_value = self.dtype.na_value
         return fill_value
 
-    def _values_for_factorize(self) -> tuple[np.ndarray, int]:
-        return self._ndarray, -1
+    def _values_for_factorize(self) -> tuple[np.ndarray, float | None]:
+        if self.dtype.kind in ["i", "u", "b"]:
+            fv = None
+        else:
+            fv = np.nan
+        return self._ndarray, fv
 
     # ------------------------------------------------------------------------
     # Reductions

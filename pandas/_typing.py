@@ -35,6 +35,7 @@ if TYPE_CHECKING:
     import numpy.typing as npt
 
     from pandas._libs import (
+        NaTType,
         Period,
         Timedelta,
         Timestamp,
@@ -72,6 +73,7 @@ if TYPE_CHECKING:
 else:
     npt: Any = None
 
+HashableT = TypeVar("HashableT", bound=Hashable)
 
 # array-like
 
@@ -83,7 +85,7 @@ AnyArrayLike = Union[ArrayLike, "Index", "Series"]
 PythonScalar = Union[str, int, float, bool]
 DatetimeLikeScalar = Union["Period", "Timestamp", "Timedelta"]
 PandasScalar = Union["Period", "Timestamp", "Timedelta", "Interval"]
-Scalar = Union[PythonScalar, PandasScalar]
+Scalar = Union[PythonScalar, PandasScalar, np.datetime64, np.timedelta64, datetime]
 IntStrT = TypeVar("IntStrT", int, str)
 
 
@@ -102,6 +104,8 @@ Timezone = Union[str, tzinfo]
 # Series is passed into a function, a Series is always returned and if a DataFrame is
 # passed in, a DataFrame is always returned.
 NDFrameT = TypeVar("NDFrameT", bound="NDFrame")
+
+NumpyIndexT = TypeVar("NumpyIndexT", np.ndarray, "Index")
 
 Axis = Union[str, int]
 IndexLabel = Union[Hashable, Sequence[Hashable]]
@@ -129,8 +133,16 @@ AstypeArg = Union["ExtensionDtype", "npt.DTypeLike"]
 DtypeArg = Union[Dtype, Dict[Hashable, Dtype]]
 DtypeObj = Union[np.dtype, "ExtensionDtype"]
 
+# converters
+ConvertersArg = Dict[Hashable, Callable[[Dtype], Dtype]]
+
+# parse_dates
+ParseDatesArg = Union[
+    bool, List[Hashable], List[List[Hashable]], Dict[Hashable, List[Hashable]]
+]
+
 # For functions like rename that convert one label to another
-Renamer = Union[Mapping[Hashable, Any], Callable[[Hashable], Hashable]]
+Renamer = Union[Mapping[Any, Hashable], Callable[[Any], Hashable]]
 
 # to maintain type information across generic functions and parametrization
 T = TypeVar("T")
@@ -246,8 +258,6 @@ CompressionDict = Dict[str, Any]
 CompressionOptions = Optional[
     Union[Literal["infer", "gzip", "bz2", "zip", "xz", "zstd", "tar"], CompressionDict]
 ]
-XMLParsers = Literal["lxml", "etree"]
-
 
 # types in DataFrameFormatter
 FormattersType = Union[
@@ -290,5 +300,25 @@ if TYPE_CHECKING:
 else:
     TakeIndexer = Any
 
+# Shared by functions such as drop and astype
+IgnoreRaise = Literal["ignore", "raise"]
+
 # Windowing rank methods
 WindowingRankType = Literal["average", "min", "max"]
+
+# read_csv engines
+CSVEngine = Literal["c", "python", "pyarrow", "python-fwf"]
+
+# read_xml parsers
+XMLParsers = Literal["lxml", "etree"]
+
+# Interval closed type
+IntervalClosedType = Literal["left", "right", "both", "neither"]
+
+# datetime and NaTType
+DatetimeNaTType = Union[datetime, "NaTType"]
+DateTimeErrorChoices = Union[IgnoreRaise, Literal["coerce"]]
+
+# sort_index
+SortKind = Literal["quicksort", "mergesort", "heapsort", "stable"]
+NaPosition = Literal["first", "last"]

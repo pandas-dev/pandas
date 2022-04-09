@@ -55,6 +55,14 @@ class ComparisonOps(BaseOpsUtil):
 class NumericOps:
     # Shared by IntegerArray and FloatingArray, not BooleanArray
 
+    def test_searchsorted_nan(self, dtype):
+        # The base class casts to object dtype, for which searchsorted returns
+        #  0 from the left and 10 from the right.
+        arr = pd.array(range(10), dtype=dtype)
+
+        assert arr.searchsorted(np.nan, side="left") == 10
+        assert arr.searchsorted(np.nan, side="right") == 10
+
     def test_no_shared_mask(self, data):
         result = data + 1
         assert not tm.shares_memory(result, data)
@@ -119,7 +127,7 @@ class NumericOps:
         assert isinstance(result, np.ndarray)
         assert result.all()
 
-        # result |= mask worked because mask could be cast lossslessly to
+        # result |= mask worked because mask could be cast losslessly to
         #  boolean ndarray. mask2 can't, so this raises
         result = np.zeros(3, dtype=bool)
         msg = "Specify an appropriate 'na_value' for this dtype"
@@ -136,3 +144,12 @@ class NumericOps:
         assert res is arr
         tm.assert_extension_array_equal(res, expected)
         tm.assert_extension_array_equal(arr, expected)
+
+    def test_mul_td64_array(self, dtype):
+        # GH#45622
+        arr = pd.array([1, 2, pd.NA], dtype=dtype)
+        other = np.arange(3, dtype=np.int64).view("m8[ns]")
+
+        result = arr * other
+        expected = pd.array([pd.Timedelta(0), pd.Timedelta(2), pd.NaT])
+        tm.assert_extension_array_equal(result, expected)

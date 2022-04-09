@@ -15,7 +15,6 @@ import pytz
 import pandas._libs.json as ujson
 from pandas.compat import (
     IS64,
-    PY310,
     is_platform_windows,
 )
 
@@ -253,14 +252,8 @@ class TestUltraJSONTests:
         [
             20,
             -1,
-            pytest.param(
-                "9",
-                marks=pytest.mark.xfail(PY310, reason="Failing on Python 3.10 GH41940"),
-            ),
-            pytest.param(
-                None,
-                marks=pytest.mark.xfail(PY310, reason="Failing on Python 3.10 GH41940"),
-            ),
+            "9",
+            None,
         ],
     )
     def test_invalid_double_precision(self, invalid_val):
@@ -268,7 +261,8 @@ class TestUltraJSONTests:
         expected_exception = ValueError if isinstance(invalid_val, int) else TypeError
         msg = (
             r"Invalid value '.*' for option 'double_precision', max is '15'|"
-            r"an integer is required \(got type "
+            r"an integer is required \(got type |"
+            r"object cannot be interpreted as an integer"
         )
         with pytest.raises(expected_exception, match=msg):
             ujson.encode(double_input, double_precision=invalid_val)
@@ -428,13 +422,13 @@ class TestUltraJSONTests:
         stamp = Timestamp(val)
 
         roundtrip = ujson.decode(ujson.encode(val, date_unit="s"))
-        assert roundtrip == stamp.value // 10 ** 9
+        assert roundtrip == stamp.value // 10**9
 
         roundtrip = ujson.decode(ujson.encode(val, date_unit="ms"))
-        assert roundtrip == stamp.value // 10 ** 6
+        assert roundtrip == stamp.value // 10**6
 
         roundtrip = ujson.decode(ujson.encode(val, date_unit="us"))
-        assert roundtrip == stamp.value // 10 ** 3
+        assert roundtrip == stamp.value // 10**3
 
         roundtrip = ujson.decode(ujson.encode(val, date_unit="ns"))
         assert roundtrip == stamp.value
@@ -606,7 +600,7 @@ class TestUltraJSONTests:
         assert output == json.dumps(long_input)
         assert long_input == ujson.decode(output)
 
-    @pytest.mark.parametrize("bigNum", [2 ** 64, -(2 ** 63) - 1])
+    @pytest.mark.parametrize("bigNum", [2**64, -(2**63) - 1])
     def test_dumps_ints_larger_than_maxsize(self, bigNum):
         encoding = ujson.encode(bigNum)
         assert str(bigNum) == encoding
@@ -628,7 +622,7 @@ class TestUltraJSONTests:
         with pytest.raises(TypeError, match=msg):
             ujson.loads(None)
 
-    @pytest.mark.parametrize("val", [3590016419, 2 ** 31, 2 ** 32, (2 ** 32) - 1])
+    @pytest.mark.parametrize("val", [3590016419, 2**31, 2**32, (2**32) - 1])
     def test_decode_number_with_32bit_sign_bit(self, val):
         # Test that numbers that fit within 32 bits but would have the
         # sign bit set (2**31 <= x < 2**32) are decoded properly.
@@ -666,7 +660,7 @@ class TestUltraJSONTests:
 
     def test_default_handler(self):
         class _TestObject:
-            def __init__(self, val):
+            def __init__(self, val) -> None:
                 self.val = val
 
             @property
@@ -720,7 +714,7 @@ class TestUltraJSONTests:
 
     def test_encode_object(self):
         class _TestObject:
-            def __init__(self, a, b, _c, d):
+            def __init__(self, a, b, _c, d) -> None:
                 self.a = a
                 self.b = b
                 self._c = _c
@@ -951,9 +945,11 @@ class TestNumpyJSONTests:
 
 
 class TestPandasJSONTests:
-    def test_dataframe(self, orient, numpy):
+    def test_dataframe(self, request, orient, numpy):
         if orient == "records" and numpy:
-            pytest.skip("Not idiomatic pandas")
+            request.node.add_marker(
+                pytest.mark.xfail(reason=f"Not idiomatic pandas if orient={orient}")
+            )
 
         dtype = get_int32_compat_dtype(numpy, orient)
 
@@ -1003,9 +999,11 @@ class TestPandasJSONTests:
         }
         assert ujson.decode(ujson.encode(nested, **kwargs)) == exp
 
-    def test_dataframe_numpy_labelled(self, orient):
+    def test_dataframe_numpy_labelled(self, orient, request):
         if orient in ("split", "values"):
-            pytest.skip("Incompatible with labelled=True")
+            request.node.add_marker(
+                pytest.mark.xfail(reason=f"{orient} incompatible for labelled=True")
+            )
 
         df = DataFrame(
             [[1, 2, 3], [4, 5, 6]],

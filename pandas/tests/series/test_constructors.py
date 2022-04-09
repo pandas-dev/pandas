@@ -754,23 +754,89 @@ class TestSeriesConstructors:
         with pytest.raises(OverflowError, match=msg):
             Series([-1], dtype=any_unsigned_int_numpy_dtype)
 
+    def test_constructor_floating_data_int_dtype(self, frame_or_series):
+        # GH#40110
+        arr = np.random.randn(2)
+
+        if frame_or_series is Series:
+            # Long-standing behavior has been to ignore the dtype on these;
+            #  not clear if this is what we want long-term
+            expected = frame_or_series(arr)
+
+            res = frame_or_series(arr, dtype="i8")
+            tm.assert_equal(res, expected)
+
+            res = frame_or_series(list(arr), dtype="i8")
+            tm.assert_equal(res, expected)
+
+        else:
+            msg = "passing float-dtype values and an integer dtype"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                # DataFrame will behave like Series
+                frame_or_series(arr, dtype="i8")
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                # DataFrame will behave like Series
+                frame_or_series(list(arr), dtype="i8")
+
+        # When we have NaNs, we silently ignore the integer dtype
+        arr[0] = np.nan
+        expected = frame_or_series(arr)
+        msg = "passing float-dtype values containing NaN and an integer dtype"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            obj = frame_or_series(arr, dtype="i8")
+        tm.assert_equal(obj, expected)
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # same behavior if we pass list instead of the ndarray
+            obj = frame_or_series(list(arr), dtype="i8")
+        tm.assert_equal(obj, expected)
+
+        # float array that can be losslessly cast to integers
+        arr = np.array([1.0, 2.0], dtype="float64")
+        expected = frame_or_series(arr.astype("i8"))
+
+        obj = frame_or_series(arr, dtype="i8")
+        tm.assert_equal(obj, expected)
+
+        obj = frame_or_series(list(arr), dtype="i8")
+        tm.assert_equal(obj, expected)
+
     def test_constructor_coerce_float_fail(self, any_int_numpy_dtype):
         # see gh-15832
-        msg = "Trying to coerce float values to integers"
-        with pytest.raises(ValueError, match=msg):
-            Series([1, 2, 3.5], dtype=any_int_numpy_dtype)
+        # Updated: make sure we treat this list the same as we would treat
+        #  the equivalent ndarray
+        vals = [1, 2, 3.5]
+
+        res = Series(vals, dtype=any_int_numpy_dtype)
+        expected = Series(np.array(vals), dtype=any_int_numpy_dtype)
+        tm.assert_series_equal(res, expected)
+        alt = Series(np.array(vals))  # i.e. we ignore the dtype kwd
+        tm.assert_series_equal(alt, expected)
 
     def test_constructor_coerce_float_valid(self, float_numpy_dtype):
         s = Series([1, 2, 3.5], dtype=float_numpy_dtype)
         expected = Series([1, 2, 3.5]).astype(float_numpy_dtype)
         tm.assert_series_equal(s, expected)
 
-    def test_constructor_invalid_coerce_ints_with_float_nan(self, any_int_numpy_dtype):
+    def test_constructor_invalid_coerce_ints_with_float_nan(
+        self, any_int_numpy_dtype, request
+    ):
         # GH 22585
+        # Updated: make sure we treat this list the same as we would treat the
+        #  equivalent ndarray
+        if np_version_under1p19 and np.dtype(any_int_numpy_dtype).kind == "u":
+            mark = pytest.mark.xfail(reason="Produces an extra RuntimeWarning")
+            request.node.add_marker(mark)
 
-        msg = "cannot convert float NaN to integer"
-        with pytest.raises(ValueError, match=msg):
-            Series([1, 2, np.nan], dtype=any_int_numpy_dtype)
+        vals = [1, 2, np.nan]
+
+        msg = "In a future version, passing float-dtype values containing NaN"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = Series(vals, dtype=any_int_numpy_dtype)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = Series(np.array(vals), dtype=any_int_numpy_dtype)
+        tm.assert_series_equal(res, expected)
+        assert np.isnan(expected.iloc[-1])
 
     def test_constructor_dtype_no_cast(self):
         # see gh-1572
@@ -877,9 +943,7 @@ class TestSeriesConstructors:
         dts = Series(dates, dtype="datetime64[ns]")
 
         # valid astype
-        with tm.assert_produces_warning(FutureWarning):
-            # astype(np.int64) deprecated
-            dts.astype("int64")
+        dts.astype("int64")
 
         # invalid casting
         msg = r"cannot astype a datetimelike from \[datetime64\[ns\]\] to \[int32\]"
@@ -889,10 +953,8 @@ class TestSeriesConstructors:
         # ints are ok
         # we test with np.int64 to get similar results on
         # windows / 32-bit platforms
-        with tm.assert_produces_warning(FutureWarning):
-            # astype(np.int64) deprecated
-            result = Series(dts, dtype=np.int64)
-            expected = Series(dts.astype(np.int64))
+        result = Series(dts, dtype=np.int64)
+        expected = Series(dts.astype(np.int64))
         tm.assert_series_equal(result, expected)
 
     def test_constructor_dtype_datetime64_9(self):
@@ -1403,9 +1465,7 @@ class TestSeriesConstructors:
         assert td.dtype == "timedelta64[ns]"
 
         # valid astype
-        with tm.assert_produces_warning(FutureWarning):
-            # astype(int64) deprecated
-            td.astype("int64")
+        td.astype("int64")
 
         # invalid casting
         msg = r"cannot astype a datetimelike from \[timedelta64\[ns\]\] to \[int32\]"
@@ -1531,10 +1591,8 @@ class TestSeriesConstructors:
         # ints are ok
         # we test with np.int64 to get similar results on
         # windows / 32-bit platforms
-        with tm.assert_produces_warning(FutureWarning):
-            # asype(np.int64) deprecated, use .view(np.int64) instead
-            result = Series(index, dtype=np.int64)
-            expected = Series(index.astype(np.int64))
+        result = Series(index, dtype=np.int64)
+        expected = Series(index.astype(np.int64))
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -1593,28 +1651,28 @@ class TestSeriesConstructors:
 
     def test_constructor_range_overflows(self):
         # GH#30173 range objects that overflow int64
-        rng = range(2 ** 63, 2 ** 63 + 4)
+        rng = range(2**63, 2**63 + 4)
         ser = Series(rng)
         expected = Series(list(rng))
         tm.assert_series_equal(ser, expected)
         assert list(ser) == list(rng)
         assert ser.dtype == np.uint64
 
-        rng2 = range(2 ** 63 + 4, 2 ** 63, -1)
+        rng2 = range(2**63 + 4, 2**63, -1)
         ser2 = Series(rng2)
         expected2 = Series(list(rng2))
         tm.assert_series_equal(ser2, expected2)
         assert list(ser2) == list(rng2)
         assert ser2.dtype == np.uint64
 
-        rng3 = range(-(2 ** 63), -(2 ** 63) - 4, -1)
+        rng3 = range(-(2**63), -(2**63) - 4, -1)
         ser3 = Series(rng3)
         expected3 = Series(list(rng3))
         tm.assert_series_equal(ser3, expected3)
         assert list(ser3) == list(rng3)
         assert ser3.dtype == object
 
-        rng4 = range(2 ** 73, 2 ** 73 + 4)
+        rng4 = range(2**73, 2**73 + 4)
         ser4 = Series(rng4)
         expected4 = Series(list(rng4))
         tm.assert_series_equal(ser4, expected4)
@@ -1906,9 +1964,7 @@ def test_numpy_array(input_dict, expected):
     tm.assert_numpy_array_equal(result, expected)
 
 
-@pytest.mark.skipif(
-    not np_version_under1p19, reason="check failure on numpy below 1.19"
-)
+@pytest.mark.xfail(not np_version_under1p19, reason="check failure on numpy below 1.19")
 def test_numpy_array_np_v1p19():
     with pytest.raises(KeyError, match="0"):
         np.array([Series({1: 1})])

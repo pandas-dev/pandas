@@ -144,14 +144,14 @@ class BaseImpl:
 
 
 class PyArrowImpl(BaseImpl):
-    def __init__(self):
+    def __init__(self) -> None:
         import_optional_dependency(
             "pyarrow", extra="pyarrow is required for parquet support."
         )
         import pyarrow.parquet
 
         # import utils to register the pyarrow extension types
-        import pandas.core.arrays._arrow_utils  # noqa:F401
+        import pandas.core.arrays.arrow._arrow_utils  # noqa:F401
 
         self.api = pyarrow
 
@@ -180,6 +180,13 @@ class PyArrowImpl(BaseImpl):
             mode="wb",
             is_dir=partition_cols is not None,
         )
+        if (
+            isinstance(path_or_handle, io.BufferedWriter)
+            and hasattr(path_or_handle, "name")
+            and isinstance(path_or_handle.name, (str, bytes))
+        ):
+            path_or_handle = path_or_handle.name
+
         try:
             if partition_cols is not None:
                 # writes to multiple files under the given path
@@ -249,7 +256,7 @@ class PyArrowImpl(BaseImpl):
 
 
 class FastParquetImpl(BaseImpl):
-    def __init__(self):
+    def __init__(self) -> None:
         # since pandas is a dependency of fastparquet
         # we need to import on first use
         fastparquet = import_optional_dependency(
@@ -342,13 +349,12 @@ class FastParquetImpl(BaseImpl):
             )
             path = handles.handle
 
-        parquet_file = self.api.ParquetFile(path, **parquet_kwargs)
-
-        result = parquet_file.to_pandas(columns=columns, **kwargs)
-
-        if handles is not None:
-            handles.close()
-        return result
+        try:
+            parquet_file = self.api.ParquetFile(path, **parquet_kwargs)
+            return parquet_file.to_pandas(columns=columns, **kwargs)
+        finally:
+            if handles is not None:
+                handles.close()
 
 
 @doc(storage_options=_shared_docs["storage_options"])

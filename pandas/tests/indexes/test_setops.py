@@ -9,7 +9,6 @@ import numpy as np
 import pytest
 
 from pandas.core.dtypes.cast import find_common_type
-from pandas.core.dtypes.common import is_dtype_equal
 
 from pandas import (
     CategoricalIndex,
@@ -33,11 +32,6 @@ from pandas.core.api import (
     UInt64Index,
 )
 
-COMPATIBLE_INCONSISTENT_PAIRS = [
-    (np.float64, np.int64),
-    (np.float64, np.uint64),
-]
-
 
 def test_union_same_types(index):
     # Union with a non-unique, non-monotonic index raises error
@@ -55,17 +49,46 @@ def test_union_different_types(index_flat, index_flat2, request):
 
     if (
         not idx1.is_unique
+        and not idx2.is_unique
         and idx1.dtype.kind == "i"
-        and is_dtype_equal(idx2.dtype, "boolean")
+        and idx2.dtype.kind == "b"
     ) or (
         not idx2.is_unique
+        and not idx1.is_unique
         and idx2.dtype.kind == "i"
-        and is_dtype_equal(idx1.dtype, "boolean")
+        and idx1.dtype.kind == "b"
     ):
-        mark = pytest.mark.xfail(reason="GH#44000 True==1", raises=ValueError)
+        # Each condition had idx[1|2].is_monotonic_decreasing
+        # but failed when e.g.
+        # idx1 = Index(
+        # [True, True, True, True, True, True, True, True, False, False], dtype='bool'
+        # )
+        # idx2 = Int64Index([0, 0, 1, 1, 2, 2], dtype='int64')
+        mark = pytest.mark.xfail(
+            reason="GH#44000 True==1", raises=ValueError, strict=False
+        )
         request.node.add_marker(mark)
 
     common_dtype = find_common_type([idx1.dtype, idx2.dtype])
+
+    warn = None
+    if not len(idx1) or not len(idx2):
+        pass
+    elif (
+        idx1.dtype.kind == "c"
+        and (
+            idx2.dtype.kind not in ["i", "u", "f", "c"]
+            or not isinstance(idx2.dtype, np.dtype)
+        )
+    ) or (
+        idx2.dtype.kind == "c"
+        and (
+            idx1.dtype.kind not in ["i", "u", "f", "c"]
+            or not isinstance(idx1.dtype, np.dtype)
+        )
+    ):
+        # complex objects non-sortable
+        warn = RuntimeWarning
 
     any_uint64 = idx1.dtype == np.uint64 or idx2.dtype == np.uint64
     idx1_signed = is_signed_integer_dtype(idx1.dtype)
@@ -76,8 +99,9 @@ def test_union_different_types(index_flat, index_flat2, request):
     idx1 = idx1.sort_values()
     idx2 = idx2.sort_values()
 
-    res1 = idx1.union(idx2)
-    res2 = idx2.union(idx1)
+    with tm.assert_produces_warning(warn, match="'<' not supported between"):
+        res1 = idx1.union(idx2)
+        res2 = idx2.union(idx1)
 
     if any_uint64 and (idx1_signed or idx2_signed):
         assert res1.dtype == np.dtype("O")
@@ -231,7 +255,11 @@ class TestSetOps:
     def test_difference_base(self, sort, index):
         first = index[2:]
         second = index[:4]
-        if isinstance(index, CategoricalIndex) or index.is_boolean():
+        if index.is_boolean():
+            # i think (TODO: be sure) there assumptions baked in about
+            #  the index fixture that don't hold here?
+            answer = set(first).difference(set(second))
+        elif isinstance(index, CategoricalIndex):
             answer = []
         else:
             answer = index[4:]
@@ -432,7 +460,7 @@ class TestSetOps:
         expected = index[:0]
         tm.assert_index_equal(result, expected, exact=True)
 
-    def test_difference_name_retention_equals(self, index, sort, names):
+    def test_difference_name_retention_equals(self, index, names):
         if isinstance(index, MultiIndex):
             names = [[x] * index.nlevels for x in names]
         index = index.rename(names[0])
@@ -589,6 +617,20 @@ def test_union_with_duplicate_index_not_subset_and_non_monotonic(cls):
     tm.assert_index_equal(result, expected)
 
     result = b.union(a)
+    tm.assert_index_equal(result, expected)
+
+
+def test_union_int_categorical_with_nan():
+    ci = CategoricalIndex([1, 2, np.nan])
+    assert ci.categories.dtype.kind == "i"
+
+    idx = Index([1, 2])
+
+    result = idx.union(ci)
+    expected = Index([1, 2, np.nan], dtype=np.float64)
+    tm.assert_index_equal(result, expected)
+
+    result = ci.union(idx)
     tm.assert_index_equal(result, expected)
 
 

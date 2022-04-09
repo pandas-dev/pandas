@@ -1553,7 +1553,7 @@ Bug fixes
 - Bug in invalid datetime parsing in ``to_datetime`` and ``DatetimeIndex`` may raise ``TypeError`` rather than ``ValueError`` (:issue:`11169`, :issue:`11287`)
 - Bug in ``Index`` created with tz-aware ``Timestamp`` and mismatched ``tz`` option incorrectly coerces timezone (:issue:`13692`)
 - Bug in ``DatetimeIndex`` with nanosecond frequency does not include timestamp specified with ``end`` (:issue:`13672`)
-- Bug in ```Series`` when setting a slice with a ``np.timedelta64`` (:issue:`14155`)
+- Bug in ``Series`` when setting a slice with a ``np.timedelta64`` (:issue:`14155`)
 - Bug in ``Index`` raises ``OutOfBoundsDatetime`` if ``datetime`` exceeds ``datetime64[ns]`` bounds, rather than coercing to ``object`` dtype (:issue:`13663`)
 - Bug in ``Index`` may ignore specified ``datetime64`` or ``timedelta64`` passed as ``dtype``  (:issue:`13981`)
 - Bug in ``RangeIndex`` can be created without no arguments rather than raises ``TypeError`` (:issue:`13793`)

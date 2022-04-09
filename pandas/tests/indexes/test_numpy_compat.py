@@ -18,6 +18,20 @@ from pandas.core.arrays import BooleanArray
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
 
+def test_numpy_ufuncs_out(index):
+    result = index == index
+
+    out = np.empty(index.shape, dtype=bool)
+    np.equal(index, index, out=out)
+    tm.assert_numpy_array_equal(out, result)
+
+    if not index._is_multi:
+        # same thing on the ExtensionArray
+        out = np.empty(index.shape, dtype=bool)
+        np.equal(index.array, index.array, out=out)
+        tm.assert_numpy_array_equal(out, result)
+
+
 @pytest.mark.parametrize(
     "func",
     [
@@ -54,8 +68,11 @@ def test_numpy_ufuncs_basic(index, func):
         with tm.external_error_raised((TypeError, AttributeError)):
             with np.errstate(all="ignore"):
                 func(index)
-    elif isinstance(index, NumericIndex) or (
-        not isinstance(index.dtype, np.dtype) and index.dtype._is_numeric
+    elif (
+        isinstance(index, NumericIndex)
+        or (not isinstance(index.dtype, np.dtype) and index.dtype._is_numeric)
+        or (index.dtype.kind == "c" and func not in [np.deg2rad, np.rad2deg])
+        or index.dtype == bool
     ):
         # coerces to float (e.g. np.sin)
         with np.errstate(all="ignore"):
@@ -63,7 +80,7 @@ def test_numpy_ufuncs_basic(index, func):
             exp = Index(func(index.values), name=index.name)
 
         tm.assert_index_equal(result, exp)
-        if type(index) is not Index:
+        if type(index) is not Index or index.dtype == bool:
             # i.e NumericIndex
             assert isinstance(result, Float64Index)
         else:
@@ -82,7 +99,7 @@ def test_numpy_ufuncs_basic(index, func):
 @pytest.mark.parametrize(
     "func", [np.isfinite, np.isinf, np.isnan, np.signbit], ids=lambda x: x.__name__
 )
-def test_numpy_ufuncs_other(index, func, request):
+def test_numpy_ufuncs_other(index, func):
     # test ufuncs of numpy, see:
     # https://numpy.org/doc/stable/reference/ufuncs.html
     if isinstance(index, (DatetimeIndex, TimedeltaIndex)):
@@ -91,6 +108,10 @@ def test_numpy_ufuncs_other(index, func, request):
             # numpy 1.18 changed isinf and isnan to not raise on dt64/td64
             result = func(index)
             assert isinstance(result, np.ndarray)
+
+            out = np.empty(index.shape, dtype=bool)
+            func(index, out=out)
+            tm.assert_numpy_array_equal(out, result)
         else:
             with tm.external_error_raised(TypeError):
                 func(index)
@@ -99,8 +120,11 @@ def test_numpy_ufuncs_other(index, func, request):
         with tm.external_error_raised(TypeError):
             func(index)
 
-    elif isinstance(index, NumericIndex) or (
-        not isinstance(index.dtype, np.dtype) and index.dtype._is_numeric
+    elif (
+        isinstance(index, NumericIndex)
+        or (not isinstance(index.dtype, np.dtype) and index.dtype._is_numeric)
+        or (index.dtype.kind == "c" and func is not np.signbit)
+        or index.dtype == bool
     ):
         # Results in bool array
         result = func(index)
@@ -109,7 +133,15 @@ def test_numpy_ufuncs_other(index, func, request):
             assert isinstance(result, BooleanArray)
         else:
             assert isinstance(result, np.ndarray)
-        assert not isinstance(result, Index)
+
+        out = np.empty(index.shape, dtype=bool)
+        func(index, out=out)
+
+        if not isinstance(index.dtype, np.dtype):
+            tm.assert_numpy_array_equal(out, result._data)
+        else:
+            tm.assert_numpy_array_equal(out, result)
+
     else:
         if len(index) == 0:
             pass

@@ -1,6 +1,11 @@
 import numpy as np
 import pytest
 
+from pandas.compat import (
+    is_ci_environment,
+    is_platform_mac,
+    is_platform_windows,
+)
 from pandas.errors import NumbaUtilError
 import pandas.util._test_decorators as td
 
@@ -11,7 +16,37 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
-from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
+
+# TODO(GH#44584): Mark these as pytest.mark.single_cpu
+pytestmark = pytest.mark.skipif(
+    is_ci_environment() and (is_platform_windows() or is_platform_mac()),
+    reason="On Azure CI, Windows can fail with "
+    "'Windows fatal exception: stack overflow' "
+    "and MacOS can timeout",
+)
+
+
+@pytest.fixture(params=["single", "table"])
+def method(request):
+    """method keyword in rolling/expanding/ewm constructor"""
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        ["sum", {}],
+        ["mean", {}],
+        ["median", {}],
+        ["max", {}],
+        ["min", {}],
+        ["var", {}],
+        ["var", {"ddof": 0}],
+        ["std", {}],
+        ["std", {"ddof": 0}],
+    ]
+)
+def arithmetic_numba_supported_operators(request):
+    return request.param
 
 
 @td.skip_if_no("numba")
@@ -19,7 +54,7 @@ from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 class TestEngine:
     @pytest.mark.parametrize("jit", [True, False])
-    def test_numba_vs_cython_apply(self, jit, nogil, parallel, nopython, center):
+    def test_numba_vs_cython_apply(self, jit, nogil, parallel, nopython, center, step):
         def f(x, *args):
             arg_sum = 0
             for arg in args:
@@ -35,10 +70,10 @@ class TestEngine:
         args = (2,)
 
         s = Series(range(10))
-        result = s.rolling(2, center=center).apply(
+        result = s.rolling(2, center=center, step=step).apply(
             f, args=args, engine="numba", engine_kwargs=engine_kwargs, raw=True
         )
-        expected = s.rolling(2, center=center).apply(
+        expected = s.rolling(2, center=center, step=step).apply(
             f, engine="cython", args=args, raw=True
         )
         tm.assert_series_equal(result, expected)
@@ -47,26 +82,24 @@ class TestEngine:
         "data", [DataFrame(np.eye(5)), Series(range(5), name="foo")]
     )
     def test_numba_vs_cython_rolling_methods(
-        self, data, nogil, parallel, nopython, arithmetic_numba_supported_operators
+        self,
+        data,
+        nogil,
+        parallel,
+        nopython,
+        arithmetic_numba_supported_operators,
+        step,
     ):
 
         method, kwargs = arithmetic_numba_supported_operators
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
-        roll = data.rolling(2)
+        roll = data.rolling(2, step=step)
         result = getattr(roll, method)(
             engine="numba", engine_kwargs=engine_kwargs, **kwargs
         )
         expected = getattr(roll, method)(engine="cython", **kwargs)
-
-        # Check the cache
-        if method not in ("mean", "sum", "var", "std"):
-            assert (
-                getattr(np, f"nan{method}"),
-                "Rolling_apply_single",
-            ) in NUMBA_FUNC_CACHE
-
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -86,18 +119,10 @@ class TestEngine:
             engine="numba", engine_kwargs=engine_kwargs, **kwargs
         )
         expected = getattr(expand, method)(engine="cython", **kwargs)
-
-        # Check the cache
-        if method not in ("mean", "sum", "var", "std"):
-            assert (
-                getattr(np, f"nan{method}"),
-                "Expanding_apply_single",
-            ) in NUMBA_FUNC_CACHE
-
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("jit", [True, False])
-    def test_cache_apply(self, jit, nogil, parallel, nopython):
+    def test_cache_apply(self, jit, nogil, parallel, nopython, step):
         # Test that the functions are cached correctly if we switch functions
         def func_1(x):
             return np.mean(x) + 4
@@ -113,15 +138,12 @@ class TestEngine:
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
-        roll = Series(range(10)).rolling(2)
+        roll = Series(range(10)).rolling(2, step=step)
         result = roll.apply(
             func_1, engine="numba", engine_kwargs=engine_kwargs, raw=True
         )
         expected = roll.apply(func_1, engine="cython", raw=True)
         tm.assert_series_equal(result, expected)
-
-        # func_1 should be in the cache now
-        assert (func_1, "Rolling_apply_single") in NUMBA_FUNC_CACHE
 
         result = roll.apply(
             func_2, engine="numba", engine_kwargs=engine_kwargs, raw=True
@@ -150,17 +172,44 @@ class TestEngine:
         def add(values, x):
             return np.sum(values) + x
 
+        engine_kwargs = {"nopython": nopython, "nogil": nogil, "parallel": parallel}
         df = DataFrame({"value": [0, 0, 0]})
-        result = getattr(df, window)(**window_kwargs).apply(
-            add, raw=True, engine="numba", args=(1,)
+        result = getattr(df, window)(method=method, **window_kwargs).apply(
+            add, raw=True, engine="numba", engine_kwargs=engine_kwargs, args=(1,)
         )
         expected = DataFrame({"value": [1.0, 1.0, 1.0]})
         tm.assert_frame_equal(result, expected)
 
-        result = getattr(df, window)(**window_kwargs).apply(
-            add, raw=True, engine="numba", args=(2,)
+        result = getattr(df, window)(method=method, **window_kwargs).apply(
+            add, raw=True, engine="numba", engine_kwargs=engine_kwargs, args=(2,)
         )
         expected = DataFrame({"value": [2.0, 2.0, 2.0]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_dont_cache_engine_kwargs(self):
+        # If the user passes a different set of engine_kwargs don't return the same
+        # jitted function
+        nogil = False
+        parallel = True
+        nopython = True
+
+        def func(x):
+            return nogil + parallel + nopython
+
+        engine_kwargs = {"nopython": nopython, "nogil": nogil, "parallel": parallel}
+        df = DataFrame({"value": [0, 0, 0]})
+        result = df.rolling(1).apply(
+            func, raw=True, engine="numba", engine_kwargs=engine_kwargs
+        )
+        expected = DataFrame({"value": [2.0, 2.0, 2.0]})
+        tm.assert_frame_equal(result, expected)
+
+        parallel = False
+        engine_kwargs = {"nopython": nopython, "nogil": nogil, "parallel": parallel}
+        result = df.rolling(1).apply(
+            func, raw=True, engine="numba", engine_kwargs=engine_kwargs
+        )
+        expected = DataFrame({"value": [1.0, 1.0, 1.0]})
         tm.assert_frame_equal(result, expected)
 
 
@@ -284,21 +333,29 @@ class TestTableMethod:
             )
 
     def test_table_method_rolling_methods(
-        self, axis, nogil, parallel, nopython, arithmetic_numba_supported_operators
+        self,
+        axis,
+        nogil,
+        parallel,
+        nopython,
+        arithmetic_numba_supported_operators,
+        step,
     ):
         method, kwargs = arithmetic_numba_supported_operators
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
         df = DataFrame(np.eye(3))
-        roll_table = df.rolling(2, method="table", axis=axis, min_periods=0)
+        roll_table = df.rolling(2, method="table", axis=axis, min_periods=0, step=step)
         if method in ("var", "std"):
             with pytest.raises(NotImplementedError, match=f"{method} not supported"):
                 getattr(roll_table, method)(
                     engine_kwargs=engine_kwargs, engine="numba", **kwargs
                 )
         else:
-            roll_single = df.rolling(2, method="single", axis=axis, min_periods=0)
+            roll_single = df.rolling(
+                2, method="single", axis=axis, min_periods=0, step=step
+            )
             result = getattr(roll_table, method)(
                 engine_kwargs=engine_kwargs, engine="numba", **kwargs
             )
@@ -307,29 +364,29 @@ class TestTableMethod:
             )
             tm.assert_frame_equal(result, expected)
 
-    def test_table_method_rolling_apply(self, axis, nogil, parallel, nopython):
+    def test_table_method_rolling_apply(self, axis, nogil, parallel, nopython, step):
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
         def f(x):
             return np.sum(x, axis=0) + 1
 
         df = DataFrame(np.eye(3))
-        result = df.rolling(2, method="table", axis=axis, min_periods=0).apply(
-            f, raw=True, engine_kwargs=engine_kwargs, engine="numba"
-        )
-        expected = df.rolling(2, method="single", axis=axis, min_periods=0).apply(
-            f, raw=True, engine_kwargs=engine_kwargs, engine="numba"
-        )
+        result = df.rolling(
+            2, method="table", axis=axis, min_periods=0, step=step
+        ).apply(f, raw=True, engine_kwargs=engine_kwargs, engine="numba")
+        expected = df.rolling(
+            2, method="single", axis=axis, min_periods=0, step=step
+        ).apply(f, raw=True, engine_kwargs=engine_kwargs, engine="numba")
         tm.assert_frame_equal(result, expected)
 
-    def test_table_method_rolling_weighted_mean(self):
+    def test_table_method_rolling_weighted_mean(self, step):
         def weighted_mean(x):
             arr = np.ones((1, x.shape[1]))
             arr[:, :2] = (x[:, :2] * x[:, 2]).sum(axis=0) / x[:, 2].sum()
             return arr
 
         df = DataFrame([[1, 2, 0.6], [2, 3, 0.4], [3, 4, 0.2], [4, 5, 0.7]])
-        result = df.rolling(2, method="table", min_periods=0).apply(
+        result = df.rolling(2, method="table", min_periods=0, step=step).apply(
             weighted_mean, raw=True, engine="numba"
         )
         expected = DataFrame(
@@ -339,7 +396,7 @@ class TestTableMethod:
                 [3.333333, 2.333333, 1.0],
                 [1.555556, 7, 1.0],
             ]
-        )
+        )[::step]
         tm.assert_frame_equal(result, expected)
 
     def test_table_method_expanding_apply(self, axis, nogil, parallel, nopython):

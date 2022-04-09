@@ -46,7 +46,7 @@ class TestToCSV:
             with open(path) as f:
                 assert f.read() == expected2
 
-    def test_to_csv_defualt_encoding(self):
+    def test_to_csv_default_encoding(self):
         # GH17097
         df = DataFrame({"col": ["AAAAA", "ÄÄÄÄÄ", "ßßßßß", "聞聞聞聞聞"]})
 
@@ -315,6 +315,26 @@ $1$,$2$
         ser = ser.astype("category")
         assert ser.to_csv(index=False, date_format="%Y-%m-%d") == expected
 
+    def test_to_csv_float_ea_float_format(self):
+        # GH#45991
+        df = DataFrame({"a": [1.1, 2.02, pd.NA, 6.000006], "b": "c"})
+        df["a"] = df["a"].astype("Float64")
+        result = df.to_csv(index=False, float_format="%.5f")
+        expected = tm.convert_rows_list_to_csv_str(
+            ["a,b", "1.10000,c", "2.02000,c", ",c", "6.00001,c"]
+        )
+        assert result == expected
+
+    def test_to_csv_float_ea_no_float_format(self):
+        # GH#45991
+        df = DataFrame({"a": [1.1, 2.02, pd.NA, 6.000006], "b": "c"})
+        df["a"] = df["a"].astype("Float64")
+        result = df.to_csv(index=False)
+        expected = tm.convert_rows_list_to_csv_str(
+            ["a,b", "1.1,c", "2.02,c", ",c", "6.000006,c"]
+        )
+        assert result == expected
+
     def test_to_csv_multi_index(self):
         # see gh-6618
         df = DataFrame([1], columns=pd.MultiIndex.from_arrays([[1], [2]]))
@@ -369,9 +389,11 @@ $1$,$2$
     @pytest.mark.parametrize("klass", [DataFrame, pd.Series])
     def test_to_csv_single_level_multi_index(self, ind, expected, klass):
         # see gh-19589
-        result = klass(pd.Series([1], ind, name="data")).to_csv(
-            line_terminator="\n", header=True
-        )
+        obj = klass(pd.Series([1], ind, name="data"))
+
+        with tm.assert_produces_warning(FutureWarning, match="lineterminator"):
+            # GH#9568 standardize on lineterminator matching stdlib
+            result = obj.to_csv(line_terminator="\n", header=True)
         assert result == expected
 
     def test_to_csv_string_array_ascii(self):
@@ -425,14 +447,14 @@ $1$,$2$
         with tm.ensure_clean("lf_test.csv") as path:
             # case 2: LF as line terminator
             expected_lf = b'int,str_lf\n1,abc\n2,"d\nef"\n3,"g\nh\n\ni"\n'
-            df.to_csv(path, line_terminator="\n", index=False)
+            df.to_csv(path, lineterminator="\n", index=False)
             with open(path, "rb") as f:
                 assert f.read() == expected_lf
         with tm.ensure_clean("lf_test.csv") as path:
             # case 3: CRLF as line terminator
-            # 'line_terminator' should not change inner element
+            # 'lineterminator' should not change inner element
             expected_crlf = b'int,str_lf\r\n1,abc\r\n2,"d\nef"\r\n3,"g\nh\n\ni"\r\n'
-            df.to_csv(path, line_terminator="\r\n", index=False)
+            df.to_csv(path, lineterminator="\r\n", index=False)
             with open(path, "rb") as f:
                 assert f.read() == expected_crlf
 
@@ -459,19 +481,19 @@ $1$,$2$
         with tm.ensure_clean("crlf_test.csv") as path:
             # case 2: LF as line terminator
             expected_lf = b'int,str_crlf\n1,abc\n2,"d\r\nef"\n3,"g\r\nh\r\n\r\ni"\n'
-            df.to_csv(path, line_terminator="\n", index=False)
+            df.to_csv(path, lineterminator="\n", index=False)
             with open(path, "rb") as f:
                 assert f.read() == expected_lf
         with tm.ensure_clean("crlf_test.csv") as path:
             # case 3: CRLF as line terminator
-            # 'line_terminator' should not change inner element
+            # 'lineterminator' should not change inner element
             expected_crlf = (
                 b"int,str_crlf\r\n"
                 b"1,abc\r\n"
                 b'2,"d\r\nef"\r\n'
                 b'3,"g\r\nh\r\n\r\ni"\r\n'
             )
-            df.to_csv(path, line_terminator="\r\n", index=False)
+            df.to_csv(path, lineterminator="\r\n", index=False)
             with open(path, "rb") as f:
                 assert f.read() == expected_crlf
 

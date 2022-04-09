@@ -214,11 +214,9 @@ class TestMultiIndexSetItem:
         exp = Series(arr, index=[8, 10], name="c", dtype="int64")
         result = df.loc[4, "c"]
         tm.assert_series_equal(result, exp)
-        if not using_array_manager:
-            # FIXME(ArrayManager): this correctly preserves dtype,
-            #  but incorrectly is not inplace.
-            # extra check for inplace-ness
-            tm.assert_numpy_array_equal(view, exp.values)
+
+        # extra check for inplace-ness
+        tm.assert_numpy_array_equal(view, exp.values)
 
         # arr + 0.5 cannot be cast losslessly to int, so we upcast
         df.loc[4, "c"] = arr + 0.5

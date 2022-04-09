@@ -659,3 +659,32 @@ def test_timedelta_attribute_precision():
     result += td.nanoseconds
     expected = td.value
     assert result == expected
+
+
+def test_freq_deprecated():
+    # GH#46430
+    td = Timedelta(123456546, unit="ns")
+    with tm.assert_produces_warning(FutureWarning, match="Timedelta.freq"):
+        freq = td.freq
+
+    assert freq is None
+
+    with pytest.raises(AttributeError, match="is not writable"):
+        td.freq = offsets.Day()
+
+
+def test_is_populated_deprecated():
+    # GH#46430
+    td = Timedelta(123456546, unit="ns")
+    with tm.assert_produces_warning(FutureWarning, match="Timedelta.is_populated"):
+        td.is_populated
+
+    with pytest.raises(AttributeError, match="is not writable"):
+        td.is_populated = 1
+
+
+def test_delta_deprecated():
+    # GH#46476
+    td = Timedelta(123456546, unit="ns")
+    with tm.assert_produces_warning(FutureWarning, match="Timedelta.delta is"):
+        td.delta

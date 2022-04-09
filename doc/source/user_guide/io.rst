@@ -26,7 +26,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     text;`XML <https://www.w3.org/standards/xml/core>`__;:ref:`read_xml<io.read_xml>`;:ref:`to_xml<io.xml>`
     text; Local clipboard;:ref:`read_clipboard<io.clipboard>`;:ref:`to_clipboard<io.clipboard>`
     binary;`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__;:ref:`read_excel<io.excel_reader>`;:ref:`to_excel<io.excel_writer>`
-    binary;`OpenDocument <http://www.opendocumentformat.org>`__;:ref:`read_excel<io.ods>`;
+    binary;`OpenDocument <http://opendocumentformat.org>`__;:ref:`read_excel<io.ods>`;
     binary;`HDF5 Format <https://support.hdfgroup.org/HDF5/whatishdf5.html>`__;:ref:`read_hdf<io.hdf5>`;:ref:`to_hdf<io.hdf5>`
     binary;`Feather Format <https://github.com/wesm/feather>`__;:ref:`read_feather<io.feather>`;:ref:`to_feather<io.feather>`
     binary;`Parquet Format <https://parquet.apache.org/>`__;:ref:`read_parquet<io.parquet>`;:ref:`to_parquet<io.parquet>`
@@ -186,6 +186,11 @@ dtype : Type name or dict of column -> type, default ``None``
   (unsupported with ``engine='python'``). Use ``str`` or ``object`` together
   with suitable ``na_values`` settings to preserve and
   not interpret dtype.
+  .. versionadded:: 1.5.0
+
+    Support for defaultdict was added. Specify a defaultdict as input where
+    the default determines the dtype of the columns which are not explicitly
+    listed.
 engine : {``'c'``, ``'python'``, ``'pyarrow'``}
   Parser engine to use. The C and pyarrow engines are faster, while the python engine
   is currently more feature-complete. Multithreading is currently only supported by
@@ -839,9 +844,8 @@ The simplest case is to just pass in ``parse_dates=True``:
 .. ipython:: python
    :suppress:
 
-   f = open("foo.csv", "w")
-   f.write("date,A,B,C\n20090101,a,1,2\n20090102,b,3,4\n20090103,c,4,5")
-   f.close()
+   with open("foo.csv", mode="w") as f:
+       f.write("date,A,B,C\n20090101,a,1,2\n20090102,b,3,4\n20090103,c,4,5")
 
 .. ipython:: python
 
@@ -1305,14 +1309,38 @@ You can elect to skip bad lines:
     0  1  2   3
     1  8  9  10
 
+Or pass a callable function to handle the bad line if ``engine="python"``.
+The bad line will be a list of strings that was split by the ``sep``:
+
+.. code-block:: ipython
+
+    In [29]: external_list = []
+
+    In [30]: def bad_lines_func(line):
+        ...:     external_list.append(line)
+        ...:     return line[-3:]
+
+    In [31]: pd.read_csv(StringIO(data), on_bad_lines=bad_lines_func, engine="python")
+    Out[31]:
+       a  b   c
+    0  1  2   3
+    1  5  6   7
+    2  8  9  10
+
+    In [32]: external_list
+    Out[32]: [4, 5, 6, 7]
+
+    .. versionadded:: 1.4.0
+
+
 You can also use the ``usecols`` parameter to eliminate extraneous column
 data that appear in some lines but not others:
 
 .. code-block:: ipython
 
-   In [30]: pd.read_csv(StringIO(data), usecols=[0, 1, 2])
+   In [33]: pd.read_csv(StringIO(data), usecols=[0, 1, 2])
 
-    Out[30]:
+    Out[33]:
        a  b   c
     0  1  2   3
     1  4  5   6
@@ -1324,9 +1352,9 @@ fields are filled with ``NaN``.
 
 .. code-block:: ipython
 
-   In [31]: pd.read_csv(StringIO(data), names=['a', 'b', 'c', 'd'])
+   In [34]: pd.read_csv(StringIO(data), names=['a', 'b', 'c', 'd'])
 
-   Out[31]:
+   Out[34]:
        a  b   c  d
     0  1  2   3  NaN
     1  4  5   6  7
@@ -1428,7 +1456,6 @@ a different usage of the ``delimiter`` parameter:
 .. ipython:: python
    :suppress:
 
-   f = open("bar.csv", "w")
    data1 = (
        "id8141    360.242940   149.910199   11950.7\n"
        "id1594    444.953632   166.985655   11788.4\n"
@@ -1436,8 +1463,8 @@ a different usage of the ``delimiter`` parameter:
        "id1230    413.836124   184.375703   11916.8\n"
        "id1948    502.953953   173.237159   12468.3"
    )
-   f.write(data1)
-   f.close()
+   with open("bar.csv", "w") as f:
+       f.write(data1)
 
 Consider a typical fixed-width data file:
 
@@ -1580,9 +1607,8 @@ of multi-columns indices.
    :suppress:
 
    data = ",a,a,a,b,c,c\n,q,r,s,t,u,v\none,1,2,3,4,5,6\ntwo,7,8,9,10,11,12"
-   fh = open("mi2.csv", "w")
-   fh.write(data)
-   fh.close()
+   with open("mi2.csv", "w") as fh:
+       fh.write(data)
 
 .. ipython:: python
 
@@ -1827,7 +1853,7 @@ function takes a number of arguments. Only the first is required.
 * ``mode`` : Python write mode, default 'w'
 * ``encoding``: a string representing the encoding to use if the contents are
   non-ASCII, for Python versions prior to 3
-* ``line_terminator``: Character sequence denoting line end (default ``os.linesep``)
+* ``lineterminator``: Character sequence denoting line end (default ``os.linesep``)
 * ``quoting``: Set quoting rules as in csv module (default csv.QUOTE_MINIMAL). Note that if you have set a ``float_format`` then floats are converted to strings and csv.QUOTE_NONNUMERIC will treat them as non-numeric
 * ``quotechar``: Character used to quote fields (default '"')
 * ``doublequote``: Control quoting of ``quotechar`` in fields (default True)
@@ -2598,7 +2624,7 @@ You can even pass in an instance of ``StringIO`` if you so desire:
    that having so many network-accessing functions slows down the documentation
    build. If you spot an error or an example that doesn't run, please do not
    hesitate to report it over on `pandas GitHub issues page
-   <https://www.github.com/pandas-dev/pandas/issues>`__.
+   <https://github.com/pandas-dev/pandas/issues>`__.
 
 
 Read a URL and match a table that contains specific text:
@@ -3266,6 +3292,45 @@ output (as shown below for demonstration) for easier parse into ``DataFrame``:
    df = pd.read_xml(xml, stylesheet=xsl)
    df
 
+For very large XML files that can range in hundreds of megabytes to gigabytes, :func:`pandas.read_xml`
+supports parsing such sizeable files using `lxml's iterparse`_ and `etree's iterparse`_
+which are memory-efficient methods to iterate through an XML tree and extract specific elements and attributes.
+without holding entire tree in memory.
+
+    .. versionadded:: 1.5.0
+
+.. _`lxml's iterparse`: https://lxml.de/3.2/parsing.html#iterparse-and-iterwalk
+.. _`etree's iterparse`: https://docs.python.org/3/library/xml.etree.elementtree.html#xml.etree.ElementTree.iterparse
+
+To use this feature, you must pass a physical XML file path into ``read_xml`` and use the ``iterparse`` argument.
+Files should not be compressed or point to online sources but stored on local disk. Also, ``iterparse`` should be
+a dictionary where the key is the repeating nodes in document (which become the rows) and the value is a list of
+any element or attribute that is a descendant (i.e., child, grandchild) of repeating node. Since XPath is not
+used in this method, descendants do not need to share same relationship with one another. Below shows example
+of reading in Wikipedia's very large (12 GB+) latest article data dump.
+
+.. code-block:: ipython
+
+    In [1]: df = pd.read_xml(
+    ...         "/path/to/downloaded/enwikisource-latest-pages-articles.xml",
+    ...         iterparse = {"page": ["title", "ns", "id"]}
+    ...     )
+    ...     df
+    Out[2]:
+                                                         title   ns        id
+    0                                       Gettysburg Address    0     21450
+    1                                                Main Page    0     42950
+    2                            Declaration by United Nations    0      8435
+    3             Constitution of the United States of America    0      8435
+    4                     Declaration of Independence (Israel)    0     17858
+    ...                                                    ...  ...       ...
+    3578760               Page:Black cat 1897 07 v2 n10.pdf/17  104    219649
+    3578761               Page:Black cat 1897 07 v2 n10.pdf/43  104    219649
+    3578762               Page:Black cat 1897 07 v2 n10.pdf/44  104    219649
+    3578763      The History of Tom Jones, a Foundling/Book IX    0  12084291
+    3578764  Page:Shakespeare of Stratford (1926) Yale.djvu/91  104     21450
+
+    [3578765 rows x 3 columns]
 
 .. _io.xml:
 
@@ -3654,6 +3719,10 @@ should be passed to ``index_col`` and ``header``:
 
    os.remove("path_to_file.xlsx")
 
+Missing values in columns specified in ``index_col`` will be forward filled to
+allow roundtripping with ``to_excel`` for ``merged_cells=True``. To avoid forward
+filling the missing values use ``set_index`` after reading the data instead of
+``index_col``.
 
 Parsing specific columns
 ++++++++++++++++++++++++
@@ -4968,7 +5037,7 @@ control compression: ``complevel`` and ``complib``.
     rates but is somewhat slow.
   - `lzo <https://www.oberhumer.com/opensource/lzo/>`_: Fast
     compression and decompression.
-  - `bzip2 <http://bzip.org/>`_: Good compression rates.
+  - `bzip2 <https://sourceware.org/bzip2/>`_: Good compression rates.
   - `blosc <https://www.blosc.org/>`_: Fast compression and
     decompression.
 
@@ -4977,10 +5046,10 @@ control compression: ``complevel`` and ``complib``.
     - `blosc:blosclz <https://www.blosc.org/>`_ This is the
       default compressor for ``blosc``
     - `blosc:lz4
-      <https://fastcompression.blogspot.dk/p/lz4.html>`_:
+      <https://fastcompression.blogspot.com/p/lz4.html>`_:
       A compact, very popular and fast compressor.
     - `blosc:lz4hc
-      <https://fastcompression.blogspot.dk/p/lz4.html>`_:
+      <https://fastcompression.blogspot.com/p/lz4.html>`_:
       A tweaked version of LZ4, produces better
       compression ratios at the expense of speed.
     - `blosc:snappy <https://google.github.io/snappy/>`_:
@@ -5564,7 +5633,7 @@ SQL queries
 The :mod:`pandas.io.sql` module provides a collection of query wrappers to both
 facilitate data retrieval and to reduce dependency on DB-specific API. Database abstraction
 is provided by SQLAlchemy if installed. In addition you will need a driver library for
-your database. Examples of such drivers are `psycopg2 <http://initd.org/psycopg/>`__
+your database. Examples of such drivers are `psycopg2 <https://www.psycopg.org/>`__
 for PostgreSQL or `pymysql <https://github.com/PyMySQL/PyMySQL>`__ for MySQL.
 For `SQLite <https://docs.python.org/3/library/sqlite3.html>`__ this is
 included in Python's standard library by default.
@@ -5596,7 +5665,7 @@ The key functions are:
     the provided input (database table name or sql query).
     Table names do not need to be quoted if they have special characters.
 
-In the following example, we use the `SQlite <https://www.sqlite.org/>`__ SQL database
+In the following example, we use the `SQlite <https://www.sqlite.org/index.html>`__ SQL database
 engine. You can use a temporary SQLite database where data are stored in
 "memory".
 
@@ -5626,9 +5695,9 @@ for an explanation of how the database connection is handled.
 
 .. warning::
 
-	When you open a connection to a database you are also responsible for closing it.
-	Side effects of leaving a connection open may include locking the database or
-	other breaking behaviour.
+        When you open a connection to a database you are also responsible for closing it.
+        Side effects of leaving a connection open may include locking the database or
+        other breaking behaviour.
 
 Writing DataFrames
 ''''''''''''''''''
@@ -5760,7 +5829,7 @@ Possible values are:
   specific backend dialect features.
 
 Example of a callable using PostgreSQL `COPY clause
-<https://www.postgresql.org/docs/current/static/sql-copy.html>`__::
+<https://www.postgresql.org/docs/current/sql-copy.html>`__::
 
   # Alternative to_sql() *method* for DBs that support COPY FROM
   import csv
@@ -6022,7 +6091,7 @@ pandas integrates with this external package. if ``pandas-gbq`` is installed, yo
 use the pandas methods ``pd.read_gbq`` and ``DataFrame.to_gbq``, which will call the
 respective functions from ``pandas-gbq``.
 
-Full documentation can be found `here <https://pandas-gbq.readthedocs.io/>`__.
+Full documentation can be found `here <https://pandas-gbq.readthedocs.io/en/latest/>`__.
 
 .. _io.stata:
 
@@ -6230,7 +6299,7 @@ Obtain an iterator and read an XPORT file 100,000 lines at a time:
 The specification_ for the xport file format is available from the SAS
 web site.
 
-.. _specification: https://support.sas.com/techsup/technote/ts140.pdf
+.. _specification: https://support.sas.com/content/dam/SAS/support/en/technical-papers/record-layout-of-a-sas-version-5-or-6-data-set-in-sas-transport-xport-format.pdf
 
 No official documentation is available for the SAS7BDAT format.
 
@@ -6272,7 +6341,7 @@ avoid converting categorical columns into ``pd.Categorical``:
 
 More information about the SAV and ZSAV file formats is available here_.
 
-.. _here: https://www.ibm.com/support/knowledgecenter/en/SSLVMB_22.0.0/com.ibm.spss.statistics.help/spss/base/savedatatypes.htm
+.. _here: https://www.ibm.com/docs/en/spss-statistics/22.0.0
 
 .. _io.other:
 
@@ -6290,7 +6359,7 @@ xarray_ provides data structures inspired by the pandas ``DataFrame`` for workin
 with multi-dimensional datasets, with a focus on the netCDF file format and
 easy conversion to and from pandas.
 
-.. _xarray: https://xarray.pydata.org/
+.. _xarray: https://xarray.pydata.org/en/stable/
 
 .. _io.perf:
 

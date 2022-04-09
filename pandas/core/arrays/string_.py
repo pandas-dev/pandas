@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Any,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -24,6 +21,7 @@ from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.base import (
     ExtensionDtype,
+    StorageExtensionDtype,
     register_extension_dtype,
 )
 from pandas.core.dtypes.common import (
@@ -39,13 +37,13 @@ from pandas.core.dtypes.common import (
 from pandas.core import ops
 from pandas.core.array_algos import masked_reductions
 from pandas.core.arrays import (
+    ExtensionArray,
     FloatingArray,
     IntegerArray,
-    PandasArray,
 )
-from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.floating import FloatingDtype
-from pandas.core.arrays.integer import _IntegerDtype
+from pandas.core.arrays.integer import IntegerDtype
+from pandas.core.arrays.numpy_ import PandasArray
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import isna
@@ -55,7 +53,7 @@ if TYPE_CHECKING:
 
 
 @register_extension_dtype
-class StringDtype(ExtensionDtype):
+class StringDtype(StorageExtensionDtype):
     """
     Extension dtype for string data.
 
@@ -67,7 +65,7 @@ class StringDtype(ExtensionDtype):
        parts of the API may change without warning.
 
        In particular, StringDtype.na_value may change to no longer be
-       ``numpy.nan``.
+       ``pd.NA``.
 
     Parameters
     ----------
@@ -97,7 +95,7 @@ class StringDtype(ExtensionDtype):
     na_value = libmissing.NA
     _metadata = ("storage",)
 
-    def __init__(self, storage=None):
+    def __init__(self, storage=None) -> None:
         if storage is None:
             storage = get_option("mode.string_storage")
         if storage not in {"python", "pyarrow"}:
@@ -141,7 +139,6 @@ class StringDtype(ExtensionDtype):
         -----
         TypeError
             If the string is not a valid option.
-
         """
         if not isinstance(string, str):
             raise TypeError(
@@ -155,15 +152,6 @@ class StringDtype(ExtensionDtype):
             return cls(storage="pyarrow")
         else:
             raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
-
-    def __eq__(self, other: Any) -> bool:
-        if isinstance(other, str) and other == "string":
-            return True
-        return super().__eq__(other)
-
-    def __hash__(self) -> int:
-        # custom __eq__ so have to override __hash__
-        return super().__hash__()
 
     # https://github.com/pandas-dev/pandas/issues/36126
     # error: Signature of "construct_array_type" incompatible with supertype
@@ -184,12 +172,6 @@ class StringDtype(ExtensionDtype):
             return StringArray
         else:
             return ArrowStringArray
-
-    def __repr__(self):
-        return f"string[{self.storage}]"
-
-    def __str__(self):
-        return self.name
 
     def __from_arrow__(
         self, array: pyarrow.Array | pyarrow.ChunkedArray
@@ -224,6 +206,10 @@ class StringDtype(ExtensionDtype):
 
 
 class BaseStringArray(ExtensionArray):
+    """
+    Mixin class for StringArray, ArrowStringArray.
+    """
+
     pass
 
 
@@ -246,10 +232,17 @@ class StringArray(BaseStringArray, PandasArray):
         .. warning::
 
            Currently, this expects an object-dtype ndarray
-           where the elements are Python strings or :attr:`pandas.NA`.
+           where the elements are Python strings
+           or nan-likes (``None``, ``np.nan``, ``NA``).
            This may change without warning in the future. Use
            :meth:`pandas.array` with ``dtype="string"`` for a stable way of
            creating a `StringArray` from any sequence.
+
+        .. versionchanged:: 1.5.0
+
+           StringArray now accepts array-likes containing
+           nan-likes(``None``, ``np.nan``) for the ``values`` parameter
+           in addition to strings and :attr:`pandas.NA`
 
     copy : bool, default False
         Whether to copy the array of data.
@@ -306,15 +299,13 @@ class StringArray(BaseStringArray, PandasArray):
     # undo the PandasArray hack
     _typ = "extension"
 
-    def __init__(self, values, copy=False):
+    def __init__(self, values, copy=False) -> None:
         values = extract_array(values)
 
         super().__init__(values, copy=copy)
-        # error: Incompatible types in assignment (expression has type "StringDtype",
-        # variable has type "PandasDtype")
-        NDArrayBacked.__init__(self, self._ndarray, StringDtype(storage="python"))
         if not isinstance(values, type(self)):
             self._validate()
+        NDArrayBacked.__init__(self, self._ndarray, StringDtype(storage="python"))
 
     def _validate(self):
         """Validate that we only store NA or strings."""
@@ -325,6 +316,12 @@ class StringArray(BaseStringArray, PandasArray):
                 "StringArray requires a sequence of strings or pandas.NA. Got "
                 f"'{self._ndarray.dtype}' dtype instead."
             )
+        # Check to see if need to convert Na values to pd.NA
+        if self._ndarray.ndim > 2:
+            # Ravel if ndims > 2 b/c no cythonized version available
+            lib.convert_nans_to_NA(self._ndarray.ravel("K"))
+        else:
+            lib.convert_nans_to_NA(self._ndarray)
 
     @classmethod
     def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy=False):
@@ -421,7 +418,7 @@ class StringArray(BaseStringArray, PandasArray):
                 return self.copy()
             return self
 
-        elif isinstance(dtype, _IntegerDtype):
+        elif isinstance(dtype, IntegerDtype):
             arr = self._ndarray.copy()
             mask = self.isna()
             arr[mask] = 0

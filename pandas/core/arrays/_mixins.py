@@ -65,7 +65,6 @@ NDArrayBackedExtensionArrayT = TypeVar(
 )
 
 if TYPE_CHECKING:
-
     from pandas._typing import (
         NumpySorter,
         NumpyValueArrayLike,
@@ -98,6 +97,12 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     """
 
     _ndarray: np.ndarray
+
+    # scalar used to denote NA value inside our self._ndarray, e.g. -1
+    #  for Categorical, iNaT for Period. Outside of object dtype,
+    #  self.isna() should be exactly locations in self._ndarray with
+    #  _internal_fill_value.
+    _internal_fill_value: Any
 
     def _box_func(self, x):
         """
@@ -173,22 +178,30 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             return False
         return bool(array_equivalent(self._ndarray, other._ndarray))
 
+    @classmethod
+    def _from_factorized(cls, values, original):
+        assert values.dtype == original._ndarray.dtype
+        return original._from_backing_data(values)
+
     def _values_for_argsort(self) -> np.ndarray:
         return self._ndarray
 
+    def _values_for_factorize(self):
+        return self._ndarray, self._internal_fill_value
+
     # Signature of "argmin" incompatible with supertype "ExtensionArray"
-    def argmin(self, axis: int = 0, skipna: bool = True):  # type:ignore[override]
+    def argmin(self, axis: int = 0, skipna: bool = True):  # type: ignore[override]
         # override base class by adding axis keyword
         validate_bool_kwarg(skipna, "skipna")
-        if not skipna and self.isna().any():
+        if not skipna and self._hasna:
             raise NotImplementedError
         return nargminmax(self, "argmin", axis=axis)
 
     # Signature of "argmax" incompatible with supertype "ExtensionArray"
-    def argmax(self, axis: int = 0, skipna: bool = True):  # type:ignore[override]
+    def argmax(self, axis: int = 0, skipna: bool = True):  # type: ignore[override]
         # override base class by adding axis keyword
         validate_bool_kwarg(skipna, "skipna")
-        if not skipna and self.isna().any():
+        if not skipna and self._hasna:
             raise NotImplementedError
         return nargminmax(self, "argmax", axis=axis)
 
@@ -208,10 +221,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             raise ValueError("to_concat must have the same dtype (tz)", dtypes)
 
         new_values = [x._ndarray for x in to_concat]
-        new_values = np.concatenate(new_values, axis=axis)
-        # error: Argument 1 to "_from_backing_data" of "NDArrayBackedExtensionArray" has
-        # incompatible type "List[ndarray]"; expected "ndarray"
-        return to_concat[0]._from_backing_data(new_values)  # type: ignore[arg-type]
+        new_arr = np.concatenate(new_values, axis=axis)
+        return to_concat[0]._from_backing_data(new_arr)
 
     @doc(ExtensionArray.searchsorted)
     def searchsorted(
@@ -220,12 +231,16 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter = None,
     ) -> npt.NDArray[np.intp] | np.intp:
+        # TODO(2.0): use _validate_setitem_value once dt64tz mismatched-timezone
+        #  deprecation is enforced
         npvalue = self._validate_searchsorted_value(value)
         return self._ndarray.searchsorted(npvalue, side=side, sorter=sorter)
 
     def _validate_searchsorted_value(
         self, value: NumpyValueArrayLike | ExtensionArray
     ) -> NumpyValueArrayLike:
+        # TODO(2.0): after deprecation in datetimelikearraymixin is enforced,
+        #  we can remove this and use _validate_setitem_value directly
         if isinstance(value, ExtensionArray):
             return value.to_numpy()
         else:
@@ -313,11 +328,12 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
                 # TODO: check value is None
                 # (for now) when self.ndim == 2, we assume axis=0
                 func = missing.get_fill_func(method, ndim=self.ndim)
-                new_values, _ = func(self._ndarray.T.copy(), limit=limit, mask=mask.T)
-                new_values = new_values.T
+                npvalues = self._ndarray.T.copy()
+                func(npvalues, limit=limit, mask=mask.T)
+                npvalues = npvalues.T
 
                 # TODO: PandasArray didn't used to copy, need tests for this
-                new_values = self._from_backing_data(new_values)
+                new_values = self._from_backing_data(npvalues)
             else:
                 # fill with value
                 new_values = self.copy()
@@ -360,7 +376,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         np.putmask(self._ndarray, mask, value)
 
     def _where(
-        self: NDArrayBackedExtensionArrayT, mask: np.ndarray, value
+        self: NDArrayBackedExtensionArrayT, mask: npt.NDArray[np.bool_], value
     ) -> NDArrayBackedExtensionArrayT:
         """
         Analogue to np.where(mask, self, value)
@@ -462,17 +478,24 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         mask = np.atleast_2d(mask)
 
         arr = np.atleast_2d(self._ndarray)
-        # TODO: something NDArrayBacked-specific instead of _values_for_factorize[1]?
-        fill_value = self._values_for_factorize()[1]
+        fill_value = self._internal_fill_value
 
         res_values = quantile_with_mask(arr, mask, fill_value, qs, interpolation)
-
-        result = type(self)._from_factorized(res_values, self)
+        res_values = self._cast_quantile_result(res_values)
+        result = self._from_backing_data(res_values)
         if self.ndim == 1:
             assert result.shape == (1, len(qs)), result.shape
             result = result[0]
 
         return result
+
+    # TODO: see if we can share this with other dispatch-wrapping methods
+    def _cast_quantile_result(self, res_values: np.ndarray) -> np.ndarray:
+        """
+        Cast the result of quantile_with_mask to an appropriate dtype
+        to pass to _from_backing_data in _quantile.
+        """
+        return res_values
 
     # ------------------------------------------------------------------------
     # numpy-like methods

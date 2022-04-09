@@ -1,7 +1,5 @@
 import pytest
 
-from pandas.compat import pa_version_under2p0
-
 from pandas.core.dtypes.dtypes import PeriodDtype
 
 import pandas as pd
@@ -15,7 +13,7 @@ pa = pytest.importorskip("pyarrow", minversion="1.0.1")
 
 
 def test_arrow_extension_type():
-    from pandas.core.arrays._arrow_utils import ArrowPeriodType
+    from pandas.core.arrays.arrow._arrow_utils import ArrowPeriodType
 
     p1 = ArrowPeriodType("D")
     p2 = ArrowPeriodType("D")
@@ -36,7 +34,7 @@ def test_arrow_extension_type():
     ],
 )
 def test_arrow_array(data, freq):
-    from pandas.core.arrays._arrow_utils import ArrowPeriodType
+    from pandas.core.arrays.arrow._arrow_utils import ArrowPeriodType
 
     periods = period_array(data, freq=freq)
     result = pa.array(periods)
@@ -59,7 +57,7 @@ def test_arrow_array(data, freq):
 
 
 def test_arrow_array_missing():
-    from pandas.core.arrays._arrow_utils import ArrowPeriodType
+    from pandas.core.arrays.arrow._arrow_utils import ArrowPeriodType
 
     arr = PeriodArray([1, 2, 3], freq="D")
     arr[1] = pd.NaT
@@ -71,11 +69,8 @@ def test_arrow_array_missing():
     assert result.storage.equals(expected)
 
 
-@pytest.mark.xfail(
-    pa_version_under2p0, reason="pyarrow incorrectly uses pandas internals API"
-)
 def test_arrow_table_roundtrip():
-    from pandas.core.arrays._arrow_utils import ArrowPeriodType
+    from pandas.core.arrays.arrow._arrow_utils import ArrowPeriodType
 
     arr = PeriodArray([1, 2, 3], freq="D")
     arr[1] = pd.NaT
@@ -93,13 +88,10 @@ def test_arrow_table_roundtrip():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(
-    pa_version_under2p0, reason="pyarrow incorrectly uses pandas internals API"
-)
 def test_arrow_load_from_zero_chunks():
     # GH-41040
 
-    from pandas.core.arrays._arrow_utils import ArrowPeriodType
+    from pandas.core.arrays.arrow._arrow_utils import ArrowPeriodType
 
     arr = PeriodArray([], freq="D")
     df = pd.DataFrame({"a": arr})
@@ -114,9 +106,6 @@ def test_arrow_load_from_zero_chunks():
     tm.assert_frame_equal(result, df)
 
 
-@pytest.mark.xfail(
-    pa_version_under2p0, reason="pyarrow incorrectly uses pandas internals API"
-)
 def test_arrow_table_roundtrip_without_metadata():
     arr = PeriodArray([1, 2, 3], freq="H")
     arr[1] = pd.NaT

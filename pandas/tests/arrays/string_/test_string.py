@@ -266,14 +266,33 @@ def test_constructor_raises(cls):
     with pytest.raises(ValueError, match=msg):
         cls(np.array([]))
 
-    with pytest.raises(ValueError, match=msg):
+    if cls is pd.arrays.StringArray:
+        # GH#45057 np.nan and None do NOT raise, as they are considered valid NAs
+        #  for string dtype
         cls(np.array(["a", np.nan], dtype=object))
-
-    with pytest.raises(ValueError, match=msg):
         cls(np.array(["a", None], dtype=object))
+    else:
+        with pytest.raises(ValueError, match=msg):
+            cls(np.array(["a", np.nan], dtype=object))
+        with pytest.raises(ValueError, match=msg):
+            cls(np.array(["a", None], dtype=object))
 
     with pytest.raises(ValueError, match=msg):
         cls(np.array(["a", pd.NaT], dtype=object))
+
+    with pytest.raises(ValueError, match=msg):
+        cls(np.array(["a", np.datetime64("NaT", "ns")], dtype=object))
+
+    with pytest.raises(ValueError, match=msg):
+        cls(np.array(["a", np.timedelta64("NaT", "ns")], dtype=object))
+
+
+@pytest.mark.parametrize("na", [np.nan, np.float64("nan"), float("nan"), None, pd.NA])
+def test_constructor_nan_like(na):
+    expected = pd.arrays.StringArray(np.array(["a", pd.NA]))
+    tm.assert_extension_array_equal(
+        pd.arrays.StringArray(np.array(["a", na], dtype="object")), expected
+    )
 
 
 @pytest.mark.parametrize("copy", [True, False])
@@ -504,7 +523,7 @@ def test_memory_usage(dtype):
     # GH 33963
 
     if dtype.storage == "pyarrow":
-        pytest.skip("not applicable")
+        pytest.skip(f"not applicable for {dtype.storage}")
 
     series = pd.Series(["a", "b", "c"], dtype=dtype)
 
@@ -535,7 +554,7 @@ def test_to_numpy_na_value(dtype, nulls_fixture):
     tm.assert_numpy_array_equal(result, expected)
 
 
-def test_isin(dtype, request, fixed_now_ts):
+def test_isin(dtype, fixed_now_ts):
     s = pd.Series(["a", "b", None], dtype=dtype)
 
     result = s.isin(["a", "c"])

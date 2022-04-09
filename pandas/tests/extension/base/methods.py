@@ -18,7 +18,7 @@ class BaseMethodsTests(BaseExtensionTests):
     def test_value_counts_default_dropna(self, data):
         # make sure we have consistent default dropna kwarg
         if not hasattr(data, "value_counts"):
-            pytest.skip("value_counts is not implemented")
+            pytest.skip(f"value_counts is not implemented for {type(data)}")
         sig = inspect.signature(data.value_counts)
         kwarg = sig.parameters["dropna"]
         assert kwarg.default is True
@@ -27,7 +27,7 @@ class BaseMethodsTests(BaseExtensionTests):
     def test_value_counts(self, all_data, dropna):
         all_data = all_data[:10]
         if dropna:
-            other = np.array(all_data[~all_data.isna()])
+            other = all_data[~all_data.isna()]
         else:
             other = all_data
 
@@ -49,6 +49,10 @@ class BaseMethodsTests(BaseExtensionTests):
         else:
             expected = pd.Series(0.0, index=result.index)
             expected[result > 0] = 1 / len(values)
+
+        if isinstance(data.dtype, pd.core.dtypes.dtypes.BaseMaskedDtype):
+            # TODO(GH#44692): avoid special-casing
+            expected = expected.astype("Float64")
 
         self.assert_series_equal(result, expected)
 
@@ -382,6 +386,7 @@ class BaseMethodsTests(BaseExtensionTests):
         self.assert_extension_array_equal(result, expected)
 
     def test_shift_zero_copies(self, data):
+        # GH#31502
         result = data.shift(0)
         assert result is not data
 
@@ -442,7 +447,8 @@ class BaseMethodsTests(BaseExtensionTests):
         cls = type(data)
         a, b = data[:2]
 
-        ser = pd.Series(cls._from_sequence([a, a, b, b], dtype=data.dtype))
+        orig = pd.Series(cls._from_sequence([a, a, b, b], dtype=data.dtype))
+        ser = orig.copy()
         cond = np.array([True, True, False, False])
 
         if as_frame:
@@ -458,7 +464,13 @@ class BaseMethodsTests(BaseExtensionTests):
             expected = expected.to_frame(name="a")
         self.assert_equal(result, expected)
 
+        ser.mask(~cond, inplace=True)
+        self.assert_equal(ser, expected)
+
         # array other
+        ser = orig.copy()
+        if as_frame:
+            ser = ser.to_frame(name="a")
         cond = np.array([True, False, True, True])
         other = cls._from_sequence([a, b, a, b], dtype=data.dtype)
         if as_frame:
@@ -469,6 +481,9 @@ class BaseMethodsTests(BaseExtensionTests):
         if as_frame:
             expected = expected.to_frame(name="a")
         self.assert_equal(result, expected)
+
+        ser.mask(~cond, other, inplace=True)
+        self.assert_equal(ser, expected)
 
     @pytest.mark.parametrize("repeats", [0, 1, 2, [1, 2, 3]])
     def test_repeat(self, data, repeats, as_series, use_numpy):

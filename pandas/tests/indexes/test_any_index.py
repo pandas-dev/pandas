@@ -3,7 +3,10 @@ Tests that can be parametrized over _any_ Index object.
 """
 import re
 
+import numpy as np
 import pytest
+
+from pandas.errors import InvalidIndexError
 
 import pandas._testing as tm
 
@@ -43,9 +46,14 @@ def test_mutability(index):
         index[0] = index[0]
 
 
-def test_map_identity_mapping(index):
+def test_map_identity_mapping(index, request):
     # GH#12766
+
     result = index.map(lambda x: x)
+    if index.dtype == object and result.dtype == bool:
+        assert (index == result).all()
+        # TODO: could work that into the 'exact="equiv"'?
+        return  # FIXME: doesn't belong in this file anymore!
     tm.assert_index_equal(result, index, exact="equiv")
 
 
@@ -125,6 +133,16 @@ class TestRoundTrips:
 
 
 class TestIndexing:
+    def test_get_loc_listlike_raises_invalid_index_error(self, index):
+        # and never TypeError
+        key = np.array([0, 1], dtype=np.intp)
+
+        with pytest.raises(InvalidIndexError, match=r"\[0 1\]"):
+            index.get_loc(key)
+
+        with pytest.raises(InvalidIndexError, match=r"\[False  True\]"):
+            index.get_loc(key.astype(bool))
+
     def test_getitem_ellipsis(self, index):
         # GH#21282
         result = index[...]

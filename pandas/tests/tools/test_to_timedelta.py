@@ -198,7 +198,8 @@ class TestTimedeltas:
 
         actual = to_timedelta(Series(["00:00:01", np.nan]))
         expected = Series(
-            [np.timedelta64(1000000000, "ns"), timedelta_NaT], dtype="<m8[ns]"
+            [np.timedelta64(1000000000, "ns"), timedelta_NaT],
+            dtype=f"{tm.ENDIAN}m8[ns]",
         )
         tm.assert_series_equal(actual, expected)
 
@@ -217,7 +218,7 @@ class TestTimedeltas:
         # https://github.com/pandas-dev/pandas/issues/25077
         arr = np.arange(0, 1, 1e-6)[-10:]
         result = to_timedelta(arr, unit="s")
-        expected_asi8 = np.arange(999990000, 10 ** 9, 1000, dtype="int64")
+        expected_asi8 = np.arange(999990000, 10**9, 1000, dtype="int64")
         tm.assert_numpy_array_equal(result.asi8, expected_asi8)
 
     def test_to_timedelta_coerce_strings_unit(self):

@@ -47,7 +47,7 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         "name",
     }
 
-    def __init__(self, data: Series, orig):
+    def __init__(self, data: Series, orig) -> None:
         if not isinstance(data, ABCSeries):
             raise TypeError(
                 f"cannot convert an object of type {type(data)} to a datetimelike index"
@@ -193,7 +193,7 @@ class DatetimeProperties(Properties):
 
     def to_pydatetime(self) -> np.ndarray:
         """
-        Return the data as an array of native Python datetime objects.
+        Return the data as an array of :class:`datetime.datetime` objects.
 
         Timezone information is retained if present.
 
@@ -243,15 +243,14 @@ class DatetimeProperties(Properties):
 
     def isocalendar(self):
         """
-        Returns a DataFrame with the year, week, and day calculated according to
-        the ISO 8601 standard.
+        Calculate year, week, and day according to the ISO 8601 standard.
 
         .. versionadded:: 1.1.0
 
         Returns
         -------
         DataFrame
-            with columns year, week and day
+            With columns year, week and day.
 
         See Also
         --------
@@ -277,12 +276,13 @@ class DatetimeProperties(Properties):
     @property
     def weekofyear(self):
         """
-        The week ordinal of the year.
+        The week ordinal of the year according to the ISO 8601 standard.
 
         .. deprecated:: 1.1.0
 
-        Series.dt.weekofyear and Series.dt.week have been deprecated.
-        Please use Series.dt.isocalendar().week instead.
+        Series.dt.weekofyear and Series.dt.week have been deprecated.  Please
+        call :func:`Series.dt.isocalendar` and access the ``week`` column
+        instead.
         """
         warnings.warn(
             "Series.dt.weekofyear and Series.dt.week have been deprecated. "
@@ -333,7 +333,7 @@ class TimedeltaProperties(Properties):
 
     def to_pytimedelta(self) -> np.ndarray:
         """
-        Return an array of native `datetime.timedelta` objects.
+        Return an array of native :class:`datetime.timedelta` objects.
 
         Python's standard `datetime` library uses a different representation
         timedelta's. This method converts a Series of pandas Timedeltas

@@ -72,6 +72,20 @@ def safe_import(mod_name: str, min_version: str | None = None):
             message=".*decorator is deprecated since Python 3.8.*",
         )
 
+        # fastparquet import accesses pd.Int64Index
+        warnings.filterwarnings(
+            "ignore",
+            category=FutureWarning,
+            module="fastparquet",
+            message=".*Int64Index.*",
+        )
+
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message="distutils Version classes are deprecated.*",
+        )
+
         try:
             mod = __import__(mod_name)
         except ImportError:
@@ -98,12 +112,6 @@ def _skip_if_no_mpl():
     if mod:
         mod.use("Agg")
     else:
-        return True
-
-
-def _skip_if_has_locale():
-    lang, _ = locale.getlocale()
-    if lang is not None:
         return True
 
 
@@ -184,9 +192,6 @@ skip_if_no_mpl = pytest.mark.skipif(
 skip_if_mpl = pytest.mark.skipif(not _skip_if_no_mpl(), reason="matplotlib is present")
 skip_if_32bit = pytest.mark.skipif(not IS64, reason="skipping for 32 bit")
 skip_if_windows = pytest.mark.skipif(is_platform_windows(), reason="Running on Windows")
-skip_if_has_locale = pytest.mark.skipif(
-    _skip_if_has_locale(), reason=f"Specific locale is set {locale.getlocale()[0]}"
-)
 skip_if_not_us_locale = pytest.mark.skipif(
     _skip_if_not_us_locale(), reason=f"Specific locale is set {locale.getlocale()[0]}"
 )
@@ -252,7 +257,8 @@ def file_leak_context():
     ContextManager analogue to check_file_leaks.
     """
     psutil = safe_import("psutil")
-    if not psutil:
+    if not psutil or is_platform_windows():
+        # Checking for file leaks can hang on Windows CI
         yield
     else:
         proc = psutil.Process()

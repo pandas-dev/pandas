@@ -54,7 +54,7 @@ def test_preserve_dtypes(op):
 def test_astype_nansafe():
     # see gh-22343
     arr = pd.array([np.nan, 1, 2], dtype="Int8")
-    msg = "cannot convert to 'uint32'-dtype NumPy array with missing values."
+    msg = "cannot convert NA to integer"
 
     with pytest.raises(ValueError, match=msg):
         arr.astype("uint32")
@@ -136,7 +136,7 @@ def test_astype(all_data):
 
     # coerce to same numpy_dtype - mixed
     s = pd.Series(mixed)
-    msg = r"cannot convert to .*-dtype NumPy array with missing values.*"
+    msg = "cannot convert NA to integer"
     with pytest.raises(ValueError, match=msg):
         s.astype(all_data.dtype.numpy_dtype)
 
@@ -217,7 +217,7 @@ def test_astype_floating():
 
 def test_astype_dt64():
     # GH#32435
-    arr = pd.array([1, 2, 3, pd.NA]) * 10 ** 9
+    arr = pd.array([1, 2, 3, pd.NA]) * 10**9
 
     result = arr.astype("datetime64[ns]")
 
@@ -283,7 +283,7 @@ def test_to_numpy_na_raises(dtype):
 
 def test_astype_str():
     a = pd.array([1, 2, None], dtype="Int64")
-    expected = np.array(["1", "2", "<NA>"], dtype="<U21")
+    expected = np.array(["1", "2", "<NA>"], dtype=f"{tm.ENDIAN}U21")
 
     tm.assert_numpy_array_equal(a.astype(str), expected)
     tm.assert_numpy_array_equal(a.astype("str"), expected)

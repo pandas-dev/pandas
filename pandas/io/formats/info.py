@@ -258,8 +258,6 @@ INFO_DOCSTRING = dedent(
 
     Parameters
     ----------
-    data : {klass}
-        {klass} to print information about.
     verbose : bool, optional
         Whether to print the full summary. By default, the setting in
         ``pandas.options.display.max_info_columns`` is followed.
@@ -280,7 +278,9 @@ INFO_DOCSTRING = dedent(
         made based in column dtype and number of rows assuming values
         consume the same memory amount for corresponding dtypes. With deep
         memory introspection, a real memory usage calculation is performed
-        at the cost of computational resources.
+        at the cost of computational resources. See the
+        :ref:`Frequently Asked Questions <df-memory-usage>` for more
+        details.
     {show_counts_sub}{null_counts_sub}
 
     Returns
@@ -457,7 +457,7 @@ class DataFrameInfo(BaseInfo):
         self,
         data: DataFrame,
         memory_usage: bool | str | None = None,
-    ):
+    ) -> None:
         self.data: DataFrame = data
         self.memory_usage = _initialize_memory_usage(memory_usage)
 
@@ -533,7 +533,7 @@ class SeriesInfo(BaseInfo):
         self,
         data: Series,
         memory_usage: bool | str | None = None,
-    ):
+    ) -> None:
         self.data: Series = data
         self.memory_usage = _initialize_memory_usage(memory_usage)
 
@@ -627,7 +627,7 @@ class DataFrameInfoPrinter(InfoPrinterAbstract):
         max_cols: int | None = None,
         verbose: bool | None = None,
         show_counts: bool | None = None,
-    ):
+    ) -> None:
         self.info = info
         self.data = info.data
         self.verbose = verbose
@@ -704,7 +704,7 @@ class SeriesInfoPrinter(InfoPrinterAbstract):
         info: SeriesInfo,
         verbose: bool | None = None,
         show_counts: bool | None = None,
-    ):
+    ) -> None:
         self.info = info
         self.data = info.data
         self.verbose = verbose
@@ -795,7 +795,7 @@ class DataFrameTableBuilder(TableBuilderAbstract):
         Instance of DataFrameInfo.
     """
 
-    def __init__(self, *, info: DataFrameInfo):
+    def __init__(self, *, info: DataFrameInfo) -> None:
         self.info: DataFrameInfo = info
 
     def get_lines(self) -> list[str]:
@@ -810,7 +810,7 @@ class DataFrameTableBuilder(TableBuilderAbstract):
         """Add lines to the info table, pertaining to empty dataframe."""
         self.add_object_type_line()
         self.add_index_range_line()
-        self._lines.append(f"Empty {type(self.data).__name__}")
+        self._lines.append(f"Empty {type(self.data).__name__}\n")
 
     @abstractmethod
     def _fill_non_empty_info(self) -> None:
@@ -957,7 +957,7 @@ class DataFrameTableBuilderVerbose(DataFrameTableBuilder, TableBuilderVerboseMix
         *,
         info: DataFrameInfo,
         with_counts: bool,
-    ):
+    ) -> None:
         self.info = info
         self.with_counts = with_counts
         self.strrows: Sequence[Sequence[str]] = list(self._gen_rows())
@@ -1023,7 +1023,7 @@ class SeriesTableBuilder(TableBuilderAbstract):
         Instance of SeriesInfo.
     """
 
-    def __init__(self, *, info: SeriesInfo):
+    def __init__(self, *, info: SeriesInfo) -> None:
         self.info: SeriesInfo = info
 
     def get_lines(self) -> list[str]:
@@ -1069,7 +1069,7 @@ class SeriesTableBuilderVerbose(SeriesTableBuilder, TableBuilderVerboseMixin):
         *,
         info: SeriesInfo,
         with_counts: bool,
-    ):
+    ) -> None:
         self.info = info
         self.with_counts = with_counts
         self.strrows: Sequence[Sequence[str]] = list(self._gen_rows())
