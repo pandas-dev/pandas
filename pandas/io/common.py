@@ -769,11 +769,14 @@ def get_handle(
                 handle = _BytesTarFile.open(name=handle, **compression_args)
             else:
                 handle = _BytesTarFile.open(fileobj=handle, **compression_args)
-            if handle.mode == "r":  # type: ignore[arg-type]
+            assert isinstance(handle, _BytesTarFile)
+            if handle.mode == "r":
                 handles.append(handle)
                 files = handle.getnames()
                 if len(files) == 1:
-                    handle = handle.extractfile(files[0])
+                    file = handle.extractfile(files[0])
+                    assert file is not None
+                    handle = file
                 elif len(files) == 0:
                     raise ValueError(f"Zero files found in TAR archive {path_or_buf}")
                 else:
@@ -885,7 +888,7 @@ def get_handle(
 # definition in base class "BytesIO"  [misc]
 # error: Definition of "read" in base class "TarFile" is incompatible with
 # definition in base class "IO"  [misc]
-class _BytesTarFile(tarfile.TarFile, BytesIO):
+class _BytesTarFile(tarfile.TarFile, BytesIO):  # type: ignore[misc]
     """
     Wrapper for standard library class TarFile and allow the returned file-like
     handle to accept byte strings via `write` method.
@@ -897,14 +900,14 @@ class _BytesTarFile(tarfile.TarFile, BytesIO):
     # GH 17778
     def __init__(
         self,
-        name: FilePath | ReadBuffer[bytes] | WriteBuffer[bytes],
-        mode: str,
+        name: str | bytes | os.PathLike[str] | os.PathLike[bytes],
+        mode: Literal["r", "a", "w", "x"],
         fileobj: FileIO,
         archive_name: str | None = None,
         **kwargs,
     ):
         self.archive_name = archive_name
-        self.multiple_write_buffer: StringIO | BytesIO | None = None
+        self.multiple_write_buffer: BytesIO | None = None
         self._closing = False
 
         super().__init__(name=name, mode=mode, fileobj=fileobj, **kwargs)
@@ -936,7 +939,10 @@ class _BytesTarFile(tarfile.TarFile, BytesIO):
         file not to be named something.tar, because that causes confusion (GH39465).
         """
         if isinstance(self.name, (os.PathLike, str)):
-            filename = Path(self.name)
+            # error: Argument 1 to "Path" has
+            # incompatible type "Union[str, PathLike[str], PathLike[bytes]]";
+            # expected "Union[str, PathLike[str]]"  [arg-type]
+            filename = Path(self.name)  # type: ignore[arg-type]
             if filename.suffix == ".tar":
                 return filename.with_suffix("").name
             if filename.suffix in [".tar.gz", ".tar.bz2", ".tar.xz"]:
@@ -947,9 +953,7 @@ class _BytesTarFile(tarfile.TarFile, BytesIO):
     def write(self, data):
         # buffer multiple write calls, write on flush
         if self.multiple_write_buffer is None:
-            self.multiple_write_buffer = (
-                BytesIO() if isinstance(data, bytes) else StringIO()
-            )
+            self.multiple_write_buffer = BytesIO()
         self.multiple_write_buffer.write(data)
 
     def flush(self) -> None:
