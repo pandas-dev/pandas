@@ -58,7 +58,7 @@ from pandas._libs.tslibs.np_datetime cimport (
 
 from pandas._libs.tslibs.np_datetime import OutOfBoundsTimedelta
 
-from pandas._libs.tslibs.offsets cimport is_tick_object
+#from pandas._libs.tslibs.offsets cimport is_tick_object
 from pandas._libs.tslibs.util cimport (
     is_array,
     is_datetime64_object,
@@ -71,6 +71,12 @@ from pandas._libs.tslibs.fields import (
     RoundTo,
     round_nsint64,
 )
+
+
+cdef inline bint is_tick_object(object obj):
+    # KLUDGE to avoid circular cimport
+    return any(x.__name__ == "Tick" for x in obj.__mro__())
+
 
 # ----------------------------------------------------------------------
 # Constants
