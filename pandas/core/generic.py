@@ -10901,8 +10901,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         {examples}
         """
         msg = (
-            "The 'mad' method is deprecated "
-            "and will be removed in a future version. "
+            "The 'mad' method is deprecated and will be removed in a future version. "
+            "To compute the same result, you may do `(df - df.mean()).abs().mean()`."
         )
         warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
 
