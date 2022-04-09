@@ -72,7 +72,6 @@ from pandas._libs.tslibs.fields import (
     round_nsint64,
 )
 
-
 # ----------------------------------------------------------------------
 # Constants
 
