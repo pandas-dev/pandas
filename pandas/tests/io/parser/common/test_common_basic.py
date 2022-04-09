@@ -41,7 +41,7 @@ def test_override_set_noconvert_columns():
     # Usecols needs to be sorted in _set_noconvert_columns based
     # on the test_usecols_with_parse_dates test from test_usecols.py
     class MyTextFileReader(TextFileReader):
-        def __init__(self):
+        def __init__(self) -> None:
             self._currow = 0
             self.squeeze = False
 
@@ -699,7 +699,7 @@ def test_read_csv_and_table_sys_setprofile(all_parsers, read_func):
 def test_first_row_bom(all_parsers):
     # see gh-26545
     parser = all_parsers
-    data = '''\ufeff"Head1"	"Head2"	"Head3"'''
+    data = '''\ufeff"Head1"\t"Head2"\t"Head3"'''
 
     result = parser.read_csv(StringIO(data), delimiter="\t")
     expected = DataFrame(columns=["Head1", "Head2", "Head3"])
@@ -710,7 +710,7 @@ def test_first_row_bom(all_parsers):
 def test_first_row_bom_unquoted(all_parsers):
     # see gh-36343
     parser = all_parsers
-    data = """\ufeffHead1	Head2	Head3"""
+    data = """\ufeffHead1\tHead2\tHead3"""
 
     result = parser.read_csv(StringIO(data), delimiter="\t")
     expected = DataFrame(columns=["Head1", "Head2", "Head3"])

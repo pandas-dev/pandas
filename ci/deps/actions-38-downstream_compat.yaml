@@ -10,8 +10,9 @@ dependencies:
   - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.31
-  - hypothesis>=5.5.3
   - psutil
+  - pytest-asyncio>=0.17
+  - boto3
 
   # required dependencies
   - python-dateutil
@@ -21,10 +22,12 @@ dependencies:
   # optional dependencies
   - beautifulsoup4
   - blosc
+  - brotlipy
   - bottleneck
   - fastparquet
   - fsspec
   - html5lib
+  - hypothesis
   - gcsfs
   - jinja2
   - lxml
@@ -35,10 +38,11 @@ dependencies:
   - odfpy
   - pandas-gbq
   - psycopg2
-  - pymysql
-  - pytables
   - pyarrow
+  - pymysql
   - pyreadstat
+  - pytables
+  - python-snappy
   - pyxlsb
   - s3fs
   - scipy
@@ -52,17 +56,14 @@ dependencies:
 
   # downstream packages
   - aiobotocore
-  - boto3
   - botocore
   - cftime
   - dask
   - ipython
-  - geopandas
-  - python-snappy
+  - geopandas-base
   - seaborn
   - scikit-learn
   - statsmodels
-  - brotlipy
   - coverage
   - pandas-datareader
   - pyyaml

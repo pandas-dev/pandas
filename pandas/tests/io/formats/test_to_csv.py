@@ -46,7 +46,7 @@ class TestToCSV:
             with open(path) as f:
                 assert f.read() == expected2
 
-    def test_to_csv_defualt_encoding(self):
+    def test_to_csv_default_encoding(self):
         # GH17097
         df = DataFrame({"col": ["AAAAA", "ÄÄÄÄÄ", "ßßßßß", "聞聞聞聞聞"]})
 
