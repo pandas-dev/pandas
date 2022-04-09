@@ -14,6 +14,7 @@ This is meant to be run as a pre-commit hook - to run it manually, you can do:
 from __future__ import annotations
 
 import pathlib
+import re
 import sys
 
 DOC_PATH = pathlib.Path("doc/source/getting_started/install.rst").resolve()
@@ -53,7 +54,7 @@ def get_versions_from_ci(content: list[str]) -> tuple[dict[str, str], dict[str, 
         elif "# optional dependencies" in line:
             seen_optional = True
         elif seen_required and line.strip():
-            package, version = line.strip().split("=")
+            package, version = re.split(r">?=", line.strip())
             package = package[2:]
             if not seen_optional:
                 required_deps[package] = version
