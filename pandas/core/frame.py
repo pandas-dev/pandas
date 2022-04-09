@@ -5030,6 +5030,51 @@ class DataFrame(NDFrame, OpsMixin):
             errors=errors,
         )
 
+    @overload
+    def rename(
+        self,
+        mapper: Renamer | None = ...,
+        *,
+        index: Renamer | None = ...,
+        columns: Renamer | None = ...,
+        axis: Axis | None = ...,
+        copy: bool = ...,
+        inplace: Literal[True],
+        level: Level | None = ...,
+        errors: IgnoreRaise = ...,
+    ) -> None:
+        ...
+
+    @overload
+    def rename(
+        self,
+        mapper: Renamer | None = ...,
+        *,
+        index: Renamer | None = ...,
+        columns: Renamer | None = ...,
+        axis: Axis | None = ...,
+        copy: bool = ...,
+        inplace: Literal[False] = ...,
+        level: Level | None = ...,
+        errors: IgnoreRaise = ...,
+    ) -> DataFrame:
+        ...
+
+    @overload
+    def rename(
+        self,
+        mapper: Renamer | None = ...,
+        *,
+        index: Renamer | None = ...,
+        columns: Renamer | None = ...,
+        axis: Axis | None = ...,
+        copy: bool = ...,
+        inplace: bool = ...,
+        level: Level | None = ...,
+        errors: IgnoreRaise = ...,
+    ) -> DataFrame | None:
+        ...
+
     def rename(
         self,
         mapper: Renamer | None = None,
@@ -5040,7 +5085,7 @@ class DataFrame(NDFrame, OpsMixin):
         copy: bool = True,
         inplace: bool = False,
         level: Level | None = None,
-        errors: str = "ignore",
+        errors: IgnoreRaise = "ignore",
     ) -> DataFrame | None:
         """
         Alter axes labels.
@@ -8584,7 +8629,7 @@ Parrot 2  Parrot       24.0
             result.index = self.index.take(result.index)
         result = result.reindex(columns=self.columns, copy=False)
 
-        return result
+        return result.__finalize__(self, method="explode")
 
     def unstack(self, level: Level = -1, fill_value=None):
         """
@@ -8672,7 +8717,7 @@ Parrot 2  Parrot       24.0
             value_name=value_name,
             col_level=col_level,
             ignore_index=ignore_index,
-        )
+        ).__finalize__(self, method="melt")
 
     # ----------------------------------------------------------------------
     # Time series-related
@@ -9529,6 +9574,11 @@ Parrot 2  Parrot       24.0
             if on is not None:
                 raise ValueError(
                     "Joining multiple DataFrames only supported for joining on index"
+                )
+
+            if rsuffix or lsuffix:
+                raise ValueError(
+                    "Suffixes not supported when joining multiple DataFrames"
                 )
 
             frames = [self] + list(other)

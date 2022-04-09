@@ -19,9 +19,9 @@ cdef class _TSObject:
         bint fold
 
 
-cdef convert_to_tsobject(object ts, tzinfo tz, str unit,
-                         bint dayfirst, bint yearfirst,
-                         int32_t nanos=*)
+cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
+                                   bint dayfirst, bint yearfirst,
+                                   int32_t nanos=*)
 
 cdef _TSObject convert_datetime_to_tsobject(datetime ts, tzinfo tz,
                                             int32_t nanos=*)
