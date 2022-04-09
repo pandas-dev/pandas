@@ -41,19 +41,6 @@ class Visitor(ast.NodeVisitor):
             sys.exit(1)
         super().generic_visit(node)
 
-    def visit_Attribute(self, node: ast.Attribute) -> None:
-        if (
-            isinstance(node.value, ast.Name)
-            and node.value.id == "pd"
-            and node.attr == "array"
-        ):
-            msg = ERROR_MESSAGE.format(
-                path=self.path, lineno=node.lineno, col_offset=node.col_offset
-            )
-            sys.stdout.write(msg)
-            sys.exit(1)
-        super().generic_visit(node)
-
 
 def use_io_common_urlopen(content: str, path: str) -> None:
     tree = ast.parse(content)
