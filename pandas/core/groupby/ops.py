@@ -784,7 +784,7 @@ class BaseGrouper:
             res = f(group)
             if not mutated and not _is_indexed_like(res, group_axes, axis):
                 mutated = True
-            result_values.append(data)
+            result_values.append(res)
 
         if len(group_keys) == 0:
             res = f(data)
