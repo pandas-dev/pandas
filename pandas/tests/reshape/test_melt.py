@@ -22,12 +22,12 @@ def df():
 @pytest.fixture
 def df1():
     res = DataFrame(
-            [
-                [1.067683, -1.110463, 0.20867],
-                [-1.321405, 0.368915, -1.055342],
-                [-0.807333, 0.08298, -0.873361],
-            ]
-        )
+        [
+            [1.067683, -1.110463, 0.20867],
+            [-1.321405, 0.368915, -1.055342],
+            [-0.807333, 0.08298, -0.873361],
+        ]
+    )
     res.columns = [list("ABC"), list("abc")]
     res.columns.names = ["CAP", "low"]
     return res
@@ -179,9 +179,7 @@ class TestMelt:
         result7 = df.melt(id_vars=["id1", "id2"], var_name=var_name)
         assert result7.columns.tolist() == ["id1", "id2", "var", "value"]
 
-        result8 = df.melt(
-            id_vars=["id1", "id2"], value_vars="A", var_name=var_name
-        )
+        result8 = df.melt(id_vars=["id1", "id2"], value_vars="A", var_name=var_name)
         assert result8.columns.tolist() == ["id1", "id2", "var", "value"]
 
         result9 = df.melt(
@@ -232,9 +230,7 @@ class TestMelt:
         result15 = df.melt(var_name=var_name, value_name=value_name)
         assert result15.columns.tolist() == ["var", "val"]
 
-        result16 = df.melt(
-            id_vars=["id1"], var_name=var_name, value_name=value_name
-        )
+        result16 = df.melt(id_vars=["id1"], var_name=var_name, value_name=value_name)
         assert result16.columns.tolist() == ["id1", "var", "val"]
 
         result17 = df.melt(

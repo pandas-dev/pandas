@@ -1094,7 +1094,6 @@ class TestDataFrameQueryStrings:
 
 
 class TestDataFrameEvalWithFrame:
-
     @pytest.fixture
     def frame(self):
         return DataFrame(np.random.randn(10, 3), columns=list("abc"))

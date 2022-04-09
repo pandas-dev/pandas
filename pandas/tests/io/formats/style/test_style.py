@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 
 from pandas import (
-    Categorical,
     DataFrame,
     IndexSlice,
     MultiIndex,
@@ -660,11 +659,8 @@ class TestStyler:
     def test_apply_subset(self, slice_, axis, df):
         def h(x, foo="bar"):
             return Series(f"color: {foo}", index=x.index, name=x.name)
-        result = (
-            df.style.apply(h, axis=axis, subset=slice_, foo="baz")
-            ._compute()
-            .ctx
-        )
+
+        result = df.style.apply(h, axis=axis, subset=slice_, foo="baz")._compute().ctx
         expected = {
             (r, c): [("color", "baz")]
             for r, row in enumerate(df.index)
@@ -684,9 +680,7 @@ class TestStyler:
         ],
     )
     def test_applymap_subset(self, slice_, df):
-        result = (
-            df.style.applymap(lambda x: "color:baz;", subset=slice_)._compute().ctx
-        )
+        result = df.style.applymap(lambda x: "color:baz;", subset=slice_)._compute().ctx
         expected = {
             (r, c): [("color", "baz")]
             for r, row in enumerate(df.index)

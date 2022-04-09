@@ -23,21 +23,21 @@ from pandas.api.types import CategoricalDtype as CDT
 @pytest.fixture
 def df():
     return DataFrame(
-            {
-                "A": np.arange(6, dtype="int64"),
-            },
-            index=CategoricalIndex(list("aabbca"), dtype=CDT(list("cab")), name="B"),
-        )
+        {
+            "A": np.arange(6, dtype="int64"),
+        },
+        index=CategoricalIndex(list("aabbca"), dtype=CDT(list("cab")), name="B"),
+    )
 
 
 @pytest.fixture
 def df2():
     return DataFrame(
-            {
-                "A": np.arange(6, dtype="int64"),
-            },
-            index=CategoricalIndex(list("aabbca"), dtype=CDT(list("cabe")), name="B"),
-        )
+        {
+            "A": np.arange(6, dtype="int64"),
+        },
+        index=CategoricalIndex(list("aabbca"), dtype=CDT(list("cabe")), name="B"),
+    )
 
 
 class TestCategoricalIndex:
