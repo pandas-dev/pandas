@@ -1769,3 +1769,14 @@ def test_step_not_integer_raises():
 def test_step_not_positive_raises():
     with pytest.raises(ValueError, match="step must be >= 0"):
         DataFrame(range(2)).rolling(1, step=-1)
+
+
+def test_rolling_skew_kurt_floating_artifacts():
+    # GH 42064 46431
+
+    sr = Series([1 / 3, 4, 0, 0, 0, 0, 0])
+    r = sr.rolling(4)
+    result = r.skew()
+    assert (result[-2:] == 0).all()
+    result = r.kurt()
+    assert (result[-2:] == -3).all()

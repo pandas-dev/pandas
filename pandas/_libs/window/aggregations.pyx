@@ -409,8 +409,9 @@ def roll_var(const float64_t[:] values, ndarray[int64_t] start,
 
 
 cdef inline float64_t calc_skew(int64_t minp, int64_t nobs,
-                                float64_t x, float64_t xx,
-                                float64_t xxx) nogil:
+                                float64_t x, float64_t xx, float64_t xxx,
+                                int64_t num_consecutive_same_value
+                                ) nogil:
     cdef:
         float64_t result, dnobs
         float64_t A, B, C, R
@@ -421,6 +422,12 @@ cdef inline float64_t calc_skew(int64_t minp, int64_t nobs,
         B = xx / dnobs - A * A
         C = xxx / dnobs - A * A * A - 3 * A * B
 
+        if nobs < 3:
+            result = NaN
+        # GH 42064 46431
+        # uniform case, force result to be 0
+        elif num_consecutive_same_value >= nobs:
+            result = 0.0
         # #18044: with uniform distribution, floating issue will
         #         cause B != 0. and cause the result is a very
         #         large number.
@@ -430,7 +437,7 @@ cdef inline float64_t calc_skew(int64_t minp, int64_t nobs,
         #         if the variance is less than 1e-14, it could be
         #         treat as zero, here we follow the original
         #         skew/kurt behaviour to check B <= 1e-14
-        if B <= 1e-14 or nobs < 3:
+        elif B <= 1e-14:
             result = NaN
         else:
             R = sqrt(B)
@@ -447,7 +454,10 @@ cdef inline void add_skew(float64_t val, int64_t *nobs,
                           float64_t *xxx,
                           float64_t *compensation_x,
                           float64_t *compensation_xx,
-                          float64_t *compensation_xxx) nogil:
+                          float64_t *compensation_xxx,
+                          int64_t *num_consecutive_same_value,
+                          float64_t *prev_value,
+                          ) nogil:
     """ add a value from the skew calc """
     cdef:
         float64_t y, t
@@ -468,6 +478,14 @@ cdef inline void add_skew(float64_t val, int64_t *nobs,
         t = xxx[0] + y
         compensation_xxx[0] = t - xxx[0] - y
         xxx[0] = t
+
+        # GH#42064, record num of same values to remove floating point artifacts
+        if val == prev_value[0]:
+            num_consecutive_same_value[0] += 1
+        else:
+            # reset to 1 (include current value itself)
+            num_consecutive_same_value[0] = 1
+        prev_value[0] = val
 
 
 cdef inline void remove_skew(float64_t val, int64_t *nobs,
@@ -507,8 +525,9 @@ def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
         float64_t compensation_xx_add, compensation_xx_remove
         float64_t compensation_x_add, compensation_x_remove
         float64_t x, xx, xxx
+        float64_t prev_value
         int64_t nobs = 0, N = len(start), V = len(values), nobs_mean = 0
-        int64_t s, e
+        int64_t s, e, num_consecutive_same_value
         ndarray[float64_t] output, mean_array, values_copy
         bint is_monotonic_increasing_bounds
 
@@ -542,6 +561,9 @@ def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
             # never removed
             if i == 0 or not is_monotonic_increasing_bounds or s >= end[i - 1]:
 
+                prev_value = values[s]
+                num_consecutive_same_value = 0
+
                 compensation_xxx_add = compensation_xxx_remove = 0
                 compensation_xx_add = compensation_xx_remove = 0
                 compensation_x_add = compensation_x_remove = 0
@@ -550,7 +572,8 @@ def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
                 for j in range(s, e):
                     val = values_copy[j]
                     add_skew(val, &nobs, &x, &xx, &xxx, &compensation_x_add,
-                             &compensation_xx_add, &compensation_xxx_add)
+                             &compensation_xx_add, &compensation_xxx_add,
+                             &num_consecutive_same_value, &prev_value)
 
             else:
 
@@ -566,9 +589,10 @@ def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
                 for j in range(end[i - 1], e):
                     val = values_copy[j]
                     add_skew(val, &nobs, &x, &xx, &xxx, &compensation_x_add,
-                             &compensation_xx_add, &compensation_xxx_add)
+                             &compensation_xx_add, &compensation_xxx_add,
+                             &num_consecutive_same_value, &prev_value)
 
-            output[i] = calc_skew(minp, nobs, x, xx, xxx)
+            output[i] = calc_skew(minp, nobs, x, xx, xxx, num_consecutive_same_value)
 
             if not is_monotonic_increasing_bounds:
                 nobs = 0
@@ -584,35 +608,44 @@ def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
 
 cdef inline float64_t calc_kurt(int64_t minp, int64_t nobs,
                                 float64_t x, float64_t xx,
-                                float64_t xxx, float64_t xxxx) nogil:
+                                float64_t xxx, float64_t xxxx,
+                                int64_t num_consecutive_same_value,
+                                ) nogil:
     cdef:
         float64_t result, dnobs
         float64_t A, B, C, D, R, K
 
     if nobs >= minp:
-        dnobs = <float64_t>nobs
-        A = x / dnobs
-        R = A * A
-        B = xx / dnobs - R
-        R = R * A
-        C = xxx / dnobs - R - 3 * A * B
-        R = R * A
-        D = xxxx / dnobs - R - 6 * B * A * A - 4 * C * A
-
-        # #18044: with uniform distribution, floating issue will
-        #         cause B != 0. and cause the result is a very
-        #         large number.
-        #
-        #         in core/nanops.py nanskew/nankurt call the function
-        #         _zero_out_fperr(m2) to fix floating error.
-        #         if the variance is less than 1e-14, it could be
-        #         treat as zero, here we follow the original
-        #         skew/kurt behaviour to check B <= 1e-14
-        if B <= 1e-14 or nobs < 4:
+        if nobs < 4:
             result = NaN
+        # GH 42064 46431
+        # uniform case, force result to be -3.
+        elif num_consecutive_same_value >= nobs:
+            result = -3.
         else:
-            K = (dnobs * dnobs - 1.) * D / (B * B) - 3 * ((dnobs - 1.) ** 2)
-            result = K / ((dnobs - 2.) * (dnobs - 3.))
+            dnobs = <float64_t>nobs
+            A = x / dnobs
+            R = A * A
+            B = xx / dnobs - R
+            R = R * A
+            C = xxx / dnobs - R - 3 * A * B
+            R = R * A
+            D = xxxx / dnobs - R - 6 * B * A * A - 4 * C * A
+
+            # #18044: with uniform distribution, floating issue will
+            #         cause B != 0. and cause the result is a very
+            #         large number.
+            #
+            #         in core/nanops.py nanskew/nankurt call the function
+            #         _zero_out_fperr(m2) to fix floating error.
+            #         if the variance is less than 1e-14, it could be
+            #         treat as zero, here we follow the original
+            #         skew/kurt behaviour to check B <= 1e-14
+            if B <= 1e-14:
+                result = NaN
+            else:
+                K = (dnobs * dnobs - 1.) * D / (B * B) - 3 * ((dnobs - 1.) ** 2)
+                result = K / ((dnobs - 2.) * (dnobs - 3.))
     else:
         result = NaN
 
@@ -625,7 +658,10 @@ cdef inline void add_kurt(float64_t val, int64_t *nobs,
                           float64_t *compensation_x,
                           float64_t *compensation_xx,
                           float64_t *compensation_xxx,
-                          float64_t *compensation_xxxx) nogil:
+                          float64_t *compensation_xxxx,
+                          int64_t *num_consecutive_same_value,
+                          float64_t *prev_value
+                          ) nogil:
     """ add a value from the kurotic calc """
     cdef:
         float64_t y, t
@@ -650,6 +686,14 @@ cdef inline void add_kurt(float64_t val, int64_t *nobs,
         t = xxxx[0] + y
         compensation_xxxx[0] = t - xxxx[0] - y
         xxxx[0] = t
+
+        # GH#42064, record num of same values to remove floating point artifacts
+        if val == prev_value[0]:
+            num_consecutive_same_value[0] += 1
+        else:
+            # reset to 1 (include current value itself)
+            num_consecutive_same_value[0] = 1
+        prev_value[0] = val
 
 
 cdef inline void remove_kurt(float64_t val, int64_t *nobs,
@@ -695,7 +739,9 @@ def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
         float64_t compensation_xx_remove, compensation_xx_add
         float64_t compensation_x_remove, compensation_x_add
         float64_t x, xx, xxx, xxxx
-        int64_t nobs, s, e, N = len(start), V = len(values), nobs_mean = 0
+        float64_t prev_value
+        int64_t nobs, s, e, num_consecutive_same_value
+        int64_t N = len(start), V = len(values), nobs_mean = 0
         ndarray[float64_t] output, values_copy
         bint is_monotonic_increasing_bounds
 
@@ -729,6 +775,9 @@ def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
             # never removed
             if i == 0 or not is_monotonic_increasing_bounds or s >= end[i - 1]:
 
+                prev_value = values[s]
+                num_consecutive_same_value = 0
+
                 compensation_xxxx_add = compensation_xxxx_remove = 0
                 compensation_xxx_remove = compensation_xxx_add = 0
                 compensation_xx_remove = compensation_xx_add = 0
@@ -738,7 +787,8 @@ def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
                 for j in range(s, e):
                     add_kurt(values_copy[j], &nobs, &x, &xx, &xxx, &xxxx,
                              &compensation_x_add, &compensation_xx_add,
-                             &compensation_xxx_add, &compensation_xxxx_add)
+                             &compensation_xxx_add, &compensation_xxxx_add,
+                             &num_consecutive_same_value, &prev_value)
 
             else:
 
@@ -754,9 +804,10 @@ def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
                 for j in range(end[i - 1], e):
                     add_kurt(values_copy[j], &nobs, &x, &xx, &xxx, &xxxx,
                              &compensation_x_add, &compensation_xx_add,
-                             &compensation_xxx_add, &compensation_xxxx_add)
+                             &compensation_xxx_add, &compensation_xxxx_add,
+                             &num_consecutive_same_value, &prev_value)
 
-            output[i] = calc_kurt(minp, nobs, x, xx, xxx, xxxx)
+            output[i] = calc_kurt(minp, nobs, x, xx, xxx, xxxx, num_consecutive_same_value)
 
             if not is_monotonic_increasing_bounds:
                 nobs = 0
