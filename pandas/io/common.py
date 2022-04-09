@@ -767,7 +767,7 @@ def get_handle(
                 handle = _BytesTarFile.open(name=handle, **compression_args)
             else:
                 handle = _BytesTarFile.open(fileobj=handle, **compression_args)
-            if handle.mode == "r":
+            if handle.mode == "r": # type: ignore[arg-type]
                 handles.append(handle)
                 files = handle.getnames()
                 if len(files) == 1:
@@ -871,6 +871,18 @@ def get_handle(
     )
 
 
+# error: Definition of "__exit__" in base class "TarFile" is incompatible with
+# definition in base class "BytesIO"  [misc]
+# error: Definition of "__enter__" in base class "TarFile" is incompatible with
+# definition in base class "BytesIO"  [misc]
+# error: Definition of "__enter__" in base class "TarFile" is incompatible with
+# definition in base class "BinaryIO"  [misc]
+# error: Definition of "__enter__" in base class "TarFile" is incompatible with
+# definition in base class "IO"  [misc]
+# error: Definition of "read" in base class "TarFile" is incompatible with
+# definition in base class "BytesIO"  [misc]
+# error: Definition of "read" in base class "TarFile" is incompatible with
+# definition in base class "IO"  [misc]
 class _BytesTarFile(tarfile.TarFile, BytesIO):
     """
     Wrapper for standard library class TarFile and allow the returned file-like
