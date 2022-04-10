@@ -106,7 +106,7 @@ char *PyDateTimeToIso(PyObject *obj, NPY_DATETIMEUNIT base,
             offset = PyObject_CallMethod(tmp, "utcoffset", "O", obj);
             if (offset == NULL) {
                 Py_DECREF(tmp);
-                return -1;
+                return NULL;
             }
             Py_DECREF(tmp);
             if (offset != Py_None) {
