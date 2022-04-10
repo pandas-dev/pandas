@@ -627,17 +627,17 @@ class TestReadHtml:
         )
         assert df.shape == ground_truth.shape
         old = [
-            "First Vietnamese American BankIn Vietnamese",
-            "Westernbank Puerto RicoEn Espanol",
-            "R-G Premier Bank of Puerto RicoEn Espanol",
-            "EurobankEn Espanol",
-            "Sanderson State BankEn Espanol",
-            "Washington Mutual Bank(Including its subsidiary Washington "
+            "First Vietnamese American Bank In Vietnamese",
+            "Westernbank Puerto Rico En Espanol",
+            "R-G Premier Bank of Puerto Rico En Espanol",
+            "Eurobank En Espanol",
+            "Sanderson State Bank En Espanol",
+            "Washington Mutual Bank (Including its subsidiary Washington "
             "Mutual Bank FSB)",
-            "Silver State BankEn Espanol",
-            "AmTrade International BankEn Espanol",
-            "Hamilton Bank, NAEn Espanol",
-            "The Citizens Savings BankPioneer Community Bank, Inc.",
+            "Silver State Bank En Espanol",
+            "AmTrade International Bank En Espanol",
+            "Hamilton Bank, NA En Espanol",
+            "The Citizens Savings Bank Pioneer Community Bank, Inc.",
         ]
         new = [
             "First Vietnamese American Bank",
@@ -1302,3 +1302,22 @@ class TestReadHtml:
         df1 = self.read_html(file_path_string)[0]
         df2 = self.read_html(file_path)[0]
         tm.assert_frame_equal(df1, df2)
+
+    def test_parse_br_as_space(self):
+        # GH 29528: pd.read_html() convert <br> to space
+        result = self.read_html(
+            """
+            <table>
+                <tr>
+                    <th>A</th>
+                </tr>
+                <tr>
+                    <td>word1<br>word2</td>
+                </tr>
+            </table>
+        """
+        )[0]
+
+        expected = DataFrame(data=[["word1 word2"]], columns=["A"])
+
+        tm.assert_frame_equal(result, expected)

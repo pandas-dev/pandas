@@ -1088,11 +1088,11 @@ class TestDataFrameAnalytics:
             },
             index=["a", "b", "c"],
         )
-        result = df[["A", "B"]].any(1)
+        result = df[["A", "B"]].any(axis=1)
         expected = Series([True, True, False], index=["a", "b", "c"])
         tm.assert_series_equal(result, expected)
 
-        result = df[["A", "B"]].any(1, bool_only=True)
+        result = df[["A", "B"]].any(axis=1, bool_only=True)
         tm.assert_series_equal(result, expected)
 
         result = df.all(1)
@@ -1141,7 +1141,7 @@ class TestDataFrameAnalytics:
         ]
         df = DataFrame({"A": float_data, "B": datetime_data})
 
-        result = df.any(1)
+        result = df.any(axis=1)
         expected = Series([True, True, True, False])
         tm.assert_series_equal(result, expected)
 
