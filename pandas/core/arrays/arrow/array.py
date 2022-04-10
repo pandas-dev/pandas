@@ -16,6 +16,7 @@ from pandas.compat import (
     pa_version_under1p01,
     pa_version_under2p0,
     pa_version_under5p0,
+    pa_version_under6p0,
 )
 from pandas.util._decorators import doc
 
@@ -103,6 +104,19 @@ class ArrowExtensionArray(ExtensionArray):
         type(self)
         """
         return type(self)(self._data)
+
+    def dropna(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
+        """
+        Return ArrowExtensionArray without NA values.
+
+        Returns
+        -------
+        valid : ArrowExtensionArray
+        """
+        if pa_version_under6p0:
+            return super().dropna()
+        else:
+            return type(self)(pc.drop_null(self._data))
 
     @doc(ExtensionArray.factorize)
     def factorize(self, na_sentinel: int = -1) -> tuple[np.ndarray, ExtensionArray]:
@@ -218,6 +232,19 @@ class ArrowExtensionArray(ExtensionArray):
                 indices_array = np.copy(indices_array)
                 indices_array[indices_array < 0] += len(self._data)
             return type(self)(self._data.take(indices_array))
+
+    def unique(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
+        """
+        Compute the ArrowExtensionArray of unique values.
+
+        Returns
+        -------
+        uniques : ArrowExtensionArray
+        """
+        if pa_version_under2p0:
+            return super().unique()
+        else:
+            return type(self)(pc.unique(self._data))
 
     def value_counts(self, dropna: bool = True) -> Series:
         """
