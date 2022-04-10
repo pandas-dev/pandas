@@ -1568,12 +1568,12 @@ def test_apply_type():
     )
     tm.assert_frame_equal(result, expected)
 
-    # axis 0
+    # axis=0
     result = df.apply(type, axis=0)
     expected = Series({"col1": Series, "col2": Series})
     tm.assert_series_equal(result, expected)
 
-    # axis 1
+    # axis=1
     result = df.apply(type, axis=1)
     expected = Series({"a": Series, "b": Series, "c": Series})
     tm.assert_series_equal(result, expected)
