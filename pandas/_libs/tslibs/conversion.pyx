@@ -44,7 +44,10 @@ from pandas._libs.tslibs.np_datetime cimport (
     pydatetime_to_dt64,
 )
 
-from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
+from pandas._libs.tslibs.np_datetime import (
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
+)
 
 from pandas._libs.tslibs.timezones cimport (
     get_dst_info,
@@ -83,15 +86,6 @@ from pandas._libs.tslibs.tzconversion cimport (
 
 DT64NS_DTYPE = np.dtype('M8[ns]')
 TD64NS_DTYPE = np.dtype('m8[ns]')
-
-
-class OutOfBoundsTimedelta(ValueError):
-    """
-    Raised when encountering a timedelta value that cannot be represented
-    as a timedelta64[ns].
-    """
-    # Timedelta analogue to OutOfBoundsDatetime
-    pass
 
 
 # ----------------------------------------------------------------------
@@ -351,8 +345,8 @@ cdef class _TSObject:
         self.fold = 0
 
 
-cdef convert_to_tsobject(object ts, tzinfo tz, str unit,
-                         bint dayfirst, bint yearfirst, int32_t nanos=0):
+cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
+                                   bint dayfirst, bint yearfirst, int32_t nanos=0):
     """
     Extract datetime and int64 from any of:
         - np.int64 (with unit providing a possible modifier)

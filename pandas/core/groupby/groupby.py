@@ -1106,7 +1106,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # set the result index on the passed values object and
         # return the new object, xref 8046
 
-        if self.grouper.is_monotonic:
+        if self.grouper.is_monotonic and not self.grouper.has_dropped_na:
             # shortcut if we have an already ordered grouper
             result.set_axis(self.obj._get_axis(self.axis), axis=self.axis, inplace=True)
             return result
@@ -2204,8 +2204,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result = self._obj_1d_constructor(result)
 
         if not self.as_index:
-            # Item "None" of "Optional[Series]" has no attribute "reset_index"
-            result = result.rename("size").reset_index()  # type: ignore[union-attr]
+            result = result.rename("size").reset_index()
 
         return self._reindex_output(result, fill_value=0)
 
