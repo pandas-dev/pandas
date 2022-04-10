@@ -889,3 +889,11 @@ def test_apply_retains_column_name():
         index=Index(range(3), name="x"),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_apply_type():
+    # GH 46719
+    s = Series([3, "string", float], index=["a", "b", "c"])
+    result = s.apply(type)
+    expected = Series([int, str, type], index=["a", "b", "c"])
+    tm.assert_series_equal(result, expected)
