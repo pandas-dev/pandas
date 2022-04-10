@@ -1181,7 +1181,6 @@ class SelectNSeries(SelectN):
             arr = arr[::-1]
 
         nbase = n
-        findex = len(self.obj)
         narr = len(arr)
         n = min(n, narr)
 
@@ -1194,6 +1193,11 @@ class SelectNSeries(SelectN):
         if self.keep != "all":
             inds = inds[:n]
             findex = nbase
+        else:
+            if len(inds) < nbase and len(nan_index) + len(inds) >= nbase:
+                findex = len(nan_index) + len(inds)
+            else:
+                findex = len(inds)
 
         if self.keep == "last":
             # reverse indices
