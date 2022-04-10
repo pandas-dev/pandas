@@ -16,16 +16,6 @@ from pandas import (
 import pandas._testing as tm
 
 
-def test_at_timezone():
-    # https://github.com/pandas-dev/pandas/issues/33544
-    result = DataFrame({"foo": [datetime(2000, 1, 1)]})
-    result.at[0, "foo"] = datetime(2000, 1, 2, tzinfo=timezone.utc)
-    expected = DataFrame(
-        {"foo": [datetime(2000, 1, 2, tzinfo=timezone.utc)]}, dtype=object
-    )
-    tm.assert_frame_equal(result, expected)
-
-
 def test_selection_methods_of_assigned_col():
     # GH 29282
     df = DataFrame(data={"a": [1, 2, 3], "b": [4, 5, 6]})
@@ -45,6 +35,68 @@ def test_selection_methods_of_assigned_col():
     result = df[["c"]]
     expected = DataFrame({"c": [9, 11, 7]})
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "value_to_assign",
+    [
+        "a",
+        1,
+        1.0,
+        np.nan,
+        True,
+        ("a",),
+        ["a"],
+        datetime(2000, 1, 2, tzinfo=timezone.utc),
+    ],
+)
+def test_at_setitem_expansion__df(value_to_assign):
+    # GH33544
+    # GH30649
+    result = DataFrame({0: [1, 2]}, index=[3, 2])
+
+    result.at[1, 1] = value_to_assign
+    expected_result = DataFrame(
+        {0: [1, 2, np.nan], 1: [np.nan, np.nan, value_to_assign]}, index=[3, 2, 1]
+    )
+    if isinstance(value_to_assign, datetime):
+        expected_result = expected_result.astype({1: object})
+
+    tm.assert_frame_equal(result, expected_result)
+
+
+@pytest.mark.parametrize(
+    "value_to_assign",
+    [
+        "a",
+        1,
+        1.0,
+        np.nan,
+        True,
+        ("a",),
+        ["a"],
+        {"a": "b"},
+        datetime(2000, 1, 2, tzinfo=timezone.utc),
+        np.array([1]),
+        Series([1]),
+    ],
+)
+@pytest.mark.filterwarnings("ignore::FutureWarning")
+def test_at_setitem_expansion__series(value_to_assign):
+    # GH33544
+    # GH30649
+    result = Series([1, 2], index=[3, 2])
+
+    result.at[1] = value_to_assign
+    # TODO remove if statement when concatenating bool-dtype and
+    # numeric-dtype is cast to object
+    if isinstance(value_to_assign, bool):
+        result = result.astype(object)
+    expected_result = Series([1, 2, value_to_assign], index=[3, 2, 1])
+    if isinstance(value_to_assign, datetime):
+        expected_result = expected_result.astype(object)
+
+    tm.assert_series_equal(result, expected_result)
 
 
 class TestAtSetItem:
