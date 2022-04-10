@@ -98,7 +98,7 @@ char *PyDateTimeToIso(PyObject *obj, NPY_DATETIMEUNIT base,
     if (PyObject_HasAttrString((PyObject*)obj, "tzinfo")) {
         tmp = PyObject_GetAttrString(obj, "tzinfo");
         if (tmp == NULL) {
-            return -1;
+            return NULL;
         }
         if (tmp == Py_None) {
             Py_DECREF(tmp);
