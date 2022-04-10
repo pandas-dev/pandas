@@ -84,6 +84,7 @@ from pandas.core.indexes.api import (
     all_indexes_same,
 )
 from pandas.core.series import Series
+from pandas.core.shared_docs import _shared_docs
 from pandas.core.util.numba_ import maybe_use_numba
 
 from pandas.plotting import boxplot_frame_groupby
@@ -1552,10 +1553,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return results
 
-    @Appender(DataFrame.idxmax.__doc__)
-    def idxmax(self, axis=0, skipna: bool = True):
+    @doc(
+        _shared_docs["idxmax"],
+        numeric_only_default="True for axis=0, False for axis=1",
+    )
+    def idxmax(self, axis=0, skipna: bool = True, numeric_only: bool | None = None):
         axis = DataFrame._get_axis_number(axis)
-        numeric_only = None if axis == 0 else False
+        if numeric_only is None:
+            numeric_only = None if axis == 0 else False
 
         def func(df):
             # NB: here we use numeric_only=None, in DataFrame it is False GH#38217
@@ -1574,13 +1579,17 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         func.__name__ = "idxmax"
         return self._python_apply_general(func, self._obj_with_exclusions)
 
-    @Appender(DataFrame.idxmin.__doc__)
-    def idxmin(self, axis=0, skipna: bool = True):
+    @doc(
+        _shared_docs["idxmin"],
+        numeric_only_default="True for axis=0, False for axis=1",
+    )
+    def idxmin(self, axis=0, skipna: bool = True, numeric_only: bool | None = None):
         axis = DataFrame._get_axis_number(axis)
-        numeric_only = None if axis == 0 else False
+        if numeric_only is None:
+            numeric_only = None if axis == 0 else False
 
         def func(df):
-            # NB: here we use numeric_only=None, in DataFrame it is False GH#38217
+            # NB: here we use numeric_only=None, in DataFrame it is False GH#46560
             res = df._reduce(
                 nanops.nanargmin,
                 "argmin",

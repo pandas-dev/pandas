@@ -4,6 +4,7 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
+from pandas._libs import lib
 from pandas.compat import IS64
 from pandas.errors import PerformanceWarning
 
@@ -892,14 +893,36 @@ def test_keep_nuisance_agg(df, agg_function):
 
 @pytest.mark.parametrize(
     "agg_function",
-    ["sum", "mean", "prod", "std", "var", "median"],
+    ["sum", "mean", "prod", "std", "var", "sem", "median"],
 )
-def test_omit_nuisance_agg(df, agg_function):
+@pytest.mark.parametrize("numeric_only", [lib.no_default, True, False])
+def test_omit_nuisance_agg(df, agg_function, numeric_only):
     # GH 38774, GH 38815
+    if not numeric_only and agg_function != "sum":
+        # sum doesn't drop strings
+        warn = FutureWarning
+    else:
+        warn = None
+
     grouped = df.groupby("A")
-    result = getattr(grouped, agg_function)()
-    expected = getattr(df.loc[:, ["A", "C", "D"]].groupby("A"), agg_function)()
-    tm.assert_frame_equal(result, expected)
+
+    if agg_function in ("var", "std", "sem") and numeric_only is False:
+        # Added numeric_only as part of GH#46560; these do not drop nuisance
+        # columns when numeric_only is False
+        klass = TypeError if agg_function == "var" else ValueError
+        with pytest.raises(klass, match="could not convert string to float"):
+            getattr(grouped, agg_function)(numeric_only=numeric_only)
+    else:
+        with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
+            result = getattr(grouped, agg_function)(numeric_only=numeric_only)
+        if numeric_only is lib.no_default or not numeric_only:
+            columns = ["A", "B", "C", "D"]
+        elif numeric_only:
+            columns = ["A", "C", "D"]
+        expected = getattr(df.loc[:, columns].groupby("A"), agg_function)(
+            numeric_only=numeric_only
+        )
+        tm.assert_frame_equal(result, expected)
 
 
 def test_omit_nuisance_warnings(df):
