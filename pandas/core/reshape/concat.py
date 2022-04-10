@@ -18,7 +18,10 @@ import warnings
 
 import numpy as np
 
-from pandas._typing import Axis
+from pandas._typing import (
+    Axis,
+    HashableT,
+)
 from pandas.util._decorators import (
     cache_readonly,
     deprecate_nonkeyword_arguments,
@@ -62,7 +65,7 @@ if TYPE_CHECKING:
 
 @overload
 def concat(
-    objs: Iterable[DataFrame] | Mapping[Hashable, DataFrame],
+    objs: Iterable[DataFrame] | Mapping[HashableT, DataFrame],
     axis: Literal[0, "index"] = ...,
     join: str = ...,
     ignore_index: bool = ...,
@@ -78,7 +81,7 @@ def concat(
 
 @overload
 def concat(
-    objs: Iterable[Series] | Mapping[Hashable, Series],
+    objs: Iterable[Series] | Mapping[HashableT, Series],
     axis: Literal[0, "index"] = ...,
     join: str = ...,
     ignore_index: bool = ...,
@@ -94,7 +97,7 @@ def concat(
 
 @overload
 def concat(
-    objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
+    objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
     axis: Literal[0, "index"] = ...,
     join: str = ...,
     ignore_index: bool = ...,
@@ -110,7 +113,7 @@ def concat(
 
 @overload
 def concat(
-    objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
+    objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
     axis: Literal[1, "columns"],
     join: str = ...,
     ignore_index: bool = ...,
@@ -126,7 +129,7 @@ def concat(
 
 @overload
 def concat(
-    objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
+    objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
     axis: Axis = ...,
     join: str = ...,
     ignore_index: bool = ...,
@@ -142,7 +145,7 @@ def concat(
 
 @deprecate_nonkeyword_arguments(version=None, allowed_args=["objs"])
 def concat(
-    objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
+    objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
     axis: Axis = 0,
     join: str = "outer",
     ignore_index: bool = False,
@@ -367,7 +370,7 @@ class _Concatenator:
 
     def __init__(
         self,
-        objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
+        objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
         axis=0,
         join: str = "outer",
         keys=None,
@@ -665,6 +668,8 @@ class _Concatenator:
             return idx
 
         if self.keys is None:
+            if self.levels is not None:
+                raise ValueError("levels supported only when keys is not None")
             concat_axis = _concat_indexes(indexes)
         else:
             concat_axis = _make_concat_multiindex(
@@ -705,9 +710,13 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
             names = [None]
 
         if levels is None:
-            levels = [ensure_index(keys)]
+            levels = [ensure_index(keys).unique()]
         else:
             levels = [ensure_index(x) for x in levels]
+
+    for level in levels:
+        if not level.is_unique:
+            raise ValueError(f"Level values not unique: {level.tolist()}")
 
     if not all_indexes_same(indexes) or not all(level.is_unique for level in levels):
         codes_list = []

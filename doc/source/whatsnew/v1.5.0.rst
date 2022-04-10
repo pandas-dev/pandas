@@ -24,10 +24,56 @@ Styler
   - Added a new method :meth:`.Styler.concat` which allows adding customised footer rows to visualise additional calculations on the data, e.g. totals and counts etc. (:issue:`43875`, :issue:`46186`)
   - :meth:`.Styler.highlight_null` now accepts ``color`` consistently with other builtin methods and deprecates ``null_color`` although this remains backwards compatible (:issue:`45907`)
 
-.. _whatsnew_150.enhancements.enhancement2:
+.. _whatsnew_150.enhancements.resample_group_keys:
 
-enhancement2
-^^^^^^^^^^^^
+Control of index with ``group_keys`` in :meth:`DataFrame.resample`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The argument ``group_keys`` has been added to the method :meth:`DataFrame.resample`.
+As with :meth:`DataFrame.groupby`, this argument controls the whether each group is added
+to the index in the resample when :meth:`.Resampler.apply` is used.
+
+.. warning::
+   Not specifying the ``group_keys`` argument will retain the
+   previous behavior and emit a warning if the result will change
+   by specifying ``group_keys=False``. In a future version
+   of pandas, not specifying ``group_keys`` will default to
+   the same behavior as ``group_keys=False``.
+
+.. ipython:: python
+
+    df = pd.DataFrame(
+        {'a': range(6)},
+        index=pd.date_range("2021-01-01", periods=6, freq="8H")
+    )
+    df.resample("D", group_keys=True).apply(lambda x: x)
+    df.resample("D", group_keys=False).apply(lambda x: x)
+
+Previously, the resulting index would depend upon the values returned by ``apply``,
+as seen in the following example.
+
+.. code-block:: ipython
+
+    In [1]: # pandas 1.3
+    In [2]: df.resample("D").apply(lambda x: x)
+    Out[2]:
+                         a
+    2021-01-01 00:00:00  0
+    2021-01-01 08:00:00  1
+    2021-01-01 16:00:00  2
+    2021-01-02 00:00:00  3
+    2021-01-02 08:00:00  4
+    2021-01-02 16:00:00  5
+
+    In [3]: df.resample("D").apply(lambda x: x.reset_index())
+    Out[3]:
+                               index  a
+    2021-01-01 0 2021-01-01 00:00:00  0
+               1 2021-01-01 08:00:00  1
+               2 2021-01-01 16:00:00  2
+    2021-01-02 0 2021-01-02 00:00:00  3
+               1 2021-01-02 08:00:00  4
+               2 2021-01-02 16:00:00  5
 
 .. _whatsnew_150.enhancements.other:
 
@@ -43,10 +89,12 @@ Other enhancements
 - :meth:`DataFrame.rolling` and :meth:`Series.rolling` now support a ``step`` parameter with fixed-length windows (:issue:`15354`)
 - Implemented a ``bool``-dtype :class:`Index`, passing a bool-dtype array-like to ``pd.Index`` will now retain ``bool`` dtype instead of casting to ``object`` (:issue:`45061`)
 - Implemented a complex-dtype :class:`Index`, passing a complex-dtype array-like to ``pd.Index`` will now retain complex dtype instead of casting to ``object`` (:issue:`45845`)
-- Improved error message in :class:`~pandas.core.window.Rolling` when ``window`` is a frequency and ``NaT`` is in the rolling axis (:issue:`46087`)
 - :class:`Series` and :class:`DataFrame` with ``IntegerDtype`` now supports bitwise operations (:issue:`34463`)
 - Add ``milliseconds`` field support for :class:`~pandas.DateOffset` (:issue:`43371`)
 - :meth:`DataFrame.reset_index` now accepts a ``names`` argument which renames the index names (:issue:`6878`)
+- :meth:`pd.concat` now raises when ``levels`` is given but ``keys`` is None (:issue:`46653`)
+- :meth:`pd.concat` now raises when ``levels`` contains duplicate values (:issue:`46653`)
+- Added ``numeric_only`` argument to :meth:`DataFrame.corr`, :meth:`DataFrame.corrwith`, and :meth:`DataFrame.cov` (:issue:`46560`)
 - :meth:`DataFrame.rolling.var`, :meth:`DataFrame.rolling.std`, :meth:`Series.rolling.var`, :meth:`Series.rolling.std` now generate correct result 0 for window containing same values (:issue:`42064`)
 -
 
@@ -347,6 +395,23 @@ that their usage is considered unsafe, and can lead to unexpected results.
 
 See the documentation of :class:`ExcelWriter` for further details.
 
+.. _whatsnew_150.deprecations.group_keys_in_apply:
+
+Using ``group_keys`` with transformers in :meth:`.GroupBy.apply`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In previous versions of pandas, if it was inferred that the function passed to
+:meth:`.GroupBy.apply` was a transformer (i.e. the resulting index was equal to
+the input index), the ``group_keys`` argument of :meth:`DataFrame.groupby` and
+:meth:`Series.groupby` was ignored and the group keys would never be added to
+the index of the result. In the future, the group keys will be added to the index
+when the user specifies ``group_keys=True``.
+
+As ``group_keys=True`` is the default value of :meth:`DataFrame.groupby` and
+:meth:`Series.groupby`, not specifying ``group_keys`` with a transformer will
+raise a ``FutureWarning``. This can be silenced and the previous behavior
+retained by specifying ``group_keys=False``.
+
 .. _whatsnew_150.deprecations.other:
 
 Other Deprecations
@@ -366,7 +431,8 @@ Other Deprecations
 - Deprecated behavior of method :meth:`DataFrame.quantile`, attribute ``numeric_only`` will default False. Including datetime/timedelta columns in the result (:issue:`7308`).
 - Deprecated :attr:`Timedelta.freq` and :attr:`Timedelta.is_populated` (:issue:`46430`)
 - Deprecated :attr:`Timedelta.delta` (:issue:`46476`)
--
+- Deprecated the ``closed`` argument in :meth:`interval_range` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
+- Deprecated the methods :meth:`DataFrame.mad`, :meth:`Series.mad`, and the corresponding groupby methods (:issue:`11787`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.performance:
@@ -500,7 +566,8 @@ I/O
 - Bug in :func:`read_parquet` when ``engine="pyarrow"`` which caused partial write to disk when column of unsupported datatype was passed (:issue:`44914`)
 - Bug in :func:`DataFrame.to_excel` and :class:`ExcelWriter` would raise when writing an empty DataFrame to a ``.ods`` file (:issue:`45793`)
 - Bug in Parquet roundtrip for Interval dtype with ``datetime64[ns]`` subtype (:issue:`45881`)
-- Bug in :func:`read_excel` when reading a ``.ods`` file with newlines between xml elements(:issue:`45598`)
+- Bug in :func:`read_excel` when reading a ``.ods`` file with newlines between xml elements (:issue:`45598`)
+- Bug in :func:`read_parquet` when ``engine="fastparquet"`` where the file was not closed on error (:issue:`46555`)
 
 Period
 ^^^^^^
@@ -515,6 +582,7 @@ Plotting
 - Bug in :meth:`DataFrame.boxplot` that prevented passing in ``xlabel`` and ``ylabel`` (:issue:`45463`)
 - Bug in :meth:`DataFrame.boxplot` that prevented specifying ``vert=False`` (:issue:`36918`)
 - Bug in :meth:`DataFrame.plot.scatter` that prevented specifying ``norm`` (:issue:`45809`)
+- The function :meth:`DataFrame.plot.scatter` now accepts ``color`` as an alias for ``c`` and ``size`` as an alias for ``s`` for consistency to other plotting functions (:issue:`44670`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -538,6 +606,8 @@ Reshaping
 - Bug in :func:`get_dummies` that selected object and categorical dtypes but not string (:issue:`44965`)
 - Bug in :meth:`DataFrame.align` when aligning a :class:`MultiIndex` to a :class:`Series` with another :class:`MultiIndex` (:issue:`46001`)
 - Bug in concanenation with ``IntegerDtype``, or ``FloatingDtype`` arrays where the resulting dtype did not mirror the behavior of the non-nullable dtypes (:issue:`46379`)
+- Bug in :func:`concat` with identical key leads to error when indexing :class:`MultiIndex` (:issue:`46519`)
+- Bug in :meth:`DataFrame.join` with a list when using suffixes to join DataFrames with duplicate column names (:issue:`46396`)
 -
 
 Sparse
@@ -553,6 +623,12 @@ ExtensionArray
 Styler
 ^^^^^^
 - Bug when attempting to apply styling functions to an empty DataFrame subset (:issue:`45313`)
+-
+
+Metadata
+^^^^^^^^
+- Fixed metadata propagation in :meth:`DataFrame.melt` (:issue:`28283`)
+- Fixed metadata propagation in :meth:`DataFrame.explode` (:issue:`28283`)
 -
 
 Other
