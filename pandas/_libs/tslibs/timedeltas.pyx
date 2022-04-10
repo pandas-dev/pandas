@@ -907,12 +907,12 @@ cdef class _Timedelta(timedelta):
 
     def __hash__(_Timedelta self):
         if self._has_ns():
-            if self._reso == NPY_FR_ns:
-                return hash(self.value)
-            else:
-                # TODO: more performant way to do this? same problem for Timestamp
-                # Invariances we are supposed to preserve?
-                return hash((self.value, self._reso))
+            # Note: this does *not* satisfy the invariance
+            #  td1 == td2 \\Rightarrow hash(td1) == hash(td2)
+            #  if td1 and td2 have different _resos. timedelta64 also has this
+            #  non-invariant behavior.
+            #  see GH#44504
+            return self.value
         else:
             return timedelta.__hash__(self)
 
