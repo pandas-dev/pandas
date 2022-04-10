@@ -228,7 +228,6 @@ static PyObject *get_values(PyObject *obj) {
                 // be lost if values is used directly.
                 Py_DECREF(tz);
                 values = PyObject_CallMethod(obj, "__array__", NULL);
-                PyObject_Print(values, stdout, NULL);
                 return values;
             }
             Py_DECREF(tz);
