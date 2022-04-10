@@ -221,8 +221,19 @@ static PyObject *get_values(PyObject *obj) {
         // The special cases to worry about are dt64tz and category[dt64tz].
         //  In both cases we want the UTC-localized datetime64 ndarray,
         //  without going through and object array of Timestamps.
+        if (PyObject_HasAttrString(obj, "tz")) {
+            PyObject *tz = PyObject_GetAttrString(obj, "tz");
+            if (tz != Py_None) {
+                // Go through object array if we have dt64tz, since tz info will
+                // be lost if values is used directly.
+                Py_DECREF(tz);
+                values = PyObject_CallMethod(obj, "__array__", NULL);
+                PyObject_Print(values, stdout, NULL);
+                return values;
+            }
+            Py_DECREF(tz);
+        }
         values = PyObject_GetAttrString(obj, "values");
-
         if (values == NULL) {
             // Clear so we can subsequently try another method
             PyErr_Clear();
@@ -707,6 +718,22 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
 
     for (i = 0; i < PyObject_Length(arrays); i++) {
         array = PyList_GET_ITEM(arrays, i);
+        // tz information is lost when dt64tz is converted
+        // to numpy arrays.
+        // TODO(lithomas1): Patch column_arrays(actually values_for_json)
+        // to return EAs instead of casting to object
+        if (PyArray_TYPE((PyArrayObject *)array) == NPY_DATETIME) {
+            PyObject *mgr = PyObject_GetAttrString(obj, "_mgr");
+            PyObject *dtarr = PyObject_CallMethod(mgr, "iget_values", "n", i);
+            PyObject *tz = PyObject_GetAttrString(dtarr, "tz");
+            if (tz != Py_None) {
+                // we have a timezone, use an object array of Timestamp
+                array = PyObject_CallMethod(dtarr, "__array__", NULL);
+            }
+            Py_DECREF(mgr);
+            Py_DECREF(dtarr);
+            Py_DECREF(tz);
+        }
         if (!array) {
             GET_TC(tc)->iterNext = NpyArr_iterNextNone;
             goto ARR_RET;

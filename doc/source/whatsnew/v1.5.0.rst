@@ -563,6 +563,7 @@ I/O
 - Bug in Parquet roundtrip for Interval dtype with ``datetime64[ns]`` subtype (:issue:`45881`)
 - Bug in :func:`read_excel` when reading a ``.ods`` file with newlines between xml elements (:issue:`45598`)
 - Bug in :func:`read_parquet` when ``engine="fastparquet"`` where the file was not closed on error (:issue:`46555`)
+- Bug in :meth:`DataFrame.to_json`, :meth:`Series.to_json`, and :meth:`Index.to_json` where tz-aware datetimes were being incorrectly localized to UTC (:issue:`38760`)
 
 Period
 ^^^^^^

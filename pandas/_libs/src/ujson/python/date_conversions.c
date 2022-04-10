@@ -54,8 +54,8 @@ char *int64ToIso(int64_t value, NPY_DATETIMEUNIT base, size_t *len) {
         PyErr_NoMemory();
         return NULL;
     }
-
-    ret_code = make_iso_8601_datetime(&dts, result, *len, base);
+    ret_code = make_iso_8601_datetime(&dts, result, *len,
+                                      0 /* datetime64 is always naive */, base);
     if (ret_code != 0) {
         PyErr_SetString(PyExc_ValueError,
                         "Could not convert datetime value to string");
@@ -90,7 +90,32 @@ char *PyDateTimeToIso(PyObject *obj, NPY_DATETIMEUNIT base,
 
     *len = (size_t)get_datetime_iso_8601_strlen(0, base);
     char *result = PyObject_Malloc(*len);
-    ret = make_iso_8601_datetime(&dts, result, *len, base);
+    // Check to see if PyDateTime has a timezone.
+    // Don't convert to UTC if it doesn't.
+    int is_tz_aware = 0;
+    PyObject *tmp;
+    PyObject *offset;
+    if (PyObject_HasAttrString((PyObject*)obj, "tzinfo")) {
+        tmp = PyObject_GetAttrString(obj, "tzinfo");
+        if (tmp == NULL) {
+            return -1;
+        }
+        if (tmp == Py_None) {
+            Py_DECREF(tmp);
+        } else {
+            offset = PyObject_CallMethod(tmp, "utcoffset", "O", obj);
+            if (offset == NULL) {
+                Py_DECREF(tmp);
+                return -1;
+            }
+            Py_DECREF(tmp);
+            if (offset != Py_None) {
+                is_tz_aware = 1;
+            }
+            Py_DECREF(offset);
+        }
+    }
+    ret = make_iso_8601_datetime(&dts, result, *len, is_tz_aware, base);
 
     if (ret != 0) {
         PyErr_SetString(PyExc_ValueError,
