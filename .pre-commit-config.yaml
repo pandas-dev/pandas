@@ -176,6 +176,13 @@ repos:
         files: ^pandas/core/
         exclude: ^pandas/core/api\.py$
         types: [python]
+    -   id: use-io-common-urlopen
+        name: Use pandas.io.common.urlopen instead of urllib.request.urlopen
+        language: python
+        entry: python scripts/use_io_common_urlopen.py
+        files: ^pandas/
+        exclude: ^pandas/tests/
+        types: [python]
     -   id: no-bool-in-core-generic
         name: Use bool_t instead of bool in pandas/core/generic.py
         entry: python scripts/no_bool_in_generic.py
