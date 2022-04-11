@@ -182,6 +182,7 @@ Styler
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
+
 - rolling mean / sum / std / var / skew / kurt now output correct result for window with same values (:issue:`42064`, :issue:`30993`)
 
 .. ---------------------------------------------------------------------------
