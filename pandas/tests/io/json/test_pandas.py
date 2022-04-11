@@ -1229,7 +1229,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         tz_range = pd.date_range("2013-01-01 05:00:00", periods=2)
 
         exp = '["2013-01-01T05:00:00.000","2013-01-02T05:00:00.000"]'
-        dfexp = '{"DT":{"0":"2013-01-01T05:00:00.000", "1":"2013-01-02T05:00:00.000"}}'
+        dfexp = '{"DT":{"0":"2013-01-01T05:00:00.000","1":"2013-01-02T05:00:00.000"}}'
 
         assert dumps(tz_range, iso_dates=True) == exp
         dti = DatetimeIndex(tz_range)
