@@ -420,8 +420,10 @@ class TestReaders:
                     datetime(2013, 12, 14),
                     datetime(2015, 3, 14),
                 ],
+                "BoolColWithBlank": [True, False, None, True, False],
             },
         )
+
         basename = "test_types"
 
         # should read in correctly and infer types
@@ -1329,16 +1331,6 @@ class TestReaders:
                 [3, 878.158, 108013.434, "GHI", "rez", 2.735694704],
             ],
             columns=["Id", "Number1", "Number2", "Text1", "Text2", "Number3"],
-        )
-        tm.assert_frame_equal(result, expected)
-
-    def test_read_boolean_column_with_blanks(self, read_ext):
-        # GH 45903
-        result = pd.read_excel(
-            "boolean_with_blanks" + read_ext, dtype={"var1": "boolean"}
-        )
-        expected = DataFrame(
-            [[True], [False], [None], [True]], columns=["var1"], dtype="boolean"
         )
         tm.assert_frame_equal(result, expected)
 
