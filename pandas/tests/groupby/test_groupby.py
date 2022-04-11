@@ -915,9 +915,13 @@ def test_omit_nuisance_agg(df, agg_function, numeric_only):
     else:
         with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
             result = getattr(grouped, agg_function)(numeric_only=numeric_only)
-        if numeric_only is lib.no_default or not numeric_only:
+        if (
+            (numeric_only is lib.no_default or not numeric_only)
+            # These methods drop non-numeric columns even when numeric_only is False
+            and agg_function not in ("mean", "prod", "median")
+        ):
             columns = ["A", "B", "C", "D"]
-        elif numeric_only:
+        else:
             columns = ["A", "C", "D"]
         expected = getattr(df.loc[:, columns].groupby("A"), agg_function)(
             numeric_only=numeric_only
