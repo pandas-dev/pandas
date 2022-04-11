@@ -154,18 +154,12 @@ _all_methods = [
         operator.methodcaller("pivot_table", columns="A", aggfunc=["mean", "sum"]),
     ),
     (pd.DataFrame, frame_data, operator.methodcaller("stack")),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("explode", "A")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("explode", "A")),
     (pd.DataFrame, frame_mi_data, operator.methodcaller("unstack")),
-    pytest.param(
-        (
-            pd.DataFrame,
-            ({"A": ["a", "b", "c"], "B": [1, 3, 5], "C": [2, 4, 6]},),
-            operator.methodcaller("melt", id_vars=["A"], value_vars=["B"]),
-        ),
-        marks=not_implemented_mark,
+    (
+        pd.DataFrame,
+        ({"A": ["a", "b", "c"], "B": [1, 3, 5], "C": [2, 4, 6]},),
+        operator.methodcaller("melt", id_vars=["A"], value_vars=["B"]),
     ),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("applymap", lambda x: x))
@@ -248,14 +242,26 @@ _all_methods = [
         marks=not_implemented_mark,
     ),
     pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("quantile")),
+        (
+            pd.DataFrame,
+            frame_data,
+            operator.methodcaller("quantile", numeric_only=True),
+        ),
         marks=not_implemented_mark,
     ),
     pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("quantile", q=[0.25, 0.75])),
+        (
+            pd.DataFrame,
+            frame_data,
+            operator.methodcaller("quantile", q=[0.25, 0.75], numeric_only=True),
+        ),
     ),
     pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("quantile")),
+        (
+            pd.DataFrame,
+            frame_data,
+            operator.methodcaller("quantile", numeric_only=True),
+        ),
         marks=not_implemented_mark,
     ),
     (
@@ -736,7 +742,7 @@ def test_categorical_accessor(method):
 )
 def test_groupby_finalize(obj, method):
     obj.attrs = {"a": 1}
-    result = method(obj.groupby([0, 0]))
+    result = method(obj.groupby([0, 0], group_keys=False))
     assert result.attrs == {"a": 1}
 
 

@@ -8,6 +8,7 @@ import operator
 import os
 import re
 import string
+from sys import byteorder
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -168,6 +169,8 @@ NARROW_NP_DTYPES = [
     np.uint32,
 ]
 
+ENDIAN = {"little": "<", "big": ">"}[byteorder]
+
 NULL_OBJECTS = [None, np.nan, pd.NaT, float("nan"), pd.NA, Decimal("NaN")]
 NP_NAT_OBJECTS = [
     cls("NaT", unit)
@@ -305,7 +308,7 @@ def makeUnicodeIndex(k=10, name=None):
 
 def makeCategoricalIndex(k=10, n=3, name=None, **kwargs):
     """make a length k index or n categories"""
-    x = rands_array(nchars=4, size=n)
+    x = rands_array(nchars=4, size=n, replace=False)
     return CategoricalIndex(
         Categorical.from_codes(np.arange(k) % n, categories=x), name=name, **kwargs
     )
