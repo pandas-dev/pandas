@@ -432,7 +432,11 @@ _shared_docs[
     ``tarfile.TarFile``, respectively.
     As an example, the following could be passed for faster compression and to create
     a reproducible gzip archive:
-    ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``."""
+    ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
+
+        .. versionadded:: 1.5.0
+            Added support for `.tar` files.
+    """
 
 _shared_docs[
     "decompression_options"
@@ -451,7 +455,11 @@ _shared_docs[
     ``tarfile.TarFile``, respectively.
     As an example, the following could be passed for Zstandard decompression using a
     custom compression dictionary:
-    ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``."""
+    ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``.
+
+        .. versionadded:: 1.5.0
+            Added support for `.tar` files.
+    """
 
 _shared_docs[
     "replace"
