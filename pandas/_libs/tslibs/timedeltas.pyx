@@ -912,7 +912,7 @@ cdef class _Timedelta(timedelta):
             #  if td1 and td2 have different _resos. timedelta64 also has this
             #  non-invariant behavior.
             #  see GH#44504
-            return self.value
+            return hash(self.value)
         else:
             return timedelta.__hash__(self)
 
