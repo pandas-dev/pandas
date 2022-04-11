@@ -600,7 +600,12 @@ def test_replace_regex_default_warning(any_string_dtype):
         "The default value of regex will change from True to False in a "
         "future version\\.$"
     )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+
+    with tm.assert_produces_warning(
+        FutureWarning,
+        match=msg,
+        raise_on_extra_warnings=any_string_dtype != "string[pyarrow]",
+    ):
         result = s.str.replace("^.$", "a")
     expected = Series(["a", "a", "ac", np.nan, ""], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
