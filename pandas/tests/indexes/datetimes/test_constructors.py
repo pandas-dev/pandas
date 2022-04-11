@@ -96,16 +96,6 @@ class TestDatetimeIndex:
 
         assert_equal(expected, result)
 
-    def test_value_counts_preserves_freq(self):
-        # GH33830 freq retention in value_counts
-        dti = date_range("2016-01-01", periods=5)
-
-        expected = dti.freq
-
-        result = dti.value_counts().index.freq
-
-        assert_equal(expected, result)
-
     def test_dti_with_period_data_raises(self):
         # GH#23675
         data = pd.PeriodIndex(["2016Q1", "2016Q2"], freq="Q")
