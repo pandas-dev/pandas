@@ -91,7 +91,7 @@ class StylerRenderer:
         caption: str | tuple | None = None,
         cell_ids: bool = True,
         precision: int | None = None,
-    ):
+    ) -> None:
 
         # validate ordered args
         if isinstance(data, Series):
@@ -1589,7 +1589,7 @@ def _render_href(x, format):
             href = r"\href{{{0}}}{{{0}}}"
         else:
             raise ValueError("``hyperlinks`` format can only be 'html' or 'latex'")
-        pat = r"(https?:\/\/|ftp:\/\/|www.)[\w/\-?=%.]+\.[\w/\-&?=%.]+"
+        pat = r"((http|ftp)s?:\/\/|www.)[\w/\-?=%.:@]+\.[\w/\-&?=%.,':;~!@#$*()\[\]]+"
         return re.sub(pat, lambda m: href.format(m.group(0)), x)
     return x
 
@@ -1789,7 +1789,7 @@ class Tooltips:
         ],
         css_name: str = "pd-t",
         tooltips: DataFrame = DataFrame(),
-    ):
+    ) -> None:
         self.class_name = css_name
         self.class_properties = css_props
         self.tt_data = tooltips

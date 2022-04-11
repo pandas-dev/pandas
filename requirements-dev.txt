@@ -4,23 +4,23 @@
 numpy>=1.18.5
 python-dateutil>=2.8.1
 pytz
-asv < 0.5.0
+asv
 cython>=0.29.24
-black==21.5b2
+black==22.3.0
 cpplint
 flake8==4.0.1
 flake8-bugbear==21.3.2
 flake8-comprehensions==3.7.0
 isort>=5.2.1
-mypy==0.931
+mypy==0.941
 pre-commit>=2.9.2
 pycodestyle
 pyupgrade
 gitpython
 gitdb
 numpydoc
-pandas-dev-flaker==0.4.0
-pydata-sphinx-theme
+pandas-dev-flaker==0.5.0
+pydata-sphinx-theme==0.8.0
 pytest-cython
 sphinx
 sphinx-panels
@@ -28,7 +28,7 @@ types-python-dateutil
 types-PyMySQL
 types-pytz
 types-setuptools
-nbconvert>=5.4.1
+nbconvert>=6.4.5
 nbsphinx
 pandoc
 dask
@@ -47,7 +47,7 @@ flask
 pytest>=6.0
 pytest-cov
 pytest-xdist>=1.31
-pytest-asyncio
+pytest-asyncio>=0.17
 pytest-instafail
 seaborn
 statsmodels

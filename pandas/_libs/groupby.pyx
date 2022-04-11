@@ -31,7 +31,10 @@ from numpy.math cimport NAN
 cnp.import_array()
 
 from pandas._libs cimport util
-from pandas._libs.algos cimport kth_smallest_c
+from pandas._libs.algos cimport (
+    get_rank_nan_fill_val,
+    kth_smallest_c,
+)
 
 from pandas._libs.algos import (
     ensure_platform_int,
@@ -989,31 +992,16 @@ cdef inline bint _treat_as_na(numeric_object_t val, bint is_datetimelike) nogil:
         return False
 
 
-cdef numeric_t _get_min_or_max(numeric_t val, bint compute_max):
+cdef numeric_object_t _get_min_or_max(numeric_object_t val, bint compute_max, bint is_datetimelike):
     """
-    Find either the min or the max supported by numeric_t; 'val' is a placeholder
-    to effectively make numeric_t an argument.
+    Find either the min or the max supported by numeric_object_t; 'val' is a
+    placeholder to effectively make numeric_object_t an argument.
     """
-    if numeric_t is int64_t:
-        return -_int64_max if compute_max else util.INT64_MAX
-    elif numeric_t is int32_t:
-        return util.INT32_MIN if compute_max else util.INT32_MAX
-    elif numeric_t is int16_t:
-        return util.INT16_MIN if compute_max else util.INT16_MAX
-    elif numeric_t is int8_t:
-        return util.INT8_MIN if compute_max else util.INT8_MAX
-
-    elif numeric_t is uint64_t:
-        return 0 if compute_max else util.UINT64_MAX
-    elif numeric_t is uint32_t:
-        return 0 if compute_max else util.UINT32_MAX
-    elif numeric_t is uint16_t:
-        return 0 if compute_max else util.UINT16_MAX
-    elif numeric_t is uint8_t:
-        return 0 if compute_max else util.UINT8_MAX
-
-    else:
-        return -np.inf if compute_max else np.inf
+    return get_rank_nan_fill_val(
+        not compute_max,
+        val=val,
+        is_datetimelike=is_datetimelike,
+    )
 
 
 cdef numeric_t _get_na_val(numeric_t val, bint is_datetimelike):
@@ -1042,6 +1030,7 @@ def group_last(
     const uint8_t[:, :] mask,
     uint8_t[:, ::1] result_mask=None,
     Py_ssize_t min_count=-1,
+    bint is_datetimelike=False,
 ) -> None:
     """
     Only aggregates on axis=0
@@ -1051,7 +1040,6 @@ def group_last(
         iu_64_floating_obj_t val
         ndarray[iu_64_floating_obj_t, ndim=2] resx
         ndarray[int64_t, ndim=2] nobs
-        bint runtime_error = False
         bint uses_mask = mask is not None
         bint isna_entry
 
@@ -1111,8 +1099,7 @@ def group_last(
                     if uses_mask:
                         isna_entry = mask[i, j]
                     else:
-                        isna_entry = _treat_as_na(val, True)
-                        # TODO: Sure we always want is_datetimelike=True?
+                        isna_entry = _treat_as_na(val, is_datetimelike)
 
                     if not isna_entry:
                         nobs[lab, j] += 1
@@ -1120,25 +1107,29 @@ def group_last(
 
             for i in range(ncounts):
                 for j in range(K):
+                    # TODO(cython3): the entire next block can be shared
+                    #  across 3 places once conditional-nogil is available
                     if nobs[i, j] < min_count:
+                        # if we are integer dtype, not is_datetimelike, and
+                        #  not uses_mask, then getting here implies that
+                        #  counts[i] < min_count, which means we will
+                        #  be cast to float64 and masked at the end
+                        #  of WrappedCythonOp._call_cython_op. So we can safely
+                        #  set a placeholder value in out[i, j].
                         if uses_mask:
                             result_mask[i, j] = True
                         elif iu_64_floating_obj_t is int64_t:
-                            # TODO: only if datetimelike?
+                            # Per above, this is a placeholder in
+                            #  non-is_datetimelike cases.
                             out[i, j] = NPY_NAT
                         elif iu_64_floating_obj_t is uint64_t:
-                            runtime_error = True
-                            break
+                            # placeholder, see above
+                            out[i, j] = 0
                         else:
                             out[i, j] = NAN
 
                     else:
                         out[i, j] = resx[i, j]
-
-    if runtime_error:
-        # We cannot raise directly above because that is within a nogil
-        #  block.
-        raise RuntimeError("empty group with uint64_t")
 
 
 # TODO(cython3): GH#31710 use memorviews once cython 0.30 is released so we can
@@ -1154,6 +1145,7 @@ def group_nth(
     uint8_t[:, ::1] result_mask=None,
     int64_t min_count=-1,
     int64_t rank=1,
+    bint is_datetimelike=False,
 ) -> None:
     """
     Only aggregates on axis=0
@@ -1163,7 +1155,6 @@ def group_nth(
         iu_64_floating_obj_t val
         ndarray[iu_64_floating_obj_t, ndim=2] resx
         ndarray[int64_t, ndim=2] nobs
-        bint runtime_error = False
         bint uses_mask = mask is not None
         bint isna_entry
 
@@ -1225,8 +1216,7 @@ def group_nth(
                     if uses_mask:
                         isna_entry = mask[i, j]
                     else:
-                        isna_entry = _treat_as_na(val, True)
-                        # TODO: Sure we always want is_datetimelike=True?
+                        isna_entry = _treat_as_na(val, is_datetimelike)
 
                     if not isna_entry:
                         nobs[lab, j] += 1
@@ -1236,24 +1226,26 @@ def group_nth(
             for i in range(ncounts):
                 for j in range(K):
                     if nobs[i, j] < min_count:
+                        # if we are integer dtype, not is_datetimelike, and
+                        #  not uses_mask, then getting here implies that
+                        #  counts[i] < min_count, which means we will
+                        #  be cast to float64 and masked at the end
+                        #  of WrappedCythonOp._call_cython_op. So we can safely
+                        #  set a placeholder value in out[i, j].
                         if uses_mask:
                             result_mask[i, j] = True
                             out[i, j] = 0
                         elif iu_64_floating_obj_t is int64_t:
-                            # TODO: only if datetimelike?
+                            # Per above, this is a placeholder in
+                            #  non-is_datetimelike cases.
                             out[i, j] = NPY_NAT
                         elif iu_64_floating_obj_t is uint64_t:
-                            runtime_error = True
-                            break
+                            # placeholder, see above
+                            out[i, j] = 0
                         else:
                             out[i, j] = NAN
                     else:
                         out[i, j] = resx[i, j]
-
-    if runtime_error:
-        # We cannot raise directly above because that is within a nogil
-        #  block.
-        raise RuntimeError("empty group with uint64_t")
 
 
 @cython.boundscheck(False)
@@ -1381,7 +1373,6 @@ cdef group_min_max(
         Py_ssize_t i, j, N, K, lab, ngroups = len(counts)
         iu_64_floating_t val, nan_val
         ndarray[iu_64_floating_t, ndim=2] group_min_or_max
-        bint runtime_error = False
         int64_t[:, ::1] nobs
         bint uses_mask = mask is not None
         bint isna_entry
@@ -1395,10 +1386,9 @@ cdef group_min_max(
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
 
     group_min_or_max = np.empty_like(out)
-    group_min_or_max[:] = _get_min_or_max(<iu_64_floating_t>0, compute_max)
+    group_min_or_max[:] = _get_min_or_max(<iu_64_floating_t>0, compute_max, is_datetimelike)
 
     if iu_64_floating_t is int64_t:
-        # TODO: only if is_datetimelike?
         nan_val = NPY_NAT
     elif iu_64_floating_t is uint64_t:
         # NB: We do not define nan_val because there is no such thing
@@ -1437,24 +1427,29 @@ cdef group_min_max(
         for i in range(ngroups):
             for j in range(K):
                 if nobs[i, j] < min_count:
+                    # if we are integer dtype, not is_datetimelike, and
+                    #  not uses_mask, then getting here implies that
+                    #  counts[i] < min_count, which means we will
+                    #  be cast to float64 and masked at the end
+                    #  of WrappedCythonOp._call_cython_op. So we can safely
+                    #  set a placeholder value in out[i, j].
                     if uses_mask:
                         result_mask[i, j] = True
                         # set out[i, j] to 0 to be deterministic, as
                         #  it was initialized with np.empty. Also ensures
                         #  we can downcast out if appropriate.
                         out[i, j] = 0
+                    elif iu_64_floating_t is int64_t:
+                        # Per above, this is a placeholder in
+                        #  non-is_datetimelike cases.
+                        out[i, j] = nan_val
                     elif iu_64_floating_t is uint64_t:
-                        runtime_error = True
-                        break
+                        # placeholder, see above
+                        out[i, j] = 0
                     else:
                         out[i, j] = nan_val
                 else:
                     out[i, j] = group_min_or_max[i, j]
-
-    if runtime_error:
-        # We cannot raise directly above because that is within a nogil
-        #  block.
-        raise RuntimeError("empty group with uint64_t")
 
 
 @cython.wraparound(False)
@@ -1564,7 +1559,7 @@ cdef group_cummin_max(
         bint isna_entry
 
     accum = np.empty((ngroups, (<object>values).shape[1]), dtype=values.dtype)
-    accum[:] = _get_min_or_max(<iu_64_floating_t>0, compute_max)
+    accum[:] = _get_min_or_max(<iu_64_floating_t>0, compute_max, is_datetimelike)
 
     na_val = _get_na_val(<iu_64_floating_t>0, is_datetimelike)
 

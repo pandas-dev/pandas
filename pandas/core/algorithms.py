@@ -1098,7 +1098,7 @@ def checked_add_with_arr(
 
 
 class SelectN:
-    def __init__(self, obj, n: int, keep: str):
+    def __init__(self, obj, n: int, keep: str) -> None:
         self.obj = obj
         self.n = n
         self.keep = keep
@@ -1181,7 +1181,6 @@ class SelectNSeries(SelectN):
             arr = arr[::-1]
 
         nbase = n
-        findex = len(self.obj)
         narr = len(arr)
         n = min(n, narr)
 
@@ -1194,6 +1193,11 @@ class SelectNSeries(SelectN):
         if self.keep != "all":
             inds = inds[:n]
             findex = nbase
+        else:
+            if len(inds) < nbase and len(nan_index) + len(inds) >= nbase:
+                findex = len(nan_index) + len(inds)
+            else:
+                findex = len(inds)
 
         if self.keep == "last":
             # reverse indices
@@ -1218,7 +1222,7 @@ class SelectNFrame(SelectN):
     nordered : DataFrame
     """
 
-    def __init__(self, obj: DataFrame, n: int, keep: str, columns: IndexLabel):
+    def __init__(self, obj: DataFrame, n: int, keep: str, columns: IndexLabel) -> None:
         super().__init__(obj, n, keep)
         if not is_list_like(columns) or isinstance(columns, tuple):
             columns = [columns]

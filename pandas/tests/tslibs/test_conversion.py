@@ -21,7 +21,7 @@ import pandas._testing as tm
 
 def _compare_utc_to_local(tz_didx):
     def f(x):
-        return tzconversion.tz_convert_from_utc_single(x, tz_didx.tz)
+        return tzconversion.py_tz_convert_from_utc_single(x, tz_didx.tz)
 
     result = tzconversion.tz_convert_from_utc(tz_didx.asi8, tz_didx.tz)
     expected = np.vectorize(f)(tz_didx.asi8)
@@ -48,6 +48,18 @@ def _compare_local_to_utc(tz_didx, naive_didx):
     else:
         assert err2 is None
         tm.assert_numpy_array_equal(result, expected)
+
+
+def test_tz_localize_to_utc_copies():
+    # GH#46460
+    arr = np.arange(5, dtype="i8")
+    result = tzconversion.tz_convert_from_utc(arr, tz=UTC)
+    tm.assert_numpy_array_equal(result, arr)
+    assert not np.shares_memory(arr, result)
+
+    result = tzconversion.tz_convert_from_utc(arr, tz=None)
+    tm.assert_numpy_array_equal(result, arr)
+    assert not np.shares_memory(arr, result)
 
 
 def test_tz_convert_single_matches_tz_convert_hourly(tz_aware_fixture):
