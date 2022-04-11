@@ -5,6 +5,7 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat import pa_version_under4p0
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -32,7 +33,8 @@ def test_contains(any_string_dtype):
     values = Series(values, dtype=any_string_dtype)
     pat = "mmm[_]+"
 
-    result = values.str.contains(pat)
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]" and pa_version_under4p0):
+        result = values.str.contains(pat)
     expected_dtype = "object" if any_string_dtype == "object" else "boolean"
     expected = Series(
         np.array([False, np.nan, True, True, False], dtype=np.object_),
@@ -40,7 +42,8 @@ def test_contains(any_string_dtype):
     )
     tm.assert_series_equal(result, expected)
 
-    result = values.str.contains(pat, regex=False)
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]" and pa_version_under4p0):
+        result = values.str.contains(pat, regex=False)
     expected = Series(
         np.array([False, np.nan, False, False, True], dtype=np.object_),
         dtype=expected_dtype,
@@ -51,7 +54,8 @@ def test_contains(any_string_dtype):
         np.array(["foo", "xyz", "fooommm__foo", "mmm_"], dtype=object),
         dtype=any_string_dtype,
     )
-    result = values.str.contains(pat)
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]" and pa_version_under4p0):
+        result = values.str.contains(pat)
     expected_dtype = np.bool_ if any_string_dtype == "object" else "boolean"
     expected = Series(np.array([False, False, True, True]), dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
@@ -78,7 +82,8 @@ def test_contains(any_string_dtype):
     )
     pat = "mmm[_]+"
 
-    result = values.str.contains(pat)
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]" and pa_version_under4p0):
+        result = values.str.contains(pat)
     expected_dtype = "object" if any_string_dtype == "object" else "boolean"
     expected = Series(
         np.array([False, np.nan, True, True], dtype=np.object_), dtype=expected_dtype
@@ -94,7 +99,8 @@ def test_contains(any_string_dtype):
         np.array(["foo", "xyz", "fooommm__foo", "mmm_"], dtype=np.object_),
         dtype=any_string_dtype,
     )
-    result = values.str.contains(pat)
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]" and pa_version_under4p0):
+        result = values.str.contains(pat)
     expected = Series(np.array([False, False, True, True]), dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
@@ -158,7 +164,10 @@ def test_contains_na_kwarg_for_nullable_string_dtype(
     # https://github.com/pandas-dev/pandas/pull/41025#issuecomment-824062416
 
     values = Series(["a", "b", "c", "a", np.nan], dtype=nullable_string_dtype)
-    result = values.str.contains("a", na=na, regex=regex)
+    with maybe_perf_warn(
+        nullable_string_dtype == "string[pyarrow]" and pa_version_under4p0
+    ):
+        result = values.str.contains("a", na=na, regex=regex)
     expected = Series([True, False, False, True, expected], dtype="boolean")
     tm.assert_series_equal(result, expected)
 
@@ -186,14 +195,16 @@ def test_contains_moar(any_string_dtype):
     )
     tm.assert_series_equal(result, expected)
 
-    result = s.str.contains("Aa")
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]" and pa_version_under4p0):
+        result = s.str.contains("Aa")
     expected = Series(
         [False, False, False, True, False, False, np.nan, False, False, False],
         dtype=expected_dtype,
     )
     tm.assert_series_equal(result, expected)
 
-    result = s.str.contains("ba")
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]" and pa_version_under4p0):
+        result = s.str.contains("ba")
     expected = Series(
         [False, False, False, True, False, False, np.nan, False, False, False],
         dtype=expected_dtype,
@@ -213,23 +224,27 @@ def test_contains_nan(any_string_dtype):
     # PR #14171
     s = Series([np.nan, np.nan, np.nan], dtype=any_string_dtype)
 
-    result = s.str.contains("foo", na=False)
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]" and pa_version_under4p0):
+        result = s.str.contains("foo", na=False)
     expected_dtype = np.bool_ if any_string_dtype == "object" else "boolean"
     expected = Series([False, False, False], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
-    result = s.str.contains("foo", na=True)
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]" and pa_version_under4p0):
+        result = s.str.contains("foo", na=True)
     expected = Series([True, True, True], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
-    result = s.str.contains("foo", na="foo")
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]" and pa_version_under4p0):
+        result = s.str.contains("foo", na="foo")
     if any_string_dtype == "object":
         expected = Series(["foo", "foo", "foo"], dtype=np.object_)
     else:
         expected = Series([True, True, True], dtype="boolean")
     tm.assert_series_equal(result, expected)
 
-    result = s.str.contains("foo")
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]" and pa_version_under4p0):
+        result = s.str.contains("foo")
     expected_dtype = "object" if any_string_dtype == "object" else "boolean"
     expected = Series([np.nan, np.nan, np.nan], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
@@ -274,13 +289,19 @@ def test_startswith_nullable_string_dtype(nullable_string_dtype, na):
         ["om", None, "foo_nom", "nom", "bar_foo", None, "foo", "regex", "rege."],
         dtype=nullable_string_dtype,
     )
-    result = values.str.startswith("foo", na=na)
+    with maybe_perf_warn(
+        nullable_string_dtype == "string[pyarrow]" and pa_version_under4p0
+    ):
+        result = values.str.startswith("foo", na=na)
     exp = Series(
         [False, na, True, False, False, na, True, False, False], dtype="boolean"
     )
     tm.assert_series_equal(result, exp)
 
-    result = values.str.startswith("rege.", na=na)
+    with maybe_perf_warn(
+        nullable_string_dtype == "string[pyarrow]" and pa_version_under4p0
+    ):
+        result = values.str.startswith("rege.", na=na)
     exp = Series(
         [False, na, False, False, False, na, False, False, True], dtype="boolean"
     )
