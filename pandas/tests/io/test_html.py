@@ -1163,9 +1163,9 @@ class TestReadHtml:
         assert out_border_default == out_border_explicit_default
         assert out_border_default != out_border_nondefault
         assert ' border="2"' in out_border_nondefault
-        assert ' border="0"' in out_border_zero
+        assert ' border="0"' not in out_border_zero
         assert " border" not in out_border_false
-        assert out_border_zero != out_border_false
+        assert out_border_zero == out_border_false
 
     @pytest.mark.parametrize(
         "displayed_only,exp0,exp1",
