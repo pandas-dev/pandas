@@ -1,8 +1,11 @@
+from contextlib import nullcontext
 from datetime import datetime
 import re
 
 import numpy as np
 import pytest
+
+from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import (
@@ -13,6 +16,13 @@ from pandas import (
 # --------------------------------------------------------------------------------------
 # str.contains
 # --------------------------------------------------------------------------------------
+
+
+def maybe_perf_warn(using_pyarrow):
+    if using_pyarrow:
+        return tm.assert_produces_warning(PerformanceWarning, match="Falling back")
+    else:
+        return nullcontext()
 
 
 def test_contains(any_string_dtype):
@@ -51,7 +61,8 @@ def test_contains(any_string_dtype):
         np.array(["Foo", "xYz", "fOOomMm__fOo", "MMM_"], dtype=object),
         dtype=any_string_dtype,
     )
-    result = values.str.contains("FOO|mmm", case=False)
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]"):
+        result = values.str.contains("FOO|mmm", case=False)
     expected = Series(np.array([True, False, True, True]), dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
@@ -167,7 +178,8 @@ def test_contains_moar(any_string_dtype):
     )
     tm.assert_series_equal(result, expected)
 
-    result = s.str.contains("a", case=False)
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]"):
+        result = s.str.contains("a", case=False)
     expected = Series(
         [True, False, False, True, True, False, np.nan, True, False, True],
         dtype=expected_dtype,
@@ -188,7 +200,8 @@ def test_contains_moar(any_string_dtype):
     )
     tm.assert_series_equal(result, expected)
 
-    result = s.str.contains("ba", case=False)
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]"):
+        result = s.str.contains("ba", case=False)
     expected = Series(
         [False, False, False, True, True, False, np.nan, True, False, False],
         dtype=expected_dtype,
@@ -363,7 +376,8 @@ def test_replace_mixed_object():
 def test_replace_unicode(any_string_dtype):
     ser = Series([b"abcd,\xc3\xa0".decode("utf-8")], dtype=any_string_dtype)
     expected = Series([b"abcd, \xc3\xa0".decode("utf-8")], dtype=any_string_dtype)
-    result = ser.str.replace(r"(?<=\w),(?=\w)", ", ", flags=re.UNICODE, regex=True)
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]"):
+        result = ser.str.replace(r"(?<=\w),(?=\w)", ", ", flags=re.UNICODE, regex=True)
     tm.assert_series_equal(result, expected)
 
 
@@ -383,7 +397,8 @@ def test_replace_callable(any_string_dtype):
 
     # test with callable
     repl = lambda m: m.group(0).swapcase()
-    result = ser.str.replace("[a-z][A-Z]{2}", repl, n=2, regex=True)
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]"):
+        result = ser.str.replace("[a-z][A-Z]{2}", repl, n=2, regex=True)
     expected = Series(["foObaD__baRbaD", np.nan], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
@@ -401,7 +416,8 @@ def test_replace_callable_raises(any_string_dtype, repl):
         r"(?(3)required )positional arguments?"
     )
     with pytest.raises(TypeError, match=msg):
-        values.str.replace("a", repl)
+        with maybe_perf_warn(any_string_dtype == "string[pyarrow]"):
+            values.str.replace("a", repl)
 
 
 def test_replace_callable_named_groups(any_string_dtype):
@@ -409,7 +425,8 @@ def test_replace_callable_named_groups(any_string_dtype):
     ser = Series(["Foo Bar Baz", np.nan], dtype=any_string_dtype)
     pat = r"(?P<first>\w+) (?P<middle>\w+) (?P<last>\w+)"
     repl = lambda m: m.group("middle").swapcase()
-    result = ser.str.replace(pat, repl, regex=True)
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]"):
+        result = ser.str.replace(pat, repl, regex=True)
     expected = Series(["bAR", np.nan], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
@@ -420,11 +437,13 @@ def test_replace_compiled_regex(any_string_dtype):
 
     # test with compiled regex
     pat = re.compile(r"BAD_*")
-    result = ser.str.replace(pat, "", regex=True)
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]"):
+        result = ser.str.replace(pat, "", regex=True)
     expected = Series(["foobar", np.nan], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
-    result = ser.str.replace(pat, "", n=1, regex=True)
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]"):
+        result = ser.str.replace(pat, "", n=1, regex=True)
     expected = Series(["foobarBAD", np.nan], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
@@ -443,7 +462,8 @@ def test_replace_compiled_regex_unicode(any_string_dtype):
     ser = Series([b"abcd,\xc3\xa0".decode("utf-8")], dtype=any_string_dtype)
     expected = Series([b"abcd, \xc3\xa0".decode("utf-8")], dtype=any_string_dtype)
     pat = re.compile(r"(?<=\w),(?=\w)", flags=re.UNICODE)
-    result = ser.str.replace(pat, ", ")
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]"):
+        result = ser.str.replace(pat, ", ")
     tm.assert_series_equal(result, expected)
 
 
@@ -470,7 +490,8 @@ def test_replace_compiled_regex_callable(any_string_dtype):
     ser = Series(["fooBAD__barBAD", np.nan], dtype=any_string_dtype)
     repl = lambda m: m.group(0).swapcase()
     pat = re.compile("[a-z][A-Z]{2}")
-    result = ser.str.replace(pat, repl, n=2)
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]"):
+        result = ser.str.replace(pat, repl, n=2)
     expected = Series(["foObaD__baRbaD", np.nan], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
@@ -518,7 +539,8 @@ def test_replace_moar(any_string_dtype):
     )
     tm.assert_series_equal(result, expected)
 
-    result = ser.str.replace("A", "YYY", case=False)
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]"):
+        result = ser.str.replace("A", "YYY", case=False)
     expected = Series(
         [
             "YYY",
@@ -536,7 +558,8 @@ def test_replace_moar(any_string_dtype):
     )
     tm.assert_series_equal(result, expected)
 
-    result = ser.str.replace("^.a|dog", "XX-XX ", case=False, regex=True)
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]"):
+        result = ser.str.replace("^.a|dog", "XX-XX ", case=False, regex=True)
     expected = Series(
         [
             "A",
@@ -559,11 +582,13 @@ def test_replace_not_case_sensitive_not_regex(any_string_dtype):
     # https://github.com/pandas-dev/pandas/issues/41602
     ser = Series(["A.", "a.", "Ab", "ab", np.nan], dtype=any_string_dtype)
 
-    result = ser.str.replace("a", "c", case=False, regex=False)
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]"):
+        result = ser.str.replace("a", "c", case=False, regex=False)
     expected = Series(["c.", "c.", "cb", "cb", np.nan], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
-    result = ser.str.replace("a.", "c.", case=False, regex=False)
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]"):
+        result = ser.str.replace("a.", "c.", case=False, regex=False)
     expected = Series(["c.", "c.", "Ab", "ab", np.nan], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
@@ -681,7 +706,8 @@ def test_match_na_kwarg(any_string_dtype):
 
 def test_match_case_kwarg(any_string_dtype):
     values = Series(["ab", "AB", "abc", "ABC"], dtype=any_string_dtype)
-    result = values.str.match("ab", case=False)
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]"):
+        result = values.str.match("ab", case=False)
     expected_dtype = np.bool_ if any_string_dtype == "object" else "boolean"
     expected = Series([True, True, True, True], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
@@ -724,10 +750,12 @@ def test_fullmatch_case_kwarg(any_string_dtype):
 
     expected = Series([True, True, False, False], dtype=expected_dtype)
 
-    result = ser.str.fullmatch("ab", case=False)
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]"):
+        result = ser.str.fullmatch("ab", case=False)
     tm.assert_series_equal(result, expected)
 
-    result = ser.str.fullmatch("ab", flags=re.IGNORECASE)
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]"):
+        result = ser.str.fullmatch("ab", flags=re.IGNORECASE)
     tm.assert_series_equal(result, expected)
 
 
@@ -904,13 +932,17 @@ def test_flags_kwarg(any_string_dtype):
 
     pat = r"([A-Z0-9._%+-]+)@([A-Z0-9.-]+)\.([A-Z]{2,4})"
 
+    using_pyarrow = any_string_dtype == "string[pyarrow]"
+
     result = data.str.extract(pat, flags=re.IGNORECASE, expand=True)
     assert result.iloc[0].tolist() == ["dave", "google", "com"]
 
-    result = data.str.match(pat, flags=re.IGNORECASE)
+    with maybe_perf_warn(using_pyarrow):
+        result = data.str.match(pat, flags=re.IGNORECASE)
     assert result[0]
 
-    result = data.str.fullmatch(pat, flags=re.IGNORECASE)
+    with maybe_perf_warn(using_pyarrow):
+        result = data.str.fullmatch(pat, flags=re.IGNORECASE)
     assert result[0]
 
     result = data.str.findall(pat, flags=re.IGNORECASE)
@@ -920,6 +952,8 @@ def test_flags_kwarg(any_string_dtype):
     assert result[0] == 1
 
     msg = "has match groups"
-    with tm.assert_produces_warning(UserWarning, match=msg):
+    with tm.assert_produces_warning(
+        UserWarning, match=msg, raise_on_extra_warnings=not using_pyarrow
+    ):
         result = data.str.contains(pat, flags=re.IGNORECASE)
     assert result[0]
