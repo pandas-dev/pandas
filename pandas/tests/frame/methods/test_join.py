@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas.errors import MergeError
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -12,6 +14,7 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
+from pandas.core.reshape.concat import concat
 
 
 @pytest.fixture
@@ -102,6 +105,134 @@ def test_suffix_on_list_join():
     arr_joined = first.join([third])
     norm_joined = first.join(third)
     tm.assert_frame_equal(arr_joined, norm_joined)
+
+
+def test_join_validation():
+    # GH 46622
+    left = DataFrame(
+        {"a": ["a", "b", "c", "d"], "b": ["cat", "dog", "weasel", "horse"]},
+        index=range(4),
+    )
+
+    right = DataFrame(
+        {
+            "a": ["a", "b", "c", "d", "e"],
+            "c": ["meow", "bark", "um... weasel noise?", "nay", "chirp"],
+        },
+        index=range(5),
+    ).set_index("a")
+
+    # Make sure no side effects.
+    left_copy = left.copy()
+    right_copy = right.copy()
+
+    result = left.join(right, on="a", validate="1:1")
+    tm.assert_frame_equal(left, left_copy)
+    tm.assert_frame_equal(right, right_copy)
+
+    # make sure join still correct
+    expected = DataFrame(
+        {
+            "a": ["a", "b", "c", "d"],
+            "b": ["cat", "dog", "weasel", "horse"],
+            "c": ["meow", "bark", "um... weasel noise?", "nay"],
+        },
+        index=range(4),
+        columns=["a", "b", "c"],
+    )
+
+    result = left.join(right, on="a", validate="one_to_one")
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(left, left_copy)
+    tm.assert_frame_equal(right, right_copy)
+
+    # Dups on right
+    right_w_dups = concat(
+        [right, DataFrame({"a": ["e"], "c": ["moo"]}, index=[3])]
+    ).set_index("a")
+    left.join(
+        right_w_dups,
+        on="a",
+        validate="one_to_many",
+    )
+
+    msg = "Merge keys are not unique in right dataset; not a one-to-one merge"
+    with pytest.raises(MergeError, match=msg):
+        left.join(
+            right_w_dups,
+            on="a",
+            validate="one_to_one",
+        )
+
+    # Dups on left
+    left_w_dups = concat(
+        [left, DataFrame({"a": ["a"], "b": ["cow"]}, index=[3])], sort=True
+    )
+    left_w_dups.join(
+        right,
+        on="a",
+        validate="many_to_one",
+    )
+
+    msg = "Merge keys are not unique in left dataset; not a one-to-one merge"
+    with pytest.raises(MergeError, match=msg):
+        left_w_dups.join(
+            right,
+            on="a",
+            validate="one_to_one",
+        )
+
+    # Dups on both
+    left_w_dups.join(right_w_dups, on="a", validate="many_to_many")
+
+    msg = "Merge keys are not unique in right dataset; not a many-to-one merge"
+    with pytest.raises(MergeError, match=msg):
+        left_w_dups.join(
+            right_w_dups,
+            on="a",
+            validate="many_to_one",
+        )
+
+    msg = "Merge keys are not unique in left dataset; not a one-to-many merge"
+    with pytest.raises(MergeError, match=msg):
+        left_w_dups.join(right_w_dups, on="a", validate="one_to_many")
+
+    # Check invalid arguments
+    msg = "Not a valid argument for validate"
+    with pytest.raises(ValueError, match=msg):
+        left.merge(right, on="a", validate="jibberish")
+
+    # Two column join, dups in both, but jointly no dups.
+    left = DataFrame(
+        {
+            "a": ["a", "a", "b", "b"],
+            "b": [0, 1, 0, 1],
+            "c": ["cat", "dog", "weasel", "horse"],
+        },
+        index=range(4),
+    ).set_index(["a", "b"])
+
+    right = DataFrame(
+        {
+            "a": ["a", "a", "b"],
+            "b": [0, 1, 0],
+            "d": ["meow", "bark", "um... weasel noise?"],
+        },
+        index=range(3),
+    ).set_index(["a", "b"])
+
+    expected_multi = DataFrame(
+        {
+            "a": ["a", "a", "b"],
+            "b": [0, 1, 0],
+            "c": ["cat", "dog", "weasel"],
+            "d": ["meow", "bark", "um... weasel noise?"],
+        },
+        index=range(3),
+    ).set_index(["a", "b"])
+
+    result = left.join(right, how="inner", validate="1:1")
+    tm.assert_frame_equal(result, expected_multi)
 
 
 def test_join_index(float_frame):
