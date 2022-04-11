@@ -31,7 +31,10 @@ from numpy.math cimport NAN
 cnp.import_array()
 
 from pandas._libs cimport util
-from pandas._libs.algos cimport kth_smallest_c
+from pandas._libs.algos cimport (
+    get_rank_nan_fill_val,
+    kth_smallest_c,
+)
 
 from pandas._libs.algos import (
     ensure_platform_int,
@@ -989,36 +992,16 @@ cdef inline bint _treat_as_na(numeric_object_t val, bint is_datetimelike) nogil:
         return False
 
 
-cdef numeric_t _get_min_or_max(numeric_t val, bint compute_max, bint is_datetimelike):
+cdef numeric_object_t _get_min_or_max(numeric_object_t val, bint compute_max, bint is_datetimelike):
     """
-    Find either the min or the max supported by numeric_t; 'val' is a placeholder
-    to effectively make numeric_t an argument.
+    Find either the min or the max supported by numeric_object_t; 'val' is a
+    placeholder to effectively make numeric_object_t an argument.
     """
-    if numeric_t is int64_t:
-        if compute_max and is_datetimelike:
-            return -_int64_max
-        # Note(jbrockmendel) 2022-03-15 for reasons unknown, using util.INT64_MIN
-        #  instead of NPY_NAT here causes build warnings and failure in
-        #  test_cummax_i8_at_implementation_bound
-        return NPY_NAT if compute_max else util.INT64_MAX
-    elif numeric_t is int32_t:
-        return util.INT32_MIN if compute_max else util.INT32_MAX
-    elif numeric_t is int16_t:
-        return util.INT16_MIN if compute_max else util.INT16_MAX
-    elif numeric_t is int8_t:
-        return util.INT8_MIN if compute_max else util.INT8_MAX
-
-    elif numeric_t is uint64_t:
-        return 0 if compute_max else util.UINT64_MAX
-    elif numeric_t is uint32_t:
-        return 0 if compute_max else util.UINT32_MAX
-    elif numeric_t is uint16_t:
-        return 0 if compute_max else util.UINT16_MAX
-    elif numeric_t is uint8_t:
-        return 0 if compute_max else util.UINT8_MAX
-
-    else:
-        return -np.inf if compute_max else np.inf
+    return get_rank_nan_fill_val(
+        not compute_max,
+        val=val,
+        is_datetimelike=is_datetimelike,
+    )
 
 
 cdef numeric_t _get_na_val(numeric_t val, bint is_datetimelike):
