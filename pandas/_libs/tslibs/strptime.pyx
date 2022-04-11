@@ -385,9 +385,8 @@ class TimeRE(_TimeRE):
 
         Order of execution is important for dependency reasons.
         """
-        super().__init__(locale_time=locale_time)
-
         self._Z = None
+        super().__init__(locale_time=locale_time)
 
     def __getitem__(self, key):
         if key == "Z":
