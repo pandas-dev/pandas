@@ -2182,7 +2182,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def sem(self, ddof: int = 1, numeric_only: bool | lib.no_default = lib.no_default):
+    def sem(self, ddof: int = 1, numeric_only: bool | lib.NoDefault = lib.no_default):
         """
         Compute standard error of the mean of groups, excluding missing values.
 
