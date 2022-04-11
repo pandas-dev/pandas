@@ -6702,6 +6702,33 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                 # {'A': NA} -> 0
                 elif not is_list_like(value):
+
+                    items = list(to_replace.items())
+                    keys, values = zip(*items) if items else ([], [])
+                    if items and (value is None or value is not lib.no_default):
+                        # e.g ({1:5}, value = None),
+                        # ({1:5}, value = 10), ({1:5}, value="")
+
+                        col = keys[0]
+                        if col in self and isinstance(self, ABCDataFrame):
+                            # e.g Nested dict in df {"a": {1: 5}}, value=10),
+                            # or columnwise with None value {"a": 1}, value=None
+                            print("col in self")
+                            mapping = {
+                                col: (to_replace.values(), value)
+                                for col in to_replace.keys()
+                                if col in self
+                            }
+                            return self._replace_columnwise(mapping, inplace, regex)
+
+                        return self.replace(
+                            to_replace=keys,
+                            value=values,
+                            inplace=inplace,
+                            limit=limit,
+                            regex=regex,
+                        )
+
                     # Operate column-wise
                     if self.ndim == 1:
                         raise ValueError(
