@@ -95,9 +95,6 @@ Other enhancements
 - :meth:`pd.concat` now raises when ``levels`` is given but ``keys`` is None (:issue:`46653`)
 - :meth:`pd.concat` now raises when ``levels`` contains duplicate values (:issue:`46653`)
 - Added ``numeric_only`` argument to :meth:`DataFrame.corr`, :meth:`DataFrame.corrwith`, and :meth:`DataFrame.cov` (:issue:`46560`)
-- :meth:`DataFrame.rolling.var`, :meth:`DataFrame.rolling.std`, :meth:`Series.rolling.var`, :meth:`Series.rolling.std` now generate correct result 0 for window containing same values (:issue:`42064`)
-- :meth:`DataFrame.rolling.skew`, :meth:`Series.rolling.skew` now generate correct result 0 for window containing same values (:issue:`42064`)
-- :meth:`DataFrame.rolling.kurt`, :meth:`Series.rolling.kurt` now generate correct result -3 for window containing same values (:issue:`42064`, :issue:`30993`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.notable_bug_fixes:
@@ -183,8 +180,9 @@ Styler
 
 .. _whatsnew_150.notable_bug_fixes.notable_bug_fix2:
 
-notable_bug_fix2
-^^^^^^^^^^^^^^^^
+Groupby/resample/rolling
+^^^^^^^^^^^^^^^^^^^^^^^^
+- rolling mean / sum / std / var / skew / kurt now output correct result for window with same values (:issue:`42064`, :issue:`30993`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.api_breaking:
