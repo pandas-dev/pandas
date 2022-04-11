@@ -2,6 +2,7 @@ import cython
 import numpy as np
 
 cimport numpy as cnp
+from cpython.object cimport PyObject
 from numpy cimport (
     int32_t,
     int64_t,
@@ -44,7 +45,10 @@ from pandas._libs.tslibs.np_datetime cimport (
     pydatetime_to_dt64,
 )
 
-from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
+from pandas._libs.tslibs.np_datetime import (
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
+)
 
 from pandas._libs.tslibs.timezones cimport (
     get_dst_info,
@@ -84,15 +88,6 @@ from pandas._libs.tslibs.tzconversion cimport (
 
 DT64NS_DTYPE = np.dtype('M8[ns]')
 TD64NS_DTYPE = np.dtype('m8[ns]')
-
-
-class OutOfBoundsTimedelta(ValueError):
-    """
-    Raised when encountering a timedelta value that cannot be represented
-    as a timedelta64[ns].
-    """
-    # Timedelta analogue to OutOfBoundsDatetime
-    pass
 
 
 # ----------------------------------------------------------------------
@@ -280,7 +275,8 @@ def ensure_timedelta64ns(arr: ndarray, copy: bool = True):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def datetime_to_datetime64(ndarray[object] values):
+def datetime_to_datetime64(ndarray values):
+    # ndarray[object], but can't declare object without ndim
     """
     Convert ndarray of datetime-like objects to int64 array representing
     nanosecond timestamps.
@@ -295,20 +291,27 @@ def datetime_to_datetime64(ndarray[object] values):
     inferred_tz : tzinfo or None
     """
     cdef:
-        Py_ssize_t i, n = len(values)
+        Py_ssize_t i, n = values.size
         object val
-        int64_t[:] iresult
+        int64_t ival
+        ndarray iresult  # int64_t, but can't declare that without specifying ndim
         npy_datetimestruct dts
         _TSObject _ts
         bint found_naive = False
         tzinfo inferred_tz = None
 
-    result = np.empty(n, dtype='M8[ns]')
+        cnp.broadcast mi
+
+    result = np.empty((<object>values).shape, dtype='M8[ns]')
     iresult = result.view('i8')
+
+    mi = cnp.PyArray_MultiIterNew2(iresult, values)
     for i in range(n):
-        val = values[i]
+        # Analogous to: val = values[i]
+        val = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+
         if checknull_with_nat(val):
-            iresult[i] = NPY_NAT
+            ival = NPY_NAT
         elif PyDateTime_Check(val):
             if val.tzinfo is not None:
                 if found_naive:
@@ -321,17 +324,22 @@ def datetime_to_datetime64(ndarray[object] values):
                     inferred_tz = val.tzinfo
 
                 _ts = convert_datetime_to_tsobject(val, None)
-                iresult[i] = _ts.value
+                ival = _ts.value
                 check_dts_bounds(&_ts.dts)
             else:
                 found_naive = True
                 if inferred_tz is not None:
                     raise ValueError('Cannot mix tz-aware with '
                                      'tz-naive values')
-                iresult[i] = pydatetime_to_dt64(val, &dts)
+                ival = pydatetime_to_dt64(val, &dts)
                 check_dts_bounds(&dts)
         else:
             raise TypeError(f'Unrecognized value type: {type(val)}')
+
+        # Analogous to: iresult[i] = ival
+        (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = ival
+
+        cnp.PyArray_MultiIter_NEXT(mi)
 
     return result, inferred_tz
 
@@ -352,8 +360,8 @@ cdef class _TSObject:
         self.fold = 0
 
 
-cdef convert_to_tsobject(object ts, tzinfo tz, str unit,
-                         bint dayfirst, bint yearfirst, int32_t nanos=0):
+cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
+                                   bint dayfirst, bint yearfirst, int32_t nanos=0):
     """
     Extract datetime and int64 from any of:
         - np.int64 (with unit providing a possible modifier)
