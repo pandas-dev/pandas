@@ -2184,7 +2184,7 @@ class TestPivotTable:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_pivot_table_with_margins_and_numeric_columns_index_equals_one(self):
+    def test_pivot_table_with_margins_and_columns_equals_one(self):
         # GH 26568
         df = DataFrame([["a", "x", 1], ["a", "y", 2], ["b", "y", 3], ["b", "z", 4]])
 
