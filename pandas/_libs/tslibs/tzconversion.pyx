@@ -486,7 +486,7 @@ cdef int64_t tz_convert_from_utc_single(
     if is_utc(tz):
         return utc_val
     elif is_tzlocal(tz) or is_zoneinfo(tz):
-        return utc_val + _tz_localize_using_tzinfo_api(utc_val, tz, to_utc=False)
+        return utc_val + _tz_localize_using_tzinfo_api(utc_val, tz, to_utc=False, fold=fold)
     else:
         trans, deltas, typ = get_dst_info(tz)
         tdata = <int64_t*>cnp.PyArray_DATA(trans)

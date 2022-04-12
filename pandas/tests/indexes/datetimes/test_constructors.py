@@ -1157,6 +1157,7 @@ def test_timestamp_constructor_infer_fold_from_value(tz, ts_input, fold_out):
     result = ts.fold
     expected = fold_out
     assert result == expected
+    # TODO: belongs in Timestamp tests?
 
 
 @pytest.mark.parametrize("tz", ["dateutil/Europe/London"])
