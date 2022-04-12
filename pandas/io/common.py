@@ -321,7 +321,10 @@ def _get_filepath_or_buffer(
     if "t" not in fsspec_mode and "b" not in fsspec_mode:
         fsspec_mode += "b"
 
-    if isinstance(filepath_or_buffer, str) and not is_fsspec_url(filepath_or_buffer):
+    if isinstance(filepath_or_buffer, str) and parse_url(filepath_or_buffer).scheme in [
+        'http',
+        'https'
+    ]:
         # TODO: fsspec can also handle HTTP via requests, but leaving this
         # unchanged. using fsspec appears to break the ability to infer if the
         # server responded with gzipped data
