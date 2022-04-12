@@ -2184,6 +2184,22 @@ class TestPivotTable:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_pivot_table_with_margins_and_numeric_columns_index_equals_one(self):
+        # GH 26568
+        df = DataFrame([["a", "x", 1], ["a", "y", 2], ["b", "y", 3], ["b", "z", 4]])
+
+        result = df.pivot_table(
+            index=0, columns=1, values=2, aggfunc="sum", fill_value=0, margins=True
+        )
+
+        expected = DataFrame([[1, 2, 0, 3], [0, 3, 4, 7], [1, 5, 4, 10]])
+        expected.columns = ["x", "y", "z", "All"]
+        expected.index = ["a", "b", "All"]
+        expected.columns.name = 1
+        expected.index.name = 0
+
+        tm.assert_frame_equal(result, expected)
+
 
 class TestPivot:
     def test_pivot(self):

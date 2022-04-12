@@ -23,6 +23,7 @@ from pandas.util._decorators import (
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
+    is_integer,
     is_integer_dtype,
     is_list_like,
     is_nested_list_like,
@@ -409,6 +410,16 @@ def _generate_marginal_results(
 
         # slight hack
         new_order = [len(cols)] + list(range(len(cols)))
+
+        # GH26568 reorder_levels can get confused if a label is also an index
+        # Following coverts new_order from a position to label representation
+        for key in row_margin.index.names:
+            if is_integer(key) and key <= len(cols):
+                # change new_order to use keys instead, then break loop
+                for new_order_index, val in enumerate(new_order):
+                    new_order[new_order_index] = row_margin.index.names[val]
+                break
+
         row_margin.index = row_margin.index.reorder_levels(new_order)
     else:
         row_margin = Series(np.nan, index=result.columns)
