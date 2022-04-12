@@ -788,7 +788,7 @@ class Block(PandasObject):
                         nb = nb.copy()
                     putmask_inplace(nb.values, mask, value)
                     return [nb]
-                return [self]
+                return [self] if inplace else [self.copy()]
             return self.replace(
                 to_replace=to_replace, value=value, inplace=inplace, mask=mask
             )
