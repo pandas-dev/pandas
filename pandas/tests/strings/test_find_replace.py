@@ -346,13 +346,19 @@ def test_endswith_nullable_string_dtype(nullable_string_dtype, na):
         ["om", None, "foo_nom", "nom", "bar_foo", None, "foo", "regex", "rege."],
         dtype=nullable_string_dtype,
     )
-    result = values.str.endswith("foo", na=na)
+    with maybe_perf_warn(
+        nullable_string_dtype == "string[pyarrow]" and pa_version_under4p0
+    ):
+        result = values.str.endswith("foo", na=na)
     exp = Series(
         [False, na, False, False, True, na, True, False, False], dtype="boolean"
     )
     tm.assert_series_equal(result, exp)
 
-    result = values.str.endswith("rege.", na=na)
+    with maybe_perf_warn(
+        nullable_string_dtype == "string[pyarrow]" and pa_version_under4p0
+    ):
+        result = values.str.endswith("rege.", na=na)
     exp = Series(
         [False, na, False, False, False, na, False, False, True], dtype="boolean"
     )
@@ -367,7 +373,8 @@ def test_endswith_nullable_string_dtype(nullable_string_dtype, na):
 def test_replace(any_string_dtype):
     ser = Series(["fooBAD__barBAD", np.nan], dtype=any_string_dtype)
 
-    result = ser.str.replace("BAD[_]*", "", regex=True)
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]" and pa_version_under4p0):
+        result = ser.str.replace("BAD[_]*", "", regex=True)
     expected = Series(["foobar", np.nan], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
@@ -376,11 +383,13 @@ def test_replace_max_replacements(any_string_dtype):
     ser = Series(["fooBAD__barBAD", np.nan], dtype=any_string_dtype)
 
     expected = Series(["foobarBAD", np.nan], dtype=any_string_dtype)
-    result = ser.str.replace("BAD[_]*", "", n=1, regex=True)
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]" and pa_version_under4p0):
+        result = ser.str.replace("BAD[_]*", "", n=1, regex=True)
     tm.assert_series_equal(result, expected)
 
     expected = Series(["foo__barBAD", np.nan], dtype=any_string_dtype)
-    result = ser.str.replace("BAD", "", n=1, regex=False)
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]" and pa_version_under4p0):
+        result = ser.str.replace("BAD", "", n=1, regex=False)
     tm.assert_series_equal(result, expected)
 
 
@@ -523,7 +532,8 @@ def test_replace_literal(regex, expected, any_string_dtype):
     # GH16808 literal replace (regex=False vs regex=True)
     ser = Series(["f.o", "foo", np.nan], dtype=any_string_dtype)
     expected = Series(expected, dtype=any_string_dtype)
-    result = ser.str.replace("f.", "ba", regex=regex)
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]" and pa_version_under4p0):
+        result = ser.str.replace("f.", "ba", regex=regex)
     tm.assert_series_equal(result, expected)
 
 
@@ -670,29 +680,34 @@ def test_match(any_string_dtype):
     expected_dtype = "object" if any_string_dtype == "object" else "boolean"
 
     values = Series(["fooBAD__barBAD", np.nan, "foo"], dtype=any_string_dtype)
-    result = values.str.match(".*(BAD[_]+).*(BAD)")
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]" and pa_version_under4p0):
+        result = values.str.match(".*(BAD[_]+).*(BAD)")
     expected = Series([True, np.nan, False], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
     values = Series(
         ["fooBAD__barBAD", "BAD_BADleroybrown", np.nan, "foo"], dtype=any_string_dtype
     )
-    result = values.str.match(".*BAD[_]+.*BAD")
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]" and pa_version_under4p0):
+        result = values.str.match(".*BAD[_]+.*BAD")
     expected = Series([True, True, np.nan, False], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
-    result = values.str.match("BAD[_]+.*BAD")
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]" and pa_version_under4p0):
+        result = values.str.match("BAD[_]+.*BAD")
     expected = Series([False, True, np.nan, False], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
     values = Series(
         ["fooBAD__barBAD", "^BAD_BADleroybrown", np.nan, "foo"], dtype=any_string_dtype
     )
-    result = values.str.match("^BAD[_]+.*BAD")
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]" and pa_version_under4p0):
+        result = values.str.match("^BAD[_]+.*BAD")
     expected = Series([False, False, np.nan, False], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
-    result = values.str.match("\\^BAD[_]+.*BAD")
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]" and pa_version_under4p0):
+        result = values.str.match("\\^BAD[_]+.*BAD")
     expected = Series([False, True, np.nan, False], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
@@ -723,12 +738,14 @@ def test_match_na_kwarg(any_string_dtype):
     # GH #6609
     s = Series(["a", "b", np.nan], dtype=any_string_dtype)
 
-    result = s.str.match("a", na=False)
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]" and pa_version_under4p0):
+        result = s.str.match("a", na=False)
     expected_dtype = np.bool_ if any_string_dtype == "object" else "boolean"
     expected = Series([True, False, False], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
-    result = s.str.match("a")
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]" and pa_version_under4p0):
+        result = s.str.match("a")
     expected_dtype = "object" if any_string_dtype == "object" else "boolean"
     expected = Series([True, False, np.nan], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
@@ -753,7 +770,8 @@ def test_fullmatch(any_string_dtype):
     ser = Series(
         ["fooBAD__barBAD", "BAD_BADleroybrown", np.nan, "foo"], dtype=any_string_dtype
     )
-    result = ser.str.fullmatch(".*BAD[_]+.*BAD")
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]" and pa_version_under4p0):
+        result = ser.str.fullmatch(".*BAD[_]+.*BAD")
     expected_dtype = "object" if any_string_dtype == "object" else "boolean"
     expected = Series([True, False, np.nan, False], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
@@ -763,7 +781,8 @@ def test_fullmatch_na_kwarg(any_string_dtype):
     ser = Series(
         ["fooBAD__barBAD", "BAD_BADleroybrown", np.nan, "foo"], dtype=any_string_dtype
     )
-    result = ser.str.fullmatch(".*BAD[_]+.*BAD", na=False)
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]" and pa_version_under4p0):
+        result = ser.str.fullmatch(".*BAD[_]+.*BAD", na=False)
     expected_dtype = np.bool_ if any_string_dtype == "object" else "boolean"
     expected = Series([True, False, False, False], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
@@ -775,7 +794,8 @@ def test_fullmatch_case_kwarg(any_string_dtype):
 
     expected = Series([True, False, False, False], dtype=expected_dtype)
 
-    result = ser.str.fullmatch("ab", case=True)
+    with maybe_perf_warn(any_string_dtype == "string[pyarrow]" and pa_version_under4p0):
+        result = ser.str.fullmatch("ab", case=True)
     tm.assert_series_equal(result, expected)
 
     expected = Series([True, True, False, False], dtype=expected_dtype)
