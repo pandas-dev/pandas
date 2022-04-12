@@ -209,9 +209,9 @@ class TestClipboard:
 
         text = dedent(
             """
-            John James	Charlie Mingus
-            1	2
-            4	Harry Carney
+            John James\tCharlie Mingus
+            1\t2
+            4\tHarry Carney
             """.strip()
         )
         mock_clipboard[request.node.name] = text

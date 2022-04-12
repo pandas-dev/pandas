@@ -84,6 +84,7 @@ from pandas.core.indexes.api import (
     all_indexes_same,
 )
 from pandas.core.series import Series
+from pandas.core.shared_docs import _shared_docs
 from pandas.core.util.numba_ import maybe_use_numba
 
 from pandas.plotting import boxplot_frame_groupby
@@ -1552,7 +1553,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return results
 
-    @Appender(DataFrame.idxmax.__doc__)
+    @doc(_shared_docs["idxmax"])
     def idxmax(self, axis=0, skipna: bool = True):
         axis = DataFrame._get_axis_number(axis)
         numeric_only = None if axis == 0 else False
@@ -1574,7 +1575,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         func.__name__ = "idxmax"
         return self._python_apply_general(func, self._obj_with_exclusions)
 
-    @Appender(DataFrame.idxmin.__doc__)
+    @doc(_shared_docs["idxmin"])
     def idxmin(self, axis=0, skipna: bool = True):
         axis = DataFrame._get_axis_number(axis)
         numeric_only = None if axis == 0 else False
@@ -1658,13 +1659,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ... })
 
         >>> df
-            gender 	education 	country
-        0 	male 	low 	    US
-        1 	male 	medium 	    FR
-        2 	female 	high 	    US
-        3 	male 	low 	    FR
-        4 	female 	high 	    FR
-        5 	male 	low 	    FR
+                gender  education   country
+        0       male    low         US
+        1       male    medium      FR
+        2       female  high        US
+        3       male    low         FR
+        4       female  high        FR
+        5       male    low         FR
 
         >>> df.groupby('gender').value_counts()
         gender  education  country
