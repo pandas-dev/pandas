@@ -81,7 +81,7 @@ def right():
 )
 def test_join(left, right, how, sort, expected):
 
-    result = left.join(right, how=how, sort=sort)
+    result = left.join(right, how=how, sort=sort, validate="1:1")
     tm.assert_frame_equal(result, expected)
 
 
@@ -121,6 +121,11 @@ def test_join_on_single_col_check_dup():
         },
         index=range(5),
     ).set_index("a")
+
+    # Check invalid arguments
+    msg = "Not a valid argument for validate"
+    with pytest.raises(ValueError, match=msg):
+        left.merge(right, on="a", validate="jibberish")
 
     # Dups on right
     right_w_dups = concat(
@@ -220,51 +225,6 @@ def test_join_on_multi_col_check_dup():
     # Jointly no dups allowed by one_to_one constraint
     result = left.join(right, how="inner", validate="1:1")
     tm.assert_frame_equal(result, expected_multi)
-
-
-def test_join_with_validate_correctness():
-    # GH 46622
-    left = DataFrame(
-        {"a": ["a", "b", "c", "d"], "b": ["cat", "dog", "weasel", "horse"]},
-        index=range(4),
-    )
-
-    right = DataFrame(
-        {
-            "a": ["a", "b", "c", "d", "e"],
-            "c": ["meow", "bark", "um... weasel noise?", "nay", "chirp"],
-        },
-        index=range(5),
-    ).set_index("a")
-
-    # Make sure no side effects
-    left_copy = left.copy()
-    right_copy = right.copy()
-
-    result = left.join(right, on="a", validate="1:1")
-    tm.assert_frame_equal(left, left_copy)
-    tm.assert_frame_equal(right, right_copy)
-
-    # Make sure join still correct
-    expected = DataFrame(
-        {
-            "a": ["a", "b", "c", "d"],
-            "b": ["cat", "dog", "weasel", "horse"],
-            "c": ["meow", "bark", "um... weasel noise?", "nay"],
-        },
-        index=range(4),
-        columns=["a", "b", "c"],
-    )
-
-    result = left.join(right, on="a", validate="one_to_one")
-    tm.assert_frame_equal(result, expected)
-    tm.assert_frame_equal(left, left_copy)
-    tm.assert_frame_equal(right, right_copy)
-
-    # Check invalid arguments
-    msg = "Not a valid argument for validate"
-    with pytest.raises(ValueError, match=msg):
-        left.merge(right, on="a", validate="jibberish")
 
 
 def test_join_index(float_frame):
