@@ -1171,32 +1171,32 @@ cdef class _Timedelta(timedelta):
             sign = " "
 
         if format == 'all':
-            fmt = ("{days} days{sign}{hours:02}:{minutes:02}:{seconds:02}."
-                   "{milliseconds:03}{microseconds:03}{nanoseconds:03}")
+            fmt = ("%(days)s days%(sign)s%(hours)02d:%(minutes)02d:%(seconds)02d."
+                   "%(milliseconds)03d%(microseconds)03d%(nanoseconds)03d")
         else:
             # if we have a partial day
             subs = (self._h or self._m or self._s or
                     self._ms or self._us or self._ns)
 
             if self._ms or self._us or self._ns:
-                seconds_fmt = "{seconds:02}.{milliseconds:03}{microseconds:03}"
+                seconds_fmt = "%(seconds)02d.%(milliseconds)03d%(microseconds)03d"
                 if self._ns:
                     # GH#9309
-                    seconds_fmt += "{nanoseconds:03}"
+                    seconds_fmt += "%(nanoseconds)03d"
             else:
-                seconds_fmt = "{seconds:02}"
+                seconds_fmt = "%(seconds)02d"
 
             if format == 'sub_day' and not self._d:
-                fmt = "{hours:02}:{minutes:02}:" + seconds_fmt
+                fmt = "%(hours)02d:%(minutes)02d:" + seconds_fmt
             elif subs or format == 'long':
-                fmt = "{days} days{sign}{hours:02}:{minutes:02}:" + seconds_fmt
+                fmt = "%(days)s days%(sign)s%(hours)02d:%(minutes)02d:" + seconds_fmt
             else:
-                fmt = "{days} days"
+                fmt = "%(days)s days"
 
         comp_dict = self.components._asdict()
         comp_dict['sign'] = sign
 
-        return fmt.format(**comp_dict)
+        return fmt % comp_dict
 
     def __repr__(self) -> str:
         repr_based = self._repr_base(format='long')
