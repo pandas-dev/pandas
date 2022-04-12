@@ -145,6 +145,16 @@ def format_array_from_datetime(
                 consider_values //= 1000
                 show_ms = (consider_values % 1000).any()
 
+    elif format == "%Y-%m-%d %H:%M:%S":
+        # Same format as default, but with hardcoded precision (s)
+        basic_format = True
+        show_ns = show_us = show_ms = False
+
+    elif format == "%Y-%m-%d %H:%M:%S.%f":
+        # Same format as default, but with hardcoded precision (us)
+        basic_format = show_us = True
+        show_ns = show_ms = False
+
     for i in range(N):
         val = values[i]
 
