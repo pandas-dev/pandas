@@ -822,13 +822,17 @@ def is_monotonic(ndarray[numeric_object_t, ndim=1] arr, bint timelike):
 
 cdef numeric_object_t get_rank_nan_fill_val(
     bint rank_nans_highest,
-    numeric_object_t[:] _=None
+    numeric_object_t val,
+    bint is_datetimelike=False,
 ):
     """
     Return the value we'll use to represent missing values when sorting depending
     on if we'd like missing values to end up at the top/bottom. (The second parameter
     is unused, but needed for fused type specialization)
     """
+    if numeric_object_t is int64_t and is_datetimelike and not rank_nans_highest:
+        return NPY_NAT + 1
+
     if rank_nans_highest:
         if numeric_object_t is object:
             return Infinity()
@@ -854,6 +858,9 @@ cdef numeric_object_t get_rank_nan_fill_val(
         if numeric_object_t is object:
             return NegInfinity()
         elif numeric_object_t is int64_t:
+            # Note(jbrockmendel) 2022-03-15 for reasons unknown, using util.INT64_MIN
+            #  instead of NPY_NAT here causes build warnings and failure in
+            #  test_cummax_i8_at_implementation_bound
             return NPY_NAT
         elif numeric_object_t is int32_t:
             return util.INT32_MIN
@@ -975,7 +982,7 @@ def rank_1d(
     # will flip the ordering to still end up with lowest rank.
     # Symmetric logic applies to `na_option == 'bottom'`
     nans_rank_highest = ascending ^ (na_option == 'top')
-    nan_fill_val = get_rank_nan_fill_val[numeric_object_t](nans_rank_highest)
+    nan_fill_val = get_rank_nan_fill_val(nans_rank_highest, <numeric_object_t>0)
     if nans_rank_highest:
         order = [masked_vals, mask]
     else:
@@ -1335,7 +1342,7 @@ def rank_2d(
 
     nans_rank_highest = ascending ^ (na_option == 'top')
     if check_mask:
-        nan_fill_val = get_rank_nan_fill_val[numeric_object_t](nans_rank_highest)
+        nan_fill_val = get_rank_nan_fill_val(nans_rank_highest, <numeric_object_t>0)
 
         if numeric_object_t is object:
             mask = missing.isnaobj2d(values).view(np.uint8)
