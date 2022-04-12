@@ -1759,6 +1759,8 @@ def _format_datetime64(x: NaTType | Timestamp, nat_rep: str = "NaT") -> str:
     if x is NaT:
         return nat_rep
 
+    # Timestamp.__str__ falls back to datetime.datetime.__str__ = isoformat(sep=' ')
+    # so it already uses string formatting rather than strftime (faster).
     return str(x)
 
 
@@ -1773,12 +1775,15 @@ def _format_datetime64_dateonly(
     if date_format:
         return x.strftime(date_format)
     else:
+        # Timestamp._date_repr relies on string formatting (faster than strftime)
         return x._date_repr
 
 
 def get_format_datetime64(
     is_dates_only: bool, nat_rep: str = "NaT", date_format: str | None = None
 ) -> Callable:
+    """Return a formatter callable taking a datetime64 as input and providing
+    a string as output"""
 
     if is_dates_only:
         return lambda x: _format_datetime64_dateonly(
@@ -1799,6 +1804,7 @@ def get_format_datetime64_from_values(
 
     ido = is_dates_only(values)
     if ido:
+        # Only dates and no timezone: provide a default format
         return date_format or "%Y-%m-%d"
     return date_format
 
@@ -1872,6 +1878,8 @@ def get_format_timedelta64(
 
         if not isinstance(x, Timedelta):
             x = Timedelta(x)
+
+        # Timedelta._repr_base uses string formatting (faster than strftime)
         result = x._repr_base(format=format)
         if box:
             result = f"'{result}'"
