@@ -559,7 +559,7 @@ def sanitize_array(
                     # GH#40110 until the deprecation is enforced, we _dont_
                     #  ignore the dtype for DataFrame, and _do_ cast even though
                     #  it is lossy.
-                    dtype = cast(np.dtype, dtype)
+                    dtype = cast(np.dtype[np.generic], dtype)
                     return np.array(data, dtype=dtype, copy=copy)
 
                 # We ignore the dtype arg and return floating values,

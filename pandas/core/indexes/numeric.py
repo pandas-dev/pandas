@@ -90,7 +90,7 @@ class NumericIndex(Index):
     _can_hold_strings = False
     _is_backward_compat_public_numeric_index: bool = True
 
-    _engine_types: dict[np.dtype, type[libindex.IndexEngine]] = {
+    _engine_types: dict[np.dtype[np.generic], type[libindex.IndexEngine]] = {
         np.dtype(np.int8): libindex.Int8Engine,
         np.dtype(np.int16): libindex.Int16Engine,
         np.dtype(np.int32): libindex.Int32Engine,

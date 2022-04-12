@@ -3429,7 +3429,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def _get_cythonized_result(
         self,
         base_func: Callable,
-        cython_dtype: np.dtype,
+        cython_dtype: np.dtype[np.generic],
         numeric_only: bool | lib.NoDefault = lib.no_default,
         needs_counts: bool = False,
         needs_nullable: bool = False,

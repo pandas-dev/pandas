@@ -287,7 +287,10 @@ def take_2d_multi(
 
 @functools.lru_cache(maxsize=128)
 def _get_take_nd_function_cached(
-    ndim: int, arr_dtype: np.dtype, out_dtype: np.dtype, axis: int
+    ndim: int,
+    arr_dtype: np.dtype[np.generic],
+    out_dtype: np.dtype[np.generic],
+    axis: int,
 ):
     """
     Part of _get_take_nd_function below that doesn't need `mask_info` and thus
@@ -324,7 +327,11 @@ def _get_take_nd_function_cached(
 
 
 def _get_take_nd_function(
-    ndim: int, arr_dtype: np.dtype, out_dtype: np.dtype, axis: int = 0, mask_info=None
+    ndim: int,
+    arr_dtype: np.dtype[np.generic],
+    out_dtype: np.dtype[np.generic],
+    axis: int = 0,
+    mask_info=None,
 ):
     """
     Get the appropriate "take" implementation for the given dimension, axis

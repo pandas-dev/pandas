@@ -500,7 +500,7 @@ def ensure_dtype_can_hold_na(dtype: DtypeObj) -> DtypeObj:
     return dtype
 
 
-def maybe_promote(dtype: np.dtype, fill_value=np.nan):
+def maybe_promote(dtype: np.dtype[np.generic], fill_value=np.nan):
     """
     Find the minimal dtype that can hold both the given dtype and fill_value.
 
@@ -547,7 +547,7 @@ def _maybe_promote_cached(dtype, fill_value, fill_value_type):
     return _maybe_promote(dtype, fill_value)
 
 
-def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
+def _maybe_promote(dtype: np.dtype[np.generic], fill_value=np.nan):
     # The actual implementation of the function, use `maybe_promote` above for
     # a cached version.
     if not is_scalar(fill_value):
@@ -1276,7 +1276,7 @@ def maybe_cast_to_datetime(
     if is_timedelta64_dtype(dtype):
         # TODO: _from_sequence would raise ValueError in cases where
         #  _ensure_nanosecond_dtype raises TypeError
-        dtype = cast(np.dtype, dtype)
+        dtype = cast(np.dtype[np.generic], dtype)
         dtype = _ensure_nanosecond_dtype(dtype)
         res = TimedeltaArray._from_sequence(value, dtype=dtype)
         return res
@@ -1612,7 +1612,7 @@ def find_common_type(types):
 
 
 def construct_2d_arraylike_from_scalar(
-    value: Scalar, length: int, width: int, dtype: np.dtype, copy: bool
+    value: Scalar, length: int, width: int, dtype: np.dtype[np.generic], copy: bool
 ) -> np.ndarray:
 
     shape = (length, width)
@@ -1754,7 +1754,7 @@ def construct_1d_object_array_from_listlike(values: Sized) -> np.ndarray:
 
 
 def maybe_cast_to_integer_array(
-    arr: list | np.ndarray, dtype: np.dtype, copy: bool = False
+    arr: list | np.ndarray, dtype: np.dtype[np.generic], copy: bool = False
 ) -> np.ndarray:
     """
     Takes any dtype and returns the casted version, raising for when data is
@@ -1896,7 +1896,7 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
         return False
 
 
-def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
+def np_can_hold_element(dtype: np.dtype[np.generic], element: Any) -> Any:
     """
     Raise if we cannot losslessly set this element into an ndarray with this dtype.
 

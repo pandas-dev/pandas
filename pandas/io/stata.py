@@ -2081,7 +2081,7 @@ def _maybe_convert_to_int_keys(convert_dates: dict, varlist: list[Hashable]) -> 
     return new_dict
 
 
-def _dtype_to_stata_type(dtype: np.dtype, column: Series) -> int:
+def _dtype_to_stata_type(dtype: np.dtype[np.generic], column: Series) -> int:
     """
     Convert dtype types to stata types. Returns the byte of the given ordinal.
     See TYPE_MAP and comments for an explanation. This is also explained in
@@ -2858,7 +2858,9 @@ supported types."""
         return self._null_terminate_str(s).encode(self._encoding)
 
 
-def _dtype_to_stata_type_117(dtype: np.dtype, column: Series, force_strl: bool) -> int:
+def _dtype_to_stata_type_117(
+    dtype: np.dtype[np.generic], column: Series, force_strl: bool
+) -> int:
     """
     Converts dtype types to stata types. Returns the byte of the given ordinal.
     See TYPE_MAP and comments for an explanation. This is also explained in

@@ -1588,7 +1588,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         # Give EAs some input on what happens here. Sparse needs this.
         if isinstance(dtype, SparseDtype):
             dtype = dtype.subtype
-            dtype = cast(np.dtype, dtype)
+            dtype = cast(np.dtype[np.generic], dtype)
         elif isinstance(dtype, ExtensionDtype):
             dtype = np.dtype("object")
         elif is_dtype_equal(dtype, str):

@@ -52,7 +52,7 @@ _dtype_obj = np.dtype(object)
 
 @overload
 def astype_nansafe(
-    arr: np.ndarray, dtype: np.dtype, copy: bool = ..., skipna: bool = ...
+    arr: np.ndarray, dtype: np.dtype[np.generic], copy: bool = ..., skipna: bool = ...
 ) -> np.ndarray:
     ...
 
@@ -172,7 +172,7 @@ def astype_nansafe(
 
 
 def _astype_float_to_int_nansafe(
-    values: np.ndarray, dtype: np.dtype, copy: bool
+    values: np.ndarray, dtype: np.dtype[np.generic], copy: bool
 ) -> np.ndarray:
     """
     astype with a check preventing converting NaN to an meaningless integer value.
@@ -294,7 +294,7 @@ def astype_array_safe(
 
 
 def astype_td64_unit_conversion(
-    values: np.ndarray, dtype: np.dtype, copy: bool
+    values: np.ndarray, dtype: np.dtype[np.generic], copy: bool
 ) -> np.ndarray:
     """
     By pandas convention, converting to non-nano timedelta64

@@ -40,7 +40,9 @@ class FloatingDtype(NumericDtype):
         return FLOAT_STR_TO_DTYPE
 
     @classmethod
-    def _safe_cast(cls, values: np.ndarray, dtype: np.dtype, copy: bool) -> np.ndarray:
+    def _safe_cast(
+        cls, values: np.ndarray, dtype: np.dtype[np.generic], copy: bool
+    ) -> np.ndarray:
         """
         Safely cast the values to the given dtype.
 

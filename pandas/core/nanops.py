@@ -260,7 +260,13 @@ def _get_values(
     fill_value: Any = None,
     fill_value_typ: str | None = None,
     mask: npt.NDArray[np.bool_] | None = None,
-) -> tuple[np.ndarray, npt.NDArray[np.bool_] | None, np.dtype, np.dtype, Any]:
+) -> tuple[
+    np.ndarray,
+    npt.NDArray[np.bool_] | None,
+    np.dtype[np.generic],
+    np.dtype[np.generic],
+    Any,
+]:
     """
     Utility to get the values view, mask, dtype, dtype_max, and fill_value.
 
@@ -349,7 +355,7 @@ def _na_ok_dtype(dtype: DtypeObj) -> bool:
     return not issubclass(dtype.type, np.integer)
 
 
-def _wrap_results(result, dtype: np.dtype, fill_value=None):
+def _wrap_results(result, dtype: np.dtype[np.generic], fill_value=None):
     """wrap our results if needed"""
     if result is NaT:
         pass

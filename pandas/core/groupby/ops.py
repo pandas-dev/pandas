@@ -151,7 +151,7 @@ class WrappedCythonOp:
     @classmethod
     @functools.lru_cache(maxsize=None)
     def _get_cython_function(
-        cls, kind: str, how: str, dtype: np.dtype, is_numeric: bool
+        cls, kind: str, how: str, dtype: np.dtype[np.generic], is_numeric: bool
     ):
 
         dtype_str = dtype.name
