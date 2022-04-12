@@ -528,7 +528,7 @@ Groupby/resample/rolling
 - Bug in :meth:`GroupBy.cummax` with ``int64`` dtype with leading value being the smallest possible int64 (:issue:`46382`)
 - Bug in :meth:`GroupBy.max` with empty groups and ``uint64`` dtype incorrectly raising ``RuntimeError`` (:issue:`46408`)
 - Bug in :meth:`.GroupBy.apply` would fail when ``func`` was a string and args or kwargs were supplied (:issue:`46479`)
-- Bug in :func:`_generate_marginal_results` when passing in integer key values to :func:`reorder_levels` referenced level by both number and key instead of only one (:issue:`26568`)
+-
 
 Reshaping
 ^^^^^^^^^
@@ -536,6 +536,7 @@ Reshaping
 - Bug in :func:`get_dummies` that selected object and categorical dtypes but not string (:issue:`44965`)
 - Bug in :meth:`DataFrame.align` when aligning a :class:`MultiIndex` to a :class:`Series` with another :class:`MultiIndex` (:issue:`46001`)
 - Bug in concanenation with ``IntegerDtype``, or ``FloatingDtype`` arrays where the resulting dtype did not mirror the behavior of the non-nullable dtypes (:issue:`46379`)
+- Bug in :func:`_generate_marginal_results` when passing in integer key values to :func:`reorder_levels` referenced level by both number and key instead of only one (:issue:`26568`)
 -
 
 Sparse
