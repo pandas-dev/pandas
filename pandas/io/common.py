@@ -323,7 +323,7 @@ def _get_filepath_or_buffer(
 
     if (
         isinstance(filepath_or_buffer, str)
-        and parse_url(filepath_or_buffer).scheme == "http"
+        and parse_url(filepath_or_buffer).scheme in ["http", "https"]
     ):
         # TODO: fsspec can also handle HTTP via requests, but leaving this
         # unchanged. using fsspec appears to break the ability to infer if the
