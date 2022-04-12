@@ -385,6 +385,7 @@ Performance improvements
 - Performance improvement when setting values in a pyarrow backed string array (:issue:`46400`)
 - Performance improvement in :func:`factorize` (:issue:`46109`)
 - Performance improvement in :class:`DataFrame` and :class:`Series` constructors for extension dtype scalars (:issue:`45854`)
+- Performance improvement in :class:`BusinessHour`, ``repr`` is now 4 times faster ! (related to :issue:`44764`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.bug_fixes:
