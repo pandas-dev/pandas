@@ -23,7 +23,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
-- Fixed metadata propagation in :meth:`NDFrame.xs`, :meth:`DataFrame.iterrows`, :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` (:issue:`28283`)
+-
 -
 
 .. ---------------------------------------------------------------------------
