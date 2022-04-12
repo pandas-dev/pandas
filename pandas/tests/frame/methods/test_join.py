@@ -107,7 +107,7 @@ def test_suffix_on_list_join():
     tm.assert_frame_equal(arr_joined, norm_joined)
 
 
-def test_join_validation():
+def test_join_on_single_col_check_dup():
     # GH 46622
     left = DataFrame(
         {"a": ["a", "b", "c", "d"], "b": ["cat", "dog", "weasel", "horse"]},
@@ -122,40 +122,19 @@ def test_join_validation():
         index=range(5),
     ).set_index("a")
 
-    # Make sure no side effects.
-    left_copy = left.copy()
-    right_copy = right.copy()
-
-    result = left.join(right, on="a", validate="1:1")
-    tm.assert_frame_equal(left, left_copy)
-    tm.assert_frame_equal(right, right_copy)
-
-    # make sure join still correct
-    expected = DataFrame(
-        {
-            "a": ["a", "b", "c", "d"],
-            "b": ["cat", "dog", "weasel", "horse"],
-            "c": ["meow", "bark", "um... weasel noise?", "nay"],
-        },
-        index=range(4),
-        columns=["a", "b", "c"],
-    )
-
-    result = left.join(right, on="a", validate="one_to_one")
-    tm.assert_frame_equal(result, expected)
-    tm.assert_frame_equal(left, left_copy)
-    tm.assert_frame_equal(right, right_copy)
-
     # Dups on right
     right_w_dups = concat(
         [right, DataFrame({"a": ["e"], "c": ["moo"]}, index=[3])]
     ).set_index("a")
+
+    # Dups on right allowed by one_to_many constraint
     left.join(
         right_w_dups,
         on="a",
         validate="one_to_many",
     )
 
+    # Dups on right not allowed by one_to_one constraint
     msg = "Merge keys are not unique in right dataset; not a one-to-one merge"
     with pytest.raises(MergeError, match=msg):
         left.join(
@@ -168,12 +147,15 @@ def test_join_validation():
     left_w_dups = concat(
         [left, DataFrame({"a": ["a"], "b": ["cow"]}, index=[3])], sort=True
     )
+
+    # Dups on left allowed by many_to_one constraint
     left_w_dups.join(
         right,
         on="a",
         validate="many_to_one",
     )
 
+    # Dups on left not allowed by one_to_one constraint
     msg = "Merge keys are not unique in left dataset; not a one-to-one merge"
     with pytest.raises(MergeError, match=msg):
         left_w_dups.join(
@@ -182,9 +164,10 @@ def test_join_validation():
             validate="one_to_one",
         )
 
-    # Dups on both
+    # Dups on both allowed by many_to_many constraint
     left_w_dups.join(right_w_dups, on="a", validate="many_to_many")
 
+    # Dups on both not allowed by many_to_one constraint
     msg = "Merge keys are not unique in right dataset; not a many-to-one merge"
     with pytest.raises(MergeError, match=msg):
         left_w_dups.join(
@@ -193,16 +176,19 @@ def test_join_validation():
             validate="many_to_one",
         )
 
+    # Dups on both not allowed by one_to_many constraint
     msg = "Merge keys are not unique in left dataset; not a one-to-many merge"
     with pytest.raises(MergeError, match=msg):
-        left_w_dups.join(right_w_dups, on="a", validate="one_to_many")
+        left_w_dups.join(
+            right_w_dups,
+            on="a",
+            validate="one_to_many",
+        )
 
-    # Check invalid arguments
-    msg = "Not a valid argument for validate"
-    with pytest.raises(ValueError, match=msg):
-        left.merge(right, on="a", validate="jibberish")
 
-    # Two column join, dups in both, but jointly no dups.
+def test_join_on_multi_col_check_dup():
+    # GH 46622
+    # Two column join, dups in both, but jointly no dups
     left = DataFrame(
         {
             "a": ["a", "a", "b", "b"],
@@ -231,8 +217,54 @@ def test_join_validation():
         index=range(3),
     ).set_index(["a", "b"])
 
+    # Jointly no dups allowed by one_to_one constraint
     result = left.join(right, how="inner", validate="1:1")
     tm.assert_frame_equal(result, expected_multi)
+
+
+def test_join_with_validate_correctness():
+    # GH 46622
+    left = DataFrame(
+        {"a": ["a", "b", "c", "d"], "b": ["cat", "dog", "weasel", "horse"]},
+        index=range(4),
+    )
+
+    right = DataFrame(
+        {
+            "a": ["a", "b", "c", "d", "e"],
+            "c": ["meow", "bark", "um... weasel noise?", "nay", "chirp"],
+        },
+        index=range(5),
+    ).set_index("a")
+
+    # Make sure no side effects
+    left_copy = left.copy()
+    right_copy = right.copy()
+
+    result = left.join(right, on="a", validate="1:1")
+    tm.assert_frame_equal(left, left_copy)
+    tm.assert_frame_equal(right, right_copy)
+
+    # Make sure join still correct
+    expected = DataFrame(
+        {
+            "a": ["a", "b", "c", "d"],
+            "b": ["cat", "dog", "weasel", "horse"],
+            "c": ["meow", "bark", "um... weasel noise?", "nay"],
+        },
+        index=range(4),
+        columns=["a", "b", "c"],
+    )
+
+    result = left.join(right, on="a", validate="one_to_one")
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(left, left_copy)
+    tm.assert_frame_equal(right, right_copy)
+
+    # Check invalid arguments
+    msg = "Not a valid argument for validate"
+    with pytest.raises(ValueError, match=msg):
+        left.merge(right, on="a", validate="jibberish")
 
 
 def test_join_index(float_frame):
