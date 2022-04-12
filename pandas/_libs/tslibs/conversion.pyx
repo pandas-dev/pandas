@@ -2,6 +2,7 @@ import cython
 import numpy as np
 
 cimport numpy as cnp
+from cpython.object cimport PyObject
 from numpy cimport (
     int32_t,
     int64_t,
@@ -44,7 +45,10 @@ from pandas._libs.tslibs.np_datetime cimport (
     pydatetime_to_dt64,
 )
 
-from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
+from pandas._libs.tslibs.np_datetime import (
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
+)
 
 from pandas._libs.tslibs.timezones cimport (
     get_dst_info,
@@ -72,8 +76,9 @@ from pandas._libs.tslibs.nattype cimport (
 )
 from pandas._libs.tslibs.tzconversion cimport (
     bisect_right_i8,
-    infer_datetuil_fold,
+    infer_dateutil_fold,
     localize_tzinfo_api,
+    tz_convert_from_utc_single,
     tz_localize_to_utc_single,
 )
 
@@ -82,15 +87,6 @@ from pandas._libs.tslibs.tzconversion cimport (
 
 DT64NS_DTYPE = np.dtype('M8[ns]')
 TD64NS_DTYPE = np.dtype('m8[ns]')
-
-
-class OutOfBoundsTimedelta(ValueError):
-    """
-    Raised when encountering a timedelta value that cannot be represented
-    as a timedelta64[ns].
-    """
-    # Timedelta analogue to OutOfBoundsDatetime
-    pass
 
 
 # ----------------------------------------------------------------------
@@ -278,7 +274,8 @@ def ensure_timedelta64ns(arr: ndarray, copy: bool = True):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def datetime_to_datetime64(ndarray[object] values):
+def datetime_to_datetime64(ndarray values):
+    # ndarray[object], but can't declare object without ndim
     """
     Convert ndarray of datetime-like objects to int64 array representing
     nanosecond timestamps.
@@ -293,20 +290,27 @@ def datetime_to_datetime64(ndarray[object] values):
     inferred_tz : tzinfo or None
     """
     cdef:
-        Py_ssize_t i, n = len(values)
+        Py_ssize_t i, n = values.size
         object val
-        int64_t[:] iresult
+        int64_t ival
+        ndarray iresult  # int64_t, but can't declare that without specifying ndim
         npy_datetimestruct dts
         _TSObject _ts
         bint found_naive = False
         tzinfo inferred_tz = None
 
-    result = np.empty(n, dtype='M8[ns]')
+        cnp.broadcast mi
+
+    result = np.empty((<object>values).shape, dtype='M8[ns]')
     iresult = result.view('i8')
+
+    mi = cnp.PyArray_MultiIterNew2(iresult, values)
     for i in range(n):
-        val = values[i]
+        # Analogous to: val = values[i]
+        val = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+
         if checknull_with_nat(val):
-            iresult[i] = NPY_NAT
+            ival = NPY_NAT
         elif PyDateTime_Check(val):
             if val.tzinfo is not None:
                 if found_naive:
@@ -319,17 +323,22 @@ def datetime_to_datetime64(ndarray[object] values):
                     inferred_tz = val.tzinfo
 
                 _ts = convert_datetime_to_tsobject(val, None)
-                iresult[i] = _ts.value
+                ival = _ts.value
                 check_dts_bounds(&_ts.dts)
             else:
                 found_naive = True
                 if inferred_tz is not None:
                     raise ValueError('Cannot mix tz-aware with '
                                      'tz-naive values')
-                iresult[i] = pydatetime_to_dt64(val, &dts)
+                ival = pydatetime_to_dt64(val, &dts)
                 check_dts_bounds(&dts)
         else:
             raise TypeError(f'Unrecognized value type: {type(val)}')
+
+        # Analogous to: iresult[i] = ival
+        (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = ival
+
+        cnp.PyArray_MultiIter_NEXT(mi)
 
     return result, inferred_tz
 
@@ -350,8 +359,8 @@ cdef class _TSObject:
         self.fold = 0
 
 
-cdef convert_to_tsobject(object ts, tzinfo tz, str unit,
-                         bint dayfirst, bint yearfirst, int32_t nanos=0):
+cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
+                                   bint dayfirst, bint yearfirst, int32_t nanos=0):
     """
     Extract datetime and int64 from any of:
         - np.int64 (with unit providing a possible modifier)
@@ -531,7 +540,7 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
         if typ == 'dateutil':
             tdata = <int64_t*>cnp.PyArray_DATA(trans)
             pos = bisect_right_i8(tdata, obj.value, trans.shape[0]) - 1
-            obj.fold = infer_datetuil_fold(obj.value, trans, deltas, pos)
+            obj.fold = infer_dateutil_fold(obj.value, trans, deltas, pos)
 
     # Keep the converter same as PyDateTime's
     dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
@@ -683,7 +692,7 @@ cdef inline void _localize_tso(_TSObject obj, tzinfo tz):
         int64_t[::1] deltas
         int64_t local_val
         int64_t* tdata
-        Py_ssize_t pos, ntrans
+        Py_ssize_t pos, ntrans, outpos = -1
         str typ
 
     assert obj.tzinfo is None
@@ -692,35 +701,12 @@ cdef inline void _localize_tso(_TSObject obj, tzinfo tz):
         pass
     elif obj.value == NPY_NAT:
         pass
-    elif is_tzlocal(tz):
-        local_val = obj.value + localize_tzinfo_api(obj.value, tz, &obj.fold)
-        dt64_to_dtstruct(local_val, &obj.dts)
     else:
-        # Adjust datetime64 timestamp, recompute datetimestruct
-        trans, deltas, typ = get_dst_info(tz)
-        ntrans = trans.shape[0]
+        local_val = tz_convert_from_utc_single(obj.value, tz, &obj.fold, &outpos)
 
-        if typ == "pytz":
-            # i.e. treat_tz_as_pytz(tz)
-            tdata = <int64_t*>cnp.PyArray_DATA(trans)
-            pos = bisect_right_i8(tdata, obj.value, ntrans) - 1
-            local_val = obj.value + deltas[pos]
-
-            # find right representation of dst etc in pytz timezone
-            tz = tz._tzinfos[tz._transition_info[pos]]
-        elif typ == "dateutil":
-            # i.e. treat_tz_as_dateutil(tz)
-            tdata = <int64_t*>cnp.PyArray_DATA(trans)
-            pos = bisect_right_i8(tdata, obj.value, ntrans) - 1
-            local_val = obj.value + deltas[pos]
-
-            # dateutil supports fold, so we infer fold from value
-            obj.fold = infer_datetuil_fold(obj.value, trans, deltas, pos)
-        else:
-            # All other cases have len(deltas) == 1. As of 2018-07-17
-            #  (and 2022-03-07), all test cases that get here have
-            #  is_fixed_offset(tz).
-            local_val = obj.value + deltas[0]
+        if outpos != -1:
+            # infer we went through a pytz path
+            tz = tz._tzinfos[tz._transition_info[outpos]]
 
         dt64_to_dtstruct(local_val, &obj.dts)
 

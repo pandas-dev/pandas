@@ -678,7 +678,7 @@ Boolean operators operate element-wise as well:
 Transposing
 ~~~~~~~~~~~
 
-To transpose, access the ``T`` attribute or :meth:`DataFrame.transpose``,
+To transpose, access the ``T`` attribute or :meth:`DataFrame.transpose`,
 similar to an ndarray:
 
 .. ipython:: python

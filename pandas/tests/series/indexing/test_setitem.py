@@ -779,7 +779,7 @@ class SetitemCastingEquivalents:
         pytest.param(
             # GH#45568 setting a valid NA value into IntervalDtype[int] should
             #  cast to IntervalDtype[float]
-            Series(interval_range(1, 5)),
+            Series(interval_range(1, 5, inclusive="right")),
             Series(
                 [Interval(1, 2), np.nan, Interval(3, 4), Interval(4, 5)],
                 dtype="interval[float64]",
@@ -1356,7 +1356,7 @@ class TestPeriodIntervalCoercion(CoercionTest):
     @pytest.fixture(
         params=[
             period_range("2016-01-01", periods=3, freq="D"),
-            interval_range(1, 5),
+            interval_range(1, 5, inclusive="right"),
         ]
     )
     def obj(self, request):
