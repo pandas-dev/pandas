@@ -51,7 +51,6 @@ from pandas._libs.tslibs.conversion cimport (
     _TSObject,
     convert_datetime_to_tsobject,
     convert_to_tsobject,
-    normalize_i8_stamp,
 )
 from pandas._libs.tslibs.util cimport (
     is_array,
@@ -83,6 +82,7 @@ from pandas._libs.tslibs.np_datetime cimport (
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
 from pandas._libs.tslibs.offsets cimport (
+    BaseOffset,
     is_offset_object,
     to_offset,
 )
@@ -114,9 +114,9 @@ _no_input = object()
 # ----------------------------------------------------------------------
 
 
-cdef inline object create_timestamp_from_ts(int64_t value,
-                                            npy_datetimestruct dts,
-                                            tzinfo tz, object freq, bint fold):
+cdef inline _Timestamp create_timestamp_from_ts(int64_t value,
+                                                npy_datetimestruct dts,
+                                                tzinfo tz, BaseOffset freq, bint fold):
     """ convenience routine to construct a Timestamp from its parts """
     cdef _Timestamp ts_base
     ts_base = _Timestamp.__new__(Timestamp, dts.year, dts.month,
@@ -281,13 +281,19 @@ cdef class _Timestamp(ABCTimestamp):
             return other.tzinfo is not None
         return other.tzinfo is None
 
+    @cython.overflowcheck(True)
     def __add__(self, other):
         cdef:
             int64_t nanos = 0
 
         if is_any_td_scalar(other):
             nanos = delta_to_nanoseconds(other)
-            result = type(self)(self.value + nanos, tz=self.tzinfo)
+            try:
+                result = type(self)(self.value + nanos, tz=self.tzinfo)
+            except OverflowError:
+                # Use Python ints
+                # Hit in test_tdi_add_overflow
+                result = type(self)(int(self.value) + int(nanos), tz=self.tzinfo)
             if result is not NaT:
                 result._set_freq(self._freq)  # avoid warning in constructor
             return result
@@ -308,7 +314,14 @@ cdef class _Timestamp(ABCTimestamp):
 
         elif not isinstance(self, _Timestamp):
             # cython semantics, args have been switched and this is __radd__
+            # TODO(cython3): remove this it moved to __radd__
             return other.__add__(self)
+        return NotImplemented
+
+    def __radd__(self, other):
+        # Have to duplicate checks to avoid infinite recursion due to NotImplemented
+        if is_any_td_scalar(other) or is_integer_object(other) or is_array(other):
+            return self.__add__(other)
         return NotImplemented
 
     def __sub__(self, other):
@@ -337,6 +350,7 @@ cdef class _Timestamp(ABCTimestamp):
                 and (PyDateTime_Check(other) or is_datetime64_object(other))):
             # both_timestamps is to determine whether Timedelta(self - other)
             # should raise the OOB error, or fall back returning a timedelta.
+            # TODO(cython3): clean out the bits that moved to __rsub__
             both_timestamps = (isinstance(other, _Timestamp) and
                                isinstance(self, _Timestamp))
             if isinstance(self, _Timestamp):
@@ -367,10 +381,22 @@ cdef class _Timestamp(ABCTimestamp):
         elif is_datetime64_object(self):
             # GH#28286 cython semantics for __rsub__, `other` is actually
             #  the Timestamp
+            # TODO(cython3): remove this, this moved to __rsub__
             return type(other)(self) - other
 
         return NotImplemented
 
+    def __rsub__(self, other):
+        if PyDateTime_Check(other):
+            try:
+                return type(self)(other) - self
+            except (OverflowError, OutOfBoundsDatetime) as err:
+                # We get here in stata tests, fall back to stdlib datetime
+                #  method and return stdlib timedelta object
+                pass
+        elif is_datetime64_object(other):
+            return type(self)(other) - self
+        return NotImplemented
     # -----------------------------------------------------------------
 
     cdef int64_t _maybe_convert_value_to_local(self):
@@ -2116,3 +2142,23 @@ cdef int64_t _NS_LOWER_BOUND = NPY_NAT + 1
 Timestamp.min = Timestamp(_NS_LOWER_BOUND)
 Timestamp.max = Timestamp(_NS_UPPER_BOUND)
 Timestamp.resolution = Timedelta(nanoseconds=1)  # GH#21336, GH#21365
+
+
+# ----------------------------------------------------------------------
+# Scalar analogues to functions in vectorized.pyx
+
+
+@cython.cdivision(False)
+cdef inline int64_t normalize_i8_stamp(int64_t local_val) nogil:
+    """
+    Round the localized nanosecond timestamp down to the previous midnight.
+
+    Parameters
+    ----------
+    local_val : int64_t
+
+    Returns
+    -------
+    int64_t
+    """
+    return local_val - (local_val % ccalendar.DAY_NANOS)

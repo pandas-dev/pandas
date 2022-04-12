@@ -51,6 +51,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     pandas_timedeltastruct,
     td64_to_tdstruct,
 )
+from pandas._libs.tslibs.np_datetime import OutOfBoundsTimedelta
 from pandas._libs.tslibs.offsets cimport is_tick_object
 from pandas._libs.tslibs.util cimport (
     is_array,
@@ -153,7 +154,7 @@ def ints_to_pytimedelta(const int64_t[:] arr, box=False):
     cdef:
         Py_ssize_t i, n = len(arr)
         int64_t value
-        object[:] result = np.empty(n, dtype=object)
+        object[::1] result = np.empty(n, dtype=object)
 
     for i in range(n):
 
@@ -188,7 +189,6 @@ cpdef int64_t delta_to_nanoseconds(delta) except? -1:
                 + delta.microseconds
             ) * 1000
         except OverflowError as err:
-            from pandas._libs.tslibs.conversion import OutOfBoundsTimedelta
             raise OutOfBoundsTimedelta(*err.args) from err
 
     raise TypeError(type(delta))
@@ -226,7 +226,6 @@ cdef object ensure_td64ns(object ts):
             # NB: cython#1381 this cannot be *=
             td64_value = td64_value * mult
         except OverflowError as err:
-            from pandas._libs.tslibs.conversion import OutOfBoundsTimedelta
             raise OutOfBoundsTimedelta(ts) from err
 
         return np.timedelta64(td64_value, "ns")
@@ -893,10 +892,10 @@ cdef class _Timedelta(timedelta):
 
         return cmp_scalar(self.value, ots.value, op)
 
-    cpdef bint _has_ns(self):
+    cdef bint _has_ns(self):
         return self.value % 1000 != 0
 
-    def _ensure_components(_Timedelta self):
+    cdef _ensure_components(_Timedelta self):
         """
         compute the components
         """
@@ -1161,7 +1160,10 @@ cdef class _Timedelta(timedelta):
         converted : string of a Timedelta
 
         """
-        cdef object sign, seconds_pretty, subs, fmt, comp_dict
+        cdef:
+            str sign, fmt
+            dict comp_dict
+            object subs
 
         self._ensure_components()
 

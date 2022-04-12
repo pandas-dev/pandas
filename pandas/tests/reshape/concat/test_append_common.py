@@ -70,11 +70,18 @@ class TestConcatAppendCommon:
         else:
             raise ValueError
 
-    def test_dtypes(self, item):
+    @pytest.mark.parametrize("box", [Index, Series])
+    def test_dtypes(self, item, box):
         # to confirm test case covers intended dtypes
         typ, vals = item
-        self._check_expected_dtype(Index(vals), typ)
-        self._check_expected_dtype(Series(vals), typ)
+        obj = box(vals)
+        if isinstance(obj, Index):
+            assert obj.dtype == typ
+        elif isinstance(obj, Series):
+            if typ.startswith("period"):
+                assert obj.dtype == "Period[M]"
+            else:
+                assert obj.dtype == typ
 
     def test_concatlike_same_dtypes(self, item):
         # GH 13660
