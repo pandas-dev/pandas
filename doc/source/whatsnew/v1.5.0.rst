@@ -387,7 +387,9 @@ Performance improvements
 - Performance improvement in :class:`DataFrame` and :class:`Series` constructors for extension dtype scalars (:issue:`45854`)
 - Performance improvement in :class:`BusinessHour`, ``str`` and ``repr`` are now 4 times faster ! (related to :issue:`44764`)
 - Performance improvement in :class:`DatetimeArray` and :class:`DatetimeIndex`: string formatting is now up to 80% faster (as fast as default) when one of the default strftime formats ``"%Y-%m-%d %H:%M:%S"`` or ``"%Y-%m-%d %H:%M:%S.%f"`` is used. (:issue:`44764`)
-- Performance improvement in :meth:`Series.to_excel` and :meth:`DataFrame.to_excel` (:class:`ExcelFormatter`): processing dates can be up to 4% faster. (related to :issue:`44764`)
+- Performance improvement in :meth:`Series.to_excel` and :meth:`DataFrame.to_excel` (:class:`ExcelFormatter`): processing date cells can be up to 4% faster. (related to
+:issue:`44764`)
+- Performance improvement in :meth:`Series.to_sql` and :meth:`DataFrame.to_sql` (:class:`SQLiteTable`): processing time arrays can be up to 65% faster ! (related to :issue:`44764`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.bug_fixes:
