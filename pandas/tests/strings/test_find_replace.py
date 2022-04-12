@@ -33,8 +33,7 @@ def test_contains(any_string_dtype):
     values = Series(values, dtype=any_string_dtype)
     pat = "mmm[_]+"
 
-    with maybe_perf_warn(any_string_dtype == "string[pyarrow]" and pa_version_under4p0):
-        result = values.str.contains(pat)
+    result = values.str.contains(pat)
     expected_dtype = "object" if any_string_dtype == "object" else "boolean"
     expected = Series(
         np.array([False, np.nan, True, True, False], dtype=np.object_),
@@ -165,7 +164,7 @@ def test_contains_na_kwarg_for_nullable_string_dtype(
 
     values = Series(["a", "b", "c", "a", np.nan], dtype=nullable_string_dtype)
     with maybe_perf_warn(
-        nullable_string_dtype == "string[pyarrow]" and pa_version_under4p0
+        nullable_string_dtype == "string[pyarrow]" and pa_version_under4p0 and regex
     ):
         result = values.str.contains("a", na=na, regex=regex)
     expected = Series([True, False, False, True, expected], dtype="boolean")
@@ -647,7 +646,12 @@ def test_replace_regex_single_character(regex, any_string_dtype):
             "version. In addition, single character regular expressions will *not* "
             "be treated as literal strings when regex=True."
         )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        raise_on_extra_warnings = (
+            any_string_dtype == "string[pyarrow]" and pa_version_under4p0
+        )
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, raise_on_extra_warnings=raise_on_extra_warnings
+        ):
             result = s.str.replace(".", "a", regex=regex)
     else:
         result = s.str.replace(".", "a", regex=regex)
