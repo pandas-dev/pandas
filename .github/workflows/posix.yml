@@ -174,7 +174,7 @@ jobs:
       if: always()
 
     - name: Build Version
-      run: pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
+      run: conda list
 
     - name: Publish test results
       uses: actions/upload-artifact@v3
