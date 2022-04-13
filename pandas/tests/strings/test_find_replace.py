@@ -640,7 +640,6 @@ def test_replace_regex_default_warning(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:Falling back")
 @pytest.mark.parametrize("regex", [True, False, None])
 def test_replace_regex_single_character(regex, any_string_dtype):
     # https://github.com/pandas-dev/pandas/pull/24809
@@ -656,7 +655,10 @@ def test_replace_regex_single_character(regex, any_string_dtype):
             "version. In addition, single character regular expressions will *not* "
             "be treated as literal strings when regex=True."
         )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        pyarrow_warn = any_string_dtype == "string[pyarrow]" and pa_version_under4p0
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, raise_on_extra_warnings=not pyarrow_warn
+        ):
             result = s.str.replace(".", "a", regex=regex)
     else:
         result = s.str.replace(".", "a", regex=regex)
