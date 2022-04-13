@@ -507,15 +507,9 @@ class WrappedCythonOp:
             values = values.view("int64")
             is_numeric = True
         elif is_bool_dtype(dtype):
-            values = values.astype("int64")
-        elif is_integer_dtype(dtype):
-            # GH#43329 If the dtype is explicitly of type uint64 the type is not
-            # changed to prevent overflow.
-            if dtype != np.uint64:
-                values = values.astype(np.int64, copy=False)
-        elif is_numeric:
-            if not is_complex_dtype(dtype):
-                values = ensure_float64(values)
+            values = values.view("uint8")
+        if values.dtype == "float16":
+            values = values.astype(np.float32)
 
         values = values.T
         if mask is not None:
@@ -601,6 +595,8 @@ class WrappedCythonOp:
         if self.how not in self.cast_blocklist:
             # e.g. if we are int64 and need to restore to datetime64/timedelta64
             # "rank" is the only member of cast_blocklist we get here
+            # Casting only needed for float16, bool, datetimelike,
+            #  and self.how in ["add", "prod", "ohlc", "cumprod"]
             res_dtype = self._get_result_dtype(orig_values.dtype)
             op_result = maybe_downcast_to_dtype(result, res_dtype)
         else:

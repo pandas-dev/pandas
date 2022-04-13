@@ -34,15 +34,3 @@ ctypedef fused numeric_t:
 ctypedef fused numeric_object_t:
     numeric_t
     object
-
-# i64 + u64 + all float types
-ctypedef fused iu_64_floating_t:
-    float64_t
-    float32_t
-    int64_t
-    uint64_t
-
-# i64 + u64 + all float types + object
-ctypedef fused iu_64_floating_obj_t:
-    iu_64_floating_t
-    object
