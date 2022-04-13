@@ -783,6 +783,34 @@ class TestDateRanges:
 
         tm.assert_index_equal(result, expected)
 
+    def test_range_without_start_inclusive(self, inclusive_endpoints_fixture):
+        # GH 46331
+        start = Timestamp("2000-01-01")
+        end = Timestamp("2000-01-04")
+        both_range = date_range(start, end, inclusive="both")
+
+        result = date_range(end=end, periods=4, inclusive=inclusive_endpoints_fixture)
+        expected = _get_expected_range(
+            start, end, both_range, inclusive_endpoints_fixture
+        )
+
+        tm.assert_index_equal(result, expected)
+
+    def test_range_without_end_inclusive(self, inclusive_endpoints_fixture):
+        # GH 46331
+        start = Timestamp("2000-01-01")
+        end = Timestamp("2000-01-04")
+        both_range = date_range(start, end, inclusive="both")
+
+        result = date_range(
+            start=start, periods=4, inclusive=inclusive_endpoints_fixture
+        )
+        expected = _get_expected_range(
+            start, end, both_range, inclusive_endpoints_fixture
+        )
+
+        tm.assert_index_equal(result, expected)
+
 
 class TestDateRangeTZ:
     """Tests for date_range with timezones"""
