@@ -3,8 +3,10 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import tarfile
 import textwrap
 import time
+import zipfile
 
 import pytest
 
@@ -262,3 +264,46 @@ def test_bzip_compression_level(obj, method):
     """
     with tm.ensure_clean() as path:
         getattr(obj, method)(path, compression={"method": "bz2", "compresslevel": 1})
+
+
+@pytest.mark.parametrize(
+    "suffix,archive",
+    [
+        (".zip", zipfile.ZipFile),
+        (".tar", tarfile.TarFile),
+    ],
+)
+def test_empty_archive_zip(suffix, archive):
+    with tm.ensure_clean(filename=suffix) as path:
+        file = archive(path, "w")
+        file.close()
+        with pytest.raises(ValueError, match="Zero files found"):
+            pd.read_csv(path)
+
+
+def test_ambiguous_archive_zip():
+    with tm.ensure_clean(filename=".zip") as path:
+        file = zipfile.ZipFile(path, "w")
+        file.writestr("a.csv", "foo,bar")
+        file.writestr("b.csv", "foo,bar")
+        file.close()
+        with pytest.raises(ValueError, match="Multiple files found in ZIP file"):
+            pd.read_csv(path)
+
+
+def test_ambiguous_archive_tar():
+    with tm.ensure_clean_dir() as dir:
+        csvAPath = os.path.join(dir, "a.csv")
+        with open(csvAPath, "w") as a:
+            a.write("foo,bar\n")
+        csvBPath = os.path.join(dir, "b.csv")
+        with open(csvBPath, "w") as b:
+            b.write("foo,bar\n")
+
+        tarpath = os.path.join(dir, "archive.tar")
+        with tarfile.TarFile(tarpath, "w") as tar:
+            tar.add(csvAPath, "a.csv")
+            tar.add(csvBPath, "b.csv")
+
+        with pytest.raises(ValueError, match="Multiple files found in TAR archive"):
+            pd.read_csv(tarpath)
