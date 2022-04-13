@@ -2283,9 +2283,11 @@ class TestMode:
             algos.mode(idx)
 
     def test_ser_mode_with_name(self):
-        ser = Series([1, 2, 3])
-        ser.name = "foo"
-        tm.assert_equal(ser.mode().name, "foo")
+        # GH 46737
+        ser = Series([1, 1, 3], name="foo")
+        result = ser.mode()
+        expected = Series([1], name="foo")
+        tm.assert_series_equal(result, expected)
 
 
 class TestDiff:
