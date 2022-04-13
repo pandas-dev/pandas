@@ -4,6 +4,7 @@ objects and arrays
 """
 from locale import LC_TIME
 
+from _strptime import LocaleTime
 import cython
 from cython import Py_ssize_t
 import numpy as np
@@ -45,8 +46,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     pandas_timedeltastruct,
     td64_to_tdstruct,
 )
-
-from pandas._libs.tslibs.strptime import LocaleTime
 
 
 @cython.wraparound(False)
