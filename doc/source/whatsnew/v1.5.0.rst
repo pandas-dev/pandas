@@ -473,6 +473,7 @@ Datetimelike
 - Bug in :meth:`Index.astype` when casting from object dtype to ``timedelta64[ns]`` dtype incorrectly casting ``np.datetime64("NaT")`` values to ``np.timedelta64("NaT")`` instead of raising (:issue:`45722`)
 - Bug in :meth:`SeriesGroupBy.value_counts` index when passing categorical column (:issue:`44324`)
 - Bug in :meth:`DatetimeIndex.tz_localize` localizing to UTC failing to make a copy of the underlying data (:issue:`46460`)
+- Bug in :meth:`date_range` when ``start`` or ``end`` was not specified, failed to exclude first or last date despite ``inclusive`` not being ``"both"`` (:issue:`46331`)
 -
 
 Timedelta
