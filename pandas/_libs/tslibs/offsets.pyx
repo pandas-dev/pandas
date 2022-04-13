@@ -1591,7 +1591,6 @@ cdef class BusinessHour(BusinessMixin):
     def _repr_attrs(self) -> str:
         out = super()._repr_attrs()
         # Use python string formatting to be faster than strftime
-        #   f'{st.strftime("%H:%M")}-{en.strftime("%H:%M")}'
         hours = ",".join(
             f'{st.hour:02d}:{st.minute:02d}-{en.hour:02d}:{en.minute:02d}'
             for st, en in zip(self.start, self.end)
