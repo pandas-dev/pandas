@@ -2595,9 +2595,17 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
         elif self.flavor == "mysql":
             tm.assert_frame_equal(res, df)
 
-    def test_datetime_time(self):
+    @pytest.mark.parametrize("tz_aware", [False, True])
+    def test_datetime_time(self, tz_aware):
         # test support for datetime.time, GH #8341
-        df = DataFrame([time(9, 0, 0), time(9, 1, 30)], columns=["a"])
+        if not tz_aware:
+            tz_times = [time(9, 0, 0), time(9, 1, 30)]
+        else:
+            tz_dt = date_range("2013-01-01 09:00:00", periods=3, tz="US/Pacific")
+            tz_times = pd.Series(tz_dt.to_pydatetime()).map(lambda dt: dt.timetz())
+
+        df = DataFrame(tz_times, columns=["a"])
+
         assert df.to_sql("test_time", self.conn, index=False) == 2
         res = read_sql_query("SELECT * FROM test_time", self.conn)
         if self.flavor == "sqlite":
