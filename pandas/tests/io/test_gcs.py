@@ -15,9 +15,8 @@ from pandas import (
     read_parquet,
 )
 import pandas._testing as tm
+from pandas.tests.io.test_compression import _compression_to_extension
 from pandas.util import _test_decorators as td
-
-import pandas.io.common as icom
 
 
 @pytest.fixture
@@ -157,7 +156,7 @@ def test_to_csv_compression_encoding_gcs(gcs_buffer, compression_only, encoding)
     tm.assert_frame_equal(df, read_df)
 
     # write compressed file with implicit compression
-    file_ext = icom._compression_to_extension[compression_only]
+    file_ext = _compression_to_extension[compression_only]
     compression["method"] = "infer"
     path_gcs += f".{file_ext}"
     df.to_csv(path_gcs, compression=compression, encoding=encoding)

@@ -464,9 +464,6 @@ _extension_to_compression = {
     ".zst": "zstd",
 }
 _supported_compressions = set(_extension_to_compression.values())
-_compression_to_extension = {
-    value: key for key, value in _extension_to_compression.items()
-}
 
 
 def get_compression_method(

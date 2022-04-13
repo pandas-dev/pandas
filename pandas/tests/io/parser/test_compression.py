@@ -12,8 +12,7 @@ import pytest
 
 from pandas import DataFrame
 import pandas._testing as tm
-
-import pandas.io.common as icom
+from pandas.tests.io.test_compression import _compression_to_extension
 
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
@@ -96,7 +95,7 @@ def test_compression(request, parser_and_data, compression_only, buffer, filenam
     parser, data, expected = parser_and_data
     compress_type = compression_only
 
-    ext = icom._compression_to_extension[compress_type]
+    ext = _compression_to_extension[compress_type]
     filename = filename if filename is None else filename.format(ext=ext)
 
     if filename and buffer:
