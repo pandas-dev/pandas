@@ -1,3 +1,4 @@
+import gzip
 import io
 import os
 from pathlib import Path
@@ -311,3 +312,17 @@ def test_ambiguous_archive_tar():
 
         with pytest.raises(ValueError, match="Multiple files found in TAR archive"):
             pd.read_csv(tarpath)
+
+
+def test_tar_gz_to_different_filename():
+    with tm.ensure_clean(filename=".foo") as file:
+        pd.DataFrame(
+            [["1", "2"]],
+            columns=["foo", "bar"],
+        ).to_csv(file, compression={"method": "tar", "mode": "w:gz"}, index=False)
+        with gzip.open(file) as uncompressed:
+            with tarfile.TarFile(fileobj=uncompressed) as archive:
+                members = archive.getmembers()
+                assert len(members) == 1
+                content = archive.extractfile(members[0]).read()
+                assert content == b"foo,bar\n1,2\n"
