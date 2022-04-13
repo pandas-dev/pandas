@@ -455,6 +455,7 @@ Performance improvements
 - Performance improvement in :class:`BusinessHour` ``str`` and ``repr``. (related to :issue:`44764`)
 - Performance improvement in datetime arrays string formatting when one of the default strftime formats ``"%Y-%m-%d %H:%M:%S"`` or ``"%Y-%m-%d %H:%M:%S.%f"`` is used. (:issue:`44764`)
 - Performance improvement in :meth:`Series.to_sql` and :meth:`DataFrame.to_sql` (:class:`SQLiteTable`) when processing time arrays. (related to :issue:`44764`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.bug_fixes:
