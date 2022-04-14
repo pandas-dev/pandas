@@ -61,7 +61,7 @@ jobs:
             env_file: actions-310-numpydev.yaml
             pattern: "not slow and not network and not single_cpu"
             pandas_testing_mode: "deprecate"
-            test_args: "-W error"
+            test_args: "-W error::DeprecationWarning:numpy"
       fail-fast: false
     name: ${{ matrix.name || format('{0} pyarrow={1} {2}', matrix.env_file, matrix.pyarrow_version, matrix.pattern) }}
     env:
@@ -174,7 +174,7 @@ jobs:
       if: always()
 
     - name: Build Version
-      run: pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
+      run: conda list
 
     - name: Publish test results
       uses: actions/upload-artifact@v3
