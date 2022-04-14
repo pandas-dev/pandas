@@ -3,20 +3,6 @@ exclude: ^LICENSES/|\.(html|csv|svg)$
 ci:
     autofix_prs: false
 repos:
--   repo: https://github.com/MarcoGorelli/absolufy-imports
-    rev: v0.3.1
-    hooks:
-    -   id: absolufy-imports
-        files: ^pandas/
-        verbose: true
--   repo: https://github.com/jendrikseipp/vulture
-    rev: 'v2.3'
-    hooks:
-      - id: vulture
-        entry: python scripts/run_vulture.py
-        pass_filenames: true
-        require_serial: false
-        verbose: true
 -   repo: https://github.com/codespell-project/codespell
     rev: v2.1.0
     hooks:
