@@ -4,12 +4,21 @@ import re
 
 import pytest
 
+from pandas.compat import is_numpy_dev
 from pandas.util._print_versions import (
     _get_dependency_info,
     _get_sys_info,
 )
 
 import pandas as pd
+
+# This is failing on the Numpy Dev build,
+# but the error may just be from distutils?
+pytestmark = pytest.mark.xfail(
+    is_numpy_dev,
+    reason="_distutils not in python3.10/distutils/core.py",
+    raises=AssertionError,
+)
 
 
 @pytest.mark.filterwarnings(
