@@ -46,8 +46,6 @@ repos:
     rev: 463d9b1ce9ee44665f2c6825edd7010ef5dff760
     hooks:
     -   id: flake8
-        additional_dependencies: &flake8_dependencies
-        - flake8-bugbear==21.3.2
         verbose: true
 -   repo: https://github.com/PyCQA/isort
     rev: 5.10.1
