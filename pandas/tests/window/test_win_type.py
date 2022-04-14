@@ -682,7 +682,7 @@ def test_cmov_window_special_linear_range(win_types_special, step):
 def test_weighted_var_big_window_no_segfault():
     # Github Issue #46772
     x = Series(0)
-    result = x.rolling(window=16, center=True, win_type='triang').var()
+    result = x.rolling(window=16, center=True, win_type="triang").var()
     expected = Series(np.NaN)
 
     tm.assert_series_equal(result, expected)
