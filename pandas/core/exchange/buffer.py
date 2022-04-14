@@ -11,7 +11,7 @@ from pandas.core.exchange.dataframe_protocol import (
     DlpackDeviceType,
 )
 
-_NUMPY_DLPACK = version.parse("1.22.0")
+_NUMPY_HAS_DLPACK = version.parse(np.__version__) >= version.parse("1.22.0")
 
 
 class PandasBuffer(Buffer):
@@ -52,21 +52,13 @@ class PandasBuffer(Buffer):
         """
         return self._x.__array_interface__["data"][0]
 
-    if version.parse(np.__version__) >= _NUMPY_DLPACK:
-
-        def __dlpack__(self):
-            """
-            Represent this structure as DLPack interface.
-            """
+    def __dlpack__(self):
+        """
+        Represent this structure as DLPack interface.
+        """
+        if _NUMPY_HAS_DLPACK:
             return self._x.__dlpack__()
-
-    else:
-
-        def __dlpack__(self):
-            """
-            Represent this structure as DLPack interface.
-            """
-            raise NotImplementedError("__dlpack__")
+        raise NotImplementedError("__dlpack__")
 
     def __dlpack_device__(self) -> Tuple[DlpackDeviceType, Optional[int]]:
         """
