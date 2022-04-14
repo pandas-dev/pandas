@@ -25,7 +25,7 @@ repos:
         files: ^(pandas|doc)/
         verbose: true
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.1.0
+    rev: v4.2.0
     hooks:
     -   id: debug-statements
     -   id: end-of-file-fixer
@@ -43,14 +43,12 @@ repos:
         args: [--quiet, '--extensions=c,h', '--headers=h', --recursive, '--filter=-readability/casting,-runtime/int,-build/include_subdir']
         verbose: true
 -   repo: https://github.com/PyCQA/flake8
-    rev: 4.0.1
+    rev: 463d9b1ce9ee44665f2c6825edd7010ef5dff760
     hooks:
     -   id: flake8
         additional_dependencies: &flake8_dependencies
         - flake8==4.0.1
-        - flake8-comprehensions==3.7.0
         - flake8-bugbear==21.3.2
-        - pandas-dev-flaker==0.5.0
         verbose: true
 -   repo: https://github.com/PyCQA/isort
     rev: 5.10.1
@@ -58,7 +56,7 @@ repos:
     -   id: isort
         verbose: true
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.31.1
+    rev: v2.32.0
     hooks:
     -   id: pyupgrade
         args: [--py38-plus]
@@ -78,12 +76,6 @@ repos:
     rev: v0.2
     hooks:
     -   id: sphinx-lint
-        verbose: true
--   repo: https://github.com/asottile/yesqa
-    rev: v1.3.0
-    hooks:
-    -   id: yesqa
-        additional_dependencies: *flake8_dependencies
         verbose: true
 -   repo: local
     hooks:
