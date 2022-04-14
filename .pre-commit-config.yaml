@@ -17,11 +17,6 @@ repos:
         pass_filenames: true
         require_serial: false
         verbose: true
--   repo: https://github.com/python/black
-    rev: 22.3.0
-    hooks:
-    -   id: black
-        verbose: true
 -   repo: https://github.com/codespell-project/codespell
     rev: v2.1.0
     hooks:
@@ -90,6 +85,16 @@ repos:
     -   id: yesqa
         additional_dependencies: *flake8_dependencies
         verbose: true
+-   repo: local
+    hooks:
+    -   id: black
+        name: black
+        entry: black
+        language: python
+        types_or: [python, pyi]
+        additional_dependencies: ['black==22.3.0']
+        verbose: true
+        require_serial: true
 -   repo: local
     hooks:
     -   id: pyright
