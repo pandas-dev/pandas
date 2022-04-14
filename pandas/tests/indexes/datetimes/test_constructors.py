@@ -8,7 +8,6 @@ from operator import attrgetter
 
 import dateutil
 import numpy as np
-from pandas._testing.asserters import assert_equal
 import pytest
 import pytz
 
@@ -84,16 +83,6 @@ class TestDatetimeIndex:
             for obj in [ci, carr, cser]:
                 result = DatetimeIndex(obj)
                 tm.assert_index_equal(result, dti)
-
-    def test_categorical_preserves_freq(self):
-        # GH33830 freq retention in categorical
-        dti = pd.date_range('2016-01-01', periods=5)
-        expected = dti.freq
-
-        cat = pd.Categorical(dti)
-        result = cat.categories.freq
-
-        assert expected == result
 
     def test_dti_with_period_data_raises(self):
         # GH#23675
