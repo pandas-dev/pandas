@@ -412,7 +412,7 @@ def _generate_marginal_results(
         new_order = [len(cols)] + list(range(len(cols)))
 
         # GH26568 reorder_levels improperly uses a key that is also a number
-        # If a number in new_order is also a key, 
+        # If a number in new_order is also a key,
         # convert new_order to their respective keys in row_margin.index.names
         for key in row_margin.index.names:
             if is_integer(key) and key <= len(cols):
