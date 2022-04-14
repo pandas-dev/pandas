@@ -1,10 +1,11 @@
-from functools import cached_property
 from typing import (
     Any,
     Tuple,
 )
 
 import numpy as np
+
+from pandas.util._decorators import cache_readonly
 
 import pandas as pd
 from pandas.api.types import (
@@ -94,7 +95,7 @@ class PandasColumn(Column):
         # TODO: chunks are implemented now, probably this should return something
         return 0
 
-    @cached_property
+    @cache_readonly
     def dtype(self):
         dtype = self._col.dtype
 
@@ -113,6 +114,9 @@ class PandasColumn(Column):
                 "=",
             )
         elif is_string_dtype(dtype):
+            # TODO: is_string_dtype() can return True for non-string dtypes like
+            # numpy arrays, because they all have an "object" dtype.
+            # Think on how to improve the check here.
             return (DtypeKind.STRING, 8, dtype_to_arrow_c_fmt(dtype), "=")
         else:
             return self._dtype_from_pandasdtype(dtype)
@@ -168,7 +172,7 @@ class PandasColumn(Column):
 
         return null, value
 
-    @cached_property
+    @cache_readonly
     def null_count(self) -> int:
         """
         Number of null elements. Should always be known.
@@ -180,7 +184,7 @@ class PandasColumn(Column):
         """
         Store specific metadata of the column.
         """
-        return {"index": self._col.index}
+        return {"pandas.index": self._col.index}
 
     def num_chunks(self) -> int:
         """
@@ -253,6 +257,7 @@ class PandasColumn(Column):
             DtypeKind.UINT,
             DtypeKind.FLOAT,
             DtypeKind.BOOL,
+            DtypeKind.DATETIME,
         ):
             buffer = PandasBuffer(self._col.to_numpy(), allow_copy=self._allow_copy)
             dtype = self.dtype
@@ -281,6 +286,8 @@ class PandasColumn(Column):
                 ArrowCTypes.STRING,
                 Endianness.NATIVE,
             )  # note: currently only support native endianness
+        elif self.dtype[0] == DtypeKind.DATETIME:
+            pass
         else:
             raise NotImplementedError(f"Data type {self._col.dtype} not handled yet")
 

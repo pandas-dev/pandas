@@ -6,6 +6,8 @@ import re
 
 import numpy as np
 
+from pandas._typing import DtypeObj
+
 import pandas as pd
 from pandas.api.types import is_datetime64_dtype
 
@@ -52,7 +54,7 @@ class Endianness:
     NA = "|"
 
 
-def dtype_to_arrow_c_fmt(dtype) -> str:
+def dtype_to_arrow_c_fmt(dtype: DtypeObj) -> str:
     """
     Represent pandas `dtype` as a format string in Apache Arrow C notation.
 

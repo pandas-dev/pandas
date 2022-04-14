@@ -4,11 +4,14 @@ from typing import (
 )
 
 import numpy as np
+from packaging import version
 
 from pandas.core.exchange.dataframe_protocol import (
     Buffer,
     DlpackDeviceType,
 )
+
+_NUMPY_DLPACK = version.parse("1.22.0")
 
 
 class PandasBuffer(Buffer):
@@ -49,11 +52,21 @@ class PandasBuffer(Buffer):
         """
         return self._x.__array_interface__["data"][0]
 
-    def __dlpack__(self):
-        """
-        DLPack not implemented in NumPy yet, so leave it out here.
-        """
-        raise NotImplementedError("__dlpack__")
+    if version.parse(np.__version__) >= _NUMPY_DLPACK:
+
+        def __dlpack__(self):
+            """
+            Represent this structure as DLPack interface.
+            """
+            return self._x.__dlpack__()
+
+    else:
+
+        def __dlpack__(self):
+            """
+            Represent this structure as DLPack interface.
+            """
+            raise NotImplementedError("__dlpack__")
 
     def __dlpack_device__(self) -> Tuple[DlpackDeviceType, Optional[int]]:
         """
