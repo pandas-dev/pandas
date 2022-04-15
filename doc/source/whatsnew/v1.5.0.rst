@@ -91,6 +91,8 @@ parameters (the calling DataFrame or Series and the axis) (:issue:`46226`).
    df = pd.DataFrame({"X": [1, 2, 3, 4], "Y": list("aabb")}, index=list("ABCD"))
    df.loc[:, lambda x, axis: x.axes[axis].isin(['X'])]
 
+This allows more flexibility when constructing the callables.
+
 .. _whatsnew_150.enhancements.other:
 
 Other enhancements
