@@ -125,7 +125,7 @@ Indexing
 IO
 ^^
 
-- Bug in class:`~pandas.io.stata.StataReader` not converting date/time columns with display formatting addressed (:issue:`17990`). Previously columns with display formatting were normally left as ordinal numbers and not converted to datetime objects.
+- Bug in :class:`~pandas.io.stata.StataReader` not converting date/time columns with display formatting addressed (:issue:`17990`). Previously columns with display formatting were normally left as ordinal numbers and not converted to datetime objects.
 - Bug in :func:`read_csv` when reading a compressed UTF-16 encoded file (:issue:`18071`)
 - Bug in :func:`read_csv` for handling null values in index columns when specifying ``na_filter=False`` (:issue:`5239`)
 - Bug in :func:`read_csv` when reading numeric category fields with high cardinality (:issue:`18186`)
