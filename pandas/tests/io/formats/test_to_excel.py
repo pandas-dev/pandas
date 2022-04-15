@@ -341,14 +341,3 @@ def test_css_named_colors_from_mpl_present():
     for name, color in mpl_colors.items():
         assert name in pd_colors and pd_colors[name] == color[1:]
 
-
-def test_storage_options():
-    import pandas as pd
-    import numpy as np
-    try:
-        bigdf = pd.DataFrame(np.random.randn(16, 100))
-        file = bigdf.style.set_sticky(axis="index")
-        file.to_excel('file.xlsx', storage_options=dict())
-    except:
-        assert False, "storage_options raised an exception"
-    
