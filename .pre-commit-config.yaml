@@ -2,6 +2,7 @@ minimum_pre_commit_version: 2.9.2
 exclude: ^LICENSES/|\.(html|csv|svg)$
 ci:
     autofix_prs: false
+    skip: [black, yesqa]
 repos:
 -   repo: https://github.com/MarcoGorelli/absolufy-imports
     rev: v0.3.1
@@ -15,6 +16,10 @@ repos:
         entry: python scripts/run_vulture.py
         pass_filenames: true
         require_serial: false
+-   repo: https://github.com/python/black
+    rev: 22.3.0
+    hooks:
+    -   id: black
 -   repo: https://github.com/codespell-project/codespell
     rev: v2.1.0
     hooks:
@@ -69,6 +74,11 @@ repos:
     rev: v0.2
     hooks:
     - id: sphinx-lint
+-   repo: https://github.com/asottile/yesqa
+    rev: v1.3.0
+    hooks:
+    -   id: yesqa
+        additional_dependencies: *flake8_dependencies
 -   repo: local
     hooks:
     -   id: pyright
