@@ -62,16 +62,6 @@ repos:
         verbose: true
 -   repo: local
     hooks:
-    -   id: black
-        name: black
-        entry: black
-        language: python
-        types_or: [python, pyi]
-        additional_dependencies: ['black==22.3.0']
-        verbose: true
-        require_serial: true
--   repo: local
-    hooks:
     -   id: pyright
         name: pyright
         entry: pyright
