@@ -15,7 +15,6 @@ mypy==0.941
 pre-commit>=2.9.2
 pycodestyle
 pyupgrade
-yesqa
 gitpython
 gitdb
 numpydoc

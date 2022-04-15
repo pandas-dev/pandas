@@ -100,15 +100,6 @@ repos:
         stages: [manual]
         # note: keep version in sync with .github/workflows/code-checks.yml
         additional_dependencies: ['pyright@1.1.230']
-    -   id: flake8-rst
-        name: flake8-rst
-        description: Run flake8 on code snippets in docstrings or RST files
-        language: python
-        entry: flake8-rst
-        types: [rst]
-        args: [--filename=*.rst]
-        additional_dependencies: [flake8-rst==0.7.0, flake8==3.7.9]
-        verbose: true
     -   id: unwanted-patterns
         name: Unwanted patterns
         language: pygrep
