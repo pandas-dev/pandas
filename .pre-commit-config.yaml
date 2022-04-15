@@ -9,6 +9,7 @@ repos:
     hooks:
     -   id: absolufy-imports
         files: ^pandas/
+        verbose: true
 -   repo: https://github.com/jendrikseipp/vulture
     rev: 'v2.3'
     hooks:
@@ -16,16 +17,19 @@ repos:
         entry: python scripts/run_vulture.py
         pass_filenames: true
         require_serial: false
+        verbose: true
 -   repo: https://github.com/python/black
     rev: 22.3.0
     hooks:
     -   id: black
+        verbose: true
 -   repo: https://github.com/codespell-project/codespell
     rev: v2.1.0
     hooks:
     -   id: codespell
         types_or: [python, rst, markdown]
         files: ^(pandas|doc)/
+        verbose: true
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.1.0
     hooks:
@@ -33,6 +37,7 @@ repos:
     -   id: end-of-file-fixer
         exclude: \.txt$
     -   id: trailing-whitespace
+        verbose: true
 -   repo: https://github.com/cpplint/cpplint
     rev: 1.6.0
     hooks:
@@ -43,6 +48,7 @@ repos:
         # we can lint all header files since they aren't "generated" like C files are.
         exclude: ^pandas/_libs/src/(klib|headers)/
         args: [--quiet, '--extensions=c,h', '--headers=h', --recursive, '--filter=-readability/casting,-runtime/int,-build/include_subdir']
+        verbose: true
 -   repo: https://github.com/PyCQA/flake8
     rev: 4.0.1
     hooks:
@@ -51,15 +57,18 @@ repos:
         - flake8==4.0.1
         - flake8-bugbear==21.3.2
         - pandas-dev-flaker==0.5.0
+        verbose: true
 -   repo: https://github.com/PyCQA/isort
     rev: 5.10.1
     hooks:
     -   id: isort
+        verbose: true
 -   repo: https://github.com/asottile/pyupgrade
     rev: v2.31.1
     hooks:
     -   id: pyupgrade
         args: [--py38-plus]
+        verbose: true
 -   repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.9.0
     hooks:
@@ -73,7 +82,8 @@ repos:
 -   repo: https://github.com/sphinx-contrib/sphinx-lint
     rev: v0.2
     hooks:
-    - id: sphinx-lint
+    -   id: sphinx-lint
+        verbose: true
 -   repo: https://github.com/asottile/yesqa
     rev: v1.3.0
     hooks:
@@ -90,8 +100,6 @@ repos:
         stages: [manual]
         # note: keep version in sync with .github/workflows/code-checks.yml
         additional_dependencies: ['pyright@1.1.230']
--   repo: local
-    hooks:
     -   id: flake8-rst
         name: flake8-rst
         description: Run flake8 on code snippets in docstrings or RST files
@@ -100,6 +108,7 @@ repos:
         types: [rst]
         args: [--filename=*.rst]
         additional_dependencies: [flake8-rst==0.7.0, flake8==3.7.9]
+        verbose: true
     -   id: unwanted-patterns
         name: Unwanted patterns
         language: pygrep
@@ -118,16 +127,19 @@ repos:
             # Check for deprecated messages without sphinx directive
             |(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)
         types_or: [python, cython, rst]
+        verbose: true
     -   id: cython-casting
         name: Check Cython casting is `<type>obj`, not `<type> obj`
         language: pygrep
         entry: '[a-zA-Z0-9*]> '
         files: (\.pyx|\.pxi.in)$
+        verbose: true
     -   id: incorrect-backticks
         name: Check for backticks incorrectly rendering because of missing spaces
         language: pygrep
         entry: '[a-zA-Z0-9]\`\`?[a-zA-Z0-9]'
         types: [rst]
+        verbose: true
         files: ^doc/source/
     -   id: seed-check-asv
         name: Check for unnecessary random seeds in asv benchmarks
@@ -135,12 +147,14 @@ repos:
         entry: 'np\.random\.seed'
         files: ^asv_bench/benchmarks
         exclude: ^asv_bench/benchmarks/pandas_vb_common\.py
+        verbose: true
     -   id: np-testing-array-equal
         name: Check for usage of numpy testing or array_equal
         language: pygrep
         entry: '(numpy|np)(\.testing|\.array_equal)'
         files: ^pandas/tests/
         types: [python]
+        verbose: true
     -   id: invalid-ea-testing
         name: Check for invalid EA testing
         language: pygrep
@@ -148,6 +162,7 @@ repos:
         files: ^pandas/tests/extension/base
         types: [python]
         exclude: ^pandas/tests/extension/base/base\.py
+        verbose: true
     -   id: pip-to-conda
         name: Generate pip dependency from conda
         description: This hook checks if the conda environment.yml and requirements-dev.txt are equal
@@ -163,6 +178,7 @@ repos:
         files: ^(\.pre-commit-config\.yaml|environment\.yml)$
         pass_filenames: false
         additional_dependencies: [pyyaml]
+        verbose: true
     -   id: title-capitalization
         name: Validate correct capitalization among titles in documentation
         entry: python scripts/validate_rst_title_capitalization.py
@@ -176,6 +192,7 @@ repos:
         files: ^pandas/core/
         exclude: ^pandas/core/api\.py$
         types: [python]
+        verbose: true
     -   id: use-io-common-urlopen
         name: Use pandas.io.common.urlopen instead of urllib.request.urlopen
         language: python
@@ -183,11 +200,13 @@ repos:
         files: ^pandas/
         exclude: ^pandas/tests/
         types: [python]
+        verbose: true
     -   id: no-bool-in-core-generic
         name: Use bool_t instead of bool in pandas/core/generic.py
         entry: python scripts/no_bool_in_generic.py
         language: python
         files: ^pandas/core/generic\.py$
+        verbose: true
     -   id: pandas-errors-documented
         name: Ensure pandas errors are documented in doc/source/reference/testing.rst
         entry: python scripts/pandas_errors_documented.py
@@ -204,3 +223,4 @@ repos:
         entry: python scripts/validate_min_versions_in_sync.py
         language: python
         files: ^(ci/deps/actions-.*-minimum_versions\.yaml|pandas/compat/_optional\.py)$
+        verbose: true
