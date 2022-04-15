@@ -717,9 +717,11 @@ def test_ops_not_as_index(reduction_func):
 
     if reduction_func in ("corrwith", "nth", "ngroup"):
         pytest.skip(f"GH 5755: Test not applicable for {reduction_func}")
+    warn = FutureWarning if reduction_func == "mad" else None
 
     df = DataFrame(np.random.randint(0, 5, size=(100, 2)), columns=["a", "b"])
-    expected = getattr(df.groupby("a"), reduction_func)()
+    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
+        expected = getattr(df.groupby("a"), reduction_func)()
     if reduction_func == "size":
         expected = expected.rename("size")
     expected = expected.reset_index()
@@ -730,16 +732,20 @@ def test_ops_not_as_index(reduction_func):
 
     g = df.groupby("a", as_index=False)
 
-    result = getattr(g, reduction_func)()
+    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
+        result = getattr(g, reduction_func)()
     tm.assert_frame_equal(result, expected)
 
-    result = g.agg(reduction_func)
+    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
+        result = g.agg(reduction_func)
     tm.assert_frame_equal(result, expected)
 
-    result = getattr(g["b"], reduction_func)()
+    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
+        result = getattr(g["b"], reduction_func)()
     tm.assert_frame_equal(result, expected)
 
-    result = g["b"].agg(reduction_func)
+    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
+        result = g["b"].agg(reduction_func)
     tm.assert_frame_equal(result, expected)
 
 
@@ -1918,10 +1924,14 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
     gb = df.groupby(keys, group_keys=False)[columns]
 
     def get_result():
-        if method == "attr":
-            return getattr(gb, op)()
-        else:
-            return getattr(gb, method)(op)
+        warn = FutureWarning if op == "mad" else None
+        with tm.assert_produces_warning(
+            warn, match="The 'mad' method is deprecated", raise_on_extra_warnings=False
+        ):
+            if method == "attr":
+                return getattr(gb, op)()
+            else:
+                return getattr(gb, method)(op)
 
     if columns == "C":
         # i.e. SeriesGroupBy
@@ -2271,6 +2281,8 @@ def test_dup_labels_output_shape(groupby_func, idx):
         pytest.skip(f"Not applicable for {groupby_func}")
     # TODO(2.0) Remove after pad/backfill deprecation enforced
     groupby_func = maybe_normalize_deprecated_kernels(groupby_func)
+    warn = FutureWarning if groupby_func in ("mad", "tshift") else None
+
     df = DataFrame([[1, 1]], columns=idx)
     grp_by = df.groupby([0])
 
@@ -2283,7 +2295,8 @@ def test_dup_labels_output_shape(groupby_func, idx):
         df.index = [Timestamp("today")]
         args.extend([1, "D"])
 
-    result = getattr(grp_by, groupby_func)(*args)
+    with tm.assert_produces_warning(warn, match="is deprecated"):
+        result = getattr(grp_by, groupby_func)(*args)
 
     assert result.shape == (1, 2)
     tm.assert_index_equal(result.columns, idx)
@@ -2658,3 +2671,26 @@ def test_pad_backfill_deprecation():
         s.groupby(level=0).backfill()
     with tm.assert_produces_warning(FutureWarning, match="pad"):
         s.groupby(level=0).pad()
+
+
+def test_by_column_values_with_same_starting_value():
+    # GH29635
+    df = DataFrame(
+        {
+            "Name": ["Thomas", "Thomas", "Thomas John"],
+            "Credit": [1200, 1300, 900],
+            "Mood": ["sad", "happy", "happy"],
+        }
+    )
+    aggregate_details = {"Mood": Series.mode, "Credit": "sum"}
+
+    result = df.groupby(["Name"]).agg(aggregate_details)
+    expected_result = DataFrame(
+        {
+            "Mood": [["happy", "sad"], "happy"],
+            "Credit": [2500, 900],
+            "Name": ["Thomas", "Thomas John"],
+        }
+    ).set_index("Name")
+
+    tm.assert_frame_equal(result, expected_result)
