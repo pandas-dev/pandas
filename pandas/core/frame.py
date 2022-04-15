@@ -1914,7 +1914,7 @@ class DataFrame(NDFrame, OpsMixin):
             elif orient.startswith("i"):
                 orient = "index"
 
-        if not index and orient not in ['split', 'tight']:
+        if not index and orient not in ["split", "tight"]:
             raise ValueError(
                 "'index=False' is only valid when 'orient' is 'split' or 'tight"
             )
