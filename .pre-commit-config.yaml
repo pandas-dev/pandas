@@ -69,11 +69,6 @@ repos:
     rev: v0.2
     hooks:
     - id: sphinx-lint
--   repo: https://github.com/asottile/yesqa
-    rev: v1.3.0
-    hooks:
-    -   id: yesqa
-        additional_dependencies: *flake8_dependencies
 -   repo: local
     hooks:
     -   id: pyright

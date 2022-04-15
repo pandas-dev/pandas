@@ -13,8 +13,9 @@
 #   $ ./ci/code_checks.sh doctests      # run doctests
 #   $ ./ci/code_checks.sh docstrings    # validate docstring errors
 #   $ ./ci/code_checks.sh typing        # run static type analysis
+#   $ ./ci/code_checks.sh yesqa         # remove unnecessary noqa comments
 
-[[ -z "$1" || "$1" == "format" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "typing" ]] || \
+[[ -z "$1" || "$1" == "format" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "typing" || "$1" == "yesqa" ]] || \
     { echo "Unknown command $1. Usage: $0 [code|doctests|docstrings|typing]"; exit 9999; }
 
 BASE_DIR="$(dirname $0)/.."
@@ -114,4 +115,15 @@ if [[ -z "$CHECK" || "$CHECK" == "typing" ]]; then
         pyright
         RET=$(($RET + $?)) ; echo $MSG "DONE"
     fi
+fi
+
+### YESQA ###
+if [[ -z "$CHECK" || "$CHECK" == "yesqa" ]]; then
+
+    echo "flake8 --version"
+    echo "flake8 --version"
+
+    MSG='Removing unnecessary noqa comments' ; echo $MSG
+    yesqa $(find pandas -name '*.py')
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
 fi
