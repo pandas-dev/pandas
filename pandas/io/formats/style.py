@@ -566,6 +566,7 @@ class Styler(StylerRenderer):
         inf_rep: str = "inf",
         verbose: bool = True,
         freeze_panes: tuple[int, int] | None = None,
+        storage_options: dict = None,
     ) -> None:
 
         from pandas.io.formats.excel import ExcelFormatter
@@ -588,6 +589,7 @@ class Styler(StylerRenderer):
             startcol=startcol,
             freeze_panes=freeze_panes,
             engine=engine,
+            storage_options=storage_options,
         )
 
     def to_latex(
