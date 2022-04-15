@@ -629,9 +629,6 @@ class _LocationIndexer(NDFrameIndexerBase):
     _valid_types: str
     axis = None
 
-    # sub-classes need to set _takeable
-    _takeable: bool
-
     @final
     def __call__(self, axis=None):
         # we need to return a copy of ourselves
@@ -938,11 +935,7 @@ class _LocationIndexer(NDFrameIndexerBase):
             #  is equivalent.
             #  (see the other place where we call _handle_lowerdim_multi_index_axis0)
             with suppress(IndexingError):
-                # error "_LocationIndexer" has no attribute
-                # "_handle_lowerdim_multi_index_axis0"
-                return self._handle_lowerdim_multi_index_axis0(  # type: ignore[attr-defined]
-                    tup
-                )
+                return self._handle_lowerdim_multi_index_axis0(tup)
 
         tup = self._validate_key_length(tup)
 
@@ -998,11 +991,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                 #  DataFrame, IndexingError is not raised when slice(None,None,None)
                 #  with one row.
                 with suppress(IndexingError):
-                    # error "_LocationIndexer" has no attribute
-                    # "_handle_lowerdim_multi_index_axis0"
-                    return self._handle_lowerdim_multi_index_axis0(  # type: ignore[attr-defined]
-                        tup
-                    )
+                    return self._handle_lowerdim_multi_index_axis0(tup)
             elif isinstance(self.obj, ABCSeries) and any(
                 isinstance(k, tuple) for k in tup
             ):
@@ -2306,9 +2295,6 @@ class _ScalarAccessIndexer(NDFrameIndexerBase):
     """
     Access scalars quickly.
     """
-
-    # sub-classes need to set _takeable
-    _takeable: bool
 
     def _convert_key(self, key):
         raise AbstractMethodError(self)

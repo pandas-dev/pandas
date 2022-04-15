@@ -58,17 +58,13 @@ import re
 from typing import (
     Any,
     Callable,
-    Generic,
     Iterable,
     NamedTuple,
     cast,
 )
 import warnings
 
-from pandas._typing import (
-    F,
-    T,
-)
+from pandas._typing import F
 
 
 class DeprecatedOption(NamedTuple):
@@ -128,7 +124,7 @@ def _get_single_key(pat: str, silent: bool) -> str:
     return key
 
 
-def _get_option(pat: str, silent: bool = False) -> Any:
+def _get_option(pat: str, silent: bool = False):
     key = _get_single_key(pat, silent)
 
     # walk the nested dict
@@ -168,7 +164,7 @@ def _set_option(*args, **kwargs) -> None:
                 o.cb(key)
 
 
-def _describe_option(pat: str = "", _print_desc: bool = True) -> str | None:
+def _describe_option(pat: str = "", _print_desc: bool = True):
 
     keys = _select_options(pat)
     if len(keys) == 0:
@@ -178,8 +174,8 @@ def _describe_option(pat: str = "", _print_desc: bool = True) -> str | None:
 
     if _print_desc:
         print(s)
-        return None
-    return s
+    else:
+        return s
 
 
 def _reset_option(pat: str, silent: bool = False) -> None:
@@ -251,17 +247,16 @@ class DictWrapper:
 # of options, and option descriptions.
 
 
-class CallableDynamicDoc(Generic[T]):
-    def __init__(self, func: Callable[..., T], doc_tmpl: str) -> None:
+class CallableDynamicDoc:
+    def __init__(self, func, doc_tmpl) -> None:
         self.__doc_tmpl__ = doc_tmpl
         self.__func__ = func
 
-    def __call__(self, *args, **kwds) -> T:
+    def __call__(self, *args, **kwds):
         return self.__func__(*args, **kwds)
 
-    # error: Signature of "__doc__" incompatible with supertype "object"
     @property
-    def __doc__(self) -> str:  # type: ignore[override]
+    def __doc__(self):
         opts_desc = _describe_option("all", _print_desc=False)
         opts_list = pp_options_list(list(_registered_options.keys()))
         return self.__doc_tmpl__.format(opts_desc=opts_desc, opts_list=opts_list)
