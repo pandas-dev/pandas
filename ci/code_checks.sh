@@ -8,12 +8,13 @@
 #
 # Usage:
 #   $ ./ci/code_checks.sh               # run all checks
+#   $ ./ci/code_checks.sh format        # run black formatter
 #   $ ./ci/code_checks.sh code          # checks on imported code
 #   $ ./ci/code_checks.sh doctests      # run doctests
 #   $ ./ci/code_checks.sh docstrings    # validate docstring errors
 #   $ ./ci/code_checks.sh typing        # run static type analysis
 
-[[ -z "$1" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "typing" ]] || \
+[[ -z "$1" || "$1" == "format" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "typing" ]] || \
     { echo "Unknown command $1. Usage: $0 [code|doctests|docstrings|typing]"; exit 9999; }
 
 BASE_DIR="$(dirname $0)/.."
@@ -36,6 +37,19 @@ function invgrep {
 if [[ "$GITHUB_ACTIONS" == "true" ]]; then
     INVGREP_PREPEND="##[error]"
 fi
+
+### FORMAT ###
+if [[ -z "$CHECK" || "$CHECK" == "format" ]]; then
+
+    echo "black --version"
+    black --version
+
+    MSG='Formatting code using black formatter' ; echo $MSG
+    black .
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+fi
+
+exit $RET
 
 ### CODE ###
 if [[ -z "$CHECK" || "$CHECK" == "code" ]]; then
@@ -101,5 +115,3 @@ if [[ -z "$CHECK" || "$CHECK" == "typing" ]]; then
         RET=$(($RET + $?)) ; echo $MSG "DONE"
     fi
 fi
-
-exit $RET

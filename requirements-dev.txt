@@ -10,7 +10,6 @@ black==22.3.0
 cpplint
 flake8==4.0.1
 flake8-bugbear==21.3.2
-flake8-comprehensions==3.7.0
 isort>=5.2.1
 mypy==0.941
 pre-commit>=2.9.2

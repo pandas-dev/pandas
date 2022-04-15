@@ -3,15 +3,26 @@ exclude: ^LICENSES/|\.(html|csv|svg)$
 ci:
     autofix_prs: false
 repos:
+-   repo: https://github.com/MarcoGorelli/absolufy-imports
+    rev: v0.3.1
+    hooks:
+    -   id: absolufy-imports
+        files: ^pandas/
+-   repo: https://github.com/jendrikseipp/vulture
+    rev: 'v2.3'
+    hooks:
+      - id: vulture
+        entry: python scripts/run_vulture.py
+        pass_filenames: true
+        require_serial: false
 -   repo: https://github.com/codespell-project/codespell
     rev: v2.1.0
     hooks:
     -   id: codespell
         types_or: [python, rst, markdown]
         files: ^(pandas|doc)/
-        verbose: true
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.2.0
+    rev: v4.1.0
     hooks:
     -   id: debug-statements
     -   id: end-of-file-fixer
@@ -27,23 +38,23 @@ repos:
         # we can lint all header files since they aren't "generated" like C files are.
         exclude: ^pandas/_libs/src/(klib|headers)/
         args: [--quiet, '--extensions=c,h', '--headers=h', --recursive, '--filter=-readability/casting,-runtime/int,-build/include_subdir']
-        verbose: true
 -   repo: https://github.com/PyCQA/flake8
-    rev: 463d9b1ce9ee44665f2c6825edd7010ef5dff760
+    rev: 4.0.1
     hooks:
     -   id: flake8
-        verbose: true
+        additional_dependencies: &flake8_dependencies
+        - flake8==4.0.1
+        - flake8-bugbear==21.3.2
+        - pandas-dev-flaker==0.5.0
 -   repo: https://github.com/PyCQA/isort
     rev: 5.10.1
     hooks:
     -   id: isort
-        verbose: true
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.32.0
+    rev: v2.31.1
     hooks:
     -   id: pyupgrade
         args: [--py38-plus]
-        verbose: true
 -   repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.9.0
     hooks:
@@ -54,12 +65,15 @@ repos:
       - id: rst-inline-touching-normal
         types: [text]  # overwrite types: [rst]
         types_or: [python, rst]
-        verbose: true
 -   repo: https://github.com/sphinx-contrib/sphinx-lint
     rev: v0.2
     hooks:
-    -   id: sphinx-lint
-        verbose: true
+    - id: sphinx-lint
+-   repo: https://github.com/asottile/yesqa
+    rev: v1.3.0
+    hooks:
+    -   id: yesqa
+        additional_dependencies: *flake8_dependencies
 -   repo: local
     hooks:
     -   id: pyright
@@ -71,7 +85,6 @@ repos:
         stages: [manual]
         # note: keep version in sync with .github/workflows/code-checks.yml
         additional_dependencies: ['pyright@1.1.230']
-        verbose: true
 -   repo: local
     hooks:
     -   id: flake8-rst
@@ -157,6 +170,13 @@ repos:
         entry: python scripts/use_pd_array_in_core.py
         files: ^pandas/core/
         exclude: ^pandas/core/api\.py$
+        types: [python]
+    -   id: use-io-common-urlopen
+        name: Use pandas.io.common.urlopen instead of urllib.request.urlopen
+        language: python
+        entry: python scripts/use_io_common_urlopen.py
+        files: ^pandas/
+        exclude: ^pandas/tests/
         types: [python]
     -   id: no-bool-in-core-generic
         name: Use bool_t instead of bool in pandas/core/generic.py
