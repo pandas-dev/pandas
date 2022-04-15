@@ -347,13 +347,16 @@ class TestDataFrameToDict:
 
     def test_to_dict_index_orient_split(self):
         df = DataFrame.from_dict({"a": [1, 3, 4], "b": [9, 11, 12]})
-        result = df.to_dict(orient='split', index=False)
-        expected = {'columns': ['a', 'b'], 'data': [[1, 9], [3, 11], [4, 12]]}
-        assert (result == expected)
+        result = df.to_dict(orient="split", index=False)
+        expected = {"columns": ["a", "b"], "data": [[1, 9], [3, 11], [4, 12]]}
+        assert result == expected
 
     def test_to_dict_index_orient_tight(self):
         df = DataFrame.from_dict({"a": [1, 3, 4], "b": [9, 11, 12]})
-        result = df.to_dict(orient='split', index=False)
-        expected = {'columns': ['a', 'b'], 'data': [
-            [1, 9], [3, 11], [4, 12]], 'column_names': [None]}
-        assert (result == expected)
+        result = df.to_dict(orient="tight", index=False)
+        expected = {
+            "columns": ["a", "b"],
+            "data": [[1, 9], [3, 11], [4, 12]],
+            "column_names": [None],
+        }
+        assert result == expected
