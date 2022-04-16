@@ -478,7 +478,7 @@ Datetimelike
 Timedelta
 ^^^^^^^^^
 - Bug FIXED in :func:`astype_nansafe` astype("timedelta64[ns]") fails when np.nan is included (:issue:`45798`)
-- 
+-
 
 Time Zones
 ^^^^^^^^^^

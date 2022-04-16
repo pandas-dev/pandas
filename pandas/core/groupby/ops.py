@@ -571,7 +571,7 @@ class WrappedCythonOp:
                     **kwargs,
                 )
 
-        if self.how == 'last' and dtype == bool:
+        if self.how == "last" and dtype == bool:
             for val in result:
                 if val > 1 or val < 0:
                     result = values
