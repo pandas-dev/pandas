@@ -569,6 +569,7 @@ class UnaryOp(Op):
     def __init__(self, op: str, operand) -> None:
         super().__init__(op, (operand,))
         self.operand = operand
+        self.value = operand
 
         try:
             self.func = _unary_ops_dict[op]
