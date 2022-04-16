@@ -397,6 +397,7 @@ cdef class _Timestamp(ABCTimestamp):
         elif is_datetime64_object(other):
             return type(self)(other) - self
         return NotImplemented
+
     # -----------------------------------------------------------------
 
     cdef int64_t _maybe_convert_value_to_local(self):
