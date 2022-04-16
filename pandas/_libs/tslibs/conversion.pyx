@@ -582,55 +582,62 @@ cdef _TSObject _convert_str_to_tsobject(object ts, tzinfo tz, str unit,
     """
     cdef:
         npy_datetimestruct dts
-        int out_local = 0, out_tzoffset = 0
-        bint do_parse_datetime_string = False
+        int out_local = 0, out_tzoffset = 0, string_to_dts_failed
+        datetime dt
+        int64_t ival
 
     if len(ts) == 0 or ts in nat_strings:
         ts = NaT
+        obj = _TSObject()
+        obj.value = NPY_NAT
+        obj.tzinfo = tz
+        return obj
     elif ts == 'now':
         # Issue 9000, we short-circuit rather than going
         # into np_datetime_strings which returns utc
-        ts = datetime.now(tz)
+        dt = datetime.now(tz)
     elif ts == 'today':
         # Issue 9000, we short-circuit rather than going
         # into np_datetime_strings which returns a normalized datetime
-        ts = datetime.now(tz)
+        dt = datetime.now(tz)
         # equiv: datetime.today().replace(tzinfo=tz)
     else:
         string_to_dts_failed = _string_to_dts(
             ts, &dts, &out_local,
             &out_tzoffset, False
         )
-        try:
-            if not string_to_dts_failed:
+        if not string_to_dts_failed:
+            try:
                 check_dts_bounds(&dts)
                 if out_local == 1:
                     return _create_tsobject_tz_using_offset(dts,
                                                             out_tzoffset, tz)
                 else:
-                    ts = dtstruct_to_dt64(&dts)
+                    ival = dtstruct_to_dt64(&dts)
                     if tz is not None:
                         # shift for _localize_tso
-                        ts = tz_localize_to_utc_single(ts, tz,
-                                                       ambiguous="raise")
+                        ival = tz_localize_to_utc_single(ival, tz,
+                                                         ambiguous="raise")
 
-        except OutOfBoundsDatetime:
-            # GH#19382 for just-barely-OutOfBounds falling back to dateutil
-            # parser will return incorrect result because it will ignore
-            # nanoseconds
-            raise
+                    return convert_to_tsobject(ival, tz, None, False, False)
 
-        except ValueError:
-            do_parse_datetime_string = True
+            except OutOfBoundsDatetime:
+                # GH#19382 for just-barely-OutOfBounds falling back to dateutil
+                # parser will return incorrect result because it will ignore
+                # nanoseconds
+                raise
 
-        if string_to_dts_failed or do_parse_datetime_string:
-            try:
-                ts = parse_datetime_string(ts, dayfirst=dayfirst,
-                                           yearfirst=yearfirst)
-            except (ValueError, OverflowError):
-                raise ValueError("could not convert string to Timestamp")
+            except ValueError:
+                # Fall through to parse_datetime_string
+                pass
 
-    return convert_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
+        try:
+            dt = parse_datetime_string(ts, dayfirst=dayfirst,
+                                       yearfirst=yearfirst)
+        except (ValueError, OverflowError):
+            raise ValueError("could not convert string to Timestamp")
+
+    return convert_datetime_to_tsobject(dt, tz)
 
 
 cdef inline check_overflows(_TSObject obj):
@@ -689,12 +696,8 @@ cdef inline void _localize_tso(_TSObject obj, tzinfo tz):
     Sets obj.tzinfo inplace, alters obj.dts inplace.
     """
     cdef:
-        ndarray[int64_t] trans
-        int64_t[::1] deltas
         int64_t local_val
-        int64_t* tdata
-        Py_ssize_t pos, ntrans, outpos = -1
-        str typ
+        Py_ssize_t outpos = -1
 
     assert obj.tzinfo is None
 
