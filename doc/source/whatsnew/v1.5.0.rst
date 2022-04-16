@@ -481,7 +481,7 @@ Timedelta
 
 Time Zones
 ^^^^^^^^^^
--
+- Bug in :class:`Timestamp` constructor raising when passed a ``ZoneInfo`` tzinfo object (:issue:`46425`)
 -
 
 Numeric
