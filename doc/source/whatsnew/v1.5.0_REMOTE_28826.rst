@@ -457,7 +457,7 @@ Performance improvements
 .. _whatsnew_150.bug_fixes:
 
 Bug fixes
-- Bug in :func:`groupby.last()` that caused numpy arrays ordered with last with pd.NA to have dytype:Int64 type rather than dtype:Bool (:issue:`46409`)
+- Bug in :func:`_call_cython_op` that caused numpy arrays ordered with last with pd.NA to have dytype:Int64 type rather than dtype:Bool (:issue:`46409`)
 
 Categorical
 ^^^^^^^^^^^
@@ -477,13 +477,8 @@ Datetimelike
 
 Timedelta
 ^^^^^^^^^
-<<<<<<< HEAD
-- Bug in :func:`astype_nansafe` astype("timedelta64[ns]") fails when np.nan is included (:issue:`45798`)
-- 
-=======
 - Bug FIXED in :func:`astype_nansafe` astype("timedelta64[ns]") fails when np.nan is included (:issue:`45798`)
 -
->>>>>>> refs/remotes/origin/shiny-new-feature
 
 Time Zones
 ^^^^^^^^^^
