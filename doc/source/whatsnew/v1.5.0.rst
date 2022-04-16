@@ -453,8 +453,7 @@ Performance improvements
 .. _whatsnew_150.bug_fixes:
 
 Bug fixes
-^^^^^^^^^
-- Bug in :func:`gropuby.last()` that caused numpy arrays ordered with last with pd.NA to have dytype:Int64 type rather than dtype:Bool (:issue:`46409`)
+- Bug in :func:`groupby.last()` that caused numpy arrays ordered with last with pd.NA to have dytype:Int64 type rather than dtype:Bool (:issue:`46409`)
 
 Categorical
 ^^^^^^^^^^^
@@ -474,7 +473,7 @@ Datetimelike
 
 Timedelta
 ^^^^^^^^^
-- Bug FIXED in :func:`astype_nansafe` astype("timedelta64[ns]") fails when np.nan is included (:issue:`45798`)
+- Bug in :func:`astype_nansafe` astype("timedelta64[ns]") fails when np.nan is included (:issue:`45798`)
 - 
 
 Time Zones
