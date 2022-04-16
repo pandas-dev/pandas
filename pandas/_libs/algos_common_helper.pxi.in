@@ -65,7 +65,8 @@ def ensure_{{name}}(object arr, copy=True):
         if (<ndarray>arr).descr.type_num == NPY_{{c_type}}:
             return arr
         else:
-            return arr.astype(np.{{dtype}}, copy=copy)
+            # equiv: arr.astype(np.{{dtype}}, copy=copy)
+            return cnp.PyArray_Cast(<ndarray>arr, cnp.NPY_{{c_type}})
     else:
         return np.array(arr, dtype=np.{{dtype}})
 
