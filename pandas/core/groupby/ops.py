@@ -571,7 +571,7 @@ class WrappedCythonOp:
                     **kwargs,
                 )
 
-        if self.how == 'last' and dtype == bool:
+        if self.how == "last" and dtype == bool:
             result = values
 
         if self.kind == "aggregate":

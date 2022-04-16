@@ -479,7 +479,7 @@ Timedelta
 ^^^^^^^^^
 <<<<<<< HEAD
 - Bug in :func:`astype_nansafe` astype("timedelta64[ns]") fails when np.nan is included (:issue:`45798`)
-- 
+-
 =======
 - Bug FIXED in :func:`astype_nansafe` astype("timedelta64[ns]") fails when np.nan is included (:issue:`45798`)
 -
