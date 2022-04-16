@@ -578,9 +578,7 @@ class WrappedCythonOp:
                 )
 
         if self.how == 'last' and dtype == bool:
-            for val in result:
-                if val > 1 or val < 0:
-                    result = values
+            result = values
 
         if self.kind == "aggregate":
             # i.e. counts is defined.  Locations where count<min_count
