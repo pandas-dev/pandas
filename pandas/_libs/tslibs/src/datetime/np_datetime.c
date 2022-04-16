@@ -331,6 +331,34 @@ int cmp_npy_datetimestruct(const npy_datetimestruct *a,
 
     return 0;
 }
+/*
+* Returns the offset from utc of the timezone.
+* If the passed object is timezone naive, or if extraction
+* of the offset fails, NULL is returned.
+*
+* NOTE: This function is not vendored from numpy.
+*/
+PyObject *extract_utc_offset(PyObject *obj) {
+    if (PyObject_HasAttrString(obj, "tzinfo")) {
+        PyObject *tmp = PyObject_GetAttrString(obj, "tzinfo");
+        if (tmp == NULL) {
+            return NULL;
+        }
+        if (tmp != Py_None) {
+            PyObject *offset = PyObject_CallMethod(tmp, "utcoffset", "O", obj);
+            if (offset == NULL) {
+                Py_DECREF(tmp);
+                return NULL;
+            }
+            if (offset != Py_None) {
+                return offset;
+            }
+            Py_DECREF(offset);
+        }
+        Py_DECREF(tmp);
+    }
+    return NULL;
+}
 
 /*
  *
@@ -376,54 +404,38 @@ int convert_pydatetime_to_datetimestruct(PyObject *dtobj,
     out->sec = PyLong_AsLong(PyObject_GetAttrString(obj, "second"));
     out->us = PyLong_AsLong(PyObject_GetAttrString(obj, "microsecond"));
 
+    PyObject *offset = extract_utc_offset(obj);
     /* Apply the time zone offset if datetime obj is tz-aware */
-    if (PyObject_HasAttrString((PyObject*)obj, "tzinfo")) {
-        tmp = PyObject_GetAttrString(obj, "tzinfo");
+    if (offset != NULL) {
+        PyObject *tmp_int;
+        int seconds_offset, minutes_offset;
+        /*
+         * The timedelta should have a function "total_seconds"
+         * which contains the value we want.
+         */
+        tmp = PyObject_CallMethod(offset, "total_seconds", "");
+        Py_DECREF(offset);
         if (tmp == NULL) {
             return -1;
         }
-        if (tmp == Py_None) {
+        tmp_int = PyNumber_Long(tmp);
+        if (tmp_int == NULL) {
             Py_DECREF(tmp);
-        } else {
-            PyObject *offset;
-            PyObject *tmp_int;
-            int seconds_offset, minutes_offset;
-
-            /* The utcoffset function should return a timedelta */
-            offset = PyObject_CallMethod(tmp, "utcoffset", "O", obj);
-            if (offset == NULL) {
-                Py_DECREF(tmp);
-                return -1;
-            }
-            Py_DECREF(tmp);
-
-            /*
-             * The timedelta should have a function "total_seconds"
-             * which contains the value we want.
-             */
-            tmp = PyObject_CallMethod(offset, "total_seconds", "");
-            if (tmp == NULL) {
-                return -1;
-            }
-            tmp_int = PyNumber_Long(tmp);
-            if (tmp_int == NULL) {
-                Py_DECREF(tmp);
-                return -1;
-            }
-            seconds_offset = PyLong_AsLong(tmp_int);
-            if (seconds_offset == -1 && PyErr_Occurred()) {
-                Py_DECREF(tmp_int);
-                Py_DECREF(tmp);
-                return -1;
-            }
+            return -1;
+        }
+        seconds_offset = PyLong_AsLong(tmp_int);
+        if (seconds_offset == -1 && PyErr_Occurred()) {
             Py_DECREF(tmp_int);
             Py_DECREF(tmp);
-
-            /* Convert to a minutes offset and apply it */
-            minutes_offset = seconds_offset / 60;
-
-            add_minutes_to_datetimestruct(out, -minutes_offset);
+            return -1;
         }
+        Py_DECREF(tmp_int);
+        Py_DECREF(tmp);
+
+        /* Convert to a minutes offset and apply it */
+        minutes_offset = seconds_offset / 60;
+
+        add_minutes_to_datetimestruct(out, -minutes_offset);
     }
 
     return 0;

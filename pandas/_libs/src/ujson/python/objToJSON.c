@@ -717,22 +717,6 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
 
     for (i = 0; i < PyObject_Length(arrays); i++) {
         array = PyList_GET_ITEM(arrays, i);
-        // tz information is lost when dt64tz is converted
-        // to numpy arrays.
-        // TODO(lithomas1): Patch column_arrays(actually values_for_json)
-        // to return EAs instead of casting to object
-        if (PyArray_TYPE((PyArrayObject *)array) == NPY_DATETIME) {
-            PyObject *mgr = PyObject_GetAttrString(obj, "_mgr");
-            PyObject *dtarr = PyObject_CallMethod(mgr, "iget_values", "n", i);
-            PyObject *tz = PyObject_GetAttrString(dtarr, "tz");
-            if (tz != Py_None) {
-                // we have a timezone, use an object array of Timestamp
-                array = PyObject_CallMethod(dtarr, "__array__", NULL);
-            }
-            Py_DECREF(mgr);
-            Py_DECREF(dtarr);
-            Py_DECREF(tz);
-        }
         if (!array) {
             GET_TC(tc)->iterNext = NpyArr_iterNextNone;
             goto ARR_RET;
