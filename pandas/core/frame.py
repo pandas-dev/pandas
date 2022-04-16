@@ -8616,7 +8616,7 @@ Parrot 2  Parrot       24.0
         if len(columns) == 1:
             result = df[columns[0]].explode()
         else:
-            mylen = lambda x: len(x) if is_list_like(x) else -1
+            mylen = lambda x: len(x) if is_list_like(x) and len(x) else 1
             counts0 = self[columns[0]].apply(mylen)
             for c in columns[1:]:
                 if not all(counts0 == self[c].apply(mylen)):

@@ -223,9 +223,15 @@ def test_explode_sets():
 
 
 @pytest.mark.parametrize(
-    "input_subset, expected_dict, expected_index",
+    "input_dict, input_index, input_subset, expected_dict, expected_index",
     [
         (
+            {
+                "A": [[0, 1, 2], np.nan, [], (3, 4), np.nan],
+                "B": 1,
+                "C": [["a", "b", "c"], "foo", [], ["d", "e"], np.nan],
+            },
+            list("abcde"),
             list("AC"),
             {
                 "A": pd.Series(
@@ -239,6 +245,12 @@ def test_explode_sets():
             list("aaabcdde"),
         ),
         (
+            {
+                "A": [[0, 1, 2], np.nan, [], (3, 4), np.nan],
+                "B": 1,
+                "C": [["a", "b", "c"], "foo", [], ["d", "e"], np.nan],
+            },
+            list("abcde"),
             list("A"),
             {
                 "A": pd.Series(
@@ -260,18 +272,32 @@ def test_explode_sets():
             },
             list("aaabcdde"),
         ),
+        (
+            {
+                "A": [[0, 1, 2], [], np.nan, [], (3, 4), np.nan, []],
+                "B": 1,
+                "C": [["a", "b", "c"], 2, "foo", [], ["d", "e"], np.nan, np.nan],
+            },
+            list("abcdefg"),
+            list("AC"),
+            {
+                "A": pd.Series(
+                    [0, 1, 2, np.nan, np.nan, np.nan, 3, 4, np.nan, np.nan],
+                    index=list("aaabcdeefg"),
+                    dtype=object,
+                ),
+                "B": 1,
+                "C": ["a", "b", "c", 2, "foo", np.nan, "d", "e", np.nan, np.nan],
+            },
+            list("aaabcdeefg"),
+        ),
     ],
 )
-def test_multi_columns(input_subset, expected_dict, expected_index):
+def test_multi_columns(
+    input_dict, input_index, input_subset, expected_dict, expected_index
+):
     # GH 39240
-    df = pd.DataFrame(
-        {
-            "A": [[0, 1, 2], np.nan, [], (3, 4), np.nan],
-            "B": 1,
-            "C": [["a", "b", "c"], "foo", [], ["d", "e"], np.nan],
-        },
-        index=list("abcde"),
-    )
+    df = pd.DataFrame(input_dict, input_index)
     result = df.explode(input_subset)
     expected = pd.DataFrame(expected_dict, expected_index)
     tm.assert_frame_equal(result, expected)
