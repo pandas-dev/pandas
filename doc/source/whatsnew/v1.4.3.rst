@@ -24,7 +24,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
-- Include ``dropna`` in ``__repr__`` of a :class:`Grouper` (:issue:`46754`)
+-
 -
 
 .. ---------------------------------------------------------------------------
