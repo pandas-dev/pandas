@@ -117,7 +117,6 @@ from pandas.core.indexes.api import (
     RangeIndex,
 )
 from pandas.core.internals.blocks import ensure_block_shape
-from pandas.core.reshape.concat import concat
 import pandas.core.sample as sample
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
@@ -2460,7 +2459,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         with self._group_selection_context():
             if len(self._selected_obj) == 0:
                 data = self._selected_obj
-                percentiles = refine_percentiles(None)
+                percentiles = list(refine_percentiles(None))
                 if data.ndim == 1:
                     values = describe_numeric_1d(data, percentiles)
                     return DataFrame(columns=values.index)
@@ -2468,14 +2467,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     ldesc: list[Series] = []
                     for _, series in data.items():
                         ldesc.append(describe_numeric_1d(series, percentiles))
-                    col_names = reorder_columns(ldesc)
-                    values = concat(
-                        [x.reindex(col_names, copy=False) for x in ldesc],
-                        axis=1,
-                        sort=False,
-                    )
+                    col_indexes = reorder_columns(ldesc)
                     return DataFrame(
-                        columns=MultiIndex.from_product([values.columns, values.index])
+                        columns=MultiIndex.from_product([data.columns, col_indexes])
                     )
             result = self._python_apply_general(
                 lambda x: x.describe(**kwargs),
