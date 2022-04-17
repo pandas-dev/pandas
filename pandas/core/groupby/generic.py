@@ -84,6 +84,7 @@ from pandas.core.indexes.api import (
     all_indexes_same,
 )
 from pandas.core.series import Series
+from pandas.core.shared_docs import _shared_docs
 from pandas.core.util.numba_ import maybe_use_numba
 
 from pandas.plotting import boxplot_frame_groupby
@@ -357,6 +358,7 @@ class SeriesGroupBy(GroupBy[Series]):
         data: Series,
         values: list[Any],
         not_indexed_same: bool = False,
+        override_group_keys: bool = False,
     ) -> DataFrame | Series:
         """
         Wrap the output of SeriesGroupBy.apply into the expected result.
@@ -395,7 +397,11 @@ class SeriesGroupBy(GroupBy[Series]):
             res_ser.name = self.obj.name
             return res_ser
         elif isinstance(values[0], (Series, DataFrame)):
-            return self._concat_objects(values, not_indexed_same=not_indexed_same)
+            return self._concat_objects(
+                values,
+                not_indexed_same=not_indexed_same,
+                override_group_keys=override_group_keys,
+            )
         else:
             # GH #6265 #24880
             result = self.obj._constructor(
@@ -983,7 +989,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return res_df
 
     def _wrap_applied_output(
-        self, data: DataFrame, values: list, not_indexed_same: bool = False
+        self,
+        data: DataFrame,
+        values: list,
+        not_indexed_same: bool = False,
+        override_group_keys: bool = False,
     ):
 
         if len(values) == 0:
@@ -1000,7 +1010,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             # GH9684 - All values are None, return an empty frame.
             return self.obj._constructor()
         elif isinstance(first_not_none, DataFrame):
-            return self._concat_objects(values, not_indexed_same=not_indexed_same)
+            return self._concat_objects(
+                values,
+                not_indexed_same=not_indexed_same,
+                override_group_keys=override_group_keys,
+            )
 
         key_index = self.grouper.result_index if self.as_index else None
 
@@ -1026,7 +1040,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         else:
             # values are Series
             return self._wrap_applied_output_series(
-                values, not_indexed_same, first_not_none, key_index
+                values,
+                not_indexed_same,
+                first_not_none,
+                key_index,
+                override_group_keys,
             )
 
     def _wrap_applied_output_series(
@@ -1035,6 +1053,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         not_indexed_same: bool,
         first_not_none,
         key_index,
+        override_group_keys: bool,
     ) -> DataFrame | Series:
         # this is to silence a DeprecationWarning
         # TODO(2.0): Remove when default dtype of empty Series is object
@@ -1058,7 +1077,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # if any of the sub-series are not indexed the same
                 # OR we don't have a multi-index and we have only a
                 # single values
-                return self._concat_objects(values, not_indexed_same=not_indexed_same)
+                return self._concat_objects(
+                    values,
+                    not_indexed_same=not_indexed_same,
+                    override_group_keys=override_group_keys,
+                )
 
             # still a series
             # path added as of GH 5545
@@ -1069,7 +1092,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         if not all_indexed_same:
             # GH 8467
-            return self._concat_objects(values, not_indexed_same=True)
+            return self._concat_objects(
+                values,
+                not_indexed_same=True,
+                override_group_keys=override_group_keys,
+            )
 
         # Combine values
         # vstack+constructor is faster than concat and handles MI-columns
@@ -1526,7 +1553,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return results
 
-    @Appender(DataFrame.idxmax.__doc__)
+    @doc(_shared_docs["idxmax"])
     def idxmax(self, axis=0, skipna: bool = True):
         axis = DataFrame._get_axis_number(axis)
         numeric_only = None if axis == 0 else False
@@ -1548,7 +1575,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         func.__name__ = "idxmax"
         return self._python_apply_general(func, self._obj_with_exclusions)
 
-    @Appender(DataFrame.idxmin.__doc__)
+    @doc(_shared_docs["idxmin"])
     def idxmin(self, axis=0, skipna: bool = True):
         axis = DataFrame._get_axis_number(axis)
         numeric_only = None if axis == 0 else False
@@ -1632,13 +1659,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ... })
 
         >>> df
-            gender 	education 	country
-        0 	male 	low 	    US
-        1 	male 	medium 	    FR
-        2 	female 	high 	    US
-        3 	male 	low 	    FR
-        4 	female 	high 	    FR
-        5 	male 	low 	    FR
+                gender  education   country
+        0       male    low         US
+        1       male    medium      FR
+        2       female  high        US
+        3       male    low         FR
+        4       female  high        FR
+        5       male    low         FR
 
         >>> df.groupby('gender').value_counts()
         gender  education  country

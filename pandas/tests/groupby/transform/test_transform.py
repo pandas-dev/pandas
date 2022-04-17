@@ -67,7 +67,7 @@ def test_transform():
     )
     key = ["one", "two", "one", "two", "one"]
     result = people.groupby(key).transform(demean).groupby(key).mean()
-    expected = people.groupby(key).apply(demean).groupby(key).mean()
+    expected = people.groupby(key, group_keys=False).apply(demean).groupby(key).mean()
     tm.assert_frame_equal(result, expected)
 
     # GH 8430
@@ -203,13 +203,17 @@ def test_transform_axis_1_reducer(request, reduction_func):
     ):
         marker = pytest.mark.xfail(reason="transform incorrectly fails - GH#45986")
         request.node.add_marker(marker)
+    warn = FutureWarning if reduction_func == "mad" else None
+
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
-    result = df.groupby([0, 0, 1], axis=1).transform(reduction_func)
+    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
+        result = df.groupby([0, 0, 1], axis=1).transform(reduction_func)
     if reduction_func == "size":
         # size doesn't behave in the same manner; hardcode expected result
         expected = DataFrame(2 * [[2, 2, 1]], index=df.index, columns=df.columns)
     else:
-        expected = df.T.groupby([0, 0, 1]).transform(reduction_func).T
+        with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
+            expected = df.T.groupby([0, 0, 1]).transform(reduction_func).T
     tm.assert_equal(result, expected)
 
 
@@ -228,26 +232,26 @@ def test_transform_axis_ts(tsframe):
     )
     # monotonic
     ts = tso
-    grouped = ts.groupby(lambda x: x.weekday())
+    grouped = ts.groupby(lambda x: x.weekday(), group_keys=False)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: x - x.mean())
     tm.assert_frame_equal(result, expected)
 
     ts = ts.T
-    grouped = ts.groupby(lambda x: x.weekday(), axis=1)
+    grouped = ts.groupby(lambda x: x.weekday(), axis=1, group_keys=False)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: (x.T - x.mean(1)).T)
     tm.assert_frame_equal(result, expected)
 
     # non-monotonic
     ts = tso.iloc[[1, 0] + list(range(2, len(base)))]
-    grouped = ts.groupby(lambda x: x.weekday())
+    grouped = ts.groupby(lambda x: x.weekday(), group_keys=False)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: x - x.mean())
     tm.assert_frame_equal(result, expected)
 
     ts = ts.T
-    grouped = ts.groupby(lambda x: x.weekday(), axis=1)
+    grouped = ts.groupby(lambda x: x.weekday(), axis=1, group_keys=False)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: (x.T - x.mean(1)).T)
     tm.assert_frame_equal(result, expected)
@@ -753,7 +757,7 @@ def test_cython_transform_frame(op, args, targop):
         ]:  # {"by": 'string_missing'}]:
             # {"by": ['int','string']}]:
 
-            gb = df.groupby(**gb_target)
+            gb = df.groupby(group_keys=False, **gb_target)
             # allowlisted methods set the selection before applying
             # bit a of hack to make sure the cythonized shift
             # is equivalent to pre 0.17.1 behavior
@@ -1137,6 +1141,8 @@ def test_transform_invalid_name_raises():
 )
 def test_transform_agg_by_name(request, reduction_func, obj):
     func = reduction_func
+    warn = FutureWarning if func == "mad" else None
+
     g = obj.groupby(np.repeat([0, 1], 3))
 
     if func == "corrwith" and isinstance(obj, Series):  # GH#32293
@@ -1145,7 +1151,8 @@ def test_transform_agg_by_name(request, reduction_func, obj):
         )
 
     args = {"nth": [0], "quantile": [0.5], "corrwith": [obj]}.get(func, [])
-    result = g.transform(func, *args)
+    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
+        result = g.transform(func, *args)
 
     # this is the *definition* of a transformation
     tm.assert_index_equal(result.index, obj.index)
@@ -1303,23 +1310,34 @@ def test_transform_cumcount():
     tm.assert_series_equal(result, expected)
 
 
-def test_null_group_lambda_self(sort, dropna):
+@pytest.mark.parametrize("keys", [["A1"], ["A1", "A2"]])
+def test_null_group_lambda_self(request, sort, dropna, keys):
     # GH 17093
-    np.random.seed(0)
-    keys = np.random.randint(0, 5, size=50).astype(float)
-    nulls = np.random.choice([0, 1], keys.shape).astype(bool)
-    keys[nulls] = np.nan
-    values = np.random.randint(0, 5, size=keys.shape)
-    df = DataFrame({"A": keys, "B": values})
+    if not sort and not dropna:
+        msg = "GH#46584: null values get sorted when sort=False"
+        request.node.add_marker(pytest.mark.xfail(reason=msg, strict=False))
+
+    size = 50
+    nulls1 = np.random.choice([False, True], size)
+    nulls2 = np.random.choice([False, True], size)
+    # Whether a group contains a null value or not
+    nulls_grouper = nulls1 if len(keys) == 1 else nulls1 | nulls2
+
+    a1 = np.random.randint(0, 5, size=size).astype(float)
+    a1[nulls1] = np.nan
+    a2 = np.random.randint(0, 5, size=size).astype(float)
+    a2[nulls2] = np.nan
+    values = np.random.randint(0, 5, size=a1.shape)
+    df = DataFrame({"A1": a1, "A2": a2, "B": values})
 
     expected_values = values
-    if dropna and nulls.any():
+    if dropna and nulls_grouper.any():
         expected_values = expected_values.astype(float)
-        expected_values[nulls] = np.nan
+        expected_values[nulls_grouper] = np.nan
     expected = DataFrame(expected_values, columns=["B"])
 
-    gb = df.groupby("A", dropna=dropna, sort=sort)
-    result = gb.transform(lambda x: x)
+    gb = df.groupby(keys, dropna=dropna, sort=sort)
+    result = gb[["B"]].transform(lambda x: x)
     tm.assert_frame_equal(result, expected)
 
 
@@ -1328,6 +1346,8 @@ def test_null_group_str_reducer(request, dropna, reduction_func):
     if reduction_func == "corrwith":
         msg = "incorrectly raises"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
+    warn = FutureWarning if reduction_func == "mad" else None
+
     index = [1, 2, 3, 4]  # test transform preserves non-standard index
     df = DataFrame({"A": [1, 1, np.nan, np.nan], "B": [1, 2, 2, 3]}, index=index)
     gb = df.groupby("A", dropna=dropna)
@@ -1355,7 +1375,10 @@ def test_null_group_str_reducer(request, dropna, reduction_func):
         expected_gb = df.groupby("A", dropna=False)
         buffer = []
         for idx, group in expected_gb:
-            res = getattr(group["B"], reduction_func)()
+            with tm.assert_produces_warning(
+                warn, match="The 'mad' method is deprecated"
+            ):
+                res = getattr(group["B"], reduction_func)()
             buffer.append(Series(res, index=group.index))
         expected = concat(buffer).to_frame("B")
     if dropna:
@@ -1366,7 +1389,8 @@ def test_null_group_str_reducer(request, dropna, reduction_func):
         else:
             expected.iloc[[2, 3]] = np.nan
 
-    result = gb.transform(reduction_func, *args)
+    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
+        result = gb.transform(reduction_func, *args)
     tm.assert_equal(result, expected)
 
 
@@ -1412,6 +1436,7 @@ def test_null_group_str_reducer_series(request, dropna, reduction_func):
     if reduction_func == "corrwith":
         msg = "corrwith not implemented for SeriesGroupBy"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
+    warn = FutureWarning if reduction_func == "mad" else None
 
     # GH 17093
     index = [1, 2, 3, 4]  # test transform preserves non-standard index
@@ -1441,7 +1466,10 @@ def test_null_group_str_reducer_series(request, dropna, reduction_func):
         expected_gb = ser.groupby([1, 1, np.nan, np.nan], dropna=False)
         buffer = []
         for idx, group in expected_gb:
-            res = getattr(group, reduction_func)()
+            with tm.assert_produces_warning(
+                warn, match="The 'mad' method is deprecated"
+            ):
+                res = getattr(group, reduction_func)()
             buffer.append(Series(res, index=group.index))
         expected = concat(buffer)
     if dropna:
@@ -1449,7 +1477,8 @@ def test_null_group_str_reducer_series(request, dropna, reduction_func):
         expected = expected.astype(dtype)
         expected.iloc[[2, 3]] = np.nan
 
-    result = gb.transform(reduction_func, *args)
+    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
+        result = gb.transform(reduction_func, *args)
     tm.assert_series_equal(result, expected)
 
 
