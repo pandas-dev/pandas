@@ -366,7 +366,7 @@ def select_describe_func(
     """
     if is_bool_dtype(data.dtype):
         return describe_categorical_1d
-    elif is_numeric_dtype(data) or len(data) == 0:
+    elif is_numeric_dtype(data):
         return describe_numeric_1d
     elif is_datetime64_any_dtype(data.dtype):
         if datetime_is_numeric:

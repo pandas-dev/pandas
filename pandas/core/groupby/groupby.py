@@ -1466,16 +1466,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             data after applying f
         """
         values, mutated = self.grouper.apply(f, data, self.axis)
-        if len(data) == 0:
-            if values[0].ndim == 1:
-                return DataFrame(columns=values[0].index)
-            else:
-                return DataFrame(
-                    columns=MultiIndex.from_product(
-                        [values[0].columns, values[0].index]
-                    )
-                )
-
         if not_indexed_same is None:
             not_indexed_same = mutated or self.mutated
         override_group_keys = False
@@ -2462,11 +2452,41 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @doc(DataFrame.describe)
     def describe(self, **kwargs):
         with self._group_selection_context():
+            if len(self._selected_obj) == 0:
+                data = self._selected_obj
+                from pandas.core.describe import (
+                    describe_numeric_1d,
+                    refine_percentiles,
+                    reorder_columns,
+                )
+                from pandas.core.reshape.concat import concat
+
+                percentiles = refine_percentiles(None)
+                if data.ndim == 1:
+                    values = describe_numeric_1d(data, percentiles)
+                    return DataFrame(columns=values.index)
+                else:
+                    ldesc: list[Series] = []
+                    for _, series in data.items():
+                        ldesc.append(describe_numeric_1d(series, percentiles))
+                    col_names = reorder_columns(ldesc)
+                    values = concat(
+                        [x.reindex(col_names, copy=False) for x in ldesc],
+                        axis=1,
+                        sort=False,
+                    )
+                    return DataFrame(
+                        columns=MultiIndex.from_product([values.columns, values.index])
+                    )
             result = self._python_apply_general(
                 lambda x: x.describe(**kwargs),
                 self._selected_obj,
                 not_indexed_same=True,
             )
+            """
+            if isinstance(data, DataFrame) and len(data) == 0 and len(data.index) == 0:
+
+            """
             if len(result) == 0:
                 return result
             elif self.axis == 1:

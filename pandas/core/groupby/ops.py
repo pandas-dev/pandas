@@ -786,12 +786,6 @@ class BaseGrouper:
                 mutated = True
             result_values.append(res)
 
-        if len(group_keys) == 0:
-            res = f(data)
-            mutated = True
-            result_values.append(res)
-            return result_values, mutated
-
         # getattr pattern for __name__ is needed for functools.partial objects
         if len(group_keys) == 0 and getattr(f, "__name__", None) not in [
             "idxmin",
