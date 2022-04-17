@@ -56,7 +56,8 @@ cdef tzinfo utc_zoneinfo = None
 # ----------------------------------------------------------------------
 
 cdef inline bint is_utc_zoneinfo(tzinfo tz):
-    # https://github.com/pandas-dev/pandas/pull/46425#discussion_r830633025
+    # Workaround for cases with missing tzdata
+    #  https://github.com/pandas-dev/pandas/pull/46425#discussion_r830633025
     if tz is None or zoneinfo is None:
         return False
 
