@@ -402,7 +402,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 not_indexed_same=not_indexed_same,
                 override_group_keys=override_group_keys,
             )
-            result.name = self.obj.name  # GH #46369
+            result.name = self.obj.name
             return result
         else:
             # GH #6265 #24880
