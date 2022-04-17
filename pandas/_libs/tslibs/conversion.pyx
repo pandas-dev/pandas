@@ -2,6 +2,7 @@ import cython
 import numpy as np
 
 cimport numpy as cnp
+from cpython.object cimport PyObject
 from numpy cimport (
     int32_t,
     int64_t,
@@ -273,7 +274,8 @@ def ensure_timedelta64ns(arr: ndarray, copy: bool = True):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def datetime_to_datetime64(ndarray[object] values):
+def datetime_to_datetime64(ndarray values):
+    # ndarray[object], but can't declare object without ndim
     """
     Convert ndarray of datetime-like objects to int64 array representing
     nanosecond timestamps.
@@ -288,20 +290,27 @@ def datetime_to_datetime64(ndarray[object] values):
     inferred_tz : tzinfo or None
     """
     cdef:
-        Py_ssize_t i, n = len(values)
+        Py_ssize_t i, n = values.size
         object val
-        int64_t[:] iresult
+        int64_t ival
+        ndarray iresult  # int64_t, but can't declare that without specifying ndim
         npy_datetimestruct dts
         _TSObject _ts
         bint found_naive = False
         tzinfo inferred_tz = None
 
-    result = np.empty(n, dtype='M8[ns]')
+        cnp.broadcast mi
+
+    result = np.empty((<object>values).shape, dtype='M8[ns]')
     iresult = result.view('i8')
+
+    mi = cnp.PyArray_MultiIterNew2(iresult, values)
     for i in range(n):
-        val = values[i]
+        # Analogous to: val = values[i]
+        val = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+
         if checknull_with_nat(val):
-            iresult[i] = NPY_NAT
+            ival = NPY_NAT
         elif PyDateTime_Check(val):
             if val.tzinfo is not None:
                 if found_naive:
@@ -314,17 +323,22 @@ def datetime_to_datetime64(ndarray[object] values):
                     inferred_tz = val.tzinfo
 
                 _ts = convert_datetime_to_tsobject(val, None)
-                iresult[i] = _ts.value
+                ival = _ts.value
                 check_dts_bounds(&_ts.dts)
             else:
                 found_naive = True
                 if inferred_tz is not None:
                     raise ValueError('Cannot mix tz-aware with '
                                      'tz-naive values')
-                iresult[i] = pydatetime_to_dt64(val, &dts)
+                ival = pydatetime_to_dt64(val, &dts)
                 check_dts_bounds(&dts)
         else:
             raise TypeError(f'Unrecognized value type: {type(val)}')
+
+        # Analogous to: iresult[i] = ival
+        (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = ival
+
+        cnp.PyArray_MultiIter_NEXT(mi)
 
     return result, inferred_tz
 
@@ -567,55 +581,62 @@ cdef _TSObject _convert_str_to_tsobject(object ts, tzinfo tz, str unit,
     """
     cdef:
         npy_datetimestruct dts
-        int out_local = 0, out_tzoffset = 0
-        bint do_parse_datetime_string = False
+        int out_local = 0, out_tzoffset = 0, string_to_dts_failed
+        datetime dt
+        int64_t ival
 
     if len(ts) == 0 or ts in nat_strings:
         ts = NaT
+        obj = _TSObject()
+        obj.value = NPY_NAT
+        obj.tzinfo = tz
+        return obj
     elif ts == 'now':
         # Issue 9000, we short-circuit rather than going
         # into np_datetime_strings which returns utc
-        ts = datetime.now(tz)
+        dt = datetime.now(tz)
     elif ts == 'today':
         # Issue 9000, we short-circuit rather than going
         # into np_datetime_strings which returns a normalized datetime
-        ts = datetime.now(tz)
+        dt = datetime.now(tz)
         # equiv: datetime.today().replace(tzinfo=tz)
     else:
         string_to_dts_failed = _string_to_dts(
             ts, &dts, &out_local,
             &out_tzoffset, False
         )
-        try:
-            if not string_to_dts_failed:
+        if not string_to_dts_failed:
+            try:
                 check_dts_bounds(&dts)
                 if out_local == 1:
                     return _create_tsobject_tz_using_offset(dts,
                                                             out_tzoffset, tz)
                 else:
-                    ts = dtstruct_to_dt64(&dts)
+                    ival = dtstruct_to_dt64(&dts)
                     if tz is not None:
                         # shift for _localize_tso
-                        ts = tz_localize_to_utc_single(ts, tz,
-                                                       ambiguous="raise")
+                        ival = tz_localize_to_utc_single(ival, tz,
+                                                         ambiguous="raise")
 
-        except OutOfBoundsDatetime:
-            # GH#19382 for just-barely-OutOfBounds falling back to dateutil
-            # parser will return incorrect result because it will ignore
-            # nanoseconds
-            raise
+                    return convert_to_tsobject(ival, tz, None, False, False)
 
-        except ValueError:
-            do_parse_datetime_string = True
+            except OutOfBoundsDatetime:
+                # GH#19382 for just-barely-OutOfBounds falling back to dateutil
+                # parser will return incorrect result because it will ignore
+                # nanoseconds
+                raise
 
-        if string_to_dts_failed or do_parse_datetime_string:
-            try:
-                ts = parse_datetime_string(ts, dayfirst=dayfirst,
-                                           yearfirst=yearfirst)
-            except (ValueError, OverflowError):
-                raise ValueError("could not convert string to Timestamp")
+            except ValueError:
+                # Fall through to parse_datetime_string
+                pass
 
-    return convert_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
+        try:
+            dt = parse_datetime_string(ts, dayfirst=dayfirst,
+                                       yearfirst=yearfirst)
+        except (ValueError, OverflowError):
+            raise ValueError("could not convert string to Timestamp")
+
+    return convert_datetime_to_tsobject(dt, tz)
 
 
 cdef inline check_overflows(_TSObject obj):
@@ -674,12 +695,8 @@ cdef inline void _localize_tso(_TSObject obj, tzinfo tz):
     Sets obj.tzinfo inplace, alters obj.dts inplace.
     """
     cdef:
-        ndarray[int64_t] trans
-        int64_t[::1] deltas
         int64_t local_val
-        int64_t* tdata
-        Py_ssize_t pos, ntrans, outpos = -1
-        str typ
+        Py_ssize_t outpos = -1
 
     assert obj.tzinfo is None
 
