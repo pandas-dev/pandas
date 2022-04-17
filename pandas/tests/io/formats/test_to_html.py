@@ -342,9 +342,9 @@ def test_to_html_truncate_multi_index(sparsify, expected, datapath):
     "option,result,expected",
     [
         (None, lambda df: df.to_html(), "1"),
-        (None, lambda df: df.to_html(border=0), "0"),
-        (0, lambda df: df.to_html(), "0"),
-        (0, lambda df: df._repr_html_(), "0"),
+        (None, lambda df: df.to_html(border=2), "2"),
+        (2, lambda df: df.to_html(), "2"),
+        (2, lambda df: df._repr_html_(), "2"),
     ],
 )
 def test_to_html_border(option, result, expected):
