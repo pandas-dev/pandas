@@ -94,6 +94,11 @@ from pandas.core.base import (
     SelectionMixin,
 )
 import pandas.core.common as com
+from pandas.core.describe import (
+    describe_numeric_1d,
+    refine_percentiles,
+    reorder_columns,
+)
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.groupby import (
@@ -112,6 +117,7 @@ from pandas.core.indexes.api import (
     RangeIndex,
 )
 from pandas.core.internals.blocks import ensure_block_shape
+from pandas.core.reshape.concat import concat
 import pandas.core.sample as sample
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
@@ -2454,13 +2460,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         with self._group_selection_context():
             if len(self._selected_obj) == 0:
                 data = self._selected_obj
-                from pandas.core.describe import (
-                    describe_numeric_1d,
-                    refine_percentiles,
-                    reorder_columns,
-                )
-                from pandas.core.reshape.concat import concat
-
                 percentiles = refine_percentiles(None)
                 if data.ndim == 1:
                     values = describe_numeric_1d(data, percentiles)
@@ -2483,10 +2482,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 self._selected_obj,
                 not_indexed_same=True,
             )
-            """
-            if isinstance(data, DataFrame) and len(data) == 0 and len(data.index) == 0:
-
-            """
             if len(result) == 0:
                 return result
             elif self.axis == 1:
