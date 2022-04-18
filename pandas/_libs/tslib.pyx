@@ -424,7 +424,7 @@ cpdef array_to_datetime(
     """
     cdef:
         Py_ssize_t i, n = len(values)
-        object val, py_dt, tz, tz_out = None
+        object val, tz
         ndarray[int64_t] iresult
         ndarray[object] oresult
         npy_datetimestruct dts
@@ -443,6 +443,8 @@ cpdef array_to_datetime(
         float offset_seconds, tz_offset
         set out_tzoffset_vals = set()
         bint string_to_dts_failed
+        datetime py_dt
+        tzinfo tz_out = None
 
     # specify error conditions
     assert is_raise or is_ignore or is_coerce
@@ -647,6 +649,8 @@ cpdef array_to_datetime(
     return result, tz_out
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef ndarray[object] ignore_errors_out_of_bounds_fallback(ndarray[object] values):
     """
     Fallback for array_to_datetime if an OutOfBoundsDatetime is raised
