@@ -60,6 +60,8 @@ if not pa_version_under1p01:
     import pyarrow as pa
     import pyarrow.compute as pc
 
+    from pandas.core.arrays.arrow._arrow_utils import fallback_performancewarning
+
     ARROW_CMP_FUNCS = {
         "eq": pc.equal,
         "ne": pc.not_equal,
@@ -331,6 +333,7 @@ class ArrowStringArray(
 
     def isin(self, values):
         if pa_version_under2p0:
+            fallback_performancewarning(version="2")
             return super().isin(values)
 
         value_set = [
@@ -437,10 +440,12 @@ class ArrowStringArray(
 
     def _str_contains(self, pat, case=True, flags=0, na=np.nan, regex: bool = True):
         if flags:
+            fallback_performancewarning()
             return super()._str_contains(pat, case, flags, na, regex)
 
         if regex:
             if pa_version_under4p0 or case is False:
+                fallback_performancewarning(version="4")
                 return super()._str_contains(pat, case, flags, na, regex)
             else:
                 result = pc.match_substring_regex(self._data, pat)
@@ -456,6 +461,7 @@ class ArrowStringArray(
 
     def _str_startswith(self, pat: str, na=None):
         if pa_version_under4p0:
+            fallback_performancewarning(version="4")
             return super()._str_startswith(pat, na)
 
         pat = "^" + re.escape(pat)
@@ -463,6 +469,7 @@ class ArrowStringArray(
 
     def _str_endswith(self, pat: str, na=None):
         if pa_version_under4p0:
+            fallback_performancewarning(version="4")
             return super()._str_endswith(pat, na)
 
         pat = re.escape(pat) + "$"
@@ -484,6 +491,7 @@ class ArrowStringArray(
             or not case
             or flags
         ):
+            fallback_performancewarning(version="4")
             return super()._str_replace(pat, repl, n, case, flags, regex)
 
         func = pc.replace_substring_regex if regex else pc.replace_substring
@@ -494,6 +502,7 @@ class ArrowStringArray(
         self, pat: str, case: bool = True, flags: int = 0, na: Scalar | None = None
     ):
         if pa_version_under4p0:
+            fallback_performancewarning(version="4")
             return super()._str_match(pat, case, flags, na)
 
         if not pat.startswith("^"):
@@ -504,6 +513,7 @@ class ArrowStringArray(
         self, pat, case: bool = True, flags: int = 0, na: Scalar | None = None
     ):
         if pa_version_under4p0:
+            fallback_performancewarning(version="4")
             return super()._str_fullmatch(pat, case, flags, na)
 
         if not pat.endswith("$") or pat.endswith("//$"):
@@ -536,6 +546,7 @@ class ArrowStringArray(
 
     def _str_isspace(self):
         if pa_version_under2p0:
+            fallback_performancewarning(version="2")
             return super()._str_isspace()
 
         result = pc.utf8_is_space(self._data)
@@ -551,6 +562,7 @@ class ArrowStringArray(
 
     def _str_len(self):
         if pa_version_under4p0:
+            fallback_performancewarning(version="4")
             return super()._str_len()
 
         result = pc.utf8_length(self._data)
@@ -564,6 +576,7 @@ class ArrowStringArray(
 
     def _str_strip(self, to_strip=None):
         if pa_version_under4p0:
+            fallback_performancewarning(version="4")
             return super()._str_strip(to_strip)
 
         if to_strip is None:
@@ -574,6 +587,7 @@ class ArrowStringArray(
 
     def _str_lstrip(self, to_strip=None):
         if pa_version_under4p0:
+            fallback_performancewarning(version="4")
             return super()._str_lstrip(to_strip)
 
         if to_strip is None:
@@ -584,6 +598,7 @@ class ArrowStringArray(
 
     def _str_rstrip(self, to_strip=None):
         if pa_version_under4p0:
+            fallback_performancewarning(version="4")
             return super()._str_rstrip(to_strip)
 
         if to_strip is None:

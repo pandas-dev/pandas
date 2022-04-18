@@ -2,9 +2,13 @@
 This module tests the functionality of StringArray and ArrowStringArray.
 Tests for the str accessors are in pandas/tests/strings/test_string_array.py
 """
+from contextlib import nullcontext
+
 import numpy as np
 import pytest
 
+from pandas.compat import pa_version_under2p0
+from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_dtype_equal
@@ -12,6 +16,13 @@ from pandas.core.dtypes.common import is_dtype_equal
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.string_arrow import ArrowStringArray
+
+
+def maybe_perf_warn(using_pyarrow):
+    if using_pyarrow:
+        return tm.assert_produces_warning(PerformanceWarning, match="Falling back")
+    else:
+        return nullcontext()
 
 
 @pytest.fixture
@@ -557,18 +568,22 @@ def test_to_numpy_na_value(dtype, nulls_fixture):
 def test_isin(dtype, fixed_now_ts):
     s = pd.Series(["a", "b", None], dtype=dtype)
 
-    result = s.isin(["a", "c"])
+    with maybe_perf_warn(dtype == "pyarrow" and pa_version_under2p0):
+        result = s.isin(["a", "c"])
     expected = pd.Series([True, False, False])
     tm.assert_series_equal(result, expected)
 
-    result = s.isin(["a", pd.NA])
+    with maybe_perf_warn(dtype == "pyarrow" and pa_version_under2p0):
+        result = s.isin(["a", pd.NA])
     expected = pd.Series([True, False, True])
     tm.assert_series_equal(result, expected)
 
-    result = s.isin([])
+    with maybe_perf_warn(dtype == "pyarrow" and pa_version_under2p0):
+        result = s.isin([])
     expected = pd.Series([False, False, False])
     tm.assert_series_equal(result, expected)
 
-    result = s.isin(["a", fixed_now_ts])
+    with maybe_perf_warn(dtype == "pyarrow" and pa_version_under2p0):
+        result = s.isin(["a", fixed_now_ts])
     expected = pd.Series([True, False, False])
     tm.assert_series_equal(result, expected)
