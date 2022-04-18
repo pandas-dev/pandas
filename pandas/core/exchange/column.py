@@ -111,13 +111,13 @@ class PandasColumn(Column):
                 DtypeKind.CATEGORICAL,
                 bitwidth,
                 c_arrow_dtype_f_str,
-                "=",
+                Endianness.NATIVE,
             )
         elif is_string_dtype(dtype):
             # TODO: is_string_dtype() can return True for non-string dtypes like
             # numpy arrays, because they all have an "object" dtype.
             # Think on how to improve the check here.
-            return (DtypeKind.STRING, 8, dtype_to_arrow_c_fmt(dtype), "=")
+            return (DtypeKind.STRING, 8, dtype_to_arrow_c_fmt(dtype), Endianness.NATIVE)
         else:
             return self._dtype_from_pandasdtype(dtype)
 
@@ -308,16 +308,18 @@ class PandasColumn(Column):
             mask = []
 
             # Determine the encoding for valid values
-            valid = 1 if invalid == 0 else 0
-
-            mask = [valid if isinstance(obj, str) else invalid for obj in buf]
+            valid = invalid == 0
+            invalid = not valid
+            mask = np.zeros(shape=(len(buf),), dtype=np.bool8)
+            for i, obj in enumerate(buf):
+                mask[i] = valid if isinstance(obj, str) else invalid
 
             # Convert the mask array to a Pandas "buffer" using
             # a NumPy array as the backing store
-            buffer = PandasBuffer(np.asarray(mask, dtype="uint8"))
+            buffer = PandasBuffer(mask)
 
             # Define the dtype of the returned buffer
-            dtype = (DtypeKind.UINT, 8, ArrowCTypes.UINT8, Endianness.NATIVE)
+            dtype = (DtypeKind.BOOL, 8, ArrowCTypes.BOOL, Endianness.NATIVE)
 
             return buffer, dtype
 
@@ -340,7 +342,7 @@ class PandasColumn(Column):
             # For each string, we need to manually determine the next offset
             values = self._col.to_numpy()
             ptr = 0
-            offsets = [ptr] + [0] * len(values)
+            offsets = np.zeros(shape=(len(values) + 1,), dtype=np.int64)
             for i, v in enumerate(values):
                 # For missing values (in this case, `np.nan` values)
                 # we don't increment the pointer
@@ -350,14 +352,9 @@ class PandasColumn(Column):
 
                 offsets[i + 1] = ptr
 
-            # Convert the list of offsets to a NumPy array of signed 64-bit integers
-            # (note: Arrow allows the offsets array to be either `int32` or `int64`;
-            # here, we default to the latter)
-            buf = np.asarray(offsets, dtype="int64")
-
             # Convert the offsets to a Pandas "buffer" using
             # the NumPy array as the backing store
-            buffer = PandasBuffer(buf)
+            buffer = PandasBuffer(offsets)
 
             # Assemble the buffer dtype info
             dtype = (

@@ -48,7 +48,7 @@ class PandasDataFrameXchg(DataFrameXchg):
         return 1
 
     def column_names(self):
-        return self._df.columns.tolist()
+        return self._df.columns
 
     def get_column(self, i: int) -> PandasColumn:
         return PandasColumn(self._df.iloc[:, i], allow_copy=self._allow_copy)
