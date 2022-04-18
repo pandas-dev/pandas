@@ -56,6 +56,7 @@ from pandas._libs.tslibs.timezones cimport (
     is_fixed_offset,
     is_tzlocal,
     is_utc,
+    is_zoneinfo,
     maybe_get_tz,
     tz_compare,
     utc_pytz as UTC,
@@ -532,7 +533,7 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
     # see PEP 495 https://www.python.org/dev/peps/pep-0495/#the-fold-attribute
     if is_utc(tz):
         pass
-    elif is_tzlocal(tz):
+    elif is_tzlocal(tz) or is_zoneinfo(tz):
         localize_tzinfo_api(obj.value, tz, &obj.fold)
     else:
         trans, deltas, typ = get_dst_info(tz)

@@ -42,6 +42,7 @@ from pandas._libs.tslibs.timezones cimport (
     is_fixed_offset,
     is_tzlocal,
     is_utc,
+    is_zoneinfo,
     utc_pytz,
 )
 
@@ -60,7 +61,7 @@ cdef int64_t tz_localize_to_utc_single(
     elif is_utc(tz) or tz is None:
         return val
 
-    elif is_tzlocal(tz):
+    elif is_tzlocal(tz) or is_zoneinfo(tz):
         return val - _tz_localize_using_tzinfo_api(val, tz, to_utc=True)
 
     elif is_fixed_offset(tz):
@@ -135,7 +136,7 @@ timedelta-like}
 
     result = np.empty(n, dtype=np.int64)
 
-    if is_tzlocal(tz):
+    if is_tzlocal(tz) or is_zoneinfo(tz):
         for i in range(n):
             v = vals[i]
             if v == NPY_NAT:
@@ -484,8 +485,8 @@ cdef int64_t tz_convert_from_utc_single(
 
     if is_utc(tz):
         return utc_val
-    elif is_tzlocal(tz):
-        return utc_val + _tz_localize_using_tzinfo_api(utc_val, tz, to_utc=False)
+    elif is_tzlocal(tz) or is_zoneinfo(tz):
+        return utc_val + _tz_localize_using_tzinfo_api(utc_val, tz, to_utc=False, fold=fold)
     else:
         trans, deltas, typ = get_dst_info(tz)
         tdata = <int64_t*>cnp.PyArray_DATA(trans)
@@ -569,7 +570,7 @@ cdef const int64_t[:] _tz_convert_from_utc(const int64_t[:] stamps, tzinfo tz):
 
     if is_utc(tz) or tz is None:
         use_utc = True
-    elif is_tzlocal(tz):
+    elif is_tzlocal(tz) or is_zoneinfo(tz):
         use_tzlocal = True
     else:
         trans, deltas, typ = get_dst_info(tz)

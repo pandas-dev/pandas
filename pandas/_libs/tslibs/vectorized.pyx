@@ -40,6 +40,7 @@ from .timezones cimport (
     get_dst_info,
     is_tzlocal,
     is_utc,
+    is_zoneinfo,
 )
 from .tzconversion cimport (
     bisect_right_i8,
@@ -117,7 +118,7 @@ def ints_to_pydatetime(
 
     if is_utc(tz) or tz is None:
         use_utc = True
-    elif is_tzlocal(tz):
+    elif is_tzlocal(tz) or is_zoneinfo(tz):
         use_tzlocal = True
     else:
         trans, deltas, typ = get_dst_info(tz)
@@ -204,7 +205,7 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None) -> Resolution:
 
     if is_utc(tz) or tz is None:
         use_utc = True
-    elif is_tzlocal(tz):
+    elif is_tzlocal(tz) or is_zoneinfo(tz):
         use_tzlocal = True
     else:
         trans, deltas, typ = get_dst_info(tz)
@@ -272,7 +273,7 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
 
     if is_utc(tz) or tz is None:
         use_utc = True
-    elif is_tzlocal(tz):
+    elif is_tzlocal(tz) or is_zoneinfo(tz):
         use_tzlocal = True
     else:
         trans, deltas, typ = get_dst_info(tz)
@@ -334,7 +335,7 @@ def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None) -> bool:
 
     if is_utc(tz) or tz is None:
         use_utc = True
-    elif is_tzlocal(tz):
+    elif is_tzlocal(tz) or is_zoneinfo(tz):
         use_tzlocal = True
     else:
         trans, deltas, typ = get_dst_info(tz)
@@ -385,7 +386,7 @@ def dt64arr_to_periodarr(const int64_t[:] stamps, int freq, tzinfo tz):
 
     if is_utc(tz) or tz is None:
         use_utc = True
-    elif is_tzlocal(tz):
+    elif is_tzlocal(tz) or is_zoneinfo(tz):
         use_tzlocal = True
     else:
         trans, deltas, typ = get_dst_info(tz)
