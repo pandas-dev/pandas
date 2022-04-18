@@ -37,6 +37,7 @@ from .timezones cimport (
     get_dst_info,
     is_tzlocal,
     is_utc,
+    is_zoneinfo,
 )
 from .tzconversion cimport (
     bisect_right_i8,
@@ -72,7 +73,7 @@ cdef class Localizer:
         if is_utc(tz) or tz is None:
             self.use_utc = True
 
-        elif is_tzlocal(tz):
+        elif is_tzlocal(tz) or is_zoneinfo(tz):
             self.use_tzlocal = True
 
         else:
