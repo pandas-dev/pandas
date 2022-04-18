@@ -26,7 +26,6 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
-from pandas._testing.asserters import assert_equal
 from pandas.core.arrays import (
     DatetimeArray,
     period_array,
@@ -84,17 +83,6 @@ class TestDatetimeIndex:
             for obj in [ci, carr, cser]:
                 result = DatetimeIndex(obj)
                 tm.assert_index_equal(result, dti)
-
-    def test_categorical_preserves_freq(self):
-        # GH33830 freq retention in categorical
-        dti = date_range("2016-01-01", periods=5)
-
-        expected = dti.freq
-
-        cat = pd.Categorical(dti)
-        result = cat.categories.freq
-
-        assert_equal(expected, result)
 
     def test_dti_with_period_data_raises(self):
         # GH#23675
