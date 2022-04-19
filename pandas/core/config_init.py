@@ -816,6 +816,11 @@ styler_na_rep = """
     The string representation for values identified as missing.
 """
 
+styler_date_format = """
+: str
+    The date format used for representing timezone naive datetime objects
+"""
+
 styler_escape = """
 : str, optional
     Whether to escape certain characters according to the given context; html or latex.
@@ -915,6 +920,13 @@ with cf.config_prefix("styler"):
         None,
         styler_na_rep,
         validator=is_instance_factory([type(None), str]),
+    )
+
+    cf.register_option(
+        "format.date_format",
+        "%Y-%m-%d",
+        styler_date_format,
+        validator=is_str,
     )
 
     cf.register_option(

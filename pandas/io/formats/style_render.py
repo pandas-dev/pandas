@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+import datetime
 from functools import partial
 import re
 from typing import (
@@ -38,6 +39,7 @@ from pandas import (
     IndexSlice,
     MultiIndex,
     Series,
+    Timestamp,
     isna,
 )
 from pandas.api.types import is_list_like
@@ -139,15 +141,28 @@ class StylerRenderer:
         precision = (
             get_option("styler.format.precision") if precision is None else precision
         )
+        date_format = get_option("styler.format.date_format")
         self._display_funcs: DefaultDict[  # maps (row, col) -> format func
             tuple[int, int], Callable[[Any], str]
-        ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
+        ] = defaultdict(
+            lambda: partial(
+                _default_formatter, precision=precision, date_format=date_format
+            )
+        )
         self._display_funcs_index: DefaultDict[  # maps (row, level) -> format func
             tuple[int, int], Callable[[Any], str]
-        ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
+        ] = defaultdict(
+            lambda: partial(
+                _default_formatter, precision=precision, date_format=date_format
+            )
+        )
         self._display_funcs_columns: DefaultDict[  # maps (level, col) -> format func
             tuple[int, int], Callable[[Any], str]
-        ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
+        ] = defaultdict(
+            lambda: partial(
+                _default_formatter, precision=precision, date_format=date_format
+            )
+        )
 
     def _render(
         self,
@@ -1514,7 +1529,9 @@ def format_table_styles(styles: CSSStyles) -> CSSStyles:
     ]
 
 
-def _default_formatter(x: Any, precision: int, thousands: bool = False) -> Any:
+def _default_formatter(
+    x: Any, precision: int, thousands: bool = False, date_format: str = "%Y-%m-%d"
+) -> Any:
     """
     Format the display of a value
 
@@ -1536,6 +1553,8 @@ def _default_formatter(x: Any, precision: int, thousands: bool = False) -> Any:
         return f"{x:,.{precision}f}" if thousands else f"{x:.{precision}f}"
     elif is_integer(x):
         return f"{x:,.0f}" if thousands else f"{x:.0f}"
+    elif isinstance(x, (datetime.datetime, datetime.date, np.datetime64, Timestamp)):
+        return x.strftime(date_format)
     return x
 
 
@@ -1618,7 +1637,10 @@ def _maybe_wrap_formatter(
             get_option("styler.format.precision") if precision is None else precision
         )
         func_0 = partial(
-            _default_formatter, precision=precision, thousands=(thousands is not None)
+            _default_formatter,
+            precision=precision,
+            thousands=(thousands is not None),
+            date_format=get_option("styler.format.date_format"),
         )
     else:
         raise TypeError(f"'formatter' expected str or callable, got {type(formatter)}")

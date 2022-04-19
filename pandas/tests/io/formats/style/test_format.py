@@ -1,3 +1,8 @@
+from datetime import (
+    date,
+    datetime,
+)
+
 import numpy as np
 import pytest
 
@@ -12,6 +17,8 @@ from pandas import (
 )
 
 pytest.importorskip("jinja2")
+from pandas._config import get_option
+
 from pandas.io.formats.style import Styler
 from pandas.io.formats.style_render import _str_escape
 
@@ -442,3 +449,23 @@ def test_boolean_format():
     ctx = df.style._translate(True, True)
     assert ctx["body"][0][1]["display_value"] is True
     assert ctx["body"][0][2]["display_value"] is False
+
+
+@pytest.mark.parametrize(
+    "date",
+    [
+        datetime(2022, 1, 30),
+        date(2022, 1, 30),
+        np.datetime64("2022-01-30"),
+        Timestamp(2022, 1, 30),
+    ],
+)
+@pytest.mark.parametrize("option", [None, "%Y-%m"])
+def test_date_format(date, option):
+    # test default and option context
+    expected = "2022-01-30" if option is None else "2022-01"
+    option = get_option("styler.format.date_format") if option is None else option
+    with option_context("styler.format.date_format", option):
+        df = DataFrame([[date]])
+        ctx = df.style._translate(True, True)
+        assert ctx["body"][0][1]["display_value"] == expected
