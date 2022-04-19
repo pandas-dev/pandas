@@ -1012,7 +1012,7 @@ class ExtensionArray:
         ----------
         na_sentinel : int, default -1
             Value to use in the `codes` array to indicate missing values.
-        dropna: bool, default True
+        dropna : bool, default True
             Whether null values will appear in uniques. When False, null values
             will receive a nonnegative code instead of na_sentinel.
 
