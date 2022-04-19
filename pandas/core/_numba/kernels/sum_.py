@@ -81,7 +81,7 @@ def sliding_sum(
                     val, nobs, sum_x, compensation_add
                 )
 
-        if nobs == 0 == nobs:
+        if nobs == 0 == min_periods:
             result = 0.0
         elif nobs >= min_periods:
             result = sum_x
