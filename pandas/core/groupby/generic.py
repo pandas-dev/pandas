@@ -397,11 +397,13 @@ class SeriesGroupBy(GroupBy[Series]):
             res_ser.name = self.obj.name
             return res_ser
         elif isinstance(values[0], (Series, DataFrame)):
-            return self._concat_objects(
+            result = self._concat_objects(
                 values,
                 not_indexed_same=not_indexed_same,
                 override_group_keys=override_group_keys,
             )
+            result.name = self.obj.name
+            return result
         else:
             # GH #6265 #24880
             result = self.obj._constructor(
