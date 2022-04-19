@@ -263,7 +263,7 @@ class Grouper:
     _gpr_index: Index | None
     _grouper: Index | None
 
-    _attributes: tuple[str, ...] = ("key", "level", "freq", "axis", "sort")
+    _attributes: tuple[str, ...] = ("key", "level", "freq", "axis", "sort", "dropna")
 
     def __new__(cls, *args, **kwargs):
         if kwargs.get("freq") is not None:
@@ -287,6 +287,7 @@ class Grouper:
         self.freq = freq
         self.axis = axis
         self.sort = sort
+        self.dropna = dropna
 
         self.grouper = None
         self._gpr_index = None
@@ -295,7 +296,6 @@ class Grouper:
         self.binner = None
         self._grouper = None
         self._indexer = None
-        self.dropna = dropna
 
     @final
     @property
@@ -339,7 +339,7 @@ class Grouper:
         return self.binner, self.grouper, self.obj  # type: ignore[return-value]
 
     @final
-    def _set_grouper(self, obj: NDFrame, sort: bool = False):
+    def _set_grouper(self, obj: NDFrame, sort: bool = False) -> None:
         """
         given an object and the specifications, setup the internal grouper
         for this particular specification
@@ -413,7 +413,6 @@ class Grouper:
         # "NDFrameT", variable has type "None")
         self.obj = obj  # type: ignore[assignment]
         self._gpr_index = ax
-        return self._gpr_index
 
     @final
     @property

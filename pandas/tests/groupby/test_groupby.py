@@ -31,7 +31,7 @@ from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
 def test_repr():
     # GH18203
     result = repr(Grouper(key="A", level="B"))
-    expected = "Grouper(key='A', level='B', axis=0, sort=False)"
+    expected = "Grouper(key='A', level='B', axis=0, sort=False, dropna=True)"
     assert result == expected
 
 
