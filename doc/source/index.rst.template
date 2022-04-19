@@ -103,9 +103,15 @@ programming language.
     :titlesonly:
 
     {{ single_doc[:-4] }}
+{% elif single_doc and single_doc.count('.') == 1 %}
+.. autosummary::
+    :toctree: reference/api/
+
+    {{ single_doc }}
 {% elif single_doc %}
 .. autosummary::
     :toctree: reference/api/
+    :template: autosummary/accessor_method.rst
 
     {{ single_doc }}
 {% else -%}
