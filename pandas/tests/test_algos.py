@@ -2282,6 +2282,13 @@ class TestMode:
             # algos.mode expects Arraylike, does *not* unwrap TimedeltaIndex
             algos.mode(idx)
 
+    def test_ser_mode_with_name(self):
+        # GH 46737
+        ser = Series([1, 1, 3], name="foo")
+        result = ser.mode()
+        expected = Series([1], name="foo")
+        tm.assert_series_equal(result, expected)
+
 
 class TestDiff:
     @pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
