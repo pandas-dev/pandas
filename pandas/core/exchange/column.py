@@ -286,8 +286,6 @@ class PandasColumn(Column):
                 ArrowCTypes.STRING,
                 Endianness.NATIVE,
             )  # note: currently only support native endianness
-        elif self.dtype[0] == DtypeKind.DATETIME:
-            pass
         else:
             raise NotImplementedError(f"Data type {self._col.dtype} not handled yet")
 
