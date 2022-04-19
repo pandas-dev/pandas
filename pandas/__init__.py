@@ -419,3 +419,7 @@ __all__ = [
     "value_counts",
     "wide_to_long",
 ]
+
+from pandas import _version
+
+__version__ = _version.get_versions()["version"]

@@ -58,3 +58,4 @@ prune pandas/tests/io/parser/data
 # Selectively re-add *.cxx files that were excluded above
 graft pandas/_libs/src
 graft pandas/_libs/tslibs/src
+include pandas/_version.py
