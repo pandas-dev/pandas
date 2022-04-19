@@ -303,11 +303,11 @@ class PandasColumn(Column):
             # For now, use byte array as the mask.
             # TODO: maybe store as bit array to save space?..
             buf = self._col.to_numpy()
-            mask = []
 
             # Determine the encoding for valid values
             valid = invalid == 0
             invalid = not valid
+
             mask = np.zeros(shape=(len(buf),), dtype=np.bool8)
             for i, obj in enumerate(buf):
                 mask[i] = valid if isinstance(obj, str) else invalid

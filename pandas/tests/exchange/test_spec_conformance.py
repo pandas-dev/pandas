@@ -90,10 +90,9 @@ def test_dataframe(df_from_dict):
     assert dfX.num_columns() == 3
     assert dfX.num_rows() == 3
     assert dfX.num_chunks() == 1
-    assert dfX.column_names() == ["x", "y", "z"]
-    assert (
-        dfX.select_columns((0, 2)).column_names()
-        == dfX.select_columns_by_name(("x", "z")).column_names()
+    assert list(dfX.column_names()) == ["x", "y", "z"]
+    assert list(dfX.select_columns((0, 2)).column_names()) == list(
+        dfX.select_columns_by_name(("x", "z")).column_names()
     )
 
 
