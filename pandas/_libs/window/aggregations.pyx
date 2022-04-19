@@ -1643,7 +1643,7 @@ def roll_weighted_var(const float64_t[:] values, const float64_t[:] weights,
 
     with nogil:
 
-        for i in range(win_n):
+        for i in range(min(win_n, n)):
             add_weighted_var(values[i], weights[i], &t,
                              &sum_w, &mean, &nobs)
 
