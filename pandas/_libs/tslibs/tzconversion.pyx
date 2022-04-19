@@ -429,18 +429,7 @@ cdef int64_t localize_tzinfo_api(
     int64_t utc_val, tzinfo tz, bint* fold=NULL
 ) except? -1:
     """
-    Parameters
-    ----------
-    utc_val : int64_t
-    tz : tzinfo
-    fold : bint*
-        pointer to fold: whether datetime ends up in a fold or not
-        after adjustment
-
-    Returns
-    -------
-    delta : int64_t
-        Value to add when converting from utc.
+    See _tz_localize_using_tzinfo_api.__doc__
     """
     return _tz_localize_using_tzinfo_api(utc_val, tz, to_utc=False, fold=fold)
 
@@ -512,97 +501,6 @@ cdef int64_t tz_convert_from_utc_single(
             #  (and 2022-03-07), all test cases that get here have
             #  is_fixed_offset(tz).
             return utc_val + deltas[0]
-
-
-def tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
-    """
-    Convert the values (in i8) from UTC to tz
-
-    Parameters
-    ----------
-    vals : int64 ndarray
-    tz : tzinfo
-
-    Returns
-    -------
-    int64 ndarray of converted
-    """
-    cdef:
-        const int64_t[:] converted
-
-    if vals.shape[0] == 0:
-        return np.array([], dtype=np.int64)
-
-    converted = _tz_convert_from_utc(vals, tz)
-    return np.asarray(converted, dtype=np.int64)
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cdef const int64_t[:] _tz_convert_from_utc(const int64_t[:] stamps, tzinfo tz):
-    """
-    Convert the given values (in i8) either to UTC or from UTC.
-
-    Parameters
-    ----------
-    stamps : int64 ndarray
-    tz : tzinfo
-
-    Returns
-    -------
-    converted : ndarray[int64_t]
-    """
-    cdef:
-        Py_ssize_t i, ntrans = -1, n = stamps.shape[0]
-        ndarray[int64_t] trans
-        int64_t[::1] deltas
-        int64_t* tdata = NULL
-        intp_t pos
-        int64_t utc_val, local_val, delta = NPY_NAT
-        bint use_utc = False, use_tzlocal = False, use_fixed = False
-        str typ
-
-        int64_t[::1] result
-
-    if is_utc(tz) or tz is None:
-        # Much faster than going through the "standard" pattern below
-        return stamps.copy()
-
-    if is_utc(tz) or tz is None:
-        use_utc = True
-    elif is_tzlocal(tz) or is_zoneinfo(tz):
-        use_tzlocal = True
-    else:
-        trans, deltas, typ = get_dst_info(tz)
-        ntrans = trans.shape[0]
-        if typ not in ["pytz", "dateutil"]:
-            # static/fixed; in this case we know that len(delta) == 1
-            use_fixed = True
-            delta = deltas[0]
-        else:
-            tdata = <int64_t*>cnp.PyArray_DATA(trans)
-
-    result = np.empty(n, dtype=np.int64)
-
-    for i in range(n):
-        utc_val = stamps[i]
-        if utc_val == NPY_NAT:
-            result[i] = NPY_NAT
-            continue
-
-        # The pattern used in vectorized.pyx checks for use_utc here,
-        #  but we handle that case above.
-        if use_tzlocal:
-            local_val = utc_val + _tz_localize_using_tzinfo_api(utc_val, tz, to_utc=False)
-        elif use_fixed:
-            local_val = utc_val + delta
-        else:
-            pos = bisect_right_i8(tdata, utc_val, ntrans) - 1
-            local_val = utc_val + deltas[pos]
-
-        result[i] = local_val
-
-    return result
 
 
 # OSError may be thrown by tzlocal on windows at or close to 1970-01-01
