@@ -1,4 +1,5 @@
 import contextlib
+import time
 
 import numpy as np
 import pytest
@@ -208,7 +209,7 @@ def test_styler_custom_converter():
 
 
 def test_styler_to_s3(self, s3_resource, s3so):
-    import time
+    # GH#46381
 
     mock_bucket_name, target_file = "pandas-test", "test.xlsx"
     df = DataFrame({"x": [1, 2, 3], "y": [2, 4, 6]})
