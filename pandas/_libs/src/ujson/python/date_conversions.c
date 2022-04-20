@@ -54,8 +54,8 @@ char *int64ToIso(int64_t value, NPY_DATETIMEUNIT base, size_t *len) {
         PyErr_NoMemory();
         return NULL;
     }
-    ret_code = make_iso_8601_datetime(&dts, result, *len,
-                                      0 /* datetime64 is always naive */, base);
+    // datetime64 is always naive
+    ret_code = make_iso_8601_datetime(&dts, result, *len, 0, base);
     if (ret_code != 0) {
         PyErr_SetString(PyExc_ValueError,
                         "Could not convert datetime value to string");

@@ -175,10 +175,17 @@ Styler
 
 - Fix showing "None" as ylabel in :meth:`Series.plot` when not setting ylabel (:issue:`46129`)
 
-.. _whatsnew_150.notable_bug_fixes.notable_bug_fix2:
+.. _whatsnew_150.notable_bug_fixes.to_json_incorrectly_localizing_naive_timestamps:
 
-notable_bug_fix2
-^^^^^^^^^^^^^^^^
+Serializing tz-naive Timestamps with to_json() with ``iso_dates=True``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`DataFrame.to_json`, :meth:`Series.to_json`, and :meth:`Index.to_json`
+would incorrectly localize DatetimeArrays/DatetimeIndexes with tz-naive Timestamps
+to UTC. (:issue:`38760`)
+
+Note that this patch does not fix the localization of tz-aware Timestamps to UTC
+upon serialization. (Related issue :issue:`12997`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.api_breaking:
@@ -563,7 +570,7 @@ I/O
 - Bug in Parquet roundtrip for Interval dtype with ``datetime64[ns]`` subtype (:issue:`45881`)
 - Bug in :func:`read_excel` when reading a ``.ods`` file with newlines between xml elements (:issue:`45598`)
 - Bug in :func:`read_parquet` when ``engine="fastparquet"`` where the file was not closed on error (:issue:`46555`)
-- Bug in :meth:`DataFrame.to_json`, :meth:`Series.to_json`, and :meth:`Index.to_json` where tz-aware datetimes were being incorrectly localized to UTC (:issue:`38760`)
+-
 
 Period
 ^^^^^^
