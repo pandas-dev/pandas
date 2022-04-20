@@ -585,6 +585,7 @@ cdef _TSObject _convert_str_to_tsobject(object ts, tzinfo tz, str unit,
         int out_local = 0, out_tzoffset = 0, string_to_dts_failed
         datetime dt
         int64_t ival
+        NPY_DATETIMEUNIT out_bestunit
 
     if len(ts) == 0 or ts in nat_strings:
         ts = NaT
@@ -603,7 +604,7 @@ cdef _TSObject _convert_str_to_tsobject(object ts, tzinfo tz, str unit,
         # equiv: datetime.today().replace(tzinfo=tz)
     else:
         string_to_dts_failed = _string_to_dts(
-            ts, &dts, &out_local,
+            ts, &dts, &out_bestunit, &out_local,
             &out_tzoffset, False
         )
         if not string_to_dts_failed:

@@ -2590,10 +2590,13 @@ class Period(_Period):
             dt = value
             if freq is None:
                 raise ValueError('Must supply freq for datetime value')
+            if isinstance(dt, Timestamp):
+                nanosecond = dt.nanosecond
         elif util.is_datetime64_object(value):
             dt = Timestamp(value)
             if freq is None:
                 raise ValueError('Must supply freq for datetime value')
+            nanosecond = dt.nanosecond
         elif PyDate_Check(value):
             dt = datetime(year=value.year, month=value.month, day=value.day)
             if freq is None:
