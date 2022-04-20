@@ -29,7 +29,7 @@ Styler
 from_dummies
 ^^^^^^^^^^^^
 
-Added new function :func:`~pandas.get_dummies` to convert a dummy coded :class:`DataFrame` into a categorical :class:`DataFrame`.
+Added new function :func:`~pandas.from_dummies` to convert a dummy coded :class:`DataFrame` into a categorical :class:`DataFrame`.
 
 Example::
 
