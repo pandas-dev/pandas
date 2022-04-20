@@ -33,6 +33,21 @@ _NP_DTYPES: Dict[DtypeKind, Dict[int, Any]] = {
 
 
 def from_dataframe(df, allow_copy=True):
+    """
+    Build a ``pd.DataFrame`` from any DataFrame supporting the interchange protocol.
+
+    Parameters
+    ----------
+    df : DataFrameXchg
+        Object supporting the exchange protocol, i.e. `__dataframe__` method.
+    allow_copy : bool, default: True
+        Whether to allow copying the memory to perform the conversion
+        (if false then zero-copy approach is requested).
+
+    Returns
+    -------
+    pd.DataFrame
+    """
     if isinstance(df, pd.DataFrame):
         return df
 
@@ -50,8 +65,9 @@ def _from_dataframe(df: DataFrameXchg, allow_copy=True):
     ----------
     df : DataFrameXchg
         Object supporting the exchange protocol, i.e. `__dataframe__` method.
-    n_chunks : int, optional
-        Number of chunks to split `df`.
+    allow_copy : bool, default: True
+        Whether to allow copying the memory to perform the conversion
+        (if false then zero-copy approach is requested).
 
     Returns
     -------
@@ -69,7 +85,7 @@ def _from_dataframe(df: DataFrameXchg, allow_copy=True):
     if len(pandas_dfs) == 1:
         pandas_df = pandas_dfs[0]
     else:
-        pandas_df = pd.concat(pandas_dfs, axis=0, ignore_index=True)
+        pandas_df = pd.concat(pandas_dfs, axis=0, ignore_index=True, copy=False)
 
     index_obj = df.metadata.get("pandas.index", None)
     if index_obj is not None:
