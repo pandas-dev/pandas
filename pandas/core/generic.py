@@ -10671,6 +10671,23 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
 
+        if axis is None and level is None and self.ndim > 1 and numeric_only:
+            # user must have explictly passed axis=None and numeric_only=True
+            # Converting to numpy array since using numpy statistical methods
+            arr = self.to_numpy()
+            if name=="max":
+                if skipna:
+                    return arr.max(axis=axis)
+            elif name=="min":
+                if skipna:
+                    return arr.min(axis=axis)
+            elif name=="mean":
+                if skipna:
+                    return arr.mean(axis=axis)
+            elif name=="median":
+                if skipna:
+                    return np.median(arr, axis=axis)
+
         if axis is None and level is None and self.ndim > 1:
             # user must have explicitly passed axis=None
             # GH#21597
