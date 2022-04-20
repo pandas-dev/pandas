@@ -183,12 +183,11 @@ def test_series_groupby_value_counts_on_categorical():
                 ),
             ]
         ),
-        name=0,
     )
 
     # Expected:
     # 0  a    1
     #    b    0
-    # Name: 0, dtype: int64
+    # dtype: int64
 
     tm.assert_series_equal(result, expected)

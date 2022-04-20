@@ -812,6 +812,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         were timezone-naive.
         """
         if self.tz is None or timezones.is_utc(self.tz):
+            # Avoid the copy that would be made in tzconversion
             return self.asi8
         return tzconversion.tz_convert_from_utc(self.asi8, self.tz)
 
@@ -1229,7 +1230,8 @@ default 'raise'
 
     def month_name(self, locale=None):
         """
-        Return the month names of the DateTimeIndex with specified locale.
+        Return the month names of the :class:`~pandas.Series` or
+        :class:`~pandas.DatetimeIndex` with specified locale.
 
         Parameters
         ----------
@@ -1239,11 +1241,23 @@ default 'raise'
 
         Returns
         -------
-        Index
-            Index of month names.
+        Series or Index
+            Series or Index of month names.
 
         Examples
         --------
+        >>> s = pd.Series(pd.date_range(start='2018-01', freq='M', periods=3))
+        >>> s
+        0   2018-01-31
+        1   2018-02-28
+        2   2018-03-31
+        dtype: datetime64[ns]
+        >>> s.dt.month_name()
+        0     January
+        1    February
+        2       March
+        dtype: object
+
         >>> idx = pd.date_range(start='2018-01', freq='M', periods=3)
         >>> idx
         DatetimeIndex(['2018-01-31', '2018-02-28', '2018-03-31'],
@@ -1259,7 +1273,8 @@ default 'raise'
 
     def day_name(self, locale=None):
         """
-        Return the day names of the DateTimeIndex with specified locale.
+        Return the day names of the :class:`~pandas.Series` or
+        :class:`~pandas.DatetimeIndex` with specified locale.
 
         Parameters
         ----------
@@ -1269,11 +1284,23 @@ default 'raise'
 
         Returns
         -------
-        Index
-            Index of day names.
+        Series or Index
+            Series or Index of day names.
 
         Examples
         --------
+        >>> s = pd.Series(pd.date_range(start='2018-01-01', freq='D', periods=3))
+        >>> s
+        0   2018-01-01
+        1   2018-01-02
+        2   2018-01-03
+        dtype: datetime64[ns]
+        >>> s.dt.day_name()
+        0       Monday
+        1      Tuesday
+        2    Wednesday
+        dtype: object
+
         >>> idx = pd.date_range(start='2018-01-01', freq='D', periods=3)
         >>> idx
         DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03'],
@@ -1328,15 +1355,14 @@ default 'raise'
 
     def isocalendar(self) -> DataFrame:
         """
-        Returns a DataFrame with the year, week, and day calculated according to
-        the ISO 8601 standard.
+        Calculate year, week, and day according to the ISO 8601 standard.
 
         .. versionadded:: 1.1.0
 
         Returns
         -------
         DataFrame
-            with columns year, week and day
+            With columns year, week and day.
 
         See Also
         --------
@@ -2222,10 +2248,9 @@ def objects_to_datetime64ns(
         result = result.reshape(data.shape, order=order)
     except ValueError as err:
         try:
-            values, tz_parsed = conversion.datetime_to_datetime64(data.ravel("K"))
+            values, tz_parsed = conversion.datetime_to_datetime64(data)
             # If tzaware, these values represent unix timestamps, so we
             #  return them as i8 to distinguish from wall times
-            values = values.reshape(data.shape, order=order)
             return values.view("i8"), tz_parsed
         except (ValueError, TypeError):
             raise err
