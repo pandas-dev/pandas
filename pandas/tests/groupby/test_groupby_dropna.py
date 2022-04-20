@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat.pyarrow import pa_version_under1p01
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -367,7 +369,12 @@ def test_groupby_nan_included():
         pd.Series([2, np.nan, 1, 2], dtype="Float64"),
         pd.Series(["y", None, "x", "y"], dtype="category"),
         pd.Series(["y", pd.NA, "x", "y"], dtype="string"),
-        pd.Series(["y", pd.NA, "x", "y"], dtype="string[pyarrow]"),
+        pytest.param(
+            pd.Series(["y", pd.NA, "x", "y"], dtype="string[pyarrow]"),
+            marks=pytest.mark.skipif(
+                pa_version_under1p01, reason="pyarrow is not installed"
+            ),
+        ),
         pd.Series(
             ["2016-01-01", np.datetime64("NaT"), "2017-01-01", "2016-01-01"],
             dtype="datetime64[ns]",

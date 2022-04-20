@@ -524,11 +524,11 @@ def factorize_array(
         If not None, the mask is used as indicator for missing values
         (True = missing, False = valid) instead of `na_value` or
         condition "val != val".
-    dropna: bool, default True
-        Whether null values will appear in uniques. When False, null values
+    dropna : bool, default True
+        Whether NA values will appear in uniques. When False, NA values
         will receive a nonnegative code instead of na_sentinel.
 
-        ..versionadded:: 1.5.0
+        .. versionadded:: 1.5.0
 
     Returns
     -------
