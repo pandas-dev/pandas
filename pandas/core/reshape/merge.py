@@ -2158,8 +2158,18 @@ def _factorize_keys(
         # GH#23917 TODO: needs tests for case where lk is integer-dtype
         #  and rk is datetime-dtype
         klass = libhashtable.Int64Factorizer
-        lk = ensure_int64(np.asarray(lk))
-        rk = ensure_int64(np.asarray(rk))
+
+        # both types are equal to each other
+        if lk.dtype != rk.dtype:
+            # lk is not a null type, so the left value should be analyzed
+            if lk.dtype != pd.Int64Dtype():
+                lk = ensure_int64(np.asarray(lk))
+            # rk is not a null type, so the right value should be analyzed
+            if rk.dtype != pd.Int64Dtype():
+                rk = ensure_int64(np.asarray(rk)
+        else:
+            lk = ensure_int64(np.asarray(lk))
+            rk = ensure_int64(np.asarray(rk))
 
     elif needs_i8_conversion(lk.dtype) and is_dtype_equal(lk.dtype, rk.dtype):
         # GH#23917 TODO: Needs tests for non-matching dtypes
