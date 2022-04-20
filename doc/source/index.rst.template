@@ -103,7 +103,7 @@ programming language.
     :titlesonly:
 
     {{ single_doc[:-4] }}
-{% elif single_doc and single_doc.count('.') == 1 %}
+{% elif single_doc and single_doc.count('.') <= 1 %}
 .. autosummary::
     :toctree: reference/api/
 
