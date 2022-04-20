@@ -114,7 +114,7 @@ class TestPeriodConstruction:
             Period("1982", freq=("Min", 1))
 
     def test_construction_from_timestamp_nanos(self):
-        # don't drop nanos from Timestamp
+        # GH#46811 don't drop nanos from Timestamp
         ts = Timestamp("2022-04-20 09:23:24.123456789")
         per = Period(ts, freq="ns")
 

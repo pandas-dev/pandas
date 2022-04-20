@@ -24,6 +24,7 @@ def test_parse_time_string():
 
 
 def test_parse_time_string_nanosecond_reso():
+    # GH#46811
     parsed, reso = parse_time_string("2022-04-20 09:19:19.123456789")
     assert reso == "nanosecond"
 
