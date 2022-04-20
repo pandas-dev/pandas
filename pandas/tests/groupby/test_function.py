@@ -1239,12 +1239,11 @@ def test_groupby_sum_timedelta_with_nat():
 def test_groupby_empty_dataset():
     # GH#41575
     df = DataFrame(columns=["A", "B", "C"])
-    columns = ["count", "mean", "std", "min", "25%", "50%", "75%", "max"]
 
-    result = df.groupby("A").B.describe()
-    expected = DataFrame(columns=columns)
+    result = df.iloc[:0].groupby("A").describe()
+    expected = df.groupby("A").describe().iloc[:0]
     tm.assert_frame_equal(result, expected)
 
-    result = df.groupby("A").describe()
-    expected = DataFrame(columns=MultiIndex.from_product([["B", "C"], columns]))
+    result = df.iloc[:0].groupby("A").B.describe()
+    expected = df.groupby("A").B.describe().iloc[:0]
     tm.assert_frame_equal(result, expected)

@@ -2459,7 +2459,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         with self._group_selection_context():
             if len(self._selected_obj) == 0:
                 data = self._selected_obj
-                percentiles = list(refine_percentiles(None))
+                percentiles = list(refine_percentiles(kwargs.get("percentiles")))
                 if data.ndim == 1:
                     values = describe_numeric_1d(data, percentiles)
                     return DataFrame(columns=values.index)
@@ -2471,14 +2471,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     return DataFrame(
                         columns=MultiIndex.from_product([data.columns, col_indexes])
                     )
+
             result = self._python_apply_general(
                 lambda x: x.describe(**kwargs),
                 self._selected_obj,
                 not_indexed_same=True,
             )
-            if len(result) == 0:
-                return result
-            elif self.axis == 1:
+            if self.axis == 1:
                 return result.T
             return result.unstack()
 
