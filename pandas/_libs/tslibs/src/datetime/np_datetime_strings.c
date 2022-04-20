@@ -380,8 +380,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     if (sublen == 0 || !isdigit(*substr)) {
         if (numdigits > 3) {
             bestunit = NPY_FR_us;
-        }
-        else {
+        } else {
             bestunit = NPY_FR_ms;
         }
         goto parse_timezone;
@@ -402,8 +401,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     if (sublen == 0 || !isdigit(*substr)) {
         if (numdigits > 3) {
             bestunit = NPY_FR_ps;
-        }
-        else {
+        } else {
             bestunit = NPY_FR_ns;
         }
         goto parse_timezone;
@@ -423,8 +421,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
 
     if (numdigits > 3) {
         bestunit = NPY_FR_as;
-    }
-    else {
+    } else {
         bestunit = NPY_FR_fs;
     }
 
