@@ -123,7 +123,7 @@ class ArrowExtensionArray(ExtensionArray):
 
         if encoded.num_chunks:
             uniques = type(self)(encoded.chunk(0).dictionary)
-            if pa_version_under4p0:
+            if not dropna and pa_version_under4p0:
                 # Insert na with the proper code
                 na_mask = indices.values == na_sentinel
                 na_index = na_mask.argmax()
