@@ -74,7 +74,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     int i, numdigits;
     const char *substr;
     int sublen;
-    NPY_DATETIMEUNIT bestunit;
+    NPY_DATETIMEUNIT bestunit = NPY_FR_GENERIC;
 
     /* If year-month-day are separated by a valid separator,
      * months/days without leading zeroes will be parsed
