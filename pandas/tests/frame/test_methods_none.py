@@ -93,7 +93,7 @@ class TestDataFrameNone:
         )
 
         res = df_1.mean(axis=None, numeric_only=True)
-        exp = 41/6
+        exp = 41 / 6
         assert res == exp
 
         # DataFrame consists of ints
@@ -105,7 +105,7 @@ class TestDataFrameNone:
         )
 
         res = df_2.mean(axis=None, numeric_only=True)
-        exp = 136/6
+        exp = 136 / 6
         assert res == exp
 
     def test_median_int(self):

@@ -10675,16 +10675,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # user must have explictly passed axis=None and numeric_only=True
             # Converting to numpy array since using numpy statistical methods
             arr = self.to_numpy()
-            if name=="max":
+            if name == "max":
                 if skipna:
                     return arr.max(axis=axis)
-            elif name=="min":
+            elif name == "min":
                 if skipna:
                     return arr.min(axis=axis)
-            elif name=="mean":
+            elif name == "mean":
                 if skipna:
                     return arr.mean(axis=axis)
-            elif name=="median":
+            elif name == "median":
                 if skipna:
                     return np.median(arr, axis=axis)
 
