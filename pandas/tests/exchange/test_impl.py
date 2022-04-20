@@ -1,3 +1,4 @@
+from datetime import datetime
 import random
 
 import numpy as np
@@ -18,24 +19,24 @@ test_data_categorical = {
 
 NCOLS, NROWS = 100, 200
 
-int_data = {
-    f"col{int((i - NCOLS / 2) % NCOLS + 1)}": [
-        random.randint(0, 100) for _ in range(NROWS)
-    ]
-    for i in range(NCOLS)
-}
 
-bool_data = {
-    f"col{int((i - NCOLS / 2) % NCOLS + 1)}": [
-        random.choice([True, False]) for _ in range(NROWS)
-    ]
-    for i in range(NCOLS)
-}
+def _make_data(make_one):
+    return {
+        f"col{int((i - NCOLS / 2) % NCOLS + 1)}": [make_one() for _ in range(NROWS)]
+        for i in range(NCOLS)
+    }
 
-float_data = {
-    f"col{int((i - NCOLS / 2) % NCOLS + 1)}": [random.random() for _ in range(NROWS)]
-    for i in range(NCOLS)
-}
+
+int_data = _make_data(lambda: random.randint(0, 100))
+bool_data = _make_data(lambda: random.choice([True, False]))
+float_data = _make_data(lambda: random.random())
+datetime_data = _make_data(
+    lambda: datetime(
+        year=random.randint(1900, 2100),
+        month=random.randint(1, 12),
+        day=random.randint(1, 20),
+    )
+)
 
 string_data = {
     "separator data": [
@@ -66,7 +67,7 @@ def test_categorical_dtype(data):
     tm.assert_frame_equal(df, from_dataframe(df.__dataframe__()))
 
 
-@pytest.mark.parametrize("data", [int_data, float_data, bool_data])
+@pytest.mark.parametrize("data", [int_data, float_data, bool_data, datetime_data])
 def test_dataframe(data):
     df = pd.DataFrame(data)
 
