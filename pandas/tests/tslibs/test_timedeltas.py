@@ -6,12 +6,14 @@ import pytest
 from pandas._libs.tslibs.timedeltas import (
     array_to_timedelta64,
     delta_to_nanoseconds,
+    ints_to_pytimedelta,
 )
 
 from pandas import (
     Timedelta,
     offsets,
 )
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize(
@@ -89,3 +91,19 @@ class TestArrayToTimedelta64:
         msg = "'values' must have object dtype"
         with pytest.raises(TypeError, match=msg):
             array_to_timedelta64(values)
+
+
+@pytest.mark.parametrize("unit", ["s", "ms", "us"])
+def test_ints_to_pytimedelta(unit):
+    # tests for non-nanosecond cases
+    arr = np.arange(6, dtype=np.int64).view(f"m8[{unit}]")
+
+    res = ints_to_pytimedelta(arr, box=False)
+    # For non-nanosecond, .astype(object) gives pytimedelta objects
+    #  instead of integers
+    expected = arr.astype(object)
+    tm.assert_numpy_array_equal(res, expected)
+
+    res = ints_to_pytimedelta(arr, box=True)
+    expected = np.array([Timedelta(x) for x in arr], dtype=object)
+    tm.assert_numpy_array_equal(res, expected)
