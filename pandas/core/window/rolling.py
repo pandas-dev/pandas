@@ -2150,10 +2150,7 @@ class Rolling(RollingAndExpandingMixin):
         The default ``ddof`` of 1 used in :meth:`Series.std` is different
         than the default ``ddof`` of 0 in :func:`numpy.std`.
 
-        A minimum of one period is required for the rolling calculation.
-
-        The implementation is susceptible to floating point imprecision as
-        shown in the example below.\n
+        A minimum of one period is required for the rolling calculation.\n
         """
         ).replace("\n", "", 1),
         create_section_header("Examples"),
@@ -2161,13 +2158,13 @@ class Rolling(RollingAndExpandingMixin):
             """
         >>> s = pd.Series([5, 5, 6, 7, 5, 5, 5])
         >>> s.rolling(3).std()
-        0             NaN
-        1             NaN
-        2    5.773503e-01
-        3    1.000000e+00
-        4    1.000000e+00
-        5    1.154701e+00
-        6    2.580957e-08
+        0         NaN
+        1         NaN
+        2    0.577350
+        3    1.000000
+        4    1.000000
+        5    1.154701
+        6    0.000000
         dtype: float64
         """
         ).replace("\n", "", 1),
@@ -2212,10 +2209,7 @@ class Rolling(RollingAndExpandingMixin):
         The default ``ddof`` of 1 used in :meth:`Series.var` is different
         than the default ``ddof`` of 0 in :func:`numpy.var`.
 
-        A minimum of one period is required for the rolling calculation.
-
-        The implementation is susceptible to floating point imprecision as
-        shown in the example below.\n
+        A minimum of one period is required for the rolling calculation.\n
         """
         ).replace("\n", "", 1),
         create_section_header("Examples"),
@@ -2223,13 +2217,13 @@ class Rolling(RollingAndExpandingMixin):
             """
         >>> s = pd.Series([5, 5, 6, 7, 5, 5, 5])
         >>> s.rolling(3).var()
-        0             NaN
-        1             NaN
-        2    3.333333e-01
-        3    1.000000e+00
-        4    1.000000e+00
-        5    1.333333e+00
-        6    6.661338e-16
+        0         NaN
+        1         NaN
+        2    0.333333
+        3    1.000000
+        4    1.000000
+        5    1.333333
+        6    0.000000
         dtype: float64
         """
         ).replace("\n", "", 1),

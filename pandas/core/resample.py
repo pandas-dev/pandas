@@ -1470,14 +1470,14 @@ class TimeGrouper(Grouper):
         self,
         freq="Min",
         closed: Literal["left", "right"] | None = None,
-        label: str | None = None,
+        label: Literal["left", "right"] | None = None,
         how="mean",
         axis=0,
         fill_method=None,
         limit=None,
         loffset=None,
         kind: str | None = None,
-        convention: str | None = None,
+        convention: Literal["start", "end", "e", "s"] | None = None,
         base: int | None = None,
         origin: str | TimestampConvertibleTypes = "start_day",
         offset: TimedeltaConvertibleTypes | None = None,
@@ -1523,10 +1523,7 @@ class TimeGrouper(Grouper):
         self.closed = closed
         self.label = label
         self.kind = kind
-
-        self.convention = convention or "E"
-        self.convention = self.convention.lower()
-
+        self.convention = convention if convention is not None else "e"
         self.how = how
         self.fill_method = fill_method
         self.limit = limit
