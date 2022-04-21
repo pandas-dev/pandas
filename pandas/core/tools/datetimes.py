@@ -124,7 +124,7 @@ start_caching_at = 50
 # ---------------------------------------------------------------------
 
 
-def _guess_datetime_format_for_array(arr, dayfirst: bool = False):
+def _guess_datetime_format_for_array(arr, dayfirst: bool | None = False):
     # Try to guess the format based on the first non-NaN element
     non_nan_elements = notna(arr).nonzero()[0]
     if len(non_nan_elements):
