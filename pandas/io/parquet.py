@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import io
 import os
-from typing import Any
+from typing import Any, Union
 from warnings import catch_warnings
 from json import (dumps as json_dumps, 
                   loads as json_loads)
@@ -278,8 +278,10 @@ class PyArrowImpl(BaseImpl):
                                                        **kwargs)
             
             result: DataFrame = result_table.to_pandas(**to_pandas_kwargs)
-            metadata: dict = result_table.schema.metadata
-            if metadata.get('pandas_attrs'.encode(), None) is not None:
+            # TODO: figure out when metadata is None
+            metadata: Union[dict, None] = result_table.schema.metadata
+            if (metadata is not None and
+                metadata.get('pandas_attrs'.encode(), None) is not None):
                 result.attrs = json_loads(metadata['pandas_attrs'.encode()].decode())
 
             if manager == "array":
