@@ -5,6 +5,8 @@ import io
 import os
 from typing import Any
 from warnings import catch_warnings
+from json import (dumps as json_dumps, 
+                  loads as json_loads)
 
 from pandas._typing import (
     FilePath,
@@ -154,6 +156,27 @@ class PyArrowImpl(BaseImpl):
         import pandas.core.arrays.arrow._arrow_utils  # noqa:F401
 
         self.api = pyarrow
+        
+    @staticmethod
+    def add_attrs_to_metadata(df: DataFrame, table):
+        """Add the `attrs` dictionary of a dataframe to the corresponding pyarrow
+        table.
+
+        Args:
+            df (DataFrame): dataframe to extract `attrs` from
+            table (pyarrow.Table): table to save `attrs` in the metadata field
+
+        Returns:
+            pyarrow.Table: returns the table with the updated metadata
+        """
+        # TODO: add typing to table and output
+        attrs: str = json_dumps(df.attrs)
+        existing_meta: dict = table.schema.metadata
+        combined_meta: dict = {
+        'pandas_attrs'.encode() : attrs.encode(),
+        **existing_meta
+            }
+        return table.replace_schema_metadata(combined_meta)
 
     def write(
         self,
@@ -172,6 +195,11 @@ class PyArrowImpl(BaseImpl):
             from_pandas_kwargs["preserve_index"] = index
 
         table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
+        
+        # NOTE: if no attrs has been set, it will not enter the if condition
+        if df.attrs:
+            # NOTE: this adds pandas attrs to the table metadata
+            table = self.add_attrs_to_metadata(df, table)
 
         path_or_handle, handles, kwargs["filesystem"] = _get_path_or_handle(
             path,
@@ -244,9 +272,16 @@ class PyArrowImpl(BaseImpl):
             mode="rb",
         )
         try:
-            result = self.api.parquet.read_table(
-                path_or_handle, columns=columns, **kwargs
-            ).to_pandas(**to_pandas_kwargs)
+            # TODO: too many variables: refactor with less
+            result_table = self.api.parquet.read_table(path_or_handle, 
+                                                       columns=columns, 
+                                                       **kwargs)
+            
+            result: DataFrame = result_table.to_pandas(**to_pandas_kwargs)
+            metadata: dict = result_table.schema.metadata
+            if metadata.get('pandas_attrs'.encode(), None) is not None:
+                result.attrs = json_loads(metadata['pandas_attrs'.encode()].decode())
+
             if manager == "array":
                 result = result._as_manager("array", copy=False)
             return result
