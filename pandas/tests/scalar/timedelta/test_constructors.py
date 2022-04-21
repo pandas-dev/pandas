@@ -15,7 +15,7 @@ from pandas import (
 
 def test_construct_from_td64_with_unit():
     # ignore the unit, as it may cause silently overflows leading to incorrect
-    #  results, and in non-overflow cases is irrelevant
+    #  results, and in non-overflow cases is irrelevant GH#46827
     obj = np.timedelta64(123456789, "h")
 
     with pytest.raises(OutOfBoundsTimedelta, match="123456789 hours"):
