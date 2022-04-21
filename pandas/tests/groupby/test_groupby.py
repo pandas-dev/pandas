@@ -2694,3 +2694,65 @@ def test_by_column_values_with_same_starting_value():
     ).set_index("Name")
 
     tm.assert_frame_equal(result, expected_result)
+
+
+@pytest.mark.parametrize(
+    "columns, index, numeric_only, expected",
+    [
+        pytest.param(
+            ['a', 'b'],
+            ['a'],
+            False,
+            {"a": [], "b": []}
+        ),
+        pytest.param(
+            ['a', 'b'],
+            ['a'],
+            None,
+            {"a": [], "b": []}
+        ),
+        pytest.param(
+            ['a', 'b'],
+            ['a'],
+            True,
+            {"a": [], "b": []}
+        ),
+    ],
+)
+def test_empty_frame_groupby_numeric_only(columns, index, numeric_only, expected):
+    # GH 46375
+    df = pd.DataFrame(columns=columns)
+    result = df.groupby(index).first(numeric_only=numeric_only)
+    expected = pd.DataFrame(data).set_index(index)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data, index, numeric_only, expected",
+    [
+        pytest.param(
+            { "a": [0, 0, 1, 1], "b": [1, "x", 2, "y"],},
+            ['a'],
+            False,
+            {"a": [0,1], "b": [1, 2]}
+        ),
+        pytest.param(
+            { "a": [0, 0, 1, 1], "b": [1, "x", 2, "y"],},
+            ['a'],
+            None,
+            {"a": [0,1], "b": [1, 2]}
+        ),
+        pytest.param(
+            { "a": [0, 0, 1, 1], "b": [1, "x", 2, "y"],},
+            ['a'],
+            True,
+            {"a": [0,1], "b": [1, 2]}
+        ),
+    ],
+)
+def test_heterogeneous_frame_groupby_numeric_only(data, index, numeric_only, expected):
+    # GH 46375
+    df = pd.DataFrame(data)
+    result = df.groupby(index).first(numeric_only=numeric_only)
+    expected = pd.DataFrame(data).set_index(index)
+    tm.assert_frame_equal(result, expected)
