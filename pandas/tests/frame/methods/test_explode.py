@@ -296,7 +296,7 @@ def test_explode_sets():
 def test_multi_columns(
     input_dict, input_index, input_subset, expected_dict, expected_index
 ):
-    # GH 39240
+    # GH 39240, 46084
     df = pd.DataFrame(input_dict, input_index)
     result = df.explode(input_subset)
     expected = pd.DataFrame(expected_dict, expected_index)
