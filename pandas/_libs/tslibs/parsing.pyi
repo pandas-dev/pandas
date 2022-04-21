@@ -51,7 +51,7 @@ def try_parse_datetime_components(
 def format_is_iso(f: str) -> bool: ...
 def guess_datetime_format(
     dt_str,
-    dayfirst: bool = ...,
+    dayfirst: bool | None = ...,
 ) -> str | None: ...
 def concat_date_cols(
     date_cols: tuple,
