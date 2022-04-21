@@ -348,3 +348,33 @@ def test_groupby_nan_included():
         tm.assert_numpy_array_equal(result_values, expected_values)
     assert np.isnan(list(result.keys())[2])
     assert list(result.keys())[0:2] == ["g1", "g2"]
+
+@pytest.mark.parametrize(
+    "data, index, expected",
+    [
+        pytest.param(
+            # index on one column w/ NaN values
+            {'a': [1, np.nan, np.nan], 'b': [1, 1, np.nan], 'c': [2, 3, 4]},
+            ['a'],
+            {'a': [1, np.nan], 'b': [1.0, 1.0], 'c': [2, 7]},
+        ),
+        pytest.param(
+            # index on multiple columns w/ NaN values
+            {'a': [1, np.nan, np.nan],'b': [1, 1, np.nan], 'c': [2, 3, 4]},
+            ['a', 'b'],
+            {'a': [1, np.nan, np.nan], 'b': [1.0, 1.0, np.nan], 'c': [2, 3, 4]},
+        ),
+        pytest.param(
+            # index on multiple columns w/ NaN values
+            {'a': [0, 1, 2], 'b': [1, 1, 1], 'c': [2, np.nan, 4]},
+            ['a', 'b'],
+            {'a': [0, 1, 2], 'b': [1, 1, 1], 'c': [2.0, 0.0, 4.0]},
+        ),
+    ],
+)
+def test_groupby_dropna_false(data, index, expected):
+    # GH 46783
+    df = pd.DataFrame(data).set_index(index)
+    expected = pd.DataFrame(expected).set_index(index)
+    grouped = df.groupby(index, dropna=False).sum()
+    tm.assert_frame_equal(grouped, expected)
