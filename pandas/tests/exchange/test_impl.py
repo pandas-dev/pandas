@@ -27,7 +27,8 @@ def _make_data(make_one):
     }
 
 
-int_data = _make_data(lambda: random.randint(0, 100))
+int_data = _make_data(lambda: random.randint(-100, 100))
+uint_data = _make_data(lambda: random.randint(1, 100))
 bool_data = _make_data(lambda: random.choice([True, False]))
 float_data = _make_data(lambda: random.random())
 datetime_data = _make_data(
@@ -67,7 +68,9 @@ def test_categorical_dtype(data):
     tm.assert_frame_equal(df, from_dataframe(df.__dataframe__()))
 
 
-@pytest.mark.parametrize("data", [int_data, float_data, bool_data, datetime_data])
+@pytest.mark.parametrize(
+    "data", [int_data, uint_data, float_data, bool_data, datetime_data]
+)
 def test_dataframe(data):
     df = pd.DataFrame(data)
 
