@@ -2,11 +2,13 @@
 from __future__ import annotations
 
 import io
+from json import (
+    dumps as json_dumps,
+    loads as json_loads,
+)
 import os
-from typing import Any, Union
+from typing import Any
 from warnings import catch_warnings
-from json import (dumps as json_dumps, 
-                  loads as json_loads)
 
 from pandas._typing import (
     FilePath,
@@ -156,7 +158,7 @@ class PyArrowImpl(BaseImpl):
         import pandas.core.arrays.arrow._arrow_utils  # noqa:F401
 
         self.api = pyarrow
-        
+
     @staticmethod
     def add_attrs_to_metadata(df: DataFrame, table):
         """Add the `attrs` dictionary of a dataframe to the corresponding pyarrow
@@ -172,10 +174,7 @@ class PyArrowImpl(BaseImpl):
         # TODO: add typing to table and output
         attrs: str = json_dumps(df.attrs)
         existing_meta: dict = table.schema.metadata
-        combined_meta: dict = {
-        'pandas_attrs'.encode() : attrs.encode(),
-        **existing_meta
-            }
+        combined_meta: dict = {b"pandas_attrs": attrs.encode(), **existing_meta}
         return table.replace_schema_metadata(combined_meta)
 
     def write(
@@ -195,7 +194,7 @@ class PyArrowImpl(BaseImpl):
             from_pandas_kwargs["preserve_index"] = index
 
         table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
-        
+
         # NOTE: if no attrs has been set, it will not enter the if condition
         if df.attrs:
             # NOTE: this adds pandas attrs to the table metadata
@@ -273,16 +272,15 @@ class PyArrowImpl(BaseImpl):
         )
         try:
             # TODO: too many variables: refactor with less
-            result_table = self.api.parquet.read_table(path_or_handle, 
-                                                       columns=columns, 
-                                                       **kwargs)
-            
+            result_table = self.api.parquet.read_table(
+                path_or_handle, columns=columns, **kwargs
+            )
+
             result: DataFrame = result_table.to_pandas(**to_pandas_kwargs)
             # TODO: figure out when metadata is None
-            metadata: Union[dict, None] = result_table.schema.metadata
-            if (metadata is not None and
-                metadata.get('pandas_attrs'.encode(), None) is not None):
-                result.attrs = json_loads(metadata['pandas_attrs'.encode()].decode())
+            metadata: dict | None = result_table.schema.metadata
+            if metadata is not None and metadata.get(b"pandas_attrs", None) is not None:
+                result.attrs = json_loads(metadata[b"pandas_attrs"].decode())
 
             if manager == "array":
                 result = result._as_manager("array", copy=False)
@@ -348,12 +346,11 @@ class FastParquetImpl(BaseImpl):
                 compression=compression,
                 write_index=index,
                 partition_on=partition_cols,
-                custom_metadata=({
-                    'pandas_attrs'.encode():
-                        json_dumps(df.attrs).encode()
-                }
+                custom_metadata=(
+                    {b"pandas_attrs": json_dumps(df.attrs).encode()}
                     if df.attrs
-                    else None),
+                    else None
+                ),
                 **kwargs,
             )
 
@@ -396,8 +393,8 @@ class FastParquetImpl(BaseImpl):
             parquet_file = self.api.ParquetFile(path, **parquet_kwargs)
             metadata: dict = parquet_file.key_value_metadata
             result: DataFrame = parquet_file.to_pandas(columns=columns, **kwargs)
-            if metadata.get('pandas_attrs'.encode(), None) is not None:
-                result.attrs = json_loads(metadata['pandas_attrs'.encode()].decode())
+            if metadata.get(b"pandas_attrs", None) is not None:
+                result.attrs = json_loads(metadata[b"pandas_attrs"].decode())
             return result
         finally:
             if handles is not None:
