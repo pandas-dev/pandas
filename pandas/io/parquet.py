@@ -346,6 +346,12 @@ class FastParquetImpl(BaseImpl):
                 compression=compression,
                 write_index=index,
                 partition_on=partition_cols,
+                custom_metadata=({
+                    'pandas_attrs'.encode():
+                        json_dumps(df.attrs).encode()
+                }
+                    if df.attrs
+                    else None),
                 **kwargs,
             )
 
@@ -386,7 +392,11 @@ class FastParquetImpl(BaseImpl):
 
         try:
             parquet_file = self.api.ParquetFile(path, **parquet_kwargs)
-            return parquet_file.to_pandas(columns=columns, **kwargs)
+            metadata: dict = parquet_file.key_value_metadata
+            result: DataFrame = parquet_file.to_pandas(columns=columns, **kwargs)
+            if metadata.get('pandas_attrs'.encode(), None) is not None:
+                result.attrs = json_loads(metadata['pandas_attrs'.encode()].decode())
+            return result
         finally:
             if handles is not None:
                 handles.close()
