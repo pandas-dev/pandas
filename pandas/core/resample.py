@@ -1037,8 +1037,9 @@ for method in ["sum", "prod", "min", "max", "first", "last"]:
     ):
         if numeric_only is lib.no_default:
             if self.obj.ndim == 1:
+                # SeriesGroupBy
                 numeric_only = None
-            elif _method in ["first", "min"]:
+            elif _method != "sum":
                 numeric_only = False
 
         nv.validate_resampler_func(_method, args, kwargs)
