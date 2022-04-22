@@ -1741,6 +1741,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                         f"Keys {clashing} in subset cannot be in "
                         "the groupby column keys"
                     )
+                keys = subset
 
             groupings = list(self.grouper.groupings)
             for key in keys:
