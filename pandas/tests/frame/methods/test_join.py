@@ -107,14 +107,17 @@ def test_suffix_on_list_join():
     tm.assert_frame_equal(arr_joined, norm_joined)
 
 
-def test_join_on_single_col_check_dup():
-    # GH 46622
-    left = DataFrame(
+@pytest.fixture
+def left_no_dup():
+    return DataFrame(
         {"a": ["a", "b", "c", "d"], "b": ["cat", "dog", "weasel", "horse"]},
         index=range(4),
     )
 
-    right = DataFrame(
+
+@pytest.fixture
+def right_no_dup():
+    return DataFrame(
         {
             "a": ["a", "b", "c", "d", "e"],
             "c": ["meow", "bark", "um... weasel noise?", "nay", "chirp"],
@@ -122,18 +125,33 @@ def test_join_on_single_col_check_dup():
         index=range(5),
     ).set_index("a")
 
+
+@pytest.fixture
+def left_w_dups(left_no_dup):
+    return concat(
+        [left_no_dup, DataFrame({"a": ["a"], "b": ["cow"]}, index=[3])], sort=True
+    )
+
+
+@pytest.fixture
+def right_w_dups(right_no_dup):
+    return concat(
+        [right_no_dup, DataFrame({"a": ["e"], "c": ["moo"]}, index=[3])]
+    ).set_index("a")
+
+
+def test_join_invalid_validate(left_no_dup, right_no_dup):
+    # GH 46622
     # Check invalid arguments
     msg = "Not a valid argument for validate"
     with pytest.raises(ValueError, match=msg):
-        left.merge(right, on="a", validate="jibberish")
+        left_no_dup.merge(right_no_dup, on="a", validate="invalid")
 
-    # Dups on right
-    right_w_dups = concat(
-        [right, DataFrame({"a": ["e"], "c": ["moo"]}, index=[3])]
-    ).set_index("a")
 
+def test_join_on_single_col_dup_on_right(left_no_dup, right_w_dups):
+    # GH 46622
     # Dups on right allowed by one_to_many constraint
-    left.join(
+    left_no_dup.join(
         right_w_dups,
         on="a",
         validate="one_to_many",
@@ -142,20 +160,18 @@ def test_join_on_single_col_check_dup():
     # Dups on right not allowed by one_to_one constraint
     msg = "Merge keys are not unique in right dataset; not a one-to-one merge"
     with pytest.raises(MergeError, match=msg):
-        left.join(
+        left_no_dup.join(
             right_w_dups,
             on="a",
             validate="one_to_one",
         )
 
-    # Dups on left
-    left_w_dups = concat(
-        [left, DataFrame({"a": ["a"], "b": ["cow"]}, index=[3])], sort=True
-    )
 
+def test_join_on_single_col_dup_on_left(left_w_dups, right_no_dup):
+    # GH 46622
     # Dups on left allowed by many_to_one constraint
     left_w_dups.join(
-        right,
+        right_no_dup,
         on="a",
         validate="many_to_one",
     )
@@ -164,11 +180,14 @@ def test_join_on_single_col_check_dup():
     msg = "Merge keys are not unique in left dataset; not a one-to-one merge"
     with pytest.raises(MergeError, match=msg):
         left_w_dups.join(
-            right,
+            right_no_dup,
             on="a",
             validate="one_to_one",
         )
 
+
+def test_join_on_single_col_dup_on_both(left_w_dups, right_w_dups):
+    # GH 46622
     # Dups on both allowed by many_to_many constraint
     left_w_dups.join(right_w_dups, on="a", validate="many_to_many")
 
