@@ -101,21 +101,6 @@ if TYPE_CHECKING:
 
 _shared_docs_kwargs: dict[str, str] = {}
 
-_resample_agg_method_template = """
-Compute {fname} of group values.
-
-Parameters
-----------
-min_count : int, default {mc}
-    The required number of valid values to perform the operation. If fewer
-    than ``min_count`` non-NA values are present the result will be NA.
-
-Returns
--------
-Series or DataFrame
-    Computed {fname} of values within each group.
-"""
-
 
 class Resampler(BaseGroupBy, PandasObject):
     """
@@ -1042,11 +1027,26 @@ class Resampler(BaseGroupBy, PandasObject):
 # downsample methods
 for method in ["sum", "prod", "min", "max", "first", "last"]:
 
-    @doc(_resample_agg_method_template, fname=method, mc=0)
-    def f(self, _method=method, min_count=0, *args, **kwargs):
-        nv.validate_resampler_func(_method, args, kwargs)
-        return self._downsample(_method, min_count=min_count)
+    def f(
+        self,
+        _method: str = method,
+        numeric_only: bool | lib.NoDefault = lib.no_default,
+        min_count: int = 0,
+        *args,
+        **kwargs
+    ):
+        if numeric_only is lib.no_default:
+            if self.obj.ndim == 1:
+                numeric_only = None
+            elif _method in ["first", "min"]:
+                numeric_only = False
 
+        nv.validate_resampler_func(_method, args, kwargs)
+        return self._downsample(
+            _method, numeric_only=numeric_only, min_count=min_count
+        )
+
+    f.__doc__ = getattr(GroupBy, method).__doc__
     setattr(Resampler, method, f)
 
 
