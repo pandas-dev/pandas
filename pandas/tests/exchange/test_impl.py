@@ -167,3 +167,10 @@ def test_string():
     assert col.null_count == 1
     assert col.dtype[0] == DtypeKind.STRING
     assert col.describe_null == (ColumnNullType.USE_BYTEMASK, 0)
+
+
+def test_nonstring_object():
+    df = pd.DataFrame({"A": ["a", 10, 1.0, ()]})
+    col = df.__dataframe__().get_column_by_name("A")
+    with pytest.raises(NotImplementedError, match="not supported yet"):
+        col.dtype
