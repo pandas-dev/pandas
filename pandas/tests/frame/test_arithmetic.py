@@ -2006,7 +2006,7 @@ def test_bool_frame_mult_float():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("d_type", ['int8', 'int16', 'int32', 'int64'])
+@pytest.mark.parametrize("d_type", ["int8", "int16", "int32", "int64"])
 def test_frame_sub_dtype(d_type):
     # GH 32822
     series1 = Series([1, 2, np.nan], dtype=d_type)
