@@ -233,6 +233,8 @@ cdef void _get_result_indexer(intp_t[::1] sorter, intp_t[::1] indexer) nogil:
         indexer[:] = -1
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def ffill_indexer(const intp_t[:] indexer) -> np.ndarray:
     cdef:
         Py_ssize_t i, n = len(indexer)
