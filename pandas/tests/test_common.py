@@ -162,7 +162,9 @@ def test_standardize_mapping():
     assert isinstance(com.standardize_mapping(dd), partial)
 
 
-@pytest.mark.xfail(is_ci_environment() and not IS64, "Failing on 32 bit Python CI job")
+@pytest.mark.xfail(
+    is_ci_environment() and not IS64, reason="Failing on 32 bit Python CI job"
+)
 def test_git_version():
     # GH 21295
     git_version = pd.__git_version__

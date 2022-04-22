@@ -82,7 +82,9 @@ def test_show_versions_console_json(capsys):
     assert result == expected
 
 
-@pytest.mark.xfail(is_ci_environment() and not IS64, "Failing on 32 bit Python CI job")
+@pytest.mark.xfail(
+    is_ci_environment() and not IS64, reason="Failing on 32 bit Python CI job"
+)
 def test_show_versions_console(capsys):
     # gh-32041
     # gh-32041
