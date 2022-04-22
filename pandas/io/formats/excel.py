@@ -705,8 +705,8 @@ class ExcelFormatter:
             else:
                 index_label = self.df.index.names[0]
 
-            if isinstance(self.columns, MultiIndex):
-                self.rowcounter += 1
+            # if isinstance(self.columns, MultiIndex):
+            #     self.rowcounter += 1
 
             if index_label and self.header is not False:
                 yield ExcelCell(self.rowcounter - 1, 0, index_label, self.header_style)
