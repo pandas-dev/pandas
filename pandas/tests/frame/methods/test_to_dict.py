@@ -380,6 +380,16 @@ class TestDataFrameToDict:
                     "b": [float, float, float],
                 },
             ),
+            (  # Make sure we have one df which is all object type cols
+                {
+                    "a": [1, "hello", 3],
+                    "b": [1.1, "world", 3.3],
+                },
+                {
+                    "a": [int, str, int],
+                    "b": [float, str, float],
+                },
+            ),
         ),
     )
     def test_to_dict_returns_native_types(self, orient, data, expected_types):

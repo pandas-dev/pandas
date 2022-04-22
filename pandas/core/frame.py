@@ -1932,16 +1932,15 @@ class DataFrame(NDFrame, OpsMixin):
                     for t in self.itertuples(index=False, name=None)
                 ]
             elif object_dtype_cols:
-                is_object_dtype_by_index = [
-                    col in object_dtype_cols for col in self.columns
+                # A number of ways were tried here, this solution proved to be the
+                # most optimal in general
+                data = [list(t) for t in self.itertuples(index=False, name=None)]
+                object_type_indices = [
+                    i for i, col in enumerate(self.columns) if col in object_dtype_cols
                 ]
-                data = [
-                    [
-                        maybe_box_native(v) if is_object_dtype_by_index[i] else v
-                        for i, v in enumerate(t)
-                    ]
-                    for t in self.itertuples(index=False, name=None)
-                ]
+                for row in data:
+                    for i in object_type_indices:
+                        row[i] = maybe_box_native(row[i])
             else:
                 data = [list(t) for t in self.itertuples(index=False, name=None)]
             return into_c(
@@ -1955,7 +1954,16 @@ class DataFrame(NDFrame, OpsMixin):
             return into_c((k, v) for k, v in self.items())
         elif orient == "records":
             columns = self.columns.tolist()
-            if object_dtype_cols:
+            if are_all_object_dtype_cols:
+                rows = (
+                    dict(zip(columns, row))
+                    for row in self.itertuples(index=False, name=None)
+                )
+                return [
+                    into_c((k, maybe_box_native(v)) for k, v in row.items())
+                    for row in rows
+                ]
+            elif object_dtype_cols:
                 is_object_dtype_by_index = [col in object_dtype_cols for col in columns]
                 return [
                     into_c(
@@ -1980,7 +1988,12 @@ class DataFrame(NDFrame, OpsMixin):
             if not self.index.is_unique:
                 raise ValueError("DataFrame index must be unique for orient='index'.")
             columns = self.columns.tolist()
-            if object_dtype_cols:
+            if are_all_object_dtype_cols:
+                return into_c(
+                    (t[0], dict(zip(self.columns, map(maybe_box_native, t[1:]))))
+                    for t in self.itertuples(name=None)
+                )
+            elif object_dtype_cols:
                 is_object_dtype_by_index = [
                     col in object_dtype_cols for col in self.columns
                 ]
@@ -1998,10 +2011,7 @@ class DataFrame(NDFrame, OpsMixin):
                 )
             else:
                 return into_c(
-                    (
-                        t[0],
-                        {columns[i]: v for i, v in enumerate(t[1:])},
-                    )
+                    (t[0], dict(zip(self.columns, t[1:])))
                     for t in self.itertuples(name=None)
                 )
         elif orient == "tight":
@@ -2011,16 +2021,15 @@ class DataFrame(NDFrame, OpsMixin):
                     for t in self.itertuples(index=False, name=None)
                 ]
             elif object_dtype_cols:
-                is_object_dtype_by_index = [
-                    col in object_dtype_cols for col in self.columns
+                # A number of ways were tried here, this solution proved to be the
+                # most optimal in general
+                data = [list(t) for t in self.itertuples(index=False, name=None)]
+                object_type_indices = [
+                    i for i, col in enumerate(self.columns) if col in object_dtype_cols
                 ]
-                data = [
-                    [
-                        maybe_box_native(v) if is_object_dtype_by_index[i] else v
-                        for i, v in enumerate(t)
-                    ]
-                    for t in self.itertuples(index=False, name=None)
-                ]
+                for row in data:
+                    for i in object_type_indices:
+                        row[i] = maybe_box_native(row[i])
             else:
                 data = [list(t) for t in self.itertuples(index=False, name=None)]
             return into_c(
