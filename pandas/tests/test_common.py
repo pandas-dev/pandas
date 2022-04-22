@@ -12,6 +12,7 @@ from pandas.core import ops
 import pandas.core.common as com
 from pandas.util.version import Version
 
+import sys
 
 def test_get_callable_name():
     getname = com.get_callable_name
@@ -229,3 +230,9 @@ def test_temp_setattr(with_exception):
                 raise ValueError("Inside exception raised")
         raise ValueError("Outside exception raised")
     assert ser.name == "first"
+
+
+def test_str_size():
+    #GH#21758
+    str = "a"
+    assert sys.getsizeof(str) == 50
