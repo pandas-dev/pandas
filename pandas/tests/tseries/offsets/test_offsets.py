@@ -61,6 +61,18 @@ from pandas.tseries.offsets import (
 
 _ApplyCases = List[Tuple[BaseOffset, Dict[datetime, datetime]]]
 
+_ARITHMETIC_DATE_OFFSET = [
+    "years",
+    "months",
+    "weeks",
+    "days",
+    "hours",
+    "minutes",
+    "seconds",
+    "milliseconds",
+    "microseconds",
+]
+
 
 class TestCommon(Base):
     # executed value created by Base._get_offset
@@ -551,27 +563,143 @@ class TestDateOffset(Base):
         assert DateOffset(2) == 2 * DateOffset(1)
         assert DateOffset(2) == DateOffset(1) * 2
 
-    def test_constructor(self):
+    @pytest.mark.parametrize("kwd", sorted(liboffsets._relativedelta_kwds))
+    def test_constructor(self, kwd, request):
+        if kwd == "millisecond":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=NotImplementedError,
+                    reason="Constructing DateOffset object with `millisecond` is not "
+                    "yet supported.",
+                )
+            )
+        offset = DateOffset(**{kwd: 2})
+        assert offset.kwds == {kwd: 2}
+        assert getattr(offset, kwd) == 2
 
-        assert (self.d + DateOffset(months=2)) == datetime(2008, 3, 2)
-        assert (self.d - DateOffset(months=2)) == datetime(2007, 11, 2)
-
+    def test_default_constructor(self):
         assert (self.d + DateOffset(2)) == datetime(2008, 1, 4)
 
+    def test_is_anchored(self):
         assert not DateOffset(2).is_anchored()
         assert DateOffset(1).is_anchored()
 
-        d = datetime(2008, 1, 31)
-        assert (d + DateOffset(months=1)) == datetime(2008, 2, 29)
-
     def test_copy(self):
         assert DateOffset(months=2).copy() == DateOffset(months=2)
+        assert DateOffset(milliseconds=1).copy() == DateOffset(milliseconds=1)
+
+    @pytest.mark.parametrize(
+        "arithmatic_offset_type, expected",
+        zip(
+            _ARITHMETIC_DATE_OFFSET,
+            [
+                "2009-01-02",
+                "2008-02-02",
+                "2008-01-09",
+                "2008-01-03",
+                "2008-01-02 01:00:00",
+                "2008-01-02 00:01:00",
+                "2008-01-02 00:00:01",
+                "2008-01-02 00:00:00.001000000",
+                "2008-01-02 00:00:00.000001000",
+            ],
+        ),
+    )
+    def test_add(self, arithmatic_offset_type, expected):
+        assert DateOffset(**{arithmatic_offset_type: 1}) + self.d == Timestamp(expected)
+        assert self.d + DateOffset(**{arithmatic_offset_type: 1}) == Timestamp(expected)
+
+    @pytest.mark.parametrize(
+        "arithmatic_offset_type, expected",
+        zip(
+            _ARITHMETIC_DATE_OFFSET,
+            [
+                "2007-01-02",
+                "2007-12-02",
+                "2007-12-26",
+                "2008-01-01",
+                "2008-01-01 23:00:00",
+                "2008-01-01 23:59:00",
+                "2008-01-01 23:59:59",
+                "2008-01-01 23:59:59.999000000",
+                "2008-01-01 23:59:59.999999000",
+            ],
+        ),
+    )
+    def test_sub(self, arithmatic_offset_type, expected):
+        assert self.d - DateOffset(**{arithmatic_offset_type: 1}) == Timestamp(expected)
+        with pytest.raises(TypeError, match="Cannot subtract datetime from offset"):
+            DateOffset(**{arithmatic_offset_type: 1}) - self.d
+
+    @pytest.mark.parametrize(
+        "arithmatic_offset_type, n, expected",
+        zip(
+            _ARITHMETIC_DATE_OFFSET,
+            range(1, 10),
+            [
+                "2009-01-02",
+                "2008-03-02",
+                "2008-01-23",
+                "2008-01-06",
+                "2008-01-02 05:00:00",
+                "2008-01-02 00:06:00",
+                "2008-01-02 00:00:07",
+                "2008-01-02 00:00:00.008000000",
+                "2008-01-02 00:00:00.000009000",
+            ],
+        ),
+    )
+    def test_mul_add(self, arithmatic_offset_type, n, expected):
+        assert DateOffset(**{arithmatic_offset_type: 1}) * n + self.d == Timestamp(
+            expected
+        )
+        assert n * DateOffset(**{arithmatic_offset_type: 1}) + self.d == Timestamp(
+            expected
+        )
+        assert self.d + DateOffset(**{arithmatic_offset_type: 1}) * n == Timestamp(
+            expected
+        )
+        assert self.d + n * DateOffset(**{arithmatic_offset_type: 1}) == Timestamp(
+            expected
+        )
+
+    @pytest.mark.parametrize(
+        "arithmatic_offset_type, n, expected",
+        zip(
+            _ARITHMETIC_DATE_OFFSET,
+            range(1, 10),
+            [
+                "2007-01-02",
+                "2007-11-02",
+                "2007-12-12",
+                "2007-12-29",
+                "2008-01-01 19:00:00",
+                "2008-01-01 23:54:00",
+                "2008-01-01 23:59:53",
+                "2008-01-01 23:59:59.992000000",
+                "2008-01-01 23:59:59.999991000",
+            ],
+        ),
+    )
+    def test_mul_sub(self, arithmatic_offset_type, n, expected):
+        assert self.d - DateOffset(**{arithmatic_offset_type: 1}) * n == Timestamp(
+            expected
+        )
+        assert self.d - n * DateOffset(**{arithmatic_offset_type: 1}) == Timestamp(
+            expected
+        )
+
+    def test_leap_year(self):
+        d = datetime(2008, 1, 31)
+        assert (d + DateOffset(months=1)) == datetime(2008, 2, 29)
 
     def test_eq(self):
         offset1 = DateOffset(days=1)
         offset2 = DateOffset(days=365)
 
         assert offset1 != offset2
+
+        assert DateOffset(milliseconds=3) != DateOffset(milliseconds=7)
 
 
 class TestOffsetNames:
@@ -741,7 +869,15 @@ def test_month_offset_name(month_classes):
 
 
 @pytest.mark.parametrize("kwd", sorted(liboffsets._relativedelta_kwds))
-def test_valid_relativedelta_kwargs(kwd):
+def test_valid_relativedelta_kwargs(kwd, request):
+    if kwd == "millisecond":
+        request.node.add_marker(
+            pytest.mark.xfail(
+                raises=NotImplementedError,
+                reason="Constructing DateOffset object with `millisecond` is not "
+                "yet supported.",
+            )
+        )
     # Check that all the arguments specified in liboffsets._relativedelta_kwds
     # are in fact valid relativedelta keyword args
     DateOffset(**{kwd: 1})

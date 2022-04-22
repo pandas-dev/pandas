@@ -1659,7 +1659,6 @@ class TestRank:
             algos.rank(arr)
 
     @pytest.mark.single_cpu
-    @pytest.mark.high_memory
     def test_pct_max_many_rows(self):
         # GH 18271
         values = np.arange(2**24 + 1)
@@ -2282,6 +2281,13 @@ class TestMode:
         with pytest.raises(AttributeError, match="TimedeltaIndex"):
             # algos.mode expects Arraylike, does *not* unwrap TimedeltaIndex
             algos.mode(idx)
+
+    def test_ser_mode_with_name(self):
+        # GH 46737
+        ser = Series([1, 1, 3], name="foo")
+        result = ser.mode()
+        expected = Series([1], name="foo")
+        tm.assert_series_equal(result, expected)
 
 
 class TestDiff:

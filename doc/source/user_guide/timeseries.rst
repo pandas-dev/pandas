@@ -869,6 +869,7 @@ arithmetic operator (``+``) can be used to perform the shift.
    friday + two_business_days
    (friday + two_business_days).day_name()
 
+
 Most ``DateOffsets`` have associated frequencies strings, or offset aliases, that can be passed
 into ``freq`` keyword arguments. The available date offsets and associated frequency strings can be found below:
 
@@ -2404,9 +2405,9 @@ you can use the ``tz_convert`` method.
 
 .. warning::
 
-	Be wary of conversions between libraries. For some time zones, ``pytz`` and ``dateutil`` have different
-	definitions of the zone. This is more of a problem for unusual time zones than for
-	'standard' zones like ``US/Eastern``.
+        Be wary of conversions between libraries. For some time zones, ``pytz`` and ``dateutil`` have different
+        definitions of the zone. This is more of a problem for unusual time zones than for
+        'standard' zones like ``US/Eastern``.
 
 .. warning::
 

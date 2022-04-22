@@ -105,7 +105,7 @@ class TestRolling:
         ],
     )
     def test_rolling(self, f, roll_frame):
-        g = roll_frame.groupby("A")
+        g = roll_frame.groupby("A", group_keys=False)
         r = g.rolling(window=4)
 
         result = getattr(r, f)()
@@ -119,7 +119,7 @@ class TestRolling:
 
     @pytest.mark.parametrize("f", ["std", "var"])
     def test_rolling_ddof(self, f, roll_frame):
-        g = roll_frame.groupby("A")
+        g = roll_frame.groupby("A", group_keys=False)
         r = g.rolling(window=4)
 
         result = getattr(r, f)(ddof=1)
@@ -135,7 +135,7 @@ class TestRolling:
         "interpolation", ["linear", "lower", "higher", "midpoint", "nearest"]
     )
     def test_rolling_quantile(self, interpolation, roll_frame):
-        g = roll_frame.groupby("A")
+        g = roll_frame.groupby("A", group_keys=False)
         r = g.rolling(window=4)
 
         result = r.quantile(0.4, interpolation=interpolation)
@@ -240,7 +240,7 @@ class TestRolling:
         tm.assert_frame_equal(result, expected)
 
     def test_rolling_apply(self, raw, roll_frame):
-        g = roll_frame.groupby("A")
+        g = roll_frame.groupby("A", group_keys=False)
         r = g.rolling(window=4)
 
         # reduction
@@ -787,7 +787,7 @@ class TestRolling:
 
     def test_groupby_rolling_object_doesnt_affect_groupby_apply(self, roll_frame):
         # GH 39732
-        g = roll_frame.groupby("A")
+        g = roll_frame.groupby("A", group_keys=False)
         expected = g.apply(lambda x: x.rolling(4).sum()).index
         _ = g.rolling(window=4)
         result = g.apply(lambda x: x.rolling(4).sum()).index
@@ -927,6 +927,83 @@ class TestRolling:
         )
         tm.assert_series_equal(result, expected)
 
+    def test_groupby_rolling_non_monotonic(self):
+        # GH 43909
+
+        shuffled = [3, 0, 1, 2]
+        sec = 1_000
+        df = DataFrame(
+            [{"t": Timestamp(2 * x * sec), "x": x + 1, "c": 42} for x in shuffled]
+        )
+        with pytest.raises(ValueError, match=r".* must be monotonic"):
+            df.groupby("c").rolling(on="t", window="3s")
+
+    def test_groupby_monotonic(self):
+
+        # GH 15130
+        # we don't need to validate monotonicity when grouping
+
+        # GH 43909 we should raise an error here to match
+        # behaviour of non-groupby rolling.
+
+        data = [
+            ["David", "1/1/2015", 100],
+            ["David", "1/5/2015", 500],
+            ["David", "5/30/2015", 50],
+            ["David", "7/25/2015", 50],
+            ["Ryan", "1/4/2014", 100],
+            ["Ryan", "1/19/2015", 500],
+            ["Ryan", "3/31/2016", 50],
+            ["Joe", "7/1/2015", 100],
+            ["Joe", "9/9/2015", 500],
+            ["Joe", "10/15/2015", 50],
+        ]
+
+        df = DataFrame(data=data, columns=["name", "date", "amount"])
+        df["date"] = to_datetime(df["date"])
+        df = df.sort_values("date")
+
+        expected = (
+            df.set_index("date")
+            .groupby("name")
+            .apply(lambda x: x.rolling("180D")["amount"].sum())
+        )
+        result = df.groupby("name").rolling("180D", on="date")["amount"].sum()
+        tm.assert_series_equal(result, expected)
+
+    def test_datelike_on_monotonic_within_each_group(self):
+        # GH 13966 (similar to #15130, closed by #15175)
+
+        # superseded by 43909
+        # GH 46061: OK if the on is monotonic relative to each each group
+
+        dates = date_range(start="2016-01-01 09:30:00", periods=20, freq="s")
+        df = DataFrame(
+            {
+                "A": [1] * 20 + [2] * 12 + [3] * 8,
+                "B": np.concatenate((dates, dates)),
+                "C": np.arange(40),
+            }
+        )
+
+        expected = (
+            df.set_index("B").groupby("A").apply(lambda x: x.rolling("4s")["C"].mean())
+        )
+        result = df.groupby("A").rolling("4s", on="B").C.mean()
+        tm.assert_series_equal(result, expected)
+
+    def test_datelike_on_not_monotonic_within_each_group(self):
+        # GH 46061
+        df = DataFrame(
+            {
+                "A": [1] * 3 + [2] * 3,
+                "B": [Timestamp(year, 1, 1) for year in [2020, 2021, 2019]] * 2,
+                "C": range(6),
+            }
+        )
+        with pytest.raises(ValueError, match="Each group within B must be monotonic."):
+            df.groupby("A").rolling("365D", on="B")
+
 
 class TestExpanding:
     def setup_method(self):
@@ -936,7 +1013,7 @@ class TestExpanding:
         "f", ["sum", "mean", "min", "max", "count", "kurt", "skew"]
     )
     def test_expanding(self, f):
-        g = self.frame.groupby("A")
+        g = self.frame.groupby("A", group_keys=False)
         r = g.expanding()
 
         result = getattr(r, f)()
@@ -950,7 +1027,7 @@ class TestExpanding:
 
     @pytest.mark.parametrize("f", ["std", "var"])
     def test_expanding_ddof(self, f):
-        g = self.frame.groupby("A")
+        g = self.frame.groupby("A", group_keys=False)
         r = g.expanding()
 
         result = getattr(r, f)(ddof=0)
@@ -966,7 +1043,7 @@ class TestExpanding:
         "interpolation", ["linear", "lower", "higher", "midpoint", "nearest"]
     )
     def test_expanding_quantile(self, interpolation):
-        g = self.frame.groupby("A")
+        g = self.frame.groupby("A", group_keys=False)
         r = g.expanding()
 
         result = r.quantile(0.4, interpolation=interpolation)
@@ -1009,7 +1086,7 @@ class TestExpanding:
         tm.assert_series_equal(result, expected)
 
     def test_expanding_apply(self, raw):
-        g = self.frame.groupby("A")
+        g = self.frame.groupby("A", group_keys=False)
         r = g.expanding()
 
         # reduction
@@ -1052,12 +1129,10 @@ class TestEWM:
 
         with tm.assert_produces_warning(FutureWarning, match="nuisance"):
             # GH#42738
-            expected = df.groupby("A").apply(
+            expected = df.groupby("A", group_keys=True).apply(
                 lambda x: getattr(x.ewm(com=1.0), method)()
             )
-
-        # There may be a bug in the above statement; not returning the correct index
-        tm.assert_frame_equal(result.reset_index(drop=True), expected)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "method, expected_data",
@@ -1129,13 +1204,10 @@ class TestEWM:
         with tm.assert_produces_warning(FutureWarning, match="nuisance"):
             # GH#42738
             result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
-            expected = (
-                times_frame.groupby("A")
-                .apply(lambda x: x.ewm(halflife=halflife, times="C").mean())
-                .iloc[[0, 3, 6, 9, 1, 4, 7, 2, 5, 8]]
-                .reset_index(drop=True)
+            expected = times_frame.groupby("A", group_keys=True).apply(
+                lambda x: x.ewm(halflife=halflife, times="C").mean()
             )
-        tm.assert_frame_equal(result.reset_index(drop=True), expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_times_array(self, times_frame):
         # GH 40951

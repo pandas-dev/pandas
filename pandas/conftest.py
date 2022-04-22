@@ -75,6 +75,11 @@ else:
     del pa
     has_pyarrow = True
 
+zoneinfo = None
+if pd.compat.PY39:
+    # Import "zoneinfo" could not be resolved (reportMissingImports)
+    import zoneinfo  # type: ignore[no-redef]
+
 # Until https://github.com/numpy/numpy/issues/19078 is sorted out, just suppress
 suppress_npdev_promotion_warning = pytest.mark.filterwarnings(
     "ignore:Promotion of numbers and bools:FutureWarning"
@@ -106,7 +111,6 @@ def pytest_collection_modifyitems(items, config):
     only_slow = config.getoption("--only-slow")
     skip_network = config.getoption("--skip-network")
     skip_db = config.getoption("--skip-db")
-    run_high_memory = config.getoption("--run-high-memory")
 
     marks = [
         (pytest.mark.slow, "slow", skip_slow, "--skip-slow"),
@@ -138,13 +142,6 @@ def pytest_collection_modifyitems(items, config):
 
         if only_slow and "slow" not in item.keywords:
             item.add_marker(pytest.mark.skip("skipping due to --only-slow"))
-
-        if "high_memory" in item.keywords and not run_high_memory:
-            item.add_marker(
-                pytest.mark.skip(
-                    "skipping high memory test since --run-high-memory was not set"
-                )
-            )
 
 
 # Hypothesis
@@ -1174,6 +1171,8 @@ TIMEZONES = [
     timezone(timedelta(hours=1)),
     timezone(timedelta(hours=-1), name="foo"),
 ]
+if zoneinfo is not None:
+    TIMEZONES.extend([zoneinfo.ZoneInfo("US/Pacific"), zoneinfo.ZoneInfo("UTC")])
 TIMEZONE_IDS = [repr(i) for i in TIMEZONES]
 
 
@@ -1199,7 +1198,12 @@ def tz_aware_fixture(request):
 tz_aware_fixture2 = tz_aware_fixture
 
 
-@pytest.fixture(params=["utc", "dateutil/UTC", utc, tzutc(), timezone.utc])
+_UTCS = ["utc", "dateutil/UTC", utc, tzutc(), timezone.utc]
+if zoneinfo is not None:
+    _UTCS.append(zoneinfo.ZoneInfo("UTC"))
+
+
+@pytest.fixture(params=_UTCS)
 def utc_fixture(request):
     """
     Fixture to provide variants of UTC timezone strings and tzinfo objects.

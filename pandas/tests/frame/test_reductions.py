@@ -67,6 +67,7 @@ def assert_stat_op_calc(
     skipna_alternative : function, default None
         NaN-safe version of alternative
     """
+    warn = FutureWarning if opname == "mad" else None
     f = getattr(frame, opname)
 
     if check_dates:
@@ -88,8 +89,9 @@ def assert_stat_op_calc(
             return alternative(x.values)
 
         skipna_wrapper = tm._make_skipna_wrapper(alternative, skipna_alternative)
-        result0 = f(axis=0, skipna=False)
-        result1 = f(axis=1, skipna=False)
+        with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
+            result0 = f(axis=0, skipna=False)
+            result1 = f(axis=1, skipna=False)
         tm.assert_series_equal(
             result0, frame.apply(wrapper), check_dtype=check_dtype, rtol=rtol, atol=atol
         )
@@ -102,8 +104,9 @@ def assert_stat_op_calc(
     else:
         skipna_wrapper = alternative
 
-    result0 = f(axis=0)
-    result1 = f(axis=1)
+    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
+        result0 = f(axis=0)
+        result1 = f(axis=1)
     tm.assert_series_equal(
         result0,
         frame.apply(skipna_wrapper),
@@ -125,14 +128,18 @@ def assert_stat_op_calc(
         assert lcd_dtype == result1.dtype
 
     # bad axis
-    with pytest.raises(ValueError, match="No axis named 2"):
-        f(axis=2)
+    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
+        with pytest.raises(ValueError, match="No axis named 2"):
+            f(axis=2)
 
     # all NA case
     if has_skipna:
         all_na = frame * np.NaN
-        r0 = getattr(all_na, opname)(axis=0)
-        r1 = getattr(all_na, opname)(axis=1)
+        with tm.assert_produces_warning(
+            warn, match="The 'mad' method is deprecated", raise_on_extra_warnings=False
+        ):
+            r0 = getattr(all_na, opname)(axis=0)
+            r1 = getattr(all_na, opname)(axis=1)
         if opname in ["sum", "prod"]:
             unit = 1 if opname == "prod" else 0  # result for empty sum/prod
             expected = Series(unit, index=r0.index, dtype=r0.dtype)
@@ -167,9 +174,13 @@ class TestDataFrameAnalytics:
         ],
     )
     def test_stat_op_api_float_string_frame(self, float_string_frame, axis, opname):
-        getattr(float_string_frame, opname)(axis=axis)
-        if opname not in ("nunique", "mad"):
-            getattr(float_string_frame, opname)(axis=axis, numeric_only=True)
+        warn = FutureWarning if opname == "mad" else None
+        with tm.assert_produces_warning(
+            warn, match="The 'mad' method is deprecated", raise_on_extra_warnings=False
+        ):
+            getattr(float_string_frame, opname)(axis=axis)
+            if opname not in ("nunique", "mad"):
+                getattr(float_string_frame, opname)(axis=axis, numeric_only=True)
 
     @pytest.mark.filterwarnings("ignore:Dropping of nuisance:FutureWarning")
     @pytest.mark.parametrize("axis", [0, 1])
@@ -1055,11 +1066,11 @@ class TestDataFrameAnalytics:
             },
             index=["a", "b", "c"],
         )
-        result = df[["A", "B"]].any(1)
+        result = df[["A", "B"]].any(axis=1)
         expected = Series([True, True, False], index=["a", "b", "c"])
         tm.assert_series_equal(result, expected)
 
-        result = df[["A", "B"]].any(1, bool_only=True)
+        result = df[["A", "B"]].any(axis=1, bool_only=True)
         tm.assert_series_equal(result, expected)
 
         result = df.all(1)
@@ -1108,7 +1119,7 @@ class TestDataFrameAnalytics:
         ]
         df = DataFrame({"A": float_data, "B": datetime_data})
 
-        result = df.any(1)
+        result = df.any(axis=1)
         expected = Series([True, True, True, False])
         tm.assert_series_equal(result, expected)
 
@@ -1424,7 +1435,9 @@ class TestDataFrameReductions:
     def test_reductions_deprecation_skipna_none(self, frame_or_series):
         # GH#44580
         obj = frame_or_series([1, 2, 3])
-        with tm.assert_produces_warning(FutureWarning, match="skipna"):
+        with tm.assert_produces_warning(
+            FutureWarning, match="skipna", raise_on_extra_warnings=False
+        ):
             obj.mad(skipna=None)
 
     def test_reductions_deprecation_level_argument(
@@ -1445,7 +1458,7 @@ class TestDataFrameReductions:
                 pytest.mark.xfail(reason="Count does not accept skipna")
             )
         elif reduction_functions == "mad":
-            pytest.skip("Mad needs a deprecation cycle: GH 11787")
+            pytest.skip("Mad is deprecated: GH#11787")
         obj = frame_or_series([1, 2, 3])
         msg = 'For argument "skipna" expected type bool, received type NoneType.'
         with pytest.raises(ValueError, match=msg):
@@ -1644,25 +1657,37 @@ def test_mad_nullable_integer(any_signed_int_ea_dtype):
     df = DataFrame(np.random.randn(100, 4).astype(np.int64))
     df2 = df.astype(any_signed_int_ea_dtype)
 
-    result = df2.mad()
-    expected = df.mad()
+    with tm.assert_produces_warning(
+        FutureWarning, match="The 'mad' method is deprecated"
+    ):
+        result = df2.mad()
+        expected = df.mad()
     tm.assert_series_equal(result, expected)
 
-    result = df2.mad(axis=1)
-    expected = df.mad(axis=1)
+    with tm.assert_produces_warning(
+        FutureWarning, match="The 'mad' method is deprecated"
+    ):
+        result = df2.mad(axis=1)
+        expected = df.mad(axis=1)
     tm.assert_series_equal(result, expected)
 
     # case with NAs present
     df2.iloc[::2, 1] = pd.NA
 
-    result = df2.mad()
-    expected = df.mad()
-    expected[1] = df.iloc[1::2, 1].mad()
+    with tm.assert_produces_warning(
+        FutureWarning, match="The 'mad' method is deprecated"
+    ):
+        result = df2.mad()
+        expected = df.mad()
+        expected[1] = df.iloc[1::2, 1].mad()
     tm.assert_series_equal(result, expected)
 
-    result = df2.mad(axis=1)
-    expected = df.mad(axis=1)
-    expected[::2] = df.T.loc[[0, 2, 3], ::2].mad()
+    with tm.assert_produces_warning(
+        FutureWarning, match="The 'mad' method is deprecated"
+    ):
+        result = df2.mad(axis=1)
+        expected = df.mad(axis=1)
+        expected[::2] = df.T.loc[[0, 2, 3], ::2].mad()
     tm.assert_series_equal(result, expected)
 
 
@@ -1675,8 +1700,11 @@ def test_mad_nullable_integer_all_na(any_signed_int_ea_dtype):
     # case with all-NA row/column
     df2.iloc[:, 1] = pd.NA  # FIXME(GH#44199): this doesn't operate in-place
     df2.iloc[:, 1] = pd.array([pd.NA] * len(df2), dtype=any_signed_int_ea_dtype)
-    result = df2.mad()
-    expected = df.mad()
+    with tm.assert_produces_warning(
+        FutureWarning, match="The 'mad' method is deprecated"
+    ):
+        result = df2.mad()
+        expected = df.mad()
     expected[1] = pd.NA
     expected = expected.astype("Float64")
     tm.assert_series_equal(result, expected)

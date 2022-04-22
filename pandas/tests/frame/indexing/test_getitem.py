@@ -72,6 +72,13 @@ class TestGetitem:
         result = df.loc[:, "A"]
         tm.assert_series_equal(result, expected)
 
+    def test_getitem_string_columns(self):
+        # GH#46185
+        df = DataFrame([[1, 2]], columns=Index(["A", "B"], dtype="string"))
+        result = df.A
+        expected = df["A"]
+        tm.assert_series_equal(result, expected)
+
 
 class TestGetitemListLike:
     def test_getitem_list_missing_key(self):

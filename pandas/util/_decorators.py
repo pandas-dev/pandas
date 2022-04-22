@@ -261,6 +261,7 @@ def deprecate_nonkeyword_arguments(
     version: str | None,
     allowed_args: list[str] | None = None,
     stacklevel: int = 2,
+    name: str | None = None,
 ) -> Callable[[F], F]:
     """
     Decorator to deprecate a use of non-keyword arguments of a function.
@@ -281,6 +282,11 @@ def deprecate_nonkeyword_arguments(
 
     stacklevel : int, default=2
         The stack level for warnings.warn
+
+    name : str, optional
+        The specific name of the function to show in the warning
+        message. If None, then the Qualified name of the function
+        is used.
     """
 
     def decorate(func):
@@ -296,7 +302,7 @@ def deprecate_nonkeyword_arguments(
         num_allow_args = len(allow_args)
         msg = (
             f"{future_version_msg(version)} all arguments of "
-            f"{func.__qualname__}{{arguments}} will be keyword-only."
+            f"{name or func.__qualname__}{{arguments}} will be keyword-only."
         )
 
         @wraps(func)
@@ -435,7 +441,7 @@ class Substitution:
         "%s %s wrote the Raven"
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         if args and kwargs:
             raise AssertionError("Only positional or keyword args are allowed")
 
@@ -475,7 +481,7 @@ class Appender:
 
     addendum: str | None
 
-    def __init__(self, addendum: str | None, join: str = "", indents: int = 0):
+    def __init__(self, addendum: str | None, join: str = "", indents: int = 0) -> None:
         if indents > 0:
             self.addendum = indent(addendum, indents=indents)
         else:
