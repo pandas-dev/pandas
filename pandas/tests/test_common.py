@@ -233,6 +233,9 @@ def test_temp_setattr(with_exception):
 
 
 def test_str_size():
-    #GH#21758
+    # GH#21758
     str = "a"
-    assert sys.getsizeof(str) == 50
+    expected = sys.getsizeof(str)
+    import pandas as pd
+    result = sys.getsizeof(str)
+    assert result == expected
