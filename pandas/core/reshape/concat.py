@@ -168,7 +168,7 @@ def concat(
         argument, unless it is passed, in which case the values will be
         selected (see below). Any None objects will be dropped silently unless
         they are all None in which case a ValueError will be raised.
-    axis : {0/'index', 1/'columns'}, default 0
+    axis : {0/'index'/'rows', 1/'columns'}, default 0
         The axis to concatenate along.
     join : {'inner', 'outer'}, default 'outer'
         How to handle indexes on other axis (or axes).
