@@ -305,7 +305,6 @@ cpdef ndarray astype_overflowsafe(
         )
 
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(iresult, i8values)
-        cnp.flatiter it
         Py_ssize_t i, N = values.size
         int64_t value, new_value
         npy_datetimestruct dts

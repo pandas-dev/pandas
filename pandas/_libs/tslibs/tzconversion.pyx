@@ -198,12 +198,13 @@ timedelta-like}
     # result_a) or right of the DST transition (store in result_b)
     result_a = np.empty(n, dtype=np.int64)
     result_b = np.empty(n, dtype=np.int64)
-    result_a[:] = NPY_NAT
-    result_b[:] = NPY_NAT
 
     for i in range(n):
         # This loops resembles the "Find the two best possibilities" block
         #  in pytz's DstTZInfo.localize method.
+        result_a[i] = NPY_NAT
+        result_b[i] = NPY_NAT
+
         val = vals[i]
         if val == NPY_NAT:
             continue

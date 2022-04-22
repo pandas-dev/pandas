@@ -320,11 +320,10 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     if is_offset_object(freq):
         freq = freq.rule_code
 
-    if dayfirst is None or yearfirst is None:
-        if dayfirst is None:
-            dayfirst = get_option("display.date_dayfirst")
-        if yearfirst is None:
-            yearfirst = get_option("display.date_yearfirst")
+    if dayfirst is None:
+        dayfirst = get_option("display.date_dayfirst")
+    if yearfirst is None:
+        yearfirst = get_option("display.date_yearfirst")
 
     res = parse_datetime_string_with_reso(arg, freq=freq,
                                           dayfirst=dayfirst,
