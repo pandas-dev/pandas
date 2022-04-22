@@ -1913,7 +1913,9 @@ class DataFrame(NDFrame, OpsMixin):
             return into_c((k, v.to_dict(into)) for k, v in self.items())
 
         elif orient == "list":
-            return into_c((k, v.tolist()) for k, v in self.items())
+            return into_c(
+                (k, list(map(maybe_box_native, v.tolist()))) for k, v in self.items()
+            )
 
         elif orient == "split":
             return into_c(
@@ -1964,7 +1966,7 @@ class DataFrame(NDFrame, OpsMixin):
             if not self.index.is_unique:
                 raise ValueError("DataFrame index must be unique for orient='index'.")
             return into_c(
-                (t[0], dict(zip(self.columns, t[1:])))
+                (t[0], dict(zip(self.columns, map(maybe_box_native, t[1:]))))
                 for t in self.itertuples(name=None)
             )
 
@@ -2892,7 +2894,7 @@ class DataFrame(NDFrame, OpsMixin):
         classes: str | list | tuple | None = None,
         escape: bool = True,
         notebook: bool = False,
-        border: int | None = None,
+        border: int | bool | None = None,
         table_id: str | None = None,
         render_links: bool = False,
         encoding: str | None = None,
