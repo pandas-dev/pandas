@@ -5,6 +5,7 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs.lib import infer_dtype
 from pandas.util._decorators import cache_readonly
 
 import pandas as pd
@@ -114,10 +115,14 @@ class PandasColumn(Column):
                 Endianness.NATIVE,
             )
         elif is_string_dtype(dtype):
-            # TODO: is_string_dtype() can return True for non-string dtypes like
-            # numpy arrays, because they all have an "object" dtype.
-            # Think on how to improve the check here.
-            return (DtypeKind.STRING, 8, dtype_to_arrow_c_fmt(dtype), Endianness.NATIVE)
+            if infer_dtype(self._col) == "string":
+                return (
+                    DtypeKind.STRING,
+                    8,
+                    dtype_to_arrow_c_fmt(dtype),
+                    Endianness.NATIVE,
+                )
+            raise NotImplementedError("Non-string object dtypes are not supported yet")
         else:
             return self._dtype_from_pandasdtype(dtype)
 
