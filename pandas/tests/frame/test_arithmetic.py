@@ -2006,12 +2006,13 @@ def test_bool_frame_mult_float():
     tm.assert_frame_equal(result, expected)
 
 
-def test_frame_sub_dtype():
+@pytest.mark.parametrize("d_type", ['int8', 'int16', 'int32', 'int64'])
+def test_frame_sub_dtype(d_type):
     # GH 32822
-    series1 = Series([1, 2, np.nan], dtype="Int64")
-    series2 = Series([1, 2, 3], dtype="Int64")
-    expected = DataFrame([0, 0, np.nan], dtype="Int64")
-    result = (series1.to_frame() - series2.to_frame())
+    series1 = Series([1, 2, np.nan], dtype=d_type)
+    series2 = Series([1, 2, 3], dtype=d_type)
+    expected = DataFrame([0, 0, np.nan], dtype=d_type)
+    result = series1.to_frame() - series2.to_frame()
     tm.assert_frame_equal(result, expected)
 
 
