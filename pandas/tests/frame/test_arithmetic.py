@@ -2040,3 +2040,13 @@ def test_frame_op_subclass_nonclass_constructor():
 
     result = sdf + sdf
     tm.assert_frame_equal(result, expected)
+
+
+def test_frame_sub_dtype():
+    # GH 32822
+    s = Series([1, 2, np.nan], dtype='Int64')
+    t = Series([1, 2, 3], dtype='Int64')
+
+    expected = (s - t).dtype
+    result = (s.to_frame() - t.to_frame())[0].dtype
+    assert expected is result
