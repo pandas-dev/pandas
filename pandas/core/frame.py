@@ -1915,6 +1915,7 @@ class DataFrame(NDFrame, OpsMixin):
         are_all_object_dtype_cols = len(object_dtype_cols) == len(self.dtypes)
         if orient == "dict":
             return into_c((k, v.to_dict(into)) for k, v in self.items())
+
         elif orient == "list":
             return into_c(
                 (
@@ -1925,6 +1926,7 @@ class DataFrame(NDFrame, OpsMixin):
                 )
                 for k, v in self.items()
             )
+
         elif orient == "split":
             if are_all_object_dtype_cols:
                 data = [
@@ -1950,8 +1952,38 @@ class DataFrame(NDFrame, OpsMixin):
                     ("data", data),
                 )
             )
+
+        elif orient == "tight":
+            if are_all_object_dtype_cols:
+                data = [
+                    list(map(maybe_box_native, t))
+                    for t in self.itertuples(index=False, name=None)
+                ]
+            elif object_dtype_cols:
+                # A number of ways were tried here, this solution proved to be the
+                # most optimal in general
+                data = [list(t) for t in self.itertuples(index=False, name=None)]
+                object_type_indices = [
+                    i for i, col in enumerate(self.columns) if col in object_dtype_cols
+                ]
+                for row in data:
+                    for i in object_type_indices:
+                        row[i] = maybe_box_native(row[i])
+            else:
+                data = [list(t) for t in self.itertuples(index=False, name=None)]
+            return into_c(
+                (
+                    ("index", self.index.tolist()),
+                    ("columns", self.columns.tolist()),
+                    ("data", data),
+                    ("index_names", list(self.index.names)),
+                    ("column_names", list(self.columns.names)),
+                )
+            )
+
         elif orient == "series":
             return into_c((k, v) for k, v in self.items())
+
         elif orient == "records":
             columns = self.columns.tolist()
             if are_all_object_dtype_cols:
@@ -1984,6 +2016,7 @@ class DataFrame(NDFrame, OpsMixin):
                     into_c(zip(columns, t))
                     for t in self.itertuples(index=False, name=None)
                 ]
+
         elif orient == "index":
             if not self.index.is_unique:
                 raise ValueError("DataFrame index must be unique for orient='index'.")
@@ -2014,33 +2047,7 @@ class DataFrame(NDFrame, OpsMixin):
                     (t[0], dict(zip(self.columns, t[1:])))
                     for t in self.itertuples(name=None)
                 )
-        elif orient == "tight":
-            if are_all_object_dtype_cols:
-                data = [
-                    list(map(maybe_box_native, t))
-                    for t in self.itertuples(index=False, name=None)
-                ]
-            elif object_dtype_cols:
-                # A number of ways were tried here, this solution proved to be the
-                # most optimal in general
-                data = [list(t) for t in self.itertuples(index=False, name=None)]
-                object_type_indices = [
-                    i for i, col in enumerate(self.columns) if col in object_dtype_cols
-                ]
-                for row in data:
-                    for i in object_type_indices:
-                        row[i] = maybe_box_native(row[i])
-            else:
-                data = [list(t) for t in self.itertuples(index=False, name=None)]
-            return into_c(
-                (
-                    ("index", self.index.tolist()),
-                    ("columns", self.columns.tolist()),
-                    ("data", data),
-                    ("index_names", list(self.index.names)),
-                    ("column_names", list(self.columns.names)),
-                )
-            )
+
         else:
             raise ValueError(f"orient '{orient}' not understood")
 
