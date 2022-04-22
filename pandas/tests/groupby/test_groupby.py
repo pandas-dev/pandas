@@ -2697,62 +2697,59 @@ def test_by_column_values_with_same_starting_value():
 
 
 @pytest.mark.parametrize(
-    "columns, index, numeric_only, expected",
-    [
+    "columns, index, numeric_only",
+    [   # the only element changed between tests is numeric_only, but all are parameterized
         pytest.param(
             ['a', 'b'],
             ['a'],
             False,
-            {"a": [], "b": []}
         ),
         pytest.param(
             ['a', 'b'],
             ['a'],
             None,
-            {"a": [], "b": []}
         ),
         pytest.param(
             ['a', 'b'],
             ['a'],
             True,
-            {"a": [], "b": []}
         ),
     ],
 )
-def test_empty_frame_groupby_numeric_only(columns, index, numeric_only, expected):
-    # GH 46375
+def test_empty_frame_groupby_numeric_only(columns, index, numeric_only):
+    # GH 46375 - certain values of numeric_only are causing the df to drop columns
     df = pd.DataFrame(columns=columns)
+    expected = pd.DataFrame(columns=columns).set_index(index)
     result = df.groupby(index).first(numeric_only=numeric_only)
-    expected = pd.DataFrame(data).set_index(index)
     tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
-    "data, index, numeric_only, expected",
-    [
+    "data, index, numeric_only, expected_data",
+    [   # the only element changed between tests is numeric_only, but all are parameterized
         pytest.param(
-            { "a": [0, 0, 1, 1], "b": [1, "x", 2, "y"],},
+            { "a": [0, 0, 1, 1], "b": [1, "x", 2, "y"], "c": [1, 1, 2, 2],},
             ['a'],
             False,
-            {"a": [0,1], "b": [1, 2]}
+            {"a": [0, 1], "b": [1, 2], "c": [1, 2],}
         ),
         pytest.param(
-            { "a": [0, 0, 1, 1], "b": [1, "x", 2, "y"],},
+            { "a": [0, 0, 1, 1], "b": [1, "x", 2, "y"], "c": [1, 1, 2, 2],},
             ['a'],
             None,
-            {"a": [0,1], "b": [1, 2]}
+            {"a": [0, 1], "b": [1, 2], "c": [1, 2],}
         ),
         pytest.param(
-            { "a": [0, 0, 1, 1], "b": [1, "x", 2, "y"],},
+            { "a": [0, 0, 1, 1], "b": [1, "x", 2, "y"], "c": [1, 1, 2, 2],},
             ['a'],
             True,
-            {"a": [0,1], "b": [1, 2]}
+            {"a": [0, 1], "b": [1, 2], "c": [1, 2],}
         ),
     ],
 )
-def test_heterogeneous_frame_groupby_numeric_only(data, index, numeric_only, expected):
-    # GH 46375
+def test_heterogeneous_frame_groupby_numeric_only(data, index, numeric_only, expected_data):
+    # GH 46375 - certain values of numeric_only are causing the df to drop columns
     df = pd.DataFrame(data)
     result = df.groupby(index).first(numeric_only=numeric_only)
-    expected = pd.DataFrame(data).set_index(index)
-    tm.assert_frame_equal(result, expected)
+    expected = pd.DataFrame(expected_data).set_index(index)
+    tm.assert_frame_equal(result, expected) 
