@@ -1771,139 +1771,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         return result
 
-    def _to_dict_helper(self, orient, into_c, into):
-        """Helper function to do main work to convert frame into dict based on
-        `orient` and `into`
-
-        As part of GH46470 also takes care in when to use maybe_box_native as this
-        function can perform badly and is not necessary for non object cols
-        """
-        object_dtype_cols = {
-            col for col, dtype in self.dtypes.items() if is_object_dtype(dtype)
-        }
-        are_all_object_dtype_cols = len(object_dtype_cols) == len(self.dtypes)
-        if orient == "dict":
-            return into_c((k, v.to_dict(into)) for k, v in self.items())
-        elif orient == "list":
-            return into_c(
-                (
-                    k,
-                    list(map(maybe_box_native, v.tolist()))
-                    if k in object_dtype_cols
-                    else v.tolist(),
-                )
-                for k, v in self.items()
-            )
-        elif orient == "split":
-            if are_all_object_dtype_cols:
-                data = [
-                    list(map(maybe_box_native, t))
-                    for t in self.itertuples(index=False, name=None)
-                ]
-            elif object_dtype_cols:
-                is_object_dtype_by_index = [
-                    col in object_dtype_cols for col in self.columns
-                ]
-                data = [
-                    [
-                        maybe_box_native(v) if is_object_dtype_by_index[i] else v
-                        for i, v in enumerate(t)
-                    ]
-                    for t in self.itertuples(index=False, name=None)
-                ]
-            else:
-                data = [list(t) for t in self.itertuples(index=False, name=None)]
-            return into_c(
-                (
-                    ("index", self.index.tolist()),
-                    ("columns", self.columns.tolist()),
-                    ("data", data),
-                )
-            )
-        elif orient == "series":
-            return into_c((k, v) for k, v in self.items())
-        elif orient == "records":
-            columns = self.columns.tolist()
-            if object_dtype_cols:
-                is_object_dtype_by_index = [col in object_dtype_cols for col in columns]
-                return [
-                    into_c(
-                        zip(
-                            columns,
-                            [
-                                maybe_box_native(v)
-                                if is_object_dtype_by_index[i]
-                                else v
-                                for i, v in enumerate(t)
-                            ],
-                        )
-                    )
-                    for t in self.itertuples(index=False, name=None)
-                ]
-            else:
-                return [
-                    into_c(zip(columns, t))
-                    for t in self.itertuples(index=False, name=None)
-                ]
-        elif orient == "index":
-            if not self.index.is_unique:
-                raise ValueError("DataFrame index must be unique for orient='index'.")
-            columns = self.columns.tolist()
-            if object_dtype_cols:
-                is_object_dtype_by_index = [
-                    col in object_dtype_cols for col in self.columns
-                ]
-                return into_c(
-                    (
-                        t[0],
-                        {
-                            columns[i]: maybe_box_native(v)
-                            if is_object_dtype_by_index[i]
-                            else v
-                            for i, v in enumerate(t[1:])
-                        },
-                    )
-                    for t in self.itertuples(name=None)
-                )
-            else:
-                return into_c(
-                    (
-                        t[0],
-                        {columns[i]: v for i, v in enumerate(t[1:])},
-                    )
-                    for t in self.itertuples(name=None)
-                )
-        elif orient == "tight":
-            if are_all_object_dtype_cols:
-                data = [
-                    list(map(maybe_box_native, t))
-                    for t in self.itertuples(index=False, name=None)
-                ]
-            elif object_dtype_cols:
-                is_object_dtype_by_index = [
-                    col in object_dtype_cols for col in self.columns
-                ]
-                data = [
-                    [
-                        maybe_box_native(v) if is_object_dtype_by_index[i] else v
-                        for i, v in enumerate(t)
-                    ]
-                    for t in self.itertuples(index=False, name=None)
-                ]
-            else:
-                data = [list(t) for t in self.itertuples(index=False, name=None)]
-            return into_c(
-                (
-                    ("index", self.index.tolist()),
-                    ("columns", self.columns.tolist()),
-                    ("data", data),
-                    ("index_names", list(self.index.names)),
-                    ("column_names", list(self.columns.names)),
-                )
-            )
-        else:
-            raise ValueError(f"orient '{orient}' not understood")
-
     def to_dict(self, orient: str = "dict", into=dict):
         """
         Convert the DataFrame to a dictionary.
@@ -2042,67 +1909,129 @@ class DataFrame(NDFrame, OpsMixin):
             elif orient.startswith("i"):
                 orient = "index"
 
+        object_dtype_cols = {
+            col for col, dtype in self.dtypes.items() if is_object_dtype(dtype)
+        }
+        are_all_object_dtype_cols = len(object_dtype_cols) == len(self.dtypes)
         if orient == "dict":
             return into_c((k, v.to_dict(into)) for k, v in self.items())
-
         elif orient == "list":
             return into_c(
-                (k, list(map(maybe_box_native, v.tolist()))) for k, v in self.items()
+                (
+                    k,
+                    list(map(maybe_box_native, v.tolist()))
+                    if k in object_dtype_cols
+                    else v.tolist(),
+                )
+                for k, v in self.items()
             )
-
         elif orient == "split":
+            if are_all_object_dtype_cols:
+                data = [
+                    list(map(maybe_box_native, t))
+                    for t in self.itertuples(index=False, name=None)
+                ]
+            elif object_dtype_cols:
+                is_object_dtype_by_index = [
+                    col in object_dtype_cols for col in self.columns
+                ]
+                data = [
+                    [
+                        maybe_box_native(v) if is_object_dtype_by_index[i] else v
+                        for i, v in enumerate(t)
+                    ]
+                    for t in self.itertuples(index=False, name=None)
+                ]
+            else:
+                data = [list(t) for t in self.itertuples(index=False, name=None)]
             return into_c(
                 (
                     ("index", self.index.tolist()),
                     ("columns", self.columns.tolist()),
-                    (
-                        "data",
-                        [
-                            list(map(maybe_box_native, t))
-                            for t in self.itertuples(index=False, name=None)
-                        ],
-                    ),
+                    ("data", data),
                 )
             )
-
+        elif orient == "series":
+            return into_c((k, v) for k, v in self.items())
+        elif orient == "records":
+            columns = self.columns.tolist()
+            if object_dtype_cols:
+                is_object_dtype_by_index = [col in object_dtype_cols for col in columns]
+                return [
+                    into_c(
+                        zip(
+                            columns,
+                            [
+                                maybe_box_native(v)
+                                if is_object_dtype_by_index[i]
+                                else v
+                                for i, v in enumerate(t)
+                            ],
+                        )
+                    )
+                    for t in self.itertuples(index=False, name=None)
+                ]
+            else:
+                return [
+                    into_c(zip(columns, t))
+                    for t in self.itertuples(index=False, name=None)
+                ]
+        elif orient == "index":
+            if not self.index.is_unique:
+                raise ValueError("DataFrame index must be unique for orient='index'.")
+            columns = self.columns.tolist()
+            if object_dtype_cols:
+                is_object_dtype_by_index = [
+                    col in object_dtype_cols for col in self.columns
+                ]
+                return into_c(
+                    (
+                        t[0],
+                        {
+                            columns[i]: maybe_box_native(v)
+                            if is_object_dtype_by_index[i]
+                            else v
+                            for i, v in enumerate(t[1:])
+                        },
+                    )
+                    for t in self.itertuples(name=None)
+                )
+            else:
+                return into_c(
+                    (
+                        t[0],
+                        {columns[i]: v for i, v in enumerate(t[1:])},
+                    )
+                    for t in self.itertuples(name=None)
+                )
         elif orient == "tight":
+            if are_all_object_dtype_cols:
+                data = [
+                    list(map(maybe_box_native, t))
+                    for t in self.itertuples(index=False, name=None)
+                ]
+            elif object_dtype_cols:
+                is_object_dtype_by_index = [
+                    col in object_dtype_cols for col in self.columns
+                ]
+                data = [
+                    [
+                        maybe_box_native(v) if is_object_dtype_by_index[i] else v
+                        for i, v in enumerate(t)
+                    ]
+                    for t in self.itertuples(index=False, name=None)
+                ]
+            else:
+                data = [list(t) for t in self.itertuples(index=False, name=None)]
             return into_c(
                 (
                     ("index", self.index.tolist()),
                     ("columns", self.columns.tolist()),
-                    (
-                        "data",
-                        [
-                            list(map(maybe_box_native, t))
-                            for t in self.itertuples(index=False, name=None)
-                        ],
-                    ),
+                    ("data", data),
                     ("index_names", list(self.index.names)),
                     ("column_names", list(self.columns.names)),
                 )
             )
-
-        elif orient == "series":
-            return into_c((k, v) for k, v in self.items())
-
-        elif orient == "records":
-            columns = self.columns.tolist()
-            rows = (
-                dict(zip(columns, row))
-                for row in self.itertuples(index=False, name=None)
-            )
-            return [
-                into_c((k, maybe_box_native(v)) for k, v in row.items()) for row in rows
-            ]
-
-        elif orient == "index":
-            if not self.index.is_unique:
-                raise ValueError("DataFrame index must be unique for orient='index'.")
-            return into_c(
-                (t[0], dict(zip(self.columns, map(maybe_box_native, t[1:]))))
-                for t in self.itertuples(name=None)
-            )
-
         else:
             raise ValueError(f"orient '{orient}' not understood")
 
