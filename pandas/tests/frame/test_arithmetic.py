@@ -2006,6 +2006,15 @@ def test_bool_frame_mult_float():
     tm.assert_frame_equal(result, expected)
 
 
+def test_frame_sub_dtype():
+    # GH 32822
+    series1 = Series([1, 2, np.nan], dtype="Int64")
+    series2 = Series([1, 2, 3], dtype="Int64")
+    expected = DataFrame([0, 0, np.nan], dtype="Int64")
+    result = (series1.to_frame() - series2.to_frame())
+    tm.assert_frame_equal(result, expected)
+
+
 def test_frame_op_subclass_nonclass_constructor():
     # GH#43201 subclass._constructor is a function, not the subclass itself
 
@@ -2040,13 +2049,3 @@ def test_frame_op_subclass_nonclass_constructor():
 
     result = sdf + sdf
     tm.assert_frame_equal(result, expected)
-
-
-def test_frame_sub_dtype():
-    # GH 32822
-    s = Series([1, 2, np.nan], dtype='Int64')
-    t = Series([1, 2, 3], dtype='Int64')
-
-    expected = (s - t).dtype
-    result = (s.to_frame() - t.to_frame())[0].dtype
-    assert expected is result
