@@ -5,11 +5,7 @@ import re
 import time
 import warnings
 
-from libc.string cimport strchr
-
-import cython
-from cython import Py_ssize_t
-
+cimport cython
 from cpython.datetime cimport (
     datetime,
     datetime_new,
@@ -17,6 +13,8 @@ from cpython.datetime cimport (
     tzinfo,
 )
 from cpython.object cimport PyObject_Str
+from cython cimport Py_ssize_t
+from libc.string cimport strchr
 
 import_datetime()
 

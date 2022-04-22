@@ -1,9 +1,7 @@
 """
 timezone conversion
 """
-import cython
-from cython import Py_ssize_t
-
+cimport cython
 from cpython.datetime cimport (
     PyDelta_Check,
     datetime,
@@ -12,6 +10,7 @@ from cpython.datetime cimport (
     timedelta,
     tzinfo,
 )
+from cython cimport Py_ssize_t
 
 import_datetime()
 

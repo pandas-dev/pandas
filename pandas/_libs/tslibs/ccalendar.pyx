@@ -3,8 +3,7 @@
 Cython implementations of functions resembling the stdlib calendar module
 """
 
-import cython
-
+cimport cython
 from numpy cimport (
     int32_t,
     int64_t,

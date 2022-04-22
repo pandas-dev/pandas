@@ -1,5 +1,4 @@
-import cython
-
+cimport cython
 from cpython.datetime cimport (
     date,
     datetime,

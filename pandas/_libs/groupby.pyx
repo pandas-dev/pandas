@@ -1,7 +1,8 @@
-import cython
-from cython import Py_ssize_t
-
-from cython cimport floating
+cimport cython
+from cython cimport (
+    Py_ssize_t,
+    floating,
+)
 from libc.stdlib cimport (
     free,
     malloc,

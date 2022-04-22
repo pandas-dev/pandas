@@ -18,6 +18,14 @@ import numpy as np
 
 cnp.import_array()
 
+cimport cython
+from cpython.datetime cimport (
+    PyDate_Check,
+    PyDateTime_Check,
+    PyDelta_Check,
+    datetime,
+    import_datetime,
+)
 from libc.stdlib cimport (
     free,
     malloc,
@@ -29,16 +37,6 @@ from libc.string cimport (
 from libc.time cimport (
     strftime,
     tm,
-)
-
-import cython
-
-from cpython.datetime cimport (
-    PyDate_Check,
-    PyDateTime_Check,
-    PyDelta_Check,
-    datetime,
-    import_datetime,
 )
 
 # import datetime C API
