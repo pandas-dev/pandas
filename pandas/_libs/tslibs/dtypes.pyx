@@ -277,6 +277,16 @@ cdef str npy_unit_to_abbrev(NPY_DATETIMEUNIT unit):
         return "M"
     elif unit == NPY_DATETIMEUNIT.NPY_FR_Y:
         return "Y"
+
+    # Checks for not-really-supported units go at the end, as we don't expect
+    #  to see these often
+    elif unit == NPY_DATETIMEUNIT.NPY_FR_ps:
+        return "ps"
+    elif unit == NPY_DATETIMEUNIT.NPY_FR_fs:
+        return "fs"
+    elif unit == NPY_DATETIMEUNIT.NPY_FR_as:
+        return "as"
+
     else:
         raise NotImplementedError(unit)
 
