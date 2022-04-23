@@ -29,7 +29,7 @@ def test_only_one_dtype(test_data, df_from_dict):
         assert dfX.get_column_by_name(column).offset == 0
 
 
-def test_float_int(df_from_dict):
+def test_mixed_dtypes(df_from_dict):
     df = df_from_dict(
         {
             "a": [1, 2, 3],
