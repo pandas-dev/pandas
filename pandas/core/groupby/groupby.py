@@ -2153,7 +2153,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             return self._numba_agg_general(sliding_var, engine_kwargs, ddof)
         else:
-            ignore_failures = numeric_only is lib.no_default
+            ignore_failures = numeric_only is lib.no_default or numeric_only
             numeric_only = self._resolve_numeric_only(numeric_only)
             if ddof == 1:
                 return self._cython_agg_general(
@@ -2164,21 +2164,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 )
             else:
                 func = lambda x: x.var(ddof=ddof)
-                if numeric_only:
-                    nonnumeric_exclusions = frozenset(
-                        self.obj.columns.difference(self.exclusions).difference(
-                            self.obj._get_numeric_data().columns
-                        )
+                with self._group_selection_context():
+                    return self._python_agg_general(
+                        func, raise_on_typeerror=not ignore_failures
                     )
-                else:
-                    nonnumeric_exclusions = frozenset()
-                with com.temp_setattr(
-                    self, "exclusions", self.exclusions | nonnumeric_exclusions
-                ):
-                    with self._group_selection_context():
-                        return self._python_agg_general(
-                            func, raise_on_typeerror=not ignore_failures
-                        )
 
     @final
     @Substitution(name="groupby")
