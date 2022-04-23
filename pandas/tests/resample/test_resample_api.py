@@ -771,3 +771,58 @@ def test_end_and_end_day_origin(
     )
 
     tm.assert_series_equal(res, expected)
+
+
+@pytest.mark.parametrize("numeric_only", [True, False])
+def test_downsample_method(numeric_only):
+    # test if `numeric_only` behave as expected for Resampler downsample methods.
+
+    index = date_range("2018-01-01", periods=2, freq="D")
+    expected_index = date_range("2018-12-31", periods=1, freq="Y")
+    df = DataFrame({"cat": ["cat_1", "cat_2"], "num": [5, 20]}, index=index)
+    resampled = df.resample("Y")
+
+    # test Resampler.sum
+    result = resampled.sum(numeric_only=numeric_only)
+    if numeric_only:
+        expected = DataFrame({"num": [25]}, index=expected_index)
+    else:
+        expected = DataFrame({"cat": ["cat_1cat_2"], "num": [25]}, index=expected_index)
+    tm.assert_frame_equal(result, expected)
+
+    # test Resampler.prod
+    result = resampled.prod(numeric_only=numeric_only)
+    expected = DataFrame({"num": [100]}, index=expected_index)
+    tm.assert_frame_equal(result, expected)
+
+    # test Resampler.min
+    result = resampled.min(numeric_only=numeric_only)
+    if numeric_only:
+        expected = DataFrame({"num": [5]}, index=expected_index)
+    else:
+        expected = DataFrame({"cat": ["cat_1"], "num": [5]}, index=expected_index)
+    tm.assert_frame_equal(result, expected)
+
+    # test Resampler.max
+    result = resampled.max(numeric_only=numeric_only)
+    if numeric_only:
+        expected = DataFrame({"num": [20]}, index=expected_index)
+    else:
+        expected = DataFrame({"cat": ["cat_2"], "num": [20]}, index=expected_index)
+    tm.assert_frame_equal(result, expected)
+
+    # test Resampler.first
+    result = resampled.first(numeric_only=numeric_only)
+    if numeric_only:
+        expected = DataFrame({"num": [5]}, index=expected_index)
+    else:
+        expected = DataFrame({"cat": ["cat_1"], "num": [5]}, index=expected_index)
+    tm.assert_frame_equal(result, expected)
+
+    # test Resampler.last
+    result = resampled.last(numeric_only=numeric_only)
+    if numeric_only:
+        expected = DataFrame({"num": [20]}, index=expected_index)
+    else:
+        expected = DataFrame({"cat": ["cat_2"], "num": [20]}, index=expected_index)
+    tm.assert_frame_equal(result, expected)
