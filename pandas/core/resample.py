@@ -1036,8 +1036,7 @@ for method in ["sum", "prod", "min", "max", "first", "last"]:
         **kwargs,
     ):
         if numeric_only is lib.no_default:
-            if (self.obj.ndim == 1) or (_method != "sum"):
-                # For SeriesGroupBy, set the default to be False.
+            if _method != "sum":
                 # For DataFrameGroupBy, set it to be False for methods other than `sum`.
                 numeric_only = False
 

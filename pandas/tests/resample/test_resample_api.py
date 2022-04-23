@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas._libs import lib
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -773,56 +775,83 @@ def test_end_and_end_day_origin(
     tm.assert_series_equal(res, expected)
 
 
-@pytest.mark.parametrize("numeric_only", [True, False])
-def test_downsample_method(numeric_only):
-    # test if `numeric_only` behave as expected for Resampler downsample methods.
+@pytest.mark.parametrize(
+    "method, numeric_only, expected_data",
+    [
+        ("sum", True, {"num": [25]}),
+        ("sum", False, {"cat": ["cat_1cat_2"], "num": [25]}),
+        ("sum", lib.no_default, {"num": [25]}),
+        ("prod", True, {"num": [100]}),
+        ("prod", False, {"num": [100]}),
+        ("prod", lib.no_default, {"num": [100]}),
+        ("min", True, {"num": [5]}),
+        ("min", False, {"cat": ["cat_1"], "num": [5]}),
+        ("min", lib.no_default, {"cat": ["cat_1"], "num": [5]}),
+        ("max", True, {"num": [20]}),
+        ("max", False, {"cat": ["cat_2"], "num": [20]}),
+        ("max", lib.no_default, {"cat": ["cat_2"], "num": [20]}),
+        ("first", True, {"num": [5]}),
+        ("first", False, {"cat": ["cat_1"], "num": [5]}),
+        ("first", lib.no_default, {"cat": ["cat_1"], "num": [5]}),
+        ("last", True, {"num": [20]}),
+        ("last", False, {"cat": ["cat_2"], "num": [20]}),
+        ("last", lib.no_default, {"cat": ["cat_2"], "num": [20]}),
+    ],
+)
+def test_frame_downsample_method(method, numeric_only, expected_data):
+    # GH#46442 test if `numeric_only` behave as expected for DataFrameGroupBy
 
     index = date_range("2018-01-01", periods=2, freq="D")
     expected_index = date_range("2018-12-31", periods=1, freq="Y")
     df = DataFrame({"cat": ["cat_1", "cat_2"], "num": [5, 20]}, index=index)
     resampled = df.resample("Y")
 
-    # test Resampler.sum
-    result = resampled.sum(numeric_only=numeric_only)
-    if numeric_only:
-        expected = DataFrame({"num": [25]}, index=expected_index)
-    else:
-        expected = DataFrame({"cat": ["cat_1cat_2"], "num": [25]}, index=expected_index)
+    func = getattr(resampled, method)
+    result = func(numeric_only=numeric_only)
+
+    expected = DataFrame(expected_data, index=expected_index)
     tm.assert_frame_equal(result, expected)
 
-    # test Resampler.prod
-    result = resampled.prod(numeric_only=numeric_only)
-    expected = DataFrame({"num": [100]}, index=expected_index)
-    tm.assert_frame_equal(result, expected)
 
-    # test Resampler.min
-    result = resampled.min(numeric_only=numeric_only)
-    if numeric_only:
-        expected = DataFrame({"num": [5]}, index=expected_index)
-    else:
-        expected = DataFrame({"cat": ["cat_1"], "num": [5]}, index=expected_index)
-    tm.assert_frame_equal(result, expected)
+@pytest.mark.parametrize(
+    "method, numeric_only, expected_data",
+    [
+        ("sum", True, ()),
+        ("sum", False, ["cat_1cat_2"]),
+        ("sum", lib.no_default, ["cat_1cat_2"]),
+        ("prod", True, ()),
+        ("prod", False, ()),
+        ("prod", lib.no_default, ()),
+        ("min", True, ()),
+        ("min", False, ["cat_1"]),
+        ("min", lib.no_default, ["cat_1"]),
+        ("max", True, ()),
+        ("max", False, ["cat_2"]),
+        ("max", lib.no_default, ["cat_2"]),
+        ("first", True, ()),
+        ("first", False, ["cat_1"]),
+        ("first", lib.no_default, ["cat_1"]),
+        ("last", True, ()),
+        ("last", False, ["cat_2"]),
+        ("last", lib.no_default, ["cat_2"]),
+    ],
+)
+def test_series_downsample_method(method, numeric_only, expected_data):
+    # GH#46442 test if `numeric_only` behave as expected for SeriesGroupBy
 
-    # test Resampler.max
-    result = resampled.max(numeric_only=numeric_only)
-    if numeric_only:
-        expected = DataFrame({"num": [20]}, index=expected_index)
-    else:
-        expected = DataFrame({"cat": ["cat_2"], "num": [20]}, index=expected_index)
-    tm.assert_frame_equal(result, expected)
+    index = date_range("2018-01-01", periods=2, freq="D")
+    expected_index = date_range("2018-12-31", periods=1, freq="Y")
+    df = Series(["cat_1", "cat_2"], index=index)
+    resampled = df.resample("Y")
 
-    # test Resampler.first
-    result = resampled.first(numeric_only=numeric_only)
-    if numeric_only:
-        expected = DataFrame({"num": [5]}, index=expected_index)
+    func = getattr(resampled, method)
+    if numeric_only and numeric_only is not lib.no_default:
+        with pytest.raises(NotImplementedError, match="not implement numeric_only"):
+            func(numeric_only=numeric_only)
+    elif method == "prod":
+        with pytest.raises(TypeError, match="can't multiply sequence by non-int"):
+            func(numeric_only=numeric_only)
     else:
-        expected = DataFrame({"cat": ["cat_1"], "num": [5]}, index=expected_index)
-    tm.assert_frame_equal(result, expected)
-
-    # test Resampler.last
-    result = resampled.last(numeric_only=numeric_only)
-    if numeric_only:
-        expected = DataFrame({"num": [20]}, index=expected_index)
-    else:
-        expected = DataFrame({"cat": ["cat_2"], "num": [20]}, index=expected_index)
-    tm.assert_frame_equal(result, expected)
+        result = func(numeric_only=numeric_only)
+        expected = Series(expected_data, index=expected_index)
+        tm.assert_series_equal(result, expected)
