@@ -1,4 +1,5 @@
 cimport cython
+
 import numpy as np
 
 cimport numpy as cnp
@@ -31,7 +32,6 @@ from pandas._libs.tslibs.base cimport ABCTimestamp
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
-    _string_to_dts,
     astype_overflowsafe,
     check_dts_bounds,
     dt64_to_dtstruct,
@@ -43,6 +43,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct,
     pandas_datetime_to_datetimestruct,
     pydatetime_to_dt64,
+    string_to_dts,
 )
 
 from pandas._libs.tslibs.np_datetime import (
@@ -602,7 +603,7 @@ cdef _TSObject _convert_str_to_tsobject(object ts, tzinfo tz, str unit,
         dt = datetime.now(tz)
         # equiv: datetime.today().replace(tzinfo=tz)
     else:
-        string_to_dts_failed = _string_to_dts(
+        string_to_dts_failed = string_to_dts(
             ts, &dts, &out_local,
             &out_tzoffset, False
         )
