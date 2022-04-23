@@ -9379,7 +9379,7 @@ Parrot 2  Parrot       24.0
 
     def join(
         self,
-        other: DataFrame | Series,
+        other: DataFrame | Series | list[DataFrame | Series],
         on: IndexLabel | None = None,
         how: str = "left",
         lsuffix: str = "",
@@ -9395,7 +9395,7 @@ Parrot 2  Parrot       24.0
 
         Parameters
         ----------
-        other : DataFrame, Series, or list of DataFrame
+        other : DataFrame, Series, or list of either of these
             Index should be similar to one of the columns in this one. If a
             Series is passed, its name attribute must be set, and that will be
             used as the column name in the resulting joined DataFrame.
