@@ -101,7 +101,7 @@ cdef class Localizer:
         elif self.use_tzlocal:
             return utc_val + localize_tzinfo_api(utc_val, self.tz)
         elif self.use_fixed:
-            local_val = utc_val + self.delta
+            return utc_val + self.delta
         else:
             pos[0] = bisect_right_i8(self.tdata, utc_val, self.ntrans) - 1
             return utc_val + self.deltas[pos[0]]
@@ -330,7 +330,7 @@ def dt64arr_to_periodarr(ndarray stamps, int freq, tzinfo tz):
     # stamps is int64_t, arbitrary ndim
     cdef:
         Localizer info = Localizer(tz)
-        Py_ssize_t i, n = stamps.shape[0]
+        Py_ssize_t i, n = stamps.size
         Py_ssize_t pos = -1  # unused, avoid not-initialized warning
         int64_t utc_val, local_val, res_val
 
