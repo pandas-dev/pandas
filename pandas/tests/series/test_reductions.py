@@ -68,7 +68,7 @@ def test_td64_summation_retains_ns_precision_over_expected_range(value: pd.Timed
 @given(
     st.integers(
         min_value=10 ** (np.finfo(np.float64).precision),
-        max_value=pd.Timedelta.max.value,
+        max_value=pd.Timedelta.max.value - 2**9,
     )
     .filter(lambda i: int(np.float64(i)) != i)
     .map(pd.Timedelta)
@@ -79,6 +79,20 @@ def test_td64_summation_loses_ns_precision_if_float_conversion_rounds(
     result = pd.Series(value).sum()
 
     assert result != value
+
+
+@given(
+    st.integers(
+        min_value=pd.Timedelta.max.value - 2**9 + 1,
+        max_value=pd.Timedelta.max.value,
+    ).map(pd.Timedelta)
+)
+def test_td64_summation_raises_spurious_overflow_error_for_single_elem_series_with_near_max_value(
+    value: pd.Timedelta,
+):
+    msg = "Python int too large to convert to C long"
+    with pytest.raises(OverflowError, match=msg):
+        pd.Series(value).sum()
 
 
 def test_td64_summation_overflow():
