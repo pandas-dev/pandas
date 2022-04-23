@@ -1723,6 +1723,16 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             in_axis_names = {
                 grouping.name for grouping in self.grouper.groupings if grouping.in_axis
             }
+
+            # adding optional subset handeling
+            if subset is None:
+                names = subset
+            else:
+                names = []
+                for name in self._selected_obj.columns:
+                    if name not in in_axis_names:
+                        names.append(name)
+
             if isinstance(self._selected_obj, Series):
                 name = self._selected_obj.name
                 keys = [] if name in in_axis_names else [self._selected_obj]
@@ -1731,9 +1741,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     # Can't use .values because the column label needs to be preserved
                     self._selected_obj.iloc[:, idx]
                     for idx, name in enumerate(self._selected_obj.columns)
-                    if name not in in_axis_names
+                    if name in names
                 ]
 
+            # It looks like keys are the grouping column of the target
+            # Under case of subset
+            
             if subset is not None:
                 clashing = set(subset) & set(in_axis_names)
                 if clashing:
@@ -1741,7 +1754,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                         f"Keys {clashing} in subset cannot be in "
                         "the groupby column keys"
                     )
-                keys = subset
 
             groupings = list(self.grouper.groupings)
             for key in keys:
