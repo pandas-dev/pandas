@@ -479,6 +479,8 @@ Datetimelike
 Timedelta
 ^^^^^^^^^
 - Bug in :func:`astype_nansafe` astype("timedelta64[ns]") fails when np.nan is included (:issue:`45798`)
+- Bug in constructing a :class:`Timedelta` with a ``np.timedelta64`` object and a ``unit`` sometimes silently overflowing and returning incorrect results instead of raising ``OutOfBoundsTimedelta`` (:issue:`46827`)
+-
 
 Time Zones
 ^^^^^^^^^^
@@ -501,6 +503,7 @@ Conversion
 - Bug in :func:`array` with ``FloatingDtype`` and values containing float-castable strings incorrectly raising (:issue:`45424`)
 - Bug when comparing string and datetime64ns objects causing ``OverflowError`` exception. (:issue:`45506`)
 - Bug in metaclass of generic abstract dtypes causing :meth:`DataFrame.apply` and :meth:`Series.apply` to raise for the built-in function ``type`` (:issue:`46684`)
+- Bug in :meth:`DataFrame.to_dict` for ``orient="list"`` or ``orient="index"`` was not returning native types (:issue:`46751`)
 
 Strings
 ^^^^^^^
