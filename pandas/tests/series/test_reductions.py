@@ -1,4 +1,4 @@
-from hypothesis import given
+from hypothesis import given, note
 import hypothesis.strategies as st
 import numpy as np
 import pytest
@@ -95,29 +95,27 @@ def test_td64_summation_raises_spurious_overflow_error_for_single_elem_series_wi
         pd.Series(value).sum()
 
 
-def test_td64_summation_overflow():
-    # GH#9442
-    ser = Series(pd.date_range("20130101", periods=100000, freq="H"))
-    ser[0] += pd.Timedelta("1s 1ms")
+@given(st.integers(min_value=1, max_value=2**10).map(pd.Timedelta))
+def test_td64_summation_raises_overflow_error_for_small_overflows(value: pd.Timedelta):
+    s = pd.Series([pd.Timedelta.max, value])
 
-    # mean
-    result = (ser - ser.min()).mean()
-    expected = pd.Timedelta((pd.TimedeltaIndex(ser - ser.min()).asi8 / len(ser)).sum())
+    msg = "Python int too large to convert to C long"
+    with pytest.raises(OverflowError, match=msg):
+        s.sum()
 
-    # the computation is converted to float so
-    # might be some loss of precision
-    assert np.allclose(result.value / 1000, expected.value / 1000)
 
-    # sum
+@given(
+    st.integers(
+        min_value=2**10 + 1,
+        max_value=pd.Timedelta.max.value,
+    ).map(pd.Timedelta)
+)
+def test_td64_summation_raises_value_error_for_most_overflows(value: pd.Timedelta):
+    s = pd.Series([pd.Timedelta.max, value])
+
     msg = "overflow in timedelta operation"
     with pytest.raises(ValueError, match=msg):
-        (ser - ser.min()).sum()
-
-    s1 = ser[0:10000]
-    with pytest.raises(ValueError, match=msg):
-        (s1 - s1.min()).sum()
-    s2 = ser[0:1000]
-    (s2 - s2.min()).sum()
+        s.sum()
 
 
 def test_prod_numpy16_bug():
