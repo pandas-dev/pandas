@@ -353,45 +353,49 @@ def test_groupby_nan_included():
 
 
 @pytest.mark.parametrize(
-    "key",
+    "values, dtype",
     [
-        pd.Series([2, np.nan, 1, 2]),
-        pd.Series([2, np.nan, 1, 2], dtype="UInt8"),
-        pd.Series([2, np.nan, 1, 2], dtype="Int8"),
-        pd.Series([2, np.nan, 1, 2], dtype="UInt16"),
-        pd.Series([2, np.nan, 1, 2], dtype="Int16"),
-        pd.Series([2, np.nan, 1, 2], dtype="UInt32"),
-        pd.Series([2, np.nan, 1, 2], dtype="Int32"),
-        pd.Series([2, np.nan, 1, 2], dtype="UInt64"),
-        pd.Series([2, np.nan, 1, 2], dtype="Int64"),
-        pd.Series([2, np.nan, 1, 2], dtype="Float32"),
-        pd.Series([2, np.nan, 1, 2], dtype="Int64"),
-        pd.Series([2, np.nan, 1, 2], dtype="Float64"),
-        pd.Series(["y", None, "x", "y"], dtype="category"),
-        pd.Series(["y", pd.NA, "x", "y"], dtype="string"),
+        ([2, np.nan, 1, 2], None),
+        ([2, np.nan, 1, 2], "UInt8"),
+        ([2, np.nan, 1, 2], "Int8"),
+        ([2, np.nan, 1, 2], "UInt16"),
+        ([2, np.nan, 1, 2], "Int16"),
+        ([2, np.nan, 1, 2], "UInt32"),
+        ([2, np.nan, 1, 2], "Int32"),
+        ([2, np.nan, 1, 2], "UInt64"),
+        ([2, np.nan, 1, 2], "Int64"),
+        ([2, np.nan, 1, 2], "Float32"),
+        ([2, np.nan, 1, 2], "Int64"),
+        ([2, np.nan, 1, 2], "Float64"),
+        (["y", None, "x", "y"], "category"),
+        (["y", pd.NA, "x", "y"], "string"),
         pytest.param(
-            pd.Series(["y", pd.NA, "x", "y"], dtype="string[pyarrow]"),
+            ["y", pd.NA, "x", "y"],
+            "string[pyarrow]",
             marks=pytest.mark.skipif(
                 pa_version_under1p01, reason="pyarrow is not installed"
             ),
         ),
-        pd.Series(
+        (
             ["2016-01-01", np.datetime64("NaT"), "2017-01-01", "2016-01-01"],
-            dtype="datetime64[ns]",
+            "datetime64[ns]",
         ),
-        pd.Series(
+        (
             [
                 pd.Period("2012-02-01", freq="D"),
                 pd.NA,
                 pd.Period("2012-01-01", freq="D"),
                 pd.Period("2012-02-01", freq="D"),
-            ]
+            ],
+            None,
         ),
-        pd.Series(pd.arrays.SparseArray([2, np.nan, 1, 2])),
+        (pd.arrays.SparseArray([2, np.nan, 1, 2]), None),
     ],
 )
 @pytest.mark.parametrize("test_series", [True, False])
-def test_no_sort_keep_na(key, test_series):
+def test_no_sort_keep_na(values, dtype, test_series):
+    # GH#46584
+    key = pd.Series(values, dtype=dtype)
     df = pd.DataFrame({"key": key, "a": [1, 2, 3, 4]})
     gb = df.groupby("key", dropna=False, sort=False)
     if test_series:
