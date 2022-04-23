@@ -149,7 +149,8 @@ def ints_to_pydatetime(
     cdef:
         Localizer info = Localizer(tz)
         int64_t utc_val, local_val
-        Py_ssize_t pos, i, n = stamps.shape[0]
+        Py_ssize_t i, n = stamps.shape[0]
+        Py_ssize_t pos = -1  # unused, avoid not-initialized warning
 
         npy_datetimestruct dts
         tzinfo new_tz
@@ -223,7 +224,8 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None) -> Resolution:
     cdef:
         Localizer info = Localizer(tz)
         int64_t utc_val, local_val
-        Py_ssize_t pos, i, n = stamps.shape[0]
+        Py_ssize_t i, n = stamps.shape[0]
+        Py_ssize_t pos = -1  # unused, avoid not-initialized warning
 
         npy_datetimestruct dts
         c_Resolution reso = c_Resolution.RESO_DAY, curr_reso
@@ -267,7 +269,8 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
     cdef:
         Localizer info = Localizer(tz)
         int64_t utc_val, local_val
-        Py_ssize_t pos, i, n = stamps.shape[0]
+        Py_ssize_t i, n = stamps.shape[0]
+        Py_ssize_t pos = -1  # unused, avoid not-initialized warning
 
         int64_t[::1] result = np.empty(n, dtype=np.int64)
 
@@ -304,7 +307,8 @@ def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None) -> bool:
     cdef:
         Localizer info = Localizer(tz)
         int64_t utc_val, local_val
-        Py_ssize_t pos, i, n = stamps.shape[0]
+        Py_ssize_t i, n = stamps.shape[0]
+        Py_ssize_t pos = -1  # unused, avoid not-initialized warning
 
     for i in range(n):
         utc_val = stamps[i]
@@ -326,7 +330,8 @@ def dt64arr_to_periodarr(ndarray stamps, int freq, tzinfo tz):
     # stamps is int64_t, arbitrary ndim
     cdef:
         Localizer info = Localizer(tz)
-        Py_ssize_t pos, i, n = stamps.size
+        Py_ssize_t i, n = stamps.shape[0]
+        Py_ssize_t pos = -1  # unused, avoid not-initialized warning
         int64_t utc_val, local_val, res_val
 
         npy_datetimestruct dts
