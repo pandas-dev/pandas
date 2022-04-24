@@ -38,6 +38,8 @@ if not pa_version_under1p01:
     import pyarrow as pa
     import pyarrow.compute as pc
 
+    from pandas.core.arrays.arrow._arrow_utils import fallback_performancewarning
+
 if TYPE_CHECKING:
     from pandas import Series
 
@@ -114,6 +116,7 @@ class ArrowExtensionArray(ExtensionArray):
         valid : ArrowExtensionArray
         """
         if pa_version_under6p0:
+            fallback_performancewarning(version="6")
             return super().dropna()
         else:
             return type(self)(pc.drop_null(self._data))
@@ -242,6 +245,7 @@ class ArrowExtensionArray(ExtensionArray):
         uniques : ArrowExtensionArray
         """
         if pa_version_under2p0:
+            fallback_performancewarning(version="2")
             return super().unique()
         else:
             return type(self)(pc.unique(self._data))
