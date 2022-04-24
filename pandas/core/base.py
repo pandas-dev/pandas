@@ -843,7 +843,7 @@ class IndexOpsMixin(OpsMixin):
 
         if isinstance(mapper, ABCSeries):
             # na_action must be None or "ignore"
-            if na_action not in [None, "ignore"]:
+            if na_action not in (None, "ignore"):
                 msg = (
                     "na_action must either be 'ignore' or None, "
                     f"{na_action} was passed"
