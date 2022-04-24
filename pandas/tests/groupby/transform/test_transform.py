@@ -1043,7 +1043,7 @@ def test_groupby_transform_rename():
         if isinstance(x, Series):
             return result
 
-        result = result.rename(columns={c: "{c}_demeaned" for c in result.columns})
+        result = result.rename(columns={c: f"{c}_demeaned" for c in result.columns})
 
         return result
 
