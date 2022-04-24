@@ -107,3 +107,13 @@ def test_ints_to_pytimedelta(unit):
     res = ints_to_pytimedelta(arr, box=True)
     expected = np.array([Timedelta(x) for x in arr], dtype=object)
     tm.assert_numpy_array_equal(res, expected)
+
+
+@pytest.mark.parametrize("unit", ["Y", "M", "ps", "fs", "as"])
+def test_ints_to_pytimedelta_unsupported(unit):
+    arr = np.arange(6, dtype=np.int64).view(f"m8[{unit}]")
+
+    with pytest.raises(NotImplementedError, match=r"\d{1,2}"):
+        ints_to_pytimedelta(arr, box=False)
+    with pytest.raises(NotImplementedError, match=r"\d{1,2}"):
+        ints_to_pytimedelta(arr, box=True)
