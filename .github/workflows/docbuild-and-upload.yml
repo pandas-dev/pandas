@@ -41,7 +41,6 @@ jobs:
     - name: Check building docs with --single works
       run: |
         source activate pandas-dev
-        doc/make.py --warnings-are-errors --single pandas.Series
         doc/make.py --warnings-are-errors --single pandas.Series.value_counts
         doc/make.py --warnings-are-errors --single pandas.Series.str.split
         doc/make.py clean
