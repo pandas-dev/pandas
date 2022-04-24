@@ -48,6 +48,7 @@ jobs:
         pip install cython numpy python-dateutil pytz pytest pytest-xdist pytest-asyncio>=0.17 hypothesis && \
         python setup.py build_ext -q -j2 && \
         python -m pip install --no-build-isolation -e . && \
+        export PANDAS_CI=1 && \
         pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas --junitxml=test-data.xml"
       displayName: 'Run 32-bit manylinux2014 Docker Build / Tests'
 
