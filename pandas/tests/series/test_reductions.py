@@ -1,4 +1,6 @@
-from hypothesis import given, note
+import platform
+
+from hypothesis import given
 import hypothesis.strategies as st
 import numpy as np
 import pytest
@@ -9,6 +11,13 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
+
+
+@pytest.fixture(name="overflow_msg", scope="module")
+def fixture_overflow_msg() -> str:
+    if platform.system() == "Windows":
+        return "int too big to convert"
+    return "Python int too large to convert to C long"
 
 
 @pytest.mark.parametrize("operation, expected", [("min", "a"), ("max", "b")])
@@ -60,7 +69,7 @@ def test_td64_sum_empty(skipna):
     ).map(pd.Timedelta)
 )
 def test_td64_summation_retains_ns_precision_over_expected_range(value: pd.Timedelta):
-    result = pd.Series(value).sum()
+    result = Series(value).sum()
 
     assert result == value
 
@@ -76,31 +85,33 @@ def test_td64_summation_retains_ns_precision_over_expected_range(value: pd.Timed
 def test_td64_summation_loses_ns_precision_if_float_conversion_rounds(
     value: pd.Timedelta,
 ):
-    result = pd.Series(value).sum()
+    result = Series(value).sum()
 
     assert result != value
 
 
 @given(
-    st.integers(
+    value=st.integers(
         min_value=pd.Timedelta.max.value - 2**9 + 1,
         max_value=pd.Timedelta.max.value,
     ).map(pd.Timedelta)
 )
-def test_td64_summation_raises_spurious_overflow_error_for_single_elem_series_with_near_max_value(
+def test_td64_summation_raises_spurious_overflow_error_for_single_elem_series(
     value: pd.Timedelta,
+    overflow_msg: str,
 ):
-    msg = "Python int too large to convert to C long"
-    with pytest.raises(OverflowError, match=msg):
-        pd.Series(value).sum()
+    with pytest.raises(OverflowError, match=overflow_msg):
+        Series(value).sum()
 
 
-@given(st.integers(min_value=1, max_value=2**10).map(pd.Timedelta))
-def test_td64_summation_raises_overflow_error_for_small_overflows(value: pd.Timedelta):
-    s = pd.Series([pd.Timedelta.max, value])
+@given(value=st.integers(min_value=1, max_value=2**10).map(pd.Timedelta))
+def test_td64_summation_raises_overflow_error_for_small_overflows(
+    value: pd.Timedelta,
+    overflow_msg: str,
+):
+    s = Series([pd.Timedelta.max, value])
 
-    msg = "Python int too large to convert to C long"
-    with pytest.raises(OverflowError, match=msg):
+    with pytest.raises(OverflowError, match=overflow_msg):
         s.sum()
 
 
@@ -111,7 +122,7 @@ def test_td64_summation_raises_overflow_error_for_small_overflows(value: pd.Time
     ).map(pd.Timedelta)
 )
 def test_td64_summation_raises_value_error_for_most_overflows(value: pd.Timedelta):
-    s = pd.Series([pd.Timedelta.max, value])
+    s = Series([pd.Timedelta.max, value])
 
     msg = "overflow in timedelta operation"
     with pytest.raises(ValueError, match=msg):
