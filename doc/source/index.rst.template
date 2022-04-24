@@ -26,6 +26,7 @@ pandas documentation
 easy-to-use data structures and data analysis tools for the `Python <https://www.python.org/>`__
 programming language.
 
+{% if not single_doc -%}
 .. panels::
     :card: + intro-card text-center
     :column: col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex
@@ -33,7 +34,6 @@ programming language.
     ---
     :img-top: _static/index_getting_started.svg
 
-{% if not single_doc -%}
     Getting started
     ^^^^^^^^^^^^^^^
 
