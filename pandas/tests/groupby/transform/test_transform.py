@@ -1043,7 +1043,7 @@ def test_groupby_transform_rename():
         if isinstance(x, Series):
             return result
 
-        result = result.rename(columns={c: "{c}_demeaned" for c in result.columns})
+        result = result.rename(columns={c: f"{c}_demeaned" for c in result.columns})
 
         return result
 
@@ -1511,10 +1511,5 @@ def test_null_group_str_transformer_series(request, dropna, transformation_func)
     msg = f"{transformation_func} is deprecated"
     with tm.assert_produces_warning(warn, match=msg):
         result = gb.transform(transformation_func, *args)
-    if dropna and transformation_func == "fillna":
-        # GH#46369 - result name is the group; remove this block when fixed.
-        tm.assert_equal(result, expected, check_names=False)
-        # This should be None
-        assert result.name == 1.0
-    else:
-        tm.assert_equal(result, expected)
+
+    tm.assert_equal(result, expected)
