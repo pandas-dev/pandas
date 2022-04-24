@@ -888,7 +888,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             na_index = mask.argmax()
             if mask[na_index]:
                 # Insert na with the proper code
-                na_code = 0 if na_index == 0 else codes[:na_index].argmax() + 1
+                if na_index == 0:
+                    na_code = np.intp(0)
+                else:
+                    # error: Slice index must be an integer or None
+                    # https://github.com/python/mypy/issues/2410
+                    na_code = codes[:na_index].argmax() + 1  # type: ignore[misc]
                 if na_sentinel < 0:
                     # codes can never equal na_sentinel and be >= na_code
                     codes[codes >= na_code] += 1
