@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Any,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -24,6 +21,7 @@ from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.base import (
     ExtensionDtype,
+    StorageExtensionDtype,
     register_extension_dtype,
 )
 from pandas.core.dtypes.common import (
@@ -55,7 +53,7 @@ if TYPE_CHECKING:
 
 
 @register_extension_dtype
-class StringDtype(ExtensionDtype):
+class StringDtype(StorageExtensionDtype):
     """
     Extension dtype for string data.
 
@@ -67,7 +65,7 @@ class StringDtype(ExtensionDtype):
        parts of the API may change without warning.
 
        In particular, StringDtype.na_value may change to no longer be
-       ``numpy.nan``.
+       ``pd.NA``.
 
     Parameters
     ----------
@@ -141,7 +139,6 @@ class StringDtype(ExtensionDtype):
         -----
         TypeError
             If the string is not a valid option.
-
         """
         if not isinstance(string, str):
             raise TypeError(
@@ -155,15 +152,6 @@ class StringDtype(ExtensionDtype):
             return cls(storage="pyarrow")
         else:
             raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
-
-    def __eq__(self, other: Any) -> bool:
-        if isinstance(other, str) and other == "string":
-            return True
-        return super().__eq__(other)
-
-    def __hash__(self) -> int:
-        # custom __eq__ so have to override __hash__
-        return super().__hash__()
 
     # https://github.com/pandas-dev/pandas/issues/36126
     # error: Signature of "construct_array_type" incompatible with supertype
@@ -184,12 +172,6 @@ class StringDtype(ExtensionDtype):
             return StringArray
         else:
             return ArrowStringArray
-
-    def __repr__(self):
-        return f"string[{self.storage}]"
-
-    def __str__(self):
-        return self.name
 
     def __from_arrow__(
         self, array: pyarrow.Array | pyarrow.ChunkedArray

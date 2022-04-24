@@ -282,7 +282,10 @@ class TestRoundTrip:
             [
                 range(4),
                 pd.interval_range(
-                    start=pd.Timestamp("2020-01-01"), periods=4, freq="6M"
+                    start=pd.Timestamp("2020-01-01"),
+                    periods=4,
+                    freq="6M",
+                    inclusive="right",
                 ),
             ]
         )
@@ -1319,8 +1322,8 @@ class TestExcelWriterEngineTests:
             called_save = False
             called_write_cells = False
             called_sheets = False
-            supported_extensions = ["xlsx", "xls"]
-            engine = "dummy"
+            _supported_extensions = ("xlsx", "xls")
+            _engine = "dummy"
 
             def book(self):
                 pass

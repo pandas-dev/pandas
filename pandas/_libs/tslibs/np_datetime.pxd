@@ -52,6 +52,8 @@ cdef extern from "numpy/ndarraytypes.h":
         NPY_FR_as
         NPY_FR_GENERIC
 
+    int64_t NPY_DATETIME_NAT  # elswhere we call this NPY_NAT
+
 cdef extern from "src/datetime/np_datetime.h":
     ctypedef struct pandas_timedeltastruct:
         int64_t days
@@ -64,10 +66,14 @@ cdef extern from "src/datetime/np_datetime.h":
     npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
                                                 npy_datetimestruct *d) nogil
 
+    void pandas_timedelta_to_timedeltastruct(npy_timedelta val,
+                                             NPY_DATETIMEUNIT fr,
+                                             pandas_timedeltastruct *result
+                                             ) nogil
 
 cdef bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1
 
-cdef check_dts_bounds(npy_datetimestruct *dts)
+cdef check_dts_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit=?)
 
 cdef int64_t dtstruct_to_dt64(npy_datetimestruct* dts) nogil
 cdef void dt64_to_dtstruct(int64_t dt64, npy_datetimestruct* out) nogil
@@ -86,3 +92,11 @@ cdef int _string_to_dts(str val, npy_datetimestruct* dts,
                         bint want_exc) except? -1
 
 cdef NPY_DATETIMEUNIT get_unit_from_dtype(cnp.dtype dtype)
+
+cpdef cnp.ndarray astype_overflowsafe(
+    cnp.ndarray values,  # ndarray[datetime64[anyunit]]
+    cnp.dtype dtype,  # ndarray[datetime64[anyunit]]
+    bint copy=*,
+)
+
+cdef bint cmp_dtstructs(npy_datetimestruct* left, npy_datetimestruct* right, int op)

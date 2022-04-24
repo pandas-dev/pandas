@@ -1,4 +1,3 @@
-""" Test cases for DataFrame.plot """
 from datetime import (
     date,
     datetime,
@@ -653,6 +652,11 @@ class TestDataFramePlots(TestPlotBase):
         with pytest.raises(TypeError, match=msg):
             df.plot.scatter(y="y")
 
+        with pytest.raises(TypeError, match="Specify exactly one of `s` and `size`"):
+            df.plot.scatter(x="x", y="y", s=2, size=2)
+        with pytest.raises(TypeError, match="Specify exactly one of `c` and `color`"):
+            df.plot.scatter(x="a", y="b", c="red", color="green")
+
         # GH 6951
         axes = df.plot(x="x", y="y", kind="scatter", subplots=True)
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
@@ -1188,7 +1192,7 @@ class TestDataFramePlots(TestPlotBase):
         assert ax.get_legend() is None
 
         ax = s.plot(legend=True)
-        assert ax.get_legend().get_texts()[0].get_text() == "None"
+        assert ax.get_legend().get_texts()[0].get_text() == ""
 
     @pytest.mark.parametrize(
         "props, expected",

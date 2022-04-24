@@ -2405,9 +2405,9 @@ you can use the ``tz_convert`` method.
 
 .. warning::
 
-	Be wary of conversions between libraries. For some time zones, ``pytz`` and ``dateutil`` have different
-	definitions of the zone. This is more of a problem for unusual time zones than for
-	'standard' zones like ``US/Eastern``.
+        Be wary of conversions between libraries. For some time zones, ``pytz`` and ``dateutil`` have different
+        definitions of the zone. This is more of a problem for unusual time zones than for
+        'standard' zones like ``US/Eastern``.
 
 .. warning::
 

@@ -36,8 +36,8 @@ if TYPE_CHECKING:
 
 
 class OpenpyxlWriter(ExcelWriter):
-    engine = "openpyxl"
-    supported_extensions = (".xlsx", ".xlsm")
+    _engine = "openpyxl"
+    _supported_extensions = (".xlsx", ".xlsm")
 
     def __init__(
         self,

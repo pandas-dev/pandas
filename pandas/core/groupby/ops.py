@@ -98,15 +98,25 @@ from pandas.core.sorting import (
 class WrappedCythonOp:
     """
     Dispatch logic for functions defined in _libs.groupby
+
+    Parameters
+    ----------
+    kind: str
+        Whether the operation is an aggregate or transform.
+    how: str
+        Operation name, e.g. "mean".
+    has_dropped_na: bool
+        True precisely when dropna=True and the grouper contains a null value.
     """
 
     # Functions for which we do _not_ attempt to cast the cython result
     #  back to the original dtype.
     cast_blocklist = frozenset(["rank", "count", "size", "idxmin", "idxmax"])
 
-    def __init__(self, kind: str, how: str) -> None:
+    def __init__(self, kind: str, how: str, has_dropped_na: bool) -> None:
         self.kind = kind
         self.how = how
+        self.has_dropped_na = has_dropped_na
 
     _CYTHON_FUNCTIONS = {
         "aggregate": {
@@ -194,7 +204,9 @@ class WrappedCythonOp:
             values = ensure_float64(values)
 
         elif values.dtype.kind in ["i", "u"]:
-            if how in ["add", "var", "prod", "mean", "ohlc"]:
+            if how in ["add", "var", "prod", "mean", "ohlc"] or (
+                self.kind == "transform" and self.has_dropped_na
+            ):
                 # result may still include NaN, so we have to cast
                 values = ensure_float64(values)
 
@@ -495,15 +507,9 @@ class WrappedCythonOp:
             values = values.view("int64")
             is_numeric = True
         elif is_bool_dtype(dtype):
-            values = values.astype("int64")
-        elif is_integer_dtype(dtype):
-            # GH#43329 If the dtype is explicitly of type uint64 the type is not
-            # changed to prevent overflow.
-            if dtype != np.uint64:
-                values = values.astype(np.int64, copy=False)
-        elif is_numeric:
-            if not is_complex_dtype(dtype):
-                values = ensure_float64(values)
+            values = values.view("uint8")
+        if values.dtype == "float16":
+            values = values.astype(np.float32)
 
         values = values.T
         if mask is not None:
@@ -582,9 +588,15 @@ class WrappedCythonOp:
 
         result = result.T
 
+        if self.how == "rank" and self.has_dropped_na:
+            # TODO: Wouldn't need this if group_rank supported mask
+            result = np.where(comp_ids < 0, np.nan, result)
+
         if self.how not in self.cast_blocklist:
             # e.g. if we are int64 and need to restore to datetime64/timedelta64
             # "rank" is the only member of cast_blocklist we get here
+            # Casting only needed for float16, bool, datetimelike,
+            #  and self.how in ["add", "prod", "ohlc", "cumprod"]
             res_dtype = self._get_result_dtype(orig_values.dtype)
             op_result = maybe_downcast_to_dtype(result, res_dtype)
         else:
@@ -802,7 +814,10 @@ class BaseGrouper:
         # Original indices are where group_index would go via sorting.
         # But when dropna is true, we need to remove null values while accounting for
         # any gaps that then occur because of them.
-        group_index = get_group_index(self.codes, self.shape, sort=False, xnull=True)
+        group_index = get_group_index(
+            self.codes, self.shape, sort=self._sort, xnull=True
+        )
+        group_index, _ = compress_group_index(group_index, sort=self._sort)
 
         if self.has_dropped_na:
             mask = np.where(group_index >= 0)
@@ -959,7 +974,7 @@ class BaseGrouper:
         """
         assert kind in ["transform", "aggregate"]
 
-        cy_op = WrappedCythonOp(kind=kind, how=how)
+        cy_op = WrappedCythonOp(kind=kind, how=how, has_dropped_na=self.has_dropped_na)
 
         ids, _, _ = self.group_info
         ngroups = self.ngroups
