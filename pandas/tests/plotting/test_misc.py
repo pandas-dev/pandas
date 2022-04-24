@@ -455,15 +455,11 @@ class TestDataFramePlots(TestPlotBase):
             },
             index=Index([0, "Total"]),
         )
-
-        try:
-            plot_bar = df.plot.bar()
-            assert all(
-                (a.get_text() == b.get_text())
-                for a, b in zip(plot_bar.get_xticklabels(), expected)
-            )
-        except TypeError:
-            assert False
+        plot_bar = df.plot.bar()
+        assert all(
+            (a.get_text() == b.get_text())
+            for a, b in zip(plot_bar.get_xticklabels(), expected)
+        )
 
     def test_has_externally_shared_axis_x_axis(self):
         # GH33819
