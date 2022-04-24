@@ -7,6 +7,7 @@ import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
+    Index,
     Series,
     Timestamp,
 )
@@ -440,6 +441,25 @@ class TestDataFramePlots(TestPlotBase):
         ax = df1.plot(kind="line", color=dic_color)
         colors = [rect.get_color() for rect in ax.get_lines()[0:2]]
         assert all(color == expected[index] for index, color in enumerate(colors))
+
+    def test_bar_plot(self):
+        # GH38947
+        # Test bar plot with string and int index
+        from matplotlib.text import Text
+
+        expected = [Text(0, 0, "0"), Text(1, 0, "Total")]
+
+        df = DataFrame(
+            {
+                "a": [1, 2],
+            },
+            index=Index([0, "Total"]),
+        )
+        plot_bar = df.plot.bar()
+        assert all(
+            (a.get_text() == b.get_text())
+            for a, b in zip(plot_bar.get_xticklabels(), expected)
+        )
 
     def test_has_externally_shared_axis_x_axis(self):
         # GH33819
