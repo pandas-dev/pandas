@@ -1,5 +1,3 @@
-import platform
-
 from hypothesis import given
 import hypothesis.strategies as st
 import numpy as np
@@ -11,13 +9,6 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-
-
-@pytest.fixture(name="overflow_msg", scope="module")
-def fixture_overflow_msg() -> str:
-    if platform.system() == "Windows":
-        return "int too big to convert"
-    return "Python int too large to convert to C long"
 
 
 @pytest.mark.parametrize("operation, expected", [("min", "a"), ("max", "b")])
@@ -91,27 +82,27 @@ def test_td64_summation_loses_ns_precision_if_float_conversion_rounds(
 
 
 @given(
-    value=st.integers(
+    st.integers(
         min_value=pd.Timedelta.max.value - 2**9 + 1,
         max_value=pd.Timedelta.max.value,
     ).map(pd.Timedelta)
 )
 def test_td64_summation_raises_spurious_overflow_error_for_single_elem_series(
     value: pd.Timedelta,
-    overflow_msg: str,
 ):
-    with pytest.raises(OverflowError, match=overflow_msg):
-        Series(value).sum()
+    s = Series(value)
+
+    msg = "int too big to convert|Python int too large to convert to C long"
+    with pytest.raises(OverflowError, match=msg):
+        s.sum()
 
 
-@given(value=st.integers(min_value=1, max_value=2**10).map(pd.Timedelta))
-def test_td64_summation_raises_overflow_error_for_small_overflows(
-    value: pd.Timedelta,
-    overflow_msg: str,
-):
+@given(st.integers(min_value=1, max_value=2**10).map(pd.Timedelta))
+def test_td64_summation_raises_overflow_error_for_small_overflows(value: pd.Timedelta):
     s = Series([pd.Timedelta.max, value])
 
-    with pytest.raises(OverflowError, match=overflow_msg):
+    msg = "int too big to convert|Python int too large to convert to C long"
+    with pytest.raises(OverflowError, match=msg):
         s.sum()
 
 
