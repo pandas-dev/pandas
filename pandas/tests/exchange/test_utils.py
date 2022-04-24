@@ -31,6 +31,8 @@ from pandas.core.exchange.utils import dtype_to_arrow_c_fmt
             pd.Series([0]).astype("datetime64[ns]").dtype,
             "tsn:",
         ),
+        (pd.CategoricalDtype(["a"]), "l"),
+        (np.dtype("O"), "u"),
     ],
 )
 def test_dtype_to_arrow_c_fmt(pandas_dtype, c_string):  # PR01
