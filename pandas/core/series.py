@@ -4264,7 +4264,8 @@ Keep all original rows and also all original values
         arg : function, collections.abc.Mapping subclass or Series
             Mapping correspondence.
         na_action : {None, 'ignore'}, default None
-            Not used.
+            If 'ignore', propagate NA values, without passing them to the
+            mapping function
 
         Returns
         -------
@@ -4315,12 +4316,13 @@ Keep all original rows and also all original values
         3    I am a rabbit
         dtype: object
 
-        Setting ``na_action='ignore'`` does not change behavior:
+        To avoid applying the function to missing values (and keep them as
+        ``NaN``) ``na_action='ignore'`` can be used:
 
         >>> s.map('I am a {}'.format, na_action='ignore')
         0     I am a cat
         1     I am a dog
-        2     I am a nan
+        2            NaN
         3  I am a rabbit
         dtype: object
         """
