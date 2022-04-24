@@ -33,6 +33,7 @@ programming language.
     ---
     :img-top: _static/index_getting_started.svg
 
+{% if not single_doc -%}
     Getting started
     ^^^^^^^^^^^^^^^
 
@@ -96,7 +97,7 @@ programming language.
             :text: To the development guide
             :classes: btn-block btn-secondary stretched-link
 
-
+{% endif %}
 {% if single_doc and single_doc.endswith('.rst') -%}
 .. toctree::
     :maxdepth: 3
