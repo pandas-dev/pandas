@@ -32,15 +32,18 @@ def test_only_one_dtype(test_data, df_from_dict):
 def test_mixed_dtypes(df_from_dict):
     df = df_from_dict(
         {
-            "a": [1, 2, 3],
-            "b": [3, 4, 5],
-            "c": [1.5, 2.5, 3.5],
-            "d": [9, 10, 11],
-            "e": [True, False, True],
-            "f": ["a", "", "c"],
+            "a": [1, 2, 3],  # dtype kind INT = 0
+            "b": [3, 4, 5],  # dtype kind INT = 0
+            "c": [1.5, 2.5, 3.5],  # dtype kind FLOAT = 2
+            "d": [9, 10, 11],  # dtype kind INT = 0
+            "e": [True, False, True],  # dtype kind BOOLEAN = 20
+            "f": ["a", "", "c"],  # dtype kind STRING = 21
         }
     )
     dfX = df.__dataframe__()
+    # for meanings of dtype[0] see the spec; we cannot import the spec here as this
+    # file is expected to be vendored *anywhere*;
+    # values for dtype[0] are explained above
     columns = {"a": 0, "b": 0, "c": 2, "d": 0, "e": 20, "f": 21}
 
     for column, kind in columns.items():
@@ -120,8 +123,10 @@ def test_get_columns(df_from_dict):
     for colX in dfX.get_columns():
         assert colX.size == 2
         assert colX.num_chunks() == 1
-    assert dfX.get_column(0).dtype[0] == 0
-    assert dfX.get_column(1).dtype[0] == 2
+    # for meanings of dtype[0] see the spec; we cannot import the spec here as this
+    # file is expected to be vendored *anywhere*
+    assert dfX.get_column(0).dtype[0] == 0  # INT
+    assert dfX.get_column(1).dtype[0] == 2  # FLOAT
 
 
 def test_buffer(df_from_dict):
@@ -137,7 +142,9 @@ def test_buffer(df_from_dict):
     assert dataBuf.ptr != 0
     device, _ = dataBuf.__dlpack_device__()
 
-    assert dataDtype[0] == 0
+    # for meanings of dtype[0] see the spec; we cannot import the spec here as this
+    # file is expected to be vendored *anywhere*
+    assert dataDtype[0] == 0  # INT
 
     if device == 1:  # CPU-only as we're going to directly read memory here
         bitwidth = dataDtype[1]
