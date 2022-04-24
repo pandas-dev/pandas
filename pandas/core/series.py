@@ -4264,8 +4264,8 @@ Keep all original rows and also all original values
         arg : function, collections.abc.Mapping subclass or Series
             Mapping correspondence.
         na_action : {None, 'ignore'}, default None
-            If 'ignore', propagate NA values, without passing them to the
-            mapping function
+            If 'ignore', propagate NaN values, without passing them to the
+            mapping correspondence.
 
         Returns
         -------
