@@ -453,7 +453,7 @@ Performance improvements
 - Performance improvement when setting values in a pyarrow backed string array (:issue:`46400`)
 - Performance improvement in :func:`factorize` (:issue:`46109`)
 - Performance improvement in :class:`DataFrame` and :class:`Series` constructors for extension dtype scalars (:issue:`45854`)
-- Performance improvement in :meth:`DataFrame.to_dict` and :meth:`Series.to_dict` especially when using non-mixed dtypes (:issue:`46470`)
+- Performance improvement in :meth:`DataFrame.to_dict` and :meth:`Series.to_dict` when using any non-object dtypes (:issue:`46470`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.bug_fixes:
