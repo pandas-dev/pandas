@@ -1027,9 +1027,21 @@ class Resampler(BaseGroupBy, PandasObject):
 # downsample methods
 for method in ["sum", "prod", "min", "max", "first", "last"]:
 
-    def f(self, _method=method, min_count=0, *args, **kwargs):
+    def f(
+        self,
+        _method: str = method,
+        numeric_only: bool | lib.NoDefault = lib.no_default,
+        min_count: int = 0,
+        *args,
+        **kwargs,
+    ):
+        if numeric_only is lib.no_default:
+            if _method != "sum":
+                # For DataFrameGroupBy, set it to be False for methods other than `sum`.
+                numeric_only = False
+
         nv.validate_resampler_func(_method, args, kwargs)
-        return self._downsample(_method, min_count=min_count)
+        return self._downsample(_method, numeric_only=numeric_only, min_count=min_count)
 
     f.__doc__ = getattr(GroupBy, method).__doc__
     setattr(Resampler, method, f)
@@ -1470,14 +1482,14 @@ class TimeGrouper(Grouper):
         self,
         freq="Min",
         closed: Literal["left", "right"] | None = None,
-        label: str | None = None,
+        label: Literal["left", "right"] | None = None,
         how="mean",
         axis=0,
         fill_method=None,
         limit=None,
         loffset=None,
         kind: str | None = None,
-        convention: str | None = None,
+        convention: Literal["start", "end", "e", "s"] | None = None,
         base: int | None = None,
         origin: str | TimestampConvertibleTypes = "start_day",
         offset: TimedeltaConvertibleTypes | None = None,
@@ -1523,10 +1535,7 @@ class TimeGrouper(Grouper):
         self.closed = closed
         self.label = label
         self.kind = kind
-
-        self.convention = convention or "E"
-        self.convention = self.convention.lower()
-
+        self.convention = convention if convention is not None else "e"
         self.how = how
         self.fill_method = fill_method
         self.limit = limit

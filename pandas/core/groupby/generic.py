@@ -84,6 +84,7 @@ from pandas.core.indexes.api import (
     all_indexes_same,
 )
 from pandas.core.series import Series
+from pandas.core.shared_docs import _shared_docs
 from pandas.core.util.numba_ import maybe_use_numba
 
 from pandas.plotting import boxplot_frame_groupby
@@ -396,11 +397,13 @@ class SeriesGroupBy(GroupBy[Series]):
             res_ser.name = self.obj.name
             return res_ser
         elif isinstance(values[0], (Series, DataFrame)):
-            return self._concat_objects(
+            result = self._concat_objects(
                 values,
                 not_indexed_same=not_indexed_same,
                 override_group_keys=override_group_keys,
             )
+            result.name = self.obj.name
+            return result
         else:
             # GH #6265 #24880
             result = self.obj._constructor(
@@ -1552,7 +1555,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return results
 
-    @Appender(DataFrame.idxmax.__doc__)
+    @doc(_shared_docs["idxmax"])
     def idxmax(self, axis=0, skipna: bool = True):
         axis = DataFrame._get_axis_number(axis)
         numeric_only = None if axis == 0 else False
@@ -1574,7 +1577,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         func.__name__ = "idxmax"
         return self._python_apply_general(func, self._obj_with_exclusions)
 
-    @Appender(DataFrame.idxmin.__doc__)
+    @doc(_shared_docs["idxmin"])
     def idxmin(self, axis=0, skipna: bool = True):
         axis = DataFrame._get_axis_number(axis)
         numeric_only = None if axis == 0 else False
