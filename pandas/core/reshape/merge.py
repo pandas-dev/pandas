@@ -2383,14 +2383,14 @@ def _items_overlap_with_suffix(
 
         Parameters
         ----------
-        x : original column name
+        x : original column
         suffix : str or None
 
         Returns
         -------
-        x : renamed column name
+        x : renamed column
         """
-        if x in to_rename and suffix is not None:
+        if x in to_rename and isinstance(x, str) and suffix is not None:
             return f"{x}{suffix}"
         return x
 
