@@ -1,5 +1,4 @@
-import cython
-
+cimport cython
 from cpython.datetime cimport (
     date,
     datetime,
@@ -355,36 +354,44 @@ def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None) -> bool:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def dt64arr_to_periodarr(const int64_t[:] stamps, int freq, tzinfo tz):
+def dt64arr_to_periodarr(ndarray stamps, int freq, tzinfo tz):
+    # stamps is int64_t, arbitrary ndim
     cdef:
         Localizer info = Localizer(tz)
-        int64_t utc_val, local_val
-        Py_ssize_t pos, i, n = stamps.shape[0]
+        Py_ssize_t pos, i, n = stamps.size
+        int64_t utc_val, local_val, res_val
         int64_t* tdata = NULL
 
         npy_datetimestruct dts
-        int64_t[::1] result = np.empty(n, dtype=np.int64)
+        ndarray result = cnp.PyArray_EMPTY(stamps.ndim, stamps.shape, cnp.NPY_INT64, 0)
+        cnp.broadcast mi = cnp.PyArray_MultiIterNew2(result, stamps)
 
     if info.use_dst:
         tdata = <int64_t*>cnp.PyArray_DATA(info.trans)
 
     for i in range(n):
-        utc_val = stamps[i]
+        # Analogous to: utc_val = stamps[i]
+        utc_val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+
         if utc_val == NPY_NAT:
-            result[i] = NPY_NAT
-            continue
-
-        if info.use_utc:
-            local_val = utc_val
-        elif info.use_tzlocal:
-            local_val = utc_val + localize_tzinfo_api(utc_val, tz)
-        elif info.use_fixed:
-            local_val = utc_val + info.delta
+            res_val = NPY_NAT
         else:
-            pos = bisect_right_i8(tdata, utc_val, info.ntrans) - 1
-            local_val = utc_val + info.deltas[pos]
+            if info.use_utc:
+                local_val = utc_val
+            elif info.use_tzlocal:
+                local_val = utc_val + localize_tzinfo_api(utc_val, tz)
+            elif info.use_fixed:
+                local_val = utc_val + info.delta
+            else:
+                pos = bisect_right_i8(tdata, utc_val, info.ntrans) - 1
+                local_val = utc_val + info.deltas[pos]
 
-        dt64_to_dtstruct(local_val, &dts)
-        result[i] = get_period_ordinal(&dts, freq)
+            dt64_to_dtstruct(local_val, &dts)
+            res_val = get_period_ordinal(&dts, freq)
 
-    return result.base  # .base to get underlying ndarray
+        # Analogous to: result[i] = res_val
+        (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
+
+        cnp.PyArray_MultiIter_NEXT(mi)
+
+    return result
