@@ -4,7 +4,11 @@ from datetime import (
     datetime,
     timedelta,
 )
+from operator import add, attrgetter
+from typing import Callable, Iterable, Union
 
+from hypothesis import given
+import hypothesis.strategies as st
 import numpy as np
 import pytest
 
@@ -15,6 +19,7 @@ from pandas.errors import (
 
 import pandas as pd
 from pandas import (
+    array,
     DataFrame,
     DatetimeIndex,
     NaT,
@@ -25,6 +30,7 @@ from pandas import (
     offsets,
     timedelta_range,
 )
+from pandas.core.arrays import TimedeltaArray
 import pandas._testing as tm
 from pandas.core.api import (
     Float64Index,
@@ -35,6 +41,14 @@ from pandas.tests.arithmetic.common import (
     assert_invalid_addsub_type,
     assert_invalid_comparison,
     get_upcast_box,
+)
+
+
+ScalarOrBoxType = Union[Timedelta, TimedeltaArray, TimedeltaIndex, Series, DataFrame]
+
+
+positive_tds = st.integers(min_value=1, max_value=pd.Timedelta.max.value).map(
+    pd.Timedelta
 )
 
 
@@ -273,6 +287,81 @@ class TestTimedelta64ArrayComparisons:
 
 # ------------------------------------------------------------------
 # Timedelta64[ns] dtype Arithmetic Operations
+
+
+@pytest.fixture(
+    name="scalar_or_box_factory",
+    params=[Timedelta, TimedeltaArray, TimedeltaIndex, Series, DataFrame],
+    ids=attrgetter("__name__"),
+    scope="module",
+)
+def fixture_scalar_or_box_factory(
+    request: pytest.FixtureRequest,
+) -> Callable[[Timedelta], ScalarOrBoxType]:
+    type_ = request.param
+
+    def factory(value):
+        if type_ is Timedelta:
+            return value
+        elif type_ is DataFrame:
+            return Series(value).to_frame()
+        else:
+            return type_(pd.array([value]))
+
+    return factory
+
+
+@pytest.fixture(
+    name="commute",
+    params=[True, False],
+    scope="module",
+    ids=lambda v: "commuted" if v else "",
+)
+def fixture_commute(request: pytest.FixtureRequest) -> Callable[[Iterable], tuple]:
+    def f(*args):
+        return tuple(reversed(args)) if request.param else args
+
+    return f
+
+
+@given(increment_value=positive_tds)
+def test_addition_raises_expected_error_if_result_would_overflow(
+    increment_value: Timedelta,
+    scalar_or_box_factory: Callable[[Timedelta], ScalarOrBoxType],
+    commute: Callable[[Iterable], tuple],
+):
+    initial_value = scalar_or_box_factory(pd.Timedelta.max)
+    to_add = scalar_or_box_factory(increment_value)
+    values = commute(initial_value, to_add)
+
+    if isinstance(initial_value, pd.Timedelta):
+        msg = "Python int too large to convert to C long"
+    else:
+        msg = "Overflow in int64 addition"
+
+    with pytest.raises(OverflowError, match=msg):
+        add(*values)
+
+
+@given(increment_value=positive_tds)
+def test_timedelta_additon_raises_expected_error_if_result_would_overflow(
+    increment_value: Timedelta,
+    scalar_or_box_factory: Callable[[Timedelta], ScalarOrBoxType],
+    commute: Callable[[Iterable], tuple],
+):
+    initial_value = pd.Timestamp.max
+    to_add = scalar_or_box_factory(increment_value)
+    values = commute(initial_value, to_add)
+
+    if isinstance(to_add, pd.Timedelta):
+        ex = OutOfBoundsDatetime
+        msg = "Out of bounds nanosecond timestamp"
+    else:
+        ex = OverflowError
+        msg = "Overflow in int64 addition"
+
+    with pytest.raises(ex, match=msg):
+        add(*values)
 
 
 class TestTimedelta64ArithmeticUnsorted:
@@ -687,30 +776,6 @@ class TestAddSubNaTMasking:
                 assert res[1] is NaT
 
     def test_tdi_add_overflow(self):
-        # See GH#14068
-        # preliminary test scalar analogue of vectorized tests below
-        # TODO: Make raised error message more informative and test
-        with pytest.raises(OutOfBoundsDatetime, match="10155196800000000000"):
-            pd.to_timedelta(106580, "D") + Timestamp("2000")
-        with pytest.raises(OutOfBoundsDatetime, match="10155196800000000000"):
-            Timestamp("2000") + pd.to_timedelta(106580, "D")
-
-        _NaT = NaT.value + 1
-        msg = "Overflow in int64 addition"
-        with pytest.raises(OverflowError, match=msg):
-            pd.to_timedelta([106580], "D") + Timestamp("2000")
-        with pytest.raises(OverflowError, match=msg):
-            Timestamp("2000") + pd.to_timedelta([106580], "D")
-        with pytest.raises(OverflowError, match=msg):
-            pd.to_timedelta([_NaT]) - Timedelta("1 days")
-        with pytest.raises(OverflowError, match=msg):
-            pd.to_timedelta(["5 days", _NaT]) - Timedelta("1 days")
-        with pytest.raises(OverflowError, match=msg):
-            (
-                pd.to_timedelta([_NaT, "5 days", "1 hours"])
-                - pd.to_timedelta(["7 seconds", _NaT, "4 hours"])
-            )
-
         # These should not overflow!
         exp = TimedeltaIndex([NaT])
         result = pd.to_timedelta([NaT]) - Timedelta("1 days")
