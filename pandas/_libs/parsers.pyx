@@ -12,16 +12,7 @@ import sys
 import time
 import warnings
 
-from libc.stdlib cimport free
-from libc.string cimport (
-    strcasecmp,
-    strlen,
-    strncpy,
-)
-
-import cython
-from cython import Py_ssize_t
-
+cimport cython
 from cpython.bytes cimport (
     PyBytes_AsString,
     PyBytes_FromString,
@@ -39,6 +30,13 @@ from cpython.unicode cimport (
     PyUnicode_AsUTF8String,
     PyUnicode_Decode,
     PyUnicode_DecodeUTF8,
+)
+from cython cimport Py_ssize_t
+from libc.stdlib cimport free
+from libc.string cimport (
+    strcasecmp,
+    strlen,
+    strncpy,
 )
 
 
