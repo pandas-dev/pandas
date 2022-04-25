@@ -4,7 +4,7 @@ from datetime import (
     datetime,
     timedelta,
 )
-from operator import add, attrgetter
+from operator import add, attrgetter, mul
 from typing import Callable, Iterable, Union
 
 from hypothesis import given
@@ -50,6 +50,7 @@ ScalarOrBoxType = Union[Timedelta, TimedeltaArray, TimedeltaIndex, Series, DataF
 positive_tds = st.integers(min_value=1, max_value=pd.Timedelta.max.value).map(
     pd.Timedelta
 )
+xfail_no_overflow_check = pytest.mark.xfail(reason="No overflow check")
 
 
 def assert_dtype(obj, expected_dtype):
@@ -324,17 +325,17 @@ def fixture_commute(request: pytest.FixtureRequest) -> Callable[[Iterable], tupl
     return f
 
 
-@given(increment_value=positive_tds)
+@given(to_add=positive_tds)
 def test_addition_raises_expected_error_if_result_would_overflow(
-    increment_value: Timedelta,
+    to_add: Timedelta,
     scalar_or_box_factory: Callable[[Timedelta], ScalarOrBoxType],
     commute: Callable[[Iterable], tuple],
 ):
-    initial_value = scalar_or_box_factory(pd.Timedelta.max)
-    to_add = scalar_or_box_factory(increment_value)
-    values = commute(initial_value, to_add)
+    left = scalar_or_box_factory(pd.Timedelta.max)
+    right = scalar_or_box_factory(to_add)
+    values = commute(left, right)
 
-    if isinstance(initial_value, pd.Timedelta):
+    if pd.api.types.is_scalar(left):
         msg = "Python int too large to convert to C long"
     else:
         msg = "Overflow in int64 addition"
@@ -343,17 +344,34 @@ def test_addition_raises_expected_error_if_result_would_overflow(
         add(*values)
 
 
-@given(increment_value=positive_tds)
-def test_timedelta_additon_raises_expected_error_if_result_would_overflow(
-    increment_value: Timedelta,
+@xfail_no_overflow_check
+@given(to_sub=positive_tds)
+def test_subtraction_raises_expected_error_if_result_would_overflow(
+    to_sub: Timedelta,
     scalar_or_box_factory: Callable[[Timedelta], ScalarOrBoxType],
     commute: Callable[[Iterable], tuple],
 ):
-    initial_value = pd.Timestamp.max
-    to_add = scalar_or_box_factory(increment_value)
-    values = commute(initial_value, to_add)
+    left = scalar_or_box_factory(pd.Timedelta.min)
+    right = scalar_or_box_factory(to_sub)
+    values = commute(left, right)
 
-    if isinstance(to_add, pd.Timedelta):
+    with pytest.raises(OverflowError):
+        left = -1 * abs(values[0])
+        right = abs(values[1])
+        left - right
+
+
+@given(to_add=positive_tds)
+def test_timestamp_additon_raises_expected_error_if_result_would_overflow(
+    to_add: Timedelta,
+    scalar_or_box_factory: Callable[[Timedelta], ScalarOrBoxType],
+    commute: Callable[[Iterable], tuple],
+):
+    left = pd.Timestamp.max
+    right = scalar_or_box_factory(to_add)
+    values = commute(left, right)
+
+    if pd.api.types.is_scalar(right):
         ex = OutOfBoundsDatetime
         msg = "Out of bounds nanosecond timestamp"
     else:
@@ -362,6 +380,36 @@ def test_timedelta_additon_raises_expected_error_if_result_would_overflow(
 
     with pytest.raises(ex, match=msg):
         add(*values)
+
+
+@given(value=st.floats().filter(lambda f: abs(f) > 1))
+@pytest.mark.parametrize(
+    argnames="initial_value",
+    argvalues=[
+        pd.Timedelta.max,
+        pytest.param(pd.array([pd.Timedelta.max]), marks=xfail_no_overflow_check),
+        pytest.param(
+            pd.TimedeltaIndex([pd.Timedelta.max]),
+            marks=xfail_no_overflow_check,
+        ),
+        pytest.param(pd.Series(pd.Timedelta.max), marks=xfail_no_overflow_check),
+        pytest.param(
+            pd.Series(pd.Timedelta.max).to_frame(),
+            marks=xfail_no_overflow_check,
+        ),
+    ],
+    ids=attrgetter("__class__.__name__"),
+)
+def test_scalar_multiplication_raises_expected_error_if_result_would_overflow(
+    value: float,
+    initial_value: ScalarOrBoxType,
+    commute: Callable[[Iterable], tuple],
+):
+    values = commute(initial_value, value)
+
+    msg = "Python int too large to convert to C long|cannot convert float infinity to integer"
+    with pytest.raises(OverflowError, match=msg):
+        mul(*values)
 
 
 class TestTimedelta64ArithmeticUnsorted:
