@@ -87,12 +87,12 @@ xfail_no_overflow_check = pytest.mark.xfail(reason="No overflow check")
     params=tuple(combinations_with_replacement(timedelta_types, 2)),
     ids=get_item_names,
 )
-def fixture_add_sub_types(request: pytest.FixtureRequest) -> BinaryOpTypes:
+def fixture_add_sub_types(request) -> BinaryOpTypes:
     """
     Expected types when adding, subtracting Timedeltas.
     """
     return_type = max(request.param, key=lambda t: timedelta_types.index(t))
-    return BinaryOpTypes(*request.param, return_type)
+    return BinaryOpTypes(request.param[0], request.param[1], return_type)
 
 
 @pytest.fixture(
@@ -101,7 +101,7 @@ def fixture_add_sub_types(request: pytest.FixtureRequest) -> BinaryOpTypes:
     params=tuple(product(timedelta_types, timestamp_types)),
     ids=get_item_names,
 )
-def fixture_ts_add_sub_types(request: pytest.FixtureRequest) -> BinaryOpTypes:
+def fixture_ts_add_sub_types(request) -> BinaryOpTypes:
     """
     Expected types when adding, subtracting Timedeltas and Timestamps.
     """
@@ -111,7 +111,7 @@ def fixture_ts_add_sub_types(request: pytest.FixtureRequest) -> BinaryOpTypes:
     }
     return_type = timestamp_types[max(type_hierarchy[t] for t in request.param)]
 
-    return BinaryOpTypes(*request.param, return_type)
+    return BinaryOpTypes(request.param[0], request.param[1], return_type)
 
 
 def wrap_value(value: Union[Timestamp, Timedelta], type_):
@@ -413,12 +413,8 @@ def test_add_timestamp_raises_expected_error_if_result_would_overflow(
     left = wrap_value(td_value, ts_add_sub_types.left)
     right = wrap_value(Timestamp.max, ts_add_sub_types.right)
 
-    if ts_add_sub_types.result is Timestamp:
-        ex = OutOfBoundsDatetime
-        msg = "Out of bounds nanosecond timestamp"
-    else:
-        ex = OverflowError
-        msg = "Overflow in int64 addition"
+    ex = (OutOfBoundsDatetime, OverflowError)
+    msg = "|".join(["Out of bounds nanosecond timestamp", "Overflow in int64 addition"])
 
     with pytest.raises(ex, match=msg):
         left + right
@@ -436,12 +432,8 @@ def test_sub_timestamp_raises_expected_error_if_result_would_overflow(
     right = wrap_value(td_value, ts_add_sub_types[0])
     left = wrap_value(Timestamp.min, ts_add_sub_types[1])
 
-    if ts_add_sub_types.result is Timestamp:
-        ex = OutOfBoundsDatetime
-        msg = "Out of bounds nanosecond timestamp"
-    else:
-        ex = OverflowError
-        msg = "Overflow in int64 addition"
+    ex = (OutOfBoundsDatetime, OverflowError)
+    msg = "|".join(["Out of bounds nanosecond timestamp", "Overflow in int64 addition"])
 
     with pytest.raises(ex, match=msg):
         left - right
@@ -457,6 +449,7 @@ def test_scalar_multiplication_raises_expected_error_if_result_would_overflow(
         [
             "cannot convert float infinity to integer",
             "Python int too large to convert to C long",
+            "int too big to convert",
         ]
     )
     with pytest.raises(OverflowError, match=msg):
@@ -470,7 +463,7 @@ def test_scalar_multiplication_raises_expected_error_if_result_would_overflow(
 @given(value=st.floats().filter(lambda f: abs(f) > 1))
 @pytest.mark.parametrize(
     argnames="td_type",
-    argvalues=timedelta_types[containers],
+    argvalues=timedelta_types[containers],  # type: ignore[arg-type]
     ids=attrgetter("__name__"),
 )
 def test_container_scalar_multiplication_raises_expected_error_if_result_would_overflow(
