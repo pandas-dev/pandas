@@ -812,6 +812,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         were timezone-naive.
         """
         if self.tz is None or timezones.is_utc(self.tz):
+            # Avoid the copy that would be made in tzconversion
             return self.asi8
         return tzconversion.tz_convert_from_utc(self.asi8, self.tz)
 
@@ -1123,7 +1124,6 @@ default 'raise'
         new_values = normalize_i8_timestamps(self.asi8, self.tz)
         return type(self)(new_values)._with_freq("infer").tz_localize(self.tz)
 
-    @dtl.ravel_compat
     def to_period(self, freq=None) -> PeriodArray:
         """
         Cast to PeriodArray/Index at a particular frequency.
@@ -2247,10 +2247,9 @@ def objects_to_datetime64ns(
         result = result.reshape(data.shape, order=order)
     except ValueError as err:
         try:
-            values, tz_parsed = conversion.datetime_to_datetime64(data.ravel("K"))
+            values, tz_parsed = conversion.datetime_to_datetime64(data)
             # If tzaware, these values represent unix timestamps, so we
             #  return them as i8 to distinguish from wall times
-            values = values.reshape(data.shape, order=order)
             return values.view("i8"), tz_parsed
         except (ValueError, TypeError):
             raise err
