@@ -4,8 +4,17 @@ from datetime import (
     datetime,
     timedelta,
 )
-from operator import add, attrgetter, mul
-from typing import Callable, Iterable, Union
+from itertools import (
+    chain,
+    combinations_with_replacement,
+    product,
+)
+from operator import attrgetter
+from typing import (
+    NamedTuple,
+    Type,
+    Union,
+)
 
 from hypothesis import given
 import hypothesis.strategies as st
@@ -19,7 +28,6 @@ from pandas.errors import (
 
 import pandas as pd
 from pandas import (
-    array,
     DataFrame,
     DatetimeIndex,
     NaT,
@@ -30,12 +38,15 @@ from pandas import (
     offsets,
     timedelta_range,
 )
-from pandas.core.arrays import TimedeltaArray
 import pandas._testing as tm
 from pandas.core.api import (
     Float64Index,
     Int64Index,
     UInt64Index,
+)
+from pandas.core.arrays import (
+    DatetimeArray,
+    TimedeltaArray,
 )
 from pandas.tests.arithmetic.common import (
     assert_invalid_addsub_type,
@@ -43,14 +54,76 @@ from pandas.tests.arithmetic.common import (
     get_upcast_box,
 )
 
+timedelta_types = (Timedelta, TimedeltaArray, TimedeltaIndex, Series, DataFrame)
+timestamp_types = (Timestamp, DatetimeArray, DatetimeIndex, Series, DataFrame)
+containers = slice(1, None)
+get_item_names = lambda t: "-".join(map(attrgetter("__name__"), t))
 
-ScalarOrBoxType = Union[Timedelta, TimedeltaArray, TimedeltaIndex, Series, DataFrame]
+
+class BinaryOpTypes(NamedTuple):
+    """
+    The expected operand and result types for a binary operation.
+    """
+
+    left: Type
+    right: Type
+    result: Type
+
+    def __str__(self) -> str:
+        return get_item_names(self)
+
+    def __repr__(self) -> str:
+        return f"BinaryOpTypes({self})"
 
 
-positive_tds = st.integers(min_value=1, max_value=pd.Timedelta.max.value).map(
-    pd.Timedelta
-)
+positive_tds = st.integers(min_value=1, max_value=Timedelta.max.value).map(Timedelta)
+
 xfail_no_overflow_check = pytest.mark.xfail(reason="No overflow check")
+
+
+@pytest.fixture(
+    name="add_sub_types",
+    scope="module",
+    params=tuple(combinations_with_replacement(timedelta_types, 2)),
+    ids=get_item_names,
+)
+def fixture_add_sub_types(request: pytest.FixtureRequest) -> BinaryOpTypes:
+    """
+    Expected types when adding, subtracting Timedeltas.
+    """
+    return_type = max(request.param, key=lambda t: timedelta_types.index(t))
+    return BinaryOpTypes(*request.param, return_type)
+
+
+@pytest.fixture(
+    name="ts_add_sub_types",
+    scope="module",
+    params=tuple(product(timedelta_types, timestamp_types)),
+    ids=get_item_names,
+)
+def fixture_ts_add_sub_types(request: pytest.FixtureRequest) -> BinaryOpTypes:
+    """
+    Expected types when adding, subtracting Timedeltas and Timestamps.
+    """
+    type_hierarchy = {
+        name: i
+        for i, name in chain(enumerate(timedelta_types), enumerate(timestamp_types))
+    }
+    return_type = timestamp_types[max(type_hierarchy[t] for t in request.param)]
+
+    return BinaryOpTypes(*request.param, return_type)
+
+
+def wrap_value(value: Union[Timestamp, Timedelta], type_):
+    """
+    Return value wrapped in a container of given type_, or as-is if type_ is a scalar.
+    """
+    if type_ in (Timedelta, Timestamp):
+        return value
+    elif type_ is DataFrame:
+        return Series(value).to_frame()
+    else:
+        return type_(pd.array([value]))
 
 
 def assert_dtype(obj, expected_dtype):
@@ -290,88 +363,57 @@ class TestTimedelta64ArrayComparisons:
 # Timedelta64[ns] dtype Arithmetic Operations
 
 
-@pytest.fixture(
-    name="scalar_or_box_factory",
-    params=[Timedelta, TimedeltaArray, TimedeltaIndex, Series, DataFrame],
-    ids=attrgetter("__name__"),
-    scope="module",
-)
-def fixture_scalar_or_box_factory(
-    request: pytest.FixtureRequest,
-) -> Callable[[Timedelta], ScalarOrBoxType]:
-    type_ = request.param
-
-    def factory(value):
-        if type_ is Timedelta:
-            return value
-        elif type_ is DataFrame:
-            return Series(value).to_frame()
-        else:
-            return type_(pd.array([value]))
-
-    return factory
-
-
-@pytest.fixture(
-    name="commute",
-    params=[True, False],
-    scope="module",
-    ids=lambda v: "commuted" if v else "",
-)
-def fixture_commute(request: pytest.FixtureRequest) -> Callable[[Iterable], tuple]:
-    def f(*args):
-        return tuple(reversed(args)) if request.param else args
-
-    return f
-
-
-@given(to_add=positive_tds)
-def test_addition_raises_expected_error_if_result_would_overflow(
-    to_add: Timedelta,
-    scalar_or_box_factory: Callable[[Timedelta], ScalarOrBoxType],
-    commute: Callable[[Iterable], tuple],
+@given(positive_td=positive_tds)
+def test_add_raises_expected_error_if_result_would_overflow(
+    add_sub_types: BinaryOpTypes,
+    positive_td: Timedelta,
 ):
-    left = scalar_or_box_factory(pd.Timedelta.max)
-    right = scalar_or_box_factory(to_add)
-    values = commute(left, right)
+    left = wrap_value(Timedelta.max, add_sub_types.left)
+    right = wrap_value(positive_td, add_sub_types.right)
 
-    if pd.api.types.is_scalar(left):
-        msg = "Python int too large to convert to C long"
+    if add_sub_types.result is Timedelta:
+        msg = "|".join(
+            [
+                "int too big to convert",
+                "Python int too large to convert to C long",
+            ]
+        )
     else:
         msg = "Overflow in int64 addition"
 
     with pytest.raises(OverflowError, match=msg):
-        add(*values)
+        left + right
+
+    with pytest.raises(OverflowError, match=msg):
+        right + left
 
 
 @xfail_no_overflow_check
-@given(to_sub=positive_tds)
-def test_subtraction_raises_expected_error_if_result_would_overflow(
-    to_sub: Timedelta,
-    scalar_or_box_factory: Callable[[Timedelta], ScalarOrBoxType],
-    commute: Callable[[Iterable], tuple],
+@given(positive_td=positive_tds)
+def test_sub_raises_expected_error_if_result_would_overflow(
+    add_sub_types: BinaryOpTypes,
+    positive_td: Timedelta,
 ):
-    left = scalar_or_box_factory(pd.Timedelta.min)
-    right = scalar_or_box_factory(to_sub)
-    values = commute(left, right)
+    left = wrap_value(Timedelta.min, add_sub_types.left)
+    right = wrap_value(positive_td, add_sub_types.right)
 
-    with pytest.raises(OverflowError):
-        left = -1 * abs(values[0])
-        right = abs(values[1])
+    msg = "Overflow in int64 addition"
+    with pytest.raises(OverflowError, match=msg):
         left - right
 
+    with pytest.raises(OverflowError, match=msg):
+        (-1 * right) - abs(left)
 
-@given(to_add=positive_tds)
-def test_timestamp_additon_raises_expected_error_if_result_would_overflow(
-    to_add: Timedelta,
-    scalar_or_box_factory: Callable[[Timedelta], ScalarOrBoxType],
-    commute: Callable[[Iterable], tuple],
+
+@given(td_value=positive_tds)
+def test_add_timestamp_raises_expected_error_if_result_would_overflow(
+    ts_add_sub_types: BinaryOpTypes,
+    td_value: Timedelta,
 ):
-    left = pd.Timestamp.max
-    right = scalar_or_box_factory(to_add)
-    values = commute(left, right)
+    left = wrap_value(td_value, ts_add_sub_types.left)
+    right = wrap_value(Timestamp.max, ts_add_sub_types.right)
 
-    if pd.api.types.is_scalar(right):
+    if ts_add_sub_types.result is Timestamp:
         ex = OutOfBoundsDatetime
         msg = "Out of bounds nanosecond timestamp"
     else:
@@ -379,37 +421,70 @@ def test_timestamp_additon_raises_expected_error_if_result_would_overflow(
         msg = "Overflow in int64 addition"
 
     with pytest.raises(ex, match=msg):
-        add(*values)
+        left + right
+
+    with pytest.raises(ex, match=msg):
+        right + left
+
+
+@xfail_no_overflow_check
+@given(td_value=positive_tds)
+def test_sub_timestamp_raises_expected_error_if_result_would_overflow(
+    ts_add_sub_types: BinaryOpTypes,
+    td_value: Timedelta,
+):
+    right = wrap_value(td_value, ts_add_sub_types[0])
+    left = wrap_value(Timestamp.min, ts_add_sub_types[1])
+
+    if ts_add_sub_types.result is Timestamp:
+        ex = OutOfBoundsDatetime
+        msg = "Out of bounds nanosecond timestamp"
+    else:
+        ex = OverflowError
+        msg = "Overflow in int64 addition"
+
+    with pytest.raises(ex, match=msg):
+        left - right
 
 
 @given(value=st.floats().filter(lambda f: abs(f) > 1))
-@pytest.mark.parametrize(
-    argnames="initial_value",
-    argvalues=[
-        pd.Timedelta.max,
-        pytest.param(pd.array([pd.Timedelta.max]), marks=xfail_no_overflow_check),
-        pytest.param(
-            pd.TimedeltaIndex([pd.Timedelta.max]),
-            marks=xfail_no_overflow_check,
-        ),
-        pytest.param(pd.Series(pd.Timedelta.max), marks=xfail_no_overflow_check),
-        pytest.param(
-            pd.Series(pd.Timedelta.max).to_frame(),
-            marks=xfail_no_overflow_check,
-        ),
-    ],
-    ids=attrgetter("__class__.__name__"),
-)
 def test_scalar_multiplication_raises_expected_error_if_result_would_overflow(
     value: float,
-    initial_value: ScalarOrBoxType,
-    commute: Callable[[Iterable], tuple],
 ):
-    values = commute(initial_value, value)
+    td = Timedelta.max
 
-    msg = "Python int too large to convert to C long|cannot convert float infinity to integer"
+    msg = "|".join(
+        [
+            "cannot convert float infinity to integer",
+            "Python int too large to convert to C long",
+        ]
+    )
     with pytest.raises(OverflowError, match=msg):
-        mul(*values)
+        td * value
+
+    with pytest.raises(OverflowError, match=msg):
+        value * td
+
+
+@xfail_no_overflow_check
+@given(value=st.floats().filter(lambda f: abs(f) > 1))
+@pytest.mark.parametrize(
+    argnames="td_type",
+    argvalues=timedelta_types[containers],
+    ids=attrgetter("__name__"),
+)
+def test_container_scalar_multiplication_raises_expected_error_if_result_would_overflow(
+    value: float,
+    td_type: Type,
+):
+    td = wrap_value(Timedelta.max, td_type)
+
+    msg = "Overflow in int64 addition"
+    with pytest.raises(OverflowError, match=msg):
+        td * value
+
+    with pytest.raises(OverflowError, match=msg):
+        value * td
 
 
 class TestTimedelta64ArithmeticUnsorted:
