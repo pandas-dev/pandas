@@ -5,11 +5,7 @@ import re
 import time
 import warnings
 
-from libc.string cimport strchr
-
-import cython
-from cython import Py_ssize_t
-
+cimport cython
 from cpython.datetime cimport (
     datetime,
     datetime_new,
@@ -17,6 +13,8 @@ from cpython.datetime cimport (
     tzinfo,
 )
 from cpython.object cimport PyObject_Str
+from cython cimport Py_ssize_t
+from libc.string cimport strchr
 
 import_datetime()
 
@@ -327,11 +325,10 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     if is_offset_object(freq):
         freq = freq.rule_code
 
-    if dayfirst is None or yearfirst is None:
-        if dayfirst is None:
-            dayfirst = get_option("display.date_dayfirst")
-        if yearfirst is None:
-            yearfirst = get_option("display.date_yearfirst")
+    if dayfirst is None:
+        dayfirst = get_option("display.date_dayfirst")
+    if yearfirst is None:
+        yearfirst = get_option("display.date_yearfirst")
 
     res = parse_datetime_string_with_reso(arg, freq=freq,
                                           dayfirst=dayfirst,

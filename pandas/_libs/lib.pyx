@@ -3,9 +3,7 @@ from decimal import Decimal
 from enum import Enum
 import warnings
 
-import cython
-from cython import Py_ssize_t
-
+cimport cython
 from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
@@ -25,7 +23,10 @@ from cpython.tuple cimport (
     PyTuple_New,
     PyTuple_SET_ITEM,
 )
-from cython cimport floating
+from cython cimport (
+    Py_ssize_t,
+    floating,
+)
 
 import_datetime()
 
