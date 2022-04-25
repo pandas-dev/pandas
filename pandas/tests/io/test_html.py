@@ -124,7 +124,7 @@ class TestReadHtml:
             </tr>
             <tr>
               <td><a href="https://en.wikipedia.org/">Wikipedia</a></td>
-              <td><a href="ftp://ftp.us.debian.org/">Debian</a></td>
+              <td>SURROUNDING <a href="ftp://ftp.us.debian.org/">Debian</a> TEXT</td>
               <td>Linkless</td>
             </tr>
             <tfoot>
@@ -144,10 +144,10 @@ class TestReadHtml:
                 ("FTP", np.nan),
                 ("Linkless", "https://en.wiktionary.org/wiki/linkless"),
             ],
-            "body_ignore": ["Wikipedia", "Debian", "Linkless"],
+            "body_ignore": ["Wikipedia", "SURROUNDING Debian TEXT", "Linkless"],
             "body_extract": [
                 ("Wikipedia", "https://en.wikipedia.org/"),
-                ("Debian", "ftp://ftp.us.debian.org/"),
+                ("SURROUNDING Debian TEXT", "ftp://ftp.us.debian.org/"),
                 ("Linkless", None),
             ],
             "footer_ignore": ["Footer", None, None],
