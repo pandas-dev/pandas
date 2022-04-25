@@ -4135,8 +4135,10 @@ class DataFrame(NDFrame, OpsMixin):
         kwargs["target"] = None
         res = self.eval(expr, **kwargs)
         if not is_bool_dtype(res):
-            msg = f"expr must evaluate to boolean not {res.dtypes}"
-            raise ValueError(msg)
+            # Special condition to check when dealing with higher dimensions
+            if not (res.ndim > 1 and (res.dtypes == bool).all()):
+                msg = f"expr must evaluate to boolean not {res.dtypes}"
+                raise ValueError(msg)
         try:
             result = self.loc[res]
         except ValueError:
