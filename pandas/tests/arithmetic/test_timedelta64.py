@@ -118,12 +118,17 @@ def wrap_value(value: Union[Timestamp, Timedelta], type_):
     """
     Return value wrapped in a container of given type_, or as-is if type_ is a scalar.
     """
-    if type_ in (Timedelta, Timestamp):
-        return value
-    elif type_ is DataFrame:
-        return Series(value).to_frame()
+    if issubclass(type_, (Timedelta, Timestamp)):
+        return type_(value)
+
+    if issubclass(type_, pd.core.arrays.ExtensionArray):
+        box_cls = pd.array
+    elif issubclass(type_, pd.Index):
+        box_cls = pd.Index
     else:
-        return type_(pd.array([value]))
+        box_cls = type_
+
+    return type_(tm.box_expected([value], box_cls))
 
 
 def assert_dtype(obj, expected_dtype):
