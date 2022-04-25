@@ -13,15 +13,27 @@ classes (if they are relevant for the extension interface for all dtypes), or
 be added to the array-specific tests in `pandas/tests/arrays/`.
 
 """
+from contextlib import nullcontext
 import string
 
 import numpy as np
 import pytest
 
+from pandas.compat import pa_version_under6p0
+from pandas.errors import PerformanceWarning
+
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.arrays import ArrowStringArray
 from pandas.core.arrays.string_ import StringDtype
 from pandas.tests.extension import base
+
+
+def maybe_perf_warn(using_pyarrow):
+    if using_pyarrow:
+        return tm.assert_produces_warning(PerformanceWarning, match="Falling back")
+    else:
+        return nullcontext()
 
 
 def split_array(arr):
@@ -139,7 +151,13 @@ class TestIndex(base.BaseIndexTests):
 
 
 class TestMissing(base.BaseMissingTests):
-    pass
+    def test_dropna_array(self, data_missing):
+        with maybe_perf_warn(
+            pa_version_under6p0 and data_missing.dtype.storage == "pyarrow"
+        ):
+            result = data_missing.dropna()
+        expected = data_missing[[1]]
+        self.assert_extension_array_equal(result, expected)
 
 
 class TestNoReduce(base.BaseNoReduceTests):
