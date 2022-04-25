@@ -1146,7 +1146,7 @@ def assert_frame_equal(
     Check that left and right DataFrame are equal.
 
     This function is intended to compare two DataFrames and output any
-    differences. Is is mostly intended for use in unit tests.
+    differences. It is mostly intended for use in unit tests.
     Additional parameters allow varying the strictness of the
     equality checks performed.
 
