@@ -35,7 +35,7 @@ def skip_if_no_pandas_parser(parser):
 
 
 class TestCompat:
-    def test_query_non_bolean_raise_error(self):
+    def test_query_non_boolean_raise_error(self):
         df = DataFrame([[0, 10], [1, 20]], columns=["cat", "count"])
         msg = "expr must evaluate to boolean not"
         with pytest.raises(ValueError, match=msg):
