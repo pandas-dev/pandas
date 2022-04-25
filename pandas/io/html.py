@@ -31,6 +31,8 @@ from pandas.core.dtypes.common import is_list_like
 
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
+from pandas.core.indexes.base import Index
+from pandas.core.indexes.multi import MultiIndex
 
 from pandas.io.common import (
     file_exists,
@@ -490,7 +492,8 @@ class _HtmlFrameParser:
         Returns
         -------
         list of list
-            Each returned row is a list of str text.
+            Each returned row is a list of str text, or tuple (text, link)
+            if extract_links is not None.
 
         Notes
         -----
@@ -522,10 +525,8 @@ class _HtmlFrameParser:
                 # Append the text from this <td>, colspan times
                 text = _remove_whitespace(self._text_getter(td))
                 if self.extract_links == "all" or self.extract_links == section:
-                    # All cells will be tuples except for the headers for
-                    # consistency in selection (e.g. using .str indexing)
                     href = self._href_getter(td)
-                    text = (text, href) if href else (text,)
+                    text = (text, href) if href else (text, None)
                 rowspan = int(self._attr_getter(td, "rowspan") or 1)
                 colspan = int(self._attr_getter(td, "colspan") or 1)
 
@@ -874,7 +875,13 @@ def _data_to_frame(**kwargs):
     # fill out elements of body that are "ragged"
     _expand_elements(body)
     with TextParser(body, header=header, **kwargs) as tp:
-        return tp.read()
+        df = tp.read()
+
+        # Cast MultiIndex header to an Index of tuples.
+        # This maintains consistency of selection (e.g. df.columns.str[1])
+        if isinstance(df.columns, MultiIndex):
+            df.columns = Index(df.columns)
+        return df
 
 
 _valid_parsers = {

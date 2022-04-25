@@ -135,6 +135,29 @@ class TestReadHtml:
           </table>
           """
 
+    @pytest.fixture
+    def gh_13141_expected(self):
+        return {
+            "head_ignore": ["HTTP", "FTP", "Linkless"],
+            "head_extract": [
+                ("HTTP", np.nan),
+                ("FTP", np.nan),
+                ("Linkless", "https://en.wiktionary.org/wiki/linkless"),
+            ],
+            "body_ignore": ["Wikipedia", "Debian", "Linkless"],
+            "body_extract": [
+                ("Wikipedia", "https://en.wikipedia.org/"),
+                ("Debian", "ftp://ftp.us.debian.org/"),
+                ("Linkless", None),
+            ],
+            "footer_ignore": ["Footer", None, None],
+            "footer_extract": [
+                ("Footer", "https://en.wikipedia.org/wiki/Page_footer"),
+                None,
+                None,
+            ],
+        }
+
     @pytest.fixture(autouse=True, scope="function")
     def set_defaults(self, flavor):
         self.read_html = partial(read_html, flavor=flavor)
@@ -1309,118 +1332,30 @@ class TestReadHtml:
         df2 = self.read_html(file_path)[0]
         tm.assert_frame_equal(df1, df2)
 
-    def test_extract_links(self, gh_13141_data):
-        # GH 13141:
-        # read_html argument to interpret hyperlinks as links (not merely text)
-        result = self.read_html(
-            gh_13141_data,
-            extract_links="all",
-        )[0]
+    @pytest.mark.parametrize("arg", ["all", "body", "header", "footer"])
+    def test_extract_links(self, gh_13141_data, gh_13141_expected, arg):
+        data_exp = gh_13141_expected["body_ignore"]
+        foot_exp = gh_13141_expected["footer_ignore"]
+        head_exp = gh_13141_expected["head_ignore"]
+        if arg == "all":
+            data_exp = gh_13141_expected["body_extract"]
+            foot_exp = gh_13141_expected["footer_extract"]
+            head_exp = gh_13141_expected["head_extract"]
+        elif arg == "body":
+            data_exp = gh_13141_expected["body_extract"]
+        elif arg == "footer":
+            foot_exp = gh_13141_expected["footer_extract"]
+        elif arg == "header":
+            head_exp = gh_13141_expected["head_extract"]
 
-        expected = DataFrame(
-            [
-                [
-                    ("Wikipedia", "https://en.wikipedia.org/"),
-                    ("Debian", "ftp://ftp.us.debian.org/"),
-                    ("Linkless",),
-                ],
-                [("Footer", "https://en.wikipedia.org/wiki/Page_footer"), None, None],
-            ],
-            columns=(
-                ("HTTP", np.nan),
-                ("FTP", np.nan),
-                ("Linkless", "https://en.wiktionary.org/wiki/linkless"),
-            ),
-        )
-
+        result = self.read_html(gh_13141_data, extract_links=arg)[0]
+        expected = DataFrame([data_exp, foot_exp], columns=head_exp)
         tm.assert_frame_equal(result, expected)
 
-    def test_extract_links_header(self, gh_13141_data):
-        result = self.read_html(
-            gh_13141_data,
-            extract_links="header",
-        )[0]
-
-        expected = DataFrame(
-            [
-                [
-                    "Wikipedia",
-                    "Debian",
-                    "Linkless",
-                ],
-                ["Footer", None, None],
-            ],
-            columns=(
-                ("HTTP", np.nan),
-                ("FTP", np.nan),
-                ("Linkless", "https://en.wiktionary.org/wiki/linkless"),
-            ),
-        )
-
-        tm.assert_frame_equal(result, expected)
-
-    def test_extract_links_footer(self, gh_13141_data):
-        result = self.read_html(
-            gh_13141_data,
-            extract_links="footer",
-        )[0]
-
-        expected = DataFrame(
-            [
-                [
-                    "Wikipedia",
-                    "Debian",
-                    "Linkless",
-                ],
-                [("Footer", "https://en.wikipedia.org/wiki/Page_footer"), None, None],
-            ],
-            columns=(
-                "HTTP",
-                "FTP",
-                "Linkless",
-            ),
-        )
-
-        tm.assert_frame_equal(result, expected)
-
-    def test_extract_links_body(self, gh_13141_data):
-        result = self.read_html(
-            gh_13141_data,
-            extract_links="body",
-        )[0]
-
-        expected = DataFrame(
-            [
-                [
-                    ("Wikipedia", "https://en.wikipedia.org/"),
-                    ("Debian", "ftp://ftp.us.debian.org/"),
-                    ("Linkless",),
-                ],
-                ["Footer", None, None],
-            ],
-            columns=(
-                "HTTP",
-                "FTP",
-                "Linkless",
-            ),
-        )
-
-        tm.assert_frame_equal(result, expected)
-
-    def test_extract_links_bad(self):
-        html = """
-          <table>
-            <tr>
-              <th><a href="https://en.wiktionary.org/wiki/linkless">Linkless</a></th>
-            </tr>
-            <tr>
-              <td><a href="https://en.wikipedia.org/">Wikipedia</a></td>
-            </tr>
-          </table>
-        """
+    def test_extract_links_bad(self, gh_13141_data):
         msg = (
             "`extract_links` must be one of "
             '{None, "header", "footer", "body", "all"}, got "incorrect"'
         )
         with pytest.raises(ValueError, match=msg):
-            read_html(html, extract_links="incorrect")
+            read_html(gh_13141_data, extract_links="incorrect")
