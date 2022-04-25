@@ -4134,7 +4134,9 @@ class DataFrame(NDFrame, OpsMixin):
         kwargs["level"] = kwargs.pop("level", 0) + 1
         kwargs["target"] = None
         res = self.eval(expr, **kwargs)
-
+        if not is_bool_dtype(res):
+            msg = f"expr must evaluate to boolean not {res.dtypes}"
+            raise ValueError(msg)
         try:
             result = self.loc[res]
         except ValueError:
