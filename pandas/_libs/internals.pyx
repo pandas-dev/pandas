@@ -1,9 +1,8 @@
 from collections import defaultdict
 
-import cython
-from cython import Py_ssize_t
-
+cimport cython
 from cpython.slice cimport PySlice_GetIndicesEx
+from cython cimport Py_ssize_t
 
 
 cdef extern from "Python.h":

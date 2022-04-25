@@ -5,8 +5,8 @@ objects and arrays
 from locale import LC_TIME
 
 from _strptime import LocaleTime
-import cython
-from cython import Py_ssize_t
+cimport cython
+from cython cimport Py_ssize_t
 import numpy as np
 
 cimport numpy as cnp

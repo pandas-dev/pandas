@@ -1,8 +1,7 @@
 import collections
 import warnings
 
-import cython
-
+cimport cython
 from cpython.object cimport (
     Py_EQ,
     Py_NE,

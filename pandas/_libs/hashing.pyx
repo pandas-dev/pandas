@@ -1,8 +1,7 @@
 # Translated from the reference implementation
 # at https://github.com/veorq/SipHash
 
-import cython
-
+cimport cython
 from libc.stdlib cimport (
     free,
     malloc,

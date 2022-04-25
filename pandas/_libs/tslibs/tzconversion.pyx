@@ -1,9 +1,7 @@
 """
 timezone conversion
 """
-import cython
-from cython import Py_ssize_t
-
+cimport cython
 from cpython.datetime cimport (
     PyDelta_Check,
     datetime,
@@ -12,6 +10,7 @@ from cpython.datetime cimport (
     timedelta,
     tzinfo,
 )
+from cython cimport Py_ssize_t
 
 import_datetime()
 
@@ -199,12 +198,13 @@ timedelta-like}
     # result_a) or right of the DST transition (store in result_b)
     result_a = np.empty(n, dtype=np.int64)
     result_b = np.empty(n, dtype=np.int64)
-    result_a[:] = NPY_NAT
-    result_b[:] = NPY_NAT
 
     for i in range(n):
         # This loops resembles the "Find the two best possibilities" block
         #  in pytz's DstTZInfo.localize method.
+        result_a[i] = NPY_NAT
+        result_b[i] = NPY_NAT
+
         val = vals[i]
         if val == NPY_NAT:
             continue
@@ -348,6 +348,7 @@ cdef inline str _render_tstamp(int64_t val):
     return str(Timestamp(val))
 
 
+@cython.boundscheck(False)
 cdef ndarray[int64_t] _get_dst_hours(
     # vals only needed here to potential render an exception message
     const int64_t[:] vals,
@@ -451,6 +452,7 @@ def py_tz_convert_from_utc_single(int64_t utc_val, tzinfo tz):
     return tz_convert_from_utc_single(utc_val, tz)
 
 
+@cython.boundscheck(False)
 cdef int64_t tz_convert_from_utc_single(
     int64_t utc_val,
     tzinfo tz,
@@ -502,7 +504,7 @@ cdef int64_t tz_convert_from_utc_single(
             pos = bisect_right_i8(tdata, utc_val, trans.shape[0]) - 1
 
             # We need to get 'pos' back to the caller so it can pick the
-            #  correct "standardized" tzinfo objecg.
+            #  correct "standardized" tzinfo object.
             if outpos is not NULL:
                 outpos[0] = pos
             return utc_val + deltas[pos]
@@ -665,6 +667,8 @@ cdef int64_t _tz_localize_using_tzinfo_api(
 
 
 # NB: relies on dateutil internals, subject to change.
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef bint infer_dateutil_fold(
     int64_t value,
     const int64_t[::1] trans,
@@ -700,6 +704,7 @@ cdef bint infer_dateutil_fold(
     """
     cdef:
         bint fold = 0
+        int64_t fold_delta
 
     if pos > 0:
         fold_delta = deltas[pos - 1] - deltas[pos]

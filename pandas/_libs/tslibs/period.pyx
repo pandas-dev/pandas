@@ -18,6 +18,14 @@ import numpy as np
 
 cnp.import_array()
 
+cimport cython
+from cpython.datetime cimport (
+    PyDate_Check,
+    PyDateTime_Check,
+    PyDelta_Check,
+    datetime,
+    import_datetime,
+)
 from libc.stdlib cimport (
     free,
     malloc,
@@ -31,19 +39,10 @@ from libc.time cimport (
     tm,
 )
 
-import cython
-
-from cpython.datetime cimport (
-    PyDate_Check,
-    PyDateTime_Check,
-    PyDelta_Check,
-    datetime,
-    import_datetime,
-)
-
 # import datetime C API
 import_datetime()
 
+cimport pandas._libs.tslibs.util as util
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_D,
@@ -52,15 +51,9 @@ from pandas._libs.tslibs.np_datetime cimport (
     dt64_to_dtstruct,
     dtstruct_to_dt64,
     npy_datetimestruct,
+    npy_datetimestruct_to_datetime,
     pandas_datetime_to_datetimestruct,
 )
-
-
-cdef extern from "src/datetime/np_datetime.h":
-    int64_t npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
-                                           npy_datetimestruct *d) nogil
-
-cimport pandas._libs.tslibs.util as util
 
 from pandas._libs.tslibs.timestamps import Timestamp
 
@@ -956,7 +949,7 @@ def periodarr_to_dt64arr(const int64_t[:] periodarr, int freq):
     periods per period convention.
     """
     cdef:
-        int64_t[:] out
+        int64_t[::1] out
         Py_ssize_t i, N
 
     if freq < 6000:  # i.e. FR_DAY, hard-code to avoid need to cast
@@ -972,6 +965,7 @@ def periodarr_to_dt64arr(const int64_t[:] periodarr, int freq):
     else:
         # Short-circuit for performance
         if freq == FR_NS:
+            # TODO: copy?
             return periodarr.base
 
         if freq == FR_US:
@@ -1369,7 +1363,7 @@ cdef int pdays_in_month(int64_t ordinal, int freq):
 def get_period_field_arr(str field, const int64_t[:] arr, int freq):
     cdef:
         Py_ssize_t i, sz
-        int64_t[:] out
+        int64_t[::1] out
         accessor f
 
     func = _get_accessor_func(field)
@@ -1421,7 +1415,7 @@ cdef accessor _get_accessor_func(str field):
 def from_ordinals(const int64_t[:] values, freq):
     cdef:
         Py_ssize_t i, n = len(values)
-        int64_t[:] result = np.empty(len(values), dtype="i8")
+        int64_t[::1] result = np.empty(len(values), dtype="i8")
         int64_t val
 
     freq = to_offset(freq)

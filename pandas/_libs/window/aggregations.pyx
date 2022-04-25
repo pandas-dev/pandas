@@ -1,7 +1,6 @@
 # cython: boundscheck=False, wraparound=False, cdivision=True
 
-import cython
-
+cimport cython
 from libc.math cimport (
     round,
     signbit,

@@ -3,8 +3,7 @@ import re
 import time
 import warnings
 
-import cython
-
+cimport cython
 from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
