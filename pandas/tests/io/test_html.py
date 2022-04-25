@@ -130,6 +130,9 @@ class TestReadHtml:
             <tfoot>
               <tr>
                 <td><a href="https://en.wikipedia.org/wiki/Page_footer">Footer</a></td>
+                <td>
+                  Multiple <a href="1">links:</a> <a href="2">Only first captured.</a>
+                </td>
               </tr>
             </tfoot>
           </table>
@@ -150,10 +153,14 @@ class TestReadHtml:
                 ("SURROUNDING Debian TEXT", "ftp://ftp.us.debian.org/"),
                 ("Linkless", None),
             ],
-            "footer_ignore": ["Footer", None, None],
+            "footer_ignore": [
+                "Footer",
+                "Multiple links: Only first captured.",
+                None,
+            ],
             "footer_extract": [
                 ("Footer", "https://en.wikipedia.org/wiki/Page_footer"),
-                None,
+                ("Multiple links: Only first captured.", "1"),
                 None,
             ],
         }
