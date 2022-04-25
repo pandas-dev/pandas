@@ -66,13 +66,13 @@ def test_map_with_invalid_na_action_raises():
         s.map(lambda x: x, na_action="____")
 
 
-def test_map_arg_is_dict_with_invalid_na_action_raises():
+@pytest.mark.parametrize("na_action", ["____", True])
+def test_map_arg_is_dict_with_invalid_na_action_raises(na_action):
     # https://github.com/pandas-dev/pandas/issues/46588
     s = Series([1, 2, 3])
-    na_action = "____"
     msg = f"na_action must either be 'ignore' or None, {na_action} was passed"
     with pytest.raises(ValueError, match=msg):
-        s.map({1: 2}, na_action="____")
+        s.map({1: 2}, na_action=na_action)
 
 
 def test_map_categorical_na_action():
