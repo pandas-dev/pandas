@@ -9437,6 +9437,8 @@ Parrot 2  Parrot       24.0
             * "many_to_one" or "m:1": check if join keys are unique in right dataset.
             * "many_to_many" or "m:m": allowed, but does not result in checks.
 
+            .. versionadded:: 1.5.0
+
         Returns
         -------
         DataFrame
@@ -9530,7 +9532,7 @@ Parrot 2  Parrot       24.0
         4  K0  A4
         5  K1  A5
 
-        >>> df.join(other.set_index('key'), on='key')
+        >>> df.join(other.set_index('key'), on='key', validate='m:m')
           key   A    B
         0  K0  A0   B0
         1  K1  A1   B1
@@ -9538,6 +9540,9 @@ Parrot 2  Parrot       24.0
         3  K3  A3  NaN
         4  K0  A4   B0
         5  K1  A5   B1
+
+        >>> df.join(other.set_index('key'), on='key', validate='1:m')
+        MergeError: Merge keys are not unique in left dataset; not a one-to-many merge
         """
         return self._join_compat(
             other,

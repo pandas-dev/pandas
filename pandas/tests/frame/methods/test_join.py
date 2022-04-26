@@ -36,6 +36,39 @@ def right():
     return DataFrame({"b": [300, 100, 200]}, index=[3, 1, 2])
 
 
+@pytest.fixture
+def left_no_dup():
+    return DataFrame(
+        {"a": ["a", "b", "c", "d"], "b": ["cat", "dog", "weasel", "horse"]},
+        index=range(4),
+    )
+
+
+@pytest.fixture
+def right_no_dup():
+    return DataFrame(
+        {
+            "a": ["a", "b", "c", "d", "e"],
+            "c": ["meow", "bark", "um... weasel noise?", "nay", "chirp"],
+        },
+        index=range(5),
+    ).set_index("a")
+
+
+@pytest.fixture
+def left_w_dups(left_no_dup):
+    return concat(
+        [left_no_dup, DataFrame({"a": ["a"], "b": ["cow"]}, index=[3])], sort=True
+    )
+
+
+@pytest.fixture
+def right_w_dups(right_no_dup):
+    return concat(
+        [right_no_dup, DataFrame({"a": ["e"], "c": ["moo"]}, index=[3])]
+    ).set_index("a")
+
+
 @pytest.mark.parametrize(
     "how, sort, expected",
     [
@@ -105,39 +138,6 @@ def test_suffix_on_list_join():
     arr_joined = first.join([third])
     norm_joined = first.join(third)
     tm.assert_frame_equal(arr_joined, norm_joined)
-
-
-@pytest.fixture
-def left_no_dup():
-    return DataFrame(
-        {"a": ["a", "b", "c", "d"], "b": ["cat", "dog", "weasel", "horse"]},
-        index=range(4),
-    )
-
-
-@pytest.fixture
-def right_no_dup():
-    return DataFrame(
-        {
-            "a": ["a", "b", "c", "d", "e"],
-            "c": ["meow", "bark", "um... weasel noise?", "nay", "chirp"],
-        },
-        index=range(5),
-    ).set_index("a")
-
-
-@pytest.fixture
-def left_w_dups(left_no_dup):
-    return concat(
-        [left_no_dup, DataFrame({"a": ["a"], "b": ["cow"]}, index=[3])], sort=True
-    )
-
-
-@pytest.fixture
-def right_w_dups(right_no_dup):
-    return concat(
-        [right_no_dup, DataFrame({"a": ["e"], "c": ["moo"]}, index=[3])]
-    ).set_index("a")
 
 
 def test_join_invalid_validate(left_no_dup, right_no_dup):
