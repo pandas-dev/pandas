@@ -105,8 +105,6 @@ cdef class Localizer:
             pos[0] = bisect_right_i8(self.tdata, utc_val, self.ntrans) - 1
             return utc_val + self.deltas[pos[0]]
 
-                self.tdata = <int64_t*>cnp.PyArray_DATA(self.trans)
-
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
