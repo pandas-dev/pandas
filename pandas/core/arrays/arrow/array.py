@@ -113,7 +113,7 @@ class ArrowExtensionArray(ExtensionArray):
 
         Returns
         -------
-        valid : ArrowExtensionArray
+        ArrowExtensionArray
         """
         if pa_version_under6p0:
             fallback_performancewarning(version="6")
@@ -242,7 +242,7 @@ class ArrowExtensionArray(ExtensionArray):
 
         Returns
         -------
-        uniques : ArrowExtensionArray
+        ArrowExtensionArray
         """
         if pa_version_under2p0:
             fallback_performancewarning(version="2")
