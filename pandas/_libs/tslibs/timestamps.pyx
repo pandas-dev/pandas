@@ -413,6 +413,7 @@ cdef class _Timestamp(ABCTimestamp):
             val = self.value
         return val
 
+    @cython.boundscheck(False)
     cdef bint _get_start_end_field(self, str field, freq):
         cdef:
             int64_t val
@@ -584,10 +585,11 @@ cdef class _Timestamp(ABCTimestamp):
         self._warn_on_field_deprecation(self._freq, "is_year_end")
         return self._get_start_end_field("is_year_end", self._freq)
 
+    @cython.boundscheck(False)
     cdef _get_date_name_field(self, str field, object locale):
         cdef:
             int64_t val
-            object[:] out
+            object[::1] out
 
         val = self._maybe_convert_value_to_local()
         out = get_date_name_field(np.array([val], dtype=np.int64),

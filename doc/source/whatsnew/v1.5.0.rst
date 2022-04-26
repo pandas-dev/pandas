@@ -96,6 +96,7 @@ Other enhancements
 - :meth:`pd.concat` now raises when ``levels`` contains duplicate values (:issue:`46653`)
 - Added ``numeric_only`` argument to :meth:`DataFrame.corr`, :meth:`DataFrame.corrwith`, and :meth:`DataFrame.cov` (:issue:`46560`)
 - A :class:`errors.PerformanceWarning` is now thrown when using ``string[pyarrow]`` dtype with methods that don't dispatch to ``pyarrow.compute`` methods (:issue:`42613`)
+- Added ``numeric_only`` argument to :meth:`Resampler.sum`, :meth:`Resampler.prod`, :meth:`Resampler.min`, :meth:`Resampler.max`, :meth:`Resampler.first`, and :meth:`Resampler.last` (:issue:`46442`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.notable_bug_fixes:
@@ -479,6 +480,8 @@ Datetimelike
 Timedelta
 ^^^^^^^^^
 - Bug in :func:`astype_nansafe` astype("timedelta64[ns]") fails when np.nan is included (:issue:`45798`)
+- Bug in constructing a :class:`Timedelta` with a ``np.timedelta64`` object and a ``unit`` sometimes silently overflowing and returning incorrect results instead of raising ``OutOfBoundsTimedelta`` (:issue:`46827`)
+-
 
 Time Zones
 ^^^^^^^^^^
@@ -501,6 +504,7 @@ Conversion
 - Bug in :func:`array` with ``FloatingDtype`` and values containing float-castable strings incorrectly raising (:issue:`45424`)
 - Bug when comparing string and datetime64ns objects causing ``OverflowError`` exception. (:issue:`45506`)
 - Bug in metaclass of generic abstract dtypes causing :meth:`DataFrame.apply` and :meth:`Series.apply` to raise for the built-in function ``type`` (:issue:`46684`)
+- Bug in :meth:`DataFrame.to_dict` for ``orient="list"`` or ``orient="index"`` was not returning native types (:issue:`46751`)
 
 Strings
 ^^^^^^^
@@ -603,6 +607,7 @@ Groupby/resample/rolling
 - Bug in :meth:`GroupBy.max` with empty groups and ``uint64`` dtype incorrectly raising ``RuntimeError`` (:issue:`46408`)
 - Bug in :meth:`.GroupBy.apply` would fail when ``func`` was a string and args or kwargs were supplied (:issue:`46479`)
 - Bug in :meth:`SeriesGroupBy.apply` would incorrectly name its result when there was a unique group (:issue:`46369`)
+- Bug in :meth:`Rolling.var` and :meth:`Rolling.std` would give non-zero result with window of same values (:issue:`42064`)
 - Bug in :meth:`.Rolling.var` would segfault calculating weighted variance when window size was larger than data size (:issue:`46760`)
 - Bug in :meth:`Grouper.__repr__` where ``dropna`` was not included. Now it is (:issue:`46754`)
 - Bug in :meth:`Rolling.skew` and :meth:`Rolling.kurt` would give NaN with window of same values (:issue:`30993`)
