@@ -85,7 +85,7 @@ def _test_parse_iso8601(ts: str):
     elif ts == 'today':
         return Timestamp.now().normalize()
 
-    string_to_dts(ts, &obj.dts, &out_local, &out_tzoffset, True)
+    string_to_dts(ts, &obj.dts, &out_bestunit, &out_local, &out_tzoffset, True)
     obj.value = dtstruct_to_dt64(&obj.dts)
     check_dts_bounds(&obj.dts)
     if out_local == 1:

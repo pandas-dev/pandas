@@ -55,8 +55,8 @@ from pandas._libs.tslibs.nattype cimport (
 )
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
-    _string_to_dts,
     npy_datetimestruct,
+    string_to_dts,
 )
 from pandas._libs.tslibs.offsets cimport is_offset_object
 from pandas._libs.tslibs.util cimport (
@@ -370,7 +370,7 @@ cdef parse_datetime_string_with_reso(
 
     # Try iso8601 first, as it handles nanoseconds
     # TODO: does this render some/all of parse_delimited_date redundant?
-    string_to_dts_failed = _string_to_dts(
+    string_to_dts_failed = string_to_dts(
         date_string, &dts, &out_bestunit, &out_local,
         &out_tzoffset, False
     )
