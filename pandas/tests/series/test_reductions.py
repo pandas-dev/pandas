@@ -81,45 +81,6 @@ def test_td64_summation_loses_ns_precision_if_float_conversion_rounds(
     assert result != value
 
 
-@given(
-    st.integers(
-        min_value=pd.Timedelta.max.value - 2**9 + 1,
-        max_value=pd.Timedelta.max.value,
-    ).map(pd.Timedelta)
-)
-def test_td64_summation_raises_spurious_overflow_error_for_single_elem_series(
-    value: pd.Timedelta,
-):
-    s = Series(value)
-
-    msg = "int too big to convert|Python int too large to convert to C long"
-    with pytest.raises(OverflowError, match=msg):
-        s.sum()
-
-
-@given(st.integers(min_value=1, max_value=2**10).map(pd.Timedelta))
-def test_td64_summation_raises_overflow_error_for_small_overflows(value: pd.Timedelta):
-    s = Series([pd.Timedelta.max, value])
-
-    msg = "int too big to convert|Python int too large to convert to C long"
-    with pytest.raises(OverflowError, match=msg):
-        s.sum()
-
-
-@given(
-    st.integers(
-        min_value=2**10 + 1,
-        max_value=pd.Timedelta.max.value,
-    ).map(pd.Timedelta)
-)
-def test_td64_summation_raises_value_error_for_most_overflows(value: pd.Timedelta):
-    s = Series([pd.Timedelta.max, value])
-
-    msg = "overflow in timedelta operation"
-    with pytest.raises(ValueError, match=msg):
-        s.sum()
-
-
 def test_prod_numpy16_bug():
     ser = Series([1.0, 1.0, 1.0], index=range(3))
     result = ser.prod()
