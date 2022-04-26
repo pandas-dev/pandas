@@ -9,6 +9,7 @@ from pandas._libs.tslibs import (
     conversion,
     iNaT,
     timezones,
+    tz_convert_from_utc,
     tzconversion,
 )
 
@@ -23,7 +24,7 @@ def _compare_utc_to_local(tz_didx):
     def f(x):
         return tzconversion.py_tz_convert_from_utc_single(x, tz_didx.tz)
 
-    result = tzconversion.tz_convert_from_utc(tz_didx.asi8, tz_didx.tz)
+    result = tz_convert_from_utc(tz_didx.asi8, tz_didx.tz)
     expected = np.vectorize(f)(tz_didx.asi8)
 
     tm.assert_numpy_array_equal(result, expected)
@@ -53,11 +54,11 @@ def _compare_local_to_utc(tz_didx, naive_didx):
 def test_tz_localize_to_utc_copies():
     # GH#46460
     arr = np.arange(5, dtype="i8")
-    result = tzconversion.tz_convert_from_utc(arr, tz=UTC)
+    result = tz_convert_from_utc(arr, tz=UTC)
     tm.assert_numpy_array_equal(result, arr)
     assert not np.shares_memory(arr, result)
 
-    result = tzconversion.tz_convert_from_utc(arr, tz=None)
+    result = tz_convert_from_utc(arr, tz=None)
     tm.assert_numpy_array_equal(result, arr)
     assert not np.shares_memory(arr, result)
 
@@ -89,7 +90,7 @@ def test_tz_convert_single_matches_tz_convert(tz_aware_fixture, freq):
     ],
 )
 def test_tz_convert_corner(arr):
-    result = tzconversion.tz_convert_from_utc(arr, timezones.maybe_get_tz("Asia/Tokyo"))
+    result = tz_convert_from_utc(arr, timezones.maybe_get_tz("Asia/Tokyo"))
     tm.assert_numpy_array_equal(result, arr)
 
 
@@ -97,7 +98,7 @@ def test_tz_convert_readonly():
     # GH#35530
     arr = np.array([0], dtype=np.int64)
     arr.setflags(write=False)
-    result = tzconversion.tz_convert_from_utc(arr, UTC)
+    result = tz_convert_from_utc(arr, UTC)
     tm.assert_numpy_array_equal(result, arr)
 
 

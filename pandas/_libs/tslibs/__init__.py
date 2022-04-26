@@ -20,6 +20,7 @@ __all__ = [
     "get_resolution",
     "Timestamp",
     "tz_convert_from_utc_single",
+    "tz_convert_from_utc",
     "to_offset",
     "Tick",
     "BaseOffset",
@@ -64,4 +65,5 @@ from pandas._libs.tslibs.vectorized import (
     ints_to_pydatetime,
     is_date_array_normalized,
     normalize_i8_timestamps,
+    tz_convert_from_utc,
 )

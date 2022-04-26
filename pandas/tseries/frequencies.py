@@ -7,7 +7,7 @@ import numpy as np
 from pandas._libs.algos import unique_deltas
 from pandas._libs.tslibs import (
     Timestamp,
-    tzconversion,
+    tz_convert_from_utc,
 )
 from pandas._libs.tslibs.ccalendar import (
     DAYS,
@@ -217,9 +217,7 @@ class _FrequencyInferer:
         # the timezone so they are in local time
         if hasattr(index, "tz"):
             if index.tz is not None:
-                self.i8values = tzconversion.tz_convert_from_utc(
-                    self.i8values, index.tz
-                )
+                self.i8values = tz_convert_from_utc(self.i8values, index.tz)
 
         if warn is not True:
             warnings.warn(
