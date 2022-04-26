@@ -2669,3 +2669,16 @@ def test_merge_different_index_names():
     result = merge(left, right, left_on="c", right_on="d")
     expected = DataFrame({"a_x": [1], "a_y": 1})
     tm.assert_frame_equal(result, expected)
+
+
+def test_merge_complex_column():
+    class Column:
+        def __init__(self, name):
+            self.name = name
+
+    merged_column = Column(name='Z')
+    left = DataFrame({merged_column: [1], 'X': [2]})
+    right = DataFrame({merged_column: [1], 'Y': [6]})
+    result = merge(left, right, left_index=True, right_index=True)
+    expected = DataFrame([[1, 2, 1, 6]], columns=[merged_column, 'X', merged_column, 'Y'])
+    tm.assert_frame_equal(result, expected)

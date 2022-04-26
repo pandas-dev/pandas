@@ -511,6 +511,12 @@ Strings
 - Bug in :meth:`str.startswith` and :meth:`str.endswith` when using other series as parameter _pat_. Now raises ``TypeError`` (:issue:`3485`)
 -
 
+Merge
+^^^^^^^
+- Bug in :meth:`merge` supports complex types merge with identical columns
+-
+
+
 Interval
 ^^^^^^^^
 - Bug in :meth:`IntervalArray.__setitem__` when setting ``np.nan`` into an integer-backed array raising ``ValueError`` instead of ``TypeError`` (:issue:`45484`)
