@@ -63,7 +63,7 @@ UnitChoices = Literal[
 _S = TypeVar("_S", bound=timedelta)
 
 def ints_to_pytimedelta(
-    arr: npt.NDArray[np.int64],  # const int64_t[:]
+    arr: npt.NDArray[np.timedelta64],
     box: bool = ...,
 ) -> npt.NDArray[np.object_]: ...
 def array_to_timedelta64(
