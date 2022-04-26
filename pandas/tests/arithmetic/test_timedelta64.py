@@ -659,6 +659,47 @@ class TestTimedelta64ArithmeticUnsorted:
         assert result.freq is None
 
 
+class TestAddSubNaTMasking:
+    # TODO: parametrize over boxes
+
+    @pytest.mark.parametrize("str_ts", ["1950-01-01", "1980-01-01"])
+    def test_tdarr_add_timestamp_nat_masking(self, box_with_array, str_ts):
+        # GH#17991 checking for overflow-masking with NaT
+        tdinat = pd.to_timedelta(["24658 days 11:15:00", "NaT"])
+        tdobj = tm.box_expected(tdinat, box_with_array)
+
+        ts = Timestamp(str_ts)
+        ts_variants = [
+            ts,
+            ts.to_pydatetime(),
+            ts.to_datetime64().astype("datetime64[ns]"),
+            ts.to_datetime64().astype("datetime64[D]"),
+        ]
+
+        for variant in ts_variants:
+            res = tdobj + variant
+            if box_with_array is DataFrame:
+                assert res.iloc[1, 1] is NaT
+            else:
+                assert res[1] is NaT
+
+    def test_tdi_add_overflow(self):
+        # These should not overflow!
+        exp = TimedeltaIndex([NaT])
+        result = pd.to_timedelta([NaT]) - Timedelta("1 days")
+        tm.assert_index_equal(result, exp)
+
+        exp = TimedeltaIndex(["4 days", NaT])
+        result = pd.to_timedelta(["5 days", NaT]) - Timedelta("1 days")
+        tm.assert_index_equal(result, exp)
+
+        exp = TimedeltaIndex([NaT, NaT, "5 hours"])
+        result = pd.to_timedelta([NaT, "5 days", "1 hours"]) + pd.to_timedelta(
+            ["7 seconds", NaT, "4 hours"]
+        )
+        tm.assert_index_equal(result, exp)
+
+
 class TestTimedeltaArraylikeAddSubOps:
     # Tests for timedelta64[ns] __add__, __sub__, __radd__, __rsub__
 

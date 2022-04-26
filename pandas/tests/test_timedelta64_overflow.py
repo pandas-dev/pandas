@@ -1,24 +1,22 @@
 """
 Check overflow behavior of operations on timedelta-valued
-DataFrames/Series/Indexes/ExtensionArrays.
+ExtensionArrays/Indexes/Series/DataFrames.
 """
 
-from itertools import (
-    chain,
-    combinations_with_replacement,
-    product,
+from contextlib import (
+    AbstractContextManager,
+    nullcontext,
 )
-from operator import attrgetter
+from functools import partial
 from typing import (
-    NamedTuple,
+    List,
     Type,
     Union,
 )
 
-from hypothesis import given
-import hypothesis.strategies as st
 import pytest
 
+from pandas._libs.lib import is_list_like
 from pandas.errors import OutOfBoundsDatetime
 
 from pandas import (
@@ -31,7 +29,6 @@ from pandas import (
     TimedeltaIndex,
     Timestamp,
     array,
-    to_timedelta,
 )
 import pandas._testing as tm
 from pandas.core.arrays import (
@@ -40,114 +37,32 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 
-timedelta_types = (Timedelta, TimedeltaArray, TimedeltaIndex, Series, DataFrame)
-timestamp_types = (Timestamp, DatetimeArray, DatetimeIndex, Series, DataFrame)
-containers = slice(1, None)
-get_item_names = lambda t: "-".join(map(attrgetter("__name__"), t))
+td64_types = (Timedelta, TimedeltaArray, TimedeltaIndex, Series, DataFrame)
+td64_box_types = td64_types[slice(1, None)]
+td64_arraylike_types = td64_types[slice(1, 4)]
+dt64_types = (Timestamp, DatetimeArray, DatetimeIndex, Series, DataFrame)
+
+TD64_TYPE = Union[Timedelta, TimedeltaArray, TimedeltaIndex, Series, DataFrame]
+TD64_BOX_TYPE = Union[TimedeltaArray, TimedeltaIndex, Series, DataFrame]
+TD64_ARRAYLIKE_TYPE = Union[TimedeltaArray, TimedeltaIndex, Series]
+DT64_TYPE = Union[Timestamp, DatetimeArray, DatetimeIndex, Series, DataFrame]
 
 
-# TODO: consolidate remaining td64 overflow tests here?
-#   - tests/tslibs/test_conversion.py::test_ensure_timedelta64ns_overflows()
-#   - tests/tslibs/test_timedeltas.py::test_huge_nanoseconds_overflow()
-#   - tests/scalar/timedelta/test_timedelta.py::test_mul_preserves_reso()
-#   - tests/scalar/timedelta/test_constructors.py::test_construct_from_td64_with_unit(),
-#     test_overflow_on_construction()
-
-
-class BinaryOpTypes(NamedTuple):
-    """
-    The expected operand and result types for a binary operation.
-    """
-
-    left: Type
-    right: Type
-    result: Type
-
-    def __str__(self) -> str:
-        return get_item_names(self)
-
-    def __repr__(self) -> str:
-        return f"BinaryOpTypes({self})"
-
-
-positive_tds = st.integers(min_value=1, max_value=Timedelta.max.value).map(Timedelta)
-
-xfail_no_overflow_check = pytest.mark.xfail(reason="No overflow check")
-
-
-@given(
-    st.integers(
-        min_value=Timedelta.max.value - 2**9 + 1,
-        max_value=Timedelta.max.value,
-    ).map(Timedelta)
+TD64_VALUE_ERROR_MSG = "overflow in timedelta operation"
+TD64_OVERFLOW_MSG = "|".join(
+    [
+        "int too big to convert",
+        "Python int too large to convert to C long",
+        "Overflow in int64 addition",
+    ]
 )
-def test_td64_summation_raises_spurious_overflow_error_for_single_elem_series(
-    value: Timedelta,
-):
-    s = Series(value)
 
-    msg = "int too big to convert|Python int too large to convert to C long"
-    with pytest.raises(OverflowError, match=msg):
-        s.sum()
+does_not_raise = nullcontext
+raises_overflow_error = partial(pytest.raises, OverflowError, match=TD64_OVERFLOW_MSG)
+raises_value_error = partial(pytest.raises, ValueError, match=TD64_VALUE_ERROR_MSG)
 
 
-@given(st.integers(min_value=1, max_value=2**10).map(Timedelta))
-def test_td64_summation_raises_overflow_error_for_small_overflows(value: Timedelta):
-    s = Series([Timedelta.max, value])
-
-    msg = "int too big to convert|Python int too large to convert to C long"
-    with pytest.raises(OverflowError, match=msg):
-        s.sum()
-
-
-@given(
-    st.integers(
-        min_value=2**10 + 1,
-        max_value=Timedelta.max.value,
-    ).map(Timedelta)
-)
-def test_td64_summation_raises_value_error_for_most_overflows(value: Timedelta):
-    s = Series([Timedelta.max, value])
-
-    msg = "overflow in timedelta operation"
-    with pytest.raises(ValueError, match=msg):
-        s.sum()
-
-
-@pytest.fixture(
-    name="add_sub_types",
-    scope="module",
-    params=tuple(combinations_with_replacement(timedelta_types, 2)),
-    ids=get_item_names,
-)
-def fixture_add_sub_types(request) -> BinaryOpTypes:
-    """
-    Expected types when adding, subtracting Timedeltas.
-    """
-    return_type = max(request.param, key=lambda t: timedelta_types.index(t))
-    return BinaryOpTypes(request.param[0], request.param[1], return_type)
-
-
-@pytest.fixture(
-    name="ts_add_sub_types",
-    scope="module",
-    params=tuple(product(timedelta_types, timestamp_types)),
-    ids=get_item_names,
-)
-def fixture_ts_add_sub_types(request) -> BinaryOpTypes:
-    """
-    Expected types when adding, subtracting Timedeltas and Timestamps.
-    """
-    type_hierarchy = {
-        name: i
-        for i, name in chain(enumerate(timedelta_types), enumerate(timestamp_types))
-    }
-    return_type = timestamp_types[max(type_hierarchy[t] for t in request.param)]
-
-    return BinaryOpTypes(request.param[0], request.param[1], return_type)
-
-
-def wrap_value(value: Union[Timestamp, Timedelta], type_):
+def wrap_value(value, type_):
     """
     Return value wrapped in a container of given type_, or as-is if type_ is a scalar.
     """
@@ -161,162 +76,194 @@ def wrap_value(value: Union[Timestamp, Timedelta], type_):
     else:
         box_cls = type_
 
-    return type_(tm.box_expected([value], box_cls))
+    if not is_list_like(value):
+        value = [value]
+    return tm.box_expected(value, box_cls, transpose=False)
 
 
-@given(positive_td=positive_tds)
-def test_add_raises_expected_error_if_result_would_overflow(
-    add_sub_types: BinaryOpTypes,
-    positive_td: Timedelta,
-):
-    left = wrap_value(Timedelta.max, add_sub_types.left)
-    right = wrap_value(positive_td, add_sub_types.right)
-
-    if add_sub_types.result is Timedelta:
-        msg = "|".join(
-            [
-                "int too big to convert",
-                "Python int too large to convert to C long",
-            ]
-        )
-    else:
-        msg = "Overflow in int64 addition"
-
-    with pytest.raises(OverflowError, match=msg):
-        left + right
-
-    with pytest.raises(OverflowError, match=msg):
-        right + left
+@pytest.fixture(name="td64_type", params=td64_types, scope="module")
+def fixture_td64_type(request) -> Type[TD64_TYPE]:
+    return request.param
 
 
-@xfail_no_overflow_check
-@given(positive_td=positive_tds)
-def test_sub_raises_expected_error_if_result_would_overflow(
-    add_sub_types: BinaryOpTypes,
-    positive_td: Timedelta,
-):
-    left = wrap_value(Timedelta.min, add_sub_types.left)
-    right = wrap_value(positive_td, add_sub_types.right)
-
-    msg = "Overflow in int64 addition"
-    with pytest.raises(OverflowError, match=msg):
-        left - right
-
-    with pytest.raises(OverflowError, match=msg):
-        (-1 * right) - abs(left)
+@pytest.fixture(name="td64_arraylike_type", params=td64_arraylike_types, scope="module")
+def fixture_td64_arraylike_type(request) -> Type[TD64_ARRAYLIKE_TYPE]:
+    return request.param
 
 
-@given(td_value=positive_tds)
-def test_add_timestamp_raises_expected_error_if_result_would_overflow(
-    ts_add_sub_types: BinaryOpTypes,
-    td_value: Timedelta,
-):
-    left = wrap_value(td_value, ts_add_sub_types.left)
-    right = wrap_value(Timestamp.max, ts_add_sub_types.right)
-
-    ex = (OutOfBoundsDatetime, OverflowError)
-    msg = "|".join(["Out of bounds nanosecond timestamp", "Overflow in int64 addition"])
-
-    with pytest.raises(ex, match=msg):
-        left + right
-
-    with pytest.raises(ex, match=msg):
-        right + left
+@pytest.fixture(name="td64_box_type", params=td64_box_types, scope="module")
+def fixture_td64_box_type(request) -> Type[TD64_BOX_TYPE]:
+    return request.param
 
 
-@xfail_no_overflow_check
-@given(td_value=positive_tds)
-def test_sub_timestamp_raises_expected_error_if_result_would_overflow(
-    ts_add_sub_types: BinaryOpTypes,
-    td_value: Timedelta,
-):
-    right = wrap_value(td_value, ts_add_sub_types[0])
-    left = wrap_value(Timestamp.min, ts_add_sub_types[1])
-
-    ex = (OutOfBoundsDatetime, OverflowError)
-    msg = "|".join(["Out of bounds nanosecond timestamp", "Overflow in int64 addition"])
-
-    with pytest.raises(ex, match=msg):
-        left - right
+@pytest.fixture(name="dt64_type", params=dt64_types, scope="module")
+def fixture_dt64_type(request) -> Type[DT64_TYPE]:
+    return request.param
 
 
-@given(value=st.floats().filter(lambda f: abs(f) > 1))
-def test_scalar_multiplication_raises_expected_error_if_result_would_overflow(
-    value: float,
-):
-    td = Timedelta.max
-
-    msg = "|".join(
-        [
-            "cannot convert float infinity to integer",
-            "Python int too large to convert to C long",
-            "int too big to convert",
-        ]
-    )
-    with pytest.raises(OverflowError, match=msg):
-        td * value
-
-    with pytest.raises(OverflowError, match=msg):
-        value * td
+@pytest.fixture(name="max_td64")
+def fixture_max_td64(td64_box_type: Type[TD64_BOX_TYPE]) -> TD64_BOX_TYPE:
+    """
+    A 1-elem ExtensionArray/Index/Series, or 2x1 DataFrame, w/ all elements set to
+    Timestamp.max.
+    """
+    return wrap_value(Timedelta.max, td64_box_type)
 
 
-@xfail_no_overflow_check
-@given(value=st.floats().filter(lambda f: abs(f) > 1))
-@pytest.mark.parametrize(
-    argnames="td_type",
-    argvalues=timedelta_types[containers],  # type: ignore[arg-type]
-    ids=attrgetter("__name__"),
+@pytest.fixture(
+    name="positive_td64",
+    params=[Timedelta(1), Timedelta(1024), Timedelta.max],
+    ids=["1ns", "1024ns", "td_max"],
 )
-def test_container_scalar_multiplication_raises_expected_error_if_result_would_overflow(
-    value: float,
-    td_type: Type,
-):
-    td = wrap_value(Timedelta.max, td_type)
-
-    msg = "Overflow in int64 addition"
-    with pytest.raises(OverflowError, match=msg):
-        td * value
-
-    with pytest.raises(OverflowError, match=msg):
-        value * td
+def fixture_positive_td64(request, td64_type: Type[TD64_TYPE]) -> TD64_TYPE:
+    """
+    A scalar, 1-elem ExtensionArray/Index/Series, or 2x1 DataFrame.
+    """
+    value = request.param
+    return wrap_value(value, td64_type)
 
 
-class TestAddSubNaTMasking:
-    # TODO: parametrize over boxes
+class TestBoxReductionMethods:
+    """
+    For timedelta64-valued ExtensionArrays/Indexes/Series/DataFrames.
+    """
 
-    @pytest.mark.parametrize("str_ts", ["1950-01-01", "1980-01-01"])
-    def test_tdarr_add_timestamp_nat_masking(self, box_with_array, str_ts):
-        # GH#17991 checking for overflow-masking with NaT
-        tdinat = to_timedelta(["24658 days 11:15:00", "NaT"])
-        tdobj = tm.box_expected(tdinat, box_with_array)
+    @pytest.mark.parametrize(
+        ["value", "expected_exs"],
+        [
+            (Timedelta.min, does_not_raise()),
+            (Timedelta.min + Timedelta(511), does_not_raise()),
+            (Timedelta.max - Timedelta(511), raises_overflow_error()),
+            (Timedelta.max, raises_overflow_error()),
+        ],
+    )
+    def test_arraylike_sum_fails_with_large_single_elem(
+        self,
+        value: Timedelta,
+        expected_exs: AbstractContextManager,
+        td64_arraylike_type: Type[TD64_ARRAYLIKE_TYPE],
+    ):
+        td64_arraylike = wrap_value(value, td64_arraylike_type)
+        with expected_exs:
+            result = td64_arraylike.sum()
+            # for large negative values, sum() doesn't raise but does return NaT
+            assert result is NaT
 
-        ts = Timestamp(str_ts)
-        ts_variants = [
-            ts,
-            ts.to_pydatetime(),
-            ts.to_datetime64().astype("datetime64[ns]"),
-            ts.to_datetime64().astype("datetime64[D]"),
-        ]
+    @pytest.mark.parametrize(
+        ("values", "expected_exs"),
+        (
+            ([Timedelta.min] * 2, raises_value_error()),
+            ([Timedelta.min, Timedelta(-1025)], raises_value_error()),
+            ([Timedelta.min, Timedelta(-1024)], does_not_raise()),
+            ([Timedelta.min, Timedelta(-1)], does_not_raise()),
+            ([Timedelta.max, Timedelta(1)], raises_overflow_error()),
+            ([Timedelta.max, Timedelta(1024)], raises_overflow_error()),
+            ([Timedelta.max, Timedelta(1025)], raises_value_error()),
+            ([Timedelta.max] * 2, raises_value_error()),
+        ),
+    )
+    def test_arraylike_sum_usually_raises_for_overflow(
+        self,
+        values: List[Timedelta],
+        expected_exs: AbstractContextManager,
+        td64_arraylike_type: Type[TD64_ARRAYLIKE_TYPE],
+    ):
+        td64_arraylike = wrap_value(values, td64_arraylike_type)
+        with expected_exs:
+            result = td64_arraylike.sum()
+            # for small negative overflows, sum() doesn't raise but does return NaT
+            assert result is NaT
 
-        for variant in ts_variants:
-            res = tdobj + variant
-            if box_with_array is DataFrame:
-                assert res.iloc[1, 1] is NaT
-            else:
-                assert res[1] is NaT
+    @pytest.mark.parametrize(
+        "values",
+        (
+            [Timedelta.min] * 2,
+            [Timedelta.min, Timedelta(-1)],
+            [Timedelta.max, Timedelta(1)],
+            [Timedelta.max] * 2,
+        ),
+        ids=["double_td_min", "over_by_-1ns", "over_by_1ns", "double_td_max"],
+    )
+    def test_df_sum_returns_nat_for_all_overflows(self, values: List[Timedelta]):
+        td64_df = wrap_value(values, DataFrame)
+        result = td64_df.sum()
+        expected = Series(NaT, index=[0], dtype="timedelta64[ns]")
 
-    def test_tdi_add_overflow(self):
-        # These should not overflow!
-        exp = TimedeltaIndex([NaT])
-        result = to_timedelta([NaT]) - Timedelta("1 days")
-        tm.assert_index_equal(result, exp)
+        tm.assert_series_equal(result, expected)
 
-        exp = TimedeltaIndex(["4 days", NaT])
-        result = to_timedelta(["5 days", NaT]) - Timedelta("1 days")
-        tm.assert_index_equal(result, exp)
 
-        exp = TimedeltaIndex([NaT, NaT, "5 hours"])
-        result = to_timedelta([NaT, "5 days", "1 hours"]) + to_timedelta(
-            ["7 seconds", NaT, "4 hours"]
-        )
-        tm.assert_index_equal(result, exp)
+class TestBinaryOps:
+    """
+    Operations between timedelta64-valued ExtensionArrays/Indexes/Series/DataFrames, and
+    a numeric/timelike scalar or timelike-valued ExtensionArray/Index/Series/DataFrame.
+    """
+
+    def test_add_raises_if_result_would_overflow(
+        self,
+        max_td64: TD64_TYPE,
+        positive_td64: TD64_BOX_TYPE,
+    ):
+        with raises_overflow_error():
+            max_td64 + positive_td64
+
+        with raises_overflow_error():
+            positive_td64 + max_td64
+
+    @pytest.mark.parametrize(
+        ["rval", "expected_exs"],
+        [
+            (Timedelta(1), does_not_raise()),
+            (Timedelta(2), raises_overflow_error()),
+            (Timedelta.max, raises_overflow_error()),
+        ],
+    )
+    def test_sub_raises_if_result_would_overflow(
+        self,
+        max_td64: TD64_BOX_TYPE,
+        rval: Timedelta,
+        expected_exs: AbstractContextManager,
+        td64_type: Type[TD64_TYPE],
+    ):
+        rvalue = wrap_value(rval, td64_type)
+        min_td64 = -1 * max_td64
+
+        with expected_exs:
+            min_td64 - rvalue
+
+        with expected_exs:
+            -1 * rvalue - max_td64
+
+    def test_add_dt64_raises_if_result_would_overflow(
+        self,
+        max_td64: TD64_BOX_TYPE,
+        dt64_type: Type[DT64_TYPE],
+    ):
+        max_dt64 = wrap_value(Timestamp.max, dt64_type)
+        ex = (OutOfBoundsDatetime, OverflowError)
+        msg = TD64_OVERFLOW_MSG + "|Out of bounds nanosecond timestamp"
+
+        with pytest.raises(ex, match=msg):
+            max_td64 + max_dt64
+
+        with pytest.raises(ex, match=msg):
+            max_dt64 + max_td64
+
+    def test_sub_td64_raises_if_result_would_overflow(
+        self,
+        max_td64: TD64_BOX_TYPE,
+        dt64_type: Type[DT64_TYPE],
+    ):
+        min_dt64 = wrap_value(Timestamp.min, dt64_type)
+        ex = (OutOfBoundsDatetime, OverflowError)
+        msg = TD64_OVERFLOW_MSG + "|Out of bounds nanosecond timestamp"
+
+        with pytest.raises(ex, match=msg):
+            min_dt64 - max_td64
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_scalar_mul_raises_if_result_would_overflow(self, max_td64: TD64_BOX_TYPE):
+        with raises_overflow_error():
+            max_td64 * 1.01
+
+        with raises_overflow_error():
+            1.01 * max_td64
