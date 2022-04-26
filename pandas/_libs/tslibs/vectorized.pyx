@@ -1,5 +1,4 @@
-import cython
-
+cimport cython
 from cpython.datetime cimport (
     date,
     datetime,
@@ -105,6 +104,57 @@ cdef class Localizer:
         else:
             pos[0] = bisect_right_i8(self.tdata, utc_val, self.ntrans) - 1
             return utc_val + self.deltas[pos[0]]
+
+                self.tdata = <int64_t*>cnp.PyArray_DATA(self.trans)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def tz_convert_from_utc(const int64_t[:] stamps, tzinfo tz):
+    """
+    Convert the values (in i8) from UTC to tz
+
+    Parameters
+    ----------
+    stamps : ndarray[int64]
+    tz : tzinfo
+
+    Returns
+    -------
+    ndarray[int64]
+    """
+    cdef:
+        Localizer info = Localizer(tz)
+        int64_t utc_val, local_val
+        Py_ssize_t pos, i, n = stamps.shape[0]
+
+        int64_t[::1] result
+
+    if tz is None or is_utc(tz) or stamps.size == 0:
+        # Much faster than going through the "standard" pattern below
+        return stamps.base.copy()
+
+    result = np.empty(n, dtype=np.int64)
+
+    for i in range(n):
+        utc_val = stamps[i]
+        if utc_val == NPY_NAT:
+            result[i] = NPY_NAT
+            continue
+
+        if info.use_utc:
+            local_val = utc_val
+        elif info.use_tzlocal:
+            local_val = utc_val + localize_tzinfo_api(utc_val, tz)
+        elif info.use_fixed:
+            local_val = utc_val + info.delta
+        else:
+            pos = bisect_right_i8(info.tdata, utc_val, info.ntrans) - 1
+            local_val = utc_val + info.deltas[pos]
+
+        result[i] = local_val
+
+    return result.base
 
 
 # -------------------------------------------------------------------------
@@ -312,7 +362,6 @@ def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None) -> bool:
 
     for i in range(n):
         utc_val = stamps[i]
-
         local_val = info.utc_val_to_local_val(utc_val, &pos)
 
         if local_val % DAY_NANOS != 0:

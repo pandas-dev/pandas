@@ -840,7 +840,7 @@ class TestAlignment:
             and parser == "pandas"
             and index_name == "index"
             and r_idx_type == "i"
-            and c_idx_type == "c"
+            and c_idx_type == "s"
         ):
             reason = (
                 f"Flaky column ordering when engine={engine}, "
