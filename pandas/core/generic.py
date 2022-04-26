@@ -3816,7 +3816,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 index=self.columns,
                 name=self.index[loc],
                 dtype=new_values.dtype,
-            )
+            ).__finalize__(self)
         elif is_scalar(loc):
             result = self.iloc[:, slice(loc, loc + 1)]
         elif axis == 1:
