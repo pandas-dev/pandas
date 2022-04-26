@@ -9532,7 +9532,7 @@ Parrot 2  Parrot       24.0
         4  K0  A4
         5  K1  A5
 
-        >>> df.join(other.set_index('key'), on='key', validate='m:m')
+        >>> df.join(other.set_index('key'), on='key', validate='m:1')
           key   A    B
         0  K0  A0   B0
         1  K1  A1   B1
@@ -9541,8 +9541,6 @@ Parrot 2  Parrot       24.0
         4  K0  A4   B0
         5  K1  A5   B1
 
-        >>> df.join(other.set_index('key'), on='key', validate='1:m')
-        MergeError: Merge keys are not unique in left dataset; not a one-to-many merge
         """
         return self._join_compat(
             other,
