@@ -252,9 +252,13 @@ cdef inline int64_t pydate_to_dt64(date val, npy_datetimestruct *dts):
     return dtstruct_to_dt64(dts)
 
 
-cdef inline int _string_to_dts(str val, npy_datetimestruct* dts,
-                               int* out_local, int* out_tzoffset,
-                               bint want_exc) except? -1:
+cdef inline int string_to_dts(
+    str val,
+    npy_datetimestruct* dts,
+    int* out_local,
+    int* out_tzoffset,
+    bint want_exc,
+) except? -1:
     cdef:
         Py_ssize_t length
         const char* buf
@@ -305,7 +309,6 @@ cpdef ndarray astype_overflowsafe(
         )
 
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(iresult, i8values)
-        cnp.flatiter it
         Py_ssize_t i, N = values.size
         int64_t value, new_value
         npy_datetimestruct dts

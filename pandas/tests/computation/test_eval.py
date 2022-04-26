@@ -833,8 +833,21 @@ class TestAlignment:
     )
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_basic_series_frame_alignment(
-        self, engine, parser, index_name, r_idx_type, c_idx_type
+        self, request, engine, parser, index_name, r_idx_type, c_idx_type
     ):
+        if (
+            engine == "numexpr"
+            and parser == "pandas"
+            and index_name == "index"
+            and r_idx_type == "i"
+            and c_idx_type == "s"
+        ):
+            reason = (
+                f"Flaky column ordering when engine={engine}, "
+                f"parser={parser}, index_name={index_name}, "
+                f"r_idx_type={r_idx_type}, c_idx_type={c_idx_type}"
+            )
+            request.node.add_marker(pytest.mark.xfail(reason=reason, strict=False))
         df = tm.makeCustomDataframe(
             10, 7, data_gen_f=f, r_idx_type=r_idx_type, c_idx_type=c_idx_type
         )
