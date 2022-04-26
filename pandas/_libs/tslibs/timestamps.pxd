@@ -29,5 +29,3 @@ cdef class _Timestamp(ABCTimestamp):
                                          int op) except -1
     cpdef void _set_freq(self, freq)
     cdef _warn_on_field_deprecation(_Timestamp self, freq, str field)
-
-cdef int64_t normalize_i8_stamp(int64_t local_val) nogil
