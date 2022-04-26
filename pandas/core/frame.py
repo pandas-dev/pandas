@@ -9436,7 +9436,6 @@ Parrot 2  Parrot       24.0
             * "one_to_many" or "1:m": check if join keys are unique in left dataset.
             * "many_to_one" or "m:1": check if join keys are unique in right dataset.
             * "many_to_many" or "m:m": allowed, but does not result in checks.
-
             .. versionadded:: 1.5.0
 
         Returns
@@ -9540,7 +9539,6 @@ Parrot 2  Parrot       24.0
         3  K3  A3  NaN
         4  K0  A4   B0
         5  K1  A5   B1
-
         """
         return self._join_compat(
             other,
