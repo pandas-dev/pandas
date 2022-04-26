@@ -2680,6 +2680,7 @@ def test_merge_complex_column():
     left = DataFrame({merged_column: [1], 'X': [2]})
     right = DataFrame({merged_column: [1], 'Y': [6]})
     result = merge(left, right, left_index=True, right_index=True)
-    expected = DataFrame([[1, 2, 1, 6]],
-                         columns=[merged_column, 'X', merged_column, 'Y'])
+    expected = DataFrame(
+        [[1, 2, 1, 6]], columns=[merged_column, 'X', merged_column, 'Y']
+    )
     tm.assert_frame_equal(result, expected)
