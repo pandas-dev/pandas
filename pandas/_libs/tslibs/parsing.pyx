@@ -5,11 +5,7 @@ import re
 import time
 import warnings
 
-from libc.string cimport strchr
-
-import cython
-from cython import Py_ssize_t
-
+cimport cython
 from cpython.datetime cimport (
     datetime,
     datetime_new,
@@ -17,6 +13,8 @@ from cpython.datetime cimport (
     tzinfo,
 )
 from cpython.object cimport PyObject_Str
+from cython cimport Py_ssize_t
+from libc.string cimport strchr
 
 import_datetime()
 
@@ -322,11 +320,10 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     if is_offset_object(freq):
         freq = freq.rule_code
 
-    if dayfirst is None or yearfirst is None:
-        if dayfirst is None:
-            dayfirst = get_option("display.date_dayfirst")
-        if yearfirst is None:
-            yearfirst = get_option("display.date_yearfirst")
+    if dayfirst is None:
+        dayfirst = get_option("display.date_dayfirst")
+    if yearfirst is None:
+        yearfirst = get_option("display.date_yearfirst")
 
     res = parse_datetime_string_with_reso(arg, freq=freq,
                                           dayfirst=dayfirst,
@@ -872,12 +869,7 @@ def format_is_iso(f: str) -> bint:
     return False
 
 
-def guess_datetime_format(
-    dt_str,
-    bint dayfirst=False,
-    dt_str_parse=du_parse,
-    dt_str_split=_DATEUTIL_LEXER_SPLIT,
-):
+def guess_datetime_format(dt_str, bint dayfirst=False):
     """
     Guess the datetime format of a given datetime string.
 
@@ -889,20 +881,11 @@ def guess_datetime_format(
         If True parses dates with the day first, eg 20/01/2005
         Warning: dayfirst=True is not strict, but will prefer to parse
         with day first (this is a known bug).
-    dt_str_parse : function, defaults to `dateutil.parser.parse`
-        This function should take in a datetime string and return
-        a `datetime.datetime` guess that the datetime string represents
-    dt_str_split : function, defaults to `_DATEUTIL_LEXER_SPLIT` (dateutil)
-        This function should take in a datetime string and return
-        a list of strings, the guess of the various specific parts
-        e.g. '2011/12/30' -> ['2011', '/', '12', '/', '30']
 
     Returns
     -------
     ret : datetime format string (for `strftime` or `strptime`)
     """
-    if dt_str_parse is None or dt_str_split is None:
-        return None
 
     if not isinstance(dt_str, str):
         return None
@@ -934,7 +917,7 @@ def guess_datetime_format(
         datetime_attrs_to_format.insert(0, day_attribute_and_format)
 
     try:
-        parsed_datetime = dt_str_parse(dt_str, dayfirst=dayfirst)
+        parsed_datetime = du_parse(dt_str, dayfirst=dayfirst)
     except (ValueError, OverflowError):
         # In case the datetime can't be parsed, its format cannot be guessed
         return None
@@ -942,9 +925,8 @@ def guess_datetime_format(
     if parsed_datetime is None:
         return None
 
-    # the default dt_str_split from dateutil will never raise here; we assume
-    #  that any user-provided function will not either.
-    tokens = dt_str_split(dt_str)
+    # _DATEUTIL_LEXER_SPLIT from dateutil will never raise here
+    tokens = _DATEUTIL_LEXER_SPLIT(dt_str)
 
     # Normalize offset part of tokens.
     # There are multiple formats for the timezone offset.

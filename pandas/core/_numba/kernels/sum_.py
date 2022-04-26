@@ -118,7 +118,7 @@ def sliding_sum(
                     prev_value,
                 )
 
-        if nobs == 0 == nobs:
+        if nobs == 0 == min_periods:
             result = 0.0
         elif nobs >= min_periods:
             if num_consecutive_same_value >= nobs:
