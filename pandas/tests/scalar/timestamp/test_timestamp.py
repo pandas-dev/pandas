@@ -692,3 +692,122 @@ def test_dt_subclass_add_timedelta(lh, rh):
     result = lh + rh
     expected = SubDatetime(2000, 1, 1, 1)
     assert result == expected
+
+
+class TestNonNano:
+    @pytest.fixture(params=["s", "ms", "us"])
+    def reso(self, request):
+        return request.param
+
+    @pytest.fixture
+    def dt64(self, reso):
+        # cases that are in-bounds for nanosecond, so we can compare against
+        #  the existing implementation.
+        return np.datetime64("2016-01-01", reso)
+
+    @pytest.fixture
+    def ts(self, dt64):
+        return Timestamp._from_dt64(dt64)
+
+    def test_non_nano_construction(self, dt64, ts, reso):
+        assert ts.value == dt64.view("i8")
+
+        if reso == "s":
+            assert ts._reso == 7
+        elif reso == "ms":
+            assert ts._reso == 8
+        elif reso == "us":
+            assert ts._reso == 9
+
+    def test_non_nano_fields(self, dt64, ts):
+        alt = Timestamp(dt64)
+
+        assert ts.year == alt.year
+        assert ts.month == alt.month
+        assert ts.day == alt.day
+        assert ts.hour == ts.minute == ts.second == ts.microsecond == 0
+        assert ts.nanosecond == 0
+
+        assert ts.to_julian_date() == alt.to_julian_date()
+        assert ts.weekday() == alt.weekday()
+        assert ts.isoweekday() == alt.isoweekday()
+
+    def test_repr(self, dt64, ts):
+        alt = Timestamp(dt64)
+
+        assert str(ts) == str(alt)
+        assert repr(ts) == repr(alt)
+
+    def test_comparison(self, dt64, ts):
+        alt = Timestamp(dt64)
+
+        assert ts == dt64
+        assert dt64 == ts
+        assert ts == alt
+        assert alt == ts
+
+        assert not ts != dt64
+        assert not dt64 != ts
+        assert not ts != alt
+        assert not alt != ts
+
+        assert not ts < dt64
+        assert not dt64 < ts
+        assert not ts < alt
+        assert not alt < ts
+
+        assert not ts > dt64
+        assert not dt64 > ts
+        assert not ts > alt
+        assert not alt > ts
+
+        assert ts >= dt64
+        assert dt64 >= ts
+        assert ts >= alt
+        assert alt >= ts
+
+        assert ts <= dt64
+        assert dt64 <= ts
+        assert ts <= alt
+        assert alt <= ts
+
+    def test_cmp_cross_reso(self):
+        # numpy gets this wrong because of silent overflow
+        dt64 = np.datetime64(106752, "D")  # won't fit in M8[ns]
+        ts = Timestamp._from_dt64(dt64)
+
+        other = Timestamp(dt64 - 1)
+        assert other < ts
+        assert other.asm8 > ts.asm8  # <- numpy gets this wrong
+        assert ts > other
+        assert ts.asm8 < other.asm8  # <- numpy gets this wrong
+        assert not other == ts
+        assert ts != other
+
+    @pytest.mark.xfail(reason="Dispatches to np.datetime64 which is wrong")
+    def test_cmp_cross_reso_reversed_dt64(self):
+        dt64 = np.datetime64(106752, "D")  # won't fit in M8[ns]
+        ts = Timestamp._from_dt64(dt64)
+        other = Timestamp(dt64 - 1)
+
+        assert other.asm8 < ts
+
+    def test_pickle(self, ts):
+        rt = tm.round_trip_pickle(ts)
+        assert rt._reso == ts._reso
+        assert rt == ts
+
+    def test_asm8(self, dt64, ts):
+        rt = ts.asm8
+        assert rt == dt64
+        assert rt.dtype == dt64.dtype
+
+    def test_to_numpy(self, dt64, ts):
+        res = ts.to_numpy()
+        assert res == dt64
+        assert res.dtype == dt64.dtype
+
+    def test_to_datetime64(self, dt64, ts):
+        res = ts.to_datetime64()
+        assert res == dt64
+        assert res.dtype == dt64.dtype
