@@ -26,7 +26,6 @@ from pandas._config import get_option
 from pandas._libs import (
     NaT,
     algos as libalgos,
-    hashtable as htable,
     lib,
 )
 from pandas._libs.arrays import NDArrayBacked
@@ -2255,14 +2254,15 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     def _mode(self, dropna: bool = True) -> Categorical:
         codes = self._codes
+        mask = None
         if dropna:
-            good = self._codes != -1
-            codes = self._codes[good]
+            mask = self.isna()
 
-        codes = htable.mode(codes, dropna)
-        codes.sort()
-        codes = coerce_indexer_dtype(codes, self.dtype.categories)
-        return self._from_backing_data(codes)
+        res_codes = algorithms.mode(codes, mask=mask)
+        res_codes = cast(np.ndarray, res_codes)
+        assert res_codes.dtype == codes.dtype
+        res = self._from_backing_data(res_codes)
+        return res
 
     # ------------------------------------------------------------------
     # ExtensionArray Interface
