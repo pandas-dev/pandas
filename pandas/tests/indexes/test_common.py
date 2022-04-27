@@ -400,8 +400,7 @@ class TestCommon:
             # Some of these conversions cannot succeed so we use a try / except
             with tm.assert_produces_warning(
                 warn,
-                raise_on_extra_warnings=index.dtype == "string[pyarrow]"
-                and not pa_version_under2p0,
+                raise_on_extra_warnings=not pa_version_under2p0,
             ):
                 result = index.astype(dtype)
         except (ValueError, TypeError, NotImplementedError, SystemError):
