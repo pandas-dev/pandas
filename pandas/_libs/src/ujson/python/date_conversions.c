@@ -93,10 +93,14 @@ char *PyDateTimeToIso(PyObject *obj, NPY_DATETIMEUNIT base,
     // Check to see if PyDateTime has a timezone.
     // Don't convert to UTC if it doesn't.
     int is_tz_aware = 0;
-    PyObject *offset = extract_utc_offset(obj);
-    if (offset != NULL) {
-        is_tz_aware = 1;
-        Py_DECREF(offset);
+    if (PyObject_HasAttrString(obj, "tzinfo")) {
+        PyObject *offset = extract_utc_offset(obj);
+        if (offset != NULL) {
+            if (offset != Py_None) {
+                is_tz_aware = 1;
+            }
+            Py_DECREF(offset);
+        }
     }
     ret = make_iso_8601_datetime(&dts, result, *len, is_tz_aware, base);
 
