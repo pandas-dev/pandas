@@ -2259,6 +2259,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             mask = self.isna()
 
         res_codes = algorithms.mode(codes, mask=mask)
+        res_codes = cast(np.ndarray, res_codes)
         assert res_codes.dtype == codes.dtype
         res = self._from_backing_data(res_codes)
         return res
