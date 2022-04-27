@@ -62,19 +62,19 @@ raises_overflow_error = partial(pytest.raises, OverflowError, match=TD64_OVERFLO
 raises_value_error = partial(pytest.raises, ValueError, match=TD64_VALUE_ERROR_MSG)
 
 
-def wrap_value(value, type_):
+def wrap_value(value, cls):
     """
-    Return value wrapped in a container of given type_, or as-is if type_ is a scalar.
+    Return value wrapped in a container of given cls, or as-is if cls is a scalar.
     """
-    if issubclass(type_, (Timedelta, Timestamp)):
-        return type_(value)
+    if issubclass(cls, (Timedelta, Timestamp)):
+        return cls(value)
 
-    if issubclass(type_, ExtensionArray):
+    if issubclass(cls, ExtensionArray):
         box_cls = array
-    elif issubclass(type_, Index):
+    elif issubclass(cls, Index):
         box_cls = Index
     else:
-        box_cls = type_
+        box_cls = cls
 
     if not is_list_like(value):
         value = [value]
@@ -240,7 +240,7 @@ class TestBinaryOps:
     ):
         max_dt64 = wrap_value(Timestamp.max, dt64_type)
         ex = (OutOfBoundsDatetime, OverflowError)
-        msg = TD64_OVERFLOW_MSG + "|Out of bounds nanosecond timestamp"
+        msg = "|".join([TD64_OVERFLOW_MSG, "Out of bounds nanosecond timestamp"])
 
         with pytest.raises(ex, match=msg):
             max_td64 + max_dt64
@@ -255,7 +255,7 @@ class TestBinaryOps:
     ):
         min_dt64 = wrap_value(Timestamp.min, dt64_type)
         ex = (OutOfBoundsDatetime, OverflowError)
-        msg = TD64_OVERFLOW_MSG + "|Out of bounds nanosecond timestamp"
+        msg = "|".join([TD64_OVERFLOW_MSG, "Out of bounds nanosecond timestamp"])
 
         with pytest.raises(ex, match=msg):
             min_dt64 - max_td64

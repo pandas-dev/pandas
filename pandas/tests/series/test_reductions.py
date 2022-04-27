@@ -53,12 +53,7 @@ def test_td64_sum_empty(skipna):
     assert result == pd.Timedelta(0)
 
 
-@given(
-    st.integers(
-        min_value=0,
-        max_value=10 ** (np.finfo(np.float64).precision),
-    ).map(pd.Timedelta)
-)
+@given(st.integers(min_value=0, max_value=10**15).map(pd.Timedelta))
 def test_td64_summation_retains_ns_precision_over_expected_range(value: pd.Timedelta):
     result = Series(value).sum()
 
@@ -67,7 +62,7 @@ def test_td64_summation_retains_ns_precision_over_expected_range(value: pd.Timed
 
 @given(
     st.integers(
-        min_value=10 ** (np.finfo(np.float64).precision),
+        min_value=10**15,
         max_value=pd.Timedelta.max.value - 2**9,
     )
     .filter(lambda i: int(np.float64(i)) != i)
@@ -76,6 +71,9 @@ def test_td64_summation_retains_ns_precision_over_expected_range(value: pd.Timed
 def test_td64_summation_loses_ns_precision_if_float_conversion_rounds(
     value: pd.Timedelta,
 ):
+    """
+    The computation involves int->float conversion, so there can be loss of precision.
+    """
     result = Series(value).sum()
 
     assert result != value
