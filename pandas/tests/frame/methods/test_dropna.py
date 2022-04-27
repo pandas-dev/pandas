@@ -158,9 +158,6 @@ class TestDataFrameMissingData:
         msg = "invalid how option: foo"
         with pytest.raises(ValueError, match=msg):
             float_frame.dropna(how="foo")
-        msg = "must specify how or thresh"
-        with pytest.raises(TypeError, match=msg):
-            float_frame.dropna(how=None)
         # non-existent column - 8303
         with pytest.raises(KeyError, match=r"^\['X'\]$"):
             float_frame.dropna(subset=["A", "X"])
@@ -274,3 +271,16 @@ class TestDataFrameMissingData:
         expected = df.copy()
         result = df.dropna(axis=axis)
         tm.assert_frame_equal(result, expected, check_index_type=True)
+
+    def test_how_thresh_param_incompatible(self):
+        # GH46575
+        df = DataFrame([1, 2, pd.NA])
+        msg = "You cannot set both the how and thresh arguments at the same time"
+        with pytest.raises(TypeError, match=msg):
+            df.dropna(how="all", thresh=2)
+
+        with pytest.raises(TypeError, match=msg):
+            df.dropna(how="any", thresh=2)
+
+        with pytest.raises(TypeError, match=msg):
+            df.dropna(how=None, thresh=None)
