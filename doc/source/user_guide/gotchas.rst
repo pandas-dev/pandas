@@ -367,7 +367,7 @@ integer arrays to floating when NAs must be introduced.
 Differences with NumPy
 ----------------------
 For :class:`Series` and :class:`DataFrame` objects, :meth:`~DataFrame.var` normalizes by
-``N-1`` to produce unbiased estimates of the sample variance, while NumPy's
+``N-1`` to produce `unbiased estimates of the population variance <https://en.wikipedia.org/wiki/Bias_of_an_estimator>`__, while NumPy's
 :meth:`numpy.var` normalizes by N, which measures the variance of the sample. Note that
 :meth:`~DataFrame.cov` normalizes by ``N-1`` in both pandas and NumPy.
 
