@@ -1,7 +1,6 @@
 # cython: boundscheck=False, wraparound=False, cdivision=True
 
-import cython
-
+cimport cython
 from libc.math cimport (
     round,
     signbit,
@@ -278,15 +277,15 @@ def roll_mean(const float64_t[:] values, ndarray[int64_t] start,
 
 
 cdef inline float64_t calc_var(int64_t minp, int ddof, float64_t nobs,
-                               float64_t ssqdm_x) nogil:
+                               float64_t ssqdm_x, int64_t num_consecutive_same_value) nogil:
     cdef:
         float64_t result
 
     # Variance is unchanged if no observation is added or removed
     if (nobs >= minp) and (nobs > ddof):
 
-        # pathological case
-        if nobs == 1:
+        # pathological case & repeatedly same values case
+        if nobs == 1 or num_consecutive_same_value >= nobs:
             result = 0
         else:
             result = ssqdm_x / (nobs - <float64_t>ddof)
@@ -297,7 +296,8 @@ cdef inline float64_t calc_var(int64_t minp, int ddof, float64_t nobs,
 
 
 cdef inline void add_var(float64_t val, float64_t *nobs, float64_t *mean_x,
-                         float64_t *ssqdm_x, float64_t *compensation) nogil:
+                         float64_t *ssqdm_x, float64_t *compensation,
+                         int64_t *num_consecutive_same_value, float64_t *prev_value) nogil:
     """ add a value from the var calc """
     cdef:
         float64_t delta, prev_mean, y, t
@@ -307,6 +307,15 @@ cdef inline void add_var(float64_t val, float64_t *nobs, float64_t *mean_x,
         return
 
     nobs[0] = nobs[0] + 1
+
+    # GH#42064, record num of same values to remove floating point artifacts
+    if val == prev_value[0]:
+        num_consecutive_same_value[0] += 1
+    else:
+        # reset to 1 (include current value itself)
+        num_consecutive_same_value[0] = 1
+    prev_value[0] = val
+
     # Welford's method for the online variance-calculation
     # using Kahan summation
     # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
@@ -352,9 +361,8 @@ def roll_var(const float64_t[:] values, ndarray[int64_t] start,
     """
     cdef:
         float64_t mean_x, ssqdm_x, nobs, compensation_add,
-        float64_t compensation_remove,
-        float64_t val, prev, delta, mean_x_old
-        int64_t s, e
+        float64_t compensation_remove, prev_value
+        int64_t s, e, num_consecutive_same_value
         Py_ssize_t i, j, N = len(start)
         ndarray[float64_t] output
         bint is_monotonic_increasing_bounds
@@ -376,9 +384,13 @@ def roll_var(const float64_t[:] values, ndarray[int64_t] start,
             # never removed
             if i == 0 or not is_monotonic_increasing_bounds or s >= end[i - 1]:
 
+                prev_value = values[s]
+                num_consecutive_same_value = 0
+
                 mean_x = ssqdm_x = nobs = compensation_add = compensation_remove = 0
                 for j in range(s, e):
-                    add_var(values[j], &nobs, &mean_x, &ssqdm_x, &compensation_add)
+                    add_var(values[j], &nobs, &mean_x, &ssqdm_x, &compensation_add,
+                            &num_consecutive_same_value, &prev_value)
 
             else:
 
@@ -392,9 +404,10 @@ def roll_var(const float64_t[:] values, ndarray[int64_t] start,
 
                 # calculate adds
                 for j in range(end[i - 1], e):
-                    add_var(values[j], &nobs, &mean_x, &ssqdm_x, &compensation_add)
+                    add_var(values[j], &nobs, &mean_x, &ssqdm_x, &compensation_add,
+                            &num_consecutive_same_value, &prev_value)
 
-            output[i] = calc_var(minp, ddof, nobs, ssqdm_x)
+            output[i] = calc_var(minp, ddof, nobs, ssqdm_x, num_consecutive_same_value)
 
             if not is_monotonic_increasing_bounds:
                 nobs = 0.0
@@ -1592,7 +1605,7 @@ def roll_weighted_var(const float64_t[:] values, const float64_t[:] weights,
 
     with nogil:
 
-        for i in range(win_n):
+        for i in range(min(win_n, n)):
             add_weighted_var(values[i], weights[i], &t,
                              &sum_w, &mean, &nobs)
 

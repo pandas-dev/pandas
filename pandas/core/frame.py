@@ -1339,7 +1339,7 @@ class DataFrame(NDFrame, OpsMixin):
         columns = self.columns
         klass = self._constructor_sliced
         for k, v in zip(self.index, self.values):
-            s = klass(v, index=columns, name=k)
+            s = klass(v, index=columns, name=k).__finalize__(self)
             yield k, s
 
     def itertuples(
@@ -1913,7 +1913,9 @@ class DataFrame(NDFrame, OpsMixin):
             return into_c((k, v.to_dict(into)) for k, v in self.items())
 
         elif orient == "list":
-            return into_c((k, v.tolist()) for k, v in self.items())
+            return into_c(
+                (k, list(map(maybe_box_native, v.tolist()))) for k, v in self.items()
+            )
 
         elif orient == "split":
             return into_c(
@@ -1964,7 +1966,7 @@ class DataFrame(NDFrame, OpsMixin):
             if not self.index.is_unique:
                 raise ValueError("DataFrame index must be unique for orient='index'.")
             return into_c(
-                (t[0], dict(zip(self.columns, t[1:])))
+                (t[0], dict(zip(self.columns, map(maybe_box_native, t[1:]))))
                 for t in self.itertuples(name=None)
             )
 
@@ -2892,7 +2894,7 @@ class DataFrame(NDFrame, OpsMixin):
         classes: str | list | tuple | None = None,
         escape: bool = True,
         notebook: bool = False,
-        border: int | None = None,
+        border: int | bool | None = None,
         table_id: str | None = None,
         render_links: bool = False,
         encoding: str | None = None,
@@ -3453,7 +3455,7 @@ class DataFrame(NDFrame, OpsMixin):
                 index=self.columns,
                 name=self.index[i],
                 dtype=new_values.dtype,
-            )
+            ).__finalize__(self)
             result._set_is_copy(self, copy=copy)
             return result
 
@@ -8717,7 +8719,7 @@ Parrot 2  Parrot       24.0
             value_name=value_name,
             col_level=col_level,
             ignore_index=ignore_index,
-        )
+        ).__finalize__(self, method="melt")
 
     # ----------------------------------------------------------------------
     # Time series-related
@@ -9576,6 +9578,11 @@ Parrot 2  Parrot       24.0
                     "Joining multiple DataFrames only supported for joining on index"
                 )
 
+            if rsuffix or lsuffix:
+                raise ValueError(
+                    "Suffixes not supported when joining multiple DataFrames"
+                )
+
             frames = [self] + list(other)
 
             can_concat = all(df.index.is_unique for df in frames)
@@ -9759,6 +9766,7 @@ Parrot 2  Parrot       24.0
         self,
         method: str | Callable[[np.ndarray, np.ndarray], float] = "pearson",
         min_periods: int = 1,
+        numeric_only: bool = True,
     ) -> DataFrame:
         """
         Compute pairwise correlation of columns, excluding NA/null values.
@@ -9779,6 +9787,10 @@ Parrot 2  Parrot       24.0
             Minimum number of observations required per pair of columns
             to have a valid result. Currently only available for Pearson
             and Spearman correlation.
+        numeric_only : bool, default True
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -9818,10 +9830,13 @@ Parrot 2  Parrot       24.0
         dogs   1.0   NaN
         cats   NaN   1.0
         """  # noqa:E501
-        numeric_df = self._get_numeric_data()
-        cols = numeric_df.columns
+        if numeric_only:
+            data = self._get_numeric_data()
+        else:
+            data = self
+        cols = data.columns
         idx = cols.copy()
-        mat = numeric_df.to_numpy(dtype=float, na_value=np.nan, copy=False)
+        mat = data.to_numpy(dtype=float, na_value=np.nan, copy=False)
 
         if method == "pearson":
             correl = libalgos.nancorr(mat, minp=min_periods)
@@ -9860,7 +9875,12 @@ Parrot 2  Parrot       24.0
 
         return self._constructor(correl, index=idx, columns=cols)
 
-    def cov(self, min_periods: int | None = None, ddof: int | None = 1) -> DataFrame:
+    def cov(
+        self,
+        min_periods: int | None = None,
+        ddof: int | None = 1,
+        numeric_only: bool = True,
+    ) -> DataFrame:
         """
         Compute pairwise covariance of columns, excluding NA/null values.
 
@@ -9890,6 +9910,11 @@ Parrot 2  Parrot       24.0
             is ``N - ddof``, where ``N`` represents the number of elements.
 
             .. versionadded:: 1.1.0
+
+        numeric_only : bool, default True
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -9959,10 +9984,13 @@ Parrot 2  Parrot       24.0
         b       NaN  1.248003  0.191417
         c -0.150812  0.191417  0.895202
         """
-        numeric_df = self._get_numeric_data()
-        cols = numeric_df.columns
+        if numeric_only:
+            data = self._get_numeric_data()
+        else:
+            data = self
+        cols = data.columns
         idx = cols.copy()
-        mat = numeric_df.to_numpy(dtype=float, na_value=np.nan, copy=False)
+        mat = data.to_numpy(dtype=float, na_value=np.nan, copy=False)
 
         if notna(mat).all():
             if min_periods is not None and min_periods > len(mat):
@@ -9976,7 +10004,14 @@ Parrot 2  Parrot       24.0
 
         return self._constructor(base_cov, index=idx, columns=cols)
 
-    def corrwith(self, other, axis: Axis = 0, drop=False, method="pearson") -> Series:
+    def corrwith(
+        self,
+        other,
+        axis: Axis = 0,
+        drop=False,
+        method="pearson",
+        numeric_only: bool = True,
+    ) -> Series:
         """
         Compute pairwise correlation.
 
@@ -10002,6 +10037,11 @@ Parrot 2  Parrot       24.0
             * spearman : Spearman rank correlation
             * callable: callable with input two 1d ndarrays
                 and returning a float.
+
+        numeric_only : bool, default True
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -10034,7 +10074,10 @@ Parrot 2  Parrot       24.0
         dtype: float64
         """  # noqa:E501
         axis = self._get_axis_number(axis)
-        this = self._get_numeric_data()
+        if numeric_only:
+            this = self._get_numeric_data()
+        else:
+            this = self
 
         # GH46174: when other is a Series object and axis=0, we achieve a speedup over
         # passing .corr() to .apply() by taking the columns as ndarrays and iterating
@@ -10047,19 +10090,23 @@ Parrot 2  Parrot       24.0
         if isinstance(other, Series):
             if axis == 0 and method in ["pearson", "spearman"]:
                 corrs = {}
-                numeric_cols = self.select_dtypes(include=np.number).columns
-                ndf = self[numeric_cols].values.transpose()
+                if numeric_only:
+                    cols = self.select_dtypes(include=np.number).columns
+                    ndf = self[cols].values.transpose()
+                else:
+                    cols = self.columns
+                    ndf = self.values.transpose()
                 k = other.values
                 if method == "pearson":
                     for i, r in enumerate(ndf):
                         nonnull_mask = ~np.isnan(r) & ~np.isnan(k)
-                        corrs[numeric_cols[i]] = np.corrcoef(
-                            r[nonnull_mask], k[nonnull_mask]
-                        )[0, 1]
+                        corrs[cols[i]] = np.corrcoef(r[nonnull_mask], k[nonnull_mask])[
+                            0, 1
+                        ]
                 else:
                     for i, r in enumerate(ndf):
                         nonnull_mask = ~np.isnan(r) & ~np.isnan(k)
-                        corrs[numeric_cols[i]] = np.corrcoef(
+                        corrs[cols[i]] = np.corrcoef(
                             r[nonnull_mask].argsort().argsort(),
                             k[nonnull_mask].argsort().argsort(),
                         )[0, 1]
@@ -10491,67 +10538,8 @@ Parrot 2  Parrot       24.0
         """
         return self.apply(Series.nunique, axis=axis, dropna=dropna)
 
+    @doc(_shared_docs["idxmin"])
     def idxmin(self, axis: Axis = 0, skipna: bool = True) -> Series:
-        """
-        Return index of first occurrence of minimum over requested axis.
-
-        NA/null values are excluded.
-
-        Parameters
-        ----------
-        axis : {0 or 'index', 1 or 'columns'}, default 0
-            The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
-        skipna : bool, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA.
-
-        Returns
-        -------
-        Series
-            Indexes of minima along the specified axis.
-
-        Raises
-        ------
-        ValueError
-            * If the row/column is empty
-
-        See Also
-        --------
-        Series.idxmin : Return index of the minimum element.
-
-        Notes
-        -----
-        This method is the DataFrame version of ``ndarray.argmin``.
-
-        Examples
-        --------
-        Consider a dataset containing food consumption in Argentina.
-
-        >>> df = pd.DataFrame({'consumption': [10.51, 103.11, 55.48],
-        ...                    'co2_emissions': [37.2, 19.66, 1712]},
-        ...                    index=['Pork', 'Wheat Products', 'Beef'])
-
-        >>> df
-                        consumption  co2_emissions
-        Pork                  10.51         37.20
-        Wheat Products       103.11         19.66
-        Beef                  55.48       1712.00
-
-        By default, it returns the index for the minimum value in each column.
-
-        >>> df.idxmin()
-        consumption                Pork
-        co2_emissions    Wheat Products
-        dtype: object
-
-        To return the index for the minimum value in each row, use ``axis="columns"``.
-
-        >>> df.idxmin(axis="columns")
-        Pork                consumption
-        Wheat Products    co2_emissions
-        Beef                consumption
-        dtype: object
-        """
         axis = self._get_axis_number(axis)
 
         res = self._reduce(
@@ -10568,67 +10556,8 @@ Parrot 2  Parrot       24.0
         result = [index[i] if i >= 0 else np.nan for i in indices]
         return self._constructor_sliced(result, index=self._get_agg_axis(axis))
 
+    @doc(_shared_docs["idxmax"])
     def idxmax(self, axis: Axis = 0, skipna: bool = True) -> Series:
-        """
-        Return index of first occurrence of maximum over requested axis.
-
-        NA/null values are excluded.
-
-        Parameters
-        ----------
-        axis : {0 or 'index', 1 or 'columns'}, default 0
-            The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
-        skipna : bool, default True
-            Exclude NA/null values. If an entire row/column is NA, the result
-            will be NA.
-
-        Returns
-        -------
-        Series
-            Indexes of maxima along the specified axis.
-
-        Raises
-        ------
-        ValueError
-            * If the row/column is empty
-
-        See Also
-        --------
-        Series.idxmax : Return index of the maximum element.
-
-        Notes
-        -----
-        This method is the DataFrame version of ``ndarray.argmax``.
-
-        Examples
-        --------
-        Consider a dataset containing food consumption in Argentina.
-
-        >>> df = pd.DataFrame({'consumption': [10.51, 103.11, 55.48],
-        ...                    'co2_emissions': [37.2, 19.66, 1712]},
-        ...                    index=['Pork', 'Wheat Products', 'Beef'])
-
-        >>> df
-                        consumption  co2_emissions
-        Pork                  10.51         37.20
-        Wheat Products       103.11         19.66
-        Beef                  55.48       1712.00
-
-        By default, it returns the index for the maximum value in each column.
-
-        >>> df.idxmax()
-        consumption     Wheat Products
-        co2_emissions             Beef
-        dtype: object
-
-        To return the index for the maximum value in each row, use ``axis="columns"``.
-
-        >>> df.idxmax(axis="columns")
-        Pork              co2_emissions
-        Wheat Products     consumption
-        Beef              co2_emissions
-        dtype: object
-        """
         axis = self._get_axis_number(axis)
 
         res = self._reduce(
