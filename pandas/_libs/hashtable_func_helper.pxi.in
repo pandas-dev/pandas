@@ -31,9 +31,9 @@ dtypes = [('Complex128', 'complex128', 'complex128',
 @cython.wraparound(False)
 @cython.boundscheck(False)
 {{if dtype == 'object'}}
-cdef value_count_{{dtype}}(ndarray[{{dtype}}] values, bint dropna):
+cdef value_count_{{dtype}}(ndarray[{{dtype}}] values, bint dropna, const uint8_t[:] mask=None):
 {{else}}
-cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
+cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna, const uint8_t[:] mask=None):
 {{endif}}
     cdef:
         Py_ssize_t i = 0
@@ -46,6 +46,11 @@ cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
         {{c_type}} val
 
         int ret = 0
+        bint uses_mask = mask is not None
+        bint isna_entry = False
+
+    if uses_mask and not dropna:
+        raise NotImplementedError("uses_mask not implemented with dropna=False")
 
     # we track the order in which keys are first seen (GH39009),
     # khash-map isn't insertion-ordered, thus:
@@ -56,6 +61,9 @@ cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
     table = kh_init_{{ttype}}()
 
     {{if dtype == 'object'}}
+    if uses_mask:
+        raise NotImplementedError("uses_mask not implemented with object dtype")
+
     kh_resize_{{ttype}}(table, n // 10)
 
     for i in range(n):
@@ -74,7 +82,13 @@ cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
     for i in range(n):
         val = {{to_c_type}}(values[i])
 
-        if not is_nan_{{c_type}}(val) or not dropna:
+        if dropna:
+            if uses_mask:
+                isna_entry = mask[i]
+            else:
+                isna_entry = is_nan_{{c_type}}(val)
+
+        if not dropna or not isna_entry:
             k = kh_get_{{ttype}}(table, val)
             if k != table.n_buckets:
                 table.vals[k] += 1
@@ -251,37 +265,37 @@ ctypedef fused htfunc_t:
     complex64_t
 
 
-cpdef value_count(ndarray[htfunc_t] values, bint dropna):
+cpdef value_count(ndarray[htfunc_t] values, bint dropna, const uint8_t[:] mask=None):
     if htfunc_t is object:
-        return value_count_object(values, dropna)
+        return value_count_object(values, dropna, mask=mask)
 
     elif htfunc_t is int8_t:
-        return value_count_int8(values, dropna)
+        return value_count_int8(values, dropna, mask=mask)
     elif htfunc_t is int16_t:
-        return value_count_int16(values, dropna)
+        return value_count_int16(values, dropna, mask=mask)
     elif htfunc_t is int32_t:
-        return value_count_int32(values, dropna)
+        return value_count_int32(values, dropna, mask=mask)
     elif htfunc_t is int64_t:
-        return value_count_int64(values, dropna)
+        return value_count_int64(values, dropna, mask=mask)
 
     elif htfunc_t is uint8_t:
-        return value_count_uint8(values, dropna)
+        return value_count_uint8(values, dropna, mask=mask)
     elif htfunc_t is uint16_t:
-        return value_count_uint16(values, dropna)
+        return value_count_uint16(values, dropna, mask=mask)
     elif htfunc_t is uint32_t:
-        return value_count_uint32(values, dropna)
+        return value_count_uint32(values, dropna, mask=mask)
     elif htfunc_t is uint64_t:
-        return value_count_uint64(values, dropna)
+        return value_count_uint64(values, dropna, mask=mask)
 
     elif htfunc_t is float64_t:
-        return value_count_float64(values, dropna)
+        return value_count_float64(values, dropna, mask=mask)
     elif htfunc_t is float32_t:
-        return value_count_float32(values, dropna)
+        return value_count_float32(values, dropna, mask=mask)
 
     elif htfunc_t is complex128_t:
-        return value_count_complex128(values, dropna)
+        return value_count_complex128(values, dropna, mask=mask)
     elif htfunc_t is complex64_t:
-        return value_count_complex64(values, dropna)
+        return value_count_complex64(values, dropna, mask=mask)
 
     else:
         raise TypeError(values.dtype)
@@ -361,7 +375,7 @@ cpdef ismember(ndarray[htfunc_t] arr, ndarray[htfunc_t] values):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def mode(ndarray[htfunc_t] values, bint dropna):
+def mode(ndarray[htfunc_t] values, bint dropna, const uint8_t[:] mask=None):
     # TODO(cython3): use const htfunct_t[:]
 
     cdef:
@@ -372,7 +386,7 @@ def mode(ndarray[htfunc_t] values, bint dropna):
         int64_t count, max_count = -1
         Py_ssize_t nkeys, k, j = 0
 
-    keys, counts = value_count(values, dropna)
+    keys, counts = value_count(values, dropna, mask=mask)
     nkeys = len(keys)
 
     modes = np.empty(nkeys, dtype=values.dtype)
