@@ -79,6 +79,7 @@ as seen in the following example.
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+- :meth:`Series.map` now raises when ``arg`` is dict but ``na_action`` is not either ``None`` or ``'ignore'`` (:issue:`46588`)
 - :meth:`MultiIndex.to_frame` now supports the argument ``allow_duplicates`` and raises on duplicate labels if it is missing or False (:issue:`45245`)
 - :class:`StringArray` now accepts array-likes containing nan-likes (``None``, ``np.nan``) for the ``values`` parameter in its constructor in addition to strings and :attr:`pandas.NA`. (:issue:`40839`)
 - Improved the rendering of ``categories`` in :class:`CategoricalIndex` (:issue:`45218`)
