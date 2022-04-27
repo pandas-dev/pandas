@@ -354,6 +354,7 @@ def array_to_timedelta64(
                 raise ValueError(
                     "unit must not be specified if the input contains a str"
                 )
+            cnp.PyArray_ITER_NEXT(it)
 
     # Usually, we have all strings. If so, we hit the fast path.
     # If this path fails, we try conversion a different way, and
