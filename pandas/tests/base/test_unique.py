@@ -17,7 +17,7 @@ def test_unique(index_or_series_obj):
     obj = np.repeat(obj, range(1, len(obj) + 1))
     with tm.maybe_produces_warning(
         PerformanceWarning,
-        pa_version_under2p0 and index_or_series_obj.dtype == "string[pyarrow]",
+        pa_version_under2p0 and str(index_or_series_obj.dtype) == "string[pyarrow]",
     ):
         result = obj.unique()
 
@@ -59,7 +59,7 @@ def test_unique_null(null_obj, index_or_series_obj):
     obj = klass(repeated_values, dtype=obj.dtype)
     with tm.maybe_produces_warning(
         PerformanceWarning,
-        pa_version_under2p0 and index_or_series_obj.dtype == "string[pyarrow]",
+        pa_version_under2p0 and str(index_or_series_obj.dtype) == "string[pyarrow]",
     ):
         result = obj.unique()
 
@@ -88,7 +88,7 @@ def test_nunique(index_or_series_obj):
     obj = np.repeat(obj, range(1, len(obj) + 1))
     with tm.maybe_produces_warning(
         PerformanceWarning,
-        pa_version_under2p0 and index_or_series_obj.dtype == "string[pyarrow]",
+        pa_version_under2p0 and str(index_or_series_obj.dtype) == "string[pyarrow]",
     ):
         expected = len(obj.unique())
     assert obj.nunique(dropna=False) == expected
@@ -116,17 +116,17 @@ def test_nunique_null(null_obj, index_or_series_obj):
     else:
         with tm.maybe_produces_warning(
             PerformanceWarning,
-            pa_version_under2p0 and index_or_series_obj.dtype == "string[pyarrow]",
+            pa_version_under2p0 and str(index_or_series_obj.dtype) == "string[pyarrow]",
         ):
             num_unique_values = len(obj.unique())
         with tm.maybe_produces_warning(
             PerformanceWarning,
-            pa_version_under2p0 and index_or_series_obj.dtype == "string[pyarrow]",
+            pa_version_under2p0 and str(index_or_series_obj.dtype) == "string[pyarrow]",
         ):
             assert obj.nunique() == max(0, num_unique_values - 1)
         with tm.maybe_produces_warning(
             PerformanceWarning,
-            pa_version_under2p0 and index_or_series_obj.dtype == "string[pyarrow]",
+            pa_version_under2p0 and str(index_or_series_obj.dtype) == "string[pyarrow]",
         ):
             assert obj.nunique(dropna=False) == max(0, num_unique_values)
 
