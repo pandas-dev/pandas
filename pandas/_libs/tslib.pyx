@@ -27,6 +27,7 @@ cnp.import_array()
 import pytz
 
 from pandas._libs.tslibs.np_datetime cimport (
+    NPY_DATETIMEUNIT,
     check_dts_bounds,
     dt64_to_dtstruct,
     dtstruct_to_dt64,
@@ -75,6 +76,7 @@ def _test_parse_iso8601(ts: str):
     cdef:
         _TSObject obj
         int out_local = 0, out_tzoffset = 0
+        NPY_DATETIMEUNIT out_bestunit
 
     obj = _TSObject()
 
@@ -83,7 +85,7 @@ def _test_parse_iso8601(ts: str):
     elif ts == 'today':
         return Timestamp.now().normalize()
 
-    string_to_dts(ts, &obj.dts, &out_local, &out_tzoffset, True)
+    string_to_dts(ts, &obj.dts, &out_bestunit, &out_local, &out_tzoffset, True)
     obj.value = dtstruct_to_dt64(&obj.dts)
     check_dts_bounds(&obj.dts)
     if out_local == 1:
@@ -428,6 +430,7 @@ cpdef array_to_datetime(
         ndarray[int64_t] iresult
         ndarray[object] oresult
         npy_datetimestruct dts
+        NPY_DATETIMEUNIT out_bestunit
         bint utc_convert = bool(utc)
         bint seen_integer = False
         bint seen_string = False
@@ -516,7 +519,7 @@ cpdef array_to_datetime(
                         continue
 
                     string_to_dts_failed = string_to_dts(
-                        val, &dts, &out_local,
+                        val, &dts, &out_bestunit, &out_local,
                         &out_tzoffset, False
                     )
                     if string_to_dts_failed:
