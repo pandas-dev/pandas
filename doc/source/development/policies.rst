@@ -51,7 +51,7 @@ pandas may change the behavior of experimental features at any time.
 Python support
 ~~~~~~~~~~~~~~
 
-pandas mirrors the `NumPy guidelines for Python support <https://numpy.org/neps/nep-0029-deprecation_policy.html#implementation>`_.
+pandas mirrors the `NumPy guidelines for Python support <https://numpy.org/neps/nep-0029-deprecation_policy.html#implementation>`__.
 
 
 .. _SemVer: https://semver.org
