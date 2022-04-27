@@ -1,10 +1,22 @@
+from contextlib import (
+    AbstractContextManager,
+    nullcontext,
+)
 from datetime import (
     datetime,
     timedelta,
 )
+from functools import partial
+from typing import (
+    List,
+    Type,
+    Union,
+)
 
 import numpy as np
 import pytest
+
+from pandas._libs.lib import is_list_like
 
 import pandas as pd
 from pandas import (
@@ -20,6 +32,7 @@ from pandas import (
     Timedelta,
     TimedeltaIndex,
     Timestamp,
+    array,
     date_range,
     isna,
     timedelta_range,
@@ -27,6 +40,36 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core import nanops
+from pandas.core.arrays import (
+    ExtensionArray,
+    TimedeltaArray,
+)
+
+TD64_ARRAYLIKE_TYPE = Union[TimedeltaArray, TimedeltaIndex, Series]
+
+
+TD64_VALUE_ERROR_MSG = "overflow in timedelta operation"
+TD64_OVERFLOW_MSG = "|".join(
+    [
+        "int too big to convert",
+        "Python int too large to convert to C long",
+        "Overflow in int64 addition",
+    ]
+)
+
+
+does_not_raise = nullcontext
+raises_overflow_error = partial(pytest.raises, OverflowError, match=TD64_OVERFLOW_MSG)
+raises_value_error = partial(pytest.raises, ValueError, match=TD64_VALUE_ERROR_MSG)
+
+
+@pytest.fixture(
+    name="td64_arraylike_type",
+    params=(TimedeltaArray, TimedeltaIndex, Series),
+    scope="module",
+)
+def fixture_td64_arraylike_type(request) -> Type[TD64_ARRAYLIKE_TYPE]:
+    return request.param
 
 
 def get_objs():
@@ -46,6 +89,25 @@ def get_objs():
 
     objs = indexes + series
     return objs
+
+
+def wrap_value(value, cls):
+    """
+    Return value wrapped in a box of given cls, or as-is if cls is a scalar.
+    """
+    if not issubclass(cls, pd.core.arraylike.OpsMixin):
+        return cls(value)
+
+    if issubclass(cls, ExtensionArray):
+        box_cls = array
+    elif issubclass(cls, Index):
+        box_cls = Index
+    else:
+        box_cls = cls
+
+    if not is_list_like(value):
+        value = [value]
+    return tm.box_expected(value, box_cls, transpose=False)
 
 
 objs = get_objs()
@@ -1526,4 +1588,111 @@ class TestSeriesMode:
         # mode tries to sort multimodal series.
         # Complex numbers are sorted by their magnitude
         result = Series(array, dtype=dtype).mode()
+        tm.assert_series_equal(result, expected)
+
+
+class TestTimedelta64:
+    """
+    For timedelta64-valued ExtensionArrays/Indexes/Series/DataFrames.
+    """
+
+    @pytest.mark.parametrize(
+        "value",
+        [Timedelta(-(10**15) + 1), Timedelta(10**15 + 1)],
+    )
+    def test_single_elem_sum_retains_ns_precision_over_expected_range(
+        self,
+        value: Timedelta,
+        td64_arraylike_type: Type[TD64_ARRAYLIKE_TYPE],
+    ):
+        td64_arraylike = wrap_value(value, td64_arraylike_type)
+        result = td64_arraylike.sum()
+
+        assert result == value
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            Timedelta.min + Timedelta(512),
+            Timedelta(-(10**16) - 1),
+            Timedelta(10**16 + 1),
+            Timedelta.max - Timedelta(512),
+        ],
+    )
+    def test_single_elem_sum_loses_ns_precision_if_float_conversion_rounds(
+        self,
+        value: Timedelta,
+        td64_arraylike_type: Type[TD64_ARRAYLIKE_TYPE],
+    ):
+        """
+        The computation involves int->float conversion, so there can be loss of
+        precision.
+        """
+        td64_arraylike = wrap_value(value, td64_arraylike_type)
+        result = td64_arraylike.sum()
+
+        assert result != value
+        # assert np.isclose(result, value)
+
+    @pytest.mark.parametrize(
+        ["value", "expected_exs"],
+        [
+            (Timedelta.min, does_not_raise()),
+            (Timedelta.min + Timedelta(511), does_not_raise()),
+            (Timedelta.max - Timedelta(511), raises_overflow_error()),
+            (Timedelta.max, raises_overflow_error()),
+        ],
+    )
+    def test_single_elem_sum_fails_for_large_values(
+        self,
+        value: Timedelta,
+        expected_exs: AbstractContextManager,
+        td64_arraylike_type: Type[TD64_ARRAYLIKE_TYPE],
+    ):
+        td64_arraylike = wrap_value(value, td64_arraylike_type)
+        with expected_exs:
+            result = td64_arraylike.sum()
+            # for large negative values, sum() doesn't raise but does return NaT
+            assert result is NaT
+
+    @pytest.mark.parametrize(
+        ("values", "expected_exs"),
+        (
+            ([Timedelta.min] * 2, raises_value_error()),
+            ([Timedelta.min, Timedelta(-1025)], raises_value_error()),
+            ([Timedelta.min, Timedelta(-1024)], does_not_raise()),
+            ([Timedelta.min, Timedelta(-1)], does_not_raise()),
+            ([Timedelta.max, Timedelta(1)], raises_overflow_error()),
+            ([Timedelta.max, Timedelta(1024)], raises_overflow_error()),
+            ([Timedelta.max, Timedelta(1025)], raises_value_error()),
+            ([Timedelta.max] * 2, raises_value_error()),
+        ),
+    )
+    def test_arraylike_sum_usually_raises_for_overflow(
+        self,
+        values: List[Timedelta],
+        expected_exs: AbstractContextManager,
+        td64_arraylike_type: Type[TD64_ARRAYLIKE_TYPE],
+    ):
+        td64_arraylike = wrap_value(values, td64_arraylike_type)
+        with expected_exs:
+            result = td64_arraylike.sum()
+            # for small negative overflows, sum() doesn't raise but does return NaT
+            assert result is NaT
+
+    @pytest.mark.parametrize(
+        "values",
+        (
+            [Timedelta.min] * 2,
+            [Timedelta.min, Timedelta(-1)],
+            [Timedelta.max, Timedelta(1)],
+            [Timedelta.max] * 2,
+        ),
+        ids=["double_td_min", "over_by_-1ns", "over_by_1ns", "double_td_max"],
+    )
+    def test_df_sum_returns_nat_for_all_overflows(self, values: List[Timedelta]):
+        td64_df = wrap_value(values, DataFrame)
+        result = td64_df.sum()
+        expected = Series(NaT, index=[0], dtype="timedelta64[ns]")
+
         tm.assert_series_equal(result, expected)

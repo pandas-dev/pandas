@@ -1,5 +1,3 @@
-from hypothesis import given
-import hypothesis.strategies as st
 import numpy as np
 import pytest
 
@@ -51,32 +49,6 @@ def test_td64_sum_empty(skipna):
     result = ser.sum(skipna=skipna)
     assert isinstance(result, pd.Timedelta)
     assert result == pd.Timedelta(0)
-
-
-@given(st.integers(min_value=0, max_value=10**15).map(pd.Timedelta))
-def test_td64_summation_retains_ns_precision_over_expected_range(value: pd.Timedelta):
-    result = Series(value).sum()
-
-    assert result == value
-
-
-@given(
-    st.integers(
-        min_value=10**15,
-        max_value=pd.Timedelta.max.value - 2**9,
-    )
-    .filter(lambda i: int(np.float64(i)) != i)
-    .map(pd.Timedelta)
-)
-def test_td64_summation_loses_ns_precision_if_float_conversion_rounds(
-    value: pd.Timedelta,
-):
-    """
-    The computation involves int->float conversion, so there can be loss of precision.
-    """
-    result = Series(value).sum()
-
-    assert result != value
 
 
 def test_prod_numpy16_bug():
