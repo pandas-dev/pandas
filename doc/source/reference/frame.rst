@@ -391,3 +391,4 @@ Serialization / IO / conversion
    DataFrame.to_clipboard
    DataFrame.to_markdown
    DataFrame.style
+   DataFrame.__dataframe__

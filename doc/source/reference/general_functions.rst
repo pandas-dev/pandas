@@ -78,3 +78,10 @@ Hashing
 
    util.hash_array
    util.hash_pandas_object
+
+Importing from other DataFrame libraries
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+   api.exchange.from_dataframe
