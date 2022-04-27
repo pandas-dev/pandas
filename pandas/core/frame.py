@@ -42,7 +42,10 @@ from pandas._libs import (
     properties,
 )
 from pandas._libs.hashtable import duplicated
-from pandas._libs.lib import no_default
+from pandas._libs.lib import (
+    NoDefault,
+    no_default,
+)
 from pandas._typing import (
     AggFuncType,
     AnyArrayLike,
@@ -6110,8 +6113,8 @@ class DataFrame(NDFrame, OpsMixin):
     def dropna(
         self,
         axis: Axis = 0,
-        how: str = "any",
-        thresh=None,
+        how: str | NoDefault = no_default,
+        thresh: int | NoDefault = no_default,
         subset: IndexLabel = None,
         inplace: bool = False,
     ):
@@ -6143,7 +6146,7 @@ class DataFrame(NDFrame, OpsMixin):
             * 'all' : If all values are NA, drop that row or column.
 
         thresh : int, optional
-            Require that many non-NA values.
+            Require that many non-NA values. Cannot be combined with how.
         subset : column label or sequence of labels, optional
             Labels along other axis to consider, e.g. if you are dropping rows
             these would be a list of columns to include.
@@ -6218,6 +6221,14 @@ class DataFrame(NDFrame, OpsMixin):
              name        toy       born
         1  Batman  Batmobile 1940-04-25
         """
+        if (how is not no_default) and (thresh is not no_default):
+            raise TypeError(
+                "You cannot set both the how and thresh arguments at the same time."
+            )
+
+        if how is no_default:
+            how = "any"
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         if isinstance(axis, (tuple, list)):
             # GH20987
@@ -6238,7 +6249,7 @@ class DataFrame(NDFrame, OpsMixin):
                 raise KeyError(np.array(subset)[check].tolist())
             agg_obj = self.take(indices, axis=agg_axis)
 
-        if thresh is not None:
+        if thresh is not no_default:
             count = agg_obj.count(axis=agg_axis)
             mask = count >= thresh
         elif how == "any":
@@ -6248,10 +6259,8 @@ class DataFrame(NDFrame, OpsMixin):
             # faster equivalent to 'agg_obj.count(agg_axis) > 0'
             mask = notna(agg_obj).any(axis=agg_axis, bool_only=False)
         else:
-            if how is not None:
+            if how is not no_default:
                 raise ValueError(f"invalid how option: {how}")
-            else:
-                raise TypeError("must specify how or thresh")
 
         if np.all(mask):
             result = self.copy()
