@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-import collections
+import collections.abc
 from datetime import datetime
 from decimal import Decimal
 from functools import wraps
+from inspect import isclass
 import operator
 import os
 import re
@@ -274,6 +275,30 @@ def box_expected(expected, box_cls, transpose=True):
     else:
         raise NotImplementedError(box_cls)
     return expected
+
+
+def wrap_value(value, cls, transpose=False):
+    """
+    If cls is a scalar type, return value as an instance of it, otherwise return value
+    wrapped in the box type indicated by cls.
+
+    Designed to play nicely with box_expected (and the box_with_array fixture).
+    """
+    if isclass(cls) and not issubclass(cls, pd.core.arraylike.OpsMixin):
+        return cls(value)
+
+    if cls in (np.array, np.ndarray):
+        pass
+    elif cls is pd.array or issubclass(cls, ExtensionArray):
+        cls = pd.array
+    elif issubclass(cls, pd.Index):
+        cls = pd.Index
+
+    if not isinstance(
+        value, (collections.abc.Sequence, pd.core.arraylike.OpsMixin, np.ndarray)
+    ):
+        value = [value]
+    return box_expected(value, cls, transpose)
 
 
 def to_array(obj):
