@@ -156,13 +156,10 @@ _all_methods = [
     (pd.DataFrame, frame_data, operator.methodcaller("stack")),
     (pd.DataFrame, frame_data, operator.methodcaller("explode", "A")),
     (pd.DataFrame, frame_mi_data, operator.methodcaller("unstack")),
-    pytest.param(
-        (
-            pd.DataFrame,
-            ({"A": ["a", "b", "c"], "B": [1, 3, 5], "C": [2, 4, 6]},),
-            operator.methodcaller("melt", id_vars=["A"], value_vars=["B"]),
-        ),
-        marks=not_implemented_mark,
+    (
+        pd.DataFrame,
+        ({"A": ["a", "b", "c"], "B": [1, 3, 5], "C": [2, 4, 6]},),
+        operator.methodcaller("melt", id_vars=["A"], value_vars=["B"]),
     ),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("applymap", lambda x: x))
@@ -250,7 +247,6 @@ _all_methods = [
             frame_data,
             operator.methodcaller("quantile", numeric_only=True),
         ),
-        marks=not_implemented_mark,
     ),
     pytest.param(
         (
@@ -262,10 +258,9 @@ _all_methods = [
     pytest.param(
         (
             pd.DataFrame,
-            frame_data,
-            operator.methodcaller("quantile", numeric_only=True),
+            ({"A": [pd.Timedelta(days=1), pd.Timedelta(days=2)]},),
+            operator.methodcaller("quantile", numeric_only=False),
         ),
-        marks=not_implemented_mark,
     ),
     (
         pd.DataFrame,

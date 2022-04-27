@@ -577,7 +577,7 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
                 for elem in table.find_all(style=re.compile(r"display:\s*none")):
                     elem.decompose()
 
-            if table not in unique_tables and table.find(text=match) is not None:
+            if table not in unique_tables and table.find(string=match) is not None:
                 result.append(table)
             unique_tables.add(table)
 
@@ -622,7 +622,13 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
         else:
             udoc = bdoc
             from_encoding = self.encoding
-        return BeautifulSoup(udoc, features="html5lib", from_encoding=from_encoding)
+
+        soup = BeautifulSoup(udoc, features="html5lib", from_encoding=from_encoding)
+
+        for br in soup.find_all("br"):
+            br.replace_with("\n" + br.text)
+
+        return soup
 
 
 def _build_xpath_expr(attrs) -> str:
@@ -759,6 +765,10 @@ class _LxmlFrameParser(_HtmlFrameParser):
         else:
             if not hasattr(r, "text_content"):
                 raise XMLSyntaxError("no text parsed from document", 0, 0, 0)
+
+        for br in r.xpath("*//br"):
+            br.tail = "\n" + (br.tail or "")
+
         return r
 
     def _parse_thead_tr(self, table):

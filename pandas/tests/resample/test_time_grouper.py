@@ -266,7 +266,7 @@ def test_repr():
     # GH18203
     result = repr(Grouper(key="A", freq="H"))
     expected = (
-        "TimeGrouper(key='A', freq=<Hour>, axis=0, sort=True, "
+        "TimeGrouper(key='A', freq=<Hour>, axis=0, sort=True, dropna=True, "
         "closed='left', label='left', how='mean', "
         "convention='e', origin='start_day')"
     )
@@ -274,7 +274,7 @@ def test_repr():
 
     result = repr(Grouper(key="A", freq="H", origin="2000-01-01"))
     expected = (
-        "TimeGrouper(key='A', freq=<Hour>, axis=0, sort=True, "
+        "TimeGrouper(key='A', freq=<Hour>, axis=0, sort=True, dropna=True, "
         "closed='left', label='left', how='mean', "
         "convention='e', origin=Timestamp('2000-01-01 00:00:00'))"
     )
