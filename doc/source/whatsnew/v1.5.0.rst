@@ -14,6 +14,24 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+.. _whatsnew_150.enhancements.dataframe_exchange:
+
+DataFrame exchange protocol implementation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Pandas now implement the DataFrame exchange API spec.
+See the full details on the API at https://data-apis.org/dataframe-protocol/latest/index.html
+
+The protocol consists of two parts:
+
+  - New method :meth:`DataFrame.__dataframe__` which produces the exchange object.
+    It effectively "exports" the Pandas dataframe as an exchange object so
+    any other library which has the protocol implemented can "import" that dataframe
+    without knowing anything about the producer except that it makes an exchange object.
+  - New function :func:`pandas.api.exchange.from_dataframe` which can take
+    an arbitrary exchange object from any conformant library and construct a
+    Pandas DataFrame out of it.
+
 .. _whatsnew_150.enhancements.styler:
 
 Styler
