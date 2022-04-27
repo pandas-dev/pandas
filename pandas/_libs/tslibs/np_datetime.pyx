@@ -46,6 +46,7 @@ cdef extern from "src/datetime/np_datetime.h":
 cdef extern from "src/datetime/np_datetime_strings.h":
     int parse_iso_8601_datetime(const char *str, int len, int want_exc,
                                 npy_datetimestruct *out,
+                                NPY_DATETIMEUNIT *out_bestunit,
                                 int *out_local, int *out_tzoffset)
 
 
@@ -255,6 +256,7 @@ cdef inline int64_t pydate_to_dt64(date val, npy_datetimestruct *dts):
 cdef inline int string_to_dts(
     str val,
     npy_datetimestruct* dts,
+    NPY_DATETIMEUNIT* out_bestunit,
     int* out_local,
     int* out_tzoffset,
     bint want_exc,
@@ -265,7 +267,7 @@ cdef inline int string_to_dts(
 
     buf = get_c_string_buf_and_size(val, &length)
     return parse_iso_8601_datetime(buf, length, want_exc,
-                                   dts, out_local, out_tzoffset)
+                                   dts, out_bestunit, out_local, out_tzoffset)
 
 
 cpdef ndarray astype_overflowsafe(
