@@ -2110,9 +2110,6 @@ def gen_series_formatting():
 
 
 class TestSeriesFormatting:
-    def setup_method(self):
-        self.ts = tm.makeTimeSeries()
-
     def test_repr_unicode(self):
         s = Series(["\u03c3"] * 10)
         repr(s)
@@ -2122,30 +2119,31 @@ class TestSeriesFormatting:
         repr(a)
 
     def test_to_string(self):
+        ts = tm.makeTimeSeries()
         buf = StringIO()
 
-        s = self.ts.to_string()
+        s = ts.to_string()
 
-        retval = self.ts.to_string(buf=buf)
+        retval = ts.to_string(buf=buf)
         assert retval is None
         assert buf.getvalue().strip() == s
 
         # pass float_format
         format = "%.4f".__mod__
-        result = self.ts.to_string(float_format=format)
+        result = ts.to_string(float_format=format)
         result = [x.split()[1] for x in result.split("\n")[:-1]]
-        expected = [format(x) for x in self.ts]
+        expected = [format(x) for x in ts]
         assert result == expected
 
         # empty string
-        result = self.ts[:0].to_string()
+        result = ts[:0].to_string()
         assert result == "Series([], Freq: B)"
 
-        result = self.ts[:0].to_string(length=0)
+        result = ts[:0].to_string(length=0)
         assert result == "Series([], Freq: B)"
 
         # name and length
-        cp = self.ts.copy()
+        cp = ts.copy()
         cp.name = "foo"
         result = cp.to_string(length=True, name=True, dtype=True)
         last_line = result.split("\n")[-1].strip()

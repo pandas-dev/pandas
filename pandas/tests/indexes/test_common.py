@@ -8,7 +8,10 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import IS64
+from pandas.compat import (
+    IS64,
+    pa_version_under2p0,
+)
 
 from pandas.core.dtypes.common import is_integer_dtype
 
@@ -395,7 +398,10 @@ class TestCommon:
 
         try:
             # Some of these conversions cannot succeed so we use a try / except
-            with tm.assert_produces_warning(warn):
+            with tm.assert_produces_warning(
+                warn,
+                raise_on_extra_warnings=not pa_version_under2p0,
+            ):
                 result = index.astype(dtype)
         except (ValueError, TypeError, NotImplementedError, SystemError):
             return

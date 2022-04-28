@@ -842,6 +842,12 @@ class IndexOpsMixin(OpsMixin):
                 )
 
         if isinstance(mapper, ABCSeries):
+            if na_action not in (None, "ignore"):
+                msg = (
+                    "na_action must either be 'ignore' or None, "
+                    f"{na_action} was passed"
+                )
+                raise ValueError(msg)
             # Since values were input this means we came from either
             # a dict or a series and mapper should be an index
             if is_categorical_dtype(self.dtype):
