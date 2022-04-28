@@ -1849,3 +1849,23 @@ def test_rolling_var_same_value_count_logic(values, window, min_periods, expecte
     result_std = sr.rolling(window, min_periods=min_periods).std()
     tm.assert_series_equal(result_std, np.sqrt(expected))
     tm.assert_series_equal(expected == 0, result_std == 0)
+
+
+def test_rolling_agg_on_columns():
+    # GH 46132
+
+    df = DataFrame({"a": [1, 3], "b": [2, 4]})
+    res = df.rolling(window=2, axis=1, min_periods=1).aggregate([np.sum, np.mean])
+    expected_val = np.array([[1, 3.0],
+                             [1, 1.5],
+                             [3, 7],
+                             [3, 3.5]])
+
+    expected_index = MultiIndex.from_tuples([(0, 'sum'),
+                                             (0, 'mean'),
+                                             (1, 'sum'),
+                                             (1, 'mean')])
+
+    expected_frame = DataFrame(expected_val, index=expected_index, columns=["a", "b"])
+
+    tm.assert_frame_equal(expected_frame, res)

@@ -658,6 +658,7 @@ class BaseWindow(SelectionMixin):
             return self._resolve_output(out, obj)
 
     def aggregate(self, func, *args, **kwargs):
+        # GH46132
         _axis_modifed_flag = 0
         if self.axis == 1:
             self.obj = self.obj.T
