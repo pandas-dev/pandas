@@ -5,11 +5,7 @@ import re
 import time
 import warnings
 
-from libc.string cimport strchr
-
-import cython
-from cython import Py_ssize_t
-
+cimport cython
 from cpython.datetime cimport (
     datetime,
     datetime_new,
@@ -17,6 +13,8 @@ from cpython.datetime cimport (
     tzinfo,
 )
 from cpython.object cimport PyObject_Str
+from cython cimport Py_ssize_t
+from libc.string cimport strchr
 
 import_datetime()
 
@@ -54,6 +52,11 @@ from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
 from pandas._libs.tslibs.nattype cimport (
     c_NaT as NaT,
     c_nat_strings as nat_strings,
+)
+from pandas._libs.tslibs.np_datetime cimport (
+    NPY_DATETIMEUNIT,
+    npy_datetimestruct,
+    string_to_dts,
 )
 from pandas._libs.tslibs.offsets cimport is_offset_object
 from pandas._libs.tslibs.util cimport (
@@ -322,11 +325,10 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     if is_offset_object(freq):
         freq = freq.rule_code
 
-    if dayfirst is None or yearfirst is None:
-        if dayfirst is None:
-            dayfirst = get_option("display.date_dayfirst")
-        if yearfirst is None:
-            yearfirst = get_option("display.date_yearfirst")
+    if dayfirst is None:
+        dayfirst = get_option("display.date_dayfirst")
+    if yearfirst is None:
+        yearfirst = get_option("display.date_yearfirst")
 
     res = parse_datetime_string_with_reso(arg, freq=freq,
                                           dayfirst=dayfirst,
@@ -353,12 +355,44 @@ cdef parse_datetime_string_with_reso(
     """
     cdef:
         object parsed, reso
+        bint string_to_dts_failed
+        npy_datetimestruct dts
+        NPY_DATETIMEUNIT out_bestunit
+        int out_local
+        int out_tzoffset
 
     if not _does_string_look_like_datetime(date_string):
         raise ValueError('Given date string not likely a datetime.')
 
     parsed, reso = _parse_delimited_date(date_string, dayfirst)
     if parsed is not None:
+        return parsed, reso
+
+    # Try iso8601 first, as it handles nanoseconds
+    # TODO: does this render some/all of parse_delimited_date redundant?
+    string_to_dts_failed = string_to_dts(
+        date_string, &dts, &out_bestunit, &out_local,
+        &out_tzoffset, False
+    )
+    if not string_to_dts_failed:
+        if dts.ps != 0 or out_local:
+            # TODO: the not-out_local case we could do without Timestamp;
+            #  avoid circular import
+            from pandas import Timestamp
+            parsed = Timestamp(date_string)
+        else:
+            parsed = datetime(dts.year, dts.month, dts.day, dts.hour, dts.min, dts.sec, dts.us)
+        reso = {
+            NPY_DATETIMEUNIT.NPY_FR_Y: "year",
+            NPY_DATETIMEUNIT.NPY_FR_M: "month",
+            NPY_DATETIMEUNIT.NPY_FR_D: "day",
+            NPY_DATETIMEUNIT.NPY_FR_h: "hour",
+            NPY_DATETIMEUNIT.NPY_FR_m: "minute",
+            NPY_DATETIMEUNIT.NPY_FR_s: "second",
+            NPY_DATETIMEUNIT.NPY_FR_ms: "millisecond",
+            NPY_DATETIMEUNIT.NPY_FR_us: "microsecond",
+            NPY_DATETIMEUNIT.NPY_FR_ns: "nanosecond",
+            }[out_bestunit]
         return parsed, reso
 
     try:
