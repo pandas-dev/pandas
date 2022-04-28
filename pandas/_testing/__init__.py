@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-import collections.abc
+import collections
+from collections import abc
 from datetime import datetime
 from decimal import Decimal
 from functools import wraps
@@ -294,12 +295,10 @@ def wrap_value(value, cls, transpose=False):
         pass
     elif cls is pd.array or issubclass(cls, ExtensionArray):
         cls = pd.array
-    elif issubclass(cls, pd.Index):
-        cls = pd.Index
+    elif issubclass(cls, Index):
+        cls = Index
 
-    if not isinstance(
-        value, (collections.abc.Sequence, pd.core.arraylike.OpsMixin, np.ndarray)
-    ):
+    if not isinstance(value, (abc.Sequence, pd.core.arraylike.OpsMixin, np.ndarray)):
         value = [value]
     return box_expected(value, cls, transpose)
 
