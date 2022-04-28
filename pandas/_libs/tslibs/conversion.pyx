@@ -52,12 +52,8 @@ from pandas._libs.tslibs.np_datetime import (
 )
 
 from pandas._libs.tslibs.timezones cimport (
-    get_dst_info,
     get_utcoffset,
-    is_fixed_offset,
-    is_tzlocal,
     is_utc,
-    is_zoneinfo,
     maybe_get_tz,
     tz_compare,
     utc_pytz as UTC,
@@ -77,10 +73,7 @@ from pandas._libs.tslibs.nattype cimport (
     checknull_with_nat,
 )
 from pandas._libs.tslibs.tzconversion cimport (
-    bisect_right_i8,
-    infer_dateutil_fold,
-    localize_tzinfo_api,
-    tz_convert_from_utc_single,
+    Localizer,
     tz_localize_to_utc_single,
 )
 
@@ -531,19 +524,18 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
         check_overflows(obj)
         return obj
 
+    cdef:
+        Localizer info = Localizer(tz)
+
     # Infer fold from offset-adjusted obj.value
     # see PEP 495 https://www.python.org/dev/peps/pep-0495/#the-fold-attribute
-    if is_utc(tz):
+    if info.use_utc:
         pass
-    elif is_tzlocal(tz) or is_zoneinfo(tz):
-        localize_tzinfo_api(obj.value, tz, &obj.fold)
-    else:
-        trans, deltas, typ = get_dst_info(tz)
-
-        if typ == 'dateutil':
-            tdata = <int64_t*>cnp.PyArray_DATA(trans)
-            pos = bisect_right_i8(tdata, obj.value, trans.shape[0]) - 1
-            obj.fold = infer_dateutil_fold(obj.value, trans, deltas, pos)
+    elif info.use_tzlocal:
+        info.utc_val_to_local_val(obj.value, &pos, &obj.fold)
+    elif info.use_dst and not info.use_pytz:
+        # i.e. dateutil
+        info.utc_val_to_local_val(obj.value, &pos, &obj.fold)
 
     # Keep the converter same as PyDateTime's
     dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
@@ -701,18 +693,19 @@ cdef inline void _localize_tso(_TSObject obj, tzinfo tz):
     cdef:
         int64_t local_val
         Py_ssize_t outpos = -1
+        Localizer info = Localizer(tz)
 
     assert obj.tzinfo is None
 
-    if is_utc(tz):
+    if info.use_utc:
         pass
     elif obj.value == NPY_NAT:
         pass
     else:
-        local_val = tz_convert_from_utc_single(obj.value, tz, &obj.fold, &outpos)
+        local_val = info.utc_val_to_local_val(obj.value, &outpos, &obj.fold)
 
-        if outpos != -1:
-            # infer we went through a pytz path
+        if info.use_pytz:
+            # infer we went through a pytz path, will have outpos!=-1
             tz = tz._tzinfos[tz._transition_info[outpos]]
 
         dt64_to_dtstruct(local_val, &obj.dts)
