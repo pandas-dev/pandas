@@ -184,10 +184,10 @@ timedelta-like}
     cdef:
         const int64_t[::1] deltas
         ndarray[uint8_t, cast=True] ambiguous_array
-        Py_ssize_t i, isl, isr, idx, pos, ntrans, n = vals.shape[0]
+        Py_ssize_t i, idx, pos, ntrans, n = vals.shape[0]
         Py_ssize_t delta_idx_offset, delta_idx, pos_left, pos_right
         int64_t *tdata
-        int64_t v, left, right, val, v_left, v_right, new_local, remaining_mins
+        int64_t v, left, right, val, new_local, remaining_mins
         int64_t first_delta, delta
         int64_t shift_delta = 0
         ndarray[int64_t] trans, result_a, result_b, dst_hours
@@ -202,7 +202,7 @@ timedelta-like}
     if is_utc(tz) or tz is None:
         return vals.copy()
 
-    result = np.empty(n, dtype=np.int64)
+    result = cnp.PyArray_EMPTY(vals.ndim, vals.shape, cnp.NPY_INT64, 0)
 
     if is_tzlocal(tz) or is_zoneinfo(tz):
         for i in range(n):
@@ -265,40 +265,7 @@ timedelta-like}
 
     # Determine whether each date lies left of the DST transition (store in
     # result_a) or right of the DST transition (store in result_b)
-    result_a = np.empty(n, dtype=np.int64)
-    result_b = np.empty(n, dtype=np.int64)
-
-    for i in range(n):
-        # This loops resembles the "Find the two best possibilities" block
-        #  in pytz's DstTZInfo.localize method.
-        result_a[i] = NPY_NAT
-        result_b[i] = NPY_NAT
-
-        val = vals[i]
-        if val == NPY_NAT:
-            continue
-
-        # TODO: be careful of overflow in val-DAY_NANOS
-        isl = bisect_right_i8(tdata, val - DAY_NANOS, ntrans) - 1
-        if isl < 0:
-            isl = 0
-
-        v_left = val - deltas[isl]
-        pos_left = bisect_right_i8(tdata, v_left, ntrans) - 1
-        # timestamp falls to the left side of the DST transition
-        if v_left + deltas[pos_left] == val:
-            result_a[i] = v_left
-
-        # TODO: be careful of overflow in val+DAY_NANOS
-        isr = bisect_right_i8(tdata, val + DAY_NANOS, ntrans) - 1
-        if isr < 0:
-            isr = 0
-
-        v_right = val - deltas[isr]
-        pos_right = bisect_right_i8(tdata, v_right, ntrans) - 1
-        # timestamp falls to the right side of the DST transition
-        if v_right + deltas[pos_right] == val:
-            result_b[i] = v_right
+    result_a, result_b =_get_utc_bounds(vals, tdata, ntrans, deltas)
 
     # silence false-positive compiler warning
     dst_hours = np.empty(0, dtype=np.int64)
@@ -417,6 +384,59 @@ cdef inline str _render_tstamp(int64_t val):
     return str(Timestamp(val))
 
 
+cdef _get_utc_bounds(
+    ndarray vals,
+    int64_t* tdata,
+    Py_ssize_t ntrans,
+    const int64_t[::1] deltas,
+):
+    # Determine whether each date lies left of the DST transition (store in
+    # result_a) or right of the DST transition (store in result_b)
+
+    cdef:
+        ndarray result_a, result_b
+        Py_ssize_t i, n = vals.size
+        int64_t val, v_left, v_right
+        Py_ssize_t isl, isr, pos_left, pos_right
+
+    result_a = cnp.PyArray_EMPTY(vals.ndim, vals.shape, cnp.NPY_INT64, 0)
+    result_b = cnp.PyArray_EMPTY(vals.ndim, vals.shape, cnp.NPY_INT64, 0)
+
+    for i in range(n):
+        # This loops resembles the "Find the two best possibilities" block
+        #  in pytz's DstTZInfo.localize method.
+        result_a[i] = NPY_NAT
+        result_b[i] = NPY_NAT
+
+        val = vals[i]
+        if val == NPY_NAT:
+            continue
+
+        # TODO: be careful of overflow in val-DAY_NANOS
+        isl = bisect_right_i8(tdata, val - DAY_NANOS, ntrans) - 1
+        if isl < 0:
+            isl = 0
+
+        v_left = val - deltas[isl]
+        pos_left = bisect_right_i8(tdata, v_left, ntrans) - 1
+        # timestamp falls to the left side of the DST transition
+        if v_left + deltas[pos_left] == val:
+            result_a[i] = v_left
+
+        # TODO: be careful of overflow in val+DAY_NANOS
+        isr = bisect_right_i8(tdata, val + DAY_NANOS, ntrans) - 1
+        if isr < 0:
+            isr = 0
+
+        v_right = val - deltas[isr]
+        pos_right = bisect_right_i8(tdata, v_right, ntrans) - 1
+        # timestamp falls to the right side of the DST transition
+        if v_right + deltas[pos_right] == val:
+            result_b[i] = v_right
+
+    return result_a, result_b
+
+
 @cython.boundscheck(False)
 cdef ndarray[int64_t] _get_dst_hours(
     # vals only needed here to potential render an exception message
@@ -433,10 +453,10 @@ cdef ndarray[int64_t] _get_dst_hours(
         intp_t switch_idx
         int64_t left, right
 
-    dst_hours = np.empty(n, dtype=np.int64)
+    dst_hours = cnp.PyArray_EMPTY(result_a.ndim, result_a.shape, cnp.NPY_INT64, 0)
     dst_hours[:] = NPY_NAT
 
-    mismatch = np.zeros(n, dtype=bool)
+    mismatch = cnp.PyArray_ZEROS(result_a.ndim, result_a.shape, cnp.NPY_BOOL, 0)
 
     for i in range(n):
         left = result_a[i]
