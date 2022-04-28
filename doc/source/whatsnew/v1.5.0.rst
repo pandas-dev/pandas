@@ -24,27 +24,7 @@ Styler
   - Added a new method :meth:`.Styler.concat` which allows adding customised footer rows to visualise additional calculations on the data, e.g. totals and counts etc. (:issue:`43875`, :issue:`46186`)
   - :meth:`.Styler.highlight_null` now accepts ``color`` consistently with other builtin methods and deprecates ``null_color`` although this remains backwards compatible (:issue:`45907`)
 
-.. _whatsnew_150.enhancements.from_dummies:
-
-from_dummies
-^^^^^^^^^^^^
-
-Added new function :func:`~pandas.from_dummies` to convert a dummy coded :class:`DataFrame` into a categorical :class:`DataFrame`.
-
-Example::
-
-.. ipython:: python
-
-    import pandas as pd
-
-    df = pd.DataFrame({"col1_a": [1, 0, 1], "col1_b": [0, 1, 0],
-                       "col2_a": [0, 1, 0], "col2_b": [1, 0, 0],
-                       "col2_c": [0, 0, 1]})
-
-    pd.from_dummies(df, sep="_")
-
-
-.. _whatsnew_150.enhancements.enhancement2:
+.. _whatsnew_150.enhancements.resample_group_keys:
 
 Control of index with ``group_keys`` in :meth:`DataFrame.resample`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -94,6 +74,25 @@ as seen in the following example.
     2021-01-02 0 2021-01-02 00:00:00  3
                1 2021-01-02 08:00:00  4
                2 2021-01-02 16:00:00  5
+
+.. _whatsnew_150.enhancements.from_dummies:
+
+from_dummies
+^^^^^^^^^^^^
+
+Added new function :func:`~pandas.from_dummies` to convert a dummy coded :class:`DataFrame` into a categorical :class:`DataFrame`.
+
+Example::
+
+.. ipython:: python
+
+    import pandas as pd
+
+    df = pd.DataFrame({"col1_a": [1, 0, 1], "col1_b": [0, 1, 0],
+                       "col2_a": [0, 1, 0], "col2_b": [1, 0, 0],
+                       "col2_c": [0, 0, 1]})
+
+    pd.from_dummies(df, sep="_")
 
 .. _whatsnew_150.enhancements.other:
 
