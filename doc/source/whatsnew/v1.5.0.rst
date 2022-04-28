@@ -513,7 +513,7 @@ Strings
 
 Merge
 ^^^^^^^
-- Bug in :meth:`merge` supports complex types merge with identical columns
+- Bug in :meth:`merge` supports user-defined types merge with identical columns
 -
 
 
