@@ -40,4 +40,5 @@ cdef class Localizer:
         self,
         int64_t utc_val,
         Py_ssize_t* pos,
+        bint* fold=?,
     ) except? -1
