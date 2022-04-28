@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import time
 
 import numpy as np
@@ -56,7 +58,9 @@ class XlrdReader(BaseExcelReader):
         self.raise_if_bad_sheet_by_index(index)
         return self.book.sheet_by_index(index)
 
-    def get_sheet_data(self, sheet, convert_float):
+    def get_sheet_data(
+        self, sheet, convert_float: bool, file_rows_needed: int | None = None
+    ) -> list[list[Scalar]]:
         from xlrd import (
             XL_CELL_BOOLEAN,
             XL_CELL_DATE,
@@ -107,7 +111,10 @@ class XlrdReader(BaseExcelReader):
 
         data = []
 
-        for i in range(sheet.nrows):
+        nrows = sheet.nrows
+        if file_rows_needed is not None:
+            nrows = min(nrows, file_rows_needed)
+        for i in range(nrows):
             row = [
                 _parse_cell(value, typ)
                 for value, typ in zip(sheet.row_values(i), sheet.row_types(i))

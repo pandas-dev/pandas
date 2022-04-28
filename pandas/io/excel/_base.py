@@ -563,7 +563,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def get_sheet_data(self, sheet, convert_float: bool):
+    def get_sheet_data(self, sheet, convert_float: bool, rows: int | None = None):
         pass
 
     def raise_if_bad_sheet_by_index(self, index: int) -> None:
@@ -576,6 +576,51 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
     def raise_if_bad_sheet_by_name(self, name: str) -> None:
         if name not in self.sheet_names:
             raise ValueError(f"Worksheet named '{name}' not found")
+
+    def _check_skiprows_func(self, skiprows, rows_to_use):
+        """
+        See how many file rows are required when `skiprows` is callable
+        """
+        i = 0
+        rows_used_so_far = 0
+        while rows_used_so_far < rows_to_use:
+            if not f(i):
+                rows_used_so_far += 1
+            i += 1
+        return i
+
+    def _calc_rows(self, header, index_col, skiprows, nrows):
+        """
+        If nrows specifed, find the number of rows needed from the file
+        """
+        if nrows is None:
+            return
+        if not isinstance(nrows, int) or nrows < 0:
+            raise ValueError("'nrows' must be an integer >=0") 
+        if header is None:
+            header_rows = 1
+        elif isinstance(header, int):
+            header_rows = 1 + header
+        else:
+            header_rows = 1 + header[-1]
+        # If there is a MultiIndex header and an index then there is also
+        # a row containing just the index name(s)
+        if is_list_like(header) and len(header) > 1 and index_col is not None:
+            header_rows += 1
+        if skiprows is None:
+            return header_rows + nrows
+        if isinstance(skiprows, int):
+            return header_rows + nrows + skiprows
+        if is_list_like(skiprows):
+            return self._check_skiprows_func(
+                lambda x: x in skiprows,
+                header_rows + nrows,
+            )
+        if callable(skiprows):
+            return self._check_skiprows_func(
+                skiprows,
+                header_rows + nrows,
+            )
 
     def parse(
         self,
@@ -643,7 +688,8 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             else:  # assume an integer if not a string
                 sheet = self.get_sheet_by_index(asheetname)
 
-            data = self.get_sheet_data(sheet, convert_float)
+            file_rows_needed = self._calc_rows(header, index_col, skiprows, nrows)
+            data = self.get_sheet_data(sheet, convert_float, file_rows_needed)
             if hasattr(sheet, "close"):
                 # pyxlsb opens two TemporaryFiles
                 sheet.close()
