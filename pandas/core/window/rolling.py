@@ -658,7 +658,16 @@ class BaseWindow(SelectionMixin):
             return self._resolve_output(out, obj)
 
     def aggregate(self, func, *args, **kwargs):
+        _axis_modifed_flag = 0
+        if self.axis == 1:
+            self.obj = self.obj.T
+            _axis_modifed_flag = 1
+            self.axis = 0
         result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
+        if _axis_modifed_flag == 1:
+            result = result.T
+            self.axis = 1
+            self.obj = self.obj.T
         if result is None:
             return self.apply(func, raw=False, args=args, kwargs=kwargs)
         return result
