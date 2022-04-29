@@ -2453,12 +2453,26 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def describe(self, **kwargs):
         with self._group_selection_context():
             if len(self._selected_obj) == 0:
-                if self._selected_obj.ndim == 1:
+                data = self._selected_obj
+                """
+                data = self._selected_obj
+                percentiles = list(refine_percentiles(kwargs.get("percentiles")))
+                if data.ndim == 1:
+                    values = describe_numeric_1d(data, percentiles)
+                    return DataFrame(columns=values.index)
+                else:
+                    ldesc: list[Series] = []
+                    for _, series in data.items():
+                        ldesc.append(describe_numeric_1d(series, percentiles))
+                    col_indexes = reorder_columns(ldesc)
+                    return DataFrame(
+                        columns=MultiIndex.from_product([data.columns, col_indexes])
+                    )
+                """
+                if data.ndim == 1:
                     return self._selected_obj.describe(**kwargs).to_frame().T.iloc[:0]
                 else:
-                    selected_obj_describe = self._selected_obj.describe(
-                        **kwargs
-                    ).T.iloc[:]
+                    selected_obj_describe = self._selected_obj.describe(**kwargs).T
                     selected_obj_describe_columns = selected_obj_describe.columns
                     selected_obj_describe_indexes = selected_obj_describe.index
                     return DataFrame(

@@ -1250,14 +1250,10 @@ def test_groupby_empty_dataset():
         .B.describe(percentiles=[0.10, 0.20, 0.30], include="all")
         .iloc[:0]
     )
-    print(result)
     tm.assert_frame_equal(result, expected)
 
-    result = (
-        df.iloc[:0].groupby("A").describe(percentiles=[0.10, 0.20, 0.30], include="all")
-    )
+    result = df.groupby("A").describe(percentiles=[0.10, 0.20, 0.30], include="all")
     expected = (
         df.groupby("A").describe(percentiles=[0.10, 0.20, 0.30], include="all").iloc[:0]
     )
-    print(result)
     tm.assert_frame_equal(result, expected)
