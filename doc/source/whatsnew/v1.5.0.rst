@@ -41,7 +41,7 @@ The most notable development is the new method :meth:`.Styler.concat` which
 allows adding customised footer rows to visualise additional calculations on the data,
 e.g. totals and counts etc. (:issue:`43875`, :issue:`46186`)
 
-Additionally there is also an alternative output method :meth:`.Styler.to_string`,
+Additionally there is an alternative output method :meth:`.Styler.to_string`,
 which allows using the Styler's formatting methods to create, for example, CSVs (:issue:`44502`).
 
 Minor feature improvements are:
