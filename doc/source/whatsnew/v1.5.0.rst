@@ -37,10 +37,17 @@ The protocol consists of two parts:
 Styler
 ^^^^^^
 
-  - New method :meth:`.Styler.to_string` for alternative customisable output methods (:issue:`44502`)
-  - Added the ability to render ``border`` and ``border-{side}`` CSS properties in Excel (:issue:`42276`)
-  - Added a new method :meth:`.Styler.concat` which allows adding customised footer rows to visualise additional calculations on the data, e.g. totals and counts etc. (:issue:`43875`, :issue:`46186`)
-  - :meth:`.Styler.highlight_null` now accepts ``color`` consistently with other builtin methods and deprecates ``null_color`` although this remains backwards compatible (:issue:`45907`)
+The most notable development is the new method :meth:`.Styler.concat` which
+allows adding customised footer rows to visualise additional calculations on the data,
+e.g. totals and counts etc. (:issue:`43875`, :issue:`46186`)
+
+Additionally there is an alternative output method :meth:`.Styler.to_string`,
+which allows using the Styler's formatting methods to create, for example, CSVs (:issue:`44502`).
+
+Minor feature improvements are:
+
+  - Adding the ability to render ``border`` and ``border-{side}`` CSS properties in Excel (:issue:`42276`)
+  - Making keyword arguments consist: :meth:`.Styler.highlight_null` now accepts ``color`` and deprecates ``null_color`` although this remains backwards compatible (:issue:`45907`)
 
 .. _whatsnew_150.enhancements.resample_group_keys:
 
@@ -127,13 +134,6 @@ Notable bug fixes
 
 These are bug fixes that might have notable behavior changes.
 
-.. _whatsnew_150.notable_bug_fixes.notable_bug_fix1:
-
-Styler
-^^^^^^
-
-- Fixed bug in :class:`CSSToExcelConverter` leading to ``TypeError`` when border color provided without border style for ``xlsxwriter`` engine (:issue:`42276`)
-
 .. _whatsnew_150.notable_bug_fixes.groupby_transform_dropna:
 
 Using ``dropna=True`` with ``groupby`` transforms
@@ -193,13 +193,6 @@ did not have the same index as the input.
     df.groupby('a', dropna=True).transform(lambda x: x.sum())
     df.groupby('a', dropna=True).transform('ffill')
     df.groupby('a', dropna=True).transform(lambda x: x)
-
-.. _whatsnew_150.notable_bug_fixes.visualization:
-
-Styler
-^^^^^^
-
-- Fix showing "None" as ylabel in :meth:`Series.plot` when not setting ylabel (:issue:`46129`)
 
 .. _whatsnew_150.notable_bug_fixes.notable_bug_fix2:
 
@@ -615,6 +608,7 @@ Plotting
 - Bug in :meth:`DataFrame.boxplot` that prevented specifying ``vert=False`` (:issue:`36918`)
 - Bug in :meth:`DataFrame.plot.scatter` that prevented specifying ``norm`` (:issue:`45809`)
 - The function :meth:`DataFrame.plot.scatter` now accepts ``color`` as an alias for ``c`` and ``size`` as an alias for ``s`` for consistency to other plotting functions (:issue:`44670`)
+- Fix showing "None" as ylabel in :meth:`Series.plot` when not setting ylabel (:issue:`46129`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -660,7 +654,7 @@ ExtensionArray
 Styler
 ^^^^^^
 - Bug when attempting to apply styling functions to an empty DataFrame subset (:issue:`45313`)
--
+- Bug in :class:`CSSToExcelConverter` leading to ``TypeError`` when border color provided without border style for ``xlsxwriter`` engine (:issue:`42276`)
 
 Metadata
 ^^^^^^^^
