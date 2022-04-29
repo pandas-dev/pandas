@@ -41,21 +41,6 @@ The most notable development is the new method new method :meth:`.Styler.concat`
 allows adding customised footer rows to visualise additional calculations on the data,
 e.g. totals and counts etc. (:issue:`43875`, :issue:`46186`)
 
-.. ipython:: python
-
-    descriptors = df.agg(["sum", "mean", lambda s: s.dtype])
-    descriptors.index = ["Total", "Average", "dtype"]
-    other = descriptors.style
-    other.highlight_max(axis=1, subset=(["Total", "Average"], slice(None)))
-    other.format(subset=("Average", slice(None)), precision=2, decimal=",")
-    other.applymap(lambda v: "font-weight: bold;")
-    styler = df.style
-    styler.highlight_max(color="salmon")
-    styler.set_table_styles(
-        [{"selector": ".foot_row0", "props": "border-top: 1px solid black;"}]
-    )
-    styler.concat(other)
-
 Additionally there is also an alternative output method :meth:`.Styler.to_string`,
 which allows using the Styler's formatting methods to create, for example, CSVs (:issue:`44502`).
 
