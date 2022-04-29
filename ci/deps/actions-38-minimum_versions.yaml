@@ -11,7 +11,6 @@ dependencies:
   - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.31
-  - hypothesis>=5.5.3
   - psutil
   - pytest-asyncio>=0.17
   - boto3
@@ -29,6 +28,7 @@ dependencies:
   - fastparquet=0.4.0
   - fsspec=0.7.4
   - html5lib=1.1
+  - hypothesis=5.5.3
   - gcsfs=0.6.0
   - jinja2=2.11
   - lxml=4.5.0

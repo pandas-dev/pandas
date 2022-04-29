@@ -1,9 +1,7 @@
 """
 timezone conversion
 """
-import cython
-from cython import Py_ssize_t
-
+cimport cython
 from cpython.datetime cimport (
     PyDelta_Check,
     datetime,
@@ -12,6 +10,7 @@ from cpython.datetime cimport (
     timedelta,
     tzinfo,
 )
+from cython cimport Py_ssize_t
 
 import_datetime()
 
@@ -42,6 +41,7 @@ from pandas._libs.tslibs.timezones cimport (
     is_fixed_offset,
     is_tzlocal,
     is_utc,
+    is_zoneinfo,
     utc_pytz,
 )
 
@@ -60,7 +60,7 @@ cdef int64_t tz_localize_to_utc_single(
     elif is_utc(tz) or tz is None:
         return val
 
-    elif is_tzlocal(tz):
+    elif is_tzlocal(tz) or is_zoneinfo(tz):
         return val - _tz_localize_using_tzinfo_api(val, tz, to_utc=True)
 
     elif is_fixed_offset(tz):
@@ -135,7 +135,7 @@ timedelta-like}
 
     result = np.empty(n, dtype=np.int64)
 
-    if is_tzlocal(tz):
+    if is_tzlocal(tz) or is_zoneinfo(tz):
         for i in range(n):
             v = vals[i]
             if v == NPY_NAT:
@@ -198,12 +198,13 @@ timedelta-like}
     # result_a) or right of the DST transition (store in result_b)
     result_a = np.empty(n, dtype=np.int64)
     result_b = np.empty(n, dtype=np.int64)
-    result_a[:] = NPY_NAT
-    result_b[:] = NPY_NAT
 
     for i in range(n):
         # This loops resembles the "Find the two best possibilities" block
         #  in pytz's DstTZInfo.localize method.
+        result_a[i] = NPY_NAT
+        result_b[i] = NPY_NAT
+
         val = vals[i]
         if val == NPY_NAT:
             continue
@@ -347,6 +348,7 @@ cdef inline str _render_tstamp(int64_t val):
     return str(Timestamp(val))
 
 
+@cython.boundscheck(False)
 cdef ndarray[int64_t] _get_dst_hours(
     # vals only needed here to potential render an exception message
     const int64_t[:] vals,
@@ -428,18 +430,7 @@ cdef int64_t localize_tzinfo_api(
     int64_t utc_val, tzinfo tz, bint* fold=NULL
 ) except? -1:
     """
-    Parameters
-    ----------
-    utc_val : int64_t
-    tz : tzinfo
-    fold : bint*
-        pointer to fold: whether datetime ends up in a fold or not
-        after adjustment
-
-    Returns
-    -------
-    delta : int64_t
-        Value to add when converting from utc.
+    See _tz_localize_using_tzinfo_api.__doc__
     """
     return _tz_localize_using_tzinfo_api(utc_val, tz, to_utc=False, fold=fold)
 
@@ -450,6 +441,7 @@ def py_tz_convert_from_utc_single(int64_t utc_val, tzinfo tz):
     return tz_convert_from_utc_single(utc_val, tz)
 
 
+@cython.boundscheck(False)
 cdef int64_t tz_convert_from_utc_single(
     int64_t utc_val,
     tzinfo tz,
@@ -484,8 +476,8 @@ cdef int64_t tz_convert_from_utc_single(
 
     if is_utc(tz):
         return utc_val
-    elif is_tzlocal(tz):
-        return utc_val + _tz_localize_using_tzinfo_api(utc_val, tz, to_utc=False)
+    elif is_tzlocal(tz) or is_zoneinfo(tz):
+        return utc_val + _tz_localize_using_tzinfo_api(utc_val, tz, to_utc=False, fold=fold)
     else:
         trans, deltas, typ = get_dst_info(tz)
         tdata = <int64_t*>cnp.PyArray_DATA(trans)
@@ -501,7 +493,7 @@ cdef int64_t tz_convert_from_utc_single(
             pos = bisect_right_i8(tdata, utc_val, trans.shape[0]) - 1
 
             # We need to get 'pos' back to the caller so it can pick the
-            #  correct "standardized" tzinfo objecg.
+            #  correct "standardized" tzinfo object.
             if outpos is not NULL:
                 outpos[0] = pos
             return utc_val + deltas[pos]
@@ -513,104 +505,13 @@ cdef int64_t tz_convert_from_utc_single(
             return utc_val + deltas[0]
 
 
-def tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
-    """
-    Convert the values (in i8) from UTC to tz
-
-    Parameters
-    ----------
-    vals : int64 ndarray
-    tz : tzinfo
-
-    Returns
-    -------
-    int64 ndarray of converted
-    """
-    cdef:
-        const int64_t[:] converted
-
-    if vals.shape[0] == 0:
-        return np.array([], dtype=np.int64)
-
-    converted = _tz_convert_from_utc(vals, tz)
-    return np.asarray(converted, dtype=np.int64)
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cdef const int64_t[:] _tz_convert_from_utc(const int64_t[:] stamps, tzinfo tz):
-    """
-    Convert the given values (in i8) either to UTC or from UTC.
-
-    Parameters
-    ----------
-    stamps : int64 ndarray
-    tz : tzinfo
-
-    Returns
-    -------
-    converted : ndarray[int64_t]
-    """
-    cdef:
-        Py_ssize_t i, ntrans = -1, n = stamps.shape[0]
-        ndarray[int64_t] trans
-        int64_t[::1] deltas
-        int64_t* tdata = NULL
-        intp_t pos
-        int64_t utc_val, local_val, delta = NPY_NAT
-        bint use_utc = False, use_tzlocal = False, use_fixed = False
-        str typ
-
-        int64_t[::1] result
-
-    if is_utc(tz) or tz is None:
-        # Much faster than going through the "standard" pattern below
-        return stamps.copy()
-
-    if is_utc(tz) or tz is None:
-        use_utc = True
-    elif is_tzlocal(tz):
-        use_tzlocal = True
-    else:
-        trans, deltas, typ = get_dst_info(tz)
-        ntrans = trans.shape[0]
-        if typ not in ["pytz", "dateutil"]:
-            # static/fixed; in this case we know that len(delta) == 1
-            use_fixed = True
-            delta = deltas[0]
-        else:
-            tdata = <int64_t*>cnp.PyArray_DATA(trans)
-
-    result = np.empty(n, dtype=np.int64)
-
-    for i in range(n):
-        utc_val = stamps[i]
-        if utc_val == NPY_NAT:
-            result[i] = NPY_NAT
-            continue
-
-        # The pattern used in vectorized.pyx checks for use_utc here,
-        #  but we handle that case above.
-        if use_tzlocal:
-            local_val = utc_val + _tz_localize_using_tzinfo_api(utc_val, tz, to_utc=False)
-        elif use_fixed:
-            local_val = utc_val + delta
-        else:
-            pos = bisect_right_i8(tdata, utc_val, ntrans) - 1
-            local_val = utc_val + deltas[pos]
-
-        result[i] = local_val
-
-    return result
-
-
 # OSError may be thrown by tzlocal on windows at or close to 1970-01-01
 #  see https://github.com/pandas-dev/pandas/pull/37591#issuecomment-720628241
 cdef int64_t _tz_localize_using_tzinfo_api(
     int64_t val, tzinfo tz, bint to_utc=True, bint* fold=NULL
 ) except? -1:
     """
-    Convert the i8 representation of a datetime from a general-cast timezone to
+    Convert the i8 representation of a datetime from a general-case timezone to
     UTC, or vice-versa using the datetime/tzinfo API.
 
     Private, not intended for use outside of tslibs.tzconversion.
@@ -664,6 +565,8 @@ cdef int64_t _tz_localize_using_tzinfo_api(
 
 
 # NB: relies on dateutil internals, subject to change.
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef bint infer_dateutil_fold(
     int64_t value,
     const int64_t[::1] trans,
@@ -699,6 +602,7 @@ cdef bint infer_dateutil_fold(
     """
     cdef:
         bint fold = 0
+        int64_t fold_delta
 
     if pos > 0:
         fold_delta = deltas[pos - 1] - deltas[pos]

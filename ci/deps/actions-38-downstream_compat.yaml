@@ -10,7 +10,6 @@ dependencies:
   - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.31
-  - hypothesis>=5.5.3
   - psutil
   - pytest-asyncio>=0.17
   - boto3
@@ -28,6 +27,7 @@ dependencies:
   - fastparquet
   - fsspec
   - html5lib
+  - hypothesis
   - gcsfs
   - jinja2
   - lxml
@@ -60,7 +60,7 @@ dependencies:
   - cftime
   - dask
   - ipython
-  - geopandas
+  - geopandas-base
   - seaborn
   - scikit-learn
   - statsmodels
