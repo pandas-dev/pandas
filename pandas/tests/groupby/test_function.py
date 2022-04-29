@@ -1238,12 +1238,22 @@ def test_groupby_sum_timedelta_with_nat():
 
 def test_groupby_empty_dataset():
     # GH#41575
-    df = DataFrame(columns=["A", "B", "C"])
+    df = DataFrame(columns=["A", "B", "C"], dtype=int)
 
-    result = df.iloc[:0].groupby("A").describe()
-    expected = df.groupby("A").describe().iloc[:0]
+    result = (
+        df.iloc[:0]
+        .groupby("A")
+        .B.describe(percentiles=[0.10, 0.20, 0.30], include="all")
+    )
+    expected = (
+        df.groupby("A")
+        .B.describe(percentiles=[0.10, 0.20, 0.30], include=["A"])
+        .iloc[:0]
+    )
     tm.assert_frame_equal(result, expected)
 
-    result = df.iloc[:0].groupby("A").B.describe()
-    expected = df.groupby("A").B.describe().iloc[:0]
+    result = df.groupby("A").describe(percentiles=[0.10, 0.20, 0.30], include="all")
+    expected = (
+        df.groupby("A").describe(percentiles=[0.10, 0.20, 0.30], include="all").iloc[:0]
+    )
     tm.assert_frame_equal(result, expected)
