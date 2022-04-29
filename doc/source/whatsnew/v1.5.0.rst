@@ -37,7 +37,7 @@ The protocol consists of two parts:
 Styler
 ^^^^^^
 
-The most notable development is the new method new method :meth:`.Styler.concat` which
+The most notable development is the new method :meth:`.Styler.concat` which
 allows adding customised footer rows to visualise additional calculations on the data,
 e.g. totals and counts etc. (:issue:`43875`, :issue:`46186`)
 
