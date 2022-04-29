@@ -1920,12 +1920,12 @@ class DataFrame(NDFrame, OpsMixin):
             return into_c((k, v.to_dict(into)) for k, v in self.items())
 
         elif orient == "list":
-            object_dtype_indices = set(object_dtype_indices)
+            object_dtype_indices_as_set = set(object_dtype_indices)
             return into_c(
                 (
                     k,
                     list(map(maybe_box_native, v.tolist()))
-                    if i in object_dtype_indices
+                    if i in object_dtype_indices_as_set
                     else v.tolist(),
                 )
                 for i, (k, v) in enumerate(self.items())
@@ -1997,11 +1997,11 @@ class DataFrame(NDFrame, OpsMixin):
                     for t in self.itertuples(index=False, name=None)
                 ]
                 if object_dtype_indices:
-                    object_dtype_indices = set(object_dtype_indices)
+                    object_dtype_indices_as_set = set(object_dtype_indices)
                     object_dtype_cols = {
                         col
                         for i, col in enumerate(self.columns)
-                        if i in object_dtype_indices
+                        if i in object_dtype_indices_as_set
                     }
                     for row in data:
                         for col in object_dtype_cols:
@@ -2018,9 +2018,9 @@ class DataFrame(NDFrame, OpsMixin):
                     for t in self.itertuples(name=None)
                 )
             elif object_dtype_indices:
-                object_dtype_indices = set(object_dtype_indices)
+                object_dtype_indices_as_set = set(object_dtype_indices)
                 is_object_dtype_by_index = [
-                    i in object_dtype_indices for i in range(len(self.columns))
+                    i in object_dtype_indices_as_set for i in range(len(self.columns))
                 ]
                 return into_c(
                     (
