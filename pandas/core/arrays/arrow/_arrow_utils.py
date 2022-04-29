@@ -6,9 +6,7 @@ import warnings
 import numpy as np
 import pyarrow
 
-
 from pandas._libs import lib
-
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
 
