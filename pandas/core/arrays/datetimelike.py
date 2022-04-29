@@ -432,7 +432,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
             elif self.dtype.kind == "m":
                 i8data = self.asi8.ravel()
-                converted = ints_to_pytimedelta(i8data, box=True)
+                converted = ints_to_pytimedelta(self._ndarray.ravel(), box=True)
                 return converted.reshape(self.shape)
 
             return self._box_values(self.asi8.ravel()).reshape(self.shape)

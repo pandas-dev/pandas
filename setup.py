@@ -543,6 +543,7 @@ ext_data = {
     "_libs.tslibs.timestamps": {
         "pyxfile": "_libs/tslibs/timestamps",
         "depends": tseries_depends,
+        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.tslibs.timezones": {"pyxfile": "_libs/tslibs/timezones"},
     "_libs.tslibs.tzconversion": {

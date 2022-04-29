@@ -17,6 +17,7 @@ from pandas.compat import (
     pa_version_under2p0,
     pa_version_under4p0,
     pa_version_under5p0,
+    pa_version_under6p0,
 )
 from pandas.util._decorators import doc
 
@@ -37,6 +38,8 @@ from pandas.core.indexers import (
 if not pa_version_under1p01:
     import pyarrow as pa
     import pyarrow.compute as pc
+
+    from pandas.core.arrays.arrow._arrow_utils import fallback_performancewarning
 
 if TYPE_CHECKING:
     from pandas import Series
@@ -104,6 +107,20 @@ class ArrowExtensionArray(ExtensionArray):
         type(self)
         """
         return type(self)(self._data)
+
+    def dropna(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
+        """
+        Return ArrowExtensionArray without NA values.
+
+        Returns
+        -------
+        ArrowExtensionArray
+        """
+        if pa_version_under6p0:
+            fallback_performancewarning(version="6")
+            return super().dropna()
+        else:
+            return type(self)(pc.drop_null(self._data))
 
     @doc(ExtensionArray.factorize)
     def factorize(
@@ -238,6 +255,20 @@ class ArrowExtensionArray(ExtensionArray):
                 indices_array = np.copy(indices_array)
                 indices_array[indices_array < 0] += len(self._data)
             return type(self)(self._data.take(indices_array))
+
+    def unique(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
+        """
+        Compute the ArrowExtensionArray of unique values.
+
+        Returns
+        -------
+        ArrowExtensionArray
+        """
+        if pa_version_under2p0:
+            fallback_performancewarning(version="2")
+            return super().unique()
+        else:
+            return type(self)(pc.unique(self._data))
 
     def value_counts(self, dropna: bool = True) -> Series:
         """

@@ -878,12 +878,15 @@ def value_counts(
 
 
 # Called once from SparseArray, otherwise could be private
-def value_counts_arraylike(values: np.ndarray, dropna: bool):
+def value_counts_arraylike(
+    values: np.ndarray, dropna: bool, mask: npt.NDArray[np.bool_] | None = None
+):
     """
     Parameters
     ----------
     values : np.ndarray
     dropna : bool
+    mask : np.ndarray[bool] or None, default None
 
     Returns
     -------
@@ -893,7 +896,7 @@ def value_counts_arraylike(values: np.ndarray, dropna: bool):
     original = values
     values = _ensure_data(values)
 
-    keys, counts = htable.value_count(values, dropna)
+    keys, counts = htable.value_count(values, dropna, mask=mask)
 
     if needs_i8_conversion(original.dtype):
         # datetime, timedelta, or period
@@ -931,7 +934,9 @@ def duplicated(
     return htable.duplicated(values, keep=keep)
 
 
-def mode(values: ArrayLike, dropna: bool = True) -> ArrayLike:
+def mode(
+    values: ArrayLike, dropna: bool = True, mask: npt.NDArray[np.bool_] | None = None
+) -> ArrayLike:
     """
     Returns the mode(s) of an array.
 
@@ -957,7 +962,7 @@ def mode(values: ArrayLike, dropna: bool = True) -> ArrayLike:
 
     values = _ensure_data(values)
 
-    npresult = htable.mode(values, dropna=dropna)
+    npresult = htable.mode(values, dropna=dropna, mask=mask)
     try:
         npresult = np.sort(npresult)
     except TypeError as err:
