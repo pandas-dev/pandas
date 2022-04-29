@@ -591,12 +591,12 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
 
     def _calc_rows(self, header, index_col, skiprows, nrows):
         """
-        If nrows specifed, find the number of rows needed from the file
+        If nrows specified, find the number of rows needed from the file
         """
         if nrows is None:
             return
         if not isinstance(nrows, int) or nrows < 0:
-            raise ValueError("'nrows' must be an integer >=0") 
+            raise ValueError("'nrows' must be an integer >=0")
         if header is None:
             header_rows = 1
         elif isinstance(header, int):

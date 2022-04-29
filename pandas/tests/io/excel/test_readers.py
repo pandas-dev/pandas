@@ -1225,13 +1225,13 @@ class TestReaders:
             sheet_name="mi_column",
             header=[0, 1],
             index_col=0,
-            ).iloc[:3]
+        ).iloc[:3]
         actual = pd.read_excel(
             "testmultiindex" + read_ext,
             sheet_name="mi_column",
             header=[0, 1],
             index_col=0,
-            nrows=3
+            nrows=3,
         )
         tm.assert_frame_equal(actual, expected)
 
@@ -1240,12 +1240,12 @@ class TestReaders:
             "testmultiindex" + read_ext,
             sheet_name="mi_index",
             index_col=[0, 1],
-            ).iloc[:3]
+        ).iloc[:3]
         actual = pd.read_excel(
             "testmultiindex" + read_ext,
             sheet_name="mi_index",
             index_col=[0, 1],
-            nrows=3
+            nrows=3,
         )
         tm.assert_frame_equal(actual, expected)
 
@@ -1255,13 +1255,13 @@ class TestReaders:
             sheet_name="both",
             header=[0, 1],
             index_col=[0, 1],
-            ).iloc[:3]
+        ).iloc[:3]
         actual = pd.read_excel(
             "testmultiindex" + read_ext,
             sheet_name="both",
             header=[0, 1],
             index_col=[0, 1],
-            nrows=3
+            nrows=3,
         )
         tm.assert_frame_equal(actual, expected)
 
@@ -1271,13 +1271,13 @@ class TestReaders:
             sheet_name="mi_column_name",
             header=[0, 1],
             index_col=0,
-            ).iloc[:3]
+        ).iloc[:3]
         actual = pd.read_excel(
             "testmultiindex" + read_ext,
             sheet_name="mi_column_name",
             header=[0, 1],
             index_col=0,
-            nrows=3
+            nrows=3,
         )
         tm.assert_frame_equal(actual, expected)
 
@@ -1286,7 +1286,7 @@ class TestReaders:
             "testskiprows" + read_ext,
             sheet_name="skiprows_list",
             skiprows=[0, 2],
-            ).iloc[:3]
+        ).iloc[:3]
         actual = pd.read_excel(
             "testskiprows" + read_ext,
             sheet_name="skiprows_list",
@@ -1300,12 +1300,12 @@ class TestReaders:
         expected = pd.read_excel(
             "testskiprows" + read_ext,
             sheet_name="skiprows_list",
-            skiprows=[0, 2],
-            ).iloc[:3]
+            skiprows=func,
+        ).iloc[:3]
         actual = pd.read_excel(
             "testskiprows" + read_ext,
             sheet_name="skiprows_list",
-            skiprows=[0, 2],
+            skiprows=func,
             nrows=3,
         )
         tm.assert_frame_equal(actual, expected)

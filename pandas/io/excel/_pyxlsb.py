@@ -80,7 +80,10 @@ class PyxlsbReader(BaseExcelReader):
         return cell.v
 
     def get_sheet_data(
-        self, sheet, convert_float: bool, file_rows_needed: int | None = None,
+        self,
+        sheet,
+        convert_float: bool,
+        file_rows_needed: int | None = None,
     ) -> list[list[Scalar]]:
         data: list[list[Scalar]] = []
         prevous_row_number = -1

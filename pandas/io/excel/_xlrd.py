@@ -4,7 +4,10 @@ from datetime import time
 
 import numpy as np
 
-from pandas._typing import StorageOptions
+from pandas._typing import (
+    Scalar,
+    StorageOptions,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
