@@ -1219,6 +1219,97 @@ class TestReaders:
         with pytest.raises(ValueError, match=msg):
             pd.read_excel("test1" + read_ext, nrows="5")
 
+    def test_read_excel_nrows_mi_column(self, read_ext):
+        expected = pd.read_excel(
+            "testmultiindex" + read_ext,
+            sheet_name="mi_column",
+            header=[0, 1],
+            index_col=0,
+            ).iloc[:3]
+        actual = pd.read_excel(
+            "testmultiindex" + read_ext,
+            sheet_name="mi_column",
+            header=[0, 1],
+            index_col=0,
+            nrows=3
+        )
+        tm.assert_frame_equal(actual, expected)
+
+    def test_read_excel_nrows_mi_index(self, read_ext):
+        expected = pd.read_excel(
+            "testmultiindex" + read_ext,
+            sheet_name="mi_index",
+            index_col=[0, 1],
+            ).iloc[:3]
+        actual = pd.read_excel(
+            "testmultiindex" + read_ext,
+            sheet_name="mi_index",
+            index_col=[0, 1],
+            nrows=3
+        )
+        tm.assert_frame_equal(actual, expected)
+
+    def test_read_excel_nrows_mi_both(self, read_ext):
+        expected = pd.read_excel(
+            "testmultiindex" + read_ext,
+            sheet_name="both",
+            header=[0, 1],
+            index_col=[0, 1],
+            ).iloc[:3]
+        actual = pd.read_excel(
+            "testmultiindex" + read_ext,
+            sheet_name="both",
+            header=[0, 1],
+            index_col=[0, 1],
+            nrows=3
+        )
+        tm.assert_frame_equal(actual, expected)
+
+    def test_read_excel_nrows_mi_column_name(self, read_ext):
+        expected = pd.read_excel(
+            "testmultiindex" + read_ext,
+            sheet_name="mi_column_name",
+            header=[0, 1],
+            index_col=0,
+            ).iloc[:3]
+        actual = pd.read_excel(
+            "testmultiindex" + read_ext,
+            sheet_name="mi_column_name",
+            header=[0, 1],
+            index_col=0,
+            nrows=3
+        )
+        tm.assert_frame_equal(actual, expected)
+
+    def test_read_excel_nrows_skiprows_list(self, read_ext):
+        expected = pd.read_excel(
+            "testskiprows" + read_ext,
+            sheet_name="skiprows_list",
+            skiprows=[0, 2],
+            ).iloc[:3]
+        actual = pd.read_excel(
+            "testskiprows" + read_ext,
+            sheet_name="skiprows_list",
+            skiprows=[0, 2],
+            nrows=3,
+        )
+        tm.assert_frame_equal(actual, expected)
+
+    def test_read_excel_nrows_skiprows_func(self, read_ext):
+        func = lambda x: x == 0 or x == 2
+        expected = pd.read_excel(
+            "testskiprows" + read_ext,
+            sheet_name="skiprows_list",
+            skiprows=[0, 2],
+            ).iloc[:3]
+        actual = pd.read_excel(
+            "testskiprows" + read_ext,
+            sheet_name="skiprows_list",
+            skiprows=[0, 2],
+            nrows=3,
+        )
+        tm.assert_frame_equal(actual, expected)
+
     def test_read_excel_squeeze(self, read_ext):
         # GH 12157
         f = "test_squeeze" + read_ext

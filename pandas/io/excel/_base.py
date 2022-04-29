@@ -584,7 +584,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         i = 0
         rows_used_so_far = 0
         while rows_used_so_far < rows_to_use:
-            if not f(i):
+            if not skiprows(i):
                 rows_used_so_far += 1
             i += 1
         return i
