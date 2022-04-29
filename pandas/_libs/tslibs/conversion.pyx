@@ -511,9 +511,6 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
         _TSObject obj = _TSObject()
         int64_t value  # numpy dt64
         datetime dt
-        ndarray[int64_t] trans
-        int64_t* tdata
-        int64_t[::1] deltas
         Py_ssize_t pos
 
     value = dtstruct_to_dt64(&dts)
