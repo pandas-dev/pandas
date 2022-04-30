@@ -1884,7 +1884,7 @@ def test_rolling_agg_when_agg_fail():
     win = df.rolling(window=2, axis=1, min_periods=1)
     try:
         win.aggregate([np.log, np.sqrt])
-    except:
+    except ValueError:
         pass
     tm.assert_frame_equal(win.obj, df)
     # make sure if aggregate fails the attribute of Rolling/Window will not be change
