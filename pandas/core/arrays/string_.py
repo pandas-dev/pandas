@@ -382,11 +382,6 @@ class StringArray(BaseStringArray, PandasArray):
         arr[mask] = None
         return arr, None
 
-    @classmethod
-    def _from_factorized(cls, values, original):
-        assert values.dtype == original._ndarray.dtype
-        return original._from_backing_data(values)
-
     def __setitem__(self, key, value):
         value = extract_array(value, extract_numpy=True)
         if isinstance(value, type(self)):
