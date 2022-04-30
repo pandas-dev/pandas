@@ -102,13 +102,15 @@ cdef class Localizer:
         if self.use_utc:
             return utc_val
         elif self.use_tzlocal:
-            return utc_val + localize_tzinfo_api(utc_val, self.tz, fold)
+            return utc_val + _tz_localize_using_tzinfo_api(
+                utc_val, self.tz, to_utc=False, fold=fold
+            )
         elif self.use_fixed:
             return utc_val + self.delta
         else:
             pos[0] = bisect_right_i8(self.tdata, utc_val, self.ntrans) - 1
             if fold is not NULL:
-                fold[0] = infer_dateutil_fold(
+                fold[0] = _infer_dateutil_fold(
                     utc_val, self.trans, self.deltas, pos[0]
                 )
 
@@ -515,15 +517,6 @@ cdef ndarray[int64_t] _get_dst_hours(
 # ----------------------------------------------------------------------
 # Timezone Conversion
 
-cdef int64_t localize_tzinfo_api(
-    int64_t utc_val, tzinfo tz, bint* fold=NULL
-) except? -1:
-    """
-    See _tz_localize_using_tzinfo_api.__doc__
-    """
-    return _tz_localize_using_tzinfo_api(utc_val, tz, to_utc=False, fold=fold)
-
-
 def py_tz_convert_from_utc_single(int64_t utc_val, tzinfo tz):
     # The 'bint* fold=NULL' in tz_convert_from_utc_single means we cannot
     #  make it cdef, so this is version exposed for testing from python.
@@ -628,7 +621,7 @@ cdef int64_t _tz_localize_using_tzinfo_api(
 # NB: relies on dateutil internals, subject to change.
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef bint infer_dateutil_fold(
+cdef bint _infer_dateutil_fold(
     int64_t value,
     const int64_t[::1] trans,
     const int64_t[::1] deltas,
