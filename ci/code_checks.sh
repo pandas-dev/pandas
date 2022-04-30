@@ -12,8 +12,9 @@
 #   $ ./ci/code_checks.sh doctests      # run doctests
 #   $ ./ci/code_checks.sh docstrings    # validate docstring errors
 #   $ ./ci/code_checks.sh typing        # run static type analysis
+#   $ ./ci/code_checks.sh single-docs   # check single-page docs build warning-free
 
-[[ -z "$1" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "typing" ]] || \
+[[ -z "$1" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "typing" || "$1" == "single-docs" ]] || \
     { echo "Unknown command $1. Usage: $0 [code|doctests|docstrings|typing]"; exit 9999; }
 
 BASE_DIR="$(dirname $0)/.."
@@ -100,6 +101,13 @@ if [[ -z "$CHECK" || "$CHECK" == "typing" ]]; then
         pyright
         RET=$(($RET + $?)) ; echo $MSG "DONE"
     fi
+fi
+
+### SINGLE-PAGE DOCS ###
+if [[ -z "$CHECK" || "$CHECK" == "single-docs" ]]; then
+    python doc/make.py --warnings-are-errors --single pandas.Series.value_counts
+    python doc/make.py --warnings-are-errors --single pandas.Series.str.split
+    python doc/make.py clean
 fi
 
 exit $RET
