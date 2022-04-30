@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from contextlib import contextmanager
+from contextlib import (
+    contextmanager,
+    nullcontext,
+)
 import re
 import sys
 from typing import (
@@ -95,6 +98,16 @@ def assert_produces_warning(
                 caught_warnings=w,
                 expected_warning=expected_warning,
             )
+
+
+def maybe_produces_warning(warning: type[Warning], condition: bool, **kwargs):
+    """
+    Return a context manager that possibly checks a warning based on the condition
+    """
+    if condition:
+        return assert_produces_warning(warning, **kwargs)
+    else:
+        return nullcontext()
 
 
 def _assert_caught_expected_warning(

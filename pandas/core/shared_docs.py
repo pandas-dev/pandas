@@ -749,6 +749,10 @@ _shared_docs[
     skipna : bool, default True
         Exclude NA/null values. If an entire row/column is NA, the result
         will be NA.
+    numeric_only : bool, default {numeric_only_default}
+        Include only `float`, `int` or `boolean` data.
+
+        .. versionadded:: 1.5.0
 
     Returns
     -------
@@ -812,6 +816,10 @@ _shared_docs[
     skipna : bool, default True
         Exclude NA/null values. If an entire row/column is NA, the result
         will be NA.
+    numeric_only : bool, default {numeric_only_default}
+        Include only `float`, `int` or `boolean` data.
+
+        .. versionadded:: 1.5.0
 
     Returns
     -------

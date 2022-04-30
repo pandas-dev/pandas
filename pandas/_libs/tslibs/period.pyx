@@ -1057,7 +1057,7 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
     cdef:
         Py_ssize_t n = len(arr)
         Py_ssize_t increment = arr.strides[0] // 8
-        ndarray[int64_t] result = np.empty(n, dtype=np.int64)
+        ndarray[int64_t] result = cnp.PyArray_EMPTY(arr.ndim, arr.shape, cnp.NPY_INT64, 0)
 
     _period_asfreq(
         <int64_t*>cnp.PyArray_DATA(arr),
@@ -1440,7 +1440,7 @@ def extract_ordinals(ndarray values, freq) -> np.ndarray:
     cdef:
         Py_ssize_t i, n = values.size
         int64_t ordinal
-        ndarray ordinals = np.empty((<object>values).shape, dtype=np.int64)
+        ndarray ordinals = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_INT64, 0)
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(ordinals, values)
         object p
 
@@ -2584,10 +2584,13 @@ class Period(_Period):
             dt = value
             if freq is None:
                 raise ValueError('Must supply freq for datetime value')
+            if isinstance(dt, Timestamp):
+                nanosecond = dt.nanosecond
         elif util.is_datetime64_object(value):
             dt = Timestamp(value)
             if freq is None:
                 raise ValueError('Must supply freq for datetime value')
+            nanosecond = dt.nanosecond
         elif PyDate_Check(value):
             dt = datetime(year=value.year, month=value.month, day=value.day)
             if freq is None:
