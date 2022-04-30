@@ -23,9 +23,20 @@ class TestSeriesAsof:
 
         first_value = ser.asof(ser.index[0])
 
+        assert dti.resolution == "nanosecond"  # previously was incorrect "day"
+
+        key = "2013-01-01 00:00:00.000000050+0000"
+        msg = "Indexing a timezone-naive DatetimeIndex with a timezone-aware datetime"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = ser[key]
+        assert res == first_value
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = dti.get_loc(key)
+
         # this used to not work bc parsing was done by dateutil that didn't
         #  handle nanoseconds
-        assert first_value == ser["2013-01-01 00:00:00.000000050+0000"]
+        assert first_value == ser["2013-01-01 00:00:00.000000050"]
 
         expected_ts = np.datetime64("2013-01-01 00:00:00.000000050", "ns")
         assert first_value == ser[Timestamp(expected_ts)]
