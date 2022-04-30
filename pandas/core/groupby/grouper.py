@@ -660,7 +660,7 @@ class Grouping:
         if self._dropna and self._passed_categorical:
             # we make a CategoricalIndex out of the cat grouper
             # preserving the categories / ordered attributes;
-            # doesn't (yet) handle dropna=False
+            # doesn't (yet - GH#46909) handle dropna=False
             cat = self.grouping_vector
             categories = cat.categories
 

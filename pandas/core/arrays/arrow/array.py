@@ -124,7 +124,7 @@ class ArrowExtensionArray(ExtensionArray):
 
     @doc(ExtensionArray.factorize)
     def factorize(
-        self, na_sentinel: int = -1, dropna=True
+        self, na_sentinel: int = -1, dropna: bool = True
     ) -> tuple[np.ndarray, ExtensionArray]:
         if pa_version_under4p0:
             encoded = self._data.dictionary_encode()
@@ -141,6 +141,7 @@ class ArrowExtensionArray(ExtensionArray):
         if encoded.num_chunks:
             uniques = type(self)(encoded.chunk(0).dictionary)
             if not dropna and pa_version_under4p0:
+                # TODO: share logic with BaseMaskedArray.factorize
                 # Insert na with the proper code
                 na_mask = indices.values == na_sentinel
                 na_index = na_mask.argmax()
