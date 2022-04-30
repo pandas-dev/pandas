@@ -433,7 +433,7 @@ class IndexOpsMixin(OpsMixin):
         self,
         dtype: npt.DTypeLike | None = None,
         copy: bool = False,
-        na_value=lib.no_default,
+        na_value: object = lib.no_default,
         **kwargs,
     ) -> np.ndarray:
         """
