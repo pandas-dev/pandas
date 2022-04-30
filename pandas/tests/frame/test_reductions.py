@@ -897,6 +897,17 @@ class TestDataFrameAnalytics:
             expected = df.apply(Series.idxmin, axis=axis, skipna=skipna)
             tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("numeric_only", [True, False])
+    def test_idxmin_numeric_only(self, numeric_only):
+        df = DataFrame({"a": [2, 3, 1], "b": [2, 1, 1], "c": list("xyx")})
+        if numeric_only:
+            result = df.idxmin(numeric_only=numeric_only)
+            expected = Series([2, 1], index=["a", "b"])
+            tm.assert_series_equal(result, expected)
+        else:
+            with pytest.raises(TypeError, match="not allowed for this dtype"):
+                df.idxmin(numeric_only=numeric_only)
+
     def test_idxmin_axis_2(self, float_frame):
         frame = float_frame
         msg = "No axis named 2 for object type DataFrame"
@@ -913,6 +924,17 @@ class TestDataFrameAnalytics:
             result = df.idxmax(axis=axis, skipna=skipna)
             expected = df.apply(Series.idxmax, axis=axis, skipna=skipna)
             tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("numeric_only", [True, False])
+    def test_idxmax_numeric_only(self, numeric_only):
+        df = DataFrame({"a": [2, 3, 1], "b": [2, 1, 1], "c": list("xyx")})
+        if numeric_only:
+            result = df.idxmax(numeric_only=numeric_only)
+            expected = Series([1, 0], index=["a", "b"])
+            tm.assert_series_equal(result, expected)
+        else:
+            with pytest.raises(TypeError, match="not allowed for this dtype"):
+                df.idxmin(numeric_only=numeric_only)
 
     def test_idxmax_axis_2(self, float_frame):
         frame = float_frame
