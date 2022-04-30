@@ -198,7 +198,8 @@ class TestTimedeltas:
 
         actual = to_timedelta(Series(["00:00:01", np.nan]))
         expected = Series(
-            [np.timedelta64(1000000000, "ns"), timedelta_NaT], dtype="<m8[ns]"
+            [np.timedelta64(1000000000, "ns"), timedelta_NaT],
+            dtype=f"{tm.ENDIAN}m8[ns]",
         )
         tm.assert_series_equal(actual, expected)
 

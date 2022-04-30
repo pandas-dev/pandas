@@ -1,6 +1,9 @@
 import numpy as np
 import pytest
 
+from pandas.compat import pa_version_under2p0
+from pandas.errors import PerformanceWarning
+
 from pandas.core.dtypes.common import is_datetime64tz_dtype
 
 import pandas as pd
@@ -12,7 +15,11 @@ from pandas.tests.base.common import allow_na_ops
 def test_unique(index_or_series_obj):
     obj = index_or_series_obj
     obj = np.repeat(obj, range(1, len(obj) + 1))
-    result = obj.unique()
+    with tm.maybe_produces_warning(
+        PerformanceWarning,
+        pa_version_under2p0 and str(index_or_series_obj.dtype) == "string[pyarrow]",
+    ):
+        result = obj.unique()
 
     # dict.fromkeys preserves the order
     unique_values = list(dict.fromkeys(obj.values))
@@ -50,7 +57,11 @@ def test_unique_null(null_obj, index_or_series_obj):
     klass = type(obj)
     repeated_values = np.repeat(values, range(1, len(values) + 1))
     obj = klass(repeated_values, dtype=obj.dtype)
-    result = obj.unique()
+    with tm.maybe_produces_warning(
+        PerformanceWarning,
+        pa_version_under2p0 and str(index_or_series_obj.dtype) == "string[pyarrow]",
+    ):
+        result = obj.unique()
 
     unique_values_raw = dict.fromkeys(obj.values)
     # because np.nan == np.nan is False, but None == None is True
@@ -75,7 +86,11 @@ def test_unique_null(null_obj, index_or_series_obj):
 def test_nunique(index_or_series_obj):
     obj = index_or_series_obj
     obj = np.repeat(obj, range(1, len(obj) + 1))
-    expected = len(obj.unique())
+    with tm.maybe_produces_warning(
+        PerformanceWarning,
+        pa_version_under2p0 and str(index_or_series_obj.dtype) == "string[pyarrow]",
+    ):
+        expected = len(obj.unique())
     assert obj.nunique(dropna=False) == expected
 
 
@@ -99,9 +114,21 @@ def test_nunique_null(null_obj, index_or_series_obj):
         assert obj.nunique() == len(obj.categories)
         assert obj.nunique(dropna=False) == len(obj.categories) + 1
     else:
-        num_unique_values = len(obj.unique())
-        assert obj.nunique() == max(0, num_unique_values - 1)
-        assert obj.nunique(dropna=False) == max(0, num_unique_values)
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under2p0 and str(index_or_series_obj.dtype) == "string[pyarrow]",
+        ):
+            num_unique_values = len(obj.unique())
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under2p0 and str(index_or_series_obj.dtype) == "string[pyarrow]",
+        ):
+            assert obj.nunique() == max(0, num_unique_values - 1)
+        with tm.maybe_produces_warning(
+            PerformanceWarning,
+            pa_version_under2p0 and str(index_or_series_obj.dtype) == "string[pyarrow]",
+        ):
+            assert obj.nunique(dropna=False) == max(0, num_unique_values)
 
 
 @pytest.mark.single_cpu

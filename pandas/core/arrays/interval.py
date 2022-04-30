@@ -1445,7 +1445,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         import pyarrow
 
-        from pandas.core.arrays._arrow_utils import ArrowIntervalType
+        from pandas.core.arrays.arrow._arrow_utils import ArrowIntervalType
 
         try:
             subtype = pyarrow.from_numpy_dtype(self.dtype.subtype)

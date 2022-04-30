@@ -679,6 +679,16 @@ def test_cmov_window_special_linear_range(win_types_special, step):
 
 
 @td.skip_if_no_scipy
+def test_weighted_var_big_window_no_segfault(win_types, center):
+    # Github Issue #46772
+    x = Series(0)
+    result = x.rolling(window=16, center=center, win_type=win_types).var()
+    expected = Series(np.NaN)
+
+    tm.assert_series_equal(result, expected)
+
+
+@td.skip_if_no_scipy
 def test_rolling_center_axis_1():
     df = DataFrame(
         {"a": [1, 1, 0, 0, 0, 1], "b": [1, 0, 0, 1, 0, 0], "c": [1, 0, 0, 1, 0, 1]}
