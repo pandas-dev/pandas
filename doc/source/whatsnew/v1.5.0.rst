@@ -194,6 +194,11 @@ did not have the same index as the input.
     df.groupby('a', dropna=True).transform('ffill')
     df.groupby('a', dropna=True).transform(lambda x: x)
 
+.. _whatsnew_150.notable_bug_fixes.notable_bug_fix2:
+
+notable_bug_fix2
+^^^^^^^^^^^^^^^^
+
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.api_breaking:
 
