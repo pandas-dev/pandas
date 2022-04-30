@@ -1887,7 +1887,10 @@ def test_rolling_agg_when_agg_fail():
     except ValueError:
         pass
     tm.assert_frame_equal(win.obj, df)
-    # make sure if aggregate fails the attribute of Rolling/Window will not be change
+    # make sure if aggregate fails the attribute of Rolling/Window will not be changed
     assert win.axis == 1
+    # make sure the attribute of Rolling/Window will not be changed
+    # when aggregate runs successfully
     win.aggregate([np.mean, np.sum])
+    tm.assert_frame_equal(win.obj, df)
     assert win.axis == 1
