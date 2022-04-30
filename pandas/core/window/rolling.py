@@ -661,7 +661,8 @@ class BaseWindow(SelectionMixin):
         # GH46132
         _axis_modifed_flag = False
         # issue https://github.com/pandas-dev/pandas/issues/46132
-        # modifing axis and transposing dataframe should not be needed once ReamplerWindow supports axis = 1
+        # modifying axis and transposing dataframe should not be needed
+        # once ReamplerWindow supports axis = 1
         if self.axis == 1:
             self.obj = self.obj.T
             _axis_modifed_flag = True
