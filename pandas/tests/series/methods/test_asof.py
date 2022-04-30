@@ -23,7 +23,8 @@ class TestSeriesAsof:
 
         first_value = ser.asof(ser.index[0])
 
-        assert dti.resolution == "nanosecond"  # previously was incorrect "day"
+        # GH#46903 previously incorrectly was "day"
+        assert dti.resolution == "nanosecond"
 
         key = "2013-01-01 00:00:00.000000050+0000"
         msg = "Indexing a timezone-naive DatetimeIndex with a timezone-aware datetime"
