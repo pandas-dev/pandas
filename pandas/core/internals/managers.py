@@ -1511,7 +1511,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         self,
         dtype: np.dtype | None = None,
         copy: bool = False,
-        na_value=lib.no_default,
+        na_value: object = lib.no_default,
     ) -> np.ndarray:
         """
         Convert the blockmanager data into an numpy array.
@@ -1570,7 +1570,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
     def _interleave(
         self,
         dtype: np.dtype | None = None,
-        na_value=lib.no_default,
+        na_value: object = lib.no_default,
     ) -> np.ndarray:
         """
         Return ndarray from blocks with specified item order
