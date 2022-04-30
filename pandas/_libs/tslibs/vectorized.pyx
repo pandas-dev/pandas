@@ -32,78 +32,8 @@ from .np_datetime cimport (
 from .offsets cimport BaseOffset
 from .period cimport get_period_ordinal
 from .timestamps cimport create_timestamp_from_ts
-from .timezones cimport (
-    get_dst_info,
-    is_tzlocal,
-    is_utc,
-    is_zoneinfo,
-)
-from .tzconversion cimport (
-    bisect_right_i8,
-    localize_tzinfo_api,
-)
-
-
-cdef const int64_t[::1] _deltas_placeholder = np.array([], dtype=np.int64)
-
-
-@cython.freelist(16)
-@cython.internal
-@cython.final
-cdef class Localizer:
-    cdef:
-        tzinfo tz
-        bint use_utc, use_fixed, use_tzlocal, use_dst, use_pytz
-        ndarray trans
-        Py_ssize_t ntrans
-        const int64_t[::1] deltas
-        int64_t delta
-        int64_t* tdata
-
-    @cython.initializedcheck(False)
-    @cython.boundscheck(False)
-    def __cinit__(self, tzinfo tz):
-        self.tz = tz
-        self.use_utc = self.use_tzlocal = self.use_fixed = False
-        self.use_dst = self.use_pytz = False
-        self.ntrans = -1  # placeholder
-        self.delta = -1  # placeholder
-        self.deltas = _deltas_placeholder
-        self.tdata = NULL
-
-        if is_utc(tz) or tz is None:
-            self.use_utc = True
-
-        elif is_tzlocal(tz) or is_zoneinfo(tz):
-            self.use_tzlocal = True
-
-        else:
-            trans, deltas, typ = get_dst_info(tz)
-            self.trans = trans
-            self.ntrans = self.trans.shape[0]
-            self.deltas = deltas
-
-            if typ != "pytz" and typ != "dateutil":
-                # static/fixed; in this case we know that len(delta) == 1
-                self.use_fixed = True
-                self.delta = self.deltas[0]
-            else:
-                self.use_dst = True
-                if typ == "pytz":
-                    self.use_pytz = True
-                self.tdata = <int64_t*>cnp.PyArray_DATA(self.trans)
-
-    @cython.boundscheck(False)
-    cdef inline int64_t utc_val_to_local_val(self, int64_t utc_val, Py_ssize_t* pos) except? -1:
-        if self.use_utc:
-            return utc_val
-        elif self.use_tzlocal:
-            return utc_val + localize_tzinfo_api(utc_val, self.tz)
-        elif self.use_fixed:
-            return utc_val + self.delta
-        else:
-            pos[0] = bisect_right_i8(self.tdata, utc_val, self.ntrans) - 1
-            return utc_val + self.deltas[pos[0]]
+from .timezones cimport is_utc
+from .tzconversion cimport Localizer
 
 
 @cython.boundscheck(False)
@@ -140,15 +70,7 @@ def tz_convert_from_utc(const int64_t[:] stamps, tzinfo tz):
             result[i] = NPY_NAT
             continue
 
-        if info.use_utc:
-            local_val = utc_val
-        elif info.use_tzlocal:
-            local_val = utc_val + localize_tzinfo_api(utc_val, tz)
-        elif info.use_fixed:
-            local_val = utc_val + info.delta
-        else:
-            pos = bisect_right_i8(info.tdata, utc_val, info.ntrans) - 1
-            local_val = utc_val + info.deltas[pos]
+        local_val = info.utc_val_to_local_val(utc_val, &pos)
 
         result[i] = local_val
 
