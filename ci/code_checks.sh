@@ -12,7 +12,7 @@
 #   $ ./ci/code_checks.sh doctests      # run doctests
 #   $ ./ci/code_checks.sh docstrings    # validate docstring errors
 #   $ ./ci/code_checks.sh typing        # run static type analysis
-#   $ ./ci/code_checks.sh single-docs   # check building docs with ``--single`` works
+#   $ ./ci/code_checks.sh single-docs   # check single-page docs build warning-free
 
 [[ -z "$1" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "typing" || "$1" == "single-docs" ]] || \
     { echo "Unknown command $1. Usage: $0 [code|doctests|docstrings|typing]"; exit 9999; }

@@ -80,7 +80,7 @@ jobs:
       id: build
       uses: ./.github/actions/build_pandas
 
-    - name: Run checks on imported code
+    - name: Check for no warnings when building single-page docs
       run: ci/code_checks.sh single-docs
       if: ${{ steps.build.outcome == 'success' }}
 
