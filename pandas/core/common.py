@@ -660,7 +660,7 @@ def resolve_numeric_only(numeric_only: bool | None | lib.NoDefault) -> bool:
         # first default to None
         result = False
     else:
-        result = numeric_only
+        result = cast(bool, numeric_only)
     return result
 
 
