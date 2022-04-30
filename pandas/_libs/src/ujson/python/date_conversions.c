@@ -95,12 +95,11 @@ char *PyDateTimeToIso(PyObject *obj, NPY_DATETIMEUNIT base,
     int is_tz_aware = 0;
     if (PyObject_HasAttrString(obj, "tzinfo")) {
         PyObject *offset = extract_utc_offset(obj);
-        if (offset != NULL) {
-            if (offset != Py_None) {
-                is_tz_aware = 1;
-            }
-            Py_DECREF(offset);
+        if (offset == NULL) {
+            return NULL;
         }
+        is_tz_aware = offset != Py_None;
+        Py_DECREF(offset);
     }
     ret = make_iso_8601_datetime(&dts, result, *len, is_tz_aware, base);
 

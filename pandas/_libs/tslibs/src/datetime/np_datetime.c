@@ -352,9 +352,7 @@ PyObject *extract_utc_offset(PyObject *obj) {
             Py_DECREF(tmp);
             return NULL;
         }
-        if (offset != Py_None) {
-            return offset;
-        }
+        return offset;
     }
     return tmp;
 }
