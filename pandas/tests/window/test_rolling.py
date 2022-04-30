@@ -1876,3 +1876,18 @@ def test_rolling_mean_sum_floating_artifacts():
     assert (result[-3:] == 0).all()
     result = r.sum()
     assert (result[-3:] == 0).all()
+
+
+def test_rolling_agg_when_agg_fail():
+    # GH 46132
+    df = DataFrame({"a": [1, 3], "b": [2, 4]})
+    win = df.rolling(window=2, axis=1, min_periods=1)
+    try:
+        win.aggregate([np.log, np.sqrt])
+    except:
+        pass
+    tm.assert_frame_equal(win.obj, df)
+    # make sure if aggregate fails the attribute of Rolling/Window will not be change
+    assert win.axis == 1
+    win.aggregate([np.mean, np.sum])
+    assert win.axis == 1

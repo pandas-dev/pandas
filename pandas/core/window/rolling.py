@@ -659,18 +659,21 @@ class BaseWindow(SelectionMixin):
 
     def aggregate(self, func, *args, **kwargs):
         # GH46132
-        _axis_modifed_flag = 0
+        _axis_modifed_flag = False
         if self.axis == 1:
             self.obj = self.obj.T
-            _axis_modifed_flag = 1
+            _axis_modifed_flag = True
             self.axis = 0
-        result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
-        if _axis_modifed_flag == 1:
-            result = result.T
-            self.axis = 1
-            self.obj = self.obj.T
+        try:
+            result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
+        finally:
+            if _axis_modifed_flag:
+                self.axis = 1
+                self.obj = self.obj.T
         if result is None:
             return self.apply(func, raw=False, args=args, kwargs=kwargs)
+        if _axis_modifed_flag:
+            result = result.T
         return result
 
     agg = aggregate
