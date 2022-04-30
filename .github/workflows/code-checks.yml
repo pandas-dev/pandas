@@ -81,6 +81,10 @@ jobs:
       uses: ./.github/actions/build_pandas
 
     - name: Run checks on imported code
+      run: ci/code_checks.sh single-docs
+      if: ${{ steps.build.outcome == 'success' }}
+
+    - name: Run checks on imported code
       run: ci/code_checks.sh code
       if: ${{ steps.build.outcome == 'success' }}
 

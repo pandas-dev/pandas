@@ -38,13 +38,6 @@ jobs:
         source activate pandas-dev
         python web/pandas_web.py web/pandas --target-path=web/build
 
-    - name: Check building docs with --single works
-      run: |
-        source activate pandas-dev
-        doc/make.py --warnings-are-errors --single pandas.Series.value_counts
-        doc/make.py --warnings-are-errors --single pandas.Series.str.split
-        doc/make.py clean
-
     - name: Build documentation
       run: |
         source activate pandas-dev
