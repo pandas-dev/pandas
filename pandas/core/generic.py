@@ -11191,9 +11191,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             numeric_only=None,
             **kwargs,
         ):
-            return NDFrame.mean(
-                self, axis, skipna, level, numeric_only, **kwargs
-            )
+            return NDFrame.mean(self, axis, skipna, level, numeric_only, **kwargs)
             
         setattr(cls, "mean", mean)
 
