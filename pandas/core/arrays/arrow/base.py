@@ -52,6 +52,23 @@ class ArrowDtype(StorageExtensionDtype):
         return ArrowExtensionArray
 
     @classmethod
+    def construct_from_string(cls, string: str):
+        """
+        Construct this type from a string.
+
+        Parameters
+        ----------
+        string : str
+        """
+        if not isinstance(string, str):
+            raise TypeError(
+                f"'construct_from_string' expects a string, got {type(string)}"
+            )
+        if string == f"{cls.name}[pyarrow]":
+            return cls(storage="pyarrow")
+        raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
+
+    @classmethod
     def from_numpy_dtype(cls, dtype: np.dtype) -> ArrowDtype:
         """
         Construct the ArrowDtype corresponding to the given numpy dtype.
