@@ -1,7 +1,8 @@
-import cython
-from cython import Py_ssize_t
-
-from cython cimport floating
+cimport cython
+from cython cimport (
+    Py_ssize_t,
+    floating,
+)
 from libc.stdlib cimport (
     free,
     malloc,
@@ -267,7 +268,6 @@ def group_cumsum(
                     if isna_prev:
                         out[i, j] = na_val
                         continue
-
 
                 if isna_entry:
                     out[i, j] = na_val
@@ -1220,7 +1220,7 @@ def group_nth(
                         if nobs[lab, j] == rank:
                             resx[lab, j] = val
 
-            # TODO: de-dup this whoel block with group_last?
+            # TODO: de-dup this whole block with group_last?
             for i in range(ncounts):
                 for j in range(K):
                     if nobs[i, j] < min_count:
@@ -1232,6 +1232,9 @@ def group_nth(
                         #  set a placeholder value in out[i, j].
                         if uses_mask:
                             result_mask[i, j] = True
+                            # set out[i, j] to 0 to be deterministic, as
+                            #  it was initialized with np.empty. Also ensures
+                            #  we can downcast out if appropriate.
                             out[i, j] = 0
                         elif numeric_object_t is float32_t or numeric_object_t is float64_t:
                             out[i, j] = NAN
@@ -1369,7 +1372,7 @@ cdef group_min_max(
     """
     cdef:
         Py_ssize_t i, j, N, K, lab, ngroups = len(counts)
-        numeric_t val, nan_val
+        numeric_t val
         ndarray[numeric_t, ndim=2] group_min_or_max
         int64_t[:, ::1] nobs
         bint uses_mask = mask is not None
@@ -1385,20 +1388,6 @@ cdef group_min_max(
 
     group_min_or_max = np.empty_like(out)
     group_min_or_max[:] = _get_min_or_max(<numeric_t>0, compute_max, is_datetimelike)
-
-    # NB: We do not define nan_val because there is no such thing
-    # for uint64_t.  We carefully avoid having to reference it in this
-    # case.
-    if numeric_t is int64_t:
-        nan_val = NPY_NAT
-    elif numeric_t is int32_t:
-        nan_val = util.INT32_MIN
-    elif numeric_t is int16_t:
-        nan_val = util.INT16_MIN
-    elif numeric_t is int8_t:
-        nan_val = util.INT8_MIN
-    elif numeric_t is float64_t or numeric_t is float32_t:
-        nan_val = NAN
 
     N, K = (<object>values).shape
 
@@ -1442,11 +1431,11 @@ cdef group_min_max(
                         #  we can downcast out if appropriate.
                         out[i, j] = 0
                     elif numeric_t is float32_t or numeric_t is float64_t:
-                        out[i, j] = nan_val
+                        out[i, j] = NAN
                     elif numeric_t is int64_t:
                         # Per above, this is a placeholder in
                         #  non-is_datetimelike cases.
-                        out[i, j] = nan_val
+                        out[i, j] = NPY_NAT
                     else:
                         # placeholder, see above
                         out[i, j] = 0
