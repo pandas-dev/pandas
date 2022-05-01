@@ -9708,7 +9708,7 @@ Parrot 2  Parrot       24.0
             copy=copy,
             indicator=indicator,
             validate=validate,
-        )
+        ).__finalize__(self, method="merge")
 
     def round(
         self, decimals: int | dict[IndexLabel, int] | Series = 0, *args, **kwargs
