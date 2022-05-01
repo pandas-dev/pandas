@@ -10748,7 +10748,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Series | float:
         return self._stat_function(
             "mean", nanops.nanmean, axis, skipna, level, numeric_only, **kwargs
-        ).__finalize__(self, method="mean")
+        )
 
     def median(
         self,
@@ -11191,7 +11191,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             numeric_only=None,
             **kwargs,
         ):
-            return NDFrame.mean(self, axis, skipna, level, numeric_only, **kwargs)
+            return NDFrame.mean(self, axis, skipna, level, numeric_only, **kwargs).__finalize__(self, method="mean")
 
         setattr(cls, "mean", mean)
 
