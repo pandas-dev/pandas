@@ -1240,7 +1240,7 @@ def test_groupby_sum_timedelta_with_nat():
 @pytest.mark.parametrize(
     "kwargs",
     [
-        {"percentiles": [0.10, 0.20, 0.30], "include": None, "exclude": None},
+        {"percentiles": [0.10, 0.20, 0.30], "include": "all", "exclude": None},
         {"percentiles": [0.10, 0.20, 0.30], "include": None, "exclude": ["int"]},
         {"percentiles": [0.10, 0.20, 0.30], "include": ["int"], "exclude": None},
     ],
