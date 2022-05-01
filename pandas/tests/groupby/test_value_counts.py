@@ -191,3 +191,13 @@ def test_series_groupby_value_counts_on_categorical():
     # dtype: int64
 
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("columns", [["c1"], ["c2"], ["c1", "c2"]])
+def test_groupby_value_counts_subset(columns):
+    # GH46383
+    df = DataFrame({"c1": ["a", "b", "c"], "c2": ["x", "y", "y"]}, index=[0, 1, 1])
+    result = df.groupby(level=0).value_counts(subset=columns)
+    expected = df.groupby(level=0)[columns].value_counts()
+
+    tm.assert_series_equal(result, expected)
