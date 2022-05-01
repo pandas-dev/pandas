@@ -8942,9 +8942,34 @@ Parrot 2  Parrot       24.0
 
     agg = aggregate
 
+    @overload
+    def any(
+        self: DataFrame,
+        *,
+        axis: Axis = ...,
+        bool_only: bool | None = ...,
+        skipna: bool = ...,
+        level: None = ...,
+        **kwargs,
+    ) -> Series:
+        ...
+
+    @overload
+    def any(
+        self: DataFrame,
+        *,
+        axis: Axis = ...,
+        bool_only: bool | None = ...,
+        skipna: bool = ...,
+        level=Level,
+        **kwargs,
+    ) -> DataFrame | Series:
+        ...
+
     @doc(NDFrame.any, **_shared_doc_kwargs)
     def any(
         self: DataFrame,
+        *,
         axis: Axis = 0,
         bool_only: bool | None = None,
         skipna: bool = True,

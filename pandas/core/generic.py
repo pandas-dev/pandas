@@ -10512,6 +10512,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def any(
         self,
+        *,
         axis: Axis = 0,
         bool_only: bool_t | None = None,
         skipna: bool_t = True,
