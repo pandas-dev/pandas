@@ -184,7 +184,11 @@ _all_methods = [
             "ignore:.*append method is deprecated.*:FutureWarning"
         ),
     ),
-    operator.methodcaller("merge", pd.DataFrame({"A": [1]})),
+    (
+        pd.DataFrame,
+        frame_data,
+        operator.methodcaller("merge", pd.DataFrame({"A": [1]})),
+    ),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("round", 2)),
     ),
