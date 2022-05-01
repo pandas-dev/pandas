@@ -201,7 +201,7 @@ class FY5253Mixin(SingleConstructorOffset):
         normalize: bool = ...,
         weekday: int = ...,
         startingMonth: int = ...,
-        variation: str = ...,
+        variation: Literal["nearest", "last"] = ...,
     ) -> None: ...
 
 class FY5253(FY5253Mixin): ...
@@ -214,7 +214,7 @@ class FY5253Quarter(FY5253Mixin):
         weekday: int = ...,
         startingMonth: int = ...,
         qtr_with_extra_week: int = ...,
-        variation: str = ...,
+        variation: Literal["nearest", "last"] = ...,
     ) -> None: ...
 
 class Easter(SingleConstructorOffset): ...
@@ -226,7 +226,7 @@ class _CustomBusinessMonth(BusinessMixin):
         normalize: bool = ...,
         weekmask: str = ...,
         holidays: None | list = ...,
-        calendar: np.busdaycalendar = ...,
+        calendar: np.busdaycalendar | None = ...,
         offset: timedelta = ...,
     ) -> None: ...
 
@@ -237,7 +237,7 @@ class CustomBusinessDay(BusinessDay):
         normalize: bool = ...,
         weekmask: str = ...,
         holidays: None | list = ...,
-        calendar: np.busdaycalendar = ...,
+        calendar: np.busdaycalendar | None = ...,
         offset: timedelta = ...,
     ) -> None: ...
 
@@ -248,7 +248,7 @@ class CustomBusinessHour(BusinessHour):
         normalize: bool = ...,
         weekmask: str = ...,
         holidays: None | list = ...,
-        calendar: np.busdaycalendar = ...,
+        calendar: np.busdaycalendar | None = ...,
         start: str = ...,
         end: str = ...,
         offset: timedelta = ...,
