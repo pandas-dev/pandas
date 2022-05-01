@@ -163,7 +163,7 @@ class HashTable:
         na_sentinel: int = ...,
         na_value: object = ...,
         mask=...,
-    ) -> tuple[np.ndarray, npt.NDArray[np.intp],]: ...  # np.ndarray[subclass-specific]
+    ) -> tuple[np.ndarray, npt.NDArray[np.intp]]: ...  # np.ndarray[subclass-specific]
 
 class Complex128HashTable(HashTable): ...
 class Complex64HashTable(HashTable): ...
@@ -175,7 +175,7 @@ class Int64HashTable(HashTable):
     def get_labels_groupby(
         self,
         values: npt.NDArray[np.int64],  # const int64_t[:]
-    ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.int64],]: ...
+    ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.int64]]: ...
     def map_keys_to_values(
         self,
         keys: npt.NDArray[np.int64],
@@ -204,7 +204,7 @@ def value_count(
     values: np.ndarray,
     dropna: bool,
     mask: npt.NDArray[np.bool_] | None = None,
-) -> tuple[np.ndarray, npt.NDArray[np.int64],]: ...  # np.ndarray[same-as-values]
+) -> tuple[np.ndarray, npt.NDArray[np.int64]]: ...  # np.ndarray[same-as-values]
 
 # arr and values should have same dtype
 def ismember(
