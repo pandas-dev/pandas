@@ -1502,7 +1502,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    def _python_agg_general(self, func, *args, **kwargs):
+    def _python_agg_general(self, func, *args, raise_on_typeerror=False, **kwargs):
         func = com.is_builtin_func(func)
         f = lambda x: func(x, *args, **kwargs)
 
@@ -1520,6 +1520,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # if this function is invalid for this dtype, we will ignore it.
                 result = self.grouper.agg_series(obj, f)
             except TypeError:
+                if raise_on_typeerror:
+                    raise
                 warn_dropping_nuisance_columns_deprecated(type(self), "agg")
                 continue
 
@@ -1593,7 +1595,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     def _cython_agg_general(
-        self, how: str, alt: Callable, numeric_only: bool, min_count: int = -1
+        self,
+        how: str,
+        alt: Callable,
+        numeric_only: bool,
+        min_count: int = -1,
+        ignore_failures: bool = True,
     ):
         # Note: we never get here with how="ohlc" for DataFrameGroupBy;
         #  that goes through SeriesGroupBy
@@ -1629,7 +1636,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         # TypeError -> we may have an exception in trying to aggregate
         #  continue and exclude the block
-        new_mgr = data.grouped_reduce(array_func, ignore_failures=True)
+        new_mgr = data.grouped_reduce(array_func, ignore_failures=ignore_failures)
 
         if not is_ser and len(new_mgr) < len(data):
             warn_dropping_nuisance_columns_deprecated(type(self), how)
@@ -2041,6 +2048,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ddof: int = 1,
         engine: str | None = None,
         engine_kwargs: dict[str, bool] | None = None,
+        numeric_only: bool | lib.NoDefault = lib.no_default,
     ):
         """
         Compute standard deviation of groups, excluding missing values.
@@ -2069,6 +2077,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             .. versionadded:: 1.4.0
 
+        numeric_only : bool, default True
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionadded:: 1.5.0
+
         Returns
         -------
         Series or DataFrame
@@ -2081,8 +2094,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         else:
             return self._get_cythonized_result(
                 libgroupby.group_var,
-                needs_counts=True,
                 cython_dtype=np.dtype(np.float64),
+                numeric_only=numeric_only,
+                needs_counts=True,
                 post_processing=lambda vals, inference: np.sqrt(vals),
                 ddof=ddof,
             )
@@ -2095,6 +2109,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ddof: int = 1,
         engine: str | None = None,
         engine_kwargs: dict[str, bool] | None = None,
+        numeric_only: bool | lib.NoDefault = lib.no_default,
     ):
         """
         Compute variance of groups, excluding missing values.
@@ -2123,6 +2138,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             .. versionadded:: 1.4.0
 
+        numeric_only : bool, default True
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionadded:: 1.5.0
+
         Returns
         -------
         Series or DataFrame
@@ -2133,22 +2153,25 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             return self._numba_agg_general(sliding_var, engine_kwargs, ddof)
         else:
+            numeric_only_bool = self._resolve_numeric_only(numeric_only)
             if ddof == 1:
-                numeric_only = self._resolve_numeric_only(lib.no_default)
                 return self._cython_agg_general(
                     "var",
                     alt=lambda x: Series(x).var(ddof=ddof),
-                    numeric_only=numeric_only,
+                    numeric_only=numeric_only_bool,
+                    ignore_failures=numeric_only is lib.no_default,
                 )
             else:
                 func = lambda x: x.var(ddof=ddof)
                 with self._group_selection_context():
-                    return self._python_agg_general(func)
+                    return self._python_agg_general(
+                        func, raise_on_typeerror=not numeric_only_bool
+                    )
 
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def sem(self, ddof: int = 1):
+    def sem(self, ddof: int = 1, numeric_only: bool | lib.NoDefault = lib.no_default):
         """
         Compute standard error of the mean of groups, excluding missing values.
 
@@ -2159,12 +2182,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ddof : int, default 1
             Degrees of freedom.
 
+        numeric_only : bool, default True
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionadded:: 1.5.0
+
         Returns
         -------
         Series or DataFrame
             Standard error of the mean of values within each group.
         """
-        result = self.std(ddof=ddof)
+        result = self.std(ddof=ddof, numeric_only=numeric_only)
         if result.ndim == 1:
             result /= np.sqrt(self.count())
         else:
@@ -2302,8 +2330,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Parameters
         ----------
         numeric_only : bool, default False
-            Include only float, int, boolean columns. If None, will attempt to use
-            everything, then use only numeric data.
+            Include only float, int, boolean columns.
         min_count : int, default -1
             The required number of valid values to perform the operation. If fewer
             than ``min_count`` non-NA values are present the result will be NA.
@@ -2323,8 +2350,20 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Examples
         --------
-        >>> df = pd.DataFrame(dict(A=[1, 1, 3], B=[None, 5, 6], C=[1, 2, 3]))
+        >>> df = pd.DataFrame(dict(A=[1, 1, 3], B=[None, 5, 6], C=[1, 2, 3],
+        ...                        D=['3/11/2000', '3/12/2000', '3/13/2000']))
+        >>> df['D'] = pd.to_datetime(df['D'])
         >>> df.groupby("A").first()
+             B  C          D
+        A
+        1  5.0  1 2000-03-11
+        3  6.0  3 2000-03-13
+        >>> df.groupby("A").first(min_count=2)
+            B    C          D
+        A
+        1 NaN  1.0 2000-03-11
+        3 NaN  NaN        NaT
+        >>> df.groupby("A").first(numeric_only=True)
              B  C
         A
         1  5.0  1
@@ -2968,7 +3007,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return result
 
     @final
-    def quantile(self, q=0.5, interpolation: str = "linear"):
+    def quantile(
+        self,
+        q=0.5,
+        interpolation: str = "linear",
+        numeric_only: bool | lib.NoDefault = lib.no_default,
+    ):
         """
         Return group values at the given quantile, a la numpy.percentile.
 
@@ -2978,6 +3022,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Value(s) between 0 and 1 providing the quantile(s) to compute.
         interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
             Method to use when the desired quantile falls between two points.
+        numeric_only : bool, default True
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -3002,6 +3050,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         a    2.0
         b    3.0
         """
+        numeric_only_bool = self._resolve_numeric_only(numeric_only)
 
         def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, np.dtype | None]:
             if is_object_dtype(vals):
@@ -3095,9 +3144,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         obj = self._obj_with_exclusions
         is_ser = obj.ndim == 1
         mgr = self._get_data_to_aggregate()
+        data = mgr.get_numeric_data() if numeric_only_bool else mgr
+        ignore_failures = numeric_only_bool
+        res_mgr = data.grouped_reduce(blk_func, ignore_failures=ignore_failures)
 
-        res_mgr = mgr.grouped_reduce(blk_func, ignore_failures=True)
-        if not is_ser and len(res_mgr.items) != len(mgr.items):
+        if (
+            numeric_only is lib.no_default
+            and not is_ser
+            and len(res_mgr.items) != len(mgr.items)
+        ):
             warn_dropping_nuisance_columns_deprecated(type(self), "quantile")
 
             if len(res_mgr.items) == 0:
