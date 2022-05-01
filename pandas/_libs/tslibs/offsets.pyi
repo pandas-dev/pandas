@@ -225,7 +225,7 @@ class _CustomBusinessMonth(BusinessMixin):
         n: int = ...,
         normalize: bool = ...,
         weekmask: str = ...,
-        holidays: None | list = ...,
+        holidays: list | None = ...,
         calendar: np.busdaycalendar | None = ...,
         offset: timedelta = ...,
     ) -> None: ...
@@ -236,7 +236,7 @@ class CustomBusinessDay(BusinessDay):
         n: int = ...,
         normalize: bool = ...,
         weekmask: str = ...,
-        holidays: None | list = ...,
+        holidays: list | None = ...,
         calendar: np.busdaycalendar | None = ...,
         offset: timedelta = ...,
     ) -> None: ...
@@ -247,7 +247,7 @@ class CustomBusinessHour(BusinessHour):
         n: int = ...,
         normalize: bool = ...,
         weekmask: str = ...,
-        holidays: None | list = ...,
+        holidays: list | None = ...,
         calendar: np.busdaycalendar | None = ...,
         start: str = ...,
         end: str = ...,
