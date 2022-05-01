@@ -1236,24 +1236,26 @@ def test_groupby_sum_timedelta_with_nat():
     tm.assert_series_equal(res, expected)
 
 
-def test_groupby_empty_dataset():
+@pytest.mark.parametrize("dtype", [int, float, object])
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"percentiles": [0.10, 0.20, 0.30], "include": None, "exclude": None},
+        {"percentiles": [0.10, 0.20, 0.30], "include": None, "exclude": ["int"]},
+        {"percentiles": [0.10, 0.20, 0.30], "include": ["int"], "exclude": None},
+    ],
+)
+def test_groupby_empty_dataset(dtype, kwargs):
     # GH#41575
-    df = DataFrame(columns=["A", "B", "C"], dtype=int)
+    df = DataFrame([[1, 2, 3]], columns=["A", "B", "C"], dtype=dtype)
+    df["B"] = df["B"].astype(int)
+    df["C"] = df["C"].astype(float)
 
-    result = (
-        df.iloc[:0]
-        .groupby("A")
-        .B.describe(percentiles=[0.10, 0.20, 0.30], include="all")
-    )
-    expected = (
-        df.groupby("A")
-        .B.describe(percentiles=[0.10, 0.20, 0.30], include="all")
-        .iloc[:0]
-    )
+    result = df.iloc[:0].groupby("A").describe(**kwargs)
+    expected = df.groupby("A").describe(**kwargs).reset_index(drop=True).iloc[:0]
     tm.assert_frame_equal(result, expected)
 
-    result = df.groupby("A").describe(percentiles=[0.10, 0.20, 0.30], include="all")
-    expected = (
-        df.groupby("A").describe(percentiles=[0.10, 0.20, 0.30], include="all").iloc[:0]
-    )
+    result = df.iloc[:0].groupby("A").B.describe(**kwargs)
+    expected = df.groupby("A").B.describe(**kwargs).reset_index(drop=True).iloc[:0]
+    expected.index = Index([])
     tm.assert_frame_equal(result, expected)

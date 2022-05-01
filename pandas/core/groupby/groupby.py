@@ -2467,16 +2467,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 if self._selected_obj.ndim == 1:
                     return self._selected_obj.describe(**kwargs).to_frame().T.iloc[:0]
                 else:
-                    selected_obj_describe = self._selected_obj.describe(**kwargs).T
-                    selected_obj_describe_columns = selected_obj_describe.columns
-                    selected_obj_describe_indexes = selected_obj_describe.index
-                    return DataFrame(
-                        columns=MultiIndex.from_product(
-                            [
-                                selected_obj_describe_indexes,
-                                selected_obj_describe_columns,
-                            ]
-                        )
+                    return (
+                        self._selected_obj.describe(**kwargs)
+                        .unstack()
+                        .to_frame()
+                        .T.iloc[:0]
                     )
 
             result = self._python_apply_general(
