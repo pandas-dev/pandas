@@ -659,7 +659,7 @@ Metadata
 ^^^^^^^^
 - Fixed metadata propagation in :meth:`DataFrame.melt` (:issue:`28283`)
 - Fixed metadata propagation in :meth:`DataFrame.explode` (:issue:`28283`)
--
+- Fixed metadata propagation in :meth:`DataFrame.mean` (:issue:`28283`)
 
 Other
 ^^^^^
