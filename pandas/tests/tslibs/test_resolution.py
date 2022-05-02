@@ -1,5 +1,9 @@
-from pandas._libs.tslibs import Resolution, get_resolution
 import numpy as np
+
+from pandas._libs.tslibs import (
+    Resolution,
+    get_resolution,
+)
 
 
 def test_get_resolution_nano():
