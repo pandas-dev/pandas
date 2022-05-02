@@ -46,6 +46,75 @@ from pandas._libs.tslibs.timezones cimport (
 )
 
 
+cdef const int64_t[::1] _deltas_placeholder = np.array([], dtype=np.int64)
+
+
+@cython.freelist(16)
+#@cython.internal
+@cython.final
+cdef class Localizer:
+    # cdef:
+    #    tzinfo tz
+    #    bint use_utc, use_fixed, use_tzlocal, use_dst, use_pytz
+    #    ndarray trans
+    #    Py_ssize_t ntrans
+    #    const int64_t[::1] deltas
+    #    int64_t delta
+    #    int64_t* tdata
+
+    @cython.initializedcheck(False)
+    @cython.boundscheck(False)
+    def __cinit__(self, tzinfo tz):
+        self.tz = tz
+        self.use_utc = self.use_tzlocal = self.use_fixed = False
+        self.use_dst = self.use_pytz = False
+        self.ntrans = -1  # placeholder
+        self.delta = -1  # placeholder
+        self.deltas = _deltas_placeholder
+        self.tdata = NULL
+
+        if is_utc(tz) or tz is None:
+            self.use_utc = True
+
+        elif is_tzlocal(tz) or is_zoneinfo(tz):
+            self.use_tzlocal = True
+
+        else:
+            trans, deltas, typ = get_dst_info(tz)
+            self.trans = trans
+            self.ntrans = self.trans.shape[0]
+            self.deltas = deltas
+
+            if typ != "pytz" and typ != "dateutil":
+                # static/fixed; in this case we know that len(delta) == 1
+                self.use_fixed = True
+                self.delta = self.deltas[0]
+            else:
+                self.use_dst = True
+                if typ == "pytz":
+                    self.use_pytz = True
+                self.tdata = <int64_t*>cnp.PyArray_DATA(self.trans)
+
+    @cython.boundscheck(False)
+    cdef inline int64_t utc_val_to_local_val(
+        self, int64_t utc_val, Py_ssize_t* pos, bint* fold=NULL
+    ) except? -1:
+        if self.use_utc:
+            return utc_val
+        elif self.use_tzlocal:
+            return utc_val + localize_tzinfo_api(utc_val, self.tz, fold)
+        elif self.use_fixed:
+            return utc_val + self.delta
+        else:
+            pos[0] = bisect_right_i8(self.tdata, utc_val, self.ntrans) - 1
+            if fold is not NULL:
+                fold[0] = infer_dateutil_fold(
+                    utc_val, self.trans, self.deltas, pos[0]
+                )
+
+            return utc_val + self.deltas[pos[0]]
+
+
 cdef int64_t tz_localize_to_utc_single(
     int64_t val, tzinfo tz, object ambiguous=None, object nonexistent=None,
 ) except? -1:
@@ -465,44 +534,16 @@ cdef int64_t tz_convert_from_utc_single(
     converted: int64
     """
     cdef:
-        int64_t delta
-        int64_t[::1] deltas
-        ndarray[int64_t, ndim=1] trans
-        int64_t* tdata
-        intp_t pos
+        Localizer info = Localizer(tz)
+        Py_ssize_t pos
 
     if utc_val == NPY_NAT:
         return utc_val
 
-    if is_utc(tz):
-        return utc_val
-    elif is_tzlocal(tz) or is_zoneinfo(tz):
-        return utc_val + _tz_localize_using_tzinfo_api(utc_val, tz, to_utc=False, fold=fold)
+    if outpos is not NULL and info.use_pytz:
+        return info.utc_val_to_local_val(utc_val, outpos, fold)
     else:
-        trans, deltas, typ = get_dst_info(tz)
-        tdata = <int64_t*>cnp.PyArray_DATA(trans)
-
-        if typ == "dateutil":
-            pos = bisect_right_i8(tdata, utc_val, trans.shape[0]) - 1
-
-            if fold is not NULL:
-                fold[0] = infer_dateutil_fold(utc_val, trans, deltas, pos)
-            return utc_val + deltas[pos]
-
-        elif typ == "pytz":
-            pos = bisect_right_i8(tdata, utc_val, trans.shape[0]) - 1
-
-            # We need to get 'pos' back to the caller so it can pick the
-            #  correct "standardized" tzinfo object.
-            if outpos is not NULL:
-                outpos[0] = pos
-            return utc_val + deltas[pos]
-
-        else:
-            # All other cases have len(deltas) == 1. As of 2018-07-17
-            #  (and 2022-03-07), all test cases that get here have
-            #  is_fixed_offset(tz).
-            return utc_val + deltas[0]
+        return info.utc_val_to_local_val(utc_val, &pos, fold)
 
 
 # OSError may be thrown by tzlocal on windows at or close to 1970-01-01
@@ -571,7 +612,7 @@ cdef bint infer_dateutil_fold(
     int64_t value,
     const int64_t[::1] trans,
     const int64_t[::1] deltas,
-    intp_t pos,
+    Py_ssize_t pos,
 ):
     """
     Infer _TSObject fold property from value by assuming 0 and then setting
@@ -584,7 +625,7 @@ cdef bint infer_dateutil_fold(
         ndarray of offset transition points in nanoseconds since epoch.
     deltas : int64_t[:]
         array of offsets corresponding to transition points in trans.
-    pos : intp_t
+    pos : Py_ssize_t
         Position of the last transition point before taking fold into account.
 
     Returns
