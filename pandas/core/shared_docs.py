@@ -482,7 +482,7 @@ _shared_docs[
             - Dicts can be used to specify different replacement values
               for different existing values. For example,
               ``{{'a': 'b', 'y': 'z'}}`` replaces the value 'a' with 'b' and
-              'y' with 'z'. To use a dict in this way, the optional `value` 
+              'y' with 'z'. To use a dict in this way, the optional `value`
               parameter should not be given.
             - For a DataFrame a dict can specify that different values
               should be replaced in different columns. For example,
