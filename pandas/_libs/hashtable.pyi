@@ -144,19 +144,6 @@ class HashTable:
         np.ndarray,  # np.ndarray[subclass-specific]
         npt.NDArray[np.intp],
     ] | np.ndarray: ...  # np.ndarray[subclass-specific]
-    def _unique(
-        self,
-        values: np.ndarray,  # np.ndarray[subclass-specific]
-        uniques,  # FooVector
-        count_prior: int = ...,
-        na_sentinel: int = ...,
-        na_value: object = ...,
-        ignore_na: bool = ...,
-        return_inverse: bool = ...,
-    ) -> tuple[
-        np.ndarray,  # np.ndarray[subclass-specific]
-        npt.NDArray[np.intp],
-    ] | np.ndarray: ...  # np.ndarray[subclass-specific]
     def factorize(
         self,
         values: np.ndarray,  # np.ndarray[subclass-specific]
