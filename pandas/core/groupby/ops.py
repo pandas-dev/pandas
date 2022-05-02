@@ -602,9 +602,7 @@ class WrappedCythonOp:
         else:
             op_result = result
 
-        # error: Incompatible return value type (got "Union[ExtensionArray, ndarray]",
-        # expected "ndarray")
-        return op_result  # type: ignore[return-value]
+        return op_result
 
     @final
     def cython_operation(
