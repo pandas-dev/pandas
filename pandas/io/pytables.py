@@ -1113,7 +1113,7 @@ class HDFStore:
                 worse but allow more flexible operations like searching / selecting
                 subsets of the data.
         index : bool, default True
-            Write DataFrame index as a column
+            Write DataFrame index as a column.
         append : bool, default False
             This will force Table format, append the input data to the existing.
         data_columns : list of columns or True, default None
@@ -1127,7 +1127,7 @@ class HDFStore:
             If set to False it enables to have the same h5 files (same hashes)
             independent on creation time.
         dropna : bool, default False, optional
-            Remove missing values
+            Remove missing values.
 
             .. versionadded:: 1.1.0
         """
@@ -1244,7 +1244,7 @@ class HDFStore:
                 worse but allow more flexible operations like searching / selecting
                 subsets of the data.
         index : bool, default True
-            Write DataFrame index as a column
+            Write DataFrame index as a column.
         append       : bool, default True
             Append the input data to the existing.
         data_columns : list of columns, or True, default None
