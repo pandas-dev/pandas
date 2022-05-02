@@ -64,7 +64,10 @@ from pandas._testing._random import (  # noqa:F401
     rands_array,
     randu_array,
 )
-from pandas._testing._warnings import assert_produces_warning  # noqa:F401
+from pandas._testing._warnings import (  # noqa:F401
+    assert_produces_warning,
+    maybe_produces_warning,
+)
 from pandas._testing.asserters import (  # noqa:F401
     assert_almost_equal,
     assert_attr_equal,
