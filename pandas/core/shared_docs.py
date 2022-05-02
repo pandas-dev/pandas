@@ -494,8 +494,8 @@ _shared_docs[
               specifying the column to search in.
             - For a DataFrame nested dictionaries, e.g.,
               ``{{'a': {{'b': np.nan}}}}``, are read as follows: look in column
-              'a' for the value 'b' and replace it with NaN. The `value`
-              parameter should be ``None`` to use a nested dict in this
+              'a' for the value 'b' and replace it with NaN. The optional `value`
+              parameter should not be specified to use a nested dict in this
               way. You can nest regular expressions as well. Note that
               column names (the top-level dictionary keys in a nested
               dictionary) **cannot** be regular expressions.
