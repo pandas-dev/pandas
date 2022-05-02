@@ -652,8 +652,8 @@ class TestMerge:
                     None: {0: 0, 1: 0},
                 }
             )
-            .set_index(None)
-            .reset_index()[["i1", "i2", "i1_", "i3"]]
+                .set_index(None)
+                .reset_index()[["i1", "i2", "i1_", "i3"]]
         )
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
@@ -731,7 +731,6 @@ class TestMerge:
             "datetime64[us]",
             "datetime64[ns]",
         ]:
-
             df2 = s.astype(dtype).to_frame("days")
             # coerces to datetime64[ns], thus should not be affected
             assert df2["days"].dtype == "datetime64[ns]"
@@ -832,9 +831,9 @@ class TestMerge:
             {
                 "key": [1, 2, 3],
                 "value_x": list(pd.date_range("20151010", periods=2, tz="US/Eastern"))
-                + [pd.NaT],
+                           + [pd.NaT],
                 "value_y": [pd.NaT]
-                + list(pd.date_range("20151011", periods=2, tz="US/Eastern")),
+                           + list(pd.date_range("20151011", periods=2, tz="US/Eastern")),
             }
         )
         result = merge(left, right, on="key", how="outer")
@@ -1297,33 +1296,33 @@ class TestMerge:
         "index,expected_index",
         [
             (
-                CategoricalIndex([1, 2, 4]),
-                CategoricalIndex([1, 2, 4, None, None, None]),
+                    CategoricalIndex([1, 2, 4]),
+                    CategoricalIndex([1, 2, 4, None, None, None]),
             ),
             (
-                DatetimeIndex(["2001-01-01", "2002-02-02", "2003-03-03"]),
-                DatetimeIndex(
-                    ["2001-01-01", "2002-02-02", "2003-03-03", pd.NaT, pd.NaT, pd.NaT]
-                ),
+                    DatetimeIndex(["2001-01-01", "2002-02-02", "2003-03-03"]),
+                    DatetimeIndex(
+                        ["2001-01-01", "2002-02-02", "2003-03-03", pd.NaT, pd.NaT, pd.NaT]
+                    ),
             ),
             (Float64Index([1, 2, 3]), Float64Index([1, 2, 3, None, None, None])),
             (Int64Index([1, 2, 3]), Float64Index([1, 2, 3, None, None, None])),
             (
-                IntervalIndex.from_tuples([(1, 2), (2, 3), (3, 4)]),
-                IntervalIndex.from_tuples(
-                    [(1, 2), (2, 3), (3, 4), np.nan, np.nan, np.nan]
-                ),
+                    IntervalIndex.from_tuples([(1, 2), (2, 3), (3, 4)]),
+                    IntervalIndex.from_tuples(
+                        [(1, 2), (2, 3), (3, 4), np.nan, np.nan, np.nan]
+                    ),
             ),
             (
-                PeriodIndex(["2001-01-01", "2001-01-02", "2001-01-03"], freq="D"),
-                PeriodIndex(
-                    ["2001-01-01", "2001-01-02", "2001-01-03", pd.NaT, pd.NaT, pd.NaT],
-                    freq="D",
-                ),
+                    PeriodIndex(["2001-01-01", "2001-01-02", "2001-01-03"], freq="D"),
+                    PeriodIndex(
+                        ["2001-01-01", "2001-01-02", "2001-01-03", pd.NaT, pd.NaT, pd.NaT],
+                        freq="D",
+                    ),
             ),
             (
-                TimedeltaIndex(["1d", "2d", "3d"]),
-                TimedeltaIndex(["1d", "2d", "3d", pd.NaT, pd.NaT, pd.NaT]),
+                    TimedeltaIndex(["1d", "2d", "3d"]),
+                    TimedeltaIndex(["1d", "2d", "3d", pd.NaT, pd.NaT, pd.NaT]),
             ),
         ],
     )
@@ -1595,14 +1594,14 @@ class TestMergeDtypes:
             ([0.0, 1.0, 2.0], ["0", "1", "2"]),
             ([0, 1, 2], ["0", "1", "2"]),
             (
-                pd.date_range("1/1/2011", periods=2, freq="D"),
-                ["2011-01-01", "2011-01-02"],
+                    pd.date_range("1/1/2011", periods=2, freq="D"),
+                    ["2011-01-01", "2011-01-02"],
             ),
             (pd.date_range("1/1/2011", periods=2, freq="D"), [0, 1]),
             (pd.date_range("1/1/2011", periods=2, freq="D"), [0.0, 1.0]),
             (
-                pd.date_range("20130101", periods=3),
-                pd.date_range("20130101", periods=3, tz="US/Eastern"),
+                    pd.date_range("20130101", periods=3),
+                    pd.date_range("20130101", periods=3, tz="US/Eastern"),
             ),
         ],
     )
@@ -2029,7 +2028,7 @@ class TestMergeCategorical:
         ],
     )
     def test_merging_with_bool_or_int_cateorical_column(
-        self, category_column, categories, expected_categories, ordered
+            self, category_column, categories, expected_categories, ordered
     ):
         # GH 17187
         # merging with a boolean/int categorical column
@@ -2068,44 +2067,44 @@ class TestMergeOnIndexes:
             ("inner", False, DataFrame({"a": [20, 10], "b": [200, 100]}, index=[2, 1])),
             ("inner", True, DataFrame({"a": [10, 20], "b": [100, 200]}, index=[1, 2])),
             (
-                "left",
-                False,
-                DataFrame({"a": [20, 10, 0], "b": [200, 100, np.nan]}, index=[2, 1, 0]),
+                    "left",
+                    False,
+                    DataFrame({"a": [20, 10, 0], "b": [200, 100, np.nan]}, index=[2, 1, 0]),
             ),
             (
-                "left",
-                True,
-                DataFrame({"a": [0, 10, 20], "b": [np.nan, 100, 200]}, index=[0, 1, 2]),
+                    "left",
+                    True,
+                    DataFrame({"a": [0, 10, 20], "b": [np.nan, 100, 200]}, index=[0, 1, 2]),
             ),
             (
-                "right",
-                False,
-                DataFrame(
-                    {"a": [np.nan, 10, 20], "b": [300, 100, 200]}, index=[3, 1, 2]
-                ),
+                    "right",
+                    False,
+                    DataFrame(
+                        {"a": [np.nan, 10, 20], "b": [300, 100, 200]}, index=[3, 1, 2]
+                    ),
             ),
             (
-                "right",
-                True,
-                DataFrame(
-                    {"a": [10, 20, np.nan], "b": [100, 200, 300]}, index=[1, 2, 3]
-                ),
+                    "right",
+                    True,
+                    DataFrame(
+                        {"a": [10, 20, np.nan], "b": [100, 200, 300]}, index=[1, 2, 3]
+                    ),
             ),
             (
-                "outer",
-                False,
-                DataFrame(
-                    {"a": [0, 10, 20, np.nan], "b": [np.nan, 100, 200, 300]},
-                    index=[0, 1, 2, 3],
-                ),
+                    "outer",
+                    False,
+                    DataFrame(
+                        {"a": [0, 10, 20, np.nan], "b": [np.nan, 100, 200, 300]},
+                        index=[0, 1, 2, 3],
+                    ),
             ),
             (
-                "outer",
-                True,
-                DataFrame(
-                    {"a": [0, 10, 20, np.nan], "b": [np.nan, 100, 200, 300]},
-                    index=[0, 1, 2, 3],
-                ),
+                    "outer",
+                    True,
+                    DataFrame(
+                        {"a": [0, 10, 20, np.nan], "b": [np.nan, 100, 200, 300]},
+                        index=[0, 1, 2, 3],
+                    ),
             ),
         ],
     )
@@ -2229,20 +2228,20 @@ def test_merge_suffix(col1, col2, kwargs, expected_cols):
     "how,expected",
     [
         (
-            "right",
-            DataFrame(
-                {"A": [100, 200, 300], "B1": [60, 70, np.nan], "B2": [600, 700, 800]}
-            ),
+                "right",
+                DataFrame(
+                    {"A": [100, 200, 300], "B1": [60, 70, np.nan], "B2": [600, 700, 800]}
+                ),
         ),
         (
-            "outer",
-            DataFrame(
-                {
-                    "A": [100, 200, 1, 300],
-                    "B1": [60, 70, 80, np.nan],
-                    "B2": [600, 700, np.nan, 800],
-                }
-            ),
+                "outer",
+                DataFrame(
+                    {
+                        "A": [100, 200, 1, 300],
+                        "B1": [60, 70, 80, np.nan],
+                        "B2": [600, 700, np.nan, 800],
+                    }
+                ),
         ),
     ],
 )
@@ -2672,15 +2671,25 @@ def test_merge_different_index_names():
 
 
 def test_merge_complex_column():
+    # GH#46885
     class Column:
         def __init__(self, name):
             self.name = name
 
+        def __eq__(self, other):
+            return other.name == self.name
+
+        def __hash__(self):
+            return hash(self.name)
+
+        def __add__(self, other):
+            return Column(name=f"{self.name}@{other}")
+
     merged_column = Column(name="Z")
-    left = DataFrame({merged_column: [1], "X": [2]})
-    right = DataFrame({merged_column: [1], "Y": [6]})
+    left = DataFrame([[1,2]], columns=[merged_column, "X"])
+    right = DataFrame([[1,6]], columns=[merged_column, "Y"])
     result = merge(left, right, left_index=True, right_index=True)
     expected = DataFrame(
-        [[1, 2, 1, 6]], columns=[merged_column, "X", merged_column, "Y"]
+        [[1, 2, 1, 6]], columns=[Column('Z@_x'), "X", Column('Z@_y'), "Y"]
     )
     tm.assert_frame_equal(result, expected)

@@ -2390,8 +2390,11 @@ def _items_overlap_with_suffix(
         -------
         x : renamed column
         """
-        if x in to_rename and isinstance(x, (str, int, float)) and suffix is not None:
-            return f"{x}{suffix}"
+        if x in to_rename and suffix is not None:
+            try:
+                return x + suffix
+            except TypeError:
+                return f"{x}{suffix}"
         return x
 
     lrenamer = partial(renamer, suffix=lsuffix)
