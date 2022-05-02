@@ -2,6 +2,12 @@
 
 {{ header }}
 
+How do I create plots in pandas?
+----------------------------------
+
+.. image:: ../../_static/schemas/04_plot_overview.svg
+   :align: center
+
 .. ipython:: python
 
     import pandas as pd
@@ -35,12 +41,6 @@
     </ul>
     </div>
 
-How to create plots in pandas?
-------------------------------
-
-.. image:: ../../_static/schemas/04_plot_overview.svg
-   :align: center
-
 .. raw:: html
 
     <ul class="task-bullet">
@@ -52,6 +52,7 @@ I want a quick visual check of the data.
 
     @savefig 04_airqual_quick.png
     air_quality.plot()
+    plt.show()
 
 With a ``DataFrame``, pandas creates by default one line plot for each of
 the columns with numeric data.
@@ -69,9 +70,18 @@ the columns with numeric data.
 I want to plot only the columns of the data table with the data from Paris.
 
 .. ipython:: python
+   :suppress:
+
+    # We need to clear the figure here as, within doc generation, the plot
+    # accumulates data on each plot(). This is not needed when running
+    # in a notebook, so is suppressed from output.
+    plt.clf()
+
+.. ipython:: python
 
     @savefig 04_airqual_paris.png
     air_quality["station_paris"].plot()
+    plt.show()
 
 To plot a specific column, use the selection method of the
 :ref:`subset data tutorial <10min_tut_03_subset>` in combination with the :meth:`~DataFrame.plot`
@@ -88,12 +98,13 @@ method. Hence, the :meth:`~DataFrame.plot` method works on both ``Series`` and
     <ul class="task-bullet">
         <li>
 
-I want to visually compare the :math:`N0_2` values measured in London versus Paris.
+I want to visually compare the :math:`NO_2` values measured in London versus Paris.
 
 .. ipython:: python
 
     @savefig 04_airqual_scatter.png
     air_quality.plot.scatter(x="station_london", y="station_paris", alpha=0.5)
+    plt.show()
 
 .. raw:: html
 
@@ -125,6 +136,7 @@ method is applicable on the air quality example data:
 
     @savefig 04_airqual_boxplot.png
     air_quality.plot.box()
+    plt.show()
 
 .. raw:: html
 
@@ -148,6 +160,7 @@ I want each of the columns in a separate subplot.
 
     @savefig 04_airqual_area_subplot.png
     axs = air_quality.plot.area(figsize=(12, 4), subplots=True)
+    plt.show()
 
 Separate subplots for each of the data columns are supported by the ``subplots`` argument
 of the ``plot`` functions. The builtin options available in each of the pandas plot
@@ -180,9 +193,10 @@ I want to further customize, extend or save the resulting plot.
 
     fig, axs = plt.subplots(figsize=(12, 4))
     air_quality.plot.area(ax=axs)
-    @savefig 04_airqual_customized.png
     axs.set_ylabel("NO$_2$ concentration")
+    @savefig 04_airqual_customized.png
     fig.savefig("no2_concentrations.png")
+    plt.show()
 
 .. ipython:: python
    :suppress:
@@ -197,26 +211,27 @@ I want to further customize, extend or save the resulting plot.
     </ul>
 
 Each of the plot objects created by pandas is a
-`matplotlib <https://matplotlib.org/>`__ object. As Matplotlib provides
+`Matplotlib <https://matplotlib.org/>`__ object. As Matplotlib provides
 plenty of options to customize plots, making the link between pandas and
-Matplotlib explicit enables all the power of matplotlib to the plot.
+Matplotlib explicit enables all the power of Matplotlib to the plot.
 This strategy is applied in the previous example:
 
 ::
 
-   fig, axs = plt.subplots(figsize=(12, 4))        # Create an empty matplotlib Figure and Axes
+   fig, axs = plt.subplots(figsize=(12, 4))        # Create an empty Matplotlib Figure and Axes
    air_quality.plot.area(ax=axs)                   # Use pandas to put the area plot on the prepared Figure/Axes
-   axs.set_ylabel("NO$_2$ concentration")          # Do any matplotlib customization you like
-   fig.savefig("no2_concentrations.png")           # Save the Figure/Axes using the existing matplotlib method.
+   axs.set_ylabel("NO$_2$ concentration")          # Do any Matplotlib customization you like
+   fig.savefig("no2_concentrations.png")           # Save the Figure/Axes using the existing Matplotlib method.
+   plt.show()                                      # Display the plot
 
 .. raw:: html
 
     <div class="shadow gs-callout gs-callout-remember">
         <h4>REMEMBER</h4>
 
--  The ``.plot.*`` methods are applicable on both Series and DataFrames
+-  The ``.plot.*`` methods are applicable on both Series and DataFrames.
 -  By default, each of the columns is plotted as a different element
-   (line, boxplot,…)
+   (line, boxplot,…).
 -  Any plot created by pandas is a Matplotlib object.
 
 .. raw:: html

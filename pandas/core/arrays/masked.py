@@ -57,6 +57,7 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas.core import (
+    algorithms as algos,
     arraylike,
     missing,
     nanops,
@@ -336,7 +337,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         self,
         dtype: npt.DTypeLike | None = None,
         copy: bool = False,
-        na_value: Scalar | lib.NoDefault | libmissing.NAType = lib.no_default,
+        na_value: object = lib.no_default,
     ) -> np.ndarray:
         """
         Convert to a NumPy Array.
@@ -906,6 +907,15 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             Series,
         )
         from pandas.arrays import IntegerArray
+
+        if dropna:
+            keys, counts = algos.value_counts_arraylike(
+                self._data, dropna=True, mask=self._mask
+            )
+            res = Series(counts, index=keys)
+            res.index = res.index.astype(self.dtype)
+            res = res.astype("Int64")
+            return res
 
         # compute counts on the data with no nans
         data = self._data[~self._mask]

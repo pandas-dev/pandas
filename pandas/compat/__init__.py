@@ -22,6 +22,9 @@ from pandas.compat.pyarrow import (
     pa_version_under2p0,
     pa_version_under3p0,
     pa_version_under4p0,
+    pa_version_under5p0,
+    pa_version_under6p0,
+    pa_version_under7p0,
 )
 
 PY39 = sys.version_info >= (3, 9)
@@ -148,4 +151,7 @@ __all__ = [
     "pa_version_under2p0",
     "pa_version_under3p0",
     "pa_version_under4p0",
+    "pa_version_under5p0",
+    "pa_version_under6p0",
+    "pa_version_under7p0",
 ]

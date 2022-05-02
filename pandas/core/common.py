@@ -250,7 +250,9 @@ def asarray_tuplesafe(values, dtype: NpDtype | None = None) -> np.ndarray:
     return result
 
 
-def index_labels_to_array(labels, dtype: NpDtype | None = None) -> np.ndarray:
+def index_labels_to_array(
+    labels: np.ndarray | Iterable, dtype: NpDtype | None = None
+) -> np.ndarray:
     """
     Transform label or iterable of labels to array, for use in Index.
 
@@ -610,7 +612,7 @@ def get_cython_func(arg: Callable) -> str | None:
 
 def is_builtin_func(arg):
     """
-    if we define an builtin function for this argument, return it,
+    if we define a builtin function for this argument, return it,
     otherwise return the arg
     """
     return _builtin_table.get(arg, arg)

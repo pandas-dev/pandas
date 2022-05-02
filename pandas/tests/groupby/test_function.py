@@ -321,11 +321,17 @@ class TestGroupByNonCythonPaths:
         # mad
         expected = DataFrame([[0], [np.nan]], columns=["B"], index=[1, 3])
         expected.index.name = "A"
-        result = gb.mad()
+        with tm.assert_produces_warning(
+            FutureWarning, match="The 'mad' method is deprecated"
+        ):
+            result = gb.mad()
         tm.assert_frame_equal(result, expected)
 
         expected = DataFrame([[1, 0.0], [3, np.nan]], columns=["A", "B"], index=[0, 1])
-        result = gni.mad()
+        with tm.assert_produces_warning(
+            FutureWarning, match="The 'mad' method is deprecated"
+        ):
+            result = gni.mad()
         tm.assert_frame_equal(result, expected)
 
     def test_describe(self, df, gb, gni):
@@ -489,8 +495,9 @@ def test_groupby_non_arithmetic_agg_int_like_precision(i):
         ("idxmax", {"c_int": [1, 3], "c_float": [0, 2], "c_date": [0, 3]}),
     ],
 )
+@pytest.mark.parametrize("numeric_only", [True, False])
 @pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
-def test_idxmin_idxmax_returns_int_types(func, values):
+def test_idxmin_idxmax_returns_int_types(func, values, numeric_only):
     # GH 25444
     df = DataFrame(
         {
@@ -507,12 +514,15 @@ def test_idxmin_idxmax_returns_int_types(func, values):
     df["c_Integer"] = df["c_int"].astype("Int64")
     df["c_Floating"] = df["c_float"].astype("Float64")
 
-    result = getattr(df.groupby("name"), func)()
+    result = getattr(df.groupby("name"), func)(numeric_only=numeric_only)
 
     expected = DataFrame(values, index=Index(["A", "B"], name="name"))
-    expected["c_date_tz"] = expected["c_date"]
-    expected["c_timedelta"] = expected["c_date"]
-    expected["c_period"] = expected["c_date"]
+    if numeric_only:
+        expected = expected.drop(columns=["c_date"])
+    else:
+        expected["c_date_tz"] = expected["c_date"]
+        expected["c_timedelta"] = expected["c_date"]
+        expected["c_period"] = expected["c_date"]
     expected["c_Integer"] = expected["c_int"]
     expected["c_Floating"] = expected["c_float"]
 
@@ -545,7 +555,7 @@ def test_groupby_cumprod():
     df = DataFrame({"key": ["b"] * 10, "value": 2})
 
     actual = df.groupby("key")["value"].cumprod()
-    expected = df.groupby("key")["value"].apply(lambda x: x.cumprod())
+    expected = df.groupby("key", group_keys=False)["value"].apply(lambda x: x.cumprod())
     expected.name = "value"
     tm.assert_series_equal(actual, expected)
 
@@ -554,7 +564,7 @@ def test_groupby_cumprod():
     # if overflows, groupby product casts to float
     # while numpy passes back invalid values
     df["value"] = df["value"].astype(float)
-    expected = df.groupby("key")["value"].apply(lambda x: x.cumprod())
+    expected = df.groupby("key", group_keys=False)["value"].apply(lambda x: x.cumprod())
     expected.name = "value"
     tm.assert_series_equal(actual, expected)
 
@@ -734,7 +744,7 @@ def test_cummin(dtypes_for_minmax):
     expected = DataFrame({"B": expected_mins}).astype(dtype)
     result = df.groupby("A").cummin()
     tm.assert_frame_equal(result, expected)
-    result = df.groupby("A").B.apply(lambda x: x.cummin()).to_frame()
+    result = df.groupby("A", group_keys=False).B.apply(lambda x: x.cummin()).to_frame()
     tm.assert_frame_equal(result, expected)
 
     # Test w/ min value for dtype
@@ -744,7 +754,9 @@ def test_cummin(dtypes_for_minmax):
     expected.loc[[1, 5], "B"] = min_val + 1  # should not be rounded to min_val
     result = df.groupby("A").cummin()
     tm.assert_frame_equal(result, expected, check_exact=True)
-    expected = df.groupby("A").B.apply(lambda x: x.cummin()).to_frame()
+    expected = (
+        df.groupby("A", group_keys=False).B.apply(lambda x: x.cummin()).to_frame()
+    )
     tm.assert_frame_equal(result, expected, check_exact=True)
 
     # Test nan in some values
@@ -752,7 +764,9 @@ def test_cummin(dtypes_for_minmax):
     expected = DataFrame({"B": [np.nan, 4, np.nan, 2, np.nan, 3, np.nan, 1]})
     result = base_df.groupby("A").cummin()
     tm.assert_frame_equal(result, expected)
-    expected = base_df.groupby("A").B.apply(lambda x: x.cummin()).to_frame()
+    expected = (
+        base_df.groupby("A", group_keys=False).B.apply(lambda x: x.cummin()).to_frame()
+    )
     tm.assert_frame_equal(result, expected)
 
     # GH 15561
@@ -797,7 +811,7 @@ def test_cummax(dtypes_for_minmax):
     expected = DataFrame({"B": expected_maxs}).astype(dtype)
     result = df.groupby("A").cummax()
     tm.assert_frame_equal(result, expected)
-    result = df.groupby("A").B.apply(lambda x: x.cummax()).to_frame()
+    result = df.groupby("A", group_keys=False).B.apply(lambda x: x.cummax()).to_frame()
     tm.assert_frame_equal(result, expected)
 
     # Test w/ max value for dtype
@@ -805,7 +819,9 @@ def test_cummax(dtypes_for_minmax):
     expected.loc[[2, 3, 6, 7], "B"] = max_val
     result = df.groupby("A").cummax()
     tm.assert_frame_equal(result, expected)
-    expected = df.groupby("A").B.apply(lambda x: x.cummax()).to_frame()
+    expected = (
+        df.groupby("A", group_keys=False).B.apply(lambda x: x.cummax()).to_frame()
+    )
     tm.assert_frame_equal(result, expected)
 
     # Test nan in some values
@@ -813,7 +829,9 @@ def test_cummax(dtypes_for_minmax):
     expected = DataFrame({"B": [np.nan, 4, np.nan, 4, np.nan, 3, np.nan, 3]})
     result = base_df.groupby("A").cummax()
     tm.assert_frame_equal(result, expected)
-    expected = base_df.groupby("A").B.apply(lambda x: x.cummax()).to_frame()
+    expected = (
+        base_df.groupby("A", group_keys=False).B.apply(lambda x: x.cummax()).to_frame()
+    )
     tm.assert_frame_equal(result, expected)
 
     # GH 15561
@@ -1015,6 +1033,11 @@ def test_frame_describe_multikey(tsframe):
     groupedT = tsframe.groupby({"A": 0, "B": 0, "C": 1, "D": 1}, axis=1)
     result = groupedT.describe()
     expected = tsframe.describe().T
+    # reverting the change from https://github.com/pandas-dev/pandas/pull/35441/
+    expected.index = MultiIndex(
+        levels=[[0, 1], expected.index],
+        codes=[[0, 0, 1, 1], range(len(expected.index))],
+    )
     tm.assert_frame_equal(result, expected)
 
 

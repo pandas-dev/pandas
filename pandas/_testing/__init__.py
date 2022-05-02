@@ -8,6 +8,7 @@ import operator
 import os
 import re
 import string
+from sys import byteorder
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -63,7 +64,10 @@ from pandas._testing._random import (  # noqa:F401
     rands_array,
     randu_array,
 )
-from pandas._testing._warnings import assert_produces_warning  # noqa:F401
+from pandas._testing._warnings import (  # noqa:F401
+    assert_produces_warning,
+    maybe_produces_warning,
+)
 from pandas._testing.asserters import (  # noqa:F401
     assert_almost_equal,
     assert_attr_equal,
@@ -167,6 +171,8 @@ NARROW_NP_DTYPES = [
     np.uint16,
     np.uint32,
 ]
+
+ENDIAN = {"little": "<", "big": ">"}[byteorder]
 
 NULL_OBJECTS = [None, np.nan, pd.NaT, float("nan"), pd.NA, Decimal("NaN")]
 NP_NAT_OBJECTS = [
@@ -305,7 +311,7 @@ def makeUnicodeIndex(k=10, name=None):
 
 def makeCategoricalIndex(k=10, n=3, name=None, **kwargs):
     """make a length k index or n categories"""
-    x = rands_array(nchars=4, size=n)
+    x = rands_array(nchars=4, size=n, replace=False)
     return CategoricalIndex(
         Categorical.from_codes(np.arange(k) % n, categories=x), name=name, **kwargs
     )

@@ -366,7 +366,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         """
         import pyarrow
 
-        from pandas.core.arrays._arrow_utils import ArrowPeriodType
+        from pandas.core.arrays.arrow._arrow_utils import ArrowPeriodType
 
         if type is not None:
             if pyarrow.types.is_integer(type):
@@ -635,24 +635,24 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     @dtl.ravel_compat
     def _format_native_types(
         self, *, na_rep="NaT", date_format=None, **kwargs
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.object_]:
         """
         actually format my specific types
         """
         values = self.astype(object)
 
         if date_format:
-            formatter = lambda dt: dt.strftime(date_format)
+            formatter = lambda per: per.strftime(date_format)
         else:
-            formatter = lambda dt: str(dt)
+            formatter = lambda per: str(per)
 
         if self._hasna:
             mask = self._isnan
             values[mask] = na_rep
             imask = ~mask
-            values[imask] = np.array([formatter(dt) for dt in values[imask]])
+            values[imask] = np.array([formatter(per) for per in values[imask]])
         else:
-            values = np.array([formatter(dt) for dt in values])
+            values = np.array([formatter(per) for per in values])
         return values
 
     # ------------------------------------------------------------------

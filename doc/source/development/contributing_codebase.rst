@@ -37,15 +37,14 @@ In addition to ``./ci/code_checks.sh``, some extra checks are run by
 ``pre-commit`` - see :ref:`here <contributing.pre-commit>` for how to
 run them.
 
-Additional standards are outlined on the :ref:`pandas code style guide <code_style>`.
-
 .. _contributing.pre-commit:
 
 Pre-commit
 ----------
 
 Additionally, :ref:`Continuous Integration <contributing.ci>` will run code formatting checks
-like ``black``, ``flake8``, ``isort``, and ``cpplint`` and more using `pre-commit hooks <https://pre-commit.com/>`_
+like ``black``, ``flake8`` (including a `pandas-dev-flaker <https://github.com/pandas-dev/pandas-dev-flaker>`_ plugin),
+``isort``, and ``cpplint`` and more using `pre-commit hooks <https://pre-commit.com/>`_
 Any warnings from these checks will cause the :ref:`Continuous Integration <contributing.ci>` to fail; therefore,
 it is helpful to run the check yourself before submitting code. This
 can be done by installing ``pre-commit``::
@@ -223,7 +222,7 @@ In some cases you may be tempted to use ``cast`` from the typing module when you
            ...
        else:  # Reasonably only str objects would reach this but...
            obj = cast(str, obj)  # Mypy complains without this!
-	   return obj.upper()
+           return obj.upper()
 
 The limitation here is that while a human can reasonably understand that ``is_number`` would catch the ``int`` and ``float`` types mypy cannot make that same inference just yet (see `mypy #5206 <https://github.com/python/mypy/issues/5206>`_. While the above works, the use of ``cast`` is **strongly discouraged**. Where applicable a refactor of the code to appease static analysis is preferable
 

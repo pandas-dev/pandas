@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._libs import lib
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -34,10 +36,13 @@ import pandas._testing as tm
     ],
 )
 @pytest.mark.parametrize("q", [0, 0.25, 0.5, 0.75, 1])
-def test_quantile(interpolation, a_vals, b_vals, q):
+def test_quantile(interpolation, a_vals, b_vals, q, request):
     if interpolation == "nearest" and q == 0.5 and b_vals == [4, 3, 2, 1]:
-        pytest.skip(
-            "Unclear numpy expectation for nearest result with equidistant data"
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="Unclear numpy expectation for nearest "
+                "result with equidistant data"
+            )
         )
 
     a_expected = pd.Series(a_vals).quantile(q, interpolation=interpolation)
@@ -237,14 +242,22 @@ def test_groupby_quantile_nullable_array(values, q):
 
 
 @pytest.mark.parametrize("q", [0.5, [0.0, 0.5, 1.0]])
-def test_groupby_quantile_skips_invalid_dtype(q):
+@pytest.mark.parametrize("numeric_only", [lib.no_default, True, False])
+def test_groupby_quantile_skips_invalid_dtype(q, numeric_only):
     df = DataFrame({"a": [1], "b": [2.0], "c": ["x"]})
 
-    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
-        result = df.groupby("a").quantile(q)
+    if numeric_only is None or numeric_only:
+        warn = FutureWarning if numeric_only is lib.no_default else None
+        with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
+            result = df.groupby("a").quantile(q, numeric_only=numeric_only)
 
-    expected = df.groupby("a")[["b"]].quantile(q)
-    tm.assert_frame_equal(result, expected)
+        expected = df.groupby("a")[["b"]].quantile(q)
+        tm.assert_frame_equal(result, expected)
+    else:
+        with pytest.raises(
+            TypeError, match="'quantile' cannot be performed against 'object' dtypes!"
+        ):
+            df.groupby("a").quantile(q, numeric_only=numeric_only)
 
 
 def test_groupby_quantile_NA_float(any_float_dtype):

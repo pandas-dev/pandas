@@ -20,6 +20,7 @@ __all__ = [
     "get_resolution",
     "Timestamp",
     "tz_convert_from_utc_single",
+    "tz_convert_from_utc",
     "to_offset",
     "Tick",
     "BaseOffset",
@@ -27,10 +28,7 @@ __all__ = [
 ]
 
 from pandas._libs.tslibs import dtypes
-from pandas._libs.tslibs.conversion import (
-    OutOfBoundsTimedelta,
-    localize_pydatetime,
-)
+from pandas._libs.tslibs.conversion import localize_pydatetime
 from pandas._libs.tslibs.dtypes import Resolution
 from pandas._libs.tslibs.nattype import (
     NaT,
@@ -38,7 +36,10 @@ from pandas._libs.tslibs.nattype import (
     iNaT,
     nat_strings,
 )
-from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
+from pandas._libs.tslibs.np_datetime import (
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
+)
 from pandas._libs.tslibs.offsets import (
     BaseOffset,
     Tick,
@@ -55,11 +56,14 @@ from pandas._libs.tslibs.timedeltas import (
 )
 from pandas._libs.tslibs.timestamps import Timestamp
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._libs.tslibs.tzconversion import tz_convert_from_utc_single
+from pandas._libs.tslibs.tzconversion import (
+    py_tz_convert_from_utc_single as tz_convert_from_utc_single,
+)
 from pandas._libs.tslibs.vectorized import (
     dt64arr_to_periodarr,
     get_resolution,
     ints_to_pydatetime,
     is_date_array_normalized,
     normalize_i8_timestamps,
+    tz_convert_from_utc,
 )

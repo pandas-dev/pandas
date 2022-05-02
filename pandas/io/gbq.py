@@ -29,7 +29,7 @@ def read_gbq(
     index_col: str | None = None,
     col_order: list[str] | None = None,
     reauth: bool = False,
-    auth_local_webserver: bool = False,
+    auth_local_webserver: bool = True,
     dialect: str | None = None,
     location: str | None = None,
     configuration: dict[str, Any] | None = None,
@@ -63,7 +63,7 @@ def read_gbq(
     reauth : bool, default False
         Force Google BigQuery to re-authenticate the user. This is useful
         if multiple accounts are used.
-    auth_local_webserver : bool, default False
+    auth_local_webserver : bool, default True
         Use the `local webserver flow`_ instead of the `console flow`_
         when getting user credentials.
 
@@ -73,6 +73,12 @@ def read_gbq(
             https://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_console
 
         *New in version 0.2.0 of pandas-gbq*.
+
+        .. versionchanged:: 1.5.0
+           Default value is changed to ``True``. Google has deprecated the
+           ``auth_local_webserver = False`` `"out of band" (copy-paste)
+           flow
+           <https://developers.googleblog.com/2022/02/making-oauth-flows-safer.html?m=1#disallowed-oob>`_.
     dialect : str, default 'legacy'
         Note: The default value is changing to 'standard' in a future version.
 
@@ -202,7 +208,7 @@ def to_gbq(
     chunksize: int | None = None,
     reauth: bool = False,
     if_exists: str = "fail",
-    auth_local_webserver: bool = False,
+    auth_local_webserver: bool = True,
     table_schema: list[dict[str, str]] | None = None,
     location: str | None = None,
     progress_bar: bool = True,
