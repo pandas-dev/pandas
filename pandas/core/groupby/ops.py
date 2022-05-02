@@ -142,7 +142,15 @@ class WrappedCythonOp:
 
     # "group_any" and "group_all" are also support masks, but don't go
     #  through WrappedCythonOp
-    _MASKED_CYTHON_FUNCTIONS = {"cummin", "cummax", "min", "max", "last", "first"}
+    _MASKED_CYTHON_FUNCTIONS = {
+        "cummin",
+        "cummax",
+        "min",
+        "max",
+        "last",
+        "first",
+        "rank",
+    }
 
     _cython_arity = {"ohlc": 4}  # OHLC
 
@@ -234,7 +242,12 @@ class WrappedCythonOp:
             #  non-cython implementation.
             if how in ["add", "prod", "cumsum", "cumprod"]:
                 raise TypeError(f"{dtype} type does not support {how} operations")
-            raise NotImplementedError(f"{dtype} dtype not supported")
+            elif how not in ["rank"]:
+                # only "rank" is implemented in cython
+                raise NotImplementedError(f"{dtype} dtype not supported")
+            elif not dtype.ordered:
+                # TODO: TypeError?
+                raise NotImplementedError(f"{dtype} dtype not supported")
 
         elif is_sparse(dtype):
             # categoricals are only 1d, so we
@@ -331,6 +344,25 @@ class WrappedCythonOp:
                 comp_ids=comp_ids,
                 **kwargs,
             )
+
+        elif is_categorical_dtype(values.dtype) and self.uses_mask():
+            assert self.how == "rank"  # the only one implemented ATM
+            assert values.ordered  # checked earlier
+            mask = values.isna()
+            npvalues = values._ndarray
+
+            res_values = self._cython_op_ndim_compat(
+                npvalues,
+                min_count=min_count,
+                ngroups=ngroups,
+                comp_ids=comp_ids,
+                mask=mask,
+                **kwargs,
+            )
+
+            # If we ever have more than just "rank" here, we'll need to do
+            #  `if self.how in self.cast_blocklist` like we do for other dtypes.
+            return res_values
 
         npvalues = self._ea_to_cython_values(values)
 
@@ -551,6 +583,9 @@ class WrappedCythonOp:
         else:
             # TODO: min_count
             if self.uses_mask():
+                if self.how != "rank":
+                    # TODO: should rank take result_mask?
+                    kwargs["result_mask"] = result_mask
                 func(
                     out=result,
                     values=values,
@@ -558,7 +593,6 @@ class WrappedCythonOp:
                     ngroups=ngroups,
                     is_datetimelike=is_datetimelike,
                     mask=mask,
-                    result_mask=result_mask,
                     **kwargs,
                 )
             else:
