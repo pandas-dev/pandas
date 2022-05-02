@@ -50,7 +50,6 @@ cdef const int64_t[::1] _deltas_placeholder = np.array([], dtype=np.int64)
 
 
 @cython.freelist(16)
-#@cython.internal
 @cython.final
 cdef class Localizer:
     # cdef:
@@ -472,6 +471,7 @@ cdef ndarray[int64_t] _get_dst_hours(
     trans_idx = mismatch.nonzero()[0]
 
     if trans_idx.size == 1:
+        # TODO: not reached in tests 2022-05-02; possible?
         stamp = _render_tstamp(vals[trans_idx[0]])
         raise pytz.AmbiguousTimeError(
             f"Cannot infer dst time from {stamp} as there "
@@ -493,6 +493,7 @@ cdef ndarray[int64_t] _get_dst_hours(
 
             delta = np.diff(result_a[grp])
             if grp.size == 1 or np.all(delta > 0):
+                # TODO: not reached in tests 2022-05-02; possible?
                 stamp = _render_tstamp(vals[grp[0]])
                 raise pytz.AmbiguousTimeError(stamp)
 
@@ -500,6 +501,7 @@ cdef ndarray[int64_t] _get_dst_hours(
             # for standard
             switch_idxs = (delta <= 0).nonzero()[0]
             if switch_idxs.size > 1:
+                # TODO: not reached in tests 2022-05-02; possible?
                 raise pytz.AmbiguousTimeError(
                     f"There are {switch_idxs.size} dst switches when "
                     "there should only be 1."
