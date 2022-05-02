@@ -1028,7 +1028,7 @@ class ParserBase:
         # Convert `dtype` to a defaultdict of some kind.
         # This will enable us to write `dtype[col_name]`
         # without worrying about KeyError issues later on.
-        dtype_dict: DefaultDict[Hashable, Any]
+        dtype_dict: defaultdict[Hashable, Any]
         if not is_dict_like(dtype):
             # if dtype == None, default will be object.
             default_dtype = dtype or object
