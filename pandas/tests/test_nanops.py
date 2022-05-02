@@ -1020,7 +1020,8 @@ class TestDatetime64NaNOps:
         arr[-1, -1] = "NaT"
 
         result = nanops.nanmean(arr, skipna=False)
-        assert result is pd.NaT
+        assert np.isnat(result)
+        assert result.dtype == dtype
 
         result = nanops.nanmean(arr, axis=0, skipna=False)
         expected = np.array([4, 5, "NaT"], dtype=arr.dtype)
