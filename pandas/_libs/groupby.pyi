@@ -128,7 +128,7 @@ def group_rank(
     ascending: bool = ...,
     pct: bool = ...,
     na_option: Literal["keep", "top", "bottom"] = ...,
-    mask: np.ndarray | None,  # np.ndarray[bool]
+    mask: npt.NDArray[np.bool_] | None = ...,
 ) -> None: ...
 def group_max(
     out: np.ndarray,  # groupby_t[:, ::1]
