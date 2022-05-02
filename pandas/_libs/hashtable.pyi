@@ -198,12 +198,12 @@ def duplicated(
     keep: Literal["last", "first", False] = ...,
 ) -> npt.NDArray[np.bool_]: ...
 def mode(
-    values: np.ndarray, dropna: bool, mask: npt.NDArray[np.bool_] | None = None
+    values: np.ndarray, dropna: bool, mask: npt.NDArray[np.bool_] | None = ...
 ) -> np.ndarray: ...
 def value_count(
     values: np.ndarray,
     dropna: bool,
-    mask: npt.NDArray[np.bool_] | None = None,
+    mask: npt.NDArray[np.bool_] | None = ...,
 ) -> tuple[np.ndarray, npt.NDArray[np.int64]]: ...  # np.ndarray[same-as-values]
 
 # arr and values should have same dtype
