@@ -3291,7 +3291,7 @@ cdef class CustomBusinessDay(BusinessDay):
     holidays : list
         List/array of dates to exclude from the set of valid business days,
         passed to ``numpy.busdaycalendar``.
-    calendar : pd.HolidayCalendar or np.busdaycalendar
+    calendar : np.busdaycalendar
     offset : timedelta, default timedelta(0)
     """
 
@@ -3417,7 +3417,7 @@ cdef class _CustomBusinessMonth(BusinessMixin):
     holidays : list
         List/array of dates to exclude from the set of valid business days,
         passed to ``numpy.busdaycalendar``.
-    calendar : pd.HolidayCalendar or np.busdaycalendar
+    calendar : np.busdaycalendar
         Calendar to integrate.
     offset : timedelta, default timedelta(0)
         Time offset to apply.
