@@ -1,9 +1,5 @@
 from __future__ import annotations
 
-from contextlib import (
-    AbstractContextManager,
-    nullcontext,
-)
 from datetime import (
     datetime,
     timedelta,
@@ -46,27 +42,30 @@ TD64_OVERFLOW_MSG = "|".join(
 )
 
 
-does_not_raise = nullcontext
-td64_overflow_error = partial(pytest.raises, OverflowError, match=TD64_OVERFLOW_MSG)
-td64_value_error = partial(pytest.raises, ValueError, match=TD64_VALUE_ERROR_MSG)
-
 # TODO: more robust platform/env detection?
 on_arm = os.environ.get("CIRCLECI") == "true"
 using_array_data_mgr = os.environ.get("PANDAS_DATA_MANAGER") == "array"
 
+xfail_does_not_raise = partial(
+    pytest.mark.xfail,
+    reason="should raise exception",
+    raises=pytest.fail.Exception,
+    strict=True,
+)
 xfail_returns_nat = partial(
     pytest.mark.xfail,
     reason="returns NaT",
     raises=AssertionError,
     strict=True,
 )
-xfail_ints_wrap = pytest.mark.xfail(
+xfail_ints_wrap = partial(
+    pytest.mark.xfail,
     reason="ints wrap",
     raises=AssertionError,
     strict=True,
 )
-xfail_value_overflow_error = pytest.mark.xfail(
-    os.environ.get("PANDAS_DATA_MANAGER") == "array",
+xfail_value_overflow_error = partial(
+    pytest.mark.xfail,
     reason="unclear",
     raises=(ValueError, OverflowError),
     strict=True,
@@ -1647,29 +1646,32 @@ class TestTimedelta:
         assert result == value
 
     @pytest.mark.parametrize(
-        ("values", "expected_exs"),
+        "values",
         (
-            ([Timedelta.min] * 2, td64_value_error()),
-            ([Timedelta.min, Timedelta(-1025)], td64_value_error()),
-            ([Timedelta.min, Timedelta(-1024)], does_not_raise()),
-            ([Timedelta.min, Timedelta(-1)], does_not_raise()),
-            ([Timedelta.max, Timedelta(1)], does_not_raise()),
-            ([Timedelta.max, Timedelta(1024)], does_not_raise()),
-            ([Timedelta.max, Timedelta(1025)], td64_value_error()),
-            ([Timedelta.max] * 2, td64_value_error()),
+            (Timedelta.min, Timedelta.min),
+            (Timedelta.min, Timedelta(-1025)),
+            pytest.param(
+                (Timedelta.min, Timedelta(-1024)),
+                marks=xfail_does_not_raise(),
+            ),
+            pytest.param((Timedelta.min, Timedelta(-1)), marks=xfail_does_not_raise()),
+            pytest.param((Timedelta.max, Timedelta(1)), marks=xfail_does_not_raise()),
+            pytest.param(
+                (Timedelta.max, Timedelta(1024)),
+                marks=xfail_does_not_raise(),
+            ),
+            (Timedelta.max, Timedelta(1025)),
+            (Timedelta.max, Timedelta.max),
         ),
     )
     def test_arraylike_sum_usually_raises_for_overflow(
         self,
-        values: list[Timedelta],
-        expected_exs: AbstractContextManager,
+        values: tuple[Timedelta],
         index_or_series_or_array,
     ):
         td_arraylike = tm.box_expected(values, index_or_series_or_array)
-        with expected_exs:
-            result = td_arraylike.sum()
-            # for small negative overflows, sum() doesn't raise but does return NaT
-            assert result is NaT
+        with pytest.raises(ValueError, match=TD64_VALUE_ERROR_MSG):
+            td_arraylike.sum()
 
     @pytest.mark.parametrize(
         "values",
