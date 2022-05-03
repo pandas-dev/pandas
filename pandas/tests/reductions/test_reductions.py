@@ -1607,25 +1607,23 @@ class TestTimedelta64:
         assert np.isclose(result.value, value.value)
 
     @pytest.mark.parametrize(
-        ["value", "expected_exs"],
-        [
-            (Timedelta.min, does_not_raise()),
-            (Timedelta.min + Timedelta(511), does_not_raise()),
-            (Timedelta.max - Timedelta(511), td64_overflow_error()),
-            (Timedelta.max, td64_overflow_error()),
-        ],
+        "value",
+        (
+            Timedelta.min,
+            Timedelta.min + Timedelta(511),
+            Timedelta.max - Timedelta(511),
+            Timedelta.max,
+        ),
     )
     def test_single_elem_sum_fails_for_large_values(
         self,
         value: Timedelta,
-        expected_exs: AbstractContextManager,
         index_or_series_or_array,
     ):
         td64_arraylike = tm.wrap_value(value, index_or_series_or_array)
-        with expected_exs:
-            result = td64_arraylike.sum()
-            # for large negative values, sum() doesn't raise but does return NaT
-            assert result is NaT
+        result = td64_arraylike.sum()
+
+        assert result is NaT
 
     @pytest.mark.parametrize(
         ("values", "expected_exs"),
@@ -1634,8 +1632,8 @@ class TestTimedelta64:
             ([Timedelta.min, Timedelta(-1025)], td64_value_error()),
             ([Timedelta.min, Timedelta(-1024)], does_not_raise()),
             ([Timedelta.min, Timedelta(-1)], does_not_raise()),
-            ([Timedelta.max, Timedelta(1)], td64_overflow_error()),
-            ([Timedelta.max, Timedelta(1024)], td64_overflow_error()),
+            ([Timedelta.max, Timedelta(1)], does_not_raise()),
+            ([Timedelta.max, Timedelta(1024)], does_not_raise()),
             ([Timedelta.max, Timedelta(1025)], td64_value_error()),
             ([Timedelta.max] * 2, td64_value_error()),
         ),
