@@ -197,7 +197,18 @@ def _nanpercentile(
             _nanpercentile_1d(val, m, qs, na_value, interpolation=interpolation)
             for (val, m) in zip(list(values), list(mask))
         ]
-        result = np.array(result, dtype=values.dtype, copy=False).T
+        if values.dtype.kind == "f":
+            # preserve itemsize
+            result = np.array(result, dtype=values.dtype, copy=False).T
+        else:
+            result = np.array(result, copy=False).T
+            if (
+                result.dtype != values.dtype
+                and (result == result.astype(values.dtype, copy=False)).all()
+            ):
+                # e.g. values id integer dtype and result is floating dtype,
+                #  only cast back to integer dtype if result values are all-integer.
+                result = result.astype(values.dtype, copy=False)
         return result
     else:
         return np.percentile(
