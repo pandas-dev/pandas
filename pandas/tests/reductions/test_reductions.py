@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from contextlib import (
     AbstractContextManager,
     nullcontext,
@@ -8,7 +10,6 @@ from datetime import (
 )
 from functools import partial
 import os
-from typing import List
 
 import numpy as np
 import pytest
@@ -1641,7 +1642,7 @@ class TestTimedelta64:
     )
     def test_arraylike_sum_usually_raises_for_overflow(
         self,
-        values: List[Timedelta],
+        values: list[Timedelta],
         expected_exs: AbstractContextManager,
         index_or_series_or_array,
     ):
@@ -1667,7 +1668,7 @@ class TestTimedelta64:
         ),
         ids=["double_td_min", "over_by_-1ns", "over_by_1ns", "double_td_max"],
     )
-    def test_df_sum_usually_returns_nat_for_overflows(self, values: List[Timedelta]):
+    def test_df_sum_usually_returns_nat_for_overflows(self, values: list[Timedelta]):
         """
         Special case behavior for some values, for some platforms/configs.
         """

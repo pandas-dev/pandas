@@ -1,5 +1,7 @@
 # Arithmetic tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
+from __future__ import annotations
+
 from contextlib import (
     AbstractContextManager,
     nullcontext,
@@ -9,10 +11,6 @@ from datetime import (
     timedelta,
 )
 from functools import partial
-from typing import (
-    Type,
-    Union,
-)
 
 import numpy as np
 import pytest
@@ -50,11 +48,6 @@ from pandas.tests.arithmetic.common import (
     get_upcast_box,
 )
 
-TD64_BOX_TYPE = Union[TimedeltaArray, TimedeltaIndex, Series, DataFrame]
-TD64_TYPE = Union[Timedelta, TD64_BOX_TYPE]
-DT64_TYPE = Union[Timestamp, DatetimeArray, DatetimeIndex, Series, DataFrame]
-
-
 TD64_OVERFLOW_MSG = "|".join(
     [
         "int too big to convert",
@@ -90,9 +83,9 @@ def get_expected_name(box, names):
 
 
 def get_result_type(
-    td64_type: Type[TD64_TYPE],
-    dt64_type: Type[DT64_TYPE],
-) -> Type[DT64_TYPE]:
+    td64_type: type(TimedeltaArray | TimedeltaIndex | Series | DataFrame),
+    dt64_type: type(Timestamp | DatetimeArray | DatetimeIndex | Series | DataFrame),
+) -> type(Timestamp | DatetimeArray | DatetimeIndex | Series | DataFrame):
     """
     Expected result when adding, subtracting timedelta64-valued box and
     datetime64-valued box or scalar.
@@ -107,7 +100,9 @@ def get_result_type(
     params=[Timedelta, TimedeltaArray, TimedeltaIndex, Series, DataFrame],
     scope="module",
 )
-def fixture_td64_type(request) -> Type[TD64_TYPE]:
+def fixture_td64_type(
+    request,
+) -> type(Timedelta | TimedeltaArray | TimedeltaIndex | Series | DataFrame):
     return request.param
 
 
@@ -116,12 +111,16 @@ def fixture_td64_type(request) -> Type[TD64_TYPE]:
     params=[Timestamp, DatetimeArray, DatetimeIndex, Series, DataFrame],
     scope="module",
 )
-def fixture_dt64_type(request) -> Type[DT64_TYPE]:
+def fixture_dt64_type(
+    request,
+) -> type(Timestamp | DatetimeArray | DatetimeIndex | Series | DataFrame):
     return request.param
 
 
 @pytest.fixture(name="max_td64")
-def fixture_max_td64(box_with_array) -> TD64_BOX_TYPE:
+def fixture_max_td64(
+    box_with_array,
+) -> TimedeltaArray | TimedeltaIndex | Series | DataFrame:
     """
     A 1-elem ExtensionArray/Index/Series, or 2x1 DataFrame, w/ all elements set to
     Timestamp.max.
@@ -134,7 +133,10 @@ def fixture_max_td64(box_with_array) -> TD64_BOX_TYPE:
     params=[Timedelta(1), Timedelta(1024), Timedelta.max],
     ids=["1ns", "1024ns", "td_max"],
 )
-def fixture_positive_td64(request, td64_type: Type[TD64_TYPE]) -> TD64_TYPE:
+def fixture_positive_td64(
+    request,
+    td64_type: type(Timedelta | TimedeltaArray | TimedeltaIndex | Series | DataFrame),
+) -> Timedelta | TimedeltaArray | TimedeltaIndex | Series | DataFrame:
     """
     A scalar, 1-elem ExtensionArray/Index/Series, or 2x1 DataFrame.
     """
@@ -2157,8 +2159,8 @@ class TestAddSub:
 
     def test_add_raises_if_result_would_overflow(
         self,
-        max_td64: TD64_TYPE,
-        positive_td64: TD64_BOX_TYPE,
+        max_td64: Timedelta | TimedeltaArray | TimedeltaIndex | Series | DataFrame,
+        positive_td64: TimedeltaArray | TimedeltaIndex | Series | DataFrame,
     ):
         with td64_overflow_error():
             max_td64 + positive_td64
@@ -2176,10 +2178,12 @@ class TestAddSub:
     )
     def test_sub_raises_if_result_would_overflow(
         self,
-        max_td64: TD64_BOX_TYPE,
+        max_td64: TimedeltaArray | TimedeltaIndex | Series | DataFrame,
         rval: Timedelta,
         expected_exs: AbstractContextManager,
-        td64_type: Type[TD64_TYPE],
+        td64_type: type(
+            Timedelta | TimedeltaArray | TimedeltaIndex | Series | DataFrame
+        ),
     ):
         rvalue = tm.wrap_value(rval, td64_type)
         min_td64 = -1 * max_td64
@@ -2198,7 +2202,9 @@ class TestNumericScalarMulDiv:
     """
 
     @pytest.mark.xfail(reason="Not implemented")
-    def test_scalar_mul_raises_if_result_would_overflow(self, max_td64: TD64_BOX_TYPE):
+    def test_scalar_mul_raises_if_result_would_overflow(
+        self, max_td64: TimedeltaArray | TimedeltaIndex | Series | DataFrame
+    ):
         with td64_overflow_error():
             max_td64 * 1.01
 
@@ -2212,7 +2218,11 @@ class TestAddSubDatetime64:
     datetime64 scalar or datetime64-valued ExtensionArray/Index/Series/DataFrame.
     """
 
-    def test_add(self, box_with_array, dt64_type: Type[DT64_TYPE]):
+    def test_add(
+        self,
+        box_with_array,
+        dt64_type: type(Timestamp | DatetimeArray | DatetimeIndex | Series | DataFrame),
+    ):
         # GH: 35897
         dt64 = tm.wrap_value(Timestamp(2020, 1, 2), dt64_type)
         td64_box = tm.wrap_value(Timedelta(hours=3), box_with_array)
@@ -2225,8 +2235,8 @@ class TestAddSubDatetime64:
 
     def test_add_dt64_raises_if_result_would_overflow(
         self,
-        max_td64: TD64_BOX_TYPE,
-        dt64_type: Type[DT64_TYPE],
+        max_td64: TimedeltaArray | TimedeltaIndex | Series | DataFrame,
+        dt64_type: type(Timestamp | DatetimeArray | DatetimeIndex | Series | DataFrame),
     ):
         max_dt64 = tm.wrap_value(Timestamp.max, dt64_type)
         ex = (OutOfBoundsDatetime, OverflowError)
@@ -2240,8 +2250,8 @@ class TestAddSubDatetime64:
 
     def test_sub_td64_raises_if_result_would_overflow(
         self,
-        max_td64: TD64_BOX_TYPE,
-        dt64_type: Type[DT64_TYPE],
+        max_td64: TimedeltaArray | TimedeltaIndex | Series | DataFrame,
+        dt64_type: type(Timestamp | DatetimeArray | DatetimeIndex | Series | DataFrame),
     ):
         min_dt64 = tm.wrap_value(Timestamp.min, dt64_type)
         ex = (OutOfBoundsDatetime, OverflowError)
