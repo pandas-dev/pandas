@@ -1563,9 +1563,9 @@ class TestSeriesMode:
         tm.assert_series_equal(result, expected)
 
 
-class TestTimedelta64:
+class TestTimedelta:
     """
-    For timedelta64-valued ExtensionArrays/Indexes/Series/DataFrames.
+    For Timedelta-valued ExtensionArrays/Indexes/Series/DataFrames.
     """
 
     @pytest.mark.parametrize(
@@ -1577,8 +1577,8 @@ class TestTimedelta64:
         value: Timedelta,
         index_or_series_or_array,
     ):
-        td64_arraylike = tm.wrap_value(value, index_or_series_or_array)
-        result = td64_arraylike.sum()
+        td_arraylike = tm.box_expected((value,), index_or_series_or_array)
+        result = td_arraylike.sum()
 
         assert result == value
 
@@ -1600,8 +1600,8 @@ class TestTimedelta64:
         The computation involves int->float conversion, so there can be loss of
         precision.
         """
-        td64_arraylike = tm.wrap_value(value, index_or_series_or_array)
-        result = td64_arraylike.sum()
+        td_arraylike = tm.box_expected((value,), index_or_series_or_array)
+        result = td_arraylike.sum()
 
         assert result != value
         assert np.isclose(result.value, value.value)
@@ -1620,8 +1620,8 @@ class TestTimedelta64:
         value: Timedelta,
         index_or_series_or_array,
     ):
-        td64_arraylike = tm.wrap_value(value, index_or_series_or_array)
-        result = td64_arraylike.sum()
+        td_arraylike = tm.box_expected((value,), index_or_series_or_array)
+        result = td_arraylike.sum()
 
         assert result is NaT
 
@@ -1644,9 +1644,9 @@ class TestTimedelta64:
         expected_exs: AbstractContextManager,
         index_or_series_or_array,
     ):
-        td64_arraylike = tm.wrap_value(values, index_or_series_or_array)
+        td_arraylike = tm.box_expected(values, index_or_series_or_array)
         with expected_exs:
-            result = td64_arraylike.sum()
+            result = td_arraylike.sum()
             # for small negative overflows, sum() doesn't raise but does return NaT
             assert result is NaT
 
@@ -1670,7 +1670,7 @@ class TestTimedelta64:
         """
         Special case behavior for some values, for some platforms/configs.
         """
-        td64_df = tm.wrap_value(values, DataFrame)
+        td64_df = tm.box_expected(values, DataFrame, transpose=False)
         result = td64_df.sum()
         expected = Series(NaT, index=[0], dtype="timedelta64[ns]")
 

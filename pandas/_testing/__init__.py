@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import collections
-from collections import abc
 from datetime import datetime
 from decimal import Decimal
 from functools import wraps
@@ -247,19 +246,21 @@ def box_expected(expected, box_cls, transpose=True):
     Parameters
     ----------
     expected : np.ndarray, Index, Series
-    box_cls : {Index, Series, DataFrame}
+    box_cls : {Index, Series, DataFrame, pd.array, ExtensionArray}
 
     Returns
     -------
     subclass of box_cls
     """
-    if box_cls is pd.array:
+    if box_cls is pd.array or (
+        isclass(box_cls) and issubclass(box_cls, ExtensionArray)
+    ):
         if isinstance(expected, RangeIndex):
             # pd.array would return an IntegerArray
             expected = PandasArray(np.asarray(expected._values))
         else:
             expected = pd.array(expected)
-    elif box_cls is Index:
+    elif isclass(box_cls) and issubclass(box_cls, Index):
         expected = Index._with_infer(expected)
     elif box_cls is Series:
         expected = Series(expected)
@@ -279,28 +280,6 @@ def box_expected(expected, box_cls, transpose=True):
     else:
         raise NotImplementedError(box_cls)
     return expected
-
-
-def wrap_value(value, cls, transpose=False):
-    """
-    If cls is a scalar type, return value as an instance of it, otherwise return value
-    wrapped in the box type indicated by cls.
-
-    Designed to play nicely with box_expected (and the box_with_array fixture).
-    """
-    if isclass(cls) and not issubclass(cls, pd.core.arraylike.OpsMixin):
-        return cls(value)
-
-    if cls in (np.array, np.ndarray):
-        pass
-    elif cls is pd.array or issubclass(cls, ExtensionArray):
-        cls = pd.array
-    elif issubclass(cls, Index):
-        cls = Index
-
-    if not isinstance(value, (abc.Sequence, pd.core.arraylike.OpsMixin, np.ndarray)):
-        value = [value]
-    return box_expected(value, cls, transpose)
 
 
 def to_array(obj):
