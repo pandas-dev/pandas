@@ -51,15 +51,25 @@ td64_overflow_error = partial(pytest.raises, OverflowError, match=TD64_OVERFLOW_
 td64_value_error = partial(pytest.raises, ValueError, match=TD64_VALUE_ERROR_MSG)
 
 # TODO: more robust platform/env detection?
-xfail_on_arm = pytest.mark.xfail(
-    os.environ.get("CIRCLECI") == "true",
-    reason="ints wrap on arm?",
+on_arm = os.environ.get("CIRCLECI") == "true"
+using_array_data_mgr = os.environ.get("PANDAS_DATA_MANAGER") == "array"
+
+xfail_returns_nat = partial(
+    pytest.mark.xfail,
+    reason="returns NaT",
     raises=AssertionError,
+    strict=True,
 )
-xfail_with_array_data_manager = pytest.mark.xfail(
+xfail_ints_wrap = pytest.mark.xfail(
+    reason="ints wrap",
+    raises=AssertionError,
+    strict=True,
+)
+xfail_value_overflow_error = pytest.mark.xfail(
     os.environ.get("PANDAS_DATA_MANAGER") == "array",
     reason="unclear",
     raises=(ValueError, OverflowError),
+    strict=True,
 )
 
 
@@ -1606,16 +1616,27 @@ class TestTimedelta:
         assert result != value
         assert np.isclose(result.value, value.value)
 
+    @xfail_returns_nat(condition=not on_arm)
     @pytest.mark.parametrize(
         "value",
         (
-            Timedelta.min,
-            Timedelta.min + Timedelta(511),
-            Timedelta.max - Timedelta(511),
-            Timedelta.max,
+            pytest.param(Timedelta.min, marks=xfail_returns_nat(condition=on_arm)),
+            pytest.param(
+                Timedelta.min + Timedelta(511),
+                marks=xfail_returns_nat(condition=on_arm),
+            ),
+            pytest.param(
+                Timedelta.max - Timedelta(511),
+                marks=pytest.mark.xfail(
+                    on_arm,
+                    reason="returns Timedelta.max",
+                    raises=AssertionError,
+                ),
+            ),
+            pytest.param(Timedelta.max),
         ),
     )
-    def test_single_elem_sum_fails_for_large_values(
+    def test_single_elem_sum_works_near_boundaries(
         self,
         value: Timedelta,
         index_or_series_or_array,
@@ -1623,7 +1644,7 @@ class TestTimedelta:
         td_arraylike = tm.box_expected((value,), index_or_series_or_array)
         result = td_arraylike.sum()
 
-        assert result is NaT
+        assert result == value
 
     @pytest.mark.parametrize(
         ("values", "expected_exs"),
@@ -1653,18 +1674,23 @@ class TestTimedelta:
     @pytest.mark.parametrize(
         "values",
         (
-            pytest.param([Timedelta.min] * 2, marks=xfail_with_array_data_manager),
-            [Timedelta.min, Timedelta(-1)],
             pytest.param(
-                [Timedelta.max, Timedelta(1)],
-                marks=[xfail_on_arm, xfail_with_array_data_manager],
+                (Timedelta.min,) * 2,
+                marks=xfail_value_overflow_error(condition=using_array_data_mgr),
+            ),
+            (Timedelta.min, Timedelta(-1)),
+            pytest.param(
+                (Timedelta.max, Timedelta(1)), marks=xfail_ints_wrap(condition=on_arm)
             ),
             pytest.param(
-                [Timedelta.max] * 2,
-                marks=[xfail_on_arm, xfail_with_array_data_manager],
+                (Timedelta.max,) * 2,
+                marks=(
+                    xfail_ints_wrap(condition=on_arm),
+                    xfail_value_overflow_error(condition=using_array_data_mgr),
+                ),
             ),
         ),
-        ids=["double_td_min", "over_by_-1ns", "over_by_1ns", "double_td_max"],
+        ids=("double_td_min", "over_by_-1ns", "over_by_1ns", "double_td_max"),
     )
     def test_df_sum_usually_returns_nat_for_overflows(self, values: list[Timedelta]):
         """
