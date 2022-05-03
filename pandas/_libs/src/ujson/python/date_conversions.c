@@ -96,6 +96,7 @@ char *PyDateTimeToIso(PyObject *obj, NPY_DATETIMEUNIT base,
     if (PyObject_HasAttrString(obj, "tzinfo")) {
         PyObject *offset = extract_utc_offset(obj);
         if (offset == NULL) {
+            PyObject_Free(result);
             return NULL;
         }
         is_tz_aware = offset != Py_None;
