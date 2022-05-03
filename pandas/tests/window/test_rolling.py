@@ -1203,6 +1203,9 @@ def test_rolling_var_numerical_issues(func, third_value, values):
     result = getattr(ds.rolling(2), func)()
     expected = Series([np.nan] + values)
     tm.assert_series_equal(result, expected)
+    # GH 42064
+    # new `roll_var` will output 0.0 correctly
+    tm.assert_series_equal(result == 0, expected == 0)
 
 
 def test_timeoffset_as_window_parameter_for_corr():
@@ -1509,6 +1512,9 @@ def test_rolling_var_floating_artifact_precision():
     result = s.rolling(3).var()
     expected = Series([np.nan, np.nan, 4 / 3, 0])
     tm.assert_series_equal(result, expected, atol=1.0e-15, rtol=1.0e-15)
+    # GH 42064
+    # new `roll_var` will output 0.0 correctly
+    tm.assert_series_equal(result == 0, expected == 0)
 
 
 def test_rolling_std_small_values():
@@ -1769,3 +1775,88 @@ def test_step_not_integer_raises():
 def test_step_not_positive_raises():
     with pytest.raises(ValueError, match="step must be >= 0"):
         DataFrame(range(2)).rolling(1, step=-1)
+
+
+@pytest.mark.parametrize(
+    ["values", "window", "min_periods", "expected"],
+    [
+        [
+            [20, 10, 10, np.inf, 1, 1, 2, 3],
+            3,
+            1,
+            [np.nan, 50, 100 / 3, 0, 40.5, 0, 1 / 3, 1],
+        ],
+        [
+            [20, 10, 10, np.nan, 10, 1, 2, 3],
+            3,
+            1,
+            [np.nan, 50, 100 / 3, 0, 0, 40.5, 73 / 3, 1],
+        ],
+        [
+            [np.nan, 5, 6, 7, 5, 5, 5],
+            3,
+            3,
+            [np.nan] * 3 + [1, 1, 4 / 3, 0],
+        ],
+        [
+            [5, 7, 7, 7, np.nan, np.inf, 4, 3, 3, 3],
+            3,
+            3,
+            [np.nan] * 2 + [4 / 3, 0] + [np.nan] * 4 + [1 / 3, 0],
+        ],
+        [
+            [5, 7, 7, 7, np.nan, np.inf, 7, 3, 3, 3],
+            3,
+            3,
+            [np.nan] * 2 + [4 / 3, 0] + [np.nan] * 4 + [16 / 3, 0],
+        ],
+        [
+            [5, 7] * 4,
+            3,
+            3,
+            [np.nan] * 2 + [4 / 3] * 6,
+        ],
+        [
+            [5, 7, 5, np.nan, 7, 5, 7],
+            3,
+            2,
+            [np.nan, 2, 4 / 3] + [2] * 3 + [4 / 3],
+        ],
+    ],
+)
+def test_rolling_var_same_value_count_logic(values, window, min_periods, expected):
+    # GH 42064.
+
+    expected = Series(expected)
+    sr = Series(values)
+
+    # With new algo implemented, result will be set to .0 in rolling var
+    # if sufficient amount of consecutively same values are found.
+    result_var = sr.rolling(window, min_periods=min_periods).var()
+
+    # use `assert_series_equal` twice to check for equality,
+    # because `check_exact=True` will fail in 32-bit tests due to
+    # precision loss.
+
+    # 1. result should be close to correct value
+    # non-zero values can still differ slightly from "truth"
+    # as the result of online algorithm
+    tm.assert_series_equal(result_var, expected)
+    # 2. zeros should be exactly the same since the new algo takes effect here
+    tm.assert_series_equal(expected == 0, result_var == 0)
+
+    # std should also pass as it's just a sqrt of var
+    result_std = sr.rolling(window, min_periods=min_periods).std()
+    tm.assert_series_equal(result_std, np.sqrt(expected))
+    tm.assert_series_equal(expected == 0, result_std == 0)
+
+
+def test_rolling_mean_sum_floating_artifacts():
+    # GH 42064.
+
+    sr = Series([1 / 3, 4, 0, 0, 0, 0, 0])
+    r = sr.rolling(3)
+    result = r.mean()
+    assert (result[-3:] == 0).all()
+    result = r.sum()
+    assert (result[-3:] == 0).all()

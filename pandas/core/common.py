@@ -612,7 +612,7 @@ def get_cython_func(arg: Callable) -> str | None:
 
 def is_builtin_func(arg):
     """
-    if we define an builtin function for this argument, return it,
+    if we define a builtin function for this argument, return it,
     otherwise return the arg
     """
     return _builtin_table.get(arg, arg)

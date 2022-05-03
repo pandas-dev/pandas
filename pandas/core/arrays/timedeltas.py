@@ -154,7 +154,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     # Note: ndim must be defined to ensure NaT.__richcmp__(TimedeltaArray)
     #  operates pointwise.
 
-    def _box_func(self, x) -> Timedelta | NaTType:
+    def _box_func(self, x: np.timedelta64) -> Timedelta | NaTType:
         return Timedelta(x, unit="ns")
 
     @property
@@ -369,7 +369,7 @@ class TimedeltaArray(dtl.TimelikeOps):
                 yield self[i]
         else:
             # convert in chunks of 10k for efficiency
-            data = self.asi8
+            data = self._ndarray
             length = len(self)
             chunksize = 10000
             chunks = (length // chunksize) + 1
@@ -886,7 +886,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         -------
         timedeltas : ndarray[object]
         """
-        return tslibs.ints_to_pytimedelta(self.asi8)
+        return tslibs.ints_to_pytimedelta(self._ndarray)
 
     days = _field_accessor("days", "days", "Number of days for each element.")
     seconds = _field_accessor(

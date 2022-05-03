@@ -56,6 +56,7 @@ This file implements string parsing and creation for NumPy datetime.
 int
 parse_iso_8601_datetime(const char *str, int len, int want_exc,
                         npy_datetimestruct *out,
+                        NPY_DATETIMEUNIT *out_bestunit,
                         int *out_local,
                         int *out_tzoffset);
 

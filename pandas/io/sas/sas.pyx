@@ -1,6 +1,6 @@
 # cython: profile=False
 # cython: boundscheck=False, initializedcheck=False
-from cython import Py_ssize_t
+from cython cimport Py_ssize_t
 import numpy as np
 
 import pandas.io.sas.sas_constants as const

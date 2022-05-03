@@ -397,11 +397,13 @@ class SeriesGroupBy(GroupBy[Series]):
             res_ser.name = self.obj.name
             return res_ser
         elif isinstance(values[0], (Series, DataFrame)):
-            return self._concat_objects(
+            result = self._concat_objects(
                 values,
                 not_indexed_same=not_indexed_same,
                 override_group_keys=override_group_keys,
             )
+            result.name = self.obj.name
+            return result
         else:
             # GH #6265 #24880
             result = self.obj._constructor(
@@ -1553,10 +1555,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return results
 
-    @doc(_shared_docs["idxmax"])
-    def idxmax(self, axis=0, skipna: bool = True):
+    @doc(
+        _shared_docs["idxmax"],
+        numeric_only_default="True for axis=0, False for axis=1",
+    )
+    def idxmax(self, axis=0, skipna: bool = True, numeric_only: bool | None = None):
         axis = DataFrame._get_axis_number(axis)
-        numeric_only = None if axis == 0 else False
+        if numeric_only is None:
+            numeric_only = None if axis == 0 else False
 
         def func(df):
             # NB: here we use numeric_only=None, in DataFrame it is False GH#38217
@@ -1575,13 +1581,17 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         func.__name__ = "idxmax"
         return self._python_apply_general(func, self._obj_with_exclusions)
 
-    @doc(_shared_docs["idxmin"])
-    def idxmin(self, axis=0, skipna: bool = True):
+    @doc(
+        _shared_docs["idxmin"],
+        numeric_only_default="True for axis=0, False for axis=1",
+    )
+    def idxmin(self, axis=0, skipna: bool = True, numeric_only: bool | None = None):
         axis = DataFrame._get_axis_number(axis)
-        numeric_only = None if axis == 0 else False
+        if numeric_only is None:
+            numeric_only = None if axis == 0 else False
 
         def func(df):
-            # NB: here we use numeric_only=None, in DataFrame it is False GH#38217
+            # NB: here we use numeric_only=None, in DataFrame it is False GH#46560
             res = df._reduce(
                 nanops.nanargmin,
                 "argmin",

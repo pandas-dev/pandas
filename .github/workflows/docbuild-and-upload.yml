@@ -37,6 +37,7 @@ jobs:
       run: |
         source activate pandas-dev
         python web/pandas_web.py web/pandas --target-path=web/build
+
     - name: Build documentation
       run: |
         source activate pandas-dev
