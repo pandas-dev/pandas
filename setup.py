@@ -46,8 +46,11 @@ try:
         __version__ as _CYTHON_VERSION,
     )
     from Cython.Build import cythonize
+    from Cython.Compiler import Options
 
     _CYTHON_INSTALLED = parse_version(_CYTHON_VERSION) >= parse_version(min_cython_ver)
+    Options.docstrings = False
+
 except ImportError:
     _CYTHON_VERSION = None
     _CYTHON_INSTALLED = False
