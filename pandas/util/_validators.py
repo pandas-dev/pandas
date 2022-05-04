@@ -552,7 +552,7 @@ def validate_bool_kwargs_from_keywords(*keywords):
         @functools.wraps(func)
         def validator(*args, **kwargs):
             for word in words.intersection(kwargs.keys()):
-                validate_bool_kwarg(kwargs[kw], kw)
+                validate_bool_kwarg(kwargs[word], word)
             return func(*args, **kwargs)
         return validator
     return validate_bool_kwargs_from_keywords_inner
