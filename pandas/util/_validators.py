@@ -12,6 +12,8 @@ import warnings
 
 import numpy as np
 
+import functools
+
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -518,3 +520,39 @@ def validate_insert_loc(loc: int, length: int) -> int:
     if not 0 <= loc <= length:
         raise IndexError(f"loc must be an integer between -{length} and {length}")
     return loc
+
+def validate_bool_kwargs_from_keywords(*keywords):
+    """
+    Takes keywords and ensures all are type bool, using validate_bool_kwarg
+
+    Example Usage:
+    @validate_bool_kwargs_from_keywords('copy', 'inplace')
+    def method(##that takes bool kwargs## copy: bool = False, inplace: bool = False):
+
+    Used as a decorator above methods.  Uses functools.
+
+    validate_bool_kwarg:
+    def validate_bool_kwarg(value, arg_name, none_allowed=True, int_allowed=False):
+    good_value = is_bool(value)
+    if none_allowed:
+        good_value = good_value or value is None
+
+    if int_allowed:
+        good_value = good_value or isinstance(value, int)
+
+    if not good_value:
+        raise ValueError(
+            f'For argument "{arg_name}" expected type bool, received '
+            f"type {type(value).__name__}."
+        )
+    return value
+    """
+    words = set(keywords)
+    def validate_bool_kwargs_from_keywords_inner(func):
+        @functools.wraps(func)
+        def validator(*args, **kwargs):
+            for word in words.intersection(kwargs.keys()):
+                validate_bool_kwarg(kwargs[kw], kw)
+            return func(*args, **kwargs)
+        return validator
+    return validate_bool_kwargs_from_keywords_inner
