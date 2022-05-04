@@ -7,7 +7,6 @@ import re
 
 import numpy as np
 import pytest
-from toolz.curried import keyfilter
 
 from pandas._libs.tslibs import OutOfBoundsTimedelta
 
@@ -72,7 +71,7 @@ NP_TD64_MIN_PER_UNIT = dict(
 )
 
 
-skip_ns = keyfilter(lambda k: not k.startswith("n"))
+skip_ns = lambda d: {k: v for k, v in d.items() if not k.startswith("n")}
 
 
 def test_construction():
