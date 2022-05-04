@@ -136,6 +136,9 @@ cdef dict timedelta_abbrevs = {
 
 _no_input = object()
 
+TIMEDELTA_MIN_NS = np.iinfo(np.int64).min + 1
+TIMEDELTA_MAX_NS = np.iinfo(np.int64).max
+
 
 # ----------------------------------------------------------------------
 # API
@@ -217,7 +220,8 @@ cpdef int64_t delta_to_nanoseconds(delta) except? -1:
                 + delta.microseconds
             ) * 1000
         except OverflowError as err:
-            raise OutOfBoundsTimedelta(*err.args) from err
+            msg = f"{delta} outside allowed range [{TIMEDELTA_MIN_NS}ns, {TIMEDELTA_MAX_NS}ns]"
+            raise OutOfBoundsTimedelta(msg) from err
 
     raise TypeError(type(delta))
 
@@ -254,7 +258,8 @@ cdef object ensure_td64ns(object ts):
             # NB: cython#1381 this cannot be *=
             td64_value = td64_value * mult
         except OverflowError as err:
-            raise OutOfBoundsTimedelta(ts) from err
+            msg = f"{ts} outside allowed range [{TIMEDELTA_MIN_NS}ns, {TIMEDELTA_MAX_NS}ns]"
+            raise OutOfBoundsTimedelta(msg) from err
 
         return np.timedelta64(td64_value, "ns")
 
@@ -679,6 +684,18 @@ def _op_unary_method(func, name):
     return f
 
 
+cpdef int64_t calculate(object op, int64_t a, int64_t b) except? -1:
+    """
+    Calculate op(a, b) and return the result, or raise if the operation would overflow.
+    """
+    try:
+        with cython.overflowcheck(True):
+            return op(a, b)
+    except OverflowError as ex:
+        msg = f"outside allowed range [{TIMEDELTA_MIN_NS}ns, {TIMEDELTA_MAX_NS}ns]"
+        raise OutOfBoundsTimedelta(msg) from ex
+
+
 def _binary_op_method_timedeltalike(op, name):
     # define a binary operation that only works if the other argument is
     # timedelta like or an array of timedeltalike
@@ -723,13 +740,10 @@ def _binary_op_method_timedeltalike(op, name):
         if self._reso != other._reso:
             raise NotImplementedError
 
-        res = op(self.value, other.value)
-        if res == NPY_NAT:
-            # e.g. test_implementation_limits
-            # TODO: more generally could do an overflowcheck in op?
+        result = calculate(op, self.value, other.value)
+        if result == NPY_NAT:
             return NaT
-
-        return _timedelta_from_value_and_reso(res, reso=self._reso)
+        return _timedelta_from_value_and_reso(result, self._reso)
 
     f.__name__ = name
     return f
@@ -1443,91 +1457,96 @@ class Timedelta(_Timedelta):
     def __new__(cls, object value=_no_input, unit=None, **kwargs):
         cdef _Timedelta td_base
 
-        if value is _no_input:
-            if not len(kwargs):
-                raise ValueError("cannot construct a Timedelta without a "
-                                 "value/unit or descriptive keywords "
-                                 "(days,seconds....)")
+        try:
+            if value is _no_input:
+                if not len(kwargs):
+                    raise ValueError("cannot construct a Timedelta without a "
+                                     "value/unit or descriptive keywords "
+                                     "(days,seconds....)")
 
-            kwargs = {key: _to_py_int_float(kwargs[key]) for key in kwargs}
+                kwargs = {key: _to_py_int_float(kwargs[key]) for key in kwargs}
 
-            unsupported_kwargs = set(kwargs)
-            unsupported_kwargs.difference_update(cls._req_any_kwargs_new)
-            if unsupported_kwargs or not cls._req_any_kwargs_new.intersection(kwargs):
-                raise ValueError(
-                    "cannot construct a Timedelta from the passed arguments, "
-                    "allowed keywords are "
-                    "[weeks, days, hours, minutes, seconds, "
-                    "milliseconds, microseconds, nanoseconds]"
+                unsupported_kwargs = set(kwargs)
+                unsupported_kwargs.difference_update(cls._req_any_kwargs_new)
+                if unsupported_kwargs or not cls._req_any_kwargs_new.intersection(kwargs):
+                    raise ValueError(
+                        "cannot construct a Timedelta from the passed arguments, "
+                        "allowed keywords are "
+                        "[weeks, days, hours, minutes, seconds, "
+                        "milliseconds, microseconds, nanoseconds]"
+                    )
+
+                # GH43764, convert any input to nanoseconds first and then
+                # create the timestamp. This ensures that any potential
+                # nanosecond contributions from kwargs parsed as floats
+                # are taken into consideration.
+                seconds = int((
+                    (
+                        (kwargs.get('days', 0) + kwargs.get('weeks', 0) * 7) * 24
+                        + kwargs.get('hours', 0)
+                    ) * 3600
+                    + kwargs.get('minutes', 0) * 60
+                    + kwargs.get('seconds', 0)
+                    ) * 1_000_000_000
                 )
 
-            # GH43764, convert any input to nanoseconds first and then
-            # create the timestamp. This ensures that any potential
-            # nanosecond contributions from kwargs parsed as floats
-            # are taken into consideration.
-            seconds = int((
-                (
-                    (kwargs.get('days', 0) + kwargs.get('weeks', 0) * 7) * 24
-                    + kwargs.get('hours', 0)
-                ) * 3600
-                + kwargs.get('minutes', 0) * 60
-                + kwargs.get('seconds', 0)
-                ) * 1_000_000_000
-            )
+                value = np.timedelta64(
+                    int(kwargs.get('nanoseconds', 0))
+                    + int(kwargs.get('microseconds', 0) * 1_000)
+                    + int(kwargs.get('milliseconds', 0) * 1_000_000)
+                    + seconds
+                )
 
-            value = np.timedelta64(
-                int(kwargs.get('nanoseconds', 0))
-                + int(kwargs.get('microseconds', 0) * 1_000)
-                + int(kwargs.get('milliseconds', 0) * 1_000_000)
-                + seconds
-            )
+            if unit in {'Y', 'y', 'M'}:
+                raise ValueError(
+                    "Units 'M', 'Y', and 'y' are no longer supported, as they do not "
+                    "represent unambiguous timedelta values durations."
+                )
 
-        if unit in {'Y', 'y', 'M'}:
-            raise ValueError(
-                "Units 'M', 'Y', and 'y' are no longer supported, as they do not "
-                "represent unambiguous timedelta values durations."
-            )
-
-        # GH 30543 if pd.Timedelta already passed, return it
-        # check that only value is passed
-        if isinstance(value, _Timedelta) and unit is None and len(kwargs) == 0:
-            return value
-        elif isinstance(value, _Timedelta):
-            value = value.value
-        elif isinstance(value, str):
-            if unit is not None:
-                raise ValueError("unit must not be specified if the value is a str")
-            if (len(value) > 0 and value[0] == 'P') or (
-                len(value) > 1 and value[:2] == '-P'
-            ):
-                value = parse_iso_format_string(value)
+            # GH 30543 if pd.Timedelta already passed, return it
+            # check that only value is passed
+            if isinstance(value, _Timedelta) and unit is None and len(kwargs) == 0:
+                return value
+            elif isinstance(value, _Timedelta):
+                value = value.value
+            elif isinstance(value, str):
+                if unit is not None:
+                    raise ValueError("unit must not be specified if the value is a str")
+                if (len(value) > 0 and value[0] == 'P') or (
+                    len(value) > 1 and value[:2] == '-P'
+                ):
+                    value = parse_iso_format_string(value)
+                else:
+                    value = parse_timedelta_string(value)
+                value = np.timedelta64(value)
+            elif PyDelta_Check(value):
+                value = convert_to_timedelta64(value, 'ns')
+            elif is_timedelta64_object(value):
+                value = ensure_td64ns(value)
+            elif is_tick_object(value):
+                value = np.timedelta64(value.nanos, 'ns')
+            elif is_integer_object(value) or is_float_object(value):
+                # unit=None is de-facto 'ns'
+                unit = parse_timedelta_unit(unit)
+                value = convert_to_timedelta64(value, unit)
+            elif checknull_with_nat(value):
+                return NaT
             else:
-                value = parse_timedelta_string(value)
-            value = np.timedelta64(value)
-        elif PyDelta_Check(value):
-            value = convert_to_timedelta64(value, 'ns')
-        elif is_timedelta64_object(value):
-            value = ensure_td64ns(value)
-        elif is_tick_object(value):
-            value = np.timedelta64(value.nanos, 'ns')
-        elif is_integer_object(value) or is_float_object(value):
-            # unit=None is de-facto 'ns'
-            unit = parse_timedelta_unit(unit)
-            value = convert_to_timedelta64(value, unit)
-        elif checknull_with_nat(value):
-            return NaT
-        else:
-            raise ValueError(
-                "Value must be Timedelta, string, integer, "
-                f"float, timedelta or convertible, not {type(value).__name__}"
-            )
+                raise ValueError(
+                    "Value must be Timedelta, string, integer, "
+                    f"float, timedelta or convertible, not {type(value).__name__}"
+                )
 
-        if is_timedelta64_object(value):
-            value = value.view('i8')
+            if is_timedelta64_object(value):
+                value = value.view('i8')
 
-        # nat
-        if value == NPY_NAT:
-            return NaT
+            # nat
+            if value == NPY_NAT:
+                return NaT
+
+        except OverflowError as ex:
+            msg = f"outside allowed range [{TIMEDELTA_MIN_NS}ns, {TIMEDELTA_MAX_NS}ns]"
+            raise OutOfBoundsTimedelta(msg) from ex
 
         return _timedelta_from_value_and_reso(value, NPY_FR_ns)
 
@@ -1824,6 +1843,6 @@ cdef _broadcast_floordiv_td64(
 
 
 # resolution in ns
-Timedelta.min = Timedelta(np.iinfo(np.int64).min + 1)
-Timedelta.max = Timedelta(np.iinfo(np.int64).max)
+Timedelta.min = Timedelta(TIMEDELTA_MIN_NS)
+Timedelta.max = Timedelta(TIMEDELTA_MAX_NS)
 Timedelta.resolution = Timedelta(nanoseconds=1)

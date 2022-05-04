@@ -8,8 +8,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import OutOfBoundsTimedelta
-
 from pandas import (
     NA,
     NaT,
@@ -165,7 +163,7 @@ def test_construction():
 
 
 @pytest.mark.parametrize("unit", ("ps", "ns"))
-def test_from_np_td64_ignores_unit(unit: str):
+def test_from_np_td64_ignores_unit(unit: str, timedelta_overflow):
     """
     Ignore the unit, as it may cause silently overflows leading to incorrect results,
     and in non-overflow cases is irrelevant GH#46827.
@@ -174,7 +172,7 @@ def test_from_np_td64_ignores_unit(unit: str):
 
     assert Timedelta(td64, unit=unit) == Timedelta(td64)
 
-    with pytest.raises(OutOfBoundsTimedelta, match=f"{td64 * 2}"):
+    with pytest.raises(**timedelta_overflow):
         Timedelta(td64 * 2, unit=unit)
 
 
@@ -449,18 +447,14 @@ class TestInvalidArgCombosFormats:
 
 
 class TestOverflow:
-
-    msg = "|".join(
-        (
-            "Python int too large to convert to C long",
-            "int too big to convert",
-            *TD_KWARGS_UNITS.keys(),
-        )
-    )
-    errors = (OverflowError, OutOfBoundsTimedelta)
-
     @pytest.mark.parametrize(("unit", "max_val"), TD_MAX_PER_UNIT.items())
-    def test_int_plus_units_too_big(self, unit: str, max_val: int, request):
+    def test_int_plus_units_too_big(
+        self,
+        unit: str,
+        max_val: int,
+        request,
+        timedelta_overflow,
+    ):
         if unit == "w":
             mark = pytest.mark.xfail(
                 reason="does not raise",
@@ -471,11 +465,17 @@ class TestOverflow:
 
         too_big = max_val + 1
 
-        with pytest.raises(self.errors, match=self.msg):
+        with pytest.raises(**timedelta_overflow):
             Timedelta(too_big, unit=unit)
 
     @pytest.mark.parametrize(("unit", "min_val"), skip_ns(TD_MIN_PER_UNIT).items())
-    def test_int_plus_units_too_small(self, unit: str, min_val: int, request):
+    def test_int_plus_units_too_small(
+        self,
+        unit: str,
+        min_val: int,
+        request,
+        timedelta_overflow,
+    ):
         if unit == "w":
             mark = pytest.mark.xfail(
                 reason="does not raise",
@@ -486,49 +486,54 @@ class TestOverflow:
 
         too_small = min_val - 1
 
-        with pytest.raises(self.errors, match=self.msg):
+        with pytest.raises(**timedelta_overflow):
             Timedelta(too_small, unit=unit)
 
     @pytest.mark.parametrize(("kwarg", "max_val"), TD_MAX_PER_KWARG.items())
-    def test_kwarg_too_big(self, kwarg: str, max_val: int):
+    def test_kwarg_too_big(self, kwarg: str, max_val: int, timedelta_overflow):
         too_big = max_val + 1
 
-        with pytest.raises(self.errors, match=self.msg):
+        with pytest.raises(**timedelta_overflow):
             assert Timedelta(**{kwarg: too_big})  # type: ignore[arg-type]
 
     @pytest.mark.parametrize(("kwarg", "min_val"), skip_ns(TD_MIN_PER_KWARG).items())
-    def test_kwarg_too_small(self, kwarg: str, min_val: int):
+    def test_kwarg_too_small(self, kwarg: str, min_val: int, timedelta_overflow):
         too_small = min_val - 1
 
-        with pytest.raises(self.errors, match=self.msg):
+        with pytest.raises(**timedelta_overflow):
             Timedelta(**{kwarg: too_small})  # type: ignore[arg-type]
 
     @pytest.mark.parametrize(("kwarg", "max_val"), skip_ns(TD_MAX_PER_KWARG).items())
-    def test_from_timedelta_too_big(self, kwarg: str, max_val: int):
+    def test_from_timedelta_too_big(self, kwarg: str, max_val: int, timedelta_overflow):
         too_big = timedelta(**{kwarg: max_val + 1})
 
-        with pytest.raises(self.errors, match=self.msg):
+        with pytest.raises(**timedelta_overflow):
             Timedelta(too_big)
 
     @pytest.mark.parametrize(("kwarg", "min_val"), skip_ns(TD_MIN_PER_KWARG).items())
-    def test_from_timedelta_too_small(self, kwarg: str, min_val: int):
+    def test_from_timedelta_too_small(
+        self,
+        kwarg: str,
+        min_val: int,
+        timedelta_overflow,
+    ):
         too_small = timedelta(**{kwarg: min_val - 1})
 
-        with pytest.raises(self.errors, match=self.msg):
+        with pytest.raises(**timedelta_overflow):
             Timedelta(too_small)
 
     @pytest.mark.parametrize(("unit", "max_val"), skip_ns(NP_TD64_MAX_PER_UNIT).items())
-    def test_from_np_td64_too_big(self, unit: str, max_val: int):
+    def test_from_np_td64_too_big(self, unit: str, max_val: int, timedelta_overflow):
         too_big = np.timedelta64(max_val + 1, unit)
 
-        with pytest.raises(self.errors, match=self.msg):
+        with pytest.raises(**timedelta_overflow):
             Timedelta(too_big)
 
     @pytest.mark.parametrize(("unit", "min_val"), skip_ns(NP_TD64_MIN_PER_UNIT).items())
-    def test_from_np_td64_too_small(self, unit: str, min_val: int):
+    def test_from_np_td64_too_small(self, unit: str, min_val: int, timedelta_overflow):
         too_small = np.timedelta64(min_val - 1, unit)
 
-        with pytest.raises(self.errors, match=self.msg):
+        with pytest.raises(**timedelta_overflow):
             Timedelta(too_small)
 
     def test_too_small_by_1ns_returns_nat(self):

@@ -646,7 +646,7 @@ class TestTimedeltas:
         ns_td = Timedelta(1, "ns")
         assert hash(ns_td) != hash(ns_td.to_pytimedelta())
 
-    def test_implementation_limits(self):
+    def test_implementation_limits(self, timedelta_overflow):
         min_td = Timedelta(Timedelta.min)
         max_td = Timedelta(Timedelta.max)
 
@@ -658,21 +658,20 @@ class TestTimedeltas:
         # Beyond lower limit, a NAT before the Overflow
         assert (min_td - Timedelta(1, "ns")) is NaT
 
-        msg = "int too (large|big) to convert"
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(**timedelta_overflow):
             min_td - Timedelta(2, "ns")
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(**timedelta_overflow):
             max_td + Timedelta(1, "ns")
 
         # Same tests using the internal nanosecond values
         td = Timedelta(min_td.value - 1, "ns")
         assert td is NaT
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(**timedelta_overflow):
             Timedelta(min_td.value - 2, "ns")
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(**timedelta_overflow):
             Timedelta(max_td.value + 1, "ns")
 
     def test_total_seconds_precision(self):
