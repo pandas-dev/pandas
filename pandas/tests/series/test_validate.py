@@ -24,3 +24,10 @@ def test_validate_bool_args(string_series, func, inplace):
 
     with pytest.raises(ValueError, match=msg):
         getattr(string_series, func)(**kwargs)
+
+@pytest.mark.parametrize('keyword', ('copy', 'fastpath', 'takeable', 'clear', 'verify_is_copy', 'inplace', 'allow_duplicates', 'index', 'as_index', 'sort', 'observed', 'dropna', 'ignore_index', 'verify_integrity', 'keep_shape', 'keep_equal', 'inplace', 'sort_remaining' , 'convert_dtype', 'show_counts', 'deep', 'infer_objects', 'convert_string', 'convert_integer', 'convert_boolean', 'convert_floating', 'normalize'))
+def test_set_index_validation(string_series, func, keyword):
+    msg = 'For argument "{}" expected type bool'.format(keyword)
+    kwargs = {keyword: 'hello'}
+    with pytest.raises(ValueError, match=msg):
+        getattr(string_series, func)(**kwargs)
