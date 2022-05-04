@@ -2020,6 +2020,7 @@ class _AsOfMerge(_OrderedMerge):
                 None,
                 self.allow_exact_matches,
                 tolerance,
+                use_hash_table=False
             )
 
 

@@ -839,7 +839,8 @@ def asof_join_nearest_on_X_by_Y(numeric_t[:] left_values,
                                 by_t[:] left_by_values,
                                 by_t[:] right_by_values,
                                 bint allow_exact_matches=True,
-                                tolerance=None):
+                                tolerance=None,
+                                bint use_hashtable=True):
 
     cdef:
         ndarray[intp_t] bli, bri, fli, fri
@@ -852,6 +853,7 @@ def asof_join_nearest_on_X_by_Y(numeric_t[:] left_values,
         right_by_values,
         allow_exact_matches,
         tolerance,
+        use_hashtable
     )
     fli, fri = asof_join_forward_on_X_by_Y(
         left_values,
@@ -860,6 +862,7 @@ def asof_join_nearest_on_X_by_Y(numeric_t[:] left_values,
         right_by_values,
         allow_exact_matches,
         tolerance,
+        use_hashtable
     )
 
     return _choose_smaller_timestamp(left_values, right_values, bli, bri, fli, fri)
