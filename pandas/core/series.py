@@ -64,6 +64,7 @@ from pandas.util._validators import (
     validate_ascending,
     validate_bool_kwarg,
     validate_percentile,
+    validate_bool_kwargs_from_keywords,
 )
 
 from pandas.core.dtypes.cast import (
@@ -330,6 +331,7 @@ class Series(base.IndexOpsMixin, NDFrame):
     # ----------------------------------------------------------------------
     # Constructors
 
+    @validate_bool_kwargs_from_keywords('copy', 'fastpath')
     def __init__(
         self,
         data=None,
@@ -1055,6 +1057,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         new_mgr = self._mgr.getitem_mgr(indexer)
         return self._constructor(new_mgr).__finalize__(self)
 
+    @validate_bool_kwargs_from_keywords('takeable')
     def _get_value(self, label, takeable: bool = False):
         """
         Quickly retrieve single value at passed index label.
@@ -1201,6 +1204,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         self._mgr = self._mgr.setitem(indexer=key, value=value)
         self._maybe_update_cacher()
 
+    @validate_bool_kwargs_from_keywords('takeable')
     def _set_value(self, label, value, takeable: bool = False):
         """
         Quickly set single value at passed label.
@@ -1272,6 +1276,7 @@ class Series(base.IndexOpsMixin, NDFrame):
             return True
         return super()._check_is_chained_assignment_possible()
 
+    @validate_bool_kwargs_from_keywords('clear', 'verify_is_copy', 'inplace')
     def _maybe_update_cacher(
         self, clear: bool = False, verify_is_copy: bool = True, inplace: bool = False
     ) -> None:
@@ -1368,6 +1373,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         )
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "level"])
+    @validate_bool_kwargs_from_keywords('allow_duplicates')
     def reset_index(
         self,
         level=None,
@@ -1639,6 +1645,7 @@ class Series(base.IndexOpsMixin, NDFrame):
             +----+----------+"""
         ),
     )
+    @validate_bool_kwargs_from_keywords('index')
     def to_markdown(
         self,
         buf: IO[str] | None = None,
@@ -1824,6 +1831,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         df = self._constructor_expanddim(mgr)
         return df.__finalize__(self, method="to_frame")
 
+    @validate_bool_kwargs_from_keywords('inplace')
     def _set_name(self, name, inplace=False) -> Series:
         """
         Set the Series name.
@@ -1921,6 +1929,7 @@ NaN   20.0
 Name: Max Speed, dtype: float64
 """
     )
+    @validate_bool_kwargs_from_keywords('as_index', 'sort', 'observed', 'dropna')
     @Appender(_shared_docs["groupby"] % _shared_doc_kwargs)
     def groupby(
         self,
@@ -2032,6 +2041,7 @@ Name: Max Speed, dtype: float64
             self, method="count"
         )
 
+    @validate_bool_kwargs_from_keywords('dropna')
     def mode(self, dropna: bool = True) -> Series:
         """
         Return the mode(s) of the Series.
@@ -2890,6 +2900,7 @@ Name: Max Speed, dtype: float64
     # -------------------------------------------------------------------
     # Combination
 
+    @validate_bool_kwargs_from_keywords('ignore_index', 'verify_integrity')
     def append(
         self, to_append, ignore_index: bool = False, verify_integrity: bool = False
     ):
@@ -2976,6 +2987,7 @@ Name: Max Speed, dtype: float64
 
         return self._append(to_append, ignore_index, verify_integrity)
 
+    @validate_bool_kwargs_from_keywords('ignore_index', 'verify_integrity')
     def _append(
         self, to_append, ignore_index: bool = False, verify_integrity: bool = False
     ):
@@ -3129,6 +3141,7 @@ Keep all original rows and also all original values
 """,
         klass=_shared_doc_kwargs["klass"],
     )
+    @validate_bool_kwargs_from_keywords('keep_shape', 'keep_equal')
     def compare(
         self,
         other: Series,
@@ -3371,6 +3384,7 @@ Keep all original rows and also all original values
     # Reindexing, sorting
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
+    @validate_bool_kwargs_from_keywords('inplace', 'ignore_index')
     def sort_values(
         self,
         axis=0,
@@ -3630,6 +3644,7 @@ Keep all original rows and also all original values
 
     # error: Signature of "sort_index" incompatible with supertype "NDFrame"
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
+    @validate_bool_kwargs_from_keywords('inplace', 'sort_remaining', 'ignore_index')
     def sort_index(  # type: ignore[override]
         self,
         axis: Axis = 0,
@@ -4132,6 +4147,7 @@ Keep all original rows and also all original values
         result.index = result.index.reorder_levels(order)
         return result
 
+    @validate_bool_kwargs_from_keywords('ignore_index')
     def explode(self, ignore_index: bool = False) -> Series:
         """
         Transform each element of a list-like to a row.
@@ -4412,6 +4428,7 @@ Keep all original rows and also all original values
         ).transform()
         return result
 
+    @validate_bool_kwargs_from_keywords('convert_dtype')
     def apply(
         self,
         func: AggFuncType,
@@ -4657,6 +4674,7 @@ Keep all original rows and also all original values
     ) -> Series | None:
         ...
 
+    @validate_bool_kwargs_from_keywords('copy', 'inplace')
     def rename(
         self,
         index: Renamer | Hashable | None = None,
@@ -4789,6 +4807,7 @@ Keep all original rows and also all original values
         see_also_sub="",
     )
     @Appender(NDFrame.set_axis.__doc__)
+    @validate_bool_kwargs_from_keywords('inplace')
     def set_axis(self, labels, axis: Axis = 0, inplace: bool = False):
         return super().set_axis(labels, axis=axis, inplace=inplace)
 
@@ -4857,6 +4876,7 @@ Keep all original rows and also all original values
     # error: Signature of "drop" incompatible with supertype "NDFrame"
     # github.com/python/mypy/issues/12387
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
+    @validate_bool_kwargs_from_keywords('inplace')
     def drop(  # type: ignore[override]
         self,
         labels: Hashable | list[Hashable] = None,
@@ -5152,6 +5172,7 @@ Keep all original rows and also all original values
         )
 
     @doc(INFO_DOCSTRING, **series_sub_kwargs)
+    @validate_bool_kwargs_from_keywords('show_counts')
     def info(
         self,
         verbose: bool | None = None,
@@ -5167,6 +5188,7 @@ Keep all original rows and also all original values
             show_counts=show_counts,
         )
 
+    @validate_bool_kwargs_from_keywords('inplace')
     def _replace_single(self, to_replace, method: str, inplace: bool, limit):
         """
         Replaces values in a Series using the fill method specified when no
@@ -5196,6 +5218,7 @@ Keep all original rows and also all original values
             periods=periods, freq=freq, axis=axis, fill_value=fill_value
         )
 
+    @validate_bool_kwargs_from_keywords('index', 'deep')
     def memory_usage(self, index: bool = True, deep: bool = False) -> int:
         """
         Return the memory usage of the Series.
@@ -5430,6 +5453,7 @@ Keep all original rows and also all original values
     # ----------------------------------------------------------------------
     # Convert to types that support pd.NA
 
+    @validate_bool_kwargs_from_keywords('infer_objects', 'convert_string', 'convert_integer', 'convert_boolean', 'convert_floating')
     def _convert_dtypes(
         self,
         infer_objects: bool = True,
@@ -5577,6 +5601,7 @@ Keep all original rows and also all original values
 
     # error: Cannot determine type of 'asfreq'
     @doc(NDFrame.asfreq, **_shared_doc_kwargs)  # type: ignore[has-type]
+    @validate_bool_kwargs_from_keywords('normalize')
     def asfreq(
         self,
         freq,
@@ -5684,6 +5709,7 @@ Keep all original rows and also all original values
         )
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
+    @validate_bool_kwargs_from_keywords('inplace')
     def ffill(
         self: Series,
         axis: None | Axis = None,
@@ -5694,6 +5720,7 @@ Keep all original rows and also all original values
         return super().ffill(axis, inplace, limit, downcast)
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
+    @validate_bool_kwargs_from_keywords('inplace')
     def bfill(
         self: Series,
         axis: None | Axis = None,
@@ -5706,6 +5733,7 @@ Keep all original rows and also all original values
     @deprecate_nonkeyword_arguments(
         version=None, allowed_args=["self", "lower", "upper"]
     )
+    @validate_bool_kwargs_from_keywords('inplace')
     def clip(
         self: Series,
         lower=None,
@@ -5718,6 +5746,7 @@ Keep all original rows and also all original values
         return super().clip(lower, upper, axis, inplace, *args, **kwargs)
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "method"])
+    @validate_bool_kwargs_from_keywords('inplace')
     def interpolate(
         self: Series,
         method: str = "linear",

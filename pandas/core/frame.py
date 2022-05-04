@@ -95,6 +95,7 @@ from pandas.util._validators import (
     validate_axis_style_args,
     validate_bool_kwarg,
     validate_percentile,
+    validate_bool_kwargs_from_keywords,
 )
 
 from pandas.core.dtypes.cast import (
@@ -816,6 +817,7 @@ class DataFrame(NDFrame, OpsMixin):
         NDFrame.__init__(self, mgr)
 
     # ----------------------------------------------------------------------
+    @validate_bool_kwargs_from_keywords('nan_as_null', 'allow_copy')
     def __dataframe__(
         self, nan_as_null: bool = False, allow_copy: bool = True
     ) -> DataFrameXchg:
@@ -986,6 +988,7 @@ class DataFrame(NDFrame, OpsMixin):
         max_rows = get_option("display.max_rows")
         return len(self) <= max_rows
 
+    @validate_bool_kwargs_from_keywords('ignore_width')
     def _repr_fits_horizontal_(self, ignore_width: bool = False) -> bool:
         """
         Check if full repr fits in horizontal boundaries imposed by the display
@@ -1165,6 +1168,7 @@ class DataFrame(NDFrame, OpsMixin):
         "references the column, while the value defines the space to use.",
     )
     @Substitution(shared_params=fmt.common_docstring, returns=fmt.return_docstring)
+    @validate_bool_kwargs_from_keywords('index', 'index_names', 'show_dimensions')
     def to_string(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
@@ -1379,7 +1383,7 @@ class DataFrame(NDFrame, OpsMixin):
         for k, v in zip(self.index, self.values):
             s = klass(v, index=columns, name=k).__finalize__(self)
             yield k, s
-
+    @validate_bool_kwargs_from_keywords('index')
     def itertuples(
         self, index: bool = True, name: str | None = "Pandas"
     ) -> Iterable[tuple[Any, ...]]:
@@ -1740,6 +1744,7 @@ class DataFrame(NDFrame, OpsMixin):
             columns = create_index(data["columns"], data["column_names"])
             return cls(realdata, index=index, columns=columns, dtype=dtype)
 
+    @validate_bool_kwargs_from_keywords('copy')
     def to_numpy(
         self,
         dtype: npt.DTypeLike | None = None,
@@ -2011,6 +2016,7 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             raise ValueError(f"orient '{orient}' not understood")
 
+    @validate_bool_kwargs_from_keywords('reauth', 'auth_local_webserver', 'progress_bar')
     def to_gbq(
         self,
         destination_table: str,
@@ -2496,6 +2502,7 @@ class DataFrame(NDFrame, OpsMixin):
         return np.rec.fromarrays(arrays, dtype={"names": names, "formats": formats})
 
     @classmethod
+    @validate_bool_kwargs_from_keywords('verify_integrity')
     def _from_arrays(
         cls,
         arrays,
@@ -2550,6 +2557,7 @@ class DataFrame(NDFrame, OpsMixin):
         compression_options=_shared_docs["compression_options"] % "path",
     )
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
+    @validate_bool_kwargs_from_keywords('write_index')
     def to_stata(
         self,
         path: FilePath | WriteBuffer[bytes],
@@ -2911,6 +2919,7 @@ class DataFrame(NDFrame, OpsMixin):
         "                Ability to use str",
     )
     @Substitution(shared_params=fmt.common_docstring, returns=fmt.return_docstring)
+    @validate_bool_kwargs_from_keywords('index', 'index_names', 'bold_rows', 'escape', 'notebook', 'render_links')
     def to_html(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
@@ -3001,6 +3010,7 @@ class DataFrame(NDFrame, OpsMixin):
         storage_options=_shared_docs["storage_options"],
         compression_options=_shared_docs["compression_options"] % "path_or_buffer",
     )
+    @validate_bool_kwargs_from_keywords('index')
     def to_xml(
         self,
         path_or_buffer: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
@@ -3233,6 +3243,7 @@ class DataFrame(NDFrame, OpsMixin):
             show_counts=show_counts,
         )
 
+    @validate_bool_kwargs_from_keywords('index', 'deep')
     def memory_usage(self, index: bool = True, deep: bool = False) -> Series:
         """
         Return the memory usage of each column in bytes.
@@ -3333,6 +3344,7 @@ class DataFrame(NDFrame, OpsMixin):
             result = index_memory_usage._append(result)
         return result
 
+    @validate_bool_kwargs_from_keywords('copy')
     def transpose(self, *args, copy: bool = False) -> DataFrame:
         """
         Transpose index and columns.
@@ -3652,6 +3664,7 @@ class DataFrame(NDFrame, OpsMixin):
             # loc is neither a slice nor ndarray, so must be an int
             return self._ixs(loc, axis=1)
 
+    @validate_bool_kwargs_from_keywords('takeable')
     def _get_value(self, index, col, takeable: bool = False) -> Scalar:
         """
         Quickly retrieve single value at passed column and index.
@@ -4004,6 +4017,7 @@ class DataFrame(NDFrame, OpsMixin):
         # no-op for DataFrame
         pass
 
+    @validate_bool_kwargs_from_keywords('inplace')
     def _maybe_cache_changed(self, item, value: Series, inplace: bool) -> None:
         """
         The object has called back to us saying maybe it has changed.
@@ -4021,6 +4035,7 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Unsorted
 
+    @validate_bool_kwargs_from_keywords('inplace')
     def query(self, expr: str, inplace: bool = False, **kwargs):
         """
         Query the columns of a DataFrame with a boolean expression.
@@ -4186,6 +4201,7 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             return result
 
+    @validate_bool_kwargs_from_keywords('inplace')
     def eval(self, expr: str, inplace: bool = False, **kwargs):
         """
         Evaluate a string describing operations on DataFrame columns.
@@ -4758,6 +4774,7 @@ class DataFrame(NDFrame, OpsMixin):
             )
 
     @doc(NDFrame.align, **_shared_doc_kwargs)
+    @validate_bool_kwargs_from_keywords('copy')
     def align(
         self,
         other,
@@ -4844,6 +4861,7 @@ class DataFrame(NDFrame, OpsMixin):
         see_also_sub=" or columns",
     )
     @Appender(NDFrame.set_axis.__doc__)
+    @validate_bool_kwargs_from_keywords('inplace')
     def set_axis(self, labels, axis: Axis = 0, inplace: bool = False):
         return super().set_axis(labels, axis=axis, inplace=inplace)
 
@@ -4913,6 +4931,7 @@ class DataFrame(NDFrame, OpsMixin):
     # error: Signature of "drop" incompatible with supertype "NDFrame"
     # github.com/python/mypy/issues/12387
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
+    @validate_bool_kwargs_from_keywords('inplace')
     def drop(  # type: ignore[override]
         self,
         labels: Hashable | list[Hashable] = None,
@@ -5115,6 +5134,7 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame | None:
         ...
 
+    @validate_bool_kwargs_from_keywords('inplace', 'copy')
     def rename(
         self,
         mapper: Renamer | None = None,
@@ -5362,6 +5382,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "value"])
     @doc(NDFrame.fillna, **_shared_doc_kwargs)
+    @validate_bool_kwargs_from_keywords('inplace')
     def fillna(
         self,
         value: object | ArrayLike | None = None,
@@ -5423,6 +5444,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return super().pop(item=item)
 
+    @validate_bool_kwargs_from_keywords('inplace')
     @doc(NDFrame.replace, **_shared_doc_kwargs)
     def replace(
         self,
@@ -5559,6 +5581,7 @@ class DataFrame(NDFrame, OpsMixin):
         )
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "keys"])
+    @validate_bool_kwargs_from_keywords('inplace', 'drop', 'append', 'verify_integrity')
     def set_index(
         self,
         keys,
@@ -5838,6 +5861,7 @@ class DataFrame(NDFrame, OpsMixin):
         ...
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "level"])
+    @validate_bool_kwargs_from_keywords('inplace', 'drop')
     def reset_index(
         self,
         level: Hashable | Sequence[Hashable] | None = None,
@@ -6110,6 +6134,7 @@ class DataFrame(NDFrame, OpsMixin):
         return ~self.isna()
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
+    @validate_bool_kwargs_from_keywords('inplace')
     def dropna(
         self,
         axis: Axis = 0,
@@ -6273,6 +6298,7 @@ class DataFrame(NDFrame, OpsMixin):
             return result
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "subset"])
+    @validate_bool_kwargs_from_keywords('inplace', 'ignore_index')
     def drop_duplicates(
         self,
         subset: Hashable | Sequence[Hashable] | None = None,
@@ -6519,6 +6545,7 @@ class DataFrame(NDFrame, OpsMixin):
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "by"])
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.sort_values.__doc__)
+    @validate_bool_kwargs_from_keywords('inplace', 'ignore_index')
     # error: Signature of "sort_values" incompatible with supertype "NDFrame"
     def sort_values(  # type: ignore[override]
         self,
@@ -6642,6 +6669,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     # error: Signature of "sort_index" incompatible with supertype "NDFrame"
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
+    @validate_bool_kwargs_from_keywords('inplace', 'sort_remaining', 'ignore_index')
     def sort_index(  # type: ignore[override]
         self,
         axis: Axis = 0,
@@ -6755,6 +6783,7 @@ class DataFrame(NDFrame, OpsMixin):
             key=key,
         )
 
+    @validate_bool_kwargs_from_keywords('normalize', 'sort', 'ascending', 'dropna')
     def value_counts(
         self,
         subset: Sequence[Hashable] | None = None,
@@ -7482,6 +7511,7 @@ Keep all original rows and columns and also all original values
 """,
         klass=_shared_doc_kwargs["klass"],
     )
+    @validate_bool_kwargs_from_keywords('keep_shape', 'keep_equal')
     def compare(
         self,
         other: DataFrame,
@@ -7496,6 +7526,7 @@ Keep all original rows and columns and also all original values
             keep_equal=keep_equal,
         )
 
+    @validate_bool_kwargs_from_keywords('overwrite')
     def combine(
         self, other: DataFrame, func, fill_value=None, overwrite: bool = True
     ) -> DataFrame:
@@ -7741,6 +7772,7 @@ Keep all original rows and columns and also all original values
 
         return combined
 
+    @validate_bool_kwargs_from_keywords('overwrite')
     def update(
         self,
         other,
@@ -8000,6 +8032,7 @@ Parrot 2  Parrot       24.0
 """
     )
     @Appender(_shared_docs["groupby"] % _shared_doc_kwargs)
+    @validate_bool_kwargs_from_keywords('as_index', 'sort', 'observed', 'dropna')
     def groupby(
         self,
         by=None,
@@ -8373,6 +8406,7 @@ Parrot 2  Parrot       24.0
             sort=sort,
         )
 
+    @validate_bool_kwargs_from_keywords('dropna')
     def stack(self, level: Level = -1, dropna: bool = True):
         """
         Stack the prescribed level(s) from columns to index.
@@ -8548,6 +8582,7 @@ Parrot 2  Parrot       24.0
 
         return result.__finalize__(self, method="stack")
 
+    @validate_bool_kwargs_from_keywords('ignore_index')
     def explode(
         self,
         column: IndexLabel,
@@ -9003,6 +9038,7 @@ Parrot 2  Parrot       24.0
         assert isinstance(result, DataFrame)
         return result
 
+    @validate_bool_kwargs_from_keywords('raw')
     def apply(
         self,
         func: AggFuncType,
@@ -9250,6 +9286,7 @@ Parrot 2  Parrot       24.0
     # ----------------------------------------------------------------------
     # Merging / joining methods
 
+    @validate_bool_kwargs_from_keywords('ignore_index', 'verify_integrity', 'sort')
     def append(
         self,
         other,
@@ -9362,6 +9399,7 @@ Parrot 2  Parrot       24.0
 
         return self._append(other, ignore_index, verify_integrity, sort)
 
+    @validate_bool_kwargs_from_keywords('ignore_index', 'verify_integrity', 'sort')
     def _append(
         self,
         other,
@@ -9421,6 +9459,7 @@ Parrot 2  Parrot       24.0
             result = result.reindex(combined_columns, axis=1)
         return result.__finalize__(self, method="append")
 
+    @validate_bool_kwargs_from_keywords('sort')
     def join(
         self,
         other: DataFrame | Series,
@@ -9594,6 +9633,7 @@ Parrot 2  Parrot       24.0
             validate=validate,
         )
 
+    @validate_bool_kwargs_from_keywords('sort')
     def _join_compat(
         self,
         other: DataFrame | Series,
@@ -9677,6 +9717,7 @@ Parrot 2  Parrot       24.0
 
     @Substitution("")
     @Appender(_merge_doc, indents=2)
+    @validate_bool_kwargs_from_keywords('left_index', 'right_index', 'copy', 'indicator', 'sort')
     def merge(
         self,
         right: DataFrame | Series,
@@ -9829,6 +9870,7 @@ Parrot 2  Parrot       24.0
     # ----------------------------------------------------------------------
     # Statistical methods, etc.
 
+    @validate_bool_kwargs_from_keywords('numeric_only')
     def corr(
         self,
         method: str | Callable[[np.ndarray, np.ndarray], float] = "pearson",
@@ -9942,6 +9984,7 @@ Parrot 2  Parrot       24.0
 
         return self._constructor(correl, index=idx, columns=cols)
 
+    @validate_bool_kwargs_from_keywords('numeric_only')
     def cov(
         self,
         min_periods: int | None = None,
@@ -10071,6 +10114,7 @@ Parrot 2  Parrot       24.0
 
         return self._constructor(base_cov, index=idx, columns=cols)
 
+    @validate_bool_kwargs_from_keywords('numeric_only')
     def corrwith(
         self,
         other,
@@ -10235,6 +10279,7 @@ Parrot 2  Parrot       24.0
     # ----------------------------------------------------------------------
     # ndarray-like stats methods
 
+    @validate_bool_kwargs_from_keywords('numeric_only')
     def count(
         self, axis: Axis = 0, level: Level | None = None, numeric_only: bool = False
     ):
@@ -10340,6 +10385,7 @@ Parrot 2  Parrot       24.0
 
         return result.astype("int64").__finalize__(self, method="count")
 
+    @validate_bool_kwargs_from_keywords('numeric_only')
     def _count_level(self, level: Level, axis: int = 0, numeric_only: bool = False):
         if numeric_only:
             frame = self._get_numeric_data()
@@ -10385,6 +10431,7 @@ Parrot 2  Parrot       24.0
 
         return result
 
+    @validate_bool_kwargs_from_keywords('numeric_only')
     def _reduce(
         self,
         op,
@@ -10537,6 +10584,7 @@ Parrot 2  Parrot       24.0
         result = self._constructor_sliced(result, index=labels)
         return result
 
+    @validate_bool_kwargs_from_keywords('skipna')
     def _reduce_axis1(self, name: str, func, skipna: bool) -> Series:
         """
         Special case for _reduce to try to avoid a potentially-expensive transpose.
@@ -10565,6 +10613,7 @@ Parrot 2  Parrot       24.0
         res_ser = self._constructor_sliced(result, index=self.index)
         return res_ser
 
+    @validate_bool_kwargs_from_keywords('dropna')
     def nunique(self, axis: Axis = 0, dropna: bool = True) -> Series:
         """
         Count number of distinct elements in specified axis.
@@ -10606,6 +10655,7 @@ Parrot 2  Parrot       24.0
         return self.apply(Series.nunique, axis=axis, dropna=dropna)
 
     @doc(_shared_docs["idxmin"], numeric_only_default="False")
+    @validate_bool_kwargs_from_keywords('skipna', 'numeric_only')
     def idxmin(
         self, axis: Axis = 0, skipna: bool = True, numeric_only: bool = False
     ) -> Series:
@@ -10630,6 +10680,7 @@ Parrot 2  Parrot       24.0
         return data._constructor_sliced(result, index=data._get_agg_axis(axis))
 
     @doc(_shared_docs["idxmax"], numeric_only_default="False")
+    @validate_bool_kwargs_from_keywords('skipna', 'numeric_only')
     def idxmax(
         self, axis: Axis = 0, skipna: bool = True, numeric_only: bool = False
     ) -> Series:
@@ -10665,6 +10716,7 @@ Parrot 2  Parrot       24.0
         else:
             raise ValueError(f"Axis must be 0 or 1 (got {repr(axis_num)})")
 
+    @validate_bool_kwargs_from_keywords('skipna', 'dropna')
     def mode(
         self, axis: Axis = 0, numeric_only: bool = False, dropna: bool = True
     ) -> DataFrame:
@@ -10884,6 +10936,7 @@ Parrot 2  Parrot       24.0
         return result.__finalize__(self, method="quantile")
 
     @doc(NDFrame.asfreq, **_shared_doc_kwargs)
+    @validate_bool_kwargs_from_keywords('normalize')
     def asfreq(
         self,
         freq: Frequency,
@@ -10933,6 +10986,7 @@ Parrot 2  Parrot       24.0
             group_keys=group_keys,
         )
 
+    @validate_bool_kwargs_from_keywords('copy')
     def to_timestamp(
         self,
         freq: Frequency | None = None,
@@ -10971,6 +11025,7 @@ Parrot 2  Parrot       24.0
         setattr(new_obj, axis_name, new_ax)
         return new_obj
 
+    @validate_bool_kwargs_from_keywords('copy')
     def to_period(
         self, freq: Frequency | None = None, axis: Axis = 0, copy: bool = True
     ) -> DataFrame:
@@ -11170,6 +11225,7 @@ Parrot 2  Parrot       24.0
     # ----------------------------------------------------------------------
     # Internal Interface Methods
 
+    @validate_bool_kwargs_from_keywords('copy')
     def _to_dict_of_blocks(self, copy: bool = True):
         """
         Return a dict of dtype -> Constructor Types that
@@ -11264,6 +11320,7 @@ Parrot 2  Parrot       24.0
         return self._mgr.as_array()
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
+    @validate_bool_kwargs_from_keywords('inplace')
     def ffill(
         self: DataFrame,
         axis: None | Axis = None,
@@ -11274,6 +11331,7 @@ Parrot 2  Parrot       24.0
         return super().ffill(axis, inplace, limit, downcast)
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
+    @validate_bool_kwargs_from_keywords('inplace')
     def bfill(
         self: DataFrame,
         axis: None | Axis = None,
@@ -11286,6 +11344,7 @@ Parrot 2  Parrot       24.0
     @deprecate_nonkeyword_arguments(
         version=None, allowed_args=["self", "lower", "upper"]
     )
+    @validate_bool_kwargs_from_keywords('inplace')
     def clip(
         self: DataFrame,
         lower=None,
@@ -11298,6 +11357,7 @@ Parrot 2  Parrot       24.0
         return super().clip(lower, upper, axis, inplace, *args, **kwargs)
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "method"])
+    @validate_bool_kwargs_from_keywords('inplace')
     def interpolate(
         self: DataFrame,
         method: str = "linear",
