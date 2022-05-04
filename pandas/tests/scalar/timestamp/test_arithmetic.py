@@ -72,17 +72,22 @@ class TestTimestampArithmetic:
         with pytest.raises(OverflowError, match=lmsg):
             stamp - offset_overflow
 
-    def test_overflow_timestamp_raises(self):
+    def test_sub_can_return_stdlib_timedelta_to_avoid_overflow(self, timedelta_overflow):
         # https://github.com/pandas-dev/pandas/issues/31774
-        msg = "Result is too large"
+        msg = "Result is too large for pandas.Timedelta"
         a = Timestamp("2101-01-01 00:00:00")
         b = Timestamp("1688-01-01 00:00:00")
 
-        with pytest.raises(OutOfBoundsDatetime, match=msg):
+        with pytest.raises(timedelta_overflow["expected_exception"], match=msg):
             a - b
 
-        # but we're OK for timestamp and datetime.datetime
-        assert (a - b.to_pydatetime()) == (a.to_pydatetime() - b)
+        # but we're OK for Timestamp and datetime.datetime
+        r0 = a - b.to_pydatetime()
+        r1 = a.to_pydatetime() - b
+        assert r0 == r1
+        assert isinstance(r0, timedelta)
+        assert isinstance(r1, timedelta)
+
 
     def test_delta_preserve_nanos(self):
         val = Timestamp(1337299200000000123)

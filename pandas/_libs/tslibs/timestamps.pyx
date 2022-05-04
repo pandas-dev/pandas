@@ -86,7 +86,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     pydatetime_to_dt64,
 )
 
-from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
+from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime, OutOfBoundsTimedelta
 
 from pandas._libs.tslibs.offsets cimport (
     BaseOffset,
@@ -431,14 +431,13 @@ cdef class _Timestamp(ABCTimestamp):
             # Timedelta
             try:
                 return Timedelta(self.value - other.value)
-            except (OverflowError, OutOfBoundsDatetime) as err:
-                if isinstance(other, _Timestamp):
-                    if both_timestamps:
-                        raise OutOfBoundsDatetime(
-                            "Result is too large for pandas.Timedelta. Convert inputs "
-                            "to datetime.datetime with 'Timestamp.to_pydatetime()' "
-                            "before subtracting."
-                        ) from err
+            except OutOfBoundsTimedelta as err:
+                if both_timestamps:
+                    raise OutOfBoundsTimedelta(
+                        "Result is too large for pandas.Timedelta. Convert inputs "
+                        "to datetime.datetime with 'Timestamp.to_pydatetime()' "
+                        "before subtracting."
+                    ) from err
                 # We get here in stata tests, fall back to stdlib datetime
                 #  method and return stdlib timedelta object
                 pass

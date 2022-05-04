@@ -684,13 +684,23 @@ def _op_unary_method(func, name):
     return f
 
 
-cpdef int64_t calculate(object op, int64_t a, int64_t b) except? -1:
+@cython.overflowcheck(True)
+cpdef int64_t _calculate(object op, int64_t a, int64_t b) except? -1:
     """
-    Calculate op(a, b) and return the result, or raise if the operation would overflow.
+    Calculate op(a, b) and return the result. Raises OverflowError if either operand
+    or the result would overflow on conversion to int64_t.
     """
+    return op(a, b)
+
+
+cpdef int64_t calculate(object op, object a, object b) except? -1:
+    """
+    As above, but raises an OutOfBoundsTimedelta.
+    """
+    cdef int64_t int_a, int_b
+
     try:
-        with cython.overflowcheck(True):
-            return op(a, b)
+        return _calculate(op, a, b)
     except OverflowError as ex:
         msg = f"outside allowed range [{TIMEDELTA_MIN_NS}ns, {TIMEDELTA_MAX_NS}ns]"
         raise OutOfBoundsTimedelta(msg) from ex
