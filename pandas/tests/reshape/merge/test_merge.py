@@ -2259,21 +2259,6 @@ def test_merge_duplicate_suffix(how, expected):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "col1, col2, suffixes",
-    [("a", "a", (None, None)), ("a", "a", ("", None)), (0, 0, (None, ""))],
-)
-def test_merge_suffix_error(col1, col2, suffixes):
-    # issue: 24782
-    a = DataFrame({col1: [1, 2, 3]})
-    b = DataFrame({col2: [3, 4, 5]})
-
-    # TODO: might reconsider current raise behaviour, see issue 24782
-    msg = "columns overlap but no suffix specified"
-    with pytest.raises(ValueError, match=msg):
-        merge(a, b, left_index=True, right_index=True, suffixes=suffixes)
-
-
 @pytest.mark.parametrize("suffixes", [{"left", "right"}, {"left": 0, "right": 0}])
 def test_merge_suffix_warns(suffixes):
     a = DataFrame({"a": [1, 2, 3]})
@@ -2672,29 +2657,4 @@ def test_merge_different_index_names():
     right = DataFrame({"a": [1]}, index=pd.Index([1], name="d"))
     result = merge(left, right, left_on="c", right_on="d")
     expected = DataFrame({"a_x": [1], "a_y": 1})
-    tm.assert_frame_equal(result, expected)
-
-
-def test_merge_complex_column():
-    # GH#46885
-    class Column:
-        def __init__(self, name):
-            self.name = name
-
-        def __eq__(self, other):
-            return other.name == self.name
-
-        def __hash__(self):
-            return hash(self.name)
-
-        def __add__(self, other):
-            return Column(name=f"{self.name}@{other}")
-
-    merged_column = Column(name="Z")
-    left = DataFrame([[1, 2]], columns=[merged_column, "X"])
-    right = DataFrame([[1, 6]], columns=[merged_column, "Y"])
-    result = merge(left, right, left_index=True, right_index=True)
-    expected = DataFrame(
-        [[1, 2, 1, 6]], columns=[Column("Z@_x"), "X", Column("Z@_y"), "Y"]
-    )
     tm.assert_frame_equal(result, expected)
