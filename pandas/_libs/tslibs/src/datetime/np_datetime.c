@@ -331,6 +331,31 @@ int cmp_npy_datetimestruct(const npy_datetimestruct *a,
 
     return 0;
 }
+/*
+* Returns the offset from utc of the timezone as a timedelta.
+* The caller is responsible for ensuring that the tzinfo
+* attribute exists on the datetime object.
+*
+* If the passed object is timezone naive, Py_None is returned.
+* If extraction of the offset fails, NULL is returned.
+*
+* NOTE: This function is not vendored from numpy.
+*/
+PyObject *extract_utc_offset(PyObject *obj) {
+    PyObject *tmp = PyObject_GetAttrString(obj, "tzinfo");
+    if (tmp == NULL) {
+        return NULL;
+    }
+    if (tmp != Py_None) {
+        PyObject *offset = PyObject_CallMethod(tmp, "utcoffset", "O", obj);
+        if (offset == NULL) {
+            Py_DECREF(tmp);
+            return NULL;
+        }
+        return offset;
+    }
+    return tmp;
+}
 
 /*
  *
@@ -376,32 +401,22 @@ int convert_pydatetime_to_datetimestruct(PyObject *dtobj,
     out->sec = PyLong_AsLong(PyObject_GetAttrString(obj, "second"));
     out->us = PyLong_AsLong(PyObject_GetAttrString(obj, "microsecond"));
 
-    /* Apply the time zone offset if datetime obj is tz-aware */
-    if (PyObject_HasAttrString((PyObject*)obj, "tzinfo")) {
-        tmp = PyObject_GetAttrString(obj, "tzinfo");
-        if (tmp == NULL) {
-            return -1;
-        }
-        if (tmp == Py_None) {
-            Py_DECREF(tmp);
-        } else {
-            PyObject *offset;
+    if (PyObject_HasAttrString(obj, "tzinfo")) {
+        PyObject *offset = extract_utc_offset(obj);
+        /* Apply the time zone offset if datetime obj is tz-aware */
+        if (offset != NULL) {
+            if (offset == Py_None) {
+                Py_DECREF(offset);
+                return 0;
+            }
             PyObject *tmp_int;
             int seconds_offset, minutes_offset;
-
-            /* The utcoffset function should return a timedelta */
-            offset = PyObject_CallMethod(tmp, "utcoffset", "O", obj);
-            if (offset == NULL) {
-                Py_DECREF(tmp);
-                return -1;
-            }
-            Py_DECREF(tmp);
-
             /*
              * The timedelta should have a function "total_seconds"
              * which contains the value we want.
              */
             tmp = PyObject_CallMethod(offset, "total_seconds", "");
+            Py_DECREF(offset);
             if (tmp == NULL) {
                 return -1;
             }

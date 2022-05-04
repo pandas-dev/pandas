@@ -221,8 +221,18 @@ static PyObject *get_values(PyObject *obj) {
         // The special cases to worry about are dt64tz and category[dt64tz].
         //  In both cases we want the UTC-localized datetime64 ndarray,
         //  without going through and object array of Timestamps.
+        if (PyObject_HasAttrString(obj, "tz")) {
+            PyObject *tz = PyObject_GetAttrString(obj, "tz");
+            if (tz != Py_None) {
+                // Go through object array if we have dt64tz, since tz info will
+                // be lost if values is used directly.
+                Py_DECREF(tz);
+                values = PyObject_CallMethod(obj, "__array__", NULL);
+                return values;
+            }
+            Py_DECREF(tz);
+        }
         values = PyObject_GetAttrString(obj, "values");
-
         if (values == NULL) {
             // Clear so we can subsequently try another method
             PyErr_Clear();

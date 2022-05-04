@@ -632,7 +632,7 @@ int get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base) {
  *  string was too short).
  */
 int make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
-                           NPY_DATETIMEUNIT base) {
+                           int utc, NPY_DATETIMEUNIT base) {
     char *substr = outstr;
     int sublen = outlen;
     int tmplen;
@@ -911,13 +911,14 @@ int make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
 
 add_time_zone:
     /* UTC "Zulu" time */
-    if (sublen < 1) {
-        goto string_too_short;
+    if (utc) {
+        if (sublen < 1) {
+            goto string_too_short;
+        }
+        substr[0] = 'Z';
+        substr += 1;
+        sublen -= 1;
     }
-    substr[0] = 'Z';
-    substr += 1;
-    sublen -= 1;
-
     /* Add a NULL terminator, and return */
     if (sublen > 0) {
         substr[0] = '\0';

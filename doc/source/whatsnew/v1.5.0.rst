@@ -194,10 +194,47 @@ did not have the same index as the input.
     df.groupby('a', dropna=True).transform('ffill')
     df.groupby('a', dropna=True).transform(lambda x: x)
 
-.. _whatsnew_150.notable_bug_fixes.notable_bug_fix2:
+.. _whatsnew_150.notable_bug_fixes.to_json_incorrectly_localizing_naive_timestamps:
 
-notable_bug_fix2
-^^^^^^^^^^^^^^^^
+Serializing tz-naive Timestamps with to_json() with ``iso_dates=True``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`DataFrame.to_json`, :meth:`Series.to_json`, and :meth:`Index.to_json`
+would incorrectly localize DatetimeArrays/DatetimeIndexes with tz-naive Timestamps
+to UTC. (:issue:`38760`)
+
+Note that this patch does not fix the localization of tz-aware Timestamps to UTC
+upon serialization. (Related issue :issue:`12997`)
+
+*Old Behavior*
+
+.. ipython:: python
+
+    index = pd.date_range(
+        start='2020-12-28 00:00:00',
+        end='2020-12-28 02:00:00',
+        freq='1H',
+    )
+    a = pd.Series(
+        data=range(3),
+        index=index,
+    )
+
+.. code-block:: ipython
+
+    In [4]: a.to_json(date_format='iso')
+    Out[4]: '{"2020-12-28T00:00:00.000Z":0,"2020-12-28T01:00:00.000Z":1,"2020-12-28T02:00:00.000Z":2}'
+
+    In [5]: pd.read_json(a.to_json(date_format='iso'), typ="series").index == a.index
+    Out[5]: array([False, False, False])
+
+*New Behavior*
+
+.. ipython:: python
+
+    a.to_json(date_format='iso')
+    # Roundtripping now works
+    pd.read_json(a.to_json(date_format='iso'), typ="series").index == a.index
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.api_breaking:

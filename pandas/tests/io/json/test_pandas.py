@@ -822,7 +822,7 @@ class TestPandasContainer:
             expected = '{"1577836800000":1577836800000,"null":null}'
         else:
             expected = (
-                '{"2020-01-01T00:00:00.000Z":"2020-01-01T00:00:00.000Z","null":null}'
+                '{"2020-01-01T00:00:00.000":"2020-01-01T00:00:00.000","null":null}'
             )
 
         if as_object:
@@ -875,8 +875,6 @@ class TestPandasContainer:
             json = df.to_json(date_format="iso")
         result = read_json(json)
         expected = df.copy()
-        expected.index = expected.index.tz_localize("UTC")
-        expected["date"] = expected["date"].dt.tz_localize("UTC")
         tm.assert_frame_equal(result, expected)
 
     def test_date_format_frame_raises(self, datetime_frame):
@@ -905,8 +903,6 @@ class TestPandasContainer:
             json = ts.to_json(date_format="iso")
         result = read_json(json, typ="series")
         expected = ts.copy()
-        expected.index = expected.index.tz_localize("UTC")
-        expected = expected.dt.tz_localize("UTC")
         tm.assert_series_equal(result, expected)
 
     def test_date_format_series_raises(self, datetime_series):
@@ -1192,6 +1188,16 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         dt = ts.to_pydatetime()
         assert dumps(dt, iso_dates=True) == exp
 
+    def test_tz_is_naive(self):
+        from pandas.io.json import dumps
+
+        ts = Timestamp("2013-01-10 05:00:00")
+        exp = '"2013-01-10T05:00:00.000"'
+
+        assert dumps(ts, iso_dates=True) == exp
+        dt = ts.to_pydatetime()
+        assert dumps(dt, iso_dates=True) == exp
+
     @pytest.mark.parametrize(
         "tz_range",
         [
@@ -1212,10 +1218,31 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
         assert dumps(tz_range, iso_dates=True) == exp
         dti = DatetimeIndex(tz_range)
+        # Ensure datetimes in object array are serialized correctly
+        # in addition to the normal DTI case
         assert dumps(dti, iso_dates=True) == exp
+        assert dumps(dti.astype(object), iso_dates=True) == exp
         df = DataFrame({"DT": dti})
         result = dumps(df, iso_dates=True)
         assert result == dfexp
+        assert dumps(df.astype({"DT": object}), iso_dates=True)
+
+    def test_tz_range_is_naive(self):
+        from pandas.io.json import dumps
+
+        dti = pd.date_range("2013-01-01 05:00:00", periods=2)
+
+        exp = '["2013-01-01T05:00:00.000","2013-01-02T05:00:00.000"]'
+        dfexp = '{"DT":{"0":"2013-01-01T05:00:00.000","1":"2013-01-02T05:00:00.000"}}'
+
+        # Ensure datetimes in object array are serialized correctly
+        # in addition to the normal DTI case
+        assert dumps(dti, iso_dates=True) == exp
+        assert dumps(dti.astype(object), iso_dates=True) == exp
+        df = DataFrame({"DT": dti})
+        result = dumps(df, iso_dates=True)
+        assert result == dfexp
+        assert dumps(df.astype({"DT": object}), iso_dates=True)
 
     def test_read_inline_jsonl(self):
         # GH9180
