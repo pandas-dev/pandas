@@ -29,6 +29,7 @@ from cpython.datetime cimport (
 import_datetime()
 
 
+from pandas._libs cimport ops
 cimport pandas._libs.tslibs.util as util
 from pandas._libs.tslibs.base cimport ABCTimestamp
 from pandas._libs.tslibs.conversion cimport (
@@ -684,23 +685,13 @@ def _op_unary_method(func, name):
     return f
 
 
-@cython.overflowcheck(True)
-cpdef int64_t _calculate(object op, int64_t a, int64_t b) except? -1:
-    """
-    Calculate op(a, b) and return the result. Raises OverflowError if either operand
-    or the result would overflow on conversion to int64_t.
-    """
-    return op(a, b)
-
-
 cpdef int64_t calculate(object op, object a, object b) except? -1:
     """
-    As above, but raises an OutOfBoundsTimedelta.
+    Calculate op(a, b), raising if either operand or the resulting value cannot be
+    safely cast to an int64_t.
     """
-    cdef int64_t int_a, int_b
-
     try:
-        return _calculate(op, a, b)
+        return ops.calculate(op, a, b)
     except OverflowError as ex:
         msg = f"outside allowed range [{TIMEDELTA_MIN_NS}ns, {TIMEDELTA_MAX_NS}ns]"
         raise OutOfBoundsTimedelta(msg) from ex
