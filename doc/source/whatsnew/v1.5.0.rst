@@ -511,12 +511,6 @@ Strings
 - Bug in :meth:`str.startswith` and :meth:`str.endswith` when using other series as parameter _pat_. Now raises ``TypeError`` (:issue:`3485`)
 -
 
-Merge
-^^^^^^^
-- Bug in :meth:`merge` supports user-defined types merge with identical columns
--
-
-
 Interval
 ^^^^^^^^
 - Bug in :meth:`IntervalArray.__setitem__` when setting ``np.nan`` into an integer-backed array raising ``ValueError`` instead of ``TypeError`` (:issue:`45484`)
@@ -625,6 +619,7 @@ Reshaping
 - Bug in concanenation with ``IntegerDtype``, or ``FloatingDtype`` arrays where the resulting dtype did not mirror the behavior of the non-nullable dtypes (:issue:`46379`)
 - Bug in :func:`concat` with identical key leads to error when indexing :class:`MultiIndex` (:issue:`46519`)
 - Bug in :meth:`DataFrame.join` with a list when using suffixes to join DataFrames with duplicate column names (:issue:`46396`)
+- Bug in :meth:`merge` supports user-defined types merge with identical columns
 -
 
 Sparse
