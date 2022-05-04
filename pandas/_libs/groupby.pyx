@@ -1262,6 +1262,7 @@ def group_rank(
     bint ascending=True,
     bint pct=False,
     str na_option="keep",
+    const uint8_t[:, :] mask=None,
 ) -> None:
     """
     Provides the rank of values within each group.
@@ -1294,6 +1295,7 @@ def group_rank(
         * keep: leave NA values where they are
         * top: smallest rank if ascending
         * bottom: smallest rank if descending
+    mask : np.ndarray[bool] or None, default None
 
     Notes
     -----
@@ -1302,10 +1304,16 @@ def group_rank(
     cdef:
         Py_ssize_t i, k, N
         ndarray[float64_t, ndim=1] result
+        const uint8_t[:] sub_mask
 
     N = values.shape[1]
 
     for k in range(N):
+        if mask is None:
+            sub_mask = None
+        else:
+            sub_mask = mask[:, k]
+
         result = rank_1d(
             values=values[:, k],
             labels=labels,
@@ -1313,7 +1321,8 @@ def group_rank(
             ties_method=ties_method,
             ascending=ascending,
             pct=pct,
-            na_option=na_option
+            na_option=na_option,
+            mask=sub_mask,
         )
         for i in range(len(result)):
             # TODO: why can't we do out[:, k] = result?

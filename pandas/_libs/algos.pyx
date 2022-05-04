@@ -889,6 +889,7 @@ def rank_1d(
     bint ascending=True,
     bint pct=False,
     na_option="keep",
+    const uint8_t[:] mask=None,
 ):
     """
     Fast NaN-friendly version of ``scipy.stats.rankdata``.
@@ -918,6 +919,8 @@ def rank_1d(
         * keep: leave NA values where they are
         * top: smallest rank if ascending
         * bottom: smallest rank if descending
+    mask : np.ndarray[bool], optional, default None
+        Specify locations to be treated as NA, for e.g. Categorical.
     """
     cdef:
         TiebreakEnumType tiebreak
@@ -927,7 +930,6 @@ def rank_1d(
         float64_t[::1] out
         ndarray[numeric_object_t, ndim=1] masked_vals
         numeric_object_t[:] masked_vals_memview
-        uint8_t[:] mask
         bint keep_na, nans_rank_highest, check_labels, check_mask
         numeric_object_t nan_fill_val
 
@@ -956,6 +958,7 @@ def rank_1d(
         or numeric_object_t is object
         or (numeric_object_t is int64_t and is_datetimelike)
     )
+    check_mask = check_mask or mask is not None
 
     # Copy values into new array in order to fill missing data
     # with mask, without obfuscating location of missing data
@@ -965,7 +968,9 @@ def rank_1d(
     else:
         masked_vals = values.copy()
 
-    if numeric_object_t is object:
+    if mask is not None:
+        pass
+    elif numeric_object_t is object:
         mask = missing.isnaobj(masked_vals)
     elif numeric_object_t is int64_t and is_datetimelike:
         mask = (masked_vals == NPY_NAT).astype(np.uint8)
