@@ -609,12 +609,35 @@ class SeriesGroupBy(GroupBy[Series]):
 
         names = self.grouper.names + [self.obj.name]
 
-        if is_categorical_dtype(val.dtype) or (
-            bins is not None and not np.iterable(bins)
-        ):
+        if is_categorical_dtype(val.dtype):
+            df = self.obj.to_frame()
+            df.columns = Index([self.obj.name])
+            # GH38672 relates to categorical dtype
+            groupby = DataFrameGroupBy(
+                df,
+                self.grouper,
+                axis=self.axis,
+                level=self.level,
+                grouper=self.grouper,
+                exclusions=self.exclusions,
+                as_index=self.as_index,
+                sort=self.sort,
+                group_keys=self.group_keys,
+                squeeze=self.squeeze,
+                observed=self.observed,
+                mutated=self.mutated,
+                dropna=self.dropna,
+            )
+            ser = groupby.value_counts(
+                normalize=normalize, sort=sort, ascending=ascending
+            )
+            ser.name = self.obj.name
+            return ser
+
+        if bins is not None and not np.iterable(bins):
             # scalar bins cannot be done at top level
             # in a backward compatible way
-            # GH38672 relates to categorical dtype
+
             ser = self.apply(
                 Series.value_counts,
                 normalize=normalize,
