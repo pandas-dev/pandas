@@ -25,7 +25,6 @@ from typing import (
     Iterable,
     Iterator,
     Literal,
-    Optional,
     Sequence,
     cast,
     overload,
@@ -325,7 +324,8 @@ suffixes : optional list-like, default is ("_x", "_y")
     indicating the suffix to add to overlapping column names in
     `left` and `right` respectively. Pass a value of `None` instead
     of a string to indicate that the column name from `left` or
-    `right` should be left as-is, with no suffix. Pass `None` to keep both columns as-is.
+    `right` should be left as-is, with no suffix. 
+    Pass `None` to keep both columns as-is.
 copy : bool, default True
     If False, avoid copy if possible.
 indicator : bool or str, default False
@@ -9620,7 +9620,7 @@ Parrot 2  Parrot       24.0
         left_index: bool = False,
         right_index: bool = False,
         sort: bool = False,
-        suffixes: Optional[Suffixes] = ("_x", "_y"),
+        suffixes: Suffixes | None = ("_x", "_y"),
         copy: bool = True,
         indicator: bool = False,
         validate: str | None = None,
