@@ -17,7 +17,6 @@ Instead of splitting it was decided to define sections here:
 - Dtypes
 - Misc
 """
-# pyright: reportUntypedFunctionDecorator = false
 
 from collections import abc
 from datetime import (
@@ -74,6 +73,11 @@ except ImportError:
 else:
     del pa
     has_pyarrow = True
+
+zoneinfo = None
+if pd.compat.PY39:
+    # Import "zoneinfo" could not be resolved (reportMissingImports)
+    import zoneinfo  # type: ignore[no-redef]
 
 # Until https://github.com/numpy/numpy/issues/19078 is sorted out, just suppress
 suppress_npdev_promotion_warning = pytest.mark.filterwarnings(
@@ -1166,6 +1170,8 @@ TIMEZONES = [
     timezone(timedelta(hours=1)),
     timezone(timedelta(hours=-1), name="foo"),
 ]
+if zoneinfo is not None:
+    TIMEZONES.extend([zoneinfo.ZoneInfo("US/Pacific"), zoneinfo.ZoneInfo("UTC")])
 TIMEZONE_IDS = [repr(i) for i in TIMEZONES]
 
 
@@ -1191,7 +1197,12 @@ def tz_aware_fixture(request):
 tz_aware_fixture2 = tz_aware_fixture
 
 
-@pytest.fixture(params=["utc", "dateutil/UTC", utc, tzutc(), timezone.utc])
+_UTCS = ["utc", "dateutil/UTC", utc, tzutc(), timezone.utc]
+if zoneinfo is not None:
+    _UTCS.append(zoneinfo.ZoneInfo("UTC"))
+
+
+@pytest.fixture(params=_UTCS)
 def utc_fixture(request):
     """
     Fixture to provide variants of UTC timezone strings and tzinfo objects.

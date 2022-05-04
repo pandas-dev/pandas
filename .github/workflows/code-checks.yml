@@ -80,6 +80,10 @@ jobs:
       id: build
       uses: ./.github/actions/build_pandas
 
+    - name: Check for no warnings when building single-page docs
+      run: ci/code_checks.sh single-docs
+      if: ${{ steps.build.outcome == 'success' }}
+
     - name: Run checks on imported code
       run: ci/code_checks.sh code
       if: ${{ steps.build.outcome == 'success' }}
@@ -141,11 +145,7 @@ jobs:
       run: |
         cd asv_bench
         asv machine --yes
-        # TODO add `--durations` when we start using asv >= 0.5 (#46598)
-        asv run --quick --dry-run --python=same | sed "/failed$/ s/^/##[error]/" | tee benchmarks.log
-        if grep "failed" benchmarks.log > /dev/null ; then
-            exit 1
-        fi
+        asv run --quick --dry-run --strict --durations=30 --python=same
 
   build_docker_dev_environment:
     name: Build Docker Dev Environment

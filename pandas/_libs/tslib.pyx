@@ -1,7 +1,6 @@
 import warnings
 
-import cython
-
+cimport cython
 from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
@@ -28,7 +27,7 @@ cnp.import_array()
 import pytz
 
 from pandas._libs.tslibs.np_datetime cimport (
-    _string_to_dts,
+    NPY_DATETIMEUNIT,
     check_dts_bounds,
     dt64_to_dtstruct,
     dtstruct_to_dt64,
@@ -36,6 +35,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct,
     pydate_to_dt64,
     pydatetime_to_dt64,
+    string_to_dts,
 )
 from pandas._libs.util cimport (
     is_datetime64_object,
@@ -63,6 +63,7 @@ from pandas._libs.tslibs.timestamps cimport _Timestamp
 from pandas._libs.tslibs.timestamps import Timestamp
 
 # Note: this is the only non-tslibs intra-pandas dependency here
+
 from pandas._libs.missing cimport checknull_with_nat_and_na
 from pandas._libs.tslibs.tzconversion cimport tz_localize_to_utc_single
 
@@ -75,6 +76,7 @@ def _test_parse_iso8601(ts: str):
     cdef:
         _TSObject obj
         int out_local = 0, out_tzoffset = 0
+        NPY_DATETIMEUNIT out_bestunit
 
     obj = _TSObject()
 
@@ -83,7 +85,7 @@ def _test_parse_iso8601(ts: str):
     elif ts == 'today':
         return Timestamp.now().normalize()
 
-    _string_to_dts(ts, &obj.dts, &out_local, &out_tzoffset, True)
+    string_to_dts(ts, &obj.dts, &out_bestunit, &out_local, &out_tzoffset, True)
     obj.value = dtstruct_to_dt64(&obj.dts)
     check_dts_bounds(&obj.dts)
     if out_local == 1:
@@ -123,7 +125,7 @@ def format_array_from_datetime(
         ndarray[int64_t] consider_values
         bint show_ms = False, show_us = False, show_ns = False
         bint basic_format = False
-        ndarray[object] result = np.empty(N, dtype=object)
+        ndarray[object] result = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_OBJECT, 0)
         object ts, res
         npy_datetimestruct dts
 
@@ -349,7 +351,7 @@ def array_with_unit_to_datetime(
     # and are in ignore mode
     # redo as object
 
-    oresult = np.empty(n, dtype=object)
+    oresult = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_OBJECT, 0)
     for i in range(n):
         val = values[i]
 
@@ -424,10 +426,11 @@ cpdef array_to_datetime(
     """
     cdef:
         Py_ssize_t i, n = len(values)
-        object val, py_dt, tz, tz_out = None
+        object val, tz
         ndarray[int64_t] iresult
         ndarray[object] oresult
         npy_datetimestruct dts
+        NPY_DATETIMEUNIT out_bestunit
         bint utc_convert = bool(utc)
         bint seen_integer = False
         bint seen_string = False
@@ -443,6 +446,8 @@ cpdef array_to_datetime(
         float offset_seconds, tz_offset
         set out_tzoffset_vals = set()
         bint string_to_dts_failed
+        datetime py_dt
+        tzinfo tz_out = None
 
     # specify error conditions
     assert is_raise or is_ignore or is_coerce
@@ -513,8 +518,8 @@ cpdef array_to_datetime(
                         iresult[i] = NPY_NAT
                         continue
 
-                    string_to_dts_failed = _string_to_dts(
-                        val, &dts, &out_local,
+                    string_to_dts_failed = string_to_dts(
+                        val, &dts, &out_bestunit, &out_local,
                         &out_tzoffset, False
                     )
                     if string_to_dts_failed:
@@ -647,6 +652,8 @@ cpdef array_to_datetime(
     return result, tz_out
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef ndarray[object] ignore_errors_out_of_bounds_fallback(ndarray[object] values):
     """
     Fallback for array_to_datetime if an OutOfBoundsDatetime is raised
@@ -664,7 +671,7 @@ cdef ndarray[object] ignore_errors_out_of_bounds_fallback(ndarray[object] values
         Py_ssize_t i, n = len(values)
         object val
 
-    oresult = np.empty(n, dtype=object)
+    oresult = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_OBJECT, 0)
 
     for i in range(n):
         val = values[i]
@@ -726,7 +733,7 @@ cdef _array_to_datetime_object(
 
     assert is_raise or is_ignore or is_coerce
 
-    oresult = np.empty(n, dtype=object)
+    oresult = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_OBJECT, 0)
 
     # We return an object array and only attempt to parse:
     # 1) NaT or NaT-like values
