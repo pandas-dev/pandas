@@ -135,9 +135,13 @@ def ints_to_pydatetime(
         bint use_date = False, use_time = False, use_ts = False, use_pydt = False
         object res_val
 
+        # Note that `result` (and thus `result_flat`) is C-order and
+        #  `it` iterates C-order as well, so the iteration matches
+        #  See discussion at
+        #  github.com/pandas-dev/pandas/pull/46886#discussion_r860261305
         ndarray result = cnp.PyArray_EMPTY(stamps.ndim, stamps.shape, cnp.NPY_OBJECT, 0)
-        ndarray res_flat = result.ravel()  # should NOT be a copy
-        cnp.broadcast mi = cnp.PyArray_MultiIterNew2(result, stamps)
+        object[::1] res_flat = result.ravel()     # should NOT be a copy
+        cnp.flatiter it = cnp.PyArray_IterNew(stamps)
 
     if box == "date":
         assert (tz is None), "tz should be None when converting to date"
@@ -155,7 +159,7 @@ def ints_to_pydatetime(
 
     for i in range(n):
         # Analogous to: utc_val = stamps[i]
-        utc_val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+        utc_val = (<int64_t*>cnp.PyArray_ITER_DATA(it))[0]
 
         new_tz = tz
 
@@ -191,7 +195,7 @@ def ints_to_pydatetime(
         #  github.com/pandas-dev/pandas/pull/46886#discussion_r860261305
         res_flat[i] = res_val
 
-        cnp.PyArray_MultiIter_NEXT(mi)
+        cnp.PyArray_ITER_NEXT(it)
 
     return result
 
