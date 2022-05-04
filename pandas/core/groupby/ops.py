@@ -46,7 +46,6 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_1d_only_ea_dtype,
     is_bool_dtype,
-    is_categorical_dtype,
     is_complex_dtype,
     is_datetime64_any_dtype,
     is_float_dtype,
@@ -56,12 +55,14 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     needs_i8_conversion,
 )
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import (
     isna,
     maybe_fill,
 )
 
 from pandas.core.arrays import (
+    Categorical,
     DatetimeArray,
     ExtensionArray,
     PeriodArray,
@@ -237,7 +238,7 @@ class WrappedCythonOp:
             # never an invalid op for those dtypes, so return early as fastpath
             return
 
-        if is_categorical_dtype(dtype):
+        if isinstance(dtype, CategoricalDtype):
             # NotImplementedError for methods that can fall back to a
             #  non-cython implementation.
             if how in ["add", "prod", "cumsum", "cumprod"]:
@@ -345,7 +346,7 @@ class WrappedCythonOp:
                 **kwargs,
             )
 
-        elif is_categorical_dtype(values.dtype) and self.uses_mask():
+        elif isinstance(values, Categorical) and self.uses_mask():
             assert self.how == "rank"  # the only one implemented ATM
             assert values.ordered  # checked earlier
             mask = values.isna()
