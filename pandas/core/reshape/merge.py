@@ -2356,7 +2356,7 @@ def _items_overlap_with_suffix(
     If corresponding suffix is empty, the entry is simply converted to string.
 
     """
-    if not is_list_like(suffixes, allow_sets=False):
+    if not (is_list_like(suffixes, allow_sets=False) or suffixes is None):
         warnings.warn(
             f"Passing 'suffixes' as a {type(suffixes)}, is not supported and may give "
             "unexpected results. Provide 'suffixes' as a tuple instead. In the "
@@ -2369,10 +2369,7 @@ def _items_overlap_with_suffix(
     if len(to_rename) == 0:
         return left, right
 
-    lsuffix, rsuffix = suffixes
-
-    if not lsuffix and not rsuffix:
-        raise ValueError(f"columns overlap but no suffix specified: {to_rename}")
+    lsuffix, rsuffix = suffixes if suffixes else (None, None)
 
     def renamer(x, suffix):
         """
@@ -2391,10 +2388,7 @@ def _items_overlap_with_suffix(
         x : renamed column
         """
         if x in to_rename and suffix is not None:
-            try:
-                return x + suffix
-            except TypeError:
-                return f"{x}{suffix}"
+            return f"{x}{suffix}"
         return x
 
     lrenamer = partial(renamer, suffix=lsuffix)

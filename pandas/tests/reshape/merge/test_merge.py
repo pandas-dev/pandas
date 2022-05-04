@@ -2209,6 +2209,10 @@ def test_merge_series(on, left_on, right_on, left_index, right_index, nm):
         (0, 0, {"suffixes": ("_a", None)}, ["0_a", 0]),
         ("a", "a", {}, ["a_x", "a_y"]),
         (0, 0, {}, ["0_x", "0_y"]),
+        (0, 0, {"suffixes": None}, [0, 0]),
+        (0, 0, {"suffixes": (None, None)}, [0, 0]),
+        ("a", "a", {"suffixes": None}, ["a", "a"]),
+        ("a", "a", {"suffixes": (None, None)}, ["a", "a"])
     ],
 )
 def test_merge_suffix(col1, col2, kwargs, expected_cols):
