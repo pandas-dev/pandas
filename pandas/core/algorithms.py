@@ -498,11 +498,10 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
 
 def factorize_array(
     values: np.ndarray,
-    na_sentinel: int = -1,
+    na_sentinel: int | None = -1,
     size_hint: int | None = None,
     na_value: object = None,
     mask: npt.NDArray[np.bool_] | None = None,
-    dropna: bool = True,
 ) -> tuple[npt.NDArray[np.intp], np.ndarray]:
     """
     Factorize a numpy array to codes and uniques.
@@ -512,7 +511,10 @@ def factorize_array(
     Parameters
     ----------
     values : ndarray
-    na_sentinel : int, default -1
+    na_sentinel : int or None, default -1
+        Code to use for NA values. When None, no sentinel will be used. Instead, NA
+        values will be coded as a non-negative integer and the NA value will appear in
+        uniques.
     size_hint : int, optional
         Passed through to the hashtable's 'get_labels' method
     na_value : object, optional
@@ -524,17 +526,16 @@ def factorize_array(
         If not None, the mask is used as indicator for missing values
         (True = missing, False = valid) instead of `na_value` or
         condition "val != val".
-    dropna : bool, default True
-        Whether NA values will appear in uniques. When False, NA values
-        will receive a nonnegative code instead of na_sentinel.
-
-        .. versionadded:: 1.5.0
 
     Returns
     -------
     codes : ndarray[np.intp]
     uniques : ndarray
     """
+    ignore_na = na_sentinel is not None
+    if not ignore_na:
+        na_sentinel = -1
+
     original = values
     if values.dtype.kind in ["m", "M"]:
         # _get_hashtable_algo will cast dt64/td64 to i8 via _ensure_data, so we
@@ -551,7 +552,7 @@ def factorize_array(
         na_sentinel=na_sentinel,
         na_value=na_value,
         mask=mask,
-        ignore_na=dropna,
+        ignore_na=ignore_na,
     )
 
     # re-cast e.g. i8->dt64/td64, uint8->bool
@@ -720,12 +721,7 @@ def factorize(
     if not isinstance(values, ABCMultiIndex):
         values = extract_array(values, extract_numpy=True)
 
-    # GH35667, if na_sentinel=None, we will not dropna NaNs from the uniques
-    # of values, assign na_sentinel=-1 to replace code value for NaN.
-    dropna = True
-    if na_sentinel is None:
-        na_sentinel = -1
-        dropna = False
+    dropna = na_sentinel is not None
 
     if (
         isinstance(values, (ABCDatetimeArray, ABCTimedeltaArray))
@@ -738,29 +734,39 @@ def factorize(
 
     if not isinstance(values.dtype, np.dtype):
         # i.e. ExtensionDtype
-        # TODO: pass ignore_na=dropna. When sort is True we ignore_na here and append
-        #       on the end because safe_sort does not handle null values in uniques
-        codes, uniques = values.factorize(
-            na_sentinel=na_sentinel, dropna=dropna or sort
-        )
+        codes, uniques = values.factorize(na_sentinel=na_sentinel)
     else:
         values = np.asarray(values)  # convert DTA/TDA/MultiIndex
-        # TODO: pass ignore_na=dropna; see above
+        # TODO: pass na_sentinel=na_sentinel to factorize_array. When sort is True and
+        #       na_sentinel is None we append NA on the end because safe_sort does not
+        #       handle null values in uniques.
+        if na_sentinel is None and sort:
+            na_sentinel_arg = -1
+        elif na_sentinel is None:
+            na_sentinel_arg = None
+        else:
+            na_sentinel_arg = na_sentinel
         codes, uniques = factorize_array(
             values,
-            na_sentinel=na_sentinel,
+            na_sentinel=na_sentinel_arg,
             size_hint=size_hint,
-            dropna=dropna or sort,
         )
 
     if sort and len(uniques) > 0:
+        if na_sentinel is None:
+            # TODO: Can remove when na_sentinel=na_sentinel in TODO above
+            na_sentinel = -1
         uniques, codes = safe_sort(
             uniques, codes, na_sentinel=na_sentinel, assume_unique=True, verify=False
         )
 
     if not dropna and sort:
-        # TODO: Can remove if we pass ignore_na=dropna; see above
-        code_is_na = codes == na_sentinel
+        # TODO: Can remove entire block when na_sentinel=na_sentinel in TODO above
+        if na_sentinel is None:
+            na_sentinel_arg = -1
+        else:
+            na_sentinel_arg = na_sentinel
+        code_is_na = codes == na_sentinel_arg
         if code_is_na.any():
             # na_value is set based on the dtype of uniques, and compat set to False is
             # because we do not want na_value to be 0 for integers

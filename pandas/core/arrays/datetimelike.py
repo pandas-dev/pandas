@@ -1878,7 +1878,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
     # --------------------------------------------------------------
 
-    def factorize(self, na_sentinel: int = -1, dropna: bool = True, sort: bool = False):
+    def factorize(self, na_sentinel: int | None = -1, sort: bool = False):
         if self.freq is not None:
             # We must be unique, so can short-circuit (and retain freq)
             codes = np.arange(len(self), dtype=np.intp)
@@ -1888,8 +1888,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
                 uniques = uniques[::-1]
             return codes, uniques
         # FIXME: shouldn't get here; we are ignoring sort
-        result = super().factorize(na_sentinel=na_sentinel, dropna=dropna)
-        return result
+        return super().factorize(na_sentinel=na_sentinel)
 
 
 # -------------------------------------------------------------------

@@ -124,12 +124,12 @@ class ArrowExtensionArray(ExtensionArray):
 
     @doc(ExtensionArray.factorize)
     def factorize(
-        self, na_sentinel: int = -1, dropna: bool = True
+        self, na_sentinel: int | None = -1
     ) -> tuple[np.ndarray, ExtensionArray]:
         if pa_version_under4p0:
             encoded = self._data.dictionary_encode()
         else:
-            null_encoding = "mask" if dropna else "encode"
+            null_encoding = "mask" if na_sentinel is not None else "encode"
             encoded = self._data.dictionary_encode(null_encoding=null_encoding)
         indices = pa.chunked_array(
             [c.indices for c in encoded.chunks], type=encoded.type.index_type
@@ -140,20 +140,16 @@ class ArrowExtensionArray(ExtensionArray):
 
         if encoded.num_chunks:
             uniques = type(self)(encoded.chunk(0).dictionary)
-            if not dropna and pa_version_under4p0:
+            if na_sentinel is None and pa_version_under4p0:
                 # TODO: share logic with BaseMaskedArray.factorize
                 # Insert na with the proper code
-                na_mask = indices.values == na_sentinel
+                na_mask = indices.values == -1
                 na_index = na_mask.argmax()
                 if na_mask[na_index]:
                     uniques = uniques.insert(na_index, self.dtype.na_value)
                     na_code = 0 if na_index == 0 else indices[:na_index].argmax() + 1
-                    if na_sentinel < 0:
-                        # codes can never equal na_sentinel and be >= na_code
-                        indices[indices >= na_code] += 1
-                    else:
-                        indices[(indices >= na_code) & (indices != na_sentinel)] += 1
-                    indices[indices == na_sentinel] = na_code
+                    indices[indices >= na_code] += 1
+                    indices[indices == -1] = na_code
         else:
             uniques = type(self)(pa.array([], type=encoded.type.value_type))
 
