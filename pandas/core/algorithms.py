@@ -721,6 +721,8 @@ def factorize(
     if not isinstance(values, ABCMultiIndex):
         values = extract_array(values, extract_numpy=True)
 
+    # GH35667, if na_sentinel=None, we will not dropna NaNs from the uniques
+    # of values, assign na_sentinel=-1 to replace code value for NaN.
     dropna = na_sentinel is not None
 
     if (
@@ -754,14 +756,14 @@ def factorize(
 
     if sort and len(uniques) > 0:
         if na_sentinel is None:
-            # TODO: Can remove when na_sentinel=na_sentinel in TODO above
+            # TODO: Can remove when na_sentinel=na_sentinel as in TODO above
             na_sentinel = -1
         uniques, codes = safe_sort(
             uniques, codes, na_sentinel=na_sentinel, assume_unique=True, verify=False
         )
 
     if not dropna and sort:
-        # TODO: Can remove entire block when na_sentinel=na_sentinel in TODO above
+        # TODO: Can remove entire block when na_sentinel=na_sentinel as in TODO above
         if na_sentinel is None:
             na_sentinel_arg = -1
         else:
