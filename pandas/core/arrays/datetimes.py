@@ -130,7 +130,7 @@ def _field_accessor(name: str, field: str, docstring=None):
                     month_kw = kwds.get("startingMonth", kwds.get("month", 12))
 
                 result = fields.get_start_end_field(
-                    values, field, self.freqstr, month_kw
+                    values.view(self._ndarray.dtype), field, self.freqstr, month_kw
                 )
             else:
                 result = fields.get_date_field(values, field)

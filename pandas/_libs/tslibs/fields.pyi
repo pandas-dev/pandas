@@ -12,7 +12,7 @@ def get_date_name_field(
     locale: str | None = ...,
 ) -> npt.NDArray[np.object_]: ...
 def get_start_end_field(
-    dtindex: npt.NDArray[np.int64],  # const int64_t[:]
+    dt64values: npt.NDArray[np.datetime64],
     field: str,
     freqstr: str | None = ...,
     month_kw: int = ...,
