@@ -120,7 +120,7 @@ Other enhancements
 - :meth:`DataFrame.reset_index` now accepts a ``names`` argument which renames the index names (:issue:`6878`)
 - :meth:`pd.concat` now raises when ``levels`` is given but ``keys`` is None (:issue:`46653`)
 - :meth:`pd.concat` now raises when ``levels`` contains duplicate values (:issue:`46653`)
-- Added ``numeric_only`` argument to :meth:`DataFrame.corr`, :meth:`DataFrame.corrwith`, :meth:`DataFrame.cov`, :meth:`DataFrame.idxmin`, :meth:`DataFrame.idxmax`, :meth:`.GroupBy.idxmin`, :meth:`.GroupBy.idxmax`, :meth:`.GroupBy.var`, :meth:`.GroupBy.std`, :meth:`.GroupBy.sem`, and :meth:`.GroupBy.quantile` (:issue:`46560`)
+- Added ``numeric_only`` argument to :meth:`DataFrame.corr`, :meth:`DataFrame.corrwith`, :meth:`DataFrame.cov`, :meth:`DataFrame.idxmin`, :meth:`DataFrame.idxmax`, :meth:`.DataFrameGroupBy.idxmin`, :meth:`.DataFrameGroupBy.idxmax`, :meth:`.GroupBy.var`, :meth:`.GroupBy.std`, :meth:`.GroupBy.sem`, and :meth:`.DataFrameGroupBy.quantile` (:issue:`46560`)
 - A :class:`errors.PerformanceWarning` is now thrown when using ``string[pyarrow]`` dtype with methods that don't dispatch to ``pyarrow.compute`` methods (:issue:`42613`, :issue:`46725`)
 - Added ``validate`` argument to :meth:`DataFrame.join` (:issue:`46622`)
 - A :class:`errors.PerformanceWarning` is now thrown when using ``string[pyarrow]`` dtype with methods that don't dispatch to ``pyarrow.compute`` methods (:issue:`42613`)
@@ -194,10 +194,47 @@ did not have the same index as the input.
     df.groupby('a', dropna=True).transform('ffill')
     df.groupby('a', dropna=True).transform(lambda x: x)
 
-.. _whatsnew_150.notable_bug_fixes.notable_bug_fix2:
+.. _whatsnew_150.notable_bug_fixes.to_json_incorrectly_localizing_naive_timestamps:
 
-notable_bug_fix2
-^^^^^^^^^^^^^^^^
+Serializing tz-naive Timestamps with to_json() with ``iso_dates=True``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`DataFrame.to_json`, :meth:`Series.to_json`, and :meth:`Index.to_json`
+would incorrectly localize DatetimeArrays/DatetimeIndexes with tz-naive Timestamps
+to UTC. (:issue:`38760`)
+
+Note that this patch does not fix the localization of tz-aware Timestamps to UTC
+upon serialization. (Related issue :issue:`12997`)
+
+*Old Behavior*
+
+.. ipython:: python
+
+    index = pd.date_range(
+        start='2020-12-28 00:00:00',
+        end='2020-12-28 02:00:00',
+        freq='1H',
+    )
+    a = pd.Series(
+        data=range(3),
+        index=index,
+    )
+
+.. code-block:: ipython
+
+    In [4]: a.to_json(date_format='iso')
+    Out[4]: '{"2020-12-28T00:00:00.000Z":0,"2020-12-28T01:00:00.000Z":1,"2020-12-28T02:00:00.000Z":2}'
+
+    In [5]: pd.read_json(a.to_json(date_format='iso'), typ="series").index == a.index
+    Out[5]: array([False, False, False])
+
+*New Behavior*
+
+.. ipython:: python
+
+    a.to_json(date_format='iso')
+    # Roundtripping now works
+    pd.read_json(a.to_json(date_format='iso'), typ="series").index == a.index
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.api_breaking:
@@ -425,6 +462,48 @@ As ``group_keys=True`` is the default value of :meth:`DataFrame.groupby` and
 :meth:`Series.groupby`, not specifying ``group_keys`` with a transformer will
 raise a ``FutureWarning``. This can be silenced and the previous behavior
 retained by specifying ``group_keys=False``.
+
+.. _whatsnew_150.deprecations.numeric_only_default:
+
+``numeric_only`` default value
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Across the DataFrame operations such as ``min``, ``sum``, and ``idxmax``, the default
+value of the ``numeric_only`` argument, if it exists at all, was inconsistent.
+Furthermore, operations with the default value ``None`` can lead to surprising
+results. (:issue:`46560`)
+
+.. code-block:: ipython
+
+    In [1]: df = pd.DataFrame({"a": [1, 2], "b": ["x", "y"]})
+
+    In [2]: # Reading the next line without knowing the contents of df, one would
+            # expect the result to contain the products for both columns a and b.
+            df[["a", "b"]].prod()
+    Out[2]:
+    a    2
+    dtype: int64
+
+To avoid this behavior, the specifying the value ``numeric_only=None`` has been
+deprecated, and will be removed in a future version of pandas. In the future,
+all operations with a ``numeric_only`` argument will default to ``False``. Users
+should either call the operation only with columns that can be operated on, or
+specify ``numeric_only=True`` to operate only on Boolean, integer, and float columns.
+
+In order to support the transition to the new behavior, the following methods have
+gained the ``numeric_only`` argument.
+
+- :meth:`DataFrame.corr`
+- :meth:`DataFrame.corrwith`
+- :meth:`DataFrame.cov`
+- :meth:`DataFrame.idxmin`
+- :meth:`DataFrame.idxmax`
+- :meth:`.DataFrameGroupBy.idxmin`
+- :meth:`.DataFrameGroupBy.idxmax`
+- :meth:`.GroupBy.var`
+- :meth:`.GroupBy.std`
+- :meth:`.GroupBy.sem`
+- :meth:`.DataFrameGroupBy.quantile`
 
 .. _whatsnew_150.deprecations.other:
 
