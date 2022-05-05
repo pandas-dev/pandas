@@ -144,26 +144,13 @@ class HashTable:
         np.ndarray,  # np.ndarray[subclass-specific]
         npt.NDArray[np.intp],
     ] | np.ndarray: ...  # np.ndarray[subclass-specific]
-    def _unique(
-        self,
-        values: np.ndarray,  # np.ndarray[subclass-specific]
-        uniques,  # FooVector
-        count_prior: int = ...,
-        na_sentinel: int = ...,
-        na_value: object = ...,
-        ignore_na: bool = ...,
-        return_inverse: bool = ...,
-    ) -> tuple[
-        np.ndarray,  # np.ndarray[subclass-specific]
-        npt.NDArray[np.intp],
-    ] | np.ndarray: ...  # np.ndarray[subclass-specific]
     def factorize(
         self,
         values: np.ndarray,  # np.ndarray[subclass-specific]
         na_sentinel: int = ...,
         na_value: object = ...,
         mask=...,
-    ) -> tuple[np.ndarray, npt.NDArray[np.intp],]: ...  # np.ndarray[subclass-specific]
+    ) -> tuple[np.ndarray, npt.NDArray[np.intp]]: ...  # np.ndarray[subclass-specific]
 
 class Complex128HashTable(HashTable): ...
 class Complex64HashTable(HashTable): ...
@@ -175,7 +162,7 @@ class Int64HashTable(HashTable):
     def get_labels_groupby(
         self,
         values: npt.NDArray[np.int64],  # const int64_t[:]
-    ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.int64],]: ...
+    ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.int64]]: ...
     def map_keys_to_values(
         self,
         keys: npt.NDArray[np.int64],
@@ -197,11 +184,14 @@ def duplicated(
     values: np.ndarray,
     keep: Literal["last", "first", False] = ...,
 ) -> npt.NDArray[np.bool_]: ...
-def mode(values: np.ndarray, dropna: bool) -> np.ndarray: ...
+def mode(
+    values: np.ndarray, dropna: bool, mask: npt.NDArray[np.bool_] | None = ...
+) -> np.ndarray: ...
 def value_count(
     values: np.ndarray,
     dropna: bool,
-) -> tuple[np.ndarray, npt.NDArray[np.int64],]: ...  # np.ndarray[same-as-values]
+    mask: npt.NDArray[np.bool_] | None = ...,
+) -> tuple[np.ndarray, npt.NDArray[np.int64]]: ...  # np.ndarray[same-as-values]
 
 # arr and values should have same dtype
 def ismember(
