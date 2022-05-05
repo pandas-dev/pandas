@@ -343,8 +343,8 @@ class TestInvalidArgCombosFormats:
     def test_raises_for_invalid_kwarg(self, unit: str):
         msg = re.escape(
             "cannot construct a Timedelta from the passed arguments, allowed keywords "
-            "are [weeks, days, hours, minutes, seconds, milliseconds, "
-            "microseconds, nanoseconds]"
+            "are ('weeks', 'days', 'hours', 'minutes', 'seconds', 'milliseconds', "
+            "'microseconds', 'nanoseconds')"
         )
 
         with pytest.raises(ValueError, match=msg):

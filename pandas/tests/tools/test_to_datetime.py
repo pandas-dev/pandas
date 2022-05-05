@@ -1838,14 +1838,8 @@ class TestToDatetimeMisc:
     def test_to_datetime_overflow(self):
         # gh-17637
         # we are overflowing Timedelta range here
+        msg = "outside allowed range"
 
-        msg = "|".join(
-            [
-                "Python int too large to convert to C long",
-                "long too big to convert",
-                "int too big to convert",
-            ]
-        )
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
             date_range(start="1/1/1700", freq="B", periods=100000)
 

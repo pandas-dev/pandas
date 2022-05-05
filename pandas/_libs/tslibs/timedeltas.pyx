@@ -42,6 +42,7 @@ from pandas._libs.tslibs.nattype cimport (
     c_NaT as NaT,
     c_nat_strings as nat_strings,
     checknull_with_nat,
+    is_td64nat,
 )
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
@@ -1452,104 +1453,68 @@ class Timedelta(_Timedelta):
     We see that either way we get the same result
     """
 
-    _req_any_kwargs_new = {"weeks", "days", "hours", "minutes", "seconds",
-                           "milliseconds", "microseconds", "nanoseconds"}
+    _allowed_kwargs = (
+        "weeks", "days", "hours", "minutes", "seconds", "milliseconds", "microseconds", "nanoseconds"
+    )
 
     def __new__(cls, object value=_no_input, unit=None, **kwargs):
         cdef _Timedelta td_base
 
+        if isinstance(value, _Timedelta):
+            return value
+        if checknull_with_nat(value):
+            return NaT
+
+        if unit in {"Y", "y", "M"}:
+            raise ValueError(
+                "Units 'M', 'Y', and 'y' are no longer supported, as they do not "
+                "represent unambiguous timedelta values durations."
+            )
+        if isinstance(value, str) and unit is not None:
+            raise ValueError("unit must not be specified if the value is a str")
+        elif value is _no_input:
+            if not kwargs:
+                raise ValueError(
+                    "cannot construct a Timedelta without a value/unit "
+                    "or descriptive keywords (days,seconds....)"
+                )
+            if not kwargs.keys() <= set(cls._allowed_kwargs):
+                raise ValueError(
+                    "cannot construct a Timedelta from the passed arguments, "
+                    f"allowed keywords are {cls._allowed_kwargs}"
+                )
+
         try:
-            if value is _no_input:
-                if not len(kwargs):
-                    raise ValueError("cannot construct a Timedelta without a "
-                                     "value/unit or descriptive keywords "
-                                     "(days,seconds....)")
-
-                kwargs = {key: _to_py_int_float(kwargs[key]) for key in kwargs}
-
-                unsupported_kwargs = set(kwargs)
-                unsupported_kwargs.difference_update(cls._req_any_kwargs_new)
-                if unsupported_kwargs or not cls._req_any_kwargs_new.intersection(kwargs):
-                    raise ValueError(
-                        "cannot construct a Timedelta from the passed arguments, "
-                        "allowed keywords are "
-                        "[weeks, days, hours, minutes, seconds, "
-                        "milliseconds, microseconds, nanoseconds]"
-                    )
-
-                # GH43764, convert any input to nanoseconds first and then
-                # create the timestamp. This ensures that any potential
-                # nanosecond contributions from kwargs parsed as floats
-                # are taken into consideration.
-                seconds = int((
-                    (
-                        (kwargs.get('days', 0) + kwargs.get('weeks', 0) * 7) * 24
-                        + kwargs.get('hours', 0)
-                    ) * 3600
-                    + kwargs.get('minutes', 0) * 60
-                    + kwargs.get('seconds', 0)
-                    ) * 1_000_000_000
+            # GH43764, convert any input to nanoseconds first, to ensure any potential
+            # nanosecond contributions from kwargs parsed as floats are included
+            kwargs = collections.defaultdict(int, {key: _to_py_int_float(val) for key, val in kwargs.items()})
+            if kwargs:
+                value = convert_to_timedelta64(
+                    sum((
+                        kwargs["weeks"] * 7 * 24 * 3600 * 1_000_000_000,
+                        kwargs["days"] * 24 * 3600 * 1_000_000_000,
+                        kwargs["hours"] * 3600 * 1_000_000_000,
+                        kwargs["minutes"] * 60 * 1_000_000_000,
+                        kwargs["seconds"] * 1_000_000_000,
+                        kwargs["milliseconds"] * 1_000_000,
+                        kwargs["microseconds"] * 1_000,
+                        kwargs["nanoseconds"],
+                    )),
+                    "ns",
                 )
-
-                value = np.timedelta64(
-                    int(kwargs.get('nanoseconds', 0))
-                    + int(kwargs.get('microseconds', 0) * 1_000)
-                    + int(kwargs.get('milliseconds', 0) * 1_000_000)
-                    + seconds
-                )
-
-            if unit in {'Y', 'y', 'M'}:
-                raise ValueError(
-                    "Units 'M', 'Y', and 'y' are no longer supported, as they do not "
-                    "represent unambiguous timedelta values durations."
-                )
-
-            # GH 30543 if pd.Timedelta already passed, return it
-            # check that only value is passed
-            if isinstance(value, _Timedelta) and unit is None and len(kwargs) == 0:
-                return value
-            elif isinstance(value, _Timedelta):
-                value = value.value
-            elif isinstance(value, str):
-                if unit is not None:
-                    raise ValueError("unit must not be specified if the value is a str")
-                if (len(value) > 0 and value[0] == 'P') or (
-                    len(value) > 1 and value[:2] == '-P'
-                ):
-                    value = parse_iso_format_string(value)
-                else:
-                    value = parse_timedelta_string(value)
-                value = np.timedelta64(value)
-            elif PyDelta_Check(value):
-                value = convert_to_timedelta64(value, 'ns')
-            elif is_timedelta64_object(value):
-                value = ensure_td64ns(value)
-            elif is_tick_object(value):
-                value = np.timedelta64(value.nanos, 'ns')
-            elif is_integer_object(value) or is_float_object(value):
-                # unit=None is de-facto 'ns'
-                unit = parse_timedelta_unit(unit)
-                value = convert_to_timedelta64(value, unit)
-            elif checknull_with_nat(value):
-                return NaT
             else:
-                raise ValueError(
-                    "Value must be Timedelta, string, integer, "
-                    f"float, timedelta or convertible, not {type(value).__name__}"
-                )
-
-            if is_timedelta64_object(value):
-                value = value.view('i8')
-
-            # nat
-            if value == NPY_NAT:
-                return NaT
-
+                if is_integer_object(value) or is_float_object(value):
+                    unit = parse_timedelta_unit(unit)
+                else:
+                    unit = "ns"
+                value = convert_to_timedelta64(value, unit)
         except OverflowError as ex:
             msg = f"outside allowed range [{TIMEDELTA_MIN_NS}ns, {TIMEDELTA_MAX_NS}ns]"
             raise OutOfBoundsTimedelta(msg) from ex
-
-        return _timedelta_from_value_and_reso(value, NPY_FR_ns)
+        else:
+            if is_td64nat(value):
+                return NaT
+            return _timedelta_from_value_and_reso(value.view("i8"), NPY_FR_ns)
 
     def __setstate__(self, state):
         if len(state) == 1:
