@@ -6,9 +6,12 @@ from datetime import (
     timedelta,
 )
 import operator
+import re
 
 import numpy as np
 import pytest
+
+from pandas._libs.tslibs import OutOfBoundsTimedelta
 
 import pandas as pd
 from pandas import (
@@ -96,11 +99,14 @@ class TestTimedeltaAdditionSubtraction:
         result = op(td, NaT)
         assert result is NaT
 
-    def test_td_add_timestamp_overflow(self, timedelta_overflow):
-        with pytest.raises(**timedelta_overflow):
+    def test_td_add_timestamp_overflow(self):
+        msg = msg = re.escape(
+            "outside allowed range [-9223372036854775807ns, 9223372036854775807ns]"
+        )
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             Timestamp("1700-01-01") + Timedelta(13 * 19999, unit="D")
 
-        with pytest.raises(**timedelta_overflow):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             Timestamp("1700-01-01") + timedelta(days=13 * 19999)
 
     @pytest.mark.parametrize("op", [operator.add, ops.radd])

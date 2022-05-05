@@ -1,5 +1,6 @@
 """ test the scalar Timedelta """
 from datetime import timedelta
+import re
 
 from hypothesis import (
     given,
@@ -11,6 +12,7 @@ import pytest
 from pandas._libs import lib
 from pandas._libs.tslibs import (
     NaT,
+    OutOfBoundsTimedelta,
     iNaT,
 )
 
@@ -646,7 +648,7 @@ class TestTimedeltas:
         ns_td = Timedelta(1, "ns")
         assert hash(ns_td) != hash(ns_td.to_pytimedelta())
 
-    def test_implementation_limits(self, timedelta_overflow):
+    def test_implementation_limits(self):
         min_td = Timedelta(Timedelta.min)
         max_td = Timedelta(Timedelta.max)
 
@@ -658,20 +660,23 @@ class TestTimedeltas:
         # Beyond lower limit, a NAT before the Overflow
         assert (min_td - Timedelta(1, "ns")) is NaT
 
-        with pytest.raises(**timedelta_overflow):
+        msg = re.escape(
+            "outside allowed range [-9223372036854775807ns, 9223372036854775807ns]"
+        )
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             min_td - Timedelta(2, "ns")
 
-        with pytest.raises(**timedelta_overflow):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             max_td + Timedelta(1, "ns")
 
         # Same tests using the internal nanosecond values
         td = Timedelta(min_td.value - 1, "ns")
         assert td is NaT
 
-        with pytest.raises(**timedelta_overflow):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             Timedelta(min_td.value - 2, "ns")
 
-        with pytest.raises(**timedelta_overflow):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             Timedelta(max_td.value + 1, "ns")
 
     def test_total_seconds_precision(self):

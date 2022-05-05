@@ -29,8 +29,8 @@ from cpython.datetime cimport (
 import_datetime()
 
 
-from pandas._libs cimport ops
 cimport pandas._libs.tslibs.util as util
+from pandas._libs cimport ops
 from pandas._libs.tslibs.base cimport ABCTimestamp
 from pandas._libs.tslibs.conversion cimport (
     cast_from_unit,

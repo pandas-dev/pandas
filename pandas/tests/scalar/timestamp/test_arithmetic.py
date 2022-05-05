@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import (
-    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
     Timedelta,
     Timestamp,
     offsets,
@@ -72,13 +72,13 @@ class TestTimestampArithmetic:
         with pytest.raises(OverflowError, match=lmsg):
             stamp - offset_overflow
 
-    def test_sub_returns_stdlib_timedelta_to_avoid_overflow(self, timedelta_overflow):
+    def test_sub_returns_stdlib_timedelta_to_avoid_overflow(self):
         # https://github.com/pandas-dev/pandas/issues/31774
         msg = "Result is too large for pandas.Timedelta"
         a = Timestamp("2101-01-01 00:00:00")
         b = Timestamp("1688-01-01 00:00:00")
 
-        with pytest.raises(timedelta_overflow["expected_exception"], match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             a - b
 
         # but we're OK for Timestamp and datetime.datetime

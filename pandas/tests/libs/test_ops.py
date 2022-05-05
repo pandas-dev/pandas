@@ -18,7 +18,12 @@ def fixture_int_min() -> int:
 
 @pytest.fixture(name="overflow_msg")
 def fixture_overflow_msg() -> str:
-    return "Python int too large to convert to C long"
+    return "|".join(
+        (
+            "Python int too large to convert to C long",
+            "int too big to convert",
+        )
+    )
 
 
 def test_raises_for_too_large_arg(int_max: int, overflow_msg: str):
