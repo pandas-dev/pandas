@@ -807,7 +807,13 @@ def test_frame_downsample_method(method, numeric_only, expected_data):
     resampled = df.resample("Y")
 
     func = getattr(resampled, method)
-    result = func(numeric_only=numeric_only)
+    if method == "prod" and numeric_only is not True:
+        warn = FutureWarning
+    else:
+        warn = None
+    msg = "Dropping invalid columns in DataFrameGroupBy.prod is deprecated"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = func(numeric_only=numeric_only)
 
     expected = DataFrame(expected_data, index=expected_index)
     tm.assert_frame_equal(result, expected)

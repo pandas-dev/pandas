@@ -11558,6 +11558,11 @@ level : int or level name, default None
 numeric_only : bool, default None
     Include only float, int, boolean columns. If None, will attempt to use
     everything, then use only numeric data. Not implemented for Series.
+
+    .. deprecated:: 1.5.0
+        Specifying ``numeric_only=None`` is deprecated. The default value will be
+        ``False`` in a future version of pandas.
+
 {min_count}\
 **kwargs
     Additional keyword arguments to be passed to the function.
@@ -11587,6 +11592,10 @@ ddof : int, default 1
 numeric_only : bool, default None
     Include only float, int, boolean columns. If None, will attempt to use
     everything, then use only numeric data. Not implemented for Series.
+
+    .. deprecated:: 1.5.0
+        Specifying ``numeric_only=None`` is deprecated. The default value will be
+        ``False`` in a future version of pandas.
 
 Returns
 -------
