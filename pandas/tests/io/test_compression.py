@@ -324,5 +324,5 @@ def test_tar_gz_to_different_filename():
             with tarfile.TarFile(fileobj=uncompressed) as archive:
                 members = archive.getmembers()
                 assert len(members) == 1
-                content = archive.extractfile(members[0]).read()
-                assert content == b"foo,bar\n1,2\n"
+                content = archive.extractfile(members[0]).read().decode("utf8")
+                assert content == "foo,bar\n1,2\n"
