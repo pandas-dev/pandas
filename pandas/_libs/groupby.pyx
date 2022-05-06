@@ -1326,7 +1326,6 @@ def group_rank(
         )
         for i in range(len(result)):
             if labels[i] >= 0:
-                # TODO: why can't we do out[:, k] = result?
                 out[i, k] = result[i]
 
 
