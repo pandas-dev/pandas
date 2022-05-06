@@ -31,6 +31,7 @@ from pandas._libs.tslibs import (
     iNaT,
     ints_to_pydatetime,
     is_date_array_normalized,
+    is_unitless,
     normalize_i8_timestamps,
     timezones,
     to_offset,
@@ -130,7 +131,7 @@ def _field_accessor(name: str, field: str, docstring=None):
                     month_kw = kwds.get("startingMonth", kwds.get("month", 12))
 
                 result = fields.get_start_end_field(
-                    values, field, self.freqstr, month_kw
+                    values.view(self._ndarray.dtype), field, self.freqstr, month_kw
                 )
             else:
                 result = fields.get_date_field(values, field)
@@ -335,7 +336,12 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         cls, values: np.ndarray, freq: BaseOffset | None = None, dtype=DT64NS_DTYPE
     ) -> DatetimeArray:
         assert isinstance(values, np.ndarray)
-        assert values.dtype == DT64NS_DTYPE
+        assert dtype.kind == "M"
+        if isinstance(dtype, np.dtype):
+            # TODO: once non-nano DatetimeTZDtype is implemented, require that
+            #  dtype's reso match values's reso
+            assert dtype == values.dtype
+            assert not is_unitless(dtype)
 
         result = super()._simple_new(values, dtype)
         result._freq = freq
@@ -761,7 +767,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             else:
                 values = self
             result = offset._apply_array(values).view("M8[ns]")
-            result = DatetimeArray._simple_new(result)
+            result = DatetimeArray._simple_new(result, dtype=result.dtype)
             result = result.tz_localize(self.tz)
 
         except NotImplementedError:
