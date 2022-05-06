@@ -22,7 +22,10 @@ import warnings
 import numpy as np
 
 from pandas._libs.tslibs import Timestamp
-from pandas._typing import NDFrameT
+from pandas._typing import (
+    NDFrameT,
+    npt,
+)
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_percentile
 
@@ -186,11 +189,9 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
         """Select columns to be described."""
         if (self.include is None) and (self.exclude is None):
             # when some numerics are found, keep only numerics
-            default_include = [np.number]
+            default_include: list[npt.DTypeLike] = [np.number]
             if self.datetime_is_numeric:
-                # error: Argument 1 to "append" of "list" has incompatible type "str";
-                # expected "Type[number[Any]]"
-                default_include.append("datetime")  # type: ignore[arg-type]
+                default_include.append("datetime")
             data = self.obj.select_dtypes(include=default_include)
             if len(data.columns) == 0:
                 data = self.obj
@@ -230,10 +231,7 @@ def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
     """
     from pandas import Series
 
-    # error: Argument 1 to "format_percentiles" has incompatible type "Sequence[float]";
-    # expected "Union[ndarray, List[Union[int, float]], List[float], List[Union[str,
-    # float]]]"
-    formatted_percentiles = format_percentiles(percentiles)  # type: ignore[arg-type]
+    formatted_percentiles = format_percentiles(percentiles)
 
     stat_index = ["count", "mean", "std", "min"] + formatted_percentiles + ["max"]
     d = (
@@ -337,10 +335,7 @@ def describe_timestamp_1d(data: Series, percentiles: Sequence[float]) -> Series:
     # GH-30164
     from pandas import Series
 
-    # error: Argument 1 to "format_percentiles" has incompatible type "Sequence[float]";
-    # expected "Union[ndarray, List[Union[int, float]], List[float], List[Union[str,
-    # float]]]"
-    formatted_percentiles = format_percentiles(percentiles)  # type: ignore[arg-type]
+    formatted_percentiles = format_percentiles(percentiles)
 
     stat_index = ["count", "mean", "min"] + formatted_percentiles + ["max"]
     d = (
