@@ -135,7 +135,7 @@ class ArrowExtensionArray(ExtensionArray):
             [c.indices for c in encoded.chunks], type=encoded.type.index_type
         ).to_pandas()
         if indices.dtype.kind == "f":
-            indices[np.isnan(indices)] = na_sentinel
+            indices[np.isnan(indices)] = na_sentinel if na_sentinel is not None else -1
         indices = indices.astype(np.int64, copy=False)
 
         if encoded.num_chunks:
