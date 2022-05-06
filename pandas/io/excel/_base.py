@@ -577,9 +577,26 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         if name not in self.sheet_names:
             raise ValueError(f"Worksheet named '{name}' not found")
 
-    def _check_skiprows_func(self, skiprows, rows_to_use):
+    def _check_skiprows_func(
+        self,
+        skiprows: Callable,
+        rows_to_use: int,
+    ) -> int:
         """
-        See how many file rows are required when `skiprows` is callable
+        Determine how many file rows are required to obtain `nrows` data
+        rows when `skiprows` is a function.
+
+        Parameters
+        ----------
+        skiprows : function
+            The function passed to read_excel by the user.
+        rows_to_use : int
+            The number of rows that will be needed for the header and
+            the data.
+
+        Returns
+        -------
+        int
         """
         i = 0
         rows_used_so_far = 0
@@ -589,9 +606,32 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             i += 1
         return i
 
-    def _calc_rows(self, header, index_col, skiprows, nrows):
+    def _calc_rows(
+        self,
+        header: int | Sequence[int] | None,
+        index_col: int | Sequence[int] | None,
+        skiprows: Sequence[int] | int | Callable[[int], object] | None,
+        nrows: int | None,
+    ) -> int | None:
         """
-        If nrows specified, find the number of rows needed from the file
+        If nrows specified, find the number of rows needed from the
+        file, otherwise return None.
+
+
+        Parameters
+        ----------
+        header : int, list of int, default 0
+            See read_excel docstring.
+        index_col : int, list of int, default None
+            See read_excel docstring.
+        skiprows : list-like, int, or callable, optional
+            See read_excel docstring.
+        nrows : int, default None
+            See read_excel docstring.
+
+        Returns
+        -------
+        int or None
         """
         if nrows is None:
             return
