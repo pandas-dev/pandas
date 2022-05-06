@@ -70,6 +70,7 @@ from pandas.io.excel._util import (
     pop_header_name,
 )
 from pandas.io.parsers import TextParser
+from pandas.io.parsers.readers import validate_integer
 
 _read_excel_doc = (
     """
@@ -633,13 +634,12 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         -------
         int or None
         """
+        validate_integer("nrows", nrows)
         if nrows is None:
             return
-        if not isinstance(nrows, int) or nrows < 0:
-            raise ValueError("'nrows' must be an integer >=0")
         if header is None:
             header_rows = 1
-        elif isinstance(header, int):
+        elif is_integer(header):
             header_rows = 1 + header
         else:
             header_rows = 1 + header[-1]
@@ -649,7 +649,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             header_rows += 1
         if skiprows is None:
             return header_rows + nrows
-        if isinstance(skiprows, int):
+        if is_integer(skiprows):
             return header_rows + nrows + skiprows
         if is_list_like(skiprows):
             return self._check_skiprows_func(
