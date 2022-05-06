@@ -1111,7 +1111,7 @@ class ScatterPlot(PlanePlot):
         }
         if err_kwds.get("fmt") is None:
             err_kwds["linestyle"] = "none"
-        elif err_kwds.get("fmt").casefold() == "none":
+        elif err_kwds.get("fmt", "").casefold() == "none":
             # set point size to 0 for ax.scatter to only show errorbars
             self.kwds["s"] = 0
 
