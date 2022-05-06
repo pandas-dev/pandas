@@ -1219,93 +1219,37 @@ class TestReaders:
         with pytest.raises(ValueError, match=msg):
             pd.read_excel("test1" + read_ext, nrows="5")
 
-    def test_read_excel_nrows_mi_column(self, read_ext):
+    @pytest.mark.parametrize(
+        "filename,sheet_name,header,index_col,skiprows",
+        [
+            ("testmultiindex", "mi_column", [0, 1], 0, None),
+            ("testmultiindex", "mi_index", None, [0, 1], None),
+            ("testmultiindex", "both", [0, 1], [0, 1], None),
+            ("testmultiindex", "mi_column_name", [0, 1], 0, None),
+            ("testskiprows", "skiprows_list", None, None, [0, 2]),
+            ("testskiprows", "skiprows_list", None, None, lambda x: x == 0 or x == 2),
+        ],
+    )
+    def test_read_excel_nrows_params(
+        self, read_ext, filename, sheet_name, header, index_col, skiprows
+    ):
+        """
+        For vaious parameters, we should get the same result whether we
+        limit the rows during load (nrows=3) or after (df.iloc[:3]).
+        """
         expected = pd.read_excel(
-            "testmultiindex" + read_ext,
-            sheet_name="mi_column",
-            header=[0, 1],
-            index_col=0,
+            filename + read_ext,
+            sheet_name=sheet_name,
+            header=header,
+            index_col=index_col,
+            skiprows=skiprows,
         ).iloc[:3]
         actual = pd.read_excel(
-            "testmultiindex" + read_ext,
-            sheet_name="mi_column",
-            header=[0, 1],
-            index_col=0,
-            nrows=3,
-        )
-        tm.assert_frame_equal(actual, expected)
-
-    def test_read_excel_nrows_mi_index(self, read_ext):
-        expected = pd.read_excel(
-            "testmultiindex" + read_ext,
-            sheet_name="mi_index",
-            index_col=[0, 1],
-        ).iloc[:3]
-        actual = pd.read_excel(
-            "testmultiindex" + read_ext,
-            sheet_name="mi_index",
-            index_col=[0, 1],
-            nrows=3,
-        )
-        tm.assert_frame_equal(actual, expected)
-
-    def test_read_excel_nrows_mi_both(self, read_ext):
-        expected = pd.read_excel(
-            "testmultiindex" + read_ext,
-            sheet_name="both",
-            header=[0, 1],
-            index_col=[0, 1],
-        ).iloc[:3]
-        actual = pd.read_excel(
-            "testmultiindex" + read_ext,
-            sheet_name="both",
-            header=[0, 1],
-            index_col=[0, 1],
-            nrows=3,
-        )
-        tm.assert_frame_equal(actual, expected)
-
-    def test_read_excel_nrows_mi_column_name(self, read_ext):
-        expected = pd.read_excel(
-            "testmultiindex" + read_ext,
-            sheet_name="mi_column_name",
-            header=[0, 1],
-            index_col=0,
-        ).iloc[:3]
-        actual = pd.read_excel(
-            "testmultiindex" + read_ext,
-            sheet_name="mi_column_name",
-            header=[0, 1],
-            index_col=0,
-            nrows=3,
-        )
-        tm.assert_frame_equal(actual, expected)
-
-    def test_read_excel_nrows_skiprows_list(self, read_ext):
-        expected = pd.read_excel(
-            "testskiprows" + read_ext,
-            sheet_name="skiprows_list",
-            skiprows=[0, 2],
-        ).iloc[:3]
-        actual = pd.read_excel(
-            "testskiprows" + read_ext,
-            sheet_name="skiprows_list",
-            skiprows=[0, 2],
-            nrows=3,
-        )
-        tm.assert_frame_equal(actual, expected)
-
-    def test_read_excel_nrows_skiprows_func(self, read_ext):
-        func = lambda x: x == 0 or x == 2
-        expected = pd.read_excel(
-            "testskiprows" + read_ext,
-            sheet_name="skiprows_list",
-            skiprows=func,
-        ).iloc[:3]
-        actual = pd.read_excel(
-            "testskiprows" + read_ext,
-            sheet_name="skiprows_list",
-            skiprows=func,
+            filename + read_ext,
+            sheet_name=sheet_name,
+            header=header,
+            index_col=index_col,
+            skiprows=skiprows,
             nrows=3,
         )
         tm.assert_frame_equal(actual, expected)
