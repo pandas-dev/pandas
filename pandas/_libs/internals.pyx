@@ -1,4 +1,5 @@
 from collections import defaultdict
+import weakref
 
 cimport cython
 from cpython.slice cimport PySlice_GetIndicesEx
@@ -672,8 +673,9 @@ cdef class BlockManager:
         public list axes
         public bint _known_consolidated, _is_consolidated
         public ndarray _blknos, _blklocs
+        public list refs
 
-    def __cinit__(self, blocks=None, axes=None, verify_integrity=True):
+    def __cinit__(self, blocks=None, axes=None, refs=None, verify_integrity=True):
         # None as defaults for unpickling GH#42345
         if blocks is None:
             # This adds 1-2 microseconds to DataFrame(np.array([]))
@@ -685,6 +687,7 @@ cdef class BlockManager:
 
         self.blocks = blocks
         self.axes = axes.copy()  # copy to make sure we are not remotely-mutable
+        self.refs = refs
 
         # Populate known_consolidate, blknos, and blklocs lazily
         self._known_consolidated = False
@@ -793,12 +796,14 @@ cdef class BlockManager:
             ndarray blknos, blklocs
 
         nbs = []
+        nrefs = []
         for blk in self.blocks:
             nb = blk.getitem_block_index(slobj)
             nbs.append(nb)
+            nrefs.append(weakref.ref(blk))
 
         new_axes = [self.axes[0], self.axes[1]._getitem_slice(slobj)]
-        mgr = type(self)(tuple(nbs), new_axes, verify_integrity=False)
+        mgr = type(self)(tuple(nbs), new_axes, nrefs, verify_integrity=False)
 
         # We can avoid having to rebuild blklocs/blknos
         blklocs = self._blklocs
@@ -811,7 +816,7 @@ cdef class BlockManager:
     def get_slice(self, slobj: slice, axis: int = 0) -> BlockManager:
 
         if axis == 0:
-            new_blocks = self._slice_take_blocks_ax0(slobj)
+            new_blocks, new_refs = self._slice_take_blocks_ax0(slobj)
         elif axis == 1:
             return self._get_index_slice(slobj)
         else:
@@ -820,4 +825,4 @@ cdef class BlockManager:
         new_axes = list(self.axes)
         new_axes[axis] = new_axes[axis]._getitem_slice(slobj)
 
-        return type(self)(tuple(new_blocks), new_axes, verify_integrity=False)
+        return type(self)(tuple(new_blocks), new_axes, new_refs, verify_integrity=False)

@@ -53,7 +53,7 @@ from pandas.tests.indexing.common import Base
 def test_not_change_nan_loc(series, new_series, expected_ser):
     # GH 28403
     df = DataFrame({"A": series})
-    df["A"].loc[:] = new_series
+    df.loc[:, "A"] = new_series
     expected = DataFrame({"A": expected_ser})
     tm.assert_frame_equal(df.isna(), expected)
     tm.assert_frame_equal(df.notna(), ~expected)
@@ -703,22 +703,30 @@ class TestLocBaseIndependent:
         expected = DataFrame({"A": ser})
         tm.assert_frame_equal(df, expected)
 
-    def test_loc_setitem_frame_with_reindex_mixed(self):
+    def test_loc_setitem_frame_with_reindex_mixed(self, using_copy_on_write):
         # GH#40480
         df = DataFrame(index=[3, 5, 4], columns=["A", "B"], dtype=float)
         df["B"] = "string"
         df.loc[[4, 3, 5], "A"] = np.array([1, 2, 3], dtype="int64")
-        ser = Series([2, 3, 1], index=[3, 5, 4], dtype="int64")
+        ser = Series([2, 3, 1], index=[3, 5, 4], dtype=float)
+        if not using_copy_on_write:
+            # For default BlockManager case, this takes the "split" path,
+            # which still overwrites the column
+            ser = Series([2, 3, 1], index=[3, 5, 4], dtype="int64")
         expected = DataFrame({"A": ser})
         expected["B"] = "string"
         tm.assert_frame_equal(df, expected)
 
-    def test_loc_setitem_frame_with_inverted_slice(self):
+    def test_loc_setitem_frame_with_inverted_slice(self, using_copy_on_write):
         # GH#40480
         df = DataFrame(index=[1, 2, 3], columns=["A", "B"], dtype=float)
         df["B"] = "string"
         df.loc[slice(3, 0, -1), "A"] = np.array([1, 2, 3], dtype="int64")
-        expected = DataFrame({"A": [3, 2, 1], "B": "string"}, index=[1, 2, 3])
+        expected = DataFrame({"A": [3.0, 2.0, 1.0], "B": "string"}, index=[1, 2, 3])
+        if not using_copy_on_write:
+            # For default BlockManager case, this takes the "split" path,
+            # which still overwrites the column
+            expected["A"] = expected["A"].astype("int64")
         tm.assert_frame_equal(df, expected)
 
     def test_loc_setitem_empty_frame(self):
@@ -1042,7 +1050,9 @@ class TestLocBaseIndependent:
             df.loc[[]], df.iloc[:0, :], check_index_type=True, check_column_type=True
         )
 
-    def test_identity_slice_returns_new_object(self, using_array_manager, request):
+    def test_identity_slice_returns_new_object(
+        self, using_array_manager, request, using_copy_on_write
+    ):
         # GH13873
         if using_array_manager:
             mark = pytest.mark.xfail(
@@ -1074,7 +1084,10 @@ class TestLocBaseIndependent:
         assert original_series[:] is not original_series
 
         original_series[:3] = [7, 8, 9]
-        assert all(sliced_series[:3] == [7, 8, 9])
+        if using_copy_on_write:
+            assert all(sliced_series[:3] == [1, 2, 3])
+        else:
+            assert all(sliced_series[:3] == [7, 8, 9])
 
     @pytest.mark.xfail(reason="accidental fix reverted - GH37497")
     def test_loc_copy_vs_view(self):
@@ -2479,7 +2492,7 @@ class TestLocBooleanMask:
 
         tm.assert_frame_equal(float_frame, expected)
 
-    def test_loc_setitem_ndframe_values_alignment(self):
+    def test_loc_setitem_ndframe_values_alignment(self, using_copy_on_write):
         # GH#45501
         df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         df.loc[[False, False, True], ["a"]] = DataFrame(
@@ -2500,9 +2513,13 @@ class TestLocBooleanMask:
         tm.assert_frame_equal(df, expected)
 
         df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        df_orig = df.copy()
         ser = df["a"]
         ser.loc[[False, False, True]] = Series([10, 11, 12], index=[2, 1, 0])
-        tm.assert_frame_equal(df, expected)
+        if using_copy_on_write:
+            tm.assert_frame_equal(df, df_orig)
+        else:
+            tm.assert_frame_equal(df, expected)
 
 
 class TestLocListlike:

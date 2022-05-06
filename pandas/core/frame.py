@@ -3924,6 +3924,16 @@ class DataFrame(NDFrame, OpsMixin):
             Sets whether or not index/col interpreted as indexers
         """
         try:
+            if get_option("mode.copy_on_write"):
+                if not takeable:
+                    icol = self.columns.get_loc(col)
+                    index = self.index.get_loc(index)
+                    self._mgr.column_setitem(icol, index, value)
+                else:
+                    self._mgr.column_setitem(col, index, value)
+                self._clear_item_cache()
+                return
+
             if takeable:
                 series = self._ixs(col, axis=1)
                 loc = index
@@ -4853,7 +4863,7 @@ class DataFrame(NDFrame, OpsMixin):
         "labels",
         [
             ("method", None),
-            ("copy", True),
+            ("copy", None),
             ("level", None),
             ("fill_value", np.nan),
             ("limit", None),
@@ -5078,7 +5088,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: Renamer | None = ...,
         columns: Renamer | None = ...,
         axis: Axis | None = ...,
-        copy: bool = ...,
+        copy: bool | None = ...,
         inplace: Literal[True],
         level: Level | None = ...,
         errors: IgnoreRaise = ...,
@@ -5093,7 +5103,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: Renamer | None = ...,
         columns: Renamer | None = ...,
         axis: Axis | None = ...,
-        copy: bool = ...,
+        copy: bool | None = ...,
         inplace: Literal[False] = ...,
         level: Level | None = ...,
         errors: IgnoreRaise = ...,
@@ -5108,7 +5118,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: Renamer | None = ...,
         columns: Renamer | None = ...,
         axis: Axis | None = ...,
-        copy: bool = ...,
+        copy: bool | None = ...,
         inplace: bool = ...,
         level: Level | None = ...,
         errors: IgnoreRaise = ...,
@@ -5122,7 +5132,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: Renamer | None = None,
         columns: Renamer | None = None,
         axis: Axis | None = None,
-        copy: bool = True,
+        copy: bool | None = None,
         inplace: bool = False,
         level: Level | None = None,
         errors: IgnoreRaise = "ignore",
@@ -6015,7 +6025,7 @@ class DataFrame(NDFrame, OpsMixin):
         if inplace:
             new_obj = self
         else:
-            new_obj = self.copy()
+            new_obj = self.copy(deep=None)
         if allow_duplicates is not lib.no_default:
             allow_duplicates = validate_bool_kwarg(allow_duplicates, "allow_duplicates")
 

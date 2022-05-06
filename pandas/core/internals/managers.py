@@ -10,8 +10,11 @@ from typing import (
     cast,
 )
 import warnings
+import weakref
 
 import numpy as np
+
+from pandas._config import get_option
 
 from pandas._libs import (
     algos as libalgos,
@@ -141,16 +144,22 @@ class BaseBlockManager(DataManager):
     _blklocs: npt.NDArray[np.intp]
     blocks: tuple[Block, ...]
     axes: list[Index]
+    refs: list[weakref.ref | None] | None
 
     ndim: int
     _known_consolidated: bool
     _is_consolidated: bool
 
-    def __init__(self, blocks, axes, verify_integrity: bool = True) -> None:
+    def __init__(self, blocks, axes, refs=None, verify_integrity: bool = True) -> None:
         raise NotImplementedError
 
     @classmethod
-    def from_blocks(cls: type_t[T], blocks: list[Block], axes: list[Index]) -> T:
+    def from_blocks(
+        cls: type_t[T],
+        blocks: list[Block],
+        axes: list[Index],
+        refs: list[weakref.ref | None] | None,
+    ) -> T:
         raise NotImplementedError
 
     @property
@@ -222,6 +231,25 @@ class BaseBlockManager(DataManager):
     @property
     def items(self) -> Index:
         return self.axes[0]
+
+    def _has_no_reference(self, i: int) -> bool:
+        """
+        Check for column `i` if has references.
+        (whether it references another array or is itself being referenced)
+        Returns True if the columns has no references.
+        """
+        blkno = self.blknos[i]
+        # TODO include `or self.refs[blkno]() is None` ?
+        return (
+            self.refs is None or self.refs[blkno] is None
+        ) and weakref.getweakrefcount(self.blocks[blkno]) == 0
+
+    def _clear_reference(self, blkno: int) -> None:
+        """
+        Clear any reference for column `i`.
+        """
+        if self.refs is not None:
+            self.refs[blkno] = None
 
     def get_dtypes(self):
         dtypes = np.array([blk.dtype for blk in self.blocks])
@@ -337,9 +365,22 @@ class BaseBlockManager(DataManager):
         if isinstance(indexer, np.ndarray) and indexer.ndim > self.ndim:
             raise ValueError(f"Cannot set values with ndim > {self.ndim}")
 
+        if not self._has_no_reference(0):
+            # if being referenced -> perform Copy-on-Write and clear the reference
+            # self.blocks = tuple([self.blocks[0].copy()])
+            self = self.copy()
+            # self._clear_reference(blkno)
+
         return self.apply("setitem", indexer=indexer, value=value)
 
     def putmask(self, mask, new, align: bool = True):
+        if self.refs is not None and not all(ref is None for ref in self.refs):
+            # some reference -> copy full dataframe
+            # TODO this could be optimized to only copy the blocks that would
+            # get modified
+            # self.blocks = tuple([blk.copy() for blk in self.blocks])
+            # self.refs = None
+            self = self.copy()
 
         if align:
             align_keys = ["new", "mask"]
@@ -544,14 +585,22 @@ class BaseBlockManager(DataManager):
 
         Parameters
         ----------
-        deep : bool or string, default True
-            If False, return shallow copy (do not copy data)
+        deep : bool, string or None, default True
+            If False or None, return a shallow copy (do not copy data)
             If 'all', copy data and a deep copy of the index
 
         Returns
         -------
         BlockManager
         """
+        if deep is None:
+            if get_option("mode.copy_on_write"):
+                # use shallow copy
+                deep = False
+            else:
+                # preserve deep copy for BlockManager with copy=None
+                deep = True
+
         # this preserves the notion of view copying of axes
         if deep:
             # hit in e.g. tests.io.json.test_pandas
@@ -564,8 +613,13 @@ class BaseBlockManager(DataManager):
             new_axes = list(self.axes)
 
         res = self.apply("copy", deep=deep)
+        if deep:
+            new_refs = None
+        else:
+            new_refs = [weakref.ref(blk) for blk in self.blocks]
 
         res.axes = new_axes
+        res.refs = new_refs
 
         if self.ndim > 1:
             # Avoid needing to re-compute these
@@ -601,7 +655,7 @@ class BaseBlockManager(DataManager):
         axis: int,
         fill_value=None,
         allow_dups: bool = False,
-        copy: bool = True,
+        copy: bool | None = True,
         only_slice: bool = False,
         *,
         use_na_proxy: bool = False,
@@ -614,7 +668,8 @@ class BaseBlockManager(DataManager):
         axis : int
         fill_value : object, default None
         allow_dups : bool, default False
-        copy : bool, default True
+        copy : bool or None, default True
+            If None, regard as False to get shallow copy.
         only_slice : bool, default False
             Whether to take views, not copies, along columns.
         use_na_proxy : bool, default False
@@ -622,6 +677,14 @@ class BaseBlockManager(DataManager):
 
         pandas-indexer with -1's only.
         """
+        if copy is None:
+            if get_option("mode.copy_on_write"):
+                # use shallow copy
+                copy = False
+            else:
+                # preserve deep copy for BlockManager with copy=None
+                copy = True
+
         if indexer is None:
             if new_axis is self.axes[axis] and not copy:
                 return self
@@ -639,7 +702,7 @@ class BaseBlockManager(DataManager):
             raise IndexError("Requested axis not found in manager")
 
         if axis == 0:
-            new_blocks = self._slice_take_blocks_ax0(
+            new_blocks, new_refs = self._slice_take_blocks_ax0(
                 indexer,
                 fill_value=fill_value,
                 only_slice=only_slice,
@@ -656,11 +719,12 @@ class BaseBlockManager(DataManager):
                 )
                 for blk in self.blocks
             ]
+            new_refs = None
 
         new_axes = list(self.axes)
         new_axes[axis] = new_axis
 
-        new_mgr = type(self).from_blocks(new_blocks, new_axes)
+        new_mgr = type(self).from_blocks(new_blocks, new_axes, new_refs)
         if axis == 1:
             # We can avoid the need to rebuild these
             new_mgr._blknos = self.blknos.copy()
@@ -707,9 +771,11 @@ class BaseBlockManager(DataManager):
                 # GH#32959 EABlock would fail since we can't make 0-width
                 # TODO(EA2D): special casing unnecessary with 2D EAs
                 if sllen == 0:
-                    return []
+                    return [], []
                 bp = BlockPlacement(slice(0, sllen))
-                return [blk.getitem_block_columns(slobj, new_mgr_locs=bp)]
+                return [blk.getitem_block_columns(slobj, new_mgr_locs=bp)], [
+                    weakref.ref(blk)
+                ]
             elif not allow_fill or self.ndim == 1:
                 if allow_fill and fill_value is None:
                     fill_value = blk.fill_value
@@ -725,7 +791,7 @@ class BaseBlockManager(DataManager):
                     ]
                     # We have
                     #  all(np.shares_memory(nb.values, blk.values) for nb in blocks)
-                    return blocks
+                    return blocks, [weakref.ref(blk)] * len(blocks)
                 else:
                     bp = BlockPlacement(slice(0, sllen))
                     return [
@@ -735,7 +801,7 @@ class BaseBlockManager(DataManager):
                             new_mgr_locs=bp,
                             fill_value=fill_value,
                         )
-                    ]
+                    ], [None]
 
         if sl_type == "slice":
             blknos = self.blknos[slobj]
@@ -751,6 +817,7 @@ class BaseBlockManager(DataManager):
         # When filling blknos, make sure blknos is updated before appending to
         # blocks list, that way new blkno is exactly len(blocks).
         blocks = []
+        refs = []
         group = not only_slice
         for blkno, mgr_locs in libinternals.get_blkno_placements(blknos, group=group):
             if blkno == -1:
@@ -763,6 +830,7 @@ class BaseBlockManager(DataManager):
                         use_na_proxy=use_na_proxy,
                     )
                 )
+                refs.append(None)
             else:
                 blk = self.blocks[blkno]
 
@@ -776,18 +844,20 @@ class BaseBlockManager(DataManager):
                         newblk = blk.copy(deep=False)
                         newblk.mgr_locs = BlockPlacement(slice(mgr_loc, mgr_loc + 1))
                         blocks.append(newblk)
+                        refs.append(weakref.ref(blk))
 
                 else:
                     # GH#32779 to avoid the performance penalty of copying,
                     #  we may try to only slice
                     taker = blklocs[mgr_locs.indexer]
                     max_len = max(len(mgr_locs), taker.max() + 1)
-                    if only_slice:
+                    if only_slice or get_option("mode.copy_on_write"):
                         taker = lib.maybe_indices_to_slice(taker, max_len)
 
                     if isinstance(taker, slice):
                         nb = blk.getitem_block_columns(taker, new_mgr_locs=mgr_locs)
                         blocks.append(nb)
+                        refs.append(weakref.ref(blk))
                     elif only_slice:
                         # GH#33597 slice instead of take, so we get
                         #  views instead of copies
@@ -797,11 +867,13 @@ class BaseBlockManager(DataManager):
                             nb = blk.getitem_block_columns(slc, new_mgr_locs=bp)
                             # We have np.shares_memory(nb.values, blk.values)
                             blocks.append(nb)
+                            refs.append(weakref.ref(blk))
                     else:
                         nb = blk.take_nd(taker, axis=0, new_mgr_locs=mgr_locs)
                         blocks.append(nb)
+                        refs.append(None)
 
-        return blocks
+        return blocks, refs
 
     def _make_na_block(
         self, placement: BlockPlacement, fill_value=None, use_na_proxy: bool = False
@@ -868,6 +940,7 @@ class BaseBlockManager(DataManager):
             indexer=indexer,
             axis=axis,
             allow_dups=True,
+            copy=None,
         )
 
 
@@ -885,6 +958,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         self,
         blocks: Sequence[Block],
         axes: Sequence[Index],
+        refs: list[weakref.ref | None] | None = None,
         verify_integrity: bool = True,
     ) -> None:
 
@@ -934,13 +1008,24 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 f"block items\n# manager items: {len(self.items)}, # "
                 f"tot_items: {tot_items}"
             )
+        if self.refs is not None:
+            if len(self.refs) != len(self.blocks):
+                raise ValueError(
+                    "Number of passed refs must equal the number of blocks: "
+                    f"{len(self.refs)} refs vs {len(self.blocks)} blocks."
+                )
 
     @classmethod
-    def from_blocks(cls, blocks: list[Block], axes: list[Index]) -> BlockManager:
+    def from_blocks(
+        cls,
+        blocks: list[Block],
+        axes: list[Index],
+        refs: list[weakref.ref | None] | None = None,
+    ) -> BlockManager:
         """
         Constructor for BlockManager and SingleBlockManager with same signature.
         """
-        return cls(blocks, axes, verify_integrity=False)
+        return cls(blocks, axes, refs, verify_integrity=False)
 
     # ----------------------------------------------------------------
     # Indexing
@@ -988,7 +1073,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         # shortcut for select a single-dim from a 2-dim BM
         bp = BlockPlacement(slice(0, len(values)))
         nb = type(block)(values, placement=bp, ndim=1)
-        return SingleBlockManager(nb, self.axes[1])
+        return SingleBlockManager(nb, self.axes[1], [weakref.ref(block)])
 
     def iget_values(self, i: int) -> ArrayLike:
         """
@@ -1273,10 +1358,23 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         is_deleted[indexer] = True
         taker = (~is_deleted).nonzero()[0]
 
-        nbs = self._slice_take_blocks_ax0(taker, only_slice=True)
+        nbs, new_refs = self._slice_take_blocks_ax0(taker, only_slice=True)
         new_columns = self.items[~is_deleted]
         axes = [new_columns, self.axes[1]]
-        return type(self)(tuple(nbs), axes, verify_integrity=False)
+        return type(self)(tuple(nbs), axes, new_refs, verify_integrity=False)
+
+    def column_setitem(self, loc: int, idx: int | slice | np.ndarray, value):
+        if not self._has_no_reference(loc):
+            # otherwise perform Copy-on-Write and clear the reference
+            blkno = self.blknos[loc]
+            blocks = list(self.blocks)
+            blocks[blkno] = blocks[blkno].copy()
+            self.blocks = tuple(blocks)
+            self._clear_reference(blkno)
+
+        col_mgr = self.iget(loc)
+        new_mgr = col_mgr.setitem((idx,), value)
+        self.iset(loc, new_mgr._block.values, inplace=True)
 
     # ----------------------------------------------------------------
     # Block-wise Operation
@@ -1674,6 +1772,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         self,
         block: Block,
         axis: Index,
+        refs: list[weakref.ref | None] | None = None,
         verify_integrity: bool = False,
         fastpath=lib.no_default,
     ) -> None:
@@ -1691,15 +1790,23 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
 
         self.axes = [axis]
         self.blocks = (block,)
+        self.refs = refs
 
     @classmethod
-    def from_blocks(cls, blocks: list[Block], axes: list[Index]) -> SingleBlockManager:
+    def from_blocks(
+        cls,
+        blocks: list[Block],
+        axes: list[Index],
+        refs: list[weakref.ref | None] | None = None,
+    ) -> SingleBlockManager:
         """
         Constructor for BlockManager and SingleBlockManager with same signature.
         """
         assert len(blocks) == 1
         assert len(axes) == 1
-        return cls(blocks[0], axes[0], verify_integrity=False)
+        if refs is not None:
+            assert len(refs) == 1
+        return cls(blocks[0], axes[0], refs, verify_integrity=False)
 
     @classmethod
     def from_array(cls, array: ArrayLike, index: Index) -> SingleBlockManager:
@@ -1719,6 +1826,16 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         new_blk = type(blk)(arr, placement=bp, ndim=2)
         axes = [columns, self.axes[0]]
         return BlockManager([new_blk], axes=axes, verify_integrity=False)
+
+    def _has_no_reference(self, i: int = 0) -> bool:
+        """
+        Check for column `i` if has references.
+        (whether it references another array or is itself being referenced)
+        Returns True if the columns has no references.
+        """
+        return (self.refs is None or self.refs[0] is None) and weakref.getweakrefcount(
+            self.blocks[0]
+        ) == 0
 
     def __getstate__(self):
         block_values = [b.values for b in self.blocks]
@@ -1788,7 +1905,9 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         block = type(blk)(array, placement=bp, ndim=1)
 
         new_idx = self.index[indexer]
-        return type(self)(block, new_idx)
+        # TODO in theory only need to track reference if new_array is a view
+        ref = weakref.ref(blk)
+        return type(self)(block, new_idx, [ref])
 
     def get_slice(self, slobj: slice, axis: int = 0) -> SingleBlockManager:
         # Assertion disabled for performance
@@ -1801,7 +1920,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         bp = BlockPlacement(slice(0, len(array)))
         block = type(blk)(array, placement=bp, ndim=1)
         new_index = self.index._getitem_slice(slobj)
-        return type(self)(block, new_index)
+        return type(self)(block, new_index, [weakref.ref(blk)])
 
     @property
     def index(self) -> Index:
@@ -1837,6 +1956,23 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
     def _can_hold_na(self) -> bool:
         return self._block._can_hold_na
 
+    def setitem_inplace(self, indexer, value) -> None:
+        """
+        Set values with indexer.
+
+        For Single[Block/Array]Manager, this backs s[indexer] = value
+
+        This is an inplace version of `setitem()`, mutating the manager/values
+        in place, not returning a new Manager (and Block), and thus never changing
+        the dtype.
+        """
+        if not self._has_no_reference(0):
+            self.blocks = (self._block.copy(),)
+            self.refs = None
+            self._cache.clear()
+
+        super().setitem_inplace(indexer, value)
+
     def idelete(self, indexer) -> SingleBlockManager:
         """
         Delete single location from SingleBlockManager.
@@ -1847,6 +1983,8 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         self.blocks = (nb,)
         self.axes[0] = self.axes[0].delete(indexer)
         self._cache.clear()
+        # clear reference since delete always results in a new array
+        self.refs = None
         return self
 
     def fast_xs(self, loc):

@@ -68,7 +68,9 @@ class TestiLocBaseIndependent:
         ],
     )
     @pytest.mark.parametrize("indexer", [tm.loc, tm.iloc])
-    def test_iloc_setitem_fullcol_categorical(self, indexer, key, using_array_manager):
+    def test_iloc_setitem_fullcol_categorical(
+        self, indexer, key, using_array_manager, using_copy_on_write
+    ):
         frame = DataFrame({0: range(3)}, dtype=object)
 
         cat = Categorical(["alpha", "beta", "gamma"])
@@ -98,11 +100,19 @@ class TestiLocBaseIndependent:
         assert cat[0] != "gamma"
 
         # TODO with mixed dataframe ("split" path), we always overwrite the column
+        if using_copy_on_write and indexer == tm.loc:
+            # TODO(ArrayManager) with loc, slice(3) gets converted into slice(0, 3)
+            # which is then considered as "full" slice and does overwrite. For iloc
+            # this conversion is not done, and so it doesn't overwrite
+            overwrite = overwrite or (isinstance(key, slice) and key == slice(3))
+
         frame = DataFrame({0: np.array([0, 1, 2], dtype=object), 1: range(3)})
         df = frame.copy()
         orig_vals = df.values
         indexer(df)[key, 0] = cat
         expected = DataFrame({0: cat, 1: range(3)})
+        if using_copy_on_write and not overwrite:
+            expected[0] = expected[0].astype(object)
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("box", [array, Series])
@@ -115,7 +125,7 @@ class TestiLocBaseIndependent:
         if frame_or_series is Series:
             values = obj.values
         else:
-            values = obj[0].values
+            values = obj._mgr.blocks[0].values
 
         if frame_or_series is Series:
             obj.iloc[:2] = box(arr[2:])
@@ -835,7 +845,9 @@ class TestiLocBaseIndependent:
             df.iloc[[]], df.iloc[:0, :], check_index_type=True, check_column_type=True
         )
 
-    def test_identity_slice_returns_new_object(self, using_array_manager, request):
+    def test_identity_slice_returns_new_object(
+        self, using_array_manager, using_copy_on_write, request
+    ):
         # GH13873
         if using_array_manager:
             mark = pytest.mark.xfail(
@@ -860,7 +872,11 @@ class TestiLocBaseIndependent:
 
         # should also be a shallow copy
         original_series[:3] = [7, 8, 9]
-        assert all(sliced_series[:3] == [7, 8, 9])
+        if using_copy_on_write:
+            # shallow copy not updated (CoW)
+            assert all(sliced_series[:3] == [1, 2, 3])
+        else:
+            assert all(sliced_series[:3] == [7, 8, 9])
 
     def test_indexing_zerodim_np_array(self):
         # GH24919
@@ -876,18 +892,21 @@ class TestiLocBaseIndependent:
         assert result == 1
 
     @td.skip_array_manager_not_yet_implemented
-    def test_iloc_setitem_categorical_updates_inplace(self):
+    def test_iloc_setitem_categorical_updates_inplace(self, using_copy_on_write):
         # Mixed dtype ensures we go through take_split_path in setitem_with_indexer
         cat = Categorical(["A", "B", "C"])
+        cat_original = cat.copy()
         df = DataFrame({1: cat, 2: [1, 2, 3]}, copy=False)
 
         assert tm.shares_memory(df[1], cat)
 
         # This should modify our original values in-place
         df.iloc[:, 0] = cat[::-1]
-        assert tm.shares_memory(df[1], cat)
-
-        expected = Categorical(["C", "B", "A"], categories=["A", "B", "C"])
+        if not using_copy_on_write:
+            assert tm.shares_memory(df[1], cat)
+            expected = Categorical(["C", "B", "A"], categories=["A", "B", "C"])
+        else:
+            expected = cat_original
         tm.assert_categorical_equal(cat, expected)
 
     def test_iloc_with_boolean_operation(self):
@@ -1365,8 +1384,9 @@ class TestILocCallable:
 
 
 class TestILocSeries:
-    def test_iloc(self):
+    def test_iloc(self, using_copy_on_write):
         ser = Series(np.random.randn(10), index=list(range(0, 20, 2)))
+        ser_original = ser.copy()
 
         for i in range(len(ser)):
             result = ser.iloc[i]
@@ -1382,7 +1402,10 @@ class TestILocSeries:
         with tm.assert_produces_warning(None):
             # GH#45324 make sure we aren't giving a spurious FutureWarning
             result[:] = 0
-        assert (ser.iloc[1:3] == 0).all()
+        if using_copy_on_write:
+            tm.assert_series_equal(ser, ser_original)
+        else:
+            assert (ser.iloc[1:3] == 0).all()
 
         # list of integers
         result = ser.iloc[[0, 2, 3, 4, 5]]

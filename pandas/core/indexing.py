@@ -11,6 +11,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
 from pandas.errors import (
@@ -1947,6 +1949,17 @@ class _iLocIndexer(_LocationIndexer):
             The indexer we use for setitem along axis=0.
         """
         pi = plane_indexer
+
+        if get_option("mode.copy_on_write"):
+            # CoW: in this case we cannot rely on getting the column as a
+            # Series to mutate, but need to operated on the mgr directly
+            if com.is_null_slice(pi) or com.is_full_slice(pi, len(self.obj)):
+                arr = self.obj._sanitize_column(value)
+                self.obj._mgr.iset(loc, arr)
+            else:
+                self.obj._mgr.column_setitem(loc, plane_indexer, value)
+            self.obj._clear_item_cache()
+            return
 
         ser = self.obj._ixs(loc, axis=1)
 

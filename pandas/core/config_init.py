@@ -527,6 +527,23 @@ with cf.config_prefix("mode"):
     )
 
 
+# TODO better name?
+copy_on_write_doc = """
+: bool
+    Use new copy-view behaviour using Copy-on-Write
+"""
+
+
+with cf.config_prefix("mode"):
+    cf.register_option(
+        "copy_on_write",
+        # TODO turn to False before merging
+        True,
+        copy_on_write_doc,
+        validator=is_bool,
+    )
+
+
 # user warnings
 chained_assignment = """
 : string
