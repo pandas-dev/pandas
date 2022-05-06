@@ -99,7 +99,7 @@ class BooleanDtype(BaseMaskedDtype):
 
     @property
     def _is_numeric(self) -> bool:
-        return True
+        return False
 
     def __from_arrow__(
         self, array: pyarrow.Array | pyarrow.ChunkedArray
