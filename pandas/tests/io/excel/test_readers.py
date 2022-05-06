@@ -1234,9 +1234,10 @@ class TestReaders:
         self, read_ext, filename, sheet_name, header, index_col, skiprows
     ):
         """
-        For vaious parameters, we should get the same result whether we
+        For various parameters, we should get the same result whether we
         limit the rows during load (nrows=3) or after (df.iloc[:3]).
         """
+        # GH 46894
         expected = pd.read_excel(
             filename + read_ext,
             sheet_name=sheet_name,
