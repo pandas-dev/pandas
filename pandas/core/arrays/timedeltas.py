@@ -29,6 +29,7 @@ from pandas._libs.tslibs.conversion import (
     precision_from_unit,
 )
 from pandas._libs.tslibs.fields import get_timedelta_field
+from pandas._libs.tslibs.np_datetime import py_get_unit_from_dtype
 from pandas._libs.tslibs.timedeltas import (
     array_to_timedelta64,
     ints_to_pytimedelta,
@@ -40,6 +41,7 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat.numpy import function as nv
+from pandas.util._decorators import cache_readonly
 from pandas.util._validators import validate_endpoints
 
 from pandas.core.dtypes.astype import astype_td64_unit_conversion
@@ -154,8 +156,15 @@ class TimedeltaArray(dtl.TimelikeOps):
     # Note: ndim must be defined to ensure NaT.__richcmp__(TimedeltaArray)
     #  operates pointwise.
 
+    @cache_readonly
+    def _reso(self):
+        return py_get_unit_from_dtype(self.dtype)
+
     def _box_func(self, x: np.timedelta64) -> Timedelta | NaTType:
-        return Timedelta(x, unit="ns")
+        y = x.view("i8")
+        if y == NaT.value:
+            return NaT
+        return Timedelta._from_value_and_reso(y, reso=self._reso)
 
     @property
     # error: Return type "dtype" of "dtype" incompatible with return type
@@ -174,7 +183,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         -------
         numpy.dtype
         """
-        return TD64NS_DTYPE
+        return self._ndarray.dtype
 
     # ----------------------------------------------------------------
     # Constructors
@@ -244,11 +253,13 @@ class TimedeltaArray(dtl.TimelikeOps):
     def _simple_new(  # type: ignore[override]
         cls, values: np.ndarray, freq: BaseOffset | None = None, dtype=TD64NS_DTYPE
     ) -> TimedeltaArray:
-        assert dtype == TD64NS_DTYPE, dtype
+        # Require td64 dtype, not unit-less, matching values.dtype
+        assert isinstance(dtype, np.dtype) and dtype.kind == "m"
+        assert not tslibs.is_unitless(dtype)
         assert isinstance(values, np.ndarray), type(values)
-        assert values.dtype == TD64NS_DTYPE
+        assert dtype == values.dtype
 
-        result = super()._simple_new(values=values, dtype=TD64NS_DTYPE)
+        result = super()._simple_new(values=values, dtype=dtype)
         result._freq = freq
         return result
 
@@ -262,7 +273,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=None)
         freq, _ = dtl.validate_inferred_freq(None, inferred_freq, False)
 
-        return cls._simple_new(data, freq=freq)
+        return cls._simple_new(data, dtype=data.dtype, freq=freq)
 
     @classmethod
     def _from_sequence_not_strict(
@@ -286,7 +297,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         if explicit_none:
             freq = None
 
-        result = cls._simple_new(data, freq=freq)
+        result = cls._simple_new(data, dtype=data.dtype, freq=freq)
 
         if inferred_freq is None and freq is not None:
             # this condition precludes `freq_infer`
@@ -330,7 +341,8 @@ class TimedeltaArray(dtl.TimelikeOps):
         if not right_closed:
             index = index[:-1]
 
-        return cls._simple_new(index.view("m8[ns]"), freq=freq)
+        td64values = index.view("m8[ns]")
+        return cls._simple_new(td64values, dtype=td64values.dtype, freq=freq)
 
     # ----------------------------------------------------------------
     # DatetimeLike Interface

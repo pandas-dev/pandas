@@ -25,6 +25,7 @@ __all__ = [
     "Tick",
     "BaseOffset",
     "tz_compare",
+    "is_unitless",
 ]
 
 from pandas._libs.tslibs import dtypes
@@ -39,6 +40,7 @@ from pandas._libs.tslibs.nattype import (
 from pandas._libs.tslibs.np_datetime import (
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
+    is_unitless,
 )
 from pandas._libs.tslibs.offsets import (
     BaseOffset,

@@ -92,6 +92,18 @@ def py_get_unit_from_dtype(dtype):
     return get_unit_from_dtype(dtype)
 
 
+def is_unitless(dtype: cnp.dtype) -> bool:
+    """
+    Check if a datetime64 or timedelta64 dtype has no attached unit.
+    """
+    if dtype.type_num not in [cnp.NPY_DATETIME, cnp.NPY_TIMEDELTA]:
+        raise ValueError("is_unitless dtype must be datetime64 or timedelta64")
+    cdef:
+        NPY_DATETIMEUNIT unit = get_unit_from_dtype(dtype)
+
+    return unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC
+
+
 # ----------------------------------------------------------------------
 # Comparison
 
