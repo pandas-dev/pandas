@@ -325,4 +325,5 @@ def test_tar_gz_to_different_filename():
                 members = archive.getmembers()
                 assert len(members) == 1
                 content = archive.extractfile(members[0]).read().decode("utf8")
+                content = content.replace("\r\n", "\n")  # windows
                 assert content == "foo,bar\n1,2\n"
