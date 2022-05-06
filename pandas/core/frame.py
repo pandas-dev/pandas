@@ -8988,6 +8988,7 @@ Parrot 2  Parrot       24.0
 
     agg = aggregate
 
+    # error: Signature of "any" incompatible with supertype "NDFrame"  [override]
     @overload
     def any(
         self: DataFrame,
@@ -9012,6 +9013,7 @@ Parrot 2  Parrot       24.0
     ) -> DataFrame | Series:
         ...
 
+    # error: Signature of "any" incompatible with supertype "NDFrame"  [override]
     @doc(NDFrame.any, **_shared_doc_kwargs)
     def any(
         self: DataFrame,
