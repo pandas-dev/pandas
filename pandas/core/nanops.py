@@ -16,7 +16,6 @@ from pandas._config import get_option
 from pandas._libs import (
     NaT,
     NaTType,
-    Timedelta,
     iNaT,
     lib,
 )
@@ -367,19 +366,23 @@ def _wrap_results(result, dtype: np.dtype, fill_value=None):
                 result = np.datetime64("NaT", "ns")
             else:
                 result = np.int64(result).view("datetime64[ns]")
+            # retain original unit
+            result = result.astype(dtype, copy=False)
         else:
             # If we have float dtype, taking a view will give the wrong result
             result = result.astype(dtype)
     elif is_timedelta64_dtype(dtype):
         if not isinstance(result, np.ndarray):
-            if result == fill_value:
-                result = np.nan
+            if result == fill_value or np.isnan(result):
+                result = np.timedelta64("NaT").astype(dtype)
 
-            # raise if we have a timedelta64[ns] which is too large
-            if np.fabs(result) > lib.i8max:
+            elif np.fabs(result) > lib.i8max:
+                # raise if we have a timedelta64[ns] which is too large
                 raise ValueError("overflow in timedelta operation")
+            else:
+                # return a timedelta64 with the original unit
+                result = np.int64(result).astype(dtype, copy=False)
 
-            result = Timedelta(result, unit="ns")
         else:
             result = result.astype("m8[ns]").view(dtype)
 
@@ -641,7 +644,7 @@ def _mask_datetimelike_result(
         result[axis_mask] = iNaT  # type: ignore[index]
     else:
         if mask.any():
-            return NaT
+            return np.int64(iNaT).view(orig_values.dtype)
     return result
 
 
