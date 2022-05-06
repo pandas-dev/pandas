@@ -661,6 +661,57 @@ class TestDataFramePlots(TestPlotBase):
         axes = df.plot(x="x", y="y", kind="scatter", subplots=True)
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
+    def test_plot_scatter_errorbar_kwd(self):
+        df = DataFrame(
+            np.random.randn(6, 4),
+            index=list(string.ascii_letters[:6]),
+            columns=["x", "y", "xerr", "yerr"],
+        )
+
+        _check_plot_works(
+            df.plot.scatter, x="x", y="y", xerr="xerr", yerr="yerr", fc="none", ec="b"
+        )
+
+        _check_plot_works(
+            df.plot.scatter,
+            x="x",
+            y="y",
+            xerr="xerr",
+            yerr="yerr",
+            barsabove=True,
+            capsize=3,
+            capthick=1.5,
+            ecolor="k",
+            elinewidth=1.5,
+            errorevery=1,
+            fmt="none",
+            ms=5,
+            lolims=True,
+            uplims=False,
+            xlolims=False,
+            xuplims=True,
+        )
+
+        _check_plot_works(
+            df.plot.scatter,
+            x="x",
+            y="y",
+            xerr="xerr",
+            yerr="yerr",
+            barsabove=True,
+            capsize=3,
+            capthick=1.5,
+            ecolor="k",
+            elinewidth=1.5,
+            errorevery=1,
+            fmt="gs--",
+            markersize=5,
+            lolims=True,
+            uplims=False,
+            xlolims=False,
+            xuplims=True,
+        )
+
     def test_raise_error_on_datetime_time_data(self):
         # GH 8113, datetime.time type is not supported by matplotlib in scatter
         df = DataFrame(np.random.randn(10), columns=["a"])

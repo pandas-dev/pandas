@@ -1089,6 +1089,32 @@ class ScatterPlot(PlanePlot):
         plot_colorbar = self.colormap or c_is_column
         cb = self.kwds.pop("colorbar", is_numeric_dtype(c_values) and plot_colorbar)
 
+        # move matplotlib.errorbar specific keywords that are not accepted by
+        # ax.scatter to an err_kwds dict for use in the call to ax.errorbar
+        ebarkeys = {
+            "ecolor",
+            "elinewidth",
+            "fmt",
+            "capsize",
+            "capthick",
+            "barsabove",
+            "lolims",
+            "xlolims",
+            "uplims",
+            "xuplims",
+            "errorevery",
+            "ms",
+            "markersize",
+        }
+        err_kwds = {
+            ebarkey: self.kwds.pop(ebarkey) for ebarkey in set(self.kwds) & ebarkeys
+        }
+        if err_kwds.get("fmt") is None:
+            err_kwds["linestyle"] = "none"
+        elif err_kwds.get("fmt").casefold() == "none":
+            # set point size to 0 for ax.scatter to only show errorbars
+            self.kwds["s"] = 0
+
         if self.legend and hasattr(self, "label"):
             label = self.label
         else:
@@ -1117,9 +1143,14 @@ class ScatterPlot(PlanePlot):
         errors_x = self._get_errorbars(label=x, index=0, yerr=False)
         errors_y = self._get_errorbars(label=y, index=0, xerr=False)
         if len(errors_x) > 0 or len(errors_y) > 0:
-            err_kwds = dict(errors_x, **errors_y)
-            err_kwds["ecolor"] = scatter.get_facecolor()[0]
-            ax.errorbar(data[x].values, data[y].values, linestyle="none", **err_kwds)
+            err_kwds = dict(err_kwds, **errors_x, **errors_y)
+            if "ecolor" not in err_kwds:
+                try:
+                    err_kwds["ecolor"] = scatter.get_facecolor()[0]
+                except IndexError:
+                    # no facecolor so use edgecolor
+                    err_kwds["ecolor"] = scatter.get_edgecolor()[0]
+            ax.errorbar(data[x].values, data[y].values, **err_kwds)
 
 
 class HexBinPlot(PlanePlot):
