@@ -1325,8 +1325,9 @@ def group_rank(
             mask=sub_mask,
         )
         for i in range(len(result)):
-            # TODO: why can't we do out[:, k] = result?
-            out[i, k] = result[i]
+            if labels[i] >= 0:
+                # TODO: why can't we do out[:, k] = result?
+                out[i, k] = result[i]
 
 
 # ----------------------------------------------------------------------
