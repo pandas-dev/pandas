@@ -1,7 +1,5 @@
 from enum import Enum
 
-from pandas._libs.tslibs.offsets import BaseOffset
-
 # These are not public API, but are exposed in the .pyi file because they
 #  are imported in tests.
 _attrname_to_abbrevs: dict[str, str]

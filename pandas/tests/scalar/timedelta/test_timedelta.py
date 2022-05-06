@@ -24,6 +24,80 @@ from pandas import (
 import pandas._testing as tm
 
 
+class TestNonNano:
+    @pytest.fixture(params=[7, 8, 9])
+    def unit(self, request):
+        # 7, 8, 9 correspond to second, millisecond, and microsecond, respectively
+        return request.param
+
+    @pytest.fixture
+    def val(self, unit):
+        # microsecond that would be just out of bounds for nano
+        us = 9223372800000000
+        if unit == 9:
+            value = us
+        elif unit == 8:
+            value = us // 1000
+        else:
+            value = us // 1_000_000
+        return value
+
+    @pytest.fixture
+    def td(self, unit, val):
+        return Timedelta._from_value_and_reso(val, unit)
+
+    def test_from_value_and_reso(self, unit, val):
+        # Just checking that the fixture is giving us what we asked for
+        td = Timedelta._from_value_and_reso(val, unit)
+        assert td.value == val
+        assert td._reso == unit
+        assert td.days == 106752
+
+    def test_unary_non_nano(self, td, unit):
+        assert abs(td)._reso == unit
+        assert (-td)._reso == unit
+        assert (+td)._reso == unit
+
+    def test_sub_preserves_reso(self, td, unit):
+        res = td - td
+        expected = Timedelta._from_value_and_reso(0, unit)
+        assert res == expected
+        assert res._reso == unit
+
+    def test_mul_preserves_reso(self, td, unit):
+        # The td fixture should always be far from the implementation
+        #  bound, so doubling does not risk overflow.
+        res = td * 2
+        assert res.value == td.value * 2
+        assert res._reso == unit
+
+    def test_cmp_cross_reso(self, td):
+        # numpy gets this wrong because of silent overflow
+        other = Timedelta(days=106751, unit="ns")
+        assert other < td
+        assert td > other
+        assert not other == td
+        assert td != other
+
+    def test_to_pytimedelta(self, td):
+        res = td.to_pytimedelta()
+        expected = timedelta(days=106752)
+        assert type(res) is timedelta
+        assert res == expected
+
+    def test_to_timedelta64(self, td, unit):
+        for res in [td.to_timedelta64(), td.to_numpy(), td.asm8]:
+
+            assert isinstance(res, np.timedelta64)
+            assert res.view("i8") == td.value
+            if unit == 7:
+                assert res.dtype == "m8[s]"
+            elif unit == 8:
+                assert res.dtype == "m8[ms]"
+            elif unit == 9:
+                assert res.dtype == "m8[us]"
+
+
 class TestTimedeltaUnaryOps:
     def test_invert(self):
         td = Timedelta(10, unit="d")

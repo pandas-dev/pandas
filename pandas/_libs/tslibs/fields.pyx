@@ -5,8 +5,10 @@ objects and arrays
 from locale import LC_TIME
 
 from _strptime import LocaleTime
-import cython
-from cython import Py_ssize_t
+
+cimport cython
+from cython cimport Py_ssize_t
+
 import numpy as np
 
 cimport numpy as cnp
@@ -41,8 +43,11 @@ from pandas._libs.tslibs.ccalendar cimport (
 )
 from pandas._libs.tslibs.nattype cimport NPY_NAT
 from pandas._libs.tslibs.np_datetime cimport (
+    NPY_DATETIMEUNIT,
     dt64_to_dtstruct,
+    get_unit_from_dtype,
     npy_datetimestruct,
+    pandas_datetime_to_datetimestruct,
     pandas_timedeltastruct,
     td64_to_tdstruct,
 )
@@ -196,22 +201,35 @@ cdef inline bint _is_on_month(int month, int compare_month, int modby) nogil:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def get_start_end_field(const int64_t[:] dtindex, str field,
+def get_start_end_field(ndarray dt64values, str field,
                         str freqstr=None, int month_kw=12):
     """
     Given an int64-based datetime index return array of indicators
     of whether timestamps are at the start/end of the month/quarter/year
     (defined by frequency).
+
+    Parameters
+    ----------
+    dt64values : ndarray[datetime64], any resolution
+    field : str
+    frestr : str or None, default None
+    month_kw : int, default 12
+
+    Returns
+    -------
+    ndarray[bool]
     """
     cdef:
         Py_ssize_t i
-        int count = len(dtindex)
+        int count = dt64values.size
         bint is_business = 0
         int end_month = 12
         int start_month = 1
         ndarray[int8_t] out
         npy_datetimestruct dts
         int compare_month, modby
+        ndarray dtindex = dt64values.view("i8")
+        NPY_DATETIMEUNIT reso = get_unit_from_dtype(dt64values.dtype)
 
     out = np.zeros(count, dtype='int8')
 
@@ -251,7 +269,7 @@ def get_start_end_field(const int64_t[:] dtindex, str field,
                     out[i] = 0
                     continue
 
-                dt64_to_dtstruct(dtindex[i], &dts)
+                pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
 
                 if _is_on_month(dts.month, compare_month, modby) and (
                         dts.day == get_firstbday(dts.year, dts.month)):
@@ -263,7 +281,7 @@ def get_start_end_field(const int64_t[:] dtindex, str field,
                     out[i] = 0
                     continue
 
-                dt64_to_dtstruct(dtindex[i], &dts)
+                pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
 
                 if _is_on_month(dts.month, compare_month, modby) and dts.day == 1:
                     out[i] = 1
@@ -275,7 +293,7 @@ def get_start_end_field(const int64_t[:] dtindex, str field,
                     out[i] = 0
                     continue
 
-                dt64_to_dtstruct(dtindex[i], &dts)
+                pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
 
                 if _is_on_month(dts.month, compare_month, modby) and (
                         dts.day == get_lastbday(dts.year, dts.month)):
@@ -287,7 +305,7 @@ def get_start_end_field(const int64_t[:] dtindex, str field,
                     out[i] = 0
                     continue
 
-                dt64_to_dtstruct(dtindex[i], &dts)
+                pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
 
                 if _is_on_month(dts.month, compare_month, modby) and (
                         dts.day == get_days_in_month(dts.year, dts.month)):
