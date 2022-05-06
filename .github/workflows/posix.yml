@@ -28,7 +28,7 @@ jobs:
         pattern: ["not single_cpu", "single_cpu"]
         # Don't test pyarrow v2/3: Causes timeouts in read_csv engine
         # even if tests are skipped/xfailed
-        pyarrow_version: ["5", "7"]
+        pyarrow_version: ["5", "6", "7"]
         include:
           - name: "Downstream Compat"
             env_file: actions-38-downstream_compat.yaml
@@ -62,6 +62,15 @@ jobs:
             pattern: "not slow and not network and not single_cpu"
             pandas_testing_mode: "deprecate"
             test_args: "-W error::DeprecationWarning:numpy"
+        exclude:
+          - env_file: actions-39.yaml
+            pyarrow_version: "6"
+          - env_file: actions-39.yaml
+            pyarrow_version: "7"
+          - env_file: actions-310.yaml
+            pyarrow_version: "6"
+          - env_file: actions-310.yaml
+            pyarrow_version: "7"
       fail-fast: false
     name: ${{ matrix.name || format('{0} pyarrow={1} {2}', matrix.env_file, matrix.pyarrow_version, matrix.pattern) }}
     env:

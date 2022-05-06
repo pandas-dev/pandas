@@ -487,9 +487,7 @@ cdef class _Timestamp(ABCTimestamp):
             dict kwds
             ndarray[uint8_t, cast=True] out
             int month_kw
-
-        if self._reso != NPY_FR_ns:
-            raise NotImplementedError(self._reso)
+            str unit
 
         if freq:
             kwds = freq.kwds
@@ -500,7 +498,9 @@ cdef class _Timestamp(ABCTimestamp):
             freqstr = None
 
         val = self._maybe_convert_value_to_local()
-        out = get_start_end_field(np.array([val], dtype=np.int64),
+
+        unit = npy_unit_to_abbrev(self._reso)
+        out = get_start_end_field(np.array([val], dtype=f"M8[{unit}]"),
                                   field, freqstr, month_kw)
         return out[0]
 

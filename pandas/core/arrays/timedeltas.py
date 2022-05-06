@@ -160,14 +160,11 @@ class TimedeltaArray(dtl.TimelikeOps):
     def _reso(self):
         return py_get_unit_from_dtype(self.dtype)
 
-    def _box_func(self, x) -> Timedelta | NaTType:
-        if isinstance(x, np.timedelta64):
-            x = x.view("i8")
-        if x == NaT.value:
+    def _box_func(self, x: np.timedelta64) -> Timedelta | NaTType:
+        y = x.view("i8")
+        if y == NaT.value:
             return NaT
-        if x is NaT or isinstance(x, Timedelta):
-            return x
-        return Timedelta._from_value_and_reso(x, reso=self._reso)
+        return Timedelta._from_value_and_reso(y, reso=self._reso)
 
     @property
     # error: Return type "dtype" of "dtype" incompatible with return type
