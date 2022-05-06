@@ -1,4 +1,5 @@
 import collections
+import operator
 import warnings
 
 cimport cython
@@ -215,20 +216,16 @@ cpdef int64_t delta_to_nanoseconds(delta) except? -1:
         return get_timedelta64_value(ensure_td64ns(delta))
 
     if PyDelta_Check(delta):
-        try:
-            return (
-                delta.days * 24 * 3600 * 1_000_000
-                + delta.seconds * 1_000_000
-                + delta.microseconds
-            ) * 1000
-        except OverflowError as err:
-            msg = f"{delta} outside allowed range [{TIMEDELTA_MIN_NS}ns, {TIMEDELTA_MAX_NS}ns]"
-            raise OutOfBoundsTimedelta(msg) from err
+        microseconds = (
+            delta.days * 24 * 3600 * 1_000_000
+            + delta.seconds * 1_000_000
+            + delta.microseconds
+        )
+        return calc_int_int(operator.mul, microseconds, 1000)
 
     raise TypeError(type(delta))
 
 
-@cython.overflowcheck(True)
 cdef object ensure_td64ns(object ts):
     """
     Overflow-safe implementation of td64.astype("m8[ns]")
@@ -247,25 +244,14 @@ cdef object ensure_td64ns(object ts):
         str unitstr
 
     td64_unit = get_datetime64_unit(ts)
-    if (
-        td64_unit != NPY_DATETIMEUNIT.NPY_FR_ns
-        and td64_unit != NPY_DATETIMEUNIT.NPY_FR_GENERIC
-    ):
-        unitstr = npy_unit_to_abbrev(td64_unit)
+    if td64_unit in (NPY_DATETIMEUNIT.NPY_FR_ns, NPY_DATETIMEUNIT.NPY_FR_GENERIC):
+        return ts
 
-        td64_value = get_timedelta64_value(ts)
+    unitstr = npy_unit_to_abbrev(td64_unit)
+    mult = precision_from_unit(unitstr)[0]
+    td64_value = calc_int_int(operator.mul, get_timedelta64_value(ts), mult)
 
-        mult = precision_from_unit(unitstr)[0]
-        try:
-            # NB: cython#1381 this cannot be *=
-            td64_value = td64_value * mult
-        except OverflowError as err:
-            msg = f"{ts} outside allowed range [{TIMEDELTA_MIN_NS}ns, {TIMEDELTA_MAX_NS}ns]"
-            raise OutOfBoundsTimedelta(msg) from err
-
-        return np.timedelta64(td64_value, "ns")
-
-    return ts
+    return np.timedelta64(td64_value, "ns")
 
 
 cdef convert_to_timedelta64(object ts, str unit):
@@ -686,13 +672,27 @@ def _op_unary_method(func, name):
     return f
 
 
-cpdef int64_t calculate(object op, object a, object b) except? -1:
+cpdef int64_t calc_int_int(object op, object a, object b) except? -1:
     """
-    Calculate op(a, b), raising if either operand or the resulting value cannot be
-    safely cast to an int64_t.
+    Calculate op(a, b), raising if either operand or the result cannot be safely cast
+    to an int64_t.
     """
     try:
-        return ops.calculate(op, a, b)
+        return ops.calc_int_int(op, a, b)
+    except OverflowError as ex:
+        msg = f"outside allowed range [{TIMEDELTA_MIN_NS}ns, {TIMEDELTA_MAX_NS}ns]"
+        raise OutOfBoundsTimedelta(msg) from ex
+
+
+cpdef int64_t calc_int_float(object op, object a, object b) except? -1:
+    """
+    Calculate op(int, double), raising if any of the following aren't safe conversions:
+      - a to int64_t
+      - b to double
+      - result to int64_t
+    """
+    try:
+        return ops.calc_int_float(op, a, b)
     except OverflowError as ex:
         msg = f"outside allowed range [{TIMEDELTA_MIN_NS}ns, {TIMEDELTA_MAX_NS}ns]"
         raise OutOfBoundsTimedelta(msg) from ex
@@ -742,7 +742,7 @@ def _binary_op_method_timedeltalike(op, name):
         if self._reso != other._reso:
             raise NotImplementedError
 
-        result = calculate(op, self.value, other.value)
+        result = calc_int_int(op, self.value, other.value)
         if result == NPY_NAT:
             return NaT
         return _timedelta_from_value_and_reso(result, self._reso)
@@ -1601,19 +1601,18 @@ class Timedelta(_Timedelta):
     __rsub__ = _binary_op_method_timedeltalike(lambda x, y: y - x, '__rsub__')
 
     def __mul__(self, other):
-        if is_integer_object(other) or is_float_object(other):
-            if util.is_nan(other):
-                # np.nan * timedelta -> np.timedelta64("NaT"), in this case NaT
-                return NaT
-
-            return _timedelta_from_value_and_reso(
-                <int64_t>(other * self.value),
-                reso=self._reso,
-            )
-
-        elif is_array(other):
+        if util.is_nan(other):
+            # np.nan * timedelta -> np.timedelta64("NaT"), in this case NaT
+            return NaT
+        if is_array(other):
             # ndarray-like
             return other * self.to_timedelta64()
+        if is_integer_object(other):
+            value = calc_int_int(operator.mul, self.value, other)
+            return _timedelta_from_value_and_reso(value, self._reso)
+        if is_float_object(other):
+            value = calc_int_float(operator.mul, self.value, other)
+            return _timedelta_from_value_and_reso(value, self._reso)
 
         return NotImplemented
 

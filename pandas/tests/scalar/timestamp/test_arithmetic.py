@@ -3,6 +3,7 @@ from datetime import (
     timedelta,
     timezone,
 )
+import re
 
 import numpy as np
 import pytest
@@ -39,10 +40,8 @@ class TestTimestampArithmetic:
 
         stamp = Timestamp("2017-01-13 00:00:00")
         offset_overflow = 20169940 * offsets.Day(1)
-        msg = (
-            "the add operation between "
-            r"\<-?\d+ \* Days\> and \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} "
-            "will overflow"
+        msg = re.escape(
+            "outside allowed range [-9223372036854775807ns, 9223372036854775807ns]"
         )
         lmsg = "|".join(
             ["Python int too large to convert to C long", "int too big to convert"]
@@ -51,7 +50,7 @@ class TestTimestampArithmetic:
         with pytest.raises(OverflowError, match=lmsg):
             stamp + offset_overflow
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             offset_overflow + stamp
 
         with pytest.raises(OverflowError, match=lmsg):
@@ -66,7 +65,7 @@ class TestTimestampArithmetic:
         with pytest.raises(OverflowError, match=lmsg):
             stamp + offset_overflow
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             offset_overflow + stamp
 
         with pytest.raises(OverflowError, match=lmsg):
