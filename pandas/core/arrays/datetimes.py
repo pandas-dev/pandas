@@ -38,11 +38,13 @@ from pandas._libs.tslibs import (
     tz_convert_from_utc,
     tzconversion,
 )
+from pandas._libs.tslibs.np_datetime import py_get_unit_from_dtype
 from pandas._typing import npt
 from pandas.errors import (
     OutOfBoundsDatetime,
     PerformanceWarning,
 )
+from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_inclusive
 
@@ -131,7 +133,7 @@ def _field_accessor(name: str, field: str, docstring=None):
                     month_kw = kwds.get("startingMonth", kwds.get("month", 12))
 
                 result = fields.get_start_end_field(
-                    values.view(self._ndarray.dtype), field, self.freqstr, month_kw
+                    values, field, self.freqstr, month_kw, reso=self._reso
                 )
             else:
                 result = fields.get_date_field(values, field)
@@ -140,7 +142,7 @@ def _field_accessor(name: str, field: str, docstring=None):
             return result
 
         if field in self._object_ops:
-            result = fields.get_date_name_field(values, field)
+            result = fields.get_date_name_field(values, field, reso=self._reso)
             result = self._maybe_mask_results(result, fill_value=None)
 
         else:
@@ -543,6 +545,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
     # -----------------------------------------------------------------
     # Descriptive Properties
+
+    @cache_readonly
+    def _reso(self):
+        return py_get_unit_from_dtype(self._ndarray.dtype)
 
     def _box_func(self, x: np.datetime64) -> Timestamp | NaTType:
         # GH#42228
@@ -1270,7 +1276,9 @@ default 'raise'
         """
         values = self._local_timestamps()
 
-        result = fields.get_date_name_field(values, "month_name", locale=locale)
+        result = fields.get_date_name_field(
+            values, "month_name", locale=locale, reso=self._reso
+        )
         result = self._maybe_mask_results(result, fill_value=None)
         return result
 
@@ -1313,7 +1321,9 @@ default 'raise'
         """
         values = self._local_timestamps()
 
-        result = fields.get_date_name_field(values, "day_name", locale=locale)
+        result = fields.get_date_name_field(
+            values, "day_name", locale=locale, reso=self._reso
+        )
         result = self._maybe_mask_results(result, fill_value=None)
         return result
 
