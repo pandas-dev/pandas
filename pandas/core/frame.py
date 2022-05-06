@@ -9007,7 +9007,7 @@ Parrot 2  Parrot       24.0
         axis: Axis = ...,
         bool_only: bool | None = ...,
         skipna: bool = ...,
-        level=Level,
+        level: Level,
         **kwargs,
     ) -> DataFrame | Series:
         ...

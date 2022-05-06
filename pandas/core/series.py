@@ -4416,7 +4416,7 @@ Keep all original rows and also all original values
         axis: Axis = ...,
         bool_only: bool | None = ...,
         skipna: bool = ...,
-        level=Level,
+        level: Level,
         **kwargs,
     ) -> Series | bool:
         ...
