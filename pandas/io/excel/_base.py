@@ -621,20 +621,19 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        header : int, list of int, default 0
+        header : int, list of int, or None
             See read_excel docstring.
-        index_col : int, list of int, default None
+        index_col : int, list of int, or None
             See read_excel docstring.
-        skiprows : list-like, int, or callable, optional
+        skiprows : list-like, int, callable, or None
             See read_excel docstring.
-        nrows : int, default None
+        nrows : int or None
             See read_excel docstring.
 
         Returns
         -------
         int or None
         """
-        validate_integer("nrows", nrows)
         if nrows is None:
             return
         if header is None:
@@ -661,6 +660,8 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                 skiprows,
                 header_rows + nrows,
             )
+        # else unexpected skiprows type: read_excel will not optimize
+        # the number of rows read from file
 
     def parse(
         self,
@@ -698,6 +699,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             )
 
         validate_header_arg(header)
+        validate_integer("nrows", nrows)
 
         ret_dict = False
 
