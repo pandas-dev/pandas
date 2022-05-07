@@ -511,7 +511,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 
    def replace(g):
        mask = g < 0
-       return g.where(mask, g[~mask].mean())
+       return g.where(~mask, g[~mask].mean())
 
    gb.transform(replace)
 
