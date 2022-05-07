@@ -392,8 +392,8 @@ class TestMultiplicationScalar:
         assert result == Timedelta(expected, "D")
         assert isinstance(result, Timedelta)
 
-    @pytest.mark.parametrize("value", (Timestamp("2020-01-02"), Timedelta(1)))
-    def test_datetimelike_or_timedeltalike_raises(
+    @pytest.mark.parametrize("value", (Timedelta.min, Timedelta.max, offsets.Day(1)))
+    def test_raises_for_datetimelike_timedeltalike_offset(
         self,
         ten_days: Timedelta,
         mul_op,
@@ -404,16 +404,11 @@ class TestMultiplicationScalar:
         with pytest.raises(TypeError, match=invalid_op_msg):
             mul_op(ten_days, value)
 
-    def test_offset_raises(self):
-        pass
-
     @pytest.mark.parametrize("value", (Timedelta.min, Timedelta.max))
-    def test_raises_for_overflow(self, mul_op, td_overflow_msg: str, value: Timedelta):
+    @pytest.mark.parametrize("factor", (1.01, 2), ids=("int", "float"))
+    def test_raises_for_overflow(self, value, mul_op, factor, td_overflow_msg: str):
         with pytest.raises(OutOfBoundsTimedelta, match=td_overflow_msg):
-            mul_op(value, 2)
-
-        with pytest.raises(OutOfBoundsTimedelta, match=td_overflow_msg):
-            mul_op(value, 1.1)
+            mul_op(value, factor)
 
     def test_na(self, request, ten_days: Timedelta, mul_op, na_value):
         if na_value is None or na_value is NaT or na_value is NA:
@@ -431,15 +426,27 @@ class TestMultiplicationBox:
     @pytest.mark.parametrize("factor,expected", ((2, 20), (1.5, 15)))
     def test_numeric(self, ten_days, mul_op, factor, expected, box_with_array):
         other = tm.box_expected([factor], box_with_array)
+        result = mul_op(ten_days, other)
         expected = tm.box_expected(
             [Timedelta(expected, "D").to_timedelta64()],
             box_with_array,
         )
-        result = mul_op(ten_days, other)
         tm.assert_equal(result, expected)
 
-    @pytest.mark.parametrize("value", (Timestamp.min, Timedelta.max))
-    def test_datetimelike_or_timedeltalike_raises(
+    @pytest.mark.xfail(reason="no overflow check", raises=AssertionError)
+    @pytest.mark.parametrize("factor", (1.01, 2), ids=("int", "float"))
+    def test_returns_nat_if_result_overflows(self, mul_op, factor, box_with_array):
+        numeric_box = tm.box_expected((1, factor), box_with_array, transpose=False)
+        result = mul_op(pd.Timedelta.max, numeric_box)
+        expected = tm.box_expected(
+            (pd.Timedelta.max, NaT),
+            box_with_array,
+            transpose=False,
+        )
+        tm.assert_equal(result, expected)
+
+    @pytest.mark.parametrize("value", (Timedelta.min, Timedelta.max, offsets.Day(1)))
+    def test_raises_for_datetimelike_timedeltalike_offset(
         self,
         ten_days: Timedelta,
         mul_op,
@@ -447,60 +454,124 @@ class TestMultiplicationBox:
         box_with_array,
         invalid_op_msg: str,
     ):
-        box = tm.box_expected([value], box_with_array)
+        other = tm.box_expected([value], box_with_array)
         with pytest.raises(TypeError, match=invalid_op_msg):
-            mul_op(ten_days, box)
-
-    def test_offset_raises(self):
-        pass
-
-    def test_raises_for_overflow(self):
-        pass
+            mul_op(ten_days, other)
 
     def test_na(self):
-        pass
+        ...
 
 
-class TestTrueDivisionScalar:
+class TestDivisionScalar:
     """
-    Tests for Timedelta.{__truediv__,__rtruediv__} where second operand is a scalar.
+    Tests against the following Timedelta methods, where second operand is a scalar:
+
+        __truediv__,__rtrueidv
+        __floordiv__,__rfloordiv__
+        __mod__,__rmod__
+        __divmod__,__rdivmod__
     """
 
-    def test_truediv_numeric(self, ten_days: Timedelta, any_real_numpy_dtype):
-        # GH#19738
-        scalar = np.dtype(any_real_numpy_dtype).type(2.0)
-        result = ten_days / scalar
-        assert isinstance(result, Timedelta)
-        assert result == Timedelta(days=5)
-
-    def test_rtruediv_numeric_raises(
+    @pytest.mark.parametrize(
+        ("div_op", "divisor", "expected"),
+        (
+            (operator.truediv, 2.0, Timedelta(days=5)),
+            (operator.floordiv, 3, Timedelta(days=3, hours=8)),
+            (operator.mod, 11, Timedelta(nanoseconds=6)),
+            (divmod, 3, (Timedelta(days=3, hours=8), Timedelta(0))),
+        ),
+        ids=("truediv", "floordiv", "mod", "divmod"),
+    )
+    def test_div_numeric(
         self,
         ten_days: Timedelta,
-        invalid_op_msg: str,
+        div_op,
+        divisor,
         any_real_numpy_dtype,
+        expected,
     ):
-        scalar = np.dtype(any_real_numpy_dtype).type(2.0)
-        with pytest.raises(TypeError, match=invalid_op_msg):
-            scalar / ten_days
+        # GH#19738
+        scalar = np.dtype(any_real_numpy_dtype).type(divisor)
+        result = div_op(ten_days, scalar)
 
+        assert result == expected
+        if div_op is divmod:
+            assert all(isinstance(r, Timedelta) for r in result)
+        else:
+            assert isinstance(result, Timedelta)
+
+    @pytest.mark.parametrize(
+        "rdiv_op",
+        (ops.rtruediv, ops.rfloordiv, ops.rmod, ops.rdivmod),
+    )
+    def test_rdiv_numeric_raises(
+        self,
+        ten_days: Timedelta,
+        rdiv_op,
+        any_real_numpy_dtype,
+        invalid_op_msg: str,
+    ):
+        scalar = np.dtype(any_real_numpy_dtype).type(1)
+        with pytest.raises(TypeError, match=invalid_op_msg):
+            rdiv_op(ten_days, scalar)
+
+    @pytest.mark.parametrize(
+        "any_div_op",
+        (
+            operator.truediv,
+            ops.rtruediv,
+            operator.floordiv,
+            ops.rfloordiv,
+            operator.mod,
+            ops.rmod,
+            divmod,
+            ops.rdivmod,
+        ),
+    )
     def test_datetimelike_raises(
         self,
         ten_days: Timedelta,
-        truediv_op,
+        any_div_op,
         y2k,
         invalid_op_msg: str,
     ):
         with pytest.raises(TypeError, match=invalid_op_msg):
-            truediv_op(ten_days, y2k)
+            any_div_op(ten_days, y2k)
 
-    def test_timedeltalike(self, ten_days: Timedelta, one_day):
+    @pytest.mark.parametrize(
+        ("div_op", "expected"),
+        (
+            (operator.truediv, 10),
+            (operator.floordiv, 10),
+            (operator.mod, Timedelta(0)),
+            (divmod, (10, Timedelta(0))),
+            (ops.rtruediv, 0.1),
+            (ops.rfloordiv, 0),
+            (ops.rmod, Timedelta(days=1)),
+            (ops.rdivmod, (0, Timedelta(days=1))),
+        ),
+    )
+    def test_timedeltalike(self, ten_days: Timedelta, div_op, one_day, expected):
         # GH#19738
-        assert ten_days / one_day == 10
-        assert one_day / ten_days == 0.1
+        result = div_op(ten_days, one_day)
+        assert result == expected
 
-    def test_offset(self, ten_days: Timedelta):
-        assert ten_days / offsets.Hour(12) == 20
-        assert offsets.Hour(12) / ten_days == 0.05
+    @pytest.mark.parametrize(
+        ("div_op", "expected"),
+        (
+            (operator.truediv, 10),
+            (operator.floordiv, 10),
+            (operator.mod, Timedelta(0)),
+            (divmod, (10, Timedelta(0))),
+            (ops.rtruediv, 0.1),
+            (ops.rfloordiv, 0),
+            (ops.rmod, Timedelta(days=1)),
+            (ops.rdivmod, (0, Timedelta(days=1))),
+        ),
+    )
+    def test_offset(self, ten_days: Timedelta, div_op, expected):
+        result = div_op(ten_days, offsets.Day(1))
+        assert result == expected
 
     def test_na(self, request, ten_days: Timedelta, truediv_op, na_value):
         expected = NaT
@@ -512,271 +583,6 @@ class TestTrueDivisionScalar:
             expected = np.nan
         result = truediv_op(ten_days, na_value)
         assert result is expected
-
-
-class TestTrueDivisionBox:
-    """
-    Tests for Timedelta.{__floordiv__,__rfloordiv__,__truediv__,__rtruediv__} where
-    second operand is a Array/Index/Series/DataFrame.
-    """
-
-    def test_truediv_numeric(self, ten_days: Timedelta, any_real_numpy_dtype):
-        # GH#19738
-        scalar = np.dtype(any_real_numpy_dtype).type(2.0)
-        result = ten_days / scalar
-        assert isinstance(result, Timedelta)
-        assert result == Timedelta(days=5)
-
-    def test_rtruediv_numeric_raises(
-        self,
-        ten_days: Timedelta,
-        invalid_op_msg: str,
-        any_real_numpy_dtype,
-    ):
-        scalar = np.dtype(any_real_numpy_dtype).type(2.0)
-        with pytest.raises(TypeError, match=invalid_op_msg):
-            scalar / ten_days
-
-    def test_datetimelike_raises(
-        self,
-        ten_days: Timedelta,
-        truediv_op,
-        y2k,
-        box_with_array,
-        invalid_op_msg: str,
-    ):
-        other = tm.box_expected((y2k,), box_with_array)
-        with pytest.raises(TypeError, match=invalid_op_msg):
-            truediv_op(ten_days, other)
-
-    def test_timedeltalike(
-        self,
-        ten_days: Timedelta,
-        truediv_op,
-        tdlike_cls,
-        box_with_array,
-    ):
-        # TODO:
-        elem = tdlike_cls(days=10) if tdlike_cls is timedelta else tdlike_cls(10, "D")
-        other = tm.box_expected((elem,), box_with_array)
-
-        if box_with_array is pd.array:
-            expected = np.array((1.0,))
-        else:
-            expected = tm.box_expected((1.0,), box_with_array)
-
-        result = truediv_op(ten_days, other)
-        tm.assert_equal(result, expected)
-
-    def test_offset(self, ten_days: Timedelta):
-        ...
-
-    def test_na(self, request, ten_days: Timedelta, truediv_op, na_value):
-        ...
-
-
-class TestFloorModuloDivisionScalar:
-    """
-    Timedelta.{__floordiv__,__rfloordiv__,__mod__,__rmod__,__divmod__,__rdivmod__} tests
-    where second operand is a scalar.
-    """
-
-    def test_floordiv_numeric(self):
-        pass
-
-    def test_rfloordiv_numeric(
-        self,
-        ten_days: Timedelta,
-        any_real_numpy_dtype,
-        invalid_op_msg: str,
-    ):
-        # int32 deprecated GH#19761, enforced GH#29797
-        scalar = np.dtype(any_real_numpy_dtype).type(1.0)
-        assert ten_days.__rfloordiv__(scalar) is NotImplemented
-        with pytest.raises(TypeError, match=invalid_op_msg):
-            scalar // ten_days
-
-    def test_mod_numeric(self):
-        # GH#19365
-        td = Timedelta(hours=37)
-
-        # Numeric Others
-        result = td % 2
-        assert isinstance(result, Timedelta)
-        assert result == Timedelta(0)
-
-        result = td % 1e12
-        assert isinstance(result, Timedelta)
-        assert result == Timedelta(minutes=3, seconds=20)
-
-        result = td % int(1e12)
-        assert isinstance(result, Timedelta)
-        assert result == Timedelta(minutes=3, seconds=20)
-
-    def test_rmod_numeric(self):
-        # GH#19365
-        td = Timedelta(minutes=3)
-
-        msg = "unsupported operand"
-        with pytest.raises(TypeError, match=msg):
-            Timestamp("2018-01-22") % td
-
-        with pytest.raises(TypeError, match=msg):
-            15 % td
-
-        with pytest.raises(TypeError, match=msg):
-            16.0 % td
-
-        msg = "Invalid dtype int"
-        with pytest.raises(TypeError, match=msg):
-            np.array([22, 24]) % td
-
-    def test_divmod_numeric(self):
-        # GH#19365
-        td = Timedelta(days=2, hours=6)
-
-        result = divmod(td, 53 * 3600 * 1e9)
-        assert result[0] == Timedelta(1, unit="ns")
-        assert isinstance(result[1], Timedelta)
-        assert result[1] == Timedelta(hours=1)
-
-        assert result
-        result = divmod(td, np.nan)
-        assert result[0] is NaT
-        assert result[1] is NaT
-
-    def test_rdivmod_numeric(self):
-        pass
-
-    def test_datetimelike_raises(
-        self,
-        ten_days: Timedelta,
-        floor_mod_divmod_op,
-        y2k,
-        invalid_op_msg: str,
-    ):
-        # GH#18846
-        with pytest.raises(TypeError, match=invalid_op_msg):
-            floor_mod_divmod_op(ten_days, y2k)
-
-    def test_floordiv_timedeltalike(self):
-        pass
-
-    def test_rfloordiv_timedeltalike(self):
-        # GH#18846
-        td = Timedelta(hours=3, minutes=3)
-        scalar = Timedelta(hours=3, minutes=4)
-
-        # scalar others
-        # x // Timedelta is defined only for timedelta-like x. int-like,
-        # float-like, and date-like, in particular, should all either
-        # a) raise TypeError directly or
-        # b) return NotImplemented, following which the reversed
-        #    operation will raise TypeError.
-        assert td.__rfloordiv__(scalar) == 1
-        assert (-td).__rfloordiv__(scalar.to_pytimedelta()) == -2
-        assert (2 * td).__rfloordiv__(scalar.to_timedelta64()) == 0
-
-    def test_mod_timedeltalike(self):
-        # GH#19365
-        td = Timedelta(hours=37)
-
-        # Timedelta-like others
-        result = td % Timedelta(hours=6)
-        assert isinstance(result, Timedelta)
-        assert result == Timedelta(hours=1)
-
-        result = td % timedelta(minutes=60)
-        assert isinstance(result, Timedelta)
-        assert result == Timedelta(0)
-
-        result = td % NaT
-        assert result is NaT
-
-    def test_mod_timedelta64(self):
-        # GH#19365
-        td = Timedelta(hours=37)
-
-        result = td % np.timedelta64(2, "h")
-        assert isinstance(result, Timedelta)
-        assert result == Timedelta(hours=1)
-
-    def test_rmod_timedeltalike(self):
-        # GH#19365
-        td = Timedelta(minutes=3)
-
-        result = timedelta(minutes=4) % td
-        assert isinstance(result, Timedelta)
-        assert result == Timedelta(minutes=1)
-
-    def test_rmod_timedelta64(self):
-        # GH#19365
-        td = Timedelta(minutes=3)
-        result = np.timedelta64(5, "m") % td
-        assert isinstance(result, Timedelta)
-        assert result == Timedelta(minutes=2)
-
-    def test_divmod_timedeltalike(self):
-        # GH#19365
-        td = Timedelta(days=2, hours=6)
-
-        result = divmod(td, timedelta(days=1))
-        assert result[0] == 2
-        assert isinstance(result[1], Timedelta)
-        assert result[1] == Timedelta(hours=6)
-
-        result = divmod(td, 54)
-        assert result[0] == Timedelta(hours=1)
-        assert isinstance(result[1], Timedelta)
-        assert result[1] == Timedelta(0)
-
-        result = divmod(td, NaT)
-        assert np.isnan(result[0])
-        assert result[1] is NaT
-
-    def test_rdivmod_pytimedelta(self):
-        # GH#19365
-        result = divmod(timedelta(days=2, hours=6), Timedelta(days=1))
-        assert result[0] == 2
-        assert isinstance(result[1], Timedelta)
-        assert result[1] == Timedelta(hours=6)
-
-    def test_floordiv_offsets(self):
-        # GH#19738
-        td = Timedelta(hours=3, minutes=4)
-        assert td // offsets.Hour(1) == 3
-
-        assert td // offsets.Minute(2) == 92
-
-    def test_rfloordiv_offsets(self):
-        # GH#19738
-        assert offsets.Hour(1) // Timedelta(minutes=25) == 2
-
-    def test_mod_offset(self):
-        # GH#19365
-        td = Timedelta(hours=37)
-
-        result = td % offsets.Hour(5)
-        assert isinstance(result, Timedelta)
-        assert result == Timedelta(hours=2)
-
-    def test_rmod_offset(self):
-        pass
-
-    def test_divmod_offset(self):
-        # GH#19365
-        td = Timedelta(days=2, hours=6)
-
-        result = divmod(td, offsets.Hour(-4))
-        assert result[0] == -14
-        assert isinstance(result[1], Timedelta)
-        assert result[1] == Timedelta(hours=-2)
-
-    def test_rdivmod_offset(self):
-        result = divmod(offsets.Hour(54), Timedelta(hours=-4))
-        assert result[0] == -14
-        assert isinstance(result[1], Timedelta)
-        assert result[1] == Timedelta(hours=-2)
 
     def test_floordiv_na(self, request, ten_days: Timedelta, na_value):
         expected = NaT
@@ -830,11 +636,80 @@ class TestFloorModuloDivisionScalar:
         assert result == expected
 
 
-class TestFloorModuloDivisionBox:
+class TestDivisionBox:
     """
-    Timedelta.{__floordiv__,__rfloordiv__,__mod__,__rmod__,__divmod__, __rdivmod__}
-    tests where second operand is a Array/Index/Series/DataFrame.
+    Tests against the following Timedelta methods, where second operand is a
+    Array/Index/Series/DataFrame:
+
+        __truediv__,__rtrueidv
+        __floordiv__,__rfloordiv__
+        __mod__,__rmod__
+        __divmod__,__rdivmod__
     """
+
+    def test_truediv_numeric(self, ten_days: Timedelta, any_real_numpy_dtype):
+        # GH#19738
+        scalar = np.dtype(any_real_numpy_dtype).type(2.0)
+        result = ten_days / scalar
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(days=5)
+
+    def test_rtruediv_numeric_raises(
+        self,
+        ten_days: Timedelta,
+        invalid_op_msg: str,
+        any_real_numpy_dtype,
+    ):
+        scalar = np.dtype(any_real_numpy_dtype).type(2.0)
+        with pytest.raises(TypeError, match=invalid_op_msg):
+            scalar / ten_days
+
+    @pytest.mark.parametrize(
+        "any_div_op",
+        (
+            operator.truediv,
+            ops.rtruediv,
+            operator.floordiv,
+            ops.rfloordiv,
+            operator.mod,
+            ops.rmod,
+            divmod,
+            ops.rdivmod,
+        ),
+    )
+    def test_datetimelike_raises(
+        self,
+        ten_days: Timedelta,
+        any_div_op,
+        y2k,
+        box_with_array,
+        invalid_op_msg: str,
+    ):
+        other = tm.box_expected((y2k,), box_with_array)
+        with pytest.raises(TypeError, match=invalid_op_msg):
+            any_div_op(ten_days, other)
+
+    def test_timedeltalike(
+        self,
+        ten_days: Timedelta,
+        truediv_op,
+        tdlike_cls,
+        box_with_array,
+    ):
+        # TODO:
+        elem = tdlike_cls(days=10) if tdlike_cls is timedelta else tdlike_cls(10, "D")
+        other = tm.box_expected((elem,), box_with_array)
+
+        if box_with_array is pd.array:
+            expected = np.array((1.0,))
+        else:
+            expected = tm.box_expected((1.0,), box_with_array)
+
+        result = truediv_op(ten_days, other)
+        tm.assert_equal(result, expected)
+
+    def test_offset(self, ten_days: Timedelta):
+        ...
 
     def test_floordiv_numeric_series(self):
         # GH#18846
