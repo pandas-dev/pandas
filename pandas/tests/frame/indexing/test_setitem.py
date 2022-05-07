@@ -743,7 +743,7 @@ class TestSetitemTZAwareValues:
 
 
 class TestDataFrameSetItemWithExpansion:
-    def test_setitem_listlike_views(self):
+    def test_setitem_listlike_views(self, using_copy_on_write):
         # GH#38148
         df = DataFrame({"a": [1, 2, 3], "b": [4, 4, 6]})
 
@@ -756,7 +756,10 @@ class TestDataFrameSetItemWithExpansion:
         # edit in place the first column to check view semantics
         df.iloc[0, 0] = 100
 
-        expected = Series([100, 2, 3], name="a")
+        if using_copy_on_write:
+            expected = Series([1, 2, 3], name="a")
+        else:
+            expected = Series([100, 2, 3], name="a")
         tm.assert_series_equal(ser, expected)
 
     def test_setitem_string_column_numpy_dtype_raising(self):
@@ -1054,7 +1057,9 @@ class TestDataFrameSetitemCopyViewSemantics:
         assert notna(s[5:10]).all()
 
     @pytest.mark.parametrize("consolidate", [True, False])
-    def test_setitem_partial_column_inplace(self, consolidate, using_array_manager):
+    def test_setitem_partial_column_inplace(
+        self, consolidate, using_array_manager, using_copy_on_write
+    ):
         # This setting should be in-place, regardless of whether frame is
         #  single-block or multi-block
         # GH#304 this used to be incorrectly not-inplace, in which case
@@ -1079,10 +1084,11 @@ class TestDataFrameSetitemCopyViewSemantics:
         tm.assert_series_equal(df["z"], expected)
 
         # check setting occurred in-place
-        tm.assert_numpy_array_equal(zvals, expected.values)
-        assert np.shares_memory(zvals, df["z"]._values)
-        if not consolidate:
-            assert df["z"]._values is zvals
+        if not using_copy_on_write:
+            tm.assert_numpy_array_equal(zvals, expected.values)
+            assert np.shares_memory(zvals, df["z"]._values)
+            if not consolidate:
+                assert df["z"]._values is zvals
 
     def test_setitem_duplicate_columns_not_inplace(self):
         # GH#39510

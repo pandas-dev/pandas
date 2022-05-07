@@ -279,7 +279,7 @@ class TestSeriesDatetimeValues:
         expected = Series(exp_values, name="xxx")
         tm.assert_series_equal(ser, expected)
 
-    def test_dt_accessor_not_writeable(self):
+    def test_dt_accessor_not_writeable(self, using_copy_on_write):
         # no setting allowed
         ser = Series(date_range("20130101", periods=5, freq="D"), name="xxx")
         with pytest.raises(ValueError, match="modifications"):
@@ -288,8 +288,12 @@ class TestSeriesDatetimeValues:
         # trying to set a copy
         msg = "modifications to a property of a datetimelike.+not supported"
         with pd.option_context("chained_assignment", "raise"):
-            with pytest.raises(com.SettingWithCopyError, match=msg):
+            if using_copy_on_write:
+                # TODO(CoW) it would be nice to keep a warning/error for this case
                 ser.dt.hour[0] = 5
+            else:
+                with pytest.raises(com.SettingWithCopyError, match=msg):
+                    ser.dt.hour[0] = 5
 
     @pytest.mark.parametrize(
         "method, dates",

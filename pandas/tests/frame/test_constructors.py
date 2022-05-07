@@ -271,15 +271,22 @@ class TestDataFrameConstructors:
         new_df["col1"] = 200.0
         assert orig_df["col1"][0] == 1.0
 
-    def test_constructor_dtype_nocast_view_dataframe(self):
+    def test_constructor_dtype_nocast_view_dataframe(self, using_copy_on_write):
         df = DataFrame([[1, 2]])
         should_be_view = DataFrame(df, dtype=df[0].dtype)
-        should_be_view[0][0] = 99
-        assert df.values[0, 0] == 99
+        if using_copy_on_write:
+            # INFO(CoW) doesn't mutate original
+            should_be_view.iloc[0, 0] = 99
+            assert df.values[0, 0] == 1
+        else:
+            should_be_view[0][0] = 99
+            assert df.values[0, 0] == 99
 
-    def test_constructor_dtype_nocast_view_2d_array(self, using_array_manager):
+    def test_constructor_dtype_nocast_view_2d_array(
+        self, using_array_manager, using_copy_on_write
+    ):
         df = DataFrame([[1, 2], [3, 4]], dtype="int64")
-        if not using_array_manager:
+        if not using_array_manager and not using_copy_on_write:
             should_be_view = DataFrame(df.values, dtype=df[0].dtype)
             should_be_view[0][0] = 97
             assert df.values[0, 0] == 97
@@ -2502,7 +2509,13 @@ class TestDataFrameConstructors:
 
     @pytest.mark.parametrize("copy", [False, True])
     def test_dict_nocopy(
-        self, request, copy, any_numeric_ea_dtype, any_numpy_dtype, using_array_manager
+        self,
+        request,
+        copy,
+        any_numeric_ea_dtype,
+        any_numpy_dtype,
+        using_array_manager,
+        using_copy_on_write,
     ):
         if (
             using_array_manager
@@ -2575,7 +2588,7 @@ class TestDataFrameConstructors:
         #  view, so we have to check in the other direction
         df.iloc[:, 2] = pd.array([45, 46], dtype=c.dtype)
         assert df.dtypes.iloc[2] == c.dtype
-        if not copy:
+        if not copy and not using_copy_on_write:
             check_views(True)
 
         if copy:
@@ -2587,7 +2600,7 @@ class TestDataFrameConstructors:
                 assert b[0] == b.dtype.type(3)
             # FIXME(GH#35417): enable after GH#35417
             assert c[0] == c_orig[0]  # i.e. df.iloc[0, 2]=45 did *not* update c
-        else:
+        elif not using_copy_on_write:
             # TODO: we can call check_views if we stop consolidating
             #  in setitem_with_indexer
             assert c[0] == 45  # i.e. df.iloc[0, 2]=45 *did* update c

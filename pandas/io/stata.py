@@ -331,8 +331,7 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt) -> Series:
     has_bad_values = False
     if bad_locs.any():
         has_bad_values = True
-        data_col = Series(dates)
-        data_col[bad_locs] = 1.0  # Replace with NaT
+        dates[bad_locs] = 1.0  # Replace with NaT
     dates = dates.astype(np.int64)
 
     if fmt.startswith(("%tc", "tc")):  # Delta ms relative to base

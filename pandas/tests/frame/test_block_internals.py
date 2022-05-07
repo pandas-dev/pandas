@@ -334,7 +334,7 @@ class TestDataFrameBlockInternals:
         assert not float_frame._is_mixed_type
         assert float_string_frame._is_mixed_type
 
-    def test_stale_cached_series_bug_473(self):
+    def test_stale_cached_series_bug_473(self, using_copy_on_write):
 
         # this is chained, but ok
         with option_context("chained_assignment", None):
@@ -349,9 +349,12 @@ class TestDataFrameBlockInternals:
             repr(Y)
             result = Y.sum()  # noqa
             exp = Y["g"].sum()  # noqa
-            assert pd.isna(Y["g"]["c"])
+            if using_copy_on_write:
+                assert not pd.isna(Y["g"]["c"])
+            else:
+                assert pd.isna(Y["g"]["c"])
 
-    def test_strange_column_corruption_issue(self):
+    def test_strange_column_corruption_issue(self, using_copy_on_write):
         # TODO(wesm): Unclear how exactly this is related to internal matters
         df = DataFrame(index=[0, 1])
         df[0] = np.nan
@@ -363,7 +366,10 @@ class TestDataFrameBlockInternals:
                     if col not in wasCol:
                         wasCol[col] = 1
                         df[col] = np.nan
-                    df[col][dt] = i
+                    if using_copy_on_write:
+                        df.loc[dt, col] = i
+                    else:
+                        df[col][dt] = i
 
         myid = 100
 
