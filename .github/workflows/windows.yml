@@ -30,7 +30,6 @@ jobs:
       matrix:
         env_file: [actions-38.yaml, actions-39.yaml, actions-310.yaml]
       fail-fast: false
-    name: ${{ format('Windows {0}', matrix.env_file) }}
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.env_file }}-windows
