@@ -152,7 +152,7 @@ jobs:
         mamba-version: "*"
         channels: conda-forge
         activate-environment: pandas-dev
-        channel-priority: strict
+        channel-priority: flexible
         environment-file: ${{ env.ENV_FILE }}
         use-only-tar-bz2: true
       if: ${{ env.IS_PYPY == 'false' }} # No pypy3.8 support
