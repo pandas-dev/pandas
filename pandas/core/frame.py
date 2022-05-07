@@ -409,14 +409,17 @@ appended to any overlapping columns.
 4  bar           2  bar            6
 5  baz           3  baz            7
 
-Merge DataFrames df1 and df2, but raise an exception if the DataFrames have
-any overlapping columns.
+Merge DataFrames df1 and df2 with null as suffix will keep
+the original columns names
 
->>> df1.merge(df2, left_on='lkey', right_on='rkey', suffixes=(False, False))
-Traceback (most recent call last):
-...
-ValueError: columns overlap but no suffix specified:
-    Index(['value'], dtype='object')
+>>> df1.merge(df2, left_on='lkey', right_on='rkey', suffixes=None)
+  lkey  value rkey  value
+0  foo  1     foo   5
+1  foo  1     foo   8
+2  foo  5     foo   5
+3  foo  5     foo   8
+4  bar  2     bar   6
+5  baz  3     baz   7
 
 >>> df1 = pd.DataFrame({'a': ['foo', 'bar'], 'b': [1, 2]})
 >>> df2 = pd.DataFrame({'a': ['foo', 'baz'], 'c': [3, 4]})
