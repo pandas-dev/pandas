@@ -49,7 +49,7 @@ jobs:
         channels: conda-forge
         activate-environment: pandas-dev
         channel-priority: strict
-        environment-file: ${{ matrix.env_file }}
+        environment-file: ci/deps/${{ matrix.env_file }}
         use-only-tar-bz2: true
 
     - name: Build Pandas
