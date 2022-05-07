@@ -635,22 +635,28 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         int or None
         """
         if nrows is None:
-            return
+            return None
         if header is None:
             header_rows = 1
         elif is_integer(header):
+            assert isinstance(header, int)
             header_rows = 1 + header
         else:
+            assert isinstance(header, Sequence)
             header_rows = 1 + header[-1]
         # If there is a MultiIndex header and an index then there is also
         # a row containing just the index name(s)
-        if is_list_like(header) and len(header) > 1 and index_col is not None:
-            header_rows += 1
+        if is_list_like(header) and index_col is not None:
+            assert isinstance(header, Sequence)
+            if len(header) > 1:
+                header_rows += 1
         if skiprows is None:
             return header_rows + nrows
         if is_integer(skiprows):
+            assert isinstance(skiprows, int)
             return header_rows + nrows + skiprows
         if is_list_like(skiprows):
+            assert isinstance(skiprows, Sequence)
             return self._check_skiprows_func(
                 lambda x: x in skiprows,
                 header_rows + nrows,
@@ -662,6 +668,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             )
         # else unexpected skiprows type: read_excel will not optimize
         # the number of rows read from file
+        return None
 
     def parse(
         self,

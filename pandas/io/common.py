@@ -26,6 +26,7 @@ from typing import (
     Generic,
     Literal,
     Mapping,
+    Sequence,
     TypeVar,
     cast,
     overload,
@@ -183,6 +184,7 @@ def validate_header_arg(header: object) -> None:
     if header is None:
         return
     if is_integer(header):
+        assert isinstance(header, int)
         if header < 0:
             # GH 27779
             raise ValueError(
@@ -191,6 +193,7 @@ def validate_header_arg(header: object) -> None:
             )
         return
     if is_list_like(header):
+        assert isinstance(header, Sequence)
         if not all(map(is_integer, header)):
             raise ValueError("header must be integer or list of integers")
         if any(i < 0 for i in header):
