@@ -5,14 +5,14 @@ of the parsers defined in parsers.py
 
 import os
 from pathlib import Path
+import tarfile
 import zipfile
 
 import pytest
 
 from pandas import DataFrame
 import pandas._testing as tm
-
-import pandas.io.common as icom
+from pandas.tests.io.test_compression import _compression_to_extension
 
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
@@ -95,7 +95,7 @@ def test_compression(request, parser_and_data, compression_only, buffer, filenam
     parser, data, expected = parser_and_data
     compress_type = compression_only
 
-    ext = icom._compression_to_extension[compress_type]
+    ext = _compression_to_extension[compress_type]
     filename = filename if filename is None else filename.format(ext=ext)
 
     if filename and buffer:
@@ -168,6 +168,14 @@ def test_invalid_compression(all_parsers, invalid_compression):
         parser.read_csv("test_file.zip", **compress_kwargs)
 
 
+@skip_pyarrow
+def test_compression_tar_archive(all_parsers, csv_dir_path):
+    parser = all_parsers
+    path = os.path.join(csv_dir_path, "tar_csv.tar.gz")
+    df = parser.read_csv(path)
+    assert list(df.columns) == ["a"]
+
+
 def test_ignore_compression_extension(all_parsers):
     parser = all_parsers
     df = DataFrame({"a": [0, 1]})
@@ -178,3 +186,26 @@ def test_ignore_compression_extension(all_parsers):
             Path(path_zip).write_text(Path(path_csv).read_text())
 
             tm.assert_frame_equal(parser.read_csv(path_zip, compression=None), df)
+
+
+@skip_pyarrow
+def test_writes_tar_gz(all_parsers):
+    parser = all_parsers
+    data = DataFrame(
+        {
+            "Country": ["Venezuela", "Venezuela"],
+            "Twitter": ["Hugo Chávez Frías", "Henrique Capriles R."],
+        }
+    )
+    with tm.ensure_clean("test.tar.gz") as tar_path:
+        data.to_csv(tar_path, index=False)
+
+        # test that read_csv infers .tar.gz to gzip:
+        tm.assert_frame_equal(parser.read_csv(tar_path), data)
+
+        # test that file is indeed gzipped:
+        with tarfile.open(tar_path, "r:gz") as tar:
+            result = parser.read_csv(
+                tar.extractfile(tar.getnames()[0]), compression="infer"
+            )
+            tm.assert_frame_equal(result, data)

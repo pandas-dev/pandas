@@ -6,6 +6,7 @@ from io import (
 )
 from lzma import LZMAError
 import os
+from tarfile import ReadError
 from urllib.error import HTTPError
 from zipfile import BadZipFile
 
@@ -1370,6 +1371,7 @@ def test_wrong_compression(parser, compression, compression_only):
         "bz2": (OSError, "Invalid data stream"),
         "gzip": (OSError, "Not a gzipped file"),
         "zip": (BadZipFile, "File is not a zip file"),
+        "tar": (ReadError, "file could not be opened successfully"),
     }
     zstd = import_optional_dependency("zstandard", errors="ignore")
     if zstd is not None:

@@ -294,6 +294,7 @@ def other_closed(request):
         "bz2",
         "zip",
         "xz",
+        "tar",
         pytest.param("zstd", marks=td.skip_if_no("zstandard")),
     ]
 )
@@ -310,6 +311,7 @@ def compression(request):
         "bz2",
         "zip",
         "xz",
+        "tar",
         pytest.param("zstd", marks=td.skip_if_no("zstandard")),
     ]
 )
