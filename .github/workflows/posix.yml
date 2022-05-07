@@ -152,7 +152,7 @@ jobs:
         mamba-version: "*"
         channels: conda-forge
         activate-environment: pandas-dev
-        channel-priority: flexible
+        channel-priority: strict
         environment-file: ${{ env.ENV_FILE }}
         use-only-tar-bz2: true
       if: ${{ env.IS_PYPY == 'false' }} # No pypy3.8 support
@@ -180,7 +180,6 @@ jobs:
       run: ci/run_tests.sh
       # TODO: Don't continue on error for PyPy
       continue-on-error: ${{ env.IS_PYPY == 'true' }}
-      if: always()
 
     - name: Build Version
       run: conda list
