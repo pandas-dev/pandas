@@ -528,6 +528,7 @@ Other Deprecations
 - Deprecated passing arguments as positional in :meth:`DataFrame.any` and :meth:`Series.any` (:issue:`44802`)
 - Deprecated the ``closed`` argument in :meth:`interval_range` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
 - Deprecated the methods :meth:`DataFrame.mad`, :meth:`Series.mad`, and the corresponding groupby methods (:issue:`11787`)
+- Deprecated positional arguments to :meth:`Index.join` except for ``other``, use keyword-only arguments instead of positional arguments (:issue:`46518`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.performance:
@@ -709,6 +710,7 @@ Groupby/resample/rolling
 - Bug in :meth:`Rolling.var` and :meth:`Rolling.std` would give non-zero result with window of same values (:issue:`42064`)
 - Bug in :meth:`.Rolling.var` would segfault calculating weighted variance when window size was larger than data size (:issue:`46760`)
 - Bug in :meth:`Grouper.__repr__` where ``dropna`` was not included. Now it is (:issue:`46754`)
+- Bug in :meth:`DataFrame.rolling` gives ValueError when center=True, axis=1 and win_type is specified (:issue:`46135`)
 - Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby` with ``dropna=False`` and ``sort=False`` would put any null groups at the end instead the order that they are encountered (:issue:`46584`)
 
 Reshaping

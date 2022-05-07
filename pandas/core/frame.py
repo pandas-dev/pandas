@@ -8988,6 +8988,42 @@ Parrot 2  Parrot       24.0
 
     agg = aggregate
 
+    # error: Signature of "any" incompatible with supertype "NDFrame"  [override]
+    @overload  # type: ignore[override]
+    def any(
+        self,
+        *,
+        axis: Axis = ...,
+        bool_only: bool | None = ...,
+        skipna: bool = ...,
+        level: None = ...,
+        **kwargs,
+    ) -> Series:
+        ...
+
+    @overload
+    def any(
+        self,
+        *,
+        axis: Axis = ...,
+        bool_only: bool | None = ...,
+        skipna: bool = ...,
+        level: Level,
+        **kwargs,
+    ) -> DataFrame | Series:
+        ...
+
+    @doc(NDFrame.any, **_shared_doc_kwargs)
+    def any(
+        self,
+        axis: Axis = 0,
+        bool_only: bool | None = None,
+        skipna: bool = True,
+        level: Level | None = None,
+        **kwargs,
+    ) -> DataFrame | Series:
+        ...
+
     @doc(
         _shared_docs["transform"],
         klass=_shared_doc_kwargs["klass"],
