@@ -4398,9 +4398,9 @@ Keep all original rows and also all original values
     agg = aggregate
 
     # error: Signature of "any" incompatible with supertype "NDFrame"  [override]
-    @overload
+    @overload  # type: ignore[override]
     def any(
-        self: Series,
+        self,
         *,
         axis: Axis = ...,
         bool_only: bool | None = ...,
@@ -4412,7 +4412,7 @@ Keep all original rows and also all original values
 
     @overload
     def any(
-        self: Series,
+        self,
         *,
         axis: Axis = ...,
         bool_only: bool | None = ...,
@@ -4422,11 +4422,9 @@ Keep all original rows and also all original values
     ) -> Series | bool:
         ...
 
-    # error: Signature of "any" incompatible with supertype "NDFrame"  [override]
     @doc(NDFrame.any, **_shared_doc_kwargs)
     def any(
-        self: Series,
-        *,
+        self,
         axis: Axis = 0,
         bool_only: bool | None = None,
         skipna: bool = True,
