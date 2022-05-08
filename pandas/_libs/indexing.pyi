@@ -1,9 +1,16 @@
-from typing import Any
+from typing import (
+    Generic,
+    TypeVar,
+)
 
-class NDFrameIndexerBase:
+from pandas.core.indexing import IndexingMixin
+
+_IndexingMixinT = TypeVar("_IndexingMixinT", bound=IndexingMixin)
+
+class NDFrameIndexerBase(Generic[_IndexingMixinT]):
     name: str
-    obj: Any
+    obj: _IndexingMixinT
 
-    def __init__(self, name: str, obj: Any) -> None: ...
+    def __init__(self, name: str, obj: _IndexingMixinT) -> None: ...
     @property
     def ndim(self) -> int: ...
