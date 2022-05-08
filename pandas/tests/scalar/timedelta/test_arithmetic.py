@@ -9,12 +9,16 @@ from datetime import (
     timedelta,
 )
 import operator
+from platform import architecture
 import re
 
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import OutOfBoundsTimedelta
+from pandas._libs.tslibs import (
+    NaTType,
+    OutOfBoundsTimedelta,
+)
 
 import pandas as pd
 from pandas import (
@@ -33,6 +37,7 @@ def fixture_tdlike_cls(request) -> type:
     return request.param
 
 
+# Tick, too?
 @pytest.fixture(
     name="tdlike_or_offset_cls",
     params=(Timedelta, timedelta, np.timedelta64, offsets.Nano),
@@ -148,8 +153,10 @@ def test_binary_ops_not_implemented_for_arbitrary_types(
 
 class TestAdditionSubtractionScalar:
     """
-    Tests for Timedelta.{__add__,__radd__,__sub__,__rsub__} where second operand is a
-    scalar.
+    Tests against the following Timedelta methods, where second operand is a scalar:
+
+        __add__,__radd__,
+        __sub__,__rsub__
     """
 
     @pytest.mark.parametrize(
@@ -230,7 +237,7 @@ class TestAdditionSubtractionScalar:
         assert isinstance(result, Timedelta)
         assert result == expected
 
-    def test_sub_timedeltalike(self, ten_days: Timedelta, one_day, sub_op):
+    def test_sub_timedeltalike(self, ten_days: Timedelta, sub_op, one_day):
         result = sub_op(ten_days, one_day)
         expected = Timedelta(days=9) if sub_op is operator.sub else Timedelta(days=-9)
         assert isinstance(result, Timedelta)
@@ -252,7 +259,7 @@ class TestAdditionSubtractionScalar:
         assert isinstance(result, Timedelta)
         assert result == expected
 
-    def test_with_timedeltadlike_raises_for_any_result_above_td_max(
+    def test_add_sub_tdlike_raises_for_any_result_above_td_max(
         self,
         tdlike_or_offset_cls,
         td_overflow_msg: str,
@@ -263,12 +270,12 @@ class TestAdditionSubtractionScalar:
         with pytest.raises(OutOfBoundsTimedelta, match=td_overflow_msg):
             Timedelta.max - (tdlike_or_offset_cls(-1))
 
-    def test_no_error_for_result_1ns_below_td_min(self):
+    def test_add_sub_tdlike_raises_no_error_for_result_1ns_below_td_min(self):
         assert Timedelta.min + Timedelta(-1, "ns") is NaT
         assert offsets.Nano(-1) + Timedelta.min is NaT
         assert Timedelta.min - np.timedelta64(1, "ns") is NaT
 
-    def test_raises_for_any_result_2ns_below_td_min(
+    def test_add_sub_tdlike_raises_for_any_result_2ns_below_td_min(
         self,
         tdlike_or_offset_cls: type,
         td_overflow_msg: str,
@@ -288,8 +295,11 @@ class TestAdditionSubtractionScalar:
 
 class TestAdditionSubtractionBox:
     """
-    Tests for Timedelta.{__add__,__radd__,__sub__,__rsub__} where second operand is a
-    Array/Index/Series/DataFrame.
+    Tests against the following Timedelta methods, where second operand is a
+    Array/Index/Series/DataFrame:
+
+        __add__,__radd__,
+        __sub__,__rsub__
     """
 
     @pytest.mark.parametrize("value", (2, 2.0), ids=("int", "float"))
@@ -379,7 +389,9 @@ class TestAdditionSubtractionBox:
 
 class TestMultiplicationScalar:
     """
-    Tests for Timedelta.{__mul__,__rmul__} where second operand is a scalar.
+    Tests against the following Timedelta methods, where second operand is a scalar:
+
+        __mul__,__rmul__
     """
 
     @pytest.mark.parametrize(
@@ -419,8 +431,10 @@ class TestMultiplicationScalar:
 
 class TestMultiplicationBox:
     """
-    Tests for Timedelta.{__mul__,__rmul__} where second operand is a
-    Array/Index/Series/DataFrame.
+    Tests against the following Timedelta methods, where second operand is a
+    Array/Index/Series/DataFrame:
+
+        __mul__,__rmul__
     """
 
     @pytest.mark.parametrize("factor,expected", ((2, 20), (1.5, 15)))
@@ -433,13 +447,17 @@ class TestMultiplicationBox:
         )
         tm.assert_equal(result, expected)
 
-    @pytest.mark.xfail(reason="no overflow check", raises=AssertionError)
+    @pytest.mark.xfail(
+        condition=architecture()[0] != "32bit",
+        reason="no overflow check",
+        raises=AssertionError,
+    )
     @pytest.mark.parametrize("factor", (1.01, 2), ids=("int", "float"))
     def test_returns_nat_if_result_overflows(self, mul_op, factor, box_with_array):
         numeric_box = tm.box_expected((1, factor), box_with_array, transpose=False)
-        result = mul_op(pd.Timedelta.max, numeric_box)
+        result = mul_op(Timedelta.max, numeric_box)
         expected = tm.box_expected(
-            (pd.Timedelta.max, NaT),
+            (Timedelta.max, NaT),
             box_with_array,
             transpose=False,
         )
@@ -574,22 +592,25 @@ class TestDivisionScalar:
         assert result == expected
 
     def test_na(self, request, ten_days: Timedelta, truediv_op, na_value):
-        expected = NaT
-        if na_value is NA or (
+        expected: NaTType | float = NaT
+
+        if na_value is None or na_value is NaT:
+            expected = np.nan
+        elif na_value is NA or (
             truediv_op is ops.rtruediv and isinstance(na_value, float)
         ):
             request.applymarker(xfail_type_error)
-        elif na_value is None or na_value is NaT:
-            expected = np.nan
+
         result = truediv_op(ten_days, na_value)
         assert result is expected
 
     def test_floordiv_na(self, request, ten_days: Timedelta, na_value):
-        expected = NaT
-        if na_value is NA:
-            request.applymarker(xfail_type_error)
-        elif na_value is None or na_value is NaT:
+        expected: NaTType | float = NaT
+
+        if na_value is None or na_value is NaT:
             expected = np.nan
+        elif na_value is NA:
+            request.applymarker(xfail_type_error)
 
         result = ten_days // na_value
         assert result is expected
@@ -618,7 +639,8 @@ class TestDivisionScalar:
         assert result is NaT
 
     def test_divmod_na(self, request, ten_days: Timedelta, na_value):
-        expected = (NaT, NaT)
+        expected: tuple[NaTType | float, NaTType] = (NaT, NaT)
+
         if na_value is None or na_value is NA:
             request.applymarker(xfail_type_error)
         elif na_value is NaT:

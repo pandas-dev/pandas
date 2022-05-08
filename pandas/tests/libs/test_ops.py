@@ -1,4 +1,5 @@
 import operator
+from platform import architecture
 
 import numpy as np
 import pytest
@@ -17,12 +18,12 @@ def fixture_int_min() -> int:
 
 
 @pytest.fixture(name="float_max", scope="module")
-def fixture_float_max() -> int:
+def fixture_float_max() -> np.float64:
     return np.finfo(np.float64).max
 
 
 @pytest.fixture(name="float_min", scope="module")
-def fixture_float_min() -> int:
+def fixture_float_min() -> np.float64:
     return np.finfo(np.float64).min
 
 
@@ -130,7 +131,15 @@ class TestCalcIntFloat:
                     strict=True,
                 ),
             ),
-            1024.1,
+            pytest.param(
+                1024.1,
+                marks=pytest.mark.xfail(
+                    condition=architecture()[0] == "32bit",
+                    reason="overflows earlier",
+                    raises=pytest.fail.Exception,
+                    strict=True,
+                ),
+            ),
         ),
     )
     def test_raises_for_most_too_small_results(
