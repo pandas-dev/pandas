@@ -6,12 +6,12 @@ import pyarrow as pa
 from pandas._typing import DtypeObj
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.base import StorageExtensionDtype
+from pandas.core.dtypes.base import ExtensionDtype
 
 from pandas.core.arrays.arrow import ArrowExtensionArray
 
 
-class ArrowDtype(StorageExtensionDtype):
+class ArrowDtype(ExtensionDtype):
     """
     Base class for dtypes for BaseArrowArray subclasses.
     Modeled after BaseMaskedDtype
