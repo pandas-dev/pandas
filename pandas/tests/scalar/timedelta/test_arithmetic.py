@@ -1,5 +1,6 @@
 """
-Tests for scalar Timedelta arithmetic ops
+Tests for arithmetic ops between a Timedelta scalar and another scalar, or a Timedelta
+scalar and a Array/Index/Series/DataFrame.
 """
 
 from __future__ import annotations
@@ -9,7 +10,6 @@ from datetime import (
     timedelta,
 )
 import operator
-from platform import architecture
 import re
 
 import numpy as np
@@ -447,11 +447,7 @@ class TestMultiplicationBox:
         )
         tm.assert_equal(result, expected)
 
-    @pytest.mark.xfail(
-        condition=architecture()[0] != "32bit",
-        reason="no overflow check",
-        raises=AssertionError,
-    )
+    @pytest.mark.xfail(reason="no overflow check", raises=AssertionError, strict=True)
     @pytest.mark.parametrize("factor", (1.01, 2), ids=("int", "float"))
     def test_returns_nat_if_result_overflows(self, mul_op, factor, box_with_array):
         numeric_box = tm.box_expected((1, factor), box_with_array, transpose=False)

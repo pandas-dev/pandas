@@ -308,6 +308,21 @@ cdef convert_to_timedelta64(object ts, str unit):
     return ts.astype("timedelta64[ns]")
 
 
+cpdef to_timedelta64(object value, str unit):
+    """
+    Wrapper around convert_to_timedelta64() that does overflow checks.
+    TODO: also construct non-nano
+    TODO: do all overflow-unsafe operations here
+    TODO: constrain unit to a more specific type
+    """
+    with cython.overflowcheck(True):
+        try:
+            return convert_to_timedelta64(value, unit)
+        except OverflowError as ex:
+            msg = f"{value} outside allowed range [{TIMEDELTA_MIN_NS}ns, {TIMEDELTA_MAX_NS}ns]"
+            raise OutOfBoundsTimedelta(msg) from ex
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def array_to_timedelta64(
@@ -1473,49 +1488,44 @@ class Timedelta(_Timedelta):
             )
         if isinstance(value, str) and unit is not None:
             raise ValueError("unit must not be specified if the value is a str")
-        elif value is _no_input:
-            if not kwargs:
-                raise ValueError(
-                    "cannot construct a Timedelta without a value/unit "
-                    "or descriptive keywords (days,seconds....)"
-                )
-            if not kwargs.keys() <= set(cls._allowed_kwargs):
-                raise ValueError(
-                    "cannot construct a Timedelta from the passed arguments, "
-                    f"allowed keywords are {cls._allowed_kwargs}"
-                )
+        elif value is _no_input and not kwargs:
+            raise ValueError(
+                "cannot construct a Timedelta without a value/unit "
+                "or descriptive keywords (days,seconds....)"
+            )
+        if not kwargs.keys() <= set(cls._allowed_kwargs):
+            raise ValueError(
+                "cannot construct a Timedelta from the passed arguments, "
+                f"allowed keywords are {cls._allowed_kwargs}"
+            )
 
-        try:
-            # GH43764, convert any input to nanoseconds first, to ensure any potential
-            # nanosecond contributions from kwargs parsed as floats are included
-            kwargs = collections.defaultdict(int, {key: _to_py_int_float(val) for key, val in kwargs.items()})
-            if kwargs:
-                value = convert_to_timedelta64(
-                    sum((
-                        kwargs["weeks"] * 7 * 24 * 3600 * 1_000_000_000,
-                        kwargs["days"] * 24 * 3600 * 1_000_000_000,
-                        kwargs["hours"] * 3600 * 1_000_000_000,
-                        kwargs["minutes"] * 60 * 1_000_000_000,
-                        kwargs["seconds"] * 1_000_000_000,
-                        kwargs["milliseconds"] * 1_000_000,
-                        kwargs["microseconds"] * 1_000,
-                        kwargs["nanoseconds"],
-                    )),
-                    "ns",
-                )
-            else:
-                if is_integer_object(value) or is_float_object(value):
-                    unit = parse_timedelta_unit(unit)
-                else:
-                    unit = "ns"
-                value = convert_to_timedelta64(value, unit)
-        except OverflowError as ex:
-            msg = f"outside allowed range [{TIMEDELTA_MIN_NS}ns, {TIMEDELTA_MAX_NS}ns]"
-            raise OutOfBoundsTimedelta(msg) from ex
+        # GH43764, convert any input to nanoseconds first, to ensure any potential
+        # nanosecond contributions from kwargs parsed as floats are included
+        kwargs = collections.defaultdict(int, {key: _to_py_int_float(val) for key, val in kwargs.items()})
+        if kwargs:
+            value = to_timedelta64(
+                sum((
+                    kwargs["weeks"] * 7 * 24 * 3600 * 1_000_000_000,
+                    kwargs["days"] * 24 * 3600 * 1_000_000_000,
+                    kwargs["hours"] * 3600 * 1_000_000_000,
+                    kwargs["minutes"] * 60 * 1_000_000_000,
+                    kwargs["seconds"] * 1_000_000_000,
+                    kwargs["milliseconds"] * 1_000_000,
+                    kwargs["microseconds"] * 1_000,
+                    kwargs["nanoseconds"],
+                )),
+                "ns",
+            )
         else:
-            if is_td64nat(value):
-                return NaT
-            return _timedelta_from_value_and_reso(value.view("i8"), NPY_FR_ns)
+            if is_integer_object(value) or is_float_object(value):
+                unit = parse_timedelta_unit(unit)
+            else:
+                unit = "ns"
+            value = to_timedelta64(value, unit)
+
+        if is_td64nat(value):
+            return NaT
+        return _timedelta_from_value_and_reso(value.view("i8"), NPY_FR_ns)
 
     def __setstate__(self, state):
         if len(state) == 1:
