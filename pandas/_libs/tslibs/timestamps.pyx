@@ -390,6 +390,9 @@ cdef class _Timestamp(ABCTimestamp):
         return NotImplemented
 
     def __sub__(self, other):
+        # nb: counterintuitive semantics of __sub__, __rsub__ for cython < 3.x
+        # github.com/cython/cython/blob/2795a4/docs/src/userguide/special_methods.rst#arithmetic-methods
+        # GH#28286
         if isinstance(self, _Timestamp) and self._reso != NPY_FR_ns:
             raise NotImplementedError(self._reso)
 
@@ -445,8 +448,6 @@ cdef class _Timestamp(ABCTimestamp):
                 #  method and return stdlib timedelta object
                 pass
         elif is_datetime64_object(self):
-            # GH#28286 cython semantics for __rsub__, `other` is actually
-            #  the Timestamp
             # TODO(cython3): remove this, this moved to __rsub__
             return type(other)(self) - other
 
@@ -459,7 +460,7 @@ cdef class _Timestamp(ABCTimestamp):
         if PyDateTime_Check(other):
             try:
                 return type(self)(other) - self
-            except (OverflowError, OutOfBoundsDatetime) as err:
+            except (OverflowError, OutOfBoundsDatetime, OutOfBoundsTimedelta) as err:
                 # We get here in stata tests, fall back to stdlib datetime
                 #  method and return stdlib timedelta object
                 pass
