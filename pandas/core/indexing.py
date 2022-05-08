@@ -5,6 +5,7 @@ from typing import (
     TYPE_CHECKING,
     Hashable,
     Sequence,
+    cast,
     final,
 )
 import warnings
@@ -940,9 +941,7 @@ class _LocationIndexer(NDFrameIndexerBase):
             with suppress(IndexingError):
                 # error "_LocationIndexer" has no attribute
                 # "_handle_lowerdim_multi_index_axis0"
-                return self._handle_lowerdim_multi_index_axis0(  # type: ignore[attr-defined]
-                    tup
-                )
+                return cast(_LocIndexer, self)._handle_lowerdim_multi_index_axis0(tup)
 
         tup = self._validate_key_length(tup)
 
@@ -1000,7 +999,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                 with suppress(IndexingError):
                     # error "_LocationIndexer" has no attribute
                     # "_handle_lowerdim_multi_index_axis0"
-                    return self._handle_lowerdim_multi_index_axis0(  # type: ignore[attr-defined]
+                    return cast(_LocIndexer, self)._handle_lowerdim_multi_index_axis0(
                         tup
                     )
             elif isinstance(self.obj, ABCSeries) and any(
