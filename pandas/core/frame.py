@@ -3518,6 +3518,7 @@ class DataFrame(NDFrame, OpsMixin):
         Get the values of the i'th column (ndarray or ExtensionArray, as stored
         in the Block)
         """
+        # TODO(CoW) check if all use case are OK (i.e. don't need CoW handling)
         return self._mgr.iget_values(i)
 
     def _iter_column_arrays(self) -> Iterator[ArrayLike]:
@@ -3929,7 +3930,10 @@ class DataFrame(NDFrame, OpsMixin):
             Sets whether or not index/col interpreted as indexers
         """
         try:
-            if get_option("mode.copy_on_write"):
+            if (
+                get_option("mode.copy_on_write")
+                and get_option("mode.data_manager") == "block"
+            ):
                 if not takeable:
                     icol = self.columns.get_loc(col)
                     index = self.index.get_loc(index)

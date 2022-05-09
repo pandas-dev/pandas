@@ -271,6 +271,9 @@ class BaseBlockManager(DataManager):
         Only for compatibility with ArrayManager for testing convenience.
         Not to be used in actual code, and return value is not the same as the
         ArrayManager method (list of 1D arrays vs iterator of 2D ndarrays / 1D EAs).
+
+        Warning! The returned arrays don't handle Copy-on-Write, so this should
+        be used with caution (only in read-mode).
         """
         return [blk.values for blk in self.blocks]
 
@@ -556,6 +559,7 @@ class BaseBlockManager(DataManager):
         self: T, blocks: list[Block], copy: bool = True, index: Index | None = None
     ) -> T:
         """return a new manager with the blocks"""
+        # TODO(CoW) handle setting refs
         if len(blocks) == 0:
             if self.ndim == 2:
                 # retain our own Index dtype
@@ -1042,6 +1046,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         """
         Return the array corresponding to `frame.iloc[loc]`.
 
+        Warning! The returned array is a view in case of a single block,
+        but doesn't handle Copy-on-Write, so this should be used with caution.
+
         Parameters
         ----------
         loc : int
@@ -1086,7 +1093,11 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
     def iget_values(self, i: int) -> ArrayLike:
         """
         Return the data for column i as the values (ndarray or ExtensionArray).
+
+        Warning! The returned array is a view but doesn't handle Copy-on-Write,
+        so this should be used with caution.
         """
+        # TODO(CoW) making the arrays read-only might make this safer to use?
         block = self.blocks[self.blknos[i]]
         values = block.iget(self.blklocs[i])
         return values
@@ -1096,6 +1107,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         """
         Used in the JSON C code to access column arrays.
         This optimizes compared to using `iget_values` by converting each
+
+        Warning! This doesn't handle Copy-on-Write, so should be used with
+        caution (current use case of consuming this in the JSON code is fine).
         """
         # This is an optimized equivalent to
         #  result = [self.iget_values(i) for i in range(len(self.items))]
@@ -1311,7 +1325,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         item : hashable
         value : np.ndarray or ExtensionArray
         """
-        # TODO handle CoW (insert into refs as well)
+        # TODO(CoW) handle CoW (insert into refs as well)
 
         # insert to the axis; this could possibly raise a TypeError
         new_axis = self.items.insert(loc, item)
@@ -1662,6 +1676,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         -------
         arr : ndarray
         """
+        # TODO(CoW) handle case where resulting array is a view
         if len(self.blocks) == 0:
             arr = np.empty(self.shape, dtype=float)
             return arr.transpose()
@@ -1781,6 +1796,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         self._known_consolidated = True
 
     def _consolidate_inplace(self) -> None:
+        # TODO(CoW) correctly handle passing through refs
         # In general, _consolidate_inplace should only be called via
         #  DataFrame._consolidate_inplace, otherwise we will fail to invalidate
         #  the DataFrame's _item_cache. The exception is for newly-created
@@ -1853,6 +1869,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         """
         Manager analogue of Series.to_frame
         """
+        # TODO(CoW) pass ref?
         blk = self.blocks[0]
         arr = ensure_block_shape(blk.values, ndim=2)
         bp = BlockPlacement(0)
@@ -1979,6 +1996,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         return self._block.array_values
 
     def get_numeric_data(self, copy: bool = False):
+        # TODO(CoW) set refs?
         if self._block.is_numeric:
             if copy:
                 return self.copy()
@@ -2034,6 +2052,9 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         Use at your own risk! This does not check if the passed values are
         valid for the current Block/SingleBlockManager (length, dtype, etc).
         """
+        # TODO(CoW) do we need to handle copy on write here? Currently this is
+        # only used for FrameColumnApply.series_generator (what if apply is
+        # mutating inplace?)
         self.blocks[0].values = values
         self.blocks[0]._mgr_locs = BlockPlacement(slice(len(values)))
 
