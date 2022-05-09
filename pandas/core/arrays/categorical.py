@@ -351,7 +351,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # For comparisons, so that numpy uses our implementation if the compare
     # ops, which raise
     __array_priority__ = 1000
-    _internal_fill_value = -1
     # tolist is not actually deprecated, just suppressed in the __dir__
     _hidden_attrs = PandasObject._hidden_attrs | frozenset(["tolist"])
     _typ = "categorical"
@@ -475,6 +474,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         The :class:`~pandas.api.types.CategoricalDtype` for this instance.
         """
         return self._dtype
+
+    @property
+    def _internal_fill_value(self) -> int:
+        # using the specific numpy integer instead of python int to get
+        #  the correct dtype back from _quantile in the all-NA case
+        dtype = self._ndarray.dtype
+        return dtype.type(-1)
 
     @property
     def _constructor(self) -> type[Categorical]:
@@ -2300,7 +2306,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     def _cast_quantile_result(self, res_values: np.ndarray) -> np.ndarray:
         # make sure we have correct itemsize for resulting codes
-        res_values = coerce_indexer_dtype(res_values, self.dtype.categories)
+        assert res_values.dtype == self._ndarray.dtype
         return res_values
 
     def equals(self, other: object) -> bool:

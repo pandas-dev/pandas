@@ -665,9 +665,14 @@ class TestQuantileExtensionDtype:
         qs = [0.5, 0, 1]
         result = self.compute_quantile(obj, qs)
 
+        exp_dtype = index.dtype
+        if index.dtype == "Int64":
+            # match non-nullable casting behavior
+            exp_dtype = "Float64"
+
         # expected here assumes len(index) == 9
         expected = Series(
-            [index[4], index[0], index[-1]], dtype=index.dtype, index=qs, name="A"
+            [index[4], index[0], index[-1]], dtype=exp_dtype, index=qs, name="A"
         )
         expected = type(obj)(expected)
 
@@ -712,6 +717,8 @@ class TestQuantileExtensionDtype:
 
         expected = index.take([-1, -1, -1], allow_fill=True, fill_value=index._na_value)
         expected = Series(expected, index=qs, name="A")
+        if expected.dtype == "Int64":
+            expected = expected.astype("Float64")
         expected = type(obj)(expected)
         tm.assert_equal(result, expected)
 
@@ -726,7 +733,11 @@ class TestQuantileExtensionDtype:
         qs = 0.5
         result = self.compute_quantile(obj, qs)
 
-        expected = Series({"A": index[4]}, dtype=index.dtype, name=0.5)
+        exp_dtype = index.dtype
+        if index.dtype == "Int64":
+            exp_dtype = "Float64"
+
+        expected = Series({"A": index[4]}, dtype=exp_dtype, name=0.5)
         if isinstance(obj, Series):
             expected = expected["A"]
             assert result == expected
