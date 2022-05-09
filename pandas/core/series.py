@@ -1291,7 +1291,10 @@ class Series(base.IndexOpsMixin, NDFrame):
             # if the Series changed, and always pop the cached item
             # TODO replace False with check for option
             elif (
-                not get_option("mode.copy_on_write")
+                not (
+                    get_option("mode.copy_on_write")
+                    and get_option("mode.data_manager") == "block"
+                )
                 and len(self) == len(ref)
                 and self.name in ref.columns
             ):

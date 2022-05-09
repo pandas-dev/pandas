@@ -1803,4 +1803,4 @@ def using_copy_on_write():
     """
     Fixture to check if the array manager is being used.
     """
-    return pd.options.mode.copy_on_write
+    return pd.options.mode.copy_on_write and pd.options.mode.data_manager == "block"

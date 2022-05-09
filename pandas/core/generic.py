@@ -3824,7 +3824,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 dtype=new_values.dtype,
             ).__finalize__(self)
             # TODO(CoW) cleaner solution (eg let fast_xs return a SingleBM?)
-            if len(self._mgr.blocks) == 1:
+            if isinstance(self._mgr, BlockManager) and len(self._mgr.blocks) == 1:
                 # in the case of a single block, new_values is a view
                 result._mgr.refs = [weakref.ref(self._mgr.blocks[0])]
 
@@ -3910,7 +3910,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         df.iloc[0:5]['group'] = 'a'
 
         """
-        if config.get_option("mode.copy_on_write"):
+        if (
+            config.get_option("mode.copy_on_write")
+            and config.get_option("mode.data_manager") == "block"
+        ):
             return
 
         # return early if the check is not needed
