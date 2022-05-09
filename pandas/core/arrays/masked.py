@@ -958,7 +958,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     def _quantile(
         self: BaseMaskedArrayT, qs: npt.NDArray[np.float64], interpolation: str
-    ) -> BaseMaskedArrayT:
+    ) -> BaseMaskedArray:
         """
         Dispatch to quantile_with_mask, needed because we do not have
         _from_factorized.
@@ -967,29 +967,30 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         -----
         We assume that all impacted cases are 1D-only.
         """
-        mask = np.atleast_2d(np.asarray(self.isna()))
-        npvalues: np.ndarray = np.atleast_2d(np.asarray(self))
-
         res = quantile_with_mask(
-            npvalues,
-            mask=mask,
-            fill_value=self.dtype.na_value,
+            self._data,
+            mask=self._mask,
+            # TODO(GH#40932): na_value_for_dtype(self.dtype.numpy_dtype)
+            #  instead of np.nan
+            fill_value=np.nan,
             qs=qs,
             interpolation=interpolation,
         )
-        assert res.ndim == 2
-        assert res.shape[0] == 1
-        res = res[0]
-        try:
-            out = type(self)._from_sequence(res, dtype=self.dtype)
-        except TypeError:
-            # GH#42626: not able to safely cast Int64
-            # for floating point output
-            # error: Incompatible types in assignment (expression has type
-            # "ndarray[Any, dtype[floating[_64Bit]]]", variable has type
-            # "BaseMaskedArrayT")
-            out = np.asarray(res, dtype=np.float64)  # type: ignore[assignment]
-        return out
+
+        if self._hasna:
+            # Our result mask is all-False unless we are all-NA, in which
+            #  case it is all-True.
+            if self.ndim == 2:
+                # I think this should be out_mask=self.isna().all(axis=1)
+                #  but am holding off until we have tests
+                raise NotImplementedError
+            elif self.isna().all():
+                out_mask = np.ones(res.shape, dtype=bool)
+            else:
+                out_mask = np.zeros(res.shape, dtype=bool)
+        else:
+            out_mask = np.zeros(res.shape, dtype=bool)
+        return self._maybe_mask_result(res, mask=out_mask)
 
     # ------------------------------------------------------------------
     # Reductions
