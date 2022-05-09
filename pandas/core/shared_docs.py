@@ -421,29 +421,43 @@ _shared_docs[
 ] = """compression : str or dict, default 'infer'
     For on-the-fly compression of the output data. If 'infer' and '%s'
     path-like, then detect compression from the following extensions: '.gz',
-    '.bz2', '.zip', '.xz', or '.zst' (otherwise no compression). Set to
-    ``None`` for no compression. Can also be a dict with key ``'method'`` set
-    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``} and other
-    key-value pairs are forwarded to ``zipfile.ZipFile``, ``gzip.GzipFile``,
-    ``bz2.BZ2File``, or ``zstandard.ZstdDecompressor``, respectively. As an
-    example, the following could be passed for faster compression and to create
+    '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
+    (otherwise no compression).
+    Set to ``None`` for no compression.
+    Can also be a dict with key ``'method'`` set
+    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'tar'``} and other
+    key-value pairs are forwarded to
+    ``zipfile.ZipFile``, ``gzip.GzipFile``,
+    ``bz2.BZ2File``, ``zstandard.ZstdDecompressor`` or
+    ``tarfile.TarFile``, respectively.
+    As an example, the following could be passed for faster compression and to create
     a reproducible gzip archive:
-    ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``."""
+    ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
+
+        .. versionadded:: 1.5.0
+            Added support for `.tar` files."""
 
 _shared_docs[
     "decompression_options"
 ] = """compression : str or dict, default 'infer'
     For on-the-fly decompression of on-disk data. If 'infer' and '%s' is
     path-like, then detect compression from the following extensions: '.gz',
-    '.bz2', '.zip', '.xz', or '.zst' (otherwise no compression). If using
-    'zip', the ZIP file must contain only one data file to be read in. Set to
-    ``None`` for no decompression. Can also be a dict with key ``'method'`` set
-    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``} and other
-    key-value pairs are forwarded to ``zipfile.ZipFile``, ``gzip.GzipFile``,
-    ``bz2.BZ2File``, or ``zstandard.ZstdDecompressor``, respectively. As an
-    example, the following could be passed for Zstandard decompression using a
+    '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
+    (otherwise no compression).
+    If using 'zip' or 'tar', the ZIP file must contain only one data file to be read in.
+    Set to ``None`` for no decompression.
+    Can also be a dict with key ``'method'`` set
+    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'tar'``} and other
+    key-value pairs are forwarded to
+    ``zipfile.ZipFile``, ``gzip.GzipFile``,
+    ``bz2.BZ2File``, ``zstandard.ZstdDecompressor`` or
+    ``tarfile.TarFile``, respectively.
+    As an example, the following could be passed for Zstandard decompression using a
     custom compression dictionary:
-    ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``."""
+    ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``.
+
+        .. versionadded:: 1.5.0
+            Added support for `.tar` files."""
 
 _shared_docs[
     "replace"
