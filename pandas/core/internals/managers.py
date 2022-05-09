@@ -1325,8 +1325,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         item : hashable
         value : np.ndarray or ExtensionArray
         """
-        # TODO(CoW) handle CoW (insert into refs as well)
-
         # insert to the axis; this could possibly raise a TypeError
         new_axis = self.items.insert(loc, item)
 
@@ -1352,6 +1350,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         self.axes[0] = new_axis
         self.blocks += (block,)
+        # TODO(CoW) do we always "own" the passed `value`?
+        if self.refs is not None:
+            self.refs += [None]
 
         self._known_consolidated = False
 

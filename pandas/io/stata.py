@@ -2506,7 +2506,6 @@ class StataWriter(StataParser):
     def _prepare_pandas(self, data: DataFrame) -> None:
         # NOTE: we might need a different API / class for pandas objects so
         # we can set different semantics - handle this with a PR to pandas.io
-
         data = data.copy()
 
         if self._write_index:

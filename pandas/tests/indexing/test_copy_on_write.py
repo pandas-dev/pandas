@@ -72,6 +72,7 @@ def test_reset_index(using_copy_on_write):
     )
     df_orig = df.copy()
     df2 = df.reset_index()
+    df2._mgr._verify_integrity()
 
     if using_copy_on_write:
         # still shares memory (df2 is a shallow copy)
