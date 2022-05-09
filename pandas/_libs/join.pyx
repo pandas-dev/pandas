@@ -839,10 +839,15 @@ def asof_join_nearest_on_X_by_Y(numeric_t[:] left_values,
                                 by_t[:] left_by_values,
                                 by_t[:] right_by_values,
                                 bint allow_exact_matches=True,
-                                tolerance=None):
+                                tolerance=None,
+                                bint use_hashtable=True):
 
     cdef:
         ndarray[intp_t] bli, bri, fli, fri
+
+        ndarray[intp_t] left_indexer, right_indexer
+        Py_ssize_t left_size, i
+        numeric_t bdiff, fdiff
 
     # search both forward and backward
     bli, bri = asof_join_backward_on_X_by_Y(
@@ -852,6 +857,7 @@ def asof_join_nearest_on_X_by_Y(numeric_t[:] left_values,
         right_by_values,
         allow_exact_matches,
         tolerance,
+        use_hashtable
     )
     fli, fri = asof_join_forward_on_X_by_Y(
         left_values,
@@ -860,26 +866,11 @@ def asof_join_nearest_on_X_by_Y(numeric_t[:] left_values,
         right_by_values,
         allow_exact_matches,
         tolerance,
+        use_hashtable
     )
 
-    return _choose_smaller_timestamp(left_values, right_values, bli, bri, fli, fri)
-
-
-cdef _choose_smaller_timestamp(
-    numeric_t[:] left_values,
-    numeric_t[:] right_values,
-    ndarray[intp_t] bli,
-    ndarray[intp_t] bri,
-    ndarray[intp_t] fli,
-    ndarray[intp_t] fri,
-):
-    cdef:
-        ndarray[intp_t] left_indexer, right_indexer
-        Py_ssize_t left_size, i
-        numeric_t bdiff, fdiff
-
+    # choose the smaller timestamp
     left_size = len(left_values)
-
     left_indexer = np.empty(left_size, dtype=np.intp)
     right_indexer = np.empty(left_size, dtype=np.intp)
 
@@ -894,55 +885,3 @@ cdef _choose_smaller_timestamp(
         left_indexer[i] = bli[i]
 
     return left_indexer, right_indexer
-
-
-# ----------------------------------------------------------------------
-# asof_join
-# ----------------------------------------------------------------------
-
-def asof_join_backward(numeric_t[:] left_values,
-                       numeric_t[:] right_values,
-                       bint allow_exact_matches=True,
-                       tolerance=None):
-
-    return asof_join_backward_on_X_by_Y(
-        left_values,
-        right_values,
-        None,
-        None,
-        allow_exact_matches=allow_exact_matches,
-        tolerance=tolerance,
-        use_hashtable=False,
-    )
-
-
-def asof_join_forward(numeric_t[:] left_values,
-                      numeric_t[:] right_values,
-                      bint allow_exact_matches=True,
-                      tolerance=None):
-    return asof_join_forward_on_X_by_Y(
-        left_values,
-        right_values,
-        None,
-        None,
-        allow_exact_matches=allow_exact_matches,
-        tolerance=tolerance,
-        use_hashtable=False,
-    )
-
-
-def asof_join_nearest(numeric_t[:] left_values,
-                      numeric_t[:] right_values,
-                      bint allow_exact_matches=True,
-                      tolerance=None):
-
-    cdef:
-        ndarray[intp_t] bli, bri, fli, fri
-
-    # search both forward and backward
-    bli, bri = asof_join_backward(left_values, right_values,
-                                  allow_exact_matches, tolerance)
-    fli, fri = asof_join_forward(left_values, right_values,
-                                 allow_exact_matches, tolerance)
-
-    return _choose_smaller_timestamp(left_values, right_values, bli, bri, fli, fri)

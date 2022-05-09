@@ -100,6 +100,31 @@ as seen in the following example.
                1 2021-01-02 08:00:00  4
                2 2021-01-02 16:00:00  5
 
+.. _whatsnew_150.enhancements.tar:
+
+Reading directly from TAR archives
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+I/O methods like :func:`read_csv` or :meth:`DataFrame.to_json` now allow reading and writing
+directly on TAR archives (:issue:`44787`).
+
+.. code-block:: python
+
+   df = pd.read_csv("./movement.tar.gz")
+   # ...
+   df.to_csv("./out.tar.gz")
+
+This supports ``.tar``, ``.tar.gz``, ``.tar.bz`` and ``.tar.xz2`` archives.
+The used compression method is inferred from the filename.
+If the compression method cannot be inferred, use the ``compression`` argument:
+
+.. code-block:: python
+
+   df = pd.read_csv(some_file_obj, compression={"method": "tar", "mode": "r:gz"}) # noqa F821
+
+(``mode`` being one of ``tarfile.open``'s modes: https://docs.python.org/3/library/tarfile.html#tarfile.open)
+
+
 .. _whatsnew_150.enhancements.other:
 
 Other enhancements
@@ -527,6 +552,7 @@ Other Deprecations
 - Deprecated passing arguments as positional in :meth:`DataFrame.any` and :meth:`Series.any` (:issue:`44802`)
 - Deprecated the ``closed`` argument in :meth:`interval_range` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
 - Deprecated the methods :meth:`DataFrame.mad`, :meth:`Series.mad`, and the corresponding groupby methods (:issue:`11787`)
+- Deprecated positional arguments to :meth:`Index.join` except for ``other``, use keyword-only arguments instead of positional arguments (:issue:`46518`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.performance:
@@ -708,6 +734,7 @@ Groupby/resample/rolling
 - Bug in :meth:`Rolling.var` and :meth:`Rolling.std` would give non-zero result with window of same values (:issue:`42064`)
 - Bug in :meth:`.Rolling.var` would segfault calculating weighted variance when window size was larger than data size (:issue:`46760`)
 - Bug in :meth:`Grouper.__repr__` where ``dropna`` was not included. Now it is (:issue:`46754`)
+- Bug in :meth:`DataFrame.rolling` gives ValueError when center=True, axis=1 and win_type is specified (:issue:`46135`)
 
 Reshaping
 ^^^^^^^^^

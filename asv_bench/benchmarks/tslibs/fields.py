@@ -66,9 +66,9 @@ class TimeGetStartEndField:
 
     def setup(self, size, side, period, freqstr, month_kw):
         arr = np.random.randint(0, 10, size=size, dtype="i8")
-        self.dt64data = arr.view("M8[ns]")
+        self.i8data = arr
 
         self.attrname = f"is_{period}_{side}"
 
     def time_get_start_end_field(self, size, side, period, freqstr, month_kw):
-        get_start_end_field(self.dt64data, self.attrname, freqstr, month_kw=month_kw)
+        get_start_end_field(self.i8data, self.attrname, freqstr, month_kw=month_kw)

@@ -16,8 +16,8 @@ import pandas.util._test_decorators as td
 
 from pandas import DataFrame
 import pandas._testing as tm
+from pandas.tests.io.test_compression import _compression_to_extension
 
-import pandas.io.common as icom
 from pandas.io.feather_format import read_feather
 from pandas.io.parsers import read_csv
 
@@ -35,7 +35,7 @@ from pandas.io.parsers import read_csv
 def test_compressed_urls(salaries_table, mode, engine, compression_only):
     # test reading compressed urls with various engines and
     # extension inference
-    extension = icom._compression_to_extension[compression_only]
+    extension = _compression_to_extension[compression_only]
     base_url = (
         "https://github.com/pandas-dev/pandas/raw/main/"
         "pandas/tests/io/parser/data/salaries.csv"
