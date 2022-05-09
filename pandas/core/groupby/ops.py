@@ -623,10 +623,6 @@ class WrappedCythonOp:
 
         result = result.T
 
-        if self.how == "rank" and self.has_dropped_na:
-            # TODO: Wouldn't need this if group_rank supported mask
-            result = np.where(comp_ids < 0, np.nan, result)
-
         if self.how not in self.cast_blocklist:
             # e.g. if we are int64 and need to restore to datetime64/timedelta64
             # "rank" is the only member of cast_blocklist we get here
@@ -637,9 +633,7 @@ class WrappedCythonOp:
         else:
             op_result = result
 
-        # error: Incompatible return value type (got "Union[ExtensionArray, ndarray]",
-        # expected "ndarray")
-        return op_result  # type: ignore[return-value]
+        return op_result
 
     @final
     def cython_operation(
