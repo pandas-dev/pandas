@@ -3823,6 +3823,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 name=self.index[loc],
                 dtype=new_values.dtype,
             ).__finalize__(self)
+            # TODO(CoW) cleaner solution (eg let fast_xs return a SingleBM?)
+            if len(self._mgr.blocks) == 1:
+                # in the case of a single block, new_values is a view
+                result._mgr.refs = [weakref.ref(self._mgr.blocks[0])]
+
         elif is_scalar(loc):
             result = self.iloc[:, slice(loc, loc + 1)]
         elif axis == 1:

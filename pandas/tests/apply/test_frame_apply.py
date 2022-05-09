@@ -1451,11 +1451,8 @@ def test_apply_mutating(using_array_manager, using_copy_on_write):
         assert row._mgr is not mgr
         return row
 
-    if using_copy_on_write:
-        expected = df.copy()
-        expected["a"] += 1
-    else:
-        expected = df_orig
+    expected = df.copy()
+    expected["a"] += 1
 
     result = df.apply(func, axis=1)
 
