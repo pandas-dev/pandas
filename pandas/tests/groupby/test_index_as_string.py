@@ -46,6 +46,7 @@ def series():
         (["inner", "B"], [pd.Grouper(level="inner"), "B"]),  # Index and column
     ],
 )
+@pytest.mark.filterwarnings("ignore:.*default value of numeric_only:FutureWarning")
 def test_grouper_index_level_as_string(frame, key_strs, groupers):
     result = frame.groupby(key_strs).mean()
     expected = frame.groupby(groupers).mean()

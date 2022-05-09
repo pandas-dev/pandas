@@ -72,6 +72,7 @@ def groupby_with_truncated_bingrouper(frame_for_truncated_bingrouper):
 
 
 class TestGroupBy:
+    @pytest.mark.filterwarnings("ignore:.*value of numeric_only.*:FutureWarning")
     def test_groupby_with_timegrouper(self):
         # GH 4161
         # TimeGrouper requires a sorted index
@@ -148,6 +149,7 @@ class TestGroupBy:
         assert isinstance(groups, dict)
         assert len(groups) == 3
 
+    @pytest.mark.filterwarnings("ignore:.*value of numeric_only.*:FutureWarning")
     def test_timegrouper_with_reg_groups(self):
 
         # GH 3794

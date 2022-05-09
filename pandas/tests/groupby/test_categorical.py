@@ -81,6 +81,7 @@ def test_apply_use_categorical_name(df):
     assert result.index.names[0] == "C"
 
 
+@pytest.mark.filterwarnings("ignore:.*value of numeric_only.*:FutureWarning")
 def test_basic():  # TODO: split this test
 
     cats = Categorical(
@@ -314,6 +315,7 @@ def test_apply(ordered):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:.*value of numeric_only.*:FutureWarning")
 def test_observed(observed):
     # multiple groupers, don't re-expand the output space
     # of the grouper
@@ -787,6 +789,7 @@ def test_preserve_categories():
     )
 
 
+@pytest.mark.filterwarnings("ignore:.*value of numeric_only.*:FutureWarning")
 def test_preserve_categorical_dtype():
     # GH13743, GH13854
     df = DataFrame(

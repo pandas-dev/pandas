@@ -546,6 +546,7 @@ class TestJoin:
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:.*value of numeric_only.*:FutureWarning")
     def test_mixed_type_join_with_suffix(self):
         # GH #916
         df = DataFrame(np.random.randn(20, 6), columns=["a", "b", "c", "d", "e", "f"])

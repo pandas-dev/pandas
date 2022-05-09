@@ -461,6 +461,7 @@ def test_transform_exclude_nuisance(df):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:.*value of numeric_only.*:FutureWarning")
 def test_transform_function_aliases(df):
     result = df.groupby("A").transform("mean")
     expected = df.groupby("A").transform(np.mean)
@@ -714,6 +715,7 @@ def test_groupby_cum_skipna(op, skipna, input, exp):
         ("shift", (1,), lambda x: x.shift()),
     ],
 )
+@pytest.mark.filterwarnings("ignore:.*value of numeric_only.*:FutureWarning")
 def test_cython_transform_frame(op, args, targop):
     s = Series(np.random.randn(1000))
     s_missing = s.copy()

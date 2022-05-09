@@ -146,8 +146,10 @@ class TestPivotTable:
         df = DataFrame(
             {"rows": ["a", "b", "c"], "cols": ["x", "y", "z"], "values": [1, 2, 3]}
         )
-        rs = df.pivot_table(columns="cols", aggfunc=np.sum)
-        xp = df.pivot_table(index="cols", aggfunc=np.sum).T
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            rs = df.pivot_table(columns="cols", aggfunc=np.sum)
+            xp = df.pivot_table(index="cols", aggfunc=np.sum).T
         tm.assert_frame_equal(rs, xp)
 
         rs = df.pivot_table(columns="cols", aggfunc={"values": "mean"})
@@ -903,12 +905,19 @@ class TestPivotTable:
 
         # to help with a buglet
         self.data.columns = [k * 2 for k in self.data.columns]
-        table = self.data.pivot_table(index=["AA", "BB"], margins=True, aggfunc=np.mean)
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            table = self.data.pivot_table(
+                index=["AA", "BB"], margins=True, aggfunc=np.mean
+            )
         for value_col in table.columns:
             totals = table.loc[("All", ""), value_col]
             assert totals == self.data[value_col].mean()
 
-        table = self.data.pivot_table(index=["AA", "BB"], margins=True, aggfunc="mean")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            table = self.data.pivot_table(
+                index=["AA", "BB"], margins=True, aggfunc="mean"
+            )
         for item in ["DD", "EE", "FF"]:
             totals = table.loc[("All", ""), item]
             assert totals == self.data[item].mean()
@@ -964,7 +973,9 @@ class TestPivotTable:
             }
         )
 
-        result = df.pivot_table(columns=columns, margins=True, aggfunc=aggfunc)
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.pivot_table(columns=columns, margins=True, aggfunc=aggfunc)
         expected = DataFrame(values, index=Index(["D", "E"]), columns=expected_columns)
 
         tm.assert_frame_equal(result, expected)
@@ -1990,8 +2001,11 @@ class TestPivotTable:
     def test_pivot_string_func_vs_func(self, f, f_numpy):
         # GH #18713
         # for consistency purposes
-        result = pivot_table(self.data, index="A", columns="B", aggfunc=f)
-        expected = pivot_table(self.data, index="A", columns="B", aggfunc=f_numpy)
+
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = pivot_table(self.data, index="A", columns="B", aggfunc=f)
+            expected = pivot_table(self.data, index="A", columns="B", aggfunc=f_numpy)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.slow

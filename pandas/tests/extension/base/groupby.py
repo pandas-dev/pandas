@@ -88,6 +88,9 @@ class BaseGroupbyTests(BaseExtensionTests):
         )
         self.assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The default value of numeric_only in DataFrameGroupBy.sum:FutureWarning"
+    )
     def test_in_numeric_groupby(self, data_for_grouping):
         df = pd.DataFrame(
             {
