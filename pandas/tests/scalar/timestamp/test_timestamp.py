@@ -732,6 +732,35 @@ class TestNonNano:
         assert ts.weekday() == alt.weekday()
         assert ts.isoweekday() == alt.isoweekday()
 
+    def test_start_end_fields(self, ts):
+        assert ts.is_year_start
+        assert ts.is_quarter_start
+        assert ts.is_month_start
+        assert not ts.is_year_end
+        assert not ts.is_month_end
+        assert not ts.is_month_end
+
+        freq = offsets.BDay()
+        ts._set_freq(freq)
+
+        # 2016-01-01 is a Friday, so is year/quarter/month start with this freq
+        msg = "Timestamp.freq is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert ts.is_year_start
+            assert ts.is_quarter_start
+            assert ts.is_month_start
+            assert not ts.is_year_end
+            assert not ts.is_month_end
+            assert not ts.is_month_end
+
+    def test_day_name(self, dt64, ts):
+        alt = Timestamp(dt64)
+        assert ts.day_name() == alt.day_name()
+
+    def test_month_name(self, dt64, ts):
+        alt = Timestamp(dt64)
+        assert ts.month_name() == alt.month_name()
+
     def test_repr(self, dt64, ts):
         alt = Timestamp(dt64)
 

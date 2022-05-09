@@ -488,9 +488,6 @@ cdef class _Timestamp(ABCTimestamp):
             ndarray[uint8_t, cast=True] out
             int month_kw
 
-        if self._reso != NPY_FR_ns:
-            raise NotImplementedError(self._reso)
-
         if freq:
             kwds = freq.kwds
             month_kw = kwds.get('startingMonth', kwds.get('month', 12))
@@ -500,8 +497,9 @@ cdef class _Timestamp(ABCTimestamp):
             freqstr = None
 
         val = self._maybe_convert_value_to_local()
+
         out = get_start_end_field(np.array([val], dtype=np.int64),
-                                  field, freqstr, month_kw)
+                                  field, freqstr, month_kw, self._reso)
         return out[0]
 
     cdef _warn_on_field_deprecation(self, freq, str field):
@@ -661,12 +659,10 @@ cdef class _Timestamp(ABCTimestamp):
             int64_t val
             object[::1] out
 
-        if self._reso != NPY_FR_ns:
-            raise NotImplementedError(self._reso)
-
         val = self._maybe_convert_value_to_local()
+
         out = get_date_name_field(np.array([val], dtype=np.int64),
-                                  field, locale=locale)
+                                  field, locale=locale, reso=self._reso)
         return out[0]
 
     def day_name(self, locale=None) -> str:
