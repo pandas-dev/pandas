@@ -156,6 +156,7 @@ exclude = ["pandas/tests", "pandas/io/clipboard", "pandas/util/version"]
 # enable subset of "strict"
 reportDuplicateImport = true
 reportInvalidStubStatement = true
+reportOverlappingOverload = true
 reportPropertyTypeMismatch = true
 reportUntypedClassDecorator = true
 reportUntypedFunctionDecorator = true
