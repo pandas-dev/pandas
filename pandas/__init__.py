@@ -47,6 +47,14 @@ import pandas.core.config_init
 
 from pandas.core.api import (
     # dtype
+    Int8ArrowDtype,
+    Int16ArrowDtype,
+    Int32ArrowDtype,
+    Int64ArrowDtype,
+    UInt8ArrowDtype,
+    UInt16ArrowDtype,
+    UInt32ArrowDtype,
+    UInt64ArrowDtype,
     Int8Dtype,
     Int16Dtype,
     Int32Dtype,

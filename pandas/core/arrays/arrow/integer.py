@@ -21,7 +21,7 @@ class IntegerArrowDtype(NumericArrowDtype):
     """
 
     _default_pa_dtype = pa.int64()
-    _checker = pa.types.is_integer
+    _dtype_checker = pa.types.is_integer
 
     @classmethod
     def construct_array_type(cls) -> type[IntegerArrowArray]:
@@ -85,56 +85,56 @@ None
 @register_extension_dtype
 class Int8ArrowDtype(IntegerArrowDtype):
     type = pa.int8()
-    name = "int8[pyarrow]"
+    name = "int8"
     __doc__ = _dtype_docstring.format(dtype="int8")
 
 
 @register_extension_dtype
 class Int16ArrowDtype(IntegerArrowDtype):
     type = pa.int16()
-    name = "int16[pyarrow]"
+    name = "int16"
     __doc__ = _dtype_docstring.format(dtype="int16")
 
 
 @register_extension_dtype
 class Int32ArrowDtype(IntegerArrowDtype):
     type = pa.int32()
-    name = "int32[pyarrow]"
+    name = "int32"
     __doc__ = _dtype_docstring.format(dtype="int32")
 
 
 @register_extension_dtype
 class Int64ArrowDtype(IntegerArrowDtype):
     type = pa.int64()
-    name = "int64[pyarrow]"
+    name = "int64"
     __doc__ = _dtype_docstring.format(dtype="int64")
 
 
 @register_extension_dtype
 class UInt8ArrowDtype(IntegerArrowDtype):
     type = pa.uint8()
-    name = "uint8[pyarrow]"
+    name = "uint8"
     __doc__ = _dtype_docstring.format(dtype="uint8")
 
 
 @register_extension_dtype
 class UInt16ArrowDtype(IntegerArrowDtype):
     type = pa.uint16()
-    name = "uint16[pyarrow]"
+    name = "uint16"
     __doc__ = _dtype_docstring.format(dtype="uint16")
 
 
 @register_extension_dtype
 class UInt32ArrowDtype(IntegerArrowDtype):
     type = pa.uint32()
-    name = "uint32[pyarrow]"
+    name = "uint32"
     __doc__ = _dtype_docstring.format(dtype="uint32")
 
 
 @register_extension_dtype
 class UInt64ArrowDtype(IntegerArrowDtype):
     type = pa.uint64()
-    name = "uint64[pyarrow]"
+    name = "uint64"
     __doc__ = _dtype_docstring.format(dtype="uint64")
 
 

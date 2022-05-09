@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import (
     Any,
     Callable,
@@ -61,7 +63,9 @@ class NumericArrowArray(ArrowExtensionArray):
 
     @classmethod
     def _from_sequence(cls, scalars, *, dtype=None, copy: bool = False):
-        return cls(pa.chunked_array(scalars, type=cls._dtype_cls._default_pa_dtype))
+        if dtype is None:
+            dtype = cls._dtype_cls._default_pa_dtype
+        return cls(pa.chunked_array([scalars], type=dtype.type))
 
     @classmethod
     def _from_sequence_of_strings(cls, strings, *, dtype=None, copy: bool = False):
