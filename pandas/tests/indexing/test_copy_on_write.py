@@ -215,6 +215,8 @@ def test_subset_row_slice(using_copy_on_write):
         #     with tm.assert_produces_warning(com.SettingWithCopyWarning):
         subset.iloc[0, 0] = 0
 
+    subset._mgr._verify_integrity()
+
     expected = pd.DataFrame(
         {"a": [0, 3], "b": [5, 6], "c": [0.2, 0.3]}, index=range(1, 3)
     )
@@ -333,9 +335,60 @@ def test_subset_set_column(using_copy_on_write):
             with tm.assert_produces_warning(com.SettingWithCopyWarning):
                 subset["a"] = np.array([10, 11], dtype="int64")
 
+    subset._mgr._verify_integrity()
     expected = pd.DataFrame(
         {"a": [10, 11], "b": [5, 6], "c": [0.2, 0.3]}, index=range(1, 3)
     )
+    tm.assert_frame_equal(subset, expected)
+    tm.assert_frame_equal(df, df_orig)
+
+
+@pytest.mark.parametrize(
+    "dtype", ["int64", "float64"], ids=["single-block", "mixed-block"]
+)
+def test_subset_set_column_with_loc(using_copy_on_write, dtype):
+    # Case: setting a single column with loc on a viewing subset
+    # -> subset.loc[:, col] = value
+    df = pd.DataFrame(
+        {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)}
+    )
+    df_orig = df.copy()
+    subset = df[1:3]
+
+    if using_copy_on_write:
+        subset.loc[:, "a"] = np.array([10, 11], dtype="int64")
+    else:
+        with pd.option_context("chained_assignment", "warn"):
+            with tm.assert_produces_warning(com.SettingWithCopyWarning):
+                subset.loc[:, "a"] = np.array([10, 11], dtype="int64")
+
+    subset._mgr._verify_integrity()
+    expected = pd.DataFrame(
+        {"a": [10, 11], "b": [5, 6], "c": np.array([8, 9], dtype=dtype)},
+        index=range(1, 3),
+    )
+    tm.assert_frame_equal(subset, expected)
+    tm.assert_frame_equal(df, df_orig)
+
+
+def test_subset_set_column_with_loc2(using_copy_on_write):
+    # Case: setting a single column with loc on a viewing subset
+    # -> subset.loc[:, col] = value
+    # separate test for case of DataFrame of a single column -> takes a separate
+    # code path
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    df_orig = df.copy()
+    subset = df[1:3]
+
+    if using_copy_on_write:
+        subset.loc[:, "a"] = 0
+    else:
+        with pd.option_context("chained_assignment", "warn"):
+            with tm.assert_produces_warning(com.SettingWithCopyWarning):
+                subset.loc[:, "a"] = 0
+
+    subset._mgr._verify_integrity()
+    expected = pd.DataFrame({"a": [0, 0]}, index=range(1, 3))
     tm.assert_frame_equal(subset, expected)
     tm.assert_frame_equal(df, df_orig)
 
@@ -359,6 +412,10 @@ def test_subset_set_columns(using_copy_on_write, dtype):
             with tm.assert_produces_warning(com.SettingWithCopyWarning):
                 subset[["a", "c"]] = 0
 
+    subset._mgr._verify_integrity()
+    if using_copy_on_write:
+        # first and third column should certainly have no references anymore
+        assert all(subset._mgr._has_no_reference(i) for i in [0, 2])
     expected = pd.DataFrame({"a": [0, 0], "b": [5, 6], "c": [0, 0]}, index=range(1, 3))
     tm.assert_frame_equal(subset, expected)
     tm.assert_frame_equal(df, df_orig)
@@ -383,6 +440,7 @@ def test_subset_set_with_column_indexer(indexer, using_copy_on_write):
             with tm.assert_produces_warning(com.SettingWithCopyWarning):
                 subset.loc[:, indexer] = 0
 
+    subset._mgr._verify_integrity()
     expected = pd.DataFrame(
         {"a": [0, 0], "b": [0.0, 0.0], "c": [5, 6]}, index=range(1, 3)
     )

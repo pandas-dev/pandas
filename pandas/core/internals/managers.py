@@ -239,12 +239,20 @@ class BaseBlockManager(DataManager):
         Returns True if the columns has no references.
         """
         blkno = self.blknos[i]
+        return self._has_no_reference_block(blkno)
+
+    def _has_no_reference_block(self, blkno: int) -> bool:
+        """
+        Check for column `i` if has references.
+        (whether it references another array or is itself being referenced)
+        Returns True if the columns has no references.
+        """
         # TODO include `or self.refs[blkno]() is None` ?
         return (
             self.refs is None or self.refs[blkno] is None
         ) and weakref.getweakrefcount(self.blocks[blkno]) == 0
 
-    def _clear_reference(self, blkno: int) -> None:
+    def _clear_reference_block(self, blkno: int) -> None:
         """
         Clear any reference for column `i`.
         """
@@ -369,7 +377,7 @@ class BaseBlockManager(DataManager):
             # if being referenced -> perform Copy-on-Write and clear the reference
             # self.blocks = tuple([self.blocks[0].copy()])
             self = self.copy()
-            # self._clear_reference(blkno)
+            # self._clear_reference_block(blkno)
 
         return self.apply("setitem", indexer=indexer, value=value)
 
@@ -1179,7 +1187,12 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             blk = self.blocks[blkno_l]
             blk_locs = blklocs[val_locs.indexer]
             if inplace and blk.should_store(value):
-                blk.set_inplace(blk_locs, value_getitem(val_locs))
+                # Updating inplace -> check if we need to do Copy-on-Write
+                if not self._has_no_reference_block(blkno_l):
+                    blk.set_inplace(blk_locs, value_getitem(val_locs), copy=True)
+                    self._clear_reference_block(blkno_l)
+                else:
+                    blk.set_inplace(blk_locs, value_getitem(val_locs))
             else:
                 unfit_mgr_locs.append(blk.mgr_locs.as_array[blk_locs])
                 unfit_val_locs.append(val_locs)
@@ -1194,9 +1207,11 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     )
                     self.blocks = blocks_tup
                     self._blklocs[nb.mgr_locs.indexer] = np.arange(len(nb))
+                    # blk.delete gives a copy, so we can remove a possible reference
+                    self._clear_reference_block(blkno_l)
 
         if len(removed_blknos):
-            # Remove blocks & update blknos accordingly
+            # Remove blocks & update blknos and refs accordingly
             is_deleted = np.zeros(self.nblocks, dtype=np.bool_)
             is_deleted[removed_blknos] = True
 
@@ -1207,6 +1222,12 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             self.blocks = tuple(
                 blk for i, blk in enumerate(self.blocks) if i not in set(removed_blknos)
             )
+            if self.refs is not None:
+                self.refs = [
+                    ref
+                    for i, ref in enumerate(self.refs)
+                    if i not in set(removed_blknos)
+                ]
 
         if unfit_val_locs:
             unfit_idxr = np.concatenate(unfit_mgr_locs)
@@ -1243,6 +1264,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 self._blklocs[unfit_idxr] = np.arange(unfit_count)
 
             self.blocks += tuple(new_blocks)
+            # TODO(CoW) is this always correct to assume that the new_blocks
+            # are not referencing anything else?
+            if self.refs is not None:
+                self.refs = list(self.refs) + [None] * len(new_blocks)
 
             # Newly created block's dtype may already be present.
             self._known_consolidated = False
@@ -1260,14 +1285,20 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         # Caller is responsible for verifying value.shape
 
         if inplace and blk.should_store(value):
+            copy = False
+            if not self._has_no_reference_block(blkno):
+                # perform Copy-on-Write and clear the reference
+                copy = True
+                self._clear_reference_block(blkno)
             iloc = self.blklocs[loc]
-            blk.set_inplace(slice(iloc, iloc + 1), value)
+            blk.set_inplace(slice(iloc, iloc + 1), value, copy=copy)
             return
 
         nb = new_block_2d(value, placement=blk._mgr_locs)
         old_blocks = self.blocks
         new_blocks = old_blocks[:blkno] + (nb,) + old_blocks[blkno + 1 :]
         self.blocks = new_blocks
+        self._clear_reference_block(blkno)
         return
 
     def insert(self, loc: int, item: Hashable, value: ArrayLike) -> None:
@@ -1280,6 +1311,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         item : hashable
         value : np.ndarray or ExtensionArray
         """
+        # TODO handle CoW (insert into refs as well)
+
         # insert to the axis; this could possibly raise a TypeError
         new_axis = self.items.insert(loc, item)
 
@@ -1370,7 +1403,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             blocks = list(self.blocks)
             blocks[blkno] = blocks[blkno].copy()
             self.blocks = tuple(blocks)
-            self._clear_reference(blkno)
+            self._clear_reference_block(blkno)
 
         col_mgr = self.iget(loc)
         new_mgr = col_mgr.setitem((idx,), value)

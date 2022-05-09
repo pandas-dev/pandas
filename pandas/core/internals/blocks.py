@@ -829,9 +829,12 @@ class Block(PandasObject):
 
         return self.values[slicer]
 
-    def set_inplace(self, locs, values: ArrayLike) -> None:
+    def set_inplace(self, locs, values: ArrayLike, copy: bool = False) -> None:
         """
         Modify block values in-place with new item value.
+
+        If copy=True, first copy the underlying values in place before modifying
+        (for Copy-on-Write).
 
         Notes
         -----
@@ -840,6 +843,8 @@ class Block(PandasObject):
 
         Caller is responsible for checking values.dtype == self.dtype.
         """
+        if copy:
+            self.values = self.values.copy()
         self.values[locs] = values
 
     def take_nd(
@@ -1653,9 +1658,11 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
                 raise IndexError(f"{self} only contains one item")
             return self.values
 
-    def set_inplace(self, locs, values: ArrayLike) -> None:
+    def set_inplace(self, locs, values: ArrayLike, copy: bool = False) -> None:
         # When an ndarray, we should have locs.tolist() == [0]
         # When a BlockPlacement we should have list(locs) == [0]
+        if copy:
+            self.values = self.values.copy()
         self.values[:] = values
 
     def _maybe_squeeze_arg(self, arg):

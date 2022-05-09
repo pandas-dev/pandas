@@ -1069,8 +1069,12 @@ class TestLocBaseIndependent:
         assert np.shares_memory(original_df["a"]._values, sliced_df["a"]._values)
 
         # Setting using .loc[:, "a"] sets inplace so alters both sliced and orig
+        # depending on CoW
         original_df.loc[:, "a"] = [4, 4, 4]
-        assert (sliced_df["a"] == 4).all()
+        if using_copy_on_write:
+            assert (sliced_df["a"] == [1, 2, 3]).all()
+        else:
+            assert (sliced_df["a"] == 4).all()
 
         # These should not return copies
         assert original_df is original_df.loc[:, :]
