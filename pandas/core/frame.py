@@ -1771,6 +1771,24 @@ class DataFrame(NDFrame, OpsMixin):
 
         return result
 
+    def _create_data_for_split_and_tight_to_dict(
+        self, are_all_object_dtype_cols, object_dtype_indices
+    ):
+        if are_all_object_dtype_cols:
+            data = [
+                list(map(maybe_box_native, t))
+                for t in self.itertuples(index=False, name=None)
+            ]
+        else:
+            data = [list(t) for t in self.itertuples(index=False, name=None)]
+            if object_dtype_indices:
+                # If we have object_dtype_cols, apply maybe_box_naive after list
+                # comprehension for perf
+                for row in data:
+                    for i in object_dtype_indices:
+                        row[i] = maybe_box_native(row[i])
+        return data
+
     def to_dict(self, orient: str = "dict", into=dict):
         """
         Convert the DataFrame to a dictionary.
@@ -1932,19 +1950,10 @@ class DataFrame(NDFrame, OpsMixin):
             )
 
         elif orient == "split":
-            if are_all_object_dtype_cols:
-                data = [
-                    list(map(maybe_box_native, t))
-                    for t in self.itertuples(index=False, name=None)
-                ]
-            else:
-                data = [list(t) for t in self.itertuples(index=False, name=None)]
-                if object_dtype_indices:
-                    # If we have object_dtype_cols, apply maybe_box_naive after list
-                    # comprehension for perf
-                    for row in data:
-                        for i in object_dtype_indices:
-                            row[i] = maybe_box_native(row[i])
+            data = self._create_data_for_split_and_tight_to_dict(
+                are_all_object_dtype_cols, object_dtype_indices
+            )
+
             return into_c(
                 (
                     ("index", self.index.tolist()),
@@ -1954,19 +1963,10 @@ class DataFrame(NDFrame, OpsMixin):
             )
 
         elif orient == "tight":
-            if are_all_object_dtype_cols:
-                data = [
-                    list(map(maybe_box_native, t))
-                    for t in self.itertuples(index=False, name=None)
-                ]
-            else:
-                data = [list(t) for t in self.itertuples(index=False, name=None)]
-                if object_dtype_indices:
-                    # If we have object_dtype_cols, apply maybe_box_naive after list
-                    # comprehension for perf
-                    for row in data:
-                        for i in object_dtype_indices:
-                            row[i] = maybe_box_native(row[i])
+            data = self._create_data_for_split_and_tight_to_dict(
+                are_all_object_dtype_cols, object_dtype_indices
+            )
+
             return into_c(
                 (
                     ("index", self.index.tolist()),
