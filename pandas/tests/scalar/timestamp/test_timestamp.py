@@ -840,3 +840,7 @@ class TestNonNano:
         res = ts.to_datetime64()
         assert res == dt64
         assert res.dtype == dt64.dtype
+
+    def test_timestamp(self, dt64, ts):
+        alt = Timestamp(dt64)
+        assert ts.timestamp() == alt.timestamp()

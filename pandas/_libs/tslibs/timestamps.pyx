@@ -52,7 +52,10 @@ from pandas._libs.tslibs.conversion cimport (
     convert_datetime_to_tsobject,
     convert_to_tsobject,
 )
-from pandas._libs.tslibs.dtypes cimport npy_unit_to_abbrev
+from pandas._libs.tslibs.dtypes cimport (
+    npy_unit_to_abbrev,
+    periods_per_second,
+)
 from pandas._libs.tslibs.util cimport (
     is_array,
     is_datetime64_object,
@@ -982,10 +985,10 @@ cdef class _Timestamp(ABCTimestamp):
         """
         # GH 17329
         # Note: Naive timestamps will not match datetime.stdlib
-        if self._reso != NPY_FR_ns:
-            raise NotImplementedError(self._reso)
 
-        return round(self.value / 1e9, 6)
+        denom = periods_per_second(self._reso)
+
+        return round(self.value / denom, 6)
 
     cpdef datetime to_pydatetime(_Timestamp self, bint warn=True):
         """
