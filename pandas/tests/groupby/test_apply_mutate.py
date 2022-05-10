@@ -72,7 +72,7 @@ def test_apply_function_with_indexing():
     )
 
     def fn(x):
-        x.col2[x.index[-1]] = 0
+        x.loc[x.index[-1], "col2"] = 0
         return x.col2
 
     result = df.groupby(["col1"], as_index=False).apply(fn)

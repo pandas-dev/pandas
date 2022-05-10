@@ -128,7 +128,7 @@ class TestMultiIndexPartial:
         df = ymd.copy()
         exp = ymd.copy()
         df.loc[2000, 4] = 0
-        exp.loc[2000, 4].values[:] = 0
+        exp.iloc[65:85] = 0
         tm.assert_frame_equal(df, exp)
 
         df["A"].loc[2000, 4] = 1
@@ -136,7 +136,7 @@ class TestMultiIndexPartial:
         tm.assert_frame_equal(df, exp)
 
         df.loc[2000] = 5
-        exp.loc[2000].values[:] = 5
+        exp.iloc[:100] = 5
         tm.assert_frame_equal(df, exp)
 
         # this works...for now
