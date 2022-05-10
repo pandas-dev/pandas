@@ -221,14 +221,16 @@ def test_rolling_kurt_edge_cases(step):
 
 
 def test_rolling_skew_eq_value_fperr(step):
-    # 46717
+    # #18804 all rolling skew for all equal values should return Nan
+    # #46717 update: all equal values should return 0 instead of NaN
     a = Series([1.1] * 15).rolling(window=10, step=step).skew()
     assert (a[a.index >= 9] == 0).all()
     assert a[a.index < 9].isna().all()
 
 
 def test_rolling_kurt_eq_value_fperr(step):
-    # 46717
+    # #18804 all rolling kurt for all equal values should return Nan
+    # #46717 update: all equal values should return -3 instead of NaN
     a = Series([1.1] * 15).rolling(window=10, step=step).kurt()
     assert (a[a.index >= 9] == -3).all()
     assert a[a.index < 9].isna().all()
