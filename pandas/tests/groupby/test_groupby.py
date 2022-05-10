@@ -2721,3 +2721,28 @@ def test_by_column_values_with_same_starting_value():
     ).set_index("Name")
 
     tm.assert_frame_equal(result, expected_result)
+
+
+@pytest.mark.parametrize(
+    "function, indices, expected_data",
+    [
+        ("nlargest", [("bar", 5), ("bar", 4), ("foo", 2), ("foo", 1)], [6, 5, 3, 2]),
+        ("nsmallest", [("bar", 3), ("bar", 4), ("foo", 0), ("foo", 1)], [4, 5, 1, 2]),
+    ],
+)
+def test_nlargest_nsmallest(function, indices, expected_data):
+    # test nlargest and nsmallest for DataFrameGroupBy
+    # GH46924
+    df = DataFrame(
+        {
+            "group": ["foo", "foo", "foo", "bar", "bar", "bar"],
+            "data": [1, 2, 3, 4, 5, 6],
+        }
+    )
+    grouped = df.groupby("group")
+    func = getattr(grouped, function)
+    result = func(n=2, columns="data")
+    expected_index = MultiIndex.from_tuples(indices, names=["group", None])
+    expected = DataFrame({"data": expected_data}, index=expected_index)
+
+    tm.assert_frame_equal(result, expected)

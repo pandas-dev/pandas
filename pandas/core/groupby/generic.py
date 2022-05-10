@@ -1812,6 +1812,24 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 result = result_frame
             return result.__finalize__(self.obj, method="value_counts")
 
+    @doc(DataFrame.nlargest)
+    def nlargest(self, n, columns, keep: str = "first"):
+        f = partial(DataFrame.nlargest, n=n, columns=columns, keep=keep)
+        data = self._obj_with_exclusions
+        # Don't change behavior if result index happens to be the same, i.e.
+        # already ordered and n >= all group sizes.
+        result = self._python_apply_general(f, data, not_indexed_same=True)
+        return result
+
+    @doc(DataFrame.nsmallest)
+    def nsmallest(self, n, columns, keep: str = "first"):
+        f = partial(DataFrame.nsmallest, n=n, columns=columns, keep=keep)
+        data = self._obj_with_exclusions
+        # Don't change behavior if result index happens to be the same, i.e.
+        # already ordered and n >= all group sizes.
+        result = self._python_apply_general(f, data, not_indexed_same=True)
+        return result
+
 
 def _wrap_transform_general_frame(
     obj: DataFrame, group: DataFrame, res: DataFrame | Series
