@@ -1,3 +1,9 @@
+"""
+Tests against the for-internal-use-only functions in pandas._libs.tslibs.timedeltas.
+
+For tests against the public Timedelta API, see pandas/tests/scalar/timedelta/
+"""
+
 import numpy as np
 import pytest
 

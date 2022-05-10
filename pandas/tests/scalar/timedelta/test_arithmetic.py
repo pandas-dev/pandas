@@ -1,6 +1,9 @@
 """
-Tests for arithmetic ops between a Timedelta scalar and another scalar, or a Timedelta
-scalar and a Array/Index/Series/DataFrame.
+Tests of binary ops between a Timedelta scalar and another scalar or a
+Array/Index/Series/DataFrame.
+
+See test_timedelta.py, in this same directory, for tests against the rest of the public
+Timedelta API.
 """
 
 from __future__ import annotations
@@ -26,6 +29,7 @@ from pandas import (
     NaT,
     Timedelta,
     Timestamp,
+    compat,
     offsets,
 )
 import pandas._testing as tm
@@ -113,13 +117,6 @@ def fixture_truediv_op(request):
 )
 def fixture_floor_mod_divmod_op(request):
     return request.param
-
-
-@pytest.fixture(name="td_overflow_msg")
-def fixture_td_overflow_msg() -> str:
-    return re.escape(
-        "outside allowed range [-9223372036854775807ns, 9223372036854775807ns]"
-    )
 
 
 @pytest.fixture(name="invalid_op_msg")
@@ -447,7 +444,7 @@ class TestMultiplicationBox:
         )
         tm.assert_equal(result, expected)
 
-    @pytest.mark.xfail(reason="no overflow check", raises=AssertionError, strict=True)
+    @pytest.mark.xfail(compat.IS64, reason="no overflow check", raises=AssertionError)
     @pytest.mark.parametrize("factor", (1.01, 2), ids=("int", "float"))
     def test_returns_nat_if_result_overflows(self, mul_op, factor, box_with_array):
         numeric_box = tm.box_expected((1, factor), box_with_array, transpose=False)

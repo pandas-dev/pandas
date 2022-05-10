@@ -31,8 +31,6 @@ import_datetime()
 
 
 cimport pandas._libs.tslibs.util as util
-from pandas._libs cimport ops
-from pandas._libs.missing cimport C_NA
 from pandas._libs.tslibs.base cimport ABCTimestamp
 from pandas._libs.tslibs.conversion cimport (
     cast_from_unit,
@@ -217,12 +215,11 @@ cpdef int64_t delta_to_nanoseconds(delta) except? -1:
         return get_timedelta64_value(ensure_td64ns(delta))
 
     if PyDelta_Check(delta):
-        microseconds = (
+        return (
             delta.days * 24 * 3600 * 1_000_000
             + delta.seconds * 1_000_000
             + delta.microseconds
-        )
-        return calc_int_int(operator.mul, microseconds, 1000)
+        ) * 1000
 
     raise TypeError(type(delta))
 
@@ -245,14 +242,20 @@ cdef object ensure_td64ns(object ts):
         str unitstr
 
     td64_unit = get_datetime64_unit(ts)
-    if td64_unit in (NPY_DATETIMEUNIT.NPY_FR_ns, NPY_DATETIMEUNIT.NPY_FR_GENERIC):
+    if td64_unit == NPY_DATETIMEUNIT.NPY_FR_ns or td64_unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
         return ts
 
     unitstr = npy_unit_to_abbrev(td64_unit)
     mult = precision_from_unit(unitstr)[0]
-    ns = calc_int_int(operator.mul, get_timedelta64_value(ts), mult)
 
-    return np.timedelta64(ns, "ns")
+    with cython.overflowcheck(True):
+        try:
+            td64_value = get_timedelta64_value(ts) * mult
+        except OverflowError as ex:
+            msg = f"{ts} outside allowed range [{TIMEDELTA_MIN_NS}ns, {TIMEDELTA_MAX_NS}ns]"
+            raise OutOfBoundsTimedelta(msg) from ex
+
+    return np.timedelta64(td64_value, "ns")
 
 
 cdef convert_to_timedelta64(object ts, str unit):
@@ -673,18 +676,6 @@ def _op_unary_method(func, name):
     return f
 
 
-cdef int64_t calc_int_int(object op, object a, object b) except? -1:
-    """
-    Calculate op(a, b), raising if either operand or the result cannot be safely cast
-    to an int64_t.
-    """
-    try:
-        return ops.calc_int_int(op, a, b)
-    except OverflowError as ex:
-        msg = f"outside allowed range [{TIMEDELTA_MIN_NS}ns, {TIMEDELTA_MAX_NS}ns]"
-        raise OutOfBoundsTimedelta(msg) from ex
-
-
 def _binary_op_method_timedeltalike(op, name):
     # define a binary operation that only works if the other argument is
     # timedelta like or an array of timedeltalike
@@ -907,8 +898,6 @@ cdef object create_timedelta(object value, str in_unit, NPY_DATETIMEUNIT out_res
 
     if isinstance(value, _Timedelta):
         return value
-    if value is C_NA:
-        raise ValueError("Not supported")
 
     try:
         # if unit == "ns", no need to create an m8[ns] just to read the (same) value back

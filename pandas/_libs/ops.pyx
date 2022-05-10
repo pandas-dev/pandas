@@ -16,7 +16,6 @@ import numpy as np
 
 from numpy cimport (
     import_array,
-    int64_t,
     ndarray,
     uint8_t,
 )
@@ -309,12 +308,3 @@ def maybe_convert_bool(ndarray[object] arr,
             return (arr, None)
     else:
         return (result.view(np.bool_), None)
-
-
-@cython.overflowcheck(True)
-cpdef int64_t calc_int_int(object op, int64_t a, int64_t b) except? -1:
-    """
-    Calculate op(a, b) and return the result. Raises OverflowError if converting either
-    operand or the result to an int64_t would overflow.
-    """
-    return op(a, b)

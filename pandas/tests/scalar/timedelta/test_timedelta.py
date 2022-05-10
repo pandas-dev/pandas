@@ -1,6 +1,8 @@
 """
-Most Timedelta scalar tests; See test_arithmetic for tests of binary operations with a
-Timedelta scalar.
+Tests against (most of) the public Timedelta API.
+
+See test_arithmetic.py, in this same directory, for tests of binary ops between a
+Timedelta scalar and another scalar or a Array/Index/Series/DataFrame.
 """
 
 from __future__ import annotations
@@ -12,7 +14,6 @@ from itertools import (
     zip_longest,
 )
 import operator
-import re
 
 from hypothesis import (
     given,
@@ -156,13 +157,6 @@ def fixture_td64_max_per_unit(request) -> tuple:
 def fixture_td64_min_per_unit(request) -> tuple:
     unit = request.param
     return unit, TD64_MIN_PER_UNIT[unit]
-
-
-@pytest.fixture(name="td_overflow_msg")
-def fixture_td_overflow_msg() -> str:
-    return re.escape(
-        "outside allowed range [-9223372036854775807ns, 9223372036854775807ns]"
-    )
 
 
 @pytest.fixture(name="non_nano_reso", params=(7, 8, 9))
