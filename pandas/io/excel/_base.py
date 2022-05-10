@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 import datetime
+from functools import partial
 from io import BytesIO
 import os
 from textwrap import fill
@@ -639,28 +640,29 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         if header is None:
             header_rows = 1
         elif is_integer(header):
-            assert isinstance(header, int)
+            header = cast(int, header)
             header_rows = 1 + header
         else:
-            assert isinstance(header, Sequence)
+            header = cast(Sequence, header)
             header_rows = 1 + header[-1]
         # If there is a MultiIndex header and an index then there is also
         # a row containing just the index name(s)
         if is_list_like(header) and index_col is not None:
-            assert isinstance(header, Sequence)
+            header = cast(Sequence, header)
             if len(header) > 1:
                 header_rows += 1
         if skiprows is None:
             return header_rows + nrows
         if is_integer(skiprows):
-            assert isinstance(skiprows, int)
+            skiprows = cast(int, skiprows)
             return header_rows + nrows + skiprows
         if is_list_like(skiprows):
-            assert isinstance(skiprows, Sequence)
-            return self._check_skiprows_func(
-                lambda x: x in skiprows,
-                header_rows + nrows,
-            )
+
+            def f(skiprows: Sequence, x: int) -> bool:
+                return x in skiprows
+
+            skiprows = cast(Sequence, skiprows)
+            return self._check_skiprows_func(partial(f, skiprows), header_rows + nrows)
         if callable(skiprows):
             return self._check_skiprows_func(
                 skiprows,
