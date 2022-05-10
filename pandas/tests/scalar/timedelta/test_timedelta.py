@@ -339,7 +339,7 @@ class TestConstruction:
         offset = tick_classes(1)
         assert Timedelta(offset).value == offset.nanos
 
-    @pytest.mark.parametrize("td_unit", TD_UNITS)
+    @pytest.mark.parametrize("td_unit", chain.from_iterable(TD_UNITS))
     def test_from_td64_ignores_unit(self, td_unit: str, td_overflow_msg: str):
         """
         Ignore the unit, as it may cause silently overflows leading to incorrect
@@ -355,7 +355,6 @@ class TestConstruction:
         ("args", "kwargs"),
         [
             ((), {}),
-            (("ps",), {}),
             (("ns",), {}),
             (("ms",), {}),
             ((), {"seconds": 3}),
@@ -367,8 +366,6 @@ class TestConstruction:
         new = Timedelta(original, *args, **kwargs)
 
         assert new == original
-        if not any((args, kwargs)):
-            assert new is original
 
     def test_from_timedelta(self, timedelta_kwarg: str):
         kwargs = {timedelta_kwarg: 1}
@@ -601,11 +598,12 @@ class TestNonNano:
         assert res == expected
         assert res._reso == non_nano_reso
 
-    def test_mul_preserves_reso(self, non_nano_td, non_nano_reso):
+    @pytest.mark.parametrize("factor", (2, 2.5))
+    def test_mul_preserves_reso(self, non_nano_td, non_nano_reso, factor):
         # The non_nano_td fixture should always be far from the implementation
         #  bound, so doubling does not risk overflow.
-        res = non_nano_td * 2
-        assert res.value == non_nano_td.value * 2
+        res = non_nano_td * factor
+        assert res.value == non_nano_td.value * factor
         assert res._reso == non_nano_reso
 
     def test_cmp_cross_reso(self, non_nano_td):
