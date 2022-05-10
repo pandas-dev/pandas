@@ -57,6 +57,8 @@ from pandas.core.api import (
     UInt64Dtype,
     Float32Dtype,
     Float64Dtype,
+    Float32ArrowDtype,
+    Float64ArrowDtype,
     CategoricalDtype,
     PeriodDtype,
     IntervalDtype,
