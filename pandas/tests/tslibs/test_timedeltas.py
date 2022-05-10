@@ -53,27 +53,27 @@ def test_delta_to_nanoseconds_error():
         delta_to_nanoseconds(np.int32(3))
 
 
-def test_huge_nanoseconds_overflow():
+def test_delta_to_nanoseconds_overflow():
     # GH 32402
     assert delta_to_nanoseconds(Timedelta(1e10)) == 1e10
     assert delta_to_nanoseconds(Timedelta(nanoseconds=1e10)) == 1e10
 
 
-class TestArrayToTimedelta64:
-    def test_array_to_timedelta64_string_with_unit_2d_raises(self):
-        # check the 'unit is not None and errors != "coerce"' path
-        #  in array_to_timedelta64 raises correctly with 2D values
-        values = np.array([["1", 2], [3, "4"]], dtype=object)
-        with pytest.raises(ValueError, match="unit must not be specified"):
-            array_to_timedelta64(values, unit="s")
+def test_array_to_timedelta64_string_with_unit_2d_raises():
+    # check the 'unit is not None and errors != "coerce"' path
+    #  in array_to_timedelta64 raises correctly with 2D values
+    values = np.array([["1", 2], [3, "4"]], dtype=object)
+    with pytest.raises(ValueError, match="unit must not be specified"):
+        array_to_timedelta64(values, unit="s")
 
-    def test_array_to_timedelta64_non_object_raises(self):
-        # check we raise, not segfault
-        values = np.arange(5)
 
-        msg = "'values' must have object dtype"
-        with pytest.raises(TypeError, match=msg):
-            array_to_timedelta64(values)
+def test_array_to_timedelta64_non_object_raises():
+    # check we raise, not segfault
+    values = np.arange(5)
+
+    msg = "'values' must have object dtype"
+    with pytest.raises(TypeError, match=msg):
+        array_to_timedelta64(values)
 
 
 @pytest.mark.parametrize("unit", ["s", "ms", "us"])

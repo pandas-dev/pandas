@@ -250,9 +250,9 @@ cdef object ensure_td64ns(object ts):
 
     unitstr = npy_unit_to_abbrev(td64_unit)
     mult = precision_from_unit(unitstr)[0]
-    td64_value = calc_int_int(operator.mul, get_timedelta64_value(ts), mult)
+    ns = calc_int_int(operator.mul, get_timedelta64_value(ts), mult)
 
-    return np.timedelta64(td64_value, "ns")
+    return np.timedelta64(ns, "ns")
 
 
 cdef convert_to_timedelta64(object ts, str unit):
@@ -673,7 +673,7 @@ def _op_unary_method(func, name):
     return f
 
 
-cpdef int64_t calc_int_int(object op, object a, object b) except? -1:
+cdef int64_t calc_int_int(object op, object a, object b) except? -1:
     """
     Calculate op(a, b), raising if either operand or the result cannot be safely cast
     to an int64_t.

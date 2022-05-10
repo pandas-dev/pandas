@@ -318,11 +318,3 @@ cpdef int64_t calc_int_int(object op, int64_t a, int64_t b) except? -1:
     operand or the result to an int64_t would overflow.
     """
     return op(a, b)
-
-@cython.overflowcheck(True)
-cpdef int64_t calc_int_float(object op, int64_t a, double b) except? -1:
-    """
-    Calculate op(a, b) and return the result. Raises OverflowError if converting either
-    operand or the result would overflow.
-    """
-    return op(a, b)
