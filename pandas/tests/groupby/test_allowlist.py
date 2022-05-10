@@ -51,6 +51,8 @@ df_allowlist = [
     "corr",
     "cov",
     "diff",
+    "nlargest",
+    "nsmallest",
 ]
 
 
@@ -322,6 +324,8 @@ def test_tab_completion(mframe):
         "sample",
         "ewm",
         "value_counts",
+        "nlargest",
+        "nsmallest",
     }
     assert results == expected
 

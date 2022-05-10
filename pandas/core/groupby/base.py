@@ -33,6 +33,8 @@ common_apply_allowlist = (
             "corr",
             "cov",
             "diff",
+            "nlargest",
+            "nsmallest",
         ]
     )
     | plotting_methods
@@ -40,9 +42,7 @@ common_apply_allowlist = (
 
 series_apply_allowlist: frozenset[str] = (
     common_apply_allowlist
-    | frozenset(
-        {"nlargest", "nsmallest", "is_monotonic_increasing", "is_monotonic_decreasing"}
-    )
+    | frozenset({"is_monotonic_increasing", "is_monotonic_decreasing"})
 ) | frozenset(["dtype", "unique"])
 
 dataframe_apply_allowlist: frozenset[str] = common_apply_allowlist | frozenset(
@@ -155,6 +155,8 @@ groupby_other_methods = frozenset(
         "transform",
         "sample",
         "value_counts",
+        "nlargest",
+        "nsmallest",
     ]
 )
 # Valid values  of `name` for `groupby.transform(name)`
