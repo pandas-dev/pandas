@@ -144,6 +144,28 @@ def test_reindex_columns(using_copy_on_write):
     tm.assert_frame_equal(df, df_orig)
 
 
+def test_select_dtypes(using_copy_on_write):
+    # Case: selecting columns using `select_dtypes()` returns a new dataframe
+    # + afterwards modifying the result
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df_orig = df.copy()
+    df2 = df.select_dtypes("int64")
+    df2._mgr._verify_integrity()
+
+    # currently this always returns a "view"
+    assert np.may_share_memory(df2["a"].values, df["a"].values)
+
+    # mutating df2 triggers a copy-on-write for that column/block
+    df2.iloc[0, 0] = 0
+    if using_copy_on_write:
+        assert not np.may_share_memory(df2["a"].values, df["a"].values)
+        tm.assert_frame_equal(df, df_orig)
+    else:
+        # but currently select_dtypes() actually returns a view -> mutates parent
+        df_orig.iloc[0, 0] = 0
+        tm.assert_frame_equal(df, df_orig)
+
+
 # # -----------------------------------------------------------------------------
 # # Indexing operations taking subset + modifying the subset/parent
 

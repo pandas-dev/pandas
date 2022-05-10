@@ -247,7 +247,7 @@ class BaseBlockManager(DataManager):
         (whether it references another array or is itself being referenced)
         Returns True if the columns has no references.
         """
-        # TODO include `or self.refs[blkno]() is None` ?
+        # TODO(CoW) include `or self.refs[blkno]() is None` ?
         return (
             self.refs is None or self.refs[blkno] is None
         ) and weakref.getweakrefcount(self.blocks[blkno]) == 0
@@ -387,7 +387,7 @@ class BaseBlockManager(DataManager):
     def putmask(self, mask, new, align: bool = True):
         if self.refs is not None and not all(ref is None for ref in self.refs):
             # some reference -> copy full dataframe
-            # TODO this could be optimized to only copy the blocks that would
+            # TODO(CoW) this could be optimized to only copy the blocks that would
             # get modified
             # self.blocks = tuple([blk.copy() for blk in self.blocks])
             # self.refs = None
@@ -575,17 +575,23 @@ class BaseBlockManager(DataManager):
         inv_indexer = lib.get_reverse_indexer(indexer, self.shape[0])
 
         new_blocks: list[Block] = []
+        # TODO(CoW) we could optimize here if we know that the passed blocks
+        # are fully "owned" (eg created from an operation, not coming from
+        # an existing manager)
+        new_refs: list[weakref.ref | None] | None = None if copy else []
         for b in blocks:
-            b = b.copy(deep=copy)
-            b.mgr_locs = BlockPlacement(inv_indexer[b.mgr_locs.indexer])
-            new_blocks.append(b)
+            nb = b.copy(deep=copy)
+            nb.mgr_locs = BlockPlacement(inv_indexer[nb.mgr_locs.indexer])
+            new_blocks.append(nb)
+            if not copy:
+                new_refs.append(weakref.ref(b))
 
         axes = list(self.axes)
         if index is not None:
             axes[-1] = index
         axes[0] = self.items.take(indexer)
 
-        return type(self).from_blocks(new_blocks, axes)
+        return type(self).from_blocks(new_blocks, axes, new_refs)
 
     @property
     def nblocks(self) -> int:
@@ -1956,7 +1962,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         block = type(blk)(array, placement=bp, ndim=1)
 
         new_idx = self.index[indexer]
-        # TODO in theory only need to track reference if new_array is a view
+        # TODO(CoW) in theory only need to track reference if new_array is a view
         ref = weakref.ref(blk)
         return type(self)(block, new_idx, [ref])
 
