@@ -844,3 +844,7 @@ class TestNonNano:
     def test_timestamp(self, dt64, ts):
         alt = Timestamp(dt64)
         assert ts.timestamp() == alt.timestamp()
+
+    def test_to_period(self, dt64, ts):
+        alt = Timestamp(dt64)
+        assert ts.to_period("D") == alt.to_period("D")

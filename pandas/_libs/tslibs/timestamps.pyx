@@ -1083,9 +1083,6 @@ cdef class _Timestamp(ABCTimestamp):
         """
         from pandas import Period
 
-        if self._reso != NPY_FR_ns:
-            raise NotImplementedError(self._reso)
-
         if self.tz is not None:
             # GH#21333
             warnings.warn(
