@@ -10,6 +10,7 @@ import gzip
 from io import (
     BufferedIOBase,
     BytesIO,
+    FileIO,
     RawIOBase,
     StringIO,
     TextIOBase,
@@ -19,6 +20,7 @@ import mmap
 import os
 from pathlib import Path
 import re
+import tarfile
 from typing import (
     IO,
     Any,
@@ -450,13 +452,18 @@ def file_path_to_url(path: str) -> str:
     return urljoin("file:", pathname2url(path))
 
 
-_compression_to_extension = {
-    "gzip": ".gz",
-    "bz2": ".bz2",
-    "zip": ".zip",
-    "xz": ".xz",
-    "zstd": ".zst",
+_extension_to_compression = {
+    ".tar": "tar",
+    ".tar.gz": "tar",
+    ".tar.bz2": "tar",
+    ".tar.xz": "tar",
+    ".gz": "gzip",
+    ".bz2": "bz2",
+    ".zip": "zip",
+    ".xz": "xz",
+    ".zst": "zstd",
 }
+_supported_compressions = set(_extension_to_compression.values())
 
 
 def get_compression_method(
@@ -532,20 +539,18 @@ def infer_compression(
             return None
 
         # Infer compression from the filename/URL extension
-        for compression, extension in _compression_to_extension.items():
+        for extension, compression in _extension_to_compression.items():
             if filepath_or_buffer.lower().endswith(extension):
                 return compression
         return None
 
     # Compression has been specified. Check that it's valid
-    if compression in _compression_to_extension:
+    if compression in _supported_compressions:
         return compression
 
     # https://github.com/python/mypy/issues/5492
     # Unsupported operand types for + ("List[Optional[str]]" and "List[str]")
-    valid = ["infer", None] + sorted(
-        _compression_to_extension
-    )  # type: ignore[operator]
+    valid = ["infer", None] + sorted(_supported_compressions)  # type: ignore[operator]
     msg = (
         f"Unrecognized compression type: {compression}\n"
         f"Valid compression types are {valid}"
@@ -635,7 +640,7 @@ def get_handle(
         .. versionchanged:: 1.4.0 Zstandard support.
 
     memory_map : bool, default False
-        See parsers._parser_params for more information.
+        See parsers._parser_params for more information. Only used by read_csv.
     is_text : bool, default True
         Whether the type of the content passed to the file/buffer is string or
         bytes. This is not the same as `"b" not in mode`. If a string content is
@@ -653,6 +658,8 @@ def get_handle(
     """
     # Windows does not default to utf-8. Set to utf-8 for a consistent behavior
     encoding = encoding or "utf-8"
+
+    errors = errors or "strict"
 
     # read_csv does not know whether the buffer is opened in binary/text mode
     if _is_binary_mode(path_or_buf, mode) and "b" not in mode:
@@ -676,13 +683,14 @@ def get_handle(
     handles: list[BaseBuffer]
 
     # memory mapping needs to be the first step
+    # only used for read_csv
     handle, memory_map, handles = _maybe_memory_map(
         handle,
         memory_map,
         ioargs.encoding,
         ioargs.mode,
         errors,
-        ioargs.compression["method"] not in _compression_to_extension,
+        ioargs.compression["method"] not in _supported_compressions,
     )
 
     is_path = isinstance(handle, str)
@@ -751,6 +759,30 @@ def get_handle(
                     raise ValueError(
                         "Multiple files found in ZIP file. "
                         f"Only one file per ZIP: {zip_names}"
+                    )
+
+        # TAR Encoding
+        elif compression == "tar":
+            if "mode" not in compression_args:
+                compression_args["mode"] = ioargs.mode
+            if is_path:
+                handle = _BytesTarFile.open(name=handle, **compression_args)
+            else:
+                handle = _BytesTarFile.open(fileobj=handle, **compression_args)
+            assert isinstance(handle, _BytesTarFile)
+            if handle.mode == "r":
+                handles.append(handle)
+                files = handle.getnames()
+                if len(files) == 1:
+                    file = handle.extractfile(files[0])
+                    assert file is not None
+                    handle = file
+                elif len(files) == 0:
+                    raise ValueError(f"Zero files found in TAR archive {path_or_buf}")
+                else:
+                    raise ValueError(
+                        "Multiple files found in TAR archive. "
+                        f"Only one file per TAR archive: {files}"
                     )
 
         # XZ Compression
@@ -844,6 +876,116 @@ def get_handle(
     )
 
 
+# error: Definition of "__exit__" in base class "TarFile" is incompatible with
+# definition in base class "BytesIO"  [misc]
+# error: Definition of "__enter__" in base class "TarFile" is incompatible with
+# definition in base class "BytesIO"  [misc]
+# error: Definition of "__enter__" in base class "TarFile" is incompatible with
+# definition in base class "BinaryIO"  [misc]
+# error: Definition of "__enter__" in base class "TarFile" is incompatible with
+# definition in base class "IO"  [misc]
+# error: Definition of "read" in base class "TarFile" is incompatible with
+# definition in base class "BytesIO"  [misc]
+# error: Definition of "read" in base class "TarFile" is incompatible with
+# definition in base class "IO"  [misc]
+class _BytesTarFile(tarfile.TarFile, BytesIO):  # type: ignore[misc]
+    """
+    Wrapper for standard library class TarFile and allow the returned file-like
+    handle to accept byte strings via `write` method.
+
+    BytesIO provides attributes of file-like object and TarFile.addfile writes
+    bytes strings into a member of the archive.
+    """
+
+    # GH 17778
+    def __init__(
+        self,
+        name: str | bytes | os.PathLike[str] | os.PathLike[bytes],
+        mode: Literal["r", "a", "w", "x"],
+        fileobj: FileIO,
+        archive_name: str | None = None,
+        **kwargs,
+    ):
+        self.archive_name = archive_name
+        self.multiple_write_buffer: BytesIO | None = None
+        self._closing = False
+
+        super().__init__(name=name, mode=mode, fileobj=fileobj, **kwargs)
+
+    @classmethod
+    def open(cls, name=None, mode="r", **kwargs):
+        mode = mode.replace("b", "")
+        return super().open(name=name, mode=cls.extend_mode(name, mode), **kwargs)
+
+    @classmethod
+    def extend_mode(
+        cls, name: FilePath | ReadBuffer[bytes] | WriteBuffer[bytes], mode: str
+    ) -> str:
+        if mode != "w":
+            return mode
+        if isinstance(name, (os.PathLike, str)):
+            filename = Path(name)
+            if filename.suffix == ".gz":
+                return mode + ":gz"
+            elif filename.suffix == ".xz":
+                return mode + ":xz"
+            elif filename.suffix == ".bz2":
+                return mode + ":bz2"
+        return mode
+
+    def infer_filename(self):
+        """
+        If an explicit archive_name is not given, we still want the file inside the zip
+        file not to be named something.tar, because that causes confusion (GH39465).
+        """
+        if isinstance(self.name, (os.PathLike, str)):
+            # error: Argument 1 to "Path" has
+            # incompatible type "Union[str, PathLike[str], PathLike[bytes]]";
+            # expected "Union[str, PathLike[str]]"  [arg-type]
+            filename = Path(self.name)  # type: ignore[arg-type]
+            if filename.suffix == ".tar":
+                return filename.with_suffix("").name
+            if filename.suffix in [".tar.gz", ".tar.bz2", ".tar.xz"]:
+                return filename.with_suffix("").with_suffix("").name
+            return filename.name
+        return None
+
+    def write(self, data):
+        # buffer multiple write calls, write on flush
+        if self.multiple_write_buffer is None:
+            self.multiple_write_buffer = BytesIO()
+        self.multiple_write_buffer.write(data)
+
+    def flush(self) -> None:
+        # write to actual handle and close write buffer
+        if self.multiple_write_buffer is None or self.multiple_write_buffer.closed:
+            return
+
+        # TarFile needs a non-empty string
+        archive_name = self.archive_name or self.infer_filename() or "tar"
+        with self.multiple_write_buffer:
+            value = self.multiple_write_buffer.getvalue()
+            tarinfo = tarfile.TarInfo(name=archive_name)
+            tarinfo.size = len(value)
+            self.addfile(tarinfo, BytesIO(value))
+
+    def close(self):
+        self.flush()
+        super().close()
+
+    @property
+    def closed(self):
+        if self.multiple_write_buffer is None:
+            return False
+        return self.multiple_write_buffer.closed and super().closed
+
+    @closed.setter
+    def closed(self, value):
+        if not self._closing and value:
+            self._closing = True
+            self.close()
+
+
 # error: Definition of "__exit__" in base class "ZipFile" is incompatible with
 # definition in base class "BytesIO"  [misc]
 # error: Definition of "__enter__" in base class "ZipFile" is incompatible with
@@ -925,7 +1067,7 @@ class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore[misc]
         return self.fp is None
 
 
-class _MMapWrapper(abc.Iterator):
+class _CSVMMapWrapper(abc.Iterator):
     """
     Wrapper for the Python's mmap class so that it can be properly read in
     by Python's csv.reader class.
@@ -940,7 +1082,7 @@ class _MMapWrapper(abc.Iterator):
 
     def __init__(
         self,
-        f: IO,
+        f: ReadBuffer[bytes],
         encoding: str = "utf-8",
         errors: str = "strict",
         decode: bool = True,
@@ -950,11 +1092,13 @@ class _MMapWrapper(abc.Iterator):
         self.decoder = codecs.getincrementaldecoder(encoding)(errors=errors)
         self.decode = decode
 
+        # needed for compression libraries and TextIOWrapper
         self.attributes = {}
         for attribute in ("seekable", "readable"):
             if not hasattr(f, attribute):
                 continue
             self.attributes[attribute] = getattr(f, attribute)()
+
         self.mmap = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
 
     def __getattr__(self, name: str):
@@ -962,7 +1106,7 @@ class _MMapWrapper(abc.Iterator):
             return lambda: self.attributes[name]
         return getattr(self.mmap, name)
 
-    def __iter__(self) -> _MMapWrapper:
+    def __iter__(self) -> _CSVMMapWrapper:
         return self
 
     def read(self, size: int = -1) -> str | bytes:
@@ -1057,7 +1201,7 @@ def _maybe_memory_map(
     memory_map: bool,
     encoding: str,
     mode: str,
-    errors: str | None,
+    errors: str,
     decode: bool,
 ) -> tuple[str | BaseBuffer, bool, list[BaseBuffer]]:
     """Try to memory map file/buffer."""
@@ -1068,25 +1212,22 @@ def _maybe_memory_map(
 
     # need to open the file first
     if isinstance(handle, str):
-        if encoding and "b" not in mode:
-            # Encoding
-            handle = open(handle, mode, encoding=encoding, errors=errors, newline="")
-        else:
-            # Binary mode
-            handle = open(handle, mode)
+        handle = open(handle, "rb")
         handles.append(handle)
 
     # error: Argument 1 to "_MMapWrapper" has incompatible type "Union[IO[Any],
     # RawIOBase, BufferedIOBase, TextIOBase, mmap]"; expected "IO[Any]"
     try:
+        # open mmap, adds *-able, and convert to string
         wrapped = cast(
             BaseBuffer,
-            _MMapWrapper(handle, encoding, errors, decode),  # type: ignore[arg-type]
+            _CSVMMapWrapper(handle, encoding, errors, decode),  # type: ignore[arg-type]
         )
     finally:
         for handle in reversed(handles):
             # error: "BaseBuffer" has no attribute "close"
             handle.close()  # type: ignore[attr-defined]
+        handles = []
     handles.append(wrapped)
 
     return wrapped, memory_map, handles
