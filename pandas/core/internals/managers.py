@@ -559,7 +559,6 @@ class BaseBlockManager(DataManager):
         self: T, blocks: list[Block], copy: bool = True, index: Index | None = None
     ) -> T:
         """return a new manager with the blocks"""
-        # TODO(CoW) handle setting refs
         if len(blocks) == 0:
             if self.ndim == 2:
                 # retain our own Index dtype
@@ -1876,7 +1875,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         """
         Manager analogue of Series.to_frame
         """
-        # TODO(CoW) pass ref?
+        # TODO(CoW) pass ref to ensure CoW for to_frame
         blk = self.blocks[0]
         arr = ensure_block_shape(blk.values, ndim=2)
         bp = BlockPlacement(0)
@@ -2003,11 +2002,8 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         return self._block.array_values
 
     def get_numeric_data(self, copy: bool = False):
-        # TODO(CoW) set refs?
         if self._block.is_numeric:
-            if copy:
-                return self.copy()
-            return self
+            return self.copy(deep=copy)
         return self.make_empty()
 
     @property
