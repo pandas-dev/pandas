@@ -28,10 +28,7 @@ def test_get_date_field_readonly(dtindex):
 
 
 def test_get_start_end_field_readonly(dtindex):
-    dt64values = dtindex.view("M8[ns]")
-    dt64values.flags.writeable = False
-
-    result = fields.get_start_end_field(dt64values, "is_month_start", None)
+    result = fields.get_start_end_field(dtindex, "is_month_start", None)
     expected = np.array([True, False, False, False, False], dtype=np.bool_)
     tm.assert_numpy_array_equal(result, expected)
 

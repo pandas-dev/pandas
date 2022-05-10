@@ -11,6 +11,17 @@ import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
 
 
+class TestNonNano:
+    @pytest.mark.parametrize("unit,reso", [("s", 7), ("ms", 8), ("us", 9)])
+    @pytest.mark.xfail(reason="_box_func is not yet patched to get reso right")
+    def test_non_nano(self, unit, reso):
+        arr = np.arange(5, dtype=np.int64).view(f"M8[{unit}]")
+        dta = DatetimeArray._simple_new(arr, dtype=arr.dtype)
+
+        assert dta.dtype == arr.dtype
+        assert dta[0]._reso == reso
+
+
 class TestDatetimeArrayComparisons:
     # TODO: merge this into tests/arithmetic/test_datetime64 once it is
     #  sufficiently robust

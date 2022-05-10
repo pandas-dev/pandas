@@ -1141,11 +1141,7 @@ def interval_range(
         if all(is_integer(x) for x in com.not_none(start, end, freq)):
             # np.linspace always produces float output
 
-            # error: Incompatible types in assignment (expression has type
-            # "Union[ExtensionArray, ndarray]", variable has type "ndarray")
-            breaks = maybe_downcast_numeric(  # type: ignore[assignment]
-                breaks, np.dtype("int64")
-            )
+            breaks = maybe_downcast_numeric(breaks, np.dtype("int64"))
     else:
         # delegate to the appropriate range function
         if isinstance(endpoint, Timestamp):
