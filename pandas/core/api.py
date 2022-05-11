@@ -31,6 +31,8 @@ from pandas.core.arrays.boolean import BooleanDtype
 from pandas.core.arrays.floating import (
     Float32Dtype,
     Float64Dtype,
+)
+from pandas.core.arrays.arrow.floating import (
     Float32ArrowDtype,
     Float64ArrowDtype,
 )
