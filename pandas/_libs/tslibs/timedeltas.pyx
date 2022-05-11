@@ -904,10 +904,17 @@ cdef object create_timedelta(object value, str in_unit, NPY_DATETIMEUNIT out_res
         # if unit == "ns", no need to create an m8[ns] just to read the (same) value back
         # if unit == "ignore", assume caller wants to invoke an overflow-safe version of
         # _timedelta_from_value_and_reso, and that any float rounding is acceptable
-        if (is_integer_object(value) or is_float_object(value)) and in_unit in ("ns", "ignore"):
+        if (is_integer_object(value) or is_float_object(value)) and (in_unit == "ns" or in_unit == "ignore"):
             if util.is_nan(value):
                 return NaT
             out_value = <int64_t>value
+        elif is_timedelta64_object(value):
+            out_value = ensure_td64ns(value).view(np.int64)
+        elif isinstance(value, str):
+            if value.startswith(("P", "-P")):
+                out_value = parse_iso_format_string(value)
+            else:
+                out_value = parse_timedelta_string(value)
         else:
             out_value = convert_to_timedelta64(value, in_unit).view(np.int64)
     except OverflowError as ex:
