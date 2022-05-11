@@ -49,7 +49,7 @@ jobs:
         mamba-version: "*"
         channels: conda-forge
         activate-environment: pandas-dev
-        channel-priority: ${{ matrix.os == 'macos-latest' && "flexible" || "strict" }}
+        channel-priority: ${{ matrix.os == 'macos-latest' && 'flexible' || 'strict' }}
         environment-file: ci/deps/${{ matrix.env_file }}
         use-only-tar-bz2: true
 
