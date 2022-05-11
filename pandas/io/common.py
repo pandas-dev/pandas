@@ -192,7 +192,7 @@ def validate_header_arg(header: object) -> None:
                 "For no header, use header=None instead"
             )
         return
-    if is_list_like(header):
+    if is_list_like(header, allow_sets=False):
         header = cast(Sequence, header)
         if not all(map(is_integer, header)):
             raise ValueError("header must be integer or list of integers")
