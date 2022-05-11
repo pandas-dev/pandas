@@ -1,69 +1,99 @@
 from __future__ import annotations
 
-from typing import (
-    Any,
-    Callable,
-    TypeVar,
-)
-
 import pyarrow as pa
 
-from pandas.errors import AbstractMethodError
-from pandas.util._decorators import cache_readonly
+from pandas.core.dtypes.base import register_extension_dtype
 
-from pandas.core.arrays.arrow.array import ArrowExtensionArray
-from pandas.core.arrays.arrow.dtype import ArrowDtype
+from pandas.core.arrays.arrow.numeric import (
+    FloatingArrowArray,
+    FloatingArrowDtype,
+)
 
-T = TypeVar("T", bound="FloatingArrowArray")
 
+class FloatingArrowDtype(NumericArrowDtype):
+    """
+    An ExtensionDtype to hold a single size & kind of integer Arrow dtype.
+    These specific implementations are subclasses of the non-public
+    FloatingArrowDtype. 
+    """
 
-class FloatingArrowDtype(ArrowDtype):
-    _default_pa_dtype: pa.null()
-    _dtype_checker: Callable[[Any], bool]  # pa.types.is_<type>
+    _default_pa_dtype = pa.float64()
+    _dtype_checker = pa.types.is_floating
 
-    @property
-    def _is_numeric(self) -> bool:
-        return False
-
-    @property
-    def _is_float(self) -> bool:
-        return True
+    @classmethod
+    def construct_array_type(cls) -> type[FloatingArrowArray]:
+        """
+        Return the array type associated with this dtype.
+        Returns
+        -------
+        type
+        """
+        return FloatingArrowArray
 
     @classmethod
     def _str_to_dtype_mapping(cls):
-        raise AbstractMethodError(cls)
+        return INT_STR_TO_DTYPE
 
 
-class FloatingArrowArray(ArrowExtensionArray):
+class FloatingArrowArray(NumericArrowArray):
     """
-    Base class for Floating dtypes.
+    Array of pyarrow integer values.
+    To construct an IntegerArray from generic array-like ipaut, use
+    :func:`pandas.array` with one of the integer dtypes (see examples).
+    Parameters
+    ----------
+    values : pa.ChunkedArray
+        A 1-d integer-dtype array.
+    Attributes
+    ----------
+    None
+    Methods
+    -------
+    None
+    Returns
+    -------
+    FloatingArrowArray
     """
 
-    _dtype_cls: type[FloatingArrowDtype]
+    _dtype_cls = FloatingArrowDtype
 
-    def __init__(self, values: pa.ChunkedArray) -> None:
-        checker = self._dtype_cls._dtype_checker
-        if not (isinstance(values, pa.ChunkedArray) and checker(values.type)):
-            descr = (
-                "floating"
-            )
-            raise TypeError(f"values should be {descr} arrow array.")
-        super().__init__(values)
 
-    @cache_readonly
-    def dtype(self) -> FloatingArrowDtype:
-        mapping = self._dtype_cls._str_to_dtype_mapping()
-        return mapping[str(self._data.type)]
+_dtype_docstring = """
+An ExtensionDtype for {dtype} integer pyarrow data.
+Attributes
+----------
+None
+Methods
+-------
+None
+"""
 
-    @classmethod
-    def _from_sequence(cls, scalars, *, dtype=None, copy: bool = False):
-        if dtype is None:
-            dtype = cls._dtype_cls._default_pa_dtype
-        return cls(pa.chunked_array([scalars], type=dtype.type))
+# create the Dtype
 
-    @classmethod
-    def _from_sequence_of_strings(cls, strings, *, dtype=None, copy: bool = False):
-        from pandas.core.tools.numeric import to_numeric
 
-        scalars = to_numeric(strings, errors="raise")
-        return cls._from_sequence(scalars, dtype=dtype, copy=copy)
+@register_extension_dtype
+class Float16ArrowDtype(FloatingArrowDtype):
+    type = pa.float16()
+    name = "float16"
+    __doc__ = _dtype_docstring.format(dtype="float16")
+
+
+@register_extension_dtype
+class Float32ArrowDtype(FloatingArrowDtype):
+    type = pa.float32()
+    name = "float32"
+    __doc__ = _dtype_docstring.format(dtype="float32")
+
+
+@register_extension_dtype
+class Float64ArrowDtype(FloatingArrowDtype):
+    type = pa.float64()
+    name = "float64"
+    __doc__ = _dtype_docstring.format(dtype="float64")
+
+
+INT_STR_TO_DTYPE: dict[str, FloatingArrowDtype] = {
+    "float16": Float16ArrowDtype(),
+    "float32": Float32ArrowDtype(),
+    "float64": Float64ArrowDtype(),
+}
