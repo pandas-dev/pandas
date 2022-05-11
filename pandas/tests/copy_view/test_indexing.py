@@ -531,8 +531,8 @@ def test_dataframe_add_column_from_series():
 
     # editing column in frame -> doesn't modify series
     df.loc[2, "new"] = 100
-    expected = pd.Series([0, 11, 12])
-    tm.assert_series_equal(s, expected)
+    expected_s = pd.Series([0, 11, 12])
+    tm.assert_series_equal(s, expected_s)
 
 
 # TODO add tests for constructors

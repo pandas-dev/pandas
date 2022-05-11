@@ -11,7 +11,7 @@ def test_copy(using_copy_on_write):
     # the deep copy doesn't share memory
     assert not np.may_share_memory(df_copy["a"].values, df["a"].values)
     if using_copy_on_write:
-        assert df_copy._mgr.refs is None
+        assert df_copy._mgr.refs is None  # type: ignore[union-attr]
 
     # mutating copy doesn't mutate original
     df_copy.iloc[0, 0] = 0
@@ -25,7 +25,7 @@ def test_copy_shallow(using_copy_on_write):
     # the shallow copy still shares memory
     assert np.may_share_memory(df_copy["a"].values, df["a"].values)
     if using_copy_on_write:
-        assert df_copy._mgr.refs is not None
+        assert df_copy._mgr.refs is not None  # type: ignore[union-attr]
 
     if using_copy_on_write:
         # mutating shallow copy doesn't mutate original
