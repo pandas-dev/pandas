@@ -1772,8 +1772,12 @@ class DataFrame(NDFrame, OpsMixin):
         return result
 
     def _create_data_for_split_and_tight_to_dict(
-        self, are_all_object_dtype_cols, object_dtype_indices
+        self, are_all_object_dtype_cols: bool, object_dtype_indices: list[int]
     ):
+        """
+        Simple helper method to create data for to ``to_dict(orient="split")`` and
+        ``to_dict(orient="tight")`` to create the main output data
+        """
         if are_all_object_dtype_cols:
             data = [
                 list(map(maybe_box_native, t))
