@@ -46,7 +46,6 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_1d_only_ea_dtype,
     is_bool_dtype,
-    is_categorical_dtype,
     is_complex_dtype,
     is_datetime64_any_dtype,
     is_float_dtype,
@@ -56,12 +55,14 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     needs_i8_conversion,
 )
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import (
     isna,
     maybe_fill,
 )
 
 from pandas.core.arrays import (
+    Categorical,
     DatetimeArray,
     ExtensionArray,
     PeriodArray,
@@ -142,7 +143,15 @@ class WrappedCythonOp:
 
     # "group_any" and "group_all" are also support masks, but don't go
     #  through WrappedCythonOp
-    _MASKED_CYTHON_FUNCTIONS = {"cummin", "cummax", "min", "max", "last", "first"}
+    _MASKED_CYTHON_FUNCTIONS = {
+        "cummin",
+        "cummax",
+        "min",
+        "max",
+        "last",
+        "first",
+        "rank",
+    }
 
     _cython_arity = {"ohlc": 4}  # OHLC
 
@@ -229,12 +238,17 @@ class WrappedCythonOp:
             # never an invalid op for those dtypes, so return early as fastpath
             return
 
-        if is_categorical_dtype(dtype):
+        if isinstance(dtype, CategoricalDtype):
             # NotImplementedError for methods that can fall back to a
             #  non-cython implementation.
             if how in ["add", "prod", "cumsum", "cumprod"]:
                 raise TypeError(f"{dtype} type does not support {how} operations")
-            raise NotImplementedError(f"{dtype} dtype not supported")
+            elif how not in ["rank"]:
+                # only "rank" is implemented in cython
+                raise NotImplementedError(f"{dtype} dtype not supported")
+            elif not dtype.ordered:
+                # TODO: TypeError?
+                raise NotImplementedError(f"{dtype} dtype not supported")
 
         elif is_sparse(dtype):
             # categoricals are only 1d, so we
@@ -331,6 +345,25 @@ class WrappedCythonOp:
                 comp_ids=comp_ids,
                 **kwargs,
             )
+
+        elif isinstance(values, Categorical) and self.uses_mask():
+            assert self.how == "rank"  # the only one implemented ATM
+            assert values.ordered  # checked earlier
+            mask = values.isna()
+            npvalues = values._ndarray
+
+            res_values = self._cython_op_ndim_compat(
+                npvalues,
+                min_count=min_count,
+                ngroups=ngroups,
+                comp_ids=comp_ids,
+                mask=mask,
+                **kwargs,
+            )
+
+            # If we ever have more than just "rank" here, we'll need to do
+            #  `if self.how in self.cast_blocklist` like we do for other dtypes.
+            return res_values
 
         npvalues = self._ea_to_cython_values(values)
 
@@ -507,15 +540,9 @@ class WrappedCythonOp:
             values = values.view("int64")
             is_numeric = True
         elif is_bool_dtype(dtype):
-            values = values.astype("int64")
-        elif is_integer_dtype(dtype):
-            # GH#43329 If the dtype is explicitly of type uint64 the type is not
-            # changed to prevent overflow.
-            if dtype != np.uint64:
-                values = values.astype(np.int64, copy=False)
-        elif is_numeric:
-            if not is_complex_dtype(dtype):
-                values = ensure_float64(values)
+            values = values.view("uint8")
+        if values.dtype == "float16":
+            values = values.astype(np.float32)
 
         values = values.T
         if mask is not None:
@@ -557,6 +584,9 @@ class WrappedCythonOp:
         else:
             # TODO: min_count
             if self.uses_mask():
+                if self.how != "rank":
+                    # TODO: should rank take result_mask?
+                    kwargs["result_mask"] = result_mask
                 func(
                     out=result,
                     values=values,
@@ -564,7 +594,6 @@ class WrappedCythonOp:
                     ngroups=ngroups,
                     is_datetimelike=is_datetimelike,
                     mask=mask,
-                    result_mask=result_mask,
                     **kwargs,
                 )
             else:
@@ -594,21 +623,17 @@ class WrappedCythonOp:
 
         result = result.T
 
-        if self.how == "rank" and self.has_dropped_na:
-            # TODO: Wouldn't need this if group_rank supported mask
-            result = np.where(comp_ids < 0, np.nan, result)
-
         if self.how not in self.cast_blocklist:
             # e.g. if we are int64 and need to restore to datetime64/timedelta64
             # "rank" is the only member of cast_blocklist we get here
+            # Casting only needed for float16, bool, datetimelike,
+            #  and self.how in ["add", "prod", "ohlc", "cumprod"]
             res_dtype = self._get_result_dtype(orig_values.dtype)
             op_result = maybe_downcast_to_dtype(result, res_dtype)
         else:
             op_result = result
 
-        # error: Incompatible return value type (got "Union[ExtensionArray, ndarray]",
-        # expected "ndarray")
-        return op_result  # type: ignore[return-value]
+        return op_result
 
     @final
     def cython_operation(
@@ -818,7 +843,10 @@ class BaseGrouper:
         # Original indices are where group_index would go via sorting.
         # But when dropna is true, we need to remove null values while accounting for
         # any gaps that then occur because of them.
-        group_index = get_group_index(self.codes, self.shape, sort=False, xnull=True)
+        group_index = get_group_index(
+            self.codes, self.shape, sort=self._sort, xnull=True
+        )
+        group_index, _ = compress_group_index(group_index, sort=self._sort)
 
         if self.has_dropped_na:
             mask = np.where(group_index >= 0)

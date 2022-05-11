@@ -42,6 +42,7 @@ from pandas._typing import (
     IndexKeyFunc,
     Level,
     NaPosition,
+    Renamer,
     SingleManager,
     SortKind,
     StorageOptions,
@@ -1928,7 +1929,7 @@ Name: Max Speed, dtype: float64
         level=None,
         as_index: bool = True,
         sort: bool = True,
-        group_keys: bool = True,
+        group_keys: bool | lib.NoDefault = no_default,
         squeeze: bool | lib.NoDefault = no_default,
         observed: bool = False,
         dropna: bool = True,
@@ -4396,6 +4397,42 @@ Keep all original rows and also all original values
 
     agg = aggregate
 
+    # error: Signature of "any" incompatible with supertype "NDFrame"  [override]
+    @overload  # type: ignore[override]
+    def any(
+        self,
+        *,
+        axis: Axis = ...,
+        bool_only: bool | None = ...,
+        skipna: bool = ...,
+        level: None = ...,
+        **kwargs,
+    ) -> bool:
+        ...
+
+    @overload
+    def any(
+        self,
+        *,
+        axis: Axis = ...,
+        bool_only: bool | None = ...,
+        skipna: bool = ...,
+        level: Level,
+        **kwargs,
+    ) -> Series | bool:
+        ...
+
+    @doc(NDFrame.any, **_shared_doc_kwargs)
+    def any(
+        self,
+        axis: Axis = 0,
+        bool_only: bool | None = None,
+        skipna: bool = True,
+        level: Level | None = None,
+        **kwargs,
+    ) -> Series | bool:
+        ...
+
     @doc(
         _shared_docs["transform"],
         klass=_shared_doc_kwargs["klass"],
@@ -4617,15 +4654,54 @@ Keep all original rows and also all original values
             broadcast_axis=broadcast_axis,
         )
 
+    @overload
     def rename(
         self,
-        index=None,
+        index: Renamer | Hashable | None = ...,
         *,
-        axis=None,
-        copy=True,
-        inplace=False,
-        level=None,
-        errors="ignore",
+        axis: Axis | None = ...,
+        copy: bool = ...,
+        inplace: Literal[True],
+        level: Level | None = ...,
+        errors: IgnoreRaise = ...,
+    ) -> None:
+        ...
+
+    @overload
+    def rename(
+        self,
+        index: Renamer | Hashable | None = ...,
+        *,
+        axis: Axis | None = ...,
+        copy: bool = ...,
+        inplace: Literal[False] = ...,
+        level: Level | None = ...,
+        errors: IgnoreRaise = ...,
+    ) -> Series:
+        ...
+
+    @overload
+    def rename(
+        self,
+        index: Renamer | Hashable | None = ...,
+        *,
+        axis: Axis | None = ...,
+        copy: bool = ...,
+        inplace: bool = ...,
+        level: Level | None = ...,
+        errors: IgnoreRaise = ...,
+    ) -> Series | None:
+        ...
+
+    def rename(
+        self,
+        index: Renamer | Hashable | None = None,
+        *,
+        axis: Axis | None = None,
+        copy: bool = True,
+        inplace: bool = False,
+        level: Level | None = None,
+        errors: IgnoreRaise = "ignore",
     ) -> Series | None:
         """
         Alter Series index labels or name.
@@ -4691,8 +4767,16 @@ Keep all original rows and also all original values
             axis = self._get_axis_number(axis)
 
         if callable(index) or is_dict_like(index):
+            # error: Argument 1 to "_rename" of "NDFrame" has incompatible
+            # type "Union[Union[Mapping[Any, Hashable], Callable[[Any],
+            # Hashable]], Hashable, None]"; expected "Union[Mapping[Any,
+            # Hashable], Callable[[Any], Hashable], None]"
             return super()._rename(
-                index, copy=copy, inplace=inplace, level=level, errors=errors
+                index,  # type: ignore[arg-type]
+                copy=copy,
+                inplace=inplace,
+                level=level,
+                errors=errors,
             )
         else:
             return self._set_name(index, inplace=inplace)
@@ -5561,6 +5645,7 @@ Keep all original rows and also all original values
         level=None,
         origin: str | TimestampConvertibleTypes = "start_day",
         offset: TimedeltaConvertibleTypes | None = None,
+        group_keys: bool | lib.NoDefault = no_default,
     ) -> Resampler:
         return super().resample(
             rule=rule,
@@ -5575,6 +5660,7 @@ Keep all original rows and also all original values
             level=level,
             origin=origin,
             offset=offset,
+            group_keys=group_keys,
         )
 
     def to_timestamp(self, freq=None, how="start", copy=True) -> Series:

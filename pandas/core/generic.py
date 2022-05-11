@@ -984,117 +984,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         level: Level | None = None,
         errors: str = "ignore",
     ) -> NDFrameT | None:
-        """
-        Alter axes input function or functions. Function / dict values must be
-        unique (1-to-1). Labels not contained in a dict / Series will be left
-        as-is. Extra labels listed don't throw an error. Alternatively, change
-        ``Series.name`` with a scalar value (Series only).
+        # called by Series.rename and DataFrame.rename
 
-        Parameters
-        ----------
-        %(axes)s : scalar, list-like, dict-like or function, optional
-            Scalar or list-like will alter the ``Series.name`` attribute,
-            and raise on DataFrame.
-            dict-like or functions are transformations to apply to
-            that axis' values
-        copy : bool, default True
-            Also copy underlying data.
-        inplace : bool, default False
-            Whether to return a new {klass}. If True then value of copy is
-            ignored.
-        level : int or level name, default None
-            In case of a MultiIndex, only rename labels in the specified
-            level.
-        errors : {'ignore', 'raise'}, default 'ignore'
-            If 'raise', raise a `KeyError` when a dict-like `mapper`, `index`,
-            or `columns` contains labels that are not present in the Index
-            being transformed.
-            If 'ignore', existing keys will be renamed and extra keys will be
-            ignored.
-
-        Returns
-        -------
-        renamed : {klass} (new object)
-
-        Raises
-        ------
-        KeyError
-            If any of the labels is not found in the selected axis and
-            "errors='raise'".
-
-        See Also
-        --------
-        NDFrame.rename_axis
-
-        Examples
-        --------
-        >>> s = pd.Series([1, 2, 3])
-        >>> s
-        0    1
-        1    2
-        2    3
-        dtype: int64
-        >>> s.rename("my_name") # scalar, changes Series.name
-        0    1
-        1    2
-        2    3
-        Name: my_name, dtype: int64
-        >>> s.rename(lambda x: x ** 2)  # function, changes labels
-        0    1
-        1    2
-        4    3
-        dtype: int64
-        >>> s.rename({1: 3, 2: 5})  # mapping, changes labels
-        0    1
-        3    2
-        5    3
-        dtype: int64
-
-        Since ``DataFrame`` doesn't have a ``.name`` attribute,
-        only mapping-type arguments are allowed.
-
-        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-        >>> df.rename(2)
-        Traceback (most recent call last):
-        ...
-        TypeError: 'int' object is not callable
-
-        ``DataFrame.rename`` supports two calling conventions
-
-        * ``(index=index_mapper, columns=columns_mapper, ...)``
-        * ``(mapper, axis={'index', 'columns'}, ...)``
-
-        We *highly* recommend using keyword arguments to clarify your
-        intent.
-
-        >>> df.rename(index=str, columns={"A": "a", "B": "c"})
-           a  c
-        0  1  4
-        1  2  5
-        2  3  6
-
-        >>> df.rename(index=str, columns={"A": "a", "C": "c"})
-           a  B
-        0  1  4
-        1  2  5
-        2  3  6
-
-        Using axis-style parameters
-
-        >>> df.rename(str.lower, axis='columns')
-           a  b
-        0  1  4
-        1  2  5
-        2  3  6
-
-        >>> df.rename({1: 2, 2: 4}, axis='index')
-           A  B
-        0  1  4
-        2  2  5
-        4  3  6
-
-        See the :ref:`user guide <basics.rename>` for more.
-        """
         if mapper is None and index is None and columns is None:
             raise TypeError("must pass an index to rename")
 
@@ -2708,21 +2599,27 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
               like searching / selecting subsets of the data.
             - If None, pd.get_option('io.hdf.default_format') is checked,
               followed by fallback to "fixed".
-        errors : str, default 'strict'
-            Specifies how encoding and decoding errors are to be handled.
-            See the errors argument for :func:`open` for a full list
-            of options.
-        encoding : str, default "UTF-8"
+        index : bool, default True
+            Write DataFrame index as a column.
         min_itemsize : dict or int, optional
             Map column names to minimum string sizes for columns.
         nan_rep : Any, optional
             How to represent null values as str.
             Not allowed with append=True.
+        dropna : bool, default False, optional
+            Remove missing values.
         data_columns : list of columns or True, optional
             List of columns to create as indexed data columns for on-disk
             queries, or True to use all columns. By default only the axes
-            of the object are indexed. See :ref:`io.hdf5-query-data-columns`.
+            of the object are indexed. See
+            :ref:`Query via data columns<io.hdf5-query-data-columns>`. for
+            more information.
             Applicable only to format='table'.
+        errors : str, default 'strict'
+            Specifies how encoding and decoding errors are to be handled.
+            See the errors argument for :func:`open` for a full list
+            of options.
+        encoding : str, default "UTF-8"
 
         See Also
         --------
@@ -3925,7 +3822,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 index=self.columns,
                 name=self.index[loc],
                 dtype=new_values.dtype,
-            )
+            ).__finalize__(self)
         elif is_scalar(loc):
             result = self.iloc[:, slice(loc, loc + 1)]
         elif axis == 1:
@@ -7333,7 +7230,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if not isinstance(where, Index):
             where = Index(where) if is_list else Index([where])
 
-        nulls = self.isna() if is_series else self[subset].isna().any(1)
+        nulls = self.isna() if is_series else self[subset].isna().any(axis=1)
         if nulls.all():
             if is_series:
                 self = cast("Series", self)
@@ -8041,6 +7938,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         level=None,
         origin: str | TimestampConvertibleTypes = "start_day",
         offset: TimedeltaConvertibleTypes | None = None,
+        group_keys: bool_t | lib.NoDefault = lib.no_default,
     ) -> Resampler:
         """
         Resample time-series data.
@@ -8114,6 +8012,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             An offset timedelta added to the origin.
 
             .. versionadded:: 1.1.0
+
+        group_keys : bool, optional
+            Whether to include the group keys in the result index when using
+            ``.apply()`` on the resampled object. Not specifying ``group_keys``
+            will retain values-dependent behavior from pandas 1.4
+            and earlier (see :ref:`pandas 1.5.0 Release notes
+            <whatsnew_150.enhancements.resample_group_keys>`
+            for examples). In a future version of pandas, the behavior will
+            default to the same as specifying ``group_keys=False``.
+
+            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -8454,6 +8363,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             level=level,
             origin=origin,
             offset=offset,
+            group_keys=group_keys,
         )
 
     @final
@@ -10613,7 +10523,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         skipna: bool_t = True,
         level: Level | None = None,
         **kwargs,
-    ) -> Series | bool_t:
+    ) -> DataFrame | Series | bool_t:
         return self._logical_func(
             "any", nanops.nanany, axis, bool_only, skipna, level, **kwargs
         )
@@ -10977,6 +10887,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         {desc}
 
+        .. deprecated:: 1.5.0
+            mad is deprecated.
+
         Parameters
         ----------
         axis : {axis_descr}
@@ -10993,6 +10906,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         {see_also}\
         {examples}
         """
+        msg = (
+            "The 'mad' method is deprecated and will be removed in a future version. "
+            "To compute the same result, you may do `(df - df.mean()).abs().mean()`."
+        )
+        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+
         if not is_bool(skipna):
             warnings.warn(
                 "Passing None for skipna is deprecated and will raise in a future"
@@ -11028,6 +10947,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         axis_descr, name1, name2 = _doc_params(cls)
 
+        @deprecate_nonkeyword_arguments(
+            version=None,
+            allowed_args=["self"],
+            stacklevel=find_stack_level() - 1,
+            name="DataFrame.any and Series.any",
+        )
         @doc(
             _bool_doc,
             desc=_any_desc,
@@ -11635,6 +11560,11 @@ level : int or level name, default None
 numeric_only : bool, default None
     Include only float, int, boolean columns. If None, will attempt to use
     everything, then use only numeric data. Not implemented for Series.
+
+    .. deprecated:: 1.5.0
+        Specifying ``numeric_only=None`` is deprecated. The default value will be
+        ``False`` in a future version of pandas.
+
 {min_count}\
 **kwargs
     Additional keyword arguments to be passed to the function.
@@ -11664,6 +11594,10 @@ ddof : int, default 1
 numeric_only : bool, default None
     Include only float, int, boolean columns. If None, will attempt to use
     everything, then use only numeric data. Not implemented for Series.
+
+    .. deprecated:: 1.5.0
+        Specifying ``numeric_only=None`` is deprecated. The default value will be
+        ``False`` in a future version of pandas.
 
 Returns
 -------

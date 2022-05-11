@@ -584,7 +584,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
     axis: int
     grouper: ops.BaseGrouper
-    group_keys: bool
+    group_keys: bool | lib.NoDefault
 
     @final
     def __len__(self) -> int:
@@ -850,7 +850,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         selection: IndexLabel | None = None,
         as_index: bool = True,
         sort: bool = True,
-        group_keys: bool = True,
+        group_keys: bool | lib.NoDefault = True,
         squeeze: bool = False,
         observed: bool = False,
         mutated: bool = False,
@@ -951,9 +951,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             if name in base.plotting_methods:
                 return self.apply(curried)
 
-            result = self._python_apply_general(curried, self._obj_with_exclusions)
+            is_transform = name in base.transformation_kernels
+            result = self._python_apply_general(
+                curried, self._obj_with_exclusions, is_transform=is_transform
+            )
 
-            if self.grouper.has_dropped_na and name in base.transformation_kernels:
+            if self.grouper.has_dropped_na and is_transform:
                 # result will have dropped rows due to nans, fill with null
                 # and ensure index is ordered same as the input
                 result = self._set_result_index_ordered(result)
@@ -1023,7 +1026,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     # Dispatch/Wrapping
 
     @final
-    def _concat_objects(self, values, not_indexed_same: bool = False):
+    def _concat_objects(
+        self,
+        values,
+        not_indexed_same: bool = False,
+        override_group_keys: bool = False,
+    ):
         from pandas.core.reshape.concat import concat
 
         def reset_identity(values):
@@ -1034,28 +1042,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 ax._reset_identity()
             return values
 
-        if not not_indexed_same:
-            result = concat(values, axis=self.axis)
-
-            ax = self._selected_obj._get_axis(self.axis)
-            if self.dropna:
-                labels = self.grouper.group_info[0]
-                mask = labels != -1
-                ax = ax[mask]
-
-            # this is a very unfortunate situation
-            # we can't use reindex to restore the original order
-            # when the ax has duplicates
-            # so we resort to this
-            # GH 14776, 30667
-            if ax.has_duplicates and not result.axes[self.axis].equals(ax):
-                indexer, _ = result.index.get_indexer_non_unique(ax._values)
-                indexer = algorithms.unique1d(indexer)
-                result = result.take(indexer, axis=self.axis)
-            else:
-                result = result.reindex(ax, axis=self.axis, copy=False)
-
-        elif self.group_keys:
+        if self.group_keys and not override_group_keys:
 
             values = reset_identity(values)
             if self.as_index:
@@ -1079,6 +1066,28 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # range index
                 keys = list(range(len(values)))
                 result = concat(values, axis=self.axis, keys=keys)
+
+        elif not not_indexed_same:
+            result = concat(values, axis=self.axis)
+
+            ax = self._selected_obj._get_axis(self.axis)
+            if self.dropna:
+                labels = self.grouper.group_info[0]
+                mask = labels != -1
+                ax = ax[mask]
+
+            # this is a very unfortunate situation
+            # we can't use reindex to restore the original order
+            # when the ax has duplicates
+            # so we resort to this
+            # GH 14776, 30667
+            if ax.has_duplicates and not result.axes[self.axis].equals(ax):
+                indexer, _ = result.index.get_indexer_non_unique(ax._values)
+                indexer = algorithms.unique1d(indexer)
+                result = result.take(indexer, axis=self.axis)
+            else:
+                result = result.reindex(ax, axis=self.axis, copy=False)
+
         else:
             values = reset_identity(values)
             result = concat(values, axis=self.axis)
@@ -1097,7 +1106,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # set the result index on the passed values object and
         # return the new object, xref 8046
 
-        if self.grouper.is_monotonic:
+        if self.grouper.is_monotonic and not self.grouper.has_dropped_na:
             # shortcut if we have an already ordered grouper
             result.set_axis(self.obj._get_axis(self.axis), axis=self.axis, inplace=True)
             return result
@@ -1205,7 +1214,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         result.index = self.obj.index
         return result
 
-    def _wrap_applied_output(self, data, values: list, not_indexed_same: bool = False):
+    def _wrap_applied_output(
+        self,
+        data,
+        values: list,
+        not_indexed_same: bool = False,
+        override_group_keys: bool = False,
+    ):
         raise AbstractMethodError(self)
 
     def _resolve_numeric_only(self, numeric_only: bool | lib.NoDefault) -> bool:
@@ -1419,6 +1434,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         f: Callable,
         data: DataFrame | Series,
         not_indexed_same: bool | None = None,
+        is_transform: bool = False,
+        is_agg: bool = False,
     ) -> NDFrameT:
         """
         Apply function f in python space
@@ -1433,6 +1450,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             When specified, overrides the value of not_indexed_same. Apply behaves
             differently when the result index is equal to the input index, but
             this can be coincidental leading to value-dependent behavior.
+        is_transform : bool, default False
+            Indicator for whether the function is actually a transform
+            and should not have group keys prepended. This is used
+            in _make_wrapper which generates both transforms (e.g. diff)
+            and non-transforms (e.g. corr)
+        is_agg : bool, default False
+            Indicator for whether the function is an aggregation. When the
+            result is empty, we don't want to warn for this case.
+            See _GroupBy._python_agg_general.
 
         Returns
         -------
@@ -1440,16 +1466,43 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             data after applying f
         """
         values, mutated = self.grouper.apply(f, data, self.axis)
-
         if not_indexed_same is None:
             not_indexed_same = mutated or self.mutated
+        override_group_keys = False
+
+        is_empty_agg = is_agg and len(values) == 0
+        if (not not_indexed_same and self.group_keys is lib.no_default) and not (
+            is_transform or is_empty_agg
+        ):
+            # We've detected value-dependent behavior: the result's index depends on
+            # whether the user's function `f` returned the same index or not.
+            msg = (
+                "Not prepending group keys to the result index of "
+                "transform-like apply. In the future, the group keys "
+                "will be included in the index, regardless of whether "
+                "the applied function returns a like-indexed object.\n"
+                "To preserve the previous behavior, use\n\n\t"
+                ">>> .groupby(..., group_keys=False)\n\n"
+                "To adopt the future behavior and silence this warning, use "
+                "\n\n\t>>> .groupby(..., group_keys=True)"
+            )
+            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+            # We want to behave as if `self.group_keys=False` when reconstructing
+            # the object. However, we don't want to mutate the stateful GroupBy
+            # object, so we just override it.
+            # When this deprecation is enforced then override_group_keys
+            # may be removed.
+            override_group_keys = True
 
         return self._wrap_applied_output(
-            data, values, not_indexed_same=not_indexed_same
+            data,
+            values,
+            not_indexed_same,
+            override_group_keys=is_transform or override_group_keys,
         )
 
     @final
-    def _python_agg_general(self, func, *args, **kwargs):
+    def _python_agg_general(self, func, *args, raise_on_typeerror=False, **kwargs):
         func = com.is_builtin_func(func)
         f = lambda x: func(x, *args, **kwargs)
 
@@ -1458,7 +1511,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         if self.ngroups == 0:
             # agg_series below assumes ngroups > 0
-            return self._python_apply_general(f, self._selected_obj)
+            return self._python_apply_general(f, self._selected_obj, is_agg=True)
 
         for idx, obj in enumerate(self._iterate_slices()):
             name = obj.name
@@ -1467,6 +1520,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # if this function is invalid for this dtype, we will ignore it.
                 result = self.grouper.agg_series(obj, f)
             except TypeError:
+                if raise_on_typeerror:
+                    raise
                 warn_dropping_nuisance_columns_deprecated(type(self), "agg")
                 continue
 
@@ -1540,7 +1595,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     def _cython_agg_general(
-        self, how: str, alt: Callable, numeric_only: bool, min_count: int = -1
+        self,
+        how: str,
+        alt: Callable,
+        numeric_only: bool,
+        min_count: int = -1,
+        ignore_failures: bool = True,
     ):
         # Note: we never get here with how="ohlc" for DataFrameGroupBy;
         #  that goes through SeriesGroupBy
@@ -1576,7 +1636,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         # TypeError -> we may have an exception in trying to aggregate
         #  continue and exclude the block
-        new_mgr = data.grouped_reduce(array_func, ignore_failures=True)
+        new_mgr = data.grouped_reduce(array_func, ignore_failures=ignore_failures)
 
         if not is_ser and len(new_mgr) < len(data):
             warn_dropping_nuisance_columns_deprecated(type(self), how)
@@ -1988,6 +2048,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ddof: int = 1,
         engine: str | None = None,
         engine_kwargs: dict[str, bool] | None = None,
+        numeric_only: bool | lib.NoDefault = lib.no_default,
     ):
         """
         Compute standard deviation of groups, excluding missing values.
@@ -2016,6 +2077,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             .. versionadded:: 1.4.0
 
+        numeric_only : bool, default True
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionadded:: 1.5.0
+
         Returns
         -------
         Series or DataFrame
@@ -2028,8 +2094,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         else:
             return self._get_cythonized_result(
                 libgroupby.group_var,
-                needs_counts=True,
                 cython_dtype=np.dtype(np.float64),
+                numeric_only=numeric_only,
+                needs_counts=True,
                 post_processing=lambda vals, inference: np.sqrt(vals),
                 ddof=ddof,
             )
@@ -2042,6 +2109,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ddof: int = 1,
         engine: str | None = None,
         engine_kwargs: dict[str, bool] | None = None,
+        numeric_only: bool | lib.NoDefault = lib.no_default,
     ):
         """
         Compute variance of groups, excluding missing values.
@@ -2070,6 +2138,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             .. versionadded:: 1.4.0
 
+        numeric_only : bool, default True
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionadded:: 1.5.0
+
         Returns
         -------
         Series or DataFrame
@@ -2080,22 +2153,25 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             return self._numba_agg_general(sliding_var, engine_kwargs, ddof)
         else:
+            numeric_only_bool = self._resolve_numeric_only(numeric_only)
             if ddof == 1:
-                numeric_only = self._resolve_numeric_only(lib.no_default)
                 return self._cython_agg_general(
                     "var",
                     alt=lambda x: Series(x).var(ddof=ddof),
-                    numeric_only=numeric_only,
+                    numeric_only=numeric_only_bool,
+                    ignore_failures=numeric_only is lib.no_default,
                 )
             else:
                 func = lambda x: x.var(ddof=ddof)
                 with self._group_selection_context():
-                    return self._python_agg_general(func)
+                    return self._python_agg_general(
+                        func, raise_on_typeerror=not numeric_only_bool
+                    )
 
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def sem(self, ddof: int = 1):
+    def sem(self, ddof: int = 1, numeric_only: bool | lib.NoDefault = lib.no_default):
         """
         Compute standard error of the mean of groups, excluding missing values.
 
@@ -2106,12 +2182,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ddof : int, default 1
             Degrees of freedom.
 
+        numeric_only : bool, default True
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionadded:: 1.5.0
+
         Returns
         -------
         Series or DataFrame
             Standard error of the mean of values within each group.
         """
-        result = self.std(ddof=ddof)
+        result = self.std(ddof=ddof, numeric_only=numeric_only)
         if result.ndim == 1:
             result /= np.sqrt(self.count())
         else:
@@ -2151,8 +2232,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result = self._obj_1d_constructor(result)
 
         if not self.as_index:
-            # Item "None" of "Optional[Series]" has no attribute "reset_index"
-            result = result.rename("size").reset_index()  # type: ignore[union-attr]
+            result = result.rename("size").reset_index()
 
         return self._reindex_output(result, fill_value=0)
 
@@ -2250,8 +2330,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Parameters
         ----------
         numeric_only : bool, default False
-            Include only float, int, boolean columns. If None, will attempt to use
-            everything, then use only numeric data.
+            Include only float, int, boolean columns.
         min_count : int, default -1
             The required number of valid values to perform the operation. If fewer
             than ``min_count`` non-NA values are present the result will be NA.
@@ -2271,8 +2350,20 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Examples
         --------
-        >>> df = pd.DataFrame(dict(A=[1, 1, 3], B=[None, 5, 6], C=[1, 2, 3]))
+        >>> df = pd.DataFrame(dict(A=[1, 1, 3], B=[None, 5, 6], C=[1, 2, 3],
+        ...                        D=['3/11/2000', '3/12/2000', '3/13/2000']))
+        >>> df['D'] = pd.to_datetime(df['D'])
         >>> df.groupby("A").first()
+             B  C          D
+        A
+        1  5.0  1 2000-03-11
+        3  6.0  3 2000-03-13
+        >>> df.groupby("A").first(min_count=2)
+            B    C          D
+        A
+        1 NaN  1.0 2000-03-11
+        3 NaN  NaN        NaT
+        >>> df.groupby("A").first(numeric_only=True)
              B  C
         A
         1  5.0  1
@@ -2400,7 +2491,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @doc(DataFrame.describe)
     def describe(self, **kwargs):
         with self._group_selection_context():
-            result = self.apply(lambda x: x.describe(**kwargs))
+            result = self._python_apply_general(
+                lambda x: x.describe(**kwargs),
+                self._selected_obj,
+                not_indexed_same=True,
+            )
             if self.axis == 1:
                 return result.T
             return result.unstack()
@@ -2912,7 +3007,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return result
 
     @final
-    def quantile(self, q=0.5, interpolation: str = "linear"):
+    def quantile(
+        self,
+        q=0.5,
+        interpolation: str = "linear",
+        numeric_only: bool | lib.NoDefault = lib.no_default,
+    ):
         """
         Return group values at the given quantile, a la numpy.percentile.
 
@@ -2922,6 +3022,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Value(s) between 0 and 1 providing the quantile(s) to compute.
         interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
             Method to use when the desired quantile falls between two points.
+        numeric_only : bool, default True
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -2946,6 +3050,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         a    2.0
         b    3.0
         """
+        numeric_only_bool = self._resolve_numeric_only(numeric_only)
 
         def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, np.dtype | None]:
             if is_object_dtype(vals):
@@ -3039,9 +3144,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         obj = self._obj_with_exclusions
         is_ser = obj.ndim == 1
         mgr = self._get_data_to_aggregate()
+        data = mgr.get_numeric_data() if numeric_only_bool else mgr
+        ignore_failures = numeric_only_bool
+        res_mgr = data.grouped_reduce(blk_func, ignore_failures=ignore_failures)
 
-        res_mgr = mgr.grouped_reduce(blk_func, ignore_failures=True)
-        if not is_ser and len(res_mgr.items) != len(mgr.items):
+        if (
+            numeric_only is lib.no_default
+            and not is_ser
+            and len(res_mgr.items) != len(mgr.items)
+        ):
             warn_dropping_nuisance_columns_deprecated(type(self), "quantile")
 
             if len(res_mgr.items) == 0:
@@ -3284,7 +3395,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if axis != 0:
             # DataFrame uses different keyword name
             kwargs["method"] = kwargs.pop("ties_method")
-            return self.apply(lambda x: x.rank(axis=axis, numeric_only=False, **kwargs))
+            f = lambda x: x.rank(axis=axis, numeric_only=False, **kwargs)
+            result = self._python_apply_general(
+                f, self._selected_obj, is_transform=True
+            )
+            return result
 
         return self._cython_transform(
             "rank",
@@ -3306,7 +3421,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         nv.validate_groupby_func("cumprod", args, kwargs, ["numeric_only", "skipna"])
         if axis != 0:
-            return self.apply(lambda x: x.cumprod(axis=axis, **kwargs))
+            f = lambda x: x.cumprod(axis=axis, **kwargs)
+            return self._python_apply_general(f, self._selected_obj, is_transform=True)
 
         return self._cython_transform("cumprod", **kwargs)
 
@@ -3323,7 +3439,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         nv.validate_groupby_func("cumsum", args, kwargs, ["numeric_only", "skipna"])
         if axis != 0:
-            return self.apply(lambda x: x.cumsum(axis=axis, **kwargs))
+            f = lambda x: x.cumsum(axis=axis, **kwargs)
+            return self._python_apply_general(f, self._selected_obj, is_transform=True)
 
         return self._cython_transform("cumsum", **kwargs)
 
@@ -3340,7 +3457,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         skipna = kwargs.get("skipna", True)
         if axis != 0:
-            return self.apply(lambda x: np.minimum.accumulate(x, axis))
+            f = lambda x: np.minimum.accumulate(x, axis)
+            return self._python_apply_general(f, self._selected_obj, is_transform=True)
 
         return self._cython_transform("cummin", numeric_only=False, skipna=skipna)
 
@@ -3357,7 +3475,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         skipna = kwargs.get("skipna", True)
         if axis != 0:
-            return self.apply(lambda x: np.maximum.accumulate(x, axis))
+            f = lambda x: np.maximum.accumulate(x, axis)
+            return self._python_apply_general(f, self._selected_obj, is_transform=True)
 
         return self._cython_transform("cummax", numeric_only=False, skipna=skipna)
 
@@ -3538,7 +3657,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             if available.
         """
         if freq is not None or axis != 0:
-            return self.apply(lambda x: x.shift(periods, freq, axis, fill_value))
+            f = lambda x: x.shift(periods, freq, axis, fill_value)
+            return self._python_apply_general(f, self._selected_obj, is_transform=True)
 
         ids, _, ngroups = self.grouper.group_info
         res_indexer = np.zeros(len(ids), dtype=np.int64)
@@ -3610,20 +3730,22 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # TODO(GH#23918): Remove this conditional for SeriesGroupBy when
         #  GH#23918 is fixed
         if freq is not None or axis != 0:
-            return self.apply(
-                lambda x: x.pct_change(
-                    periods=periods,
-                    fill_method=fill_method,
-                    limit=limit,
-                    freq=freq,
-                    axis=axis,
-                )
+            f = lambda x: x.pct_change(
+                periods=periods,
+                fill_method=fill_method,
+                limit=limit,
+                freq=freq,
+                axis=axis,
             )
+            return self._python_apply_general(f, self._selected_obj, is_transform=True)
+
         if fill_method is None:  # GH30463
             fill_method = "ffill"
             limit = 0
         filled = getattr(self, fill_method)(limit=limit)
-        fill_grp = filled.groupby(self.grouper.codes, axis=self.axis)
+        fill_grp = filled.groupby(
+            self.grouper.codes, axis=self.axis, group_keys=self.group_keys
+        )
         shifted = fill_grp.shift(periods=periods, freq=freq, axis=self.axis)
         return (filled / shifted) - 1
 
@@ -3968,7 +4090,7 @@ def get_groupby(
     selection=None,
     as_index: bool = True,
     sort: bool = True,
-    group_keys: bool = True,
+    group_keys: bool | lib.NoDefault = True,
     squeeze: bool = False,
     observed: bool = False,
     mutated: bool = False,

@@ -73,6 +73,7 @@ if TYPE_CHECKING:
 else:
     npt: Any = None
 
+HashableT = TypeVar("HashableT", bound=Hashable)
 
 # array-like
 
@@ -141,7 +142,7 @@ ParseDatesArg = Union[
 ]
 
 # For functions like rename that convert one label to another
-Renamer = Union[Mapping[Hashable, Any], Callable[[Hashable], Hashable]]
+Renamer = Union[Mapping[Any, Hashable], Callable[[Any], Hashable]]
 
 # to maintain type information across generic functions and parametrization
 T = TypeVar("T")
@@ -255,7 +256,7 @@ StorageOptions = Optional[Dict[str, Any]]
 # compression keywords and compression
 CompressionDict = Dict[str, Any]
 CompressionOptions = Optional[
-    Union[Literal["infer", "gzip", "bz2", "zip", "xz", "zstd"], CompressionDict]
+    Union[Literal["infer", "gzip", "bz2", "zip", "xz", "zstd", "tar"], CompressionDict]
 ]
 
 # types in DataFrameFormatter

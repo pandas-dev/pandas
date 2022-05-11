@@ -1,11 +1,26 @@
 from __future__ import annotations
 
 import json
+import warnings
 
 import numpy as np
 import pyarrow
 
+from pandas.errors import PerformanceWarning
+from pandas.util._exceptions import find_stack_level
+
 from pandas.core.arrays.interval import VALID_CLOSED
+
+
+def fallback_performancewarning(version: str | None = None):
+    """
+    Raise a PerformanceWarning for falling back to ExtensionArray's
+    non-pyarrow method
+    """
+    msg = "Falling back on a non-pyarrow code path which may decrease performance."
+    if version is not None:
+        msg += f" Upgrade to pyarrow >={version} to possibly suppress this warning."
+    warnings.warn(msg, PerformanceWarning, stacklevel=find_stack_level())
 
 
 def pyarrow_array_to_numpy_and_mask(arr, dtype: np.dtype):
