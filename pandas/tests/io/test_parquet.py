@@ -17,6 +17,7 @@ from pandas.compat.pyarrow import (
     pa_version_under2p0,
     pa_version_under5p0,
     pa_version_under6p0,
+    pa_version_under8p0,
 )
 import pandas.util._test_decorators as td
 
@@ -717,11 +718,14 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame(np.arange(12).reshape(4, 3), columns=list("aaa")).copy()
         self.check_error_on_write(df, pa, ValueError, "Duplicate column names found")
 
-    def test_unsupported(self, pa):
-        # timedelta
+    def test_timedelta(self, pa):
         df = pd.DataFrame({"a": pd.timedelta_range("1 day", periods=3)})
-        self.check_external_error_on_write(df, pa, NotImplementedError)
+        if pa_version_under8p0:
+            self.check_external_error_on_write(df, pa, NotImplementedError)
+        else:
+            check_round_trip(df, pa)
 
+    def test_unsupported(self, pa):
         # mixed python objects
         df = pd.DataFrame({"a": ["a", 1, 2.0]})
         # pyarrow 0.11 raises ArrowTypeError
