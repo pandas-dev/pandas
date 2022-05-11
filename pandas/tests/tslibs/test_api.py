@@ -50,6 +50,7 @@ def test_namespace():
         "tz_convert_from_utc_single",
         "to_offset",
         "tz_compare",
+        "is_unitless",
     ]
 
     expected = set(submodules + api)

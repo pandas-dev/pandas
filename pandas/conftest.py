@@ -17,7 +17,6 @@ Instead of splitting it was decided to define sections here:
 - Dtypes
 - Misc
 """
-# pyright: reportUntypedFunctionDecorator = false
 
 from collections import abc
 from datetime import (
@@ -295,6 +294,7 @@ def other_closed(request):
         "bz2",
         "zip",
         "xz",
+        "tar",
         pytest.param("zstd", marks=td.skip_if_no("zstandard")),
     ]
 )
@@ -311,6 +311,7 @@ def compression(request):
         "bz2",
         "zip",
         "xz",
+        "tar",
         pytest.param("zstd", marks=td.skip_if_no("zstandard")),
     ]
 )
