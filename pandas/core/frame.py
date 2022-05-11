@@ -3451,7 +3451,14 @@ class DataFrame(NDFrame, OpsMixin):
             arr_type = dtype.construct_array_type()
             values = self.values
 
-            new_values = [arr_type._from_sequence(row, dtype=dtype) for row in values]
+            new_values = []
+            for row in values:
+                try:
+                    new_values.append(arr_type._from_sequence(row, dtype=dtype))
+                except Exception:
+                    new_values.append(row)
+
+            new_values = values
             result = type(self)._from_arrays(
                 new_values, index=self.columns, columns=self.index
             )
