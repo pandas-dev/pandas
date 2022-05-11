@@ -12,8 +12,9 @@
 #   $ ./ci/code_checks.sh doctests      # run doctests
 #   $ ./ci/code_checks.sh docstrings    # validate docstring errors
 #   $ ./ci/code_checks.sh typing        # run static type analysis
+#   $ ./ci/code_checks.sh single-docs   # check single-page docs build warning-free
 
-[[ -z "$1" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "typing" ]] || \
+[[ -z "$1" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "typing" || "$1" == "single-docs" ]] || \
     { echo "Unknown command $1. Usage: $0 [code|doctests|docstrings|typing]"; exit 9999; }
 
 BASE_DIR="$(dirname $0)/.."
@@ -78,8 +79,8 @@ fi
 ### DOCSTRINGS ###
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
-    MSG='Validate docstrings (EX04, GL01, GL02, GL03, GL04, GL05, GL06, GL07, GL09, GL10, PR03, PR04, PR05, PR06, PR08, PR09, PR10, RT01, RT04, RT05, SA02, SA03, SS01, SS02, SS03, SS04, SS05)' ; echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX04,GL01,GL02,GL03,GL04,GL05,GL06,GL07,GL09,GL10,PR03,PR04,PR05,PR06,PR08,PR09,PR10,RT01,RT04,RT05,SA02,SA03,SS01,SS02,SS03,SS04,SS05
+    MSG='Validate docstrings (EX04, GL01, GL02, GL03, GL04, GL05, GL06, GL07, GL09, GL10, PR03, PR04, PR05, PR06, PR08, PR09, PR10, RT01, RT04, RT05, SA02, SA03, SA04, SS01, SS02, SS03, SS04, SS05)' ; echo $MSG
+    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX04,GL01,GL02,GL03,GL04,GL05,GL06,GL07,GL09,GL10,PR03,PR04,PR05,PR06,PR08,PR09,PR10,RT01,RT04,RT05,SA02,SA03,SA04,SS01,SS02,SS03,SS04,SS05
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
@@ -100,6 +101,13 @@ if [[ -z "$CHECK" || "$CHECK" == "typing" ]]; then
         pyright
         RET=$(($RET + $?)) ; echo $MSG "DONE"
     fi
+fi
+
+### SINGLE-PAGE DOCS ###
+if [[ -z "$CHECK" || "$CHECK" == "single-docs" ]]; then
+    python doc/make.py --warnings-are-errors --single pandas.Series.value_counts
+    python doc/make.py --warnings-are-errors --single pandas.Series.str.split
+    python doc/make.py clean
 fi
 
 exit $RET

@@ -421,29 +421,43 @@ _shared_docs[
 ] = """compression : str or dict, default 'infer'
     For on-the-fly compression of the output data. If 'infer' and '%s'
     path-like, then detect compression from the following extensions: '.gz',
-    '.bz2', '.zip', '.xz', or '.zst' (otherwise no compression). Set to
-    ``None`` for no compression. Can also be a dict with key ``'method'`` set
-    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``} and other
-    key-value pairs are forwarded to ``zipfile.ZipFile``, ``gzip.GzipFile``,
-    ``bz2.BZ2File``, or ``zstandard.ZstdDecompressor``, respectively. As an
-    example, the following could be passed for faster compression and to create
+    '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
+    (otherwise no compression).
+    Set to ``None`` for no compression.
+    Can also be a dict with key ``'method'`` set
+    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'tar'``} and other
+    key-value pairs are forwarded to
+    ``zipfile.ZipFile``, ``gzip.GzipFile``,
+    ``bz2.BZ2File``, ``zstandard.ZstdDecompressor`` or
+    ``tarfile.TarFile``, respectively.
+    As an example, the following could be passed for faster compression and to create
     a reproducible gzip archive:
-    ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``."""
+    ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
+
+        .. versionadded:: 1.5.0
+            Added support for `.tar` files."""
 
 _shared_docs[
     "decompression_options"
 ] = """compression : str or dict, default 'infer'
     For on-the-fly decompression of on-disk data. If 'infer' and '%s' is
     path-like, then detect compression from the following extensions: '.gz',
-    '.bz2', '.zip', '.xz', or '.zst' (otherwise no compression). If using
-    'zip', the ZIP file must contain only one data file to be read in. Set to
-    ``None`` for no decompression. Can also be a dict with key ``'method'`` set
-    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``} and other
-    key-value pairs are forwarded to ``zipfile.ZipFile``, ``gzip.GzipFile``,
-    ``bz2.BZ2File``, or ``zstandard.ZstdDecompressor``, respectively. As an
-    example, the following could be passed for Zstandard decompression using a
+    '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
+    (otherwise no compression).
+    If using 'zip' or 'tar', the ZIP file must contain only one data file to be read in.
+    Set to ``None`` for no decompression.
+    Can also be a dict with key ``'method'`` set
+    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'tar'``} and other
+    key-value pairs are forwarded to
+    ``zipfile.ZipFile``, ``gzip.GzipFile``,
+    ``bz2.BZ2File``, ``zstandard.ZstdDecompressor`` or
+    ``tarfile.TarFile``, respectively.
+    As an example, the following could be passed for Zstandard decompression using a
     custom compression dictionary:
-    ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``."""
+    ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``.
+
+        .. versionadded:: 1.5.0
+            Added support for `.tar` files."""
 
 _shared_docs[
     "replace"
@@ -482,8 +496,8 @@ _shared_docs[
             - Dicts can be used to specify different replacement values
               for different existing values. For example,
               ``{{'a': 'b', 'y': 'z'}}`` replaces the value 'a' with 'b' and
-              'y' with 'z'. To use a dict in this way the `value`
-              parameter should be `None`.
+              'y' with 'z'. To use a dict in this way, the optional `value`
+              parameter should not be given.
             - For a DataFrame a dict can specify that different values
               should be replaced in different columns. For example,
               ``{{'a': 1, 'b': 'z'}}`` looks for the value 1 in column 'a'
@@ -494,8 +508,8 @@ _shared_docs[
               specifying the column to search in.
             - For a DataFrame nested dictionaries, e.g.,
               ``{{'a': {{'b': np.nan}}}}``, are read as follows: look in column
-              'a' for the value 'b' and replace it with NaN. The `value`
-              parameter should be ``None`` to use a nested dict in this
+              'a' for the value 'b' and replace it with NaN. The optional `value`
+              parameter should not be specified to use a nested dict in this
               way. You can nest regular expressions as well. Note that
               column names (the top-level dictionary keys in a nested
               dictionary) **cannot** be regular expressions.
@@ -733,4 +747,138 @@ _shared_docs[
 
         .. versionchanged:: 1.4.0
             Previously the explicit ``None`` was silently ignored.
+"""
+
+_shared_docs[
+    "idxmin"
+] = """
+    Return index of first occurrence of minimum over requested axis.
+
+    NA/null values are excluded.
+
+    Parameters
+    ----------
+    axis : {{0 or 'index', 1 or 'columns'}}, default 0
+        The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
+    skipna : bool, default True
+        Exclude NA/null values. If an entire row/column is NA, the result
+        will be NA.
+    numeric_only : bool, default {numeric_only_default}
+        Include only `float`, `int` or `boolean` data.
+
+        .. versionadded:: 1.5.0
+
+    Returns
+    -------
+    Series
+        Indexes of minima along the specified axis.
+
+    Raises
+    ------
+    ValueError
+        * If the row/column is empty
+
+    See Also
+    --------
+    Series.idxmin : Return index of the minimum element.
+
+    Notes
+    -----
+    This method is the DataFrame version of ``ndarray.argmin``.
+
+    Examples
+    --------
+    Consider a dataset containing food consumption in Argentina.
+
+    >>> df = pd.DataFrame({{'consumption': [10.51, 103.11, 55.48],
+    ...                    'co2_emissions': [37.2, 19.66, 1712]}},
+    ...                    index=['Pork', 'Wheat Products', 'Beef'])
+
+    >>> df
+                    consumption  co2_emissions
+    Pork                  10.51         37.20
+    Wheat Products       103.11         19.66
+    Beef                  55.48       1712.00
+
+    By default, it returns the index for the minimum value in each column.
+
+    >>> df.idxmin()
+    consumption                Pork
+    co2_emissions    Wheat Products
+    dtype: object
+
+    To return the index for the minimum value in each row, use ``axis="columns"``.
+
+    >>> df.idxmin(axis="columns")
+    Pork                consumption
+    Wheat Products    co2_emissions
+    Beef                consumption
+    dtype: object
+"""
+
+_shared_docs[
+    "idxmax"
+] = """
+    Return index of first occurrence of maximum over requested axis.
+
+    NA/null values are excluded.
+
+    Parameters
+    ----------
+    axis : {{0 or 'index', 1 or 'columns'}}, default 0
+        The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
+    skipna : bool, default True
+        Exclude NA/null values. If an entire row/column is NA, the result
+        will be NA.
+    numeric_only : bool, default {numeric_only_default}
+        Include only `float`, `int` or `boolean` data.
+
+        .. versionadded:: 1.5.0
+
+    Returns
+    -------
+    Series
+        Indexes of maxima along the specified axis.
+
+    Raises
+    ------
+    ValueError
+        * If the row/column is empty
+
+    See Also
+    --------
+    Series.idxmax : Return index of the maximum element.
+
+    Notes
+    -----
+    This method is the DataFrame version of ``ndarray.argmax``.
+
+    Examples
+    --------
+    Consider a dataset containing food consumption in Argentina.
+
+    >>> df = pd.DataFrame({{'consumption': [10.51, 103.11, 55.48],
+    ...                    'co2_emissions': [37.2, 19.66, 1712]}},
+    ...                    index=['Pork', 'Wheat Products', 'Beef'])
+
+    >>> df
+                    consumption  co2_emissions
+    Pork                  10.51         37.20
+    Wheat Products       103.11         19.66
+    Beef                  55.48       1712.00
+
+    By default, it returns the index for the maximum value in each column.
+
+    >>> df.idxmax()
+    consumption     Wheat Products
+    co2_emissions             Beef
+    dtype: object
+
+    To return the index for the maximum value in each row, use ``axis="columns"``.
+
+    >>> df.idxmax(axis="columns")
+    Pork              co2_emissions
+    Wheat Products     consumption
+    Beef              co2_emissions
+    dtype: object
 """

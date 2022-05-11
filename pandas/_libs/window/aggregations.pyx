@@ -1,7 +1,6 @@
 # cython: boundscheck=False, wraparound=False, cdivision=True
 
-import cython
-
+cimport cython
 from libc.math cimport (
     round,
     signbit,
@@ -70,14 +69,19 @@ cdef bint is_monotonic_increasing_start_end_bounds(
 # Rolling sum
 
 
-cdef inline float64_t calc_sum(int64_t minp, int64_t nobs, float64_t sum_x) nogil:
+cdef inline float64_t calc_sum(int64_t minp, int64_t nobs, float64_t sum_x,
+                               int64_t num_consecutive_same_value, float64_t prev_value
+                               ) nogil:
     cdef:
         float64_t result
 
     if nobs == 0 == minp:
         result = 0
     elif nobs >= minp:
-        result = sum_x
+        if num_consecutive_same_value >= nobs:
+            result = prev_value * nobs
+        else:
+            result = sum_x
     else:
         result = NaN
 
@@ -85,7 +89,8 @@ cdef inline float64_t calc_sum(int64_t minp, int64_t nobs, float64_t sum_x) nogi
 
 
 cdef inline void add_sum(float64_t val, int64_t *nobs, float64_t *sum_x,
-                         float64_t *compensation) nogil:
+                         float64_t *compensation, int64_t *num_consecutive_same_value,
+                         float64_t *prev_value) nogil:
     """ add a value from the sum calc using Kahan summation """
 
     cdef:
@@ -98,6 +103,14 @@ cdef inline void add_sum(float64_t val, int64_t *nobs, float64_t *sum_x,
         t = sum_x[0] + y
         compensation[0] = t - sum_x[0] - y
         sum_x[0] = t
+
+        # GH#42064, record num of same values to remove floating point artifacts
+        if val == prev_value[0]:
+            num_consecutive_same_value[0] += 1
+        else:
+            # reset to 1 (include current value itself)
+            num_consecutive_same_value[0] = 1
+        prev_value[0] = val
 
 
 cdef inline void remove_sum(float64_t val, int64_t *nobs, float64_t *sum_x,
@@ -120,8 +133,8 @@ def roll_sum(const float64_t[:] values, ndarray[int64_t] start,
              ndarray[int64_t] end, int64_t minp) -> np.ndarray:
     cdef:
         Py_ssize_t i, j
-        float64_t sum_x, compensation_add, compensation_remove
-        int64_t s, e
+        float64_t sum_x, compensation_add, compensation_remove, prev_value
+        int64_t s, e, num_consecutive_same_value
         int64_t nobs = 0, N = len(start)
         ndarray[float64_t] output
         bint is_monotonic_increasing_bounds
@@ -140,11 +153,13 @@ def roll_sum(const float64_t[:] values, ndarray[int64_t] start,
             if i == 0 or not is_monotonic_increasing_bounds or s >= end[i - 1]:
 
                 # setup
-
+                prev_value = values[s]
+                num_consecutive_same_value = 0
                 sum_x = compensation_add = compensation_remove = 0
                 nobs = 0
                 for j in range(s, e):
-                    add_sum(values[j], &nobs, &sum_x, &compensation_add)
+                    add_sum(values[j], &nobs, &sum_x, &compensation_add,
+                            &num_consecutive_same_value, &prev_value)
 
             else:
 
@@ -154,9 +169,10 @@ def roll_sum(const float64_t[:] values, ndarray[int64_t] start,
 
                 # calculate adds
                 for j in range(end[i - 1], e):
-                    add_sum(values[j], &nobs, &sum_x, &compensation_add)
+                    add_sum(values[j], &nobs, &sum_x, &compensation_add,
+                            &num_consecutive_same_value, &prev_value)
 
-            output[i] = calc_sum(minp, nobs, sum_x)
+            output[i] = calc_sum(minp, nobs, sum_x, num_consecutive_same_value, prev_value)
 
             if not is_monotonic_increasing_bounds:
                 nobs = 0
@@ -170,14 +186,17 @@ def roll_sum(const float64_t[:] values, ndarray[int64_t] start,
 # Rolling mean
 
 
-cdef inline float64_t calc_mean(int64_t minp, Py_ssize_t nobs,
-                                Py_ssize_t neg_ct, float64_t sum_x) nogil:
+cdef inline float64_t calc_mean(int64_t minp, Py_ssize_t nobs, Py_ssize_t neg_ct,
+                                float64_t sum_x, int64_t num_consecutive_same_value,
+                                float64_t prev_value) nogil:
     cdef:
         float64_t result
 
     if nobs >= minp and nobs > 0:
         result = sum_x / <float64_t>nobs
-        if neg_ct == 0 and result < 0:
+        if num_consecutive_same_value >= nobs:
+            result = prev_value
+        elif neg_ct == 0 and result < 0:
             # all positive
             result = 0
         elif neg_ct == nobs and result > 0:
@@ -191,7 +210,8 @@ cdef inline float64_t calc_mean(int64_t minp, Py_ssize_t nobs,
 
 
 cdef inline void add_mean(float64_t val, Py_ssize_t *nobs, float64_t *sum_x,
-                          Py_ssize_t *neg_ct, float64_t *compensation) nogil:
+                          Py_ssize_t *neg_ct, float64_t *compensation,
+                          int64_t *num_consecutive_same_value, float64_t *prev_value) nogil:
     """ add a value from the mean calc using Kahan summation """
     cdef:
         float64_t y, t
@@ -205,6 +225,14 @@ cdef inline void add_mean(float64_t val, Py_ssize_t *nobs, float64_t *sum_x,
         sum_x[0] = t
         if signbit(val):
             neg_ct[0] = neg_ct[0] + 1
+
+        # GH#42064, record num of same values to remove floating point artifacts
+        if val == prev_value[0]:
+            num_consecutive_same_value[0] += 1
+        else:
+            # reset to 1 (include current value itself)
+            num_consecutive_same_value[0] = 1
+        prev_value[0] = val
 
 
 cdef inline void remove_mean(float64_t val, Py_ssize_t *nobs, float64_t *sum_x,
@@ -226,8 +254,8 @@ cdef inline void remove_mean(float64_t val, Py_ssize_t *nobs, float64_t *sum_x,
 def roll_mean(const float64_t[:] values, ndarray[int64_t] start,
               ndarray[int64_t] end, int64_t minp) -> np.ndarray:
     cdef:
-        float64_t val, compensation_add, compensation_remove, sum_x
-        int64_t s, e
+        float64_t val, compensation_add, compensation_remove, sum_x, prev_value
+        int64_t s, e, num_consecutive_same_value
         Py_ssize_t nobs, i, j, neg_ct, N = len(start)
         ndarray[float64_t] output
         bint is_monotonic_increasing_bounds
@@ -245,12 +273,15 @@ def roll_mean(const float64_t[:] values, ndarray[int64_t] start,
 
             if i == 0 or not is_monotonic_increasing_bounds or s >= end[i - 1]:
 
+                # setup
                 compensation_add = compensation_remove = sum_x = 0
                 nobs = neg_ct = 0
-                # setup
+                prev_value = values[s]
+                num_consecutive_same_value = 0
                 for j in range(s, e):
                     val = values[j]
-                    add_mean(val, &nobs, &sum_x, &neg_ct, &compensation_add)
+                    add_mean(val, &nobs, &sum_x, &neg_ct, &compensation_add,
+                             &num_consecutive_same_value, &prev_value)
 
             else:
 
@@ -262,9 +293,10 @@ def roll_mean(const float64_t[:] values, ndarray[int64_t] start,
                 # calculate adds
                 for j in range(end[i - 1], e):
                     val = values[j]
-                    add_mean(val, &nobs, &sum_x, &neg_ct, &compensation_add)
+                    add_mean(val, &nobs, &sum_x, &neg_ct, &compensation_add,
+                             &num_consecutive_same_value, &prev_value)
 
-            output[i] = calc_mean(minp, nobs, neg_ct, sum_x)
+            output[i] = calc_mean(minp, nobs, neg_ct, sum_x, num_consecutive_same_value, prev_value)
 
             if not is_monotonic_increasing_bounds:
                 nobs = 0
@@ -278,15 +310,15 @@ def roll_mean(const float64_t[:] values, ndarray[int64_t] start,
 
 
 cdef inline float64_t calc_var(int64_t minp, int ddof, float64_t nobs,
-                               float64_t ssqdm_x) nogil:
+                               float64_t ssqdm_x, int64_t num_consecutive_same_value) nogil:
     cdef:
         float64_t result
 
     # Variance is unchanged if no observation is added or removed
     if (nobs >= minp) and (nobs > ddof):
 
-        # pathological case
-        if nobs == 1:
+        # pathological case & repeatedly same values case
+        if nobs == 1 or num_consecutive_same_value >= nobs:
             result = 0
         else:
             result = ssqdm_x / (nobs - <float64_t>ddof)
@@ -297,7 +329,8 @@ cdef inline float64_t calc_var(int64_t minp, int ddof, float64_t nobs,
 
 
 cdef inline void add_var(float64_t val, float64_t *nobs, float64_t *mean_x,
-                         float64_t *ssqdm_x, float64_t *compensation) nogil:
+                         float64_t *ssqdm_x, float64_t *compensation,
+                         int64_t *num_consecutive_same_value, float64_t *prev_value) nogil:
     """ add a value from the var calc """
     cdef:
         float64_t delta, prev_mean, y, t
@@ -307,6 +340,15 @@ cdef inline void add_var(float64_t val, float64_t *nobs, float64_t *mean_x,
         return
 
     nobs[0] = nobs[0] + 1
+
+    # GH#42064, record num of same values to remove floating point artifacts
+    if val == prev_value[0]:
+        num_consecutive_same_value[0] += 1
+    else:
+        # reset to 1 (include current value itself)
+        num_consecutive_same_value[0] = 1
+    prev_value[0] = val
+
     # Welford's method for the online variance-calculation
     # using Kahan summation
     # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
@@ -352,9 +394,8 @@ def roll_var(const float64_t[:] values, ndarray[int64_t] start,
     """
     cdef:
         float64_t mean_x, ssqdm_x, nobs, compensation_add,
-        float64_t compensation_remove,
-        float64_t val, prev, delta, mean_x_old
-        int64_t s, e
+        float64_t compensation_remove, prev_value
+        int64_t s, e, num_consecutive_same_value
         Py_ssize_t i, j, N = len(start)
         ndarray[float64_t] output
         bint is_monotonic_increasing_bounds
@@ -376,9 +417,13 @@ def roll_var(const float64_t[:] values, ndarray[int64_t] start,
             # never removed
             if i == 0 or not is_monotonic_increasing_bounds or s >= end[i - 1]:
 
+                prev_value = values[s]
+                num_consecutive_same_value = 0
+
                 mean_x = ssqdm_x = nobs = compensation_add = compensation_remove = 0
                 for j in range(s, e):
-                    add_var(values[j], &nobs, &mean_x, &ssqdm_x, &compensation_add)
+                    add_var(values[j], &nobs, &mean_x, &ssqdm_x, &compensation_add,
+                            &num_consecutive_same_value, &prev_value)
 
             else:
 
@@ -392,9 +437,10 @@ def roll_var(const float64_t[:] values, ndarray[int64_t] start,
 
                 # calculate adds
                 for j in range(end[i - 1], e):
-                    add_var(values[j], &nobs, &mean_x, &ssqdm_x, &compensation_add)
+                    add_var(values[j], &nobs, &mean_x, &ssqdm_x, &compensation_add,
+                            &num_consecutive_same_value, &prev_value)
 
-            output[i] = calc_var(minp, ddof, nobs, ssqdm_x)
+            output[i] = calc_var(minp, ddof, nobs, ssqdm_x, num_consecutive_same_value)
 
             if not is_monotonic_increasing_bounds:
                 nobs = 0.0
@@ -1592,7 +1638,7 @@ def roll_weighted_var(const float64_t[:] values, const float64_t[:] weights,
 
     with nogil:
 
-        for i in range(win_n):
+        for i in range(min(win_n, n)):
             add_weighted_var(values[i], weights[i], &t,
                              &sum_w, &mean, &nobs)
 

@@ -27,8 +27,8 @@ class TestDataFrameCov:
 
         # with NAs
         frame = float_frame.copy()
-        frame["A"][:5] = np.nan
-        frame["B"][5:10] = np.nan
+        frame.iloc[:5, frame.columns.get_loc("A")] = np.nan
+        frame.iloc[5:10, frame.columns.get_loc("B")] = np.nan
         result = frame.cov(min_periods=len(frame) - 8)
         expected = frame.cov()
         expected.loc["A", "B"] = np.nan
@@ -41,7 +41,10 @@ class TestDataFrameCov:
         tm.assert_almost_equal(result["A"]["C"], expected)
 
         # exclude non-numeric types
-        result = float_string_frame.cov()
+        with tm.assert_produces_warning(
+            FutureWarning, match="The default value of numeric_only"
+        ):
+            result = float_string_frame.cov()
         expected = float_string_frame.loc[:, ["A", "B", "C", "D"]].cov()
         tm.assert_frame_equal(result, expected)
 
@@ -116,7 +119,10 @@ class TestDataFrameCorr:
 
     def test_corr_non_numeric(self, float_string_frame):
         # exclude non-numeric types
-        result = float_string_frame.corr()
+        with tm.assert_produces_warning(
+            FutureWarning, match="The default value of numeric_only"
+        ):
+            result = float_string_frame.corr()
         expected = float_string_frame.loc[:, ["A", "B", "C", "D"]].corr()
         tm.assert_frame_equal(result, expected)
 
@@ -307,11 +313,17 @@ class TestDataFrameCorrWith:
         df1["obj"] = "foo"
         df2["obj"] = "bar"
 
-        result = df1.corrwith(df2)
+        with tm.assert_produces_warning(
+            FutureWarning, match="The default value of numeric_only"
+        ):
+            result = df1.corrwith(df2)
         expected = df1.loc[:, cols].corrwith(df2.loc[:, cols])
         tm.assert_series_equal(result, expected)
 
-        result = df1.corrwith(df2, axis=1)
+        with tm.assert_produces_warning(
+            FutureWarning, match="The default value of numeric_only"
+        ):
+            result = df1.corrwith(df2, axis=1)
         expected = df1.loc[:, cols].corrwith(df2.loc[:, cols], axis=1)
         tm.assert_series_equal(result, expected)
 
