@@ -1986,7 +1986,7 @@ class DatetimeTZBlock(DatetimeLikeBlock):
     is_extension = True
     _validate_ndim = True
     _can_consolidate = False
-    
+
     # Don't use values_for_json from DatetimeLikeBlock since it is
     # an invalid optimization here(drop the tz)
     values_for_json = NDArrayBackedExtensionBlock.values_for_json
