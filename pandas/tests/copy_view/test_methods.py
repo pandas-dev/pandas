@@ -87,7 +87,7 @@ def test_rename_columns(using_copy_on_write):
     tm.assert_frame_equal(df, df_orig)
 
 
-def test_rename_columns_modify_parent(using_array_manager, using_copy_on_write):
+def test_rename_columns_modify_parent(using_copy_on_write):
     # Case: renaming columns returns a new dataframe
     # + afterwards modifying the original (parent) dataframe
     df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
@@ -100,7 +100,7 @@ def test_rename_columns_modify_parent(using_array_manager, using_copy_on_write):
         assert not np.may_share_memory(df2["A"].values, df["a"].values)
     df.iloc[0, 0] = 0
     assert not np.may_share_memory(df2["A"].values, df["a"].values)
-    if using_array_manager:
+    if using_copy_on_write:
         assert np.may_share_memory(df2["C"].values, df["c"].values)
     expected = pd.DataFrame({"a": [0, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     tm.assert_frame_equal(df, expected)

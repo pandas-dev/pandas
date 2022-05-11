@@ -93,10 +93,16 @@ def test_subset_row_slice(using_copy_on_write):
         tm.assert_frame_equal(df, df_orig)
 
 
-def test_subset_column_slice(using_copy_on_write):
+@pytest.mark.parametrize(
+    "dtype", ["int64", "float64"], ids=["single-block", "mixed-block"]
+)
+def test_subset_column_slice(using_copy_on_write, using_array_manager, dtype):
     # Case: taking a subset of the columns of a DataFrame using a slice
     # + afterwards modifying the subset
-    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    single_block = (dtype == "int64") and not using_array_manager
+    df = pd.DataFrame(
+        {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)}
+    )
     df_orig = df.copy()
 
     subset = df.iloc[:, 1:]
@@ -109,12 +115,21 @@ def test_subset_column_slice(using_copy_on_write):
         assert not np.may_share_memory(subset["b"].values, df["b"].values)
 
     else:
-        subset.iloc[0, 0] = 0
+        # we only get a warning in case of a single block
+        warn = com.SettingWithCopyWarning if single_block else None
+        with pd.option_context("chained_assignment", "warn"):
+            with tm.assert_produces_warning(warn):
+                subset.iloc[0, 0] = 0
 
-    expected = pd.DataFrame({"b": [0, 5, 6], "c": [0.1, 0.2, 0.3]})
+    expected = pd.DataFrame({"b": [0, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)})
     tm.assert_frame_equal(subset, expected)
-    # original parent dataframe is not modified (also not for BlockManager case)
-    tm.assert_frame_equal(df, df_orig)
+    # original parent dataframe is not modified (also not for BlockManager case,
+    # except for single block)
+    if not using_copy_on_write and (using_array_manager or single_block):
+        df_orig.iloc[0, 1] = 0
+        tm.assert_frame_equal(df, df_orig)
+    else:
+        tm.assert_frame_equal(df, df_orig)
 
 
 @pytest.mark.parametrize(
@@ -211,7 +226,7 @@ def test_subset_set_column(using_copy_on_write):
 @pytest.mark.parametrize(
     "dtype", ["int64", "float64"], ids=["single-block", "mixed-block"]
 )
-def test_subset_set_column_with_loc(using_copy_on_write, dtype):
+def test_subset_set_column_with_loc(using_copy_on_write, using_array_manager, dtype):
     # Case: setting a single column with loc on a viewing subset
     # -> subset.loc[:, col] = value
     df = pd.DataFrame(
@@ -233,7 +248,7 @@ def test_subset_set_column_with_loc(using_copy_on_write, dtype):
         index=range(1, 3),
     )
     tm.assert_frame_equal(subset, expected)
-    if using_copy_on_write:
+    if using_copy_on_write or using_array_manager:
         # original parent dataframe is not modified (CoW)
         tm.assert_frame_equal(df, df_orig)
     else:
@@ -242,7 +257,7 @@ def test_subset_set_column_with_loc(using_copy_on_write, dtype):
         tm.assert_frame_equal(df, df_orig)
 
 
-def test_subset_set_column_with_loc2(using_copy_on_write):
+def test_subset_set_column_with_loc2(using_copy_on_write, using_array_manager):
     # Case: setting a single column with loc on a viewing subset
     # -> subset.loc[:, col] = value
     # separate test for case of DataFrame of a single column -> takes a separate
@@ -261,7 +276,7 @@ def test_subset_set_column_with_loc2(using_copy_on_write):
     subset._mgr._verify_integrity()
     expected = pd.DataFrame({"a": [0, 0]}, index=range(1, 3))
     tm.assert_frame_equal(subset, expected)
-    if using_copy_on_write:
+    if using_copy_on_write or using_array_manager:
         # original parent dataframe is not modified (CoW)
         tm.assert_frame_equal(df, df_orig)
     else:
@@ -303,7 +318,9 @@ def test_subset_set_columns(using_copy_on_write, dtype):
     [slice("a", "b"), np.array([True, True, False]), ["a", "b"]],
     ids=["slice", "mask", "array"],
 )
-def test_subset_set_with_column_indexer(indexer, using_copy_on_write):
+def test_subset_set_with_column_indexer(
+    indexer, using_copy_on_write, using_array_manager
+):
     # Case: setting multiple columns with a column indexer on a viewing subset
     # -> subset.loc[:, [col1, col2]] = value
     df = pd.DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3], "c": [4, 5, 6]})
@@ -324,7 +341,7 @@ def test_subset_set_with_column_indexer(indexer, using_copy_on_write):
     # TODO full row slice .loc[:, idx] update inplace instead of overwrite?
     expected["b"] = expected["b"].astype("int64")
     tm.assert_frame_equal(subset, expected)
-    if using_copy_on_write:
+    if using_copy_on_write or using_array_manager:
         tm.assert_frame_equal(df, df_orig)
     else:
         # In the mixed case with BlockManager, only one of the two columns is
@@ -439,7 +456,7 @@ def test_del_series():
 # Accessing column as Series
 
 
-def test_column_as_series(using_copy_on_write):
+def test_column_as_series(using_copy_on_write, using_array_manager):
     # Case: selecting a single column now also uses Copy-on-Write
     df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
@@ -448,7 +465,7 @@ def test_column_as_series(using_copy_on_write):
 
     assert np.may_share_memory(s.values, df["a"].values)
 
-    if using_copy_on_write:
+    if using_copy_on_write or using_array_manager:
         s[0] = 0
     else:
         with pd.option_context("chained_assignment", "warn"):
@@ -467,7 +484,7 @@ def test_column_as_series(using_copy_on_write):
         tm.assert_frame_equal(df, df_orig)
 
 
-def test_column_as_series_set_with_upcast(using_copy_on_write):
+def test_column_as_series_set_with_upcast(using_copy_on_write, using_array_manager):
     # Case: selecting a single column now also uses Copy-on-Write -> when
     # setting a value causes an upcast, we don't need to update the parent
     # DataFrame through the cache mechanism
@@ -475,7 +492,7 @@ def test_column_as_series_set_with_upcast(using_copy_on_write):
     df_orig = df.copy()
 
     s = df["a"]
-    if using_copy_on_write:
+    if using_copy_on_write or using_array_manager:
         s[0] = "foo"
     else:
         with pd.option_context("chained_assignment", "warn"):
