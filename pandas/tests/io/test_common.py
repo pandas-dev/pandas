@@ -413,18 +413,18 @@ class TestMMapWrapper:
             err = mmap.error
 
         with pytest.raises(err, match=msg):
-            icom._MMapWrapper(non_file)
+            icom._CSVMMapWrapper(non_file)
 
         with open(mmap_file) as target:
             pass
 
         msg = "I/O operation on closed file"
         with pytest.raises(ValueError, match=msg):
-            icom._MMapWrapper(target)
+            icom._CSVMMapWrapper(target)
 
     def test_get_attr(self, mmap_file):
         with open(mmap_file) as target:
-            wrapper = icom._MMapWrapper(target)
+            wrapper = icom._CSVMMapWrapper(target)
 
         attrs = dir(wrapper.mmap)
         attrs = [attr for attr in attrs if not attr.startswith("__")]
@@ -437,7 +437,7 @@ class TestMMapWrapper:
 
     def test_next(self, mmap_file):
         with open(mmap_file) as target:
-            wrapper = icom._MMapWrapper(target)
+            wrapper = icom._CSVMMapWrapper(target)
             lines = target.readlines()
 
         for line in lines:
