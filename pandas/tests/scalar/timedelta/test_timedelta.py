@@ -13,6 +13,7 @@ from pandas._libs.tslibs import (
     NaT,
     iNaT,
 )
+from pandas._libs.tslibs.np_datetime import OutOfBoundsTimedelta
 
 import pandas as pd
 from pandas import (
@@ -646,7 +647,7 @@ class TestTimedeltas:
         ns_td = Timedelta(1, "ns")
         assert hash(ns_td) != hash(ns_td.to_pytimedelta())
 
-    def test_implementation_limits(self):
+    def test_implementation_limits(self, td_overflow_msg: str):
         min_td = Timedelta(Timedelta.min)
         max_td = Timedelta(Timedelta.max)
 
@@ -656,23 +657,22 @@ class TestTimedeltas:
         assert max_td.value == lib.i8max
 
         # Beyond lower limit, a NAT before the Overflow
-        assert (min_td - Timedelta(1, "ns")) is NaT
+        assert (min_td - Timedelta(1, "ns")) is NaT  # type: ignore[comparison-overlap]
 
-        msg = "int too (large|big) to convert"
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=td_overflow_msg):
             min_td - Timedelta(2, "ns")
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=td_overflow_msg):
             max_td + Timedelta(1, "ns")
 
         # Same tests using the internal nanosecond values
         td = Timedelta(min_td.value - 1, "ns")
-        assert td is NaT
+        assert td is NaT  # type: ignore[comparison-overlap]
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=td_overflow_msg):
             Timedelta(min_td.value - 2, "ns")
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=td_overflow_msg):
             Timedelta(max_td.value + 1, "ns")
 
     def test_total_seconds_precision(self):

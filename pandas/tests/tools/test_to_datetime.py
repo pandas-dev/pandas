@@ -1839,13 +1839,8 @@ class TestToDatetimeMisc:
         # gh-17637
         # we are overflowing Timedelta range here
 
-        msg = "|".join(
-            [
-                "Python int too large to convert to C long",
-                "long too big to convert",
-                "int too big to convert",
-            ]
-        )
+        # a fixture exists in tests/scalar; should it be moved to a higher level?
+        msg = R"outside allowed range \[-9223372036854775807ns, 9223372036854775807ns\]"
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
             date_range(start="1/1/1700", freq="B", periods=100000)
 

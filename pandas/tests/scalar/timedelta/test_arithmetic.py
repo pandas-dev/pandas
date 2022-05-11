@@ -98,12 +98,11 @@ class TestTimedeltaAdditionSubtraction:
         result = op(td, NaT)
         assert result is NaT
 
-    def test_td_add_timestamp_overflow(self):
-        msg = "int too (large|big) to convert"
-        with pytest.raises(OverflowError, match=msg):
+    def test_td_add_timestamp_overflow(self, td_overflow_msg: str):
+        with pytest.raises(OutOfBoundsTimedelta, match=td_overflow_msg):
             Timestamp("1700-01-01") + Timedelta(13 * 19999, unit="D")
 
-        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=td_overflow_msg):
             Timestamp("1700-01-01") + timedelta(days=13 * 19999)
 
     @pytest.mark.parametrize("op", [operator.add, ops.radd])

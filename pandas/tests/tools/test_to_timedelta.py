@@ -109,9 +109,7 @@ class TestTimedeltas:
 
     def test_to_timedelta_time(self):
         # time not supported ATM
-        msg = (
-            "Value must be Timedelta, string, integer, float, timedelta or convertible"
-        )
+        msg = "Invalid type for timedelta scalar"
         with pytest.raises(ValueError, match=msg):
             to_timedelta(time(second=1))
         assert to_timedelta(time(second=1), errors="coerce") is pd.NaT
@@ -264,10 +262,7 @@ class TestTimedeltas:
         dt64 = fixed_now_ts.to_datetime64()
         arg = np.array(dt64)
 
-        msg = (
-            "Value must be Timedelta, string, integer, float, timedelta "
-            "or convertible, not datetime64"
-        )
+        msg = "Invalid type for timedelta scalar"
         with pytest.raises(ValueError, match=msg):
             to_timedelta(arg)
 

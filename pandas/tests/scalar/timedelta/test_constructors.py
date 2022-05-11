@@ -13,18 +13,15 @@ from pandas import (
 )
 
 
-def test_construct_from_td64_with_unit():
+def test_construct_from_td64_with_unit(td_overflow_msg: str):
     # ignore the unit, as it may cause silently overflows leading to incorrect
     #  results, and in non-overflow cases is irrelevant GH#46827
     obj = np.timedelta64(123456789, "h")
 
-    with pytest.raises(OutOfBoundsTimedelta, match="123456789 hours"):
-        Timedelta(obj, unit="ps")
-
-    with pytest.raises(OutOfBoundsTimedelta, match="123456789 hours"):
+    with pytest.raises(OutOfBoundsTimedelta, match=td_overflow_msg):
         Timedelta(obj, unit="ns")
 
-    with pytest.raises(OutOfBoundsTimedelta, match="123456789 hours"):
+    with pytest.raises(OutOfBoundsTimedelta, match=td_overflow_msg):
         Timedelta(obj)
 
 
@@ -203,19 +200,17 @@ def test_td_from_repr_roundtrip(val):
     assert Timedelta(td._repr_base()) == td
 
 
-def test_overflow_on_construction():
-    msg = "int too (large|big) to convert"
-
+def test_overflow_on_construction(td_overflow_msg: str):
     # GH#3374
     value = Timedelta("1day").value * 20169940
-    with pytest.raises(OverflowError, match=msg):
+    with pytest.raises(OutOfBoundsTimedelta, match=td_overflow_msg):
         Timedelta(value)
 
     # xref GH#17637
-    with pytest.raises(OverflowError, match=msg):
+    with pytest.raises(OutOfBoundsTimedelta, match=td_overflow_msg):
         Timedelta(7 * 19999, unit="D")
 
-    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+    with pytest.raises(OutOfBoundsTimedelta, match=td_overflow_msg):
         Timedelta(timedelta(days=13 * 19999))
 
 

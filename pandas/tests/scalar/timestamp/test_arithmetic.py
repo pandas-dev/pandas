@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import (
-    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
     Timedelta,
     Timestamp,
     offsets,
@@ -33,17 +33,12 @@ class TestTimestampArithmetic:
         expected = Timestamp("1999/09/23")
         assert stamp - offset_no_overflow == expected
 
-    def test_overflow_offset_raises(self):
+    def test_overflow_offset_raises(self, td_overflow_msg: str):
         # xref https://github.com/statsmodels/statsmodels/issues/3374
         # ends up multiplying really large numbers which overflow
 
         stamp = Timestamp("2017-01-13 00:00:00")
         offset_overflow = 20169940 * offsets.Day(1)
-        msg = (
-            "the add operation between "
-            r"\<-?\d+ \* Days\> and \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} "
-            "will overflow"
-        )
         lmsg = "|".join(
             ["Python int too large to convert to C long", "int too big to convert"]
         )
@@ -51,7 +46,7 @@ class TestTimestampArithmetic:
         with pytest.raises(OverflowError, match=lmsg):
             stamp + offset_overflow
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=td_overflow_msg):
             offset_overflow + stamp
 
         with pytest.raises(OverflowError, match=lmsg):
@@ -61,12 +56,12 @@ class TestTimestampArithmetic:
         # used to crash, so check for proper overflow exception
 
         stamp = Timestamp("2000/1/1")
-        offset_overflow = to_offset("D") * 100**5
+        offset_overflow = offsets.Day() * 100**5
 
         with pytest.raises(OverflowError, match=lmsg):
             stamp + offset_overflow
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=td_overflow_msg):
             offset_overflow + stamp
 
         with pytest.raises(OverflowError, match=lmsg):
@@ -78,7 +73,7 @@ class TestTimestampArithmetic:
         a = Timestamp("2101-01-01 00:00:00")
         b = Timestamp("1688-01-01 00:00:00")
 
-        with pytest.raises(OutOfBoundsDatetime, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             a - b
 
         # but we're OK for timestamp and datetime.datetime
