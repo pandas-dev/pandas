@@ -444,16 +444,14 @@ class TestMultiplicationBox:
         )
         tm.assert_equal(result, expected)
 
+    @pytest.mark.skipif(not compat.IS64, reason="flaky")
     @pytest.mark.xfail(compat.IS64, reason="no overflow check", raises=AssertionError)
-    @pytest.mark.parametrize("factor", (1.01, 2), ids=("int", "float"))
-    def test_returns_nat_if_result_overflows(self, mul_op, factor, box_with_array):
-        numeric_box = tm.box_expected((1, factor), box_with_array, transpose=False)
+    @pytest.mark.parametrize("factors", ((1, 2), (1, 1.5)), ids=("ints", "floats"))
+    def test_returns_nat_if_result_overflows(self, mul_op, factors, box_with_array):
+        numeric_box = tm.box_expected(factors, box_with_array)
         result = mul_op(Timedelta.max, numeric_box)
-        expected = tm.box_expected(
-            (Timedelta.max, NaT),
-            box_with_array,
-            transpose=False,
-        )
+        expected = tm.box_expected((Timedelta.max, NaT), box_with_array)
+
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("value", (Timedelta.min, Timedelta.max, offsets.Day(1)))

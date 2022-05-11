@@ -57,6 +57,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     pandas_timedelta_to_timedeltastruct,
     pandas_timedeltastruct,
 )
+from pandas._libs.util cimport INT64_MAX
 
 from pandas._libs.tslibs.np_datetime import OutOfBoundsTimedelta
 
@@ -138,9 +139,6 @@ cdef dict timedelta_abbrevs = {
 
 _no_input = object()
 
-TIMEDELTA_MIN_NS = np.iinfo(np.int64).min + 1
-TIMEDELTA_MAX_NS = np.iinfo(np.int64).max
-
 
 # ----------------------------------------------------------------------
 # API
@@ -215,12 +213,15 @@ cpdef int64_t delta_to_nanoseconds(delta) except? -1:
         return get_timedelta64_value(ensure_td64ns(delta))
 
     if PyDelta_Check(delta):
-        return (
-            delta.days * 24 * 3600 * 1_000_000
-            + delta.seconds * 1_000_000
-            + delta.microseconds
-        ) * 1000
-
+        try:
+            return (
+                delta.days * 24 * 3600 * 1_000_000
+                + delta.seconds * 1_000_000
+                + delta.microseconds
+            ) * 1000
+        except OverflowError as ex:
+            msg = f"{delta} outside allowed range [{NPY_NAT + 1}ns, {INT64_MAX}ns]"
+            raise OutOfBoundsTimedelta(msg) from ex
     raise TypeError(type(delta))
 
 
@@ -252,7 +253,7 @@ cdef object ensure_td64ns(object ts):
         try:
             td64_value = get_timedelta64_value(ts) * mult
         except OverflowError as ex:
-            msg = f"{ts} outside allowed range [{TIMEDELTA_MIN_NS}ns, {TIMEDELTA_MAX_NS}ns]"
+            msg = f"{ts} outside allowed range [{NPY_NAT + 1}ns, {INT64_MAX}ns]"
             raise OutOfBoundsTimedelta(msg) from ex
 
     return np.timedelta64(td64_value, "ns")
@@ -910,7 +911,7 @@ cdef object create_timedelta(object value, str in_unit, NPY_DATETIMEUNIT out_res
         else:
             out_value = convert_to_timedelta64(value, in_unit).view(np.int64)
     except OverflowError as ex:
-        msg = f"{value} outside allowed range [{TIMEDELTA_MIN_NS}ns, {TIMEDELTA_MAX_NS}ns]"
+        msg = f"{value} outside allowed range [{NPY_NAT + 1}ns, {INT64_MAX}ns]"
         raise OutOfBoundsTimedelta(msg) from ex
 
     if out_value == NPY_NAT:
@@ -1799,6 +1800,6 @@ cdef _broadcast_floordiv_td64(
 
 
 # resolution in ns
-Timedelta.min = Timedelta(TIMEDELTA_MIN_NS)
-Timedelta.max = Timedelta(TIMEDELTA_MAX_NS)
+Timedelta.min = Timedelta(NPY_NAT + 1)
+Timedelta.max = Timedelta(INT64_MAX)
 Timedelta.resolution = Timedelta(nanoseconds=1)
