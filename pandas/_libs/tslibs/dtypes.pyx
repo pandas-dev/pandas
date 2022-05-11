@@ -348,6 +348,19 @@ cdef int64_t periods_per_day(NPY_DATETIMEUNIT reso=NPY_DATETIMEUNIT.NPY_FR_ns) e
     return day_units
 
 
+cdef int64_t periods_per_second(NPY_DATETIMEUNIT reso) except? -1:
+    if reso == NPY_DATETIMEUNIT.NPY_FR_ns:
+        return 1_000_000_000
+    elif reso == NPY_DATETIMEUNIT.NPY_FR_us:
+        return 1_000_000
+    elif reso == NPY_DATETIMEUNIT.NPY_FR_ms:
+        return 1_000
+    elif reso == NPY_DATETIMEUNIT.NPY_FR_s:
+        return 1
+    else:
+        raise NotImplementedError(reso)
+
+
 cdef dict _reso_str_map = {
     Resolution.RESO_NS.value: "nanosecond",
     Resolution.RESO_US.value: "microsecond",
