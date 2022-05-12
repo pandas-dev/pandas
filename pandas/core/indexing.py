@@ -627,7 +627,7 @@ class IndexingMixin:
 
 class _LocationIndexer(NDFrameIndexerBase):
     _valid_types: str
-    axis = None
+    axis: int | None = None
 
     @final
     def __call__(self, axis=None):
@@ -652,7 +652,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                 check_deprecated_indexers(x)
 
         if self.axis is not None:
-            key = self._tupleize_axis_indexer(key)
+            key = _tupleize_axis_indexer(self.ndim, self.axis, key)
 
         ax = self.obj._get_axis(0)
 
@@ -736,17 +736,6 @@ class _LocationIndexer(NDFrameIndexerBase):
             indexer = indexer.nonzero()[0]
 
         return indexer, value
-
-    @final
-    def _tupleize_axis_indexer(self, key) -> tuple:
-        """
-        If we have an axis, adapt the given key to be axis-independent.
-        """
-        new_key = [slice(None)] * self.ndim
-        # error: Invalid index type "Optional[Any]" for "List[slice]"; expected
-        # type "SupportsIndex"
-        new_key[self.axis] = key  # type: ignore[index]
-        return tuple(new_key)
 
     @final
     def _ensure_listlike_indexer(self, key, axis=None, value=None):
@@ -1633,7 +1622,7 @@ class _iLocIndexer(_LocationIndexer):
             key = list(key)
 
         if self.axis is not None:
-            key = self._tupleize_axis_indexer(key)
+            key = _tupleize_axis_indexer(self.ndim, self.axis, key)
 
         return key
 
@@ -2115,13 +2104,11 @@ class _iLocIndexer(_LocationIndexer):
         """
         Ensure that our column indexer is something that can be iterated over.
         """
-        ilocs: Sequence[int]
+        ilocs: Sequence[int] | np.ndarray
         if is_integer(column_indexer):
             ilocs = [column_indexer]
         elif isinstance(column_indexer, slice):
-            ilocs = np.arange(len(self.obj.columns))[  # type: ignore[assignment]
-                column_indexer
-            ]
+            ilocs = np.arange(len(self.obj.columns))[column_indexer]
         elif isinstance(column_indexer, np.ndarray) and is_bool_dtype(
             column_indexer.dtype
         ):
@@ -2179,18 +2166,16 @@ class _iLocIndexer(_LocationIndexer):
                 # TODO: This is hacky, align Series and DataFrame behavior GH#45778
                 if obj.ndim == 2 and is_empty_indexer(indexer[0]):
                     return ser._values.copy()
-                ser = ser.reindex(obj.axes[0][indexer[0]], copy=True)._values
+                ser_values = ser.reindex(obj.axes[0][indexer[0]], copy=True)._values
 
                 # single indexer
                 if len(indexer) > 1 and not multiindex_indexer:
                     len_indexer = len(indexer[1])
-                    ser = (
-                        np.tile(ser, len_indexer)  # type: ignore[assignment]
-                        .reshape(len_indexer, -1)
-                        .T
+                    ser_values = (
+                        np.tile(ser_values, len_indexer).reshape(len_indexer, -1).T
                     )
 
-                return ser
+                return ser_values
 
             for i, idx in enumerate(indexer):
                 ax = obj.axes[i]
@@ -2404,6 +2389,15 @@ def _tuplify(ndim: int, loc: Hashable) -> tuple[Hashable | slice, ...]:
     _tup = [slice(None, None) for _ in range(ndim)]
     _tup[0] = loc
     return tuple(_tup)
+
+
+def _tupleize_axis_indexer(ndim: int, axis: int, key) -> tuple:
+    """
+    If we have an axis, adapt the given key to be axis-independent.
+    """
+    new_key = [slice(None)] * ndim
+    new_key[axis] = key
+    return tuple(new_key)
 
 
 def convert_to_index_sliceable(obj: DataFrame, key):
