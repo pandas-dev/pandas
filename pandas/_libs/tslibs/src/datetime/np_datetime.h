@@ -48,6 +48,8 @@ extern const npy_datetimestruct _M_MAX_DTS;
 // stuff pandas needs
 // ----------------------------------------------------------------------------
 
+PyObject *extract_utc_offset(PyObject *obj);
+
 int convert_pydatetime_to_datetimestruct(PyObject *dtobj,
                                          npy_datetimestruct *out);
 

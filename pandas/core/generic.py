@@ -2599,21 +2599,27 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
               like searching / selecting subsets of the data.
             - If None, pd.get_option('io.hdf.default_format') is checked,
               followed by fallback to "fixed".
-        errors : str, default 'strict'
-            Specifies how encoding and decoding errors are to be handled.
-            See the errors argument for :func:`open` for a full list
-            of options.
-        encoding : str, default "UTF-8"
+        index : bool, default True
+            Write DataFrame index as a column.
         min_itemsize : dict or int, optional
             Map column names to minimum string sizes for columns.
         nan_rep : Any, optional
             How to represent null values as str.
             Not allowed with append=True.
+        dropna : bool, default False, optional
+            Remove missing values.
         data_columns : list of columns or True, optional
             List of columns to create as indexed data columns for on-disk
             queries, or True to use all columns. By default only the axes
-            of the object are indexed. See :ref:`io.hdf5-query-data-columns`.
+            of the object are indexed. See
+            :ref:`Query via data columns<io.hdf5-query-data-columns>`. for
+            more information.
             Applicable only to format='table'.
+        errors : str, default 'strict'
+            Specifies how encoding and decoding errors are to be handled.
+            See the errors argument for :func:`open` for a full list
+            of options.
+        encoding : str, default "UTF-8"
 
         See Also
         --------
@@ -3816,7 +3822,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 index=self.columns,
                 name=self.index[loc],
                 dtype=new_values.dtype,
-            )
+            ).__finalize__(self)
         elif is_scalar(loc):
             result = self.iloc[:, slice(loc, loc + 1)]
         elif axis == 1:
@@ -7224,7 +7230,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if not isinstance(where, Index):
             where = Index(where) if is_list else Index([where])
 
-        nulls = self.isna() if is_series else self[subset].isna().any(1)
+        nulls = self.isna() if is_series else self[subset].isna().any(axis=1)
         if nulls.all():
             if is_series:
                 self = cast("Series", self)
@@ -10517,7 +10523,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         skipna: bool_t = True,
         level: Level | None = None,
         **kwargs,
-    ) -> Series | bool_t:
+    ) -> DataFrame | Series | bool_t:
         return self._logical_func(
             "any", nanops.nanany, axis, bool_only, skipna, level, **kwargs
         )
@@ -10881,6 +10887,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         {desc}
 
+        .. deprecated:: 1.5.0
+            mad is deprecated.
+
         Parameters
         ----------
         axis : {axis_descr}
@@ -10897,6 +10906,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         {see_also}\
         {examples}
         """
+        msg = (
+            "The 'mad' method is deprecated and will be removed in a future version. "
+            "To compute the same result, you may do `(df - df.mean()).abs().mean()`."
+        )
+        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+
         if not is_bool(skipna):
             warnings.warn(
                 "Passing None for skipna is deprecated and will raise in a future"
@@ -10932,6 +10947,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         axis_descr, name1, name2 = _doc_params(cls)
 
+        @deprecate_nonkeyword_arguments(
+            version=None,
+            allowed_args=["self"],
+            stacklevel=find_stack_level() - 1,
+            name="DataFrame.any and Series.any",
+        )
         @doc(
             _bool_doc,
             desc=_any_desc,
@@ -11539,6 +11560,11 @@ level : int or level name, default None
 numeric_only : bool, default None
     Include only float, int, boolean columns. If None, will attempt to use
     everything, then use only numeric data. Not implemented for Series.
+
+    .. deprecated:: 1.5.0
+        Specifying ``numeric_only=None`` is deprecated. The default value will be
+        ``False`` in a future version of pandas.
+
 {min_count}\
 **kwargs
     Additional keyword arguments to be passed to the function.
@@ -11568,6 +11594,10 @@ ddof : int, default 1
 numeric_only : bool, default None
     Include only float, int, boolean columns. If None, will attempt to use
     everything, then use only numeric data. Not implemented for Series.
+
+    .. deprecated:: 1.5.0
+        Specifying ``numeric_only=None`` is deprecated. The default value will be
+        ``False`` in a future version of pandas.
 
 Returns
 -------

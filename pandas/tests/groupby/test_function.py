@@ -321,11 +321,17 @@ class TestGroupByNonCythonPaths:
         # mad
         expected = DataFrame([[0], [np.nan]], columns=["B"], index=[1, 3])
         expected.index.name = "A"
-        result = gb.mad()
+        with tm.assert_produces_warning(
+            FutureWarning, match="The 'mad' method is deprecated"
+        ):
+            result = gb.mad()
         tm.assert_frame_equal(result, expected)
 
         expected = DataFrame([[1, 0.0], [3, np.nan]], columns=["A", "B"], index=[0, 1])
-        result = gni.mad()
+        with tm.assert_produces_warning(
+            FutureWarning, match="The 'mad' method is deprecated"
+        ):
+            result = gni.mad()
         tm.assert_frame_equal(result, expected)
 
     def test_describe(self, df, gb, gni):
@@ -489,8 +495,9 @@ def test_groupby_non_arithmetic_agg_int_like_precision(i):
         ("idxmax", {"c_int": [1, 3], "c_float": [0, 2], "c_date": [0, 3]}),
     ],
 )
+@pytest.mark.parametrize("numeric_only", [True, False])
 @pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
-def test_idxmin_idxmax_returns_int_types(func, values):
+def test_idxmin_idxmax_returns_int_types(func, values, numeric_only):
     # GH 25444
     df = DataFrame(
         {
@@ -507,12 +514,15 @@ def test_idxmin_idxmax_returns_int_types(func, values):
     df["c_Integer"] = df["c_int"].astype("Int64")
     df["c_Floating"] = df["c_float"].astype("Float64")
 
-    result = getattr(df.groupby("name"), func)()
+    result = getattr(df.groupby("name"), func)(numeric_only=numeric_only)
 
     expected = DataFrame(values, index=Index(["A", "B"], name="name"))
-    expected["c_date_tz"] = expected["c_date"]
-    expected["c_timedelta"] = expected["c_date"]
-    expected["c_period"] = expected["c_date"]
+    if numeric_only:
+        expected = expected.drop(columns=["c_date"])
+    else:
+        expected["c_date_tz"] = expected["c_date"]
+        expected["c_timedelta"] = expected["c_date"]
+        expected["c_period"] = expected["c_date"]
     expected["c_Integer"] = expected["c_int"]
     expected["c_Floating"] = expected["c_float"]
 
