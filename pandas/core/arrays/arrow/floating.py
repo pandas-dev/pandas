@@ -12,7 +12,7 @@ from pandas.core.arrays.arrow.dtype import (
 
 class FloatingArrowDtype(FloatingArrowArray):
     """
-    An ExtensionDtype to hold a single size & kind of integer Arrow dtype.
+    An ExtensionDtype to hold a single size & kind of floating Arrow dtype.
     These specific implementations are subclasses of the non-public
     FloatingArrowDtype. 
     """
@@ -36,13 +36,13 @@ class FloatingArrowDtype(FloatingArrowArray):
 
 class FloatingArrowArray(NumericArrowArray):
     """
-    Array of pyarrow integer values.
-    To construct an IntegerArray from generic array-like ipaut, use
-    :func:`pandas.array` with one of the integer dtypes (see examples).
+    Array of pyarrow floating values.
+    To construct an FloatingArray from generic array-like ipaut, use
+    :func:`pandas.array` with one of the floating dtypes (see examples).
     Parameters
     ----------
     values : pa.ChunkedArray
-        A 1-d integer-dtype array.
+        A 1-d floating-dtype array.
     Attributes
     ----------
     None
