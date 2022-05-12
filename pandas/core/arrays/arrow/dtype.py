@@ -23,8 +23,37 @@ class ArrowDtype(StorageExtensionDtype):
 
     na_value = pa.NA
 
-    def __init__(self, storage="pyarrow") -> None:
+    def __init__(self, pa_dtype, storage="pyarrow") -> None:
+        self.pa_dtype = pa_dtype
+        self.storage = storage
         super().__init__(storage)
+
+    def _is_numeric(self):
+        return pa.types.is_integer(self.pa_dtype) or pa.types.is_float(self.pa_dtype)
+
+    def _is_integer(self):
+        return pa.types.is_integer(self.pa_dtype)
+
+    def _is_boolean(self):
+        return pa.types.is_boolean(self.pa_dtype)
+
+    def _is_floating(self):
+        return pa.types.is_floating(self.pa_dtype)
+
+    def _is_temporal(self):
+        return pa.types.is_temporal(self.pa_dtype)
+
+    def _is_floating(self):
+        return pa.types.is_floating(self.pa_dtype)
+
+    def _is_date(self):
+        return pa.types.is_date(self.pa_dtype)
+
+    def _is_time(self):
+        return pa.types.is_time(self.pa_dtype)
+
+    def _is_string(self):
+        return pa.types.is_string(self.pa_dtype)
 
     @cache_readonly
     def numpy_dtype(self) -> np.dtype:

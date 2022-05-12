@@ -39,6 +39,7 @@ if not pa_version_under1p01:
     import pyarrow.compute as pc
 
     from pandas.core.arrays.arrow._arrow_utils import fallback_performancewarning
+    from pandas.core.arrays.arrow.dtype import ArrowDtype
 
 if TYPE_CHECKING:
     from pandas import Series
@@ -53,8 +54,11 @@ class ArrowExtensionArray(ExtensionArray):
 
     _data: pa.ChunkedArray
 
-    def __init__(self, values: pa.ChunkedArray) -> None:
+    def __init__(self, values: pa.ChunkedArray, pa_dtype: pa.DataType) -> None:
         self._data = values
+        self.storage = storage
+        self._dtype = ArrowDtype(storage="pyarrow", pa_dtype=pa_dtype)
+
 
     def __arrow_array__(self, type=None):
         """Convert myself to a pyarrow Array or ChunkedArray."""
@@ -468,3 +472,25 @@ class ArrowExtensionArray(ExtensionArray):
             return pc.if_else(mask, None, chunk)
 
         return pc.replace_with_mask(chunk, mask, value)
+
+    @cache_readonly
+    def dtype(self) -> NumericArrowDtype:
+        return self._dtype
+
+    @classmethod
+    def _from_sequence_of_strings(cls, strings, *, dtype=None, copy: bool = False):
+        if self.dtype._is_numeric:
+            from pandas.core.tools.numeric import to_numeric
+
+            scalars = to_numeric(strings, errors="raise")
+        elif self.dtype._is_temporal:
+            from pandas.core.tools.datetimes import to_datetime
+
+            scalars = to_datetime(strings, error="raise")
+        return cls._from_sequence(scalars, dtype=dtype, copy=copy)
+
+    def mean(self, skipna=True):
+        if self.dtype._is_numeric:
+            return pa.compute.mean(self._data, skip_nulls=skipna)
+        else:
+            raise TypeError(f"Cannot compute mean from '{string}'")
