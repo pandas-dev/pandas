@@ -5,43 +5,6 @@ import pandas as pd
 
 from pandas import offsets
 
-try:
-    import pandas.tseries.holiday
-except ImportError:
-    pass
-
-
-hcal = pandas.tseries.holiday.USFederalHolidayCalendar()
-# These offsets currently raise a NotImplimentedError with .apply_index()
-non_apply = [
-    offsets.Day(),
-    offsets.BYearEnd(),
-    offsets.BYearBegin(),
-    offsets.BQuarterEnd(),
-    offsets.BQuarterBegin(),
-    offsets.BMonthEnd(),
-    offsets.BMonthBegin(),
-    offsets.CustomBusinessDay(),
-    offsets.CustomBusinessDay(calendar=hcal),
-    offsets.CustomBusinessMonthBegin(calendar=hcal),
-    offsets.CustomBusinessMonthEnd(calendar=hcal),
-    offsets.CustomBusinessMonthEnd(calendar=hcal),
-]
-other_offsets = [
-    offsets.YearEnd(),
-    offsets.YearBegin(),
-    offsets.QuarterEnd(),
-    offsets.QuarterBegin(),
-    offsets.MonthEnd(),
-    offsets.MonthBegin(),
-    offsets.DateOffset(months=2, days=2),
-    offsets.BusinessHour(),
-    offsets.BusinessDay(),
-    offsets.SemiMonthEnd(),
-    offsets.SemiMonthBegin(),
-]
-offset_objs = non_apply + other_offsets
-
 
 class DatetimeStrftime:
     fname = "__test__.csv"
@@ -82,20 +45,20 @@ class DatetimeStrftime:
 class BusinessHourStrftime:
     fname = "__test__.csv"
     timeout = 1500
-    params = ([1000, 10000], offset_objs)
-    param_names = ["obs", "offset"]
+    params = [1000, 10000]
+    param_names = ["obs"]
 
-    def setup(self, obs, offset):
+    def setup(self, obs):
         self.data = pd.DataFrame(
             {
-                "off": [offset] * obs,
+                "off": [offsets.BusinessHour()] * obs,
             }
         )
 
-    def time_frame_offset_str(self, obs, offset):
+    def time_frame_offset_str(self, obs):
         self.data["off"].apply(str)
 
-    def time_frame_offset_repr(self, obs, offset):
+    def time_frame_offset_repr(self, obs):
         self.data["off"].apply(repr)
 
 
