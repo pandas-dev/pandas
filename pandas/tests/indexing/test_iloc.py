@@ -1382,25 +1382,6 @@ class TestILocCallable:
         exp.iloc[[1, 3], [0]] = [-5, -5]
         tm.assert_frame_equal(res, exp)
 
-    def test_frame_iloc_setitem_callable_multicolumn_to_datetime(
-        self, using_array_manager
-    ):
-
-        # GH#20511
-        df = DataFrame({"A": ["2022-01-01", "2022-01-02"], "B": ["2021", "2022"]})
-
-        df.iloc[:, [0]] = df.iloc[:, [0]].apply(to_datetime)
-        expected = DataFrame(
-            {
-                "A": [
-                    Timestamp("2022-01-01 00:00:00"),
-                    Timestamp("2022-01-02 00:00:00"),
-                ],
-                "B": ["2021", "2022"],
-            }
-        )
-        tm.assert_frame_equal(df, expected, check_dtype=using_array_manager)
-
 
 class TestILocSeries:
     def test_iloc(self):
