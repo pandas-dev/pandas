@@ -26,7 +26,10 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import reduction as libreduction
+from pandas._libs import (
+    Interval,
+    reduction as libreduction,
+)
 from pandas._typing import (
     ArrayLike,
     Manager,
@@ -652,12 +655,9 @@ class SeriesGroupBy(GroupBy[Series]):
 
         if is_interval_dtype(lab.dtype):
             # TODO: should we do this inside II?
+            lab_interval = cast(Interval, lab)
 
-            # error: "ndarray" has no attribute "left"
-            # error: "ndarray" has no attribute "right"
-            sorter = np.lexsort(
-                (lab.left, lab.right, ids)  # type: ignore[attr-defined]
-            )
+            sorter = np.lexsort((lab_interval.left, lab_interval.right, ids))
         else:
             sorter = np.lexsort((lab, ids))
 
