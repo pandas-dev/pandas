@@ -57,6 +57,7 @@ from pandas.core.api import (
     UInt64Dtype,
     Float32Dtype,
     Float64Dtype,
+    Float16ArrowDtype,
     Float32ArrowDtype,
     Float64ArrowDtype,
     CategoricalDtype,

@@ -33,6 +33,7 @@ from pandas.core.arrays.floating import (
     Float64Dtype,
 )
 from pandas.core.arrays.arrow.floating import (
+    Float16ArrowDtype,
     Float32ArrowDtype,
     Float64ArrowDtype,
 )
