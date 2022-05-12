@@ -4,21 +4,20 @@ import pyarrow as pa
 
 from pandas.core.dtypes.base import register_extension_dtype
 
-from pandas.core.arrays.arrow.numeric import (
+from pandas.core.arrays.arrow.dtype import (
     FloatingArrowArray,
-    FloatingArrowDtype,
+    FloatingArrowArray,
 )
 
 
-class FloatingArrowDtype(NumericArrowDtype):
+class FloatingArrowDtype(FloatingArrowArray):
     """
     An ExtensionDtype to hold a single size & kind of integer Arrow dtype.
     These specific implementations are subclasses of the non-public
     FloatingArrowDtype. 
     """
 
-    _default_pa_dtype = pa.float64()
-    _dtype_checker = pa.types.is_floating
+    self.pa_dtype = pa.float64()
 
     @classmethod
     def construct_array_type(cls) -> type[FloatingArrowArray]:
