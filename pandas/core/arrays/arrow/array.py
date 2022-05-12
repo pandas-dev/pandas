@@ -494,3 +494,27 @@ class ArrowExtensionArray(ExtensionArray):
             return pa.compute.mean(self._data, skip_nulls=skipna)
         else:
             raise TypeError(f"Cannot compute mean from '{string}'")
+    
+    def max(self, skipna=True):
+        if self.dtype._is_numeric:
+            return pa.compute.max(self._data, skip_nulls=skipna)
+        else:
+            raise TypeError(f"Cannot compute max from '{string}'")
+
+    def min(self, skipna=True):
+        if self.dtype._is_numeric:
+            return pa.compute.min(self._data, skip_nulls=skipna)
+        else:
+            raise TypeError(f"Cannot compute min from '{string}'")
+
+    def mode(self, skipna=True):
+        if self.dtype._is_numeric:
+            return pa.compute.mode(self._data, skip_nulls=skipna)
+        else:
+            raise TypeError(f"Cannot compute mode from '{string}'")
+
+    def quantile(self, q=0.5, interpolation='linear'):
+        if self.dtype._is_numeric:
+            return pa.compute.quantile(self._data, q=q, interpolation=interpolation)
+        else:
+            raise TypeError(f"Cannot compute quantile from '{string}'")
