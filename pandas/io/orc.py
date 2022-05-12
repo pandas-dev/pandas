@@ -102,13 +102,14 @@ def to_orc(
         raise ValueError("engine must be 'pyarrow'")
     engine = import_optional_dependency(engine, min_version="7.0.0")
 
-    path_or_buf: FilePath | WriteBuffer[bytes] = io.BytesIO() if path is None else path
-    engine.orc.write_table(
-        engine.Table.from_pandas(df, preserve_index=index), path_or_buf, **kwargs
-    )
+    was_none = path is None
+    if was_none:
+        path = io.BytesIO()
+    with get_handle(path, "wb") as handles:
+        engine.orc.write_table(
+            engine.Table.from_pandas(df, preserve_index=index), handles.handle, **kwargs
+        )
 
-    if path is None:
-        assert isinstance(path_or_buf, io.BytesIO)
-        return path_or_buf.getvalue()
+    if was_none:
+        return path.getvalue()
     return None
-
