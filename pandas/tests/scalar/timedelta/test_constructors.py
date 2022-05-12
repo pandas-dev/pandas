@@ -225,7 +225,7 @@ def test_overflow_on_construction(td_overflow_msg: str):
         (9223372037, "s", " seconds"),  # 44 seconds
     ],
 )
-def test_construction_out_of_bounds_td64(val, unit, name):
+def test_construction_out_of_bounds_td64(val, unit, name, td_overflow_msg: str):
     # TODO: parametrize over units just above/below the implementation bounds
     #  once GH#38964 is resolved
 
@@ -233,8 +233,7 @@ def test_construction_out_of_bounds_td64(val, unit, name):
     td64 = np.timedelta64(val, unit)
     assert td64.astype("m8[ns]").view("i8") < 0  # i.e. naive astype will be wrong
 
-    msg = str(val) + name
-    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+    with pytest.raises(OutOfBoundsTimedelta, match=td_overflow_msg):
         Timedelta(td64)
 
     # But just back in bounds and we are OK
@@ -243,7 +242,7 @@ def test_construction_out_of_bounds_td64(val, unit, name):
     td64 *= -1
     assert td64.astype("m8[ns]").view("i8") > 0  # i.e. naive astype will be wrong
 
-    with pytest.raises(OutOfBoundsTimedelta, match="-" + msg):
+    with pytest.raises(OutOfBoundsTimedelta, match=td_overflow_msg):
         Timedelta(td64)
 
     # But just back in bounds and we are OK

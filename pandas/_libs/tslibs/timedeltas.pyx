@@ -907,7 +907,9 @@ cdef object create_timedelta(object value, str in_unit, NPY_DATETIMEUNIT out_res
             if util.is_nan(value):
                 return NaT
             out_value = <int64_t>value
-        elif is_timedelta64_object(value):
+        # is_timedelta_64_object may not give correct results w/ some versions?
+        # see e.g. https://github.com/pandas-dev/pandas/runs/6397652653?check_suite_focus=true#step:11:435
+        elif isinstance(value, np.timedelta64):
             out_value = ensure_td64ns(value).view(np.int64)
         elif isinstance(value, str):
             if value.startswith(("P", "-P")):
