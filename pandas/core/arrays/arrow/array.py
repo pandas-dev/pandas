@@ -474,7 +474,7 @@ class ArrowExtensionArray(ExtensionArray):
         return pc.replace_with_mask(chunk, mask, value)
 
     @cache_readonly
-    def dtype(self) -> NumericArrowDtype:
+    def dtype(self) -> ArrowDtype:
         return self._dtype
 
     @classmethod
