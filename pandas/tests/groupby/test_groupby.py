@@ -2724,25 +2724,67 @@ def test_by_column_values_with_same_starting_value():
 
 
 @pytest.mark.parametrize(
-    "function, indices, expected_data",
+    "function, keep, indices, name, data",
     [
-        ("nlargest", [("bar", 5), ("bar", 4), ("foo", 2), ("foo", 1)], [6, 5, 3, 2]),
-        ("nsmallest", [("bar", 3), ("bar", 4), ("foo", 0), ("foo", 1)], [4, 5, 1, 2]),
+        (
+            "nlargest",
+            "first",
+            [("bar", 1), ("bar", 2), ("foo", 5), ("foo", 3)],
+            ["b2", "b3", "f3", "f1"],
+            [3, 3, 3, 1],
+        ),
+        (
+            "nlargest",
+            "last",
+            [("bar", 2), ("bar", 1), ("foo", 5), ("foo", 4)],
+            ["b3", "b2", "f3", "f2"],
+            [3, 3, 3, 1],
+        ),
+        (
+            "nlargest",
+            "all",
+            [("bar", 1), ("bar", 2), ("foo", 5), ("foo", 3), ("foo", 4)],
+            ["b2", "b3", "f3", "f1", "f2"],
+            [3, 3, 3, 1, 1],
+        ),
+        (
+            "nsmallest",
+            "first",
+            [("bar", 0), ("bar", 1), ("foo", 3), ("foo", 4)],
+            ["b1", "b2", "f1", "f2"],
+            [1, 3, 1, 1],
+        ),
+        (
+            "nsmallest",
+            "last",
+            [("bar", 0), ("bar", 2), ("foo", 4), ("foo", 3)],
+            ["b1", "b3", "f2", "f1"],
+            [1, 3, 1, 1],
+        ),
+        (
+            "nsmallest",
+            "all",
+            [("bar", 0), ("bar", 1), ("bar", 2), ("foo", 3), ("foo", 4)],
+            ["b1", "b2", "b3", "f1", "f2"],
+            [1, 3, 3, 1, 1],
+        ),
     ],
 )
-def test_nlargest_nsmallest(function, indices, expected_data):
+def test_nlargest_nsmallest(function, keep, indices, name, data):
     # test nlargest and nsmallest for DataFrameGroupBy
     # GH46924
     df = DataFrame(
         {
-            "group": ["foo", "foo", "foo", "bar", "bar", "bar"],
-            "data": [1, 2, 3, 4, 5, 6],
+            "group": ["bar", "bar", "bar", "foo", "foo", "foo"],
+            "name": ["b1", "b2", "b3", "f1", "f2", "f3"],
+            "data": [1, 3, 3, 1, 1, 3],
         }
     )
     grouped = df.groupby("group")
     func = getattr(grouped, function)
-    result = func(n=2, columns="data")
+    result = func(n=2, keep=keep, columns="data")
+
     expected_index = MultiIndex.from_tuples(indices, names=["group", None])
-    expected = DataFrame({"data": expected_data}, index=expected_index)
+    expected = DataFrame({"name": name, "data": data}, index=expected_index)
 
     tm.assert_frame_equal(result, expected)
