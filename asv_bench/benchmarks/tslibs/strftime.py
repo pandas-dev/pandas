@@ -26,23 +26,29 @@ class DatetimeStrftime:
             }
         )
 
-    def time_frame_date_no_formatting(self, obs):
+    def time_frame_date_to_str(self, obs):
         self.data["d"].astype(str)
 
-    def time_frame_date_formatting(self, obs):
+    def time_frame_date_formatting_default(self, obs):
         self.data["d"].dt.strftime(date_format="%Y-%m-%d")
 
-    def time_frame_datetime_no_formatting(self, obs):
+    def time_frame_date_formatting_custom(self, obs):
+        self.data["d"].dt.strftime(date_format="%Y---%m---%d")
+
+    def time_frame_datetime_to_str(self, obs):
         self.data["dt"].astype(str)
 
-    def time_frame_datetime_formatting(self, obs):
+    def time_frame_datetime_formatting_default_date_only(self, obs):
+        self.data["dt"].dt.strftime(date_format="%Y-%m-%d")
+
+    def time_frame_datetime_formatting_default(self, obs):
         self.data["dt"].dt.strftime(date_format="%Y-%m-%d %H:%M:%S")
 
-    def time_frame_datetime_formatting_with_float(self, obs):
+    def time_frame_datetime_formatting_default_with_float(self, obs):
         self.data["dt"].dt.strftime(date_format="%Y-%m-%d %H:%M:%S.%f")
 
-    def time_frame_datetime_formatting_date_only(self, obs):
-        self.data["dt"].dt.strftime(date_format="%Y-%m-%d")
+    def time_frame_datetime_formatting_custom(self, obs):
+        self.data["dt"].dt.strftime(date_format="%Y-%m-%d --- %H:%M:%S")
 
 
 class BusinessHourStrftime:
