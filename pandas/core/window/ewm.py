@@ -389,7 +389,7 @@ class ExponentialMovingWindow(BaseWindow):
                 raise ValueError("times must be datetime64[ns] dtype.")
             if len(self.times) != len(obj):
                 raise ValueError("times must be the same length as the object.")
-            if not isinstance(self.halflife, (str, datetime.timedelta)):
+            if not isinstance(self.halflife, (str, datetime.timedelta, np.timedelta64)):
                 raise ValueError(
                     "halflife must be a string or datetime.timedelta object"
                 )
@@ -402,7 +402,7 @@ class ExponentialMovingWindow(BaseWindow):
             self._com = get_center_of_mass(self.com, self.span, 1.0, self.alpha)
         else:
             if self.halflife is not None and isinstance(
-                self.halflife, (str, datetime.timedelta)
+                self.halflife, (str, datetime.timedelta, np.timedelta64)
             ):
                 raise ValueError(
                     "halflife can only be a timedelta convertible argument if "
