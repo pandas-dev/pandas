@@ -396,12 +396,10 @@ class ExponentialMovingWindow(BaseWindow):
             if isna(self.times).any():
                 raise ValueError("Cannot convert NaT values to integer")
             self._deltas = _calculate_deltas(self.times, self.halflife)
-            # Halflife is no longer applicable when calculating COM
-            # But allow COM to still be calculated if the user passes other decay args
-            if common.count_not_none(self.com, self.span, self.alpha) > 0:
-                self._com = get_center_of_mass(self.com, self.span, None, self.alpha)
-            else:
-                self._com = 1.0
+            # GH 47003
+            # get_center_of_mass will validate and raise if the user has also
+            # passed in com, span or alpha (1.0 is a placeholder value)
+            self._com = get_center_of_mass(self.com, self.span, 1.0, self.alpha)
         else:
             if self.halflife is not None and isinstance(
                 self.halflife, (str, datetime.timedelta)
