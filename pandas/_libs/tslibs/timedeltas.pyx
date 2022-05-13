@@ -252,7 +252,7 @@ cdef object ensure_td64ns(object ts):
         try:
             td64_value = get_timedelta64_value(ts) * mult
         except OverflowError as ex:
-            msg = f"{ts} outside allowed range [{NPY_NAT + 1}ns, {INT64_MAX}ns]"
+            msg = f"{str(ts)} outside allowed range [{NPY_NAT + 1}ns, {INT64_MAX}ns]"
             raise OutOfBoundsTimedelta(msg) from ex
 
     return np.timedelta64(td64_value, "ns")
