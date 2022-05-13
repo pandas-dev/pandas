@@ -473,21 +473,14 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     ) -> NDArrayBackedExtensionArrayT:
         # TODO: disable for Categorical if not ordered?
 
-        # asarray needed for Sparse, see GH#24600
         mask = np.asarray(self.isna())
-        mask = np.atleast_2d(mask)
-
-        arr = np.atleast_2d(self._ndarray)
+        arr = self._ndarray
         fill_value = self._internal_fill_value
 
         res_values = quantile_with_mask(arr, mask, fill_value, qs, interpolation)
-        res_values = self._cast_quantile_result(res_values)
-        result = self._from_backing_data(res_values)
-        if self.ndim == 1:
-            assert result.shape == (1, len(qs)), result.shape
-            result = result[0]
 
-        return result
+        res_values = self._cast_quantile_result(res_values)
+        return self._from_backing_data(res_values)
 
     # TODO: see if we can share this with other dispatch-wrapping methods
     def _cast_quantile_result(self, res_values: np.ndarray) -> np.ndarray:
