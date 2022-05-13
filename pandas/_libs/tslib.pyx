@@ -122,7 +122,7 @@ def format_array_from_datetime(
         int64_t val, ns, N = len(values)
         ndarray[int64_t] consider_values
         bint show_ms = False, show_us = False, show_ns = False
-        bint basic_format = False
+        bint basic_format = False, basic_format_day = False
         ndarray[object] result = np.empty(N, dtype=object)
         object ts, res
         npy_datetimestruct dts
@@ -130,36 +130,48 @@ def format_array_from_datetime(
     if na_rep is None:
         na_rep = 'NaT'
 
-    # if we don't have a format nor tz, then choose
-    # a format based on precision
-    basic_format = format is None and tz is None
-    if basic_format:
-        consider_values = values[values != NPY_NAT]
-        show_ns = (consider_values % 1000).any()
+    if tz is None:
+        # if we don't have a format nor tz, then choose
+        # a format based on precision
+        basic_format = format is None
+        if basic_format:
+            consider_values = values[values != NPY_NAT]
+            show_ns = (consider_values % 1000).any()
 
-        if not show_ns:
-            consider_values //= 1000
-            show_us = (consider_values % 1000).any()
-
-            if not show_ms:
+            if not show_ns:
                 consider_values //= 1000
-                show_ms = (consider_values % 1000).any()
+                show_us = (consider_values % 1000).any()
 
-    elif format == "%Y-%m-%d %H:%M:%S":
-        # Same format as default, but with hardcoded precision (s)
-        basic_format = True
-        show_ns = show_us = show_ms = False
+                if not show_ms:
+                    consider_values //= 1000
+                    show_ms = (consider_values % 1000).any()
 
-    elif format == "%Y-%m-%d %H:%M:%S.%f":
-        # Same format as default, but with hardcoded precision (us)
-        basic_format = show_us = True
-        show_ns = show_ms = False
+        elif format == "%Y-%m-%d %H:%M:%S":
+            # Same format as default, but with hardcoded precision (s)
+            basic_format = True
+            show_ns = show_us = show_ms = False
+
+        elif format == "%Y-%m-%d %H:%M:%S.%f":
+            # Same format as default, but with hardcoded precision (us)
+            basic_format = show_us = True
+            show_ns = show_ms = False
+
+        elif format == "%Y-%m-%d":
+            # Default format for dates
+            basic_format_day = True
 
     for i in range(N):
         val = values[i]
 
         if val == NPY_NAT:
             result[i] = na_rep
+        elif basic_format_day:
+
+            dt64_to_dtstruct(val, &dts)
+            res = f'{dts.year}-{dts.month:02d}-{dts.day:02d}'
+
+            result[i] = res
+
         elif basic_format:
 
             dt64_to_dtstruct(val, &dts)
