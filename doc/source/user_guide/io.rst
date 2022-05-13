@@ -5470,7 +5470,7 @@ See the documentation for `pyarrow <https://arrow.apache.org/docs/python/>`__ an
 .. note::
 
    These engines are very similar and should read/write nearly identical parquet format files.
-   Currently ``pyarrow`` does not support timedelta data, ``fastparquet>=0.1.4`` supports timezone aware datetimes.
+   ``pyarrow>=8.0.0`` supports timedelta data, ``fastparquet>=0.1.4`` supports timezone aware datetimes.
    These libraries differ by having different underlying dependencies (``fastparquet`` by using ``numba``, while ``pyarrow`` uses a c-library).
 
 .. ipython:: python
