@@ -1,11 +1,13 @@
 from datetime import timedelta
 from decimal import Decimal
+import inspect
 import re
 
 from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 
+from pandas._libs import lib
 from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
@@ -897,6 +899,17 @@ class TestDataFrameAnalytics:
             expected = df.apply(Series.idxmin, axis=axis, skipna=skipna)
             tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("numeric_only", [True, False])
+    def test_idxmin_numeric_only(self, numeric_only):
+        df = DataFrame({"a": [2, 3, 1], "b": [2, 1, 1], "c": list("xyx")})
+        if numeric_only:
+            result = df.idxmin(numeric_only=numeric_only)
+            expected = Series([2, 1], index=["a", "b"])
+            tm.assert_series_equal(result, expected)
+        else:
+            with pytest.raises(TypeError, match="not allowed for this dtype"):
+                df.idxmin(numeric_only=numeric_only)
+
     def test_idxmin_axis_2(self, float_frame):
         frame = float_frame
         msg = "No axis named 2 for object type DataFrame"
@@ -913,6 +926,17 @@ class TestDataFrameAnalytics:
             result = df.idxmax(axis=axis, skipna=skipna)
             expected = df.apply(Series.idxmax, axis=axis, skipna=skipna)
             tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("numeric_only", [True, False])
+    def test_idxmax_numeric_only(self, numeric_only):
+        df = DataFrame({"a": [2, 3, 1], "b": [2, 1, 1], "c": list("xyx")})
+        if numeric_only:
+            result = df.idxmax(numeric_only=numeric_only)
+            expected = Series([1, 0], index=["a", "b"])
+            tm.assert_series_equal(result, expected)
+        else:
+            with pytest.raises(TypeError, match="not allowed for this dtype"):
+                df.idxmin(numeric_only=numeric_only)
 
     def test_idxmax_axis_2(self, float_frame):
         frame = float_frame
@@ -1730,7 +1754,9 @@ def test_groupby_regular_arithmetic_equivalent(meth):
 def test_frame_mixed_numeric_object_with_timestamp(ts_value):
     # GH 13912
     df = DataFrame({"a": [1], "b": [1.1], "c": ["foo"], "d": [ts_value]})
-    with tm.assert_produces_warning(FutureWarning, match="Dropping of nuisance"):
+    with tm.assert_produces_warning(
+        FutureWarning, match="The default value of numeric_only"
+    ):
         result = df.sum()
     expected = Series([1, 1.1, "foo"], index=list("abc"))
     tm.assert_series_equal(result, expected)
@@ -1764,3 +1790,60 @@ def test_reduction_axis_none_deprecation(method):
         expected = meth()
     tm.assert_series_equal(res, expected)
     tm.assert_series_equal(res, meth(axis=0))
+
+
+@pytest.mark.parametrize(
+    "kernel",
+    [
+        "corr",
+        "corrwith",
+        "count",
+        "cov",
+        "idxmax",
+        "idxmin",
+        "kurt",
+        "kurt",
+        "max",
+        "mean",
+        "median",
+        "min",
+        "mode",
+        "prod",
+        "prod",
+        "quantile",
+        "sem",
+        "skew",
+        "std",
+        "sum",
+        "var",
+    ],
+)
+def test_numeric_only_deprecation(kernel):
+    # GH#46852
+    df = DataFrame({"a": [1, 2, 3], "b": object})
+    args = (df,) if kernel == "corrwith" else ()
+    signature = inspect.signature(getattr(DataFrame, kernel))
+    default = signature.parameters["numeric_only"].default
+    assert default is not True
+
+    if kernel in ("idxmax", "idxmin"):
+        # kernels that default to numeric_only=False and fail on nuisance columns
+        assert default is False
+        with pytest.raises(TypeError, match="not allowed for this dtype"):
+            getattr(df, kernel)(*args)
+    else:
+        if default is None or default is lib.no_default:
+            expected = getattr(df[["a"]], kernel)(*args)
+            warn = FutureWarning
+        else:
+            # default must be False and works on any nuisance columns
+            expected = getattr(df, kernel)(*args)
+            if kernel == "mode":
+                assert "b" in expected.columns
+            else:
+                assert "b" in expected.index
+            warn = None
+        msg = f"The default value of numeric_only in DataFrame.{kernel}"
+        with tm.assert_produces_warning(warn, match=msg):
+            result = getattr(df, kernel)(*args)
+        tm.assert_equal(result, expected)

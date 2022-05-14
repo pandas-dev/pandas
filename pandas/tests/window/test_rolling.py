@@ -1849,3 +1849,25 @@ def test_rolling_var_same_value_count_logic(values, window, min_periods, expecte
     result_std = sr.rolling(window, min_periods=min_periods).std()
     tm.assert_series_equal(result_std, np.sqrt(expected))
     tm.assert_series_equal(expected == 0, result_std == 0)
+
+
+def test_rolling_mean_sum_floating_artifacts():
+    # GH 42064.
+
+    sr = Series([1 / 3, 4, 0, 0, 0, 0, 0])
+    r = sr.rolling(3)
+    result = r.mean()
+    assert (result[-3:] == 0).all()
+    result = r.sum()
+    assert (result[-3:] == 0).all()
+
+
+def test_rolling_skew_kurt_floating_artifacts():
+    # GH 42064 46431
+
+    sr = Series([1 / 3, 4, 0, 0, 0, 0, 0])
+    r = sr.rolling(4)
+    result = r.skew()
+    assert (result[-2:] == 0).all()
+    result = r.kurt()
+    assert (result[-2:] == -3).all()

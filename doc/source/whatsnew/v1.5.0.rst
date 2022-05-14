@@ -14,15 +14,40 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+.. _whatsnew_150.enhancements.dataframe_exchange:
+
+DataFrame exchange protocol implementation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Pandas now implement the DataFrame exchange API spec.
+See the full details on the API at https://data-apis.org/dataframe-protocol/latest/index.html
+
+The protocol consists of two parts:
+
+  - New method :meth:`DataFrame.__dataframe__` which produces the exchange object.
+    It effectively "exports" the Pandas dataframe as an exchange object so
+    any other library which has the protocol implemented can "import" that dataframe
+    without knowing anything about the producer except that it makes an exchange object.
+  - New function :func:`pandas.api.exchange.from_dataframe` which can take
+    an arbitrary exchange object from any conformant library and construct a
+    Pandas DataFrame out of it.
+
 .. _whatsnew_150.enhancements.styler:
 
 Styler
 ^^^^^^
 
-  - New method :meth:`.Styler.to_string` for alternative customisable output methods (:issue:`44502`)
-  - Added the ability to render ``border`` and ``border-{side}`` CSS properties in Excel (:issue:`42276`)
-  - Added a new method :meth:`.Styler.concat` which allows adding customised footer rows to visualise additional calculations on the data, e.g. totals and counts etc. (:issue:`43875`, :issue:`46186`)
-  - :meth:`.Styler.highlight_null` now accepts ``color`` consistently with other builtin methods and deprecates ``null_color`` although this remains backwards compatible (:issue:`45907`)
+The most notable development is the new method :meth:`.Styler.concat` which
+allows adding customised footer rows to visualise additional calculations on the data,
+e.g. totals and counts etc. (:issue:`43875`, :issue:`46186`)
+
+Additionally there is an alternative output method :meth:`.Styler.to_string`,
+which allows using the Styler's formatting methods to create, for example, CSVs (:issue:`44502`).
+
+Minor feature improvements are:
+
+  - Adding the ability to render ``border`` and ``border-{side}`` CSS properties in Excel (:issue:`42276`)
+  - Making keyword arguments consist: :meth:`.Styler.highlight_null` now accepts ``color`` and deprecates ``null_color`` although this remains backwards compatible (:issue:`45907`)
 
 .. _whatsnew_150.enhancements.resample_group_keys:
 
@@ -75,10 +100,36 @@ as seen in the following example.
                1 2021-01-02 08:00:00  4
                2 2021-01-02 16:00:00  5
 
+.. _whatsnew_150.enhancements.tar:
+
+Reading directly from TAR archives
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+I/O methods like :func:`read_csv` or :meth:`DataFrame.to_json` now allow reading and writing
+directly on TAR archives (:issue:`44787`).
+
+.. code-block:: python
+
+   df = pd.read_csv("./movement.tar.gz")
+   # ...
+   df.to_csv("./out.tar.gz")
+
+This supports ``.tar``, ``.tar.gz``, ``.tar.bz`` and ``.tar.xz2`` archives.
+The used compression method is inferred from the filename.
+If the compression method cannot be inferred, use the ``compression`` argument:
+
+.. code-block:: python
+
+   df = pd.read_csv(some_file_obj, compression={"method": "tar", "mode": "r:gz"}) # noqa F821
+
+(``mode`` being one of ``tarfile.open``'s modes: https://docs.python.org/3/library/tarfile.html#tarfile.open)
+
+
 .. _whatsnew_150.enhancements.other:
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+- :meth:`Series.map` now raises when ``arg`` is dict but ``na_action`` is not either ``None`` or ``'ignore'`` (:issue:`46588`)
 - :meth:`MultiIndex.to_frame` now supports the argument ``allow_duplicates`` and raises on duplicate labels if it is missing or False (:issue:`45245`)
 - :class:`StringArray` now accepts array-likes containing nan-likes (``None``, ``np.nan``) for the ``values`` parameter in its constructor in addition to strings and :attr:`pandas.NA`. (:issue:`40839`)
 - Improved the rendering of ``categories`` in :class:`CategoricalIndex` (:issue:`45218`)
@@ -94,7 +145,9 @@ Other enhancements
 - :meth:`DataFrame.reset_index` now accepts a ``names`` argument which renames the index names (:issue:`6878`)
 - :meth:`pd.concat` now raises when ``levels`` is given but ``keys`` is None (:issue:`46653`)
 - :meth:`pd.concat` now raises when ``levels`` contains duplicate values (:issue:`46653`)
-- Added ``numeric_only`` argument to :meth:`DataFrame.corr`, :meth:`DataFrame.corrwith`, and :meth:`DataFrame.cov` (:issue:`46560`)
+- Added ``numeric_only`` argument to :meth:`DataFrame.corr`, :meth:`DataFrame.corrwith`, :meth:`DataFrame.cov`, :meth:`DataFrame.idxmin`, :meth:`DataFrame.idxmax`, :meth:`.DataFrameGroupBy.idxmin`, :meth:`.DataFrameGroupBy.idxmax`, :meth:`.GroupBy.var`, :meth:`.GroupBy.std`, :meth:`.GroupBy.sem`, and :meth:`.DataFrameGroupBy.quantile` (:issue:`46560`)
+- A :class:`errors.PerformanceWarning` is now thrown when using ``string[pyarrow]`` dtype with methods that don't dispatch to ``pyarrow.compute`` methods (:issue:`42613`, :issue:`46725`)
+- Added ``validate`` argument to :meth:`DataFrame.join` (:issue:`46622`)
 - A :class:`errors.PerformanceWarning` is now thrown when using ``string[pyarrow]`` dtype with methods that don't dispatch to ``pyarrow.compute`` methods (:issue:`42613`)
 - Added ``numeric_only`` argument to :meth:`Resampler.sum`, :meth:`Resampler.prod`, :meth:`Resampler.min`, :meth:`Resampler.max`, :meth:`Resampler.first`, and :meth:`Resampler.last` (:issue:`46442`)
 
@@ -105,13 +158,6 @@ Notable bug fixes
 ~~~~~~~~~~~~~~~~~
 
 These are bug fixes that might have notable behavior changes.
-
-.. _whatsnew_150.notable_bug_fixes.notable_bug_fix1:
-
-Styler
-^^^^^^
-
-- Fixed bug in :class:`CSSToExcelConverter` leading to ``TypeError`` when border color provided without border style for ``xlsxwriter`` engine (:issue:`42276`)
 
 .. _whatsnew_150.notable_bug_fixes.groupby_transform_dropna:
 
@@ -173,17 +219,47 @@ did not have the same index as the input.
     df.groupby('a', dropna=True).transform('ffill')
     df.groupby('a', dropna=True).transform(lambda x: x)
 
-.. _whatsnew_150.notable_bug_fixes.visualization:
+.. _whatsnew_150.notable_bug_fixes.to_json_incorrectly_localizing_naive_timestamps:
 
-Styler
-^^^^^^
+Serializing tz-naive Timestamps with to_json() with ``iso_dates=True``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- Fix showing "None" as ylabel in :meth:`Series.plot` when not setting ylabel (:issue:`46129`)
+:meth:`DataFrame.to_json`, :meth:`Series.to_json`, and :meth:`Index.to_json`
+would incorrectly localize DatetimeArrays/DatetimeIndexes with tz-naive Timestamps
+to UTC. (:issue:`38760`)
 
-.. _whatsnew_150.notable_bug_fixes.notable_bug_fix2:
+Note that this patch does not fix the localization of tz-aware Timestamps to UTC
+upon serialization. (Related issue :issue:`12997`)
 
-notable_bug_fix2
-^^^^^^^^^^^^^^^^
+*Old Behavior*
+
+.. ipython:: python
+
+    index = pd.date_range(
+        start='2020-12-28 00:00:00',
+        end='2020-12-28 02:00:00',
+        freq='1H',
+    )
+    a = pd.Series(
+        data=range(3),
+        index=index,
+    )
+
+.. code-block:: ipython
+
+    In [4]: a.to_json(date_format='iso')
+    Out[4]: '{"2020-12-28T00:00:00.000Z":0,"2020-12-28T01:00:00.000Z":1,"2020-12-28T02:00:00.000Z":2}'
+
+    In [5]: pd.read_json(a.to_json(date_format='iso'), typ="series").index == a.index
+    Out[5]: array([False, False, False])
+
+*New Behavior*
+
+.. ipython:: python
+
+    a.to_json(date_format='iso')
+    # Roundtripping now works
+    pd.read_json(a.to_json(date_format='iso'), typ="series").index == a.index
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.api_breaking:
@@ -412,6 +488,48 @@ As ``group_keys=True`` is the default value of :meth:`DataFrame.groupby` and
 raise a ``FutureWarning``. This can be silenced and the previous behavior
 retained by specifying ``group_keys=False``.
 
+.. _whatsnew_150.deprecations.numeric_only_default:
+
+``numeric_only`` default value
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Across the DataFrame operations such as ``min``, ``sum``, and ``idxmax``, the default
+value of the ``numeric_only`` argument, if it exists at all, was inconsistent.
+Furthermore, operations with the default value ``None`` can lead to surprising
+results. (:issue:`46560`)
+
+.. code-block:: ipython
+
+    In [1]: df = pd.DataFrame({"a": [1, 2], "b": ["x", "y"]})
+
+    In [2]: # Reading the next line without knowing the contents of df, one would
+            # expect the result to contain the products for both columns a and b.
+            df[["a", "b"]].prod()
+    Out[2]:
+    a    2
+    dtype: int64
+
+To avoid this behavior, the specifying the value ``numeric_only=None`` has been
+deprecated, and will be removed in a future version of pandas. In the future,
+all operations with a ``numeric_only`` argument will default to ``False``. Users
+should either call the operation only with columns that can be operated on, or
+specify ``numeric_only=True`` to operate only on Boolean, integer, and float columns.
+
+In order to support the transition to the new behavior, the following methods have
+gained the ``numeric_only`` argument.
+
+- :meth:`DataFrame.corr`
+- :meth:`DataFrame.corrwith`
+- :meth:`DataFrame.cov`
+- :meth:`DataFrame.idxmin`
+- :meth:`DataFrame.idxmax`
+- :meth:`.DataFrameGroupBy.idxmin`
+- :meth:`.DataFrameGroupBy.idxmax`
+- :meth:`.GroupBy.var`
+- :meth:`.GroupBy.std`
+- :meth:`.GroupBy.sem`
+- :meth:`.DataFrameGroupBy.quantile`
+
 .. _whatsnew_150.deprecations.other:
 
 Other Deprecations
@@ -434,6 +552,7 @@ Other Deprecations
 - Deprecated passing arguments as positional in :meth:`DataFrame.any` and :meth:`Series.any` (:issue:`44802`)
 - Deprecated the ``closed`` argument in :meth:`interval_range` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
 - Deprecated the methods :meth:`DataFrame.mad`, :meth:`Series.mad`, and the corresponding groupby methods (:issue:`11787`)
+- Deprecated positional arguments to :meth:`Index.join` except for ``other``, use keyword-only arguments instead of positional arguments (:issue:`46518`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.performance:
@@ -542,6 +661,7 @@ Indexing
 - Bug in :meth:`CategoricalIndex.get_indexer` when index contains ``NaN`` values, resulting in elements that are in target but not present in the index to be mapped to the index of the NaN element, instead of -1 (:issue:`45361`)
 - Bug in setting large integer values into :class:`Series` with ``float32`` or ``float16`` dtype incorrectly altering these values instead of coercing to ``float64`` dtype (:issue:`45844`)
 - Bug in :meth:`Series.asof` and :meth:`DataFrame.asof` incorrectly casting bool-dtype results to ``float64`` dtype (:issue:`16063`)
+- Bug in :meth:`NDFrame.xs`, :meth:`DataFrame.iterrows`, :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` not always propagating metadata (:issue:`28283`)
 -
 
 Missing
@@ -549,7 +669,7 @@ Missing
 - Bug in :meth:`Series.fillna` and :meth:`DataFrame.fillna` with ``downcast`` keyword not being respected in some cases where there are no NA values present (:issue:`45423`)
 - Bug in :meth:`Series.fillna` and :meth:`DataFrame.fillna` with :class:`IntervalDtype` and incompatible value raising instead of casting to a common (usually object) dtype (:issue:`45796`)
 - Bug in :meth:`DataFrame.interpolate` with object-dtype column not returning a copy with ``inplace=False`` (:issue:`45791`)
--
+- Bug in :meth:`DataFrame.dropna` allows to set both ``how`` and ``thresh`` incompatible arguments (:issue:`46575`)
 
 MultiIndex
 ^^^^^^^^^^
@@ -581,6 +701,8 @@ Period
 ^^^^^^
 - Bug in subtraction of :class:`Period` from :class:`PeriodArray` returning wrong results (:issue:`45999`)
 - Bug in :meth:`Period.strftime` and :meth:`PeriodIndex.strftime`, directives ``%l`` and ``%u`` were giving wrong results (:issue:`46252`)
+- Bug in inferring an incorrect ``freq`` when passing a string to :class:`Period` microseconds that are a multiple of 1000 (:issue:`46811`)
+- Bug in constructing a :class:`Period` from a :class:`Timestamp` or ``np.datetime64`` object with non-zero nanoseconds and ``freq="ns"`` incorrectly truncating the nanoseconds (:issue:`46811`)
 -
 
 Plotting
@@ -591,6 +713,7 @@ Plotting
 - Bug in :meth:`DataFrame.boxplot` that prevented specifying ``vert=False`` (:issue:`36918`)
 - Bug in :meth:`DataFrame.plot.scatter` that prevented specifying ``norm`` (:issue:`45809`)
 - The function :meth:`DataFrame.plot.scatter` now accepts ``color`` as an alias for ``c`` and ``size`` as an alias for ``s`` for consistency to other plotting functions (:issue:`44670`)
+- Fix showing "None" as ylabel in :meth:`Series.plot` when not setting ylabel (:issue:`46129`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -607,9 +730,12 @@ Groupby/resample/rolling
 - Bug in :meth:`GroupBy.max` with empty groups and ``uint64`` dtype incorrectly raising ``RuntimeError`` (:issue:`46408`)
 - Bug in :meth:`.GroupBy.apply` would fail when ``func`` was a string and args or kwargs were supplied (:issue:`46479`)
 - Bug in :meth:`SeriesGroupBy.apply` would incorrectly name its result when there was a unique group (:issue:`46369`)
+- Bug in :meth:`Rolling.sum` and :meth:`Rolling.mean` would give incorrect result with window of same values (:issue:`42064`, :issue:`46431`)
 - Bug in :meth:`Rolling.var` and :meth:`Rolling.std` would give non-zero result with window of same values (:issue:`42064`)
+- Bug in :meth:`Rolling.skew` and :meth:`Rolling.kurt` would give NaN with window of same values (:issue:`30993`)
 - Bug in :meth:`.Rolling.var` would segfault calculating weighted variance when window size was larger than data size (:issue:`46760`)
 - Bug in :meth:`Grouper.__repr__` where ``dropna`` was not included. Now it is (:issue:`46754`)
+- Bug in :meth:`DataFrame.rolling` gives ValueError when center=True, axis=1 and win_type is specified (:issue:`46135`)
 
 Reshaping
 ^^^^^^^^^
@@ -635,7 +761,7 @@ ExtensionArray
 Styler
 ^^^^^^
 - Bug when attempting to apply styling functions to an empty DataFrame subset (:issue:`45313`)
--
+- Bug in :class:`CSSToExcelConverter` leading to ``TypeError`` when border color provided without border style for ``xlsxwriter`` engine (:issue:`42276`)
 
 Metadata
 ^^^^^^^^

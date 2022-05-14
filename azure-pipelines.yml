@@ -22,16 +22,6 @@ variables:
   PANDAS_CI: 1
 
 jobs:
-- template: ci/azure/posix.yml
-  parameters:
-    name: macOS
-    vmImage: macOS-10.15
-
-- template: ci/azure/windows.yml
-  parameters:
-    name: Windows
-    vmImage: windows-2019
-
 - job: py38_32bit
   pool:
     vmImage: ubuntu-18.04
