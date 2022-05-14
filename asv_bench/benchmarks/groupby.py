@@ -677,6 +677,15 @@ class Categories:
     def time_groupby_extra_cat_nosort(self):
         self.df_extra_cat.groupby("a", sort=False)["b"].count()
 
+    def time_series_groupby_value_counts_many_categories(self):
+        df = self.df_extra_cat[0:10**4]
+        df.groupby("b")["a"].value_counts()
+
+    def time_series_groupby_value_counts_few_categories(self):
+        df = self.df_extra_cat[0:10**4].copy()
+        df["a"] = df["a"].cat.remove_unused_categories()
+        df.groupby("b")["a"].value_counts()
+
 
 class Datelike:
     # GH 14338
