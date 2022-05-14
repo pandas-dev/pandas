@@ -225,14 +225,27 @@ def count_not_none(*args) -> int:
     return sum(x is not None for x in args)
 
 
-def asarray_tuplesafe(values, dtype: NpDtype | None = None) -> np.ndarray:
+@overload
+def asarray_tuplesafe(
+    values: ArrayLike | list | tuple | zip, dtype: NpDtype | None = ...
+) -> np.ndarray:
+    # ExtensionArray can only be returned when values is an Index, all other iterables
+    # will return np.ndarray. Unfortunately "all other" cannot be encoded in a type
+    # signature, so instead we special-case some common types.
+    ...
+
+
+@overload
+def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = ...) -> ArrayLike:
+    ...
+
+
+def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLike:
 
     if not (isinstance(values, (list, tuple)) or hasattr(values, "__array__")):
         values = list(values)
     elif isinstance(values, ABCIndex):
-        # error: Incompatible return value type (got "Union[ExtensionArray, ndarray]",
-        # expected "ndarray")
-        return values._values  # type: ignore[return-value]
+        return values._values
 
     if isinstance(values, list) and dtype in [np.object_, object]:
         return construct_1d_object_array_from_listlike(values)

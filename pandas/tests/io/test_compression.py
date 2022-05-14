@@ -11,6 +11,8 @@ import zipfile
 
 import pytest
 
+from pandas.compat import is_platform_windows
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -325,5 +327,10 @@ def test_tar_gz_to_different_filename():
                 members = archive.getmembers()
                 assert len(members) == 1
                 content = archive.extractfile(members[0]).read().decode("utf8")
-                content = content.replace("\r\n", "\n")  # windows
-                assert content == "foo,bar\n1,2\n"
+
+                if is_platform_windows():
+                    expected = "foo,bar\r\n1,2\r\n"
+                else:
+                    expected = "foo,bar\n1,2\n"
+
+                assert content == expected
