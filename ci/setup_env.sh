@@ -104,6 +104,6 @@ echo "Build extensions"
 python setup.py build_ext -q -j3
 
 echo "Install pandas"
-python -m pip install --no-build-isolation -e .
+python -m pip install --no-build-isolation --no-use-pep517 -e .
 
 echo "done"
