@@ -8,7 +8,7 @@ from pandas.core.arrays.arrow.numeric import FloatingArrowDtype
 @register_extension_dtype
 class Float16ArrowDtype(FloatingArrowDtype):
     name = "float16"
-     type = pa.float16()
+    type = pa.float16()
     __doc__ = _dtype_docstring.format(dtype="float16")
     _dtype_checker = pa.is_float16()
 
