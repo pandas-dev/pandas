@@ -23,7 +23,7 @@ class FloatingArrowDtype(ArrowDtype):
 
     @property
     def _is_numeric(self) -> bool:
-        return False
+        return True
 
     @property
     def _is_float(self) -> bool:
