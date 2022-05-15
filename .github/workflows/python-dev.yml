@@ -29,7 +29,7 @@ env:
 
 jobs:
   build:
-    if: false # Comment this line out to "unfreeze"
+    #if: false # Comment this line out to "unfreeze"
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -61,7 +61,8 @@ jobs:
         python -m pip install --upgrade pip "setuptools<60.0.0" wheel
         pip install -i https://pypi.anaconda.org/scipy-wheels-nightly/simple numpy
         pip install git+https://github.com/nedbat/coveragepy.git
-        pip install cython python-dateutil pytz hypothesis pytest>=6.2.5 pytest-xdist pytest-cov
+        pip install git+https://github.com/cython/cython.git
+        pip install python-dateutil pytz hypothesis pytest>=6.2.5 pytest-xdist pytest-cov
         pip list
 
     - name: Build Pandas
