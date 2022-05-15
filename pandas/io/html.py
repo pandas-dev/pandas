@@ -16,6 +16,8 @@ from typing import (
     cast,
 )
 
+import numpy as np
+
 from pandas._typing import (
     FilePath,
     ReadBuffer,
@@ -32,7 +34,6 @@ from pandas.core.dtypes.common import is_list_like
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.base import Index
-from pandas.core.indexes.multi import MultiIndex
 
 from pandas.io.common import (
     file_exists,
@@ -185,8 +186,7 @@ class _HtmlFrameParser:
 
     extract_links : {None, "all", "header", "body", "footer"}
         Table elements in the specified section(s) with <a> tags will have their
-        href extracted. Note that specifying "header" will result in a
-        :class:`~pandas.MultiIndex`.
+        href extracted.
 
     .. versionadded:: 1.5.0
 
@@ -210,8 +210,7 @@ class _HtmlFrameParser:
 
     extract_links : {None, "all", "header", "body", "footer"}
         Table elements in the specified section(s) with <a> tags will have their
-        href extracted. Note that specifying "header" will result in a
-        :class:`~pandas.MultiIndex`.
+        href extracted.
 
     .. versionadded:: 1.5.0
 
@@ -875,13 +874,7 @@ def _data_to_frame(**kwargs):
     # fill out elements of body that are "ragged"
     _expand_elements(body)
     with TextParser(body, header=header, **kwargs) as tp:
-        df = tp.read()
-
-        # Cast MultiIndex header to an Index of tuples.
-        # This maintains consistency of selection (e.g. df.columns.str[1])
-        if isinstance(df.columns, MultiIndex):
-            df.columns = Index(df.columns)
-        return df
+        return tp.read()
 
 
 _valid_parsers = {
@@ -1001,7 +994,19 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, extract_links, **
     ret = []
     for table in tables:
         try:
-            ret.append(_data_to_frame(data=table, **kwargs))
+            df = _data_to_frame(data=table, **kwargs)
+            # Cast MultiIndex header to an Index of tuples when extracting header
+            # links and replace np.nan with None.
+            # This maintains consistency of selection (e.g. df.columns.str[1])
+            if extract_links in ("all", "header"):
+                idx = df.columns.values
+                idx[:] = np.vectorize(
+                    lambda cols: tuple(None if col is np.nan else col for col in cols),
+                    otypes=["object"],
+                )(idx)
+                df.columns = Index(df.columns)
+
+            ret.append(df)
         except EmptyDataError:  # empty table
             continue
     return ret
@@ -1121,8 +1126,7 @@ def read_html(
 
     extract_links : {None, "all", "header", "body", "footer"}
         Table elements in the specified section(s) with <a> tags will have their
-        href extracted. Note that specifying "header" will result in a
-        :class:`~pandas.MultiIndex`.
+        href extracted.
 
     .. versionadded:: 1.5.0
 

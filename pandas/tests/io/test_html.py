@@ -143,8 +143,8 @@ class TestReadHtml:
         return {
             "head_ignore": ["HTTP", "FTP", "Linkless"],
             "head_extract": [
-                ("HTTP", np.nan),
-                ("FTP", np.nan),
+                ("HTTP", None),
+                ("FTP", None),
                 ("Linkless", "https://en.wiktionary.org/wiki/linkless"),
             ],
             "body_ignore": ["Wikipedia", "SURROUNDING Debian TEXT", "Linkless"],
