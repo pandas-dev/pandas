@@ -666,11 +666,3 @@ def test_ewm_pairwise_cov_corr(func, frame):
     result.index = result.index.droplevel(1)
     expected = getattr(frame[1].ewm(span=10, min_periods=5), func)(frame[5])
     tm.assert_series_equal(result, expected, check_names=False)
-
-
-@pytest.mark.parametrize("decay", ["alpha", "com", "span"])
-def test_validate_times_halflife_with_other_decay(decay):
-    ser = Series([1, 2])
-    msg = "comass, span, halflife, and alpha are mutually exclusive"
-    with pytest.raises(ValueError, match=msg):
-        ser.ewm(**{decay: 1}, halflife="1 Day", times=DatetimeIndex(["2021", "2022"]))
