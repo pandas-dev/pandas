@@ -59,7 +59,6 @@ class ArrowExtensionArray(ExtensionArray):
         self.storage = storage
         self._dtype = ArrowDtype(storage="pyarrow", pa_dtype=pa_dtype)
 
-
     def __arrow_array__(self, type=None):
         """Convert myself to a pyarrow Array or ChunkedArray."""
         return self._data
@@ -494,7 +493,7 @@ class ArrowExtensionArray(ExtensionArray):
             return pa.compute.mean(self._data, skip_nulls=skipna)
         else:
             raise TypeError(f"Cannot compute mean from '{string}'")
-    
+
     def max(self, skipna=True):
         if self.dtype._is_numeric:
             return pa.compute.max(self._data, skip_nulls=skipna)
@@ -513,7 +512,7 @@ class ArrowExtensionArray(ExtensionArray):
         else:
             raise TypeError(f"Cannot compute mode from '{string}'")
 
-    def quantile(self, q=0.5, interpolation='linear'):
+    def quantile(self, q=0.5, interpolation="linear"):
         if self.dtype._is_numeric:
             return pa.compute.quantile(self._data, q=q, interpolation=interpolation)
         else:

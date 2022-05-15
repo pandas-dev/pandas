@@ -44,9 +44,7 @@ class FloatingArrowArray(ArrowExtensionArray):
     def __init__(self, values: pa.ChunkedArray) -> None:
         checker = self._dtype_cls._dtype_checker
         if not (isinstance(values, pa.ChunkedArray) and checker(values.type)):
-            descr = (
-                "floating"
-            )
+            descr = "floating"
             raise TypeError(f"values should be {descr} arrow array.")
         super().__init__(values)
 
