@@ -1979,22 +1979,19 @@ default 'raise'
             value = tz_localize_to_utc_single(self.value, tz,
                                               ambiguous=ambiguous,
                                               nonexistent=nonexistent)
-            out = Timestamp(value, tz=tz)
-            if out is not NaT:
-                out._set_freq(self._freq)  # avoid warning in constructor
-            return out
+        elif tz is None:
+            # reset tz
+            value = tz_convert_from_utc_single(self.value, self.tz)
+
         else:
-            if tz is None:
-                # reset tz
-                value = tz_convert_from_utc_single(self.value, self.tz)
-                out = Timestamp(value, tz=tz)
-                if out is not NaT:
-                    out._set_freq(self._freq)  # avoid warning in constructor
-                return out
-            else:
-                raise TypeError(
-                    "Cannot localize tz-aware Timestamp, use tz_convert for conversions"
-                )
+            raise TypeError(
+                "Cannot localize tz-aware Timestamp, use tz_convert for conversions"
+            )
+
+        out = Timestamp(value, tz=tz)
+        if out is not NaT:
+            out._set_freq(self._freq)  # avoid warning in constructor
+        return out
 
     def tz_convert(self, tz):
         """
