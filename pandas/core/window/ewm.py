@@ -134,8 +134,9 @@ class ExponentialMovingWindow(BaseWindow):
     r"""
     Provide exponentially weighted (EW) calculations.
 
-    Exactly one parameter: ``com``, ``span``, ``halflife``, or ``alpha`` must be
-    provided.
+    Exactly one of ``com``, ``span``, ``halflife``, or ``alpha`` must be
+    provided if ``times`` is not provided. If ``times`` is provided,
+    ``halflife`` and one of ``com``, ``span`` or ``alpha`` may be provided.
 
     Parameters
     ----------
@@ -155,7 +156,7 @@ class ExponentialMovingWindow(BaseWindow):
         :math:`\alpha = 1 - \exp\left(-\ln(2) / halflife\right)`, for
         :math:`halflife > 0`.
 
-        If ``times`` is specified, the time unit (str or timedelta) over which an
+        If ``times`` is specified, a timedelta convertible unit over which an
         observation decays to half its value. Only applicable to ``mean()``,
         and halflife value will not apply to the other functions.
 
@@ -390,9 +391,7 @@ class ExponentialMovingWindow(BaseWindow):
             if len(self.times) != len(obj):
                 raise ValueError("times must be the same length as the object.")
             if not isinstance(self.halflife, (str, datetime.timedelta, np.timedelta64)):
-                raise ValueError(
-                    "halflife must be a string or datetime.timedelta object"
-                )
+                raise ValueError("halflife must be a timedelta convertible object")
             if isna(self.times).any():
                 raise ValueError("Cannot convert NaT values to integer")
             self._deltas = _calculate_deltas(self.times, self.halflife)
