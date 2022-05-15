@@ -2,7 +2,7 @@
 # Unfreeze(by commentingthe if: false() condition) once the
 # next Python Dev version has released beta 1 and both Cython and numpy support it
 # After that Python has released, migrate the workflows to the
-# posix GHA workflows/Azure pipelines and "freeze" this file by
+# posix GHA workflows and "freeze" this file by
 # uncommenting the if: false() condition
 # Feel free to modify this comment as necessary.
 
