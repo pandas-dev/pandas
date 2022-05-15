@@ -53,11 +53,11 @@ class ArrowExtensionArray(ExtensionArray):
     """
 
     _data: pa.ChunkedArray
+    _dtype: pa.DataType
 
     def __init__(self, values: pa.ChunkedArray, pa_dtype: pa.DataType) -> None:
         self._data = values
-        self.storage = storage
-        self._dtype = ArrowDtype(storage="pyarrow", pa_dtype=pa_dtype)
+        self._dtype = ArrowDtype(pa_dtype=pa_dtype, storage="pyarrow")
 
     def __arrow_array__(self, type=None):
         """Convert myself to a pyarrow Array or ChunkedArray."""
@@ -472,12 +472,14 @@ class ArrowExtensionArray(ExtensionArray):
 
         return pc.replace_with_mask(chunk, mask, value)
 
-    @cache_readonly
+    @property
     def dtype(self) -> ArrowDtype:
         return self._dtype
 
     @classmethod
-    def _from_sequence_of_strings(cls, strings, *, dtype=None, copy: bool = False):
+    def _from_sequence_of_strings(
+        self, cls, strings, *, dtype=None, copy: bool = False
+    ):
         if self.dtype._is_numeric:
             from pandas.core.tools.numeric import to_numeric
 
@@ -488,32 +490,32 @@ class ArrowExtensionArray(ExtensionArray):
             scalars = to_datetime(strings, error="raise")
         return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
-    def mean(self, skipna=True):
+    def mean(self, skipna: bool = True):
         if self.dtype._is_numeric:
             return pa.compute.mean(self._data, skip_nulls=skipna)
         else:
-            raise TypeError(f"Cannot compute mean from '{string}'")
+            raise TypeError("Cannot compute mean")
 
-    def max(self, skipna=True):
+    def max(self, skipna: bool = True):
         if self.dtype._is_numeric:
             return pa.compute.max(self._data, skip_nulls=skipna)
         else:
-            raise TypeError(f"Cannot compute max from '{string}'")
+            raise TypeError("Cannot compute max")
 
-    def min(self, skipna=True):
+    def min(self, skipna: bool = True):
         if self.dtype._is_numeric:
             return pa.compute.min(self._data, skip_nulls=skipna)
         else:
-            raise TypeError(f"Cannot compute min from '{string}'")
+            raise TypeError("Cannot compute min")
 
-    def mode(self, skipna=True):
+    def mode(self, skipna: bool = True):
         if self.dtype._is_numeric:
             return pa.compute.mode(self._data, skip_nulls=skipna)
         else:
-            raise TypeError(f"Cannot compute mode from '{string}'")
+            raise TypeError("Cannot compute mode")
 
-    def quantile(self, q=0.5, interpolation="linear"):
+    def quantile(self, q: float = 0.5, interpolation: str = "linear"):
         if self.dtype._is_numeric:
             return pa.compute.quantile(self._data, q=q, interpolation=interpolation)
         else:
-            raise TypeError(f"Cannot compute quantile from '{string}'")
+            raise TypeError("Cannot compute quantile")

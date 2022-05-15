@@ -27,15 +27,15 @@ from pandas.core.algorithms import (
     value_counts,
 )
 from pandas.core.arrays import Categorical
-from pandas.core.arrays.boolean import BooleanDtype
-from pandas.core.arrays.floating import (
-    Float32Dtype,
-    Float64Dtype,
-)
 from pandas.core.arrays.arrow.floating import (
     Float16ArrowDtype,
     Float32ArrowDtype,
     Float64ArrowDtype,
+)
+from pandas.core.arrays.boolean import BooleanDtype
+from pandas.core.arrays.floating import (
+    Float32Dtype,
+    Float64Dtype,
 )
 from pandas.core.arrays.integer import (
     Int8Dtype,

@@ -43,8 +43,8 @@ class ArrowDtype(StorageExtensionDtype):
     def _is_temporal(self):
         return pa.types.is_temporal(self.pa_dtype)
 
-    def _is_floating(self):
-        return pa.types.is_floating(self.pa_dtype)
+    def _is_timestamp(self):
+        return pa.types.is_timestamp(self.pa_dtype)
 
     def _is_date(self):
         return pa.types.is_date(self.pa_dtype)
