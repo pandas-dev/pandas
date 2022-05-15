@@ -1,5 +1,6 @@
 import operator
 
+cimport cython
 from cpython.object cimport (
     Py_EQ,
     Py_GE,
@@ -9,9 +10,8 @@ from cpython.object cimport (
     Py_NE,
     PyObject_RichCompareBool,
 )
+from cython cimport Py_ssize_t
 
-import cython
-from cython import Py_ssize_t
 import numpy as np
 
 from numpy cimport (
