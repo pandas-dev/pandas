@@ -1,8 +1,3 @@
-from inspect import (
-    getmembers,
-    ismethod,
-)
-
 import numpy as np
 
 import pandas as pd
@@ -69,28 +64,3 @@ class BusinessHourStrftime:
 
     def time_frame_offset_repr(self, obs):
         self.data["off"].apply(repr)
-
-
-if __name__ == "__main__":
-    # To debug this ASV benchmark, simply run this file with python
-    from itertools import product
-
-    for cls in (DatetimeStrftime, BusinessHourStrftime):
-        if len(cls.param_names) == 1:
-            all_params = [{cls.param_names[0]: p} for p in cls.params]
-        else:
-            all_params = [
-                {n: p for n, p in zip(cls.param_names, ps)}
-                for ps in product(*cls.params)
-            ]
-        for kwargs in all_params:
-            kwargs_str = ",".join([f"{k}={v}" for k, v in kwargs.items()])
-            print(f"Executing {cls} with {kwargs_str}")
-            o = cls()
-            o.setup(**kwargs)
-            for k, v in getmembers(o, predicate=ismethod):
-                if k != "setup":
-                    print(f"Executing {v.__name__}({kwargs_str})")
-                    v(**kwargs)
-                    print(f"Executing {v.__name__}({kwargs_str}): DONE")
-            print(f"Executing {cls} with {kwargs_str}: DONE")
