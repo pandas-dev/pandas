@@ -189,15 +189,19 @@ class ODSWriter(ExcelWriter):
             value = str(val).lower()
             pvalue = str(val).upper()
         if isinstance(val, datetime.datetime):
-            value = val.isoformat()  # fast formatting
-            pvalue = val.strftime("%c")  # slow but locale-dependent
+            # Fast formatting
+            value = val.isoformat()
+            # Slow but locale-dependent
+            pvalue = val.strftime("%c")
             return (
                 pvalue,
                 TableCell(valuetype="date", datevalue=value, attributes=attributes),
             )
         elif isinstance(val, datetime.date):
-            value = f"{val.year}-{val.month:02d}-{val.day:02d}"  # fast formatting
-            pvalue = val.strftime("%x")  # slow but locale-dependent
+            # Fast formatting
+            value = f"{val.year}-{val.month:02d}-{val.day:02d}"
+            # Slow but locale-dependent
+            pvalue = val.strftime("%x")
             return (
                 pvalue,
                 TableCell(valuetype="date", datevalue=value, attributes=attributes),
