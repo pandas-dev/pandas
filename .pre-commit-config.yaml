@@ -89,7 +89,7 @@ repos:
         types: [python]
         stages: [manual]
         # note: keep version in sync with .github/workflows/code-checks.yml
-        additional_dependencies: ['pyright@1.1.245']
+        additional_dependencies: ['pyright@1.1.247']
 -   repo: local
     hooks:
     -   id: flake8-rst
