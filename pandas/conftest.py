@@ -649,7 +649,7 @@ def index_with_missing(request):
     """
 
     # GH 35538. Use deep copy to avoid illusive bug on np-dev
-    # Azure pipeline that writes into indices_dict despite copy
+    # GHA pipeline that writes into indices_dict despite copy
     ind = indices_dict[request.param].copy(deep=True)
     vals = ind.values
     if request.param in ["tuples", "mi-with-dt64tz-level", "multi"]:
