@@ -1862,6 +1862,17 @@ def test_rolling_mean_sum_floating_artifacts():
     assert (result[-3:] == 0).all()
 
 
+def test_rolling_skew_kurt_floating_artifacts():
+    # GH 42064 46431
+
+    sr = Series([1 / 3, 4, 0, 0, 0, 0, 0])
+    r = sr.rolling(4)
+    result = r.skew()
+    assert (result[-2:] == 0).all()
+    result = r.kurt()
+    assert (result[-2:] == -3).all()
+
+
 def test_rolling_imaginary_part_of_complex():
     # GH 46619
 
