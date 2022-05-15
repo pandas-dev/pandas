@@ -6,8 +6,8 @@ from numpy cimport (
 )
 
 
-cdef int64_t tz_convert_from_utc_single(
-    int64_t utc_val, tzinfo tz, bint* fold=?, Py_ssize_t* outpos=?
+cpdef int64_t tz_convert_from_utc_single(
+    int64_t utc_val, tzinfo tz
 ) except? -1
 cdef int64_t tz_localize_to_utc_single(
     int64_t val, tzinfo tz, object ambiguous=*, object nonexistent=*
