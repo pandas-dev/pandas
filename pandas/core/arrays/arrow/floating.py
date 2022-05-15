@@ -2,7 +2,23 @@ from __future__ import annotations
 
 import pyarrow as pa
 
+from pandas.core.dtypes.dtypes import register_extension_dtype
+
 from pandas.core.arrays.arrow.numeric import FloatingArrowDtype
+
+_dtype_docstring = """
+An ExtensionDtype for {dtype} data.
+
+This dtype uses ``pa.null`` as missing value indicator.
+
+Attributes
+----------
+None
+
+Methods
+-------
+None
+"""
 
 
 @register_extension_dtype
