@@ -365,7 +365,10 @@ class BaseWindow(SelectionMixin):
                 if isinstance(values, ExtensionArray):
                     values = values.to_numpy(np.float64, na_value=np.nan)
                 else:
-                    values = ensure_float64(values)
+                    if np.iscomplex(values).all():
+                        values = values.astype(np.complex64)
+                    else:
+                        values = ensure_float64(values)
             except (ValueError, TypeError) as err:
                 raise TypeError(f"cannot handle this type -> {values.dtype}") from err
 
