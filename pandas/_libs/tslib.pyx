@@ -168,6 +168,7 @@ def format_array_from_datetime(
         if val == NPY_NAT:
             result[i] = na_rep
         elif basic_format_day:
+            assert not basic_format
 
             dt64_to_dtstruct(val, &dts)
             res = f'{dts.year}-{dts.month:02d}-{dts.day:02d}'
@@ -175,6 +176,7 @@ def format_array_from_datetime(
             result[i] = res
 
         elif basic_format:
+            assert not basic_format_day
 
             dt64_to_dtstruct(val, &dts)
             res = (f'{dts.year}-{dts.month:02d}-{dts.day:02d} '
