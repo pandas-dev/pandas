@@ -365,7 +365,7 @@ class BaseWindow(SelectionMixin):
                 if isinstance(values, ExtensionArray):
                     values = values.to_numpy(np.float64, na_value=np.nan)
                 else:
-                    if np.iscomplex(values).all():
+                    if len(values) != 0 and np.iscomplex(values).all():
                         values = values.astype(np.complex64)
                     else:
                         values = ensure_float64(values)
