@@ -1860,3 +1860,13 @@ def test_rolling_mean_sum_floating_artifacts():
     assert (result[-3:] == 0).all()
     result = r.sum()
     assert (result[-3:] == 0).all()
+
+
+def test_rolling_imaginary_part_of_complex():
+    # GH 46619
+
+    df = DataFrame([1j, 1 + 2j])
+    result = df.rolling(2).apply(lambda x: print(x) is None)
+    expected = DataFrame([np.nan, 1.0])
+
+    tm.assert_frame_equal(result, expected)
