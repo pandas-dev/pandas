@@ -39,8 +39,8 @@ class SQL:
             index=tm.makeStringIndex(N),
         )
         self.df.loc[1000:3000, "float_with_nan"] = np.nan
-        self.df["date"] = self.df["datetime"].date
-        self.df["time"] = self.df["datetime"].time
+        self.df["date"] = self.df["datetime"].dt.date
+        self.df["time"] = self.df["datetime"].dt.time
         self.df["datetime_string"] = self.df["datetime"].astype(str)
         self.df.to_sql(self.table_name, self.con, if_exists="replace")
 
@@ -81,8 +81,8 @@ class WriteSQLDtypes:
             index=tm.makeStringIndex(N),
         )
         self.df.loc[1000:3000, "float_with_nan"] = np.nan
-        self.df["date"] = self.df["datetime"].date
-        self.df["time"] = self.df["datetime"].time
+        self.df["date"] = self.df["datetime"].dt.date
+        self.df["time"] = self.df["datetime"].dt.time
         self.df["datetime_string"] = self.df["datetime"].astype(str)
         self.df.to_sql(self.table_name, self.con, if_exists="replace")
 
@@ -110,8 +110,8 @@ class ReadSQLTable:
             index=tm.makeStringIndex(N),
         )
         self.df.loc[1000:3000, "float_with_nan"] = np.nan
-        self.df["date"] = self.df["datetime"].date
-        self.df["time"] = self.df["datetime"].time
+        self.df["date"] = self.df["datetime"].dt.date
+        self.df["time"] = self.df["datetime"].dt.time
         self.df["datetime_string"] = self.df["datetime"].astype(str)
         self.df.to_sql(self.table_name, self.con, if_exists="replace")
 
@@ -149,8 +149,8 @@ class ReadSQLTableDtypes:
             index=tm.makeStringIndex(N),
         )
         self.df.loc[1000:3000, "float_with_nan"] = np.nan
-        self.df["date"] = self.df["datetime"].date
-        self.df["time"] = self.df["datetime"].time
+        self.df["date"] = self.df["datetime"].dt.date
+        self.df["time"] = self.df["datetime"].dt.time
         self.df["datetime_string"] = self.df["datetime"].astype(str)
         self.df.to_sql(self.table_name, self.con, if_exists="replace")
 
