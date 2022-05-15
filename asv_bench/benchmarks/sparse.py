@@ -146,10 +146,10 @@ class ArithmeticBlock:
 
     def make_block_array(self, length, num_blocks, block_size, fill_value):
         arr = np.full(length, fill_value)
-        indicies = np.random.choice(
+        indices = np.random.choice(
             np.arange(0, length, block_size), num_blocks, replace=False
         )
-        for ind in indicies:
+        for ind in indices:
             arr[ind : ind + block_size] = np.random.randint(0, 100, block_size)
         return SparseArray(arr, fill_value=fill_value)
 
