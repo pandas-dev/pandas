@@ -1873,11 +1873,16 @@ def test_rolling_skew_kurt_floating_artifacts():
     assert (result[-2:] == -3).all()
 
 
-def test_rolling_imaginary_part_of_complex():
+def test_rolling_imaginary_part_of_complex(arithmetic_win_operators):
     # GH 46619
-
+    func_name = arithmetic_win_operators
     df = DataFrame([1j, 1 + 2j])
-    result = df.rolling(2).apply(lambda x: print(x) is None)
-    expected = DataFrame([np.nan, 1.0])
-
-    tm.assert_frame_equal(result, expected)
+    result = getattr(
+        df.rolling(2).apply(lambda x: print(x) is None),
+        func_name,
+    )()
+    expected = getattr(
+        DataFrame([np.nan, 1.0]),
+        func_name,
+    )()
+    tm.assert_series_equal(result, expected)

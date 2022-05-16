@@ -39,6 +39,7 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.common import (
     ensure_float64,
     is_bool,
+    is_complex_dtype,
     is_integer,
     is_list_like,
     is_scalar,
@@ -365,7 +366,7 @@ class BaseWindow(SelectionMixin):
                 if isinstance(values, ExtensionArray):
                     values = values.to_numpy(np.float64, na_value=np.nan)
                 else:
-                    if len(values) != 0 and np.iscomplex(values).all():
+                    if is_complex_dtype(values):
                         values = values.astype(np.complex64)
                     else:
                         values = ensure_float64(values)
