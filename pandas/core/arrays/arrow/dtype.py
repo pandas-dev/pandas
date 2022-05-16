@@ -8,8 +8,6 @@ from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.base import StorageExtensionDtype
 
-from pandas.core.arrays.arrow import ArrowExtensionArray
-
 
 class ArrowDtype(StorageExtensionDtype):
     """
@@ -62,6 +60,8 @@ class ArrowDtype(StorageExtensionDtype):
         -------
         type
         """
+        from pandas.core.arrays.arrow import ArrowExtensionArray
+
         return ArrowExtensionArray
 
     @classmethod

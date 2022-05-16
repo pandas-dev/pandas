@@ -39,6 +39,7 @@ if not pa_version_under1p01:
     import pyarrow.compute as pc
 
     from pandas.core.arrays.arrow._arrow_utils import fallback_performancewarning
+    from pandas.core.arrays.arrow.dtype import ArrowDtype
 
 if TYPE_CHECKING:
     from pandas import Series
@@ -54,10 +55,18 @@ class ArrowExtensionArray(ExtensionArray):
     _data: pa.ChunkedArray
 
     def __init__(self, values: pa.ChunkedArray) -> None:
-        self._data = values
+        if isinstance(values, pa.Array):
+            self._data = pa.chunked_array([values])
+        elif isinstance(values, pa.ChunkedArray):
+            self._data = values
+        else:
+            raise ValueError(
+                f"Unsupported type '{type(values)}' for ArrowExtensionArray"
+            )
+        self._dtype = ArrowDtype(self._data.type)
 
     def __arrow_array__(self, type=None):
-        """Convert myself to a pyarrow Array or ChunkedArray."""
+        """Convert myself to a pyarrow ChunkedArray."""
         return self._data
 
     def equals(self, other) -> bool:
