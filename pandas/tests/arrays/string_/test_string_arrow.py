@@ -59,7 +59,7 @@ def test_constructor_not_string_type_raises(array, chunked):
             pytest.skip("chunked not applicable to numpy array")
         arr = pa.chunked_array(arr)
     if array is np:
-        msg = "Unsupported type '<class 'numpy.ndarray'>' for ArrowStringArray"
+        msg = "Unsupported type '<class 'numpy.ndarray'>' for ArrowExtensionArray"
     else:
         msg = re.escape(
             "ArrowStringArray requires a PyArrow (chunked) array of string type"
