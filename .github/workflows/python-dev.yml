@@ -61,9 +61,8 @@ jobs:
         python -m pip install --upgrade pip "setuptools<60.0.0" wheel
         # pip install -i https://pypi.anaconda.org/scipy-wheels-nightly/simple numpy
         pip install git+https://github.com/nedbat/coveragepy.git
-        pip install git+https://github.com/cython/cython.git
         pip install git+https://github.com/numpy/numpy.git
-        pip install python-dateutil pytz hypothesis pytest>=6.2.5 pytest-xdist pytest-cov
+        pip install cython python-dateutil pytz hypothesis pytest>=6.2.5 pytest-xdist pytest-cov
         pip list
 
     - name: Build Pandas
