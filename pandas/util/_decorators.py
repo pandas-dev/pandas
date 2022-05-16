@@ -13,6 +13,7 @@ import warnings
 
 from pandas._libs.properties import cache_readonly  # noqa:F401
 from pandas._typing import F
+from pandas.util._exceptions import find_stack_level
 
 
 def deprecate(
@@ -260,7 +261,7 @@ def future_version_msg(version: str | None) -> str:
 def deprecate_nonkeyword_arguments(
     version: str | None,
     allowed_args: list[str] | None = None,
-    stacklevel: int = 2,
+    stacklevel: int = None,
     name: str | None = None,
 ) -> Callable[[F], F]:
     """
@@ -280,7 +281,7 @@ def deprecate_nonkeyword_arguments(
         defaults to list of all arguments not having the
         default value.
 
-    stacklevel : int, default=2
+    stacklevel : int
         The stack level for warnings.warn
 
     name : str, optional
@@ -304,6 +305,7 @@ def deprecate_nonkeyword_arguments(
             f"{future_version_msg(version)} all arguments of "
             f"{name or func.__qualname__}{{arguments}} will be keyword-only."
         )
+        stacklevel = find_stack_level()
 
         @wraps(func)
         def wrapper(*args, **kwargs):
