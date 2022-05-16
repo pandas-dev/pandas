@@ -1,3 +1,4 @@
+import pickle
 import re
 
 import numpy as np
@@ -573,6 +574,15 @@ class TestIntervalDtype(Base):
         assert is_interval_dtype(i)
 
     @pytest.mark.parametrize(
+        "subtype", ["interval[int64, right]", "Interval[int64, right]"]
+    )
+    def test_construction_string_regex(self, subtype):
+        i = IntervalDtype(subtype=subtype)
+        assert i.subtype == np.dtype("int64")
+        assert i.inclusive == "right"
+        assert is_interval_dtype(i)
+
+    @pytest.mark.parametrize(
         "subtype", ["interval[int64]", "Interval[int64]", "int64", np.dtype("int64")]
     )
     def test_construction_allows_closed_none(self, subtype):
@@ -826,6 +836,15 @@ class TestIntervalDtype(Base):
             FutureWarning, match=msg, check_stacklevel=False
         ):
             IntervalDtype("int64", closed="right")
+
+    def test_interval_dtype_with_pickle(self):
+        i = IntervalDtype(subtype="int64", inclusive="right")
+        dumps_i = pickle.dumps(i)
+        loads_i = pickle.loads(dumps_i)
+
+        assert loads_i.subtype == np.dtype("int64")
+        assert loads_i.inclusive == "right"
+        assert is_interval_dtype(loads_i)
 
 
 class TestCategoricalDtypeParametrized:

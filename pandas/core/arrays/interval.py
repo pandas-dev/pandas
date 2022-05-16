@@ -14,7 +14,6 @@ from typing import (
     cast,
     overload,
 )
-import warnings
 
 import numpy as np
 
@@ -26,6 +25,7 @@ from pandas._libs.interval import (
     Interval,
     IntervalMixin,
     intervals_to_interval_bounds,
+    warning_interval,
 )
 from pandas._libs.missing import NA
 from pandas._typing import (
@@ -225,26 +225,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         copy: bool = False,
         verify_integrity: bool = True,
     ):
-        if inclusive is not None and not isinstance(closed, lib.NoDefault):
-            raise ValueError(
-                "Deprecated argument `closed` cannot be passed "
-                "if argument `inclusive` is not None"
-            )
-        elif not isinstance(closed, lib.NoDefault):
-            warnings.warn(
-                "Argument `closed` is deprecated in favor of `inclusive`.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            if closed is None:
-                inclusive = "both"
-            elif closed in ("both", "neither", "left", "right"):
-                inclusive = closed
-            else:
-                raise ValueError(
-                    "Argument `closed` has to be either"
-                    "'both', 'neither', 'left' or 'right'"
-                )
+        inclusive, closed = warning_interval(inclusive, closed)
 
         data = extract_array(data, extract_numpy=True)
 
@@ -294,26 +275,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     ) -> IntervalArrayT:
         result = IntervalMixin.__new__(cls)
 
-        if inclusive is not None and not isinstance(closed, lib.NoDefault):
-            raise ValueError(
-                "Deprecated argument `closed` cannot be passed "
-                "if argument `inclusive` is not None"
-            )
-        elif not isinstance(closed, lib.NoDefault):
-            warnings.warn(
-                "Argument `closed` is deprecated in favor of `inclusive`.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            if closed is None:
-                inclusive = "both"
-            elif closed in ("both", "neither", "left", "right"):
-                inclusive = closed
-            else:
-                raise ValueError(
-                    "Argument `closed` has to be either"
-                    "'both', 'neither', 'left' or 'right'"
-                )
+        inclusive, closed = warning_interval(inclusive, closed)
 
         if inclusive is None and isinstance(dtype, IntervalDtype):
             inclusive = dtype.inclusive

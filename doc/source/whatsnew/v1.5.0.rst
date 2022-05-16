@@ -455,12 +455,12 @@ Other Deprecations
 - Deprecated passing arguments as positional in :meth:`DataFrame.any` and :meth:`Series.any` (:issue:`44802`)
 - Deprecated the ``closed`` argument in :meth:`interval_range` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
 - Deprecated the methods :meth:`DataFrame.mad`, :meth:`Series.mad`, and the corresponding groupby methods (:issue:`11787`)
-- Deprecated the ``closed`` argument in :meth:`Interval.__init__` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
-- Deprecated the ``closed`` argument in :meth:`IntervalIndex.__new__`, :meth:`IntervalIndex.from_breaks`, :meth:`IntervalIndex.from_arrays` and :meth:`IntervalIndex.from_tuples` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
-- Deprecated the ``closed`` argument in :meth:`IntervalDtype.__new__` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
-- Deprecated the ``closed`` argument in :meth:`IntervalArray.__new__` and :meth:`IntervalArray._simple_new`,  in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
-- Deprecated the ``closed`` argument in :meth:`intervaltree.__init__` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
-- Deprecated the ``closed`` argument in :meth:`ArrowInterval.__init__` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
+- Deprecated the ``closed`` argument in :class:`Interval` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
+- Deprecated the ``closed`` argument in :class:`IntervalIndex` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
+- Deprecated the ``closed`` argument in :class:`IntervalDtype` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
+- Deprecated the ``closed`` argument in :class:`IntervalArray` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
+- Deprecated the ``closed`` argument in :class:`intervaltree` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
+- Deprecated the ``closed`` argument in :class:`ArrowInterval` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
 -
 
 .. ---------------------------------------------------------------------------

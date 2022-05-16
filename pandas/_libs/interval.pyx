@@ -213,6 +213,32 @@ cdef bint _interval_like(other):
             and hasattr(other, 'right')
             and hasattr(other, 'inclusive'))
 
+def warning_interval(inclusive: str | None = None, closed: lib.NoDefault = lib.no_default):
+    """
+    warning in interval class for variable inclusive and closed
+    """
+    if inclusive is not None and not isinstance(closed, lib.NoDefault):
+        raise ValueError(
+            "Deprecated argument `closed` cannot be passed "
+            "if argument `inclusive` is not None"
+        )
+    elif not isinstance(closed, lib.NoDefault):
+        warnings.warn(
+            "Argument `closed` is deprecated in favor of `inclusive`.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        if closed is None:
+            inclusive = "both"
+        elif closed in ("both", "neither", "left", "right"):
+            inclusive = closed
+        else:
+            raise ValueError(
+                "Argument `closed` has to be either"
+                "'both', 'neither', 'left' or 'right'"
+            )
+
+    return inclusive, closed
 
 cdef class Interval(IntervalMixin):
     """
@@ -335,27 +361,9 @@ cdef class Interval(IntervalMixin):
         self._validate_endpoint(left)
         self._validate_endpoint(right)
 
-        if inclusive is not None and not isinstance(closed, lib.NoDefault):
-            raise ValueError(
-                "Deprecated argument `closed` cannot be passed "
-                "if argument `inclusive` is not None"
-            )
-        elif not isinstance(closed, lib.NoDefault):
-            warnings.warn(
-                "Argument `closed` is deprecated in favor of `inclusive`.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            if closed is None:
-                inclusive = "both"
-            elif closed in ("both", "neither", "left", "right"):
-                inclusive = closed
-            else:
-                raise ValueError(
-                    "Argument `closed` has to be either"
-                    "'both', 'neither', 'left' or 'right'"
-                )
-        elif inclusive is None:
+        inclusive, closed = warning_interval(inclusive, closed)
+
+        if inclusive is None:
             inclusive = "both"
 
         if inclusive not in VALID_CLOSED:
