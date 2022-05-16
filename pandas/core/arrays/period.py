@@ -698,11 +698,16 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             return result.view(self.dtype)  # type: ignore[return-value]
         return super().fillna(value=value, method=method, limit=limit)
 
-    # TODO: alternately could override _quantile like searchsorted
-    def _cast_quantile_result(self, res_values: np.ndarray) -> np.ndarray:
-        # quantile_with_mask may return float64 instead of int64, in which
-        #  case we need to cast back
-        return res_values.astype(np.int64, copy=False)
+    def _quantile(
+        self: PeriodArray,
+        qs: npt.NDArray[np.float64],
+        interpolation: str,
+    ) -> PeriodArray:
+        # dispatch to DatetimeArray implementation
+        dtres = self.view("M8[ns]")._quantile(qs, interpolation)
+        # error: Incompatible return value type (got "Union[ExtensionArray,
+        # ndarray[Any, Any]]", expected "PeriodArray")
+        return dtres.view(self.dtype)  # type: ignore[return-value]
 
     # ------------------------------------------------------------------
     # Arithmetic Methods

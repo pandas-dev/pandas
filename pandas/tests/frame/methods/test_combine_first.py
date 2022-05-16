@@ -66,7 +66,7 @@ class TestDataFrameCombineFirst:
         assert (combined["A"][:10] == 1).all()
 
         # reverse overlap
-        tail["A"][:10] = 0
+        tail.iloc[:10, tail.columns.get_loc("A")] = 0
         combined = tail.combine_first(head)
         assert (combined["A"][:10] == 0).all()
 

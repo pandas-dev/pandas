@@ -10,12 +10,14 @@ def get_date_name_field(
     dtindex: npt.NDArray[np.int64],  # const int64_t[:]
     field: str,
     locale: str | None = ...,
+    reso: int = ...,  # NPY_DATETIMEUNIT
 ) -> npt.NDArray[np.object_]: ...
 def get_start_end_field(
-    dtindex: npt.NDArray[np.int64],  # const int64_t[:]
+    dtindex: npt.NDArray[np.int64],
     field: str,
     freqstr: str | None = ...,
     month_kw: int = ...,
+    reso: int = ...,  # NPY_DATETIMEUNIT
 ) -> npt.NDArray[np.bool_]: ...
 def get_date_field(
     dtindex: npt.NDArray[np.int64],  # const int64_t[:]
