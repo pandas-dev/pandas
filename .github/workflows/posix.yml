@@ -155,23 +155,10 @@ jobs:
         channel-priority: flexible
         environment-file: ${{ env.ENV_FILE }}
         use-only-tar-bz2: true
-      if: ${{ env.IS_PYPY == 'false' }} # No pypy3.8 support
 
     - name: Upgrade Arrow version
       run: conda install -n pandas-dev -c conda-forge --no-update-deps pyarrow=${{ matrix.pyarrow_version }}
       if: ${{ matrix.pyarrow_version }}
-
-    - name: Setup PyPy
-      uses: actions/setup-python@v3
-      with:
-        python-version: "pypy-3.8"
-      if: ${{ env.IS_PYPY == 'true' }}
-
-    - name: Setup PyPy dependencies
-      run: |
-        # TODO: re-enable cov, its slowing the tests down though
-        pip install Cython numpy python-dateutil pytz pytest>=6.0 pytest-xdist>=1.31.0 pytest-asyncio>=0.17 hypothesis>=5.5.3
-      if: ${{ env.IS_PYPY == 'true' }}
 
     - name: Build Pandas
       uses: ./.github/actions/build_pandas
