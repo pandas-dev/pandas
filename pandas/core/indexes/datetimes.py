@@ -24,7 +24,6 @@ from pandas._libs import (
     index as libindex,
     lib,
 )
-from pandas._libs.interval import warning_interval
 from pandas._libs.tslibs import (
     Resolution,
     timezones,
@@ -1043,8 +1042,26 @@ def date_range(
     DatetimeIndex(['2017-01-02', '2017-01-03', '2017-01-04'],
                   dtype='datetime64[ns]', freq='D')
     """
-    inclusive, closed = warning_interval(inclusive, closed)
-    if inclusive is None:
+    if inclusive is not None and not isinstance(closed, lib.NoDefault):
+        raise ValueError(
+            "Deprecated argument `closed` cannot be passed"
+            "if argument `inclusive` is not None"
+        )
+    elif not isinstance(closed, lib.NoDefault):
+        warnings.warn(
+            "Argument `closed` is deprecated in favor of `inclusive`.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        if closed is None:
+            inclusive = "both"
+        elif closed in ("left", "right"):
+            inclusive = closed
+        else:
+            raise ValueError(
+                "Argument `closed` has to be either 'left', 'right' or None"
+            )
+    elif inclusive is None:
         inclusive = "both"
 
     if freq is None and com.any_none(periods, start, end):
