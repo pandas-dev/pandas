@@ -68,12 +68,30 @@ class ArrowDtype(StorageExtensionDtype):
             return cls(storage="pyarrow")
         raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
 
+    @property
+    def _is_numeric(self) -> bool:
+        """
+        Whether columns with this dtype should be considered numeric.
+        """
+        # TODO: pa.types.is_boolean?
+        return (
+            pa.types.is_integer(self.type)
+            or pa.types.is_floating(self.type)
+            or pa.types.is_decimal(self.type)
+        )
+
+    @property
+    def _is_boolean(self) -> bool:
+        """
+        Whether this dtype should be considered boolean.
+        """
+        return pa.types.is_boolean(self.type)
+
     @classmethod
     def from_numpy_dtype(cls, dtype: np.dtype) -> ArrowDtype:
         """
         Construct the ArrowDtype corresponding to the given numpy dtype.
         """
-        # TODO: This may be incomplete
         pa_dtype = pa.from_numpy_dtype(dtype)
         if pa_dtype is cls.type:
             return cls()
@@ -82,6 +100,7 @@ class ArrowDtype(StorageExtensionDtype):
     def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
         # We unwrap any masked dtypes, find the common dtype we would use
         #  for that, then re-mask the result.
+        # Mirrors BaseMaskedDtype
         from pandas.core.dtypes.cast import find_common_type
 
         new_dtype = find_common_type(
