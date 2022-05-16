@@ -55,8 +55,16 @@ class WriteSQLDtypes:
 
     params = (
         ["sqlalchemy", "sqlite"],
-        ["float", "float_with_nan", "string", "bool", "int", "date", "time",
-         "datetime"],
+        [
+            "float",
+            "float_with_nan",
+            "string",
+            "bool",
+            "int",
+            "date",
+            "time",
+            "datetime",
+        ],
     )
     param_names = ["connection", "dtype"]
 
@@ -129,8 +137,16 @@ class ReadSQLTable:
 
 class ReadSQLTableDtypes:
 
-    params = ["float", "float_with_nan", "string", "bool", "int", "date",
-              "time", "datetime"]
+    params = [
+        "float",
+        "float_with_nan",
+        "string",
+        "bool",
+        "int",
+        "date",
+        "time",
+        "datetime",
+    ]
     param_names = ["dtype"]
 
     def setup(self, dtype):
