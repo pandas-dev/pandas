@@ -218,9 +218,9 @@ cpdef int64_t delta_to_nanoseconds(delta) except? -1:
                 + delta.seconds * 1_000_000
                 + delta.microseconds
             ) * 1000
-        except OverflowError as ex:
+        except OverflowError as err:
             msg = f"{delta} outside allowed range [{NPY_NAT + 1}ns, {INT64_MAX}ns]"
-            raise OutOfBoundsTimedelta(msg) from ex
+            raise OutOfBoundsTimedelta(msg) from err
     raise TypeError(type(delta))
 
 
@@ -251,9 +251,9 @@ cdef object ensure_td64ns(object ts):
     with cython.overflowcheck(True):
         try:
             td64_value = get_timedelta64_value(ts) * mult
-        except OverflowError as ex:
+        except OverflowError as err:
             msg = f"{str(ts)} outside allowed range [{NPY_NAT + 1}ns, {INT64_MAX}ns]"
-            raise OutOfBoundsTimedelta(msg) from ex
+            raise OutOfBoundsTimedelta(msg) from err
 
     return np.timedelta64(td64_value, "ns")
 
@@ -918,9 +918,9 @@ cdef object create_timedelta(object value, str in_unit, NPY_DATETIMEUNIT out_res
                 out_value = parse_timedelta_string(value)
         else:
             out_value = convert_to_timedelta64(value, in_unit).view(np.int64)
-    except OverflowError as ex:
+    except OverflowError as err:
         msg = f"{value} outside allowed range [{NPY_NAT + 1}ns, {INT64_MAX}ns]"
-        raise OutOfBoundsTimedelta(msg) from ex
+        raise OutOfBoundsTimedelta(msg) from err
 
     if out_value == NPY_NAT:
         return NaT
