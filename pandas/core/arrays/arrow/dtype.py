@@ -13,18 +13,31 @@ from pandas.core.arrays.arrow import ArrowExtensionArray
 
 class ArrowDtype(StorageExtensionDtype):
     """
-    Base class for dtypes for BaseArrowArray subclasses.
+    Base class for dtypes for ArrowExtensionArray.
     Modeled after BaseMaskedDtype
     """
 
-    name: str
-    base = None
-    type: pa.DataType
-
     na_value = pa.NA
 
-    def __init__(self, storage="pyarrow") -> None:
-        super().__init__(storage)
+    def __init__(self, pa_dtype: pa.DataType) -> None:
+        super().__init__("pyarrow")
+        if not isinstance(pa_dtype, pa.DataType):
+            raise ValueError("pa_dtype must be an instance of a pyarrow.DataType")
+        self.pa_dtype = pa_dtype
+
+    @property
+    def type(self):
+        """
+        The scalar type for the array, e.g. ``int``
+        """
+        return self.pa_dtype
+
+    @property
+    def name(self) -> str:
+        """
+        A string identifying the data type.
+        """
+        return str(self.pa_dtype)
 
     @cache_readonly
     def numpy_dtype(self) -> np.dtype:
@@ -59,14 +72,20 @@ class ArrowDtype(StorageExtensionDtype):
         Parameters
         ----------
         string : str
+            string should follow the format f"{pyarrow_type}[pyarrow]"
+            e.g. int64[pyarrow]
         """
         if not isinstance(string, str):
             raise TypeError(
                 f"'construct_from_string' expects a string, got {type(string)}"
             )
-        if string == f"{cls.name}[pyarrow]":
-            return cls(storage="pyarrow")
-        raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
+        if not string.endswith("[pyarrow]"):
+            raise TypeError(f"string {string} must end with '[pyarrow]'")
+        base_type = string.split("[pyarrow]")[0]
+        pa_dtype = getattr(pa, base_type, None)
+        if pa_dtype is None:
+            raise TypeError(f"'{base_type}' is not a valid pyarrow data type.")
+        return cls(pa_dtype())
 
     @property
     def _is_numeric(self) -> bool:
@@ -75,9 +94,9 @@ class ArrowDtype(StorageExtensionDtype):
         """
         # TODO: pa.types.is_boolean?
         return (
-            pa.types.is_integer(self.type)
-            or pa.types.is_floating(self.type)
-            or pa.types.is_decimal(self.type)
+            pa.types.is_integer(self.pa_dtype)
+            or pa.types.is_floating(self.pa_dtype)
+            or pa.types.is_decimal(self.pa_dtype)
         )
 
     @property
@@ -85,17 +104,7 @@ class ArrowDtype(StorageExtensionDtype):
         """
         Whether this dtype should be considered boolean.
         """
-        return pa.types.is_boolean(self.type)
-
-    @classmethod
-    def from_numpy_dtype(cls, dtype: np.dtype) -> ArrowDtype:
-        """
-        Construct the ArrowDtype corresponding to the given numpy dtype.
-        """
-        pa_dtype = pa.from_numpy_dtype(dtype)
-        if pa_dtype is cls.type:
-            return cls()
-        raise NotImplementedError(dtype)
+        return pa.types.is_boolean(self.pa_dtype)
 
     def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
         # We unwrap any masked dtypes, find the common dtype we would use
@@ -110,12 +119,9 @@ class ArrowDtype(StorageExtensionDtype):
             ]
         )
         if not isinstance(new_dtype, np.dtype):
-            # If we ever support e.g. Masked[DatetimeArray] then this will change
             return None
-        try:
-            return type(self).from_numpy_dtype(new_dtype)
-        except (KeyError, NotImplementedError):
-            return None
+        pa_dtype = pa.from_numpy_dtype(new_dtype)
+        return type(self)(pa_dtype)
 
     def __from_arrow__(self, array: pa.Array | pa.ChunkedArray):
         """
