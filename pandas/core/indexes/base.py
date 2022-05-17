@@ -4205,9 +4205,14 @@ class Index(IndexOpsMixin, PandasObject):
             return v is None or is_integer(v)
 
         is_index_slice = is_int(start) and is_int(stop) and is_int(step)
-        is_positional = is_index_slice and not (
-            self.is_integer() or self.is_categorical()
+
+        # special case for interval_dtype bc we do not do partial-indexing
+        #  on integer Intervals when slicing
+        # TODO: write this in terms of e.g. should_partial_index?
+        ints_are_positional = self._should_fallback_to_positional or is_interval_dtype(
+            self.dtype
         )
+        is_positional = is_index_slice and ints_are_positional
 
         if kind == "getitem":
             """

@@ -1322,10 +1322,6 @@ class _LocIndexer(_LocationIndexer):
         if isinstance(key, slice):
             return labels._convert_slice_indexer(key, kind="loc")
 
-        # see if we are positional in nature
-        is_int_index = labels.is_integer()
-        is_int_positional = is_integer(key) and not is_int_index
-
         if (
             isinstance(key, tuple)
             and not isinstance(labels, MultiIndex)
@@ -1350,17 +1346,9 @@ class _LocIndexer(_LocationIndexer):
                 if not isinstance(labels, MultiIndex):
                     raise
             except ValueError:
-                if not is_int_positional:
+                if not is_integer(key):
                     raise
-
-        # a positional
-        if is_int_positional:
-
-            # if we are setting and its not a valid location
-            # its an insert which fails by definition
-
-            # always valid
-            return {"key": key}
+                return {"key": key}
 
         if is_nested_tuple(key, labels):
             if self.ndim == 1 and any(isinstance(k, tuple) for k in key):
