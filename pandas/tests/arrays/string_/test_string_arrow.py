@@ -122,7 +122,7 @@ def test_from_sequence_wrong_dtype_raises():
     reason="pyarrow is installed",
 )
 def test_pyarrow_not_installed_raises():
-    msg = re.escape("pyarrow>=1.0.0 is required for PyArrow backed ArrowExtensionArray")
+    msg = re.escape("pyarrow>=1.0.0 is required for PyArrow backed")
 
     with pytest.raises(ImportError, match=msg):
         StringDtype(storage="pyarrow")
