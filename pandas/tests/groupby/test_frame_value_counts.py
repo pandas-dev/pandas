@@ -308,6 +308,156 @@ def test_data_frame_value_counts_dropna(
     tm.assert_series_equal(result_frame_groupby, expected)
 
 
+def _test_categorical_single_grouper(
+    education_df, as_index, observed, expected_index, normalize, expected_data
+):
+    # Test single categorical grouper when non-groupers are also categorical
+    education_df = education_df.copy().astype("category")
+
+    # Add non-observed grouping categories
+    education_df["country"] = education_df["country"].cat.add_categories(["ASIA"])
+
+    gp = education_df.groupby("country", as_index=as_index, observed=observed)
+    result = gp.value_counts(normalize=normalize)
+
+    expected_series = Series(
+        data=expected_data,
+        index=MultiIndex.from_tuples(
+            expected_index,
+            names=["country", "gender", "education"],
+        ),
+    )
+    for i in range(3):
+        index_level = CategoricalIndex(expected_series.index.levels[i])
+        if i == 0:
+            index_level = index_level.set_categories(
+                education_df["country"].cat.categories
+            )
+        expected_series.index = expected_series.index.set_levels(index_level, level=i)
+
+    if as_index:
+        tm.assert_series_equal(result, expected_series)
+    else:
+        expected = expected_series.reset_index(
+            name="proportion" if normalize else "count"
+        )
+        tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("as_index", [True, False])
+@pytest.mark.parametrize(
+    "normalize, expected_data",
+    [
+        (False, np.array([2, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0], dtype=np.int64)),
+        (
+            True,
+            np.array([0.5, 0.25, 0.25, 0.0, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0]),
+        ),
+    ],
+)
+def test_categorical_single_grouper_observed_true(
+    education_df, as_index, normalize, expected_data
+):
+    # GH#46357
+
+    expected_index = [
+        ("FR", "male", "low"),
+        ("FR", "female", "high"),
+        ("FR", "male", "medium"),
+        ("FR", "female", "low"),
+        ("FR", "female", "medium"),
+        ("FR", "male", "high"),
+        ("US", "female", "high"),
+        ("US", "male", "low"),
+        ("US", "female", "low"),
+        ("US", "female", "medium"),
+        ("US", "male", "high"),
+        ("US", "male", "medium"),
+    ]
+
+    _test_categorical_single_grouper(
+        education_df=education_df,
+        as_index=as_index,
+        observed=True,
+        expected_index=expected_index,
+        normalize=normalize,
+        expected_data=expected_data,
+    )
+
+
+@pytest.mark.parametrize("as_index", [True, False])
+@pytest.mark.parametrize(
+    "normalize, expected_data",
+    [
+        (
+            False,
+            np.array(
+                [2, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=np.int64
+            ),
+        ),
+        (
+            True,
+            np.array(
+                [
+                    0.5,
+                    0.25,
+                    0.25,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.5,
+                    0.5,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                ]
+            ),
+        ),
+    ],
+)
+def test_categorical_single_grouper_observed_false(
+    education_df, as_index, normalize, expected_data
+):
+    # GH#46357
+
+    expected_index = [
+        ("FR", "male", "low"),
+        ("FR", "female", "high"),
+        ("FR", "male", "medium"),
+        ("FR", "female", "low"),
+        ("FR", "male", "high"),
+        ("FR", "female", "medium"),
+        ("US", "female", "high"),
+        ("US", "male", "low"),
+        ("US", "male", "medium"),
+        ("US", "male", "high"),
+        ("US", "female", "medium"),
+        ("US", "female", "low"),
+        ("ASIA", "male", "low"),
+        ("ASIA", "male", "high"),
+        ("ASIA", "female", "medium"),
+        ("ASIA", "female", "low"),
+        ("ASIA", "female", "high"),
+        ("ASIA", "male", "medium"),
+    ]
+
+    _test_categorical_single_grouper(
+        education_df=education_df,
+        as_index=as_index,
+        observed=False,
+        expected_index=expected_index,
+        normalize=normalize,
+        expected_data=expected_data,
+    )
+
+
 @pytest.mark.parametrize("as_index", [True, False])
 @pytest.mark.parametrize(
     "observed, expected_index",
@@ -348,15 +498,16 @@ def test_data_frame_value_counts_dropna(
         (
             True,
             # NaN values corresponds to non-observed groups
-            np.array(
-                [1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, np.nan, np.nan]
-            ),
+            np.array([1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0]),
         ),
     ],
 )
-def test_categorical_groupers(
+def test_categorical_multiple_groupers(
     education_df, as_index, observed, expected_index, normalize, expected_data
 ):
+    # GH#46357
+
+    # Test multiple categorical groupers when non-groupers are non-categorical
     education_df = education_df.copy()
     education_df["country"] = education_df["country"].astype("category")
     education_df["education"] = education_df["education"].astype("category")
@@ -400,8 +551,10 @@ def test_categorical_groupers(
         ),
     ],
 )
-def test_categorical_values(education_df, as_index, observed, normalize, expected_data):
-    # Test non-observed categories are included in the result,
+def test_categorical_non_groupers(
+    education_df, as_index, observed, normalize, expected_data
+):
+    # GH#46357 Test non-observed categories are included in the result,
     # regardless of `observed`
     education_df = education_df.copy()
     education_df["gender"] = education_df["gender"].astype("category")

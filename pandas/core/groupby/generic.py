@@ -1842,7 +1842,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 and not grouping._observed
                 for grouping in groupings
             ):
-                levels_list = [ping.group_index for ping in groupings]
+                levels_list = [ping.result_index for ping in groupings]
                 multi_index, _ = MultiIndex.from_product(
                     levels_list, names=[ping.name for ping in groupings]
                 ).sortlevel()
@@ -1861,6 +1861,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     dropna=self.dropna,
                 ).transform("sum")
                 result_series /= indexed_group_size
+
+                # Handle groups of non-observed categories
+                result_series = result_series.fillna(0.0)
 
             if sort:
                 # Sort the values and then resort by the main grouping
