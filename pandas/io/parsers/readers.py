@@ -159,8 +159,8 @@ prefix : str, optional
        Use a list comprehension on the DataFrame's columns after calling ``read_csv``.
 mangle_dupe_cols : bool, default True
     Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
-    'X'...'X'. Passing in False will cause data to be overwritten if there
-    are duplicate names in the columns.
+    'X'...'X'. Passing in False will in the future cause data to be overwritten
+    if there are duplicate names in the columns, but is currently not permitted.
 dtype : Type name or dict of column -> type, optional
     Data type for data or columns. E.g. {{'a': np.float64, 'b': np.int32,
     'c': 'Int64'}}
