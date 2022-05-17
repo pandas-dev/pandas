@@ -593,10 +593,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         end = self._maybe_cast_for_get_loc(end)
         return start, end
 
-    def _can_partial_date_slice(self, reso: Resolution) -> bool:
-        # History of conversation GH#3452, GH#3931, GH#2369, GH#14826
-        return reso > self._resolution_obj
-
     def _deprecate_mismatched_indexing(self, key) -> None:
         # GH#36148
         # we get here with isinstance(key, self._data._recognized_scalars)
@@ -651,12 +647,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 except KeyError as err:
                     if method is None:
                         raise KeyError(key) from err
-            try:
-                key = self._maybe_cast_for_get_loc(key)
-            except ValueError as err:
-                # FIXME(dateutil#1180): we get here because parse_with_reso
-                #  doesn't raise on "t2m"
-                raise KeyError(key) from err
+
+            key = self._maybe_cast_for_get_loc(key)
 
         elif isinstance(key, timedelta):
             # GH#20464
@@ -682,7 +674,16 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     def _maybe_cast_for_get_loc(self, key) -> Timestamp:
         # needed to localize naive datetimes or dates (GH 35690)
-        key = Timestamp(key)
+        try:
+            key = Timestamp(key)
+        except ValueError as err:
+            # FIXME(dateutil#1180): we get here because parse_with_reso
+            #  doesn't raise on "t2m"
+            if not isinstance(key, str):
+                # Not expected to be reached, but check to be sure
+                raise  # pragma: no cover
+            raise KeyError(key) from err
+
         if key.tzinfo is None:
             key = key.tz_localize(self.tz)
         else:
@@ -691,6 +692,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     @doc(DatetimeTimedeltaMixin._maybe_cast_slice_bound)
     def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
+
+        # GH#42855 handle date here instead of get_slice_bound
+        if isinstance(label, date) and not isinstance(label, datetime):
+            # Pandas supports slicing with dates, treated as datetimes at midnight.
+            # https://github.com/pandas-dev/pandas/issues/31501
+            label = Timestamp(label).to_pydatetime()
+
         label = super()._maybe_cast_slice_bound(label, side, kind=kind)
         self._deprecate_mismatched_indexing(label)
         return self._maybe_cast_for_get_loc(label)
@@ -721,13 +729,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         if isinstance(start, time) or isinstance(end, time):
             raise KeyError("Cannot mix time and non-time slice keys")
-
-        # Pandas supports slicing with dates, treated as datetimes at midnight.
-        # https://github.com/pandas-dev/pandas/issues/31501
-        if isinstance(start, date) and not isinstance(start, datetime):
-            start = datetime.combine(start, time(0, 0))
-        if isinstance(end, date) and not isinstance(end, datetime):
-            end = datetime.combine(end, time(0, 0))
 
         def check_str_or_none(point):
             return point is not None and not isinstance(point, str)
@@ -767,15 +768,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             return slice(None)
         else:
             return indexer
-
-    @doc(Index.get_slice_bound)
-    def get_slice_bound(
-        self, label, side: Literal["left", "right"], kind=lib.no_default
-    ) -> int:
-        # GH#42855 handle date here instead of _maybe_cast_slice_bound
-        if isinstance(label, date) and not isinstance(label, datetime):
-            label = Timestamp(label).to_pydatetime()
-        return super().get_slice_bound(label, side=side, kind=kind)
 
     # --------------------------------------------------------------------
 
