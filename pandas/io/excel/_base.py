@@ -275,8 +275,8 @@ convert_float : bool, default True
 
 mangle_dupe_cols : bool, default True
     Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
-    'X'...'X'. Passing in False will cause data to be overwritten if there
-    are duplicate names in the columns.
+    'X'...'X'. Passing in False will in the future cause data to be overwritten
+    if there are duplicate names in the columns, but is currently not permitted.
 {storage_options}
 
     .. versionadded:: 1.2.0
