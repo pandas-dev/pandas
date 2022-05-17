@@ -23,9 +23,12 @@ ndarray_obj_2d = np.ndarray
 
 from enum import Enum
 
-class NoDefault(Enum): ...
+class _NoDefault(Enum):
+    no_default = ...
 
-no_default: NoDefault
+no_default = _NoDefault.no_default
+# note: the pyx file defines NoDefault as _NoDefault!
+NoDefault = Literal[_NoDefault.no_default]
 
 i8max: int
 u8max: int
