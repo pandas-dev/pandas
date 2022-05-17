@@ -76,7 +76,7 @@ ArrowStringScalarOrNAT = Union[str, libmissing.NAType]
 
 def _chk_pyarrow_available() -> None:
     if pa_version_under1p01:
-        msg = "pyarrow>=1.0.0 is required for PyArrow backed StringArray."
+        msg = "pyarrow>=1.0.0 is required for PyArrow backed ArrowExtensionArray."
         raise ImportError(msg)
 
 

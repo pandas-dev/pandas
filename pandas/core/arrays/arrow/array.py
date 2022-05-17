@@ -49,12 +49,15 @@ ArrowExtensionArrayT = TypeVar("ArrowExtensionArrayT", bound="ArrowExtensionArra
 
 class ArrowExtensionArray(ExtensionArray):
     """
-    Base class for ExtensionArray backed by Arrow array.
+    Base class for ExtensionArray backed by Arrow ChunkedArray.
     """
 
     _data: pa.ChunkedArray
 
-    def __init__(self, values: pa.ChunkedArray) -> None:
+    def __init__(self, values: pa.Array | pa.ChunkedArray) -> None:
+        if pa_version_under1p01:
+            msg = "pyarrow>=1.0.0 is required for PyArrow backed ArrowExtensionArray."
+            raise ImportError(msg)
         if isinstance(values, pa.Array):
             self._data = pa.chunked_array([values])
         elif isinstance(values, pa.ChunkedArray):
