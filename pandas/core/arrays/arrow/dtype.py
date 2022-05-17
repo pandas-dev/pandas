@@ -31,7 +31,7 @@ class ArrowDtype(StorageExtensionDtype):
         return self.pa_dtype
 
     @property
-    def name(self) -> str:
+    def name(self) -> str:  # type: ignore[override]
         """
         A string identifying the data type.
         """
