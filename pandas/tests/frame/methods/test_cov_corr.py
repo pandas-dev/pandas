@@ -27,8 +27,8 @@ class TestDataFrameCov:
 
         # with NAs
         frame = float_frame.copy()
-        frame["A"][:5] = np.nan
-        frame["B"][5:10] = np.nan
+        frame.iloc[:5, frame.columns.get_loc("A")] = np.nan
+        frame.iloc[5:10, frame.columns.get_loc("B")] = np.nan
         result = frame.cov(min_periods=len(frame) - 8)
         expected = frame.cov()
         expected.loc["A", "B"] = np.nan

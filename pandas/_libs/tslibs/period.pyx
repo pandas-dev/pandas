@@ -2202,7 +2202,7 @@ cdef class _Period(PeriodMixin):
         2018
 
         If the fiscal year starts in April (`Q-MAR`), the first quarter of
-        2018 will start in April 2017. `year` will then be 2018, but `qyear`
+        2018 will start in April 2017. `year` will then be 2017, but `qyear`
         will be the fiscal year, 2018.
 
         >>> per = pd.Period('2018Q1', freq='Q-MAR')
