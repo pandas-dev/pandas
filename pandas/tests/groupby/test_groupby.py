@@ -913,7 +913,6 @@ def test_keep_nuisance_agg(df, agg_function):
     ["sum", "mean", "prod", "std", "var", "sem", "median"],
 )
 @pytest.mark.parametrize("numeric_only", [lib.no_default, True, False])
-@pytest.mark.filterwarnings("ignore:.*default value of numeric_only:FutureWarning")
 def test_omit_nuisance_agg(df, agg_function, numeric_only):
     # GH 38774, GH 38815
     if numeric_only is lib.no_default or (not numeric_only and agg_function != "sum"):
@@ -947,9 +946,18 @@ def test_omit_nuisance_agg(df, agg_function, numeric_only):
             columns = ["A", "B", "C", "D"]
         else:
             columns = ["A", "C", "D"]
-        expected = getattr(df.loc[:, columns].groupby("A"), agg_function)(
-            numeric_only=numeric_only
-        )
+        if agg_function == "sum" and numeric_only is False:
+            # sum doesn't drop nuisance string columns
+            warn = None
+        elif agg_function in ("sum", "std", "var", "sem") and numeric_only is not True:
+            warn = FutureWarning
+        else:
+            warn = None
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(warn, match=msg):
+            expected = getattr(df.loc[:, columns].groupby("A"), agg_function)(
+                numeric_only=numeric_only
+            )
         tm.assert_frame_equal(result, expected)
 
 

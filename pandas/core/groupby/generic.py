@@ -1597,14 +1597,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         func.__name__ = "idxmax"
         result = self._python_apply_general(func, self._obj_with_exclusions)
-        if (
-            self._obj_with_exclusions.ndim > 1
-            and result.ndim > 1
-            and len(result.columns) < len(self._obj_with_exclusions.columns)
-        ):
-            warn_dropping_nuisance_columns_deprecated(
-                type(self), "idxmax", numeric_only
-            )
+        self._maybe_warn_numeric_only_depr("idxmax", result, numeric_only)
         return result
 
     @doc(
@@ -1640,14 +1633,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         func.__name__ = "idxmin"
         result = self._python_apply_general(func, self._obj_with_exclusions)
-        if (
-            self._obj_with_exclusions.ndim != 1
-            and result.ndim > 1
-            and len(result.columns) < len(self._obj_with_exclusions.columns)
-        ):
-            warn_dropping_nuisance_columns_deprecated(
-                type(self), "idxmin", numeric_only
-            )
+        self._maybe_warn_numeric_only_depr("idxmin", result, numeric_only)
         return result
 
     boxplot = boxplot_frame_groupby

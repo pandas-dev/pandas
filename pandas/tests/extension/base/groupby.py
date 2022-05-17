@@ -1,5 +1,7 @@
 import pytest
 
+from pandas.core.dtypes.common import is_numeric_dtype
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.tests.extension.base.base import BaseExtensionTests
@@ -88,9 +90,6 @@ class BaseGroupbyTests(BaseExtensionTests):
         )
         self.assert_series_equal(result, expected)
 
-    @pytest.mark.filterwarnings(
-        "ignore:The default value of numeric_only in DataFrameGroupBy.sum:FutureWarning"
-    )
     def test_in_numeric_groupby(self, data_for_grouping):
         df = pd.DataFrame(
             {
@@ -99,7 +98,15 @@ class BaseGroupbyTests(BaseExtensionTests):
                 "C": [1, 1, 1, 1, 1, 1, 1, 1],
             }
         )
-        result = df.groupby("A").sum().columns
+
+        dtype = data_for_grouping.dtype
+        if is_numeric_dtype(dtype) or dtype.name == "decimal":
+            warn = None
+        else:
+            warn = FutureWarning
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(warn, match=msg):
+            result = df.groupby("A").sum().columns
 
         if data_for_grouping.dtype._is_numeric:
             expected = pd.Index(["B", "C"])

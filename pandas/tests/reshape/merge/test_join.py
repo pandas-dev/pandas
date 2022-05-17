@@ -546,7 +546,6 @@ class TestJoin:
         )
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:.*value of numeric_only.*:FutureWarning")
     def test_mixed_type_join_with_suffix(self):
         # GH #916
         df = DataFrame(np.random.randn(20, 6), columns=["a", "b", "c", "d", "e", "f"])
@@ -554,7 +553,9 @@ class TestJoin:
         df.insert(5, "dt", "foo")
 
         grouped = df.groupby("id")
-        mn = grouped.mean()
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            mn = grouped.mean()
         cn = grouped.count()
 
         # it works!

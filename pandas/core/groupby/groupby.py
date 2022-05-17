@@ -1279,6 +1279,27 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # expected "bool")
         return numeric_only  # type: ignore[return-value]
 
+    def _maybe_warn_numeric_only_depr(
+        self, how: str, result: DataFrame | Series, numeric_only: bool | lib.NoDefault
+    ) -> None:
+        """Emit warning on numeric_only behavior deprecation when appropriate.
+
+        Parameters
+        ----------
+        how : str
+            Groupby kernel name.
+        result :
+            Result of the groupby operation.
+        numeric_only : bool or lib.no_default
+            Argument as passed by user.
+        """
+        if (
+            self._obj_with_exclusions.ndim != 1
+            and result.ndim > 1
+            and len(result.columns) < len(self._obj_with_exclusions.columns)
+        ):
+            warn_dropping_nuisance_columns_deprecated(type(self), how, numeric_only)
+
     # -----------------------------------------------------------------
     # numba
 
@@ -2121,14 +2142,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 post_processing=lambda vals, inference: np.sqrt(vals),
                 ddof=ddof,
             )
-            if (
-                self.axis != 1
-                and self._selected_obj.ndim != 1
-                and len(result.columns) < len(self._obj_with_exclusions.columns)
-            ):
-                warn_dropping_nuisance_columns_deprecated(
-                    type(self), "std", numeric_only
-                )
+            self._maybe_warn_numeric_only_depr("std", result, numeric_only)
             return result
 
     @final
@@ -2223,13 +2237,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Standard error of the mean of values within each group.
         """
         result = self.std(ddof=ddof, numeric_only=numeric_only)
-
-        if (
-            self.axis != 1
-            and self._selected_obj.ndim != 1
-            and len(result.columns) < len(self._obj_with_exclusions.columns)
-        ):
-            warn_dropping_nuisance_columns_deprecated(type(self), "sem", numeric_only)
+        self._maybe_warn_numeric_only_depr("sem", result, numeric_only)
 
         if result.ndim == 1:
             result /= np.sqrt(self.count())

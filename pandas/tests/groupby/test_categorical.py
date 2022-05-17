@@ -81,7 +81,6 @@ def test_apply_use_categorical_name(df):
     assert result.index.names[0] == "C"
 
 
-@pytest.mark.filterwarnings("ignore:.*value of numeric_only.*:FutureWarning")
 def test_basic():  # TODO: split this test
 
     cats = Categorical(
@@ -104,7 +103,9 @@ def test_basic():  # TODO: split this test
     gb = df.groupby("A", observed=False)
     exp_idx = CategoricalIndex(["a", "b", "z"], name="A", ordered=True)
     expected = DataFrame({"values": Series([3, 7, 0], index=exp_idx)})
-    result = gb.sum()
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = gb.sum()
     tm.assert_frame_equal(result, expected)
 
     # GH 8623
@@ -789,7 +790,6 @@ def test_preserve_categories():
     )
 
 
-@pytest.mark.filterwarnings("ignore:.*value of numeric_only.*:FutureWarning")
 def test_preserve_categorical_dtype():
     # GH13743, GH13854
     df = DataFrame(
@@ -810,8 +810,12 @@ def test_preserve_categorical_dtype():
         }
     )
     for col in ["C1", "C2"]:
-        result1 = df.groupby(by=col, as_index=False, observed=False).mean()
-        result2 = df.groupby(by=col, as_index=True, observed=False).mean().reset_index()
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result1 = df.groupby(by=col, as_index=False, observed=False).mean()
+            result2 = (
+                df.groupby(by=col, as_index=True, observed=False).mean().reset_index()
+            )
         expected = exp_full.reindex(columns=result1.columns)
         tm.assert_frame_equal(result1, expected)
         tm.assert_frame_equal(result2, expected)

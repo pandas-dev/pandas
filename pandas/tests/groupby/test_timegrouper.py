@@ -72,7 +72,6 @@ def groupby_with_truncated_bingrouper(frame_for_truncated_bingrouper):
 
 
 class TestGroupBy:
-    @pytest.mark.filterwarnings("ignore:.*value of numeric_only.*:FutureWarning")
     def test_groupby_with_timegrouper(self):
         # GH 4161
         # TimeGrouper requires a sorted index
@@ -106,14 +105,18 @@ class TestGroupBy:
             )
             expected.iloc[[0, 6, 18], 0] = np.array([24, 6, 9], dtype="int64")
 
-            result1 = df.resample("5D").sum()
+            msg = "The default value of numeric_only"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                result1 = df.resample("5D").sum()
             tm.assert_frame_equal(result1, expected)
 
             df_sorted = df.sort_index()
-            result2 = df_sorted.groupby(Grouper(freq="5D")).sum()
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                result2 = df_sorted.groupby(Grouper(freq="5D")).sum()
             tm.assert_frame_equal(result2, expected)
 
-            result3 = df.groupby(Grouper(freq="5D")).sum()
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                result3 = df.groupby(Grouper(freq="5D")).sum()
             tm.assert_frame_equal(result3, expected)
 
     @pytest.mark.parametrize("should_sort", [True, False])
@@ -149,7 +152,6 @@ class TestGroupBy:
         assert isinstance(groups, dict)
         assert len(groups) == 3
 
-    @pytest.mark.filterwarnings("ignore:.*value of numeric_only.*:FutureWarning")
     def test_timegrouper_with_reg_groups(self):
 
         # GH 3794
@@ -188,7 +190,9 @@ class TestGroupBy:
                 }
             ).set_index(["Date", "Buyer"])
 
-            result = df.groupby([Grouper(freq="A"), "Buyer"]).sum()
+            msg = "The default value of numeric_only"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                result = df.groupby([Grouper(freq="A"), "Buyer"]).sum()
             tm.assert_frame_equal(result, expected)
 
             expected = DataFrame(
@@ -203,7 +207,8 @@ class TestGroupBy:
                     ],
                 }
             ).set_index(["Date", "Buyer"])
-            result = df.groupby([Grouper(freq="6MS"), "Buyer"]).sum()
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                result = df.groupby([Grouper(freq="6MS"), "Buyer"]).sum()
             tm.assert_frame_equal(result, expected)
 
         df_original = DataFrame(
@@ -241,10 +246,13 @@ class TestGroupBy:
                 }
             ).set_index(["Date", "Buyer"])
 
-            result = df.groupby([Grouper(freq="1D"), "Buyer"]).sum()
+            warn_msg = "The default value of numeric_only"
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                result = df.groupby([Grouper(freq="1D"), "Buyer"]).sum()
             tm.assert_frame_equal(result, expected)
 
-            result = df.groupby([Grouper(freq="1M"), "Buyer"]).sum()
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                result = df.groupby([Grouper(freq="1M"), "Buyer"]).sum()
             expected = DataFrame(
                 {
                     "Buyer": "Carl Joe Mark".split(),
@@ -260,7 +268,8 @@ class TestGroupBy:
 
             # passing the name
             df = df.reset_index()
-            result = df.groupby([Grouper(freq="1M", key="Date"), "Buyer"]).sum()
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                result = df.groupby([Grouper(freq="1M", key="Date"), "Buyer"]).sum()
             tm.assert_frame_equal(result, expected)
 
             with pytest.raises(KeyError, match="'The grouper name foo is not found'"):
@@ -268,9 +277,11 @@ class TestGroupBy:
 
             # passing the level
             df = df.set_index("Date")
-            result = df.groupby([Grouper(freq="1M", level="Date"), "Buyer"]).sum()
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                result = df.groupby([Grouper(freq="1M", level="Date"), "Buyer"]).sum()
             tm.assert_frame_equal(result, expected)
-            result = df.groupby([Grouper(freq="1M", level=0), "Buyer"]).sum()
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                result = df.groupby([Grouper(freq="1M", level=0), "Buyer"]).sum()
             tm.assert_frame_equal(result, expected)
 
             with pytest.raises(ValueError, match="The level foo is not valid"):
@@ -279,7 +290,8 @@ class TestGroupBy:
             # multi names
             df = df.copy()
             df["Date"] = df.index + offsets.MonthEnd(2)
-            result = df.groupby([Grouper(freq="1M", key="Date"), "Buyer"]).sum()
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                result = df.groupby([Grouper(freq="1M", key="Date"), "Buyer"]).sum()
             expected = DataFrame(
                 {
                     "Buyer": "Carl Joe Mark".split(),
@@ -308,18 +320,22 @@ class TestGroupBy:
                     [datetime(2013, 10, 31, 0, 0)], freq=offsets.MonthEnd(), name="Date"
                 ),
             )
-            result = df.groupby(Grouper(freq="1M")).sum()
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                result = df.groupby(Grouper(freq="1M")).sum()
             tm.assert_frame_equal(result, expected)
 
-            result = df.groupby([Grouper(freq="1M")]).sum()
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                result = df.groupby([Grouper(freq="1M")]).sum()
             tm.assert_frame_equal(result, expected)
 
             expected.index = expected.index.shift(1)
             assert expected.index.freq == offsets.MonthEnd()
-            result = df.groupby(Grouper(freq="1M", key="Date")).sum()
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                result = df.groupby(Grouper(freq="1M", key="Date")).sum()
             tm.assert_frame_equal(result, expected)
 
-            result = df.groupby([Grouper(freq="1M", key="Date")]).sum()
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                result = df.groupby([Grouper(freq="1M", key="Date")]).sum()
             tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("freq", ["D", "M", "A", "Q-APR"])

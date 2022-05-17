@@ -203,15 +203,24 @@ def test_transform_axis_1_reducer(request, reduction_func):
     ):
         marker = pytest.mark.xfail(reason="transform incorrectly fails - GH#45986")
         request.node.add_marker(marker)
-    warn = FutureWarning if reduction_func == "mad" else None
+    if reduction_func == "mad":
+        warn = FutureWarning
+        msg = "The 'mad' method is deprecated"
+    elif reduction_func in ("sem", "std"):
+        warn = FutureWarning
+        msg = "The default value of numeric_only"
+    else:
+        warn = None
+        msg = ""
 
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
-    with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
+    with tm.assert_produces_warning(warn, match=msg):
         result = df.groupby([0, 0, 1], axis=1).transform(reduction_func)
     if reduction_func == "size":
         # size doesn't behave in the same manner; hardcode expected result
         expected = DataFrame(2 * [[2, 2, 1]], index=df.index, columns=df.columns)
     else:
+        warn = FutureWarning if reduction_func == "mad" else None
         with tm.assert_produces_warning(warn, match="The 'mad' method is deprecated"):
             expected = df.T.groupby([0, 0, 1]).transform(reduction_func).T
     tm.assert_equal(result, expected)
@@ -461,10 +470,11 @@ def test_transform_exclude_nuisance(df):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:.*value of numeric_only.*:FutureWarning")
 def test_transform_function_aliases(df):
-    result = df.groupby("A").transform("mean")
-    expected = df.groupby("A").transform(np.mean)
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby("A").transform("mean")
+        expected = df.groupby("A").transform(np.mean)
     tm.assert_frame_equal(result, expected)
 
     result = df.groupby("A")["C"].transform("mean")
@@ -715,7 +725,6 @@ def test_groupby_cum_skipna(op, skipna, input, exp):
         ("shift", (1,), lambda x: x.shift()),
     ],
 )
-@pytest.mark.filterwarnings("ignore:.*value of numeric_only.*:FutureWarning")
 def test_cython_transform_frame(op, args, targop):
     s = Series(np.random.randn(1000))
     s_missing = s.copy()
@@ -776,8 +785,15 @@ def test_cython_transform_frame(op, args, targop):
                 expected = gb.apply(targop)
 
             expected = expected.sort_index(axis=1)
-            tm.assert_frame_equal(expected, gb.transform(op, *args).sort_index(axis=1))
-            tm.assert_frame_equal(expected, getattr(gb, op)(*args).sort_index(axis=1))
+
+            warn = None if op == "shift" else FutureWarning
+            msg = "The default value of numeric_only"
+            with tm.assert_produces_warning(warn, match=msg):
+                result = gb.transform(op, *args).sort_index(axis=1)
+            tm.assert_frame_equal(result, expected)
+            with tm.assert_produces_warning(warn, match=msg):
+                result = getattr(gb, op)(*args).sort_index(axis=1)
+            tm.assert_frame_equal(result, expected)
             # individual columns
             for c in df:
                 if (

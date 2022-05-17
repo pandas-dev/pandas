@@ -216,9 +216,6 @@ class TestNumericOnly:
         self._check(df, method, expected_columns, expected_columns_numeric)
 
     @pytest.mark.parametrize("method", ["sum", "cumsum"])
-    @pytest.mark.filterwarnings(
-        "ignore:The default value of numeric_only:FutureWarning"
-    )
     def test_sum_cumsum(self, df, method):
 
         expected_columns_numeric = Index(["int", "float", "category_int"])
@@ -232,9 +229,6 @@ class TestNumericOnly:
         self._check(df, method, expected_columns, expected_columns_numeric)
 
     @pytest.mark.parametrize("method", ["prod", "cumprod"])
-    @pytest.mark.filterwarnings(
-        "ignore:The default value of numeric_only:FutureWarning"
-    )
     def test_prod_cumprod(self, df, method):
 
         expected_columns = Index(["int", "float", "category_int"])
@@ -306,24 +300,26 @@ class TestGroupByNonCythonPaths:
         return gni
 
     # TODO: non-unique columns, as_index=False
-    @pytest.mark.filterwarnings("ignore:.*default value of numeric_only:FutureWarning")
     def test_idxmax(self, gb):
         # object dtype so idxmax goes through _aggregate_item_by_item
         # GH#5610
         # non-cython calls should not include the grouper
         expected = DataFrame([[0.0], [np.nan]], columns=["B"], index=[1, 3])
         expected.index.name = "A"
-        result = gb.idxmax()
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = gb.idxmax()
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:.*default value of numeric_only:FutureWarning")
     def test_idxmin(self, gb):
         # object dtype so idxmax goes through _aggregate_item_by_item
         # GH#5610
         # non-cython calls should not include the grouper
         expected = DataFrame([[0.0], [np.nan]], columns=["B"], index=[1, 3])
         expected.index.name = "A"
-        result = gb.idxmin()
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = gb.idxmin()
         tm.assert_frame_equal(result, expected)
 
     def test_mad(self, gb, gni):
@@ -1342,7 +1338,8 @@ def test_deprecate_numeric_only(
         msg = (
             "(not allowed for this dtype"
             "|must be a string or a number"
-            "|cannot be performed against 'object' dtypes)"
+            "|cannot be performed against 'object' dtypes"
+            "|must be a string or a real number)"
         )
         with pytest.raises(TypeError, match=msg):
             method(*args, **kwargs)
