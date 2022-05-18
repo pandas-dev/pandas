@@ -645,10 +645,10 @@ def makeCustomDataframe(
             nrows/ncol, the last label might have lower multiplicity.
     dtype - passed to the DataFrame constructor as is, in case you wish to
             have more control in conjunction with a custom `data_gen_f`
-    r_idx_type, c_idx_type -  "i"/"f"/"s"/"u"/"dt"/"td".
+    r_idx_type, c_idx_type -  "i"/"f"/"s"/"dt"/"td".
         If idx_type is not None, `idx_nlevels` must be 1.
         "i"/"f" creates an integer/float index,
-        "s"/"u" creates a string/unicode index
+        "s" creates a string index
         "dt" create a datetime index.
         "td" create a timedelta index.
 
@@ -683,10 +683,10 @@ def makeCustomDataframe(
     assert c_idx_nlevels > 0
     assert r_idx_nlevels > 0
     assert r_idx_type is None or (
-        r_idx_type in ("i", "f", "s", "u", "dt", "p", "td") and r_idx_nlevels == 1
+        r_idx_type in ("i", "f", "s", "dt", "p", "td") and r_idx_nlevels == 1
     )
     assert c_idx_type is None or (
-        c_idx_type in ("i", "f", "s", "u", "dt", "p", "td") and c_idx_nlevels == 1
+        c_idx_type in ("i", "f", "s", "dt", "p", "td") and c_idx_nlevels == 1
     )
 
     columns = makeCustomIndex(
