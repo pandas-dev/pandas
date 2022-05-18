@@ -1287,7 +1287,9 @@ class Styler(StylerRenderer):
             **kwargs,
         )
 
-        return save_to_buffer(html, buf=buf, encoding=None if buf is None else encoding)
+        return save_to_buffer(
+            html, buf=buf, encoding=(encoding if buf is not None else None)
+        )
 
     @Substitution(buf=buf, encoding=encoding)
     def to_string(
