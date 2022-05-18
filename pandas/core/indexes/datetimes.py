@@ -1034,12 +1034,12 @@ def date_range(
     DatetimeIndex(['2017-01-02', '2017-01-03', '2017-01-04'],
                   dtype='datetime64[ns]', freq='D')
     """
-    if inclusive is not None and not isinstance(closed, lib.NoDefault):
+    if inclusive is not None and closed is not lib.no_default:
         raise ValueError(
             "Deprecated argument `closed` cannot be passed"
             "if argument `inclusive` is not None"
         )
-    elif not isinstance(closed, lib.NoDefault):
+    elif closed is not lib.no_default:
         warnings.warn(
             "Argument `closed` is deprecated in favor of `inclusive`.",
             FutureWarning,
@@ -1082,7 +1082,7 @@ def bdate_range(
     name: Hashable = None,
     weekmask=None,
     holidays=None,
-    closed: lib.NoDefault = lib.no_default,
+    closed: Literal["left", "right"] | lib.NoDefault | None = lib.no_default,
     inclusive: IntervalClosedType | None = None,
     **kwargs,
 ) -> DatetimeIndex:

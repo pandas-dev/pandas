@@ -27,7 +27,6 @@ class _NoDefault(Enum):
     no_default = ...
 
 no_default = _NoDefault.no_default
-# note: the pyx file defines NoDefault as _NoDefault!
 NoDefault = Literal[_NoDefault.no_default]
 
 i8max: int

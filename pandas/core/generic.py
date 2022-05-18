@@ -7901,8 +7901,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
-            left = True if isinstance(include_start, lib.NoDefault) else include_start
-            right = True if isinstance(include_end, lib.NoDefault) else include_end
+            left = True if include_start is lib.no_default else include_start
+            right = True if include_end is lib.no_default else include_end
 
             inc_dict: dict[tuple[bool_t, bool_t], IntervalClosedType] = {
                 (True, True): "both",
@@ -10692,7 +10692,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if axis is None:
             axis = self._stat_axis_number
-        axis = cast(Axis, axis)
         if level is not None:
             warnings.warn(
                 "Using the level keyword in DataFrame and Series aggregations is "
