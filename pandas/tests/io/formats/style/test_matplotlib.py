@@ -216,7 +216,7 @@ def test_background_gradient_gmap_array_raises(gmap, axis):
     ],
 )
 def test_background_gradient_gmap_dataframe_align(styler_blank, gmap, subset, exp_gmap):
-    # test gmap given as DataFrame that it aligns to the the data including subset
+    # test gmap given as DataFrame that it aligns to the data including subset
     expected = styler_blank.background_gradient(axis=None, gmap=exp_gmap, subset=subset)
     result = styler_blank.background_gradient(axis=None, gmap=gmap, subset=subset)
     assert expected._compute().ctx == result._compute().ctx
@@ -232,7 +232,7 @@ def test_background_gradient_gmap_dataframe_align(styler_blank, gmap, subset, ex
     ],
 )
 def test_background_gradient_gmap_series_align(styler_blank, gmap, axis, exp_gmap):
-    # test gmap given as Series that it aligns to the the data including subset
+    # test gmap given as Series that it aligns to the data including subset
     expected = styler_blank.background_gradient(axis=None, gmap=exp_gmap)._compute()
     result = styler_blank.background_gradient(axis=axis, gmap=gmap)._compute()
     assert expected.ctx == result.ctx

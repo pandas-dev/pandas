@@ -1892,7 +1892,7 @@ def create_block_manager_from_blocks(
     # If verify_integrity=False, then caller is responsible for checking
     #  all(x.shape[-1] == len(axes[1]) for x in blocks)
     #  sum(x.shape[0] for x in blocks) == len(axes[0])
-    #  set(x for for blk in blocks for x in blk.mgr_locs) == set(range(len(axes[0])))
+    #  set(x for blk in blocks for x in blk.mgr_locs) == set(range(len(axes[0])))
     #  all(blk.ndim == 2 for blk in blocks)
     # This allows us to safely pass verify_integrity=False
 
