@@ -246,9 +246,10 @@ def test_groupby_quantile_nullable_array(values, q):
 def test_groupby_quantile_skips_invalid_dtype(q, numeric_only):
     df = DataFrame({"a": [1], "b": [2.0], "c": ["x"]})
 
-    if numeric_only is None or numeric_only:
+    if numeric_only is lib.no_default or numeric_only:
         warn = FutureWarning if numeric_only is lib.no_default else None
-        with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
+        msg = "The default value of numeric_only in DataFrameGroupBy.quantile"
+        with tm.assert_produces_warning(warn, match=msg):
             result = df.groupby("a").quantile(q, numeric_only=numeric_only)
 
         expected = df.groupby("a")[["b"]].quantile(q)

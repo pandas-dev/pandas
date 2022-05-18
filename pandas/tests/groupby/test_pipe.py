@@ -60,7 +60,9 @@ def test_pipe_args():
         )
 
     def g(dfgb, arg2):
-        return dfgb.sum() / dfgb.sum().sum() + arg2
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            return dfgb.sum() / dfgb.sum().sum() + arg2
 
     def h(df, arg3):
         return df.x + df.y - arg3

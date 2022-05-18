@@ -493,7 +493,8 @@ retained by specifying ``group_keys=False``.
 ``numeric_only`` default value
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Across the DataFrame operations such as ``min``, ``sum``, and ``idxmax``, the default
+Across the DataFrame and DataFrameGroupBy operations such as
+``min``, ``sum``, and ``idxmax``, the default
 value of the ``numeric_only`` argument, if it exists at all, was inconsistent.
 Furthermore, operations with the default value ``None`` can lead to surprising
 results. (:issue:`46560`)
@@ -523,6 +524,8 @@ gained the ``numeric_only`` argument.
 - :meth:`DataFrame.cov`
 - :meth:`DataFrame.idxmin`
 - :meth:`DataFrame.idxmax`
+- :meth:`.DataFrameGroupBy.cummin`
+- :meth:`.DataFrameGroupBy.cummax`
 - :meth:`.DataFrameGroupBy.idxmin`
 - :meth:`.DataFrameGroupBy.idxmax`
 - :meth:`.GroupBy.var`
