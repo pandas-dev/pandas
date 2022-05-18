@@ -730,8 +730,6 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.plot.scatter, x=x, y=y)
 
     def test_plot_scatter_with_c(self):
-        from pandas.plotting._matplotlib.compat import mpl_ge_3_4_0
-
         df = DataFrame(
             np.random.randn(6, 4),
             index=list(string.ascii_letters[:6]),
@@ -743,10 +741,7 @@ class TestDataFramePlots(TestPlotBase):
             # default to Greys
             assert ax.collections[0].cmap.name == "Greys"
 
-            if mpl_ge_3_4_0():
-                assert ax.collections[0].colorbar.ax.get_ylabel() == "z"
-            else:
-                assert ax.collections[0].colorbar._label == "z"
+            assert ax.collections[0].colorbar.ax.get_ylabel() == "z"
 
         cm = "cubehelix"
         ax = df.plot.scatter(x="x", y="y", c="z", colormap=cm)
@@ -1412,7 +1407,6 @@ class TestDataFramePlots(TestPlotBase):
             self._check_colors(ax.patches, facecolors=color_args)
 
     def test_pie_df_nan(self):
-        import matplotlib as mpl
 
         df = DataFrame(np.random.rand(4, 4))
         for i in range(4):
@@ -1420,9 +1414,7 @@ class TestDataFramePlots(TestPlotBase):
         fig, axes = self.plt.subplots(ncols=4)
 
         # GH 37668
-        kwargs = {}
-        if mpl.__version__ >= "3.3":
-            kwargs = {"normalize": True}
+        kwargs = {"normalize": True}
 
         with tm.assert_produces_warning(None):
             df.plot.pie(subplots=True, ax=axes, legend=True, **kwargs)
