@@ -90,9 +90,10 @@ def test_groupby_resample_on_api():
         }
     )
 
-    expected = df.set_index("dates").groupby("key").resample("D").mean()
-
-    result = df.groupby("key").resample("D", on="dates").mean()
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = df.set_index("dates").groupby("key").resample("D").mean()
+        result = df.groupby("key").resample("D", on="dates").mean()
     tm.assert_frame_equal(result, expected)
 
 
@@ -196,7 +197,9 @@ def tests_skip_nuisance(test_frame):
     tm.assert_frame_equal(result, expected)
 
     expected = r[["A", "B", "C"]].sum()
-    result = r.sum()
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = r.sum()
     tm.assert_frame_equal(result, expected)
 
 
@@ -643,10 +646,15 @@ def test_selection_api_validation():
 
     exp = df_exp.resample("2D").sum()
     exp.index.name = "date"
-    tm.assert_frame_equal(exp, df.resample("2D", on="date").sum())
+    msg = "The default value of numeric_only"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.resample("2D", on="date").sum()
+    tm.assert_frame_equal(exp, result)
 
     exp.index.name = "d"
-    tm.assert_frame_equal(exp, df.resample("2D", level="d").sum())
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.resample("2D", level="d").sum()
+    tm.assert_frame_equal(exp, result)
 
 
 @pytest.mark.parametrize(
@@ -809,9 +817,13 @@ def test_frame_downsample_method(method, numeric_only, expected_data):
     func = getattr(resampled, method)
     if method == "prod" and numeric_only is not True:
         warn = FutureWarning
+        msg = "Dropping invalid columns in DataFrameGroupBy.prod is deprecated"
+    elif method == "sum" and numeric_only is lib.no_default:
+        warn = FutureWarning
+        msg = "The default value of numeric_only in DataFrameGroupBy.sum is deprecated"
     else:
         warn = None
-    msg = "Dropping invalid columns in DataFrameGroupBy.prod is deprecated"
+        msg = ""
     with tm.assert_produces_warning(warn, match=msg):
         result = func(numeric_only=numeric_only)
 
