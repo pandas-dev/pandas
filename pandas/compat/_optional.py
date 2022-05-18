@@ -14,7 +14,7 @@ VERSIONS = {
     "blosc": "1.21.0",
     "bottleneck": "1.3.2",
     "brotli": "0.7.0",
-    "fastparquet": "0.6.0",
+    "fastparquet": "0.4.0",
     "fsspec": "2021.05.0",
     "html5lib": "1.1",
     "hypothesis": "6.13.0",
