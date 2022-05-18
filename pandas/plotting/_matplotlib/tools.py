@@ -22,8 +22,6 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 
-from pandas.plotting._matplotlib import compat
-
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from matplotlib.axis import Axis
@@ -391,11 +389,6 @@ def handle_shared_axes(
         row_num = lambda x: x.get_subplotspec().rowspan.start
         col_num = lambda x: x.get_subplotspec().colspan.start
 
-        if compat.mpl_ge_3_4_0():
-            is_first_col = lambda x: x.get_subplotspec().is_first_col()
-        else:
-            is_first_col = lambda x: x.is_first_col()
-
         if nrows > 1:
             try:
                 # first find out the ax layout,
@@ -416,12 +409,8 @@ def handle_shared_axes(
             except IndexError:
                 # if gridspec is used, ax.rowNum and ax.colNum may different
                 # from layout shape. in this case, use last_row logic
-                if compat.mpl_ge_3_4_0():
-                    is_last_row = lambda x: x.get_subplotspec().is_last_row()
-                else:
-                    is_last_row = lambda x: x.is_last_row()
                 for ax in axarr:
-                    if is_last_row(ax):
+                    if ax.get_subplotspec().is_last_row():
                         continue
                     if sharex or _has_externally_shared_axis(ax, "x"):
                         _remove_labels_from_axis(ax.xaxis)
@@ -431,7 +420,7 @@ def handle_shared_axes(
                 # only the first column should get y labels -> set all other to
                 # off as we only have labels in the first column and we always
                 # have a subplot there, we can skip the layout test
-                if is_first_col(ax):
+                if ax.get_subplotspec().is_first_col():
                     continue
                 if sharey or _has_externally_shared_axis(ax, "y"):
                     _remove_labels_from_axis(ax.yaxis)
