@@ -1785,7 +1785,9 @@ Thu,Lunch,Yes,51.51,17"""
         multi = df.set_index(["DATE", "ID"])
         multi.columns.name = "Params"
         unst = multi.unstack("ID")
-        down = unst.resample("W-THU").mean()
+        msg = "The default value of numeric_only"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            down = unst.resample("W-THU").mean()
 
         rs = down.stack("ID")
         xp = unst.loc[:, ["VAR1"]].resample("W-THU").mean().stack("ID")
