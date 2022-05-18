@@ -21,7 +21,7 @@ VERSIONS = {
     "gcsfs": "2021.05.0",
     "jinja2": "3.0.0",
     "lxml.etree": "4.6.3",
-    "matplotlib": "3.4.2",
+    "matplotlib": "3.3.2",
     "numba": "0.53.1",
     "numexpr": "2.7.3",
     "odfpy": "1.4.1",
