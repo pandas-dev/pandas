@@ -780,6 +780,7 @@ Indexing
 - Bug in setting large integer values into :class:`Series` with ``float32`` or ``float16`` dtype incorrectly altering these values instead of coercing to ``float64`` dtype (:issue:`45844`)
 - Bug in :meth:`Series.asof` and :meth:`DataFrame.asof` incorrectly casting bool-dtype results to ``float64`` dtype (:issue:`16063`)
 - Bug in :meth:`NDFrame.xs`, :meth:`DataFrame.iterrows`, :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` not always propagating metadata (:issue:`28283`)
+- Bug in :meth:`DataFrame.shift` when ``axis`` is ``columns`` and ``fill_value`` is absent, ``freq`` is ignored (:issue:`47039`)
 -
 
 Missing
